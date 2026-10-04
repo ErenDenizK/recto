@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" font-family="Inter, system-ui, sans-serif">
+<title>Recto logo direction 03: Leaf r. Concept sketch, not a final logo.</title>
+<!-- docs/research/21-brand-and-portfolio.md section 4. A direction to sketch from, drawn on a 24-unit grid. Not a final logo; not for use. -->
+<rect width="1200" height="660" fill="#f6f5ef"/>
+<text x="40" y="52" font-size="22" font-weight="600" fill="#0e100b">Direction 03 · Leaf r</text>
+<text x="40" y="80" font-size="14" fill="#55584e">A lowercase r whose arm is a leaf lifting from the spine; light shows through the slit.</text>
+<text x="1160" y="52" font-size="13" font-weight="600" fill="#9a3b1b" text-anchor="end">CONCEPT SKETCH · NOT FINAL · NOT FOR USE</text>
+<g transform="translate(40 120)"><defs><linearGradient id="03abg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f15"/><stop offset="1" stop-color="#0e100b"/></linearGradient><radialGradient id="03ag03" cx="0.46" cy="0.38" r="0.45"><stop offset="0" stop-color="#e2f73e" stop-opacity="0.65"/><stop offset="1" stop-color="#e2f73e" stop-opacity="0"/></radialGradient><clipPath id="03atile"><rect width="340" height="340" rx="76.1"/></clipPath></defs><g clip-path="url(#03atile)"><rect width="340" height="340" fill="url(#03abg)"/><g transform="translate(47.60 47.60) scale(10.2000)"><rect x="-6" y="-6" width="36" height="36" fill="url(#03ag03)"/><path fill="#e2f73e" d="M10 6.6 11.6 8.9 11.6 13.2 10 15.2Z"/><rect fill="#f4f6ee" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#f4f6ee" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g></g></g>
+<text x="40" y="490" font-size="12" fill="#55584e">App icon direction, 340 px preview (mark = 60% of the tile)</text>
+<g transform="translate(420 120)"><rect width="340" height="340" rx="24" fill="#ffffff" stroke="#e2e1d9"/><g transform="translate(50 50) scale(10)"><rect fill="#0e100b" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#0e100b" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g></g>
+<text x="420" y="490" font-size="12" fill="#55584e">One-colour glyph, 24-unit grid</text>
+<rect x="800" y="120" width="360" height="160" rx="16" fill="#0e100b"/>
+<rect x="800" y="300" width="360" height="160" rx="16" fill="#ffffff" stroke="#e2e1d9"/>
+<g transform="translate(824 168.0) scale(2.6667)"><rect fill="#e2f73e" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#e2f73e" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g>
+<g transform="translate(824 348.0) scale(2.6667)"><rect fill="#0e100b" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#0e100b" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g>
+<text x="824" y="270" font-size="11" fill="#a9ad9f">64 px</text>
+<text x="824" y="450" font-size="11" fill="#55584e">64 px</text>
+<g transform="translate(936 184.0) scale(1.3333)"><rect fill="#f4f6ee" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#f4f6ee" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g>
+<g transform="translate(936 364.0) scale(1.3333)"><rect fill="#0e100b" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#0e100b" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g>
+<text x="936" y="270" font-size="11" fill="#a9ad9f">32 px</text>
+<text x="936" y="450" font-size="11" fill="#55584e">32 px</text>
+<g transform="translate(1016 192.0) scale(0.6667)"><rect fill="#f4f6ee" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#f4f6ee" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g>
+<g transform="translate(1016 372.0) scale(0.6667)"><rect fill="#0e100b" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#0e100b" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g>
+<text x="1016" y="270" font-size="11" fill="#a9ad9f">16 px</text>
+<text x="1016" y="450" font-size="11" fill="#55584e">16 px</text>
+<g transform="translate(1084 168)"><defs><linearGradient id="03mbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f15"/><stop offset="1" stop-color="#0e100b"/></linearGradient><radialGradient id="03mg03" cx="0.46" cy="0.38" r="0.45"><stop offset="0" stop-color="#e2f73e" stop-opacity="0.65"/><stop offset="1" stop-color="#e2f73e" stop-opacity="0"/></radialGradient><clipPath id="03mtile"><rect width="64" height="64" rx="14.3"/></clipPath></defs><g clip-path="url(#03mtile)"><rect width="64" height="64" fill="url(#03mbg)"/><g transform="translate(8.96 8.96) scale(1.9200)"><rect x="-6" y="-6" width="36" height="36" fill="url(#03mg03)"/><path fill="#e2f73e" d="M10 6.6 11.6 8.9 11.6 13.2 10 15.2Z"/><rect fill="#f4f6ee" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#f4f6ee" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g></g></g>
+<g transform="translate(1084 348)"><defs><linearGradient id="03nbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f15"/><stop offset="1" stop-color="#0e100b"/></linearGradient><radialGradient id="03ng03" cx="0.46" cy="0.38" r="0.45"><stop offset="0" stop-color="#e2f73e" stop-opacity="0.65"/><stop offset="1" stop-color="#e2f73e" stop-opacity="0"/></radialGradient><clipPath id="03ntile"><rect width="64" height="64" rx="14.3"/></clipPath></defs><g clip-path="url(#03ntile)"><rect width="64" height="64" fill="url(#03nbg)"/><g transform="translate(8.96 8.96) scale(1.9200)"><rect x="-6" y="-6" width="36" height="36" fill="url(#03ng03)"/><path fill="#e2f73e" d="M10 6.6 11.6 8.9 11.6 13.2 10 15.2Z"/><rect fill="#f4f6ee" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#f4f6ee" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g></g></g>
+<text x="800" y="490" font-size="12" fill="#55584e">Vector previews at 64, 32 and 16 px; app icon at 64 px</text>
+<g transform="translate(40 540) scale(2.6)"><rect fill="#0e100b" x="5.6" y="6.2" width="4.4" height="15.8" rx="1.1"/><path fill="#0e100b" d="M11.6 8.9C12.9 6.9 15.2 6.1 18.8 6.2V10.6C15.9 10.5 13.3 11.2 11.6 13.2Z"/></g>
+<text x="118" y="590" font-size="52" font-weight="700" letter-spacing="-1.5" fill="#0e100b">Recto</text>
+<text x="330" y="590" font-size="13" fill="#55584e">Lockup with a plain Inter Bold wordmark (placeholder)</text>
+</svg>
