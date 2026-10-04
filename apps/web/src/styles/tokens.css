@@ -46,6 +46,12 @@
  *   above holds, now also as rendered. Also new here: --select, the page's selection blue
  *   (language.md §1.5), and the two focus bands with their offsets (language.md §9.2,
  *   styles/focus.css).
+ * - Redesign M9, D0-3 (09-primitives §2, §25, §32 step 2): the token skeleton. Semantic names
+ *   (--canvas, --surface-frame, --type-body, --radius-sm …) carry today's values and the M8
+ *   names alias them until migration step 11; the control block (§2.2) that every primitive in
+ *   ui/ paints with; density by pointer (32 / 44 px controls, quality-bar Q-9) in a theme-free
+ *   block with its coarse overrides; the CSS springs (language.md §7.2). The colours stay
+ *   today's: D3 changes the values, not the names.
  */
 :root,
 [data-theme='dark'] {

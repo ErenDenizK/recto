@@ -964,6 +964,84 @@ describe('tokens.css', () => {
     });
   });
 
+  describe('the control block and density (09-primitives §2.1–§2.2, §25; redesign D0-3)', () => {
+    /** The theme-free `:root { … }` block (density, springs). */
+    const density = declarations(/(?:^|\n):root\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '');
+    const coarse = mediaOverrides('pointer: coarse), (any-pointer: coarse');
+
+    it('defines the control tokens', () => {
+      for (const name of [
+        '--control-fill',
+        '--control-fill-hover',
+        '--control-fill-pressed',
+        '--control-border',
+        '--control-border-hover',
+        '--control-on',
+        '--control-on-ink',
+        '--control-thumb-off',
+        '--control-track',
+        '--control-range',
+        '--primary-fill',
+        '--primary-ink',
+        '--field-well',
+        '--field-placeholder',
+        '--scroll-thumb',
+        '--badge-fill',
+        '--radius-control',
+        '--radius-pill',
+      ]) {
+        expect(root.has(name), name).toBe(true);
+      }
+      expect(resolve('--radius-control')).toBe('10px');
+    });
+
+    it('keeps on-states and the range fill neutral, never the accent (10-ink §3.1)', () => {
+      expect(resolve('--control-range')).toBe(resolve('--text-primary'));
+      expect(resolve('--control-on')).toBe(resolve('--text-primary'));
+      expect(resolve('--control-range')).not.toBe(resolve('--accent'));
+      // The on-state glyph on the on-fill, and the on-fill on every surface.
+      expect(contrast(colour('--control-on-ink'), colour('--control-on'))).toBeGreaterThan(7);
+      for (const surface of SURFACES) {
+        expect(contrast(colour('--control-on'), colour(surface)), surface).toBeGreaterThan(7);
+      }
+    });
+
+    it('draws the control border at ≥ 3:1 against every surface (A-3)', () => {
+      const border = parseColour(resolve('--control-border'));
+      for (const surface of SURFACES) {
+        const under = colour(surface);
+        const ring = round8(over(border.rgb, border.alpha, under));
+        expect(contrast(ring, under), surface).toBeGreaterThanOrEqual(AA_NON_TEXT);
+      }
+    });
+
+    it('keeps the M8 names as aliases of the semantic ones (§25 block 8)', () => {
+      expect(root.get('--surface-0')).toBe('var(--canvas)');
+      expect(root.get('--surface-2')).toBe('var(--surface-raised)');
+      expect(root.get('--text-md')).toBe('var(--type-body)');
+      expect(root.get('--radius-2')).toBe('var(--radius-sm)');
+      expect(root.get('--radius-round')).toBe('var(--radius-capsule)');
+      // Today's values hold until D3 changes them.
+      expect(resolve('--surface-0')).toBe('#08090b');
+      expect(resolve('--radius-2')).toBe('6px');
+    });
+
+    it('sizes controls 32 px fine and 44 px coarse, in bars of 44 and 56 (Q-9)', () => {
+      expect(density.get('--control-h')).toBe('32px');
+      expect(density.get('--bar-button')).toBe('32px');
+      expect(density.get('--bar-h')).toBe('44px');
+      expect(coarse.get('--control-h')).toBe('44px');
+      expect(coarse.get('--bar-button')).toBe('44px');
+      expect(coarse.get('--bar-h')).toBe('56px');
+      expect(coarse.get('--field-text')).toBe('16px');
+      // Icons stay 16 and 20 at both densities (Q-9).
+      expect(density.get('--icon-sm')).toBe('16px');
+      expect(density.get('--icon-md')).toBe('20px');
+      expect(coarse.has('--icon-sm')).toBe(false);
+      expect(coarse.has('--icon-md')).toBe(false);
+    });
+  });
+
   describe('motion (§7.5)', () => {
     it('rises 4px and stands still under reduced motion', () => {
       expect(resolve('--rise-distance')).toBe('4px');
