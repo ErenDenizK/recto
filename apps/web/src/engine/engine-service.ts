@@ -641,8 +641,16 @@ export class EngineService {
    * Opens a file. On `password-required` / `password-incorrect` it asks the registered
    * prompt (again after a wrong password) until the file opens or the user cancels.
    */
-  async open(file: File, password?: string): Promise<EngineResult<OpenedSource>> {
-    const id = this.newSourceId();
+  async open(
+    file: File,
+    password?: string,
+    /**
+     * Opens under this id instead of a new one: a session restore (session/restore.ts)
+     * reopens a kept source under the id its snapshot's model and edits refer to.
+     */
+    sourceId?: SourceId,
+  ): Promise<EngineResult<OpenedSource>> {
+    const id = sourceId ?? this.newSourceId();
     let attempt = password;
     let tries = 0;
     for (;;) {

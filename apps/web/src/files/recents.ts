@@ -3,8 +3,12 @@
  * on this device only and always clearable.
  *
  * Stored in IndexedDB, database `pdf-editor:recents:v1`, one record per entry
- * `{ id, name, size, pages?, openedAt, handleStored? }`, at most `RECENTS_LIMIT` (the oldest
- * go first). No file bytes and no thumbnails are stored. The browser's `FileSystemFileHandle`
+ * `{ id, name, size, pages?, openedAt, handleStored?, kept? }`, at most `RECENTS_LIMIT` (the
+ * oldest go first). No file bytes and no thumbnails are stored here. A closed document's
+ * snapshot (ADR-0032 §2.6) lives in OPFS (`session/`), and its entry names it in `kept`: a
+ * click then reopens the snapshot with no prompt or picker on every browser. An entry that
+ * leaves (Remove, Clear recents, the cap) takes its snapshot with it (`onKeptRemoved`).
+ * The browser's `FileSystemFileHandle`
  * is kept only when the browser handed one out (Chromium's `showOpenFilePicker` and a drop's
  * `getAsFileSystemHandle()`); elsewhere an entry is a name and the file is chosen again in
  * the file dialog ("Open again…").
@@ -58,6 +62,21 @@ export interface RecentEntry {
   readonly handle?: RecentFileHandle;
   /** A handle for this entry is stored beside it, to be read on a click (`readHandle`). */
   readonly handleStored?: true;
+  /**
+   * The closed document's snapshot kept on this device (ADR-0032 §2.6, `02-library` L7): a
+   * click reopens it with no prompt or picker, on every browser. Filled by `session/`.
+   */
+  readonly kept?: RecentKept;
+}
+
+/** A kept snapshot of a closed document (session/writer.ts writes it). */
+export interface RecentKept {
+  readonly snapshotId: string;
+  readonly keptAt: number;
+  /** Bytes the snapshot needs on this device. */
+  readonly bytes: number;
+  /** The document had changes ("Edited, changes kept"). */
+  readonly changed: boolean;
 }
 
 /**
@@ -134,7 +153,7 @@ const isCount = (value: unknown): value is number =>
  */
 export function parseRecentEntry(value: unknown): RecentEntry | null {
   if (!isRecord(value)) return null;
-  const { id, name, size, pages, openedAt, handle, handleStored } = value;
+  const { id, name, size, pages, openedAt, handle, handleStored, kept } = value;
   if (typeof id !== 'string' || id.length === 0 || id.length > 128) return null;
   if (typeof name !== 'string' || name.length === 0 || name.length > MAX_NAME_LENGTH) return null;
   if (!isCount(size)) return null;
@@ -147,7 +166,19 @@ export function parseRecentEntry(value: unknown): RecentEntry | null {
     openedAt,
     ...(isFileHandle(handle) ? { handle } : {}),
     ...(handleStored === true ? { handleStored } : {}),
+    ...(parseKept(kept) ?? {}),
   };
+}
+
+/** A stored `kept` field, or undefined when absent or malformed (the entry stays). */
+function parseKept(value: unknown): { kept: RecentKept } | undefined {
+  if (!isRecord(value)) return undefined;
+  const { snapshotId, keptAt, bytes, changed } = value;
+  if (typeof snapshotId !== 'string' || !/^[A-Za-z0-9._-]{1,190}$/.test(snapshotId)) {
+    return undefined;
+  }
+  if (typeof keptAt !== 'number' || !Number.isFinite(keptAt) || !isCount(bytes)) return undefined;
+  return { kept: { snapshotId, keptAt, bytes, changed: changed === true } };
 }
 
 /** The entry as its stored record: the handle goes to its own store, a mark stays. */
@@ -378,11 +409,31 @@ let fallbackToMemory = true;
 let abandoned: RecentsBackend | undefined;
 /** Bumped by every clear (and backend reset): reads and records begun earlier are void. */
 let clears = 0;
+/** When Recents were last cleared: a document closed before it is not kept after it. */
+let clearedAt = 0;
 let loading: Promise<void> | undefined;
 /** Writes run one after another, so a cap never deletes what a later put just wrote. */
 let queue: Promise<void> = Promise.resolve();
 
 const store = (): RecentsBackend => (backend ??= defaultBackend());
+
+/**
+ * Deletes kept snapshots when their entries leave Recents (Remove, Clear recents, the cap):
+ * registered by `session/`, so this module does not depend on it. Recents is the index of
+ * kept closed documents; a snapshot no entry names would be kept for nobody.
+ */
+let keptRemover: ((snapshotIds: readonly string[]) => void) | undefined;
+
+export function onKeptRemoved(remover: typeof keptRemover): void {
+  keptRemover = remover;
+}
+
+function removeKeptOf(entries: readonly RecentEntry[], ids?: readonly string[]): void {
+  const snapshots = entries
+    .filter((entry) => entry.kept !== undefined && (ids === undefined || ids.includes(entry.id)))
+    .map((entry) => (entry.kept as RecentKept).snapshotId);
+  if (snapshots.length > 0) keptRemover?.(snapshots);
+}
 
 /** Runs a backend write after the earlier ones; a failure switches to memory once. */
 function enqueue(run: (target: RecentsBackend) => Promise<void>): Promise<void> {
@@ -523,28 +574,41 @@ export async function recordRecent(input: RecordRecentInput): Promise<RecentEntr
   const { entries, removed } = addRecentEntry(state.entries, entry, {
     ...(input.replaces === undefined ? {} : { replaces: input.replaces }),
   });
+  // A snapshot of the same file stays with the new entry; one that fell off the end goes.
+  const replaced = state.entries.find((e) => removed.includes(e.id) && e.kept !== undefined);
+  const inherited =
+    replaced?.kept !== undefined && sameRecentFile(replaced, entry) && entries[0] === entry
+      ? { ...entry, kept: replaced.kept }
+      : undefined;
+  if (inherited !== undefined) entries[0] = inherited;
+  removeKeptOf(
+    state.entries.filter((e) => e.kept?.snapshotId !== inherited?.kept?.snapshotId),
+    removed,
+  );
   const access = withoutKeys(state.access, removed);
   access[entry.id] = entry.handle === undefined ? 'unavailable' : 'granted';
   const note = state.note !== null && removed.includes(state.note.id) ? null : state.note;
   useRecentsStore.setState({ entries, access, note });
+  const written = inherited ?? entry;
   await enqueue(async (target) => {
     try {
-      await target.put(entry);
+      await target.put(written);
     } catch (error) {
       // A handle that cannot be stored (DataCloneError) still leaves the name.
-      if (entry.handle === undefined) throw error;
-      const { handle: _dropped, ...nameOnly } = entry;
+      if (written.handle === undefined) throw error;
+      const { handle: _dropped, ...nameOnly } = written;
       await target.put(nameOnly);
     }
     for (const id of removed) await target.remove(id);
   });
-  return entry;
+  return written;
 }
 
-/** Removes one entry ("Remove from recents", Delete on a row). */
+/** Removes one entry ("Remove from recents", Delete on a row) and its kept snapshot. */
 export async function removeRecent(id: string): Promise<void> {
   const state = useRecentsStore.getState();
   if (!state.entries.some((entry) => entry.id === id)) return;
+  removeKeptOf(state.entries, [id]);
   const access = withoutKeys(state.access, [id]);
   useRecentsStore.setState({
     entries: state.entries.filter((entry) => entry.id !== id),
@@ -567,7 +631,9 @@ export async function removeRecent(id: string): Promise<void> {
  * screen is empty either way; `clearFailed` tells Home).
  */
 export async function clearRecents(): Promise<boolean> {
+  removeKeptOf(useRecentsStore.getState().entries);
   clears += 1;
+  clearedAt = Date.now();
   useRecentsStore.setState({ entries: [], access: {}, note: null, clearFailed: false });
   let cleared = false;
   await enqueue(async (target) => {
@@ -590,6 +656,93 @@ export async function clearRecents(): Promise<boolean> {
   });
   if (!cleared) useRecentsStore.setState({ clearFailed: true });
   return cleared;
+}
+
+export interface KeepRecentInput {
+  readonly name: string;
+  readonly size: number;
+  readonly pages?: number;
+  readonly kept: RecentKept;
+}
+
+/**
+ * A closed document's snapshot was kept (session/writer.ts): the entry for its file carries
+ * it from now on, or a new entry is made for it (a combined document, images, an entry that
+ * was removed). The entry keeps its place and its handle.
+ */
+export async function keepRecent(input: KeepRecentInput): Promise<void> {
+  if (input.name.length === 0 || !isCount(input.size)) return;
+  const generation = clears;
+  // Closed before the last "Clear recents" (its record was written after): cleared with it.
+  if (input.kept.keptAt < clearedAt) {
+    keptRemover?.([input.kept.snapshotId]);
+    return;
+  }
+  await loadRecents();
+  if (clears !== generation) {
+    keptRemover?.([input.kept.snapshotId]);
+    return;
+  }
+  const state = useRecentsStore.getState();
+  const existing = state.entries.find((entry) => sameRecentFile(entry, input));
+  if (existing === undefined) {
+    const entry: RecentEntry = {
+      id: ids(),
+      name: input.name.slice(0, MAX_NAME_LENGTH),
+      size: input.size,
+      ...(input.pages !== undefined && isCount(input.pages) && input.pages > 0
+        ? { pages: input.pages }
+        : {}),
+      openedAt: input.kept.keptAt,
+      kept: input.kept,
+    };
+    const { entries, removed } = addRecentEntry(state.entries, entry);
+    removeKeptOf(state.entries, removed);
+    useRecentsStore.setState({
+      entries,
+      access: { ...withoutKeys(state.access, removed), [entry.id]: 'unavailable' },
+    });
+    await enqueue(async (target) => {
+      await target.put(entry);
+      for (const id of removed) await target.remove(id);
+    });
+    return;
+  }
+  if (existing.kept !== undefined && existing.kept.snapshotId !== input.kept.snapshotId) {
+    // One snapshot per row: an edited one is never replaced by an unedited copy of the file.
+    if (existing.kept.changed && !input.kept.changed) {
+      keptRemover?.([input.kept.snapshotId]);
+      return;
+    }
+    keptRemover?.([existing.kept.snapshotId]);
+  }
+  const updated: RecentEntry = { ...existing, kept: input.kept };
+  useRecentsStore.setState((s) => ({
+    entries: s.entries.map((entry) => (entry.id === existing.id ? updated : entry)),
+  }));
+  await enqueue((target) => target.put(updated));
+}
+
+/**
+ * Snapshots that are gone (retention, a reopen, Clear in the privacy popover): their
+ * entries drop "changes kept" and reopen like a plain recent.
+ */
+export async function forgetKept(snapshotIds: readonly string[]): Promise<void> {
+  if (snapshotIds.length === 0) return;
+  const gone = new Set(snapshotIds);
+  const changed: RecentEntry[] = [];
+  useRecentsStore.setState((s) => ({
+    entries: s.entries.map((entry) => {
+      if (entry.kept === undefined || !gone.has(entry.kept.snapshotId)) return entry;
+      const { kept: _gone, ...rest } = entry;
+      changed.push(rest);
+      return rest;
+    }),
+  }));
+  if (changed.length === 0) return;
+  await enqueue(async (target) => {
+    for (const entry of changed) await target.put(entry);
+  });
 }
 
 /** Shows (or hides, with null) the one-line note under the list. */

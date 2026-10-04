@@ -19,6 +19,8 @@ import { useEffect, useLayoutEffect } from 'react';
 import { getEngineService } from '../../engine/engine-service';
 import { loadRecents } from '../../files/recents';
 import { LocaleBoundary } from '../../i18n/LocaleBoundary';
+import { RestoreNotice } from '../../session/RestoreNotice';
+import { isDocumentChanged, startSession } from '../../session/session';
 import { requestPassword } from '../../state/password-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { clearLinksForSource } from '../../viewer/LinkLayer';
@@ -28,7 +30,8 @@ import styles from './CompactApp.module.css';
 import { CompactLibrary } from './CompactLibrary';
 import { CompactPassword } from './CompactPassword';
 import { CompactReader } from './CompactReader';
-import { showLibrary, useCompactStore } from './compact-store';
+import { shareOrDownload } from './compact-actions';
+import { showLibrary, showReader, useCompactStore } from './compact-store';
 
 const VIEWPORT =
   'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content';
@@ -63,10 +66,28 @@ export function CompactApp() {
   useEffect(() => {
     void loadRecents();
   }, []);
+  // Kept documents restore here too (ADR-0033 §2.3): the active one, at its page; one with
+  // changes made in the full edition opens with them and offers Download a copy, which
+  // goes through the export because it is not the file as opened.
+  useEffect(
+    () =>
+      startSession({
+        edition: 'compact',
+        onRestored: ([id]) => {
+          const doc =
+            id === undefined ? undefined : useWorkspaceStore.getState().workspace.documents[id];
+          if (doc === undefined) return;
+          useCompactStore.setState({ openedDocument: isDocumentChanged(doc.id) ? null : doc });
+          showReader();
+        },
+      }),
+    [],
+  );
   return (
     <LocaleBoundary>
       <CompactRoot />
       <CompactPassword />
+      <RestoreNotice edition="compact" onDownloadCopy={() => void shareOrDownload()} />
       <LiveRegion />
     </LocaleBoundary>
   );

@@ -1,0 +1,104 @@
+/* The session notice (L8, FB9), interim until the toast stack (D0-5): an opaque capsule above
+   the status bar, bottom left like the Combine notice, one line, controls of one height. */
+.notice {
+  position: fixed;
+  bottom: calc(var(--statusbar-height) + var(--space-3));
+  left: var(--space-4);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: calc(100vw - var(--space-8));
+  height: 40px;
+  padding: 0 var(--space-1) 0 var(--space-4);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-3);
+  background: var(--surface-3);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  white-space: nowrap;
+  animation: enter var(--duration-base) var(--ease-out);
+}
+
+/* Honesty and failures carry the warning hairline (FB9), never a fill. */
+.notice[data-kind='failed'],
+.notice[data-kind='not-kept'] {
+  border-color: var(--warning);
+}
+
+.mark {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--warning);
+}
+
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action {
+  flex: none;
+  height: var(--control-height);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-2);
+  color: var(--text-primary);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .action:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.action:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.close {
+  flex: none;
+}
+
+/* The compact edition: centred above the reader's capsule, 44 px targets, two lines allowed. */
+.notice[data-edition='compact'] {
+  right: var(--space-4);
+  bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 68px);
+  left: var(--space-4);
+  max-width: none;
+  height: auto;
+  min-height: 52px;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  border-radius: 16px;
+  white-space: normal;
+}
+
+.notice[data-edition='compact'] .text {
+  flex: 1;
+  overflow: visible;
+}
+
+.notice[data-edition='compact'] .action,
+.notice[data-edition='compact'] .close {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice {
+    animation: none;
+  }
+}

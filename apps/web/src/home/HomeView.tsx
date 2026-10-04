@@ -597,6 +597,8 @@ function RecentFiles({ variant }: { readonly variant: 'cards' | 'empty' }) {
 
 /** The quiet hint a row carries: permission to ask for, or the file dialog to go through. */
 function recentHint(entry: RecentEntry, access: string | undefined): string | undefined {
+  // A kept snapshot reopens by itself on every browser (ADR-0032 §2.6).
+  if (entry.kept !== undefined) return entry.kept.changed ? m.recents_hint_kept() : undefined;
   if (!canReopenRecent(entry) || access === 'unavailable') return m.recents_hint_open_again();
   if (access === 'prompt') return m.recents_hint_permission();
   return undefined;

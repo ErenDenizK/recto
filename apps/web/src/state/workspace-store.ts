@@ -140,12 +140,38 @@ interface WorkspaceState {
    * add it with `addLoadedSource` inside an operation (usually the `applyComposed` that
    * owns the lease). Sources never added are closed once the lease is released.
    */
-  loadSources: (files: readonly File[], lease: ProtectionLease) => Promise<LoadedSources>;
+  loadSources: (
+    files: readonly File[],
+    lease: ProtectionLease,
+    options?: {
+      /**
+       * The id to open each file under (by position), instead of a new one: a session
+       * restore reopens kept sources under the ids their snapshot refers to.
+       */
+      readonly sourceIds?: readonly (SourceId | undefined)[];
+    },
+  ) => Promise<LoadedSources>;
   /**
    * Stores image bytes for image pages and returns the id the model references. The blob
    * is protected under `lease` until it is released; by then it must be in history.
    */
   addBlob: (blob: StoredBlob, lease: ProtectionLease) => BlobId;
+  /**
+   * `addBlob` under a known id: a session restore puts back the image bytes its snapshot's
+   * model refers to (session/restore.ts). Protected under `lease` likewise.
+   */
+  restoreBlob: (id: BlobId, blob: StoredBlob, lease: ProtectionLease) => void;
+  /**
+   * Replaces the whole history (a session restore, ADR-0032 §2.5): the sources and blobs
+   * it refers to must be loaded and protected first. The edit runner then brings the
+   * engine to the present entry's edits.
+   */
+  replaceHistory: (history: History) => void;
+  /**
+   * Runs `task` with a fresh protection lease (for `loadSources` and `restoreBlob` outside an
+   * `applyComposed`), released after it, when garbage collection runs.
+   */
+  withLease: <T>(task: (lease: ProtectionLease) => Promise<T>) => Promise<T>;
   closeDocument: (id: DocumentId) => void;
   setActive: (id: DocumentId) => void;
   movePages: (
@@ -452,13 +478,17 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
   const loadSources = async (
     files: readonly File[],
     protection: ProtectionLease,
+    options: { readonly sourceIds?: readonly (SourceId | undefined)[] } = {},
   ): Promise<LoadedSources> => {
     const lease = asLease(protection);
     if (files.length === 0) return { loaded: [], skipped: [] };
     const service = getEngineService();
     set((s) => ({ opening: s.opening + files.length }));
     // Open in parallel; report in the order the files were given.
-    const pending = files.map((file) => ({ file, result: service.open(file) }));
+    const pending = files.map((file, index) => ({
+      file,
+      result: service.open(file, undefined, options.sourceIds?.[index]),
+    }));
     const loaded: { file: File; source: OpenedSource }[] = [];
     const skipped: { name: string; error: EngineFailure }[] = [];
     for (const { file, result: promise } of pending) {
@@ -565,6 +595,31 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
       // the owner's prelude is still running.
       if (!lease.hold(id)) collectGarbage();
       return id;
+    },
+
+    restoreBlob: (id, blob, protection) => {
+      const lease = asLease(protection);
+      set((s) => ({ blobs: { ...s.blobs, [id]: blob } }));
+      if (!lease.hold(id)) collectGarbage();
+    },
+
+    replaceHistory: (history) => {
+      set({
+        history,
+        workspace: history.present.workspace,
+        documentColors: colorsFor(history.present.workspace),
+      });
+      collectGarbage();
+    },
+
+    withLease: async (task) => {
+      const lease = new Lease();
+      try {
+        return await task(lease);
+      } finally {
+        lease.release();
+        collectGarbage();
+      }
     },
 
     closeDocument: (id) => {

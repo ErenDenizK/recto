@@ -147,6 +147,8 @@ function Recents() {
 
 /** What reopening needs, as Home says it: nothing, permission, or the file dialog. */
 function recentHint(entry: RecentEntry, access: string | undefined): string | undefined {
+  // A kept snapshot reopens by itself on every browser (ADR-0032 §2.6).
+  if (entry.kept !== undefined) return entry.kept.changed ? m.recents_hint_kept() : undefined;
   if (!canReopenRecent(entry) || access === 'unavailable') return m.recents_hint_open_again();
   if (access === 'prompt') return m.recents_hint_permission();
   return undefined;

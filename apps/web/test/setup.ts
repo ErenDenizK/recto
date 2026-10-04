@@ -8,15 +8,19 @@
 //   file that leaves a fixture remembered at a later page would otherwise make the next
 //   file's Read view open there, with page 1 off screen and its annotation layer unloaded.
 // - Clears Recents (IndexedDB) before every test for the same reason.
+// - Turns session snapshots off (OPFS is shared by every file too); session tests turn them on.
 import '@testing-library/jest-dom/vitest';
 
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 
 import { clearRecents } from '../src/files/recents';
+import { setSessionEnabled } from '../src/session/session';
 import { POSITIONS_KEY } from '../src/viewer/navigation';
 
 beforeEach(async () => {
+  // Session snapshots share the origin's OPFS like localStorage: off unless a test needs them.
+  setSessionEnabled(false);
   // Recents (IndexedDB, shared by every file like localStorage) start empty in each test, so
   // a file opened by one test never shows as a Recent row on another test's Home.
   await clearRecents();
