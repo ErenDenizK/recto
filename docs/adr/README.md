@@ -28,3 +28,14 @@ only after discussion with the project owner; the discussion summary is appended
 | 0019 | Home as a view, documents in Read or Edit, Arrange as a view | accepted |
 | 0020 | Paragraph text editing: Tier B now, Tier C later, no cross-page reflow | accepted |
 | 0021 | One Highlighter, a lasso for every kind, one ink palette | accepted |
+| 0022 | Recto Glass: content solid, controls glass, light beneath | proposed |
+| 0023 | Colour roles: one lime for interaction, a blue for selection on the page | proposed |
+| 0024 | Glass materials: five densities, lit glass, a coverage rule and one setting | proposed |
+| 0025 | Light: an in-house aurora that answers events | proposed |
+| 0026 | Motion: springs on platform routes, no animation library | proposed |
+| 0027 | Type and icons: an Inter Recto subset and Phosphor built at compile time | proposed |
+| 0028 | Accessibility gates for an expressive interface | proposed |
+| 0029 | Viewing with targeted acts, one Markup state, Lock, and the Pages grid | proposed |
+| 0030 | One change guard, `canChange(id, act)`, with Lock enforced in `commit()` | proposed |
+| 0031 | The size-class shell: top strip, dock, sidebar, sheets, page pill, Library | proposed |
+| 0032 | Saving, restore and history: Save in place, snapshots on the device, visible Undo | proposed |
