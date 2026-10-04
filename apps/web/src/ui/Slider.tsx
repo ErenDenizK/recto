@@ -1,5 +1,5 @@
 /**
- * The one Slider (`10-ink.md` §3; supersedes `09-primitives` §10 and `ui/Range.tsx`), on Base
+ * The one Slider (`10-ink.md` §3; supersedes `09-primitives` §10 and the retired `ui/Range`), on Base
  * UI's `Slider` for its semantics (`role="slider"` on a native range input), pointer capture
  * and track press.
  *

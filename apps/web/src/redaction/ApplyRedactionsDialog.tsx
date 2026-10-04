@@ -23,6 +23,7 @@ import exportStyles from '../export/ExportDialog.module.css';
 import { formatNumber, m } from '../i18n';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import { ColourPicker } from '../ui/colour/ColourPicker';
 import { useRetained } from '../ui/use-retained';
 import {
   type ApplyChoices,
@@ -207,12 +208,11 @@ function ApplyFlow({ onClose }: { readonly onClose: () => void }) {
                 </label>
               ))}
               {choices.fill === 'custom' ? (
-                <input
-                  type="color"
-                  className={styles.color}
-                  value={choices.customColor}
-                  aria-label={m.redaction_fill_custom_label()}
-                  onChange={(event) => set({ customColor: event.target.value })}
+                <ColourPicker
+                  value={choices.customColor.toUpperCase()}
+                  label={m.redaction_fill_custom_label()}
+                  onChange={(customColor) => set({ customColor: customColor.toLowerCase() })}
+                  side="right"
                 />
               ) : null}
             </div>

@@ -31,6 +31,16 @@ describe('scales', () => {
     expect(valueToPosition(140, OPACITY)).toBe(1);
   });
 
+  it('places the fill at the value, clamped, and at the start of an empty range (was Range)', () => {
+    const quality: SliderRange = { min: 10, max: 100, scale: 'linear' };
+    expect(valueToPosition(10, quality)).toBe(0);
+    expect(valueToPosition(55, quality)).toBe(0.5);
+    expect(valueToPosition(120, quality)).toBe(1);
+    expect(valueToPosition(1, { min: 0, max: 3, scale: 'linear' })).toBeCloseTo(1 / 3, 9);
+    expect(valueToPosition(5, { min: 5, max: 5, scale: 'linear' })).toBe(0);
+    expect(valueToPosition(Number.NaN, quality)).toBe(0);
+  });
+
   it('gives 0.25–2 pt the first 45 % of the logarithmic pen travel (§3.3)', () => {
     const t2 = valueToPosition(2, PEN);
     expect(t2).toBeGreaterThan(0.44);

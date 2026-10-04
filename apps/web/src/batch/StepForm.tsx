@@ -35,6 +35,10 @@ import { getLocale, m } from '../i18n';
 import { ocrDependencies } from '../ocr/ocr-deps';
 import { formatMegabytes, languageName, languagesKey } from '../ocr/ocr-model';
 import tool from '../tools/ToolDialog.module.css';
+import { ColourPicker } from '../ui/colour/ColourPicker';
+import { NumberField as NumberInput } from '../ui/NumberField';
+import { Select } from '../ui/Select';
+import { TextField as TextInput } from '../ui/TextField';
 import styles from './Batch.module.css';
 import { anchorLabel, compressPresetLabel, OCR_HIGH_DPI, OCR_STANDARD_DPI } from './labels';
 import { formatRanges, parseRanges } from './step-defaults';
@@ -51,44 +55,20 @@ function NumberField(props: {
   readonly step?: number;
   readonly onChange: (value: number) => void;
 }) {
-  const [text, setText] = useState(String(props.value));
-  const [shown, setShown] = useState(props.value);
-  // Follow outside changes without fighting the user's typing.
-  if (shown !== props.value && Number(text) !== props.value) {
-    setShown(props.value);
-    setText(String(props.value));
-  }
-  const number = Number(text);
-  const invalid =
-    text.trim() === '' || !Number.isFinite(number) || number < props.min || number > props.max;
+  // Out-of-range entries are clamped on blur, and the field says so (09 §14).
   return (
-    <label className={tool.field}>
-      <span className={tool.label}>{props.label}</span>
-      <input
-        className={tool.input}
-        type="number"
-        inputMode="decimal"
-        min={props.min}
-        max={props.max}
-        step={props.step ?? 1}
-        value={text}
-        aria-invalid={invalid}
-        onChange={(event) => {
-          const next = event.target.value;
-          setText(next);
-          const value = Number(next);
-          if (
-            next.trim() !== '' &&
-            Number.isFinite(value) &&
-            value >= props.min &&
-            value <= props.max
-          ) {
-            setShown(value);
-            props.onChange(value);
-          }
-        }}
-      />
-    </label>
+    <NumberInput
+      className={tool.field}
+      label={props.label}
+      showLabel
+      value={props.value}
+      min={props.min}
+      max={props.max}
+      step={props.step ?? 1}
+      onValueChange={(value) => {
+        if (value !== null && value >= props.min && value <= props.max) props.onChange(value);
+      }}
+    />
   );
 }
 
@@ -100,16 +80,14 @@ function TextField(props: {
   readonly mono?: boolean;
 }) {
   return (
-    <label className={tool.field}>
-      <span className={tool.label}>{props.label}</span>
-      <input
-        className={tool.input}
-        value={props.value}
-        spellCheck={false}
-        placeholder={props.placeholder}
-        onChange={(event) => props.onChange(event.target.value)}
-      />
-    </label>
+    <TextInput
+      className={tool.field}
+      label={props.label}
+      value={props.value}
+      spellCheck={false}
+      placeholder={props.placeholder}
+      onValueChange={props.onChange}
+    />
   );
 }
 
@@ -120,20 +98,18 @@ function SelectField<T extends string>(props: {
   readonly onChange: (value: T) => void;
 }) {
   return (
-    <label className={tool.field}>
-      <span className={tool.label}>{props.label}</span>
-      <select
-        className={tool.select}
+    <div className={tool.field}>
+      <span className={tool.label} aria-hidden="true">
+        {props.label}
+      </span>
+      <Select
+        block
+        label={props.label}
         value={props.value}
-        onChange={(event) => props.onChange(event.target.value as T)}
-      >
-        {props.options.map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
-    </label>
+        onValueChange={props.onChange}
+        options={props.options.map(([value, label]) => ({ value, label }))}
+      />
+    </div>
   );
 }
 
@@ -343,15 +319,17 @@ function StyleFields(props: {
           max={400}
           onChange={(size) => set({ size })}
         />
-        <label className={tool.field}>
-          <span className={tool.label}>{m.furniture_color()}</span>
-          <input
-            className={tool.input}
-            type="color"
-            value={value.color}
-            onChange={(event) => set({ color: event.target.value.toLowerCase() })}
+        <div className={tool.field}>
+          <span className={tool.label} aria-hidden="true">
+            {m.furniture_color()}
+          </span>
+          <ColourPicker
+            value={value.color.toUpperCase()}
+            label={m.furniture_color()}
+            onChange={(color) => set({ color: color.toLowerCase() })}
+            side="right"
           />
-        </label>
+        </div>
         {opacity}
       </Row>
       <Row>
