@@ -1,0 +1,182 @@
+/*
+ * Swatch and SwatchGroup (10-ink.md §5). Geometry, fine / coarse: target 32 / 44, dot 18 / 22;
+ * selected: dot 14 / 18 inside a 2 px ring of the colour with a 2 px gap (ring 22 / 26).
+ * The dot and the ring are centred by grid, so every size is a whole pixel on a whole-pixel
+ * centre. Colour comes only from the content (`--swatch`); forced colours keep it.
+ */
+
+.group {
+  --sw-target: 32px;
+  --sw-dot: 18px;
+  --sw-dot-on: 14px;
+  --sw-gap: 2px;
+  --sw-ring: 2px;
+  --sw-contrast: rgb(255 255 255 / 0.55);
+  --sw-strong: var(--text-primary);
+  --sw-focus-light: var(--focus-light, var(--accent));
+  --sw-focus-dark: var(--focus-dark, var(--surface-0));
+  --sw-spring: var(--spring-press, 300ms);
+  --sw-ease: var(--ease-spring, cubic-bezier(0.2, 0, 0, 1));
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+}
+
+:global([data-theme='light']) .group {
+  --sw-contrast: rgb(21 23 28 / 0.55);
+  --sw-strong: #15171c;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .group {
+    --sw-target: 44px;
+    --sw-dot: 22px;
+    --sw-dot-on: 18px;
+  }
+}
+
+.swatch {
+  --sw-ring-size: calc(var(--sw-dot-on) + 2 * var(--sw-gap) + 2 * var(--sw-ring));
+
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--sw-target);
+  height: var(--sw-target);
+  border-radius: 50%;
+  cursor: pointer;
+  outline: none;
+  forced-color-adjust: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.swatch > * {
+  grid-area: 1 / 1;
+}
+
+.dot {
+  box-sizing: border-box;
+  width: var(--sw-dot);
+  height: var(--sw-dot);
+  border-radius: 50%;
+  background: var(--swatch);
+  transition: transform var(--sw-spring) var(--sw-ease);
+}
+
+/* The selection ring: hidden until checked, then it springs in from 0.88 (*select*); the
+   dot takes its smaller size at once, so nothing but transforms and opacity animate. */
+.ring {
+  box-sizing: border-box;
+  width: var(--sw-ring-size);
+  height: var(--sw-ring-size);
+  border: var(--sw-ring) solid;
+  border-color: var(--swatch, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.88);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--sw-spring) var(--sw-ease);
+}
+
+.swatch[data-checked] .dot {
+  width: var(--sw-dot-on);
+  height: var(--sw-dot-on);
+}
+
+.swatch[data-checked] .ring {
+  opacity: 1;
+  transform: none;
+}
+
+/* The contrast ring (dark theme): black on dark glass keeps its edge. */
+.swatch[data-ring-dark] .dot {
+  box-shadow: inset 0 0 0 1px var(--sw-contrast);
+}
+
+.swatch[data-ring-dark][data-checked] .ring {
+  box-shadow: 0 0 0 1px var(--sw-contrast);
+}
+
+/* Light theme: the light-theme rule replaces the dark one. */
+:global([data-theme='light']) .swatch .dot,
+:global([data-theme='light']) .swatch[data-checked] .ring {
+  box-shadow: none;
+}
+
+:global([data-theme='light']) .swatch[data-ring-light] .dot {
+  box-shadow: inset 0 0 0 1px var(--sw-contrast);
+}
+
+:global([data-theme='light']) .swatch[data-ring-light][data-checked] .ring {
+  box-shadow: 0 0 0 1px var(--sw-contrast);
+}
+
+/* No fill: a white dot with a red diagonal (the ⊘ form). */
+.swatch[data-none] .dot {
+  background:
+    linear-gradient(
+      135deg,
+      transparent calc(50% - 0.9px),
+      #e5322d calc(50% - 0.9px),
+      #e5322d calc(50% + 0.9px),
+      transparent calc(50% + 0.9px)
+    ),
+    #ffffff;
+  box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.35);
+}
+
+.swatch[data-none][data-checked] .ring {
+  border-color: var(--sw-strong);
+}
+
+@media (hover: hover) {
+  .swatch:not([data-disabled]):hover .dot {
+    transform: scale(1.08);
+  }
+}
+
+.swatch:not([data-disabled]):active .dot {
+  transform: scale(0.94);
+  transition-duration: var(--duration-instant);
+}
+
+.swatch[data-disabled] {
+  cursor: default;
+  opacity: 0.38;
+}
+
+/* Keyboard focus: the inset form (09 §19), clear of the selection ring. */
+.swatch:focus-visible {
+  outline: 2px solid var(--sw-focus-light);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px var(--sw-focus-dark);
+}
+
+@media (prefers-contrast: more) {
+  .swatch[data-checked] .ring {
+    outline: 1px solid var(--sw-strong);
+    outline-offset: 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot,
+  .ring {
+    transition: none;
+  }
+
+  .swatch .dot,
+  .swatch .ring {
+    transform: none !important;
+  }
+}
+
+:global(:root[data-motion='reduced']) .dot,
+:global(:root[data-motion='reduced']) .ring {
+  transition: none;
+  transform: none !important;
+}

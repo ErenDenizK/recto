@@ -1,0 +1,629 @@
+/*
+ * The one Slider (10-ink.md §3; supersedes 09-primitives §10 and ui/Range).
+ *
+ * Geometry. A row of [label] [control] [readout]. The control is the hit area (32 fine, 44
+ * coarse) and the knob's travel: its inline padding is half the knob, so the knob's centre
+ * runs from one end of the visible track to the other less half a knob (Apple's inset
+ * knob), and Base UI maps the pointer over the same content box. The control is an
+ * inline-size container, so `100cqw` is the travel and every position below is a transform
+ * of it: the knob, the fill, the lens copy and the lens hole all read one number,
+ * `--slider-pos` (0–1), which the component sets from the value.
+ *
+ * Motion. `--slider-pos` and `--slider-stretch` are registered numbers, so one transition on
+ * the root moves the knob, the fill and the lens copy together: a track press springs to
+ * the point (--spring-quick), a drag that continues from it follows on --spring-track, and
+ * a drag or a key otherwise moves 1:1 with no transition. A drag past an end stretches the
+ * track (`--slider-stretch`, a share of its width set by script, at most 6 px) and springs
+ * back on release (the pop spring: `10-ink` names it "bouncy"). Holding the knob scales it
+ * 1.25 (--spring-press, "snappy") and turns it into a lens: a copy of the track, magnified,
+ * inside a clear rim, with the real track masked out beneath so nothing doubles (Q-5: no
+ * backdrop-filter on a moving part). Reduced motion: no lens, no stretch, no tick, no
+ * spring; values still snap.
+ *
+ * Colour. Local tokens read the control tokens of 09-primitives §2.2 when they exist and
+ * fall back to the spec values, per theme. The fill is neutral (n12), never lime (§3.1).
+ */
+
+@property --slider-pos {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --slider-stretch {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.root {
+  /* Density (10-ink §3.1, 09 §2.1). */
+  --sl-track: 6px;
+  --sl-knob: 22px;
+  --sl-hit: 32px;
+  --sl-taper-start: 2px;
+  --sl-taper-end: 12px;
+  --sl-readout: 13px;
+  --sl-readout-lh: 18px;
+  /* Colour (dark). */
+  --sl-track-fill: var(--control-track, rgb(255 255 255 / 0.24));
+  --sl-range: var(--control-range, var(--text-primary));
+  --sl-knob-fill: var(--text-primary);
+  --sl-knob-ring: var(--control-border, rgb(255 255 255 / 0.48));
+  --sl-knob-white: rgb(255 255 255);
+  --sl-tick: var(--text-disabled);
+  --sl-tick-passed: var(--text-secondary);
+  --sl-disabled: var(--text-disabled);
+  --sl-readout-colour: var(--text-primary);
+  --sl-label-colour: var(--text-secondary);
+  --sl-lens-rim: rgb(255 255 255 / 0.7);
+  --sl-e1: 0 1px 2px rgb(0 0 0 / 0.3);
+  --sl-e2: 0 4px 12px -4px rgb(0 0 0 / 0.5);
+  --sl-checker-a: rgb(255 255 255 / 0.3);
+  --sl-checker-b: rgb(255 255 255 / 0.12);
+  --sl-bubble-fill: var(--glass-solid, var(--surface-2));
+  --sl-bubble-rim: rgb(255 255 255 / 0.12);
+  --sl-focus-light: var(--focus-light, var(--accent));
+  --sl-focus-dark: var(--focus-dark, var(--surface-0));
+  /* Motion (language.md §7.1–§7.2; the motion tokens land with D0-12). */
+  --sl-ease-spring: var(
+    --ease-spring,
+    linear(
+      0,
+      0.005 1.2%,
+      0.02 2.3%,
+      0.046 3.7%,
+      0.084 5.2%,
+      0.159 7.7%,
+      0.366 13.8%,
+      0.461 16.8%,
+      0.556 20.2%,
+      0.639 23.5%,
+      0.709 26.8%,
+      0.767 30.2%,
+      0.817 33.7%,
+      0.861 37.5%,
+      0.9 42%,
+      0.93 46.8%,
+      0.954 52.3%,
+      0.971 58.5%,
+      0.983 65.3%,
+      0.991 73.7%,
+      1
+    )
+  );
+  --sl-ease-pop: var(
+    --ease-spring-pop,
+    linear(
+      0,
+      0.007 1.5%,
+      0.026 3%,
+      0.058 4.7%,
+      0.105 6.5%,
+      0.209 9.8%,
+      0.453 16.8%,
+      0.559 20%,
+      0.659 23.3%,
+      0.742 26.5%,
+      0.809 29.5%,
+      0.868 32.7%,
+      0.915 35.8%,
+      0.954 39.2%,
+      0.984 42.8%,
+      1.006 46.7%,
+      1.02 50.8%,
+      1.027 55.7%,
+      1.027 63.3%,
+      1.008 84.2%,
+      1
+    )
+  );
+  --sl-spring-press: var(--spring-press, 300ms);
+  --sl-spring-quick: var(--spring-quick, 420ms);
+  --sl-spring-track: var(--spring-track, 150ms);
+  --sl-spring-pop: var(--spring-pop, 410ms);
+  --sl-pos-duration: 0s;
+  --sl-stretch-duration: 0s;
+  /* The full visible width of the track. */
+  --sl-width: calc(100cqw + var(--sl-knob));
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--sl-readout-colour);
+  transition-property: --slider-pos, --slider-stretch;
+  transition-duration: var(--sl-pos-duration), var(--sl-stretch-duration);
+  transition-timing-function: var(--sl-ease-spring), var(--sl-ease-pop);
+}
+
+:global([data-theme='light']) .root {
+  --sl-track-fill: var(--control-track, rgb(21 23 28 / 0.28));
+  --sl-range: var(--control-range, #15171c);
+  --sl-knob-fill: #fdfdff;
+  --sl-knob-ring: var(--control-border, rgb(21 23 28 / 0.55));
+  --sl-tick: #a8abb1;
+  --sl-tick-passed: #4f535a;
+  --sl-disabled: #a8abb1;
+  --sl-readout-colour: #15171c;
+  --sl-label-colour: #4f535a;
+  --sl-lens-rim: rgb(21 23 28 / 0.3);
+  --sl-e1: 0 1px 2px rgb(21 23 28 / 0.12);
+  --sl-e2: 0 4px 12px -4px rgb(21 23 28 / 0.2);
+  --sl-checker-a: #ffffff;
+  --sl-checker-b: #d5d7dc;
+  --sl-bubble-fill: #fbfbfd;
+  --sl-bubble-rim: rgb(21 23 28 / 0.1);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .root {
+    --sl-track: 8px;
+    --sl-knob: 28px;
+    --sl-hit: 44px;
+    --sl-taper-start: 3px;
+    --sl-taper-end: 16px;
+    --sl-readout: 15px;
+    --sl-readout-lh: 20px;
+  }
+}
+
+/* A track press springs; a drag continuing from it follows; a release springs the stretch. */
+.root[data-jump='spring'] {
+  --sl-pos-duration: var(--sl-spring-quick);
+}
+
+.root[data-jump='follow'] {
+  --sl-pos-duration: var(--sl-spring-track);
+}
+
+.root[data-release] {
+  --sl-stretch-duration: var(--sl-spring-pop);
+}
+
+.label {
+  flex: none;
+  color: var(--sl-label-colour);
+  font-size: var(--sl-readout);
+  line-height: var(--sl-readout-lh);
+}
+
+.slider {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  touch-action: none;
+}
+
+.control {
+  position: relative;
+  box-sizing: border-box;
+  height: var(--sl-hit);
+  padding-inline: calc(var(--sl-knob) / 2);
+  container-type: inline-size;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.root[data-disabled] .control {
+  cursor: default;
+}
+
+/* --- Track --------------------------------------------------------------------------- */
+
+.track {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: var(--sl-track);
+  margin-top: calc(var(--sl-track) / -2);
+  transform-origin: 0 50%;
+  transform: translateX(calc(min(var(--slider-stretch), 0) * var(--sl-width)))
+    scaleX(calc(1 + max(var(--slider-stretch), -1 * var(--slider-stretch))));
+  pointer-events: none;
+}
+
+.root[data-track='taper'] .track {
+  height: var(--sl-taper-end);
+  margin-top: calc(var(--sl-taper-end) / -2);
+}
+
+/* While the knob is a lens, the track beneath it is cut away; the lens draws its copy. */
+.root[data-lens] .track {
+  --sl-hole-r: calc(var(--sl-knob) * 1.25 / 2 - 0.5px);
+  -webkit-mask-image: radial-gradient(
+    circle at calc(var(--sl-knob) / 2 + var(--slider-pos) * 100cqw) 50%,
+    transparent var(--sl-hole-r),
+    #000 calc(var(--sl-hole-r) + 0.75px)
+  );
+  mask-image: radial-gradient(
+    circle at calc(var(--sl-knob) / 2 + var(--slider-pos) * 100cqw) 50%,
+    transparent var(--sl-hole-r),
+    #000 calc(var(--sl-hole-r) + 0.75px)
+  );
+}
+
+/* The art is drawn twice: once as the track, once inside the lens. */
+.art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--sl-track-fill);
+}
+
+.root[data-track='gradient'] .art {
+  background: var(--sl-gradient, var(--sl-track-fill));
+}
+
+.root[data-track='gradient'][data-checker] .art {
+  background:
+    var(--sl-gradient, transparent),
+    repeating-conic-gradient(var(--sl-checker-a) 0% 25%, var(--sl-checker-b) 0% 50%) 0 0 / 8px 8px;
+}
+
+.root[data-track='taper'] .art {
+  overflow: visible;
+  border-radius: 0;
+  background: none;
+}
+
+.taper {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.taper path {
+  fill: var(--sl-track-fill);
+}
+
+/* The fill: a full-width pill slid left so its square right edge sits at the knob's centre;
+   the art's rounded clip keeps the left end round. */
+.fill {
+  position: absolute;
+  inset: 0;
+  background: var(--sl-range);
+  transform: translateX(calc((var(--slider-pos) - 1) * 100cqw - var(--sl-knob) / 2));
+}
+
+.root[data-disabled] .art,
+.root[data-disabled] .fill {
+  background: var(--sl-disabled);
+  opacity: 0.6;
+}
+
+.root[data-disabled] .taper path {
+  fill: var(--sl-disabled);
+}
+
+/* --- Detent ticks ------------------------------------------------------------------- */
+
+.ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tickMark {
+  position: absolute;
+  left: 0;
+  top: calc(50% + var(--sl-track) / 2 + 3px);
+  width: 2px;
+  height: 4px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--sl-tick);
+  transform: translateX(calc(var(--sl-knob) / 2 + var(--tick-pos) * 100cqw));
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.root[data-track='taper'] .tickMark {
+  top: calc(50% + var(--sl-taper-end) / 2 + 3px);
+}
+
+.tickMark[data-passed] {
+  background: var(--sl-tick-passed);
+}
+
+.tickMark[data-current] {
+  background: var(--sl-range);
+}
+
+/* --- Knob --------------------------------------------------------------------------- */
+
+/* Base UI positions the thumb by percentage; the component resets that inline and the
+   position is this transform of the shared number. */
+.thumb {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--sl-knob);
+  height: var(--sl-knob);
+  margin-top: calc(var(--sl-knob) / -2);
+  transform: translateX(calc(var(--slider-pos) * 100cqw + var(--slider-stretch) * var(--sl-width)));
+  outline: none;
+}
+
+/* The detent tick scales this wrapper (1 → 1.06 → 1), apart from the hold scale below. */
+.tick {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.knob {
+  position: relative;
+  box-sizing: border-box;
+  width: var(--sl-knob);
+  height: var(--sl-knob);
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--sl-knob-fill);
+  box-shadow:
+    inset 0 0 0 1px var(--sl-knob-ring),
+    var(--sl-e1);
+  transition:
+    transform var(--sl-spring-press) var(--sl-ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .root:not([data-disabled]) .control:hover .knob {
+    box-shadow:
+      inset 0 0 0 1px var(--sl-knob-ring),
+      var(--sl-e2);
+  }
+}
+
+/* A colour slider's knob: the colour inside a 3 px white ring (§3.1). */
+.root[data-knob='colour'] .knob {
+  background: var(--sl-knob-white);
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.18),
+    var(--sl-e1);
+}
+
+.swatch {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: linear-gradient(var(--sl-knob-color), var(--sl-knob-color));
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.12);
+}
+
+.root[data-checker] .swatch {
+  background:
+    linear-gradient(var(--sl-knob-color), var(--sl-knob-color)),
+    repeating-conic-gradient(#ffffff 0% 25%, #d5d7dc 0% 50%) 50% 50% / 6px 6px;
+}
+
+/* The width knob is the stroke (§3.3): a disc of the ink at its opacity, its real size at
+   the zoom (clamped), inside a thin ring; a notch says the stroke is larger or smaller. */
+.root[data-knob='stroke'] .knob {
+  width: calc(var(--sl-stroke) + 4px);
+  height: calc(var(--sl-stroke) + 4px);
+  background: var(--sl-knob-white);
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.2),
+    var(--sl-e1);
+  overflow: visible;
+}
+
+.root[data-knob='stroke'] .swatch {
+  inset: 2px;
+}
+
+.notch {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sl-knob-white);
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.2),
+    var(--sl-e1);
+}
+
+.notch svg {
+  width: 6px;
+  height: 6px;
+  stroke: #15171c;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.root[data-disabled] .knob {
+  background: var(--sl-disabled);
+  box-shadow: none;
+}
+
+.root[data-disabled] .swatch {
+  opacity: 0.4;
+}
+
+/* Keyboard focus: the two-band ring outside the knob (09 §19, outset). */
+.thumb:has(:focus-visible) .knob {
+  outline: 2px solid var(--sl-focus-light);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px var(--sl-knob-ring),
+    0 0 0 6px var(--sl-focus-dark);
+}
+
+/* --- Lens ----------------------------------------------------------------------------- */
+
+.lens {
+  display: none;
+}
+
+.root[data-lens] .knob {
+  transform: scale(1.25);
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 1px var(--sl-lens-rim),
+    var(--sl-e2);
+}
+
+.root[data-lens] .swatch {
+  display: none;
+}
+
+.root[data-lens] .lens {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+/* The copy of the track, magnified so it reads 1.6× once the knob's own 1.25 is applied,
+   and placed so the point under the knob's centre stays under it. */
+.lensArt {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--sl-width);
+  height: var(--sl-track);
+  transform-origin: calc(var(--sl-knob) / 2 + var(--slider-pos) * 100cqw) 50%;
+  transform: translate(calc(var(--slider-pos) * -100cqw), -50%) scale(1.28);
+}
+
+/* The lens's inner light: a soft top gloss over the copy. */
+.lens::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(120% 75% at 50% 0%, rgb(255 255 255 / 0.35), transparent 62%);
+}
+
+/* --- Value bubble ------------------------------------------------------------------- */
+
+.bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  box-sizing: border-box;
+  min-width: 36px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--sl-bubble-fill);
+  box-shadow:
+    inset 0 0 0 1px var(--sl-bubble-rim),
+    var(--sl-e2);
+  color: var(--sl-readout-colour);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 28px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(calc(-50% + var(--bubble-dx, 0px)));
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    translate var(--sl-spring-quick) var(--sl-ease-spring),
+    scale var(--sl-spring-quick) var(--sl-ease-spring);
+}
+
+.bubble[data-below] {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+.root[data-lens] .bubble {
+  bottom: calc(100% + 8px + var(--sl-knob) * 0.125);
+}
+
+@starting-style {
+  .bubble {
+    opacity: 0;
+    translate: 0 4px;
+    scale: 0.96;
+  }
+}
+
+.bubble[data-leaving] {
+  opacity: 0;
+  transition-duration: 100ms;
+}
+
+/* --- Readout --------------------------------------------------------------------------- */
+
+.readout {
+  display: grid;
+  flex: none;
+  justify-items: end;
+  font-size: var(--sl-readout);
+  line-height: var(--sl-readout-lh);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Every candidate string sits in one cell, so the width never changes with the value. */
+.readout > * {
+  grid-area: 1 / 1;
+}
+
+.sizer {
+  visibility: hidden;
+}
+
+.root[data-disabled] .readout,
+.root[data-disabled] .label {
+  color: var(--sl-disabled);
+}
+
+/* --- Settings ------------------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    --sl-pos-duration: 0s !important;
+    --sl-stretch-duration: 0s !important;
+  }
+}
+
+:global(:root[data-motion='reduced']) .root {
+  --sl-pos-duration: 0s !important;
+  --sl-stretch-duration: 0s !important;
+}
+
+:global(:root[data-motion='reduced']) .knob,
+:global(:root[data-motion='reduced']) .bubble {
+  transition: none;
+}
+
+@media (forced-colors: active) {
+  .art,
+  .fill,
+  .knob {
+    forced-color-adjust: none;
+  }
+
+  .fill {
+    background: Highlight;
+  }
+
+  .art {
+    background: GrayText;
+  }
+
+  .knob {
+    background: ButtonText;
+  }
+
+  .thumb:has(:focus-visible) .knob {
+    outline: 2px solid Highlight;
+    box-shadow: none;
+  }
+}
