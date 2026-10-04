@@ -762,7 +762,7 @@ System), `data-glass`, `data-light`, `data-motion`, plus `data-input` and `data-
 | Parsing | Both theme blocks and every settings block; the light media block equals `[data-theme='light']`; Solid equals reduced transparency; reduced-motion attribute equals the media block |
 | Model | Filter chains in order with `contrast()`; ±1/255 rounding (`styles/glass-model.ts`, shared with the harness) |
 | Coverage term | `styles/coverage-registry.ts`: `{ id, tier, minW, minH, sigma, owner }[]`, extended by each family (01 dock and strip, 03 palette and rail, 04 bars incl. the 56 px phone bar and σ 12 menus, 02 cards, this spec's M1 chips). Asserts `erf(h/2√2σ)·erf(w/2√2σ) ≥ 0.985` per entry and that `materials.css` holds `.mat-<tier>.s<σ>` with equal prefixed and unprefixed values |
-| APCA | `styles/apca.ts` (0.0.98G constants of apca-w3 0.1.9): primary text |Lc| ≥ 75 fails; secondary < 60 is written to `apca-warnings.snap`, so a new warning shows in review without failing |
+| APCA | `styles/apca.ts` (0.0.98G constants of apca-w3 0.1.9): primary text \|Lc\| ≥ 75 fails; secondary < 60 is written to `apca-warnings.snap`, so a new warning shows in review without failing |
 | Pairs | Every pair of L§1.7, §2.2, §2.6 and this spec's §2.2 table with its minimum: control fill 7.55 (M4), danger on fill 4.84, control border 3.61, on-fill 7.90, scroll thumb 3.09, range fill 3.25, tag dots 3.23, keycaps `onGlass` 4.92 |
 | Focus | Bands ≥ 9:1; best band ≥ 3:1 over the 20 backdrops of L§9.2 |
 | Source scans | No raw layer-1 token in modules; no literal `outline-offset` in focus rules; no `.secondary` or `.primary-button`; no `.mat-lit` in page modules; no argument-less `toLocaleUpperCase` (A-21) |
@@ -770,9 +770,10 @@ System), `data-glass`, `data-light`, `data-motion`, plus `data-input` and `data-
 
 ## 28. Rendered-pixel harness
 
-- **Page.** `apps/web/harness/index.html` + `harness/main.tsx`, a second Vite entry built only
-  with `RECTO_HARNESS=1` (set by Playwright's `webServer`; the deploy build omits it; Issue 11),
-  excluded from the service-worker precache. Query `?tier=bar&sigma=9&theme=dark&glass=clear&
+- **Page.** `apps/web/harness/index.html` + `harness/main.tsx`, built by a separate Vite config
+  (`apps/web/harness/vite.config.ts`) and served on its own port by Playwright's `webServer`, so
+  the app that Playwright tests is byte-identical to the deploy build (spec 09.11, changed from a
+  second entry in the app's config; Issue 11); never in the service-worker precache. Query `?tier=bar&sigma=9&theme=dark&glass=clear&
   backdrop=white` renders one surface over a full-viewport backdrop: `white`, `black`, `canvas`,
   `grey`, `lime-035`, `lemon-06`, `field-cap`, `page-text`; `?gallery` renders every primitive in
   every state for axe and focus checks.
@@ -914,7 +915,7 @@ Follows L§10.4; each step ships alone and keeps today's layout.
 | 4 | **`outline-offset` codemod** in focus rules (67): `-2px` (25), `0` (12), `1px` (16), `-1px` (1) → `focus-inset`; `var(--focus-offset)` (10), `2px` (5) → deleted (default); `3px`, `4px`, `calc(var(--focus-offset) + 6px)` (6) → `focus-gap`; two `calc(-1 * …)` by hand. Order: `ui/` (Range, RadioChips), glass bars (FloatingToolbar, PenBar, StyleControls, ReadSelectionBar, Lasso, ImageObjects), scrolling lists (LeftRail, SearchPanel, CommentsPanel, FormsPanel, RedactionsPanel, OutlinePanel, FileRow, ChangesPanel), page layers (ReadView, FormLayer, CreatedFields, LinkLayer, TextEdit, ParagraphEditor), ArrangeView, dialogs, then Stage, TabBar, HomeView, CompareView, PrivacyIndicator, EmptyState. The 10 non-focus outlines (selection and current rings) are re-coloured to `--select` or `--accent-line` by their families | 44 | `focus-scan.test.ts`; a11y spec per region |
 | 5 | Type: `'Inter Recto'`, scale tokens, `.technical` replaces mono | ~40 | Font coverage test; layout snapshot unchanged ± 1 px |
 | 6 | Materials: `materials.css`, `ui/Surface`, Glass and Reduce motion settings, cost ladder; `.glass*` removed | 19 + 3 | Pixel harness on |
-| 7 | Motion module; per-file `matchMedia` reduced-motion checks (3) removed | 4 | Animation sweep |
+| 7 | Motion tokens on the module's core (the core itself lands earlier, with the first sheets and toasts: spec D0-12); per-file `matchMedia` reduced-motion checks (3) removed | 4 | Animation sweep |
 | 8 | Primitives §3–§24 replace native inputs family by family (D0 sheets first, F§12) | per family | Browser-mode suites |
 | 9 | Colour after ADR-0023; light theme; icons and Lucide removal (§30) | — | Pixel matrix in both themes |
 | 10 | Light and refraction | `light/` | `motion.spec.ts` |

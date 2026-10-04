@@ -408,7 +408,11 @@ toasts never leave early; if all three are persistent, newer ones wait and the t
 "+2 waiting" **(judgement)**.
 
 **3 · Material and light.** M2 (`flows.md` §13.1, G-29): σ 9 at 48 (c 0.992), σ 10 at 56 (c.
-0.995), e3, lit rim. May sit over pages, the grid, Compare and the Library. Light: only the
+0.995), e3, lit rim. **One filter per stack:** the stack renders inside one filtered container
+shaped to the toasts by `clip-path` (one `backdrop-filter`; the toasts are unfiltered children,
+the rule the dock follows with its tiers), so a stack of one to three counts as one transient
+blurred surface (`language.md` §2.9). On compact and medium, a toast that appears while a
+contextual bar is visible uses the M2 solid token, so the class's one transient stays one. May sit over pages, the grid, Compare and the Library. Light: only the
 processing ring (FB5) and the success bloom (FB6) on its rim; never for failures, deletion or
 redaction (AU-12). Tinted alpha 0.90; Solid n4 / light M2 solid; `prefers-contrast: more`: strong
 border, no shadow; forced colours: `Canvas`, `CanvasText` border, action `ButtonFace`/`ButtonText`.
@@ -483,13 +487,12 @@ speaks); each toast `role="group"` named by its text. Targets 28 visible / 24 mi
 6.46, danger 5.07 / 5.25, warning 5.55 / 5.37, success 5.04 / 5.18 (c.); action label n12 on n6
 10.43 / 12.45 (c.). A-13 (an exiting toast is `inert` from its first exit frame), A-14, A-24.
 
-**9 · Implementation.** `ui/Toast/` : `toast-store.ts` (Base UI `Toast.createToastManager`
-with `limit: 3`; our own pause reasons), `toast.ts` (`toast.info | action | success | failure |
-system | progress`, each `{ text, key?, documentId?, action?: { label, run, act? } }`),
-`ToastRegion.tsx` (Base UI `Toast.Provider`, `Viewport`, `Root`, `Action`, `Close`), placed in
-frame slot F13. Base UI 1.8 makes the viewport `aria-live="polite"`, roots `role="dialog"`, and
-listens for F6 globally (read in `toast/viewport/ToastViewport.js`): override `aria-live="off"`
-and `role="group"`, and stop F6 in `regions.ts` in the capture phase (Issue 6). Delete
+**9 · Implementation.** `ui/Toast/` : `toast-store.ts` (our own store: queue with `limit: 3`,
+eviction and pause reasons), `toast.ts` (`toast.info | action | success | failure | system |
+progress`, each `{ text, key?, documentId?, action?: { label, run, act? } }`), `ToastRegion.tsx`
+(our own region of about 200 lines, `role="region"`, not live, in the F6 cycle through
+`regions.ts`), placed in frame slot F13. Base UI's Toast viewport is not used (spec X14), so there
+are no ARIA overrides and no capture-phase F6 interception to maintain (Issue 6). Delete
 `home/CombinedToast.tsx`, `home/combined-toast.ts` (copy moves to family 02), `pwa/UpdateToast.tsx`
 (its store stays in `pwa/register.ts`). Tests: unit queue, eviction, keys, stale Undo, timers
 paused by each reason; browser-mode F6 lands on the newest action, Esc returns focus, swipe;
@@ -965,7 +968,8 @@ gesture core; `appearance-store.haptics`. Tests: unit throttle and gating with a
    `role="dialog"`/`alertdialog`, and the viewport binds F6 globally. Each fights a rule here (one
    announcer, A-14; the app's F6 cycle, `flows.md` §7.2). Decided: override the attributes and stop
    F6 in `regions.ts` in the capture phase. If overriding proves brittle, use an in-house region of
-   about 200 lines on the same store.
+   about 200 lines on the same store. **Changed (spec X14):** the in-house region from the start;
+   Base UI's Toast is not used.
 7. **Which failures are assertive.** `language.md` §8 says "only blocking errors"; frame F7 makes a
    failed Save polite. Defined here: storage full, engine stopped, a stroke not saved. Everything
    else polite.

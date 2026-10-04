@@ -153,6 +153,9 @@ fine pointers, long-press labels on touch); the phone bar drops captions below 3
 
 ### 2.3 Long-press recogniser (touch and pen; iOS)
 
+The recogniser and its thresholds live in `motion/gesture/` (spec X5); this table states the
+behaviour this family relies on, and `viewer/hit-order.ts` only hit-tests the start point.
+
 | Step | Behaviour |
 |---|---|
 | Start | `pointerdown` with `pointerType` touch or pen, one pointer, not on a scrolling sheet's grabber |
@@ -476,8 +479,9 @@ Compact: a 40 px row inside the dock's glass, above its items; compact-height: b
 ## 10. Pages bar (a morph of the dock)
 
 1. **Role.** Act on selected pages (F§4.4, J4): in the Pages grid always, in viewing when pages
-   are selected explicitly in the sidebar. The dock (frame family) owns the shape and the morph;
-   this section owns the content. Replaces 8.4.
+   are selected explicitly in the sidebar. `03-markup`'s capsule (`shell/capsule/`, spec X1) owns
+   the shape and the morph; this section owns the content. On compact the bar lives inside the
+   Pages sheet as its solid twin (`06-navigation`, X21). Replaces 8.4.
 2. **Anatomy.**
 
 ```
@@ -492,7 +496,7 @@ Locked: │ ✓ Done │ 3 selected │ Extract │ Copy │ ⊡ Unlock │
 ```
 
    Shedding: Duplicate, Extract, Move to into ⋯ (expanded keeps Delete, Extract, Move ▾).
-3. **Material.** The dock's M2 element; *sheen* after the morph (fine, Clear).
+3. **Material.** The capsule's M2 element (X1); *sheen* after the morph (fine, Clear).
 4. **States.** §2.5; ‹ disabled at the first page ("Already first"), › at the last; Delete dims
    when every page would go ("A document needs one page").
 5. **Copy.** Done · {n} selected · Rotate left · Rotate right · Move earlier · Move later · Delete
@@ -510,7 +514,7 @@ Locked: │ ✓ Done │ 3 selected │ Extract │ Copy │ ⊡ Unlock │
 8. **Accessibility.** `toolbar` "Selected pages" / "Seçili sayfalar"; the count is announced
    politely on change. ‹ › are the non-drag reorder (WCAG 2.5.7, INV-R8).
 9. **Implementation.** `stage/ContextualBar.tsx` → `stage/PagesBar.tsx`, content rendered inside
-   the frame family's `Dock` morph slot. Tests: browser mode content per selection and lock; e2e
+   the capsule's morph slot (`03-markup`, X1). Tests: browser mode content per selection and lock; e2e
    J4 grid path (5 steps), touch reorder by ‹ ›.
 
 ## 11. Compare bar (a morph of the dock)
@@ -526,11 +530,13 @@ Compact (64 px):   │ ‹ 3 / 12 › │ Swap │ ⋯ │                 (A ·
 Running: │ Comparing… 40 % ▬▬▬▬░░░░ │ Cancel │    Stale tier: │ ⚠ A compared document changed · Run again │
 ```
 
-3. **Material.** Dock element; no light in Compare (L§3.2), so progress is a determinate bar.
+3. **Material.** The capsule's element (`03-markup`, X1); no light in Compare (L§3.2), so
+   progress is a determinate bar.
 4. **States.** ‹ › disabled at the ends; zero changes: "No changes found"; heat map on uses
-   `-fill` glyph and `--accent-muted`.
+   `-fill` glyph and `--accent-muted`. In the overlay view, Overlay opacity is a tier above this
+   bar (400 × 40, σ 8; `06-navigation`, spec 06.14), not a ⋯ item.
 5. **Copy.** change {i} of {n} · Previous change · Next change · Changes · Swap · ⋯ Heat map ·
-   Overlay opacity · Fit width · Fit page · Run again · Comparing… {p} % · Cancel · No changes
+   Fit width · Fit page · Run again · Comparing… {p} % · Cancel · No changes
    found · A compared document changed / değişiklik {i}/{n} · Önceki değişiklik · Sonraki
    değişiklik · Değişiklikler · Yer değiştir · Isı haritası · Üst katman opaklığı · Sayfa genişliği ·
    Tam sayfa · Yeniden karşılaştır · Karşılaştırılıyor… %{p} · İptal · Değişiklik bulunamadı ·
@@ -682,17 +688,17 @@ another family owns them.
 | Annotation ⋯ | §5 | A popover (§15), not a menu: Opacity, Font, Author, Modified; lasso adds Rotate 90° left / right | 6.3 |
 | Move to ▾ | Pages bar | Each other open document with its tag dot and page count; "New document" / "Yeni belge" | 8.16 |
 | Grid cell menu | Right-click or Shift+F10 on a cell (grid family) | Pages bar actions + Copy to new document · Cut Mod+X · Copy Mod+C · Paste after Mod+V · Select odd · Select even · Reverse order | 8.11 |
-| Section menu | ⋯ on a grid section header (grid family) | Rename F2 · Reverse · Interleave… · Split… · Combine into ▸ · Insert images… · Resize… · Crop… · Close; reasons as 8.12 | 8.12 |
-| Tab menu | Right-click or long press on a tab (frame) | Rename F2 · Lock / Unlock · Show in Pages grid · Compare with… · Close · Close others | 8.13 |
-| Outline item menu | Sidebar Outline (sidebar family) | Every bookmark edit with keys, unchanged | 8.14 |
+| Section menu | ⋯ on a grid section header (grid family) | Rename F2 · Reverse · Interleave… · Split… · Insert images… · Resize… · Crop… · Close; reasons as 8.12 (Merge into ▸ is gone: inventory 12.14, `07-sheets` §25, INV-12) | 8.12 |
+| Tab menu | Right-click or long press on a tab (frame) | Contents: `01-frame` F4, which owns them (spec 01.2) | 8.13 |
+| Contents item menu | Sidebar Contents (sidebar family; spec X27) | Every bookmark edit with keys, unchanged | 8.14 |
 | Recents row ⋯ | Library (Library family) | Open · Forget kept changes · Remove from Recents | 8.15 |
-| Library card menu | Right-click a card (Library) | Open · Show in Pages grid · Compare with… · Combine with… · Close | — |
+| Library card menu | — | None: right-click on a card enters Select (spec 02.12) | — |
 | Shapes ▾ · Stamp ▾ · Sign ▾ · Add field ▾ | Markup palette (palette family) | F§4.3; this family supplies the primitive only | 8.7–8.9 |
 | More · page pill · title menu | Dock, pill, title (frame) | F§4.2, F§4.6; primitive only | 8.5, 8.6 |
 
 TR for new labels: Yeni belgeye kopyala · Kes · Kopyala · Arkasına yapıştır · Tekleri seç · Çiftleri
-seç · Sırayı ters çevir · Yeniden adlandır · Kilitle / Kilidi aç · Karşılaştır… · Kapat · Diğerlerini
-kapat · Aç · Saklanan değişiklikleri unut · Son kullanılanlardan kaldır · Birleştir…. Tests: one
+seç · Sırayı ters çevir · Yeniden adlandır · Kapat · Aç · Saklanan değişiklikleri unut · Son
+kullanılanlardan kaldır. Tests: one
 browser-mode test per menu for its reasons; axe in the matrix.
 
 ## 15. Popover primitive and link popover
@@ -700,7 +706,9 @@ browser-mode test per menu for its reasons; axe in the matrix.
 1. **Role.** Non-modal panels anchored to a control or a point: link (here), note (§16), privacy
    (§17), History (§18), Unlock (§19), annotation properties (§5), field properties (§7), the
    paragraph editor's info (8.19, text-edit family, content unchanged) and Save's Replace popover
-   (F§5.1, frame family, content theirs). The link popover replaces 8.18.
+   (F§5.1, frame family, content theirs). The link popover replaces 8.18; its content and
+   behaviour, and the paragraph info popover's, are `05-canvas` §23's (spec X15). The link example
+   below shows the primitive and points there.
 2. **Anatomy.** M4, radius 12 (16 with squircles), padding 12/16, width `min(320px, 100vw − 16px)`
    (privacy and History 360). Title 15/20 at 600, body 13/18, buttons 32 / 44 px, primary
    trailing.
@@ -765,78 +773,66 @@ Fine (260 px; coarse 300)                       Compact: docked above the keyboa
 
 ## 17. Privacy popover
 
+This section owns the popover's content, copy and module (spec X29); `01-frame` F8 owns the ◎
+button and its states and opens this popover.
+
 1. **Role.** Proves "nothing leaves this device" and lists what is kept here (F§5.2, F§9.4).
-   Opened by ◎ (top strip, medium and up) or the title menu's privacy line (compact: pushed inside
-   the action sheet). Replaces 8.17.
+   Opened by ◎ (top strip, medium and up) or the title menu's privacy line (compact: a sheet at
+   40 %). Replaces 8.17.
 2. **Anatomy.**
 
 ```
-╭──────────────────────────────────────────────╮ 360 px
-│ ● Nothing has left this device               │ title, `shield-check`
-│ Files are read in this tab and never uploaded.│
-│ External requests            None observed   │
-│ Content Security Policy      Own origin only │
-│ Kept on this device   3 documents · 12.4 MB  │
+╭──────────────────────────────────────────────╮ 360 px (coarse min(360px, 100vw − 16px))
+│ ● Nothing has left this device               │ title3, `shield-check`
+│ Files are read in this tab and are never     │ footnote n11
+│ uploaded.                                    │
+│ Kept on this device   3 documents · 34 MB    │ tnum
 │                                    [Clear…]  │
 │ ⚠ The browser may clear kept changes [Keep them] │ only when not persistent
-│ Offline                      Ready           │
-│ Recto 1.0.0 · About Recto ›                  │
+│ Requests to other sites          None        │
+│ Security policy         Own origin only      │
+│ Offline                 Works offline        │
+│ Privacy settings…            Recto 1.0.0 ›   │
 ╰──────────────────────────────────────────────╯
 ```
 
 3. **Material.** M4 σ 24; labels n11, values n12 `tnum`.
-4. **States.** External request observed: title "This page contacted other servers" with
-   `shield-warning` and the list; private window: "Changes are not kept in this window" in place
-   of the kept line; storage persistent: the warning row hidden.
-5. **Copy.** Existing strings (`privacy_*`) plus: Kept on this device · {n} documents · Clear… ·
-   The browser may clear kept changes · Keep them · Changes are not kept in this window · Ready
-   to work offline · About Recto / Bu cihazda saklananlar · {n} belge · Temizle… · Tarayıcı
-   saklanan değişiklikleri silebilir · Saklansın · Bu pencerede değişiklikler saklanmaz ·
-   Çevrimdışı çalışmaya hazır · Recto hakkında.
-6. **Behaviour.** No document act. Clear… opens a confirmation (dialogs family); Keep them calls
-   `navigator.storage.persist()` and reports the answer; About opens Settings → About. Focus:
-   title on open (read first), Esc returns to ◎.
+4. **States.** External request observed: `shield-warning`, title "2 requests left this device"
+   and the list of hosts; private window: "Changes are not kept in this window" in place of the
+   kept line; storage persistent: the warning row hidden; storage estimate unavailable: "Size
+   unknown".
+5. **Copy.**
+
+| Element | English | Turkish |
+|---|---|---|
+| Title (clean · external) | Nothing has left this device · {n} requests left this device | Bu cihazdan hiçbir veri çıkmadı · Bu cihazdan {n} istek çıktı |
+| Body | Files are read in this tab and are never uploaded. | Dosyalar bu sekmede okunur ve hiçbir yere yüklenmez. |
+| Kept | Kept on this device · {n} documents · 34 MB · Clear… | Bu cihazda saklananlar · {n} belge · 34 MB · Temizle… |
+| Persistence | The browser may clear kept changes · Keep them | Tarayıcı saklanan değişiklikleri silebilir · Saklansın |
+| Private | Changes are not kept in this window | Bu pencerede değişiklikler saklanmaz |
+| Requests | Requests to other sites · None | Diğer sitelere istekler · Yok |
+| Security policy | Security policy · Own origin only | Güvenlik ilkesi · Yalnızca kendi kaynağı |
+| Offline | Works offline · Needs a connection once | Çevrimdışı çalışır · Bir kez bağlantı gerekir |
+| Links | Privacy settings… · Recto 1.0.0 | Gizlilik ayarları… · Recto 1.0.0 |
+
+6. **Behaviour.** No document act. Clear… opens a confirmation (`07-sheets`) listing the kept
+   documents; open documents keep their current state. Keep them calls
+   `navigator.storage.persist()` and reports the answer. "Privacy settings…" opens Settings →
+   Privacy; "Recto 1.0.0" opens Settings → About. Focus: title on open (read first), Esc returns
+   to ◎. A new external request while open updates the list and announces "A request left this
+   device: {host}" (polite).
 7. **Motion.** *popup*.
 8. **Accessibility.** `dialog` labelled by the title; the request count `aria-live="polite"`.
 9. **Implementation.** `privacy/PrivacyPopover.tsx` split from `PrivacyIndicator.tsx` (the status
-   bar indicator goes with the status bar). Tests: browser mode for the three storage states.
+   bar indicator goes with the status bar), reading `session/storage-summary.ts` (count, bytes,
+   `persisted()`). Tests: browser mode for the three storage states; unit summary formatting
+   EN/TR (`34 MB`, decimal comma).
 
 ## 18. History scrubber
 
-1. **Role.** Jump anywhere in history (F§5.3; INV-4). Long press or right-click on ↶, Shift+F10
-   on ↶, or ⌘K `history`. Replaces the inspector's History (6.6).
-2. **Anatomy.**
-
-```
-Fine: list popover under ↶ (360 × ≤ 400)        Coarse: slider popover (360 × 120; compact 100vw − 16)
-╭──────────────────────────────────────╮         ╭──────────────────────────────────────╮
-│ History · report.pdf, agreement.pdf  │         │ Pen on page 4 · 14:02                │
-│ 14:05  Highlight · p. 2 · agreement  │         │ ├──┼──┼──┼──┼──●──┼──┼──┤            │
-│ 14:02 ✓Pen · p. 4          (current) │         │ 12 of 20                [Cancel]     │
-│ 13:58  Deleted page 7                │         ╰──────────────────────────────────────╯
-│ 13:40  Opened                        │
-╰──────────────────────────────────────╯
-```
-
-3. **Material.** M4 σ 24 (list), σ 16 (slider, 120 px tall, c 0.9998).
-4. **States.** Current row: `check` glyph and `--accent-muted` (primary text only, L§2.6); future
-   rows (redo side) n11; empty history: "Nothing to undo yet" / "Henüz geri alınacak bir şey yok".
-5. **Copy.** History · {label} · p. {n} · Opened · {i} of {n} · Cancel / Geçmiş · {label} · s. {n} ·
-   Açıldı · {i}/{n} · Vazgeç. Labels are today's history strings; document names show only with
-   two or more documents open. Times and counts `tnum`.
-6. **Behaviour.** Fine: click or Enter jumps (`jumpTo`); press and drag along the list previews
-   each row, release jumps. Coarse: drag previews per detent (at most one `jumpTo` per 100 ms,
-   only visible pages re-render), release keeps, Cancel restores the start. Jumps bypass
-   `commit()` and work locked (F§2.5 rule 4). After a jump: *undo reveal* on the change, focus
-   back to ↶. Announce on release: "Now at step 12 of 20: Pen on page 4" / "Şimdi 20 adımdan
-   12.: 4. sayfadaki kalem çizimi".
-7. **Motion.** *popup*; slider thumb *press*, preview without animation; *undo reveal* once.
-8. **Accessibility.** List: `listbox` with `aria-activedescendant`; slider: `slider` with
-   `aria-valuetext` = the step label. ↶ carries `aria-haspopup="dialog"` for the long press and
-   `aria-keyshortcuts` for Mod+Z.
-9. **Implementation.** New `history/HistoryScrubber.tsx`; ↶ (frame family) uses `useLongPress`.
-   Tests: browser mode jump and cancel; e2e jump while locked keeps bytes unchanged except by
-   history; motion sweep: no animation during preview.
+`08-feedback` §8 (FB7) is the source for the History scrubber (spec X2): its role, anatomy,
+copy, behaviour, accessibility and tests. This family supplies only the popover primitive (§15)
+it is built on.
 
 ## 19. Lock notice and Unlock popover
 
@@ -955,12 +951,17 @@ the Lock notice, a dimmed item, or the control whose change commit() refused)
 8. **Ownership to confirm.** Dock shape and morph (frame) vs the Pages and Compare bar content
    (here); the History scrubber here vs toasts in feedback; the Library selection bar (Library
    family) should use `ui/ContextBar`; the free rectangle must be exposed by the frame family as
-   a rect for `place.ts` (today `stage-bleed.ts`).
+   a rect for `place.ts` (today `stage-bleed.ts`). **Resolved (spec X1, X2, X21, 04.8):** the
+   capsule is `03-markup`'s (`shell/capsule/`), not the frame's, with the Pages and Compare bar
+   contents here; the scrubber is `08-feedback` FB7's (§18 is a pointer); the Library selection
+   bar uses `ui/ContextBar`; `01-frame` publishes the free rectangle from
+   `shell/frame/frame-insets.ts`.
 9. **Long press is 450 ms, Base UI's ContextMenu uses 500 ms.** Pages use the in-house recogniser;
    Library cards and tabs should use it too so one threshold holds (M-20).
 10. **Selection bar below the text on touch.** F§6.3 says bars "flip below the selection near the
     top bar"; on touch this spec puts them below by default because the system edit menu cannot
-    be suppressed over a text selection (established knowledge, to verify in spike S-T3).
+    be suppressed over a text selection (established knowledge, to verify in spike S-T5; spec X28,
+    since S-T3 is the memory check).
 
 11. **Long press while a tool draws.** F§3.1 gives the page menu for a long press in Markup with
     a tool armed, but a finger that draws (Draw with finger on) or a pen starts a stroke when it

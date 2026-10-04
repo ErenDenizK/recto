@@ -388,7 +388,7 @@ selected 3 px `Highlight`.
 |---|---|---|
 | Line 2 | 12 pages · 2.4 MB | 12 sayfa · 2,4 MB |
 | States | Edited · Locked · Signed · locked · Restricted by the file · Opening… | Düzenlendi · Kilitli · İmzalı · kilitli · Dosya kısıtlıyor · Açılıyor… |
-| Facts (short) | 12 form fields · No text on 2 pages · Outline · 8 chapters | 12 form alanı · 2 sayfada metin yok · İçindekiler · 8 bölüm |
+| Facts (short) | 12 form fields · No text on 2 pages · Contents · 8 chapters | 12 form alanı · 2 sayfada metin yok · İçindekiler · 8 bölüm |
 | Accessible name | report.pdf, 12 pages, 2.4 MB, edited, kept on this device, 12 form fields | report.pdf, 12 sayfa, 2,4 MB, düzenlendi, bu cihazda saklanıyor, 12 form alanı |
 | Check (○) | Select report.pdf | report.pdf belgesini seç |
 
@@ -811,7 +811,7 @@ title-menu header:
 │ seal-check  Signed by Ada Lovelace · locked   Signatures │
 │ scan        No text on 2 pages               Recognize  │
 │ textbox     12 form fields                   Fill & sign│
-│ list-bullets Outline · 8 chapters            Show       │
+│ list-bullets Contents · 8 chapters           Show       │
 ╰──────────────────────────────────────────────────────────╯
 ```
 
@@ -824,7 +824,7 @@ runs (OCR). Tinted 0.90; Solid n4 / n1; forced colours `Canvas`, `CanvasText` bo
 | State | Change |
 |---|---|
 | Appear | 600 ms after the first page renders; at most once per file per device (key: size + SHA-256 of the first 64 KB) except "Restored edits", shown on each restore |
-| Rest | 8 s, then folds into the ⓘ; the timer pauses on hover and while focus is inside |
+| Rest | 10 s (A-24: it carries an action), then folds into the ⓘ; the timer pauses on hover and while focus is inside |
 | Hover · pressed · focus | Action: one fill step behind its text; *press*; two-band ring inset |
 | Busy | Ring runs; text "Recognizing… 1 of 2" |
 | Done | *success* bloom; text "2 pages recognized · Review" for 4 s, then folds |
@@ -839,7 +839,7 @@ runs (OCR). Tinted 0.90; Solid n4 / n1; forced colours `Canvas`, `CanvasText` bo
 | No text | No text on 2 pages | 2 sayfada metin yok | Recognize / Metni tanı |
 | Fields | 12 form fields | 12 form alanı | Fill & sign / Doldur ve imzala |
 | Restored | Restored edits (18:40) | Düzenlemeler geri yüklendi (18:40) | Discard / Vazgeç |
-| Outline | Outline · 8 chapters | İçindekiler · 8 bölüm | Show / Göster |
+| Contents | Contents · 8 chapters | İçindekiler · 8 bölüm | Show / Göster |
 | Fold title | About this file | Bu dosya hakkında | — |
 
 The signer's name is middle-truncated to 24 characters; times sit in brackets so no Turkish
@@ -853,18 +853,18 @@ suffix depends on the digits. Numbers `tnum`.
 | Recognize | Popover "Recognize text on 2 pages · English ▾ · Recognize 2 pages" (1 + confirm) | `document` |
 | Fill & sign | Palette on its Sign set, field stepper at field 1 (= dock Fill & sign) | opens Markup; fields `targeted` |
 | Discard | Returns the document to its opened or last-saved bytes as one step; toast "Discarded restored edits · Undo" | `document` |
-| Show | Sidebar on Outline | none |
+| Show | Sidebar on Contents (spec X27) | none |
 
 Keys: F6 reaches the chip between the page and the pending-marks bar (flows §7.2); Enter acts; Esc
-folds it at once. Touch: tap acts; the chip never hides with hide-on-scroll (it lives 8 s). Focus
+folds it at once. Touch: tap acts; the chip never hides with hide-on-scroll (it lives 10 s). Focus
 after an action goes where the action leads; after folding by timer, focus is never moved.
 Announcement (polite, once, 600 ms after open): "This file has 12 form fields. Fill & sign is in the
 facts chip, F6".
 
 **7. Motion.** In: *popup* (origin top leading) + *materialize*; fold: *popup* exit toward the ⓘ
-(transform-origin at the ⓘ, `--spring-quick`), then a 600 ms lime ring flash on the ⓘ (the chrome
+(transform-origin at the ⓘ, `--spring-quick`), then a 500 ms lime ring flash on the ⓘ (the chrome
 form of *undo reveal*; Issue 6); *progress* ring; *success*. Reduced: fade in and out, no flash
-motion (static ring for 600 ms).
+motion (static ring for 500 ms).
 
 **8. Accessibility.** `role="status"` region holding a button for the action; the fold is a Base UI
 `Popover` with a list. Targets 36 / 44. Pairs: primary on M1 over white 7.78, glass-secondary 5.07;
@@ -875,8 +875,9 @@ A-24.
 
 **9. Implementation.** `facts/facts-model.ts` (detects from the engine's open result: signatures,
 text-layer page count, field count, outline size, restored flag; priority), `facts/FactsChip.tsx`,
-`facts/FactsFold.tsx`, `facts/facts-seen.ts` (IndexedDB `recto:facts-seen:v1`, keys only, cleared by
-Settings → Clear and by Clear recents). Tests: unit priority and keying; browser-mode 600 ms and 8 s
+`facts/FactsFold.tsx`, `facts/facts-seen.ts` (IndexedDB `pdf-editor:facts-seen:v1`, spec X26; keys
+only; cleared with Clear recents, with Clear kept documents, and by "Show tips and facts again" in
+Settings, spec 07.8). Tests: unit priority and keying; browser-mode 600 ms and 10 s
 with fake timers, hover pause, Esc; e2e sample chip → Recognize → 2 steps; signed fixture shows
 "Signed … · locked"; the chip shows once across a reload; axe on chip and fold.
 

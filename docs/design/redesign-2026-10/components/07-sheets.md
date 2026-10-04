@@ -202,8 +202,9 @@ the footer. Footer order: Reset or secondary leading, Cancel then primary traili
   lime fill 9.97; light 14.65, 8.21, 6.67, 6.83, ink fill 14.65 (L§2.2). Inputs, previews, the
   signature pad and the Markdown preview are solid wells (L§2.10): dark n2 with n12 text
   (15.45:1), light n1 (17.65:1). Long lists over M5 sit in a sunken well.
-- **Input boundary** `--border-input`: dark white 0.40 (3.32:1 against the M5 worst `#34363b`),
-  light ink 0.50 (3.24:1 against `#e8e8ea`). L§1's `--border-strong` (0.16) is below 3:1 (Issue 2).
+- **Input boundary** `--control-border` (spec X7): dark white 0.48, light ink 0.55 (3.61–5.01:1
+  over the worst glass), shared with `09-primitives`' wells, boxes, radios and switch tracks.
+  L§1's `--border-strong` (0.16) is below 3:1 (Issue 2).
 - **Light:** none of its own (L§3.2 "never as the own light of a dialog"). Background jobs show
   the ring and bloom on the toast-stack capsule, not on the sheet.
 - **Tinted:** alpha 0.90, blur and rim kept. **Solid:** `--glass-sheet-solid`, rim and e5 kept.
@@ -389,7 +390,7 @@ Previews (Markdown, before/after) are solid wells. No light; success shows on th
 | Estimating | Sizes read "Estimating…" (`aria-busy` on the group); the compress worker analyses at idle priority on open |
 | Little to gain | Under 3 % saving: "Already compact" beside Smaller and Smallest; still selectable |
 | Password chosen | Signature dimmed: "A password-protected copy cannot be signed here" (`sign_refused_encrypted`) |
-| Unapplied redaction marks | Row "2 redaction marks are not applied. The text under them would stay in the copy." with Apply first…; primary dimmed with that reason (today's export block kept, Issue 10) |
+| Unapplied redaction marks | The primary asks first, as Save does (spec 07.10): "2 marks not applied" with **Apply and save** as the default and "Save without applying" as the secondary, with the honesty line "The text under 2 marks is still in the file"; the M8 block goes (Issue 10) |
 | Signed document | Warning row "Existing signatures will not be in this copy" unless Signature is on |
 | Repaired source | Info row "This file was damaged and rebuilt on open. The copy is written from the rebuilt version." |
 | Locked | Allowed (output only); no banner |
@@ -458,7 +459,7 @@ q85 inside Custom), `ImagesSection.tsx` (from `ImageExportDialog.tsx`), `TextSec
 `CompressionExportRow.tsx`. Tests: unit preset → settings, name suffixes EN/TR, primary by
 capability; browser-mode Format switch keeps per-format drafts; e2e J13B on all projects (Chromium
 mocked picker, Firefox download, WebKit share mocked), verification failure toast, signed-file
-warning, unapplied marks block; axe.
+warning, unapplied marks ask (both answers); axe.
 
 ## 5. S3 Settings
 
@@ -773,7 +774,7 @@ language"; language not cached and offline: "Needs a connection once to download
 (4.1 MB)"; signed document: warning `ocr_signed_warning`; locked: banner; running: the sheet closes,
 capsule "Recognizing text… 1 of 2 pages"; done: toast "2 pages recognized · Review" with bloom;
 low confidence: toast "2 pages recognized · 14 words to check · Review" (Review opens the sidebar
-Review filtered to OCR words, J / K step).
+Review on its Words to check filter, `06-navigation` N5, spec X33; J / K step).
 
 **5 · Copy.** Existing `ocr_*` strings. Changes: primary `ocr_run` ("Recognize {count} pages" /
 "{count} sayfayı tanı"); "Change…" / "Değiştir…"; toast "{n} pages recognized · Review" / "{n}
@@ -889,10 +890,11 @@ Duplex scan (with hints); resulting order preview (12 small slots, "+8 more"). P
 "Interleave".
 
 **3 · Material.** S0; slots are solid thumbnails. **4 · States.** One document open: "Open a second
-document first · Open…"; either locked: banner naming it. **5 · Copy.** Existing `interleave_*`; title
+document first · Open…"; a locked source is allowed, since it is only read. **5 · Copy.** Existing `interleave_*`; title
 "Interleave report.pdf" / "report.pdf belgesini harmanla"; primary "Interleave" / "Harmanla". Icon
-`shuffle`. **6 · Behaviour.** Guard `pages` on both documents: the model consumes both inputs
-(`pages.ts` `interleave`), the result takes the first one's tab; one undo step and toast
+`shuffle`. **6 · Behaviour.** Guard: none, the sources are read (spec 07.13, X32): `interleave(…, {
+keepSources: true })` makes a new document after the last source and both sources stay open;
+one undo step and toast
 "Interleaved into report + back.pdf · Undo" (Issue 13). **7 · Motion.** S0. **8 ·
 Accessibility.** Preview list named "Resulting page order". **9 · Implementation.**
 `pages-sheets/InterleaveSheet.tsx`. Tests: e2e duplex order on fixtures.
@@ -1090,7 +1092,8 @@ data from `commands/registry.ts`. Tests: unit every registered shortcut appears;
    tall (c 0.9995) and a coverage registry entry.
 2. **Input boundary below 3:1.** `--border-strong` (dark white 0.16) gives about 1.6:1 around input
    wells on M5. Proposed `--border-input`: dark white 0.40 (3.32:1 against `#34363b`), light ink 0.50
-   (3.24:1 against `#e8e8ea`).
+   (3.24:1 against `#e8e8ea`). **Resolved (spec X7):** one token, `--control-border` (dark white
+   0.48, light ink 0.55); `--border-input` is not created.
 3. **No catalogue entry for in-sheet navigation.** Proposed *sheet push*: `translateX(24px)` +
    opacity on `--spring-smooth`, back reversed; reduced motion 150 ms fade. Used by Settings, Batch,
    result pages.
@@ -1112,14 +1115,16 @@ data from `commands/registry.ts`. Tests: unit every registered shortcut appears;
    documents (S15) and the Revert and Clear confirmations; no other spec defines them.
 10. **Unapplied redaction marks.** F§5.4 has Save ask "2 marks not applied · Apply first?". This spec
     keeps today's block in Save a copy (primary dimmed with Apply first…) because a copy with live
-    marks leaks the text under them; Save (01-frame) keeps the question.
+    marks leaks the text under them; Save (01-frame) keeps the question. **Changed (spec 07.10):**
+    one ask for both, Apply and save by default, "Save without applying" with an honesty line.
 11. **Tool sheets re-fit the page.** Not in `flows.md`: while a tool sheet is open, Fit width or Fit
     page re-fits to the free rectangle, and the earlier zoom returns on close, so the preview is never
     under the sheet.
 12. **Opening a sheet disarms the armed tool,** so the sheet's primary is the view's one lime.
 13. **Interleave consumes both inputs** (`pages.ts`), against INV-R6's "one outcome: a new document".
     Kept for duplex scans, with Undo; Combine (S15) keeps its sources. Decide whether Interleave
-    should keep them too.
+    should keep them too. **Changed (spec 07.13):** Interleave keeps its sources and makes a new
+    document; its guard is none (X32).
 14. **Destructive primaries** (Apply redactions, Clear, Remove, Crop and remove) are secondary
     capsules with a danger label and glyph, never lime and never a red fill.
 15. **Guards that differ by sheet:** Password (S5) asks `document` and is blocked while locked, while

@@ -62,8 +62,8 @@ know what kind of change is asked and whether the document is locked.
    | Act | Covers | Allowed | Examples |
    |---|---|---|---|
    | `targeted` | A change aimed at an object the person chose | Always | Type in a field, toggle a box; Highlight, Comment, Underline, Strikeout or Redact a selection; restyle, move or delete a selected annotation |
-   | `freehand` | The pointer itself creates | Only in Markup | Pens, Highlighter stroke, shapes, Eraser, lasso move, Redact drag, a placing tool's click, Add field |
-   | `place` | An object at a point the person named | Always with a point from "Add … here" or keyboard placement; otherwise only in Markup | Add note, text, signature, image or stamp here |
+   | `freehand` | The pointer itself creates | Only in Markup | Pens, Highlighter stroke, shapes, Eraser, lasso move, Redact drag |
+   | `place` | An object at a point the person named | Always with a point from "Add … here" or keyboard placement; otherwise only in Markup | Add note, text, signature, image or stamp here; a placing tool's click in Markup; Add field (form creation; amended before acceptance to match `03-markup` §3) |
    | `text` | The paragraph editor commits | Always; its doors are input rules (ADR-0029) | Edit text, E then Enter, a double-click in Markup |
    | `pages` | Page structure | Always, on an explicit selection or the page pointed at | Move, rotate, delete, insert, duplicate, crop |
    | `document` | Whole-document operations | Always | Page numbers, Bates, watermark, OCR, Apply redactions, metadata, password, rename |
@@ -89,7 +89,7 @@ know what kind of change is asked and whether the document is locked.
    while locked (ADR-0019 §3).
 8. **Migration of the 34 lines:** a tool-arming site asks `freehand` (`tool-store` arms a tool
    other than Select only then, and opens Markup first); selection markup asks `targeted`; form
-   filling `targeted`; form creation `freehand`; redaction from a selection `targeted`, an area
+   filling `targeted`; form creation `place`; redaction from a selection `targeted`, an area
    `freehand`, Apply `document`. `canEdit`, `canEditActive` and `useCanEdit` are removed in the
    same drop (D1 of `flows.md` §12), so no site keeps the old question.
 

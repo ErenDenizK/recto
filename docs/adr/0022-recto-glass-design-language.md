@@ -58,7 +58,9 @@ chosen model and asks ten amendments of it (§13.2), accepted here.
 
 1. Content is solid, controls are glass, light lives beneath glass.
 2. The page is the brightest thing: light stays ≥ 2.5:1 below a white page and never within
-   64 px of one.
+   64 px of one. Library thumbnails are exempt from the 64 px distance and keep the brightness
+   rule (I 0.6 cap under lit glass, Library mean Y ≤ 0.03), while A-6's pixel test covers them:
+   their pixels are identical with light on and off (spec 02.1, amended before acceptance).
 3. One lime element per view at rest: the armed tool or the primary action (ADR-0023).
 4. Bigger is denser and slower: transmission falls from 0.21 (chips) to 0.07 (sheets); spring
    duration rises from 0.20 s (press) to 0.46 s (full-window move).

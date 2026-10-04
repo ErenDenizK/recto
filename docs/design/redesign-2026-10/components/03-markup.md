@@ -155,7 +155,8 @@ explicitly, under-light `display: none`.
 | Hover (fine) | Fill `rgb(255 255 255 / 0.045)` behind glyph only | `rgb(21 23 28 / 0.04)` |
 | Pressed | Fill `/ 0.075`; *press* scale 0.97 mouse, 0.94 touch and pen; press light | `/ 0.07`; ink press light at half |
 | Focus-visible | Concentric ring inside the capsule (§9.2 `.capsule` form) | Same |
-| Armed (glyph tool) | `--tool-active-fill` lime, glyph `--tool-active-ink` ink, Phosphor fill twin; 16.42:1 glyph, 7.91:1 fill vs M2 over white | Ink fill n12, lime glyph; 14.79:1 glyph, 11.53:1 fill vs light M2 over black |
+| Armed (Select) | Fill glyph on `--surface-on`, no lime and no under-light (spec X19, ADR-0023 §5.1) | Same |
+| Armed (glyph tool, a creating tool) | `--tool-active-fill` lime, glyph `--tool-active-ink` ink, Phosphor fill twin; 16.42:1 glyph, 7.91:1 fill vs M2 over white | Ink fill n12, lime glyph; 14.79:1 glyph, 11.53:1 fill vs light M2 over black |
 | Armed (pen dot, Highlighter) | 2 px n12 ring with a 2 px gap (7.90:1 vs M2 over white) | 2 px n12 ring (11.53:1) |
 | Disabled | `aria-disabled`, glyph `--glass-text-disabled` `#7d8086`, focusable, reason in tooltip and `aria-description` | `#7f838a` |
 | Busy | Glyph swapped to a 400 ms-delayed activity glyph (*replace*); input waits, no spinner first | Same |

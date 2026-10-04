@@ -59,15 +59,16 @@ rest, no glass sits over page content (RA-15).
    The same element morphs into the Markup palette, the Pages bar, the Compare bar and the Locked
    state (ADR-0026 *bar morph*). From medium up it is always shown (owner question 3).
 4. **Page pill:** M1, persistent, focusable, in the F6 cycle; "3 / 12 · 96 %". It opens Go to
-   page, up to 8 outline entries, fit and zoom, Continuous · Single · Two-up, Show field outlines
+   page, up to 8 entries of Contents (the file's outline; spec X27), fit and zoom, Continuous · Single · Two-up, Show field outlines
    and Focus; Mod+G. It replaces the status bar's page and zoom and the layout switch.
-5. **Sidebar:** one, with Pages/Outline · Find · Review. Closed by default everywhere,
+5. **Sidebar:** one, with Pages/Contents · Find · Review (Contents in the sidebar, the pill menu
+   and ⌘K; spec X27, amended before acceptance). Closed by default everywhere,
    remembered per device once changed. Inside the Pages sheet on compact, a 360 px side sheet on
    compact-height, a 320 px overlay on medium (solid on touch, M-31), docked 280 px from
    expanded. The rail, its Files tab (the Library lists files) and Changes (into Compare) go.
 6. **Removed:** the inspector (History → the scrubber, ADR-0032; Properties → each bar's ⋯; Info
-   → the Document info sheet; Signatures → title menu and facts chip; OCR → its sheet and a Review
-   filter), the status bar, the rail, the Read · Edit · Arrange switch, the layout switch, the
+   → the Document info sheet; Signatures → title menu and facts chip; OCR → its sheet and the Review
+   filter "Words to check", shown after OCR has run: `06-navigation` N5, spec X33), the status bar, the rail, the Read · Edit · Arrange switch, the layout switch, the
    Document and Export buttons. Reading at 1440 × 900 shows 14 controls against 29.
 7. **Sheets:** one `ui/Sheet` primitive. Compact: bottom sheets at 40 % and 92 % (Base UI Drawer,
    M-29). Medium: tool sheets as 360 px side sheets with no scrim, task sheets as form sheets ≤
@@ -97,8 +98,8 @@ rest, no glass sits over page content (RA-15).
     sample opens a fresh "Recto sample.pdf" that follows the lock setting. `?sample` (`?sample=tr`)
     opens it after launch for the About page's demo link; `history.replaceState` removes it.
 13. **Facts chip:** one fact per file, by priority: signed > no text (Recognize) > form fields
-    (Fill & sign) > restored edits > outline. M1, top leading corner of the free rectangle, 600 ms
-    after opening, for 8 s or until used; then it folds into the ⓘ by the title. Once per file per
+    (Fill & sign) > restored edits > Contents. M1, top leading corner of the free rectangle, 600 ms
+    after opening, for 10 s (A-24) or until used; then it folds into the ⓘ by the title. Once per file per
     device, keyed by size and a hash of the first 64 KB (judgement). **Settings** is one sheet
     (`flows.md` §9.5, INV-20).
 
@@ -111,7 +112,10 @@ rest, no glass sits over page content (RA-15).
   pill inside), medium three (strip, dock, pill); the compact-height bars take 88 of 390 px (23 %).
 - Every job of `current-flows.md` §20 gets a touch path; J2 and J4 lose the step that collapsed
   the navigator on phones; J11 costs 2 while the facts chip shows.
-- e2e gains a project per class at `flows.md` §6's six frames, plus 320 × 256 for A-20.
+- e2e gains three touch projects (`phone` 390 × 844, `phone-land` 844 × 390, `tablet` 820 ×
+  1180) beside the desktop engines; the expanded (1180 × 820), xlarge (1920 × 1080) and 320 × 256
+  (A-20) sizes run as viewports inside `frame-layout.spec.ts` (amended before acceptance to match
+  the spec's §10.3).
 
 ## 4. Alternatives considered
 
@@ -136,5 +140,5 @@ rest, no glass sits over page content (RA-15).
 2. **The dock's taste check** (`flows.md` §15 Q3) is open; this ADR builds "always shown from
    medium up", the recommended answer, and never an auto-hiding dock above compact.
 3. **Facts-seen record.** `flows.md` §9.3 needs storage it does not name. This ADR decides: an
-   IndexedDB store `pdf-editor:facts-seen:v1` of size-and-hash keys, cleared with the kept
-   documents in Settings.
+   IndexedDB store `pdf-editor:facts-seen:v1` of size-and-hash keys, cleared with Clear recents,
+   with Clear kept documents, and by "Show tips and facts again" in Settings (spec 07.8).

@@ -16,6 +16,15 @@ now that the flows panel has picked the model: viewing, Markup, Lock, the dock a
 page pill and the Pages grid replace Read and Edit, the floating tool bar, the status bar, the
 inspector and Arrange; Home is now the Library. Coverage recomputed (§2.9); open points in §11.3.
 
+*Changelog, 2026-10-04 (later):* applied the lines of `docs/specs/redesign.md` §6.16 and the
+review fixes that followed: the σ steps and registry rows of X6, 02.4, 03.8, 06.21 and the short
+viewport; neutral on-states (09.1); `--redact-page` and `--crop-dim` (05.3); light M2 for lit glass
+in the light theme (02.3); refraction on fixed-size M1 chips only (X20); `--control-border` (X7);
+`textSafe`, the Library-thumbnail exemption and no drift on Combine (02.1, 02.2, 02.21);
+lime-800 duotone in light (08.11); *sheet push*, *fold*, *find step* and the large press (X8,
+02.6, 05.2, 02.5); one filter per toast stack; reduced-motion and duration limits held to A-9
+and A-10 (undo reveal and sheen 500 ms, light responses ≤ 150 ms).
+
 # Recto Glass: the M9 design language
 
 ## 0. Summary
@@ -94,7 +103,7 @@ Four roles that never mix (C-1). A review rejects any colour that crosses its ro
 | Role | What | Values | May appear | Never |
 |---|---|---|---|---|
 | Atmosphere | The aurora: light, not information | Teal, mint, lime, lemon (§1.6), P3 where available | Library, empty states, beneath the palette's armed tool, the drop overlay, the processing ring, About | On or within 64 px of a page; behind text without glass; as a signal |
-| Interaction | Focus, armed tool, primary action, on states, current item | Lime `--accent` with ink | Chrome only | On the page; as the only cue for a state; as text on a light surface |
+| Interaction | Focus, armed tool, primary action, on states of tools, current item (switches, checkboxes, radios, chips and segmented thumbs use neutral `--control-on`, n12: spec 09.1) | Lime `--accent` with ink | Chrome only | On the page; as the only cue for a state; as text on a light surface |
 | Content | The page, its inks and highlighters, selection on the page | Page white; ADR-0021 inks; `--select` blue | The page and on-page handles | In the chrome except as the user's own ink dots |
 | Status | Destructive, honesty notices, signature validity, verified results | Danger, warning, success | Next to a glyph and words | Alone; as a background wash |
 
@@ -187,6 +196,9 @@ this L and h) goes to the aurora only.
 - Washes (multiply): `--select-wash` 0.25 → `#d3d8fb` on white (ink text 12.42:1) for text
   selection, the lasso area and other search hits; `--select-wash-strong` 0.45 → `#afb8f7` (ink
   9.13:1) for the current hit.
+- Two more content tokens, never status washes (spec 05.3): `--redact-page` `#c21725` in both
+  themes (6.10:1 on white) for redaction marks on the page, with a 45° hatch and the pending bar's
+  words; `--crop-dim` for the page area outside a crop preview.
 - `--select` is 10° of hue from the blue writing ink `#1760ee` (ΔE 4.5, 0.7 under protanopia).
   Form separates them: selection is a dashed box, a handle or a wash, never a stroke of ink.
 
@@ -301,11 +313,11 @@ Dark theme. "Worst" is over a white page, except lit glass (over the field's bri
 
 | Tier | Where | Tint | Filter after `blur(σ)` | σ | k | Over white | Over canvas | Over lime I .35 | Primary · glass-sec · danger · warning · lime fill | APCA P / S |
 |---|---|---|---|---|---|---|---|---|---|---|
-| **M1 Chip** | The persistent page pill (page and zoom), the facts chip, single floating buttons, close/back on the stage, scroll-to-top | `rgb(30 32 37 / 0.50)` | `saturate(1.9) brightness(0.42)` | 5–8 by size | 0.210 | `#454648` | `#101216` | `#243212` | 7.78 · 5.07 · 4.99 · 5.47 · 7.79 | 82 / 56 |
+| **M1 Chip** | The persistent page pill (page and zoom), the facts chip, single floating buttons, close/back on the stage, scroll-to-top | `rgb(30 32 37 / 0.50)` | `saturate(1.9) brightness(0.42)` | 5–8 by size (28 px chips 5) | 0.210 | `#454648` | `#101216` | `#243212` | 7.78 · 5.07 · 4.99 · 5.47 · 7.79 | 82 / 56 |
 | **M2 Bar** | Dock and Markup palette (one shape), pending-marks bar, Pages bar, Compare bar, options tier, contextual and selection bars, the Library selection bar, banners, toasts, the progress capsule | `rgb(32 34 39 / 0.55)` | `saturate(1.8) brightness(0.44)` | 7–10 by height | 0.198 | `#444548` | `#131418` | `#263315` | 7.90 · 5.14 · 5.07 · 5.55 · 7.91 | 82 / 56 |
 | **M3 Panel** | Docked or overlay sidebar, top strip (the compact top bar), phone sheet at the 40 % detent | `rgb(30 32 38 / 0.74)` | `saturate(1.5) brightness(0.45)` | 40; top strip 8, 10 at 52 px; coarse 20 | 0.117 | `#34363a` | `#17191e` (= n3) | `#232a1c` | 9.97 · 6.49 · 6.40 · 7.01 · 9.99 | 87 / 61 |
-| **M4 Menu** | Menus, context menus, popovers, the command palette, preset editors | `rgb(34 36 42 / 0.78)` | `saturate(1.6) brightness(0.49)` | 24; under 120 px tall 16; coarse 20 | 0.108 | `#36383c` | `#1b1d22` | `#262d21` | 9.68 · 6.30 · 6.21 · 6.80 · 9.69 | 86 / 60 |
-| **M5 Sheet** | Dialogs, side and bottom sheets at full height, Combine, export, batch | `rgb(40 42 48 / 0.86)` | `saturate(1.4) brightness(0.50)` | 48; coarse 20 | 0.070 | `#34363b` | `#23252a` | `#2a2f29` | 9.96 · 6.49 · 6.39 · 7.00 · 9.97 | 87 / 61 |
+| **M4 Menu** | Menus, context menus, popovers, the command palette, preset editors | `rgb(34 36 42 / 0.78)` | `saturate(1.6) brightness(0.49)` | 24; 92–120 px tall 16; under 92 px tall 12; coarse 20 | 0.108 | `#36383c` | `#1b1d22` | `#262d21` | 9.68 · 6.30 · 6.21 · 6.80 · 9.69 | 86 / 60 |
+| **M5 Sheet** | Dialogs, side and bottom sheets at full height, Combine, export, batch | `rgb(40 42 48 / 0.86)` | `saturate(1.4) brightness(0.50)` | 48; dialogs and modal sheets under 260 px tall 24; coarse 20 | 0.070 | `#34363b` | `#23252a` | `#2a2f29` | 9.96 · 6.49 · 6.39 · 7.00 · 9.97 | 87 / 61 |
 | **Lit** | §2.5 only | `rgb(48 51 58 / 0.58)` | `saturate(1.8) brightness(0.55)` | 28 | 0.231 | forbidden (`#57585d`, S 3.81) | `#1e2025` | `#344322` | over `#c8be34`: 7.38 · 4.80 · 4.73 · 5.19 · 7.39 | 81 / 54 |
 
 Light theme. The floor is `contrast(0.45) brightness(1.4)` after the saturate: black under the
@@ -393,7 +405,10 @@ thumbnails), the open-and-drop card, the drop overlay's card, About. Its worst b
 field's brightest allowed pixel, so the field under it is capped at I 0.6 by a token
 (`--light-cap-under-glass`). It shows the light 7 % more than M2 (ΔE 13.3 vs 12.4) and reads over
 the bare canvas (1.22:1). It takes no wash (a white wash drops glass-secondary to 4.24:1): a lit
-card shows hover by lifting. Dark theme only.
+card shows hover by lifting. Dark theme only: in the light theme these surfaces use light M2,
+floored over black, so they hold over any pigment field (spec 02.3). On compact, compact-height
+and coarse pointers lit glass uses σ 20; the Library's 88 px launcher row uses σ 16 (c 0.994;
+spec 02.4).
 
 ### 2.6 States inside glass
 
@@ -412,7 +427,7 @@ research 20's 0.16 lime to 3.56:1 on menus. Hence the denser tiers and the 0.12 
 
 | Where | Kind | Recipe | Off when |
 |---|---|---|---|
-| M1 chips of fixed size, the M2 dock and palette | Backdrop lens, Chromium only (G-8) | `url(#lens-<w>x<h>)` **prepended** by a class that JavaScript adds after detecting Chromium (`navigator.userAgentData.brands`); never in the base declaration (Safari and Firefox drop the whole declaration, 16 §4.2). Map at the exact size, bezel 10 px (chips) or 12 px (bar), pull ≤ 6 px, convex `t^2.2`, no chromatic split; regenerated 150 ms after a shape change | Not Chromium; coarse pointer; Glass Tinted or Solid; Reduce motion On; any OS reduce or contrast preference; while the surface animates; automatic degrade step 1 |
+| M1 chips of fixed size only (the page pill, the facts chip); never the capsule (dock, palette, bars), since a line may rest under the dock and the morph must never change the filter (spec X20) | Backdrop lens, Chromium only (G-8) | `url(#lens-<w>x<h>)` **prepended** by a class that JavaScript adds after detecting Chromium (`navigator.userAgentData.brands`); never in the base declaration (Safari and Firefox drop the whole declaration, 16 §4.2). Map at the exact size, bezel 10 px (chips) or 12 px (bar), pull ≤ 6 px, convex `t^2.2`, no chromatic split; regenerated 150 ms after a shape change | Not Chromium; coarse pointer; Glass Tinted or Solid; Reduce motion On; any OS reduce or contrast preference; while the surface animates; automatic degrade step 1 |
 | Segmented-control thumbs (the grid's scope, Compare's view switch, Settings' choices; the mode thumb is retired), slider thumbs | Own-content lens, all engines (G-9) | `filter: url(#thumb-lens)` on the track's label layer, pull 4–5 px, ≤ 5 % chroma spread; WebKit: 1× filter resolution, map regenerated only on shape change, filter id bumped | Same, except the engine |
 | Panels, menus, sheets, toasts | None (G-10) | — | — |
 
@@ -437,6 +452,8 @@ frames exceed 20 ms in a 2 s window, Recto takes the next step and holds it for 
 without touching the user's setting: (1) lenses off; (2) Ambient light to Still; (3) M3 surfaces
 to their solid token, which equals their composite over the canvas; (4) every surface solid.
 Devices with `deviceMemory ≤ 4` or `hardwareConcurrency ≤ 4` start at step 2 (G-23, AU-15).
+CI browsers render in software, so tests run with ADR-0024's test-only render override and one
+spec checks these start states without it.
 
 ### 2.9 Performance budget
 
@@ -450,7 +467,11 @@ Devices with `deviceMemory ≤ 4` or `hardwareConcurrency ≤ 4` start at step 2
 Persistent glass in viewing (`flows.md` §6): compact counts two, the top bar and the dock, with
 the page pill inside the dock. On compact the pending-marks bar and the options tier render
 inside the dock's (or palette's) filtered element, not as their own, so Markup with marks
-waiting still counts two. Medium counts three: top strip, dock, page pill.
+waiting still counts two. Medium counts three: top strip, dock, page pill. A toast stack is one
+transient surface in every class: it renders inside one filtered container shaped to the toasts
+(`08-feedback` FB4); on compact and medium a toast that appears while a contextual bar shows uses
+the M2 solid token. Short viewports (height < 352 px) fold the top bar into the dock, so one
+persistent surface remains (`flows.md` §6.1).
 
 For every size: σ meets the coverage rule (c ≥ 0.985 at the centre) at the smallest size a surface
 renders at; σ ≥ 16 above about 200 px of height (small blurs cost most on large surfaces, 16
@@ -471,6 +492,11 @@ Coverage, computed for the sizes the component specs are expected to use:
 | Pending-marks bar 480 × 40 · options tier 400 × 40 · toast 360 × 48 | 8 · 8 · 9 | 0.988 · 0.988 · 0.992 | 8 · 8 · 9 |
 | Contextual bar 360 × 36 · coarse 480 × 44 | 7 · 8 | 0.990 · 0.994 | 7 · 9 |
 | Top strip 1440 × 44 (phone top bar 390 × 44 alike) · coarse top strip 1440 × 52 | 8 · 10 | 0.994 · 0.991 | 9 · 10 |
+| Chip 28 × 28 (Lock and E chips) · options tier coarse 520 × 52 · phone selection bar 344 × 56 | 5 · 10 · 10 | 0.990 · 0.991 · 0.995 | 5 · 10 · 11 |
+| Short menu 200 × 64 · menu 200 × 92 · confirmation 400 × 168 (M5) | 12 · 16 · 24 | 0.992 · 0.996 · 0.9995 | 13 · 18 · 34 |
+| Grid header 1440 × 44 · 1440 × 84 · compact Compare top bar 390 × 88 · compact find bar 358 × 44 | 8 · 10 · 10 · 8 | 0.994 · 1.000 · 1.000 · 0.994 | 9 · 17 · 18 · 9 |
+| Sidebar 280 × 600 · 320 × 600 · Changes 320 × 600 | 40 | 0.9995 · 0.9999 · 0.9999 | 57 · 65 · 65 |
+| Launcher row (lit) 600 × 88 · short-viewport capsule 320 × 44 | 16 · 8 | 0.994 · 0.994 | 18 · 9 |
 | Panel 300 × 600 · popover 260 × 120 · menu 240 × 320 · sheet 560 × 420 | 40 · 16 · 24 · 48 | ≥ 0.9998 | 61 · 24 · 48 · 85 |
 
 Rule of thumb for specs: σ ≤ height / 5 for bars at least three times as wide as tall; σ ≤
@@ -484,7 +510,7 @@ research 22's oversized filter layer (box + 3σ each side, shaped with `mask-ima
 |---|---|
 | The page, its annotations, fields, redaction marks, selection overlays; thumbnails, Pages grid cells, Library card artwork | Content; never themed |
 | In-place editors (paragraph, free text, a note being typed) | Page white with page ink |
-| Text inputs: find, rename, number fields, the ⌘K input | Opaque well (dark n2, light n1) with `--border-strong`, inside the glass (G-18) |
+| Text inputs: find, rename, number fields, the ⌘K input | Opaque well (dark n2, light n1) with `--control-border` (dark white 0.48, light ink 0.55; 3.61–5.01:1 over the worst glass; spec X7), inside the glass (G-18) |
 | Tooltips · dialog scrim | Solid n4 (light n1) with the glass rim (G-29) · dim only, no blur (G-31) |
 | Long dense lists in M3/M4 that still read busy over a page | A sunken well (n2 / n3) |
 | Phone sheet at the 92 % detent | Its solid layer fades in over `--duration-base` once the sheet settles, then the filter is removed (Apple: full height turns more opaque) |
@@ -524,7 +550,7 @@ I` (AU-6), or as pigment in the light theme (§1.6); gradient-noise dither ±0.5
 | Place | Form | Rest | Events |
 |---|---|---|---|
 | **Empty Library** | Full-window field; a lobe under the open-and-drop card (0.5, 0.35, gain 1.0, r 0.42), a dimmer one top right (0.82, 0.78, 0.6, 0.35) | I 0.45; in Auto, ambient drift | Arrival; drag-over; success |
-| **Library with files** | Same field; lobes behind gaps between card rows, never centred on a thumbnail | I 0.40, still | Open, close, Combine: a 2 s drift; success |
+| **Library with files** | Same field; lobes behind gaps between card rows, never centred on a thumbnail | I 0.40, still | Open, close: a 2 s drift (none on Combine, which leaves the Library: spec 02.21); success |
 | **Drag-over in a document view** | The field behind the drop overlay's scrim, the only time it enters a document view | — | Drag-over |
 | **Beneath the palette's armed tool** (dark only), never under the dock | CSS under-light, §3.3 | Static | Slides to the armed tool |
 | **Processing** | 1.5 px conic ring around the progress capsule, the toast or the facts chip | — | Runs while the job runs |
@@ -532,7 +558,13 @@ I` (AU-6), or as pigment in the light theme (§1.6); gradient-noise dither ±0.5
 | **About hero** | 1/4 resolution, I 0.8, lobes behind the clip, not the heading | Drift with a visible pause control | Pauses off-screen |
 | App icon, social card, press stills | One rendered frame | — | — |
 
-**Never:** on a page or within 64 px of its edge, thumbnails included; in the Pages grid or
+**Text-safe band** (spec 02.2): a `textSafe` uniform of up to four rects takes intensity to 0
+within 24 px of text that sits on the field, such as the Library head row; a pixel test checks
+Y ≤ 0.026 behind it.
+
+**Never:** on a page or within 64 px of its edge, document thumbnails included (Library
+thumbnails are exempt from the 64 px distance and keep the brightness rule, I 0.6 cap under lit
+glass and Library mean Y ≤ 0.03, while A-6's pixel test covers them: spec 02.1); in the Pages grid or
 Compare; in the stage of a document view at rest; under the dock; as the own light of a dialog,
 sheet, menu or tooltip (over the Library they pick it up through their glass); for errors,
 warnings, redaction or destructive confirmations (lime reads as "go"); as a frame at the screen
@@ -555,14 +587,16 @@ The palette's filter clamps the under-light first: lime 0.5 under M2 over a whit
 primary at 8.32:1 and glass-secondary at 5.42:1 (8.22 and 5.35 at the fine palette's coverage,
 c 0.992), and over the canvas shifts the palette by ΔE 10.6. It is absent under the dock, which
 arms nothing, under Glass Solid and in the light theme (additive light vanishes on a light
-field). The light springs are slower than the chrome's on purpose *(judgement)*.
+field). It is the one exception to A-6 (ADR-0028 §2.5): clipped to the capsule, so page pixels
+outside the palette's rectangle stay identical with a tool armed and with Light Off. The light
+springs are slower than the chrome's on purpose *(judgement)*.
 
 ### 3.4 Ambient light: Auto · Still · Off
 
 | Value | Behaviour |
 |---|---|
 | Auto (default) | Event motion everywhere the field is allowed, plus ambient drift on the empty Library and About, gliding to still after 60 s without input and 5 s after the window loses focus; all gates apply |
-| Still | One frame per view; events change intensity by a ≤ 200 ms cross-fade |
+| Still | One frame per view; events change intensity by a ≤ 150 ms cross-fade (A-9) |
 | Off | No field, no under-light; the ring and bloom become a static rim |
 
 Overrides: OS reduced motion or Reduce motion On → Still; forced colours → Off
@@ -675,7 +709,8 @@ zooms smaller fields). At most three sizes per surface; weight before size (X-3)
 
 - **Colour** (I-4): monochrome; the armed glyph is ink on lime (dark) or lime on ink (light);
   status colour only on a destructive item and honesty warnings; duotone's second layer is
-  `currentColor` at 20 %, or lime at 25 % in empty states. **Alignment** (I-5): whole-pixel boxes
+  `currentColor` at 20 %, or lime at 25 % in empty states (lime-800 at 25 % in the light theme,
+where lime vanishes; spec 08.11). **Alignment** (I-5): whole-pixel boxes
   and a per-icon offset map set by eye at 2×. **Labels** (I-6): groups and uncommon tools carry a
   label or a tooltip with the key; icon-only only for close, search, undo, redo, more and share.
 - **Custom glyphs** (I-7), drawn on Phosphor's 256 grid with a 16-unit stroke and a fill twin:
@@ -832,15 +867,16 @@ Generic transitions that every component spec picks from; the MC ids are researc
 
 | Name | Trigger | What moves | Token | Interruption | RM |
 |---|---|---|---|---|---|
-| press | Pointer down / up | Scale to 0.97 (mouse) or 0.94 (touch, pen) in 60 ms `--ease-out`; release on spring; on glass a radial press light at the contact point, white 0 → 0.12 (0.24 under a finger; ink at half those in light), 120 ms in, 240 ms out (MC-21, G-26) | press | Release mid-press reverses | Colour change only |
+| press | Pointer down / up | Scale to 0.97 (mouse) or 0.94 (touch, pen) in 60 ms `--ease-out`, 0.98 / 0.96 for surfaces of 120 px or more (spec 02.5); release on spring; on glass a radial press light at the contact point, white 0 → 0.12 (0.24 under a finger; ink at half those in light), 120 ms in, 240 ms out (MC-21, G-26) | press | Release mid-press reverses | Colour change only |
 | hover | Pointer enters | One fill step; nothing moves | instant | — | Same |
 | select | Arm, select, toggle | Outline → fill cross-fade 120 ms; scale 0.88 → 1.04 → 1 over 240 ms (I-8) | pop curve | Next arm retargets | Instant swap |
 | replace | A glyph changes meaning | Out: scale 0.8 + fade, 90 ms; in: 0.8 → 1, 150 ms | fast | — | Instant swap |
 | popup | Menu, popover, palette opens | From `scale(0.96)`, 4 px toward the anchor, opacity 0; `transform-origin` at the trigger; exit fade 100 ms + `scale(0.98)` (MC-14, MC-16) | quick | Reverses from current | Fade 120 ms |
 | materialize | End of any glass entrance | Lit rim alpha 0 → value over the last 40 % of the entrance (16 §7.8) | — | — | None |
 | tooltip | 500 ms hover; 0 ms while warm | Opacity + `scale(0.98)` (MC-15) | fast | — | Fade |
-| bar morph | Dock ⇄ Markup palette ⇄ Pages bar ⇄ Compare bar ⇄ Locked; the compact Draw ⇄ Sign set swap | Glass shape by `clip-path: inset(… round 999px)`; chips by FLIP, 15 ms stagger; lens removed during and restored 150 ms after; never `width` (MC-8, here viewing ⇄ Markup; MC-11) | smooth | Retarget from the current shape | 120 ms cross-fade |
-| sheen | End of a bar morph or materialize (fine pointer, Clear) | One conic sweep of the rim, 600 ms, never a loop (G-27) | — | — | None |
+| bar morph | Dock ⇄ Markup palette ⇄ Pages bar ⇄ Compare bar ⇄ Locked; the compact Draw ⇄ Sign set swap | Glass shape by `clip-path: inset(… round 999px)`; chips by FLIP, 15 ms stagger; no lens on the capsule (X20), so the filter never changes; never `width` (MC-8, here viewing ⇄ Markup; MC-11) | smooth | Retarget from the current shape | 120 ms cross-fade |
+| sheen | End of a bar morph or materialize (fine pointer, Clear) | One conic sweep of the rim, 500 ms, never a loop (G-27, A-10) | — | — | None |
+| sheet push | Navigation inside a sheet (Settings, Batch, result pages) | `translateX(24px)` + opacity in, back reversed (spec X8) | smooth | Reverses | Fade 150 ms |
 | tier rise | A row appears above a bar | `translateY(8px) scale(0.98)` + opacity; exit 100 ms (MC-12) | quick | Reverses | Fade |
 | contextual | Bar at a selection | 4 px + `scale(0.96)` from the anchor; moves < 200 px follow, larger fade out 80 / in 120 ms; hidden while the selection drags (MC-13) | quick | Retarget | Fade |
 | sheet | Open, drag, release | `translateY` to the detent; 1:1 drag; rubber band above the top detent; release projects with r 0.998 and settles with the release velocity (MC-18) | glide / fling | Grab at any time | Fade 150 ms; drag stays 1:1 |
@@ -854,10 +890,12 @@ Generic transitions that every component spec picks from; the MC ids are researc
 | zoom step | Button, key, mouse notch | Page layer `transform` about the viewport centre; layout commits once at rest (MC-23, MP-8) | quick | Retarget with velocity | Instant |
 | pinch, smart zoom | Gesture, double-click or double-tap | 1:1 during; release projects with r 0.99, snaps to fit width, fit page or 100 % within 6 %, rubber-bands past the limits (MO-7, MC-24) | track → fling; smart zoom glide | Grab mid-settle | 1:1 kept, no momentum, smart zoom instant |
 | scroll-to | Go to page, find, outline, undo reveal | Native smooth scroll up to 1.5 viewport heights; farther, jump to one height before, then smooth (MC-25) | browser | User scroll cancels | Instant |
-| progress | A job runs | Determinate bar by `scaleX`, 200 ms `--ease-standard` per update; ring §3.3; no spinner before 400 ms (MC-33) | — | — | Static rim and percentage; indeterminate becomes an opacity pulse, 1.6 s |
+| progress | A job runs | Determinate bar by `scaleX`, 200 ms `--ease-standard` per update; ring §3.3; no spinner before 400 ms (MC-33) | — | — | Static rim and percentage; indeterminate becomes an opacity pulse, 1.6 s (A-9's progress exemption, ADR-0028 §2.5) |
 | success | A job ends well | Icon replace to a check that pops; ring bloom; Library light pulse (MC-34, AU-12) | pop | — | Icon swap |
-| undo reveal | Undo, redo | Scroll-to, then a 600 ms ring flash (80 in, 200 hold, 320 out): `--select` on a page, lime in the chrome (MC-32) | — | — | Ring without motion |
-| light respond | Arrival, drag-over, success | Shader uniforms on the light springs of §3.3 (MC-36) | light springs | Retarget | Still frame, ≤ 200 ms opacity |
+| undo reveal | Undo, redo | Scroll-to, then a 500 ms ring flash (80 in, 160 hold, 260 out; A-10): `--select` on a page, lime in the chrome (MC-32) | — | — | The ring shown statically for 500 ms, then removed without animating |
+| fold (composite) | The facts chip folds into ⓘ | *popup* exit toward the ⓘ, then the *undo reveal* ring on the ⓘ (spec 02.6); no new token | quick | — | Fade, static ring |
+| find step (composite) | A Find hit is stepped to | *scroll-to*, then *undo reveal* on the hit (spec 05.2); no new token | browser | User scroll cancels | Instant, static ring |
+| light respond | Arrival, drag-over, success | Shader uniforms on the light springs of §3.3 (MC-36) | light springs | Retarget | Still frame, ≤ 150 ms opacity |
 | ink | Pen down | No animation on the stroke; chrome may fade to 20 % over 120 ms during a stroke and 1 s after, never while focus is inside it (MC-38, A-13) | fast | — | Same |
 
 ### 7.4 Engine and rules
@@ -887,7 +925,7 @@ returns in under 50 ms and sets focus inside it (22 §5.5).
 
 Rules (MP-1 to MP-12): animate `transform`, `opacity`, and `clip-path` on chrome-sized elements,
 never layout properties; no perpetual animation in document views; motion on or under glass
-≤ 600 ms; stagger ≤ 10 items × 12 ms; `contain: layout paint` on animated islands; `will-change`
+≤ 500 ms (A-10); stagger ≤ 10 items × 12 ms; `contain: layout paint` on animated islands; `will-change`
 only from script, on ≤ 3 elements, during a gesture; springs run on `performance.now()`.
 
 ### 7.5 Reduced motion per token
@@ -901,8 +939,8 @@ only from script, on ≤ 3 elements, during a gesture; springs run on `performan
 | View Transitions | Named morphs, 240 ms | `view-transition-name: none` everywhere; root cross-fade 150 ms |
 | Projection, momentum, rubber band | On | Off: a release stops, then snaps without overshoot |
 | Direct manipulation (drag, pinch, pan, ink) | 1:1 | 1:1, unchanged |
-| Ambient light | Events and drift | Still frame; responses ≤ 200 ms opacity |
-| Spinner, processing ring | Rotation | Opacity pulse ≥ 1.6 s period, static rim, text percentage (opacity is not motion, WCAG 2.3.3) |
+| Ambient light | Events and drift | Still frame; responses ≤ 150 ms opacity (A-9) |
+| Spinner, processing ring | Rotation | Opacity pulse ≥ 1.6 s period, static rim, text percentage (opacity is not motion, WCAG 2.3.3; A-9's progress exemption, ADR-0028 §2.5) |
 | Lens, sheen, materialize, press light | On | Off |
 
 One `motion` module is the only source of truth for script: it reads the media query and the
@@ -951,15 +989,15 @@ as `prefers-reduced-motion: reduce`; when the OS asks, it shows "On, set by your
 |---|---|
 | A-1 | Every text token is tested on the rendered worst case of every surface: §1.7, §2.2, §2.6; primary ≥ 7:1 on resting surfaces (lowest: 7.38 on lit glass over the field peak) |
 | A-2 | Coverage rule c ≥ 0.985 per surface (§2.9) in `tokens.test.ts`; Tinted as the fallback |
-| A-3 | Armed fills against their bars: lime 7.79–9.99, ink 11.18–14.65; control borders `--border-strong`; selected icons also change shape (fill) |
+| A-3 | Armed fills against their bars: lime 7.79–9.99, ink 11.18–14.65; control borders `--control-border` (X7); selected icons also change shape (fill) |
 | A-4 | APCA primary ≥ 75 is a gate (lowest 75, light M1); secondary ≥ 60 a warning (dark glass 54–61) |
 | A-5 | No text on bare light above Y 0.026; text over light sits on glass or a plate (§3.2) |
-| A-6 | The field renders below the page layer, never within 64 px of a page; a pixel test compares page corners with light on and off |
+| A-6 | The field renders below the page layer, never within 64 px of a page; a pixel test compares page corners, and Library thumbnails, with light on and off; the armed-tool under-light, clipped to the palette, is the one exception (ADR-0028 §2.5) |
 | A-7 | Ambient light setting; drift only on the empty Library and About; event motion settles ≤ 5 s; pauses during ink, drag, pinch and when hidden |
 | A-8 | No periodic modulation; swing < 0.10 per 341 × 256 px region; nothing near 0.2 Hz; no red flashes |
 | A-9 | Reduced motion per token (§7.5) from one module; animation sweep test |
 | A-10 | Token limits read on the 99 % settle time (§7.1); View Transitions 240 ms; none for repeated actions |
-| A-11 | Two-band ring, lime and ink, 16.42:1 between bands; worst best-band 4.07:1 (§9.2) |
+| A-11 | Two-band ring, lime and ink, 16.42:1 between bands (≥ 9:1); worst best-band 4.07:1 (≥ 3:1, §9.2); research 22's L ≥ 0.85 clause is dropped (lime is 0.816; ADR-0028 §2.5) |
 | A-12 | The free-rectangle layout rule (§2.10); `scroll-padding` equal to chrome insets; chrome auto-hides only on compact in viewing (§7.3 hide on scroll), never while focus is inside it or the keyboard is in use |
 | A-13 | Exiting surfaces are `inert` from their first exit frame; no focus on invisible elements; every floating surface in the F6 cycle |
 | A-14 | Light, rims, lens maps and filter layers are `aria-hidden` and pointer-transparent; announcements at the state change |
@@ -968,7 +1006,7 @@ as `prefers-reduced-motion: reduce`; when the OS asks, it shows "On, set by your
 | A-17 | Glass Clear · Tinted · Solid; OS reduced transparency forces Solid and the picker says so |
 | A-18 | `prefers-contrast: more`: Solid, strong border, no shadow, no light, tertiary lifted to n10, focus outline 3 px |
 | A-19 | Four roles; lime never on the page or as a lone state; status glyphs always (§1.8) |
-| A-20 | CSS-px size classes; at 320 × 256 the compact layout; floating chrome ≤ 25 % (§2.9); surfaces anchor to the viewport |
+| A-20 | CSS-px size classes; at 320 × 256 the short-viewport layout (top bar folded into the dock, `flows.md` §6.1); floating chrome ≤ 25 % (§2.9); surfaces anchor to the viewport |
 | A-21 | Turkish rules (§4.4) |
 | A-22 | Solid twin for every effect; the a11y suite runs again in a "plain" project |
 | A-23 | Light frozen during scroll and ink; automatic degrade (§2.8); budgets measured before shipping |
@@ -1068,7 +1106,8 @@ Each step ships on its own and keeps today's layout until the component specs re
 (1) **Fixes valid today:** `--select` on the page, the two-band ring, σ 8 on today's 44 px tool bar
 (its rendered 3.61:1), the coverage term. (2) **Token skeleton** with aliases of the old names, both
 themes parsed, settings blocks. (3) **Type.** (4) **Materials**, the Glass and Reduce motion
-settings, the cost ladder. (5) **Motion** module and tokens. (6) **Colour**, after its ADR.
+settings, the cost ladder. (5) **Motion** tokens (the module's core lands earlier, with the first sheets and toasts: spec
+D0-12). (6) **Colour**, after its ADR.
 (7) **Icons.** (8) **Light theme.** (9) **Ambient light**: field, lit glass, under-light, ring,
 bloom. (10) **Refraction.** (11) **Clean-up** of aliases and old packages.
 
@@ -1132,6 +1171,9 @@ ADR-0029 to ADR-0032.
 ### 11.3 Issues for the lead
 
 Raised while applying `flows.md` §13.2; each is decided here as stated, pending the lead.
+**Resolved** by `docs/specs/redesign.md` §6.3 (L.1–L.6): items 1, 2, 4 and 6 stand; item 3 goes
+the other way (X20: no lens on the capsule, lens on fixed-size M1 chips only, §2.7); item 5's note
+is now in `flows.md` §14.
 
 1. **Compact-height dock.** `flows.md` §6.1 and §6.9 give it 44 px with labels beside the icons;
    §13.2 item 10 lists the dock at 48 / 56 / 64. Kept at 44 (σ 8, c 0.994). With a 4 px inset its

@@ -14,6 +14,15 @@ status: proposed
 > **(judgement)** marks claims that rest on the author's judgement. Step counts follow
 > `current-flows.md` §1 and apply every correction the judges reported (§8.3).
 
+*Changelog, 2026-10-04 (later):* applied the lines of `docs/specs/redesign.md` §6.16 and the
+departures of its §6.17: "Contents" for the outline (X27); Save allowed while locked (0032.3);
+right-click on an image opens the page menu's image group and "Extract" becomes "Save image"
+(04.3, 04.6); Redo folds below 336 px (01.8); no tablet throw or side dock in M9 (03.Q3); one
+unapplied-marks ask (07.10); the placement rows for in-page editors, New signature and Batch
+(05.13, 07.5) and short viewports; the F6 order (X9), Compare keys (06.23), Library keys (02.12)
+and Alt+arrows in caret mode (05.4); J16 keyboard ≈5 (07.16); five drops, D0–D4; the ADR mapping
+in §14.
+
 # M9 flows: one interaction model
 
 ## 0. Summary
@@ -41,10 +50,10 @@ status: proposed
   output; OPFS snapshots within 2 s, restored on launch with a 20-step history tail; Undo and
   Redo on every width; a toast with Undo for every removal and failure.
 - **Removed:** the inspector, the status bar and the navigator rail, replaced by one sidebar
-  (Pages/Outline · Find · Review), a persistent page pill and one Settings sheet.
+  (Pages/Contents · Find · Review), a persistent page pill and one Settings sheet.
 - **Steps.** Mouse over 19 job rows: about 91 today, 68 here (−25 %). Touch: about 99 with no
   page move, 72 with every job possible. Keyboard: gaps J5 and J8A close; the 16 rows with a
-  path today fall from about 121 to 82 (−32 %). Seven ADRs (§14), ten asks of `language.md`
+  path today fall from about 121 to 81 (−33 %). Seven ADRs (§14), ten asks of `language.md`
   (§13.2), three owner questions (§15).
 
 ## 1. The model
@@ -103,7 +112,7 @@ Mod+Enter as Apply, `\`; A's comparison tab, 940 px row, fading pill and Info pa
 | **Document** (place) | One open PDF in viewing | A tab, a card, a Recents row, opening one file | Another tab, ◆, `0` |
 | Markup (surface) | The palette; tools arm | Dock Markup, Fill & sign or Sign; M; 2; a tool key; "Mark area" | Done, Esc Esc, `1`, M |
 | Pages grid (surface) | The document's pages, or every open document as sections | Dock Pages, `3`, ⊞ in the sidebar, pinch or Mod+wheel below fit, Library selection → Pages, a Combine result | Done, Esc, `3`, double-click or Enter on a page, pinch out on a cell |
-| Sidebar (surface) | Pages/Outline · Find · Review | ▤, Mod+B, "All results" in Find | ▤, Mod+B |
+| Sidebar (surface) | Pages/Contents · Find · Review ("Contents" for the file's outline, spec X27) | ▤, Mod+B, "All results" in Find | ▤, Mod+B |
 | **Compare** (place) | Two documents side by side or overlaid, Changes, its own bars | Library (2 selected) → Compare; More or title menu → Compare with…; `4` | Close or Esc, back to where it came from |
 | Settings (sheet) | One sheet (§9.5) | More → Settings…, Library ⋯, ⌘K | Esc, ✕ |
 | About page | `/recto/about/`, outside the app | Settings → About Recto | Browser back |
@@ -191,11 +200,11 @@ keeps working through `2`.
 | Act | What it covers | Allowed (not locked) | Examples |
 |---|---|---|---|
 | `targeted` | A change aimed at an object the person chose | Always | Type in a field, toggle a checkbox; Highlight, Comment, Underline, Strikeout or Redact a selection; move, restyle or delete a selected annotation |
-| `freehand` | The pointer itself creates | Only while `markup` is true | Pen, Highlighter stroke, shapes, Eraser, lasso move, Redact drag, a placing tool's click |
-| `place` | An object at a point the person named | Always with a point from "Add … here" or keyboard placement; otherwise only in Markup | Add note, text, signature, image or stamp here |
+| `freehand` | The pointer itself creates | Only while `markup` is true | Pen, Highlighter stroke, shapes, Eraser, lasso move, Redact drag |
+| `place` | An object at a point the person named | Always with a point from "Add … here" or keyboard placement; otherwise only in Markup | Add note, text, signature, image or stamp here; a placing tool's click in Markup; Add field |
 | `text` | The paragraph editor commits | Always; the doors are input rules (§3) | Edit text; E then Enter; double-click in Markup |
 | `pages` | Page structure | Always, on an explicit selection or the page pointed at | Move, rotate, delete, insert, duplicate, crop |
-| `document` | Whole-document operations | Always | Page numbers, Bates, watermark, OCR, Apply redactions, metadata, password |
+| `document` | Whole-document operations | Always | Page numbers, Bates, watermark, OCR, Apply redactions, metadata, password, rename (spec X12) |
 
 1. `canChange` returns false for an unknown document or act, and for any act on a locked
    document. Every committing command declares its `act` in the registry; a unit test fails
@@ -220,7 +229,8 @@ keeps working through `2`.
   "Restricted by the file · Unlock anyway" with an honesty line); `default` ("Open documents
   locked", which restores ADR-0019 and is stricter, since page structure locks too).
 - **Blocks** every act of §2.5. **Keeps** reading, Find, copy, links, Review, looking at the Pages
-  grid and Extract to a new document, Save a copy, Compare, Undo and Redo.
+  grid and Extract to a new document, Save (it writes the document unchanged; spec 0032.3), Save a
+  copy, Compare, Undo and Redo.
 - **Shown by glyph and word, never by tint** (A-19): the tab glyph, the title-menu switch, and
   the dock, where Markup and Fill & sign morph into one **Locked** button that opens the Unlock
   popover; a locked field shows "Locked · Unlock". No single key (judgement). Kept per document
@@ -373,9 +383,9 @@ press. The armed tool is filled (I-2), with the lime under-light beneath it in t
 drawing tools stay armed. Esc disarms, a second Esc closes, Done closes from any state. During a
 stroke the palette fades to 20 % for 1 s, never with focus inside (MC-38, A-13). Markup is per
 document, lasts the session, never restores on launch. The grid hides the palette; its Done
-returns to the state that was left. The desktop palette stays at the bottom centre (no free
-drag, C); on tablets a drag throws it to an edge (RA-2), "Move tool bar to ▸" is the non-drag
-alternative (WCAG 2.5.7), and a side dock insets the page column (B).
+returns to the state that was left. The palette stays at the bottom centre (no free drag, C) on
+desktops and tablets alike in M9; the tablet throw to a side dock (RA-2, B) and "Move tool bar to
+▸" are M10 candidates (spec 03.Q3); the compact-height rail is the one side placement.
 
 ### 4.4 Contextual bars and the pending-marks bar
 
@@ -384,7 +394,7 @@ alternative (WCAG 2.5.7), and a side dock insets the page column (B).
 | Text selection | A text selection, in viewing or Markup | Copy · Highlight ▾ (four tints on long press or right-click) · Comment (one Highlight with its note open, RA-6) · Redact · Edit text · ⋯ (Underline, Strikeout, Squiggly, Find all, Copy as Markdown) |
 | Annotation | An annotation selected | Colour · width or size · Comment · Delete · ⋯ (opacity, font, author, dates) |
 | Lasso | A lasso selection | As today (DESIGN §4.1), plus a rotate grip |
-| Page image | Right-click an image, or Image armed and an image clicked | Replace… · Extract · Delete · size (pt, px, dpi) |
+| Page image | An image selected: from the page menu's image group (right-click on an image opens the page menu, since a scanned page is one image; spec 04.3), or Image armed and an image clicked | Replace… · Save image (spec 04.6) · Delete · size (pt, px, dpi) |
 | Pages | Pages selected in the grid, or explicitly in the sidebar (Shift- or Mod-click) | N selected · ↺ ↻ · ‹ › (move by one, INV-R8) · Delete · Extract · Duplicate · Move to ▾ · ⋯ (Insert blank after, Crop…, Copy, Paste after) |
 | Created field | A created form field selected | Kind · name · Required · ⋯ (properties) |
 | **Pending marks** | The active document has unapplied redaction marks, in viewing and in Markup | "2 marks · Mark area · Apply" · ⋯ (Review marks, Find sensitive data…, Clear marks); above the dock or palette; on compact inside the dock's glass |
@@ -424,7 +434,7 @@ the menu.
   Export as Markdown or text…; then Compare with… · Document info…. Remove actions live inside
   their sheets (RA-21).
 - **Page pill** (M1, persistent, focusable, in the F6 cycle): "3 / 12 · 96 %"; opens Go to page,
-  the outline's top-level entries (up to 8, then All contents…), Fit width · Fit page · zoom,
+  the top-level entries of Contents (up to 8, then All contents…), Fit width · Fit page · zoom,
   Continuous · Single · Two-up, Show field outlines, Focus. Mod+G opens it. It replaces the
   status bar's page and zoom (3.14, 3.15) and the layout switch (3.11).
 - **Library:** Open PDFs…, Try the sample, Combine files…, Batch…; selection bar N selected ·
@@ -448,7 +458,7 @@ selection; pickers and typed values uncounted). Desktop is large, phone compact.
 | Comment on text | sel. + Comment | Same | C on sel. | sel. + Comment | sel. + 1 | Note editor at the line end |
 | Underline, Strikeout, Squiggly | sel. + ⋯ + kind | Same | U, S on sel. | Same | sel. + 2 (+1 by key) | Annotation bar |
 | Image (add) | Page menu → Add image here… | + → Image | I | Markup → + → Image | 2 by page menu, 3 by + / 3 | Image bar |
-| Page images (replace, extract) | Right-click the image | + → Image, click it | I | Long press the image | 2 / 2 | Image bar |
+| Page images (replace, save) | Right-click the image → image group | + → Image, click it | I | Long press the image | 2 / 2 | Image bar |
 | Stamp | Page menu → Add stamp here ▸ kind | + → Stamp ▸ kind | Shift+I (last stamp) | Long press → Add stamp ▸ kind | 3 / 3 | Annotation bar |
 | Signature (saved) | Dock Fill & sign → chip; a signature field → pick; page menu → Add signature here ▸ | Sign ▾ | G | Dock Sign → chip | 2 / 2 | Annotation bar |
 | Fill a field | Click the field | Same | Tab | Tap the field | 0 / 0 | Accessory bar on touch |
@@ -481,7 +491,7 @@ selection; pickers and typed values uncounted). Desktop is large, phone compact.
 | Undo, Redo | ↶ ↷ in the top strip | Same | Mod+Z, Mod+Shift+Z, Mod+Y | ↶ ↷ in the top bar | 1 / 1 | — |
 | History | Long press ↶ | Same | ⌘K `history` | Long press ↶ | 1 / 1 | Scrubber |
 | Find | The Find field (an icon below 1280 px) | Same | Mod+F | ⌕ | 1 / 1 | — |
-| Outline | Page pill → entry; sidebar Outline | — | Mod+G, Down | Pill → entry | 2 / 2 | — |
+| Contents | Page pill → entry; sidebar Contents | — | Mod+G, Down | Pill → entry | 2 / 2 | — |
 | Review (comments, marks, fields) | Sidebar → Review | — | Mod+B | Pages sheet → Review | 2 / 2 | — |
 | Go to page, zoom, layout | Page pill | Same | Mod+G, Mod+= Mod+- Mod+0 | Pill | 1–2 / 1–2 | — |
 | Pages grid | Dock Pages; sidebar ⊞; pinch below fit | Pages bar replaces the palette | 3 | Dock Pages | 1 / 1 | Grid header |
@@ -515,7 +525,8 @@ selection; pickers and typed values uncounted). Desktop is large, phone compact.
 ### 5.2 Snapshots and restore
 
 - **Content:** today's `SerializedWorkspaceV1` (`packages/document-model/src/serialize.ts`), the
-  source bytes as opened or last saved, and per document its page, zoom, surface, sidebar
+  source bytes as opened or last saved, the edit blobs (stamp and image appearances, signatures)
+  that the workspace and the history tail refer to (ADR-0032 §2.4), and per document its page, zoom, surface, sidebar
   section and lock; never Markup. Memory keeps 200 history entries (`DEFAULT_HISTORY_LIMIT`);
   the snapshot keeps the last 20 (build judge), so Undo survives a reload for those steps.
 - **Launch** reopens the last session in tab order, each document where it was: "Restored 3
@@ -532,7 +543,8 @@ selection; pickers and typed values uncounted). Desktop is large, phone compact.
 
 ### 5.3 Undo, Redo, History and toasts
 
-- **↶ ↷ on every width**, phone viewing included, dimmed when empty, the step in the tooltip
+- **↶ ↷ on every width**, phone viewing included (below 336 px ↷ folds into the title menu, A-20's
+  320 px case; spec 01.8), dimmed when empty, the step in the tooltip
   ("Undo pen on page 4"); undo scrolls the change into view and flashes a ring (undo reveal).
   Two- and three-finger taps undo and redo inside Markup only (S12).
 - History is one list for the workspace today. When the step to undo belongs to another open
@@ -549,8 +561,10 @@ selection; pickers and typed values uncounted). Desktop is large, phone compact.
 
 Up to five saved signatures (drawn, typed or image) on the device in IndexedDB
 (`pdf-editor:signatures:v1`, RA-5), cleared in Settings, written only into the PDFs they sign.
-Applied redactions are undoable in the app and final in the saved file; Save names unapplied
-marks ("2 marks not applied · Apply first?") and applied ones ("2 areas removed for good").
+Applied redactions are undoable in the app and final in the saved file; Save and Save a copy ask
+about unapplied marks with one rule ("2 marks not applied" · **Apply and save** · Save without
+applying, with "The text under 2 marks is still in the file"; spec 07.10) and name applied ones
+("2 areas removed for good").
 Signed files open locked; unlocking warns once that saving removes the signature; Save a copy
 with Signature signs again.
 
@@ -573,6 +587,10 @@ with Signature signs again.
 - **Top strip** from medium: ◆, ▤, tabs with the active title menu (▾, ●, ⓘ), +, Find (an icon
   below 1280 px), ↶ ↷, Save (a dimmed "Saved" when nothing is new, so nothing reflows), ◎. No ⋯:
   view options live in the pill, app items in More.
+- **Short viewports** (height < 352 px at any width, where 88 px of chrome passes A-20's 25 %):
+  the top bar folds into the dock, so one 44 px capsule holds ‹ N, title ▾, ↶ and ⋯ (More takes
+  the rest); tool and task side sheets become full-width bottom sheets; the Markup rail becomes a
+  horizontal palette in the same capsule. At 320 × 256 chrome is about 17 % (`01-frame` F1).
 - **Hide on scroll**, compact only (compact-height counts as compact: a phone on its side), in
   viewing only (M-14 with C's A-12 safeguards): after 24 px down the top bar and dock slide away and turn `inert`; they return on
   upward scroll, a tap, either end of the file, focus, a sheet or any key; never with keyboard
@@ -583,7 +601,7 @@ with Signature signs again.
 The free rectangle leaves out the top strip and the dock band (dock plus its 16 px gap). Fit
 page, the first line at fit width, go to page, find hits, outline jumps, links, undo reveals and
 keyboard focus (`scroll-padding`, A-12) land inside it, and the last page scrolls clear of the
-dock; an open palette or pending bar adds its height, a side-docked palette insets the column.
+dock; an open palette or pending bar adds its height (no side-docked palette in M9, spec 03.Q3).
 While scrolling, pages pass under the glass, which is when it shows. At an arbitrary stop a line
 may sit under the dock: about 560 × 48 px, 2.2 % of a 1440 × 900 stage **(judgement on the
 width)**, far inside `language.md` §2.9's 32 %. F (Focus) hides the dock and pill (RA-12).
@@ -972,12 +990,18 @@ Compare                                           Settings sheet
 | Pages grid | Sheet 92 % (40 % peek) | Full screen | Stage | Stage | Stage | Stage |
 | Compare | A · B · Changes switch (M-38) | Side by side; Changes sheet | Side by side; Changes overlay 320 | Same | Changes docked | Changes docked |
 | Tool sheets (page numbers, OCR, crop) | Bottom sheet 40 %, preview above | Side sheet 360 | Side sheet 360, no scrim | Side sheet 400 | Same | Same |
-| Task sheets (Save a copy, Combine with…, Batch) | Sheet 92 % | Full sheet | Form sheet ≤ 640 | Side sheet 400 | Same | Same |
+| Task sheets (Save a copy, Combine with…) | Sheet 92 % | Full sheet | Form sheet ≤ 640 | Side sheet 400 | Same | Same |
+| New signature (spec 07.5) | Sheet 92 % | Full sheet | Form sheet ≤ 640; centred 520 on fine pointers | Centred 520 on fine pointers, else side sheet 400 | Same | Same |
+| Batch (spec 07.5, 07.Q4) | Dimmed: "Needs a wider window" | Full sheet | Form sheet ≤ 640 | Centred 720 | Same | Same |
+| In-page editors (note, text box, paragraph; spec 05.13) | Note: 40 % sheet above the keyboard; text box and paragraph editor on the page, accessory form in the dock | Same | On the page; note popup at its anchor | Same | Same | Same |
 | Confirmations, password | Modal sheet | Modal sheet | Centred dialog | Centred | Centred | Centred |
 | Settings | Full sheet | Full sheet | Form sheet | Side sheet 480 | Same | Same |
 | More | Sheet with search | Sheet | Menu | Menu | Menu | Menu |
 | ⌘K | Search field in More | Same | Centred | Centred | Centred | Centred |
 | Toasts, progress | Above the dock | Above the dock | Bottom centre above the dock | Same | Same | Same |
+
+Short viewports (height < 352 px, any class): the top bar folds into the dock's capsule, side
+sheets become full-width bottom sheets and the rail a horizontal palette (§6.1).
 
 ## 7. Gestures and keys
 
@@ -1009,11 +1033,13 @@ M-22; every gesture has a button or key (WCAG 2.5.1).
 | Tools: open Markup and arm | `V` Select · `P` last pen (again: next pen) · `H` Highlighter · `Shift+E` Eraser · `Q` Lasso · `R O L A` shapes · `T` Text box · `N` Note · `I` Image · `Shift+I` Stamp · `G` Signature · `X` Redact · `E` Edit text tool |
 | On a text selection | `H` highlight · `U` underline · `S` strikeout · `C` comment · `X` redaction mark · `E` outline the paragraph, then `Enter` opens the editor · `Mod+C` copy |
 | Esc ladder | Close the top menu, popover or sheet → clear the selection → disarm to Select → close Markup. In the grid: clear the selection → leave the grid. In Compare: Close. Never leaves a document |
+| Compare (spec 06.23) | `1` closes Compare · `0` the Library · `3` the origin document's grid · `4` does nothing · `J` / `K` step changes |
+| Library (spec 02.12) | `F2` rename a card · `Alt+Left` / `Alt+Right` reorder cards |
 | Pages | `Shift+R` rotate right · `Shift+Alt+R` left (the selection, else the current page) · `Alt+arrows` move · `Alt+Shift+arrows` to the row edge (grid) · `Mod+D` duplicate · `Mod+Shift+E` extract · `Mod+X` / `Mod+V` move between documents · `Delete` (a visible selection only) · `F2` rename a section (grid) |
 | Files | `Mod+O` open · `Mod+S` save · `Mod+Shift+S` save a copy (Chromium) · `Mod+P` print · `Mod+W` close (installed app) |
 | View | `Mod+F` find (`Enter` / `Shift+Enter`, `F3` / `Shift+F3` step; `Alt+Enter` turns the hit into a selection and moves focus to the page) · `Mod+G` go to page (the pill) · `Mod+=` `Mod+-` `Mod+0` zoom · `Mod+B` sidebar · `F` Focus · `Space` pan · `[` `]` previous and next page |
-| Keyboard text | `Enter` on a focused page: caret, or place with a placing tool armed · arrows · `Shift+arrows` select · `Esc` |
-| Commands | `Mod+K` (selection first, arguments) · `?` shortcuts · `Mod+,` settings where the browser leaves it · `F6` / `Shift+F6` regions: top strip → sidebar → page → facts chip → pending-marks bar → dock or palette → contextual bar → page pill → toasts |
+| Keyboard text | `Enter` on a focused page: caret, or place with a placing tool armed · arrows · `Shift+arrows` select · `Esc`; in caret mode `Alt+arrows` jump by word (the macOS text convention), while page moves keep `Alt+arrows` wherever no caret is active (spec 05.4) |
+| Commands | `Mod+K` (selection first, arguments) · `?` shortcuts · `Mod+,` settings where the browser leaves it · `F6` / `Shift+F6` regions (spec X9): top strip or compact top bar → sidebar → page (the page, then caret mode or the open editor's header) → tool sheet → facts chip → pending-marks bar → dock or palette → contextual bar → page pill → toasts; modal sheets and the title menu trap focus and sit outside the cycle |
 | History | `Mod+Z` · `Mod+Shift+Z` · `Mod+Y` |
 | Steps in lists | `J` / `K` next and previous (Compare changes, redaction marks, OCR results) |
 
@@ -1112,8 +1138,8 @@ default), nothing selected, large desktop. "+ save": +1 with a kept handle (3 th
 - **J15b Outline entry "Terms".** Mouse 2: page pill · Terms (3 for a nested entry). Keyboard
   ≈4: Mod+G · Down · arrows · Enter. Touch 2.
 - **J16 Page numbers.** Mouse 4: title ▾ · Page numbers… · "Page 1 of N" · Apply, previewed live;
-  today's default preset stays (judges' correction). Keyboard ≈6: Mod+K · `page numbers` ·
-  Enter · arrows · Tab · Enter. Touch 4, with the preview above the 40 % sheet. Save +1 or +2.
+  today's default preset stays (judges' correction). Keyboard ≈5: Mod+K · `page numbers` ·
+  Enter · arrows · Enter (Enter submits from radios and segments, spec 07.16). Touch 4, with the preview above the 40 % sheet. Save +1 or +2.
 
 ### 8.2 Step counts
 
@@ -1140,8 +1166,8 @@ dot and write" is two steps). Best reference from research 15 §4; "d" = derived
 | J14 Reopen from Recents | 1–3 → 0–1 | ≈5–6 → ≈3 | 3 → 0–1 | — | 0 Preview restore | 0 |
 | J15a Find a hit | 3 → 3 | 3 → 3 | 4 → 3 | — | 3 | 0 |
 | J15b Outline entry | 3 → 2 | ≈6 → ≈4 | 4 → 2 | — | 2 Preview | 0 |
-| J16 Page numbers | 4 → 4 | ≈7 → ≈6 | 4 → 4 | +3 → +1/+2 | — | 0 |
-| **Total** | **≈91 → 68** | **16 rows ≈121 → 82; gaps J5, J8A closed** | **≈99, no page move → 72, all possible** | **+3/+4 → +1/+2** | | **3 (today 9 mode or view switches)** |
+| J16 Page numbers | 4 → 4 | ≈7 → ≈5 | 4 → 4 | +3 → +1/+2 | — | 0 |
+| **Total** | **≈91 → 68** | **16 rows ≈121 → 81; gaps J5, J8A closed** | **≈99, no page move → 72, all possible** | **+3/+4 → +1/+2** | | **3 (today 9 mode or view switches)** |
 
 Totals use each row's conservative count (J4 4, J11 3, J13A 1, J14 1) and J8A's saved signature
 (3); with a first-time signature they are 70 and 74. On research 15's eleven
@@ -1205,9 +1231,9 @@ visible (FL-R10); the privacy line. The aurora drifts in Auto and settles after 
 ### 9.3 The facts chip
 
 One fact per file, by priority: "Signed by … · locked" > "No text on N pages · Recognize" > "N
-form fields · Fill & sign" > "Restored edits from 18:40 · Discard" > "Outline · N chapters". An
+form fields · Fill & sign" > "Restored edits from 18:40 · Discard" > "Contents · N chapters". An
 M1 chip at the top leading corner of the free rectangle (above the dock on compact), 600 ms
-after opening, for 8 s or until used; then it folds into the ⓘ by the title, which lists every
+after opening, for 10 s (A-24: it carries an action) or until used; then it folds into the ⓘ by the title, which lists every
 fact with its action, as does the title-menu header. Once per file per device, keyed by size
 and a hash of the first 64 KB **(judgement)**; the ring circles it while its action runs.
 
@@ -1219,7 +1245,7 @@ and a hash of the first 64 KB **(judgement)**; the ring circles it while its act
 | Private window or OPFS refused | "Changes are not kept in this window" (Library, privacy popover) |
 | Storage not persistent | Privacy popover: "The browser may clear kept changes · Keep them" |
 | Find with no hits | "No matches in report.pdf"; on textless pages "No text on these pages · Recognize text…" |
-| Review empty · no outline | "No comments, marks or fields" · the pill shows no Contents; Outline offers "Add a bookmark here" |
+| Review empty · no outline | "No comments, marks or fields" · the pill shows no Contents; the sidebar's Contents offers "Add a bookmark here" |
 | Grid scope or Compare with one document | "All open" dimmed with the reason · chooser "Choose a second file · Open…" |
 | No saved signature · no form fields | The chip reads "New signature…" · the stepper is hidden |
 | Locked · restricted | Dock "Pages · Locked · More", dimmed menus · "Restricted by the file · Unlock anyway" |
@@ -1241,8 +1267,8 @@ languages**; **Shortcuts**; **About** (version, licence, About page).
 |---|---|---|---|
 | 3 App frame (15) | Replace | Top strip (◆, ▤, tabs with the title menu, Find, ↶ ↷, Save, ◎), dock, page pill; progress in the toast stack. Mode switch (3.10), layout switch (3.11), Document button (3.7), Export button (3.8) and status bar (3.14) go | `TabBar.tsx` → `TopStrip`; `Stage.tsx` loses `ModeSwitch`; `StatusBar.tsx` and `viewer/LayoutSwitch.tsx` removed; new `Dock`, `PagePill`, compact top bar |
 | 4 Home (5) | Keep, rework | Library: launcher, one-click cards with Select, selection bar, Recents with snapshots, Combine with no dialog, the sample | `home/*`; `EmptyState.tsx` merged; `home-actions.ts` Combine; `home-model.ts` Select mode |
-| 5 Navigator (14) | Merge | One sidebar: Pages/Outline · Find · Review; the rail and the Files tab go; thumbnails drag; a navigating click never selects | `LeftRail.tsx` → `Sidebar.tsx`; `PagesPanel.tsx` with `dnd/page-drag.ts`; `FilesList` removed; `ChangesPanel` into Compare |
-| 6 Inspector (7) | Remove | History → scrubber; Properties → bars; Info → Document info sheet; Signatures → title menu and facts chip; OCR → its sheet and a Review filter | `RightPanel.tsx` deleted, sections re-hosted; `AnnotationProperties.tsx` into the bar's ⋯ |
+| 5 Navigator (14) | Merge | One sidebar: Pages/Contents · Find · Review; the rail and the Files tab go; thumbnails drag; a navigating click never selects | `LeftRail.tsx` → `Sidebar.tsx`; `PagesPanel.tsx` with `dnd/page-drag.ts`; `FilesList` removed; `ChangesPanel` into Compare |
+| 6 Inspector (7) | Remove | History → scrubber; Properties → bars; Info → Document info sheet; Signatures → title menu and facts chip; OCR → its sheet and the Review filter "Words to check" (`06-navigation` N5) | `RightPanel.tsx` deleted, sections re-hosted; `AnnotationProperties.tsx` into the bar's ⋯ |
 | 7 Tool bar and tools (16) | Replace | `MarkupPalette`, one glass element with the dock; compact sets; + overflow; inline options or tier; preset strip; one Image tool (INV-15) | `FloatingToolbar*.ts(x)` → `Dock` and `MarkupPalette`; `PenBar.tsx` kept inside; `tool-store` arms on `canChange(id, 'freehand')` |
 | 8 Bars, menus, popovers (21) | Keep, extend | Selection bar everywhere with Redact and Edit text; page menu with "Add … here"; title menu; Pages bar; pending-marks bar | `ReadSelectionBar.tsx` → `SelectionBar.tsx`; `PageContextMenu.tsx`; `DocumentMenu.tsx` → `TitleMenu.tsx`; new `PendingMarksBar` |
 | 9 Canvas overlays (21) | Keep, re-gate | Layers ask `canChange`; the form notice becomes the Lock notice; hover hint only in Markup with Select; caret mode; keyboard placement | `FormLayer.tsx`, `TextLayer.tsx`, `AnnotationLayer.tsx`, `viewer/hit-order.ts`; new `viewer/caret.ts` |
@@ -1284,7 +1310,7 @@ languages**; **Shortcuts**; **About** (version, licence, About page).
 | Snapshots on shared machines, quota, eviction | Medium · medium | Listed with Clear; 30 days or 500 MB; `persist()`; private-window notice; honest wording; owner question 2 |
 | Hide-on-scroll against A-12 | Low · medium | Compact only, inert, keyboard and focus rules, the setting; the accessibility track confirms |
 | Touch reorder depends on the in-house gesture core (S-T4 unverified) | Medium · medium | ‹ › and Move to ▸ in the Pages bar; ⌘K `move` |
-| Migration size: `viewMode` 85/37, `documentMode*` 48/17, `canEdit*` 49/14, four specs rewritten | High · medium | Four drops, each a working app (build judge): D0 sheets, toasts, snapshots, save; D1 targeted acts and the `commit()` lock; D2 palette, dock and Pages grid; D3 glass, light, motion |
+| Migration size: `viewMode` 85/37, `documentMode*` 48/17, `canEdit*` 49/14, four specs rewritten | High · medium | Five drops (D0–D4), each a working app (build judge; `docs/specs/redesign.md` §12): D0 sheets, toasts, snapshots, save; D1 targeted acts and the `commit()` lock; D2 palette, dock and Pages grid; D3 glass, light, motion; D4 the Library, first run and the presentation |
 | The owner wants documents locked by default | — | One flag flips it; the structure is the same either way |
 
 ## 13. Glass, light and motion: where flows meets `language.md`
@@ -1335,7 +1361,10 @@ languages**; **Shortcuts**; **About** (version, licence, About page).
 
 ## 14. Decisions to record as ADRs
 
-Numbers are assigned at merge, after the eight of `language.md` §11.1.
+Numbers are assigned at merge, after the eight of `language.md` §11.1. **Recorded:** with the
+light theme folded into ADR-0022, `language.md` §11.1's eight take seven numbers (ADR-0022 to
+ADR-0028), and the seven decisions below take four: items 1, 5 and 6 are ADR-0029, item 2 is
+ADR-0030, items 3 and 7 are ADR-0031, item 4 is ADR-0032 (spec §0).
 
 1. **Viewing, targeted acts and one Markup state.** Supersedes ADR-0019 §2–§5 and DESIGN §4.8's
    Read rows; keeps ADR-0019 §1 (Home as a place, now the Library) and §6 (one hit order);
@@ -1377,8 +1406,9 @@ Numbers are assigned at merge, after the eight of `language.md` §11.1.
 1. **Should documents open unlocked (recommended) or locked?** The structure is the same; only
    the default of "Open documents locked" changes. Unlocked is §3.5's middle column; locked is
    its right column, ADR-0019's Read made stricter, at two presses (Locked, Unlock) once per
-   document before any change. Unlocked is recommended because the M8 protection for page text,
-   the pen and stray clicks holds in both (S1–S4, S10–S15).
+   document before any change. Unlocked keeps the M8 protection for page text and the pen
+   (S1–S4, S10–S15). A stray click on a checkbox toggles it (S7), and page-menu or key acts on a
+   page take effect (S8, S17, S18), each as one visible step with Undo. Locked blocks these too.
 2. **May open documents and their changes stay on this device, and closed ones in Recents for 30
    days or 500 MB?** On by default, listed and clearable. Keeping nothing brings back silent loss.
 3. **Taste check on the wave 3 prototype:** the labelled dock floating over the page while

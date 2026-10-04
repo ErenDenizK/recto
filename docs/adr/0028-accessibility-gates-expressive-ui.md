@@ -10,8 +10,8 @@ status: proposed
 **Supersedes on acceptance:** DESIGN §5 "Focus ring 2px accent on 2px offset" (its per-context
 offsets carry over), "reduced motion respected" as a sentence with no test, and "Every new state
 passes axe in English and Turkish, with Glass panels on and with Reduce transparency"; research
-14 §4.3's "contrast is final" · **Amends:** research 22 A-7, A-12 and A-20, in the wording of
-`language.md` §9.1 · **Rests on:** `language.md` §0.1 principle 7, §9.1–§9.3, §10.2, §11.1 item
+14 §4.3's "contrast is final" · **Amends:** research 22 A-6, A-7, A-9, A-11, A-12, A-18 and A-20, in
+the wording of `language.md` §9.1 and `docs/specs/redesign.md` §6.16 · **Rests on:** `language.md` §0.1 principle 7, §9.1–§9.3, §10.2, §11.1 item
 8; `flows.md` §6.1, §6.2, §7.2, §13.2 items 7 and 9; research 22 A-1 to A-24, §3.2–§3.4, §4,
 §5.2, §5.5, §6.2, §7, §9, §10, §12, §14; 19 M-2, M-14; 16 G-22
 
@@ -57,7 +57,10 @@ while every existing test still passes.
    | A-22 | `a11y.spec.ts`, "plain" project | The whole suite with every effect at its solid twin |
 
    Engines: Chromium, WebKit, Firefox, and one Chromium project with GPU compositing off, the
-   renderer that showed the edge leak (A-2). A lint bans `text-transform: capitalize` and
+   renderer that showed the edge leak (A-2). Every CI browser renders in software, which would
+   start the app at Glass Tinted and Ambient light Still (`language.md` §2.8), so the default,
+   pixel, motion and matrix projects run with ADR-0024's test-only render override (`degrade:
+   'off'`, Glass Clear, Ambient light Auto); one spec without it asserts the start states. A lint bans `text-transform: capitalize` and
    argument-less `toUpperCase` / `toLocaleUpperCase` in UI code (A-21).
 2. **Matrix.** `a11y.spec.ts` runs {default, Glass Solid, more contrast, forced colours} × {EN,
    TR} × {dark, light}, plus the plain project, as research 22 asks for preferences "both
@@ -71,7 +74,8 @@ while every existing test still passes.
    backdrops is 4.07:1 (selection blue). Inside capsules and scrollers it is concentric with the
    dark band inside. It never animates and serves both themes. DESIGN §5's offsets carry over.
    Forced colours keep the system outline alone.
-5. **Three amendments to research 22's wording,** made by `flows.md` and `language.md`:
+5. **Seven amendments to research 22's wording,** made by `flows.md`, `language.md` and the M9
+   spec:
    - **A-12** "chrome never auto-hides" becomes: chrome hides only on compact (compact-height
      included), in viewing, after 24 px of downward scroll, `inert` from its first exit frame;
      it returns on upward scroll, a tap, either end of the file, focus, a sheet or any key; never
@@ -82,6 +86,19 @@ while every existing test still passes.
      grid, Compare): light is still there except feedback bursts ≤ 2 s.
    - **A-20** "the mode, tool and export commands" becomes "Markup and every tool, Save a copy
      and Lock".
+   - **A-18** "Light at half intensity" becomes "Light Off (`display: none`)", per `language.md`
+     §3.4; `tokens.test.ts` and `a11y.spec.ts` assert the light canvas is hidden under more
+     contrast.
+   - **A-11** "2 px light `outline` (L ≥ 0.85)" becomes "light band ≥ 9:1 against
+     `--focus-dark`, and the best band ≥ 3:1 over the listed backdrops": lime `#c8fb3d` has a
+     relative luminance of 0.816, and `tokens.test.ts` asserts exactly this wording.
+   - **A-6** excepts the armed-tool under-light, which is clipped to the palette's capsule;
+     `glass-pixels.spec.ts` also asserts that page pixels outside the palette's rectangle are
+     identical with a tool armed and with Light Off.
+   - **A-9** exempts progress indicators (`role="progressbar"` or an `aria-busy` activity glyph)
+     whose reduced form animates opacity only with a period ≥ 1.6 s (`language.md` §7.5); the
+     `motion.spec.ts` sweep lists that exemption and nothing else. Every other reduced form stays
+     ≤ 150 ms of opacity or colour, or none.
 6. **Manual checks once per milestone:** VoiceOver on macOS and iPadOS and NVDA on Windows
    through open → read → mark up → save; a Windows contrast theme; the owner's GPU machine for
    the edge-leak probe (research 22 §15 Q1, `language.md` §11.2 Q1).
@@ -101,7 +118,7 @@ while every existing test still passes.
 - Pixel tests depend on each engine's compositor. Full-viewport screenshots, text-free 4 × 4
   spots and a ±2/255 tolerance keep them stable; clipped screenshots skip backdrop filters and
   are not used.
-- The six per-file `matchMedia('(prefers-reduced-motion…)')` checks go; one module answers
+- The three per-file `matchMedia('(prefers-reduced-motion…)')` checks go; one module answers
   (ADR-0026).
 - On acceptance the lead rewrites DESIGN §5 from `language.md` §9; its "Modes and Edit (M8)"
   paragraph moves to the Markup and Lock wording of ADR-0029.

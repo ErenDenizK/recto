@@ -53,14 +53,16 @@ it at 50 % keeps 5.15:1 (AU-8).
    | Place | Rest | Events |
    |---|---|---|
    | Empty Library | Full-window field, I 0.45; ambient drift in Auto | Arrival, drag-over, success |
-   | Library with documents | I 0.40, still; lobes between card rows | Open, close, Combine: 2 s drift; success |
+   | Library with documents | I 0.40, still; lobes between card rows; a `textSafe` band takes intensity to 0 within 24 px of the head row (spec 02.2) | Open, close: 2 s drift; success (no drift on Combine, which leaves the Library: spec 02.21) |
    | Drop overlay in a document view | Behind its scrim only | Drag-over |
    | Beneath the palette's armed tool (dark only) | Static CSS under-light; never under the dock | Slides to the armed tool |
    | Processing | 1.5 px conic ring on the progress capsule, toast or facts chip | Turns while the job runs |
    | Success | Ring bloom; Library pulse | Once per success |
    | About hero | I 0.8, 1/4 resolution, visible pause control | Pauses off-screen |
 
-   **Never:** on a page or within 64 px of one, thumbnails included; in the Pages grid or
+   **Never:** on a page or within 64 px of one, document thumbnails included (Library
+   thumbnails are exempt from the 64 px distance and keep the brightness rule, and A-6's pixel
+   test covers them: spec 02.1, amended before acceptance); in the Pages grid or
    Compare; in the stage of a document view at rest; as the own light of a sheet, menu or
    tooltip; for errors, warnings, redaction or destructive confirmations (lime reads "go"); as
    a frame at the screen edge; behind text on bare canvas above Y 0.026 (A-5).
@@ -70,7 +72,7 @@ it at 50 % keeps 5.15:1 (AU-8).
    capsule, always next to words. The light's springs are slower than the chrome's.
 6. **Ambient light: Auto · Still · Off** (AU-16, `language.md` §3.4). Auto (default): event
    motion, plus drift on the empty Library and About, gliding to still after 60 s idle and 5 s
-   after the window loses focus. Still: one frame per view; events cross-fade in ≤ 200 ms. Off:
+   after the window loses focus. Still: one frame per view; events cross-fade in ≤ 150 ms (A-9). Off:
    no field, no under-light; ring and bloom become a static rim. Overrides: reduced motion →
    Still; forced colours and `prefers-contrast: more` → Off (`display: none`); Glass Solid or
    reduced transparency → Still at I × 0.7. The control says when the system decides.
