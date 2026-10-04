@@ -77,3 +77,10 @@ export function stillStyles(): void {
     '*, *::before, *::after { transition: none !important; animation: none !important; }';
   document.head.append(style);
 }
+
+/**
+ * Whether the page can hover. An earlier file of the run that turned CDP touch emulation on and
+ * off leaves `hover: none` behind, and then no hover rule applies (rightly): the hover checks
+ * run only where hover is possible.
+ */
+export const canHover = (): boolean => matchMedia('(hover: hover)').matches;

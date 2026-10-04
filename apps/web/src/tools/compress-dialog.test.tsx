@@ -59,7 +59,9 @@ describe('Compress presets', () => {
     const focused = getComputedStyle(card(ebook));
     expect(focused.outlineStyle).toBe('solid');
     expect(focused.outlineWidth).toBe('2px');
-    expect(focused.outlineOffset).toBe('1px');
+    // The inset form of the two-band ring (09-primitives §19): lime at the edge, ink inside.
+    expect(focused.outlineOffset).toBe('-2px');
+    expect(focused.boxShadow).toContain('inset');
     // The unfocused preset draws no ring.
     expect(getComputedStyle(card(screenPreset)).outlineStyle).toBe('none');
   }, 60_000);

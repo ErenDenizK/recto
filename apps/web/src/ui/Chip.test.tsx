@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { Chip, ChipGroup } from './Chip';
-import { forceState, stillStyles } from './test-states';
+import { canHover, forceState, stillStyles } from './test-states';
 
 stillStyles();
 
@@ -78,9 +78,11 @@ describe('ChipGroup (09-primitives §5)', () => {
     expect(all.querySelector('svg')).not.toBeNull();
     expect(comments.querySelector('svg')).toBeNull();
     expect(getComputedStyle(comments).backgroundColor).toBe('rgba(255, 255, 255, 0.08)');
-    const release = await forceState(comments, ['hover']);
-    expect(getComputedStyle(comments).backgroundColor).toBe('rgba(255, 255, 255, 0.12)');
-    await release();
+    if (canHover()) {
+      const release = await forceState(comments, ['hover']);
+      expect(getComputedStyle(comments).backgroundColor).toBe('rgba(255, 255, 255, 0.12)');
+      await release();
+    }
   });
 
   it('rests without a fill on the floating glass', () => {
