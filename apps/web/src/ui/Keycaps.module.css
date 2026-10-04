@@ -35,3 +35,15 @@
   background: var(--surface-active);
   border-color: var(--border-glass);
 }
+
+/* A coarse pointer: 20 px caps, and none until a physical key has been pressed (data-keys). */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .cap {
+    min-width: 20px;
+    height: 20px;
+  }
+
+  :global(:root:not([data-keys])) .keycaps {
+    display: none;
+  }
+}
