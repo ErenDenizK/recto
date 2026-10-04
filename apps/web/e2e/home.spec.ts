@@ -12,7 +12,13 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import {
+  fixturePath,
+  openFixtures,
+  sessionSettled,
+  useFileInputPicker,
+  waitForSnapshot,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Script-built drops need Chromium');
 
@@ -339,8 +345,10 @@ test('the keyboard path: Tab to the cards, arrows, Space and Enter', async ({ pa
 test('Recents remember a closed file across a reload, open it again and clear', async ({
   page,
 }) => {
-  // The <input> picker hands out no file handle (as in Firefox and Safari), so the entry is
-  // a name and reopens through the file dialog ("Open again…").
+  // The <input> picker hands out no file handle (as in Firefox and Safari). A closed
+  // document keeps its snapshot (ADR-0032 §2.6), so its row reopens with no picker on every
+  // browser; without the snapshot the entry is a name that reopens through the file dialog
+  // ("Open again…").
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const recents = page.getByRole('list', { name: 'Recent files' });
@@ -351,10 +359,13 @@ test('Recents remember a closed file across a reload, open it again and clear', 
   await page.getByRole('tab', { name: 'simple-text' }).focus();
   await page.keyboard.press('Delete');
   await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await waitForSnapshot(page);
 
   await page.reload();
+  await sessionSettled(page);
   await expect(page.getByRole('heading', { name: 'Recent' })).toBeVisible();
-  await expect(row).toHaveAccessibleName(/^simple-text\.pdf, 3 pages · .+, Open again…$/);
+  // Kept, unchanged: no hint, nothing to ask.
+  await expect(row).toHaveAccessibleName(/^simple-text\.pdf, 3 pages · [^,]+, [^,]+$/);
   // One column: the open and drop card, then the recents as cards with a page glyph, never a
   // thumbnail (review F17).
   const dropBox = await page.getByRole('heading', { name: 'Drop PDFs to start' }).boundingBox();
@@ -363,7 +374,38 @@ test('Recents remember a closed file across a reload, open it again and clear', 
   await expect(row.locator('svg')).toHaveCount(1);
   await expect(recents.locator('canvas, img')).toHaveCount(0);
 
-  // The file dialog opens and one line says why.
+  // The snapshot reopens with no file dialog.
+  let picked = false;
+  const onChooser = () => {
+    picked = true;
+  };
+  page.on('filechooser', onChooser);
+  await row.click();
+  await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Read, locked' })).toBeChecked();
+  expect(picked).toBe(false);
+  page.off('filechooser', onChooser);
+
+  // The privacy popover says where Recents live, and Clear deletes the kept copies.
+  await page.getByTestId('privacy-indicator').click();
+  await expect(page.getByTestId('privacy-recents')).toHaveText(
+    'Recent files are remembered on this device only. Clear recents',
+  );
+  await page.keyboard.press('Escape');
+
+  // Closed again: one entry, not two.
+  await page.getByRole('tab', { name: 'simple-text' }).focus();
+  await page.keyboard.press('Delete');
+  await expect(recents.getByRole('button', { name: /^simple-text\.pdf, / })).toHaveCount(1);
+  await waitForSnapshot(page);
+  await page.getByTestId('privacy-indicator').click();
+  await page.getByTestId('privacy-kept-clear').click();
+  await page.getByTestId('privacy-kept-delete').click();
+  await expect(page.getByTestId('privacy-kept-empty')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // Without its snapshot the row reopens through the file dialog, and one line says why.
+  await expect(row).toHaveAccessibleName(/^simple-text\.pdf, 3 pages · .+, Open again…$/);
   const chooser = page.waitForEvent('filechooser');
   await row.click();
   await expect(page.getByTestId('recent-note')).toHaveText(
@@ -371,22 +413,16 @@ test('Recents remember a closed file across a reload, open it again and clear', 
   );
   await (await chooser).setFiles(fixturePath('simple-text.pdf'));
   await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
-  await expect(page.getByRole('radio', { name: 'Read, locked' })).toBeChecked();
 
-  // The privacy popover says where Recents live.
-  await page.getByTestId('privacy-indicator').click();
-  await expect(page.getByTestId('privacy-recents')).toHaveText(
-    'Recent files are remembered on this device only. Clear recents',
-  );
-  await page.keyboard.press('Escape');
-
-  // Closed again: one entry, not two. "Clear recents" forgets it, also after a reload.
+  // "Clear recents" forgets it, also after a reload.
   await page.getByRole('tab', { name: 'simple-text' }).focus();
   await page.keyboard.press('Delete');
   await expect(recents.getByRole('button', { name: /^simple-text\.pdf, / })).toHaveCount(1);
   await page.getByRole('button', { name: 'Clear recents' }).click();
   await expect(recents).toHaveCount(0);
+  await waitForSnapshot(page);
   await page.reload();
+  await sessionSettled(page);
   await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Recent' })).toHaveCount(0);
 });

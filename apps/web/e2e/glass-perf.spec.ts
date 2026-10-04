@@ -18,7 +18,7 @@ import { deflateSync } from 'node:zlib';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { showInspector, useFileInputPicker } from './helpers';
+import { reloadFresh, showInspector, useFileInputPicker } from './helpers';
 
 /** `src/state/appearance-store.ts` (kept in step by hand: e2e does not import app code). */
 const APPEARANCE_STORAGE_KEY = 'pdf-editor:appearance:v1';
@@ -215,7 +215,8 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass panels o
       ([key, on]) => localStorage.setItem(key as string, JSON.stringify({ glassPanels: on })),
       [APPEARANCE_STORAGE_KEY, glassPanels] as const,
     );
-    await page.reload();
+    // Start fresh: the first run's document would otherwise be restored (ADR-0032 §2.5).
+    await reloadFresh(page);
     const chooser = page.waitForEvent('filechooser');
     await page
       .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
