@@ -173,6 +173,23 @@ function escapeBlockStart(text: string): string {
   return text.replace(/^(#{1,6}(?=\s)|>|[-+](?=\s)|\d+(?=[.)]\s))/, (m) => `\\${m}`);
 }
 
+/** Schemes a written link may carry; as the viewer opens (http, https, mailto). */
+const LINK_SCHEMES = new Set(['http:', 'https:', 'mailto:']);
+
+/**
+ * `uri` when a Markdown reader may follow it, else undefined: a PDF can carry any action URI
+ * (`javascript:`, `data:`, `file:`), and a live link of that kind in the `.md` file would run
+ * in readers that do not filter schemes. Such link text is written as plain text.
+ */
+export function linkableUri(uri: string | undefined): string | undefined {
+  if (uri === undefined) return undefined;
+  try {
+    return LINK_SCHEMES.has(new URL(uri).protocol) ? uri : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function linkTarget(uri: string): string {
   return /[\s()<>]/.test(uri) ? `<${uri.replace(/[<>]/g, encodeURIComponent)}>` : uri;
 }
@@ -190,7 +207,7 @@ function markdownInline(
     let j = i;
     let text = '';
     while (j < pieces.length && (pieces[j]?.link ?? -1) === link) text += pieces[j++]?.ch ?? '';
-    const uri = links[link]?.uri;
+    const uri = linkableUri(links[link]?.uri);
     if (link >= 0 && uri !== undefined && text.trim() !== '') {
       const lead = /^\s*/.exec(text)?.[0] ?? '';
       const trail = /\s*$/.exec(text)?.[0] ?? '';

