@@ -248,20 +248,25 @@ describe('tool bar (mounted)', () => {
     await mount();
     expect(groupNames()).toEqual(GROUPS);
     const write = within(bar()).getByRole('button', { name: 'Write' });
-    const before = write.getBoundingClientRect();
     const animate = vi.spyOn(Element.prototype, 'animate');
     await userEvent.click(write);
     // The same element became the chip at the left end; the group's tools slid in.
     const chip = within(bar()).getByRole('button', { name: 'Write: back to all groups' });
     expect(chip).toBe(write);
     expect(chip).toHaveFocus();
-    expect(chip.getBoundingClientRect().left).toBeLessThan(before.left);
     // One movement: the chip slides from its place in the row, the rest fades in beside it.
     const chipMove = animate.mock.contexts.indexOf(chip);
     expect(chipMove).toBeGreaterThanOrEqual(0);
     expect(animate.mock.calls[chipMove]?.[1]).toMatchObject({ duration: 160 });
     expect(JSON.stringify(animate.mock.calls[chipMove]?.[0])).toContain('translateX(');
     await settle();
+    // Read after the slide (mid-animation the FLIP transform still holds the chip near its old
+    // place): the chip leads the row. Its page position is not compared with the group button's,
+    // because the bar is centred by layout and re-centres as it grows.
+    const lefts = within(bar())
+      .getAllByRole('button')
+      .map((b) => b.getBoundingClientRect().left);
+    expect(chip.getBoundingClientRect().left).toBeCloseTo(Math.min(...lefts), 0);
     expect(within(bar()).getByRole('button', { name: 'Pen' })).toBeVisible();
     expect(within(bar()).getByRole('button', { name: 'Eraser' })).toBeVisible();
     expect(within(bar()).getByRole('button', { name: /^Shapes/ })).toBeVisible();
