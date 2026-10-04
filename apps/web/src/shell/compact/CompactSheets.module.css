@@ -41,13 +41,11 @@
   overflow: hidden;
   background: var(--page-background);
   box-shadow: var(--page-shadow);
-  transition: box-shadow var(--duration-fast) var(--ease-out);
 }
 
 .thumbButton:active .thumb {
-  box-shadow:
-    var(--page-shadow),
-    0 0 0 3px var(--surface-active);
+  outline: 3px solid var(--surface-active);
+  outline-offset: 0;
 }
 
 /* The page being read: a ring outside the sheet (not colour alone: its label is bold too). */
