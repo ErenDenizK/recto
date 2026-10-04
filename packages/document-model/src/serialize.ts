@@ -10,6 +10,8 @@ import { PAGE_LABEL_STYLES } from './labels';
 import { RESIZE_MODES, resizeProblem } from './resize';
 import type {
   Anchor,
+  History,
+  HistoryEntry,
   BatesConfig,
   BlobId,
   CreatedField,
@@ -513,12 +515,23 @@ const FORM_POLICIES: readonly FormMergePolicy[] = [
   'unify-same-name',
 ];
 
-function readDocument(value: unknown, path: string): VirtualDocument {
+/**
+ * A document; `sharedPages` (the history tail's page table, already read) replaces reading
+ * `pages` inline, so pages shared between snapshots stay one object after a restore.
+ */
+function readDocument(
+  value: unknown,
+  path: string,
+  sharedPages?: (value: unknown, path: string) => readonly VirtualPage[],
+): VirtualDocument {
   const o = obj(value, path);
   return {
     id: nonEmpty(o.id, `${path}.id`) as DocumentId,
     title: str(o.title, `${path}.title`),
-    pages: arr(o.pages, `${path}.pages`).map((p, i) => readPage(p, `${path}.pages[${i}]`)),
+    pages:
+      sharedPages === undefined
+        ? arr(o.pages, `${path}.pages`).map((p, i) => readPage(p, `${path}.pages[${i}]`))
+        : sharedPages(o.pages, `${path}.pages`),
     outline: arr(o.outline, `${path}.outline`).map((n, i) =>
       readOutlineNode(n, `${path}.outline[${i}]`, 0),
     ),
@@ -669,4 +682,208 @@ export function deserializeWorkspace(input: unknown): Workspace {
     );
   }
   return workspace;
+}
+
+// ---------------------------------------------------------------------------
+// History tail (ADR-0032 §2.4: the snapshot keeps the last 20 undo steps)
+// ---------------------------------------------------------------------------
+
+/** Undo steps a session snapshot keeps (ADR-0032 §2.4; memory keeps `DEFAULT_HISTORY_LIMIT`). */
+export const DEFAULT_HISTORY_TAIL = 20;
+
+/** A document of the tail's table; `pages` are indices into `SerializedHistoryV1.pages`. */
+export type SerializedHistoryDocumentV1 = Omit<VirtualDocument, 'pages'> & {
+  readonly pages: readonly number[];
+};
+
+/** One history entry of the tail; every list holds indices into the tail's tables. */
+export interface SerializedHistoryEntryV1 {
+  readonly label: string;
+  readonly at: number;
+  readonly coalesceKey?: string;
+  /** Indices into `SerializedHistoryV1.sources`. */
+  readonly sources: readonly number[];
+  /** Indices into `SerializedHistoryV1.documents`, in tab order. */
+  readonly documents: readonly number[];
+  readonly activeDocument?: DocumentId;
+  /** Indices into `SerializedHistoryV1.edits`, in order. */
+  readonly engineEdits: readonly number[];
+}
+
+/**
+ * The newest part of a history as JSON: the present entry, up to `n` undo steps before it
+ * and up to `n` redo steps after it. History entries share structure (each step changes a
+ * few objects of the workspace before it), so every source, page, document and engine edit
+ * object is stored once, in a table, and entries refer to them by index: a 20-step tail of a
+ * long document costs about one copy of it plus what the steps changed, not 21 copies.
+ * `SerializedWorkspaceV1` is unchanged.
+ */
+export interface SerializedHistoryV1 {
+  readonly version: 1;
+  readonly kind: 'history-tail';
+  readonly sources: readonly SourceDocument[];
+  readonly pages: readonly VirtualPage[];
+  readonly documents: readonly SerializedHistoryDocumentV1[];
+  readonly edits: readonly EngineEdit[];
+  /** Oldest first: the kept undo steps, the present entry, the kept redo steps. */
+  readonly entries: readonly SerializedHistoryEntryV1[];
+  /** Index of the present entry in `entries`. */
+  readonly present: number;
+}
+
+/** Assigns each distinct object (by identity) an index into one table, in first-seen order. */
+class Table<T extends object> {
+  readonly items: T[] = [];
+  private readonly index = new Map<T, number>();
+
+  add(item: T): number {
+    let found = this.index.get(item);
+    if (found === undefined) {
+      found = this.items.length;
+      this.items.push(item);
+      this.index.set(item, found);
+    }
+    return found;
+  }
+}
+
+/**
+ * Serializes the newest `n` undo steps of `history` (and as many redo steps), with the
+ * present entry; returns a JSON-safe value. Throws `invalid-argument` for a negative or
+ * fractional `n`, and `invariant-violation` when a tab has no document.
+ */
+export function serializeHistoryTail(
+  history: History,
+  n: number = DEFAULT_HISTORY_TAIL,
+): SerializedHistoryV1 {
+  if (!Number.isSafeInteger(n) || n < 0) {
+    throw new DocumentModelError('invalid-argument', 'History tail must be a non-negative integer');
+  }
+  const past = n === 0 ? [] : history.past.slice(-n);
+  const future = history.future.slice(0, n);
+  const sources = new Table<SourceDocument>();
+  const documents = new Table<VirtualDocument>();
+  const edits = new Table<EngineEdit>();
+  const entry = (e: HistoryEntry): SerializedHistoryEntryV1 => {
+    const ws = e.workspace;
+    const base = {
+      label: e.label,
+      at: e.at,
+      sources: Object.values<SourceDocument>(ws.sources).map((s) => sources.add(s)),
+      documents: ws.documentOrder.map((id) => {
+        const doc = ws.documents[id];
+        if (doc === undefined) {
+          throw new DocumentModelError('invariant-violation', `Tab ${id} has no document`);
+        }
+        return documents.add(doc);
+      }),
+      engineEdits: ws.engineEdits.map((edit) => edits.add(edit)),
+    };
+    return {
+      ...base,
+      ...(e.coalesceKey === undefined ? {} : { coalesceKey: e.coalesceKey }),
+      ...(ws.activeDocument === undefined ? {} : { activeDocument: ws.activeDocument }),
+    };
+  };
+  const entries = [...past, history.present, ...future].map(entry);
+  const pages = new Table<VirtualPage>();
+  const tabled = documents.items.map(
+    (doc): SerializedHistoryDocumentV1 => ({
+      ...doc,
+      pages: doc.pages.map((page) => pages.add(page)),
+    }),
+  );
+  return {
+    version: 1,
+    kind: 'history-tail',
+    sources: sources.items,
+    pages: pages.items,
+    documents: tabled,
+    edits: edits.items,
+    entries,
+    present: past.length,
+  };
+}
+
+/** Reads a list of indices into `table`, returning the items. */
+function indices<T>(value: unknown, path: string, table: readonly T[], what: string): T[] {
+  return arr(value, path).map((v, i) => {
+    const index = int(v, `${path}[${i}]`);
+    const item = index < 0 ? undefined : table[index];
+    if (item === undefined) fail(`${path}[${i}]`, `an index into ${what}`);
+    return item;
+  });
+}
+
+/**
+ * Validates and rebuilds a history from `serializeHistoryTail` output (or its JSON text):
+ * each table is read once, so objects shared between entries stay shared, and every entry's
+ * workspace is checked against the model's invariants. Throws `invalid-serialized` on
+ * malformed input and `unsupported-version` for unknown versions.
+ */
+export function deserializeHistoryTail(input: unknown): History {
+  let value = input;
+  if (typeof input === 'string') {
+    try {
+      value = JSON.parse(input);
+    } catch (cause) {
+      throw new DocumentModelError('invalid-serialized', 'Input is not valid JSON', { cause });
+    }
+  }
+  const root = obj(value, '$');
+  if (root.version !== SERIALIZATION_VERSION) {
+    throw new DocumentModelError(
+      'unsupported-version',
+      `Unsupported history version: ${String(root.version)}`,
+    );
+  }
+  if (root.kind !== 'history-tail') fail('$.kind', "'history-tail'");
+  const sources = arr(root.sources, '$.sources').map((s, i) => readSource(s, `$.sources[${i}]`));
+  const pages = arr(root.pages, '$.pages').map((p, i) => readPage(p, `$.pages[${i}]`));
+  const documents = arr(root.documents, '$.documents').map((d, i) =>
+    readDocument(d, `$.documents[${i}]`, (v, p) => indices(v, p, pages, '$.pages')),
+  );
+  const edits = arr(root.edits, '$.edits').map((e, i) => readEdit(e, `$.edits[${i}]`));
+  const entries = arr(root.entries, '$.entries').map((v, i): HistoryEntry => {
+    const path = `$.entries[${i}]`;
+    const o = obj(v, path);
+    const docs = indices(o.documents, `${path}.documents`, documents, '$.documents');
+    const base: Workspace = {
+      sources: uniqueRecord<SourceId, SourceDocument>(
+        indices(o.sources, `${path}.sources`, sources, '$.sources'),
+        'source',
+      ),
+      documents: uniqueRecord<DocumentId, VirtualDocument>(docs, 'document'),
+      documentOrder: docs.map((d) => d.id),
+      engineEdits: indices(o.engineEdits, `${path}.engineEdits`, edits, '$.edits'),
+    };
+    const workspace: Workspace =
+      o.activeDocument === undefined
+        ? base
+        : {
+            ...base,
+            activeDocument: nonEmpty(o.activeDocument, `${path}.activeDocument`) as DocumentId,
+          };
+    const problems = checkWorkspaceInvariants(workspace);
+    if (problems.length > 0) {
+      throw new DocumentModelError(
+        'invalid-serialized',
+        `${path}: inconsistent workspace: ${problems.join('; ')}`,
+      );
+    }
+    return {
+      label: str(o.label, `${path}.label`),
+      at: num(o.at, `${path}.at`),
+      workspace,
+      ...opt(o, 'coalesceKey', path, str),
+    };
+  });
+  const presentIndex = int(root.present, '$.present');
+  const present = presentIndex < 0 ? undefined : entries[presentIndex];
+  if (present === undefined) fail('$.present', 'an index into $.entries');
+  return {
+    past: entries.slice(0, presentIndex),
+    present,
+    future: entries.slice(presentIndex + 1),
+  };
 }
