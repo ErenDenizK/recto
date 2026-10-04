@@ -69,6 +69,17 @@ export default defineConfig({
       testMatch: '**/smoke.spec.ts',
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },
+    // Rendered pixels without the GPU (ADR-0028; research 22 §3.2; docs/specs/redesign.md D0-1):
+    // the compositor's software path, where a backdrop blur large against a surface was measured
+    // leaking the page. Runs only the specs tagged @pixels (e2e/support/pixels.ts).
+    {
+      name: 'chromium-nogpu',
+      grep: /@pixels/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: { ...chromiumLaunchOptions(), args: ['--disable-gpu'] },
+      },
+    },
   ],
   webServer: {
     // Build first so the tests exercise exactly what is deployed; `pnpm build` in CI has
