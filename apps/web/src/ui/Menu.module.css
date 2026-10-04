@@ -7,9 +7,9 @@
  * - Shape: radius 16, the popover's, concentric with 10 px rows inside 6 px of padding.
  * - Rows: 32 px on fine pointers, 44 on coarse (Q-9's control heights), icons 16 px, the label
  *   takes the space (`.label`, flex 1), so keycaps or a reason sit right-aligned after it.
- * - Motion (*popup*): the popup scales from its anchor, 0.96 → 1, and fades, on transform and
- *   opacity only (Q-7), from Base UI's `--transform-origin`. Reduced motion zeroes
- *   --duration-fast (tokens.css), so it appears at once.
+ * - Motion (*popup*): the popup fades and, opening above or below its trigger, scales from it
+ *   0.96 → 1, on transform and opacity only (Q-7), from Base UI's `--transform-origin`.
+ *   Reduced motion zeroes --duration-fast (tokens.css), so it appears at once.
  */
 .popup {
   composes: glass glass-menu from global;
@@ -49,6 +49,13 @@
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
+}
+
+/* A menu that opens above or below its trigger scales from it. One that opens to the side (a
+   submenu, a context menu) only fades: with the scale, a pointer moving straight into a
+   submenu row closed the submenu (the Document menu's Rotate pages, DocumentMenu.test.tsx). */
+.popup:is([data-side='top'], [data-side='bottom'], [data-side='none'])[data-starting-style],
+.popup:is([data-side='top'], [data-side='bottom'], [data-side='none'])[data-ending-style] {
   transform: scale(0.96);
 }
 

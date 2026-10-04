@@ -21,7 +21,7 @@ import { openableUrl } from '../shell/OutlinePanel.tree';
 import type { PageOverlayProps } from '../stage/page-overlays';
 import { distanceFromView, useViewStore } from '../state/view-store';
 import { useActiveDocument } from '../state/workspace-store';
-import popoverStyles from '../ui/Popover.module.css';
+import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
 import { Tooltip } from '../ui/Tooltip';
 import { userRectToCss } from './geometry';
 import styles from './LinkLayer.module.css';
@@ -155,42 +155,39 @@ function UriHotspot({
           data-link="uri"
         />
       </Tooltip>
-      <Popover.Portal>
-        <Popover.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8}>
-          <Popover.Popup className={popoverStyles.popup} data-testid="link-confirm">
-            <Popover.Title className={popoverStyles.title}>
-              {url ? m.viewer_link_confirm_title() : m.viewer_link_unsupported()}
-            </Popover.Title>
-            <p className={styles.url} title={uri}>
-              {uri}
-            </p>
-            {url ? (
-              <Popover.Description className={popoverStyles.body}>
-                {m.viewer_link_confirm_body({
-                  host: url.protocol === 'mailto:' ? url.pathname : url.host,
-                })}
-              </Popover.Description>
-            ) : null}
-            <div className={styles.actions}>
-              <Popover.Close className={styles.secondary}>
-                {url ? m.common_cancel() : m.common_close()}
-              </Popover.Close>
-              {url ? (
-                <button
-                  type="button"
-                  className={styles.primary}
-                  onClick={() => {
-                    window.open(url.href, '_blank', 'noopener,noreferrer');
-                    setOpen(false);
-                  }}
-                >
-                  {m.viewer_link_open()}
-                </button>
-              ) : null}
-            </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
+      <PopoverPopup side="bottom" align="start" sideOffset={6} data-testid="link-confirm">
+        <PopoverHeader
+          close={false}
+          title={url ? m.viewer_link_confirm_title() : m.viewer_link_unsupported()}
+        />
+        <p className={styles.url} title={uri}>
+          {uri}
+        </p>
+        {url ? (
+          <PopoverBody>
+            {m.viewer_link_confirm_body({
+              host: url.protocol === 'mailto:' ? url.pathname : url.host,
+            })}
+          </PopoverBody>
+        ) : null}
+        <div className={styles.actions}>
+          <Popover.Close className={styles.secondary}>
+            {url ? m.common_cancel() : m.common_close()}
+          </Popover.Close>
+          {url ? (
+            <button
+              type="button"
+              className={styles.primary}
+              onClick={() => {
+                window.open(url.href, '_blank', 'noopener,noreferrer');
+                setOpen(false);
+              }}
+            >
+              {m.viewer_link_open()}
+            </button>
+          ) : null}
+        </div>
+      </PopoverPopup>
     </Popover.Root>
   );
 }

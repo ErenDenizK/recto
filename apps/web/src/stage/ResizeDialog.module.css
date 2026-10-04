@@ -6,10 +6,6 @@
   align-items: end;
 }
 
-.select {
-  padding: 0 var(--space-2);
-}
-
 .sizeInput {
   width: 100%;
   min-width: 0;

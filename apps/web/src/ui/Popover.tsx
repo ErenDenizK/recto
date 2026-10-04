@@ -30,6 +30,8 @@ export interface PopoverPopupProps extends PopupProps {
   readonly anchor?: PositionerProps['anchor'];
   readonly collisionPadding?: PositionerProps['collisionPadding'];
   readonly className?: string | undefined;
+  /** On the positioner (a stacking order of the host's). */
+  readonly positionerClassName?: string | undefined;
 }
 
 export function PopoverPopup({
@@ -39,6 +41,7 @@ export function PopoverPopup({
   anchor,
   collisionPadding = 8,
   className,
+  positionerClassName,
   children,
   ...rest
 }: PopoverPopupProps) {
@@ -49,6 +52,7 @@ export function PopoverPopup({
         align={align}
         sideOffset={sideOffset}
         collisionPadding={collisionPadding}
+        className={positionerClassName}
         {...(anchor === undefined ? {} : { anchor })}
       >
         <Popover.Popup className={[styles.popup, className].filter(Boolean).join(' ')} {...rest}>

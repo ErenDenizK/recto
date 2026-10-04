@@ -4,6 +4,7 @@
  * anchor grid, the committed history entry (and undo), the resized light-table cell, and
  * an export whose verified page sizes are the new ones.
  */
+import { chooseOption } from '../../test/choose';
 import '../styles/tokens.css';
 import '../styles/reset.css';
 import '../styles/global.css';
@@ -124,12 +125,12 @@ describe('resize pages dialog', () => {
     const width = within(dialog).getByTestId('resize-width');
     await userEvent.clear(width);
     await userEvent.type(width, '300');
-    expect(within(dialog).getByTestId('resize-preset')).toHaveValue('custom');
+    expect(within(dialog).getByTestId('resize-preset')).toHaveTextContent('Custom');
     expect(within(dialog).getByTestId('resize-summary')).toHaveTextContent(
       '1 page will become 300 × 210 mm',
     );
     // The page is A4 already: take Letter (landscape, like the page).
-    await userEvent.selectOptions(within(dialog).getByTestId('resize-preset'), 'letter');
+    await chooseOption(within(dialog).getByTestId('resize-preset'), 'letter');
     expect(within(dialog).getByTestId('resize-summary')).toHaveTextContent(
       '1 page will become Letter (279.4 × 215.9 mm)',
     );

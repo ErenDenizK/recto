@@ -69,8 +69,10 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
   await expect(setup).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Changes' })).toHaveAttribute('aria-selected', 'true');
 
-  await setup.getByLabel('Original (A)').selectOption({ label: 'compare-a' });
-  await setup.getByLabel('Revised (B)').selectOption({ label: 'compare-b' });
+  await setup.getByRole('combobox', { name: 'Original (A)' }).click();
+  await page.getByRole('option', { name: 'compare-a' }).click();
+  await setup.getByRole('combobox', { name: 'Revised (B)' }).click();
+  await page.getByRole('option', { name: 'compare-b' }).click();
   await setup.getByRole('button', { name: 'Compare', exact: true }).click();
 
   const view = page.getByTestId('compare-view');

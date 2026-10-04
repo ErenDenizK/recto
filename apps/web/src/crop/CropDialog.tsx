@@ -40,6 +40,7 @@ import local from '../stage/OperationDialogs.module.css';
 import { closeOperationDialog } from '../stage/operation-dialogs-store';
 import { fromUnit, type ResizeUnit, sizeLabel, toUnit } from '../stage/ResizeDialog';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import { Select } from '../ui/Select';
 import {
   cropAndDiscard,
   cropPages,
@@ -332,22 +333,21 @@ export function CropDialog({
               <label className={styles.label} htmlFor={unitId}>
                 {m.resize_unit_label()}
               </label>
-              <select
+              <Select
                 id={unitId}
-                className={`${styles.input} ${own.select}`}
+                block
+                label={m.resize_unit_label()}
                 value={unit}
                 data-testid="crop-unit"
-                onChange={(event) => {
-                  setUnit(event.target.value as ResizeUnit);
+                onValueChange={(next) => {
+                  setUnit(next);
                   setDrafts({});
                 }}
-              >
-                {(['mm', 'in', 'pt'] as const).map((u) => (
-                  <option key={u} value={u}>
-                    {unitName(u)}
-                  </option>
-                ))}
-              </select>
+                options={(['mm', 'in', 'pt'] as const).map((u) => ({
+                  value: u,
+                  label: unitName(u),
+                }))}
+              />
             </div>
           </div>
           {problem === undefined ? null : (

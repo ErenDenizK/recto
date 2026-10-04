@@ -68,7 +68,7 @@ import { formatPercent, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { type PageOverlayProps, registerPageOverlay } from '../stage/page-overlays';
 import { useCanEdit } from '../state/ui-store';
-import popoverStyles from '../ui/Popover.module.css';
+import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
 import type { PageFrame } from '../viewer/geometry';
 import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
@@ -1586,18 +1586,10 @@ export function ParagraphEditor({
             >
               <Info aria-hidden="true" />
             </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Positioner side="bottom" align="end" sideOffset={8} collisionPadding={8}>
-                <Popover.Popup className={popoverStyles.popup} data-paragraph-editor="">
-                  <Popover.Title className={popoverStyles.title}>
-                    {m.paragraph_info_label()}
-                  </Popover.Title>
-                  <Popover.Description className={popoverStyles.body}>
-                    {m.paragraph_info_text()}
-                  </Popover.Description>
-                </Popover.Popup>
-              </Popover.Positioner>
-            </Popover.Portal>
+            <PopoverPopup side="bottom" align="end" data-paragraph-editor="">
+              <PopoverHeader title={m.paragraph_info_label()} />
+              <PopoverBody>{m.paragraph_info_text()}</PopoverBody>
+            </PopoverPopup>
           </Popover.Root>
         </div>
       </div>

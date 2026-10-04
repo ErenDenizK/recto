@@ -20,6 +20,7 @@ import { useState } from 'react';
 
 import { m } from '../i18n';
 import tool from '../tools/ToolDialog.module.css';
+import { Select } from '../ui/Select';
 import styles from './Batch.module.css';
 import { recipeErrorText, stepDetail, stepKindLabel, waitingForLabel } from './labels';
 import { ADDABLE_STEP_KINDS, defaultStep } from './step-defaults';
@@ -216,20 +217,21 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
             })}
           </ol>
           <div className={tool.row}>
-            <label className={tool.field}>
-              <span className={tool.label}>{m.batch_add_step_kind()}</span>
-              <select
-                className={tool.select}
+            <div className={tool.field}>
+              <span className={tool.label} aria-hidden="true">
+                {m.batch_add_step_kind()}
+              </span>
+              <Select<RecipeStepKind>
+                block
+                label={m.batch_add_step_kind()}
                 value={addKind}
-                onChange={(event) => setAddKind(event.target.value as RecipeStepKind)}
-              >
-                {ADDABLE_STEP_KINDS.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {stepKindLabel(kind)}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onValueChange={setAddKind}
+                options={ADDABLE_STEP_KINDS.map((kind) => ({
+                  value: kind,
+                  label: stepKindLabel(kind),
+                }))}
+              />
+            </div>
             <button
               type="button"
               className={`${tool.secondary} ${styles.alignEnd}`}
