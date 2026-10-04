@@ -158,19 +158,20 @@ arc clutters, so small sizes take the plain wordmark. Develop it with 03.
 
 **The question.** Research 21 proposed a brand lime `#e2f73d` (oklch 0.93 0.196 116) with
 `#49780d` for text on light. Research 20 set the interactive accent to `#c8fb3d` (oklch 0.921
-0.210 124) with lime-800 `#446712`. Two limes 8° apart read as a mistake, not a palette.
+0.210 124) with lime-800 `#446713`. Two limes 8° apart read as a mistake, not a palette.
 
 **Recommendation: one lime, the accent `#c8fb3d`.** It sits further from the yellow highlighter
 (ΔE_OK 0.076 against 0.045) and from warning amber. The owner's lemon is already in the light:
 the aurora ends in lemon `#faee40` in its hottest cores (research 17 §6.1). The About button,
-the icon's lit element and the app's primary action then match, and `#446712` holds 5.35:1 on
-the light canvas where `#49780d` gives 4.3:1. If the owner prefers hue 116 on a side-by-side
-board, it replaces 124 everywhere. Two values never ship.
+the icon's lit element and the app's primary action then match, and `#446713` holds 5.35:1 on
+the light canvas where `#49780d` gives 4.3:1. Two values never ship. **Settled by ADR-0023**
+(one lime, `#c8fb3d`, sRGB in every theme and file; its P3 headroom goes to the aurora only), so
+hue 116 is no longer an open choice and owner decision 3 below is closed.
 
 | Role | Token | Value | Use |
 |---|---|---|---|
-| Lime | `--accent` | `#c8fb3d`; P3 variant under `(color-gamut: p3)` | Mark's lit element, About primary button, icon glow core |
-| Lime on light | lime-800 | `#446712` (6.57:1 on white) | Lime-family text or marks on light |
+| Lime | `--accent` | `#c8fb3d`, sRGB everywhere (ADR-0023) | Mark's lit element, About primary button, icon glow core |
+| Lime on light | lime-800 | `#446713` (6.57:1 on white) | Lime-family text or marks on light |
 | Ink | n1 | `#08090c` | Icon tile base, social card field, text on lime (16.4:1) |
 | Tile top | n3 | `#17191e` | Top of the icon tile gradient |
 | Glass white | n12 or a brighter cool white | `#e8e9ec` | The mark on dark |
@@ -251,15 +252,15 @@ Linux: PNG at 32, 128, 256, 512. Small sizes come from the pixel-fitted masters.
 | Place | What appears | Size |
 |---|---|---|
 | Browser tab | `glyph.svg` | 16, 32 px |
-| Title bar | The glyph as the Home button, `currentColor` | 16 px |
-| Empty Home | The glyph; it may catch the aurora's light (BR-M6: decorative, unfocusable, still under reduced motion) | 24 px |
-| About dialog | Mark and text wordmark | 20 px |
+| Top strip | The glyph as the ◆ Library button, `currentColor` (`01-frame` F3) | 20 px |
+| Library launcher | The glyph, duotone; it may catch the aurora's light (BR-M6: decorative, unfocusable, still under reduced motion; `02-library` L2) | 48 px |
+| Settings → About Recto row | The name and version as text, no mark (the About dialog is removed, `07-sheets` §25) | — |
 | Installed app | The app icon | OS sizes |
 | Exported PDF | The name as text in `/Producer`, nothing visible | — |
 
 **Never:** on or near the page; as a watermark or stamp in an export; in tool bars, menus,
-toasts, errors, the status bar, loading states, the drop overlay, Arrange or Compare; in dialogs
-other than About; as a splash screen (BR-M1). No "Made with Recto" anywhere. No animated favicon.
+toasts, errors, loading states, the drop overlay, the Pages grid or Compare; in sheets or
+dialogs; as a splash screen (BR-M1). No "Made with Recto" anywhere. No animated favicon.
 
 **Motion branding.** One logo reveal, on the About hero only, once per session (BR-M2). For 03
 the leaf lifts 6° and light rises in the slit: 700 ms, on the design language's spring if it
@@ -274,7 +275,7 @@ expensive; with hype it reads as a template (BR-V2).
 
 1. Keep presentation spec §1.2: mechanism words, evidence one click away, a limit beside each
    capability, numbers with their scope, dated comparisons, plain status, short active sentences.
-2. Use the app's nouns (light table, Read, Edit, Arrange, Intact, recipe); a signature is never
+2. Use the app's nouns (Library, Markup, Pages, Lock, Intact, recipe); a signature is never
    "valid", "verified" or "trusted" (BR-V4). In the app: verbs on buttons, no "we" (X-7).
 3. Turkish keeps *siz*, is written fresh, and uses "PDF düzenleyici" as descriptor (BR-V3).
 4. Score public copy 1–5 on technical grounding, natural syntax, quiet confidence and respect for
@@ -314,10 +315,10 @@ of the app (ADR-0016 decision 4). Glass is honest here because the aurora is beh
    to its evidence.
 4. **Privacy you can check.** Today's three facts and "Check it yourself" as glass cards, with
    the request log, the CSP line and the offline test.
-5. **The flow in three beats.** Open → Read → Mark up or Arrange, three short clips.
-6. **Features shown, not told.** Arrange, Write and sign, Fill forms, Redact, Edit text,
+5. **The flow in three beats.** Open → read → Markup or Pages, three short clips.
+6. **Features shown, not told.** Pages, Write and sign, Fill forms, Redact, Edit text,
    Recognise and compare: a claim, a clip, one "does not do" line each; limits in a disclosure.
-7. **On every screen.** Real captures at 1440 × 900 and 390 × 844 (phone after M10), no fake
+7. **On every screen.** Real captures at 1440 × 900 and 390 × 844 (phone after M9 D4), no fake
    device frames; how to install on desktop, Android and iOS.
 8. **How it works, open source, credits.** The architecture diagram; Apache-2.0, NOTICE, engines,
    fonts, the designer if hired, "Built by Eren Deniz K." linking to the case study. Footer:
@@ -356,18 +357,19 @@ The README stays the source text; the case study copies its sentences (BR-P1).
 6. **Craft details:** ink latency (`docs/qa/ink-latency-baseline.md`), redaction checked on the
    exported bytes, glass contrast against the white page; a short clip each.
 7. **Before and after:** M0 (`docs/design/screenshots/m0-*`), M6
-   (`docs/design/audit-2026-10/m6-v1-*`), M8 (`docs/design/redesign-2026-10/baseline/`, 71 frames
+   (`docs/design/audit-2026-10/m6-v1-*`), M8 (`docs/design/redesign-2026-10/baseline/`, 70 frames
    at 1440/1280/820/390 px, commit `7d47031`) and M9: same fixture, viewport and state, captured by
    script, old states re-rendered at 2× from their commits (BR-P2). A drag slider; side-by-side
    stills under reduced motion.
 8. **Metrics, measured honestly:** 30 end-to-end specs; CI on Chromium, Firefox and WebKit; zero
    requests to other origins in the media log; bundle and precache sizes; INP and frame times on a
    named machine. No usage numbers: Recto has no analytics by design, and the page says so.
-9. **Next:** M10 tablet and phone, the desktop shell, the known limits.
+9. **Next:** M10 (ecosystem), the desktop shell, the known limits.
 10. **Credits and tooling:** who did what, with which tools, stated plainly; the owner's wording.
 
 Version 1 ships after the M9 UI is built, with desktop captures: M8 → M9 is the strongest story.
-Version 2 adds phone captures and Turkish after M10. (Research 21 put it all after M10.)
+Version 2 adds phone captures and Turkish after M9 D4, since phones are now in M9. (Research
+21 put it all after M10, when phones were M10.)
 
 **Press kit (BR-K1)** at `/recto/about/press/` and as `recto-press-vX.Y.Z.zip` on each release:
 a fact sheet (name, descriptor, 1-line, 50- and 150-word descriptions in EN and TR, licence, URL,
@@ -429,14 +431,14 @@ that changes, and media made before the UI exists get redone.
 | 1 | After the design-language ADR | One lime and brand tokens with the colour track; `tools/brand/`; refine 03 + 05 and 02; review boards; owner chooses (§3.4) | Lead, owner | None |
 | 2 | After Gate 0, with a budget | The brief (§10), about four weeks, beside the M9 build | Designer | Yes |
 | 3 | After the M9 UI is frozen | Final icons and manifest colours; media scenes; About v2; social card; README hero; press kit; `TRADEMARKS.md`; reveal; case study v1 | Lead | None |
-| 4 | After M10 | Phone captures; Turkish About page; case study v2 | Lead | None |
+| 4 | After M9 D4 | Phone captures; Turkish About page; case study v2 | Lead | None |
 | 5 | If the desktop shell starts | Native icon set (§5.2) | Lead | Maybe |
 
 **Owner decisions, in priority order.**
 
 1. **Gate 0:** run §1.2; keep Recto or rename (Kerf or another cleared name). Blocks all spend.
 2. **Outside help:** is there a budget; icon specialist only, or a type designer too?
-3. **One lime or two:** recommended one, `#c8fb3d`, with the colour track (§4.1).
+3. **One lime or two:** settled by ADR-0023: one, `#c8fb3d` (§4.1).
 4. **The mark:** Leaf r + ct wordmark (recommended), Pane as motif, Spread as backup (§3.4).
 5. **Custom domain before the brand launch?** A later move needs a second rename (ADR-0016).
 6. **About hero motion:** aurora that settles within 5 s (recommended), live drift with a pause

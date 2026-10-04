@@ -198,8 +198,15 @@ Tab into a field) calls `revealInFree(rect)`: if the target is not wholly inside
 rectangle minus padding, scroll by the smallest amount that puts it there (catalogue
 *scroll-to*). Keyboard focus inside the page uses native `scroll-padding` plus
 `scroll-margin: 16px` on page targets. Window resize, sidebar resize and sheet open re-measure on
-one `ResizeObserver` (as today's `useStageBleed`), debounced to one frame. At 320 × 256 (400 %
-zoom) the compact layout holds with no horizontal chrome overflow (A-20).
+one `ResizeObserver` (as today's `useStageBleed`), debounced to one frame.
+
+**Short viewports** (height < 352 px at any width, `data-tight` on `:root`; 352 is where 88 px of
+chrome reaches A-20's 25 %): the top bar folds into the dock, so one 44 px capsule (σ 8) at the
+bottom holds ‹ N, title ▾, ↶ and ⋯ (More takes ↷, ⌕, ⓘ and the rest of the top bar); tool and
+task side sheets become full-width bottom sheets; the Markup rail becomes a horizontal palette in
+the same 44 px capsule (the compact sets of `03-markup`, folded by width). At 320 × 256 (400 %
+zoom) that is 44 + 12 of 256 px, about 17 % of the area, with no horizontal chrome overflow
+(A-20; `flows.md` §6.1).
 
 **Scroll proxies (3.13)** stay: native-looking scroll bars drawn at the free rectangle's right and
 bottom edges where the platform has classic bars (`scrollbarSize() > 0`); none on overlay-bar
@@ -230,11 +237,12 @@ areas `title/left/right/status` deleted); `index.html` viewport meta and `theme-
 `--strip-height`, `--dock-height`, `--pill-height`, `--frame-offset`, `--soft-edge`; delete
 `--titlebar-height`, `--statusbar-height`, `--rail-width`. Tests: unit `frame-insets.test.ts`
 (every class × sidebar × sheet × palette × pending bar; keyboard; F12); unit `size-class.test.ts`
-(boundaries 599/600, 839/840, 1199/1200, 1599/1600, 479 × 999); browser-mode: resize re-measure;
+(boundaries 599/600, 839/840, 1199/1200, 1599/1600, 479 × 999, height 351/352 for `data-tight`); browser-mode: resize re-measure;
 e2e `frame-layout.spec.ts` on new projects `phone` (390 × 844, coarse, touch), `phone-land`
 (844 × 390), `tablet` (820 × 1180, coarse), `desktop` (1440 × 900): for go to page, a Find hit,
 an outline entry, undo reveal and Tab through `forms-a.pdf`, the target rect lies inside the free
-rectangle and intersects no glass rect (A-12); a safe-area run with `--safe-*` overridden through
+rectangle and intersects no glass rect (A-12); at 320 × 256 the short-viewport layout keeps chrome
+≤ 25 % (A-20); a safe-area run with `--safe-*` overridden through
 a test hook; axe at each class.
 
 ## 3. F2 Top strip
@@ -476,7 +484,8 @@ popover: thumbnail, editable name, size, the status of the changes, the facts, t
 switch and the privacy line. Then File · Pages · Add to pages · Protect · Convert and Compare
 with… · Document info…. Static: items stay, dim with a reason (RA-21). On compact it is the
 only home of Save. The **Lock popover** (shared with the dock's Locked button, locked fields and
-`commit()` refusals) is defined here. Jobs J8B, J11, J13A (touch), J13B, J16. Replaces 3.7, 8.5,
+`commit()` refusals) is `04-context` §19's, in the one module `lock/` (spec X4); the switch here
+and the tab menu call `lock/open-unlock.ts`. Jobs J8B, J11, J13A (touch), J13B, J16. Replaces 3.7, 8.5,
 and moves 15.1.1 to Settings.
 
 **2 · Anatomy.** Fine 320 px wide, coarse 360; max height `min(640px, 100dvh − strip − 32px)`;
@@ -521,7 +530,7 @@ light n1; forced colours `Canvas`, switch in `Highlight`.
 | Focus-visible | Row: inset ring; name field: ring outside the well |
 | Selected | Lock on: switch filled, thumb right, `aria-checked="true"`, glyph `lock-simple` filled |
 | Disabled with reason | `aria-disabled`, label `--glass-text-disabled`, reason as description and tooltip: "Locked · turn off Lock to change pages", "Nothing changed since opening" (Revert), "No redaction marks" (Apply redactions), "Open another document first" (Combine with open documents…), "No signatures in this file" (Signatures…) |
-| Locked | Change items dim with "Locked"; Save, Save a copy…, Print, Share, Close, Compare, Document info (read), Signatures stay |
+| Locked | Change items dim with "Locked"; the name field is read-only with "Locked · Unlock" (rename is a `document` act); Save, Save a copy…, Print, Share, Close, Compare, Document info (read), Signatures stay |
 | Busy | Save row shows "Saving…" and the ring (F7); other rows stay usable |
 | Error | Restore failed: header status reads "Could not restore changes" with "Open the original" |
 | Empty | No facts: the facts rows collapse; a zero-page document dims Pages items needing a page |
@@ -534,33 +543,27 @@ window" (private window, OPFS refused) · "Saved to the file at 18:40".
 | Element | English | Turkish | Icon | Key | Act |
 |---|---|---|---|---|---|
 | Popover name | report.pdf document menu | report.pdf belge menüsü | — | — | — |
-| Name field label | Name | Ad | — | F2 | none (rename is UI and file name) |
+| Name field label | Name | Ad | — | F2 | `document` (rename, spec X12, 0030.4); locked: read-only with "Locked · Unlock" |
 | Size line | 12 pages · 2.4 MB | 12 sayfa · 2,4 MB | — | — | — |
 | Status | No changes · Edited, kept on this device · Edited, not kept in this window · Saved to the file at 18:40 | Değişiklik yok · Düzenlendi, bu cihazda saklanıyor · Düzenlendi, bu pencerede saklanmıyor · 18.40'ta dosyaya kaydedildi | — | — | — |
 | Lock | Lock | Kilitle | `lock-simple` | ⌘K `lock` | none |
 | Lock reasons | You locked it · Signed file: changes break the signature · The file restricts changes · "Open documents locked" is on | Siz kilitlediniz · İmzalı dosya: değişiklik imzayı bozar · Dosya değişikliğe izin vermiyor · "Belgeleri kilitli aç" açık | | | |
 | Privacy line | On this device · nothing uploaded | Bu cihazda · hiçbir şey yüklenmedi | `shield-check` | — | — |
 | File | Save · Save a copy… · Print… · Share… · Revert to the opened version… · Close | Kaydet · Kopya kaydet… · Yazdır… · Paylaş… · Açılan sürüme dön… · Kapat | `download-simple`, `copy`, —, `export`, `arrow-counter-clockwise`, `x` | Mod+S, Mod+Shift+S, Mod+P | Revert `document` |
-| Pages | Insert pages from file… · Combine with open documents… · Split… · Interleave… · Rotate all ▸ · Crop pages… · Resize pages… | Dosyadan sayfa ekle… · Açık belgelerle birleştir… · Böl… · Sayfaları harmanla… · Tümünü döndür ▸ · Sayfaları kırp… · Sayfaları yeniden boyutlandır… | custom *combine*, `arrow-clockwise`, `crop` | ⌘K | `pages` (Combine and Split make new documents: none) |
+| Pages | Insert pages from file… · Combine with open documents… · Split… · Interleave… · Rotate all ▸ · Crop pages… · Resize pages… | Dosyadan sayfa ekle… · Açık belgelerle birleştir… · Böl… · Sayfaları harmanla… · Tümünü döndür ▸ · Sayfaları kırp… · Sayfaları yeniden boyutlandır… | custom *combine*, `arrow-clockwise`, `crop` | ⌘K | `pages` (Split removes its pages from the original; Combine with open documents… and Interleave… make new documents and keep their sources: none; spec X32) |
 | Add to pages | Page numbers… · Header and footer… · Bates numbering… · Watermark… | Sayfa numaraları… · Üst bilgi ve alt bilgi… · Bates numaralandırma… · Filigran… | custom *page furniture* | ⌘K | `document` |
 | Protect | Password… · Sign with certificate… · Signatures… · Find sensitive data… · Apply redactions… · Remove metadata… | Parola… · Sertifikayla imzala… · İmzalar… · Hassas verileri bul… · Karartmaları uygula… · Üst verileri temizle… | `seal-check`, custom *redact* | ⌘K | `document` (Sign with certificate saves a signed copy: none) |
 | Convert | Recognize text… · Compress… · Export as images… · Export as Markdown or text… | Metni tanı… · Sıkıştır… · Görüntü olarak dışa aktar… · Markdown ya da metin olarak dışa aktar… | `scan` | ⌘K | Recognize `document`; the rest open Save a copy preset: none |
 | Last | Compare with… · Document info… | Şununla karşılaştır… · Belge bilgisi… | custom *compare*, `info` | `4`, ⌘K | none (editing metadata inside: `document`) |
 
-Lock popover (M4, 280 px, at the control that asked):
-
-| Reason | Title | Body | Buttons |
-|---|---|---|---|
-| user | report.pdf is locked · report.pdf kilitli | You locked it. · Siz kilitlediniz. | Unlock · Kilidi aç (primary, neutral); Keep locked · Kilitli kalsın |
-| signed | same | Unlocking lets you change it. Saving then removes the signature. · Kilidi açarsanız değiştirebilirsiniz. Kaydettiğinizde imza kaldırılır. | Unlock · Kilidi aç; Keep locked |
-| restricted | same | The file asks not to be changed. Recto can change it anyway. · Dosya değiştirilmemesini istiyor. Recto yine de değiştirebilir. | Unlock anyway · Yine de kilidi aç; Keep locked |
-| default | same | New documents open locked (Settings). · Yeni belgeler kilitli açılıyor (Ayarlar). | Unlock · Kilidi aç; Keep locked |
+Lock popover: titles, bodies and buttons per reason are `04-context` §19's (spec X4).
 
 **6 · Behaviour.** Opens from: a click, tap, Enter or Space on the active tab; F2 (name focused);
 ⓘ (facts in view); on compact the title ▾. On open, focus goes to the first menu row (Save), not
 the name (no keyboard pops up on phones, no stray rename). Tab moves header controls → menu;
-inside the menu arrows, Home / End and typeahead; Right or Enter opens "Rotate all ▸". Name:
-Enter commits (`renameDocument`, announced "Renamed to lease.pdf" / "Adı lease.pdf olarak
+inside the menu arrows, Home / End and typeahead; Right or Enter opens "Rotate all ▸". Name
+(asks `canChange(id, 'document')`; on a locked document it is read-only and Enter or a click
+opens the Unlock popover at the field): Enter commits (`renameDocument`, announced "Renamed to lease.pdf" / "Adı lease.pdf olarak
 değiştirildi"), Esc reverts and keeps the menu open; an empty name reverts. Lock switch: Space
 or click toggles at once for `user`; turning it off for `signed` or `restricted` shows the
 popover's body inline under the switch with its button, once per document per session
@@ -589,8 +592,8 @@ before truncating; menu grows to 360 px).
 
 **9 · Implementation.** `shell/frame/TitleMenu.tsx` (Base UI `Popover`; compact Base UI
 `Drawer`), `TitleMenuHeader.tsx`, `TitleMenuItems.ts` (data: id, label, icon, key, act, sheet,
-`disabledReason(state)`), `LockSwitch.tsx`, `LockPopover.tsx` (Base UI `Popover`, anchored by
-ref through `lock-popover-store.ts` so `commit()` can open it at "the control that asked");
+`disabledReason(state)`), `LockSwitch.tsx`; the popover is `lock/UnlockPopover.tsx`, opened
+through `lock/open-unlock.ts` at "the control that asked" (spec X4; no `lock-popover-store.ts`);
 "Rotate all ▸" as a nested Base UI `Menu`. Reads `lock-store.ts`, `guard.ts` (`useCanChange`),
 `session/` status. Deletes `tools/DocumentMenu.tsx` and its Appearance submenu
 (`shell/appearance-commands.ts` items move to Settings, family 15). Tests: unit every item's act
@@ -720,67 +723,41 @@ WebKit download path; pixel check that no lime appears in the strip at rest.
 
 **1 · Role.** Keeps the product's promise visible (research 21; FL-R10): nothing leaves the
 device, and what is kept on it can be cleared. ◎ in the strip on medium and up; the title-menu
-header line and the Library on compact. Replaces 15.1.2 and 8.17.
+header line and the Library on compact. Replaces 15.1.2; the popover it opens (8.17) is
+`04-context` §17's, which owns its content, copy, width (360 px) and `privacy/PrivacyPopover.tsx`
+(spec X29). This section owns the button and its states.
 
 **2 · Anatomy.** A 32 / 44 px circle with `shield-check` (20 / 24 px). With external requests:
-`shield-warning` in the warning colour and a count badge (11 px, `tnum`). Popover M4, 340 px
-(coarse `min(360px, 100vw − 16px)`); compact: a sheet at 40 %.
+`shield-warning` in the warning colour and a count badge (11 px, `tnum`). It opens the popover of
+`04-context` §17 (compact: a sheet at 40 %).
 
-```
-╭────────────────────────────────────╮
-│ Nothing has left this device       │ title3
-│ Files are read in this tab and are │ footnote n11
-│ never uploaded.                    │
-│ Kept on this device                │
-│ 3 documents · 34 MB       Clear…   │ tnum
-│ The browser may clear kept changes │ only when not persistent
-│                         Keep them  │
-│ Requests to other sites   None     │
-│ Security policy  connect-src 'self'│
-│ Offline           Works offline    │
-│ Privacy settings…   Recto 1.0.0 ›  │
-╰────────────────────────────────────╯
-```
+**3 · Material and light.** Button: fill inside M3. Warning glyph on M2/M3 over white 5.55:1
+(dark, `language.md` §2.2), with its triangle shape (A-19). No light. Forced colours: system
+colours, warning by shape and words.
 
-**3 · Material and light.** Button: fill inside M3. Popover: M4, e4. Warning glyph on M2/M3 over
-white 5.55:1 (dark, `language.md` §2.2), with its triangle shape (A-19). No light. Forced
-colours: system colours, warning by shape and words.
-
-**4 · States.** Rest clean; hover, pressed, focus as F3. External (count > 0): warning glyph,
-badge, title "2 requests left this device", list of URLs. Not persistent: the "Keep them" row
-(calls `navigator.storage.persist()`). Private window: "Changes are not kept in this window".
-Busy: none. Disabled: never. Error: storage estimate unavailable → the size reads "Size
-unknown".
+**4 · States.** Rest clean; hover, pressed, focus as F3. External (count > 0): warning glyph and
+badge. Busy: none. Disabled: never.
 
 **5 · Content and copy.**
 
 | Element | English | Turkish |
 |---|---|---|
 | Name (clean · external) | Privacy: nothing has left this device · Privacy: 2 requests to other sites | Gizlilik: bu cihazdan hiçbir veri çıkmadı · Gizlilik: diğer sitelere 2 istek |
-| Body | Files are read in this tab and are never uploaded. | Dosyalar bu sekmede okunur ve hiçbir yere yüklenmez. |
-| Kept | Kept on this device · 3 documents · 34 MB · Clear… | Bu cihazda saklananlar · 3 belge · 34 MB · Temizle… |
-| Persistence | The browser may clear kept changes · Keep them | Tarayıcı saklanan değişiklikleri silebilir · Saklansın |
-| Private | Changes are not kept in this window | Bu pencerede değişiklikler saklanmaz |
-| Requests | Requests to other sites · None | Diğer sitelere istekler · Yok |
-| Offline | Works offline · Needs a connection once | Çevrimdışı çalışır · Bir kez bağlantı gerekir |
-| Links | Privacy settings… · Recto 1.0.0 | Gizlilik ayarları… · Recto 1.0.0 |
 
-**6 · Behaviour.** Click, Enter or Space opens; focus to the title, Tab through the actions. Clear…
-opens a confirmation (family 12) listing the kept documents; open documents keep their current
-state. "Recto 1.0.0" opens Settings → About; "Privacy settings…" opens Settings → Privacy. Esc
-closes, focus returns to ◎. A new external request while open updates the list and announces
-"A request left this device: {host}" (polite). Guard: none.
+**6 · Behaviour.** Click, Enter or Space opens `04-context` §17's popover; Esc there returns focus
+to ◎. Guard: none.
 
-**7 · Motion.** *popup*; the glyph change clean → external by *replace*. Reduced motion: fade.
+**7 · Motion.** The glyph change clean → external by *replace*; the popover's *popup* is
+`04-context` §17's. Reduced motion: fade.
 
-**8 · Accessibility.** `button` with `aria-haspopup="dialog"`; popover `dialog` titled by its
-heading. Count badge in the name, not alone. Targets as F3.
+**8 · Accessibility.** `button` with `aria-haspopup="dialog"`. Count badge in the name, not alone.
+Targets as F3.
 
-**9 · Implementation.** `privacy/PrivacyShield.tsx` (renamed from `PrivacyIndicator.tsx`, keeps
-`useExternalRequests`, `documentCsp`, `serviceWorkerLabel`); adds `session/storage-summary.ts`
-(count, bytes, `persisted()`). Tests: existing `external-requests.test.ts`, `csp.test.ts`; unit
-summary formatting EN/TR (`34 MB`, decimal comma); browser-mode states; e2e offline spec reads
-the popover.
+**9 · Implementation.** `privacy/PrivacyShield.tsx` (the button, renamed from
+`PrivacyIndicator.tsx`, keeps `useExternalRequests`, `documentCsp`, `serviceWorkerLabel` for the
+popover to read); adds `session/storage-summary.ts` (count, bytes, `persisted()`). Tests:
+existing `external-requests.test.ts`, `csp.test.ts`; browser-mode button states; e2e offline
+spec reads the popover.
 
 ## 10. F9 Compact top bar
 
@@ -946,8 +923,9 @@ the F6 cycle; `inert` while hidden or morphing out. Turkish two-line labels keep
 16 at 12 px (≥ 1.25 ×, A-21).
 
 **9 · Implementation.** `shell/frame/Dock.tsx` + `Dock.module.css` (`.mat-bar.s9`, `.s10`,
-`.s8`), `shell/frame/dock-shape.ts` (shared: anchor, height per class, `clipFor(box)`, σ class;
-imported by `MarkupPalette`, `PagesBar`, `CompareBar`), `first-pen-hint.ts`. Replaces
+`.s8`), the dock's resting items rendered in `03-markup`'s capsule (`shell/capsule/`; the
+anchor, height per class, `clipFor(box)` and σ class that this spec first put in
+`dock-shape.ts` fold into `capsule-morph.ts`, spec X1), `first-pen-hint.ts`. Replaces
 `shell/FloatingToolbar.tsx`'s rest state and `ModeSwitch` in `Stage.tsx` (deleted with
 `ModeSwitch.test.tsx`). Coverage registry: dock 560 × 48 σ 9, 600 × 56 σ 10, 360 × 64 σ 10,
 600 × 44 σ 8. Tests: unit label-form decision (EN, TR at 600, 700, 840 px, sidebar open);
@@ -958,7 +936,7 @@ morph.
 ## 12. F11 Page pill
 
 **1 · Role.** The persistent, focusable place for page and view (`flows.md` §4.6): "3 / 12 · 96 %";
-opens Go to page, the outline's top entries, zoom and fit, layout, Show field outlines, Focus.
+opens Go to page, the top entries of Contents (the file's outline), zoom and fit, layout, Show field outlines, Focus.
 Mod+G. In the F6 cycle. Jobs J2, J15b. Replaces 3.11, 3.14's page readout, 3.15 and 8.6.
 
 **2 · Anatomy.** Medium and up: an M1 capsule 36 px (fine) / 44 px (coarse), bottom trailing of
@@ -975,7 +953,7 @@ the band would come within 12 px, the pill rises to sit 8 px above that bar.
                        │ Contents                         │
                        │   1  Introduction           1    │ up to 8 top entries, tnum page
                        │   2  Terms                  4    │
-                       │   All contents…                  │ opens the sidebar on Outline
+                       │   All contents…                  │ opens the sidebar on Contents
                        │ Zoom  ( − ) 96 % ( + )           │
                        │ [ Fit width | Fit page ]         │ segmented, fill thumb
                        │ [ Continuous | Single | Two-up ] │
@@ -1014,12 +992,12 @@ Icons: `magnifying-glass-minus`, `magnifying-glass-plus`, `check`; none on the p
 
 **6 · Behaviour.** Click, tap, Enter, Space open the menu with focus on the first control; Mod+G
 opens it with the page field focused and selected; typing a number and Enter jumps (into the
-free rectangle) and closes, focus to the page. Outline entry: jump, close, focus to the page,
+free rectangle) and closes, focus to the page. Contents entry: jump, close, focus to the page,
 announce "Terms, page 4" / "Terms, sayfa 4". Zoom buttons keep the menu open; Mod+= Mod+- Mod+0
 work anywhere and update the text without animation. Layout and fit are radio groups. Focus
 closes the menu and enters Focus (F13). Esc closes, focus to the pill. While Focus hides the pill,
 Mod+G shows the menu anchored where the pill was and Focus resumes after it closes. Guard: none.
-Edge: an outline over 8 entries shows the first 8 at the top level; nested entries are only in
+Edge: Contents with more than 8 entries shows the first 8 at the top level; nested entries are only in
 the sidebar.
 
 **7 · Motion.** *popup* from the pill; *zoom step* on the page; the rise above a bar by
@@ -1117,7 +1095,8 @@ tools." / "Araçları göstermek için sayfaya dokunun."); "Focus off" / "Odak k
 paused on hover or focus. Focus: F, or the pill menu's Focus (the touch route); leaves by F, Esc
 (after menus and the selection in the Esc ladder), a tap on the page that is not a target, or any
 chrome shortcut (Mod+G shows the pill only for its menu). Focus is per window, not kept in the
-snapshot. Drop: a drop opens the files as new tabs and focuses the first one's page.
+snapshot. Drop: a single file opens and becomes active; two or more open as tabs, the current
+document stays active, and the toast reads "Opened 3 files · Show in Library" (spec 02.19).
 
 **7 · Motion.** *toast*, *progress*, *success*; Focus: dock and pill fade and move 8 px down over
 `--duration-fast` (`--ease-exit`), return on `--spring-quick`; drop overlay *light respond*.
@@ -1128,7 +1107,7 @@ Reduced motion: fades.
 medium and up, so ◆, Find, Save and ↶ stay reachable. A-13, A-24.
 
 **9 · Implementation.** `shell/frame/overlay-slots.ts` (slot coordinates from `useFreeRect()` and
-`dock-shape.ts`), `shell/frame/focus-mode.ts` (`ui-store.focusMode`), drop overlay moved from
+`capsule-morph.ts`), `shell/frame/focus-mode.ts` (`ui-store.focusMode`), drop overlay moved from
 `Stage.tsx` into `shell/frame/DropOverlay.tsx`. Tests: unit slot positions per class and band;
 e2e toast above the palette and the pending bar, Focus by F and by the pill on `phone`.
 
@@ -1136,10 +1115,10 @@ e2e toast above the palette and the pending bar, Focus by F and by the pill on `
 
 | Area | Files |
 |---|---|
-| New | `shell/frame/` (`size-class.ts`, `frame-insets.ts`, `TopStrip.tsx`, `CompactTopBar.tsx`, `LibraryButton.tsx`, `SidebarToggle.tsx`, `UndoRedo.tsx`, `DocumentTabs.tsx`, `TabOverflow.tsx`, `TabMenu.tsx`, `TitleMenu.tsx`, `TitleMenuHeader.tsx`, `TitleMenuItems.ts`, `LockSwitch.tsx`, `LockPopover.tsx`, `lock-popover-store.ts`, `FindEntry.tsx`, `SaveButton.tsx`, `ReplacePopover.tsx`, `Dock.tsx`, `dock-shape.ts`, `first-pen-hint.ts`, `PagePill.tsx`, `PagePillMenu.tsx`, `hide-on-scroll.ts`, `input-modality.ts`, `overlay-slots.ts`, `focus-mode.ts`, `DropOverlay.tsx`, `regions.ts`); `privacy/PrivacyShield.tsx`; `session/storage-summary.ts` |
+| New | `shell/frame/` (`size-class.ts`, `frame-insets.ts`, `TopStrip.tsx`, `CompactTopBar.tsx`, `LibraryButton.tsx`, `SidebarToggle.tsx`, `UndoRedo.tsx`, `DocumentTabs.tsx`, `TabOverflow.tsx`, `TabMenu.tsx`, `TitleMenu.tsx`, `TitleMenuHeader.tsx`, `TitleMenuItems.ts`, `LockSwitch.tsx`, `FindEntry.tsx`, `SaveButton.tsx`, `ReplacePopover.tsx`, `Dock.tsx`, `first-pen-hint.ts`, `PagePill.tsx`, `PagePillMenu.tsx`, `hide-on-scroll.ts`, `input-modality.ts`, `overlay-slots.ts`, `focus-mode.ts`, `DropOverlay.tsx`, `regions.ts`); `privacy/PrivacyShield.tsx` (the button; the popover is `04-context` §17's, spec X29); `session/storage-summary.ts`. The Lock popover is `lock/` (`04-context` §19, spec X4) and the dock's shape is `03-markup`'s `shell/capsule/` with `capsule-morph.ts` (spec X1) |
 | Changed | `shell/AppShell.tsx` (layers, not a grid), `shell/Stage.tsx` (no header, no `ModeSwitch`, no drop overlay), `stage/ReadView.tsx` (free insets, scroll padding), `stage/ScrollProxies.tsx` (free edges), `state/ui-store.ts` (`chromeHidden`, `focusMode`, `sidebarOpen` per device; `rightPanelOpen` gone), `workspace-store.ts` (`reorderDocuments`), `index.html`, `styles/tokens.css`, `styles/global.css`, `messages/en.json`, `tr.json` |
 | Deleted | `shell/TabBar.tsx`, `TabBar.module.css`, `shell/StatusBar.tsx`, `StatusBar.module.css`, `shell/AppGlyph.tsx` (glyph moves to `LibraryButton`), `shell/ModeSwitch.test.tsx`, `viewer/LayoutSwitch.tsx`, `viewer/GoToPageDialog.tsx`, `tools/DocumentMenu.tsx`, `stage/TabArrangeMenu.tsx`, `privacy/PrivacyIndicator.tsx`, `stage/stage-bleed.ts` measurement (helpers move), `shell/LeftRail.regions.ts` (to `regions.ts`), tokens `--titlebar-height`, `--statusbar-height`, `--rail-width`, messages for the mode switch, status bar and command field |
-| F6 order | `regions.ts`: top strip or bar → sidebar → page → facts chip → pending-marks bar → dock or palette → contextual bar → page pill → toasts (`flows.md` §7.2); landing targets: active tab, sidebar current item, page viewport, chip, Apply, last focused dock item, bar, pill, newest toast |
+| F6 order | `regions.ts` (spec X9): top strip or compact top bar → sidebar → page (the page, then caret mode or the open editor's header) → tool sheet → facts chip → pending-marks bar → dock or palette → contextual bar → page pill → toasts; modal sheets and the title menu trap focus and sit outside the cycle; landing targets: active tab, sidebar current item, page viewport, the sheet's first control, chip, Apply, last focused dock item, bar, pill, newest toast |
 | Unit | size classes; free insets; label-form decision; tab overflow; close focus; title-menu acts and reasons; save states; pill labels; hide-on-scroll reducer; slots; coverage registry rows for strip, bar, dock (four), pill (two), toast, capsule |
 | Browser-mode | strip Tab order and F6; APG tabs; title menu focus and switch; Lock popover anchored at the asker; dock roving; pill Mod+G; hidden bars inert |
 | e2e | new projects `phone`, `phone-land`, `tablet` beside the three desktop engines; `frame-layout.spec.ts` (A-12 rects per class, sidebar open and closed); jobs J2, J13A, J13B, J15a, J15b, J16 on each; `modes.spec.ts` rewritten for Markup and Lock (flows §7.3) |
@@ -1154,7 +1133,8 @@ e2e toast above the palette and the pending bar, Focus by F and by the pill on `
 2. **Who owns the title menu.** `flows.md` §10 lists `DocumentMenu.tsx → TitleMenu.tsx` under
    family 8; this task gives the title menu, its header and Lock to family 01. This spec owns
    the whole title menu, the tab menu (inventory 8.13) and the Lock popover. Family 08 should
-   point here rather than restate them.
+   point here rather than restate them. **Resolved (spec 01.2, X4):** the title and tab menus stay
+   here; the Lock popover is `04-context` §19's, in `lock/`.
 3. **The title menu is not a `role="menu"`.** The macOS-style header holds a text field and a
    switch, so the popover is a non-modal dialog with one menu list inside (§6). Adjust any spec
    that assumes Base UI `Menu` for it.
@@ -1181,7 +1161,8 @@ e2e toast above the palette and the pending bar, Focus by F and by the pill on `
 13. **The dock's lens at rest.** `language.md` §11.3 item 3 is still open. A line can rest under the
     dock, and the Chromium lens would bend it. Recommended: keep the lens on the pill (no text
     rests under it, since it sits in the dock band) and drop it on the dock in viewing. Keep it
-    on the palette.
+    on the palette. **Resolved (spec X20):** no lens on the capsule, palette included; the lens
+    stays on fixed-size M1 chips (the pill, the facts chip).
 14. **Focus on touch.** RA-12's four-finger tap was rejected (`flows.md` §1.3). Here, Focus is
     reached from the pill menu and left with a tap on the page. The Esc ladder (`flows.md` §7.2)
     needs one more rung: leave Focus, after clearing the selection.

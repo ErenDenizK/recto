@@ -45,7 +45,7 @@ here; the former M9 "Ecosystem" becomes M10.
 | Saving | Save in place, one Save a copy sheet, OPFS snapshots with a 20-step tail, visible Undo, toasts, saved signatures | ADR-0032; `flows.md` §5 |
 | ADR mapping | `flows.md` §14's seven decisions are ADR-0029 (items 1, 5, 6), ADR-0030 (2), ADR-0031 (3, 7), ADR-0032 (4); `language.md` §11.1's eight are ADR-0022 to ADR-0028 (the light theme folded into 0022) | ADR-0029 §5.3; `language.md` §11.1 |
 | Components | Nine families, cited by file name (`01-frame` … `09-primitives`) | §5; §6 X3 |
-| Brand and About | Planned in `docs/brand/README.md`; built only in D4 and only after Gate 0 | brief; brand plan §1, §11 |
+| Brand and About | Planned in `docs/brand/README.md`. The new mark, wordmark, About v2 and any brand spend come after Gate 0 (D4-7, D4-8); the work that needs neither the name nor the mark is scheduled earlier: icon files from the current glyph and the copy-check lists (D0-13, brand phase 0), `tools/brand/` and the mark boards (D3-10, brand phase 1), the press kit and case study v1 after the UI freeze (D4-10, D4-11) | brief; brand plan §1, §5.1, §9, §11 |
 | Versioning | Drops are planning units; no tag until the owner says "beta v1" | brief; ADR-0017 |
 
 ## 1. Problem
@@ -224,7 +224,7 @@ author's decision stands; **C** changed here; **O** sent to the owner (§14); **
 test, with the default built until then: **P** the wave 3 concept prototype
 ([`concept/index.html`](../design/redesign-2026-10/concept/index.html)), **5** the five-person
 test (§10.4), **D** the phone and tablet run (OM5, §9.2). Where a resolution needs a line in a
-source document, §6.16 lists it for the lead to apply at merge.
+source document, §6.16 lists it; those lines were applied on 2026-10-04.
 
 ### 6.1 Cross-spec decisions
 
@@ -258,6 +258,14 @@ source document, §6.16 lists it for the lead to apply at merge.
 | X26 | Storage names | New stores keep the `pdf-editor` prefix (ADR-0015 §3): `pdf-editor:facts-seen:v1`, `pdf-editor:signatures:v1`, `pdf-editor:ui:v3`, `pdf-editor:palette-recents:v1`, OPFS `pdf-editor-session/` | 02 #15 (changed) |
 | X27 | "Outline" or "Contents" | One word: **Contents** in the sidebar, the pill menu and ⌘K (Turkish "İçindekiler" in both); departs from flows' "Outline" | `flows.md` §2.1; 01 F11; 06 #19 |
 | X28 | Device spike ids | Research 19's S-T1 to S-T4 keep their meaning; the touch selection-bar check is **S-T5** (04 #10 called it S-T3, which is the memory check) | 04 #10 |
+| X29 | Privacy popover specified twice (01 F8 at 340 px, 04 §17 at 360 px, different copy) | `04-context` §17 owns the popover's content, copy (one EN and TR table), width (360 px) and `privacy/PrivacyPopover.tsx`; `01-frame` F8 owns the ◎ button and its states and opens it | 01 §9; 04 §17 |
+| X30 | A-20's 320 × 256 case | Under 01's classifier it is compact-height, where top bar 44 + dock 44 + offset 12 take 39 % of the height. **Short viewports** (height < 352 px, any width; `data-tight`): the top bar folds into the dock, one 44 px capsule (σ 8) holds ‹ N, title ▾, ↶ and ⋯; side sheets become full-width bottom sheets; the rail becomes a horizontal palette in the same capsule. At 320 × 256 chrome is about 17 % | `flows.md` §6.1, §6.9; 01 §2; `language.md` §2.9, §9.1 |
+| X31 | Rename guards differ by entry point | Rename is a `document` act at every entry point (X12, 0030.4): the title-menu name field (01 F5; read-only with "Locked · Unlock" when locked), a card's F2 (02 L5) and a grid section's F2 (06 PG3, which opens the Unlock popover at the header when locked); `guard.test.ts` has a case for each | 01 §6; 06 §11 |
+| X32 | Acts of Split, Interleave and Combine | Split declares `pages` (it removes its pages from the original); Interleave and Combine declare none (they make a new document and read their sources, 07.13) | 01 §6; 07 §16 |
+| X33 | OCR results have no Review filter (inventory 6.4) | A fifth Review filter, **Words to check** ("Kontrol edilecek sözcükler"), shown only after OCR has run: rows by page with the quality word (Good · Review · Poor · No text), J / K step the `05-canvas` §27 word ring; the OCR toast's Review opens it | 06 §7; 07 §12 |
+| X34 | Act of a placing tool's click and of Add field | `place` (allowed in Markup, and outside it with "Add … here" or keyboard placement), as `03-markup` §3 lists; ADR-0030 §2 items 2 and 8 and `05-canvas` §6 are amended | ADR-0030; 05 §6 |
+| X35 | Transient blur count with toasts | A toast stack renders inside one filtered container shaped to the toasts, so it counts as one transient surface in every class; on compact and medium a toast that appears while a contextual bar shows uses the M2 solid token | 08 §5; `language.md` §2.9 |
+| X36 | CI browsers render in software | Every CI browser would start at Glass Tinted and Ambient light Still (`language.md` §2.8). D3-3 adds a test-only render override (`window.__rectoRender = { degrade: 'off', glass: 'clear', light: 'auto' }`, set by a Playwright init script, stripped from the deploy build); the default, pixel, motion and matrix projects use it; one spec without it asserts the start states | ADR-0024 §2.4; ADR-0028 §2.1 |
 
 ### 6.2 Model, guard, Lock and saving
 
@@ -266,7 +274,7 @@ source document, §6.16 lists it for the lead to apply at merge.
 | 02.7 | Snapshot lacks the place | The snapshot stores `destination` and the active document; Compare is not restored and falls back to document A | A |
 | 02.8 | `commit()` and Library acts on locked documents | X12 | A |
 | 02.10 | Combine files… outcome | Only the combined document opens, one composed history step; the picked sources go to Recents (unchanged, no snapshot) | A |
-| 02.15 | Facts chip once per file; seen-key store | "Restored edits" shows on every restore; keys (size plus a hash of the first 64 KB) in `pdf-editor:facts-seen:v1`, not `recto:…` (X26); cleared with Clear recents and in Settings | C |
+| 02.15 | Facts chip once per file; seen-key store | "Restored edits" shows on every restore; keys (size plus a hash of the first 64 KB) in `pdf-editor:facts-seen:v1`, not `recto:…` (X26); cleared with Clear recents, with Clear kept documents, and by "Show tips and facts again" in Settings (07.8) | C |
 | 02.16 | Owner of `session/` | X18 | A |
 | 02.Q4 | Twelve Recents rows beside 30 days or 500 MB of snapshots | Kept documents are listed separately and all of them within retention, first; plain recents stay at 12 | A |
 | 02.Q5 | "Delete kept changes" on Start fresh | No: Start fresh closes and keeps; Clear lives in the privacy popover and Settings, which shared machines need anyway | A |
@@ -276,14 +284,14 @@ source document, §6.16 lists it for the lead to apply at merge.
 | 0030.1 | Closing a locked document | X12 | A |
 | 0030.2 | Saved state outside the document | X13 | A |
 | 0030.3 | Shared source pages after Combine | X11 | A |
-| 0030.4 | Rename | A `document` act, dimmed when locked | A |
-| 0031.3 | Facts-seen record | `pdf-editor:facts-seen:v1` (X26), cleared with kept documents | A |
+| 0030.4 | Rename | A `document` act, dimmed when locked, at every entry point (X31) | A |
+| 0031.3 | Facts-seen record | `pdf-editor:facts-seen:v1` (X26), cleared with Clear recents, with Clear kept documents, and by "Show tips and facts again" in Settings (07.8) | A |
 | 0032.1 | Chromium 153 cannot read stored handles | After a restore there, Save opens the picker (2 presses) and keeps the new handle for the session | A |
 | 0032.2 | Saved mark | X13 | A |
-| 0032.3 | Save while locked | Save stays allowed: it writes the document unchanged; a document opened `signed` or `restricted` reads "Saved". Departs from flows §2.6's list (§6.15) | A |
+| 0032.3 | Save while locked | Save stays allowed: it writes the document unchanged; a document opened `signed` or `restricted` reads "Saved". Departs from flows §2.6's list (§6.17) | A |
 | 0032.4 | Retention on by default | Owner question 2; the build changes two numbers and one default if the answer differs | O |
 | 07.10 | Unapplied redaction marks: flows has Save ask, 07 keeps Save a copy's block | One rule for Save and Save a copy: "2 marks not applied" with **Apply and save** as the default and "Save without applying" as the secondary with the honesty line "The text under 2 marks is still in the file"; the M8 block goes | C |
-| 07.13 | Interleave consumes both inputs | Interleave keeps its sources and makes a new document, like Combine (INV-R6, INV-12): `interleave` gains `keepSources` (§7), the app always passes it | C |
+| 07.13 | Interleave consumes both inputs | Interleave keeps its sources and makes a new document, like Combine (INV-R6, INV-12): `interleave` gains `keepSources` (§7), the app always passes it; its guard is none (X32) | C |
 | 07.15 | Guards per sheet | Password asks `document` and is blocked while locked; Save a copy's Security is output-only and allowed; certificate signing (an output) asks nothing | A |
 | 08.3 | `HistoryEntry.meta` | X10 | A |
 | 08.9 | Update toast copy | Reloading no longer closes documents; the old warning shows only when nothing is kept (private window, storage refused) | A |
@@ -338,7 +346,7 @@ source document, §6.16 lists it for the lead to apply at merge.
 | 08.8 | Processing as a light hook | Processing drives rings, never the field | A |
 | 08.11 | Empty-state duotone vanishes on light | lime-800 at 25 % in the light theme | A |
 | 0023.1 | Select armed | X19 | A |
-| 06.Q3 | One Compare colour or three | One (`--select`) with shapes and words (A-19); revisit only if the five-person test shows confusion | T·5 |
+| 06.Q3 | One Compare colour or three | One (`--select`) with shapes and words (A-19); revisit only if the five-person test (session 2, D2 build) shows confusion | T·5 |
 
 ### 6.5 Motion
 
@@ -377,7 +385,7 @@ source document, §6.16 lists it for the lead to apply at merge.
 | 01.5 | Dock labels on narrow widths | Labels stack under icons when they do not fit beside them; if the dock still touches the pill, the pill rises above it | A |
 | 01.6 | Pill and chip sizes; collisions | 36 / 44 px; the pill rises 8 px above any palette or bar it would touch | A |
 | 01.7 | Compact-height sidebar | The top bar gets ▤ | A |
-| 01.8 | Compact folding | ⓘ folds below 360 px; Redo moves into the title menu below 336 px (A-20's 320 px case); departs from flows' "on every width" (§6.15) | A |
+| 01.8 | Compact folding | ⓘ folds below 360 px; Redo moves into the title menu below 336 px (A-20's 320 px case); departs from flows' "on every width" (§6.17) | A |
 | 01.9 | Soft scroll edge | 24 px; jumps land 24 px below the strip | A |
 | 01.10 | Side sheets and the free rectangle | X23 | A |
 | 01.11 | Undo and Redo in the Library | None in the Library strip; Mod+Z works; removals carry Undo toasts | A |
@@ -408,7 +416,7 @@ source document, §6.16 lists it for the lead to apply at merge.
 | 03.Q1 | Two or three inline signature chips at large | Three | T·P |
 | 03.Q2 | Pen-seen ring on phones | Yes | T·D |
 | 03.Q3 | Tablet throw to a side dock | Not in M9: bottom only; the rail exists for compact-height; "Move tool bar to" is an M10 candidate | A |
-| 03.Q4 | Edit text stays armed after a commit | Stays armed | T·5 |
+| 03.Q4 | Edit text stays armed after a commit | Stays armed; decided in the five-person test's session 2 on the D2 build | T·5 |
 
 ### 6.9 Bars, menus and gestures
 
@@ -422,7 +430,7 @@ source document, §6.16 lists it for the lead to apply at merge.
 | 04.10 | Selection bar below the text on touch | Below, because the system edit menu cannot be suppressed above it; verified in S-T5 (X28) | C |
 | 04.11 | Long press while a tool draws | A drawing pointer never long-presses; right-click, Shift+F10 and a finger once a pen has been seen still open the page menu | A |
 | 04.12 | Pages bar in viewing | X21 | A |
-| 05.12 | Double-click and smart zoom | Word selection in viewing, the editor door in Markup with Select; smart zoom (fit width ⇄ 250 %) only on a touch double tap; a pen double tap acts like a mouse | A |
+| 05.12 | Double-click and smart zoom | Word selection in viewing, the editor door in Markup with Select; smart zoom (fit width ⇄ 250 %) only on a touch double tap. Once a pen has been seen, a pen double tap in Markup with Select writes like any pen stroke and never opens the editor (MK-18, S4); a pen acts as a mouse only while no pen has been seen (desktop tablets). `05-canvas` §6 gains the pen-seen row and §17.1 limits the double-click door to the mouse and an unseen pen | C |
 | 06.3 | Explicit selection on touch in the sidebar | A long press released without moving opens the thumbnail menu with Select first; moving after the lift drags | A |
 | 06.4 | Thumbnail menu | A row in `04-context` §14: the page menu's page group without "Add … here" and "Edit text here", plus Recognize text on this page, plus Select on coarse pointers | A |
 | 09.5 | Tooltip ownership | X16 | A |
@@ -443,7 +451,7 @@ source document, §6.16 lists it for the lead to apply at merge.
 | 05.17 | F6 and the page region | X9 | A |
 | 05.Q1 | Handle shape | Circles; sizes and hit areas unchanged either way | T·P |
 | 05.Q2 | 15 % pinch-to-grid and 250 % double tap | Built as stated; frozen after S-T1 to S-T4 | T·D |
-| 05.Q3 | Field outlines by default for forms | Only with Fill & sign open or "Show field outlines" | T·5 |
+| 05.Q3 | Field outlines by default for forms | Only with Fill & sign open or "Show field outlines"; decided in the five-person test's session 2 on the D2 build | T·5 |
 | 05.Q4 | A hint on the first Enter on a page | No visual hint: the announcement and the shortcuts overlay | A |
 | 05.Q5 | Magnified field editor threshold | 16 px everywhere in M9 (iOS's zoom rule); the device run may lower Android and desktop touch to 13 px | T·D |
 
@@ -459,7 +467,7 @@ source document, §6.16 lists it for the lead to apply at merge.
 | 06.10 | Hover rotate and delete on cells | Removed (baseline V10); the Pages bar and cell menu cover them | A |
 | 06.11 | Two drag paths | Pragmatic drag and drop for mouse and OS files, a pointer path for touch and pen; unify only if S-T4 allows | A |
 | 06.12 | Review marks lose partial apply | Accepted: the pending-marks bar applies every mark; unwanted marks are deleted first (J/K steps through them); re-homings as listed | A |
-| 06.13 | Static Review filter chips | All four always show, zero counts included | A |
+| 06.13 | Static Review filter chips | The four content filters always show, zero counts included; Words to check appears after OCR has run (X33) | C |
 | 06.14 | Overlay opacity | A tier above the Compare bar (400 × 40, σ 8); `04-context` §11 drops it from ⋯ | A |
 | 06.15 | Compare failure | A toast with Try again; the bar shows Run again | A |
 | 06.16 | Page map strip | Removed; the Changes list's headings and J/K cover it | A |
@@ -539,16 +547,34 @@ source document, §6.16 lists it for the lead to apply at merge.
 
 ### 6.16 Lines for the lead to apply at merge
 
-These source documents need a matching line; this spec's tasks could not edit them.
+**Applied on 2026-10-04.** Every line below is now in its source document, together with the
+lines the review of this plan added (X29–X36 and the rows marked "review"); the sources say so in
+their changelogs or with "spec" references. The table stays as the record of what changed where.
 
 | Document | Line |
 |---|---|
-| `flows.md` | §14: the ADR mapping of §0; §2.1, §4.6: "Contents" (X27); §2.6: Save allowed while locked (0032.3); §4.4: image right-click (04.3); §5.3: Redo below 336 px (01.8); §6.9: rows for in-page editors (05.13), New signature and Batch (07.5); §7.2: F6 order (X9), Compare keys (06.23), F2 and Alt+Left/Right in the Library (02.12), Alt+arrows in caret mode (05.4) |
-| `language.md` | §1.1 "on states of tools" (09.1), redaction and crop tokens (05.3); §2.2, §2.9 σ steps and registry rows (X6, 02.4, 03.8, 06.21, L.6); §2.5 light twin and coarse σ (02.3); §2.7, §11.3 lens (X20); §2.10 `--control-border` (X7); §3.1–§3.2 `textSafe`, thumbnail exemption, no drift on Combine (02.1, 02.2, 02.21); §5.1 lime-800 duotone (08.11); §7.3 *sheet push*, fold, find step, large press (X8, 02.5, 02.6, 05.2) |
-| ADR-0024 | Refraction on fixed-size M1 chips only (X20), before acceptance |
-| `04-context` | §10, §11 (X1, 06.14), §15 (X15), §18 pointer (X2), §22 #8 (X1), #10 S-T5 (X28) |
-| `01-frame` | §6, §15: `lock/` (X4), `dock-shape.ts` into `capsule-morph.ts` (X1) |
-| `docs/brand/README.md` | §11 phase 4 "after M10" now reads "after M9 D4" (phones are in M9) |
+| `flows.md` | §14: the ADR mapping of §0; §0, §2.1, §4.6, §4.7, §9.3, §9.4, §10: "Contents" (X27); §2.5: `place` for a placing tool's click and Add field, rename a `document` act (X34, X12); §2.6: Save allowed while locked (0032.3); §4.3, §6.2: no tablet throw or side dock in M9 (03.Q3); §4.4, §4.7: image right-click and "Save image" (04.3, 04.6); §5.2: edit blobs in the snapshot (review); §5.3: Redo below 336 px (01.8); §5.4: one unapplied-marks ask (07.10); §6.1, §6.9: short viewports (X30); §6.9: rows for in-page editors (05.13), New signature and Batch (07.5); §7.2: F6 order (X9), Compare keys (06.23), F2 and Alt+Left/Right in the Library (02.12), Alt+arrows in caret mode (05.4); §8.1, §8.2, §0: J16 keyboard ≈5 and the total 81 (07.16); §9.3: facts chip 10 s (A-24); §10: Review's Words to check (X33); §12: five drops, D0–D4; §15 Q1: what unlocked lets through (review) |
+| `language.md` | §1.1 "on states of tools" (09.1), §1.5 redaction and crop tokens (05.3); §2.2, §2.9 σ steps and registry rows (X6, 02.4, 03.8, 06.21, L.6, X30); §2.5 light twin and coarse σ (02.3); §2.7, §7.3, §11.3 lens (X20); §2.8 the CI render override (X36); §2.9 one filter per toast stack (X35); §2.10, §9.1 `--control-border` (X7); §3.1–§3.3 `textSafe`, thumbnail exemption, no drift on Combine, the under-light's A-6 exception (02.1, 02.2, 02.21); §3.4, §7.3, §7.5 reduced light responses ≤ 150 ms and progress under A-9's exemption; §5.1 lime-800 duotone (08.11); §7.3 *sheet push*, fold, find step, large press (X8, 02.5, 02.6, 05.2); §7.3, §7.4 undo reveal and sheen 500 ms (A-10); §9.1 A-6, A-11, A-20 |
+| ADR-0022 | §2.2 principle 2: Library thumbnails exempt from the 64 px rule, pixel test kept (02.1) |
+| ADR-0024 | Refraction on fixed-size M1 chips only (X20); X6's σ steps; item 8: the top strip and compact top bar glass on every pointer (review); item 4: the CI render override (X36) |
+| ADR-0025 | §2 items 4 and 6: no drift on Combine (02.21), `textSafe` (02.2), the Library-thumbnail exemption (02.1), Still cross-fades ≤ 150 ms |
+| ADR-0026 | §2 item 6: motion on or under glass ≤ 500 ms (A-10) |
+| ADR-0028 | §2.1 the CI render override (X36); §2.5 amendments to A-6, A-9, A-11 and A-18; §3: three per-file `matchMedia` checks |
+| ADR-0029 | §3: keyboard total 81 (07.16) |
+| ADR-0030 | §2 items 2 and 8: Add field and a placing tool's click are `place` (X34) |
+| ADR-0031 | §2.4–§2.6: Contents (X27), Words to check (X33); §2.13: facts chip 10 s; §3: three touch projects, other sizes as viewports; §5.3: facts-seen clearing (02.15) |
+| ADR-0032 | §2.1: one unapplied-marks ask (07.10); §2.4: edit blobs in the snapshot (review) |
+| `01-frame` | §2 short viewports (X30); §6, §15: `lock/` (X4), `dock-shape.ts` into `capsule-morph.ts` (X1); §6 name field `document` (X31), Pages row acts (X32); §9 the ◎ button only (X29); §12 Contents (X27); §14 drop of two or more files (02.19); §15 F6 order (X9) |
+| `02-library` | L11: `pdf-editor:facts-seen:v1` (X26) and its clearing (02.15); rest 10 s (A-24); Contents (X27); fold flash 500 ms |
+| `03-markup` | §2.3: Select armed is a fill glyph on `--surface-on`, no lime (X19) |
+| `04-context` | §2.3 recogniser in `motion/gesture/` (X5); §10, §11 (X1, 06.14); §14 catalogue rows (02.12, 01.2, 12.14, X27); §15 (X15); §17 owns the privacy popover (X29); §18 pointer (X2); §22 #8 (X1), #10 S-T5 (X28) |
+| `05-canvas` | §4 recogniser in `motion/gesture/` (X5); §6 pen-seen row and `place` for placing clicks (05.12, X34); §11 undo reveal 500 ms; §17.1 the double-click door (05.12) |
+| `06-navigation` | N1, N3, N6 and elsewhere: Contents (X27); N5 Words to check (X33); PG3 rename asks `document` (X31); thumbnail drop ring 500 ms |
+| `07-sheets` | §2 S0 `--control-border` (X7); §4 S2 the unapplied-marks ask (07.10); §12 S10 Review's Words to check (X33); §16 S14 guard none (07.13, X32); §27 #2, #10, #13 resolved |
+| `08-feedback` | §5 FB4: own region (X14), one filter per stack (X35); §17 #6 changed |
+| `09-primitives` | §28: a separate Vite config (09.11) |
+| `docs/brand/README.md` | §4.1 and §11 decision 3: one lime settled by ADR-0023, no P3 variant, lime-800 `#446713`; §6: Library button 20 px, launcher 48 px, Settings → About Recto (no About dialog); §7 item 2 nouns; §8 items 5–7; §9 items 7 (70 frames) and 9, the version 2 line, and §11 phase 4: "after M9 D4" (phones are in M9) |
+| `docs/ROADMAP.md`, `docs/DESIGN.md`, `docs/DISCUSSION.md` | M9 packages and drops as §11–§12, the brand track, M10 candidates; DESIGN §10: amendments applied together by D4-9; DISCUSSION #33 question 6 |
 
 ### 6.17 Where this spec departs from `flows.md` and `language.md`
 
@@ -557,6 +583,12 @@ These source documents need a matching line; this spec's tasks could not edit th
 | flows §2.6 | Lock keeps Save a copy | Save also stays allowed | It writes the document unchanged (0032.3) |
 | flows §2.6, §3.5, §15 Q1 | The locked default is stricter in page structure | Also in whole-document operations | ADR-0030's `document` act (0029.1) |
 | flows §4.4 | Right-click on an image opens the image bar | The page menu with an image group | A scanned page is one image (04.3) |
+| flows §4.4, §4.7 | The image bar's "Extract" | "Save image" | Extract means a new document elsewhere (04.6) |
+| flows §4.3, §6.2 | On tablets a drag throws the palette to an edge; a side dock insets the column | Bottom only in M9; "Move tool bar to" is an M10 candidate | 03.Q3 |
+| flows §6.1, A-20 | At 320 × 256 the compact layout holds | Short viewports fold the top bar into the dock | Chrome ≤ 25 % (X30) |
+| flows §8.1, §8.2 | J16 keyboard ≈6 | ≈5; total 81 | Enter submits from radios and segments (07.16) |
+| flows §12 | Four drops | Five, D0–D4 | The Library and presentation are their own drop (§12) |
+| flows §10 | OCR → "a Review filter" | Words to check, shown after OCR | Review had no OCR kind (X33) |
 | flows §5.3, §6.1 | Undo and Redo on every width | Redo folds into the title menu below 336 px | A-20 at 320 px (01.8) |
 | flows §5.4 and `07-sheets` | Save asks; Save a copy blocks | One ask for both, Apply by default | One rule (07.10) |
 | flows §2.1, §4.6 | "Outline" | "Contents" | One reader's word (X27) |
@@ -570,6 +602,8 @@ These source documents need a matching line; this spec's tasks could not edit th
 | `language.md` §3.2 | Nothing within 64 px of a page | Library thumbnails exempt, pixel test kept | Lit cards (02.1) |
 | `language.md` §3.2 | Combine drifts 2 s | No drift on Combine | It leaves the Library (02.21) |
 | `language.md` §7.3 | No *sheet push*, *fold*, find step | Added | X8, 02.6, 05.2 |
+| `language.md` §7.3, §7.4 | Undo reveal and sheen 600 ms; motion on glass ≤ 600 ms | 500 ms | A-10's limit |
+| `language.md` §3.4, §7.5 | Light responses ≤ 200 ms under reduced motion | ≤ 150 ms | A-9's limit |
 
 ## 7. Model and engine changes
 
@@ -607,7 +641,9 @@ keepToolsVisible: boolean;
 // state/appearance-store.ts: theme, glass, light, motion, haptics (glassPanels and
 // reduceTransparency migrated once, language.md §10.3)
 // commands/registry.ts: every committing command declares { act }, plus reason, args, selection, icon
-// session/ (OPFS 'pdf-editor-session/'): workspace, history tail, source bytes, per document
+// session/ (OPFS 'pdf-editor-session/'): workspace, history tail, source bytes, every edit blob
+//   (useWorkspaceStore.editBlobs) the workspace or the tail refers to, content-addressed and
+//   written once, restored with putEditBlob before any replay (ADR-0032 §2.4); per document
 //   { page, zoom, surface, sidebar, lock }, destination and active document (02.7); never Markup
 // IndexedDB: 'pdf-editor:signatures:v1' (≤ 5), 'pdf-editor:facts-seen:v1'; localStorage
 //   'pdf-editor:palette-recents:v1' (ids only)
@@ -626,10 +662,10 @@ before that it runs as a warning.
 
 | Gates | Proves | Where tested | Blocking from |
 |---|---|---|---|
-| A-2 (model), A-3 on the page | Coverage term; `--select` ≥ 3:1 on white and both tints | `tokens.test.ts` | D0 |
+| A-2 (model), A-3 on the page, A-11 (model) | Coverage term for every surface on `.glass`, `.glass-menu` or `.glass-frame`; `--select` ≥ 3:1 on white and both tints; the two-band ring's bands ≥ 9:1 | `tokens.test.ts`, `focus-scan.test.ts` | D0 |
 | A-13, A-14, A-15, A-24 | F6 reaches every floating surface; one announcer; 24 / 44 px targets; toasts ≥ 10 s and paused | `a11y.spec.ts`, browser-mode suites | D0 (sheets, toasts) |
 | A-12, A-20, A-21 | Focus never under chrome (rest rule); 320 × 256 and 360 × 640 without overflow, chrome ≤ 25 %; Turkish and 1.4.12 spacing | `frame-layout.spec.ts`, `rest-rule.spec.ts`, `a11y.spec.ts` | D2 |
-| A-1, A-2 (rendered), A-3, A-4, A-5, A-6, A-11 | Rendered contrast in three engines plus `chromium-nogpu`; APCA primary ≥ 75; text never on bare light; light never on pages or Library thumbnails (02.1); two-band ring | `glass-pixels.spec.ts`, `tokens.test.ts` | D3 |
+| A-1, A-2 (rendered), A-3, A-4, A-5, A-6, A-11 (rendered) | Rendered contrast in three engines plus `chromium-nogpu`; APCA primary ≥ 75; text never on bare light; light never on pages (A-6's Library-thumbnail clause blocks from D4, when lit cards ship; 02.1); two-band ring over the listed backdrops | `glass-pixels.spec.ts`, `tokens.test.ts` | D3 (Library thumbnails D4) |
 | A-7, A-8, A-9, A-10, A-23 | Pauses; no flash; reduced motion per token; transition limits; effects never cost input | `motion.spec.ts` | D3 |
 | A-16, A-17, A-18, A-19 | Forced colours; Glass Clear · Tinted · Solid; more contrast; colour never alone (Machado matrices) | `a11y.spec.ts`, `tokens.test.ts`, `palette.test.ts` | D3 |
 | A-22 | Every effect has a solid twin: the whole a11y suite in the "plain" project | `a11y.spec.ts` (plain) | D3 |
@@ -649,7 +685,7 @@ Windows contrast theme. Secondary-text APCA stays a warning (0028.2).
 
 | Area | Budget | Source | Test |
 |---|---|---|---|
-| Blurred surfaces, persistent + transient | Compact 2 + 1 · medium 3 + 1 · expanded 5 + 2 · large and xlarge 6 + 2 | `language.md` §2.9 | `frame-layout.spec.ts` counts |
+| Blurred surfaces, persistent + transient | Compact 2 + 1 · medium 3 + 1 · expanded 5 + 2 · large and xlarge 6 + 2; a toast stack counts as one (X35); short viewports keep one persistent (X30) | `language.md` §2.9 | `frame-layout.spec.ts` counts, including Highlight on a phone (toast plus the selected highlight's bar) |
 | Persistent glass area over moving content | ≤ 25 % compact and medium, ≤ 32 % from expanded (50 % hard ceiling with sidebar and side sheet) | §2.9, A-20 | same |
 | Blur | c ≥ 0.985 per registered size; never animated; no `will-change: backdrop-filter`; one filtered element per stack | A-2, §2.9 | `tokens.test.ts`, pixels |
 | Lenses | 0 on compact and medium; ≤ 3 from expanded, on fixed-size M1 chips only | X20 | `frame-layout.spec.ts` |
@@ -675,10 +711,10 @@ default that ships if it is not run.
 
 | # | Check | How | Decides | Default if not run |
 |---|---|---|---|---|
-| OM1 | S2 glass frames | Research 14 §3 and §11 on Chrome with a GPU and on Safari: M3 sidebar and strip as glass over scrolling pages, **plus the floating dock and the palette with the under-light** (0024.2) | Docked glass by default on fine pointers (ADR-0024) | Docked M3 ships as its solid token (identical at rest) |
+| OM1 | S2 glass frames | Research 14 §3 and §11 on Chrome with a GPU and on Safari: M3 sidebar and strip as glass over scrolling pages, **plus the floating dock and the palette with the under-light** (0024.2) | Docked glass by default on fine pointers (ADR-0024) | Docked M3 ships as glass on fine pointers (ADR-0024 item 8); the cost ladder's step 3 makes it solid at run time on a slow device |
 | OM2 | Edge-leak probe | Research 22 §3.2 one-page probe, Chrome GPU and Safari, one minute | Whether the coverage rule binds on GPU paths too | The rule stays (conservative) |
 | OM3 | Safari `var()` check | Does `-webkit-backdrop-filter` accept `var()` (research 16 G-22)? | Whether literal values are required | Literals everywhere, as planned |
-| OM4 | Aurora banding, energy, drift | Research 17 §11: banding on the owner's display, 10 minutes of energy, drift at 15 against 30 fps | Drift frame rate; intensity on the empty Library | 15 fps; I 0.45; glide to still after 60 s |
+| OM4 | Aurora banding, energy, drift | Research 17 §11 on the D4-1 build (the launcher and its field exist from then): banding on the owner's display, 10 minutes of energy, drift at 15 against 30 fps | Drift frame rate; intensity on the empty Library | 15 fps; I 0.45; glide to still after 60 s |
 | OM5 | Phone and tablet run | An iPhone (iOS 26), a mid-range Android phone, an iPad with a pen, an Android tablet: S-T1 pinch ownership, S-T2 glass on phones (blur 12, 20, 28), S-T3 memory (200-page scan), S-T4 drag from a long press, S-T5 selection bar against the system edit menu (X28); also 05.Q2, 05.Q5, 03.Q2, 04.Q3, 08.Q5, the iPad keyboard pointer | Touch thresholds, phone blur, the drag path | Built as specified; touch defaults are marked provisional in the as-built notes |
 | OM6 | M8 carry-over | Pen latency on the owner's laptop and the mouse and tablet try-out (ROADMAP M8) | Confirms M8's ink targets under the new shell | — |
 
@@ -688,7 +724,7 @@ default that ships if it is not run.
 
 | Area | Tests |
 |---|---|
-| Model and guard | `guard.test.ts` (every act × lock reason, unknown ids fail closed); registry coverage (a committing command without `act` fails); `commit()` lock check including X12; locked engine bytes unchanged for every act; `serializeHistoryTail` round trip and size; `HistoryEntry.meta` |
+| Model and guard | `guard.test.ts` (every act × lock reason, unknown ids fail closed; a case for each rename entry point, X31); registry coverage (a committing command without `act` fails); `commit()` lock check including X12; locked engine bytes unchanged for every act; `serializeHistoryTail` round trip and size; `HistoryEntry.meta` |
 | State migration | `ui:v2` → `v3`; `edit-policy` → `input-policy`; `glassPanels`/`reduceTransparency` → Glass; `isPageView()` replacing the 22 comparison sites |
 | Frame and layout | Size classes; free insets; label fit; tab overflow; hide-on-scroll reducer; regions order (X9) |
 | Tokens and materials | `tokens.test.ts`: both themes, settings blocks identical, coverage registry, APCA gate, colour pairs, focus bands, `--control-border`; `focus-scan.test.ts`; `palette.test.ts` with CVD matrices |
@@ -706,7 +742,10 @@ keys; zoom commit anchor; side-sheet re-centring; caret DOM `Selection` sync.
 
 New Playwright projects: `phone` (390 × 844, touch), `phone-land` (844 × 390), `tablet` (820 ×
 1180, touch), `chromium-nogpu`, and `plain` (Solid, reduced motion, light off). Pixel specs are
-tagged `@pixels`. The rendered-pixel harness has its own Vite config (09.11).
+tagged `@pixels`. The rendered-pixel harness has its own Vite config (09.11). Expanded (1180 ×
+820), xlarge (1920 × 1080) and 320 × 256 run as viewports inside `frame-layout.spec.ts` (ADR-0031
+§3). The default, pixel, motion and matrix projects run with the test-only render override of
+X36; one spec without it checks the software-rasteriser start states.
 
 | Spec | Change | WP |
 |---|---|---|
@@ -727,13 +766,15 @@ tagged `@pixels`. The rendered-pixel harness has its own Vite config (09.11).
 
 ### 10.4 The five-person test
 
-Before owner question 1 is closed and before D2 freezes (§12). Five people who have not used
-Recto, on the D1 build (unlocked default) at large desktop size, one also on a tablet; think
-aloud; the lead observes. Tasks: copy a word by double-click (S3); fill a form with a checkbox
-(S7); highlight a sentence and comment on it, then type a letter with a selection still active
-(S9); fix a word with E then Enter, then leave the editor (03.Q4); say what the tab's ● means
-(01.Q2); on the tablet, long-press a control for its tooltip (04.Q2); find a form's fields
-(05.Q3); compare two versions (06.Q3). **Decision rule:** if two or more of five make a change
+Two sessions, five people who have not used Recto each time, at large desktop size, one also on a
+tablet; think aloud; the lead observes. **Session 1**, on the D1 build (unlocked default), before
+owner question 1 is closed and before D2 freezes (§12): copy a word by double-click (S3); fill a
+form with a checkbox (S7); highlight a sentence and comment on it, then type a letter with a
+selection still active (S9); say what the tab's ● means (01.Q2); on the tablet, long-press a
+control for its tooltip (04.Q2). **Session 2**, on the D2 build before D2-QA closes (so before
+D3 starts), because these tasks need D2's palette, Fill & sign door and Compare place: fix a word
+with E then Enter, then leave the editor (03.Q4); find a form's fields (05.Q3); compare two
+versions (06.Q3). **Decision rule:** if two or more of five make a change
 they do not notice in S7 or S9, the lead recommends the locked default (or a checkbox that needs
 focus first) to the owner; if two or more cannot leave the editor, Edit text disarms after a
 commit; each other item keeps its default unless two or more stumble.
@@ -757,31 +798,33 @@ the lead commits, every review finding gets a test.
 
 | Id | Scope | Files | Depends on | Size | Acceptance |
 |---|---|---|---|---|---|
-| D0-1 | The two pre-redesign accessibility fixes: `--select` `#4e61ed` for every on-page ring, handle, lasso box and hover outline; σ ≤ height / 5 on today's floating bar (σ 8 at 44 px), options tier (σ 8) and selection bar (σ 7); the coverage term in `tokens.test.ts` | `styles/tokens.css`, `styles/global.css`, `styles/tokens.test.ts`, the page-layer CSS modules using the accent | — | S | A full-viewport screenshot of the bar over a white page (research 22 §3.2's method) within ±2/255 of the model; `--select` ≥ 3:1 on white and both tints; no `#7c8cff` in page layers |
+| D0-1 | The pre-redesign accessibility fixes (`09-primitives` §32 step 1, `language.md` §10.4 step 1): `--select` `#4e61ed` for every on-page ring, handle, lasso box and hover outline; the coverage rule on **every** surface that composes `.glass`, `.glass-menu` or `.glass-frame` (about nineteen modules: floating bar, options tier, selection, annotation and image bars, TextLayer hint, FormLayer notice, Arrange bar, crop banner, Compare toolbar, `ui/Menu`, `ui/Popover`, TabBar, StatusBar, LeftRail), by lowering the three tokens (`--glass-filter` blur 7 px for bars ≥ 36 px, `--glass-menu-filter` blur 12 px for menus ≥ 58 px, `--glass-frame-filter` σ ≤ height / 5 of the shortest frame bar), each surface in the D0 coverage registry; the two-band focus ring with `styles/focus.css` (outset, inset and gap forms, `--focus-offset-{out,in,gap}`, `--focus-light` / `--focus-dark`); the `chromium-nogpu` project and research 22 §3.2's full-viewport screenshot helper | `styles/tokens.css`, `styles/global.css`, `styles/focus.css`, `styles/tokens.test.ts`, `styles/focus-scan.test.ts`, the page-layer CSS modules using the accent, `FloatingToolbar.module.css`, `ReadSelectionBar.module.css` and the other `.glass*` modules, `playwright.config.ts`, `e2e/support/pixels.ts` | — | M | A full-viewport screenshot of the bar over a white page within ±2/255 of the model on `chromium-nogpu`; every `.glass*` surface in the registry at c ≥ 0.985; `--select` ≥ 3:1 on white and both tints; no `#7c8cff` in page layers; `focus-scan.test.ts` and band ratio ≥ 9:1 |
 | D0-2 | Size classes and input modality (no visual change yet): `size-class.ts`, `frame-insets.ts`, `input-modality.ts`; the `phone`, `phone-land` and `tablet` Playwright projects | `shell/frame/`, `playwright.config.ts` | — | M | Class and modality unit tests; the three projects run the smoke spec |
-| D0-3 | Primitives on today's tokens (`09-primitives` migration steps 2–4 and the primitives the sheets need): token skeleton with aliases, `controls.css`, `.secondary` → `btn`, the `outline-offset` codemod, Button, IconButton, Switch, Checkbox, Radio, Segmented, Select, Text, Search and Number fields, Slider, Keycaps, ScrollArea, Progress | `ui/*`, `styles/controls.css`, 12 + 15 modules, 44 files for focus | — | L | Browser-mode suite per primitive; `focus-scan.test.ts`; screenshots of four baselines unchanged ± 1 px |
-| D0-4 | Sheet primitive in five presentations, `sheet-store`, Confirm, one result page; port S6 (password prompt) and S22 (shortcuts) | `ui/sheet/`, `shell/ShortcutOverlay.tsx`, `shell/PasswordDialog.tsx` | D0-2, D0-3 | M | `sheets.spec.ts` presentation per class, swipe, focus trap, drafts kept on Esc |
-| D0-5 | Toast system on our own region (X14), progress capsule, job store, error presentation; replaces the Combined and Update toasts | `ui/Toast/`, `jobs/job-store.ts`, `errors/present.ts`, `shell/announcer.ts`, `pwa/register.ts` | D0-3 | M | One announcement per toast; F6 reaches toasts; A-24 hover hold; damaged-file toast (INV-6) |
-| D0-6 | Visible Undo and Redo, the History scrubber (`08-feedback` FB7), undo reveal; `HistoryEntry.meta` | `shell/frame/UndoRedo.tsx`, `history/`, `packages/document-model/src/history.ts`, `types.ts` | D0-3 | M | Undo on touch in one press; scrubber jump while locked leaves bytes unchanged except by history; tooltip names the step |
-| D0-7 | OPFS snapshots and restore (X18): writer within 2 s and on hidden, `persist()`, 20-step tail, restore on launch with "Restored 3 documents · Start fresh", Recents reopen snapshots, retention (30 days or 500 MB, owner Q2), private-window notice, `beforeunload` rule, Clear in the privacy popover | `session/`, `files/recents.ts`, `packages/document-model/src/serialize.ts`, `privacy/` | D0-5 | L | `session.spec.ts`: edit, reload, same page and zoom, Undo works for 20 steps; a closed document reopens from Recents with no picker on Firefox and WebKit; Clear is final |
-| D0-8 | Save in place (ADR-0032): Save, Replace popover, write and verify, saved mark (X13), Revert to the opened version, Mod+S, download or share fallback, the Chromium 153 rule; unapplied-marks ask (07.10) | `shell/frame/SaveButton.tsx`, `ReplacePopover.tsx`, `state/saved-store.ts`, `files/save.ts` | D0-5, D0-7 | M | J13A: 3 presses first, 1 after (Chromium); "Saved · verified"; ● clears from the saved mark; locked documents save (0032.3) |
+| D0-3 | Primitives on today's tokens (`09-primitives` migration steps 2–4): token skeleton with aliases, `controls.css`, `.secondary` → `btn`, the `outline-offset` codemod onto D0-1's focus forms, and every primitive of `09-primitives` §3–§24 (22: Button, IconButton, Chip, Segmented, Switch, Checkbox, Radio, Slider, Select and menu button, Text, Search and Number fields, Keycaps, Swatch, Badge, Tag dot, the focus ring of D0-1, Tooltip internals (X16), ScrollArea, EmptyNote, ResizeHandle, Progress) | `ui/*`, `styles/controls.css`, 12 + 15 modules, 44 files for focus | D0-1 | L | Browser-mode suite per primitive; `focus-scan.test.ts`; screenshots of four baselines unchanged ± 1 px |
+| D0-4 | Sheet primitive in five presentations, `sheet-store`, Confirm, one result page; port S6 (password prompt) and S22 (shortcuts) | `ui/sheet/`, `shell/ShortcutOverlay.tsx`, `shell/PasswordDialog.tsx` | D0-2, D0-3, D0-12 | M | `sheets.spec.ts` presentation per class, swipe, focus trap, drafts kept on Esc |
+| D0-5 | Toast system on our own region (X14), progress capsule, job store, error presentation; replaces the Combined and Update toasts | `ui/Toast/`, `jobs/job-store.ts`, `errors/present.ts`, `shell/announcer.ts`, `pwa/register.ts` | D0-3, D0-12 | M | One announcement per toast; F6 reaches toasts; A-24 hover hold; damaged-file toast (INV-6) |
+| D0-6 | Visible Undo and Redo, the History scrubber (`08-feedback` FB7), undo reveal; `HistoryEntry.meta` | `shell/frame/UndoRedo.tsx`, `history/`, `packages/document-model/src/history.ts`, `types.ts` | D0-3 | M | Undo on touch in one press; a scrubber jump in M8 Read mode leaves bytes unchanged except by history (the four lock reasons are tested in D1-QA); tooltip names the step |
+| D0-7 | OPFS snapshots and restore (X18): writer within 2 s and on hidden, `persist()`, 20-step tail, the edit blobs it refers to (ADR-0032 §2.4), restore on launch with "Restored 3 documents · Start fresh", Recents reopen snapshots, retention (30 days or 500 MB, owner Q2), private-window notice, `beforeunload` rule, Clear in the privacy popover | `session/`, `files/recents.ts`, `packages/document-model/src/serialize.ts`, `privacy/` | D0-5 | L | `session.spec.ts`: edit, reload, same page and zoom, Undo works for 20 steps; place a stamp and a saved image signature, reload, Undo across them, then Save succeeds; a closed document reopens from Recents with no picker on Firefox and WebKit; Clear is final |
+| D0-8 | Save in place (ADR-0032): Save, Replace popover, write and verify, saved mark (X13), Revert to the opened version, Mod+S, download or share fallback, the Chromium 153 rule; unapplied-marks ask (07.10) | `shell/frame/SaveButton.tsx`, `ReplacePopover.tsx`, `state/saved-store.ts`, `files/save.ts` | D0-5, D0-7 | M | J13A: 3 presses first, 1 after (Chromium); "Saved · verified"; ● clears from the saved mark; a document in M8 Read mode saves (0032.3; the four lock reasons are tested in D1-QA) |
 | D0-9 | Save a copy sheet (S2), absorbing Export, Compress, Export as images and Markdown; presets with estimates; picker first; Web Share (07.6) | `export/` (restructured), `ui/sheet/` | D0-4, D0-5 | L | J13B 8 → 5 (`jobs.spec.ts`); the empty-file rule (07.7); the old dialogs removed |
 | D0-10 | Settings sheet (S3): today's settings in one home with 07.8's additions; About Recto inside it; the Appearance submenu and About dialog go | `settings/`, `shell/appearance-commands.ts` | D0-4 | M | Every setting reachable from ⌘K and the sheet; search finds each row in EN and TR |
-| D0-11 | Saved signatures: up to five in `pdf-editor:signatures:v1`, New signature (S7 shell) and Signatures (S9) in today's signature tool | `signatures/`, `annotations/SignatureDialog.tsx` (replaced) | D0-4 | M | J8A 6 → 3 with a saved signature on today's shell; Clear in Settings |
+| D0-11 | Saved signatures: up to five in `pdf-editor:signatures:v1`, New signature (S7) and the Settings → Saved signatures pushed page (07.8) in today's signature tool | `signatures/NewSignatureSheet.tsx`, `settings/SavedSignatures.tsx`, `annotations/SignatureDialog.tsx` (replaced) | D0-4, D0-10 | M | J8A 6 → 4 with a saved signature on today's shell (3 is proven in D2-3); Clear in Settings |
+| D0-12 | Motion core (`09-primitives` §31): `apps/web/src/motion/` with the seven springs, animate and retarget, `flip()`, `velocityTracker`, `project`, `rubberBand`, `reducedMotion()` reading the OS query and `data-motion`, and the `viewTransition()` helper at 240 ms | `motion/` | — | M | Unit tests per helper; < 3 KB gzip; `reducedMotion()` answers both paths |
+| D0-13 | Brand phase 0 (brand plan §5.1, §7, §11): PNG icon set, `apple-touch-icon` and `favicon.ico` from the current glyph; the banned lists in `tools/copy-check` | `apps/web/public/`, `tools/copy-check/` | — | S | The brand plan's §5.4 checks; copy-check clean in EN and TR |
 | D0-QA | Specs of §10.3 for D0; `save.spec.ts`, `save-copy.spec.ts`, `session.spec.ts`, `sheets.spec.ts` | `apps/web/e2e/` | each | M | D0 exit (§12) |
 
 ### 11.2 D1: targeted acts in viewing, `canChange` and Lock in `commit()`
 
 | Id | Scope | Files | Depends on | Size | Acceptance |
 |---|---|---|---|---|---|
-| D1-1 | State migration (§7): `destination`, `surface`, `docUi`; `viewMode`, `documentMode`, `lastView` removed; `ui:v3`; `input-policy-store` | `state/ui-store.ts`, `state/input-policy-store.ts`, 37 + 17 files | D0 | L | Migration tests; every existing e2e green through `2` and the interim control |
+| D1-1 | State migration (§7): `destination`, `surface`, `docUi`; `viewMode`, `documentMode`, `lastView` removed; `ui:v3`; `input-policy-store`. `canEdit(id)` stays as a shim with today's meaning, reading `docUi[id].markup` (true only in Markup), so the pen and page text stay protected until D1-5 deletes it | `state/ui-store.ts`, `state/input-policy-store.ts`, 37 + 17 files | D0 | L | Migration tests; every existing e2e green through `2` and the M8 control; the M8 input-rule specs pass on the shim |
 | D1-2 | `canChange` and `lock-store`; `act` on every committing command with the registry test | `state/guard.ts`, `state/lock-store.ts`, `commands/registry.ts`, every `*-commands.ts` | D1-1 | M | Registry test fails on a missing act; dimmed items carry their reason |
 | D1-3 | Lock in `commit()` with X12; engine edits ask first and replay the inverse on refusal; dev logging; the shared-page rule (X11) | `state/workspace-store.ts`, `engine/engine-service.ts`, `packages/document-model/src/selectors.ts` | D1-2 | L | For every act, a locked document's engine bytes are unchanged; closing and undoing a close keeps the lock |
-| D1-4 | Lock UI (X4): `lock/` notice, popover, `open-unlock`, four reasons, signed and restricted on open, the switch dimmed while typing (0029.2), "Open documents locked" setting. **Interim control:** the M8 segments read View · Markup · Arrange; `1` no longer locks (migration toast, flows §7.3); Lock in the Document menu, the tab glyph and ⌘K | `lock/`, `shell/Stage.tsx`, `tools/DocumentMenu.tsx`, `forms/FormLayer.tsx` | D1-2 | M | e2e S6, S7 locked; every refusal opens the popover at the asking control |
-| D1-5 | Hit router and input rules (`05-canvas` §6): one order with links, a live-kind matrix per state, the pen as a mouse in viewing with the first-pen hint, hover outline only in Markup with Select, the double-click asymmetry, a drawing pointer never long-presses | `viewer/hit-order.ts`, `viewer/TextLayer.tsx`, `annotations/AnnotationLayer.tsx`, `forms/FormLayer.tsx`, `image-objects/ImageLayer.tsx` | D1-2 | L | `input-rules.spec.ts` S1–S18 in both lock defaults |
-| D1-6 | Targeted acts (`04-context` §3–§9, §13): the ContextBar, the selection bar everywhere (Highlight, Underline, Strikeout, Comment, Redact, Edit text, Copy), H U S C X, E then Enter, annotation, image, field and form-accessory bars, the page menu with "Add … here" and the image group, the pending-marks bar, `ui/anchor/place.ts` | `ui/ContextBar/`, `annotations/SelectionBar.tsx`, `stage/PageContextMenu.tsx`, `redaction/PendingMarksBar.tsx`, `ui/anchor/` | D1-5, D0-5 | L | J5 7 → 4, J9 5 → 4, J10 via the pending bar (`jobs.spec.ts`); one undo step and a toast for S7, S8, S9, S17, S18 |
-| D1-7 | Gesture core (X5): long press, double tap, multi-finger taps, pinch recognisers and thresholds | `motion/gesture/` | — | M | Unit tests per recogniser; long press opens the page menu on WebKit touch |
-| D1-8 | Sheets with acts (`07-sheets` §26 step 2): S4, S5, S8–S12, S19, S20 with their `canChange` acts and lock banners | `ui/sheet/` users in `document/`, `furniture/`, `crop/`, `ocr/`, `redaction/`, `signatures/` | D0-4, D1-2 | L | J8B, J11, J16 at the M9 counts; registry test covers every sheet primary |
+| D1-4 | Lock UI (X4): `lock/` notice, popover, `open-unlock`, four reasons, signed and restricted on open, the switch dimmed while typing (0029.2), "Open documents locked" setting. **Interim control:** the M8 segments read View · Markup · Arrange; `1` no longer locks (migration toast, flows §7.3); Lock in the Document menu, the tab glyph and ⌘K | `lock/`, `shell/Stage.tsx`, `tools/DocumentMenu.tsx`, `forms/FormLayer.tsx` | D1-2 | M | e2e S6, S7 locked; every refusal opens the popover at the asking control; every existing e2e green through the interim control; the scrubber jump and Save while locked (moved from D0-6, D0-8) |
+| D1-5 | Hit router and input rules (`05-canvas` §6; deletes D1-1's `canEdit` shim): one order with links, a live-kind matrix per state, the pen as a mouse in viewing with the first-pen hint, hover outline only in Markup with Select, the double-click asymmetry, a drawing pointer never long-presses | `viewer/hit-order.ts`, `viewer/TextLayer.tsx`, `annotations/AnnotationLayer.tsx`, `forms/FormLayer.tsx`, `image-objects/ImageLayer.tsx` | D1-2 | L | `input-rules.spec.ts` S1–S18 in both lock defaults |
+| D1-6 | Targeted acts (`04-context` §3–§9, §12–§16, §20): the ContextBar, the selection bar everywhere (Highlight, Underline, Strikeout, Comment, Redact, Edit text, Copy), H U S C X, E then Enter, annotation, image, field and form-accessory bars, the menu primitive and catalogue, the page menu with "Add … here" and the image group, the popover primitive, the note popup, tooltip strings and behaviour, the pending-marks bar, `ui/anchor/place.ts` | `ui/ContextBar/`, `ui/Menu.tsx`, `ui/Popover.tsx`, `ui/Tooltip.tsx`, `annotations/SelectionBar.tsx`, `annotations/NotePopup.tsx`, `stage/PageContextMenu.tsx`, `redaction/PendingMarksBar.tsx`, `ui/anchor/` | D1-5, D0-5 | L | J5 7 → 4, J9 5 → 4, J10 via the pending bar (`jobs.spec.ts`); one undo step and a toast for S7, S8, S9, S17, S18 |
+| D1-7 | Gesture core (X5): long press, double tap, multi-finger taps, pinch recognisers and thresholds | `motion/gesture/` | D0-12 | M | Unit tests per recogniser; long press opens the page menu on WebKit touch |
+| D1-8 | Sheets with acts (`07-sheets` §26 step 2): S4, S5, S8–S12, S19, S20 with their `canChange` acts and lock banners | `ui/sheet/` users in `document/`, `furniture/`, `crop/`, `ocr/`, `redaction/`, `signatures/` | D0-4, D1-2 | L | J8B and J16 at the M9 counts (J11 moves to D2-4 and D4-3); registry test covers every sheet primary |
 | D1-9 | Navigator safety: a navigating click never selects (S10); Delete acts only on a visible selection | `shell/PagesPanel.tsx`, `state/selection-store.ts` | D1-2 | S | e2e S10: click a thumbnail, press Delete, nothing changes |
 | D1-QA | `input-rules.spec.ts`, locked-bytes test, rewrites of `modes`, `annotations`, `forms`, `redaction`, `text-edit`, `paragraph-edit` | `apps/web/e2e/` | each | M | D1 exit; the five-person test runs on this build (§10.4) |
 
@@ -790,58 +833,65 @@ the lead commits, every review finding gets a test.
 | Id | Scope | Files | Depends on | Size | Acceptance |
 |---|---|---|---|---|---|
 | D2-1 | The frame (`01-frame` F1–F13): AppShell as layers, top strip, tabs with overflow, title menu with rename and the Lock switch, Find entry, Save, ◎, compact top bar, page pill, hide on scroll, overlay slots, Focus, `regions.ts` (X9); status bar, rail, mode switch, layout switch, Document and Export buttons removed | `shell/frame/`, `shell/AppShell.tsx`, `shell/Stage.tsx`, `stage/ReadView.tsx` | D1 | L | `frame-layout.spec.ts` (A-12 rects per class, sidebar open and closed); A-20 at 320 × 256; jobs J2, J13A, J15a, J16 per class |
-| D2-2 | The capsule (X1) and the dock at rest: one element, `clip-path` morph, one σ per size, the Locked state; no lens (X20) | `shell/capsule/`, `shell/frame/Dock.tsx` | D2-1 | M | Morph keeps one node and causes no layout; Locked replaces Markup and Fill & sign |
+| D2-2 | The capsule (X1) and the dock at rest: one element, `clip-path` morph, one σ per size, the Locked state; no lens (X20) | `shell/capsule/`, `shell/frame/Dock.tsx` | D2-1, D0-12 | M | Morph keeps one node and causes no layout; Locked replaces Markup and Fill & sign |
 | D2-3 | Markup palette and tools (`03-markup`): groups and measured fold, compact sets and ladder (03.9), options tier and chip, preset strip, Fill & sign door with saved-signature chips, field stepper, Add field, P next pen, stroke fade; `tool-store` arms on `canChange(id, 'freehand')` | `markup/`, `viewer/tool-store.ts`, `annotations/tools.ts`, `annotations/pen/` | D2-2, D1 | L | J6 5 (keys 4), J8A 3, J10 6 at large and compact (`markup.spec.ts`) |
-| D2-4 | Sidebar (`06-navigation` N1–N6): Contents and thumbnails with drag, Find (one field from 1280 px, "Mark all for redaction"), Review with static chips, phone Pages sheet; rail, Files tab and Changes tab removed | `shell/sidebar/`, `dnd/pointer-drag.ts`, `shell/OutlinePanel.tsx`, `shell/review/` | D2-1, D1-7 | L | J4 sidebar 4, J15b 2, S13; listbox keys; width kept per device |
-| D2-5 | Pages grid (PG1–PG6) with the Pages bar (X21), 240 ms grid transition, pinch in and out, drop on a tab, Combine straight into the grid with one outcome (INV-12), Interleave keeping its sources (07.13), page-structure sheets S13–S18 | `stage/ArrangeView.tsx`, `stage/grid/`, `stage/OperationDialogs.tsx`, `packages/document-model/src/pages.ts` | D2-2, D2-4 | L | J3 3, J4 grid 5 (phone 5); the Merge dialog's replace outcome gone; `pages-grid.spec.ts` |
-| D2-6 | Compare place (CP1–CP7) with the Compare bar, chooser, Changes list, compact A · B · Changes, report; keys 06.23; failure state 06.15 | `compare/` | D2-1, D2-2 | M | J12 3 from the Library, a document and a phone |
+| D2-4 | Sidebar (`06-navigation` N1–N6): Contents and thumbnails with drag, Find (one field from 1280 px, "Mark all for redaction"), Review with static chips, phone Pages sheet; rail, Files tab and Changes tab removed | `shell/sidebar/`, `dnd/pointer-drag.ts`, `shell/OutlinePanel.tsx`, `shell/review/` | D2-1, D1-7 | L | J4 sidebar 4, J15b 2, S13; J11 3 by the Find section's "Recognize text…" prompt; Review's Words to check (X33); listbox keys; width kept per device |
+| D2-5 | Pages grid (PG1–PG6) with the Pages bar (X21), 240 ms grid transition, pinch in and out, drop on a tab, Combine straight into the grid with one outcome (INV-12), Interleave keeping its sources (07.13), page-structure sheets S13–S18 | `stage/ArrangeView.tsx`, `stage/grid/`, `stage/OperationDialogs.tsx`, `packages/document-model/src/pages.ts` | D2-2, D2-4, D2-10 | L | J4 grid 5 (phone 5); Combine with open documents straight into the grid (J3 3 from the Library is D4-1's); the Merge dialog's replace outcome gone; `pages-grid.spec.ts` |
+| D2-6 | Compare place (CP1–CP7) with the Compare bar, chooser, Changes list, compact A · B · Changes, report; keys 06.23; failure state 06.15 | `compare/` | D2-1, D2-2 | M | J12 3 from a document and on a phone (from the Library in D4-1) |
 | D2-7 | Key map v2 (flows §7.2–§7.3, 02.12, 05.4, 06.23): M, `1`–`4`, Shift+R, Mod+S, F, `[` `]`; caret mode, Alt+Enter, keyboard placement (`05-canvas` §7, §14); the `1` migration toast; the shortcuts overlay | `commands/`, `viewer/caret.ts`, `viewer/placement.ts`, `shell/ShortcutOverlay.tsx` | D2-3 | M | `keyboard-text.spec.ts` (J5 6, J8A 4, J9 7 by keyboard); no key arms a tool while focus is in a field |
 | D2-8 | ⌘K v2 (`08-feedback` FB1–FB3): selection first, arguments in EN and TR, capability list, keycaps, recents per device; no scrim | `shell/palette/`, `commands/args/` | D2-7 | M | J4, J8B, J13B, J16 by ⌘K in three engines; parser tables |
-| D2-9 | Inspector removal and re-homing (History → scrubber, Properties → bars' ⋯, Info → S4, Signatures → title menu and facts, OCR → its sheet and Review); Batch (S21) | `shell/RightPanel.tsx` (deleted), `annotations/AnnotationProperties.tsx`, `batch/` | D2-1 | M | No function lost (inventory family 6 checklist); Batch from the Library ⋯ |
-| D2-QA | Rewrites of §10.3 for D2; `jobs.spec.ts` at the M9 counts | `apps/web/e2e/` | each | L | D2 exit |
+| D2-9 | Inspector removal and re-homing (History → scrubber, Properties → bars' ⋯, Info → S4, Signatures → title menu and facts, OCR → its sheet and Review); Batch (S21) | `shell/RightPanel.tsx` (deleted), `annotations/AnnotationProperties.tsx`, `batch/` | D2-1 | M | No function lost (inventory family 6 checklist; OCR results in Review's Words to check, X33); Batch from ⌘K (from the Library ⋯ in D4-1) |
+| D2-10 | Canvas zoom and scroll (`05-canvas` §4, §5): the zoom controller with projection, detents and the pinch detent chip (05.11), the gesture into the grid, the trailing page scrubber (05.1) | `viewer/zoom-controller.ts`, `stage/PageScrubber.tsx` | D1-7, D0-12 | M | Zero layouts during pinch; commit keeps the anchor within 1 px; J2 touch by the scrubber |
+| D2-QA | Rewrites of §10.3 for D2; `jobs.spec.ts` at the M9 counts for D2's rows (§12) | `apps/web/e2e/` | each | L | D2 exit; the five-person test's session 2 runs on this build (§10.4) |
 
 ### 11.4 D3: the language
 
 | Id | Scope | Files | Depends on | Size | Acceptance |
 |---|---|---|---|---|---|
-| D3-1 | Rendered-pixel harness with its own Vite config (09.11), `e2e/support/pixels.ts`, the `chromium-nogpu` project, `glass-pixels.spec.ts` over the registry | `apps/web/harness/`, `apps/web/e2e/` | D0-1 | M | Every registry entry sampled in three engines plus no-GPU within ±2/255; edge samples within ±4/255 |
-| D3-2 | Tokens and colour (ADR-0023): `tokens.css` in seven blocks, graphite neutrals, lime, two-band focus ring, `--control-border`, `--control-on`, `--redact-page`, `--crop-dim`, tags, status; `tokens.test.ts` with registry, APCA and colour pairs; aliases removed at the end | `styles/tokens.css`, `styles/tokens.test.ts`, `styles/global.css`, `annotations/palette.ts` | D3-1 | L | A-1, A-3, A-4, A-11, A-19 green in dark |
-| D3-3 | Materials (ADR-0024): `materials.css` generated from the registry, `ui/Surface`, lit glass, Glass Clear · Tinted · Solid replacing Glass panels and Reduce transparency, the cost ladder, lens on M1 chips only, literal `-webkit-` values | `styles/materials.css`, `ui/Surface.tsx`, `state/appearance-store.ts`, `shell/frame/` | D3-2 | L | A-2 rendered, A-17; the ladder steps in a throttled run; the `.glass*` rules gone |
-| D3-4 | Motion (ADR-0026): `motion/` springs and `linear()` tokens, the VT helper (240 ms), reduced motion per token, Reduce motion setting, the catalogue additions (X8, 02.5, 02.6, 05.2); per-file `matchMedia` checks removed | `motion/`, `styles/motion.css` | D2 | M | `motion.spec.ts`: A-7 to A-10, A-23; zero frames at rest |
+| D3-1 | Rendered-pixel harness with its own Vite config (09.11), extending D0-1's `e2e/support/pixels.ts` and `chromium-nogpu` project, `glass-pixels.spec.ts` over the registry | `apps/web/harness/`, `apps/web/e2e/` | D0-1 | M | Every registry entry sampled in three engines plus no-GPU within ±2/255; edge samples within ±4/255 |
+| D3-2 | Tokens and colour (ADR-0023): `tokens.css` in seven blocks, graphite neutrals, lime (the two-band ring is D0-1's), `--control-border`, `--control-on`, `--redact-page`, `--crop-dim`, tags, status; `tokens.test.ts` with registry, APCA and colour pairs; aliases removed at the end | `styles/tokens.css`, `styles/tokens.test.ts`, `styles/global.css`, `annotations/palette.ts` | D3-1 | L | A-1, A-3, A-4, A-11, A-19 green in dark |
+| D3-3 | Materials (ADR-0024): `materials.css` generated from the registry, `ui/Surface`, lit glass, Glass Clear · Tinted · Solid replacing Glass panels and Reduce transparency, the cost ladder, lens on M1 chips only, literal `-webkit-` values; the test-only render override (X36), stripped from the deploy build | `styles/materials.css`, `ui/Surface.tsx`, `state/appearance-store.ts`, `shell/frame/`, `e2e/support/render-override.ts` | D3-2 | L | A-2 rendered, A-17; the ladder steps in a throttled run; one spec without the override: a software rasteriser starts at Tinted and `hardwareConcurrency ≤ 4` at step 2; the `.glass*` rules gone |
+| D3-4 | Motion tokens (ADR-0026) on D0-12's core: the `linear()` token curves in `motion.css`, reduced motion per token, the Reduce motion setting, the catalogue additions (X8, 02.5, 02.6, 05.2); the three per-file `matchMedia` checks removed | `styles/motion.css`, `settings/` | D0-12, D2 | M | `motion.spec.ts`: A-7 to A-10, A-23; zero frames at rest |
 | D3-5 | Type (ADR-0027): `tools/fonts/subset.sh`, `'Inter Recto'` subsets with ↵ and ⇥, scale tokens, `.technical` replacing mono; `@fontsource-*` removed | `tools/fonts/`, `apps/web/public/fonts/`, `styles/fonts.css` | D3-2 | M | Font coverage test (EN, TR); 98 KB; layout snapshots within ± 1 px |
 | D3-6 | Icons (ADR-0027): `tools/icons/` generator and the merged manifest, verified names first, `ui/Icon.tsx`, outline at rest and fill when selected; `lucide-react` removed | `tools/icons/`, `ui/icons.generated.tsx`, 59 files | D3-2 | M | Generator fails on an unknown name; no `lucide-react` import |
 | D3-7 | Light theme (ADR-0022 §2.4): every token in both themes, light glass floor, Theme System · Light · Dark, `theme-color` per scheme | `styles/tokens.css`, `index.html`, `settings/` | D3-2, D3-3 | L | The pixel matrix and a11y matrix green in light |
-| D3-8 | Light (ADR-0025): `light/` field and CSS fallback, gates and pauses, `textSafe` (02.2), the light-event service (FB12), under-light, processing ring, success bloom; Ambient light Auto · Still · Off | `light/`, `ui/ProcessingRing.tsx`, `ui/SuccessCheck.tsx` | D3-3, D3-4 | L | A-5, A-6 (pages and Library thumbnails), A-8 sampler; ≤ 4 KB lazy |
-| D3-9 | Accessibility gates in CI (ADR-0028): the matrix, the plain project, target audit, Turkish and 1.4.12 checks, the `capitalize` and argument-less `toUpperCase` bans, the CI rule of 0028.1 | `apps/web/e2e/a11y.spec.ts`, CI workflow, lint config | D3-2 to D3-8 | M | Every gate of §8 blocking |
+| D3-8 | Light (ADR-0025): `light/` field and CSS fallback, gates and pauses, `textSafe` (02.2; the Library head-row rect is wired by D4-1), the light-event service (FB12), under-light, processing ring, success bloom; Ambient light Auto · Still · Off | `light/`, `ui/ProcessingRing.tsx`, `ui/SuccessCheck.tsx` | D3-3, D3-4 | L | A-5, A-6 (pages; Library thumbnails in D4-1), A-8 sampler; ≤ 4 KB lazy |
+| D3-9 | Accessibility gates in CI (ADR-0028): the matrix, the plain project, target audit, Turkish and 1.4.12 checks, the `capitalize` and argument-less `toUpperCase` bans, the CI rule of 0028.1. Before the ban blocks: the uppercase section labels (`text-transform: uppercase`) become footnote 550 (`language.md` §4.3); a lint allowlist for non-UI data (hex colours, IBAN, stamp names) that passes `'en'` explicitly; `document/strip-items.ts`'s hand-built capitalise fixed | `apps/web/e2e/a11y.spec.ts`, CI workflow, lint config, the modules with uppercase labels, `document/strip-items.ts` | D3-2 to D3-8 | M | Every gate of §8 blocking; the ban's first run is clean |
+| D3-10 | Brand phase 1 (brand plan §3.4, §11): `tools/brand/`, marks 03 + 05 and 02 refined, the review boards for the owner's choice of mark | `tools/brand/`, `docs/brand/` | D3-2 | M | The boards render from `tools/brand/`; the brand plan's §3.3 checks |
 
 ### 11.5 D4: Library, first run, polish and the presentation
 
 | Id | Scope | Files | Depends on | Size | Acceptance |
 |---|---|---|---|---|---|
-| D4-1 | Library (`02-library` L1–L9, L12): launcher, field, head, lit cards with one-click open and Select, static selection bar, Combine without a dialog in card order, Recents with snapshots and thumbnails (02.Q1), drop overlay with light, ⋯ menu and footer | `home/` | D3, D0-7 | L | J1 2, J3 3 (2 by drop), J14 0–1 (`library.spec.ts`) |
+| D4-1 | Library (`02-library` L1–L9, L12): launcher, field, head, lit cards with one-click open and Select, static selection bar, Combine without a dialog in card order, Recents with snapshots and thumbnails (02.Q1), drop overlay with light, ⋯ menu and footer | `home/` | D3, D0-7 | L | J1 2, J3 3 (2 by drop), J12 3 from the Library, J14 0–1 (`library.spec.ts`); the `textSafe` head-row rect; A-6 on Library thumbnails blocking; OM4 runs on this build |
 | D4-2 | Teaching sample: four pages in EN and TR built by `tools/fixtures`, precached, `?sample` and `?sample=tr` | `tools/fixtures/`, `apps/web/public/sample/`, `vite.config.ts` | D4-1 | M | ≤ 250 KB; `?sample` opens once and is removed from the address |
-| D4-3 | Facts chip and its ⓘ fold (L11), `pdf-editor:facts-seen:v1` | `home/facts/`, `shell/frame/` | D2-1 | M | J11 2 while the chip shows; once per file; Restored edits every restore |
+| D4-3 | Facts chip and its ⓘ fold (L11), `pdf-editor:facts-seen:v1` | `home/facts/`, `shell/frame/` | D2-1 | M | J11 2 while the chip shows (10 s, A-24); once per file; Restored edits every restore |
 | D4-4 | Polish: empty states (FB11), honesty notice (FB9), haptics (FB13, Android), copy-check EN and TR, the decisions from the five-person test and the prototype checks | across families | D3 | M | Copy-check clean; every T·5 and T·P default confirmed or changed and recorded in §15 |
 | D4-5 | Media re-recording: the scripted scenes and social image through the M9 shell, both themes | `tools/media/` | D4-1 | M | Deploy workflow records every scene |
 | D4-6 | README: hero and screens of the M9 app, every claim backed by a test or source file | `README.md` | D4-5 | S | Link check clean |
 | D4-7 | About page v2 in eight sections (brand plan §8), aurora that settles within 5 s or a poster per the owner, ≤ 300 KB — **after Gate 0** | `apps/web/about/` | D4-5, Gate 0 | M | `about.spec.ts` budget; A-gates on the page |
 | D4-8 | Brand per `docs/brand/README.md` — **after Gate 0 and the owner's brand choices**: icon set and manifest colours from `tools/brand/`, social card, wordmark, `TRADEMARKS.md` if approved; a rename pass if Gate 0 renames | `tools/brand/`, `apps/web/public/`, `index.html` | Gate 0 | M | The brand plan's checks (§3.3, §5) |
 | D4-9 | Docs: DESIGN amendments B1–B15, ROADMAP, this spec's §15, changeset | `docs/DESIGN.md`, `docs/ROADMAP.md`, `docs/specs/redesign.md`, `.changeset/` | all | S | Links and screenshots current |
+| D4-10 | Press kit (brand plan §9, BR-K1) at `/recto/about/press/` and a zip per release | `apps/web/about/press/`, `tools/media/` | D4-5, Gate 0 | S | Fact sheet in EN and TR; every asset listed in the brand plan |
+| D4-11 | Case study v1 in the portfolio repository (brand plan §9), after the UI freeze | portfolio repository (outside this one) | D4-5 | S | Copy-check clean; every claim linked |
 
 ### 11.6 Across drops
 
 | Id | Scope | When | Size |
 |---|---|---|---|
-| XD-1 | Five-person test (§10.4) | On the D1 build, before D2 freezes | S |
-| XD-2 | Owner measurements OM1–OM6 (§9.2) | OM3 and OM2 before D3-3; OM1 and OM4 on the D3 build; OM5 on the D2 build | — (owner) |
+| XD-0 | Concept screens: the product frames `concept/index.html` still lacks (its Screens section holds placeholders), built from flows §6.3–§6.7: reading at 1440 × 900 with the dock and page pill; the Markup palette with a tool armed and the under-light; the empty Library with the drifting field; the Pages grid; 390 × 844 phone frames; an 820 px strip with six tabs; the Settings side sheet; handles; a toast stack | Before the owner's approval (§14 Q3) | M |
+| XD-1 | Five-person test (§10.4) | Session 1 on the D1 build, before D2 freezes; session 2 on the D2 build, before D2-QA closes | S |
+| XD-2 | Owner measurements OM1–OM6 (§9.2) | OM3 and OM2 before D3-3; OM1 on the D3 build; OM4 on the D4-1 build; OM5 on the D2 build | — (owner) |
 | XD-3 | Independent reviews, correctness and experience, by reviewers who did not build the drop | After each drop | S each |
 
-**Order.** D0's packages run in parallel after D0-3 (D0-1 and D0-2 first, they are small). D1
-starts when D0-4 and D0-5 land; D1-7 can start at once. D2 starts after D1-QA and XD-1. D3-1 may
-start during D2; the rest of D3 follows D2-1. D4-1 to D4-4 follow D3; D4-5 to D4-8 follow the
-UI freeze, D4-7 and D4-8 also Gate 0.
+**Order.** XD-0 comes before the owner's approval. D0-1, D0-2, D0-12 and D0-13 start at once;
+D0-3 follows D0-1, and the rest of D0 runs in parallel after D0-3 and D0-12. D1 starts when
+D0-4 and D0-5 land; D1-7 can start once D0-12 lands. D2 starts after D1-QA and XD-1's first
+session. D3-1 and D3-10 may start during D2; the rest of D3 follows D2-1, and XD-1's second
+session closes before D3 starts. D4-1 to D4-4 follow D3; D4-5 to D4-8, D4-10 and D4-11 follow
+the UI freeze, D4-7, D4-8 and D4-10 also Gate 0.
 
-**Counts:** D0 12 packages, D1 10, D2 10, D3 9, D4 9; 50 in all, plus 3 across drops.
+**Counts:** D0 14 packages, D1 10, D2 11, D3 10, D4 11; 56 in all, plus 4 across drops.
 
 ## 12. Drops
 
@@ -849,11 +899,11 @@ Each drop is a working app, deployable on its own; none is tagged until the owne
 
 | Drop | Contents | What a person sees | Exit |
 |---|---|---|---|
-| **D0** Independent | D0-1 to D0-11, D0-QA | The M8 shell with sheets instead of dialogs, toasts, visible Undo and Redo with a scrubber, work restored after a reload, Save in place, one Save a copy, Settings in one place, saved signatures; the selection blue on pages and less leaky bars | J13A, J13B, J14 at their M9 counts; restore survives a reload with 20 undo steps; the A-gates of §8 for D0 blocking; review finds no blocker |
+| **D0** Independent | D0-1 to D0-13, D0-QA | The M8 shell with sheets instead of dialogs, toasts, visible Undo and Redo with a scrubber, work restored after a reload, Save in place, one Save a copy, Settings in one place, saved signatures; the selection blue on pages, glass that no longer leaks, the two-band focus ring, icon files that install everywhere | J13A, J13B, J14 at their M9 counts; restore survives a reload with 20 undo steps; the A-gates of §8 for D0 blocking; review finds no blocker |
 | **D1** Targeted acts and Lock | D1-1 to D1-9, D1-QA | Fields, highlights, comments and page actions work without switching to Edit; the M8 control reads View · Markup · Arrange; Lock in the Document menu, tab and ⌘K; `1` never locks | S1–S18 in both defaults; locked bytes unchanged for every act; J5 and J9 at M9 counts; five-person test run |
-| **D2** The model's shell | D2-1 to D2-9, D2-QA | The top strip, the labelled dock that morphs into the Markup palette, the sidebar, the Pages grid, Compare as a place, the page pill, the phone and tablet layouts, key map v2, ⌘K with arguments; still today's colours and type | Every row of flows §8.2 at its M9 count; A-12, A-20, A-21 blocking; no inspector, status bar, rail or mode switch left |
-| **D3** The language | D3-1 to D3-9 | Recto Glass: lime, graphite, five glass densities, the aurora, springs, `'Inter Recto'`, Phosphor, a light theme following the system, the Glass, Ambient light, Reduce motion and Theme settings | Every gate of §8 blocking in both themes; budgets of §9.1; OM1–OM4 run or defaults recorded |
-| **D4** Library and presentation | D4-1 to D4-9 | The launcher, lit cards, the teaching sample, the facts chip, polish; new media, README, and (after Gate 0) About v2 and the brand | §10.5 |
+| **D2** The model's shell | D2-1 to D2-10, D2-QA | The top strip, the labelled dock that morphs into the Markup palette, the sidebar, the Pages grid, Compare as a place, the page pill, the phone and tablet layouts, key map v2, ⌘K with arguments; still today's colours and type | Every row of flows §8.2 at its M9 count except the Library paths (J1, J3, J12 from the Library, J14's Recents row), which D4-1 proves; A-12, A-20, A-21 blocking; no inspector, status bar, rail or mode switch left; the five-person test's session 2 run |
+| **D3** The language | D3-1 to D3-10 | Recto Glass: lime, graphite, five glass densities, the aurora, springs, `'Inter Recto'`, Phosphor, a light theme following the system, the Glass, Ambient light, Reduce motion and Theme settings | Every gate of §8 blocking in both themes (A-6's Library-thumbnail clause from D4); budgets of §9.1; OM1–OM3 run or defaults recorded |
+| **D4** Library and presentation | D4-1 to D4-11 | The launcher, lit cards, the teaching sample, the facts chip, polish; new media, README, the case study, and (after Gate 0) About v2, the press kit and the brand | The Library rows of flows §8.2 (J1, J3, J12, J14); OM4 run or its default recorded; §10.5 |
 
 ## 13. Risks
 
@@ -862,7 +912,7 @@ Each drop is a working app, deployable on its own; none is tagged until the owne
 | Migration size: `viewMode` 85/37, `documentMode*` 48/17, `canEdit*` 49/14; most e2e specs rewritten | High · medium | Five drops, each a working app; D1 keeps `2` and an interim control so specs move in steps; `enterEdit` survives |
 | The owner wants documents locked by default | Medium · low | One flag (`openDocumentsLocked`); S1–S18 tested in both defaults |
 | Targeted acts change a file unnoticed (S7, S9) | Medium · medium | One undo step and a toast each; the five-person test's decision rule (§10.4) |
-| Glass costs frames on the owner's GPU or on phones | Medium · medium | Coverage rule, cost ladder, Tinted and Solid; docked M3 defaults to solid if OM1 is not run |
+| Glass costs frames on the owner's GPU or on phones | Medium · medium | Coverage rule, cost ladder (step 3 makes docked M3 solid at run time on a slow device), Tinted and Solid; OM1 confirms the glass default |
 | Safari ignores `var()` in the prefixed filter | Medium · low | Literal values everywhere (OM3 only confirms) |
 | The aurora bands, drains battery or looks cheap | Medium · medium | Still by default; gates and pauses; Off and Still settings; OM4; the CSS fallback |
 | Rendered pixels differ by engine or GPU path | Medium · medium | Three engines plus no-GPU; the ±2/255 tolerance; the model and pixels both gate |
@@ -886,29 +936,34 @@ Six questions; every other item in §6 is decided or settled by a test.
    the default of "Open documents locked" changes. Locked is stricter than M8's Read in two ways:
    page structure and whole-document operations (page numbers, OCR, Apply redactions) lock too
    (0029.1), and each document needs two presses (Locked, Unlock) before any change. Unlocked is
-   recommended because the M8 protection for page text, the pen and stray clicks holds either way
-   (flows §3.5, S1–S4, S10–S15); the five-person test (§10.4) reports on S7 and S9 before the
-   build freezes.
+   recommended. Unlocked keeps the M8 protection for page text and the pen (flows §3.5, S1–S4,
+   S10–S15). A stray click on a checkbox toggles it (S7), and page-menu or key acts on a page take
+   effect (S8, S17, S18), each as one visible step with Undo. Locked blocks these too. The
+   five-person test (§10.4) reports on S7 and S9 before the build freezes.
 2. **May open documents and their changes stay on this device, and closed ones in Recents for 30
    days or 500 MB?** Recommended yes: on by default, listed with sizes and clearable in the
    privacy popover and Settings; keeping nothing brings back silent loss on reload (F-4).
-3. **Taste check on the concept prototype** ([`concept/index.html`](../design/redesign-2026-10/concept/index.html)):
-   the labelled dock floating over the page while reading, on desktop and phone (recommended:
+3. **Taste check on the concept prototype** ([`concept/index.html`](../design/redesign-2026-10/concept/index.html)),
+   once its product screens exist: today its Screens section holds placeholders, and XD-0 (§11.6)
+   adds the frames this question and the seven T·P items of §6 need. Then: the labelled dock
+   floating over the page while reading, on desktop and phone (recommended:
    always shown from medium up; hiding it there by itself would break A-12), and with it the lime
    fill on the armed tool and the primary action, the light on the empty Library with a slow
    drift, and Phosphor's softer line in place of Lucide's (`language.md` §11.2).
 4. **Gate 0, the name.** Please run the trademark searches of `docs/brand/README.md` §1.2 and
    decide: keep Recto (amend ADR-0015 with the namesakes) or rename. Recommended before D4: D0–D3
-   do not depend on it; About v2 and the brand (D4-7, D4-8) and any brand spend wait for it. The
-   brand plan's further choices (outside help, the mark) follow Gate 0 in its §11.
+   do not depend on it; About v2 and the brand (D4-7, D4-8), the press kit (D4-10) and any brand
+   spend wait for it. The mark is chosen from the phase-1 review boards (D3-10, brand plan §3.4),
+   with Spread developed in parallel while Gate 0 is open (brand plan §3.2); outside help follows
+   Gate 0 (brand plan §11).
 5. **The machine checks** of §9.2 on your machines: OM1 the S2 glass frames (with the dock and
    palette), OM2 the edge-leak probe, OM3 Safari and `var()`, OM4 aurora banding, energy and drift
    at 15 against 30 fps, OM5 a phone and tablet run. Each has a safe default if it is not run;
    docked glass by default, the drift rate and the touch thresholds are frozen only after them.
 6. **Should "beta v1" wait for the redesign?** M8's two drops are built and untagged. Recommended:
-   yes, tag "beta v1" when D3 lands (the model and the language complete in both themes), and
-   announce it with D4's media, README and About page, so the first public beta is the app the
-   brief describes and the presentation is not made twice. The alternative is to tag M8 now as
+   yes, tag "beta v1" when D4-4 lands (the model, the language in both themes and the Library with
+   its light, sample and facts chip), and announce it with D4's media, README and About page, so
+   the first public beta is the app the brief describes and the presentation is not made twice. The alternative is to tag M8 now as
    "beta v1" for a public version sooner, at the cost of a README, media and first impression
    that M9 replaces within weeks.
 

@@ -54,8 +54,10 @@ workspace. Preview saves in place and restores the last state (research 15 §4, 
    - *Chromium without a handle:* the picker, then the new handle is kept (2 presses).
    - *No File System Access* (Firefox, Safari, phones): a download, or the share sheet on iOS and
      Android (M-36); the toast says where the file went.
-   - Save names unapplied redaction marks first ("2 marks not applied · Apply first?") and applied
-     ones after ("Saved · 2 areas removed for good · verified"). Unlocking a signed file warns
+   - Save and Save a copy ask about unapplied redaction marks first, with one rule: "2 marks not
+     applied" with **Apply and save** as the default and "Save without applying" as the secondary,
+     with the honesty line "The text under 2 marks is still in the file" (spec 07.10, amended
+     before acceptance); applied ones are named after ("Saved · 2 areas removed for good · verified"). Unlocking a signed file warns
      once that saving removes the signature; Save a copy with Signature signs again.
    - The button reads a dimmed "Saved" when nothing is new, so the strip never reflows.
 2. **Revert to the opened version…** (title menu): the opened bytes stay in the snapshot after an
@@ -69,8 +71,11 @@ workspace. Preview saves in place and restores the last state (research 15 §4, 
 4. **Snapshots** (M-34). An OPFS snapshot within 2 s of each history step (debounced) and on
    `visibilitychange: hidden`; `navigator.storage.persist()` is asked at the first edit. Content:
    `SerializedWorkspaceV1`; each source's bytes as opened or last saved, written once per source
-   since sources are immutable (ADR-0005); per document its page, zoom, surface, sidebar section
-   and lock, never Markup. Memory keeps 200 history entries, the snapshot the last 20, so Undo
+   since sources are immutable (ADR-0005); every edit blob (`useWorkspaceStore.editBlobs`: stamp
+   and image appearances, drawn or imported signatures) that the workspace or the history tail
+   refers to, content-addressed and written once each, and put back with `putEditBlob` on
+   restore before any replay, so the edit runner can inline them; per document its page, zoom,
+   surface, sidebar section and lock, never Markup. Memory keeps 200 history entries, the snapshot the last 20, so Undo
    survives a reload for those steps.
 5. **Launch** reopens the last session in tab order, each document where it was: "Restored 3
    documents · Start fresh". Start fresh closes them; their snapshots stay in Recents.

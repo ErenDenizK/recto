@@ -23,11 +23,11 @@ status: proposed
 
 ## 0. Summary
 
-- **Nineteen components in three groups.** The sidebar (N1–N6): shell, thumbnails, outline,
+- **Nineteen components in three groups.** The sidebar (N1–N6): shell, thumbnails, Contents,
   Find, Review, and the phone Pages sheet. The Pages grid (PG1–PG6): surface and transition,
   header, sections, cells, drag and drop, Combine result. Compare (CP1–CP7): place, top bar,
   chooser, panes and marks, Changes list, the compact switch, report.
-- **One sidebar, closed by default.** Pages (thumbnails or outline) · Find · Review. Docked
+- **One sidebar, closed by default.** Pages (thumbnails or Contents) · Find · Review. Docked
   280 px from expanded up, a 320 px overlay on medium, a 360 px side sheet on compact-height,
   and on phones it lives inside the Pages sheet. The rail, the Files tab and the Changes tab go.
 - **A navigating click never selects** (S10). A click, tap or arrow key on a thumbnail moves
@@ -52,7 +52,7 @@ status: proposed
 |---|---|---|---|
 | N1 Sidebar shell | Leading edge of the stage | `ui-store` `sidebar*` (per device) | ▤ and Mod+B (F3), F1 free rectangle, F6 order |
 | N2 Thumbnails | N1 Pages section | `view-store` current page; `selection-store` (explicit only) | Page view scroll-to, Pages bar (✕ form), tabs as drop targets (F4) |
-| N3 Outline | N1 Pages section | outline model | Page pill "All contents…" (F11) |
+| N3 Contents | N1 Pages section | outline model | Page pill "All contents…" (F11) |
 | N4 Find | N1 Find section; compact find bar | `viewer/search.ts` | Strip Find entry (F6), search highlights (`05-canvas` §22) |
 | N5 Review | N1 Review section | annotation, redaction, form stores | Annotation bar (`04` §5), pending-marks bar (`04` §9) |
 | N6 Phone Pages sheet | Compact only, bottom sheet | as N2–N5 and PG | Dock Pages (F10), Pages bar |
@@ -72,7 +72,7 @@ Viewing, sidebar docked on Pages                     Pages grid, scope All open 
 ┌───────────────────────────────────────────────┐   ┌───────────────────────────────────────────────┐
 │ ◆ ▤ [report.pdf ▾ ●] agreement + ⌕ Find ↶ ↷ Save ◎│   │ ◆ ▤ [report.pdf ▾ ●] agreement + ⌕ Find ↶ ↷ Save ◎│ F2 44
 │[Pages│Find│Review 3]│                            │   │ [This document | All open 3]   ▪▫ ──○──── ▣    │ PG2 44
-│(Thumbnails)(Outline)⊞│  ┌──────────────────┐     │   │ ▾ agreement.pdf · 4 pages              ⋯       │ PG2 row 2
+│(Thumbnails)(Contents)⊞│ ┌──────────────────┐     │   │ ▾ agreement.pdf · 4 pages              ⋯       │ PG2 row 2
 │  ┌──────┐           │  │ page at fit width │     │   │ ┌────┐┌────┐┌────┐┌────┐┌────┐┌────┐┌────┐┌────┐│
 │  │  1   │           │  │ in 1160 px        │     │   │ │ 1  ││ 2  ││ 3 ✓││ 4  ││ 5  ││ 6  ││ 7  ││ 8  ││ PG4
 │  └──────┘ 1         │  └──────────────────┘     │   │ └────┘└────┘└────┘└────┘└────┘└────┘└────┘└────┘│
@@ -102,7 +102,7 @@ Pages sheet, 92 % (N6 + PG)        Find above the keyboard (N4)      Compare, B 
 ┌──────────────────────────────┐   ┌──────────────────────────────┐  ┌──────────────────────────────┐
 │ ‹ 3  report.pdf ▾     ↶ ↷  ⌕ │   │ ‹ 3  report.pdf ▾     ↶ ↷  ⌕ │  │ ✕ Close   v1 ⇄ v2         ⋯  │
 │╭──────────── ▬ ─────────────╮│   │ ┌──────────────────────────┐ │  │ [   A   |   B   | Changes ]  │
-││ [Pages|Outline|Review]   ✕ ││   │ │ page; current hit ▒▒▒    │ │  │ ┌──────────────────────────┐ │
+││ [Pages|Contents|Review]  ✕ ││   │ │ page; current hit ▒▒▒    │ │  │ ┌──────────────────────────┐ │
 ││ This document ▾   ▪▫ ─○─ ▣ ││   │ └──────────────────────────┘ │  │ │ B · v2.pdf, page 3       │ │
 ││ ┌──────┐ ┌──────┐ ┌──────┐ ││   │╭────────────────────────────╮│  │ │ ▒▒▒▒ changed line        │ │
 ││ │  1   │ │  2   │ │ 3 ✓  │ ││   ││[term_______] 3/41 ‹ › ⋯ Done││  │ └──────────────────────────┘ │
@@ -118,7 +118,7 @@ Pages sheet, 92 % (N6 + PG)        Find above the keyboard (N4)      Compare, B 
 |---|---|---|---|---|
 | N1 | Sidebar shell and section switch | §2.1, §6.1, §6.9 | J4, J15 | 5.1 rail, 5.3 panel frame, 5.2 rail footer (to More → Keyboard shortcuts) |
 | N2 | Thumbnail list | §3.5 S10, S13; §7.1 | J2, J4 | 5.4 Pages · Bookmarks switch, 5.5 thumbnail list (INV-3, INV-9) |
-| N3 | Outline tree | §4.7 "Outline", §9.4 | J15b | 5.6 bookmarks tree |
+| N3 | Contents tree | §4.7 "Outline" (Contents, spec X27), §9.4 | J15b | 5.6 bookmarks tree |
 | N4 | Find section, compact find bar, results sheet | §4.7 "Find", §6.9 | J15a, J5/J9 keyboard | 5.7 Find panel, 5.8 Mark all matches (INV-11) |
 | N5 | Review section | §4.7 "Review" | J10 review | 5.9–5.12 Review list, comment, mark and field rows |
 | N6 | Phone Pages sheet | §6.3, §6.9 | J4 touch | — (INV-1) |
@@ -233,7 +233,7 @@ size steps use FLIP or cross-fades only.
 
 ## 3. N1 Sidebar shell and section switch
 
-**1 · Role.** The one side surface for a document: Pages (thumbnails or outline), Find, Review.
+**1 · Role.** The one side surface for a document: Pages (thumbnails or Contents), Find, Review.
 Closed by default on every size, remembered per device once changed (F§6.1). Jobs J2, J4, J15.
 Replaces the rail (5.1), its footer (5.2) and the panel frame (5.3); the Files (5.13) and
 Changes (5.14) tabs go.
@@ -244,13 +244,13 @@ Changes (5.14) tabs go.
 Docked, expanded and up (default 280; splitter 240–400)       Coarse: rows 44, switch 36 high
 ┌ 12 ┬──────────── 256 ────────────┬ 12 ┐
 │    │ [ Pages │ Find │ Review  3 ] │    │ 44  segmented, 28 high (fine), fills n5 thumb
-│    │ (Thumbnails) (Outline)    ⊞  │    │ 36  only in Pages; chips 28; ⊞ 32 circle
+│    │ (Thumbnails) (Contents)   ⊞  │    │ 36  only in Pages; chips 28; ⊞ 32 circle
 │    │ section body, scrolls         │    │
 │    │ …                             │  ┃ │ splitter: 8 px hit, 1 px hairline, cursor col-resize
 └────┴───────────────────────────────┴────┘
 Overlay, medium: 320 fixed, inset 8 from the strip and the leading edge, radius 20, above the stage
 Side sheet, compact-height: 360 from the leading edge, under the top bar, full height
-Compact: no sidebar; N6 holds Pages and Outline and Review, N4 the find bar
+Compact: no sidebar; N6 holds Pages and Contents and Review, N4 the find bar
 ```
 
 The section switch is APG tabs drawn as a segmented control; counts are `tnum` badges (Review:
@@ -269,7 +269,7 @@ where a zoomed page passes under it. Overlay on touch is solid (M-31). No light.
 | Open, overlay | No inset; no scrim; light dismiss on a press outside |
 | Section current | Segment thumb n5 (light n5), label n12 550, glyph none; others n11 |
 | Resizing | Splitter hairline `--accent-line`; width writes once per frame; announced at the end "Sidebar 320 pixels" / "Kenar çubuğu 320 piksel" |
-| In the Pages grid | Pages section not offered (the grid is it); open on Pages → hidden for the grid and back on leaving; open on Outline, Find or Review → stays and navigates cells (PG1) |
+| In the Pages grid | Pages section not offered (the grid is it); open on Pages → hidden for the grid and back on leaving; open on Contents, Find or Review → stays and navigates cells (PG1) |
 | In Compare, on the Library | Not shown (Compare has CP5; the Library has no document) |
 | Locked document | Unchanged; change items inside dim (§2.3) |
 | Empty document | Cannot occur (a document keeps one page) |
@@ -282,7 +282,7 @@ where a zoomed page passes under it. Overlay on touch is solid (M-31). No light.
 | Landmark | Sidebar | Kenar çubuğu |
 | Sections | Pages · Find · Review | Sayfalar · Bul · İncele |
 | Section names with counts | Review, 3 items · Find, 41 matches | İncele, 3 öğe · Bul, 41 eşleşme |
-| Pages views | Thumbnails · Outline | Küçük resimler · İçindekiler |
+| Pages views | Thumbnails · Contents | Küçük resimler · İçindekiler |
 | ⊞ | Show all pages · 3 | Tüm sayfaları göster · 3 |
 | Splitter | Resize sidebar | Kenar çubuğunu yeniden boyutlandır |
 
@@ -388,7 +388,7 @@ page change in another view updates the current ring without moving focus; the l
 current row in view unless focus is inside it.
 
 **7 · Motion.** *reflow* on moves and deletes (`--spring-smooth`; the dropped row settles on
-`--spring-fling`, then a 600 ms *undo reveal* ring in lime); *lift and settle*; badge by *select*;
+`--spring-fling`, then a 500 ms *undo reveal* ring in lime); *lift and settle*; badge by *select*;
 current ring moves without animation (it follows reading). RM: instant, ring without motion.
 
 **8 · Accessibility.** `listbox` with `aria-multiselectable="true"`, options as above; roving
@@ -407,12 +407,12 @@ e2e J4 sidebar path (4 steps; 3 with the sidebar remembered open), drop on a tab
 locked drag shows the notice, touch project: long-press drag reorders and a short touch-drag
 scrolls (S13); axe.
 
-## 5. N3 Outline tree
+## 5. N3 Contents tree
 
-**1 · Role.** The document's outline: jump to a chapter, edit bookmarks. J15b by the sidebar (the
+**1 · Role.** The document's outline, labelled Contents (spec X27): jump to a chapter, edit bookmarks. J15b by the sidebar (the
 pill is the 2-step path, F11). Replaces 5.6, kept with its editing.
 
-**2 · Anatomy.** The Pages section with Outline chosen: header row "Outline" chips and a
+**2 · Anatomy.** The Pages section with Contents chosen: header row "Contents" chips and a
 `bookmark-simple` + button (32 / 44) "Add bookmark"; tree rows 28 fine / 44 coarse, indent 16 per
 level, caret 16, title 13/18 (one line, ellipsis, full title in the name), page label trailing in
 n10 `tnum`. Dead-link rows show `warning` 16 and "Target page was removed".
@@ -423,11 +423,12 @@ M3; light ink 0.07 14.50 / 6.25 on n2). No light.
 **4 · States.** Rest; hover; focus; current location (the deepest entry at or before the top of
 the free rectangle: `--accent-muted`, `aria-current="location"`); renaming (opaque well);
 dragging (row 0.4, insertion line 2 px `--select`); locked (Add, rename, delete, move dim with
-"Locked"; jumping works); empty ("No outline" + "Add a bookmark here"; locked: the button dims);
+"Locked"; jumping works); empty ("No contents" + "Add a bookmark here"; locked: the button dims);
 error (link that leaves the app asks first, as today).
 
-**5 · Content and copy.** Existing strings kept (`outline_*`): "Outline of report.pdf" /
-"report.pdf içindekiler"; "Add bookmark" / "Yer imi ekle"; "No outline" / "İçindekiler yok";
+**5 · Content and copy.** Existing strings kept (`outline_*`), with the English word changed to Contents (X27): "Contents
+of report.pdf" / "report.pdf içindekiler"; "Add bookmark" / "Yer imi ekle"; "No contents" /
+"İçindekiler yok";
 new "Add a bookmark here" / "Buraya yer imi ekle"; "Target page was removed" / "Hedef sayfa
 kaldırıldı". Item menu: `04` §14 (unchanged).
 
@@ -439,7 +440,7 @@ the target page's cell instead.
 
 **7 · Motion.** Expand and collapse by *reflow* on `--spring-quick`; *scroll-to*. RM: instant.
 
-**8 · Accessibility.** `tree` "Outline of report.pdf"; `aria-level`, `aria-expanded`; targets 28
+**8 · Accessibility.** `tree` "Contents of report.pdf"; `aria-level`, `aria-expanded`; targets 28
 / 44; A-12.
 
 **9 · Implementation.** `shell/OutlinePanel.tsx` kept, moved under `shell/sidebar/`; edits
@@ -519,17 +520,21 @@ phone (⌕ · type · ↓) and desktop; textless prompt on `letter-scan.pdf`.
 ## 7. N5 Review section
 
 **1 · Role.** One list of what someone added to the document: comments and other annotations,
-redaction marks, form fields, grouped by page. Replaces 5.9–5.12.
+redaction marks, form fields, grouped by page; after OCR, the words to check. Replaces 5.9–5.12
+and the inspector's OCR section (inventory 6.4; spec X33).
 
 **2 · Anatomy.**
 
 ```
-[ All 9 │ Comments 4 │ Marks 2 │ Fields 3 ]      chips 28 / 44, radio group, tnum counts
+[ All 9 │ Comments 4 │ Marks 2 │ Fields 3 │ Words to check 6 ]   chips 28 / 44, radio group, tnum
+                                                 counts; the fifth only after OCR has run
 Page 2                                           heading n10 550, sticky inside the list
  ◷ Ada Lovelace · 14:02                          comment row: glyph 16, author 550, time n10
    "Check this figure against Q3"                 excerpt 2 lines n11
  ▮ Mark · "ada@example.com"           ⊙  ⌫       mark row: Show, Delete (danger glyph)
  ▢ Name · Ada Lovelace     Required              field row: type glyph, name, value n11
+ ⌕ "Reciept" · low confidence                     word row (Words to check): page heading adds
+                                                 the quality word Good · Review · Poor · No text
 Marks filter header: one honesty line + Find sensitive data…
 Comments: "Your name for comments [________] Save" above the first comment, once
 ```
@@ -538,7 +543,8 @@ Comments: "Your name for comments [________] Save" above the first comment, once
 danger variant (`#ffa4a4` dark, `#a20519` light). No light (redaction, L§3.2).
 
 **4 · States.** Loading "Reading the document…"; empty per filter; a filter with zero items
-stays visible with "0" and shows its empty line (static, RA-21; Issue 13); current row follows
+stays visible with "0" and shows its empty line (static, RA-21; Issue 13); Words to check
+appears once OCR has run on the document and stays for the session (spec X33); current row follows
 the selected annotation, the focused field and the mark J / K reached; locked: Delete, the author
 prompt and Clear all values dim with "Locked", Show and jumping work; error: a row whose target
 is gone shows "Target page was removed".
@@ -547,7 +553,8 @@ is gone shows "Target page was removed".
 
 | Element | English | Turkish |
 |---|---|---|
-| Filters | All · Comments · Marks · Fields | Tümü · Yorumlar · İşaretler · Alanlar |
+| Filters | All · Comments · Marks · Fields · Words to check | Tümü · Yorumlar · İşaretler · Alanlar · Kontrol edilecek sözcükler |
+| Word row, page heading | Low confidence · Good · Review · Poor · No text · {n} pages recognized | Düşük güven · İyi · Gözden geçir · Zayıf · Metin yok · {n} sayfa tanındı |
 | Empty | No comments, marks or fields · No comments yet · No redaction marks · No form fields | Yorum, işaret ya da alan yok · Henüz yorum yok · Karartma işareti yok · Form alanı yok |
 | Marks header | A mark hides nothing until it is applied. Apply removes what lies under it from the saved file. · Find sensitive data… | İşaret, uygulanana kadar hiçbir şeyi gizlemez. Uygulandığında altındakiler kaydedilen dosyadan kaldırılır. · Hassas verileri bul… |
 | Mark row | Mark · Area · Show · Delete mark | İşaret · Alan · Göster · İşareti sil |
@@ -559,7 +566,8 @@ Icons: `chat-centered-text`, custom *redact*, `textbox`, `check-square`, `eye`, 
 **6 · Behaviour.** Comment row: click or Enter scrolls to it and selects the annotation (a
 targeted selection, F§3.1), so its bar shows; focus stays in the list; locked: opens the comment
 read-only. Mark row: Show reveals with an *undo reveal* ring; Delete (`targeted`) is one undo
-step with a toast; J / K step marks. Field row: focuses the field on the page (typing fills).
+step with a toast; J / K step marks. Field row: focuses the field on the page (typing fills). Word row: scrolls to the word and
+shows the OCR word ring of `05-canvas` §27; J / K step the words (no change, works locked).
 Clear all values asks `canChange(id, 'document')` and confirms (dialogs family). Apply is not
 here: the pending-marks bar applies every mark (Issue 12). Filter change announces "Showing 2
 marks" / "2 işaret gösteriliyor".
@@ -578,14 +586,14 @@ with J / K.
 
 ## 8. N6 Phone Pages sheet (compact)
 
-**1 · Role.** The phone's sidebar and grid in one sheet: Pages (the grid), Outline, Review
+**1 · Role.** The phone's sidebar and grid in one sheet: Pages (the grid), Contents, Review
 (F§6.3). Opened by the dock's Pages; J4 touch (5 steps). New (INV-1).
 
 **2 · Anatomy.**
 
 ```
 ╭──────────────── grabber 36 × 5 ────────────────╮  detents 40 % and 92 %; opens at 92 %
-│ [ Pages │ Outline │ Review ]                ✕  │  44 row; ✕ 44 circle
+│ [ Pages │ Contents │ Review ]               ✕  │  44 row; ✕ 44 circle
 │ This document ▾          ▪▫ ──○── ▣            │  44 row, Pages only: scope menu, size S·M·L
 │ ┌──────┐ ┌──────┐ ┌──────┐                     │  grid: pad 16, gap 12; S = 3 columns at 390
 │ │  1   │ │  2   │ │ 3 ✓  │                     │
@@ -600,14 +608,14 @@ uses its solid twin (`--glass-bar-solid`, rim kept): one filtered element per st
 dock is covered while the sheet is open, so persistent glass stays at two (top bar, sheet).
 
 **4 · States.** 40 % or 92 %; selection present (Pages bar shows count); locked (Pages bar locked
-form, `04` §10; no lift); Outline and Review as N3 and N5 at 44 px rows.
+form, `04` §10; no lift); Contents and Review as N3 and N5 at 44 px rows.
 
-**5 · Content and copy.** "Pages" / "Sayfalar" (sheet name); sections as N1 with Outline /
+**5 · Content and copy.** "Pages" / "Sayfalar" (sheet name); sections as N1 with Contents /
 İçindekiler; ✕ "Close" / "Kapat"; scope "This document" / "Bu belge", "All open (3)" / "Açık
 belgeler (3)".
 
 **6 · Behaviour.** One meaning at both detents (Issue 6): in Pages a tap selects (check), a long
-press lifts, a double tap opens the page and closes the sheet. Outline and Review rows jump and
+press lifts, a double tap opens the page and closes the sheet. Contents and Review rows jump and
 lower the sheet to 40 % so the target shows above it. Swipe down past 40 % or ✕ closes; Android
 back closes; Esc closes. Focus: on open the current page's cell; on close the dock's Pages. Guard
 as PG4 and PG5.
@@ -658,7 +666,7 @@ itself; no light (L§3.2). The Pages bar is the dock's M2 element (F10).
 | Locked | Dock-element Pages bar locked form; no lift (Lock notice at the cell); keys open the Unlock popover |
 | Error | A failed operation leaves the grid unchanged; toast "Could not move the pages: …" with the reason |
 | Markup was open | The palette hides; Done returns to Markup (F§4.3) |
-| Sidebar on Outline, Find or Review | Stays; a jump focuses the target page's cell (Issue 1) |
+| Sidebar on Contents, Find or Review | Stays; a jump focuses the target page's cell (Issue 1) |
 
 **5 · Content and copy.** Region name "Pages grid of report.pdf" / "report.pdf sayfa ızgarası";
 All open "Pages grid of 3 documents" / "3 belgenin sayfa ızgarası". Announcement on entry:
@@ -786,8 +794,9 @@ agreement.pdf" / "agreement.pdf bölümünü daralt", "Expand…" / "…genişle
 "Metin yok". Section menu contents: `04` §14.
 
 **6 · Behaviour.** Caret or Left / Right on the header collapses and expands; F2 renames (Enter
-commits, Esc cancels; renaming is not a page change, so it needs no guard and works locked, as
-the tab's rename in F5); ⋯ or Shift+F10 opens the section menu. From the Library's Pages with a
+commits, Esc cancels): F2 asks `canChange(id, 'document')` (rename is a `document` act, spec X12,
+as the title menu's name field in `01-frame` F5); on a locked document it opens the Unlock popover
+at the header; ⋯ or Shift+F10 opens the section menu. From the Library's Pages with a
 subset checked: scope All open, unchecked documents' sections collapsed (Issue 9).
 
 **7 · Motion.** Collapse by *reflow* (sections slide together, MC-28). RM: instant.
@@ -1231,7 +1240,7 @@ stale.
 ## 23. Issues for the lead
 
 1. **The sidebar in the Pages grid.** Not in F§. Decided: the Pages section is not offered there;
-   a sidebar open on Pages hides for the grid and returns after; one open on Outline, Find or
+   a sidebar open on Pages hides for the grid and returns after; one open on Contents, Find or
    Review stays and its jumps focus cells. ▤ stays enabled, as F3 requires.
 2. **Arrow keys in the thumbnail list navigate.** F§ says a navigating click never selects; it
    does not say what arrows do. Decided: arrows move the page view (as a click), Space and
@@ -1246,7 +1255,7 @@ stale.
    "tap selects"; INV-R8 needs multi-select without modifiers). Conventional (Files, Photos), but
    two rules by pointer type.
 6. **The phone Pages sheet keeps one meaning per detent.** A tap selects at 40 % and at 92 %.
-   Navigation is a double tap, the pill or the scrubber. Outline and Review rows lower the sheet
+   Navigation is a double tap, the pill or the scrubber. Contents and Review rows lower the sheet
    to 40 %.
 7. **The Pages bar inside the phone sheet is solid.** F§6.3 draws a glass capsule inside the
    sheet. At 40 % that is glass on glass (L§2.1 rule 6) and a second filter in the stack (L§2.9).
@@ -1268,7 +1277,8 @@ stale.
     (`04` §9) applies every mark. To keep a mark out, delete it. Also re-homed: Highlight fields →
     Show field outlines; Flatten on export → Save a copy; Edit fields and Add field → palette.
 13. **Static Review chips.** All four always show, a zero count included (RA-21). Today only the
-    kinds present show.
+    kinds present show. **Amended (spec 06.13, X33):** the fifth filter, Words to check, appears
+    once OCR has run.
 14. **Overlay opacity.** `04` §11 lists it in the Compare bar's ⋯. A slider inside a menu is
     awkward to drag. Decided: a tier above the Compare bar while Overlay is chosen (400 × 40, σ 8,
     the options-tier row of L§2.9).
@@ -1283,7 +1293,7 @@ stale.
     device. The overlay stays 320 and fixed.
 19. **"Outline" or "Contents".** F§ uses Outline for the sidebar; F11's pill menu says Contents.
     Turkish uses İçindekiler for both. Recommended: one English word, "Contents", in both places.
-    This spec keeps F§'s "Outline" until the lead decides.
+    **Resolved (spec X27):** "Contents" in the sidebar, the pill menu and ⌘K; this spec now uses it.
 20. **One Find field.** From 1280 px the strip holds the field (F6), so the sidebar's Find section
     shows none. Below 1280 px it shows its own field. Both edit one query.
 21. **Coverage registry rows to add** (L§10.2): grid header 1440 × 44 σ 8 and 1440 × 84 σ 10;

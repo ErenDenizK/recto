@@ -771,8 +771,8 @@ dock that morphs into the Markup palette, one sidebar, sheets and a page pill; t
 `#7c8cff` gives way to one lime and a selection blue, with five glass densities, an aurora that
 answers events, springs, `'Inter Recto'`, Phosphor icons and a light theme equal to dark; and
 saving gains Save in place, snapshots on the device and a visible Undo. The amendments are
-numbered B1–B15 in the [spec](specs/redesign.md) §2 and are applied here, section by section,
-as each drop lands. The model is [`design/redesign-2026-10/flows.md`](design/redesign-2026-10/flows.md),
+numbered B1–B15 in the [spec](specs/redesign.md) §2 and are applied here together by the
+spec's D4-9, when the parts are built. The model is [`design/redesign-2026-10/flows.md`](design/redesign-2026-10/flows.md),
 the language [`design/redesign-2026-10/language.md`](design/redesign-2026-10/language.md), and
 the decisions [ADR-0022](adr/0022-recto-glass-design-language.md) to
 [ADR-0028](adr/0028-accessibility-gates-expressive-ui.md) (the language) and

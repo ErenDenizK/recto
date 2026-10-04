@@ -310,8 +310,9 @@ kept, no momentum, release snaps instantly, steps instant, grid by 150 ms cross-
 `::view-transition` during zoom steps).
 
 **Implementation.** New `viewer/zoom-controller.ts` (pure maths: projection, detents, rubber band,
-anchor) and `viewer/gesture.ts` (M-16 recogniser: pointer pairs, Safari events, wheel
-classification) on `motion/springs.ts`. `ui-store.setZoom(z, anchor)` called once per gesture.
+anchor) on `motion/springs.ts`; the M-16 recogniser (pointer pairs, Safari events, wheel
+classification) lives with every other recogniser in `motion/gesture/` (spec X5), and the viewer
+only hit-tests. `ui-store.setZoom(z, anchor)` called once per gesture.
 Tests: unit for snapping, rubber band, notch vs trackpad classification and anchor maths; e2e
 `motion.spec.ts` "zero layouts during pinch" (PerformanceObserver on `layout-shift` and a forced
 style-recalc counter), CDP two-touch pinch below fit opens the grid at the current page,
@@ -376,6 +377,7 @@ selection** (link is new; today links sit outside the order).
 |---|---|---|---|---|---|---|
 | Viewing | Select on press; drag moves only if already selected | Focus, fill | Follow | Context menu only | — | Drag selects; double-click selects word |
 | Markup, Select | Same | Same (created fields: §20) | Follow | Context menu only | Double-click opens editor; 400 ms outline (§9) | Same |
+| Markup, Select, pen input once a pen has been seen | — (the pen draws with the last pen; ink never hit-tests; a pen double tap never opens the editor, MK-18, S4) | — | — | — | — | — |
 | Markup, drawing tool | — (ink never hit-tests) | — | — | — | — | — |
 | Markup, placing tool (T, N, I, stamp, G, field) | — | — | — | — | — | — |
 | Markup, Image tool | — | — | — | Select, move, resize | — | — |
@@ -391,8 +393,8 @@ opens at the control that asked, `flows.md` §2.6):
 | Type in a field, toggle a box, pick a choice, sign a signature field | `targeted` |
 | Move, resize, restyle, delete a selected annotation, image or created field | `targeted` |
 | H U S C X on a text selection | `targeted` |
-| Stroke, shape, eraser, lasso move, Redact drag, a placing tool's click in Markup | `freehand` |
-| "Add … here", keyboard placement (§14) | `place` |
+| Stroke, shape, eraser, lasso move, Redact drag | `freehand` |
+| "Add … here", keyboard placement (§14), a placing tool's click in Markup (field kinds included) | `place` |
 | Paragraph or line editor commit | `text` |
 | Crop drawn on the page | `pages` |
 | Furniture Apply, Apply redactions | `document` |
@@ -412,10 +414,11 @@ Değiştirmek için kilidi açın."
 **Implementation.** `viewer/hit-order.ts` gains `link` and the state object; `viewer/edit-policy.ts`
 → `viewer/input-policy.ts` (names only, plus M-24 detection); layers call `useCanChange(id, act)`
 from `state/guard.ts`. Delete every `useCanEdit` in `forms/`, `annotations/`, `text-edit/`,
-`image-objects/`, `redaction/`, `viewer/`. Tests: unit for the full matrix (8 states × 6 kinds) and
+`image-objects/`, `redaction/`, `viewer/`. Tests: unit for the full matrix (9 states × 6 kinds) and
 for "every committing command declares an act" (registry test, `flows.md` §2.5); e2e
 `input-rules.spec.ts` drives S1–S18 rows that touch the page (S1–S7, S9, S10, S14–S17) in the
-unlocked and locked columns and asserts unchanged engine bytes when locked.
+unlocked and locked columns and asserts unchanged engine bytes when locked, plus a pen double tap
+on text in Markup with Select after a pen has been seen: ink, no editor (spec 05.12).
 
 ## 7. Page focus, caret mode and Alt+Enter
 
@@ -646,7 +649,7 @@ motion. **Accessibility.** A-11 rings on targets; INV-16 keyboard creation is §
 **Implementation.** Swap `--accent` for `--select` in `AnnotationLayer.module.css`; mount
 `SelectionFrame`; `touch-action` by tool. New `viewer/UndoReveal.tsx` (page ring; chrome ring is
 family 14). Tests: e2e S14 (drag on unselected moves nothing); undo of a pen stroke on page 4
-scrolls it into the free rectangle and shows the ring once (`getAnimations` length 1, 600 ms).
+scrolls it into the free rectangle and shows the ring once (`getAnimations` length 1, 500 ms).
 
 ## 12. Ink preview, dry ink and pen hover dot
 
@@ -837,7 +840,7 @@ header and 8.19 info popover; the line editor of 9.17 stays as the fallback insi
 | Edit text on the selection bar | Viewing and Markup | The selection carried in |
 | Page menu → Edit text here | Viewing and Markup | Caret at the pressed point |
 | E on a selection, then Enter | Keyboard | The selection carried in |
-| Double-click on text | Markup with Select only (mouse, pen as pointer; never touch) | Caret at the point, word selected |
+| Double-click on text | Markup with Select only (mouse; a pen only while no pen has been seen, as on desktop tablets; never touch) | Caret at the point, word selected |
 | Palette ¶ Edit text tool, then click | Markup | Caret at the point |
 | Tab to a paragraph target, Enter | Edit text tool armed | Caret at the start |
 

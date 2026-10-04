@@ -101,7 +101,7 @@ Done), the judges scored build A 53, C 40, B 31; owner C 53, A 51, B 46; power A
 ## 3. Consequences
 
 - Users relearn (`flows.md` §11): `1` no longer locks; Edit is Markup; R no longer rotates.
-- Steps (`flows.md` §8.2): mouse ≈91 → 68 over 19 job rows; keyboard ≈121 → 82 over 16 rows, and
+- Steps (`flows.md` §8.2): mouse ≈91 → 68 over 19 job rows; keyboard ≈121 → 81 over 16 rows, and
   J5 and J8A gain a keyboard path; touch ≈99 → 72 with every job possible; 3 Markup openings
   against 9 mode or view switches. No job gets worse.
 - Five acts change an unlocked file in one step, each with Undo and a toast; S7 and S9 go into a

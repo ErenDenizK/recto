@@ -76,7 +76,7 @@ and are lost, even with `pointer-events: none` on the overlay.
    `--spring-quick`, `inert` from the first frame, a 150 ms fade under reduced motion. Keys
    never animate tools. Every component spec picks from the named list.
 6. **Rules** (MP-1 to MP-12): animate `transform`, `opacity` and chrome-sized `clip-path`
-   only; no perpetual animation in document views; motion on or under glass ≤ 600 ms; stagger
+   only; no perpetual animation in document views; motion on or under glass ≤ 500 ms (A-10); stagger
    ≤ 10 items × 12 ms; `contain: layout paint` on animated islands; `will-change` only from
    script, on ≤ 3 elements, during a gesture.
 7. **Limits** (A-10, read on the 99 % settle): input-blocking ≤ 250 ms; any transition ≤ 500 ms
@@ -98,7 +98,7 @@ and are lost, even with `pointer-events: none` on the overlay.
   no `::view-transition` during tool switching, an animation sweep under both reduce paths.
 - Popups look done at about 175 ms (today 120–180 ms tweens); full-window moves at 285 ms.
 - Each new component answers research 18's MO-10 checklist: token, interruption at 50 %,
-  reduced form, motion near glass over 600 ms, layout touched.
+  reduced form, motion near glass over 500 ms, layout touched.
 
 ## 4. Alternatives considered
 
