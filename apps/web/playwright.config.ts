@@ -8,6 +8,32 @@ const basePath = process.env.VITE_BASE_PATH ?? '/';
 const port = Number(process.env.E2E_PORT ?? 4173);
 const isCI = Boolean(process.env.CI);
 
+/**
+ * The phone and tablet projects (spec redesign D0-2, ADR-0033 §2.4, §3): Chromium with touch
+ * and a mobile viewport, and a screen equal to the viewport, so the edition rule (a coarse
+ * pointer and a screen side under 600 CSS px, `shell/frame/edition.ts`) sees a phone or a
+ * tablet. `?edition` stays unset. The phones run only the compact edition's spec; the
+ * tablet runs the full edition's smoke spec for now.
+ */
+const PHONE = { width: 390, height: 844 };
+const PHONE_LANDSCAPE = { width: 844, height: 390 };
+const TABLET = { width: 820, height: 1180 };
+const COMPACT_SPEC = '**/compact.spec.ts';
+const touchDevice = (
+  size: { width: number; height: number },
+  userAgent: string,
+  deviceScaleFactor: number,
+) => ({
+  ...devices['Pixel 7'],
+  userAgent,
+  viewport: size,
+  screen: size,
+  deviceScaleFactor,
+  isMobile: true,
+  hasTouch: true,
+  launchOptions: chromiumLaunchOptions(),
+});
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -23,10 +49,26 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: COMPACT_SPEC,
       use: { ...devices['Desktop Chrome'], launchOptions: chromiumLaunchOptions() },
     },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'firefox', testIgnore: COMPACT_SPEC, use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', testIgnore: COMPACT_SPEC, use: { ...devices['Desktop Safari'] } },
+    {
+      name: 'phone',
+      testMatch: COMPACT_SPEC,
+      use: touchDevice(PHONE, devices['Pixel 7'].userAgent, 3),
+    },
+    {
+      name: 'phone-land',
+      testMatch: COMPACT_SPEC,
+      use: touchDevice(PHONE_LANDSCAPE, devices['Pixel 7'].userAgent, 3),
+    },
+    {
+      name: 'tablet',
+      testMatch: '**/smoke.spec.ts',
+      use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
+    },
   ],
   webServer: {
     // Build first so the tests exercise exactly what is deployed; `pnpm build` in CI has
