@@ -24,7 +24,6 @@
  */
 import type { TextRun } from '@pdf-editor/engine';
 import {
-  type CSSProperties,
   Fragment,
   type MouseEvent as ReactMouseEvent,
   useEffect,
@@ -54,56 +53,26 @@ import {
 import { pageFrame } from './page-frame';
 import {
   layoutTextLines,
-  selectionCopyText,
   separatorAfter,
   TEXT_LAYER_ATTR,
   TEXT_ROW_ATTR,
   type TextLine,
 } from './text-model';
 import styles from './TextLayer.module.css';
+import { lineStyle } from './text-spans';
 import { useToolStore } from './tool-store';
+
+// The span geometry and the copy handler live in text-spans.ts, shared with the compact
+// edition's reader; ReadView imports the copy handler from here.
+export { installCopyHandler } from './text-spans';
 
 /** Build within this many pages of the viewport; drop beyond DROP_DISTANCE. */
 export const BUILD_DISTANCE = 1;
 export const DROP_DISTANCE = 3;
-const FONT_FAMILY = 'sans-serif';
-const MEASURE_SIZE = 100;
 /** A pointer this close to a line's box (CSS px) is over it, for the hover outline. */
 const HOVER_SLOP_PX = 2;
 /** Gap between the outlined run and the hint below it, CSS px. */
 const HINT_GAP_PX = 4;
-
-let measureContext: CanvasRenderingContext2D | null | undefined;
-const widths = new Map<string, number>();
-
-/** Width of `text` at MEASURE_SIZE px in the layer's font (memoized). */
-function measure(text: string): number {
-  const cached = widths.get(text);
-  if (cached !== undefined) return cached;
-  measureContext ??= document.createElement('canvas').getContext('2d');
-  let width = text.length * MEASURE_SIZE * 0.5;
-  if (measureContext) {
-    measureContext.font = `${MEASURE_SIZE}px ${FONT_FAMILY}`;
-    width = measureContext.measureText(text).width;
-  }
-  if (widths.size > 5000) widths.clear();
-  widths.set(text, width);
-  return width;
-}
-
-function lineStyle(line: TextLine): CSSProperties {
-  const natural = (measure(line.text) * line.thickness) / MEASURE_SIZE;
-  const scaleX = natural > 0 ? line.length / natural : 1;
-  const transforms: string[] = [];
-  if (line.angle !== 0) transforms.push(`rotate(${line.angle}deg)`);
-  if (Math.abs(scaleX - 1) > 0.001) transforms.push(`scaleX(${scaleX})`);
-  return {
-    left: line.left,
-    top: line.top,
-    fontSize: line.thickness,
-    ...(transforms.length === 0 ? {} : { transform: transforms.join(' ') }),
-  };
-}
 
 /** Index of the line whose box holds `p` (CSS px of the page), or -1. */
 export function lineAt(lines: readonly TextLine[], p: { x: number; y: number }): number {
@@ -378,20 +347,4 @@ export function TextLayer(props: PageOverlayProps) {
       ) : null}
     </>
   );
-}
-
-/**
- * Replaces the browser's copy text (absolutely positioned spans serialize one per line)
- * with the assembled page text whenever the selection lies in a text layer. Returns a
- * disposer.
- */
-export function installCopyHandler(target: Document = document): () => void {
-  const onCopy = (event: ClipboardEvent) => {
-    const text = selectionCopyText(target.getSelection());
-    if (text === undefined || !event.clipboardData) return;
-    event.clipboardData.setData('text/plain', text);
-    event.preventDefault();
-  };
-  target.addEventListener('copy', onCopy);
-  return () => target.removeEventListener('copy', onCopy);
 }

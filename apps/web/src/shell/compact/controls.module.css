@@ -1,0 +1,86 @@
+/*
+ * The compact edition's one control recipe (quality bar Q-9, Q-14): every control is 44 px
+ * high on a coarse pointer, pill-shaped, with a 20 px icon; the same rest, hover (fine
+ * pointers only), pressed, focus and disabled states everywhere. Labels are set in rem so
+ * system text scaling applies (15 px and 13 px at the default size, weights 500 and 600).
+ *
+ * These are the compact shell's local primitives until D0-3's `ui/` set lands; then they
+ * move onto it.
+ */
+.icon,
+.text,
+.primary {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  height: 44px;
+  border-radius: var(--radius-round);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.icon {
+  width: 44px;
+  padding: 0;
+}
+
+.text {
+  padding: 0 14px;
+}
+
+.icon svg,
+.text svg,
+.primary svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.75;
+}
+
+@media (hover: hover) {
+  .icon:hover:not(:disabled),
+  .text:hover:not(:disabled) {
+    background: var(--surface-hover);
+  }
+}
+
+.icon:active:not(:disabled),
+.text:active:not(:disabled),
+.icon[aria-expanded='true'],
+.text[aria-expanded='true'] {
+  background: var(--surface-active);
+}
+
+.icon:disabled,
+.text:disabled {
+  color: var(--text-disabled);
+}
+
+/* The one primary action of a place: the accent fill (today's tokens; the lime is D3). */
+.primary {
+  composes: primary-button from global;
+  min-width: 200px;
+  padding: 0 24px;
+  /* The shared rule above sets the chrome's text colour; the fill's label is canvas-dark. */
+  color: var(--surface-0);
+  font-weight: 600;
+}
+
+/* A quiet label button in a header ("Clear", "Done"): secondary text, same box. */
+.quiet {
+  color: var(--text-secondary);
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
