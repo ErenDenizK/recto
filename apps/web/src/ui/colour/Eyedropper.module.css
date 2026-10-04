@@ -1,0 +1,53 @@
+/* The page eyedropper (10-ink.md §4.1): a viewport layer and a 96 px loupe. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  cursor: none;
+  outline: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The loupe's centre is the sample point: the transform puts its top-left there, and the
+   negative margins centre it. 88 px of pixels inside a 4 px rim of the colour under it. */
+.loupe {
+  --loupe-colour: transparent;
+
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+  padding: 4px;
+  border-radius: 50%;
+  background: var(--loupe-colour);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.9),
+    0 0 0 2px rgb(0 0 0 / 0.28),
+    0 10px 28px -10px rgb(0 0 0 / 0.6),
+    0 2px 6px -2px rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+
+.pixels {
+  display: block;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.18);
+}
+
+/* The centre pixel's ring: dark inside, white outside, on whole pixels (44–52 of 96). */
+.centre {
+  position: absolute;
+  left: 44px;
+  top: 44px;
+  width: 8px;
+  height: 8px;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.7),
+    0 0 0 2px #ffffff;
+}

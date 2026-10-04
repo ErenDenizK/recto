@@ -1,0 +1,82 @@
+/* The Grid view (10-ink.md §4.1). Fine 288 × 192: columns 11 × 23 + 24 with 1 px gaps, the
+   greys row 18 tall, 4 px apart from nine 18 px rows with 1 px gaps. Coarse 324 × 222:
+   11 × 26 + 27, rows 21. The outer corners take the view's radius. */
+.grid {
+  --cell-w: 23px;
+  --cell-last: 24px;
+  --cell-h: 18px;
+  --grid-r: 10px;
+
+  display: grid;
+  gap: 1px;
+  width: max-content;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .grid {
+    --cell-w: 26px;
+    --cell-last: 27px;
+    --cell-h: 21px;
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(11, var(--cell-w)) var(--cell-last);
+  gap: 1px;
+}
+
+/* The greys stand apart from the hues. */
+.row:first-child {
+  margin-bottom: 3px;
+}
+
+.cell {
+  position: relative;
+  height: var(--cell-h);
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+  forced-color-adjust: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* White would vanish into a light panel: a hairline keeps the top-left cell's edge. */
+.row:first-child .cell:first-child {
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.row:first-child .cell:first-child {
+  border-top-left-radius: var(--grid-r);
+}
+
+.row:first-child .cell:last-child {
+  border-top-right-radius: var(--grid-r);
+}
+
+.row:last-child .cell:first-child {
+  border-bottom-left-radius: var(--grid-r);
+}
+
+.row:last-child .cell:last-child {
+  border-bottom-right-radius: var(--grid-r);
+}
+
+/* The chosen cell: a 2 px white ring with a 1 px dark ring inside it, drawn just outside
+   the cell so its colour stays whole. */
+.cell[aria-checked='true'] {
+  z-index: 1;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55),
+    0 0 0 3px #ffffff;
+}
+
+.cell:focus-visible {
+  z-index: 2;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55),
+    0 0 0 3px var(--focus-light, var(--accent)),
+    0 0 0 5px var(--focus-dark, var(--surface-0));
+}
