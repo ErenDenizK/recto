@@ -214,6 +214,32 @@ describe('EngineService clipped repaint', () => {
     expect(service.cacheStats.entries).toBe(MAX_CLIPPED_REPAINTS + 1);
   });
 
+  it('patches the scale read from the cache last, not only the ones rendered last', async () => {
+    const { service, id, calls } = await openService();
+    // Zoom in step by step, then back to 100 %: that bitmap is a cache hit, on screen.
+    const scales = [1, 1.25, 1.5, 1.75, 2];
+    const req = (bucket: number) => ({
+      sourceId: id,
+      index: 0,
+      rotation: 0 as Rotation,
+      bucket,
+      priority: 3,
+    });
+    for (const bucket of scales) await service.renderPage(req(bucket));
+    expect((await service.renderPage(req(1))).ok).toBe(true);
+    expect(service.peek(id, 0, 0, 1)).toBeDefined();
+    const before = calls.length;
+    service.requestClippedRepaint(id, 0, BOX);
+    const shown = await service.renderPage(req(1));
+    expect(shown.ok).toBe(true);
+    // The bitmap on screen was patched (a clipped render), not dropped and rendered whole.
+    const pieces = calls.slice(before);
+    expect(pieces.every((c) => c.options.clip !== undefined)).toBe(true);
+    expect(pieces.map((c) => c.options.scale)).toContain(1);
+    // The scale used least recently (1.25) is the one dropped.
+    expect(service.peek(id, 0, 0, 1.25)).toBeUndefined();
+  });
+
   // Review F5: a bitmap still being patched was offered by `preview()`, and PageCanvas drew
   // it as the new revision, so the dry ink layer dropped the new stroke a frame too early.
   it('preview() does not offer a bitmap that is still being repainted', async () => {
