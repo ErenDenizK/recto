@@ -1,13 +1,13 @@
 ---
 title: "ADR-0030: One change guard, canChange(id, act), with Lock enforced in commit()"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0030: One change guard, `canChange(id, act)`, with Lock enforced in `commit()`
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** ADR-0019's consequence "a store-level guard (`canEdit(documentId)`)
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** ADR-0019's consequence "a store-level guard (`canEdit(documentId)`)
 backs the UI checks"; DESIGN §4.8 "Every mutation sits behind one store guard,
 `canEdit(documentId)`, which fails closed"; the `canEdit`, `canEditActive` and `useCanEdit`
 exports of `state/ui-store.ts` · **Keeps:** ADR-0019 §3's rule that Undo and Redo work while

@@ -381,8 +381,8 @@ Solid, `prefers-reduced-transparency` and `prefers-contrast: more` reset both li
 Inside any `.mat`: secondary and tertiary text use `--glass-text-secondary` (n11), danger its glass
 variant, disabled glyphs `--glass-text-disabled` (dark `#7d8086`: 2.42:1 worst, 4.65:1 over the
 canvas; light `#7f838a`: 2.45:1 worst, 3.68:1 typical). Labels ≤ 12 px use weight ≥ 500; no text
-under 11 px on M1/M2; no `mix-blend-mode` on text (G-17). M3–M5 carry a static 128 px grain tile
-at 2.5 % (G-7), never a live `feTurbulence`.
+under 11 px on M1/M2; no `mix-blend-mode` on text (G-17). No tier carries grain or noise (G-7
+removed 2026-10-04, `quality-bar.md` Q-1), and never a live `feTurbulence`.
 
 ### 2.4 Rim, edge and shadow per tier
 
@@ -874,7 +874,7 @@ Generic transitions that every component spec picks from; the MC ids are researc
 | popup | Menu, popover, palette opens | From `scale(0.96)`, 4 px toward the anchor, opacity 0; `transform-origin` at the trigger; exit fade 100 ms + `scale(0.98)` (MC-14, MC-16) | quick | Reverses from current | Fade 120 ms |
 | materialize | End of any glass entrance | Lit rim alpha 0 → value over the last 40 % of the entrance (16 §7.8) | — | — | None |
 | tooltip | 500 ms hover; 0 ms while warm | Opacity + `scale(0.98)` (MC-15) | fast | — | Fade |
-| bar morph | Dock ⇄ Markup palette ⇄ Pages bar ⇄ Compare bar ⇄ Locked; the compact Draw ⇄ Sign set swap | Glass shape by `clip-path: inset(… round 999px)`; chips by FLIP, 15 ms stagger; no lens on the capsule (X20), so the filter never changes; never `width` (MC-8, here viewing ⇄ Markup; MC-11) | smooth | Retarget from the current shape | 120 ms cross-fade |
+| bar morph | Dock ⇄ Markup palette ⇄ Pages bar ⇄ Compare bar ⇄ Locked; the compact Draw ⇄ Sign set swap | Glass shape by the capsule's own width and height in `contain: layout style`, pill radius constant, so backdrop, rim and shadow follow (`quality-bar.md` Q-6, amended 2026-10-04); chips by FLIP, 15 ms stagger; no lens on the capsule (X20), so the filter never changes (MC-8, here viewing ⇄ Markup; MC-11) | smooth | Retarget from the current shape | 120 ms cross-fade |
 | sheen | End of a bar morph or materialize (fine pointer, Clear) | One conic sweep of the rim, 500 ms, never a loop (G-27, A-10) | — | — | None |
 | sheet push | Navigation inside a sheet (Settings, Batch, result pages) | `translateX(24px)` + opacity in, back reversed (spec X8) | smooth | Reverses | Fade 150 ms |
 | tier rise | A row appears above a bar | `translateY(8px) scale(0.98)` + opacity; exit 100 ms (MC-12) | quick | Reverses | Fade |
@@ -1036,7 +1036,7 @@ surface's own shadow. DESIGN §5's per-context offsets carry over.
 
 - Forced colours: every tier `Canvas` with `backdrop-filter: none` set explicitly (Chromium keeps
   filter and tint alpha otherwise, 22 §6.2); light `display: none`; armed and selected states in
-  `Highlight` / `HighlightText`; rims, grain and shadows drop; the ring keeps its system outline.
+  `Highlight` / `HighlightText`; rims and shadows drop; the ring keeps its system outline.
 - Zoom: breakpoints in CSS px, so 400 % zoom reaches the compact layout; no chrome overflow at
   320 × 256; floating surfaces anchor to the viewport, so zooming the page never carries them off.
 
@@ -1058,7 +1058,7 @@ One file that the app and the test import, in numbered sections:
 | 6 | `@media (forced-colors: active)` | System colours, filters off |
 | 7 | `@media (color-gamut: p3)` | P3 aurora stops for the CSS fallback |
 
-New sibling files: `materials.css` (the `.mat-*` rules of §2.3, tier × σ literals, grain, lens
+New sibling files: `materials.css` (the `.mat-*` rules of §2.3, tier × σ literals, lens
 hooks; today's `.glass`, `.glass-frame`, `.glass-menu` leave `global.css`), `motion.css`
 (View Transition rules, reduced-motion rules), `fonts.css` (`@font-face` for `'Inter Recto'`).
 

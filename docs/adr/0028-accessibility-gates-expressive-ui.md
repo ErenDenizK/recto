@@ -1,13 +1,13 @@
 ---
 title: "ADR-0028: Accessibility gates for an expressive interface"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0028: Accessibility gates for an expressive interface
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** DESIGN §5 "Focus ring 2px accent on 2px offset" (its per-context
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** DESIGN §5 "Focus ring 2px accent on 2px offset" (its per-context
 offsets carry over), "reduced motion respected" as a sentence with no test, and "Every new state
 passes axe in English and Turkish, with Glass panels on and with Reduce transparency"; research
 14 §4.3's "contrast is final" · **Amends:** research 22 A-6, A-7, A-9, A-11, A-12, A-18 and A-20, in

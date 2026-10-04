@@ -1,13 +1,13 @@
 ---
 title: "ADR-0022: Recto Glass: content solid, controls glass, light beneath"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0022: Recto Glass: content solid, controls glass, light beneath
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** DESIGN §1 "Nothing glows" and its one-elevation sentence; DESIGN
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** DESIGN §1 "Nothing glows" and its one-elevation sentence; DESIGN
 §3 "Dark is the default … a light theme is an M9 item", "One elevation, for floating chrome
 only", "Translucency only for floating chrome" · **Rests on:** `language.md` §0, §0.1, §0.2,
 §11.1 items 1 and 7; `flows.md` §1.2, §13; research 16 G-1, G-2, G-25; 17 AU-4, AU-5, AU-8;

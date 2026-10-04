@@ -1,13 +1,13 @@
 ---
 title: "ADR-0024: Glass materials: five densities, lit glass, a coverage rule and one setting"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0024: Glass materials: five densities, lit glass, a coverage rule and one setting
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** DESIGN §2 "Floating chrome is frosted glass; everything docked is
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** DESIGN §2 "Floating chrome is frosted glass; everything docked is
 opaque" and "Glass panels (a trial, default off)"; DESIGN §3 "Translucency only for floating
 chrome" and "Glass panels (trial, pending S2)"; the `--glass`, `--glass-menu`, `--glass-frame`
 tokens and the "Glass panels" and "Reduce transparency" switches · **Rests on:** `language.md`
@@ -58,9 +58,11 @@ content under glass costs per frame in proportion to blurred area (+18 % per 10 
 
 2. **Rules** (`language.md` §2.1): tints neutral; no clear variant; no glass on glass; shape
    from a dark outer edge, a lit inner rim and one shadow per tier (§2.4); filters never
-   animate, glass moves by `transform`, `opacity` and `clip-path` on itself, never on an
-   ancestor (G-13, G-21); a static 2.5 % grain on M3–M5; the `-webkit-` line holds literal
-   values and a test keeps it equal to the unprefixed line (G-22).
+   animate, glass moves by `transform` and `opacity` on itself, never on an ancestor, and the
+   capsule changes shape through its own width and height (G-13, G-21; amended by
+   `quality-bar.md` Q-3 and Q-6); no grain on any tier (G-7 removed by `quality-bar.md` Q-1,
+   2026-10-04: the owner found the prototype's grain made glass look dirty); the `-webkit-`
+   line holds literal values and a test keeps it equal to the unprefixed line (G-22).
 3. **Coverage rule** (A-2): `c = erf(h / 2√2σ) · erf(w / 2√2σ) ≥ 0.985` at the smallest size a
    surface renders at; in practice σ ≤ height / 5 for bars and ≤ side / 5.5 for square chips,
    and σ ≥ 16 above about 200 px of height. A registry in `tokens.test.ts` holds every surface;

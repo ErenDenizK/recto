@@ -10,6 +10,37 @@ status: plan
 
 # Brand plan
 
+## Status, 2026-10-04: the owner's mark replaces phases 1 and 2
+
+The owner reviewed this plan and has designed Recto's brand and logo in parallel. The kit
+arrives in the next phase. A preview shared on 2026-10-04 shows the direction:
+
+- **Mark "Dengeli" ("balanced"):** a geometric capital R. The top-left corner is chamfered and
+  the bowl round. A diagonal notch cuts the leg from the stem, so the leg reads as a turning page
+  corner or an arrow up and right.
+- **Two treatments:**
+  - **Mono:** near-black on a warm off-white.
+  - **Aurora:** a gradient from yellow-lime through lime to mint on near-black. The colours are
+    estimated from the preview: about `#e8f56c` → `#c8f55a` → `#6fe0a8`.
+- **Wordmark:** a lowercase "recto" in a geometric sans with open tracking.
+
+What changes here:
+
+- **Gate 0:** the owner is going ahead with the name Recto. The trademark searches of §1.2 stay
+  recommended before a public launch; they are the owner's call. ADR-0015 is amended with the
+  namesakes in D4-9.
+- **The mark (§3):** the owner's "Dengeli" R replaces the five concept boards and the
+  recommendation of "Leaf r" + "ct". `concepts/01` to `05` stay as history only. Phase 1's boards
+  (spec D3-10) and phase 2's designer brief (§10) are cancelled.
+- **Icons (§5):** the PNG set, `apple-touch-icon`, `favicon.ico`, the maskable icon and the
+  manifest colours are made from the owner's kit, not the current glyph. Spec D0-13 keeps only
+  the copy-check lists. The geometry checks of §5.4 apply to the kit's files.
+- **Colour:** the aurora treatment's mint end is noted for the light field (ADR-0025). It is
+  decided when the kit arrives (spec D3-8). The product accent stays the one lime `#c8fb3d`
+  (ADR-0023) until then.
+- **Phases 3 to 5** stand, using the owner's kit.
+
+
 ## 0. Summary
 
 **Settled already.** The app is at `erendenizk.github.io/recto/`, the About page at

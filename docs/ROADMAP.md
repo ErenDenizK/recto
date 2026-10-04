@@ -1,9 +1,10 @@
 # Roadmap
 
 **Status:** revised 2026-10-03 after the owner's review of the beta (M8 added as Craft); M8
-built 2026-10-04; revised 2026-10-04 for the owner's redesign brief: M9 is the Redesign
-(planned, awaiting the owner's approval), with tablets and phones folded into it, and the former
-M9 "Ecosystem" is now M10. Milestones are ordered by
+built 2026-10-04; revised 2026-10-04 for the owner's redesign brief: M9 is the Redesign,
+approved by the owner on 2026-10-04 for widescreen desktops and tablets, with a read-only
+compact edition on phones (ADR-0033); M10 is the phone edition, planned with the owner after M9;
+the former M9 "Ecosystem" is now M11. Milestones are ordered by
 dependency, not by calendar. We ship when a milestone's exit criteria pass, not on a date.
 Versions follow SemVer and ADR-0017: M1–M5 were internal (0.1–0.5, never published); the
 first public release is `1.0.0-beta.0` at the end of M7, and `1.0.0` only when the exit
@@ -366,30 +367,32 @@ panels. The independent review ran on 2026-10-04 (`docs/DISCUSSION.md` #31): its
 are fixed with regression tests, except the floating glass tier (contrast), and the open
 ones are listed above. Drop 1 and drop 2 built; tagging waits for the owner.
 
-## M9 — Redesign  (→ 1.0.0-beta.N, tagged only when the owner says so) — planned 2026-10-04, awaiting the owner's approval
+## M9 — Redesign  (→ 1.0.0-beta.N, tagged only when the owner says so) — approved 2026-10-04, in progress
 
 Owner brief (2026-10-04): rethink the whole interface from scratch in a language of glass, a
 lime aurora light and motion; simple, native and natural like Apple Preview and Notability; few,
 predictable steps; phone and desktop alike; smart, rich and expensive; plan the brand and the
 About page but do not build them yet; no beta tag until the owner says "beta v1". Spec:
-`docs/specs/redesign.md` (§6 resolves every issue the component authors raised, §14 holds the
-six owner questions). Decisions: ADR-0022 to ADR-0028 (the Recto Glass language: layers, colour,
-materials, light, motion, type and icons, accessibility gates) and ADR-0029 to ADR-0032 (viewing
-and Markup with Lock, the `canChange` guard, the size-class shell, saving and restore), all
-proposed. Inputs: research 15–22; the visual baseline, inventory and current flows under
+`docs/specs/redesign.md` (§6 resolves every issue the component authors raised, §14 records the
+owner's answers). Decisions: ADR-0022 to ADR-0028 (the Recto Glass language: layers, colour,
+materials, light, motion, type and icons, accessibility gates), ADR-0029 to ADR-0032 (viewing
+and Markup with Lock, the `canChange` guard, the size-class shell, saving and restore) and
+ADR-0033 (two editions), all accepted 2026-10-04, with `quality-bar.md` (Q-1 to Q-14, the
+prototype's faults kept out) and `components/10-ink.md` (colour and size). Inputs: research 15–22; the visual baseline, inventory and current flows under
 `docs/design/redesign-2026-10/`; proposals A, B and C and three judges; the chosen model
 (`flows.md`), the language (`language.md`) and nine component specs (`components/`); the brand
-plan `docs/brand/README.md`. Tablets and phones (formerly M10) are part of this milestone. Each
-drop is a working app; the owner decides whether and when any of them becomes "beta v1"
-(spec §14 question 6 recommends when D4-4 lands, so the first beta has the Library and its light).
+plan `docs/brand/README.md`. The owner's review (2026-10-04) set the scope: widescreen desktops
+and tablets first; on phones a read-only reader with the features hidden and a simple,
+collapsible bottom bar, its real design left for M10 with the owner. Each drop is a working app;
+"beta v1" is recommended when D4-4 lands and is tagged only when the owner says so.
 
 | Feature | Notes | Status |
 |---|---|---|
-| XD-0 Concept screens | The product frames the concept prototype still lacks (reading, Markup armed, empty Library, Pages grid, phone, six tabs at 820 px, Settings, handles, toasts), before the owner's taste check (spec §14 Q3) | planned |
-| **D0 — Independent of the redesign** (on the M8 shell) | Sheets, toasts, visible Undo, restore, Save in place, saved signatures, size classes, two accessibility fixes | planned |
+| XD-0 Concept screens | The concept prototype's product frames; the owner approved the direction on 2026-10-04 and listed its faults, which `quality-bar.md` turns into gates | done |
+| **D0 — Independent of the redesign** (on the M8 shell) | The compact edition on phones; sheets, toasts, visible Undo, restore, Save in place, saved signatures, size classes, one slider and colour panel, two accessibility fixes | in progress |
 | D0-1 Selection blue on the page; glass that does not leak; the two-band focus ring | `--select` `#4e61ed` replaces `#7c8cff` rings (2.98:1 → 4.93:1); the coverage rule on every `.glass*` surface (the rendered bar's labels were 3.61:1); `styles/focus.css`; the no-GPU test project (research 20, 22) | planned |
-| D0-2 Size classes and input modality | Five width classes and compact-height; phone, phone-landscape and tablet test projects | planned |
-| D0-3 Primitives on today's tokens | 22 Base UI primitives replace native inputs; focus-offset codemod; `.secondary` composes one button | planned |
+| D0-2 Size classes, input modality and the edition | Five width classes and compact-height; the edition read once by device (ADR-0033); phone, phone-landscape and tablet test projects | planned |
+| D0-3 Primitives on today's tokens | 22 Base UI primitives replace native inputs; the Slider with a lens knob and log widths, the swatch and the colour panel with its page eyedropper (`10-ink.md`); the bar audit (Q-9) | planned |
 | D0-4 Sheet primitive | Five presentations by size class; one result page; drafts kept | planned |
 | D0-5 Toasts | Own region, one announcer, progress capsule, error presentation | planned |
 | D0-6 Visible Undo and Redo, History scrubber | `HistoryEntry.meta` in `packages/document-model` | planned |
@@ -399,8 +402,9 @@ drop is a working app; the owner decides whether and when any of them becomes "b
 | D0-10 Settings sheet | One home for every setting; About Recto inside it | planned |
 | D0-11 Saved signatures | Up to five on the device; New signature and Settings → Saved signatures (J8A 6 → 4 on the M8 shell, 3 with D2-3) | planned |
 | D0-12 Motion core | `motion/`: springs, FLIP, velocity, projection, rubber band, `reducedMotion()`, the 240 ms View Transition helper, used by sheets, toasts, gestures and the morph | planned |
-| D0-13 Icon files and copy lists | PNG icons, `apple-touch-icon` and `favicon.ico` from the current glyph; banned lists in the copy check (brand phase 0) | planned |
-| D0-QA Tests | Save, Save a copy, session, sheets specs | planned |
+| D0-13 Copy lists | Banned lists in the copy check; the icon files wait for the owner's brand kit (D4-8) | planned |
+| D0-14 Compact edition | Phones: a read-only reader with its own small shell: Open PDF and Recents, fit width, pinch, find, Pages sheet, collapsible top bar and bottom capsule, Download a copy (ADR-0033) | planned |
+| D0-QA Tests | Save, Save a copy, session, sheets, compact, bar audit and glass-at-rest specs | planned |
 | **D1 — Targeted acts in viewing; `canChange` and Lock in `commit()`** | Fields, highlights, comments and page actions with no mode; Lock that holds | planned |
 | D1-1 State migration | `destination`, `surface`, `docUi` replace `viewMode`, `documentMode`, `lastView`; `canEdit` kept as a shim until D1-5, so the pen and page text stay protected | planned |
 | D1-2 `canChange(id, act)` | Six acts; every committing command declares one | planned |
@@ -412,13 +416,13 @@ drop is a working app; the owner decides whether and when any of them becomes "b
 | D1-8 Sheets with acts | Document info, password, certificate, signatures (validity), furniture, crop, OCR, apply redactions, find sensitive data | planned |
 | D1-9 Navigator safety | A navigating click never selects; Delete only on a visible selection | planned |
 | D1-QA Tests; five-person test, session 1 | Input rules in both lock defaults; S7, S9, the tab's ● and tablet tooltips with five people | planned |
-| **D2 — Markup palette and dock morph, Pages grid, Compare place, key map v2** | The model's shell, phone and tablet layouts included | planned |
+| **D2 — Markup palette and dock morph, Pages grid, Compare place, key map v2** | The model's shell for desktops and tablets, with narrow-window parity | planned |
 | D2-1 The frame | Top strip, tabs, title menu, Find, Save, privacy, compact top bar, page pill, hide on scroll; status bar, inspector toggle, rail and mode switch removed | planned |
-| D2-2 Capsule and dock | One glass element that morphs (clip, never filter) | planned |
-| D2-3 Markup palette | Opens with Select; measured folding; phone sets; Fill & sign door | planned |
-| D2-4 Sidebar | Contents and thumbnails with drag, Find, Review; phone Pages sheet | planned |
+| D2-2 Capsule and dock | One glass element that morphs through its own geometry, never the filter (Q-6) | planned |
+| D2-3 Markup palette | Opens with Select; measured folding; the ink strip and preset editor (`10-ink.md`); Fill & sign door | planned |
+| D2-4 Sidebar | Contents and thumbnails with drag, Find, Review | planned |
 | D2-5 Pages grid | 240 ms zoom transition; Combine with one outcome; Interleave keeps its sources | planned |
-| D2-6 Compare place | Full screen, chooser, Changes, phone A · B · Changes | planned |
+| D2-6 Compare place | Full screen, chooser, Changes | planned |
 | D2-7 Key map v2 | M, `1`–`4`, Shift+R, Mod+S, caret mode, Alt+Enter, keyboard placement | planned |
 | D2-8 ⌘K v2 | Selection first, arguments in English and Turkish | planned |
 | D2-9 Inspector removed | Every section re-homed (OCR results in Review's Words to check); Batch | planned |
@@ -431,10 +435,10 @@ drop is a working app; the owner decides whether and when any of them becomes "b
 | D3-4 Motion tokens | `linear()` spring curves, reduced motion per token, the Reduce motion setting, on D0-12's core | planned |
 | D3-5 Type | `'Inter Recto'` subset, 98 KB with Turkish | planned |
 | D3-6 Icons | Phosphor built at compile time; Lucide removed | planned |
-| D3-7 Light theme | Equal to dark, following the system (moved in from M10) | planned |
-| D3-8 Light | The aurora field (on the Library once D4-1 builds it), under the armed tool, the ring and bloom; Ambient light setting | planned |
+| D3-7 Light theme | Equal to dark, following the system (moved in from the former M10, Ecosystem) | planned |
+| D3-8 Light | The aurora field (its mint stop decided with the owner's brand kit) (on the Library once D4-1 builds it), under the armed tool, the ring and bloom; Ambient light setting | planned |
 | D3-9 Accessibility gates | A-1 to A-24 blocking; 16-combination matrix and the plain project; uppercase labels and case-mapping calls fixed first | planned |
-| D3-10 Brand tools and mark boards | `tools/brand/`, refined marks, review boards for the owner's choice (brand phase 1) | planned |
+| ~~D3-10~~ Brand tools and mark boards | Cancelled 2026-10-04: the owner designed the mark | — |
 | **D4 — Library, first run, polish and presentation** | The welcome, then media, README, About and brand | planned |
 | D4-1 Library | Launcher, lit cards, Combine without a dialog, Recents with snapshots; the Library rows of flows §8.2; aurora check OM4 on this build | planned |
 | D4-2 Teaching sample | Four pages, English and Turkish, `?sample` | planned |
@@ -442,32 +446,42 @@ drop is a working app; the owner decides whether and when any of them becomes "b
 | D4-4 Polish | Empty states, honesty notice, haptics, test and prototype decisions | planned |
 | D4-5 Media | Scenes re-recorded through the new shell | planned |
 | D4-6 README | Hero and screens of the redesigned app | planned |
-| D4-7 About page v2 | After Gate 0 (the name) | planned |
-| D4-8 Brand | Per `docs/brand/README.md`, after Gate 0 and the owner's brand choices | planned |
+| D4-7 About page v2 | With the owner's mark | planned |
+| D4-8 Brand | Icons, manifest colours, social card and wordmark from the owner's brand kit | planned |
 | D4-9 Docs | DESIGN amendments B1–B15, spec §15 | planned |
-| D4-10 Press kit | `/recto/about/press/` and a zip per release (brand plan §9), after Gate 0 | planned |
+| D4-10 Press kit | `/recto/about/press/` and a zip per release (brand plan §9), with the owner's kit | planned |
 | D4-11 Case study v1 | In the portfolio repository (brand plan §9), after the UI freeze | planned |
 
 **Brand track** (brand plan §11) against the drops:
 
 | Brand phase | Work | Drop |
 |---|---|---|
-| 0 Now | Gate 0 searches and decision (owner); icon files from the current glyph; copy-check lists | Before D0; D0-13 |
-| 1 After the design-language ADR | `tools/brand/`, refined marks, review boards, the owner's choice of mark | D3-10 |
-| 2 After Gate 0, with a budget | The designer's brief, about four weeks, beside the build | D2–D4 |
-| 3 After the UI freeze | Final icons and manifest colours, media, About v2, social card, README hero, press kit, `TRADEMARKS.md`, reveal, case study v1 | D4-5 to D4-11 |
+| 0 Now | The owner keeps Recto and designs the mark ("Dengeli" R); copy-check lists | D0-13 |
+| 1–2 | Cancelled: the owner's kit replaces the lead's boards and the designer brief | — |
+| 3 After the UI freeze, with the owner's kit | Icons and manifest colours, media, About v2, social card, README hero, press kit, `TRADEMARKS.md`, reveal, case study v1 | D4-5 to D4-11 |
 | 4 After D4 | Phone captures, Turkish About page, case study v2 | After D4 |
 
-Waiting for the owner (spec §14): approval of the plan; the default lock; kept documents; a taste
-check on the concept prototype once its screens exist (XD-0); Gate 0; the machine checks (glass frames, edge-leak probe, Safari
-`var()`, aurora banding and drift, a phone and tablet run); whether "beta v1" waits for the
-redesign.
+The owner's answers (spec §14, 2026-10-04): unlocked by default; documents kept on the device
+(30 days or 500 MB); the concept approved, its faults gated; Recto kept, the brand kit to come;
+"beta v1" when D4-4 lands, on the owner's word. Still with the owner: the brand kit; the machine
+checks (glass frames, edge-leak probe, Safari `var()`, aurora banding and drift, a tablet run),
+each with a safe default.
 
 Exit: spec §10.5.
 
-## M10 — Ecosystem  (→ 2.0)
+## M10 — Phone edition  (planned with the owner after M9)
 
-Numbered M9 until 2026-10-04.
+Added 2026-10-04 by the owner's review (ADR-0033). M9 ships a read-only compact edition on
+phones (D0-14). M10 designs the real phone interface with the owner: an interface of its own,
+not a reflowed desktop, after apps like Procreate. Inputs: the compact edition as built,
+ADR-0031's phone rules (dock labels under icons, the Draw and Sign sets, the phone Pages sheet,
+hide on scroll, bottom-sheet detents), `07-sheets`' compact presentations, research 19, and a
+Procreate-style edge control for size and opacity (`10-ink.md`). Scope, order and exit are set
+with the owner when M9's widescreen work is done.
+
+## M11 — Ecosystem  (→ 2.0)
+
+Numbered M9 until 2026-10-04, then M10 until the phone edition took that number the same day.
 
 - Light theme on the same tokens (moved from M6 on 2026-10-01; moved again into M9, drop D3,
   on 2026-10-04).
@@ -482,7 +496,9 @@ Numbered M9 until 2026-10-04.
 
 ## Tablet and phone (formerly M10)
 
-Moved into M9 (drops D0 and D2) on 2026-10-04, because the brief asks for phone and desktop together and the redesign's size-class shell (ADR-0031) is the tablet and phone layout.
+Moved into M9 on 2026-10-04 with the redesign's size-class shell (ADR-0031). The same day the
+owner narrowed it: tablets stay in M9, and phones get the read-only compact edition in M9 and
+their real interface in M10 (ADR-0033).
 
 ## Explicitly deferred or declined
 

@@ -1,13 +1,13 @@
 ---
 title: "ADR-0031: The size-class shell: top strip, dock, sidebar, sheets, page pill, Library"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0031: The size-class shell: top strip, dock, sidebar, sheets, page pill, Library
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** DESIGN §2's layout diagram and its bullets "Home is the first
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** DESIGN §2's layout diagram and its bullets "Home is the first
 view…", "Home's chrome is Home's own", "Navigator", "Inspector", "Floating tool bar", "Document
 menu", "Status bar" and "The stage runs under the docked chrome" (replaced by the free
 rectangle) · **Amends:** ADR-0019 §1 (Home becomes the Library place; `0` and the app glyph stay)
