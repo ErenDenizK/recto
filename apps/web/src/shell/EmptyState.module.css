@@ -69,6 +69,7 @@
 }
 
 .hint {
+  composes: focus-inset from global;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -89,8 +90,4 @@
     background: var(--surface-hover);
     color: var(--text-primary);
   }
-}
-
-.hint:focus-visible {
-  outline-offset: -2px;
 }

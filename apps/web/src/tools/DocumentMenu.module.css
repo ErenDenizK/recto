@@ -1,29 +1,16 @@
-/* "Document": icon and name (experience-redesign spec §5.3), a chrome button of the tab bar. */
+/* "Document": icon and name (experience-redesign spec §5.3), a quiet button of the title bar
+   (09-primitives §3), held in the pressed wash while its menu is open. */
 .trigger {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  height: var(--control-height);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-2);
+  composes: btn btn-quiet from global;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
 }
 
 .trigger svg {
-  width: var(--icon-chrome);
-  height: var(--icon-chrome);
   stroke-width: 1.5;
 }
 
 @media (hover: hover) {
   .trigger:hover {
-    background: var(--surface-hover);
     color: var(--text-primary);
   }
 }

@@ -55,31 +55,12 @@
   align-self: center;
 }
 
-.primary,
-.secondary {
-  height: var(--control-height);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-2);
-  font-size: var(--text-md);
-  font-weight: 500;
-  white-space: nowrap;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
 .primary {
-  composes: primary-button from global;
+  composes: btn btn-prominent from global;
 }
 
 .secondary {
-  border: 1px solid var(--border-hairline);
-  color: var(--text-secondary);
-}
-
-@media (hover: hover) {
-  .secondary:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
+  composes: btn btn-standard from global;
 }
 
 @keyframes enter {

@@ -315,7 +315,8 @@
 .input:focus-visible,
 .select:focus-visible,
 .file:focus-visible {
-  outline-offset: 0;
+  outline-offset: var(--focus-offset-in);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
 }
 
 .row {
@@ -394,28 +395,10 @@
   white-space: nowrap;
 }
 
-.primary,
-.secondary {
-  height: var(--control-height);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-2);
-  font-size: var(--text-md);
-  font-weight: 500;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
 .primary {
-  composes: primary-button from global;
+  composes: btn btn-prominent from global;
 }
 
 .secondary {
-  border: 1px solid var(--border-hairline);
-  color: var(--text-secondary);
-}
-
-@media (hover: hover) {
-  .secondary:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
+  composes: btn btn-standard from global;
 }

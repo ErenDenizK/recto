@@ -1,4 +1,6 @@
 .trigger {
+  /* Inset: the status bar clips its overflow, so an outside ring would be cut off. */
+  composes: focus-inset from global;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -126,32 +128,19 @@
   background: var(--warning);
 }
 
-/* The version line: a quiet text button that opens the About dialog. */
+/* The version line: a quiet button (09-primitives §3) that opens the About dialog, its label
+   on the popover's text edge. */
 .version {
+  composes: btn btn-quiet from global;
   justify-self: start;
-  margin-left: calc(var(--space-1) * -1);
-  padding: 2px var(--space-1);
-  border-radius: var(--radius-1);
+  margin-left: calc(var(--btn-pad, 12px) * -1);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
-  line-height: 18px;
-  font-variant-numeric: tabular-nums;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
 }
 
 @media (hover: hover) {
   .version:hover {
-    background: var(--surface-hover);
     color: var(--text-primary);
   }
-}
-
-/* Inset: the status bar clips its overflow, so an outside ring would be cut off. */
-.trigger:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: -2px;
 }
 
 /* "Recent files are remembered on this device only. Clear recents" (craft §3.1). */

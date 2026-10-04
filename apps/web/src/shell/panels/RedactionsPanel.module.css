@@ -138,6 +138,7 @@
 }
 
 .item {
+  composes: focus-inset from global;
   display: flex;
   flex: 1;
   align-items: baseline;
@@ -147,10 +148,6 @@
   border-radius: var(--radius-1);
   text-align: left;
   color: var(--text-primary);
-}
-
-.item:focus-visible {
-  outline-offset: 0;
 }
 
 /* Kind glyph of a mark row in the Review list (the same box as a comment's). */
@@ -274,10 +271,5 @@
 }
 
 .primary {
-  composes: primary-button from global;
-  height: var(--control-height);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-2);
-  font-size: var(--text-sm);
-  font-weight: 500;
+  composes: btn btn-prominent from global;
 }

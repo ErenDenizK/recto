@@ -32,6 +32,7 @@
 }
 
 .preview {
+  composes: focus-inset from global;
   height: 360px;
   margin: 0;
   padding: var(--space-3);
@@ -49,10 +50,6 @@
 
 .preview[data-state='working'] {
   color: var(--text-tertiary);
-}
-
-.preview:focus-visible {
-  outline-offset: 0;
 }
 
 /* An honesty notice: one recipe, a warning hairline, no tint (DESIGN.md §3). */

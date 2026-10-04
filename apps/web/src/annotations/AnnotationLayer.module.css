@@ -188,9 +188,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  height: 40px;
+  /* --bar-h around --control-h controls (quality-bar Q-9): 44 / 56 px. */
+  height: var(--bar-h);
   padding: 0 var(--space-2);
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-capsule);
   color: var(--text-primary);
   font-size: var(--text-sm);
   white-space: nowrap;
@@ -289,29 +290,10 @@
   gap: var(--space-2);
 }
 
-.primary,
-.secondary {
-  height: var(--control-height);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-2);
-  font-size: var(--text-md);
-  font-weight: 500;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
 .primary {
-  composes: primary-button from global;
+  composes: btn btn-prominent from global;
 }
 
 .secondary {
-  border: 1px solid var(--border-hairline);
-  color: var(--text-secondary);
-}
-
-/* The shared secondary hover (design audit F6). */
-@media (hover: hover) {
-  .secondary:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
+  composes: btn btn-standard from global;
 }

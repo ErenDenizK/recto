@@ -7,14 +7,15 @@
  * well above 3:1). The armed preset gets a 2 px accent ring (26 px), not a fill, so its colour
  * shows; it is armed only while the pen itself is (another Draw tool shows no preset ring).
  *
- * The four sit in one quiet well (a half --surface-1 wash with a hairline) in 32 px cells with
- * no gap, so they read as one control rather than four specks on the bar.
+ * The four sit in one quiet well (a half --surface-1 wash with a hairline) in --bar-button cells
+ * (32 px fine, 44 px coarse; quality-bar Q-9) with no gap, so they read as one control rather
+ * than four specks on the bar.
  */
 .presets {
   display: inline-flex;
   flex: none;
   align-items: center;
-  height: 34px;
+  height: calc(var(--bar-button) + 2px);
   padding: 0 1px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-round);
@@ -25,8 +26,8 @@
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: var(--bar-button);
+  height: var(--bar-button);
   border-radius: var(--radius-round);
 }
 
@@ -136,8 +137,9 @@
 
 .swatch:focus-visible,
 .custom:has(input:focus-visible) {
-  outline: var(--focus-ring);
-  outline-offset: -2px;
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
 }
 
 @media (hover: hover) {

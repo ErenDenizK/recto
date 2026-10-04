@@ -51,6 +51,9 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'ui/Menu.module.css': {
     '.item:focus-visible': 'the highlighted row is the keyboard’s place in a menu',
   },
+  'ui/ResizeHandle.module.css': {
+    '.handle:focus-visible': 'the full-height strip draws no ring; its grip shows the inset form',
+  },
   'shell/CommandPalette.module.css': {
     '.input:focus-visible': 'the search field’s caret, in a palette that keeps the focus there',
   },
@@ -67,41 +70,12 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
 };
 
 /**
- * Files whose focus rules still set literal offsets or the retired aliases, for D0-3 to move onto
- * the forms (09-primitives §32 step 4, "44 files for focus"). D0-3 must leave this list empty.
+ * Files whose focus rules still set literal offsets or the retired aliases (09-primitives §32
+ * step 4). D0-3's codemod moved every other file onto the forms; `ui/Range` is left for the ink
+ * port of the same package, which replaces it with `ui/Slider` and deletes the file (and with
+ * it this entry and the `--focus-ring` / `--focus-offset` aliases in tokens.css).
  */
-const PENDING_D0_3: readonly string[] = [
-  'annotations/StyleControls.module.css',
-  'annotations/pen/PenBar.module.css',
-  'batch/Batch.module.css',
-  'compare/ChangesPanel.module.css',
-  'convert/ConvertDialog.module.css',
-  'document/DocumentTools.module.css',
-  'export/ExportDialog.module.css',
-  'furniture/FurnitureDialogs.module.css',
-  'home/HomeView.module.css',
-  'ocr/Ocr.module.css',
-  'privacy/PrivacyIndicator.module.css',
-  'shell/CommentsPanel.module.css',
-  'shell/EmptyState.module.css',
-  'shell/FormsPanel.module.css',
-  'shell/LeftRail.module.css',
-  'shell/OutlinePanel.module.css',
-  'shell/PasswordDialog.module.css',
-  'shell/SearchPanel.module.css',
-  'shell/Stage.module.css',
-  'shell/TabBar.module.css',
-  'shell/files/FileRow.module.css',
-  'shell/panels/RadioChips.module.css',
-  'shell/panels/RedactionsPanel.module.css',
-  'signatures/Signatures.module.css',
-  'stage/ResizeDialog.module.css',
-  'tools/ToolDialog.module.css',
-  'ui/Range.module.css',
-  'ui/ResizeHandle.module.css',
-  'viewer/GoToPageDialog.module.css',
-  'viewer/LayoutSwitch.module.css',
-];
+const PENDING_D0_3: readonly string[] = ['ui/Range.module.css'];
 
 const ALLOWED_OFFSETS = new Set([
   'var(--focus-offset-out)',

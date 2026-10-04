@@ -70,9 +70,10 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  /* 44 px (spec §7.3): a 36 px target, 3 px padding and the 1 px glass border each side. */
-  height: 44px;
-  padding: 3px;
+  /* --bar-h (44 px fine, 56 px coarse; quality-bar Q-9): a --bar-button control (32 / 44 px),
+     5 px of padding and the 1 px glass border each side. */
+  height: var(--bar-h);
+  padding: calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
   border-radius: var(--radius-capsule);
   white-space: nowrap;
 }
@@ -82,9 +83,9 @@
   overflow: hidden;
 }
 
-/* Buttons in the capsule are round, concentric with its ends (22 - 1 border - 3 padding = 18,
-   half of a 36px target), so the armed tool's fill and the hover wash follow the bar's shape. */
-.toolbar [data-size='toolbar'] {
+/* Buttons in the capsule are round, concentric with its ends (22 - 1 border - 5 padding = 16,
+   half of a 32 px target), so the armed tool's fill and the hover wash follow the bar's shape. */
+.toolbar [data-size='bar'] {
   border-radius: var(--radius-round);
 }
 
@@ -103,12 +104,13 @@
   flex: none;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  height: var(--bar-button);
   padding: 0 var(--space-3);
   border-radius: var(--radius-round);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--control-text);
   font-weight: 500;
+  line-height: var(--control-lh);
   transition:
     background-color var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out);
@@ -150,8 +152,8 @@
 
 .chipChevron {
   flex: none;
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
   margin-right: -2px;
   color: var(--text-secondary);
 }
@@ -223,19 +225,22 @@
   position: relative;
 }
 
-.menuTrigger .chevron {
+/* The menu mark: a small caret drawn in CSS at the bottom right (not an icon, so the button
+   holds one 20 px glyph, Q-9). A text step, not opacity, so it does not stack over the glass
+   (design audit I9); on the armed tool's accent fill it takes the icon colour. */
+.menuTrigger::after {
+  content: '';
   position: absolute;
-  right: 1px;
-  bottom: 1px;
-  width: 9px;
-  height: 9px;
-  /* A text step, not opacity, so it does not stack over the glass (design audit I9). */
-  color: var(--text-tertiary);
+  right: 5px;
+  bottom: 5px;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-right: 4px solid var(--text-tertiary);
 }
 
-/* On the armed tool's accent fill the chevron takes the icon colour. */
-.menuTrigger[aria-pressed='true'] .chevron {
-  color: currentColor;
+.menuTrigger[aria-pressed='true']::after {
+  border-right-color: currentColor;
 }
 
 .menuIcon {

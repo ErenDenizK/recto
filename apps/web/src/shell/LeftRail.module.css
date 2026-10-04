@@ -147,6 +147,7 @@
 }
 
 .pageOption {
+  composes: focus-inset from global;
   position: absolute;
   top: 0;
   left: 0;
@@ -157,10 +158,6 @@
   padding-top: 2px;
   border-radius: var(--radius-2);
   cursor: default;
-}
-
-.pageOption:focus-visible {
-  outline-offset: -2px;
 }
 
 .pageBox {

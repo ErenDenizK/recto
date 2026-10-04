@@ -40,6 +40,7 @@
 }
 
 .input {
+  composes: focus-inset from global;
   width: 100%;
   min-width: 0;
   height: 26px;
@@ -53,9 +54,6 @@
 
 /* The shared input look: the control border, no hover, the focus ring at offset 0 (design
    audit F4, H4). */
-.input:focus-visible {
-  outline-offset: 0;
-}
 
 .input[aria-invalid='true'] {
   border-color: var(--danger);
@@ -310,6 +308,7 @@
 }
 
 .dialogInput {
+  composes: focus-inset from global;
   height: 32px;
   padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
@@ -317,10 +316,6 @@
   background: var(--surface-2);
   color: var(--text-primary);
   font-size: var(--text-md);
-}
-
-.dialogInput:focus-visible {
-  outline-offset: 0;
 }
 
 .strength {
@@ -442,30 +437,12 @@
   padding-top: var(--space-1);
 }
 
-.primary,
-.secondary {
-  height: var(--control-height);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-2);
-  font-size: var(--text-md);
-  font-weight: 500;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
 .primary {
-  composes: primary-button from global;
+  composes: btn btn-prominent from global;
 }
 
 .secondary {
-  border: 1px solid var(--border-hairline);
-  color: var(--text-secondary);
-}
-
-@media (hover: hover) {
-  .secondary:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
+  composes: btn btn-standard from global;
 }
 
 /* ---- Export dialog sections ---- */

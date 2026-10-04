@@ -48,11 +48,8 @@
 }
 
 .noticeSummary {
+  composes: focus-inset from global;
   cursor: pointer;
-}
-
-.noticeSummary:focus-visible {
-  outline-offset: 1px;
 }
 
 .noticeList {
@@ -128,6 +125,7 @@
 }
 
 .item {
+  composes: focus-inset from global;
   display: grid;
   grid-template-columns: 16px 1fr;
   gap: var(--space-2);
@@ -142,10 +140,6 @@
   .item:hover {
     background: var(--surface-hover);
   }
-}
-
-.item:focus-visible {
-  outline-offset: -2px;
 }
 
 /* A current row is accent-muted; tertiary text steps up to secondary (DESIGN.md §3). */
