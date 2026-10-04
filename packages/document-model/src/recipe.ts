@@ -73,6 +73,12 @@ export const MAX_RECIPE_STEPS = 64;
 export const MAX_RECIPE_TEXT_LENGTH = 1000;
 /** Spec §5: an image watermark is embedded in the recipe (base64), at most 1 MB. */
 export const MAX_RECIPE_IMAGE_BYTES = 1024 * 1024;
+/**
+ * Pixels an embedded image may declare (4096 × 4096). The byte cap alone does not bound the
+ * decode: 1 MB of compressed zeros can declare 20000 × 20000 pixels, which the assembler
+ * (pdf-lib `embedPng`) would expand to RGBA in memory on every batch run.
+ */
+export const MAX_RECIPE_IMAGE_PIXELS = 4096 * 4096;
 /** AES-256 (revision 6) uses at most 127 bytes of a UTF-8 password (document/password-form.ts). */
 export const RECIPE_MAX_PASSWORD_BYTES = 127;
 
@@ -1107,7 +1113,63 @@ function readImage(value: unknown, at: At): RecipeImage {
       `the bytes are not a ${type === 'image/png' ? 'PNG' : 'JPEG'} image`,
     );
   }
+  // A PNG declares its size at a fixed place; a JPEG's frame header may follow large
+  // segments, so the whole image (at most 1 MB) is read.
+  const size = declaredImageSize(base64Head(data, type === 'image/png' ? 24 : Infinity), type);
+  if (size !== undefined && size.width * size.height > MAX_RECIPE_IMAGE_PIXELS) {
+    dataAt.fail(
+      'invalid-value',
+      `the image declares ${size.width} × ${size.height} pixels, more than 4096 × 4096`,
+    );
+  }
   return { type, data };
+}
+
+/**
+ * Pixel size a PNG (IHDR) or JPEG (first SOF segment) declares, undefined when the header
+ * cannot be read (a decoder then refuses the bytes anyway).
+ */
+export function declaredImageSize(
+  bytes: readonly number[],
+  type: 'image/png' | 'image/jpeg',
+): { readonly width: number; readonly height: number } | undefined {
+  const u32 = (at: number) =>
+    (((bytes[at] ?? 0) << 24) >>> 0) +
+    ((bytes[at + 1] ?? 0) << 16) +
+    ((bytes[at + 2] ?? 0) << 8) +
+    (bytes[at + 3] ?? 0);
+  const u16 = (at: number) => ((bytes[at] ?? 0) << 8) + (bytes[at + 1] ?? 0);
+  if (type === 'image/png') {
+    // Signature (8), IHDR length (4) and type (4), then width and height.
+    const ihdr = String.fromCharCode(...bytes.slice(12, 16));
+    if (bytes.length < 24 || ihdr !== 'IHDR') return undefined;
+    return { width: u32(16), height: u32(20) };
+  }
+  let at = 2;
+  while (at + 4 <= bytes.length) {
+    if (bytes[at] !== 0xff) return undefined;
+    const marker = bytes[at + 1] ?? 0;
+    // Fill bytes, and markers without a length (RSTn, TEM).
+    if (marker === 0xff) {
+      at += 1;
+      continue;
+    }
+    if ((marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) {
+      at += 2;
+      continue;
+    }
+    const length = u16(at + 2);
+    // SOF0–SOF15 except DHT (C4), JPG (C8) and DAC (CC): precision (1), height, width.
+    const sof = marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker);
+    if (sof) {
+      if (at + 9 > bytes.length) return undefined;
+      return { width: u16(at + 7), height: u16(at + 5) };
+    }
+    // Start of scan or end of image before any frame header.
+    if (marker === 0xda || marker === 0xd9 || length < 2) return undefined;
+    at += 2 + length;
+  }
+  return undefined;
 }
 
 function sortedRecord(record: Readonly<Record<string, string>>): Record<string, string> {
