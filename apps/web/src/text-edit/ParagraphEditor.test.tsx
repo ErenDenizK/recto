@@ -207,7 +207,14 @@ describe('ParagraphEditor', () => {
     const clear = vi.spyOn(CanvasRenderingContext2D.prototype, 'clearRect');
     const fill = vi.spyOn(CanvasRenderingContext2D.prototype, 'fill');
     const calls = spies.analyze.mock.calls.length;
-    await userEvent.keyboard('very ');
+    // Typed key by key to measure the gaps: on a loaded machine a gap can reach the pause,
+    // and a preview for that gap is correct (as in the next test). None per keystroke.
+    const times: number[] = [];
+    for (const key of 'very ') {
+      times.push(performance.now());
+      await userEvent.keyboard(key);
+    }
+    const pauses = times.slice(1).filter((t, k) => t - (times[k] ?? t) >= PREVIEW_DELAY_MS).length;
     await waitFor(() =>
       expect(mirror.textContent).toBe(
         'The very quick brown fox jumps over the lazy dog and runs away.',
@@ -218,7 +225,9 @@ describe('ParagraphEditor', () => {
     expect(fill.mock.calls.length).toBeGreaterThan(0);
     expect(spies.analyze.mock.calls.length).toBe(calls);
     // The one dry run at open renders the plate (the paragraph emptied); none per keystroke.
-    expect(spies.preview.mock.calls.map((c) => c[2]?.text)).toEqual(['']);
+    const previews = spies.preview.mock.calls.map((c) => c[2]?.text);
+    expect(previews[0]).toBe('');
+    expect(previews.filter((text) => text !== '').length).toBeLessThanOrEqual(pauses);
     expect(spies.dryRun).not.toHaveBeenCalled();
   });
 
@@ -402,6 +411,22 @@ describe('ParagraphEditor', () => {
     });
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(mirror.textContent).toBe('\n'));
+  });
+
+  it('types in order and in the paragraph’s style after the whole text was deleted', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    await userEvent.keyboard('{Control>}a{/Control}{Backspace}');
+    await waitFor(() => expect(mirror.textContent).toBe(''));
+    for (const key of 'abc') await userEvent.keyboard(key);
+    // Each letter after the one before it, never all at the first letter's place.
+    await waitFor(() => expect(mirror.textContent).toBe('abc'));
+    await waitFor(() => expect(window.getSelection()?.focusOffset).toBe(3));
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(useTextEditStore.getState().paragraph).toBeNull());
+    expect(commits.calls).toHaveLength(1);
+    expect(commits.calls[0]).toMatchObject({ text: 'abc', style: 's0' });
   });
 });
 
