@@ -24,11 +24,11 @@
   padding: 4px;
   border-radius: 50%;
   background: var(--loupe-colour);
-  box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.9),
-    0 0 0 2px rgb(0 0 0 / 0.28),
-    0 10px 28px -10px rgb(0 0 0 / 0.6),
-    0 2px 6px -2px rgb(0 0 0 / 0.35);
+  /* A white and a dark hairline, then e3 (language.md §6.3). */
+  --loupe-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.9), 0 0 0 2px rgb(0 0 0 / 0.28),
+    0 10px 28px -10px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.35);
+  box-shadow: var(--loupe-shadow);
   pointer-events: none;
 }
 
