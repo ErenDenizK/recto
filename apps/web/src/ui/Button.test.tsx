@@ -1,4 +1,5 @@
 import '../styles/tokens.css';
+import '../styles/reset.css';
 import '../styles/global.css';
 
 import { act, render, screen } from '@testing-library/react';

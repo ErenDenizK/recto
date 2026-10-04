@@ -67,13 +67,16 @@ export function RadioGroup<T extends string>({
             <Radio.Root
               value={option.value}
               disabled={option.disabled}
+              aria-labelledby={`${noteId}-label`}
               aria-describedby={option.description ? noteId : undefined}
               className={styles.circle}
             >
               <Radio.Indicator className={styles.dot} />
             </Radio.Root>
             <span className={styles.text}>
-              <span className={styles.label}>{option.label}</span>
+              <span id={`${noteId}-label`} className={styles.label}>
+                {option.label}
+              </span>
               {option.description ? (
                 <span id={noteId} className={styles.description}>
                   {option.description}

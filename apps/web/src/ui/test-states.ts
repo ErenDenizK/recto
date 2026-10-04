@@ -23,11 +23,10 @@ interface CdpNode {
   readonly contentDocument?: CdpNode;
 }
 
-let counter = 0;
-
 /** The CDP node id of `element`, which lives in the test's iframe. */
 async function nodeIdOf(element: Element): Promise<number> {
-  const key = `force-${++counter}`;
+  // Unique across the run: earlier files' iframes may still hold their own keyed elements.
+  const key = `force-${crypto.randomUUID()}`;
   element.setAttribute('data-cdp-key', key);
   await devtools('DOM.enable');
   const { root } = await devtools<{ root: CdpNode }>('DOM.getDocument', {

@@ -66,6 +66,7 @@ export function Switch({
   className,
 }: SwitchProps) {
   const noteId = useId();
+  const labelId = useId();
   const drag = useRef<{ x: number; moved: boolean; offset: number } | null>(null);
   const swallow = useRef(false);
   const root = useRef<HTMLElement | null>(null);
@@ -83,7 +84,11 @@ export function Switch({
     if (inert || event.button !== 0) return;
     swallow.current = false;
     drag.current = { x: event.clientX, moved: false, offset: 0 };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // A pointer the browser no longer tracks: the drag still follows its events.
+    }
   };
   const onPointerMove = (event: PointerEvent<HTMLElement>) => {
     const state = drag.current;
@@ -132,7 +137,9 @@ export function Switch({
       data-disabled={inert || undefined}
     >
       <span className={styles.text}>
-        <span className={styles.label}>{label}</span>
+        <span id={labelId} className={styles.label}>
+          {label}
+        </span>
         {note ? (
           <span id={noteId} className={styles.note}>
             {note}
@@ -146,6 +153,7 @@ export function Switch({
         disabled={disabled || system}
         readOnly={busy}
         aria-busy={busy || undefined}
+        aria-labelledby={labelId}
         aria-describedby={note ? noteId : undefined}
         className={styles.track}
         onPointerDown={onPointerDown}
