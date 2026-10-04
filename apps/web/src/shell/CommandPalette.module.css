@@ -12,21 +12,23 @@
 }
 
 /* Glass with a solid fallback; the scrim underneath keeps contrast predictable. It rises in
-   like the menus (--motion-rise). */
+   like the menus (--motion-rise). Centred by its auto margins, so at rest it carries no
+   transform and sits on whole pixels (quality-bar Q-2). */
 .popup {
   composes: glass from global;
   position: fixed;
   top: min(18vh, 160px);
-  left: 50%;
+  right: 0;
+  left: 0;
   z-index: 41;
   display: flex;
   flex-direction: column;
   width: min(600px, calc(100vw - 32px));
   max-height: min(480px, calc(100vh - 2 * min(18vh, 160px)));
+  margin-inline: auto;
   border-radius: var(--radius-3);
   color: var(--text-primary);
   overflow: hidden;
-  transform: translateX(-50%);
   outline: none;
   transition:
     opacity var(--duration-fast) var(--ease-out),
@@ -36,7 +38,7 @@
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  transform: translateX(-50%) var(--motion-rise);
+  transform: var(--motion-rise);
 }
 
 .searchRow {
@@ -73,8 +75,10 @@
   color: var(--text-tertiary);
 }
 
+/* The caret is the search field's focus: neither band of the ring. */
 .input:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 .list {

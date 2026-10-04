@@ -1,4 +1,8 @@
 /* Global element styles. Component styles live in CSS Modules next to components. */
+
+/* The two-band focus ring and its three forms (A-11, components/09-primitives.md §19). */
+@import './focus.css';
+
 html,
 body,
 #root {
@@ -22,16 +26,6 @@ body {
   font-optical-sizing: auto;
   user-select: none;
   -webkit-user-select: none;
-}
-
-/* Keyboard focus is always visible: 2px accent ring on a 2px offset (DESIGN.md §5). */
-:focus {
-  outline: none;
-}
-
-:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 ::selection {

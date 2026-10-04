@@ -4,23 +4,17 @@
  * targets, the editor and its header are live; its stacking comes from `HIT_LAYER_Z`. The
  * idle hover outline is the text layer's (after 400 ms, from a mouse or a hovering pen); a
  * run marks itself only with keyboard focus or while edited, and one that cannot be edited
- * is hatched on hover (design audit D6). The rest of the page stays unmarked. The inline
- * editor matches the free-text editor (dashed accent frame on an opaque page-white field,
- * so the original glyphs never show through); its header is a glass popover like the note
- * popup.
+ * is hatched on hover (design audit D6). The rest of the page stays unmarked. Marks on the
+ * page use its selection blue (--select, language.md §1.5). The inline editor matches the
+ * free-text editor (dashed frame on an opaque page-white field, so the original glyphs never
+ * show through); its header is a glass popover like the note popup.
  */
+
+/* The layer holds the focus after a commit while the page's runs are located again: the inset
+   ring (styles/focus.css), as page layers take it. */
 .layer {
+  composes: focus-inset from global;
   pointer-events: none;
-}
-
-/* The layer holds the focus after a commit while the page's runs are located again. */
-.layer:focus {
-  outline: none;
-}
-
-.layer:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: calc(-1 * var(--focus-offset));
 }
 
 .run {
@@ -34,20 +28,20 @@
   pointer-events: auto;
   /* Fingers still scroll and zoom over text; a tap or a long press opens (TextEditLayer). */
   touch-action: manipulation;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out);
+  /* Only the fill fades: a box-shadow transition would animate the focus ring, which never
+     moves (language.md §9.2). The marks are the run's own shadow (--shadow-own), kept under
+     the focus ring's dark band. */
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
-.run:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
+.run[data-editable]:focus-visible {
+  --shadow-own: 0 0 0 1px var(--select);
+  background: var(--select-muted);
 }
 
-.run[data-editable]:focus-visible,
-.run[data-editable][data-editing] {
-  background: var(--accent-muted);
-  box-shadow: 0 0 0 1px var(--accent);
+.run[data-editable][data-editing]:not(:focus-visible) {
+  background: var(--select-muted);
+  box-shadow: 0 0 0 1px var(--select);
 }
 
 .run[data-blocked] {
@@ -71,29 +65,31 @@
 }
 
 .paragraph:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-  background: var(--accent-muted);
+  background: var(--select-muted);
 }
 
 @media (hover: hover) {
   .run[data-blocked]:hover {
+    --shadow-own: 0 0 0 1px color-mix(in srgb, var(--text-tertiary) 45%, transparent);
     background: repeating-linear-gradient(
       135deg,
       color-mix(in srgb, var(--text-tertiary) 30%, transparent) 0 1.5px,
       transparent 1.5px 5px
     );
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-tertiary) 45%, transparent);
+  }
+
+  .run[data-blocked]:hover:not(:focus-visible) {
+    box-shadow: var(--shadow-own);
   }
 }
 
 .run[data-blocked]:focus-visible {
+  --shadow-own: 0 0 0 1px color-mix(in srgb, var(--text-tertiary) 45%, transparent);
   background: repeating-linear-gradient(
     135deg,
     color-mix(in srgb, var(--text-tertiary) 30%, transparent) 0 1.5px,
     transparent 1.5px 5px
   );
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-tertiary) 45%, transparent);
 }
 
 /* The inline editor: sized to the line box, turned with the line on rotated pages. */
@@ -103,7 +99,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0 2px;
-  border: 1px dashed var(--accent);
+  border: 1px dashed var(--select);
   border-radius: var(--radius-page);
   /* The page is never themed (DESIGN.md §3): the field is page white with page ink, opaque
      so the original glyphs never ghost through the edited text (design audit N6, D12). */
@@ -117,14 +113,17 @@
   field-sizing: content;
 }
 
+/* An in-place editor (language.md §2.10): its frame turns solid and the caret shows the focus,
+   so neither band of the ring is drawn over the text. */
 .input:focus-visible {
   outline: none;
+  box-shadow: none;
   border-style: solid;
 }
 
 /* Selected glyphs keep the page ink: the chrome's selection text colour is near-white. */
 .input::selection {
-  background: var(--accent-highlight);
+  background: var(--select-wash);
   color: currentcolor;
 }
 
@@ -250,11 +249,6 @@
 .choice:disabled {
   color: var(--text-disabled);
   cursor: not-allowed;
-}
-
-.choice:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .error {

@@ -12,7 +12,9 @@
   min-height: 0;
 }
 
+/* Its ring is the inset form (styles/focus.css), as for every page layer. */
 .viewport {
+  composes: focus-inset from global;
   position: absolute;
   /* A stacking context under the docked frame (AppShell.module.css) and the stage header. */
   z-index: 0;
@@ -24,25 +26,25 @@
   display: none;
 }
 
-.viewport:focus-visible {
-  outline-offset: -2px;
-}
-
 /* The pages' ring shows only when the focus reached them by Tab or F6 (shell/Stage.tsx,
-   `data-focus-ring` on the stage), never after a click or a mode key (review finding 23). */
+   `data-focus-ring` on the stage), never after a click or a mode key (review finding 23):
+   neither band then. */
 :global(main:not([data-focus-ring])) .viewport:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 /* The viewport's own ring runs along the shell's edges, mostly under the frame; the visible ring
-   is drawn again around the unobscured rectangle, where the viewport's ring used to be. */
+   is drawn again around the unobscured rectangle, where the viewport's ring used to be: the
+   inset form's two bands, restated for the pseudo-element that cannot match :focus-visible. */
 :global(main[data-focus-ring]) .frame:has(> .viewport:focus-visible)::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
-  outline: var(--focus-ring);
-  outline-offset: -2px;
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
   pointer-events: none;
 }
 
@@ -50,6 +52,7 @@
 .barHorizontal {
   position: absolute;
   outline: none;
+  box-shadow: none;
 }
 
 .barVertical {

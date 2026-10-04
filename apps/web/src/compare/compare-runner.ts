@@ -53,8 +53,11 @@ interface ActiveRun {
 
 let active: ActiveRun | null = null;
 
-/** The heat map colour: the accent (#7c8cff), the one colour for state on the page. */
-const HEATMAP_RGB: readonly [number, number, number] = [124, 140, 255];
+/**
+ * The heat map colour: the page's selection blue (--select, #4e61ed; language.md §1.5), the
+ * one colour for state on the page (spec 06.Q3: one colour, with shapes and words).
+ */
+const HEATMAP_RGB: readonly [number, number, number] = [78, 97, 237];
 /** Pairs diffed first: the rows in view and a few after them. */
 const VISIBLE_FIRST = 6;
 

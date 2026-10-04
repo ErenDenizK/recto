@@ -266,26 +266,29 @@ export function ContextualBar({
     all[next]?.focus();
   };
 
+  // The anchor is a zero-width box at the bar's centre; the bar centres in it by layout, not by
+  // translateX(-50%), so the glass rests on whole pixels whatever its width (quality-bar Q-2).
   return (
-    <div
-      ref={ref}
-      role="toolbar"
-      aria-label={m.context_bar_label({ pages: pagesPhrase(selected.size) })}
-      className={styles.contextBar}
-      data-testid="contextual-bar"
-      data-context-bar=""
-      style={{ left: position.left, top: position.top }}
-      onKeyDown={onKeyDown}
-    >
-      <span className={styles.contextCount} aria-hidden="true">
-        {m.status_selected({ count: selected.size })}
-      </span>
-      <span className={styles.contextDivider} aria-hidden="true" />
-      {buttons.map((button, i) => (
-        <span key={button.key} style={{ display: 'contents' }}>
-          {button.element(i === focusIndex ? 0 : -1)}
+    <div className={styles.contextAnchor} style={{ left: position.left, top: position.top }}>
+      <div
+        ref={ref}
+        role="toolbar"
+        aria-label={m.context_bar_label({ pages: pagesPhrase(selected.size) })}
+        className={styles.contextBar}
+        data-testid="contextual-bar"
+        data-context-bar=""
+        onKeyDown={onKeyDown}
+      >
+        <span className={styles.contextCount} aria-hidden="true">
+          {m.status_selected({ count: selected.size })}
         </span>
-      ))}
+        <span className={styles.contextDivider} aria-hidden="true" />
+        {buttons.map((button, i) => (
+          <span key={button.key} style={{ display: 'contents' }}>
+            {button.element(i === focusIndex ? 0 : -1)}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 /* Menus float over the document: frosted glass with a hairline and --elevation-float (global
-   .glass), in the denser tier 3 (.glass-menu, docs/specs/craft.md §7). */
+   .glass), in the denser tier 3 (.glass-menu, docs/specs/craft.md §7), blurred 12px: a menu of
+   two rows or more is at least 66 px tall, c 0.994 (coverage registry). */
 .popup {
   composes: glass glass-menu from global;
   min-width: 180px;
@@ -11,6 +12,12 @@
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
+}
+
+/* A one-row menu (Recents' "Remove": 38 px) is too short for the menus' 12px blur, c 0.89: the
+   page would show through its edges. It takes 7px, c 0.993 (coverage registry, `menu-one-row`). */
+.popup:not(:has(> :nth-child(2))) {
+  --glass-filter: var(--glass-menu-short-filter);
 }
 
 /* Rise-in (DESIGN.md §3 motion): the popup starts --rise-distance nearer its anchor at opacity 0
@@ -44,8 +51,14 @@
   padding: 0 var(--space-2);
   border-radius: var(--radius-1);
   color: var(--text-secondary);
-  outline: none;
   cursor: default;
+}
+
+/* The keyboard's place in a menu is its highlighted row (data-highlighted, under the pointer
+   too), so a row draws neither band of the focus ring. */
+.item:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .item[data-highlighted] {

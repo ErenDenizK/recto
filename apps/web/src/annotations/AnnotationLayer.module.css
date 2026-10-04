@@ -78,17 +78,17 @@
 
 @media (hover: hover) {
   .layer:not([data-drawing]) .hit:hover {
-    fill: var(--accent-subtle);
+    fill: var(--select-subtle);
   }
 
   .layer:not([data-drawing]) .hit[data-stroke]:hover polyline {
-    stroke: var(--accent-highlight);
+    stroke: var(--select-wash);
   }
 }
 
 .selection .outline {
   fill: none;
-  stroke: var(--accent);
+  stroke: var(--select);
   stroke-width: 1.5;
   stroke-dasharray: 4 3;
   pointer-events: none;
@@ -96,7 +96,7 @@
 
 .handle {
   fill: var(--page-background);
-  stroke: var(--accent);
+  stroke: var(--select);
   stroke-width: 1.5;
   pointer-events: all;
 }
@@ -128,7 +128,7 @@
 
 .ghost {
   fill: none;
-  stroke: var(--accent);
+  stroke: var(--select);
   stroke-width: 1.5;
   stroke-dasharray: 2 3;
   pointer-events: none;
@@ -145,8 +145,8 @@
 }
 
 .previewBox {
-  fill: var(--accent-subtle);
-  stroke: var(--accent);
+  fill: var(--select-subtle);
+  stroke: var(--select);
   stroke-width: 1;
   stroke-dasharray: 4 3;
 }
@@ -227,7 +227,7 @@
   position: absolute;
   z-index: 3;
   padding: 1px 2px;
-  border: 1px dashed var(--accent);
+  border: 1px dashed var(--select);
   background: rgb(255 255 255 / 0.85);
   font-family: Helvetica, Arial, sans-serif;
   resize: none;
@@ -236,13 +236,16 @@
   transform-origin: center;
 }
 
+/* An in-place editor (language.md §2.10: page white with page ink): its dashed frame and the
+   caret show the focus, so neither band of the ring is drawn over the text. */
 .freeText:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 /* Selected glyphs keep the annotation's ink: the chrome's selection text colour is near-white. */
 .freeText::selection {
-  background: var(--accent-highlight);
+  background: var(--select-wash);
   color: currentcolor;
 }
 

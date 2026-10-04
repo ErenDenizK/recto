@@ -745,23 +745,23 @@ test('the focus ring tokens apply to the new controls', async ({ page }) => {
     const found = await target.evaluate((el) => {
       const style = getComputedStyle(el);
       const probe = document.createElement('span');
-      probe.style.color = 'var(--accent)';
+      probe.style.color = 'var(--focus-light)';
       document.body.append(probe);
-      const accent = getComputedStyle(probe).color;
+      const light = getComputedStyle(probe).color;
       probe.remove();
       return {
         visible: el.matches(':focus-visible'),
         style: style.outlineStyle,
         width: style.outlineWidth,
         colour: style.outlineColor,
-        accent,
+        light,
       };
     });
     expect(found.visible, name).toBe(true);
     expect(found.style, name).toBe('solid');
     expect(found.width, name).toBe('2px');
-    // --accent, ≥ 3:1 over the glass bar and every surface (styles/tokens.test.ts).
-    expect(found.colour, name).toBe(found.accent);
+    // The light band of the two-band ring (styles/focus.css, tokens.test.ts: 16.4:1 to the dark).
+    expect(found.colour, name).toBe(found.light);
   };
 
   await expectRing('navigator tab', page.locator('#rail-review'));

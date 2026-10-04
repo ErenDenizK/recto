@@ -99,6 +99,7 @@
 }
 
 .stripCell {
+  composes: focus-inset from global;
   display: grid;
   place-items: center;
   width: 20px;
@@ -136,19 +137,12 @@
   }
 }
 
-.stripCell:focus-visible {
-  outline-offset: 1px;
-}
-
 .viewport {
+  composes: focus-inset from global;
   position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
-}
-
-.viewport:focus-visible {
-  outline-offset: -2px;
 }
 
 .canvas {
@@ -255,25 +249,26 @@
   text-align: center;
 }
 
-/* Changed areas: a 1px on-page ring; the current change's areas get the stronger line. */
+/* Changed areas: a 1px on-page ring in the page's selection blue (--select, language.md §1.5;
+   spec 06.Q3); the current change's areas get the stronger line. */
 .region {
-  box-shadow: 0 0 0 1px var(--accent-line);
+  box-shadow: 0 0 0 1px var(--select-wash-strong);
   border-radius: 1px;
 }
 
 .region[data-current] {
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 1px var(--select);
 }
 
 /* Changed words: the multiply highlight used on the page for search hits. */
 .word {
-  background: var(--accent-highlight);
+  background: var(--select-wash);
   mix-blend-mode: multiply;
 }
 
 .word[data-current] {
-  background: var(--accent-highlight-strong);
-  box-shadow: 0 0 0 1px var(--accent);
+  background: var(--select-wash-strong);
+  box-shadow: 0 0 0 1px var(--select);
 }
 
 .heatmap {
@@ -285,22 +280,25 @@
 
 /* Floating chrome ------------------------------------------------------------------- */
 
+/* The glass surfaces centre by their auto margins: a translateX(-50%) of a fractional width
+   would leave them between device pixels at rest (quality-bar Q-2). Both are in the coverage
+   registry at the bars' 7px blur. */
 .toolbar {
   composes: glass from global;
   position: absolute;
+  right: 0;
   bottom: var(--space-5);
-  left: 50%;
+  left: 0;
   z-index: 3;
   display: flex;
   align-items: center;
   gap: 2px;
-  /* Absolutely positioned at left: 50%: without this it would shrink to half the stage. */
   width: max-content;
   max-width: calc(100% - 2 * var(--space-4));
+  margin-inline: auto;
   padding: var(--space-1);
   overflow-x: auto;
   border-radius: var(--radius-3);
-  transform: translateX(-50%);
 }
 
 .divider {
@@ -346,10 +344,6 @@
 .segment[aria-checked='true'] {
   background: var(--accent-muted);
   color: var(--text-primary);
-}
-
-.segment:focus-visible {
-  outline-offset: 1px;
 }
 
 .slider {
@@ -401,16 +395,17 @@
   composes: glass from global;
   position: absolute;
   top: calc(var(--space-12) + var(--space-2));
-  left: 50%;
+  right: 0;
+  left: 0;
   z-index: 3;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: var(--space-2) var(--space-3);
   width: min(420px, calc(100% - 2 * var(--space-4)));
+  margin-inline: auto;
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
   border-radius: var(--radius-3);
-  transform: translateX(-50%);
 }
 
 .progress[data-centred] {

@@ -2,16 +2,20 @@
  * Image tool (M4 §3). The layer never takes the page (craft spec §3.5, viewer/hit-order.ts):
  * its root lets the pointer through, and only the image targets, the selection and the bar
  * are live; its stacking comes from `HIT_LAYER_Z`.
- * Only the image under the pointer (or with keyboard focus) is marked, with a 1px accent ring
- * and no fill: the page is never tinted (design audit D6, D7). The selected one gets the annotation selection's dashed accent frame with eight white handles, and the
- * contextual bar is the annotation bar's glass panel.
+ * Only the image under the pointer (or with keyboard focus) is marked, with a 1px ring in the
+ * page's selection blue (--select, language.md §1.5) and no fill: the page is never tinted
+ * (design audit D6, D7). The selected one gets the annotation selection's dashed frame with
+ * eight white handles, and the contextual bar is the annotation bar's glass panel.
  */
 .layer {
   pointer-events: none;
 }
 
-.layer:focus {
+/* The layer takes the focus from script only, to keep the keys on the page; the targets and
+   the selection show the ring (styles/focus.css), the layer draws neither band. */
+.layer:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 .target {
@@ -24,22 +28,23 @@
   cursor: move;
   pointer-events: auto;
   touch-action: none;
-  transition: box-shadow var(--duration-fast) var(--ease-out);
 }
 
-.target:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
+/* The mark is the target's own shadow, kept under the focus ring's dark band. It no longer
+   fades in: a box-shadow transition would animate the focus ring too, which never moves
+   (language.md §9.2). */
 @media (hover: hover) {
   .target:hover {
-    box-shadow: 0 0 0 1px var(--accent);
+    --shadow-own: 0 0 0 1px var(--select);
+  }
+
+  .target:hover:not(:focus-visible) {
+    box-shadow: var(--shadow-own);
   }
 }
 
 .target:focus-visible {
-  box-shadow: 0 0 0 1px var(--accent);
+  --shadow-own: 0 0 0 1px var(--select);
 }
 
 .selection {
@@ -48,21 +53,12 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  border: 1.5px dashed var(--accent);
+  border: 1.5px dashed var(--select);
   border-radius: 0;
   background: transparent;
   cursor: move;
   pointer-events: auto;
   touch-action: none;
-}
-
-.selection:focus {
-  outline: none;
-}
-
-.selection:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .selection[data-busy] {
@@ -72,7 +68,7 @@
 .handle {
   position: absolute;
   box-sizing: border-box;
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid var(--select);
   border-radius: var(--radius-page);
   /* The page is never themed (DESIGN.md §3): handles are page white like the annotations'. */
   background: var(--page-background);
@@ -179,15 +175,4 @@
 .action:disabled {
   color: var(--text-disabled);
   cursor: not-allowed;
-}
-
-.action:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .target {
-    transition: none;
-  }
 }

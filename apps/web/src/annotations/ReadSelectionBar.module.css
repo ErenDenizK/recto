@@ -50,11 +50,6 @@
   background: var(--surface-active);
 }
 
-.action:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: -2px;
-}
-
 /* Between the markups and Comment in Edit. */
 .divider {
   flex: none;

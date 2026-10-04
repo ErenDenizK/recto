@@ -44,6 +44,7 @@
   position: relative;
   min-width: 100%;
   outline: none;
+  box-shadow: none;
 }
 
 /* ---------------------------------------------------------------- sections */
@@ -182,6 +183,7 @@
   position: relative;
   flex: none;
   outline: none;
+  box-shadow: none;
 }
 
 .row {
@@ -203,18 +205,16 @@
   font-size: var(--text-sm);
 }
 
+/* A cell has its own selection ring around the thumbnail, so its focus ring takes the gap form
+   (styles/focus.css), clear of it. */
 .cell {
+  composes: focus-gap from global;
   position: relative;
   display: grid;
   justify-items: center;
   align-content: start;
   min-width: 0;
   border-radius: var(--radius-2);
-}
-
-.cell:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 4px;
 }
 
 .cell[data-dragging] {
@@ -380,16 +380,26 @@
 
 /* ---------------------------------------------------------------- contextual bar */
 
-.contextBar {
-  composes: glass from global;
+/* A zero-width anchor at the bar's centre (ContextualBar.tsx): the bar overflows it evenly on
+   both sides, centred by layout instead of translateX(-50%), which put the glass and its labels
+   between device pixels at rest (quality-bar Q-2). */
+.contextAnchor {
   position: absolute;
   z-index: 5;
   display: flex;
+  justify-content: center;
+  width: 0;
+}
+
+/* 38 px tall at the bars' 7px blur (coverage registry). */
+.contextBar {
+  composes: glass from global;
+  display: flex;
+  flex: none;
   align-items: center;
   gap: 2px;
   padding: var(--space-1);
   border-radius: var(--radius-3);
-  transform: translateX(-50%);
   white-space: nowrap;
 }
 

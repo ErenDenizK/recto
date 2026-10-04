@@ -68,7 +68,8 @@ describe('the docked frame', () => {
     // Nothing is open: no page anywhere, and the frame is glass all the same (review F7).
     expect(shell.hasAttribute('data-glass-near')).toBe(false);
     for (const style of [title, navigator, status]) {
-      expect(blurOf(style)).toBe('blur(40px) saturate(1.4) brightness(0.6)');
+      // σ 5: a fifth of the 28 px status bar, the shortest frame bar (coverage registry, D0-1).
+      expect(blurOf(style)).toBe('blur(5px) saturate(1.4) brightness(0.6)');
       expect(style.backgroundColor).toBe('rgba(29, 31, 37, 0.8)');
     }
     // No shadow on docked glass: the inner top highlight only, on every surface.

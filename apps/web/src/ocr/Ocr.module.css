@@ -260,7 +260,8 @@
   line-height: var(--leading-base);
 }
 
-/* ---- Page overlay: the focused word, a 1px accent ring; the page is never tinted ---- */
+/* ---- Page overlay: the focused word, a 1px ring in the page's selection blue (--select,
+   language.md §1.5); the page is never tinted ---- */
 
 .layer {
   position: absolute;
@@ -271,7 +272,7 @@
 .ring {
   position: absolute;
   border-radius: var(--radius-page);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 1px var(--select);
 }
 
 /* ---- Status bar: the running recognition, a button that reopens the dialog ---- */

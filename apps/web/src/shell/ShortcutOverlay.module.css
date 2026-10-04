@@ -26,6 +26,7 @@
   background: var(--surface-1);
   transform: translate(-50%, -50%);
   outline: none;
+  box-shadow: none;
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);

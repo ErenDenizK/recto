@@ -2,24 +2,30 @@
  * Glass over the document (the global .glass rule in styles/global.css: tint, blur, hairline,
  * --elevation-float), with its opaque fallbacks for browsers without backdrop-filter and for
  * reduced transparency, more contrast and forced colours. The bar is a capsule; the armed
- * tool's solid accent fill lives in ui/IconButton.module.css.
+ * tool's solid accent fill lives in ui/IconButton.module.css. Both surfaces are in the coverage
+ * registry (styles/coverage-registry.ts): 44 and 40 px tall at the bars' 7px blur.
  *
  * The dock anchors the bar and its options tier. The tier is the bar's sibling, not its
  * child: a glass surface is the backdrop root of its descendants, so a nested tier would
  * blur nothing.
+ *
+ * The dock is centred by its auto margins, not by `translateX(-50%)`: half of a width such as
+ * 435.6 px left the glass and its labels between device pixels at rest (quality-bar Q-2).
  */
 .dock {
   position: absolute;
+  right: 0;
   bottom: var(--space-5);
-  left: 50%;
+  left: 0;
   z-index: 3;
   display: flex;
   /* The bar comes first in the DOM (Tab order: bar, then options); the tier sits on top. */
   flex-direction: column-reverse;
   align-items: center;
   gap: var(--space-1);
+  width: fit-content;
   max-width: calc(100% - 2 * var(--space-4));
-  transform: translateX(-50%);
+  margin-inline: auto;
   /* Only the surfaces take the pointer; the gap beside the tier is the page's. */
   pointer-events: none;
 }
@@ -85,19 +91,11 @@
 /*
  * Keyboard focus rings sit inside the controls in the capsule bar and its options tier
  * (DESIGN.md §5, 2026-10-02): outside, the ring around the shown group's chip sat next to the
- * armed preset's ring as a second accent halo, and the tier clips what overflows it. On the
- * chip's --surface-3 the accent ring is 4.8:1. The armed tool is the exception: inside its
- * solid accent fill an accent ring would vanish, so its ring stays outside (the 36 px button
- * plus the 2 px offset and ring is exactly the bar's height).
+ * armed preset's ring as a second halo, and the tier clips what overflows it. Every control
+ * inside glass takes the inset form of the two-band ring (styles/focus.css), the armed tool
+ * included: its ink band shows against the accent fill (6.7:1), so it no longer needs the
+ * outside ring a single accent band did.
  */
-.toolbar :focus-visible,
-.tier :focus-visible {
-  outline-offset: -2px;
-}
-
-.toolbar [data-tool][aria-pressed='true']:focus-visible {
-  outline-offset: var(--focus-offset);
-}
 
 /* A group: icon and name (spec §5.1). */
 .group {

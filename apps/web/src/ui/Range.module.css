@@ -28,6 +28,7 @@
 /* The ring goes on the thumb (below), not around the whole input. */
 .range:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 .range::-webkit-slider-runnable-track {
