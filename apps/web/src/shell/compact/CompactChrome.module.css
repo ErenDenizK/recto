@@ -65,6 +65,12 @@
     transform var(--duration-fast) var(--ease-out);
 }
 
+/* A one-row menu would be 58 px, too short for the menus' 12px blur (c 0.984): it takes 7px,
+   as ui/Menu's do (coverage registry, `compact-menu-one-row`). */
+.menu:not(:has(> :nth-child(2))) {
+  --glass-filter: var(--glass-menu-short-filter);
+}
+
 .menu[data-starting-style],
 .menu[data-ending-style] {
   opacity: 0;
@@ -90,6 +96,12 @@
   height: 16px;
   color: var(--text-secondary);
   stroke-width: 1.75;
+}
+
+/* The highlighted row is the keyboard's place in the menu (as in ui/Menu): neither band. */
+.menuItem:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .menuItem[data-highlighted] {
@@ -158,6 +170,12 @@
   background: transparent;
   font-size: 1rem;
   outline: none;
+}
+
+/* The find field shows its focus on the field's border (.field:focus-within): neither band. */
+.input:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .input::placeholder {

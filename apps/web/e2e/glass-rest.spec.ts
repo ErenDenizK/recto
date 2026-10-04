@@ -9,7 +9,7 @@
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { enterEdit, fixturePath, openFixtures, useFileInputPicker } from './helpers';
 import { expectGlassClean } from './support/glass-walker';
 
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -121,4 +121,54 @@ test('an annotation’s bar and a note', async ({ page }) => {
   await note.dblclick({ force: true });
   await expect(page.locator('[class*="notePopup"]')).toBeVisible();
   await expectGlassClean(page, 'Edit, a note open');
+});
+
+/**
+ * The compact edition (ADR-0033 §2.3), forced with `?edition=compact` at phone size: the reader
+ * with its top bar and capsule, the ⋯ menu, the Pages sheet and a note. (The `phone` projects
+ * run only compact.spec.ts; the walker reads styles and needs no touch.)
+ */
+test.describe('the compact edition', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  async function openCompact(page: Page, name: string): Promise<void> {
+    await page.goto('./?lang=en&edition=compact');
+    await expect(page.getByTestId('compact-library')).toBeVisible();
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: /^(Open PDF|PDF aç)$/ }).click();
+    await (await chooser).setFiles(fixturePath(name));
+    await expect(page.locator('[data-page-index="0"] canvas')).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
+  }
+
+  test('the reader, the ⋯ menu and the Pages sheet', async ({ page }) => {
+    await openCompact(page, 'outline-named-dests.pdf');
+    let walk = await expectGlassClean(page, 'compact reader');
+    expect(names(walk).some((n) => n.includes('topBar'))).toBe(true);
+    expect(names(walk).some((n) => n.includes('capsule'))).toBe(true);
+
+    await page.getByRole('button', { name: 'More' }).click();
+    await expect(page.getByTestId('compact-menu')).toBeVisible();
+    walk = await expectGlassClean(page, 'compact ⋯ menu');
+    expect(walk.visible).toBe(3);
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('compact-menu')).toHaveCount(0);
+
+    await page.getByTestId('compact-capsule').getByRole('button', { name: 'Pages' }).click();
+    await expect(page.getByTestId('compact-pages-sheet')).toBeVisible();
+    await expectGlassClean(page, 'compact Pages sheet');
+  });
+
+  test('a note', async ({ page }) => {
+    await openCompact(page, 'annotations.pdf');
+    await page.getByTestId('compact-page-number').click();
+    const input = page.getByRole('textbox', { name: 'Page number or label' });
+    await input.fill('2');
+    await input.press('Enter');
+    await page.getByRole('button', { name: /^Show note/ }).click();
+    await expect(page.getByTestId('note-popover')).toBeVisible();
+    await expectGlassClean(page, 'compact note');
+  });
 });

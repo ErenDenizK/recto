@@ -144,10 +144,6 @@
   background: var(--surface-3);
 }
 
-.recentRow:focus-visible {
-  outline-offset: 2px;
-}
-
 .recentGlyph {
   display: grid;
   flex: none;

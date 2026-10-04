@@ -60,10 +60,12 @@
   }
 }
 
+/* Keyboard focus: the outset form of styles/focus.css, restated on the loupe (the focus is on
+   the field's hidden input), with the loupe's own hairline kept. */
 .loupe:has(:focus-visible) {
-  outline: 2px solid var(--focus-light, var(--accent));
-  outline-offset: 2px;
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-out);
   box-shadow:
-    0 0 0 0.5px rgb(0 0 0 / 0.25),
-    0 0 0 6px var(--focus-dark, var(--surface-0));
+    0 0 0 6px var(--focus-dark),
+    0 0 0 0.5px rgb(0 0 0 / 0.25);
 }
