@@ -10,8 +10,9 @@
  * - **Q-4, no glass in glass.** No glass element contains another.
  * - **Q-5, small parts never blur.** Rendered size at least 32 px in both directions.
  * - **Q-2, glass rests crisp.** At rest the element and every ancestor carry `transform: none`
- *   or an integer translation (a fractional one puts the surface and its text between device
- *   pixels: the position must round, Q-2), and the element has no `will-change`.
+ *   or a translation by whole device pixels (a fractional one puts the surface and its text
+ *   between device pixels: the position must round, Q-2; at 2× a half CSS pixel is whole, as
+ *   Floating UI rounds it), and the element has no `will-change`.
  * - **Q-11, the budget.** At most four visible surfaces at rest (six during a transition).
  * - **A-2, coverage.** The surface's own σ (the `blur()` of its filter) meets
  *   `erf(h / 2√2σ) · erf(w / 2√2σ) ≥ 0.985` at its rendered size, the same rule
@@ -107,14 +108,15 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
         const id = el.id ? `#${el.id}` : '';
         return `${el.tagName.toLowerCase()}${id}${classes ? `.${classes}` : ''}${pseudo}`;
       };
-      /** `none`, or an integer 2D translation, is at rest (Q-2). */
+      /** `none`, or a 2D translation by whole device pixels, is at rest (Q-2). */
       const restingTransform = (transform: string): boolean => {
         if (transform === 'none' || transform === '') return true;
         const m = /^matrix\(([^)]+)\)$/.exec(transform);
         if (!m?.[1]) return false;
         const [a, b, c, d, tx, ty] = m[1].split(',').map((v) => Number.parseFloat(v));
+        const dpr = window.devicePixelRatio || 1;
         const whole = (v: number | undefined) =>
-          v !== undefined && Math.abs(v - Math.round(v)) < 0.01;
+          v !== undefined && Math.abs(v * dpr - Math.round(v * dpr)) < 0.01;
         return a === 1 && b === 0 && c === 0 && d === 1 && whole(tx) && whole(ty);
       };
       /** What makes an element a backdrop root (Filter Effects 2), as Q-3 lists it. */
