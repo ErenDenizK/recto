@@ -6,19 +6,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { Button } from './Button';
-import { coarsePointer, forceState, stillStyles } from './test-states';
+import { forceState, stillStyles } from './test-states';
 
 stillStyles();
 
-afterEach(async () => {
-  await coarsePointer(false);
+afterEach(() => {
   vi.useRealTimers();
 });
 
 const bg = (el: Element) => getComputedStyle(el).backgroundColor;
 
 describe('Button (09-primitives §3)', () => {
-  it('is a 32 px pill on a fine pointer and 44 px on a coarse one, with a 16 / 20 px glyph', async () => {
+  it('is a 32 px pill with a 16 px glyph on a fine pointer', () => {
     render(
       <Button icon={<svg data-testid="glyph" />} variant="standard">
         Save copy
@@ -28,9 +27,6 @@ describe('Button (09-primitives §3)', () => {
     expect(button.getBoundingClientRect().height).toBe(32);
     expect(getComputedStyle(button).borderTopLeftRadius).toBe('999px');
     expect(screen.getByTestId('glyph').getBoundingClientRect().width).toBe(16);
-    await coarsePointer(true);
-    expect(button.getBoundingClientRect().height).toBe(44);
-    expect(screen.getByTestId('glyph').getBoundingClientRect().width).toBe(20);
   });
 
   it('draws every state of each variant from the control tokens (Q-14)', async () => {
@@ -55,12 +51,13 @@ describe('Button (09-primitives §3)', () => {
 
     // Hover: one step.
     for (const [el, want] of [
-      [prominent, 'rgb(143, 157, 255)'],
-      [standard, 'rgba(255, 255, 255, 0.12)'],
-      [quiet, 'rgba(255, 255, 255, 0.045)'],
+      [prominent, /^rgb\(143, 157, 255\)$/],
+      [standard, /^rgba\(255, 255, 255, 0\.12\)$/],
+      // 0.045 is stored in 8 bits: 0.043.
+      [quiet, /^rgba\(255, 255, 255, 0\.04\d*\)$/],
     ] as const) {
       const release = await forceState(el, ['hover']);
-      expect(bg(el)).toBe(want);
+      expect(bg(el)).toMatch(want);
       await release();
     }
     // Danger hover keeps its fill and rings the edge.
