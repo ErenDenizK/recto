@@ -55,8 +55,9 @@
 }
 
 .segment:has(input:focus-visible) {
-  outline: var(--focus-ring);
-  outline-offset: 1px;
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
 }
 
 .segmented[data-disabled] .segment {
@@ -92,6 +93,7 @@
 }
 
 .anchorCell {
+  composes: focus-inset from global;
   display: grid;
   place-items: center;
   padding: 0;
@@ -122,11 +124,6 @@
   width: 10px;
   height: 10px;
   background: var(--accent);
-}
-
-.anchorCell:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 0;
 }
 
 .anchorGrid[aria-disabled] .anchorCell {

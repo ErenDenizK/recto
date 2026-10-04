@@ -68,7 +68,7 @@
 
 /* The one primary action of a place: the accent fill (today's tokens; the lime is D3). */
 .primary {
-  composes: primary-button from global;
+  composes: btn-prominent from global;
   min-width: 200px;
   padding: 0 24px;
   /* The shared rule above sets the chrome's text colour; the fill's label is canvas-dark. */

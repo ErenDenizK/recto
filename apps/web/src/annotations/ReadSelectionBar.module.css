@@ -13,9 +13,10 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  height: 36px;
-  padding: 3px;
-  border-radius: var(--radius-3);
+  /* A capsule of --bar-h around --control-h actions (quality-bar Q-9): 44 / 56 px. */
+  height: var(--bar-h);
+  padding: calc((var(--bar-h) - var(--control-h) - 2px) / 2);
+  border-radius: var(--radius-capsule);
   color: var(--text-primary);
   font-size: var(--text-sm);
   white-space: nowrap;
@@ -25,29 +26,11 @@
 }
 
 .action {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  height: 28px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-2);
-  color: var(--text-primary);
+  composes: btn btn-quiet from global;
 }
 
 .action svg {
-  width: 14px;
-  height: 14px;
   stroke-width: 1.5;
-}
-
-@media (hover: hover) {
-  .action:hover {
-    background: var(--surface-hover);
-  }
-}
-
-.action:active {
-  background: var(--surface-active);
 }
 
 /* Between the markups and Comment in Edit. */

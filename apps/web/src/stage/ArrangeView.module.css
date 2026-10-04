@@ -398,8 +398,9 @@
   flex: none;
   align-items: center;
   gap: 2px;
-  padding: var(--space-1);
-  border-radius: var(--radius-3);
+  /* --bar-h around --bar-button controls (quality-bar Q-9): 44 / 56 px. */
+  padding: calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
+  border-radius: var(--radius-capsule);
   white-space: nowrap;
 }
 

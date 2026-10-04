@@ -61,17 +61,15 @@
   gap: 2px;
 }
 
-.small {
+/* The status line is 28 px tall, so its zoom steps stay 22 px circles inside it (ui/IconButton's
+   row size is 28). The bar leaves with the status bar in D2; until then it is outside
+   bar-audit.spec.ts. */
+.zoom .small[data-size] {
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-1);
 }
 
-.small:disabled {
-  color: var(--text-disabled);
-}
-
-.small svg {
+.zoom .small[data-size] svg {
   width: 14px;
   height: 14px;
 }

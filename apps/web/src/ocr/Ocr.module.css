@@ -71,8 +71,9 @@
 }
 
 .language:has(input:focus-visible) {
-  outline: var(--focus-ring);
-  outline-offset: -2px;
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
 }
 
 @media (hover: hover) {
@@ -217,6 +218,7 @@
 }
 
 .rowButton {
+  composes: focus-inset from global;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -228,11 +230,6 @@
   color: var(--text-primary);
   font-size: var(--text-sm);
   text-align: left;
-}
-
-.rowButton:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: -2px;
 }
 
 @media (hover: hover) {

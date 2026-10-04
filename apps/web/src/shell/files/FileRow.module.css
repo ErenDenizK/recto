@@ -38,6 +38,7 @@
 }
 
 .open {
+  composes: focus-inset from global;
   display: flex;
   flex: 1;
   align-items: center;
@@ -47,10 +48,6 @@
   border-radius: var(--radius-2);
   color: var(--text-primary);
   text-align: left;
-}
-
-.open:focus-visible {
-  outline-offset: -2px;
 }
 
 .tag {

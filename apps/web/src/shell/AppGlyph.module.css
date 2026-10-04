@@ -1,10 +1,11 @@
-/* The title bar's Home button: the glyph, with the shared hover step. */
+/* The title bar's Home button: the glyph in a --bar-button circle (ui/IconButton's bar size),
+   with the shared hover step. */
 .home {
   display: grid;
   place-items: center;
-  width: var(--control-height);
-  height: var(--control-height);
-  border-radius: var(--radius-2);
+  width: var(--bar-button);
+  height: var(--bar-button);
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
   transition:
     background-color var(--duration-fast) var(--ease-out),

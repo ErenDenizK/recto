@@ -71,8 +71,9 @@
 }
 
 .preset:has(input:focus-visible) {
-  outline: var(--focus-ring);
-  outline-offset: 1px;
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
 }
 
 .preset input {
@@ -268,35 +269,12 @@
   flex: 1;
 }
 
-.primary,
-.secondary {
-  height: var(--control-height);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-2);
-  font-size: var(--text-md);
-  font-weight: 500;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
 .primary {
-  composes: primary-button from global;
-}
-
-.secondary:disabled {
-  color: var(--text-disabled);
-  cursor: default;
+  composes: btn btn-prominent from global;
 }
 
 .secondary {
-  border: 1px solid var(--border-hairline);
-  color: var(--text-secondary);
-}
-
-@media (hover: hover) {
-  .secondary:hover:not(:disabled) {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
+  composes: btn btn-standard from global;
 }
 
 @media (max-width: 640px) {
