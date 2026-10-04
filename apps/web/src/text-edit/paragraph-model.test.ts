@@ -244,6 +244,49 @@ describe('layout and caret geometry', () => {
     expect(caretAt(lines, 10)).toEqual({ line: 1, x: LEFT });
   });
 
+  it('typing into a paragraph emptied by deleting all of it advances the caret per letter', () => {
+    const setup = paragraph(LINES, WIDTH);
+    let state = deleteBackward(selectAll(initialState(setup.input, 0)));
+    expect(state.text).toBe('');
+    for (const ch of 'abc') state = insertText(state, ch);
+    expect(state.text).toBe('abc');
+    // Every letter takes the paragraph's style, never an unknown (zero-width) one.
+    expect(state.styles.every((style) => style in setup.input.styles)).toBe(true);
+    const lines = geometry(setup, state);
+    expect([0, 1, 2, 3].map((offset) => caretAt(lines, offset).x)).toEqual([
+      LEFT,
+      LEFT + ADVANCE,
+      LEFT + 2 * ADVANCE,
+      LEFT + 3 * ADVANCE,
+    ]);
+    // The edit written to the file names a real style for the typed text.
+    const edit = paragraphEdit(setup.input.text, state, stylesOf(setup.input));
+    expect(edit?.text).toBe('abc');
+    expect(edit?.style !== undefined && edit.style in setup.input.styles).toBe(true);
+    expect(edit?.spans?.every((span) => span.style in setup.input.styles)).toBe(true);
+  });
+
+  it('text typed after deleting a whole paragraph keeps the style of what was deleted', () => {
+    const setup = paragraph(['ab cd']);
+    const input = {
+      ...setup.input,
+      spans: [
+        { start: 0, end: 2, style: 'bold' },
+        { start: 2, end: 5, style: 's0' },
+      ],
+      styles: { s0: monoStyle(), bold: monoStyle() },
+    };
+    // Backspace from the end, one character at a time, down to nothing.
+    let state = initialState(input, 5);
+    for (let i = 0; i < 5; i++) state = deleteBackward(state);
+    expect(state.text).toBe('');
+    state = insertText(state, 'x');
+    expect(state.styles).toEqual(['bold']);
+    // Select all and delete: the first deleted character's style.
+    state = insertText(deleteBackward(selectAll(initialState(input, 0))), 'y');
+    expect(state.styles).toEqual(['bold']);
+  });
+
   it('draws a selection rectangle per line', () => {
     const setup = paragraph(LINES, WIDTH);
     const state = initialState(setup.input, 0);

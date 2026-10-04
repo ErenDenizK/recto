@@ -51,6 +51,13 @@ export interface ParagraphState {
   readonly focus: number;
   /** Where vertical moves aim (text-space x), kept across consecutive Up and Down. */
   readonly goalX?: number;
+  /**
+   * The style typed text takes when the paragraph is empty (no character before or after the
+   * caret to inherit from): the input's first style, then the style of the first character of
+   * the last deletion that emptied the paragraph, so retyping keeps the deleted text's look.
+   * Absent: the first style of `styles`, else none.
+   */
+  readonly emptyStyle?: string;
 }
 
 export interface TextRange {
@@ -93,6 +100,7 @@ export function initialState(input: LayoutInput, caret: number): ParagraphState 
     origins: Array.from({ length: input.text.length }, (_, i) => i),
     anchor: at,
     focus: at,
+    emptyStyle: defaultStyle(input),
   };
 }
 
@@ -105,6 +113,11 @@ export function selectionOf(state: ParagraphState): TextRange {
 
 export function isCollapsed(state: ParagraphState): boolean {
   return state.anchor === state.focus;
+}
+
+/** A style id, or undefined for none: '' names no style (it has no advances). */
+function styleId(id: string | undefined): string | undefined {
+  return id === '' ? undefined : id;
 }
 
 /** The style typed text takes at `offset`: the character before it, else the one after. */
@@ -121,7 +134,14 @@ export function replaceRange(
 ): ParagraphState {
   const start = clampOffset(state.text, range.start);
   const end = Math.max(start, clampOffset(state.text, range.end));
-  const typed = style ?? styleAt(state, start, state.styles[0]);
+  // An empty paragraph has no neighbour to inherit from: its remembered style. Never '':
+  // an unknown style has no advances, so every letter would land on the same spot.
+  const typed =
+    style ??
+    styleId(styleAt(state, start)) ??
+    styleId(state.emptyStyle) ??
+    styleId(state.styles[0]) ??
+    '';
   const text = state.text.slice(0, start) + insert + state.text.slice(end);
   const styles = [
     ...state.styles.slice(0, start),
@@ -136,7 +156,17 @@ export function replaceRange(
         ...state.origins.slice(end),
       ]
     : undefined;
-  return { text, styles, ...(origins ? { origins } : {}), anchor: caret, focus: caret };
+  // Emptying the paragraph remembers the style of what was deleted (its first character).
+  const emptyStyle =
+    text.length === 0 ? (styleId(state.styles[start]) ?? styleId(typed)) : state.emptyStyle;
+  return {
+    text,
+    styles,
+    ...(origins ? { origins } : {}),
+    anchor: caret,
+    focus: caret,
+    ...(emptyStyle ? { emptyStyle } : {}),
+  };
 }
 
 /** Types `insert` over the selection. */
@@ -495,7 +525,8 @@ export function caretLines(
   const top = block.lines[0]?.baseline ?? 0;
   const hyphen = input.hyphenChar ?? '-';
   const fallback = defaultStyle(input);
-  const styleOf = (offset: number) => input.styles[state.styles[offset] ?? fallback];
+  const styleOf = (offset: number) =>
+    input.styles[styleId(state.styles[offset]) ?? fallback] ?? input.styles[fallback];
   return layout.lines.map((line) => {
     const n = Math.max(0, line.end - line.start);
     const xs = new Float64Array(n + 1);
