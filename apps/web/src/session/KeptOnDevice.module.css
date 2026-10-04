@@ -128,8 +128,3 @@
 .button:disabled {
   color: var(--text-tertiary);
 }
-
-.button:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
-}

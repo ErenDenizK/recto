@@ -81,7 +81,11 @@ describe('Home chrome', () => {
       // After the selected look's short transition.
       await waitFor(() => {
         expect(getComputedStyle(wrap).backgroundColor).toBe('rgba(0, 0, 0, 0)');
-        expect(getComputedStyle(close as HTMLElement).opacity).toBe('0');
+        // A pointer resting over a tab shows its close on purpose (TabBar.module.css): where the
+        // test browser's pointer happens to be is not the resting look.
+        if (!wrap.matches(':hover')) {
+          expect(getComputedStyle(close as HTMLElement).opacity).toBe('0');
+        }
       });
     }
     // A click on the active tab leaves the focus there; it still does not look selected.

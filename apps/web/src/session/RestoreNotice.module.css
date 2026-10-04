@@ -57,11 +57,6 @@
   }
 }
 
-.action:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
-}
-
 .close {
   flex: none;
 }
