@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { Checkbox, CheckboxGroup } from './Checkbox';
-import { forceState, stillStyles } from './test-states';
+import { canHover, forceState, stillStyles } from './test-states';
 
 stillStyles();
 
@@ -56,9 +56,11 @@ describe('Checkbox (09-primitives §8)', () => {
     render(<One />);
     const box = screen.getByRole('checkbox', { name: 'Remove metadata' });
     expect(getComputedStyle(box).boxShadow).toContain('rgba(255, 255, 255, 0.48)');
-    const release = await forceState(box.closest('label') as Element, ['hover']);
-    expect(getComputedStyle(box).boxShadow).toContain('rgba(255, 255, 255, 0.6)');
-    await release();
+    if (canHover()) {
+      const release = await forceState(box.closest('label') as Element, ['hover']);
+      expect(getComputedStyle(box).boxShadow).toContain('rgba(255, 255, 255, 0.6)');
+      await release();
+    }
     await userEvent.click(box);
     expect(getComputedStyle(box).backgroundColor).toBe('rgb(230, 231, 234)');
   });

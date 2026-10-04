@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { Button } from './Button';
-import { forceState, stillStyles } from './test-states';
+import { canHover, forceState, stillStyles } from './test-states';
 
 stillStyles();
 
@@ -50,25 +50,28 @@ describe('Button (09-primitives §3)', () => {
     expect(bg(quiet)).toBe('rgba(0, 0, 0, 0)');
     expect(getComputedStyle(danger).color).toBe('rgb(255, 107, 107)');
 
-    // Hover: one step.
+    // Hover: one step (where the page can hover).
     for (const [el, want] of [
       [prominent, /^rgb\(143, 157, 255\)$/],
       [standard, /^rgba\(255, 255, 255, 0\.12\)$/],
       // 0.045 is stored in 8 bits: 0.043.
       [quiet, /^rgba\(255, 255, 255, 0\.04\d*\)$/],
     ] as const) {
+      if (!canHover()) break;
       const release = await forceState(el, ['hover']);
       expect(bg(el)).toMatch(want);
       await release();
     }
     // Danger hover keeps its fill and rings the edge.
-    let release = await forceState(danger, ['hover']);
-    expect(bg(danger)).toBe('rgba(255, 255, 255, 0.08)');
-    expect(getComputedStyle(danger).boxShadow).toContain('rgb(255, 107, 107)');
-    await release();
+    if (canHover()) {
+      const off = await forceState(danger, ['hover']);
+      expect(bg(danger)).toBe('rgba(255, 255, 255, 0.08)');
+      expect(getComputedStyle(danger).boxShadow).toContain('rgb(255, 107, 107)');
+      await off();
+    }
 
     // Pressed: the pressed fill and the press scale.
-    release = await forceState(standard, ['active']);
+    let release = await forceState(standard, ['active']);
     expect(bg(standard)).toBe('rgba(255, 255, 255, 0.16)');
     expect(getComputedStyle(standard).transform).not.toBe('none');
     await release();

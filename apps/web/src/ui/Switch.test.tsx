@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { Switch, type SwitchProps } from './Switch';
-import { forceState, stillStyles } from './test-states';
+import { canHover, forceState, stillStyles } from './test-states';
 
 stillStyles();
 
@@ -57,9 +57,11 @@ describe('Switch (09-primitives §7)', () => {
     expect(getComputedStyle(control).backgroundColor).toBe('rgba(0, 0, 0, 0)');
     expect(getComputedStyle(control).boxShadow).toContain('rgba(255, 255, 255, 0.48)');
     expect(thumbX(control)).toBe(0);
-    const release = await forceState(control, ['hover']);
-    expect(getComputedStyle(control).boxShadow).toContain('rgba(255, 255, 255, 0.6)');
-    await release();
+    if (canHover()) {
+      const release = await forceState(control, ['hover']);
+      expect(getComputedStyle(control).boxShadow).toContain('rgba(255, 255, 255, 0.6)');
+      await release();
+    }
     await userEvent.click(control);
     expect(getComputedStyle(control).backgroundColor).toBe('rgb(230, 231, 234)');
     expect(thumbX(control)).toBe(16);

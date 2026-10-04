@@ -8,7 +8,7 @@ import { userEvent } from 'vitest/browser';
 
 import { parseShortcut } from '../commands/shortcuts';
 import { IconButton, LONG_PRESS_MS } from './IconButton';
-import { forceState, stillStyles } from './test-states';
+import { canHover, forceState, stillStyles } from './test-states';
 
 stillStyles();
 
@@ -44,11 +44,13 @@ describe('IconButton (09-primitives §4)', () => {
     );
     const undo = screen.getByRole('button', { name: 'Undo' });
     expect(bg(undo)).toBe('rgba(0, 0, 0, 0)');
-    let release = await forceState(undo, ['hover']);
-    expect(bg(undo)).toMatch(/^rgba\(255, 255, 255, 0\.04\d*\)$/);
-    expect(getComputedStyle(undo).color).toBe('rgb(230, 231, 234)');
-    await release();
-    release = await forceState(undo, ['active']);
+    if (canHover()) {
+      const off = await forceState(undo, ['hover']);
+      expect(bg(undo)).toMatch(/^rgba\(255, 255, 255, 0\.04\d*\)$/);
+      expect(getComputedStyle(undo).color).toBe('rgb(230, 231, 234)');
+      await off();
+    }
+    let release = await forceState(undo, ['active']);
     expect(bg(undo)).toMatch(/^rgba\(255, 255, 255, 0\.07\d*\)$/);
     expect(getComputedStyle(undo).transform).not.toBe('none');
     await release();
