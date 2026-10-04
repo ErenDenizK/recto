@@ -6,8 +6,6 @@
   --well-gap: 2px;
   --well-ring: 2px;
   --well-contrast: rgb(255 255 255 / 0.55);
-  --well-focus-light: var(--focus-light, var(--accent));
-  --well-focus-dark: var(--focus-dark, var(--surface-0));
 
   position: relative;
   display: grid;
@@ -116,12 +114,6 @@
 .well:disabled {
   cursor: default;
   opacity: 0.38;
-}
-
-.well:focus-visible {
-  outline: 2px solid var(--well-focus-light);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 6px var(--well-focus-dark);
 }
 
 @media (prefers-reduced-motion: reduce) {

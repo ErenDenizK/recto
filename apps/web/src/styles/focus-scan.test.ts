@@ -12,7 +12,8 @@
  * - `outline`: `2px solid var(--focus-light)` (a form restated where `composes` cannot reach,
  *   such as a pseudo-element), or `none` to suppress the ring;
  * - `box-shadow`: a value with `var(--focus-dark)` (a form restated), or `none`;
- * - nothing else: no `outline-color`, `-style` or `-width`, no literal offsets, no accent rings.
+ * - nothing else: no `outline-color`, `-style` or `-width`, no literal offsets, no accent rings;
+ *   only forced colours may set `2px solid Highlight` with no shadow.
  *
  * A suppressed ring clears both bands (`outline: none` with `box-shadow: none`), so no lone dark
  * band is left behind, and is listed in SUPPRESSED with the reason the element shows its focus
@@ -55,6 +56,10 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   },
   'outline/Outline.module.css': {
     '.renameInput:focus-visible': 'in-place rename field, there only while editing: its border',
+  },
+  'shell/compact/CompactChrome.module.css': {
+    '.menuItem:focus-visible': 'the highlighted row is the keyboard’s place in a menu',
+    '.input:focus-visible': 'the find field shows its focus on the field’s border',
   },
   'stage/InlineTitleEditor.module.css': {
     '.input:focus-visible': 'in-place title field, there only while editing: its border',
@@ -148,6 +153,8 @@ function problems(file: string, css: string): string[] {
     }
     const outline = declarations.get('outline');
     const shadow = declarations.get('box-shadow');
+    // Forced colours: a system-coloured outline and no shadow (the browser drops it anyway).
+    if (outline === '2px solid Highlight' && (shadow === undefined || shadow === 'none')) continue;
     if (outline === 'none') {
       if (shadow !== 'none') found.push(`${at} hides the outline but leaves the dark band`);
       if (SUPPRESSED[file]?.[selector] === undefined) {

@@ -15,6 +15,7 @@
 }
 
 .scroller {
+  composes: focus-inset from global;
   position: absolute;
   inset: 0;
   overflow: auto;
@@ -25,10 +26,6 @@
 
 .scroller::-webkit-scrollbar {
   display: none;
-}
-
-.scroller:focus-visible {
-  outline-offset: -2px;
 }
 
 .column {

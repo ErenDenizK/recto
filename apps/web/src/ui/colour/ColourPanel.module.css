@@ -94,6 +94,7 @@
 }
 
 .iconButton {
+  composes: focus-inset from global;
   display: grid;
   place-items: center;
   width: var(--cp-icon-button);
@@ -127,12 +128,6 @@
 .iconButton[aria-pressed='true'] {
   background: var(--cp-pressed);
   color: var(--cp-primary);
-}
-
-.iconButton:focus-visible {
-  outline: 2px solid var(--focus-light, var(--accent));
-  outline-offset: -2px;
-  box-shadow: inset 0 0 0 4px var(--focus-dark, var(--surface-0));
 }
 
 /* --- Views ------------------------------------------------------------------------------ */
@@ -214,6 +209,7 @@
 }
 
 .add {
+  composes: focus-inset from global;
   display: grid;
   flex: none;
   place-items: center;
@@ -264,12 +260,6 @@
 .add[aria-disabled='true'] {
   cursor: default;
   opacity: 0.38;
-}
-
-.add:focus-visible {
-  outline: 2px solid var(--focus-light, var(--accent));
-  outline-offset: -2px;
-  box-shadow: inset 0 0 0 4px var(--focus-dark, var(--surface-0));
 }
 
 .notice {

@@ -94,7 +94,7 @@ jobs:
           retention-days: 7
 
   e2e:
-    name: E2E (${{ matrix.project }} ${{ matrix.shard }}/2)
+    name: E2E (${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards || 2 }})
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -106,6 +106,12 @@ jobs:
       matrix:
         project: [chromium, firefox, webkit]
         shard: [1, 2]
+        # Rendered glass pixels without the GPU (the @pixels specs only, docs/specs/redesign.md
+        # D0-1): a handful of tests, one shard.
+        include:
+          - project: chromium-nogpu
+            shard: 1
+            shards: 1
     steps:
       - uses: actions/checkout@v7
 
@@ -129,7 +135,7 @@ jobs:
         run: >-
           pnpm --filter @pdf-editor/web test:e2e
           --project=${{ matrix.project }}
-          --shard=${{ matrix.shard }}/2
+          --shard=${{ matrix.shard }}/${{ matrix.shards || 2 }}
         env:
           E2E_SKIP_BUILD: '1'
 
@@ -157,8 +163,11 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      # Banned words, exclamation marks and emoji in README.md, apps/web/about/ and
-      # .github/release-notes.md. No dependencies, so no install.
+      # Banned words, phrases and structures, exclamation marks and emoji (presentation spec
+      # §1.3, brand plan §7) in README.md, apps/web/about/, .github/release-notes.md and the
+      # message catalogs in EN and TR; and the source bans under apps/web/src (no inline or
+      # background PNGs in CSS, quality-bar Q-12; no native colour or range inputs outside
+      # ui/, 10-ink §7). No dependencies, so no install.
       - name: Copy check
         run: node --experimental-strip-types --no-warnings=ExperimentalWarning tools/copy-check/check.ts
 

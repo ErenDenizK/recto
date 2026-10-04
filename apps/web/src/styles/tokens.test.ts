@@ -779,9 +779,10 @@ describe('tokens.css', () => {
         COVERAGE_REGISTRY.map((entry) => `${entry.module} ${entry.selector} ${entry.composes}`),
       );
       expect([...found].sort()).toEqual([...registered].sort());
-      // The spec row counted about nineteen modules: eighteen composed glass, seventeen do now
-      // (the TextLayer hint is solid: at 22 px it is under quality-bar Q-5's 32 px).
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(17);
+      // The spec row counted about nineteen modules on the M8 shell: seventeen compose glass
+      // there (the TextLayer hint is solid: at 22 px it is under quality-bar Q-5's 32 px), and
+      // the compact edition adds three.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(20);
     });
 
     it('gives a one-row menu the short blur in ui/Menu', () => {
@@ -849,6 +850,7 @@ describe('tokens.css', () => {
       'crop/Crop.module.css': [],
       'stage/ReadView.module.css': [],
       'furniture/FurnitureLayer.module.css': [],
+      'shell/compact/NoteLayer.module.css': [],
       'ocr/Ocr.module.css': ['.language input', '.switch input', ".rowButton[aria-current='true']"],
       'compare/CompareView.module.css': [
         '.dropZone[data-active]',

@@ -66,8 +66,6 @@
   --sl-checker-b: rgb(255 255 255 / 0.12);
   --sl-bubble-fill: var(--glass-solid, var(--surface-2));
   --sl-bubble-rim: rgb(255 255 255 / 0.12);
-  --sl-focus-light: var(--focus-light, var(--accent));
-  --sl-focus-dark: var(--focus-dark, var(--surface-0));
   /* Motion (language.md §7.1–§7.2; the motion tokens land with D0-12). */
   --sl-ease-spring: var(
     --ease-spring,
@@ -445,13 +443,14 @@
   opacity: 0.4;
 }
 
-/* Keyboard focus: the two-band ring outside the knob (09 §19, outset). */
+/* Keyboard focus: the outset form of styles/focus.css (09 §19), restated on the knob, which
+   the focus never reaches (it is on the thumb's input), with the knob's own ring kept. */
 .thumb:has(:focus-visible) .knob {
-  outline: 2px solid var(--sl-focus-light);
-  outline-offset: 2px;
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-out);
   box-shadow:
-    inset 0 0 0 1px var(--sl-knob-ring),
-    0 0 0 6px var(--sl-focus-dark);
+    0 0 0 6px var(--focus-dark),
+    inset 0 0 0 1px var(--sl-knob-ring);
 }
 
 /* --- Lens ----------------------------------------------------------------------------- */

@@ -32,13 +32,13 @@
 }
 
 .cell {
+  composes: focus-inset from global;
   position: relative;
   height: var(--cell-h);
   padding: 0;
   border: 0;
   border-radius: 2px;
   cursor: pointer;
-  outline: none;
   forced-color-adjust: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -73,10 +73,8 @@
     0 0 0 3px #ffffff;
 }
 
+/* Keyboard focus: the inset form of styles/focus.css, inside the cell, so it needs no room
+   between packed cells; one of its two bands clears 3:1 on any colour (C40). */
 .cell:focus-visible {
   z-index: 2;
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.55),
-    0 0 0 3px var(--focus-light, var(--accent)),
-    0 0 0 5px var(--focus-dark, var(--surface-0));
 }
