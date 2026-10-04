@@ -1,0 +1,96 @@
+/* The Sliders view (10-ink.md §4.1): one grid, so the labels, tracks and readouts of the
+   three sliders line up in columns whatever the language (each Slider is a subgrid row). */
+.view {
+  --sv-gap: 8px;
+  --sv-text: 13px;
+  --sv-lh: 18px;
+  --sv-field-h: 32px;
+  --sv-well: var(--field-well, var(--surface-2));
+  --sv-border: var(--control-border, rgb(255 255 255 / 0.48));
+  --sv-label: var(--text-secondary);
+  --sv-text-colour: var(--text-primary);
+
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-content: center;
+  row-gap: var(--sv-gap);
+  column-gap: 8px;
+  height: 100%;
+}
+
+:global([data-theme='light']) .view {
+  --sv-well: var(--field-well, #fdfdff);
+  --sv-border: var(--control-border, rgb(21 23 28 / 0.55));
+  --sv-label: #4f535a;
+  --sv-text-colour: #15171c;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .view {
+    --sv-gap: 4px;
+    --sv-text: 15px;
+    --sv-lh: 20px;
+    --sv-field-h: 44px;
+  }
+}
+
+.view > .slider {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+
+.hexRow {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.hexLabel {
+  color: var(--sv-label);
+  font-size: var(--sv-text);
+  line-height: var(--sv-lh);
+}
+
+.hex {
+  box-sizing: border-box;
+  width: 112px;
+  height: var(--sv-field-h);
+  padding: 0 10px;
+  border: 1px solid var(--sv-border);
+  border-radius: 10px;
+  background: var(--sv-well);
+  color: var(--sv-text-colour);
+  font: inherit;
+  font-size: max(13px, var(--sv-text));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  outline: none;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .hex {
+    /* iOS zooms into fields under 16 px. */
+    font-size: 16px;
+  }
+}
+
+.hex:focus-visible {
+  outline: 2px solid var(--focus-light, var(--accent));
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px var(--focus-dark, var(--surface-0));
+}
+
+.hex[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.error {
+  grid-column: 2 / -1;
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 16px;
+}

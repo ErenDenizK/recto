@@ -1,0 +1,280 @@
+/*
+ * The colour panel (10-ink.md §4.1) and its popover (§7: M4, radius 16, 12 px padding, a
+ * 44 px title row with ✕). Fine: popover 320, content 296, one 288 px column (the views'
+ * whole-pixel width) centred in it; coarse: 360, 336 and 324. Vertical rhythm on the 4 px
+ * grid: 4 after the title row, 12 around the view, 8 between the rows below it.
+ */
+
+.popup {
+  composes: popup from '../Popover.module.css';
+  width: min(320px, calc(100vw - 16px));
+  padding: 12px;
+  border-radius: 16px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .popup {
+    width: min(360px, calc(100vw - 16px));
+  }
+}
+
+/* While the eyedropper samples the page, the popover steps aside (it stays mounted, so the
+   panel keeps its state and focus returns to it). */
+.popup[data-sampling] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.panel {
+  --cp-col: 288px;
+  --cp-view-h: 192px;
+  --cp-icon-button: 32px;
+  --cp-icon: 20px;
+  --cp-title: 13px;
+  --cp-title-lh: 18px;
+  --cp-caption: 12px;
+  --cp-caption-lh: 16px;
+  --cp-swatch-target: 32px;
+  --cp-swatch-dot: 18px;
+  --cp-primary: var(--text-primary);
+  --cp-secondary: var(--text-secondary);
+  --cp-hover: var(--surface-hover);
+  --cp-pressed: var(--surface-active);
+  --cp-add-ring: var(--control-border, rgb(255 255 255 / 0.48));
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: var(--cp-col);
+  margin-inline: auto;
+  color: var(--cp-primary);
+}
+
+:global([data-theme='light']) .panel {
+  --cp-primary: #15171c;
+  --cp-secondary: #3f424a;
+  --cp-hover: rgb(21 23 28 / 0.04);
+  --cp-pressed: rgb(21 23 28 / 0.07);
+  --cp-add-ring: var(--control-border, rgb(21 23 28 / 0.55));
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .panel {
+    --cp-col: 324px;
+    --cp-view-h: 222px;
+    --cp-icon-button: 44px;
+    --cp-icon: 24px;
+    --cp-title: 15px;
+    --cp-title-lh: 20px;
+    --cp-swatch-target: 44px;
+    --cp-swatch-dot: 22px;
+  }
+}
+
+/* --- Title row ------------------------------------------------------------------------ */
+
+.header {
+  display: grid;
+  grid-template-columns: var(--cp-icon-button) 1fr var(--cp-icon-button);
+  align-items: center;
+  height: 44px;
+  margin: -6px 0 -4px;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--cp-primary);
+  font-size: var(--cp-title);
+  font-weight: 600;
+  line-height: var(--cp-title-lh);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: var(--cp-icon-button);
+  height: var(--cp-icon-button);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cp-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.iconButton svg {
+  width: var(--cp-icon);
+  height: var(--cp-icon);
+  stroke-width: 1.75;
+}
+
+@media (hover: hover) {
+  .iconButton:hover {
+    background: var(--cp-hover);
+    color: var(--cp-primary);
+  }
+}
+
+.iconButton:active,
+.iconButton[aria-pressed='true'] {
+  background: var(--cp-pressed);
+  color: var(--cp-primary);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--focus-light, var(--accent));
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px var(--focus-dark, var(--surface-0));
+}
+
+/* --- Views ------------------------------------------------------------------------------ */
+
+.views {
+  margin-bottom: 4px;
+}
+
+.view {
+  display: grid;
+  place-items: center;
+  height: var(--cp-view-h);
+  margin-bottom: 4px;
+}
+
+.view[data-view='sliders'] {
+  place-items: stretch;
+}
+
+.opacity {
+  width: 100%;
+}
+
+/* --- Preview -------------------------------------------------------------------------- */
+
+.preview {
+  height: 56px;
+  overflow: hidden;
+  border-radius: 10px;
+  /* Paper white in both themes (§4.2). */
+  background: var(--page-background, #ffffff);
+  box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.08);
+}
+
+.previewArt {
+  display: block;
+}
+
+.previewText rect {
+  fill: #8a8d93;
+}
+
+/* --- Saved and recent ------------------------------------------------------------------ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.caption {
+  margin: 0;
+  color: var(--cp-secondary);
+  font-size: var(--cp-caption);
+  font-weight: 500;
+  line-height: var(--cp-caption-lh);
+}
+
+/* The dots' outer edges align with the column: the row reaches half a target's margin out. */
+.savedRow,
+.section > .swatches {
+  margin-inline: calc((var(--cp-swatch-target) - var(--cp-swatch-dot)) / -2);
+}
+
+.savedRow {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* [+] holds the row's first place, so it never moves as colours are added; the saved
+   colours wrap beside it. */
+.savedRow > .swatches {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.savedTrigger {
+  display: contents;
+}
+
+.add {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--cp-swatch-target);
+  height: var(--cp-swatch-target);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cp-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.addDot {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--cp-swatch-dot);
+  height: var(--cp-swatch-dot);
+  border: 1px dashed var(--cp-add-ring);
+  border-radius: 50%;
+  transition: transform var(--spring-press, 300ms) var(--ease-spring, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.addDot svg {
+  width: 10px;
+  height: 10px;
+  stroke: currentcolor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+@media (hover: hover) {
+  .add:not([aria-disabled='true']):hover {
+    color: var(--cp-primary);
+  }
+
+  .add:not([aria-disabled='true']):hover .addDot {
+    transform: scale(1.08);
+  }
+}
+
+.add:not([aria-disabled='true']):active .addDot {
+  transform: scale(0.94);
+}
+
+.add[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.38;
+}
+
+.add:focus-visible {
+  outline: 2px solid var(--focus-light, var(--accent));
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px var(--focus-dark, var(--surface-0));
+}
+
+.notice {
+  margin: 2px 0 0;
+  color: var(--cp-secondary);
+  font-size: var(--cp-caption);
+  line-height: var(--cp-caption-lh);
+}
