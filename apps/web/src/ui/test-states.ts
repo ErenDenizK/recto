@@ -1,9 +1,13 @@
 /**
  * Test support for the primitives' browser-mode suites (quality-bar Q-14: every state rendered):
  * force a pseudo-class (`:hover`, `:active`, `:focus-visible`) on an element through the Chrome
- * DevTools Protocol, so a test reads the computed style of a real pressed or hovered control,
- * and emulate a coarse pointer (touch emulation turns `pointer: coarse` on) for the density
- * tokens. Chromium only, like the browser-mode suite. Not part of the app.
+ * DevTools Protocol, so a test reads the computed style of a real pressed or hovered control.
+ * Chromium only, like the browser-mode suite. Not part of the app.
+ *
+ * The coarse density is not emulated here: CDP's touch emulation, once turned off, leaves the
+ * page with `pointer: none` and `hover: none` for every later file of the run. The 44 px sizes
+ * are checked in `e2e/surfaces.visual.spec.ts` on a touch context and by `bar-audit.spec.ts` on
+ * the `tablet` project.
  */
 import { cdp } from 'vitest/browser';
 
@@ -60,11 +64,6 @@ export async function forceState(
   return async () => {
     await devtools('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
   };
-}
-
-/** Turns touch emulation (and with it `pointer: coarse`, `hover: none`) on or off. */
-export async function coarsePointer(on: boolean): Promise<void> {
-  await devtools('Emulation.setTouchEmulationEnabled', { enabled: on, maxTouchPoints: 1 });
 }
 
 /**
