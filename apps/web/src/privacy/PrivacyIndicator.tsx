@@ -3,7 +3,7 @@
  * popover with the observed external URLs (expected: none), the CSP in one sentence plus
  * the enforced `connect-src`, the service worker's offline status, and the app version,
  * which opens the About dialog (ADR-0017 §6). One line says Recents stay on this device, with
- * "Clear recents" (craft §3.1).
+ * "Clear recents" (craft §3.1), and what is kept on this device with Clear (ADR-0032 §2.7).
  */
 import { Popover } from '@base-ui/react/popover';
 import { useRef } from 'react';
@@ -14,6 +14,7 @@ import { usePwaStore } from '../pwa/register';
 import { serviceWorkerLabel } from '../pwa/service-worker-label';
 import { openAbout } from '../shell/about/about-store';
 import { BUILD_INFO } from '../shell/about/build-info';
+import { KeptOnDevice } from '../session/KeptOnDevice';
 import popoverStyles from '../ui/Popover.module.css';
 import { documentCsp, parseCsp } from './csp';
 import { useExternalRequests } from './external-requests';
@@ -50,7 +51,13 @@ export function PrivacyIndicator({ className }: { readonly className?: string })
         <span className={styles.numeric}>{m.privacy_external_requests({ count })}</span>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner side="top" align="start" sideOffset={8} collisionPadding={8}>
+        <Popover.Positioner
+          className={styles.positioner}
+          side="top"
+          align="start"
+          sideOffset={8}
+          collisionPadding={8}
+        >
           <Popover.Popup className={`${popoverStyles.popup} ${styles.popup}`}>
             <Popover.Title className={popoverStyles.title}>
               {clean ? m.privacy_title_clean() : m.privacy_title_external()}
@@ -71,6 +78,9 @@ export function PrivacyIndicator({ className }: { readonly className?: string })
                 </Popover.Close>
               </span>
             </p>
+
+            {/* Snapshots of open and closed documents, with Clear (ADR-0032 §2.7). */}
+            <KeptOnDevice />
 
             <section className={styles.section} aria-label={m.privacy_requests_heading()}>
               <h3 className={styles.heading}>{m.privacy_requests_heading()}</h3>

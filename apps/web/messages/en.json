@@ -3919,5 +3919,46 @@
   "colour_name_dark_blue": "Dark blue",
   "colour_name_navy": "Navy",
   "colour_name_purple": "Purple",
-  "colour_name_lavender": "Lavender"
+  "colour_name_lavender": "Lavender",
+  "session_restored": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Restored {count} document",
+        "countPlural=*": "Restored {count} documents"
+      }
+    }
+  ],
+  "session_restored_one": "Restored {name}",
+  "session_start_fresh": "Start fresh",
+  "session_started_fresh": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Started fresh · {count} document kept in Recent",
+        "countPlural=*": "Started fresh · {count} documents kept in Recent"
+      }
+    }
+  ],
+  "session_restore_failed": "Could not restore {name}: its kept copy is damaged. The original file is unchanged.",
+  "session_not_kept": "Changes are not kept in this window",
+  "session_notice_dismiss": "Dismiss",
+  "session_history_start_fresh": "Start fresh",
+  "privacy_kept_heading": "Kept on this device",
+  "privacy_kept_body": "Open documents with their changes, and closed ones for 30 days or up to 500 MB, while the browser keeps them.",
+  "privacy_kept_open": "Open",
+  "privacy_kept_closed": "Closed",
+  "privacy_kept_none": "Nothing is kept on this device.",
+  "privacy_kept_total": "{size} in all",
+  "privacy_kept_clear": "Clear",
+  "privacy_kept_confirm": "Delete everything kept on this device? Saved files are not touched.",
+  "privacy_kept_delete": "Delete",
+  "privacy_kept_cleared": "Kept changes deleted from this device",
+  "privacy_kept_clear_failed": "What is kept on this device could not be deleted. Try again, or clear this site’s data in your browser.",
+  "privacy_kept_not_persistent": "The browser may clear kept changes.",
+  "privacy_kept_ios": "On iPhone and iPad, kept changes last while the browser keeps them.",
+  "privacy_kept_write_failed": "The latest changes could not be kept on this device: storage is full or unavailable.",
+  "recents_hint_kept": "Edited, changes kept"
 }

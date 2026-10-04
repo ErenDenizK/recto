@@ -1,16 +1,20 @@
 /**
  * Recents store (craft §3.1, WP M5): validation field by field, the cap of 12, a database
  * created from nothing, the optional handle (a real OPFS `FileSystemFileHandle` round-trips
- * through IndexedDB), clear, and reopening through a handle.
+ * through IndexedDB), clear, and reopening through a handle; kept snapshots of closed
+ * documents (ADR-0032 §2.6) attached, detached and deleted with their rows.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   addRecentEntry,
   clearRecents,
+  forgetKept,
   indexedDbRecentsBackend,
+  keepRecent,
   loadRecents,
   memoryRecentsBackend,
+  onKeptRemoved,
   parseRecentEntry,
   RECENTS_DB_NAME,
   RECENTS_LIMIT,
@@ -553,5 +557,105 @@ describe('reopenRecent', () => {
 
   it('says no-handle for an entry without one', async () => {
     expect(await reopenRecent(entry('a', 1))).toEqual({ ok: false, reason: 'no-handle' });
+  });
+});
+
+describe('kept snapshots (ADR-0032 §2.6)', () => {
+  let removed: string[];
+  beforeEach(() => {
+    setRecentsBackend(memoryRecentsBackend());
+    removed = [];
+    onKeptRemoved((ids) => removed.push(...ids));
+  });
+  afterEach(() => onKeptRemoved(undefined));
+
+  // Kept after the last Clear recents (the test setup clears before every test).
+  const kept = (snapshotId: string, changed = true) => ({
+    snapshotId,
+    keptAt: Date.now(),
+    bytes: 100,
+    changed,
+  });
+
+  it('parses a stored kept field and drops a malformed one without losing the entry', () => {
+    expect(parseRecentEntry(entry('a', 1, { kept: kept('kept-doc_1') }))?.kept).toEqual(
+      kept('kept-doc_1'),
+    );
+    const broken = parseRecentEntry({
+      ...entry('a', 1),
+      kept: { snapshotId: '../x', keptAt: 1, bytes: 1 },
+    });
+    expect(broken?.id).toBe('a');
+    expect(broken?.kept).toBeUndefined();
+  });
+
+  it('attaches a snapshot to the entry for the same file, or makes one', async () => {
+    await recordRecent({ name: 'a.pdf', size: 10, now: 1 });
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-a') });
+    await keepRecent({ name: 'combined.pdf', size: 99, pages: 3, kept: kept('kept-c') });
+    const entries = useRecentsStore.getState().entries;
+    expect(entries.find((e) => e.name === 'a.pdf')?.kept?.snapshotId).toBe('kept-a');
+    expect(entries.find((e) => e.name === 'combined.pdf')).toMatchObject({
+      pages: 3,
+      kept: { snapshotId: 'kept-c' },
+    });
+    // Kept across a reload of the list.
+    setRecentsBackend(memoryRecentsBackend(entries));
+    await loadRecents();
+    expect(useRecentsStore.getState().entries.filter((e) => e.kept).length).toBe(2);
+  });
+
+  it('a later snapshot of the same file replaces the earlier, unless only that one was edited', async () => {
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-1', true) });
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-2', false) });
+    expect(useRecentsStore.getState().entries[0]?.kept?.snapshotId).toBe('kept-1');
+    expect(removed).toEqual(['kept-2']);
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-3', true) });
+    expect(useRecentsStore.getState().entries[0]?.kept?.snapshotId).toBe('kept-3');
+    expect(removed).toEqual(['kept-2', 'kept-1']);
+  });
+
+  it('reopening the file keeps the snapshot with the row', async () => {
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-a') });
+    await recordRecent({ name: 'a.pdf', size: 10 });
+    expect(useRecentsStore.getState().entries).toHaveLength(1);
+    expect(useRecentsStore.getState().entries[0]?.kept?.snapshotId).toBe('kept-a');
+    expect(removed).toEqual([]);
+  });
+
+  it('Remove and Clear recents delete the snapshots; forgetKept only detaches', async () => {
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-a') });
+    await keepRecent({ name: 'b.pdf', size: 10, kept: kept('kept-b') });
+    await keepRecent({ name: 'c.pdf', size: 10, kept: kept('kept-c') });
+    await forgetKept(['kept-c']);
+    expect(
+      useRecentsStore.getState().entries.find((e) => e.name === 'c.pdf')?.kept,
+    ).toBeUndefined();
+    expect(removed).toEqual([]);
+    const a = useRecentsStore.getState().entries.find((e) => e.name === 'a.pdf');
+    await removeRecent(a?.id ?? '');
+    expect(removed).toEqual(['kept-a']);
+    await clearRecents();
+    expect(removed).toEqual(['kept-a', 'kept-b']);
+  });
+
+  it('a document closed before Clear recents is not kept after it', async () => {
+    const closedAt = Date.now() - 1;
+    await clearRecents();
+    await keepRecent({
+      name: 'late.pdf',
+      size: 1,
+      kept: { ...kept('kept-late'), keptAt: closedAt },
+    });
+    expect(useRecentsStore.getState().entries).toEqual([]);
+    expect(removed).toEqual(['kept-late']);
+  });
+
+  it('a row that falls off the end of the list takes its snapshot with it', async () => {
+    await keepRecent({ name: 'old.pdf', size: 1, kept: kept('kept-old') });
+    for (let i = 0; i < RECENTS_LIMIT; i++) {
+      await recordRecent({ name: `f${i}.pdf`, size: 1, now: Date.now() + 1000 + i });
+    }
+    expect(removed).toEqual(['kept-old']);
   });
 });

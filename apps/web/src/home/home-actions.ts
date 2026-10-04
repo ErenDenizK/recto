@@ -24,6 +24,7 @@ import {
   useRecentsStore,
 } from '../files/recents';
 import { m } from '../i18n';
+import { reopenFromSnapshot } from '../session/session';
 import { announce } from '../shell/announcer';
 import { openOperationDialog } from '../stage/operation-dialogs-store';
 import { mergeAll } from '../stage/section-operations';
@@ -228,13 +229,25 @@ async function openFromRecents(files: readonly File[]): Promise<boolean> {
 }
 
 /**
- * A Recents row (click, Enter): reopens the file through its handle, asking for read
- * permission within the click where the browser needs it. Without a handle, or when the
- * handle fails (permission denied, file moved), the row turns to "Open again…" and says so
- * in one line; "Open again…" opens the file dialog. Call it straight from the event, with no
- * await before it, so the permission request keeps the click's user activation.
+ * A Recents row (click, Enter): a row with a kept snapshot reopens it with no prompt or
+ * picker, on every browser, at its page and with its changes (ADR-0032 §2.6). Otherwise it
+ * reopens the file through its handle, asking for read permission within the click where the
+ * browser needs it. Without a handle, or when the handle fails (permission denied, file
+ * moved), the row turns to "Open again…" and says so in one line; "Open again…" opens the
+ * file dialog. Call it straight from the event, with no await before it, so the permission
+ * request keeps the click's user activation.
  */
 export async function openRecent(entry: RecentEntry): Promise<void> {
+  if (entry.kept !== undefined) {
+    const kept = await reopenFromSnapshot(entry.kept.snapshotId);
+    if (kept?.ok) {
+      setRecentNote(null);
+      openInRead(kept.documentId);
+      announce(m.announce_opened({ name: kept.record.title }));
+      return;
+    }
+    // The snapshot is gone or unreadable: the row reopens like a plain recent.
+  }
   const access = useRecentsStore.getState().access[entry.id];
   if (!canReopenRecent(entry) || access === 'unavailable') {
     await openRecentAgain(entry);

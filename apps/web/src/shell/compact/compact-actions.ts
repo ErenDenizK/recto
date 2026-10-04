@@ -27,6 +27,7 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { m } from '../../i18n';
+import { isDocumentChanged, reopenFromSnapshot } from '../../session/session';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
@@ -132,6 +133,9 @@ export async function openRecentEntry(entry: RecentEntry): Promise<void> {
     showReader();
     return;
   }
+  // A kept snapshot reopens with no picker on every browser (ADR-0032 §2.6), one document at
+  // a time as every open here.
+  if (entry.kept !== undefined && (await openKept(entry.kept.snapshotId))) return;
   const access = useRecentsStore.getState().access[entry.id];
   if (canReopenRecent(entry) && access !== 'unavailable') {
     const result = await reopenRecent(entry);
@@ -154,6 +158,38 @@ export async function openRecentEntry(entry: RecentEntry): Promise<void> {
   if (file === undefined) return;
   if (await openPdf(file, file.name === entry.name ? entry.id : undefined)) {
     if (useRecentsStore.getState().note === note) setRecentNote(null);
+  }
+}
+
+/** Reopens a kept snapshot as the one document; false when it could not (then the file). */
+async function openKept(snapshotId: string): Promise<boolean> {
+  if (useCompactStore.getState().opening) return false;
+  set({ opening: true, openError: null });
+  try {
+    if (useWorkspaceStore.getState().workspace.documentOrder.length > 0) {
+      clearSearch();
+      prepared = null;
+      resetWorkspace();
+    }
+    useViewStore.setState({ currentPage: 0, visibleRange: { first: 0, last: 0 }, navTarget: null });
+    const result = await reopenFromSnapshot(snapshotId);
+    if (!result?.ok) return false;
+    const doc = useWorkspaceStore.getState().workspace.documents[result.documentId];
+    if (doc === undefined) return false;
+    setRecentNote(null);
+    // A document with changes is not the file as opened: its copy goes through the export.
+    set({
+      openedDocument: isDocumentChanged(doc.id) ? null : doc,
+      zoom: 1,
+      findOpen: false,
+      sheet: null,
+      copyError: null,
+    });
+    showReader();
+    announce(m.announce_opened({ name: result.record.title }));
+    return true;
+  } finally {
+    set({ opening: false });
   }
 }
 

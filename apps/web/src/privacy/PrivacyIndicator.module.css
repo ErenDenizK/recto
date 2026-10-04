@@ -52,6 +52,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Above the notices that sit over the status bar (z 40), which it opens beside. */
+.positioner {
+  z-index: 41;
+}
+
 .popup {
   width: min(360px, calc(100vw - 16px));
 }

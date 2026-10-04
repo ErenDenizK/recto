@@ -14,6 +14,8 @@ import { UpdateToast } from './pwa/UpdateToast';
 import { AppShell } from './shell/AppShell';
 import { registerArrangeCommands } from './stage/arrange-commands';
 import { OperationDialogs } from './stage/OperationDialogs';
+import { RestoreNotice } from './session/RestoreNotice';
+import { startSession } from './session/session';
 import { registerSignatureCommands } from './signatures/signature-commands';
 import { startSignatureValidation } from './signatures/signature-store';
 import { SignDialog } from './signatures/SignDialog';
@@ -36,6 +38,8 @@ export function App() {
   useLayoutEffect(() => registerPenBar(), []);
   // Signature validation on open (spec recognize-and-compare §3.1).
   useLayoutEffect(() => startSignatureValidation(), []);
+  // Snapshots on this device and restore on launch (ADR-0032 §2.4, §2.5).
+  useLayoutEffect(() => startSession({ edition: 'full' }), []);
   useLayoutEffect(() => {
     const engine = getEngineService();
     engine.setPasswordPrompt(requestPassword);
@@ -49,6 +53,7 @@ export function App() {
       <SignDialog />
       <OperationDialogs />
       <UpdateToast />
+      <RestoreNotice />
     </LocaleBoundary>
   );
 }
