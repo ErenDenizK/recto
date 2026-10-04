@@ -9,10 +9,13 @@
  * read as one control. These dots are the only colour that enters the chrome through content
  * (DESIGN.md §3).
  *
- * Tap a preset to arm it; tap the armed one again for its editor, a popover rising from the
- * dot: eight swatches and a custom colour, width stops and a slider (0.25–24 pt), opacity,
- * and "Reset to default". Edits change that preset and persist per device. Nothing opens on
- * its own: arming never opens the editor.
+ * Tap a preset to arm it; tap the armed one again for its editor, the one popover recipe
+ * (`ui/Popover`) rising from the dot (10-ink §6 on today's layout): the eight inks as swatches
+ * (`ui/SwatchGroup`) and the colour well that opens the colour panel (`ui/colour/`), the width
+ * on the log slider with the taper track, the detents of the old stops and the stroke itself
+ * as the knob at the page's zoom (0.25–24 pt; the Highlighter 6–18 pt), opacity on the
+ * checkerboard track, and "Reset to default". Edits change that preset and persist per
+ * device. Nothing opens on its own: arming never opens the editor.
  *
  * Keyboard: the presets are a radiogroup inside the bar's roving tabindex. Left and Right
  * move between them (past either end, on to the bar), Space or Enter arms, Space or Enter on
@@ -27,14 +30,13 @@
  *
  * The armed preset's tooltip says how to leave it ("Black pen, 1.5 pt · Esc: Select").
  *
- * The eraser's options tier (`EraserTier`, craft spec §5.6): Whole stroke or Partial, and the
- * eraser's size (a hollow circle per size; the cursor is that circle on the page). Both are
- * radio groups in the tier's roving tabindex and are remembered per device (`tool-store.ts`).
- * Partial's tooltip, also its description, says that highlighter strokes and highlights are
- * erased whole.
+ * The eraser's options tier (`EraserTier`, craft spec §5.6; 10-ink §2.1): Whole stroke or
+ * Partial on a segmented control, and the eraser's size on a slider with a detent at each of
+ * its four sizes, 6 · 12 · 24 · 48 px (the cursor is that circle on the page). Both are
+ * remembered per device (`tool-store.ts`). Partial's tooltip, also its description, says that
+ * highlighter strokes and highlights are erased whole.
  */
 import { Popover } from '@base-ui/react/popover';
-import { Plus } from 'lucide-react';
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -46,10 +48,20 @@ import {
 import { formatNumber, formatPercent, m } from '../../i18n';
 import { announce } from '../../shell/announcer';
 import type { PenBarProps } from '../../shell/FloatingToolbar.slots';
-import popoverStyles from '../../ui/Popover.module.css';
-import { Range } from '../../ui/Range';
+import { useUiStore } from '../../state/ui-store';
+import { ColourPicker } from '../../ui/colour/ColourPicker';
+import { PopoverHeader, PopoverPopup } from '../../ui/Popover';
+import { Segmented } from '../../ui/Segmented';
+import { Slider } from '../../ui/Slider';
+import { Swatch } from '../../ui/Swatch';
+import { SwatchGroup } from '../../ui/SwatchGroup';
 import { Tooltip } from '../../ui/Tooltip';
-import { ERASER_SIZES, type EraserMode, useToolStore } from '../../viewer/tool-store';
+import {
+  ERASER_SIZES,
+  type EraserMode,
+  type EraserSize,
+  useToolStore,
+} from '../../viewer/tool-store';
 import { useAnnotationStore } from '../annotation-store';
 import { penSession } from './ink-input';
 import {
@@ -89,35 +101,6 @@ function InkMark({ preset }: { readonly preset: PenPreset }) {
       aria-hidden="true"
     />
   );
-}
-
-/**
- * The editor's radio groups (APG radio group): one Tab stop on the chosen radio, and the
- * arrows move to a neighbour and choose it.
- */
-const RADIO_STEPS: Readonly<Record<string, number>> = {
-  ArrowRight: 1,
-  ArrowDown: 1,
-  ArrowLeft: -1,
-  ArrowUp: -1,
-};
-
-function onRadioKeyDown(event: KeyboardEvent<HTMLElement>): void {
-  const step = RADIO_STEPS[event.key];
-  if (step === undefined || event.altKey || event.ctrlKey || event.metaKey) return;
-  const group = event.currentTarget.closest('[role="radiogroup"]');
-  const radios = Array.from(group?.querySelectorAll<HTMLElement>('[role="radio"]') ?? []);
-  const at = radios.indexOf(event.currentTarget);
-  if (at < 0) return;
-  event.preventDefault();
-  const next = radios[(at + step + radios.length) % radios.length];
-  next?.focus();
-  next?.click();
-}
-
-/** The radio that holds a group's Tab stop: the chosen one, else the first. */
-function radioTabIndex(checked: boolean, index: number, anyChecked: boolean): 0 | -1 {
-  return checked || (!anyChecked && index === 0) ? 0 : -1;
 }
 
 /** The preset whose editor is (or was last) shown, and the dot it rises from. */
@@ -237,18 +220,16 @@ function PresetEditor({
 }) {
   const { index: i, anchor } = editing;
   const preset = useAnnotationStore((s) => s.pen.presets[i]);
+  // The width knob is the stroke as it will draw at the page's zoom (10-ink §3.3).
+  const zoom = useUiStore((s) => s.zoom);
   const name = presetName(i, preset);
   const edit = (patch: Partial<PenPreset>) => useAnnotationStore.getState().editPreset(i, patch);
   // The eight inks for a pen, the four tints for the highlighter (craft spec §6).
   const swatches = presetSwatches(preset);
   const swatchChosen = swatches.some((swatch) => swatch.color === preset.color);
-  // A colour that is none of the swatches shows in the custom control (then the chosen one).
-  const custom = !swatchChosen;
   // The Highlighter: its own width range (6–18 pt) and no opacity (craft spec §5.4).
   const highlighter = isHighlighter(preset);
-  const stops = presetWidthStops(preset);
   const limits = presetWidthLimits(preset);
-  const stopChosen = stops.some((stop) => stop === preset.width);
   const pressure = usePressureSeen();
 
   return (
@@ -260,138 +241,101 @@ function PresetEditor({
         onClose(target instanceof Node && anchor.contains(target));
       }}
     >
-      <Popover.Portal>
-        <Popover.Positioner
-          anchor={anchor}
-          side="top"
-          align="center"
-          sideOffset={12}
-          collisionPadding={8}
-        >
-          <Popover.Popup
-            className={`${popoverStyles.popup} ${styles.editor}`}
-            data-annotation-keep=""
-            data-testid="pen-preset-editor"
-            finalFocus={() => anchor}
-            onKeyDown={(event) => {
-              if (event.key !== 'Escape') return;
-              // Only the editor closes: the pen stays armed.
-              event.preventDefault();
-              onClose(false);
-            }}
+      <PopoverPopup
+        anchor={anchor}
+        side="top"
+        align="center"
+        sideOffset={12}
+        className={styles.editor}
+        data-annotation-keep=""
+        data-testid="pen-preset-editor"
+        finalFocus={() => anchor}
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape' || event.defaultPrevented) return;
+          // Only the editor closes: the pen stays armed.
+          event.preventDefault();
+          onClose(false);
+        }}
+      >
+        <PopoverHeader title={m.pen_editor_label({ name })} />
+
+        <div className={styles.colours}>
+          <SwatchGroup
+            label={m.annot_color()}
+            value={swatchChosen ? preset.color : null}
+            onValueChange={(color) => edit({ color })}
+            className={styles.swatches}
           >
-            <Popover.Title className={popoverStyles.title}>
-              {m.pen_editor_label({ name })}
-            </Popover.Title>
+            {swatches.map((swatch) => (
+              <Swatch key={swatch.color} value={swatch.color} name={swatch.name()} />
+            ))}
+          </SwatchGroup>
+          <ColourPicker
+            value={preset.color}
+            opacity={highlighter ? undefined : preset.opacity}
+            onChange={(color, opacity) =>
+              edit(opacity === undefined ? { color } : { color, opacity })
+            }
+            preview={{ width: preset.width, kind: highlighter ? 'highlighter' : 'pen' }}
+            label={m.annot_custom_color()}
+            side="right"
+          />
+        </div>
 
-            <div role="radiogroup" aria-label={m.annot_color()} className={styles.swatches}>
-              {swatches.map((swatch, n) => (
-                <button
-                  key={swatch.color}
-                  type="button"
-                  role="radio"
-                  aria-checked={preset.color === swatch.color}
-                  tabIndex={radioTabIndex(preset.color === swatch.color, n, swatchChosen)}
-                  onKeyDown={onRadioKeyDown}
-                  aria-label={swatch.name()}
-                  title={swatch.name()}
-                  className={styles.swatch}
-                  style={{ '--swatch': swatch.color } as CSSProperties}
-                  onClick={() => edit({ color: swatch.color })}
-                />
-              ))}
-              <label
-                className={styles.custom}
-                title={m.annot_custom_color()}
-                data-custom={custom ? '' : undefined}
-                style={custom ? ({ '--swatch': preset.color } as CSSProperties) : undefined}
-              >
-                <span className={styles.visuallyHidden}>{m.annot_custom_color()}</span>
-                <span className={styles.customMark} aria-hidden="true">
-                  {custom ? null : <Plus className={styles.customIcon} />}
-                </span>
-                <input
-                  type="color"
-                  aria-label={m.annot_custom_color()}
-                  value={preset.color.toLowerCase()}
-                  onChange={(e) => edit({ color: e.target.value })}
-                />
-              </label>
-            </div>
+        <Slider
+          className={styles.slider}
+          label={m.pen_editor_width()}
+          showLabel
+          readout
+          scale="log"
+          track="taper"
+          detents={presetWidthStops(preset)}
+          min={limits.min}
+          max={limits.max}
+          step={0.25}
+          value={preset.width}
+          knobColor={inkFill(preset.color, preset.opacity)}
+          zoom={zoom}
+          format={widthText}
+          onValueChange={(width) => edit({ width })}
+        />
+        {highlighter ? null : (
+          <Slider
+            className={styles.slider}
+            label={m.annot_opacity()}
+            showLabel
+            readout
+            track="gradient"
+            gradient={`linear-gradient(to right, ${inkFill(preset.color, 0)}, ${preset.color})`}
+            checkerboard
+            knobColor={inkFill(preset.color, preset.opacity)}
+            min={10}
+            max={100}
+            step={5}
+            value={Math.round(preset.opacity * 100)}
+            format={(percent) => formatPercent(percent / 100)}
+            onValueChange={(percent) => edit({ opacity: percent / 100 })}
+          />
+        )}
 
-            <div className={styles.row}>
-              <span className={styles.rowLabel} id={`pen-width-${i}`}>
-                {m.pen_editor_width()}
-              </span>
-              <div role="radiogroup" aria-labelledby={`pen-width-${i}`} className={styles.stops}>
-                {stops.map((stop, n) => (
-                  <button
-                    key={stop}
-                    type="button"
-                    role="radio"
-                    aria-checked={preset.width === stop}
-                    tabIndex={radioTabIndex(preset.width === stop, n, stopChosen)}
-                    onKeyDown={onRadioKeyDown}
-                    aria-label={widthText(stop)}
-                    className={styles.stop}
-                    onClick={() => edit({ width: stop })}
-                  >
-                    {formatNumber(stop)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <label className={styles.slider}>
-              <span className={styles.rowLabel}>{m.pen_editor_width_exact()}</span>
-              <Range
-                className={styles.range}
-                aria-label={m.pen_editor_width_exact()}
-                min={limits.min}
-                max={limits.max}
-                step={0.25}
-                value={preset.width}
-                aria-valuetext={widthText(preset.width)}
-                onChange={(e) => edit({ width: Number(e.target.value) })}
-              />
-              <span className={styles.value}>{widthText(preset.width)}</span>
-            </label>
-            {highlighter ? null : (
-              <label className={styles.slider}>
-                <span className={styles.rowLabel}>{m.annot_opacity()}</span>
-                <Range
-                  className={styles.range}
-                  aria-label={m.annot_opacity()}
-                  min={10}
-                  max={100}
-                  step={5}
-                  value={Math.round(preset.opacity * 100)}
-                  aria-valuetext={formatPercent(preset.opacity)}
-                  onChange={(e) => edit({ opacity: Number(e.target.value) / 100 })}
-                />
-                <span className={styles.value}>{formatPercent(preset.opacity)}</span>
-              </label>
-            )}
+        {pressure && !highlighter ? (
+          <p className={styles.note} data-testid="pen-editor-width-note">
+            {m.pen_width_note()}
+          </p>
+        ) : null}
 
-            {pressure && !highlighter ? (
-              <p className={styles.note} data-testid="pen-editor-width-note">
-                {m.pen_width_note()}
-              </p>
-            ) : null}
-
-            <button
-              type="button"
-              className={styles.reset}
-              onClick={() => {
-                useAnnotationStore.getState().resetPreset(i);
-                const reset = useAnnotationStore.getState().pen.presets[i];
-                announce(m.pen_preset_reset_done({ name: presetName(i, reset) }));
-              }}
-            >
-              {m.pen_editor_reset()}
-            </button>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
+        <button
+          type="button"
+          className={styles.reset}
+          onClick={() => {
+            useAnnotationStore.getState().resetPreset(i);
+            const reset = useAnnotationStore.getState().pen.presets[i];
+            announce(m.pen_preset_reset_done({ name: presetName(i, reset) }));
+          }}
+        >
+          {m.pen_editor_reset()}
+        </button>
+      </PopoverPopup>
     </Popover.Root>
   );
 }
@@ -443,61 +387,43 @@ const ERASER_MODES: readonly {
   { mode: 'partial', label: m.eraser_mode_partial, tooltip: m.eraser_mode_partial_tooltip },
 ];
 
-/** The size marks in the tier (CSS px): the circles grow with the size, but stay small. */
-const ERASER_MARKS = [5, 8, 11, 15] as const;
+/** The eraser's size from the slider: the nearest of its four sizes (they are its detents). */
+function nearestEraserSize(value: number): EraserSize {
+  return ERASER_SIZES.reduce((best, size) =>
+    Math.abs(Math.log(size / value)) < Math.abs(Math.log(best / value)) ? size : best,
+  );
+}
 
 /** The eraser's options tier: Whole stroke or Partial, and its size (module header). */
 export function EraserTier() {
   const eraserMode = useToolStore((s) => s.eraserMode);
   const eraserSize = useToolStore((s) => s.eraserSize);
-  const hintId = useId();
   return (
     <div className={styles.eraserTier} data-testid="eraser-options">
-      <div role="radiogroup" aria-label={m.eraser_mode_label()} className={styles.stops}>
-        {ERASER_MODES.map(({ mode, label, tooltip }) => (
-          <Tooltip key={mode} label={tooltip()} side="top">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={eraserMode === mode}
-              aria-describedby={mode === 'partial' ? hintId : undefined}
-              className={styles.stop}
-              data-eraser-mode={mode}
-              onClick={() => useToolStore.getState().setEraserMode(mode)}
-            >
-              {label()}
-            </button>
-          </Tooltip>
-        ))}
-        <span id={hintId} hidden>
-          {m.eraser_mode_partial_tooltip()}
-        </span>
-      </div>
+      <Segmented
+        className={styles.eraserModes}
+        label={m.eraser_mode_label()}
+        value={eraserMode}
+        onValueChange={(mode) => useToolStore.getState().setEraserMode(mode)}
+        options={ERASER_MODES.map(({ mode, label, tooltip }) => ({
+          value: mode,
+          label: label(),
+          description: tooltip(),
+        }))}
+      />
       <span className={styles.divider} aria-hidden="true" />
-      <div role="radiogroup" aria-label={m.eraser_size_label()} className={styles.stops}>
-        {ERASER_SIZES.map((size, i) => {
-          const label = m.eraser_size_option({ size: formatNumber(size) });
-          return (
-            <Tooltip key={size} label={label} side="top">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={eraserSize === size}
-                aria-label={label}
-                className={`${styles.stop} ${styles.eraserSize}`}
-                data-eraser-size={size}
-                onClick={() => useToolStore.getState().setEraserSize(size)}
-              >
-                <span
-                  className={styles.eraserMark}
-                  style={{ '--mark': `${ERASER_MARKS[i] ?? 15}px` } as CSSProperties}
-                  aria-hidden="true"
-                />
-              </button>
-            </Tooltip>
-          );
-        })}
-      </div>
+      <Slider
+        className={styles.eraserSize}
+        label={m.eraser_size_label()}
+        readout
+        scale="log"
+        detents={ERASER_SIZES}
+        min={ERASER_SIZES[0]}
+        max={ERASER_SIZES[ERASER_SIZES.length - 1] ?? 48}
+        value={eraserSize}
+        format={(size) => m.eraser_size_option({ size: formatNumber(size) })}
+        onValueChange={(size) => useToolStore.getState().setEraserSize(nearestEraserSize(size))}
+      />
     </div>
   );
 }
