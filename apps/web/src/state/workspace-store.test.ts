@@ -3,6 +3,7 @@
  * that an operation is still preparing are protected from garbage collection by the
  * operation that created them, and only by it, while other operations commit.
  */
+import { PDFDocument } from '@cantoo/pdf-lib';
 import {
   type BlobId,
   createSequentialIdGenerator,
@@ -11,6 +12,7 @@ import {
   type ImageOverlay,
   insertImagePage,
   newEmptyDocument,
+  type PageId,
   setDocumentFurniture,
   type SourceId,
 } from '@pdf-editor/document-model';
@@ -20,6 +22,8 @@ import outlineUrl from '../../../../test/fixtures/outline-named-dests.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { deferred, fixtureFile, gateEngine, pngBlob } from '../../test/store-harness';
 import { getEngineService, RENDER_PRIORITY } from '../engine/engine-service';
+import { prepareExport } from '../export/export-service';
+import { applyFurniture, defaultWatermark, watermarkOverlay } from '../furniture/furniture-model';
 import { blobsOfDocument, resetWorkspace, useWorkspaceStore } from './workspace-store';
 
 const model = () => useWorkspaceStore.getState();
@@ -186,5 +190,67 @@ describe('blobs a document needs at export', () => {
       'page-blob',
       'watermark-blob',
     ]);
+  });
+});
+
+describe('an image watermark applied as the Watermark dialog does', () => {
+  beforeEach(() => {
+    resetWorkspace();
+  });
+  afterEach(() => {
+    resetWorkspace();
+  });
+
+  it('keeps its bytes through garbage collection and exports it on every page', async () => {
+    const report = await model().openFiles([await fixtureFile(simpleUrl, 'simple-text.pdf')]);
+    const id = report.opened[0]?.documentId;
+    if (id === undefined) throw new Error('simple-text.pdf did not open');
+    const doc = () => getDocument(model().workspace, id);
+    const firstPage = doc().pages[0]?.id as PageId;
+    const image = await pngBlob('mark.png', 40, 20);
+
+    // The bytes stored under the operation's lease, the overlay put into the document's
+    // furniture (not onto the pages).
+    let stored: BlobId | undefined;
+    const applied = await model().applyComposed(
+      (lease) => {
+        stored = model().addBlob(image, lease);
+        return Promise.resolve(stored);
+      },
+      (ws, _ids, blob: BlobId) => {
+        const overlay = watermarkOverlay({
+          ...defaultWatermark(3),
+          mode: 'image',
+          blob,
+          rotate: 0,
+        });
+        if (overlay === undefined) throw new Error('no watermark overlay');
+        return applyFurniture(ws, id, 'watermark', [overlay]);
+      },
+      'Watermark',
+    );
+    expect(applied).toBe(true);
+    if (stored === undefined) throw new Error('the image was not stored');
+    expect(doc().furniture).toMatchObject([{ kind: 'image', blob: stored, role: 'watermark' }]);
+    expect(doc().pages.every((p) => p.overlays.length === 0)).toBe(true);
+
+    // Live after the commit's collection and after a later commit's.
+    expect(model().blobs[stored]).toBeDefined();
+    expect(model().rotatePages([firstPage], 90)).toBe(true);
+    expect(model().blobs[stored]).toBeDefined();
+
+    // The export gets the bytes and draws the watermark on every page.
+    const exported = await prepareExport(id, { compression: null });
+    if (!exported.ok) throw new Error(exported.error.message);
+    expect(exported.value.verification).toEqual({ ok: true, problems: [] });
+    const pdf = await PDFDocument.load(exported.value.bytes.slice(0), { updateMetadata: false });
+    const imagesOn = (index: number) =>
+      pdf
+        .getPage(index)
+        .node.normalizedEntries()
+        .XObject?.keys()
+        .filter((key) => key.asString().startsWith('/Im')).length ?? 0;
+    expect(pdf.getPageCount()).toBe(3);
+    expect([imagesOn(0), imagesOn(1), imagesOn(2)]).toEqual([1, 1, 1]);
   });
 });
