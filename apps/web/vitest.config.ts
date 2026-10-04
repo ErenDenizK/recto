@@ -33,6 +33,17 @@ export default mergeConfig(
         'react-dom',
         'react-dom/client',
         '@base-ui/react',
+        // Base UI is imported by subpath; each is its own pre-bundle entry, and a new one
+        // discovered mid-run reloads the browser (seen when the drawer and slider arrived).
+        '@base-ui/react/context-menu',
+        '@base-ui/react/dialog',
+        '@base-ui/react/drawer',
+        '@base-ui/react/menu',
+        '@base-ui/react/popover',
+        '@base-ui/react/radio',
+        '@base-ui/react/radio-group',
+        '@base-ui/react/slider',
+        '@base-ui/react/tooltip',
         '@testing-library/react',
         '@embedpdf/pdfium',
         '@pdf-editor/engine > @embedpdf/engines',
