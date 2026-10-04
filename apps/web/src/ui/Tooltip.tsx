@@ -87,6 +87,8 @@ interface TooltipProps {
   readonly shortcut?: ParsedShortcut | undefined;
   /** Why the control is unavailable; shown after the label and described on the trigger. */
   readonly reason?: string | undefined;
+  /** Also describe the trigger with the label (a tooltip that explains, not one that names). */
+  readonly describe?: boolean | undefined;
   /**
    * The control is disabled. Without a `reason` the tooltip stays off. Read from the
    * trigger's own `disabled` or `aria-disabled` when not given.
@@ -115,6 +117,7 @@ export function Tooltip({
   label,
   shortcut,
   reason,
+  describe = false,
   disabled,
   side = 'bottom',
   children,
@@ -124,6 +127,7 @@ export function Tooltip({
   const reasonId = useId();
   const keycaps = useKeycapsVisible();
   const off = (disabled ?? triggerDisabled(children)) && !reason;
+  const description = reason ?? (describe ? label : undefined);
 
   useEffect(
     () => () => {
@@ -202,7 +206,7 @@ export function Tooltip({
       >
         <BaseTooltip.Trigger
           render={children}
-          {...(reason ? { 'aria-describedby': reasonId } : {})}
+          {...(description ? { 'aria-describedby': reasonId } : {})}
           onPointerDown={onPointerDown}
           onContextMenu={(event) => {
             // A held touch is the tooltip's, not the browser's context menu.
@@ -223,9 +227,9 @@ export function Tooltip({
           </BaseTooltip.Positioner>
         </BaseTooltip.Portal>
       </BaseTooltip.Root>
-      {reason ? (
+      {description ? (
         <span id={reasonId} hidden>
-          {reason}
+          {description}
         </span>
       ) : null}
     </>

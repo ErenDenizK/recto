@@ -63,7 +63,7 @@ import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import toolStyles from '../tools/ToolDialog.module.css';
 import { IconButton } from '../ui/IconButton';
-import { Range } from '../ui/Range';
+import { Slider } from '../ui/Slider';
 import { userRectToCss } from '../viewer/geometry';
 import { rowLabel } from './change-labels';
 import { buildChangeList, buildPartialChangeList, rowIndex, rowStatus } from './changes';
@@ -906,7 +906,6 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
   const zoomOutShortcut = useCommandShortcut('zoom.out');
   const fitShortcut = useCommandShortcut('zoom.fit');
   const done = status === 'done';
-  const opacityId = useId();
 
   const onLayoutKey = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
@@ -939,21 +938,18 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
         ))}
       </div>
       {mode === 'overlay' ? (
-        <label className={styles.slider} htmlFor={opacityId}>
-          <span>{m.compare_opacity()}</span>
-          <Range
-            id={opacityId}
-            className={styles.range}
-            min={0}
-            max={100}
-            step={5}
-            value={Math.round(opacity * 100)}
-            aria-valuetext={formatPercent(opacity)}
-            onChange={(event) =>
-              useCompareStore.setState({ opacity: Number(event.target.value) / 100 })
-            }
-          />
-        </label>
+        <Slider
+          className={styles.slider}
+          label={m.compare_opacity()}
+          showLabel
+          readout
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round(opacity * 100)}
+          format={(percent) => formatPercent(percent / 100)}
+          onValueChange={(percent) => useCompareStore.setState({ opacity: percent / 100 })}
+        />
       ) : null}
       <span className={styles.divider} aria-hidden="true" />
       <IconButton

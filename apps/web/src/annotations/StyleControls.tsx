@@ -1,8 +1,10 @@
 /**
  * The controls shared by the contextual bar and the Properties panel (spec §2): colour
  * swatches from the one palette (craft spec §6: the eight inks, or the four highlighter
- * tints for a highlight or a note, plus custom), opacity, stroke width, font size, comment,
- * delete.
+ * tints for a highlight or a note) on `ui/SwatchGroup`, the colour well that opens the colour
+ * panel for any other colour (10-ink §4), opacity on the checkerboard track and the stroke
+ * width on the log taper track with the pen's detents (`ui/Slider`, 10-ink §3), font size
+ * (`ui/Select`), comment, delete.
  *
  * Every style control goes through `applyStyle` (experience-redesign spec §6.3): with a
  * selection it edits the selection (slider changes coalesce into one history entry, and
@@ -12,12 +14,18 @@
  * or width can be set before drawing; with a selection it shows (and edits) the selection.
  */
 import type { Annotation } from '@pdf-editor/engine';
-import { ChevronDown, MessageSquare, Plus, Trash2 } from 'lucide-react';
-import { type CSSProperties, Fragment, type ReactNode, useRef, useState } from 'react';
+import { MessageSquare, Trash2 } from 'lucide-react';
+import { Fragment, type ReactNode, useRef, useState } from 'react';
 
 import { formatNumber, formatPercent, m } from '../i18n';
+import { useUiStore } from '../state/ui-store';
+import { ColourPicker } from '../ui/colour/ColourPicker';
 import { IconButton } from '../ui/IconButton';
-import { Range } from '../ui/Range';
+import { Select } from '../ui/Select';
+import { Slider, type SliderProps } from '../ui/Slider';
+import { Swatch } from '../ui/Swatch';
+import { SwatchGroup } from '../ui/SwatchGroup';
+import { Tooltip } from '../ui/Tooltip';
 import { deleteAnnotations } from './actions';
 import { deleteLassoSelection } from './lasso/edits';
 import {
@@ -30,6 +38,7 @@ import {
 } from './annotation-store';
 import { hasStrokeWidth, normalizeHex, primaryColor } from './colors';
 import { INKS, isTint, type PaletteColor, TINTS } from './palette';
+import { WIDTH_STOPS } from './pen/presets';
 import styles from './StyleControls.module.css';
 
 export const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72] as const;
@@ -45,8 +54,14 @@ export function swatchesFor(tinted: boolean, color: string | undefined): readonl
   return tinted || (color !== undefined && isTint(color)) ? TINTS : INKS;
 }
 
-/** A `#rrggbb` colour, the only form the custom colour input takes. */
+/** A `#rrggbb` colour, the only form the colour panel takes. */
 const HEX = /^#[0-9a-f]{6}$/i;
+
+/** `#rrggbb` at `alpha`, the width knob's ink. */
+function inkAt(color: string, alpha: number): string {
+  const n = Number.parseInt(color.slice(1), 16);
+  return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${alpha})`;
+}
 
 /** Style groups whose annotations have a stroke width (ink and shapes). */
 const STROKED_GROUPS: ReadonlySet<StyleGroup> = new Set(['ink', 'shape']);
@@ -141,10 +156,10 @@ export function StyleControls(props: StyleControlsProps) {
     toolSelection.length > 0 &&
     shown.strokeWidth === undefined;
   const swatches = swatchesFor(shown.tinted, color);
-  // A colour that is none of the swatches shows in the custom control, which then reads as
-  // the chosen one.
-  const custom =
-    color !== undefined && HEX.test(color) && !swatches.some((s) => s.hex === color.toUpperCase());
+  const hex = color !== undefined && HEX.test(color) ? color.toUpperCase() : undefined;
+  // A colour that is none of the swatches checks none of them; the well shows it.
+  const chosen = hex !== undefined && swatches.some((s) => s.hex === hex) ? hex : null;
+  const zoom = useUiStore((s) => s.zoom);
 
   const setColor = (value: string) => {
     applyStyle({ color: normalizeHex(value) });
@@ -170,39 +185,25 @@ export function StyleControls(props: StyleControlsProps) {
     groups.push({
       key: 'color',
       node: (
-        <div role="radiogroup" aria-label={m.annot_color()} className={styles.swatches}>
-          {swatches.map((swatch) => (
-            <button
-              key={swatch.hex}
-              type="button"
-              role="radio"
-              aria-checked={color?.toUpperCase() === swatch.hex}
-              aria-label={swatch.name()}
-              title={swatch.name()}
-              disabled={disabled}
-              className={styles.swatch}
-              style={{ '--swatch': swatch.hex } as CSSProperties}
-              onClick={() => setColor(swatch.hex)}
-            />
-          ))}
-          <label
-            className={styles.custom}
-            title={m.annot_custom_color()}
-            data-custom={custom ? '' : undefined}
-            data-disabled={disabled ? '' : undefined}
-            style={custom ? ({ '--swatch': color } as CSSProperties) : undefined}
+        <div className={styles.colours}>
+          <SwatchGroup
+            label={m.annot_color()}
+            value={chosen}
+            onValueChange={setColor}
+            disabled={disabled}
+            className={styles.swatches}
           >
-            <span className={styles.visuallyHidden}>{m.annot_custom_color()}</span>
-            <span className={styles.customMark} aria-hidden="true">
-              {custom ? null : <Plus className={styles.customIcon} />}
-            </span>
-            <input
-              type="color"
-              disabled={disabled}
-              value={color && HEX.test(color) ? color.toLowerCase() : '#000000'}
-              onChange={(e) => setColor(e.target.value)}
-            />
-          </label>
+            {swatches.map((swatch) => (
+              <Swatch key={swatch.hex} value={swatch.hex} name={swatch.name()} />
+            ))}
+          </SwatchGroup>
+          <ColourPicker
+            value={hex ?? '#000000'}
+            onChange={setColor}
+            label={m.annot_custom_color()}
+            disabled={disabled}
+            side={layout === 'row' ? 'bottom' : 'left'}
+          />
         </div>
       ),
     });
@@ -210,66 +211,80 @@ export function StyleControls(props: StyleControlsProps) {
   groups.push({
     key: 'opacity',
     node: (
-      <label className={styles.slider}>
-        <span className={styles.sliderLabel}>{m.annot_opacity()}</span>
-        <LiveRange
-          min={10}
-          max={100}
-          step={5}
-          disabled={disabled}
-          value={Math.round(opacity * 100)}
-          valueText={(v) => formatPercent(v / 100)}
-          onValue={(v) => setOpacity(v / 100)}
-        />
-      </label>
+      <LiveSlider
+        className={styles.slider}
+        label={m.annot_opacity()}
+        showLabel={layout === 'stack'}
+        readout={layout === 'stack'}
+        bubble={layout === 'row' ? 'always' : 'auto'}
+        track="gradient"
+        gradient={`linear-gradient(to right, ${inkAt(hex ?? '#000000', 0)}, ${hex ?? '#000000'})`}
+        checkerboard
+        knobColor={inkAt(hex ?? '#000000', opacity)}
+        min={10}
+        max={100}
+        step={5}
+        disabled={disabled}
+        value={Math.round(opacity * 100)}
+        format={(v) => formatPercent(v / 100)}
+        onValue={(v) => setOpacity(v / 100)}
+      />
     ),
   });
   if (shown.strokeWidth !== undefined || strokeOff) {
+    const width = (
+      <LiveSlider
+        className={styles.slider}
+        label={m.annot_stroke_width()}
+        showLabel={layout === 'stack'}
+        readout={layout === 'stack'}
+        bubble={layout === 'row' ? 'always' : 'auto'}
+        scale="log"
+        track="taper"
+        detents={WIDTH_STOPS.filter((w) => w >= 0.5 && w <= 12)}
+        knobColor={inkAt(hex ?? '#000000', opacity)}
+        zoom={zoom}
+        min={0.5}
+        max={12}
+        step={0.5}
+        disabled={disabled || strokeOff}
+        value={shown.strokeWidth ?? toolStyle?.strokeWidth ?? 1}
+        format={strokeWidthText}
+        onValue={setStroke}
+      />
+    );
     groups.push({
       key: 'stroke',
-      node: (
-        <label
-          className={styles.slider}
-          title={strokeOff ? m.lasso_width_none() : undefined}
-          data-stroke-off={strokeOff ? '' : undefined}
-        >
-          <span className={styles.sliderLabel}>{m.annot_stroke_width()}</span>
-          <LiveRange
-            min={0.5}
-            max={12}
-            step={0.5}
-            disabled={disabled || strokeOff}
-            value={shown.strokeWidth ?? toolStyle?.strokeWidth ?? 1}
-            valueText={strokeWidthText}
-            onValue={setStroke}
-          />
-        </label>
+      node: strokeOff ? (
+        <Tooltip label={m.annot_stroke_width()} reason={m.lasso_width_none()} disabled>
+          <span className={styles.strokeOff} data-stroke-off="">
+            {width}
+          </span>
+        </Tooltip>
+      ) : (
+        width
       ),
     });
   }
   if (shown.fontSize !== undefined) {
+    const sizes = [...new Set([...FONT_SIZES, Math.round(shown.fontSize)])].sort((a, b) => a - b);
     groups.push({
       key: 'font-size',
       node: (
-        <label className={styles.select}>
-          <span className={styles.sliderLabel}>{m.annot_font_size()}</span>
-          <span className={styles.selectBox}>
-            <select
-              value={Math.round(shown.fontSize)}
-              disabled={disabled}
-              onChange={(e) => setFontSize(Number(e.target.value))}
-            >
-              {[...new Set([...FONT_SIZES, Math.round(shown.fontSize)])]
-                .sort((a, b) => a - b)
-                .map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-            </select>
-            <ChevronDown className={styles.selectChevron} aria-hidden="true" />
-          </span>
-        </label>
+        <div className={styles.fontSize}>
+          {layout === 'stack' ? (
+            <span className={styles.sliderLabel} aria-hidden="true">
+              {m.annot_font_size()}
+            </span>
+          ) : null}
+          <Select
+            label={m.annot_font_size()}
+            value={String(Math.round(shown.fontSize))}
+            disabled={disabled}
+            onValueChange={(size) => setFontSize(Number(size))}
+            options={sizes.map((size) => ({ value: String(size), label: formatNumber(size) }))}
+          />
+        </div>
       ),
     });
   }
@@ -336,21 +351,14 @@ export function strokeWidthText(width: number): string {
 }
 
 /**
- * A range input that shows the value being dragged at once; the stored value (read back
- * from the engine) takes over shortly after the interaction ends.
+ * A slider that shows the value being dragged at once; the stored value (read back from the
+ * engine) takes over shortly after the interaction ends.
  */
-function LiveRange({
+function LiveSlider({
   value,
-  valueText,
   onValue,
   ...rest
-}: {
-  readonly value: number;
-  readonly min: number;
-  readonly max: number;
-  readonly step: number;
-  readonly disabled: boolean;
-  readonly valueText: (value: number) => string;
+}: Omit<SliderProps, 'onValueChange' | 'onValueCommitted'> & {
   readonly onValue: (value: number) => void;
 }) {
   const [local, setLocal] = useState<number | null>(null);
@@ -360,24 +368,16 @@ function LiveRange({
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setLocal(null), 1000);
   };
-  const shown = local ?? value;
   return (
-    <>
-      <Range
-        {...rest}
-        className={styles.range}
-        value={shown}
-        aria-valuetext={valueText(shown)}
-        onChange={(e) => {
-          const next = Number(e.target.value);
-          setLocal(next);
-          settle();
-          onValue(next);
-        }}
-        onPointerUp={settle}
-        onBlur={settle}
-      />
-      <span className={styles.value}>{valueText(shown)}</span>
-    </>
+    <Slider
+      {...rest}
+      value={local ?? value}
+      onValueChange={(next) => {
+        setLocal(next);
+        settle();
+        onValue(next);
+      }}
+      onValueCommitted={settle}
+    />
   );
 }

@@ -22,13 +22,16 @@ import { type ReactNode, type SyntheticEvent, useEffect, useId, useState } from 
 import styles from '../export/ExportDialog.module.css';
 import { decodeImageFile } from '../files/images';
 import { pickFiles } from '../files/open-files';
-import { formatNumber, m } from '../i18n';
+import { formatNumber, formatPercent, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import local from '../stage/OperationDialogs.module.css';
 import { readJson, writeJson } from '../state/safe-storage';
 import { pagesPhrase, useTabItems, useWorkspaceStore } from '../state/workspace-store';
-import { Range } from '../ui/Range';
+import { ColourPicker } from '../ui/colour/ColourPicker';
+import { NumberField as NumberInput } from '../ui/NumberField';
+import { Select } from '../ui/Select';
+import { Slider } from '../ui/Slider';
 import { useRetained } from '../ui/use-retained';
 import {
   applyBatesRun,
@@ -40,7 +43,6 @@ import {
   defaultPageNumbers,
   defaultWatermark,
   FONT_FAMILIES,
-  type FurnitureFamily,
   type FurnitureKind,
   firstPosition,
   furnitureOf,
@@ -235,24 +237,20 @@ function NumberField({
   readonly testId?: string;
 }) {
   return (
-    <label className={local2.inline}>
-      {label}
-      <input
-        type="number"
-        inputMode="decimal"
-        className={`${styles.input} ${local2.number}`}
-        value={Number.isFinite(value) ? value : ''}
-        min={min}
-        max={max}
-        step={step}
-        data-testid={testId}
-        onChange={(event) => {
-          const next = event.target.valueAsNumber;
-          if (Number.isFinite(next)) onChange(next);
-        }}
-      />
-      {unit}
-    </label>
+    <NumberInput
+      className={local2.number}
+      label={label}
+      showLabel
+      value={Number.isFinite(value) ? value : null}
+      unit={unit}
+      step={step}
+      data-testid={testId}
+      onValueChange={(next) => {
+        if (next !== null && Number.isFinite(next)) onChange(next);
+      }}
+      {...(min === undefined ? {} : { min })}
+      {...(max === undefined ? {} : { max })}
+    />
   );
 }
 
@@ -385,20 +383,18 @@ function Percent({
   readonly min?: number;
   readonly max?: number;
 }) {
-  const percent = Math.round(value * 100);
   return (
-    <label className={local2.row}>
-      <span className={local2.inline}>{label}</span>
-      <Range
-        className={local2.range}
-        min={min}
-        max={max}
-        value={percent}
-        aria-valuetext={`${percent}%`}
-        onChange={(event) => onChange(event.target.valueAsNumber / 100)}
-      />
-      <span className={local2.value}>{percent}%</span>
-    </label>
+    <Slider
+      className={local2.range}
+      label={label}
+      showLabel
+      readout
+      min={min}
+      max={max}
+      value={Math.round(value * 100)}
+      format={(percent) => formatPercent(percent / 100)}
+      onValueChange={(percent) => onChange(percent / 100)}
+    />
   );
 }
 
@@ -414,20 +410,15 @@ function StyleSection({
   return (
     <Section legend={m.furniture_text()}>
       <div className={local2.row}>
-        <label className={local2.inline}>
-          {m.furniture_font()}
-          <select
-            className={`${styles.input} ${local2.select}`}
+        <div className={local2.inline}>
+          <span aria-hidden="true">{m.furniture_font()}</span>
+          <Select
+            label={m.furniture_font()}
             value={style.family}
-            onChange={(e) => onChange({ ...style, family: e.target.value as FurnitureFamily })}
-          >
-            {FONT_FAMILIES.map((family) => (
-              <option key={family} value={family}>
-                {family}
-              </option>
-            ))}
-          </select>
-        </label>
+            onValueChange={(family) => onChange({ ...style, family })}
+            options={FONT_FAMILIES.map((family) => ({ value: family, label: family }))}
+          />
+        </div>
         <NumberField
           label={m.furniture_size()}
           value={style.size}
@@ -454,15 +445,15 @@ function StyleSection({
           />
           <span>{m.furniture_italic()}</span>
         </label>
-        <label className={local2.inline}>
-          {m.furniture_color()}
-          <input
-            type="color"
-            className={local2.color}
-            value={style.color}
-            onChange={(e) => onChange({ ...style, color: e.target.value })}
+        <div className={local2.inline}>
+          <span aria-hidden="true">{m.furniture_color()}</span>
+          <ColourPicker
+            value={style.color.toUpperCase()}
+            label={m.furniture_color()}
+            onChange={(color) => onChange({ ...style, color })}
+            side="right"
           />
-        </label>
+        </div>
       </div>
       {showOpacity ? (
         <Percent
@@ -497,19 +488,13 @@ function RangeSection({
   return (
     <Section legend={m.furniture_pages()}>
       <div className={local2.row}>
-        <select
-          className={`${styles.input} ${local2.select}`}
-          aria-label={m.furniture_pages()}
+        <Select
+          label={m.furniture_pages()}
           value={range.mode}
           data-testid="furniture-range"
-          onChange={(e) => onChange({ ...range, mode: e.target.value as RangeMode })}
-        >
-          {modes.map(([mode, label]) => (
-            <option key={mode} value={mode}>
-              {label()}
-            </option>
-          ))}
-        </select>
+          onValueChange={(mode) => onChange({ ...range, mode })}
+          options={modes.map(([mode, label]) => ({ value: mode, label: label() }))}
+        />
         {range.mode === 'custom' ? (
           <>
             <NumberField
@@ -1061,19 +1046,18 @@ function WatermarkDialog({ documentId }: { readonly documentId: DocumentId }) {
         </Section>
       )}
       <Section legend={m.furniture_position()}>
-        <label className={local2.row}>
-          <span className={local2.inline}>{m.furniture_rotation()}</span>
-          <Range
-            className={local2.range}
-            min={-90}
-            max={90}
-            value={rotation}
-            aria-valuetext={`${rotation}°`}
-            data-testid="watermark-rotation"
-            onChange={(e) => update({ rotate: e.target.valueAsNumber })}
-          />
-          <span className={local2.value}>{rotation}°</span>
-        </label>
+        <Slider
+          className={local2.range}
+          label={m.furniture_rotation()}
+          showLabel
+          readout
+          min={-90}
+          max={90}
+          detents={[-45, 0, 45]}
+          value={rotation}
+          format={(degrees) => `${formatNumber(degrees)}°`}
+          onValueChange={(rotate) => update({ rotate })}
+        />
         <div className={local2.segments}>
           {[-45, 0, 45, 90].map((preset) => (
             <button

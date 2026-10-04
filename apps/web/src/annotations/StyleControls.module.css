@@ -1,7 +1,8 @@
 /*
- * Style controls (polish pass 2026-10-02). In a row (the contextual bar and the tool bar's
- * options tier) the groups read colour · opacity · size, separated by hairline dividers, every
- * control 28 px tall and centred on one line; the inspector stacks them.
+ * Style controls (polish pass 2026-10-02; the ink family's controls, 10-ink §3–§5). In a row
+ * (the contextual bar and the tool bar's options tier) the groups read colour · opacity ·
+ * size, separated by hairline dividers, every control 32 px tall (44 coarse, Q-9) and centred
+ * on one line; the inspector stacks them.
  */
 .controls {
   display: flex;
@@ -16,185 +17,57 @@
   gap: var(--space-3);
 }
 
-/*
- * Swatches: a 14 px dot (16 px when stacked) in a 24 px target, the targets touching so the
- * centres are 24 px apart (DESIGN.md §5). The dot is the button's ::before, so the button
- * keeps the full target and the keyboard ring sits inside it (-2px), clear of the chosen
- * ring around the dot.
- */
-.swatches {
-  --swatch-dot: 14px;
+/* Colour: the swatches (ui/Swatch, 32 / 44 px targets) and the colour well (32 / 44). */
+.colours {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  height: 28px;
-}
-
-.controls[data-flow='stack'] .swatches {
-  --swatch-dot: 16px;
-  height: auto;
-}
-
-.swatch,
-.custom {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
   flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-round);
+  align-items: center;
 }
 
-.swatch::before {
-  content: '';
-  width: var(--swatch-dot);
-  height: var(--swatch-dot);
-  box-sizing: border-box;
-  border: 1px solid var(--border-swatch);
-  border-radius: var(--radius-round);
-  background: var(--swatch);
+.controls[data-flow='stack'] .colours {
+  flex-wrap: wrap;
 }
 
-/* The chosen colour: a 2 px accent ring on a 1 px offset around the dot (DESIGN.md §3). */
-.swatch[aria-checked='true']::before,
-.custom[data-custom] .customMark {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+.swatches {
+  flex-wrap: wrap;
 }
 
-.swatch:focus-visible,
-.custom:has(input:focus-visible) {
-  outline: 2px solid var(--focus-light);
-  outline-offset: var(--focus-offset-in);
-  box-shadow: inset 0 0 0 4px var(--focus-dark);
+.controls[data-flow='row'] .swatches {
+  flex-wrap: nowrap;
 }
 
-.swatch:disabled::before,
-.custom[data-disabled] .customMark {
-  opacity: 0.4;
+/* The sliders: 112 px in a row (132 coarse), 240 stacked with the label and the readout. */
+.slider {
+  flex: none;
+  width: 112px;
 }
 
-/*
- * The custom colour: a neutral dashed ring with a plus, not a rainbow (colour enters the
- * chrome only through content, DESIGN.md §3). Once the colour is a custom one the ring
- * fills with it and takes the chosen ring, like a swatch.
- */
-.customMark {
-  display: inline-grid;
-  place-items: center;
-  width: var(--swatch-dot);
-  height: var(--swatch-dot);
-  box-sizing: border-box;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-round);
-  color: var(--text-secondary);
+.controls[data-flow='stack'] .slider {
+  width: 240px;
 }
 
-.custom[data-custom] .customMark {
-  border: 1px solid var(--border-swatch);
-  background: var(--swatch);
-}
-
-.customIcon {
-  width: 10px;
-  height: 10px;
-  stroke-width: 2;
-}
-
-.custom input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.custom input:disabled {
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .swatch:not(:disabled):hover,
-  .custom:not([data-disabled]):hover {
-    background: var(--surface-hover);
+@media (pointer: coarse), (any-pointer: coarse) {
+  .slider {
+    width: 132px;
   }
 }
 
-.slider,
-.select {
+/* The lasso bar's width with nothing that takes one: dimmed, its reason on hover. */
+.strokeOff {
+  display: inline-flex;
+}
+
+.fontSize {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: var(--space-2);
-  height: 28px;
   color: var(--text-secondary);
   font-size: var(--text-sm);
-}
-
-.range {
-  width: 72px;
-}
-
-.controls[data-flow='stack'] .range {
-  width: 120px;
-}
-
-/* The font size: a 28 px field like the other inputs, with our own chevron. */
-.selectBox {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.selectBox select {
-  appearance: none;
-  height: 28px;
-  min-width: 52px;
-  padding: 0 24px 0 var(--space-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-2);
-  background: var(--surface-2);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-
-.selectBox select:disabled {
-  color: var(--text-disabled);
-  cursor: default;
-}
-
-.selectChevron {
-  position: absolute;
-  right: 6px;
-  width: 14px;
-  height: 14px;
-  color: var(--text-secondary);
-  stroke-width: 1.5;
-  pointer-events: none;
 }
 
 .sliderLabel {
   white-space: nowrap;
-}
-
-/* In a row the labels are for screen readers; the controls speak for themselves. */
-.controls[data-flow='row'] .sliderLabel {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.value {
-  min-width: 3em;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
 }
 
 .divider {
@@ -202,25 +75,4 @@
   width: 1px;
   height: 20px;
   background: var(--border-hairline);
-}
-
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-@media (forced-colors: active) {
-  .swatch::before,
-  .custom[data-custom] .customMark {
-    forced-color-adjust: none;
-  }
-
-  .swatch[aria-checked='true']::before,
-  .custom[data-custom] .customMark {
-    outline-color: Highlight;
-  }
 }

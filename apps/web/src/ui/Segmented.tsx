@@ -22,7 +22,8 @@
  *   choice commits on release (a tap still chooses as usual).
  * - **States.** The checked label is 600, the others 500 in the secondary colour (Q-8
  *   weights), hover one step on fine pointers; a disabled segment is dimmed and its `reason`
- *   is its tooltip and description ("All open: open a second document").
+ *   is its tooltip and description ("All open: open a second document"); an enabled one may
+ *   carry a `description`, its tooltip and accessible description (the eraser's Partial).
  */
 import { Radio } from '@base-ui/react/radio';
 import { RadioGroup } from '@base-ui/react/radio-group';
@@ -50,6 +51,8 @@ export interface SegmentedOption<T extends string> {
   readonly disabled?: boolean | undefined;
   /** Why the segment is disabled. */
   readonly reason?: string | undefined;
+  /** A tooltip that explains the choice, also its accessible description. */
+  readonly description?: string | undefined;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -242,6 +245,10 @@ export function Segmented<T extends string>({
   const withReason = (option: SegmentedOption<T>, element: ReactElement) =>
     option.disabled && option.reason ? (
       <Tooltip key={option.value} label={option.label} reason={option.reason} disabled>
+        {element}
+      </Tooltip>
+    ) : option.description ? (
+      <Tooltip key={option.value} label={option.description} describe side="top">
         {element}
       </Tooltip>
     ) : (
