@@ -1,4 +1,12 @@
-/* Segmented control (09-primitives §6, minimal; heights per quality-bar Q-9). */
+/*
+ * Segmented control (09-primitives §6; heights per quality-bar Q-9). One grid row: every
+ * segment has its own column and the thumb shares the checked one's cell, so layout places it.
+ */
+.frame {
+  position: relative;
+  min-width: 0;
+}
+
 .root {
   --seg-h: 32px;
   --seg-inset: 2px;
@@ -14,16 +22,24 @@
   position: relative;
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
+  grid-template-rows: 100%;
   box-sizing: border-box;
   height: var(--seg-h);
   padding: var(--seg-inset);
   border-radius: 999px;
   background: var(--seg-track);
   isolation: isolate;
+  /* A finger dragging the thumb sideways is ours; vertical moves still scroll. */
+  touch-action: pan-y;
 }
 
-:global([data-theme='light']) .root {
+/* Labels too long to share equally: each segment takes its content's width. */
+.root[data-layout='content'] {
+  grid-auto-columns: auto;
+}
+
+:global([data-theme='light']) .root,
+:global([data-theme='light']) .measure {
   --seg-track: var(--control-fill, rgb(21 23 28 / 0.06));
   --seg-thumb: #fdfdff;
   --seg-thumb-ring: var(--control-border, rgb(21 23 28 / 0.18));
@@ -33,7 +49,8 @@
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
-  .root {
+  .root,
+  .measure {
     --seg-h: 44px;
     --seg-text: 15px;
     --seg-lh: 20px;
@@ -41,21 +58,13 @@
 }
 
 .thumb {
-  position: absolute;
-  top: var(--seg-inset);
-  bottom: var(--seg-inset);
-  left: 0;
   z-index: -1;
-  width: var(--thumb-w, 0px);
+  grid-row: 1;
   border-radius: 999px;
   background: var(--seg-thumb);
   --seg-thumb-shadow: inset 0 0 0 1px var(--seg-thumb-ring), var(--seg-e1);
   box-shadow: var(--seg-thumb-shadow);
-  transform: translateX(var(--thumb-x, 0px));
-}
-
-.root[data-ready] .thumb {
-  transition: transform var(--spring-press, 300ms) var(--ease-spring, cubic-bezier(0.2, 0, 0, 1));
+  transform-origin: left center;
 }
 
 .segment {
@@ -63,28 +72,45 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  grid-row: 1;
+  box-sizing: border-box;
   min-width: 0;
   padding: 0 12px;
-  overflow: hidden;
+  border: 0;
   border-radius: 999px;
+  background: transparent;
   color: var(--seg-off);
+  font: inherit;
   font-size: var(--seg-text);
   font-weight: 500;
   line-height: var(--seg-lh);
-  text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: color var(--duration-fast) var(--ease-out);
 }
 
-.segment[data-checked] {
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  flex: none;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.segment[data-checked],
+.segment[data-active] {
   color: var(--seg-on);
   font-weight: 600;
 }
 
 @media (hover: hover) {
-  .segment:not([data-checked]):not([data-disabled]):hover {
+  .segment:not([data-checked]):not([data-active]):not([data-disabled]):hover {
     color: var(--seg-on);
   }
 }
@@ -94,14 +120,31 @@
   cursor: default;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .root[data-ready] .thumb {
-    transition: none;
-  }
+/* The hidden copy the layout is chosen from: the labels at their natural widths, at the
+   checked weight (the widest a label gets). */
+.measure {
+  --seg-inset: 2px;
+  --seg-text: 13px;
+  --seg-lh: 18px;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: max-content;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
 }
 
-:global(:root[data-motion='reduced']) .root[data-ready] .thumb {
-  transition: none;
+.measure .segment {
+  flex: none;
+  font-weight: 600;
+}
+
+.measure .text {
+  overflow: visible;
 }
 
 @media (forced-colors: active) {
@@ -109,7 +152,8 @@
     background: Highlight;
   }
 
-  .segment[data-checked] {
+  .segment[data-checked],
+  .segment[data-active] {
     color: HighlightText;
   }
 }

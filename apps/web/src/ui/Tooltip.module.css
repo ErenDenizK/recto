@@ -1,21 +1,52 @@
+/*
+ * The tooltip (09-primitives §20, 04-context §20): solid, never glass (G-29), so it reads the
+ * same over any page and costs no backdrop. Raised surface with the rim; 26 px tall on fine
+ * pointers, 28 on coarse; at most 280 px, then two lines. Hoverable (A-24), so it takes the
+ * pointer. It stays flat until the elevation tokens arrive (D3): today's rule keeps tooltips,
+ * dialogs and docked surfaces without a drop shadow (tokens.test.ts).
+ */
 .popup {
+  --tip-h: 26px;
+
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 26px;
-  padding: 3px var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
-  background: var(--surface-3);
+  box-sizing: border-box;
+  max-width: min(280px, calc(100vw - 16px));
+  min-height: var(--tip-h);
+  padding: 4px var(--space-2);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  background: var(--surface-raised, var(--surface-3));
   color: var(--text-primary);
   font-size: var(--text-sm);
-  line-height: var(--leading-tight);
-  white-space: nowrap;
-  pointer-events: none;
+  font-weight: 500;
+  line-height: 16px;
   transform-origin: var(--transform-origin);
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .popup {
+    --tip-h: 28px;
+  }
+}
+
+.text {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.reason {
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 
 .popup[data-starting-style],
@@ -26,4 +57,10 @@
 
 .popup[data-instant] {
   transition: none;
+}
+
+@media (forced-colors: active) {
+  .popup {
+    border-color: CanvasText;
+  }
 }

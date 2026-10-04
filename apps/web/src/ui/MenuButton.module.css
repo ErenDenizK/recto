@@ -1,0 +1,99 @@
+/* Menu button (09-primitives §11): the Select trigger's shape with a caret-down. */
+.button {
+  composes: focus-inset from global;
+  --mb-h: var(--control-h, 32px);
+  --mb-fill: var(--control-fill, rgb(255 255 255 / 0.08));
+  --mb-fill-hover: var(--control-fill-hover, rgb(255 255 255 / 0.12));
+  --mb-fill-pressed: var(--control-fill-pressed, rgb(255 255 255 / 0.16));
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  max-width: 100%;
+  height: var(--mb-h);
+  padding: 0 8px 0 12px;
+  border: 0;
+  border-radius: var(--radius-control, 10px);
+  background: var(--mb-fill);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+:global([data-theme='light']) .button {
+  --mb-fill: var(--control-fill, rgb(21 23 28 / 0.06));
+  --mb-fill-hover: var(--control-fill-hover, rgb(21 23 28 / 0.09));
+  --mb-fill-pressed: var(--control-fill-pressed, rgb(21 23 28 / 0.12));
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .button {
+    --mb-h: var(--control-h, 44px);
+    padding-inline: 16px 12px;
+    font-size: 15px;
+    line-height: 20px;
+  }
+}
+
+.button[data-variant='quiet'] {
+  --mb-fill: transparent;
+  --mb-fill-hover: var(--surface-hover);
+  --mb-fill-pressed: var(--surface-active);
+}
+
+@media (hover: hover) {
+  .button:not([data-disabled]):hover {
+    background: var(--mb-fill-hover);
+  }
+}
+
+.button[data-popup-open],
+.button:not([data-disabled]):active {
+  background: var(--mb-fill-pressed);
+}
+
+.button[data-disabled] {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.caret {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+}
+
+.button[data-disabled] .caret {
+  color: var(--text-disabled);
+}
+
+@media (forced-colors: active) {
+  .button {
+    border: 1px solid ButtonBorder;
+  }
+}

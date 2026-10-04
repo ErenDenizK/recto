@@ -1,57 +1,80 @@
-/* Menus float over the document: frosted glass with a hairline and --elevation-float (global
-   .glass), in the denser tier 3 (.glass-menu, docs/specs/craft.md §7), blurred 12px: a menu of
-   two rows or more is at least 66 px tall, c 0.994 (coverage registry). */
+/*
+ * The one menu recipe (10-ink.md §7, 04-context §12, quality-bar Q-7 and Q-9), used by every
+ * menu, context menu and Select popup (`ui/Select.tsx`).
+ *
+ * - Material: M4 on today's tokens, the frosted tier 3 (`glass glass-menu`), blurred 12px; a
+ *   menu of two rows or more is at least 78 px tall, c 0.996 (coverage registry `menu`).
+ * - Shape: radius 16, the popover's, concentric with 10 px rows inside 6 px of padding.
+ * - Rows: 32 px on fine pointers, 44 on coarse (Q-9's control heights), icons 16 px, the label
+ *   takes the space (`.label`, flex 1), so keycaps or a reason sit right-aligned after it.
+ * - Motion (*popup*): the popup scales from its anchor, 0.96 → 1, and fades, on transform and
+ *   opacity only (Q-7), from Base UI's `--transform-origin`. Reduced motion zeroes
+ *   --duration-fast (tokens.css), so it appears at once.
+ */
 .popup {
   composes: glass glass-menu from global;
-  min-width: 180px;
-  padding: var(--space-1);
-  border-radius: var(--radius-2);
+  --menu-row: 32px;
+  --menu-pad: 6px;
+  --menu-icon: 16px;
+
+  box-sizing: border-box;
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: var(--menu-pad);
+  border-radius: 16px;
   color: var(--text-primary);
   font-size: var(--text-md);
+  line-height: 18px;
   outline: none;
+  transform-origin: var(--transform-origin);
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
 }
 
-/* A one-row menu (Recents' "Remove": 38 px) is too short for the menus' 12px blur, c 0.89: the
-   page would show through its edges. It takes 7px, c 0.993 (coverage registry, `menu-one-row`). */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .popup {
+    --menu-row: 44px;
+    font-size: 15px;
+    line-height: 20px;
+  }
+}
+
+/* A one-row menu (Recents' "Remove": 46 px) is too short for the menus' 12px blur: the page
+   would show through its edges. It takes 7px (coverage registry, `menu-one-row`). */
 .popup:not(:has(> :nth-child(2))) {
   --glass-filter: var(--glass-menu-short-filter);
 }
 
-/* Rise-in (DESIGN.md §3 motion): the popup starts --rise-distance nearer its anchor at opacity 0
-   and settles away from it. Reduced motion sets the distance and the duration to 0. */
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  transform: var(--motion-rise);
+  transform: scale(0.96);
 }
 
-.popup[data-side='bottom'][data-starting-style],
-.popup[data-side='bottom'][data-ending-style] {
-  transform: translateY(calc(-1 * var(--rise-distance)));
-}
-
-.popup:is([data-side='left'], [data-side='inline-start'])[data-starting-style],
-.popup:is([data-side='left'], [data-side='inline-start'])[data-ending-style] {
-  transform: translateX(var(--rise-distance));
-}
-
-.popup:is([data-side='right'], [data-side='inline-end'])[data-starting-style],
-.popup:is([data-side='right'], [data-side='inline-end'])[data-ending-style] {
-  transform: translateX(calc(-1 * var(--rise-distance)));
+.popup[data-instant] {
+  transition: none;
 }
 
 .item {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  height: 28px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-1);
+  box-sizing: border-box;
+  min-height: var(--menu-row);
+  padding: 0 10px;
+  border-radius: var(--radius-control, 10px);
   color: var(--text-secondary);
   cursor: default;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Every glyph in a row is 16 px (Q-9: icons are 16 in menus and rows). */
+.item > svg {
+  flex: none;
+  width: var(--menu-icon);
+  height: var(--menu-icon);
 }
 
 /* The keyboard's place in a menu is its highlighted row (data-highlighted, under the pointer
@@ -74,8 +97,8 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: 14px;
-  height: 14px;
+  width: var(--menu-icon);
+  height: var(--menu-icon);
 }
 
 .item[data-checked] .check::after {
@@ -83,7 +106,7 @@
   width: 6px;
   height: 6px;
   border-radius: var(--radius-round);
-  background: var(--accent);
+  background: currentColor;
 }
 
 .item[data-checked] {
@@ -92,18 +115,34 @@
 
 .label {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .separator {
   height: 1px;
-  margin: var(--space-1) calc(var(--space-1) * -1);
+  margin: var(--menu-pad) calc(var(--menu-pad) * -1);
   background: var(--border-hairline);
 }
 
-/* Why a disabled item is unavailable ("Needs another open document"). */
+/* A group's heading ("Move to"). */
+.groupLabel {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  line-height: 16px;
+}
+
+/* Why a disabled item is unavailable ("Needs another open document"), right-aligned. */
 .hint {
   flex: none;
   max-width: 220px;
+  margin-inline-start: auto;
   overflow: hidden;
   color: var(--text-tertiary);
   font-size: var(--text-sm);
@@ -113,8 +152,9 @@
 
 .submenuArrow {
   flex: none;
-  width: 14px;
-  height: 14px;
+  width: var(--menu-icon);
+  height: var(--menu-icon);
+  margin-inline-start: auto;
   color: var(--text-tertiary);
 }
 
@@ -125,4 +165,11 @@
   height: 8px;
   border-radius: var(--radius-round);
   background: var(--tag-color, var(--text-tertiary));
+}
+
+@media (forced-colors: active) {
+  .item[data-highlighted] {
+    background: Highlight;
+    color: HighlightText;
+  }
 }

@@ -1,0 +1,120 @@
+/*
+ * Number field (09-primitives §14). Fine: the well with the value, the unit and two 24 × 14
+ * steppers stacked at the end. Coarse: 44 px − and + beside a well at least 56 px wide.
+ */
+.root {
+  position: relative;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.group > :first-child {
+  flex: 1;
+}
+
+.input {
+  min-width: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.group[data-coarse] .input {
+  min-width: 56px;
+}
+
+.unit {
+  flex: none;
+  padding-inline-end: 6px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.steppers {
+  display: grid;
+  flex: none;
+  grid-template-rows: 14px 14px;
+  margin-inline-end: 3px;
+}
+
+.stepper {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stepper svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2;
+}
+
+.side {
+  composes: focus-inset from global;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--control-fill, rgb(255 255 255 / 0.08));
+  color: var(--text-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.side svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* − sits before the well on coarse pointers; it follows the input in the DOM so a label
+   around the field names the input. */
+.before {
+  order: -1;
+}
+
+.stepper:focus-visible {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
+}
+
+@media (hover: hover) {
+  .stepper:not([data-disabled]):hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  .side:not([data-disabled]):hover {
+    background: var(--control-fill-hover, rgb(255 255 255 / 0.12));
+  }
+}
+
+.stepper:not([data-disabled]):active {
+  background: var(--surface-active);
+}
+
+.side:not([data-disabled]):active {
+  background: var(--control-fill-pressed, rgb(255 255 255 / 0.16));
+}
+
+.stepper[data-disabled],
+.side[data-disabled] {
+  color: var(--text-disabled);
+  cursor: default;
+}

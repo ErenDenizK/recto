@@ -1,0 +1,36 @@
+/* Search field (09-primitives §13): the text field's well with a leading glass and a count. */
+.well {
+  padding-inline-start: 10px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .well {
+    padding-inline-start: 12px;
+  }
+}
+
+.glass {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+}
+
+.well > .input {
+  padding-inline-start: 8px;
+}
+
+.count {
+  flex: none;
+  padding-inline: 4px 8px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* With a clear button after it, the count leaves the button its own gap. */
+.count:not(:last-child) {
+  padding-inline-end: 2px;
+}
