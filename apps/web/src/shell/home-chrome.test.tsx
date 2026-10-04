@@ -68,7 +68,10 @@ describe('Home chrome', () => {
     // The status bar: how many files, no page, zoom or signature of the active one.
     expect(screen.getByTestId('status-pages')).toHaveTextContent('2 files');
     expect(screen.queryAllByRole('button', { name: /^Zoom/ })).toHaveLength(0);
-    // No tab is selected, nor looks it: no selected fill, no close affordance shown.
+    // No tab is selected, nor looks it: no selected fill, no close affordance shown. A keyboard
+    // focus inside a tab shows its close on purpose (TabBar.module.css), and the focus may have
+    // been rescued into the tab list when Home took over, so judge the resting look unfocused.
+    (document.activeElement as HTMLElement | null)?.blur();
     const tabs = screen.getAllByRole('tab', { name: /first-file|demo-agreement/ });
     for (const tab of tabs) {
       expect(tab).toHaveAttribute('aria-selected', 'false');
