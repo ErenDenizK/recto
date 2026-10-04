@@ -112,6 +112,17 @@ jobs:
           - project: chromium-nogpu
             shard: 1
             shards: 1
+          # The compact edition on phones and the full edition on a tablet (ADR-0033): their own
+          # specs only (playwright.config.ts), one shard each.
+          - project: phone
+            shard: 1
+            shards: 1
+          - project: phone-land
+            shard: 1
+            shards: 1
+          - project: tablet
+            shard: 1
+            shards: 1
     steps:
       - uses: actions/checkout@v7
 
