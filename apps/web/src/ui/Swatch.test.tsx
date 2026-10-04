@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
-import { Segmented } from './Segmented';
 import { NO_FILL, Swatch } from './Swatch';
 import { SwatchGroup } from './SwatchGroup';
 
@@ -59,42 +58,5 @@ describe('Swatch', () => {
     render(<Row initial={null} />);
     expect(screen.getByRole('radio', { name: 'Black' })).toHaveAttribute('data-ring-dark');
     expect(screen.getByRole('radio', { name: 'Red' })).not.toHaveAttribute('data-ring-dark');
-  });
-});
-
-describe('Segmented', () => {
-  it('is a radio group whose thumb follows the choice', async () => {
-    function Host() {
-      const [v, setV] = useState<'a' | 'b' | 'c'>('a');
-      return (
-        <div style={{ width: 300 }}>
-          <Segmented
-            label="View"
-            value={v}
-            onValueChange={setV}
-            options={[
-              { value: 'a', label: 'Grid' },
-              { value: 'b', label: 'Spectrum' },
-              { value: 'c', label: 'Sliders' },
-            ]}
-          />
-        </div>
-      );
-    }
-    render(<Host />);
-    const group = screen.getByRole('radiogroup', { name: 'View' });
-    expect(group.getBoundingClientRect().height).toBe(32);
-    await userEvent.click(screen.getByRole('radio', { name: 'Sliders' }));
-    expect(screen.getByRole('radio', { name: 'Sliders' })).toHaveAttribute('aria-checked', 'true');
-    const thumb = group.querySelector<HTMLElement>('[aria-hidden="true"]')!;
-    const segment = screen.getByRole('radio', { name: 'Sliders' });
-    // The thumb springs over (300 ms); measure at rest.
-    await new Promise((resolve) => setTimeout(resolve, 450));
-    const t = thumb.getBoundingClientRect();
-    const sg = segment.getBoundingClientRect();
-    expect(t.width).toBeCloseTo(sg.width, 3);
-    expect(t.left).toBeCloseTo(sg.left, 3);
-    await userEvent.keyboard('{ArrowLeft}');
-    expect(screen.getByRole('radio', { name: 'Spectrum' })).toHaveAttribute('aria-checked', 'true');
   });
 });

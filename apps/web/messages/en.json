@@ -2,6 +2,18 @@
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "common_close": "Close",
   "common_cancel": "Cancel",
+  "select_placeholder": "Choose…",
+  "select_no_options": "No options",
+  "field_optional": "Optional",
+  "field_required": "Required",
+  "field_show_password": "Show password",
+  "field_hide_password": "Hide password",
+  "search_clear": "Clear search",
+  "number_increase": "Increase",
+  "number_decrease": "Decrease",
+  "number_range": "Enter a number from {min} to {max}.",
+  "number_set": "Set to {value}.",
+  "number_field_role": "Number field",
   "pages_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

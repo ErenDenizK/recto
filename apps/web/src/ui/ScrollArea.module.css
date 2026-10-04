@@ -1,0 +1,128 @@
+/* Scroll area (09-primitives §21): overlay scrollbar, soft edges, contained overscroll. */
+.root {
+  --sa-fade: 12px;
+  --sa-thumb: var(--scroll-thumb, rgb(255 255 255 / 0.4));
+  --sa-thumb-hover: rgb(255 255 255 / 0.55);
+  --sa-thumb-drag: var(--control-on, rgb(230 231 234 / 0.6));
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:global([data-theme='light']) .root {
+  --sa-thumb: var(--scroll-thumb, rgb(21 23 28 / 0.5));
+  --sa-thumb-hover: rgb(21 23 28 / 0.65);
+}
+
+.viewport {
+  flex: 1;
+  min-height: 0;
+  overscroll-behavior: contain;
+  scroll-padding: var(--free-top, 0) var(--free-end, 0) var(--free-bottom, 0) var(--free-start, 0);
+  scrollbar-width: none;
+  outline: none;
+}
+
+.viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.viewport:focus-visible {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
+}
+
+/* Soft edges where the content continues (G-19). */
+.root[data-overflow-y-start] .viewport {
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--sa-fade));
+}
+
+.root[data-overflow-y-end] .viewport {
+  mask-image: linear-gradient(to top, transparent, #000 var(--sa-fade));
+}
+
+.root[data-overflow-y-start][data-overflow-y-end] .viewport {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--sa-fade),
+    #000 calc(100% - var(--sa-fade)),
+    transparent
+  );
+}
+
+.scrollbar {
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 2px;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+  touch-action: none;
+  user-select: none;
+}
+
+.scrollbar[data-orientation='vertical'] {
+  width: 6px;
+}
+
+.scrollbar[data-orientation='horizontal'] {
+  height: 6px;
+}
+
+.scrollbar[data-hovering],
+.scrollbar[data-scrolling] {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .scrollbar[data-orientation='vertical']:hover {
+    width: 10px;
+  }
+
+  .scrollbar[data-orientation='horizontal']:hover {
+    height: 10px;
+  }
+}
+
+/* Coarse pointers: only while scrolling. */
+@media (pointer: coarse) {
+  .scrollbar[data-hovering]:not([data-scrolling]) {
+    opacity: 0;
+  }
+}
+
+.thumb {
+  width: 100%;
+  border-radius: 999px;
+  background: var(--sa-thumb);
+}
+
+.scrollbar[data-orientation='horizontal'] .thumb {
+  height: 100%;
+}
+
+@media (hover: hover) {
+  .thumb:hover {
+    background: var(--sa-thumb-hover);
+  }
+}
+
+.thumb:active {
+  background: var(--sa-thumb-drag);
+}
+
+@media (forced-colors: active) {
+  .viewport {
+    scrollbar-color: auto;
+    scrollbar-width: auto;
+  }
+
+  .scrollbar {
+    display: none;
+  }
+}

@@ -1,57 +1,139 @@
+/*
+ * The one popover recipe (10-ink.md §7; 04-context §15; quality-bar Q-7, Q-9), drawn by
+ * `ui/Popover.tsx` and composed by the colour panel.
+ *
+ * - Material: M4 on today's tokens, the frosted tier 3 (`glass glass-menu`), blurred 12px
+ *   (coverage registry `popover`).
+ * - Shape: radius 16, 12 px padding, `min(320px, 100vw − 16px)` wide.
+ * - Title row: 44 px with the title (13/18 at 600 fine, 15/20 coarse) and ✕ at the end; it
+ *   reaches 6 px into the padding above, so the ✕ sits concentric with the corner.
+ * - Motion (*popup*): from the anchor (Base UI's `--transform-origin`), scale 0.96 → 1 and a
+ *   fade, on transform and opacity only (Q-7). Reduced motion zeroes --duration-fast.
+ */
 .popup {
   composes: glass glass-menu from global;
+  --pop-icon-button: 32px;
+  --pop-icon: 20px;
+  --pop-title: 13px;
+  --pop-title-lh: 18px;
+
+  box-sizing: border-box;
   width: min(320px, calc(100vw - 16px));
-  padding: var(--space-3) var(--space-4) var(--space-4);
-  border-radius: var(--radius-2);
+  padding: 12px;
+  border-radius: 16px;
   color: var(--text-primary);
   outline: none;
+  transform-origin: var(--transform-origin);
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
 }
 
-/* Rise-in (DESIGN.md §3 motion): the popup starts --rise-distance nearer its anchor at opacity 0
-   and settles away from it. Reduced motion sets the distance and the duration to 0. */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .popup {
+    --pop-icon-button: 44px;
+    --pop-icon: 24px;
+    --pop-title: 15px;
+    --pop-title-lh: 20px;
+  }
+}
+
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  transform: var(--motion-rise);
+  transform: scale(0.96);
 }
 
-.popup[data-side='bottom'][data-starting-style],
-.popup[data-side='bottom'][data-ending-style] {
-  transform: translateY(calc(-1 * var(--rise-distance)));
+.popup[data-instant] {
+  transition: none;
 }
 
-.popup:is([data-side='left'], [data-side='inline-start'])[data-starting-style],
-.popup:is([data-side='left'], [data-side='inline-start'])[data-ending-style] {
-  transform: translateX(var(--rise-distance));
+/* --- Title row --------------------------------------------------------------------------- */
+
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  height: 44px;
+  margin: -6px -6px 0 0;
 }
 
-.popup:is([data-side='right'], [data-side='inline-end'])[data-starting-style],
-.popup:is([data-side='right'], [data-side='inline-end'])[data-ending-style] {
-  transform: translateX(calc(-1 * var(--rise-distance)));
+/* With a leading control (the colour panel's eyedropper) the title centres between two. */
+.header[data-leading] {
+  grid-template-columns: var(--pop-icon-button) minmax(0, 1fr) var(--pop-icon-button);
+  margin-inline-start: -6px;
+}
+
+.header[data-leading] .title {
+  text-align: center;
 }
 
 .title {
-  font-size: var(--text-md);
-  font-weight: 500;
-  line-height: var(--leading-base);
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--pop-title);
+  font-weight: 600;
+  line-height: var(--pop-title-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.body {
-  margin-top: var(--space-1);
+/* A header without ✕ keeps the row's height and the title's place. */
+.header:not(:has(.iconButton)) {
+  margin-inline-end: 0;
+}
+
+.iconButton {
+  composes: focus-inset from global;
+  display: grid;
+  place-items: center;
+  width: var(--pop-icon-button);
+  height: var(--pop-icon-button);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.iconButton svg {
+  width: var(--pop-icon);
+  height: var(--pop-icon);
+  stroke-width: 1.75;
+}
+
+@media (hover: hover) {
+  .iconButton:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.iconButton:active,
+.iconButton[aria-pressed='true'] {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+/* --- Body -------------------------------------------------------------------------------- */
+
+.body {
+  margin: var(--space-1) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-md);
   line-height: 18px;
   text-wrap: pretty;
 }
 
-.list {
-  display: grid;
-  gap: 2px;
-  margin-top: var(--space-3);
-  color: var(--warning);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+@media (forced-colors: active) {
+  .iconButton {
+    border: 1px solid ButtonBorder;
+  }
 }

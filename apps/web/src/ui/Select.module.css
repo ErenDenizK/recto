@@ -1,0 +1,153 @@
+/*
+ * Select (09-primitives §11): a field-like trigger and the menu recipe's popup.
+ *
+ * - Trigger: `--control-fill` (no glass), radius `--radius-control`, 32 / 44 px (Q-9), the
+ *   value 13/18 (15/20 coarse) with tabular numerals, `caret-up-down` 16 trailing. Open keeps
+ *   the pressed fill. Hover is one fill step; disabled dims the label and the caret.
+ * - Popup: `ui/Menu.module.css` (M4, radius 16, 32 / 44 px rows), at least the trigger's
+ *   width, scrolling inside the viewport.
+ */
+.trigger {
+  composes: focus-inset from global;
+  --sel-h: var(--control-h, 32px);
+  --sel-fill: var(--control-fill, rgb(255 255 255 / 0.08));
+  --sel-fill-hover: var(--control-fill-hover, rgb(255 255 255 / 0.12));
+  --sel-fill-pressed: var(--control-fill-pressed, rgb(255 255 255 / 0.16));
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  height: var(--sel-h);
+  padding: 0 8px 0 12px;
+  border: 0;
+  border-radius: var(--radius-control, 10px);
+  background: var(--sel-fill);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-md);
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+:global([data-theme='light']) .trigger {
+  --sel-fill: var(--control-fill, rgb(21 23 28 / 0.06));
+  --sel-fill-hover: var(--control-fill-hover, rgb(21 23 28 / 0.09));
+  --sel-fill-pressed: var(--control-fill-pressed, rgb(21 23 28 / 0.12));
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .trigger {
+    --sel-h: var(--control-h, 44px);
+    padding-inline: 14px 10px;
+    font-size: 15px;
+    line-height: 20px;
+  }
+}
+
+.trigger[data-block] {
+  display: flex;
+  width: 100%;
+}
+
+@media (hover: hover) {
+  .trigger:not([data-disabled]):hover {
+    background: var(--sel-fill-hover);
+  }
+}
+
+.trigger[data-popup-open],
+.trigger:not([data-disabled]):active {
+  background: var(--sel-fill-pressed);
+}
+
+.trigger[data-disabled] {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value[data-placeholder] {
+  color: var(--text-secondary);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.trigger[data-disabled] .icon {
+  color: var(--text-disabled);
+}
+
+.positioner {
+  z-index: 50;
+  outline: none;
+}
+
+.popup {
+  composes: popup from './Menu.module.css';
+  min-width: max(200px, var(--anchor-width));
+}
+
+.list {
+  max-height: var(--available-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 6px;
+}
+
+.option {
+  composes: item from './Menu.module.css';
+}
+
+.option[data-selected] {
+  color: var(--text-primary);
+}
+
+.check {
+  composes: check from './Menu.module.css';
+}
+
+.option[data-selected] .check::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: currentColor;
+}
+
+.optionText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (forced-colors: active) {
+  .trigger {
+    border: 1px solid ButtonBorder;
+  }
+}

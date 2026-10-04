@@ -82,7 +82,7 @@
   --glass-frame-highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
   /* Tier 3, menus and popovers (.glass-menu with .glass): denser than the floating bar. */
   --glass-menu: rgb(40 43 50 / 0.8);
-  /* Menus of two rows and more (66 px and up) blur 12px; a one-row menu (38 px, Recents'
+  /* Menus of two rows and more (78 px and up) blur 12px; a one-row menu (46 px, Recents'
      "Remove") blurs 7px (ui/Menu.module.css). σ 12 needs 59 px: σ ≤ h / 4.87 at c 0.985. */
   --glass-menu-filter: blur(12px) saturate(1.6) brightness(0.5);
   --glass-menu-short-filter: blur(7px) saturate(1.6) brightness(0.5);

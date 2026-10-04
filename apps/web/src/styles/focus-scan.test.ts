@@ -48,6 +48,9 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'text-edit/TextEdit.module.css': {
     '.input:focus-visible': 'in-place editor: its frame turns solid, and the caret',
   },
+  'ui/Field.module.css': {
+    '.input:focus-visible': 'the well around the input draws the inset ring while it has focus',
+  },
   'ui/Menu.module.css': {
     '.item:focus-visible': 'the highlighted row is the keyboard’s place in a menu',
   },
