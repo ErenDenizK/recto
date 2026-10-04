@@ -36,6 +36,7 @@ import { formatNumber, m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { displaySize, fitInBox } from '../pages/page-geometry';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import { Select } from '../ui/Select';
 import { Actions, Frame } from './OperationDialogFrame';
 import local from './OperationDialogs.module.css';
 import { closeOperationDialog } from './operation-dialogs-store';
@@ -182,7 +183,7 @@ export function ResizeDialog({
   const [stretch, setStretch] = useState(false);
   const [anchor, setAnchor] = useState<Anchor>('center');
   const [scope, setScope] = useState<ResizeScope>(selection.length > 0 ? 'selection' : 'document');
-  const presetRef = useRef<HTMLSelectElement>(null);
+  const presetRef = useRef<HTMLButtonElement>(null);
   const sizeErrorId = useId();
   const widthId = useId();
   const heightId = useId();
@@ -277,25 +278,23 @@ export function ResizeDialog({
               <label className={styles.label} htmlFor={presetId}>
                 {m.resize_preset_label()}
               </label>
-              <select
-                ref={presetRef}
+              <Select<ResizePreset>
+                triggerRef={presetRef}
                 id={presetId}
-                className={`${styles.input} ${own.select}`}
+                block
+                label={m.resize_preset_label()}
                 value={preset}
                 data-testid="resize-preset"
-                onChange={(event) => {
-                  setPreset(event.target.value as ResizePreset);
+                onValueChange={(next) => {
+                  setPreset(next);
                   setDrafts({});
                 }}
-              >
-                {PRESETS.map((id) => (
-                  <option key={id} value={id}>
-                    {presetName(id)}
-                  </option>
-                ))}
-                <option value="custom">{m.resize_preset_custom()}</option>
-                <option value="original">{m.resize_preset_original()}</option>
-              </select>
+                options={[
+                  ...PRESETS.map((id) => ({ value: id, label: presetName(id) })),
+                  { value: 'custom', label: m.resize_preset_custom() },
+                  { value: 'original', label: m.resize_preset_original() },
+                ]}
+              />
             </div>
             {field('width', widthId, m.resize_width())}
             {field('height', heightId, m.resize_height())}
@@ -303,21 +302,20 @@ export function ResizeDialog({
               <label className={styles.label} htmlFor={unitId}>
                 {m.resize_unit_label()}
               </label>
-              <select
+              <Select
                 id={unitId}
-                className={`${styles.input} ${own.select}`}
+                block
+                label={m.resize_unit_label()}
                 value={unit}
-                onChange={(event) => {
-                  setUnit(event.target.value as ResizeUnit);
+                onValueChange={(next) => {
+                  setUnit(next);
                   setDrafts({});
                 }}
-              >
-                {(['mm', 'in', 'pt'] as const).map((u) => (
-                  <option key={u} value={u}>
-                    {unitName(u)}
-                  </option>
-                ))}
-              </select>
+                options={(['mm', 'in', 'pt'] as const).map((u) => ({
+                  value: u,
+                  label: unitName(u),
+                }))}
+              />
             </div>
           </div>
           {sizeValid ? null : (

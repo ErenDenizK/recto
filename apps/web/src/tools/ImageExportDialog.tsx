@@ -23,6 +23,8 @@ import { displaySize } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { NumberField } from '../ui/NumberField';
+import { Select } from '../ui/Select';
 import { canCopyImage, copyImage, deliverFile } from './deliver-file';
 import { RasterError, type RasterOptions, rasterizeDocument } from './rasterize';
 import styles from './ToolDialog.module.css';
@@ -196,47 +198,47 @@ function ImageExportFlow({ documentId }: { readonly documentId: DocumentId }) {
           </fieldset>
           <div className={styles.row}>
             {dpiChoice === 'custom' ? (
-              <label className={styles.field}>
-                <span className={styles.label}>{m.images_custom_dpi()}</span>
-                <input
-                  className={styles.input}
-                  type="number"
-                  min={MIN_RASTER_DPI}
-                  max={MAX_RASTER_DPI}
-                  value={customDpi}
-                  onChange={(event) => setCustomDpi(Number(event.target.value))}
-                />
-              </label>
+              <NumberField
+                className={styles.field}
+                label={m.images_custom_dpi()}
+                showLabel
+                min={MIN_RASTER_DPI}
+                max={MAX_RASTER_DPI}
+                value={customDpi}
+                onValueChange={(dpi) => {
+                  if (dpi !== null) setCustomDpi(dpi);
+                }}
+              />
             ) : null}
             {format !== 'png' ? (
-              <label className={styles.field}>
-                <span className={styles.label}>{m.images_quality()}</span>
-                <input
-                  className={styles.input}
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={quality}
-                  onChange={(event) =>
-                    setQuality(
-                      Math.min(100, Math.max(1, Math.round(Number(event.target.value)) || 1)),
-                    )
-                  }
-                />
-              </label>
+              <NumberField
+                className={styles.field}
+                label={m.images_quality()}
+                showLabel
+                min={1}
+                max={100}
+                value={quality}
+                onValueChange={(next) => {
+                  if (next !== null) setQuality(Math.min(100, Math.max(1, Math.round(next))));
+                }}
+              />
             ) : null}
             {transparentAllowed ? (
-              <label className={styles.field}>
-                <span className={styles.label}>{m.images_background()}</span>
-                <select
-                  className={styles.select}
+              <div className={styles.field}>
+                <span className={styles.label} aria-hidden="true">
+                  {m.images_background()}
+                </span>
+                <Select<RasterBackground>
+                  block
+                  label={m.images_background()}
                   value={background}
-                  onChange={(event) => setBackground(event.target.value as RasterBackground)}
-                >
-                  <option value="white">{m.images_background_white()}</option>
-                  <option value="transparent">{m.images_background_transparent()}</option>
-                </select>
-              </label>
+                  onValueChange={setBackground}
+                  options={[
+                    { value: 'white', label: m.images_background_white() },
+                    { value: 'transparent', label: m.images_background_transparent() },
+                  ]}
+                />
+              </div>
             ) : null}
           </div>
           <div className={styles.row}>

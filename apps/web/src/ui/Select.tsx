@@ -18,6 +18,7 @@
  */
 import { Select as BaseSelect } from '@base-ui/react/select';
 import { ChevronsUpDown } from 'lucide-react';
+import type { Ref } from 'react';
 
 import { m } from '../i18n';
 import styles from './Select.module.css';
@@ -46,6 +47,8 @@ export interface SelectProps<T extends string> {
   /** Submits the value with a form. */
   readonly name?: string | undefined;
   readonly id?: string | undefined;
+  /** The trigger, for a dialog's initial focus. */
+  readonly triggerRef?: Ref<HTMLButtonElement> | undefined;
   readonly className?: string | undefined;
   readonly 'aria-describedby'?: string | undefined;
   readonly 'data-testid'?: string | undefined;
@@ -62,6 +65,7 @@ export function Select<T extends string>({
   block = false,
   name,
   id,
+  triggerRef,
   className,
   'aria-describedby': describedBy,
   'data-testid': testId,
@@ -74,6 +78,7 @@ export function Select<T extends string>({
 
   const trigger = (
     <BaseSelect.Trigger
+      ref={triggerRef}
       className={[styles.trigger, className].filter(Boolean).join(' ')}
       aria-label={label}
       data-block={block ? '' : undefined}

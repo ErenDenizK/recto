@@ -22,10 +22,12 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { deliverPdf } from '../export/deliver';
 import { exportFileName } from '../export/filename';
 import { formatBytes } from '../files/file-filters';
-import { m } from '../i18n';
+import { formatNumber, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { NumberField } from '../ui/NumberField';
+import { Select } from '../ui/Select';
 import { getCompressor } from './compress-client';
 import {
   type CompressState,
@@ -305,30 +307,28 @@ function ChooseStep({
       </fieldset>
       {settings.preset === 'custom' && settings.images ? (
         <div className={styles.row}>
-          <label className={styles.field}>
-            <span className={styles.label}>{m.compress_custom_dpi()}</span>
-            <input
-              className={styles.input}
-              type="number"
-              min={36}
-              max={1200}
-              value={custom.dpi}
-              onChange={(event) => dispatch({ type: 'custom', dpi: Number(event.target.value) })}
-            />
-          </label>
-          <label className={styles.field}>
-            <span className={styles.label}>{m.compress_custom_quality()}</span>
-            <input
-              className={styles.input}
-              type="number"
-              min={1}
-              max={100}
-              value={custom.quality}
-              onChange={(event) =>
-                dispatch({ type: 'custom', quality: Number(event.target.value) })
-              }
-            />
-          </label>
+          <NumberField
+            className={styles.field}
+            label={m.compress_custom_dpi()}
+            showLabel
+            min={36}
+            max={1200}
+            value={custom.dpi}
+            onValueChange={(dpi) => {
+              if (dpi !== null) dispatch({ type: 'custom', dpi });
+            }}
+          />
+          <NumberField
+            className={styles.field}
+            label={m.compress_custom_quality()}
+            showLabel
+            min={1}
+            max={100}
+            value={custom.quality}
+            onValueChange={(quality) => {
+              if (quality !== null) dispatch({ type: 'custom', quality });
+            }}
+          />
         </div>
       ) : null}
       <label className={styles.check}>
@@ -631,23 +631,22 @@ function CompareView({
 
   return (
     <div className={styles.fieldset} data-testid="compress-compare">
-      <label className={styles.field}>
-        <span className={styles.label}>
+      <div className={styles.field}>
+        <span className={styles.label} aria-hidden="true">
           {m.compress_compare_page()} · {m.compress_compare_zoom()}
           {rendering ? ` · ${m.compress_compare_rendering()}` : ''}
         </span>
-        <select
-          className={styles.select}
-          value={page}
-          onChange={(event) => onPage(Number(event.target.value))}
-        >
-          {Array.from({ length: pageCount }, (_, i) => (
-            <option key={i} value={i}>
-              {i + 1}
-            </option>
-          ))}
-        </select>
-      </label>
+        <Select
+          block
+          label={m.compress_compare_page()}
+          value={String(page)}
+          onValueChange={(next) => onPage(Number(next))}
+          options={Array.from({ length: pageCount }, (_, i) => ({
+            value: String(i),
+            label: formatNumber(i + 1),
+          }))}
+        />
+      </div>
       <div className={styles.compare}>
         <div className={styles.pane}>
           <span className={styles.paneLabel}>{m.compress_compare_before()}</span>

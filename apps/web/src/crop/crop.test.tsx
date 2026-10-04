@@ -15,6 +15,7 @@
  *   the export then passes; Esc does not close the dialog while it removes;
  * - a resized page: the summary names the original-page crop and the new page size.
  */
+import { chooseOption } from '../../test/choose';
 import '../styles/tokens.css';
 import '../styles/reset.css';
 import '../styles/global.css';
@@ -168,7 +169,7 @@ describe('crop pages dialog', () => {
     });
     expect(discard).not.toBeChecked();
 
-    await userEvent.selectOptions(within(dialog).getByTestId('crop-unit'), 'pt');
+    await chooseOption(within(dialog).getByTestId('crop-unit'), 'pt');
     await typeMargin(dialog, 'top', '108');
     await typeMargin(dialog, 'right', '72');
     await typeMargin(dialog, 'bottom', '72');
@@ -252,7 +253,7 @@ describe('crop pages dialog', () => {
     expect(
       within(dialog).getByRole('radio', { name: 'All pages of simple-text (3)' }),
     ).toBeChecked();
-    await userEvent.selectOptions(within(dialog).getByTestId('crop-unit'), 'in');
+    await chooseOption(within(dialog).getByTestId('crop-unit'), 'in');
     await typeMargin(dialog, 'bottom', '1');
     expect(within(dialog).getByTestId('crop-summary')).toHaveTextContent(
       '3 pages will be cropped, the first to 8.5 × 10 in',
@@ -276,7 +277,7 @@ describe('crop pages dialog', () => {
     select(second.id);
     await commandRegistry.execute('pages.crop');
     const dialog = await screen.findByTestId('crop-dialog');
-    await userEvent.selectOptions(within(dialog).getByTestId('crop-unit'), 'pt');
+    await chooseOption(within(dialog).getByTestId('crop-unit'), 'pt');
     await typeMargin(dialog, 'top', '72');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Crop' }));
     await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull());
@@ -316,7 +317,7 @@ describe('crop pages dialog: removal and resized pages', () => {
     await commandRegistry.execute('pages.crop');
     const dialog = await screen.findByTestId('crop-dialog');
     await waitFor(() => expect(within(dialog).getByTestId('crop-unit')).toBeVisible());
-    await userEvent.selectOptions(within(dialog).getByTestId('crop-unit'), 'pt');
+    await chooseOption(within(dialog).getByTestId('crop-unit'), 'pt');
     await typeMargin(dialog, 'top', '108');
     await typeMargin(dialog, 'right', '72');
     await typeMargin(dialog, 'bottom', '72');
@@ -369,7 +370,7 @@ describe('crop pages dialog: removal and resized pages', () => {
     expect(within(dialog).getByTestId('crop-resized-notice')).toHaveTextContent(
       'the margins are measured on the original page',
     );
-    await userEvent.selectOptions(within(dialog).getByTestId('crop-unit'), 'pt');
+    await chooseOption(within(dialog).getByTestId('crop-unit'), 'pt');
     for (const side of ['top', 'right', 'bottom', 'left'] as const) {
       await typeMargin(dialog, side, '72');
     }

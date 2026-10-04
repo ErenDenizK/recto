@@ -961,6 +961,55 @@ async function buildCropBox(): Promise<Built> {
 }
 
 // ---------------------------------------------------------------------------
+// 10b. colour-swatches
+// ---------------------------------------------------------------------------
+
+/** The swatches of colour-swatches.pdf: DeviceRGB fills whose bytes are known exactly. */
+const COLOUR_SWATCHES = [
+  { hex: '#1760EE', x: 72 },
+  { hex: '#DB1C22', x: 234 },
+  { hex: '#02853C', x: 396 },
+] as const;
+
+async function buildColourSwatches(): Promise<Built> {
+  const doc = await newDoc('Colour swatches fixture');
+  const font = doc.embedStandardFont(StandardFonts.Helvetica);
+  const page = doc.addPage(LETTER);
+  const marker = 'COLOUR SWATCHES';
+  text(page, font, marker, 72, 700, 24);
+  for (const swatch of COLOUR_SWATCHES) {
+    const n = Number.parseInt(swatch.hex.slice(1), 16);
+    page.drawRectangle({
+      x: swatch.x,
+      y: 480,
+      width: 144,
+      height: 144,
+      color: rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255),
+    });
+    text(page, font, swatch.hex, swatch.x, 456, 12);
+  }
+  return {
+    bytes: await save(doc, 'colour-swatches.pdf'),
+    expect: {
+      pdfLibLoad: 'ok',
+      pageCount: 1,
+      pages: [
+        {
+          page: 1,
+          mediaBox: box(0, 0, 612, 792),
+          rotate: 0,
+          displayedSize: [612, 792],
+          markers: [marker],
+        },
+      ],
+      info: { Title: 'Colour swatches fixture' },
+      xref: 'table',
+      fileIdDeterministic: true,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // 11. many-pages (nested page tree with inherited attributes)
 // ---------------------------------------------------------------------------
 
@@ -1576,6 +1625,16 @@ const FIXTURES: FixtureDef[] = [
       'Render/thumbnail show only the CropBox. "Crop" must set /CropBox, not delete content: the hidden marker stays in the content stream (MuPDF text extraction clips it to the CropBox, so check raw content too) and redaction must still treat it as present. Watermarks/page numbers must be positioned relative to the CropBox.',
     howGenerated: 'pdf-lib setCropBox/setBleedBox/setTrimBox',
     build: buildCropBox,
+  },
+  {
+    file: 'colour-swatches.pdf',
+    tags: ['colour', 'eyedropper'],
+    summary:
+      'One Letter page with three 144 pt squares filled in DeviceRGB #1760EE, #DB1C22 and #02853C (left to right, top edge 168 pt from the top of the page, 72 / 234 / 396 pt from the left), each labelled with its hex.',
+    behavior:
+      "The colour panel's eyedropper samples the rendered page and must read each square within 1/255 per channel (the blue checks the channel order).",
+    howGenerated: 'pdf-lib drawRectangle with rgb() from the hex bytes',
+    build: buildColourSwatches,
   },
   {
     file: 'many-pages.pdf',

@@ -22,6 +22,7 @@ import { useWorkspaceStore } from '../state/workspace-store';
 import { deliverFile } from '../tools/deliver-file';
 import toolStyles from '../tools/ToolDialog.module.css';
 import { closeToolDialog, useToolsStore } from '../tools/tools-store';
+import { Select } from '../ui/Select';
 import styles from './ConvertDialog.module.css';
 import {
   type ConvertChoice,
@@ -242,20 +243,18 @@ function ConvertFlow({ documentId }: { readonly documentId: DocumentId }) {
               </label>
             ) : null}
           </fieldset>
-          <label className={toolStyles.field}>
-            <span className={toolStyles.label}>{m.convert_page_breaks()}</span>
-            <select
-              className={toolStyles.select}
+          <div className={toolStyles.field}>
+            <span className={toolStyles.label} aria-hidden="true">
+              {m.convert_page_breaks()}
+            </span>
+            <Select<ConvertPageBreak>
+              block
+              label={m.convert_page_breaks()}
               value={choice.pageBreak}
-              onChange={(event) => update({ pageBreak: event.target.value as ConvertPageBreak })}
-            >
-              {PAGE_BREAKS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label()}
-                </option>
-              ))}
-            </select>
-          </label>
+              onValueChange={(pageBreak) => update({ pageBreak })}
+              options={PAGE_BREAKS.map((option) => ({ value: option.id, label: option.label() }))}
+            />
+          </div>
           <div className={styles.stack}>
             <label className={toolStyles.check}>
               <input

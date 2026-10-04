@@ -915,6 +915,32 @@
       }
     },
     {
+      "file": "colour-swatches.pdf",
+      "bytes": 1715,
+      "sha256": "068bc40b56c9187f470a5cb94bd86f7eef8fad6b2d7589c4eabdac4a36ae9392",
+      "pageCount": 1,
+      "tags": ["colour", "eyedropper"],
+      "summary": "One Letter page with three 144 pt squares filled in DeviceRGB #1760EE, #DB1C22 and #02853C (left to right, top edge 168 pt from the top of the page, 72 / 234 / 396 pt from the left), each labelled with its hex.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792],
+            "markers": ["COLOUR SWATCHES"]
+          }
+        ],
+        "info": {
+          "Title": "Colour swatches fixture"
+        },
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
+    },
+    {
       "file": "many-pages.pdf",
       "bytes": 66223,
       "sha256": "90f852e7649536e0e3b88ac8753d340645a85649a1af57e8614c1688f0deb720",

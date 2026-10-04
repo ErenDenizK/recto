@@ -34,7 +34,7 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
   and the scans are rasterised by the generator itself. Re-running the
   generator with the same `@cantoo/pdf-lib` version (2.11.1) and Node
   zlib produces byte-identical files.
-- **Total size:** 1335.2 KB across 54 files.
+- **Total size:** 1336.9 KB across 55 files.
 - **Not covered here** (need real-world files, to be added separately):
   CCITT/JBIG2/JPX scans, signatures from third-party signers (timestamps, LTV,
   certification signatures, ECDSA), optional content (layers), public-key
@@ -84,6 +84,7 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
 | `metadata-xmp.pdf` | 6.0 KB | Info dict (Title, Author, Subject, Keywords, Creator, Producer, dates), matching XMP packet, embedded file attachment.txt ("hello"). | - | pdf-lib setters + raw /Metadata stream + attach() |
 | `images.pdf` | 52.7 KB | Page 1 PNG with alpha (FlateDecode + /SMask), page 2 opaque PNG (FlateDecode), page 3 baseline JPEG (DCTDecode) from an in-repo encoder. | - | In-tool PNG/JPEG encoders + pdf-lib embedPng/embedJpg |
 | `cropbox.pdf` | 2.2 KB | 2 pages with CropBox smaller than and offset inside MediaBox; page 2 also has BleedBox and TrimBox. Markers partly and fully outside the CropBox. | - | pdf-lib setCropBox/setBleedBox/setTrimBox |
+| `colour-swatches.pdf` | 1.7 KB | One Letter page with three 144 pt squares filled in DeviceRGB #1760EE, #DB1C22 and #02853C (left to right, top edge 168 pt from the top of the page, 72 / 234 / 396 pt from the left), each labelled with its hex. | - | pdf-lib drawRectangle with rgb() from the hex bytes |
 | `many-pages.pdf` | 64.7 KB | 400 pages of 200x100 pt, each showing its number. Two-level page tree (20 x 20): MediaBox inherited from root /Pages, Resources from intermediate nodes, /Rotate 90 inherited on pages 381-400. Xref stream + object streams. | - | pdf-lib pages + low-level page-tree rebuild, useObjectStreams |
 | `broken-xref.pdf` | 2.8 KB | simple-text with the startxref offset changed to point 100 bytes before the real xref table. | - | Byte surgery on simple-text.pdf |
 | `truncated.pdf` | 2.5 KB | simple-text with the last 300 bytes removed (xref table tail, trailer, startxref, %%EOF gone). | - | Byte surgery on simple-text.pdf |
@@ -141,6 +142,7 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
 - **`metadata-xmp.pdf`**: Metadata editor shows the same values from Info and XMP; edits and "scrub" must update/clear both together and regenerate /ID; attachment lists and extracts as 5 bytes "hello"; redaction/scrub must offer to drop it.
 - **`images.pdf`**: Compression must keep the /SMask, must not re-encode the JPEG at a larger size, and must report the actual byte delta. Image extraction returns 3 images.
 - **`cropbox.pdf`**: Render/thumbnail show only the CropBox. "Crop" must set /CropBox, not delete content: the hidden marker stays in the content stream (MuPDF text extraction clips it to the CropBox, so check raw content too) and redaction must still treat it as present. Watermarks/page numbers must be positioned relative to the CropBox.
+- **`colour-swatches.pdf`**: The colour panel's eyedropper samples the rendered page and must read each square within 1/255 per channel (the blue checks the channel order).
 - **`many-pages.pdf`**: Virtualised thumbnail grid; split/extract must materialise inherited MediaBox/Resources/Rotate onto copied pages (pages 381-400 stay rotated 90).
 - **`broken-xref.pdf`**: Must open via xref reconstruction (3 pages), tell the user the file was repaired, and never save incrementally onto it.
 - **`truncated.pdf`**: Must open via object scan (3 pages) with a "repaired" notice, or fail with a clear error; never crash.

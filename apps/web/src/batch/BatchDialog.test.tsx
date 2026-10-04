@@ -146,10 +146,7 @@ describe('Batch dialog', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
     const editor = await within(dialog).findByTestId('batch-editor');
     await userEvent.fill(within(editor).getByRole('textbox', { name: 'Name' }), 'Text notes');
-    await userEvent.selectOptions(
-      within(editor).getByRole('combobox', { name: 'Step to add' }),
-      'export',
-    );
+    await chooseOption(within(editor).getByRole('combobox', { name: 'Step to add' }), 'export');
     await userEvent.click(within(editor).getByRole('button', { name: 'Add step' }));
     await chooseOption(within(editor).getByRole('combobox', { name: 'Output' }), 'text');
     // The export dialog's options: page breaks, running lines, hyphens (no images for text).
@@ -215,10 +212,7 @@ describe('Batch dialog', () => {
       await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
       const editor = await within(dialog).findByTestId('batch-editor');
       await userEvent.fill(within(editor).getByRole('textbox', { name: 'Name' }), 'Searchable');
-      await userEvent.selectOptions(
-        within(editor).getByRole('combobox', { name: 'Step to add' }),
-        'ocr',
-      );
+      await chooseOption(within(editor).getByRole('combobox', { name: 'Step to add' }), 'ocr');
       await userEvent.click(within(editor).getByRole('button', { name: 'Add step' }));
       // The OCR dialog's list: name, size and whether the pack is on this device.
       const english = await within(editor).findByRole('checkbox', { name: /English/ });
@@ -251,10 +245,7 @@ describe('Batch dialog', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
     const editor = await within(dialog).findByTestId('batch-editor');
     await userEvent.fill(within(editor).getByRole('textbox', { name: 'Name' }), 'Trim');
-    await userEvent.selectOptions(
-      within(editor).getByRole('combobox', { name: 'Step to add' }),
-      'crop',
-    );
+    await chooseOption(within(editor).getByRole('combobox', { name: 'Step to add' }), 'crop');
     await userEvent.click(within(editor).getByRole('button', { name: 'Add step' }));
     for (const side of ['Top (pt)', 'Right (pt)', 'Bottom (pt)', 'Left (pt)']) {
       await userEvent.fill(within(editor).getByRole('textbox', { name: side }), '0');

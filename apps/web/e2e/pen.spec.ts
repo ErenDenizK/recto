@@ -280,11 +280,14 @@ test.describe('pen presets and bursts', () => {
     await expect(ink).toHaveCount(1, { timeout: 10_000 });
     expect(await lastInkStyle(page)).toMatchObject({ color: '#1760EE', strokeWidth: 1.5 });
 
-    // The armed preset again: its editor; a width stop changes the next stroke.
+    // The armed preset again: its editor; the width slider's detents change the next stroke.
     await again.click();
     const editor = page.getByRole('dialog', { name: 'Edit Blue pen' });
     await expect(editor).toBeVisible();
-    await editor.getByRole('radio', { name: '5 pt', exact: true }).click();
+    const width = editor.getByRole('slider', { name: 'Width' });
+    await width.focus();
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+    await expect(width).toHaveAttribute('aria-valuetext', '5 pt');
     await page.keyboard.press('Escape');
     await expect(editor).toHaveCount(0);
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
@@ -588,7 +591,7 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     const thin = await darkShare(page, clip);
     expect(thin).toBeGreaterThan(0);
 
-    // The Select tool: the whole annotation, its bar's width slider 1.5 → 6.5 pt.
+    // The Select tool: the whole annotation, its bar's width slider 1.5 → 5 pt (three detents).
     await page.keyboard.press('Escape');
     await page.locator('body').press('v');
     const first = before[0]?.[Math.floor((before[0]?.length ?? 0) / 2)] ?? [0, 0];
@@ -596,8 +599,11 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     const bar = page.getByTestId('annotation-bar');
     await expect(bar).toBeVisible();
     const slider = bar.getByRole('slider', { name: /^Stroke width/ });
-    await slider.fill('6.5');
-    await expect(slider).toHaveValue('6.5');
+    await slider.focus();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await expect(slider).toHaveAttribute('aria-valuetext', '5 pt');
     await page.keyboard.press('Escape');
     await expect(bar).toHaveCount(0);
     // The stored widths scale with /BS /W, so the drawn stroke gets thicker.
@@ -606,7 +612,7 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     widthsAfter.forEach((path, i) =>
       path.forEach((w, j) => {
         const ratio = w / (widthsBefore[i]?.[j] ?? 1);
-        expect(Math.abs(ratio - 6.5 / 1.5), `width ${i}.${j}`).toBeLessThan(0.05);
+        expect(Math.abs(ratio - 5 / 1.5), `width ${i}.${j}`).toBeLessThan(0.05);
       }),
     );
     expectSamePoints(await inkPoints(page), before);
@@ -629,8 +635,9 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     await expect(lassoBar).toContainText('2 strokes');
     const sent = (await sentInkWidths(page)).length;
     const lassoWidth = lassoBar.getByRole('slider', { name: /^Stroke width/ });
-    await lassoWidth.fill('4.5');
-    await expect(lassoWidth).toHaveValue('4.5');
+    await lassoWidth.focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect(lassoWidth).toHaveAttribute('aria-valuetext', '3 pt');
     await page.keyboard.press('Escape');
     await expect
       .poll(async () => (await sentInkWidths(page)).length, { timeout: 10_000 })

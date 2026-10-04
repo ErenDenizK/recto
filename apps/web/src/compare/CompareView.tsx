@@ -63,6 +63,7 @@ import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import toolStyles from '../tools/ToolDialog.module.css';
 import { IconButton } from '../ui/IconButton';
+import { Select } from '../ui/Select';
 import { Slider } from '../ui/Slider';
 import { userRectToCss } from '../viewer/geometry';
 import { rowLabel } from './change-labels';
@@ -167,11 +168,11 @@ function CompareSetup({ dragging }: { readonly dragging: boolean }) {
     void filesFromDataTransfer(event.dataTransfer, isOpenableFile).then(addSecondFile);
   };
   const documentOptions = (except: DocumentId | null) =>
-    order.map((id) => (
-      <option key={id} value={id} disabled={id === except}>
-        {documents[id]?.title ?? id}
-      </option>
-    ));
+    order.map((id) => ({
+      value: id,
+      label: documents[id]?.title ?? id,
+      disabled: id === except,
+    }));
 
   return (
     <div className={styles.setup} data-testid="compare-setup">
@@ -181,28 +182,32 @@ function CompareSetup({ dragging }: { readonly dragging: boolean }) {
         </h2>
         <p className={toolStyles.description}>{m.compare_setup_body()}</p>
         <div className={toolStyles.row}>
-          <label className={toolStyles.field}>
-            <span className={toolStyles.label}>{m.compare_side_a()}</span>
-            <select
-              className={toolStyles.select}
-              value={a ?? ''}
-              onChange={(event) => set({ a: (event.target.value || null) as DocumentId | null })}
-            >
-              {a === null ? <option value="">{m.compare_choose()}</option> : null}
-              {documentOptions(b)}
-            </select>
-          </label>
-          <label className={toolStyles.field}>
-            <span className={toolStyles.label}>{m.compare_side_b()}</span>
-            <select
-              className={toolStyles.select}
-              value={b ?? ''}
-              onChange={(event) => set({ b: (event.target.value || null) as DocumentId | null })}
-            >
-              {b === null ? <option value="">{m.compare_choose()}</option> : null}
-              {documentOptions(a)}
-            </select>
-          </label>
+          <div className={toolStyles.field}>
+            <span className={toolStyles.label} aria-hidden="true">
+              {m.compare_side_a()}
+            </span>
+            <Select
+              block
+              label={m.compare_side_a()}
+              value={a}
+              placeholder={m.compare_choose()}
+              onValueChange={(id) => set({ a: id })}
+              options={documentOptions(b)}
+            />
+          </div>
+          <div className={toolStyles.field}>
+            <span className={toolStyles.label} aria-hidden="true">
+              {m.compare_side_b()}
+            </span>
+            <Select
+              block
+              label={m.compare_side_b()}
+              value={b}
+              placeholder={m.compare_choose()}
+              onValueChange={(id) => set({ b: id })}
+              options={documentOptions(a)}
+            />
+          </div>
         </div>
         <div
           className={styles.dropZone}

@@ -21,6 +21,8 @@ import { announce } from '../shell/announcer';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { useRetained } from '../ui/use-retained';
+import { NumberField } from '../ui/NumberField';
+import { Select } from '../ui/Select';
 import { SIGNATURE_CORNERS, type SignatureCorner } from './pdf-pass';
 import {
   closeSignDialog,
@@ -248,32 +250,30 @@ function SignFlow({
               <label htmlFor={`${ids}-page`} className={styles.label}>
                 {m.sign_visible_page()}
               </label>
-              <input
+              <NumberField
                 id={`${ids}-page`}
-                type="number"
-                className={styles.input}
+                label={m.sign_visible_page()}
                 min={1}
                 max={Math.max(pageCount, 1)}
                 value={page}
-                onChange={(event) => setPage(Number(event.target.value) || 1)}
+                onValueChange={(next) => setPage(next ?? 1)}
               />
             </div>
             <div className={styles.field}>
               <label htmlFor={`${ids}-corner`} className={styles.label}>
                 {m.sign_visible_corner()}
               </label>
-              <select
+              <Select<SignatureCorner>
                 id={`${ids}-corner`}
-                className={styles.select}
+                block
+                label={m.sign_visible_corner()}
                 value={corner}
-                onChange={(event) => setCorner(event.target.value as SignatureCorner)}
-              >
-                {SIGNATURE_CORNERS.map((value) => (
-                  <option key={value} value={value}>
-                    {CORNER_LABELS[value]()}
-                  </option>
-                ))}
-              </select>
+                onValueChange={setCorner}
+                options={SIGNATURE_CORNERS.map((value) => ({
+                  value,
+                  label: CORNER_LABELS[value](),
+                }))}
+              />
             </div>
           </div>
         ) : null}

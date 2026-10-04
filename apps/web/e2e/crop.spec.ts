@@ -67,7 +67,8 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('radio', { name: 'All pages of simple-text (3)' })).toBeChecked();
 
-  await dialog.getByTestId('crop-unit').selectOption('pt');
+  await dialog.getByTestId('crop-unit').click();
+  await page.getByRole('option', { name: 'pt', exact: true }).click();
   for (const [side, value] of [
     ['top', '108'],
     ['right', '72'],
@@ -165,7 +166,8 @@ test('draw the crop area on the page in Read mode; Esc goes back unchanged', asy
   await page.getByRole('menuitem', { name: 'Crop pages…' }).click();
   const dialog = page.getByTestId('crop-dialog');
   await expect(dialog.getByRole('radio', { name: 'Selected pages (1)' })).toBeChecked();
-  await dialog.getByTestId('crop-unit').selectOption('pt');
+  await dialog.getByTestId('crop-unit').click();
+  await page.getByRole('option', { name: 'pt', exact: true }).click();
 
   // Draw: the dialog makes way, Read mode shows the page, the banner says how to leave.
   await dialog.getByRole('button', { name: 'Draw crop area' }).click();
