@@ -12,6 +12,8 @@
 html {
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
+  /* No blue flash on a tap: every control draws its own pressed state (quality-bar Q-14). */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
