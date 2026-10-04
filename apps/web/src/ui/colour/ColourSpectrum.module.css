@@ -42,10 +42,11 @@
   border: 3px solid #ffffff;
   border-radius: 50%;
   background: var(--loupe-colour);
-  box-shadow:
-    0 0 0 0.5px rgb(0 0 0 / 0.25),
-    inset 0 0 0 0.5px rgb(0 0 0 / 0.2),
+  /* e2 (language.md §6.3) under a hairline. */
+  --loupe-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.25), inset 0 0 0 0.5px rgb(0 0 0 / 0.2),
     0 4px 12px -4px rgb(0 0 0 / 0.5);
+  box-shadow: var(--loupe-shadow);
   transform: translate(calc(var(--x) * var(--plane-w)), calc(var(--y) * var(--plane-h)));
   pointer-events: none;
 }

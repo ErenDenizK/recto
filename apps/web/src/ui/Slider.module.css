@@ -1,6 +1,9 @@
 /*
  * The one Slider (10-ink.md §3; supersedes 09-primitives §10 and ui/Range).
  *
+ * Elevation. Raised parts (knob, notch, bubble) take e1 / e2 (language.md §6.3) through one
+ * custom property, `--sl-shadow`, which each sets for itself.
+ *
  * Geometry. A row of [label] [control] [readout]. The control is the hit area (32 fine, 44
  * coarse) and the knob's travel: its inline padding is half the knob, so the knob's centre
  * runs from one end of the visible track to the other less half a knob (Apple's inset
@@ -363,9 +366,8 @@
   overflow: hidden;
   border-radius: 50%;
   background: var(--sl-knob-fill);
-  box-shadow:
-    inset 0 0 0 1px var(--sl-knob-ring),
-    var(--sl-e1);
+  box-shadow: var(--sl-shadow);
+  --sl-shadow: inset 0 0 0 1px var(--sl-knob-ring), var(--sl-e1);
   transition:
     transform var(--sl-spring-press) var(--sl-ease-spring),
     box-shadow var(--duration-fast) var(--ease-out),
@@ -374,18 +376,14 @@
 
 @media (hover: hover) {
   .root:not([data-disabled]) .control:hover .knob {
-    box-shadow:
-      inset 0 0 0 1px var(--sl-knob-ring),
-      var(--sl-e2);
+    --sl-shadow: inset 0 0 0 1px var(--sl-knob-ring), var(--sl-e2);
   }
 }
 
 /* A colour slider's knob: the colour inside a 3 px white ring (§3.1). */
 .root[data-knob='colour'] .knob {
   background: var(--sl-knob-white);
-  box-shadow:
-    0 0 0 0.5px rgb(0 0 0 / 0.18),
-    var(--sl-e1);
+  --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.18), var(--sl-e1);
 }
 
 .swatch {
@@ -408,9 +406,7 @@
   width: calc(var(--sl-stroke) + 4px);
   height: calc(var(--sl-stroke) + 4px);
   background: var(--sl-knob-white);
-  box-shadow:
-    0 0 0 0.5px rgb(0 0 0 / 0.2),
-    var(--sl-e1);
+  --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.2), var(--sl-e1);
   overflow: visible;
 }
 
@@ -428,9 +424,8 @@
   height: 9px;
   border-radius: 50%;
   background: var(--sl-knob-white);
-  box-shadow:
-    0 0 0 0.5px rgb(0 0 0 / 0.2),
-    var(--sl-e1);
+  box-shadow: var(--sl-shadow);
+  --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.2), var(--sl-e1);
 }
 
 .notch svg {
@@ -468,9 +463,7 @@
 .root[data-lens] .knob {
   transform: scale(1.25);
   background: transparent;
-  box-shadow:
-    inset 0 0 0 1px var(--sl-lens-rim),
-    var(--sl-e2);
+  --sl-shadow: inset 0 0 0 1px var(--sl-lens-rim), var(--sl-e2);
 }
 
 .root[data-lens] .swatch {
@@ -518,9 +511,8 @@
   padding: 0 10px;
   border-radius: 999px;
   background: var(--sl-bubble-fill);
-  box-shadow:
-    inset 0 0 0 1px var(--sl-bubble-rim),
-    var(--sl-e2);
+  box-shadow: var(--sl-shadow);
+  --sl-shadow: inset 0 0 0 1px var(--sl-bubble-rim), var(--sl-e2);
   color: var(--sl-readout-colour);
   font-size: 13px;
   font-weight: 500;
