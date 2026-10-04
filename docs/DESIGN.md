@@ -760,9 +760,11 @@ spec's §15; the latency measurements are in
 
 ## 10. Redesign (M9)
 
-**Planned (2026-10-04), pending the owner's approval.** The owner's brief of 2026-10-04 asks
+**Approved by the owner (2026-10-04), in progress.** The owner's brief of 2026-10-04 asks
 for the whole interface to be rethought in a language of glass, lime light and motion, simple
-and native like Apple Preview and Notability, on phones and desktops alike. When built, M9
+and native like Apple Preview and Notability. The owner's review the same day set the scope:
+widescreen desktops and tablets first, and on phones a read-only compact edition whose real
+interface is M10 ([ADR-0033](adr/0033-compact-edition.md)). When built, M9
 replaces §1's intent ("quiet, dense … nothing glows" becomes "the page is the brightest thing;
 only light glows") and most of §2–§4: the Read · Edit · Arrange control gives way to viewing
 with targeted acts, one Markup state and a per-document Lock; the grid of title bar, rail,
@@ -777,5 +779,7 @@ the language [`design/redesign-2026-10/language.md`](design/redesign-2026-10/lan
 the decisions [ADR-0022](adr/0022-recto-glass-design-language.md) to
 [ADR-0028](adr/0028-accessibility-gates-expressive-ui.md) (the language) and
 [ADR-0029](adr/0029-viewing-markup-and-lock.md) to [ADR-0032](adr/0032-saving-restore-history.md)
-(the model, the guard, the shell, saving), all proposed. Until M9 lands, §1–§9 describe the
-shipped app.
+(the model, the guard, the shell, saving), with ADR-0033 (two editions), all accepted; the
+[quality bar](design/redesign-2026-10/quality-bar.md) and the
+[ink family](design/redesign-2026-10/components/10-ink.md) hold the owner's standing
+requirements. Until M9 lands, §1–§9 describe the shipped app.

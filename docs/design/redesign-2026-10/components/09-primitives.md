@@ -384,6 +384,9 @@ only, no scale, instant thumbs; fades ≤ 150 ms.
 
 ## 10. Slider
 
+*Superseded 2026-10-04 by `10-ink.md` §3 (track, lens knob, bubble, log scale, detents); the
+roles and key rules below stay.*
+
 1. **Role.** Continuous values: pen and highlighter width (J6, 03 MK-7), opacity, grid cell size
    S ─○─ L (F§6.3, 10), image quality, History scrubber on coarse (04§18). Replaces 15.2.3 Range.
 2. **Anatomy.**
@@ -533,6 +536,8 @@ only, no scale, instant thumbs; fades ≤ 150 ms.
    until a key).
 
 ## 16. Swatch
+
+*Superseded 2026-10-04 by `10-ink.md` §5.*
 
 1. **Role.** Pick an ink, highlighter tint, stamp or field colour (J6, 03 MK-7, 04 colour tier).
    Replaces 5 native colour inputs and private swatch rows.

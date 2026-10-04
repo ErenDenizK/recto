@@ -1,13 +1,13 @@
 ---
 title: "ADR-0027: Type and icons: an Inter Recto subset and Phosphor built at compile time"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0027: Type and icons: an Inter Recto subset and Phosphor built at compile time
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** DESIGN §3 "Icons: one consistent 1.5px stroke set (Lucide or
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** DESIGN §3 "Icons: one consistent 1.5px stroke set (Lucide or
 Phosphor), 16px in chrome, 20px in the tool bar" and "Typography: 13px UI base, 12px
 secondary, 11px labels with tracking"; the `--font-mono` and `--tracking-ui` tokens · **Amends:**
 ADR-0003 ("Lucide icons") · **Rests on:** `language.md` §4.1–§4.4, §5.1–§5.2, §11.1 item 6;

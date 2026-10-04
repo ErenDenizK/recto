@@ -1,13 +1,13 @@
 ---
 title: "ADR-0029: Viewing with targeted acts, one Markup state, Lock, and the Pages grid"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0029: Viewing with targeted acts, one Markup state, Lock, and the Pages grid
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** ADR-0019 §2–§5 (Read · Edit · Arrange, Read is locked, five Edit
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** ADR-0019 §2–§5 (Read · Edit · Arrange, Read is locked, five Edit
 groups, the Edit-mode policy); DESIGN §2's first bullet and its "In Read" tool-bar rows; DESIGN
 §4.8's Read rows and "Pen draws in Edit"; DESIGN §5's "Modes and Edit (M8)" paragraph · **Keeps:**
 ADR-0019 §1 (Home as a place, now the Library) and §6 (one hit order) · **Amends:** ADR-0020 (the

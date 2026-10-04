@@ -1,13 +1,13 @@
 ---
 title: "ADR-0023: Colour roles: one lime for interaction, a blue for selection on the page"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0023: Colour roles: one lime for interaction, a blue for selection on the page
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** ADR-0021 §4 ("The accent `#7c8cff` stays"); DESIGN §3's accent
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** ADR-0021 §4 ("The accent `#7c8cff` stays"); DESIGN §3's accent
 lines, its "The accent `#7c8cff` is unchanged" sentence, its on-page accent rings and handles,
 `--tag-4` olive · **Keeps:** ADR-0021 §3 (inks and highlighter tints) · **Rests on:**
 `language.md` §0.2 rows 1 and 9, §1.1–§1.9, §11.1 item 2; research 20 C-1 to C-9, C-15; 21

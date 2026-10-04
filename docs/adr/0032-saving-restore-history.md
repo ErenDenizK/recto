@@ -1,13 +1,13 @@
 ---
 title: "ADR-0032: Saving, restore and history: Save in place, snapshots on the device, visible Undo"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0032: Saving, restore and history: Save in place, snapshots on the device, visible Undo
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** DESIGN §2's "Export" button and the Document menu's export entries;
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** DESIGN §2's "Export" button and the Document menu's export entries;
 the inspector's History section; ADR-0019's consequence on Recents ("a small IndexedDB store of
 names and, where the browser keeps them, file handles"), extended here with snapshots ·
 **Amends:** ADR-0005 ("persisted with source bytes to IndexedDB/OPFS for crash recovery": now

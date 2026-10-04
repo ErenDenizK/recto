@@ -1,13 +1,13 @@
 ---
 title: "ADR-0026: Motion: springs on platform routes, no animation library"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0026: Motion: springs on platform routes, no animation library
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** DESIGN §3 "Motion: short, eased, disable-able. No bouncing, no
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** DESIGN §3 "Motion: short, eased, disable-able. No bouncing, no
 springs in the chrome" and the token comment "motion: one curve"; DESIGN §2's 160 ms group
 morph "the capsule's width following"; the global "every duration 0.01 ms" reduced-motion rule
 · **Rests on:** `language.md` §7.1–§7.6, §11.1 item 5; `flows.md` §13.1, §13.2 items 6–7;
@@ -70,13 +70,16 @@ and are lost, even with `pointer-events: none` on the overlay.
    that must stay on top gets its own `view-transition-name` with position animation off; the
    update callback returns in under 50 ms and sets focus.
 5. **Catalogue** (`language.md` §7.3) with `flows.md` §13.2: *bar morph* moves the dock ⇄
-   Markup palette ⇄ Pages bar ⇄ Compare bar ⇄ Locked and the compact set swap by
-   `clip-path: inset(… round 999px)` with chips by FLIP, never `width`; MC-8 is "viewing ⇄
+   Markup palette ⇄ Pages bar ⇄ Compare bar ⇄ Locked and the ink strip's row by the
+   capsule's **own** width and height on a spring, with `contain: layout style`, a constant pill
+   radius and chips by FLIP (amended 2026-10-04 by `quality-bar.md` Q-6: the prototype's
+   `clip-path` morph needed its shadow on a second, stretched element, and its ends squashed;
+   research 18's cost of `width` was measured on an uncontained flex bar); MC-8 is "viewing ⇄
    Markup"; a new *hide on scroll* (compact, viewing only) slides the top bar and dock on
    `--spring-quick`, `inert` from the first frame, a 150 ms fade under reduced motion. Keys
    never animate tools. Every component spec picks from the named list.
-6. **Rules** (MP-1 to MP-12): animate `transform`, `opacity` and chrome-sized `clip-path`
-   only; no perpetual animation in document views; motion on or under glass ≤ 500 ms (A-10); stagger
+6. **Rules** (MP-1 to MP-12): animate `transform` and `opacity` only, plus the capsule's own
+   geometry under `quality-bar.md` Q-6; no perpetual animation in document views; motion on or under glass ≤ 500 ms (A-10); stagger
    ≤ 10 items × 12 ms; `contain: layout paint` on animated islands; `will-change` only from
    script, on ≤ 3 elements, during a gesture.
 7. **Limits** (A-10, read on the 99 % settle): input-blocking ≤ 250 ms; any transition ≤ 500 ms
@@ -92,7 +95,7 @@ and are lost, even with `pointer-events: none` on the overlay.
 
 - The six script `matchMedia` checks and the global 0.01 ms rule go; `motion.css` holds the
   View Transition and reduced-motion rules.
-- The bar morph is rewritten on `clip-path`; the zoom controller moves the page layer by
+- The bar morph is rewritten on the capsule's own contained geometry (`quality-bar.md` Q-6); the zoom controller moves the page layer by
   `transform` during a gesture and commits layout once at rest (MC-23).
 - `e2e/motion.spec.ts`: zero layouts during pinch and bar morph, zero frames at rest after 2 s,
   no `::view-transition` during tool switching, an animation sweep under both reduce paths.

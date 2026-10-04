@@ -233,6 +233,9 @@ every tool's commit path declares one of these acts in the registry.
 
 ### MK-1 Capsule morph
 
+*Amended 2026-10-04:* the shape changes through the capsule's own width and height, not
+`clip-path` (`quality-bar.md` Q-6); read every `clip-path` below as that.
+
 1. **Role.** The single M2 element that is the dock in viewing and becomes the palette, the preset
    strip, the Pages bar, the Compare bar or the Locked state; this spec owns the element and the
    dock ⇄ palette ⇄ strip transitions. Serves J6, J8A, J10 (`flows.md` §4.2, §4.3, §13.1). Replaces
@@ -450,6 +453,9 @@ every tool's commit path declares one of these acts in the registry.
 
 ### MK-7 Options tier, options chip and ink swatches
 
+*Superseded 2026-10-04 in look and placement by `10-ink.md` §2 (the ink strip; no chip). Roles,
+strings, guard rules and the tools-with-options list below stay.*
+
 1. **Role.** Shows the armed tool's options on arming (FL-R2, INV-R5): a tier above the palette on
    compact and medium, a summary chip inline from expanded up. Replaces 7.12 tier, 7.13 eraser tier
    and 7.14 style controls in the bar.
@@ -499,6 +505,9 @@ every tool's commit path declares one of these acts in the registry.
    compact palette shares one filter (one `backdrop-filter` element in the stack).
 
 ### MK-8 Preset and style editor
+
+*Superseded 2026-10-04 in its parts by `10-ink.md` §4 and §6 (the colour panel and the preset
+editor built from it). Strings and behaviour rules below stay.*
 
 1. **Role.** The full options of the armed tool (7.6's preset editor and the inspector's style),
    on a second press, the chip or ⋯. J6.

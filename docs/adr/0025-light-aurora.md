@@ -1,13 +1,13 @@
 ---
 title: "ADR-0025: Light: an in-house aurora that answers events"
 date: 2026-10-04
-status: proposed
+status: accepted
 ---
 
 # ADR-0025: Light: an in-house aurora that answers events
 
-**Status:** proposed · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
-**Supersedes on acceptance:** DESIGN §1 "Nothing glows" (with ADR-0022); DESIGN §6 is kept
+**Status:** accepted 2026-10-04 by the owner, with the amendments of ADR-0033, `quality-bar.md` and `components/10-ink.md` · **Date:** 2026-10-04 · **Deciders:** project lead; the owner accepts ·
+**Supersedes:** DESIGN §1 "Nothing glows" (with ADR-0022); DESIGN §6 is kept
 ("no gradient" applies to the glyph; the aurora is atmosphere, not logo) · **Rests on:**
 `language.md` §1.6, §3.1–§3.5, §11.1 item 4, §11.2; `flows.md` §9.1, §13.1, §13.2 item 5;
 research 17 AU-1 to AU-22; 16 G-14 to G-16; 18 §6.5; 19 M-32; 22 A-5 to A-8, §5.3
