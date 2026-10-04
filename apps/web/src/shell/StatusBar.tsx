@@ -164,6 +164,7 @@ function ZoomControls() {
   return (
     <div className={styles.zoom}>
       <IconButton
+        size="row"
         label={m.zoom_out()}
         icon={<Minus />}
         shortcut={outShortcut}
@@ -216,6 +217,7 @@ function ZoomControls() {
         </Menu.Portal>
       </Menu.Root>
       <IconButton
+        size="row"
         label={m.zoom_in()}
         icon={<Plus />}
         shortcut={inShortcut}

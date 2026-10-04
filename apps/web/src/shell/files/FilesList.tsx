@@ -13,7 +13,7 @@ import { m } from '../../i18n';
 import { useUiStore } from '../../state/ui-store';
 import { documentSources, useWorkspaceStore } from '../../state/workspace-store';
 import { announce } from '../announcer';
-import { EmptyNote } from '../EmptyNote';
+import { EmptyNote } from '../../ui/EmptyNote';
 import { FileRow } from './FileRow';
 import styles from './FilesList.module.css';
 

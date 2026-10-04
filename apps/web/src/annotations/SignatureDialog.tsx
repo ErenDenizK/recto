@@ -156,7 +156,7 @@ function SignatureForm({ onDone }: { readonly onDone: () => void }) {
           />
         ) : null}
         {tab === 'image' ? <p className={styles.hint}>{m.signature_image_hint()}</p> : null}
-        <div className={styles.actions}>
+        <div className={styles.actions} data-bar="dialog-footer">
           <Dialog.Close className={styles.secondary}>{m.annot_cancel()}</Dialog.Close>
           <button
             type="button"

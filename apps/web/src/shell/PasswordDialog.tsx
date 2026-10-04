@@ -70,7 +70,7 @@ function PasswordForm({ request }: { readonly request: PasswordRequest }) {
             {m.password_incorrect()}
           </p>
         ) : null}
-        <div className={styles.actions}>
+        <div className={styles.actions} data-bar="dialog-footer">
           <button
             type="button"
             className={styles.secondary}

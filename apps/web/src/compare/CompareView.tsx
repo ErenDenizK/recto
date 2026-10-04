@@ -960,7 +960,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
         label={m.compare_heatmap()}
         tooltip={done ? m.compare_heatmap() : m.compare_heatmap_pending()}
         icon={<Flame />}
-        size="toolbar"
+        size="bar"
         aria-pressed={heatmap}
         aria-disabled={!done || !hasHeat ? 'true' : undefined}
         data-testid="compare-heatmap-toggle"
@@ -972,7 +972,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <IconButton
         label={m.cmd_zoom_out()}
         icon={<ZoomOut />}
-        size="toolbar"
+        size="bar"
         shortcut={zoomOutShortcut}
         onClick={() => ui().zoomOut()}
       />
@@ -982,14 +982,14 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <IconButton
         label={m.cmd_zoom_in()}
         icon={<ZoomIn />}
-        size="toolbar"
+        size="bar"
         shortcut={zoomInShortcut}
         onClick={() => ui().zoomIn()}
       />
       <IconButton
         label={m.cmd_zoom_fit()}
         icon={<Maximize2 />}
-        size="toolbar"
+        size="bar"
         shortcut={fitShortcut}
         onClick={() => ui().zoomFit()}
       />
@@ -997,7 +997,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <IconButton
         label={m.cmd_compare_previous()}
         icon={<ChevronUp />}
-        size="toolbar"
+        size="bar"
         shortcut={previousShortcut}
         aria-disabled={changes === 0 ? 'true' : undefined}
         onClick={() => stepChanges(-1)}
@@ -1005,7 +1005,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <IconButton
         label={m.cmd_compare_next()}
         icon={<ChevronDown />}
-        size="toolbar"
+        size="bar"
         shortcut={nextShortcut}
         aria-disabled={changes === 0 ? 'true' : undefined}
         onClick={() => stepChanges(1)}
@@ -1014,7 +1014,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <IconButton
         label={m.compare_run_again()}
         icon={<RefreshCw />}
-        size="toolbar"
+        size="bar"
         aria-disabled={done ? undefined : 'true'}
         onClick={() => {
           if (done) void startCompare();

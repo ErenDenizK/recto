@@ -1,0 +1,149 @@
+/* Checkbox (09-primitives §8): a --control-h row, a 16 / 20 px box with radius 4. */
+.group {
+  display: grid;
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.row[data-disabled] {
+  color: var(--text-disabled);
+}
+
+.label {
+  min-width: 0;
+}
+
+.box {
+  --shadow-own: inset 0 0 0 1.5px var(--control-border);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--check);
+  height: var(--check);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  box-shadow: var(--shadow-own);
+  color: var(--control-on-ink);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* A coarse pointer: the box is 20 px, the row 44 px; the label is the rest of the target. */
+@media (hover: hover) {
+  .row:hover .box:not([data-disabled], [data-checked], [data-indeterminate]) {
+    --shadow-own: inset 0 0 0 1.5px var(--control-border-hover);
+  }
+}
+
+.box:is([data-checked], [data-indeterminate]) {
+  --shadow-own: inset 0 0 0 1.5px var(--control-on);
+  background: var(--control-on);
+}
+
+.box[data-error] {
+  --shadow-own: inset 0 0 0 1.5px var(--danger);
+}
+
+.box[data-disabled] {
+  --shadow-own: inset 0 0 0 1.5px var(--text-disabled);
+}
+
+.box[data-disabled]:is([data-checked], [data-indeterminate]) {
+  background: var(--text-disabled);
+}
+
+.indicator {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.check,
+.dash {
+  grid-area: 1 / 1;
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .check,
+  .dash {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* The check pops on the select curve (0.88 → 1.04 → 1, 240 ms); reduced motion swaps. */
+.indicator[data-checked]:not([data-indeterminate]) .check {
+  opacity: 1;
+  animation: select 240ms var(--ease-spring-pop);
+}
+
+.indicator[data-indeterminate] .dash {
+  opacity: 1;
+}
+
+@keyframes select {
+  from {
+    transform: scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator .check {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .indicator .check {
+  animation: none;
+}
+
+.note {
+  padding-left: calc(var(--check) + var(--space-2));
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.note[data-error] {
+  color: var(--danger);
+}
+
+@media (forced-colors: active) {
+  .box {
+    border: 1px solid ButtonBorder;
+    forced-color-adjust: none;
+    background: Canvas;
+    color: Canvas;
+  }
+
+  .box:is([data-checked], [data-indeterminate]) {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .box[data-disabled] {
+    border-color: GrayText;
+  }
+}

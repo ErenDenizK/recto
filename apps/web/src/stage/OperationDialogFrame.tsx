@@ -53,7 +53,7 @@ export function Actions({
   readonly disabled: boolean;
 }) {
   return (
-    <div className={styles.actions}>
+    <div className={styles.actions} data-bar="dialog-footer">
       <Dialog.Close className={styles.secondary}>{m.common_cancel()}</Dialog.Close>
       <button type="submit" className={styles.primary} disabled={disabled}>
         {confirm}

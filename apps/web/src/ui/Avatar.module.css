@@ -1,0 +1,87 @@
+/* Avatar (09-primitives §18): a tag-coloured disc with one initial in ink. */
+.avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--avatar-colour, var(--surface-on));
+  color: var(--canvas);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  line-height: var(--type-caption-lh);
+  forced-color-adjust: none;
+  user-select: none;
+}
+
+.avatar[data-size='24'] {
+  width: 24px;
+  height: 24px;
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+}
+
+.avatar[data-size='32'] {
+  width: 32px;
+  height: 32px;
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+}
+
+.avatar[data-tag-slot='0'] {
+  --avatar-colour: var(--tag-0);
+}
+
+.avatar[data-tag-slot='1'] {
+  --avatar-colour: var(--tag-1);
+}
+
+.avatar[data-tag-slot='2'] {
+  --avatar-colour: var(--tag-2);
+}
+
+.avatar[data-tag-slot='3'] {
+  --avatar-colour: var(--tag-3);
+}
+
+.avatar[data-tag-slot='4'] {
+  --avatar-colour: var(--tag-4);
+}
+
+.avatar[data-tag-slot='5'] {
+  --avatar-colour: var(--tag-5);
+}
+
+/* An unknown author: a neutral disc with the user glyph. */
+.avatar[data-unknown] {
+  background: var(--surface-on);
+  color: var(--text-secondary);
+}
+
+.fallback {
+  display: grid;
+  place-items: center;
+}
+
+.fallback svg {
+  width: 12px;
+  height: 12px;
+}
+
+.avatar[data-size='24'] .fallback svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.avatar[data-size='32'] .fallback svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+@media (forced-colors: active) {
+  .avatar {
+    box-shadow: 0 0 0 1px CanvasText;
+  }
+}

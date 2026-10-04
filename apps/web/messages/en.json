@@ -3960,5 +3960,12 @@
   "privacy_kept_not_persistent": "The browser may clear kept changes.",
   "privacy_kept_ios": "On iPhone and iPad, kept changes last while the browser keeps them.",
   "privacy_kept_write_failed": "The latest changes could not be kept on this device: storage is full or unavailable.",
-  "recents_hint_kept": "Edited, changes kept"
+  "recents_hint_kept": "Edited, changes kept",
+  "control_busy": "Working…",
+  "control_unavailable": "Not available now",
+  "chip_remove": "Remove: {name}",
+  "switch_system_on": "On, set by your system",
+  "switch_system_off": "Off, set by your system",
+  "progress_value_text": "{percent} percent",
+  "avatar_unknown": "Unknown author"
 }

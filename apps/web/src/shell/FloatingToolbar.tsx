@@ -36,7 +36,6 @@ import type { CreatedFieldKind } from '@pdf-editor/document-model';
 import {
   BadgeCheck,
   ChevronLeft,
-  ChevronUp,
   ImagePlus,
   type LucideIcon,
   Pencil,
@@ -418,7 +417,7 @@ function BarItemView({ item }: { readonly item: BarItem }): ReactNode {
     case 'apply-redactions':
       return (
         <IconButton
-          size="toolbar"
+          size="bar"
           tooltipSide="top"
           label={m.bar_apply_redactions()}
           icon={<ShieldCheck />}
@@ -449,7 +448,7 @@ function ToolButton({ tool }: { readonly tool: ToolDefinition }) {
   const label = tool.barTitle?.() ?? tool.title();
   return (
     <IconButton
-      size="toolbar"
+      size="bar"
       tooltipSide="top"
       label={label}
       tooltip={armedTooltip(tool.tooltip?.() ?? label, armed)}
@@ -494,13 +493,12 @@ function MenuButton({
       <Tooltip label={tooltip ?? label} side="top">
         <Menu.Trigger
           className={`${iconButtonStyles.button} ${styles.menuTrigger}`}
-          data-size="toolbar"
+          data-size="bar"
           aria-label={label}
           aria-pressed={pressed}
           data-tool={tool}
         >
           {icon}
-          <ChevronUp className={styles.chevron} aria-hidden="true" />
         </Menu.Trigger>
       </Tooltip>
       <Menu.Portal>
@@ -622,7 +620,7 @@ function CommandButton({ id }: { readonly id: string }) {
   const label = spec.label?.() ?? command.title;
   return (
     <IconButton
-      size="toolbar"
+      size="bar"
       tooltipSide="top"
       label={label}
       icon={<spec.Icon />}

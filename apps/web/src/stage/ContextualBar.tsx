@@ -212,7 +212,7 @@ export function ContextualBar({
           <Tooltip label={m.action_move_to()}>
             <Menu.Trigger
               className={iconButtonStyles.button}
-              data-size="chrome"
+              data-size="bar"
               aria-label={m.action_move_to()}
               tabIndex={tabIndex}
             >

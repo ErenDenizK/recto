@@ -35,7 +35,7 @@ import {
 } from '../state/workspace-store';
 import { ResizeHandle } from '../ui/ResizeHandle';
 import { Tooltip } from '../ui/Tooltip';
-import { EmptyNote } from './EmptyNote';
+import { EmptyNote } from '../ui/EmptyNote';
 import styles from './RightPanel.module.css';
 
 const PANEL_ID = 'right-panel';

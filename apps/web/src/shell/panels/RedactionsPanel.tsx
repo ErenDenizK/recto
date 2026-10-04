@@ -280,6 +280,7 @@ export function MarkRow({
         </span>
       </button>
       <IconButton
+        size="row"
         label={m.redaction_delete()}
         icon={<Trash2 />}
         tooltipSide="left"
@@ -340,6 +341,7 @@ function Finder() {
       <div className={styles.finderHeader}>
         <h3 className={styles.finderTitle}>{m.redaction_find_title()}</h3>
         <IconButton
+          size="row"
           label={m.redaction_find_close()}
           icon={<X />}
           className={styles.close}

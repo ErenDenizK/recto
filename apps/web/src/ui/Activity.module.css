@@ -1,0 +1,44 @@
+/* The activity glyph (09-primitives §24): 16 / 20 px, one turn in 0.8 s. */
+.activity {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  animation: spin 0.8s linear infinite;
+}
+
+.activity[data-size='md'] {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .activity[data-size='auto'] {
+    width: var(--icon-md);
+    height: var(--icon-md);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Reduced motion: a still glyph whose opacity pulses (A-9's progress exemption). The global
+   reduced-motion rule cuts every animation to one 0.01 ms run with !important, so this one is
+   restated with !important (and a higher specificity) to keep its 1.6 s period. */
+@media (prefers-reduced-motion: reduce) {
+  .activity {
+    animation: pulse 1.6s ease-in-out infinite !important;
+  }
+}
+
+:global(:root[data-motion='reduced']) .activity {
+  animation: pulse 1.6s ease-in-out infinite;
+}

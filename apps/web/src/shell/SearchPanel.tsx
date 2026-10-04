@@ -31,7 +31,7 @@ import {
   splitContext,
   useSearchStore,
 } from '../viewer/search';
-import { EmptyNote } from './EmptyNote';
+import { EmptyNote } from '../ui/EmptyNote';
 import styles from './SearchPanel.module.css';
 import { useCommandShortcut } from './use-command-shortcut';
 
@@ -129,6 +129,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
           />
           <div className={styles.fieldOptions}>
             <IconButton
+              size="row"
               label={m.search_match_case()}
               icon={<CaseSensitive />}
               aria-pressed={matchCase}
@@ -136,6 +137,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
               onClick={() => setSearchOptions({ matchCase: !matchCase })}
             />
             <IconButton
+              size="row"
               label={m.search_whole_word()}
               icon={<WholeWord />}
               aria-pressed={wholeWord}
@@ -165,6 +167,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
             {summary}
           </span>
           <IconButton
+            size="row"
             label={m.search_previous()}
             icon={<ChevronUp />}
             shortcut={previousShortcut}
@@ -173,6 +176,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
             onClick={() => searchStep(-1)}
           />
           <IconButton
+            size="row"
             label={m.search_next()}
             icon={<ChevronDown />}
             shortcut={nextShortcut}

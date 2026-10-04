@@ -1,0 +1,167 @@
+/*
+ * Switch (09-primitives §7): a --control-h row, the label leading and the switch trailing.
+ * Track --switch-w × --switch-h (36 × 20 fine, 52 × 32 coarse), the thumb 2 px inside it. The
+ * border is an inset ring, so the geometry stays on whole pixels.
+ */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--control-h);
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.text {
+  display: grid;
+  min-width: 0;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.row[data-disabled] .label {
+  color: var(--text-disabled);
+}
+
+.track {
+  --thumb-size: calc(var(--switch-h) - 4px);
+  --switch-travel: calc(var(--switch-w) - var(--thumb-size) - 4px);
+  --shadow-own: inset 0 0 0 1.5px var(--control-border);
+  position: relative;
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--switch-w);
+  height: var(--switch-h);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: var(--shadow-own);
+  touch-action: none;
+  transition:
+    background-color 120ms var(--ease-out),
+    box-shadow 120ms var(--ease-out);
+}
+
+@media (hover: hover) {
+  .track:hover:not([data-disabled], [data-readonly]) {
+    --shadow-own: inset 0 0 0 1.5px var(--control-border-hover);
+  }
+}
+
+.track[data-checked] {
+  --shadow-own: inset 0 0 0 1.5px var(--control-on);
+  background: var(--control-on);
+}
+
+.thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: grid;
+  place-items: center;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: var(--radius-pill);
+  background: var(--control-thumb-off);
+  color: var(--control-on);
+  box-shadow: var(--e1);
+  transform: translateX(0);
+  transition:
+    transform var(--spring-press) var(--ease-spring),
+    width var(--spring-press) var(--ease-spring),
+    background-color 120ms var(--ease-out);
+}
+
+.track[data-checked] .thumb {
+  background: var(--control-on-ink);
+  transform: translateX(var(--switch-travel));
+}
+
+/* Pressed: the thumb widens 4 px toward the travel (iOS). */
+.track:active:not([data-disabled], [data-readonly]) .thumb {
+  width: calc(var(--thumb-size) + 4px);
+}
+
+.track[data-checked]:active:not([data-disabled], [data-readonly]) .thumb {
+  transform: translateX(calc(var(--switch-travel) - 4px));
+}
+
+/* Dragging: the thumb follows the pointer 1:1. */
+.track[data-dragging] .thumb {
+  transform: translateX(var(--switch-drag));
+  transition: none;
+}
+
+.glyph,
+.thumb > svg {
+  width: 12px;
+  height: 12px;
+}
+
+.track[data-checked] .thumb {
+  color: var(--control-on);
+}
+
+.track[data-disabled] {
+  --shadow-own: inset 0 0 0 1.5px var(--text-disabled);
+}
+
+.track[data-disabled][data-checked] {
+  background: var(--text-disabled);
+}
+
+.track[data-disabled] .thumb {
+  background: var(--text-disabled);
+  box-shadow: none;
+}
+
+.track[data-disabled][data-checked] .thumb {
+  background: var(--control-on-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb {
+    transition: background-color 120ms var(--ease-out);
+  }
+}
+
+:global(:root[data-motion='reduced']) .thumb {
+  transition: background-color 120ms var(--ease-out);
+}
+
+@media (forced-colors: active) {
+  .track {
+    border: 1px solid ButtonBorder;
+  }
+
+  .thumb {
+    background: ButtonText;
+  }
+
+  .track[data-checked] {
+    background: Highlight;
+  }
+
+  .track[data-checked] .thumb {
+    background: HighlightText;
+  }
+
+  .track[data-disabled] .thumb {
+    background: GrayText;
+  }
+}

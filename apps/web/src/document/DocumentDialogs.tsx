@@ -321,7 +321,7 @@ export function SetPasswordFlow({ doc }: { readonly doc: VirtualDocument }) {
             {problemText(check.problem)}
           </p>
         ) : null}
-        <div className={styles.actions}>
+        <div className={styles.actions} data-bar="dialog-footer">
           <Dialog.Close className={styles.secondary}>{m.common_cancel()}</Dialog.Close>
           <button type="submit" className={styles.primary}>
             {m.set_password_apply()}
@@ -385,7 +385,7 @@ function RemovePasswordFlow({ doc }: { readonly doc: VirtualDocument }) {
             <span>{m.remove_password_confirm()}</span>
           </label>
         ) : null}
-        <div className={styles.actions}>
+        <div className={styles.actions} data-bar="dialog-footer">
           <Dialog.Close className={styles.secondary}>{m.common_cancel()}</Dialog.Close>
           <button
             ref={primaryRef}
@@ -497,7 +497,7 @@ function StripForm({
         })}
       </fieldset>
       <p className={styles.hint}>{m.strip_kept_note()}</p>
-      <div className={styles.actions}>
+      <div className={styles.actions} data-bar="dialog-footer">
         <Dialog.Close className={styles.secondary}>{m.common_cancel()}</Dialog.Close>
         <button ref={primaryRef} type="submit" className={styles.primary}>
           {anything ? m.strip_apply() : m.strip_keep()}

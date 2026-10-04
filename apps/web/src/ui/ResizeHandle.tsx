@@ -16,13 +16,23 @@ interface ResizeHandleProps {
   readonly direction: 1 | -1;
   readonly onChange: (value: number) => void;
   readonly controls: string;
+  /** Enter collapses the panel (APG window splitter), when the panel can collapse. */
+  readonly onCollapse?: (() => void) | undefined;
 }
 
 const KEY_STEP = 16;
 
 /**
- * A focusable window splitter (APG "Window Splitter" pattern): drag with a pointer, or
- * focus it and use Left/Right (16px), Home/End (min/max).
+ * Resize handle (components/09-primitives.md §23): a focusable window splitter (APG "Window
+ * Splitter") on a docked panel's edge. Drag it 1:1 with a pointer (no momentum: the layout
+ * settles once at rest), or focus it and use Left/Right (16 px), Home/End (min/max) and Enter
+ * (collapse, where the panel can).
+ *
+ * - An 8 px hit strip (16 px coarse) centred on the divider, `touch-action: none`.
+ * - A 2 × 24 px grip in `--control-border` shows on hover and focus; the divider turns
+ *   `--accent-line` while hovered or dragged. Keyboard focus draws the inset ring on the grip,
+ *   not round the full-height strip.
+ * - `separator` with `aria-valuenow` in px. Hidden on the compact edition (no docked panels).
  */
 export function ResizeHandle({
   label,
@@ -32,6 +42,7 @@ export function ResizeHandle({
   direction,
   onChange,
   controls,
+  onCollapse,
 }: ResizeHandleProps) {
   const drag = useRef<{ startX: number; startValue: number } | null>(null);
 
@@ -39,6 +50,7 @@ export function ResizeHandle({
     if (event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { startX: event.clientX, startValue: value };
+    event.currentTarget.setAttribute('data-dragging', '');
   };
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!drag.current) return;
@@ -46,6 +58,7 @@ export function ResizeHandle({
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
     drag.current = null;
+    event.currentTarget.removeAttribute('data-dragging');
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -58,6 +71,11 @@ export function ResizeHandle({
     else if (event.key === shrink) next = value - KEY_STEP;
     else if (event.key === 'Home') next = min;
     else if (event.key === 'End') next = max;
+    else if (event.key === 'Enter' && onCollapse) {
+      event.preventDefault();
+      onCollapse();
+      return;
+    }
     if (next === null) return;
     event.preventDefault();
     onChange(next);
@@ -80,6 +98,8 @@ export function ResizeHandle({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onKeyDown={onKeyDown}
-    />
+    >
+      <span className={styles.grip} aria-hidden="true" />
+    </div>
   );
 }

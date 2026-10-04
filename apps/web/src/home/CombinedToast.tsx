@@ -46,6 +46,7 @@ export function CombinedToast() {
         {m.cmd_undo()}
       </button>
       <IconButton
+        size="row"
         label={m.combined_toast_dismiss()}
         icon={<X />}
         className={styles.close}

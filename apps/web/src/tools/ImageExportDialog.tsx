@@ -276,7 +276,7 @@ function ImageExportFlow({ documentId }: { readonly documentId: DocumentId }) {
                 ? m.images_output_single({ width: firstSize.width, height: firstSize.height })
                 : m.images_output_zip({ count: pages.length })}
           </p>
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             {pages?.length === 1 && canCopyImage() ? (
               <button type="button" className={styles.secondary} onClick={copy}>
                 {m.images_copy()}
@@ -301,7 +301,7 @@ function ImageExportFlow({ documentId }: { readonly documentId: DocumentId }) {
             value={step.done}
             aria-label={m.images_progress_label()}
           />
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             <button
               type="button"
               className={styles.secondary}
@@ -320,7 +320,7 @@ function ImageExportFlow({ documentId }: { readonly documentId: DocumentId }) {
           <p className={styles.error} role="alert">
             {step.message}
           </p>
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             <Dialog.Close className={styles.secondary}>{m.common_close()}</Dialog.Close>
             <button
               type="button"
