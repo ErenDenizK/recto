@@ -123,6 +123,7 @@
   gap: var(--space-4);
   min-height: 100%;
   outline: none;
+  box-shadow: none;
 }
 
 .card {

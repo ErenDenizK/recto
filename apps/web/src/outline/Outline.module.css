@@ -92,6 +92,7 @@
 
 .renameInput:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 .renameInput[aria-invalid='true'] {

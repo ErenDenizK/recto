@@ -414,9 +414,9 @@ describe('lasso on the annotation layer', () => {
     await armLasso(layer);
     lasso(layer, { x: 80, y: 620 }, { x: 190, y: 520 });
     await waitFor(() => expect(layer.querySelectorAll('[data-lasso-path]')).toHaveLength(2));
-    // The pen stroke is traced in the accent's highlight alpha as before; the Multiply one
-    // gets an accent ring cut out around its own width by a mask, and the highlight an
-    // unfilled accent outline.
+    // The pen stroke is traced in the selection blue's highlight alpha as before; the Multiply one
+    // gets an selection blue ring cut out around its own width by a mask, and the highlight an
+    // unfilled selection blue outline.
     await waitFor(() => expect(layer.querySelectorAll('[data-lasso-outlined]')).toHaveLength(2));
     const ring = layer.querySelector<SVGPolylineElement>(
       '[data-lasso-outlined] polyline[data-lasso-path]',
@@ -426,17 +426,18 @@ describe('lasso on the annotation layer', () => {
     expect(mask).toMatch(/^url\(#.+\)$/);
     const id = mask.slice(5, -1);
     expect(layer.querySelector(`mask[id="${id}"]`)?.querySelectorAll('polyline')).toHaveLength(2);
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    // The page's selection blue (--select, language.md §1.5).
+    const select = getComputedStyle(document.documentElement).getPropertyValue('--select').trim();
     const probe = document.createElement('span');
-    probe.style.color = accent;
+    probe.style.color = select;
     document.body.append(probe);
-    const accentRgb = getComputedStyle(probe).color;
+    const selectRgb = getComputedStyle(probe).color;
     probe.remove();
-    expect(getComputedStyle(ring).stroke).toBe(accentRgb);
+    expect(getComputedStyle(ring).stroke).toBe(selectRgb);
     const area = layer.querySelector<SVGPolygonElement>('polygon[data-lasso-outlined]');
     if (!area) throw new Error('no outlined highlight');
     expect(getComputedStyle(area).fill).toBe('none');
-    expect(getComputedStyle(area).stroke).toBe(accentRgb);
+    expect(getComputedStyle(area).stroke).toBe(selectRgb);
     // The handles are there to resize and turn it.
     expect(layer.querySelectorAll('[data-lasso-handle]').length).toBeGreaterThan(0);
 

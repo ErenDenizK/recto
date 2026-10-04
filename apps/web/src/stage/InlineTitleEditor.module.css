@@ -20,6 +20,7 @@
 
 .input:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 .input[aria-invalid='true'] {

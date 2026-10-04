@@ -1,6 +1,7 @@
 /**
  * Contrast and structure of the design tokens (docs/specs/experience-redesign.md §7.1–§7.3, §11;
- * docs/specs/craft.md §7 for the three glass tiers; DESIGN.md §3). The test reads the real `tokens.css` and `global.css`, resolves `var()`
+ * docs/specs/craft.md §7 for the three glass tiers; DESIGN.md §3; docs/specs/redesign.md D0-1 for
+ * the coverage registry, the page's selection blue and the focus bands). The test reads the real `tokens.css` and `global.css`, resolves `var()`
  * references and computes WCAG 2.2 contrast ratios, so a token change that breaks a ratio fails
  * here rather than in a screenshot review.
  *
@@ -12,6 +13,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { TINT } from '../annotations/palette';
+import { COVERAGE_REGISTRY, type GlassComposition } from './coverage-registry';
+import focusCss from './focus.css?raw';
 import globalCss from './global.css?raw';
 import tokensCss from './tokens.css?raw';
 
@@ -290,6 +294,18 @@ describe('tokens.css', () => {
       '--glass-menu',
       '--glass-menu-filter',
       '--glass-menu-solid',
+      // M9 D0-1 (redesign §11.1): the one-row menu's blur, the selection blue, the focus bands.
+      '--glass-menu-short-filter',
+      '--select',
+      '--select-subtle',
+      '--select-muted',
+      '--select-wash',
+      '--select-wash-strong',
+      '--focus-light',
+      '--focus-dark',
+      '--focus-offset-out',
+      '--focus-offset-in',
+      '--focus-offset-gap',
     ];
     for (const name of names) expect(root.has(name), name).toBe(true);
   });
@@ -609,6 +625,7 @@ describe('tokens.css', () => {
             expect(scope.get(tier.tint), tier.tint).toBe(`var(${tier.solid})`);
             expect(scope.get(tier.filter), tier.filter).toBe('none');
           }
+          expect(scope.get('--glass-menu-short-filter')).toBe('none');
           expect(scope.has('--elevation-float')).toBe(false);
           expect(scope.has('--glass-frame-highlight')).toBe(false);
           expect(scope.has('--border-glass')).toBe(false);
@@ -622,7 +639,9 @@ describe('tokens.css', () => {
           expect(more.get(tier.filter), tier.filter).toBe('none');
         }
         expect(more.get('--glass-frame-highlight')).toBe('none');
+        expect(more.get('--glass-menu-short-filter')).toBe('none');
         const forced = mediaOverrides('forced-colors: active');
+        expect(forced.get('--glass-menu-short-filter')).toBe('none');
         expect(forced.get('--glass-frame')).toBe('Canvas');
         expect(forced.get('--glass-menu')).toBe('Canvas');
         expect(forced.get('--glass-frame-highlight')).toBe('none');
@@ -670,6 +689,276 @@ describe('tokens.css', () => {
       expect(contrast(fill, colour('--glass-solid')), 'opaque bar').toBeGreaterThanOrEqual(
         AA_NON_TEXT,
       );
+    });
+  });
+
+  describe('coverage registry (redesign D0-1, language.md §2.9, A-2)', () => {
+    /** Abramowitz and Stegun 7.1.26: |error| < 1.5e-7, ample for a 0.985 floor. */
+    const erf = (x: number): number => {
+      const t = 1 / (1 + 0.3275911 * Math.abs(x));
+      const poly =
+        t *
+        (0.254829592 +
+          t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+      return Math.sign(x) * (1 - poly * Math.exp(-x * x));
+    };
+    /** The share of a w × h surface's backdrop its blur covers at the centre (research 22 §3.2). */
+    const coverage = (w: number, h: number, sigma: number): number =>
+      erf(h / (2 * Math.SQRT2 * sigma)) * erf(w / (2 * Math.SQRT2 * sigma));
+    const blurOf = (token: string): number => {
+      const match = /blur\(([\d.]+)px\)/.exec(resolve(token));
+      if (!match?.[1]) throw new Error(`${token} has no blur()`);
+      return Number(match[1]);
+    };
+
+    it('lowers the three blurs as the spec row says: bars 7px, menus 12px (one row 7px), frame 5px', () => {
+      expect(blurOf('--glass-filter')).toBe(7);
+      expect(blurOf('--glass-menu-filter')).toBe(12);
+      expect(blurOf('--glass-menu-short-filter')).toBe(7);
+      expect(blurOf('--glass-frame-filter')).toBe(5);
+      // The rest of each chain is unchanged, so every composite above still holds.
+      expect(resolve('--glass-filter')).toBe('blur(7px) saturate(1.8) brightness(0.45)');
+      expect(resolve('--glass-menu-filter')).toBe('blur(12px) saturate(1.6) brightness(0.5)');
+      expect(resolve('--glass-menu-short-filter')).toBe('blur(7px) saturate(1.6) brightness(0.5)');
+      expect(resolve('--glass-frame-filter')).toBe('blur(5px) saturate(1.4) brightness(0.6)');
+    });
+
+    it('reproduces the language table (36 px bar at 7px 0.990, 64 px menu at 12px 0.992)', () => {
+      expect(coverage(360, 36, 7)).toBeCloseTo(0.99, 3);
+      expect(coverage(200, 64, 12)).toBeCloseTo(0.992, 3);
+      expect(coverage(1440, 44, 8)).toBeCloseTo(0.994, 3);
+      // The bar that shipped in M8, which research 22 measured leaking: 44 px at blur 28px.
+      expect(coverage(436, 44, 28)).toBeLessThan(0.6);
+    });
+
+    it.each(COVERAGE_REGISTRY.map((entry) => [entry.id, entry] as const))(
+      '%s meets c ≥ 0.985 at its smallest size',
+      (_, entry) => {
+        const sigma = blurOf(entry.filter);
+        const c = coverage(entry.minWidth, entry.minHeight, sigma);
+        expect(
+          c,
+          `${entry.surface}: ${entry.minWidth} × ${entry.minHeight} px at σ ${sigma}`,
+        ).toBeGreaterThanOrEqual(0.985);
+      },
+    );
+
+    it('registers each surface once, with its tier’s filter', () => {
+      const ids = COVERAGE_REGISTRY.map((entry) => entry.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      const filters: Record<GlassComposition, readonly string[]> = {
+        glass: ['--glass-filter'],
+        'glass glass-menu': ['--glass-menu-filter', '--glass-menu-short-filter'],
+        'glass-frame': ['--glass-frame-filter'],
+      };
+      for (const entry of COVERAGE_REGISTRY) {
+        expect(filters[entry.composes], entry.id).toContain(entry.filter);
+        expect(entry.minWidth, entry.id).toBeGreaterThan(0);
+        expect(entry.minHeight, entry.id).toBeGreaterThan(0);
+      }
+    });
+
+    it('holds every module rule that composes .glass, .glass-menu or .glass-frame, and no other', () => {
+      const modules = import.meta.glob<string>('../**/*.module.css', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      });
+      const found = new Set<string>();
+      for (const [file, source] of Object.entries(modules)) {
+        const css = stripComments(source);
+        for (const match of css.matchAll(
+          /(\.[\w-]+)\s*\{\s*composes:\s*([^;]*?)\s+from global;/g,
+        )) {
+          const classes = (match[2] ?? '').split(/\s+/).filter((c) => c.startsWith('glass'));
+          if (classes.length === 0) continue;
+          found.add(`${file.replace(/^\.\.\//, '')} ${match[1]} ${classes.join(' ')}`);
+        }
+      }
+      const registered = new Set(
+        COVERAGE_REGISTRY.map((entry) => `${entry.module} ${entry.selector} ${entry.composes}`),
+      );
+      expect([...found].sort()).toEqual([...registered].sort());
+      // The spec row counted about nineteen modules: eighteen composed glass, seventeen do now
+      // (the TextLayer hint is solid: at 22 px it is under quality-bar Q-5's 32 px).
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(17);
+    });
+
+    it('gives a one-row menu the short blur in ui/Menu', () => {
+      const modules = import.meta.glob<string>('../ui/Menu.module.css', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      });
+      const css = stripComments(Object.values(modules)[0] ?? '');
+      const rule = /\.popup:not\(:has\(> :nth-child\(2\)\)\)\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
+      expect(declarations(rule).get('--glass-filter')).toBe('var(--glass-menu-short-filter)');
+    });
+  });
+
+  describe('the selection blue on the page (language.md §1.5, redesign D0-1)', () => {
+    const tint = (hex: string): Rgb => literal(hex.toLowerCase());
+
+    it('is #4e61ed, ≥ 3:1 on white and on the yellow and green highlighter tints', () => {
+      expect(resolve('--select')).toBe('#4e61ed');
+      const select = colour('--select');
+      // language.md §1.5: 4.93 on white, 4.00 on the yellow tint, 3.53 on the green one.
+      expect(contrast(select, literal('#ffffff'))).toBeGreaterThanOrEqual(4.93);
+      expect(contrast(select, tint(TINT.yellow))).toBeGreaterThanOrEqual(3.995);
+      expect(contrast(select, tint(TINT.green))).toBeGreaterThanOrEqual(3.525);
+      for (const backdrop of [literal('#ffffff'), tint(TINT.yellow), tint(TINT.green)]) {
+        expect(contrast(select, backdrop)).toBeGreaterThanOrEqual(AA_NON_TEXT);
+      }
+    });
+
+    it('draws its washes in the same blue', () => {
+      for (const token of [
+        '--select-subtle',
+        '--select-muted',
+        '--select-wash',
+        '--select-wash-strong',
+      ]) {
+        const wash = parseColour(resolve(token));
+        expect(wash.rgb, token).toEqual(colour('--select'));
+        expect(wash.alpha, token).toBeLessThan(0.5);
+      }
+      expect(parseColour(resolve('--select-wash')).alpha).toBe(0.25);
+      expect(parseColour(resolve('--select-wash-strong')).alpha).toBe(0.45);
+    });
+
+    /**
+     * The modules that draw on the page. A few also hold chrome (the controls of a popover or a
+     * panel beside the page marks), which keeps the accent until the colour step (D3): those
+     * rules are listed by selector, and no other rule may use the accent.
+     */
+    const PAGE_LAYERS: Readonly<Record<string, readonly string[]>> = {
+      'viewer/LinkLayer.module.css': [],
+      'viewer/SearchHighlights.module.css': [],
+      'viewer/TextLayer.module.css': [],
+      'annotations/AnnotationLayer.module.css': [],
+      'annotations/lasso/Lasso.module.css': [],
+      'forms/FormLayer.module.css': [],
+      'forms/create/CreatedFields.module.css': [
+        '.check input',
+        ".segment[aria-checked='true']",
+        ".swatch[aria-checked='true']",
+      ],
+      'image-objects/ImageObjects.module.css': [],
+      'text-edit/TextEdit.module.css': [".choice[aria-pressed='true']"],
+      'text-edit/ParagraphEditor.module.css': ['.action[data-default]'],
+      'crop/Crop.module.css': [],
+      'stage/ReadView.module.css': [],
+      'furniture/FurnitureLayer.module.css': [],
+      'ocr/Ocr.module.css': ['.language input', '.switch input', ".rowButton[aria-current='true']"],
+      'compare/CompareView.module.css': [
+        '.dropZone[data-active]',
+        ".stripCell[aria-current='true']",
+        ".segment[aria-checked='true']",
+      ],
+    };
+
+    it('leaves no #7c8cff or --accent in the page layers', () => {
+      const modules = import.meta.glob<string>('../**/*.module.css', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      });
+      for (const [file, chrome] of Object.entries(PAGE_LAYERS)) {
+        const source = modules[`../${file}`];
+        expect(source, file).toBeDefined();
+        const css = stripComments(source ?? '');
+        expect(css, file).not.toMatch(/#7c8cff|124\s+140\s+255/i);
+        for (const match of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+          if (!(match[2] ?? '').includes('--accent')) continue;
+          const selector = (match[1] ?? '').trim().replace(/\s+/g, ' ');
+          expect(chrome, `${file}: ${selector} uses the accent on the page`).toContain(selector);
+        }
+      }
+    });
+
+    it('paints the page-layer canvases (paragraph editor, compare heat map) in it too', () => {
+      const sources = import.meta.glob<string>(
+        ['../text-edit/ParagraphEditor.tsx', '../compare/compare-runner.ts'],
+        { query: '?raw', import: 'default', eager: true },
+      );
+      expect(Object.keys(sources)).toHaveLength(2);
+      for (const [file, source] of Object.entries(sources)) {
+        expect(source, file).not.toMatch(/#7c8cff|124,\s*140,\s*255|'--accent/i);
+      }
+    });
+  });
+
+  describe('the two-band focus ring (language.md §9.2, A-11, redesign D0-1)', () => {
+    const light = () => colour('--focus-light');
+    const dark = () => colour('--focus-dark');
+
+    it('keeps its bands ≥ 9:1 apart (WCAG C40): lime on ink, 16.42:1', () => {
+      expect(resolve('--focus-light')).toBe('#c8fb3d');
+      expect(resolve('--focus-dark')).toBe('#08090c');
+      expect(contrast(light(), dark())).toBeGreaterThanOrEqual(9);
+      expect(contrast(light(), dark())).toBeGreaterThanOrEqual(16.42);
+    });
+
+    it('shows one band at ≥ 3:1 over every backdrop it meets', () => {
+      const backdrops: readonly (readonly [string, Rgb])[] = [
+        ['white page', literal('#ffffff')],
+        ['yellow tint', literal(TINT.yellow.toLowerCase())],
+        ['green tint', literal(TINT.green.toLowerCase())],
+        ['select blue', colour('--select')],
+        ['blue ink', literal('#1760ee')],
+        ['red ink', literal('#db1c22')],
+        ['mid grey', literal('#808080')],
+        ['accent fill', colour('--accent')],
+        ...SURFACES.map((name) => [name, colour(name)] as const),
+        ['glass over white', glassOver(literal('#ffffff'))],
+        ['glass over the canvas', glassOver(canvas())],
+        ['menu glass over white', tierOver(TIER_3, literal('#ffffff'))],
+      ];
+      for (const [name, backdrop] of backdrops) {
+        const best = Math.max(contrast(light(), backdrop), contrast(dark(), backdrop));
+        expect(best, name).toBeGreaterThanOrEqual(AA_NON_TEXT);
+      }
+    });
+
+    it('sets the three offsets: outset 2px, inset -2px, gap 4px', () => {
+      expect(resolve('--focus-offset-out')).toBe('2px');
+      expect(resolve('--focus-offset-in')).toBe('-2px');
+      expect(resolve('--focus-offset-gap')).toBe('4px');
+    });
+
+    it('draws the three forms in focus.css from the tokens; global.css imports it', () => {
+      expect(stripComments(globalCss)).toMatch(/@import '\.\/focus\.css';/);
+      const css = stripComments(focusCss);
+      /** Every declaration of the first rule matching `selector`, not only custom properties. */
+      const rule = (selector: RegExp): Map<string, string> => {
+        const body = new RegExp(`${selector.source}\\s*\\{([^{}]*)\\}`).exec(css)?.[1] ?? '';
+        const found = new Map<string, string>();
+        for (const part of body.split(';')) {
+          const match = /^\s*([\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(part);
+          if (match?.[1] && match[2]) found.set(match[1], match[2].replace(/\s+/g, ' '));
+        }
+        return found;
+      };
+      const outset = rule(/\}\s*:focus-visible/);
+      expect(outset.get('outline')).toBe('2px solid var(--focus-light)');
+      expect(outset.get('outline-offset')).toBe('var(--focus-offset-out)');
+      expect(outset.get('box-shadow')).toBe(
+        '0 0 0 6px var(--focus-dark), var(--shadow-own, 0 0 #0000)',
+      );
+      const inset = rule(
+        /\.focus-inset:focus-visible,\s*\[data-focus='inset'\]:focus-visible,\s*\.glass :focus-visible/,
+      );
+      expect(inset.get('outline-offset')).toBe('var(--focus-offset-in)');
+      expect(inset.get('box-shadow')).toBe(
+        'inset 0 0 0 4px var(--focus-dark), var(--shadow-own, 0 0 #0000)',
+      );
+      const gap = rule(/\.focus-gap:focus-visible,\s*\[data-focus='gap'\]:focus-visible/);
+      expect(gap.get('outline-offset')).toBe('var(--focus-offset-gap)');
+      expect(gap.get('box-shadow')).toBe(
+        '0 0 0 8px var(--focus-dark), var(--shadow-own, 0 0 #0000)',
+      );
+      // The ring appears with focus and never animates (language.md §9.2).
+      expect(css).not.toMatch(/transition|animation/);
     });
   });
 

@@ -36,7 +36,7 @@
 }
 
 .layer > span::selection {
-  background: var(--accent-highlight);
+  background: var(--select-wash);
   color: transparent;
 }
 
@@ -75,8 +75,10 @@
 
 /*
  * The idle hover outline and the one-time hint (craft spec §3.5): a sibling over the page
- * that takes no pointer. The outline is faint (1 px of the accent line colour, no fill) and
- * never animates; the hint is a small glass label under the run.
+ * that takes no pointer. The outline is 1 px of the page's selection blue (--select,
+ * language.md §1.5), no fill, and never animates. The hint is a small solid label under the
+ * run, drawn like a tooltip: at 22 px it is too small to be glass (quality-bar Q-5, glass only
+ * from 32 px; a 22 px surface leaks the page at any blur the bars use, c 0.88 at 7px).
  */
 .hover {
   pointer-events: none;
@@ -87,7 +89,7 @@
 .outline {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid var(--accent-line);
+  border: 1px solid var(--select);
   border-radius: var(--radius-page);
 }
 
@@ -96,10 +98,11 @@
 }
 
 .hint {
-  composes: glass from global;
   position: absolute;
   padding: 2px var(--space-2);
+  border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
+  background: var(--surface-3);
   color: var(--text-primary);
   font-size: var(--text-xs);
   line-height: 16px;

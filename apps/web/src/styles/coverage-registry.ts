@@ -1,0 +1,296 @@
+/**
+ * The coverage registry (docs/specs/redesign.md §6 X24 and D0-1; language.md §2.9, A-2;
+ * components/09-primitives.md §27): one entry per glass surface, at the smallest size it renders
+ * at. `tokens.test.ts` asserts the coverage rule for each,
+ *
+ *   c = erf(h / 2√2σ) · erf(w / 2√2σ) ≥ 0.985,
+ *
+ * with σ the `blur()` of the surface's filter token in `tokens.css`, and that every module rule
+ * composing `.glass`, `.glass-menu` or `.glass-frame` is registered here (and nothing else is).
+ *
+ * Why: a backdrop blur that is large against a surface's size takes its samples from beyond the
+ * surface, where nothing is blurred, so the unfiltered page shows through the edges in
+ * proportion 1 − c (research 22 §3.2: the 44 px bar at blur 28px rendered #5b5d61 over a white
+ * page instead of the model's #47494d, and its secondary text fell from 4.9:1 to 3.6:1). At
+ * c ≥ 0.985 the rendered glass stays within about 2/255 of the model the contrast tests use.
+ *
+ * Where content sets a size, `minWidth` / `minHeight` are a lower bound of what renders (the
+ * walker in `e2e/support/glass-walker.ts` checks the same rule on the rendered sizes); fixed
+ * sizes are exact. Heights include the 1 px glass border. The families of the redesign extend
+ * this list (X24); D0-1 registers today's surfaces on the M8 shell. When `materials.css`
+ * replaces the `.glass*` classes (`09-primitives` §26, migration step 6), each entry gains its
+ * σ step and the generated rules are checked against it.
+ */
+
+/** The filter token a surface's backdrop blur comes from (`tokens.css`). */
+export type GlassFilterToken =
+  | '--glass-filter'
+  | '--glass-menu-filter'
+  | '--glass-menu-short-filter'
+  | '--glass-frame-filter';
+
+/** What a module rule composes from `global.css`. */
+export type GlassComposition = 'glass' | 'glass glass-menu' | 'glass-frame';
+
+export interface GlassSurfaceEntry {
+  /** Stable id, kebab case. */
+  readonly id: string;
+  /** What a person calls it. */
+  readonly surface: string;
+  /** The CSS module, relative to `src/`. */
+  readonly module: string;
+  /** The module class whose rule composes the glass (`.toolbar`). */
+  readonly selector: string;
+  readonly composes: GlassComposition;
+  readonly filter: GlassFilterToken;
+  /** Smallest rendered width and height, CSS px. */
+  readonly minWidth: number;
+  readonly minHeight: number;
+  /** Where that smallest size comes from. */
+  readonly smallest: string;
+}
+
+export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
+  {
+    id: 'floating-bar',
+    surface: 'Floating tool bar',
+    module: 'shell/FloatingToolbar.module.css',
+    selector: '.toolbar',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 76,
+    minHeight: 44,
+    smallest: "44 px fixed; Read's one Edit button is the narrowest (76 px)",
+  },
+  {
+    id: 'options-tier',
+    surface: 'Options tier',
+    module: 'shell/FloatingToolbar.module.css',
+    selector: '.tier',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 120,
+    minHeight: 40,
+    smallest: 'min-height 40 px; one style row',
+  },
+  {
+    id: 'read-selection-bar',
+    surface: 'Text selection bar',
+    module: 'annotations/ReadSelectionBar.module.css',
+    selector: '.bar',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 120,
+    minHeight: 36,
+    smallest: '36 px fixed; Copy and the markups',
+  },
+  {
+    id: 'annotation-bar',
+    surface: 'Annotation contextual bar',
+    module: 'annotations/AnnotationLayer.module.css',
+    selector: '.bar',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 160,
+    minHeight: 40,
+    smallest: '40 px fixed',
+  },
+  {
+    id: 'note-popup',
+    surface: 'Note popup',
+    module: 'annotations/AnnotationLayer.module.css',
+    selector: '.notePopup',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 240,
+    minHeight: 120,
+    smallest: '240 px wide; author line, an empty text area and the actions',
+  },
+  {
+    id: 'image-bar',
+    surface: 'Image contextual bar',
+    module: 'image-objects/ImageObjects.module.css',
+    selector: '.bar',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 160,
+    minHeight: 40,
+    smallest: '40 px fixed',
+  },
+  {
+    id: 'form-notice',
+    surface: 'Form field notice',
+    module: 'forms/FormLayer.module.css',
+    selector: '.notice',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 180,
+    minHeight: 54,
+    smallest: 'min-width 180 px; a title and one line',
+  },
+  {
+    id: 'form-lock-notice',
+    surface: "Read's form lock notice",
+    module: 'forms/FormLayer.module.css',
+    selector: '.lockNotice',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 160,
+    minHeight: 36,
+    smallest: '5 px around its 24 px Edit button, the border: 36 px (was 34 px, c 0.9848 at 7px)',
+  },
+  {
+    id: 'arrange-bar',
+    surface: 'Arrange contextual bar',
+    module: 'stage/ArrangeView.module.css',
+    selector: '.contextBar',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 160,
+    minHeight: 38,
+    smallest: '28 px buttons, 4 px padding, the border: 38 px',
+  },
+  {
+    id: 'crop-banner',
+    surface: 'Crop banner',
+    module: 'crop/Crop.module.css',
+    selector: '.banner',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 200,
+    minHeight: 46,
+    smallest: '28 px buttons, 8 px padding, the border: 46 px',
+  },
+  {
+    id: 'compare-toolbar',
+    surface: 'Compare tool bar',
+    module: 'compare/CompareView.module.css',
+    selector: '.toolbar',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 160,
+    minHeight: 46,
+    smallest: '36 px buttons, 4 px padding, the border: 46 px',
+  },
+  {
+    id: 'compare-progress',
+    surface: 'Compare progress card',
+    module: 'compare/CompareView.module.css',
+    selector: '.progress',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 288,
+    minHeight: 60,
+    smallest: 'min(420 px, the stage less 32 px); a label, the bar and Cancel',
+  },
+  {
+    id: 'command-palette',
+    surface: 'Command palette',
+    module: 'shell/CommandPalette.module.css',
+    selector: '.popup',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 288,
+    minHeight: 140,
+    smallest: 'min(600 px, the window less 32 px); the search row, an empty list, the footer',
+  },
+  {
+    id: 'paragraph-editor-header',
+    surface: 'Paragraph editor header',
+    module: 'text-edit/ParagraphEditor.module.css',
+    selector: '.header',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 220,
+    minHeight: 38,
+    smallest: 'min-width 220 px; one row at the least',
+  },
+  {
+    id: 'text-edit-panel',
+    surface: 'Text edit header',
+    module: 'text-edit/TextEdit.module.css',
+    selector: '.panel',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 200,
+    minHeight: 38,
+    smallest: 'min-width 200 px; one row at the least',
+  },
+  {
+    id: 'menu',
+    surface: 'Menus and context menus',
+    module: 'ui/Menu.module.css',
+    selector: '.popup',
+    composes: 'glass glass-menu',
+    filter: '--glass-menu-filter',
+    minWidth: 180,
+    minHeight: 66,
+    smallest: 'min-width 180 px; two 28 px rows, 4 px padding, the border: 66 px',
+  },
+  {
+    id: 'menu-one-row',
+    surface: 'One-row menu',
+    module: 'ui/Menu.module.css',
+    selector: '.popup',
+    composes: 'glass glass-menu',
+    filter: '--glass-menu-short-filter',
+    minWidth: 180,
+    minHeight: 38,
+    smallest: "Recents' Remove: one 28 px row, 4 px padding, the border: 38 px",
+  },
+  {
+    id: 'popover',
+    surface: 'Popovers',
+    module: 'ui/Popover.module.css',
+    selector: '.popup',
+    composes: 'glass glass-menu',
+    filter: '--glass-menu-filter',
+    minWidth: 288,
+    minHeight: 72,
+    smallest: 'min(320 px, the window less 16 px); a title and one line',
+  },
+  {
+    id: 'title-bar',
+    surface: 'Title bar (tab bar)',
+    module: 'shell/TabBar.module.css',
+    selector: '.bar',
+    composes: 'glass-frame',
+    filter: '--glass-frame-filter',
+    minWidth: 320,
+    minHeight: 40,
+    smallest: '40 px fixed (--titlebar-height)',
+  },
+  {
+    id: 'status-bar',
+    surface: 'Status bar',
+    module: 'shell/StatusBar.module.css',
+    selector: '.bar',
+    composes: 'glass-frame',
+    filter: '--glass-frame-filter',
+    minWidth: 320,
+    minHeight: 28,
+    smallest: '28 px fixed (--statusbar-height), the shortest frame bar',
+  },
+  {
+    id: 'navigator',
+    surface: 'Navigator (left rail and panel)',
+    module: 'shell/LeftRail.module.css',
+    selector: '.left',
+    composes: 'glass-frame',
+    filter: '--glass-frame-filter',
+    minWidth: 64,
+    minHeight: 200,
+    smallest: 'the 64 px rail with its panel closed',
+  },
+  {
+    id: 'inspector',
+    surface: 'Inspector (right panel)',
+    module: 'shell/RightPanel.module.css',
+    selector: '.panel',
+    composes: 'glass-frame',
+    filter: '--glass-frame-filter',
+    minWidth: 240,
+    minHeight: 200,
+    smallest: 'its narrowest width',
+  },
+];

@@ -795,8 +795,9 @@ export function ParagraphEditor({
     drawScene(ctx, { width, height }, scene, cache, textToUser, userToDevice, {
       colors: {
         plate: '#ffffff',
-        selection: readVar(root, '--accent-highlight', 'rgba(124, 140, 255, 0.35)'),
-        caret: readVar(root, '--accent', '#7c8cff'),
+        // The page's selection blue (language.md §1.5): a mark on the page, not chrome.
+        selection: readVar(root, '--select-wash', 'rgb(78 97 237 / 0.25)'),
+        caret: readVar(root, '--select', '#4e61ed'),
         overlap: 'rgba(220, 38, 38, 0.22)',
       },
       dpr,

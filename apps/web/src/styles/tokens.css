@@ -35,6 +35,17 @@
  *   Tier 3, menus and popovers, is denser than tier 1 because menus are lists of text:
  *   rgb(40 43 50 / 0.80), blur 32px, saturate 1.6, brightness 0.5; #212329 over the canvas,
  *   #393c42 over a white page (primary 8.9:1, secondary 6.1:1, danger 5.7:1, accent 3.7:1).
+ * - Redesign M9, D0-1 (docs/specs/redesign.md §11.1; language.md §2.9, §10.4 step 1): the three
+ *   blurs come down to the coverage rule, c = erf(h / 2√2σ) · erf(w / 2√2σ) ≥ 0.985 at each
+ *   surface's smallest size (styles/coverage-registry.ts). A blur that is large against a
+ *   surface's height lets the unfiltered page leak in at the edges: the 44 px bar at 28px
+ *   rendered #5b5d61 over a white page, not #47494d (research 22 §3.2), and its secondary text
+ *   fell to 3.6:1. Bars of 36 px and up blur 7px (c 0.990 at 36 px), menus 12px (c 0.994 at the
+ *   two-row 66 px menu) and a one-row menu 7px, the docked frame 5px (its shortest bar, the
+ *   28 px status bar: c 0.995). Tints and the darkening are unchanged, so every composite
+ *   above holds, now also as rendered. Also new here: --select, the page's selection blue
+ *   (language.md §1.5), and the two focus bands with their offsets (language.md §9.2,
+ *   styles/focus.css).
  */
 :root,
 [data-theme='dark'] {
@@ -52,18 +63,23 @@
   /* Floating chrome over the document (.glass in global.css). --glass-solid is the opaque
      fallback. */
   --glass: rgb(48 51 58 / 0.66);
-  --glass-filter: blur(28px) saturate(1.8) brightness(0.45);
+  /* Bars of 36 px and up (coverage registry): blur 7px. */
+  --glass-filter: blur(7px) saturate(1.8) brightness(0.45);
   --glass-solid: var(--surface-2);
   /* Tier 2, the docked frame (title bar, navigator, inspector, status bar; .glass-frame), while
      "Glass panels" is on. Its alpha never drops below 0.78 ("bigger gets denser"). No shadow:
      a 1px inner top highlight is its only edge besides the hairline. */
   --glass-frame: rgb(29 31 37 / 0.8);
-  --glass-frame-filter: blur(40px) saturate(1.4) brightness(0.6);
+  /* σ ≤ height / 5 of the shortest frame bar, the 28 px status bar: blur 5px. */
+  --glass-frame-filter: blur(5px) saturate(1.4) brightness(0.6);
   --glass-frame-solid: var(--surface-1);
   --glass-frame-highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
   /* Tier 3, menus and popovers (.glass-menu with .glass): denser than the floating bar. */
   --glass-menu: rgb(40 43 50 / 0.8);
-  --glass-menu-filter: blur(32px) saturate(1.6) brightness(0.5);
+  /* Menus of two rows and more (66 px and up) blur 12px; a one-row menu (38 px, Recents'
+     "Remove") blurs 7px (ui/Menu.module.css). σ 12 needs 59 px: σ ≤ h / 4.87 at c 0.985. */
+  --glass-menu-filter: blur(12px) saturate(1.6) brightness(0.5);
+  --glass-menu-short-filter: blur(7px) saturate(1.6) brightness(0.5);
   --glass-menu-solid: var(--glass-solid);
   /* The one elevation token, for floating chrome only (every .glass surface): a 1px inner top
      highlight, a dark hairline ring that holds the edge over a white page, and one soft
@@ -129,6 +145,19 @@
   --page-shadow: 0 0 0 1px var(--border-hairline);
   --page-background: #ffffff;
 
+  /* The selection blue on the page (language.md §1.5, ADR-0023): every on-page selection mark,
+     ring, handle, lasso box, hover outline and drop target in the page layers, both themes.
+     4.93:1 on white, 4.00:1 on the yellow highlighter tint, 3.53:1 on the green one
+     (tokens.test.ts). The chrome keeps --accent until the colour step (D3). The washes are
+     the same blue at an alpha: text selection and search hits (--select-wash), the current
+     hit (--select-wash-strong), and the page's lighter fills (hover, lasso area, current
+     field) at the accent's alphas, so only the hue changes there. */
+  --select: #4e61ed;
+  --select-subtle: rgb(78 97 237 / 0.08);
+  --select-muted: rgb(78 97 237 / 0.16);
+  --select-wash: rgb(78 97 237 / 0.25);
+  --select-wash-strong: rgb(78 97 237 / 0.45);
+
   --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
   --tracking-ui: 0.01em;
@@ -181,8 +210,20 @@
   --control-height: 28px;
   --icon-chrome: 16px;
   --icon-toolbar: 20px;
-  --focus-ring: 2px solid var(--accent);
-  --focus-offset: 2px;
+
+  /* The two-band focus ring (A-11; language.md §9.2; components/09-primitives.md §19): a lime
+     light band drawn by the outline and an ink dark band drawn by the box-shadow, 16.4:1
+     apart, so one band clears 3:1 on any colour (WCAG C40 asks 9:1 between them). Its three
+     forms and offsets are in styles/focus.css. */
+  --focus-light: #c8fb3d;
+  --focus-dark: #08090c;
+  --focus-offset-out: 2px;
+  --focus-offset-in: -2px;
+  --focus-offset-gap: 4px;
+  /* Aliases until D0-3's codemod moves the last module rules onto the forms (focus-scan.test.ts
+     lists them): the light band alone, and the outset offset. */
+  --focus-ring: 2px solid var(--focus-light);
+  --focus-offset: var(--focus-offset-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -206,6 +247,7 @@
     --glass-frame-filter: none;
     --glass-menu: var(--glass-menu-solid);
     --glass-menu-filter: none;
+    --glass-menu-short-filter: none;
   }
 }
 
@@ -216,6 +258,7 @@
   --glass-frame-filter: none;
   --glass-menu: var(--glass-menu-solid);
   --glass-menu-filter: none;
+  --glass-menu-short-filter: none;
 }
 
 @media (prefers-contrast: more) {
@@ -227,6 +270,7 @@
     --glass-frame-highlight: none;
     --glass-menu: var(--glass-menu-solid);
     --glass-menu-filter: none;
+    --glass-menu-short-filter: none;
     --border-hairline: rgb(255 255 255 / 0.22);
     --border-strong: rgb(255 255 255 / 0.36);
     --border-glass: rgb(255 255 255 / 0.36);
@@ -248,6 +292,7 @@
     --glass-frame-highlight: none;
     --glass-menu: Canvas;
     --glass-menu-filter: none;
+    --glass-menu-short-filter: none;
     --border-glass: CanvasText;
     --elevation-float: none;
   }

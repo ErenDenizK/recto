@@ -856,7 +856,9 @@ function PageColumn({
             className={styles.readItem}
             data-row={item.index}
             style={{
-              transform: `translateY(${item.start}px)`,
+              // On whole device pixels: a fractional offset left the page bitmaps, drawn 1:1,
+              // and any glass on a page between pixels (quality-bar Q-2).
+              transform: `translateY(${Math.round(item.start * dpr) / dpr}px)`,
               left: view.left,
               width: `calc(100% - ${view.left + view.right}px)`,
               height: heightOf(item.index),

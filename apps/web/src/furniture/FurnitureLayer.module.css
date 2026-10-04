@@ -24,7 +24,8 @@
 
 .selected {
   fill: none;
-  stroke: var(--accent);
+  /* A selection mark on the page: its selection blue (--select, language.md §1.5). */
+  stroke: var(--select);
   stroke-dasharray: 3 2;
   vector-effect: non-scaling-stroke;
 }

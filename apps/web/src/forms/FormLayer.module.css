@@ -9,6 +9,7 @@
 }
 
 .target {
+  composes: focus-inset from global;
   position: absolute;
   border-radius: var(--radius-page);
   background: transparent;
@@ -32,38 +33,48 @@
   cursor: not-allowed;
 }
 
-/* "Highlight fields": a translucent accent fill; the page itself is never tinted. */
+/*
+ * "Highlight fields": a translucent fill in the page's selection blue (--select, language.md
+ * §1.5); the page itself is never tinted. Each ring is the target's own shadow (--shadow-own),
+ * drawn at rest and kept under the inset focus ring's dark band (styles/focus.css: page layers
+ * take the inset form), so focus adds to it instead of replacing it.
+ */
+.target:not(:focus-visible) {
+  box-shadow: var(--shadow-own);
+}
+
 .layer[data-highlight] .target {
-  background: var(--accent-muted);
-  box-shadow: inset 0 0 0 1px var(--accent-line);
+  --shadow-own: inset 0 0 0 1px var(--select);
+  background: var(--select-muted);
 }
 
 .layer[data-highlight] .target[aria-disabled='true'],
 .layer[data-highlight] .target[aria-readonly='true'] {
+  --shadow-own: inset 0 0 0 1px color-mix(in srgb, var(--text-tertiary) 60%, transparent);
   background: var(--surface-hover);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-tertiary) 60%, transparent);
 }
 
 @media (hover: hover) {
   .layer[data-live] .target:hover {
-    box-shadow: inset 0 0 0 1px var(--accent);
+    --shadow-own: inset 0 0 0 1px var(--select);
   }
 }
 
-.target:focus-visible,
-.target[data-active] {
-  outline: var(--focus-ring);
+/* The field being filled: a selection-blue ring; keyboard focus shows the focus ring instead. */
+.target[data-active]:not(:focus-visible) {
+  outline: 2px solid var(--select);
   outline-offset: 1px;
 }
 
-/* Editors sit on the widget, white like the page, framed by a 1px accent border and no halo
-   (design audit C7, D9): nothing glows. */
+/* Editors sit on the widget, white like the page, framed by a 1px selection-blue border and no
+   halo (design audit C7, D9): nothing glows. They are in-place editors (language.md §2.10):
+   the border and the caret show the focus, so neither band of the ring is drawn. */
 .editor {
   position: absolute;
   z-index: 1;
   margin: 0;
   padding: 0 3px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--select);
   border-radius: var(--radius-page);
   background: var(--page-background);
   color: #111111;
@@ -74,9 +85,14 @@
   outline: none;
 }
 
+.editor:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 /* Selected glyphs keep the page ink: the chrome's selection text colour is near-white. */
 .editor::selection {
-  background: var(--accent-highlight);
+  background: var(--select-wash);
   color: currentcolor;
 }
 
@@ -135,7 +151,10 @@ select.editor option:disabled {
   height: 12px;
 }
 
-/* Read's answer to a fill (ADR-0019 §3): one line and an Edit button under the field. */
+/* Read's answer to a fill (ADR-0019 §3): one line and an Edit button under the field. At
+   least 36 px tall, the bars' smallest glass size for their 7px blur (coverage registry); the
+   2 px it grew by come off the gap above, so its bottom edge, and what it covers on the page,
+   stay where they were. */
 .lockNotice {
   composes: glass from global;
   position: absolute;
@@ -143,7 +162,9 @@ select.editor option:disabled {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  /* 5 px above and below the 24 px Edit button and the border: 36 px. */
+  margin-top: -2px;
+  padding: calc(var(--space-1) + 1px) var(--space-1) calc(var(--space-1) + 1px) var(--space-3);
   border-radius: var(--radius-2);
   color: var(--text-primary);
   font-size: var(--text-sm);
@@ -175,9 +196,4 @@ select.editor option:disabled {
 
 .lockEdit:active {
   background: var(--surface-active);
-}
-
-.lockEdit:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: -2px;
 }

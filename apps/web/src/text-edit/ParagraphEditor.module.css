@@ -4,7 +4,9 @@
  * selection), the dry run's bitmap under it once typing pauses, a hidden mirror that holds
  * the focus, and a glass header beside the paragraph (or above the bar) with the honesty and
  * overflow lines and, when leaving with an overlap, the choice. The page is never themed (DESIGN.md §3):
- * the canvas draws page colours whatever the chrome's theme.
+ * the canvas draws page colours whatever the chrome's theme, with the page's selection blue
+ * (--select, language.md §1.5) for the caret and the selection. The header's controls take the
+ * inset focus ring of everything inside glass (styles/focus.css).
  */
 .layer {
   position: absolute;
@@ -192,10 +194,4 @@
     background: var(--surface-hover);
     color: var(--text-primary);
   }
-}
-
-.action:focus-visible,
-.info:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }

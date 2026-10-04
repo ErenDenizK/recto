@@ -1,0 +1,83 @@
+/*
+ * The focus ring (A-11; docs/design/redesign-2026-10/language.md §9.2; components/09-primitives.md
+ * §19; research 22 §4), imported by global.css. Two bands: the light band is the outline
+ * (--focus-light, lime), the dark band the box-shadow (--focus-dark, ink). They differ by
+ * 16.4:1, and WCAG technique C40 guarantees that one of two bands at least 9:1 apart clears
+ * 3:1 against any solid colour beneath them: the page, a highlighter tint, a glass bar over a
+ * white page, the accent fill of an armed tool. Forced colours drop the box-shadow and keep a
+ * system-coloured outline, which is what Windows users expect.
+ *
+ * Three forms, and nothing else draws a focus ring (styles/focus-scan.test.ts):
+ *
+ * - outset (the default): from the element out, ink 2 · lime 2 · ink 2. Buttons on solid
+ *   surfaces, cards, switches.
+ * - inset: lime at the element's edge, ink inside it, so the ring stays inside a capsule, a
+ *   scroller or a row and nothing clips it. Rows in scrollers, menu items, inputs, segments,
+ *   presets, hotspots, swatches, page layers, capsule chips. Every control inside a glass
+ *   surface takes it on its own (the `.mat` rule of 09-primitives §19, on today's `.glass`).
+ * - gap: 4 px of ink, then lime 2, then ink 2: for things with their own selection ring
+ *   (thumbnails, grid cells, the lasso box), which the ring must not cover.
+ *
+ * A module applies a form with `composes: focus-inset from global;` (or `focus-gap`), or an
+ * element with `data-focus="inset"` / `data-focus="gap"`. An element that paints its own
+ * box-shadow sets it in --shadow-own as well, so focus adds the band instead of replacing it;
+ * --shadow-own is never `none` (a shadow list or unset) and does not inherit.
+ *
+ * The ring appears with focus and never animates (language.md §6.3 S-5).
+ */
+@property --shadow-own {
+  syntax: '*';
+  inherits: false;
+}
+
+:focus {
+  outline: none;
+}
+
+/* Outset, the default. */
+:focus-visible {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-out);
+  box-shadow:
+    0 0 0 6px var(--focus-dark),
+    var(--shadow-own, 0 0 #0000);
+}
+
+/* Inset: the dark band inside the light one, both inside the element's edge. */
+.focus-inset:focus-visible,
+[data-focus='inset']:focus-visible,
+.glass :focus-visible {
+  outline-offset: var(--focus-offset-in);
+  box-shadow:
+    inset 0 0 0 4px var(--focus-dark),
+    var(--shadow-own, 0 0 #0000);
+}
+
+/* Gap: an ink gap of 4 px, the light band, then the dark band outside it. */
+.focus-gap:focus-visible,
+[data-focus='gap']:focus-visible {
+  outline-offset: var(--focus-offset-gap);
+  box-shadow:
+    0 0 0 8px var(--focus-dark),
+    var(--shadow-own, 0 0 #0000);
+}
+
+/* More contrast asked for: a 3 px light band (A-18). */
+@media (prefers-contrast: more) {
+  :focus-visible {
+    outline-width: 3px;
+  }
+}
+
+/* Forced colours: the system's highlight, no shadow (the browser drops it anyway). */
+@media (forced-colors: active) {
+  :focus-visible,
+  .focus-inset:focus-visible,
+  [data-focus='inset']:focus-visible,
+  .glass :focus-visible,
+  .focus-gap:focus-visible,
+  [data-focus='gap']:focus-visible {
+    outline-color: Highlight;
+    box-shadow: none;
+  }
+}

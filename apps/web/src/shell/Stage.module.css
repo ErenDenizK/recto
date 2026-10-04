@@ -154,6 +154,7 @@
   position: relative;
   min-width: 100%;
   outline: none;
+  box-shadow: none;
 }
 
 .gridRow {

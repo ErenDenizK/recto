@@ -5,13 +5,14 @@
 .hit {
   position: absolute;
   border-radius: var(--radius-page);
-  background: var(--accent-highlight);
+  background: var(--select-wash);
   mix-blend-mode: multiply;
 }
 
-/* The current hit: stronger fill plus an outline (never colour alone). */
+/* The current hit: stronger fill plus an outline (never colour alone), in the page's selection
+   blue (language.md §1.5). */
 .hit[data-current] {
-  background: var(--accent-highlight-strong);
-  outline: 2px solid var(--accent);
+  background: var(--select-wash-strong);
+  outline: 2px solid var(--select);
   outline-offset: 1px;
 }
