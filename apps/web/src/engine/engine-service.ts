@@ -1000,7 +1000,7 @@ export class EngineService {
         this.cache.remove(key);
       }
     }
-    // The most recent scales are patched; older ones go (a full render if shown again).
+    // The most recently used scales are patched; older ones go (a full render if shown again).
     const patched = pages.slice(-MAX_CLIPPED_REPAINTS).reverse();
     for (const entry of pages.slice(0, -MAX_CLIPPED_REPAINTS)) {
       tracked?.delete(entry.key);
@@ -1147,7 +1147,9 @@ export class EngineService {
     const key = bitmapKey(sourceId, index, rotation, bucket);
     // Being repainted (`requestClippedRepaint`): the bitmap still shows the old content.
     if (this.repainting.has(key)) return undefined;
-    return this.cache.get(key);
+    const hit = this.cache.get(key);
+    if (hit !== undefined) this.touchRendered(sourceId, index, key);
+    return hit;
   }
 
   /**
@@ -1186,7 +1188,10 @@ export class EngineService {
     const repainting = this.repainting.get(key);
     if (repainting !== undefined) return repainting.then(() => this.renderPage(request));
     const hit = this.cache.get(key);
-    if (hit !== undefined) return Promise.resolve(ok(hit));
+    if (hit !== undefined) {
+      this.touchRendered(sourceId, index, key);
+      return Promise.resolve(ok(hit));
+    }
     if (signal?.aborted) return Promise.resolve(fail('aborted', 'Render aborted'));
 
     return new Promise((resolve) => {
@@ -1302,6 +1307,19 @@ export class EngineService {
     if (this.jobs.get(job.key) === job) this.jobs.delete(job.key);
     for (const s of job.subscribers) s.resolve(result);
     job.subscribers.clear();
+  }
+
+  /**
+   * Moves a cached bitmap to the most recent place of its page's list: the scale on screen
+   * is read from the cache, and a clipped repaint patches the most recently used scales
+   * (`MAX_CLIPPED_REPAINTS`), not the most recently rendered ones.
+   */
+  private touchRendered(sourceId: SourceId, index: number, key: string): void {
+    const list = this.rendered.get(`${sourceId}:${index}`);
+    const entry = list?.get(key);
+    if (list === undefined || entry === undefined) return;
+    list.delete(key);
+    list.set(key, entry);
   }
 
   /** Remembers a cached bitmap for clipped repaints of its page (most recent last). */
