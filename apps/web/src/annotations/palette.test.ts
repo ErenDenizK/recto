@@ -301,8 +301,6 @@ describe('palette: the contextual bar shows a default stroke as its swatch', () 
       const name = paletteName(preset.color) ?? '';
       expect(within(group).getByRole('radio', { name })).toHaveAttribute('aria-checked', 'true');
       expect(within(group).getAllByRole('radio', { checked: true })).toHaveLength(1);
-      const custom = group.querySelector('label');
-      expect(custom).not.toHaveAttribute('data-custom');
     });
   }
 
@@ -333,10 +331,11 @@ describe('palette: the contextual bar shows a default stroke as its swatch', () 
     );
   });
 
-  it('a custom colour shows in the custom control', () => {
+  it('a custom colour checks no swatch and shows in the colour well', () => {
     const group = colourGroup(stroke('#123456'));
     expect(within(group).queryAllByRole('radio', { checked: true })).toHaveLength(0);
-    expect(group.querySelector('label')).toHaveAttribute('data-custom', '');
+    const well = screen.getByRole('button', { name: m.annot_custom_color() });
+    expect(well.style.getPropertyValue('--well-colour')).toBe('rgb(18 52 86)');
     expect(inkOf('#123456')).toBeUndefined();
   });
 });

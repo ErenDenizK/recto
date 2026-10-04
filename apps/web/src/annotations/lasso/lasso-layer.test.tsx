@@ -21,7 +21,7 @@ import {
   type VirtualDocument,
 } from '@pdf-editor/document-model';
 import type { InkAnnotation, NewAnnotation } from '@pdf-editor/engine';
-import { cleanup, render, waitFor } from '@testing-library/react';
+import { cleanup, render, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 
@@ -230,7 +230,7 @@ describe('lasso on the annotation layer', () => {
     expect(bar).toHaveTextContent('2 strokes');
     expect(useAnnouncer.getState().message).toBe('2 strokes selected');
 
-    bar.querySelector<HTMLButtonElement>('button[aria-label="Red"]')?.click();
+    bar.querySelector<HTMLElement>('[role="radio"][aria-label="Red"]')?.click();
     await whenIdle();
     const after = await inks(source);
     const colour = (id: string) => after.find((a) => a.id === id)?.color?.toUpperCase();
@@ -302,7 +302,7 @@ describe('lasso on the annotation layer', () => {
       if (!b) throw new Error('no bar');
       return b;
     });
-    bar.querySelector<HTMLButtonElement>('button[aria-label="Blue"]')?.click();
+    bar.querySelector<HTMLElement>('[role="radio"][aria-label="Blue"]')?.click();
     await whenIdle();
     const after = await inks(source);
     expect(after).toHaveLength(2);
@@ -450,8 +450,8 @@ describe('lasso on the annotation layer', () => {
       return b;
     });
     await new Promise((r) => setTimeout(r, 1200));
-    await waitFor(() => expect(bar.textContent).toContain('1.3 pt'));
-    expect(bar.textContent).not.toMatch(/1\.\d{2,} pt/);
+    const widthSlider = within(bar).getByRole('slider', { name: 'Stroke width' });
+    await waitFor(() => expect(widthSlider).toHaveAttribute('aria-valuetext', '1.3 pt'));
   });
 
   it('a width change on a whole two-stroke ink keeps every point; widths scale', async () => {
@@ -597,7 +597,7 @@ describe('lasso on the annotation layer', () => {
     expect(bar.querySelector('[data-stroke-off]')).toBeNull();
     expect(bar.querySelector('[data-lasso-move]')).toHaveAttribute('aria-label', 'Move selection');
 
-    bar.querySelector<HTMLButtonElement>('button[aria-label="Red"]')?.click();
+    bar.querySelector<HTMLElement>('[role="radio"][aria-label="Red"]')?.click();
     await whenIdle();
     const after = await readAnnotations(source, 0);
     for (const a of after) {
@@ -642,7 +642,11 @@ describe('lasso on the annotation layer', () => {
     expect(bar.querySelector('span')).toHaveTextContent('1 note');
     expect(useAnnouncer.getState().message).toBe('1 note selected');
     const width = bar.querySelector('[data-stroke-off]');
-    expect(width).toHaveAttribute('title', 'Nothing selected has a line width');
+    // The reason is the width's tooltip and its description (no title attribute).
+    const reasonId = width?.getAttribute('aria-describedby') ?? '';
+    expect(document.getElementById(reasonId)).toHaveTextContent(
+      'Nothing selected has a line width',
+    );
     expect(width?.querySelector('input[type="range"]')).toBeDisabled();
     expect(layer.querySelectorAll('[data-lasso-whole]')).toHaveLength(1);
   });

@@ -15,6 +15,7 @@ import { page, userEvent } from 'vitest/browser';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { App } from '../app';
+import { chooseOption } from '../../test/choose';
 import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useUiStore } from '../state/ui-store';
@@ -75,7 +76,7 @@ describe('furniture dialogs', () => {
     await commandRegistry.execute('document.pageNumbers');
     dialog = await screen.findByTestId('furniture-dialog-page-numbers');
     await userEvent.click(segment(within(dialog).getByTestId('preset-slash')));
-    await userEvent.selectOptions(within(dialog).getByTestId('furniture-range'), 'skip-first');
+    await chooseOption(within(dialog).getByTestId('furniture-range'), 'skip-first');
     await userEvent.click(within(dialog).getByRole('radio', { name: 'Top right' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
     await waitFor(() => expect(useFurnitureStore.getState().dialog).toBeNull());
@@ -158,6 +159,7 @@ describe('furniture dialogs', () => {
     const prefix = within(again).getByTestId('bates-prefix');
     await userEvent.clear(prefix);
     await userEvent.type(prefix, 'ACME');
-    expect(within(again).getByTestId('bates-start')).toHaveValue(8);
+    // A number field's text, in the locale's numerals.
+    expect(within(again).getByTestId('bates-start')).toHaveValue('8');
   });
 });

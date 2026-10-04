@@ -119,6 +119,7 @@ export function Select<T extends string>({
                   label={option.label}
                   disabled={option.disabled}
                   className={styles.option}
+                  data-value={option.value}
                 >
                   <span className={styles.check} aria-hidden="true" />
                   <BaseSelect.ItemText className={styles.optionText}>

@@ -78,7 +78,7 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
  * port of the same package, which replaces it with `ui/Slider` and deletes the file (and with
  * it this entry and the `--focus-ring` / `--focus-offset` aliases in tokens.css).
  */
-const PENDING_D0_3: readonly string[] = ['ui/Range.module.css'];
+const PENDING_D0_3: readonly string[] = [];
 
 const ALLOWED_OFFSETS = new Set([
   'var(--focus-offset-out)',

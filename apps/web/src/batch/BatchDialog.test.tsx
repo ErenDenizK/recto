@@ -12,6 +12,7 @@ import { userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import imagesUrl from '../../../../test/fixtures/images.pdf?url';
+import { chooseOption } from '../../test/choose';
 import { fixtureFile } from '../../test/store-harness';
 import { commandRegistry } from '../commands/registry';
 import { setOcrDependencies } from '../ocr/ocr-deps';
@@ -150,12 +151,9 @@ describe('Batch dialog', () => {
       'export',
     );
     await userEvent.click(within(editor).getByRole('button', { name: 'Add step' }));
-    await userEvent.selectOptions(within(editor).getByRole('combobox', { name: 'Output' }), 'text');
+    await chooseOption(within(editor).getByRole('combobox', { name: 'Output' }), 'text');
     // The export dialog's options: page breaks, running lines, hyphens (no images for text).
-    await userEvent.selectOptions(
-      within(editor).getByRole('combobox', { name: 'Between pages' }),
-      'rule',
-    );
+    await chooseOption(within(editor).getByRole('combobox', { name: 'Between pages' }), 'rule');
     await userEvent.click(
       within(editor).getByRole('checkbox', {
         name: 'Keep running headers, footers and page numbers',
@@ -230,12 +228,9 @@ describe('Batch dialog', () => {
       expect(german.closest('label')).toHaveTextContent('Downloads 0.9 MB');
       await userEvent.click(german);
       expect(editor).toHaveTextContent('Recognized as eng+deu; the first language leads.');
-      await userEvent.selectOptions(
-        within(editor).getByRole('combobox', { name: 'Quality' }),
-        'high',
-      );
-      await userEvent.selectOptions(within(editor).getByRole('combobox', { name: 'Pages' }), 'all');
-      await userEvent.selectOptions(
+      await chooseOption(within(editor).getByRole('combobox', { name: 'Quality' }), 'high');
+      await chooseOption(within(editor).getByRole('combobox', { name: 'Pages' }), 'all');
+      await chooseOption(
         within(editor).getByRole('combobox', { name: 'Existing invisible text' }),
         'none',
       );
@@ -262,7 +257,7 @@ describe('Batch dialog', () => {
     );
     await userEvent.click(within(editor).getByRole('button', { name: 'Add step' }));
     for (const side of ['Top (pt)', 'Right (pt)', 'Bottom (pt)', 'Left (pt)']) {
-      await userEvent.fill(within(editor).getByRole('spinbutton', { name: side }), '0');
+      await userEvent.fill(within(editor).getByRole('textbox', { name: side }), '0');
     }
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save recipe' }));
     expect(await within(dialog).findByTestId('batch-editor-error')).toHaveTextContent(

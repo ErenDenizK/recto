@@ -131,29 +131,26 @@ describe('pen bar', () => {
     expect(store().styles.ink.color).toBe(INK.green);
     const named = await screen.findByRole('dialog', { name: 'Edit Green pen' });
 
-    await userEvent.click(within(named).getByRole('radio', { name: '5 pt' }));
+    // The width is the log slider: its detents are the old stops (1.5 → 2 → 3 → 5).
+    const width = within(named).getByRole('slider', { name: 'Width' });
+    width.focus();
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}');
     expect(store().pen.presets[1].width).toBe(5);
-    expect(within(named).getByRole('radio', { name: '5 pt' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    const width = within(named).getByRole('slider', { name: 'Exact width' });
-    expect(width).toHaveAttribute('min', '0.25');
-    expect(width).toHaveAttribute('max', '24');
-    fireEvent.change(width, { target: { value: '17.5' } });
-    expect(store().pen.presets[1].width).toBe(17.5);
-    expect(width).toHaveAttribute('aria-valuetext', '17.5 pt');
-    fireEvent.change(within(named).getByRole('slider', { name: 'Opacity' }), {
-      target: { value: '60' },
-    });
+    expect(width).toHaveAttribute('aria-valuetext', '5 pt');
+    await userEvent.keyboard('{End}');
+    expect(store().pen.presets[1].width).toBe(24);
+    expect(width).toHaveAttribute('aria-valuetext', '24 pt');
+    // Opacity in steps of 5 %: from 100 % down eight steps.
+    within(named).getByRole('slider', { name: 'Opacity' }).focus();
+    await userEvent.keyboard('{ArrowLeft>8/}');
     expect(store().pen.presets[1].opacity).toBe(0.6);
-    expect(store().styles.ink).toMatchObject({ strokeWidth: 17.5, opacity: 0.6 });
+    expect(store().styles.ink).toMatchObject({ strokeWidth: 24, opacity: 0.6 });
     // Persisted per device.
     expect(JSON.parse(localStorage.getItem(PEN_PRESETS_STORAGE_KEY) ?? '{}')).toMatchObject({
       active: 1,
       presets: [
         DEFAULT_PRESETS[0],
-        { color: INK.green, width: 17.5, opacity: 0.6 },
+        { color: INK.green, width: 24, opacity: 0.6 },
         DEFAULT_PRESETS[2],
         DEFAULT_PRESETS[3],
       ],
@@ -201,14 +198,16 @@ describe('pen bar', () => {
     const pink = await screen.findByRole('dialog', { name: 'Edit Pink highlighter' });
     expect(pink).toBeVisible();
     // The Highlighter (craft spec §5.4): widths 6–18 pt, no opacity (always opaque).
-    expect(
-      within(within(pink).getByRole('radiogroup', { name: 'Width' }))
-        .getAllByRole('radio')
-        .map((r) => r.textContent),
-    ).toEqual(['6', '8', '10', '12', '15', '18']);
-    const exact = within(pink).getByRole('slider', { name: 'Exact width' });
-    expect(exact).toHaveAttribute('min', '6');
-    expect(exact).toHaveAttribute('max', '18');
+    const width = within(pink).getByRole('slider', { name: 'Width' });
+    expect(width).toHaveAttribute('aria-valuetext', '12 pt');
+    // Its detents are the old stops, 6 · 8 · 10 · 12 · 15 · 18, and its ends 6 and 18 pt.
+    width.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(width).toHaveAttribute('aria-valuetext', '15 pt');
+    await userEvent.keyboard('{End}');
+    expect(store().pen.presets[3].width).toBe(18);
+    await userEvent.keyboard('{Home}');
+    expect(store().pen.presets[3].width).toBe(6);
     expect(within(pink).queryByRole('slider', { name: 'Opacity' })).toBeNull();
   });
 

@@ -41,15 +41,6 @@
   border-radius: var(--radius-1);
 }
 
-.color {
-  width: 32px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-1);
-  background: none;
-}
-
 .facts {
   display: grid;
   grid-template-columns: 1fr auto;

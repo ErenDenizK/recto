@@ -184,13 +184,13 @@ describe('the eraser', () => {
       expect(partial).toHaveAttribute('aria-checked', 'true');
       expect(whole).toHaveAttribute('aria-checked', 'false');
 
-      const sizes = within(tier).getByRole('radiogroup', { name: 'Eraser size' });
-      expect(within(sizes).getByRole('radio', { name: '12 px' })).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
-      await userEvent.click(within(sizes).getByRole('radio', { name: '24 px' }));
+      // The size slider: one detent per size, 6 · 12 · 24 · 48 px.
+      const size = within(tier).getByRole('slider', { name: 'Eraser size' });
+      expect(size).toHaveAttribute('aria-valuetext', '12 px');
+      size.focus();
+      await userEvent.keyboard('{ArrowRight}');
       expect(useToolStore.getState().eraserSize).toBe(24);
+      expect(size).toHaveAttribute('aria-valuetext', '24 px');
 
       // Remembered per device: a new session reads them back.
       expect(JSON.parse(localStorage.getItem(ERASER_STORAGE_KEY) ?? '{}')).toMatchObject({

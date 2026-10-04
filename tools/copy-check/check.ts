@@ -26,8 +26,8 @@
  * - **Source bans** under `apps/web/src/`: no `data:image/png` and no `url(…png)` in CSS
  *   (quality-bar.md Q-12: drawing is code), and no native `type="color"` or `type="range"`
  *   input outside `apps/web/src/ui/` (components/10-ink.md §7: one slider and one colour panel).
- *   The colour inputs that are still native until D0-3 ports them are in NATIVE_INPUTS_PENDING;
- *   a new one fails, and so does a listed file that no longer has one (take it off the list).
+ *   D0-3 ported the last native colour inputs, so NATIVE_INPUTS_PENDING is empty: a new one
+ *   fails, and so would a listed file that no longer had one.
  *
  * Matching is case-insensitive and on whole words, so "justify" and "insecure" pass. "secure"
  * passes only before a noun from SECURE_NOUNS, where it names a technical term ("secure
@@ -195,17 +195,11 @@ const CATALOG_EXEMPTIONS: readonly {
 ];
 
 /**
- * Files under apps/web/src that still render a native colour input. D0-3 (`ui/colour/`,
- * 10-ink §4) replaces every one and must leave this list empty; the check fails on a file that
- * is not listed and on a listed file that no longer has one.
+ * Files under apps/web/src that may still render a native colour or range input. D0-3
+ * (`ui/colour/`, `ui/Slider`, 10-ink §4 and §7) replaced every one, so the list is empty and
+ * stays so; the check fails on a file that is not listed and on a listed file without one.
  */
-const NATIVE_INPUTS_PENDING: readonly string[] = [
-  'apps/web/src/annotations/StyleControls.tsx',
-  'apps/web/src/annotations/pen/PenBar.tsx',
-  'apps/web/src/batch/StepForm.tsx',
-  'apps/web/src/furniture/FurnitureDialogs.tsx',
-  'apps/web/src/redaction/ApplyRedactionsDialog.tsx',
-];
+const NATIVE_INPUTS_PENDING: readonly string[] = [];
 
 /** Attributes whose values a reader sees (or a link preview shows). */
 const VISIBLE_ATTRIBUTES =
