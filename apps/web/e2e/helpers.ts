@@ -110,3 +110,56 @@ export async function enterEdit(page: Page): Promise<void> {
     'true',
   );
 }
+
+/**
+ * Waits for the launch's session restore to finish (`data-session` on <html>, ADR-0032 §2.5):
+ * `ready` once restored or with nothing to restore, `off` where storage is refused.
+ */
+export async function sessionSettled(page: Page): Promise<void> {
+  await expect(page.locator('html')).toHaveAttribute('data-session', /^(ready|off)$/, {
+    timeout: 20_000,
+  });
+}
+
+/**
+ * Waits until everything changed so far is on this device: a snapshot written after now
+ * (`data-session-saved`) and nothing left to write (`data-session-state="saved"`).
+ */
+export async function waitForSnapshot(page: Page): Promise<void> {
+  const since = await page.evaluate(() => Date.now());
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          (t) =>
+            Number(document.documentElement.dataset.sessionSaved ?? 0) >= t &&
+            document.documentElement.dataset.sessionState === 'saved',
+          since,
+        ),
+      { timeout: 10_000 },
+    )
+    .toBe(true);
+}
+
+/**
+ * Reloads as a fresh start. Since snapshots (ADR-0032 §2.5) a reload restores the open
+ * documents, so a test that reloads to check something remembered presses Start fresh (the
+ * documents go to Recents) and waits until that is kept. `beforeunload` may ask while changes
+ * are kept on storage that is not persistent (§2.7); the question is accepted.
+ */
+export async function reloadFresh(page: Page): Promise<void> {
+  const accept = (dialog: { type(): string; accept(): Promise<void> }) => {
+    if (dialog.type() === 'beforeunload') void dialog.accept();
+  };
+  page.on('dialog', accept);
+  await page.reload();
+  page.off('dialog', accept);
+  await sessionSettled(page);
+  const notice = page.getByTestId('session-notice');
+  const fresh = notice.getByRole('button', { name: 'Start fresh' });
+  if (await fresh.isVisible()) {
+    await fresh.click();
+    await notice.getByRole('button', { name: 'Dismiss' }).click();
+    await waitForSnapshot(page);
+  }
+}

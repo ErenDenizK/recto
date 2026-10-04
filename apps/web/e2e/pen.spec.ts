@@ -12,6 +12,7 @@ import {
   enterEdit,
   openFixtures,
   recordInkWidths,
+  reloadFresh,
   sentInkWidths,
   useFileInputPicker,
 } from './helpers';
@@ -265,7 +266,8 @@ test.describe('pen presets and bursts', () => {
     await expect(ink).toHaveCount(1, { timeout: 10_000 });
     expect(await lastInkStyle(page)).toMatchObject({ color: '#1760EE', strokeWidth: 1.5 });
 
-    await page.reload();
+    // Start fresh: the drawn document would otherwise be restored (ADR-0032 §2.5).
+    await reloadFresh(page);
     await openSimple(page);
     await page.locator('body').press('p');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');

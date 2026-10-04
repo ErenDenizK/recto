@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, showInspector, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, reloadFresh, showInspector, useFileInputPicker } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 const capture = Boolean(process.env.CAPTURE_SCREENSHOTS);
@@ -280,7 +280,8 @@ test.describe('annotations', () => {
       'true',
     );
 
-    await page.reload();
+    // Start fresh: the drawn document would otherwise be restored (ADR-0032 §2.5).
+    await reloadFresh(page);
     await openFixtures(page, ['simple-text.pdf']);
     await enterEdit(page);
     await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({

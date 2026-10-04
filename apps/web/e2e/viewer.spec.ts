@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, reloadFresh, useFileInputPicker } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -143,7 +143,8 @@ test('the navigator has four tabs with counts; the inspector starts closed', asy
   await page.keyboard.press('ControlOrMeta+Alt+b');
   await expect(page.locator('#right-panel')).toBeVisible();
   await expect(page.locator('#right-panel').getByTestId('metadata-editor')).toHaveCount(0);
-  await page.reload();
+  // Start fresh: the open document would otherwise be restored (ADR-0032 §2.5).
+  await reloadFresh(page);
   await openFixtures(page, ['outline-named-dests.pdf']);
   await expect(page.locator('#right-panel')).toBeVisible();
 });
