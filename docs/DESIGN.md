@@ -4,6 +4,9 @@
 (§9). This document defines intent and system; audits, measurements and screenshots are
 under `docs/design/`.
 
+*M9 (planned 2026-10-04, pending the owner): the redesign of [§10](#10-redesign-m9) replaces
+§1's intent and most of §2–§4 once built; until then §1–§9 describe the shipped app.*
+
 ## 1. Intent
 
 Quiet, dense, professional. The document is the only bright thing on screen; the
@@ -754,3 +757,25 @@ the menu glass tier, Reduce transparency and the full-bleed stage are in place f
 everyone. What each work package delivered, and where it differs from the plan, is in the
 spec's §15; the latency measurements are in
 [`qa/ink-latency-baseline.md`](qa/ink-latency-baseline.md).
+
+## 10. Redesign (M9)
+
+**Planned (2026-10-04), pending the owner's approval.** The owner's brief of 2026-10-04 asks
+for the whole interface to be rethought in a language of glass, lime light and motion, simple
+and native like Apple Preview and Notability, on phones and desktops alike. When built, M9
+replaces §1's intent ("quiet, dense … nothing glows" becomes "the page is the brightest thing;
+only light glows") and most of §2–§4: the Read · Edit · Arrange control gives way to viewing
+with targeted acts, one Markup state and a per-document Lock; the grid of title bar, rail,
+navigator, inspector and status bar gives way to a size-class shell with a top strip, a labelled
+dock that morphs into the Markup palette, one sidebar, sheets and a page pill; the accent
+`#7c8cff` gives way to one lime and a selection blue, with five glass densities, an aurora that
+answers events, springs, `'Inter Recto'`, Phosphor icons and a light theme equal to dark; and
+saving gains Save in place, snapshots on the device and a visible Undo. The amendments are
+numbered B1–B15 in the [spec](specs/redesign.md) §2 and are applied here, section by section,
+as each drop lands. The model is [`design/redesign-2026-10/flows.md`](design/redesign-2026-10/flows.md),
+the language [`design/redesign-2026-10/language.md`](design/redesign-2026-10/language.md), and
+the decisions [ADR-0022](adr/0022-recto-glass-design-language.md) to
+[ADR-0028](adr/0028-accessibility-gates-expressive-ui.md) (the language) and
+[ADR-0029](adr/0029-viewing-markup-and-lock.md) to [ADR-0032](adr/0032-saving-restore-history.md)
+(the model, the guard, the shell, saving), all proposed. Until M9 lands, §1–§9 describe the
+shipped app.
