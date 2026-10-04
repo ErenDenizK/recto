@@ -1,0 +1,215 @@
+/*
+ * The control system's global classes (components/09-primitives.md §3, §32 steps 2–3;
+ * quality-bar.md Q-9, Q-14), imported by global.css. `ui/Button` renders them, and a module
+ * that keeps its own `<button>` until D2 migrates it composes them:
+ *
+ *   .save { composes: btn btn-prominent from global; }
+ *
+ * One shape and one height per density: a pill, --control-h (32 px fine, 44 px coarse) or
+ * --control-h-lg, a 13/18 label at 500 (15/20 coarse) and a 16 px glyph (20 px coarse), so a
+ * bar of buttons shares one height and one centre line. Four variants:
+ *
+ * - prominent: the primary fill with its ink label. One per surface.
+ * - standard: a white wash (--control-fill) with the primary label.
+ * - quiet: no fill; the hover and pressed washes only.
+ * - danger: the standard fill under a danger label; hover adds a 1 px danger ring instead of a
+ *   deeper fill (09 §3.4: a 0.12 fill would drop the label to 4.27:1).
+ *
+ * On today's floating glass (the M1/M2 bars) a fill would put the label under 7:1, so standard
+ * and danger render quiet there (09 §3.3, §34 issue 3); menus and popovers (`.glass-menu`, M4)
+ * keep the fill. Disabled is a neutral step, never the fill at reduced opacity, and stays
+ * focusable (`aria-disabled`, Base UI's `focusableWhenDisabled`), so its reason can be read.
+ * Every state comes from the control tokens of tokens.css, so the colour step (D3) changes
+ * the values and nothing here.
+ */
+.btn {
+  /* Read by the danger ring and kept by the focus ring (styles/focus.css). */
+  --shadow-own: 0 0 #0000;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: var(--control-h);
+  min-width: var(--control-h);
+  padding: 0 var(--btn-pad, 12px);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: var(--shadow-own);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--control-text);
+  font-weight: 500;
+  line-height: var(--control-lh);
+  letter-spacing: inherit;
+  /* Counts in labels keep their width as they change (09 §3.5). */
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
+}
+
+.btn svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* Glyphs grow with the label on a coarse pointer (09 §3.2), still inside Q-9's {16, 20}. */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .btn {
+    --btn-pad: 16px;
+  }
+
+  .btn svg {
+    width: var(--icon-md);
+    height: var(--icon-md);
+  }
+}
+
+/* Long labels truncate inside the pill; the full text is the accessible name (Q-8). */
+.btn > [data-btn-label] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-lg {
+  height: var(--control-h-lg);
+  min-width: var(--control-h-lg);
+  --btn-pad: 16px;
+}
+
+/* Press: scale on the press spring, back on release; colour only under reduced motion. */
+.btn:active:not([aria-disabled='true'], [aria-busy='true'], [data-blocked]) {
+  transform: scale(var(--press-scale));
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active:not([aria-disabled='true'], [aria-busy='true'], [data-blocked]) {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .btn:active {
+  transform: none;
+}
+
+/* Prominent. */
+.btn-prominent {
+  background: var(--primary-fill);
+  color: var(--primary-ink);
+}
+
+@media (hover: hover) {
+  .btn-prominent:hover:not([aria-disabled='true'], [data-blocked]) {
+    background: var(--primary-fill-hover);
+  }
+}
+
+.btn-prominent:active:not([aria-disabled='true'], [data-blocked]) {
+  background: var(--primary-fill-pressed);
+}
+
+/* Standard and danger share the fill. */
+.btn-standard,
+.btn-danger {
+  background: var(--control-fill);
+}
+
+@media (hover: hover) {
+  .btn-standard:hover:not([aria-disabled='true'], [data-blocked]) {
+    background: var(--control-fill-hover);
+  }
+}
+
+.btn-standard:active:not([aria-disabled='true'], [data-blocked]) {
+  background: var(--control-fill-pressed);
+}
+
+.btn-danger {
+  color: var(--danger);
+}
+
+@media (hover: hover) {
+  .btn-danger:hover:not([aria-disabled='true'], [data-blocked]) {
+    --shadow-own: inset 0 0 0 1px var(--danger);
+  }
+}
+
+/* Quiet. */
+.btn-quiet {
+  background: transparent;
+}
+
+@media (hover: hover) {
+  .btn-quiet:hover:not([aria-disabled='true'], [data-blocked]) {
+    background: var(--surface-hover);
+  }
+}
+
+.btn-quiet:active:not([aria-disabled='true'], [data-blocked]) {
+  background: var(--surface-active);
+}
+
+/* On the floating glass (M1/M2) a filled button renders quiet; the danger label stays. */
+:where(.glass:not(.glass-menu)) :is(.btn-standard, .btn-danger) {
+  background: transparent;
+}
+
+@media (hover: hover) {
+  :where(.glass:not(.glass-menu))
+    :is(.btn-standard, .btn-danger):hover:not([aria-disabled='true'], [data-blocked]) {
+    background: var(--surface-hover);
+  }
+}
+
+/* Disabled and blocked (a locked document): a neutral step and the disabled label. A blocked
+   button stays pressable; its press asks to unlock (09 §2.3). */
+.btn:is([aria-disabled='true'], :disabled, [data-blocked]) {
+  color: var(--text-disabled);
+}
+
+.btn-prominent:is([aria-disabled='true'], :disabled, [data-blocked]) {
+  background: var(--control-disabled-fill);
+}
+
+:is(.btn-standard, .btn-danger):is([aria-disabled='true'], :disabled, [data-blocked]) {
+  background: color-mix(in srgb, var(--control-disabled-fill) 50%, transparent);
+}
+
+/* Busy: the width is frozen at the press (ui/Button), the input refused. */
+.btn[aria-busy='true'] {
+  cursor: progress;
+}
+
+@media (forced-colors: active) {
+  .btn {
+    border: 1px solid ButtonBorder;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+
+  .btn-prominent {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .btn:is([aria-disabled='true'], :disabled, [data-blocked]) {
+    color: GrayText;
+  }
+}

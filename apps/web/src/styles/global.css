@@ -1,5 +1,8 @@
 /* Global element styles. Component styles live in CSS Modules next to components. */
 
+/* The control system's global classes (components/09-primitives.md §3), before the focus ring
+   so a focused control's ring wins over its own box-shadow at equal specificity. */
+@import './controls.css';
 /* The two-band focus ring and its three forms (A-11, components/09-primitives.md §19). */
 @import './focus.css';
 
@@ -67,34 +70,6 @@ textarea,
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/*
- * Primary action button: the accent fill. Each module's `.primary` composes this global class
- * (`composes: primary-button from global;`) and adds its own size. Hover is one step lighter,
- * pressed one step darker; disabled is a neutral surface-3 step with disabled text, never the
- * accent at reduced opacity (design audit D8).
- */
-.primary-button {
-  background: var(--accent);
-  color: var(--surface-0);
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
-@media (hover: hover) {
-  .primary-button:hover:not(:disabled) {
-    background: var(--accent-hover);
-  }
-}
-
-.primary-button:active:not(:disabled) {
-  background: var(--accent-pressed);
-}
-
-.primary-button:disabled {
-  background: var(--surface-3);
-  color: var(--text-disabled);
-  cursor: default;
 }
 
 [data-tag='0'] {

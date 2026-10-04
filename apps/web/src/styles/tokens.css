@@ -54,10 +54,10 @@
   /* Surface ladder: canvas -> panel -> raised -> overlay. Docked surfaces are flat: elevation is
      a tonal step plus a hairline. The canvas (and Home) sits darkest, so the page and the
      floating bar stand out of a near-black field and the panels read as a frame. */
-  --surface-0: #08090b; /* canvas, Home background */
-  --surface-1: #181a1f; /* panels, title bar, status bar, navigator */
-  --surface-2: #1f2227; /* raised: cards, inputs, --glass-solid */
-  --surface-3: #272a30; /* view switch on, disabled primary */
+  --canvas: #08090b; /* canvas, Home background */
+  --surface-frame: #181a1f; /* panels, title bar, status bar, navigator */
+  --surface-raised: #1f2227; /* raised: cards, inputs, --glass-solid */
+  --surface-on: #272a30; /* view switch on, disabled primary */
   --surface-hover: rgb(255 255 255 / 0.045);
   --surface-active: rgb(255 255 255 / 0.075);
   /* Floating chrome over the document (.glass in global.css). --glass-solid is the opaque
@@ -158,16 +158,22 @@
   --select-wash: rgb(78 97 237 / 0.25);
   --select-wash-strong: rgb(78 97 237 / 0.45);
 
-  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-ui: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
   --tracking-ui: 0.01em;
   --tracking-label: 0.04em;
   --tracking-display: -0.011em;
 
-  --text-xs: 11px; /* labels, keycaps */
-  --text-sm: 12px; /* secondary */
-  --text-md: 13px; /* UI base */
-  --text-lg: 15px; /* empty-state heading */
+  /* The type scale (language.md §4.2), fine-pointer sizes; the coarse steps are in the density
+     block below. Today's four sizes are its first four steps, so the old names alias them. */
+  --type-caption: 11px; /* labels, keycaps, badges */
+  --type-caption-lh: 14px;
+  --type-footnote: 12px; /* secondary */
+  --type-footnote-lh: 16px;
+  --type-body: 13px; /* UI base */
+  --type-body-lh: 18px;
+  --type-callout: 15px; /* empty-state heading */
+  --type-callout-lh: 20px;
   --leading-tight: 16px;
   --leading-base: 20px;
 
@@ -176,11 +182,15 @@
      dialogs, cards) · round (dots, discs, pills) · capsule (the floating tool bar and the pen
      bar). */
   --radius-page: 2px;
-  --radius-1: 4px;
-  --radius-2: 6px;
-  --radius-3: 10px;
-  --radius-round: 999px;
-  --radius-capsule: var(--radius-round);
+  --radius-xs: 4px;
+  /* language.md §6.1 sets 8 and 12 here; today's 6 and 10 stay until the shape step (D3), so
+     nothing that reads the old names moves. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-capsule: 999px;
+  /* Controls take one of two shapes (quality-bar Q-9): the pill, or --radius-control. */
+  --radius-pill: var(--radius-capsule);
+  --radius-control: 10px;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -203,13 +213,12 @@
   --rise-distance: 4px;
   --motion-rise: translateY(var(--rise-distance));
 
-  /* Shell metrics. */
+  /* Shell metrics. --control-height is the M8 row and field height (28 px); controls take
+     --control-h from the density block below. */
   --titlebar-height: 40px;
   --statusbar-height: 28px;
   --rail-width: 64px; /* the navigator: icon, 11 px label and count (experience-redesign §4.1) */
   --control-height: 28px;
-  --icon-chrome: 16px;
-  --icon-toolbar: 20px;
 
   /* The two-band focus ring (A-11; language.md §9.2; components/09-primitives.md §19): a lime
      light band drawn by the outline and an ink dark band drawn by the box-shadow, 16.4:1
@@ -220,10 +229,164 @@
   --focus-offset-out: 2px;
   --focus-offset-in: -2px;
   --focus-offset-gap: 4px;
-  /* Aliases until D0-3's codemod moves the last module rules onto the forms (focus-scan.test.ts
-     lists them): the light band alone, and the outset offset. */
+
+  /*
+   * The control block (09-primitives §2.2, layer 3): what every primitive in ui/ paints with.
+   * Fills are white washes one step apart, so a filled control reads on every surface of the
+   * ladder; the border is the one control edge (fields, boxes, radios, switch tracks), at
+   * ≥ 3.61:1 against the worst glass where today's 0.16 hairline is 1.59:1 (§34 issue 2).
+   * On-states are neutral, n12 with an ink glyph (§34 issue 1): the accent stays with the
+   * prominent button, the armed tool and the focus band, so a sheet keeps one accent element.
+   * The range fill is neutral too, never the accent (10-ink.md §3.1 over §2.2's table). Values
+   * that name a colour of the ladder point at today's tokens (n12 = --text-primary, n11 =
+   * --glass-text-secondary, ink = --canvas); the colour step (D3) gives them their own.
+   */
+  --control-fill: rgb(255 255 255 / 0.08);
+  --control-fill-hover: rgb(255 255 255 / 0.12);
+  --control-fill-pressed: rgb(255 255 255 / 0.16);
+  --control-border: rgb(255 255 255 / 0.48);
+  --control-border-hover: rgb(255 255 255 / 0.6);
+  --control-on: var(--text-primary);
+  --control-on-ink: var(--canvas);
+  --control-thumb-off: var(--glass-text-secondary);
+  --control-track: rgb(255 255 255 / 0.24);
+  --control-range: var(--text-primary);
+  --control-disabled-fill: var(--surface-on);
+  /* The prominent button: today's accent fill and canvas-dark label (lime with ink from D3). */
+  --primary-fill: var(--accent);
+  --primary-fill-hover: var(--accent-hover);
+  --primary-fill-pressed: var(--accent-pressed);
+  --primary-ink: var(--canvas);
+  --field-well: var(--surface-raised);
+  --field-placeholder: var(--text-tertiary);
+  --scroll-thumb: rgb(255 255 255 / 0.4);
+  --badge-fill: #303339;
+  /* The one small shadow a control may carry: switch and segmented thumbs (language.md §6.3). */
+  --e1: 0 1px 2px rgb(0 0 0 / 0.3);
+
+  /* Aliases (09-primitives §25 block 8), deleted at migration step 11: the M8 names keep
+     working while modules move to the semantic ones. */
+  --surface-0: var(--canvas);
+  --surface-1: var(--surface-frame);
+  --surface-2: var(--surface-raised);
+  --surface-3: var(--surface-on);
+  --font-sans: var(--font-ui);
+  --text-xs: var(--type-caption);
+  --text-sm: var(--type-footnote);
+  --text-md: var(--type-body);
+  --text-lg: var(--type-callout);
+  --radius-1: var(--radius-xs);
+  --radius-2: var(--radius-sm);
+  --radius-3: var(--radius-md);
+  --radius-round: var(--radius-capsule);
+  --icon-chrome: var(--icon-sm);
+  --icon-toolbar: var(--icon-md);
+  /* The focus ring's retired aliases: only ui/Range.module.css still reads them, and the ink
+     port (D0-3 part 2) deletes that file. Remove these two lines with it (focus-scan.test.ts). */
   --focus-ring: 2px solid var(--focus-light);
   --focus-offset: var(--focus-offset-out);
+}
+
+/*
+ * Density (09-primitives §2.1, language.md §6.2; quality-bar Q-9), theme-free. Controls are
+ * 32 px on a fine pointer and 44 px on a coarse one, in bars of 44 and 56; rows keep the M8
+ * --control-height. Icons are 20 px in controls and 16 px in rows and menus at every density
+ * (Q-9). A touch laptop is coarse everywhere, by design (research 19 M-2).
+ */
+:root {
+  --hit-min: 24px;
+  --control-h: 32px;
+  --control-h-lg: 36px;
+  --bar-button: 32px;
+  --bar-h: 44px;
+  --chip-h: 28px;
+  --check: 16px;
+  --switch-w: 36px;
+  --switch-h: 20px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --gap-target: 4px;
+  --control-text: var(--type-body);
+  --control-lh: var(--type-body-lh);
+  --field-text: 13px;
+  --press-scale: 0.97;
+
+  /* CSS springs (language.md §7.1–§7.2): one curve for every zero-bounce spring, from the
+     analytic solution (motion/springs.ts), and the pop curve for one small glyph. */
+  --ease-spring: linear(
+    0,
+    0.005 1.2%,
+    0.02 2.3%,
+    0.046 3.7%,
+    0.084 5.2%,
+    0.159 7.7%,
+    0.366 13.8%,
+    0.461 16.8%,
+    0.556 20.2%,
+    0.639 23.5%,
+    0.709 26.8%,
+    0.767 30.2%,
+    0.817 33.7%,
+    0.861 37.5%,
+    0.9 42%,
+    0.93 46.8%,
+    0.954 52.3%,
+    0.971 58.5%,
+    0.983 65.3%,
+    0.991 73.7%,
+    1
+  );
+  --ease-spring-pop: linear(
+    0,
+    0.007 1.5%,
+    0.026 3%,
+    0.058 4.7%,
+    0.105 6.5%,
+    0.209 9.8%,
+    0.453 16.8%,
+    0.559 20%,
+    0.659 23.3%,
+    0.742 26.5%,
+    0.809 29.5%,
+    0.868 32.7%,
+    0.915 35.8%,
+    0.954 39.2%,
+    0.984 42.8%,
+    1.006 46.7%,
+    1.02 50.8%,
+    1.027 55.7%,
+    1.027 63.3%,
+    1.008 84.2%,
+    1
+  );
+  --spring-press: 300ms;
+  --spring-quick: 420ms;
+  --spring-pop: 410ms;
+  --spring-track: 150ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  :root {
+    --hit-min: 44px;
+    --control-h: 44px;
+    --control-h-lg: 52px;
+    --bar-button: 44px;
+    --bar-h: 56px;
+    --chip-h: 36px;
+    --check: 20px;
+    --switch-w: 52px;
+    --switch-h: 32px;
+    --gap-target: 8px;
+    --control-text: var(--type-callout);
+    --control-lh: var(--type-callout-lh);
+    /* iOS zooms into a field set under 16 px (language.md §4.2). */
+    --field-text: 16px;
+    --press-scale: 0.94;
+    /* The title bar holds 44 px controls on a coarse pointer: a 56 px bar (Q-9's coarse bar).
+       On a fine pointer it stays 40 px until D2's top strip replaces it. */
+    --titlebar-height: 56px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
