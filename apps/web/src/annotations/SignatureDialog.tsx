@@ -28,7 +28,9 @@ export function SignatureDialog() {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
-        <Dialog.Backdrop className={overlay.backdrop} />
+        {/* Both leave with `open`: a backdrop left waiting for the unmounted popup's exit
+            stayed over the page and swallowed the click that places the signature. */}
+        {open ? <Dialog.Backdrop className={overlay.backdrop} /> : null}
         {open ? <SignatureForm onDone={() => setOpen(false)} /> : null}
       </Dialog.Portal>
     </Dialog.Root>
