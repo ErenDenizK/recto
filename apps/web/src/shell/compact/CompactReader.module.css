@@ -58,7 +58,7 @@
 /*
  * The page pill (ADR-0033 §2.3): while the chrome is hidden, "3 / 12" fades in during a
  * scroll and out 1.5 s after it. A small solid chip, not glass (Q-5: small transient parts
- * never blur), centred where the capsule rests, above the home indicator.
+ * never blur; no elevation, which is the glass surfaces' alone), centred where the capsule rests, above the home indicator.
  */
 .pill {
   position: fixed;
@@ -73,7 +73,6 @@
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-round);
   background: var(--glass-solid);
-  box-shadow: var(--elevation-float);
   color: var(--text-primary);
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;

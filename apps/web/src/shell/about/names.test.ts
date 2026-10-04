@@ -87,6 +87,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:bates-last-number',
       'pdf-editor:dev:ink-stats',
       'pdf-editor:edit-policy:v1',
+      // The session's ?edition override (sessionStorage, shell/frame/edition.ts).
+      'pdf-editor:edition:v1',
       'pdf-editor:locale:v1',
       'pdf-editor:recents:v1',
       'pdf-editor:ui:eraser:v1',
