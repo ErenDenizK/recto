@@ -1,0 +1,84 @@
+/* Tag dot, tag and dot stack (09-primitives §18). */
+.dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--tag-colour);
+  forced-color-adjust: none;
+}
+
+.dot[data-tag-slot='0'] {
+  --tag-colour: var(--tag-0);
+}
+
+.dot[data-tag-slot='1'] {
+  --tag-colour: var(--tag-1);
+}
+
+.dot[data-tag-slot='2'] {
+  --tag-colour: var(--tag-2);
+}
+
+.dot[data-tag-slot='3'] {
+  --tag-colour: var(--tag-3);
+}
+
+.dot[data-tag-slot='4'] {
+  --tag-colour: var(--tag-4);
+}
+
+.dot[data-tag-slot='5'] {
+  --tag-colour: var(--tag-5);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .dot {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Each dot after the first overlaps the one before by 4 px, ringed in the host's surface
+   colour (--tag-ring, set by the host; the raised surface by default). */
+.stacked {
+  box-shadow: 0 0 0 2px var(--tag-ring, var(--surface-raised));
+}
+
+.stacked + .stacked {
+  margin-left: -4px;
+}
+
+.more {
+  margin-left: 4px;
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  line-height: var(--type-caption-lh);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .dot {
+    box-shadow: 0 0 0 1px CanvasText;
+  }
+}

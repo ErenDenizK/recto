@@ -2513,5 +2513,12 @@
   "privacy_kept_not_persistent": "Tarayıcı saklanan değişiklikleri silebilir.",
   "privacy_kept_ios": "iPhone ve iPad’de saklanan değişiklikler, tarayıcı onları tuttuğu sürece kalır.",
   "privacy_kept_write_failed": "Son değişiklikler bu cihazda saklanamadı: depolama dolu ya da kullanılamıyor.",
-  "recents_hint_kept": "Düzenlendi, değişiklikler saklandı"
+  "recents_hint_kept": "Düzenlendi, değişiklikler saklandı",
+  "control_busy": "İşleniyor…",
+  "control_unavailable": "Şu an kullanılamıyor",
+  "chip_remove": "Kaldır: {name}",
+  "switch_system_on": "Açık, sistem ayarınızdan",
+  "switch_system_off": "Kapalı, sistem ayarınızdan",
+  "progress_value_text": "yüzde {percent}",
+  "avatar_unknown": "Bilinmeyen yazar"
 }

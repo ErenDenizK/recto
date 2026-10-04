@@ -198,7 +198,7 @@ function CompressFlow({ documentId }: { readonly documentId: DocumentId }) {
             value={progressShare(state.progress)}
             aria-label={m.compress_progress_label()}
           />
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             <button type="button" className={styles.secondary} onClick={cancel}>
               {m.common_cancel()}
             </button>
@@ -219,7 +219,7 @@ function CompressFlow({ documentId }: { readonly documentId: DocumentId }) {
           <p className={styles.error} role="alert">
             {m.compress_failed({ reason: state.message })}
           </p>
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             <Dialog.Close className={styles.secondary}>{m.common_close()}</Dialog.Close>
             {state.back ? (
               <button
@@ -417,7 +417,7 @@ function ChooseStep({
       ) : (
         <p className={styles.description}>{m.compress_no_images()}</p>
       )}
-      <div className={styles.actions}>
+      <div className={styles.actions} data-bar="dialog-footer">
         {applied ? (
           <button type="button" className={styles.secondary} onClick={onRemove}>
             {m.compress_remove()}
@@ -531,7 +531,7 @@ function ResultStep({
           onPage={(page) => dispatch({ type: 'compare-page', page })}
         />
       ) : null}
-      <div className={styles.actions}>
+      <div className={styles.actions} data-bar="dialog-footer">
         <button
           type="button"
           className={styles.secondary}

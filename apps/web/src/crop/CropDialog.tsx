@@ -247,7 +247,7 @@ export function CropDialog({
       <Frame title={m.crop_title()} testId="crop-dialog" wide>
         <div className={styles.body} data-testid="crop-result">
           <Outcome outcome={mine.outcome} />
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             {mine.outcome.kind === 'applied' ? null : (
               <button
                 type="button"

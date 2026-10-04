@@ -315,7 +315,7 @@ function ExportFlow({ documentId }: { readonly documentId: DocumentId }) {
               />
             </ExportSection>
           ) : null}
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             <Dialog.Close className={styles.secondary}>{m.common_cancel()}</Dialog.Close>
             <button type="submit" className={styles.primary} disabled={pageCount === 0}>
               {m.export_start()}
@@ -335,7 +335,7 @@ function ExportFlow({ documentId }: { readonly documentId: DocumentId }) {
             value={progressValue(step.progress)}
             aria-label={m.export_progress_label()}
           />
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             <button type="button" className={styles.secondary} onClick={cancel}>
               {m.common_cancel()}
             </button>
@@ -365,7 +365,7 @@ function ExportFlow({ documentId }: { readonly documentId: DocumentId }) {
               ))}
             </ul>
           ) : null}
-          <div className={styles.actions}>
+          <div className={styles.actions} data-bar="dialog-footer">
             <Dialog.Close className={styles.secondary}>{m.common_close()}</Dialog.Close>
             <button
               ref={primaryRef}
@@ -461,7 +461,7 @@ function ReviewStep({
       ) : (
         <p className={styles.description}>{m.export_nothing_changed()}</p>
       )}
-      <div className={styles.actions}>
+      <div className={styles.actions} data-bar="dialog-footer">
         <button type="button" className={styles.secondary} onClick={onBack}>
           {m.common_back()}
         </button>

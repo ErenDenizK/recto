@@ -1,0 +1,147 @@
+/* Chips (09-primitives §5): a pill of --chip-h, the accent wash and a check when selected. */
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-target);
+}
+
+.chip {
+  composes: focus-inset from global;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: var(--chip-h);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--control-fill);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+/* A coarse pointer: 36 px visible, 44 px to hit (09 §2.1). */
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--chip-h) - var(--hit-min)) / 2) 0;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .chip {
+    font-size: var(--type-body);
+    line-height: var(--type-body-lh);
+  }
+}
+
+/* On today's floating glass (M2 bars) the chip rests without a fill (09 §5.3). */
+:global(.glass:not(.glass-menu)) .chip {
+  background: transparent;
+}
+
+@media (hover: hover) {
+  .chip:hover:not([aria-disabled='true']) {
+    background: var(--control-fill-hover);
+  }
+
+  :global(.glass:not(.glass-menu)) .chip:hover:not([aria-disabled='true']) {
+    background: var(--surface-hover);
+  }
+}
+
+.chip:active:not([aria-disabled='true']) {
+  background: var(--control-fill-pressed);
+}
+
+.chip:is([aria-checked='true'], [aria-pressed='true']),
+:global(.glass:not(.glass-menu)) .chip:is([aria-checked='true'], [aria-pressed='true']) {
+  --shadow-own: inset 0 0 0 1px var(--accent-line);
+  /* Secondary counts are under 4.5:1 on the accent wash; they step up to the label colour. */
+  --text-secondary: var(--text-primary);
+  background: var(--accent-muted);
+  box-shadow: var(--shadow-own);
+}
+
+.chip[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+.check {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-left: -2px;
+  stroke-width: 2;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  margin-left: 2px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A removable chip: the ✕ sits inside the pill's end, outside the chip's own button. */
+.removable {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.chip[data-removable] {
+  padding-right: calc(10px + var(--icon-sm) + 4px);
+}
+
+.remove {
+  position: absolute;
+  top: calc(50% - 10px);
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+}
+
+.remove svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .remove:hover:not([aria-disabled='true']) {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+@media (forced-colors: active) {
+  .chip {
+    border: 1px solid ButtonBorder;
+  }
+
+  .chip:is([aria-checked='true'], [aria-pressed='true']) {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .chip[aria-disabled='true'] {
+    color: GrayText;
+  }
+}

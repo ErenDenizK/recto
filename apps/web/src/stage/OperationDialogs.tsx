@@ -504,12 +504,14 @@ function MergeAllDialog({ order: given }: { readonly order?: readonly DocumentId
               <span className={local.docMeta}>{pagesPhrase(tab.pageCount)}</span>
               <span className={local.rowButtons}>
                 <IconButton
+                  size="row"
                   label={m.merge_move_up({ title: tab.title })}
                   icon={<ArrowUp />}
                   disabled={index === 0}
                   onClick={() => move(index, -1)}
                 />
                 <IconButton
+                  size="row"
                   label={m.merge_move_down({ title: tab.title })}
                   icon={<ArrowDown />}
                   disabled={index === rows.length - 1}

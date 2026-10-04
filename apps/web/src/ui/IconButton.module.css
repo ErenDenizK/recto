@@ -1,41 +1,73 @@
+/*
+ * IconButton (09-primitives §4; quality-bar Q-9, Q-14): a circle, `bar` at --bar-button with a
+ * 20 px icon, `row` at 28 px with a 16 px icon and a 44 px hit area on a coarse pointer. Hover
+ * and pressed change the fill only; the box never moves except by the press scale.
+ */
 .button {
+  --shadow-own: 0 0 #0000;
+  position: relative;
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: var(--control-height);
-  height: var(--control-height);
-  border-radius: var(--radius-2);
+  box-sizing: border-box;
+  width: var(--bar-button);
+  height: var(--bar-button);
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
+  -webkit-tap-highlight-color: transparent;
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
-}
-
-.button[data-size='toolbar'] {
-  width: 36px;
-  height: 36px;
+    color var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
 }
 
 .button svg {
-  width: var(--icon-chrome);
-  height: var(--icon-chrome);
+  width: var(--icon-md);
+  height: var(--icon-md);
   stroke-width: 1.5;
 }
 
-.button[data-size='toolbar'] svg {
-  width: var(--icon-toolbar);
-  height: var(--icon-toolbar);
+.button[data-size='row'] {
+  width: 28px;
+  height: 28px;
+}
+
+.button[data-size='row'] svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* A row button keeps its 28 px circle on a coarse pointer; its hit area grows to 44 px. */
+.button[data-size='row']::after {
+  content: '';
+  position: absolute;
+  inset: calc((28px - var(--hit-min)) / 2);
+  border-radius: inherit;
 }
 
 @media (hover: hover) {
-  .button:hover:not([aria-disabled='true']) {
+  .button:hover:not([aria-disabled='true'], :disabled) {
     background: var(--surface-hover);
     color: var(--text-primary);
   }
 }
 
-.button:active:not([aria-disabled='true']) {
+.button:active:not([aria-disabled='true'], :disabled) {
   background: var(--surface-active);
+  transform: scale(var(--press-scale));
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button:active:not([aria-disabled='true'], :disabled) {
+    transform: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .button:active {
+  transform: none;
 }
 
 /* Chrome toggles are neutral; only option choices and the armed tool use the accent. */
@@ -46,29 +78,40 @@
 }
 
 /* An option toggle on a bar (the Compare heat map) is an option choice: --accent-muted. */
-.button[data-size='toolbar'][aria-pressed='true'] {
+.button[data-size='bar'][aria-pressed='true'] {
   background: var(--accent-muted);
 }
 
 /* The armed tool (a bar button with data-tool) is a solid accent fill with a canvas-dark icon,
    >= 3:1 against the glass over any page (DESIGN.md §3). Hover and press move one accent step,
-   like the primary button. */
-.button[data-size='toolbar'][data-tool][aria-pressed='true'] {
+   like the prominent button. */
+.button[data-size='bar'][data-tool][aria-pressed='true'] {
   background: var(--tool-active-fill);
   color: var(--tool-active-ink);
 }
 
 @media (hover: hover) {
-  .button[data-size='toolbar'][data-tool][aria-pressed='true']:hover {
+  .button[data-size='bar'][data-tool][aria-pressed='true']:hover {
     background: var(--accent-hover);
     color: var(--tool-active-ink);
   }
 }
 
-.button[data-size='toolbar'][data-tool][aria-pressed='true']:active {
+.button[data-size='bar'][data-tool][aria-pressed='true']:active {
   background: var(--accent-pressed);
 }
 
-.button[aria-disabled='true'] {
+.button:is([aria-disabled='true'], :disabled) {
   color: var(--text-disabled);
+}
+
+@media (forced-colors: active) {
+  .button[aria-pressed='true'] {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .button:is([aria-disabled='true'], :disabled) {
+    color: GrayText;
+  }
 }

@@ -14,7 +14,7 @@
 import { useMemo } from 'react';
 
 import { m } from '../i18n';
-import { EmptyNote } from '../shell/EmptyNote';
+import { EmptyNote } from '../ui/EmptyNote';
 import { changeLabel, honestyLines, rowLabel, signGlyph, signLabel } from './change-labels';
 import {
   buildChangeList,

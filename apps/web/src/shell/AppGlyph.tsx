@@ -44,7 +44,7 @@ export function HomeButton({ className }: { readonly className?: string | undefi
           data-testid="home-button"
           onClick={() => void commandRegistry.execute('view.home')}
         >
-          <AppGlyph />
+          <AppGlyph size={20} />
         </button>
       </Tooltip>
     </div>

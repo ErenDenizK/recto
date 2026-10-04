@@ -62,6 +62,7 @@ export function FileRow({
         </span>
       </button>
       <IconButton
+        size="row"
         label={m.nav_files_close({ name })}
         icon={<X />}
         tooltipSide="right"

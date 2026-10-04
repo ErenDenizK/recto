@@ -6,18 +6,18 @@
 import { m } from '../../i18n';
 import { type PagesView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument } from '../../state/workspace-store';
-import { EmptyNote } from '../EmptyNote';
+import { EmptyNote } from '../../ui/EmptyNote';
 import { OutlinePanel } from '../OutlinePanel';
 import { PagesPanel } from '../PagesPanel';
 import styles from './PagesTab.module.css';
-import { RadioChips } from './RadioChips';
+import { ChipGroup } from '../../ui/Chip';
 
 export function PagesTab() {
   const view = useUiStore((s) => s.pagesView);
   const setView = useUiStore((s) => s.setPagesView);
   return (
     <div className={styles.tab} data-pages-view={view}>
-      <RadioChips<PagesView>
+      <ChipGroup<PagesView>
         label={m.nav_pages_view_label()}
         className={styles.switch}
         value={view}

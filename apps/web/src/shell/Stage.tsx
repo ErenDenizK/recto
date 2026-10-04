@@ -28,7 +28,7 @@ import { documentModeOf, useUiStore, type ViewMode } from '../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
 import { Tooltip } from '../ui/Tooltip';
 import { LayoutSwitch } from '../viewer/LayoutSwitch';
-import { EmptyNote } from './EmptyNote';
+import { EmptyNote } from '../ui/EmptyNote';
 import { FloatingToolbar } from './FloatingToolbar';
 import styles from './Stage.module.css';
 import { STAGE_ID, tabDomId } from './TabBar';

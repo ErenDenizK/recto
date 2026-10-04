@@ -89,7 +89,7 @@ import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
 import { Tooltip } from '../ui/Tooltip';
-import { EmptyNote } from './EmptyNote';
+import { EmptyNote } from '../ui/EmptyNote';
 import styles from './OutlinePanel.module.css';
 import { flattenOutline, type OutlineRow, openableUrl } from './OutlinePanel.tree';
 

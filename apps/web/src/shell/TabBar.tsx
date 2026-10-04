@@ -105,7 +105,7 @@ export function TabBar() {
   };
 
   return (
-    <header className={styles.bar}>
+    <header className={styles.bar} data-bar="title">
       <HomeButton className={styles.brand} />
 
       <div className={styles.tabsRegion}>

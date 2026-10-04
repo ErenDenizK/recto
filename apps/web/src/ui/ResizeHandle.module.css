@@ -1,45 +1,97 @@
-/* A 7px hit area centred on the panel's hairline; the visible line thickens on hover. */
+/*
+ * Resize handle (09-primitives §23): an 8 px hit strip (16 px coarse) centred on the panel's
+ * hairline. The divider line turns --accent-line on hover and while dragged; a 2 × 24 px grip
+ * shows on hover and focus, and keyboard focus draws the inset ring on the grip.
+ */
 .handle {
+  --handle-w: 8px;
   position: absolute;
   top: 0;
   bottom: 0;
   z-index: 2;
-  width: 7px;
+  width: var(--handle-w);
   cursor: col-resize;
   touch-action: none;
 }
 
+@media (pointer: coarse), (any-pointer: coarse) {
+  .handle {
+    --handle-w: 16px;
+  }
+}
+
 .handle[data-direction='1'] {
-  right: -4px;
+  right: calc(var(--handle-w) / -2);
 }
 
 .handle[data-direction='-1'] {
-  left: -4px;
+  left: calc(var(--handle-w) / -2);
 }
 
+/* The divider: the panel's own hairline sits under it; this line lights it on hover. */
 .handle::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 3px;
+  left: calc(50% - 0.5px);
   width: 1px;
   background: transparent;
   transition: background-color var(--duration-fast) var(--ease-out);
 }
 
+.grip {
+  position: absolute;
+  top: calc(50% - 12px);
+  left: calc(50% - 1px);
+  width: 2px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--control-border);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
 @media (hover: hover) {
   .handle:hover::after {
-    background: var(--border-strong);
+    background: var(--accent-line);
+  }
+
+  .handle:hover .grip {
+    opacity: 1;
   }
 }
 
-.handle:active::after,
-.handle:focus-visible::after {
-  background: var(--accent);
+.handle[data-dragging]::after {
+  background: var(--accent-line);
 }
 
+.handle[data-dragging] .grip,
+.handle:focus-visible .grip {
+  opacity: 1;
+}
+
+/* The ring goes round the grip, not the full-height strip: the inset form, restated on the
+   grip (a pseudo-element of the focus rule is out of composes' reach). */
 .handle:focus-visible {
   outline: none;
   box-shadow: none;
+}
+
+.handle:focus-visible .grip {
+  left: calc(50% - 4px);
+  top: calc(50% - 15px);
+  width: 8px;
+  height: 30px;
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-in);
+  background: var(--control-border);
+  box-shadow: inset 0 0 0 4px var(--focus-dark);
+}
+
+@media (forced-colors: active) {
+  .handle:focus-visible .grip {
+    outline: 2px solid Highlight;
+    box-shadow: none;
+  }
 }

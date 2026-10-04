@@ -191,6 +191,7 @@ export function LeftRail() {
         </div>
         <div className={styles.railFooter}>
           <IconButton
+            size="row"
             label={m.keyboard_shortcuts()}
             icon={<Keyboard />}
             tooltipSide="right"

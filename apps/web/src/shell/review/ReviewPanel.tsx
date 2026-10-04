@@ -25,10 +25,10 @@ import { useActiveDocument } from '../../state/workspace-store';
 import { announce } from '../announcer';
 import { useAuthorPrompt } from '../comment-author';
 import { AuthorPrompt, CommentRow } from '../CommentsPanel';
-import { EmptyNote } from '../EmptyNote';
+import { EmptyNote } from '../../ui/EmptyNote';
 import { FieldRow, FormTools, useXfa } from '../FormsPanel';
 import { MarkRow, RedactionTools } from '../panels/RedactionsPanel';
-import { RadioChips } from '../panels/RadioChips';
+import { ChipGroup } from '../../ui/Chip';
 import {
   countItems,
   filterItems,
@@ -111,7 +111,7 @@ function FilterChips({
 }) {
   const setFilter = useUiStore((s) => s.setReviewFilter);
   return (
-    <RadioChips
+    <ChipGroup
       label={m.review_filter_label()}
       className={styles.chips}
       value={filter}

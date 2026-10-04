@@ -1,0 +1,131 @@
+/* Radio group (09-primitives §9): --control-h rows, a 16 / 20 px circle, a neutral disc. */
+.group {
+  display: grid;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* With a description the circle sits on the label's line, not between the two lines. */
+.row:has(.description) {
+  align-items: flex-start;
+  padding-block: 6px;
+}
+
+.row:has(.description) .circle {
+  margin-top: calc((var(--control-lh) - var(--check)) / 2);
+}
+
+.row[data-disabled] {
+  color: var(--text-disabled);
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.detail {
+  flex: none;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.circle {
+  --shadow-own: inset 0 0 0 1.5px var(--control-border);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--check);
+  height: var(--check);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: var(--shadow-own);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .row:hover .circle:not([data-disabled], [data-checked]) {
+    --shadow-own: inset 0 0 0 1.5px var(--control-border-hover);
+  }
+}
+
+.circle[data-checked] {
+  --shadow-own: inset 0 0 0 1.5px var(--control-on);
+  background: var(--control-on);
+}
+
+.circle[data-disabled] {
+  --shadow-own: inset 0 0 0 1.5px var(--text-disabled);
+}
+
+.circle[data-disabled][data-checked] {
+  background: var(--text-disabled);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--control-on-ink);
+  animation: select 240ms var(--ease-spring-pop);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .dot {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+@keyframes select {
+  from {
+    transform: scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .dot {
+  animation: none;
+}
+
+@media (forced-colors: active) {
+  .circle {
+    border: 1px solid ButtonBorder;
+    forced-color-adjust: none;
+    background: Canvas;
+  }
+
+  .circle[data-checked] {
+    background: Highlight;
+  }
+
+  .dot {
+    background: HighlightText;
+  }
+}

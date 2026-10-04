@@ -1,0 +1,106 @@
+/* Progress bar (09-primitives §24): a 4 px pill, neutral fill, the label above. */
+.root {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  flex: none;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.track {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--control-track);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--control-on);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 200ms var(--ease-standard);
+}
+
+:global([dir='rtl']) .fill {
+  transform-origin: right center;
+}
+
+/* Indeterminate: a 30 % segment sweeping the track. */
+.root[data-indeterminate] .fill {
+  right: auto;
+  width: 30%;
+  transform: none;
+  transition: none;
+  animation: sweep 1.4s var(--ease-standard) infinite;
+}
+
+@keyframes sweep {
+  from {
+    translate: -100% 0;
+  }
+
+  to {
+    translate: 340% 0;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Reduced motion: the segment holds still, centred, and pulses (A-9's progress exemption);
+   restated with !important over the global rule that cuts animations to one 0.01 ms run. */
+@media (prefers-reduced-motion: reduce) {
+  .root[data-indeterminate] .fill {
+    left: 35%;
+    animation: pulse 1.6s ease-in-out infinite !important;
+  }
+
+  .fill {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .root[data-indeterminate] .fill {
+  left: 35%;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@media (forced-colors: active) {
+  .track {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+
+  .fill {
+    background: Highlight;
+  }
+}
