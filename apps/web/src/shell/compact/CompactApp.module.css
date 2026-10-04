@@ -1,0 +1,29 @@
+/*
+ * The compact edition's root (ADR-0033 §2.3). These rules load with the compact chunk only,
+ * so the full edition never sees them.
+ *
+ * - The root fills the dynamic viewport (`100dvh`, which follows the phone's browser bars)
+ *   and never scrolls sideways; the reader and the Library scroll inside it.
+ * - System text scaling is respected: the compact chrome sets its type in rem, and the
+ *   reset's `text-size-adjust: none` is lifted to `100%` (no automatic inflation on rotation,
+ *   but the person's own text size applies).
+ * - No blue tap highlight (Q-14); taps show the controls' own pressed state.
+ */
+:global(:root[data-edition='compact']) {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+:global(:root[data-edition='compact']) body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.root {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--surface-0);
+  color: var(--text-primary);
+}

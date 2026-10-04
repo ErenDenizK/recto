@@ -1,0 +1,89 @@
+/*
+ * The compact reader (ADR-0033 §2.3). The scroller fills the screen; the pages sit in one
+ * column whose size is the scroll extent, inside a stage that only a gesture transforms
+ * (pinch, the settle after it and the double-tap zoom). At rest the stage has no transform
+ * (quality bar Q-2), so the pages and their text rest crisp.
+ *
+ * `touch-action: pan-x pan-y` keeps native one-finger scrolling and gives two-finger pinches
+ * to the reader (the browser would otherwise zoom the whole page).
+ */
+.reader {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--surface-0);
+}
+
+.scroller {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.scroller:focus-visible {
+  outline-offset: -2px;
+}
+
+.column {
+  position: relative;
+}
+
+.stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.page {
+  position: absolute;
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+}
+
+/* The reading layers sit over the bitmap. */
+.page :global(.page-overlays),
+.page :global(.page-overlays) > * {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * The page pill (ADR-0033 §2.3): while the chrome is hidden, "3 / 12" fades in during a
+ * scroll and out 1.5 s after it. A small solid chip, not glass (Q-5: small transient parts
+ * never blur), centred where the capsule rests, above the home indicator.
+ */
+.pill {
+  position: fixed;
+  right: 0;
+  bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  left: 0;
+  z-index: 3;
+  width: max-content;
+  height: 32px;
+  margin-inline: auto;
+  padding: 0 14px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-round);
+  background: var(--glass-solid);
+  box-shadow: var(--elevation-float);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  line-height: 30px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.pill[data-visible] {
+  opacity: 1;
+}

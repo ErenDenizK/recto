@@ -1,0 +1,100 @@
+/*
+ * The compact bottom sheet (Q-7): the panel has its final size and moves by `transform`
+ * only, following the finger while swiped (`--drawer-swipe-movement-y`); the scrim fades.
+ * The panel reaches past the bottom edge by `--bleed`, so an upward overshoot never shows
+ * a gap. Its top corners are the 10 px radius; the safe area pads its foot.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  min-height: 100dvh;
+  background: var(--scrim);
+  opacity: calc(1 - var(--drawer-swipe-progress, 0));
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.backdrop[data-swiping] {
+  transition-duration: 0ms;
+}
+
+.viewport {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet {
+  composes: glass glass-menu from global;
+  --bleed: 48px;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 640px);
+  max-height: calc(92dvh + var(--bleed));
+  margin-bottom: calc(-1 * var(--bleed));
+  padding: 0 max(env(safe-area-inset-right, 0px), 8px)
+    calc(max(env(safe-area-inset-bottom, 0px), 12px) + var(--bleed))
+    max(env(safe-area-inset-left, 0px), 8px);
+  border-width: 1px 1px 0;
+  border-radius: var(--radius-3) var(--radius-3) 0 0;
+  color: var(--text-primary);
+  outline: none;
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.sheet[data-size='tall'] {
+  height: calc(88dvh + var(--bleed));
+}
+
+.sheet[data-starting-style],
+.sheet[data-ending-style] {
+  transform: translateY(calc(100% - var(--bleed) + 2px));
+}
+
+.sheet[data-swiping] {
+  transition-duration: 0ms;
+  user-select: none;
+}
+
+.handle {
+  flex: none;
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: var(--radius-round);
+  background: var(--border-strong);
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding-left: 12px;
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
