@@ -49,6 +49,35 @@ const PNG_1PX =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 const JPEG_HEAD = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA==';
 
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/** Standard padded base64 (the package has no DOM `btoa`/`atob`). */
+function toBase64(bytes: readonly number[]): string {
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const n = ((bytes[i] ?? 0) << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0);
+    const chars = [18, 12, 6, 0].map((shift) => B64[(n >> shift) & 63] ?? 'A');
+    const kept = Math.min(4, Math.ceil(((bytes.length - i) * 4) / 3));
+    out += chars.slice(0, kept).join('') + '='.repeat(4 - kept);
+  }
+  return out;
+}
+
+function fromBase64(data: string): number[] {
+  const out: number[] = [];
+  let buffer = 0;
+  let bits = 0;
+  for (const char of data.replace(/=+$/, '')) {
+    buffer = ((buffer << 6) | B64.indexOf(char)) & 0xffffff;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out.push((buffer >> bits) & 0xff);
+    }
+  }
+  return out;
+}
+
 const STYLE: RecipeTextStyle = {
   family: 'Inter',
   size: 10,
@@ -586,6 +615,33 @@ const ERROR_CASES: readonly ErrorCase[] = [
     },
     problem: 'invalid-value',
     message: 'larger than 1048576 bytes (1 MB)',
+  },
+  {
+    name: 'a small PNG that declares a huge pixel size (a decompression bomb)',
+    mutate: (d) => {
+      // PNG_1PX with its IHDR width and height rewritten to 20000 × 20000.
+      const bytes = fromBase64(PNG_1PX);
+      for (const at of [16, 20]) bytes.splice(at, 4, 0, 0, 0x4e, 0x20);
+      const data = toBase64(bytes);
+      opts('watermark')(d).image = { type: 'image/png', data };
+    },
+    problem: 'invalid-value',
+    message:
+      'Step 8 (watermark), options.image.data: the image declares 20000 × 20000 pixels, more than 4096 × 4096',
+  },
+  {
+    name: 'a JPEG that declares a huge pixel size',
+    mutate: (d) => {
+      // SOI, an APP0 segment, then SOF0 declaring 20000 × 20000 (precision 8, 3 components).
+      const bytes = [
+        0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x4e, 0x20,
+        0x4e, 0x20, 0x03, 0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xd9, 0x00,
+      ];
+      const data = toBase64(bytes);
+      opts('watermark')(d).image = { type: 'image/jpeg', data };
+    },
+    problem: 'invalid-value',
+    message: 'the image declares 20000 × 20000 pixels, more than 4096 × 4096',
   },
   {
     name: 'a colour that is not #rrggbb',
