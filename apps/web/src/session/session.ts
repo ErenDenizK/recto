@@ -32,6 +32,7 @@ import {
 import { getEngineService } from '../engine/engine-service';
 import { forgetKept, keepRecent, onKeptRemoved, useRecentsStore } from '../files/recents';
 import { m } from '../i18n';
+import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
@@ -110,6 +111,7 @@ function placeState(tracker: ChangeTracker): PlaceState {
         page: pages.get(id) ?? 0,
         view: view === 'arrange' ? 'arrange' : 'read',
         mode: ui.documentMode[id] === 'edit' ? 'edit' : 'read',
+        ...fileFactsOf(id),
       };
     },
     changed: (id, in_ = ws) => tracker.changed(in_, id),
@@ -338,6 +340,7 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   for (const place of manifest.documents) {
     if (ws.documents[place.id] !== undefined) {
       tracker.adopt(ws, place.id, place.changed);
+      adoptFileFacts(place.id, place);
       pages.set(place.id, place.page);
     }
   }
@@ -441,6 +444,7 @@ export async function reopenFromSnapshot(
     if (result.ok) {
       const ws = useWorkspaceStore.getState().workspace;
       ctl.tracker.adopt(ws, result.documentId, result.record.place.changed);
+      adoptFileFacts(result.documentId, result.record.place);
       pages.set(result.documentId, result.record.place.page);
     } else if (result.reason !== 'failed') {
       // Gone or unreadable: the row reopens like a plain recent from now on.
