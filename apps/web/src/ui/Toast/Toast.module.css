@@ -22,10 +22,11 @@
   bottom: var(--toast-band);
   left: 0;
   z-index: 30;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--toast-gap);
+  /* One column as wide as the widest toast (360–480 px), so a stack reads as one edge. */
+  display: grid;
+  grid-template-columns: fit-content(min(480px, 100%));
+  justify-content: center;
+  row-gap: var(--toast-gap);
   padding-inline: 12px;
   pointer-events: none;
 }
@@ -57,9 +58,7 @@
   align-items: center;
   gap: var(--space-3);
   box-sizing: border-box;
-  width: max-content;
   min-width: min(360px, 100%);
-  max-width: min(480px, 100%);
   min-height: var(--toast-h);
   padding-block: calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
   padding-inline: var(--space-4) calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
@@ -69,8 +68,8 @@
   touch-action: pan-y;
 }
 
-.region[data-edition='compact'] .toast {
-  width: min(480px, 100%);
+.region[data-edition='compact'] {
+  grid-template-columns: min(480px, 100%);
 }
 
 /* A glyph only for the status kinds (FB4 §2): success, failure, system. */
@@ -162,7 +161,6 @@
   --toast-h: 40px;
   position: relative;
   min-width: min(240px, 100%);
-  max-width: min(420px, 100%);
   padding-block: 3px;
 }
 

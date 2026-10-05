@@ -7,8 +7,9 @@
  * Runs at 1440 × 900 on the desktop projects (fine), on the `tablet` project (coarse, the full
  * edition at 820 × 1180) and, for the compact edition, on `phone`. States: Home, Read, the
  * text selection bar, Edit with each of the bar's five groups, an options tier, a tool menu,
- * the Document menu, the page context menu, Arrange with its contextual bar, an annotation's
- * bar, and a dialog with its footer.
+ * the Document menu, the page context menu, Arrange with its contextual bar, the toast stack
+ * (an Undo toast and a failure toast, hovered so ✕ shows), an annotation's bar, and a dialog
+ * with its footer.
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -181,6 +182,27 @@ test.describe('the full edition', () => {
     await expect(page.locator('[role="dialog"][data-side]')).toBeVisible();
     await run.audit('the privacy popover');
     await page.keyboard.press('Escape');
+
+    // The toast stack (D0-5): "Deleted page 2 · Undo" under a failure toast, each a
+    // `[data-bar="toast"]`, the Undo toast hovered so its ✕ shows too. Last, so every state
+    // above sees the document unchanged.
+    await page.locator('[role="gridcell"][data-page-id]').nth(1).click();
+    await page.keyboard.press('Delete');
+    const chooser = page.waitForEvent('filechooser');
+    await page
+      .getByRole('button', { name: /^Open files/ })
+      .first()
+      .click();
+    await (await chooser).setFiles({
+      name: 'scan.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.7\nnot a pdf\n%%EOF\n'),
+    });
+    const toasts = page.getByRole('region', { name: 'Notifications' });
+    await expect(toasts.getByRole('group')).toHaveCount(2);
+    await toasts.getByRole('group').first().hover();
+    await run.audit('the toast stack');
+    await page.mouse.move(2, 450);
 
     for (const name of Object.keys(SKIP)) expect(run.seen, `skipped ${name}`).toContain(name);
     const held = run.report();
