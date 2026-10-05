@@ -243,6 +243,27 @@ function pushMotion(element: Element | null, direction: 1 | -1): void {
 }
 
 /**
+ * Moves Base UI's positioner, which it places with `transform: translate(x, y)`, up by `dy` px
+ * now. Base UI follows a size change of the popover on its next measure, a frame or more
+ * late, which would bob a popover anchored above the bar; placed here first, its own update
+ * then writes the same position.
+ */
+function raise(positioner: HTMLElement, dy: number): void {
+  if (Math.abs(dy) < 0.01) return;
+  const at = /translate\(\s*(-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(positioner.style.transform);
+  if (!at) return;
+  positioner.style.transform = `translate(${at[1]}px, ${Number(at[2]) - dy}px)`;
+}
+
+/** A page change in flight: the height it starts from, its motion, the positioner's hold. */
+interface ResizeState {
+  from: number;
+  motion: Motion | null;
+  /** While the height springs, the positioner keeps the larger of the two heights. */
+  held: { readonly el: HTMLElement; readonly height: number } | null;
+}
+
+/**
  * The preset editor (10-ink §6), one popover with two pages:
  *
  * - **Preset**: "Edit black pen" and ✕; the colour well, then six swatches
@@ -256,7 +277,9 @@ function pushMotion(element: Element | null, direction: 1 | -1): void {
  * The popover keeps its anchor while its page changes. Its own height follows the new page on
  * the smooth spring through the motion core (`animateStyle`, Q-6's rule for a glass shape:
  * its own geometry, nothing clipped or scaled), while the new page slides in (*sheet push*);
- * reduced motion sets the height at once and only fades. Both pages share the colour panel's
+ * reduced motion sets the height at once and only fades. Above the bar its bottom edge stays
+ * where it is: for the spring the positioner holds the larger height with the popover at its
+ * foot (`raise`), so Base UI need not chase the size frame by frame. Both pages share the colour panel's
  * column and its slider columns (`SliderSizer`), so every label, track and readout sits on the
  * same lines on either page. Focus goes to ‹ Back on the way in and to the well on the way out.
  */
@@ -282,7 +305,7 @@ function PresetEditor({
   const [pushes, setPushes] = useState(0);
   const popupRef = useRef<HTMLDivElement>(null);
   const wellRef = useRef<HTMLButtonElement>(null);
-  const resize = useRef<{ from: number; motion: Motion | null }>({ from: -1, motion: null });
+  const resize = useRef<ResizeState>({ from: -1, motion: null, held: null });
   const colourTitleId = useId();
 
   const title = presetEditorTitle(i, preset);
@@ -324,14 +347,27 @@ function PresetEditor({
     const from = state.from;
     state.from = -1;
     if (!popup || from < 0) return;
+    // Above the bar the popover grows and shrinks from its bottom edge, which stays put.
+    const positioner = popup.parentElement;
+    const pinned = positioner?.dataset.side === 'top' ? positioner : null;
+    const held = state.held?.el === pinned ? state.held : null;
     const running = state.motion?.stop();
     state.motion = null;
     popup.style.removeProperty('height');
     const to = popup.getBoundingClientRect().height;
+    const start = running?.value ?? from;
+    // The height the positioner is placed for now: what it holds, else the page that left.
+    const placed = held?.height ?? from;
     pushMotion(popup.querySelector(`[data-editor-page="${page}"]`), page === 'colour' ? 1 : -1);
-    if (Math.abs(to - from) >= 1 && !reducedMotion()) {
+    if (Math.abs(to - start) >= 1 && !reducedMotion()) {
+      if (pinned) {
+        const hold = Math.max(start, to);
+        raise(pinned, hold - placed);
+        pinned.style.height = `${hold}px`;
+        state.held = { el: pinned, height: hold };
+      }
       popup.setAttribute('data-resizing', '');
-      const motion = animateStyle(popup, 'height', running?.value ?? from, to, {
+      const motion = animateStyle(popup, 'height', start, to, {
         spring: 'smooth',
         ...(running ? { velocity: running.velocity } : {}),
       });
@@ -340,9 +376,19 @@ function PresetEditor({
         if (state.motion !== motion) return;
         state.motion = null;
         popup.removeAttribute('data-resizing');
+        const hold = state.held;
+        state.held = null;
+        if (!hold) return;
+        raise(hold.el, to - hold.height);
+        hold.el.style.removeProperty('height');
       });
     } else {
       popup.removeAttribute('data-resizing');
+      state.held = null;
+      if (pinned) {
+        raise(pinned, to - placed);
+        pinned.style.removeProperty('height');
+      }
     }
     // Focus follows the page when it was on the page that left.
     const active = document.activeElement;
@@ -373,6 +419,7 @@ function PresetEditor({
         align="center"
         sideOffset={12}
         className={styles.editor}
+        positionerClassName={styles.editorPositioner}
         data-annotation-keep=""
         data-testid="pen-preset-editor"
         data-page={page}

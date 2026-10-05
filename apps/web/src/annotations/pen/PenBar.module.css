@@ -123,6 +123,20 @@
   }
 }
 
+/* The positioner holds the larger height while the popover's own springs (PenBar.tsx); the
+   popover sits at its foot, by the bar. */
+.editorPositioner {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.editor {
+  flex: none;
+  pointer-events: auto;
+}
+
 .editor[data-resizing] {
   overflow: hidden;
 }

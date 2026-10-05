@@ -413,10 +413,10 @@
 }
 
 .notch {
-  /* Small and set on the ring itself at 45° (its centre on the knob's edge), the ring's own
-     white with the ring's hairline and no shadow of its own: a mark of the knob, not a badge
-     on it, which an 8 px "−" disc floating off the corner read as (XD-3 finding 3). */
-  --sl-notch: 7px;
+  /* Small and set on the ring itself at 45° (its centre on the knob's edge), in the ring's own
+     white with no hairline or shadow of its own, so it merges with the ring: a mark of the
+     knob, not a badge on it, as the 9 px "−" disc off the corner read (XD-3 finding 3). */
+  --sl-notch: 6px;
   --sl-notch-at: calc((var(--sl-stroke) + 4px) * 0.1464 - var(--sl-notch) / 2);
 
   position: absolute;
@@ -428,12 +428,11 @@
   height: var(--sl-notch);
   border-radius: 50%;
   background: var(--sl-knob-white);
-  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.2);
 }
 
 .notch svg {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   stroke: #4f535a;
   stroke-width: 1.4;
   stroke-linecap: round;
