@@ -14,14 +14,22 @@
  *   its handles and keyboard box, the Highlighter's announcement, Recents on Home, Glass
  *   panels and Reduce transparency, one state in Turkish; no Tab stop is ever hidden; the new
  *   surfaces neither move nor rise under reduced motion and turn solid under Reduce
- *   transparency.
+ *   transparency;
+ * - D0's sheets and toasts (spec redesign §8, blocking from D0): F6 reaches the toast region and
+ *   a modal sheet holds focus and gives it back, with no focus ever on an invisible element
+ *   (A-13); one announcer, the toast region and the sheets silent, a toast said once (A-14);
+ *   targets of 24 px or spaced on a fine pointer and 44 px on a coarse one, never overlapping,
+ *   in every D0 floating surface (A-15). A-24's hold on hover is in toasts.spec.ts, its hold on
+ *   focus and the 10 s floor in the toast region's and store's unit suites.
  */
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { expect, type Locator, type Page, test } from '@playwright/test';
+import { devices, expect, type Locator, type Page, test } from '@playwright/test';
 
 import { enterEdit, fixturePath, openFixtures, showInspector, useFileInputPicker } from './helpers';
+import { settleAnimations } from './support/glass-walker';
+import { auditTargets } from './support/targets';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'One engine for axe and the keys');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -1257,4 +1265,285 @@ test('reduced motion: the new surfaces neither move nor rise', async ({ page }) 
   await expect(header).toBeVisible({ timeout: 20_000 });
   await still('the paragraph editor header', header);
   expect(await longestScripted(page)).toBeLessThanOrEqual(NONE_MS);
+});
+
+// ---------------------------------------------------------------------------
+// D0: sheets and toasts (spec redesign §8: A-13, A-14, A-15, A-24 blocking from D0)
+// ---------------------------------------------------------------------------
+
+/**
+ * Before the app loads: records every focus that lands on an element the person cannot see
+ * (A-13: `checkVisibility` with opacity and visibility false) and is still unseen once the
+ * entrances running then have finished, so a control focused on the first frame of a popup's
+ * fade (opacity rising from 0) does not count, and one left behind a hidden surface does.
+ */
+async function recordInvisibleFocus(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const found: string[] = [];
+    (window as unknown as { __invisibleFocus: string[] }).__invisibleFocus = found;
+    const seen = (el: Element) =>
+      el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+    const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    document.addEventListener(
+      'focusin',
+      (event) => {
+        const el = event.target;
+        if (!(el instanceof Element) || el === document.body || seen(el)) return;
+        void (async () => {
+          // A starting style holds for a frame before its transition runs.
+          await frame();
+          await frame();
+          await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null)));
+          await frame();
+          if (document.activeElement !== el || seen(el)) return;
+          const label = el.getAttribute('aria-label') ?? el.textContent?.trim().slice(0, 30);
+          found.push(`${el.tagName.toLowerCase()} "${label ?? ''}"`);
+        })();
+      },
+      true,
+    );
+  });
+}
+
+const invisibleFocus = (page: Page): Promise<string[]> =>
+  page.evaluate(() => (window as unknown as { __invisibleFocus: string[] }).__invisibleFocus);
+
+/** Deletes page 2 in Arrange, so "Deleted page 2 · Undo" shows. */
+async function deleteSecondPage(page: Page): Promise<Locator> {
+  await page.keyboard.press('3');
+  const cells = page.locator('[role="gridcell"][data-page-id]');
+  await expect(cells).toHaveCount(3);
+  await cells.nth(1).click();
+  await page.keyboard.press('Delete');
+  await expect(cells).toHaveCount(2);
+  const toast = page.getByRole('group', { name: 'Deleted page 2' });
+  await expect(toast).toBeVisible();
+  return toast;
+}
+
+async function openSettings(page: Page): Promise<Locator> {
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByRole('combobox').first().fill('Settings');
+  await page
+    .getByRole('option', { name: /^Settings…/ })
+    .first()
+    .click();
+  const settings = page.getByTestId('settings-sheet');
+  await expect(settings).toBeVisible();
+  return settings;
+}
+
+test.describe('D0 sheets and toasts', () => {
+  test('A-13: F6 reaches the toasts; a modal sheet holds focus and gives it back; focus is never invisible', async ({
+    page,
+  }) => {
+    await recordInvisibleFocus(page);
+    await openSimple(page);
+    const toast = await deleteSecondPage(page);
+
+    // F6 from the title bar comes round to the toast region, the cycle's last stop (X9),
+    // landing on the newest toast's action; Shift+F6 leaves it.
+    await page.getByRole('tab', { name: 'simple-text' }).focus();
+    for (let i = 0; i < 8 && !(await holdsFocus(toast)); i++) await page.keyboard.press('F6');
+    await expect(toast.getByRole('button', { name: 'Undo' })).toBeFocused();
+    await page.keyboard.press('Shift+F6');
+    expect(await holdsFocus(toast)).toBe(false);
+
+    // A modal sheet sits outside the cycle (X9): F6 and Tab stay inside it, Esc closes it and
+    // focus goes back to the control that opened it.
+    const opener = page.getByRole('button', { name: 'Save a copy', exact: true });
+    await opener.click();
+    const sheet = page.getByTestId('save-copy-sheet');
+    await expect(sheet).toBeVisible();
+    await expect.poll(() => holdsFocus(sheet)).toBe(true);
+    for (let i = 0; i < 3; i++) {
+      await page.keyboard.press('F6');
+      await expect.poll(() => holdsFocus(sheet), `F6 ${i + 1} in Save a copy`).toBe(true);
+    }
+    for (let i = 0; i < 24; i++) {
+      await page.keyboard.press('Tab');
+      // Past the last control, Tab lands on the trap's guard, which hands focus to the first
+      // control in the next frame: the cycle never leaves the sheet.
+      await expect.poll(() => holdsFocus(sheet), `Tab ${i + 1} in Save a copy`).toBe(true);
+    }
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await expect(opener).toBeFocused();
+
+    const settings = await openSettings(page);
+    await expect.poll(() => holdsFocus(settings)).toBe(true);
+    await page.keyboard.press('F6');
+    await expect.poll(() => holdsFocus(settings)).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(settings).toHaveCount(0);
+
+    // The toast is still there (it paused while the sheets were open) and still reachable.
+    await expect(toast).toBeVisible();
+    await page.getByRole('tab', { name: 'simple-text' }).focus();
+    await page.keyboard.press('Shift+F6');
+    await expect(toast.getByRole('button', { name: 'Undo' })).toBeFocused();
+
+    expect(await invisibleFocus(page)).toEqual([]);
+  });
+
+  test('A-14: one announcer; the toast region and the sheets are silent; a toast is said once', async ({
+    page,
+  }) => {
+    const regions = () =>
+      page.evaluate(() => {
+        const live =
+          '[aria-live]:not([aria-live="off"]), [role="status"], [role="alert"], [role="log"]';
+        const polite = document.querySelectorAll(
+          'div.visually-hidden[role="status"][aria-live="polite"]',
+        ).length;
+        const assertive = document.querySelectorAll(
+          'div.visually-hidden[aria-live="assertive"]',
+        ).length;
+        const toasts = document.querySelector('[data-region="toasts"]');
+        const sheet = document.querySelector('[data-sheet]');
+        return {
+          polite,
+          assertive,
+          toastRegionLive: toasts ? toasts.matches(live) || !!toasts.querySelector(live) : false,
+          sheetLive: sheet ? sheet.matches(live) : false,
+        };
+      });
+    const one = { polite: 1, assertive: 1, toastRegionLive: false, sheetLive: false };
+
+    await page.goto('./?lang=en');
+    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+    expect(await regions(), 'Home').toEqual(one);
+    await openFixtures(page, ['simple-text.pdf']);
+    await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+      timeout: 20_000,
+    });
+    expect(await regions(), 'a document').toEqual(one);
+
+    // Every change of the polite region, from just before the delete.
+    await page.keyboard.press('3');
+    await page.locator('[role="gridcell"][data-page-id]').nth(1).click();
+    await page.evaluate(() => {
+      const said: string[] = [];
+      (window as unknown as { __said: string[] }).__said = said;
+      const region = document.querySelector('div.visually-hidden[role="status"]');
+      if (!region) throw new Error('no polite region');
+      new MutationObserver(() => {
+        const text = region.textContent?.trim() ?? '';
+        if (text) said.push(text);
+      }).observe(region, { childList: true, subtree: true, characterData: true });
+    });
+    await page.keyboard.press('Delete');
+    const toast = page.getByRole('group', { name: 'Deleted page 2' });
+    await expect(toast).toBeVisible();
+    await page.waitForFunction(() =>
+      document.getAnimations().every((a) => a.playState !== 'running'),
+    );
+    const said = await page.evaluate(() => (window as unknown as { __said: string[] }).__said);
+    // Spoken equals shown, once (FB10 §6): the toast's sentence, with the F6 hint the first time.
+    expect(said.filter((text) => text.includes('Deleted page 2'))).toHaveLength(1);
+    expect(await regions(), 'a toast').toEqual(one);
+
+    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
+    expect(await regions(), 'Save a copy').toEqual(one);
+    await page.keyboard.press('Escape');
+    await openSettings(page);
+    expect(await regions(), 'Settings').toEqual(one);
+    await page.keyboard.press('Escape');
+  });
+
+  /** The D0 floating surfaces, opened one by one, each audited for `min` px targets. */
+  async function auditD0Targets(page: Page, min: 24 | 44): Promise<string[]> {
+    const lines: string[] = [];
+    const audit = async (state: string, surface: Locator) => {
+      // Entrances scale from 0.96: measure the surface at rest.
+      await settleAnimations(page);
+      const { count, findings } = await auditTargets(surface, min);
+      if (count === 0) lines.push(`${state}: no targets found`);
+      for (const f of findings) {
+        lines.push(`${state} · ${f.target}: ${f.problem}`);
+      }
+    };
+    await page.goto('./?lang=en');
+    await openFixtures(page, ['simple-text.pdf']);
+    await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+      timeout: 20_000,
+    });
+
+    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    const saveCopy = page.getByTestId('save-copy-sheet');
+    await expect(saveCopy).toBeVisible();
+    await audit('Save a copy', saveCopy);
+    await page.keyboard.press('Escape');
+    await expect(saveCopy).toHaveCount(0);
+
+    const settings = await openSettings(page);
+    await audit('Settings', settings);
+    await settings.getByRole('button', { name: /About Recto/ }).click();
+    await expect(settings.getByTestId('settings-about')).toBeVisible();
+    await audit('Settings, About Recto', settings);
+    await page.keyboard.press('Escape');
+    await expect(settings).toHaveCount(0);
+
+    await page.locator('body').press('?');
+    const shortcuts = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+    await expect(shortcuts).toBeVisible();
+    await audit('the shortcuts overlay', shortcuts);
+    await page.keyboard.press('Escape');
+    await expect(shortcuts).toHaveCount(0);
+
+    // The toast stack: "Deleted page 2 · Undo" over a failure, the Undo toast hovered (✕).
+    const toast = await deleteSecondPage(page);
+    const chooser = page.waitForEvent('filechooser');
+    await page
+      .getByRole('button', { name: /^Open files/ })
+      .first()
+      .click();
+    await (await chooser).setFiles({
+      name: 'scan.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.7\nnot a pdf\n%%EOF\n'),
+    });
+    const region = page.getByRole('region', { name: 'Notifications' });
+    await expect(region.getByRole('group')).toHaveCount(2);
+    await toast.hover();
+    await audit('the toast stack', region);
+    await page.mouse.move(2, 450);
+
+    // The History scrubber under ↶.
+    await page.getByTestId('undo-button').click({ button: 'right' });
+    const scrubber = page.getByTestId('history-scrubber');
+    await expect(scrubber).toBeVisible();
+    await audit('the History scrubber', scrubber);
+    await page.keyboard.press('Escape');
+    return lines;
+  }
+
+  test('A-15: targets of 24 px or spaced with a fine pointer, 44 px with a coarse one', async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(90_000);
+    expect(await auditD0Targets(page, 24), 'fine, 1440 × 900').toEqual([]);
+
+    // The same surfaces on a tablet (coarse, the full edition at 820 × 1180).
+    const size = { width: 820, height: 1180 };
+    const tablet = await browser.newContext({
+      ...devices['Galaxy Tab S4'],
+      baseURL: test.info().project.use.baseURL ?? '',
+      viewport: size,
+      screen: size,
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+    });
+    const touch = await tablet.newPage();
+    try {
+      await useFileInputPicker(touch);
+      expect(await touch.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+      expect(await auditD0Targets(touch, 44), 'coarse, 820 × 1180').toEqual([]);
+    } finally {
+      await tablet.close();
+    }
+  });
 });
