@@ -11,6 +11,8 @@ import { useCallback } from 'react';
 
 /** Sub-pixel slack, so a list scrolled to its end does not still read as "more". */
 const EDGE_SLACK = 1;
+/** The faded edge (TabBar.module.css, also the list's `scroll-padding-inline`), CSS px. */
+const EDGE_FADE = 24;
 
 function markEdges(list: HTMLElement): void {
   const max = list.scrollWidth - list.clientWidth;
@@ -26,8 +28,11 @@ function revealActive(list: HTMLElement): void {
   if (!tab) return;
   const box = tab.getBoundingClientRect();
   const view = list.getBoundingClientRect();
-  if (box.left < view.left) list.scrollLeft -= view.left - box.left;
-  else if (box.right > view.right) list.scrollLeft += box.right - view.right;
+  // Clear of the faded edges where the list is wide enough, as `scroll-padding-inline` does
+  // for the activation's scrollIntoView.
+  const fade = Math.min(EDGE_FADE, Math.max(0, (view.width - box.width) / 2));
+  if (box.left < view.left + fade) list.scrollLeft -= view.left + fade - box.left;
+  else if (box.right > view.right - fade) list.scrollLeft += box.right - (view.right - fade);
 }
 
 /** A ref callback for the `tablist`: wires the edge marks and the resize reveal. */
