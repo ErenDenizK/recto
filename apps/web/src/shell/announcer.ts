@@ -13,8 +13,9 @@
  *
  * FB10 §6 adds three timing rules:
  * - **Key window.** A keyed message said within 250 ms of the last one of its key (in a later
- *   task) replaces it: it waits out the rest of the window and only the newest is said, so a
- *   key held down or a burst of progress says one thing, not a stutter.
+ *   task) replaces it in place: the live region's text changes without a new announcement
+ *   node, so a key held down or a burst of progress reads as one changing message rather
+ *   than a queue of them. It is written at once, so what is said never lags the screen.
  * - **Debounce.** `debounceMs` holds a keyed message until that long after the last call with
  *   its key (the palette's result count, 500 ms after the last key press); the newest wins.
  * - **Clear.** Polite text clears 10 s after it was said, so a later identical message is a
@@ -71,7 +72,10 @@ const lastSaid: Record<Politeness, Map<string, number>> = {
   assertive: new Map(),
 };
 
-/** Keyed messages waiting for their window or debounce, by politeness and key. */
+/** The key of the message each channel said last (the key window replaces only that one). */
+const lastKey: Record<Politeness, string | undefined> = { polite: undefined, assertive: undefined };
+
+/** Keyed messages waiting for their debounce, by politeness and key. */
 const held = new Map<string, { timer: ReturnType<typeof setTimeout>; text: string }>();
 
 let clearTimer: ReturnType<typeof setTimeout> | undefined;
@@ -85,7 +89,12 @@ function joined(items: readonly Said[]): string {
 }
 
 /** Puts `message` in this task's batch of `politeness` and writes the joined text. */
-function say(message: string, politeness: Politeness, key: string | undefined): void {
+function say(
+  message: string,
+  politeness: Politeness,
+  key: string | undefined,
+  inPlace = false,
+): void {
   let batch = batches[politeness];
   if (batch === null) {
     batch = [];
@@ -95,16 +104,19 @@ function say(message: string, politeness: Politeness, key: string | undefined): 
     });
   }
   if (key !== undefined) lastSaid[politeness].set(key, Date.now());
+  lastKey[politeness] = key;
   const replaced = key === undefined ? -1 : batch.findIndex((item) => item.key === key);
   if (replaced >= 0) batch.splice(replaced, 1);
   // Said once: the same words again in the same task add nothing.
   if (!batch.some((item) => item.text === message)) batch.push({ key, text: message });
   const text = joined(batch);
+  // In place (the key window): the same announcement node takes the new words.
+  const bump = inPlace ? 0 : 1;
   if (politeness === 'assertive') {
-    useAnnouncer.setState((s) => ({ alert: text, alertSerial: s.alertSerial + 1 }));
+    useAnnouncer.setState((s) => ({ alert: text, alertSerial: s.alertSerial + bump }));
     return;
   }
-  useAnnouncer.setState((s) => ({ message: text, serial: s.serial + 1 }));
+  useAnnouncer.setState((s) => ({ message: text, serial: s.serial + bump }));
   if (clearTimer !== undefined) clearTimeout(clearTimer);
   const serial = useAnnouncer.getState().serial;
   clearTimer = setTimeout(() => {
@@ -124,25 +136,28 @@ export function announce(message: string, options: AnnounceOptions = {}): void {
   const slot = `${politeness}:${key}`;
   const pending = held.get(slot);
   if (pending !== undefined) clearTimeout(pending.timer);
+  held.delete(slot);
+  const debounce = options.debounceMs ?? 0;
+  if (debounce > 0) {
+    held.set(slot, {
+      text: message,
+      timer: setTimeout(() => {
+        held.delete(slot);
+        sayKeyed(message, politeness, key);
+      }, debounce),
+    });
+    return;
+  }
+  sayKeyed(message, politeness, key);
+}
+
+/** A keyed message: in place when the last of its key was said within the window. */
+function sayKeyed(message: string, politeness: Politeness, key: string): void {
   // In the same task the batch replaces by key already.
   const inTask = batches[politeness]?.some((item) => item.key === key) === true;
   const since = Date.now() - (lastSaid[politeness].get(key) ?? Number.NEGATIVE_INFINITY);
-  const wait = Math.max(
-    options.debounceMs ?? 0,
-    inTask || since >= KEY_WINDOW_MS ? 0 : KEY_WINDOW_MS - since,
-  );
-  if (wait <= 0) {
-    held.delete(slot);
-    say(message, politeness, key);
-    return;
-  }
-  held.set(slot, {
-    text: message,
-    timer: setTimeout(() => {
-      held.delete(slot);
-      say(message, politeness, key);
-    }, wait),
-  });
+  const latestIsKey = lastKey[politeness] === key;
+  say(message, politeness, key, !inTask && latestIsKey && since < KEY_WINDOW_MS);
 }
 
 /** Forgets every held message, key time and the clear timer (tests). */
@@ -151,6 +166,8 @@ export function resetAnnouncer(): void {
   held.clear();
   lastSaid.polite.clear();
   lastSaid.assertive.clear();
+  lastKey.polite = undefined;
+  lastKey.assertive = undefined;
   if (clearTimer !== undefined) clearTimeout(clearTimer);
   clearTimer = undefined;
   batches.polite = null;

@@ -65,22 +65,25 @@ describe('announce timing (FB10 §6)', () => {
     vi.useRealTimers();
   });
 
-  it('lets a keyed message within 250 ms replace the last of its key: only the newest is said', async () => {
+  it('lets a keyed message within 250 ms replace the last of its key in place', async () => {
     announce('Recognizing text, 1 of 12 pages', { key: 'job' });
     expect(useAnnouncer.getState()).toMatchObject({ serial: 1 });
     await tick();
     vi.advanceTimersByTime(100);
     announce('Recognizing text, 2 of 12 pages', { key: 'job' });
-    announce('Recognizing text, 3 of 12 pages', { key: 'job' });
-    // Held until the window ends; the middle one never speaks.
+    // The same announcement node takes the new words (no new serial), at once.
     expect(useAnnouncer.getState()).toMatchObject({
-      message: 'Recognizing text, 1 of 12 pages',
+      message: 'Recognizing text, 2 of 12 pages',
       serial: 1,
     });
-    vi.advanceTimersByTime(KEY_WINDOW_MS - 100);
+    await tick();
+    // Another message in between: the next keyed one is a new announcement again.
+    announce('Opened report');
+    await tick();
+    announce('Recognizing text, 3 of 12 pages', { key: 'job' });
     expect(useAnnouncer.getState()).toMatchObject({
       message: 'Recognizing text, 3 of 12 pages',
-      serial: 2,
+      serial: 3,
     });
   });
 
