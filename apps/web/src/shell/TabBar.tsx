@@ -33,7 +33,6 @@ import { Keycaps } from '../ui/Keycaps';
 import { HomeButton } from './AppGlyph';
 import { announce } from './announcer';
 import { ReplacePopover } from './frame/ReplacePopover';
-import { RevertDialog } from './frame/RevertDialog';
 import { SaveButton } from './frame/SaveButton';
 import { UndoRedo } from './frame/UndoRedo';
 import styles from './TabBar.module.css';
@@ -248,7 +247,6 @@ export function TabBar() {
       </div>
       <FurnitureDialogs />
       <ReplacePopover />
-      <RevertDialog />
     </header>
   );
 }

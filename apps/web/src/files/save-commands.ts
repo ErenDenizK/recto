@@ -9,25 +9,19 @@
  * as". Save is available in Read mode (spec 0032.3). It is not offered on the Library (01-frame
  * §4), where the Save button is not shown either.
  */
-import { type DocumentId, getActiveDocument } from '@pdf-editor/document-model';
-import { create } from 'zustand';
+import { getActiveDocument } from '@pdf-editor/document-model';
 
 import type { CommandRegistry } from '../commands/registry';
 import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { revertAvailability } from './revert';
+import { askToRevert, revertAvailability } from './revert';
 import { saveDocument } from './save';
 
 const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().workspace);
 /** Where the Save button shows: anywhere but the Library (01-frame §4). */
 const saveShown = () =>
   useUiStore.getState().destination !== 'home' && (activeDocument()?.pages.length ?? 0) > 0;
-
-/** Which document the Revert confirmation is open for (null: closed). */
-export const useRevertDialogStore = create<{ readonly documentId: DocumentId | null }>()(() => ({
-  documentId: null,
-}));
 
 export function registerSaveCommands(registry: CommandRegistry): () => void {
   const disposers = [
@@ -57,7 +51,7 @@ export function registerSaveCommands(registry: CommandRegistry): () => void {
       },
       run: () => {
         const doc = activeDocument();
-        if (doc) useRevertDialogStore.setState({ documentId: doc.id });
+        if (doc) void askToRevert(doc.id);
       },
     }),
   ];
