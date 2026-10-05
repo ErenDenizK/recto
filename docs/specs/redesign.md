@@ -900,6 +900,28 @@ session. D3-1 and D3-10 may start during D2; the rest of D3 follows D2-1, and XD
 session closes before D3 starts. D4-1 to D4-4 follow D3; D4-5 to D4-8, D4-10 and D4-11 follow
 the UI freeze, D4-7, D4-8 and D4-10 also the owner's brand kit. M10 (the phone edition) follows M9.
 
+**Reorder of 2026-10-05 (owner: presentable first).** The owner asked for the whole new UI/UX
+(layout, look, motion, core use) to be finished and presentable before rarely used features; those
+follow as updates. The foundations they need are in: D0, D1-1 (state model) and D1-2 (`canChange`,
+`lock-store`, `act` on every command). From here:
+
+1. **V1, core use:** D1-5 (input rules) and D1-9 (navigator safety) finish; D0's deploy.
+2. **V2, the look and the shell, built once in the final language.** D3-2 (tokens and colour),
+   D3-5 (type) and D3-6 (icons) move ahead of D2-1 so the shell is built in Recto's language
+   rather than re-skinned after; then D2-1 (frame), D2-2 (capsule and dock), D2-3 (Markup palette
+   and the ink strip), D2-4 (sidebar), D2-5 (Pages grid), D2-10 (done), D3-3 (materials), D3-4
+   (motion tokens), D3-7 (light theme), D2-9 (inspector removal), a lean D2-7 (key map), D4-1
+   (Library), D4-2 (sample) and D4-4 (polish). D3-8 (aurora) waits for the brand kit's mint stop.
+   The remaining dialogs move to sheets inside D2-x as each area is rebuilt (the presentation half
+   of D1-8).
+3. **Updates after V2:** D1-3 (lock at commit), D1-4 (the Lock UI beyond the title menu's switch,
+   which D2-1 keeps), D1-6 (targeted acts beyond today's selection bar), the act half of D1-8,
+   D2-6 (Compare as a place), D2-8 (⌘K v2), D3-9 (CI gates beyond today's), D4-3, D4-5 to D4-11.
+
+No package is dropped; the slots these later features use (title menu, sheet primaries, the
+guard's reasons) are kept by V2, so adding them later does not move the layout. At most three
+implementers run at once, so the work flows without stopping on usage limits.
+
 **Counts:** D0 15 packages, D1 10, D2 11, D3 9, D4 11; 56 in all, plus 4 across drops.
 
 ## 12. Drops
