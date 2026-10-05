@@ -116,6 +116,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:ui:tool-styles:v2',
       'pdf-editor:ui:v1',
       'pdf-editor:ui:v2',
+      // The panel layout in the redesign's shape (state/ui-store.ts, redesign spec §7, X26).
+      'pdf-editor:ui:v3',
       'pdf-editor:viewer:positions:v1',
     ]);
   });
