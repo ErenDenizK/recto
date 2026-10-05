@@ -137,6 +137,25 @@ describe('the region', () => {
     expect(useToastStore.getState().shown[0]?.remaining).toBeLessThanOrEqual(ACTION_MS);
   });
 
+  it('holds the timer while focus is inside it (A-24) and runs on when focus leaves', async () => {
+    render(<Shell />);
+    act(() => {
+      toast.action('Deleted page 7', { label: 'Undo', run: () => undefined });
+    });
+    await screen.findByRole('group', { name: 'Deleted page 7' });
+    const viewport = document.querySelector<HTMLElement>('[data-read-viewport]');
+    viewport?.focus();
+    await userEvent.keyboard('{F6}');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Undo' }));
+    expect(useToastStore.getState().paused.has('focus')).toBe(true);
+    expect(useToastStore.getState().shown[0]?.runningSince).toBeNull();
+    // Up and Down between toasts keep the hold; leaving the region lets go.
+    await userEvent.keyboard('{Shift>}{F6}{/Shift}');
+    expect(region().contains(document.activeElement)).toBe(false);
+    expect(useToastStore.getState().paused.has('focus')).toBe(false);
+    expect(useToastStore.getState().shown[0]?.remaining).toBeLessThanOrEqual(ACTION_MS);
+  });
+
   it('dismisses with ✕; a leaving toast is inert from its first frame (A-13)', async () => {
     render(<Shell />);
     act(() => {

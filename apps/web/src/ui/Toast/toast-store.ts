@@ -92,10 +92,15 @@ export const useToastStore = create<ToastState>()(() => EMPTY);
 
 const get = () => useToastStore.getState();
 
-/** How long a toast of `kind` with `text` stays (FB4 §2; 08.Q1), or null until dismissed. */
+/**
+ * How long a toast of `kind` with `text` stays (FB4 §2; 08.Q1), or null until dismissed. A
+ * toast with an action stays at least 10 s whatever its kind (A-24), so an info toast given one
+ * through its options waits as long as an action toast.
+ */
 export function toastDuration(kind: ToastKind, text: string, hasAction: boolean): number | null {
   switch (kind) {
     case 'info': {
+      if (hasAction) return ACTION_MS;
       const extra = Math.max(0, Math.ceil((text.length - 60) / 30)) * 1_000;
       return Math.min(INFO_MAX_MS, INFO_MS + extra);
     }
