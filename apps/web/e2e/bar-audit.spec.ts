@@ -12,11 +12,16 @@
  * shows), an annotation's bar, a dialog with its footer, the Save a copy sheet's header and
  * footer (D0-9), the sheets of D0-4 (the shortcuts overlay's header, the password prompt's
  * footer) and the Settings sheet of D0-10 (its header and control rows, and the About Recto page).
+ *
+ * Every state is also swept for browser defaults (quality-bar Q-14, e2e/support/native-leaks.ts):
+ * the tap highlight, native selects, number spinners and native boxes; and Tab walks Home, Read,
+ * Save a copy, Settings and the compact reader for the browser's own focus ring.
  */
 import { expect, type Page, test } from '@playwright/test';
 
 import { enterEdit, fixturePath, openFixtures, useFileInputPicker } from './helpers';
 import { auditBars, type BarFinding, type ControlKind } from './support/bar-audit';
+import { focusStops, type Leak, nativeLeaks } from './support/native-leaks';
 
 const COMPACT = 'phone';
 const FULL_EDITION_ONLY = new Set(['phone', 'phone-land']);
@@ -43,6 +48,7 @@ async function density(page: Page): Promise<32 | 44> {
 /** Collects every state's findings; the test fails once, at the end, with all of them. */
 function collector(page: Page) {
   const findings: BarFinding[] = [];
+  const leaks: Leak[] = [];
   const seen = new Set<string>();
   return {
     async audit(state: string) {
@@ -51,9 +57,12 @@ function collector(page: Page) {
       const result = await auditBars(page, state, { height: await density(page), skip: SKIP });
       findings.push(...result.findings);
       for (const name of result.containers) seen.add(name);
+      // Q-14: no tap highlight, native select, number spinner or native box in the state.
+      leaks.push(...(await nativeLeaks(page, state)));
       return result;
     },
     report() {
+      expect(leaks.map((l) => `${l.state}: ${l.problem}`)).toEqual([]);
       const held = findings.filter((f) => PENDING[f.kind] !== undefined);
       expect(
         findings
@@ -266,6 +275,44 @@ test.describe('the full edition', () => {
     run.report();
   });
 
+  test('Q-14: no Tab stop shows the browser’s focus ring', async ({ page }) => {
+    const leaks: Leak[] = [];
+    /** Tab from where focus is now (a sheet's), or from `from` first. */
+    const tab = async (state: string, from?: () => Promise<void>) => {
+      if (from) await from();
+      const result = await focusStops(page, state);
+      expect(result.stops, `Tab stops in ${state}`).toBeGreaterThan(0);
+      leaks.push(...result.leaks);
+    };
+    await page.goto('./?lang=en');
+    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+    await tab('Home', () => page.locator('body').focus());
+
+    await openFixtures(page, ['simple-text.pdf']);
+    await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+      timeout: 20_000,
+    });
+    await tab('Read', () => page.locator('body').focus());
+
+    // The two D0 sheets, whose Tab cycles are trapped.
+    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
+    await tab('the Save a copy sheet');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.getByRole('combobox').first().fill('Settings');
+    await page
+      .getByRole('option', { name: /^Settings…/ })
+      .first()
+      .click();
+    await expect(page.getByTestId('settings-sheet')).toBeVisible();
+    await tab('the Settings sheet');
+    await page.keyboard.press('Escape');
+
+    expect(leaks.map((l) => `${l.state}: ${l.problem}`)).toEqual([]);
+  });
+
   test('an annotation’s bar', async ({ page }) => {
     const run = collector(page);
     await openFull(page, 'annotations.pdf');
@@ -314,6 +361,14 @@ test.describe('the compact edition', () => {
     await page.getByTestId('compact-capsule').getByRole('button', { name: 'Pages' }).click();
     await expect(page.getByTestId('compact-pages-sheet')).toBeVisible();
     await run.audit('compact Pages sheet');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('compact-pages-sheet')).toHaveCount(0);
+
+    // Q-14: the reader's Tab stops (a keyboard on a phone) show no browser focus ring.
+    await page.locator('body').focus();
+    const stops = await focusStops(page, 'compact reader');
+    expect(stops.stops).toBeGreaterThan(0);
+    expect(stops.leaks.map((l) => `${l.state}: ${l.problem}`)).toEqual([]);
     run.report();
   });
 });
