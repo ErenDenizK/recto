@@ -235,7 +235,7 @@ export default function NewSignatureSheet() {
               <SignaturePlate
                 size="preview"
                 ink={{ kind: 'typed', text: typed.trim() || ' ' }}
-                className={styles.preview}
+                className={`${styles.preview} ${styles.typed}`}
               />
             </SegmentedPanel>
             <SegmentedPanel value="image" className={styles.panel} keepMounted>
@@ -258,11 +258,14 @@ export default function NewSignatureSheet() {
                 <button
                   type="button"
                   className={styles.emptyImage}
+                  aria-labelledby={`${imageHintId}-action`}
                   aria-describedby={imageHintId}
                   onClick={() => void chooseImage()}
                 >
                   <ImagePlus className={styles.emptyGlyph} aria-hidden="true" />
-                  <span className={styles.emptyAction}>{m.signature_choose_image()}</span>
+                  <span id={`${imageHintId}-action`} className={styles.emptyAction}>
+                    {m.signature_choose_image()}
+                  </span>
                   <span id={imageHintId} className={styles.emptyHint}>
                     {m.signature_image_hint()}
                   </span>

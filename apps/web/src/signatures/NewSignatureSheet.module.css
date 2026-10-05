@@ -24,6 +24,7 @@
 .panels {
   display: grid;
   margin-top: 12px;
+  container-type: inline-size;
 }
 
 .panel {
@@ -97,6 +98,16 @@
 
 .preview {
   border: 1px dashed var(--border-strong);
+}
+
+/*
+ * Type's preview is the pad's height less what its field adds over Draw's Undo · Clear row
+ * (16 label + 6 + the well + 12, against 8 + the row: 26 px at either density), so the three
+ * panels come out nearly level and Draw shows no gap under its row.
+ */
+.typed {
+  aspect-ratio: auto;
+  height: calc(100cqw * 160 / 440 - 26px);
 }
 
 /* The empty Image well is itself the "Choose image…" target: the whole dashed area. */
