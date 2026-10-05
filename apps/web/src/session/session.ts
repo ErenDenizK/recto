@@ -48,7 +48,7 @@ import {
   restoreSession,
   setAside,
 } from './restore';
-import { setSessionNotice, useSessionStore } from './session-store';
+import { type SessionNotice, setSessionNotice, useSessionStore } from './session-store';
 import { ChangeTracker, type PlaceState, type SnapshotState } from './snapshot';
 import { openSnapshotStorage, type SnapshotStorage } from './storage';
 import { SnapshotWriter } from './writer';
@@ -350,6 +350,17 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   const active = manifest.history.entries[manifest.history.present]?.activeDocument;
   const only = compact ? (active ?? manifest.documents[0]?.id) : undefined;
   const outcome = await restoreSession(storage, manifest, only === undefined ? {} : { only });
+  // Documents that did not load (a skipped password prompt, an engine failure) go to Recents
+  // before the old manifest goes, with their changes, for another try (ADR-0032 §2.6).
+  let failedKept = false;
+  if (outcome.failedIds.length > 0) {
+    try {
+      void writer.keep(keptRecordsOf(manifest, outcome.failedIds, now));
+      failedKept = true;
+    } catch (error) {
+      console.warn('The documents that did not restore could not be kept', error);
+    }
+  }
   const ws = useWorkspaceStore.getState().workspace;
   for (const place of manifest.documents) {
     if (ws.documents[place.id] !== undefined) {
@@ -365,10 +376,15 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   }
   // This tab's manifest first; the old one goes only once it is written. Queued, not awaited:
   // the launch never waits on a storage write.
+  // A manifest whose history cannot be read is set aside, never deleted (ADR-0032 §3); one
+  // whose failed documents could not be kept stays for the next launch.
   writer.noteChange('content');
   void writer.flush().then(async () => {
-    if (manifest.tabId !== tabId) {
-      await storage.remove('sessions', `${manifest.tabId}.json`).catch(() => undefined);
+    if (manifest.tabId === tabId) return;
+    const name = `${manifest.tabId}.json`;
+    if (outcome.damaged) await setAside(storage, name).catch(() => undefined);
+    else if (outcome.failedIds.length === 0 || failedKept) {
+      await storage.remove('sessions', name).catch(() => undefined);
     }
   });
   if (outcome.restored.length > 0) {
@@ -384,21 +400,26 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   }
   if (outcome.failed.length > 0) {
     // The failure stays until dismissed; it replaces the success line when nothing came back.
-    if (outcome.restored.length === 0) setSessionNotice({ kind: 'failed', names: outcome.failed });
-    else failedAfterRestore = outcome.failed;
+    const failed: SessionNotice = {
+      kind: 'failed',
+      names: outcome.failed,
+      ...(failedKept ? { kept: true } : {}),
+    };
+    if (outcome.restored.length === 0) setSessionNotice(failed);
+    else failedAfterRestore = failed;
   }
 }
 
-/** Failures of a partial restore, shown after the success notice is dismissed. */
-let failedAfterRestore: readonly string[] = [];
+/** The failure of a partial restore, shown after the success notice is dismissed. */
+let failedAfterRestore: SessionNotice | null = null;
 
 /** Dismisses the notice; a partial restore's failure line follows it. */
 export function dismissSessionNotice(): void {
   const notice = useSessionStore.getState().notice;
   if (notice?.kind === 'not-kept') writeJson(NOT_KEPT_DISMISSED_KEY, true);
-  if (notice?.kind === 'restored' && failedAfterRestore.length > 0) {
-    setSessionNotice({ kind: 'failed', names: failedAfterRestore });
-    failedAfterRestore = [];
+  if (notice?.kind === 'restored' && failedAfterRestore !== null) {
+    setSessionNotice(failedAfterRestore);
+    failedAfterRestore = null;
     return;
   }
   setSessionNotice(null);
@@ -432,7 +453,7 @@ export function startFresh(): void {
   if (!closed) return;
   ctl.freshAt = useWorkspaceStore.getState().history.present.at;
   ctl.restored = [];
-  failedAfterRestore = [];
+  failedAfterRestore = null;
   setSessionNotice({ kind: 'started-fresh', count: ids.length });
 }
 
