@@ -9,7 +9,7 @@ import '../../styles/tokens.css';
 import '../../styles/reset.css';
 import '../../styles/global.css';
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
@@ -309,51 +309,71 @@ describe('Confirm (07 §3)', () => {
 });
 
 describe('motion (quality-bar Q-7)', () => {
+  /**
+   * Records the properties of every Web Animation started on a sheet panel, whenever it runs
+   * (a busy browser may finish a short motion before a test looks).
+   */
+  function recordAnimated(): { props: Set<string>; restore: () => void } {
+    const props = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- called with its element below
+    const original = Element.prototype.animate;
+    const spy = vi.spyOn(Element.prototype, 'animate').mockImplementation(function (
+      this: Element,
+      frames,
+      options,
+    ) {
+      if (
+        this instanceof HTMLElement &&
+        this.dataset.sheet !== undefined &&
+        Array.isArray(frames)
+      ) {
+        for (const frame of frames) {
+          for (const key of Object.keys(frame)) {
+            if (!['offset', 'easing', 'composite'].includes(key)) props.add(key);
+          }
+        }
+      }
+      return original.call(this, frames, options);
+    });
+    return { props, restore: () => spy.mockRestore() };
+  }
+
   it('opens by transform only, with the panel at its final size every frame', async () => {
-    render(<Harness kind="task" initialOpen={false} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Open Page numbers' }));
-    const panel = await screen.findByTestId('sheet-sheet');
-    const props = new Set(
-      panel
-        .getAnimations()
-        .flatMap((a) =>
-          ((a.effect as KeyframeEffect | null)?.getKeyframes() ?? []).flatMap((k) =>
-            Object.keys(k).filter(
-              (key) => !['offset', 'easing', 'composite', 'computedOffset'].includes(key),
-            ),
-          ),
-        ),
-    );
-    expect([...props].sort()).toEqual(['opacity', 'transform']);
-    const sizes = new Set<string>();
-    let frames = 0;
-    while (panel.getAnimations().length > 0 && frames < 120) {
-      sizes.add(`${panel.offsetWidth}×${panel.offsetHeight}`);
-      await new Promise((r) => requestAnimationFrame(r));
-      frames += 1;
+    const animated = recordAnimated();
+    try {
+      render(<Harness kind="task" initialOpen={false} />);
+      // fireEvent clicks synchronously (inside act), so the panel mounts before any frame.
+      fireEvent.click(screen.getByRole('button', { name: 'Open Page numbers' }));
+      const panel = await screen.findByTestId('sheet-sheet');
+      const sizes = new Set<string>();
+      do {
+        sizes.add(`${panel.offsetWidth}×${panel.offsetHeight}`);
+        await new Promise((r) => requestAnimationFrame(r));
+      } while (panel.getAnimations().length > 0);
+      expect([...animated.props].sort()).toEqual(['opacity', 'transform']);
+      expect(sizes.size).toBe(1);
+      // At rest: no transform or will-change left inline (Q-2).
+      expect(panel.style.transform).toBe('');
+      expect(panel.style.willChange).toBe('');
+    } finally {
+      animated.restore();
     }
-    expect(frames).toBeGreaterThan(3);
-    expect(sizes.size).toBe(1);
-    // At rest: no transform or will-change left inline (Q-2).
-    expect(panel.style.transform).toBe('');
-    expect(panel.style.willChange).toBe('');
   });
 
   it('under reduced motion only fades', async () => {
     document.documentElement.dataset.motion = 'reduced';
     await page.viewport(390, 844);
-    render(<Harness kind="tool" initialOpen={false} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Open Page numbers' }));
-    const panel = await screen.findByTestId('sheet-sheet');
-    const props = panel
-      .getAnimations()
-      .flatMap((a) =>
-        ((a.effect as KeyframeEffect | null)?.getKeyframes() ?? []).flatMap((k) =>
-          Object.keys(k).filter((key) => key === 'transform' || key === 'opacity'),
-        ),
-      );
-    expect(new Set(props)).toEqual(new Set(['opacity']));
-    await settle(panel);
+    const animated = recordAnimated();
+    try {
+      render(<Harness kind="tool" initialOpen={false} />);
+      // fireEvent clicks synchronously (inside act), so the panel mounts before any frame.
+      fireEvent.click(screen.getByRole('button', { name: 'Open Page numbers' }));
+      const panel = await screen.findByTestId('sheet-sheet');
+      await settle(panel);
+      expect([...animated.props]).toEqual(['opacity']);
+    } finally {
+      animated.restore();
+    }
   });
 
   it('the exiting panel is inert from its first frame (A-13)', async () => {

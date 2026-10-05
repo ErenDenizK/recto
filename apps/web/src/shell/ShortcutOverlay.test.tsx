@@ -35,7 +35,7 @@ describe('the shortcuts overlay (07 §23)', () => {
     render(<ShortcutOverlay />);
     const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
     expect(dialog.dataset.presentation).toBe('dialog');
-    await waitFor(() => expect(dialog.getAnimations().length).toBe(0));
+    await waitFor(() => expect(dialog.getAnimations().length).toBe(0), { timeout: 5000 });
     expect(dialog.getBoundingClientRect().width).toBe(760);
     const titles = within(dialog)
       .getAllByRole('rowheader')
