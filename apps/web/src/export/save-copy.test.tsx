@@ -20,6 +20,9 @@ import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { useSheetStore } from '../ui/sheet/sheet-store';
 import { openSaveCopy } from './export-store';
 import { SaveCopyHost } from './SaveCopyHost';
+// The host loads the sheet lazily; loading its module graph up front keeps Vite from finding
+// new dependencies mid-test, which reloads the test page.
+import './SaveCopySheet';
 import {
   type CopyHandle,
   type CopyOutput,
@@ -117,29 +120,28 @@ describe('the sheet', () => {
   }, 60_000);
 });
 
+/** Runs `run` as a browser API would: later, its throw a rejection. */
+const later = <T,>(run: () => T): Promise<T> => Promise.resolve().then(run);
+
 /** A picked file whose writes can fail, recording what happened to it. */
 function fakeHandle(options: { fail?: boolean; remove?: boolean } = {}) {
   const log: string[] = [];
   const handle: CopyHandle = {
     name: 'report.pdf',
-    createWritable: async () => ({
-      write: async () => {
-        log.push('write');
-        if (options.fail) throw new DOMException('Disk full', 'QuotaExceededError');
-      },
-      close: async () => {
-        log.push('close');
-      },
-      abort: async () => {
-        log.push('abort');
-      },
-    }),
+    createWritable: () =>
+      later(() => ({
+        write: () =>
+          later(() => {
+            log.push('write');
+            if (options.fail) throw new DOMException('Disk full', 'QuotaExceededError');
+          }),
+        close: () => later(() => void log.push('close')),
+        abort: () => later(() => void log.push('abort')),
+      })),
     ...(options.remove === false
       ? {}
       : {
-          remove: async () => {
-            log.push('remove');
-          },
+          remove: () => later(() => void log.push('remove')),
         }),
   };
   return { handle, log };

@@ -41,18 +41,20 @@ test('J13B: compress, then save a copy, in 5 presses', async ({ page, browserNam
     (window as unknown as { __j13b: typeof record }).__j13b = record;
     Object.defineProperty(window, 'showSaveFilePicker', {
       configurable: true,
-      value: async (options: { suggestedName: string }) => {
+      value: (options: { suggestedName: string }) => {
         record.picked.push(options.suggestedName);
-        return {
+        return Promise.resolve({
           name: options.suggestedName,
-          createWritable: async () => ({
-            write: async (data: Blob) => {
-              record.written += data.size;
-            },
-            close: async () => undefined,
-            abort: async () => undefined,
-          }),
-        };
+          createWritable: () =>
+            Promise.resolve({
+              write: (data: Blob) => {
+                record.written += data.size;
+                return Promise.resolve();
+              },
+              close: () => Promise.resolve(),
+              abort: () => Promise.resolve(),
+            }),
+        });
       },
     });
     Object.defineProperty(navigator, 'canShare', {
@@ -61,8 +63,9 @@ test('J13B: compress, then save a copy, in 5 presses', async ({ page, browserNam
     });
     Object.defineProperty(navigator, 'share', {
       configurable: true,
-      value: async (data: { files: File[] }) => {
+      value: (data: { files: File[] }) => {
         for (const file of data.files) record.shared.push(file.name);
+        return Promise.resolve();
       },
     });
   });

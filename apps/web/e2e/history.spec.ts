@@ -11,12 +11,11 @@
  * Screenshots of ↶ ↷ and the scrubber at 1440 × 900 and on the tablet go to the test output
  * (`test-results/`), for the design review.
  */
-import { readFile } from 'node:fs/promises';
 
 import { PDFArray, PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, saveCopyBytes, useFileInputPicker } from './helpers';
 
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
@@ -74,16 +73,7 @@ async function annotationCounts(bytes: Uint8Array): Promise<Record<string, numbe
 }
 
 async function exportBytes(page: Page): Promise<Buffer> {
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const dialog = page.getByTestId('export-dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(dialog.getByTestId('export-verified')).toBeVisible({ timeout: 60_000 });
-  const download = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download' }).click();
-  const bytes = await readFile(await (await download).path());
-  await page.keyboard.press('Escape');
-  return bytes;
+  return saveCopyBytes(page);
 }
 
 /** A real touch on the tablet (DevTools touch input), held for `holdMs`. */
