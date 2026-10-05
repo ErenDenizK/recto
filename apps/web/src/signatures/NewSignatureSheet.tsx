@@ -12,8 +12,13 @@
  * - **Draw · Type · Image** (a tabs segmented control). Draw: the 440 × 160 pad, page white,
  *   pen, finger and mouse alike (whatever "Draw with finger" says), with Undo (the last stroke)
  *   and Clear; strokes are kept as vectors (`saved-signatures.ts`). Type: "Your name", the
- *   comment author's name to start, previewed in the UI font (no script font is bundled).
- *   Image: "Choose image…", a PNG or JPEG (anything the browser reads is re-encoded), previewed.
+ *   comment author's name to start, previewed in Inter's italic at a light weight as the placed
+ *   image draws it (`annotations/stamps.ts`; no script font is bundled, MK-13 §6). Image: the
+ *   empty well is itself "Choose image…", a PNG or JPEG (anything the browser reads is
+ *   re-encoded), previewed, with "Choose image…" under it to pick another.
+ * - **One size** (quality-bar Q-7): the three panels are stacked in one cell and kept mounted,
+ *   so the body is as tall as the tallest whichever tab shows, and the reason line keeps its
+ *   room while Use is enabled: neither switching tabs nor the first stroke moves the sheet.
  * - **Save for next time**, on by default; with five kept it says it replaces the oldest; where
  *   this window keeps nothing it is off and says so. With it on, an optional name.
  * - **Use signature** keeps it (if asked), arms it as the one-shot signature tool and closes:
@@ -25,7 +30,8 @@
  * - **Accessibility** (MK-13 §8): the pad is `role="img"` with a live "Signature drawn, 3
  *   strokes"; Type is the keyboard path (Tab to the field, type, Enter uses it).
  */
-import { type PointerEvent, useEffect, useRef, useState } from 'react';
+import { ImagePlus } from 'lucide-react';
+import { type PointerEvent, useEffect, useId, useRef, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { pickFiles } from '../files/open-files';
@@ -35,7 +41,14 @@ import { canEditActive } from '../state/ui-store';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Segmented, SegmentedPanel } from '../ui/Segmented';
-import { Sheet, type SheetCloseReason, closeSheet, useSheetDraft, useSheetOpen } from '../ui/sheet';
+import {
+  closeSheet,
+  Sheet,
+  type SheetCloseReason,
+  useSheetDraft,
+  useSheetOpen,
+  useSheetStore,
+} from '../ui/sheet';
 import { TextField } from '../ui/TextField';
 import { toast } from '../ui/Toast';
 import { imageInk } from './image-ink';
@@ -98,6 +111,7 @@ export default function NewSignatureSheet() {
   const [busy, setBusy] = useState(false);
   // Focus starts on the chosen tab (07 §2.6), not on the optional name further down.
   const focusRef = useRef<HTMLElement | null>(null);
+  const imageHintId = useId();
 
   useEffect(() => {
     void loadSavedSignatures();
@@ -127,10 +141,20 @@ export default function NewSignatureSheet() {
 
   const submit = async () => {
     if (!ink || busy) return;
+    // The opening this press belongs to: the store makes a new one each time the sheet opens.
+    const opening = useSheetStore.getState().open;
     setBusy(true);
     try {
       const saved = keeping && canKeep ? await saveSignature(ink, draft.name) : null;
       const stamp = saved ? await stampOfSignature(saved) : await renderInk(ink);
+      // Saving and rendering take a moment (longer on a slow device). If the sheet was closed
+      // meanwhile (Esc) and perhaps opened again, the press is over: what it kept stays kept,
+      // but it neither arms the stamp nor closes, resets or redirects a later opening.
+      const now = useSheetStore.getState().open;
+      if (now !== opening) {
+        if (now?.id !== NEW_SIGNATURE_SHEET_ID) resetDraft();
+        return;
+      }
       resetDraft();
       close('close');
       if (intent === 'use' && stamp && canEditActive()) armSignatureStamp(stamp);
@@ -166,7 +190,9 @@ export default function NewSignatureSheet() {
         label: intent === 'keep' ? m.signature_save() : m.signature_use(),
         onPress: () => void submit(),
         disabled: ink === null,
-        reason: ink === null ? m.signature_empty_reason() : undefined,
+        reason: m.signature_empty_reason(),
+        // The line keeps its room while Use is enabled, so the sheet keeps its size (Q-7).
+        reasonRoom: true,
         busy,
       }}
       initialFocus={focusRef}
@@ -190,46 +216,63 @@ export default function NewSignatureSheet() {
             { value: 'image', label: m.signature_image() },
           ]}
         >
-          <SegmentedPanel value="draw" className={styles.panel}>
-            <Pad
-              strokes={draft.strokes}
-              onChange={(change) => setDraft((d) => ({ ...d, strokes: change(d.strokes) }))}
-            />
-          </SegmentedPanel>
-          <SegmentedPanel value="type" className={styles.panel}>
-            <TextField
-              label={m.signature_type_label()}
-              value={typed}
-              maxLength={TYPED_MAX}
-              autoComplete="name"
-              spellCheck={false}
-              onValueChange={(value) => update({ typed: value })}
-            />
-            <SignaturePlate
-              size="preview"
-              ink={{ kind: 'typed', text: typed.trim() || ' ' }}
-              className={styles.preview}
-            />
-          </SegmentedPanel>
-          <SegmentedPanel value="image" className={styles.panel}>
-            {draft.image ? (
+          <div className={styles.panels}>
+            <SegmentedPanel value="draw" className={styles.panel} keepMounted>
+              <Pad
+                strokes={draft.strokes}
+                onChange={(change) => setDraft((d) => ({ ...d, strokes: change(d.strokes) }))}
+              />
+            </SegmentedPanel>
+            <SegmentedPanel value="type" className={styles.panel} keepMounted>
+              <TextField
+                label={m.signature_type_label()}
+                value={typed}
+                maxLength={TYPED_MAX}
+                autoComplete="name"
+                spellCheck={false}
+                onValueChange={(value) => update({ typed: value })}
+              />
               <SignaturePlate
                 size="preview"
-                ink={draft.image}
-                alt={m.signature_image_chosen()}
-                className={styles.preview}
+                ink={{ kind: 'typed', text: typed.trim() || ' ' }}
+                className={`${styles.preview} ${styles.typed}`}
               />
-            ) : (
-              <div className={styles.emptyImage}>
-                <p>{m.signature_image_hint()}</p>
-              </div>
-            )}
-            <div className={styles.padActions} data-bar="signature-image">
-              <Button variant="standard" onClick={() => void chooseImage()}>
-                {m.signature_choose_image()}
-              </Button>
-            </div>
-          </SegmentedPanel>
+            </SegmentedPanel>
+            <SegmentedPanel value="image" className={styles.panel} keepMounted>
+              {draft.image ? (
+                <>
+                  <SignaturePlate
+                    size="preview"
+                    ink={draft.image}
+                    alt={m.signature_image_chosen()}
+                    className={styles.preview}
+                  />
+                  <div className={styles.padActions} data-bar="signature-image">
+                    <Button variant="standard" onClick={() => void chooseImage()}>
+                      {m.signature_choose_image()}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                // The empty well is the target itself: the whole dashed area picks an image.
+                <button
+                  type="button"
+                  className={styles.emptyImage}
+                  aria-labelledby={`${imageHintId}-action`}
+                  aria-describedby={imageHintId}
+                  onClick={() => void chooseImage()}
+                >
+                  <ImagePlus className={styles.emptyGlyph} aria-hidden="true" />
+                  <span id={`${imageHintId}-action`} className={styles.emptyAction}>
+                    {m.signature_choose_image()}
+                  </span>
+                  <span id={imageHintId} className={styles.emptyHint}>
+                    {m.signature_image_hint()}
+                  </span>
+                </button>
+              )}
+            </SegmentedPanel>
+          </div>
         </Segmented>
 
         <div className={styles.keep}>

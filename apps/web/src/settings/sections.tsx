@@ -18,7 +18,7 @@
  *   key has been pressed, L§6.2) and About Recto (pushes).
  */
 import { Info, Keyboard, ShieldCheck } from 'lucide-react';
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useId, useRef, useSyncExternalStore } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { commandRegistry } from '../commands/registry';
@@ -51,7 +51,7 @@ import { Switch } from '../ui/Switch';
 import { TextField } from '../ui/TextField';
 import { setPenDrawsInEdit, usePenDrawsInEdit } from '../viewer/edit-policy';
 import { openSettings } from './open-settings';
-import { Hint, Line, NavRow, Row } from './rows';
+import { Line, NavRow, Row } from './rows';
 import type { SettingsPageId, SettingsRowId } from './search-index';
 import styles from './Settings.module.css';
 import { showTipsAgain, tipsToShowAgain } from './settings-commands';
@@ -219,18 +219,30 @@ export function RecentsRow() {
 export function CommentNameRow() {
   const author = useAnnotationStore((s) => s.author);
   const setAuthor = useAnnotationStore((s) => s.setAuthor);
+  const hintId = useId();
   return (
-    // A labelled field, not a bar: its well is the 32 / 44 px control (09 §12).
+    // The row's one shape: name and hint leading, the field trailing; the field keeps its own
+    // label (for assistive technology) and is described by the hint. A labelled field, not a
+    // bar: its well is the 32 / 44 px control (09 §12).
     <Row id="commentName">
-      <TextField
+      <Line
         label={m.settings_comment_name()}
+        labelHidden
         description={m.settings_comment_name_hint()}
-        value={author}
-        onValueChange={setAuthor}
-        autoComplete="name"
-        spellCheck={false}
-        maxLength={200}
-      />
+        descriptionId={hintId}
+      >
+        <TextField
+          className={styles.field}
+          label={m.settings_comment_name()}
+          hideLabel
+          aria-describedby={hintId}
+          value={author}
+          onValueChange={setAuthor}
+          autoComplete="name"
+          spellCheck={false}
+          maxLength={200}
+        />
+      </Line>
     </Row>
   );
 }
@@ -240,7 +252,7 @@ export function ShowTipsRow() {
   const pending = useEditPolicyStore((s) => s.editTextHintShown);
   return (
     <Row id="showTips" bar>
-      <Line label={m.settings_show_tips()}>
+      <Line label={m.settings_show_tips()} description={m.settings_show_tips_hint()}>
         <Button
           variant="standard"
           disabled={!pending}
@@ -252,7 +264,6 @@ export function ShowTipsRow() {
           {m.settings_show_tips_action()}
         </Button>
       </Line>
-      <Hint>{m.settings_show_tips_hint()}</Hint>
     </Row>
   );
 }
@@ -301,10 +312,13 @@ export function AboutRow({
       id="about"
       icon={<Info className={styles.icon} aria-hidden="true" />}
       label={m.about_command({ name: PRODUCT_NAME })}
+      // The version is literal text: its hyphens neither spaced nor raised (see pages.tsx).
       value={
-        BUILD_INFO.isPreRelease
-          ? m.settings_about_value({ version: BUILD_INFO.version })
-          : BUILD_INFO.version
+        <span className={styles.literal}>
+          {BUILD_INFO.isPreRelease
+            ? m.settings_about_value({ version: BUILD_INFO.version })
+            : BUILD_INFO.version}
+        </span>
       }
       hint={hint}
       onPress={() => onPush('about')}

@@ -257,6 +257,11 @@
   line-height: var(--type-footnote-lh);
 }
 
+/* Kept for its room while the primary is enabled (`reasonRoom`), never seen. */
+.reason[data-idle] {
+  visibility: hidden;
+}
+
 /* Footer: 60 px fine, 72 coarse; secondary leading, Cancel and the primary trailing. */
 .footer {
   display: flex;

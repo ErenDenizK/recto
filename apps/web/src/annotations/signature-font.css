@@ -1,0 +1,32 @@
+/*
+ * The typed signature's face (03-markup.md MK-13 §6: typed names use Inter, no script font):
+ * Inter's own italic, the cursive-leaning cut rather than the slanted roman a browser
+ * synthesises, from the Fontsource package the UI face already comes from and served from this
+ * origin (no external fetch; `font-src 'self'`). It has its own family name, so it is used only
+ * for typed signatures (New signature's preview, the plates and the placed image) and loads the
+ * first time one is drawn; Latin and Latin Extended cover English and Turkish names.
+ */
+@font-face {
+  font-family: 'Recto Signature';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-ext-wght-italic.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Recto Signature';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-italic.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

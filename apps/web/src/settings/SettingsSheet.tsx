@@ -13,7 +13,9 @@
  * - **Search** (`search-index.ts`): filters rows by their EN and TR titles and keywords without
  *   diacritics; a match inside a pushed page shows that page's row with what it found. The
  *   field is `role="search"`, the result count is polite, and no match says "No setting matches
- *   “x”". What was typed is the sheet's draft for the session (07 §2.5).
+ *   “x”". What was typed is the sheet's draft for the session (07 §2.5). It stays pinned under
+ *   the header: only the list under it scrolls, in a scroll area whose edges fade where the
+ *   list goes on (09 §21), so no presentation cuts a row off at its bottom edge.
  * - **Openers** name a target (`open-settings.ts`): a section is scrolled to, a row is scrolled
  *   to, tinted once and its control focused, a row that pushes a page opens that page.
  * - **Focus** (07 S3 §6): the target's control; else the search field on a fine pointer and the
@@ -28,6 +30,7 @@ import { Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState 
 import { m } from '../i18n';
 import { springToLinear, reducedMotion } from '../motion';
 import { useLastInput, usePointerCapabilities } from '../shell/frame/input-modality';
+import { ScrollArea } from '../ui/ScrollArea';
 import { SearchField } from '../ui/SearchField';
 import { Sheet, useSheetDraft, useSheetOpen } from '../ui/sheet';
 import {
@@ -159,6 +162,7 @@ export default function SettingsSheet() {
   const searchRef = useRef<HTMLInputElement>(null);
   const focusRef = useRef<HTMLElement | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // A new request to open (each `openSettings` call) lands on its target.
   const handled = useRef<typeof open>(null);
@@ -192,8 +196,7 @@ export default function SettingsSheet() {
     const previous = shownPage.current;
     if (previous === page) return;
     shownPage.current = page;
-    const body = bodyRef.current?.closest<HTMLElement>('[data-sheet-body]');
-    if (body) body.scrollTop = 0;
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
     pushMotion(bodyRef.current, page === null ? -1 : 1);
     if (!panel()?.contains(document.activeElement) && document.activeElement !== document.body) {
       return;
@@ -251,57 +254,61 @@ export default function SettingsSheet() {
       finalFocus={returnTo ? { current: returnTo } : undefined}
       testId="settings-sheet"
     >
-      <div ref={bodyRef} className={styles.page} data-settings-page={page ?? 'main'}>
-        {page ? (
-          PAGES[page]()
-        ) : (
-          <>
-            <div className={styles.search} role="search">
-              <SearchField
-                ref={searchRef}
-                label={m.settings_search_label()}
-                placeholder={m.settings_search_label()}
-                autoComplete="off"
-                spellCheck={false}
-                value={query}
-                onValueChange={(next) => {
-                  setReveal(null);
-                  setQuery(next);
-                }}
-                onSearch={setSpoken}
-              />
-              <p className="visually-hidden" role="status">
-                {queryWords(spoken).length === 0
-                  ? ''
-                  : count === 0
-                    ? m.settings_no_match({ query: spoken.trim() })
-                    : m.settings_results({ count })}
-              </p>
-            </div>
-            {sections.length === 0 ? (
-              <p className={styles.empty}>{m.settings_no_match({ query: query.trim() })}</p>
-            ) : (
-              sections.map(({ section, rows }) => (
-                <Section
-                  key={section.id}
-                  id={section.id}
-                  title={section.title ? section.title() : null}
-                  label={m.settings_section_more()}
-                >
-                  {rows.map((row) => {
-                    const pageId = rowById(row.id)?.opens;
-                    const within = pageId ? inside.get(pageId) : undefined;
-                    return (
-                      <Fragment key={row.id}>
-                        {ROWS[row.id]({ onPush: push, hint: within?.join(', ') })}
-                      </Fragment>
-                    );
-                  })}
-                </Section>
-              ))
-            )}
-          </>
-        )}
+      <div ref={bodyRef} className={styles.frame} data-settings-page={page ?? 'main'}>
+        {page === null ? (
+          <div className={styles.search} role="search">
+            <SearchField
+              ref={searchRef}
+              label={m.settings_search_label()}
+              placeholder={m.settings_search_label()}
+              autoComplete="off"
+              spellCheck={false}
+              value={query}
+              onValueChange={(next) => {
+                setReveal(null);
+                setQuery(next);
+              }}
+              onSearch={setSpoken}
+            />
+            <p className="visually-hidden" role="status">
+              {queryWords(spoken).length === 0
+                ? ''
+                : count === 0
+                  ? m.settings_no_match({ query: spoken.trim() })
+                  : m.settings_results({ count })}
+            </p>
+          </div>
+        ) : null}
+        <ScrollArea
+          className={styles.scroller}
+          viewportClassName={styles.viewport}
+          viewportRef={scrollRef}
+        >
+          {page ? (
+            PAGES[page]()
+          ) : sections.length === 0 ? (
+            <p className={styles.empty}>{m.settings_no_match({ query: query.trim() })}</p>
+          ) : (
+            sections.map(({ section, rows }) => (
+              <Section
+                key={section.id}
+                id={section.id}
+                title={section.title ? section.title() : null}
+                label={m.settings_section_more()}
+              >
+                {rows.map((row) => {
+                  const pageId = rowById(row.id)?.opens;
+                  const within = pageId ? inside.get(pageId) : undefined;
+                  return (
+                    <Fragment key={row.id}>
+                      {ROWS[row.id]({ onPush: push, hint: within?.join(', ') })}
+                    </Fragment>
+                  );
+                })}
+              </Section>
+            ))
+          )}
+        </ScrollArea>
         <FocusTarget
           choose={() => {
             focusRef.current = chooseFocus();

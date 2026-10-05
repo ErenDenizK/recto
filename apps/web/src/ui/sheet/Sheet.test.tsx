@@ -278,6 +278,8 @@ describe('Confirm (07 §3)', () => {
         title: 'Revert to the opened version?',
         body: 'Your 14 changes since opening go. Undo brings them back.',
         action: 'Revert',
+        danger: true,
+        glyph: 'revert',
         undoable: true,
       });
     });
@@ -290,6 +292,8 @@ describe('Confirm (07 §3)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Revert' })).toHaveFocus(), {
       timeout: 3000,
     });
+    // A destructive action carries its glyph, not colour alone (07 §3.8, A-19).
+    expect(screen.getByRole('button', { name: 'Revert' }).querySelector('svg')).not.toBeNull();
     // A press on the scrim answers nothing.
     await userEvent.click(document.body, { position: { x: 10, y: 10 }, force: true });
     expect(screen.getByRole('alertdialog')).toBeVisible();
@@ -307,6 +311,7 @@ describe('Confirm (07 §3)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus(), {
       timeout: 3000,
     });
+    expect(screen.getByRole('button', { name: 'Clear' }).querySelector('svg')).not.toBeNull();
     await userEvent.keyboard('{Escape}');
     await expect(answer).resolves.toBe(false);
   });

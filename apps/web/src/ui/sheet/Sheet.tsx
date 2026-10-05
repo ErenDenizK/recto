@@ -91,6 +91,11 @@ export interface SheetPrimary {
   readonly disabled?: boolean;
   /** Why it is disabled: a reason line above the footer and its description (RA-21). */
   readonly reason?: string | undefined;
+  /**
+   * The reason line keeps its room, unseen, while the primary is enabled, so a sheet whose
+   * primary turns on and off keeps its size (quality-bar Q-7; New signature).
+   */
+  readonly reasonRoom?: boolean;
   readonly busy?: boolean;
   readonly busyLabel?: string | undefined;
   /** A destructive act: the danger label on the standard fill, never lime (§2.4, §27.14). */
@@ -352,8 +357,12 @@ export function Sheet({
               ) : null}
               {children}
             </div>
-            {primary?.disabled && primary.reason && !locked ? (
-              <p className={styles.reason} aria-hidden="true">
+            {primary?.reason && !locked && (primary.disabled || primary.reasonRoom) ? (
+              <p
+                className={styles.reason}
+                aria-hidden="true"
+                data-idle={primary.disabled ? undefined : ''}
+              >
                 {primary.reason}
               </p>
             ) : null}
