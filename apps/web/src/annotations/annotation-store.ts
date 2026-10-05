@@ -241,7 +241,6 @@ interface AnnotationState {
   readonly styles: Readonly<Record<StyleGroup, ToolStyle>>;
   readonly author: string;
   readonly pendingStamp: PendingStamp | null;
-  readonly signatureDialogOpen: boolean;
   /** The pen presets and the armed one (spec §6.2). */
   readonly pen: PenSettings;
 
@@ -275,7 +274,6 @@ interface AnnotationState {
   applyStyle: (patch: Partial<ToolStyle>) => void;
   setAuthor: (author: string) => void;
   setPendingStamp: (stamp: PendingStamp | null) => void;
-  setSignatureDialogOpen: (open: boolean) => void;
   /** Arms preset `index`: the pen draws with it from the next stroke (through `setStyle`). */
   armPreset: (index: PresetIndex) => void;
   /** Changes preset `index` and remembers it on this device; the armed one restyles the pen. */
@@ -367,7 +365,6 @@ export const useAnnotationStore = create<AnnotationState>()((set, get) => ({
   styles: readToolStyles(initialPen),
   author: readAuthor(),
   pendingStamp: null,
-  signatureDialogOpen: false,
   pen: initialPen,
 
   ensurePage: (source, pageIndex) => {
@@ -502,7 +499,6 @@ export const useAnnotationStore = create<AnnotationState>()((set, get) => ({
     set({ author: value });
   },
   setPendingStamp: (pendingStamp) => set({ pendingStamp }),
-  setSignatureDialogOpen: (signatureDialogOpen) => set({ signatureDialogOpen }),
   armPreset: (index) => {
     const pen = get().pen;
     if (pen.active !== index) {
@@ -692,7 +688,6 @@ export function resetAnnotationStore(): void {
     pen,
     styles: readToolStyles(pen),
     pendingStamp: null,
-    signatureDialogOpen: false,
   });
 }
 
