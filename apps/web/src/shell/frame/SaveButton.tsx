@@ -18,7 +18,7 @@
 import { Check } from 'lucide-react';
 import { useEffect, useId } from 'react';
 
-import { currentPlatform, toAriaKeyShortcut } from '../../commands/shortcuts';
+import { currentPlatform, parseShortcut, toAriaKeyShortcut } from '../../commands/shortcuts';
 import { saveDocument, saveNameFor, setSaveButtonShown, useSaveStore } from '../../files/save';
 import { formatPercent, m } from '../../i18n';
 import { useJobStore } from '../../jobs/job-store';
@@ -30,6 +30,9 @@ import { useCommandShortcut } from '../use-command-shortcut';
 import styles from './SaveButton.module.css';
 
 export const SAVE_BUTTON_ID = 'save-button';
+
+/** Mod+S, as `file.save` registers it (files/save-commands.ts). */
+const SAVE_SHORTCUT = parseShortcut('Mod+S');
 
 export type SaveButtonState = 'save' | 'saved' | 'saving';
 
@@ -49,7 +52,7 @@ export function SaveButton() {
   const jobId = useSaveStore((s) => (id === null ? undefined : s.jobs[id]));
   const job = useJobStore((s) => (jobId === undefined ? undefined : s.jobs[jobId]));
   const verifiedAt = useSaveStore((s) => (id === null ? undefined : s.verifiedAt[id]));
-  const shortcut = useCommandShortcut('file.save');
+  const shortcut = useCommandShortcut('file.save') ?? SAVE_SHORTCUT;
   const reasonId = useId();
 
   // The job shows here while this button is on screen (FB5 §4).
@@ -70,16 +73,20 @@ export function SaveButton() {
       ? m.save_label_saving_plain()
       : m.save_label_saving({ percent: formatPercent(percent / 100) });
   const verified = state === 'saved' && verifiedAt !== undefined;
-  const keys = shortcut ? toAriaKeyShortcut(shortcut, currentPlatform) : undefined;
+  const keys = toAriaKeyShortcut(shortcut, currentPlatform);
 
   const labels = (
     <span className={styles.labels} data-state={state}>
       <span className={styles.label} data-shown={state === 'save' || undefined}>
         {m.save_label()}
       </span>
-      <span className={styles.label} data-shown={state === 'saved' || undefined}>
+      <span className={styles.label} data-shown={(state === 'saved' && !verified) || undefined}>
         {m.save_label_saved()}
-        <Check className={styles.check} data-shown={verified || undefined} aria-hidden="true" />
+      </span>
+      {/* "Saved ✓" holds its width in the cell too, so the check never moves the label. */}
+      <span className={styles.label} data-shown={verified || undefined}>
+        {m.save_label_saved()}
+        <Check className={styles.check} aria-hidden="true" />
       </span>
       {state === 'saving' ? (
         <span className={styles.label} data-shown="">

@@ -133,7 +133,20 @@ export function markSaved(
     edits: editSignature(state.workspace, doc),
     handleKept: options.handleKept,
   };
+  if (options.handleKept) writtenOver.add(id);
   useSavedStore.setState((s) => ({ marks: { ...s.marks, [id]: mark } }));
+}
+
+/** Documents whose file this session wrote over (in place, or through the save picker). */
+const writtenOver = new Set<DocumentId>();
+
+/**
+ * Whether the file document `id` came from still holds the opened version: nothing was
+ * written over it this session (a downloaded or shared copy leaves it as it was). Revert then
+ * brings the document back to what is in its file.
+ */
+export function fileIsAsOpened(id: DocumentId): boolean {
+  return !writtenOver.has(id);
 }
 
 /**
@@ -196,5 +209,6 @@ watchSavedMarks();
 /** Tests: forget every mark and origin, and which documents were seen. */
 export function resetSavedMarks(): void {
   seen.clear();
+  writtenOver.clear();
   useSavedStore.setState({ marks: {}, origins: {} });
 }
