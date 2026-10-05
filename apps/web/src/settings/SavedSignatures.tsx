@@ -13,7 +13,8 @@
  * - **Add…** opens New signature to keep one (`keep`), which comes back here when it closes.
  * - **Remove all…** asks once (S1, a danger action that cannot be undone) and deletes every
  *   saved signature on this device: final, as the confirmation says. Signatures placed in
- *   documents stay; they are written into the document, not read from here.
+ *   documents stay; they are written into the document, not read from here. With nothing saved
+ *   it is not shown.
  * - Where this window keeps nothing (IndexedDB refused), the page says so and offers nothing.
  */
 import { Pencil, Trash2 } from 'lucide-react';
@@ -214,15 +215,17 @@ export function SavedSignaturesPage() {
           >
             {m.settings_signatures_add()}
           </Button>
-          <Button
-            variant="danger"
-            busy={busy}
-            disabled={signatures.length === 0}
-            onClick={() => void clearAll()}
-            data-testid="settings-signatures-clear"
-          >
-            {m.settings_signatures_clear_all()}
-          </Button>
+          {/* Nothing to remove: no Remove all… (kept while it works, so focus stays). */}
+          {signatures.length > 0 || busy ? (
+            <Button
+              variant="danger"
+              busy={busy}
+              onClick={() => void clearAll()}
+              data-testid="settings-signatures-clear"
+            >
+              {m.settings_signatures_clear_all()}
+            </Button>
+          ) : null}
         </span>
       </div>
     </div>

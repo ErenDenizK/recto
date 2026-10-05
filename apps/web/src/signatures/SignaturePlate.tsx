@@ -2,12 +2,21 @@
  * A signature shown as content (components/03-markup.md MK-12 §2, §3): a page-white plate with
  * the signature in its ink, used by the chips, the Signature menu, Settings → Saved signatures
  * and New signature's previews. Drawn signatures are drawn as an SVG path from their strokes,
- * typed ones as SVG text in the font the placed image uses (`TYPED_SIGNATURE_FONT`, no script
- * font, MK-13 §6) measured once so the whole name fits, images as the image; each is fitted to
- * the plate with its aspect kept, never cut off. The plate is decorative wherever its control
- * names the signature; `alt` names it where it stands alone.
+ * typed ones as SVG text in the face the placed image uses (`TYPED_SIGNATURE_FONT`, Inter's
+ * italic, no script font, MK-13 §6) measured so the whole name fits, images as the image; each
+ * is fitted to the plate with its aspect kept, never cut off. The plate is decorative wherever its control
+ * names the signature; `alt` names it where it stands alone. A typed name is measured again once
+ * the signature face has loaded (it loads on first use), so its box fits the face it is drawn in.
  */
-import { TYPED_SIGNATURE_FONT, TYPED_SIGNATURE_SIZE } from '../annotations/stamps';
+import { useSyncExternalStore } from 'react';
+
+import {
+  loadSignatureFont,
+  TYPED_SIGNATURE_FONT,
+  TYPED_SIGNATURE_SIZE,
+  TYPED_SIGNATURE_WEIGHT,
+  typedSignatureFont,
+} from '../annotations/stamps';
 import { PAD_HEIGHT, PAD_WIDTH, SIGNATURE_INK, type SignatureInk } from './saved-signatures';
 import styles from './SignaturePlate.module.css';
 
@@ -46,12 +55,37 @@ function strokesViewBox(strokes: readonly (readonly number[])[]): string {
 
 let probe: CanvasRenderingContext2D | null | undefined;
 
-/** A typed signature's width at `TYPED_SIGNATURE_SIZE`, as the placed image measures it. */
-function typedWidth(text: string): number {
+/**
+ * A typed signature's width at `TYPED_SIGNATURE_SIZE`, as the placed image measures it; whether
+ * the face is in is an argument so a compiled memo measures again once it has loaded.
+ */
+function typedWidth(text: string, _fontIn: boolean): number {
   probe ??= document.createElement('canvas').getContext('2d');
   if (!probe) return text.length * TYPED_SIGNATURE_SIZE * 0.55;
-  probe.font = `italic 500 ${TYPED_SIGNATURE_SIZE}px ${TYPED_SIGNATURE_FONT}`;
+  probe.font = typedSignatureFont(TYPED_SIGNATURE_SIZE);
   return probe.measureText(text).width;
+}
+
+/** Whether the signature face has loaded (or failed to): typed names measure in it from then. */
+let fontSettled = false;
+const fontListeners = new Set<() => void>();
+
+function subscribeFont(listener: () => void): () => void {
+  fontListeners.add(listener);
+  if (!fontSettled) {
+    void loadSignatureFont().then(() => {
+      if (fontSettled) return;
+      fontSettled = true;
+      for (const notify of fontListeners) notify();
+    });
+  }
+  return () => fontListeners.delete(listener);
+}
+
+const fontReady = () => fontSettled;
+
+function useSignatureFont(): boolean {
+  return useSyncExternalStore(subscribeFont, fontReady, fontReady);
 }
 
 export function SignaturePlate({
@@ -68,6 +102,8 @@ export function SignaturePlate({
   readonly className?: string | undefined;
 }) {
   const label = alt ? { role: 'img', 'aria-label': alt } : { 'aria-hidden': true };
+  // Read so a typed name is measured again once its face is in (its width depends on it).
+  const fontIn = useSignatureFont();
   const classes = [styles.plate, className].filter(Boolean).join(' ');
   return (
     <span className={classes} data-size={size} {...label}>
@@ -92,7 +128,8 @@ export function SignaturePlate({
       ) : (
         <svg
           className={styles.drawing}
-          viewBox={`0 0 ${Math.ceil(typedWidth(ink.text)) + 8} ${TYPED_SIGNATURE_SIZE * 1.4}`}
+          viewBox={`0 0 ${Math.ceil(typedWidth(ink.text, fontIn)) + 8} ${TYPED_SIGNATURE_SIZE * 1.4}`}
+          data-font={fontIn ? 'ready' : 'loading'}
           preserveAspectRatio="xMidYMid meet"
           aria-hidden="true"
         >
@@ -104,7 +141,7 @@ export function SignaturePlate({
             fontFamily={TYPED_SIGNATURE_FONT}
             fontSize={TYPED_SIGNATURE_SIZE}
             fontStyle="italic"
-            fontWeight={500}
+            fontWeight={TYPED_SIGNATURE_WEIGHT}
           >
             {ink.text}
           </text>
