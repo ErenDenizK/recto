@@ -44,6 +44,12 @@
   transform: scale(0.96);
 }
 
+/* The popover's positioner (Base UI's, `role="presentation"`) stacks above the floating bars
+   and tiers, so a long popover near the bottom is never under the tool bar. */
+:global([role='presentation']):has(> .popup) {
+  z-index: 50;
+}
+
 .popup[data-instant] {
   transition: none;
 }

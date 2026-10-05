@@ -128,6 +128,9 @@ export async function auditBars(
           }
           if (role === 'slider' || (el instanceof HTMLInputElement && el.type === 'range')) {
             target = el.closest('[data-track]') ?? el;
+            // ui/Slider's root is a layout row (label, track, readout): its height and centre
+            // count, its corners do not (the track and knob draw the pill).
+            row = target !== el;
           }
           if (controls.some((c) => c.el === target)) continue;
           controls.push({ el: target, box: target.getBoundingClientRect(), row, part: false });

@@ -47,7 +47,8 @@ describe('Tooltip', () => {
     const tip = await screen.findByRole('tooltip', {}, { timeout: 2000 });
     expect(tip).toHaveTextContent('Undo');
     expect(tip.querySelectorAll('kbd').length).toBeGreaterThan(0);
-    // Hoverable: moving onto the tooltip keeps it.
+    // Hoverable: moving onto the tooltip (at rest after its entrance) keeps it.
+    await wait(200);
     await userEvent.hover(tip);
     await wait(150);
     expect(screen.getByRole('tooltip')).toBeVisible();
