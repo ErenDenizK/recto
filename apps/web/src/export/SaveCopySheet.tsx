@@ -127,6 +127,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const sizeRef = useRef<HTMLDivElement | null>(null);
+  const formatRef = useRef<HTMLDivElement | null>(null);
   const platform = usePlatform();
   const kind = primaryKind(platform);
   const locale = getLocale();
@@ -398,14 +399,16 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       : kind === 'save'
         ? m.save_copy_save()
         : m.save_copy_download();
-  // Compress… puts focus on Size (§4.1).
-  const sizeFocus: RefObject<HTMLElement | null> = {
+  // Compress… puts focus on Size (§4.1); other openers on the chosen format (§2.6).
+  const checkedIn = (wrapper: RefObject<HTMLDivElement | null>): RefObject<HTMLElement | null> => ({
     get current() {
       return (
-        sizeRef.current?.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]') ?? null
+        wrapper.current?.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]') ?? null
       );
     },
-  };
+  });
+  const sizeFocus = checkedIn(sizeRef);
+  const formatFocus = checkedIn(formatRef);
 
   return (
     <Sheet
@@ -413,7 +416,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       kind="task"
       open={open && doc !== undefined}
       onClose={() => closeSaveCopy()}
-      title={m.save_copy_title()}
+      title={page === 'smaller' ? m.save_copy_what_smaller() : m.save_copy_title()}
       subtitle={copySubtitle(
         exportFileName(title),
         pageCount,
@@ -422,7 +425,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       restored={restored}
       back={page === 'form' ? undefined : () => setPage('form')}
       cancel={false}
-      initialFocus={preset === 'size' ? sizeFocus : undefined}
+      initialFocus={preset === 'size' ? sizeFocus : formatFocus}
       secondary={<span className={styles.footnote}>{m.save_copy_footer()}</span>}
       primary={
         page === 'details'
@@ -443,21 +446,31 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
           analysis={analysis?.state === 'ready' ? analysis.analysis : null}
           source={analysis?.state === 'ready' ? analysis.source : null}
           settings={compression ?? presetSettings('ebook')}
+          sizeLabel={
+            {
+              same: m.save_copy_size_smaller(),
+              smaller: m.save_copy_size_smaller(),
+              smallest: m.save_copy_size_smallest(),
+              custom: m.compress_preset_custom(),
+            }[draft.size]
+          }
         />
       ) : null}
       {page === 'form' && doc ? (
         <>
           <Row label={m.save_copy_format()}>
-            <Segmented<SaveCopyFormat>
-              label={m.save_copy_format()}
-              value={draft.format}
-              onValueChange={(format) => patch({ format, open: null })}
-              options={[
-                { value: 'pdf', label: m.save_copy_format_pdf() },
-                { value: 'images', label: m.save_copy_format_images() },
-                { value: 'text', label: m.save_copy_format_text() },
-              ]}
-            />
+            <div ref={formatRef}>
+              <Segmented<SaveCopyFormat>
+                label={m.save_copy_format()}
+                value={draft.format}
+                onValueChange={(format) => patch({ format, open: null })}
+                options={[
+                  { value: 'pdf', label: m.save_copy_format_pdf() },
+                  { value: 'images', label: m.save_copy_format_images() },
+                  { value: 'text', label: m.save_copy_format_text() },
+                ]}
+              />
+            </div>
           </Row>
           {draft.format === 'pdf' ? (
             <div className={styles.section} key="pdf" data-testid="save-copy-pdf">

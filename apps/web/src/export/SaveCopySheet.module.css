@@ -274,6 +274,13 @@
   color: var(--text-primary);
 }
 
+.table tr[data-plan] td {
+  padding-top: 0;
+  border-top: none;
+  color: var(--text-secondary);
+  white-space: normal;
+}
+
 .table td[data-skip] {
   color: var(--text-secondary);
 }

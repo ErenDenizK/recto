@@ -21,7 +21,7 @@ import { formatNumber, m } from '../i18n';
 import { getCompressor } from '../tools/compress-client';
 import { deltaPercent } from '../tools/compress-math';
 import { openScratch, type ScratchDocument, toolRenderer } from '../tools/engine-access';
-import { presetName, skipReason } from '../tools/labels';
+import { skipReason } from '../tools/labels';
 import { Select } from '../ui/Select';
 import { SheetResult } from '../ui/sheet';
 import { Switch } from '../ui/Switch';
@@ -42,12 +42,15 @@ export function WhatGetsSmaller({
   analysis,
   source,
   settings,
+  sizeLabel,
 }: {
   readonly analysis: CompressionAnalysis | null;
   /** The assembled bytes the analysis read. */
   readonly source: ArrayBuffer | null;
   /** The chosen size's compression (Smaller when the choice is Same as original). */
   readonly settings: CompressionSettings;
+  /** The chosen size's name ("Smaller"). */
+  readonly sizeLabel: string;
 }) {
   const [comparison, setComparison] = useState<Comparison>({ state: 'off' });
   const [page, setPage] = useState(0);
@@ -112,14 +115,14 @@ export function WhatGetsSmaller({
         })}
       </p>
       <p className={styles.note} data-testid="compress-estimate">
-        {presetName(settings.preset)}:{' '}
+        <strong>{sizeLabel}</strong> ·{' '}
         {m.compress_estimate({
           before: formatBytes(estimate.before),
           after: formatBytes(estimate.after),
           delta: deltaPercent(estimate.before, estimate.after),
         })}
-        {estimate.worthwhile ? '' : ` ${m.compress_estimate_low()}`}
       </p>
+      {estimate.worthwhile ? null : <p className={styles.note}>{m.compress_estimate_low()}</p>}
       {analysis.images.length > 0 ? (
         <div className={styles.tableWrap}>
           <table className={styles.table}>
@@ -131,14 +134,22 @@ export function WhatGetsSmaller({
                 <th scope="col">{m.compress_col_colour()}</th>
                 <th scope="col">{m.compress_col_dpi()}</th>
                 <th scope="col">{m.compress_col_bytes()}</th>
-                <th scope="col">{m.compress_col_plan()}</th>
               </tr>
             </thead>
             <tbody>
               {analysis.images.map((image) => {
                 const plan = settings.images ? planImage(image, settings) : null;
-                return (
-                  <tr key={image.ref}>
+                const planText =
+                  plan === null
+                    ? '–'
+                    : plan.action === 'skip'
+                      ? skipReason(plan.reason)
+                      : plan.downsample
+                        ? m.compress_plan_downsample({ width: plan.width, height: plan.height })
+                        : m.compress_plan_recompress();
+                // The plan takes a row of its own under the image, so the table fits the sheet.
+                return [
+                  <tr key={image.ref} data-image="">
                     <td>{image.page === null ? '–' : image.page + 1}</td>
                     <td>
                       {image.width}×{image.height}
@@ -149,17 +160,16 @@ export function WhatGetsSmaller({
                     </td>
                     <td>{image.dpi ? Math.min(image.dpi.x, image.dpi.y) : m.compress_unknown()}</td>
                     <td>{formatBytes(image.bytes)}</td>
-                    <td data-skip={plan?.action === 'skip' || plan === null || undefined}>
-                      {plan === null
-                        ? '–'
-                        : plan.action === 'skip'
-                          ? skipReason(plan.reason)
-                          : plan.downsample
-                            ? m.compress_plan_downsample({ width: plan.width, height: plan.height })
-                            : m.compress_plan_recompress()}
+                  </tr>,
+                  <tr key={`${image.ref}-plan`} data-plan="">
+                    <td
+                      colSpan={5}
+                      data-skip={plan?.action === 'skip' || plan === null || undefined}
+                    >
+                      {m.compress_col_plan()}: {planText}
                     </td>
-                  </tr>
-                );
+                  </tr>,
+                ];
               })}
             </tbody>
           </table>
