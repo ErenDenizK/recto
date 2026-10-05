@@ -4,7 +4,8 @@
  *
  * - `PopoverPopup` is the portal, the positioner and the popup in one: M4 glass, radius 16,
  *   12 px padding, the *popup* motion from the anchor (`Popover.module.css`). It positions
- *   8 px off its anchor and 8 px inside the viewport unless told otherwise.
+ *   8 px off its anchor and 8 px inside the viewport unless told otherwise, and takes focus
+ *   itself when it opens (Tab reaches ✕ and the controls).
  * - `PopoverHeader` is the 44 px title row: the title (`Popover.Title`, so the popup is
  *   labelled by it), an optional leading control and ✕ (`Popover.Close`, "Close"). A popover
  *   that ends in its own Cancel can leave ✕ out (`close={false}`).
@@ -15,7 +16,7 @@
  */
 import { Popover } from '@base-ui/react/popover';
 import { X } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import { type ComponentProps, type ReactNode, useRef } from 'react';
 
 import { m } from '../i18n';
 import styles from './Popover.module.css';
@@ -42,9 +43,22 @@ export function PopoverPopup({
   collisionPadding = 8,
   className,
   positionerClassName,
+  initialFocus,
+  ref,
   children,
   ...rest
 }: PopoverPopupProps) {
+  const own = useRef<HTMLDivElement | null>(null);
+  const setRef = (node: HTMLDivElement | null) => {
+    own.current = node;
+    if (typeof ref === 'function') ref(node);
+    else if (ref) (ref as { current: HTMLDivElement | null }).current = node;
+  };
+  // The popup itself takes focus when it opens (Tab then reaches ✕ and the controls): a
+  // keyboard Enter that opened it would otherwise reach ✕ as its keypress when the popup
+  // appears at once (reduced motion) and close it again, and a radio group focused before it
+  // has registered its items starts its arrows from the wrong one.
+  const focusPopup = () => own.current ?? true;
   return (
     <Popover.Portal>
       <Popover.Positioner
@@ -55,7 +69,12 @@ export function PopoverPopup({
         className={positionerClassName}
         {...(anchor === undefined ? {} : { anchor })}
       >
-        <Popover.Popup className={[styles.popup, className].filter(Boolean).join(' ')} {...rest}>
+        <Popover.Popup
+          ref={setRef}
+          className={[styles.popup, className].filter(Boolean).join(' ')}
+          initialFocus={initialFocus ?? focusPopup}
+          {...rest}
+        >
           {children}
         </Popover.Popup>
       </Popover.Positioner>
