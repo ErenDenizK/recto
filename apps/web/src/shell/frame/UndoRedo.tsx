@@ -17,7 +17,7 @@
  */
 import { canRedo, canUndo } from '@pdf-editor/document-model';
 import { Redo2, Undo2 } from 'lucide-react';
-import { type KeyboardEvent, type MouseEvent, useId, useRef } from 'react';
+import { type KeyboardEvent, type MouseEvent, useEffect, useId, useRef } from 'react';
 
 import { redoStep, undoStep } from '../../history/actions';
 import { HistoryScrubber } from '../../history/HistoryScrubber';
@@ -27,6 +27,7 @@ import { m } from '../../i18n';
 import { useLongPress } from '../../motion/gesture';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { IconButton } from '../../ui/IconButton';
+import { setHistoryOpener } from '../../ui/Toast';
 import { useCommandShortcut } from '../use-command-shortcut';
 import styles from './UndoRedo.module.css';
 
@@ -42,6 +43,12 @@ export function UndoRedo() {
   const hintId = useId();
   const undoable = canUndo(history);
   const redoable = canRedo(history);
+
+  // A stale Undo toast offers History while ↶ is here to anchor it (FB4 §4).
+  useEffect(() => {
+    setHistoryOpener(openHistoryScrubber);
+    return () => setHistoryOpener(undefined);
+  }, []);
 
   useLongPress(undoRef, {
     types: LONG_PRESS_TYPES,

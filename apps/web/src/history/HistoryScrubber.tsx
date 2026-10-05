@@ -84,7 +84,7 @@ function ScrubberPopup({
   const coarse = useCoarsePointer();
   const listRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
-  const [active, setActive] = useState(opening.start);
+  const [active, setActive] = useState(opening.initial);
 
   const steps = scrubberSteps(history);
   const present = history.past.length;

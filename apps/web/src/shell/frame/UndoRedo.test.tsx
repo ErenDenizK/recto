@@ -29,6 +29,7 @@ import { registerAppCommands } from '../../commands/app-commands';
 import { closeHistoryScrubber, useHistoryScrubber } from '../../history/scrubber-store';
 import { setLocale } from '../../i18n';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
+import { resetToasts, useToastStore } from '../../ui/Toast';
 import { TooltipProvider } from '../../ui/Tooltip';
 import { useAnnouncer } from '../announcer';
 import { UndoRedo } from './UndoRedo';
@@ -100,6 +101,7 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 beforeEach(() => {
   resetWorkspace();
+  resetToasts();
   useAnnouncer.setState({ message: '' } as never);
 });
 
@@ -140,6 +142,27 @@ describe('↶ ↷ (01-frame F3)', () => {
     // Playwright will not click an aria-disabled control; a script click still reaches it.
     act(() => redo.click());
     expect(presentIndex()).toBe(2);
+  });
+
+  it('a step in another document is named in a toast, and the tabs stay (flows.md §5.3)', async () => {
+    // report and agreement open, agreement active; the last step rotated a page of report.
+    const report = addSource(createWorkspace(), source('report.pdf', 3), ids);
+    const both = addSource(report.workspace, source('agreement.pdf', 2), ids);
+    const ws = { ...both.workspace, activeDocument: both.documentId };
+    const page = ws.documents[report.documentId]?.pages[0]?.id;
+    if (!page) throw new Error('no page');
+    const rotated = rotatePages(ws, [page], 90);
+    let h = createHistory(ws, 'Open', 0);
+    h = pushHistory(h, rotated, 'Rotate 1 page', { now: 1, meta: historyMetaOf(ws, rotated) });
+    act(() => useWorkspaceStore.getState().replaceHistory(h));
+    render(<UndoRedo />);
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    const [shown] = useToastStore.getState().shown;
+    expect(shown?.text).toBe('Undid rotate 1 page in report');
+    expect(shown?.action?.label).toBe('Show');
+    expect(useWorkspaceStore.getState().workspace.activeDocument).toBe(both.documentId);
+    act(() => shown?.action?.run());
+    expect(useWorkspaceStore.getState().workspace.activeDocument).toBe(report.documentId);
   });
 
   it('says it in Turkish', () => {

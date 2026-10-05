@@ -2603,5 +2603,6 @@
   "history_cancel": "Vazgeç",
   "history_empty": "Henüz geri alınacak bir şey yok.",
   "announce_history_jump": "Şimdi {count} adımdan {index}. adımdasınız: {step}",
-  "cmd_history": "Geçmişi göster…"
+  "cmd_history": "Geçmişi göster…",
+  "history_show": "Göster"
 }

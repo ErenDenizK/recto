@@ -7,6 +7,7 @@
  * it closes (a keep, Cancel, Esc, a press outside) settles it exactly once: a keep stays where
  * it is, everything else restores the opening step.
  */
+import type { HistoryEntry } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -18,6 +19,8 @@ export interface ScrubberOpening {
   readonly serial: number;
   /** The step (index into `historyEntries`) shown when it opened. */
   readonly start: number;
+  /** The row it opens on: the start, or the step a stale Undo toast is about (FB4 §4). */
+  readonly initial: number;
   readonly preview: PreviewSession;
 }
 
@@ -39,17 +42,23 @@ export function isOpenOpening(opening: ScrubberOpening): boolean {
 
 const model = () => useWorkspaceStore.getState();
 
-/** Opens the scrubber at the present step (no-op when open). */
-export function openHistoryScrubber(): void {
+/**
+ * Opens the scrubber at the present step (no-op when open), with `at`'s row active when given
+ * (a stale Undo toast's History, `ui/Toast/toast.ts`); nothing moves until the user does.
+ */
+export function openHistoryScrubber(at?: HistoryEntry): void {
   if (useHistoryScrubber.getState().opening !== null) return;
-  const start = model().history.past.length;
+  const { history } = model();
+  const start = history.past.length;
+  const found =
+    at === undefined ? -1 : [...history.past, history.present, ...history.future].indexOf(at);
   const preview = createPreviewSession({
     start,
     show: previewStep,
     waits: (from, to) => crossesReplay(model().history, from, to),
   });
   serial += 1;
-  const opening = { serial, start, preview };
+  const opening = { serial, start, initial: found >= 0 ? found : start, preview };
   useHistoryScrubber.setState({ opening, last: opening });
 }
 
