@@ -8,6 +8,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "test"],
+  "include": ["src", "test", "harness"],
+  "exclude": ["harness/vite.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
