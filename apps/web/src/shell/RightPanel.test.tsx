@@ -99,7 +99,10 @@ describe('Document info sheet', () => {
       expect(commandRegistry.get('document.info')?.title).toBe('Document info…');
       await act(() => commandRegistry.execute('document.info'));
       const sheet = await screen.findByRole('dialog', { name: 'Document info' });
-      expect(within(sheet).getByTestId('metadata-editor')).toBeVisible();
+      // Polled: the sheet's entrance fades in, and a slow run reads its first frame.
+      const editor = within(sheet).getByTestId('metadata-editor');
+      await expect.poll(() => editor.checkVisibility({ opacityProperty: true })).toBe(true);
+      expect(editor).toBeVisible();
       expect(useUiStore.getState().rightPanelOpen).toBe(false);
 
       await userEvent.click(within(sheet).getByRole('button', { name: 'Set password…' }));
