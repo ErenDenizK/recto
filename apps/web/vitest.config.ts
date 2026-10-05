@@ -35,6 +35,7 @@ export default mergeConfig(
         '@base-ui/react',
         // Base UI is imported by subpath; each is its own pre-bundle entry, and a new one
         // discovered mid-run reloads the browser (seen when the drawer and slider arrived).
+        '@base-ui/react/alert-dialog',
         '@base-ui/react/avatar',
         '@base-ui/react/button',
         '@base-ui/react/checkbox',
