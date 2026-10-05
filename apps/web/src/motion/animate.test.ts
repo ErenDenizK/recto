@@ -101,6 +101,27 @@ describe('animate: numbers on one requestAnimationFrame loop', () => {
     await Promise.all(motions.map((motion) => motion.finished));
   });
 
+  it("keeps one loop when a motion starts inside another one's onComplete", async () => {
+    const stamps: number[] = [];
+    let chained: ReturnType<typeof animate<number>> | undefined;
+    const first = animate(0, 1, {
+      spring: 'quick',
+      onComplete: () => {
+        chained = animate(0, 100, {
+          spring: 'track',
+          onUpdate: () => stamps.push(performance.now()),
+        });
+      },
+    });
+    await first.finished;
+    await wait(150);
+    chained?.stop();
+    // Two loops would step the motion twice in each frame, well under a millisecond apart.
+    const gaps = stamps.slice(1).map((t, k) => t - (stamps[k] as number));
+    expect(stamps.length).toBeGreaterThan(3);
+    expect(Math.min(...gaps)).toBeGreaterThan(2);
+  });
+
   it('stop() halts where it is and returns position and velocity for a gesture', async () => {
     const onUpdate = vi.fn();
     const onComplete = vi.fn();

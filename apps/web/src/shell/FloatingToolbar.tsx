@@ -19,6 +19,11 @@
  * to 20 % and take no pointer (FloatingToolbar.stroke.ts), so writing near the bottom of the
  * view never lands on a preset; under reduced motion the change is instant.
  *
+ * Saved signatures (D0-11, MK-12 on today's bar): once one is kept, Fill & sign's signature
+ * button opens a menu of them with "New signature…", and the newest three sit beside it as
+ * chips, each one press from armed (J8A: Edit · Fill & sign · the chip · the page). With none
+ * kept, the button opens New signature (S7, `signatures/NewSignatureSheet.tsx`).
+ *
  * Both are toolbars with a roving tabindex. The Esc ladder (craft spec §3.5): the first Esc
  * disarms the tool to Select and clears the selection (the global Escape command, or the bar
  * itself when it has the focus); the next returns the bar to the row. The armed tool's
@@ -39,8 +44,10 @@ import {
   ImagePlus,
   type LucideIcon,
   Pencil,
+  Plus,
   RectangleEllipsis,
   ScanSearch,
+  Settings,
   ShieldCheck,
   SquarePlus,
   TextSearch,
@@ -65,7 +72,6 @@ import {
 } from '../annotations';
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { toolStyleGroup } from '../annotations/drafts';
-import { SignatureDialog } from '../annotations/SignatureDialog';
 import { BUILTIN_STAMPS, builtinPendingStamp } from '../annotations/stamps';
 import { StyleControls } from '../annotations/StyleControls';
 import { toolDefinition } from '../annotations/tools';
@@ -77,7 +83,19 @@ import { useFormStore } from '../forms/form-store';
 import { m } from '../i18n';
 import { useApplyDialogStore } from '../redaction/apply-store';
 import { showRedactionsPanel } from '../redaction/commands';
+import { openSettings } from '../settings/open-settings';
+import { openNewSignature } from '../signatures/new-signature';
+import {
+  armedSavedSignature,
+  armSavedSignature,
+  loadSavedSignatures,
+  type SavedSignature,
+  signatureLabel,
+  useSavedSignatures,
+} from '../signatures/saved-signatures';
+import { SignaturePlate } from '../signatures/SignaturePlate';
 import { PageContextMenu } from '../stage/PageContextMenu';
+import { type SizeClass, useSizeClass } from './frame/size-class';
 import { canEditActive, useCanEdit, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { IconButton } from '../ui/IconButton';
@@ -117,7 +135,6 @@ export function FloatingToolbar() {
     <>
       {viewMode === 'read' ? editable ? <Dock /> : <ReadDock /> : null}
       {viewMode === 'read' ? <PageContextMenu /> : null}
-      <SignatureDialog />
     </>
   );
 }
@@ -282,6 +299,7 @@ function itemKey(item: BarItem, index: number): string {
     case 'tool':
     case 'pen':
     case 'stamp':
+    case 'signature':
       return item.tool.mode;
     case 'command':
       return item.command;
@@ -410,6 +428,8 @@ function BarItemView({ item }: { readonly item: BarItem }): ReactNode {
       return <ShapesMenu shapes={item.tools} />;
     case 'stamp':
       return <StampMenu />;
+    case 'signature':
+      return <SignatureEntry tool={item.tool} />;
     case 'command':
       return <CommandButton id={item.command} />;
     case 'fields':
@@ -579,6 +599,104 @@ function StampMenu() {
         </Menu.Item>
       ))}
     </MenuButton>
+  );
+}
+
+/**
+ * How many saved signatures sit beside the button as chips: three from the large class up
+ * (03.Q1), one below it, where three would push today's capsule past the stage (a tablet at
+ * 820 px; 03.7 moves them to the options tier in D2). The menu always lists all five.
+ */
+function signatureChipCount(size: SizeClass): number {
+  return size === 'large' || size === 'xlarge' ? 3 : 1;
+}
+
+/**
+ * The signature tool (D0-11; MK-12 on today's bar). With nothing saved, the tool button: it
+ * opens New signature (or re-arms this session's signature). With saved signatures, a menu of
+ * them (each arms it), "New signature…" and "Saved signatures…" (Settings), and the newest
+ * three as chips beside it. The button shows armed for a signature that has no chip.
+ */
+function SignatureEntry({ tool }: { readonly tool: ToolDefinition }) {
+  const signatures = useSavedSignatures((s) => s.signatures);
+  const mode = useToolStore((s) => s.mode);
+  const pending = useAnnotationStore((s) => s.pendingStamp);
+  const frame = useSizeClass();
+  useEffect(() => {
+    void loadSavedSignatures();
+  }, []);
+  if (signatures.length === 0) return <ToolButton tool={tool} />;
+  const armedId = armedSavedSignature(mode, pending);
+  const chips = signatures.slice(0, signatureChipCount(frame.size));
+  const armed = mode === 'signature' && !chips.some((s) => s.id === armedId);
+  const label = tool.title();
+  return (
+    <>
+      <MenuButton
+        label={label}
+        tooltip={armedTooltip(tool.tooltip?.() ?? label, armed)}
+        icon={<tool.Icon />}
+        pressed={armed}
+        tool="signature"
+      >
+        {signatures.map((signature) => (
+          <Menu.Item
+            key={signature.id}
+            className={menuStyles.item}
+            data-checked={armedId === signature.id ? '' : undefined}
+            onClick={() => void armSavedSignature(signature.id)}
+          >
+            <SignaturePlate ink={signature} />
+            <span className={menuStyles.label}>{signatureLabel(signature)}</span>
+          </Menu.Item>
+        ))}
+        <Menu.Separator className={menuStyles.separator} />
+        <Menu.Item className={menuStyles.item} onClick={() => openNewSignature()}>
+          <Plus aria-hidden="true" className={styles.menuIcon} />
+          <span className={menuStyles.label}>{m.signature_menu_new()}</span>
+        </Menu.Item>
+        <Menu.Item
+          className={menuStyles.item}
+          onClick={() => openSettings({ row: 'savedSignatures' })}
+        >
+          <Settings aria-hidden="true" className={styles.menuIcon} />
+          <span className={menuStyles.label}>{m.signature_menu_manage()}</span>
+        </Menu.Item>
+      </MenuButton>
+      {chips.map((signature) => (
+        <SignatureChip key={signature.id} signature={signature} armed={armedId === signature.id} />
+      ))}
+    </>
+  );
+}
+
+/**
+ * A saved signature as a chip (MK-12 §2, §4, §8): its plate in a bar-high pill; a press arms
+ * it as the one-shot signature tool, so the next click on a page places it. Armed, it takes
+ * the ring form (content inside, so no lime fill).
+ */
+function SignatureChip({
+  signature,
+  armed,
+}: {
+  readonly signature: SavedSignature;
+  readonly armed: boolean;
+}) {
+  const label = signatureLabel(signature);
+  return (
+    <Tooltip label={armedTooltip(label, armed)} side="top">
+      <button
+        type="button"
+        className={styles.signatureChip}
+        aria-label={label}
+        aria-pressed={armed}
+        data-tool="saved-signature"
+        data-saved-signature={signature.id}
+        onClick={() => void armSavedSignature(signature.id)}
+      >
+        <SignaturePlate ink={signature} />
+      </button>
+    </Tooltip>
   );
 }
 

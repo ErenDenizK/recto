@@ -164,11 +164,14 @@ export class SnapshotWriter {
     }, delay);
   }
 
-  /** Documents that left the workspace; `ws` is the workspace they were last open in. */
-  noteClosed(ws: Workspace, ids: readonly DocumentId[]): void {
+  /**
+   * Documents that left the workspace; `ws` is the workspace they were last open in, and
+   * `state` the stores' state then (a reset clears the blobs with the documents, so the state
+   * after it would leave their image and edit blobs out of the kept record).
+   */
+  noteClosed(ws: Workspace, ids: readonly DocumentId[], state = this.deps.state()): void {
     if (this.stopped || ids.length === 0) return;
     const places = this.deps.places();
-    const state = this.deps.state();
     for (const id of ids) {
       this.reopened.delete(id);
       this.closed = this.closed.filter((c) => c.id !== id);
@@ -338,6 +341,12 @@ export class SnapshotWriter {
       if (this.stored.has(key('sources', name))) continue;
       const bytes = await this.deps.sourceBytes(source.id);
       if (bytes === undefined) {
+        // Closed in the engine already (a reset), but stored by an earlier write or a reopen
+        // from Recents: nothing to write.
+        if ((await storage.read('sources', name).catch(() => undefined)) !== undefined) {
+          this.stored.add(key('sources', name));
+          continue;
+        }
         complete = false;
         continue;
       }
@@ -354,6 +363,10 @@ export class SnapshotWriter {
               return stored ? new Blob([stored.bytes], { type: stored.type }) : undefined;
             })();
       if (bytes === undefined) {
+        if ((await storage.read('blobs', blob.id).catch(() => undefined)) !== undefined) {
+          this.stored.add(key('blobs', blob.id));
+          continue;
+        }
         complete = false;
         continue;
       }

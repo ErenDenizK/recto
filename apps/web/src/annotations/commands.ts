@@ -31,6 +31,12 @@ import { announce } from '../shell/announcer';
 import type { CommandRegistry } from '../commands/registry';
 import { registerRedactionCommands } from '../redaction/commands';
 import { markSelection } from '../redaction/marks';
+import { openNewSignature } from '../signatures/new-signature';
+import {
+  armSavedSignature,
+  loadSavedSignatures,
+  useSavedSignatures,
+} from '../signatures/saved-signatures';
 import { canEdit, canEditActive, isPageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { useToolStore } from '../viewer/tool-store';
@@ -103,9 +109,13 @@ export async function activateTool(tool: ToolDefinition): Promise<void> {
       return;
     }
   }
+  // The signature tool (D0-11, MK-12 §6): the signature of this session again, else the
+  // newest saved one, else New signature (S7) to make one.
   if (tool.mode === 'signature') {
     if (store.pendingStamp?.kind !== 'signature') {
-      store.setSignatureDialogOpen(true);
+      await loadSavedSignatures();
+      const newest = useSavedSignatures.getState().signatures[0];
+      if (!newest || !(await armSavedSignature(newest.id))) openNewSignature();
       return;
     }
   }

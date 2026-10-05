@@ -4,6 +4,8 @@
  * Type in rem (system text scaling): 15 px names and buttons, 13 px secondary lines.
  */
 .library {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   overflow: hidden auto;
   overscroll-behavior: contain;
@@ -21,6 +23,7 @@
 
 .header {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -205,6 +208,44 @@
   color: var(--text-secondary);
   font-size: 0.8125rem;
   line-height: 1.25rem;
+  text-wrap: pretty;
+}
+
+/* First run: the button, the reading-only line and the Recents placeholder are one group a
+   little above the middle of the screen (the header's 56 px and 8 % of the height held
+   below it), not a button at the top of an empty canvas. Auto margins fall to 0 when the
+   group is taller than the room (a phone on its side). */
+.library[data-first-run] .hero {
+  margin-top: auto;
+}
+
+.library[data-first-run] .recents {
+  margin-bottom: auto;
+  padding-bottom: calc(56px + 8dvh);
+}
+
+/* Recents before the first file: one row of the list's shape, quiet and not pressable. */
+.emptyRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-3);
+}
+
+.emptyTitle {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+
+.emptyLine {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   text-wrap: pretty;
 }
 

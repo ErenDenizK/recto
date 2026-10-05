@@ -6,8 +6,8 @@
  *
  * - **Presentation** (`ui/sheet/presentation.ts`, kind `settings`): a 480 px side sheet over a
  *   scrim from the expanded class up, a form sheet (≤ 640) on medium, a bottom sheet at 92 % on
- *   a compact desktop window. One grouped scroll at every size; Kept documents, Privacy and
- *   About Recto push a page (‹ Back in the header, *sheet push* motion: 24 px and a fade on the
+ *   a compact desktop window. One grouped scroll at every size; Kept documents, Saved
+ *   signatures, Privacy and About Recto push a page (‹ Back in the header, *sheet push* motion: 24 px and a fade on the
  *   smooth spring, a 150 ms fade under reduced motion, transform and opacity only, cleared at
  *   the end, quality-bar Q-2, Q-7).
  * - **Search** (`search-index.ts`): filters rows by their EN and TR titles and keywords without
@@ -39,6 +39,7 @@ import {
   targetOf,
 } from './open-settings';
 import { AboutPage, KeptPage, PrivacyPage } from './pages';
+import { SavedSignaturesPage, SavedSignaturesRow } from './SavedSignatures';
 import { Section } from './rows';
 import {
   pageById,
@@ -77,7 +78,7 @@ const ROWS: Readonly<
   language: () => <LanguageRow />,
   penDrawsInEdit: () => <PenDrawsRow />,
   keptDocuments: (props) => <KeptDocumentsRow {...props} />,
-  // D0-11: savedSignatures: (props) => <SavedSignaturesRow {...props} />,
+  savedSignatures: (props) => <SavedSignaturesRow {...props} />,
   recents: () => <RecentsRow />,
   commentName: () => <CommentNameRow />,
   showTips: () => <ShowTipsRow />,
@@ -86,9 +87,10 @@ const ROWS: Readonly<
   about: (props) => <AboutRow {...props} />,
 };
 
-/** The pushed pages (D0-11 adds `signatures`). */
+/** The pushed pages. */
 const PAGES: Readonly<Record<SettingsPageId, () => ReactNode>> = {
   kept: () => <KeptPage />,
+  signatures: () => <SavedSignaturesPage />,
   privacy: () => <PrivacyPage />,
   about: () => <AboutPage />,
 };

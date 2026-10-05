@@ -30,7 +30,7 @@ import { finishJob, type JobHandle, startJob } from '../jobs/job-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { RasterError, type RasterOptions, rasterizeDocument } from '../tools/rasterize';
 import { toast } from '../ui/Toast/toast';
-import { downloadBlob } from './deliver';
+import { downloadBlob, removeEmptyFile } from './deliver';
 import {
   type CopySummary,
   type CopySummaryItem,
@@ -324,17 +324,6 @@ export async function writeCopy(target: CopyTarget, output: CopyOutput): Promise
     // Discard the partial file rather than leaving a truncated copy behind.
     await writable.abort(error).catch(() => undefined);
     throw error;
-  }
-}
-
-/** The empty-file rule: removes the picked, still empty file; false where it cannot. */
-export async function removeEmptyFile(handle: CopyHandle): Promise<boolean> {
-  if (typeof handle.remove !== 'function') return false;
-  try {
-    await handle.remove();
-    return true;
-  } catch {
-    return false;
   }
 }
 

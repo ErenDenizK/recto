@@ -8,6 +8,10 @@
  *   first as "Reading now" (a tap goes back to it), a row without a kept file handle reopens
  *   through the file dialog ("Open again…"), and Clear forgets them all.
  * - A file that did not open leaves one line saying why (`role="alert"`).
+ * - First run (no Recents yet): Recents shows its place as a quiet placeholder row, "No files
+ *   yet", and the button, the reading-only line and that row sit together in the middle of
+ *   the screen, so the first screen is one calm group rather than a button at the top of an
+ *   empty canvas (XD-3).
  */
 import { FileText } from 'lucide-react';
 import { useState } from 'react';
@@ -36,8 +40,13 @@ const NAME_LENGTH = 48;
 export function CompactLibrary() {
   const opening = useCompactStore((s) => s.opening);
   const openError = useCompactStore((s) => s.openError);
+  const firstRun = useRecentsStore((s) => s.loaded && s.entries.length === 0);
   return (
-    <main className={styles.library} data-testid="compact-library">
+    <main
+      className={styles.library}
+      data-testid="compact-library"
+      data-first-run={firstRun || undefined}
+    >
       <header className={styles.header}>
         <h1 className={styles.brand}>
           <AppGlyph size={20} />
@@ -97,7 +106,8 @@ function Recents() {
   const locale = getLocale();
   // Relative times ("5 minutes ago") are read once per visit.
   const [now] = useState(() => Date.now());
-  if (!loaded || entries.length === 0) return null;
+  if (!loaded) return null;
+  if (entries.length === 0) return <RecentsPlaceholder />;
   // The open document first, then the rest newest first.
   const ordered = [...entries.filter(isOpenEntry), ...entries.filter((e) => !isOpenEntry(e))];
   return (
@@ -143,6 +153,32 @@ function Recents() {
             : m.recents_note_unavailable({ name: note.name })}
         </p>
       ) : null}
+    </section>
+  );
+}
+
+/** Recents before the first file: the list's place, as one quiet row of its shape. */
+function RecentsPlaceholder() {
+  return (
+    <section
+      className={styles.recents}
+      aria-labelledby="compact-recents-heading"
+      data-testid="compact-recents-empty"
+    >
+      <div className={styles.recentsHeader}>
+        <h2 id="compact-recents-heading" className={styles.recentsTitle}>
+          {m.recents_heading()}
+        </h2>
+      </div>
+      <div className={styles.emptyRow}>
+        <span className={styles.recentGlyph} aria-hidden="true">
+          <FileText />
+        </span>
+        <span className={styles.recentText}>
+          <span className={styles.emptyTitle}>{m.compact_recents_empty_title()}</span>
+          <span className={styles.emptyLine}>{m.compact_recents_empty()}</span>
+        </span>
+      </div>
     </section>
   );
 }

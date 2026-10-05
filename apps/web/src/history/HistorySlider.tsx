@@ -55,41 +55,50 @@ export function HistorySlider({
   return (
     // Enter on the slider inside keeps; the pointer flag tells a release from a key's commit.
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-    <div
-      className={styles.slider}
-      onKeyDown={onKeyDown}
-      onPointerDownCapture={() => {
-        pointer.current = true;
-      }}
-    >
-      <Slider
-        label={m.history_slider_label()}
-        value={position}
-        min={0}
-        max={Math.max(1, steps.length - 1)}
-        step={1}
-        // One tick per step while they stay apart (FB7 §2's drawing); a long history is a ramp.
-        detents={steps.length <= MAX_TICKS ? steps.map((_, i) => i) : undefined}
-        bubble="never"
-        inputRef={inputRef}
-        disabled={steps.length < 2}
-        valueText={(value) => at(value)?.phrase ?? ''}
-        onValueChange={(value) => {
-          const step = at(value);
-          if (step && step.index !== active) onActiveChange(step.index);
+    <div className={styles.slider} onKeyDown={onKeyDown}>
+      {/* Only a press on the slider itself makes its commit a keep: a tap on Cancel below must
+          not, or a commit the browser fires as focus leaves the thumb would keep the preview. */}
+      <div
+        className={styles.sliderTrack}
+        onPointerDownCapture={() => {
+          pointer.current = true;
         }}
-        onValueCommitted={(value) => {
-          if (!pointer.current) return;
-          pointer.current = false;
-          const step = at(value);
-          if (step) onKeep(step.index);
-        }}
-      />
+      >
+        <Slider
+          label={m.history_slider_label()}
+          value={position}
+          min={0}
+          max={Math.max(1, steps.length - 1)}
+          step={1}
+          // One tick per step while they stay apart (FB7 §2's drawing); a long history is a ramp.
+          detents={steps.length <= MAX_TICKS ? steps.map((_, i) => i) : undefined}
+          bubble="never"
+          inputRef={inputRef}
+          disabled={steps.length < 2}
+          valueText={(value) => at(value)?.phrase ?? ''}
+          onValueChange={(value) => {
+            const step = at(value);
+            if (step && step.index !== active) onActiveChange(step.index);
+          }}
+          onValueCommitted={(value) => {
+            if (!pointer.current) return;
+            pointer.current = false;
+            const step = at(value);
+            if (step) onKeep(step.index);
+          }}
+        />
+      </div>
       <div className={styles.sliderFoot}>
         <span className={styles.count}>
           {m.history_slider_value({ index: position + 1, count: steps.length })}
         </span>
-        <Button variant="quiet" onClick={onCancel}>
+        <Button
+          variant="quiet"
+          onClick={() => {
+            pointer.current = false;
+            onCancel();
+          }}
+        >
           {m.history_cancel()}
         </Button>
       </div>

@@ -266,3 +266,51 @@
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
+
+/*
+ * A saved signature's chip (D0-11, MK-12 §2–§4): the signature's page-white plate in a pill of
+ * --bar-button (32 px fine, 44 coarse; Q-9), concentric with the capsule. Armed, a 2 px accent
+ * ring around the plate (the ring form: the content shows, so no lime fill, 03.4), as the pen's
+ * armed preset.
+ */
+.signatureChip {
+  composes: focus-inset from global;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--bar-button);
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--radius-round);
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.signatureChip > span {
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .signatureChip:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.signatureChip:active {
+  background: var(--surface-active);
+}
+
+.signatureChip[aria-pressed='true'] > span {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+@media (forced-colors: active) {
+  .signatureChip[aria-pressed='true'] > span {
+    outline: 2px solid Highlight;
+  }
+}

@@ -33,6 +33,15 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
+  // The WebKit project starts with the not-kept warning dismissed (playwright.config.ts); this
+  // spec checks the warning itself, so it is shown again.
+  await page.addInitScript(() => {
+    try {
+      localStorage.removeItem('pdf-editor:session:not-kept-dismissed:v1');
+    } catch {
+      // No storage: nothing was remembered.
+    }
+  });
   // Playwright cannot drive the native save picker: force the download path for export.
   await page.addInitScript({
     content:
@@ -213,6 +222,31 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
     .flatMap((p) => p.node.Annots()?.asArray() ?? [])
     .map((ref) => String(pdf.context.lookup(ref, PDFDict).get(PDFName.of('Subtype'))));
   expect(subtypes.filter((s) => s === '/Stamp')).toHaveLength(2);
+});
+
+test('a reloaded tab restores its own documents, not those of the tab closed last', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  await launch(page, browserName);
+  await openFixtures(page, ['simple-text.pdf']);
+  await waitForSnapshot(page);
+
+  // Another tab with a document of its own, closed after this one's last snapshot.
+  const other = await context.newPage();
+  await useFileInputPicker(other);
+  other.on('dialog', (dialog) => void dialog.accept());
+  await launch(other, browserName);
+  await expect(other.getByRole('tab', { name: 'simple-text' })).toHaveCount(0);
+  await openFixtures(other, ['outline-named-dests.pdf']);
+  await waitForSnapshot(other);
+  await other.close();
+
+  // This tab reloads (by hand, after a crash, or after the browser discarded it).
+  await reload(page);
+  await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'outline-named-dests' })).toHaveCount(0);
 });
 
 test('a closed document reopens from Recents with its change and no file picker', async ({
