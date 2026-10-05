@@ -16,14 +16,23 @@ import { useRecentsStore } from '../files/recents';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { parseSessionManifest, type SessionManifestV1 } from './format';
-import { keptRecordsOf, mergeKeptWorkspace, reopenKept, restoreSession } from './restore';
 import {
+  claimTabLock,
+  keptRecordsOf,
+  mergeKeptWorkspace,
+  planLaunch,
+  reopenKept,
+  restoreSession,
+} from './restore';
+import {
+  claimThisTab,
   clearKeptChanges,
   flushSession,
   reopenFromSnapshot,
   setSessionEnabled,
   startFresh,
   startSession,
+  TAB_ID_KEY,
   undoStartFresh,
 } from './session';
 import { resetSessionStore, useSessionStore } from './session-store';
@@ -371,5 +380,67 @@ describe('the launch flow', { timeout: 40_000 }, () => {
       stop();
       vi.restoreAllMocks();
     }
+  });
+});
+
+describe('which tab restores which session', () => {
+  /** A manifest with nothing in it: the plan reads only its header. */
+  const manifest = (tabId: string, savedAt: number) =>
+    JSON.stringify({
+      format: 1,
+      kind: 'session',
+      tabId,
+      savedAt,
+      destination: 'document',
+      zoom: 1,
+      fitMode: null,
+      history: {},
+      documents: [],
+      sources: [],
+      blobs: [],
+    });
+
+  it('a reloaded tab restores its own session, not the one another tab closed last', async () => {
+    const storage = memorySnapshotStorage();
+    await storage.write('sessions', 'tab-b.json', manifest('tab-b', 1));
+    await storage.write('sessions', 'tab-a.json', manifest('tab-a', 2));
+    // Tab B reloads: it holds its own lock again before planning.
+    const own = await planLaunch(storage, new Set(['tab-b']), 'tab-b');
+    expect(own.restore?.tabId).toBe('tab-b');
+    expect(own.orphans.map((o) => o.tabId)).toEqual(['tab-a']);
+    // A new tab takes the newest session no open tab holds.
+    const fresh = await planLaunch(storage, new Set(['tab-new']), 'tab-new');
+    expect(fresh.restore?.tabId).toBe('tab-a');
+    // A session another open tab holds is never touched.
+    const held = await planLaunch(storage, new Set(['tab-a', 'tab-c']), 'tab-c');
+    expect(held.restore?.tabId).toBe('tab-b');
+    expect(held.orphans).toEqual([]);
+  });
+
+  it('only one tab can claim a session to restore it', async () => {
+    const release = await claimTabLock('tab-claimed');
+    expect(release).toBeDefined();
+    // A second tab launching at the same moment finds it taken.
+    expect(await claimTabLock('tab-claimed')).toBeUndefined();
+    await release?.();
+    const again = await claimTabLock('tab-claimed');
+    expect(again).toBeDefined();
+    await again?.();
+  });
+
+  it('keeps this tab’s id across a reload; a duplicated tab takes a new one', async () => {
+    sessionStorage.removeItem(TAB_ID_KEY);
+    const first = await claimThisTab();
+    expect(sessionStorage.getItem(TAB_ID_KEY)).toBe(first.tabId);
+    // The page goes away (a reload, a crash, Memory Saver) and comes back in the same tab.
+    await first.release();
+    const reloaded = await claimThisTab();
+    expect(reloaded.tabId).toBe(first.tabId);
+    // Duplicate tab copies sessionStorage while the first tab still lives.
+    const duplicate = await claimThisTab();
+    expect(duplicate.tabId).not.toBe(first.tabId);
+    await reloaded.release();
+    await duplicate.release();
+    sessionStorage.removeItem(TAB_ID_KEY);
   });
 });
