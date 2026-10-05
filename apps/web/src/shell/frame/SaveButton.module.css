@@ -1,0 +1,157 @@
+/*
+ * Save (01-frame F7 §2–§4, §7): a neutral capsule from ui/Button (--control-h, pill), "Save" on
+ * the standard fill, "Saved" with no fill and the secondary label, "Saving… 40 %" with the
+ * processing ring, and the success bloom once after a verified save. Never lime at rest.
+ */
+.wrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  border-radius: var(--radius-pill);
+}
+
+/* "Saved" reads as finished, not unavailable: the secondary label, not the disabled one. */
+.wrap .save[aria-disabled='true'] {
+  color: var(--glass-text-secondary);
+}
+
+/* The labels share one cell, so "Save" and "Saved" have one width; the saving label grows it. */
+.labels {
+  display: inline-grid;
+  justify-items: center;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+
+.label[data-shown] {
+  visibility: visible;
+}
+
+.labels[data-state='saving'] > .label:not([data-shown]) {
+  /* While saving, the rest labels give up their width so the percentage never truncates. */
+  display: none;
+}
+
+/* The check beside "Saved" (FB6): it holds its place, and pops in once after a verified save. */
+.check {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--success);
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.check[data-shown] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--spring-pop) var(--ease-spring-pop);
+}
+
+/* The processing ring (language.md §3.3, FB5 §3): a 1.5 px arc turning on the border while the
+   save runs, as on the progress capsule. */
+@property --save-ring-turn {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.ring,
+.bloom {
+  position: absolute;
+  inset: -1px;
+  padding: 1.5px;
+  border-radius: inherit;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+.ring {
+  background: conic-gradient(
+    from var(--save-ring-turn),
+    var(--accent) 0deg 40deg,
+    color-mix(in srgb, var(--accent) 60%, transparent) 90deg,
+    transparent 150deg 360deg
+  );
+  animation: save-ring-turn 2.4s linear infinite;
+}
+
+@keyframes save-ring-turn {
+  to {
+    --save-ring-turn: 360deg;
+  }
+}
+
+/* The success bloom (FB6 §3): the rim lights in 180 ms, holds 120 ms, fades over 900 ms, once. */
+.bloom {
+  background: var(--success);
+  opacity: 0;
+  animation: save-bloom 1200ms var(--ease-out) 1;
+}
+
+@keyframes save-bloom {
+  15% {
+    opacity: 1;
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion, Reduce transparency: a still rim while saving, a static rim for the bloom. */
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  .ring {
+    padding: 1px;
+    background: var(--accent-line);
+    animation: none;
+  }
+
+  .bloom {
+    animation: save-bloom-still 1000ms steps(1, end) 1;
+  }
+
+  .check[data-shown] {
+    transition: none;
+  }
+}
+
+:root:is([data-motion='reduced'], [data-transparency='reduced']) .ring {
+  padding: 1px;
+  background: var(--accent-line);
+  animation: none;
+}
+
+:root:is([data-motion='reduced'], [data-transparency='reduced']) .bloom {
+  animation: save-bloom-still 1000ms steps(1, end) 1;
+}
+
+@keyframes save-bloom-still {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  .ring,
+  .bloom {
+    display: none;
+  }
+}

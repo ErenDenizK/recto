@@ -26,6 +26,8 @@ import { registerCompareCommands } from '../compare/compare-commands';
 import { registerConvertCommands } from '../convert/convert-commands';
 import { fileHandleOf, partitionFiles, pickFiles } from '../files/open-files';
 import { clearRecents, recordRecent } from '../files/recents';
+import { rememberDocumentHandle } from '../files/save';
+import { registerSaveCommands } from '../files/save-commands';
 import { registerFurnitureCommands } from '../furniture';
 import { registerFormCommands } from '../forms';
 import { redoStep, undoStep } from '../history/actions';
@@ -129,7 +131,8 @@ export function noteReopenedFrom(file: File, id: string): void {
 
 /**
  * Records each opened PDF in Recents (craft §3.1): name, size, page count and, where the
- * browser gave one, the file handle. Matched to the files by name, in order.
+ * browser gave one, the file handle, which Save also keeps for the document. Matched to the
+ * files by name, in order.
  */
 function rememberOpened(
   files: readonly File[],
@@ -141,6 +144,8 @@ function rememberOpened(
     const [file] = unused.splice(index < 0 ? 0 : index, 1);
     if (file === undefined) continue;
     const handle = fileHandleOf(file);
+    // Save writes back through it (files/save.ts, ADR-0032 §2.1).
+    if (handle !== undefined) rememberDocumentHandle(documentId, handle);
     const replaces = reopenedFrom.get(file);
     const pages = model().workspace.documents[documentId]?.pages.length;
     void recordRecent({
@@ -612,6 +617,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
     }),
     registerLanguageCommands(registry),
     registerExportCommands(registry),
+    registerSaveCommands(registry),
     registerViewerCommands(registry),
     registerEditPolicyCommands(registry),
     registerToolCommands(registry),

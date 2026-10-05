@@ -4060,5 +4060,84 @@
   "history_empty": "Nothing to undo yet.",
   "announce_history_jump": "Now at step {index} of {count}: {step}",
   "cmd_history": "Show history…",
-  "history_show": "Show"
+  "history_show": "Show",
+  "cmd_save": "Save",
+  "cmd_file_save_keywords": "save, write, keep, store",
+  "cmd_revert": "Revert to the opened version…",
+  "cmd_file_revert_keywords": "revert, restore, original, discard changes, reset",
+  "save_label": "Save",
+  "save_label_saved": "Saved",
+  "save_label_saving": "Saving… {percent}",
+  "save_label_saving_plain": "Saving…",
+  "save_everything_in": "Everything is in {name}",
+  "save_job": "Saving {name}…",
+  "save_verified": "Saved · verified",
+  "save_verified_removed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Saved · {count} area removed for good · verified",
+        "countPlural=*": "Saved · {count} areas removed for good · verified"
+      }
+    }
+  ],
+  "save_announce_verified": "Saved {name}, verified",
+  "save_downloaded": "Downloaded {name}",
+  "save_shared": "Shared {name}",
+  "save_copy_detail": "This browser cannot write into the file you opened, so this is a new copy. The opened file is unchanged.",
+  "save_failed": "Could not save {name}: {reason}",
+  "save_a_copy": "Save a copy…",
+  "save_reason_moved": "the file was moved or deleted",
+  "save_reason_denied": "the browser did not allow writing to it",
+  "save_reason_mismatch": "the file did not read back as it was written",
+  "save_reason_failed": "the file could not be written",
+  "save_reason_unverified": "the new file did not pass its checks",
+  "save_reason_marks": "the redaction marks could not be applied",
+  "save_replace_title": "Replace {name}?",
+  "save_replace_body": "Recto writes your changes into the file you opened. You can still revert to the opened version on this device.",
+  "save_replace": "Replace",
+  "save_replace_dont_ask": "Don't ask again for this file",
+  "save_marks_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} mark not applied",
+        "countPlural=*": "{count} marks not applied"
+      }
+    }
+  ],
+  "save_marks_body": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "The text under {count} mark is still in the file.",
+        "countPlural=*": "The text under {count} marks is still in the file."
+      }
+    }
+  ],
+  "save_marks_apply": "Apply and save",
+  "save_marks_without": "Save without applying",
+  "tab_name_edited": "{name}, edited",
+  "tab_edited_hint": "Changes not yet in the file (kept on this device)",
+  "revert_title": "Revert to the opened version?",
+  "revert_body": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Your {count} change since opening goes. Undo brings it back.",
+        "countPlural=*": "Your {count} changes since opening go. Undo brings them back."
+      }
+    }
+  ],
+  "revert_body_unknown": "Your changes since opening go. Undo brings them back.",
+  "revert_action": "Revert",
+  "revert_done": "Reverted {name}",
+  "revert_failed": "Could not revert {name} to the opened version.",
+  "revert_nothing_changed": "Nothing changed since opening",
+  "revert_unavailable": "This document was not opened from one file",
+  "history_reverted": "Reverted {name} to the opened version"
 }

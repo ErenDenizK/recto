@@ -106,6 +106,8 @@ export const DOCUMENT_MENU_SECTIONS: readonly DocumentMenuSection[] = [
     id: 'convert',
     label: m.menu_section_convert,
     entries: [
+      // Save (ADR-0032 §2.1) until D2's title menu takes it.
+      command('file.save'),
       command('file.export'),
       command('document.exportImages'),
       command('document.exportMarkdown'),
@@ -123,6 +125,8 @@ export const DOCUMENT_MENU_SECTIONS: readonly DocumentMenuSection[] = [
       // and what it opens are N1's. Keep this entry first in the section.
       command('document.info'),
       // --- end Document info ----------------------------------------------------------------
+      // Revert to the opened version… (ADR-0032 §2.2) until D2's title menu takes it.
+      command('file.revert'),
       command('outline.addBookmark'),
       command('outline.removeDeadLinks', { onlyWhenAvailable: true }),
       command('document.saveRepaired', { onlyWhenAvailable: true }),
