@@ -14,7 +14,7 @@
  *   here makes a network request: the links are plain anchors and storage use comes from
  *   `navigator.storage.estimate()`.
  *
- * D0-11 adds the Saved signatures page here (see `search-index.ts`).
+ * The Saved signatures page (D0-11) lives in `SavedSignatures.tsx`, beside its row.
  */
 import { useEffect, useState } from 'react';
 
