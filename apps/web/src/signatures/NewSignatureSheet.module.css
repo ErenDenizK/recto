@@ -10,9 +10,16 @@
   gap: 16px;
 }
 
+/* Grid children never grow past the sheet for a long line (the Image tab's hint). */
+.body > *,
+.panel > * {
+  min-width: 0;
+}
+
 .panel {
   display: grid;
   gap: 12px;
+  min-width: 0;
   margin-top: 12px;
 }
 
@@ -83,6 +90,7 @@
   display: grid;
   place-items: center;
   box-sizing: border-box;
+  width: 100%;
   aspect-ratio: 440 / 160;
   padding: 16px 24px;
   border: 1px dashed var(--border-strong);

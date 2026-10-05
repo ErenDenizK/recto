@@ -77,10 +77,18 @@ export function builtinPendingStamp(name: BuiltinStamp['name']): PendingStamp {
   return { kind: 'builtin', name, ...BUILTIN_STAMP_SIZE };
 }
 
+/**
+ * The family a typed signature is drawn in: the UI font first (no script font is bundled; spec
+ * §3), as the app loads it, so the placed image matches New signature's preview.
+ */
+export const TYPED_SIGNATURE_FONT = "'Inter Variable', Inter, Helvetica, Arial, sans-serif";
+/** A typed signature's size in points. */
+export const TYPED_SIGNATURE_SIZE = 36;
+
 /** A typed signature drawn with the UI font (no script font is bundled; spec §3). */
 export async function typedSignature(text: string, color = '#1A237E'): Promise<PendingStamp> {
-  const size = 36 * IMAGE_SCALE;
-  const font = `italic 500 ${size}px Inter, Helvetica, Arial, sans-serif`;
+  const size = TYPED_SIGNATURE_SIZE * IMAGE_SCALE;
+  const font = `italic 500 ${size}px ${TYPED_SIGNATURE_FONT}`;
   const probe = canvas(1, 1).getContext('2d');
   if (!probe) throw new Error('No 2D context for the signature');
   probe.font = font;
