@@ -25,7 +25,7 @@ import styles from './PageCanvas.module.css';
 
 /** Tile edge in device pixels. */
 export const TILE_PX = 1024;
-/** Extra margin (CSS px) around the viewport in which tiles are prepared. */
+/** Extra margin (CSS px) around the viewport in which tiles are prepared (Read mode). */
 const MARGIN_PX = 256;
 
 function devicePixelRatio(): number {
@@ -40,9 +40,17 @@ export function pageDeviceScale(cssScale: number, widthPt: number, dpr = deviceP
   return exactScale(widthPt * cssScale, widthPt, dpr);
 }
 
-/** True when the whole page at this scale would be capped (so tiles are needed). */
-export function needsTiles(cssScale: number, widthPt: number, heightPt: number): boolean {
-  return isCapped(pageDeviceScale(cssScale, widthPt), widthPt, heightPt);
+/**
+ * True when the whole page at this scale would be capped (so tiles are needed), under the
+ * same `maxPixels` budget the page's `PageCanvas` is given.
+ */
+export function needsTiles(
+  cssScale: number,
+  widthPt: number,
+  heightPt: number,
+  maxPixels?: number,
+): boolean {
+  return isCapped(pageDeviceScale(cssScale, widthPt), widthPt, heightPt, maxPixels);
 }
 
 export interface Tile {
@@ -98,12 +106,18 @@ export function TiledPage({
   index,
   rotation,
   frame,
+  marginPx = MARGIN_PX,
 }: {
   readonly sourceId: SourceId;
   readonly index: number;
   /** Rotation on top of the intrinsic /Rotate (VirtualPage.rotation). */
   readonly rotation: Rotation;
   readonly frame: PageFrame;
+  /**
+   * Margin (CSS px) around the viewport that tiles cover. A DPR 3 phone pays nine device
+   * pixels for each CSS pixel of it, so the compact reader passes a smaller one.
+   */
+  readonly marginPx?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [tiles, setTiles] = useState<readonly Tile[]>([]);
@@ -124,10 +138,10 @@ export function TiledPage({
       const page = layer.getBoundingClientRect();
       const view = viewport.getBoundingClientRect();
       const next = tilesFor({ width: widthPt, height: heightPt }, bucket, {
-        left: (view.left - MARGIN_PX - page.left) / scale,
-        top: (view.top - MARGIN_PX - page.top) / scale,
-        right: (view.right + MARGIN_PX - page.left) / scale,
-        bottom: (view.bottom + MARGIN_PX - page.top) / scale,
+        left: (view.left - marginPx - page.left) / scale,
+        top: (view.top - marginPx - page.top) / scale,
+        right: (view.right + marginPx - page.left) / scale,
+        bottom: (view.bottom + marginPx - page.top) / scale,
       });
       const key = next.map((t) => `${t.col},${t.row}`).join(';');
       if (key !== shown) {
@@ -147,7 +161,7 @@ export function TiledPage({
       observer.disconnect();
       if (frameId !== 0) cancelAnimationFrame(frameId);
     };
-  }, [bucket, scale, widthPt, heightPt]);
+  }, [bucket, scale, widthPt, heightPt, marginPx]);
 
   return (
     <div ref={ref} className={styles.tiles} aria-hidden="true" data-testid="page-tiles">

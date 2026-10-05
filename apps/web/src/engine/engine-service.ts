@@ -140,6 +140,13 @@ const MIN_BUCKET = 1 / 64;
 const MAX_BUCKET = 16;
 /** Largest bitmap we render in one piece (~64 MB). Beyond this, tiles (`TiledPage`) help. */
 export const MAX_BITMAP_PIXELS = 4096 * 4096;
+/**
+ * The compact reader's whole-page budget (4 MP, 16 MB a page): on a DPR 3 phone a page at 2×
+ * would otherwise be a 6–16 MP bitmap for every mounted page, offscreen ones included, and
+ * phone browsers cap the canvas memory of a tab. Above it the base bitmap is capped and the
+ * visible page is covered by exact-scale tiles (`TiledPage`).
+ */
+export const COMPACT_BITMAP_PIXELS = 2048 * 2048;
 
 function roundScale(value: number): number {
   return Math.round(value * 10_000) / 10_000;
@@ -159,9 +166,9 @@ export function scaleBucketBelow(scale: number): number {
   return roundScale(Math.min(MAX_BUCKET, Math.max(MIN_BUCKET, 2 ** (k / STEPS_PER_OCTAVE))));
 }
 
-/** Largest scale at which a `widthPt` × `heightPt` page stays within `MAX_BITMAP_PIXELS`. */
-function maxScaleFor(widthPt: number, heightPt: number): number {
-  return Math.sqrt(MAX_BITMAP_PIXELS / Math.max(1, widthPt * heightPt));
+/** Largest scale at which a `widthPt` × `heightPt` page stays within `maxPixels`. */
+function maxScaleFor(widthPt: number, heightPt: number, maxPixels = MAX_BITMAP_PIXELS): number {
+  return Math.sqrt(Math.min(maxPixels, MAX_BITMAP_PIXELS) / Math.max(1, widthPt * heightPt));
 }
 
 /**
@@ -185,18 +192,29 @@ export function exactScaleKey(scale: number): number {
 
 /**
  * The scale to render a Read-mode page at: exactly `scale` (`exactScaleKey`) so the bitmap
- * is drawn 1:1, or, when that would exceed `MAX_BITMAP_PIXELS`, the largest bucket below
- * the cap (the page is then capped and `TiledPage` covers it with exact-scale tiles).
+ * is drawn 1:1, or, when that would exceed `maxPixels` (at most `MAX_BITMAP_PIXELS`), the
+ * largest bucket below the cap (the page is then capped and `TiledPage` covers it with
+ * exact-scale tiles). The compact reader passes a smaller budget (`COMPACT_BITMAP_PIXELS`).
  */
-export function chooseScale(scale: number, widthPt: number, heightPt: number): number {
+export function chooseScale(
+  scale: number,
+  widthPt: number,
+  heightPt: number,
+  maxPixels = MAX_BITMAP_PIXELS,
+): number {
   const wanted = exactScaleKey(scale);
-  const maxScale = maxScaleFor(widthPt, heightPt);
+  const maxScale = maxScaleFor(widthPt, heightPt, maxPixels);
   return wanted <= maxScale ? wanted : scaleBucketBelow(maxScale);
 }
 
 /** True when `chooseScale` caps the page below `scale` (so tiles are needed). */
-export function isCapped(scale: number, widthPt: number, heightPt: number): boolean {
-  return chooseScale(scale, widthPt, heightPt) < exactScaleKey(scale);
+export function isCapped(
+  scale: number,
+  widthPt: number,
+  heightPt: number,
+  maxPixels = MAX_BITMAP_PIXELS,
+): boolean {
+  return chooseScale(scale, widthPt, heightPt, maxPixels) < exactScaleKey(scale);
 }
 
 /**

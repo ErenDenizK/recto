@@ -299,7 +299,7 @@ test.describe('the compact edition', () => {
     const chooser = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: /^(Open PDF|PDF aç)$/ }).click();
     await (await chooser).setFiles(fixturePath('outline-named-dests.pdf'));
-    await expect(page.locator('[data-page-index="0"] canvas')).toHaveAttribute(
+    await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
       'data-state',
       'rendered',
     );
