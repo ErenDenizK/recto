@@ -134,7 +134,10 @@ async function rotateFirstPage(page: Page): Promise<void> {
   await cell.click();
   await page.keyboard.press('r');
   await page.keyboard.press('1');
-  await expect(page.getByRole('radio', { name: 'Read' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('radio', { name: /^(Read|Okuma)\b/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
 }
 
 const saveButton = (page: Page) => page.getByTestId('save-button');
@@ -279,4 +282,33 @@ test('Revert to the opened version is one step that Undo takes back', async ({ p
   await toast.getByRole('button', { name: 'Undo' }).click();
   await expect(editedDot(page)).toHaveCount(1);
   await expect(saveButton(page)).toHaveAccessibleName('Save');
+});
+
+test.describe('screenshots for review (SAVE_SHOTS)', () => {
+  test.skip(!SHOTS, 'only when SAVE_SHOTS names a directory');
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 820, height: 1180 } });
+
+  test('the tablet in Turkish: Save, the Replace popover and the toast', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(browserName !== 'chromium', 'writable handles exist only in Chromium');
+    await stubFileSystemAccess(page);
+    await page.goto('./?lang=tr');
+    await seedFile(page, 'simple-text.pdf');
+    await page.getByRole('button', { name: 'Dosya aç' }).first().click();
+    await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
+    await shot(page, 'tr-820-saved');
+    await rotateFirstPage(page);
+    await expect(editedDot(page)).toHaveCount(1);
+    await shot(page, 'tr-820-unsaved');
+    await saveButton(page).click();
+    await expect(page.getByTestId('replace-popover')).toBeVisible();
+    await shot(page, 'tr-820-replace');
+    await page.getByRole('button', { name: 'Değiştir', exact: true }).click();
+    await expect(page.getByRole('group', { name: 'Kaydedildi · doğrulandı' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await shot(page, 'tr-820-toast');
+  });
 });
