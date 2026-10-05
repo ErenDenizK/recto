@@ -12,7 +12,14 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { setLocale } from '../../i18n';
 import { useAnnouncer } from '../../shell/announcer';
+import { swatchName } from '../../ui/Swatch';
+import {
+  noteRecentColour,
+  RECENT_COLOURS_KEY,
+  reloadColourLists,
+} from '../../ui/colour/saved-colours';
 import { resetToolStore, useToolStore } from '../../viewer/tool-store';
 import {
   resetAnnotationStore,
@@ -58,12 +65,17 @@ describe('pen bar', () => {
   beforeEach(() => {
     localStorage.removeItem(TOOL_STYLES_STORAGE_KEY);
     localStorage.removeItem(PEN_PRESETS_STORAGE_KEY);
+    localStorage.removeItem(RECENT_COLOURS_KEY);
+    reloadColourLists();
     resetAnnotationStore();
     resetToolStore();
     resetPenSession();
   });
   afterEach(() => {
     cleanup();
+    setLocale('en');
+    localStorage.removeItem(RECENT_COLOURS_KEY);
+    reloadColourLists();
     localStorage.removeItem(TOOL_STYLES_STORAGE_KEY);
     localStorage.removeItem(PEN_PRESETS_STORAGE_KEY);
     resetAnnotationStore();
@@ -112,7 +124,7 @@ describe('pen bar', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
 
     await userEvent.click(dot('Blue pen, 1.5 pt'));
-    const editor = await screen.findByRole('dialog', { name: 'Edit Blue pen' });
+    const editor = await screen.findByRole('dialog', { name: 'Edit blue pen' });
     expect(editor).toBeVisible();
     // A tap on the open preset's dot closes it again.
     await userEvent.click(dot('Blue pen, 1.5 pt'));
@@ -124,22 +136,22 @@ describe('pen bar', () => {
     render(<Harness />);
     await userEvent.click(dot(/^Blue pen/));
     await userEvent.click(dot(/^Blue pen/));
-    const editor = await screen.findByRole('dialog', { name: 'Edit Blue pen' });
+    const editor = await screen.findByRole('dialog', { name: 'Edit blue pen' });
 
     await userEvent.click(within(editor).getByRole('radio', { name: 'Green' }));
     expect(store().pen.presets[1].color).toBe(INK.green);
     expect(store().styles.ink.color).toBe(INK.green);
-    const named = await screen.findByRole('dialog', { name: 'Edit Green pen' });
+    const named = await screen.findByRole('dialog', { name: 'Edit green pen' });
 
     // The width is the log slider: its detents are the old stops (1.5 → 2 → 3 → 5).
     const width = within(named).getByRole('slider', { name: 'Width' });
     width.focus();
     await userEvent.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}');
     expect(store().pen.presets[1].width).toBe(5);
-    expect(width).toHaveAttribute('aria-valuetext', '5 pt');
+    expect(width).toHaveAttribute('aria-valuetext', '5 points');
     await userEvent.keyboard('{End}');
     expect(store().pen.presets[1].width).toBe(24);
-    expect(width).toHaveAttribute('aria-valuetext', '24 pt');
+    expect(width).toHaveAttribute('aria-valuetext', '24 points');
     // Opacity in steps of 5 %: from 100 % down eight steps.
     within(named).getByRole('slider', { name: 'Opacity' }).focus();
     await userEvent.keyboard('{ArrowLeft>8/}');
@@ -166,17 +178,18 @@ describe('pen bar', () => {
     await waitFor(() => expect(dot(/^Blue pen/)).toHaveFocus());
   });
 
-  it('the editor offers the eight inks for a pen and the four tints for the highlighter', async () => {
+  it('the editor offers six swatches: five writing inks and one more; the tints and grey', async () => {
     render(<Harness />);
     const swatchNames = (editor: HTMLElement) =>
-      within(within(editor).getByRole('radiogroup', { name: 'Color' }))
+      within(within(editor).getByRole('radiogroup', { name: 'Colour' }))
         .getAllByRole('radio')
         .map((r) => r.getAttribute('aria-label'));
 
     await userEvent.click(dot(/^Black pen/));
     await userEvent.click(dot(/^Black pen/));
-    const pen = await screen.findByRole('dialog', { name: 'Edit Black pen' });
-    expect(swatchNames(pen)).toEqual(INKS.map((ink) => ink.name()));
+    const pen = await screen.findByRole('dialog', { name: 'Edit black pen' });
+    // 10-ink §2.1: black, blue, red, green, purple, then orange while there is no custom colour.
+    expect(swatchNames(pen)).toEqual(INKS.slice(0, 6).map((ink) => ink.name()));
     // The default colour is its swatch, never "custom".
     expect(within(pen).getByRole('radio', { name: 'Black' })).toHaveAttribute(
       'aria-checked',
@@ -187,23 +200,23 @@ describe('pen bar', () => {
 
     await userEvent.click(dot(/^Yellow highlighter/));
     await userEvent.click(dot(/^Yellow highlighter/));
-    const highlighter = await screen.findByRole('dialog', { name: 'Edit Yellow highlighter' });
-    expect(swatchNames(highlighter)).toEqual(TINTS.map((tint) => tint.name()));
+    const highlighter = await screen.findByRole('dialog', { name: 'Edit yellow highlighter' });
+    expect(swatchNames(highlighter)).toEqual([...TINTS.map((tint) => tint.name()), 'Grey']);
     expect(within(highlighter).getByRole('radio', { name: 'Yellow' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
     await userEvent.click(within(highlighter).getByRole('radio', { name: 'Pink' }));
     expect(store().pen.presets[3]).toEqual({ ...DEFAULT_PRESETS[3], color: TINT.pink });
-    const pink = await screen.findByRole('dialog', { name: 'Edit Pink highlighter' });
+    const pink = await screen.findByRole('dialog', { name: 'Edit pink highlighter' });
     expect(pink).toBeVisible();
     // The Highlighter (craft spec §5.4): widths 6–18 pt, no opacity (always opaque).
     const width = within(pink).getByRole('slider', { name: 'Width' });
-    expect(width).toHaveAttribute('aria-valuetext', '12 pt');
+    expect(width).toHaveAttribute('aria-valuetext', '12 points');
     // Its detents are the old stops, 6 · 8 · 10 · 12 · 15 · 18, and its ends 6 and 18 pt.
     width.focus();
     await userEvent.keyboard('{ArrowRight}');
-    expect(width).toHaveAttribute('aria-valuetext', '15 pt');
+    expect(width).toHaveAttribute('aria-valuetext', '15 points');
     await userEvent.keyboard('{End}');
     expect(store().pen.presets[3].width).toBe(18);
     await userEvent.keyboard('{Home}');
@@ -229,14 +242,14 @@ describe('pen bar', () => {
     await frame();
     expect(screen.queryByRole('dialog')).toBeNull();
     await userEvent.keyboard('{Enter}');
-    expect(await screen.findByRole('dialog', { name: 'Edit Red pen' })).toBeVisible();
+    expect(await screen.findByRole('dialog', { name: 'Edit red pen' })).toBeVisible();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
     // Shift+Enter edits the focused preset without arming it.
     await waitFor(() => expect(dot(/^Red pen/)).toHaveFocus());
     await userEvent.keyboard('{ArrowLeft}{Shift>}{Enter}{/Shift}');
-    const blue = await screen.findByRole('dialog', { name: 'Edit Blue pen' });
+    const blue = await screen.findByRole('dialog', { name: 'Edit blue pen' });
     await waitFor(() => expect(blue).toBeVisible());
     expect(store().pen.active).toBe(2);
   });
@@ -366,5 +379,100 @@ describe('pen bar', () => {
         "Width changes are stored in the stroke's appearance. Viewers that redraw ink themselves show it at one width.",
       ),
     ).toBeVisible();
+  });
+
+  it("the sixth swatch is the preset's own colour, else the last custom colour, else orange", async () => {
+    render(<Harness />);
+    const swatchColours = () =>
+      within(screen.getByRole('radiogroup', { name: 'Colour' }))
+        .getAllByRole('radio')
+        .map((r) => r.getAttribute('aria-label'));
+    // An accent ink of the palette: it stays a choice, checked.
+    act(() => store().editPreset(1, { color: INK.pink }));
+    await userEvent.click(dot(/^Pink pen/));
+    await userEvent.click(dot(/^Pink pen/));
+    const pink = await screen.findByRole('dialog', { name: 'Edit pink pen' });
+    expect(swatchColours()).toEqual([...INKS.slice(0, 5).map((ink) => ink.name()), 'Pink']);
+    expect(within(pink).getByRole('radio', { name: 'Pink' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    // A writing ink again: the last custom colour used takes the sixth place.
+    act(() => noteRecentColour('#2A9D8F'));
+    await userEvent.click(within(pink).getByRole('radio', { name: 'Blue' }));
+    await screen.findByRole('dialog', { name: 'Edit blue pen' });
+    expect(swatchColours()).toEqual([
+      ...INKS.slice(0, 5).map((ink) => ink.name()),
+      swatchName('#2A9D8F'),
+    ]);
+  });
+
+  it('the well pushes the colour views in place: one dialog, Back keeps, Esc reverts', async () => {
+    render(<Harness />);
+    await userEvent.click(dot(/^Black pen/));
+    await userEvent.click(dot(/^Black pen/));
+    const editor = await screen.findByRole('dialog', { name: 'Edit black pen' });
+    // The stroke preview is on the preset page (10-ink §6).
+    expect(within(editor).getByRole('img', { name: 'Stroke preview' })).toBeVisible();
+    // Reset has nothing to do while the preset is its default.
+    expect(within(editor).getByRole('button', { name: 'Reset to default' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+
+    await userEvent.click(within(editor).getByRole('button', { name: 'More colours' }));
+    const colour = await within(editor).findByRole('group', { name: 'Colour' });
+    // In place: still one dialog, the same element, its preset page hidden.
+    expect(screen.getAllByRole('dialog')).toEqual([editor]);
+    expect(within(editor).queryByRole('slider', { name: 'Width' })).toBeNull();
+    await waitFor(() => expect(within(colour).getByRole('button', { name: 'Back' })).toHaveFocus());
+
+    // A grid choice applies live; Back keeps it and returns focus to the well.
+    await userEvent.click(within(colour).getByRole('radio', { name: 'Grid' }));
+    const grid = within(colour).getByRole('radiogroup', { name: 'Colour grid' });
+    await userEvent.click(within(grid).getAllByRole('radio')[40]!);
+    const picked = store().pen.presets[0].color;
+    expect(picked).not.toBe(INK.black);
+    await userEvent.click(within(colour).getByRole('button', { name: 'Back' }));
+    await waitFor(() =>
+      expect(within(editor).getByRole('button', { name: 'More colours' })).toHaveFocus(),
+    );
+    expect(within(editor).queryByRole('group', { name: 'Colour' })).toBeNull();
+    expect(store().pen.presets[0].color).toBe(picked);
+    // The custom colour is the sixth swatch now, checked.
+    const swatches = within(within(editor).getByRole('radiogroup', { name: 'Colour' }));
+    expect(swatches.getAllByRole('radio')[5]).toHaveAttribute('aria-checked', 'true');
+
+    // Esc on the colour page reverts what it changed and comes back; Esc again closes.
+    await userEvent.click(within(editor).getByRole('button', { name: 'More colours' }));
+    const again = await within(editor).findByRole('group', { name: 'Colour' });
+    const gridAgain = within(again).getByRole('radiogroup', { name: 'Colour grid' });
+    await userEvent.click(within(gridAgain).getAllByRole('radio')[60]!);
+    expect(store().pen.presets[0].color).not.toBe(picked);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(within(editor).queryByRole('group', { name: 'Colour' })).toBeNull());
+    expect(store().pen.presets[0].color).toBe(picked);
+    expect(screen.getByRole('dialog')).toBe(editor);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(useToolStore.getState().mode).toBe('ink');
+  });
+
+  it('titles the editor in sentence case in English and Turkish', async () => {
+    setLocale('tr');
+    render(<Harness />);
+    const tr = (name: RegExp) =>
+      within(screen.getByRole('radiogroup', { name: 'Kalem ön ayarları' })).getByRole('radio', {
+        name,
+      });
+    await userEvent.click(tr(/^Mavi kalem/));
+    await userEvent.click(tr(/^Mavi kalem/));
+    expect(await screen.findByRole('dialog', { name: 'Mavi kalem düzenle' })).toBeVisible();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    // A custom colour: the preset's place names it.
+    act(() => store().editPreset(1, { color: '#123456' }));
+    await userEvent.click(tr(/^Kalem 2/));
+    expect(await screen.findByRole('dialog', { name: 'Kalem 2 düzenle' })).toBeVisible();
   });
 });

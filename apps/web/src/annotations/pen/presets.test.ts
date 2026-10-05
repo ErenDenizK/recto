@@ -20,6 +20,8 @@ import {
   DEFAULT_PEN_SETTINGS,
   DEFAULT_PRESETS,
   dotSize,
+  editorSwatches,
+  HIGHLIGHTER_GREY,
   HIGHLIGHTER_LIMITS,
   HIGHLIGHTER_SWATCHES,
   HIGHLIGHTER_WIDTH_STOPS,
@@ -29,6 +31,7 @@ import {
   parsePenSettings,
   PEN_PRESETS_STORAGE_KEY,
   PEN_SWATCHES,
+  presetEditorTitle,
   presetLabel,
   presetName,
   presetSwatches,
@@ -345,5 +348,46 @@ describe('pen presets: migration of version 1 (craft spec §6)', () => {
     expect(localStorage.getItem(LEGACY_PEN_PRESETS_STORAGE_KEY)).toBeNull();
     expect(store().pen).toEqual(DEFAULT_PEN_SETTINGS);
     expect(stored()).toBeUndefined();
+  });
+});
+
+describe('the preset editor', () => {
+  const colours = (list: readonly { color: string }[]) => list.map((swatch) => swatch.color);
+  const writing = INKS.slice(0, 5).map((ink) => ink.hex);
+
+  it('offers five writing inks and one more: own colour, else the last custom, else orange', () => {
+    const black = DEFAULT_PRESETS[0];
+    expect(colours(editorSwatches(black))).toEqual([...writing, INK.orange]);
+    expect(colours(editorSwatches(black, ['#2a9d8f']))).toEqual([...writing, '#2A9D8F']);
+    // A recent colour that is already a swatch is not repeated.
+    expect(colours(editorSwatches(black, [INK.blue, '#2A9D8F']))).toEqual([...writing, '#2A9D8F']);
+    expect(colours(editorSwatches({ ...black, color: INK.cyan }, ['#2A9D8F']))).toEqual([
+      ...writing,
+      INK.cyan,
+    ]);
+    // A custom colour has no palette name: the swatch names it by the nearest colour.
+    expect(editorSwatches(black, ['#2A9D8F'])[5]?.name).toBeUndefined();
+  });
+
+  it('offers the Highlighter its four tints, a custom colour when there is one, and grey', () => {
+    const yellow = DEFAULT_PRESETS[3];
+    const tints = TINTS.map((tint) => tint.hex);
+    expect(colours(editorSwatches(yellow))).toEqual([...tints, HIGHLIGHTER_GREY]);
+    expect(colours(editorSwatches({ ...yellow, color: '#FFD0A0' }))).toEqual([
+      ...tints,
+      '#FFD0A0',
+      HIGHLIGHTER_GREY,
+    ]);
+    expect(colours(editorSwatches(yellow, ['#FFD0A0']))).toEqual([
+      ...tints,
+      '#FFD0A0',
+      HIGHLIGHTER_GREY,
+    ]);
+  });
+
+  it('is titled in sentence case', () => {
+    expect(presetEditorTitle(0, DEFAULT_PRESETS[0])).toBe('Edit black pen');
+    expect(presetEditorTitle(3, DEFAULT_PRESETS[3])).toBe('Edit yellow highlighter');
+    expect(presetEditorTitle(1, { ...DEFAULT_PRESETS[1], color: '#123456' })).toBe('Edit pen 2');
   });
 });

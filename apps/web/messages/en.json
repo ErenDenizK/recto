@@ -1867,6 +1867,8 @@
   "pen_editor_width": "Width",
   "pen_editor_width_exact": "Exact width",
   "pen_editor_reset": "Reset to default",
+  "pen_editor_reset_unneeded": "Already the default",
+  "pen_editor_more_colours": "More colours",
   "pen_preset_reset_done": "{name} reset to default",
   "pen_width_note": "Width changes are stored in the stroke's appearance. Viewers that redraw ink themselves show it at one width.",
   "annot_tool_style": "{tool} tool style",

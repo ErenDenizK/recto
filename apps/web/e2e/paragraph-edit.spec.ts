@@ -136,7 +136,7 @@ test('type a word into a paragraph, preview, Esc commits once; the export reads 
   const reopen = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Open files' }).first().click();
   await (await reopen).setFiles({ name: 'edited.pdf', mimeType: 'application/pdf', buffer: bytes });
-  await expect(page.getByRole('tab', { name: 'edited' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'edited', exact: true })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });

@@ -13,7 +13,7 @@
  * stored settings holds palette colours; version 1 (the palette before M8) is migrated once
  * when read (`parsePenSettings`).
  */
-import { formatNumber, m } from '../../i18n';
+import { formatNumber, getLocale, m } from '../../i18n';
 import {
   contrastRatio,
   hexRgb,
@@ -127,6 +127,59 @@ export const HIGHLIGHTER_SWATCHES: readonly PenSwatch[] = TINTS.map(({ hex, name
 /** The swatches the editor offers for a preset (a custom colour is always offered too). */
 export function presetSwatches(p: PenPreset): readonly PenSwatch[] {
   return isHighlighter(p) ? HIGHLIGHTER_SWATCHES : PEN_SWATCHES;
+}
+
+/** The Highlighter's neutral swatch, a 50 % grey (10-ink §2.1). */
+export const HIGHLIGHTER_GREY = '#808080';
+
+/**
+ * The six swatches of the preset editor (10-ink §2.1, §6), in order:
+ *
+ * - a pen: black, blue, red, green and purple (the writing inks), then one more: the preset's
+ *   own colour when it is none of those five (an accent ink or a custom colour, so the
+ *   current colour always shows as a choice), else the last custom colour used (`recent`,
+ *   newest first, from the colour panel), else orange;
+ * - the Highlighter: the four tints, then its own colour when it is a custom one, else the
+ *   last custom colour used, then a 50 % grey (five when there is no custom colour yet).
+ *
+ * The full palette (`PEN_SWATCHES`, `HIGHLIGHTER_SWATCHES`) stays one press further, in the
+ * colour views.
+ */
+export function editorSwatches(p: PenPreset, recent: readonly string[] = []): EditorSwatch[] {
+  const own = p.color.toUpperCase();
+  if (isHighlighter(p)) {
+    const fixed = [...HIGHLIGHTER_SWATCHES.map((swatch) => swatch.color), HIGHLIGHTER_GREY];
+    const custom = [own, ...recent.map((hex) => hex.toUpperCase())].find(
+      (hex) => !fixed.includes(hex),
+    );
+    return [
+      ...HIGHLIGHTER_SWATCHES,
+      ...(custom === undefined ? [] : [customSwatch(custom)]),
+      customSwatch(HIGHLIGHTER_GREY),
+    ];
+  }
+  const writing = PEN_SWATCHES.slice(0, 5);
+  const fixed = writing.map((swatch) => swatch.color);
+  const sixth = [own, ...recent.map((hex) => hex.toUpperCase())].find(
+    (hex) => !fixed.includes(hex),
+  );
+  return [...writing, sixth === undefined ? orangeSwatch() : customSwatch(sixth)];
+}
+
+/** A swatch of the editor; one with no palette name is named by its nearest colour name. */
+export interface EditorSwatch {
+  readonly color: string;
+  readonly name?: (() => string) | undefined;
+}
+
+function orangeSwatch(): EditorSwatch {
+  return PEN_SWATCHES.find((swatch) => swatch.color === INK.orange) ?? customSwatch(INK.orange);
+}
+
+/** A swatch of any colour: the palette's name when it has one; else the Swatch names it. */
+function customSwatch(color: string): EditorSwatch {
+  const palette = [...PEN_SWATCHES, ...HIGHLIGHTER_SWATCHES].find((s) => s.color === color);
+  return palette ?? { color };
 }
 
 interface Range {
@@ -307,6 +360,17 @@ export function presetName(index: number, p: PenPreset): string {
       : m.pen_preset_numbered({ number: index + 1 });
   }
   return isHighlighter(p) ? m.pen_preset_highlighter({ color }) : m.pen_preset_pen({ color });
+}
+
+/**
+ * The preset editor's title, in sentence case in either language (10-ink §6: "Edit black
+ * pen", "Siyah kalem düzenle"): the name is lowered to sit inside the sentence, then the
+ * sentence's first letter is raised, both by the active language's rules (Turkish İ and ı).
+ */
+export function presetEditorTitle(index: number, p: PenPreset): string {
+  const locale = getLocale();
+  const title = m.pen_editor_label({ name: presetName(index, p).toLocaleLowerCase(locale) });
+  return title.charAt(0).toLocaleUpperCase(locale) + title.slice(1);
 }
 
 /** Width in the active language ("1.5 pt"). */
