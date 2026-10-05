@@ -7,7 +7,9 @@
  *   choose. `tabs`: Base UI `Tabs`, the arrows move and activate (automatic activation); the
  *   caller renders its panels as children (`SegmentedPanel`), inside the same tabs root.
  * - **Sizes.** Track 32 px fine and 44 coarse (Q-9), inset 2, so the thumb is 28 / 40; labels
- *   13/18 (15/20 coarse). Segments share the width equally while the widest label fits; else
+ *   13/18 (15/20 coarse). Segments share the width equally while the widest label fits, with
+ *   at least 8 px either side of it (a segment has 12; equal shares may give 4 of it, so
+ *   Save a copy's 72 · 150 · 300 · Custom stays equal in its 400 px sheet); else
  *   each takes its content's width; and when even that overflows the container (Turkish at
  *   1.8×, a narrow sheet) the control renders as a `Select` with the same options and name.
  *   The choice is measured from a hidden copy of the labels, so it never oscillates.
@@ -71,15 +73,22 @@ export interface SegmentedProps<T extends string> {
 export type SegmentedLayout = 'equal' | 'content' | 'select';
 
 /**
+ * What an equal share may take from a segment's padding (4 px a side, of 12): in the equal
+ * layout the label is centred in a share wider than it, so the padding only matters when the
+ * share is tight, and there 8 px a side still reads as a segment (`Segmented.module.css`).
+ */
+export const EQUAL_PADDING_GIVE = 8;
+
+/**
  * The layout for the widths of the labels (each with its padding) and the room inside the
- * track: equal shares while the widest fits, content widths while their sum fits, else a
- * Select.
+ * track: equal shares while the widest fits (with `EQUAL_PADDING_GIVE` less padding), content
+ * widths while their sum fits, else a Select.
  */
 export function segmentedLayout(widths: readonly number[], room: number): SegmentedLayout {
   if (widths.length === 0) return 'equal';
   // Half a pixel of slack: sub-pixel label widths must not flip the layout.
   const slack = 0.5;
-  if (Math.max(...widths) * widths.length <= room + slack) return 'equal';
+  if ((Math.max(...widths) - EQUAL_PADDING_GIVE) * widths.length <= room + slack) return 'equal';
   if (widths.reduce((a, b) => a + b, 0) <= room + slack) return 'content';
   return 'select';
 }
