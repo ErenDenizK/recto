@@ -578,9 +578,8 @@ describe('kept snapshots (ADR-0032 §2.6)', () => {
   });
 
   it('parses a stored kept field and drops a malformed one without losing the entry', () => {
-    expect(parseRecentEntry(entry('a', 1, { kept: kept('kept-doc_1') }))?.kept).toEqual(
-      kept('kept-doc_1'),
-    );
+    const stored = kept('kept-doc_1');
+    expect(parseRecentEntry(entry('a', 1, { kept: stored }))?.kept).toEqual(stored);
     const broken = parseRecentEntry({
       ...entry('a', 1),
       kept: { snapshotId: '../x', keptAt: 1, bytes: 1 },
