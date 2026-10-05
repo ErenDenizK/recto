@@ -5,6 +5,8 @@
  * embeds); anything else is re-encoded to PNG. Signatures are images too: an "image
  * signature", never a digital signature.
  */
+import './signature-font.css';
+
 import { decodeImageFile } from '../files/images';
 import { m } from '../i18n';
 import type { PendingStamp } from './annotation-store';
@@ -78,17 +80,45 @@ export function builtinPendingStamp(name: BuiltinStamp['name']): PendingStamp {
 }
 
 /**
- * The family a typed signature is drawn in: the UI font first (no script font is bundled; spec
- * §3), as the app loads it, so the placed image matches New signature's preview.
+ * The family a typed signature is drawn in: Inter's true italic under its own name
+ * (`signature-font.css`; MK-13 §6, no script font is bundled), then the UI face, so the placed
+ * image matches New signature's preview and the plates (`signatures/SignaturePlate.tsx`).
  */
-export const TYPED_SIGNATURE_FONT = "'Inter Variable', Inter, Helvetica, Arial, sans-serif";
+export const TYPED_SIGNATURE_FONT =
+  "'Recto Signature', 'Inter Variable', Inter, Helvetica, Arial, sans-serif";
 /** A typed signature's size in points. */
 export const TYPED_SIGNATURE_SIZE = 36;
+/**
+ * Its weight: light, so the italic reads as a pen's line rather than as bold type (a signature
+ * is ink on the page, not interface text, so the UI's 400 · 500 · 600 does not bind it).
+ */
+export const TYPED_SIGNATURE_WEIGHT = 300;
 
-/** A typed signature drawn with the UI font (no script font is bundled; spec §3). */
+/** The CSS / canvas font of a typed signature at `size` pixels. */
+export function typedSignatureFont(size: number): string {
+  return `italic ${TYPED_SIGNATURE_WEIGHT} ${size}px ${TYPED_SIGNATURE_FONT}`;
+}
+
+let signatureFont: Promise<unknown> | null = null;
+
+/**
+ * Loads the typed signature's face once (a face with a `unicode-range` loads on first use), so
+ * a measure or a drawing does not fall back to another face. Resolves whether or not it loaded:
+ * the fallback still draws a signature.
+ */
+export function loadSignatureFont(): Promise<unknown> {
+  if (typeof document === 'undefined' || !('fonts' in document)) return Promise.resolve();
+  signatureFont ??= document.fonts
+    .load(typedSignatureFont(TYPED_SIGNATURE_SIZE), 'AaÇçĞğİıŞş')
+    .catch(() => undefined);
+  return signatureFont;
+}
+
+/** A typed signature drawn in the signature face (Inter's italic, no script font; spec §3). */
 export async function typedSignature(text: string, color = '#1A237E'): Promise<PendingStamp> {
+  await loadSignatureFont();
   const size = TYPED_SIGNATURE_SIZE * IMAGE_SCALE;
-  const font = `italic 500 ${size}px ${TYPED_SIGNATURE_FONT}`;
+  const font = typedSignatureFont(size);
   const probe = canvas(1, 1).getContext('2d');
   if (!probe) throw new Error('No 2D context for the signature');
   probe.font = font;

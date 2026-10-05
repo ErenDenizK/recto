@@ -16,11 +16,28 @@
   min-width: 0;
 }
 
+/*
+ * The three panels share one cell, so the body is as tall as the tallest whichever tab shows
+ * (quality-bar Q-7: the sheet keeps its size and its top edge). The hidden ones keep their
+ * room but are invisible, unfocusable and out of the accessibility tree.
+ */
+.panels {
+  display: grid;
+  margin-top: 12px;
+}
+
 .panel {
   display: grid;
+  grid-area: 1 / 1;
+  align-content: start;
   gap: 12px;
   min-width: 0;
-  margin-top: 12px;
+}
+
+/* Over the reset's `[hidden] { display: none !important }`: a hidden panel keeps its room. */
+.panel[hidden] {
+  display: grid !important;
+  visibility: hidden;
 }
 
 .padWrap {
@@ -82,20 +99,59 @@
   border: 1px dashed var(--border-strong);
 }
 
+/* The empty Image well is itself the "Choose image…" target: the whole dashed area. */
 .emptyImage {
+  composes: focus-inset from global;
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
   box-sizing: border-box;
   width: 100%;
   aspect-ratio: 440 / 160;
+  margin: 0;
   padding: 16px 24px;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-control);
   background: var(--control-fill);
   color: var(--text-secondary);
-  font-size: var(--type-body);
-  line-height: var(--type-body-lh);
+  font: inherit;
   text-align: center;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .emptyImage:hover {
+    border-color: var(--control-border);
+    background: var(--control-fill-hover);
+  }
+}
+
+.emptyImage:active {
+  background: var(--control-fill-pressed);
+}
+
+.emptyGlyph {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  margin-bottom: 4px;
+}
+
+.emptyAction {
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  font-weight: 500;
+  line-height: var(--control-lh);
+}
+
+.emptyHint {
+  max-width: 36ch;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .keep {
@@ -110,7 +166,8 @@
 }
 
 @media (forced-colors: active) {
-  .pad {
+  .pad,
+  .emptyImage {
     border-color: CanvasText;
   }
 }
