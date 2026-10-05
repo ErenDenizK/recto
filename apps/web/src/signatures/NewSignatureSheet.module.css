@@ -23,10 +23,6 @@
   margin-top: 12px;
 }
 
-.panel:focus-visible {
-  outline-offset: 4px;
-}
-
 .padWrap {
   display: grid;
   gap: 8px;
