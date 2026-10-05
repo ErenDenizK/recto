@@ -38,6 +38,8 @@ export function registerDocumentCommands(registry: CommandRegistry): () => void 
       id: 'document.info',
       title: m.cmd_document_info(),
       group: m.group_document(),
+      act: 'document',
+      via: 'sheet',
       keywords: ['metadata', 'properties', 'title', 'author', 'diagnostics', 'info'],
       when: () => activeDocument() !== undefined,
       run: showDocumentInfo,
@@ -46,6 +48,7 @@ export function registerDocumentCommands(registry: CommandRegistry): () => void 
       id: 'document.setPassword',
       title: m.cmd_set_password(),
       group: m.group_document(),
+      act: 'document',
       keywords: ['encrypt', 'protect', 'permissions', 'security', 'aes'],
       when: idle,
       run: open('set-password'),
@@ -54,6 +57,7 @@ export function registerDocumentCommands(registry: CommandRegistry): () => void 
       id: 'document.removePassword',
       title: m.cmd_remove_password(),
       group: m.group_document(),
+      act: 'document',
       keywords: ['decrypt', 'unlock', 'restrictions', 'security'],
       when: () => {
         if (!idle()) return false;
@@ -74,6 +78,8 @@ export function registerDocumentCommands(registry: CommandRegistry): () => void 
       id: 'document.stripMetadata',
       title: m.cmd_strip_metadata(),
       group: m.group_document(),
+      act: 'document',
+      via: 'sheet',
       keywords: ['privacy', 'metadata', 'xmp', 'author', 'attachments', 'javascript', 'clean'],
       when: idle,
       run: open('strip-metadata'),

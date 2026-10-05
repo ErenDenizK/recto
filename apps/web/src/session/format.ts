@@ -16,6 +16,8 @@ import type {
   SourceId,
 } from '@pdf-editor/document-model';
 
+import { LOCK_REASONS, type LockReason } from '../state/lock-store';
+
 export const SNAPSHOT_FORMAT = 1;
 
 /** The view a document was shown in, and its lock (never Markup: ADR-0032 §2.4). */
@@ -25,8 +27,16 @@ export interface DocumentPlace {
   readonly page: number;
   /** The page view or the light table (Compare is a session place, never restored). */
   readonly view: 'read' | 'arrange';
-  /** Read (locked) or Edit. */
+  /**
+   * M8's Read or Edit. D1-1 writes Markup as `'edit'` (it carries M8's Edit) until the
+   * input rules replace it; a document's lock is `lock`, never this.
+   */
   readonly mode: 'read' | 'edit';
+  /**
+   * Why the document is locked (`state/lock-store.ts`, ADR-0029 §2.4), kept with it in the
+   * snapshot (redesign spec §7); absent while unlocked, and in snapshots from before M9.
+   */
+  readonly lock?: LockReason;
   /** The document differs from the file it came from (Recents: "Edited, changes kept"). */
   readonly changed: boolean;
   /**
@@ -176,6 +186,7 @@ function readPlace(value: unknown, path: string): DocumentPlace {
     ...(o.writtenOver === undefined
       ? {}
       : { writtenOver: bool(o.writtenOver, `${path}.writtenOver`) }),
+    ...(o.lock === undefined ? {} : { lock: oneOf(o.lock, LOCK_REASONS, `${path}.lock`) }),
   };
 }
 

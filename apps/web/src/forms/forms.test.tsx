@@ -23,7 +23,7 @@ import { resetAnnotationStore } from '../annotations/annotation-store';
 import { engineContext, resetEditRunner, whenIdle } from '../annotations/edit-runner';
 import { FormsPanel } from '../shell/FormsPanel';
 import type { PageOverlayProps } from '../stage/page-overlays';
-import { documentModeOf, useUiStore } from '../state/ui-store';
+import { isMarkupOpen, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { useToolStore } from '../viewer/tool-store';
 import { resetFormStore, useFormStore } from './form-store';
@@ -327,8 +327,9 @@ describe('Forms panel', () => {
 });
 
 describe('form layer in Read (ADR-0019 §3)', () => {
+  /** M8's words for the active document's Markup state, as the control still shows them. */
   const mode = () =>
-    documentModeOf(useUiStore.getState(), model().workspace.activeDocument ?? undefined);
+    isMarkupOpen(useUiStore.getState(), model().workspace.activeDocument) ? 'edit' : 'read';
 
   it('a click shows the focus and "Switch to Edit to fill"; nothing fills', async () => {
     const { source, pages } = await openFile(await fixtureFile(formsAUrl, 'forms-a.pdf'), false);

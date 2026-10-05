@@ -22,7 +22,7 @@ import { INK } from '../annotations/palette';
 import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { ReadView } from '../stage/ReadView';
-import { canEdit, documentModeOf, useUiStore } from '../state/ui-store';
+import { canEdit, isMarkupOpen, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
@@ -79,14 +79,14 @@ async function mount(): Promise<Mounted> {
   };
 }
 
+/** M8's words for the active document's Markup state, as the control still shows them. */
 const mode = () =>
-  documentModeOf(
-    useUiStore.getState(),
-    useWorkspaceStore.getState().workspace.activeDocument ?? undefined,
-  );
+  isMarkupOpen(useUiStore.getState(), useWorkspaceStore.getState().workspace.activeDocument)
+    ? 'edit'
+    : 'read';
 const enterEdit = () => {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  if (id !== undefined) useUiStore.getState().setDocumentMode(id, 'edit');
+  if (id !== undefined) useUiStore.getState().openMarkup(id);
 };
 const bar = () => screen.getByRole('toolbar', { name: 'Tools' });
 
@@ -135,7 +135,7 @@ describe('the Read lock (mounted)', () => {
     resetEditRunner();
     resetAnnotationStore();
     resetToolStore();
-    useUiStore.setState({ destination: 'document', viewMode: 'read', documentMode: {} });
+    useUiStore.setState({ destination: 'document', docUi: {} });
   });
   afterEach(async () => {
     cleanup();
@@ -204,7 +204,7 @@ describe('the Read lock (mounted)', () => {
 
     // Back to Read: the selection and its bar go.
     const docId = useWorkspaceStore.getState().workspace.activeDocument;
-    if (docId !== undefined) useUiStore.getState().setDocumentMode(docId, 'read');
+    if (docId !== undefined) useUiStore.getState().closeMarkup(docId);
     expect(useAnnotationStore.getState().selection).toBeNull();
     await waitFor(() => expect(screen.queryByTestId('annotation-bar')).toBeNull());
   });

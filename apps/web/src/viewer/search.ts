@@ -389,7 +389,7 @@ export function requestSearchFocus(): void {
 export function revealHit(hit: DocumentHit | undefined): void {
   if (!hit) return;
   const ui = useUiStore.getState();
-  if (!isPageView(ui)) ui.setViewMode('read');
+  if (!isPageView(ui)) ui.showSurface('page');
   const bounds = hitBounds(hit);
   useViewStore
     .getState()

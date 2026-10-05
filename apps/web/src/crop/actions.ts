@@ -292,7 +292,7 @@ export function startCropDrawing(draft: CropDraft, firstPage: PageId | undefined
   const ws = model().workspace;
   if (ws.activeDocument !== draft.documentId) model().setActive(draft.documentId);
   const switching = !isPageView(useUiStore.getState());
-  useUiStore.getState().setViewMode('read');
+  useUiStore.getState().showSurface('page');
   const location = firstPage === undefined ? undefined : findPageLocation(ws, firstPage);
   const reveal = () => {
     const doc = model().workspace.documents[draft.documentId];

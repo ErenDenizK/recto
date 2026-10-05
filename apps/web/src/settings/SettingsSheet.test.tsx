@@ -19,7 +19,7 @@ import { setLocale } from '../i18n';
 import { usePwaStore } from '../pwa/register';
 import { makeBuildInfo } from '../shell/about/build-info';
 import { DEFAULT_APPEARANCE, useAppearanceStore } from '../state/appearance-store';
-import { resetEditPolicyStore, useEditPolicyStore } from '../state/edit-policy-store';
+import { resetInputPolicyStore, useInputPolicyStore } from '../state/input-policy-store';
 import { closeSheet, useSheetStore } from '../ui/sheet';
 import { openSettings } from './open-settings';
 import { AboutPage } from './pages';
@@ -33,7 +33,7 @@ let estimate: MockInstance<StorageManager['estimate']>;
 beforeEach(async () => {
   useSheetStore.setState({ open: null, front: null, confirm: null, drafts: {} });
   useAppearanceStore.setState(DEFAULT_APPEARANCE);
-  resetEditPolicyStore();
+  resetInputPolicyStore();
   usePwaStore.setState({ status: 'ready', updateAvailable: false });
   estimate = vi.spyOn(navigator.storage, 'estimate').mockResolvedValue({
     usage: 5 * 1024 * 1024,
@@ -130,10 +130,10 @@ describe('the Settings sheet', () => {
     const button = () => within(dialog).getByRole('button', { name: 'Show again' });
     expect(button()).toHaveAttribute('aria-disabled', 'true');
     expect(button()).toHaveAccessibleDescription('Every tip shows already');
-    act(() => useEditPolicyStore.getState().markEditTextHintShown());
+    act(() => useInputPolicyStore.getState().markEditTextHintShown());
     expect(button()).not.toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(button());
-    expect(useEditPolicyStore.getState().editTextHintShown).toBe(false);
+    expect(useInputPolicyStore.getState().editTextHintShown).toBe(false);
   });
 
   it('pushes About Recto and comes back to the row that pushed it', async () => {

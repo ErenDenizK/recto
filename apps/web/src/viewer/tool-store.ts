@@ -176,7 +176,7 @@ const disarmWhenLocked = () => {
   }
 };
 useUiStore.subscribe((state, previous) => {
-  if (state.documentMode !== previous.documentMode) disarmWhenLocked();
+  if (state.docUi !== previous.docUi) disarmWhenLocked();
 });
 useWorkspaceStore.subscribe((state, previous) => {
   if (state.workspace.activeDocument !== previous.workspace.activeDocument) disarmWhenLocked();

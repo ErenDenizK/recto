@@ -64,7 +64,7 @@ async function open(...files: [string, string][]) {
   await openDocuments(await Promise.all(files.map(([url, name]) => fixture(url, name))));
   const order = ws().documentOrder;
   useUiStore.getState().pinToArrange(order);
-  useUiStore.getState().setViewMode('arrange');
+  useUiStore.getState().showSurface('grid');
   expect(await screen.findAllByRole('grid')).toHaveLength(order.length);
   return order;
 }
@@ -81,7 +81,7 @@ describe('section operations', () => {
     closeOperationDialog();
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
     useUiStore.setState({
-      viewMode: 'read',
+      docUi: {},
       arrangePinned: [],
       arrangeCollapsed: [],
       paletteOpen: false,

@@ -59,7 +59,7 @@ export function revealMark(entry: MarkEntry): void {
     workspace.setActive(entry.documentId);
   }
   const ui = useUiStore.getState();
-  if (!isPageView(ui)) ui.setViewMode('read');
+  if (!isPageView(ui)) ui.showSurface('page');
   useViewStore.getState().scrollToPage(entry.pageId, { reveal: markBounds(entry.mark.quads) });
   useAnnotationStore.getState().select({ ...targetOf(entry), ids: [entry.mark.id] });
   useRedactionStore.getState().setCurrent(entry.key);

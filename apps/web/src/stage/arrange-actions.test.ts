@@ -193,7 +193,7 @@ describe('cut and paste', () => {
   describe('through the stores', () => {
     beforeEach(() => {
       resetWorkspace();
-      useUiStore.setState({ viewMode: 'arrange' });
+      useUiStore.getState().showSurface('grid');
     });
     afterEach(() => {
       resetWorkspace();

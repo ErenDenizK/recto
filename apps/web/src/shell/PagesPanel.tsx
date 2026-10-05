@@ -34,7 +34,7 @@ import {
   toggleSelection,
   useSelectionStore,
 } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
+import { useStageView } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { contentFrame, ResizedContent } from '../stage/ResizedContent';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -77,7 +77,7 @@ function PageList({
   'use no memo'; // TanStack Virtual mutates its instance; the React Compiler must not cache it.
   const ws = useWorkspaceStore((s) => s.workspace);
   const files = useWorkspaceStore((s) => s.files);
-  const viewMode = useUiStore((s) => s.viewMode);
+  const pageView = useStageView() === 'page';
   const currentPage = useViewStore((s) => s.currentPage);
   const scrollToPage = useViewStore((s) => s.scrollToPage);
   const focused = useSelectionStore((s) => s.focused);
@@ -114,8 +114,8 @@ function PageList({
 
   // Follow the Read-mode current page.
   useEffect(() => {
-    if (viewMode === 'read') virtualizer.scrollToIndex(currentPage, { align: 'auto' });
-  }, [virtualizer, viewMode, currentPage]);
+    if (pageView) virtualizer.scrollToIndex(currentPage, { align: 'auto' });
+  }, [virtualizer, pageView, currentPage]);
 
   const focusedIndex = focused === null ? -1 : order.indexOf(focused);
   const listRef = useRef<HTMLDivElement>(null);
@@ -202,7 +202,7 @@ function PageList({
             start={row.start}
             size={fitted[row.index]?.size ?? { width: 612, height: 792 }}
             box={fitted[row.index]?.box ?? { width: boxWidth, height: boxHeight }}
-            current={viewMode === 'read' && row.index === currentPage}
+            current={pageView && row.index === currentPage}
             tabbable={row.index === rovingIndex}
             colorIndex={page.ref.kind === 'source' ? (files[page.ref.source]?.colorIndex ?? 0) : 0}
             priority={
