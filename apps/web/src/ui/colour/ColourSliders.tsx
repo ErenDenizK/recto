@@ -8,6 +8,13 @@
  *   Enter or leaving the field applies a valid entry; an invalid one says so and, on leaving,
  *   the field goes back to the colour. Esc in a changed field restores it (and stays); Esc in
  *   an unchanged field reaches the panel (revert and close).
+ * - **Tracks.** Hue is always the full rainbow (full saturation and brightness), as Apple
+ *   draws it, so the scale reads even at black; Saturation and Brightness run from the
+ *   colour's own ends.
+ * - **Layout.** The three sliders are rows of the panel's columns (`ColourPanel.module.css`),
+ *   so their tracks start where Opacity's does; the hex row spans them, its field ending
+ *   under the readouts. An invalid entry's message takes the label's place, so the view's
+ *   height never changes.
  * - Each slider says its value with its unit ("210 degrees", "60 percent").
  */
 import { type KeyboardEvent, useId, useState } from 'react';
@@ -93,7 +100,7 @@ export function ColourSliders({ value, onChange }: ColourSlidersProps) {
       label: m.colour_hue(),
       value: h,
       max: 360,
-      gradient: `linear-gradient(to right, ${hueRamp(hsb.s, hsb.b)})`,
+      gradient: `linear-gradient(to right, ${hueRamp(1, 1)})`,
       format: degrees,
       spoken: (v: number) => m.slider_value_degrees({ value: formatNumber(v) }),
       change: (v: number) => apply({ ...hsb, h: v }),
@@ -141,9 +148,15 @@ export function ColourSliders({ value, onChange }: ColourSlidersProps) {
         />
       ))}
       <div className={styles.hexRow}>
-        <label className={styles.hexLabel} htmlFor={`${errorId}-hex`}>
-          {m.colour_hex()}
-        </label>
+        {invalid ? (
+          <span id={errorId} className={styles.error} role="status">
+            {m.colour_hex_invalid()}
+          </span>
+        ) : (
+          <label className={styles.hexLabel} htmlFor={`${errorId}-hex`}>
+            {m.colour_hex()}
+          </label>
+        )}
         <input
           id={`${errorId}-hex`}
           className={styles.hex}
@@ -154,6 +167,7 @@ export function ColourSliders({ value, onChange }: ColourSlidersProps) {
           spellCheck={false}
           enterKeyHint="done"
           maxLength={7}
+          aria-label={m.colour_hex()}
           value={draft ?? hex}
           aria-invalid={invalid || undefined}
           aria-describedby={invalid ? errorId : undefined}
@@ -169,11 +183,6 @@ export function ColourSliders({ value, onChange }: ColourSlidersProps) {
             }
           }}
         />
-        {invalid ? (
-          <span id={errorId} className={styles.error} role="status">
-            {m.colour_hex_invalid()}
-          </span>
-        ) : null}
       </div>
     </div>
   );

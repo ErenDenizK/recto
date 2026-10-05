@@ -357,12 +357,12 @@ test.describe('keyboard', () => {
     await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
 
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('dialog', { name: 'Edit Blue pen' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Edit blue pen' })).toBeVisible();
     // By test id from here: a colour change renames the preset (and the dialog).
     const editor = page.getByTestId('pen-preset-editor');
     await expect.poll(() => holdsFocus(editor)).toBe(true);
     // The colours are a radio group: one Tab stop, the arrows choose.
-    const colours = editor.getByRole('radiogroup', { name: 'Color' });
+    const colours = editor.getByRole('radiogroup', { name: 'Colour' });
     const stop = colours.locator('[role="radio"][tabindex="0"]');
     await expect(stop).toHaveCount(1);
     await stop.focus();
@@ -635,6 +635,13 @@ test.describe('axe', () => {
     await page.getByRole('radio', { name: 'Black pen, 1.5 pt' }).click();
     await expect(page.getByTestId('pen-preset-editor')).toBeVisible();
     await axe(page, 'pen editor');
+    // The colour views, pushed in place inside the editor (10-ink §6).
+    const editor = page.getByTestId('pen-preset-editor');
+    await editor.getByRole('button', { name: 'More colours' }).click();
+    await expect(editor.getByRole('group', { name: 'Colour' })).toBeVisible();
+    await axe(page, 'pen editor, colour views');
+    await page.keyboard.press('Escape');
+    await expect(editor.getByRole('group', { name: 'Colour' })).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
 

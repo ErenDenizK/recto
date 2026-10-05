@@ -1211,6 +1211,8 @@
   "pen_editor_width": "Kalınlık",
   "pen_editor_width_exact": "Tam kalınlık",
   "pen_editor_reset": "Varsayılana sıfırla",
+  "pen_editor_reset_unneeded": "Zaten varsayılan",
+  "pen_editor_more_colours": "Diğer renkler",
   "pen_preset_reset_done": "{name} varsayılana sıfırlandı",
   "pen_width_note": "Kalınlık değişimleri çizginin görünümünde saklanır. Mürekkebi kendisi yeniden çizen görüntüleyiciler onu tek kalınlıkta gösterir.",
   "annot_tool_style": "{tool} aracı stili",

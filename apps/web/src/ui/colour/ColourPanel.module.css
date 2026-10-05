@@ -3,10 +3,21 @@
  * 44 px title row with ✕). Fine: popover 320, content 296, one 288 px column (the views'
  * whole-pixel width) centred in it; coarse: 360, 336 and 324. Vertical rhythm on the 4 px
  * grid: 4 after the title row, 12 around the view, 8 between the rows below it.
+ *
+ * The column is a grid of [label] [track] [readout] (`--cp-columns`): every slider in the
+ * panel (Opacity, and Hue, Saturation and Brightness in the Sliders view) is a subgrid row of
+ * it, and `SliderSizer` holds every label and readout they may show, so all tracks start and
+ * end on the same two lines in every view and language. The pen's preset editor lays its
+ * own page on the same columns (PenBar.module.css).
  */
 
 .popup {
   composes: popup from '../Popover.module.css';
+  /* Never taller than the room on its side: the panel scrolls rather than running into the
+     bars or covering its well (XD-3 finding 1). */
+  max-height: var(--available-height, calc(100vh - 16px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -38,13 +49,20 @@
   --cp-hover: var(--surface-hover);
   --cp-pressed: var(--surface-active);
   --cp-add-ring: var(--control-border, rgb(255 255 255 / 0.48));
+  --cp-columns: max-content minmax(0, 1fr) max-content;
+  /* How far the column sits in from the popover's padding (296 − 288, 336 − 324, halved). */
+  --cp-inset: 4px;
 
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: var(--cp-columns);
   gap: 8px;
   width: var(--cp-col);
   margin-inline: auto;
   color: var(--cp-primary);
+}
+
+.panel > * {
+  grid-column: 1 / -1;
 }
 
 :global([data-theme='light']) .panel {
@@ -58,6 +76,7 @@
 @media (pointer: coarse), (any-pointer: coarse) {
   .panel {
     --cp-col: 324px;
+    --cp-inset: 6px;
     --cp-view-h: 222px;
     --cp-icon-button: 44px;
     --cp-icon: 24px;
@@ -68,14 +87,69 @@
   }
 }
 
+/* --- Shared slider columns (SliderSizer) ------------------------------------------------- */
+
+/* In the title row's grid row, with no height: it only widens the label and readout columns. */
+.sizer {
+  display: grid;
+  grid-row: 1;
+  grid-template-columns: subgrid;
+  align-self: start;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .sizer {
+    font-size: 15px;
+    line-height: 20px;
+  }
+}
+
+.sizerCell {
+  display: grid;
+}
+
+.sizerCell > * {
+  grid-area: 1 / 1;
+}
+
+.sizerReadout {
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- Title row ------------------------------------------------------------------------ */
 
+/* Eyedropper · title · ✕; as a pushed page (`data-nav`), ‹ Back and the eyedropper lead and
+   the sides widen together, so the title stays centred. */
 .header {
+  --cp-side: var(--cp-icon-button);
+
   display: grid;
-  grid-template-columns: var(--cp-icon-button) 1fr var(--cp-icon-button);
+  grid-row: 1;
+  grid-template-columns: var(--cp-side) minmax(0, 1fr) var(--cp-side);
   align-items: center;
   height: 44px;
-  margin: -6px 0 -4px;
+  /* Into the padding, as the popover recipe's title row: the side buttons sit concentric
+     with the corners. */
+  margin: -6px calc(-6px - var(--cp-inset)) -4px;
+}
+
+.header[data-nav] {
+  --cp-side: calc(2 * var(--cp-icon-button));
+}
+
+.headerSide {
+  display: flex;
+  align-items: center;
+}
+
+.headerSide[data-end] {
+  justify-content: flex-end;
 }
 
 .title {
@@ -133,6 +207,12 @@
   margin-bottom: 4px;
 }
 
+/* Three segments share the column: the labels get the room, so a chosen one (set in 600)
+   still fits whole, as Turkish "Kaydırıcılar" at 15 px on a coarse pointer. */
+.views [role='radio'] {
+  padding-inline: 6px;
+}
+
 .view {
   display: grid;
   place-items: center;
@@ -141,11 +221,15 @@
 }
 
 .view[data-view='sliders'] {
+  grid-template-columns: subgrid;
   place-items: stretch;
 }
 
-.opacity {
-  width: 100%;
+/* A slider of the panel is a row of its columns. */
+.panel > .opacity {
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
 }
 
 /* --- Preview -------------------------------------------------------------------------- */
