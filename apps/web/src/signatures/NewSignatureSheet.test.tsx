@@ -103,9 +103,9 @@ describe('New signature', () => {
     expect(within(dialog).getByRole('status')).toHaveTextContent('Signature drawn, 2 strokes');
     const use = within(dialog).getByRole('button', { name: 'Use signature' });
     expect(use).not.toHaveAttribute('aria-disabled', 'true');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Undo stroke' }));
+    await userEvent.click(page.getByRole('button', { name: 'Undo stroke' }));
     expect(pad).toHaveAttribute('data-strokes', '1');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Clear' }));
+    await userEvent.click(page.getByRole('button', { name: 'Clear' }));
     expect(pad).toHaveAttribute('data-strokes', '0');
     await waitFor(() =>
       expect(within(dialog).getByRole('button', { name: 'Use signature' })).toHaveAttribute(
@@ -140,11 +140,11 @@ describe('New signature', () => {
 
   it('with Save for next time off, keeps nothing', async () => {
     const dialog = await openSheet();
-    await userEvent.click(within(dialog).getByRole('tab', { name: 'Type' }));
-    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Your name' }), 'Ada');
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Save for next time' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Type' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Your name' }), 'Ada');
+    await userEvent.click(page.getByRole('checkbox', { name: 'Save for next time' }));
     expect(within(dialog).queryByRole('textbox', { name: /Name for this signature/ })).toBeNull();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Use signature' }));
+    await userEvent.click(page.getByRole('button', { name: 'Use signature' }));
     await waitFor(() => expect(useSheetStore.getState().open).toBeNull());
     expect(useSavedSignatures.getState().signatures).toHaveLength(0);
   });
@@ -156,12 +156,12 @@ describe('New signature', () => {
       if (saved) kept.push(saved);
     }
     const dialog = await openSheet();
-    await userEvent.click(within(dialog).getByRole('tab', { name: 'Type' }));
-    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Your name' }), 'Sixth');
+    await userEvent.click(page.getByRole('tab', { name: 'Type' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Your name' }), 'Sixth');
     expect(
       within(dialog).getByRole('checkbox', { name: 'Save for next time (replaces the oldest)' }),
     ).toBeChecked();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Use signature' }));
+    await userEvent.click(page.getByRole('button', { name: 'Use signature' }));
     await waitFor(() =>
       expect(useSavedSignatures.getState().signatures[0]).toMatchObject({ text: 'Sixth' }),
     );
@@ -173,9 +173,9 @@ describe('New signature', () => {
   it('from Settings, always keeps: no box, Save signature', async () => {
     const dialog = await openSheet('keep');
     expect(within(dialog).queryByRole('checkbox')).toBeNull();
-    await userEvent.click(within(dialog).getByRole('tab', { name: 'Type' }));
-    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Your name' }), 'Ada');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Save signature' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Type' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Your name' }), 'Ada');
+    await userEvent.click(page.getByRole('button', { name: 'Save signature' }));
     await waitFor(() => expect(useSavedSignatures.getState().signatures).toHaveLength(1));
     // Back to Settings → Saved signatures.
     await waitFor(() => expect(useSheetStore.getState().open?.id).toBe('settings'));
