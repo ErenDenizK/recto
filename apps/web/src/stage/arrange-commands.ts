@@ -14,7 +14,7 @@ import {
   reversePages,
 } from '@pdf-editor/document-model';
 
-import { targetPages } from '../commands/app-commands';
+import { targetDocuments, targetPages } from '../commands/app-commands';
 import { type CommandRegistry, commandRegistry } from '../commands/registry';
 import { pickFiles } from '../files/open-files';
 import { m } from '../i18n';
@@ -29,6 +29,8 @@ import {
   insertBlankAfter,
   movePagesToEdge,
   pastePages,
+  pasteTarget,
+  planPaste,
   reverseSelectedPages,
   selectParity,
 } from './arrange-actions';
@@ -60,6 +62,32 @@ const sectionDocument = () => {
 };
 const otherDocuments = (id: DocumentId) =>
   model().workspace.documentOrder.filter((other) => other !== id);
+/** The document a section command changes, as the guard asks it (ADR-0030 §2.4). */
+const sectionDocuments = (): DocumentId[] => {
+  const doc = sectionDocument();
+  return doc === undefined ? [] : [doc.id];
+};
+
+/**
+ * The documents a paste changes: the one it lands in and, for a cut clipboard (a move), the
+ * documents its pages leave (ADR-0030 §2.4: Mod+X then Mod+V asks for each).
+ */
+function pasteDocuments(asDuplicate: boolean): DocumentId[] {
+  const { clipboard, focused } = useSelectionStore.getState();
+  const plan = planPaste(clipboard, asDuplicate);
+  if (plan === undefined || clipboard === null) return [];
+  const ws = model().workspace;
+  const target = pasteTarget(ws, focused, ws.activeDocument);
+  if (target === undefined) return [];
+  const changed = new Set<DocumentId>([target.document]);
+  if (!plan.duplicate) {
+    for (const page of clipboard.pageIds) {
+      const location = findPageLocation(ws, page);
+      if (location !== undefined) changed.add(location.document);
+    }
+  }
+  return [...changed];
+}
 
 let columnsProvider: () => number = () => 1;
 
@@ -127,6 +155,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.cut',
       title: m.cmd_cut_pages(),
       group: pages,
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Mod+X',
       keywords: ['move', 'clipboard', 'light table'],
       note: m.cmd_cut_pages_note(),
@@ -139,6 +169,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.copy',
       title: m.cmd_copy_pages(),
       group: pages,
+      act: null,
       shortcut: 'Mod+C',
       keywords: ['clipboard', 'duplicate', 'light table'],
       note: m.cmd_arrange_only_note(),
@@ -151,6 +182,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.paste',
       title: m.cmd_paste_pages(),
       group: pages,
+      act: 'pages',
+      documents: () => pasteDocuments(false),
       shortcut: 'Mod+V',
       keywords: ['clipboard', 'move', 'insert', 'light table'],
       note: m.cmd_paste_pages_note(),
@@ -163,6 +196,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.pasteDuplicate',
       title: m.cmd_paste_duplicates(),
       group: pages,
+      act: 'pages',
+      documents: () => pasteDocuments(true),
       shortcut: 'Mod+Shift+V',
       keywords: ['clipboard', 'copy', 'light table'],
       note: m.cmd_arrange_only_note(),
@@ -175,6 +210,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.extract',
       title: m.cmd_move_to_new_document(),
       group: pages,
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Mod+Shift+E',
       keywords: ['extract', 'split', 'new', 'separate'],
       when: hasTargets,
@@ -186,6 +223,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.copyToNew',
       title: m.cmd_copy_to_new_document(),
       group: pages,
+      act: null,
       keywords: ['extract', 'duplicate', 'new', 'copy'],
       when: hasTargets,
       run: () => {
@@ -196,6 +234,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.insertBlank',
       title: m.cmd_insert_blank(),
       group: pages,
+      act: 'pages',
+      documents: targetDocuments,
       keywords: ['empty', 'new page', 'add'],
       when: hasTargets,
       run: () => {
@@ -206,6 +246,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.resize',
       title: m.cmd_resize_pages(),
       group: pages,
+      act: 'pages',
+      via: 'sheet',
       keywords: ['page size', 'scale', 'fit', 'canvas', 'a4', 'letter', 'paper', 'dimensions'],
       when: () => hasTargets() || (getActiveDocument(model().workspace)?.pages.length ?? 0) > 0,
       run: openResizeDialog,
@@ -214,6 +256,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.crop',
       title: m.cmd_crop_pages(),
       group: pages,
+      act: 'pages',
+      via: 'sheet',
       keywords: ['cropbox', 'trim', 'margins', 'cut', 'discard', 'remove content'],
       when: () => hasTargets() || (getActiveDocument(model().workspace)?.pages.length ?? 0) > 0,
       run: openCropDialog,
@@ -222,6 +266,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.moveToRowStart',
       title: m.cmd_move_row_start(),
       group: pages,
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Alt+Shift+Left',
       keywords: ['reorder', 'light table'],
       when: () => inArrange() && hasTargets(),
@@ -233,6 +279,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.moveToRowEnd',
       title: m.cmd_move_row_end(),
       group: pages,
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Alt+Shift+Right',
       keywords: ['reorder', 'light table'],
       when: () => inArrange() && hasTargets(),
@@ -244,6 +292,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.moveToStart',
       title: m.cmd_move_document_start(),
       group: pages,
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Alt+Shift+Up',
       keywords: ['reorder', 'first', 'top'],
       when: hasTargets,
@@ -255,6 +305,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.moveToEnd',
       title: m.cmd_move_document_end(),
       group: pages,
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Alt+Shift+Down',
       keywords: ['reorder', 'last', 'bottom'],
       when: hasTargets,
@@ -266,6 +318,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'pages.reverseSelection',
       title: m.cmd_reverse_selection(),
       group: pages,
+      act: 'pages',
+      documents: targetDocuments,
       keywords: ['flip', 'reorder', 'backwards'],
       when: () => targetPages().length > 1,
       run: () => {
@@ -277,6 +331,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
         id: `pages.select.${parity}`,
         title: parity === 'odd' ? m.cmd_select_odd() : m.cmd_select_even(),
         group: pages,
+        act: null,
         keywords: ['selection', parity === 'odd' ? 'front' : 'back', 'duplex'],
         when: () => (getActiveDocument(model().workspace)?.pages.length ?? 0) > 0,
         run: () => {
@@ -291,6 +346,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'arrange.showAll',
       title: m.cmd_show_all_in_arrange(),
       group: view,
+      act: null,
       keywords: ['pin', 'light table', 'sections', 'merge', 'unhide'],
       when: () => model().workspace.documentOrder.some((id) => !shownInArrangeNow(id)),
       run: () => {
@@ -304,6 +360,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.reverse',
       title: m.cmd_reverse_document(),
       group: documents,
+      act: 'pages',
+      documents: sectionDocuments,
       keywords: ['backwards', 'flip', 'order'],
       when: () => (sectionDocument()?.pages.length ?? 0) > 1,
       run: () => {
@@ -323,6 +381,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.split',
       title: m.cmd_split_document(),
       group: documents,
+      act: 'pages',
+      via: 'sheet',
       keywords: ['separate', 'chunks', 'ranges', 'bookmarks', 'every'],
       when: () => (sectionDocument()?.pages.length ?? 0) > 1,
       run: () => {
@@ -334,6 +394,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.merge',
       title: m.cmd_merge_into(),
       group: documents,
+      act: 'pages',
+      documents: sectionDocuments,
       keywords: ['append', 'combine', 'join'],
       when: () => {
         const doc = sectionDocument();
@@ -348,6 +410,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'documents.mergeAll',
       title: m.cmd_merge_all(),
       group: documents,
+      act: null,
       keywords: ['combine', 'join', 'concatenate', 'append', 'one file'],
       when: () => model().workspace.documentOrder.length > 1,
       run: () => {
@@ -358,6 +421,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.interleave',
       title: m.cmd_interleave(),
       group: documents,
+      act: null,
       keywords: ['duplex', 'scan', 'odd even', 'collate', 'zip'],
       when: () => {
         const doc = sectionDocument();
@@ -372,6 +436,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.resize',
       title: m.cmd_resize_document_pages(),
       group: documents,
+      act: 'pages',
+      via: 'sheet',
       // The section and tab menus run it; the palette has "Resize pages…" (pages.resize).
       hiddenInPalette: true,
       keywords: ['page size', 'scale', 'fit', 'canvas', 'a4', 'letter', 'paper', 'dimensions'],
@@ -382,6 +448,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.crop',
       title: m.cmd_crop_document_pages(),
       group: documents,
+      act: 'pages',
+      via: 'sheet',
       // The section and tab menus run it; the palette has "Crop pages…" (pages.crop).
       hiddenInPalette: true,
       keywords: ['cropbox', 'trim', 'margins', 'cut', 'discard', 'remove content'],
@@ -392,6 +460,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.rename',
       title: m.cmd_rename_document(),
       group: documents,
+      act: 'document',
+      documents: sectionDocuments,
       shortcut: 'F2',
       keywords: ['title', 'name'],
       note: m.cmd_rename_document_note(),
@@ -405,6 +475,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.insertImages',
       title: m.cmd_insert_images(),
       group: documents,
+      act: 'pages',
+      documents: sectionDocuments,
       keywords: ['picture', 'photo', 'png', 'jpeg', 'jpg', 'webp', 'scan', 'add'],
       when: () => sectionDocument() !== undefined,
       run: async () => {
@@ -420,6 +492,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       id: 'section.close',
       title: m.section_close(),
       group: file,
+      act: null,
       hiddenInPalette: true,
       when: () => sectionDocument() !== undefined,
       run: () => {

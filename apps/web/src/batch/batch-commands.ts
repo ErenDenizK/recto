@@ -11,6 +11,7 @@ export function registerBatchCommands(registry: CommandRegistry): () => void {
     id: 'document.batch',
     title: m.cmd_batch(),
     group: m.group_document(),
+    act: null,
     keywords: ['batch', 'recipe', 'many', 'files', 'folder', 'automate', 'bulk', 'zip'],
     when: () => !useBatchStore.getState().open,
     run: () => openBatchDialog(),

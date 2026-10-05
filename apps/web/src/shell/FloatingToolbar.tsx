@@ -96,6 +96,7 @@ import {
 import { SignaturePlate } from '../signatures/SignaturePlate';
 import { PageContextMenu } from '../stage/PageContextMenu';
 import { type SizeClass, useSizeClass } from './frame/size-class';
+import { useLockStore } from '../state/lock-store';
 import { canEditActive, useCanEdit, useStageView } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { IconButton } from '../ui/IconButton';
@@ -732,21 +733,29 @@ function CommandButton({ id }: { readonly id: string }) {
   // Availability follows the document, the search and the dialogs.
   useWorkspaceStore((s) => s.workspace);
   useSearchStore((s) => s.hits.length);
+  // ... and the guard: the document's lock (ADR-0030 §2.3).
+  useLockStore((s) => s.locks);
   const spec = COMMAND_BUTTONS[id];
   if (!command || !spec) return null;
   const enabled = commandRegistry.isEnabled(command);
   const label = spec.label?.() ?? command.title;
+  // A dimmed button says why, in its tooltip and description: the guard's reason ("Locked ·
+  // unlock first") or the command's own, else the bar's word for Mark matches.
+  const reason = enabled ? undefined : commandRegistry.disabledReason(command);
   return (
     <IconButton
       size="bar"
       tooltipSide="top"
       label={label}
+      tooltip={reason === undefined ? undefined : `${label} · ${reason}`}
       icon={<spec.Icon />}
       shortcut={command.shortcuts[0]}
       aria-pressed={id === 'forms.highlight' ? highlightOn : undefined}
       aria-disabled={enabled ? undefined : 'true'}
       aria-description={
-        enabled ? undefined : id === 'redaction.markMatches' ? m.bar_mark_matches_none() : undefined
+        enabled
+          ? undefined
+          : (reason ?? (id === 'redaction.markMatches' ? m.bar_mark_matches_none() : undefined))
       }
       data-command={id}
       onClick={() => {
