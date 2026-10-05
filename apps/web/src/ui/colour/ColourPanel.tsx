@@ -23,7 +23,7 @@
  * - The views share one width; their sizes are whole pixels at both densities.
  */
 import { ContextMenu } from '@base-ui/react/context-menu';
-import { Pipette, X } from 'lucide-react';
+import { ChevronLeft, Pipette, X } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 
 import { formatNumber, formatPercent, m } from '../../i18n';
@@ -88,6 +88,59 @@ export interface ColourPanelProps {
   readonly titleId?: string | undefined;
   /** The title (default "Colour"). */
   readonly title?: string | undefined;
+  /**
+   * The panel is a page pushed inside another popover (the pen's preset editor, §6): the
+   * title row leads with ‹ Back (which commits, then calls this) beside the eyedropper, and
+   * the panel is a group named by its title instead of the popover's content.
+   */
+  readonly onBack?: (() => void) | undefined;
+  /** More labels and readouts for the shared slider columns (`SliderSizer`). */
+  readonly sizer?: SliderSizerProps | undefined;
+}
+
+export interface SliderSizerProps {
+  readonly labels?: readonly string[] | undefined;
+  readonly readouts?: readonly string[] | undefined;
+}
+
+/**
+ * The labels and readouts every slider of the colour panel can show (Hue, Saturation,
+ * Brightness, Opacity; "360°", "100%"), so the columns are the same in every view and the
+ * Opacity track starts where the Hue track does (10-ink §4.1).
+ */
+export function colourSliderSizer(): {
+  readonly labels: readonly string[];
+  readonly readouts: readonly string[];
+} {
+  return {
+    labels: [m.colour_hue(), m.colour_saturation(), m.colour_brightness(), m.colour_opacity()],
+    readouts: [m.slider_readout_degrees({ value: formatNumber(360) }), formatPercent(1)],
+  };
+}
+
+/**
+ * The shared slider columns, drawn as nothing: a zero-height subgrid row in the first row of a
+ * `[label] [track] [readout]` grid (`.panel`, or a page that matches it), holding every label
+ * and readout the grid's sliders may show. The label and readout columns take the widest of
+ * them, so tracks start and end on one line in every view, whatever the language, and do not
+ * move when a view with other sliders is chosen.
+ */
+export function SliderSizer({ labels = [], readouts = [] }: SliderSizerProps) {
+  return (
+    <div className={styles.sizer} aria-hidden="true">
+      <span className={styles.sizerCell}>
+        {labels.map((label) => (
+          <span key={label}>{label}</span>
+        ))}
+      </span>
+      <span />
+      <span className={`${styles.sizerCell} ${styles.sizerReadout}`}>
+        {readouts.map((readout) => (
+          <span key={readout}>{readout}</span>
+        ))}
+      </span>
+    </div>
+  );
 }
 
 export function ColourPanel({
@@ -102,6 +155,8 @@ export function ColourPanel({
   onSamplingChange,
   titleId,
   title,
+  onBack,
+  sizer,
 }: ColourPanelProps) {
   const [initial] = useState(() => ({ value, opacity }));
   const [view, setView] = useState<ColourView>(storedView);
@@ -155,6 +210,11 @@ export function ColourPanel({
   const close = () => {
     commitNow();
     onClose('close');
+  };
+
+  const back = () => {
+    commitNow();
+    onBack?.();
   };
 
   const revert = () => {
@@ -212,39 +272,69 @@ export function ColourPanel({
   const hexValue = isHex ? value.toUpperCase() : '#FFFFFF';
   const viewColour = isHex ? hexValue : (recent[0] ?? '#000000');
   const opacityPercent = Math.round((opacity ?? 1) * 100);
+  const shared = colourSliderSizer();
+
+  const eyedropper = (
+    <button
+      type="button"
+      className={styles.iconButton}
+      aria-label={m.colour_eyedropper()}
+      aria-pressed={sampling !== null}
+      onClick={(event) => {
+        // A keyboard click has no position: the loupe starts mid-viewport.
+        const pointer = event.detail > 0;
+        startSampling(
+          pointer ? event.clientX : window.innerWidth / 2,
+          pointer ? event.clientY : window.innerHeight / 2,
+        );
+      }}
+    >
+      <Pipette aria-hidden="true" />
+    </button>
+  );
 
   return (
     // The panel listens for Esc on behalf of every control inside it.
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-    <div className={styles.panel} onKeyDown={onKeyDown} data-sampling={sampling ? '' : undefined}>
-      <div className={styles.header}>
-        <button
-          type="button"
-          className={styles.iconButton}
-          aria-label={m.colour_eyedropper()}
-          aria-pressed={sampling !== null}
-          onClick={(event) => {
-            // A keyboard click has no position: the loupe starts mid-viewport.
-            const pointer = event.detail > 0;
-            startSampling(
-              pointer ? event.clientX : window.innerWidth / 2,
-              pointer ? event.clientY : window.innerHeight / 2,
-            );
-          }}
-        >
-          <Pipette aria-hidden="true" />
-        </button>
+    <div
+      className={styles.panel}
+      onKeyDown={onKeyDown}
+      data-sampling={sampling ? '' : undefined}
+      data-colour-panel=""
+      {...(onBack ? { role: 'group', 'aria-labelledby': titleId ?? ownTitleId } : {})}
+    >
+      <SliderSizer
+        labels={[...shared.labels, ...(sizer?.labels ?? [])]}
+        readouts={[...shared.readouts, ...(sizer?.readouts ?? [])]}
+      />
+      <div className={styles.header} data-nav={onBack ? '' : undefined}>
+        <div className={styles.headerSide}>
+          {onBack ? (
+            <button
+              type="button"
+              className={styles.iconButton}
+              aria-label={m.common_back()}
+              onClick={back}
+              data-colour-back=""
+            >
+              <ChevronLeft aria-hidden="true" />
+            </button>
+          ) : null}
+          {eyedropper}
+        </div>
         <h2 id={titleId ?? ownTitleId} className={styles.title}>
           {title ?? m.colour_title()}
         </h2>
-        <button
-          type="button"
-          className={styles.iconButton}
-          aria-label={m.common_close()}
-          onClick={close}
-        >
-          <X aria-hidden="true" />
-        </button>
+        <div className={styles.headerSide} data-end="">
+          <button
+            type="button"
+            className={styles.iconButton}
+            aria-label={m.common_close()}
+            onClick={close}
+          >
+            <X aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       <Segmented

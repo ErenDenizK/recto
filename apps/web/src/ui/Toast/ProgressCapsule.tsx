@@ -70,6 +70,7 @@ export function ProgressCapsule({ jobId }: { readonly jobId: string }) {
         <span className={styles.actions}>
           <Button
             variant="standard"
+            className={styles.action}
             disabled={job.cancelling}
             reason={job.cancelling ? m.job_stopping() : undefined}
             onClick={() => cancelJob(jobId)}

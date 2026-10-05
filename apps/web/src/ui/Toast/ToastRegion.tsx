@@ -12,11 +12,15 @@
  *   back to where it was before F6, else the page.
  * - **Holds** (A-24): hover, focus within, a pointer down on a toast, a hidden tab and an open
  *   modal pause every timer, which then resumes with what was left.
- * - **Motion** (FB4 §7; Q-2, Q-3, Q-10): *toast* in, 16 px up and a fade on `quick`; the stack
- *   re-flows by FLIP on `smooth`; out by a fade on `track` (about 120 ms), `inert` from its
- *   first frame (A-13); a swipe (touch, pen) past half the width or faster than 800 px/s
- *   flings it away, else it springs back. Each animation moves the toast's own element, is
- *   interruptible from where it is, and leaves no transform or `will-change` behind.
+ * - **Motion** (FB4 §7; Q-2, Q-3, Q-6, Q-10; `stack-motion.ts`): the stack makes room first,
+ *   re-flowing by a translate-only FLIP on `quick`, and a new toast rises 16 px and fades in on
+ *   `quick` once the toast above it is far enough ahead that the two pills never meet; out by
+ *   a fade on `track` (about 120 ms), `inert` from its first frame (A-13), and only then does
+ *   the stack close up. Each fade carries the glass's backdrop filter with the opacity, so a
+ *   fading toast never leaves a dark empty pill. A toast's width is its own, so nothing ever
+ *   tweens a width. A swipe (touch, pen) past half the width or faster than 800 px/s flings it
+ *   away, else it springs back. Each animation moves the toast's own element (the glass, never
+ *   a wrapper), is interruptible from where it is, and leaves no transform or `will-change`.
  * - **Both editions**: the compact edition passes `edition="compact"` and whether its capsule
  *   is on screen (`band`), so the stack sits above the capsule or the home indicator.
  */
@@ -33,10 +37,11 @@ import {
 import { flushSync } from 'react-dom';
 
 import { m } from '../../i18n';
-import { animateStyle, flip, type Motion, velocityTracker } from '../../motion';
+import { animateStyle, type Motion, velocityTracker } from '../../motion';
 import { Button } from '../Button';
 import { IconButton } from '../IconButton';
 import { ProgressCapsule } from './ProgressCapsule';
+import { after, entranceDelay, fadeBackdrop, RISE_PX, reflow } from './stack-motion';
 import styles from './Toast.module.css';
 import { dismissToast, setToastPause, type Toast, useToastStore } from './toast-store';
 
@@ -44,6 +49,17 @@ import { dismissToast, setToastPause, type Toast, useToastStore } from './toast-
 interface Item {
   readonly toast: Toast;
   readonly leaving: boolean;
+}
+
+/** A toast on screen as the region drives it: its glass element and its entrance. */
+interface View {
+  readonly el: HTMLElement;
+  /** Whether its entrance has begun (a held or waiting toast is hidden, 16 px down). */
+  readonly entered: () => boolean;
+  /** Holds a toast whose entrance has not begun: it waits for the region's next word. */
+  readonly hold: () => void;
+  /** Starts the entrance `delay` ms into `pace` (else the timeline), unless it has begun. */
+  readonly enter: (delay: number, pace?: Animation | null) => void;
 }
 
 /** FB4 §6 (MC-31): a swipe dismisses past half the width or above this speed. */
@@ -118,27 +134,64 @@ export function ToastRegion({ edition = 'full', band = 'shown' }: ToastRegionPro
   const waiting = useToastStore((s) => s.waiting.length);
   const [items, setItems] = useState<Item[]>(() => merge([], shown));
   const region = useRef<HTMLElement>(null);
-  const elements = useRef(new Map<string, HTMLElement>());
+  const views = useRef(new Map<string, View>());
+  // Toasts whose entrance waits for the stack to make room (set while a change commits).
+  const held = useRef(new Set<string>());
   useEnvironmentPauses();
 
-  // Store changes re-flow the stack by FLIP: measured before React commits, played after.
+  /**
+   * Re-flows the stack around `mutate` (a React update, applied in `flushSync`): measured before
+   * React commits, played after. Toasts not yet in (the new ones, and any still waiting from an
+   * earlier change, which wait again) are hidden and take no part in the re-flow; each then
+   * comes in once the toast above it has made room (FB4 §7), and never before a toast above it
+   * that is still to come in (the same rise, started later, stays clear of it).
+   */
+  const restack = (mutate: () => void, gone?: HTMLElement) => {
+    const waiting = new Set<HTMLElement>();
+    for (const view of views.current.values()) {
+      if (view.entered()) continue;
+      view.hold();
+      waiting.add(view.el);
+    }
+    const moves = reflow(
+      [...views.current.values()].map((v) => v.el).filter((el) => el !== gone && !waiting.has(el)),
+      () => flushSync(mutate),
+    );
+    held.current.clear();
+    const delays = new Map<Element, readonly [number, Animation | null]>();
+    for (const el of region.current?.children ?? []) {
+      const view = [...views.current.values()].find((v) => v.el === el);
+      if (!view || view.entered()) continue;
+      const above = el.previousElementSibling;
+      const move = above ? moves.get(above as HTMLElement) : undefined;
+      const slotTop = el.getBoundingClientRect().top - RISE_PX;
+      const wait = (above && delays.get(above)) ?? [
+        entranceDelay(slotTop, move),
+        move?.animation ?? null,
+      ];
+      delays.set(el, wait);
+      view.enter(...wait);
+    }
+  };
+
+  // Store changes re-flow the stack; a new toast mounts held (`held`) until `restack` lets it in.
   useLayoutEffect(
     () =>
       useToastStore.subscribe((state, previous) => {
         if (state.shown === previous.shown) return;
-        void flip(elements.current.values(), () =>
-          flushSync(() => setItems((current) => merge(current, state.shown))),
-        );
+        for (const t of state.shown) if (!views.current.has(t.id)) held.current.add(t.id);
+        restack(() => setItems((current) => merge(current, state.shown)));
       }),
     [],
   );
   // A store change made before the subscription (the first render) still lands.
   if (items.length === 0 && shown.length > 0) setItems(merge([], shown));
 
+  // A toast has faded out: it goes, and the stack closes up behind it.
   const exited = (id: string) => {
-    void flip(
-      [...elements.current].filter(([key]) => key !== id).map(([, el]) => el),
-      () => flushSync(() => setItems((current) => current.filter((i) => i.toast.id !== id))),
+    restack(
+      () => setItems((current) => current.filter((i) => i.toast.id !== id)),
+      views.current.get(id)?.el,
     );
   };
 
@@ -194,9 +247,10 @@ export function ToastRegion({ edition = 'full', band = 'shown' }: ToastRegionPro
           leaving={leaving}
           newest={toast.id === newest}
           waiting={toast.id === top ? waiting : 0}
-          register={(el) => {
-            if (el) elements.current.set(toast.id, el);
-            else elements.current.delete(toast.id);
+          held={() => held.current.has(toast.id)}
+          register={(view) => {
+            if (view) views.current.set(toast.id, view);
+            else views.current.delete(toast.id);
           }}
           onExited={() => exited(toast.id)}
           onDone={(reason) => {
@@ -231,7 +285,9 @@ interface ToastViewProps {
   readonly leaving: boolean;
   readonly newest: boolean;
   readonly waiting: number;
-  readonly register: (el: HTMLElement | null) => void;
+  /** Whether the region will start the entrance itself, once the stack has made room. */
+  readonly held: () => boolean;
+  readonly register: (view: View | null) => void;
   readonly onExited: () => void;
   readonly onDone: (reason: 'dismissed' | 'action') => void;
 }
@@ -241,37 +297,80 @@ function ToastView({
   leaving,
   newest,
   waiting,
+  held,
   register,
   onExited,
   onDone,
 }: ToastViewProps) {
   const ref = useRef<HTMLDivElement>(null);
   const fade = useRef<Motion | null>(null);
+  /** Where the entrance is: held by the region, waiting out its delay, or in. */
+  const phase = useRef<'held' | 'waiting' | 'in'>('held');
+  /** Cancels the wait of an entrance not yet begun. */
+  const wait = useRef<(() => void) | null>(null);
   const hovered = useRef(false);
   const swipe = useRef<{ x: number; id: number; track: ReturnType<typeof velocityTracker> } | null>(
     null,
   );
 
   // The latest callbacks, so the motion effects below run on their own changes only.
-  const callbacks = useRef({ register, onExited });
+  const callbacks = useRef({ held, register, onExited });
   useLayoutEffect(() => {
-    callbacks.current = { register, onExited };
+    callbacks.current = { held, register, onExited };
   });
 
-  // *toast* in: 16 px up and a fade, on the element itself (Q-3).
+  // *toast* in: 16 px up and a fade on the glass element itself (Q-3), its backdrop filter
+  // with it. Held hidden, 16 px down, while the stack above makes room.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
-    callbacks.current.register(el);
-    animateStyle(el, 'transform', [0, 16], [0, 0], { spring: 'quick' });
-    fade.current = animateStyle(el, 'opacity', 0, 1, { spring: 'quick' });
+    const hide = () => {
+      el.style.opacity = '0';
+      el.style.transform = `translate(0px, ${RISE_PX}px)`;
+    };
+    const view: View = {
+      el,
+      entered: () => phase.current === 'in',
+      hold() {
+        if (phase.current === 'in') return;
+        wait.current?.();
+        wait.current = null;
+        phase.current = 'held';
+        hide();
+      },
+      enter(delay, pace) {
+        if (phase.current === 'in') return;
+        wait.current?.();
+        phase.current = 'waiting';
+        let came = false;
+        const cancel = after(
+          delay,
+          () => {
+            came = true;
+            wait.current = null;
+            phase.current = 'in';
+            // The motions take both properties over from the hold, and clear them at rest (Q-2).
+            animateStyle(el, 'transform', [0, RISE_PX], [0, 0], { spring: 'quick' });
+            fade.current = animateStyle(el, 'opacity', 0, 1, { spring: 'quick' });
+            fadeBackdrop(el, 'in');
+          },
+          pace,
+        );
+        wait.current = came ? null : cancel;
+      },
+    };
+    callbacks.current.register(view);
+    if (callbacks.current.held()) view.hold();
+    else view.enter(0);
     return () => {
+      wait.current?.();
       callbacks.current.register(null);
       if (hovered.current) setToastPause('hover', false);
     };
   }, []);
 
-  // Out: inert at once (A-13), a fade from wherever the entrance is, then gone.
+  // Out: inert at once (A-13), a fade of the glass and its backdrop from wherever the entrance
+  // is, then gone. A toast still held never showed: it goes at once.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!leaving || !el) return;
@@ -285,12 +384,20 @@ function ToastView({
       gone = true;
       callbacks.current.onExited();
     };
+    if (phase.current !== 'in') {
+      // Never shown: nothing to fade.
+      wait.current?.();
+      wait.current = null;
+      done();
+      return;
+    }
     const from = fade.current?.value ?? 1;
     fade.current = animateStyle(el, 'opacity', from, 0, {
       spring: 'track',
       keep: true,
       onComplete: done,
     });
+    fadeBackdrop(el, 'out', from);
     // Already transparent: nothing to fade.
     if (from <= 0) done();
   }, [leaving]);
@@ -382,6 +489,7 @@ function ToastView({
               {toast.secondary ? (
                 <Button
                   variant="quiet"
+                  className={styles.action}
                   onClick={() => run(toast.secondary as Toast['action'] & {})}
                 >
                   {toast.secondary.label}
@@ -390,6 +498,7 @@ function ToastView({
               {toast.action ? (
                 <Button
                   variant={toast.kind === 'system' ? 'prominent' : 'standard'}
+                  className={styles.action}
                   data-toast-action=""
                   onClick={() => run(toast.action as Toast['action'] & {})}
                 >
