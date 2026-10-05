@@ -15,16 +15,20 @@ import {
   migrateLayout,
   MIN_ZOOM,
   nextZoomLevel,
+  migrateLayoutV2,
   parseLayout,
+  parseLayoutV2,
   RIGHT_PANEL_WIDTH,
   stageView,
+  toStoredLayout,
   useUiStore,
+  V2_LAYOUT_STORAGE_KEY,
 } from './ui-store';
 
-describe('parseLayout', () => {
+describe('parseLayoutV2 (M8)', () => {
   it('falls back to defaults for garbage', () => {
     for (const value of [undefined, null, 42, 'x', []]) {
-      expect(parseLayout(value)).toMatchObject({
+      expect(parseLayoutV2(value)).toMatchObject({
         leftPanelOpen: true,
         leftPanelView: 'pages',
         leftPanelWidth: LEFT_PANEL_WIDTH.default,
@@ -34,7 +38,7 @@ describe('parseLayout', () => {
 
   it('keeps valid fields, clamps widths, and rejects unknown views', () => {
     expect(
-      parseLayout({
+      parseLayoutV2({
         leftPanelOpen: false,
         leftPanelView: 'files',
         pagesView: 'bookmarks',
@@ -52,11 +56,11 @@ describe('parseLayout', () => {
       rightPanelOpen: true,
       rightPanelWidth: RIGHT_PANEL_WIDTH.min,
     });
-    expect(parseLayout({ leftPanelView: 'bogus' }).leftPanelView).toBe('pages');
+    expect(parseLayoutV2({ leftPanelView: 'bogus' }).leftPanelView).toBe('pages');
     // v1 views are not v2 values; Changes lives only as long as a comparison.
-    expect(parseLayout({ leftPanelView: 'outline' }).leftPanelView).toBe('pages');
-    expect(parseLayout({ leftPanelView: 'changes' }).leftPanelView).toBe('pages');
-    expect(parseLayout({ pagesView: 'x', reviewFilter: 'y' })).toMatchObject({
+    expect(parseLayoutV2({ leftPanelView: 'outline' }).leftPanelView).toBe('pages');
+    expect(parseLayoutV2({ leftPanelView: 'changes' }).leftPanelView).toBe('pages');
+    expect(parseLayoutV2({ pagesView: 'x', reviewFilter: 'y' })).toMatchObject({
       pagesView: 'thumbnails',
       reviewFilter: 'all',
     });
@@ -64,8 +68,172 @@ describe('parseLayout', () => {
 
   it('keeps the inspector closed by default (experience-redesign decision 4)', () => {
     expect(DEFAULT_LAYOUT.rightPanelOpen).toBe(false);
-    expect(parseLayout(undefined).rightPanelOpen).toBe(false);
-    expect(parseLayout({}).rightPanelOpen).toBe(false);
+    expect(parseLayoutV2(undefined).rightPanelOpen).toBe(false);
+    expect(parseLayoutV2({}).rightPanelOpen).toBe(false);
+  });
+});
+
+describe('ui:v3 (redesign spec §7)', () => {
+  it('parses field by field: the sidebar record, the views, the inspector', () => {
+    expect(
+      parseLayout({
+        sidebar: { open: false, section: 'files', width: 10_000 },
+        pagesView: 'bookmarks',
+        reviewFilter: 'fields',
+        inspector: { open: true, width: 1 },
+      }),
+    ).toEqual({
+      leftPanelOpen: false,
+      leftPanelView: 'files',
+      pagesView: 'bookmarks',
+      reviewFilter: 'fields',
+      leftPanelWidth: LEFT_PANEL_WIDTH.max,
+      rightPanelOpen: true,
+      rightPanelWidth: RIGHT_PANEL_WIDTH.min,
+    });
+    for (const value of [undefined, null, 42, 'x', [], {}, { sidebar: 'x', inspector: [] }]) {
+      expect(parseLayout(value)).toEqual(DEFAULT_LAYOUT);
+    }
+    // A v2 record is not a v3 one; Changes lives only as long as a comparison.
+    expect(parseLayout({ leftPanelOpen: false, leftPanelView: 'find' })).toEqual(DEFAULT_LAYOUT);
+    expect(parseLayout({ sidebar: { section: 'changes' } }).leftPanelView).toBe('pages');
+    expect(parseLayout({ sidebar: { section: 'outline' } }).leftPanelView).toBe('pages');
+  });
+
+  it('stores the sidebar open state only when it differs from the default (06.17)', () => {
+    expect(toStoredLayout(DEFAULT_LAYOUT)).toEqual({
+      sidebar: { section: 'pages', width: LEFT_PANEL_WIDTH.default },
+      pagesView: 'thumbnails',
+      reviewFilter: 'all',
+      inspector: { open: false, width: RIGHT_PANEL_WIDTH.default },
+    });
+    expect(toStoredLayout({ ...DEFAULT_LAYOUT, leftPanelOpen: false }).sidebar).toEqual({
+      open: false,
+      section: 'pages',
+      width: LEFT_PANEL_WIDTH.default,
+    });
+    // Compare's Changes is never stored.
+    expect(toStoredLayout({ ...DEFAULT_LAYOUT, leftPanelView: 'changes' }).sidebar.section).toBe(
+      'pages',
+    );
+    for (const layout of [
+      DEFAULT_LAYOUT,
+      { ...DEFAULT_LAYOUT, leftPanelOpen: false, leftPanelView: 'review' as const },
+      { ...DEFAULT_LAYOUT, pagesView: 'bookmarks' as const, rightPanelOpen: true },
+    ]) {
+      expect(parseLayout(toStoredLayout(layout))).toEqual(layout);
+    }
+  });
+});
+
+describe('ui:v2 → ui:v3 migration (redesign spec §7, 06.17)', () => {
+  const views = ['pages', 'find', 'review', 'files'] as const;
+  const pagesViews = ['thumbnails', 'bookmarks'] as const;
+  const filters = ['all', 'comments', 'redactions', 'fields'] as const;
+  const combinations = views.flatMap((leftPanelView) =>
+    pagesViews.flatMap((pagesView) =>
+      filters.flatMap((reviewFilter) =>
+        [true, false].flatMap((leftPanelOpen) =>
+          [true, false].map((rightPanelOpen) => ({
+            leftPanelOpen,
+            leftPanelView,
+            pagesView,
+            reviewFilter,
+            leftPanelWidth: 300,
+            rightPanelOpen,
+            rightPanelWidth: 320,
+          })),
+        ),
+      ),
+    ),
+  );
+
+  it.each(combinations)(
+    'maps open $leftPanelOpen on $leftPanelView ($pagesView, $reviewFilter), inspector $rightPanelOpen',
+    (v2) => {
+      const layout = migrateLayoutV2(v2);
+      // Every field carries over except whether the navigator was open (06.17).
+      expect(layout).toEqual({ ...v2, leftPanelOpen: DEFAULT_LAYOUT.leftPanelOpen });
+      expect(toStoredLayout(layout)).toEqual({
+        sidebar: { section: v2.leftPanelView, width: 300 },
+        pagesView: v2.pagesView,
+        reviewFilter: v2.reviewFilter,
+        inspector: { open: v2.rightPanelOpen, width: 320 },
+      });
+    },
+  );
+
+  it('validates v2 as M8 did: unknown views, garbage and widths fall back or clamp', () => {
+    expect(migrateLayoutV2({ leftPanelView: 'changes', leftPanelWidth: 1 })).toMatchObject({
+      leftPanelView: 'pages',
+      leftPanelWidth: LEFT_PANEL_WIDTH.min,
+    });
+    expect(migrateLayoutV2({ leftPanelView: 'outline', pagesView: 'x' })).toMatchObject({
+      leftPanelView: 'pages',
+      pagesView: 'thumbnails',
+    });
+    for (const value of [undefined, null, 42, 'x', []]) {
+      expect(migrateLayoutV2(value)).toEqual(DEFAULT_LAYOUT);
+    }
+  });
+
+  describe('loadLayout', () => {
+    const clear = () => {
+      localStorage.removeItem(LAYOUT_STORAGE_KEY);
+      localStorage.removeItem(V2_LAYOUT_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_LAYOUT_STORAGE_KEY);
+    };
+    beforeEach(clear);
+    afterEach(clear);
+    const v3 = () => JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? 'null') as unknown;
+
+    it('migrates v2 once, writes v3 and leaves v2 alone', () => {
+      const v2 = {
+        leftPanelOpen: false,
+        leftPanelView: 'find',
+        pagesView: 'bookmarks',
+        reviewFilter: 'comments',
+        leftPanelWidth: 260,
+        rightPanelOpen: true,
+        rightPanelWidth: 300,
+      };
+      localStorage.setItem(V2_LAYOUT_STORAGE_KEY, JSON.stringify(v2));
+      expect(loadLayout()).toEqual({ ...v2, leftPanelOpen: true });
+      expect(v3()).toEqual({
+        sidebar: { section: 'find', width: 260 },
+        pagesView: 'bookmarks',
+        reviewFilter: 'comments',
+        inspector: { open: true, width: 300 },
+      });
+      expect(JSON.parse(localStorage.getItem(V2_LAYOUT_STORAGE_KEY) ?? 'null')).toEqual(v2);
+      // A later v2 write (an old tab) does not migrate again.
+      localStorage.setItem(
+        V2_LAYOUT_STORAGE_KEY,
+        JSON.stringify({ ...v2, leftPanelView: 'review' }),
+      );
+      expect(loadLayout().leftPanelView).toBe('find');
+    });
+
+    it('prefers v2 over v1, and migrates v1 through v2 when it is the only record', () => {
+      localStorage.setItem(
+        LEGACY_LAYOUT_STORAGE_KEY,
+        JSON.stringify({ leftPanelOpen: false, leftPanelView: 'outline', leftPanelWidth: 280 }),
+      );
+      localStorage.setItem(V2_LAYOUT_STORAGE_KEY, JSON.stringify({ leftPanelView: 'review' }));
+      expect(loadLayout()).toMatchObject({ leftPanelView: 'review', pagesView: 'thumbnails' });
+      clear();
+      localStorage.setItem(
+        LEGACY_LAYOUT_STORAGE_KEY,
+        JSON.stringify({ leftPanelOpen: false, leftPanelView: 'outline', leftPanelWidth: 280 }),
+      );
+      expect(loadLayout()).toEqual({
+        ...DEFAULT_LAYOUT,
+        leftPanelView: 'pages',
+        pagesView: 'bookmarks',
+        leftPanelWidth: 280,
+      });
+      expect(v3()).toMatchObject({ sidebar: { section: 'pages', width: 280 } });
+    });
   });
 });
 
@@ -118,6 +286,7 @@ describe('ui:v1 → ui:v2 migration', () => {
   describe('loadLayout', () => {
     const clear = () => {
       localStorage.removeItem(LAYOUT_STORAGE_KEY);
+      localStorage.removeItem(V2_LAYOUT_STORAGE_KEY);
       localStorage.removeItem(LEGACY_LAYOUT_STORAGE_KEY);
     };
     beforeEach(clear);
@@ -128,11 +297,11 @@ describe('ui:v1 → ui:v2 migration', () => {
       expect(loadLayout().rightPanelOpen).toBe(false);
     });
 
-    it('migrates v1 once and then reads v2', () => {
+    it('migrates v1 once and then reads v3', () => {
       localStorage.setItem(LEGACY_LAYOUT_STORAGE_KEY, JSON.stringify(v1('redactions')));
       expect(loadLayout()).toMatchObject({ leftPanelView: 'review', reviewFilter: 'redactions' });
       expect(JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? 'null')).toMatchObject({
-        leftPanelView: 'review',
+        sidebar: { section: 'review' },
         reviewFilter: 'redactions',
       });
       // A later v1 write (an old tab) does not migrate again.
@@ -172,7 +341,7 @@ describe('navigator state', () => {
     expect(isNavigatorShowing({ ...DEFAULT_LAYOUT, pagesView: 'bookmarks' }, 'outline')).toBe(true);
   });
 
-  it('persists the layout under ui:v2', () => {
+  it('persists the layout under ui:v3', () => {
     useUiStore.getState().setReviewFilter('fields');
     expect(JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? 'null')).toMatchObject({
       reviewFilter: 'fields',
@@ -246,14 +415,14 @@ describe('Home, views and document modes (ADR-0019 §1–§2)', () => {
   it('never persists the destination, views or modes; a stored stray view is ignored', () => {
     localStorage.setItem(
       LAYOUT_STORAGE_KEY,
-      JSON.stringify({ ...DEFAULT_LAYOUT, viewMode: 'home', destination: 'home' }),
+      JSON.stringify({ ...toStoredLayout(DEFAULT_LAYOUT), viewMode: 'home', destination: 'home' }),
     );
     expect(loadLayout()).toEqual(DEFAULT_LAYOUT);
     useUiStore.getState().showHome();
     useUiStore.getState().setDocumentMode(a, 'edit');
     useUiStore.getState().setReviewFilter('comments');
     const stored = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? 'null') as object;
-    expect(Object.keys(stored).sort()).toEqual(Object.keys(DEFAULT_LAYOUT).sort());
+    expect(Object.keys(stored).sort()).toEqual(Object.keys(toStoredLayout(DEFAULT_LAYOUT)).sort());
     localStorage.removeItem(LAYOUT_STORAGE_KEY);
     useUiStore.setState({ ...DEFAULT_LAYOUT });
   });

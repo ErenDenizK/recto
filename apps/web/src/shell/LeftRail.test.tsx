@@ -131,7 +131,7 @@ describe('Navigator', () => {
     expect(await screen.findByRole('tree', { name: /Outline of/ })).toBeVisible();
     expect(screen.getByRole('button', { name: /Add bookmark/ })).toBeVisible();
     expect(JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? 'null')).toMatchObject({
-      leftPanelView: 'pages',
+      sidebar: { section: 'pages' },
       pagesView: 'bookmarks',
     });
 

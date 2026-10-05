@@ -4,7 +4,7 @@
  * and form fields in one list) and Files, plus Compare's Changes, shown only in the Compare
  * view and last so the other four never move. A collapsible, resizable panel shows the
  * chosen tab; choosing the open tab again collapses it (as in VS Code). State persists via
- * the UI store (`ui:v2`). With no file open the panel stays collapsed, since every tab would
+ * the UI store (`ui:v3`). With no file open the panel stays collapsed, since every tab would
  * only say "No document open" (M6 review A1); the stored state is kept, so it reopens as it
  * was when a file opens, and a tab picked meanwhile opens it. On Home, which shows every open
  * file rather than one document, only Files is offered (review F16).

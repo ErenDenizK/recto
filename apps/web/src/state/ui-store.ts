@@ -62,8 +62,14 @@ const DEFAULT_ARRANGE_SIZE = 1;
 export type FitMode = 'width' | 'page';
 export const MAX_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1] ?? 5;
 const MAX_RECENTS = 5;
-/** Panel layout (experience-redesign §9); `ui:v1` is migrated into it once. */
-export const LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v2';
+/**
+ * Panel layout (redesign spec §7, X26): `ui:v3`, in §7's shape (`StoredLayout`). `ui:v2`
+ * (experience-redesign §9) and, before it, `ui:v1` are migrated into it once.
+ */
+export const LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v3';
+/** M8's panel layout, read once when `ui:v3` is missing. */
+export const V2_LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v2';
+/** The seven-tab rail's layout, read once when neither `ui:v3` nor `ui:v2` is there. */
 export const LEGACY_LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v1';
 
 export function clamp(value: number, min: number, max: number): number {
@@ -153,23 +159,101 @@ const bool = (x: unknown, d: boolean) => (typeof x === 'boolean' ? x : d);
 const width = (x: unknown, range: { min: number; max: number; default: number }) =>
   typeof x === 'number' && Number.isFinite(x) ? clamp(x, range.min, range.max) : range.default;
 
-/** Validates `ui:v2` field by field; anything unexpected falls back to defaults. */
+/**
+ * `ui:v3` as stored (redesign spec §7): the sidebar as one record, the Pages view and the
+ * Review filter, and M8's inspector until the frame (D2-1) removes it. The sidebar's `files`
+ * section is M8's Files tab, read until the sidebar (D2-4) removes it; a stored value it no
+ * longer knows then falls back to Pages, field by field.
+ */
+export interface StoredLayout {
+  readonly sidebar: {
+    /**
+     * Written only when it differs from the default (`toStoredLayout`), so a layout that
+     * never chose leaves the sidebar to whatever the default is when it is read (06.17).
+     */
+    readonly open?: boolean;
+    readonly section: Exclude<LeftPanelView, 'changes'>;
+    readonly width: number;
+  };
+  readonly pagesView: PagesView;
+  readonly reviewFilter: ReviewFilter;
+  readonly inspector: { readonly open: boolean; readonly width: number };
+}
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+const storedView = (x: unknown): LeftPanelView =>
+  STORED_VIEWS.includes(x as LeftPanelView) ? (x as LeftPanelView) : DEFAULT_LAYOUT.leftPanelView;
+const storedPagesView = (x: unknown): PagesView => (x === 'bookmarks' ? 'bookmarks' : 'thumbnails');
+const storedFilter = (x: unknown): ReviewFilter =>
+  REVIEW_FILTERS.includes(x as ReviewFilter) ? (x as ReviewFilter) : DEFAULT_LAYOUT.reviewFilter;
+
+/** Validates `ui:v3` field by field; anything unexpected falls back to defaults. */
 export function parseLayout(value: unknown): PersistedLayout {
-  if (typeof value !== 'object' || value === null) return DEFAULT_LAYOUT;
-  const v = value as Record<string, unknown>;
+  const v = record(value);
+  if (v === undefined) return DEFAULT_LAYOUT;
+  const sidebar = record(v.sidebar) ?? {};
+  const inspector = record(v.inspector) ?? {};
+  return {
+    leftPanelOpen: bool(sidebar.open, DEFAULT_LAYOUT.leftPanelOpen),
+    leftPanelView: storedView(sidebar.section),
+    pagesView: storedPagesView(v.pagesView),
+    reviewFilter: storedFilter(v.reviewFilter),
+    leftPanelWidth: width(sidebar.width, LEFT_PANEL_WIDTH),
+    rightPanelOpen: bool(inspector.open, DEFAULT_LAYOUT.rightPanelOpen),
+    rightPanelWidth: width(inspector.width, RIGHT_PANEL_WIDTH),
+  };
+}
+
+/**
+ * The layout as `ui:v3` stores it. The sidebar's open state is left out while it equals the
+ * default: M8 opened the navigator for everyone, and M9 starts the sidebar closed for
+ * everyone once (06.17), which then needs only the default to change.
+ */
+export function toStoredLayout(layout: PersistedLayout): StoredLayout {
+  const section = layout.leftPanelView === 'changes' ? 'pages' : layout.leftPanelView;
+  return {
+    sidebar: {
+      ...(layout.leftPanelOpen === DEFAULT_LAYOUT.leftPanelOpen
+        ? {}
+        : { open: layout.leftPanelOpen }),
+      section,
+      width: layout.leftPanelWidth,
+    },
+    pagesView: layout.pagesView,
+    reviewFilter: layout.reviewFilter,
+    inspector: { open: layout.rightPanelOpen, width: layout.rightPanelWidth },
+  };
+}
+
+/** Validates `ui:v2` field by field, as M8 read it. */
+export function parseLayoutV2(value: unknown): PersistedLayout {
+  const v = record(value);
+  if (v === undefined) return DEFAULT_LAYOUT;
   return {
     leftPanelOpen: bool(v.leftPanelOpen, DEFAULT_LAYOUT.leftPanelOpen),
-    leftPanelView: STORED_VIEWS.includes(v.leftPanelView as LeftPanelView)
-      ? (v.leftPanelView as LeftPanelView)
-      : DEFAULT_LAYOUT.leftPanelView,
-    pagesView: v.pagesView === 'bookmarks' ? 'bookmarks' : 'thumbnails',
-    reviewFilter: REVIEW_FILTERS.includes(v.reviewFilter as ReviewFilter)
-      ? (v.reviewFilter as ReviewFilter)
-      : DEFAULT_LAYOUT.reviewFilter,
+    leftPanelView: storedView(v.leftPanelView),
+    pagesView: storedPagesView(v.pagesView),
+    reviewFilter: storedFilter(v.reviewFilter),
     leftPanelWidth: width(v.leftPanelWidth, LEFT_PANEL_WIDTH),
     rightPanelOpen: bool(v.rightPanelOpen, DEFAULT_LAYOUT.rightPanelOpen),
     rightPanelWidth: width(v.rightPanelWidth, RIGHT_PANEL_WIDTH),
   };
+}
+
+/**
+ * `ui:v2` → `ui:v3` (redesign spec §7): the navigator's tab becomes the sidebar's section and
+ * its width the sidebar's; the Pages view, the Review filter and the inspector carry over.
+ * Whether the navigator was open is not migrated (06.17): v2 stored it open for everyone who
+ * never closed it, so its value says little about a choice, and the sidebar starts at its
+ * default once.
+ */
+export function migrateLayoutV2(v2: unknown): PersistedLayout {
+  return { ...parseLayoutV2(v2), leftPanelOpen: DEFAULT_LAYOUT.leftPanelOpen };
 }
 
 /**
@@ -179,8 +263,8 @@ export function parseLayout(value: unknown): PersistedLayout {
  * it open for everyone who never touched it, so its value says nothing about a choice.
  */
 export function migrateLayout(v1: unknown): PersistedLayout {
-  if (typeof v1 !== 'object' || v1 === null) return DEFAULT_LAYOUT;
-  const v = v1 as Record<string, unknown>;
+  const v = record(v1);
+  if (v === undefined) return DEFAULT_LAYOUT;
   const view = v.leftPanelView;
   const target =
     isLegacyView(view) || view === 'pages' || view === 'files'
@@ -195,14 +279,18 @@ export function migrateLayout(v1: unknown): PersistedLayout {
   };
 }
 
-/** Reads `ui:v2`, or migrates `ui:v1` once (the result is written, so v1 is not read again). */
+/**
+ * Reads `ui:v3`, or migrates `ui:v2` (else `ui:v1`, through v2) once: the result is written,
+ * so the older record is not read again. The older records stay where they are.
+ */
 export function loadLayout(): PersistedLayout {
   const stored = readJson(LAYOUT_STORAGE_KEY);
   if (stored !== undefined) return parseLayout(stored);
-  const legacy = readJson(LEGACY_LAYOUT_STORAGE_KEY);
-  if (legacy === undefined) return DEFAULT_LAYOUT;
-  const layout = migrateLayout(legacy);
-  writeJson(LAYOUT_STORAGE_KEY, layout);
+  const v2 = readJson(V2_LAYOUT_STORAGE_KEY);
+  const v1 = v2 === undefined ? readJson(LEGACY_LAYOUT_STORAGE_KEY) : undefined;
+  if (v2 === undefined && v1 === undefined) return DEFAULT_LAYOUT;
+  const layout = migrateLayoutV2(v2 !== undefined ? v2 : migrateLayout(v1));
+  writeJson(LAYOUT_STORAGE_KEY, toStoredLayout(layout));
   return layout;
 }
 
@@ -475,16 +563,7 @@ useUiStore.subscribe((state, previous) => {
     state.rightPanelOpen !== previous.rightPanelOpen ||
     state.rightPanelWidth !== previous.rightPanelWidth
   ) {
-    const layout: PersistedLayout = {
-      leftPanelOpen: state.leftPanelOpen,
-      leftPanelView: state.leftPanelView,
-      pagesView: state.pagesView,
-      reviewFilter: state.reviewFilter,
-      leftPanelWidth: state.leftPanelWidth,
-      rightPanelOpen: state.rightPanelOpen,
-      rightPanelWidth: state.rightPanelWidth,
-    };
-    writeJson(LAYOUT_STORAGE_KEY, layout);
+    writeJson(LAYOUT_STORAGE_KEY, toStoredLayout(state));
   }
 });
 
