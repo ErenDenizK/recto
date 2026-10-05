@@ -88,10 +88,15 @@
 
 /* The edge fade of a menu that scrolls: a band of the menu's own tint at each edge (sticky, so
    it stays at the edge; no layout of its own), shown only while there are rows beyond that
-   edge, by the menu's own scroll position (a scroll-driven animation, no frame loop). Where
-   scroll-driven animations are missing the menu still scrolls, without the fade. Never a mask
-   on the popup: that would fade the glass itself. */
-@supports (animation-timeline: scroll()) {
+   edge. The menu is a scroll-state container and the bands answer its queries, so nothing
+   animates while the menu rests (a scroll-driven animation would run as long as the menu is
+   open, A-23). Where scroll-state queries are missing the menu still scrolls, without the
+   fade. Never a mask on the popup: that would fade the glass itself. */
+@supports (container-type: scroll-state) {
+  .popup {
+    container-type: scroll-state;
+  }
+
   .popup::before,
   .popup::after {
     content: '';
@@ -100,11 +105,9 @@
     display: block;
     height: var(--menu-fade);
     margin-inline: calc(var(--menu-pad) * -1);
-    /* Hidden while the menu fits: then its scroll timeline is inactive and nothing animates. */
     opacity: 0;
     pointer-events: none;
-    animation: menu-edge-fade linear both;
-    animation-timeline: scroll(nearest block);
+    transition: opacity var(--duration-fast) var(--ease-out);
   }
 
   .popup::before {
@@ -112,7 +115,6 @@
     margin-top: calc(var(--menu-pad) * -1);
     margin-bottom: calc(var(--menu-fade) * -1 + var(--menu-pad));
     background: linear-gradient(to bottom, var(--glass), transparent);
-    animation-range: 0 var(--menu-fade);
   }
 
   .popup::after {
@@ -120,18 +122,18 @@
     margin-top: calc(var(--menu-fade) * -1 + var(--menu-pad));
     margin-bottom: calc(var(--menu-pad) * -1);
     background: linear-gradient(to top, var(--glass), transparent);
-    animation-direction: reverse;
-    animation-range: calc(100% - var(--menu-fade)) 100%;
-  }
-}
-
-@keyframes menu-edge-fade {
-  from {
-    opacity: 0;
   }
 
-  to {
-    opacity: 1;
+  @container scroll-state(scrollable: top) {
+    .popup::before {
+      opacity: 1;
+    }
+  }
+
+  @container scroll-state(scrollable: bottom) {
+    .popup::after {
+      opacity: 1;
+    }
   }
 }
 
