@@ -90,7 +90,24 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
     .click();
   await expect(page.getByRole('menu')).toBeVisible();
   walk = await expectGlassClean(page, 'the Document menu');
-  expect(names(walk).some((n) => n.includes('glass-menu'))).toBe(true);
+  // What the menu looked like to the walk, should it not count it (seen on WebKit in CI).
+  const look = await page
+    .getByRole('menu')
+    .evaluate((el) => {
+      const style = getComputedStyle(el);
+      const box = el.getBoundingClientRect();
+      const backdrop =
+        style.getPropertyValue('backdrop-filter') ||
+        style.getPropertyValue('-webkit-backdrop-filter');
+      const data = el.getAttributeNames().filter((n) => n.startsWith('data-'));
+      const seen = el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+      return `opacity ${style.opacity}, backdrop ${backdrop}, box ${box.x},${box.y} ${box.width}×${box.height}, ${data.join(' ')}, visible ${seen}`;
+    })
+    .catch(() => 'gone');
+  expect(
+    names(walk).some((n) => n.includes('glass-menu')),
+    `the Document menu among the visible glass (${names(walk).join(', ')}); the menu: ${look}`,
+  ).toBe(true);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menu')).toHaveCount(0);
 
