@@ -1,6 +1,6 @@
 /*
  * The toast stack and the progress capsule (08-feedback FB4 §2–§4, §7, FB5 §2–§4; 01-frame F13;
- * quality-bar Q-2, Q-3, Q-7, Q-9).
+ * quality-bar Q-2, Q-3, Q-4, Q-9, Q-10).
  *
  * - The region is a plain, unfiltered column fixed at the bottom centre, 12 px above the band:
  *   the floating tool bar and the status bar on today's shell, the reader's capsule in the
@@ -9,24 +9,32 @@
  * - Each toast composes the floating glass (M2) on its own element, and every entrance, exit,
  *   re-flow and swipe moves that element by transform and opacity (the motion core), so no
  *   ancestor ever starts a backdrop root (Q-3) and nothing rests transformed (Q-2).
- * - One control system (Q-9): the action is a `ui/Button` and ✕ a bar `ui/IconButton`, both
- *   --control-h (32 px fine, 44 px coarse), in a toast 48 / 56 px tall at one line, one centre
- *   line for all of them.
+ * - Width (FB4 §2): on a fine pointer 360–480 px from the toast's own content, longer text
+ *   wrapping inside 480; on a coarse pointer and in the compact edition min(viewport − 24, 480).
+ *   A toast's width is its own, never its neighbours', so one arriving or leaving changes
+ *   nothing beside it and no width ever tweens (Q-10).
+ * - One control system (Q-9): every control box is --control-h (32 px fine, 44 px coarse), on
+ *   one centre line in a toast 48 / 56 px tall. Inside that box the action draws FB4's
+ *   secondary capsule (28 px fine, 36 px coarse) and ✕ its 24 px circle, by a transparent
+ *   border: the box stays the hit area (A-15), and the capsule sits as far from the toast's rim
+ *   as from its top and bottom, concentric with it.
  */
 .region {
   --toast-h: 48px;
   --toast-gap: 14px;
+  /* FB4 §2: the action's visible capsule and ✕'s circle. */
+  --toast-action-h: 28px;
+  --toast-close-d: 24px;
   --toast-band: calc(var(--statusbar-height) + var(--space-5) + var(--bar-h) + var(--space-3));
   position: fixed;
   right: 0;
   bottom: var(--toast-band);
   left: 0;
   z-index: 30;
-  /* One column as wide as the widest toast (360–480 px), so a stack reads as one edge. */
-  display: grid;
-  grid-template-columns: fit-content(min(480px, 100%));
-  justify-content: center;
-  row-gap: var(--toast-gap);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--toast-gap);
   padding-inline: 12px;
   pointer-events: none;
 }
@@ -39,6 +47,7 @@
 @media (pointer: coarse), (any-pointer: coarse) {
   .region {
     --toast-h: 56px;
+    --toast-action-h: 36px;
   }
 }
 
@@ -54,22 +63,35 @@
 
 .toast {
   composes: glass from global;
+  /* How far a trailing control's box sits from the padding edge, so that its capsule sits as
+     far from the rim as from the top and bottom. */
+  --toast-trail: calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
   box-sizing: border-box;
+  width: fit-content;
   min-width: min(360px, 100%);
+  max-width: min(480px, 100%);
   min-height: var(--toast-h);
-  padding-block: calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
-  padding-inline: var(--space-4) calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
+  padding-block: var(--toast-trail);
+  padding-inline: var(--space-4);
   border-radius: calc(var(--toast-h) / 2);
   color: var(--text-primary);
   pointer-events: auto;
   touch-action: pan-y;
 }
 
-.region[data-edition='compact'] {
-  grid-template-columns: min(480px, 100%);
+/* Coarse pointers and the compact edition: one width, the viewport's less the gutters. */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .toast {
+    width: min(480px, 100%);
+  }
+}
+
+.region[data-edition='compact'] .toast {
+  width: min(480px, 100%);
 }
 
 /* A glyph only for the status kinds (FB4 §2): success, failure, system. */
@@ -134,20 +156,96 @@
   gap: var(--space-2);
 }
 
-/* ✕ appears on hover or focus on a fine pointer, and is always there on a coarse one or on
-   a failure (FB4 §2). It keeps its place either way, so the toast never changes width. */
+/* The trailing control (the action, or ✕ where it is in the row) sits --toast-trail from the
+   padding edge; text that ends the row keeps the full 16 px. */
+.toast > :is(.actions, .close):last-child {
+  margin-inline-end: calc(var(--toast-trail) - var(--space-4));
+}
+
+/* The action: FB4's secondary capsule, a ui/Button whose --control-h box keeps Q-9's height
+   and the hit area. On the toast's glass it keeps its fill (n12 on the control fill, FB4 §8),
+   where the other glass bars render a standard button quiet (styles/controls.css). */
+.toast .actions .action {
+  border: calc((var(--control-h) - var(--toast-action-h)) / 2) solid transparent;
+  background-clip: padding-box;
+}
+
+.toast .actions .action:is(:hover, :active, :focus-visible) {
+  background-clip: padding-box;
+}
+
+.toast .actions .action:global(.btn-standard):not([aria-disabled='true'], [data-blocked]) {
+  background-color: var(--control-fill);
+}
+
+@media (hover: hover) {
+  .toast .actions .action:global(.btn-standard):hover:not([aria-disabled='true'], [data-blocked]) {
+    background-color: var(--control-fill-hover);
+  }
+}
+
+.toast .actions .action:global(.btn-standard):active:not([aria-disabled='true'], [data-blocked]) {
+  background-color: var(--control-fill-pressed);
+}
+
+/* ✕ (FB4 §2): a 24 px circle with a 16 px glyph in a --control-h box (the hit area, A-15). It
+   sits in the row, trailing, wherever it always shows: on a coarse pointer, and on a failure. */
 .close {
   flex: none;
 }
 
+.toast .close {
+  border: calc((var(--control-h) - var(--toast-close-d)) / 2) solid transparent;
+  background-clip: padding-box;
+}
+
+.toast[data-toast-id] .close:is(:hover, :active, :focus-visible) {
+  background-clip: padding-box;
+}
+
+.toast .close svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* On a fine pointer, for every kind but a failure, ✕ shows on hover or focus only (FB4 §2), so
+   it takes no place in the row and the action stays trailing: it floats on the toast's leading
+   top corner, its centre on the rim's arc, an opaque disc of its own (no glass in glass,
+   Q-4), and fades in. */
 @media (hover: hover) and (pointer: fine) {
-  .toast:not([data-kind='failure']) .close {
-    opacity: 0;
-    transition: opacity var(--duration-fast) var(--ease-out);
+  .toast:not([data-kind='failure']) > .actions:has(+ .close:last-child) {
+    margin-inline-end: calc(var(--toast-trail) - var(--space-4));
   }
 
-  .toast:hover .close,
-  .toast:focus-within .close {
+  .toast[data-toast-id]:not([data-kind='failure']) .close {
+    --shadow-own: inset 0 0 0 1px var(--border-glass);
+    position: absolute;
+    /* The centre on the pill's arc at 45°, r (1 − 1/√2) in from the outer corner. */
+    inset-block-start: calc(var(--toast-h) / 2 * 0.2929 - var(--control-h) / 2 - 1px);
+    inset-inline-start: calc(var(--toast-h) / 2 * 0.2929 - var(--control-h) / 2 - 1px);
+    background: var(--glass-solid) padding-box;
+    box-shadow: var(--shadow-own);
+    opacity: 0;
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out),
+      color var(--duration-fast) var(--ease-out),
+      transform var(--spring-press) var(--ease-spring);
+  }
+
+  .toast[data-toast-id]:not([data-kind='failure']) .close:hover:not([aria-disabled='true']) {
+    background:
+      linear-gradient(var(--surface-hover), var(--surface-hover)) padding-box,
+      var(--glass-solid) padding-box;
+  }
+
+  .toast[data-toast-id]:not([data-kind='failure']) .close:active:not([aria-disabled='true']) {
+    background:
+      linear-gradient(var(--surface-active), var(--surface-active)) padding-box,
+      var(--glass-solid) padding-box;
+  }
+
+  .toast[data-toast-id]:not([data-kind='failure']):is(:hover, :focus-within) .close {
     opacity: 1;
   }
 }
@@ -159,15 +257,15 @@
  * ---------------------------------------------------------------------------------------- */
 .toast[data-kind='progress'] {
   --toast-h: 40px;
-  position: relative;
+  /* FB5 §2: 240–420 px from its own label, on every pointer. */
+  width: fit-content;
   min-width: min(240px, 100%);
-  padding-block: 3px;
+  max-width: min(420px, 100%);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .toast[data-kind='progress'] {
     --toast-h: 48px;
-    padding-block: 1px;
   }
 }
 
