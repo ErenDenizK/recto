@@ -244,9 +244,16 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       security = draft.security === 'none' ? null : undefined;
     }
     const sign = activeSignDraft(documentId);
+    const sizeLabel = {
+      same: undefined,
+      smaller: m.save_copy_size_smaller(),
+      smallest: m.save_copy_size_smallest(),
+      custom: m.compress_preset_custom(),
+    }[draft.size];
     return {
       format: 'pdf',
       name,
+      sizeLabel,
       options: {
         compatibility: draft.compatibility,
         flattenAnnotations: draft.flattenAnnotations,
@@ -477,7 +484,13 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
                   openOcrDialog(documentId);
                 }}
               />
-              <NameField draft={draft} patch={patch} title={title} locale={locale} />
+              <NameField
+                draft={draft}
+                patch={patch}
+                title={title}
+                locale={locale}
+                zip={preview?.state === 'ready' && preview.result.zip !== undefined}
+              />
             </>
           ) : null}
         </>
@@ -505,13 +518,17 @@ function NameField({
   patch,
   title,
   locale,
+  zip = false,
 }: {
   readonly draft: SaveCopyDraft;
   readonly patch: (next: Partial<SaveCopyDraft>) => void;
   readonly title: string;
   readonly locale: string;
+  /** A Markdown copy with images is a ZIP of the same stem. */
+  readonly zip?: boolean;
 }) {
-  const shown = draft.name ?? defaultName(draft, title, locale);
+  const fallback = defaultName(draft, title, locale);
+  const shown = draft.name ?? (zip ? `${stemOf(fallback)}.zip` : fallback);
   return (
     <Row label={m.save_copy_name()}>
       <TextField

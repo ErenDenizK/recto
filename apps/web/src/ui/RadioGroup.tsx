@@ -73,9 +73,8 @@ export function RadioGroup<T extends string>({
             <Radio.Root
               value={option.value}
               disabled={option.disabled}
-              aria-labelledby={
-                option.detail ? `${noteId}-label ${noteId}-spoken` : `${noteId}-label`
-              }
+              // The estimate is part of the option's name (09 §9, 07 §4.8).
+              aria-labelledby={option.detail ? `${noteId}-name` : `${noteId}-label`}
               aria-describedby={option.description ? noteId : undefined}
               className={styles.circle}
             >
@@ -97,9 +96,8 @@ export function RadioGroup<T extends string>({
               </span>
             ) : null}
             {option.detail ? (
-              // The estimate is part of the option's name (09 §9, 07 §4.8).
-              <span id={`${noteId}-spoken`} className="visually-hidden">
-                {`, ${option.detailLabel ?? option.detail}`}
+              <span id={`${noteId}-name`} className="visually-hidden">
+                {`${option.label}, ${option.detailLabel ?? option.detail}`}
               </span>
             ) : null}
           </label>

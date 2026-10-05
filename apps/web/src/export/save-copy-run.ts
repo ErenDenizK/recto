@@ -53,6 +53,8 @@ export type CopyRequest =
       readonly format: 'pdf';
       readonly name: string;
       readonly options: Omit<ExportOptions, 'signal' | 'onProgress'>;
+      /** The size's name for the summary ("Smaller"), when it compresses. */
+      readonly sizeLabel?: string | undefined;
     }
   | {
       readonly format: 'images';
@@ -154,7 +156,7 @@ export async function buildCopy(
         id: 'compression',
         tone: 'changed',
         text: m.export_compression_delta({
-          preset: presetName(preset),
+          preset: request.sizeLabel ?? presetName(preset),
           before: formatBytes(before),
           after: formatBytes(after),
           delta: deltaPercent(before, after),
