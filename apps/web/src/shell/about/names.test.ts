@@ -13,6 +13,7 @@ import viteConfigSource from '../../../vite.config.ts?raw';
 import recipesStoreSource from '../../batch/recipes-store.ts?raw';
 import openFilesSource from '../../files/open-files.ts?raw';
 import recentsSource from '../../files/recents.ts?raw';
+import savedSignaturesSource from '../../signatures/saved-signatures.ts?raw';
 import { PRODUCT_NAME, REPOSITORY_URL } from './build-info';
 
 /** Every application source file (not tests, not generated messages), as text. */
@@ -61,6 +62,12 @@ describe('names kept by ADR-0015 §3', () => {
     expect(recentsSource).toMatch(/export const RECENTS_DB_NAME = 'pdf-editor:recents:v1';/);
   });
 
+  it('keeps the saved signatures IndexedDB database name', () => {
+    expect(savedSignaturesSource).toMatch(
+      /export const SAVED_SIGNATURES_DB = 'pdf-editor:signatures:v1';/,
+    );
+  });
+
   it('keeps the recipe format identifier that shared recipe files carry', () => {
     expect(RECIPE_FORMAT).toBe('pdf-editor-recipe');
   });
@@ -95,6 +102,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:save:replace-ok:v1',
       // The private-window notice dismissed on this device (session/session.ts, FB9).
       'pdf-editor:session:not-kept-dismissed:v1',
+      // The saved signatures' IndexedDB database (signatures/saved-signatures.ts, spec X26).
+      'pdf-editor:signatures:v1',
       'pdf-editor:ui:colour-view:v1',
       'pdf-editor:ui:eraser:v1',
       'pdf-editor:ui:pen-presets:v1',
