@@ -31,7 +31,7 @@ import {
 } from '@pdf-editor/document-model';
 
 import { m } from '../i18n';
-import { useUiStore } from '../state/ui-store';
+import { useUiStore, withDocumentUi } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import {
   documentSources,
@@ -275,26 +275,27 @@ export function applyPlaces(
   view?: Pick<SessionManifestV1, 'destination' | 'zoom' | 'fitMode'>,
 ): void {
   const ui = useUiStore.getState();
-  const documentMode = { ...ui.documentMode };
-  const lastView = { ...ui.lastView };
+  let docUi = ui.docUi;
   for (const place of places) {
     const doc = ws.documents[place.id];
     if (doc === undefined) continue;
-    if (place.mode === 'edit') documentMode[place.id] = 'edit';
-    lastView[place.id] = place.view;
+    // M8's names in the format: 'arrange' is the grid; 'edit' opens Markup, which carries
+    // M8's Edit until the lock replaces it (D1-2).
+    docUi = withDocumentUi(docUi, place.id, {
+      surface: place.view === 'arrange' ? 'grid' : 'page',
+      ...(place.mode === 'edit' ? { markup: true } : {}),
+    });
     // The page view returns to the remembered page on mount (ReadView, CompactReader).
     const fingerprint = documentFingerprint(ws, doc);
     if (fingerprint !== undefined) rememberPosition(fingerprint, place.page);
   }
   const active = places.find((p) => p.id === ws.activeDocument);
   useUiStore.setState({
-    documentMode,
-    lastView,
+    docUi,
     ...(view === undefined
       ? {}
       : {
           destination: view.destination,
-          ...(active === undefined ? {} : { viewMode: active.view }),
           ...(view.fitMode === null
             ? { zoom: view.zoom, fitMode: null }
             : { fitMode: view.fitMode }),
