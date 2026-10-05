@@ -31,6 +31,7 @@ import { IconButton } from '../ui/IconButton';
 import { Keycaps } from '../ui/Keycaps';
 import { HomeButton } from './AppGlyph';
 import { announce } from './announcer';
+import { UndoRedo } from './frame/UndoRedo';
 import styles from './TabBar.module.css';
 import { useCommandShortcut } from './use-command-shortcut';
 
@@ -201,6 +202,8 @@ export function TabBar() {
           <span className={styles.searchLabel}>{m.search_commands_placeholder()}</span>
           {paletteShortcut ? <Keycaps shortcut={paletteShortcut} /> : null}
         </button>
+        {/* ↶ ↷ in a document, on every width; none on Home (01-frame F3, §16 item 11). */}
+        {documents.length > 0 && !onHome ? <UndoRedo /> : null}
         <DocumentMenu visible={documents.length > 0} />
         {documents.length > 0 ? (
           <IconButton

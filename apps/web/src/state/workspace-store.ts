@@ -40,6 +40,7 @@ import {
   type EngineEdit,
   getActiveDocument,
   type History,
+  historyMetaOf,
   type IdGenerator,
   jumpTo as jumpToOp,
   movePages as movePagesOp,
@@ -368,9 +369,12 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
       return false;
     }
     if (next === workspace) return false;
+    // Where the step happened, for ↶ ↷, the History scrubber and the undo reveal (X10).
+    const meta = historyMetaOf(workspace, next);
     const pushed = pushHistory(history, next, label, {
       ...(coalesceKey === undefined ? {} : { coalesceKey }),
       ...(coalesceWindowMs === undefined ? {} : { coalesceWindowMs }),
+      ...(Object.keys(meta).length === 0 ? {} : { meta }),
     });
     set({
       history: pushed,

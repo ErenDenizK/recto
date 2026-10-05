@@ -4028,5 +4028,36 @@
   "shortcuts_no_match": "No shortcut matches “{query}”.",
   "shortcuts_footer_note": "Shortcuts never fire while you type in a field.",
   "shortcuts_action": "Action",
-  "shortcuts_keys": "Keys"
+  "shortcuts_keys": "Keys",
+  "undo_step": "Undo {step}",
+  "redo_step": "Redo {step}",
+  "undo_nothing": "Nothing to undo",
+  "redo_nothing": "Nothing to redo",
+  "undo_history_hint": "Right-click or hold for history",
+  "history_step_on_page": "{label} on page {page}",
+  "history_step_in_document": "{label} in {document}",
+  "history_title": "History",
+  "history_documents": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} document",
+        "countPlural=*": "{count} documents"
+      }
+    }
+  ],
+  "history_list_label": "History steps",
+  "history_row_page": "p. {page}",
+  "history_option": "{label}, {time}",
+  "history_option_page": "{label}, page {page}, {time}",
+  "history_current": "current",
+  "history_tail_rule": "Kept after a reload above this line",
+  "history_slider_label": "History step",
+  "history_slider_value": "{index} of {count}",
+  "history_previewing": "Previewing step {index}",
+  "history_cancel": "Cancel",
+  "history_empty": "Nothing to undo yet.",
+  "announce_history_jump": "Now at step {index} of {count}: {step}",
+  "cmd_history": "Show history…"
 }
