@@ -216,7 +216,9 @@ function tick() {
   frame = 0;
   const now = performance.now();
   for (const step of live) step(now);
-  if (live.size) frame = requestAnimationFrame(tick);
+  // A motion started inside a step (an `onComplete` that plays another) has asked for the next
+  // frame already; asking again would run every step twice a frame.
+  if (live.size) frame ||= requestAnimationFrame(tick);
 }
 
 /**
