@@ -3775,6 +3775,8 @@
   "compact_language": "Language",
   "compact_recents_clear": "Clear",
   "compact_recent_reading": "Reading now",
+  "compact_recents_empty_title": "No files yet",
+  "compact_recents_empty": "PDFs you open show here, newest first. They stay on this phone.",
   "compact_open_failed": "{name} could not be opened: {reason}.",
   "compact_library": "Library",
   "compact_more": "More",

@@ -2355,6 +2355,8 @@
   "compact_language": "Dil",
   "compact_recents_clear": "Temizle",
   "compact_recent_reading": "Şu an okunuyor",
+  "compact_recents_empty_title": "Henüz dosya yok",
+  "compact_recents_empty": "Açtığınız PDF’ler burada, en yenisi en üstte görünür. Dosyalar bu telefonda kalır.",
   "compact_open_failed": "{name} açılamadı: {reason}.",
   "compact_library": "Kitaplık",
   "compact_more": "Diğer",
