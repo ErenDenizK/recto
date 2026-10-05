@@ -1,14 +1,21 @@
 /**
  * PDF → Markdown end to end (spec recognize-and-compare §4): markdown-source.pdf through the
- * Document menu's "Export as Markdown / text…"; the downloaded ZIP's document.md equals the
- * manifest's golden, and the plain-text download reads in column order.
+ * Document menu's "Export as Markdown / text…", which opens Save a copy on Text
+ * (components/07-sheets.md §4.1); the downloaded ZIP's document.md equals the manifest's
+ * golden, and the plain-text download reads in column order.
  */
 import { readFile } from 'node:fs/promises';
 import { inflateRawSync } from 'node:zlib';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import {
+  downloadCopy,
+  fixturePath,
+  openFixtures,
+  useDownloadPath,
+  useFileInputPicker,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Downloads are verified on Chromium');
 
@@ -51,8 +58,9 @@ function unzip(zip: Buffer): Map<string, Buffer> {
 async function openDialog(page: Page) {
   await page.getByTestId('document-menu').click();
   await page.getByRole('menuitem', { name: 'Export as Markdown / text…' }).click();
-  const dialog = page.getByTestId('convert-dialog');
+  const dialog = page.getByTestId('save-copy-sheet');
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('radio', { name: 'Text', exact: true })).toBeChecked();
   await expect(dialog.getByTestId('convert-preview')).toHaveAttribute('data-state', 'ready', {
     timeout: 30_000,
   });
@@ -60,10 +68,7 @@ async function openDialog(page: Page) {
 }
 
 test('markdown-source.pdf exports the golden Markdown with its image', async ({ page }) => {
-  await page.addInitScript({
-    content:
-      "Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });",
-  });
+  await useDownloadPath(page);
   await useFileInputPicker(page);
   await page.goto('./');
   await expect(page.getByTestId('app-shell')).toBeVisible();
@@ -74,13 +79,11 @@ test('markdown-source.pdf exports the golden Markdown with its image', async ({ 
   await expect(dialog.getByTestId('convert-notes')).toContainText(
     'Reading order and headings are reconstructed',
   );
-  await expect(dialog.getByTestId('convert-output')).toHaveText('Downloads markdown-source.zip');
+  await expect(dialog.getByRole('textbox', { name: 'Name' })).toHaveValue('markdown-source.zip');
 
-  const downloadPromise = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download' }).click();
-  const download = await downloadPromise;
+  const { download, bytes } = await downloadCopy(page, dialog);
   expect(download.suggestedFilename()).toBe('markdown-source.zip');
-  const files = unzip(await readFile(await download.path()));
+  const files = unzip(bytes);
   expect([...files.keys()].sort()).toEqual(['document.md', 'images/p1-1.png']);
   expect(files.get('document.md')?.toString('utf8')).toBe(await golden());
   expect([...(files.get('images/p1-1.png') ?? Buffer.alloc(0)).subarray(0, 4)]).toEqual([
@@ -90,14 +93,14 @@ test('markdown-source.pdf exports the golden Markdown with its image', async ({ 
 
   // Plain text, whole document: the left column before the right one.
   const again = await openDialog(page);
-  await again.getByText('Plain text', { exact: true }).click();
-  await expect(again.getByTestId('convert-output')).toHaveText('Downloads markdown-source.txt', {
+  await again.getByRole('radio', { name: 'Plain text' }).click();
+  await expect(again.getByRole('textbox', { name: 'Name' })).toHaveValue('markdown-source.txt', {
     timeout: 30_000,
   });
-  await expect(again.getByTestId('convert-preview')).toHaveAttribute('data-state', 'ready');
-  const textDownload = page.waitForEvent('download');
-  await again.getByRole('button', { name: 'Download' }).click();
-  const text = (await readFile(await (await textDownload).path())).toString('utf8');
+  await expect(again.getByTestId('convert-preview')).toHaveAttribute('data-state', 'ready', {
+    timeout: 30_000,
+  });
+  const text = (await downloadCopy(page, again)).bytes.toString('utf8');
   expect(text.indexOf('The left column is read first')).toBeLessThan(
     text.indexOf('The right column comes second'),
   );

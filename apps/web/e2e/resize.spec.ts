@@ -9,7 +9,7 @@ import { readFile } from 'node:fs/promises';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Download flow is verified on Chromium');
 
@@ -50,13 +50,9 @@ test('resize all pages to A4 (fit), export and download a verified PDF', async (
   await dialog.getByRole('button', { name: 'Resize', exact: true }).click();
   await expect(dialog).toBeHidden();
 
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog).toBeVisible();
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const download = await downloadPromise;
 
   const pdf = await PDFDocument.load(await readFile(await download.path()), {

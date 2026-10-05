@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, showInspector, useFileInputPicker } from './helpers';
+import { openFixtures, openSaveCopy, showInspector, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -158,13 +158,9 @@ test('replace a word in the Helvetica line, export, re-open: the edited line rea
 
   // Export and download.
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog).toBeVisible();
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const bytes = await readFile(await (await downloadPromise).path());
   await page.keyboard.press('Escape');
 

@@ -8,7 +8,14 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, showInspector, useFileInputPicker } from './helpers';
+import {
+  copySummary,
+  fixturePath,
+  openFixtures,
+  openSaveCopy,
+  showInspector,
+  useFileInputPicker,
+} from './helpers';
 
 const HONESTY =
   'Checked on this device against the certificates in the file. Signer identity, trust and revocation are not verified.';
@@ -52,14 +59,13 @@ test('signed-tampered: Broken', async ({ page }) => {
   await expect(page.getByTestId('status-signatures')).toContainText('Broken');
 });
 
-test('sign simple-text.pdf through the export dialog; the download re-opens as Intact', async ({
+test('sign simple-text.pdf through Save a copy; the download re-opens as Intact', async ({
   page,
 }) => {
   await start(page, ['simple-text.pdf']);
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const dialog = page.getByTestId('export-dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.getByTestId('export-sign').check();
+  const dialog = await openSaveCopy(page);
+  await dialog.getByRole('button', { name: /^Signature, / }).click();
+  await dialog.getByRole('checkbox', { name: 'Sign with a certificate' }).check();
 
   const sign = page.getByTestId('sign-dialog');
   await expect(sign).toBeVisible();
@@ -77,16 +83,15 @@ test('sign simple-text.pdf through the export dialog; the download re-opens as I
     'pdf-editor Test Signer (signer-rsa.p12)',
   );
 
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(dialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
-  await expect(dialog.locator('[data-summary-item="signature"]')).toHaveText(
-    'Signed by pdf-editor Test Signer (RSASSA-PKCS1-v1_5 with SHA-256), field “Signature1”: approval signature; identity and trust not verified.',
-  );
   const downloadPromise = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download' }).click();
+  await dialog.getByRole('button', { name: 'Download copy' }).click();
   const download = await downloadPromise;
   await expect(dialog).toBeHidden();
   const bytes = await readFile(await download.path());
+  await expect((await copySummary(page)).locator('[data-summary-item="signature"]')).toHaveText(
+    'Signed by pdf-editor Test Signer (RSASSA-PKCS1-v1_5 with SHA-256), field “Signature1”: approval signature; identity and trust not verified.',
+  );
+  await page.keyboard.press('Escape');
   expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
 
   // Re-open the download: the new signature checks out as Intact.

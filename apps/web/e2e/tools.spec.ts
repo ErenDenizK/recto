@@ -1,11 +1,10 @@
 /**
- * Document tools end to end (spec document-tools.md §5, §6): compress images.pdf with the
- * Screen preset through the Compress dialog, apply it to the export and download a
- * smaller, complete PDF; export page 1 as a PNG and check its pixel size. The Edit bar's
- * five groups by mouse and keyboard, the page context menu, and the Document menu's sections
- * (experience-redesign spec §5, craft spec §3.4).
+ * Document tools end to end: the Edit bar's five groups by mouse and keyboard, the page
+ * context menu, and the Document menu's sections (experience-redesign spec §5, craft spec
+ * §3.4). Compress and Export as images now open Save a copy (`save-copy.spec.ts`); the
+ * design screenshot of its What gets smaller page stays here.
  */
-import { readFile, stat, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 
 import {
   concatTransformationMatrix,
@@ -18,7 +17,7 @@ import {
 } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
 
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
@@ -41,73 +40,6 @@ async function openTool(page: Page, name: string): Promise<void> {
   await page.getByTestId('document-menu').click();
   await page.getByRole('menuitem', { name }).click();
 }
-
-test('compress images.pdf with the Screen preset and export a smaller PDF', async ({ page }) => {
-  await setUp(page);
-  const source = await stat(fixturePath('images.pdf'));
-
-  await openTool(page, 'Compress…');
-  const dialog = page.getByTestId('compress-dialog');
-  await expect(dialog.getByTestId('compress-estimate')).toBeVisible({ timeout: 30_000 });
-  // The analysis lists the three images, the transparent one as skipped.
-  await expect(dialog.getByRole('table')).toContainText('DeviceRGB + α');
-  await dialog.getByText('Screen', { exact: true }).click();
-  await expect(dialog.getByRole('radio', { name: /Screen/ })).toBeChecked();
-  await dialog.getByRole('button', { name: 'Compress', exact: true }).click();
-  await expect(dialog.getByTestId('compress-result')).toBeVisible({ timeout: 30_000 });
-
-  // Compare renders the same page before and after.
-  await dialog.getByRole('checkbox', { name: 'Compare before and after' }).check();
-  await expect(dialog.getByTestId('compress-compare').locator('canvas')).toHaveCount(2, {
-    timeout: 15_000,
-  });
-  await dialog.getByRole('button', { name: 'Apply to export' }).click();
-  await expect(dialog).toBeHidden();
-
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog.getByTestId('export-compression')).toContainText('Screen');
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
-  await expect(exportDialog.getByTestId('export-compression')).toContainText('→');
-
-  const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
-  const download = await downloadPromise;
-  const path = await download.path();
-  const bytes = await readFile(path);
-  expect(bytes.byteLength).toBeLessThan(source.size);
-  const pdf = await PDFDocument.load(bytes, { updateMetadata: false });
-  expect(pdf.getPageCount()).toBe(3);
-});
-
-test('export page 1 as a PNG with the expected pixel size', async ({ page }) => {
-  await setUp(page);
-  const fixture = await PDFDocument.load(await readFile(fixturePath('images.pdf')), {
-    updateMetadata: false,
-  });
-  const first = fixture.getPage(0);
-  const expectedWidth = Math.round((first.getWidth() * 150) / 72);
-  const expectedHeight = Math.round((first.getHeight() * 150) / 72);
-
-  await openTool(page, 'Export pages as images…');
-  const dialog = page.getByTestId('images-dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole('textbox', { name: 'Pages' }).fill('1');
-  await expect(dialog.getByTestId('images-output')).toHaveText(
-    `One image, ${expectedWidth} × ${expectedHeight} px`,
-  );
-  const downloadPromise = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('images-1.png');
-  const png = await readFile(await download.path());
-  // PNG signature, then the IHDR chunk: width and height as big-endian 32-bit integers.
-  expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
-  expect(png.subarray(12, 16).toString('latin1')).toBe('IHDR');
-  expect(png.readUInt32BE(16)).toBe(expectedWidth);
-  expect(png.readUInt32BE(20)).toBe(expectedHeight);
-});
 
 test('the tool bar walks its five groups by mouse and keyboard', async ({ page }) => {
   await setUp(page);
@@ -300,7 +232,9 @@ async function photoPdf(): Promise<Uint8Array> {
   return doc.save();
 }
 
-test('compress dialog result with compare (design screenshot)', async ({ page }, testInfo) => {
+test('Save a copy, what gets smaller, with compare (design screenshot)', async ({
+  page,
+}, testInfo) => {
   test.skip(
     !process.env.CAPTURE_SCREENSHOTS,
     'Set CAPTURE_SCREENSHOTS=1 to write docs/design/screenshots/.',
@@ -317,12 +251,12 @@ test('compress dialog result with compare (design screenshot)', async ({ page },
   await expect(page.getByRole('tab', { name: 'field-report' })).toBeVisible();
 
   await openTool(page, 'Compress…');
-  const dialog = page.getByTestId('compress-dialog');
+  const dialog = page.getByTestId('save-copy-sheet');
+  await dialog.getByTestId('save-copy-what-smaller').click();
   await expect(dialog.getByTestId('compress-estimate')).toBeVisible({ timeout: 30_000 });
   await expect(dialog.getByRole('table')).toContainText('Downsample to 600×450');
-  await dialog.getByRole('button', { name: 'Compress', exact: true }).click();
+  await dialog.getByRole('switch', { name: 'Compare before and after' }).click();
   await expect(dialog.getByTestId('compress-result')).toContainText('→', { timeout: 30_000 });
-  await dialog.getByRole('checkbox', { name: 'Compare before and after' }).check();
   await expect(dialog.getByTestId('compress-compare').locator('canvas')).toHaveCount(2, {
     timeout: 15_000,
   });

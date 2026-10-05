@@ -12,7 +12,7 @@ import { createRequire } from 'node:module';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, showInspector, useFileInputPicker } from './helpers';
+import { fixturePath, openSaveCopy, showInspector, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -126,13 +126,9 @@ test('type a word into a paragraph, preview, Esc commits once; the export reads 
 
   // Export and download.
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog).toBeVisible();
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const bytes = await readFile(await (await downloadPromise).path());
   await page.keyboard.press('Escape');
 
@@ -209,13 +205,9 @@ test('typing ‘ğ’ into a Helvetica paragraph names Noto Sans; the export rea
 
   // Export, re-open, search: the word with the substituted character reads back.
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog).toBeVisible();
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const bytes = await readFile(await (await downloadPromise).path());
   await page.keyboard.press('Escape');
 

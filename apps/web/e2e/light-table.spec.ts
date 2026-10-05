@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 const capture = Boolean(process.env.CAPTURE_SCREENSHOTS);
@@ -143,12 +143,9 @@ test.describe('light table', () => {
     // Merged into the first document, which is now edited until saved (D0-8).
     await expect(tabs.first()).toHaveAccessibleName('simple-text, edited');
 
-    await page.getByRole('button', { name: 'Export document' }).click();
-    const exportDialog = page.getByTestId('export-dialog');
-    await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-    await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+    const exportDialog = await openSaveCopy(page);
     const downloadPromise = page.waitForEvent('download');
-    await exportDialog.getByRole('button', { name: 'Download' }).click();
+    await exportDialog.getByRole('button', { name: 'Download copy' }).click();
     const download = await downloadPromise;
     const pdf = await PDFDocument.load(await readFile(await download.path()), {
       updateMetadata: false,

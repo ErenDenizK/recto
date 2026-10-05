@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { PDFDict, PDFDocument, PDFName, PDFStream } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -40,13 +40,9 @@ test('adds page numbers to rotated pages, exports them and reads them back', asy
   await expect(dialog).toBeHidden();
   await expect(preview).toHaveAttribute('data-furniture-text', 'Page 1 of 4');
 
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog).toBeVisible();
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const download = await downloadPromise;
   const bytes = await readFile(await download.path());
 
