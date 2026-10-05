@@ -66,30 +66,47 @@ export function Row({
   );
 }
 
-/** A label leading and its value or control trailing, on one line. */
+/**
+ * A row's one shape (07 S3 §2): the name leading, with its description under it, and the value
+ * and control trailing. `descriptionId` lets the control name the description as its own.
+ */
 export function Line({
   label,
+  description,
+  descriptionId,
+  labelHidden = false,
   value,
   children,
 }: {
   readonly label: ReactNode;
+  /** A second line under the name. */
+  readonly description?: ReactNode;
+  readonly descriptionId?: string | undefined;
+  /** The control carries the name itself (a field's own label): shown, not read twice. */
+  readonly labelHidden?: boolean;
   readonly value?: ReactNode;
   readonly children?: ReactNode;
 }) {
+  const name = (
+    <span className={styles.label} aria-hidden={labelHidden || undefined}>
+      {label}
+    </span>
+  );
   return (
     <div className={styles.line}>
-      <span className={styles.label}>{label}</span>
+      {description ? (
+        <span className={styles.text}>
+          {name}
+          <span id={descriptionId} className={styles.hint}>
+            {description}
+          </span>
+        </span>
+      ) : (
+        name
+      )}
       {value !== undefined ? <span className={styles.value}>{value}</span> : null}
       {children}
     </div>
-  );
-}
-
-export function Hint({ children, id }: { readonly children: ReactNode; readonly id?: string }) {
-  return (
-    <p id={id} className={styles.hint}>
-      {children}
-    </p>
   );
 }
 
@@ -105,7 +122,7 @@ export function NavRow({
   /** A `SettingsRowId`, or a list row's own key (a kept document). */
   readonly id: string;
   readonly label: string;
-  readonly value?: string | undefined;
+  readonly value?: ReactNode;
   /** A second line (search lists the rows it found inside the page here). */
   readonly hint?: string | undefined;
   readonly icon?: ReactNode;

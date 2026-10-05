@@ -9,9 +9,11 @@
  * Cancel (§3.6). A destructive action is the danger label on the standard fill with its glyph,
  * never lime (§3.3, A-19). Mount `ConfirmHost` once in the shell.
  */
-import { useSheetStore, answerConfirm, type ConfirmRequest } from './sheet-store';
-import { Sheet } from './Sheet';
+import { RotateCcw, Trash2 } from 'lucide-react';
+
 import { useRetained } from '../use-retained';
+import { Sheet } from './Sheet';
+import { answerConfirm, type ConfirmRequest, useSheetStore } from './sheet-store';
 
 export function ConfirmHost() {
   const request = useSheetStore((s) => s.confirm);
@@ -29,6 +31,14 @@ export function ConfirmHost() {
       primary={{
         label: shown.action,
         danger: shown.danger,
+        // The danger label carries its glyph too: colour is never the only cue (§3.8, A-19).
+        icon: shown.danger ? (
+          shown.glyph === 'revert' ? (
+            <RotateCcw aria-hidden="true" />
+          ) : (
+            <Trash2 aria-hidden="true" />
+          )
+        ) : undefined,
         onPress: () => answerConfirm(shown.id, true),
       }}
       initialFocus={shown.undoable ? 'primary' : 'cancel'}

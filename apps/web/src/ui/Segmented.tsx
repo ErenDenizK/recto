@@ -361,14 +361,20 @@ export function Segmented<T extends string>({
 export function SegmentedPanel({
   value,
   className,
+  keepMounted = false,
   children,
 }: {
   readonly value: string;
   readonly className?: string | undefined;
+  /**
+   * Keep the panel in the document while another is chosen (with `hidden` set), so a caller
+   * can stack the panels and size them by the tallest (New signature's fixed body, Q-7).
+   */
+  readonly keepMounted?: boolean | undefined;
   readonly children: ReactNode;
 }) {
   return (
-    <Tabs.Panel value={value} className={className}>
+    <Tabs.Panel value={value} className={className} keepMounted={keepMounted}>
       {children}
     </Tabs.Panel>
   );

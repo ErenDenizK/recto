@@ -169,6 +169,7 @@ export async function askToRevert(id: DocumentId): Promise<boolean> {
     body: count > 0 ? m.revert_body({ count }) : m.revert_body_unknown(),
     action: m.revert_action(),
     danger: true,
+    glyph: 'revert',
     undoable: true,
   });
   return yes ? revertDocument(id) : false;
