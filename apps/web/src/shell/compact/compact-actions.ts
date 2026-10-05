@@ -28,7 +28,7 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { m } from '../../i18n';
-import { isDocumentChanged, reopenFromSnapshot } from '../../session/session';
+import { flushSession, isDocumentChanged, reopenFromSnapshot } from '../../session/session';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
@@ -49,6 +49,20 @@ export function openDocument(): VirtualDocument | undefined {
 }
 
 /**
+ * Closes the open document before the next one opens (one document at a time). Its snapshot
+ * is written first, while the engine still has its bytes: a document opened a moment ago is
+ * not stored yet, and once the reset closes its source in the engine its kept record could
+ * not be written (ADR-0032 §2.6, closed documents stay in Recents).
+ */
+async function closeOpenDocument(): Promise<void> {
+  if (useWorkspaceStore.getState().workspace.documentOrder.length === 0) return;
+  await flushSession();
+  clearSearch();
+  prepared = null;
+  resetWorkspace();
+}
+
+/**
  * Opens `file` as the one document and shows it. `replaces` names the Recents entry a
  * reopen came from, so the entry moves rather than doubles. Resolves true when it opened.
  */
@@ -56,11 +70,7 @@ export async function openPdf(file: File, replaces?: string): Promise<boolean> {
   if (useCompactStore.getState().opening) return false;
   set({ opening: true, openError: null });
   try {
-    if (useWorkspaceStore.getState().workspace.documentOrder.length > 0) {
-      clearSearch();
-      prepared = null;
-      resetWorkspace();
-    }
+    await closeOpenDocument();
     useViewStore.setState({ currentPage: 0, visibleRange: { first: 0, last: 0 }, navTarget: null });
     const { opened, skipped } = await useWorkspaceStore.getState().openFiles([file]);
     const first = opened[0];
@@ -155,11 +165,7 @@ async function openKept(
   if (useCompactStore.getState().opening) return 'failed';
   set({ opening: true, openError: null });
   try {
-    if (useWorkspaceStore.getState().workspace.documentOrder.length > 0) {
-      clearSearch();
-      prepared = null;
-      resetWorkspace();
-    }
+    await closeOpenDocument();
     useViewStore.setState({ currentPage: 0, visibleRange: { first: 0, last: 0 }, navTarget: null });
     const result = await reopenFromSnapshot(snapshotId);
     if (result?.ok === false && result.reason === 'failed') {

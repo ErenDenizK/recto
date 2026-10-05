@@ -188,7 +188,12 @@ function watch(ctl: Controller): () => void {
     const was = new Set(before.documentOrder);
     const closed = before.documentOrder.filter((id) => !now.has(id));
     const added = ws.documentOrder.filter((id) => !was.has(id));
-    if (closed.length > 0) writer.noteClosed(before, closed);
+    // The state the documents were open in: a reset (the compact edition's next open) clears
+    // their blobs in the same change.
+    if (closed.length > 0) {
+      const { history, files, blobs, editBlobs } = previous;
+      writer.noteClosed(before, closed, { history, files, blobs, editBlobs });
+    }
     if (added.length > 0) writer.noteReopened(added);
     const content =
       ws.documents !== before.documents ||
@@ -549,6 +554,8 @@ export async function reopenFromSnapshot(
       const ws = useWorkspaceStore.getState().workspace;
       ctl.tracker.adopt(ws, result.documentId, result.record.place.changed);
       pages.set(result.documentId, result.record.place.page);
+      // Its files came from storage: never written again, kept even if it closes at once.
+      ctl.writer.markStored(result.record.sources, result.record.blobs);
     } else if (result.reason !== 'failed') {
       // Gone or unreadable: the row reopens like a plain recent from now on.
       void forgetKept([snapshotId]);
