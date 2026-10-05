@@ -17,7 +17,7 @@
  *
  * A toast about a document leaves when the document closes, unless `keepOnClose` (Reopen).
  */
-import type { DocumentId, HistoryEntry } from '@pdf-editor/document-model';
+import type { DocumentId, History, HistoryEntry } from '@pdf-editor/document-model';
 
 import { currentPlatform } from '../../commands/shortcuts';
 import { m } from '../../i18n';
@@ -121,15 +121,41 @@ export function setHistoryOpener(open: ((entry: HistoryEntry) => void) | undefin
 const history = () => useWorkspaceStore.getState().history;
 
 /**
+ * A history step by position and stamp, not object identity: activating a tab replaces the
+ * present entry's workspace without adding a step (`replacePresent`), so the same step comes
+ * back as a new object and an Undo toast must not take that for its step going away.
+ */
+interface StepMark {
+  readonly index: number;
+  readonly at: number;
+  readonly label: string;
+}
+
+function markOf(h: History): StepMark {
+  return { index: h.past.length, at: h.present.at, label: h.present.label };
+}
+
+function isStep(entry: HistoryEntry | undefined, mark: StepMark): entry is HistoryEntry {
+  return entry?.at === mark.at && entry.label === mark.label;
+}
+
+/** The step's entry where it is now: present, in the past (newer steps came), or gone. */
+function findStep(h: History, mark: StepMark): 'present' | HistoryEntry | undefined {
+  if (h.past.length === mark.index && isStep(h.present, mark)) return 'present';
+  const past = h.past[mark.index];
+  return isStep(past, mark) ? past : undefined;
+}
+
+/**
  * An Undo toast for the step just committed (the present history entry): "Deleted page 7 ·
  * Undo". `undone` is called after its Undo ran (an announcement of what was undone is made
  * here, as Mod+Z makes one).
  */
 function undoToast(text: string, options: ToastOptions = {}): string {
-  const entry = history().present;
+  const mark = markOf(history());
   let unsubscribe: (() => void) | undefined;
   const runUndo = () => {
-    if (history().present !== entry) return;
+    if (findStep(history(), mark) !== 'present') return;
     const label = useWorkspaceStore.getState().undo();
     if (label) announce(m.announce_undid({ label }));
   };
@@ -147,15 +173,17 @@ function undoToast(text: string, options: ToastOptions = {}): string {
     true,
   );
   unsubscribe = useWorkspaceStore.subscribe((state, previous) => {
-    if (state.history === previous.history || state.history.present === entry) return;
+    if (state.history === previous.history) return;
+    const where = findStep(state.history, mark);
+    if (where === 'present') return;
     unsubscribe?.();
     unsubscribe = undefined;
     const open = historyOpener;
-    if (state.history.past.includes(entry) && open !== undefined) {
+    if (where !== undefined && open !== undefined) {
       // Newer changes came after it: the toast offers History instead (FB4 §4).
       updateToast(id, {
         text: m.toast_stale_undo(),
-        action: { label: m.toast_history(), run: () => open(entry) },
+        action: { label: m.toast_history(), run: () => open(where) },
       });
     } else {
       dismissToast(id, 'closed');
