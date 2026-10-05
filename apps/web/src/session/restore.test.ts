@@ -5,7 +5,12 @@
  * the launch flow shows "Restored …", Start fresh closes and its Undo brings them back, and
  * Clear empties the store.
  */
-import { type DocumentId, mergeDocuments, rotatePages } from '@pdf-editor/document-model';
+import {
+  type DocumentId,
+  mergeDocuments,
+  renameDocument,
+  rotatePages,
+} from '@pdf-editor/document-model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import outlineUrl from '../../../../test/fixtures/outline-named-dests.pdf?url';
@@ -13,9 +18,11 @@ import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile, pngFile } from '../../test/store-harness';
 import { getEngineService } from '../engine/engine-service';
 import { useRecentsStore } from '../files/recents';
+import { revertDocument } from '../files/revert';
 import { openPdf } from '../shell/compact/compact-actions';
 import { resetCompactStore } from '../shell/compact/compact-store';
 import { openImagesAsDocument } from '../stage/section-operations';
+import { fileFactsOf, isInFile, markSaved, resetSavedMarks } from '../state/saved-store';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import {
@@ -81,6 +88,7 @@ function writerFor(
       page: 1,
       view: 'read',
       mode: id === model().workspace.activeDocument ? 'edit' : 'read',
+      ...fileFactsOf(id),
     }),
     changed: (id) => tracker.changed(model().workspace, id),
   });
@@ -387,6 +395,66 @@ describe('the launch flow', { timeout: 40_000 }, () => {
     } finally {
       stop();
       vi.restoreAllMocks();
+    }
+  });
+
+  /**
+   * Changes `doc`, saves it in place (the saved mark, as `files/save.ts` sets it), keeps the
+   * session, then reloads; `edit` may rewrite the kept manifest first.
+   */
+  async function savedInPlaceThenReloaded(
+    change: (doc: DocumentId) => void,
+    edit: (manifest: Record<string, unknown>) => void = () => undefined,
+  ): Promise<{ doc: DocumentId; stop: () => void }> {
+    const [doc] = (await openFixtures()) as [DocumentId, DocumentId];
+    change(doc);
+    markSaved(doc, { handleKept: true });
+    expect(isInFile(model().workspace, doc)).toBe(true);
+    const storage = memorySnapshotStorage();
+    const writer = writerFor(storage);
+    writer.noteChange('content');
+    await writer.flush();
+    const text = (await storage.files.get('sessions/old-tab.json')?.text()) ?? '';
+    const manifest = JSON.parse(text) as Record<string, unknown>;
+    edit(manifest);
+    await storage.write('sessions', 'old-tab.json', new Blob([JSON.stringify(manifest)]));
+    // The reload: the stores start empty.
+    resetWorkspace();
+    resetSavedMarks();
+    const stop = startSession({ edition: 'full', storage, tabId: 'new-tab' });
+    await vi.waitFor(() => expect(document.documentElement.dataset.session).toBe('ready'), {
+      timeout: 15_000,
+    });
+    expect(model().workspace.documentOrder).toContain(doc);
+    return { doc, stop };
+  }
+
+  it('Revert after a reload leaves the document unsaved when Save had written over its file', async () => {
+    const { doc, stop } = await savedInPlaceThenReloaded((d) => rotate(d, 1));
+    try {
+      expect(await revertDocument(doc)).toBe(true);
+      // The file holds the saved rotation; the reverted document is the opened bytes.
+      expect(isInFile(model().workspace, doc)).toBe(false);
+    } finally {
+      stop();
+    }
+  });
+
+  it('a snapshot from before the file facts were kept reads as written over (unknown)', async () => {
+    // A renamed document restores as a pristine copy of its file, so it keeps its origin.
+    const rename = (d: DocumentId) =>
+      model().applyOperation((ws) => renameDocument(ws, d, 'Renamed'), 'Rename');
+    const { doc, stop } = await savedInPlaceThenReloaded(rename, (manifest) => {
+      for (const place of manifest.documents as Record<string, unknown>[]) {
+        delete place.origins;
+        delete place.writtenOver;
+      }
+    });
+    try {
+      expect(await revertDocument(doc)).toBe(true);
+      expect(isInFile(model().workspace, doc)).toBe(false);
+    } finally {
+      stop();
     }
   });
 });
