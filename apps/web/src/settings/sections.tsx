@@ -220,7 +220,8 @@ export function CommentNameRow() {
   const author = useAnnotationStore((s) => s.author);
   const setAuthor = useAnnotationStore((s) => s.setAuthor);
   return (
-    <Row id="commentName" bar>
+    // A labelled field, not a bar: its well is the 32 / 44 px control (09 §12).
+    <Row id="commentName">
       <TextField
         label={m.settings_comment_name()}
         description={m.settings_comment_name_hint()}
