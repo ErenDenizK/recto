@@ -604,14 +604,46 @@ describe('kept snapshots (ADR-0032 §2.6)', () => {
     expect(useRecentsStore.getState().entries.filter((e) => e.kept).length).toBe(2);
   });
 
-  it('a later snapshot of the same file replaces the earlier, unless only that one was edited', async () => {
+  it('an unedited snapshot never replaces an edited one of the same file', async () => {
     await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-1', true) });
     await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-2', false) });
+    expect(useRecentsStore.getState().entries).toHaveLength(1);
     expect(useRecentsStore.getState().entries[0]?.kept?.snapshotId).toBe('kept-1');
     expect(removed).toEqual(['kept-2']);
-    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-3', true) });
-    expect(useRecentsStore.getState().entries[0]?.kept?.snapshotId).toBe('kept-3');
-    expect(removed).toEqual(['kept-2', 'kept-1']);
+  });
+
+  it('a later snapshot replaces an unedited one, and the same document’s own', async () => {
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-1', false) });
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-2', true) });
+    expect(useRecentsStore.getState().entries).toHaveLength(1);
+    expect(useRecentsStore.getState().entries[0]?.kept?.snapshotId).toBe('kept-2');
+    expect(removed).toEqual(['kept-1']);
+    // The same document closed again (reopened from its row in between, or from a reload).
+    await keepRecent({ name: 'a.pdf', size: 10, kept: { ...kept('kept-2', true), bytes: 7 } });
+    expect(useRecentsStore.getState().entries).toHaveLength(1);
+    expect(useRecentsStore.getState().entries[0]?.kept).toMatchObject({ bytes: 7 });
+    expect(removed).toEqual(['kept-1']);
+  });
+
+  it('two edited documents from the same file each keep a row of their own', async () => {
+    // A split part, an extract or a combine whose first source is a.pdf, closed after a.pdf.
+    await recordRecent({ name: 'a.pdf', size: 10, now: 1 });
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-doc1', true) });
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-doc2', true) });
+    await keepRecent({ name: 'a.pdf', size: 10, kept: kept('kept-doc3', true) });
+    const snapshots = useRecentsStore
+      .getState()
+      .entries.flatMap((e) => (e.kept ? [e.kept.snapshotId] : []));
+    expect(snapshots.sort()).toEqual(['kept-doc1', 'kept-doc2', 'kept-doc3']);
+    expect(removed).toEqual([]);
+    // Opening the file again moves one of them with it and keeps the others.
+    await recordRecent({ name: 'a.pdf', size: 10 });
+    expect(useRecentsStore.getState().entries.filter((e) => e.kept)).toHaveLength(3);
+    expect(removed).toEqual([]);
+    // Kept across a reload of the list.
+    setRecentsBackend(memoryRecentsBackend(useRecentsStore.getState().entries));
+    await loadRecents();
+    expect(useRecentsStore.getState().entries.filter((e) => e.kept)).toHaveLength(3);
   });
 
   it('reopening the file keeps the snapshot with the row', async () => {
