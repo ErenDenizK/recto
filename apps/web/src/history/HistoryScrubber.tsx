@@ -13,8 +13,9 @@
  * - History jumps bypass `commit()`, so the scrubber works in Read mode and, from D1, while a
  *   document is locked (flows.md §2.5 rule 4).
  *
- * Material: the shared popover recipe (`ui/Popover.module.css`, M4 in the coverage registry),
- * whose rise-in is its motion; previews move the page without animation.
+ * On the one popover primitive (`ui/Popover`: M4, its title row, the *popup* motion from ↶);
+ * the list has ✕, the slider ends in its own Cancel. Previews move the page without
+ * animation.
  */
 import { Popover } from '@base-ui/react/popover';
 import { DEFAULT_HISTORY_TAIL } from '@pdf-editor/document-model';
@@ -24,7 +25,7 @@ import { m } from '../i18n';
 import { useSessionStore } from '../session/session-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { EmptyNote } from '../ui/EmptyNote';
-import popoverStyles from '../ui/Popover.module.css';
+import { PopoverHeader, PopoverPopup } from '../ui/Popover';
 import { useCoarsePointer } from '../ui/Slider';
 import { HistoryList } from './HistoryList';
 import styles from './HistoryScrubber.module.css';
@@ -53,17 +54,7 @@ export function HistoryScrubber({ anchor }: HistoryScrubberProps) {
         if (!next) closeHistoryScrubber();
       }}
     >
-      <Popover.Portal>
-        <Popover.Positioner
-          anchor={anchor}
-          side="bottom"
-          align="end"
-          sideOffset={8}
-          collisionPadding={8}
-        >
-          {last ? <ScrubberPopup key={last.serial} anchor={anchor} opening={last} /> : null}
-        </Popover.Positioner>
-      </Popover.Portal>
+      {last ? <ScrubberPopup key={last.serial} anchor={anchor} opening={last} /> : null}
     </Popover.Root>
   );
 }
@@ -100,26 +91,23 @@ function ScrubberPopup({
     opening.preview.preview(index);
   };
 
+  // FB7 §5: "History · 2 documents"; "Previewing step 12"; the slider's "Pen on page 4 · 14:02".
   let title: string = m.history_title();
-  if (coarse && activeStep) title = activeStep.label;
+  if (coarse && activeStep) title = `${activeStep.label} · ${activeStep.time}`;
   else if (previewing !== undefined) title = m.history_previewing({ index: previewing });
+  else if (documents > 1) title = `${title} · ${m.history_documents({ count: documents })}`;
 
   return (
-    <Popover.Popup
-      className={`${popoverStyles.popup} ${styles.popup}`}
+    <PopoverPopup
+      anchor={anchor}
+      align="end"
+      className={styles.popup}
       data-testid="history-scrubber"
       data-presentation={coarse ? 'slider' : 'list'}
       initialFocus={coarse ? sliderRef : listRef}
       finalFocus={anchor}
     >
-      <div className={styles.head}>
-        <Popover.Title className={`${popoverStyles.title} ${styles.title}`}>{title}</Popover.Title>
-        {coarse ? (
-          <span className={styles.aside}>{activeStep?.time}</span>
-        ) : documents > 1 ? (
-          <span className={styles.aside}>{m.history_documents({ count: documents })}</span>
-        ) : null}
-      </div>
+      <PopoverHeader title={title} close={!coarse} />
       {steps.length < 2 ? (
         <div className={styles.empty}>
           <EmptyNote title={m.history_empty()} />
@@ -143,6 +131,6 @@ function ScrubberPopup({
           listRef={listRef}
         />
       )}
-    </Popover.Popup>
+    </PopoverPopup>
   );
 }
