@@ -2,9 +2,9 @@
  * Delivery of an export (ARCHITECTURE.md §4 step 6, research 03 §3):
  *
  * - Chromium: `showSaveFilePicker` → `createWritable()` → chunked writes. Must run inside a
- *   user gesture, which is why the dialog asks for a second click after verification. The
- *   last chosen file handle is remembered in memory only (never persisted) and offered as
- *   `startIn`, so the picker opens in the same folder next time.
+ *   user gesture. The last chosen file handle is remembered in memory only (never persisted)
+ *   and offered as `startIn`, so the picker opens in the same folder next time. Save a copy
+ *   opens its picker first, inside the press (`save-copy-run.ts`), and writes afterwards.
  * - Elsewhere: a Blob behind an object URL and `<a download>`. The URL is revoked after a
  *   grace period (Firefox reads it asynchronously after the click) and at the latest when
  *   the page is hidden, so no object URL outlives its use.
