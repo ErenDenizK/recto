@@ -92,7 +92,15 @@ export async function settleAnimations(page: Page, timeout = 5_000): Promise<voi
 /** Walks every glass surface on the page and returns what it found, violations included. */
 export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<GlassWalk> {
   const atRest = options.atRest ?? true;
-  if (atRest) await settleAnimations(page, options.settleTimeout);
+  if (atRest) {
+    // A popup Base UI has just mounted sits in its starting style (opacity 0) for a frame
+    // before its transition begins, with no animation yet to wait for; on a slow engine that
+    // frame is long enough for the walk to find the menu unseen.
+    await page.waitForFunction(() => document.querySelector('[data-starting-style]') === null, {
+      timeout: options.settleTimeout ?? 5_000,
+    });
+    await settleAnimations(page, options.settleTimeout);
+  }
   return page.evaluate(
     ({ atRest, minCoverage, minSide, maxAtRest, maxInTransition, minText, weights }) => {
       /** Abramowitz and Stegun 7.1.26 (|error| < 1.5e-7), enough for a 0.985 floor. */
