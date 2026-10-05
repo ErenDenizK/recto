@@ -207,6 +207,12 @@
   margin-bottom: 4px;
 }
 
+/* Three segments share the column: the labels get the room, so a chosen one (set in 600)
+   still fits whole, as Turkish "Kaydırıcılar" at 15 px on a coarse pointer. */
+.views [role='radio'] {
+  padding-inline: 6px;
+}
+
 .view {
   display: grid;
   place-items: center;
