@@ -12,6 +12,10 @@
  * changes, so the reverted document shows ● until it is saved; when nothing was written over
  * the file this session, the reverted document is what the file holds and the ● clears.
  *
+ * The command asks first, with 07-sheets S1's confirmation (`askToRevert`): "Revert to the opened
+ * version? · Your 3 changes since opening go. Undo brings them back. · Revert", focus on Revert
+ * since Undo brings everything back.
+ *
  * Available when the document came from one file (`originOf`) and differs from it; else the
  * command is dimmed with "Nothing changed since opening". The guard (`canChange(id,
  * 'document')`, 07-sheets S1 §6) joins with D1.
@@ -37,6 +41,7 @@ import {
   pushOrigin,
 } from '../state/saved-store';
 import { addLoadedSource, documentSources, useWorkspaceStore } from '../state/workspace-store';
+import { confirm } from '../ui/sheet';
 import { toast } from '../ui/Toast/toast';
 
 export type RevertAvailability =
@@ -148,4 +153,22 @@ export async function revertDocument(id: DocumentId): Promise<boolean> {
     presentError({ kind: 'message', text: m.revert_failed({ name: title }) });
     return false;
   }
+}
+
+/**
+ * "Revert to the opened version…": asks with S1's confirmation (07-sheets §3, the Revert row),
+ * then reverts. Resolves to whether it reverted.
+ */
+export async function askToRevert(id: DocumentId): Promise<boolean> {
+  const { history, workspace } = useWorkspaceStore.getState();
+  if (!revertAvailability(workspace, id).available) return false;
+  const count = changesSinceOpening(history, id);
+  const yes = await confirm({
+    title: m.revert_title(),
+    body: count > 0 ? m.revert_body({ count }) : m.revert_body_unknown(),
+    action: m.revert_action(),
+    danger: true,
+    undoable: true,
+  });
+  return yes ? revertDocument(id) : false;
 }

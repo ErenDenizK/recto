@@ -260,7 +260,7 @@ test('Revert to the opened version is one step that Undo takes back', async ({ p
   await rotateFirstPage(page);
   await menu.click();
   await revertItem.click();
-  const dialog = page.getByTestId('revert-dialog');
+  const dialog = page.getByTestId('confirm-sheet');
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('Your 2 changes since opening go. Undo brings them back.');
   await expect(dialog.getByRole('button', { name: 'Revert' })).toBeFocused();
