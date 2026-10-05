@@ -62,7 +62,7 @@ export function enterEditForTool(): boolean {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
   if (id === undefined) return false;
   if (canEdit(id)) return true;
-  useUiStore.getState().setDocumentMode(id, 'edit');
+  useUiStore.getState().openMarkup(id);
   announce(m.mode_edit_long());
   return true;
 }
@@ -273,7 +273,7 @@ function watchReadLock(): () => void {
     if (useImageStore.getState().selection !== null) useImageStore.getState().select(null);
   };
   const offUi = useUiStore.subscribe((state, previous) => {
-    if (state.documentMode !== previous.documentMode) lock();
+    if (state.docUi !== previous.docUi) lock();
   });
   const offWorkspace = useWorkspaceStore.subscribe((state, previous) => {
     if (state.workspace.activeDocument !== previous.workspace.activeDocument) lock();

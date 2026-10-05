@@ -108,7 +108,7 @@ export function startPlacing(kind: CreatedFieldKind): void {
   if (!getActiveDocument(useWorkspaceStore.getState().workspace)) return;
   if (!canEditActive()) return;
   const ui = useUiStore.getState();
-  if (!isPageView(ui)) ui.setViewMode('read');
+  if (!isPageView(ui)) ui.showSurface('page');
   useToolStore.getState().setMode('select');
   useFormStore.getState().setActive(null);
   const store = useCreateStore.getState();
@@ -132,7 +132,7 @@ export function setDesign(on: boolean): void {
   if (on && !canEditActive()) return;
   if (on) {
     const ui = useUiStore.getState();
-    if (!isPageView(ui)) ui.setViewMode('read');
+    if (!isPageView(ui)) ui.showSurface('page');
     useToolStore.getState().setMode('select');
     useFormStore.getState().setActive(null);
   }
@@ -148,8 +148,8 @@ const stop = () => {
 
 useUiStore.subscribe((state, previous) => {
   if (stageView(state) !== stageView(previous)) stop();
-  // The document left Edit: placing and editing fields stop.
-  else if (state.documentMode !== previous.documentMode && !canEditActive()) stop();
+  // The document left Edit (Markup closed): placing and editing fields stop.
+  else if (state.docUi !== previous.docUi && !canEditActive()) stop();
 });
 // Placing ended (placed, cancelled, stopped): forget the invoker.
 useCreateStore.subscribe((state, previous) => {
