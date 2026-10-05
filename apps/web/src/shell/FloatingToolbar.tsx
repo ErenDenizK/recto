@@ -95,6 +95,7 @@ import {
 } from '../signatures/saved-signatures';
 import { SignaturePlate } from '../signatures/SignaturePlate';
 import { PageContextMenu } from '../stage/PageContextMenu';
+import { type SizeClass, useSizeClass } from './frame/size-class';
 import { canEditActive, useCanEdit, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { IconButton } from '../ui/IconButton';
@@ -601,8 +602,14 @@ function StampMenu() {
   );
 }
 
-/** How many saved signatures sit beside the button as chips (03.Q1: three). */
-const SIGNATURE_CHIPS = 3;
+/**
+ * How many saved signatures sit beside the button as chips: three from the large class up
+ * (03.Q1), one below it, where three would push today's capsule past the stage (a tablet at
+ * 820 px; 03.7 moves them to the options tier in D2). The menu always lists all five.
+ */
+function signatureChipCount(size: SizeClass): number {
+  return size === 'large' || size === 'xlarge' ? 3 : 1;
+}
 
 /**
  * The signature tool (D0-11; MK-12 on today's bar). With nothing saved, the tool button: it
@@ -614,12 +621,13 @@ function SignatureEntry({ tool }: { readonly tool: ToolDefinition }) {
   const signatures = useSavedSignatures((s) => s.signatures);
   const mode = useToolStore((s) => s.mode);
   const pending = useAnnotationStore((s) => s.pendingStamp);
+  const frame = useSizeClass();
   useEffect(() => {
     void loadSavedSignatures();
   }, []);
   if (signatures.length === 0) return <ToolButton tool={tool} />;
   const armedId = armedSavedSignature(mode, pending);
-  const chips = signatures.slice(0, SIGNATURE_CHIPS);
+  const chips = signatures.slice(0, signatureChipCount(frame.size));
   const armed = mode === 'signature' && !chips.some((s) => s.id === armedId);
   const label = tool.title();
   return (
