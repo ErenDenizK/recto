@@ -272,27 +272,6 @@
   box-shadow: 0 0 0 1px var(--select);
 }
 
-/* ---- Status bar: the running recognition, a button that reopens the dialog ---- */
-
-.status {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: var(--radius-1);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-@media (hover: hover) {
-  .status:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
 /* The form's actions stay in view while the options scroll. */
 .stickyActions {
   position: sticky;

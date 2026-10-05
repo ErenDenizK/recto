@@ -7,6 +7,12 @@
  * Installed by the app shell (`AppShell.tsx`). The tool bar is the floating bar itself
  * (`data-region="toolbar"`), never a contextual bar or the options tier that sit before it
  * in the stage.
+ *
+ * The toast region (`ui/Toast/ToastRegion.tsx`) is the last stop while a toast shows (spec
+ * redesign X9, `08-feedback` FB4 §6, A-24): it sits outside the shell's grid, so it is found
+ * in the document, and F6 lands on the newest toast's action (else its first button). An
+ * empty region has no box and is passed by. `shell/frame/regions.ts` takes this over with
+ * the D2 frame.
  */
 import { useEffect } from 'react';
 
@@ -19,8 +25,14 @@ const REGIONS = [
   ':scope > #right-panel',
 ] as const;
 
+/** The toast region, outside the shell: the last stop of the cycle. */
+const TOASTS = '[data-region="toasts"]';
+
 /** Where focus lands in a region, best first. */
 const TARGETS = [
+  // The toast region: the newest toast's action, else its first button.
+  '[data-toast-newest] [data-toast-action]',
+  '[data-toast-newest] button',
   '[role="tab"][tabindex="0"]',
   // Home: the card that holds the grid's Tab stop.
   '[role="option"][tabindex="0"]',
@@ -36,6 +48,8 @@ function regionsOf(shell: Element): HTMLElement[] {
     const el = shell.querySelector<HTMLElement>(selector);
     if (el && !found.includes(el) && el.getClientRects().length > 0) found.push(el);
   }
+  const toasts = shell.ownerDocument.querySelector<HTMLElement>(TOASTS);
+  if (toasts && toasts.getClientRects().length > 0) found.push(toasts);
   return found;
 }
 

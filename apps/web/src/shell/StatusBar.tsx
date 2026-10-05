@@ -8,7 +8,6 @@ import { Menu } from '@base-ui/react/menu';
 import { Minus, Plus, Search } from 'lucide-react';
 
 import { formatNumber, formatPercent, m } from '../i18n';
-import { OcrStatus } from '../ocr';
 import { PrivacyIndicator } from '../privacy/PrivacyIndicator';
 import { SignatureStatusBadge } from '../signatures/SignatureBadge';
 import { useShownSections } from '../stage/arrange-data';
@@ -132,7 +131,6 @@ export function StatusBar() {
             <span className={styles.item}>{m.status_opening({ count: opening })}</span>
           </>
         ) : null}
-        <OcrStatus separator={styles.dot} />
         {doc && !onHome ? <SignatureStatusBadge separator={styles.dot} /> : null}
         <span className={styles.dot} aria-hidden="true">
           ·

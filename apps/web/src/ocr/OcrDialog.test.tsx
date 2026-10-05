@@ -14,9 +14,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import scanUrl from '../../../../test/fixtures/scan-text.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
+import { resetJobs } from '../jobs/job-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
+import { resetToasts } from '../ui/Toast/toast-store';
+import { ToastRegion } from '../ui/Toast/ToastRegion';
 import OcrDialog from './OcrDialog';
-import { OcrStatus } from './OcrStatus';
+import { watchOcrJob } from './ocr-job';
 import { type OcrDependencies, ocrDependencies, setOcrDependencies } from './ocr-deps';
 import type { OcrRunCallbacks } from './ocr-run';
 import { openOcrDialog, type OcrRunRequest, resetOcrStore, useOcrStore } from './ocr-store';
@@ -302,29 +305,46 @@ describe('the OCR dialog', () => {
     );
   });
 
-  it('says when changed pages are recognised again, in the dialog and the status bar', async () => {
+  it('says when changed pages are recognised again, in the dialog and in the progress capsule', async () => {
     const { documentId } = await openScan();
-    const running = (phase: 'recognize' | 'recheck', done: number, total: number) =>
+    const running = (
+      phase: 'recognize' | 'recheck',
+      done: number,
+      total: number,
+      dialog: boolean,
+    ) =>
       useOcrStore.setState({
-        dialog: { view: 'run', documentId: documentId as never },
+        dialog: dialog ? { view: 'run', documentId: documentId as never } : null,
         run: { kind: 'running', documentId: documentId as never, phase, done, total, languages: 1 },
       });
-    act(() => running('recheck', 0, 1));
-    render(
-      <>
-        <OcrDialog />
-        <OcrStatus separator={undefined} />
-      </>,
-    );
-    expect(await screen.findByTestId('ocr-progress')).toHaveTextContent(
-      'The document changed: recognizing the changed page again, 0 of 1…',
-    );
-    expect(screen.getByTestId('status-ocr')).toHaveTextContent(
-      'Recognizing a changed page again: 0 of 1',
-    );
-    act(() => running('recognize', 1, 2));
-    expect(screen.getByTestId('status-ocr')).toHaveTextContent('Recognizing text: 1 of 2 pages');
-    expect(screen.getByTestId('ocr-progress')).toHaveTextContent('Recognized 1 of 2 pages…');
+    act(() => running('recheck', 0, 1, true));
+    const stop = watchOcrJob();
+    try {
+      render(
+        <>
+          <OcrDialog />
+          <ToastRegion />
+        </>,
+      );
+      expect(await screen.findByTestId('ocr-progress')).toHaveTextContent(
+        'The document changed: recognizing the changed page again, 0 of 1…',
+      );
+      // In place while the dialog shows it: no capsule.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(screen.queryByTestId('progress-capsule')).toBeNull();
+      // The dialog closes; the run goes on in the capsule (FB5).
+      act(() => running('recheck', 0, 1, false));
+      const capsule = await screen.findByTestId('progress-capsule');
+      expect(capsule).toHaveTextContent('Recognizing a changed page again: 0 of 1');
+      act(() => running('recognize', 1, 2, false));
+      expect(capsule).toHaveTextContent('Recognizing text: 1 of 2 pages');
+      expect(within(capsule).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+      expect(within(capsule).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    } finally {
+      stop();
+      resetJobs();
+      resetToasts();
+    }
   });
 
   it('opens the language manager and comes back', async () => {

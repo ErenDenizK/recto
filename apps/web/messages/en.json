@@ -183,8 +183,6 @@
   "zoom_value_label": "Zoom {percent}",
   "zoom_fit_width": "Fit width",
   "zoom_fit_page": "Fit page",
-  "update_title": "Update available",
-  "update_body": "Reloading applies it and closes open documents.",
   "update_reload": "Reload",
   "update_later": "Later",
   "offline_ready_announcement": "Ready to work offline",
@@ -3647,7 +3645,6 @@
     }
   ],
   "home_combine_confirm": "Combine",
-  "combined_toast_dismiss": "Dismiss",
   "home_modified": "Modified {date}",
   "home_announce_closed": [
     {
@@ -3944,7 +3941,6 @@
   ],
   "session_restore_failed": "Could not restore {name}: its kept copy is damaged. The original file is unchanged.",
   "session_not_kept": "Changes are not kept in this window",
-  "session_notice_dismiss": "Dismiss",
   "session_history_start_fresh": "Start fresh",
   "privacy_kept_heading": "Kept on this device",
   "privacy_kept_body": "Open documents with their changes, and closed ones for 30 days or up to 500 MB, while the browser keeps them.",
@@ -3967,5 +3963,40 @@
   "switch_system_on": "On, set by your system",
   "switch_system_off": "Off, set by your system",
   "progress_value_text": "{percent} percent",
-  "avatar_unknown": "Unknown author"
+  "avatar_unknown": "Unknown author",
+  "toast_region": "Notifications",
+  "toast_dismiss": "Dismiss",
+  "toast_waiting": "+{count} waiting",
+  "toast_undo_hint": "Undo with {shortcut}",
+  "toast_f6_hint": "F6 reaches the notification",
+  "toast_stale_undo": "Newer changes came after this",
+  "toast_history": "History",
+  "toast_deleted_pages": [
+    {
+      "declarations": ["input count", "input page", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Deleted page {page}",
+        "countPlural=*": "Deleted {count} pages"
+      }
+    }
+  ],
+  "job_stopping": "Stopping…",
+  "job_cancel": "Cancel",
+  "job_in_document": "{name} · {label}",
+  "update_ready": "Update ready",
+  "update_kept": "Your documents reopen where they were.",
+  "update_not_kept": "Reloading closes open documents.",
+  "error_open": "Could not open {name}: {reason}.",
+  "error_open_damaged": "Could not open {name}: the file is damaged.",
+  "error_not_openable": "{name} is not a PDF or a supported image.",
+  "error_password_skipped": "{name} was not opened: it needs a password.",
+  "error_enter_password": "Enter password…",
+  "error_some_files": "{failed} of {total} files could not be opened.",
+  "error_storage_full": "Changes can no longer be kept on this device: storage is full.",
+  "error_manage_storage": "Manage storage",
+  "error_engine_stopped": "The PDF engine stopped.",
+  "error_engine_stopped_spoken": "The PDF engine stopped. Reload to continue.",
+  "error_reload": "Reload",
+  "error_try_again": "Try again"
 }

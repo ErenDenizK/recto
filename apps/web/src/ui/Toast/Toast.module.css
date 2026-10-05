@@ -1,0 +1,295 @@
+/*
+ * The toast stack and the progress capsule (08-feedback FB4 §2–§4, §7, FB5 §2–§4; 01-frame F13;
+ * quality-bar Q-2, Q-3, Q-7, Q-9).
+ *
+ * - The region is a plain, unfiltered column fixed at the bottom centre, 12 px above the band:
+ *   the floating tool bar and the status bar on today's shell, the reader's capsule in the
+ *   compact edition (above the home indicator when the capsule is away). Newest nearest the
+ *   band (08.Q3), 14 px apart. It never takes pointer events itself, only its toasts do.
+ * - Each toast composes the floating glass (M2) on its own element, and every entrance, exit,
+ *   re-flow and swipe moves that element by transform and opacity (the motion core), so no
+ *   ancestor ever starts a backdrop root (Q-3) and nothing rests transformed (Q-2).
+ * - One control system (Q-9): the action is a `ui/Button` and ✕ a bar `ui/IconButton`, both
+ *   --control-h (32 px fine, 44 px coarse), in a toast 48 / 56 px tall at one line, one centre
+ *   line for all of them.
+ */
+.region {
+  --toast-h: 48px;
+  --toast-gap: 14px;
+  --toast-band: calc(var(--statusbar-height) + var(--space-5) + var(--bar-h) + var(--space-3));
+  position: fixed;
+  right: 0;
+  bottom: var(--toast-band);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--toast-gap);
+  padding-inline: 12px;
+  pointer-events: none;
+}
+
+/* Nothing on screen: the region has no box, so the F6 cycle passes it by. */
+.region:empty {
+  display: none;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .region {
+    --toast-h: 56px;
+  }
+}
+
+/* The compact edition: above the reader's 56 px capsule, safe-area aware; when the capsule is
+   away (hidden on scroll, Find, the Library), above the home indicator (01-frame F12, F13). */
+.region[data-edition='compact'] {
+  --toast-band: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 56px + var(--space-3));
+}
+
+.region[data-edition='compact'][data-band='away'] {
+  --toast-band: max(env(safe-area-inset-bottom, 0px), 12px);
+}
+
+.toast {
+  composes: glass from global;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  box-sizing: border-box;
+  width: max-content;
+  min-width: min(360px, 100%);
+  max-width: min(480px, 100%);
+  min-height: var(--toast-h);
+  padding-block: calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
+  padding-inline: var(--space-4) calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
+  border-radius: calc(var(--toast-h) / 2);
+  color: var(--text-primary);
+  pointer-events: auto;
+  touch-action: pan-y;
+}
+
+.region[data-edition='compact'] .toast {
+  width: min(480px, 100%);
+}
+
+/* A glyph only for the status kinds (FB4 §2): success, failure, system. */
+.glyph {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  stroke-width: 1.5;
+  color: var(--text-secondary);
+}
+
+.glyph[data-tone='danger'] {
+  color: var(--danger);
+}
+
+.glyph[data-tone='warning'] {
+  color: var(--warning);
+}
+
+.glyph[data-tone='success'] {
+  color: var(--success);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* Wraps to a second (and third) line rather than truncate (FB4 §5): Turkish runs 1.8×. */
+.text {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  text-wrap: pretty;
+}
+
+.detail {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}
+
+.waiting {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ✕ appears on hover or focus on a fine pointer, and is always there on a coarse one or on
+   a failure (FB4 §2). It keeps its place either way, so the toast never changes width. */
+.close {
+  flex: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toast:not([data-kind='failure']) .close {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .toast:hover .close,
+  .toast:focus-within .close {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+ * The progress capsule (FB5): 40 px fine / 48 px coarse, label and percentage over a 2 px track,
+ * Cancel at the end, and the processing ring on the border. The track sits under the words,
+ * clear of Cancel, so it never runs beneath a control.
+ * ---------------------------------------------------------------------------------------- */
+.toast[data-kind='progress'] {
+  --toast-h: 40px;
+  position: relative;
+  min-width: min(240px, 100%);
+  max-width: min(420px, 100%);
+  padding-block: 3px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .toast[data-kind='progress'] {
+    --toast-h: 48px;
+    padding-block: 1px;
+  }
+}
+
+.capsule {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: var(--control-h);
+  cursor: default;
+}
+
+.capsule[data-opens] {
+  cursor: pointer;
+}
+
+.meter {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.percent {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.track {
+  height: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background: var(--control-track);
+}
+
+.fill {
+  height: 100%;
+  background: var(--glass-text-secondary);
+  transform-origin: left center;
+  transition: transform 200ms var(--ease-standard);
+}
+
+:dir(rtl) .fill {
+  transform-origin: right center;
+}
+
+/* The processing ring (FB5 §3, language.md §3.3): a 1.5 px conic arc on the border, one turn in
+   2.4 s, always beside text. It moves only while a job runs; at rest there is no capsule. */
+@property --ring-turn {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.ring {
+  position: absolute;
+  inset: -1px;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--ring-turn),
+    var(--accent) 0deg 40deg,
+    color-mix(in srgb, var(--accent) 60%, transparent) 90deg,
+    transparent 150deg 360deg
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  pointer-events: none;
+  animation: ring-turn 2.4s linear infinite;
+}
+
+@keyframes ring-turn {
+  to {
+    --ring-turn: 360deg;
+  }
+}
+
+/* Reduced motion, Reduce transparency and forced colours: a still 1 px accent rim. */
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  .ring {
+    padding: 1px;
+    background: var(--accent-line);
+    animation: none;
+  }
+}
+
+:root[data-motion='reduced'] .ring,
+:root[data-transparency='reduced'] .ring {
+  padding: 1px;
+  background: var(--accent-line);
+  animation: none;
+}
+
+@media (forced-colors: active) {
+  .ring {
+    display: none;
+  }
+
+  .track {
+    border: 1px solid CanvasText;
+  }
+}

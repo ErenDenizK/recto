@@ -18,11 +18,11 @@ import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
-import { CombinedToast } from '../home/CombinedToast';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
 import { useAppearanceRoot } from '../state/appearance-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { ToastRegion } from '../ui/Toast/ToastRegion';
 import { TooltipProvider } from '../ui/Tooltip';
 import { AboutDialog } from './about/AboutDialog';
 import { registerAppearanceCommands } from './appearance-commands';
@@ -108,7 +108,7 @@ export function AppShell() {
       <ShortcutOverlay />
       <AboutDialog />
       <PasswordDialog />
-      <CombinedToast />
+      <ToastRegion />
       <LiveRegion />
     </TooltipProvider>
   );
