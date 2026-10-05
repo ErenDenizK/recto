@@ -37,9 +37,10 @@ import {
   loadSavedSignatures,
   useSavedSignatures,
 } from '../signatures/saved-signatures';
+import type { Act } from '../state/guard';
 import { canEdit, canEditActive, isPageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { useToolStore } from '../viewer/tool-store';
+import { type ToolMode, useToolStore } from '../viewer/tool-store';
 import { deleteAnnotations } from './actions';
 import { commitOpenEditor } from './InlineEditors';
 import { deleteLassoSelection } from './lasso/edits';
@@ -169,6 +170,30 @@ export function activatePen(): void {
   announce(presetLabel(index, useAnnotationStore.getState().pen.presets[index]), { key: 'tool' });
 }
 
+/**
+ * The act a tool's command declares (ADR-0030 §2.2; X34): what the armed tool makes on the
+ * page. Select makes nothing; Edit text commits through the paragraph editor; the Image tool
+ * moves, resizes or replaces the image the person chose; the placing tools put an object at a
+ * point; every other tool creates with the pointer.
+ */
+export function toolAct(mode: ToolMode): Act | null {
+  switch (mode) {
+    case 'select':
+      return null;
+    case 'edit-text':
+      return 'text';
+    case 'image':
+      return 'targeted';
+    case 'text-box':
+    case 'note':
+    case 'signature':
+    case 'stamp':
+      return 'place';
+    default:
+      return 'freehand';
+  }
+}
+
 export function registerAnnotationCommands(registry: CommandRegistry): () => void {
   const disposers = [
     ...ANNOTATION_TOOLS.map((tool) =>
@@ -176,6 +201,9 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
         id: `tool.${tool.mode}`,
         title: m.cmd_tool({ tool: tool.title() }),
         group: m.group_tools(),
+        act: toolAct(tool.mode),
+        // A tool key is a Markup door (ADR-0029 §2.2): it opens Markup, then arms.
+        ...(tool.mode === 'select' ? {} : { via: 'markup' as const }),
         ...(tool.shortcut === undefined ? {} : { shortcut: tool.shortcut }),
         keywords: ['tool', 'annotate', 'annotation', ...(tool.keywords ?? [])],
         when: readMode,
@@ -187,6 +215,8 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'tool.highlighter',
       title: m.cmd_tool({ tool: m.tool_highlighter() }),
       group: m.group_tools(),
+      act: 'freehand',
+      via: 'markup',
       shortcut: 'H',
       keywords: ['tool', 'annotate', 'annotation', 'highlight'],
       when: readMode,
@@ -197,6 +227,8 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
         id: `stamp.${stamp.name.toLowerCase()}`,
         title: m.cmd_stamp({ name: stamp.label() }),
         group: m.group_tools(),
+        act: 'place',
+        via: 'markup',
         keywords: ['stamp', 'annotate', stamp.name],
         when: readMode,
         run: () => {
@@ -211,6 +243,8 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'stamp.image',
       title: m.cmd_stamp_image(),
       group: m.group_tools(),
+      act: 'place',
+      via: 'markup',
       keywords: ['stamp', 'image', 'picture', 'logo'],
       when: readMode,
       run: () => pickImageStamp('image').then(() => undefined),
@@ -219,6 +253,7 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'annotation.delete',
       title: m.cmd_delete_annotation(),
       group: m.group_edit(),
+      act: 'targeted',
       shortcut: ['Delete', 'Backspace'],
       keywords: ['remove', 'annotation', 'comment'],
       when: () => readMode() && canEditActive() && useAnnotationStore.getState().selection !== null,
@@ -233,6 +268,7 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'image.delete',
       title: m.cmd_delete_image(),
       group: m.group_edit(),
+      act: 'targeted',
       shortcut: ['Delete', 'Backspace'],
       keywords: ['remove', 'image', 'picture'],
       when: () => readMode() && canEditActive() && useImageStore.getState().selection !== null,
@@ -245,6 +281,7 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'view.show.comments',
       title: m.cmd_show_comments(),
       group: m.group_view(),
+      act: null,
       keywords: ['panel', 'sidebar', 'annotations', 'notes'],
       run: () => useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'comments' }),
     }),

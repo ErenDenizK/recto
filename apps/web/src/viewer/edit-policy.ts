@@ -45,6 +45,7 @@ export function registerEditPolicyCommands(registry: CommandRegistry): () => voi
     id: 'view.penDrawsInEdit',
     title: m.cmd_view_pen_draws_in_edit(),
     group: m.group_view(),
+    act: null,
     keywords: ['pen', 'stylus', 'draw', 'select', 'kalem', 'çiz', 'settings', 'ayarlar'],
     run: () => setPenDrawsInMarkup(!penDrawsNow()),
   });
