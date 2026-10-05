@@ -24,8 +24,7 @@ import type { DocumentId } from '@pdf-editor/document-model';
 import type { ConvertResult } from '@pdf-editor/engine';
 
 import { type ConvertChoice, convertDocumentPages, outputFile } from '../convert/convert-run';
-import { formatBytes } from '../files/file-filters';
-import { m } from '../i18n';
+import { formatSize, m } from '../i18n';
 import { finishJob, type JobHandle, startJob } from '../jobs/job-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { RasterError, type RasterOptions, rasterizeDocument } from '../tools/rasterize';
@@ -157,8 +156,8 @@ export async function buildCopy(
         tone: 'changed',
         text: m.export_compression_delta({
           preset: request.sizeLabel ?? presetName(preset),
-          before: formatBytes(before),
-          after: formatBytes(after),
+          before: formatSize(before),
+          after: formatSize(after),
           delta: deltaPercent(before, after),
         }),
       });
@@ -365,7 +364,7 @@ export function showCopyDone(
   where: 'saved' | 'downloaded' | 'shared',
 ): void {
   keepCopySummary(documentId, summary);
-  const size = formatBytes(summary.size);
+  const size = formatSize(summary.size);
   const name = summary.name;
   const text =
     where === 'shared'
@@ -484,5 +483,5 @@ export async function runSaveCopy(
 
 /** The sheet's subtitle: "report.pdf · 12 pages · 2.4 MB" (the size once known). */
 export function copySubtitle(name: string, pages: number, size: number | null): string {
-  return [name, pagesPhrase(pages), ...(size === null ? [] : [formatBytes(size)])].join(' · ');
+  return [name, pagesPhrase(pages), ...(size === null ? [] : [formatSize(size)])].join(' · ');
 }

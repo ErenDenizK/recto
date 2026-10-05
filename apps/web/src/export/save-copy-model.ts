@@ -14,12 +14,13 @@
  *   picker where File System Access exists; else a download.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import type {
-  CompressionAnalysis,
-  CompressionEstimate,
-  CompressionSettings,
-  RasterBackground,
-  RasterFormat,
+import {
+  type CompressionAnalysis,
+  type CompressionEstimate,
+  type CompressionSettings,
+  type RasterBackground,
+  type RasterFormat,
+  WORTHWHILE_RATIO,
 } from '@pdf-editor/engine';
 
 import { type ConvertChoice, DEFAULT_CHOICE } from '../convert/convert-run';
@@ -186,6 +187,21 @@ export function sizeEstimates(
     smallest: of('smallest'),
     custom: of('custom'),
   };
+}
+
+/**
+ * "Already compact" beside a preset (§4.4 Little to gain: a saving under 3 %). Smaller and
+ * Custom are measured against the copy as it is. Smallest is measured against Smaller as well:
+ * a document with nothing to resample (no images, or images already at the target) gets the
+ * same lossless pass from both, and two presets promising the same size with nothing said
+ * read as a fault. Smallest then says it gains nothing more, and stays selectable.
+ */
+export function littleToGain(estimates: SizeEstimates, size: Exclude<SizeChoice, 'same'>): boolean {
+  const estimate = estimates[size];
+  if (!estimate.worthwhile) return true;
+  if (size !== 'smallest') return false;
+  const smaller = estimates.smaller.after;
+  return smaller > 0 && (smaller - estimate.after) / smaller < WORTHWHILE_RATIO;
 }
 
 // ---------------------------------------------------------------------------
