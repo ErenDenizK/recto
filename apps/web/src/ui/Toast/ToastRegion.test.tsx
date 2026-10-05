@@ -3,8 +3,15 @@
  * FB4 §4, §6, §8, FB10; spec redesign X9, X14; A-13, A-14, A-24): a silent named region,
  * each toast said once, F6 landing on the newest toast's action as the last stop, Esc and ✕
  * dismissing with focus going back, Up and Down between toasts, hover holding the timer,
- * an exiting toast inert, and Undo toasts bound to their history step.
+ * an exiting toast inert, and Undo toasts bound to their history step. With the real styles:
+ * FB4 §2's anatomy (360–480 px wide, the action a trailing capsule, ✕ floating on a fine
+ * pointer) and §7's motion (no two pills ever meet, no neighbour's width ever changes, and a
+ * nearly transparent toast carries no backdrop filter).
  */
+import '../../styles/tokens.css';
+import '../../styles/reset.css';
+import '../../styles/global.css';
+
 import type { DocumentId, PageId } from '@pdf-editor/document-model';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from 'vitest/browser';
@@ -268,5 +275,116 @@ describe('Undo toasts', () => {
     toast.info('Kept', { documentId: id, keepOnClose: true });
     useWorkspaceStore.getState().closeDocument(id);
     expect(shownTexts()).toEqual(['Kept']);
+  });
+});
+
+describe('the stack (FB4 §2, §7; Q-10)', () => {
+  const box = (el: Element) => el.getBoundingClientRect();
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  // Every animation done (a cancelled one, a retarget's, counts as done), then a quiet frame.
+  const settle = async () => {
+    for (let round = 0; round < 20 && document.getAnimations().length > 0; round++) {
+      await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined)));
+    }
+  };
+  const frames = (n: number) =>
+    new Promise<void>((resolve) => {
+      const step = (left: number) =>
+        left === 0 ? resolve() : requestAnimationFrame(() => step(left - 1));
+      step(n);
+    });
+
+  it('is 360–480 px wide from its own text, the action a filled capsule at the trailing edge', async () => {
+    render(<Shell />);
+    act(() => {
+      toast.action('Deleted page 7', { label: 'Undo', run: () => undefined });
+    });
+    const group = await screen.findByRole('group', { name: 'Deleted page 7' });
+    await settle();
+    const undo = within(group).getByRole('button', { name: 'Undo' });
+    const g = box(group);
+    const u = box(undo);
+    expect(g.width).toBeGreaterThanOrEqual(360);
+    expect(g.width).toBeLessThanOrEqual(480);
+    // The capsule (inside the control box's transparent border) is 28 px (36 coarse) and sits
+    // as far from the rim at the end as from the top: the action trails, nothing after it.
+    const inset = Number.parseFloat(getComputedStyle(undo).borderTopWidth);
+    expect(u.height - 2 * inset).toBe(fine ? 28 : 36);
+    expect(g.right - (u.right - inset)).toBeCloseTo(u.top + inset - g.top, 0);
+    expect(getComputedStyle(undo).backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+  });
+
+  it.runIf(fine)('floats ✕ on a fine pointer: no place in the row, shown on hover', async () => {
+    render(<Shell />);
+    act(() => {
+      toast.action('Deleted page 7', { label: 'Undo', run: () => undefined });
+    });
+    const group = await screen.findByRole('group', { name: 'Deleted page 7' });
+    const close = within(group).getByRole('button', { name: 'Dismiss' });
+    expect(getComputedStyle(close).position).toBe('absolute');
+    expect(getComputedStyle(close).opacity).toBe('0');
+    await userEvent.hover(group);
+    await waitFor(() => expect(getComputedStyle(close).opacity).toBe('1'));
+    // Still a target of at least 24 px (A-15).
+    expect(box(close).width).toBeGreaterThanOrEqual(24);
+    expect(box(close).height).toBeGreaterThanOrEqual(24);
+  });
+
+  it('never lets two pills meet, never changes a neighbour’s width, and fades no empty pill', async () => {
+    render(<Shell />);
+    act(() => {
+      toast.failure('Could not open quarterly-report-final.pdf: the file is damaged.');
+    });
+    const first = await screen.findByRole('group', { name: /^Could not open/ });
+    await settle();
+    const width = Math.round(box(first).width);
+    const problems: string[] = [];
+    const widths = new Set<number>();
+    let watching = true;
+    const watch = () => {
+      if (!watching) return;
+      const painted = [...region().querySelectorAll<HTMLElement>('[data-toast-id]')].filter(
+        (el) => Number(getComputedStyle(el).opacity) > 0.01,
+      );
+      for (const [i, a] of painted.entries()) {
+        const style = getComputedStyle(a);
+        if (Number(style.opacity) < 0.09 && style.backdropFilter !== 'none') {
+          problems.push(`${a.getAttribute('aria-label')} fades with its backdrop filter`);
+        }
+        for (const b of painted.slice(i + 1)) {
+          const p = box(a);
+          const q = box(b);
+          const v = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top);
+          if (v > 0.5)
+            problems.push(
+              `${a.getAttribute('aria-label')} meets ${b.getAttribute('aria-label')} by ${v}`,
+            );
+        }
+      }
+      if (first.isConnected) widths.add(Math.round(box(first).width));
+      requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+
+    // One arrives under it, and another under that…
+    let undo = '';
+    act(() => {
+      undo = toast.action('Deleted page 7', { label: 'Undo', run: () => undefined });
+    });
+    await frames(6);
+    act(() => {
+      toast.info('Text copied');
+    });
+    await settle();
+    await frames(2);
+    // …and the middle one leaves: the one above closes up after it.
+    act(() => {
+      toast.dismiss(undo);
+    });
+    await waitFor(() => expect(region().querySelectorAll('[data-toast-id]')).toHaveLength(2));
+    await settle();
+    watching = false;
+    expect(problems).toEqual([]);
+    expect([...widths]).toEqual([width]);
   });
 });
