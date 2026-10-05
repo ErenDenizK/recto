@@ -98,7 +98,8 @@ const aboutTitle: LocalText = (locale) =>
 
 /** Sections in their order on the sheet. */
 export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
-  { id: 'appearance', title: at(m.settings_section_appearance) },
+  // "Görünüş" in Turkish, not "Görünüm" (View), as review F24 settled for this setting group.
+  { id: 'appearance', title: at(m.appearance_heading) },
   { id: 'language', title: at(m.settings_section_language) },
   { id: 'pen', title: at(m.settings_section_pen) },
   { id: 'documents', title: at(m.settings_section_documents) },

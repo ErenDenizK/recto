@@ -17,7 +17,7 @@
  * - **More:** Privacy (pushes), Keyboard shortcuts (opens S22; on a coarse pointer only once a
  *   key has been pressed, L§6.2) and About Recto (pushes).
  */
-import { HardDrive, Info, Keyboard, ShieldCheck } from 'lucide-react';
+import { Info, Keyboard, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
@@ -187,7 +187,6 @@ export function KeptDocumentsRow({
   return (
     <NavRow
       id="keptDocuments"
-      icon={<HardDrive className={styles.icon} aria-hidden="true" />}
       label={m.settings_kept_documents()}
       value={value}
       hint={hint}

@@ -25,6 +25,8 @@ const COMPACT_SPEC = '**/compact.spec.ts';
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';
 /** The sheets' presentation on the medium class with a coarse pointer (spec D0-4). */
 const SHEETS_SPEC = '**/sheets.spec.ts';
+/** The Settings sheet as a form sheet on the medium class (spec D0-10). */
+const SETTINGS_SPEC = '**/settings.spec.ts';
 const touchDevice = (
   size: { width: number; height: number },
   userAgent: string,
@@ -78,6 +80,7 @@ export default defineConfig({
         '**/history.spec.ts',
         BAR_AUDIT_SPEC,
         SHEETS_SPEC,
+        SETTINGS_SPEC,
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },
