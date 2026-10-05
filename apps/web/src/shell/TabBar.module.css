@@ -20,19 +20,34 @@
   color: var(--text-secondary);
 }
 
+/* The tabs keep room for at least one tab at its minimum width and +, whatever the actions
+   beside them need (XD-3; 01-frame F2 §2: "the active tab never truncates below 112 px"):
+   the actions give way first (the command search folds to its icon, below). The cap keeps a
+   window narrower than the medium class from pushing the actions out of the bar. */
 .tabsRegion {
+  --tab-min: 112px;
+  --tab-max: 220px;
   display: flex;
   align-items: center;
   gap: var(--space-1);
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: min(calc(var(--tab-min) + 4px + var(--space-1) + var(--bar-button)), 40%);
+}
+
+/* 01-frame F4 §2: coarse tabs are 128–240 px wide. */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .tabsRegion {
+    --tab-min: 128px;
+    --tab-max: 240px;
+  }
 }
 
 .tablist {
   display: flex;
   align-items: center;
   gap: 2px;
-  min-width: 0;
+  /* Never narrower than one tab (plus the focus ring's room): it scrolls instead. */
+  min-width: min(calc(var(--tab-min) + 4px), 100%);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
@@ -52,8 +67,8 @@
   display: flex;
   align-items: center;
   flex: 0 1 auto;
-  min-width: 112px;
-  max-width: 220px;
+  min-width: var(--tab-min);
+  max-width: var(--tab-max);
   /* One control height in the title bar (quality-bar Q-9): --control-h, --radius-control. The
      selected tab's edge is an inset ring, so the tab inside keeps the full height. */
   height: var(--control-h);
@@ -215,13 +230,47 @@
   white-space: nowrap;
 }
 
-@media (max-width: 760px) {
-  .searchLabel {
-    display: none;
+/* Below 1280 px the command search is its ⌕ alone (01-frame F2 §2's priority: "Find field →
+   ⌕ icon"), a bar button like its neighbours: a --bar-button circle with a 20 px glyph. Its
+   label stays as the accessible name, visually hidden; the keycaps go. */
+@media (max-width: 1279.98px) {
+  .search {
+    position: relative;
+    justify-content: center;
+    flex: none;
+    width: var(--bar-button);
+    height: var(--bar-button);
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-secondary);
   }
 
-  .search {
-    width: auto;
+  .search > svg {
+    width: var(--icon-md);
+    height: var(--icon-md);
+    stroke-width: 1.5;
+  }
+
+  @media (hover: hover) {
+    .search:hover {
+      border-color: transparent;
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+  }
+
+  .searchLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .search > :not(svg, .searchLabel) {
+    display: none;
   }
 }
 
