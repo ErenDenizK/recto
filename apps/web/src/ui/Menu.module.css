@@ -9,18 +9,29 @@
  *   takes the space (`.label`, flex 1), so keycaps or a reason sit right-aligned after it.
  * - Motion (*popup*): the popup fades and, opening above or below its trigger, scales from it
  *   0.96 → 1, on transform and opacity only (Q-7), from Base UI's `--transform-origin`.
- *   Reduced motion zeroes --duration-fast (tokens.css), so it appears at once.
+ *   Reduced motion zeroes --duration-fast (tokens.css), so it appears at once. A menu closed by
+ *   choosing an item that opens a sheet goes at once (`ui/menu-handoff.ts`).
+ * - Room: never taller than the room Base UI's positioner measures (`--available-height`,
+ *   inside its 8 px collision padding). A longer menu scrolls inside its glass, with a quiet
+ *   fade at an edge that has more rows beyond it; the keyboard's row scrolls into view clear
+ *   of the fade (`scroll-padding-block`). The Document menu at 44 px rows outgrows a tablet.
  */
 .popup {
   composes: glass glass-menu from global;
   --menu-row: 32px;
   --menu-pad: 6px;
   --menu-icon: 16px;
+  --menu-fade: 16px;
 
   box-sizing: border-box;
   min-width: 200px;
   max-width: min(320px, calc(100vw - 16px));
+  max-height: var(--available-height, calc(100vh - 16px));
   padding: var(--menu-pad);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: var(--menu-fade);
   border-radius: 16px;
   color: var(--text-primary);
   font-size: var(--text-md);
@@ -67,6 +78,63 @@
 
 .popup[data-instant] {
   transition: none;
+}
+
+/* The menu → sheet hand-off (`ui/menu-handoff.ts`): a menu closing as a sheet opens goes at
+   once, as on macOS, so the two never show through each other (quality-bar Q-7). */
+:global(:root[data-menu-handoff]) .popup[data-ending-style] {
+  transition: none;
+}
+
+/* The edge fade of a menu that scrolls: a band of the menu's own tint at each edge (sticky, so
+   it stays at the edge; no layout of its own), shown only while there are rows beyond that
+   edge. The menu is a scroll-state container and the bands answer its queries, so nothing
+   animates while the menu rests (a scroll-driven animation would run as long as the menu is
+   open, A-23). Where scroll-state queries are missing the menu still scrolls, without the
+   fade. Never a mask on the popup: that would fade the glass itself. */
+@supports (container-type: scroll-state) {
+  .popup {
+    container-type: scroll-state;
+  }
+
+  .popup::before,
+  .popup::after {
+    content: '';
+    position: sticky;
+    z-index: 1;
+    display: block;
+    height: var(--menu-fade);
+    margin-inline: calc(var(--menu-pad) * -1);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .popup::before {
+    top: calc(var(--menu-pad) * -1);
+    margin-top: calc(var(--menu-pad) * -1);
+    margin-bottom: calc(var(--menu-fade) * -1 + var(--menu-pad));
+    background: linear-gradient(to bottom, var(--glass), transparent);
+  }
+
+  .popup::after {
+    bottom: calc(var(--menu-pad) * -1);
+    margin-top: calc(var(--menu-fade) * -1 + var(--menu-pad));
+    margin-bottom: calc(var(--menu-pad) * -1);
+    background: linear-gradient(to top, var(--glass), transparent);
+  }
+
+  @container scroll-state(scrollable: top) {
+    .popup::before {
+      opacity: 1;
+    }
+  }
+
+  @container scroll-state(scrollable: bottom) {
+    .popup::after {
+      opacity: 1;
+    }
+  }
 }
 
 .item {

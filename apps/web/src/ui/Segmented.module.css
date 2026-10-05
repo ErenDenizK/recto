@@ -38,6 +38,19 @@
   grid-auto-columns: auto;
 }
 
+/* An equal share may hold its label with 8 px either side (`EQUAL_PADDING_GIVE`). */
+.root[data-layout='equal'] .segment {
+  padding-inline: 8px;
+}
+
+/* The hidden copy's sizes, before the coarse ones below, so a coarse pointer measures the
+   labels at the 15 px they are drawn at. */
+.measure {
+  --seg-inset: 2px;
+  --seg-text: 13px;
+  --seg-lh: 18px;
+}
+
 :global([data-theme='light']) .root,
 :global([data-theme='light']) .measure {
   --seg-track: var(--control-fill, rgb(21 23 28 / 0.06));
@@ -123,10 +136,6 @@
 /* The hidden copy the layout is chosen from: the labels at their natural widths, at the
    checked weight (the widest a label gets). */
 .measure {
-  --seg-inset: 2px;
-  --seg-text: 13px;
-  --seg-lh: 18px;
-
   position: absolute;
   top: 0;
   left: 0;

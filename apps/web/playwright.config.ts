@@ -29,6 +29,8 @@ const SHEETS_SPEC = '**/sheets.spec.ts';
 const SETTINGS_SPEC = '**/settings.spec.ts';
 /** Save a copy's Share copy and J13B's touch count (spec D0-9, §10.5: jobs on the tablet). */
 const SAVE_COPY_SPECS = ['**/save-copy.spec.ts', '**/jobs.spec.ts'];
+/** Menus keep to the window, scrolling inside it at 44 px rows (XD-3). */
+const MENUS_SPEC = '**/menus.spec.ts';
 /**
  * Playwright's WebKit has no origin private file system, so the app keeps no snapshots there and
  * rightly shows "Changes are not kept in this window" until dismissed (ADR-0032 §2.7). Its specs
@@ -106,6 +108,7 @@ export default defineConfig({
         SHEETS_SPEC,
         SETTINGS_SPEC,
         ...SAVE_COPY_SPECS,
+        MENUS_SPEC,
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

@@ -54,6 +54,12 @@
   transition: none;
 }
 
+/* A popover closing as a sheet opens (the Replace popover's Save a copy…) goes at once
+   (`ui/menu-handoff.ts`). */
+:global(:root[data-menu-handoff]) .popup[data-ending-style] {
+  transition: none;
+}
+
 /* --- Title row --------------------------------------------------------------------------- */
 
 .header {

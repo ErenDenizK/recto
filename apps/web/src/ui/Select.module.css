@@ -111,6 +111,18 @@
   min-width: max(200px, var(--anchor-width));
 }
 
+/* The list scrolls (Base UI keeps the chosen option in view there), so the popup does not:
+   the menu recipe's height limit and edge fade are the list's business here. */
+.positioner .popup {
+  max-height: none;
+  overflow: visible;
+}
+
+.positioner .popup::before,
+.positioner .popup::after {
+  content: none;
+}
+
 .list {
   max-height: var(--available-height);
   overflow-y: auto;
