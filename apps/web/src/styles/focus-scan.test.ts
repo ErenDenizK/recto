@@ -67,6 +67,9 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     '.menuItem:focus-visible': 'the highlighted row is the keyboard’s place in a menu',
     '.input:focus-visible': 'the find field shows its focus on the field’s border',
   },
+  'ui/sheet/SheetField.module.css': {
+    '.input:focus-visible': 'the well around the field draws the ring, with Show inside it',
+  },
   'stage/InlineTitleEditor.module.css': {
     '.input:focus-visible': 'in-place title field, there only while editing: its border',
   },

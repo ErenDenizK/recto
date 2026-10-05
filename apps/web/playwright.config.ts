@@ -22,6 +22,8 @@ const TABLET = { width: 820, height: 1180 };
 const COMPACT_SPEC = '**/compact.spec.ts';
 /** The control-system audit (quality-bar Q-9, spec D0-3) runs on every density and edition. */
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';
+/** The sheets' presentation on the medium class with a coarse pointer (spec D0-4). */
+const SHEETS_SPEC = '**/sheets.spec.ts';
 const touchDevice = (
   size: { width: number; height: number },
   userAgent: string,
@@ -69,7 +71,7 @@ export default defineConfig({
     },
     {
       name: 'tablet',
-      testMatch: ['**/smoke.spec.ts', '**/long-press.spec.ts', BAR_AUDIT_SPEC],
+      testMatch: ['**/smoke.spec.ts', '**/long-press.spec.ts', BAR_AUDIT_SPEC, SHEETS_SPEC],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },
     // Rendered pixels without the GPU (ADR-0028; research 22 §3.2; docs/specs/redesign.md D0-1):

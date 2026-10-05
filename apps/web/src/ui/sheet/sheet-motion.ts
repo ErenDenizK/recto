@@ -57,9 +57,13 @@ export interface SheetMotion {
   exit(): void;
   /** Re-reads the rest position after a resize, when nothing moves. */
   relayout(): void;
-  /** Pointer handlers for the swipe (the panel's). */
+  /**
+   * Pointer handlers for the swipe. `onPointerDown` is the panel's and answers whether a swipe
+   * may start; the caller then sends that pointer's moves, release and cancel from the window,
+   * since the pointer leaves the panel before the drag takes it over.
+   */
   readonly pointer: {
-    onPointerDown(event: PointerEvent): void;
+    onPointerDown(event: PointerEvent): boolean;
     onPointerMove(event: PointerEvent): void;
     onPointerUp(event: PointerEvent): void;
     onPointerCancel(event: PointerEvent): void;
@@ -284,9 +288,9 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
     pointer: {
       onPointerDown(event) {
         swallowClick = false;
-        if (!el || !open || !layout?.swipe || event.button !== 0) return;
+        if (!el || !open || !layout?.swipe || event.button !== 0) return false;
         const target = event.target as Element | null;
-        if (!target) return;
+        if (!target) return false;
         const handle = target.closest('[data-sheet-handle]');
         let zone: Drag['zone'] | null = null;
         if (handle) zone = 'handle';
@@ -302,7 +306,7 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
             zone = 'content';
           }
         }
-        if (!zone) return;
+        if (!zone) return false;
         const tracker = velocityTracker();
         tracker.add(event.timeStamp, event.clientX, event.clientY);
         drag = {
@@ -315,6 +319,7 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
           base: rest,
           at: rest,
         };
+        return true;
       },
       onPointerMove(event) {
         const d = drag;
@@ -335,7 +340,13 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
           // The drag takes over from any motion, where it is (a sheet grabbed mid-flight).
           const stopped = stopTransform();
           d.base = stopped ? along(stopped.value) : rest;
-          el.setPointerCapture(event.pointerId);
+          // The pointer may already be gone (released between the events); the window still
+          // sends its moves.
+          try {
+            el.setPointerCapture(event.pointerId);
+          } catch {
+            // Nothing to capture.
+          }
           el.dataset.swiping = '';
         }
         // 1:1, with the rubber band above the tallest detent (07 §2.6, §2.7).
