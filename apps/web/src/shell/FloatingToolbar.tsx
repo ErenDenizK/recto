@@ -96,14 +96,14 @@ import {
 import { SignaturePlate } from '../signatures/SignaturePlate';
 import { PageContextMenu } from '../stage/PageContextMenu';
 import { type SizeClass, useSizeClass } from './frame/size-class';
-import { canEditActive, useCanEdit, useUiStore } from '../state/ui-store';
+import { canEditActive, useCanEdit, useStageView } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { IconButton } from '../ui/IconButton';
 import iconButtonStyles from '../ui/IconButton.module.css';
 import menuStyles from '../ui/Menu.module.css';
 import { Tooltip } from '../ui/Tooltip';
 import { useFocusRescue } from '../ui/use-focus-rescue';
-import { showDocumentMode } from '../home/home-actions';
+import { showMarkup } from '../home/home-actions';
 import { useSearchStore } from '../viewer/search';
 import { type BarGroup, type ToolMode, useToolStore } from '../viewer/tool-store';
 import {
@@ -129,12 +129,12 @@ const reducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function FloatingToolbar() {
-  const viewMode = useUiStore((s) => s.viewMode);
+  const pageView = useStageView() === 'page';
   const editable = useCanEdit();
   return (
     <>
-      {viewMode === 'read' ? editable ? <Dock /> : <ReadDock /> : null}
-      {viewMode === 'read' ? <PageContextMenu /> : null}
+      {pageView ? editable ? <Dock /> : <ReadDock /> : null}
+      {pageView ? <PageContextMenu /> : null}
     </>
   );
 }
@@ -164,7 +164,7 @@ function ReadDock() {
             onClick={(event) => {
               focusBarOnMount = event.currentTarget.contains(document.activeElement);
               showBarGroups();
-              showDocumentMode('edit');
+              showMarkup(true);
             }}
           >
             <Pencil aria-hidden="true" className={styles.groupIcon} />

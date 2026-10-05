@@ -14,6 +14,7 @@
  * pressed while they have the focus, would otherwise turn on `:focus-visible` and frame the
  * whole stage as if the page were selected.
  */
+import type { DocumentId } from '@pdf-editor/document-model';
 import { Lock } from 'lucide-react';
 import { type KeyboardEvent, lazy, Suspense, useEffect, useRef } from 'react';
 
@@ -24,7 +25,14 @@ import { HomeView } from '../home/HomeView';
 import { m } from '../i18n';
 import { ArrangeView } from '../stage/ArrangeView';
 import { ReadView } from '../stage/ReadView';
-import { documentModeOf, useUiStore, type ViewMode } from '../state/ui-store';
+import {
+  isMarkupOpen,
+  type StageView,
+  surfaceOf,
+  type UiState,
+  useStageView,
+  useUiStore,
+} from '../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
 import { Tooltip } from '../ui/Tooltip';
 import { LayoutSwitch } from '../viewer/LayoutSwitch';
@@ -82,8 +90,8 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
   const hasDocuments = useHasDocuments();
   const opening = useWorkspaceStore((s) => s.opening);
   const doc = useActiveDocument();
-  const viewMode = useUiStore((s) => s.viewMode);
-  const onHome = useUiStore((s) => s.destination === 'home');
+  const view = useStageView();
+  const onHome = view === 'home';
 
   if (!hasDocuments) {
     return (
@@ -122,33 +130,31 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
       aria-busy={opening > 0}
       className={styles.stage}
     >
-      <h1 className="visually-hidden">{VIEW_HEADINGS[viewMode]()}</h1>
+      <h1 className="visually-hidden">{VIEW_HEADINGS[view]()}</h1>
       <div className={styles.header}>
         <ModeSwitch />
-        {viewMode === 'read' && doc && doc.pages.length > 0 ? (
+        {view === 'page' && doc && doc.pages.length > 0 ? (
           <div className={styles.headerEnd}>
             <LayoutSwitch />
           </div>
         ) : null}
       </div>
-      {doc?.pages.length === 0 && viewMode === 'read' ? (
+      {doc?.pages.length === 0 && view === 'page' ? (
         <div className={styles.emptyDocument}>
           <EmptyNote title={m.stage_no_pages_title()} body={m.stage_no_pages_body()} />
         </div>
       ) : null}
       {/* Arrange is not keyed: it shows several documents (sections) and keeps its scroll. */}
-      {viewMode === 'arrange' ? <ArrangeView /> : null}
-      {doc && doc.pages.length > 0 && viewMode === 'read' ? (
-        <ReadView key={doc.id} doc={doc} />
-      ) : null}
-      {viewMode === 'compare' ? (
+      {view === 'grid' ? <ArrangeView /> : null}
+      {doc && doc.pages.length > 0 && view === 'page' ? <ReadView key={doc.id} doc={doc} /> : null}
+      {view === 'compare' ? (
         <Suspense fallback={null}>
           <CompareView dragging={dragging} />
         </Suspense>
       ) : null}
-      {viewMode === 'compare' ? null : <FloatingToolbar />}
+      {view === 'compare' ? null : <FloatingToolbar />}
       {/* In Arrange and Compare, the view outlines its own file-drop targets. */}
-      {dragging && viewMode === 'read' ? (
+      {dragging && view === 'page' ? (
         <div className={styles.dropOverlay} aria-hidden="true">
           <span className={styles.dropLabel}>{m.stage_drop_overlay()}</span>
         </div>
@@ -157,15 +163,30 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
   );
 }
 
-/** The stage's heading, for screen readers: the view's long name. */
-const VIEW_HEADINGS: Readonly<Record<ViewMode, () => string>> = {
-  read: m.mode_read_long,
-  arrange: m.mode_arrange_long,
+/** The stage's heading, for screen readers: the view's long name (M8's words). */
+const VIEW_HEADINGS: Readonly<Record<StageView, () => string>> = {
+  home: m.home_long,
+  page: m.mode_read_long,
+  grid: m.mode_arrange_long,
   compare: m.compare_mode_long,
 };
 
 /** A segment of the mode control: Read and Edit are the page view, locked or not. */
 export type ModeSegment = 'read' | 'edit' | 'arrange' | 'compare';
+
+/**
+ * The M8 control's checked segment over the M9 state: Compare is a destination, Arrange the
+ * grid surface, and Read or Edit the page with Markup closed or open. The Library keeps the
+ * active document's segment, as M8's remembered view did.
+ */
+function modeSegment(
+  state: Pick<UiState, 'destination' | 'docUi'>,
+  active: DocumentId | undefined,
+): ModeSegment {
+  if (state.destination === 'compare') return 'compare';
+  if (surfaceOf(state, active) === 'grid') return 'arrange';
+  return isMarkupOpen(state, active) ? 'edit' : 'read';
+}
 
 const SEGMENTS: readonly {
   id: ModeSegment;
@@ -194,9 +215,7 @@ const SEGMENTS: readonly {
  */
 export function ModeSwitch() {
   const active = useWorkspaceStore((s) => s.workspace.activeDocument);
-  const segment = useUiStore(
-    (s): ModeSegment => (s.viewMode === 'read' ? documentModeOf(s, active) : s.viewMode),
-  );
+  const segment = useUiStore((s): ModeSegment => modeSegment(s, active));
   const compareOpen = useCompareStore((s) => comparisonOpen(segment === 'compare', s.status));
   // Compare is entered with its command (4, the palette); the segment returns to it.
   const segments = SEGMENTS.filter((item) => item.id !== 'compare' || compareOpen);

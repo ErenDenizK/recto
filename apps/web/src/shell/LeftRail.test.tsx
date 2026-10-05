@@ -34,12 +34,12 @@ beforeEach(() => {
   resetEditRunner();
   resetAnnotationStore();
   resetFormStore();
-  useUiStore.setState({ ...DEFAULT_LAYOUT, viewMode: 'read' });
+  useUiStore.setState({ ...DEFAULT_LAYOUT, docUi: {} });
 });
 afterEach(async () => {
   await whenIdle();
   resetWorkspace();
-  useUiStore.setState({ ...DEFAULT_LAYOUT, viewMode: 'read' });
+  useUiStore.setState({ ...DEFAULT_LAYOUT, docUi: {} });
   localStorage.removeItem(LAYOUT_STORAGE_KEY);
 });
 
@@ -71,9 +71,9 @@ describe('Navigator', () => {
 
   it('adds Changes only in Compare, after the four', () => {
     render(<LeftRail />);
-    act(() => useUiStore.getState().setViewMode('compare'));
+    act(() => useUiStore.getState().showCompare());
     expect(tabNames()).toEqual(['Pages', 'Find', 'Review', 'Files', 'Changes']);
-    act(() => useUiStore.getState().setViewMode('read'));
+    act(() => useUiStore.getState().showSurface('page'));
     expect(tabNames()).toEqual(['Pages', 'Find', 'Review', 'Files']);
   });
 

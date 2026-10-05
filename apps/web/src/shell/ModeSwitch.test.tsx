@@ -22,7 +22,7 @@ import { page, userEvent } from 'vitest/browser';
 
 import { App } from '../app';
 import { resetCompareStore } from '../compare/compare-store';
-import { documentModeOf, stageView, useUiStore } from '../state/ui-store';
+import { isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { useAnnouncer } from './announcer';
 
@@ -88,9 +88,7 @@ describe('Read · Edit · Arrange', () => {
     resetCompareStore();
     useUiStore.setState({
       destination: 'document',
-      viewMode: 'read',
-      documentMode: {},
-      lastView: {},
+      docUi: {},
       paletteOpen: false,
       shortcutsOpen: false,
     });
@@ -124,21 +122,21 @@ describe('Read · Edit · Arrange', () => {
 
     await userEvent.keyboard('2');
     expect(checked()).toBe('edit');
-    expect(documentModeOf(useUiStore.getState(), report)).toBe('edit');
-    expect(useUiStore.getState().viewMode).toBe('read');
+    expect(isMarkupOpen(useUiStore.getState(), report)).toBe(true);
+    expect(shown()).toBe('page');
     expect(announced()).toBe('Edit mode');
     // The same page view, never remounted: switching never moves the page.
     expect(screen.getByRole('region', { name: 'Pages of report' })).toBe(viewport);
 
     await userEvent.keyboard('1');
     expect(checked()).toBe('read');
-    expect(documentModeOf(useUiStore.getState(), report)).toBe('read');
+    expect(isMarkupOpen(useUiStore.getState(), report)).toBe(false);
     expect(announced()).toBe('Read mode, locked');
     expect(screen.getByRole('region', { name: 'Pages of report' })).toBe(viewport);
 
     await userEvent.keyboard('3');
     expect(checked()).toBe('arrange');
-    expect(shown()).toBe('arrange');
+    expect(shown()).toBe('grid');
 
     // 4 with no comparison open starts one; its segment appears and is checked.
     await userEvent.keyboard('4');
@@ -237,7 +235,7 @@ describe('Read · Edit · Arrange', () => {
     expect(screen.getByRole('tab', { name: 'report' })).toHaveAttribute('tabindex', '0');
 
     await userEvent.keyboard('1');
-    expect(shown()).toBe('read');
+    expect(shown()).toBe('page');
     await userEvent.click(glyph);
     expect(shown()).toBe('home');
   });
@@ -250,9 +248,7 @@ describe('the tab bar on Home', () => {
     resetCompareStore();
     useUiStore.setState({
       destination: 'document',
-      viewMode: 'read',
-      documentMode: {},
-      lastView: {},
+      docUi: {},
     });
   });
   afterEach(() => {
@@ -273,14 +269,14 @@ describe('the tab bar on Home', () => {
     expect(shown()).toBe('home');
 
     await userEvent.click(screen.getByRole('tab', { name: 'invoice' }));
-    expect(shown()).toBe('arrange');
+    expect(shown()).toBe('grid');
     expect(useWorkspaceStore.getState().workspace.activeDocument).toBe(invoice);
     expect(screen.getByRole('tab', { name: 'invoice', selected: true })).toBeVisible();
-    expect(documentModeOf(useUiStore.getState(), invoice)).toBe('edit');
+    expect(isMarkupOpen(useUiStore.getState(), invoice)).toBe(true);
 
     await userEvent.keyboard('0');
     await userEvent.click(screen.getByRole('tab', { name: 'report' }));
-    expect(shown()).toBe('read');
+    expect(shown()).toBe('page');
     expect(checked()).toBe('read');
   });
 
@@ -290,6 +286,6 @@ describe('the tab bar on Home', () => {
     await screen.findByRole('tab', { name: 'report', selected: true });
     await userEvent.keyboard('3');
     await userEvent.click(screen.getByRole('tab', { name: 'invoice' }));
-    expect(shown()).toBe('arrange');
+    expect(shown()).toBe('grid');
   });
 });

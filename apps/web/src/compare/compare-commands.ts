@@ -21,8 +21,8 @@ import { refreshCompareStale, requestReveal, useCompareStore } from './compare-s
 
 const runner = () => import('./compare-runner');
 
-/** The Compare view shows (not Home, where the view is only remembered). */
-const comparing = () => stageView(useUiStore.getState()) === 'compare';
+/** The Compare place shows (a destination, redesign spec §7). */
+const comparing = () => useUiStore.getState().destination === 'compare';
 
 const inCompare = () =>
   comparing() && useWorkspaceStore.getState().workspace.documentOrder.length > 0;
@@ -63,20 +63,20 @@ export function defaultPair(): { a: DocumentId | null; b: DocumentId | null } {
 }
 
 /** Where Esc returns to: the view Compare was entered from, Home included. */
-let previousMode: Exclude<StageView, 'compare'> = 'read';
+let previousMode: Exclude<StageView, 'compare'> = 'page';
 let previousPanel: { open: boolean; view: LeftPanelView } | null = null;
 
 /** Switches to the Compare view with the Changes panel open. */
 export function enterCompare(): void {
   if (comparing()) return;
-  useUiStore.getState().setViewMode('compare');
+  useUiStore.getState().showCompare();
 }
 
 /** Back to the view the user came from. */
 export function leaveCompare(): void {
   if (!comparing()) return;
   if (previousMode === 'home') useUiStore.getState().showHome();
-  else useUiStore.getState().setViewMode(previousMode);
+  else useUiStore.getState().showSurface(previousMode);
 }
 
 function onEnter(): void {
