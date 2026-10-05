@@ -46,7 +46,6 @@ import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } f
 
 import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
-import { announce } from '../shell/announcer';
 import type { PageOverlayProps } from '../stage/page-overlays';
 import { useCanEdit } from '../state/ui-store';
 import { penDrawsNow, usePenDrawsInEdit } from '../viewer/edit-policy';
@@ -101,6 +100,7 @@ import { pageText } from './page-text';
 import { glyphIndexAt, quadsForRange } from './quads';
 import styles from './AnnotationLayer.module.css';
 import { naturalStampSize } from './stamps';
+import { presentError } from '../errors/present';
 
 /** Smallest drag (CSS px) that counts as a drag rather than a click. */
 const DRAG_THRESHOLD = 4;
@@ -1403,8 +1403,8 @@ async function commitInkStroke(
   if (committed) {
     await inkCommitted(release, target.source, target.pageIndex);
   } else {
-    // A loss the person did not see happen: said at once.
-    announce(m.annot_stroke_not_saved(), { politeness: 'assertive' });
+    // A loss the person did not see happen: shown and said at once (FB8 §6, blocking).
+    presentError({ kind: 'message', text: m.annot_stroke_not_saved(), blocking: true });
   }
   release();
 }

@@ -62,6 +62,7 @@ import {
   PRESET_INDICES,
   presetLabel,
 } from './presets';
+import { presentError } from '../../errors/present';
 
 /** Share of a glyph's height the band must cover for the glyph to be hit. */
 export const GLYPH_HIT_SHARE = 0.5;
@@ -663,8 +664,8 @@ export function commitHighlighterStroke(
       // The dry ink layer hands the stroke to the page bitmap (craft spec §5.3 item 7).
       await inkCommitted(release, target.source, target.pageIndex);
     } else {
-      // A loss the person did not see happen: said at once.
-      announce(m.annot_stroke_not_saved(), { politeness: 'assertive' });
+      // A loss the person did not see happen: shown and said at once (FB8 §6, blocking).
+      presentError({ kind: 'message', text: m.annot_stroke_not_saved(), blocking: true });
     }
     release();
   })();

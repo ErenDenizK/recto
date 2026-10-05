@@ -226,22 +226,3 @@
   opacity: 0;
   transform: translateY(calc(100% + max(env(safe-area-inset-bottom, 0px), 12px)));
 }
-
-/* Share or Download a copy failed: a solid line above the capsule. */
-.notice {
-  position: fixed;
-  right: 0;
-  bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 68px);
-  left: 0;
-  z-index: 3;
-  width: max-content;
-  max-width: calc(100vw - 32px);
-  margin-inline: auto;
-  padding: 10px 16px;
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-3);
-  background: var(--glass-solid);
-  font-size: 0.8125rem;
-  line-height: 1.25rem;
-  text-wrap: pretty;
-}

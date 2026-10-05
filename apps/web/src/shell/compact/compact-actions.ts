@@ -16,7 +16,8 @@
  */
 import type { SourceId, VirtualDocument } from '@pdf-editor/document-model';
 
-import { type EngineFailure, getEngineService } from '../../engine/engine-service';
+import { getEngineService } from '../../engine/engine-service';
+import { failureReason, presentError } from '../../errors/present';
 import { fileHandleOf, pickFiles, rememberFileHandle } from '../../files/open-files';
 import {
   canReopenRecent,
@@ -39,29 +40,6 @@ const set = (patch: Partial<ReturnType<typeof useCompactStore.getState>>) =>
 
 /** The copy being prepared for the open document (the ⋯ menu starts it on open). */
 let prepared: { doc: VirtualDocument; promise: Promise<File>; file?: File } | null = null;
-
-/** Why a file did not open, in a few words (as the full edition's announcements say it). */
-export function failureReason(error: EngineFailure): string {
-  switch (error.code) {
-    case 'password-cancelled':
-    case 'password-required':
-    case 'password-incorrect':
-      return m.failure_no_password();
-    case 'unsupported-encryption':
-      return m.failure_unsupported_encryption();
-    case 'corrupt':
-      return m.failure_corrupt();
-    case 'read-failed':
-      return m.failure_read_failed();
-    case 'unsupported':
-      return m.failure_unsupported();
-    case 'out-of-memory':
-      return m.failure_out_of_memory();
-    case 'aborted':
-    case 'internal':
-      return m.failure_engine();
-  }
-}
 
 /** The open document, if any. */
 export function openDocument(): VirtualDocument | undefined {
@@ -108,7 +86,7 @@ export async function openPdf(file: File, replaces?: string): Promise<boolean> {
       ...(handle === undefined ? {} : { handle }),
       ...(replaces === undefined ? {} : { replaces }),
     });
-    set({ openedDocument: doc, zoom: 1, findOpen: false, sheet: null, copyError: null });
+    set({ openedDocument: doc, zoom: 1, findOpen: false, sheet: null });
     showReader();
     announce(m.announce_opened({ name: file.name }));
     return true;
@@ -183,7 +161,6 @@ async function openKept(snapshotId: string): Promise<boolean> {
       zoom: 1,
       findOpen: false,
       sheet: null,
-      copyError: null,
     });
     showReader();
     announce(m.announce_opened({ name: result.record.title }));
@@ -318,14 +295,14 @@ export function prepareCopy(doc: VirtualDocument): Promise<File> {
 export async function shareOrDownload(): Promise<void> {
   const doc = openDocument();
   if (!doc) return;
-  set({ copyError: null });
   let file = prepared?.doc === doc ? prepared.file : undefined;
   if (file === undefined) {
     try {
       file = await prepareCopy(doc);
     } catch (error) {
       const reason = error instanceof Error && error.message ? error.message : m.failure_engine();
-      set({ copyError: m.compact_copy_failed({ reason }) });
+      // A failure toast above the capsule (FB8), not a line of its own.
+      presentError({ kind: 'message', text: m.compact_copy_failed({ reason }) });
       return;
     }
   }

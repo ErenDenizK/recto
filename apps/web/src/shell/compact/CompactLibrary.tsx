@@ -28,6 +28,7 @@ import { isOpenEntry, openRecentEntry, pickAndOpen } from './compact-actions';
 import { useCompactStore } from './compact-store';
 import controls from './controls.module.css';
 import styles from './CompactLibrary.module.css';
+import { presentError } from '../../errors/present';
 
 /** Characters of a Recents name before the middle is elided (the row also ellipsizes). */
 const NAME_LENGTH = 48;
@@ -111,7 +112,8 @@ function Recents() {
           aria-label={m.recents_clear()}
           onClick={() => {
             void clearRecents().then((cleared) => {
-              announce(cleared ? m.recents_announce_cleared() : m.recents_clear_failed());
+              if (cleared) announce(m.recents_announce_cleared());
+              else presentError({ kind: 'message', text: m.recents_clear_failed() });
             });
           }}
         >
