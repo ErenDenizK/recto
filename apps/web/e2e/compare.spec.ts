@@ -71,6 +71,8 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
 
   await setup.getByRole('combobox', { name: 'Original (A)' }).click();
   await page.getByRole('option', { name: 'compare-a' }).click();
+  // The first list fades out before the second opens (both name the same documents).
+  await expect(page.getByRole('listbox')).toHaveCount(0);
   await setup.getByRole('combobox', { name: 'Revised (B)' }).click();
   await page.getByRole('option', { name: 'compare-b' }).click();
   await setup.getByRole('button', { name: 'Compare', exact: true }).click();

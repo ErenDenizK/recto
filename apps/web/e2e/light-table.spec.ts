@@ -140,7 +140,8 @@ test.describe('light table', () => {
 
     const tabs = page.getByRole('tablist', { name: 'Open documents' }).getByRole('tab');
     await expect(tabs).toHaveCount(1);
-    await expect(tabs.first()).toHaveAccessibleName('simple-text');
+    // Merged into the first document, which is now edited until saved (D0-8).
+    await expect(tabs.first()).toHaveAccessibleName('simple-text, edited');
 
     await page.getByRole('button', { name: 'Export document' }).click();
     const exportDialog = page.getByTestId('export-dialog');

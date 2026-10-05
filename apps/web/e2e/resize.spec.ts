@@ -33,7 +33,8 @@ test('resize all pages to A4 (fit), export and download a verified PDF', async (
 
   const dialog = page.getByTestId('resize-dialog');
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId('resize-preset')).toHaveValue('a4');
+  // The preset is a ui/Select: its trigger shows the chosen preset.
+  await expect(dialog.getByTestId('resize-preset')).toHaveText('A4');
   await expect(dialog.getByRole('radio', { name: /^Fit/ })).toBeChecked();
   await expect(dialog.getByRole('radio', { name: 'All pages of mixed-sizes (5)' })).toBeChecked();
   await expect(dialog.getByTestId('resize-summary')).toHaveText(
