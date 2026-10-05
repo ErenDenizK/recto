@@ -4,20 +4,62 @@
  * sheet's glass, quality-bar Q-4), tabular numerals for sizes.
  */
 
-/* A row: the label in a fixed column on the control's centre line, the control after it. */
+/*
+ * The form: one label column for every row of the page (the rows, the sections and the
+ * disclosures are subgrids of it), as wide as the longest label shown and at most 9.5rem, so
+ * the controls line up and a label never breaks inside a word: "Background" on a tablet,
+ * "Çözünürlük" or "Dosya adları" in Turkish (XD-3; A-21: no fixed-width text containers). A
+ * label longer than the cap wraps between words only.
+ */
+.form {
+  display: grid;
+  grid-template-columns: fit-content(9.5rem) minmax(0, 1fr);
+  align-content: start;
+  gap: 16px 12px;
+}
+
+.form > *,
+.section > * {
+  grid-column: 1 / -1;
+}
+
+/* The first row and the unseen label measure (`LabelColumn`) share the first grid row, so
+   the measure takes no row and no gap of its own. */
+.form > :first-child {
+  grid-row: 1;
+}
+
+.form > .labelColumn {
+  display: grid;
+  grid-row: 1;
+  grid-column: 1;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* A row: the label on the control's centre line, the control after it. */
 .row {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: subgrid;
   align-items: start;
-  column-gap: 12px;
+}
+
+.rowLabel,
+.disclosureLabel {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
 }
 
 .rowLabel {
+  display: flex;
+  align-items: center;
   min-height: var(--control-h);
   color: var(--text-secondary);
   font-size: var(--control-text);
-  line-height: var(--control-h);
-  overflow-wrap: anywhere;
+  line-height: var(--control-lh);
 }
 
 /* The control column stacks what belongs to the row (Custom's fields, the link). */
@@ -30,7 +72,8 @@
 /* A format's section fades in when the format changes (§4.7, 120 ms; instant when reduced). */
 .section {
   display: grid;
-  gap: 16px;
+  grid-template-columns: subgrid;
+  row-gap: 16px;
   animation: section-in 120ms var(--ease-out);
 }
 
@@ -66,8 +109,15 @@
 }
 
 /* The disclosures: one bordered group of rows, label · value · chevron. */
-.disclosures {
+.disclosures,
+.disclosure {
   display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  row-gap: 0;
+}
+
+.disclosures {
   border-block: 1px solid var(--border-hairline);
 }
 
@@ -77,9 +127,9 @@
 
 .disclosureButton {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr) 16px;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  column-gap: 12px;
   box-sizing: border-box;
   width: 100%;
   min-height: var(--control-h);
@@ -112,7 +162,17 @@
   color: var(--text-secondary);
 }
 
+/* The value and the chevron share the control column. */
+.disclosureEnd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .disclosureValue {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   color: var(--text-primary);
   text-overflow: ellipsis;
@@ -120,6 +180,7 @@
 }
 
 .chevron {
+  flex: none;
   width: 16px;
   height: 16px;
   color: var(--text-tertiary);
@@ -138,8 +199,10 @@
 
 .disclosurePanel {
   display: grid;
+  grid-column: 2;
   gap: 8px;
-  padding: 0 0 12px 88px;
+  min-width: 0;
+  padding: 0 0 12px;
   animation: section-in 120ms var(--ease-out);
 }
 

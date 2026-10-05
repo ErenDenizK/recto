@@ -69,6 +69,12 @@ describe('segmentedLayout', () => {
     expect(segmentedLayout([60, 160, 70], 300)).toBe('content');
     expect(segmentedLayout([120, 160, 70], 300)).toBe('select');
   });
+
+  it('keeps equal shares while the widest label has 8 px either side (72 · 150 · 300 · Custom)', () => {
+    // Measured with 12 px a side: "Custom" is 73.5 wide, four shares of 66.5 hold it at 8.
+    expect(segmentedLayout([39.9, 46.4, 49.8, 73.5], 266)).toBe('equal');
+    expect(segmentedLayout([39.9, 46.4, 49.8, 76], 266)).toBe('content');
+  });
 });
 
 describe('Segmented, radio semantics', () => {
