@@ -2604,5 +2604,84 @@
   "history_empty": "Henüz geri alınacak bir şey yok.",
   "announce_history_jump": "Şimdi {count} adımdan {index}. adımdasınız: {step}",
   "cmd_history": "Geçmişi göster…",
-  "history_show": "Göster"
+  "history_show": "Göster",
+  "cmd_save": "Kaydet",
+  "cmd_file_save_keywords": "kaydet, yaz, sakla",
+  "cmd_revert": "Açılan sürüme dön…",
+  "cmd_file_revert_keywords": "geri dön, eski haline getir, özgün, değişiklikleri at, sıfırla",
+  "save_label": "Kaydet",
+  "save_label_saved": "Kaydedildi",
+  "save_label_saving": "Kaydediliyor… {percent}",
+  "save_label_saving_plain": "Kaydediliyor…",
+  "save_everything_in": "Tüm değişiklikler {name} dosyasında",
+  "save_job": "{name} kaydediliyor…",
+  "save_verified": "Kaydedildi · doğrulandı",
+  "save_verified_removed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Kaydedildi · {count} alan kalıcı olarak kaldırıldı · doğrulandı",
+        "countPlural=*": "Kaydedildi · {count} alan kalıcı olarak kaldırıldı · doğrulandı"
+      }
+    }
+  ],
+  "save_announce_verified": "{name} kaydedildi, doğrulandı",
+  "save_downloaded": "{name} indirildi",
+  "save_shared": "{name} paylaşıldı",
+  "save_copy_detail": "Bu tarayıcı açtığınız dosyaya yazamıyor, bu yüzden bu yeni bir kopya. Açtığınız dosya değişmedi.",
+  "save_failed": "{name} kaydedilemedi: {reason}",
+  "save_a_copy": "Kopya kaydet…",
+  "save_reason_moved": "dosya taşınmış ya da silinmiş",
+  "save_reason_denied": "tarayıcı dosyaya yazmaya izin vermedi",
+  "save_reason_mismatch": "dosya yazıldığı gibi geri okunamadı",
+  "save_reason_failed": "dosya yazılamadı",
+  "save_reason_unverified": "yeni dosya denetimlerden geçemedi",
+  "save_reason_marks": "karartma işaretleri uygulanamadı",
+  "save_replace_title": "{name} değiştirilsin mi?",
+  "save_replace_body": "Recto değişikliklerinizi açtığınız dosyaya yazar. Açılan sürüme bu cihazda yine dönebilirsiniz.",
+  "save_replace": "Değiştir",
+  "save_replace_dont_ask": "Bu dosya için bir daha sorma",
+  "save_marks_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} işaret uygulanmadı",
+        "countPlural=*": "{count} işaret uygulanmadı"
+      }
+    }
+  ],
+  "save_marks_body": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} işaretin altındaki metin hâlâ dosyada.",
+        "countPlural=*": "{count} işaretin altındaki metin hâlâ dosyada."
+      }
+    }
+  ],
+  "save_marks_apply": "Uygula ve kaydet",
+  "save_marks_without": "Uygulamadan kaydet",
+  "tab_name_edited": "{name}, düzenlendi",
+  "tab_edited_hint": "Değişiklikler henüz dosyada değil (bu cihazda saklanıyor)",
+  "revert_title": "Açılan sürüme dönülsün mü?",
+  "revert_body": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Açtığınızdan beri yaptığınız {count} değişiklik gider. Geri al ile geri gelir.",
+        "countPlural=*": "Açtığınızdan beri yaptığınız {count} değişiklik gider. Geri al ile geri gelirler."
+      }
+    }
+  ],
+  "revert_body_unknown": "Açtığınızdan beri yaptığınız değişiklikler gider. Geri al ile geri gelirler.",
+  "revert_action": "Geri dön",
+  "revert_done": "{name} geri döndürüldü",
+  "revert_failed": "{name} açılan sürüme döndürülemedi.",
+  "revert_nothing_changed": "Açtığınızdan beri değişiklik yok",
+  "revert_unavailable": "Bu belge tek bir dosyadan açılmadı",
+  "history_reverted": "{name} açılan sürüme döndürüldü"
 }

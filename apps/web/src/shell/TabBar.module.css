@@ -108,6 +108,23 @@
   white-space: nowrap;
 }
 
+/* ● changes not yet in the file (01-frame §4, the saved mark of X13): 6 px after the name, in
+   the secondary ink; the tab's name says "edited". */
+.edited {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-left: calc(-1 * var(--space-1));
+  border-radius: var(--radius-round);
+  background: var(--text-secondary);
+}
+
+@media (forced-colors: active) {
+  .edited {
+    background: CanvasText;
+  }
+}
+
 .close {
   position: absolute;
   top: calc(50% - 11px);

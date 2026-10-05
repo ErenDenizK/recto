@@ -1,0 +1,18 @@
+/* The Replace and unapplied-marks questions (01-frame F7 §2): the popover primitive at 320 px,
+   the checkbox row, then the answers on one row at the end, the default last. */
+.popup {
+  display: flex;
+  flex-direction: column;
+}
+
+.dontAsk {
+  margin-top: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}

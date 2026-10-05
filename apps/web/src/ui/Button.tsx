@@ -127,7 +127,8 @@ export function Button({
       disabled={disabled}
       focusableWhenDisabled
       {...(autoFocus === true && variant !== 'danger' ? { autoFocus: true } : {})}
-      aria-busy={busy || undefined}
+      // A caller that shows its own progress (Save, 01-frame F7) marks itself busy too.
+      aria-busy={busy || rest['aria-busy'] === true || undefined}
       aria-describedby={
         description === null
           ? rest['aria-describedby']

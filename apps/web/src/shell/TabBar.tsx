@@ -27,10 +27,14 @@ import { useUiStore } from '../state/ui-store';
 import { useTabItems, useWorkspaceStore } from '../state/workspace-store';
 import { SignatureTabGlyph } from '../signatures/SignatureBadge';
 import { DocumentMenu } from '../tools/DocumentMenu';
+import { useSavedStore, matchesMark } from '../state/saved-store';
 import { IconButton } from '../ui/IconButton';
 import { Keycaps } from '../ui/Keycaps';
 import { HomeButton } from './AppGlyph';
 import { announce } from './announcer';
+import { ReplacePopover } from './frame/ReplacePopover';
+import { RevertDialog } from './frame/RevertDialog';
+import { SaveButton } from './frame/SaveButton';
 import { UndoRedo } from './frame/UndoRedo';
 import styles from './TabBar.module.css';
 import { useCommandShortcut } from './use-command-shortcut';
@@ -57,6 +61,9 @@ export function TabBar() {
   const paletteShortcut = useCommandShortcut('view.palette');
   const rightShortcut = useCommandShortcut('view.toggleRightPanel');
   const exportShortcut = useCommandShortcut('file.export');
+  // The saved mark (X13): ● after the name while a document's changes are not in its file.
+  const workspace = useWorkspaceStore((s) => s.workspace);
+  const marks = useSavedStore((s) => s.marks);
 
   // Keep the active tab visible when the strip overflows.
   useEffect(() => {
@@ -137,6 +144,7 @@ export function TabBar() {
                   </div>
                 );
               }
+              const edited = !matchesMark(workspace, doc.id, marks[doc.id]);
               return (
                 <TabArrangeMenu key={doc.id} documentId={doc.id} title={doc.title}>
                   <div className={styles.tabWrap} data-selected={selected || undefined}>
@@ -161,9 +169,21 @@ export function TabBar() {
                         }
                       }}
                       title={doc.title}
+                      aria-label={edited ? m.tab_name_edited({ name: doc.title }) : undefined}
+                      data-edited={edited || undefined}
                     >
                       <span className={styles.tag} data-tag={doc.colorIndex} aria-hidden="true" />
                       <span className={styles.name}>{doc.title}</span>
+                      {/* ● "changes not yet in the file" (01-frame §4), drawn by CSS so the tab's
+                          text stays its title. */}
+                      {edited ? (
+                        <span
+                          className={styles.edited}
+                          title={m.tab_edited_hint()}
+                          aria-hidden="true"
+                          data-testid="tab-edited"
+                        />
+                      ) : null}
                       <SignatureTabGlyph documentId={doc.id} />
                     </button>
                     <span
@@ -204,6 +224,7 @@ export function TabBar() {
         </button>
         {/* ↶ ↷ in a document, on every width; none on Home (01-frame F3, §16 item 11). */}
         {documents.length > 0 && !onHome ? <UndoRedo /> : null}
+        {documents.length > 0 && !onHome ? <SaveButton /> : null}
         <DocumentMenu visible={documents.length > 0} />
         {documents.length > 0 ? (
           <IconButton
@@ -226,6 +247,8 @@ export function TabBar() {
         ) : null}
       </div>
       <FurnitureDialogs />
+      <ReplacePopover />
+      <RevertDialog />
     </header>
   );
 }

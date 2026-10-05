@@ -767,6 +767,14 @@ async function handleOf(entry: RecentEntry): Promise<RecentFileHandle | undefine
 }
 
 /**
+ * The entry's handle without reading its file (Save in place, ADR-0032 §2.1): the one this
+ * session holds, else the stored one, read now. Only from a press; never on Chromium 153.
+ */
+export function recentHandle(entry: RecentEntry): Promise<RecentFileHandle | undefined> {
+  return handleOf(entry);
+}
+
+/**
  * Reads an entry's file through its handle, reading a stored handle first. Call it straight
  * from the click (no await before it): `requestPermission` needs the click's user
  * activation, which a short IndexedDB read keeps. A denied permission or a moved file marks
