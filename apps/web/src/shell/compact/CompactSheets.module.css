@@ -142,9 +142,11 @@ a.contentsRow:active {
   color: var(--text-secondary);
 }
 
-/* Go to page: the field and Go on one line, the hint under them. */
+/* Go to page: the field and Go on one line, the hint under them. The column may shrink below
+   the field's intrinsic width (a text input's `size`), so Go stays inside the sheet. */
 .goto {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   padding: 4px 12px 8px;
 }
