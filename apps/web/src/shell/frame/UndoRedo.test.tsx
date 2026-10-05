@@ -184,17 +184,43 @@ describe('the History scrubber (08-feedback FB7)', () => {
     await waitFor(() => expect(scrubber()).toBeVisible());
     expect(scrubber()).toHaveAttribute('data-presentation', 'list');
     const options = screen.getAllByRole('option');
-    // The empty start is left out: Open, then three rotations.
+    // The empty start is left out: the opening, said in the past tense (FB7 §5), then three
+    // rotations.
     expect(options.map((o) => o.getAttribute('aria-label')?.split(',')[0])).toEqual([
       'Rotate 3',
       'Rotate 2',
       'Rotate 1',
-      'Open report.pdf',
+      'Opened report.pdf',
     ]);
     expect(options[0]).toHaveAttribute('aria-current', 'step');
     expect(options[0]).toHaveAccessibleName(/^Rotate 3, page 3, \d\d[:.]\d\d$/);
+    // Every step is in the same minute: the time shows once, at the top of the run; each
+    // option's name still says it.
+    expect(options.map((o) => o.firstElementChild?.textContent)).toEqual([
+      expect.stringMatching(/^\d\d[:.]\d\d$/),
+      '',
+      '',
+      '',
+    ]);
+    expect(options[3]).toHaveAccessibleName(/^Opened report\.pdf, \d\d[:.]\d\d$/);
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('listbox')));
     expect(undo).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('dims the undone (future) steps against the past ones', async () => {
+    const { undo } = mount(3);
+    act(() => {
+      useWorkspaceStore.getState().undo();
+    });
+    await userEvent.click(undo, { button: 'right' });
+    await waitFor(() => expect(scrubber()).toBeVisible());
+    const [future, present, past] = screen.getAllByRole('option');
+    if (!future || !present || !past) throw new Error('no rows');
+    expect(future).toHaveAttribute('data-state', 'future');
+    expect(past).toHaveAttribute('data-state', 'past');
+    const color = (row: HTMLElement) => getComputedStyle(row).color;
+    expect(color(future)).not.toBe(color(past));
+    expect(color(past)).toBe(color(present));
   });
 
   it('Shift+F10 opens it; ↓ previews older steps, Enter keeps, focus returns to ↶', async () => {

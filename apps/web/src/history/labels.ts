@@ -130,6 +130,20 @@ export function stepTime(at: number): string {
   }).format(at);
 }
 
+/**
+ * An opening's label as the scrubber says it, in the past tense (FB7 §5: the first row reads
+ * "Opened"): "Open report.pdf" becomes "Opened report.pdf". The name is read back from the
+ * label through `history_open`'s own words, so a drop's "Open 2 files" works too; a label in
+ * any other shape is kept. Turkish says both as "report.pdf açıldı".
+ */
+export function openedLabel(label: string): string {
+  const marker = '\u0001';
+  const [head = '', tail = ''] = m.history_open({ name: marker }).split(marker);
+  if (label.length <= head.length + tail.length) return label;
+  if (!label.startsWith(head) || !label.endsWith(tail)) return label;
+  return m.history_opened({ name: label.slice(head.length, label.length - tail.length) });
+}
+
 /** One row of the History scrubber (FB7 §2, §5). */
 export interface ScrubberStep {
   /** Index into `historyEntries(history)`, what `jumpTo` takes. */
@@ -161,6 +175,7 @@ export function scrubberSteps(history: History): ScrubberStep[] {
   entries.forEach((entry, index) => {
     if (entry.workspace.documentOrder.length === 0) return;
     const meta = entry.meta;
+    const label = meta?.kind === 'open' ? openedLabel(entry.label) : entry.label;
     const page =
       meta?.page !== undefined && !labelNamesPage(entry.label, meta.page) ? meta.page : undefined;
     const id = meta?.documentId;
@@ -172,15 +187,15 @@ export function scrubberSteps(history: History): ScrubberStep[] {
     steps.push({
       index,
       state: index < presentIndex ? 'past' : index === presentIndex ? 'present' : 'future',
-      label: entry.label,
+      label,
       time,
       ...(page === undefined ? {} : { page }),
       ...(document === undefined ? {} : { document }),
       name:
         page === undefined
-          ? m.history_option({ label: entry.label, time })
-          : m.history_option_page({ label: entry.label, page, time }),
-      phrase: stepPhrase(entry, { workspace, fallbacks: [entry.workspace] }),
+          ? m.history_option({ label, time })
+          : m.history_option_page({ label, page, time }),
+      phrase: stepPhrase({ ...entry, label }, { workspace, fallbacks: [entry.workspace] }),
     });
   });
   return steps.reverse();
