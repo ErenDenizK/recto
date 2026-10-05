@@ -10,7 +10,7 @@ import type { PDFNumber } from '@cantoo/pdf-lib';
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFRef } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Download flow is verified on Chromium');
 
@@ -101,13 +101,10 @@ test('edit the outline, export, and read the new tree back', async ({ page }, te
   await expect(status).toHaveText('Page 2 of 6');
 
   // 4. Export under a new name, verified by the PDFium pass, and download.
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const dialog = page.getByTestId('export-dialog');
-  await dialog.getByRole('textbox', { name: 'File name' }).fill('outline-edited.pdf');
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(dialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const dialog = await openSaveCopy(page);
+  await dialog.getByRole('textbox', { name: 'Name' }).fill('outline-edited.pdf');
   const downloadPromise = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download' }).click();
+  await dialog.getByRole('button', { name: 'Download copy' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('outline-edited.pdf');
   const saved = testInfo.outputPath('outline-edited.pdf');

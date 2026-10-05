@@ -22,6 +22,7 @@ import { expect, type Page, test } from '@playwright/test';
 import {
   enterEdit,
   openFixtures,
+  openSaveCopy,
   sessionSettled,
   showInspector,
   useFileInputPicker,
@@ -201,13 +202,9 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
   await page.keyboard.press('ControlOrMeta+Shift+z');
   await expect(stamps).toHaveCount(2);
 
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const dialog = page.getByTestId('export-dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(dialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const dialog = await openSaveCopy(page);
   const downloading = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download' }).click();
+  await dialog.getByRole('button', { name: 'Download copy' }).click();
   const pdf = await PDFDocument.load(await readFile(await (await downloading).path()), {
     updateMetadata: false,
   });

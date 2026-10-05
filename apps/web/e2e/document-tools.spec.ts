@@ -10,7 +10,13 @@ import { fileURLToPath } from 'node:url';
 import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, showInspector, useFileInputPicker } from './helpers';
+import {
+  copySummary,
+  openFixtures,
+  openSaveCopy,
+  showInspector,
+  useFileInputPicker,
+} from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 const capture = Boolean(process.env.CAPTURE_SCREENSHOTS);
@@ -50,13 +56,9 @@ async function closeDocumentInfo(page: Page): Promise<void> {
 }
 
 async function exportAndDownload(page: Page): Promise<string> {
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const dialog = page.getByTestId('export-dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(dialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const dialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download' }).click();
+  await dialog.getByRole('button', { name: 'Download copy' }).click();
   const download = await downloadPromise;
   await expect(dialog).toBeHidden();
   return download.path();
@@ -95,18 +97,16 @@ test('edit the title, set a password, export, and open the output with the passw
   await expect(page.getByTestId('security-outcome')).toContainText('AES-256');
   await closeDocumentInfo(page);
 
-  // The export dialog's Security section shows the outcome; the summary names the algorithm.
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
+  // Save a copy's Security row shows the outcome; the copy's Details name the algorithm.
+  const exportDialog = await openSaveCopy(page);
+  await exportDialog.getByRole('button', { name: /^Security, / }).click();
   await expect(exportDialog.getByTestId('export-security-outcome')).toContainText(
     'AES-256: a password is needed to open it; restricted: copying text and images.',
   );
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
-  await expect(exportDialog.getByText(/Encrypted with AES-256/)).toBeVisible();
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const path = await (await downloadPromise).path();
+  await expect(await copySummary(page)).toContainText(/Encrypted with AES-256/);
 
   const bytes = await readFile(path);
   await expect(PDFDocument.load(bytes, { updateMetadata: false })).rejects.toThrow();

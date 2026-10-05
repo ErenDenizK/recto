@@ -8,9 +8,10 @@
  * works in all three engines. Drag-and-drop itself is still covered by the light-table
  * spec and by the browser-mode unit tests.
  */
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-import { expect, type Page } from '@playwright/test';
+import { type Download, expect, type Locator, type Page } from '@playwright/test';
 
 export const FIXTURES = new URL('../../../test/fixtures/', import.meta.url);
 
@@ -169,4 +170,54 @@ export async function reloadFresh(page: Page): Promise<void> {
     await notice.getByRole('button', { name: 'Dismiss' }).click();
     await waitForSnapshot(page);
   }
+}
+
+/**
+ * Call before the first `page.goto`: hides `showSaveFilePicker`, so Save a copy downloads
+ * (the path of Firefox and Safari) and Playwright can read the file; the native Chromium
+ * save picker cannot be driven from a test.
+ */
+export async function useDownloadPath(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });
+  });
+}
+
+/** Opens Save a copy (S2) for the active document from the tab bar's button. */
+export async function openSaveCopy(page: Page): Promise<Locator> {
+  await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+  const sheet = page.getByTestId('save-copy-sheet');
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+/**
+ * Presses Download copy in an open Save a copy sheet (see `useDownloadPath`): the sheet
+ * closes, the copy is built and checked as a job, and the browser downloads it. Resolves to
+ * the download and its bytes once the success toast says so.
+ */
+export async function downloadCopy(
+  page: Page,
+  sheet: Locator,
+  timeout = 60_000,
+): Promise<{ readonly download: Download; readonly bytes: Buffer }> {
+  const downloading = page.waitForEvent('download', { timeout });
+  await sheet.getByRole('button', { name: 'Download copy' }).click();
+  const download = await downloading;
+  await expect(page.getByTestId('save-copy-toast').last()).toBeVisible({ timeout });
+  return { download, bytes: await readFile(await download.path()) };
+}
+
+/** Opens Save a copy and downloads the PDF with the sheet's current choices. */
+export async function saveCopyBytes(page: Page, timeout = 60_000): Promise<Buffer> {
+  const sheet = await openSaveCopy(page);
+  return (await downloadCopy(page, sheet, timeout)).bytes;
+}
+
+/** The last copy's summary ("What changed on export"), from its toast's Details. */
+export async function copySummary(page: Page): Promise<Locator> {
+  await page.getByTestId('save-copy-toast').last().getByRole('button', { name: 'Details' }).click();
+  const sheet = page.getByTestId('save-copy-sheet');
+  await expect(sheet.getByTestId('save-copy-details')).toBeVisible();
+  return sheet.getByRole('list', { name: 'What changed on export' });
 }

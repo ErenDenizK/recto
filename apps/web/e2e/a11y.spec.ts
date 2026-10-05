@@ -606,9 +606,19 @@ test.describe('axe', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('document-info')).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Export document' }).click();
-    await expect(page.getByTestId('export-dialog')).toBeVisible();
-    await axe(page, 'export dialog');
+    // Save a copy (S2), each format and an open disclosure.
+    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    const sheet = page.getByTestId('save-copy-sheet');
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('button', { name: /^Security, / }).click();
+    await axe(page, 'Save a copy, PDF');
+    await sheet.getByRole('radio', { name: 'Images' }).click();
+    await axe(page, 'Save a copy, Images');
+    await sheet.getByRole('radio', { name: 'Text', exact: true }).click();
+    await expect(sheet.getByTestId('convert-preview')).toHaveAttribute('data-state', 'ready', {
+      timeout: 30_000,
+    });
+    await axe(page, 'Save a copy, Text');
   });
 
   test('the pen editor and the lasso bar', async ({ page }) => {

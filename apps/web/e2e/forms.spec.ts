@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -51,16 +51,13 @@ async function fillName(page: Page, value: string): Promise<void> {
 }
 
 async function exportDocument(page: Page, flatten: boolean): Promise<PDFDocument> {
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const dialog = page.getByTestId('export-dialog');
-  await expect(dialog).toBeVisible();
-  const flattenBox = dialog.getByRole('checkbox', { name: 'Flatten form fields' });
+  const dialog = await openSaveCopy(page);
+  await dialog.getByRole('button', { name: /^Flatten, / }).click();
+  const flattenBox = dialog.getByRole('checkbox', { name: 'Form fields' });
   await expect(flattenBox).toBeVisible();
   await flattenBox.setChecked(flatten);
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(dialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
   const downloadPromise = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download' }).click();
+  await dialog.getByRole('button', { name: 'Download copy' }).click();
   const download = await downloadPromise;
   return PDFDocument.load(await readFile(await download.path()), { updateMetadata: false });
 }
@@ -165,13 +162,9 @@ test('add a text field and a checkbox by drag, fill them, export: the fields exi
   await expect(page.locator('[data-created-row="Text1"]')).toContainText('Created by e2e');
   await expect(page.locator('[data-created-row="CheckBox1"]')).toContainText('Checked');
 
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const dialog = page.getByTestId('export-dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(dialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const dialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await dialog.getByRole('button', { name: 'Download' }).click();
+  await dialog.getByRole('button', { name: 'Download copy' }).click();
   const download = await downloadPromise;
   const pdf = await PDFDocument.load(await readFile(await download.path()), {
     updateMetadata: false,

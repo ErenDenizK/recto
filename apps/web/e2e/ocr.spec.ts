@@ -15,7 +15,7 @@ import { readFile } from 'node:fs/promises';
 import { decodePDFRawStream, PDFDict, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { copySummary, openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'OCR is verified on Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -139,17 +139,11 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await field.press('Escape');
 
   // 5. Export: the summary names the run; the file's layer holds the words.
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog).toBeVisible();
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 60_000 });
-  await expect(exportDialog.getByRole('list', { name: 'What changed on export' })).toContainText(
-    'Recognized text (OCR) on 2 pages: English',
-  );
+  const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const bytes = await readFile(await (await downloadPromise).path());
+  await expect(await copySummary(page)).toContainText('Recognized text (OCR) on 2 pages: English');
   const words = await layerWords(bytes);
   expect(words).toHaveLength(2);
   const first = words[0] ?? [];

@@ -9,9 +9,9 @@
  * text selection bar, Edit with each of the bar's five groups, an options tier, a tool menu,
  * the Document menu, the page context menu, Arrange with its contextual bar, the History
  * scrubber under ↶ (D0-6), the toast stack (an Undo toast and a failure toast, hovered so ✕
- * shows), an annotation's bar, a dialog with its footer, the sheets of D0-4 (the shortcuts
- * overlay's header, the password prompt's footer) and the Settings sheet of D0-10 (its header
- * and control rows, and the About Recto page).
+ * shows), an annotation's bar, a dialog with its footer, the Save a copy sheet's header and
+ * footer (D0-9), the sheets of D0-4 (the shortcuts overlay's header, the password prompt's
+ * footer) and the Settings sheet of D0-10 (its header and control rows, and the About Recto page).
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -156,13 +156,14 @@ test.describe('the full edition', () => {
     await run.audit('the page context menu');
     await page.keyboard.press('Escape');
 
-    // A dialog and its footer.
-    await page
-      .getByRole('button', { name: /^Export/ })
-      .first()
-      .click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await run.audit('the Export dialog');
+    // Save a copy, a task Sheet (D0-9): its header and footer, with a pushed page's ‹ Back.
+    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    const saveCopy = page.getByTestId('save-copy-sheet');
+    await expect(saveCopy).toBeVisible();
+    await run.audit('the Save a copy sheet');
+    await saveCopy.getByTestId('save-copy-what-smaller').click();
+    await expect(saveCopy.getByRole('button', { name: 'Back' })).toBeVisible();
+    await run.audit('Save a copy, What gets smaller');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
 

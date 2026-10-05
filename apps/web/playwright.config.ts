@@ -27,6 +27,8 @@ const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';
 const SHEETS_SPEC = '**/sheets.spec.ts';
 /** The Settings sheet as a form sheet on the medium class (spec D0-10). */
 const SETTINGS_SPEC = '**/settings.spec.ts';
+/** Save a copy's Share copy and J13B's touch count (spec D0-9, §10.5: jobs on the tablet). */
+const SAVE_COPY_SPECS = ['**/save-copy.spec.ts', '**/jobs.spec.ts'];
 const touchDevice = (
   size: { width: number; height: number },
   userAgent: string,
@@ -81,6 +83,7 @@ export default defineConfig({
         BAR_AUDIT_SPEC,
         SHEETS_SPEC,
         SETTINGS_SPEC,
+        ...SAVE_COPY_SPECS,
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

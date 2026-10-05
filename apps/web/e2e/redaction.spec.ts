@@ -21,7 +21,14 @@ import { fileURLToPath } from 'node:url';
 import { type PDFArray, type PDFDict, PDFDocument, PDFName, type PDFNumber } from '@cantoo/pdf-lib';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, showInspector, useFileInputPicker } from './helpers';
+import {
+  copySummary,
+  enterEdit,
+  openFixtures,
+  openSaveCopy,
+  showInspector,
+  useFileInputPicker,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -143,13 +150,9 @@ test('mark by selection and by area, list them, export and re-open with the mark
   await expect(panel.getByTestId('redaction-summary')).toHaveText('2 marks · 1 selected');
 
   // 4. Export: the marks are written as /Redact with /IC black; nothing is applied.
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog).toBeVisible();
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 30_000 });
+  const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const bytes = await readFile(await (await downloadPromise).path());
   const marks = await redactAnnotations(bytes);
   expect(marks).toHaveLength(2);
@@ -234,18 +237,11 @@ test('mark every search match, then review the marks with J and K', async ({ pag
 });
 
 async function exportAndDownload(page: Page): Promise<{ bytes: Buffer; summary: string[] }> {
-  await page.getByRole('button', { name: 'Export document' }).click();
-  const exportDialog = page.getByTestId('export-dialog');
-  await expect(exportDialog).toBeVisible();
-  await exportDialog.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(exportDialog.getByTestId('export-verified')).toBeVisible({ timeout: 60_000 });
-  const summary = await exportDialog
-    .getByRole('list', { name: 'What changed on export' })
-    .locator(':scope > li')
-    .allTextContents();
+  const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
-  await exportDialog.getByRole('button', { name: 'Download' }).click();
+  await exportDialog.getByRole('button', { name: 'Download copy' }).click();
   const bytes = await readFile(await (await downloadPromise).path());
+  const summary = await (await copySummary(page)).locator(':scope > li').allTextContents();
   await page.keyboard.press('Escape');
   return { bytes, summary };
 }
