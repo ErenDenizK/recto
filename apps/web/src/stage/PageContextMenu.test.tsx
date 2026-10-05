@@ -3,7 +3,8 @@
  * view, the tool bar (which mounts the menu) and real PDFium: it opens on a right-click and
  * on Shift+F10, its items act on the page it was opened on and name it, "Edit text here" is
  * Edit's only, Read offers no page change (one quiet row switches to Edit instead), and a
- * right-click on selected text keeps the browser's menu.
+ * right-click on selected text keeps the browser's menu. On touch a long press on the paper
+ * opens it (04-context §2.3; spec D1-7), once, and never on a text run or for a drawing pen.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
@@ -88,6 +89,26 @@ function rightClick(target: Element): boolean {
     }),
   );
 }
+
+/** A synthetic pointer event of `pointerType` at the middle of `target`. */
+function press(type: string, target: Element, pointerType = 'touch'): void {
+  const box = target.getBoundingClientRect();
+  target.dispatchEvent(
+    new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 21,
+      pointerType,
+      isPrimary: true,
+      button: 0,
+      clientX: box.left + box.width / 2,
+      clientY: box.top + box.height / 2,
+    }),
+  );
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** The open menu, once its items have risen in. */
 async function menu(): Promise<HTMLElement> {
@@ -273,5 +294,58 @@ describe('page context menu', () => {
     expect(rightClick(span)).toBe(true);
     expect(screen.queryByTestId('page-context-menu')).toBeNull();
     window.getSelection()?.removeAllRanges();
+  });
+
+  it('opens on a long press on the paper (touch) at the press point, once', async () => {
+    const { container } = await mount();
+    const canvas = pageElement(container, 1).querySelector('canvas');
+    if (!canvas) throw new Error('no canvas');
+    press('pointerdown', canvas);
+    await sleep(300);
+    expect(screen.queryByTestId('page-context-menu')).toBeNull();
+    const popup = await menu();
+    expect(popup).toHaveAccessibleName('Page 2');
+    // Android's own contextmenu from the same touch is swallowed: no second opening.
+    expect(rightClick(canvas)).toBe(false);
+    press('pointerup', canvas);
+    expect(screen.getAllByTestId('page-context-menu')).toHaveLength(1);
+    expect(popup).toHaveAccessibleName('Page 2');
+    await userEvent.keyboard('{Escape}');
+    await closed();
+  });
+
+  it('leaves a long press on a text run to native selection, and a mouse to right-click', async () => {
+    const { container } = await mount();
+    const span = await waitFor(() => {
+      const found = container.querySelector(
+        '[data-page-index="0"] [data-testid="text-layer"] > span',
+      );
+      if (!found) throw new Error('no text yet');
+      return found;
+    });
+    press('pointerdown', span);
+    await sleep(600);
+    press('pointerup', span);
+    expect(screen.queryByTestId('page-context-menu')).toBeNull();
+    const canvas = pageElement(container, 0).querySelector('canvas');
+    if (!canvas) throw new Error('no canvas');
+    press('pointerdown', canvas, 'mouse');
+    await sleep(600);
+    press('pointerup', canvas, 'mouse');
+    expect(screen.queryByTestId('page-context-menu')).toBeNull();
+  });
+
+  it('never long-presses for a pen on a drawing tool’s layer', async () => {
+    const { container } = await mount(true);
+    useToolStore.getState().setMode('ink');
+    const layer = await waitFor(() => {
+      const found = pageElement(container, 1).querySelector('[data-drawing]');
+      if (!found) throw new Error('no drawing layer');
+      return found;
+    });
+    press('pointerdown', layer, 'pen');
+    await sleep(600);
+    expect(screen.queryByTestId('page-context-menu')).toBeNull();
+    press('pointercancel', layer, 'pen');
   });
 });
