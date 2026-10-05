@@ -59,7 +59,9 @@ describe('IconButton (09-primitives §4)', () => {
     await release();
 
     expect(bg(screen.getByRole('button', { name: 'Heat map' }))).toBe('rgba(124, 140, 255, 0.16)');
-    expect(bg(screen.getByRole('button', { name: 'Pen' }))).toBe('rgb(124, 140, 255)');
+    // The test browser's pointer may rest over a button from an earlier file; hover is right then.
+    const pen = screen.getByRole('button', { name: 'Pen' });
+    expect(bg(pen)).toBe(pen.matches(':hover') ? 'rgb(143, 157, 255)' : 'rgb(124, 140, 255)');
     const redo = screen.getByRole('button', { name: 'Redo' });
     expect(getComputedStyle(redo).color).toBe('rgb(74, 78, 85)');
     release = await forceState(redo, ['hover']);

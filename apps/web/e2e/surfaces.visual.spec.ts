@@ -63,6 +63,8 @@ test.describe('primitives', () => {
   let url = '';
 
   test.beforeAll(async ({ browserName }) => {
+    // A cold Vite dev server takes longer than the default 30 s on a loaded machine.
+    test.setTimeout(120_000);
     if (browserName !== 'chromium') return;
     server = await createServer({
       root: WEB,
