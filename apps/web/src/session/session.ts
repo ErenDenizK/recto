@@ -3,13 +3,15 @@
  * the frame and the Library consume this API). `startSession` runs once per launch in either
  * edition:
  *
- * 1. Holds this tab's Web Lock and probes OPFS. Where storage is refused (a private window)
- *    it says "Changes are not kept in this window" and the app behaves as before: nothing is
- *    kept, nothing restored, and `beforeunload` asks while any document has changes.
- * 2. Restores the newest session no open tab holds ("Restored 3 documents · Start fresh");
- *    the compact edition (ADR-0033 §2.3) restores the active document only, the others go
- *    to Recents, and a restored document with changes offers Download a copy. Other orphaned
- *    sessions become kept records.
+ * 1. Holds this tab's Web Lock (its id kept in `sessionStorage`, so a reload is the same tab)
+ *    and probes OPFS. Where storage is refused (a private window) it says "Changes are not
+ *    kept in this window" and the app behaves as before: nothing is kept, nothing restored,
+ *    and `beforeunload` asks while any document has changes.
+ * 2. Restores this tab's own session, else the newest session no open tab holds, once it
+ *    has claimed that session's lock ("Restored 3 documents · Start fresh"); the compact
+ *    edition (ADR-0033 §2.3) restores the active document only, the others go to Recents,
+ *    and a restored document with changes offers Download a copy. Other orphaned sessions,
+ *    and documents that did not load, become kept records.
  * 3. Starts the writer: every history change, page, zoom, view or lock change is kept within
  *    2 s, and at once when the page is hidden or left; documents that close become kept
  *    records for Recents.
@@ -24,6 +26,7 @@
 import {
   closeDocument,
   type DocumentId,
+  documentTitleFromName,
   removeSourceIfUnreferenced,
   type SourceId,
   type Workspace,
@@ -39,16 +42,17 @@ import { readJson, writeJson } from '../state/safe-storage';
 import { useWorkspaceStore } from '../state/workspace-store';
 import type { DocumentPlace, KeptRecordV1 } from './format';
 import {
-  holdTabLock,
+  claimTabLock,
   keptRecordsOf,
   liveTabIds,
   planLaunch,
+  type ReleaseLock,
   type ReopenKeptResult,
   reopenKept,
   restoreSession,
   setAside,
 } from './restore';
-import { setSessionNotice, useSessionStore } from './session-store';
+import { type SessionNotice, setSessionNotice, useSessionStore } from './session-store';
 import { ChangeTracker, type PlaceState, type SnapshotState } from './snapshot';
 import { openSnapshotStorage, type SnapshotStorage } from './storage';
 import { SnapshotWriter } from './writer';
@@ -132,10 +136,25 @@ function persist(): Promise<boolean> {
   })();
 }
 
+/**
+ * The Recents row a kept document goes to (ADR-0032 §2.6): its file's row when it is that
+ * file's document, else (a combine, a split part, an extract, a renamed document) a row named
+ * after the document and sized by its sources, so it reads as itself and never takes over
+ * the row of the file it came from.
+ */
+export function recentRowOf(record: KeptRecordV1): { name: string; size: number } {
+  if (record.title === record.name || record.title === documentTitleFromName(record.name)) {
+    return { name: record.name, size: record.size };
+  }
+  return {
+    name: `${record.title}.pdf`,
+    size: record.sources.reduce((sum, source) => sum + source.size, 0),
+  };
+}
+
 function attachKept(record: KeptRecordV1, bytes = 0): void {
   void keepRecent({
-    name: record.name,
-    size: record.size,
+    ...recentRowOf(record),
     pages: record.pages,
     kept: { snapshotId: record.id, keptAt: record.keptAt, bytes, changed: record.place.changed },
   });
@@ -171,7 +190,12 @@ function watch(ctl: Controller): () => void {
     const was = new Set(before.documentOrder);
     const closed = before.documentOrder.filter((id) => !now.has(id));
     const added = ws.documentOrder.filter((id) => !was.has(id));
-    if (closed.length > 0) writer.noteClosed(before, closed);
+    // The state the documents were open in: a reset (the compact edition's next open) clears
+    // their blobs in the same change.
+    if (closed.length > 0) {
+      const { history, files, blobs, editBlobs } = previous;
+      writer.noteClosed(before, closed, { history, files, blobs, editBlobs });
+    }
     if (added.length > 0) writer.noteReopened(added);
     const content =
       ws.documents !== before.documents ||
@@ -234,9 +258,15 @@ export function startSession(options: StartOptions): () => void {
   const offlineUnsub = useWorkspaceStore.subscribe((state) =>
     offlineTracker.observe(state.workspace),
   );
+  let releaseTab: ReleaseLock | undefined;
   void (async () => {
-    const tabId = options.tabId ?? globalThis.crypto.randomUUID();
-    holdTabLock(tabId);
+    const claimed = await claimThisTab(options.tabId);
+    const { tabId } = claimed;
+    releaseTab = claimed.release;
+    if (stopped) {
+      void releaseTab();
+      return;
+    }
     const available = options.storage
       ? ({ ok: true, storage: options.storage } as const)
       : await openSnapshotStorage();
@@ -302,33 +332,91 @@ export function startSession(options: StartOptions): () => void {
     controller?.writer.stop();
     controller = undefined;
     onKeptRemoved(undefined);
+    void releaseTab?.();
   };
+}
+
+/**
+ * This tab's id, kept in `sessionStorage` for the tab's life: a reload, a crash or a tab the
+ * browser discarded to save memory (and brought back) is the same tab, so it restores its own
+ * session rather than the one another tab closed last.
+ */
+export const TAB_ID_KEY = 'pdf-editor:session:tab:v1';
+
+function readTabId(): string | undefined {
+  try {
+    const value = globalThis.sessionStorage?.getItem(TAB_ID_KEY);
+    return value != null && /^[A-Za-z0-9-]{1,64}$/.test(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeTabId(tabId: string): void {
+  try {
+    globalThis.sessionStorage?.setItem(TAB_ID_KEY, tabId);
+  } catch {
+    // Storage refused: this tab's session is found again only while it lives.
+  }
+}
+
+/**
+ * Claims this tab's id and its Web Lock for the page's life: `given` (tests), else the id
+ * this tab had before a reload, else a new one. A copied id another live tab holds (Duplicate
+ * tab copies `sessionStorage`) gives way to a new one, so the two never share a session.
+ */
+export async function claimThisTab(
+  given?: string,
+): Promise<{ readonly tabId: string; readonly release: ReleaseLock }> {
+  const before = given ?? readTabId();
+  if (before !== undefined) {
+    const release = await claimTabLock(before);
+    if (release !== undefined) return { tabId: before, release };
+  }
+  const tabId = globalThis.crypto.randomUUID();
+  const release = (await claimTabLock(tabId)) ?? (() => Promise.resolve());
+  if (given === undefined) writeTabId(tabId);
+  return { tabId, release };
 }
 
 async function launch(ctl: Controller, tabId: string, options: StartOptions): Promise<void> {
   const { storage, writer, tracker } = ctl;
-  const plan = await planLaunch(storage, await liveTabIds());
+  const plan = await planLaunch(storage, await liveTabIds(), tabId);
   for (const name of plan.damaged) await setAside(storage, name).catch(() => undefined);
   const now = Date.now();
   // Other closed tabs' documents go to Recents; their manifests go once the records exist.
+  // Each is claimed first: a tab launching at the same moment may have taken it.
   for (const orphan of plan.orphans) {
+    const release = await claimTabLock(orphan.tabId);
+    if (release === undefined) continue;
     let records: KeptRecordV1[];
     try {
       records = keptRecordsOf(orphan, 'all', now);
     } catch (error) {
       console.warn('An orphaned session could not be read', error);
       await setAside(storage, `${orphan.tabId}.json`).catch(() => undefined);
+      void release();
       continue;
     }
-    void writer.keep(records, () => storage.remove('sessions', `${orphan.tabId}.json`));
+    void writer
+      .keep(records, () => storage.remove('sessions', `${orphan.tabId}.json`))
+      .finally(release);
   }
-  const manifest = plan.restore;
+  // This tab's own session is its own; another's is claimed, or left to the tab that has it.
+  const candidate = plan.restore;
+  const release =
+    candidate === undefined || candidate.tabId === tabId
+      ? () => Promise.resolve()
+      : await claimTabLock(candidate.tabId);
+  const manifest = release === undefined ? undefined : candidate;
   // Restore only into an empty tab: a file opened during launch (a share target) wins.
   if (manifest === undefined || useWorkspaceStore.getState().workspace.documentOrder.length > 0) {
     if (manifest !== undefined) {
-      void writer.keep(keptRecordsOf(manifest, 'all', now), () =>
-        storage.remove('sessions', `${manifest.tabId}.json`),
-      );
+      void writer
+        .keep(keptRecordsOf(manifest, 'all', now), () =>
+          storage.remove('sessions', `${manifest.tabId}.json`),
+        )
+        .finally(release);
     }
     return;
   }
@@ -336,6 +424,17 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   const active = manifest.history.entries[manifest.history.present]?.activeDocument;
   const only = compact ? (active ?? manifest.documents[0]?.id) : undefined;
   const outcome = await restoreSession(storage, manifest, only === undefined ? {} : { only });
+  // Documents that did not load (a skipped password prompt, an engine failure) go to Recents
+  // before the old manifest goes, with their changes, for another try (ADR-0032 §2.6).
+  let failedKept = false;
+  if (outcome.failedIds.length > 0) {
+    try {
+      void writer.keep(keptRecordsOf(manifest, outcome.failedIds, now));
+      failedKept = true;
+    } catch (error) {
+      console.warn('The documents that did not restore could not be kept', error);
+    }
+  }
   const ws = useWorkspaceStore.getState().workspace;
   for (const place of manifest.documents) {
     if (ws.documents[place.id] !== undefined) {
@@ -352,12 +451,20 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   }
   // This tab's manifest first; the old one goes only once it is written. Queued, not awaited:
   // the launch never waits on a storage write.
+  // A manifest whose history cannot be read is set aside, never deleted (ADR-0032 §3); one
+  // whose failed documents could not be kept stays for the next launch.
   writer.noteChange('content');
-  void writer.flush().then(async () => {
-    if (manifest.tabId !== tabId) {
-      await storage.remove('sessions', `${manifest.tabId}.json`).catch(() => undefined);
-    }
-  });
+  void writer
+    .flush()
+    .then(async () => {
+      if (manifest.tabId === tabId) return;
+      const name = `${manifest.tabId}.json`;
+      if (outcome.damaged) await setAside(storage, name).catch(() => undefined);
+      else if (outcome.failedIds.length === 0 || failedKept) {
+        await storage.remove('sessions', name).catch(() => undefined);
+      }
+    })
+    .finally(release);
   if (outcome.restored.length > 0) {
     const first = ws.documents[outcome.restored[0] as DocumentId];
     const changed = outcome.restored.some((id) => tracker.changed(ws, id));
@@ -371,21 +478,26 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   }
   if (outcome.failed.length > 0) {
     // The failure stays until dismissed; it replaces the success line when nothing came back.
-    if (outcome.restored.length === 0) setSessionNotice({ kind: 'failed', names: outcome.failed });
-    else failedAfterRestore = outcome.failed;
+    const failed: SessionNotice = {
+      kind: 'failed',
+      names: outcome.failed,
+      ...(failedKept ? { kept: true } : {}),
+    };
+    if (outcome.restored.length === 0) setSessionNotice(failed);
+    else failedAfterRestore = failed;
   }
 }
 
-/** Failures of a partial restore, shown after the success notice is dismissed. */
-let failedAfterRestore: readonly string[] = [];
+/** The failure of a partial restore, shown after the success notice is dismissed. */
+let failedAfterRestore: SessionNotice | null = null;
 
 /** Dismisses the notice; a partial restore's failure line follows it. */
 export function dismissSessionNotice(): void {
   const notice = useSessionStore.getState().notice;
   if (notice?.kind === 'not-kept') writeJson(NOT_KEPT_DISMISSED_KEY, true);
-  if (notice?.kind === 'restored' && failedAfterRestore.length > 0) {
-    setSessionNotice({ kind: 'failed', names: failedAfterRestore });
-    failedAfterRestore = [];
+  if (notice?.kind === 'restored' && failedAfterRestore !== null) {
+    setSessionNotice(failedAfterRestore);
+    failedAfterRestore = null;
     return;
   }
   setSessionNotice(null);
@@ -419,7 +531,7 @@ export function startFresh(): void {
   if (!closed) return;
   ctl.freshAt = useWorkspaceStore.getState().history.present.at;
   ctl.restored = [];
-  failedAfterRestore = [];
+  failedAfterRestore = null;
   setSessionNotice({ kind: 'started-fresh', count: ids.length });
 }
 
@@ -446,6 +558,8 @@ export async function reopenFromSnapshot(
       ctl.tracker.adopt(ws, result.documentId, result.record.place.changed);
       adoptFileFacts(result.documentId, result.record.place);
       pages.set(result.documentId, result.record.place.page);
+      // Its files came from storage: never written again, kept even if it closes at once.
+      ctl.writer.markStored(result.record.sources, result.record.blobs);
     } else if (result.reason !== 'failed') {
       // Gone or unreadable: the row reopens like a plain recent from now on.
       void forgetKept([snapshotId]);
