@@ -13,7 +13,10 @@
  * - Chromium and Firefox write through `FileSystemFileHandle.createWritable()`, which writes
  *   a swap file and replaces the old file on `close()`, so a manifest is never half written.
  * - WebKit before Safari 26 has no `createWritable()` on the main thread; writes then go to a
- *   small module worker (`opfs-writer.worker.ts`) that uses `createSyncAccessHandle()`.
+ *   small module worker (`opfs-writer.worker.ts`) that uses `createSyncAccessHandle()`, which
+ *   writes in place. Manifests and kept records go to `<name>.tmp` first and then take their
+ *   name, and reads take the newest whole copy, so a tab killed mid-write (common when iPadOS
+ *   hides it) never leaves a record cut short.
  * - Firefox in a private window refuses `getDirectory()` (SecurityError); some browsers
  *   refuse it with storage blocked. `openSnapshotStorage` probes once with a real write, and
  *   the app then says "Changes are not kept in this window" (ADR-0032 §2.7).
@@ -177,10 +180,42 @@ class SyncHandleWriter {
     const bytes = await new Blob([data]).arrayBuffer();
     const worker = this.start();
     const id = ++this.seq;
+    const atomic = RECORD_FOLDERS.has(folder);
     return new Promise<void>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      worker.postMessage({ id, root: SNAPSHOT_ROOT, folder, name, bytes }, [bytes]);
+      worker.postMessage({ id, root: SNAPSHOT_ROOT, folder, name, bytes, atomic }, [bytes]);
     });
+  }
+}
+
+/**
+ * The folders of small JSON records (manifests, kept records), rewritten often and read whole.
+ * The worker writes them as `<name>.tmp` first (WebKit's sync access handle writes in place,
+ * so a tab killed mid-write, common when iPadOS hides it, would leave a record cut short);
+ * reads take the newest whole copy, so a record is never lost to a write that was cut short.
+ */
+const RECORD_FOLDERS: ReadonlySet<SnapshotFolder> = new Set(['sessions', 'kept']);
+
+/** The worker's copy of a record while it is replaced (`opfs-writer.worker.ts`). */
+export const TEMP_SUFFIX = '.tmp';
+
+/** Whether a record's text is whole (JSON that parses). */
+function whole(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A file of `dir`, or undefined when it does not exist. */
+async function fileIn(dir: DirectoryHandleLike, name: string): Promise<File | undefined> {
+  try {
+    return await (await dir.getFileHandle(name)).getFile();
+  } catch (error) {
+    if (isNotFound(error)) return undefined;
+    throw error;
   }
 }
 
@@ -223,13 +258,27 @@ export function opfsSnapshotStorage(origin: DirectoryHandleLike): SnapshotStorag
     kind: 'opfs',
     read: async (name, file) => {
       assertSafeName(file);
+      let dir: DirectoryHandleLike;
       try {
-        const handle = await (await existing(name)).getFileHandle(file);
-        return await handle.getFile();
+        dir = await existing(name);
       } catch (error) {
         if (isNotFound(error)) return undefined;
         throw error;
       }
+      const main = await fileIn(dir, file);
+      const copy = RECORD_FOLDERS.has(name)
+        ? await fileIn(dir, `${file}${TEMP_SUFFIX}`)
+        : undefined;
+      if (copy === undefined) return main;
+      // A rewrite was cut short (WebKit's worker): the newest whole one of the two. With none
+      // whole, the record itself, which its reader then sets aside as damaged.
+      const candidates = main === undefined ? [copy] : [main, copy];
+      const wholeOnes: File[] = [];
+      for (const candidate of candidates) {
+        if (whole(await candidate.text())) wholeOnes.push(candidate);
+      }
+      wholeOnes.sort((a, b) => b.lastModified - a.lastModified);
+      return wholeOnes[0] ?? main ?? copy;
     },
     write: async (name, file, data) => {
       assertSafeName(file);
@@ -251,10 +300,14 @@ export function opfsSnapshotStorage(origin: DirectoryHandleLike): SnapshotStorag
     },
     remove: async (name, file) => {
       assertSafeName(file);
-      try {
-        await (await existing(name)).removeEntry(file);
-      } catch (error) {
-        if (!isNotFound(error)) throw error;
+      // A record goes with the copy a cut-short rewrite left beside it.
+      const names = RECORD_FOLDERS.has(name) ? [file, `${file}${TEMP_SUFFIX}`] : [file];
+      for (const entry of names) {
+        try {
+          await (await existing(name)).removeEntry(entry);
+        } catch (error) {
+          if (!isNotFound(error)) throw error;
+        }
       }
     },
     list: async (name) => {
@@ -283,7 +336,14 @@ export function opfsSnapshotStorage(origin: DirectoryHandleLike): SnapshotStorag
           // Deleted while listing.
         }
       }
-      return out;
+      // A record's cut-short copy is part of the record; alone (killed before the first copy
+      // took its name), it stands for the record, which `read` then finds.
+      const names = new Set(out.map((info) => info.name));
+      return out.flatMap((info) => {
+        if (!info.name.endsWith(TEMP_SUFFIX)) return [info];
+        const base = info.name.slice(0, -TEMP_SUFFIX.length);
+        return names.has(base) ? [] : [{ ...info, name: base }];
+      });
     },
     clear: async () => {
       folders.clear();

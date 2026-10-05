@@ -23,13 +23,8 @@ import { SaveCopyHost } from './SaveCopyHost';
 // The host loads the sheet lazily; loading its module graph up front keeps Vite from finding
 // new dependencies mid-test, which reloads the test page.
 import './SaveCopySheet';
-import {
-  type CopyHandle,
-  type CopyOutput,
-  pickTarget,
-  removeEmptyFile,
-  writeCopy,
-} from './save-copy-run';
+import { removeEmptyFile } from './deliver';
+import { type CopyHandle, type CopyOutput, pickTarget, writeCopy } from './save-copy-run';
 
 const golden = (
   manifest.fixtures.find((f) => f.file === 'markdown-source.pdf')?.expect as unknown as {

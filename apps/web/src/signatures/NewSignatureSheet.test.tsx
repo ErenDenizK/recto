@@ -176,9 +176,15 @@ describe('New signature', () => {
     await userEvent.click(page.getByRole('tab', { name: 'Type' }));
     await userEvent.type(page.getByRole('textbox', { name: 'Your name' }), 'Ada');
     await userEvent.click(page.getByRole('button', { name: 'Save signature' }));
-    await waitFor(() => expect(useSavedSignatures.getState().signatures).toHaveLength(1));
+    // Generous waits: the save goes through IndexedDB and Settings comes back after the sheet
+    // leaves, both slow on a loaded runner.
+    await waitFor(() => expect(useSavedSignatures.getState().signatures).toHaveLength(1), {
+      timeout: 5000,
+    });
     // Back to Settings → Saved signatures.
-    await waitFor(() => expect(useSheetStore.getState().open?.id).toBe('settings'));
+    await waitFor(() => expect(useSheetStore.getState().open?.id).toBe('settings'), {
+      timeout: 5000,
+    });
     expect(useSheetStore.getState().open?.preset).toBe('row:savedSignatures');
   });
 

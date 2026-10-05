@@ -21,17 +21,24 @@
  * **The handle.** Files opened through the Chromium picker or dropped hand out a
  * `FileSystemFileHandle`; `rememberDocumentHandle` keeps it per document for the session (the
  * open path calls it). A document without one (restored, or reopened from a kept snapshot)
- * may use the handle Recents stored for its file, read on the Save press only, never on
+ * may use the handle Recents stored for its file, but only when it *is* that file (`originOf`:
+ * the document opened from it, never a split part, an extract or a combine made from its
+ * pages, whose first Save is Save as), read on the Save press only, never on
  * Chromium 153, whose browser crashes when IndexedDB returns a stored handle (ADR-0032 §5.1,
  * DISCUSSION #32, `files/recents.ts`): there Save takes the picker route and keeps the new
  * handle for the session.
  *
  * **Order of a save** (each question needs the user's press, and the write prompt and the
- * picker need the activation of the latest one): unapplied redaction marks are asked about
- * first (07.10: "2 marks not applied", Apply and save by default, "Save without applying" with
- * the honesty line), then Replace, then the write permission or the picker; only then do the
+ * picker need the activation of the latest one). Reading the unapplied redaction marks waits
+ * for the edit runner and lists unread pages, which can outlast a press's activation, so where
+ * no question will renew it the write prompt (in place, Replace answered) or the save picker
+ * comes first, on the Save press itself. Then the marks are asked about (07.10: "2 marks not
+ * applied", Apply and save by default, "Save without applying" with the honesty line), then
+ * Replace where it is still asked, then the write prompt on Replace's press; only then do the
  * marks apply, the bytes assemble and verify (`prepareExport`: re-parsed, page and annotation
- * checks, the redaction self-check), and the write runs. A write is **verified** by reading the
+ * checks, the redaction self-check), and the write runs. A file the save picker created that
+ * the save could not fill is removed again (the empty-file rule, 07.7; `removeEmptyFile`), or
+ * the failure says it was left. A write is **verified** by reading the
  * file back through the handle and comparing it byte for byte with what was written; only then
  * the saved mark moves and the toast says "Saved · verified" (with applied marks "Saved · 2
  * areas removed for good · verified").
@@ -48,7 +55,7 @@ import { create } from 'zustand';
 import { pageKey, useAnnotationStore } from '../annotations/annotation-store';
 import { readAnnotations, whenIdle } from '../annotations/edit-runner';
 import { presentError } from '../errors/present';
-import { deliverPdf, supportsSavePicker } from '../export/deliver';
+import { deliverPdf, removeEmptyFile, supportsSavePicker } from '../export/deliver';
 import { type ExportProgress, prepareExport } from '../export/export-service';
 import { openSaveCopy } from '../export/export-store';
 import { exportFileName } from '../export/filename';
@@ -86,6 +93,8 @@ export interface WritableFileHandle {
   createWritable(): Promise<WritableLike>;
   queryPermission?(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
   requestPermission?(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>;
+  /** Deletes the file (Chromium); the empty-file rule uses it on a picked file. */
+  remove?(): Promise<void>;
 }
 
 export function isWritableHandle(value: unknown): value is WritableFileHandle {
@@ -114,7 +123,9 @@ export function documentHandleOf(id: DocumentId): WritableFileHandle | undefined
 
 /**
  * The handle Recents stored for the file document `id` was opened from (a restored or reopened
- * document), read now, on the Save press. Never on Chromium 153 (see the module comment).
+ * document), read now, on the Save press. Only a document that is that file has an origin
+ * (`state/saved-store.ts`): a document made from its pages never writes over it. Never on
+ * Chromium 153 (see the module comment).
  */
 async function storedHandleFor(
   ws: Workspace,
@@ -523,11 +534,31 @@ function saveACopy(id: DocumentId) {
   return { label: m.save_a_copy(), run: () => openSaveCopy(id) };
 }
 
-function fail(id: DocumentId, name: string, reason: string): void {
-  presentError(
-    { kind: 'message', text: m.save_failed({ name, reason }), action: saveACopy(id) },
-    { key: `save:${id}`, testId: 'save-failure' },
-  );
+function fail(id: DocumentId, name: string, reason: string, detail?: string): void {
+  if (detail === undefined) {
+    presentError(
+      { kind: 'message', text: m.save_failed({ name, reason }), action: saveACopy(id) },
+      { key: `save:${id}`, testId: 'save-failure' },
+    );
+    return;
+  }
+  toast.failure(m.save_failed({ name, reason }), {
+    action: saveACopy(id),
+    detail,
+    key: `save:${id}`,
+    testId: 'save-failure',
+  });
+}
+
+/**
+ * The empty-file rule (07.7) for a file the save picker created for this save, which the save
+ * did not fill: removes it, and returns the line that says so (or that it was left).
+ */
+async function emptyFileNote(picked: WritableFileHandle | undefined): Promise<string | undefined> {
+  if (picked === undefined) return undefined;
+  return (await removeEmptyFile(picked))
+    ? m.save_copy_empty_removed()
+    : m.save_copy_empty_left({ name: picked.name });
 }
 
 export interface SaveOptions {
@@ -584,17 +615,7 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     if (handle) handles.set(id, handle);
   }
 
-  // 1. Unapplied redaction marks first (07.10).
-  const marks = await pendingMarksOf(ws, doc);
-  const markCount = countMarks(marks);
-  let applyFirst = false;
-  if (markCount > 0) {
-    const { answer } = await ask({ kind: 'marks', documentId: id, count: markCount });
-    if (answer === 'cancel') return;
-    applyFirst = answer === 'apply';
-  }
-
-  // 2. Where the bytes go.
+  // Where the bytes go.
   const plan = planSave({
     inFile: false,
     handle: handle !== undefined,
@@ -604,30 +625,56 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
   });
   let name = saveNameFor(id);
   let target: WritableFileHandle | undefined;
-  if (plan.route === 'in-place' && handle) {
-    if (plan.askReplace) {
-      const { answer, dontAsk } = await ask({ kind: 'replace', documentId: id, name: handle.name });
-      if (answer === 'copy') {
-        openSaveCopy(id);
-        return;
-      }
-      if (answer !== 'replace') return;
-      answered.add(handle);
-      if (dontAsk) rememberDontAsk(handle.name);
-    }
-    // 3. The browser's write prompt, on the latest press's activation.
+  /** The file the save picker created for this save (the empty-file rule, 07.7). */
+  let picked: WritableFileHandle | undefined;
+
+  // 1. No question will renew the press: the write prompt or the picker on its activation.
+  if (plan.route === 'in-place' && handle && !plan.askReplace) {
     if (!(await writePermission(handle))) {
       fail(id, handle.name, m.save_reason_denied());
       return;
     }
     target = handle;
   } else if (plan.route === 'picker') {
-    const picked = await pickSaveHandle(name);
-    if (picked === 'cancelled') return;
-    if (picked) {
-      target = picked;
-      name = picked.name;
+    const chosen = await pickSaveHandle(name);
+    if (chosen === 'cancelled') return;
+    if (chosen) {
+      target = picked = chosen;
+      name = chosen.name;
     }
+  }
+
+  // 2. Unapplied redaction marks (07.10).
+  const marks = await pendingMarksOf(ws, doc);
+  const markCount = countMarks(marks);
+  let applyFirst = false;
+  if (markCount > 0) {
+    const { answer } = await ask({ kind: 'marks', documentId: id, count: markCount });
+    if (answer === 'cancel') {
+      // Nothing is saved: the picked file goes again, and is mentioned only if it stays.
+      if (picked && !(await removeEmptyFile(picked))) {
+        toast.info(m.save_copy_empty_left({ name: picked.name }), { documentId: id });
+      }
+      return;
+    }
+    applyFirst = answer === 'apply';
+  }
+
+  // 3. Replace, then the browser's write prompt on the answer's press.
+  if (plan.route === 'in-place' && handle && plan.askReplace) {
+    const { answer, dontAsk } = await ask({ kind: 'replace', documentId: id, name: handle.name });
+    if (answer === 'copy') {
+      openSaveCopy(id);
+      return;
+    }
+    if (answer !== 'replace') return;
+    answered.add(handle);
+    if (dontAsk) rememberDontAsk(handle.name);
+    if (!(await writePermission(handle))) {
+      fail(id, handle.name, m.save_reason_denied());
+      return;
+    }
+    target = handle;
   }
   const route: SaveRoute = target ? plan.route : plan.route === 'share' ? 'share' : 'download';
 
@@ -644,7 +691,7 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
   if (applyFirst) {
     removed = await applyMarks(marks);
     if (removed === undefined) {
-      fail(id, name, m.save_reason_marks());
+      fail(id, name, m.save_reason_marks(), await emptyFileNote(picked));
       return;
     }
   }
@@ -653,19 +700,12 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     onProgress: (progress) => job.update({ progress: saveProgress(progress) }),
   });
   if (!result.ok) {
-    presentError(
-      {
-        kind: 'message',
-        text: m.save_failed({ name, reason: result.error.message }),
-        action: saveACopy(id),
-      },
-      { key: `save:${id}`, testId: 'save-failure' },
-    );
+    fail(id, name, result.error.message, await emptyFileNote(picked));
     return;
   }
   const prepared = result.value;
   if (!prepared.verification.ok || (prepared.redaction && !prepared.redaction.report.ok)) {
-    fail(id, name, m.save_reason_unverified());
+    fail(id, name, m.save_reason_unverified(), await emptyFileNote(picked));
     return;
   }
   job.update({ progress: 95 });
@@ -678,7 +718,7 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
       const reason = writeFailure(error);
       // A moved or deleted file: the next Save asks for a place again.
       if (reason === 'moved') handles.delete(id);
-      fail(id, name, reasonText(reason));
+      fail(id, name, reasonText(reason), await emptyFileNote(picked));
       return;
     }
     handles.set(id, target);
