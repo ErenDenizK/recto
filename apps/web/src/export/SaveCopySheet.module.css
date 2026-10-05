@@ -60,6 +60,11 @@
   margin-inline-start: -8px;
 }
 
+/* A button that pushes a page ("What gets smaller ›", §4.2): the chevron is decoration. */
+.push [data-btn-label]::after {
+  content: '\00a0\203a' / '';
+}
+
 /* The disclosures: one bordered group of rows, label · value · chevron. */
 .disclosures {
   display: grid;

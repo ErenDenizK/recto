@@ -212,9 +212,13 @@ export function SizeSection({
             {m.save_copy_print()}
           </Button>
         ) : null}
-        <Button variant="quiet" onClick={onWhatSmaller} data-testid="save-copy-what-smaller">
+        <Button
+          variant="quiet"
+          className={styles.push}
+          onClick={onWhatSmaller}
+          data-testid="save-copy-what-smaller"
+        >
           {m.save_copy_what_smaller()}
-          <ChevronRight aria-hidden="true" className={styles.chevron} />
         </Button>
       </div>
       {analysis?.state === 'failed' ? (
@@ -462,10 +466,20 @@ export function PdfDisclosures({
           }}
         />
         {signOn && !encryptedOutput ? (
-          <div className={styles.links} data-testid="export-sign-identity">
-            <Button variant="quiet" onClick={() => openSignDialog(doc.id, 'export')}>
-              {signDraft ? m.export_sign_change() : m.export_sign_choose()}
-            </Button>
+          <div className={styles.rowBody} data-testid="export-sign-identity">
+            <p className={styles.note}>
+              {signDraft
+                ? m.export_sign_certificate({
+                    name: signDraft.signer.commonName ?? signDraft.signer.subject,
+                    file: signDraft.fileName,
+                  })
+                : m.export_sign_needs_certificate()}
+            </p>
+            <div className={styles.links}>
+              <Button variant="quiet" onClick={() => openSignDialog(doc.id, 'export')}>
+                {signDraft ? m.export_sign_change() : m.export_sign_choose()}
+              </Button>
+            </div>
           </div>
         ) : null}
       </Disclosure>

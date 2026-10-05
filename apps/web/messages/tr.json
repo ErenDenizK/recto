@@ -2825,7 +2825,7 @@
   "save_copy_preparing": "Hazırlanıyor… %{percent}",
   "save_copy_images_type": "Tür",
   "save_copy_copy_image": "Panoya kopyala",
-  "save_copy_text_kind": "Metin",
+  "save_copy_text_kind": "Tür",
   "save_copy_pages_all": "Tümü",
   "save_copy_pages_this": "{page}. sayfa",
   "save_copy_pages_range": "Aralık",

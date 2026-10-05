@@ -4284,7 +4284,7 @@
   "save_copy_preparing": "Preparing… {percent} %",
   "save_copy_images_type": "Type",
   "save_copy_copy_image": "Copy to clipboard",
-  "save_copy_text_kind": "Text",
+  "save_copy_text_kind": "Type",
   "save_copy_pages_all": "All",
   "save_copy_pages_this": "Page {page}",
   "save_copy_pages_range": "Range",
