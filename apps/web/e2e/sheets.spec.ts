@@ -440,7 +440,11 @@ test.describe('the gallery', () => {
       await expect(sheet.getByRole('textbox', { name: 'Format' })).toBeFocused();
       for (let i = 0; i < 12; i++) {
         await page.keyboard.press('Tab');
-        expect(await sheet.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+        // At the wrap Tab lands on the trap's focus guard, which hands focus back inside a
+        // moment later (Base UI queues that focus), so the check waits for it to settle.
+        await expect
+          .poll(() => sheet.evaluate((el) => el.contains(document.activeElement)))
+          .toBe(true);
       }
       await page.keyboard.press('Escape');
       await expect(opener).toBeFocused();
