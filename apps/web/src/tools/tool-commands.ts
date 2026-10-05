@@ -3,6 +3,10 @@
  * by the Document menu in the tab bar (`DocumentMenu.tsx`: Compress… and Export pages as
  * images… under "Convert and export", Save repaired copy under "Document" while there is a
  * repaired source). Registered from `app-commands.ts`.
+ *
+ * Each opens Save a copy preset (components/07-sheets.md §4.1, §25): Compress… on Size with
+ * Smaller chosen, Export pages as images… on Images, Save repaired copy on PDF (the copy is
+ * written from the version rebuilt on open, and the sheet says so).
  */
 import { getActiveDocument } from '@pdf-editor/document-model';
 
@@ -10,12 +14,11 @@ import { registerBatchCommands } from '../batch/batch-commands';
 import type { CommandRegistry } from '../commands/registry';
 import { m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { repairedSources, saveRepairedCopy } from './repair';
-import { openToolDialog, useToolsStore } from './tools-store';
+import { openSaveCopy } from '../export/export-store';
+import { repairedSources } from './repair';
 
 const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().workspace);
 const hasPages = () => (activeDocument()?.pages.length ?? 0) > 0;
-const noDialog = () => useToolsStore.getState().dialog === null;
 
 export function registerToolCommands(registry: CommandRegistry): () => void {
   const group = m.group_document();
@@ -25,10 +28,10 @@ export function registerToolCommands(registry: CommandRegistry): () => void {
       title: m.cmd_tools_compress(),
       group,
       keywords: ['compress', 'optimize', 'reduce', 'size', 'shrink', 'downsample', 'jpeg'],
-      when: () => hasPages() && noDialog(),
+      when: hasPages,
       run: () => {
         const doc = activeDocument();
-        if (doc) openToolDialog('compress', doc.id);
+        if (doc) openSaveCopy(doc.id, 'size');
       },
     }),
     registry.register({
@@ -36,10 +39,10 @@ export function registerToolCommands(registry: CommandRegistry): () => void {
       title: m.cmd_tools_export_images(),
       group,
       keywords: ['png', 'jpeg', 'jpg', 'webp', 'image', 'rasterize', 'picture', 'zip', 'copy'],
-      when: () => hasPages() && noDialog(),
+      when: hasPages,
       run: () => {
         const doc = activeDocument();
-        if (doc) openToolDialog('images', doc.id);
+        if (doc) openSaveCopy(doc.id, 'images');
       },
     }),
     registry.register({
@@ -48,10 +51,9 @@ export function registerToolCommands(registry: CommandRegistry): () => void {
       group,
       keywords: ['repair', 'fix', 'damaged', 'broken', 'qpdf', 'rewrite'],
       when: () => repairedSources().length > 0,
-      run: async () => {
-        for (const source of repairedSources()) {
-          if ((await saveRepairedCopy(source)) === 'cancelled') break;
-        }
+      run: () => {
+        const doc = activeDocument();
+        if (doc) openSaveCopy(doc.id, 'pdf');
       },
     }),
     registerBatchCommands(registry),

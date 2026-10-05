@@ -50,7 +50,7 @@ import { readAnnotations, whenIdle } from '../annotations/edit-runner';
 import { presentError } from '../errors/present';
 import { deliverPdf, supportsSavePicker } from '../export/deliver';
 import { type ExportProgress, prepareExport } from '../export/export-service';
-import { openExportDialog } from '../export/export-store';
+import { openSaveCopy } from '../export/export-store';
 import { exportFileName } from '../export/filename';
 import { m } from '../i18n';
 import { type JobHandle, startJob } from '../jobs/job-store';
@@ -519,7 +519,7 @@ export function saveProgress(progress: ExportProgress): number {
 }
 
 function saveACopy(id: DocumentId) {
-  return { label: m.save_a_copy(), run: () => openExportDialog(id) };
+  return { label: m.save_a_copy(), run: () => openSaveCopy(id) };
 }
 
 function fail(id: DocumentId, name: string, reason: string): void {
@@ -607,7 +607,7 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     if (plan.askReplace) {
       const { answer, dontAsk } = await ask({ kind: 'replace', documentId: id, name: handle.name });
       if (answer === 'copy') {
-        openExportDialog(id);
+        openSaveCopy(id);
         return;
       }
       if (answer !== 'replace') return;

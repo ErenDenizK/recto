@@ -9,7 +9,8 @@
  * - Off: the `--control-border` ring; on: a `--control-on` disc with a 6 px (8 px coarse)
  *   `--control-on-ink` centre that pops in on the select curve; reduced motion swaps.
  * - APG radio group: one Tab stop, the arrows move and choose. A disabled option keeps its
- *   reason as its description line.
+ *   reason as its description line. An option's estimate is part of its name ("Smaller, about
+ *   1.1 MB"), spoken from `detailLabel` when the visible `detail` abbreviates it.
  *
  * Base UI `RadioGroup` and `Radio` (the description is each radio's `aria-describedby`).
  */
@@ -24,8 +25,13 @@ export interface RadioOption<T extends string> {
   readonly label: string;
   /** A line under the label; for a disabled option, why it is unavailable. */
   readonly description?: string | undefined;
-  /** A trailing estimate in tabular numerals ("about 1.1 MB"). */
+  /** A trailing estimate in tabular numerals ("≈ 1.1 MB"). */
   readonly detail?: string | undefined;
+  /**
+   * How the estimate is spoken as part of the option's name ("about 1.1 megabytes"), when it
+   * differs from `detail` (Save a copy's Size, 07-sheets §4.8). Defaults to `detail`.
+   */
+  readonly detailLabel?: string | undefined;
   readonly disabled?: boolean | undefined;
 }
 
@@ -67,7 +73,9 @@ export function RadioGroup<T extends string>({
             <Radio.Root
               value={option.value}
               disabled={option.disabled}
-              aria-labelledby={`${noteId}-label`}
+              aria-labelledby={
+                option.detail ? `${noteId}-label ${noteId}-spoken` : `${noteId}-label`
+              }
               aria-describedby={option.description ? noteId : undefined}
               className={styles.circle}
             >
@@ -83,7 +91,17 @@ export function RadioGroup<T extends string>({
                 </span>
               ) : null}
             </span>
-            {option.detail ? <span className={styles.detail}>{option.detail}</span> : null}
+            {option.detail ? (
+              <span className={styles.detail} aria-hidden="true">
+                {option.detail}
+              </span>
+            ) : null}
+            {option.detail ? (
+              // The estimate is part of the option's name (09 §9, 07 §4.8).
+              <span id={`${noteId}-spoken`} className="visually-hidden">
+                {`, ${option.detailLabel ?? option.detail}`}
+              </span>
+            ) : null}
           </label>
         );
       })}

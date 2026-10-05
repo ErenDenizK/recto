@@ -87,7 +87,16 @@ function revoke(url: string): void {
 }
 
 function downloadWithAnchor(bytes: ArrayBuffer, filename: string, doc: Document): void {
-  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  downloadBlob(new Blob([bytes], { type: 'application/pdf' }), filename, doc);
+}
+
+/**
+ * Hands `data` to the browser's downloads as `filename` through `<a download>` (any type:
+ * Save a copy's images, ZIPs and text use it too), revoking the object URL after its grace
+ * period or when the page is hidden.
+ */
+export function downloadBlob(data: Blob, filename: string, doc: Document = document): void {
+  const url = URL.createObjectURL(data);
   try {
     const anchor = doc.createElement('a');
     anchor.href = url;

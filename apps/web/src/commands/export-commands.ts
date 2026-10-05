@@ -1,13 +1,13 @@
 /**
- * Export commands. "Export document…" (Mod+Shift+S) opens the export dialog for the active
- * tab; Mod+S is Save (files/save-commands.ts, ADR-0032 §2.1), and the export dialog stands in
- * for Save a copy… until D0-9. Registered from `app-commands.ts`.
- *
- * TODO(M2): "Export selection to new document".
+ * "Save a copy…" (components/07-sheets.md §4.1; flows §5.1; spec redesign D0-9): opens the
+ * one Save a copy sheet for the active tab. The id stays `file.export` (menus, the tab bar's
+ * button and tests name it). Mod+S is Save (files/save-commands.ts, ADR-0032 §2.1); Save a
+ * copy takes Mod+Shift+S where the browser leaves it (Firefox keeps it for screenshots).
+ * Registered from `app-commands.ts`.
  */
 import { getActiveDocument } from '@pdf-editor/document-model';
 
-import { openExportDialog, useExportDialogStore } from '../export/export-store';
+import { openSaveCopy } from '../export/export-store';
 import { m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
 import type { CommandRegistry } from './registry';
@@ -20,13 +20,12 @@ export function registerExportCommands(registry: CommandRegistry): () => void {
     title: m.cmd_export(),
     group: m.group_file(),
     shortcut: 'Mod+Shift+S',
-    keywords: ['save', 'download', 'pdf', 'merge', 'write'],
-    when: () =>
-      (activeDocument()?.pages.length ?? 0) > 0 &&
-      useExportDialogStore.getState().documentId === null,
+    note: m.save_copy_shortcut_note(),
+    keywords: ['save', 'download', 'pdf', 'merge', 'write', 'copy', 'export', 'share'],
+    when: () => (activeDocument()?.pages.length ?? 0) > 0,
     run: () => {
       const doc = activeDocument();
-      if (doc) openExportDialog(doc.id);
+      if (doc) openSaveCopy(doc.id);
     },
   });
 }

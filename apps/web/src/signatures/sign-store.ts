@@ -7,7 +7,7 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
-import { useExportDialogStore } from '../export/export-store';
+import { onSaveCopyClosed } from '../export/export-store';
 import type { SignDraft } from './signing';
 
 export interface SignDialog {
@@ -68,9 +68,6 @@ export function activeSignDraft(documentId: DocumentId): SignDraft | undefined {
   return signOnExport[documentId] === true ? drafts[documentId] : undefined;
 }
 
-// The certificate lives as long as the export dialog it was chosen for.
-useExportDialogStore.subscribe((state, previous) => {
-  if (previous.documentId !== null && state.documentId !== previous.documentId) {
-    clearSignDraft(previous.documentId);
-  }
-});
+// The certificate lives as long as the Save a copy sheet it was chosen for (a copy being
+// written keeps its own bytes).
+onSaveCopyClosed(clearSignDraft);

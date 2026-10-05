@@ -6,7 +6,7 @@
 import { getActiveDocument } from '@pdf-editor/document-model';
 
 import type { CommandRegistry } from '../commands/registry';
-import { useExportDialogStore } from '../export/export-store';
+import { saveCopyDocument } from '../export/export-store';
 import { m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
 import {
@@ -20,7 +20,7 @@ const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().work
 const idle = () =>
   activeDocument() !== undefined &&
   useDocumentDialogStore.getState().dialog === null &&
-  useExportDialogStore.getState().documentId === null;
+  saveCopyDocument() === null;
 
 /** Opens the Document info sheet of the active document, focused on its Title field. */
 export function showDocumentInfo(): void {

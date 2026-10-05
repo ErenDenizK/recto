@@ -6,7 +6,7 @@ import { commandRegistry } from './commands/registry';
 import { registerDocumentCommands } from './document/document-commands';
 import { DocumentDialogs } from './document/DocumentDialogs';
 import { getEngineService } from './engine/engine-service';
-import { ExportDialog } from './export/ExportDialog';
+import { SaveCopyHost } from './export/SaveCopyHost';
 import { useLocale } from './i18n';
 import { LocaleBoundary } from './i18n/LocaleBoundary';
 import { watchOcrJob } from './ocr';
@@ -52,7 +52,7 @@ export function App() {
   return (
     <LocaleBoundary>
       <AppShell />
-      <ExportDialog />
+      <SaveCopyHost />
       <DocumentDialogs />
       <SignDialog />
       <OperationDialogs />

@@ -15,7 +15,7 @@ import type { SignerFacts } from '@pdf-editor/engine';
 import { X } from 'lucide-react';
 import { type SyntheticEvent, useId, useRef, useState } from 'react';
 
-import { openExportDialog } from '../export/export-store';
+import { openSaveCopy } from '../export/export-store';
 import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import overlay from '../shell/ShortcutOverlay.module.css';
@@ -152,7 +152,7 @@ function SignFlow({
         signer: phase.signer,
       });
       closeSignDialog();
-      if (origin === 'app') openExportDialog(documentId);
+      if (origin === 'app') openSaveCopy(documentId);
       return;
     }
     setPhase({ kind: 'checking' });
