@@ -15,6 +15,13 @@
  * focus in the viewport (the focused page, else the current page). A right-click over
  * selected text, an editor or a contextual bar keeps the browser's own menu (Copy).
  *
+ * On touch and pen it also opens from a long press on the paper (04-context §2.3, §13 item 1;
+ * spec D1-7), through the gesture core's recogniser (`motion/gesture/`, 450 ms, 10 px): iOS
+ * fires no `contextmenu` for a long press, and the recogniser keeps WebKit's callout and
+ * selection off the pressed paper and swallows Android's own `contextmenu` and the release's
+ * click. A press on a text run is left to native selection; a pointer that draws (a drawing
+ * tool's layer with a pen, or a finger before a pen was seen) never long-presses.
+ *
  * A Base UI menu anchored at the pointer (or the page's visible corner from the keyboard), in
  * the menu glass (tier 3, ui/Menu.module.css). On close the focus returns where it was.
  */
@@ -24,16 +31,19 @@ import { Crop, LayoutGrid, Lock, RotateCcw, RotateCw, TextCursorInput, Trash2 } 
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { activateTool } from '../annotations/commands';
+import { penSession, pointerRole } from '../annotations/pen/ink-input';
 import { toolDefinition } from '../annotations/tools';
 import { commandRegistry } from '../commands/registry';
 import { showDocumentMode } from '../home/home-actions';
 import { currentPlatform, type ParsedShortcut } from '../commands/shortcuts';
 import { m } from '../i18n';
+import { attachLongPress } from '../motion/gesture';
 import { announce } from '../shell/announcer';
 import { useSelectionStore } from '../state/selection-store';
 import { useCanEdit } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { TEXT_LAYER_ATTR } from '../viewer/text-model';
 import { Keycaps } from '../ui/Keycaps';
 import menuStyles from '../ui/Menu.module.css';
 import { openOperationDialog } from './operation-dialogs-store';
@@ -112,6 +122,26 @@ function onSelectedText(target: Element): boolean {
   const selection = globalThis.getSelection?.() ?? null;
   if (!selection || selection.isCollapsed || selection.rangeCount === 0) return false;
   return selection.containsNode(target, true);
+}
+
+/**
+ * The page a long press may open the menu on, or null (04-context §2.3 *Start*, *Cancel*,
+ * *Resolve*): the paper of a page in the Read viewport, not an editor or a bar, not the
+ * selected text, not a text run (native selection runs there), and not a pointer that draws.
+ */
+function longPressPage(event: PointerEvent): HTMLElement | null {
+  const target = event.target;
+  if (!(target instanceof Element)) return null;
+  const page = target.closest<HTMLElement>('[data-read-viewport] [data-page-id]');
+  if (!page || target.closest(OWN_MENU) || onSelectedText(target)) return null;
+  if (target.closest(`[${TEXT_LAYER_ATTR}] > span`)) return null;
+  if (
+    target.closest('[data-drawing]') &&
+    pointerRole(penSession(), event, performance.now()) !== 'pan'
+  ) {
+    return null;
+  }
+  return page;
 }
 
 /** The menu's point from the keyboard: just inside the visible part of the page. */
@@ -199,9 +229,18 @@ export function PageContextMenu() {
     };
     document.addEventListener('contextmenu', onContextMenu);
     document.addEventListener('keydown', onKeyDown);
+    // Touch and pen: the long press, at the press point (its echoes never reach onContextMenu).
+    const detachLongPress = attachLongPress(document, {
+      shouldStart: (event) => longPressPage(event) !== null,
+      onFire: (event) => {
+        const page = longPressPage(event);
+        if (page) open(page, { x: event.clientX, y: event.clientY });
+      },
+    });
     return () => {
       document.removeEventListener('contextmenu', onContextMenu);
       document.removeEventListener('keydown', onKeyDown);
+      detachLongPress();
     };
   }, []);
 
