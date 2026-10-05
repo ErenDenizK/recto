@@ -2693,5 +2693,86 @@
         "countPlural=*": "{count} imza kaldırıldı: değiştirilen bir dosya imzaları koruyamaz."
       }
     }
-  ]
+  ],
+  "settings_title": "Ayarlar",
+  "settings_command": "Ayarlar…",
+  "cmd_settings_open_keywords": "ayarlar, tercihler, seçenekler, yapılandır",
+  "settings_search_label": "Ayarlarda ara",
+  "settings_no_match": "“{query}” ile eşleşen ayar yok",
+  "settings_results": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} ayar bulundu"
+      }
+    }
+  ],
+  "settings_in_page": "{page} içinde: {rows}",
+  "settings_section_language": "Dil",
+  "settings_section_pen": "Kalem ve dokunma",
+  "settings_section_documents": "Belgeler ve depolama",
+  "settings_section_privacy": "Gizlilik",
+  "settings_section_more": "Diğer",
+  "settings_glass_panels_hint": "Altlarından bir sayfa geçerken sayfanın çevresindeki paneller cama dönüşür.",
+  "settings_reduce_transparency_hint": "Tüm cam yüzeyler opak olur.",
+  "settings_language_browser": "Tarayıcıya uy ({language})",
+  "settings_pen_draws_hint": "Otomatik, kalem ilk kullanıldığında açılır.",
+  "settings_kept_documents": "Saklanan belgeler",
+  "settings_kept_none": "Henüz saklanan yok",
+  "settings_kept_clear_all": "Tümünü temizle…",
+  "settings_kept_confirm_title": "Bu cihazda saklanan her şey temizlensin mi?",
+  "settings_kept_confirm_body": "Açık ve kapalı belgeler burada saklanan değişikliklerini kaybeder; Son açılanlar bunları artık geri getiremez. Kaydedilmiş dosyalara dokunulmaz. Bu işlem geri alınamaz.",
+  "settings_recents": "Son açılan dosyalar",
+  "settings_recents_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "{count} dosya"
+      }
+    }
+  ],
+  "settings_recents_none": "Yok",
+  "settings_clear": "Temizle",
+  "settings_comment_name": "Yorumlardaki ad",
+  "settings_comment_name_hint": "Yeni yorumlar ve notlar bu adı taşır.",
+  "settings_show_tips": "İpuçlarını yeniden göster",
+  "settings_show_tips_hint": "Daha önce gördüğünüz ya da kapattığınız ipuçları yeniden gösterilir.",
+  "settings_show_tips_action": "Yeniden göster",
+  "settings_tips_reset": "İpuçları yeniden gösterilecek",
+  "settings_privacy_clean": "Diğer sitelere istek yok",
+  "settings_privacy_external": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "Diğer sitelere {count} istek"
+      }
+    }
+  ],
+  "settings_privacy_statement": "Açtığınız hiçbir şey bu cihazdan çıkmaz.",
+  "settings_privacy_requests": "Diğer sitelere istekler",
+  "settings_privacy_none": "Yok",
+  "settings_about_value": "{version} · Açık beta",
+  "settings_cmd_appearance": "Görünüş ayarları…",
+  "cmd_settings_appearance_keywords": "görünüm, görünüş, cam, saydamlık",
+  "settings_cmd_kept": "Saklanan belgeler…",
+  "settings_cmd_comment_name": "Yorumlardaki ad…",
+  "settings_cmd_privacy": "Gizlilik ayarları…",
+  "settings_cmd_language_browser": "Dil: tarayıcıya uy",
+  "settings_language_followed": "Dil tarayıcıya uyuyor: {language}",
+  "settings_show_tips_none": "Tüm ipuçları zaten gösteriliyor",
+  "settings_reduce_transparency_system": "Cam, bir sistem ayarı nedeniyle opak",
+  "settings_glass_panels_keywords": "cam, buzlu, bulanık, panel, yarı saydam, çerçeve, görünüm, görünüş",
+  "settings_reduce_transparency_keywords": "saydamlık, opak, düz, kontrast, erişilebilirlik, cam, görünüm",
+  "settings_language_keywords": "dil, ingilizce, türkçe, tarayıcı, çeviri, yerel ayar",
+  "settings_pen_draws_keywords": "kalem, ekran kalemi, çiz, seçim, düzenle, mürekkep",
+  "settings_kept_documents_keywords": "saklanan, anlık görüntü, geri yükle, depolama, temizle, sil, cihaz, değişiklikler, oturum",
+  "settings_recents_keywords": "son, son açılanlar, geçmiş, dosyalar, temizle",
+  "settings_comment_name_keywords": "ad, isim, yazar, yorumlar, notlar, kullanıcı",
+  "settings_show_tips_keywords": "ipuçları, ipucu, yardım, sıfırla, ilk kullanım",
+  "settings_privacy_keywords": "gizlilik, ağ, istekler, çevrimdışı, dış, izleme, güvenlik",
+  "settings_shortcuts_keywords": "klavye, kısayollar, tuşlar",
+  "settings_about_keywords": "hakkında, sürüm, derleme, lisans, kaynak kodu, sürüm notları, depolama, çevrimdışı"
 }

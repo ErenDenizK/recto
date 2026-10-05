@@ -2,7 +2,7 @@
  * Status-bar privacy indicator (ARCHITECTURE.md §7): the live external-request count, and a
  * popover with the observed external URLs (expected: none), the CSP in one sentence plus
  * the enforced `connect-src`, the service worker's offline status, and the app version,
- * which opens the About dialog (ADR-0017 §6). One line says Recents stay on this device, with
+ * which opens Settings → About Recto (ADR-0017 §6; 07-sheets §25). One line says Recents stay on this device, with
  * "Clear recents" (craft §3.1), and what is kept on this device with Clear (ADR-0032 §2.7).
  */
 import { Popover } from '@base-ui/react/popover';
@@ -12,9 +12,9 @@ import { commandRegistry } from '../commands/registry';
 import { m } from '../i18n';
 import { usePwaStore } from '../pwa/register';
 import { serviceWorkerLabel } from '../pwa/service-worker-label';
-import { openAbout } from '../shell/about/about-store';
 import { BUILD_INFO } from '../shell/about/build-info';
 import { KeptOnDevice } from '../session/KeptOnDevice';
+import { openSettings } from '../settings/open-settings';
 import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
 import { documentCsp, parseCsp } from './csp';
 import { useExternalRequests } from './external-requests';
@@ -33,7 +33,7 @@ export function PrivacyIndicator({ className }: { readonly className?: string })
   const updateAvailable = usePwaStore((s) => s.updateAvailable);
   const clean = count === 0;
   const directive = connectSrc();
-  // The About dialog returns focus here: the version button closes with the popover.
+  // Settings returns focus here: the version button closes with the popover.
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     <Popover.Root>
@@ -109,7 +109,7 @@ export function PrivacyIndicator({ className }: { readonly className?: string })
             className={styles.version}
             aria-haspopup="dialog"
             data-testid="privacy-version"
-            onClick={() => openAbout(triggerRef.current)}
+            onClick={() => openSettings({ row: 'about' }, { returnTo: triggerRef.current })}
           >
             {m.about_version_line({ version: BUILD_INFO.version })}
           </Popover.Close>

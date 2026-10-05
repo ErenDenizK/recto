@@ -8,7 +8,10 @@
  */
 export {
   applyDocumentLocale,
+  browserLocale,
+  chooseLocale,
   detectLocale,
+  followsBrowser,
   getLocale,
   LOCALE_NAMES,
   type Locale,

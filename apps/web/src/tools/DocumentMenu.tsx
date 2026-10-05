@@ -4,18 +4,17 @@
  * is something to remove. Combine and split (Merge files…, Split…, Compare with…, Rotate
  * pages) opens the existing dialogs and views. Commands of the "Document" group that no
  * section names join the last section, so tools registered elsewhere still appear; "About
- * this app" (`help.aboutPage`, presentation spec §3) closes that section. Just before it, an
- * "Appearance" submenu holds the app's appearance settings as checkbox items, "Glass
- * panels" and "Reduce transparency" (craft spec §7; also palette commands,
- * shell/appearance-commands.ts), and "Pen draws in Edit" (craft spec §3.5; palette command
- * in viewer/edit-policy.ts); one row, so the menu stays within an 800 px window.
+ * this app" (`help.aboutPage`, presentation spec §3) closes that section. Just before it,
+ * "Settings…" opens the Settings sheet (components/07-sheets.md S3; spec redesign D0-10), which
+ * replaced the Appearance submenu: Glass panels, Reduce transparency and Pen draws in Edit
+ * live there, and in the palette; one row, so the menu stays within an 800 px window.
  *
  * It also hosts the tool dialogs, the Batch dialog and the OCR dialog, which load lazily
  * (their code, the compress worker and the wasm stay out of the entry chunk).
  */
 import { Menu } from '@base-ui/react/menu';
 import { getActiveDocument, type PageId } from '@pdf-editor/document-model';
-import { Check, ChevronRight, FileCog } from 'lucide-react';
+import { ChevronRight, FileCog } from 'lucide-react';
 import { Fragment, lazy, Suspense, useSyncExternalStore } from 'react';
 
 import { BatchDialogHost } from '../batch/BatchDialogHost';
@@ -25,9 +24,7 @@ import { pickFiles } from '../files/open-files';
 import { m } from '../i18n';
 import { OcrDialogHost } from '../ocr';
 import { announce } from '../shell/announcer';
-import { setGlassPanels, setReduceTransparency } from '../shell/appearance-commands';
-import { useAppearanceStore } from '../state/appearance-store';
-import { setPenDrawsInEdit, usePenDrawsInEdit } from '../viewer/edit-policy';
+import { openSettings } from '../settings/open-settings';
 import { useSelectionStore } from '../state/selection-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import menuStyles from '../ui/Menu.module.css';
@@ -281,7 +278,7 @@ function DocumentMenuItems() {
             {entries.map((shown) =>
               shown.key === ABOUT_PAGE_ID ? (
                 <Fragment key={shown.key}>
-                  <AppearanceSubmenu />
+                  <SettingsItem />
                   <Menu.Item
                     className={menuStyles.item}
                     disabled={!shown.enabled}
@@ -309,7 +306,7 @@ function DocumentMenuItems() {
               ),
             )}
             {section.id === 'document' && !entries.some((e) => e.key === ABOUT_PAGE_ID) ? (
-              <AppearanceSubmenu />
+              <SettingsItem />
             ) : null}
           </Menu.Group>
         </Fragment>
@@ -318,65 +315,12 @@ function DocumentMenuItems() {
   );
 }
 
-/**
- * "Appearance ▸": the appearance settings and "Pen draws in Edit" as checkbox items (role
- * menuitemcheckbox), each with a visible box that reads off as well as on (review F21). The
- * pen setting shows its effective value: "auto" is on once a pen has been seen; a click makes
- * an explicit choice.
- */
-function AppearanceSubmenu() {
-  const glassPanels = useAppearanceStore((s) => s.glassPanels);
-  const reduceTransparency = useAppearanceStore((s) => s.reduceTransparency);
-  const penDraws = usePenDrawsInEdit();
+/** "Settings…": the Settings sheet (07 S3), where the Appearance submenu's settings went. */
+function SettingsItem() {
   return (
-    <Menu.SubmenuRoot>
-      <Menu.SubmenuTrigger className={menuStyles.item} data-settings="appearance">
-        <span className={menuStyles.label}>{m.appearance_heading()}</span>
-        <ChevronRight className={menuStyles.submenuArrow} aria-hidden="true" />
-      </Menu.SubmenuTrigger>
-      <Menu.Portal>
-        <Menu.Positioner side="left" align="end" sideOffset={4} collisionPadding={8}>
-          <Menu.Popup className={menuStyles.popup} aria-label={m.appearance_heading()}>
-            <Menu.CheckboxItem
-              className={menuStyles.item}
-              checked={glassPanels}
-              onCheckedChange={setGlassPanels}
-              closeOnClick={false}
-            >
-              <SwitchBox on={glassPanels} />
-              <span className={menuStyles.label}>{m.appearance_glass_panels()}</span>
-            </Menu.CheckboxItem>
-            <Menu.CheckboxItem
-              className={menuStyles.item}
-              checked={reduceTransparency}
-              onCheckedChange={setReduceTransparency}
-              closeOnClick={false}
-            >
-              <SwitchBox on={reduceTransparency} />
-              <span className={menuStyles.label}>{m.appearance_reduce_transparency()}</span>
-            </Menu.CheckboxItem>
-            <Menu.CheckboxItem
-              className={menuStyles.item}
-              checked={penDraws}
-              onCheckedChange={setPenDrawsInEdit}
-              closeOnClick={false}
-            >
-              <SwitchBox on={penDraws} />
-              <span className={menuStyles.label}>{m.pen_draws_in_edit()}</span>
-            </Menu.CheckboxItem>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.SubmenuRoot>
-  );
-}
-
-/** A switch's state as a check box: empty when off, a check on the accent when on. */
-function SwitchBox({ on }: { readonly on: boolean }) {
-  return (
-    <span className={styles.switchBox} data-on={on || undefined} aria-hidden="true">
-      {on ? <Check /> : null}
-    </span>
+    <Menu.Item className={menuStyles.item} data-settings="" onClick={() => openSettings()}>
+      <span className={menuStyles.label}>{m.settings_command()}</span>
+    </Menu.Item>
   );
 }
 

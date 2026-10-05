@@ -4149,5 +4149,89 @@
         "countPlural=*": "{count} signatures were removed: a changed file cannot keep them."
       }
     }
-  ]
+  ],
+  "settings_title": "Settings",
+  "settings_command": "Settings…",
+  "cmd_settings_open_keywords": "settings, preferences, options, configure",
+  "settings_search_label": "Search settings",
+  "settings_no_match": "No setting matches “{query}”",
+  "settings_results": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} setting found",
+        "countPlural=*": "{count} settings found"
+      }
+    }
+  ],
+  "settings_in_page": "In {page}: {rows}",
+  "settings_section_language": "Language",
+  "settings_section_pen": "Pen and touch",
+  "settings_section_documents": "Documents and storage",
+  "settings_section_privacy": "Privacy",
+  "settings_section_more": "More",
+  "settings_glass_panels_hint": "The panels around the page turn to glass while a page passes beneath them.",
+  "settings_reduce_transparency_hint": "Every glass surface becomes solid.",
+  "settings_language_browser": "Follow the browser ({language})",
+  "settings_pen_draws_hint": "Auto turns on when a pen is first used.",
+  "settings_kept_documents": "Kept documents",
+  "settings_kept_none": "Nothing kept yet",
+  "settings_kept_clear_all": "Clear all…",
+  "settings_kept_confirm_title": "Clear everything kept on this device?",
+  "settings_kept_confirm_body": "Open and closed documents lose the changes kept here, and Recents can no longer restore them. Saved files are not touched. This cannot be undone.",
+  "settings_recents": "Recent files",
+  "settings_recents_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} file",
+        "countPlural=*": "{count} files"
+      }
+    }
+  ],
+  "settings_recents_none": "None",
+  "settings_clear": "Clear",
+  "settings_comment_name": "Name on comments",
+  "settings_comment_name_hint": "New comments and notes carry this name.",
+  "settings_show_tips": "Show tips again",
+  "settings_show_tips_hint": "Hints you have already seen or dismissed show again.",
+  "settings_show_tips_action": "Show again",
+  "settings_tips_reset": "Tips will show again",
+  "settings_privacy_clean": "No requests to other sites",
+  "settings_privacy_external": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} request to other sites",
+        "countPlural=*": "{count} requests to other sites"
+      }
+    }
+  ],
+  "settings_privacy_statement": "Nothing you open leaves this device.",
+  "settings_privacy_requests": "Requests to other sites",
+  "settings_privacy_none": "None",
+  "settings_about_value": "{version} · Public beta",
+  "settings_cmd_appearance": "Appearance settings…",
+  "cmd_settings_appearance_keywords": "appearance, look, glass, transparency",
+  "settings_cmd_kept": "Kept documents…",
+  "settings_cmd_comment_name": "Name on comments…",
+  "settings_cmd_privacy": "Privacy settings…",
+  "settings_cmd_language_browser": "Language: follow the browser",
+  "settings_language_followed": "Language follows the browser: {language}",
+  "settings_show_tips_none": "Every tip shows already",
+  "settings_reduce_transparency_system": "Glass is solid because of a system setting",
+  "settings_glass_panels_keywords": "glass, frosted, blur, panels, translucent, frame, appearance",
+  "settings_reduce_transparency_keywords": "transparency, opaque, solid, contrast, accessibility, glass, appearance",
+  "settings_language_keywords": "language, locale, english, turkish, browser, translate",
+  "settings_pen_draws_keywords": "pen, stylus, pencil, draw, select, edit, ink",
+  "settings_kept_documents_keywords": "kept, snapshots, restore, storage, clear, delete, device, changes, session",
+  "settings_recents_keywords": "recent, recents, history, files, clear",
+  "settings_comment_name_keywords": "name, author, comments, notes, user",
+  "settings_show_tips_keywords": "tips, hints, help, reset, onboarding",
+  "settings_privacy_keywords": "privacy, network, requests, offline, external, tracking, csp, security",
+  "settings_shortcuts_keywords": "keyboard, shortcuts, keys, hotkeys, keymap",
+  "settings_about_keywords": "about, version, build, licence, license, source, release notes, storage, offline, recto"
 }

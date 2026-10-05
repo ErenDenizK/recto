@@ -36,7 +36,6 @@ import { showDocumentMode, showHome, showOpened, watchDestination } from '../hom
 import { m } from '../i18n';
 import { registerLanguageCommands } from '../i18n/language-commands';
 import { registerOcrCommands } from '../ocr';
-import { openAbout } from '../shell/about/about-store';
 import { PRODUCT_NAME } from '../shell/about/build-info';
 import { announce } from '../shell/announcer';
 import { useAuthorPrompt } from '../shell/comment-author';
@@ -57,6 +56,7 @@ import { registerViewerCommands } from '../viewer/viewer-commands';
 import { registerExportCommands } from './export-commands';
 import { type CommandRegistry, commandRegistry } from './registry';
 import { presentOpenFailures } from '../errors/present';
+import { openSettings } from '../settings/open-settings';
 
 const ui = () => useUiStore.getState();
 const model = () => useWorkspaceStore.getState();
@@ -333,13 +333,14 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       keywords: ['help', 'keys', 'keymap', 'hotkeys'],
       run: () => ui().setShortcutsOpen(!ui().shortcutsOpen),
     }),
-    // Version, build, licence, storage and offline status (ADR-0017 §6).
+    // Version, build, licence, storage and offline status (ADR-0017 §6): Settings → About
+    // Recto (07-sheets §25; spec D0-10), where the About dialog went.
     registry.register({
       id: 'help.about',
       title: m.about_command({ name: PRODUCT_NAME }),
       group: m.group_general(),
       keywords: ['version', 'build', 'release notes', 'licence', 'license', 'source', 'storage'],
-      run: () => openAbout(),
+      run: () => openSettings({ row: 'about' }),
     }),
     // The about page beside the app (presentation spec §3), listed last in the Document
     // menu's "Document" section.
