@@ -39,7 +39,8 @@
   height: 32px;
   padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-2);
+  /* The field primitives' radius (09 §12), so native inputs not yet ported match them. */
+  border-radius: var(--radius-control, 10px);
   background: var(--surface-2);
   color: var(--text-primary);
   font-size: var(--text-md);
