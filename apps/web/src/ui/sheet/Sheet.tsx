@@ -211,7 +211,11 @@ export function Sheet({
     return () => releaseFront(id);
   }, [open, id, kind]);
   useEffect(() => {
-    if (open && kind !== 'confirmation' && front !== null && front !== id) {
+    // The store's front, not this render's: the claim above has just run in this commit, so
+    // a sheet reopened while the one that replaced it is still closing (Settings → New
+    // signature → Settings) does not read the old front and close itself.
+    const current = useSheetStore.getState().front;
+    if (open && kind !== 'confirmation' && current !== null && current !== id) {
       onCloseRef.current('replaced');
     }
   }, [front, open, id, kind]);
