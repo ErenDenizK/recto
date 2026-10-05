@@ -28,6 +28,8 @@ import { fileHandleOf, partitionFiles, pickFiles } from '../files/open-files';
 import { clearRecents, recordRecent } from '../files/recents';
 import { registerFurnitureCommands } from '../furniture';
 import { registerFormCommands } from '../forms';
+import { redoStep, undoStep } from '../history/actions';
+import { openHistoryScrubber } from '../history/scrubber-store';
 import { showDocumentMode, showHome, showOpened, watchDestination } from '../home/home-actions';
 import { m } from '../i18n';
 import { registerLanguageCommands } from '../i18n/language-commands';
@@ -374,10 +376,8 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       shortcut: 'Mod+Z',
       keywords: ['revert', 'back'],
       when: () => canUndo(model().history),
-      run: () => {
-        const label = model().undo();
-        if (label) announce(m.announce_undid({ label }));
-      },
+      // Says the step and reveals the change (01-frame F3 §6, history/actions.ts).
+      run: () => void undoStep(),
     }),
     registry.register({
       id: 'edit.redo',
@@ -386,10 +386,18 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       shortcut: ['Mod+Shift+Z', 'Mod+Y'],
       keywords: ['again', 'forward'],
       when: () => canRedo(model().history),
-      run: () => {
-        const label = model().redo();
-        if (label) announce(m.announce_redid({ label }));
-      },
+      run: () => void redoStep(),
+    }),
+    // The History scrubber from ⌘K (08-feedback FB7 §1); ↶ shows it, so only in a document.
+    registry.register({
+      id: 'edit.history',
+      title: m.cmd_history(),
+      group: m.group_edit(),
+      keywords: ['undo', 'steps', 'scrubber', 'jump'],
+      when: () =>
+        useUiStore.getState().destination === 'document' &&
+        model().workspace.documentOrder.length > 0,
+      run: openHistoryScrubber,
     }),
     registry.register({
       id: 'pages.selectAll',

@@ -1,0 +1,11 @@
+/*
+ * ↶ ↷ (01-frame F3 §2): two bar IconButtons (32 px fine, 44 px coarse, 20 px glyphs) side by
+ * side on the bar's centre line, with the bar's own gap (quality-bar Q-9). Their states are the
+ * primitive's; disabled is its disabled colour.
+ */
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-target);
+  flex: none;
+}

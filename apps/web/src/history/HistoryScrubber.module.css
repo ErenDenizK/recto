@@ -1,0 +1,203 @@
+/*
+ * The History scrubber (08-feedback FB7 §2–§4): on the shared popover recipe
+ * (ui/Popover.module.css's .popup, M4 in the coverage registry); nothing here composes glass.
+ * Rows and wells are tint fills (quality-bar Q-4). The list is 360 wide and at most 400 tall;
+ * rows are 36 px (44 coarse); the current step carries the check on --accent-muted and is the
+ * only row in the primary text colour (language.md §2.6); future steps are dimmed.
+ */
+.popup {
+  width: min(360px, calc(100vw - 16px));
+  padding: var(--space-3) var(--space-2) var(--space-2);
+}
+
+.popup[data-presentation='slider'] {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+.popup[data-presentation='slider'] .head {
+  padding-inline: 0;
+}
+
+.title {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aside {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  padding: var(--space-4) 0 var(--space-3);
+}
+
+/* --- List (fine) ------------------------------------------------------------------------ */
+
+.list {
+  composes: focus-inset from global;
+  max-height: calc(400px - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-control);
+  scrollbar-width: thin;
+}
+
+.rows {
+  display: grid;
+  gap: 2px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 40px 16px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: var(--text-md);
+  cursor: default;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .row {
+    height: 44px;
+  }
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.row[data-active] {
+  background: var(--surface-active);
+}
+
+.row[data-state='present'] {
+  background: var(--accent-muted);
+  color: var(--text-primary);
+}
+
+.row[data-state='future'] {
+  color: var(--text-tertiary);
+}
+
+/* The active row (the keyboard's place; focus stays on the listbox, which shows the inset ring)
+   also carries a hairline edge, so it reads on the current step's tint too. */
+.row[data-active] {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.time {
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  color: var(--text-primary);
+}
+
+.check svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  stroke-width: 2;
+}
+
+.label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.labelText {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta::before {
+  content: '· ';
+}
+
+.row[data-state='present'] .meta {
+  color: var(--text-secondary);
+}
+
+/* The snapshot's tail (flows.md §5.2): a hairline with the line's words, under the oldest step
+   a reload keeps. */
+.rule {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-1) var(--space-2);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.rule::before,
+.rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-hairline);
+}
+
+.rule span {
+  flex: none;
+  max-width: 75%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Slider (coarse) -------------------------------------------------------------------- */
+
+.slider {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.sliderFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.count {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
