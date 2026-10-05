@@ -8,6 +8,11 @@
  * in the APG toolbar pattern; Left/Right still move between controls. Keys a control has
  * claimed (`preventDefault`) are left alone, and so are all keys of a control marked
  * `data-keeps-arrows` (the lasso's move grip nudges with them).
+ *
+ * A radio group of the `ui/` primitives (swatches, a segmented control: Base UI radios, which
+ * are not buttons) is one item, as the APG toolbar pattern asks: its chosen radio (else its
+ * first) takes part, and the group's own arrows move within it. `ui/Slider` claims Left and
+ * Right for its value, so Tab or Shift+Tab leaves it as in a native toolbar slider.
  */
 import {
   type FocusEvent,
@@ -17,7 +22,8 @@ import {
   useRef,
 } from 'react';
 
-const ITEMS = 'button:not([disabled]), input:not([disabled]), select:not([disabled])';
+const ITEMS =
+  'button:not([disabled]), input:not([disabled]):not([aria-hidden="true"]), select:not([disabled]), [role="radio"]:not(button):not([data-disabled])';
 
 function isValueControl(element: Element | null): boolean {
   return (
@@ -26,8 +32,21 @@ function isValueControl(element: Element | null): boolean {
   );
 }
 
+/** The radio a group of primitive radios is represented by: the chosen one, else the first. */
+function representsGroup(radio: HTMLElement): boolean {
+  const group = radio.closest('[role="radiogroup"]');
+  if (!group) return true;
+  const radios = Array.from(
+    group.querySelectorAll<HTMLElement>('[role="radio"]:not(button):not([data-disabled])'),
+  );
+  const chosen = radios.find((r) => r.getAttribute('aria-checked') === 'true') ?? radios[0];
+  return chosen === radio;
+}
+
 function itemsOf(container: HTMLElement | null): HTMLElement[] {
-  return Array.from(container?.querySelectorAll<HTMLElement>(ITEMS) ?? []);
+  return Array.from(container?.querySelectorAll<HTMLElement>(ITEMS) ?? []).filter(
+    (el) => el.tagName === 'BUTTON' || el.getAttribute('role') !== 'radio' || representsGroup(el),
+  );
 }
 
 /**
@@ -87,7 +106,15 @@ export function useRovingTabindex(ref: RefObject<HTMLElement | null>, preferred 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
     const list = itemsOf(ref.current);
-    const index = list.indexOf(document.activeElement as HTMLElement);
+    const active = document.activeElement as HTMLElement | null;
+    // Inside a group of primitive radios, the group is the item.
+    const groupItem = list.find(
+      (el) =>
+        el.getAttribute('role') === 'radio' && el.closest('[role="radiogroup"]')?.contains(active),
+    );
+    const index = list.indexOf(
+      active && list.includes(active) ? active : (groupItem ?? (active as HTMLElement)),
+    );
     if (index < 0 || list[index]?.hasAttribute('data-keeps-arrows')) return;
     const valueControl = isValueControl(list[index] ?? null);
     let next: number | null = null;
