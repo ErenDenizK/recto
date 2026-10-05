@@ -433,9 +433,33 @@ test('Esc and the backdrop while applying: the dialog stays and the blocked outc
   await panel.getByTestId('redaction-apply').click();
   const dialog = page.getByTestId('redaction-apply-dialog');
   await dialog.getByRole('checkbox', { name: /Keep attachments/ }).check();
+  // The work can finish within a frame on a fast run, so the header ✕ is read on every DOM
+  // change while the dialog says it is working, not once after the fact.
+  await page.evaluate(() => {
+    const seen = { working: 0, enabled: 0 };
+    (window as unknown as { __applyClose: typeof seen }).__applyClose = seen;
+    const read = () => {
+      const box = document.querySelector('[data-testid="redaction-apply-dialog"]');
+      if (
+        !box ||
+        !(box.querySelector('[role="status"]')?.textContent ?? '').includes('Removing content')
+      )
+        return;
+      if (box.querySelector('[data-testid="redaction-blocked"]')) return;
+      const close = box.querySelector<HTMLButtonElement>('button[aria-label="Close"]');
+      seen.working += 1;
+      if (close && !close.disabled && close.getAttribute('aria-disabled') !== 'true')
+        seen.enabled += 1;
+    };
+    new MutationObserver(read).observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    });
+  });
   await dialog.getByTestId('redaction-apply-confirm').click();
   await expect(dialog.getByRole('status')).toContainText(/Removing content/);
-  await expect(dialog.getByRole('button', { name: 'Close' })).toBeDisabled();
   // Neither Esc nor a click outside the dialog closes it while it works.
   await page.keyboard.press('Escape');
   await page.mouse.click(10, 450);
@@ -451,6 +475,13 @@ test('Esc and the backdrop while applying: the dialog stays and the blocked outc
     page.locator('[role="status"][aria-live="polite"]').filter({ hasText: announced }),
   ).toHaveCount(1);
   await expect(historyRow(page, /Redactions applied/)).toHaveCount(0);
+  // While it worked, the header ✕ was disabled at every change.
+  const close = await page.evaluate(
+    () =>
+      (window as unknown as { __applyClose: { working: number; enabled: number } }).__applyClose,
+  );
+  expect(close.working).toBeGreaterThan(0);
+  expect(close.enabled).toBe(0);
 
   // Once finished, Esc closes it; opened again, the form starts afresh.
   await page.keyboard.press('Escape');
