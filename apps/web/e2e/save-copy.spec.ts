@@ -36,6 +36,11 @@ const EXPECTED: Readonly<Record<string, { pages: number; rotations: readonly num
 };
 
 const coarse = (page: Page) => page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+/** Share copy is the primary: a coarse pointer whose browser can share files. */
+const shares = (page: Page) =>
+  page.evaluate(
+    () => matchMedia('(pointer: coarse)').matches && typeof navigator.canShare === 'function',
+  );
 
 test.describe('the download path', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Downloads are read on Chromium');
@@ -45,7 +50,7 @@ test.describe('the download path', () => {
     await useFileInputPicker(page);
     await page.goto('./?lang=en');
     await expect(page.getByTestId('app-shell')).toBeVisible();
-    test.skip(await coarse(page), 'a coarse pointer shares instead (below)');
+    test.skip(await shares(page), 'a coarse pointer that can share shares instead (below)');
   });
 
   test('drop two files, rotate a page, save a copy and download a verified PDF', async ({
@@ -280,7 +285,7 @@ test.describe('picker first (File System Access)', () => {
     await mockPicker(page, mode);
     await useFileInputPicker(page);
     await page.goto('./?lang=en');
-    test.skip(await coarse(page), 'a coarse pointer shares instead');
+    test.skip(await shares(page), 'a coarse pointer that can share shares instead');
     await openFixtures(page, ['simple-text.pdf']);
   }
 
