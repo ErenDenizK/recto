@@ -10,7 +10,7 @@
  * - **Language:** English · Türkçe · Follow the browser (07.8), names in their own language;
  *   applied without a reload (`locale.ts`), and the sheet comes back at this row after the
  *   shell remounts in the new language.
- * - **Pen and touch:** Pen draws in Edit (`edit-policy-store`, craft §3.5), its effective value
+ * - **Pen and touch:** Pen draws in Edit (`input-policy-store`, craft §3.5), its effective value
  *   ("auto" is on once a pen has been seen).
  * - **Documents and storage:** Kept documents (pushes its page, D0-7's snapshots), Recent files
  *   with Clear, Name on comments (07.8; the annotation store's author), Show tips again (07.8).
@@ -43,13 +43,13 @@ import { announce } from '../shell/announcer';
 import { setGlassPanels, setReduceTransparency } from '../shell/appearance-commands';
 import { BUILD_INFO, PRODUCT_NAME } from '../shell/about/build-info';
 import { useAppearanceStore } from '../state/appearance-store';
-import { useEditPolicyStore } from '../state/edit-policy-store';
+import { useInputPolicyStore } from '../state/input-policy-store';
 import { useUiStore } from '../state/ui-store';
 import { Button } from '../ui/Button';
 import { Segmented } from '../ui/Segmented';
 import { Switch } from '../ui/Switch';
 import { TextField } from '../ui/TextField';
-import { setPenDrawsInEdit, usePenDrawsInEdit } from '../viewer/edit-policy';
+import { setPenDrawsInMarkup, usePenDrawsInMarkup } from '../viewer/edit-policy';
 import { openSettings } from './open-settings';
 import { Hint, Line, NavRow, Row } from './rows';
 import type { SettingsPageId, SettingsRowId } from './search-index';
@@ -152,8 +152,8 @@ export function LanguageRow() {
 }
 
 export function PenDrawsRow() {
-  const on = usePenDrawsInEdit();
-  const auto = useEditPolicyStore((s) => s.penDrawsInEdit === 'auto');
+  const on = usePenDrawsInMarkup();
+  const auto = useInputPolicyStore((s) => s.penDrawsInMarkup === 'auto');
   return (
     <Row id="penDrawsInEdit">
       <Switch
@@ -161,7 +161,7 @@ export function PenDrawsRow() {
         label={m.pen_draws_in_edit()}
         description={auto ? m.settings_pen_draws_hint() : undefined}
         checked={on}
-        onCheckedChange={setPenDrawsInEdit}
+        onCheckedChange={setPenDrawsInMarkup}
       />
     </Row>
   );
@@ -237,7 +237,7 @@ export function CommentNameRow() {
 
 export function ShowTipsRow() {
   // The one-time hints live in the edit policy store (craft §3.5).
-  const pending = useEditPolicyStore((s) => s.editTextHintShown);
+  const pending = useInputPolicyStore((s) => s.editTextHintShown);
   return (
     <Row id="showTips" bar>
       <Line label={m.settings_show_tips()}>

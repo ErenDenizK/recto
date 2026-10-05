@@ -18,7 +18,7 @@
  * layer's own text model; a target above the text in the hit order (annotation, field,
  * image) shows none, and none shows while a paragraph editor is open. Until the first such
  * double-click, the outline brings a one-line hint, "Double-click to edit text", once per
- * device (`edit-policy-store.ts`). A single click on page text with Select brings the same
+ * device (`input-policy-store.ts`). A single click on page text with Select brings the same
  * hint at once, below the clicked line, so a person who expects a click to open the
  * paragraph learns the gesture (review finding 3).
  */
@@ -36,7 +36,7 @@ import { cssPointToUser } from '../annotations/geometry';
 import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
-import { useEditPolicyStore } from '../state/edit-policy-store';
+import { useInputPolicyStore } from '../state/input-policy-store';
 import { useCanEdit } from '../state/ui-store';
 import { distanceFromView, useViewStore } from '../state/view-store';
 import { openTextEditorAt } from '../text-edit/entry';
@@ -101,7 +101,7 @@ export function TextLayer(props: PageOverlayProps) {
   // editor (its own glyphs and caret are the affordance then).
   const paragraphOpen = useTextEditStore((s) => s.paragraph !== null);
   const hovering = editable && (mode === 'select' || mode === 'edit-text') && !paragraphOpen;
-  const hintShown = useEditPolicyStore((s) => s.editTextHintShown);
+  const hintShown = useInputPolicyStore((s) => s.editTextHintShown);
   const [hover, setHover] = useState<{ readonly key: string; readonly line: number } | null>(null);
   // The first-click hint (module header): where it shows, until the next press.
   const [clickHint, setClickHint] = useState<{
@@ -269,7 +269,7 @@ export function TextLayer(props: PageOverlayProps) {
     const point = cssPointToUser(frame, { x: event.clientX - r.left, y: event.clientY - r.top });
     // The editor takes the place of the word the double-click selected.
     window.getSelection()?.removeAllRanges();
-    useEditPolicyStore.getState().markEditTextHintShown();
+    useInputPolicyStore.getState().markEditTextHintShown();
     setHover(null);
     void openTextEditorAt(
       { source: sourceId, pageIndex: sourceIndex, pageId, position: pageIndex + 1 },
