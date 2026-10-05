@@ -134,6 +134,26 @@ describe('attachLongPress', () => {
     expect(clicks).toHaveBeenCalledOnce();
   });
 
+  it('lets the next tap click when the release brought no click of its own', async () => {
+    // Chromium's touch gestures end a long press in a long tap, without a click: the swallow
+    // must not wait for one and eat a tap on the popup the long press opened (History's Cancel).
+    const el = box();
+    const other = document.createElement('button');
+    document.body.append(other);
+    const clicks = vi.fn();
+    cleanups.push(attachLongPress(el, { onFire: vi.fn() }));
+    document.addEventListener('click', clicks);
+    cleanups.push(() => document.removeEventListener('click', clicks));
+    pointer('pointerdown', el, 100, 100);
+    await sleep(500);
+    pointer('pointerup', el, 100, 100);
+    // A new touch, well within the echo window, and its click.
+    pointer('pointerdown', other, 10, 10, { pointerId: 12 });
+    pointer('pointerup', other, 10, 10, { pointerId: 12 });
+    other.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(clicks).toHaveBeenCalledOnce();
+  });
+
   it('counts a contextmenu that arrives first as the fire, once', async () => {
     const el = box();
     const onFire = vi.fn();

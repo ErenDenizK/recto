@@ -96,6 +96,9 @@ export function gestureArena(target: GestureTarget): Arena<PointerEvent> | undef
  * - **Echoes.** Android's `contextmenu` from the same touch is `preventDefault`ed and stopped
  *   within `GESTURE.contextMenuEchoMs` of a fire; if it arrives first, it counts as the fire.
  *   The `click` of the fired press's release is swallowed (capture, `GESTURE.clickEchoMs`).
+ *   Only that click: a browser that sends none after a long press (Chromium's touch gestures
+ *   now end in a long tap, without a click) must not cost the user their next tap, so the next
+ *   press anywhere disarms the swallow; a release's click always comes before any new press.
  */
 export function attachLongPress(
   target: GestureTarget,
@@ -167,6 +170,10 @@ export function attachLongPress(
       event.stopPropagation();
     }
   };
+  /** A new press after the release: the release's click did not come, and will not. */
+  const onNextPress = () => {
+    if (firedPointer === null) clickUntil = Number.NEGATIVE_INFINITY;
+  };
   const onClick = (event: Event) => {
     if (performance.now() >= clickUntil) return;
     clickUntil = Number.NEGATIVE_INFINITY;
@@ -181,6 +188,7 @@ export function attachLongPress(
   target.addEventListener('contextmenu', onContextMenu, capture);
   target.addEventListener('selectstart', onSelectStart, capture);
   view.addEventListener('click', onClick, capture);
+  view.addEventListener('pointerdown', onNextPress, PASSIVE_CAPTURE);
   view.addEventListener('pointerup', onRelease, PASSIVE_CAPTURE);
   view.addEventListener('pointercancel', onRelease, PASSIVE_CAPTURE);
   const remove = attachRecogniser(target, recogniser);
@@ -190,6 +198,7 @@ export function attachLongPress(
     target.removeEventListener('contextmenu', onContextMenu, capture);
     target.removeEventListener('selectstart', onSelectStart, capture);
     view.removeEventListener('click', onClick, capture);
+    view.removeEventListener('pointerdown', onNextPress, PASSIVE_CAPTURE);
     view.removeEventListener('pointerup', onRelease, PASSIVE_CAPTURE);
     view.removeEventListener('pointercancel', onRelease, PASSIVE_CAPTURE);
     view.removeEventListener('scroll', onScroll, PASSIVE_CAPTURE);
