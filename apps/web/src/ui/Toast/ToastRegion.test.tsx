@@ -225,6 +225,23 @@ describe('Undo toasts', () => {
     expect(opened).toBe(1);
   });
 
+  it('stays, and still undoes its step, when another tab is activated', async () => {
+    const first = useWorkspaceStore.getState().workspace.activeDocument as DocumentId;
+    await useWorkspaceStore.getState().openFiles([await fixtureFile(simpleUrl, 'second.pdf')]);
+    const second = useWorkspaceStore.getState().workspace.activeDocument as DocumentId;
+    useWorkspaceStore.getState().setActive(first);
+    const before = useWorkspaceStore.getState().history.past.length;
+    useWorkspaceStore.getState().rotatePages([firstPage()], 90);
+    toast.undo('Rotated page 1');
+    // Activating a tab replaces the present entry without a step (replacePresent).
+    useWorkspaceStore.getState().setActive(second);
+    useWorkspaceStore.getState().setActive(first);
+    const [shown] = useToastStore.getState().shown;
+    expect(shown?.text).toBe('Rotated page 1');
+    shown?.action?.run();
+    expect(useWorkspaceStore.getState().history.past).toHaveLength(before);
+  });
+
   it('leaves with its document when that document closes', () => {
     const ws = useWorkspaceStore.getState().workspace;
     const id = ws.activeDocument as DocumentId;
