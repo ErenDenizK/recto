@@ -4,14 +4,15 @@
  * its reason until there is something to use; the pad draws in pad units with Undo and Clear
  * and says how many strokes it holds; the keyboard-only path (Type → Enter) keeps the
  * signature; at five kept the box says the oldest goes, and it does; from Settings it always
- * keeps; a window that keeps nothing says so.
+ * keeps; a press still saving when the sheet closes leaves a later opening alone; a window
+ * that keeps nothing says so.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
 import '../styles/global.css';
 
 import { act, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
@@ -25,6 +26,7 @@ import {
   type SavedSignature,
   saveSignature,
   setSignatureBackend,
+  stampOfSignature,
   useSavedSignatures,
 } from './saved-signatures';
 
@@ -168,6 +170,8 @@ describe('New signature', () => {
     const ids = useSavedSignatures.getState().signatures.map((s) => s.id);
     expect(ids).toHaveLength(5);
     expect(ids).not.toContain(kept[0]?.id);
+    // The press ends once the stamp is drawn: wait for it, so it does not reach the next test.
+    await waitFor(() => expect(useSheetStore.getState().open).toBeNull(), { timeout: 5000 });
   });
 
   it('from Settings, always keeps: no box, Save signature', async () => {
@@ -186,6 +190,41 @@ describe('New signature', () => {
       timeout: 5000,
     });
     expect(useSheetStore.getState().open?.preset).toBe('row:savedSignatures');
+  });
+
+  it('a press still saving when the sheet closes leaves a later opening alone', async () => {
+    // Drawing the stamp waits for the test to let it go (a slow device or a loaded runner).
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const draw = vi
+      .spyOn(OffscreenCanvas.prototype, 'convertToBlob')
+      .mockImplementation(async function (this: OffscreenCanvas, options) {
+        await gate;
+        draw.mockRestore();
+        return this.convertToBlob(options);
+      });
+    try {
+      await openSheet();
+      await userEvent.click(page.getByRole('tab', { name: 'Type' }));
+      await userEvent.type(page.getByRole('textbox', { name: 'Your name' }), 'Ada');
+      await userEvent.click(page.getByRole('button', { name: 'Use signature' }));
+      await waitFor(() => expect(useSavedSignatures.getState().signatures).toHaveLength(1));
+      // Esc while it saves, then New signature again, from Settings.
+      act(() => closeSheet());
+      act(() => openNewSignature('keep'));
+      const reopened = useSheetStore.getState().open;
+      release();
+      // The press waits on this same stamp, and its turn comes before the test's.
+      const [saved] = useSavedSignatures.getState().signatures;
+      if (saved) await act(() => stampOfSignature(saved));
+      expect(useSheetStore.getState().open).toBe(reopened);
+      expect(screen.getByRole('textbox', { name: 'Your name' })).toHaveValue('Ada');
+    } finally {
+      release();
+      draw.mockRestore();
+    }
   });
 
   it('in a window that keeps nothing, says so and still makes a signature', async () => {
