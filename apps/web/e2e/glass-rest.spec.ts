@@ -1,16 +1,17 @@
 /**
  * Glass at rest in today's main states (docs/specs/redesign.md D0-1 and D0-QA; quality-bar.md
- * Q-1 to Q-5, Q-11): Read, Read with the text selection bar, Edit with the floating bar, an
+ * Q-1 to Q-5, Q-8, Q-11): Home, Read, Read with the text selection bar, Edit with the floating bar, an
  * options tier and a tool menu, the Document menu and the page context menu, the command
  * palette, Arrange with its contextual bar, and an annotation's bar and note. In each the walker
  * (e2e/support/glass-walker.ts) finds every backdrop-filter surface and checks one backdrop root,
  * no glass in glass, 32 px at the least, integer positions and no will-change at rest, the
- * coverage rule at the rendered size, and at most four surfaces.
+ * coverage rule at the rendered size, at most four surfaces (six while a sheet comes in), and
+ * the text on glass at 11 px or more, in the scale's three weights, under no scale at rest.
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import { enterEdit, fixturePath, openFixtures, useFileInputPicker } from './helpers';
-import { expectGlassClean } from './support/glass-walker';
+import { expectGlassClean, walkGlass } from './support/glass-walker';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -34,12 +35,24 @@ async function open(page: Page, name: string): Promise<void> {
 const names = (walk: { surfaces: readonly { name: string; visible: boolean }[] }) =>
   walk.surfaces.filter((s) => s.visible).map((s) => s.name);
 
+test('Home: the budget and the text on its glass', async ({ page }) => {
+  await page.goto('./?lang=en');
+  await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+  await page.mouse.move(700, 450);
+  const walk = await expectGlassClean(page, 'Home');
+  // Q-11: within the four of a resting screen.
+  expect(walk.visible).toBeLessThanOrEqual(4);
+});
+
 test('Read, the selection bar, Edit with an options tier, menus and the palette', async ({
   page,
 }) => {
   await open(page, 'simple-text.pdf');
   let walk = await expectGlassClean(page, 'Read');
   expect(names(walk).some((n) => n.includes('toolbar'))).toBe(true);
+  // Q-8 read the bar's labels (so a clean walk means the text was looked at).
+  expect(walk.texts).toBeGreaterThan(0);
+  expect(walk.visible).toBeLessThanOrEqual(4);
 
   // Read: a double-clicked word and its selection bar.
   const rows = page.getByTestId('text-layer').first().locator('span[data-row]');
@@ -93,6 +106,31 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.keyboard.press('ControlOrMeta+k');
   await expect(page.getByRole('combobox', { name: 'Search commands' })).toBeVisible();
   await expectGlassClean(page, 'the command palette');
+  await page.keyboard.press('Escape');
+});
+
+test('a sheet over a document and a toast: six at most while it comes in, four at rest', async ({
+  page,
+}) => {
+  await open(page, 'simple-text.pdf');
+  // A toast: "Deleted page 2 · Undo".
+  await page.keyboard.press('3');
+  await page.getByTestId('light-table').getByRole('gridcell').nth(1).click();
+  await page.keyboard.press('Delete');
+  await expect(page.getByRole('group', { name: 'Deleted page 2' })).toBeVisible();
+  await page.keyboard.press('2');
+  await page.mouse.move(700, 450);
+  await expectGlassClean(page, 'Edit with a toast');
+  // Save a copy comes in over it: the transition budget, read mid-entrance (Q-11).
+  await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+  await expect(page.getByTestId('save-copy-sheet')).toBeAttached();
+  const mid = await walkGlass(page, { atRest: false });
+  expect(
+    mid.violations.filter((v) => ['Q-3', 'Q-4', 'Q-8', 'Q-11'].includes(v.rule)),
+    'glass while Save a copy comes in',
+  ).toEqual([]);
+  const walk = await expectGlassClean(page, 'Save a copy over a toast');
+  expect(names(walk).some((n) => n.includes('panel'))).toBe(true);
   await page.keyboard.press('Escape');
 });
 
