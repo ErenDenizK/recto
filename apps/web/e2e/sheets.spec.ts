@@ -9,6 +9,8 @@
  *   fast, closes; what was typed stays.
  * - **Focus trap** in a modal sheet, the page live under a tool sheet; **drafts** kept on Esc,
  *   per document; the scrim closes a task sheet and never answers a confirmation.
+ * - **Q-10**: a detent change grabbed mid-flight: the drag takes over where the panel is, and the
+ *   release rests it on a detent with nothing left inline.
  * - **Q-7 frame sampling**: every frame of an open and of a detent change, the panel's size is
  *   constant, only its transform moves, it stays the same node, and a `ResizeObserver` on its
  *   content fires no callback beyond the first. The glass walker runs mid-motion (one backdrop
@@ -394,6 +396,90 @@ test.describe('the gallery', () => {
       await page.waitForTimeout(120);
       await page.mouse.up();
       await expect(sheet).toHaveCount(0);
+    });
+
+    test('Q-10: a detent change grabbed mid-flight turns from where it is and rests crisp', async ({
+      page,
+    }) => {
+      await gallery(page);
+      await open(page, 'tool');
+      const sheet = panel(page, 'tool');
+      const at40 = (await sheet.boundingBox())?.y ?? 0;
+      // Thrown up towards 92 %, then grabbed while it flies and pulled 150 px down, held, let go:
+      // the drag takes over at the panel's place in flight (not its target, not its start), and
+      // the release, with no speed left, snaps to the nearer detent, 40 %.
+      const grab = await page.evaluate(async () => {
+        const selector = '[data-testid="sheet-tool"]';
+        const el = document.querySelector<HTMLElement>(selector);
+        const handle = el?.querySelector('[data-sheet-handle]');
+        if (!el || !handle) throw new Error('no tool sheet');
+        const y = () => new DOMMatrix(getComputedStyle(el).transform).m42;
+        const frame = () => new Promise((r) => requestAnimationFrame(r));
+        const pointer = (type: string, id: number, cx: number, cy: number, target: EventTarget) =>
+          target.dispatchEvent(
+            new PointerEvent(type, {
+              bubbles: true,
+              pointerId: id,
+              pointerType: 'mouse',
+              isPrimary: true,
+              clientX: cx,
+              clientY: cy,
+              button: 0,
+              buttons: type === 'pointerup' ? 0 : 1,
+            }),
+          );
+        // The 40 % rest offset; 92 % rests at 0.
+        const from = y();
+        // The throw: 120 px up in 60 ms (the drag moves the panel 1:1, the spring the rest).
+        let box = handle.getBoundingClientRect();
+        const x = box.left + box.width / 2;
+        let cy = box.top + box.height / 2;
+        pointer('pointerdown', 7, x, cy, handle);
+        for (let i = 1; i <= 6; i++) {
+          await new Promise((r) => setTimeout(r, 10));
+          pointer('pointermove', 7, x, cy - i * 20, window);
+        }
+        pointer('pointerup', 7, x, cy - 120, window);
+        // Mid-flight: the spring running on the panel, which has left the 40 % rest but is
+        // still less than 60 % of the way up.
+        const started = performance.now();
+        for (;;) {
+          const now = y();
+          const running = el.getAnimations().some((a) => a.playState === 'running');
+          if (running && now < from - 4 && now > from * 0.4) break;
+          if (performance.now() - started > 5_000) throw new Error('the detent change never ran');
+          await frame();
+        }
+        const inFlight = y();
+        // The grab: press on the grabber where it is now, 150 px down in 10 px steps.
+        box = handle.getBoundingClientRect();
+        cy = box.top + box.height / 2;
+        pointer('pointerdown', 9, x, cy, handle);
+        pointer('pointermove', 9, x, cy + 10, window);
+        const firstMove = y();
+        for (let i = 2; i <= 15; i++) {
+          await frame();
+          pointer('pointermove', 9, x, cy + i * 10, window);
+        }
+        // Held still before the release, so it carries no speed.
+        await new Promise((r) => setTimeout(r, 150));
+        pointer('pointermove', 9, x, cy + 150, window);
+        pointer('pointerup', 9, x, cy + 150, window);
+        return { from, inFlight, firstMove };
+      });
+      // The drag starts where the flight was: 10 px on from it, give or take a frame's travel.
+      expect(grab.inFlight).toBeLessThan(grab.from);
+      expect(Math.abs(grab.firstMove - (grab.inFlight + 10))).toBeLessThan(8);
+      await rest(page);
+      expect(Math.abs(((await sheet.boundingBox())?.y ?? 0) - at40)).toBeLessThanOrEqual(1);
+      // Q-2: nothing written inline is left, and the glass rests crisp.
+      const left = await sheet.evaluate((el: HTMLElement) => ({
+        transform: el.style.transform,
+        willChange: el.style.willChange,
+        swiping: el.dataset.swiping ?? null,
+      }));
+      expect(left).toEqual({ transform: '', willChange: '', swiping: null });
+      await expectGlassClean(page, 'the tool sheet after a grabbed detent change');
     });
 
     test('Q-7: the bottom sheet opens by transform only, and the glass holds mid-motion', async ({

@@ -29,6 +29,8 @@ const SHEETS_SPEC = '**/sheets.spec.ts';
 const SETTINGS_SPEC = '**/settings.spec.ts';
 /** Save a copy's Share copy and J13B's touch count (spec D0-9, §10.5: jobs on the tablet). */
 const SAVE_COPY_SPECS = ['**/save-copy.spec.ts', '**/jobs.spec.ts'];
+/** No frames at rest on the compact reader too (quality-bar Q-10, A-23; spec D0-QA). */
+const MOTION_SPEC = '**/motion.spec.ts';
 const touchDevice = (
   size: { width: number; height: number },
   userAgent: string,
@@ -66,7 +68,7 @@ export default defineConfig({
     { name: 'webkit', testIgnore: COMPACT_SPEC, use: { ...devices['Desktop Safari'] } },
     {
       name: 'phone',
-      testMatch: [COMPACT_SPEC, BAR_AUDIT_SPEC],
+      testMatch: [COMPACT_SPEC, BAR_AUDIT_SPEC, MOTION_SPEC],
       use: touchDevice(PHONE, devices['Pixel 7'].userAgent, 3),
     },
     {
