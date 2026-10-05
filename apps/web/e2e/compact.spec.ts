@@ -6,9 +6,10 @@
  * Covers: the Library and its reading-only line, opening a file through the file chooser,
  * scrolling with the chrome hiding and showing, a tap, a double tap and a pinch (CDP touch
  * events), Find with hits and ‹ ›, a jump from the Pages sheet, Contents, Go to page, notes,
- * Document info, Download a copy, an encrypted file, Turkish; that no editing control is
- * reachable; that the full shell's chunk is never requested; and that `?edition=full` on a
- * phone loads today's app. Set CAPTURE_SCREENSHOTS=<dir> to write the review screenshots.
+ * Document info, Download a copy, an encrypted file, Turkish; that a settled sheet is solid
+ * with the chrome away, the first-run Recents placeholder and a disabled Go that still reads
+ * (XD-3); that no editing control is reachable; that the full shell's chunk is never
+ * requested; and that `?edition=full` on a phone loads today's app. Set CAPTURE_SCREENSHOTS=<dir> to write the review screenshots.
  */
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -113,6 +114,44 @@ async function expectHidden(locator: Locator, hidden: boolean): Promise<void> {
   else await expect(locator).not.toHaveAttribute('data-hidden');
 }
 
+/**
+ * A settled compact sheet (07-sheets §3, language.md §2.10): its solid fill has faded in and its
+ * backdrop filter is gone, so nothing under it shows through; and the chrome is away (XD-3).
+ */
+async function expectSettledSolid(page: Page, sheet: Locator): Promise<void> {
+  await expectHidden(topBar(page), true);
+  await expectHidden(capsule(page), true);
+  await expect
+    .poll(() =>
+      sheet.evaluate((el) => {
+        const style = getComputedStyle(el);
+        const filter =
+          style.getPropertyValue('backdrop-filter') ||
+          style.getPropertyValue('-webkit-backdrop-filter') ||
+          'none';
+        const alpha = /rgba?\([^)]*,\s*([\d.]+)\)$/.exec(style.backgroundColor)?.[1];
+        const opaque = !style.backgroundColor.startsWith('rgba') || Number(alpha) === 1;
+        return `${filter} ${opaque ? 'opaque' : style.backgroundColor}`;
+      }),
+    )
+    .toBe('none opaque');
+}
+
+/** WCAG relative luminance of a computed `rgb()` colour. */
+function luminance(colour: string): number {
+  const [r = 0, g = 0, b = 0] = (colour.match(/[\d.]+/g) ?? []).map(Number);
+  const lin = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
 async function shot(page: Page, name: string): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
@@ -132,6 +171,11 @@ test.describe('the compact edition', () => {
         'Reading only on phones for now. Open this file on a computer or tablet to mark it up.',
       ),
     ).toBeVisible();
+    // First run: Recents holds its place with a calm empty row (XD-3).
+    const empty = page.getByTestId('compact-recents-empty');
+    await expect(empty.getByRole('heading', { name: 'Recent' })).toBeVisible();
+    await expect(empty).toContainText('No files yet');
+    await expect(empty).toContainText('PDFs you open show here, newest first.');
     // No horizontal page scroll.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       page.viewportSize()?.width ?? 0,
@@ -153,6 +197,7 @@ test.describe('the compact edition', () => {
         'Telefonda şimdilik yalnızca okuma. İşaretlemek için dosyayı bir bilgisayarda ya da tablette açın.',
       ),
     ).toBeVisible();
+    await expect(page.getByTestId('compact-recents-empty')).toContainText('Henüz dosya yok');
     await shot(page, 'compact-library-tr');
     await page.getByRole('button', { name: 'English' }).click();
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
@@ -275,15 +320,34 @@ test.describe('the compact edition', () => {
       'page',
     );
     await expect(sheet.locator('canvas').first()).toHaveAttribute('data-state', 'rendered');
+    await expectSettledSolid(page, sheet);
     await shot(page, 'compact-pages-sheet');
     await sheet.getByRole('button', { name: 'Page 3 of 3' }).click();
     await expect(sheet).toHaveCount(0);
     await expect(pageNumber(page)).toHaveText('3 / 3');
+    // The chrome comes back with the sheet gone.
+    await expectHidden(capsule(page), false);
+    await expectHidden(topBar(page), false);
 
     await pageNumber(page).click();
     const goto = page.getByTestId('compact-goto-sheet');
     const input = goto.getByRole('textbox', { name: 'Page number or label' });
     await expect(input).toBeFocused();
+    await expectSettledSolid(page, goto);
+    // Go with nothing typed: disabled but present, the shared disabled step (Q-14), and inside
+    // the sheet.
+    const go = goto.getByRole('button', { name: 'Go' });
+    await expect(go).toBeDisabled();
+    const look = await go.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        color: style.color,
+        fill: style.backgroundColor,
+        right: el.getBoundingClientRect().right,
+      };
+    });
+    expect(contrast(look.color, look.fill)).toBeGreaterThanOrEqual(3);
+    expect(look.right).toBeLessThanOrEqual((page.viewportSize()?.width ?? 0) - 8);
     await input.fill('9');
     await expect(goto.getByText('No page “9”')).toBeVisible();
     await input.fill('2');
@@ -336,9 +400,13 @@ test.describe('the compact edition', () => {
 
     await more.click();
     await menu.getByRole('menuitem', { name: 'About Recto' }).click();
-    await expect(page.getByTestId('compact-about-sheet')).toContainText(
-      'Files never leave your device.',
-    );
+    const about = page.getByTestId('compact-about-sheet');
+    await expect(about).toContainText('Files never leave your device.');
+    await expectSettledSolid(page, about);
+    // On a phone on its side About meets the 92 % cap: its body scrolls to the last link.
+    const source = about.getByRole('link', { name: /^Source/ });
+    await source.scrollIntoViewIfNeeded();
+    await expect(source).toBeInViewport({ ratio: 1 });
     await page.keyboard.press('Escape');
 
     await more.click();
