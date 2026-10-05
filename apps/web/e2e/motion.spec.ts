@@ -12,9 +12,12 @@
  * - **Interruptible.** The D0 catalogue animations that exist now, each interrupted mid-way: a
  *   side sheet closed while it opens and reopened while it closes, a centred dialog closed
  *   while it scales in, a toast dismissed while it enters, and the History scrubber (a CSS
- *   transition) closed while it opens. Each turns from where it was (the frame after the
- *   interrupt is no jump) and settles where it was last sent, with no inline transform or
- *   `will-change` left (Q-2) and nothing stuck on screen. A bottom sheet's detent change
+ *   transition) closed while it opens. Each turns from where it was and settles where it was
+ *   last sent, with no inline transform or `will-change` left (Q-2) and nothing stuck on
+ *   screen. "No jump" is read as a speed, so it holds at any frame rate: every reading after
+ *   the interrupt, timed with `performance.now()`, lies within what the fastest motion
+ *   involved (its spring token, or the CSS transition's duration and curve) could cover since
+ *   the one before, and the value then heads for its new target. A bottom sheet's detent change
  *   grabbed mid-flight needs a tool sheet, which only the sheet gallery has before D2, so it
  *   is in `sheets.spec.ts` ("Q-10: a detent change grabbed mid-flight …").
  *
@@ -172,24 +175,35 @@ type Interrupt =
   | { readonly kind: 'click'; readonly selector: string }
   | { readonly kind: 'contextmenu'; readonly selector: string };
 
-interface Look {
-  readonly transform: string;
+/** What is read off the moving element: its x translation, its scale or its opacity. */
+type Channel = 'x' | 'scale' | 'opacity';
+
+interface Sample {
+  /** `performance.now()` when it was read, ms. */
+  readonly t: number;
+  readonly x: number;
+  readonly scale: number;
   readonly opacity: number;
 }
 
 interface Midway {
   /** How far the running animation was when it was interrupted, 0–1. */
   readonly progress: number;
-  /** The target as it looked the frame it was interrupted, and a frame later. */
-  readonly before: Look;
-  readonly after: Look | null;
+  /** The element as it was in the frame it was interrupted. */
+  readonly before: Sample;
+  /** Every frame after, until it left the document, came to rest or 1.5 s passed. */
+  readonly after: readonly Sample[];
+  /** When it was first seen gone from the document, or null if it stayed. */
+  readonly goneAt: number | null;
 }
 
 /**
  * Arms an interrupt in the page: once `target` (a selector) is moving, at least `minMs` into
  * one of its own animations and short of 85 % of it, `interrupt` happens in that same frame.
- * Call it, then start the motion, then await what it returns: the progress it caught and how
- * the target looked then and a frame after (a retarget turns from there, never jumps).
+ * Call it, then start the motion, then await what it returns: the progress it caught, the
+ * element in that frame and in every frame after, each with its time, so the checks below read
+ * speeds, which do not depend on how long a frame is (a software-rendered engine can draw a
+ * frame in 100 ms where another takes 16).
  */
 function interruptMidway(
   page: Page,
@@ -200,20 +214,37 @@ function interruptMidway(
   return page.evaluate(
     ({ target, interrupt, minMs }) =>
       new Promise<Midway>((resolve, reject) => {
-        const look = (el: Element): Look => {
+        const read = (el: Element): Sample => {
           const style = getComputedStyle(el);
-          return { transform: style.transform, opacity: Number(style.opacity) };
+          const m = new DOMMatrix(style.transform === 'none' ? undefined : style.transform);
+          return { t: performance.now(), x: m.m41, scale: m.m11, opacity: Number(style.opacity) };
         };
         const frame = () => new Promise((r) => requestAnimationFrame(r));
         const started = performance.now();
-        const step = async () => {
+        const follow = async (el: Element, progress: number, before: Sample) => {
+          const after: Sample[] = [];
+          for (;;) {
+            await frame();
+            if (!el.isConnected) {
+              resolve({ progress, before, after, goneAt: performance.now() });
+              return;
+            }
+            after.push(read(el));
+            const moving = el.getAnimations().some((a) => a.playState === 'running');
+            if ((!moving && after.length > 1) || performance.now() - before.t > 1_500) {
+              resolve({ progress, before, after, goneAt: null });
+              return;
+            }
+          }
+        };
+        const step = () => {
           const el = document.querySelector(target);
           const running = el
             ?.getAnimations()
             .find((a) => a.playState === 'running' && Number(a.currentTime ?? 0) >= minMs);
           const progress = running?.effect?.getComputedTiming().progress ?? null;
           if (el && running && progress !== null && progress < 0.85) {
-            const before = look(el);
+            const before = read(el);
             if (interrupt.kind === 'key') {
               const at = document.activeElement ?? document.body;
               const init = { key: interrupt.key, bubbles: true, cancelable: true };
@@ -239,28 +270,85 @@ function interruptMidway(
                 );
               }
             }
-            await frame();
-            resolve({ progress, before, after: el.isConnected ? look(el) : null });
+            void follow(el, progress, before);
             return;
           }
           if (performance.now() - started > 8_000) {
             reject(new Error(`${target} never moved mid-way`));
             return;
           }
-          requestAnimationFrame(() => void step());
+          requestAnimationFrame(step);
         };
-        void step();
+        step();
       }),
     { target, interrupt, minMs },
   );
 }
 
-/** The translation and scale of a computed transform (`none` is 0, 0 and 1). */
-function parts(transform: string): { x: number; y: number; scale: number } {
-  const m = /^matrix\(([^)]+)\)$/.exec(transform);
-  if (!m?.[1]) return { x: 0, y: 0, scale: 1 };
-  const [a = 1, , , , x = 0, y = 0] = m[1].split(',').map(Number);
-  return { x, y, scale: a };
+/**
+ * Perceptual durations of the spring tokens this spec meets (`src/motion/springs.ts`, language.md
+ * §7.1): a token of duration d has ω = 2π / d, and none of them has bounce.
+ */
+const SPRING_SECONDS = { quick: 0.28, smooth: 0.36, track: 0.1 } as const;
+/**
+ * The fastest a spring token moves over `distance`, units per second: `distance × ω`. A
+ * critically damped move from rest peaks at `distance × ω / e`, and the speed a retarget carries
+ * in is at most another such peak, so this bounds both with room to spare.
+ */
+const springSpeed = (name: keyof typeof SPRING_SECONDS, distance: number): number =>
+  (distance * 2 * Math.PI) / SPRING_SECONDS[name];
+/**
+ * The fastest a CSS transition on `--duration-fast` (120 ms) and `--ease-out`
+ * (`cubic-bezier(0.2, 0, 0, 1)`, steepest slope 4.05) moves over `distance`, with a margin.
+ */
+const fastEaseSpeed = (distance: number): number => (1.5 * distance * 4.05) / 0.12;
+
+interface Turn {
+  readonly channel: Channel;
+  /** Where the interrupt sent it. */
+  readonly target: number;
+  /** The fastest the motions involved can move it, units per second (the tokens' bound). */
+  readonly speed: number;
+  /** Reading and rounding slack, in the channel's units. */
+  readonly eps: number;
+}
+
+/**
+ * The interrupt was a turn, not a jump, whatever the frame rate (Q-10):
+ * - **continuous**: between any two readings (the interrupted frame included) the value moved
+ *   no further than the fastest motion can in the time between them, plus the slack;
+ * - **turned**: it heads for the new target: some step brings it closer, it ends there, or it
+ *   left the document from where the motion could have reached the target in time.
+ */
+function expectTurn(midway: Midway, turn: Turn, state: string): void {
+  const { channel, target, speed, eps } = turn;
+  const seq = [midway.before, ...midway.after];
+  const trace = seq
+    .map((s) => `${(s.t - midway.before.t).toFixed(0)} ms: ${s[channel].toFixed(3)}`)
+    .join(', ');
+  const why = `${state}, ${channel} towards ${target} (${trace}${midway.goneAt ? ', gone' : ''})`;
+  for (let i = 1; i < seq.length; i++) {
+    const a = seq[i - 1] as Sample;
+    const b = seq[i] as Sample;
+    const reach = (speed * (b.t - a.t)) / 1000 + eps;
+    expect(Math.abs(b[channel] - a[channel]), `a jump: ${why}`).toBeLessThanOrEqual(reach);
+  }
+  const last = seq.at(-1) as Sample;
+  if (midway.goneAt !== null) {
+    const reach = (speed * (midway.goneAt - last.t)) / 1000 + eps;
+    expect(
+      Math.abs(last[channel] - target),
+      `gone before it got there: ${why}`,
+    ).toBeLessThanOrEqual(reach);
+    return;
+  }
+  const closer = seq.some(
+    (s, i) =>
+      i > 0 &&
+      Math.abs(s[channel] - target) < Math.abs((seq[i - 1] as Sample)[channel] - target) - eps / 10,
+  );
+  const there = Math.abs(last[channel] - target) <= eps;
+  expect(closer || there, `never turned: ${why}`).toBe(true);
 }
 
 /**
@@ -321,18 +409,27 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await openDocument(page);
     const panel = '[data-testid="save-copy-sheet"]';
     const opener = page.getByRole('button', { name: 'Save a copy', exact: true });
+    // language.md §7.3 *dialog* side: 24 px and a fade, on `smooth` (the fade on `quick`).
+    const slide = (target: number): Turn => ({
+      channel: 'x',
+      target,
+      speed: springSpeed('smooth', 24),
+      eps: 1,
+    });
+    const fade = (target: number): Turn => ({
+      channel: 'opacity',
+      target,
+      speed: springSpeed('quick', 1),
+      eps: 0.03,
+    });
 
     // Esc mid-entrance: the exit starts where the entrance was, and the sheet goes.
     const closing = interruptMidway(page, panel, { kind: 'key', key: 'Escape' });
     await opener.click();
     const close = await closing;
     expect(close.progress).toBeGreaterThan(0);
-    if (close.after) {
-      // 24 px of travel (language.md §7.3 *dialog* side): it turns, it does not jump.
-      const moved = parts(close.after.transform).x - parts(close.before.transform).x;
-      expect(Math.abs(moved)).toBeLessThan(12);
-      expect(close.after.opacity).toBeLessThanOrEqual(close.before.opacity + 0.05);
-    }
+    expectTurn(close, slide(24), 'a sheet closed mid-entrance');
+    expectTurn(close, fade(0), 'a sheet closed mid-entrance');
     await expect(page.locator(panel)).toHaveCount(0);
     await expectSettledClean(page, 'a sheet closed mid-entrance');
     await expect(opener).toBeFocused();
@@ -348,7 +445,9 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await page.keyboard.press('Escape');
     const reopen = await reopening;
     expect(reopen.progress).toBeGreaterThan(0);
-    expect(reopen.after).not.toBeNull();
+    expect(reopen.goneAt).toBeNull();
+    expectTurn(reopen, slide(0), 'a sheet reopened mid-exit');
+    expectTurn(reopen, fade(1), 'a sheet reopened mid-exit');
     await settleAnimations(page);
     await expect(page.locator(panel)).toBeVisible();
     await expectAtRest(page, panel, 'a sheet reopened mid-exit');
@@ -367,13 +466,21 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await page.locator('body').press('?');
     const close = await closing;
     expect(close.progress).toBeGreaterThan(0);
-    if (close.after) {
-      // From 0.96 (§7.3 *dialog* centre): the exit leaves from the scale it had reached.
-      const scaled = parts(close.after.transform).scale - parts(close.before.transform).scale;
-      expect(Math.abs(scaled)).toBeLessThan(0.02);
-    }
+    // §7.3 *dialog* centre: from 0.96 and a fade, on `quick`; the exit leaves from where the
+    // entrance had got to.
+    const state = 'the shortcuts overlay closed mid-entrance';
+    expectTurn(
+      close,
+      { channel: 'scale', target: 0.96, speed: springSpeed('quick', 0.04), eps: 0.003 },
+      state,
+    );
+    expectTurn(
+      close,
+      { channel: 'opacity', target: 0, speed: springSpeed('quick', 1), eps: 0.03 },
+      state,
+    );
     await expect(page.locator(overlay)).toHaveCount(0);
-    await expectSettledClean(page, 'the shortcuts overlay closed mid-entrance');
+    await expectSettledClean(page, state);
     // And it still opens to rest afterwards.
     await page.locator('body').press('?');
     await expect(page.locator(overlay)).toBeVisible();
@@ -397,10 +504,14 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await page.keyboard.press('Delete');
     const dismissed = await dismissing;
     expect(dismissed.progress).toBeGreaterThan(0);
-    // The fade out starts from the opacity the entrance had reached, never from 1.
-    if (dismissed.after) {
-      expect(dismissed.after.opacity).toBeLessThanOrEqual(dismissed.before.opacity + 0.05);
-    }
+    // Behaviour only, not today's geometry (the toast's motion and anatomy may change): it
+    // fades out from the opacity the entrance had reached, no faster than the quickest spring
+    // token (`track`) can, and leaves only once it is gone from sight.
+    expectTurn(
+      dismissed,
+      { channel: 'opacity', target: 0, speed: springSpeed('track', 1), eps: 0.03 },
+      'a toast dismissed mid-entrance',
+    );
     await expect(page.locator(toast)).toHaveCount(0);
     await expectSettledClean(page, 'a toast dismissed mid-entrance');
     // The page stays deleted: dismissing is not Undo.
@@ -414,8 +525,9 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expect(undo).not.toHaveAttribute('aria-disabled');
     const scrubber = '[data-testid="history-scrubber"]';
 
-    // ✕ mid-entrance: the *popup* transition (scale 0.96 → 1 and a fade) reverses from where
-    // it is, so the next frame is no further open and no less scaled than it was.
+    // ✕ mid-entrance: the *popup* transition (scale 0.96 → 1 and a fade, `--duration-fast` on
+    // `--ease-out`) reverses from where it is. An engine may draw a frame or two more of the
+    // entrance before the close lands; it must then turn, without a jump.
     const closing = interruptMidway(
       page,
       scrubber,
@@ -425,14 +537,15 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await undo.click({ button: 'right' });
     const close = await closing;
     expect(close.progress).toBeGreaterThan(0);
-    if (close.after) {
-      expect(close.after.opacity).toBeLessThanOrEqual(close.before.opacity + 0.05);
-      expect(parts(close.after.transform).scale).toBeLessThanOrEqual(
-        parts(close.before.transform).scale + 0.005,
-      );
-    }
+    const state = 'the scrubber closed by ✕ mid-entrance';
+    expectTurn(close, { channel: 'opacity', target: 0, speed: fastEaseSpeed(1), eps: 0.03 }, state);
+    expectTurn(
+      close,
+      { channel: 'scale', target: 0.96, speed: fastEaseSpeed(0.04), eps: 0.003 },
+      state,
+    );
     await expect(page.locator(scrubber)).toHaveCount(0);
-    await expectSettledClean(page, 'the scrubber closed by ✕ mid-entrance');
+    await expectSettledClean(page, state);
 
     // Esc mid-entrance: a dismissal closes a popover at once (`data-instant`, ui/Popover), so
     // it is gone in a frame, with nothing left behind.
