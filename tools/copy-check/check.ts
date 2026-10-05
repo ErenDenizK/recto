@@ -192,6 +192,12 @@ const CATALOG_EXEMPTIONS: readonly {
     word: 'en iyi',
     why: 'the name of the page-matching method ("Best match"), as in English',
   },
+  {
+    file: 'en.json',
+    key: 'sheet_unlock',
+    word: 'unlock',
+    why: "the lock banner's action on a locked document (07-sheets §2.4), a verb on a lock, not a claim",
+  },
 ];
 
 /**
