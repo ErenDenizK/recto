@@ -16,8 +16,7 @@ import {
 } from '@pdf-editor/engine';
 import { useEffect, useRef, useState } from 'react';
 
-import { formatBytes } from '../files/file-filters';
-import { formatNumber, m } from '../i18n';
+import { formatNumber, formatSize, m } from '../i18n';
 import { getCompressor } from '../tools/compress-client';
 import { deltaPercent } from '../tools/compress-math';
 import { openScratch, type ScratchDocument, toolRenderer } from '../tools/engine-access';
@@ -108,7 +107,7 @@ export function WhatGetsSmaller({
     <div className={styles.section} data-testid="save-copy-what-smaller-page">
       <p className={styles.note}>
         {m.compress_summary({
-          size: formatBytes(analysis.totalBytes),
+          size: formatSize(analysis.totalBytes),
           images: m.tools_images_count({ count: analysis.images.length }),
           fonts: m.tools_fonts_count({ count: analysis.fonts.length }),
           objects: analysis.objectCount,
@@ -117,8 +116,8 @@ export function WhatGetsSmaller({
       <p className={styles.note} data-testid="compress-estimate">
         <strong>{sizeLabel}</strong> ·{' '}
         {m.compress_estimate({
-          before: formatBytes(estimate.before),
-          after: formatBytes(estimate.after),
+          before: formatSize(estimate.before),
+          after: formatSize(estimate.after),
           delta: deltaPercent(estimate.before, estimate.after),
         })}
       </p>
@@ -159,7 +158,7 @@ export function WhatGetsSmaller({
                       {image.hasSMask ? ' + α' : ''}
                     </td>
                     <td>{image.dpi ? Math.min(image.dpi.x, image.dpi.y) : m.compress_unknown()}</td>
-                    <td>{formatBytes(image.bytes)}</td>
+                    <td>{formatSize(image.bytes)}</td>
                   </tr>,
                   <tr key={`${image.ref}-plan`} data-plan="">
                     <td
@@ -194,8 +193,8 @@ export function WhatGetsSmaller({
             {comparison.result.unchanged
               ? m.compress_result_unchanged()
               : m.compress_result({
-                  before: formatBytes(comparison.result.before),
-                  after: formatBytes(comparison.result.after),
+                  before: formatSize(comparison.result.before),
+                  after: formatSize(comparison.result.after),
                   delta: deltaPercent(comparison.result.before, comparison.result.after),
                 })}
           </p>
@@ -332,7 +331,7 @@ function BeforeAfter({
 // ---------------------------------------------------------------------------
 
 export function CopyDetails({ summary }: { readonly summary: CopySummary }) {
-  const size = formatBytes(summary.size);
+  const size = formatSize(summary.size);
   return (
     <div className={styles.section} data-testid="save-copy-details">
       <SheetResult

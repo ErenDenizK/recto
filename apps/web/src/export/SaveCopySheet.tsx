@@ -59,6 +59,7 @@ import { exportFileName } from './filename';
 import { CopyDetails, WhatGetsSmaller } from './SaveCopyPages';
 import {
   ImagesSection,
+  LabelColumn,
   Notice,
   PdfDisclosures,
   Row,
@@ -140,6 +141,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
   const [applied, setApplied] = useState<object | null>(null);
   if (open && opening !== applied) {
     setApplied(opening);
+    setAsking(false);
     const known: SaveCopyPreset | null = isSaveCopyPreset(preset) ? preset : null;
     setPage(known === 'details' ? 'details' : 'form');
     if (known !== null && known !== 'details') setDraft((d) => applyPreset(d, known));
@@ -151,9 +153,11 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     if (!open) {
       setPassword({ user: '', owner: '' });
       setPasswordError(null);
-      setAsking(false);
     }
   }
+  // Closed, the sheet holds what it last showed while it animates out (Q-7: content never
+  // changes while it moves): the estimates, the preview and the marks stay, nothing new runs.
+  const held = !open;
 
   const pageCount = doc?.pages.length ?? 0;
   const title = doc?.title ?? m.export_default_name();
@@ -170,11 +174,19 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
   // asynchronously (the edit runner settles, unread pages are listed); until they are known the
   // primary waits, busy, so a quick press never saves a copy that keeps the text under them. The
   // press cannot wait for them instead: the picker must open inside it.
-  const marks = usePendingMarks(documentId, open && draft.format === 'pdf');
+  const marks = usePendingMarks(
+    documentId,
+    open && draft.format === 'pdf',
+    held && draft.format === 'pdf',
+  );
   const marksUnknown = draft.format === 'pdf' && marks === null;
 
   // PDF: the analysis behind the estimates.
-  const analysis = useSizeAnalysis(documentId, open && draft.format === 'pdf');
+  const analysis = useSizeAnalysis(
+    documentId,
+    open && draft.format === 'pdf',
+    held && draft.format === 'pdf',
+  );
   const estimates =
     analysis?.state === 'ready'
       ? sizeEstimates(analysis.analysis, draft.custom, presetSettings, estimateCompression)
@@ -205,6 +217,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     open && draft.format === 'text',
     draft.text,
     textPages,
+    held && draft.format === 'text',
   );
 
   const name = copyName(draft, title, locale);
@@ -297,6 +310,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       if ('invalid' in asked) return Promise.reject(new Error(asked.invalid));
       return buildCopy(documentId, asked, { signal, onProgress });
     },
+    held && kind === 'share' && page !== 'details',
   );
 
   /** The press, and the answer to the unapplied-marks question when it was asked (07.10). */
@@ -393,8 +407,9 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     );
   };
 
-  const asked = open ? request() : null;
-  const invalid = asked !== null && 'invalid' in asked ? asked.invalid : undefined;
+  // Read closed too, so the primary holds its state while the sheet animates out.
+  const asked = request();
+  const invalid = 'invalid' in asked ? asked.invalid : undefined;
   const primaryLabel =
     kind === 'share'
       ? prepared?.state === 'ready'
@@ -467,7 +482,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
         />
       ) : null}
       {page === 'form' && doc ? (
-        <>
+        <div className={styles.form} data-testid="save-copy-form">
           <Row label={m.save_copy_format()}>
             <div ref={formatRef}>
               <Segmented<SaveCopyFormat>
@@ -559,7 +574,8 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
               />
             </>
           ) : null}
-        </>
+          <LabelColumn />
+        </div>
       ) : null}
       {/* Strip metadata and the certificate open nested in the sheet's modal stack; their
           own forms must not reach the sheet's (React events bubble through portals). */}
