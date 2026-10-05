@@ -458,7 +458,7 @@ test.describe('the form in English and Turkish (A-21, 07 §4.5, Q-7)', () => {
       await page.getByRole('menuitem', { name: copy.menu }).click();
       const sheet = page.getByTestId('save-copy-sheet');
       await expect(sheet).toBeVisible();
-      const format = (index: number) =>
+      const format = (index: 0 | 1 | 2) =>
         sheet.getByRole('radio', { name: copy.formats[index], exact: true });
 
       // PDF, with the size of the copy in the locale's numerals (07 §4.5: "2,4 MB").
