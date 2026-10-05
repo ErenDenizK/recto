@@ -81,9 +81,10 @@ describe('Home chrome', () => {
       // After the selected look's short transition.
       await waitFor(() => {
         expect(getComputedStyle(wrap).backgroundColor).toBe('rgba(0, 0, 0, 0)');
-        // A pointer resting over a tab shows its close on purpose (TabBar.module.css): where the
-        // test browser's pointer happens to be is not the resting look.
-        if (!wrap.matches(':hover')) {
+        // A pointer resting over a tab, or a page that cannot hover (an earlier file of the run
+        // that emulated touch leaves `hover: none` behind), shows the close on purpose
+        // (TabBar.module.css): neither is the resting look this checks.
+        if (!wrap.matches(':hover') && matchMedia('(hover: hover)').matches) {
           expect(getComputedStyle(close as HTMLElement).opacity).toBe('0');
         }
       });
