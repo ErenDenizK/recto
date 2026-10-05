@@ -5,7 +5,7 @@
  *
  * - **Size** is a radio group whose options carry their estimate ("Smaller, about 1.1 MB");
  *   "Estimating…" while the compress worker analyses (`aria-busy`), "Already compact" under
- *   3 % (§4.4). Custom shows its fields and Print (300 dpi).
+ *   3 % (§4.4; Smallest also against Smaller, `littleToGain`). Custom shows its fields and Print (300 dpi).
  * - **Disclosures** open in place, one at a time; the button's name holds the current value
  *   (§4.8). Security's Password… fields apply to this copy only (S5's fields inline);
  *   Metadata and Signature open the Strip metadata and certificate dialogs nested in the sheet,
@@ -25,9 +25,8 @@ import type { ConvertPageBreak } from '@pdf-editor/engine';
 import { metadataOutcome } from '../document/ExportSections';
 import { openDocumentDialog } from '../document/document-store';
 import { securityOutcome, sourcesOf } from '../document/security-text';
-import { formatBytes } from '../files/file-filters';
 import { useFormStore } from '../forms/form-store';
-import { m } from '../i18n';
+import { formatSize, m } from '../i18n';
 import { openSignDialog, setSignOnExport, useSignStore } from '../signatures/sign-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Button } from '../ui/Button';
@@ -41,6 +40,7 @@ import {
   type CustomSize,
   type Disclosure as DisclosureId,
   type ImagesChoice,
+  littleToGain,
   PRINT_SIZE,
   type SaveCopyDraft,
   type SecurityChoice,
@@ -52,7 +52,10 @@ import styles from './SaveCopySheet.module.css';
 
 type Patch = (patch: Partial<SaveCopyDraft>) => void;
 
-/** A label · control row (§4.2). The label is the control's visible name, not a `<label>`. */
+/**
+ * A label · control row (§4.2). The label is the control's visible name, not a `<label>`; it
+ * sits in the form's one label column (`.form` in the module), so it never breaks in a word.
+ */
 export function Row({
   label,
   children,
@@ -64,10 +67,46 @@ export function Row({
 }) {
   return (
     <div className={styles.row} data-testid={testId}>
-      <span className={styles.rowLabel} aria-hidden="true">
+      <span className={styles.rowLabel} aria-hidden="true" data-row-label="">
         {label}
       </span>
       <div className={styles.rowBody}>{children}</div>
+    </div>
+  );
+}
+
+/** Every row and disclosure label of the form, in every format. */
+const ROW_LABELS = [
+  m.save_copy_format,
+  m.save_copy_size,
+  m.save_copy_security,
+  m.save_copy_metadata,
+  m.save_copy_flatten,
+  m.save_copy_signature,
+  m.save_copy_name,
+  m.save_copy_images_type,
+  m.images_resolution,
+  m.images_quality,
+  m.images_background,
+  m.images_pages,
+  m.images_names,
+  m.save_copy_text_kind,
+  m.save_copy_text_options,
+];
+
+/**
+ * The label column's measure: every label of every format, unseen, in the form's first
+ * column, so the column is as wide as the longest of them whatever shows. A format change
+ * then cross-fades its rows in place; the controls do not move sideways (Q-7).
+ */
+export function LabelColumn() {
+  return (
+    <div className={styles.labelColumn} aria-hidden="true">
+      {ROW_LABELS.map((label) => (
+        <span key={label()} className={styles.rowLabel}>
+          {label()}
+        </span>
+      ))}
     </div>
   );
 }
@@ -104,7 +143,7 @@ function estimateDetail(
   description?: string;
 } {
   if (after === null) return { detail: m.save_copy_estimating(), spoken: m.save_copy_estimating() };
-  const size = formatBytes(after);
+  const size = formatSize(after);
   return {
     detail: m.save_copy_estimate({ size }),
     spoken: m.save_copy_estimate_spoken({ size }),
@@ -130,7 +169,7 @@ export function SizeSection({
   const ready = estimates !== null;
   const option = (value: SizeChoice, label: string): RadioOption<SizeChoice> => {
     if (value === 'same') {
-      const size = ready ? formatBytes(estimates.same) : null;
+      const size = ready ? formatSize(estimates.same) : null;
       return {
         value,
         label,
@@ -140,7 +179,10 @@ export function SizeSection({
     }
     if (value === 'custom' && draft.size !== 'custom') return { value, label };
     const estimate = ready ? estimates[value] : null;
-    const shown = estimateDetail(estimate?.after ?? null, estimate?.worthwhile ?? null);
+    const shown = estimateDetail(
+      estimate?.after ?? null,
+      ready ? !littleToGain(estimates, value) : null,
+    );
     return {
       value,
       label,
@@ -259,9 +301,13 @@ function Disclosure({
         data-focus="inset"
         onClick={() => onToggle(id)}
       >
-        <span className={styles.disclosureLabel}>{label}</span>
-        <span className={styles.disclosureValue}>{value}</span>
-        <ChevronRight aria-hidden="true" className={styles.chevron} />
+        <span className={styles.disclosureLabel} data-row-label="">
+          {label}
+        </span>
+        <span className={styles.disclosureEnd}>
+          <span className={styles.disclosureValue}>{value}</span>
+          <ChevronRight aria-hidden="true" className={styles.chevron} />
+        </span>
       </button>
       {open ? (
         <div id={panelId} className={styles.disclosurePanel}>
