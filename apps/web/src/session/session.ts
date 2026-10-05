@@ -81,7 +81,7 @@ export function setSessionEnabled(value: boolean): void {
 const offlineTracker = new ChangeTracker();
 
 function setDataset(
-  name: 'session' | 'sessionSaved' | 'sessionState' | 'sessionReason',
+  name: 'session' | 'sessionSaved' | 'sessionChanged' | 'sessionState' | 'sessionReason',
   value: string,
 ): void {
   if (typeof document === 'undefined') return;
@@ -268,6 +268,7 @@ export function startSession(options: StartOptions): () => void {
           totalBytes: status.totalBytes,
         });
         if (status.savedAt !== null) setDataset('sessionSaved', String(status.savedAt));
+        if (status.changedAt !== null) setDataset('sessionChanged', String(status.changedAt));
         setDataset(
           'sessionState',
           status.writeFailed ? 'failed' : status.idle ? 'saved' : 'pending',

@@ -136,7 +136,12 @@ export async function waitForSnapshot(page: Page): Promise<void> {
           const data = document.documentElement.dataset;
           if (data.session === 'off') return `off (${data.sessionReason ?? '?'})`;
           if (data.sessionState !== 'saved') return data.sessionState ?? 'no snapshot yet';
-          return Number(data.sessionSaved ?? 0) >= t ? 'saved' : 'older snapshot';
+          const saved = Number(data.sessionSaved ?? 0);
+          // Saved after this call, or the change the test just made (noted in the last 5 s)
+          // was already written before it: the writer can beat the call on a quick machine.
+          const changed = Number(data.sessionChanged ?? 0);
+          if (saved >= t || (changed >= t - 5000 && saved >= changed)) return 'saved';
+          return 'older snapshot';
         }, since),
       { timeout: 10_000, message: 'the snapshot state on <html>' },
     )
