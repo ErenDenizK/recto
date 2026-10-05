@@ -6,8 +6,10 @@
  * - **The list**, newest first: each signature's plate, its name ("Signature, added 3 Oct"
  *   when it has none) and the day it was kept, with Rename and Remove. Rename turns the name
  *   into a field in place: Enter or leaving it keeps the name, Esc keeps the old one.
- * - **Remove** takes it off at once with a toast, "Removed a saved signature · Undo" (10 s,
- *   MK-12 §5); Undo puts it back in its place.
+ * - **Remove** takes it off at once and says "Removed a saved signature · Undo" for 10 s
+ *   (MK-12 §5); Undo puts it back in its place. The line sits in the page, under the list: a
+ *   toast would rest under this modal sheet's scrim, outside its focus trap, where Undo cannot
+ *   be reached (toasts are z 30, sheets 40 and up).
  * - **Add…** opens New signature to keep one (`keep`), which comes back here when it closes.
  * - **Remove all…** asks once (S1, a danger action that cannot be undone) and deletes every
  *   saved signature on this device: final, as the confirmation says. Signatures placed in
@@ -15,7 +17,14 @@
  * - Where this window keeps nothing (IndexedDB refused), the page says so and offers nothing.
  */
 import { Pencil, Trash2 } from 'lucide-react';
-import { type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { formatNumber, m, useLocale } from '../i18n';
 import { announce } from '../shell/announcer';
@@ -38,7 +47,6 @@ import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { confirm } from '../ui/sheet';
 import { TextField } from '../ui/TextField';
-import { toast } from '../ui/Toast';
 import { NavRow, Section } from './rows';
 import type { SettingsPageId } from './search-index';
 import styles from './Settings.module.css';
@@ -80,18 +88,30 @@ export function SavedSignaturesRow({
   );
 }
 
-/** "Removed a saved signature · Undo": Undo puts it back in its place. */
-async function remove(signature: SavedSignature): Promise<void> {
-  const removed = await removeSignature(signature.id);
-  if (!removed) return;
-  toast.action(
-    m.signature_removed_toast(),
-    {
-      label: m.cmd_undo(),
-      run: () => void restoreSignature(removed),
-    },
-    { key: `signature-removed:${removed.id}`, testId: 'signature-removed-toast' },
-  );
+/** How long "Removed a saved signature · Undo" stays (an action toast's 10 s, MK-12 §5). */
+const UNDO_MS = 10_000;
+
+/**
+ * The last removal and its Undo, for 10 s (or until the next removal or the page goes).
+ */
+function useRemoval() {
+  const [removed, setRemoved] = useState<SavedSignature | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const remove = useCallback(async (signature: SavedSignature) => {
+    const gone = await removeSignature(signature.id);
+    if (!gone) return;
+    clearTimeout(timer.current);
+    setRemoved(gone);
+    announce(m.signature_removed_toast());
+    timer.current = setTimeout(() => setRemoved(null), UNDO_MS);
+  }, []);
+  const undo = () => {
+    clearTimeout(timer.current);
+    if (removed) void restoreSignature(removed);
+    setRemoved(null);
+  };
+  return { removed, remove, undo };
 }
 
 export function SavedSignaturesPage() {
@@ -99,6 +119,7 @@ export function SavedSignaturesPage() {
   const signatures = useSavedSignatures((s) => s.signatures);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const removal = useRemoval();
   useLocale();
   useEffect(() => {
     void loadSavedSignatures();
@@ -137,13 +158,25 @@ export function SavedSignaturesPage() {
       {signatures.length > 0 ? (
         <Section title={null} label={m.settings_saved_signatures()}>
           {signatures.map((signature) => (
-            <SignatureRow key={signature.id} signature={signature} />
+            <SignatureRow
+              key={signature.id}
+              signature={signature}
+              onRemove={() => void removal.remove(signature)}
+            />
           ))}
         </Section>
       ) : status === 'ready' ? (
         <p className={styles.empty} data-testid="settings-signatures-empty">
           {m.settings_signatures_empty()}
         </p>
+      ) : null}
+      {removal.removed ? (
+        <div className={styles.actions} data-bar="settings-row" data-testid="signature-removed">
+          <span>{m.signature_removed_toast()}</span>
+          <Button variant="standard" onClick={removal.undo}>
+            {m.cmd_undo()}
+          </Button>
+        </div>
       ) : null}
       {failed ? (
         <p className={styles.note} role="note">
@@ -181,7 +214,13 @@ export function SavedSignaturesPage() {
   );
 }
 
-function SignatureRow({ signature }: { readonly signature: SavedSignature }) {
+function SignatureRow({
+  signature,
+  onRemove,
+}: {
+  readonly signature: SavedSignature;
+  readonly onRemove: () => void;
+}) {
   const [editing, setEditing] = useState(false);
   const label = signatureLabel(signature);
   return (
@@ -214,7 +253,7 @@ function SignatureRow({ signature }: { readonly signature: SavedSignature }) {
               label={m.settings_signature_remove({ name: label })}
               tooltip={m.settings_signature_remove({ name: label })}
               icon={<Trash2 />}
-              onClick={() => void remove(signature)}
+              onClick={onRemove}
             />
           </>
         )}
