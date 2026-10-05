@@ -24,6 +24,7 @@ import { resetAnnotationStore } from '../../annotations/annotation-store';
 import { engineContext, resetEditRunner, whenIdle } from '../../annotations/edit-runner';
 import { FormsPanel } from '../../shell/FormsPanel';
 import type { PageOverlayProps } from '../../stage/page-overlays';
+import { resetLockStore, useLockStore } from '../../state/lock-store';
 import { useUiStore } from '../../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useToolStore } from '../../viewer/tool-store';
@@ -374,8 +375,8 @@ describe('Clear all', () => {
   });
 });
 
-describe('in Read (ADR-0019 §3)', () => {
-  it('Add field, Edit fields and Clear all are page edits: blocked, their commands disabled', async () => {
+describe('outside Markup and locked (ADR-0030)', () => {
+  it('Add field and Edit fields need Markup; Clear all is a document act, refused when locked', async () => {
     const report = await model().openFiles([await fixtureFile(formsAUrl, 'forms-a.pdf')]);
     expect(report.skipped).toEqual([]);
     const registry = new CommandRegistry();
@@ -385,21 +386,27 @@ describe('in Read (ADR-0019 §3)', () => {
       return command !== undefined && registry.isEnabled(command);
     };
     try {
-      // Read: nothing places, designs or clears.
+      // Viewing: nothing places or designs; Clear all (a `document` act) is offered.
       expect(enabled('forms.add.text')).toBe(false);
       expect(enabled('forms.design')).toBe(false);
-      expect(enabled('forms.clear')).toBe(false);
+      expect(enabled('forms.clear')).toBe(true);
       act(() => startPlacing('text'));
       expect(useCreateStore.getState().placing).toBeNull();
       act(() => setDesign(true));
       expect(useCreateStore.getState().design).toBe(false);
+      // Locked: Clear all is refused too.
+      const doc = model().workspace.activeDocument;
+      if (doc === undefined) throw new Error('no document');
+      useLockStore.getState().lock(doc);
+      expect(enabled('forms.clear')).toBe(false);
       const before = labels().length;
       await act(async () => {
         expect(await clearActiveForm()).toBe(0);
       });
       expect(labels().length).toBe(before);
+      resetLockStore();
 
-      // Edit: they work; back to Read, placing stops.
+      // Markup: they work; Markup closed, placing stops.
       enterEditMode();
       expect(enabled('forms.add.text')).toBe(true);
       expect(enabled('forms.clear')).toBe(true);
