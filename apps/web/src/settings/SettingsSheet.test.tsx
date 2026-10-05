@@ -171,7 +171,7 @@ describe('About Recto (the About dialog’s facts, ADR-0017 §6)', () => {
     );
     const source = within(about).getByRole('link', { name: /Source/ });
     expect(source).toHaveAttribute('href', 'https://github.com/ErenDenizK/recto');
-    const aboutPage = within(about).getByRole('link', { name: /About this app/ });
+    const aboutPage = within(about).getByRole('link', { name: /How Recto works/ });
     expect(new URL(aboutPage.getAttribute('href') ?? '').pathname).toMatch(/\/about\/$/);
     for (const link of [notes, source, aboutPage]) {
       expect(link).toHaveAttribute('target', '_blank');

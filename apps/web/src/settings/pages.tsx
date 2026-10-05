@@ -10,7 +10,10 @@
  *   their addresses, the enforced `connect-src`, and the offline status.
  * - **About Recto** (the About dialog's facts, ADR-0017 §6, 07 §25): name and release state,
  *   "Files never leave your device.", version, build commit and date, licence, release notes,
- *   source, storage in use, offline status, and the About page beside the app (F§2.1). Nothing
+ *   source, storage in use, offline status, and the About page beside the app (F§2.1), named
+ *   for what it shows ("How Recto works"), not "About" again on a page called About Recto.
+ *   Version and licence are literal strings: no tabular figures or contextual alternates, so
+ *   Inter neither spaces nor raises their hyphens ("1.0.0-beta.0", "Apache-2.0"). Nothing
  *   here makes a network request: the links are plain anchors and storage use comes from
  *   `navigator.storage.estimate()`.
  *
@@ -269,7 +272,11 @@ export function AboutPage({ info = BUILD_INFO }: { readonly info?: BuildInfo }) 
         <Row id="aboutVersion">
           <Line
             label={m.about_version()}
-            value={<span data-testid="about-version">{info.version}</span>}
+            value={
+              <span className={styles.literal} data-testid="about-version">
+                {info.version}
+              </span>
+            }
           />
         </Row>
         <Row id="aboutCommit">
@@ -295,7 +302,11 @@ export function AboutPage({ info = BUILD_INFO }: { readonly info?: BuildInfo }) 
         <Row id="aboutLicence">
           <Line
             label={m.about_license()}
-            value={<span data-testid="about-license">{LICENSE_ID}</span>}
+            value={
+              <span className={styles.literal} data-testid="about-license">
+                {LICENSE_ID}
+              </span>
+            }
           />
         </Row>
         <Row id="aboutStorage">
@@ -326,7 +337,7 @@ export function AboutPage({ info = BUILD_INFO }: { readonly info?: BuildInfo }) 
           href={info.releaseNotesUrl}
         />
         <NavRow id="aboutSource" label={m.about_source()} href={REPOSITORY_URL} />
-        <NavRow id="aboutPage" label={m.menu_about_page()} href={aboutPageUrl()} />
+        <NavRow id="aboutPage" label={m.settings_about_how()} href={aboutPageUrl()} />
       </Section>
     </div>
   );

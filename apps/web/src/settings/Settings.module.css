@@ -14,9 +14,41 @@
   height: min(760px, calc(100dvh - 104px));
 }
 
+/*
+ * The sheet's body does not scroll here: the search stays pinned under the header and only the
+ * list under it scrolls, in a scroll area (09 §21) whose edges fade where the list goes on, with
+ * the sheet's inset after the last row, so no presentation cuts a row at its edge.
+ */
+:global(.glass[data-sheet='settings'] [data-sheet-body]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 4px 0 0;
+}
+
+.frame {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .search {
   display: grid;
+  flex: none;
   gap: 8px;
+  padding: 0 var(--sheet-pad) 12px;
+}
+
+.scroller {
+  flex: 1 1 auto;
+}
+
+.viewport {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+  padding: 4px var(--sheet-pad) var(--sheet-pad);
 }
 
 .page {
@@ -90,13 +122,34 @@
   }
 }
 
-/* Label leading, value or control trailing, on one centre line. */
+/*
+ * Every row has one shape (07 S3 §2): its name, with a description under it, leading; its value
+ * and control trailing, on the first line's centre. Switch rows take the same shape from the
+ * switch primitive.
+ */
 .line {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
   min-height: var(--control-h);
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.text .label {
+  flex: none;
+}
+
+/* A text field in a row: a fixed share of the trailing side, the name and hint leading. */
+.field {
+  flex: none;
+  width: min(220px, 50%);
 }
 
 .label {
@@ -121,6 +174,13 @@
   text-align: end;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A version or licence id: literal text, so Inter's tabular figures and contextual alternates
+   do not space or raise its hyphens ("1.0.0-beta.0", "Apache-2.0"). */
+.literal {
+  font-variant-numeric: normal;
+  font-feature-settings: 'calt' 0;
 }
 
 .hint {
