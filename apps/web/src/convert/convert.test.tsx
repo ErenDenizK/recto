@@ -1,10 +1,9 @@
 /**
- * PDF → Markdown / text in the app (spec recognize-and-compare §4): the dialog's choices,
- * the output file, and markdown-source.pdf converted through the real PDFium and analysis
- * workers to the manifest's golden, previewed in the dialog.
+ * PDF → Markdown / text in the app (spec recognize-and-compare §4): the choices, the output
+ * file, and markdown-source.pdf converted through the real PDFium and analysis workers to the
+ * manifest's golden. Save a copy's Text preview is `export/save-copy.test.tsx`'s.
  */
 import { parsePageRange } from '@pdf-editor/engine';
-import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import manifest from '../../../../test/fixtures/manifest.json';
@@ -12,8 +11,6 @@ import markdownUrl from '../../../../test/fixtures/markdown-source.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
 import { getAnalysisWorkers } from '../engine/engine-service';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
-import { closeToolDialog, openToolDialog } from '../tools/tools-store';
-import ConvertDialog from './ConvertDialog';
 import {
   choicePages,
   convertDocumentPages,
@@ -31,7 +28,6 @@ const golden = (
 
 beforeEach(() => resetWorkspace());
 afterEach(() => {
-  closeToolDialog();
   resetWorkspace();
 });
 afterAll(() => getAnalysisWorkers().terminate());
@@ -137,42 +133,5 @@ describe('markdown-source.pdf through the workers', () => {
     const plain = await convertDocumentPages(id, [0, 1], { ...DEFAULT_CHOICE, images: false });
     expect(outputFile(plain, 'markdown-source').name).toBe('markdown-source.md');
     expect(plain.text).not.toContain('![');
-  }, 60_000);
-
-  it('previews the conversion and its honesty notes in the dialog', async () => {
-    const id = await open();
-    openToolDialog('markdown', id);
-    render(<ConvertDialog documentId={id} />);
-    const dialog = await screen.findByTestId('convert-dialog');
-    const preview = within(dialog).getByTestId('convert-preview');
-    await waitFor(() => expect(preview).toHaveAttribute('data-state', 'ready'), {
-      timeout: 30_000,
-    });
-    expect(preview.textContent).toBe(golden.split('\n').slice(0, 40).join('\n'));
-    const notes = within(dialog).getByTestId('convert-notes');
-    expect(notes).toHaveTextContent('Reading order and headings are reconstructed');
-    expect(notes).toHaveTextContent('Tables are not detected');
-    expect(notes).toHaveTextContent('4 running header, footer or page-number lines left out.');
-    expect(within(dialog).getByTestId('convert-output')).toHaveTextContent(
-      'Downloads markdown-source.zip',
-    );
-    // Plain text of the current page.
-    within(dialog)
-      .getByRole('radio', { name: /^Plain text/ })
-      .click();
-    within(dialog).getByRole('radio', { name: 'Current page (1)' }).click();
-    await waitFor(
-      () => {
-        expect(preview).toHaveAttribute('data-state', 'ready');
-        expect(within(dialog).getByTestId('convert-output')).toHaveTextContent(
-          'Downloads markdown-source.txt',
-        );
-      },
-      { timeout: 30_000 },
-    );
-    // One page alone has no running header to recognise: its lines stay.
-    expect(preview.textContent).toContain('Working with PDF Fixtures\n\nTest fixtures are small');
-    expect(preview.textContent).toContain('• Known text in a known place');
-    expect(preview.textContent).not.toContain('Two columns');
   }, 60_000);
 });

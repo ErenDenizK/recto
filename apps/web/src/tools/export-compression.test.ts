@@ -13,14 +13,23 @@ import {
   sourceId,
   type Workspace,
 } from '@pdf-editor/document-model';
-import { PdfiumAdapter, PdfLibAssembler, presetSettings } from '@pdf-editor/engine';
+import {
+  type CompressionSettings,
+  PdfiumAdapter,
+  PdfLibAssembler,
+  presetSettings,
+} from '@pdf-editor/engine';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import imagesUrl from '../../../../test/fixtures/images.pdf?url';
 import { type ExportDependencies, prepareExport } from '../export/export-service';
 import { disposeCompressor } from './compress-client';
 import { compressExport } from './export-compression';
-import { setExportCompression, useToolsStore } from './tools-store';
+
+/** The compression a runner applies per document (`ExportDependencies.compressionFor`). */
+const applied = new Map<DocumentId, CompressionSettings>();
+const setExportCompression = (id: DocumentId, settings: CompressionSettings) =>
+  applied.set(id, settings);
 
 const assembler = new PdfLibAssembler();
 const adapter = new PdfiumAdapter({ wasmUrl, inspector: assembler });
@@ -45,7 +54,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await disposeCompressor();
   await adapter.destroy();
-  useToolsStore.setState({ exportCompression: {} });
+  applied.clear();
 });
 
 function deps(overrides: Partial<ExportDependencies> = {}): ExportDependencies {
@@ -68,7 +77,7 @@ function deps(overrides: Partial<ExportDependencies> = {}): ExportDependencies {
     assembler: () => Promise.resolve(assembler),
     workspace: () => ws,
     compress: compressExport,
-    compressionFor: (id) => useToolsStore.getState().exportCompression[id],
+    compressionFor: (id) => applied.get(id),
     ...overrides,
   };
 }
@@ -89,7 +98,7 @@ describe('export with compression', () => {
     const doc = await PDFDocument.load(result.value.bytes.slice(0), { updateMetadata: false });
     expect(doc.getPageCount()).toBe(3);
 
-    // An explicit `null` turns it off for one export (the compress dialog's own source).
+    // An explicit `null` turns it off for one export (Save a copy's Same as original).
     const off = await prepareExport(documentId, { compression: null }, deps());
     expect(off.ok && off.value.compression).toBe(undefined);
   });

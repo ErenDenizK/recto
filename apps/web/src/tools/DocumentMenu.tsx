@@ -9,13 +9,14 @@
  * replaced the Appearance submenu: Glass panels, Reduce transparency and Pen draws in Edit
  * live there, and in the palette; one row, so the menu stays within an 800 px window.
  *
- * It also hosts the tool dialogs, the Batch dialog and the OCR dialog, which load lazily
- * (their code, the compress worker and the wasm stay out of the entry chunk).
+ * It also hosts the Batch dialog and the OCR dialog, which load lazily (their code, the
+ * compress worker and the wasm stay out of the entry chunk). Compress…, Export pages as
+ * images… and Export as Markdown open Save a copy preset (`export/SaveCopyHost.tsx`).
  */
 import { Menu } from '@base-ui/react/menu';
 import { getActiveDocument, type PageId } from '@pdf-editor/document-model';
 import { ChevronRight, FileCog } from 'lucide-react';
-import { Fragment, lazy, Suspense, useSyncExternalStore } from 'react';
+import { Fragment, useSyncExternalStore } from 'react';
 
 import { BatchDialogHost } from '../batch/BatchDialogHost';
 import { openDocuments } from '../commands/app-commands';
@@ -29,11 +30,6 @@ import { useSelectionStore } from '../state/selection-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import menuStyles from '../ui/Menu.module.css';
 import styles from './DocumentMenu.module.css';
-import { useToolsStore } from './tools-store';
-
-const CompressDialog = lazy(() => import('./CompressDialog'));
-const ImageExportDialog = lazy(() => import('./ImageExportDialog'));
-const ConvertDialog = lazy(() => import('../convert/ConvertDialog'));
 
 const subscribe = (listener: () => void) => commandRegistry.subscribe(listener);
 const snapshot = () => commandRegistry.list();
@@ -258,7 +254,6 @@ export function DocumentMenu({ visible }: { readonly visible: boolean }) {
           </Menu.Portal>
         </Menu.Root>
       ) : null}
-      <ToolDialogs />
       <BatchDialogHost />
       <OcrDialogHost />
     </>
@@ -356,21 +351,5 @@ function RotateSubmenu({ label, enabled }: { readonly label: string; readonly en
         </Menu.Positioner>
       </Menu.Portal>
     </Menu.SubmenuRoot>
-  );
-}
-
-function ToolDialogs() {
-  const dialog = useToolsStore((s) => s.dialog);
-  if (dialog === null) return null;
-  return (
-    <Suspense fallback={null}>
-      {dialog.kind === 'compress' ? (
-        <CompressDialog key={dialog.documentId} documentId={dialog.documentId} />
-      ) : dialog.kind === 'markdown' ? (
-        <ConvertDialog key={dialog.documentId} documentId={dialog.documentId} />
-      ) : (
-        <ImageExportDialog key={dialog.documentId} documentId={dialog.documentId} />
-      )}
-    </Suspense>
   );
 }

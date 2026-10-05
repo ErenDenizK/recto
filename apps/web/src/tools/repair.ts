@@ -1,16 +1,13 @@
 /**
- * "Save repaired copy" (spec §7): the original bytes of a source PDFium had to repair on
- * open go through a full qpdf rewrite, the result is re-opened and checked (PDFium page
- * count and sizes against the open document), and only then offered for download.
+ * Repair (spec §7): the original bytes of a source PDFium had to repair on open go through a
+ * full qpdf rewrite, re-opened and checked (PDFium page count and sizes against the open
+ * document); and the structural check the diagnostics show. "Save repaired copy" opens Save
+ * a copy (components/07-sheets.md §4.1), which writes the version rebuilt on open.
  */
 import type { SourceDocument, SourceId } from '@pdf-editor/document-model';
 import type { PlumberCheckResult } from '@pdf-editor/engine';
 
 import { getEngineService } from '../engine/engine-service';
-import { deliverPdf } from '../export/deliver';
-import { exportFileName } from '../export/filename';
-import { m } from '../i18n';
-import { announce } from '../shell/announcer';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { getCompressor } from './compress-client';
 
@@ -28,8 +25,6 @@ export function repairedSources(): SourceDocument[] {
   }
   return out;
 }
-
-export type RepairOutcome = 'saved' | 'downloaded' | 'cancelled' | 'failed';
 
 /**
  * The repaired copy of an open source: a full qpdf rewrite of its original bytes, checked
@@ -58,32 +53,6 @@ export async function repairedCopy(
   if (!verified.ok) throw new Error(verified.error.message);
   if (!verified.value.ok) throw new Error(verified.value.problems.join('; '));
   return { bytes: result.bytes, repaired: result.repaired };
-}
-
-export async function saveRepairedCopy(source: SourceDocument): Promise<RepairOutcome> {
-  announce(m.repair_running({ name: source.name }));
-  try {
-    const repaired = await repairedCopy(source);
-    const stem = source.name.replace(/\.pdf$/i, '');
-    const name = exportFileName(`${stem}-repaired`);
-    const outcome = await deliverPdf(repaired.bytes, name);
-    if (outcome !== 'cancelled') {
-      announce(
-        repaired.repaired
-          ? m.repair_saved({ name: source.name })
-          : m.repair_not_needed({ name: source.name }),
-      );
-    }
-    return outcome;
-  } catch (error) {
-    announce(
-      m.repair_failed({
-        name: source.name,
-        reason: error instanceof Error ? error.message : String(error),
-      }),
-    );
-    return 'failed';
-  }
 }
 
 const checks = new Map<SourceId, Promise<PlumberCheckResult>>();

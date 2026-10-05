@@ -107,7 +107,6 @@ import {
 import { blobsOfDocument, useWorkspaceStore } from '../state/workspace-store';
 import { compressExport, type ExportCompressor } from '../tools/export-compression';
 import { type OcrExportSummary, ocrExportSummaryOf, thresholdsOf } from '../ocr/ocr-model';
-import { exportCompressionFor } from '../tools/tools-store';
 
 export type ExportPhase = 'reading' | 'assembling' | 'verifying' | 'redaction' | 'signing';
 
@@ -237,8 +236,8 @@ export interface ExportOptions {
   /** Write comment popups for notes and commented markup (spec §6, on by default). */
   readonly includeComments?: boolean;
   /**
-   * Compress the assembled bytes (spec §5). Undefined: the preset applied to this document
-   * with "Apply to export" (tools store), if any; null: none.
+   * Compress the assembled bytes (spec §5; Save a copy's Size). Undefined: what
+   * `deps.compressionFor` gives (the batch runner's step), else none; null: none.
    */
   readonly compression?: CompressionSettings | null;
   /**
@@ -292,7 +291,7 @@ export interface ExportDependencies {
   readonly exclusive?: <T>(task: () => Promise<T>) => Promise<T>;
   /** Compresses assembled bytes; without it compression settings are ignored. */
   readonly compress?: ExportCompressor;
-  /** The compression preset applied to a document's export, if any. */
+  /** The compression a runner applies to a document when the options name none. */
   readonly compressionFor?: (documentId: DocumentId) => CompressionSettings | undefined;
   /**
    * Runs the redaction self-check on export bytes (the PDFium worker's `PdfRedactor`).
@@ -325,7 +324,6 @@ const defaultDependencies = (): ExportDependencies => ({
   appliedEdits,
   exclusive: runExclusive,
   compress: compressExport,
-  compressionFor: exportCompressionFor,
   redactor: () => getEngineService().redactor(),
   signatures: defaultSignatureSteps,
 });

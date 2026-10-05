@@ -1,0 +1,339 @@
+/*
+ * Save a copy, S2 (components/07-sheets.md §4.2, §4.3): label · control rows, disclosure rows
+ * with their current value, solid wells for previews and tables (never glass inside the
+ * sheet's glass, quality-bar Q-4), tabular numerals for sizes.
+ */
+
+/* A row: the label in a fixed column on the control's centre line, the control after it. */
+.row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 12px;
+}
+
+.rowLabel {
+  min-height: var(--control-h);
+  color: var(--text-secondary);
+  font-size: var(--control-text);
+  line-height: var(--control-h);
+  overflow-wrap: anywhere;
+}
+
+/* The control column stacks what belongs to the row (Custom's fields, the link). */
+.rowBody {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* A format's section fades in when the format changes (§4.7, 120 ms; instant when reduced). */
+.section {
+  display: grid;
+  gap: 16px;
+  animation: section-in 120ms var(--ease-out);
+}
+
+@keyframes section-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section {
+    animation: none;
+  }
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* "What gets smaller ›" and the other quiet links under a control. */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-inline-start: -8px;
+}
+
+/* The disclosures: one bordered group of rows, label · value · chevron. */
+.disclosures {
+  display: grid;
+  border-block: 1px solid var(--border-hairline);
+}
+
+.disclosure + .disclosure {
+  border-top: 1px solid var(--border-hairline);
+}
+
+.disclosureButton {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 16px;
+  align-items: center;
+  column-gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  text-align: start;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .disclosureButton {
+    min-height: 44px;
+  }
+}
+
+@media (hover: hover) {
+  .disclosureButton:hover .disclosureValue {
+    color: var(--text-primary);
+  }
+}
+
+.disclosureLabel {
+  color: var(--text-secondary);
+}
+
+.disclosureValue {
+  overflow: hidden;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.disclosureButton[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
+.disclosurePanel {
+  display: grid;
+  gap: 8px;
+  padding: 0 0 12px 88px;
+  animation: section-in 120ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosurePanel {
+    animation: none;
+  }
+}
+
+/* An honest line under a control: the outcome, a hint. */
+.note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* A warning or info row (§4.4: signed document, repaired source). Colour is never alone. */
+.notice {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.noticeGlyph {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--text-secondary);
+}
+
+.notice[data-tone='warning'] .noticeGlyph {
+  color: var(--warning);
+}
+
+.noticeBody {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* The footer's leading line (§4.2): quiet, never a control. */
+.footnote {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The Markdown preview: a solid, focusable, read-only well (§4.8). */
+.previewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preview {
+  max-height: 240px;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: auto;
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.preview[data-state='working'] {
+  color: var(--text-secondary);
+}
+
+/* What gets smaller: the image table in a well, and the before and after panes. */
+.tableWrap {
+  max-height: 260px;
+  overflow: auto;
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+}
+
+.table caption {
+  padding: 8px 12px;
+  color: var(--text-secondary);
+  text-align: start;
+}
+
+.table th,
+.table td {
+  padding: 4px 8px;
+  border-top: 1px solid var(--border-hairline);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--field-well);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.table td {
+  color: var(--text-primary);
+}
+
+.table td[data-skip] {
+  color: var(--text-secondary);
+}
+
+.compare {
+  display: grid;
+  gap: 8px;
+}
+
+.pane {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.paneLabel {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+}
+
+.viewport {
+  height: 200px;
+  overflow: auto;
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+}
+
+.viewport canvas {
+  display: block;
+  /* True 200 %: the reset's max-width: 100% would fit the page to the pane. */
+  max-width: none;
+  height: auto;
+}
+
+/* Details: what the copy's summary lists (export/summary.ts). */
+.summary {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+  list-style: none;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.summary li[data-tone='changed'] {
+  color: var(--text-primary);
+}
+
+.summary li[data-tone='kept'] {
+  color: var(--text-secondary);
+}
+
+.summaryDetails summary {
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.summaryDetails ul {
+  margin: 4px 0 0;
+  padding-inline-start: 16px;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
