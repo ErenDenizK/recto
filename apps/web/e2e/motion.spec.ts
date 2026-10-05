@@ -204,6 +204,13 @@ interface Midway {
  * element in that frame and in every frame after, each with its time, so the checks below read
  * speeds, which do not depend on how long a frame is (a software-rendered engine can draw a
  * frame in 100 ms where another takes 16).
+ *
+ * Such an engine can also step clean over the window: the scrubber's 120 ms *popup* transition
+ * on `--ease-out` is past 85 % at 56 ms, and the frame after the first one lands later than
+ * that. So an animation first seen short of `minMs` is held at a quarter speed until a frame
+ * finds it in the window, and set back to full speed in that frame, before the interrupt. Its
+ * clock is all that changes: the motion core reads the animation's own `currentTime` on a
+ * retarget, so what is drawn and what is read stay the same frame.
  */
 function interruptMidway(
   page: Page,
@@ -237,13 +244,21 @@ function interruptMidway(
             }
           }
         };
+        /** Animations held at a quarter speed until the window is reached. */
+        const held = new Set<Animation>();
         const step = () => {
           const el = document.querySelector(target);
-          const running = el
-            ?.getAnimations()
-            .find((a) => a.playState === 'running' && Number(a.currentTime ?? 0) >= minMs);
+          const animations = el?.getAnimations().filter((a) => a.playState === 'running') ?? [];
+          for (const a of animations) {
+            if (!held.has(a) && Number(a.currentTime ?? 0) < minMs) {
+              held.add(a);
+              a.playbackRate = 0.25;
+            }
+          }
+          const running = animations.find((a) => Number(a.currentTime ?? 0) >= minMs);
           const progress = running?.effect?.getComputedTiming().progress ?? null;
           if (el && running && progress !== null && progress < 0.85) {
+            for (const a of held) a.playbackRate = 1;
             const before = read(el);
             if (interrupt.kind === 'key') {
               const at = document.activeElement ?? document.body;
@@ -359,7 +374,12 @@ async function expectSettledClean(page: Page, state: string): Promise<void> {
   await settleAnimations(page);
   const left = await page.evaluate(() => ({
     animations: document.getAnimations().length,
+    // A Base UI positioner (a tooltip's, say) is not a motion's: Floating UI writes
+    // `will-change: transform` on it while its popup is open on a screen of 1.5 device pixels
+    // per CSS pixel or more (WebKit's Desktop Safari is 2), with a whole-device-pixel translate.
+    // It is the glass inside that must rest crisp (Q-2, `glass-rest.spec.ts`).
     willChange: [...document.querySelectorAll<HTMLElement>('[style]')]
+      .filter((el) => !el.matches('[role="presentation"][data-side]'))
       .filter((el) => el.style.willChange !== '' && el.style.willChange !== 'auto')
       .map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`),
     transitional: document.querySelectorAll('[data-ending-style], [data-starting-style]').length,
