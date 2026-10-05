@@ -102,6 +102,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:save:replace-ok:v1',
       // The private-window notice dismissed on this device (session/session.ts, FB9).
       'pdf-editor:session:not-kept-dismissed:v1',
+      // This tab's id across reloads (sessionStorage, session/session.ts, ADR-0032 §2.5).
+      'pdf-editor:session:tab:v1',
       // The saved signatures' IndexedDB database (signatures/saved-signatures.ts, spec X26).
       'pdf-editor:signatures:v1',
       'pdf-editor:ui:colour-view:v1',
