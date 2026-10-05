@@ -62,7 +62,10 @@ describe('IconButton (09-primitives §4)', () => {
     if (!heatMap.matches(':hover')) expect(bg(heatMap)).toBe('rgba(124, 140, 255, 0.16)');
     // The test browser's pointer may rest over a button from an earlier file; hover is right then.
     const pen = screen.getByRole('button', { name: 'Pen' });
-    expect(bg(pen)).toBe(pen.matches(':hover') ? 'rgb(143, 157, 255)' : 'rgb(124, 140, 255)');
+    // Polled: a hover that begins as the file starts runs its colour transition first.
+    await expect
+      .poll(() => bg(pen) === (pen.matches(':hover') ? 'rgb(143, 157, 255)' : 'rgb(124, 140, 255)'))
+      .toBe(true);
     const redo = screen.getByRole('button', { name: 'Redo' });
     expect(getComputedStyle(redo).color).toBe('rgb(74, 78, 85)');
     release = await forceState(redo, ['hover']);
