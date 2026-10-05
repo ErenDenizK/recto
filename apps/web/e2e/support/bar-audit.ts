@@ -210,9 +210,10 @@ export async function auditBars(
           }
         }
 
-        // 3. Radii: the pill or 10 px.
+        // 3. Radii: the pill or 10 px. A slider's root is its hit area, a box that draws
+        // nothing: its track and knob are pills by construction (ui/Slider, 10-ink §3).
         for (const c of controls) {
-          if (c.part || c.row) continue;
+          if (c.part || c.row || c.el.hasAttribute('data-track')) continue;
           const style = getComputedStyle(c.el);
           const min = Math.min(c.box.width, c.box.height);
           for (const corner of [
