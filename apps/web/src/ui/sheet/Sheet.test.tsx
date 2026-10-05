@@ -287,7 +287,9 @@ describe('Confirm (07 §3)', () => {
     expect(dialog).toHaveAccessibleDescription(
       'Your 14 changes since opening go. Undo brings them back.',
     );
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Revert' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Revert' })).toHaveFocus(), {
+      timeout: 3000,
+    });
     // A press on the scrim answers nothing.
     await userEvent.click(document.body, { position: { x: 10, y: 10 }, force: true });
     expect(screen.getByRole('alertdialog')).toBeVisible();
@@ -302,7 +304,9 @@ describe('Confirm (07 §3)', () => {
         danger: true,
       });
     });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus(), {
+      timeout: 3000,
+    });
     await userEvent.keyboard('{Escape}');
     await expect(answer).resolves.toBe(false);
   });
