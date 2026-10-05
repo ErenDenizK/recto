@@ -4059,5 +4059,6 @@
   "history_cancel": "Cancel",
   "history_empty": "Nothing to undo yet.",
   "announce_history_jump": "Now at step {index} of {count}: {step}",
-  "cmd_history": "Show history…"
+  "cmd_history": "Show history…",
+  "history_show": "Show"
 }

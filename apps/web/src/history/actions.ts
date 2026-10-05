@@ -13,16 +13,41 @@ import { type HistoryEntry, historyEntries } from '@pdf-editor/document-model';
 import { undoBurstStroke } from '../annotations/pen/bursts';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { stepPhrase } from './labels';
+import { toast } from '../ui/Toast';
+import { inOtherDocument, stepPhrase } from './labels';
 import { revealStep } from './reveal';
 
 const model = () => useWorkspaceStore.getState();
 
-/** Says and reveals `step` after the history moved over it. */
+/**
+ * Says and reveals `step` after the history moved over it. A step in another open document
+ * is not revealed where the user is looking: a toast names it ("Undid highlight in
+ * agreement · Show", flows.md §5.3) and the tabs stay as they are until Show.
+ */
 function report(step: HistoryEntry, message: (phrase: string) => string): void {
   const { workspace } = model();
-  announce(message(stepPhrase(step, { workspace, fallbacks: [step.workspace] })));
+  const text = message(stepPhrase(step, { workspace, fallbacks: [step.workspace] }));
+  const id = step.meta?.documentId;
+  if (id !== undefined && inOtherDocument(step, workspace)) {
+    toast.action(
+      text,
+      {
+        label: m.history_show(),
+        run: () => {
+          // As a tab click (home-actions' showTab, not imported: it imports the commands).
+          if (model().workspace.documents[id] === undefined) return;
+          model().setActive(id);
+          if (useUiStore.getState().destination === 'home') useUiStore.getState().showDocument(id);
+          void revealStep(step.meta, model().workspace);
+        },
+      },
+      { documentId: id, key: 'history-other-document' },
+    );
+    return;
+  }
+  announce(text);
   void revealStep(step.meta, workspace);
 }
 
