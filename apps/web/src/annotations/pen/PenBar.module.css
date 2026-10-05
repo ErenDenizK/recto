@@ -94,73 +94,117 @@
   }
 }
 
-/* The editor (10-ink §6 on today's layout): the popover recipe (ui/Popover.module.css), the
-   eight swatches and the colour well in one row on fine pointers (8 × 32 + 4 + 32 = 292 of the
-   294 px inside the border), two rows of four beside the well on coarse ones (4 × 44), then
-   the width and opacity sliders, their tracks starting on one line, and Reset. Rhythm on the
-   4 px grid: 8 between rows. */
+/* The preset editor (10-ink §6): the popover recipe (ui/Popover.module.css), 320 px fine and
+   360 coarse, the colour panel's widths, so its two pages are one width. Both pages lay out on
+   the colour panel's column (288 / 324 px, centred, 4 / 6 px in from the padding) and its
+   [label] [track] [readout] columns (ColourPanel.module.css): the well's ring, the labels and
+   the colour page's controls start on one line, the last swatch's dot, the readouts and ✕'s
+   circle end on another. Rhythm on the 4 px grid: 8 between rows, as the colour page.
+
+   Height: never more than the room above the bar (`--available-height`, Base UI), scrolling
+   within; while a page change springs the popover's own height (PenBar.tsx), the overflow is
+   clipped so no scroll bar flashes. While the eyedropper samples the page the popover steps
+   aside (it stays mounted). */
 .editor {
-  display: grid;
-  gap: var(--space-2);
+  --ed-col: 288px;
+  --ed-inset: 4px;
+
+  max-height: var(--available-height, calc(100vh - 16px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
+@media (pointer: coarse), (any-pointer: coarse) {
+  .editor {
+    --ed-col: 324px;
+    --ed-inset: 6px;
+
+    width: min(360px, calc(100vw - 16px));
+  }
+}
+
+.editor[data-resizing] {
+  overflow: hidden;
+}
+
+.editor[data-sampling] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 8px;
+  width: var(--ed-col);
+  margin-inline: auto;
+}
+
+.page[hidden] {
+  display: none;
+}
+
+.page > * {
+  grid-column: 1 / -1;
+}
+
+/* The title row of the recipe, its ✕ where the colour page's is (concentric with the corner). */
+.page > .header {
+  grid-row: 1;
+  margin: -6px calc(-6px - var(--ed-inset)) -4px 0;
+}
+
+/* The well, a hairline, then the swatches: the first dot's edge on the column's end, the gaps
+   whole pixels, the same pitch for five swatches as for six. */
 .colours {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1);
+  gap: 8px;
+  container-type: inline-size;
 }
 
-.swatches {
+.wellDivider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--border-hairline);
+}
+
+.colours > .swatches {
+  --ed-swatch-gap: round(
+    down,
+    (
+      100cqw -
+      var(--sw-target) -
+      17px +
+      (var(--sw-target) - var(--sw-dot)) /
+      2 -
+      6 *
+      var(--sw-target)
+    ) /
+    5,
+    1px
+  );
+
   flex-wrap: nowrap;
+  gap: var(--ed-swatch-gap);
+  margin-inline: auto calc((var(--sw-target) - var(--sw-dot)) / -2);
 }
 
-@media (pointer: coarse), (any-pointer: coarse) {
-  .swatches {
-    flex-wrap: wrap;
-    max-width: calc(4 * 44px);
-  }
+/* A slider is a row of the page's columns. */
+.page > .slider {
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
 }
 
-.slider {
-  width: 100%;
-}
-
-/* The labels share one width, so both tracks start on one line. */
-.slider > span:first-child {
-  min-width: 4.5em;
-}
-
-.reset {
-  composes: focus-inset from global;
+.page > .reset {
   justify-self: start;
-  height: var(--control-h, 32px);
   margin-top: var(--space-1);
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-control, 10px);
-  background: var(--control-fill, rgb(255 255 255 / 0.08));
-  color: var(--text-primary);
-  font-size: var(--text-md);
-  font-weight: 500;
 }
 
-@media (pointer: coarse), (any-pointer: coarse) {
-  .reset {
-    height: var(--control-h, 44px);
-    padding: 0 var(--space-4);
-    font-size: 15px;
-  }
-}
-
-@media (hover: hover) {
-  .reset:hover {
-    background: var(--control-fill-hover, rgb(255 255 255 / 0.12));
-  }
-}
-
-.reset:active {
-  background: var(--control-fill-pressed, rgb(255 255 255 / 0.16));
+.colourPage {
+  display: block;
 }
 
 /* The honesty note (DESIGN.md §3): a --warning-line hairline around the text, no tint. */

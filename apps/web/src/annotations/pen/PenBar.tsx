@@ -41,18 +41,25 @@ import {
   type CSSProperties,
   type KeyboardEvent,
   useId,
+  useLayoutEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
 
 import { formatNumber, formatPercent, m } from '../../i18n';
+import { animateStyle, type Motion, reducedMotion, springToLinear } from '../../motion';
 import { announce } from '../../shell/announcer';
 import type { PenBarProps } from '../../shell/FloatingToolbar.slots';
 import { useUiStore } from '../../state/ui-store';
-import { ColourPicker } from '../../ui/colour/ColourPicker';
+import { Button } from '../../ui/Button';
+import { ColourPanel, colourSliderSizer, SliderSizer } from '../../ui/colour/ColourPanel';
+import { ColourWell } from '../../ui/colour/ColourWell';
+import { useColourLists } from '../../ui/colour/saved-colours';
+import { StrokePreview } from '../../ui/colour/StrokePreview';
 import { PopoverHeader, PopoverPopup } from '../../ui/Popover';
 import { Segmented } from '../../ui/Segmented';
-import { Slider } from '../../ui/Slider';
+import { Slider, useCoarsePointer } from '../../ui/Slider';
 import { Swatch } from '../../ui/Swatch';
 import { SwatchGroup } from '../../ui/SwatchGroup';
 import { Tooltip } from '../../ui/Tooltip';
@@ -65,17 +72,20 @@ import {
 import { useAnnotationStore } from '../annotation-store';
 import { penSession } from './ink-input';
 import {
+  DEFAULT_PRESETS,
   dotSize,
+  editorSwatches,
   isHighlighter,
   needsDotRing,
   type PenPreset,
   PRESET_INDICES,
   type PresetIndex,
+  presetEditorTitle,
   presetLabel,
   presetName,
-  presetSwatches,
   presetWidthLimits,
   presetWidthStops,
+  samePreset,
   widthText,
 } from './presets';
 import styles from './PenBar.module.css';
@@ -102,6 +112,9 @@ function InkMark({ preset }: { readonly preset: PenPreset }) {
     />
   );
 }
+
+/** The colour panel's column (CSS px, `ColourPanel.module.css`), which the editor shares. */
+const COLUMN = { fine: 288, coarse: 324 } as const;
 
 /** The preset whose editor is (or was last) shown, and the dot it rises from. */
 interface Editing {
@@ -208,6 +221,45 @@ export function PenBar({ armed, arm }: PenBarProps) {
   );
 }
 
+/** The editor's two pages (10-ink §6): the preset, and the colour views pushed in place. */
+type EditorPage = 'preset' | 'colour';
+
+/**
+ * *Sheet push* inside the popover (language §7.3, as Settings): the page that comes in slides
+ * 24 px from the side it comes from and fades in; nothing stays on it at rest (Q-2).
+ */
+function pushMotion(element: Element | null, direction: 1 | -1): void {
+  if (!(element instanceof HTMLElement) || typeof element.animate !== 'function') return;
+  const reduced = reducedMotion();
+  const frames = reduced
+    ? [{ opacity: 0 }, { opacity: 1 }]
+    : [
+        { transform: `translateX(${24 * direction}px)`, opacity: 0 },
+        { transform: 'none', opacity: 1 },
+      ];
+  const curve = reduced ? { duration: 150, easing: 'ease-out' } : springToLinear('smooth');
+  const animation = element.animate(frames, { duration: curve.duration, easing: curve.easing });
+  animation.onfinish = () => animation.cancel();
+}
+
+/**
+ * The preset editor (10-ink §6), one popover with two pages:
+ *
+ * - **Preset**: "Edit black pen" and ✕; the colour well, then six swatches
+ *   (`editorSwatches`); Width on the log taper slider with the stroke as its knob; Opacity on
+ *   the checkerboard (not for the Highlighter); the stroke preview on paper (colour, width and
+ *   opacity, live); the pressure note when a pen with pressure was seen; Reset to default.
+ * - **Colour**: the well pushes the colour panel's views in place (Grid, Spectrum, Sliders,
+ *   opacity, saved and recent colours) with ‹ Back, so the pen has one editor and nothing
+ *   opens over it (XD-3 finding 1). Esc there reverts the colour and comes back; Back keeps it.
+ *
+ * The popover keeps its anchor while its page changes. Its own height follows the new page on
+ * the smooth spring through the motion core (`animateStyle`, Q-6's rule for a glass shape:
+ * its own geometry, nothing clipped or scaled), while the new page slides in (*sheet push*);
+ * reduced motion sets the height at once and only fades. Both pages share the colour panel's
+ * column and its slider columns (`SliderSizer`), so every label, track and readout sits on the
+ * same lines on either page. Focus goes to ‹ Back on the way in and to the well on the way out.
+ */
 function PresetEditor({
   open,
   editing,
@@ -222,26 +274,100 @@ function PresetEditor({
   const preset = useAnnotationStore((s) => s.pen.presets[i]);
   // The width knob is the stroke as it will draw at the page's zoom (10-ink §3.3).
   const zoom = useUiStore((s) => s.zoom);
-  const name = presetName(i, preset);
+  const coarse = useCoarsePointer();
+  const { recent } = useColourLists();
+  const [page, setPage] = useState<EditorPage>('preset');
+  const [sampling, setSampling] = useState(false);
+  // A fresh colour page each time it is pushed: Esc reverts to the colour it was pushed with.
+  const [pushes, setPushes] = useState(0);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const wellRef = useRef<HTMLButtonElement>(null);
+  const resize = useRef<{ from: number; motion: Motion | null }>({ from: -1, motion: null });
+  const colourTitleId = useId();
+
+  const title = presetEditorTitle(i, preset);
   const edit = (patch: Partial<PenPreset>) => useAnnotationStore.getState().editPreset(i, patch);
-  // The eight inks for a pen, the four tints for the highlighter (craft spec §6).
-  const swatches = presetSwatches(preset);
-  const swatchChosen = swatches.some((swatch) => swatch.color === preset.color);
+  const swatches = editorSwatches(preset, recent);
+  const swatchChosen = swatches.some((swatch) => swatch.color === preset.color.toUpperCase());
   // The Highlighter: its own width range (6–18 pt) and no opacity (craft spec §5.4).
   const highlighter = isHighlighter(preset);
   const limits = presetWidthLimits(preset);
   const pressure = usePressureSeen();
+  const isDefault = samePreset(preset, DEFAULT_PRESETS[i]);
+  // Every label and readout either page can show: their tracks share one start and one end.
+  const sizer = {
+    labels: [m.pen_editor_width(), m.annot_opacity()],
+    readouts: [widthText(limits.max), widthText(limits.min), formatPercent(1)],
+  };
+  const shared = colourSliderSizer();
+
+  // Each opening starts on the preset page.
+  const [shownFor, setShownFor] = useState(editing);
+  if (open && shownFor !== editing) {
+    setShownFor(editing);
+    setPage('preset');
+    setSampling(false);
+  }
+
+  const go = (next: EditorPage) => {
+    if (next === page) return;
+    const popup = popupRef.current;
+    resize.current.from = popup ? popup.getBoundingClientRect().height : -1;
+    if (next === 'colour') setPushes((n) => n + 1);
+    setPage(next);
+  };
+
+  // The page changed: the popover's height springs to the new page's, the page slides in.
+  useLayoutEffect(() => {
+    const popup = popupRef.current;
+    const state = resize.current;
+    const from = state.from;
+    state.from = -1;
+    if (!popup || from < 0) return;
+    const running = state.motion?.stop();
+    state.motion = null;
+    popup.style.removeProperty('height');
+    const to = popup.getBoundingClientRect().height;
+    pushMotion(popup.querySelector(`[data-editor-page="${page}"]`), page === 'colour' ? 1 : -1);
+    if (Math.abs(to - from) >= 1 && !reducedMotion()) {
+      popup.setAttribute('data-resizing', '');
+      const motion = animateStyle(popup, 'height', running?.value ?? from, to, {
+        spring: 'smooth',
+        ...(running ? { velocity: running.velocity } : {}),
+      });
+      state.motion = motion;
+      void motion.finished.then(() => {
+        if (state.motion !== motion) return;
+        state.motion = null;
+        popup.removeAttribute('data-resizing');
+      });
+    } else {
+      popup.removeAttribute('data-resizing');
+    }
+    // Focus follows the page when it was on the page that left.
+    const active = document.activeElement;
+    if (active !== document.body && !popup.contains(active)) return;
+    if (page === 'colour') popup.querySelector<HTMLElement>('[data-colour-back]')?.focus();
+    else wellRef.current?.focus();
+  }, [page]);
 
   return (
     <Popover.Root
       open={open}
       onOpenChange={(next, details) => {
         if (next) return;
+        // While the eyedropper samples the page, a press there is its pick, not a dismissal;
+        // on the colour page Esc is the panel's (revert, then back).
+        if (sampling || (page === 'colour' && details.reason === 'escape-key')) {
+          details.cancel();
+          return;
+        }
         const target = details.event?.target;
         onClose(target instanceof Node && anchor.contains(target));
       }}
     >
       <PopoverPopup
+        ref={popupRef}
         anchor={anchor}
         side="top"
         align="center"
@@ -249,92 +375,130 @@ function PresetEditor({
         className={styles.editor}
         data-annotation-keep=""
         data-testid="pen-preset-editor"
+        data-page={page}
+        data-sampling={sampling ? '' : undefined}
         finalFocus={() => anchor}
         onKeyDown={(event) => {
-          if (event.key !== 'Escape' || event.defaultPrevented) return;
+          if (event.key !== 'Escape' || event.defaultPrevented || page !== 'preset') return;
           // Only the editor closes: the pen stays armed.
           event.preventDefault();
           onClose(false);
         }}
       >
-        <PopoverHeader title={m.pen_editor_label({ name })} />
-
-        <div className={styles.colours}>
-          <SwatchGroup
-            label={m.annot_color()}
-            value={swatchChosen ? preset.color : null}
-            onValueChange={(color) => edit({ color })}
-            className={styles.swatches}
-          >
-            {swatches.map((swatch) => (
-              <Swatch key={swatch.color} value={swatch.color} name={swatch.name()} />
-            ))}
-          </SwatchGroup>
-          <ColourPicker
-            value={preset.color}
-            opacity={highlighter ? undefined : preset.opacity}
-            onChange={(color, opacity) =>
-              edit(opacity === undefined ? { color } : { color, opacity })
-            }
-            preview={{ width: preset.width, kind: highlighter ? 'highlighter' : 'pen' }}
-            label={m.annot_custom_color()}
-            side="right"
+        <div className={styles.page} data-editor-page="preset" hidden={page !== 'preset'}>
+          <SliderSizer
+            labels={[...shared.labels, ...sizer.labels]}
+            readouts={[...shared.readouts, ...sizer.readouts]}
           />
-        </div>
+          <PopoverHeader title={title} className={styles.header} />
 
-        <Slider
-          className={styles.slider}
-          label={m.pen_editor_width()}
-          showLabel
-          readout
-          scale="log"
-          track="taper"
-          detents={presetWidthStops(preset)}
-          min={limits.min}
-          max={limits.max}
-          step={0.25}
-          value={preset.width}
-          knobColor={inkFill(preset.color, preset.opacity)}
-          zoom={zoom}
-          format={widthText}
-          onValueChange={(width) => edit({ width })}
-        />
-        {highlighter ? null : (
+          <div className={styles.colours}>
+            <ColourWell
+              ref={wellRef}
+              value={preset.color}
+              opacity={highlighter ? undefined : preset.opacity}
+              label={m.pen_editor_more_colours()}
+              onClick={() => go('colour')}
+            />
+            <span className={styles.wellDivider} aria-hidden="true" />
+            <SwatchGroup
+              label={m.colour_title()}
+              value={swatchChosen ? preset.color : null}
+              onValueChange={(color) => edit({ color })}
+              className={styles.swatches}
+            >
+              {swatches.map((swatch) => (
+                <Swatch key={swatch.color} value={swatch.color} name={swatch.name?.()} />
+              ))}
+            </SwatchGroup>
+          </div>
+
           <Slider
             className={styles.slider}
-            label={m.annot_opacity()}
+            label={m.pen_editor_width()}
             showLabel
             readout
-            track="gradient"
-            gradient={`linear-gradient(to right, ${inkFill(preset.color, 0)}, ${preset.color})`}
-            checkerboard
+            scale="log"
+            track="taper"
+            detents={presetWidthStops(preset)}
+            min={limits.min}
+            max={limits.max}
+            step={0.25}
+            value={preset.width}
             knobColor={inkFill(preset.color, preset.opacity)}
-            min={10}
-            max={100}
-            step={5}
-            value={Math.round(preset.opacity * 100)}
-            format={(percent) => formatPercent(percent / 100)}
-            onValueChange={(percent) => edit({ opacity: percent / 100 })}
+            zoom={zoom}
+            format={widthText}
+            valueText={(width) =>
+              m.slider_value_points({ value: formatNumber(width, { maximumFractionDigits: 2 }) })
+            }
+            onValueChange={(width) => edit({ width })}
           />
-        )}
+          {highlighter ? null : (
+            <Slider
+              className={styles.slider}
+              label={m.annot_opacity()}
+              showLabel
+              readout
+              track="gradient"
+              gradient={`linear-gradient(to right, ${inkFill(preset.color, 0)}, ${preset.color})`}
+              checkerboard
+              knobColor={inkFill(preset.color, preset.opacity)}
+              min={10}
+              max={100}
+              step={5}
+              value={Math.round(preset.opacity * 100)}
+              format={(percent) => formatPercent(percent / 100)}
+              valueText={(percent) => m.slider_value_percent({ value: formatNumber(percent) })}
+              onValueChange={(percent) => edit({ opacity: percent / 100 })}
+            />
+          )}
 
-        {pressure && !highlighter ? (
-          <p className={styles.note} data-testid="pen-editor-width-note">
-            {m.pen_width_note()}
-          </p>
+          <StrokePreview
+            colour={preset.color}
+            opacity={highlighter ? 1 : preset.opacity}
+            width={preset.width}
+            kind={highlighter ? 'highlighter' : 'pen'}
+            size={coarse ? COLUMN.coarse : COLUMN.fine}
+          />
+
+          {pressure && !highlighter ? (
+            <p className={styles.note} data-testid="pen-editor-width-note">
+              {m.pen_width_note()}
+            </p>
+          ) : null}
+
+          <Button
+            variant="standard"
+            className={styles.reset}
+            disabled={isDefault}
+            reason={m.pen_editor_reset_unneeded()}
+            onClick={() => {
+              useAnnotationStore.getState().resetPreset(i);
+              const reset = useAnnotationStore.getState().pen.presets[i];
+              announce(m.pen_preset_reset_done({ name: presetName(i, reset) }));
+            }}
+          >
+            {m.pen_editor_reset()}
+          </Button>
+        </div>
+
+        {page === 'colour' ? (
+          <div className={styles.colourPage} data-editor-page="colour">
+            <ColourPanel
+              key={pushes}
+              value={preset.color}
+              opacity={highlighter ? undefined : preset.opacity}
+              onChange={(color, opacity) =>
+                edit(opacity === undefined ? { color } : { color, opacity })
+              }
+              onClose={(reason) => (reason === 'escape' ? go('preset') : onClose(false))}
+              onBack={() => go('preset')}
+              onSamplingChange={setSampling}
+              titleId={colourTitleId}
+              sizer={sizer}
+            />
+          </div>
         ) : null}
-
-        <button
-          type="button"
-          className={styles.reset}
-          onClick={() => {
-            useAnnotationStore.getState().resetPreset(i);
-            const reset = useAnnotationStore.getState().pen.presets[i];
-            announce(m.pen_preset_reset_done({ name: presetName(i, reset) }));
-          }}
-        >
-          {m.pen_editor_reset()}
-        </button>
       </PopoverPopup>
     </Popover.Root>
   );
