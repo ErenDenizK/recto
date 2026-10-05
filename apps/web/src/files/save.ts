@@ -63,7 +63,7 @@ import {
 import { isRedactMark, type RedactMark } from '../redaction/marks';
 import { announce } from '../shell/announcer';
 import { readJson, writeJson } from '../state/safe-storage';
-import { captureState, isInFile, markSaved, originOf, useSavedStore } from '../state/saved-store';
+import { captureState, isInFile, markSaved, originOf } from '../state/saved-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { recentHandle, storedHandlesReadable, useRecentsStore } from './recents';
@@ -734,9 +734,4 @@ export function resetSave(): void {
   jobHandles.clear();
   useSaveStore.getState().pending?.resolve({ answer: 'cancel', dontAsk: false });
   useSaveStore.setState({ pending: null, jobs: {}, verifiedAt: {} });
-}
-
-/** Whether the saved store knows document `id` was written through a kept handle. */
-export function savedInPlace(id: DocumentId): boolean {
-  return useSavedStore.getState().marks[id]?.handleKept === true;
 }
