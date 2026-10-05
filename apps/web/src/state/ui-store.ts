@@ -1,10 +1,15 @@
 /**
- * UI state: panels, Home or a document, view mode, document modes (Read or Edit), zoom,
- * light-table cell size, overlays, recents. Document content (including the active tab) is
- * not here; see `workspace-store.ts`.
+ * UI state (redesign spec §7, flows §2.4): panels, where the shell is (the Library, a
+ * document or Compare), each document's surface and Markup state, zoom, grid cell size,
+ * overlays, recents. Document content (including the active tab) is not here; see
+ * `workspace-store.ts`.
  *
- * Panel layout is persisted to localStorage (see `safe-storage.ts`); everything else is
- * per session.
+ * M8's global `viewMode`, per-document `documentMode` and `lastView` are gone: Compare is a
+ * destination, the page view or the light table is the document's `surface`, and M8's Edit
+ * is the document's `markup` (`canEdit` reads it until the input rules replace it, D1-5).
+ *
+ * Panel layout is persisted to localStorage (`ui:v3`, see `safe-storage.ts`); everything
+ * else is per session.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 import { create } from 'zustand';
@@ -13,20 +18,38 @@ import { readJson, writeJson } from './safe-storage';
 import { useWorkspaceStore } from './workspace-store';
 
 /**
- * The view of the open documents (ADR-0019 §2): `read`, the page view (shown in Read or Edit,
- * see `DocumentMode`); `arrange`, the light table; `compare`, the Compare view (spec
- * recognize-and-compare §2.2). Home is not a view of a document; see `Destination`.
+ * Where the shell is (redesign spec §7; flows §2.1; ADR-0031 item 10): `home`, the Library
+ * (today's Home: the open files as cards, experience-redesign §3, without a mode control);
+ * `document`, the active document on its `surface`; `compare`, the Compare place (spec
+ * recognize-and-compare §2.2), which M8 held as a view mode.
  */
-export type ViewMode = 'read' | 'arrange' | 'compare';
+export type Destination = 'home' | 'document' | 'compare';
 /**
- * Where the shell is (ADR-0019 §1): `home`, the open files as cards (experience-redesign §3),
- * without a mode control; `document`, the active document in `viewMode`.
+ * What a document shows (flows §2.1, ADR-0029 §2.5): `page`, the page view; `grid`, the Pages
+ * grid (today's light table, Arrange). Replaces M8's `'read' | 'arrange'` and `lastView`.
  */
-export type Destination = 'home' | 'document';
-/** Whether a document may change (ADR-0019 §2): Read is locked, Edit is not. */
-export type DocumentMode = 'read' | 'edit';
-/** What the stage shows: Home, or a view of the active document. */
-export type StageView = 'home' | ViewMode;
+export type Surface = 'page' | 'grid';
+/** The Markup palette's set (flows §4.3): the drawing tools, or Fill & sign's. */
+export type PaletteSet = 'draw' | 'sign';
+/**
+ * One document's UI (redesign spec §7, flows §2.4). `surface` is kept in the session
+ * snapshot. `markup` is whether Markup is open: until the input rules land (D1-5) it carries
+ * M8's Edit, so `canEdit` reads it and the snapshot keeps it as M8 kept Edit. `paletteSet`
+ * is the last door into Markup, for the session.
+ */
+export interface DocumentUi {
+  readonly surface: Surface;
+  readonly markup: boolean;
+  readonly paletteSet: PaletteSet;
+}
+/** A document with no entry: its page, Markup closed, the drawing set. */
+export const DEFAULT_DOCUMENT_UI: DocumentUi = {
+  surface: 'page',
+  markup: false,
+  paletteSet: 'draw',
+};
+/** What the stage shows: the Library, Compare, or the active document's surface. */
+export type StageView = 'home' | 'compare' | Surface;
 /**
  * The navigator's tabs (experience-redesign §4.1). `changes` is the Compare view's Changes
  * list, shown only in Compare; not persisted (a comparison lives for the session).
@@ -294,40 +317,87 @@ export function loadLayout(): PersistedLayout {
   return layout;
 }
 
-/** What the stage shows: Home, or the document view (whatever `viewMode` holds). */
-export function stageView(state: Pick<UiState, 'destination' | 'viewMode'>): StageView {
-  return state.destination === 'home' ? 'home' : state.viewMode;
+const activeDocumentId = () => useWorkspaceStore.getState().workspace.activeDocument;
+
+/** A document's UI; a document without an entry is on its page with Markup closed. */
+export function documentUi(
+  state: Pick<UiState, 'docUi'>,
+  id: DocumentId | null | undefined,
+): DocumentUi {
+  return (id != null ? state.docUi[id] : undefined) ?? DEFAULT_DOCUMENT_UI;
 }
 
 /**
- * Whether the page view (Read or Edit) shows: what `viewMode === 'read'` meant while Home
- * was a view. `viewMode` keeps its value on Home, so a reader that must be false there asks
- * this instead.
+ * `docUi` with `patch` applied to `id`'s entry; the same object when nothing changes, so
+ * subscribers see no new state.
  */
-export function isPageView(state: Pick<UiState, 'destination' | 'viewMode'>): boolean {
-  return stageView(state) === 'read';
+export function withDocumentUi(
+  docUi: UiState['docUi'],
+  id: DocumentId,
+  patch: Partial<DocumentUi>,
+): UiState['docUi'] {
+  const current = docUi[id] ?? DEFAULT_DOCUMENT_UI;
+  const next = { ...current, ...patch };
+  if (
+    docUi[id] !== undefined &&
+    next.surface === current.surface &&
+    next.markup === current.markup &&
+    next.paletteSet === current.paletteSet
+  ) {
+    return docUi;
+  }
+  return { ...docUi, [id]: next };
 }
 
-/** A document's mode: Read (locked) unless it was put in Edit this session. */
-export function documentModeOf(
-  state: Pick<UiState, 'documentMode'>,
+/** The surface of `id` (the active document by default): its page unless set to the grid. */
+export function surfaceOf(
+  state: Pick<UiState, 'docUi'>,
+  id: DocumentId | null | undefined = activeDocumentId(),
+): Surface {
+  return documentUi(state, id).surface;
+}
+
+/**
+ * What the stage shows: the Library, Compare, or the surface of `id` (the active document
+ * by default). Selectors that must follow the active tab use `useStageView`.
+ */
+export function stageView(
+  state: Pick<UiState, 'destination' | 'docUi'>,
+  id: DocumentId | null | undefined = activeDocumentId(),
+): StageView {
+  return state.destination === 'document' ? surfaceOf(state, id) : state.destination;
+}
+
+/**
+ * Whether the page view shows (flows §2.4's `isPageView()`): `destination === 'document'`
+ * and the active document's `surface === 'page'`. False on the Library and in Compare.
+ */
+export function isPageView(
+  state: Pick<UiState, 'destination' | 'docUi'>,
+  id: DocumentId | null | undefined = activeDocumentId(),
+): boolean {
+  return stageView(state, id) === 'page';
+}
+
+/** Whether Markup is open for `id` (M8's Edit until D1-5); false for no document. */
+export function isMarkupOpen(
+  state: Pick<UiState, 'docUi'>,
   id: DocumentId | null | undefined,
-): DocumentMode {
-  return (id != null ? state.documentMode[id] : undefined) ?? 'read';
+): boolean {
+  return documentUi(state, id).markup;
 }
 
 export interface UiState extends PersistedLayout {
-  /** Home or a document (ADR-0019 §1). Session only. */
+  /** The Library, a document or Compare (flows §2.1). Session (the snapshot keeps it). */
   destination: Destination;
-  /** The view of the documents; kept while Home shows, so leaving Home returns to it. */
-  viewMode: ViewMode;
   /**
-   * Read (locked) or Edit, per document (ADR-0019 §2). Session only; a document without an
-   * entry is in Read. Read and Edit share the page view, so switching never moves the page.
+   * Each document's surface and Markup state (redesign spec §7). Session (the snapshot keeps
+   * the surface, and in D1-1 the Markup state as M8 kept Edit); a document without an entry
+   * has `DEFAULT_DOCUMENT_UI`. Entries of closed documents stay, so undoing a close brings
+   * the document back as it was; readers ignore them. The page view and Markup share the
+   * page, so opening or closing Markup never moves it.
    */
-  documentMode: Readonly<Record<DocumentId, DocumentMode>>;
-  /** The view each document was last shown in, for leaving Home by its tab. Session only. */
-  lastView: Readonly<Record<DocumentId, ViewMode>>;
+  docUi: Readonly<Record<DocumentId, DocumentUi>>;
   zoom: number;
   /** While set, the stage keeps zoom fitted (to width or whole page) as it resizes. */
   fitMode: FitMode | null;
@@ -370,15 +440,21 @@ export interface UiState extends PersistedLayout {
   setLeftPanelWidth: (width: number) => void;
   toggleRightPanel: () => void;
   setRightPanelWidth: (width: number) => void;
-  /** Shows the documents in `mode`, leaving Home. */
-  setViewMode: (mode: ViewMode) => void;
-  /** Shows Home (`0`, the app glyph, "Show Home"); the views stay as they were. */
+  /**
+   * Shows a document on `surface` (`id`, the active document by default), leaving the
+   * Library or Compare. With no document only the destination changes.
+   */
+  showSurface: (surface: Surface, id?: DocumentId) => void;
+  /** Shows the Compare place (`4`, Compare with…). */
+  showCompare: () => void;
+  /** Shows the Library (`0`, the app glyph, "Show Home"); every document keeps its surface. */
   showHome: () => void;
-  /** Leaves Home for a document in the view it was last shown in (Read the first time). */
+  /** Leaves the Library for a document on its surface (its page the first time). */
   showDocument: (id: DocumentId) => void;
-  setDocumentMode: (id: DocumentId, mode: DocumentMode) => void;
-  /** Remembers the view a document is shown in (`lastView`). */
-  rememberView: (id: DocumentId, view: ViewMode) => void;
+  /** Opens Markup for `id` (M8's Edit), on `set` (the last set when not given). */
+  openMarkup: (id: DocumentId, set?: PaletteSet) => void;
+  /** Closes Markup for `id` (M8's Read). */
+  closeMarkup: (id: DocumentId) => void;
   setZoom: (zoom: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -419,9 +495,7 @@ function withIds(
 const store = create<UiState>()((set, get) => ({
   ...loadLayout(),
   destination: 'document',
-  viewMode: 'read',
-  documentMode: {},
-  lastView: {},
+  docUi: {},
   zoom: 1,
   fitMode: 'width',
   arrangeSize: DEFAULT_ARRANGE_SIZE,
@@ -452,16 +526,27 @@ const store = create<UiState>()((set, get) => ({
     set({
       rightPanelWidth: clamp(Math.round(width), RIGHT_PANEL_WIDTH.min, RIGHT_PANEL_WIDTH.max),
     }),
-  setViewMode: (viewMode) => set({ viewMode, destination: 'document' }),
+  showSurface: (surface, id = activeDocumentId()) =>
+    set((s) => ({
+      destination: 'document',
+      docUi: id === undefined ? s.docUi : withDocumentUi(s.docUi, id, { surface }),
+    })),
+  showCompare: () => set({ destination: 'compare' }),
   showHome: () => set({ destination: 'home' }),
-  showDocument: (id) =>
-    set((s) => ({ destination: 'document', viewMode: s.lastView[id] ?? 'read' })),
-  setDocumentMode: (id, mode) =>
-    set((s) =>
-      s.documentMode[id] === mode ? s : { documentMode: { ...s.documentMode, [id]: mode } },
-    ),
-  rememberView: (id, view) =>
-    set((s) => (s.lastView[id] === view ? s : { lastView: { ...s.lastView, [id]: view } })),
+  showDocument: () => set({ destination: 'document' }),
+  openMarkup: (id, paletteSet) =>
+    set((s) => {
+      const docUi = withDocumentUi(s.docUi, id, {
+        markup: true,
+        ...(paletteSet === undefined ? {} : { paletteSet }),
+      });
+      return docUi === s.docUi ? s : { docUi };
+    }),
+  closeMarkup: (id) =>
+    set((s) => {
+      const docUi = withDocumentUi(s.docUi, id, { markup: false });
+      return docUi === s.docUi ? s : { docUi };
+    }),
   setZoom: (zoom) => set({ zoom: clamp(zoom, MIN_ZOOM, MAX_ZOOM), fitMode: null }),
   zoomIn: () => set((s) => ({ zoom: nextZoomLevel(s.zoom, 1), fitMode: null })),
   zoomOut: () => set((s) => ({ zoom: nextZoomLevel(s.zoom, -1), fitMode: null })),
@@ -568,24 +653,47 @@ useUiStore.subscribe((state, previous) => {
 });
 
 /**
- * The Read lock (ADR-0019 §3): whether `id` may change from the page. True only while the
- * document is in Edit; an unknown or missing document is locked, so a missed check fails
- * closed. Whole-document operations with their own dialog (Document menu, Arrange) and
- * Undo / Redo do not ask.
+ * M8's view was one for every document, so a tab switch kept what the stage showed. The
+ * surface is per document now; until the Pages grid gives the surface its own rules (D2),
+ * the document that becomes active in a document's view takes the surface the stage shows,
+ * as M8 did. On the Library and in Compare nothing carries over.
+ */
+useWorkspaceStore.subscribe((state, previous) => {
+  const next = state.workspace.activeDocument;
+  const before = previous.workspace.activeDocument;
+  if (next === before || next === undefined || before === undefined) return;
+  const ui = useUiStore.getState();
+  if (ui.destination !== 'document') return;
+  const docUi = withDocumentUi(ui.docUi, next, { surface: surfaceOf(ui, before) });
+  if (docUi !== ui.docUi) useUiStore.setState({ docUi });
+});
+
+/** What the stage shows, following both the destination and the active tab. */
+export function useStageView(): StageView {
+  const id = useWorkspaceStore((s) => s.workspace.activeDocument);
+  return useUiStore((s) => stageView(s, id));
+}
+
+/**
+ * The Read lock (ADR-0019 §3), kept as a shim with M8's meaning until the input rules
+ * replace it (D1-5; `canChange` in D1-2): whether `id` may change from the page. True only
+ * while Markup is open for the document (M8's Edit, `docUi[id].markup`); an unknown or
+ * missing document is locked, so a missed check fails closed. Whole-document operations
+ * with their own dialog (Document menu, Arrange) and Undo / Redo do not ask.
  */
 export function canEdit(
   id: DocumentId | null | undefined,
-  state: Pick<UiState, 'documentMode'> = useUiStore.getState(),
+  state: Pick<UiState, 'docUi'> = useUiStore.getState(),
 ): boolean {
-  return id != null && state.documentMode[id] === 'edit';
+  return id != null && state.docUi[id]?.markup === true;
 }
 
 /** `canEdit` for the active document. */
 export function canEditActive(): boolean {
-  return canEdit(useWorkspaceStore.getState().workspace.activeDocument);
+  return canEdit(activeDocumentId());
 }
 
-/** Whether the active document is in Edit (the page layers and the bar follow it). */
+/** Whether Markup is open for the active document (the page layers and the bar follow it). */
 export function useCanEdit(): boolean {
   const id = useWorkspaceStore((s) => s.workspace.activeDocument);
   return useUiStore((s) => canEdit(id, s));

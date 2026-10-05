@@ -1,10 +1,13 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { useWorkspaceStore } from './workspace-store';
 import {
   canEdit,
+  DEFAULT_DOCUMENT_UI,
   DEFAULT_LAYOUT,
-  documentModeOf,
+  documentUi,
+  isMarkupOpen,
   isNavigatorShowing,
   isPageView,
   LAYOUT_STORAGE_KEY,
@@ -20,6 +23,7 @@ import {
   parseLayoutV2,
   RIGHT_PANEL_WIDTH,
   stageView,
+  surfaceOf,
   toStoredLayout,
   useUiStore,
   V2_LAYOUT_STORAGE_KEY,
@@ -350,76 +354,130 @@ describe('navigator state', () => {
   });
 });
 
-describe('Home, views and document modes (ADR-0019 §1–§2)', () => {
+describe('destination, surface and Markup (redesign spec §7, flows §2.4)', () => {
   const a = 'doc-a' as DocumentId;
   const b = 'doc-b' as DocumentId;
+  const workspace = useWorkspaceStore.getState().workspace;
+  const activate = (id: DocumentId | undefined) =>
+    useWorkspaceStore.setState({ workspace: { ...workspace, activeDocument: id } });
   afterEach(() => {
-    useUiStore.setState({
-      destination: 'document',
-      viewMode: 'read',
-      documentMode: {},
-      lastView: {},
-    });
+    useWorkspaceStore.setState({ workspace });
+    useUiStore.setState({ destination: 'document', docUi: {} });
   });
 
-  it('starts on the document view, every document in Read', () => {
+  it('starts on a document, every document on its page with Markup closed', () => {
     const state = useUiStore.getState();
     expect(state.destination).toBe('document');
-    expect(state.viewMode).toBe('read');
-    expect(documentModeOf(state, a)).toBe('read');
-    expect(documentModeOf(state, null)).toBe('read');
+    expect(state.docUi).toEqual({});
+    expect(documentUi(state, a)).toEqual(DEFAULT_DOCUMENT_UI);
+    expect(DEFAULT_DOCUMENT_UI).toEqual({ surface: 'page', markup: false, paletteSet: 'draw' });
+    expect(isMarkupOpen(state, a)).toBe(false);
+    expect(isMarkupOpen(state, null)).toBe(false);
     expect(isPageView(state)).toBe(true);
-    expect(stageView(state)).toBe('read');
+    expect(stageView(state)).toBe('page');
+    expect(stageView(state, a)).toBe('page');
   });
 
-  it('shows Home without forgetting the view, and leaves it by setting a view', () => {
-    useUiStore.getState().setViewMode('arrange');
-    useUiStore.getState().showHome();
+  it('keeps the surface per document; the Library and Compare are destinations', () => {
+    useUiStore.getState().showSurface('grid', a);
     let state = useUiStore.getState();
-    expect(state.destination).toBe('home');
-    expect(state.viewMode).toBe('arrange');
-    expect(stageView(state)).toBe('home');
-    expect(isPageView(state)).toBe(false);
-    // A view set from Home (a command, a panel row) shows that view.
-    useUiStore.getState().setViewMode('read');
+    expect(surfaceOf(state, a)).toBe('grid');
+    expect(surfaceOf(state, b)).toBe('page');
+    expect(stageView(state, a)).toBe('grid');
+    expect(isPageView(state, a)).toBe(false);
+    expect(isPageView(state, b)).toBe(true);
+
+    useUiStore.getState().showHome();
     state = useUiStore.getState();
-    expect(stageView(state)).toBe('read');
-    expect(isPageView(state)).toBe(true);
-  });
-
-  it('leaves Home for a document in its last view, Read the first time', () => {
-    useUiStore.getState().rememberView(a, 'arrange');
-    useUiStore.getState().showHome();
+    expect(stageView(state, a)).toBe('home');
+    expect(isPageView(state, b)).toBe(false);
+    // The surface is kept while the Library shows; leaving it returns to it.
     useUiStore.getState().showDocument(a);
-    expect(stageView(useUiStore.getState())).toBe('arrange');
+    expect(stageView(useUiStore.getState(), a)).toBe('grid');
+
+    useUiStore.getState().showCompare();
+    state = useUiStore.getState();
+    expect(state.destination).toBe('compare');
+    expect(stageView(state, a)).toBe('compare');
+    expect(isPageView(state, b)).toBe(false);
+    // A surface set from the Library or Compare (a command, a panel row) shows that surface.
+    useUiStore.getState().showSurface('page', a);
+    state = useUiStore.getState();
+    expect(stageView(state, a)).toBe('page');
+    expect(surfaceOf(state, a)).toBe('page');
+  });
+
+  it('acts on the active document by default; with none, only the destination changes', () => {
+    activate(a);
+    useUiStore.getState().showSurface('grid');
+    expect(useUiStore.getState().docUi).toEqual({
+      [a]: { ...DEFAULT_DOCUMENT_UI, surface: 'grid' },
+    });
+    expect(stageView(useUiStore.getState())).toBe('grid');
+    activate(undefined);
     useUiStore.getState().showHome();
-    useUiStore.getState().showDocument(b);
-    expect(stageView(useUiStore.getState())).toBe('read');
-    expect(useUiStore.getState().lastView).toEqual({ [a]: 'arrange' });
+    useUiStore.getState().showSurface('grid');
+    expect(useUiStore.getState().destination).toBe('document');
+    expect(Object.keys(useUiStore.getState().docUi)).toEqual([a]);
   });
 
-  it('keeps Read or Edit per document; the view is shared', () => {
-    useUiStore.getState().setDocumentMode(a, 'edit');
-    const state = useUiStore.getState();
-    expect(documentModeOf(state, a)).toBe('edit');
-    expect(documentModeOf(state, b)).toBe('read');
-    expect(state.viewMode).toBe('read');
-    // Setting the same mode again changes nothing (no new state for subscribers).
-    const before = useUiStore.getState().documentMode;
-    useUiStore.getState().setDocumentMode(a, 'edit');
-    expect(useUiStore.getState().documentMode).toBe(before);
-    useUiStore.getState().setDocumentMode(a, 'read');
-    expect(documentModeOf(useUiStore.getState(), a)).toBe('read');
+  it('carries the shown surface to the document that becomes active, as M8 did', () => {
+    activate(a);
+    useUiStore.getState().showSurface('grid');
+    activate(b);
+    expect(surfaceOf(useUiStore.getState(), b)).toBe('grid');
+    expect(stageView(useUiStore.getState())).toBe('grid');
+    useUiStore.getState().showSurface('page');
+    activate(a);
+    expect(surfaceOf(useUiStore.getState(), a)).toBe('page');
+    // Not from the Library or Compare: a tab there leaves the document as it was.
+    useUiStore.getState().showSurface('grid', b);
+    useUiStore.getState().showHome();
+    activate(b);
+    activate(a);
+    expect(surfaceOf(useUiStore.getState(), a)).toBe('page');
+    useUiStore.getState().showCompare();
+    activate(b);
+    expect(surfaceOf(useUiStore.getState(), b)).toBe('grid');
   });
 
-  it('never persists the destination, views or modes; a stored stray view is ignored', () => {
+  it('opens and closes Markup per document; the surface is shared with the page view', () => {
+    useUiStore.getState().openMarkup(a);
+    let state = useUiStore.getState();
+    expect(isMarkupOpen(state, a)).toBe(true);
+    expect(isMarkupOpen(state, b)).toBe(false);
+    expect(documentUi(state, a)).toEqual({ surface: 'page', markup: true, paletteSet: 'draw' });
+    // Opening it again changes nothing (no new state for subscribers).
+    const before = useUiStore.getState().docUi;
+    useUiStore.getState().openMarkup(a);
+    expect(useUiStore.getState().docUi).toBe(before);
+    // The door names the palette's set; without one the last set stays.
+    useUiStore.getState().openMarkup(a, 'sign');
+    useUiStore.getState().closeMarkup(a);
+    useUiStore.getState().openMarkup(a);
+    state = useUiStore.getState();
+    expect(documentUi(state, a)).toEqual({ surface: 'page', markup: true, paletteSet: 'sign' });
+    useUiStore.getState().closeMarkup(a);
+    expect(isMarkupOpen(useUiStore.getState(), a)).toBe(false);
+    const closed = useUiStore.getState().docUi;
+    useUiStore.getState().closeMarkup(a);
+    expect(useUiStore.getState().docUi).toBe(closed);
+  });
+
+  it('never persists the destination, surfaces or Markup; a stored stray view is ignored', () => {
     localStorage.setItem(
       LAYOUT_STORAGE_KEY,
-      JSON.stringify({ ...toStoredLayout(DEFAULT_LAYOUT), viewMode: 'home', destination: 'home' }),
+      JSON.stringify({
+        ...toStoredLayout(DEFAULT_LAYOUT),
+        viewMode: 'home',
+        destination: 'home',
+        docUi: { [a]: { surface: 'grid', markup: true } },
+      }),
     );
     expect(loadLayout()).toEqual(DEFAULT_LAYOUT);
     useUiStore.getState().showHome();
-    useUiStore.getState().setDocumentMode(a, 'edit');
+    useUiStore.getState().openMarkup(a);
+    useUiStore.getState().showSurface('grid', a);
     useUiStore.getState().setReviewFilter('comments');
     const stored = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? 'null') as object;
     expect(Object.keys(stored).sort()).toEqual(Object.keys(toStoredLayout(DEFAULT_LAYOUT)).sort());
@@ -427,9 +485,20 @@ describe('Home, views and document modes (ADR-0019 §1–§2)', () => {
     useUiStore.setState({ ...DEFAULT_LAYOUT });
   });
 
-  it('no longer carries the placeholder tool state', () => {
-    expect('tool' in useUiStore.getState()).toBe(false);
-    expect('setTool' in useUiStore.getState()).toBe(false);
+  it('no longer carries the M8 view and mode state', () => {
+    const state = useUiStore.getState();
+    for (const gone of [
+      'tool',
+      'setTool',
+      'viewMode',
+      'documentMode',
+      'lastView',
+      'setViewMode',
+      'setDocumentMode',
+      'rememberView',
+    ]) {
+      expect(gone in state, gone).toBe(false);
+    }
   });
 });
 
@@ -444,34 +513,41 @@ describe('nextZoomLevel', () => {
   });
 });
 
-describe('canEdit, the Read lock (ADR-0019 §3)', () => {
+describe('canEdit, the shim of the Read lock (ADR-0019 §3) until D1-5', () => {
   const a = 'doc-a' as DocumentId;
   const b = 'doc-b' as DocumentId;
   afterEach(() => {
-    useUiStore.setState({ documentMode: {} });
+    useUiStore.setState({ docUi: {} });
   });
 
-  it('is true only for a document in Edit, and fails closed otherwise', () => {
+  it('is true only while Markup is open for the document, and fails closed otherwise', () => {
     expect(canEdit(a)).toBe(false);
     expect(canEdit(null)).toBe(false);
     expect(canEdit(undefined)).toBe(false);
-    useUiStore.getState().setDocumentMode(a, 'edit');
+    useUiStore.getState().openMarkup(a);
     expect(canEdit(a)).toBe(true);
     expect(canEdit(b)).toBe(false);
-    useUiStore.getState().setDocumentMode(a, 'read');
+    useUiStore.getState().closeMarkup(a);
     expect(canEdit(a)).toBe(false);
+    // The grid and the palette set do not open Markup.
+    useUiStore.getState().showSurface('grid', b);
+    expect(canEdit(b)).toBe(false);
   });
 
   it('reads a given state, so selectors can use it', () => {
-    expect(canEdit(a, { documentMode: { [a]: 'edit' } })).toBe(true);
-    expect(canEdit(a, { documentMode: { [b]: 'edit' } })).toBe(false);
+    const open = { ...DEFAULT_DOCUMENT_UI, markup: true };
+    expect(canEdit(a, { docUi: { [a]: open } })).toBe(true);
+    expect(canEdit(a, { docUi: { [b]: open } })).toBe(false);
+    expect(canEdit(a, { docUi: { [a]: DEFAULT_DOCUMENT_UI } })).toBe(false);
   });
 
-  it('is kept through views and Home: the lock belongs to the document', () => {
-    useUiStore.getState().setDocumentMode(a, 'edit');
-    useUiStore.getState().setViewMode('arrange');
+  it('is kept through surfaces, the Library and Compare: Markup belongs to the document', () => {
+    useUiStore.getState().openMarkup(a);
+    useUiStore.getState().showSurface('grid', a);
     useUiStore.getState().showHome();
     expect(canEdit(a)).toBe(true);
-    useUiStore.setState({ destination: 'document', viewMode: 'read' });
+    useUiStore.getState().showCompare();
+    expect(canEdit(a)).toBe(true);
+    useUiStore.setState({ destination: 'document' });
   });
 });
