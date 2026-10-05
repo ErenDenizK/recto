@@ -96,6 +96,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:edit-policy:v1',
       // The session's ?edition override (sessionStorage, shell/frame/edition.ts).
       'pdf-editor:edition:v1',
+      // Today's edit-policy:v1, migrated once (state/input-policy-store.ts, redesign spec §7).
+      'pdf-editor:input-policy:v1',
       'pdf-editor:locale:v1',
       'pdf-editor:recents:v1',
       // "Don't ask again for this file" on Save's Replace question (files/save.ts, ADR-0032 §2.1).

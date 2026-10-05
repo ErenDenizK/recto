@@ -18,13 +18,13 @@
 import type { CommandRegistry } from '../commands/registry';
 import { chooseLocale, followsBrowser, getLocale, LOCALE_NAMES, m } from '../i18n';
 import { announce } from '../shell/announcer';
-import { useEditPolicyStore } from '../state/edit-policy-store';
+import { useInputPolicyStore } from '../state/input-policy-store';
 import { openSettings } from './open-settings';
 import { rowKeywords } from './search-index';
 
 /** Whether a one-time tip has been used up and "Show tips again" would bring it back. */
 export function tipsToShowAgain(): boolean {
-  return useEditPolicyStore.getState().editTextHintShown;
+  return useInputPolicyStore.getState().editTextHintShown;
 }
 
 /**
@@ -32,7 +32,7 @@ export function tipsToShowAgain(): boolean {
  * "Double-click to edit text" hint (craft §3.5); the facts chip arrives with the Library (D4).
  */
 export function showTipsAgain(): void {
-  useEditPolicyStore.setState({ editTextHintShown: false });
+  useInputPolicyStore.setState({ editTextHintShown: false });
   announce(m.settings_tips_reset());
 }
 
