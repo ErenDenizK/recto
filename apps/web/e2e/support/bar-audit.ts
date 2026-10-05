@@ -12,6 +12,7 @@
  * - its box, or for a checkbox, radio or switch inside a `<label>`, the label's row (the box
  *   itself is a 16 or 20 px shape inside a control-high row, 09 §7–§9);
  * - a slider by its root (`[data-track]`, `ui/Slider`), whose height is its hit area;
+ * - a segment of `ui/Segmented` by its track (the segments sit 2 px inside the pill);
  * - a control drawn wholly inside another (a tab's close button, a chip's ✕) is a part: its
  *   height and radius are its host's business, but its centre still shares the row;
  * - a link inside a paragraph is running text, sized by its line, and is left out;
@@ -125,6 +126,11 @@ export async function auditBars(
               target = label;
               row = true;
             }
+          }
+          // ui/Segmented draws one 32 / 44 px pill track with the segments inset 2 px inside
+          // it: the track is the control (its height, centre and radius), as Q-9 measures it.
+          if ((role === 'radio' || role === 'tab') && el.hasAttribute('data-segment')) {
+            target = el.closest('[role="radiogroup"], [role="tablist"]') ?? el;
           }
           if (role === 'slider' || (el instanceof HTMLInputElement && el.type === 'range')) {
             target = el.closest('[data-track]') ?? el;

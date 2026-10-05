@@ -175,22 +175,14 @@ export default function SettingsSheet() {
   }, [open]);
 
   // Where focus starts: the target's control, else the search field (fine) or the first row.
-  useLayoutEffect(() => {
-    const root = bodyRef.current;
-    if (reveal) focusRef.current = controlOf(reveal, root);
-    else if (page === null && !coarse) focusRef.current = searchRef.current;
-    else
-      focusRef.current = root?.querySelector<HTMLElement>(`[data-row] :is(${ROW_CONTROL})`) ?? null;
-  });
-
-  // Reveal the target once its rows are laid out; focus it if the sheet was already open.
-  useLayoutEffect(() => {
-    if (!open || !reveal) return;
-    const root = bodyRef.current;
-    revealTarget(reveal, root);
-    const control = controlOf(reveal, root);
-    if (control && panel()?.contains(document.activeElement)) control.focus();
-  }, [open, reveal]);
+  // Read by `FocusTarget`, the body's last child, so it is set before the popup moves focus.
+  const chooseFocus = () => {
+    // The body's own ref attaches after its children's layout effects: find it in the panel.
+    const root = panel()?.querySelector<HTMLElement>('[data-settings-page]') ?? null;
+    if (reveal) return controlOf(reveal, root);
+    if (page === null && !coarse) return searchRef.current;
+    return root?.querySelector<HTMLElement>(`[data-row] :is(${ROW_CONTROL})`) ?? null;
+  };
 
   // Page changes: the push motion, the body back to its top, and focus to ‹ Back or the row.
   const shownPage = useRef(page);
@@ -308,7 +300,40 @@ export default function SettingsSheet() {
             )}
           </>
         )}
+        <FocusTarget
+          choose={() => {
+            focusRef.current = chooseFocus();
+          }}
+          reveal={open ? reveal : null}
+        />
       </div>
     </Sheet>
   );
+}
+
+/**
+ * Points the sheet's `initialFocus` at the chosen control, and reveals the opener's target. A
+ * descendant's layout effect runs once the portal has mounted the rows, before the popup's own
+ * and after the rows before it, so the target exists when the popup reads the ref. A target
+ * named while the sheet is already open takes focus here.
+ */
+function FocusTarget({
+  choose,
+  reveal,
+}: {
+  /** Points the sheet's `initialFocus` ref at the control to focus. */
+  readonly choose: () => void;
+  readonly reveal: SettingsTarget | null;
+}) {
+  useLayoutEffect(() => {
+    choose();
+  });
+  useLayoutEffect(() => {
+    if (!reveal) return;
+    const root = panel()?.querySelector<HTMLElement>('[data-settings-page]') ?? null;
+    revealTarget(reveal, root);
+    const control = controlOf(reveal, root);
+    if (control && panel()?.contains(document.activeElement)) control.focus();
+  }, [reveal]);
+  return null;
 }

@@ -9,8 +9,9 @@
  * text selection bar, Edit with each of the bar's five groups, an options tier, a tool menu,
  * the Document menu, the page context menu, Arrange with its contextual bar, the History
  * scrubber under ↶ (D0-6), the toast stack (an Undo toast and a failure toast, hovered so ✕
- * shows), an annotation's bar, a dialog with its footer, and the sheets of D0-4 (the shortcuts
- * overlay's header, the password prompt's footer).
+ * shows), an annotation's bar, a dialog with its footer, the sheets of D0-4 (the shortcuts
+ * overlay's header, the password prompt's footer) and the Settings sheet of D0-10 (its header
+ * and control rows, and the About Recto page).
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -169,6 +170,23 @@ test.describe('the full edition', () => {
     await page.locator('body').press('?');
     await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
     await run.audit('the shortcuts overlay');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    // The Settings sheet (D0-10): its header, the rows that hold controls (the language
+    // segments, Recent files with Clear, Name on comments, Show tips again), then About Recto.
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.getByRole('combobox').first().fill('Settings');
+    await page
+      .getByRole('option', { name: /^Settings…/ })
+      .first()
+      .click();
+    const settings = page.getByTestId('settings-sheet');
+    await expect(settings).toBeVisible();
+    await run.audit('the Settings sheet');
+    await settings.getByRole('button', { name: /About Recto/ }).click();
+    await expect(settings.getByTestId('settings-about')).toBeVisible();
+    await run.audit('the Settings sheet, About Recto');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
