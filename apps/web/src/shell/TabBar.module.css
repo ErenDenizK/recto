@@ -20,22 +20,39 @@
   color: var(--text-secondary);
 }
 
+/* The tabs keep room for at least one tab at its minimum width and +, whatever the actions
+   beside them need (XD-3; 01-frame F2 §2: "the active tab never truncates below 112 px"):
+   the actions give way first (the command search folds to its icon, below). The cap keeps a
+   window narrower than the medium class from pushing the actions out of the bar. */
 .tabsRegion {
+  --tab-min: 112px;
+  --tab-max: 220px;
   display: flex;
   align-items: center;
   gap: var(--space-1);
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: min(calc(var(--tab-min) + 4px + var(--space-1) + var(--bar-button)), 40%);
+}
+
+/* 01-frame F4 §2: coarse tabs are 128–240 px wide. */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .tabsRegion {
+    --tab-min: 128px;
+    --tab-max: 240px;
+  }
 }
 
 .tablist {
   display: flex;
   align-items: center;
   gap: 2px;
-  min-width: 0;
+  /* Never narrower than one tab (plus the focus ring's room): it scrolls instead. */
+  min-width: min(calc(var(--tab-min) + 4px), 100%);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+  /* A revealed tab clears the faded edges below. */
+  scroll-padding-inline: 24px;
   /* Room for the focus ring, which is drawn outside the tab. */
   padding: 4px 4px 4px 0;
   margin: -4px 0;
@@ -45,6 +62,26 @@
   display: none;
 }
 
+/* Tabs beyond an edge (use-tablist-edges.ts): the edge fades over 24 px, so a cut tab reads
+   as "more this way", never as a bare dot or half a glyph (XD-3). */
+.tablist[data-more-start] {
+  mask-image: linear-gradient(to right, transparent, #000 24px);
+}
+
+.tablist[data-more-end] {
+  mask-image: linear-gradient(to left, transparent, #000 24px);
+}
+
+.tablist[data-more-start][data-more-end] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+}
+
 /* A tab is as wide as its title up to 220px, and truncates only when the strip runs out of
    room (review F25): the basis is its content, so the strip's width is the titles' width. */
 .tabWrap {
@@ -52,8 +89,8 @@
   display: flex;
   align-items: center;
   flex: 0 1 auto;
-  min-width: 112px;
-  max-width: 220px;
+  min-width: var(--tab-min);
+  max-width: var(--tab-max);
   /* One control height in the title bar (quality-bar Q-9): --control-h, --radius-control. The
      selected tab's edge is an inset ring, so the tab inside keeps the full height. */
   height: var(--control-h);
@@ -166,6 +203,12 @@
   .close {
     opacity: 1;
   }
+
+  /* While the tabs overflow, a × stays on the selected tab only: at a faded edge it would stand
+     alone and close a document whose name is out of sight (XD-3). */
+  .tablist:is([data-more-start], [data-more-end]) .tabWrap:not([data-selected]) .close {
+    visibility: hidden;
+  }
 }
 
 .actions {
@@ -215,13 +258,72 @@
   white-space: nowrap;
 }
 
-@media (max-width: 760px) {
-  .searchLabel {
-    display: none;
+/* Below 1280 px the command search is its ⌕ alone (01-frame F2 §2's priority: "Find field →
+   ⌕ icon"), a bar button like its neighbours: a --bar-button circle with a 20 px glyph. Its
+   label stays as the accessible name, visually hidden; the keycaps go. */
+@media (max-width: 1279.98px) {
+  .search {
+    position: relative;
+    justify-content: center;
+    flex: none;
+    width: var(--bar-button);
+    height: var(--bar-button);
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-secondary);
   }
 
-  .search {
-    width: auto;
+  .search > svg {
+    width: var(--icon-md);
+    height: var(--icon-md);
+    stroke-width: 1.5;
+  }
+
+  @media (hover: hover) {
+    .search:hover {
+      border-color: transparent;
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+  }
+
+  .searchLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .search > :not(svg, .searchLabel) {
+    display: none;
+  }
+}
+
+/* Narrower than 800 px (a tablet upright: 768, 744) the Document menu's trigger is its glyph
+   alone, a --control-h circle with a 20 px glyph, so ↶ ↷ Save and the tabs still fit (XD-3).
+   Its label stays as the accessible name, visually hidden. The trigger leaves the strip in D2
+   (01-frame F2 §9); until then this is its narrow form. */
+@media (max-width: 799.98px) {
+  .actions [data-testid='document-menu'] {
+    width: var(--control-h);
+    padding: 0;
+  }
+
+  .actions [data-testid='document-menu'] svg {
+    width: var(--icon-md);
+    height: var(--icon-md);
+  }
+
+  .actions [data-testid='document-menu'] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 
