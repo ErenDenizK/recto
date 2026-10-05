@@ -407,6 +407,115 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expect(cells).toHaveCount(2);
   });
 
+  test('toasts never meet while they enter, replace one another and leave', async ({ page }) => {
+    // XD-3: a toast entering under another touched it within 30 ms, a replaced toast slid
+    // over the newcomer, and a fading one left an empty dark pill; a neighbour leaving tweened
+    // the other's width. Every frame of the sequence below is checked in the page.
+    test.setTimeout(60_000);
+    await openDocument(page);
+    await page.evaluate(() => {
+      const seen = { problems: [] as string[], most: 0, frames: 0, on: true };
+      (window as unknown as { __stack: typeof seen }).__stack = seen;
+      const widths = new Map<string, { width: number; text: string }>();
+      const note = (problem: string) => {
+        if (seen.problems.length < 12) seen.problems.push(problem);
+      };
+      const frame = () => {
+        if (!seen.on) return;
+        seen.frames += 1;
+        const toasts = [
+          ...document.querySelectorAll<HTMLElement>('[data-region="toasts"] [data-toast-id]'),
+        ];
+        const painted = toasts.filter(
+          (el) =>
+            Number(getComputedStyle(el).opacity) > 0.01 &&
+            getComputedStyle(el).visibility !== 'hidden',
+        );
+        seen.most = Math.max(seen.most, painted.length);
+        for (const [i, a] of painted.entries()) {
+          const style = getComputedStyle(a);
+          const name = a.getAttribute('aria-label') ?? '';
+          // No glass at a few per cent: it draws darker than the page, an empty pill.
+          if (Number(style.opacity) < 0.049 && style.backdropFilter !== 'none') {
+            note(`"${name}" fades out with its backdrop filter`);
+          }
+          const p = a.getBoundingClientRect();
+          for (const b of painted.slice(i + 1)) {
+            const q = b.getBoundingClientRect();
+            const v = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top);
+            const h = Math.min(p.right, q.right) - Math.max(p.left, q.left);
+            if (v > 0.5 && h > 0.5) {
+              note(`"${name}" meets "${b.getAttribute('aria-label')}" by ${v.toFixed(1)} px`);
+            }
+          }
+        }
+        // Q-10: a width changes only with the toast's own text, and then it snaps.
+        for (const el of toasts) {
+          const id = el.dataset.toastId ?? '';
+          const width = el.getBoundingClientRect().width;
+          const text = el.getAttribute('aria-label') ?? '';
+          const was = widths.get(id);
+          if (was?.text === text && was && Math.abs(was.width - width) > 0.5) {
+            note(`"${text}" changed width ${was.width.toFixed(1)} → ${width.toFixed(1)}`);
+          }
+          widths.set(id, { width, text });
+        }
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+    const region = page.getByRole('region', { name: 'Notifications' });
+    const openDamaged = async () => {
+      const chooser = page.waitForEvent('filechooser');
+      await page
+        .getByRole('button', { name: /^Open files/ })
+        .first()
+        .click();
+      await (await chooser).setFiles({
+        name: 'scan.pdf',
+        mimeType: 'application/pdf',
+        buffer: Buffer.from(`%PDF-1.7\n${'damaged '.repeat(64)}\n%%EOF\n`),
+      });
+    };
+    // A failure toast, then two Undo toasts entering under it (enter, with the stack re-flowing).
+    await openDamaged();
+    await expect(region.getByRole('group')).toHaveCount(1);
+    await page.keyboard.press('3');
+    const cells = page.locator('[role="gridcell"][data-page-id]');
+    await expect(cells).toHaveCount(3);
+    await cells.nth(1).click();
+    await page.mouse.move(2, 450);
+    await page.keyboard.press('Delete');
+    await expect(region.getByRole('group')).toHaveCount(2);
+    await page.waitForTimeout(150);
+    await cells.nth(0).click();
+    await page.mouse.move(2, 450);
+    await page.keyboard.press('Delete');
+    await expect(region.getByRole('group')).toHaveCount(3);
+    await settleAnimations(page);
+    // A fourth evicts the oldest timed toast while it comes in (replace).
+    await openDamaged();
+    await expect(region.getByRole('group', { name: /^Deleted page 1/ })).toBeVisible();
+    await settleAnimations(page);
+    await expect(region.getByRole('group')).toHaveCount(3);
+    // The middle one leaves; the one above closes up after it (leave).
+    await region
+      .getByRole('group', { name: /^Deleted page 1/ })
+      .getByRole('button', { name: 'Dismiss' })
+      .click();
+    await expect(region.getByRole('group')).toHaveCount(2);
+    await settleAnimations(page);
+    const seen = await page.evaluate(() => {
+      const stack = (window as unknown as { __stack: { on: boolean } }).__stack;
+      stack.on = false;
+      return stack as unknown as { problems: string[]; most: number; frames: number };
+    });
+    expect(seen.frames, 'frames watched').toBeGreaterThan(30);
+    expect(seen.most, 'toasts on screen together').toBeGreaterThanOrEqual(3);
+    expect(seen.problems).toEqual([]);
+    await expectSettledClean(page, 'the toast stack');
+  });
+
   test('the History scrubber closed while it opens', async ({ page }) => {
     await openDocument(page);
     await page.keyboard.press('r');
