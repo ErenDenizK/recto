@@ -33,6 +33,9 @@ const SHOT = { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.01 } 
 
 test.beforeEach(({ browserName }, info) => {
   test.skip(browserName !== 'chromium' || info.project.name !== 'chromium', 'Chromium baselines');
+  // The baselines are rendered by the lead's Chromium build; CI's container ships another, whose
+  // text rasterisation differs beyond the tolerance. CI runs them only when asked (VISUAL=1).
+  test.skip(Boolean(process.env.CI) && !process.env.VISUAL, 'baselines from the lead’s Chromium');
 });
 
 /** Forces each `[data-force]` element's pseudo-class through CDP. */
