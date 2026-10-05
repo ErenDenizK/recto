@@ -73,6 +73,8 @@ export interface WriterDeps {
 export interface WriterStatus {
   readonly unsaved: boolean;
   readonly savedAt: number | null;
+  /** When the last change to keep was noted (`noteChange`), or null before any. */
+  readonly changedAt: number | null;
   readonly writeFailed: boolean;
   readonly persisted: boolean | null;
   readonly items: readonly KeptItem[];
@@ -119,6 +121,7 @@ export class SnapshotWriter {
   /** Queued or running tasks (writes, clears, kept records). */
   private running = 0;
   private savedAt: number | null = null;
+  private changedAt: number | null = null;
   private writeFailed = false;
   private persisted: boolean | null = null;
   private persistAsked = false;
@@ -144,6 +147,7 @@ export class SnapshotWriter {
     if (this.stopped) return;
     const wasIdle = this.idle;
     this.dirty = true;
+    this.changedAt = this.now();
     if (kind === 'content' && !this.unsaved) this.unsaved = true;
     if (wasIdle || kind === 'content') this.report();
     const now = this.now();
@@ -308,6 +312,7 @@ export class SnapshotWriter {
     this.deps.onStatus?.({
       unsaved: this.unsaved,
       savedAt: this.savedAt,
+      changedAt: this.changedAt,
       writeFailed: this.writeFailed,
       persisted: this.persisted,
       items: this.items,
