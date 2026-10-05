@@ -10,7 +10,9 @@
  *
  * Hidden, both move out by `transform` and fade (`opacity`) on the existing motion tokens,
  * and are `inert` from the first frame, so focus never lands in a hidden bar. Reduced motion
- * makes the move instant (the tokens fall to 0 ms).
+ * makes the move instant (the tokens fall to 0 ms). Both also step away while a sheet is open
+ * (`topBarAway`, `capsuleAway`): the sheet is the place then, and nothing of the chrome shows
+ * through it.
  */
 import { Menu } from '@base-ui/react/menu';
 import type { VirtualDocument } from '@pdf-editor/document-model';
@@ -42,11 +44,13 @@ import { PRODUCT_NAME } from '../about/build-info';
 import { AppGlyph } from '../AppGlyph';
 import { canShareFiles, prepareCopy, shareOrDownload } from './compact-actions';
 import {
+  capsuleAway,
   closeFind,
   openFind,
   openSheet,
   setMenuOpen,
   showLibrary,
+  topBarAway,
   useCompactStore,
 } from './compact-store';
 import styles from './CompactChrome.module.css';
@@ -61,7 +65,7 @@ function focusPages(): void {
 }
 
 export function CompactTopBar({ doc }: { readonly doc: VirtualDocument }) {
-  const hidden = useCompactStore((s) => s.chromeHidden);
+  const hidden = useCompactStore(topBarAway);
   const findOpen = useCompactStore((s) => s.findOpen);
   return (
     <header
@@ -243,11 +247,9 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
 }
 
 export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
-  const hidden = useCompactStore((s) => s.chromeHidden);
-  const findOpen = useCompactStore((s) => s.findOpen);
+  const away = useCompactStore(capsuleAway);
   const current = useViewStore((s) => s.currentPage);
   const total = doc.pages.length;
-  const away = hidden || findOpen;
   // Wide enough for the largest number, so scrolling never changes the capsule's width.
   const digits = String(total).length;
   return (
