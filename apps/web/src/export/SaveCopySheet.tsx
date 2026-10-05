@@ -35,7 +35,7 @@ import { toPolicy, validatePasswordForm } from '../document/password-form';
 import { useFormStore } from '../forms/form-store';
 import { getLocale, m } from '../i18n';
 import { openOcrDialog } from '../ocr/ocr-store';
-import { applyMarks } from '../files/save';
+import { applyMarks, countMarks, pendingMarksOf } from '../files/save';
 import { displaySize } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
 import { activeSignDraft, openSignDialog, useSignStore } from '../signatures/sign-store';
@@ -320,8 +320,14 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     setAsking(false);
     const before =
       pending && marksAnswer === 'apply'
-        ? async () =>
-            (await applyMarks(pending.marks)) === undefined ? m.save_reason_marks() : null
+        ? async () => {
+            // Read again at the work: the marks are what the document holds now.
+            const now = useWorkspaceStore.getState().workspace;
+            const shown = now.documents[documentId];
+            const fresh = shown ? await pendingMarksOf(now, shown) : pending.marks;
+            if (countMarks(fresh) === 0) return null;
+            return (await applyMarks(fresh)) === undefined ? m.save_reason_marks() : null;
+          }
         : undefined;
     if (kind === 'share' && before) {
       // The prepared copy still has the marks: apply them, and the copy is prepared again.

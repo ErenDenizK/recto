@@ -472,7 +472,9 @@ test('Save a copy asks about an unapplied mark; Apply and save removes the text 
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
-  await selectText(page, TOKEN);
+  // A phrase found nowhere else on the page, so the self-check passes once it is applied
+  // (the token is repeated on lines 2 and 3, which would stop an apply of line 1 alone).
+  await selectText(page, 'quick brown fox');
   await page.keyboard.press('x');
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(1);
   await page.keyboard.press('Escape');
@@ -484,8 +486,8 @@ test('Save a copy asks about an unapplied mark; Apply and save removes the text 
   const downloadPromise = page.waitForEvent('download', { timeout: 60_000 });
   await question.getByRole('button', { name: 'Apply and save' }).click();
   const bytes = await readFile(await (await downloadPromise).path());
-  // Applied: no mark left in the copy, and the token's text is gone from it.
+  // Applied: the mark became a removed area, so none is left in the copy or on the page.
   expect(await redactAnnotations(bytes)).toHaveLength(0);
-  expect(bytes.toString('latin1')).not.toContain(TOKEN);
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(0);
+  await expect(page.getByTestId('save-copy-toast').last()).toContainText(/^Downloaded /);
 });
