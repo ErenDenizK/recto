@@ -14,6 +14,10 @@
  *   between device pixels: the position must round, Q-2; at 2× a half CSS pixel is whole, as
  *   Floating UI rounds it), and the element has no `will-change`.
  * - **Q-11, the budget.** At most four visible surfaces at rest (six during a transition).
+ * - **Q-8, text set once and sharp.** Every visible piece of text on a glass surface (an element
+ *   with a text node of its own, or a text field) is at least 11 px, weighs 400, 500 or 600,
+ *   and at rest sits under no scale between it and the glass (the glass and what is above it
+ *   are Q-2's). Visually hidden text (a 1 px box) and SVG drawings are not text on glass.
  * - **A-2, coverage.** The surface's own σ (the `blur()` of its filter) meets
  *   `erf(h / 2√2σ) · erf(w / 2√2σ) ≥ 0.985` at its rendered size, the same rule
  *   `styles/tokens.test.ts` asserts for the coverage registry, checked here on what renders.
@@ -30,8 +34,11 @@ export const MIN_GLASS_SIDE = 32;
 /** Q-11: visible backdrop-filter surfaces at rest, and during a transition. */
 export const MAX_AT_REST = 4;
 export const MAX_IN_TRANSITION = 6;
+/** Q-8: the smallest text on glass, CSS px, and the weights of the type scale. */
+export const MIN_TEXT_ON_GLASS = 11;
+export const TEXT_WEIGHTS: readonly number[] = [400, 500, 600];
 
-export type GlassRule = 'Q-2' | 'Q-3' | 'Q-4' | 'Q-5' | 'Q-11' | 'A-2';
+export type GlassRule = 'Q-2' | 'Q-3' | 'Q-4' | 'Q-5' | 'Q-8' | 'Q-11' | 'A-2';
 
 export interface GlassSurface {
   /** `tag.class.class` (CSS-module hashes kept), with `::before` / `::after` when it is one. */
@@ -57,6 +64,8 @@ export interface GlassWalk {
   /** How many surfaces are visible (Q-11 counts these). */
   readonly visible: number;
   readonly violations: readonly GlassViolation[];
+  /** How many pieces of text on visible glass Q-8 read. */
+  readonly texts: number;
 }
 
 export interface WalkOptions {
@@ -85,7 +94,7 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
   const atRest = options.atRest ?? true;
   if (atRest) await settleAnimations(page, options.settleTimeout);
   return page.evaluate(
-    ({ atRest, minCoverage, minSide, maxAtRest, maxInTransition }) => {
+    ({ atRest, minCoverage, minSide, maxAtRest, maxInTransition, minText, weights }) => {
       /** Abramowitz and Stegun 7.1.26 (|error| < 1.5e-7), enough for a 0.985 floor. */
       const erf = (x: number): number => {
         const sign = x < 0 ? -1 : 1;
@@ -245,6 +254,77 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
         };
       });
 
+      // Q-8: the text on each visible glass surface.
+      const TEXT_FIELD =
+        'input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="color"]), textarea, select';
+      /** A scale (or anything but a 2D translation) in a computed transform. */
+      const scaled = (transform: string): boolean => {
+        if (transform === 'none' || transform === '') return false;
+        const m = /^matrix\(([^)]+)\)$/.exec(transform);
+        if (!m?.[1]) return true;
+        const [a, b, c, d] = m[1].split(',').map((v) => Number.parseFloat(v));
+        return a !== 1 || b !== 0 || c !== 0 || d !== 1;
+      };
+      /** Visually hidden: in, or itself, a clipped box of 1 px or less (`.visually-hidden`). */
+      const hidden = (node: Element, glass: Element): boolean => {
+        for (let a: Element | null = node; a && a !== glass; a = a.parentElement) {
+          const box = a.getBoundingClientRect();
+          if (box.width > 1 && box.height > 1) continue;
+          if (a === node || getComputedStyle(a).overflow !== 'visible') return true;
+        }
+        return false;
+      };
+      let texts = 0;
+      found.forEach(({ el, pseudo }, i) => {
+        if (!surfaces[i]?.visible) return;
+        const glass = surfaces[i].name;
+        for (const node of [el, ...el.querySelectorAll('*')]) {
+          if (node instanceof SVGElement) continue;
+          const own = [...node.childNodes].some(
+            (child) => child.nodeType === Node.TEXT_NODE && child.textContent?.trim(),
+          );
+          if (!own && !node.matches(TEXT_FIELD)) continue;
+          if (!node.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+          if (hidden(node, el)) continue;
+          texts += 1;
+          const style = getComputedStyle(node);
+          const text = (
+            node.textContent?.trim() ||
+            (node as HTMLInputElement).value ||
+            node.tagName
+          )
+            .replace(/\s+/g, ' ')
+            .slice(0, 32);
+          const size = Number.parseFloat(style.fontSize);
+          if (size < minText - 0.01) {
+            violations.push({ rule: 'Q-8', surface: glass, detail: `"${text}" at ${size} px` });
+          }
+          const weight = Number.parseFloat(style.fontWeight);
+          if (!weights.includes(weight)) {
+            violations.push({
+              rule: 'Q-8',
+              surface: glass,
+              detail: `"${text}" at weight ${weight}`,
+            });
+          }
+          if (atRest) {
+            // Between the text and the glass (a pseudo-element's glass is its host).
+            const stop = pseudo ? el.parentElement : el;
+            for (let a: Element | null = node; a && a !== stop; a = a.parentElement) {
+              const transform = getComputedStyle(a).transform;
+              if (a !== el && scaled(transform)) {
+                violations.push({
+                  rule: 'Q-8',
+                  surface: glass,
+                  detail: `"${text}" rests under ${describe(a)} with transform: ${transform}`,
+                });
+                break;
+              }
+            }
+          }
+        }
+      });
+
       const visibleCount = surfaces.filter((s) => s.visible).length;
       const max = atRest ? maxAtRest : maxInTransition;
       if (visibleCount > max) {
@@ -257,7 +337,11 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
             .join(', ')}`,
         });
       }
-      return { surfaces, visible: visibleCount, violations };
+      // One line per distinct finding (a table repeats its header's fault per group).
+      const distinct = [
+        ...new Map(violations.map((v) => [`${v.rule} ${v.surface} ${v.detail}`, v])).values(),
+      ];
+      return { surfaces, visible: visibleCount, violations: distinct, texts };
     },
     {
       atRest,
@@ -265,6 +349,8 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
       minSide: MIN_GLASS_SIDE,
       maxAtRest: MAX_AT_REST,
       maxInTransition: MAX_IN_TRANSITION,
+      minText: MIN_TEXT_ON_GLASS,
+      weights: TEXT_WEIGHTS,
     },
   ) as Promise<GlassWalk>;
 }
