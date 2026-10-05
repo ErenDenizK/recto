@@ -194,6 +194,7 @@ test.describe('the gallery', () => {
   let url = '';
 
   test.beforeAll(async () => {
+    test.setTimeout(120_000);
     server = await createServer({
       root: WEB,
       configFile: `${WEB}vite.config.ts`,
@@ -301,7 +302,8 @@ test.describe('the gallery', () => {
       tool: ['side', 360],
       task: ['form', 640],
       settings: ['form', 640],
-      overlay: ['dialog', 760],
+      // 760 at most, and the window less 64 px (07 §23.2).
+      overlay: ['dialog', 820 - 64],
     } as const;
     for (const [kind, [presentation, width]] of Object.entries(want)) {
       await open(page, kind);

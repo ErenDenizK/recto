@@ -8,8 +8,8 @@
  * edition at 820 × 1180) and, for the compact edition, on `phone`. States: Home, Read, the
  * text selection bar, Edit with each of the bar's five groups, an options tier, a tool menu,
  * the Document menu, the page context menu, Arrange with its contextual bar, the toast stack
- * (an Undo toast and a failure toast, hovered so ✕ shows), an annotation's bar, and a dialog
- * with its footer.
+ * (an Undo toast and a failure toast, hovered so ✕ shows), an annotation's bar, a dialog with its
+ * footer, and the sheets of D0-4 (the shortcuts overlay's header, the password prompt's footer).
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -162,6 +162,13 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
+    // The shortcuts overlay, a Sheet (D0-4): its header bar.
+    await page.locator('body').press('?');
+    await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+    await run.audit('the shortcuts overlay');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
     // Arrange and its contextual bar.
     await page.keyboard.press('3');
     await expect(page.getByTestId('light-table')).toBeVisible();
@@ -208,6 +215,20 @@ test.describe('the full edition', () => {
         `nothing is pending as "${kind}" any more: take it off PENDING`,
       ).toBe(true);
     }
+  });
+
+  test('the password prompt, a Sheet: its footer', async ({ page }) => {
+    const run = collector(page);
+    await page.goto('./?lang=en');
+    const chooser = page.waitForEvent('filechooser');
+    await page
+      .getByRole('button', { name: /^Open files/ })
+      .first()
+      .click();
+    await (await chooser).setFiles(fixturePath('encrypted-aes-128.pdf'));
+    await expect(page.getByRole('alertdialog', { name: 'Password required' })).toBeVisible();
+    await run.audit('the password prompt');
+    run.report();
   });
 
   test('an annotation’s bar', async ({ page }) => {
