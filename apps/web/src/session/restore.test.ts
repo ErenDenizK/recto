@@ -10,12 +10,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import outlineUrl from '../../../../test/fixtures/outline-named-dests.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
-import { fixtureFile } from '../../test/store-harness';
+import { fixtureFile, pngFile } from '../../test/store-harness';
 import { getEngineService } from '../engine/engine-service';
 import { useRecentsStore } from '../files/recents';
+import { openPdf } from '../shell/compact/compact-actions';
+import { resetCompactStore } from '../shell/compact/compact-store';
+import { openImagesAsDocument } from '../stage/section-operations';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
-import { parseSessionManifest, type SessionManifestV1 } from './format';
+import {
+  type KeptRecordV1,
+  parseKeptRecord,
+  parseSessionManifest,
+  type SessionManifestV1,
+} from './format';
 import {
   claimTabLock,
   keptRecordsOf,
@@ -442,5 +450,56 @@ describe('which tab restores which session', () => {
     await reloaded.release();
     await duplicate.release();
     sessionStorage.removeItem(TAB_ID_KEY);
+  });
+});
+
+describe('the compact edition’s one document at a time', { timeout: 40_000 }, () => {
+  beforeEach(() => {
+    resetWorkspace();
+    resetSessionStore();
+    setSessionEnabled(true);
+  });
+  afterEach(() => {
+    setSessionEnabled(false);
+    resetWorkspace();
+  });
+
+  async function kept(
+    storage: ReturnType<typeof memorySnapshotStorage>,
+    id: DocumentId,
+  ): Promise<KeptRecordV1 | undefined> {
+    const file = storage.files.get(`kept/kept-${id}.json`);
+    return file === undefined ? undefined : parseKeptRecord(await file.text());
+  }
+
+  it('a document replaced by the next open is kept with its blobs, even one just opened', async () => {
+    const storage = memorySnapshotStorage();
+    const stop = startSession({ edition: 'compact', storage, tabId: 'tab-compact' });
+    try {
+      await vi.waitFor(() => expect(document.documentElement.dataset.session).toBe('ready'), {
+        timeout: 15_000,
+      });
+      // An image document (as a document restored from the full edition may hold), stored.
+      const image = (await openImagesAsDocument([await pngFile('photo.png')])) as DocumentId;
+      await flushSession();
+      expect(await openPdf(await fixtureFile(simpleUrl, 'simple-text.pdf'))).toBe(true);
+      const simple = model().workspace.activeDocument as DocumentId;
+      // Opened a moment ago, not stored yet: the next open replaces it at once.
+      expect(await openPdf(await fixtureFile(outlineUrl, 'outline.pdf'))).toBe(true);
+      await flushSession();
+      const imageRecord = await kept(storage, image);
+      expect(imageRecord?.blobs.map((b) => b.kind)).toEqual(['image']);
+      for (const blob of imageRecord?.blobs ?? []) {
+        expect(storage.files.has(`blobs/${blob.id}`)).toBe(true);
+      }
+      const simpleRecord = await kept(storage, simple);
+      expect(simpleRecord?.sources.map((s) => s.name)).toEqual(['simple-text.pdf']);
+      for (const source of simpleRecord?.sources ?? []) {
+        expect(storage.files.has(`sources/${source.id}.pdf`)).toBe(true);
+      }
+    } finally {
+      stop();
+      resetCompactStore();
+    }
   });
 });
