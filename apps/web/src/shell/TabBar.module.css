@@ -60,6 +60,26 @@
   display: none;
 }
 
+/* Tabs beyond an edge (use-tablist-edges.ts): the edge fades over 24 px, so a cut tab reads
+   as "more this way", never as a bare dot or half a glyph (XD-3). */
+.tablist[data-more-start] {
+  mask-image: linear-gradient(to right, transparent, #000 24px);
+}
+
+.tablist[data-more-end] {
+  mask-image: linear-gradient(to left, transparent, #000 24px);
+}
+
+.tablist[data-more-start][data-more-end] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+}
+
 /* A tab is as wide as its title up to 220px, and truncates only when the strip runs out of
    room (review F25): the basis is its content, so the strip's width is the titles' width. */
 .tabWrap {
