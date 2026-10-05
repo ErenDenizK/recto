@@ -37,7 +37,7 @@ async function openTwo() {
   const ws = useWorkspaceStore.getState().workspace;
   const [simple, rotated] = ws.documentOrder;
   useUiStore.getState().pinToArrange(ws.documentOrder);
-  useUiStore.getState().setViewMode('arrange');
+  useUiStore.getState().showSurface('grid');
   const grids = await screen.findAllByRole('grid');
   expect(grids).toHaveLength(2);
   return { simple: simple!, rotated: rotated! };
@@ -54,7 +54,7 @@ describe('light table', () => {
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
     useSelectionStore.getState().setClipboard(null);
     useUiStore.setState({
-      viewMode: 'read',
+      docUi: {},
       arrangePinned: [],
       arrangeCollapsed: [],
       paletteOpen: false,

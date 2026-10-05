@@ -36,9 +36,7 @@ describe('Home chrome', () => {
     resetWorkspace();
     useUiStore.setState({
       destination: 'document',
-      viewMode: 'read',
-      documentMode: {},
-      lastView: {},
+      docUi: {},
       homeSelection: [],
       homeAnchor: null,
       leftPanelOpen: true,
@@ -100,7 +98,7 @@ describe('Home chrome', () => {
     await waitFor(() => expect(screen.getByRole('tabpanel', { name: /Files/ })).toBeVisible());
 
     // Back in the document, the document's navigator and status return.
-    useUiStore.getState().setViewMode('read');
+    useUiStore.getState().showSurface('page');
     await waitFor(() => expect(railTabs()).toEqual(['pages', 'find', 'review', 'files']));
     expect(screen.getByTestId('status-pages').textContent).toMatch(/^Page 1 of /);
   });

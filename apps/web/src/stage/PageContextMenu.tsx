@@ -34,7 +34,7 @@ import { activateTool } from '../annotations/commands';
 import { penSession, pointerRole } from '../annotations/pen/ink-input';
 import { toolDefinition } from '../annotations/tools';
 import { commandRegistry } from '../commands/registry';
-import { showDocumentMode } from '../home/home-actions';
+import { showMarkup } from '../home/home-actions';
 import { currentPlatform, type ParsedShortcut } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { attachLongPress } from '../motion/gesture';
@@ -342,7 +342,7 @@ export function PageContextMenu() {
                       icon={<Lock aria-hidden="true" className={styles.icon} />}
                       shortcut={commandRegistry.get('mode.edit')?.shortcuts[0]}
                       quiet
-                      onClick={() => showDocumentMode('edit')}
+                      onClick={() => showMarkup(true)}
                     />
                     <Menu.Separator className={menuStyles.separator} />
                   </>

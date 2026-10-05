@@ -74,7 +74,7 @@ export async function revealStep(
   const target = revealTarget(meta, workspace);
   if (target === undefined) return;
   const ui = useUiStore.getState();
-  if (ui.destination !== 'document') return;
+  if (ui.destination === 'home') return;
   if (isPageView(ui)) {
     const view = useViewStore.getState();
     if (distanceFromView(target.index, view.visibleRange) > 0) {

@@ -49,7 +49,7 @@ import {
 
 const ui = () => useUiStore.getState();
 const model = () => useWorkspaceStore.getState();
-const inArrange = () => stageView(ui()) === 'arrange';
+const inArrange = () => stageView(ui()) === 'grid';
 const hasTargets = () => targetPages().length > 0;
 const hasClipboard = () => (useSelectionStore.getState().clipboard?.pageIds.length ?? 0) > 0;
 /** The section a section command acts on: the invoking section, else the active tab. */
@@ -296,7 +296,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       run: () => {
         const ws = model().workspace;
         ui().pinToArrange(ws.documentOrder);
-        ui().setViewMode('arrange');
+        ui().showSurface('grid');
         announce(m.announce_showing_all({ count: ws.documentOrder.length }));
       },
     }),

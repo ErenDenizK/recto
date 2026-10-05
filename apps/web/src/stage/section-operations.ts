@@ -38,7 +38,7 @@ import {
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
+import { stageView, useUiStore } from '../state/ui-store';
 import {
   pagesPhrase,
   type ProtectionLease,
@@ -264,7 +264,7 @@ export function renameDocumentTo(
 /** Starts renaming in place: in the section header in Arrange mode, else in the tab. */
 export function startRename(documentId: DocumentId, surface?: 'tab' | 'section'): void {
   const where =
-    surface ?? (ui().viewMode === 'arrange' && shownInArrangeNow(documentId) ? 'section' : 'tab');
+    surface ?? (stageView(ui()) === 'grid' && shownInArrangeNow(documentId) ? 'section' : 'tab');
   ui().setRenaming({ documentId, surface: where });
 }
 

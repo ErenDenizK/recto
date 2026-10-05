@@ -358,8 +358,11 @@ describe('destination, surface and Markup (redesign spec §7, flows §2.4)', () 
   const a = 'doc-a' as DocumentId;
   const b = 'doc-b' as DocumentId;
   const workspace = useWorkspaceStore.getState().workspace;
+  // The store starts with no document, so `workspace` has no active one.
   const activate = (id: DocumentId | undefined) =>
-    useWorkspaceStore.setState({ workspace: { ...workspace, activeDocument: id } });
+    useWorkspaceStore.setState({
+      workspace: id === undefined ? workspace : { ...workspace, activeDocument: id },
+    });
   afterEach(() => {
     useWorkspaceStore.setState({ workspace });
     useUiStore.setState({ destination: 'document', docUi: {} });
