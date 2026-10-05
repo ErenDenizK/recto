@@ -124,6 +124,13 @@ interface DirectoryHandleLike {
   getFileHandle(name: string, options?: { create?: boolean }): Promise<FileHandleLike>;
   removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>;
   values?(): AsyncIterableIterator<FileHandleLike | DirectoryHandleLike>;
+  entries?(): AsyncIterableIterator<[string, FileHandleLike | DirectoryHandleLike]>;
+}
+
+async function* mapEntries(
+  entries: AsyncIterableIterator<[string, FileHandleLike | DirectoryHandleLike]>,
+): AsyncGenerator<FileHandleLike | DirectoryHandleLike> {
+  for await (const [, handle] of entries) yield handle;
 }
 
 interface StorageManagerLike {
@@ -258,9 +265,16 @@ export function opfsSnapshotStorage(origin: DirectoryHandleLike): SnapshotStorag
         if (isNotFound(error)) return [];
         throw error;
       }
-      if (typeof dir.values !== 'function') return [];
+      // `values()` where the engine has it, else `entries()` (older WebKit names one only).
+      const handles =
+        typeof dir.values === 'function'
+          ? dir.values()
+          : typeof dir.entries === 'function'
+            ? mapEntries(dir.entries())
+            : undefined;
+      if (handles === undefined) return [];
       const out: StoredFileInfo[] = [];
-      for await (const entry of dir.values()) {
+      for await (const entry of handles) {
         if (entry.kind !== 'file') continue;
         try {
           const file = await entry.getFile();
@@ -287,8 +301,11 @@ export type SnapshotAvailability =
   | { readonly ok: true; readonly storage: SnapshotStorage }
   | {
       readonly ok: false;
-      /** `unsupported`: no OPFS; `refused`: OPFS exists but storage is refused (private window). */
-      readonly reason: 'unsupported' | 'refused';
+      /**
+       * `unsupported`: no OPFS; `refused`: OPFS exists but storage is refused (a private
+       * window); `timeout`: the probe got no answer in time (storage that hangs keeps nothing).
+       */
+      readonly reason: 'unsupported' | 'refused' | 'timeout';
     };
 
 /**
@@ -297,17 +314,34 @@ export type SnapshotAvailability =
  */
 export async function openSnapshotStorage(
   storageManager: StorageManagerLike | undefined = globalThis.navigator?.storage,
+  timeoutMs = PROBE_TIMEOUT_MS,
 ): Promise<SnapshotAvailability> {
   if (typeof storageManager?.getDirectory !== 'function') {
     return { ok: false, reason: 'unsupported' };
   }
+  const probe = (async (): Promise<SnapshotAvailability> => {
+    try {
+      const origin = await storageManager.getDirectory?.();
+      if (!origin) return { ok: false, reason: 'unsupported' };
+      const storage = opfsSnapshotStorage(origin);
+      await storage.write('sessions', 'probe', 'ok');
+      await storage.remove('sessions', 'probe');
+      return { ok: true, storage };
+    } catch (error) {
+      console.warn('Changes cannot be kept on this device', error);
+      return { ok: false, reason: 'refused' };
+    }
+  })();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<SnapshotAvailability>((resolve) => {
+    timer = setTimeout(() => resolve({ ok: false, reason: 'timeout' }), timeoutMs);
+  });
   try {
-    const origin = await storageManager.getDirectory();
-    const storage = opfsSnapshotStorage(origin);
-    await storage.write('sessions', 'probe', 'ok');
-    await storage.remove('sessions', 'probe');
-    return { ok: true, storage };
-  } catch {
-    return { ok: false, reason: 'refused' };
+    return await Promise.race([probe, late]);
+  } finally {
+    clearTimeout(timer);
   }
 }
+
+/** How long the launch waits for OPFS to answer its probe before keeping nothing. */
+export const PROBE_TIMEOUT_MS = 5000;

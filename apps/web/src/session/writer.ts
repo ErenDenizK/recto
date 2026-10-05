@@ -17,7 +17,9 @@
  *   written after it. The writer then holds the current state as saved: only a new change is
  *   kept again.
  *
- * `navigator.storage.persist()` is asked once, at the first snapshot (§2.4).
+ * `navigator.storage.persist()` is asked once, at the first snapshot with a change (§2.4: "at
+ * the first edit"), and never awaited: Firefox resolves it only when its permission prompt is
+ * answered.
  */
 import type { DocumentId, Workspace } from '@pdf-editor/document-model';
 
@@ -373,7 +375,9 @@ export class SnapshotWriter {
         await this.writeFiles(manifest.sources, manifest.blobs, state);
         await storage.write('sessions', recordFile(tabId), JSON.stringify(manifest));
         this.hasManifest = true;
-        await this.askPersistence();
+        // At the first edit (ADR-0032 §2.4), never awaited: Firefox answers persist() only
+        // once the person answers its permission prompt, which may be never.
+        if (manifest.documents.some((d) => d.changed)) this.askPersistence();
       }
       const keptChanged = await this.writeKept();
       this.savedAt = this.now();
@@ -403,14 +407,15 @@ export class SnapshotWriter {
     for (const file of [...this.stored]) if (!present.has(file)) this.stored.delete(file);
   }
 
-  private async askPersistence(): Promise<void> {
+  /** Asks for persistent storage once; the answer arrives whenever the browser gives it. */
+  private askPersistence(): void {
     if (this.persistAsked || !this.deps.persist) return;
     this.persistAsked = true;
-    try {
-      this.persisted = await this.deps.persist();
-    } catch {
-      this.persisted = false;
-    }
+    const answer = (persisted: boolean) => {
+      this.persisted = persisted;
+      this.report();
+    };
+    this.deps.persist().then(answer, () => answer(false));
   }
 
   /** Writes the pending kept records and deletes the records of reopened documents. */

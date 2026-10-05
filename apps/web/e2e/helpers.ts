@@ -113,32 +113,34 @@ export async function enterEdit(page: Page): Promise<void> {
 
 /**
  * Waits for the launch's session restore to finish (`data-session` on <html>, ADR-0032 §2.5):
- * `ready` once restored or with nothing to restore, `off` where storage is refused.
+ * `ready` once restored or with nothing to restore, `off` where storage is refused. A restore
+ * starts the engine and reopens the kept files, which takes seconds on a busy CI runner.
  */
 export async function sessionSettled(page: Page): Promise<void> {
   await expect(page.locator('html')).toHaveAttribute('data-session', /^(ready|off)$/, {
-    timeout: 20_000,
+    timeout: 30_000,
   });
 }
 
 /**
  * Waits until everything changed so far is on this device: a snapshot written after now
- * (`data-session-saved`) and nothing left to write (`data-session-state="saved"`).
+ * (`data-session-saved`) and nothing left to write (`data-session-state="saved"`). A failure
+ * names what the page says instead (`pending`, `failed`, `off (refused)`, …).
  */
 export async function waitForSnapshot(page: Page): Promise<void> {
   const since = await page.evaluate(() => Date.now());
   await expect
     .poll(
       () =>
-        page.evaluate(
-          (t) =>
-            Number(document.documentElement.dataset.sessionSaved ?? 0) >= t &&
-            document.documentElement.dataset.sessionState === 'saved',
-          since,
-        ),
-      { timeout: 10_000 },
+        page.evaluate((t) => {
+          const data = document.documentElement.dataset;
+          if (data.session === 'off') return `off (${data.sessionReason ?? '?'})`;
+          if (data.sessionState !== 'saved') return data.sessionState ?? 'no snapshot yet';
+          return Number(data.sessionSaved ?? 0) >= t ? 'saved' : 'older snapshot';
+        }, since),
+      { timeout: 10_000, message: 'the snapshot state on <html>' },
     )
-    .toBe(true);
+    .toBe('saved');
 }
 
 /**

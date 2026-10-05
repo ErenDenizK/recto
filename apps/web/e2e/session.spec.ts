@@ -40,10 +40,24 @@ test.beforeEach(async ({ page }) => {
   page.on('dialog', (dialog) => void dialog.accept());
 });
 
-async function launch(page: Page): Promise<void> {
+/**
+ * Opens the app and requires that changes can be kept. An engine whose test context refuses
+ * OPFS (an ephemeral store, like a private window) keeps nothing; the app must then say so,
+ * and the rest of the test cannot apply there. Chromium must always keep.
+ */
+async function launch(page: Page, browserName: string): Promise<void> {
   await page.goto('./?lang=en');
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await sessionSettled(page);
+  const html = page.locator('html');
+  if ((await html.getAttribute('data-session')) !== 'off') return;
+  const reason = (await html.getAttribute('data-session-reason')) ?? 'unknown';
+  expect(browserName, `OPFS ${reason}`).not.toBe('chromium');
+  await expect(page.getByTestId('session-notice')).toContainText(
+    'Changes are not kept in this window',
+  );
+  test.info().annotations.push({ type: 'storage', description: `OPFS ${reason} (${browserName})` });
+  test.skip(true, `${browserName} keeps nothing in this context (OPFS ${reason}); the app says so`);
 }
 
 async function reload(page: Page): Promise<void> {
@@ -71,8 +85,11 @@ async function clickPage(page: Page, x: number, y: number): Promise<void> {
   await page.mouse.up();
 }
 
-test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', async ({ page }) => {
-  await launch(page);
+test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', async ({
+  page,
+  browserName,
+}) => {
+  await launch(page, browserName);
   await openFixtures(page, ['simple-text.pdf']);
   // 22 rotations in Arrange, alternating pages so no two join into one step.
   await page.keyboard.press('3');
@@ -121,8 +138,9 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
 
 test('a stamp and an image signature survive a reload; Undo across them; export succeeds', async ({
   page,
+  browserName,
 }) => {
-  await launch(page);
+  await launch(page, browserName);
   await openFixtures(page, ['simple-text.pdf']);
   await enterEdit(page);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
@@ -202,8 +220,9 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
 
 test('a closed document reopens from Recents with its change and no file picker', async ({
   page,
+  browserName,
 }) => {
-  await launch(page);
+  await launch(page, browserName);
   await openFixtures(page, ['simple-text.pdf']);
   // A change: page 2 deleted in Arrange.
   await page.keyboard.press('3');
@@ -235,8 +254,11 @@ test('a closed document reopens from Recents with its change and no file picker'
   expect(picked).toBe(false);
 });
 
-test('Clear in the privacy popover deletes every snapshot, for good', async ({ page }) => {
-  await launch(page);
+test('Clear in the privacy popover deletes every snapshot, for good', async ({
+  page,
+  browserName,
+}) => {
+  await launch(page, browserName);
   await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');
@@ -270,8 +292,9 @@ test('Clear in the privacy popover deletes every snapshot, for good', async ({ p
 
 test('the compact edition restores a document edited in the full one and offers a copy', async ({
   page,
+  browserName,
 }) => {
-  await launch(page);
+  await launch(page, browserName);
   await openFixtures(page, ['simple-text.pdf']);
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');

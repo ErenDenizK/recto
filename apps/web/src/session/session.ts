@@ -16,9 +16,10 @@
  * 4. Installs the `beforeunload` rule: ask only while a change is not in the snapshot yet or
  *    storage is not persistent, and only when some document has changes.
  *
- * Tests read `data-session` on `<html>` (`restoring`, `ready`, `off`), `data-session-saved`
- * (the time of the last snapshot) and `data-session-state` (`saved` once nothing waits to be
- * written, else `pending`) rather than any hook in the production build.
+ * Tests read `data-session` on `<html>` (`restoring`, `ready`, `off` with `data-session-reason`
+ * `unsupported`, `refused` or `timeout`), `data-session-saved` (the time of the last snapshot)
+ * and `data-session-state` (`saved` once nothing waits to be written, `pending`, or `failed`
+ * after a write failed) rather than any hook in the production build.
  */
 import {
   closeDocument,
@@ -79,7 +80,10 @@ export function setSessionEnabled(value: boolean): void {
 /** Without storage, changes still matter for the `beforeunload` rule. */
 const offlineTracker = new ChangeTracker();
 
-function setDataset(name: 'session' | 'sessionSaved' | 'sessionState', value: string): void {
+function setDataset(
+  name: 'session' | 'sessionSaved' | 'sessionState' | 'sessionReason',
+  value: string,
+): void {
   if (typeof document === 'undefined') return;
   document.documentElement.dataset[name] = value;
 }
@@ -238,6 +242,7 @@ export function startSession(options: StartOptions): () => void {
     if (!available.ok) {
       useSessionStore.setState({ keeping: 'unavailable' });
       if (readJson(NOT_KEPT_DISMISSED_KEY) !== true) setSessionNotice({ kind: 'not-kept' });
+      setDataset('sessionReason', available.reason);
       setDataset('session', 'off');
       return;
     }
@@ -263,7 +268,10 @@ export function startSession(options: StartOptions): () => void {
           totalBytes: status.totalBytes,
         });
         if (status.savedAt !== null) setDataset('sessionSaved', String(status.savedAt));
-        setDataset('sessionState', status.idle ? 'saved' : 'pending');
+        setDataset(
+          'sessionState',
+          status.writeFailed ? 'failed' : status.idle ? 'saved' : 'pending',
+        );
       },
     });
     const ctl: Controller = { storage, writer, tracker, restored: [], freshAt: null };
@@ -279,8 +287,9 @@ export function startSession(options: StartOptions): () => void {
     if (stopped) return;
     useSessionStore.setState({ restoring: false });
     unwatch = watch(ctl);
-    await writer.refresh();
     setDataset('session', 'ready');
+    // Retention and the popover's list; queued behind the writes, never holding the launch.
+    void writer.refresh();
   })();
   return () => {
     stopped = true;
@@ -308,13 +317,13 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
       await setAside(storage, `${orphan.tabId}.json`).catch(() => undefined);
       continue;
     }
-    await writer.keep(records, () => storage.remove('sessions', `${orphan.tabId}.json`));
+    void writer.keep(records, () => storage.remove('sessions', `${orphan.tabId}.json`));
   }
   const manifest = plan.restore;
   // Restore only into an empty tab: a file opened during launch (a share target) wins.
   if (manifest === undefined || useWorkspaceStore.getState().workspace.documentOrder.length > 0) {
     if (manifest !== undefined) {
-      await writer.keep(keptRecordsOf(manifest, 'all', now), () =>
+      void writer.keep(keptRecordsOf(manifest, 'all', now), () =>
         storage.remove('sessions', `${manifest.tabId}.json`),
       );
     }
@@ -335,12 +344,16 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   ctl.restored = outcome.restored;
   if (compact && only !== undefined) {
     const others = manifest.documents.filter((d) => d.id !== only).map((d) => d.id);
-    if (others.length > 0) await writer.keep(keptRecordsOf(manifest, others, now));
+    if (others.length > 0) void writer.keep(keptRecordsOf(manifest, others, now));
   }
-  // This tab's manifest first; the old one goes only once it is written.
+  // This tab's manifest first; the old one goes only once it is written. Queued, not awaited:
+  // the launch never waits on a storage write.
   writer.noteChange('content');
-  await writer.flush();
-  if (manifest.tabId !== tabId) await storage.remove('sessions', `${manifest.tabId}.json`);
+  void writer.flush().then(async () => {
+    if (manifest.tabId !== tabId) {
+      await storage.remove('sessions', `${manifest.tabId}.json`).catch(() => undefined);
+    }
+  });
   if (outcome.restored.length > 0) {
     const first = ws.documents[outcome.restored[0] as DocumentId];
     const changed = outcome.restored.some((id) => tracker.changed(ws, id));
