@@ -35,7 +35,14 @@ import { canEditActive } from '../state/ui-store';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Segmented, SegmentedPanel } from '../ui/Segmented';
-import { Sheet, type SheetCloseReason, closeSheet, useSheetDraft, useSheetOpen } from '../ui/sheet';
+import {
+  closeSheet,
+  Sheet,
+  type SheetCloseReason,
+  useSheetDraft,
+  useSheetOpen,
+  useSheetStore,
+} from '../ui/sheet';
 import { TextField } from '../ui/TextField';
 import { toast } from '../ui/Toast';
 import { imageInk } from './image-ink';
@@ -127,10 +134,20 @@ export default function NewSignatureSheet() {
 
   const submit = async () => {
     if (!ink || busy) return;
+    // The opening this press belongs to: the store makes a new one each time the sheet opens.
+    const opening = useSheetStore.getState().open;
     setBusy(true);
     try {
       const saved = keeping && canKeep ? await saveSignature(ink, draft.name) : null;
       const stamp = saved ? await stampOfSignature(saved) : await renderInk(ink);
+      // Saving and rendering take a moment (longer on a slow device). If the sheet was closed
+      // meanwhile (Esc) and perhaps opened again, the press is over: what it kept stays kept,
+      // but it neither arms the stamp nor closes, resets or redirects a later opening.
+      const now = useSheetStore.getState().open;
+      if (now !== opening) {
+        if (now?.id !== NEW_SIGNATURE_SHEET_ID) resetDraft();
+        return;
+      }
       resetDraft();
       close('close');
       if (intent === 'use' && stamp && canEditActive()) armSignatureStamp(stamp);
