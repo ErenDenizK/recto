@@ -68,6 +68,23 @@ async function scrollPages(page: Page, dy: number): Promise<void> {
 }
 
 /** The centre of the reader's free area, in page coordinates. */
+/**
+ * Waits until the page's main thread has been idle twice. Playwright sends a tap's touches one
+ * after the other and each waits for the renderer to take it, so a long task between the two
+ * taps of a double tap (the 2× page paint) spreads them past the 300 ms double-tap window, which
+ * a finger's touches, timestamped when they happen, never are.
+ */
+async function idle(page: Page): Promise<void> {
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestIdleCallback(() => resolve(), { timeout: 3000 });
+        }),
+    );
+  }
+}
+
 async function readerCentre(page: Page): Promise<{ x: number; y: number }> {
   const box = await pages(page).boundingBox();
   if (!box) throw new Error('no reader');
@@ -179,6 +196,7 @@ test.describe('the compact edition', () => {
     const centre = await readerCentre(page);
     expect(await zoomOf(page)).toBe(1);
 
+    await idle(page);
     await page.touchscreen.tap(centre.x, centre.y);
     await page.touchscreen.tap(centre.x, centre.y);
     await expect.poll(() => zoomOf(page)).toBe(2);
@@ -190,6 +208,7 @@ test.describe('the compact edition', () => {
     // The chrome did not toggle on a double tap.
     await expectHidden(topBar(page), false);
     await page.waitForTimeout(400);
+    await idle(page);
     await page.touchscreen.tap(centre.x, centre.y);
     await page.touchscreen.tap(centre.x, centre.y);
     await expect.poll(() => zoomOf(page)).toBe(1);
