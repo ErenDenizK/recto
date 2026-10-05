@@ -262,7 +262,10 @@ test('Revert to the opened version is one step that Undo takes back', async ({ p
   await revertItem.click();
   const dialog = page.getByTestId('confirm-sheet');
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('Your 2 changes since opening go. Undo brings them back.');
+  // Two quick rotations of one page may join into one history step (coalescing).
+  await expect(dialog).toContainText(
+    /Your (1 change since opening goes\. Undo brings it|2 changes since opening go\. Undo brings them) back\./,
+  );
   await expect(dialog.getByRole('button', { name: 'Revert' })).toBeFocused();
   await shot(page, 'save-revert-dialog');
   await dialog.getByRole('button', { name: 'Revert' }).click();
