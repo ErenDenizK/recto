@@ -15,7 +15,7 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, useFileInputPicker, waitForSnapshot } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -439,5 +439,37 @@ test.describe('the compact edition', () => {
     // Kept for the session: a reload without the parameter stays full.
     await page.goto('./?lang=en');
     await expect(page.getByTestId('app-shell')).toBeVisible();
+  });
+
+  test('a toast sits 12 px above the capsule, and above the home indicator when it is away', async ({
+    page,
+  }) => {
+    // The restore notice is the compact edition's toast (D0-5): "Restored simple-text · Start
+    // fresh". `beforeunload` may ask while changes are kept (ADR-0032 §2.7).
+    page.on('dialog', (dialog) => void dialog.accept());
+    await openLibrary(page);
+    await openPdf(page, 'simple-text.pdf');
+    await waitForSnapshot(page);
+    await page.reload();
+    const toast = page.getByTestId('session-notice');
+    await expect(toast).toContainText('Restored simple-text');
+    await expect(capsule(page)).toBeVisible();
+    await page.waitForTimeout(600);
+    const t = await toast.boundingBox();
+    const c = await capsule(page).boundingBox();
+    if (!t || !c) throw new Error('not laid out');
+    expect(Math.round(c.y - (t.y + t.height))).toBe(12);
+    expect(t.x).toBeGreaterThanOrEqual(12);
+    expect(t.x + t.width).toBeLessThanOrEqual((page.viewportSize()?.width ?? 0) - 12);
+    // 44 px targets on a coarse pointer (A-15).
+    const start = await toast.getByRole('button', { name: 'Start fresh' }).boundingBox();
+    expect(start?.height).toBe(44);
+    await shot(page, 'compact-toast');
+    // Capsule away (Find open): the stack drops to the home indicator.
+    await capsule(page).getByRole('button', { name: 'Find' }).click();
+    await expect(page.getByRole('region', { name: 'Notifications' })).toHaveAttribute(
+      'data-band',
+      'away',
+    );
   });
 });
