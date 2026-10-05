@@ -33,7 +33,12 @@ export type SessionNotice =
       readonly offerCopy?: boolean;
     }
   | { readonly kind: 'started-fresh'; readonly count: number }
-  | { readonly kind: 'failed'; readonly names: readonly string[] }
+  | {
+      readonly kind: 'failed';
+      readonly names: readonly string[];
+      /** They did not load now and wait in Recents with their changes for another try. */
+      readonly kept?: boolean;
+    }
   | { readonly kind: 'not-kept' };
 
 interface SessionState {
