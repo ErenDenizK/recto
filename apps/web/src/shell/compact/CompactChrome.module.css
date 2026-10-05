@@ -7,7 +7,8 @@
  *
  * Hidden, each moves out by `transform` and fades by `opacity` on itself (never a wrapper,
  * Q-3), on the motion tokens; at rest both have no transform (Q-2). Two glass surfaces at
- * rest, three with a menu or a sheet open (Q-11).
+ * rest, three with the ⋯ menu open; with a sheet open both are away and the sheet, settled,
+ * is solid (CompactSheet.module.css), so none (Q-11).
  */
 .topBar {
   composes: glass from global;
