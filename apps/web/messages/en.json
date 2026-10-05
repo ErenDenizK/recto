@@ -4139,5 +4139,15 @@
   "revert_failed": "Could not revert {name} to the opened version.",
   "revert_nothing_changed": "Nothing changed since opening",
   "revert_unavailable": "This document was not opened from one file",
-  "history_reverted": "Reverted {name} to the opened version"
+  "history_reverted": "Reverted {name} to the opened version",
+  "save_signatures_removed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} signature was removed: a changed file cannot keep it.",
+        "countPlural=*": "{count} signatures were removed: a changed file cannot keep them."
+      }
+    }
+  ]
 }

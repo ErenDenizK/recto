@@ -10,6 +10,8 @@ import {
   createWorkspace,
   type DocumentId,
   type EngineEdit,
+  type PageId,
+  renameDocument,
   rotatePages,
   type Workspace,
 } from '@pdf-editor/document-model';
@@ -87,11 +89,18 @@ describe('saved mark', () => {
     expect(useSavedStore.getState().marks[id]?.handleKept).toBe(false);
     expect(useSavedStore.getState().marks[id]?.entryAt).toBe(1);
 
-    const page = opened.documents[id]?.pages[0]?.id ?? '';
+    const page = opened.documents[id]?.pages[0]?.id ?? ('' as PageId);
     const rotated = rotatePages(opened, [page], 90);
     expect(isInFile(rotated, id)).toBe(false);
     // Undo returns the same document object: in the file again, with no bookkeeping.
     expect(isInFile(opened, id)).toBe(true);
+  });
+
+  it('a rename changes no byte Save writes: still in the file', () => {
+    const opened = withSource(createWorkspace(), 'report.pdf');
+    const id = only(opened);
+    observeDocuments(opened, 1);
+    expect(isInFile(renameDocument(opened, id, 'Quarterly report'), id)).toBe(true);
   });
 
   it('engine edits (annotations) count as changes to the document', () => {
@@ -107,7 +116,7 @@ describe('saved mark', () => {
     const opened = withSource(createWorkspace(), 'report.pdf');
     const id = only(opened);
     observeDocuments(opened, 1);
-    const page = opened.documents[id]?.pages[0]?.id ?? '';
+    const page = opened.documents[id]?.pages[0]?.id ?? ('' as PageId);
     const rotated = rotatePages(opened, [page], 90);
     markSaved(id, { handleKept: true }, { workspace: rotated, entryAt: 2 });
     expect(isInFile(rotated, id)).toBe(true);
@@ -122,7 +131,7 @@ describe('saved mark', () => {
     const opened = withSource(createWorkspace(), 'report.pdf');
     const id = only(opened);
     observeDocuments(opened, 1);
-    const page = opened.documents[id]?.pages[0]?.id ?? '';
+    const page = opened.documents[id]?.pages[0]?.id ?? ('' as PageId);
     const written = rotatePages(opened, [page], 90);
     const later = rotatePages(written, [page], 90);
     markSaved(id, { handleKept: true }, { workspace: written, entryAt: 2 });
@@ -132,7 +141,7 @@ describe('saved mark', () => {
   it('a document that appears changed (a combine, images, a restored edit) has no mark', () => {
     const opened = withSource(createWorkspace(), 'report.pdf');
     const id = only(opened);
-    const page = opened.documents[id]?.pages[0]?.id ?? '';
+    const page = opened.documents[id]?.pages[0]?.id ?? ('' as PageId);
     const restored = rotatePages(opened, [page], 90);
     observeDocuments(restored, 5);
     expect(useSavedStore.getState().marks[id]).toBeUndefined();
@@ -150,7 +159,7 @@ describe('saved mark', () => {
     observeDocuments(two, 1);
     expect(isInFile(two, a)).toBe(true);
     expect(isInFile(two, b)).toBe(true);
-    const page = two.documents[b]?.pages[0]?.id ?? '';
+    const page = two.documents[b]?.pages[0]?.id ?? ('' as PageId);
     const changed = rotatePages(two, [page], 90);
     expect(isInFile(changed, a)).toBe(true);
     expect(isInFile(changed, b)).toBe(false);

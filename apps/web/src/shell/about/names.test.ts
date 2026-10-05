@@ -91,6 +91,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:edition:v1',
       'pdf-editor:locale:v1',
       'pdf-editor:recents:v1',
+      // "Don't ask again for this file" on Save's Replace question (files/save.ts, ADR-0032 §2.1).
+      'pdf-editor:save:replace-ok:v1',
       // The private-window notice dismissed on this device (session/session.ts, FB9).
       'pdf-editor:session:not-kept-dismissed:v1',
       'pdf-editor:ui:colour-view:v1',

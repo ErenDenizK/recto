@@ -2683,5 +2683,15 @@
   "revert_failed": "{name} açılan sürüme döndürülemedi.",
   "revert_nothing_changed": "Açtığınızdan beri değişiklik yok",
   "revert_unavailable": "Bu belge tek bir dosyadan açılmadı",
-  "history_reverted": "{name} açılan sürüme döndürüldü"
+  "history_reverted": "{name} açılan sürüme döndürüldü",
+  "save_signatures_removed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} imza kaldırıldı: değiştirilen bir dosya imzayı koruyamaz.",
+        "countPlural=*": "{count} imza kaldırıldı: değiştirilen bir dosya imzaları koruyamaz."
+      }
+    }
+  ]
 }

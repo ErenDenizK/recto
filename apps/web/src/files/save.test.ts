@@ -135,7 +135,7 @@ describe('progress and bytes', () => {
 });
 
 interface StubHandle extends WritableFileHandle {
-  bytes: Uint8Array;
+  bytes: Uint8Array<ArrayBuffer>;
   prompts: number;
   permission: PermissionState;
   /** Corrupts what is read back (a write that did not land as written). */

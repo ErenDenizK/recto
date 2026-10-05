@@ -20,8 +20,9 @@ import { revertAvailability } from './revert';
 import { saveDocument } from './save';
 
 const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().workspace);
-const inDocument = () =>
-  useUiStore.getState().destination === 'document' && (activeDocument()?.pages.length ?? 0) > 0;
+/** Where the Save button shows: anywhere but the Library (01-frame §4). */
+const saveShown = () =>
+  useUiStore.getState().destination !== 'home' && (activeDocument()?.pages.length ?? 0) > 0;
 
 /** Which document the Revert confirmation is open for (null: closed). */
 export const useRevertDialogStore = create<{ readonly documentId: DocumentId | null }>()(() => ({
@@ -37,7 +38,7 @@ export function registerSaveCommands(registry: CommandRegistry): () => void {
       shortcut: 'Mod+S',
       // Mod+S from a text field saves too, rather than the browser's "Save page as".
       allowInInputs: true,
-      when: inDocument,
+      when: saveShown,
       run: () => {
         // Inside a dialog the key only stops "Save page as"; the dialog keeps the focus.
         if (document.activeElement?.closest('[aria-modal="true"]')) return;
