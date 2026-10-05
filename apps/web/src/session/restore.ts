@@ -3,7 +3,10 @@
  *
  * - **Launch.** `planLaunch` finds the session manifests no open tab holds (a tab holds a
  *   Web Lock named after its id while it lives), takes the newest to restore and turns the
- *   others into kept records, so two tabs closed together lose nothing. `restoreSession`
+ *   others into kept records, so two tabs closed together lose nothing. A tab that reloads
+ *   keeps its id (`sessionStorage`) and restores its own session first, never another tab's;
+ *   a tab claims a session's lock (`claimTabLock`) before restoring it or keeping its
+ *   documents, so two tabs launching at once never both take the same one. `restoreSession`
  *   reopens the kept source bytes in the engine under the ids the snapshot refers to, puts
  *   back the image and edit blobs (before any replay, so the edit runner can inline them),
  *   replaces the history with the restored 20-step tail and returns each document to its
@@ -62,7 +65,11 @@ import type { SnapshotStorage } from './storage';
 export const TAB_LOCK_PREFIX = 'pdf-editor-session:';
 
 interface LocksLike {
-  request(name: string, callback: () => Promise<void>): Promise<void>;
+  request(
+    name: string,
+    options: { readonly ifAvailable: true },
+    callback: (lock: unknown) => Promise<void>,
+  ): Promise<void>;
   query(): Promise<{ held?: readonly { name?: string }[] }>;
 }
 
@@ -71,12 +78,42 @@ function locks(): LocksLike | undefined {
   return typeof candidate?.request === 'function' ? candidate : undefined;
 }
 
-/** Holds this tab's lock until the page goes away. */
-export function holdTabLock(tabId: string): void {
-  void locks()
-    ?.request(`${TAB_LOCK_PREFIX}${tabId}`, () => new Promise<void>(() => undefined))
-    .catch(() => undefined);
+/**
+ * Claims the lock of tab `tabId` when no live tab holds it, and holds it until released (or
+ * the page goes away). Resolves to the release, or undefined when another tab holds it: a
+ * tab that lives (its own id, copied by Duplicate tab), or a tab launching at the same moment
+ * that claimed the session first. Without Web Locks (old browsers) every claim succeeds:
+ * there is nothing to coordinate with, and two tabs may then restore the same session, which
+ * duplicates documents but loses nothing.
+ */
+export function claimTabLock(tabId: string): Promise<ReleaseLock | undefined> {
+  const api = locks();
+  const unheld: ReleaseLock = () => Promise.resolve();
+  if (!api) return Promise.resolve(unheld);
+  return new Promise((resolve) => {
+    let letGo: () => void = () => undefined;
+    const held = new Promise<void>((done) => {
+      letGo = done;
+    });
+    const request = api
+      .request(`${TAB_LOCK_PREFIX}${tabId}`, { ifAvailable: true }, (lock) => {
+        if (lock === null) {
+          resolve(undefined);
+          return Promise.resolve();
+        }
+        resolve(() => {
+          letGo();
+          return request;
+        });
+        return held;
+      })
+      // Locks refused (a sandboxed frame): go on as without them.
+      .catch(() => resolve(unheld));
+  });
 }
+
+/** Lets a claimed lock go; resolves once other tabs can claim it. */
+export type ReleaseLock = () => Promise<void>;
 
 /**
  * Ids of the tabs alive now. Without Web Locks (old browsers) none count as alive: two
@@ -99,7 +136,10 @@ export async function liveTabIds(): Promise<Set<string>> {
 }
 
 export interface LaunchPlan {
-  /** The newest session no live tab holds. */
+  /**
+   * This tab's own session when it has one (a reload, a crash, a tab the browser discarded:
+   * the id lives in `sessionStorage`), else the newest session no live tab holds.
+   */
   readonly restore?: SessionManifestV1;
   /** Other orphaned sessions: their documents become kept records. */
   readonly orphans: readonly SessionManifestV1[];
@@ -107,16 +147,18 @@ export interface LaunchPlan {
   readonly damaged: readonly string[];
 }
 
+/** `ownTabId` is this tab's id, live (this tab holds it) but its session is this tab's own. */
 export async function planLaunch(
   storage: SnapshotStorage,
   live: ReadonlySet<string>,
+  ownTabId?: string,
 ): Promise<LaunchPlan> {
   const manifests: SessionManifestV1[] = [];
   const damaged: string[] = [];
   for (const info of await storage.list('sessions')) {
     if (!info.name.endsWith('.json')) continue;
     const tabId = info.name.slice(0, -'.json'.length);
-    if (live.has(tabId)) continue;
+    if (live.has(tabId) && tabId !== ownTabId) continue;
     try {
       const file = await storage.read('sessions', info.name);
       if (file) manifests.push(parseSessionManifest(await file.text()));
@@ -124,7 +166,10 @@ export async function planLaunch(
       damaged.push(info.name);
     }
   }
-  manifests.sort((a, b) => b.savedAt - a.savedAt);
+  // Own first, then newest first.
+  manifests.sort(
+    (a, b) => Number(b.tabId === ownTabId) - Number(a.tabId === ownTabId) || b.savedAt - a.savedAt,
+  );
   const [restore, ...orphans] = manifests;
   return { ...(restore === undefined ? {} : { restore }), orphans, damaged };
 }

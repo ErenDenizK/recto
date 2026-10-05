@@ -3,13 +3,15 @@
  * the frame and the Library consume this API). `startSession` runs once per launch in either
  * edition:
  *
- * 1. Holds this tab's Web Lock and probes OPFS. Where storage is refused (a private window)
- *    it says "Changes are not kept in this window" and the app behaves as before: nothing is
- *    kept, nothing restored, and `beforeunload` asks while any document has changes.
- * 2. Restores the newest session no open tab holds ("Restored 3 documents · Start fresh");
- *    the compact edition (ADR-0033 §2.3) restores the active document only, the others go
- *    to Recents, and a restored document with changes offers Download a copy. Other orphaned
- *    sessions become kept records.
+ * 1. Holds this tab's Web Lock (its id kept in `sessionStorage`, so a reload is the same tab)
+ *    and probes OPFS. Where storage is refused (a private window) it says "Changes are not
+ *    kept in this window" and the app behaves as before: nothing is kept, nothing restored,
+ *    and `beforeunload` asks while any document has changes.
+ * 2. Restores this tab's own session, else the newest session no open tab holds, once it
+ *    has claimed that session's lock ("Restored 3 documents · Start fresh"); the compact
+ *    edition (ADR-0033 §2.3) restores the active document only, the others go to Recents,
+ *    and a restored document with changes offers Download a copy. Other orphaned sessions,
+ *    and documents that did not load, become kept records.
  * 3. Starts the writer: every history change, page, zoom, view or lock change is kept within
  *    2 s, and at once when the page is hidden or left; documents that close become kept
  *    records for Recents.
@@ -39,10 +41,11 @@ import { readJson, writeJson } from '../state/safe-storage';
 import { useWorkspaceStore } from '../state/workspace-store';
 import type { DocumentPlace, KeptRecordV1 } from './format';
 import {
-  holdTabLock,
+  claimTabLock,
   keptRecordsOf,
   liveTabIds,
   planLaunch,
+  type ReleaseLock,
   type ReopenKeptResult,
   reopenKept,
   restoreSession,
@@ -248,9 +251,15 @@ export function startSession(options: StartOptions): () => void {
   const offlineUnsub = useWorkspaceStore.subscribe((state) =>
     offlineTracker.observe(state.workspace),
   );
+  let releaseTab: ReleaseLock | undefined;
   void (async () => {
-    const tabId = options.tabId ?? globalThis.crypto.randomUUID();
-    holdTabLock(tabId);
+    const claimed = await claimThisTab(options.tabId);
+    const { tabId } = claimed;
+    releaseTab = claimed.release;
+    if (stopped) {
+      void releaseTab();
+      return;
+    }
     const available = options.storage
       ? ({ ok: true, storage: options.storage } as const)
       : await openSnapshotStorage();
@@ -316,33 +325,91 @@ export function startSession(options: StartOptions): () => void {
     controller?.writer.stop();
     controller = undefined;
     onKeptRemoved(undefined);
+    void releaseTab?.();
   };
+}
+
+/**
+ * This tab's id, kept in `sessionStorage` for the tab's life: a reload, a crash or a tab the
+ * browser discarded to save memory (and brought back) is the same tab, so it restores its own
+ * session rather than the one another tab closed last.
+ */
+export const TAB_ID_KEY = 'pdf-editor:session:tab:v1';
+
+function readTabId(): string | undefined {
+  try {
+    const value = globalThis.sessionStorage?.getItem(TAB_ID_KEY);
+    return value != null && /^[A-Za-z0-9-]{1,64}$/.test(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeTabId(tabId: string): void {
+  try {
+    globalThis.sessionStorage?.setItem(TAB_ID_KEY, tabId);
+  } catch {
+    // Storage refused: this tab's session is found again only while it lives.
+  }
+}
+
+/**
+ * Claims this tab's id and its Web Lock for the page's life: `given` (tests), else the id
+ * this tab had before a reload, else a new one. A copied id another live tab holds (Duplicate
+ * tab copies `sessionStorage`) gives way to a new one, so the two never share a session.
+ */
+export async function claimThisTab(
+  given?: string,
+): Promise<{ readonly tabId: string; readonly release: ReleaseLock }> {
+  const before = given ?? readTabId();
+  if (before !== undefined) {
+    const release = await claimTabLock(before);
+    if (release !== undefined) return { tabId: before, release };
+  }
+  const tabId = globalThis.crypto.randomUUID();
+  const release = (await claimTabLock(tabId)) ?? (() => Promise.resolve());
+  if (given === undefined) writeTabId(tabId);
+  return { tabId, release };
 }
 
 async function launch(ctl: Controller, tabId: string, options: StartOptions): Promise<void> {
   const { storage, writer, tracker } = ctl;
-  const plan = await planLaunch(storage, await liveTabIds());
+  const plan = await planLaunch(storage, await liveTabIds(), tabId);
   for (const name of plan.damaged) await setAside(storage, name).catch(() => undefined);
   const now = Date.now();
   // Other closed tabs' documents go to Recents; their manifests go once the records exist.
+  // Each is claimed first: a tab launching at the same moment may have taken it.
   for (const orphan of plan.orphans) {
+    const release = await claimTabLock(orphan.tabId);
+    if (release === undefined) continue;
     let records: KeptRecordV1[];
     try {
       records = keptRecordsOf(orphan, 'all', now);
     } catch (error) {
       console.warn('An orphaned session could not be read', error);
       await setAside(storage, `${orphan.tabId}.json`).catch(() => undefined);
+      void release();
       continue;
     }
-    void writer.keep(records, () => storage.remove('sessions', `${orphan.tabId}.json`));
+    void writer
+      .keep(records, () => storage.remove('sessions', `${orphan.tabId}.json`))
+      .finally(release);
   }
-  const manifest = plan.restore;
+  // This tab's own session is its own; another's is claimed, or left to the tab that has it.
+  const candidate = plan.restore;
+  const release =
+    candidate === undefined || candidate.tabId === tabId
+      ? () => Promise.resolve()
+      : await claimTabLock(candidate.tabId);
+  const manifest = release === undefined ? undefined : candidate;
   // Restore only into an empty tab: a file opened during launch (a share target) wins.
   if (manifest === undefined || useWorkspaceStore.getState().workspace.documentOrder.length > 0) {
     if (manifest !== undefined) {
-      void writer.keep(keptRecordsOf(manifest, 'all', now), () =>
-        storage.remove('sessions', `${manifest.tabId}.json`),
-      );
+      void writer
+        .keep(keptRecordsOf(manifest, 'all', now), () =>
+          storage.remove('sessions', `${manifest.tabId}.json`),
+        )
+        .finally(release);
     }
     return;
   }
@@ -379,14 +446,17 @@ async function launch(ctl: Controller, tabId: string, options: StartOptions): Pr
   // A manifest whose history cannot be read is set aside, never deleted (ADR-0032 §3); one
   // whose failed documents could not be kept stays for the next launch.
   writer.noteChange('content');
-  void writer.flush().then(async () => {
-    if (manifest.tabId === tabId) return;
-    const name = `${manifest.tabId}.json`;
-    if (outcome.damaged) await setAside(storage, name).catch(() => undefined);
-    else if (outcome.failedIds.length === 0 || failedKept) {
-      await storage.remove('sessions', name).catch(() => undefined);
-    }
-  });
+  void writer
+    .flush()
+    .then(async () => {
+      if (manifest.tabId === tabId) return;
+      const name = `${manifest.tabId}.json`;
+      if (outcome.damaged) await setAside(storage, name).catch(() => undefined);
+      else if (outcome.failedIds.length === 0 || failedKept) {
+        await storage.remove('sessions', name).catch(() => undefined);
+      }
+    })
+    .finally(release);
   if (outcome.restored.length > 0) {
     const first = ws.documents[outcome.restored[0] as DocumentId];
     const changed = outcome.restored.some((id) => tracker.changed(ws, id));
