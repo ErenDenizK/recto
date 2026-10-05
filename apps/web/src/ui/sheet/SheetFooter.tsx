@@ -17,7 +17,8 @@ export function SheetFooter({
 }: {
   readonly secondary?: ReactNode;
   readonly cancel?: ReactNode;
-  readonly primary: ReactNode;
+  /** Absent on a compact tool sheet, whose primary is in the header. */
+  readonly primary?: ReactNode;
   readonly fill?: boolean;
 }) {
   return (

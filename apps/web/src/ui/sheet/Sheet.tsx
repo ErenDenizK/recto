@@ -57,6 +57,29 @@ import { SheetFooter } from './SheetFooter';
 import { SheetHeader } from './SheetHeader';
 import { claimFront, releaseFront, useSheetStore } from './sheet-store';
 
+/**
+ * Starts following a swipe that may begin with `down`: its moves, release and cancel come from
+ * the window until the pointer is released, wherever it goes.
+ */
+function followSwipe(motion: SheetMotion, down: PointerEvent): void {
+  if (!motion.pointer.onPointerDown(down)) return;
+  const id = down.pointerId;
+  const move = (event: PointerEvent) => {
+    if (event.pointerId === id) motion.pointer.onPointerMove(event);
+  };
+  const end = (event: PointerEvent) => {
+    if (event.pointerId !== id) return;
+    if (event.type === 'pointercancel') motion.pointer.onPointerCancel(event);
+    else motion.pointer.onPointerUp(event);
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', end);
+    window.removeEventListener('pointercancel', end);
+  };
+  window.addEventListener('pointermove', move, { passive: false });
+  window.addEventListener('pointerup', end);
+  window.addEventListener('pointercancel', end);
+}
+
 /** Why a sheet closes. Every one of them keeps the draft. */
 export type SheetCloseReason = 'escape' | 'close' | 'cancel' | 'scrim' | 'swipe' | 'replaced';
 
@@ -154,7 +177,9 @@ export function Sheet({
 
   // The panel enters as soon as it is in the document (the portal may mount it a render after
   // `open` turns true) and leaves when `open` turns false; both retarget from where it is.
+  const panelEl = useRef<HTMLDivElement | null>(null);
   const panelRef = useCallback((el: HTMLDivElement | null) => {
+    panelEl.current = el;
     const motion = motionOf();
     motion.attach(el);
     if (el && openRef.current) {
@@ -231,8 +256,17 @@ export function Sheet({
     </Button>
   ) : null;
 
+  // §2.6: the opener's control, else the first control that needs input, else the first one.
+  const firstInput = (): HTMLElement | true =>
+    panelEl.current?.querySelector<HTMLElement>(
+      '[data-sheet-body] :is(input:not([type="hidden"], [aria-hidden="true"], :disabled), textarea, select)',
+    ) ?? true;
   const focusOnOpen =
-    initialFocus === 'primary' ? primaryRef : initialFocus === 'cancel' ? cancelRef : initialFocus;
+    initialFocus === 'primary'
+      ? primaryRef
+      : initialFocus === 'cancel'
+        ? cancelRef
+        : (initialFocus ?? firstInput);
 
   const Root = layout.role === 'alertdialog' ? AlertDialog.Root : Dialog.Root;
   const style = {
@@ -269,12 +303,9 @@ export function Sheet({
           data-testid={testId}
           data-swipe={layout.swipe ?? undefined}
           inert={!open || undefined}
-          {...(focusOnOpen ? { initialFocus: focusOnOpen } : {})}
+          initialFocus={focusOnOpen}
           {...(finalFocus ? { finalFocus } : {})}
-          onPointerDown={(event) => motionOf().pointer.onPointerDown(event.nativeEvent)}
-          onPointerMove={(event) => motionOf().pointer.onPointerMove(event.nativeEvent)}
-          onPointerUp={(event) => motionOf().pointer.onPointerUp(event.nativeEvent)}
-          onPointerCancel={(event) => motionOf().pointer.onPointerCancel(event.nativeEvent)}
+          onPointerDown={(event) => followSwipe(motionOf(), event.nativeEvent)}
           onClickCapture={(event) => motionOf().pointer.onClickCapture(event.nativeEvent)}
         >
           {layout.presentation === 'bottom' ? (
@@ -320,7 +351,9 @@ export function Sheet({
                 {primary.reason}
               </p>
             ) : null}
-            {primaryButton && !compactTool ? (
+            {compactTool && secondary ? (
+              <SheetFooter secondary={secondary} />
+            ) : primaryButton && !compactTool ? (
               <SheetFooter
                 secondary={secondary}
                 cancel={
