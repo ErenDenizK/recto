@@ -14,7 +14,10 @@
  *
  * A source whose bytes are missing or no longer open fails only the documents that show it:
  * the rest restore without the history tail (an undo step could otherwise bring back a page
- * that cannot render), and the failure is reported with the document's name.
+ * that cannot render), and the failure is reported with the document's name. The launch
+ * keeps the documents that failed as kept records, and a reopen that fails without anything
+ * missing (a skipped password prompt, an engine failure) keeps its record: the work waits in
+ * Recents for another try and is never thrown away by a failure to load it.
  */
 import {
   assertWorkspaceInvariants,
@@ -188,6 +191,11 @@ export function keptRecordsOf(
 interface Loaded {
   /** Sources that could not be read or opened. */
   readonly failed: ReadonlySet<SourceId>;
+  /**
+   * Of those, the ones whose bytes are not stored (gone for good); the others did not open
+   * now (the password prompt skipped, an engine failure) and may open on another try.
+   */
+  readonly missing: ReadonlySet<SourceId>;
 }
 
 /** Reads a snapshot's sources and blobs and loads them into the engine and the store. */
@@ -199,6 +207,7 @@ async function loadFiles(
 ): Promise<Loaded> {
   const store = useWorkspaceStore.getState();
   const failed = new Set<SourceId>();
+  const missing = new Set<SourceId>();
   const files: File[] = [];
   const ids: SourceId[] = [];
   for (const facts of sources) {
@@ -207,6 +216,7 @@ async function loadFiles(
     const stored = await storage.read('sources', sourceFile(facts.id)).catch(() => undefined);
     if (!stored) {
       failed.add(facts.id);
+      missing.add(facts.id);
       continue;
     }
     files.push(
@@ -236,26 +246,28 @@ async function loadFiles(
     const opened = new Set(loaded.map((l) => l.source.id));
     for (const id of ids) if (!opened.has(id)) failed.add(id);
   }
-  return { failed };
+  return { failed, missing };
 }
 
 /** The workspace without the documents that show a failed source. */
 function withoutFailed(
   ws: Workspace,
   failed: ReadonlySet<SourceId>,
-): { workspace: Workspace; dropped: string[] } {
+): { workspace: Workspace; dropped: string[]; droppedIds: DocumentId[] } {
   let next = ws;
   const dropped: string[] = [];
+  const droppedIds: DocumentId[] = [];
   for (const id of ws.documentOrder) {
     const doc = ws.documents[id];
     if (doc === undefined || !documentSources(doc).some((s) => failed.has(s))) continue;
     dropped.push(doc.title);
+    droppedIds.push(id);
     next = closeDocument(next, id);
   }
   for (const source of failed) {
     if (next.sources[source] !== undefined) next = removeSourceIfUnreferenced(next, source);
   }
-  return { workspace: next, dropped };
+  return { workspace: next, dropped, droppedIds };
 }
 
 /** Brings the engine to the restored edits (the runner also reacts to the history change). */
@@ -314,6 +326,14 @@ export interface RestoreOutcome {
   readonly restored: readonly DocumentId[];
   /** Names of documents that could not be restored. */
   readonly failed: readonly string[];
+  /**
+   * The documents left out because a source did not load. The launch keeps each as a kept
+   * record before the old manifest goes, so a skipped password prompt or an engine failure
+   * never throws the work away: it waits in Recents for another try.
+   */
+  readonly failedIds: readonly DocumentId[];
+  /** The manifest's history could not be read (the launch sets it aside, never deletes it). */
+  readonly damaged: boolean;
   /** Whether the undo steps came back (false when a document failed, or none were kept). */
   readonly withHistory: boolean;
 }
@@ -332,13 +352,19 @@ export async function restoreSession(
     history = deserializeHistoryTail(manifest.history);
   } catch (error) {
     console.warn('The kept session could not be read', error);
-    return { restored: [], failed: manifest.sources.map((s) => s.name), withHistory: false };
+    return {
+      restored: [],
+      failed: manifest.sources.map((s) => s.name),
+      failedIds: [],
+      withHistory: false,
+      damaged: true,
+    };
   }
   const only = options.only;
   if (only !== undefined) {
     const present = history.present.workspace;
     if (present.documents[only] === undefined) {
-      return { restored: [], failed: [], withHistory: false };
+      return { restored: [], failed: [], failedIds: [], withHistory: false, damaged: false };
     }
     history = createHistory(workspaceOfDocument(present, only), history.present.label, Date.now());
   }
@@ -356,14 +382,16 @@ export async function restoreSession(
     );
     let restoredHistory = history;
     let dropped: string[] = [];
+    let failedIds: DocumentId[] = [];
     if (failed.size > 0) {
       const result = withoutFailed(history.present.workspace, failed);
       dropped = result.dropped;
+      failedIds = result.droppedIds;
       restoredHistory = createHistory(result.workspace, history.present.label, Date.now());
     }
     const ws = restoredHistory.present.workspace;
     if (ws.documentOrder.length === 0) {
-      return { restored: [], failed: dropped, withHistory: false };
+      return { restored: [], failed: dropped, failedIds, withHistory: false, damaged: false };
     }
     useWorkspaceStore.getState().replaceHistory(restoredHistory);
     applyPlaces(ws, manifest.documents, manifest);
@@ -371,7 +399,9 @@ export async function restoreSession(
     return {
       restored: ws.documentOrder,
       failed: dropped,
+      failedIds,
       withHistory: failed.size === 0 && restoredHistory.past.length > 0,
+      damaged: false,
     };
   });
 }
@@ -402,9 +432,18 @@ export function mergeKeptWorkspace(ws: Workspace, kept: Workspace): Workspace {
   return merged;
 }
 
+/**
+ * `missing`: the record or a source's bytes are gone; `damaged`: the record cannot be read;
+ * `failed`: everything is there but did not open now (the password prompt skipped, an engine
+ * failure), so the snapshot stays for another try. `title` names the document when known.
+ */
 export type ReopenKeptResult =
   | { readonly ok: true; readonly documentId: DocumentId; readonly record: KeptRecordV1 }
-  | { readonly ok: false; readonly reason: 'missing' | 'damaged' | 'failed' };
+  | {
+      readonly ok: false;
+      readonly reason: 'missing' | 'damaged' | 'failed';
+      readonly title?: string;
+    };
 
 /** Reopens a closed document from its kept record (no prompt, no picker; §2.6). */
 export async function reopenKept(
@@ -429,12 +468,12 @@ export async function reopenKept(
     store.setActive(documentId);
     return { ok: true, documentId, record };
   }
-  let failedSources = false;
+  let missingSources = false;
   const committed = await store.applyComposed(
     async (lease) => {
-      const { failed } = await loadFiles(storage, record.sources, record.blobs, lease);
+      const { failed, missing } = await loadFiles(storage, record.sources, record.blobs, lease);
       if (failed.size > 0) {
-        failedSources = true;
+        missingSources = missing.size > 0;
         return undefined;
       }
       return kept;
@@ -442,7 +481,9 @@ export async function reopenKept(
     (ws, _ids, value) => mergeKeptWorkspace(ws, value),
     m.history_open({ name: record.title }),
   );
-  if (!committed) return { ok: false, reason: failedSources ? 'missing' : 'failed' };
+  if (!committed) {
+    return { ok: false, reason: missingSources ? 'missing' : 'failed', title: record.title };
+  }
   const ws = useWorkspaceStore.getState().workspace;
   applyPlaces(ws, [record.place]);
   void replayEdits();

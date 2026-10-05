@@ -20,6 +20,7 @@ import { keptRecordsOf, mergeKeptWorkspace, reopenKept, restoreSession } from '.
 import {
   clearKeptChanges,
   flushSession,
+  reopenFromSnapshot,
   setSessionEnabled,
   startFresh,
   startSession,
@@ -312,6 +313,63 @@ describe('the launch flow', { timeout: 40_000 }, () => {
       expect(storage.files.has(`kept/kept-${combined}.json`)).toBe(true);
     } finally {
       stop();
+    }
+  });
+
+  it('a document whose source does not open at launch stays in Recents; a retry brings it back', async () => {
+    const [a, b] = (await openFixtures()) as [DocumentId, DocumentId];
+    rotate(b, 2);
+    const storage = memorySnapshotStorage();
+    const writer = writerFor(storage);
+    writer.noteChange('content');
+    await writer.flush();
+    resetWorkspace();
+    // The person presses Skip on the password prompt (or the engine fails) for outline.pdf.
+    const service = getEngineService();
+    const open = service.open.bind(service);
+    const skipped = vi.spyOn(service, 'open').mockImplementation((file, ...rest) =>
+      file.name === 'outline.pdf'
+        ? Promise.resolve({
+            ok: false as const,
+            error: { code: 'password-cancelled' as const, message: 'Skipped' },
+          })
+        : open(file, ...rest),
+    );
+    const stop = startSession({ edition: 'full', storage, tabId: 'tab-failed' });
+    try {
+      await vi.waitFor(() => expect(document.documentElement.dataset.session).toBe('ready'), {
+        timeout: 15_000,
+      });
+      expect(model().workspace.documentOrder).toEqual([a]);
+      // The old manifest goes, but only once the document that failed is a kept record.
+      await vi.waitFor(() => {
+        expect(storage.files.has('sessions/old-tab.json')).toBe(false);
+        expect(storage.files.has(`kept/kept-${b}.json`)).toBe(true);
+      });
+      await vi.waitFor(() =>
+        expect(
+          useRecentsStore.getState().entries.find((e) => e.kept?.snapshotId === `kept-${b}`)?.kept
+            ?.changed,
+        ).toBe(true),
+      );
+      // A reopen from Recents that fails the same way keeps the snapshot for the next try.
+      expect(await reopenFromSnapshot(`kept-${b}`)).toEqual({
+        ok: false,
+        reason: 'failed',
+        title: 'outline',
+      });
+      await flushSession();
+      expect(storage.files.has(`kept/kept-${b}.json`)).toBe(true);
+      expect(
+        useRecentsStore.getState().entries.some((e) => e.kept?.snapshotId === `kept-${b}`),
+      ).toBe(true);
+      skipped.mockRestore();
+      const again = await reopenFromSnapshot(`kept-${b}`);
+      expect(again?.ok).toBe(true);
+      expect(model().workspace.documents[b]?.pages[0]?.rotation).toBe(180);
+    } finally {
+      stop();
+      vi.restoreAllMocks();
     }
   });
 });
