@@ -10,6 +10,7 @@ import tr from '../../messages/tr.json';
 import { registerDocumentCommands } from '../document/document-commands';
 import { setLocale } from '../i18n';
 import { registerOutlineCommands } from '../outline/outline-commands';
+import { registerSettingsCommands } from '../settings/settings-commands';
 import { buildSections } from '../shell/CommandPalette';
 import { registerSignatureCommands } from '../signatures/signature-commands';
 import { registerArrangeCommands } from '../stage/arrange-commands';
@@ -27,6 +28,7 @@ function allCommands(): CommandRegistry {
   registerDocumentCommands(registry);
   registerOutlineCommands(registry);
   registerSignatureCommands(registry);
+  registerSettingsCommands(registry);
   return registry;
 }
 
