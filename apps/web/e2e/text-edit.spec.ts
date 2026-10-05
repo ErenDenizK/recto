@@ -172,7 +172,7 @@ test('replace a word in the Helvetica line, export, re-open: the edited line rea
     mimeType: 'application/pdf',
     buffer: bytes,
   });
-  await expect(page.getByRole('tab', { name: 'edited' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'edited', exact: true })).toBeVisible();
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
