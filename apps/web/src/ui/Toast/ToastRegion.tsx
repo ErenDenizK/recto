@@ -58,8 +58,8 @@ interface View {
   readonly entered: () => boolean;
   /** Holds a toast whose entrance has not begun: it waits for the region's next word. */
   readonly hold: () => void;
-  /** Starts the entrance after `delay` ms on the animation timeline, unless it has begun. */
-  readonly enter: (delay: number) => void;
+  /** Starts the entrance `delay` ms into `pace` (else the timeline), unless it has begun. */
+  readonly enter: (delay: number, pace?: Animation | null) => void;
 }
 
 /** FB4 §6 (MC-31): a swipe dismisses past half the width or above this speed. */
@@ -158,18 +158,19 @@ export function ToastRegion({ edition = 'full', band = 'shown' }: ToastRegionPro
       () => flushSync(mutate),
     );
     held.current.clear();
-    const delays = new Map<Element, number>();
+    const delays = new Map<Element, readonly [number, Animation | null]>();
     for (const el of region.current?.children ?? []) {
       const view = [...views.current.values()].find((v) => v.el === el);
       if (!view || view.entered()) continue;
       const above = el.previousElementSibling;
+      const move = above ? moves.get(above as HTMLElement) : undefined;
       const slotTop = el.getBoundingClientRect().top - RISE_PX;
-      const delay =
-        above && delays.has(above)
-          ? (delays.get(above) as number)
-          : entranceDelay(slotTop, above ? moves.get(above as HTMLElement) : undefined);
-      delays.set(el, delay);
-      view.enter(delay);
+      const wait = (above && delays.get(above)) ?? [
+        entranceDelay(slotTop, move),
+        move?.animation ?? null,
+      ];
+      delays.set(el, wait);
+      view.enter(...wait);
     }
   };
 
@@ -337,20 +338,24 @@ function ToastView({
         phase.current = 'held';
         hide();
       },
-      enter(delay) {
+      enter(delay, pace) {
         if (phase.current === 'in') return;
         wait.current?.();
         phase.current = 'waiting';
         let came = false;
-        const cancel = after(delay, () => {
-          came = true;
-          wait.current = null;
-          phase.current = 'in';
-          // The motions take both properties over from the hold, and clear them at rest (Q-2).
-          animateStyle(el, 'transform', [0, RISE_PX], [0, 0], { spring: 'quick' });
-          fade.current = animateStyle(el, 'opacity', 0, 1, { spring: 'quick' });
-          fadeBackdrop(el, 'in');
-        });
+        const cancel = after(
+          delay,
+          () => {
+            came = true;
+            wait.current = null;
+            phase.current = 'in';
+            // The motions take both properties over from the hold, and clear them at rest (Q-2).
+            animateStyle(el, 'transform', [0, RISE_PX], [0, 0], { spring: 'quick' });
+            fade.current = animateStyle(el, 'opacity', 0, 1, { spring: 'quick' });
+            fadeBackdrop(el, 'in');
+          },
+          pace,
+        );
         wait.current = came ? null : cancel;
       },
     };
