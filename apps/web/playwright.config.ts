@@ -44,6 +44,8 @@ const NOT_KEPT_SEEN = {
     },
   ],
 };
+/** No frames at rest on the compact reader too (quality-bar Q-10, A-23; spec D0-QA). */
+const MOTION_SPEC = '**/motion.spec.ts';
 const touchDevice = (
   size: { width: number; height: number },
   userAgent: string,
@@ -85,7 +87,7 @@ export default defineConfig({
     },
     {
       name: 'phone',
-      testMatch: [COMPACT_SPEC, BAR_AUDIT_SPEC],
+      testMatch: [COMPACT_SPEC, BAR_AUDIT_SPEC, MOTION_SPEC],
       use: touchDevice(PHONE, devices['Pixel 7'].userAgent, 3),
     },
     {
