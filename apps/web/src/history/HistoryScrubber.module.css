@@ -157,6 +157,11 @@
   gap: var(--space-1);
 }
 
+/* The slider's own box: a press inside it is a drag whose release keeps. */
+.sliderTrack {
+  display: grid;
+}
+
 .sliderFoot {
   display: flex;
   align-items: center;
