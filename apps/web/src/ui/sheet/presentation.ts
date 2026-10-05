@@ -12,6 +12,10 @@
  * | settings (modal)     | bottom at 92 %           | full           | form ≤ 640     | side 480, scrim |
  * | confirmation         | bottom, content ≤ 60 %   | dialog 400     | dialog 400     | dialog 400      |
  * | overlay (shortcuts)  | full                     | full           | dialog 760     | dialog 760      |
+ * | signature (S7)       | bottom at 92 %           | full           | form ≤ 640 ¹   | side 400 ¹      |
+ *
+ * ¹ New signature on a fine pointer is a centred 520 dialog from medium up (07.5, flows §6.9's
+ * row): its pad needs width, not height. On a coarse pointer it is a task sheet.
  *
  * compact-height (a window under 480 px tall and under 1000 wide) takes precedence over the
  * width class, as the table's column does. Settings on compact is 07 §1.1's "full sheet at
@@ -21,7 +25,7 @@
 import type { FrameClass } from '../../shell/frame/size-class';
 
 /** What a sheet is for (07 §0, §1.1). */
-export type SheetKind = 'tool' | 'task' | 'settings' | 'confirmation' | 'overlay';
+export type SheetKind = 'tool' | 'task' | 'settings' | 'confirmation' | 'overlay' | 'signature';
 
 /** The five presentations of 07 §0. */
 export type Presentation = 'side' | 'form' | 'dialog' | 'bottom' | 'full';
@@ -60,6 +64,7 @@ export const SHEET_WIDTH = {
   form: 640,
   dialog: 400,
   overlay: 760,
+  signature: 520,
 } as const;
 
 type Column = 'compact' | 'short' | 'medium' | 'wide';
@@ -86,13 +91,22 @@ const layout = (
   role: extra.role ?? 'dialog',
 });
 
-/** The presentation of a sheet of `kind` in a window of `frame` (07 §1.1). */
+/**
+ * The presentation of a sheet of `kind` in a window of `frame` (07 §1.1). `pointer` is the
+ * primary pointer's precision; only New signature reads it (07.5).
+ */
 export function presentationOf(
   kind: SheetKind,
   frame: Pick<FrameClass, 'size' | 'short'>,
+  pointer: 'fine' | 'coarse' = 'fine',
 ): SheetLayout {
   const column = columnOf(frame);
   switch (kind) {
+    case 'signature':
+      if (pointer === 'fine' && (column === 'medium' || column === 'wide')) {
+        return layout('dialog', SHEET_WIDTH.signature, true);
+      }
+      return presentationOf('task', frame);
     case 'tool':
       if (column === 'compact') return layout('bottom', null, false, { detents: TOOL_DETENTS });
       // A compact-height side sheet swipes right to close (07 §2.6).

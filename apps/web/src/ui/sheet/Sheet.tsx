@@ -47,6 +47,7 @@ import {
 
 import { m } from '../../i18n';
 import { announce } from '../../shell/announcer';
+import { usePointerCapabilities } from '../../shell/frame/input-modality';
 import { useSizeClass } from '../../shell/frame/size-class';
 import { Button } from '../Button';
 import { LockBanner } from './LockBanner';
@@ -154,7 +155,8 @@ export function Sheet({
   children,
 }: SheetProps) {
   const frame = useSizeClass();
-  const layout = presentationOf(kind, frame);
+  const pointer = usePointerCapabilities().primary === 'coarse' ? 'coarse' : 'fine';
+  const layout = presentationOf(kind, frame, pointer);
   const formId = useId();
   const primaryRef = useRef<HTMLButtonElement | null>(null);
   const cancelRef = useRef<HTMLButtonElement | null>(null);
