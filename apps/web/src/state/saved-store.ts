@@ -14,18 +14,25 @@
  *
  * A document seen for the first time as a pristine copy of its file (as opened, or restored
  * without changes) is in its file: its first mark is that state, with `handleKept: false`. One
- * that appears changed (a combine, a split part, images, a restored document with changes) has
- * no mark and reads as not in a file until it is saved. The tab's ● (01-frame §4, "changes not
+ * that appears changed (a combine, a split part, images, a restored document with changes), or
+ * as a copy of pages another document shows (an extract of every page), has no mark and reads
+ * as not in a file until it is saved. The tab's ● (01-frame §4, "changes not
  * yet in the file") and Save's dimmed "Saved" both read `isInFile`.
  *
  * The store also remembers each document's origin (the source it was opened from), so "Revert
- * to the opened version…" knows which bytes to reopen (ADR-0032 §2.2). After a revert the new
- * source is pushed; undoing the revert brings the old one back into the workspace, and the
- * newest origin the workspace still holds wins.
+ * to the opened version…" knows which bytes to reopen (ADR-0032 §2.2) and Save knows which
+ * file's stored handle it may write through (`files/save.ts`). Only the document that *is* the
+ * file has one: a document first seen as a pristine copy of a source no other document shows
+ * (as opened). A document made from another one's pages (a split part, an extract, a combine)
+ * never looks like the file, so its first Save is Save as and never writes over the file its
+ * pages came from. After a revert the new source is pushed; undoing the revert brings the old
+ * one back into the workspace, and the newest origin the workspace still holds wins.
  *
- * Session memory only: after a reload a restored document with changes since opening shows ●
- * until it is saved again, even when an earlier save had written them (keeping the mark in the
- * snapshot is a question for the session format, D0-7).
+ * The marks are session memory: after a reload a restored document with changes since opening
+ * shows ● until it is saved again, even when an earlier save had written them. The origins and
+ * whether the file was written over (`fileFactsOf`) are kept with the document in the snapshot
+ * (`session/`, `DocumentPlace`) and taken back on restore (`adoptFileFacts`), so a restored
+ * document keeps its file and Revert knows whether the file still holds the opened version.
  */
 import type { DocumentId, SourceId, VirtualDocument, Workspace } from '@pdf-editor/document-model';
 import { create } from 'zustand';
@@ -96,15 +103,20 @@ export function isInFile(
   return matchesMark(ws, id, marks[id]);
 }
 
-/** The single source every page of `doc` comes from, if there is one. */
-function onlySource(doc: VirtualDocument): SourceId | undefined {
-  let found: SourceId | undefined;
-  for (const page of doc.pages) {
-    if (page.ref.kind !== 'source') return undefined;
-    if (found === undefined) found = page.ref.source;
-    else if (found !== page.ref.source) return undefined;
+/**
+ * The source document `doc` is the file of: `doc` is a pristine copy of it (as opened, or
+ * restored without changes) and no other document shows it. A split part, an extract or a
+ * combine is made from another document's pages and is never the file (see the module comment).
+ */
+function fileSource(ws: Workspace, doc: VirtualDocument): SourceId | undefined {
+  const first = doc.pages[0]?.ref;
+  if (first?.kind !== 'source' || !isPristineDocument(ws, doc)) return undefined;
+  for (const other of ws.documentOrder) {
+    if (other === doc.id) continue;
+    const shown = ws.documents[other];
+    if (shown !== undefined && documentSources(shown).includes(first.source)) return undefined;
   }
-  return found;
+  return first.source;
 }
 
 /** Documents already looked at once (a document that appeared changed never gets a first mark). */
@@ -119,11 +131,12 @@ export function observeDocuments(ws: Workspace, entryAt: number): void {
     const doc = ws.documents[id];
     if (doc === undefined) continue;
     seen.add(id);
-    const origin = onlySource(doc);
-    if (origin !== undefined) origins[id] = [origin];
-    if (isPristineDocument(ws, doc)) {
-      marks[id] = { entryAt, document: doc, edits: editSignature(ws, doc), handleKept: false };
-    }
+    // Only the file is in its file: a pristine copy made from another document's pages
+    // (an extract of every page) has no file yet, so it gets no first mark either.
+    const origin = fileSource(ws, doc);
+    if (origin === undefined) continue;
+    origins[id] = [origin];
+    marks[id] = { entryAt, document: doc, edits: editSignature(ws, doc), handleKept: false };
   }
   if (Object.keys(marks).length === 0 && Object.keys(origins).length === 0) return;
   useSavedStore.setState((s) => ({
@@ -153,16 +166,60 @@ export function markSaved(
   useSavedStore.setState((s) => ({ marks: { ...s.marks, [id]: mark } }));
 }
 
-/** Documents whose file this session wrote over (in place, or through the save picker). */
+/**
+ * Documents whose file was written over (in place, or through the save picker), this session
+ * or before a reload, and restored documents whose snapshot does not say (`adoptFileFacts`).
+ */
 const writtenOver = new Set<DocumentId>();
 
 /**
  * Whether the file document `id` came from still holds the opened version: nothing was
- * written over it this session (a downloaded or shared copy leaves it as it was). Revert then
- * brings the document back to what is in its file.
+ * written over it (a downloaded or shared copy leaves it as it was). Revert then brings the
+ * document back to what is in its file.
  */
 export function fileIsAsOpened(id: DocumentId): boolean {
   return !writtenOver.has(id);
+}
+
+/** What the snapshot keeps of a document's file (`session/format.ts`, `DocumentPlace`). */
+export interface FileFacts {
+  /** The sources it was opened from, oldest first (`originOf`); empty when it is no file's. */
+  readonly origins: readonly SourceId[];
+  /** Save wrote over its file (`fileIsAsOpened` is false). */
+  readonly writtenOver: boolean;
+}
+
+/** Document `id`'s file facts, for its snapshot (also after it closed). */
+export function fileFactsOf(id: DocumentId): FileFacts {
+  return { origins: useSavedStore.getState().origins[id] ?? [], writtenOver: writtenOver.has(id) };
+}
+
+/**
+ * A restored or reopened document takes back the file facts its snapshot kept. A snapshot
+ * from before they were kept says nothing: the origin seen on restore stays, and the file
+ * counts as written over (unknown), so Revert never calls it saved. The "as opened" mark the
+ * restore gave a pristine document goes when its file is known to be written over (the file
+ * holds the saved changes, not these bytes) or when it is no file's (a copy of pages another
+ * document showed, alone now).
+ */
+export function adoptFileFacts(id: DocumentId, facts: Partial<FileFacts>): void {
+  if (facts.writtenOver === false) writtenOver.delete(id);
+  else writtenOver.add(id);
+  const { origins } = facts;
+  const noFile = origins?.length === 0;
+  useSavedStore.setState((s) => {
+    const { [id]: _origins, ...otherOrigins } = s.origins;
+    const { [id]: _mark, ...otherMarks } = s.marks;
+    return {
+      origins:
+        origins === undefined
+          ? s.origins
+          : origins.length > 0
+            ? { ...s.origins, [id]: origins }
+            : otherOrigins,
+      marks: facts.writtenOver === true || noFile ? otherMarks : s.marks,
+    };
+  });
 }
 
 /**

@@ -230,6 +230,12 @@ export async function openRecent(entry: RecentEntry): Promise<void> {
       announce(m.announce_opened({ name: kept.record.title }));
       return;
     }
+    if (kept?.ok === false && kept.reason === 'failed') {
+      // It did not open now (a skipped password prompt, an engine failure): the row keeps
+      // its snapshot for another try rather than opening the file without the changes.
+      toast.failure(m.session_reopen_failed({ name: kept.title ?? entry.name }));
+      return;
+    }
     // The snapshot is gone or unreadable: the row reopens like a plain recent.
   }
   const access = useRecentsStore.getState().access[entry.id];
