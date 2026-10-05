@@ -174,7 +174,7 @@ test.describe('the full edition', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
     // The Settings sheet (D0-10): its header, the rows that hold controls (the language
-    // segments, Recent files with Clear, Name on comments, Show tips again), then About Recto.
+    // segments, Recent files with Clear, Show tips again), then About Recto.
     await page.keyboard.press('ControlOrMeta+k');
     await page.getByRole('combobox').first().fill('Settings');
     await page

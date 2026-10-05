@@ -129,13 +129,19 @@ test('a switch applies at once, persists, and its palette command says it', asyn
 
 test('search finds each row in English and Turkish, and says when nothing matches', async ({
   page,
-}) => {
+}, info) => {
   await page.goto('./?lang=en');
   await openSettings(page);
   const panel = sheet(page);
   const search = panel.getByRole('searchbox', { name: 'Search settings' });
-  // A fine pointer starts in the search field.
-  await expect(search).toBeFocused();
+  if (info.project.name === TABLET) {
+    // A coarse pointer starts on the first row, so no keyboard pops up (07 S3 §6).
+    await expect(panel.getByRole('switch', { name: 'Glass panels' })).toBeFocused();
+    await search.click();
+  } else {
+    // A fine pointer starts in the search field.
+    await expect(search).toBeFocused();
+  }
 
   const rows = () => panel.locator('[data-row]');
   const cases: readonly [string, string][] = [
