@@ -136,7 +136,7 @@ async function mount() {
   if (first?.ref.kind !== 'source') throw new Error('no source page');
   useUiStore.getState().setZoom(1);
   useViewStore.getState().setCurrentPage(0);
-  useUiStore.getState().setDocumentMode(doc.id, 'edit');
+  useUiStore.getState().openMarkup(doc.id);
   const { container } = render(<Harness doc={doc} />);
   await waitFor(
     () => {
@@ -170,7 +170,7 @@ describe('the Edit text layer by keyboard (mounted)', () => {
     resetAnnotationStore();
     resetToolStore();
     useTextEditStore.getState().close();
-    useUiStore.setState({ destination: 'document', viewMode: 'read', documentMode: {} });
+    useUiStore.setState({ destination: 'document', docUi: {} });
   });
   afterEach(async () => {
     cleanup();

@@ -85,7 +85,7 @@ import {
   useOutlineViewStore,
 } from '../outline/outline-view-store';
 import { useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
+import { stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
 import { Tooltip } from '../ui/Tooltip';
@@ -158,7 +158,7 @@ function OutlineToolbar({ doc }: { readonly doc: VirtualDocument }) {
 /** Goes to an outline target: Read scrolls to it (and its position); Arrange selects it. */
 function goToDestination(destination: Extract<Destination, { kind: 'page' }>): void {
   const pageId = destination.page;
-  if (useUiStore.getState().viewMode === 'arrange') {
+  if (stageView(useUiStore.getState()) === 'grid') {
     useSelectionStore.getState().apply({
       selected: new Set([pageId]),
       anchor: pageId,

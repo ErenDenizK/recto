@@ -40,6 +40,7 @@ export function registerAppearanceCommands(registry: CommandRegistry): () => voi
         id: 'view.glassPanels',
         title: glassPanels ? m.cmd_view_glass_panels_on() : m.cmd_view_glass_panels_off(),
         group: m.group_view(),
+        act: null,
         keywords: [
           ...SHARED_KEYWORDS,
           'glass',
@@ -58,6 +59,7 @@ export function registerAppearanceCommands(registry: CommandRegistry): () => voi
           ? m.cmd_view_reduce_transparency_on()
           : m.cmd_view_reduce_transparency_off(),
         group: m.group_view(),
+        act: null,
         keywords: [
           ...SHARED_KEYWORDS,
           'transparency',

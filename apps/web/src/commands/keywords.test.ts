@@ -114,6 +114,7 @@ describe('palette keyword search', () => {
       id: 'tool.ink',
       title: 'Pen tool',
       group: 'Tools',
+      act: null,
       keywords: ['annotate'],
       run: () => undefined,
     });

@@ -68,6 +68,7 @@ export function registerFormCommands(registry: CommandRegistry): () => void {
       id: 'view.show.forms',
       title: m.cmd_show_forms(),
       group: m.group_view(),
+      act: null,
       keywords: ['panel', 'sidebar', 'form', 'fields', 'acroform'],
       run: () => useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'forms' }),
     }),
@@ -75,6 +76,7 @@ export function registerFormCommands(registry: CommandRegistry): () => void {
       id: 'forms.highlight',
       title: m.cmd_forms_highlight(),
       group: m.group_tools(),
+      act: null,
       keywords: ['form', 'fields', 'highlight', 'show'],
       run: () => {
         const on = !useFormStore.getState().highlight;
@@ -86,6 +88,7 @@ export function registerFormCommands(registry: CommandRegistry): () => void {
       id: 'forms.clear',
       title: m.cmd_forms_clear(),
       group: m.group_edit(),
+      act: 'document',
       keywords: ['form', 'fields', 'reset', 'empty'],
       when: () => activeDocument() !== undefined && canEditActive(),
       run: () => {

@@ -114,7 +114,7 @@ beforeEach(() => {
   resetFormStore();
   resetCreateStore();
   useToolStore.getState().setMode('select');
-  useUiStore.getState().setViewMode('read');
+  useUiStore.getState().showSurface('page');
 });
 
 afterEach(async () => {
@@ -407,7 +407,7 @@ describe('in Read (ADR-0019 §3)', () => {
       expect(useCreateStore.getState().placing).toBe('text');
       const id = model().workspace.activeDocument;
       if (id === undefined) throw new Error('no document');
-      act(() => useUiStore.getState().setDocumentMode(id, 'read'));
+      act(() => useUiStore.getState().closeMarkup(id));
       expect(useCreateStore.getState().placing).toBeNull();
     } finally {
       dispose();
