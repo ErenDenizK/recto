@@ -217,6 +217,7 @@
 }
 
 .track {
+  display: block;
   height: 2px;
   overflow: hidden;
   border-radius: 1px;
@@ -224,6 +225,7 @@
 }
 
 .fill {
+  display: block;
   height: 100%;
   background: var(--glass-text-secondary);
   transform-origin: left center;
