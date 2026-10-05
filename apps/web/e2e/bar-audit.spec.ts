@@ -252,6 +252,60 @@ test.describe('the full edition', () => {
     }
   });
 
+  test('New signature (S7) on each tab, the saved-signature chips and their Settings page', async ({
+    page,
+  }) => {
+    // D0-11: S7's header, its pad's Undo stroke and Clear, its Image row and its footer on each
+    // tab; then Fill & sign with a saved signature's chip, the signature menu, and Settings →
+    // Saved signatures with its list row and actions.
+    test.setTimeout(60_000);
+    const run = collector(page);
+    await openFull(page, 'simple-text.pdf');
+    await enterEdit(page);
+    const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
+    await bar.locator('[data-bar-group="fill"]').click();
+    await bar.getByRole('button', { name: 'Signature image', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'New signature' });
+    await expect(sheet).toBeVisible();
+    const pad = sheet.getByRole('img', { name: /^Signature pad/ });
+    const box = await pad.boundingBox();
+    if (!box) throw new Error('no pad');
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.6);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.4, { steps: 6 });
+    await page.mouse.up();
+    await run.audit('New signature, Draw');
+    await sheet.getByRole('tab', { name: 'Type' }).click();
+    await run.audit('New signature, Type');
+    await sheet.getByRole('tab', { name: 'Image' }).click();
+    await run.audit('New signature, Image');
+    await sheet.getByRole('tab', { name: 'Type' }).click();
+    await sheet.getByRole('textbox', { name: 'Your name' }).fill('Ada Lovelace');
+    await sheet.getByRole('button', { name: 'Use signature' }).click();
+    await expect(sheet).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(bar.locator('[data-saved-signature]')).toHaveCount(1);
+    await page.mouse.move(2, 450);
+    await run.audit('Edit, fill, a saved signature chip');
+
+    await bar.getByRole('button', { name: 'Signature image', exact: true }).click();
+    await expect(page.getByRole('menu')).toBeVisible();
+    await run.audit('Edit, the signature menu');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toHaveCount(0);
+
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.getByRole('combobox').first().fill('Saved signatures');
+    await page
+      .getByRole('option', { name: /^Saved signatures…/ })
+      .first()
+      .click();
+    const settings = page.getByTestId('settings-sheet');
+    await expect(settings.getByTestId('settings-signatures')).toBeVisible();
+    await run.audit('the Settings sheet, Saved signatures');
+    run.report();
+  });
+
   test('the password prompt, a Sheet: its footer', async ({ page }) => {
     const run = collector(page);
     await page.goto('./?lang=en');
