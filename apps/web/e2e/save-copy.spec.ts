@@ -205,45 +205,53 @@ async function mockPicker(page: Page, mode: 'save' | 'cancel' | 'fail' | 'fail-n
       removed: false,
     };
     (window as unknown as { __picker: Record }).__picker = record;
+    /** Runs `run` as a browser API would: later, its throw a rejection. */
+    const later = <T>(run: () => T): Promise<T> => Promise.resolve().then(run);
     Object.defineProperty(window, 'showSaveFilePicker', {
       configurable: true,
-      value: async (options: { suggestedName: string }) => {
-        record.calls.push({
-          name: options.suggestedName,
-          sheetOpen: document.querySelector('[data-testid="save-copy-sheet"]') !== null,
-          capsules: document.querySelectorAll('[data-testid="progress-capsule"]').length,
-        });
-        if (how === 'cancel') throw new DOMException('The user aborted a request.', 'AbortError');
-        return {
-          name: options.suggestedName,
-          createWritable: async () => ({
-            write: async (data: Blob) => {
-              if (how.startsWith('fail')) {
-                throw new DOMException(
-                  'There is not enough space on the disk.',
-                  'QuotaExceededError',
-                );
-              }
-              const bytes = new Uint8Array(await data.arrayBuffer());
-              if (record.bytes === 0) record.head = String.fromCharCode(...bytes.subarray(0, 5));
-              record.bytes += bytes.byteLength;
-            },
-            close: async () => {
-              record.closed = true;
-            },
-            abort: async () => {
-              record.aborted = true;
-            },
-          }),
-          ...(how === 'fail-no-remove'
-            ? {}
-            : {
-                remove: async () => {
-                  record.removed = true;
+      value: (options: { suggestedName: string }) =>
+        later(() => {
+          record.calls.push({
+            name: options.suggestedName,
+            sheetOpen: document.querySelector('[data-testid="save-copy-sheet"]') !== null,
+            capsules: document.querySelectorAll('[data-testid="progress-capsule"]').length,
+          });
+          if (how === 'cancel') throw new DOMException('The user aborted a request.', 'AbortError');
+          return {
+            name: options.suggestedName,
+            createWritable: () =>
+              later(() => ({
+                write: async (data: Blob) => {
+                  if (how.startsWith('fail')) {
+                    throw new DOMException(
+                      'There is not enough space on the disk.',
+                      'QuotaExceededError',
+                    );
+                  }
+                  const bytes = new Uint8Array(await data.arrayBuffer());
+                  if (record.bytes === 0)
+                    record.head = String.fromCharCode(...bytes.subarray(0, 5));
+                  record.bytes += bytes.byteLength;
                 },
-              }),
-        };
-      },
+                close: () =>
+                  later(() => {
+                    record.closed = true;
+                  }),
+                abort: () =>
+                  later(() => {
+                    record.aborted = true;
+                  }),
+              })),
+            ...(how === 'fail-no-remove'
+              ? {}
+              : {
+                  remove: () =>
+                    later(() => {
+                      record.removed = true;
+                    }),
+                }),
+          };
+        }),
     });
   }, mode);
 }
@@ -360,10 +368,11 @@ test.describe('Share copy on a coarse pointer', () => {
       });
       Object.defineProperty(navigator, 'share', {
         configurable: true,
-        value: async (data: { files: File[] }) => {
+        value: (data: { files: File[] }) => {
           for (const file of data.files) {
             shared.push({ name: file.name, type: file.type, size: file.size });
           }
+          return Promise.resolve();
         },
       });
     });
