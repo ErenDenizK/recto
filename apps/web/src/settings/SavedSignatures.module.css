@@ -1,0 +1,32 @@
+/*
+ * Settings → Saved signatures (components/07-sheets.md S3 §6): list rows with the signature's
+ * plate leading, its name and day, and Rename and Remove trailing on one centre line
+ * (quality-bar Q-9); the rest is the Settings sheet's own row, group and action styles.
+ */
+.row {
+  padding-block: 6px;
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.text > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The name field in place of the name: the row keeps its height. */
+.field {
+  flex: 1;
+  min-width: 0;
+}
+
+.buttons {
+  display: inline-flex;
+  flex: none;
+  gap: 8px;
+}
