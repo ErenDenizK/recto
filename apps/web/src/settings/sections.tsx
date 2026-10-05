@@ -222,8 +222,9 @@ export function CommentNameRow() {
   const hintId = useId();
   return (
     // The row's one shape: name and hint leading, the field trailing; the field keeps its own
-    // label (for assistive technology) and is described by the hint.
-    <Row id="commentName" bar>
+    // label (for assistive technology) and is described by the hint. A labelled field, not a
+    // bar: its well is the 32 / 44 px control (09 §12).
+    <Row id="commentName">
       <Line
         label={m.settings_comment_name()}
         labelHidden
