@@ -2440,6 +2440,8 @@
   "session_start_fresh": "Baştan başla",
   "session_started_fresh": "Baştan başlandı · {count} belge son açılanlarda saklanıyor",
   "session_restore_failed": "{name} geri yüklenemedi: saklanan kopyası bozuk. Asıl dosya değişmedi.",
+  "session_restore_failed_kept": "{name} şimdi geri yüklenemedi. Değişiklikleri son açılanlarda saklanıyor: yeniden denemek için oradan açın.",
+  "session_reopen_failed": "{name} şimdi açılamadı. Değişiklikleri hâlâ saklanıyor: yeniden deneyin.",
   "session_not_kept": "Bu pencerede değişiklikler saklanmaz",
   "session_history_start_fresh": "Baştan başla",
   "privacy_kept_heading": "Bu cihazda saklananlar",

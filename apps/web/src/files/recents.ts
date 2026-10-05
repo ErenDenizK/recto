@@ -202,9 +202,19 @@ export function sameRecentFile(
   return a.name === b.name && a.size === b.size;
 }
 
+/** Whether `entry` holds an edited snapshot other than `snapshotId` (another document's). */
+function holdsOtherEdits(entry: RecentEntry, snapshotId: string | undefined): boolean {
+  return entry.kept?.changed === true && entry.kept.snapshotId !== snapshotId;
+}
+
 /**
  * Adds `entry` at the top: an earlier entry for the same file (or the entry `replaces`
  * names) gives way, and the list is cut to `limit`. Returns the list and the ids that left.
+ *
+ * Every closed document stays reachable (ADR-0032 §2.6): a row holding another document's
+ * edited snapshot gives way to a snapshot only when `replaces` names it. A plain open of the
+ * file takes over one such row (the newest; `recordRecent` moves its snapshot along), never
+ * more, since two documents from one file (the original and a split part, say) are two rows.
  */
 export function addRecentEntry(
   entries: readonly RecentEntry[],
@@ -214,9 +224,15 @@ export function addRecentEntry(
   const limit = Math.max(1, options.limit ?? RECENTS_LIMIT);
   const removed: string[] = [];
   const kept: RecentEntry[] = [];
+  let takesOver = entry.kept === undefined;
   for (const existing of sortRecents(entries)) {
     if (existing.id === entry.id) continue;
-    if (existing.id === options.replaces || sameRecentFile(existing, entry)) {
+    const other = holdsOtherEdits(existing, entry.kept?.snapshotId);
+    if (
+      existing.id === options.replaces ||
+      (sameRecentFile(existing, entry) && (!other || takesOver))
+    ) {
+      if (other) takesOver = false;
       removed.push(existing.id);
       continue;
     }
@@ -574,10 +590,14 @@ export async function recordRecent(input: RecordRecentInput): Promise<RecentEntr
   const { entries, removed } = addRecentEntry(state.entries, entry, {
     ...(input.replaces === undefined ? {} : { replaces: input.replaces }),
   });
-  // A snapshot of the same file stays with the new entry; one that fell off the end goes.
-  const replaced = state.entries.find((e) => removed.includes(e.id) && e.kept !== undefined);
+  // A snapshot of the same file stays with the new entry (an edited one first); one that fell
+  // off the end goes.
+  const candidates = state.entries.filter(
+    (e) => removed.includes(e.id) && e.kept !== undefined && sameRecentFile(e, entry),
+  );
+  const replaced = candidates.find((e) => e.kept?.changed === true) ?? candidates[0];
   const inherited =
-    replaced?.kept !== undefined && sameRecentFile(replaced, entry) && entries[0] === entry
+    replaced?.kept !== undefined && entries[0] === entry
       ? { ...entry, kept: replaced.kept }
       : undefined;
   if (inherited !== undefined) entries[0] = inherited;
@@ -666,9 +686,16 @@ export interface KeepRecentInput {
 }
 
 /**
- * A closed document's snapshot was kept (session/writer.ts): the entry for its file carries
- * it from now on, or a new entry is made for it (a combined document, images, an entry that
- * was removed). The entry keeps its place and its handle.
+ * A closed document's snapshot was kept (session/writer.ts): the entry that holds this
+ * document's snapshot already, else the entry for its file, carries it from now on, or a new
+ * entry is made for it (a combined document, images, an entry that was removed). The entry
+ * keeps its place and its handle.
+ *
+ * One snapshot per row, and no edited document's snapshot is deleted for another's (ADR-0032
+ * §2.6: Recents keep each closed document's snapshot): a row's snapshot is replaced only by
+ * the same document's (`kept-<documentId>`) or when it had no changes. A second edited
+ * document from the same file (a split part, an extract, the file opened twice) gets a row
+ * of its own; an unedited copy of a file whose rows all hold edits is not kept.
  */
 export async function keepRecent(input: KeepRecentInput): Promise<void> {
   if (input.name.length === 0 || !isCount(input.size)) return;
@@ -684,7 +711,16 @@ export async function keepRecent(input: KeepRecentInput): Promise<void> {
     return;
   }
   const state = useRecentsStore.getState();
-  const existing = state.entries.find((entry) => sameRecentFile(entry, input));
+  const snapshotId = input.kept.snapshotId;
+  const rows = state.entries.filter((entry) => sameRecentFile(entry, input));
+  const existing =
+    state.entries.find((entry) => entry.kept?.snapshotId === snapshotId) ??
+    rows.find((entry) => !holdsOtherEdits(entry, snapshotId));
+  if (existing === undefined && !input.kept.changed && rows.length > 0) {
+    // Every row of the file holds an edited document: an unedited copy adds nothing.
+    keptRemover?.([snapshotId]);
+    return;
+  }
   if (existing === undefined) {
     const entry: RecentEntry = {
       id: ids(),
@@ -708,12 +744,8 @@ export async function keepRecent(input: KeepRecentInput): Promise<void> {
     });
     return;
   }
-  if (existing.kept !== undefined && existing.kept.snapshotId !== input.kept.snapshotId) {
-    // One snapshot per row: an edited one is never replaced by an unedited copy of the file.
-    if (existing.kept.changed && !input.kept.changed) {
-      keptRemover?.([input.kept.snapshotId]);
-      return;
-    }
+  // One snapshot per row: an unedited one gives way (`existing` holds no other edits).
+  if (existing.kept !== undefined && existing.kept.snapshotId !== snapshotId) {
     keptRemover?.([existing.kept.snapshotId]);
   }
   const updated: RecentEntry = { ...existing, kept: input.kept };
