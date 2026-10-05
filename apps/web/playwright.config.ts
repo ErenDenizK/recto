@@ -29,6 +29,21 @@ const SHEETS_SPEC = '**/sheets.spec.ts';
 const SETTINGS_SPEC = '**/settings.spec.ts';
 /** Save a copy's Share copy and J13B's touch count (spec D0-9, §10.5: jobs on the tablet). */
 const SAVE_COPY_SPECS = ['**/save-copy.spec.ts', '**/jobs.spec.ts'];
+/**
+ * Playwright's WebKit has no origin private file system, so the app keeps no snapshots there and
+ * rightly shows "Changes are not kept in this window" until dismissed (ADR-0032 §2.7). Its specs
+ * start with that warning already dismissed, so it neither covers the controls under test nor
+ * counts as one more toast and glass surface; `session.spec.ts` clears it to check the warning.
+ */
+const NOT_KEPT_SEEN = {
+  cookies: [],
+  origins: [
+    {
+      origin: `http://localhost:${port}`,
+      localStorage: [{ name: 'pdf-editor:session:not-kept-dismissed:v1', value: 'true' }],
+    },
+  ],
+};
 const touchDevice = (
   size: { width: number; height: number },
   userAgent: string,
@@ -63,7 +78,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], launchOptions: chromiumLaunchOptions() },
     },
     { name: 'firefox', testIgnore: COMPACT_SPEC, use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', testIgnore: COMPACT_SPEC, use: { ...devices['Desktop Safari'] } },
+    {
+      name: 'webkit',
+      testIgnore: COMPACT_SPEC,
+      use: { ...devices['Desktop Safari'], storageState: NOT_KEPT_SEEN },
+    },
     {
       name: 'phone',
       testMatch: [COMPACT_SPEC, BAR_AUDIT_SPEC],

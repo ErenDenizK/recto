@@ -33,6 +33,15 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
+  // The WebKit project starts with the not-kept warning dismissed (playwright.config.ts); this
+  // spec checks the warning itself, so it is shown again.
+  await page.addInitScript(() => {
+    try {
+      localStorage.removeItem('pdf-editor:session:not-kept-dismissed:v1');
+    } catch {
+      // No storage: nothing was remembered.
+    }
+  });
   // Playwright cannot drive the native save picker: force the download path for export.
   await page.addInitScript({
     content:
