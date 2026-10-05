@@ -38,6 +38,7 @@ import { registerLanguageCommands } from '../i18n/language-commands';
 import { registerOcrCommands } from '../ocr';
 import { PRODUCT_NAME } from '../shell/about/build-info';
 import { announce } from '../shell/announcer';
+import { focusOpenedPage } from '../shell/focus-opened-page';
 import { useAuthorPrompt } from '../shell/comment-author';
 import { openImagesAsDocument } from '../stage/section-operations';
 import { selectAllOf, useSelectionStore } from '../state/selection-store';
@@ -173,9 +174,14 @@ export async function clearRecentFiles(): Promise<void> {
  * new cards selected (experience-redesign §3).
  */
 export async function openFilesFromPicker(): Promise<void> {
+  // Where the focus was: the opened document's pages take it if it has not moved since.
+  const before = document.activeElement;
   const files = await pickFiles('openable');
   const wasEmpty = model().workspace.documentOrder.length === 0;
   showOpened(await openDocuments(files), { wasEmpty });
+  // On a document (not Home's selected cards), focus goes to its pages (01-frame F3 §6).
+  const active = model().workspace.activeDocument;
+  if (active && ui().destination !== 'home') focusOpenedPage(active, before);
 }
 
 /**

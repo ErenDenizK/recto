@@ -101,6 +101,7 @@ export default defineConfig({
         '**/smoke.spec.ts',
         '**/long-press.spec.ts',
         '**/history.spec.ts',
+        '**/tab-strip.spec.ts',
         BAR_AUDIT_SPEC,
         SHEETS_SPEC,
         SETTINGS_SPEC,

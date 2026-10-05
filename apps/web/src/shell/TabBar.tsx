@@ -37,6 +37,7 @@ import { SaveButton } from './frame/SaveButton';
 import { UndoRedo } from './frame/UndoRedo';
 import styles from './TabBar.module.css';
 import { useCommandShortcut } from './use-command-shortcut';
+import { useTablistEdges } from './use-tablist-edges';
 
 export const STAGE_ID = 'stage';
 
@@ -63,6 +64,8 @@ export function TabBar() {
   // The saved mark (X13): ● after the name while a document's changes are not in its file.
   const workspace = useWorkspaceStore((s) => s.workspace);
   const marks = useSavedStore((s) => s.marks);
+  // Fades the list's edge while tabs lie beyond it; keeps the active tab in view on resize.
+  const tablistRef = useTablistEdges();
 
   // Keep the active tab visible when the strip overflows.
   useEffect(() => {
@@ -117,7 +120,12 @@ export function TabBar() {
 
       <div className={styles.tabsRegion}>
         {documents.length > 0 ? (
-          <div role="tablist" aria-label={m.tabs_label()} className={styles.tablist}>
+          <div
+            ref={tablistRef}
+            role="tablist"
+            aria-label={m.tabs_label()}
+            className={styles.tablist}
+          >
             {documents.map((doc) => {
               const active = doc.id === activeTabId;
               const selected = active && !onHome;
