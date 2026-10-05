@@ -1,8 +1,10 @@
 /**
  * Palette commands for the appearance settings (spec craft §7): "Glass panels" and "Reduce
  * transparency" toggle and say the new state; their titles carry the current one ("Glass
- * panels: off"). The Document menu shows the same two settings
- * as checkbox items (`tools/DocumentMenu.tsx`).
+ * panels: off"). The Settings sheet's Appearance rows (components/07-sheets.md S3; spec
+ * redesign D0-10) set the same values through the same setters, and "Appearance settings…"
+ * (`settings/settings-commands.ts`) opens the sheet there: the Document menu's Appearance
+ * submenu is gone (07 §25), and these commands stay so every setting is one ⌘K away.
  */
 import type { CommandRegistry } from '../commands/registry';
 import { m } from '../i18n';

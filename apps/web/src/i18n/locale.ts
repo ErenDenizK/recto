@@ -73,7 +73,22 @@ function detectFromEnvironment(): Locale {
 }
 
 let current: Locale = detectFromEnvironment();
+/**
+ * No language was chosen (Settings → Language "Follow the browser", components/07-sheets.md S3,
+ * spec 07.8): the locale is the browser's, read again whenever "Follow the browser" is chosen.
+ * A `?lang=` override is a choice for this visit, so it does not follow.
+ */
+let following = isFollowing({
+  search: globalThis.location?.search ?? '',
+  stored: readJson(LOCALE_STORAGE_KEY),
+});
 const listeners = new Set<() => void>();
+
+/** Whether these sources leave the language to the browser (no override, no saved choice). */
+export function isFollowing({ search = '', stored }: Pick<LocaleSources, 'search' | 'stored'>) {
+  if (matchLocale(new URLSearchParams(search).get(LOCALE_QUERY_PARAM))) return false;
+  return !(typeof stored === 'string' && isLocale(stored));
+}
 
 /** Mirrors the locale on `<html lang dir>` for assistive tech, hyphenation and fonts. */
 export function applyDocumentLocale(locale: Locale = current): void {
@@ -94,11 +109,55 @@ export function getLocale(): Locale {
 export function setLocale(locale: Locale): boolean {
   if (locale === current) return false;
   current = locale;
+  following = false;
   writeJson(LOCALE_STORAGE_KEY, locale);
   dropQueryOverride();
   applyDocumentLocale(locale);
   for (const listener of listeners) listener();
   return true;
+}
+
+/** The language the browser asks for (`navigator.languages`), else the base locale. */
+export function browserLocale(
+  languages: readonly string[] = globalThis.navigator?.languages ?? [],
+): Locale {
+  return detectLocale({ languages });
+}
+
+/** Whether the language follows the browser: nothing was chosen and nothing overrides it. */
+export function followsBrowser(): boolean {
+  return following;
+}
+
+/**
+ * Settings → Language (07 S3): `'browser'` forgets the saved choice and takes the browser's
+ * language; a locale is saved as the choice even when it is already shown. Returns whether
+ * the shown language changed. Listeners hear every change of the choice.
+ */
+export function chooseLocale(choice: Locale | 'browser'): boolean {
+  if (choice !== 'browser') {
+    if (setLocale(choice)) return true;
+    if (!following) return false;
+    following = false;
+    writeJson(LOCALE_STORAGE_KEY, choice);
+    dropQueryOverride();
+    for (const listener of listeners) listener();
+    return false;
+  }
+  const before = current;
+  const wasFollowing = following;
+  // `null` is no choice: `detectLocale` reads the browser's languages on the next launch too.
+  writeJson(LOCALE_STORAGE_KEY, null);
+  dropQueryOverride();
+  following = true;
+  const next = browserLocale();
+  if (next === before && wasFollowing) return false;
+  if (next !== before) {
+    current = next;
+    applyDocumentLocale(next);
+  }
+  for (const listener of listeners) listener();
+  return next !== before;
 }
 
 function dropQueryOverride(): void {

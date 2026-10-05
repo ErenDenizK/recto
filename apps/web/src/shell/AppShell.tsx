@@ -9,8 +9,8 @@
  * page canvas extends under the docked frame, which stacks above it, and lays its pages out
  * in the rectangle the frame leaves free (stage/stage-bleed.ts).
  *
- * Owns the global shortcut listener, window-wide file drops and the appearance settings on
- * the root element (Glass panels, Reduce transparency).
+ * Owns the global shortcut listener, window-wide file drops, the appearance settings on the
+ * root element (Glass panels, Reduce transparency) and the Settings sheet's host (D0-10).
  */
 import { type DragEvent, useEffect, useRef, useState } from 'react';
 
@@ -22,10 +22,11 @@ import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
 import { useAppearanceRoot } from '../state/appearance-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { registerSettingsCommands } from '../settings/settings-commands';
+import { SettingsHost } from '../settings/SettingsHost';
 import { ConfirmHost } from '../ui/sheet';
 import { ToastRegion } from '../ui/Toast/ToastRegion';
 import { TooltipProvider } from '../ui/Tooltip';
-import { AboutDialog } from './about/AboutDialog';
 import { registerAppearanceCommands } from './appearance-commands';
 import { announce } from './announcer';
 import styles from './AppShell.module.css';
@@ -50,6 +51,8 @@ export function AppShell() {
   useRegionCycling(shellRef);
   useAppearanceRoot();
   useEffect(() => registerAppearanceCommands(commandRegistry), []);
+  // Settings… (Mod+,) and the commands that open the Settings sheet at a row (D0-10).
+  useEffect(() => registerSettingsCommands(commandRegistry), []);
 
   const onDragEnter = (event: DragEvent) => {
     if (!dragHasFiles(event.dataTransfer)) return;
@@ -107,7 +110,7 @@ export function AppShell() {
       </div>
       <CommandPalette />
       <ShortcutOverlay />
-      <AboutDialog />
+      <SettingsHost />
       <PasswordDialog />
       <ConfirmHost />
       <ToastRegion />

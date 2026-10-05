@@ -1,0 +1,299 @@
+/*
+ * The Settings sheet (components/07-sheets.md S3 §2–§4; quality-bar Q-4, Q-8, Q-9, Q-14).
+ *
+ * One grouped scroll inside the Sheet primitive's glass panel. Nothing in here is glass (Q-4):
+ * each group is a tint well (`--control-fill`) with hairlines between its rows, the controls
+ * are the primitives of `ui/` at `--control-h`, and text keeps the one type scale (13 / 18 body,
+ * 12 / 16 footnotes, weights 400 · 500 · 600). Rows are 44 px tall on a fine pointer and 56 on
+ * a coarse one; navigation rows end in a 16 px caret.
+ */
+
+/* The form sheet on the medium class keeps one height while the search filters, so the
+   centred panel never jumps as rows come and go (07 §2.2: form ≤ 640 wide). */
+:global(.glass[data-sheet='settings'][data-presentation='form']) {
+  height: min(760px, calc(100dvh - 104px));
+}
+
+.search {
+  display: grid;
+  gap: 8px;
+}
+
+.page {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+
+.section {
+  display: grid;
+  gap: 6px;
+}
+
+.heading {
+  padding-inline: 12px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 600;
+  line-height: var(--type-footnote-lh);
+}
+
+.group {
+  display: grid;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--control-fill);
+}
+
+.row {
+  --row-h: 44px;
+  --row-pad: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  min-height: var(--row-h);
+  padding: 6px var(--row-pad);
+  scroll-margin-block: 12px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .row {
+    --row-h: 56px;
+    --row-pad: 16px;
+  }
+}
+
+.row + .row {
+  border-top: 1px solid var(--border-hairline);
+}
+
+/* A row the opener named: a tint that fades once (07 S3 §6: commands open the sheet there). */
+.row[data-revealed] {
+  animation: reveal 1200ms var(--ease-out) both;
+}
+
+@keyframes reveal {
+  0%,
+  40% {
+    background: var(--control-fill-pressed);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row[data-revealed] {
+    animation-duration: 600ms;
+  }
+}
+
+/* Label leading, value or control trailing, on one centre line. */
+.line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: var(--control-h);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  flex: none;
+  max-width: 55%;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--control-text);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--control-lh);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hint {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.switch {
+  width: 100%;
+}
+
+/* A row that pushes a page or follows a link: the whole row is the button. */
+.nav {
+  composes: focus-inset from global;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.row.navRow {
+  padding: 0;
+}
+
+.navRow .nav {
+  min-height: var(--row-h);
+  padding: 6px var(--row-pad);
+}
+
+@media (hover: hover) {
+  .nav:hover {
+    background: var(--control-fill-hover);
+  }
+}
+
+.nav:active {
+  background: var(--control-fill-pressed);
+}
+
+.navText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.navText .hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--text-secondary);
+}
+
+.caret {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+}
+
+.statement {
+  padding-inline: 12px;
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+}
+
+.note {
+  display: flex;
+  gap: 8px;
+  padding-inline: 12px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--type-footnote);
+}
+
+.code {
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.empty {
+  padding: 24px 12px;
+  color: var(--text-secondary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  text-align: center;
+}
+
+/* About Recto: the name with the glyph and the release state. */
+.aboutHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 12px;
+}
+
+.aboutName {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 22px;
+  letter-spacing: -0.01em;
+}
+
+.badge {
+  flex: none;
+  padding: 0 8px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  font-weight: 500;
+  line-height: 18px;
+}
+
+/* The kept documents' list rows: name leading, state and size trailing. */
+.keptName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-inline: 12px;
+  color: var(--text-secondary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+}
+
+.mark {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--warning, currentColor);
+}
+
+@media (forced-colors: active) {
+  .group {
+    border: 1px solid CanvasText;
+  }
+}
