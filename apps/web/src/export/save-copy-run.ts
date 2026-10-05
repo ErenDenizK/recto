@@ -434,6 +434,11 @@ export async function runSaveCopy(
   documentId: DocumentId,
   request: CopyRequest,
   target: CopyTarget,
+  /**
+   * Work before the copy is built: "Apply and save" applies the pending redaction marks
+   * (07.10). Resolves to a failure reason, or null to go on.
+   */
+  before?: () => Promise<string | null>,
 ): Promise<'done' | 'failed' | 'stopped'> {
   const title = useWorkspaceStore.getState().workspace.documents[documentId]?.title ?? '';
   const controller = new AbortController();
@@ -449,6 +454,8 @@ export async function runSaveCopy(
   };
   let output: CopyOutput;
   try {
+    const refused = before ? await before() : null;
+    if (refused !== null) throw new CopyError(refused);
     output = await buildCopy(documentId, request, {
       signal: controller.signal,
       onProgress: (share) => job?.update({ progress: share, label: jobLabel(share) }),

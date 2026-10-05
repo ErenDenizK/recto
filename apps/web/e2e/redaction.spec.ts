@@ -27,6 +27,7 @@ import {
   openFixtures,
   openSaveCopy,
   showInspector,
+  useDownloadPath,
   useFileInputPicker,
 } from './helpers';
 
@@ -149,10 +150,16 @@ test('mark by selection and by area, list them, export and re-open with the mark
     .uncheck();
   await expect(panel.getByTestId('redaction-summary')).toHaveText('2 marks · 1 selected');
 
-  // 4. Export: the marks are written as /Redact with /IC black; nothing is applied.
+  // 4. Save a copy without applying: Save a copy asks first (07.10), and the marks are written
+  // as /Redact with /IC black; nothing is applied.
   const exportDialog = await openSaveCopy(page);
   const downloadPromise = page.waitForEvent('download');
   await exportDialog.getByRole('button', { name: 'Download copy' }).click();
+  const question = exportDialog.getByTestId('save-copy-marks');
+  await expect(question).toContainText('2 marks not applied');
+  await expect(question).toContainText('The text under 2 marks is still in the file.');
+  await expect(question.getByRole('button', { name: 'Apply and save' })).toBeFocused();
+  await question.getByRole('button', { name: 'Save without applying' }).click();
   const bytes = await readFile(await (await downloadPromise).path());
   const marks = await redactAnnotations(bytes);
   expect(marks).toHaveLength(2);
@@ -451,4 +458,34 @@ test('Esc and the backdrop while applying: the dialog stays and the blocked outc
   await panel.getByTestId('redaction-apply').click();
   await expect(dialog.getByTestId('redaction-apply-confirm')).toBeVisible();
   await expect(dialog.getByTestId('redaction-blocked')).toHaveCount(0);
+});
+
+test('Save a copy asks about an unapplied mark; Apply and save removes the text for good', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await useDownloadPath(page);
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  await openFixtures(page, ['redact-text-runs.pdf']);
+  await enterEdit(page);
+  await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+    timeout: 20_000,
+  });
+  await selectText(page, TOKEN);
+  await page.keyboard.press('x');
+  await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+
+  const sheet = await openSaveCopy(page);
+  await sheet.getByRole('button', { name: 'Download copy' }).click();
+  const question = sheet.getByTestId('save-copy-marks');
+  await expect(question).toContainText('1 mark not applied');
+  const downloadPromise = page.waitForEvent('download', { timeout: 60_000 });
+  await question.getByRole('button', { name: 'Apply and save' }).click();
+  const bytes = await readFile(await (await downloadPromise).path());
+  // Applied: no mark left in the copy, and the token's text is gone from it.
+  expect(await redactAnnotations(bytes)).toHaveLength(0);
+  expect(bytes.toString('latin1')).not.toContain(TOKEN);
+  await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(0);
 });
