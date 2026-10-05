@@ -94,6 +94,24 @@ describe('New signature', () => {
     expect(within(dialog).getByRole('checkbox', { name: 'Save for next time' })).toBeChecked();
   });
 
+  it('keeps one size across Draw, Type and Image; the empty Image well picks the image', async () => {
+    const dialog = await openSheet();
+    const height = () => dialog.getBoundingClientRect().height;
+    const drawn = height();
+    await userEvent.click(page.getByRole('tab', { name: 'Type' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Your name' }), 'Ada');
+    expect(height()).toBe(drawn);
+    await userEvent.click(page.getByRole('tab', { name: 'Image' }));
+    expect(height()).toBe(drawn);
+    expect(
+      within(dialog).getByRole('button', { name: 'Choose image…' }),
+    ).toHaveAccessibleDescription(
+      'Choose a PNG or JPEG of your signature, ideally on a transparent background.',
+    );
+    // The hidden panels keep their room but are out of reach.
+    expect(within(dialog).queryByRole('textbox', { name: 'Your name' })).toBeNull();
+  });
+
   it('draws on the pad, undoes a stroke, clears, and says how many strokes it holds', async () => {
     const dialog = await openSheet();
     const pad = within(dialog).getByRole('img', {
