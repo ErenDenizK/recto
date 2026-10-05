@@ -35,6 +35,7 @@ import {
 import { getEngineService } from '../engine/engine-service';
 import { forgetKept, keepRecent, onKeptRemoved, useRecentsStore } from '../files/recents';
 import { m } from '../i18n';
+import { lockOf, useLockStore } from '../state/lock-store';
 import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
 import { documentUi, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
@@ -111,12 +112,15 @@ function placeState(tracker: ChangeTracker): PlaceState {
     fitMode: ui.fitMode,
     place: (id) => {
       const { surface, markup } = documentUi(ui, id);
+      const lock = lockOf(id);
       return {
         page: pages.get(id) ?? 0,
         // The format keeps M8's names: the page view is 'read', the grid 'arrange'; Markup
-        // carries M8's Edit until the lock replaces it (D1-2).
+        // carries M8's Edit until the input rules replace it (D1-5). The lock has its own
+        // field, kept with the document (redesign spec §7); unlocked writes nothing.
         view: surface === 'grid' ? 'arrange' : 'read',
         mode: markup ? 'edit' : 'read',
+        ...(lock === undefined ? {} : { lock }),
         ...fileFactsOf(id),
       };
     },
@@ -217,6 +221,9 @@ function watch(ctl: Controller): () => void {
       writer.noteChange('view');
     }
   });
+  const offLocks = useLockStore.subscribe((state, previous) => {
+    if (state.locks !== previous.locks) writer.noteChange('view');
+  });
   const offView = useViewStore.subscribe((state, previous) => {
     if (state.currentPage === previous.currentPage) return;
     const id = useWorkspaceStore.getState().workspace.activeDocument;
@@ -233,6 +240,7 @@ function watch(ctl: Controller): () => void {
   return () => {
     offWorkspace();
     offUi();
+    offLocks();
     offView();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', flushNow);
