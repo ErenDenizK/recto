@@ -110,9 +110,10 @@ test('a new user merges two dropped files in under five actions', async ({ page 
 
   // A new document with every page, in Read; the two files stay open.
   await expect(documentTabs(page)).toHaveCount(3);
+  // A combined document is in no file yet: its tab says so (01-frame §5, the saved mark).
   await expect(
     documentTabs(page).and(page.getByRole('tab', { selected: true })),
-  ).toHaveAccessibleName('Combined – simple-text + rotated-pages');
+  ).toHaveAccessibleName('Combined – simple-text + rotated-pages, edited');
   await expect(page.getByTestId('home')).toHaveCount(0);
   await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 7');
   expect(user.actions).toBeLessThanOrEqual(5);
@@ -262,9 +263,10 @@ test('a card dragged onto another opens the merge dialog with the target first',
 
   await dialog.getByRole('button', { name: 'Combine', exact: true }).click();
   await expect(documentTabs(page)).toHaveCount(3);
+  // A combined document is in no file yet: its tab says so (01-frame §5, the saved mark).
   await expect(
     documentTabs(page).and(page.getByRole('tab', { selected: true })),
-  ).toHaveAccessibleName('Combined – rotated-pages + simple-text');
+  ).toHaveAccessibleName('Combined – rotated-pages + simple-text, edited');
   await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 7');
 });
 
