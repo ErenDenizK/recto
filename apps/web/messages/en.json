@@ -4209,6 +4209,7 @@
   "save_copy_save": "Save copy",
   "save_copy_download": "Download copy",
   "save_copy_share": "Share copy",
+  "save_copy_checking_marks": "Checking for redaction marks…",
   "save_copy_preparing": "Preparing… {percent} %",
   "save_copy_images_type": "Type",
   "save_copy_copy_image": "Copy to clipboard",

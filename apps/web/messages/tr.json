@@ -2759,6 +2759,7 @@
   "save_copy_save": "Kopyayı kaydet",
   "save_copy_download": "Kopyayı indir",
   "save_copy_share": "Kopyayı paylaş",
+  "save_copy_checking_marks": "Karartma işaretleri denetleniyor…",
   "save_copy_preparing": "Hazırlanıyor… %{percent}",
   "save_copy_images_type": "Tür",
   "save_copy_copy_image": "Panoya kopyala",
