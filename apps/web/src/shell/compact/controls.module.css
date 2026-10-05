@@ -76,6 +76,18 @@
   font-weight: 600;
 }
 
+/* Disabled (Go with no page typed; Open PDF while a file opens): the shared disabled step,
+   `--control-disabled-fill` under the disabled label (Q-14). The canvas-dark label above would
+   all but vanish on that fill, and `.btn`'s disabled label is not composed here. */
+.primary:is(:disabled, [aria-disabled='true']) {
+  color: var(--text-disabled);
+}
+
+/* Busy ("Opening…") is a disabled press that says what it is doing: its label stays legible. */
+.primary[aria-busy='true'] {
+  color: var(--text-secondary);
+}
+
 /* A quiet label button in a header ("Clear", "Done"): secondary text, same box. */
 .quiet {
   color: var(--text-secondary);

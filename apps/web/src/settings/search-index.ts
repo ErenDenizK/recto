@@ -14,10 +14,8 @@
  *   palette does (`commands/fuzzy.ts`): "saydamlik" finds "Saydamlığı azalt" in the English
  *   UI, and "glass" finds it in the Turkish one.
  *
- * **Extension point (D0-11, Saved signatures).** Add `'signatures'` to `SettingsPageId`, a
- * `savedSignatures` row in `documents` with `opens: 'signatures'` (after `keptDocuments`, as
- * in 07 S3's anatomy), its title and keywords messages, and its page in
- * `SettingsSheet.tsx`'s `PAGES`; search, ⌘K coverage and the page stack follow from here.
+ * **Saved signatures (D0-11)** push their page from Documents and storage, after Kept
+ * documents, as in 07 S3's anatomy (`SavedSignatures.tsx`).
  */
 import { foldForSearch } from '../commands/fuzzy';
 import { type Locale, locales, m } from '../i18n';
@@ -35,7 +33,7 @@ export type SettingsSectionId =
   | 'more';
 
 /** The pages a row pushes (07 S3 §2: four long sections push a page). */
-export type SettingsPageId = 'kept' | 'privacy' | 'about';
+export type SettingsPageId = 'kept' | 'signatures' | 'privacy' | 'about';
 
 export type SettingsRowId =
   | 'glassPanels'
@@ -43,6 +41,7 @@ export type SettingsRowId =
   | 'language'
   | 'penDrawsInEdit'
   | 'keptDocuments'
+  | 'savedSignatures'
   | 'recents'
   | 'commentName'
   | 'showTips'
@@ -108,6 +107,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
 
 export const SETTINGS_PAGES: readonly SettingsPage[] = [
   { id: 'kept', title: at(m.settings_kept_documents), row: 'keptDocuments' },
+  { id: 'signatures', title: at(m.settings_saved_signatures), row: 'savedSignatures' },
   { id: 'privacy', title: at(m.settings_section_privacy), row: 'privacy' },
   { id: 'about', title: aboutTitle, row: 'about' },
 ];
@@ -153,7 +153,14 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     opens: 'kept',
     commands: ['settings.keptDocuments'],
   },
-  // D0-11: the `savedSignatures` row goes here (see the module comment).
+  {
+    id: 'savedSignatures',
+    section: 'documents',
+    title: at(m.settings_saved_signatures),
+    keywords: at(m.settings_saved_signatures_keywords),
+    opens: 'signatures',
+    commands: ['settings.savedSignatures'],
+  },
   {
     id: 'recents',
     section: 'documents',

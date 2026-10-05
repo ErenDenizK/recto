@@ -8,7 +8,7 @@
  *
  * - **Settings…** (Mod+, where the browser leaves it) opens the sheet;
  * - **Appearance settings…** opens it at Appearance (the Appearance submenu's successor);
- * - **Kept documents…**, **Privacy settings…** push their page; **Name on comments…** focuses
+ * - **Kept documents…**, **Saved signatures…**, **Privacy settings…** push their page; **Name on comments…** focuses
  *   the field;
  * - **Show tips again** resets the one-time hints, and **Language: follow the browser** sets the
  *   third language choice (07.8).
@@ -74,6 +74,13 @@ export function registerSettingsCommands(registry: CommandRegistry): () => void 
       group: m.group_general(),
       keywords: rowKeywords('keptDocuments'),
       run: () => openSettings({ row: 'keptDocuments' }),
+    }),
+    registry.register({
+      id: 'settings.savedSignatures',
+      title: m.settings_cmd_signatures(),
+      group: m.group_general(),
+      keywords: rowKeywords('savedSignatures'),
+      run: () => openSettings({ row: 'savedSignatures' }),
     }),
     registry.register({
       id: 'settings.commentName',

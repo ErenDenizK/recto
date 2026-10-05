@@ -1,0 +1,62 @@
+/*
+ * A signature plate (components/03-markup.md MK-12 §3): content, so solid page white with
+ * --radius-sm, never glass (quality-bar Q-4); a hairline keeps it from melting into a light
+ * theme's tint. The signature keeps its aspect inside a small inset.
+ */
+.plate {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--page-background);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  /* The plate is the page's white in both themes: its text is the ink, never the theme's. */
+  color-scheme: light;
+}
+
+/* In a bar or menu: 56 × 24 inside a 32 px control (64 × 32 inside 44 on a coarse pointer). */
+.plate[data-size='chip'] {
+  width: 56px;
+  height: 24px;
+  padding: 2px 4px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .plate[data-size='chip'] {
+    width: 64px;
+    height: 32px;
+  }
+}
+
+/* A Settings row: 72 × 28 (MK-12 §2's plate). */
+.plate[data-size='row'] {
+  width: 72px;
+  height: 28px;
+  padding: 3px 6px;
+}
+
+/* New signature's previews: the pad's own aspect, full width; a short name stays at most the
+   size the pad would draw it. */
+.plate[data-size='preview'] {
+  width: 100%;
+  aspect-ratio: 440 / 160;
+  padding: 44px 32px;
+  border-radius: var(--radius-control);
+}
+
+.image,
+.drawing {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (forced-colors: active) {
+  .plate {
+    border: 1px solid CanvasText;
+  }
+}

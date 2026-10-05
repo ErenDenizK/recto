@@ -297,11 +297,12 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
         else {
           const body = target.closest<HTMLElement>('[data-sheet-body]');
           // From the content only when it is scrolled to its top (07 §2.6), and never from a
-          // field, where a drag selects text.
+          // field, where a drag selects text, or from a surface that owns the drag (New
+          // signature's pad, `data-sheet-no-swipe`, 07 §9 item 2).
           if (
             body &&
             body.scrollTop <= 0 &&
-            !target.closest('input, textarea, select, [contenteditable]')
+            !target.closest('input, textarea, select, [contenteditable], [data-sheet-no-swipe]')
           ) {
             zone = 'content';
           }

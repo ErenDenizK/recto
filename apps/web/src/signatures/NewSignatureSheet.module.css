@@ -1,0 +1,116 @@
+/*
+ * S7, New signature (components/07-sheets.md §9; 03-markup.md MK-13 §2, §3; quality-bar Q-4,
+ * Q-8, Q-9). Inside the Sheet primitive's glass panel; nothing here is glass. The pad and the
+ * previews are content: solid page white (L§2.10) with a dashed hairline, the signature in its
+ * ink. Controls are the primitives of `ui/`; the rows under the pad carry `data-bar` so the
+ * control audit checks them like any bar.
+ */
+.body {
+  display: grid;
+  gap: 16px;
+}
+
+/* Grid children never grow past the sheet for a long line (the Image tab's hint). */
+.body > *,
+.panel > * {
+  min-width: 0;
+}
+
+.panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin-top: 12px;
+}
+
+.padWrap {
+  display: grid;
+  gap: 8px;
+}
+
+/* The pad keeps 440 × 160 as its aspect at any width, so strokes never stretch. */
+.padFrame {
+  position: relative;
+  /* Ink on the page, not chrome: the signature's navy at 45 % for the hint and line. */
+  --pad-hint: rgb(26 35 126 / 0.45);
+}
+
+.pad {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 440 / 160;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--page-background);
+  /* Drawing owns the pad: no scroll, zoom or swipe starts here (07 §9 item 4). */
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* "Sign here" and its line, under the strokes, never in the way of the pointer. */
+.signHere {
+  position: absolute;
+  bottom: calc(28% + 6px);
+  left: 9%;
+  color: var(--pad-hint);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  pointer-events: none;
+}
+
+.baseline {
+  position: absolute;
+  right: 9%;
+  bottom: 28%;
+  left: 9%;
+  height: 1px;
+  background: var(--pad-hint);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.padActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.preview {
+  border: 1px dashed var(--border-strong);
+}
+
+.emptyImage {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 440 / 160;
+  padding: 16px 24px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--control-fill);
+  color: var(--text-secondary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  text-align: center;
+}
+
+.keep {
+  display: grid;
+  gap: 12px;
+}
+
+.hint {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+@media (forced-colors: active) {
+  .pad {
+    border-color: CanvasText;
+  }
+}

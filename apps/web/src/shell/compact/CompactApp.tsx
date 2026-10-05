@@ -32,7 +32,7 @@ import { CompactLibrary } from './CompactLibrary';
 import { CompactPassword } from './CompactPassword';
 import { CompactReader } from './CompactReader';
 import { shareOrDownload } from './compact-actions';
-import { showLibrary, showReader, useCompactStore } from './compact-store';
+import { capsuleAway, showLibrary, showReader, useCompactStore } from './compact-store';
 
 const VIEWPORT =
   'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content';
@@ -101,7 +101,7 @@ export function CompactApp() {
  * the reader's capsule, or above the home indicator when the capsule is away or absent.
  */
 function CompactToasts() {
-  const away = useCompactStore((s) => s.place !== 'reader' || s.chromeHidden || s.findOpen);
+  const away = useCompactStore((s) => s.place !== 'reader' || capsuleAway(s));
   return <ToastRegion edition="compact" band={away ? 'away' : 'shown'} />;
 }
 

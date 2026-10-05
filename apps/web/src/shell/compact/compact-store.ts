@@ -12,7 +12,7 @@ import { create } from 'zustand';
 export type CompactPlace = 'library' | 'reader';
 export type CompactSheet = 'pages' | 'contents' | 'goto' | 'info' | 'about';
 
-interface CompactState {
+export interface CompactState {
   readonly place: CompactPlace;
   /** The top bar and the capsule are hidden (a tap or a scroll down); `inert` while so. */
   readonly chromeHidden: boolean;
@@ -47,6 +47,20 @@ const INITIAL: CompactState = {
 };
 
 export const useCompactStore = create<CompactState>()(() => INITIAL);
+
+/**
+ * The top bar steps away while the chrome is hidden or a sheet is open: a sheet is the place
+ * then, and on a phone on its side its 92 % detent reaches over the bar's band.
+ */
+export const topBarAway = (s: CompactState): boolean => s.chromeHidden || s.sheet !== null;
+
+/**
+ * The capsule steps away while the chrome is hidden, Find has the top bar, or a sheet is open:
+ * it sits under the sheet's lower half, where its dark pill would show through the sheet's
+ * glass while the sheet rises (XD-3). The toast stack follows it (`CompactApp`).
+ */
+export const capsuleAway = (s: CompactState): boolean =>
+  s.chromeHidden || s.findOpen || s.sheet !== null;
 
 const set = (patch: Partial<CompactState>) => useCompactStore.setState(patch);
 

@@ -24,6 +24,7 @@ import { useAppearanceRoot } from '../state/appearance-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
+import { NewSignatureHost } from '../signatures/NewSignatureHost';
 import { ConfirmHost } from '../ui/sheet';
 import { ToastRegion } from '../ui/Toast/ToastRegion';
 import { TooltipProvider } from '../ui/Tooltip';
@@ -111,6 +112,7 @@ export function AppShell() {
       <CommandPalette />
       <ShortcutOverlay />
       <SettingsHost />
+      <NewSignatureHost />
       <PasswordDialog />
       <ConfirmHost />
       <ToastRegion />

@@ -29,6 +29,17 @@ export interface DocumentPlace {
   readonly mode: 'read' | 'edit';
   /** The document differs from the file it came from (Recents: "Edited, changes kept"). */
   readonly changed: boolean;
+  /**
+   * The sources the document is the file of, oldest first (`state/saved-store.ts` origins:
+   * Revert reopens them, Save may write through that file's stored handle); empty for a
+   * document made from others' pages. Absent in snapshots from before it was kept.
+   */
+  readonly origins?: readonly SourceId[];
+  /**
+   * Save wrote over that file, so it no longer holds the opened version (Revert then leaves
+   * the document unsaved). Absent in snapshots from before it was kept: unknown, read as true.
+   */
+  readonly writtenOver?: boolean;
 }
 
 /** A source's file facts and its kept bytes (`sources/<id>.pdf`). */
@@ -155,6 +166,16 @@ function readPlace(value: unknown, path: string): DocumentPlace {
     view: oneOf(o.view, ['read', 'arrange'] as const, `${path}.view`),
     mode: oneOf(o.mode, ['read', 'edit'] as const, `${path}.mode`),
     changed: bool(o.changed, `${path}.changed`),
+    ...(o.origins === undefined
+      ? {}
+      : {
+          origins: arr(o.origins, `${path}.origins`).map(
+            (s, i) => id(s, `${path}.origins[${i}]`) as SourceId,
+          ),
+        }),
+    ...(o.writtenOver === undefined
+      ? {}
+      : { writtenOver: bool(o.writtenOver, `${path}.writtenOver`) }),
   };
 }
 

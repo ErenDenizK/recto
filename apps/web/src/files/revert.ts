@@ -10,7 +10,8 @@
  * combined into another document keeps it, with its edits). It is one history step: "Reverted
  * report.pdf · Undo" brings every change back. After an in-place save the file holds the saved
  * changes, so the reverted document shows ● until it is saved; when nothing was written over
- * the file this session, the reverted document is what the file holds and the ● clears.
+ * the file (this session, or before a reload as the snapshot kept it; a snapshot that does not
+ * say counts as written over), the reverted document is what the file holds and the ● clears.
  *
  * The command asks first, with 07-sheets S1's confirmation (`askToRevert`): "Revert to the opened
  * version? · Your 3 changes since opening go. Undo brings them back. · Revert", focus on Revert
