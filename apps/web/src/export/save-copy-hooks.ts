@@ -12,13 +12,21 @@
  *   settings stop changing.
  * - `usePlatform`: what this browser offers for the primary (§4.6).
  */
-import type { DocumentId, HistoryEntry, VirtualDocument } from '@pdf-editor/document-model';
+import type {
+  DocumentId,
+  HistoryEntry,
+  SourceId,
+  VirtualDocument,
+  Workspace,
+} from '@pdf-editor/document-model';
 import type { CompressionAnalysis, ConvertResult } from '@pdf-editor/engine';
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 
 import { type ConvertChoice, convertDocumentPages } from '../convert/convert-run';
+import { countMarks, pendingMarksOf } from '../files/save';
 import { m } from '../i18n';
+import type { RedactMark } from '../redaction/marks';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { getCompressor } from '../tools/compress-client';
 import { toolSourceBytes } from '../tools/tool-source';
@@ -217,6 +225,36 @@ export function usePrepared(
   }, [enabled, key]);
   if (!enabled) return null;
   return latest?.key === key ? latest : { key, state: 'working', share: 0 };
+}
+
+// ---------------------------------------------------------------------------
+// Unapplied redaction marks
+// ---------------------------------------------------------------------------
+
+export interface PendingMarks {
+  readonly marks: ReadonlyMap<SourceId, readonly RedactMark[]>;
+  readonly count: number;
+}
+
+/** The document's pending /Redact marks while `enabled`, read again after every change. */
+export function usePendingMarks(documentId: DocumentId, enabled: boolean): PendingMarks | null {
+  const ws = useWorkspaceStore((s) => s.workspace);
+  const [latest, setLatest] = useState<{ ws: Workspace; marks: PendingMarks } | null>(null);
+  useEffect(() => {
+    const doc = ws.documents[documentId];
+    if (!enabled || !doc) return undefined;
+    let current = true;
+    void pendingMarksOf(ws, doc).then(
+      (marks) => {
+        if (current) setLatest({ ws, marks: { marks, count: countMarks(marks) } });
+      },
+      () => undefined,
+    );
+    return () => {
+      current = false;
+    };
+  }, [documentId, enabled, ws]);
+  return enabled && latest?.ws === ws ? latest.marks : null;
 }
 
 // ---------------------------------------------------------------------------

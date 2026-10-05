@@ -27,7 +27,7 @@ import {
   rasterFileName,
   rasterSize,
 } from '@pdf-editor/engine';
-import { type RefObject, useRef, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import { choicePages } from '../convert/convert-run';
 import { DocumentDialogs } from '../document/DocumentDialogs';
@@ -35,6 +35,7 @@ import { toPolicy, validatePasswordForm } from '../document/password-form';
 import { useFormStore } from '../forms/form-store';
 import { getLocale, m } from '../i18n';
 import { openOcrDialog } from '../ocr/ocr-store';
+import { applyMarks } from '../files/save';
 import { displaySize } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
 import { activeSignDraft, openSignDialog, useSignStore } from '../signatures/sign-store';
@@ -43,6 +44,7 @@ import { useSignedSources } from '../signatures/use-signatures';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { canCopyImage, copyImage } from '../tools/deliver-file';
+import { Button } from '../ui/Button';
 import { Segmented } from '../ui/Segmented';
 import { Sheet, useSheetDraft } from '../ui/sheet';
 import { TextField } from '../ui/TextField';
@@ -64,7 +66,13 @@ import {
   TextSection,
 } from './SaveCopySections';
 import styles from './SaveCopySheet.module.css';
-import { usePlatform, usePrepared, useSizeAnalysis, useTextPreview } from './save-copy-hooks';
+import {
+  usePendingMarks,
+  usePlatform,
+  usePrepared,
+  useSizeAnalysis,
+  useTextPreview,
+} from './save-copy-hooks';
 import {
   applyPreset,
   buildKey,
@@ -117,6 +125,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
   const [page, setPage] = useState<Page>('form');
   const [password, setPassword] = useState({ user: '', owner: '' });
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   const sizeRef = useRef<HTMLDivElement | null>(null);
   const platform = usePlatform();
   const kind = primaryKind(platform);
@@ -141,6 +150,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     if (!open) {
       setPassword({ user: '', owner: '' });
       setPasswordError(null);
+      setAsking(false);
     }
   }
 
@@ -154,6 +164,9 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
   const repaired = (doc?.pages ?? []).some(
     (p) => p.ref.kind === 'source' && ws.sources[p.ref.source]?.flags.repaired,
   );
+
+  // PDF: unapplied redaction marks, asked about at the press (07.10).
+  const marks = usePendingMarks(documentId, open && draft.format === 'pdf');
 
   // PDF: the analysis behind the estimates.
   const analysis = useSizeAnalysis(documentId, open && draft.format === 'pdf');
@@ -281,7 +294,8 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     },
   );
 
-  const press = () => {
+  /** The press, and the answer to the unapplied-marks question when it was asked (07.10). */
+  const press = (marksAnswer: 'apply' | 'without' | null = null) => {
     const asked = request();
     if ('invalid' in asked) {
       if (draft.format === 'pdf' && draft.security === 'password') {
@@ -294,6 +308,26 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     if (asked.format === 'pdf' && signOn && !activeSignDraft(documentId)) {
       // Signing without a certificate yet: choose one first.
       openSignDialog(documentId, 'export');
+      return;
+    }
+    // Marks left unapplied leak the text under them: ask first, as Save does (07.10).
+    const pending = asked.format === 'pdf' && marks !== null && marks.count > 0 ? marks : null;
+    if (pending && marksAnswer === null) {
+      setAsking(true);
+      announce(m.save_marks_title({ count: pending.count }), { politeness: 'assertive' });
+      return;
+    }
+    setAsking(false);
+    const before =
+      pending && marksAnswer === 'apply'
+        ? async () =>
+            (await applyMarks(pending.marks)) === undefined ? m.save_reason_marks() : null
+        : undefined;
+    if (kind === 'share' && before) {
+      // The prepared copy still has the marks: apply them, and the copy is prepared again.
+      void before().then((refused) => {
+        if (refused !== null) showCopyFailed(documentId, refused);
+      });
       return;
     }
     if (kind === 'share') {
@@ -323,7 +357,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       (target) => {
         if (target === 'cancelled') return;
         closeSaveCopy();
-        void runSaveCopy(documentId, asked, target);
+        void runSaveCopy(documentId, asked, target, before);
       },
       (error: unknown) =>
         showCopyFailed(documentId, error instanceof Error ? error.message : String(error)),
@@ -389,7 +423,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
           ? { label: m.sheet_done(), onPress: () => closeSaveCopy() }
           : {
               label: primaryLabel,
-              onPress: press,
+              onPress: () => press(),
               disabled:
                 invalid !== undefined && !(draft.security === 'password' && draft.format === 'pdf'),
               reason: invalid,
@@ -447,6 +481,9 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
                 </Notice>
               ) : null}
               {repaired ? <Notice tone="info">{m.save_copy_repaired_info()}</Notice> : null}
+              {asking && marks !== null && marks.count > 0 ? (
+                <MarksQuestion count={marks.count} onAnswer={press} />
+              ) : null}
               <NameField draft={draft} patch={patch} title={title} locale={locale} />
             </div>
           ) : null}
@@ -543,5 +580,35 @@ function NameField({
         }}
       />
     </Row>
+  );
+}
+
+/**
+ * The unapplied-marks question in the sheet (spec 07.10, the words of Save's): Apply and save
+ * is the default and takes focus; Save without applying goes on with the honesty line said.
+ * Either press carries the activation the save picker needs.
+ */
+function MarksQuestion({
+  count,
+  onAnswer,
+}: {
+  readonly count: number;
+  readonly onAnswer: (answer: 'apply' | 'without') => void;
+}) {
+  const apply = useRef<HTMLButtonElement>(null);
+  useEffect(() => apply.current?.focus(), []);
+  return (
+    <Notice tone="warning" testId="save-copy-marks">
+      <strong>{m.save_marks_title({ count })}</strong>
+      <span>{m.save_marks_body({ count })}</span>
+      <div className={styles.links}>
+        <Button variant="quiet" onClick={() => onAnswer('without')}>
+          {m.save_marks_without()}
+        </Button>
+        <Button ref={apply} variant="standard" onClick={() => onAnswer('apply')}>
+          {m.save_marks_apply()}
+        </Button>
+      </div>
+    </Notice>
   );
 }

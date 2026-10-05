@@ -257,7 +257,7 @@ export async function pendingMarksOf(
   return new Map([...bySource].map(([source, marks]) => [source, [...marks.values()]]));
 }
 
-function countMarks(marks: ReadonlyMap<SourceId, readonly RedactMark[]>): number {
+export function countMarks(marks: ReadonlyMap<SourceId, readonly RedactMark[]>): number {
   let count = 0;
   for (const list of marks.values()) count += list.length;
   return count;
@@ -267,8 +267,9 @@ function countMarks(marks: ReadonlyMap<SourceId, readonly RedactMark[]>): number
  * "Apply and save": applies every pending mark of the document with the default choices
  * (black fill, text captured), through the same pipeline, gate and self-check as the
  * Redactions panel. Resolves to the areas removed, or undefined when nothing was applied.
+ * Save a copy asks the same question and applies through this too (07-sheets §4.4).
  */
-async function applyMarks(
+export async function applyMarks(
   marks: ReadonlyMap<SourceId, readonly RedactMark[]>,
 ): Promise<number | undefined> {
   const plans: { source: SourceId; plan: RedactionPlan }[] = [];
