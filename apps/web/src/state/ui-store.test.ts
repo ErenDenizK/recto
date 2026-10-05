@@ -3,11 +3,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { useWorkspaceStore } from './workspace-store';
 import {
-  canEdit,
   DEFAULT_DOCUMENT_UI,
   DEFAULT_LAYOUT,
   documentUi,
   isMarkupOpen,
+  isMarkupOpenActive,
   isNavigatorShowing,
   isPageView,
   LAYOUT_STORAGE_KEY,
@@ -516,7 +516,7 @@ describe('nextZoomLevel', () => {
   });
 });
 
-describe('canEdit, the shim of the Read lock (ADR-0019 §3) until D1-5', () => {
+describe("the Markup state, which replaced M8's Edit and its shim", () => {
   const a = 'doc-a' as DocumentId;
   const b = 'doc-b' as DocumentId;
   afterEach(() => {
@@ -524,33 +524,45 @@ describe('canEdit, the shim of the Read lock (ADR-0019 §3) until D1-5', () => {
   });
 
   it('is true only while Markup is open for the document, and fails closed otherwise', () => {
-    expect(canEdit(a)).toBe(false);
-    expect(canEdit(null)).toBe(false);
-    expect(canEdit(undefined)).toBe(false);
+    expect(isMarkupOpen(useUiStore.getState(), a)).toBe(false);
+    expect(isMarkupOpen(useUiStore.getState(), null)).toBe(false);
+    expect(isMarkupOpen(useUiStore.getState(), undefined)).toBe(false);
     useUiStore.getState().openMarkup(a);
-    expect(canEdit(a)).toBe(true);
-    expect(canEdit(b)).toBe(false);
+    expect(isMarkupOpen(useUiStore.getState(), a)).toBe(true);
+    expect(isMarkupOpen(useUiStore.getState(), b)).toBe(false);
     useUiStore.getState().closeMarkup(a);
-    expect(canEdit(a)).toBe(false);
+    expect(isMarkupOpen(useUiStore.getState(), a)).toBe(false);
     // The grid and the palette set do not open Markup.
     useUiStore.getState().showSurface('grid', b);
-    expect(canEdit(b)).toBe(false);
+    expect(isMarkupOpen(useUiStore.getState(), b)).toBe(false);
   });
 
   it('reads a given state, so selectors can use it', () => {
     const open = { ...DEFAULT_DOCUMENT_UI, markup: true };
-    expect(canEdit(a, { docUi: { [a]: open } })).toBe(true);
-    expect(canEdit(a, { docUi: { [b]: open } })).toBe(false);
-    expect(canEdit(a, { docUi: { [a]: DEFAULT_DOCUMENT_UI } })).toBe(false);
+    expect(isMarkupOpen({ docUi: { [a]: open } }, a)).toBe(true);
+    expect(isMarkupOpen({ docUi: { [b]: open } }, a)).toBe(false);
+    expect(isMarkupOpen({ docUi: { [a]: DEFAULT_DOCUMENT_UI } }, a)).toBe(false);
   });
 
   it('is kept through surfaces, the Library and Compare: Markup belongs to the document', () => {
     useUiStore.getState().openMarkup(a);
     useUiStore.getState().showSurface('grid', a);
     useUiStore.getState().showHome();
-    expect(canEdit(a)).toBe(true);
+    expect(isMarkupOpen(useUiStore.getState(), a)).toBe(true);
     useUiStore.getState().showCompare();
-    expect(canEdit(a)).toBe(true);
+    expect(isMarkupOpen(useUiStore.getState(), a)).toBe(true);
     useUiStore.setState({ destination: 'document' });
+  });
+
+  it('isMarkupOpenActive follows the active document', () => {
+    const ws = useWorkspaceStore.getState();
+    const before = ws.workspace;
+    useWorkspaceStore.setState({ workspace: { ...before, activeDocument: a } });
+    expect(isMarkupOpenActive()).toBe(false);
+    useUiStore.getState().openMarkup(a);
+    expect(isMarkupOpenActive()).toBe(true);
+    useWorkspaceStore.setState({ workspace: { ...before, activeDocument: b } });
+    expect(isMarkupOpenActive()).toBe(false);
+    useWorkspaceStore.setState({ workspace: before });
   });
 });

@@ -4,7 +4,7 @@
  */
 import type { Rect } from '@pdf-editor/document-model';
 
-import { canEditActive } from '../state/ui-store';
+import { canChangeActive } from '../viewer/input-state';
 import { useAnnotationStore } from './annotation-store';
 import { createAnnotations } from './actions';
 import { markupDraft, styleGroupOf } from './drafts';
@@ -33,8 +33,8 @@ export function hasTextSelection(): boolean {
 
 /**
  * Creates `kind` over the selected text on every page it spans. Resolves to whether an
- * annotation was created; the selection is cleared when one was. Never in Read (ADR-0019
- * §3): the selection stays for a second press in Edit.
+ * annotation was created; the selection is cleared when one was. A targeted act (ADR-0030):
+ * never while the document is locked, where the selection stays.
  */
 export async function markupFromSelection(
   kind: MarkupMode,
@@ -42,7 +42,7 @@ export async function markupFromSelection(
   style: { readonly color: string; readonly opacity: number } = useAnnotationStore.getState()
     .styles[styleGroupOf(kind)],
 ): Promise<boolean> {
-  if (!canEditActive()) return false;
+  if (!canChangeActive('targeted')) return false;
   const selection = globalThis.getSelection?.() ?? null;
   const rects = selectionRects(selection);
   if (rects.length === 0) return false;

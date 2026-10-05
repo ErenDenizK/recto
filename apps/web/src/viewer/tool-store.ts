@@ -8,9 +8,10 @@
  * the group used last in this session (`lastGroup`), and the tool a one-shot tool (stamp,
  * signature image) returns to once it has placed its object (`previousMode`).
  *
- * Arming is guarded by the Read lock (ADR-0019 §3): a tool other than Select arms only for a
- * document in Edit, and the tool goes back to Select whenever the active document is not in
- * Edit (`1`, another tab in Read). Callers that arm from Read switch to Edit first
+ * Arming is guarded by the change guard (flows §2.4, ADR-0030): a tool other than Select arms
+ * only when `canChange(id, 'freehand')`, that is in Markup and not locked, and the tool goes
+ * back to Select whenever that stops holding for the active document (Markup closed, the
+ * document locked, another tab). Callers that arm from viewing open Markup first
  * (`activateTool`).
  *
  * The armed tool's options tier opens only on request (`optionsOpen`): pressing the armed tool
@@ -23,8 +24,10 @@
  */
 import { create } from 'zustand';
 
+import { canChange } from '../state/guard';
+import { useLockStore } from '../state/lock-store';
 import { readJson, writeJson } from '../state/safe-storage';
-import { canEdit, useUiStore } from '../state/ui-store';
+import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 
 export type ToolMode =
@@ -123,12 +126,13 @@ interface ToolState {
 }
 
 /**
- * Whether the active document is in Read, so no tool but Select may arm. With no document
- * open there is no page to change, and the tool state is only remembered.
+ * Whether no tool but Select may arm for the active document: the pointer may not create
+ * there (`canChange(id, 'freehand')` is false: Markup closed, or locked). With no document open
+ * there is no page to change, and the tool state is only remembered.
  */
 function locked(): boolean {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  return id !== undefined && !canEdit(id);
+  return id !== undefined && !canChange(id, 'freehand');
 }
 
 export const useToolStore = create<ToolState>()((set, get) => ({
@@ -169,7 +173,7 @@ export const useToolStore = create<ToolState>()((set, get) => ({
   },
 }));
 
-// The Read lock: nothing stays armed for a document that is not in Edit.
+// Nothing stays armed where the pointer may not create: Markup closed, or the document locked.
 const disarmWhenLocked = () => {
   if (useToolStore.getState().mode !== 'select' && locked()) {
     useToolStore.getState().setMode('select');
@@ -177,6 +181,9 @@ const disarmWhenLocked = () => {
 };
 useUiStore.subscribe((state, previous) => {
   if (state.docUi !== previous.docUi) disarmWhenLocked();
+});
+useLockStore.subscribe((state, previous) => {
+  if (state.locks !== previous.locks) disarmWhenLocked();
 });
 useWorkspaceStore.subscribe((state, previous) => {
   if (state.workspace.activeDocument !== previous.workspace.activeDocument) disarmWhenLocked();

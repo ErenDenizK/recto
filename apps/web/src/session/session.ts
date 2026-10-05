@@ -111,15 +111,15 @@ function placeState(tracker: ChangeTracker): PlaceState {
     zoom: ui.zoom,
     fitMode: ui.fitMode,
     place: (id) => {
-      const { surface, markup } = documentUi(ui, id);
+      const { surface } = documentUi(ui, id);
       const lock = lockOf(id);
       return {
         page: pages.get(id) ?? 0,
-        // The format keeps M8's names: the page view is 'read', the grid 'arrange'; Markup
-        // carries M8's Edit until the input rules replace it (D1-5). The lock has its own
-        // field, kept with the document (redesign spec §7); unlocked writes nothing.
+        // The format keeps M8's names: the page view is 'read', the grid 'arrange'. Markup is
+        // never kept (redesign spec §7): a document comes back in viewing. The lock has its
+        // own field, kept with the document; unlocked writes nothing.
         view: surface === 'grid' ? 'arrange' : 'read',
-        mode: markup ? 'edit' : 'read',
+        mode: 'read',
         ...(lock === undefined ? {} : { lock }),
         ...fileFactsOf(id),
       };

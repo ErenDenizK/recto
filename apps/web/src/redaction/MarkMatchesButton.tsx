@@ -7,7 +7,7 @@ import { EyeOff } from 'lucide-react';
 import { useState } from 'react';
 
 import { formatNumber, m } from '../i18n';
-import { useCanEdit } from '../state/ui-store';
+import { useCanChangeActive } from '../viewer/input-state';
 import { useSearchStore } from '../viewer/search';
 import styles from './MarkMatchesButton.module.css';
 import { markSearchHits } from './review';
@@ -16,7 +16,8 @@ export function MarkMatchesButton() {
   const count = useSearchStore((s) => s.hits.length);
   const searching = useSearchStore((s) => s.status === 'searching');
   const [busy, setBusy] = useState(false);
-  const editable = useCanEdit();
+  // Marking the matches is a targeted act (X22): refused only while locked.
+  const editable = useCanChangeActive('targeted');
   if (count === 0 || !editable) return null;
   return (
     <button
