@@ -59,6 +59,12 @@
   transform: scale(0.96);
 }
 
+/* The menu's positioner (Base UI's, `role="presentation"`) stacks above the floating bars
+   and tiers, so a long menu near the bottom is never under the tool bar. */
+:global([role='presentation']):has(> .popup) {
+  z-index: 50;
+}
+
 .popup[data-instant] {
   transition: none;
 }

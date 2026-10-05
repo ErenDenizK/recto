@@ -74,9 +74,8 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
 
 /**
  * Files whose focus rules still set literal offsets or the retired aliases (09-primitives §32
- * step 4). D0-3's codemod moved every other file onto the forms; `ui/Range` is left for the ink
- * port of the same package, which replaces it with `ui/Slider` and deletes the file (and with
- * it this entry and the `--focus-ring` / `--focus-offset` aliases in tokens.css).
+ * step 4). D0-3's codemod moved every file onto the forms and its ink port deleted `ui/Range`,
+ * the last reader of the aliases, which left tokens.css with it; the list stays empty.
  */
 const PENDING_D0_3: readonly string[] = [];
 

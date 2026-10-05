@@ -287,10 +287,6 @@
   --radius-round: var(--radius-capsule);
   --icon-chrome: var(--icon-sm);
   --icon-toolbar: var(--icon-md);
-  /* The focus ring's retired aliases: only ui/Range.module.css still reads them, and the ink
-     port (D0-3 part 2) deletes that file. Remove these two lines with it (focus-scan.test.ts). */
-  --focus-ring: 2px solid var(--focus-light);
-  --focus-offset: var(--focus-offset-out);
 }
 
 /*

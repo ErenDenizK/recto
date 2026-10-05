@@ -29,12 +29,7 @@ const SKIP: Readonly<Record<string, string>> = {};
  * and ink ports): findings about them are held, not failed, until that port lands. A kind that
  * no longer turns up anywhere fails the test, so the entry is taken off when its port arrives.
  */
-const PENDING: Readonly<Partial<Record<ControlKind, string>>> = {
-  'menu row': 'the menu recipe (rows 32 / 44 px, radius) comes with ui/Menu (D0-3 part 2)',
-  'native range': 'ui/Range and native ranges become ui/Slider (D0-3 part 2, 10-ink §3)',
-  'native select': 'native selects become ui/Select (D0-3 part 2, 09 §11)',
-  'private swatch': 'the private swatch rows become ui/SwatchGroup (D0-3 part 2, 10-ink §5)',
-};
+const PENDING: Readonly<Partial<Record<ControlKind, string>>> = {};
 
 async function density(page: Page): Promise<32 | 44> {
   const coarse = await page.evaluate(
