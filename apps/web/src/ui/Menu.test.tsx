@@ -2,7 +2,8 @@
  * The menu recipe in a real browser (`ui/Menu.module.css`; quality-bar Q-7; XD-3):
  *
  * - a menu taller than the room Base UI's positioner has stays inside the window and scrolls
- *   in its glass, and the keyboard's row scrolls into view;
+ *   in its glass, with a fade at an edge that has rows beyond it and nothing animating at
+ *   rest, and the keyboard's row scrolls into view;
  * - the menu → sheet hand-off (`ui/menu-handoff.ts`): an item that opens a sheet closes its
  *   menu at once, while an item that opens nothing still fades it out.
  */
@@ -74,6 +75,10 @@ describe('room: a long menu scrolls inside the window', () => {
     expect(box.bottom).toBeLessThanOrEqual(400);
     expect(menu.scrollHeight).toBeGreaterThan(menu.clientHeight);
     expect(getComputedStyle(menu).overflowY).toBe('auto');
+    // At the top: rows beyond the bottom edge only, so only the bottom fade shows.
+    const fade = (edge: '::before' | '::after') => getComputedStyle(menu, edge).opacity;
+    await waitFor(() => expect(fade('::after')).toBe('1'));
+    expect(fade('::before')).toBe('0');
 
     // The keyboard: End (or wrapping up) reaches the last row, which comes into view.
     await userEvent.keyboard('{ArrowDown}');
@@ -87,6 +92,10 @@ describe('room: a long menu scrolls inside the window', () => {
       expect(row.top).toBeGreaterThanOrEqual(view.top - 0.5);
     });
     expect(menu.scrollTop).toBeGreaterThan(0);
+    // At the end: the top fade instead, and nothing animates while the menu rests (A-23).
+    await waitFor(() => expect(fade('::before')).toBe('1'));
+    await waitFor(() => expect(fade('::after')).toBe('0'));
+    await waitFor(() => expect(menu.getAnimations({ subtree: true })).toHaveLength(0));
   });
 
   it('a menu that fits does not scroll and shows no edge fade', async () => {
