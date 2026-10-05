@@ -17,6 +17,17 @@ function box(left = 0, width = 100): HTMLDivElement {
 }
 
 const x = (el: Element) => el.getBoundingClientRect().x;
+/**
+ * Waits `ms` of motion, and at least until the box has moved: on a loaded machine the first
+ * animation frame can come later than a fixed wait, and the box would not have started yet.
+ */
+async function waitMoving(el: Element, from: number, ms: number): Promise<void> {
+  await wait(ms);
+  const deadline = performance.now() + 2000;
+  while (Math.abs(x(el) - from) < 2 && performance.now() < deadline) {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+}
 
 /** At rest with nothing left behind (Q-2). */
 function expectAtRest(el: HTMLElement) {
@@ -67,7 +78,7 @@ describe('flip', () => {
     const first = flip([el], () => {
       el.style.left = '200px';
     });
-    await wait(90);
+    await waitMoving(el, origin, 90);
     const mid = x(el);
     expect(mid).toBeGreaterThan(origin);
     const second = flip([el], () => {
@@ -91,7 +102,7 @@ describe('flip', () => {
       },
       { spring },
     );
-    await wait(80);
+    await waitMoving(el, origin, 80);
     const mid = x(el);
     const back = flip(
       [el],
