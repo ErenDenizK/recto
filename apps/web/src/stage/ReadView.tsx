@@ -908,6 +908,7 @@ function PageColumn({
     <div
       ref={zoomFrameRef}
       className={readStyles.zoomFrame}
+      data-zoom-frame
       style={{ height: virtualizer.getTotalSize(), width: canvasWidth }}
     >
       <div

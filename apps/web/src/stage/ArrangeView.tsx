@@ -284,11 +284,16 @@ function LightTable({
     });
   };
 
-  // The door from the page view (pages-grid-door.ts) opens the table at a page.
+  // The door from the page view (pages-grid-door.ts) opens the table with that page centred.
   useEffect(() => {
     const page = takeGridReveal();
     const location = page === null ? undefined : locate(page);
-    if (location) scrollToCell(location.section, location.index);
+    const sectionLayout = location && layout.sections[location.section];
+    if (location && sectionLayout) {
+      virtualizer.scrollToIndex(rowItemIndex(sectionLayout, location.index, metrics.columns), {
+        align: 'center',
+      });
+    }
     // Mount only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
