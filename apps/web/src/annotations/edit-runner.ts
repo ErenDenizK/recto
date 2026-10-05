@@ -54,10 +54,10 @@ import type {
 } from '@pdf-editor/engine';
 
 import { getEngineService } from '../engine/engine-service';
-import { announce } from '../shell/announcer';
 import { m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { type RectFix, rotatedRectFix } from './engine-quirks';
+import { presentError } from '../errors/present';
 
 /** The annotation id an edit addresses (create / update payload id, delete id). */
 export function editAnnotationId(edit: EngineEdit): string | undefined {
@@ -670,7 +670,7 @@ async function reconcileNow(ctx: EngineContext): Promise<boolean> {
   syncDirtySources();
   pagesChanged(touched);
   if (failed) {
-    announce(m.annot_replay_failed());
+    presentError({ kind: 'message', text: m.annot_replay_failed() }, { key: 'annot-replay' });
     return false;
   }
   return sameAsApplied(useWorkspaceStore.getState().workspace);
@@ -744,7 +744,9 @@ async function revert(ctx: EngineContext, edits: readonly EngineEdit[]): Promise
     const rebuilt = await rebuild(ctx, source, before);
     touched.push(...before);
     applied.set(source, rebuilt.state);
-    if (!rebuilt.ok) announce(m.annot_replay_failed());
+    if (!rebuilt.ok) {
+      presentError({ kind: 'message', text: m.annot_replay_failed() }, { key: 'annot-replay' });
+    }
   }
   if (reopen.size > 0) syncDirtySources();
   pagesChanged(touched);
@@ -777,7 +779,7 @@ export function runAction<T>(
       executedDuringAction = undefined;
       storedDuringAction = undefined;
       await revert(ctx, executed);
-      announce(m.annot_action_failed());
+      presentError({ kind: 'message', text: m.annot_action_failed() }, { key: 'annot-action' });
       throw error;
     } finally {
       executedDuringAction = undefined;

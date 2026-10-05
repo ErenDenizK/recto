@@ -245,7 +245,6 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
 export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const hidden = useCompactStore((s) => s.chromeHidden);
   const findOpen = useCompactStore((s) => s.findOpen);
-  const copyError = useCompactStore((s) => s.copyError);
   const current = useViewStore((s) => s.currentPage);
   const total = doc.pages.length;
   const away = hidden || findOpen;
@@ -280,21 +279,7 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
           {m.compact_find()}
         </button>
       </nav>
-      {copyError ? <CopyError message={copyError} /> : null}
     </>
-  );
-}
-
-/** Share or Download a copy failed: one line above the capsule, gone after a while. */
-function CopyError({ message }: { readonly message: string }) {
-  useEffect(() => {
-    const timer = window.setTimeout(() => useCompactStore.setState({ copyError: null }), 6000);
-    return () => window.clearTimeout(timer);
-  }, [message]);
-  return (
-    <p className={styles.notice} role="alert">
-      {message}
-    </p>
   );
 }
 

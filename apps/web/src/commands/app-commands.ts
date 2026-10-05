@@ -24,7 +24,6 @@ import {
 } from '../annotations';
 import { registerCompareCommands } from '../compare/compare-commands';
 import { registerConvertCommands } from '../convert/convert-commands';
-import type { EngineFailure } from '../engine/engine-service';
 import { fileHandleOf, partitionFiles, pickFiles } from '../files/open-files';
 import { clearRecents, recordRecent } from '../files/recents';
 import { registerFurnitureCommands } from '../furniture';
@@ -47,12 +46,13 @@ import {
   useUiStore,
 } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { toast } from '../ui/Toast/toast';
 import { registerToolCommands } from '../tools/tool-commands';
 import { registerEditPolicyCommands } from '../viewer/edit-policy';
 import { registerViewerCommands } from '../viewer/viewer-commands';
 import { registerExportCommands } from './export-commands';
 import { type CommandRegistry, commandRegistry } from './registry';
-import { currentPlatform } from './shortcuts';
+import { presentOpenFailures } from '../errors/present';
 
 const ui = () => useUiStore.getState();
 const model = () => useWorkspaceStore.getState();
@@ -81,32 +81,14 @@ function openAboutPage(): void {
   window.open(aboutPageUrl(), '_blank', 'noopener');
 }
 
-function failureReason(error: EngineFailure): string {
-  switch (error.code) {
-    case 'password-cancelled':
-    case 'password-required':
-    case 'password-incorrect':
-      return m.failure_no_password();
-    case 'unsupported-encryption':
-      return m.failure_unsupported_encryption();
-    case 'corrupt':
-      return m.failure_corrupt();
-    case 'read-failed':
-      return m.failure_read_failed();
-    case 'unsupported':
-      return m.failure_unsupported();
-    case 'out-of-memory':
-      return m.failure_out_of_memory();
-    case 'aborted':
-    case 'internal':
-      return m.failure_engine();
-  }
-}
-
 /**
  * Opens files as tabs (in the given order) and announces the outcome. PDFs open one tab
  * each; images (PNG, JPEG, WebP) become the pages of one new document. Resolves to the
  * documents opened from PDFs, in order.
+ *
+ * Files that did not open get a visible failure toast (`errors/present.ts`, FB8; INV-6): the
+ * damaged-file toast, the skipped-password toast with "Enter password…" (which asks again),
+ * or one toast for several files. Its announcement joins "Opened …" in the same task.
  */
 export async function openDocuments(files: readonly File[]): Promise<readonly DocumentId[]> {
   if (files.length === 0) return [];
@@ -115,13 +97,23 @@ export async function openDocuments(files: readonly File[]): Promise<readonly Do
   if (pdfs.length === 0) return [];
   const { opened, skipped } = await model().openFiles(pdfs);
   rememberOpened(pdfs, opened);
-  const parts: string[] = [];
-  if (opened.length === 1) parts.push(m.announce_opened({ name: opened[0]?.name ?? '' }));
-  else if (opened.length > 1) parts.push(m.announce_opened_many({ count: opened.length }));
-  for (const skip of skipped) {
-    parts.push(m.announce_skipped({ name: skip.name, reason: failureReason(skip.error) }));
-  }
-  if (parts.length > 0) announce(parts.join('. '));
+  if (opened.length === 1) announce(m.announce_opened({ name: opened[0]?.name ?? '' }));
+  else if (opened.length > 1) announce(m.announce_opened_many({ count: opened.length }));
+  presentOpenFailures(
+    skipped.map((skip) => {
+      const file = pdfs.find((f) => f.name === skip.name);
+      return {
+        ...skip,
+        retry: file
+          ? () => {
+              const wasEmpty = model().workspace.documentOrder.length === 0;
+              void openDocuments([file]).then((ids) => showOpened(ids, { wasEmpty }));
+            }
+          : undefined,
+      };
+    }),
+    pdfs.length,
+  );
   return opened.map((o) => o.documentId);
 }
 
@@ -229,18 +221,19 @@ function deleteTargets(): void {
         .find((p) => !deleted.has(p.id))?.id ??
       null;
   }
+  // The first deleted page's number, for "Deleted page 7 · Undo".
+  const firstNumber = (doc?.pages.findIndex((p) => deleted.has(p.id)) ?? 0) + 1;
   if (model().deletePages(pages)) {
     useSelectionStore.getState().apply({
       selected: new Set(),
       anchor: null,
       focused: nextFocus,
     });
-    announce(m.announce_deleted({ count: pages.length, shortcut: undoHint() }));
+    // Every removal shows an Undo toast (ADR-0032 §2; FB4), said with its shortcut.
+    toast.undo(m.toast_deleted_pages({ count: pages.length, page: firstNumber }), {
+      documentId: doc?.id,
+    });
   }
-}
-
-function undoHint(): string {
-  return currentPlatform === 'mac' ? m.undo_hint_mac() : m.undo_hint_other();
 }
 
 /**

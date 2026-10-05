@@ -45,6 +45,7 @@ import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { TEXT_LAYER_ATTR } from '../viewer/text-model';
 import { Keycaps } from '../ui/Keycaps';
+import { toast } from '../ui/Toast/toast';
 import menuStyles from '../ui/Menu.module.css';
 import { openOperationDialog } from './operation-dialogs-store';
 import styles from './PageContextMenu.module.css';
@@ -84,6 +85,7 @@ export function rotatePage(pageId: PageId, delta: 90 | -90): boolean {
 export function deletePage(pageId: PageId): boolean {
   const number = pageNumber(pageId);
   if (number === undefined) return false;
+  const documentId = findPageLocation(useWorkspaceStore.getState().workspace, pageId)?.document;
   if (!useWorkspaceStore.getState().deletePages([pageId])) return false;
   const selection = useSelectionStore.getState();
   if (selection.selected.has(pageId)) {
@@ -96,7 +98,11 @@ export function deletePage(pageId: PageId): boolean {
     });
   }
   const shortcut = currentPlatform === 'mac' ? m.undo_hint_mac() : m.undo_hint_other();
-  announce(m.page_menu_deleted({ number, shortcut }));
+  // The Undo toast (FB4), said as before ("Deleted page 2. Undo with Control Z").
+  toast.undo(m.toast_deleted_pages({ count: 1, page: number }), {
+    documentId,
+    spoken: m.page_menu_deleted({ number, shortcut }),
+  });
   return true;
 }
 

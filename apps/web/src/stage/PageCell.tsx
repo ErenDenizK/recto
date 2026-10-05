@@ -28,6 +28,7 @@ import { rotationPhrase } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
 import { useSelectionStore } from '../state/selection-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { toast } from '../ui/Toast/toast';
 import styles from './ArrangeView.module.css';
 import { ResizedContent } from './ResizedContent';
 
@@ -168,7 +169,11 @@ function PageCellInner({
   };
   const remove = () => {
     if (useWorkspaceStore.getState().deletePages([pageId])) {
-      announce(m.announce_deleted_page({ label: labelText }));
+      // The Undo toast (FB4), said with the cell's own label as before.
+      toast.undo(m.toast_deleted_pages({ count: 1, page: index + 1 }), {
+        documentId,
+        spoken: m.announce_deleted_page({ label: labelText }),
+      });
     }
   };
 

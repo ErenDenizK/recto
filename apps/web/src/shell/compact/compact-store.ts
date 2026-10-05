@@ -26,8 +26,6 @@ interface CompactState {
   readonly opening: boolean;
   /** The Library's one line after a file did not open. */
   readonly openError: string | null;
-  /** The reader's one line after Share or Download a copy failed. */
-  readonly copyError: string | null;
   /**
    * The document as it was opened. The compact edition never changes it, so while the
    * workspace still holds this very object (and the engine no edits), Download a copy hands
@@ -45,7 +43,6 @@ const INITIAL: CompactState = {
   zoom: 1,
   opening: false,
   openError: null,
-  copyError: null,
   openedDocument: null,
 };
 
