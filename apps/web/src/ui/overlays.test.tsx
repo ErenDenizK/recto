@@ -72,9 +72,13 @@ describe('Tooltip', () => {
         </TooltipProvider>
       </div>,
     );
-    screen.getByRole('button', { name: 'Close' }).focus();
-    await userEvent.keyboard('{Tab}{Shift>}{Tab}{/Shift}');
+    // A key press first makes the next focus a keyboard one (focus-visible), without Tab leaving
+    // the test's surface: on CI, Shift+Tab could land outside it, and Esc then never reached it.
+    await userEvent.keyboard('{Shift}');
+    const close = screen.getByRole('button', { name: 'Close' });
+    close.focus();
     await screen.findByRole('tooltip', {}, { timeout: 2000 });
+    expect(close).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(onKey).toHaveBeenCalledWith('Escape');
     await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
