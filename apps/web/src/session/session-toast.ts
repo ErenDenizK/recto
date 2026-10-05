@@ -32,7 +32,9 @@ export function sessionNoticeText(notice: SessionNotice): string {
     case 'started-fresh':
       return m.session_started_fresh({ count: notice.count });
     case 'failed':
-      return m.session_restore_failed({ name: notice.names.join(', ') });
+      return notice.kept === true
+        ? m.session_restore_failed_kept({ name: notice.names.join(', ') })
+        : m.session_restore_failed({ name: notice.names.join(', ') });
     case 'not-kept':
       return m.session_not_kept();
   }
