@@ -181,7 +181,7 @@ test('draw the crop area on the page in Read mode; Esc goes back unchanged', asy
   await page.keyboard.press('Escape');
   await expect(banner).toBeHidden();
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId('crop-unit')).toHaveValue('pt');
+  await expect(dialog.getByTestId('crop-unit')).toHaveText('pt');
   await expect(dialog.getByTestId('crop-top')).toHaveValue('0');
 
   // Draw again, and drag a rectangle from 10% to 90% across and 10% to 60% down.

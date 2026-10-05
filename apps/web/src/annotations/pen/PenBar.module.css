@@ -95,8 +95,10 @@
 }
 
 /* The editor (10-ink §6 on today's layout): the popover recipe (ui/Popover.module.css), the
-   eight swatches and the colour well in one 296 px row (8 × 32 + 8 + 32), then the width and
-   opacity sliders and Reset. Rhythm on the 4 px grid: 8 between rows. */
+   eight swatches and the colour well in one row on fine pointers (8 × 32 + 4 + 32 = 292 of the
+   294 px inside the border), two rows of four beside the well on coarse ones (4 × 44), then
+   the width and opacity sliders, their tracks starting on one line, and Reset. Rhythm on the
+   4 px grid: 8 between rows. */
 .editor {
   display: grid;
   gap: var(--space-2);
@@ -106,15 +108,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .swatches {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .swatches {
+    flex-wrap: wrap;
+    max-width: calc(4 * 44px);
+  }
 }
 
 .slider {
   width: 100%;
+}
+
+/* The labels share one width, so both tracks start on one line. */
+.slider > span:first-child {
+  min-width: 4.5em;
 }
 
 .reset {
