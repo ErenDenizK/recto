@@ -80,7 +80,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       keywords: ['jump', 'page number', 'label', 'go'],
       when: hasPages,
       run: () => {
-        if (!isPageView(useUiStore.getState())) useUiStore.getState().setViewMode('read');
+        if (!isPageView(useUiStore.getState())) useUiStore.getState().showSurface('page');
         openGoToPage();
       },
     }),

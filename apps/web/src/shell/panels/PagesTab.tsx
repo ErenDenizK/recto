@@ -1,7 +1,7 @@
 /**
  * The navigator's Pages tab (experience-redesign §4.1): the active document's thumbnails,
  * or with the "Pages · Bookmarks" switch its outline ("Add bookmark" lives in the
- * Bookmarks view only). The choice is remembered (`pagesView` in `ui:v2`).
+ * Bookmarks view only). The choice is remembered (`pagesView` in `ui:v3`).
  */
 import { m } from '../../i18n';
 import { type PagesView, useUiStore } from '../../state/ui-store';

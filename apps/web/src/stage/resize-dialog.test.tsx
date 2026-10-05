@@ -49,7 +49,7 @@ async function open(url: string, name: string): Promise<DocumentId> {
   const id = ws().documentOrder[0];
   if (id === undefined) throw new Error('not opened');
   useUiStore.getState().pinToArrange([id]);
-  useUiStore.getState().setViewMode('arrange');
+  useUiStore.getState().showSurface('grid');
   expect(await screen.findAllByRole('grid')).toHaveLength(1);
   return id;
 }
@@ -80,7 +80,7 @@ describe('resize pages dialog', () => {
     closeOperationDialog();
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
     useUiStore.setState({
-      viewMode: 'read',
+      docUi: {},
       arrangePinned: [],
       arrangeCollapsed: [],
       paletteOpen: false,

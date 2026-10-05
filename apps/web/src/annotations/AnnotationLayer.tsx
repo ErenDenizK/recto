@@ -48,7 +48,7 @@ import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
 import { useCanEdit } from '../state/ui-store';
-import { penDrawsNow, usePenDrawsInEdit } from '../viewer/edit-policy';
+import { penDrawsNow, usePenDrawsInMarkup } from '../viewer/edit-policy';
 import { isLive, penButtonOf } from '../viewer/hit-order';
 import { pageFrame } from '../viewer/page-frame';
 import { whenPainted } from '../viewer/read-controller';
@@ -230,7 +230,7 @@ export function AnnotationLayer(props: PageOverlayProps) {
   // "Pen draws in Edit" and Select armed, the same pipeline listens on the pen proxy, which
   // only receives the pen presses the capture listener below hands on (craft spec §3.5).
   const penArmed = editable && mode === 'ink' && sourceId !== undefined;
-  const penDraws = usePenDrawsInEdit(editable && mode === 'select');
+  const penDraws = usePenDrawsInMarkup(editable && mode === 'select');
   const penInSelect = penDraws && sourceId !== undefined;
   const penProxyRef = useRef<HTMLDivElement>(null);
   const lassoProxyRef = useRef<HTMLDivElement>(null);

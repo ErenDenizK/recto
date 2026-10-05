@@ -52,13 +52,13 @@ let unregister: (() => void) | undefined;
 beforeEach(() => {
   resetWorkspace();
   resetCompareStore();
-  useUiStore.setState({ viewMode: 'read', leftPanelOpen: true, leftPanelView: 'pages' });
+  useUiStore.setState({ docUi: {}, leftPanelOpen: true, leftPanelView: 'pages' });
   unregister = registerCompareCommands(commandRegistry);
 });
 
 afterEach(async () => {
   await releaseCompare();
-  useUiStore.setState({ viewMode: 'read' });
+  useUiStore.setState({ docUi: {} });
   unregister?.();
   resetWorkspace();
 });
@@ -85,7 +85,7 @@ async function openPair() {
 describe('compare-a.pdf against compare-b.pdf', () => {
   it('lists the seeded changes and shows the page map', async () => {
     const { a, b } = await openPair();
-    useUiStore.getState().setViewMode('compare');
+    useUiStore.getState().showCompare();
     // Entering the view picks the active tab and the next one, and opens the Changes panel.
     expect(useUiStore.getState().leftPanelView).toBe('changes');
     useCompareStore.setState({ a, b });
@@ -214,7 +214,7 @@ describe('compare-a.pdf against compare-b.pdf', () => {
 
   it('renders the pages side by side, reveals a change and draws the heat map', async () => {
     const { a, b } = await openPair();
-    useUiStore.getState().setViewMode('compare');
+    useUiStore.getState().showCompare();
     useCompareStore.setState({ a, b });
     render(
       <div style={{ width: 1000, height: 700, display: 'flex' }}>
@@ -259,18 +259,18 @@ describe('compare-a.pdf against compare-b.pdf', () => {
 
   it('keeps the comparison when the view is left; New comparison releases it', async () => {
     const { a, b } = await openPair();
-    useUiStore.getState().setViewMode('compare');
+    useUiStore.getState().showCompare();
     useCompareStore.setState({ a, b });
     await startCompare();
     expect(hasActiveCompare()).toBe(true);
     const { result } = useCompareStore.getState();
-    useUiStore.getState().setViewMode('read');
+    useUiStore.getState().showSurface('page');
     expect(useUiStore.getState().leftPanelView).toBe('pages');
     // Read-only view: nothing to lose by leaving, so the result waits for the return.
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(hasActiveCompare()).toBe(true);
     expect(useCompareStore.getState()).toMatchObject({ status: 'done', result });
-    useUiStore.getState().setViewMode('compare');
+    useUiStore.getState().showCompare();
     expect(useUiStore.getState().leftPanelView).toBe('changes');
     expect(useCompareStore.getState().result).toBe(result);
 
@@ -284,10 +284,10 @@ describe('compare-a.pdf against compare-b.pdf', () => {
 
   it('releases the comparison when a compared tab closes', async () => {
     const { a, b } = await openPair();
-    useUiStore.getState().setViewMode('compare');
+    useUiStore.getState().showCompare();
     useCompareStore.setState({ a, b });
     await startCompare();
-    useUiStore.getState().setViewMode('read');
+    useUiStore.getState().showSurface('page');
     useWorkspaceStore.getState().closeDocument(b);
     await waitFor(() =>
       expect(useCompareStore.getState()).toMatchObject({ status: 'setup', result: null }),
@@ -297,7 +297,7 @@ describe('compare-a.pdf against compare-b.pdf', () => {
 
   it('says the result is out of date after a compared document changes', async () => {
     const { a, b } = await openPair();
-    useUiStore.getState().setViewMode('compare');
+    useUiStore.getState().showCompare();
     useCompareStore.setState({ a, b });
     await startCompare();
     render(<ChangesPanel />);

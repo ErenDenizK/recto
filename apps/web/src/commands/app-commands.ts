@@ -32,7 +32,7 @@ import { registerFurnitureCommands } from '../furniture';
 import { registerFormCommands } from '../forms';
 import { redoStep, undoStep } from '../history/actions';
 import { openHistoryScrubber } from '../history/scrubber-store';
-import { showDocumentMode, showHome, showOpened, watchDestination } from '../home/home-actions';
+import { showHome, showMarkup, showOpened, watchDestination } from '../home/home-actions';
 import { m } from '../i18n';
 import { registerLanguageCommands } from '../i18n/language-commands';
 import { registerOcrCommands } from '../ocr';
@@ -41,13 +41,7 @@ import { announce } from '../shell/announcer';
 import { useAuthorPrompt } from '../shell/comment-author';
 import { openImagesAsDocument } from '../stage/section-operations';
 import { selectAllOf, useSelectionStore } from '../state/selection-store';
-import {
-  ARRANGE_SIZES,
-  type DocumentMode,
-  documentModeOf,
-  stageView,
-  useUiStore,
-} from '../state/ui-store';
+import { ARRANGE_SIZES, isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { registerToolCommands } from '../tools/tool-commands';
@@ -62,15 +56,16 @@ const ui = () => useUiStore.getState();
 const model = () => useWorkspaceStore.getState();
 
 /**
- * The stage already shows `view` (Home, Arrange, or the page view in that document mode):
- * the view and mode commands then change nothing and say nothing (craft spec §9: a mode is
- * announced on change).
+ * The stage already shows `view` (Home, the grid, or the page view with Markup closed or
+ * open, M8's Read and Edit): the view and mode commands then change nothing and say nothing
+ * (craft spec §9: a mode is announced on change).
  */
-function showing(view: 'home' | 'arrange' | DocumentMode): boolean {
+function showing(view: 'home' | 'grid' | 'page' | 'markup'): boolean {
   const state = ui();
   const stage = stageView(state);
-  if (view === 'home' || view === 'arrange') return stage === view;
-  return stage === 'read' && documentModeOf(state, model().workspace.activeDocument) === view;
+  if (view === 'home' || view === 'grid') return stage === view;
+  const markup = isMarkupOpen(state, model().workspace.activeDocument);
+  return stage === 'page' && markup === (view === 'markup');
 }
 const selection = () => useSelectionStore.getState();
 const activeDocument = () => getActiveDocument(model().workspace);
@@ -195,7 +190,7 @@ export function targetPages(): PageId[] {
     }
     return ordered;
   }
-  if (focused !== null && stageView(ui()) === 'arrange') return [focused];
+  if (focused !== null && stageView(ui()) === 'grid') return [focused];
   return [];
 }
 
@@ -401,8 +396,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       group: m.group_edit(),
       keywords: ['undo', 'steps', 'scrubber', 'jump'],
       when: () =>
-        useUiStore.getState().destination === 'document' &&
-        model().workspace.documentOrder.length > 0,
+        useUiStore.getState().destination !== 'home' && model().workspace.documentOrder.length > 0,
       run: openHistoryScrubber,
     }),
     registry.register({
@@ -530,7 +524,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       keywords: ['mode', 'viewer', 'continuous', 'lock'],
       when: () => activeDocument() !== undefined,
       run: () => {
-        if (!showing('read')) showDocumentMode('read');
+        if (!showing('page')) showMarkup(false);
       },
     }),
     registry.register({
@@ -541,7 +535,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       keywords: ['mode', 'annotate', 'markup', 'write'],
       when: () => activeDocument() !== undefined,
       run: () => {
-        if (!showing('edit')) showDocumentMode('edit');
+        if (!showing('markup')) showMarkup(true);
       },
     }),
     registry.register({
@@ -551,8 +545,8 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       shortcut: '3',
       keywords: ['mode', 'light table', 'grid', 'organize', 'reorder'],
       run: () => {
-        if (showing('arrange')) return;
-        ui().setViewMode('arrange');
+        if (showing('grid')) return;
+        ui().showSurface('grid');
         announce(m.mode_arrange_long());
       },
     }),
