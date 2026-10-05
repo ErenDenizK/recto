@@ -554,12 +554,43 @@ export interface Workspace {
   readonly engineEdits: readonly EngineEdit[];
 }
 
+/**
+ * What a history step did (spec redesign §7, X10): the engine edit's kind for content edits,
+ * else the model change `historyMetaOf` recognises: `open` (a document and its source
+ * arrived), `close`, `pages` (a document's page list changed: move, delete, insert,
+ * duplicate), `page` (pages changed in place: rotate, crop, overlays), `document` (title,
+ * metadata, outline, password) and `workspace` (several documents at once: Combine, Split).
+ */
+export type HistoryStepKind =
+  | 'open'
+  | 'close'
+  | 'pages'
+  | 'page'
+  | 'document'
+  | 'workspace'
+  | EngineEdit['kind'];
+
+/**
+ * Where a history step happened, for the History scrubber's rows, the ↶ ↷ tooltips and the
+ * undo reveal ("Undo highlight on page 3", "Undid highlight in agreement.pdf"; 08-feedback
+ * FB7, 01-frame F3). Additive and optional: entries from before it, and steps that touch no
+ * one document, carry none. The step's time is `HistoryEntry.at`.
+ */
+export interface HistoryEntryMeta {
+  /** The document the step changed (for `close`, the document closed). */
+  readonly documentId?: DocumentId;
+  /** 1-based number of the page the step changed, or its first, in that document. */
+  readonly page?: number;
+  readonly kind?: HistoryStepKind;
+}
+
 export interface HistoryEntry {
   readonly label: string;
   readonly at: number;
   readonly workspace: Workspace;
   /** Entries with the same coalesceKey within a short window are merged (drags, sliders). */
   readonly coalesceKey?: string;
+  readonly meta?: HistoryEntryMeta;
 }
 
 export interface History {
