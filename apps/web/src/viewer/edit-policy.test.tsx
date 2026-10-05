@@ -3,7 +3,8 @@
  * browser mode, PDFium): a double-click on page text with Select opens the text editor with
  * the caret at the point from a mouse or a pen used as a pointer, never from touch or a pen
  * that draws, and never in Read; Esc leaves without a change. The idle hover outline shows
- * after 400 ms, never within 300 ms of a pen stroke or from touch, with the one-time hint.
+ * after 400 ms, never within 500 ms of a pen stroke or from touch, with the one-time hint;
+ * locked, Markup gives no door, no outline and no pen eraser.
  * The pen draws in Select while "Pen draws in Edit" is on; its eraser end erases in any
  * tool. Holding Space pans. The Edit text and Image layers never take the page.
  *
@@ -35,6 +36,7 @@ import {
   resetInputPolicyStore,
   useInputPolicyStore,
 } from '../state/input-policy-store';
+import { resetLockStore, useLockStore } from '../state/lock-store';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
@@ -242,6 +244,34 @@ describe('the Edit policy (mounted)', () => {
     expect(window.getSelection()?.toString().trim().length).toBeGreaterThan(0);
   });
 
+  it('locked, even in Markup: a double-click selects a word, no outline, no editor', async () => {
+    const { container, target } = await mount();
+    enterEdit();
+    const id = useWorkspaceStore.getState().workspace.activeDocument;
+    if (id === undefined) throw new Error('no document');
+    useLockStore.getState().lock(id);
+    const span = await foxSpan(container);
+    span.dispatchEvent(pointer('pointermove', centre(span), { pointerType: 'mouse' }));
+    await sleep(HOVER_DELAY_MS + 200);
+    expect(outline(container)).toBeNull();
+    await userEvent.dblClick(span);
+    await sleep(400);
+    expect(editorInput(container)).toBeNull();
+    expect(window.getSelection()?.toString().trim().length).toBeGreaterThan(0);
+    // The pen's eraser end does nothing (flows §3.1), and no tool arms.
+    useToolStore.getState().setMode('ink');
+    expect(useToolStore.getState().mode).toBe('select');
+    const at = centre(span);
+    const eraser = { pointerType: 'pen', pointerId: 52, button: 5, buttons: 32 } as const;
+    const down = pointer('pointerdown', at, eraser);
+    (document.elementFromPoint(at.x, at.y) as Element).dispatchEvent(down);
+    window.dispatchEvent(pointer('pointerup', at, eraser));
+    expect(down.defaultPrevented).toBe(true);
+    await whenIdle();
+    expect(await readAnnotations(target.source, 0)).toEqual([]);
+    resetLockStore();
+  });
+
   it('never from touch, never from a pen that draws; a pen used as a pointer opens it', async () => {
     const { container } = await mount();
     enterEdit();
@@ -319,7 +349,7 @@ describe('the Edit policy (mounted)', () => {
     expect(hint()).toBeNull();
   });
 
-  it('the idle hover outline after 400 ms, never within 300 ms of a pen stroke, never touch; the hint once', async () => {
+  it('the idle hover outline after 400 ms, never within 500 ms of a pen stroke, never touch; the hint once', async () => {
     const { container } = await mount();
     enterEdit();
     const span = await foxSpan(container);
@@ -349,7 +379,7 @@ describe('the Edit policy (mounted)', () => {
     await sleep(HOVER_DELAY_MS + 200);
     expect(outline(container)).toBeNull();
 
-    // Within 300 ms of a pen leaving the surface: no outline from that move.
+    // Within 500 ms of a pen leaving the surface: no outline from that move.
     window.dispatchEvent(pointer('pointerup', at, { pointerType: 'pen', pointerId: 31 }));
     span.dispatchEvent(pointer('pointermove', at, { pointerType: 'pen' }));
     await sleep(HOVER_DELAY_MS + 200);
@@ -365,7 +395,8 @@ describe('the Edit policy (mounted)', () => {
     );
     expect(container.textContent).not.toContain('Double-click to edit text');
 
-    // With Edit text armed, over its run targets: the outline, and no double-click hint.
+    // With Edit text armed, over its run targets: no outline (05-canvas §9: only Markup with
+    // Select; the tool's own targets are the affordance).
     useToolStore.getState().setMode('edit-text');
     const run = await waitFor(
       () => {
@@ -379,7 +410,8 @@ describe('the Edit policy (mounted)', () => {
     document.body.dispatchEvent(pointer('pointermove', { x: 1, y: 1 }, { pointerType: 'mouse' }));
     await waitFor(() => expect(outline(container)).toBeNull());
     run.dispatchEvent(pointer('pointermove', centre(run), { pointerType: 'mouse' }));
-    await waitFor(() => expect(outline(container)).not.toBeNull(), { timeout: 2000 });
+    await sleep(HOVER_DELAY_MS + 200);
+    expect(outline(container)).toBeNull();
   });
 
   it('with "Pen draws in Edit" the pen draws in Select and never reaches the text', async () => {

@@ -17,7 +17,7 @@
  */
 import { useSyncExternalStore } from 'react';
 
-import { canEditActive } from '../state/ui-store';
+import { canChangeActive } from '../viewer/input-state';
 import { penDrawsNow } from '../viewer/edit-policy';
 import { type ToolMode, useToolStore } from '../viewer/tool-store';
 
@@ -49,7 +49,7 @@ export function isStrokePress(event: PointerEvent): boolean {
   const target = event.target;
   if (!(target instanceof Element) || target.closest(PAGE) === null) return false;
   if (target.closest(PAGE_CHROME) !== null) return false;
-  if (!canEditActive()) return false;
+  if (!canChangeActive('freehand')) return false;
   const pen = event.pointerType === 'pen';
   if (pen && (event.buttons & PEN_BUTTONS) !== 0) return true;
   if (event.button !== 0) return false;

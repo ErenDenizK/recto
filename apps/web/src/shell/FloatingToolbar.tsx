@@ -97,7 +97,7 @@ import { SignaturePlate } from '../signatures/SignaturePlate';
 import { PageContextMenu } from '../stage/PageContextMenu';
 import { type SizeClass, useSizeClass } from './frame/size-class';
 import { useLockStore } from '../state/lock-store';
-import { canEditActive, useCanEdit, useStageView } from '../state/ui-store';
+import { isMarkupOpenActive, useMarkupOpen, useStageView } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { IconButton } from '../ui/IconButton';
 import iconButtonStyles from '../ui/IconButton.module.css';
@@ -131,7 +131,7 @@ const reducedMotion = () =>
 
 export function FloatingToolbar() {
   const pageView = useStageView() === 'page';
-  const editable = useCanEdit();
+  const editable = useMarkupOpen();
   return (
     <>
       {pageView ? editable ? <Dock /> : <ReadDock /> : null}
@@ -240,7 +240,7 @@ function Bar() {
       if (isEditableTarget(target)) return;
       if (target instanceof Element && target.closest('[aria-modal="true"]')) return;
       if (target instanceof Node && ref.current?.contains(target)) return;
-      if (hasAnnotationToolState() || !canEditActive()) return;
+      if (hasAnnotationToolState() || !isMarkupOpenActive()) return;
       showBarGroups();
     };
     document.addEventListener('keydown', onKeyDown);

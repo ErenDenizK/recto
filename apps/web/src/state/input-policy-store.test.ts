@@ -36,6 +36,7 @@ describe('input policy settings', () => {
       openDocumentsLocked: false,
       keepToolsVisible: false,
       editTextHintShown: false,
+      penHintShown: false,
     });
     expect(parseInputPolicy(undefined)).toEqual(DEFAULT_INPUT_POLICY);
   });
@@ -49,6 +50,7 @@ describe('input policy settings', () => {
         openDocumentsLocked: true,
         keepToolsVisible: true,
         editTextHintShown: true,
+        penHintShown: true,
       }),
     ).toEqual({
       penDrawsInMarkup: false,
@@ -57,6 +59,7 @@ describe('input policy settings', () => {
       openDocumentsLocked: true,
       keepToolsVisible: true,
       editTextHintShown: true,
+      penHintShown: true,
     });
     expect(
       parseInputPolicy({
@@ -66,6 +69,7 @@ describe('input policy settings', () => {
         openDocumentsLocked: null,
         keepToolsVisible: 'on',
         editTextHintShown: 1,
+        penHintShown: 'once',
       }),
     ).toEqual(DEFAULT_INPUT_POLICY);
     expect(parseInputPolicy([true])).toEqual(DEFAULT_INPUT_POLICY);
