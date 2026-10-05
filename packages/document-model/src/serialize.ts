@@ -12,6 +12,8 @@ import type {
   Anchor,
   History,
   HistoryEntry,
+  HistoryEntryMeta,
+  HistoryStepKind,
   BatesConfig,
   BlobId,
   CreatedField,
@@ -708,6 +710,8 @@ export interface SerializedHistoryEntryV1 {
   readonly activeDocument?: DocumentId;
   /** Indices into `SerializedHistoryV1.edits`, in order. */
   readonly engineEdits: readonly number[];
+  /** Where the step happened (X10), so a restored step keeps its page and document. */
+  readonly meta?: HistoryEntryMeta;
 }
 
 /**
@@ -783,6 +787,7 @@ export function serializeHistoryTail(
       ...base,
       ...(e.coalesceKey === undefined ? {} : { coalesceKey: e.coalesceKey }),
       ...(ws.activeDocument === undefined ? {} : { activeDocument: ws.activeDocument }),
+      ...(e.meta === undefined ? {} : { meta: e.meta }),
     };
   };
   const entries = [...past, history.present, ...future].map(entry);
@@ -802,6 +807,37 @@ export function serializeHistoryTail(
     edits: edits.items,
     entries,
     present: past.length,
+  };
+}
+
+const STEP_KINDS: readonly HistoryStepKind[] = [
+  'open',
+  'close',
+  'pages',
+  'page',
+  'document',
+  'workspace',
+  ...EDIT_KINDS,
+];
+
+/**
+ * Reads a history entry's `meta`: a document id, a 1-based page number and a step kind, each
+ * optional. A kind this version does not know is dropped rather than refused, so a snapshot
+ * written by a later version still restores; the step then only loses its kind.
+ */
+function readHistoryMeta(value: unknown, path: string): HistoryEntryMeta {
+  const o = obj(value, path);
+  const page = o.page === undefined ? undefined : int(o.page, `${path}.page`);
+  if (page !== undefined && page < 1) fail(`${path}.page`, 'a page number of at least 1');
+  const kind = o.kind === undefined ? undefined : str(o.kind, `${path}.kind`);
+  return {
+    ...(o.documentId === undefined
+      ? {}
+      : { documentId: nonEmpty(o.documentId, `${path}.documentId`) as DocumentId }),
+    ...(page === undefined ? {} : { page }),
+    ...(kind !== undefined && STEP_KINDS.includes(kind as HistoryStepKind)
+      ? { kind: kind as HistoryStepKind }
+      : {}),
   };
 }
 
@@ -876,6 +912,7 @@ export function deserializeHistoryTail(input: unknown): History {
       at: num(o.at, `${path}.at`),
       workspace,
       ...opt(o, 'coalesceKey', path, str),
+      ...opt(o, 'meta', path, readHistoryMeta),
     };
   });
   const presentIndex = int(root.present, '$.present');

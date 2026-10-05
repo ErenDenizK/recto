@@ -158,6 +158,46 @@ describe('serializeHistoryTail / deserializeHistoryTail', () => {
     expect(restored.present.workspace.documentOrder).toEqual(docs);
   });
 
+  it('keeps each step’s meta, so restored steps keep their page and document (X10)', () => {
+    const { ws, docs } = open(['A', 3]);
+    const doc = must(docs[0]);
+    const page = must(pageIds(ws, doc)[1]);
+    let history = createHistory(ws, 'Open', 0);
+    history = pushHistory(history, rotatePages(ws, [page], 90), 'Rotate page 2', {
+      now: 1,
+      meta: { documentId: doc, page: 2, kind: 'page' },
+    });
+    history = pushHistory(history, rotatePages(history.present.workspace, [page], 90), 'Again', {
+      now: 2,
+    });
+    history = undo(history);
+    const restored = deserializeHistoryTail(viaJson(serializeHistoryTail(history)));
+    expect(restored.past[0]?.meta).toBeUndefined();
+    expect(restored.present.meta).toEqual({ documentId: doc, page: 2, kind: 'page' });
+    expect('meta' in must(restored.future[0])).toBe(false);
+  });
+
+  it('validates meta, and drops a step kind it does not know', () => {
+    const { ws, docs } = open(['A', 2]);
+    const doc = must(docs[0]);
+    const page = must(pageIds(ws, doc)[0]);
+    const history = pushHistory(createHistory(ws, 'Open', 0), rotatePages(ws, [page], 90), 'R', {
+      now: 1,
+      meta: { documentId: doc, page: 1, kind: 'page' },
+    });
+    const withMeta = (meta: unknown): unknown => {
+      const tail = viaJson(serializeHistoryTail(history)) as { entries: { meta?: unknown }[] };
+      must(tail.entries[1]).meta = meta;
+      return tail;
+    };
+    const later = deserializeHistoryTail(withMeta({ documentId: doc, page: 1, kind: 'later' }));
+    expect(later.present.meta).toEqual({ documentId: doc, page: 1 });
+    expectCode(() => deserializeHistoryTail(withMeta({ page: 0 })), 'invalid-serialized');
+    expectCode(() => deserializeHistoryTail(withMeta({ page: 1.5 })), 'invalid-serialized');
+    expectCode(() => deserializeHistoryTail(withMeta({ documentId: '' })), 'invalid-serialized');
+    expectCode(() => deserializeHistoryTail(withMeta('page 1')), 'invalid-serialized');
+  });
+
   it('n = 0 keeps only the present entry', () => {
     const { history } = rotations(3);
     const restored = deserializeHistoryTail(viaJson(serializeHistoryTail(history, 0)));
