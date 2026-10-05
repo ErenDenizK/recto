@@ -7,9 +7,10 @@
  * Runs at 1440 × 900 on the desktop projects (fine), on the `tablet` project (coarse, the full
  * edition at 820 × 1180) and, for the compact edition, on `phone`. States: Home, Read, the
  * text selection bar, Edit with each of the bar's five groups, an options tier, a tool menu,
- * the Document menu, the page context menu, Arrange with its contextual bar, the toast stack
- * (an Undo toast and a failure toast, hovered so ✕ shows), an annotation's bar, a dialog with its
- * footer, and the sheets of D0-4 (the shortcuts overlay's header, the password prompt's footer).
+ * the Document menu, the page context menu, Arrange with its contextual bar, the History
+ * scrubber under ↶ (D0-6), the toast stack (an Undo toast and a failure toast, hovered so ✕
+ * shows), an annotation's bar, a dialog with its footer, and the sheets of D0-4 (the shortcuts
+ * overlay's header, the password prompt's footer).
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -84,6 +85,8 @@ test.describe('the full edition', () => {
   test('Home, Read, Edit with each group and a tier, menus, Arrange, a dialog', async ({
     page,
   }) => {
+    // Some twenty states in one walk: more than the default 30 s on a loaded machine.
+    test.setTimeout(60_000);
     const run = collector(page);
     await page.goto('./?lang=en');
     await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
@@ -177,6 +180,19 @@ test.describe('the full edition', () => {
     await expect(page.getByTestId('contextual-bar')).toBeVisible();
     await page.mouse.move(2, 450);
     await run.audit('Arrange, a page selected');
+
+    // ↶ ↷ sit in the title bar (audited with it above); the History scrubber under ↶, after a
+    // step to scrub (D0-6): its list on a fine pointer, its slider and Cancel on a coarse one.
+    await page.keyboard.press('r');
+    await expect(page.getByTestId('undo-button')).not.toHaveAttribute('aria-disabled');
+    await page.getByTestId('undo-button').click({ button: 'right' });
+    await expect(page.getByTestId('history-scrubber')).toBeVisible();
+    await run.audit('the History scrubber');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('history-scrubber')).toHaveCount(0);
+    // The rotation undone, so the states below see the document as opened.
+    await page.getByTestId('undo-button').click();
+    await expect(page.getByTestId('redo-button')).not.toHaveAttribute('aria-disabled');
 
     // The privacy indicator's popover in the status bar.
     await page.keyboard.press('Escape');

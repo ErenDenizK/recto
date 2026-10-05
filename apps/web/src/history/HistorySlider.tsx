@@ -16,6 +16,9 @@ import { Slider } from '../ui/Slider';
 import styles from './HistoryScrubber.module.css';
 import type { ScrubberStep } from './labels';
 
+/** Above this many steps the ticks would crowd under 10 px apart on a 360 px popover. */
+const MAX_TICKS = 30;
+
 export interface HistorySliderProps {
   /** Oldest first. */
   readonly steps: readonly ScrubberStep[];
@@ -65,6 +68,8 @@ export function HistorySlider({
         min={0}
         max={Math.max(1, steps.length - 1)}
         step={1}
+        // One tick per step while they stay apart (FB7 §2's drawing); a long history is a ramp.
+        detents={steps.length <= MAX_TICKS ? steps.map((_, i) => i) : undefined}
         bubble="never"
         inputRef={inputRef}
         disabled={steps.length < 2}

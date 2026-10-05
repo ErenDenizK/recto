@@ -13,7 +13,8 @@ const isCI = Boolean(process.env.CI);
  * and a mobile viewport, and a screen equal to the viewport, so the edition rule (a coarse
  * pointer and a screen side under 600 CSS px, `shell/frame/edition.ts`) sees a phone or a
  * tablet. `?edition` stays unset. The phones run only the compact edition's spec; the
- * tablet runs the full edition's smoke spec and the touch gestures (long press, D1-7) for now.
+ * tablet runs the full edition's smoke spec, the touch gestures (long press, D1-7) and ↶ ↷
+ * with the History scrubber (D0-6) for now.
  * Both also run the bar audit (Q-9).
  */
 const PHONE = { width: 390, height: 844 };
@@ -71,7 +72,13 @@ export default defineConfig({
     },
     {
       name: 'tablet',
-      testMatch: ['**/smoke.spec.ts', '**/long-press.spec.ts', BAR_AUDIT_SPEC, SHEETS_SPEC],
+      testMatch: [
+        '**/smoke.spec.ts',
+        '**/long-press.spec.ts',
+        '**/history.spec.ts',
+        BAR_AUDIT_SPEC,
+        SHEETS_SPEC,
+      ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },
     // Rendered pixels without the GPU (ADR-0028; research 22 §3.2; docs/specs/redesign.md D0-1):
