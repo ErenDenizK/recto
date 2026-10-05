@@ -51,6 +51,15 @@ describe('durations (FB4 §2, 08.Q1)', () => {
     expect(toastDuration('progress', 'Recognizing', true)).toBeNull();
   });
 
+  it('keeps a toast with an action at least 10 s (A-24)', () => {
+    expect(ACTION_MS).toBeGreaterThanOrEqual(10_000);
+    for (const kind of ['info', 'action', 'success'] as const) {
+      expect(
+        toastDuration(kind, 'x'.repeat(500), true) ?? Number.POSITIVE_INFINITY,
+      ).toBeGreaterThanOrEqual(10_000);
+    }
+  });
+
   it('adds a second per 30 characters beyond 60 to an info toast, up to 8 s', () => {
     expect(toastDuration('info', 'x'.repeat(60), false)).toBe(4_000);
     expect(toastDuration('info', 'x'.repeat(61), false)).toBe(5_000);
