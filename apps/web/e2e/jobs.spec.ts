@@ -9,10 +9,15 @@
  *   Apply to export · Export · Export · Save · picker.
  * - touch (`tablet`): Document ▾ · Save a copy… · Smaller · Share copy · share target (mocked
  *   Web Share) = 5.
+ *
+ * **J14 Return via Recents** (flows §8.2: 0 if it was open when the browser closed; spec D0-7,
+ * §12 D0 exit; ADR-0032 §2.5): a document changed and kept as a snapshot comes back, with its
+ * change, on the next launch with nothing pressed. The reopen from a Recents row (mouse 1) is
+ * `session.spec.ts`'s "a closed document reopens from Recents".
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, sessionSettled, useFileInputPicker, waitForSnapshot } from './helpers';
 
 /** Counts the presses of one job. */
 function counter() {
@@ -105,4 +110,39 @@ test('J13B: compress, then save a copy, in 5 presses', async ({ page, browserNam
     expect(record.written).toBeGreaterThan(0);
   }
   expect(job.count).toBe(5);
+});
+
+test('J14: a document open when the browser closed is back, with its change, in 0 presses', async ({
+  page,
+  browserName,
+}) => {
+  await useFileInputPicker(page);
+  // Storage is not persistent in a test profile, so `beforeunload` may ask (ADR-0032 §2.7);
+  // leaving is the person's answer.
+  page.on('dialog', (dialog) => void dialog.accept());
+  await page.goto('./?lang=en');
+  await sessionSettled(page);
+  if ((await page.locator('html').getAttribute('data-session')) === 'off') {
+    // An engine whose test context refuses OPFS keeps nothing, and says so (session.spec.ts).
+    expect(browserName, 'Chromium always keeps').not.toBe('chromium');
+    test.skip(true, `${browserName} keeps nothing in this test context`);
+  }
+  await openFixtures(page, ['simple-text.pdf']);
+  // The change: page 2 deleted in Arrange.
+  await page.keyboard.press('3');
+  const cells = page.locator('[role="gridcell"][data-page-id]');
+  await expect(cells).toHaveCount(3);
+  await cells.nth(1).click();
+  await page.keyboard.press('Delete');
+  await expect(cells).toHaveCount(2);
+  await waitForSnapshot(page);
+
+  // The browser closes and opens again: a reload, then nothing pressed.
+  const job = counter();
+  await page.reload();
+  await sessionSettled(page);
+  await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
+  await expect(page.getByTestId('session-notice')).toContainText('Restored simple-text');
+  await expect(cells).toHaveCount(2);
+  expect(job.count).toBe(0);
 });
