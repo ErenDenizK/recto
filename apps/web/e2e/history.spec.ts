@@ -242,9 +242,9 @@ test.describe('↶ ↷ and the History scrubber', () => {
     await page.keyboard.press('ArrowLeft');
     await expect(squares).toHaveCount(0);
     await expect(scrubber.getByText('1 of 3')).toBeVisible();
-    const cancel = await scrubber.getByRole('button', { name: 'Cancel' }).boundingBox();
-    if (!cancel) throw new Error('no Cancel');
-    await touch(cdp, cancel.x + cancel.width / 2, cancel.y + cancel.height / 2, 60, page);
+    // A tap through Playwright: it waits until Cancel is still and hit-testable, and names
+    // whatever covers it if something does.
+    await scrubber.getByRole('button', { name: 'Cancel' }).tap();
     await expect(scrubber).toHaveCount(0);
     await expect(squares).toHaveCount(1);
   });
