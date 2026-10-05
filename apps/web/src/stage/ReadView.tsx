@@ -7,8 +7,11 @@
  * requested after a short debounce; above the single-bitmap cap, visible tiles render at
  * full resolution (`TiledPage`).
  *
- * Zoom keeps a stable anchor: the point under the viewport centre (buttons, keys) or under
- * the pointer (Mod+wheel, trackpad pinch, touch pinch, Safari gestures) stays in place.
+ * Zoom keeps a stable anchor: the point under the viewport centre (buttons, keys) stays in
+ * place. Pinch, trackpad pinch, Mod+wheel and the touch double tap go through the canvas zoom
+ * (`use-canvas-zoom.ts`, `viewer/zoom-controller.ts`; 05-canvas §4): the column is the zoom
+ * layer, scaled by `transform` while the gesture runs, and the zoom is committed once at rest
+ * with the point under the fingers kept where it showed.
  *
  * Every page hosts the registered overlays (text layer, search highlights, links, …).
  * With a text layer the page is a `region` whose content is its text; the canvas is
@@ -37,7 +40,7 @@ import { PageCanvas } from '../pages/PageCanvas';
 import { CSS_PX_PER_PT, displaySize, rotationPhrase } from '../pages/page-geometry';
 import { needsTiles, TiledPage } from '../pages/TiledPage';
 import { useSelectionStore } from '../state/selection-store';
-import { MAX_ZOOM, MIN_ZOOM, useUiStore } from '../state/ui-store';
+import { clamp, MAX_ZOOM, MIN_ZOOM, useUiStore } from '../state/ui-store';
 import { type ReadLayout, useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import styles from '../shell/Stage.module.css';
@@ -51,13 +54,17 @@ import {
 } from '../viewer/navigation';
 import { pageFrame } from '../viewer/page-frame';
 import { setReadController } from '../viewer/read-controller';
+import type { Point, ZoomRest } from '../viewer/zoom-controller';
 import '../viewer/register';
 import { installCopyHandler } from '../viewer/TextLayer';
 import { PageOverlays } from './page-overlays';
+import { enterPagesGrid } from './pages-grid-door';
+import { PinchDetentChip } from './PinchDetentChip';
 import readStyles from './ReadView.module.css';
 import { type ContentFrame, contentFrame, ResizedContent } from './ResizedContent';
 import { ScrollProxies } from './ScrollProxies';
 import { type Insets, scrollbarSize, scrollbarsNeeded, useStageBleed } from './stage-bleed';
+import { useCanvasZoom, type ZoomColumn } from './use-canvas-zoom';
 
 const PAD_X = 48;
 const PAD_TOP = 16;
@@ -65,8 +72,8 @@ const PAD_BOTTOM = 112;
 const GAP = 16;
 /** Debounce before a zoom change requests sharper bitmaps. */
 const ZOOM_RENDER_DELAY_MS = 160;
-/** Wheel delta (pixels) that doubles or halves the zoom with Mod+wheel / pinch. */
-const WHEEL_ZOOM_DOUBLING = 300;
+/** At most this many extra rows render while a zoom gesture shrinks the column. */
+const MAX_EXTRA_ROWS = 60;
 /** A programmatic scroll has settled after this long without scroll events. */
 const NAV_SETTLE_MS = 180;
 /** Remember the reading position after it has settled for this long. */
@@ -210,6 +217,25 @@ function computeLayout(
   return { sizes, rows, rowOf, maxWidth, maxHeight, maxGaps };
 }
 
+/**
+ * The zooms that fit the widest row's width, and the tallest page whole, in the unobscured
+ * rectangle of `el` (fit width and fit page). Exported for tests.
+ */
+export function fitZooms(
+  el: { readonly clientWidth: number; readonly clientHeight: number },
+  view: Insets,
+  layout: Pick<Layout, 'maxWidth' | 'maxHeight' | 'maxGaps'>,
+): { width: number; page: number } {
+  const width = el.clientWidth - view.left - view.right;
+  const height = el.clientHeight - view.top - view.bottom;
+  const byWidth = (width - PAD_X * 2 - layout.maxGaps * GAP) / (layout.maxWidth * CSS_PX_PER_PT);
+  const byHeight = (height - PAD_TOP - GAP) / (layout.maxHeight * CSS_PX_PER_PT);
+  return {
+    width: clamp(byWidth, MIN_ZOOM, MAX_ZOOM),
+    page: clamp(Math.min(byWidth, byHeight), MIN_ZOOM, MAX_ZOOM),
+  };
+}
+
 export function ReadView({ doc }: { readonly doc: VirtualDocument }) {
   const ws = useWorkspaceStore((s) => s.workspace);
   const zoom = useUiStore((s) => s.zoom);
@@ -235,6 +261,7 @@ export function ReadView({ doc }: { readonly doc: VirtualDocument }) {
   // The unobscured rectangle (the frame) and the bars the page column needs inside it, as the
   // old viewport of the frame's size would have shown them.
   const frameRef = useRef<HTMLDivElement>(null);
+  const chipRef = useRef<HTMLDivElement>(null);
   const bleed = useStageBleed(frameRef);
   const barSize = scrollbarSize();
   const content = readContentSize(layout, cssScale);
@@ -251,12 +278,12 @@ export function ReadView({ doc }: { readonly doc: VirtualDocument }) {
     const el = viewportRef.current;
     if (!el || fitMode === null) return;
     const fit = () => {
-      const width = el.clientWidth - view.left - view.right;
-      const height = el.clientHeight - view.top - view.bottom;
-      const byWidth =
-        (width - PAD_X * 2 - layout.maxGaps * GAP) / (layout.maxWidth * CSS_PX_PER_PT);
-      const byHeight = (height - PAD_TOP - GAP) / (layout.maxHeight * CSS_PX_PER_PT);
-      applyFitZoom(fitMode === 'width' ? byWidth : Math.min(byWidth, byHeight));
+      const fits = fitZooms(
+        el,
+        { top: view.top, right: view.right, bottom: view.bottom, left: view.left },
+        { maxWidth: layout.maxWidth, maxHeight: layout.maxHeight, maxGaps: layout.maxGaps },
+      );
+      applyFitZoom(fitMode === 'width' ? fits.width : fits.page);
     };
     fit();
     const observer = new ResizeObserver(fit);
@@ -332,10 +359,12 @@ export function ReadView({ doc }: { readonly doc: VirtualDocument }) {
             fingerprint={fingerprint}
             fitting={fitMode !== null}
             view={view}
+            chipRef={chipRef}
           />
         ) : null}
         <GoToPageDialog doc={doc} />
       </div>
+      <PinchDetentChip ref={chipRef} />
       <ScrollProxies
         target={viewport}
         content={content}
@@ -390,6 +419,7 @@ function PageColumn({
   fingerprint,
   fitting,
   view,
+  chipRef,
 }: {
   readonly doc: VirtualDocument;
   readonly ws: Workspace;
@@ -416,6 +446,8 @@ function PageColumn({
    * to inside it.
    */
   readonly view: Insets;
+  /** The pinch detent chip (05.11), beside the viewport. */
+  readonly chipRef: RefObject<HTMLDivElement | null>;
 }) {
   'use no memo'; // TanStack Virtual mutates its instance; the React Compiler must not cache it.
   const setCurrentPage = useViewStore((s) => s.setCurrentPage);
@@ -428,8 +460,11 @@ function PageColumn({
     const row = rows[r];
     return row ? row.width * cssScale + (row.pages.length - 1) * GAP : 0;
   };
-  const canvasWidth =
-    layout.maxWidth * cssScale + layout.maxGaps * GAP + PAD_X * 2 + view.left + view.right;
+  const canvasWidthAt = (scale: number) =>
+    layout.maxWidth * scale + layout.maxGaps * GAP + PAD_X * 2 + view.left + view.right;
+  const canvasWidth = canvasWidthAt(cssScale);
+  /** Rows rendered beyond the overscan while a zoom gesture shrinks the column. */
+  const [extraRows, setExtraRows] = useState(0);
 
   // Opted out of the compiler above ('use no memo'), so the instance is read fresh.
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -446,14 +481,14 @@ function PageColumn({
     // Rows scrolled to the start or end stop at the unobscured rectangle's edges.
     scrollPaddingStart: view.top,
     scrollPaddingEnd: view.bottom,
-    overscan: 2,
+    overscan: 2 + extraRows,
   });
 
   /** Canvas width as laid out (at least the viewport). */
   const laidOutWidth = (el: HTMLElement, width: number) => Math.max(el.clientWidth, width);
   /** The horizontal centre of the column the rows are centred in, between the side insets. */
-  const columnCentre = (el: HTMLElement) =>
-    view.left + (laidOutWidth(el, canvasWidth) - view.left - view.right) / 2;
+  const columnCentre = (el: HTMLElement, width = canvasWidth) =>
+    view.left + (laidOutWidth(el, width) - view.left - view.right) / 2;
   /** Height of the unobscured rectangle. */
   const visibleHeightOf = (el: HTMLElement) => el.clientHeight - view.top - view.bottom;
   /** Content offset of a row's top (`getOffsetForIndex` answers in scroll offsets). */
@@ -499,6 +534,8 @@ function PageColumn({
   const anchor = useRef<Anchor | null>(null);
   const topAnchor = useRef<Anchor | null>(null);
   const pointerAnchor = useRef<Anchor | null>(null);
+  /** The canvas zoom's `settled`, called once its zoom is laid out (use-canvas-zoom.ts). */
+  const zoomSettled = useRef<(() => void) | null>(null);
   const lastScale = useRef(cssScale);
   useLayoutEffect(() => {
     if (lastScale.current === cssScale) return;
@@ -508,6 +545,9 @@ function PageColumn({
     const fromTop = pointerAnchor.current === null && fitting;
     const a = pointerAnchor.current ?? (fromTop ? topAnchor.current : anchor.current);
     pointerAnchor.current = null;
+    // The zoom layer drops its transform in this frame, the one that lays out the new zoom.
+    zoomSettled.current?.();
+    zoomSettled.current = null;
     if (!el || !a) return;
     if (fromTop && a.atTop) {
       el.scrollTop = 0;
@@ -604,81 +644,100 @@ function PageColumn({
     [],
   );
 
-  // Zoom under the pointer: Mod+wheel and trackpad pinch (ctrlKey wheel), touch pinch,
-  // Safari gesture events.
-  useEffect(() => {
-    const el = viewportRef.current;
-    if (!el) return;
-    const zoomAround = (factor: number, clientX: number, clientY: number) => {
-      const { zoom, setZoom } = useUiStore.getState();
-      const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
-      if (Math.abs(next - zoom) < 1e-4) return;
-      const bounds = el.getBoundingClientRect();
-      pointerAnchor.current = anchorAt(clientX - bounds.left, clientY - bounds.top);
-      setZoom(next);
+  // The canvas zoom (05-canvas §4): pinch, trackpad pinch, Mod+wheel and the touch double tap
+  // scale the column by transform, and commit here once at rest.
+  const zoomFrameRef = useRef<HTMLDivElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  /** Where scroll offsets must go for anchor `a` at `scale`, and where the browser clamps them. */
+  const scrollFor = (el: HTMLElement, a: Anchor, scale: number) => {
+    let rowTop = view.top + PAD_TOP;
+    let total = rowTop + view.bottom + PAD_BOTTOM - GAP;
+    rows.forEach((row, r) => {
+      const step = row.height * scale + GAP;
+      if (r < a.row) rowTop += step;
+      total += step;
+    });
+    const width = canvasWidthAt(scale);
+    const wantTop = rowTop + a.fraction * (rows[a.row]?.height ?? 792) * scale - a.viewportY;
+    const wantLeft = columnCentre(el, width) + a.fromCentre * (scale / a.scale) - a.viewportX;
+    return {
+      wantTop,
+      wantLeft,
+      top: clamp(wantTop, 0, Math.max(0, total - el.clientHeight)),
+      left: clamp(wantLeft, 0, Math.max(0, laidOutWidth(el, width) - el.clientWidth)),
     };
-    const onWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return;
-      event.preventDefault();
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? el.clientHeight : 1;
-      const delta = Math.max(-150, Math.min(150, event.deltaY * unit));
-      zoomAround(2 ** (-delta / WHEEL_ZOOM_DOUBLING), event.clientX, event.clientY);
-    };
-    // Safari trackpad pinch.
-    let gestureZoom = 1;
-    const onGestureStart = (event: Event) => {
-      event.preventDefault();
-      gestureZoom = useUiStore.getState().zoom;
-    };
-    const onGestureChange = (event: Event) => {
-      event.preventDefault();
-      const e = event as Event & { scale?: number; clientX?: number; clientY?: number };
-      const target = gestureZoom * (e.scale ?? 1);
-      const zoom = useUiStore.getState().zoom;
-      zoomAround(target / zoom, e.clientX ?? 0, e.clientY ?? 0);
-    };
-    // Touch pinch: two active touch pointers.
-    const touches = new Map<number, { x: number; y: number }>();
-    let pinchDistance = 0;
-    const distance = () => {
-      const [a, b] = [...touches.values()];
-      return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
-    };
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.pointerType !== 'touch') return;
-      touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      if (touches.size === 2) pinchDistance = distance();
-    };
-    const onPointerMove = (event: PointerEvent) => {
-      if (!touches.has(event.pointerId)) return;
-      touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      if (touches.size !== 2 || pinchDistance <= 0) return;
-      const now = distance();
-      const [a, b] = [...touches.values()];
-      if (a && b && now > 0) zoomAround(now / pinchDistance, (a.x + b.x) / 2, (a.y + b.y) / 2);
-      pinchDistance = now;
-    };
-    const onPointerEnd = (event: PointerEvent) => {
-      touches.delete(event.pointerId);
-      if (touches.size < 2) pinchDistance = 0;
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    el.addEventListener('gesturestart', onGestureStart);
-    el.addEventListener('gesturechange', onGestureChange);
-    el.addEventListener('pointerdown', onPointerDown);
-    el.addEventListener('pointermove', onPointerMove);
-    el.addEventListener('pointerup', onPointerEnd);
-    el.addEventListener('pointercancel', onPointerEnd);
-    return () => {
-      el.removeEventListener('wheel', onWheel);
-      el.removeEventListener('gesturestart', onGestureStart);
-      el.removeEventListener('gesturechange', onGestureChange);
-      el.removeEventListener('pointerdown', onPointerDown);
-      el.removeEventListener('pointermove', onPointerMove);
-      el.removeEventListener('pointerup', onPointerEnd);
-      el.removeEventListener('pointercancel', onPointerEnd);
+  };
+  /** The anchor of column point `p` (CSS px at this zoom), wanted at column position `at`. */
+  const anchorOf = (el: HTMLElement, p: Point, at: Point): Anchor | null => {
+    const a = anchorAt(p.x - el.scrollLeft, p.y - el.scrollTop);
+    return a && { ...a, viewportX: at.x - el.scrollLeft, viewportY: at.y - el.scrollTop };
+  };
+  const zoomColumn = useRef<ZoomColumn | null>(null);
+  useLayoutEffect(() => {
+    zoomColumn.current = {
+      bounds() {
+        const { zoom } = useUiStore.getState();
+        const el = viewportRef.current;
+        const fits = el ? fitZooms(el, view, layout) : { width: zoom, page: zoom };
+        return { zoom, min: MIN_ZOOM, max: MAX_ZOOM, fitWidth: fits.width, fitPage: fits.page };
+      },
+      landing(zoom, p, at) {
+        const el = viewportRef.current;
+        const a = el ? anchorOf(el, p, at) : null;
+        if (!el || !a) return at;
+        const next = scrollFor(el, a, zoom * CSS_PX_PER_PT);
+        return { x: at.x + next.wantLeft - next.left, y: at.y + next.wantTop - next.top };
+      },
+      commit(rest: ZoomRest, p, at, settled) {
+        const el = viewportRef.current;
+        const ui = useUiStore.getState();
+        const a = el ? anchorOf(el, p, at) : null;
+        const nextScale = clamp(rest.zoom, MIN_ZOOM, MAX_ZOOM) * CSS_PX_PER_PT;
+        if (!el || !a || Math.abs(nextScale - cssScale) < 1e-9) {
+          // The zoom does not change: no layout to wait for.
+          if (el && a) {
+            const next = scrollFor(el, a, cssScale);
+            el.scrollTop = next.top;
+            el.scrollLeft = next.left;
+          }
+          settled();
+        } else {
+          pointerAnchor.current = a;
+          zoomSettled.current = settled;
+        }
+        // One update: the zoom, and the fit it snapped to, so the fit follows resizes.
+        if (rest.fit === null) ui.setZoom(rest.zoom);
+        else {
+          ui.applyFitZoom(rest.zoom);
+          if (rest.fit === 'width') ui.zoomFit();
+          else ui.zoomFitPage();
+        }
+      },
+      extend(minScale) {
+        const el = viewportRef.current;
+        if (!el || minScale >= 1) {
+          setExtraRows(0);
+          return;
+        }
+        let shortest = Number.POSITIVE_INFINITY;
+        for (const row of rows) shortest = Math.min(shortest, row.height * cssScale + GAP);
+        const uncovered = el.clientHeight * (1 / Math.max(minScale, 0.05) - 1);
+        setExtraRows(Math.min(MAX_EXTRA_ROWS, Math.ceil(uncovered / Math.max(1, shortest))));
+      },
+      enterGrid(p) {
+        const el = viewportRef.current;
+        const a = el ? anchorAt(p.x - el.scrollLeft, p.y - el.scrollTop) : null;
+        const row = rows[a?.row ?? -1];
+        const index = row?.pages[0] ?? useViewStore.getState().currentPage;
+        const page = pages[index];
+        if (page) enterPagesGrid(page.id);
+      },
     };
   });
+  useCanvasZoom(
+    { viewport: viewportRef, frame: zoomFrameRef, layer: layerRef, chip: chipRef },
+    zoomColumn as RefObject<ZoomColumn>,
+  );
 
   /** A page to show once the single-page layout has switched to it. */
   const pendingReveal = useRef<{ index: number; reveal: Rect | undefined } | null>(null);
@@ -842,110 +901,118 @@ function PageColumn({
   const dpr = window.devicePixelRatio || 1;
 
   return (
+    // The zoom layer (the column) inside its clip (ReadView.module.css `.zoomFrame`).
     <div
-      className={styles.readCanvas}
+      ref={zoomFrameRef}
+      className={readStyles.zoomFrame}
       style={{ height: virtualizer.getTotalSize(), width: canvasWidth }}
     >
-      {items.map((item) => {
-        const row = rows[item.index];
-        if (!row) return null;
-        const rowVisible = item.end > viewTop && item.start < viewBottom;
-        return (
-          <div
-            key={item.key}
-            className={styles.readItem}
-            data-row={item.index}
-            style={{
-              // On whole device pixels: a fractional offset left the page bitmaps, drawn 1:1,
-              // and any glass on a page between pixels (quality-bar Q-2).
-              transform: `translateY(${Math.round(item.start * dpr) / dpr}px)`,
-              left: view.left,
-              width: `calc(100% - ${view.left + view.right}px)`,
-              height: heightOf(item.index),
-              gap: GAP,
-            }}
-          >
-            {row.pages.map((index) => {
-              const page = pages[index];
-              const size = sizes[index];
-              if (!page || !size) return null;
-              // Whole device pixels, matching the exact-scale bitmap (drawn 1:1).
-              const { width, height } = sheetSize(size.width, size.height, cssScale, dpr);
-              const total = pageTotalRotation(ws, page);
-              const sourceId = page.ref.kind === 'source' ? page.ref.source : undefined;
-              const sourceIndex = page.ref.kind === 'source' ? page.ref.index : 0;
-              const name = `${m.cell_label({ position: index + 1, count: pages.length })}${rotationPhrase(total)}`;
-              const label = labels[index];
-              const textual = sourceId !== undefined;
-              const resized = resizedLayoutOf(ws, page, { width, height }, dpr);
-              // The bitmap covers the content box: the page's own, or the resized one's.
-              const contentPt = resized?.contentPt ?? size;
-              const contentScale = resized?.contentScale ?? cssScale;
-              const tiled =
-                textual &&
-                rowVisible &&
-                resized?.stretched !== true &&
-                needsTiles(contentScale, contentPt.width, contentPt.height);
-              return (
-                <div
-                  key={page.id}
-                  role={textual ? 'region' : 'img'}
-                  aria-label={
-                    label !== undefined && label !== String(index + 1)
-                      ? `${name} (${m.viewer_page_label({ label })})`
-                      : name
-                  }
-                  className={styles.page}
-                  data-page-id={page.id}
-                  data-page-index={index}
-                  data-resized={resized === undefined ? undefined : ''}
-                  style={{ width, height, ...(resized?.overflows ? { overflow: 'hidden' } : {}) }}
-                >
-                  <ResizedContent frame={resized?.box} unit="px">
-                    <PageCanvas
-                      sourceId={sourceId}
-                      blobId={page.ref.kind === 'image' ? page.ref.blob : undefined}
-                      index={sourceIndex}
-                      rotation={page.rotation}
-                      widthPt={contentPt.width}
-                      heightPt={contentPt.height}
-                      cssWidth={resized?.box.width ?? width}
-                      exact={resized?.stretched !== true}
-                      priority={rowVisible ? RENDER_PRIORITY.page : RENDER_PRIORITY.offscreen}
-                      delayMs={ZOOM_RENDER_DELAY_MS}
-                    />
-                    {tiled && sourceId !== undefined ? (
-                      <TiledPage
+      <div
+        ref={layerRef}
+        className={styles.readCanvas}
+        style={{ height: virtualizer.getTotalSize(), width: canvasWidth }}
+      >
+        {items.map((item) => {
+          const row = rows[item.index];
+          if (!row) return null;
+          const rowVisible = item.end > viewTop && item.start < viewBottom;
+          return (
+            <div
+              key={item.key}
+              className={styles.readItem}
+              data-row={item.index}
+              style={{
+                // On whole device pixels: a fractional offset left the page bitmaps, drawn 1:1,
+                // and any glass on a page between pixels (quality-bar Q-2).
+                transform: `translateY(${Math.round(item.start * dpr) / dpr}px)`,
+                left: view.left,
+                width: `calc(100% - ${view.left + view.right}px)`,
+                height: heightOf(item.index),
+                gap: GAP,
+              }}
+            >
+              {row.pages.map((index) => {
+                const page = pages[index];
+                const size = sizes[index];
+                if (!page || !size) return null;
+                // Whole device pixels, matching the exact-scale bitmap (drawn 1:1).
+                const { width, height } = sheetSize(size.width, size.height, cssScale, dpr);
+                const total = pageTotalRotation(ws, page);
+                const sourceId = page.ref.kind === 'source' ? page.ref.source : undefined;
+                const sourceIndex = page.ref.kind === 'source' ? page.ref.index : 0;
+                const name = `${m.cell_label({ position: index + 1, count: pages.length })}${rotationPhrase(total)}`;
+                const label = labels[index];
+                const textual = sourceId !== undefined;
+                const resized = resizedLayoutOf(ws, page, { width, height }, dpr);
+                // The bitmap covers the content box: the page's own, or the resized one's.
+                const contentPt = resized?.contentPt ?? size;
+                const contentScale = resized?.contentScale ?? cssScale;
+                const tiled =
+                  textual &&
+                  rowVisible &&
+                  resized?.stretched !== true &&
+                  needsTiles(contentScale, contentPt.width, contentPt.height);
+                return (
+                  <div
+                    key={page.id}
+                    role={textual ? 'region' : 'img'}
+                    aria-label={
+                      label !== undefined && label !== String(index + 1)
+                        ? `${name} (${m.viewer_page_label({ label })})`
+                        : name
+                    }
+                    className={styles.page}
+                    data-page-id={page.id}
+                    data-page-index={index}
+                    data-resized={resized === undefined ? undefined : ''}
+                    style={{ width, height, ...(resized?.overflows ? { overflow: 'hidden' } : {}) }}
+                  >
+                    <ResizedContent frame={resized?.box} unit="px">
+                      <PageCanvas
                         sourceId={sourceId}
+                        blobId={page.ref.kind === 'image' ? page.ref.blob : undefined}
                         index={sourceIndex}
                         rotation={page.rotation}
-                        frame={pageFrame({
-                          sourceId,
-                          sourceIndex,
-                          sizePt: contentPt,
-                          rotation: total,
-                          cssScale: contentScale,
-                        })}
+                        widthPt={contentPt.width}
+                        heightPt={contentPt.height}
+                        cssWidth={resized?.box.width ?? width}
+                        exact={resized?.stretched !== true}
+                        priority={rowVisible ? RENDER_PRIORITY.page : RENDER_PRIORITY.offscreen}
+                        delayMs={ZOOM_RENDER_DELAY_MS}
                       />
-                    ) : null}
-                  </ResizedContent>
-                  <PageOverlays
-                    page={page}
-                    pageId={page.id}
-                    pageIndex={index}
-                    sourceId={sourceId}
-                    sourceIndex={sourceIndex}
-                    sizePt={size}
-                    cssScale={cssScale}
-                    rotation={total}
-                    visible={rowVisible}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
+                      {tiled && sourceId !== undefined ? (
+                        <TiledPage
+                          sourceId={sourceId}
+                          index={sourceIndex}
+                          rotation={page.rotation}
+                          frame={pageFrame({
+                            sourceId,
+                            sourceIndex,
+                            sizePt: contentPt,
+                            rotation: total,
+                            cssScale: contentScale,
+                          })}
+                        />
+                      ) : null}
+                    </ResizedContent>
+                    <PageOverlays
+                      page={page}
+                      pageId={page.id}
+                      pageIndex={index}
+                      sourceId={sourceId}
+                      sourceIndex={sourceIndex}
+                      sizePt={size}
+                      cssScale={cssScale}
+                      rotation={total}
+                      visible={rowVisible}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
