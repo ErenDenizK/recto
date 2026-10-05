@@ -41,7 +41,7 @@ import { announce } from '../shell/announcer';
 import { focusOpenedPage } from '../shell/focus-opened-page';
 import { useAuthorPrompt } from '../shell/comment-author';
 import { openImagesAsDocument } from '../stage/section-operations';
-import { selectAllOf, useSelectionStore } from '../state/selection-store';
+import { selectAllOf, useSelectionStore, visibleSelection } from '../state/selection-store';
 import { ARRANGE_SIZES, isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
@@ -207,8 +207,13 @@ const hasTargets = () => targetPages().length > 0;
  * (ADR-0030 §2.4: each is asked; in the grid's "All open" scope a selection may span several).
  */
 export function targetDocuments(): DocumentId[] {
+  return documentsHolding(targetPages());
+}
+
+/** The documents holding `pageIds`, in tab order. */
+function documentsHolding(pageIds: readonly PageId[]): DocumentId[] {
   const ws = model().workspace;
-  const pages = new Set(targetPages());
+  const pages = new Set(pageIds);
   return ws.documentOrder.filter((id) =>
     (ws.documents[id]?.pages ?? []).some((page) => pages.has(page.id)),
   );
@@ -222,8 +227,24 @@ function rotate(delta: 90 | -90): void {
   }
 }
 
+/**
+ * The pages Delete acts on: a selection the person can see only (S10, flows §3.1). In the
+ * Pages grid that is `targetPages()`; on the page, the selected pages the navigator lists,
+ * and none while it is closed. A navigating click in the navigator selects nothing, so a
+ * click then Delete changes nothing.
+ */
+export function visibleTargetPages(): PageId[] {
+  const stage = stageView(ui());
+  if (stage === 'grid') return targetPages();
+  if (stage !== 'page') return [];
+  const { selected, navigatorDocument } = selection();
+  const shown =
+    navigatorDocument === null ? undefined : model().workspace.documents[navigatorDocument];
+  return visibleSelection(selected, shown);
+}
+
 function deleteTargets(): void {
-  const pages = targetPages();
+  const pages = visibleTargetPages();
   if (pages.length === 0) return;
   // Focus the page after the deleted block (else before it) so keyboard work continues.
   const doc = activeDocument();
@@ -472,10 +493,10 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       title: m.cmd_delete_pages(),
       group: m.group_pages(),
       act: 'pages',
-      documents: targetDocuments,
+      documents: () => documentsHolding(visibleTargetPages()),
       shortcut: ['Delete', 'Backspace'],
       keywords: ['remove'],
-      when: hasTargets,
+      when: () => visibleTargetPages().length > 0,
       run: deleteTargets,
     }),
     registry.register({

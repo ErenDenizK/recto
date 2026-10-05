@@ -184,6 +184,8 @@ describe('the guard on an open document (dimmed items carry their reason)', () =
     useSelectionStore
       .getState()
       .apply({ selected: new Set([first]), anchor: first, focused: first });
+    // The selection shows in the navigator, so Delete is offered on the page (S10).
+    useSelectionStore.getState().setNavigatorDocument(id ?? null);
     useUiStore.setState({ destination: 'document', docUi: {} });
   });
   afterEach(() => {
@@ -191,6 +193,7 @@ describe('the guard on an open document (dimmed items carry their reason)', () =
       useUiStore.setState({ paletteOpen: false });
     });
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
+    useSelectionStore.getState().setNavigatorDocument(null);
     resetLockStore();
     resetWorkspace();
     setLocale('en');
