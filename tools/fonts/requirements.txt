@@ -1,0 +1,3 @@
+# The subsetter (ADR-0027 §2.1); pinned so a re-cut is byte-identical (SHA256SUMS).
+fonttools==4.60.1
+brotli==1.1.0
