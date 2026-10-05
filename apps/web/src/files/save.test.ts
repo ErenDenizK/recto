@@ -14,6 +14,8 @@ import {
 } from '@pdf-editor/document-model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { readAnnotations } from '../annotations/edit-runner';
+import { applyRedactionPlans } from '../redaction/apply';
 import { resetSavedMarks, isInFile, useSavedStore, watchSavedMarks } from '../state/saved-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToasts, useToastStore } from '../ui/Toast/toast-store';
@@ -44,6 +46,17 @@ vi.mock(import('../export/export-service'), async (importOriginal) => ({
         bytes: written.slice().buffer,
         verification: { ok: true, problems: [] },
       } as never,
+    }),
+  ),
+}));
+
+vi.mock(import('../redaction/apply'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  applyRedactionPlans: vi.fn((plans: readonly { plan: { areas: readonly unknown[] } }[]) =>
+    Promise.resolve({
+      kind: 'applied' as const,
+      label: 'Redactions applied',
+      sources: plans.map((p) => ({ result: { plan: { areas: p.plan.areas } } })) as never,
     }),
   ),
 }));
@@ -210,6 +223,11 @@ describe('writeAndVerify', () => {
 
 const ids = createSequentialIdGenerator('save');
 
+function redactMark(id: string): never {
+  const rect = { x: 72, y: 700, width: 120, height: 14 };
+  return { kind: 'redact', id, pageIndex: 0, quads: [rect], rect, color: '#ff0000' } as never;
+}
+
 function openedWorkspace(): Workspace {
   return addSource(
     createWorkspace(),
@@ -269,6 +287,7 @@ describe('saveDocument', () => {
   afterEach(() => {
     resetSave();
     resetWorkspace();
+    vi.mocked(applyRedactionPlans).mockClear();
   });
 
   it('says everything is in the file and writes nothing when nothing is new', async () => {
@@ -353,6 +372,41 @@ describe('saveDocument', () => {
     const failure = useToastStore.getState().shown.find((t) => t.kind === 'failure');
     expect(failure?.text).toBe(
       'Could not save report.pdf: the file did not read back as it was written',
+    );
+  });
+
+  it('asks about unapplied marks first; "Save without applying" leaves them and saves', async () => {
+    const handle = stubHandle();
+    handle.permission = 'granted';
+    rememberDocumentHandle(id, handle);
+    vi.mocked(readAnnotations).mockResolvedValueOnce([redactMark('m1'), redactMark('m2')]);
+    rotateFirstPage(id);
+    const save = saveDocument(id);
+    expect(await question()).toBe('marks');
+    expect(useSaveStore.getState().pending?.question).toMatchObject({ kind: 'marks', count: 2 });
+    answerSaveQuestion('without');
+    expect(await question()).toBe('replace');
+    answerSaveQuestion('replace');
+    await save;
+    expect(applyRedactionPlans).not.toHaveBeenCalled();
+    expect(useToastStore.getState().shown.map((t) => t.text)).toContain('Saved · verified');
+  });
+
+  it('"Apply and save" applies the marks first and names the removed areas', async () => {
+    const handle = stubHandle();
+    handle.permission = 'granted';
+    rememberDocumentHandle(id, handle);
+    vi.mocked(readAnnotations).mockResolvedValueOnce([redactMark('m1'), redactMark('m2')]);
+    rotateFirstPage(id);
+    const save = saveDocument(id);
+    expect(await question()).toBe('marks');
+    answerSaveQuestion('apply');
+    expect(await question()).toBe('replace');
+    answerSaveQuestion('replace');
+    await save;
+    expect(applyRedactionPlans).toHaveBeenCalledTimes(1);
+    expect(useToastStore.getState().shown.map((t) => t.text)).toContain(
+      'Saved · 2 areas removed for good · verified',
     );
   });
 

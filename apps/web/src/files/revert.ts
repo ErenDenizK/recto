@@ -8,8 +8,9 @@
  * and puts its fresh document in place of the old one under the same id, so the tab, its colour
  * and its place stay; the old source leaves the workspace when nothing else shows it (a page
  * combined into another document keeps it, with its edits). It is one history step: "Reverted
- * report.pdf · Undo" brings every change back. The saved mark does not move: after an in-place
- * save the file holds the saved changes, so the reverted document shows ● until it is saved.
+ * report.pdf · Undo" brings every change back. After an in-place save the file holds the saved
+ * changes, so the reverted document shows ● until it is saved; when nothing was written over
+ * the file this session, the reverted document is what the file holds and the ● clears.
  *
  * Available when the document came from one file (`originOf`) and differs from it; else the
  * command is dimmed with "Nothing changed since opening". The guard (`canChange(id,
@@ -28,7 +29,13 @@ import { getEngineService, type OpenedSource } from '../engine/engine-service';
 import { presentError } from '../errors/present';
 import { m } from '../i18n';
 import { isPristineDocument } from '../session/snapshot';
-import { editSignature, originOf, pushOrigin } from '../state/saved-store';
+import {
+  editSignature,
+  fileIsAsOpened,
+  markSaved,
+  originOf,
+  pushOrigin,
+} from '../state/saved-store';
 import { addLoadedSource, documentSources, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 
@@ -132,6 +139,8 @@ export async function revertDocument(id: DocumentId): Promise<boolean> {
     );
     if (!done || reopened === undefined) throw new Error('Nothing was reverted');
     pushOrigin(id, reopened);
+    // Nothing was written over the file: the reverted document is what the file holds.
+    if (fileIsAsOpened(id)) markSaved(id, { handleKept: false });
     toast.undo(m.revert_done({ name: title }), { documentId: id, testId: 'revert-toast' });
     return true;
   } catch (error) {

@@ -38,21 +38,22 @@
   display: none;
 }
 
-/* The check beside "Saved" (FB6): it holds its place, and pops in once after a verified save. */
+/* The check beside "Saved" (FB6): it pops in once after a verified save. Neutral ink: the
+   success colour stands only beside the word "verified" (08-feedback FB4), in the toast. */
 .check {
   width: var(--icon-sm);
   height: var(--icon-sm);
-  color: var(--success);
-  opacity: 0;
-  transform: scale(0.6);
 }
 
-.check[data-shown] {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--duration-fast) var(--ease-out),
-    transform var(--spring-pop) var(--ease-spring-pop);
+.label[data-shown] > .check {
+  animation: save-check-pop var(--spring-pop) var(--ease-spring-pop) 1;
+}
+
+@keyframes save-check-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
 }
 
 /* The processing ring (language.md §3.3, FB5 §3): a 1.5 px arc turning on the border while the
@@ -91,9 +92,10 @@
   }
 }
 
-/* The success bloom (FB6 §3): the rim lights in 180 ms, holds 120 ms, fades over 900 ms, once. */
+/* The success bloom (FB6 §3): the ring's light on the rim, in 180 ms, held 120 ms, out over
+   900 ms, once. */
 .bloom {
-  background: var(--success);
+  background: var(--accent);
   opacity: 0;
   animation: save-bloom 1200ms var(--ease-out) 1;
 }
@@ -124,14 +126,18 @@
     animation: save-bloom-still 1000ms steps(1, end) 1;
   }
 
-  .check[data-shown] {
-    transition: none;
+  .label[data-shown] > .check {
+    animation: none;
   }
 }
 
 :root:is([data-motion='reduced'], [data-transparency='reduced']) .ring {
   padding: 1px;
   background: var(--accent-line);
+  animation: none;
+}
+
+:root[data-motion='reduced'] .label[data-shown] > .check {
   animation: none;
 }
 
