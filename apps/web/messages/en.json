@@ -4140,6 +4140,7 @@
   "settings_privacy_requests": "Requests to other sites",
   "settings_privacy_none": "None",
   "settings_about_value": "{version} · Public beta",
+  "settings_about_how": "How Recto works",
   "settings_cmd_appearance": "Appearance settings…",
   "cmd_settings_appearance_keywords": "appearance, look, glass, transparency",
   "settings_cmd_kept": "Kept documents…",
