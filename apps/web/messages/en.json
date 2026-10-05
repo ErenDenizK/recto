@@ -3880,6 +3880,8 @@
     }
   ],
   "session_restore_failed": "Could not restore {name}: its kept copy is damaged. The original file is unchanged.",
+  "session_restore_failed_kept": "Could not restore {name} now. Its changes are kept in Recent: open it there to try again.",
+  "session_reopen_failed": "Could not open {name} now. Its changes are still kept: try again.",
   "session_not_kept": "Changes are not kept in this window",
   "session_history_start_fresh": "Start fresh",
   "privacy_kept_heading": "Kept on this device",

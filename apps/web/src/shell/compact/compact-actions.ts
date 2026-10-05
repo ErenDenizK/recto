@@ -28,7 +28,7 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { m } from '../../i18n';
-import { isDocumentChanged, reopenFromSnapshot } from '../../session/session';
+import { flushSession, isDocumentChanged, reopenFromSnapshot } from '../../session/session';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useViewStore } from '../../state/view-store';
 import { clearSearch } from '../../viewer/search';
@@ -49,6 +49,20 @@ export function openDocument(): VirtualDocument | undefined {
 }
 
 /**
+ * Closes the open document before the next one opens (one document at a time). Its snapshot
+ * is written first, while the engine still has its bytes: a document opened a moment ago is
+ * not stored yet, and once the reset closes its source in the engine its kept record could
+ * not be written (ADR-0032 §2.6, closed documents stay in Recents).
+ */
+async function closeOpenDocument(): Promise<void> {
+  if (useWorkspaceStore.getState().workspace.documentOrder.length === 0) return;
+  await flushSession();
+  clearSearch();
+  prepared = null;
+  resetWorkspace();
+}
+
+/**
  * Opens `file` as the one document and shows it. `replaces` names the Recents entry a
  * reopen came from, so the entry moves rather than doubles. Resolves true when it opened.
  */
@@ -56,11 +70,7 @@ export async function openPdf(file: File, replaces?: string): Promise<boolean> {
   if (useCompactStore.getState().opening) return false;
   set({ opening: true, openError: null });
   try {
-    if (useWorkspaceStore.getState().workspace.documentOrder.length > 0) {
-      clearSearch();
-      prepared = null;
-      resetWorkspace();
-    }
+    await closeOpenDocument();
     useViewStore.setState({ currentPage: 0, visibleRange: { first: 0, last: 0 }, navTarget: null });
     const { opened, skipped } = await useWorkspaceStore.getState().openFiles([file]);
     const first = opened[0];
@@ -113,7 +123,11 @@ export async function openRecentEntry(entry: RecentEntry): Promise<void> {
   }
   // A kept snapshot reopens with no picker on every browser (ADR-0032 §2.6), one document at
   // a time as every open here.
-  if (entry.kept !== undefined && (await openKept(entry.kept.snapshotId))) return;
+  // Only a snapshot that is gone falls back to the file; one that did not open now (a
+  // skipped password prompt, an engine failure) stays on its row for another try.
+  if (entry.kept !== undefined && (await openKept(entry.kept.snapshotId, entry)) !== 'gone') {
+    return;
+  }
   const access = useRecentsStore.getState().access[entry.id];
   if (canReopenRecent(entry) && access !== 'unavailable') {
     const result = await reopenRecent(entry);
@@ -139,21 +153,28 @@ export async function openRecentEntry(entry: RecentEntry): Promise<void> {
   }
 }
 
-/** Reopens a kept snapshot as the one document; false when it could not (then the file). */
-async function openKept(snapshotId: string): Promise<boolean> {
-  if (useCompactStore.getState().opening) return false;
+/**
+ * Reopens a kept snapshot as the one document: `opened`; `failed` when it did not open now
+ * and stays kept (or another open is running); `gone` when the snapshot is missing or
+ * unreadable (then the file).
+ */
+async function openKept(
+  snapshotId: string,
+  entry: RecentEntry,
+): Promise<'opened' | 'failed' | 'gone'> {
+  if (useCompactStore.getState().opening) return 'failed';
   set({ opening: true, openError: null });
   try {
-    if (useWorkspaceStore.getState().workspace.documentOrder.length > 0) {
-      clearSearch();
-      prepared = null;
-      resetWorkspace();
-    }
+    await closeOpenDocument();
     useViewStore.setState({ currentPage: 0, visibleRange: { first: 0, last: 0 }, navTarget: null });
     const result = await reopenFromSnapshot(snapshotId);
-    if (!result?.ok) return false;
+    if (result?.ok === false && result.reason === 'failed') {
+      set({ openError: m.session_reopen_failed({ name: result.title ?? entry.name }) });
+      return 'failed';
+    }
+    if (!result?.ok) return 'gone';
     const doc = useWorkspaceStore.getState().workspace.documents[result.documentId];
-    if (doc === undefined) return false;
+    if (doc === undefined) return 'gone';
     setRecentNote(null);
     // A document with changes is not the file as opened: its copy goes through the export.
     set({
@@ -164,7 +185,7 @@ async function openKept(snapshotId: string): Promise<boolean> {
     });
     showReader();
     announce(m.announce_opened({ name: result.record.title }));
-    return true;
+    return 'opened';
   } finally {
     set({ opening: false });
   }
