@@ -138,6 +138,24 @@ export function forgetSaveLocation(): void {
 }
 
 /**
+ * The empty-file rule (components/07-sheets.md §27.7, spec 07.7): Chromium creates the file
+ * the save picker returns when the picker closes, so a copy or a save that could not be written
+ * removes that still empty file again, where the handle has `remove()`. Resolves to false where
+ * it cannot (the caller then says an empty file was left). Save a copy and Save share it.
+ */
+export async function removeEmptyFile(handle: {
+  readonly remove?: (() => Promise<void>) | undefined;
+}): Promise<boolean> {
+  if (typeof handle.remove !== 'function') return false;
+  try {
+    await handle.remove();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Hands `bytes` to the user as `filename`. Call from a user gesture. Resolves to
  * 'cancelled' when the user dismisses the save picker; rejects on write failures.
  */
