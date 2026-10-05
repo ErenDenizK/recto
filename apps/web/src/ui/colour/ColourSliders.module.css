@@ -1,7 +1,11 @@
-/* The Sliders view (10-ink.md §4.1): one grid, so the labels, tracks and readouts of the
-   three sliders line up in columns whatever the language (each Slider is a subgrid row). */
+/* The Sliders view (10-ink.md §4.1): rows of the panel's [label] [track] [readout] columns
+   (ColourPanel.module.css), so the labels, tracks and readouts of the three sliders and the
+   panel's Opacity line up whatever the language. Rhythm: the four rows start at the top of
+   the 192 px view and are spaced so the pitch from the hex row to Opacity below the view (the
+   view's slack + 12) equals the pitch between them: 4 × 32 + 3 × 19 + 7 = 192 fine;
+   4 × 44 + 3 × 14 + 4 = 222 coarse. */
 .view {
-  --sv-gap: 8px;
+  --sv-gap: 19px;
   --sv-text: 13px;
   --sv-lh: 18px;
   --sv-field-h: 32px;
@@ -11,10 +15,10 @@
   --sv-text-colour: var(--text-primary);
 
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content;
-  align-content: center;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-content: start;
   row-gap: var(--sv-gap);
-  column-gap: 8px;
   height: 100%;
 }
 
@@ -27,7 +31,7 @@
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .view {
-    --sv-gap: 4px;
+    --sv-gap: 14px;
     --sv-text: 15px;
     --sv-lh: 20px;
     --sv-field-h: 44px;
@@ -41,22 +45,30 @@
   align-items: center;
 }
 
+/* The label (or the message of an invalid entry) at the start, the field at the end, under
+   the readouts. */
 .hexRow {
-  display: grid;
+  display: flex;
   grid-column: 1 / -1;
-  grid-template-columns: subgrid;
   align-items: center;
-  margin-top: 4px;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  height: var(--sv-field-h);
 }
 
 .hexLabel {
+  overflow: hidden;
   color: var(--sv-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--sv-text);
   line-height: var(--sv-lh);
 }
 
 .hex {
   composes: focus-inset from global;
+  flex: none;
   box-sizing: border-box;
   width: 112px;
   height: var(--sv-field-h);
@@ -83,7 +95,7 @@
 }
 
 .error {
-  grid-column: 2 / -1;
+  min-width: 0;
   color: var(--danger);
   font-size: 12px;
   line-height: 16px;
