@@ -197,14 +197,16 @@ export function fileFactsOf(id: DocumentId): FileFacts {
 /**
  * A restored or reopened document takes back the file facts its snapshot kept. A snapshot
  * from before they were kept says nothing: the origin seen on restore stays, and the file
- * counts as written over (unknown), so Revert never calls it saved. A file known to be
- * written over also loses the "as opened" mark the restore gave a pristine document: the file
- * holds the saved changes, not these bytes.
+ * counts as written over (unknown), so Revert never calls it saved. The "as opened" mark the
+ * restore gave a pristine document goes when its file is known to be written over (the file
+ * holds the saved changes, not these bytes) or when it is no file's (a copy of pages another
+ * document showed, alone now).
  */
 export function adoptFileFacts(id: DocumentId, facts: Partial<FileFacts>): void {
   if (facts.writtenOver === false) writtenOver.delete(id);
   else writtenOver.add(id);
   const { origins } = facts;
+  const noFile = origins?.length === 0;
   useSavedStore.setState((s) => {
     const { [id]: _origins, ...otherOrigins } = s.origins;
     const { [id]: _mark, ...otherMarks } = s.marks;
@@ -215,7 +217,7 @@ export function adoptFileFacts(id: DocumentId, facts: Partial<FileFacts>): void 
           : origins.length > 0
             ? { ...s.origins, [id]: origins }
             : otherOrigins,
-      marks: facts.writtenOver === true ? otherMarks : s.marks,
+      marks: facts.writtenOver === true || noFile ? otherMarks : s.marks,
     };
   });
 }

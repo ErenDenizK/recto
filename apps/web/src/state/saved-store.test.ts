@@ -235,11 +235,20 @@ describe('saved mark', () => {
     // The file holds the saved changes, not the opened bytes.
     expect(isInFile(opened, id)).toBe(false);
 
-    // A document made from others' pages kept no origin: none comes back.
+    // A copy of pages another document showed kept no origin: it restores alone and pristine,
+    // and still is no file's, so nothing of it is in a file.
     resetSavedMarks();
     observeDocuments(opened, 1);
     adoptFileFacts(id, { origins: [], writtenOver: false });
     expect(originOf(opened, id)).toBeUndefined();
+    expect(fileIsAsOpened(id)).toBe(true);
+    expect(isInFile(opened, id)).toBe(false);
+
+    // The file, as opened, never written over: in its file, as before the reload.
+    resetSavedMarks();
+    observeDocuments(opened, 1);
+    adoptFileFacts(id, { origins: [source], writtenOver: false });
+    expect(originOf(opened, id)).toBe(source);
     expect(fileIsAsOpened(id)).toBe(true);
     expect(isInFile(opened, id)).toBe(true);
 
