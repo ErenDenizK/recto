@@ -56,8 +56,9 @@ test('the eyedropper picks each page colour within 1/255', async ({ page }) => {
     .getByRole('radio', { name: /^Black pen/ });
   await expect(black).toHaveAttribute('data-armed', '');
   await black.click();
-  const editor = page.getByRole('dialog', { name: 'Edit black pen' });
-  await expect(editor).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Edit black pen' })).toBeVisible();
+  // By test id from here: a picked colour renames the preset (and the editor).
+  const editor = page.getByTestId('pen-preset-editor');
   // The well pushes the colour views in place, inside the editor (10-ink §6).
   await editor.getByRole('button', { name: 'More colours' }).click();
   const panel = editor.getByRole('group', { name: 'Colour' });

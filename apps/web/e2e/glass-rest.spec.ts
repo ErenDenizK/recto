@@ -146,6 +146,30 @@ test('Arrange with its contextual bar', async ({ page }) => {
   expect(names(walk).some((n) => n.includes('contextBar'))).toBe(true);
 });
 
+test('the pen editor and its colour views, pushed in place', async ({ page }) => {
+  await open(page, 'simple-text.pdf');
+  await enterEdit(page);
+  await page.locator('body').press('p');
+  await page.getByRole('radio', { name: 'Black pen, 1.5 pt' }).click();
+  const editor = page.getByTestId('pen-preset-editor');
+  await expect(editor).toBeVisible();
+  await page.mouse.move(700, 200);
+  await expectGlassClean(page, 'Edit, the pen editor');
+  // The well pushes the colour views inside the editor: its own height springs (Q-6's rule),
+  // so mid-resize it is still one glass element with one backdrop root and nothing nested.
+  await editor.getByRole('button', { name: 'More colours' }).click();
+  const mid = await walkGlass(page, { atRest: false });
+  expect(
+    mid.violations.filter((v) => ['Q-3', 'Q-4', 'Q-5', 'Q-11'].includes(v.rule)),
+    'glass while the colour views come in',
+  ).toEqual([]);
+  await expect(editor.getByRole('group', { name: 'Colour' })).toBeVisible();
+  await page.mouse.move(700, 200);
+  const walk = await expectGlassClean(page, 'Edit, the pen editor on its colour views');
+  // One popover: the colour views are not a second glass surface over the editor.
+  expect(names(walk).filter((n) => n.includes('popup'))).toHaveLength(1);
+});
+
 test('an annotation’s bar and a note', async ({ page }) => {
   await open(page, 'annotations.pdf');
   await enterEdit(page);
