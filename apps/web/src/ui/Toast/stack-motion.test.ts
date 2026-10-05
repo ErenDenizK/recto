@@ -10,7 +10,7 @@ import { entranceDelay, type Move, RISE_PX, STACK_SPRING } from './stack-motion'
 
 /** A neighbour that `reflow()` started `dy` px below its new place, its bottom at `bottom`. */
 function above(dy: number, bottom = 100): Move {
-  return { dx: 0, dy, last: new DOMRect(0, bottom - 48, 360, 48) };
+  return { dx: 0, dy, vy: 0, last: new DOMRect(0, bottom - 48, 360, 48), animation: null };
 }
 
 /** The least gap between the neighbour's bottom and the entering toast's top over time. */

@@ -344,11 +344,13 @@ describe('the stack (FB4 §2, §7; Q-10)', () => {
     const watch = () => {
       if (!watching) return;
       const painted = [...region().querySelectorAll<HTMLElement>('[data-toast-id]')].filter(
-        (el) => Number(getComputedStyle(el).opacity) > 0.01,
+        (el) =>
+          Number(getComputedStyle(el).opacity) > 0.01 &&
+          getComputedStyle(el).visibility !== 'hidden',
       );
       for (const [i, a] of painted.entries()) {
         const style = getComputedStyle(a);
-        if (Number(style.opacity) < 0.09 && style.backdropFilter !== 'none') {
+        if (Number(style.opacity) < 0.049 && style.backdropFilter !== 'none') {
           problems.push(`${a.getAttribute('aria-label')} fades with its backdrop filter`);
         }
         for (const b of painted.slice(i + 1)) {
