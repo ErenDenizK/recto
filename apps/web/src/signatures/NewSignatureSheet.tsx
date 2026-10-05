@@ -96,6 +96,8 @@ export default function NewSignatureSheet() {
   const status = useSavedSignatures((s) => s.status);
   const kept = useSavedSignatures((s) => s.signatures.length);
   const [busy, setBusy] = useState(false);
+  // Focus starts on the chosen tab (07 §2.6), not on the optional name further down.
+  const focusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     void loadSavedSignatures();
@@ -167,9 +169,16 @@ export default function NewSignatureSheet() {
         reason: ink === null ? m.signature_empty_reason() : undefined,
         busy,
       }}
+      initialFocus={focusRef}
       testId="new-signature-sheet"
     >
-      <div className={styles.body}>
+      <div
+        className={styles.body}
+        ref={(el) => {
+          focusRef.current =
+            el?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]') ?? null;
+        }}
+      >
         <Segmented
           semantics="tabs"
           label={m.signature_modes()}

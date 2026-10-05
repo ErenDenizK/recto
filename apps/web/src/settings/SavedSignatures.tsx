@@ -120,6 +120,13 @@ export function SavedSignaturesPage() {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const removal = useRemoval();
+  // The removed row's button is gone: focus goes to Undo, and after Undo to Add….
+  const undoRef = useRef<HTMLButtonElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const removedId = removal.removed?.id;
+  useLayoutEffect(() => {
+    if (removedId) undoRef.current?.focus();
+  }, [removedId]);
   useLocale();
   useEffect(() => {
     void loadSavedSignatures();
@@ -173,7 +180,14 @@ export function SavedSignaturesPage() {
       {removal.removed ? (
         <div className={styles.actions} data-bar="settings-row" data-testid="signature-removed">
           <span>{m.signature_removed_toast()}</span>
-          <Button variant="standard" onClick={removal.undo}>
+          <Button
+            ref={undoRef}
+            variant="standard"
+            onClick={() => {
+              removal.undo();
+              addRef.current?.focus();
+            }}
+          >
             {m.cmd_undo()}
           </Button>
         </div>
@@ -194,6 +208,7 @@ export function SavedSignaturesPage() {
         <span className={own.buttons}>
           <Button
             variant="standard"
+            ref={addRef}
             onClick={() => openNewSignature('keep')}
             data-testid="settings-signatures-add"
           >
@@ -242,14 +257,14 @@ function SignatureRow({
         {editing ? null : (
           <>
             <IconButton
-              size="row"
+              size="bar"
               label={m.settings_signature_rename({ name: label })}
               tooltip={m.settings_signature_rename({ name: label })}
               icon={<Pencil />}
               onClick={() => setEditing(true)}
             />
             <IconButton
-              size="row"
+              size="bar"
               label={m.settings_signature_remove({ name: label })}
               tooltip={m.settings_signature_remove({ name: label })}
               icon={<Trash2 />}

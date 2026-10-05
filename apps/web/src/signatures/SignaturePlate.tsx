@@ -2,10 +2,12 @@
  * A signature shown as content (components/03-markup.md MK-12 §2, §3): a page-white plate with
  * the signature in its ink, used by the chips, the Signature menu, Settings → Saved signatures
  * and New signature's previews. Drawn signatures are drawn as an SVG path from their strokes,
- * typed ones as SVG text in the UI font (no script font, MK-13 §6), images as the image; each
- * is fitted to the plate with its aspect kept. The plate is decorative wherever its control
+ * typed ones as SVG text in the font the placed image uses (`TYPED_SIGNATURE_FONT`, no script
+ * font, MK-13 §6) measured once so the whole name fits, images as the image; each is fitted to
+ * the plate with its aspect kept, never cut off. The plate is decorative wherever its control
  * names the signature; `alt` names it where it stands alone.
  */
+import { TYPED_SIGNATURE_FONT, TYPED_SIGNATURE_SIZE } from '../annotations/stamps';
 import { PAD_HEIGHT, PAD_WIDTH, SIGNATURE_INK, type SignatureInk } from './saved-signatures';
 import styles from './SignaturePlate.module.css';
 
@@ -40,6 +42,16 @@ function strokesViewBox(strokes: readonly (readonly number[])[]): string {
   if (!Number.isFinite(minX)) return `0 0 ${PAD_WIDTH} ${PAD_HEIGHT}`;
   const pad = 4;
   return `${minX - pad} ${minY - pad} ${maxX - minX + 2 * pad} ${maxY - minY + 2 * pad}`;
+}
+
+let probe: CanvasRenderingContext2D | null | undefined;
+
+/** A typed signature's width at `TYPED_SIGNATURE_SIZE`, as the placed image measures it. */
+function typedWidth(text: string): number {
+  probe ??= document.createElement('canvas').getContext('2d');
+  if (!probe) return text.length * TYPED_SIGNATURE_SIZE * 0.55;
+  probe.font = `italic 500 ${TYPED_SIGNATURE_SIZE}px ${TYPED_SIGNATURE_FONT}`;
+  return probe.measureText(text).width;
 }
 
 export function SignaturePlate({
@@ -78,9 +90,25 @@ export function SignaturePlate({
           />
         </svg>
       ) : (
-        <span className={styles.typed} style={{ color: SIGNATURE_INK }}>
-          {ink.text}
-        </span>
+        <svg
+          className={styles.drawing}
+          viewBox={`0 0 ${Math.ceil(typedWidth(ink.text)) + 8} ${TYPED_SIGNATURE_SIZE * 1.4}`}
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden="true"
+        >
+          <text
+            x={4}
+            y={TYPED_SIGNATURE_SIZE * 0.7}
+            dominantBaseline="middle"
+            fill={SIGNATURE_INK}
+            fontFamily={TYPED_SIGNATURE_FONT}
+            fontSize={TYPED_SIGNATURE_SIZE}
+            fontStyle="italic"
+            fontWeight={500}
+          >
+            {ink.text}
+          </text>
+        </svg>
       )}
     </span>
   );
