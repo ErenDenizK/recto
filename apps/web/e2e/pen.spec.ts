@@ -282,12 +282,12 @@ test.describe('pen presets and bursts', () => {
 
     // The armed preset again: its editor; the width slider's detents change the next stroke.
     await again.click();
-    const editor = page.getByRole('dialog', { name: 'Edit Blue pen' });
+    const editor = page.getByRole('dialog', { name: 'Edit blue pen' });
     await expect(editor).toBeVisible();
     const width = editor.getByRole('slider', { name: 'Width' });
     await width.focus();
     for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
-    await expect(width).toHaveAttribute('aria-valuetext', '5 pt');
+    await expect(width).toHaveAttribute('aria-valuetext', '5 points');
     await page.keyboard.press('Escape');
     await expect(editor).toHaveCount(0);
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
