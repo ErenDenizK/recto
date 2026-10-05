@@ -205,6 +205,9 @@ test('Settings: add, rename, remove with Undo, and Remove all is final', async (
   await ask.getByRole('button', { name: 'Remove all' }).click();
   await expect(rows).toHaveCount(0);
   await expect(sheet.getByTestId('settings-signatures-empty')).toBeVisible();
+  // The list empties at once; the browser's store is cleared after. Remove all… goes once that
+  // has landed (nothing left to remove), so the reload below reads the cleared store.
+  await expect(sheet.getByTestId('settings-signatures-clear')).toHaveCount(0);
 
   await page.reload();
   await expect(page.getByTestId('app-shell')).toBeVisible();
@@ -255,6 +258,8 @@ test('a kept snapshot keeps a placed signature after its saved copy is removed',
     .getByRole('button', { name: 'Remove all' })
     .click();
   await expect(settings.getByTestId('settings-signatures-empty')).toBeVisible();
+  // The clear has landed once Remove all… is gone.
+  await expect(settings.getByTestId('settings-signatures-clear')).toHaveCount(0);
   await page.keyboard.press('Escape');
 
   await page.reload();
