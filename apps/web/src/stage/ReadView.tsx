@@ -11,7 +11,8 @@
  * place. Pinch, trackpad pinch, Mod+wheel and the touch double tap go through the canvas zoom
  * (`use-canvas-zoom.ts`, `viewer/zoom-controller.ts`; 05-canvas §4): the column is the zoom
  * layer, scaled by `transform` while the gesture runs, and the zoom is committed once at rest
- * with the point under the fingers kept where it showed.
+ * with the point under the fingers kept where it showed. The trailing page scrubber
+ * (`PageScrubber`, 05-canvas §5) shows on coarse pointers for long documents.
  *
  * Every page hosts the registered overlays (text layer, search highlights, links, …).
  * With a text layer the page is a `region` whose content is its text; the canvas is
@@ -59,6 +60,7 @@ import '../viewer/register';
 import { installCopyHandler } from '../viewer/TextLayer';
 import { PageOverlays } from './page-overlays';
 import { enterPagesGrid } from './pages-grid-door';
+import { PageScrubber } from './PageScrubber';
 import { PinchDetentChip } from './PinchDetentChip';
 import readStyles from './ReadView.module.css';
 import { type ContentFrame, contentFrame, ResizedContent } from './ResizedContent';
@@ -365,6 +367,7 @@ export function ReadView({ doc }: { readonly doc: VirtualDocument }) {
         <GoToPageDialog doc={doc} />
       </div>
       <PinchDetentChip ref={chipRef} />
+      <PageScrubber doc={doc} viewport={viewport} />
       <ScrollProxies
         target={viewport}
         content={content}
