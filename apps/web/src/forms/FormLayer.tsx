@@ -22,7 +22,7 @@ import type { FormField } from '@pdf-editor/engine';
 import { BadgeAlert, Pencil } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 
-import { showDocumentMode } from '../home/home-actions';
+import { showMarkup } from '../home/home-actions';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
 import { useCanEdit } from '../state/ui-store';
@@ -198,7 +198,7 @@ export function FieldWidget({
       box={box}
       onEdit={() => {
         setLockNotice(false);
-        showDocumentMode('edit');
+        showMarkup(true);
         ref.current?.focus({ preventScroll: true });
       }}
     />

@@ -85,7 +85,7 @@ async function mount(zoom = 0.75): Promise<Mounted> {
 
 const enterEdit = () => {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  if (id !== undefined) useUiStore.getState().setDocumentMode(id, 'edit');
+  if (id !== undefined) useUiStore.getState().openMarkup(id);
 };
 
 /** The text layer's span of the fixture's first line. */
@@ -170,7 +170,7 @@ describe('the Edit policy (mounted)', () => {
     pointerLog.lastDownType = '';
     pointerLog.lastPenUpAt = Number.NEGATIVE_INFINITY;
     useTextEditStore.getState().close();
-    useUiStore.setState({ destination: 'document', viewMode: 'read', documentMode: {} });
+    useUiStore.setState({ destination: 'document', docUi: {} });
   });
   afterEach(async () => {
     cleanup();

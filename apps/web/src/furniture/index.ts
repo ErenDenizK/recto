@@ -6,7 +6,7 @@
 import { findPageLocation, type PageId } from '@pdf-editor/document-model';
 
 import { registerPageOverlay } from '../stage/page-overlays';
-import { useUiStore } from '../state/ui-store';
+import { isPageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { useToolStore } from '../viewer/tool-store';
 import { FurnitureLayer, pageHits } from './FurnitureLayer';
@@ -29,7 +29,7 @@ const INTERACTIVE = 'a, button, input, textarea, select, [contenteditable="true"
  */
 function onClick(event: MouseEvent): void {
   if (event.button !== 0 || event.defaultPrevented) return;
-  if (useUiStore.getState().viewMode !== 'read') return;
+  if (!isPageView(useUiStore.getState())) return;
   if (useToolStore.getState().mode !== 'select') return;
   if (useFurnitureStore.getState().dialog !== null) return;
   const target = event.target;
