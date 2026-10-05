@@ -221,7 +221,8 @@
 
   /* Shell metrics. --control-height is the M8 row and field height (28 px); controls take
      --control-h from the density block below. */
-  --titlebar-height: 40px;
+  /* The title bar is a bar of Q-9's set: 44 px around 32 px controls (56 coarse, below). */
+  --titlebar-height: 44px;
   --statusbar-height: 28px;
   --rail-width: 64px; /* the navigator: icon, 11 px label and count (experience-redesign §4.1) */
   --control-height: 28px;
@@ -385,8 +386,7 @@
     /* iOS zooms into a field set under 16 px (language.md §4.2). */
     --field-text: 16px;
     --press-scale: 0.94;
-    /* The title bar holds 44 px controls on a coarse pointer: a 56 px bar (Q-9's coarse bar).
-       On a fine pointer it stays 40 px until D2's top strip replaces it. */
+    /* The title bar holds 44 px controls on a coarse pointer: a 56 px bar (Q-9's coarse bar). */
     --titlebar-height: 56px;
   }
 }

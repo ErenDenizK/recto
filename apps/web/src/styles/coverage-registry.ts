@@ -393,8 +393,8 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     composes: 'glass-frame',
     filter: '--glass-frame-filter',
     minWidth: 320,
-    minHeight: 40,
-    smallest: '40 px fixed (--titlebar-height)',
+    minHeight: 44,
+    smallest: '44 px fine, 56 px coarse (--titlebar-height, quality-bar Q-9)',
   },
   {
     id: 'status-bar',
