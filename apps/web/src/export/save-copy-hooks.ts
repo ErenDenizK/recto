@@ -11,6 +11,10 @@
  *   inside the press, which an assembly would outlast, so the copy is built 600 ms after the
  *   settings stop changing.
  * - `usePlatform`: what this browser offers for the primary (§4.6).
+ *
+ * Each takes `held` beside `enabled`: while the sheet animates closed its content holds still
+ * (quality-bar Q-7, content never changes while it moves). Held, a hook keeps returning what
+ * it last showed and starts nothing new; disabled and not held, it returns null.
  */
 import type {
   DocumentId,
@@ -68,8 +72,15 @@ const idle = (run: () => void): (() => void) => {
   return () => clearTimeout(timer);
 };
 
+/** Until the analysis for the document as it is now reports. */
+const ANALYSING: SizeAnalysis = { state: 'working' };
+
 /** The analysis behind the Size estimates; `enabled` while the PDF format shows. */
-export function useSizeAnalysis(documentId: DocumentId, enabled: boolean): SizeAnalysis | null {
+export function useSizeAnalysis(
+  documentId: DocumentId,
+  enabled: boolean,
+  held = false,
+): SizeAnalysis | null {
   const doc = useWorkspaceStore((s) => s.workspace.documents[documentId]);
   const step = useWorkspaceStore((s) => s.history.present);
   const cached = useAnalysed((s) => s.entries[documentId]);
@@ -106,8 +117,8 @@ export function useSizeAnalysis(documentId: DocumentId, enabled: boolean): SizeA
     };
   }, [documentId, doc, step, enabled, fresh?.state]);
 
-  if (!enabled) return null;
-  return fresh ?? { state: 'working' };
+  if (!enabled && !held) return null;
+  return fresh ?? ANALYSING;
 }
 
 // ---------------------------------------------------------------------------
@@ -129,6 +140,7 @@ export function useTextPreview(
   enabled: boolean,
   choice: ConvertChoice,
   pages: readonly number[] | null,
+  held = false,
 ): TextPreview | null {
   const pagesKey = pages?.join(',') ?? '';
   const key = JSON.stringify([documentId, choice, pagesKey]);
@@ -166,7 +178,7 @@ export function useTextPreview(
     };
   }, [documentId, choice, pagesKey, key, enabled]);
 
-  if (!enabled || pagesKey === '') return null;
+  if ((!enabled && !held) || pagesKey === '') return null;
   // Until a run for the current choices reports, it shows as starting.
   return latest?.key === key
     ? latest
@@ -194,6 +206,7 @@ export function usePrepared(
   enabled: boolean,
   key: string,
   build: (signal: AbortSignal, onProgress: (share: number) => void) => Promise<CopyOutput>,
+  held = false,
 ): Prepared | null {
   const [latest, setLatest] = useState<Prepared | null>(null);
   useEffect(() => {
@@ -223,7 +236,7 @@ export function usePrepared(
     // `build` reads the settings `key` names; a new key is a new build.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, key]);
-  if (!enabled) return null;
+  if (!enabled && !held) return null;
   return latest?.key === key ? latest : { key, state: 'working', share: 0 };
 }
 
@@ -237,7 +250,11 @@ export interface PendingMarks {
 }
 
 /** The document's pending /Redact marks while `enabled`, read again after every change. */
-export function usePendingMarks(documentId: DocumentId, enabled: boolean): PendingMarks | null {
+export function usePendingMarks(
+  documentId: DocumentId,
+  enabled: boolean,
+  held = false,
+): PendingMarks | null {
   const ws = useWorkspaceStore((s) => s.workspace);
   const [latest, setLatest] = useState<{ ws: Workspace; marks: PendingMarks } | null>(null);
   useEffect(() => {
@@ -254,7 +271,7 @@ export function usePendingMarks(documentId: DocumentId, enabled: boolean): Pendi
       current = false;
     };
   }, [documentId, enabled, ws]);
-  return enabled && latest?.ws === ws ? latest.marks : null;
+  return (enabled || held) && latest?.ws === ws ? latest.marks : null;
 }
 
 // ---------------------------------------------------------------------------

@@ -11,7 +11,9 @@
  * - the empty-file rule (07.7): a write that fails aborts the writable and removes the picked
  *   file, or says it was left where `remove()` does not exist; Try again reopens the draft;
  * - Share copy on a coarse pointer (the `tablet` project, a mocked Web Share): the copy is
- *   pre-assembled, and the press shares it.
+ *   pre-assembled, and the press shares it;
+ * - the form in EN and TR at 1440 × 900 and on the tablet: no label breaks inside a word
+ *   (A-21), sizes in the locale's numerals (07 §4.5), and nothing changes while it closes (Q-7).
  *
  * Downloads and the mocked picker are read in Chromium; Firefox and WebKit run the sheet's
  * download path through the other specs that save copies.
@@ -19,7 +21,7 @@
 import { readFile, stat } from 'node:fs/promises';
 
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
   downloadCopy,
@@ -397,4 +399,113 @@ test.describe('Share copy on a coarse pointer', () => {
       expect.objectContaining({ name: 'simple-text.pdf', type: 'application/pdf' }),
     ]);
   });
+});
+
+/**
+ * Every row and disclosure label of the open form whose words do not each sit on one line, or
+ * that overflows its box (A-21; XD-3: "Backgrou/nd", "Çözünürlü/k" on the tablet).
+ */
+const brokenLabels = (sheet: Locator) =>
+  sheet.evaluate((root) => {
+    const broken: string[] = [];
+    for (const label of root.querySelectorAll<HTMLElement>('[data-row-label]')) {
+      if (label.getClientRects().length === 0) continue;
+      const text = label.textContent ?? '';
+      if (label.scrollWidth > label.clientWidth + 1) broken.push(`${text}: overflows`);
+      const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        for (const word of (node.textContent ?? '').matchAll(/\S+/g)) {
+          const range = document.createRange();
+          range.setStart(node, word.index);
+          range.setEnd(node, word.index + word[0].length);
+          const lines = new Set(Array.from(range.getClientRects(), (r) => Math.round(r.top)));
+          if (lines.size > 1) broken.push(`${text}: "${word[0]}" breaks`);
+        }
+      }
+    }
+    return broken;
+  });
+
+test.describe('the form in English and Turkish (A-21, 07 §4.5, Q-7)', () => {
+  const COPY = {
+    en: {
+      menu: /^Save a copy/,
+      formats: ['PDF', 'Images', 'Text'],
+      same: /^Same as original, \d+\.\d KB$/,
+      size: '· \\d+\\.\\d KB$',
+      estimating: 'Estimating…',
+    },
+    tr: {
+      menu: /^Kopya kaydet/,
+      formats: ['PDF', 'Görüntüler', 'Metin'],
+      same: /^Özgün boyut, \d+,\d KB$/,
+      size: '· \\d+,\\d KB$',
+      estimating: 'Hesaplanıyor…',
+    },
+  } as const;
+
+  for (const lang of ['en', 'tr'] as const) {
+    test(`${lang}: no label breaks inside a word, sizes in its numerals, still while closing`, async ({
+      page,
+    }, info) => {
+      if (info.project.name !== 'tablet') await page.setViewportSize({ width: 1440, height: 900 });
+      const copy = COPY[lang];
+      await useFileInputPicker(page);
+      await page.goto(`./?lang=${lang}`);
+      await expect(page.getByTestId('app-shell')).toBeVisible();
+      await openFixtures(page, ['simple-text.pdf']);
+      await page.getByTestId('document-menu').click();
+      await page.getByRole('menuitem', { name: copy.menu }).click();
+      const sheet = page.getByTestId('save-copy-sheet');
+      await expect(sheet).toBeVisible();
+      const format = (index: 0 | 1 | 2) =>
+        sheet.getByRole('radio', { name: copy.formats[index], exact: true });
+
+      // PDF, with the size of the copy in the locale's numerals (07 §4.5: "2,4 MB").
+      await expect(format(0)).toBeChecked();
+      await expect(sheet.getByRole('radio', { name: copy.same })).toBeVisible({
+        timeout: 30_000,
+      });
+      expect(await brokenLabels(sheet)).toEqual([]);
+      // Images, PNG (Background) and JPEG (Quality), then Text.
+      await format(1).click();
+      await expect(sheet.getByTestId('save-copy-images')).toBeVisible();
+      expect(await brokenLabels(sheet)).toEqual([]);
+      await sheet.getByRole('radio', { name: 'JPEG', exact: true }).click();
+      expect(await brokenLabels(sheet)).toEqual([]);
+      await sheet.getByRole('radio', { name: 'PNG', exact: true }).click();
+      await format(2).click();
+      await expect(sheet.getByTestId('save-copy-text')).toBeVisible();
+      expect(await brokenLabels(sheet)).toEqual([]);
+
+      // Closing, the sheet holds still (Q-7): no estimate falls back to "Estimating…" and the
+      // subtitle keeps the size, every frame until it is gone.
+      await format(0).click();
+      await expect(sheet.getByRole('radio', { name: copy.same })).toBeVisible();
+      const watching = page.evaluate(
+        ({ estimating, size }) =>
+          new Promise<string[]>((resolve) => {
+            const changes = new Set<string>();
+            const pattern = new RegExp(size);
+            const tick = () => {
+              const panel = document.querySelector<HTMLElement>('[data-testid="save-copy-sheet"]');
+              if (!panel) {
+                resolve([...changes]);
+                return;
+              }
+              if ((panel.textContent ?? '').includes(estimating)) changes.add('estimating');
+              const subtitle = Array.from(panel.querySelectorAll('p')).find((el) =>
+                (el.textContent ?? '').startsWith('simple-text.pdf'),
+              );
+              if (!pattern.test(subtitle?.textContent?.trim() ?? '')) changes.add('subtitle');
+              requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          }),
+        { estimating: copy.estimating, size: copy.size },
+      );
+      await page.keyboard.press('Escape');
+      expect(await watching).toEqual([]);
+    });
+  }
 });

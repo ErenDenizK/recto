@@ -20,6 +20,7 @@ import {
   defaultName,
   exportShare,
   imagesDpi,
+  littleToGain,
   imagesName,
   percentOf,
   primaryKind,
@@ -93,6 +94,41 @@ describe('size', () => {
     expect(estimates.same).toBe(1_000_000);
     expect(estimates.smaller.after).toBe(900_000);
     expect(estimates.smallest.worthwhile).toBe(true);
+  });
+
+  it('says "Already compact" under 3 %, and on Smallest when it gains nothing over Smaller', () => {
+    const lossless = sizeEstimates(
+      {
+        pageCount: 1,
+        totalBytes: 3_174,
+        losslessBytes: 2_662,
+        objectCount: 10,
+        images: [],
+        fonts: [],
+      } as unknown as CompressionAnalysis,
+      DEFAULT_CUSTOM,
+      presetSettings,
+      estimateCompression,
+    );
+    // 16 % from the lossless pass: Smaller is worth it; Smallest promises the same size.
+    expect(littleToGain(lossless, 'smaller')).toBe(false);
+    expect(lossless.smallest.after).toBe(lossless.smaller.after);
+    expect(littleToGain(lossless, 'smallest')).toBe(true);
+    const compact = sizeEstimates(
+      {
+        pageCount: 1,
+        totalBytes: 1_000_000,
+        losslessBytes: 990_000,
+        objectCount: 10,
+        images: [],
+        fonts: [],
+      } as unknown as CompressionAnalysis,
+      DEFAULT_CUSTOM,
+      presetSettings,
+      estimateCompression,
+    );
+    expect(littleToGain(compact, 'smaller')).toBe(true);
+    expect(littleToGain(compact, 'custom')).toBe(true);
   });
 });
 
