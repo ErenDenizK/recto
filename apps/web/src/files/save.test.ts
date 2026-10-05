@@ -15,7 +15,8 @@ import {
 } from '@pdf-editor/document-model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { readAnnotations } from '../annotations/edit-runner';
+import { readAnnotations, whenIdle } from '../annotations/edit-runner';
+import { prepareExport } from '../export/export-service';
 import { applyRedactionPlans } from '../redaction/apply';
 import { resetSavedMarks, isInFile, useSavedStore, watchSavedMarks } from '../state/saved-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
@@ -443,6 +444,94 @@ describe('saveDocument', () => {
     expect([...original.bytes]).toEqual([1, 2, 3]);
     expect(picker).toHaveBeenCalledTimes(1);
     expect([...picked.bytes]).toEqual([...written]);
+  });
+
+  /** Replaces the save picker for one test; returns the restore. */
+  function withSavePicker(picker: unknown): () => void {
+    const before = Object.getOwnPropertyDescriptor(window, 'showSaveFilePicker');
+    Object.defineProperty(window, 'showSaveFilePicker', { value: picker, configurable: true });
+    return () => {
+      if (before) Object.defineProperty(window, 'showSaveFilePicker', before);
+      else delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker;
+    };
+  }
+
+  /** A picked file (the picker created it, empty) that can be removed. */
+  function pickedHandle(): StubHandle & { removed: number } {
+    const handle = Object.assign(stubHandle('report.pdf'), { removed: 0 });
+    handle.bytes = new Uint8Array();
+    handle.permission = 'granted';
+    return Object.assign(handle, {
+      remove: () => {
+        handle.removed += 1;
+        return Promise.resolve();
+      },
+    });
+  }
+
+  it('07.7: a picked file the save could not fill is removed, and the failure says so', async () => {
+    const picked = pickedHandle();
+    const restore = withSavePicker(() => Promise.resolve(picked));
+    vi.mocked(prepareExport).mockResolvedValueOnce({
+      ok: true,
+      value: { bytes: written.slice().buffer, verification: { ok: false, problems: [] } } as never,
+    });
+    try {
+      rotateFirstPage(id);
+      await saveDocument(id);
+    } finally {
+      restore();
+    }
+    expect(picked.removed).toBe(1);
+    const failure = useToastStore.getState().shown.find((t) => t.kind === 'failure');
+    expect(failure?.detail).toBe('The empty file was removed.');
+    expect(isInFile(useWorkspaceStore.getState().workspace, id)).toBe(false);
+  });
+
+  it('opens the write prompt before reading the marks when no question renews the press', async () => {
+    const handle = stubHandle();
+    rememberDocumentHandle(id, handle);
+    localStorage.setItem(DONT_ASK_KEY, JSON.stringify(['report.pdf']));
+    let idle: () => void = () => undefined;
+    vi.mocked(whenIdle).mockImplementationOnce(
+      () => new Promise<void>((resolve) => (idle = resolve)),
+    );
+    try {
+      rotateFirstPage(id);
+      const save = saveDocument(id);
+      // The edit runner is still busy: the prompt has had the press's activation already.
+      await vi.waitFor(() => expect(handle.prompts).toBe(1));
+      idle();
+      await save;
+    } finally {
+      localStorage.removeItem(DONT_ASK_KEY);
+    }
+    expect([...handle.bytes]).toEqual([...written]);
+  });
+
+  it('opens the save picker before reading the marks, then still asks about them', async () => {
+    const picked = pickedHandle();
+    const picker = vi.fn(() => Promise.resolve(picked));
+    const restore = withSavePicker(picker);
+    let idle: () => void = () => undefined;
+    vi.mocked(whenIdle).mockImplementationOnce(
+      () => new Promise<void>((resolve) => (idle = resolve)),
+    );
+    vi.mocked(readAnnotations).mockResolvedValueOnce([redactMark('m1')]);
+    try {
+      rotateFirstPage(id);
+      const save = saveDocument(id);
+      await vi.waitFor(() => expect(picker).toHaveBeenCalledTimes(1));
+      idle();
+      expect(await question()).toBe('marks');
+      // Cancelling now leaves no empty file behind.
+      answerSaveQuestion('cancel');
+      await save;
+    } finally {
+      restore();
+    }
+    expect(picked.removed).toBe(1);
+    expect(isInFile(useWorkspaceStore.getState().workspace, id)).toBe(false);
   });
 
   it('downloads a copy where the browser cannot write in place', async () => {
