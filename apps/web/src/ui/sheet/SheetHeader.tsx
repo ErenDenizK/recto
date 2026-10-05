@@ -17,6 +17,7 @@ import styles from './Sheet.module.css';
 export function SheetHeader({
   title,
   description,
+  subtitle,
   back,
   closeLabel,
   onClose,
@@ -25,6 +26,7 @@ export function SheetHeader({
 }: {
   readonly title: string;
   readonly description?: ReactNode;
+  readonly subtitle?: string | undefined;
   readonly back?: (() => void) | undefined;
   /** ✕'s name; null leaves ✕ out (a confirmation answers with its buttons). */
   readonly closeLabel: string | null;
@@ -64,6 +66,7 @@ export function SheetHeader({
         {description ? (
           <Dialog.Description className={styles.subtitle}>{description}</Dialog.Description>
         ) : null}
+        {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
       </div>
       {trailing ?? close}
     </div>

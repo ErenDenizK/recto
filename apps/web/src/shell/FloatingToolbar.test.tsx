@@ -712,7 +712,7 @@ describe('shortcut overlay', () => {
       render(<ShortcutOverlay />);
       const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
       const row = (title: string) => {
-        const term = within(dialog).getByText(title, { exact: true }).closest('div');
+        const term = within(dialog).getByText(title, { exact: true }).closest('tr');
         if (!term) throw new Error(`no row ${title}`);
         return term;
       };
