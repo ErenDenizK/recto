@@ -22,6 +22,7 @@ import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
 import { useAppearanceRoot } from '../state/appearance-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { ConfirmHost } from '../ui/sheet';
 import { ToastRegion } from '../ui/Toast/ToastRegion';
 import { TooltipProvider } from '../ui/Tooltip';
 import { AboutDialog } from './about/AboutDialog';
@@ -108,6 +109,7 @@ export function AppShell() {
       <ShortcutOverlay />
       <AboutDialog />
       <PasswordDialog />
+      <ConfirmHost />
       <ToastRegion />
       <LiveRegion />
     </TooltipProvider>

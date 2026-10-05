@@ -83,6 +83,8 @@ export interface SheetProps {
   readonly title: string;
   /** Under the title (footnote); a confirmation's body text. The dialog's description. */
   readonly description?: ReactNode;
+  /** A short line under the title that is not the description ("1 of 3"). */
+  readonly subtitle?: string | undefined;
   /** A modal sheet bound to a document that is not the active tab shows "· report.pdf". */
   readonly docName?: string | undefined;
   readonly primary?: SheetPrimary | undefined;
@@ -113,6 +115,7 @@ export function Sheet({
   onClose,
   title,
   description,
+  subtitle,
   docName,
   primary,
   cancel,
@@ -282,11 +285,13 @@ export function Sheet({
           {confirmation && centred ? (
             <div className={styles.dialogHeading}>
               <Dialog.Title className={styles.dialogTitle}>{heading}</Dialog.Title>
+              {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
             </div>
           ) : (
             <SheetHeader
               title={heading}
               description={confirmation ? undefined : description}
+              subtitle={subtitle}
               back={back}
               closeLabel={confirmation ? null : (closeLabel ?? m.sheet_close())}
               onClose={() => onCloseRef.current('close')}

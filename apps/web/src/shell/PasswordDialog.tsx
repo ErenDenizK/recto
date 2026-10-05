@@ -1,89 +1,158 @@
 /**
- * Password prompt for encrypted files (ARCHITECTURE.md §5). Answers the engine service's
- * requests one at a time; a wrong password re-prompts with a note, Skip leaves the file
- * closed (the caller announces it). Styled as the shortcut overlay's dialog.
+ * S6, the password prompt on open (components/07-sheets.md §8; ARCHITECTURE.md §5), on the
+ * Sheet primitive: answers the engine service's requests (`state/password-store.ts`) one at a
+ * time, as a `confirmation` sheet, a centred 400 px `alertdialog` (a compact modal sheet on
+ * narrow windows) over the scrim.
+ *
+ * - "Password required", "report.pdf is protected. The password is used on this device only.",
+ *   the field with Show, and "1 of 3" under the title while several files wait (§8.2).
+ * - Enter or Open tries the password. The sheet stays while PDFium tries it, Open busy after
+ *   400 ms (§8.4), and the engine's answer decides: a wrong password comes back as a retry
+ *   for the same file, shown in place with the error under the field, the field cleared and
+ *   focused, and said assertively (§8.4, §8.8); otherwise the file has opened and the sheet
+ *   leaves (or the next file waiting takes its place). The engine reports no success, so the
+ *   sheet reads it from the workspace's count of files opening, with a 4 s ceiling.
+ * - Skip file, or Esc, leaves the file closed (the caller announces it; the toast with Try
+ *   again of §8.5 comes with the toast system, D0-5).
+ * - The password is never a draft: it lives in the form for one try and is gone with it.
  */
-import { Dialog } from '@base-ui/react/dialog';
-import { X } from 'lucide-react';
-import { type SyntheticEvent, useRef, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import { answerPassword, type PasswordRequest, usePasswordStore } from '../state/password-store';
 import { m } from '../i18n';
-import { useRetained } from '../ui/use-retained';
-import overlay from './ShortcutOverlay.module.css';
+import { answerPassword, type PasswordRequest, usePasswordStore } from '../state/password-store';
+import { useWorkspaceStore } from '../state/workspace-store';
+import { IconButton } from '../ui/IconButton';
+import { Sheet, SheetField } from '../ui/sheet';
+import { announce } from './announcer';
 import styles from './PasswordDialog.module.css';
 
-export function PasswordDialog() {
-  const request = usePasswordStore((s) => s.queue[0]);
-  // Keep the popup mounted while it animates closed (see useRetained).
-  const [shown, release] = useRetained(request ?? null);
-  return (
-    <Dialog.Root
-      open={request !== undefined}
-      onOpenChange={(open) => {
-        if (!open && request) answerPassword(request.id, null);
-      }}
-      onOpenChangeComplete={(open) => {
-        if (!open) release();
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className={overlay.backdrop} />
-        {shown ? <PasswordForm key={shown.id} request={shown} /> : null}
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
+/** How long a tried password may hold the sheet open without an answer from the engine. */
+const TRY_CEILING_MS = 4000;
+
+/** A password handed to the engine, waiting for its answer. */
+interface Trying {
+  readonly request: PasswordRequest;
+  /** The workspace's files-opening count when it was handed over. */
+  readonly opening: number;
 }
 
-function PasswordForm({ request }: { readonly request: PasswordRequest }) {
+export function PasswordDialog() {
+  const queue = usePasswordStore((s) => s.queue);
+  const opening = useWorkspaceStore((s) => s.opening);
+  const request = queue[0];
+  const [trying, setTrying] = useState<Trying | null>(null);
+  // Files answered in this run of prompts, for "2 of 3".
+  const [done, setDone] = useState(0);
+  // The last request shown, kept while the sheet animates closed.
+  const [last, setLast] = useState<PasswordRequest | null>(null);
+  if (request && request !== last) setLast(request);
+
+  // The engine answered: a retry (or the next file) arrived, or the file finished opening.
+  if (trying && (request !== undefined || opening < trying.opening)) {
+    setTrying(null);
+    const retry = request?.incorrect === true && request.fileName === trying.request.fileName;
+    if (!retry) setDone(done + 1);
+  }
+  if (!request && !trying && done !== 0) setDone(0);
+
+  useEffect(() => {
+    if (!trying) return undefined;
+    const timer = window.setTimeout(() => setTrying(null), TRY_CEILING_MS);
+    return () => window.clearTimeout(timer);
+  }, [trying]);
+
+  const shown = request ?? trying?.request ?? last;
+  const open = request !== undefined || trying !== null;
+  const total = done + queue.length + (trying && !request ? 1 : 0);
+
+  return shown ? (
+    <PasswordSheet
+      request={shown}
+      open={open}
+      busy={trying !== null && request === undefined}
+      queue={total > 1 ? m.password_queue({ index: done + 1, count: total }) : undefined}
+      onTry={(password) => {
+        setTrying({ request: shown, opening: useWorkspaceStore.getState().opening });
+        answerPassword(shown.id, password);
+      }}
+      onSkip={() => {
+        if (!request) return;
+        setDone(done + 1);
+        answerPassword(request.id, null);
+      }}
+    />
+  ) : null;
+}
+
+function PasswordSheet({
+  request,
+  open,
+  busy,
+  queue,
+  onTry,
+  onSkip,
+}: {
+  readonly request: PasswordRequest;
+  readonly open: boolean;
+  readonly busy: boolean;
+  readonly queue: string | undefined;
+  readonly onTry: (password: string) => void;
+  readonly onSkip: () => void;
+}) {
   const [value, setValue] = useState('');
+  const [show, setShow] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const onSubmit = (event: SyntheticEvent) => {
-    event.preventDefault();
-    answerPassword(request.id, value);
-  };
+  // One sheet for the whole queue, so a retry or the next file changes in place: each request
+  // starts with an empty field.
+  const [seen, setSeen] = useState(request.id);
+  if (seen !== request.id) {
+    setSeen(request.id);
+    setValue('');
+  }
+
+  // A retry after a wrong password: the field is new (cleared), focused, and the error said.
+  useEffect(() => {
+    if (!request.incorrect) return;
+    inputRef.current?.focus();
+    announce(m.password_incorrect(), { politeness: 'assertive' });
+  }, [request]);
+
   return (
-    <Dialog.Popup className={`${overlay.popup} ${styles.popup}`} initialFocus={inputRef}>
-      <div className={overlay.header}>
-        <Dialog.Title className={overlay.title}>{m.password_title()}</Dialog.Title>
-        <Dialog.Close className={overlay.close} aria-label={m.password_skip_label()}>
-          <X aria-hidden="true" />
-        </Dialog.Close>
-      </div>
-      <form className={styles.body} onSubmit={onSubmit}>
-        <Dialog.Description className={styles.description}>
-          <PasswordDescription fileName={request.fileName} />
-        </Dialog.Description>
-        <input
-          ref={inputRef}
-          type="password"
-          className={styles.input}
-          aria-label={m.password_label()}
-          aria-invalid={request.incorrect || undefined}
-          aria-describedby={request.incorrect ? 'password-error' : undefined}
-          autoComplete="off"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        {request.incorrect ? (
-          <p id="password-error" className={styles.error}>
-            {m.password_incorrect()}
-          </p>
-        ) : null}
-        <div className={styles.actions} data-bar="dialog-footer">
-          <button
-            type="button"
-            className={styles.secondary}
-            onClick={() => answerPassword(request.id, null)}
-          >
-            {m.password_skip()}
-          </button>
-          <button type="submit" className={styles.primary}>
-            {m.password_open()}
-          </button>
-        </div>
-      </form>
-    </Dialog.Popup>
+    <Sheet
+      id="password-prompt"
+      kind="confirmation"
+      open={open}
+      onClose={onSkip}
+      title={m.password_title()}
+      subtitle={queue}
+      description={<PasswordDescription fileName={request.fileName} />}
+      primary={{ label: m.password_open(), onPress: () => onTry(value), busy }}
+      cancel={m.password_skip()}
+      initialFocus={inputRef}
+      testId="password-dialog"
+    >
+      <SheetField
+        ref={inputRef}
+        type={show ? 'text' : 'password'}
+        label={m.password_label()}
+        autoComplete="current-password"
+        spellCheck={false}
+        value={value}
+        error={request.incorrect ? m.password_incorrect() : null}
+        readOnly={busy}
+        onChange={(event) => setValue(event.target.value)}
+        trailing={
+          <IconButton
+            size="row"
+            label={m.password_show()}
+            aria-pressed={show}
+            icon={show ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+            onClick={() => setShow(!show)}
+          />
+        }
+      />
+    </Sheet>
   );
 }
 
@@ -91,7 +160,7 @@ function PasswordForm({ request }: { readonly request: PasswordRequest }) {
  * The description with the file name emphasised. The message is split at the name's
  * placeholder so word order follows the language.
  */
-function PasswordDescription({ fileName }: { readonly fileName: string }) {
+function PasswordDescription({ fileName }: { readonly fileName: string }): ReactNode {
   const marker = '\u0000';
   const [before = '', after = ''] = m.password_description({ name: marker }).split(marker);
   return (
