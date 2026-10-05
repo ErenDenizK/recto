@@ -40,6 +40,8 @@ const nodeFiles = [
 
 export default defineConfig(
   globalIgnores([
+    // Local agent worktrees (Claude Code), full copies of the repository.
+    '.claude/',
     '**/dist/',
     '**/build/',
     '**/coverage/',
