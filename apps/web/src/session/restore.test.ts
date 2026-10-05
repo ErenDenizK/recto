@@ -5,7 +5,7 @@
  * the launch flow shows "Restored …", Start fresh closes and its Undo brings them back, and
  * Clear empties the store.
  */
-import { type DocumentId, rotatePages } from '@pdf-editor/document-model';
+import { type DocumentId, mergeDocuments, rotatePages } from '@pdf-editor/document-model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import outlineUrl from '../../../../test/fixtures/outline-named-dests.pdf?url';
@@ -19,6 +19,7 @@ import { parseSessionManifest, type SessionManifestV1 } from './format';
 import { keptRecordsOf, mergeKeptWorkspace, reopenKept, restoreSession } from './restore';
 import {
   clearKeptChanges,
+  flushSession,
   setSessionEnabled,
   startFresh,
   startSession,
@@ -276,6 +277,39 @@ describe('the launch flow', { timeout: 40_000 }, () => {
       await vi.waitFor(() =>
         expect(useRecentsStore.getState().entries.some((e) => e.kept !== undefined)).toBe(false),
       );
+    } finally {
+      stop();
+    }
+  });
+
+  it('a document and a combine of it, both closed, keep their snapshots in rows of their own', async () => {
+    const storage = memorySnapshotStorage();
+    const stop = startSession({ edition: 'full', storage, tabId: 'tab-combine' });
+    try {
+      await vi.waitFor(() => expect(document.documentElement.dataset.session).toBe('ready'), {
+        timeout: 15_000,
+      });
+      const [a, b] = (await openFixtures()) as [DocumentId, DocumentId];
+      model().applyOperation(
+        (ws, ids) =>
+          mergeDocuments(ws, { documentIds: [a, b], title: 'A + B', keepSources: true }, ids),
+        'Combine',
+      );
+      const combined = model().workspace.documentOrder.find((id) => id !== a && id !== b);
+      if (combined === undefined) throw new Error('no combined document');
+      rotate(a, 1);
+      model().closeDocument(a);
+      await flushSession();
+      model().closeDocument(combined);
+      await flushSession();
+      await vi.waitFor(() => {
+        const rows = useRecentsStore.getState().entries;
+        expect(rows.find((e) => e.kept?.snapshotId === `kept-${a}`)?.name).toBe('simple-text.pdf');
+        expect(rows.find((e) => e.kept?.snapshotId === `kept-${combined}`)?.name).toBe('A + B.pdf');
+      });
+      await flushSession();
+      expect(storage.files.has(`kept/kept-${a}.json`)).toBe(true);
+      expect(storage.files.has(`kept/kept-${combined}.json`)).toBe(true);
     } finally {
       stop();
     }

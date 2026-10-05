@@ -24,6 +24,7 @@
 import {
   closeDocument,
   type DocumentId,
+  documentTitleFromName,
   removeSourceIfUnreferenced,
   type SourceId,
   type Workspace,
@@ -130,10 +131,25 @@ function persist(): Promise<boolean> {
   })();
 }
 
+/**
+ * The Recents row a kept document goes to (ADR-0032 §2.6): its file's row when it is that
+ * file's document, else (a combine, a split part, an extract, a renamed document) a row named
+ * after the document and sized by its sources, so it reads as itself and never takes over
+ * the row of the file it came from.
+ */
+export function recentRowOf(record: KeptRecordV1): { name: string; size: number } {
+  if (record.title === record.name || record.title === documentTitleFromName(record.name)) {
+    return { name: record.name, size: record.size };
+  }
+  return {
+    name: `${record.title}.pdf`,
+    size: record.sources.reduce((sum, source) => sum + source.size, 0),
+  };
+}
+
 function attachKept(record: KeptRecordV1, bytes = 0): void {
   void keepRecent({
-    name: record.name,
-    size: record.size,
+    ...recentRowOf(record),
     pages: record.pages,
     kept: { snapshotId: record.id, keptAt: record.keptAt, bytes, changed: record.place.changed },
   });
