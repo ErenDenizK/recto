@@ -9,13 +9,13 @@ import { getEngineService } from './engine/engine-service';
 import { ExportDialog } from './export/ExportDialog';
 import { useLocale } from './i18n';
 import { LocaleBoundary } from './i18n/LocaleBoundary';
+import { watchOcrJob } from './ocr';
 import { registerOutlineCommands } from './outline/outline-commands';
-import { UpdateToast } from './pwa/UpdateToast';
 import { AppShell } from './shell/AppShell';
 import { registerArrangeCommands } from './stage/arrange-commands';
 import { OperationDialogs } from './stage/OperationDialogs';
-import { RestoreNotice } from './session/RestoreNotice';
 import { startSession } from './session/session';
+import { watchSessionNotice } from './session/session-toast';
 import { registerSignatureCommands } from './signatures/signature-commands';
 import { startSignatureValidation } from './signatures/signature-store';
 import { SignDialog } from './signatures/SignDialog';
@@ -40,6 +40,10 @@ export function App() {
   useLayoutEffect(() => startSignatureValidation(), []);
   // Snapshots on this device and restore on launch (ADR-0032 §2.4, §2.5).
   useLayoutEffect(() => startSession({ edition: 'full' }), []);
+  // Its notice ("Restored 3 documents · Start fresh") is a toast (D0-5).
+  useLayoutEffect(() => watchSessionNotice(), []);
+  // A running OCR shows in the progress capsule while its dialog is closed (FB5).
+  useLayoutEffect(() => watchOcrJob(), []);
   useLayoutEffect(() => {
     const engine = getEngineService();
     engine.setPasswordPrompt(requestPassword);
@@ -52,8 +56,6 @@ export function App() {
       <DocumentDialogs />
       <SignDialog />
       <OperationDialogs />
-      <UpdateToast />
-      <RestoreNotice />
     </LocaleBoundary>
   );
 }

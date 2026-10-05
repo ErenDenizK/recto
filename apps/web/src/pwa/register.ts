@@ -2,8 +2,10 @@
  * Service worker lifecycle (ARCHITECTURE.md §7, ADR-0010).
  *
  * - `registerType: 'prompt'`: a new version installs in the background and waits. The
- *   shell shows "Update available"; only its Reload button activates the new worker
- *   (`updateSW(true)`), because reloading closes open documents.
+ *   shell shows the system toast "Update ready · Reload · Later" (`08-feedback` FB4 §2, §5);
+ *   only its Reload activates the new worker (`updateSW(true)`). With session snapshots on
+ *   (ADR-0032 §2.4) it says documents reopen where they were; when nothing is kept (a private
+ *   window, storage refused) it says reloading closes them (FB4 issue 9).
  * - Update checks run on window focus (throttled) in addition to the browser's own checks.
  * - Once the app shell is cached, the engine wasm is fetched in idle time so the runtime
  *   cache holds it (CacheFirst) and the first offline session can open files. Skipped
@@ -14,6 +16,10 @@
 import wasmUrl from '@embedpdf/pdfium/pdfium.wasm?url';
 import { registerSW } from 'virtual:pwa-register';
 import { create } from 'zustand';
+
+import { m } from '../i18n';
+import { useSessionStore } from '../session/session-store';
+import { toast } from '../ui/Toast/toast';
 
 export type ServiceWorkerStatus =
   /** No service worker support (or blocked, e.g. some private modes). */
@@ -48,9 +54,28 @@ export async function applyUpdate(): Promise<void> {
   else location.reload();
 }
 
+/** The update toast's key: shown once however often the worker reports. */
+const UPDATE_TOAST_KEY = 'pwa-update';
+
 /** Hides the update notice for this session; the worker keeps waiting. */
 export function dismissUpdate(): void {
   usePwaStore.setState({ updateAvailable: false });
+}
+
+/**
+ * "Update ready" (FB4 system kind): stays until Reload or Later, no ✕; Later is the dismiss.
+ * Exported for tests; the worker calls it when a new version waits.
+ */
+export function showUpdateReady(): void {
+  usePwaStore.setState({ updateAvailable: true });
+  const kept = useSessionStore.getState().keeping === 'available';
+  toast.system(m.update_ready(), {
+    key: UPDATE_TOAST_KEY,
+    detail: kept ? m.update_kept() : m.update_not_kept(),
+    testId: 'update-toast',
+    action: { label: m.update_reload(), run: () => void applyUpdate() },
+    secondary: { label: m.update_later(), run: dismissUpdate },
+  });
 }
 
 function saveData(): boolean {
@@ -118,7 +143,7 @@ export function startServiceWorker(): void {
   };
   updateServiceWorker = registerSW({
     immediate: true,
-    onNeedRefresh: () => usePwaStore.setState({ updateAvailable: true }),
+    onNeedRefresh: showUpdateReady,
     onOfflineReady: ready,
     onRegisteredSW: (_url, registration) => {
       if (!registration) return;

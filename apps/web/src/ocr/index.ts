@@ -17,7 +17,7 @@ import { OcrLayer } from './OcrLayer';
 export { registerOcrCommands } from './ocr-commands';
 export { OcrDialogHost } from './OcrDialogHost';
 export { OcrSection, useHasOcrSection } from './OcrSection';
-export { OcrStatus } from './OcrStatus';
+export { watchOcrJob } from './ocr-job';
 
 registerPageOverlay(Object.assign(OcrLayer, { displayName: 'OcrLayer' }));
 

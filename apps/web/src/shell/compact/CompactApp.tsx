@@ -19,10 +19,11 @@ import { useEffect, useLayoutEffect } from 'react';
 import { getEngineService } from '../../engine/engine-service';
 import { loadRecents } from '../../files/recents';
 import { LocaleBoundary } from '../../i18n/LocaleBoundary';
-import { RestoreNotice } from '../../session/RestoreNotice';
 import { isDocumentChanged, startSession } from '../../session/session';
+import { watchSessionNotice } from '../../session/session-toast';
 import { requestPassword } from '../../state/password-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { ToastRegion } from '../../ui/Toast/ToastRegion';
 import { clearLinksForSource } from '../../viewer/LinkLayer';
 import { installCopyHandler } from '../../viewer/text-spans';
 import { LiveRegion } from '../LiveRegion';
@@ -83,14 +84,25 @@ export function CompactApp() {
       }),
     [],
   );
+  // The session's notice is a toast, with Download a copy for a restored changed document.
+  useEffect(() => watchSessionNotice({ onDownloadCopy: () => void shareOrDownload() }), []);
   return (
     <LocaleBoundary>
       <CompactRoot />
       <CompactPassword />
-      <RestoreNotice edition="compact" onDownloadCopy={() => void shareOrDownload()} />
+      <CompactToasts />
       <LiveRegion />
     </LocaleBoundary>
   );
+}
+
+/**
+ * The toast stack (`08-feedback` FB4; D0-5) in the compact edition: the same region, above
+ * the reader's capsule, or above the home indicator when the capsule is away or absent.
+ */
+function CompactToasts() {
+  const away = useCompactStore((s) => s.place !== 'reader' || s.chromeHidden || s.findOpen);
+  return <ToastRegion edition="compact" band={away ? 'away' : 'shown'} />;
 }
 
 function CompactRoot() {

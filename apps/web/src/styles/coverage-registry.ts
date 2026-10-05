@@ -359,4 +359,16 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     minHeight: 200,
     smallest: 'its narrowest width',
   },
+  {
+    id: 'toast',
+    surface: 'Toast and progress capsule (08-feedback FB4, FB5)',
+    module: 'ui/Toast/Toast.module.css',
+    selector: '.toast',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 240,
+    minHeight: 40,
+    smallest:
+      'the progress capsule: 40 px fine, at least 240 px wide; a toast is 48 px and 360 px (one surface each, at most three)',
+  },
 ];

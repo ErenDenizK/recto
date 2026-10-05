@@ -30,7 +30,7 @@ import { openOperationDialog } from '../stage/operation-dialogs-store';
 import { mergeAll } from '../stage/section-operations';
 import { type DocumentMode, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { showCombinedToast } from './combined-toast';
+import { toast } from '../ui/Toast/toast';
 import { liveSelection } from './home-model';
 
 const ui = () => useUiStore.getState();
@@ -149,11 +149,18 @@ export function combine(ids: readonly DocumentId[]): void {
 /**
  * The Combine dialog's confirm (review F8): a new document of the files in `ids`, in that
  * order, titled `title` ("Combined – A + B" by default); the files stay open. One history
- * entry, announced with its undo shortcut and shown as "Combined 2 files · Undo".
+ * entry, announced with its undo shortcut and shown as the Undo toast "Combined 2 files · Undo"
+ * (`08-feedback` FB4; the combine's own announcement already says it, so the toast is quiet).
  */
 export function combineInto(ids: readonly DocumentId[], title: string): DocumentId | undefined {
   const created = mergeAll(ids, title, { keepSources: true });
-  if (created !== undefined) showCombinedToast(ids.length);
+  if (created !== undefined) {
+    toast.undo(m.combined_toast({ count: ids.length }), {
+      documentId: created,
+      spoken: false,
+      testId: 'combined-toast',
+    });
+  }
   return created;
 }
 

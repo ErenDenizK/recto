@@ -137,8 +137,6 @@
   "zoom_value_label": "Yakınlaştırma {percent}",
   "zoom_fit_width": "Genişliğe sığdır",
   "zoom_fit_page": "Sayfaya sığdır",
-  "update_title": "Güncelleme hazır",
-  "update_body": "Yeniden yüklemek güncellemeyi uygular ve açık belgeleri kapatır.",
   "update_reload": "Yeniden yükle",
   "update_later": "Sonra",
   "offline_ready_announcement": "Çevrimdışı çalışmaya hazır",
@@ -2281,7 +2279,6 @@
   "announce_combined": "{count} dosya {title} adıyla birleştirildi. Geri almak için {shortcut}",
   "combined_toast": "{count} dosya birleştirildi",
   "home_combine_confirm": "Birleştir",
-  "combined_toast_dismiss": "Kapat",
   "home_modified": "Değiştirilme: {date}",
   "home_announce_closed": "{count} dosya kapatıldı",
   "home_history_close": "{count} belgeyi kapat",
@@ -2497,7 +2494,6 @@
   "session_started_fresh": "Baştan başlandı · {count} belge son açılanlarda saklanıyor",
   "session_restore_failed": "{name} geri yüklenemedi: saklanan kopyası bozuk. Asıl dosya değişmedi.",
   "session_not_kept": "Bu pencerede değişiklikler saklanmaz",
-  "session_notice_dismiss": "Kapat",
   "session_history_start_fresh": "Baştan başla",
   "privacy_kept_heading": "Bu cihazda saklananlar",
   "privacy_kept_body": "Açık belgeler değişiklikleriyle, kapatılanlar 30 gün ya da 500 MB’a kadar, tarayıcı izin verdiği sürece saklanır.",
@@ -2520,5 +2516,40 @@
   "switch_system_on": "Açık, sistem ayarınızdan",
   "switch_system_off": "Kapalı, sistem ayarınızdan",
   "progress_value_text": "yüzde {percent}",
-  "avatar_unknown": "Bilinmeyen yazar"
+  "avatar_unknown": "Bilinmeyen yazar",
+  "toast_region": "Bildirimler",
+  "toast_dismiss": "Kapat",
+  "toast_waiting": "+{count} bekliyor",
+  "toast_undo_hint": "Geri almak için {shortcut}",
+  "toast_f6_hint": "Bildirime F6 ile ulaşabilirsiniz",
+  "toast_stale_undo": "Bundan sonra yeni değişiklikler yapıldı",
+  "toast_history": "Geçmiş",
+  "toast_deleted_pages": [
+    {
+      "declarations": ["input count", "input page", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{page}. sayfa silindi",
+        "countPlural=*": "{count} sayfa silindi"
+      }
+    }
+  ],
+  "job_stopping": "Durduruluyor…",
+  "job_cancel": "Vazgeç",
+  "job_in_document": "{name} · {label}",
+  "update_ready": "Güncelleme hazır",
+  "update_kept": "Belgeleriniz kaldığınız yerde yeniden açılır.",
+  "update_not_kept": "Yeniden yüklemek açık belgeleri kapatır.",
+  "error_open": "{name} açılamadı: {reason}.",
+  "error_open_damaged": "{name} açılamadı: dosya bozuk.",
+  "error_not_openable": "{name} bir PDF ya da desteklenen bir görsel değil.",
+  "error_password_skipped": "{name} açılmadı: parola gerekiyor.",
+  "error_enter_password": "Parola gir…",
+  "error_some_files": "{total} dosyadan {failed} tanesi açılamadı.",
+  "error_storage_full": "Değişiklikler artık bu cihazda saklanamıyor: depolama alanı dolu.",
+  "error_manage_storage": "Depolamayı yönet",
+  "error_engine_stopped": "PDF motoru durdu.",
+  "error_engine_stopped_spoken": "PDF motoru durdu. Devam etmek için yeniden yükleyin.",
+  "error_reload": "Yeniden yükle",
+  "error_try_again": "Yeniden dene"
 }
