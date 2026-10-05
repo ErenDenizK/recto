@@ -208,7 +208,10 @@ test.describe('annotations', () => {
     await page.locator('body').press('n');
     await drag(page, 1, [0.5, 0.4], [0.5, 0.4]);
     await page.getByRole('dialog', { name: 'New note' }).getByRole('textbox').fill('Rotated');
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page
+      .getByRole('dialog', { name: 'New note' })
+      .getByRole('button', { name: 'Save' })
+      .click();
     const note = layer(page, 1).locator('[data-annotation-kind="text"]');
     await expect(note).toHaveCount(1, { timeout: 10_000 });
     await page.locator('body').press('Escape');
@@ -356,7 +359,10 @@ test.describe('annotations', () => {
       .getByRole('dialog', { name: 'New note' })
       .getByRole('textbox')
       .fill('Check these figures against the Q3 report.');
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page
+      .getByRole('dialog', { name: 'New note' })
+      .getByRole('button', { name: 'Save' })
+      .click();
     // A text box and a stamp.
     await tool('t');
     await drag(page, 0, [0.58, 0.52], [0.9, 0.52]);
@@ -477,7 +483,10 @@ test.describe('annotations', () => {
       .getByRole('dialog', { name: 'New note' })
       .getByRole('textbox')
       .fill('Check these figures against the Q3 report.');
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page
+      .getByRole('dialog', { name: 'New note' })
+      .getByRole('button', { name: 'Save' })
+      .click();
     await page.locator('body').press('Escape');
     await page.getByRole('tab', { name: /^Review/ }).click();
     await expect(page.locator('[data-review-panel] [data-annotation-row]')).toHaveCount(4);
