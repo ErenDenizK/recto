@@ -400,15 +400,17 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
         ? m.save_copy_save()
         : m.save_copy_download();
   // Compress… puts focus on Size (§4.1); other openers on the chosen format (§2.6).
-  const checkedIn = (wrapper: RefObject<HTMLDivElement | null>): RefObject<HTMLElement | null> => ({
+  const checked = '[role="radio"][aria-checked="true"]';
+  const sizeFocus: RefObject<HTMLElement | null> = {
     get current() {
-      return (
-        wrapper.current?.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]') ?? null
-      );
+      return sizeRef.current?.querySelector<HTMLElement>(checked) ?? null;
     },
-  });
-  const sizeFocus = checkedIn(sizeRef);
-  const formatFocus = checkedIn(formatRef);
+  };
+  const formatFocus: RefObject<HTMLElement | null> = {
+    get current() {
+      return formatRef.current?.querySelector<HTMLElement>(checked) ?? null;
+    },
+  };
 
   return (
     <Sheet
