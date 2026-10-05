@@ -7,6 +7,7 @@ import {
   bitmapSide,
   chooseBucket,
   chooseScale,
+  COMPACT_BITMAP_PIXELS,
   EngineService,
   exactScale,
   isCapped,
@@ -167,6 +168,19 @@ describe('exact render scales', () => {
     expect(612 * capped * 792 * capped).toBeLessThanOrEqual(MAX_BITMAP_PIXELS);
     expect(isCapped(8, 612, 792)).toBe(true);
     expect(isCapped(3.5467, 612, 792)).toBe(false);
+  });
+
+  it('a smaller budget caps sooner and never exceeds the global cap', () => {
+    // Letter at 2× fit width on a 390 px DPR 3 phone: 2244 device px wide, 6.5 MP.
+    const phone2x = 2244 / 612;
+    expect(isCapped(phone2x, 612, 792)).toBe(false);
+    expect(isCapped(phone2x, 612, 792, COMPACT_BITMAP_PIXELS)).toBe(true);
+    const capped = chooseScale(phone2x, 612, 792, COMPACT_BITMAP_PIXELS);
+    expect(612 * capped * 792 * capped).toBeLessThanOrEqual(COMPACT_BITMAP_PIXELS);
+    // Fit width on the same phone (1122 px, 1.6 MP) is drawn 1:1, without tiles.
+    expect(isCapped(1122 / 612, 612, 792, COMPACT_BITMAP_PIXELS)).toBe(false);
+    // A budget above the global cap is held to it.
+    expect(chooseScale(8, 612, 792, MAX_BITMAP_PIXELS * 4)).toBe(chooseScale(8, 612, 792));
   });
 
   it('derives the scale from the whole device pixels of the sheet', () => {

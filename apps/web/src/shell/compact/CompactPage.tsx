@@ -1,6 +1,7 @@
 /**
  * One page of the compact reader: the engine's bitmap at the page's exact device scale (as
- * Read mode draws it), tiles over it at high zoom, and the reading layers: text (long-press
+ * Read mode draws it) within a phone's budget (`COMPACT_BITMAP_PIXELS`), exact tiles over the
+ * visible page above it, and the reading layers: text (long-press
  * selection), Find hits, links and notes. Forms, annotations and signatures are in the
  * bitmap and take no input; nothing here edits the file.
  *
@@ -15,7 +16,7 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 
-import { RENDER_PRIORITY } from '../../engine/engine-service';
+import { COMPACT_BITMAP_PIXELS, RENDER_PRIORITY } from '../../engine/engine-service';
 import { m } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
 import { rotationPhrase } from '../../pages/page-geometry';
@@ -32,6 +33,8 @@ import type { PageBox } from './reader-layout';
 
 /** Debounce before a zoom change asks for sharper bitmaps (as Read mode). */
 const ZOOM_RENDER_DELAY_MS = 160;
+/** Tiles prepared this far (CSS px) beyond the screen: a short flick's worth on a phone. */
+const TILE_MARGIN_PX = 64;
 
 export function CompactPage({
   ws,
@@ -69,7 +72,7 @@ export function CompactPage({
     sourceId !== undefined &&
     visible &&
     frame === undefined &&
-    needsTiles(contentScale, contentPt.width, contentPt.height);
+    needsTiles(contentScale, contentPt.width, contentPt.height, COMPACT_BITMAP_PIXELS);
   const name = `${m.cell_label({ position: index + 1, count: doc.pages.length })}${rotationPhrase(total)}`;
   const overlay: PageOverlayProps = {
     page,
@@ -103,6 +106,7 @@ export function CompactPage({
           exact={frame === undefined}
           priority={visible ? RENDER_PRIORITY.page : RENDER_PRIORITY.offscreen}
           delayMs={ZOOM_RENDER_DELAY_MS}
+          maxPixels={COMPACT_BITMAP_PIXELS}
         />
         {tiled && sourceId !== undefined ? (
           <TiledPage
@@ -116,6 +120,7 @@ export function CompactPage({
               rotation: total,
               cssScale: contentScale,
             })}
+            marginPx={TILE_MARGIN_PX}
           />
         ) : null}
       </ResizedContent>

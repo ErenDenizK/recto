@@ -144,6 +144,11 @@ export interface PageCanvasProps {
   readonly exact?: boolean;
   readonly priority: number;
   readonly delayMs?: number;
+  /**
+   * Whole-page pixel budget for an `exact` page (default and ceiling `MAX_BITMAP_PIXELS`).
+   * Above it the bitmap is capped and `TiledPage`, given the same budget, adds tiles.
+   */
+  readonly maxPixels?: number;
 }
 
 type DrawState = 'placeholder' | 'preview' | 'rendered' | 'error';
@@ -176,6 +181,7 @@ export function PageCanvas({
   priority,
   exact = false,
   delayMs = 0,
+  maxPixels,
 }: PageCanvasProps) {
   const ref = useRef<HTMLCanvasElement>(null);
   /** Which page (source:index:rotation) the canvas currently shows. */
@@ -184,7 +190,7 @@ export function PageCanvas({
   const requestedBucketRef = useRef<number | null>(null);
   const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
   const bucket = exact
-    ? chooseScale(exactScale(cssWidth, widthPt, dpr), widthPt, heightPt)
+    ? chooseScale(exactScale(cssWidth, widthPt, dpr), widthPt, heightPt, maxPixels)
     : chooseBucket((cssWidth * dpr) / Math.max(1, widthPt), widthPt, heightPt);
   const service = getEngineService();
   const revision = useSyncExternalStore(service.subscribeRevisions, () =>
