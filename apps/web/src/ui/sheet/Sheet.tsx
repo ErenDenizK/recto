@@ -21,7 +21,8 @@
  * - **Motion** is `sheet-motion.ts`: the panel has its final size before it moves and moves
  *   by `transform` only, on the motion core, with a swipe's velocity handed to the spring; the
  *   scrim is its own element and fades (quality-bar Q-7). The exiting panel is `inert` from its
- *   first frame (A-13).
+ *   first frame (A-13). A menu still closing when a sheet opens goes at once
+ *   (`ui/menu-handoff.ts`), so the two never show through each other.
  * - **Glass** (§3): one surface, today's menu tier (`glass glass-menu`), registered in
  *   `styles/coverage-registry.ts` per presentation; M5's own values arrive in D3. Inputs and
  *   lists inside are solid wells, never glass (Q-4).
@@ -50,6 +51,7 @@ import { announce } from '../../shell/announcer';
 import { usePointerCapabilities } from '../../shell/frame/input-modality';
 import { useSizeClass } from '../../shell/frame/size-class';
 import { Button } from '../Button';
+import { closeMenusAtOnce } from '../menu-handoff';
 import { LockBanner } from './LockBanner';
 import { presentationOf, type SheetKind } from './presentation';
 import styles from './Sheet.module.css';
@@ -193,8 +195,11 @@ export function Sheet({
     motionOf().setLayout(layout);
   });
   useLayoutEffect(() => {
-    if (open) motionOf().enter();
-    else motionOf().exit();
+    if (open) {
+      // A menu whose item opened this sheet goes at once, never over the entrance (Q-7).
+      closeMenusAtOnce();
+      motionOf().enter();
+    } else motionOf().exit();
   }, [open]);
   useEffect(() => {
     if (!open) return undefined;
