@@ -166,8 +166,12 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
     (p) => p.ref.kind === 'source' && ws.sources[p.ref.source]?.flags.repaired,
   );
 
-  // PDF: unapplied redaction marks, asked about at the press (07.10).
+  // PDF: unapplied redaction marks, asked about at the press (07.10). They are read
+  // asynchronously (the edit runner settles, unread pages are listed); until they are known the
+  // primary waits, busy, so a quick press never saves a copy that keeps the text under them. The
+  // press cannot wait for them instead: the picker must open inside it.
   const marks = usePendingMarks(documentId, open && draft.format === 'pdf');
+  const marksUnknown = draft.format === 'pdf' && marks === null;
 
   // PDF: the analysis behind the estimates.
   const analysis = useSizeAnalysis(documentId, open && draft.format === 'pdf');
@@ -311,7 +315,9 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       openSignDialog(documentId, 'export');
       return;
     }
-    // Marks left unapplied leak the text under them: ask first, as Save does (07.10).
+    // Marks left unapplied leak the text under them: ask first, as Save does (07.10). Not
+    // known yet: the primary is busy, and Enter waits with it.
+    if (asked.format === 'pdf' && marks === null) return;
     const pending = asked.format === 'pdf' && marks !== null && marks.count > 0 ? marks : null;
     if (pending && marksAnswer === null) {
       setAsking(true);
@@ -438,6 +444,8 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
               disabled:
                 invalid !== undefined && !(draft.security === 'password' && draft.format === 'pdf'),
               reason: invalid,
+              busy: marksUnknown,
+              busyLabel: m.save_copy_checking_marks(),
             }
       }
       testId="save-copy-sheet"

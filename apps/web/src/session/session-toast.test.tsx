@@ -94,6 +94,11 @@ describe('the session notice toast', () => {
     expect(toast).toHaveTextContent(
       'Could not restore agreement: its kept copy is damaged. The original file is unchanged.',
     );
+    // A document that did not load waits in Recents (a skipped password, an engine failure).
+    act(() => setSessionNotice({ kind: 'failed', names: ['agreement'], kept: true }));
+    expect(toast).toHaveTextContent(
+      'Could not restore agreement now. Its changes are kept in Recent: open it there to try again.',
+    );
     act(() => setSessionNotice({ kind: 'not-kept' }));
     expect(toast).toHaveTextContent('Changes are not kept in this window');
     act(() => setSessionNotice(null));

@@ -13,12 +13,17 @@ import {
   type PageId,
   renameDocument,
   rotatePages,
+  type SourceId,
+  splitDocument,
   type Workspace,
 } from '@pdf-editor/document-model';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  adoptFileFacts,
   editSignature,
+  fileFactsOf,
+  fileIsAsOpened,
   isInFile,
   markSaved,
   matchesMark,
@@ -170,6 +175,90 @@ describe('saved mark', () => {
     const ws = withSource(createWorkspace(), 'report.pdf');
     expect(matchesMark(ws, 'nope' as DocumentId, undefined)).toBe(false);
     expect(isInFile(ws, only(ws), {})).toBe(false);
+  });
+
+  it("a split part is never its source's file: no origin, so Save never writes over it", () => {
+    const opened = withSource(createWorkspace(), 'report.pdf', 3);
+    const id = only(opened);
+    observeDocuments(opened, 1);
+    const source = originOf(opened, id);
+    expect(source).toBeDefined();
+    // Every N pages: the parts replace the document; each shows only report.pdf's pages.
+    const split = splitDocument(opened, id, { mode: 'every', n: 1 }, ids);
+    observeDocuments(split, 2);
+    for (const part of split.documentOrder) expect(originOf(split, part)).toBeUndefined();
+    // Ranges with pages left over: the document keeps its id and its file; the part has none.
+    resetSavedMarks();
+    observeDocuments(opened, 1);
+    const ranged = splitDocument(opened, id, { mode: 'ranges', ranges: [[0, 0]] }, ids);
+    observeDocuments(ranged, 2);
+    expect(originOf(ranged, id)).toBe(source);
+    const part = ranged.documentOrder.find((d) => d !== id) as DocumentId;
+    expect(originOf(ranged, part)).toBeUndefined();
+  });
+
+  it('a pristine copy of a source another document shows is not the file either', () => {
+    const opened = withSource(createWorkspace(), 'report.pdf', 2);
+    const id = only(opened);
+    observeDocuments(opened, 1);
+    // All pages extracted into a new document: pristine, but report.pdf's tab shows them too.
+    const doc = opened.documents[id]!;
+    const copyId = 'saved-copy' as DocumentId;
+    const copied: Workspace = {
+      ...opened,
+      documents: { ...opened.documents, [copyId]: { ...doc, id: copyId } },
+      documentOrder: [...opened.documentOrder, copyId],
+    };
+    observeDocuments(copied, 2);
+    expect(originOf(copied, id)).toBeDefined();
+    expect(originOf(copied, copyId)).toBeUndefined();
+    // It has no file yet, so nothing of it is "in its file" (Save is Save as, not "Saved").
+    expect(isInFile(copied, id)).toBe(true);
+    expect(isInFile(copied, copyId)).toBe(false);
+  });
+
+  it('a restored document takes back its file facts; an older snapshot leaves them unknown', () => {
+    const opened = withSource(createWorkspace(), 'report.pdf');
+    const id = only(opened);
+    const source = Object.keys(opened.sources)[0] as SourceId;
+    observeDocuments(opened, 1);
+    expect(fileFactsOf(id)).toEqual({ origins: [source], writtenOver: false });
+    markSaved(id, { handleKept: true }, { workspace: opened, entryAt: 2 });
+    expect(fileFactsOf(id)).toEqual({ origins: [source], writtenOver: true });
+
+    // A reload: the restore sees the pristine document, then its place's facts come back.
+    resetSavedMarks();
+    observeDocuments(opened, 1);
+    expect(isInFile(opened, id)).toBe(true);
+    adoptFileFacts(id, { origins: [source], writtenOver: true });
+    expect(fileIsAsOpened(id)).toBe(false);
+    // The file holds the saved changes, not the opened bytes.
+    expect(isInFile(opened, id)).toBe(false);
+
+    // A copy of pages another document showed kept no origin: it restores alone and pristine,
+    // and still is no file's, so nothing of it is in a file.
+    resetSavedMarks();
+    observeDocuments(opened, 1);
+    adoptFileFacts(id, { origins: [], writtenOver: false });
+    expect(originOf(opened, id)).toBeUndefined();
+    expect(fileIsAsOpened(id)).toBe(true);
+    expect(isInFile(opened, id)).toBe(false);
+
+    // The file, as opened, never written over: in its file, as before the reload.
+    resetSavedMarks();
+    observeDocuments(opened, 1);
+    adoptFileFacts(id, { origins: [source], writtenOver: false });
+    expect(originOf(opened, id)).toBe(source);
+    expect(fileIsAsOpened(id)).toBe(true);
+    expect(isInFile(opened, id)).toBe(true);
+
+    // A snapshot from before the facts were kept: the origin seen stays, the file is unknown.
+    resetSavedMarks();
+    observeDocuments(opened, 1);
+    adoptFileFacts(id, {});
+    expect(originOf(opened, id)).toBe(source);
+    expect(fileIsAsOpened(id)).toBe(false);
+    expect(isInFile(opened, id)).toBe(true);
   });
 
   it('remembers the source a document came from; the newest one present wins', () => {
