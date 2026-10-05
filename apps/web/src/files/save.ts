@@ -21,7 +21,9 @@
  * **The handle.** Files opened through the Chromium picker or dropped hand out a
  * `FileSystemFileHandle`; `rememberDocumentHandle` keeps it per document for the session (the
  * open path calls it). A document without one (restored, or reopened from a kept snapshot)
- * may use the handle Recents stored for its file, read on the Save press only, never on
+ * may use the handle Recents stored for its file, but only when it *is* that file (`originOf`:
+ * the document opened from it, never a split part, an extract or a combine made from its
+ * pages, whose first Save is Save as), read on the Save press only, never on
  * Chromium 153, whose browser crashes when IndexedDB returns a stored handle (ADR-0032 §5.1,
  * DISCUSSION #32, `files/recents.ts`): there Save takes the picker route and keeps the new
  * handle for the session.
@@ -114,7 +116,9 @@ export function documentHandleOf(id: DocumentId): WritableFileHandle | undefined
 
 /**
  * The handle Recents stored for the file document `id` was opened from (a restored or reopened
- * document), read now, on the Save press. Never on Chromium 153 (see the module comment).
+ * document), read now, on the Save press. Only a document that is that file has an origin
+ * (`state/saved-store.ts`): a document made from its pages never writes over it. Never on
+ * Chromium 153 (see the module comment).
  */
 async function storedHandleFor(
   ws: Workspace,
