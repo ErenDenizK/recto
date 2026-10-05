@@ -1,0 +1,53 @@
+/* The one result page (07-sheets §0, §2.1): glyph, title, sentence, details. */
+.result {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 24px 0 8px;
+  text-align: center;
+}
+
+.glyph {
+  width: 32px;
+  height: 32px;
+  color: var(--text-secondary);
+}
+
+.result[data-tone='success'] .glyph {
+  color: var(--success);
+}
+
+.result[data-tone='warning'] .glyph {
+  color: var(--warning);
+}
+
+.result[data-tone='error'] .glyph {
+  color: var(--danger);
+}
+
+.title {
+  font-size: var(--type-callout);
+  font-weight: 600;
+  line-height: var(--type-callout-lh);
+  text-wrap: balance;
+}
+
+.body {
+  max-width: 36em;
+  color: var(--text-secondary);
+  line-height: var(--type-body-lh);
+}
+
+.details {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  list-style: none;
+  text-align: start;
+}

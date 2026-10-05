@@ -1,0 +1,350 @@
+/*
+ * The Sheet primitive (components/07-sheets.md §2.2–§2.4; quality-bar Q-2, Q-3, Q-4, Q-7, Q-9).
+ *
+ * One glass surface, the panel, in today's menu tier (`glass glass-menu`; M5's own σ and tint
+ * arrive in D3), registered per presentation in styles/coverage-registry.ts. It is laid out at
+ * its final size and moves by `transform` only (sheet-motion.ts): at rest it sits at
+ * `--sheet-x` / `--sheet-y`, whole pixels the script writes (a bottom sheet's detent), so no
+ * transform is left inline at rest (Q-2). The scrim is a separate element and fades. Nothing
+ * inside is glass: wells and rows use tint fills (Q-4).
+ */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--scrim);
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.scrim[data-starting-style],
+.scrim[data-ending-style] {
+  opacity: 0;
+}
+
+.panel {
+  composes: glass glass-menu from global;
+  --sheet-radius: 20px;
+  --sheet-bleed: 48px;
+  --sheet-pad: 20px;
+  position: fixed;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: var(--sheet-radius);
+  color: var(--text-primary);
+  outline: none;
+  transform: translate(var(--sheet-x, 0px), var(--sheet-y, 0px));
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .panel {
+    --sheet-pad: 16px;
+  }
+}
+
+/* Side sheet: 8 px from the title bar, the trailing edge and the bottom (07 §2.2). */
+.panel[data-presentation='side'] {
+  top: calc(var(--titlebar-height) + 8px);
+  bottom: 8px;
+  inset-inline-end: 8px;
+  width: min(var(--sheet-w), calc(100vw - 16px));
+}
+
+/* Form sheet and centred dialog: centred without a transform, so they rest crisp (Q-2). */
+.panel[data-presentation='form'],
+.panel[data-presentation='dialog'] {
+  inset: 0;
+  width: min(var(--sheet-w), calc(100vw - 32px));
+  height: fit-content;
+  max-height: calc(100dvh - 104px);
+  margin: auto;
+}
+
+.panel[data-presentation='dialog'] {
+  max-height: calc(100dvh - 96px);
+}
+
+.panel[data-presentation='dialog'][data-kind='overlay'] {
+  width: min(var(--sheet-w), calc(100vw - 64px));
+}
+
+/*
+ * Bottom sheet: full width up to 640 px, as tall as its tallest detent (92 % of the window), and
+ * reaching past the bottom edge by --sheet-bleed so the rubber band never shows a gap. A
+ * confirmation is its content's height, at most 60 % of the window.
+ */
+.panel[data-presentation='bottom'] {
+  right: 0;
+  bottom: calc(-1 * var(--sheet-bleed));
+  left: 0;
+  width: min(100%, 640px);
+  height: calc(92dvh + var(--sheet-bleed));
+  margin: 0 auto;
+  padding-bottom: calc(var(--sheet-bleed) + env(safe-area-inset-bottom, 0px));
+  border-width: 1px 1px 0;
+  border-radius: 28px 28px 0 0;
+}
+
+.panel[data-presentation='bottom'][data-kind='confirmation'] {
+  height: auto;
+  max-height: calc(60dvh + var(--sheet-bleed));
+}
+
+/* Full sheet: the whole window under an 8 px top inset. */
+.panel[data-presentation='full'] {
+  top: 8px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-width: 1px 1px 0;
+  border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+}
+
+/* The swipe (07 §2.6): the handle takes every pointer, and nothing is selected while it moves. */
+.panel[data-swipe] [data-sheet-handle] {
+  touch-action: none;
+}
+
+.panel[data-swiping] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* The grabber: a 36 × 5 bar 6 px from the top in a 20 px band; its hit area is 44 × 24. */
+.grabber {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  height: 20px;
+}
+
+.grabberBar {
+  width: 36px;
+  height: 5px;
+  margin-top: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--control-border);
+}
+
+.grabber::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(50% - 22px);
+  width: 44px;
+  height: 24px;
+}
+
+/* Header: 52 px fine, 56 coarse; title3 (07 §2.2, §27.18). */
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 10px 0 var(--sheet-pad);
+}
+
+.header[data-trailing] {
+  padding: 0 10px;
+}
+
+.panel[data-presentation='bottom'] .header {
+  min-height: 56px;
+}
+
+.headerButton {
+  flex: none;
+}
+
+.heading {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+.title {
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 22px;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .header {
+    min-height: 56px;
+  }
+
+  .title {
+    font-size: 19px;
+    line-height: 24px;
+  }
+}
+
+/* A centred confirmation: title2 and the body, 24 px padding (07 §2.2). */
+.dialogHeading {
+  flex: none;
+  padding: 24px 24px 8px;
+}
+
+.dialogTitle {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.dialogBody {
+  color: var(--text-secondary);
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+}
+
+.panel[data-kind='confirmation'] .body {
+  padding-bottom: 16px;
+}
+
+.panel[data-presentation='dialog'][data-kind='confirmation'] .body {
+  padding-inline: 24px;
+}
+
+.panel[data-presentation='bottom'][data-kind='confirmation'] .dialogBody {
+  padding-top: 4px;
+}
+
+/* Body: a form whose content scrolls between a fixed header and footer (A-20). */
+.form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.body {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px var(--sheet-pad) var(--sheet-pad);
+}
+
+/* The reason a primary is unavailable, above the footer (RA-21). */
+.reason {
+  flex: none;
+  padding: 0 var(--sheet-pad) 8px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* Footer: 60 px fine, 72 coarse; secondary leading, Cancel and the primary trailing. */
+.footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 60px;
+  padding: 0 var(--sheet-pad);
+  border-top: 1px solid var(--border-glass);
+}
+
+.panel[data-presentation='dialog'][data-kind='confirmation'] .footer {
+  padding: 0 24px;
+  border-top: 0;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .footer {
+    min-height: 72px;
+  }
+}
+
+.secondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+/* A compact confirmation: the two buttons share the row. */
+.footer[data-fill] .actions {
+  flex: 1;
+}
+
+.footer[data-fill] .actions > * {
+  flex: 1;
+}
+
+.footnote {
+  flex: none;
+  padding: 12px var(--sheet-pad);
+  border-top: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* The lock banner (07 §2.4). */
+.lockBanner {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  margin: 0 var(--sheet-pad) 12px;
+  padding: 0 0 0 12px;
+  border-radius: var(--radius-control);
+  background: var(--control-fill);
+}
+
+.lockGlyph {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--text-secondary);
+}
+
+.lockText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Forced colours (07 §3): Canvas with a 2 px CanvasText border; modality comes from `inert`. */
+@media (forced-colors: active) {
+  .scrim {
+    display: none;
+  }
+
+  .panel {
+    border: 2px solid CanvasText;
+  }
+}
