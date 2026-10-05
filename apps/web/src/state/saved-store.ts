@@ -7,8 +7,9 @@
  * of ADR-0030 once it lands in `commit()`). Instead this store keeps, per document, the mark of
  * what was last written: the `at` of the history entry present then (`entryAt`, X13's shape),
  * the document object itself and the ids of its sources' engine edits. Since history entries
- * share structure, a document is in its file exactly while the workspace still holds that same
- * object and those same edits; an undo past the save, or a redo back to it, moves the mark's
+ * share structure, a document is in its file exactly while the workspace still holds those same
+ * parts (`sameFileContent`: every field but the title, which a rename changes and Save does not
+ * write) and those same edits; an undo past the save, or a redo back to it, moves the mark's
  * answer with it, with no bookkeeping.
  *
  * A document seen for the first time as a pristine copy of its file (as opened, or restored
@@ -61,11 +62,26 @@ export function editSignature(ws: Workspace, doc: VirtualDocument): string {
     .join(',');
 }
 
+/**
+ * Whether two states of one document write the same file: every field but the tab's title
+ * (a rename changes no byte Save writes; `clean` is unused, X13) is the same object or value.
+ * Operations share what they do not change, so this is a handful of reference checks.
+ */
+export function sameFileContent(a: VirtualDocument, b: VirtualDocument): boolean {
+  if (a === b) return true;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (key === 'title' || key === 'clean') continue;
+    if (a[key as keyof VirtualDocument] !== b[key as keyof VirtualDocument]) return false;
+  }
+  return true;
+}
+
 /** Whether the document's present state is the one `mark` says was written. */
 export function matchesMark(ws: Workspace, id: DocumentId, mark: SavedMark | undefined): boolean {
   const doc = ws.documents[id];
   if (doc === undefined || mark === undefined) return false;
-  return doc === mark.document && editSignature(ws, doc) === mark.edits;
+  return sameFileContent(doc, mark.document) && editSignature(ws, doc) === mark.edits;
 }
 
 /**

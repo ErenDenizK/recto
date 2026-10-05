@@ -240,7 +240,13 @@ export async function pendingMarksOf(
     const key = pageKey(source, index);
     if (read.has(key) || ws.sources[source] === undefined) continue;
     read.add(key);
-    const annotations = cached[key]?.annotations ?? (await readAnnotations(source, index));
+    let annotations = cached[key]?.annotations;
+    try {
+      annotations ??= await readAnnotations(source, index);
+    } catch {
+      // A page the engine cannot list has no marks we could apply; the save goes on.
+      continue;
+    }
     for (const annotation of annotations) {
       if (!isRedactMark(annotation) || annotation.flags?.hidden) continue;
       const marks = bySource.get(source) ?? new Map<string, RedactMark>();
@@ -682,10 +688,14 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
       removed !== undefined && removed > 0
         ? m.save_verified_removed({ count: removed })
         : m.save_verified();
+    // A rewritten file cannot keep a signature (the export pipeline removes the values): say so.
+    const signatures = prepared.signaturesRemoved?.count ?? 0;
+    const detail = signatures > 0 ? m.save_signatures_removed({ count: signatures }) : undefined;
     toast.success(text, {
       documentId: id,
       testId: 'save-toast',
-      spoken: m.save_announce_verified({ name }),
+      detail,
+      spoken: [m.save_announce_verified({ name }), detail].filter(Boolean).join('. '),
     });
     return;
   }
