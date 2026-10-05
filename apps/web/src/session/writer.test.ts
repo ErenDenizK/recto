@@ -176,6 +176,47 @@ describe('SnapshotWriter', () => {
     expect(undo(restored).present.label).toBe('Open');
   });
 
+  it('never waits for persist(): a prompt nobody answers (Firefox) blocks no write', async () => {
+    const { ws } = open(['a.pdf']);
+    const status: boolean[] = [];
+    const h = harness(createHistory(ws, 'Open', 0), {
+      persist: () => new Promise<boolean>(() => undefined),
+      onStatus: (s) => status.push(s.idle),
+    });
+    h.writer.noteChange('content');
+    await h.writer.flush();
+    expect(h.storage.files.has('sessions/tab-1.json')).toBe(true);
+    expect(h.writer.idle).toBe(true);
+    // A second write is not held up either.
+    h.writer.noteChange('content');
+    await h.writer.flush();
+    expect(h.writer.idle).toBe(true);
+    expect(status.at(-1)).toBe(true);
+  });
+
+  it('asks persist() only once a document has changes (ADR-0032 §2.4: at the first edit)', async () => {
+    const { ws } = open(['a.pdf']);
+    const persist = vi.fn(() => Promise.resolve(false));
+    let changed = false;
+    const h = harness(createHistory(ws, 'Open', 0), {
+      persist,
+      places: () => ({
+        destination: 'document',
+        zoom: 1,
+        fitMode: null,
+        place: () => ({ page: 0, view: 'read', mode: 'read' }),
+        changed: () => changed,
+      }),
+    });
+    h.writer.noteChange('content');
+    await h.writer.flush();
+    expect(persist).not.toHaveBeenCalled();
+    changed = true;
+    h.writer.noteChange('content');
+    await h.writer.flush();
+    expect(persist).toHaveBeenCalledTimes(1);
+  });
+
   it('does not write again when nothing changed (a hide after a write)', async () => {
     const { ws } = open(['a.pdf']);
     const h = harness(createHistory(ws, 'Open', 0));

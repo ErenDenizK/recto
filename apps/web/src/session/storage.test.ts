@@ -77,6 +77,11 @@ describe('openSnapshotStorage', () => {
     expect(await openSnapshotStorage({})).toEqual({ ok: false, reason: 'unsupported' });
   });
 
+  it('keeps nothing when storage never answers', async () => {
+    const hanging = { getDirectory: () => new Promise<never>(() => undefined) };
+    expect(await openSnapshotStorage(hanging, 50)).toEqual({ ok: false, reason: 'timeout' });
+  });
+
   it('says refused when storage is refused (a private window)', async () => {
     const refusing = {
       getDirectory: () => Promise.reject(new DOMException('denied', 'SecurityError')),

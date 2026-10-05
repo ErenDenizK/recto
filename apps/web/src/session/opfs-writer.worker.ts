@@ -12,11 +12,15 @@ interface WriteRequest {
   readonly bytes: ArrayBuffer;
 }
 
+/**
+ * Safari 15.2–16.x shipped an earlier draft whose methods return promises; today's are
+ * synchronous. Every call is awaited, which suits both.
+ */
 interface SyncAccessHandleLike {
-  truncate(size: number): void;
-  write(buffer: Uint8Array, options?: { at?: number }): number;
-  flush(): void;
-  close(): void;
+  truncate(size: number): void | Promise<void>;
+  write(buffer: Uint8Array, options?: { at?: number }): number | Promise<number>;
+  flush(): void | Promise<void>;
+  close(): void | Promise<void>;
 }
 
 interface SyncFileHandle {
@@ -46,11 +50,11 @@ scope.onmessage = (event) => {
       const file = await dir.getFileHandle(name, { create: true });
       const handle = await file.createSyncAccessHandle();
       try {
-        handle.truncate(0);
-        handle.write(new Uint8Array(bytes), { at: 0 });
-        handle.flush();
+        await handle.truncate(0);
+        await handle.write(new Uint8Array(bytes), { at: 0 });
+        await handle.flush();
       } finally {
-        handle.close();
+        await handle.close();
       }
       scope.postMessage({ id, ok: true });
     } catch (error) {

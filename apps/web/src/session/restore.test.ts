@@ -86,7 +86,8 @@ async function manifestOf(
   return parseSessionManifest(await storage.files.get('sessions/old-tab.json')?.text());
 }
 
-describe('session restore', () => {
+// Real PDFium: 25 steps, a snapshot and a restore take seconds when other files share the browser.
+describe('session restore', { timeout: 40_000 }, () => {
   beforeEach(() => {
     resetWorkspace();
     resetSessionStore();
@@ -213,7 +214,7 @@ describe('session restore', () => {
   });
 });
 
-describe('the launch flow', () => {
+describe('the launch flow', { timeout: 40_000 }, () => {
   beforeEach(() => {
     resetWorkspace();
     resetSessionStore();
@@ -243,9 +244,12 @@ describe('the launch flow', () => {
         kind: 'restored',
         documents: [a, b],
       });
-      // The old tab's manifest gave way to this tab's.
-      expect(storage.files.has('sessions/old-tab.json')).toBe(false);
-      expect(storage.files.has('sessions/new-tab.json')).toBe(true);
+      // The old tab's manifest gives way to this tab's once that is written (queued after the
+      // launch, which never waits on a write).
+      await vi.waitFor(() => {
+        expect(storage.files.has('sessions/old-tab.json')).toBe(false);
+        expect(storage.files.has('sessions/new-tab.json')).toBe(true);
+      });
 
       startFresh();
       expect(model().workspace.documentOrder).toEqual([]);
