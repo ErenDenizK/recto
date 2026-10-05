@@ -31,10 +31,10 @@ import { useShortcuts } from '../commands/use-shortcuts';
 import { getEngineService } from '../engine/engine-service';
 import { ReadView } from '../stage/ReadView';
 import {
-  EDIT_POLICY_STORAGE_KEY,
-  resetEditPolicyStore,
-  useEditPolicyStore,
-} from '../state/edit-policy-store';
+  INPUT_POLICY_STORAGE_KEY,
+  resetInputPolicyStore,
+  useInputPolicyStore,
+} from '../state/input-policy-store';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
@@ -85,7 +85,7 @@ async function mount(zoom = 0.75): Promise<Mounted> {
 
 const enterEdit = () => {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  if (id !== undefined) useUiStore.getState().setDocumentMode(id, 'edit');
+  if (id !== undefined) useUiStore.getState().openMarkup(id);
 };
 
 /** The text layer's span of the fixture's first line. */
@@ -166,11 +166,11 @@ describe('the Edit policy (mounted)', () => {
     resetAnnotationStore();
     resetToolStore();
     resetPenSession();
-    resetEditPolicyStore({ penDrawsInEdit: false });
+    resetInputPolicyStore({ penDrawsInMarkup: false });
     pointerLog.lastDownType = '';
     pointerLog.lastPenUpAt = Number.NEGATIVE_INFINITY;
     useTextEditStore.getState().close();
-    useUiStore.setState({ destination: 'document', viewMode: 'read', documentMode: {} });
+    useUiStore.setState({ destination: 'document', docUi: {} });
   });
   afterEach(async () => {
     cleanup();
@@ -179,8 +179,8 @@ describe('the Edit policy (mounted)', () => {
     resetWorkspace();
     resetToolStore();
     resetPenSession();
-    resetEditPolicyStore();
-    localStorage.removeItem(EDIT_POLICY_STORAGE_KEY);
+    resetInputPolicyStore();
+    localStorage.removeItem(INPUT_POLICY_STORAGE_KEY);
   });
 
   it('a mouse double-click on page text opens the editor with the caret there; Esc leaves it unchanged', async () => {
@@ -221,7 +221,7 @@ describe('the Edit policy (mounted)', () => {
     }
     expect(useToolStore.getState().mode).toBe('select');
     // The first double-click retires the hint for good.
-    expect(useEditPolicyStore.getState().editTextHintShown).toBe(true);
+    expect(useInputPolicyStore.getState().editTextHintShown).toBe(true);
 
     input.focus();
     await userEvent.keyboard('{Escape}');
@@ -255,7 +255,7 @@ describe('the Edit policy (mounted)', () => {
     expect(editorInput(container)).toBeNull();
 
     // "Pen draws in Edit": the pen's presses draw; its double-click opens nothing.
-    useEditPolicyStore.getState().setPenDrawsInEdit(true);
+    useInputPolicyStore.getState().setPenDrawsInMarkup(true);
     await waitFor(() => expect(container.querySelector('[data-pen-proxy]')).not.toBeNull());
     await sleep(50);
     // (Left of the middle: the dots it draws there are annotations, first in the hit order.)
@@ -268,7 +268,7 @@ describe('the Edit policy (mounted)', () => {
     expect(useTextEditStore.getState().session).toBeNull();
 
     // Off: the pen is a pointer, and its double-click opens the editor.
-    useEditPolicyStore.getState().setPenDrawsInEdit(false);
+    useInputPolicyStore.getState().setPenDrawsInMarkup(false);
     await sleep(50);
     tap(at, 'pen', { pressure: 0.5, pointerId: 22 });
     doubleClick(span, at);
@@ -312,7 +312,7 @@ describe('the Edit policy (mounted)', () => {
     expect(hint()).toBeNull();
     useToolStore.getState().setMode('select');
     // After the first double-click it never shows again.
-    useEditPolicyStore.getState().markEditTextHintShown();
+    useInputPolicyStore.getState().markEditTextHintShown();
     await sleep(50);
     click();
     await sleep(50);
@@ -359,7 +359,7 @@ describe('the Edit policy (mounted)', () => {
     await waitFor(() => expect(outline(container)).not.toBeNull(), { timeout: 2000 });
 
     // After the first double-click the hint never shows again; the outline still does.
-    useEditPolicyStore.getState().markEditTextHintShown();
+    useInputPolicyStore.getState().markEditTextHintShown();
     await waitFor(() =>
       expect(container.querySelector('[data-text-hover] [role="status"]')).toBeNull(),
     );
@@ -383,7 +383,7 @@ describe('the Edit policy (mounted)', () => {
   });
 
   it('with "Pen draws in Edit" the pen draws in Select and never reaches the text', async () => {
-    resetEditPolicyStore({ penDrawsInEdit: true });
+    resetInputPolicyStore({ penDrawsInMarkup: true });
     const { container, target } = await mount();
     enterEdit();
     const span = await foxSpan(container);

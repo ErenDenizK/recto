@@ -18,7 +18,7 @@ import { ClipboardCopy, MessageSquarePlus, Pencil, TextCursorInput } from 'lucid
 import { type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { commandRegistry } from '../commands/registry';
-import { showDocumentMode } from '../home/home-actions';
+import { showMarkup } from '../home/home-actions';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useRovingTabindex } from '../shell/FloatingToolbar.roving';
@@ -93,7 +93,7 @@ function editTextAtSelection(props: PageOverlayProps): boolean {
     y: first.top - bounds.top + first.height / 2,
   });
   globalThis.getSelection?.()?.removeAllRanges();
-  showDocumentMode('edit');
+  showMarkup(true);
   void openTextEditorAt(layer.target, point);
   return true;
 }
@@ -212,7 +212,7 @@ export function TextSelectionBar(props: PageOverlayProps) {
 
   const markUp = () => {
     focusEditBar.current = barRef.current?.contains(document.activeElement) === true;
-    showDocumentMode('edit');
+    showMarkup(true);
     announce(m.selection_mark_up_hint());
   };
 

@@ -23,7 +23,7 @@ import { openPdf } from '../shell/compact/compact-actions';
 import { resetCompactStore } from '../shell/compact/compact-store';
 import { openImagesAsDocument } from '../stage/section-operations';
 import { fileFactsOf, isInFile, markSaved, resetSavedMarks } from '../state/saved-store';
-import { useUiStore } from '../state/ui-store';
+import { isMarkupOpen, surfaceOf, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import {
   type KeptRecordV1,
@@ -86,7 +86,7 @@ function writerFor(
     fitMode: null,
     place: (id) => ({
       page: 1,
-      view: 'read',
+      view: id === model().workspace.activeDocument ? 'read' : 'arrange',
       mode: id === model().workspace.activeDocument ? 'edit' : 'read',
       ...fileFactsOf(id),
     }),
@@ -118,7 +118,7 @@ describe('session restore', { timeout: 40_000 }, () => {
   beforeEach(() => {
     resetWorkspace();
     resetSessionStore();
-    useUiStore.setState({ documentMode: {}, lastView: {}, destination: 'document', zoom: 1 });
+    useUiStore.setState({ docUi: {}, destination: 'document', zoom: 1 });
   });
   afterEach(() => {
     resetWorkspace();
@@ -149,9 +149,15 @@ describe('session restore', { timeout: 40_000 }, () => {
     // The engine has the bytes under the old ids: renders and export can read them.
     for (const id of sources)
       expect((await getEngineService().sourceBytes(id as never)).ok).toBe(true);
-    // Place: zoom and lock.
-    expect(useUiStore.getState().zoom).toBe(1.25);
-    expect(useUiStore.getState().documentMode[before.activeDocument as DocumentId]).toBe('edit');
+    // Place: zoom, lock (M8's Edit, carried by Markup until D1-2) and each document's surface
+    // (the format's 'read' is the page, 'arrange' the grid).
+    const ui = useUiStore.getState();
+    const other = before.documentOrder.find((id) => id !== before.activeDocument);
+    expect(ui.zoom).toBe(1.25);
+    expect(isMarkupOpen(ui, before.activeDocument)).toBe(true);
+    expect(isMarkupOpen(ui, other)).toBe(false);
+    expect(surfaceOf(ui, before.activeDocument)).toBe('page');
+    expect(surfaceOf(ui, other)).toBe('grid');
     // Undo walks the 20 kept steps, and no further.
     expect(model().history.past).toHaveLength(20);
     for (let i = 0; i < 20; i++) expect(model().undo()).toBeDefined();

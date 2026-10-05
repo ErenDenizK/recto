@@ -34,13 +34,13 @@ beforeEach(() => {
   resetAnnotationStore();
   resetFormStore();
   closeDocumentDialog();
-  useUiStore.setState({ ...DEFAULT_LAYOUT, viewMode: 'read' });
+  useUiStore.setState({ ...DEFAULT_LAYOUT, docUi: {} });
 });
 afterEach(async () => {
   await whenIdle();
   closeDocumentDialog();
   resetWorkspace();
-  useUiStore.setState({ ...DEFAULT_LAYOUT, viewMode: 'read' });
+  useUiStore.setState({ ...DEFAULT_LAYOUT, docUi: {} });
 });
 
 describe('Inspector', () => {

@@ -28,7 +28,7 @@ describe('engine integration', () => {
     await page.viewport(1280, 800);
     resetWorkspace();
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
-    useUiStore.setState({ viewMode: 'read', fitMode: 'width', paletteOpen: false });
+    useUiStore.setState({ docUi: {}, fitMode: 'width', paletteOpen: false });
   });
   afterEach(() => {
     resetWorkspace();
@@ -53,7 +53,7 @@ describe('engine integration', () => {
     expect(screen.getByTestId('status-pages')).toHaveTextContent('Page 1 of 3');
     expect(screen.getAllByRole('option')).toHaveLength(3);
 
-    useUiStore.getState().setViewMode('arrange');
+    useUiStore.getState().showSurface('grid');
     await waitFor(() => {
       expect(screen.getAllByRole('gridcell')).toHaveLength(3);
     });
@@ -63,7 +63,7 @@ describe('engine integration', () => {
   it('rotates the selection with R and undoes it with Mod+Z', async () => {
     render(<App />);
     await openDocuments([await fixtureFile()]);
-    useUiStore.getState().setViewMode('arrange');
+    useUiStore.getState().showSurface('grid');
     const cells = await screen.findAllByRole('gridcell');
     await userEvent.click(cells[1]!);
     expect(cells[1]).toHaveAttribute('aria-selected', 'true');

@@ -36,7 +36,7 @@ import { getEngineService } from '../engine/engine-service';
 import { forgetKept, keepRecent, onKeptRemoved, useRecentsStore } from '../files/recents';
 import { m } from '../i18n';
 import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
-import { useUiStore } from '../state/ui-store';
+import { documentUi, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -105,16 +105,18 @@ function placeState(tracker: ChangeTracker): PlaceState {
   const ui = useUiStore.getState();
   const ws = useWorkspaceStore.getState().workspace;
   return {
-    destination: ui.destination,
+    // Compare is not restored: it falls back to the document (02.7).
+    destination: ui.destination === 'home' ? 'home' : 'document',
     zoom: ui.zoom,
     fitMode: ui.fitMode,
     place: (id) => {
-      const view =
-        id === ws.activeDocument && ui.destination === 'document' ? ui.viewMode : ui.lastView[id];
+      const { surface, markup } = documentUi(ui, id);
       return {
         page: pages.get(id) ?? 0,
-        view: view === 'arrange' ? 'arrange' : 'read',
-        mode: ui.documentMode[id] === 'edit' ? 'edit' : 'read',
+        // The format keeps M8's names: the page view is 'read', the grid 'arrange'; Markup
+        // carries M8's Edit until the lock replaces it (D1-2).
+        view: surface === 'grid' ? 'arrange' : 'read',
+        mode: markup ? 'edit' : 'read',
         ...fileFactsOf(id),
       };
     },
@@ -210,9 +212,7 @@ function watch(ctl: Controller): () => void {
       state.zoom !== previous.zoom ||
       state.fitMode !== previous.fitMode ||
       state.destination !== previous.destination ||
-      state.viewMode !== previous.viewMode ||
-      state.documentMode !== previous.documentMode ||
-      state.lastView !== previous.lastView
+      state.docUi !== previous.docUi
     ) {
       writer.noteChange('view');
     }

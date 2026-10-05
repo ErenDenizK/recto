@@ -216,7 +216,7 @@ function LightTable({
   const files = useWorkspaceStore((s) => s.files);
   const setActive = useWorkspaceStore((s) => s.setActive);
   const arrangeSize = useUiStore((s) => s.arrangeSize);
-  const setViewMode = useUiStore((s) => s.setViewMode);
+  const showSurface = useUiStore((s) => s.showSurface);
   const focused = useSelectionStore((s) => s.focused);
   const apply = useSelectionStore((s) => s.apply);
   const scrollToPage = useViewStore((s) => s.scrollToPage);
@@ -576,7 +576,7 @@ function LightTable({
 
   const openInRead = (id: PageId) => {
     activateSectionOf(id);
-    setViewMode('read');
+    showSurface('page');
     scrollToPage(id);
   };
 
