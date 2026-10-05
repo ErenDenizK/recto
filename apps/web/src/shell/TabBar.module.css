@@ -51,6 +51,8 @@
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+  /* A revealed tab clears the faded edges below. */
+  scroll-padding-inline: 24px;
   /* Room for the focus ring, which is drawn outside the tab. */
   padding: 4px 4px 4px 0;
   margin: -4px 0;
@@ -200,6 +202,12 @@
 @media (hover: none) {
   .close {
     opacity: 1;
+  }
+
+  /* While the tabs overflow, a × stays on the selected tab only: at a faded edge it would stand
+     alone and close a document whose name is out of sight (XD-3). */
+  .tablist:is([data-more-start], [data-more-end]) .tabWrap:not([data-selected]) .close {
+    visibility: hidden;
   }
 }
 
