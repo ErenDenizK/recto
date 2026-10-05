@@ -37,6 +37,8 @@ import {
 } from '../files/images';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { canChange } from '../state/guard';
+import { lockOpened } from '../state/lock-store';
 import { useSelectionStore } from '../state/selection-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import {
@@ -261,8 +263,13 @@ export function renameDocumentTo(
   return { ok: true, changed };
 }
 
-/** Starts renaming in place: in the section header in Arrange mode, else in the tab. */
+/**
+ * Starts renaming in place: in the section header in Arrange mode, else in the tab. Rename is
+ * a `document` act at every entry point (X31: the tab, the section header, F2 and the menus all
+ * come here), so a locked document does not start one (D1-4 opens the Unlock popover there).
+ */
 export function startRename(documentId: DocumentId, surface?: 'tab' | 'section'): void {
+  if (!canChange(documentId, 'document')) return;
   const where =
     surface ?? (stageView(ui()) === 'grid' && shownInArrangeNow(documentId) ? 'section' : 'tab');
   ui().setRenaming({ documentId, surface: where });
@@ -525,6 +532,8 @@ export async function openImagesAsDocument(
     if (failed.length > 0) announce(announceFailed(failed));
     return undefined;
   }
+  // Opened from files, like a PDF: "Open documents locked" applies (ADR-0029 §2.8).
+  if (created !== undefined) lockOpened([created]);
   announce([m.announce_opened({ name: title }), announceFailed(failed)].filter(Boolean).join('. '));
   return created;
 }

@@ -37,6 +37,7 @@ import {
 } from '@pdf-editor/document-model';
 
 import { m } from '../i18n';
+import { lockOpened, restoreLocks } from '../state/lock-store';
 import { useUiStore, withDocumentUi } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import {
@@ -337,7 +338,7 @@ export function applyPlaces(
     const doc = ws.documents[place.id];
     if (doc === undefined) continue;
     // M8's names in the format: 'arrange' is the grid; 'edit' opens Markup, which carries
-    // M8's Edit until the lock replaces it (D1-2).
+    // M8's Edit until the input rules replace it (D1-5). The lock is its own field.
     docUi = withDocumentUi(docUi, place.id, {
       surface: place.view === 'arrange' ? 'grid' : 'page',
       ...(place.mode === 'edit' ? { markup: true } : {}),
@@ -346,6 +347,8 @@ export function applyPlaces(
     const fingerprint = documentFingerprint(ws, doc);
     if (fingerprint !== undefined) rememberPosition(fingerprint, place.page);
   }
+  // Each document takes back the lock it was kept with, or none (redesign spec §7).
+  restoreLocks(places.filter((place) => ws.documents[place.id] !== undefined));
   const active = places.find((p) => p.id === ws.activeDocument);
   useUiStore.setState({
     docUi,
@@ -532,6 +535,9 @@ export async function reopenKept(
   }
   const ws = useWorkspaceStore.getState().workspace;
   applyPlaces(ws, [record.place]);
+  // Reopening from Recents opens the document: unlocked when it was kept, "Open documents
+  // locked" applies as to any file (ADR-0029 §2.8); a kept lock stays.
+  lockOpened([documentId]);
   void replayEdits();
   return { ok: true, documentId, record };
 }
