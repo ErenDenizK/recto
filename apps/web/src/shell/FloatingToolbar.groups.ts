@@ -55,6 +55,11 @@ export type BarItem =
   | { readonly kind: 'shapes'; readonly tools: readonly ToolDefinition[] }
   /** Stamp: one button with a menu (an image or a built-in stamp). */
   | { readonly kind: 'stamp'; readonly tool: ToolDefinition }
+  /**
+   * The signature: one button (New signature) until a signature is saved, then a menu of the
+   * saved ones with the newest three as chips beside it (D0-11, MK-12 on today's bar).
+   */
+  | { readonly kind: 'signature'; readonly tool: ToolDefinition }
   /** A command button (Sign with certificate…, Find sensitive data…, …). */
   | { readonly kind: 'command'; readonly command: string }
   | { readonly kind: 'fields' }
@@ -71,6 +76,8 @@ function toolItems(group: BarGroup): BarItem[] {
       items.push({ kind: 'pen', tool });
     } else if (tool.mode === 'stamp') {
       items.push({ kind: 'stamp', tool });
+    } else if (tool.mode === 'signature') {
+      items.push({ kind: 'signature', tool });
     } else {
       items.push({ kind: 'tool', tool });
     }
