@@ -36,9 +36,17 @@ export interface ConfirmRequest {
   readonly action: string;
   /** A destructive action: a danger label on the standard fill, never lime (07 §2.4, §27.14). */
   readonly danger: boolean;
+  /**
+   * The destructive action's glyph, so colour is never its only cue (07 §3.8, A-19): `trash`
+   * for what removes, `revert` (arrow-counter-clockwise) for Revert.
+   */
+  readonly glyph: ConfirmGlyph;
   /** The act can be undone (a toast with Undo follows): focus starts on the action, else Cancel. */
   readonly undoable: boolean;
 }
+
+/** The glyph beside a destructive confirmation's action (07 §3.8). */
+export type ConfirmGlyph = 'trash' | 'revert';
 
 interface SheetState {
   readonly open: OpenSheet | null;
@@ -176,6 +184,8 @@ export function confirm(request: {
   readonly body: string;
   readonly action: string;
   readonly danger?: boolean;
+  /** A destructive action's glyph; `trash` when not given. */
+  readonly glyph?: ConfirmGlyph;
   readonly undoable?: boolean;
 }): Promise<boolean> {
   const showing = useSheetStore.getState().confirm;
@@ -191,6 +201,7 @@ export function confirm(request: {
         body: request.body,
         action: request.action,
         danger: request.danger ?? false,
+        glyph: request.glyph ?? 'trash',
         undoable: request.undoable ?? false,
       },
     });
