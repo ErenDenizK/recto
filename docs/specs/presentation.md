@@ -77,7 +77,7 @@ table of contents.
 3. Pair a capability with its limit where a reader would otherwise assume too much.
 4. Numbers carry their scope ("98% of words found on our test scans, Chromium"). No speed
    claim without a measurement and the machine it ran on.
-5. Use the app's own nouns: light table, Arrange, Read, Intact, Changed after signing,
+5. Use the app's own nouns: Library, Pages grid, Markup, Read, Intact, Changed after signing,
    recipe. A signature is never "valid", "verified" or "trusted".
 6. Name other products only with a date and a source, and say where they are better.
 7. State the status plainly: version, "Public beta", built and maintained by one person,
@@ -246,18 +246,21 @@ changes one prefix.
 
 ## 6. Demo script (8 clips, each under 8 s)
 
-Many files → one table → real changes → honest results. Names follow the M6 UI.
+Many files → one table → real changes → honest results. Names follow the V2 interface (M9,
+`docs/specs/redesign.md`); each scene in `tools/media/scenes/` cites the component spec it
+shows. The hero still (`00-hero`) is the Pages grid over all three documents, opened from the
+Library's selection bar.
 
 | # | Clip | Beats (the last one is the poster) | Time |
 |---|---|---|---|
-| 1 | Open many PDFs at once | drop three files on Home → Arrange: three sections | 6.5 s |
-| 2 | Move pages between documents | pp. 3–4 dragged with ghost → drop → Export summary | 7 s |
-| 3 | Redact, and the text is gone | find sensitive data → apply → IBAN search: none | 6.5 s |
-| 4 | Recognise a scan | OCR, English → cut ("shortened") → Good → line selected | 6.5 s |
-| 5 | Compare two versions | changed areas → onion skin → J to the changed word | 7 s |
-| 6 | Edit a line of text | click a line → "2024" to "2025" → settled preview, no substitute-font line | 5.5 s |
-| 7 | Sign, and see what was checked | Sign… with test certificate → reopen → "Intact" | 6 s |
-| 8 | Pages to Markdown | Convert pp. 2–4 → preview with headings → Copy | 5.5 s |
+| 1 | Open many PDFs at once | drop three files on the Library → three checked cards, selection bar up → its Pages: the Pages grid with three sections | 6.5 s |
+| 2 | Move pages between documents | Pages grid: pp. 3–4 selected, the Pages bar counting them → dragged with the drag image → dropped into the agreement's section | 7 s |
+| 3 | Redact, and the text is gone | sidebar Review on Marks → Find sensitive data → mark and apply → the strip's Find for the IBAN: none | 6.5 s |
+| 4 | Recognise a scan | title menu → Recognize text (OCR), English → cut ("shortened") → Review's words to check → line selected | 6.5 s |
+| 5 | Compare two versions | Library: both cards checked → selection bar's Compare → changed areas → onion skin → J to the changed paragraph | 7 s |
+| 6 | Edit a line of text | E: the capsule turns into the Markup palette, Edit text pressed → click a line → "2024" to "2025" → settled preview, no substitute-font line | 5.5 s |
+| 7 | Sign, and see what was checked | title menu → Sign with certificate… (test certificate) → Save a copy signs it → copy dropped back → facts row opens the Signatures sheet: "Intact" | 6 s |
+| 8 | Pages to Markdown | title menu → Export as Markdown / text… → Save a copy sheet on Text, pp. 2–4 → preview with headings → Copy | 5.5 s |
 
 Documents: clip 1 uses all three, 2 the report and agreement, 3 and 7 the agreement, 4 the
 scan, 5 both report versions, 6 and 8 the report. Clip 7 shows the test certificate's label.
