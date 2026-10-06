@@ -400,7 +400,10 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Tab');
     expect(await holdsFocus(contextual)).toBe(true);
     await expect(contextual.locator('[tabindex="0"]')).toHaveCount(1);
+    // End reaches ⋯ (the properties, D2-9); Delete sits just before it.
     await page.keyboard.press('End');
+    await expect(contextual.getByRole('button', { name: 'More properties' })).toBeFocused();
+    await page.keyboard.press('ArrowLeft');
     await expect(contextual.getByRole('button', { name: 'Delete' })).toBeFocused();
     await page.keyboard.press('Delete');
     await expect(ink).toHaveCount(0, { timeout: 10_000 });
@@ -462,7 +465,8 @@ test.describe('keyboard', () => {
         const el = document.activeElement;
         if (!el) return false;
         return (
-          el.closest('[data-document-info]') !== null || el.hasAttribute('data-base-ui-focus-guard')
+          el.closest('[data-testid="document-info"]') !== null ||
+          el.hasAttribute('data-base-ui-focus-guard')
         );
       });
     await expect.poll(() => holdsFocus(sheet)).toBe(true);

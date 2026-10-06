@@ -17,6 +17,7 @@ import {
   historyStep,
   useFileInputPicker,
   showSidebar,
+  stageAsBesideInspector,
 } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
@@ -71,6 +72,11 @@ async function yellowShare(
 
 test.describe('annotations', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
+  // The page geometry these tests were written for (drags by fractions of a page that fit
+  // above the palette): the stage beside the inspector's 280 px, which D2-9 removed.
+  test.beforeEach(async ({ page }) => {
+    await stageAsBesideInspector(page);
+  });
 
   test.beforeEach(async ({ page }) => {
     await useFileInputPicker(page);

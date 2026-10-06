@@ -33,10 +33,17 @@ import {
   markAllMatches,
   openFindPanel,
   showSidebar,
+  stageAsBesideInspector,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
+
+// The page geometry these tests were written for (drags by fractions of a page that fit above
+// the dock): the stage beside the inspector's 280 px, which D2-9 removed.
+test.beforeEach(async ({ page }) => {
+  await stageAsBesideInspector(page);
+});
 
 const TOKEN = 'SECRET-7731';
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
@@ -390,9 +397,9 @@ test('keeping attachments: the self-check sees the token in the attachment and n
     'false',
   );
   await expect(blocked.getByTestId('redaction-findings')).toContainText('Redacted text absent');
-  // Nothing happened: the mark is still a mark, no history entry.
+  // Nothing happened: the mark is still a mark (and History, read once the modal dialog has
+  // closed, holds one application: the one below).
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(1);
-  await inHistory(page, (list) => expect(historyStep(list, /Redactions applied/)).toHaveCount(0));
 
   // Back: apply without keeping attachments. It passes, and so does the export.
   await dialog.getByRole('button', { name: 'Back' }).click();
@@ -402,9 +409,10 @@ test('keeping attachments: the self-check sees the token in the attachment and n
   await expect(result).toBeVisible({ timeout: 30_000 });
   await expect(result).toContainText('Attachments removed');
   await dialog.getByRole('button', { name: 'Close' }).last().click();
-  await inHistory(page, (list) =>
-    expect(historyStep(list, 'Redactions applied (1 area)')).toBeVisible(),
-  );
+  await inHistory(page, async (list) => {
+    await expect(historyStep(list, 'Redactions applied (1 area)')).toBeVisible();
+    await expect(historyStep(list, /Redactions applied/)).toHaveCount(1);
+  });
   const { bytes, summary } = await exportAndDownload(page);
   expect(summary[0]).toContain('Redaction: 1 area on 1 page, self-check passed (9 checks).');
   const pdf = await PDFDocument.load(bytes, { updateMetadata: false });
@@ -473,7 +481,6 @@ test('Esc and the backdrop while applying: the dialog stays and the blocked outc
   await expect(
     page.locator('[role="status"][aria-live="polite"]').filter({ hasText: announced }),
   ).toHaveCount(1);
-  await inHistory(page, (list) => expect(historyStep(list, /Redactions applied/)).toHaveCount(0));
   // While it worked, the header ✕ was disabled at every change.
   const close = await page.evaluate(
     () =>
@@ -485,6 +492,8 @@ test('Esc and the backdrop while applying: the dialog stays and the blocked outc
   // Once finished, Esc closes it; opened again, the form starts afresh.
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
+  // Nothing was applied: no history entry (read once the modal dialog has closed).
+  await inHistory(page, (list) => expect(historyStep(list, /Redactions applied/)).toHaveCount(0));
   await panel.getByTestId('redaction-apply').click();
   await expect(dialog.getByTestId('redaction-apply-confirm')).toBeVisible();
   await expect(dialog.getByTestId('redaction-blocked')).toHaveCount(0);

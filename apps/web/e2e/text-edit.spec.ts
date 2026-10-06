@@ -31,10 +31,17 @@ import {
   historyStep,
   useFileInputPicker,
   openFindPanel,
+  stageAsBesideInspector,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
+
+// The page geometry these tests were written for (drags by fractions of a page that fit above
+// the dock): the stage beside the inspector's 280 px, which D2-9 removed.
+test.beforeEach(async ({ page }) => {
+  await stageAsBesideInspector(page);
+});
 
 const FOX = 'The quick brown fox jumps over the lazy dog';
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
