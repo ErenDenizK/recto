@@ -67,7 +67,8 @@
    submenu row closed the submenu (the Document menu's Rotate pages, DocumentMenu.test.tsx). */
 .popup:is([data-side='top'], [data-side='bottom'], [data-side='none'])[data-starting-style],
 .popup:is([data-side='top'], [data-side='bottom'], [data-side='none'])[data-ending-style] {
-  transform: scale(0.96);
+  /* 0.96, and 1 under reduced motion (styles/motion.css): then the menu only fades. */
+  transform: scale(var(--enter-scale));
 }
 
 /* The menu's positioner (Base UI's, `role="presentation"`) stacks above the floating bars
