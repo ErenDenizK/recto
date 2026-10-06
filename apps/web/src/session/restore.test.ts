@@ -157,12 +157,12 @@ describe('session restore', { timeout: 40_000 }, () => {
     // The engine has the bytes under the old ids: renders and export can read them.
     for (const id of sources)
       expect((await getEngineService().sourceBytes(id as never)).ok).toBe(true);
-    // Place: zoom, Markup (M8's Edit, until D1-5) and each document's surface (the format's
-    // 'read' is the page, 'arrange' the grid).
+    // Place: zoom and each document's surface (the format's 'read' is the page, 'arrange' the
+    // grid). Markup is never restored (redesign spec §7): every document comes back in viewing.
     const ui = useUiStore.getState();
     const other = before.documentOrder.find((id) => id !== before.activeDocument);
     expect(ui.zoom).toBe(1.25);
-    expect(isMarkupOpen(ui, before.activeDocument)).toBe(true);
+    expect(isMarkupOpen(ui, before.activeDocument)).toBe(false);
     expect(isMarkupOpen(ui, other)).toBe(false);
     expect(surfaceOf(ui, before.activeDocument)).toBe('page');
     expect(surfaceOf(ui, other)).toBe('grid');

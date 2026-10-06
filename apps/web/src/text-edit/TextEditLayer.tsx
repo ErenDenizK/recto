@@ -45,9 +45,9 @@ import { cssPointToUser, type PageFrame, rectToCss } from '../annotations/geomet
 import { penSession } from '../annotations/pen/ink-input';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
-import { useCanEdit } from '../state/ui-store';
 import { Tooltip } from '../ui/Tooltip';
 import { HIT_LAYER_Z } from '../viewer/hit-order';
+import { useCanChangeActive } from '../viewer/input-state';
 import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
 import { blockerLabel, blockerOfRun, caretOffset, focusReturnRun, runKey, wordAt } from './model';
@@ -175,8 +175,9 @@ function usePageParagraphs(
 
 export function TextEditLayer(props: PageOverlayProps) {
   const { sourceId, sourceIndex, pageId, pageIndex, visible } = props;
-  // Never in Read (ADR-0019 §3), even if the tool were armed.
-  const editable = useCanEdit();
+  // A paragraph or line commit is a `text` act (ADR-0030): refused only while the document is
+  // locked. The tool itself arms only in Markup (`tool-store`).
+  const editable = useCanChangeActive('text');
   const active = useToolStore((s) => s.mode === 'edit-text') && editable;
   const session = useTextEditStore((s) => (s.session?.target.pageId === pageId ? s.session : null));
   const revision = usePageRevision(sourceId, sourceIndex);
@@ -190,7 +191,7 @@ export function TextEditLayer(props: PageOverlayProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const shown = session !== null && editable;
 
-  // The Read lock: an editor open when the document leaves Edit closes, unapplied.
+  // An editor open when the document is locked closes, unapplied.
   useEffect(() => {
     if (session && !editable) useTextEditStore.getState().close();
   }, [session, editable]);

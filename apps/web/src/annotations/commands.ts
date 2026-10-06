@@ -37,8 +37,9 @@ import {
   loadSavedSignatures,
   useSavedSignatures,
 } from '../signatures/saved-signatures';
-import type { Act } from '../state/guard';
-import { canEdit, canEditActive, isPageView, useUiStore } from '../state/ui-store';
+import { type Act, canChange } from '../state/guard';
+import { useLockStore } from '../state/lock-store';
+import { isMarkupOpen, isPageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { type ToolMode, useToolStore } from '../viewer/tool-store';
 import { deleteAnnotations } from './actions';
@@ -55,14 +56,20 @@ const readMode = () =>
   isPageView(useUiStore.getState()) &&
   useWorkspaceStore.getState().workspace.documentOrder.length > 0;
 
+/** Whether Markup is open for the active document (the tool bar's groups, tools arm). */
+const markupOpen = () =>
+  isMarkupOpen(useUiStore.getState(), useWorkspaceStore.getState().workspace.activeDocument);
+
 /**
- * Before a tool arms: a document in Read switches to Edit, said first so that the tool named
- * next follows it ("Edit mode. Blue pen"). False when there is no document to edit.
+ * Before a tool arms: in viewing Markup opens, said first so that the tool named next follows
+ * it ("Edit mode. Blue pen"). False when there is no document, or when it is locked: a tool
+ * key opens nothing there (flows §3.1; the Unlock popover is the Lock UI's).
  */
 export function enterEditForTool(): boolean {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
   if (id === undefined) return false;
-  if (canEdit(id)) return true;
+  if (!canChange(id, 'freehand', { opensMarkup: true })) return false;
+  if (isMarkupOpen(useUiStore.getState(), id)) return true;
   useUiStore.getState().openMarkup(id);
   announce(m.mode_edit_long());
   return true;
@@ -91,12 +98,13 @@ export async function activateTool(tool: ToolDefinition): Promise<void> {
   const tools = useToolStore.getState();
   const store = useAnnotationStore.getState();
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  if (id !== undefined && !canEdit(id)) {
-    // Select is the idle tool of both modes: V in Read changes nothing.
+  if (id !== undefined && !isMarkupOpen(useUiStore.getState(), id)) {
+    // Select is the idle tool of viewing and Markup alike: V in viewing changes nothing.
     if (tool.mode === 'select') return;
-    // Read (ADR-0019 §3): switch to Edit and arm, synchronously so that both are said in
-    // one announcement. Selected text stays selected and is marked by a second press.
-    enterEditForTool();
+    // Viewing: open Markup and arm, synchronously so that both are said in one
+    // announcement; a locked document opens nothing. Selected text stays selected and is
+    // marked by a second press.
+    if (!enterEditForTool()) return;
     if ((isMarkupMode(tool.mode) || tool.mode === 'redact') && hasTextSelection()) return;
   } else {
     if (isMarkupMode(tool.mode) && (await markupFromSelection(tool.mode))) return;
@@ -158,7 +166,7 @@ export function activatePen(): void {
   const tools = useToolStore.getState();
   const index = writingPenIndex();
   const store = useAnnotationStore.getState();
-  if (tools.mode === 'ink' && canEditActive() && store.pen.active === index) {
+  if (tools.mode === 'ink' && markupOpen() && store.pen.active === index) {
     tools.setOptionsOpen(!tools.optionsOpen);
     return;
   }
@@ -256,7 +264,8 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       act: 'targeted',
       shortcut: ['Delete', 'Backspace'],
       keywords: ['remove', 'annotation', 'comment'],
-      when: () => readMode() && canEditActive() && useAnnotationStore.getState().selection !== null,
+      // A targeted act: in viewing and Markup alike, the guard refuses it while locked.
+      when: () => readMode() && useAnnotationStore.getState().selection !== null,
       run: async () => {
         const state = useAnnotationStore.getState();
         // A lasso selection deletes the taken strokes only (lasso/edits.ts).
@@ -271,7 +280,7 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       act: 'targeted',
       shortcut: ['Delete', 'Backspace'],
       keywords: ['remove', 'image', 'picture'],
-      when: () => readMode() && canEditActive() && useImageStore.getState().selection !== null,
+      when: () => readMode() && useImageStore.getState().selection !== null,
       run: async () => {
         const selection = useImageStore.getState().selection;
         if (selection) await deleteImage(selection.target, selection.image);
@@ -294,13 +303,18 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
 }
 
 /**
- * Entering Read (`1`, the control, a tab whose document is in Read) commits an open inline
- * editor and drops the annotation and image selections, so nothing stays half-edited behind
- * the lock (the tool store disarms the tool itself).
+ * The active document becoming locked (or a tab whose document is) commits an open inline
+ * editor and drops the annotation selection, so nothing stays half-edited behind the lock;
+ * leaving Markup drops the image selection, which belongs to Markup's Image tool (the tool
+ * store disarms the tool itself). An annotation selected in viewing stays selected when Markup
+ * opens or closes: selecting is not a mode (05-canvas §6).
  */
 function watchReadLock(): () => void {
   const lock = () => {
-    if (canEditActive()) return;
+    if (!markupOpen() && useImageStore.getState().selection !== null) {
+      useImageStore.getState().select(null);
+    }
+    if (canChange(useWorkspaceStore.getState().workspace.activeDocument, 'targeted')) return;
     const store = useAnnotationStore.getState();
     if (store.editor !== null) {
       commitOpenEditor();
@@ -312,11 +326,15 @@ function watchReadLock(): () => void {
   const offUi = useUiStore.subscribe((state, previous) => {
     if (state.docUi !== previous.docUi) lock();
   });
+  const offLock = useLockStore.subscribe((state, previous) => {
+    if (state.locks !== previous.locks) lock();
+  });
   const offWorkspace = useWorkspaceStore.subscribe((state, previous) => {
     if (state.workspace.activeDocument !== previous.workspace.activeDocument) lock();
   });
   return () => {
     offUi();
+    offLock();
     offWorkspace();
   };
 }

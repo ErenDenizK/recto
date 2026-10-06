@@ -23,7 +23,7 @@ import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useRovingTabindex } from '../shell/FloatingToolbar.roving';
 import { registerPageOverlay, type PageOverlayProps } from '../stage/page-overlays';
-import { useCanEdit } from '../state/ui-store';
+import { useMarkupOpen } from '../state/ui-store';
 import { IconButton } from '../ui/IconButton';
 import { Tooltip } from '../ui/Tooltip';
 import { openTextEditorAt } from '../text-edit/entry';
@@ -121,7 +121,8 @@ function placementOn(root: HTMLElement): Placement | null {
 }
 
 export function TextSelectionBar(props: PageOverlayProps) {
-  const editable = useCanEdit();
+  // The Select row in Markup, the Read row in viewing (until the selection bar is one bar).
+  const editable = useMarkupOpen();
   // In Edit only the Select tool selects text for the bar (a markup tool marks the drag).
   const selecting = useToolStore((s) => s.mode === 'select');
   const shown = !editable || selecting;

@@ -6,9 +6,10 @@
  * targets over the widgets of the page and, for the active field, an in-place editor
  * sized to the widget. Widget rects come from the form store in unrotated user space and
  * go through the viewer's page frame, so rotation and CropBox offsets need no special
- * case. The layer is live with the Select tool only; with a drawing tool it is inert (the
- * annotation layer captures the page). A source with XFA but no AcroForm widgets has no
- * targets at all.
+ * case. The layer is live where the hit router makes form widgets live (`viewer/hit-order.ts`:
+ * viewing, Markup with Select, and Locked, where a field takes the focus but does not fill); with
+ * a drawing tool it is inert (the tool wins; the annotation layer captures the page). A source
+ * with XFA but no AcroForm widgets has no targets at all.
  *
  * Kinds: checkbox and radio toggle on click / Space; text, combo box and list box open an
  * editor; a push button shows that its actions are not run; a signature field shows what
@@ -25,10 +26,10 @@ import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { showMarkup } from '../home/home-actions';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
-import { useCanEdit } from '../state/ui-store';
 import { type Box, type PageFrame, userRectToCss } from '../viewer/geometry';
+import { isLive } from '../viewer/hit-order';
+import { useCanChangeActive, usePageInput } from '../viewer/input-state';
 import { pageFrame } from '../viewer/page-frame';
-import { useToolStore } from '../viewer/tool-store';
 import { Tooltip } from '../ui/Tooltip';
 import { commitFieldValue, fieldLabel } from './actions';
 import { ChoiceEditor, TextEditor } from './FieldEditors';
@@ -45,7 +46,7 @@ export interface PlacedWidget {
 
 export function FormLayer(props: PageOverlayProps) {
   const { sourceId, sourceIndex, pageId, pageIndex } = props;
-  const mode = useToolStore((s) => s.mode);
+  const { state } = usePageInput();
   const fields = useSourceFields(sourceId);
   const ensureSource = useFormStore((s) => s.ensureSource);
   const highlight = useFormStore((s) => s.highlight);
@@ -65,7 +66,7 @@ export function FormLayer(props: PageOverlayProps) {
     });
   }
   if (placed.length === 0) return null;
-  const live = mode === 'select';
+  const live = isLive('form-widget', state);
 
   return (
     <div
@@ -130,8 +131,9 @@ export function FieldWidget({
   const { field, box } = placed;
   const ref = useRef<HTMLButtonElement>(null);
   const [notice, setNotice] = useState(false);
-  // The Read lock: values show, nothing fills; a fill attempt shows the Edit notice.
-  const canFill = useCanEdit();
+  // A fill is a targeted act (ADR-0030): allowed unless the document is locked, where values
+  // show, nothing fills and a fill attempt shows the notice.
+  const canFill = useCanChangeActive('targeted');
   const [lockNotice, setLockNotice] = useState(false);
   const showLock = lockNotice && active && !canFill;
   const editable = field.kind === 'text' || field.kind === 'combobox' || field.kind === 'listbox';

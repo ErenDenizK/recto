@@ -15,7 +15,7 @@ import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import redactUrl from '../../../../test/fixtures/redact-text-runs.pdf?url';
-import { enterEditMode, fixtureFile } from '../../test/store-harness';
+import { fixtureFile } from '../../test/store-harness';
 import {
   type PageTarget,
   resetAnnotationStore,
@@ -23,6 +23,7 @@ import {
 } from '../annotations/annotation-store';
 import { readAnnotations, resetEditRunner, whenIdle } from '../annotations/edit-runner';
 import { pageText } from '../annotations/page-text';
+import { resetLockStore, useLockStore } from '../state/lock-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { useSearchStore } from '../viewer/search';
 import { alreadyMarked, createMarks, isRedactMark, MARK_FILL, MARK_OUTLINE } from './marks';
@@ -215,9 +216,10 @@ describe('redaction marks through the engine', () => {
         context: TOKEN,
       })),
     });
-    // Marks are page edits: nothing in Read (ADR-0019 §3).
+    // Marking the matches is a targeted act (X22): nothing while locked, then in viewing.
+    useLockStore.getState().lock(doc.id);
     expect(await markSearchHits()).toBe(0);
-    enterEditMode();
+    resetLockStore();
     expect(await markSearchHits()).toBe(3);
     expect(labels()).toContain('Mark 3 search matches for redaction');
   });

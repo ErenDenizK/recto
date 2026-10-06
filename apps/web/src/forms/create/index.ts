@@ -18,7 +18,8 @@ import { type CreatedFieldKind, getActiveDocument } from '@pdf-editor/document-m
 import type { CommandRegistry } from '../../commands/registry';
 import { m } from '../../i18n';
 import { announce } from '../../shell/announcer';
-import { canEditActive, isPageView, stageView, useUiStore } from '../../state/ui-store';
+import { isPageView, stageView, useUiStore } from '../../state/ui-store';
+import { canChangeActive } from '../../viewer/input-state';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { useToolStore } from '../../viewer/tool-store';
@@ -101,12 +102,12 @@ function returnPlacingFocus(): void {
 }
 
 /**
- * Arms placing `kind`: the page view, Select tool, the field editor closed. A new field is
- * a page edit: never in Read (ADR-0019 §3; the command is disabled there).
+ * Arms placing `kind`: the page view, Select tool, the field editor closed. A new field is a
+ * `place` act at a click: only in Markup, never while locked (the guard dims the command).
  */
 export function startPlacing(kind: CreatedFieldKind): void {
   if (!getActiveDocument(useWorkspaceStore.getState().workspace)) return;
-  if (!canEditActive()) return;
+  if (!canChangeActive('place')) return;
   const ui = useUiStore.getState();
   if (!isPageView(ui)) ui.showSurface('page');
   useToolStore.getState().setMode('select');
@@ -125,11 +126,14 @@ export function cancelPlacing(): void {
   announce(m.forms_create_placing_cancelled());
 }
 
-/** Turns "Edit fields" on or off (on only in Edit: it moves and resizes fields). */
+/**
+ * Turns "Edit fields" on or off: on only in Markup and unlocked, where a click places (it
+ * moves and resizes fields, so it keeps to the state that places them).
+ */
 export function setDesign(on: boolean): void {
   const store = useCreateStore.getState();
   if (store.design === on) return;
-  if (on && !canEditActive()) return;
+  if (on && !canChangeActive('place')) return;
   if (on) {
     const ui = useUiStore.getState();
     if (!isPageView(ui)) ui.showSurface('page');
@@ -148,8 +152,8 @@ const stop = () => {
 
 useUiStore.subscribe((state, previous) => {
   if (stageView(state) !== stageView(previous)) stop();
-  // The document left Edit (Markup closed): placing and editing fields stop.
-  else if (state.docUi !== previous.docUi && !canEditActive()) stop();
+  // Markup closed: placing and editing fields stop.
+  else if (state.docUi !== previous.docUi && !canChangeActive('place')) stop();
 });
 // Placing ended (placed, cancelled, stopped): forget the invoker.
 useCreateStore.subscribe((state, previous) => {
@@ -181,8 +185,8 @@ if (typeof window !== 'undefined') {
 export function registerCreateFieldCommands(registry: CommandRegistry): () => void {
   const hasPages = () =>
     (getActiveDocument(useWorkspaceStore.getState().workspace)?.pages.length ?? 0) > 0;
-  // Adding and editing fields are page edits: disabled outside Markup (M8's Read, ADR-0019 §3).
-  const hasDocument = () => hasPages() && canEditActive();
+  // Editing fields keeps to Markup, where fields are placed (the guard dims it when locked).
+  const hasDocument = () => hasPages() && canChangeActive('place');
   const disposers = [
     ...FIELD_KINDS.map((kind) =>
       registry.register({

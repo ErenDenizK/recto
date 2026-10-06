@@ -6,6 +6,7 @@
  */
 import { degrees, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import {
+  type DocumentId,
   getActiveDocument,
   historyEntries,
   type PageId,
@@ -23,6 +24,7 @@ import { resetAnnotationStore } from '../annotations/annotation-store';
 import { engineContext, resetEditRunner, whenIdle } from '../annotations/edit-runner';
 import { FormsPanel } from '../shell/FormsPanel';
 import type { PageOverlayProps } from '../stage/page-overlays';
+import { resetLockStore, useLockStore } from '../state/lock-store';
 import { isMarkupOpen, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { useToolStore } from '../viewer/tool-store';
@@ -326,13 +328,36 @@ describe('Forms panel', () => {
   });
 });
 
-describe('form layer in Read (ADR-0019 §3)', () => {
-  /** M8's words for the active document's Markup state, as the control still shows them. */
-  const mode = () =>
-    isMarkupOpen(useUiStore.getState(), model().workspace.activeDocument) ? 'edit' : 'read';
+describe('form layer in viewing and locked (05-canvas §6, ADR-0030)', () => {
+  /** Whether Markup is open for the active document. */
+  const markup = () => isMarkupOpen(useUiStore.getState(), model().workspace.activeDocument);
+  const lockActive = () => {
+    const id = model().workspace.activeDocument;
+    if (id === undefined) throw new Error('no document');
+    useLockStore.getState().lock(id);
+  };
+  afterEach(() => resetLockStore());
 
-  it('a click shows the focus and "Switch to Edit to fill"; nothing fills', async () => {
+  it('in viewing a click fills, a targeted act: no Markup, a checkbox toggles', async () => {
     const { source, pages } = await openFile(await fixtureFile(formsAUrl, 'forms-a.pdf'), false);
+    render(<FormLayer {...overlayProps(source, pages, 0, { width: 612, height: 792 })} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'name' }));
+    const editor = await screen.findByRole('textbox', { name: 'name' });
+    expect(editor).toHaveValue('Alice Example');
+    expect(screen.queryByRole('status')).toBeNull();
+    await userEvent.keyboard('{Escape}');
+
+    const agree = await screen.findByRole('checkbox', { name: 'agree' });
+    expect(agree).not.toHaveAttribute('aria-readonly');
+    await userEvent.click(agree);
+    await settle();
+    expect(await engineValue(source, 'agree')).toBe(false);
+    expect(markup()).toBe(false);
+  });
+
+  it('locked: a click shows the focus and the notice; nothing fills or toggles', async () => {
+    const { source, pages } = await openFile(await fixtureFile(formsAUrl, 'forms-a.pdf'), false);
+    lockActive();
     render(<FormLayer {...overlayProps(source, pages, 0, { width: 612, height: 792 })} />);
     const name = await screen.findByRole('button', { name: 'name' });
     await userEvent.click(name);
@@ -340,13 +365,10 @@ describe('form layer in Read (ADR-0019 §3)', () => {
     expect(name).toHaveAttribute('data-active');
     expect(screen.queryByRole('textbox', { name: 'name' })).toBeNull();
     const notice = await screen.findByRole('status');
-    expect(notice).toHaveTextContent('Switch to Edit to fill');
-    expect(within(notice).getByRole('button', { name: 'Edit' })).toHaveAttribute(
-      'aria-keyshortcuts',
-      '2',
-    );
+    expect(within(notice).getByRole('button')).toBeVisible();
 
-    // A checkbox does not toggle either.
+    // A checkbox does not toggle either, in Markup too.
+    useUiStore.getState().openMarkup(model().workspace.activeDocument as DocumentId);
     const agree = screen.getByRole('checkbox', { name: 'agree' });
     expect(agree).toHaveAttribute('aria-readonly', 'true');
     await userEvent.click(agree);
@@ -354,20 +376,15 @@ describe('form layer in Read (ADR-0019 §3)', () => {
     expect(await engineValue(source, 'agree')).toBe(true);
     expect(within(await screen.findByRole('status')).getByRole('button')).toBeVisible();
     expect(labels().some((l) => l.startsWith('Fill'))).toBe(false);
-    expect(mode()).toBe('read');
   });
 
-  it('Tab from the field reaches the Edit button, which switches to Edit and opens the field', async () => {
+  it("locked: Tab from the field reaches the notice's button", async () => {
     const { source, pages } = await openFile(await fixtureFile(formsAUrl, 'forms-a.pdf'), false);
+    lockActive();
     render(<FormLayer {...overlayProps(source, pages, 0, { width: 612, height: 792 })} />);
     await userEvent.click(await screen.findByRole('button', { name: 'name' }));
     await userEvent.keyboard('{Tab}');
-    const edit = within(await screen.findByRole('status')).getByRole('button', { name: 'Edit' });
-    expect(edit).toHaveFocus();
-    await userEvent.keyboard('{Enter}');
-    expect(mode()).toBe('edit');
-    const editor = await screen.findByRole('textbox', { name: 'name' });
-    expect(editor).toHaveValue('Alice Example');
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(within(await screen.findByRole('status')).getByRole('button')).toHaveFocus();
+    expect(screen.queryByRole('textbox', { name: 'name' })).toBeNull();
   });
 });

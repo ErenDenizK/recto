@@ -337,11 +337,11 @@ export function applyPlaces(
   for (const place of places) {
     const doc = ws.documents[place.id];
     if (doc === undefined) continue;
-    // M8's names in the format: 'arrange' is the grid; 'edit' opens Markup, which carries
-    // M8's Edit until the input rules replace it (D1-5). The lock is its own field.
+    // M8's names in the format: 'arrange' is the grid. Markup is never restored (redesign
+    // spec §7), so an older snapshot's 'edit' comes back in viewing. The lock is its own
+    // field.
     docUi = withDocumentUi(docUi, place.id, {
       surface: place.view === 'arrange' ? 'grid' : 'page',
-      ...(place.mode === 'edit' ? { markup: true } : {}),
     });
     // The page view returns to the remembered page on mount (ReadView, CompactReader).
     const fingerprint = documentFingerprint(ws, doc);

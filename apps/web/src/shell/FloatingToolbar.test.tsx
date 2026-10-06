@@ -35,7 +35,7 @@ import { useShortcuts } from '../commands/use-shortcuts';
 import { ReadView } from '../stage/ReadView';
 import { highlighterIndex } from '../annotations/pen/highlighter';
 import { presetLabel } from '../annotations/pen/presets';
-import { canEditActive, useUiStore } from '../state/ui-store';
+import { isMarkupOpenActive, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
@@ -474,7 +474,7 @@ describe('tool bar (mounted)', () => {
       await userEvent.keyboard('{Escape}');
       expect(useToolStore.getState().barGroup).toBeNull();
       // Esc never leaves Edit.
-      expect(canEditActive()).toBe(true);
+      expect(isMarkupOpenActive()).toBe(true);
     }
   });
 

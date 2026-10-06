@@ -16,6 +16,8 @@
  *   chrome may hide on scroll.
  * - **The one-time hint** (`editTextHintShown`): "Double-click to edit text" shows with the
  *   idle hover outline until the first double-click into the editor, and never again.
+ * - **The first-pen hint** (`penHintShown`, flows §3.4, MK-16): "Writing? Tap Markup, …" shows
+ *   on the first pen touch in viewing, once per device.
  *
  * Persisted in `pdf-editor:input-policy:v1`, validated field by field. The M8 record
  * `pdf-editor:edit-policy:v1` is migrated once (`penDrawsInEdit` becomes `penDrawsInMarkup`;
@@ -41,6 +43,7 @@ export interface InputPolicySettings {
   readonly openDocumentsLocked: boolean;
   readonly keepToolsVisible: boolean;
   readonly editTextHintShown: boolean;
+  readonly penHintShown: boolean;
 }
 
 export const DEFAULT_INPUT_POLICY: InputPolicySettings = {
@@ -50,6 +53,7 @@ export const DEFAULT_INPUT_POLICY: InputPolicySettings = {
   openDocumentsLocked: false,
   keepToolsVisible: false,
   editTextHintShown: false,
+  penHintShown: false,
 };
 
 const FIELDS = Object.keys(DEFAULT_INPUT_POLICY) as readonly (keyof InputPolicySettings)[];
@@ -60,6 +64,8 @@ interface InputPolicyState extends InputPolicySettings {
   notePen(): void;
   /** The hint has done its job (the first double-click into the editor). */
   markEditTextHintShown(): void;
+  /** The first-pen hint has been shown (flows §3.4). */
+  markPenHintShown(): void;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -84,6 +90,7 @@ export function parseInputPolicy(value: unknown): InputPolicySettings {
     openDocumentsLocked: boolean(r.openDocumentsLocked, d.openDocumentsLocked),
     keepToolsVisible: boolean(r.keepToolsVisible, d.keepToolsVisible),
     editTextHintShown: boolean(r.editTextHintShown, d.editTextHintShown),
+    penHintShown: boolean(r.penHintShown, d.penHintShown),
   };
 }
 
@@ -120,6 +127,9 @@ export const useInputPolicyStore = create<InputPolicyState>()((set, get) => ({
   },
   markEditTextHintShown: () => {
     if (!get().editTextHintShown) set({ editTextHintShown: true });
+  },
+  markPenHintShown: () => {
+    if (!get().penHintShown) set({ penHintShown: true });
   },
 }));
 

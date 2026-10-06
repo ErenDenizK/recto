@@ -1,8 +1,8 @@
 /**
- * The Edit-mode pointer policy's shared state (craft spec §3.5): the pointer log the page
- * layers consult (`hit-order.ts`), the first pen sighting that turns "Pen draws in Edit"
- * on, the Space pan, and the palette command "Toggle pen draws in Edit". Importing this
- * module installs the window listeners once.
+ * The pointer policy's shared state (craft spec §3.5; 05-canvas §6): the pointer log the page
+ * layers consult (`hit-order.ts`), the first pen sighting that turns "Pen draws in Markup"
+ * on, the first-pen hint in viewing (`pen-hint.ts`), the Space pan, and the palette command
+ * "Toggle pen draws in Edit". Importing this module installs the window listeners once.
  */
 import { penSession } from '../annotations/pen/ink-input';
 import type { CommandRegistry } from '../commands/registry';
@@ -10,6 +10,7 @@ import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { penDrawsInMarkup, useInputPolicyStore } from '../state/input-policy-store';
 import { createPointerLog, watchPointers } from './hit-order';
+import { installPenHint } from './pen-hint';
 import { installSpacePan } from './space-pan';
 
 /** The page's pointer log (last press type, last pen lift). */
@@ -53,11 +54,12 @@ export function registerEditPolicyCommands(registry: CommandRegistry): () => voi
 
 let installed = false;
 
-/** Installs the window listeners (pointer log, pen sighting, Space pan) once. */
+/** Installs the window listeners (pointer log, pen sighting, pen hint, Space pan) once. */
 export function installEditPolicy(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
   watchPointers(window, pointerLog, notePenSeen);
+  installPenHint(window);
   installSpacePan(window);
 }
 
