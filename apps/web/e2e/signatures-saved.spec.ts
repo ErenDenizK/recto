@@ -2,9 +2,10 @@
  * Saved signatures end to end (spec redesign D0-11; flows.md J8A; components/07-sheets.md §9
  * and S3 §6; 03-markup.md MK-12, MK-13):
  *
- * - J8A on today's shell: the first signature takes six presses (Edit · Fill & sign · Signature
- *   image · draw · Use signature · the page) and is kept ("Save for next time" is on); after a
- *   reload it takes four (Edit · Fill & sign · its chip · the page).
+ * - J8A with the dock's Fill & sign door (01-frame F10, D2-2), which opens Markup on its Sign
+ *   set: the first signature takes five presses (Fill & sign · Signature image · draw · Use
+ *   signature · the page) and is kept ("Save for next time" is on); after a reload it takes
+ *   three (Fill & sign · its chip · the page), the M9 count of flows §8.
  * - Settings → Saved signatures: Add… keeps a typed one and comes back to the page (New
  *   signature replaced Settings, and Settings comes back open), rename, remove with "Removed a
  *   saved signature · Undo", and Remove all…, which asks once and is final: nothing comes back
@@ -112,7 +113,7 @@ async function openSavedSignatures(page: Page): Promise<Locator> {
   return sheet;
 }
 
-test('J8A: six presses the first time, four with a saved signature after a reload', async ({
+test('J8A: five presses the first time, three with a saved signature after a reload', async ({
   page,
 }) => {
   await launch(page);
@@ -124,8 +125,7 @@ test('J8A: six presses the first time, four with a saved signature after a reloa
 
   // The first time: New signature opens from the signature button (nothing is saved yet).
   const first = presses();
-  await first.click(page.locator('[data-read-edit]'));
-  await first.click(bar(page).getByRole('button', { name: 'Fill & sign', exact: true }));
+  await first.click(page.locator('[data-dock-item="sign"]'));
   await first.click(bar(page).getByRole('button', { name: 'Signature image', exact: true }));
   const sheet = page.getByRole('dialog', { name: 'New signature' });
   await expect(sheet).toBeVisible();
@@ -137,13 +137,12 @@ test('J8A: six presses the first time, four with a saved signature after a reloa
   await expect(layer(page)).toHaveAttribute('data-tool', 'signature');
   await first.run(() => placeOnPage(page, 0.3, 0.45));
   await expect(stamps).toHaveCount(1, { timeout: 10_000 });
-  expect(first.count).toBe(6);
+  expect(first.count).toBe(5);
 
   // Kept on this device: after a reload the signature is one press from armed.
   await reloadAndReopen(page);
   const again = presses();
-  await again.click(page.locator('[data-read-edit]'));
-  await again.click(bar(page).getByRole('button', { name: 'Fill & sign', exact: true }));
+  await again.click(page.locator('[data-dock-item="sign"]'));
   const chip = bar(page).locator('[data-saved-signature]');
   await expect(chip).toHaveCount(1);
   await expect(chip).toHaveAccessibleName(/^Signature, added /);
@@ -152,7 +151,7 @@ test('J8A: six presses the first time, four with a saved signature after a reloa
   await expect(layer(page)).toHaveAttribute('data-tool', 'signature');
   await again.run(() => placeOnPage(page, 0.6, 0.3));
   await expect(stamps).toHaveCount(1, { timeout: 10_000 });
-  expect(again.count).toBe(4);
+  expect(again.count).toBe(3);
   // One-shot: placed, the tool returns and the chip lets go.
   await expect(chip).toHaveAttribute('aria-pressed', 'false');
 
@@ -217,8 +216,7 @@ test('Settings: add, rename, remove with Undo, and Remove all is final', async (
   await page.keyboard.press('Escape');
   // The tool has nothing to offer: its button opens New signature again.
   await openFixtures(page, ['simple-text.pdf']);
-  await page.locator('[data-read-edit]').click();
-  await bar(page).getByRole('button', { name: 'Fill & sign', exact: true }).click();
+  await page.locator('[data-dock-item="sign"]').click();
   await expect(bar(page).locator('[data-saved-signature]')).toHaveCount(0);
   await bar(page).getByRole('button', { name: 'Signature image', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'New signature' })).toBeVisible();
@@ -238,8 +236,7 @@ test('a kept snapshot keeps a placed signature after its saved copy is removed',
     timeout: 20_000,
   });
   const stamps = layer(page).locator('[data-annotation-kind="stamp"]');
-  await page.locator('[data-read-edit]').click();
-  await bar(page).getByRole('button', { name: 'Fill & sign', exact: true }).click();
+  await page.locator('[data-dock-item="sign"]').click();
   await bar(page).getByRole('button', { name: 'Signature image', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'New signature' });
   await sheet.getByRole('tab', { name: 'Type' }).click();

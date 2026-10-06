@@ -21,6 +21,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import {
   enterEdit,
+  markupDoor,
   openFixtures,
   openSaveCopy,
   sessionSettled,
@@ -134,11 +135,9 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   await expect(notice).toContainText('Restored simple-text');
   await expect(notice.getByRole('button', { name: 'Start fresh' })).toBeVisible();
   await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 3 · 150%$/);
-  // Markup is never restored (redesign spec §7): the document comes back in viewing, Read's
-  // dock its one Edit button.
-  await expect(
-    page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Edit', exact: true }),
-  ).toBeVisible();
+  // Markup is never restored (redesign spec §7): the document comes back in viewing, its
+  // capsule the dock (D2-2).
+  await expect(markupDoor(page)).toBeVisible();
 
   // 20 undo steps came back with the present one, and Undo walks all of them.
   await showInspector(page);

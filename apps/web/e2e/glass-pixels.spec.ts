@@ -144,7 +144,8 @@ test(
     const sample = median4x4(image, group.x + 4, centreY - 2);
     const beside = median4x4(image, pageBox.x + 40, centreY - 2);
     expect(beside, 'the page beside the bar is white').toEqual(WHITE);
-    const model = glassModel(await glassStyle(bar), WHITE);
+    // The glass is the capsule the bar sits in (spec X1, D2-2).
+    const model = glassModel(await glassStyle(page.locator('[data-capsule]')), WHITE);
     // The composite tokens.test.ts asserts for the bar tier (M2) over white.
     expect(hex(model)).toBe('#444548');
     // Near the bar's top and bottom edges the page still leaks in (1 − c grows towards an

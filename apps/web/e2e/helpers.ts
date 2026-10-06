@@ -101,12 +101,19 @@ export async function showInspector(page: Page): Promise<void> {
 
 /**
  * Puts the active document in Edit (Markup open) with `2` (ADR-0019 §3, ADR-0029): a file opens
- * in viewing, where the tool bar is one Edit button; in Markup it shows its groups (the frame
- * has no mode switch since D2-1, so the bar is what tells).
+ * in viewing, where the capsule is the dock; in Markup it is the palette (spec X1, D2-2: the
+ * frame has no mode switch since D2-1, so the capsule is what tells).
  */
 export async function enterEdit(page: Page): Promise<void> {
   await page.keyboard.press('2');
-  await expect(page.locator('[data-region="toolbar"]:not([data-bar-view="read"])')).toBeVisible();
+  await expect(page.locator('[data-capsule="palette"]')).toBeVisible();
+}
+
+/** The dock's Markup door (01-frame F10), in English or Turkish. */
+export function markupDoor(page: Page): Locator {
+  return page.locator(
+    '[data-capsule="dock"] > [data-capsule-layer="dock"] [data-dock-item="markup"]',
+  );
 }
 
 /**
