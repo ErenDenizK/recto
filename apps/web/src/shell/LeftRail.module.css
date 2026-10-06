@@ -78,8 +78,8 @@
   height: 14px;
   padding: 0 3px;
   border-radius: var(--radius-round);
-  background: var(--surface-3);
-  box-shadow: 0 0 0 1px var(--surface-1);
+  background: var(--surface-on);
+  box-shadow: 0 0 0 1px var(--surface-frame);
   color: var(--text-primary);
   font-size: 10px;
   font-weight: 500;
@@ -176,7 +176,7 @@
 }
 
 .pageOption[aria-selected='true'] .pageSheet {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--select);
   outline-offset: 3px;
 }
 

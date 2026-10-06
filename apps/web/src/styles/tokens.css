@@ -1,177 +1,327 @@
 /*
- * Design tokens. Source of truth: docs/DESIGN.md §3.
+ * Design tokens: Recto Glass (docs/design/redesign-2026-10/language.md §1, §10.1; ADR-0023;
+ * components/09-primitives.md §2.2, §25). The app and `tokens.test.ts` import this one file;
+ * `token-registry.ts` names every token it defines, by block and layer.
  *
- * Only the dark theme ships in v1. The `[data-theme]` hook exists so a light theme
- * (v1.x) can redefine the same custom properties without touching components.
+ * Seven blocks, in this order:
  *
- * Refinements over the DESIGN.md draft, all for WCAG AA:
- * - --text-tertiary #6b7078 -> #858a92: the draft measured 3.76:1 on --surface-1;
- *   the new value is >= 4.76:1 on --surface-0..3.
- * - Glass (design refinement pass, docs/design/audit/translucency.md): a 50% tint over a
- *   backdrop that is blurred, colour-boosted and darkened, instead of the draft's 72% tint and
- *   plain blur. Over a white page the draft blended to #535457 (--text-secondary 2.4:1); this
- *   glass stays at #3f4043 or darker, where every glass text colour is AA: primary 8.4:1,
- *   --glass-text-secondary 5.2:1, --glass-danger 4.6:1, warning 6.4:1, the accent (non-text
- *   only) 3.5:1.
- * - Experience redesign M6 (docs/specs/experience-redesign.md §7, docs/design/audit-2026-10/
- *   V1-RESULTS.md): the canvas goes darker and docked surfaces step up (canvas to panel 1.05:1 ->
- *   1.14:1, an L* step of 6.9), --text-tertiary #858a92 -> #8f949c (4.71:1 on the new
- *   --surface-3), and the glass gets lighter (rgb(48 51 58 / 0.66) over a backdrop darkened to
- *   0.36), so the bar reads over the canvas (1.03:1 -> 1.27:1) while a white page still blends to
- *   #3f4145 at worst: primary 8.3:1, --glass-text-secondary 5.1:1, --glass-danger 4.5:1, warning
- *   6.3:1, the accent (non-text only) 3.4:1. Floating chrome carries one elevation token.
- * - M6 review (2026-10-01, A4): over a white page that glass still read as a grey slab, so the
- *   backdrop is darkened less (0.36 -> 0.45): the bar blends to #47494d there (9.0:1 to the page,
- *   was 10.2:1). 0.45 is the brightest that keeps the armed tool's accent fill at 3:1 against
- *   the bar (3.03:1; 0.5 would give 2.84:1). Glass text steps up to stay AA: primary 7.3:1,
- *   --glass-text-secondary #b4b8bf -> #bcc0c6 (4.94:1), --glass-danger #ff8a8a -> #ffa0a0
- *   (4.63:1), warning 5.5:1. Over the canvas nothing changes (#212328, 1.27:1).
- *   tokens.test.ts asserts every ratio against this file.
- * - Craft M8 (docs/specs/craft.md §7): two more glass tiers. Tier 2, the docked frame, is used
- *   only while the "Glass panels" setting is on: rgb(29 31 37 / 0.80) over a backdrop blurred
- *   40px, saturated 1.4 and darkened to 0.6, which over the canvas composites to exactly
- *   --surface-1 (#181a1f), so nothing changes at rest, and over a white page to #36373c
- *   (primary 9.6:1, --glass-text-secondary 6.5:1, --glass-danger 6.1:1, the accent 4.0:1).
- *   Tier 3, menus and popovers, is denser than tier 1 because menus are lists of text:
- *   rgb(40 43 50 / 0.80), blur 32px, saturate 1.6, brightness 0.5; #212329 over the canvas,
- *   #393c42 over a white page (primary 8.9:1, secondary 6.1:1, danger 5.7:1, accent 3.7:1).
- * - Redesign M9, D0-1 (docs/specs/redesign.md §11.1; language.md §2.9, §10.4 step 1): the three
- *   blurs come down to the coverage rule, c = erf(h / 2√2σ) · erf(w / 2√2σ) ≥ 0.985 at each
- *   surface's smallest size (styles/coverage-registry.ts). A blur that is large against a
- *   surface's height lets the unfiltered page leak in at the edges: the 44 px bar at 28px
- *   rendered #5b5d61 over a white page, not #47494d (research 22 §3.2), and its secondary text
- *   fell to 3.6:1. Bars of 36 px and up blur 7px (c 0.990 at 36 px), menus 12px (c 0.994 at the
- *   two-row 66 px menu) and a one-row menu 7px, the docked frame 5px (its shortest bar, the
- *   28 px status bar: c 0.995). Tints and the darkening are unchanged, so every composite
- *   above holds, now also as rendered. Also new here: --select, the page's selection blue
- *   (language.md §1.5), and the two focus bands with their offsets (language.md §9.2,
- *   styles/focus.css).
- * - Redesign M9, D0-3 (09-primitives §2, §25, §32 step 2): the token skeleton. Semantic names
- *   (--canvas, --surface-frame, --type-body, --radius-sm …) carry today's values and the M8
- *   names alias them until migration step 11; the control block (§2.2) that every primitive in
- *   ui/ paints with; density by pointer (32 / 44 px controls, quality-bar Q-9) in a theme-free
- *   block with its coarse overrides; the CSS springs (language.md §7.2). The colours stay
- *   today's: D3 changes the values, not the names.
+ *   §1  `:root, [data-theme='dark']`   every colour and material token, dark values
+ *   §2  `[data-theme='light']` and `@media (prefers-color-scheme: light)`: the same names with
+ *       light values (D3-7 adds them; the test keeps both selectors and §1 to one name set)
+ *   §3  `:root`                        theme-free: type, shape, space, density, motion, metrics
+ *   §4  `@media (pointer: coarse), (any-pointer: coarse)`   coarse density
+ *   §5  Settings: reduced transparency (media and in-app switch, identical), more contrast,
+ *       reduced motion
+ *   §6  `@media (forced-colors: active)`
+ *   §7  `@media (color-gamut: p3)`     the aurora's P3 stops
+ *
+ * Inside §1, three layers (09 §25): layer 1 holds the raw ramps (`--n1…--n12`, `--lime-*`,
+ * `--aurora-*`, the `-rgb` channel triplets), which only this file reads; layer 2 the semantic
+ * roles every module paints with; layer 3 the control block of `ui/`. The aliases at the end of
+ * §1 and §3 keep the M8 names working until migration step 11 (09 §32).
+ *
+ * The colour language (ADR-0023, D3-2): four roles that never mix. *Interaction* is one lime,
+ * `#c8fb3d`, always touching ink, and at rest only on the armed tool or the one primary action
+ * of a view, the focus ring's light band, current rows (0.12), 1 px lines (0.50) and the current
+ * thumbnail's ring. *Content* is the white page, the inks and `--select`, the blue of every
+ * selection mark on a page. *Status* is danger, warning and success, always beside a glyph and
+ * words. *Atmosphere* is the aurora's light. The neutrals are cool graphite, hue 265, chroma
+ * ≤ 0.013 (n1–n12): 1–2 backgrounds, 3–6 surfaces and controls, 7–8 borders and disabled,
+ * 9–12 text. Every contrast below is asserted by `tokens.test.ts` (WCAG 2.2 and APCA).
+ *
+ * The brand values (the lime, the graphite, the aurora stops) live once, in layer 1: when the
+ * owner's brand kit adjusts one, it changes here and the test re-checks every pair.
+ *
+ * History: the M6/M8 ladder (canvas #08090b, panels #181a1f, periwinkle #7c8cff, three glass
+ * tiers) and D0-1's coverage rule and focus bands, D0-3's skeleton and control block, are
+ * recorded in docs/specs/experience-redesign.md §7, craft.md §7 and redesign.md §11.1. D3-2
+ * gives the skeleton its colours; the blurs stay D0-1's until materials.css (D3-3) takes σ per
+ * surface from the coverage registry.
  */
+
+/* ── §1 Dark theme ─────────────────────────────────────────────────────────────────────── */
 :root,
 [data-theme='dark'] {
   color-scheme: dark;
 
-  /* Surface ladder: canvas -> panel -> raised -> overlay. Docked surfaces are flat: elevation is
-     a tonal step plus a hairline. The canvas (and Home) sits darkest, so the page and the
-     floating bar stand out of a near-black field and the panels read as a frame. */
-  --canvas: #08090b; /* canvas, Home background */
-  --surface-frame: #181a1f; /* panels, title bar, status bar, navigator */
-  --surface-raised: #1f2227; /* raised: cards, inputs, --glass-solid */
-  --surface-on: #272a30; /* view switch on, disabled primary */
-  --surface-hover: rgb(255 255 255 / 0.045);
-  --surface-active: rgb(255 255 255 / 0.075);
-  /* Floating chrome over the document (.glass in global.css). --glass-solid is the opaque
-     fallback. */
-  --glass: rgb(48 51 58 / 0.66);
-  /* Bars of 36 px and up (coverage registry): blur 7px. */
-  --glass-filter: blur(7px) saturate(1.8) brightness(0.45);
-  --glass-solid: var(--surface-2);
-  /* Tier 2, the docked frame (title bar, navigator, inspector, status bar; .glass-frame), while
-     "Glass panels" is on. Its alpha never drops below 0.78 ("bigger gets denser"). No shadow:
-     a 1px inner top highlight is its only edge besides the hairline. */
-  --glass-frame: rgb(29 31 37 / 0.8);
-  /* σ ≤ height / 5 of the shortest frame bar, the 28 px status bar: blur 5px. */
-  --glass-frame-filter: blur(5px) saturate(1.4) brightness(0.6);
-  --glass-frame-solid: var(--surface-1);
-  --glass-frame-highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
-  /* Tier 3, menus and popovers (.glass-menu with .glass): denser than the floating bar. */
-  --glass-menu: rgb(40 43 50 / 0.8);
-  /* Menus of two rows and more (78 px and up) blur 12px; a one-row menu (46 px, Recents'
-     "Remove") blurs 7px (ui/Menu.module.css). σ 12 needs 59 px: σ ≤ h / 4.87 at c 0.985. */
-  --glass-menu-filter: blur(12px) saturate(1.6) brightness(0.5);
-  --glass-menu-short-filter: blur(7px) saturate(1.6) brightness(0.5);
-  --glass-menu-solid: var(--glass-solid);
-  /* The one elevation token, for floating chrome only (every .glass surface): a 1px inner top
-     highlight, a dark hairline ring that holds the edge over a white page, and one soft
-     shadow. Docked surfaces, dialogs and tooltips stay flat. No other shadow, glow or halo. */
-  --elevation-float:
-    inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.5),
-    0 8px 24px -8px rgb(0 0 0 / 0.55);
-  --scrim: rgb(5 6 8 / 0.56);
+  /* Layer 1: neutrals, cool graphite, hue 265 (language.md §1.3; OKLCH L and C in the
+     comments). */
+  --n1: #08090c; /* 0.140 0.006 */
+  --n2: #101215; /* 0.180 0.008 */
+  --n3: #17191e; /* 0.215 0.010 */
+  --n4: #1f2227; /* 0.250 0.011 */
+  --n5: #272a30; /* 0.285 0.012 */
+  --n6: #303339; /* 0.320 0.012 */
+  --n7: #3f4249; /* 0.380 0.012 */
+  --n8: #55585f; /* 0.460 0.012 */
+  --n9: #91949a; /* 0.665 0.010 */
+  --n10: #a1a5ab; /* 0.720 0.010 */
+  --n11: #bbbec3; /* 0.800 0.008 */
+  --n12: #e8e9ec; /* 0.935 0.004 */
 
-  /* One border alpha (0.10) for dividers, surfaces, glass, keycaps and the page hairline,
-     plus one control step (0.16) for inputs and control outlines, which WCAG 1.4.11 asks to
-     stay identifiable. The swatch ring separates arbitrary colours from the bar. */
-  --border-hairline: rgb(255 255 255 / 0.1);
-  --border-strong: rgb(255 255 255 / 0.16);
-  --border-glass: rgb(255 255 255 / 0.1);
-  --border-swatch: rgb(255 255 255 / 0.28);
+  /* Layer 1: the lime ramp (language.md §1.4), hue 123–131 at about 92 % of the sRGB chroma
+     maximum. 300 is the one lime of ADR-0023, sRGB in every theme and file; 800 is the light
+     theme's line colour. --lime-rgb is 300's channels, for the alphas below (the test keeps
+     the two equal). */
+  --lime-50: #effed0;
+  --lime-100: #e1fea1;
+  --lime-200: #d2fe59;
+  --lime-300: #c8fb3d; /* 0.921 0.210 124 */
+  --lime-400: #bbef39;
+  --lime-500: #a5dd34;
+  --lime-600: #80b128;
+  --lime-700: #5f8a1b;
+  --lime-800: #446713;
+  --lime-900: #2f490a;
+  --lime-950: #1a2d04;
+  --lime-rgb: 200 251 61;
+  --white-rgb: 255 255 255;
+  --ink-rgb: 21 23 28;
 
-  --text-primary: #e6e7ea;
-  --text-secondary: #9a9ea6;
-  --text-tertiary: #8f949c;
-  --text-disabled: #4a4e55;
-  /* Text on glass: two steps, both AA over a white page. Tertiary maps to secondary. */
-  --glass-text-secondary: #bcc0c6;
-  --glass-text-disabled: #787c84; /* disabled icons stay visible (2.15:1) over a white page */
-  --glass-danger: #ffa0a0; /* #ff8a8a would be 4.0:1 there */
+  /* Layer 1: the aurora's four lights (language.md §1.6, ADR-0025), sRGB; §7 swaps in P3. */
+  --aurora-teal: #1f9996;
+  --aurora-mint: #58da98;
+  --aurora-lime: #bbed26;
+  --aurora-lemon: #faee40;
 
-  /* One accent: focus, selection, primary action. Nothing else. */
-  --accent: #7c8cff;
-  /* Primary buttons: one step lighter on hover, one darker while pressed. Their label
-     (--surface-0) stays AA on all three: 6.6:1, 7.9:1, 5.7:1. */
-  --accent-hover: #8f9dff;
-  --accent-pressed: #6f7ff5;
-  /* The armed tool on a floating bar: a solid accent fill with a canvas-dark icon (6.7:1). The
-     fill stays >= 3:1 against the bar over any page (3.4:1 over a white page, 5.3:1 over the
-     canvas). Other option choices keep --accent-muted. */
+  /* Layer 2: surfaces. Docked surfaces are flat: a tonal step plus a hairline. The canvas sits
+     darkest, so the white page and the floating chrome stand out of a near-black field and the
+     panels read as a frame. */
+  --canvas: var(--n1); /* the stage around the page, Home */
+  --surface-sunken: var(--n2); /* wells, field wells */
+  --surface-frame: var(--n3); /* title bar, sidebars, status bar: M3 solid */
+  --surface-raised: var(--n4); /* cards, tooltips, the solid of M1, M2, M4, M5 */
+  --surface-on: var(--n5); /* view switch on, disabled primary */
+  --surface-hover: rgb(var(--white-rgb) / 0.045);
+  --surface-active: rgb(var(--white-rgb) / 0.075);
+  /* Dim only, never a blur (G-31). */
+  --scrim: rgb(5 6 8 / 0.5);
+
+  /* Layer 2: borders. One hairline alpha (0.10) for dividers, surfaces, glass, keycaps and the
+     page; one stronger step (0.16) for outlines that need to be found; the swatch ring
+     separates arbitrary colours from the chrome; n7 is the opaque border. */
+  --border-hairline: rgb(var(--white-rgb) / 0.1);
+  --border-strong: rgb(var(--white-rgb) / 0.16);
+  --border-glass: rgb(var(--white-rgb) / 0.1);
+  --border-swatch: rgb(var(--white-rgb) / 0.28);
+  --border-opaque: var(--n7);
+
+  /* Layer 2: text (language.md §1.7). Primary 14.48:1 on the frame (APCA Lc 92); secondary
+     7.11:1 (Lc 52, a warning: under 60); tertiary 5.78:1, never on n6; disabled is exempt
+     (WCAG 1.4.3) and stays visible. On glass, secondary and tertiary step up to n11 and danger
+     to its glass variant (global.css): every text colour stays AA over a white page. */
+  --text-primary: var(--n12);
+  --text-secondary: var(--n10);
+  --text-tertiary: var(--n9);
+  --text-disabled: var(--n8);
+  --glass-text-secondary: var(--n11);
+  --glass-text-disabled: #7d8086; /* 2.42:1 worst over white, 4.65:1 over the canvas */
+
+  /* Layer 2: interaction, the one lime (language.md §1.4, ADR-0023 §2.2–§2.4). Ink on lime
+     16.42:1 (Lc 93), on hover 17.73, pressed 13.86. */
+  --accent: var(--lime-300);
+  --accent-hover: #ddff82;
+  --accent-pressed: #b2e93c;
+  --accent-ink: var(--n1);
+  /* subtle: previews and drop hints · muted: current rows (0.12: 0.16 drops a menu's secondary
+     text under 4.5:1, language.md §2.6) · line: 1 px rings of non-focus states and drop
+     outlines, 4.56:1 on the canvas. */
+  --accent-subtle: rgb(var(--lime-rgb) / 0.08);
+  --accent-muted: rgb(var(--lime-rgb) / 0.12);
+  --accent-line: rgb(var(--lime-rgb) / 0.5);
+  /* The prominent button and the armed tool: lime fill, ink label (dark); D3-7 turns both to
+     an ink fill with a lime label. */
+  --primary-fill: var(--accent);
+  --primary-fill-hover: var(--accent-hover);
+  --primary-fill-pressed: var(--accent-pressed);
+  --primary-ink: var(--accent-ink);
   --tool-active-fill: var(--accent);
-  --tool-active-ink: var(--surface-0);
-  /* Four accent alphas (plus the current search hit):
-     subtle: washes, hover fills, previews · muted: selected and current fills ·
-     line: 1px rings and borders on non-focus states · highlight: multiply highlights on the
-     page (search hits, text selection). */
-  --accent-subtle: rgb(124 140 255 / 0.08);
-  --accent-muted: rgb(124 140 255 / 0.16);
-  --accent-line: rgb(124 140 255 / 0.45);
-  --accent-highlight: rgb(124 140 255 / 0.3);
-  --accent-highlight-strong: rgb(124 140 255 / 0.55);
-  --danger: #ff6b6b;
-  --success: #5fd39a;
-  --warning: #f5c451;
-  /* Honesty notices: one recipe, a warning hairline and no tinted background. */
-  --warning-line: rgb(245 196 81 / 0.35);
+  --tool-active-fill-hover: var(--accent-hover);
+  --tool-active-fill-pressed: var(--accent-pressed);
+  --tool-active-ink: var(--accent-ink);
 
-  /* Source-document tags on the light table: small, desaturated, always paired with a
-     file name so colour is never the only signal. Hues stay clear of the accent's. */
+  /* Layer 2: content (language.md §1.5). The page is white, never themed, and keeps a hairline
+     instead of a shadow. --select is the blue of every selection mark on a page (lasso box,
+     handles, hover outline of a text run, drop targets, the undo flash): 4.93:1 on white, 4.00
+     on the yellow tint, 3.53 on the green one; selection is a dashed box, a handle or a wash,
+     never a stroke of ink, so form tells it from the blue ink #1760ee. Its washes: subtle and
+     muted for the page's lighter fills (hover, current field), wash 0.25 for text selection
+     and search hits, wash-strong 0.45 for the current hit. --select-ink is the glyph on it
+     (the check badge, 4.93:1). */
+  --page-background: #ffffff;
+  --page-shadow: 0 0 0 1px var(--border-hairline);
+  /* The sheet behind a dragged page, and the inner and outer edges of a white plate (a
+     signature, a colour cell, the spectrum) over the chrome. */
+  --page-under: #e9eaee;
+  --plate-edge: rgb(0 0 0 / 0.08);
+  --plate-ring: rgb(0 0 0 / 0.18);
+  --select: #4e61ed; /* 0.561 0.210 272 */
+  --select-rgb: 78 97 237;
+  --select-ink: #ffffff;
+  --select-subtle: rgb(var(--select-rgb) / 0.08);
+  --select-muted: rgb(var(--select-rgb) / 0.16);
+  --select-wash: rgb(var(--select-rgb) / 0.25);
+  --select-wash-strong: rgb(var(--select-rgb) / 0.45);
+  /* Redaction marks on the page (05-canvas §3, 6.10:1 on white) in both themes, never the
+     chrome's danger; the dim outside a crop preview. */
+  --redact-page: #c21725;
+  --crop-dim: rgb(var(--ink-rgb) / 0.45);
+
+  /* Layer 2: status (language.md §1.6), always beside a glyph (check, triangle, cross) and
+     words, never a wash. Warning sits at hue 72, away from the lime and the aurora's lemon.
+     Success is for signature validity and verified results only. On glass, danger steps up
+     (#fd7273 is 3.9:1 on the bar over a white page); warning and success hold as they are. */
+  --danger: #fd7273; /* 6.56:1 on the frame */
+  --warning: #ffb756; /* 10.18:1 */
+  --success: #56d1a3; /* 9.25:1 */
+  --glass-danger: #ffa4a4;
+  --glass-warning: var(--warning);
+  --glass-success: var(--success);
+  /* Honesty notices: one recipe, a warning hairline and no tinted background. */
+  --warning-line: rgb(255 183 86 / 0.35);
+
+  /* Layer 2: tags (ADR-0023 §2.8). Source-document dots beside a name, ≥ 3:1 (all ≥ 4.43 on
+     n2), never the only signal. Tag 4 is lilac: the olive it replaces had the accent's hue. */
   --tag-0: #7db3a4; /* sage */
   --tag-1: #c8a46e; /* sand */
   --tag-2: #c58b9d; /* rose */
   --tag-3: #9aa8ba; /* steel */
-  --tag-4: #a6b27c; /* olive */
+  --tag-4: #b1a1d1; /* lilac */
   --tag-5: #c7967a; /* clay */
 
-  /* Pages get a hairline, never a drop shadow. The page itself is never themed. */
-  --page-shadow: 0 0 0 1px var(--border-hairline);
-  --page-background: #ffffff;
+  /* Layer 2: atmosphere. The field under lit glass is capped at intensity 0.6 (language.md
+     §2.5); the light itself is ADR-0025's (D3-8). */
+  --light-cap-under-glass: 0.6;
 
-  /* The selection blue on the page (language.md §1.5, ADR-0023): every on-page selection mark,
-     ring, handle, lasso box, hover outline and drop target in the page layers, both themes.
-     4.93:1 on white, 4.00:1 on the yellow highlighter tint, 3.53:1 on the green one
-     (tokens.test.ts). The chrome keeps --accent until the colour step (D3). The washes are
-     the same blue at an alpha: text selection and search hits (--select-wash), the current
-     hit (--select-wash-strong), and the page's lighter fills (hover, lasso area, current
-     field) at the accent's alphas, so only the hue changes there. */
-  --select: #4e61ed;
-  --select-subtle: rgb(78 97 237 / 0.08);
-  --select-muted: rgb(78 97 237 / 0.16);
-  --select-wash: rgb(78 97 237 / 0.25);
-  --select-wash-strong: rgb(78 97 237 / 0.45);
+  /* Layer 2: materials (language.md §2.2–§2.4, ADR-0024), one per tier: a neutral tint whose
+     alpha is its own token (Tinted overrides it, D3-3), the filter after the blur (σ comes per
+     surface from the coverage registry), the solid it falls back to, and its shadow. Over a
+     white page: chip #454648, bar #444548, panel #34363a, menu #36383c, sheet #34363b, every
+     one L ≤ 0.062, so primary text keeps ≥ 7.78:1 and glass-secondary ≥ 5.07:1. Over the
+     canvas the panel equals the frame (n3) exactly, so a docked panel at rest looks solid. Lit
+     glass is for surfaces no page passes under (Library cards, About), worst over the field's
+     brightest allowed pixel. */
+  --glass-chip-alpha: 0.5;
+  --glass-chip-tint: rgb(30 32 37 / var(--glass-chip-alpha));
+  --glass-chip-filter: saturate(1.9) brightness(0.42);
+  --glass-chip-solid: var(--n4);
+  --glass-chip-shadow: var(--e2);
+  --glass-bar-alpha: 0.55;
+  --glass-bar-tint: rgb(32 34 39 / var(--glass-bar-alpha));
+  --glass-bar-filter: saturate(1.8) brightness(0.44);
+  --glass-bar-solid: var(--n4);
+  --glass-bar-shadow: var(--e3);
+  --glass-panel-alpha: 0.74;
+  --glass-panel-tint: rgb(30 32 38 / var(--glass-panel-alpha));
+  --glass-panel-filter: saturate(1.5) brightness(0.45);
+  --glass-panel-solid: var(--n3);
+  --glass-panel-shadow: var(--e4);
+  --glass-menu-alpha: 0.78;
+  --glass-menu-tint: rgb(34 36 42 / var(--glass-menu-alpha));
+  --glass-menu-filter: saturate(1.6) brightness(0.49);
+  --glass-menu-solid: var(--n4);
+  --glass-menu-shadow: var(--e4);
+  --glass-sheet-alpha: 0.86;
+  --glass-sheet-tint: rgb(40 42 48 / var(--glass-sheet-alpha));
+  --glass-sheet-filter: saturate(1.4) brightness(0.5);
+  --glass-sheet-solid: var(--n4);
+  --glass-sheet-shadow: var(--e5);
+  --glass-lit-alpha: 0.58;
+  --glass-lit-tint: rgb(48 51 58 / var(--glass-lit-alpha));
+  --glass-lit-filter: saturate(1.8) brightness(0.55);
+  --glass-lit-solid: var(--n4);
+  --glass-lit-shadow: var(--e3);
+  /* Rims (language.md §2.4): light from above. The edge holds the shape over a white page,
+     the inner light and the lit rim over the canvas, where M1 and M2 differ from it by only
+     1.06–1.08:1. */
+  --rim-edge: 0 0 0 1px rgb(0 0 0 / 0.5);
+  --rim-top: rgb(var(--white-rgb) / 0.34);
+  --rim-bottom: rgb(var(--white-rgb) / 0.14);
+  --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.12);
+  /* Elevation (language.md §6.3): e1 handles and badges, e2 chips, e3 bars and toasts, e4
+     menus and popovers, e5 sheets. No coloured shadow and no glow on a control (S-5). */
+  --e0: none;
+  --e1: 0 1px 2px rgb(0 0 0 / 0.3);
+  --e2: 0 4px 12px -4px rgb(0 0 0 / 0.5);
+  --e3: 0 10px 28px -10px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.35);
+  --e4: 0 16px 40px -12px rgb(0 0 0 / 0.62);
+  --e5: 0 30px 80px -20px rgb(0 0 0 / 0.7);
 
+  /*
+   * Layer 3: the control block (09-primitives §2.2): what every primitive in ui/ paints with.
+   * Fills are white washes one step apart, so a filled control reads on every surface; the
+   * border is the one control edge (fields, boxes, radios, switch tracks) at ≥ 3.61:1 against
+   * the worst glass and 5.01:1 against its well. On-states are neutral, n12 with an ink glyph
+   * (09 §34 issue 1): the lime stays with the prominent button, the armed tool, the focus band
+   * and current rows, so a sheet keeps one lime element. The range and progress fills are
+   * neutral too (10-ink §3.1, 09 §24): progress is not the primary action.
+   */
+  --control-fill: rgb(var(--white-rgb) / 0.08);
+  --control-fill-hover: rgb(var(--white-rgb) / 0.12);
+  --control-fill-pressed: rgb(var(--white-rgb) / 0.16);
+  --control-border: rgb(var(--white-rgb) / 0.48);
+  --control-border-hover: rgb(var(--white-rgb) / 0.6);
+  --control-on: var(--n12);
+  --control-on-ink: var(--n1);
+  --control-thumb-off: var(--n11);
+  --control-thumb: rgb(var(--white-rgb) / 0.14);
+  --control-knob: #ffffff;
+  --control-track: rgb(var(--white-rgb) / 0.24);
+  --control-range: var(--n12);
+  --control-disabled-fill: var(--n5);
+  --progress-fill: var(--n12);
+  --field-well: var(--n2);
+  --field-placeholder: var(--n10);
+  --scroll-thumb: rgb(var(--white-rgb) / 0.4);
+  --scroll-thumb-hover: rgb(var(--white-rgb) / 0.55);
+  --badge-fill: var(--n6);
+  /* The ring that separates a dark swatch or colour well from the chrome. */
+  --swatch-contrast: rgb(var(--white-rgb) / 0.55);
+  /* The two-band focus ring (A-11; language.md §9.2; 09 §19): the lime light band drawn by
+     the outline and the ink band drawn by the box-shadow, 16.42:1 apart, so one band clears
+     3:1 on any colour (WCAG C40 asks 9:1 between them). Its forms are in styles/focus.css. */
+  --focus-light: var(--lime-300);
+  --focus-dark: var(--n1);
+
+  /* Aliases (09-primitives §25 block 8), deleted at migration step 11: the M8 colour and glass
+     names keep working while modules move to the semantic ones. Today's three .glass classes
+     (global.css) read the bar, panel and menu tiers with D0-1's blurs: bars 7px, the docked
+     frame 5px, menus 12px and a one-row menu 7px. */
+  --surface-0: var(--canvas);
+  --surface-1: var(--surface-frame);
+  --surface-2: var(--surface-raised);
+  --surface-3: var(--surface-on);
+  --accent-highlight: var(--select-wash);
+  --accent-highlight-strong: var(--select-wash-strong);
+  --glass: var(--glass-bar-tint);
+  --glass-filter: blur(7px) var(--glass-bar-filter);
+  --glass-solid: var(--glass-bar-solid);
+  --glass-frame: var(--glass-panel-tint);
+  --glass-frame-filter: blur(5px) var(--glass-panel-filter);
+  --glass-frame-solid: var(--glass-panel-solid);
+  --glass-frame-highlight: inset 0 1px 0 rgb(var(--white-rgb) / 0.06);
+  --glass-menu: var(--glass-menu-tint);
+  --glass-menu-backdrop: blur(12px) var(--glass-menu-filter);
+  --glass-menu-short-backdrop: blur(7px) var(--glass-menu-filter);
+  --elevation-float: var(--rim-inner), var(--rim-edge), var(--glass-bar-shadow);
+}
+
+/* ── §2 Light theme ────────────────────────────────────────────────────────────────────────
+ * D3-7 (ADR-0022 §2.4) adds `[data-theme='light']` and
+ * `@media (prefers-color-scheme: light) { :root:not([data-theme]) { … } }` here, each with
+ * every name of §1 and light values (language.md §1.3–§1.6, §2.2 light table); `tokens.test.ts`
+ * holds both selectors and §1 to one name set. Until then the app is dark only.
+ */
+
+/* ── §3 Theme-free ─────────────────────────────────────────────────────────────────────── */
+:root {
   --font-ui: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
   --tracking-ui: 0.01em;
   --tracking-label: 0.04em;
   --tracking-display: -0.011em;
 
-  /* The type scale (language.md §4.2), fine-pointer sizes; the coarse steps are in the density
-     block below. Today's four sizes are its first four steps, so the old names alias them. */
+  /* The type scale (language.md §4.2), fine-pointer sizes; the coarse steps are in §4. */
   --type-caption: 11px; /* labels, keycaps, badges */
   --type-caption-lh: 14px;
   --type-footnote: 12px; /* secondary */
@@ -186,15 +336,14 @@
   /* Radius scale: 2 (on-page marks, page sheets) · 4 (small controls, keycaps, badges) ·
      6 (buttons, rows, inputs, menus, popovers, tooltips) · 10 (contextual bars, palette,
      dialogs, cards) · round (dots, discs, pills) · capsule (the floating tool bar and the pen
-     bar). */
+     bar). language.md §6.1 sets 8 and 12 for sm and md; today's 6 and 10 stay until the shape
+     step, so nothing that reads the old names moves. Controls take one of two shapes
+     (quality-bar Q-9): the pill, or --radius-control. */
   --radius-page: 2px;
   --radius-xs: 4px;
-  /* language.md §6.1 sets 8 and 12 here; today's 6 and 10 stay until the shape step (D3), so
-     nothing that reads the old names moves. */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-capsule: 999px;
-  /* Controls take one of two shapes (quality-bar Q-9): the pill, or --radius-control. */
   --radius-pill: var(--radius-capsule);
   --radius-control: 10px;
 
@@ -207,96 +356,25 @@
   --space-8: 32px;
   --space-12: 48px;
 
-  /* One curve. instant: drag feedback only · fast: state changes, popup enter and exit ·
-     base: scrims, drag-over. Menus, popovers and the palette rise in: they start
-     --rise-distance nearer their anchor (--motion-rise for a popup above it) at opacity 0 and
-     settle over --duration-fast. Tooltips and dialogs enter from --enter-scale. */
-  --duration-instant: 60ms;
-  --duration-fast: 120ms;
-  --duration-base: 180ms;
-  --ease-out: cubic-bezier(0.2, 0, 0, 1);
-  --enter-scale: 0.98;
-  --rise-distance: 4px;
-  --motion-rise: translateY(var(--rise-distance));
-
   /* Shell metrics. --control-height is the M8 row and field height (28 px); controls take
-     --control-h from the density block below. */
-  /* The title bar is a bar of Q-9's set: 44 px around 32 px controls (56 coarse, below). */
+     --control-h from the density below. The title bar is a bar of Q-9's set: 44 px around 32 px
+     controls (56 coarse, §4). The navigator holds an icon, an 11 px label and a count. */
   --titlebar-height: 44px;
   --statusbar-height: 28px;
-  --rail-width: 64px; /* the navigator: icon, 11 px label and count (experience-redesign §4.1) */
+  --rail-width: 64px;
   --control-height: 28px;
 
-  /* The two-band focus ring (A-11; language.md §9.2; components/09-primitives.md §19): a lime
-     light band drawn by the outline and an ink dark band drawn by the box-shadow, 16.4:1
-     apart, so one band clears 3:1 on any colour (WCAG C40 asks 9:1 between them). Its three
-     forms and offsets are in styles/focus.css. */
-  --focus-light: #c8fb3d;
-  --focus-dark: #08090c;
+  /* The focus ring's offsets (language.md §9.2; styles/focus.css). */
   --focus-offset-out: 2px;
   --focus-offset-in: -2px;
   --focus-offset-gap: 4px;
 
   /*
-   * The control block (09-primitives §2.2, layer 3): what every primitive in ui/ paints with.
-   * Fills are white washes one step apart, so a filled control reads on every surface of the
-   * ladder; the border is the one control edge (fields, boxes, radios, switch tracks), at
-   * ≥ 3.61:1 against the worst glass where today's 0.16 hairline is 1.59:1 (§34 issue 2).
-   * On-states are neutral, n12 with an ink glyph (§34 issue 1): the accent stays with the
-   * prominent button, the armed tool and the focus band, so a sheet keeps one accent element.
-   * The range fill is neutral too, never the accent (10-ink.md §3.1 over §2.2's table). Values
-   * that name a colour of the ladder point at today's tokens (n12 = --text-primary, n11 =
-   * --glass-text-secondary, ink = --canvas); the colour step (D3) gives them their own.
+   * Density (09-primitives §2.1, language.md §6.2; quality-bar Q-9). Controls are 32 px on a
+   * fine pointer and 44 px on a coarse one, in bars of 44 and 56; rows keep the M8
+   * --control-height. Icons are 20 px in controls and 16 px in rows and menus at every density
+   * (Q-9). A touch laptop is coarse everywhere, by design (research 19 M-2).
    */
-  --control-fill: rgb(255 255 255 / 0.08);
-  --control-fill-hover: rgb(255 255 255 / 0.12);
-  --control-fill-pressed: rgb(255 255 255 / 0.16);
-  --control-border: rgb(255 255 255 / 0.48);
-  --control-border-hover: rgb(255 255 255 / 0.6);
-  --control-on: var(--text-primary);
-  --control-on-ink: var(--canvas);
-  --control-thumb-off: var(--glass-text-secondary);
-  --control-track: rgb(255 255 255 / 0.24);
-  --control-range: var(--text-primary);
-  --control-disabled-fill: var(--surface-on);
-  /* The prominent button: today's accent fill and canvas-dark label (lime with ink from D3). */
-  --primary-fill: var(--accent);
-  --primary-fill-hover: var(--accent-hover);
-  --primary-fill-pressed: var(--accent-pressed);
-  --primary-ink: var(--canvas);
-  --field-well: var(--surface-raised);
-  --field-placeholder: var(--text-tertiary);
-  --scroll-thumb: rgb(255 255 255 / 0.4);
-  --badge-fill: #303339;
-  /* The one small shadow a control may carry: switch and segmented thumbs (language.md §6.3). */
-  --e1: 0 1px 2px rgb(0 0 0 / 0.3);
-
-  /* Aliases (09-primitives §25 block 8), deleted at migration step 11: the M8 names keep
-     working while modules move to the semantic ones. */
-  --surface-0: var(--canvas);
-  --surface-1: var(--surface-frame);
-  --surface-2: var(--surface-raised);
-  --surface-3: var(--surface-on);
-  --font-sans: var(--font-ui);
-  --text-xs: var(--type-caption);
-  --text-sm: var(--type-footnote);
-  --text-md: var(--type-body);
-  --text-lg: var(--type-callout);
-  --radius-1: var(--radius-xs);
-  --radius-2: var(--radius-sm);
-  --radius-3: var(--radius-md);
-  --radius-round: var(--radius-capsule);
-  --icon-chrome: var(--icon-sm);
-  --icon-toolbar: var(--icon-md);
-}
-
-/*
- * Density (09-primitives §2.1, language.md §6.2; quality-bar Q-9), theme-free. Controls are
- * 32 px on a fine pointer and 44 px on a coarse one, in bars of 44 and 56; rows keep the M8
- * --control-height. Icons are 20 px in controls and 16 px in rows and menus at every density
- * (Q-9). A touch laptop is coarse everywhere, by design (research 19 M-2).
- */
-:root {
   --hit-min: 24px;
   --control-h: 32px;
   --control-h-lg: 36px;
@@ -313,6 +391,18 @@
   --control-lh: var(--type-body-lh);
   --field-text: 13px;
   --press-scale: 0.97;
+
+  /* One curve. instant: drag feedback only · fast: state changes, popup enter and exit ·
+     base: scrims, drag-over. Menus, popovers and the palette rise in: they start
+     --rise-distance nearer their anchor (--motion-rise for a popup above it) at opacity 0 and
+     settle over --duration-fast. Tooltips and dialogs enter from --enter-scale. */
+  --duration-instant: 60ms;
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --enter-scale: 0.98;
+  --rise-distance: 4px;
+  --motion-rise: translateY(var(--rise-distance));
 
   /* CSS springs (language.md §7.1–§7.2): one curve for every zero-bounce spring, from the
      analytic solution (motion/springs.ts), and the pop curve for one small glyph. */
@@ -367,8 +457,22 @@
   --spring-pop: 410ms;
   --spring-track: 150ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Aliases (09 §25 block 8), deleted at migration step 11. */
+  --font-sans: var(--font-ui);
+  --text-xs: var(--type-caption);
+  --text-sm: var(--type-footnote);
+  --text-md: var(--type-body);
+  --text-lg: var(--type-callout);
+  --radius-1: var(--radius-xs);
+  --radius-2: var(--radius-sm);
+  --radius-3: var(--radius-md);
+  --radius-round: var(--radius-capsule);
+  --icon-chrome: var(--icon-sm);
+  --icon-toolbar: var(--icon-md);
 }
 
+/* ── §4 Coarse pointer ─────────────────────────────────────────────────────────────────── */
 @media (pointer: coarse), (any-pointer: coarse) {
   :root {
     --hit-min: 44px;
@@ -391,6 +495,82 @@
   }
 }
 
+/* ── §5 Settings ───────────────────────────────────────────────────────────────────────────
+ * Every glass tier falls back to its solid when transparency is unwelcome; rims, shadows and the
+ * frame's highlight stay, so the surfaces keep their edges. The in-app "Reduce transparency"
+ * switch sets the same values (Safari does not report the media query); tokens.test.ts keeps the
+ * two blocks identical. More contrast is solid too, with the strong border instead of rim and
+ * shadow, and secondary and tertiary text one step up (A-18).
+ */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-chip-tint: var(--glass-chip-solid);
+    --glass-chip-filter: none;
+    --glass-bar-tint: var(--glass-bar-solid);
+    --glass-bar-filter: none;
+    --glass-panel-tint: var(--glass-panel-solid);
+    --glass-panel-filter: none;
+    --glass-menu-tint: var(--glass-menu-solid);
+    --glass-menu-filter: none;
+    --glass-sheet-tint: var(--glass-sheet-solid);
+    --glass-sheet-filter: none;
+    --glass-lit-tint: var(--glass-lit-solid);
+    --glass-lit-filter: none;
+    --glass-filter: none;
+    --glass-frame-filter: none;
+    --glass-menu-backdrop: none;
+    --glass-menu-short-backdrop: none;
+  }
+}
+
+:root[data-transparency='reduced'] {
+  --glass-chip-tint: var(--glass-chip-solid);
+  --glass-chip-filter: none;
+  --glass-bar-tint: var(--glass-bar-solid);
+  --glass-bar-filter: none;
+  --glass-panel-tint: var(--glass-panel-solid);
+  --glass-panel-filter: none;
+  --glass-menu-tint: var(--glass-menu-solid);
+  --glass-menu-filter: none;
+  --glass-sheet-tint: var(--glass-sheet-solid);
+  --glass-sheet-filter: none;
+  --glass-lit-tint: var(--glass-lit-solid);
+  --glass-lit-filter: none;
+  --glass-filter: none;
+  --glass-frame-filter: none;
+  --glass-menu-backdrop: none;
+  --glass-menu-short-backdrop: none;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --glass-chip-tint: var(--glass-chip-solid);
+    --glass-chip-filter: none;
+    --glass-bar-tint: var(--glass-bar-solid);
+    --glass-bar-filter: none;
+    --glass-panel-tint: var(--glass-panel-solid);
+    --glass-panel-filter: none;
+    --glass-menu-tint: var(--glass-menu-solid);
+    --glass-menu-filter: none;
+    --glass-sheet-tint: var(--glass-sheet-solid);
+    --glass-sheet-filter: none;
+    --glass-lit-tint: var(--glass-lit-solid);
+    --glass-lit-filter: none;
+    --glass-filter: none;
+    --glass-frame-filter: none;
+    --glass-menu-backdrop: none;
+    --glass-menu-short-backdrop: none;
+    --glass-frame-highlight: none;
+    --border-hairline: rgb(var(--white-rgb) / 0.22);
+    --border-strong: rgb(var(--white-rgb) / 0.36);
+    --border-glass: rgb(var(--white-rgb) / 0.36);
+    /* Edges come from the strong border alone: no shadow and no highlight. */
+    --elevation-float: none;
+    --text-secondary: var(--n11);
+    --text-tertiary: var(--n10);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-instant: 0ms;
@@ -400,65 +580,49 @@
   }
 }
 
-/* Every glass tier falls back to its solid surface when transparency is unwelcome; the ring,
-   the shadow and the frame's highlight stay, so the surfaces keep their edges. The in-app
-   "Reduce transparency" switch sets the same values (Safari does not report the media query);
-   tokens.test.ts keeps the two blocks identical. */
-@media (prefers-reduced-transparency: reduce) {
-  :root {
-    --glass: var(--glass-solid);
-    --glass-filter: none;
-    --glass-frame: var(--glass-frame-solid);
-    --glass-frame-filter: none;
-    --glass-menu: var(--glass-menu-solid);
-    --glass-menu-filter: none;
-    --glass-menu-short-filter: none;
-  }
-}
-
-:root[data-transparency='reduced'] {
-  --glass: var(--glass-solid);
-  --glass-filter: none;
-  --glass-frame: var(--glass-frame-solid);
-  --glass-frame-filter: none;
-  --glass-menu: var(--glass-menu-solid);
-  --glass-menu-filter: none;
-  --glass-menu-short-filter: none;
-}
-
-@media (prefers-contrast: more) {
-  :root {
-    --glass: var(--glass-solid);
-    --glass-filter: none;
-    --glass-frame: var(--glass-frame-solid);
-    --glass-frame-filter: none;
-    --glass-frame-highlight: none;
-    --glass-menu: var(--glass-menu-solid);
-    --glass-menu-filter: none;
-    --glass-menu-short-filter: none;
-    --border-hairline: rgb(255 255 255 / 0.22);
-    --border-strong: rgb(255 255 255 / 0.36);
-    --border-glass: rgb(255 255 255 / 0.36);
-    /* Edges come from the strong border alone: no shadow and no highlight. */
-    --elevation-float: none;
-    --text-secondary: #c2c5cb;
-    --text-tertiary: #a9adb4;
-  }
-}
-
+/* ── §6 Forced colours ─────────────────────────────────────────────────────────────────────
+ * Every tier is Canvas with its filter set to none explicitly: Chromium keeps the filter and the
+ * tint's alpha otherwise (research 22 §6.2). Rims and shadows drop; the ring keeps its outline.
+ */
 @media (forced-colors: active) {
   :root {
-    --glass: Canvas;
-    --glass-solid: Canvas;
-    --glass-filter: none;
-    --glass-frame: Canvas;
-    --glass-frame-solid: Canvas;
-    --glass-frame-filter: none;
-    --glass-frame-highlight: none;
-    --glass-menu: Canvas;
+    --glass-chip-tint: Canvas;
+    --glass-chip-solid: Canvas;
+    --glass-chip-filter: none;
+    --glass-bar-tint: Canvas;
+    --glass-bar-solid: Canvas;
+    --glass-bar-filter: none;
+    --glass-panel-tint: Canvas;
+    --glass-panel-solid: Canvas;
+    --glass-panel-filter: none;
+    --glass-menu-tint: Canvas;
+    --glass-menu-solid: Canvas;
     --glass-menu-filter: none;
-    --glass-menu-short-filter: none;
+    --glass-sheet-tint: Canvas;
+    --glass-sheet-solid: Canvas;
+    --glass-sheet-filter: none;
+    --glass-lit-tint: Canvas;
+    --glass-lit-solid: Canvas;
+    --glass-lit-filter: none;
+    --glass-filter: none;
+    --glass-frame-filter: none;
+    --glass-menu-backdrop: none;
+    --glass-menu-short-backdrop: none;
+    --glass-frame-highlight: none;
     --border-glass: CanvasText;
     --elevation-float: none;
+  }
+}
+
+/* ── §7 Wide gamut ─────────────────────────────────────────────────────────────────────────
+ * The aurora's lights at 92 % of the P3 cusp (language.md §1.6), for the field's CSS fallback.
+ * The lime accent stays sRGB everywhere (ADR-0023 §2.2): its headroom goes to the light only.
+ */
+@media (color-gamut: p3) {
+  :root {
+    --aurora-teal: oklch(0.62 0.132 192);
+    --aurora-mint: oklch(0.8 0.238 158);
+    --aurora-lime: oklch(0.88 0.235 124);
+    --aurora-lemon: oklch(0.93 0.211 105);
   }
 }

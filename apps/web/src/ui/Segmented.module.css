@@ -12,12 +12,12 @@
   --seg-inset: 2px;
   --seg-text: 13px;
   --seg-lh: 18px;
-  --seg-track: var(--control-fill, rgb(255 255 255 / 0.08));
-  --seg-thumb: rgb(255 255 255 / 0.14);
-  --seg-thumb-ring: var(--control-border, rgb(255 255 255 / 0.48));
+  --seg-track: var(--control-fill);
+  --seg-thumb: var(--control-thumb);
+  --seg-thumb-ring: var(--control-border);
   --seg-on: var(--text-primary);
   --seg-off: var(--text-secondary);
-  --seg-e1: 0 1px 2px rgb(0 0 0 / 0.3);
+  --seg-e1: var(--e1);
 
   position: relative;
   display: grid;

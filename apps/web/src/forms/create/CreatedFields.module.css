@@ -154,7 +154,7 @@
   height: 24px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-1);
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-primary);
   pointer-events: auto;
 }
@@ -182,7 +182,7 @@
   padding: var(--space-3);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-primary);
   font-size: var(--text-sm);
   outline: none;
@@ -213,7 +213,7 @@
   padding: 0 var(--space-2);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-primary);
   font: inherit;
 }
@@ -259,7 +259,7 @@
 }
 
 .check input {
-  accent-color: var(--accent);
+  accent-color: var(--control-on);
 }
 
 .inline {
@@ -305,7 +305,7 @@
 }
 
 .swatch[aria-checked='true'] {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--control-on);
   outline-offset: 1px;
 }
 

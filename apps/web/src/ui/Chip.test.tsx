@@ -73,8 +73,8 @@ describe('ChipGroup (09-primitives §5)', () => {
     const comments = screen.getByRole('radio', { name: 'Comments, 2 items' });
     expect(all.getBoundingClientRect().height).toBe(28);
     expect(getComputedStyle(all).borderTopLeftRadius).toBe('999px');
-    expect(getComputedStyle(all).backgroundColor).toBe('rgba(124, 140, 255, 0.16)');
-    expect(getComputedStyle(all).boxShadow).toContain('rgba(124, 140, 255, 0.45)');
+    expect(getComputedStyle(all).backgroundColor).toBe('rgba(200, 251, 61, 0.12)');
+    expect(getComputedStyle(all).boxShadow).toContain('rgba(200, 251, 61, 0.5)');
     expect(all.querySelector('svg')).not.toBeNull();
     expect(comments.querySelector('svg')).toBeNull();
     expect(getComputedStyle(comments).backgroundColor).toBe('rgba(255, 255, 255, 0.08)');
@@ -120,6 +120,6 @@ describe('Chip (09-primitives §5)', () => {
     expect(chip).toHaveAttribute('aria-disabled', 'true');
     chip.click();
     expect(onClick).not.toHaveBeenCalled();
-    expect(getComputedStyle(chip).color).toBe('rgb(74, 78, 85)');
+    expect(getComputedStyle(chip).color).toBe('rgb(85, 88, 95)');
   });
 });

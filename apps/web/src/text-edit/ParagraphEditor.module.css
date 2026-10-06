@@ -105,7 +105,7 @@
 }
 
 .action[data-default] {
-  border-color: var(--accent);
+  border-color: var(--accent-line);
 }
 
 .lines {
@@ -160,7 +160,7 @@
   padding: 0 var(--space-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-primary);
   font-size: var(--text-sm);
 }

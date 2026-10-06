@@ -17,7 +17,7 @@ import { DEFAULT_APPEARANCE, useAppearanceStore } from '../state/appearance-stor
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace } from '../state/workspace-store';
 
-const SURFACE_1 = 'rgb(24, 26, 31)';
+const SURFACE_1 = 'rgb(23, 25, 30)';
 
 function frame() {
   const shell = screen.getByTestId('app-shell');
@@ -69,15 +69,15 @@ describe('the docked frame', () => {
     expect(shell.hasAttribute('data-glass-near')).toBe(false);
     for (const style of [title, navigator, status]) {
       // σ 5: a fifth of the 28 px status bar, the shortest frame bar (coverage registry, D0-1).
-      expect(blurOf(style)).toBe('blur(5px) saturate(1.4) brightness(0.6)');
-      expect(style.backgroundColor).toBe('rgba(29, 31, 37, 0.8)');
+      expect(blurOf(style)).toBe('blur(5px) saturate(1.5) brightness(0.45)');
+      expect(style.backgroundColor).toBe('rgba(30, 32, 38, 0.74)');
     }
     // No shadow on docked glass: the inner top highlight only, on every surface.
     for (const style of [title, navigator, status]) {
       expect(style.boxShadow).toMatch(/^rgba\(255, 255, 255, 0\.06\) 0px 1px 0px 0px inset$/);
     }
     // Text steps up to the glass ladder at once, so nothing jumps when the blur turns on.
-    expect(status.getPropertyValue('--text-secondary').trim()).toBe('#bcc0c6');
+    expect(status.getPropertyValue('--text-secondary').trim()).toBe('#bbbec3');
 
     act(() => useAppearanceStore.getState().setReduceTransparency(true));
     await waitFor(() =>

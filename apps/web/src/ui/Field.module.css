@@ -64,8 +64,8 @@
   --field-text: 13px;
   --field-lh: 18px;
   --field-pad: 10px;
-  --field-border: var(--control-border, rgb(255 255 255 / 0.48));
-  --field-border-hover: var(--control-border-hover, rgb(255 255 255 / 0.6));
+  --field-border: var(--control-border);
+  --field-border-hover: var(--control-border-hover);
 
   display: flex;
   align-items: center;
@@ -74,7 +74,7 @@
   height: var(--field-h);
   border: 1px solid var(--field-border);
   border-radius: var(--radius-control, 10px);
-  background: var(--field-well, var(--surface-2));
+  background: var(--field-well, var(--surface-raised));
   color: var(--text-primary);
   font-size: var(--field-text);
   line-height: var(--field-lh);

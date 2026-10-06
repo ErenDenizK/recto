@@ -34,7 +34,7 @@
   content: '';
   position: absolute;
   inset: var(--space-3);
-  border: 1px dashed var(--accent);
+  border: 1px dashed var(--accent-line);
   border-radius: var(--radius-3);
   background: var(--accent-subtle);
   pointer-events: none;
@@ -108,7 +108,7 @@
   min-width: 0;
   padding: var(--space-4) var(--space-4) var(--space-3);
   border-radius: var(--radius-3);
-  background: var(--surface-1);
+  background: var(--surface-frame);
   box-shadow: 0 0 0 1px var(--border-hairline);
   cursor: default;
   user-select: none;
@@ -124,13 +124,13 @@
 }
 
 .card[aria-selected='true'] {
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-line);
 }
 
 /* A card dragged over this one would combine with it (the dialog opens on drop). */
 .card[data-drop-target] {
   background: var(--accent-muted);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-line);
 }
 
 .thumbBox {
@@ -211,7 +211,7 @@
   overflow: hidden;
   padding: 2px var(--space-2);
   border-radius: var(--radius-1);
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-primary);
   font-size: var(--text-sm);
   text-overflow: ellipsis;
@@ -296,7 +296,7 @@
   min-width: 0;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-3);
-  background: var(--surface-1);
+  background: var(--surface-frame);
   transition: border-color var(--duration-fast) var(--ease-out);
 }
 
@@ -333,7 +333,7 @@
   height: 38px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-secondary);
 }
 
