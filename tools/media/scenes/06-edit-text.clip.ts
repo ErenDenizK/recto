@@ -1,10 +1,11 @@
 /**
- * Clip 6, "Edit a line of text" (spec §6): page 3 of the report (the foreword). The Edit
- * text tool, a click on the line that begins "2024 was a year" (it opens the paragraph
- * editor, ADR-0020), "2024" becomes "2025", and the settled preview shows the line re-set
- * in its own embedded font with no honesty line naming a substitute (test/fixtures/README.md:
- * the subsets hold the glyphs, so the edit stays in the same font). The scene asserts that
- * state.
+ * Clip 6, "Edit a line of text" (spec §6): page 3 of the report (the foreword). E arms Edit
+ * text, which opens Markup: the capsule turns from the dock into the Markup palette with Edit
+ * text pressed (spec redesign D2-2, D2-3). A click on the line that begins "2024 was a year"
+ * opens the paragraph editor (ADR-0020), "2024" becomes "2025", and the settled preview shows
+ * the line re-set in its own embedded font with no honesty line naming a substitute
+ * (test/fixtures/README.md: the subsets hold the glyphs, so the edit stays in the same font).
+ * The scene asserts that state.
  */
 import { expect } from '@playwright/test';
 
@@ -14,32 +15,35 @@ const FIXTURES = ['demo-report-v1.pdf'] as const;
 /** The text-edit target (test/fixtures/README.md, "demo-report-v1.pdf"). */
 const LINE =
   '2024 was a year of steady water and full boats. We began the season with a waiting list for';
+/** Where page 3's head sits, in CSS pixels from the top: just under the strip (44 px). */
+const PAGE_TOP = 56;
 
 scene({
   id: '06-edit-text',
   kind: 'clip',
-  // The top of the page: the line, the editor and its check, large enough to read.
-  crop: { x: 340, y: 50, width: 1100, height: 620 },
+  // The head of the page at fit width, large enough to read, from just inside its top edge
+  // (clear of the strip's shadow): the heading, the line, the editor and its check, and the
+  // capsule's palette below them (the page pill, right of the palette, is left out).
+  crop: { x: 120, y: PAGE_TOP + 14, width: 1150, height: 900 - PAGE_TOP - 14 },
   async prepare(stage) {
     const { page } = stage;
     await stage.openFixtures(FIXTURES);
-    // One file opens in its document, in Read (ADR-0019 §2).
-    await expect(page.getByRole('radio', { name: 'Read, locked' })).toBeChecked();
-    // Page 3 at the top of the view (a thumbnail click would also select the page).
-    await page.locator('[data-page-index="2"]').evaluate((el) => el.scrollIntoView());
-    await expect(page.getByRole('contentinfo')).toContainText('(3 of 10)');
-    await stage.rendered(page.locator('main'), 1);
-    await stage.cursor.place(1100, 560);
+    // One file opens in its document, viewing: the capsule is the dock (spec X1, D2-2).
+    await expect(page.locator('[data-capsule="dock"]')).toBeVisible();
+    // Page 3, the foreword, its head under the strip, at the width it opens at (fit width;
+    // its label is 1: the report counts i, ii, then 1).
+    await stage.showPage(2, PAGE_TOP);
+    await stage.rendered(page.locator('[data-read-viewport]'), 1);
+    await stage.cursor.place(1180, 640);
   },
   async run(stage) {
     const { page, cursor } = stage;
     await stage.hold(200);
 
-    // 1. E arms the Edit text tool (in Read it switches to Edit first, ADR-0019 §3; its
-    //    button sits in a tool group that is closed until a tool of it is in use); the
-    //    page's lines become targets.
+    // 1. E arms the Edit text tool: Markup opens (ADR-0019 §3) and the capsule shows the
+    //    palette with Edit text pressed; the page's lines become targets.
     await page.keyboard.press('e');
-    await expect(page.getByRole('radio', { name: 'Edit', exact: true })).toBeChecked();
+    await expect(page.locator('[data-capsule="palette"]')).toBeVisible();
     const tool = page.getByRole('button', { name: 'Edit text' });
     await expect(tool).toHaveAttribute('aria-pressed', 'true');
     await stage.hold(300);
@@ -70,8 +74,8 @@ scene({
     await expect(page.getByTestId('paragraph-honesty')).toHaveCount(0);
     await expect(page.getByTestId('paragraph-error')).toHaveCount(0);
     await stage.hold(300);
-    // Into the page's blank left margin, below the check: over text, a line would light up
-    // as a target, and the line and the editor's header stay clear.
-    await cursor.move(405, 560, 380);
+    // Onto the blank page right of the heading: over text, a line would light up as a
+    // target, and the line and the editor's header stay clear.
+    await cursor.move(960, 270, 380);
   },
 });
