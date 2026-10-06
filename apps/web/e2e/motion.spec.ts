@@ -748,8 +748,28 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expect(page.locator(scrubber)).toHaveCount(0);
     await expectSettledClean(page, 'the scrubber dismissed mid-entrance');
 
-    // Opened again, it rests crisp.
+    // Opened again, it enters as every opening does: the open state is the app's, so Base UI
+    // kept the dismissal's instant flag, and the next popup appeared at once until the
+    // scrubber's own rule let its entrance play (HistoryScrubber.module.css). `transitionrun`
+    // fires however long the engine's frames are. Then it rests crisp.
+    const entered = page.evaluate(
+      (selector) =>
+        new Promise<boolean>((resolve) => {
+          const done = (value: boolean) => {
+            clearTimeout(timer);
+            document.removeEventListener('transitionrun', onRun, true);
+            resolve(value);
+          };
+          const onRun = (event: TransitionEvent) => {
+            if ((event.target as Element).matches(selector)) done(true);
+          };
+          const timer = setTimeout(() => done(false), 5_000);
+          document.addEventListener('transitionrun', onRun, true);
+        }),
+      scrubber,
+    );
     await undo.click({ button: 'right' });
+    expect(await entered, 'the scrubber reopened after Esc plays its entrance').toBe(true);
     await expect(page.locator(scrubber)).toBeVisible();
     await settleAnimations(page);
     await expectAtRest(page, scrubber, 'the scrubber reopened');
