@@ -1,56 +1,25 @@
 /**
- * The pen's presets in the Draw group (experience-redesign spec §6.2, §7.4, §10), plugged into
- * the tool bar through `registerPenSlots` (PenBar.register.ts).
+ * The preset editor (`10-ink` §6, `03-markup` MK-8): a second press on the armed pen, the
+ * Highlighter's cell, or ↑ on it, opens it; it is the same M4 popover as the colour panel
+ * (`ui/Popover`), titled "Edit black pen", rising from the pen's cell.
  *
- * Four ink dots of their real colour: the dot's size hints the width (10, 13 or 16 px), the
- * Highlighter is an 18 × 9 px capsule (its editor offers the four tints, 6–18 pt and no
- * opacity: it is always opaque, craft spec §5.4), and the armed preset has
- * a 2 px accent ring, not a fill, so its colour shows. The four sit in one quiet well so they
- * read as one control. These dots are the only colour that enters the chrome through content
- * (DESIGN.md §3).
+ * From top to bottom: the colour well and the six swatches (`editorSwatches`), the width on
+ * the log taper slider with the stroke itself as its knob at the page's zoom (0.25–24 pt;
+ * the Highlighter 6–18 pt), opacity on the checkerboard track (not for the Highlighter, which
+ * is always opaque with Multiply), the stroke preview on paper, the pressure note once a pen
+ * with pressure has been seen, and Reset to default. Edits apply live to the preset, which
+ * persists per device. Esc or ✕ closes only the editor (the Esc ladder's first step) and
+ * focus returns to the pen's cell.
  *
- * Tap a preset to arm it; tap the armed one again for its editor, the one popover recipe
- * (`ui/Popover`) rising from the dot (10-ink §6 on today's layout): the eight inks as swatches
- * (`ui/SwatchGroup`) and the colour well that opens the colour panel (`ui/colour/`), the width
- * on the log slider with the taper track, the detents of the old stops and the stroke itself
- * as the knob at the page's zoom (0.25–24 pt; the Highlighter 6–18 pt), opacity on the
- * checkerboard track, and "Reset to default". Edits change that preset and persist per
- * device. Nothing opens on its own: arming never opens the editor.
- *
- * Keyboard: the presets are a radiogroup inside the bar's roving tabindex. Left and Right
- * move between them (past either end, on to the bar), Space or Enter arms, Space or Enter on
- * the armed preset opens its editor, and Shift+Enter opens the focused preset's editor.
- * Arming says the preset ("Blue pen, 1.5 pt").
- *
- * The options tier (`PenTier`) holds one honesty note, and only once a pen with pressure has
- * been seen: the variable width lives in the stroke's appearance, and viewers that redraw
- * ink themselves show one width (spec §6.7, §13 decision 9). Otherwise the tier stays empty
- * and hidden. Tiers open only on request (P again, review finding 5), so the preset editor
- * repeats the note, where a tap on the armed preset leads.
- *
- * The armed preset's tooltip says how to leave it ("Black pen, 1.5 pt · Esc: Select").
- *
- * The eraser's options tier (`EraserTier`, craft spec §5.6; 10-ink §2.1): Whole stroke or
- * Partial on a segmented control, and the eraser's size on a slider with a detent at each of
- * its four sizes, 6 · 12 · 24 · 48 px (the cursor is that circle on the page). Both are
- * remembered per device (`tool-store.ts`). Partial's tooltip, also its description, says that
- * highlighter strokes and highlights are erased whole.
+ * The pen's options are one press away without it: the ink strip (`markup/InkStrip.tsx`)
+ * shows the same colour and width from arming. This editor holds the rest.
  */
 import { Popover } from '@base-ui/react/popover';
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { formatNumber, formatPercent, m } from '../../i18n';
 import { animateStyle, type Motion, reducedMotion, sheetPush } from '../../motion';
 import { announce } from '../../shell/announcer';
-import type { PenBarProps } from '../../shell/FloatingToolbar.slots';
 import { useUiStore } from '../../state/ui-store';
 import { Button } from '../../ui/Button';
 import { ColourPanel, colourSliderSizer, SliderSizer } from '../../ui/colour/ColourPanel';
@@ -58,167 +27,35 @@ import { ColourWell } from '../../ui/colour/ColourWell';
 import { useColourLists } from '../../ui/colour/saved-colours';
 import { StrokePreview } from '../../ui/colour/StrokePreview';
 import { PopoverHeader, PopoverPopup } from '../../ui/Popover';
-import { Segmented } from '../../ui/Segmented';
 import { Slider, useCoarsePointer } from '../../ui/Slider';
 import { Swatch } from '../../ui/Swatch';
 import { SwatchGroup } from '../../ui/SwatchGroup';
-import { Tooltip } from '../../ui/Tooltip';
-import {
-  ERASER_SIZES,
-  type EraserMode,
-  type EraserSize,
-  useToolStore,
-} from '../../viewer/tool-store';
+import { abovePalette } from '../../markup/anchor';
 import { useAnnotationStore } from '../annotation-store';
 import { penSession } from './ink-input';
 import {
   DEFAULT_PRESETS,
-  dotSize,
   editorSwatches,
+  inkFill,
   isHighlighter,
-  needsDotRing,
   type PenPreset,
-  PRESET_INDICES,
   type PresetIndex,
   presetEditorTitle,
-  presetLabel,
   presetName,
   presetWidthLimits,
   presetWidthStops,
   samePreset,
   widthText,
 } from './presets';
-import styles from './PenBar.module.css';
-
-/** `#rrggbb` at `alpha` as `rgb()`, the dot's fill. */
-function inkFill(color: string, alpha: number): string {
-  const n = Number.parseInt(color.slice(1), 16);
-  return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${alpha})`;
-}
-
-function InkMark({ preset }: { readonly preset: PenPreset }) {
-  return (
-    <span
-      className={styles.mark}
-      data-shape={isHighlighter(preset) ? 'capsule' : 'dot'}
-      data-ring={needsDotRing(preset) ? '' : undefined}
-      style={
-        {
-          '--dot': `${dotSize(preset.width)}px`,
-          '--ink': inkFill(preset.color, preset.opacity),
-        } as CSSProperties
-      }
-      aria-hidden="true"
-    />
-  );
-}
+import styles from './PresetEditor.module.css';
 
 /** The colour panel's column (CSS px, `ColourPanel.module.css`), which the editor shares. */
 const COLUMN = { fine: 288, coarse: 324 } as const;
 
-/** The preset whose editor is (or was last) shown, and the dot it rises from. */
-interface Editing {
+/** The preset whose editor is (or was last) shown, and the cell it rises from. */
+export interface Editing {
   readonly index: PresetIndex;
   readonly anchor: HTMLElement;
-}
-
-export function PenBar({ armed, arm }: PenBarProps) {
-  const pen = useAnnotationStore((s) => s.pen);
-  const [open, setOpen] = useState(false);
-  // Kept after closing, so the editor keeps its content while it fades out.
-  const [editing, setEditing] = useState<Editing | null>(null);
-  const hintId = useId();
-
-  const openEditor = (index: PresetIndex, anchor: HTMLElement) => {
-    setEditing({ index, anchor });
-    setOpen(true);
-  };
-
-  const tap = (index: PresetIndex, anchor: HTMLElement) => {
-    if (armed && index === pen.active) {
-      if (open && editing?.index === index) setOpen(false);
-      else openEditor(index, anchor);
-      return;
-    }
-    // Arming opens nothing (spec §6.2).
-    setOpen(false);
-    useAnnotationStore.getState().armPreset(index);
-    arm();
-    // Said instead of the generic "Pen tool" (same key), after a closed burst if any.
-    announce(presetLabel(index, useAnnotationStore.getState().pen.presets[index]), {
-      key: 'tool',
-    });
-  };
-
-  const onDotKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: PresetIndex) => {
-    if (event.altKey || event.ctrlKey || event.metaKey) return;
-    if (event.key === 'Enter' && event.shiftKey) {
-      event.preventDefault();
-      openEditor(index, event.currentTarget);
-      return;
-    }
-    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-    const next = event.currentTarget
-      .closest('[data-pen-presets]')
-      ?.querySelector<HTMLElement>(`[data-pen-preset="${index + step}"]`);
-    // Past either end the bar's roving tabindex moves on.
-    if (step === 0 || !next) return;
-    event.preventDefault();
-    next.focus();
-  };
-
-  return (
-    <>
-      <div
-        role="radiogroup"
-        aria-label={m.pen_presets_label()}
-        className={styles.presets}
-        data-pen-presets=""
-      >
-        {PRESET_INDICES.map((i) => {
-          const preset = pen.presets[i];
-          const label = presetLabel(i, preset);
-          const active = i === pen.active;
-          return (
-            <Tooltip
-              key={i}
-              label={armed && active ? m.bar_tool_escape({ tool: label }) : label}
-              side="top"
-            >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={active}
-                aria-label={label}
-                aria-describedby={armed && active ? hintId : undefined}
-                className={styles.dot}
-                data-pen-preset={i}
-                data-armed={armed && active ? '' : undefined}
-                data-editing={open && editing?.index === i ? '' : undefined}
-                onClick={(event) => tap(i, event.currentTarget)}
-                onKeyDown={(event) => onDotKeyDown(event, i)}
-              >
-                <InkMark preset={preset} />
-              </button>
-            </Tooltip>
-          );
-        })}
-        <span id={hintId} hidden>
-          {m.pen_preset_edit_hint()}
-        </span>
-      </div>
-      {editing ? (
-        <PresetEditor
-          open={open}
-          editing={editing}
-          onClose={(byDot) => {
-            // A press on the open preset's own dot toggles it there (`tap`).
-            if (!byDot) setOpen(false);
-          }}
-        />
-      ) : null}
-    </>
-  );
 }
 
 /** The editor's two pages (10-ink §6): the preset, and the colour views pushed in place. */
@@ -265,7 +102,7 @@ interface ResizeState {
  * column and its slider columns (`SliderSizer`), so every label, track and readout sits on the
  * same lines on either page. Focus goes to ‹ Back on the way in and to the well on the way out.
  */
-function PresetEditor({
+export function PresetEditor({
   open,
   editing,
   onClose,
@@ -397,7 +234,7 @@ function PresetEditor({
     >
       <PopoverPopup
         ref={popupRef}
-        anchor={anchor}
+        anchor={abovePalette(() => anchor)}
         side="top"
         align="center"
         sideOffset={12}
@@ -417,8 +254,8 @@ function PresetEditor({
       >
         <div className={styles.page} data-editor-page="preset" hidden={page !== 'preset'}>
           <SliderSizer
-            labels={[...shared.labels, ...sizer.labels]}
-            readouts={[...shared.readouts, ...sizer.readouts]}
+            labels={[...new Set([...shared.labels, ...sizer.labels])]}
+            readouts={[...new Set([...shared.readouts, ...sizer.readouts])]}
           />
           <PopoverHeader title={title} className={styles.header} />
 
@@ -535,7 +372,7 @@ function PresetEditor({
 }
 
 // ---------------------------------------------------------------------------
-// The options tier
+// Pressure
 // ---------------------------------------------------------------------------
 
 /** Pointer events end strokes; the session's pressure flag can only change with them. */
@@ -558,66 +395,3 @@ export function usePressureSeen(): boolean {
 }
 
 /** The pen's options tier: the variable-width honesty note, once pressure has been seen. */
-export function PenTier() {
-  const pressure = usePressureSeen();
-  if (!pressure) return null;
-  return (
-    <p className={styles.note} data-testid="pen-width-note">
-      {m.pen_width_note()}
-    </p>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// The eraser's options tier
-// ---------------------------------------------------------------------------
-
-const ERASER_MODES: readonly {
-  readonly mode: EraserMode;
-  readonly label: () => string;
-  readonly tooltip: () => string;
-}[] = [
-  { mode: 'stroke', label: m.eraser_mode_stroke, tooltip: m.eraser_mode_stroke_tooltip },
-  { mode: 'partial', label: m.eraser_mode_partial, tooltip: m.eraser_mode_partial_tooltip },
-];
-
-/** The eraser's size from the slider: the nearest of its four sizes (they are its detents). */
-function nearestEraserSize(value: number): EraserSize {
-  return ERASER_SIZES.reduce((best, size) =>
-    Math.abs(Math.log(size / value)) < Math.abs(Math.log(best / value)) ? size : best,
-  );
-}
-
-/** The eraser's options tier: Whole stroke or Partial, and its size (module header). */
-export function EraserTier() {
-  const eraserMode = useToolStore((s) => s.eraserMode);
-  const eraserSize = useToolStore((s) => s.eraserSize);
-  return (
-    <div className={styles.eraserTier} data-testid="eraser-options">
-      <Segmented
-        className={styles.eraserModes}
-        label={m.eraser_mode_label()}
-        value={eraserMode}
-        onValueChange={(mode) => useToolStore.getState().setEraserMode(mode)}
-        options={ERASER_MODES.map(({ mode, label, tooltip }) => ({
-          value: mode,
-          label: label(),
-          description: tooltip(),
-        }))}
-      />
-      <span className={styles.divider} aria-hidden="true" />
-      <Slider
-        className={styles.eraserSize}
-        label={m.eraser_size_label()}
-        readout
-        scale="log"
-        detents={ERASER_SIZES}
-        min={ERASER_SIZES[0]}
-        max={ERASER_SIZES[ERASER_SIZES.length - 1] ?? 48}
-        value={eraserSize}
-        format={(size) => m.eraser_size_option({ size: formatNumber(size) })}
-        onValueChange={(size) => useToolStore.getState().setEraserSize(nearestEraserSize(size))}
-      />
-    </div>
-  );
-}

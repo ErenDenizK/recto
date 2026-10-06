@@ -58,26 +58,16 @@ export interface GlassSurfaceEntry {
 
 export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
   {
-    id: 'floating-bar',
-    surface: 'Floating tool bar',
-    module: 'shell/FloatingToolbar.module.css',
-    selector: '.toolbar',
-    composes: 'glass',
-    filter: '--glass-filter',
-    minWidth: 76,
-    minHeight: 44,
-    smallest: "44 px fixed; Read's one Edit button is the narrowest (76 px)",
-  },
-  {
-    id: 'options-tier',
-    surface: 'Options tier',
-    module: 'shell/FloatingToolbar.module.css',
-    selector: '.tier',
+    id: 'markup-palette',
+    surface: 'Markup palette and the dock (with the ink strip as its second row)',
+    module: 'markup/MarkupPalette.module.css',
+    selector: '.surface',
     composes: 'glass',
     filter: '--glass-filter',
     minWidth: 120,
-    minHeight: 40,
-    smallest: 'min-height 40 px; one style row',
+    minHeight: 44,
+    smallest:
+      'one 44 px row; at 320 px the folded palette (Done, Select, the pens, +) is the narrowest',
   },
   {
     id: 'read-selection-bar',

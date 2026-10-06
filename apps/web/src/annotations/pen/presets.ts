@@ -319,6 +319,12 @@ export function dotSize(width: number): 10 | 13 | 16 {
   return 16;
 }
 
+/** `#rrggbb` at `alpha` as `rgb()`: a pen cell's dot, the width knob's ink. */
+export function inkFill(color: string, alpha: number): string {
+  const n = Number.parseInt(color.slice(1), 16);
+  return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${alpha})`;
+}
+
 /** The Highlighter (craft spec §5.4; drawn as a short capsule in the bar). */
 export function isHighlighter(p: PenPreset): boolean {
   return p.kind === 'highlighter';

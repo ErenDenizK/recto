@@ -1,19 +1,21 @@
 /**
- * Strokes and the floating bar (review finding 5, craft spec §3.5): while a stroke is in
- * progress on a page, and for `STROKE_LINGER_MS` after the last pointer lifts, the bar and
- * its options tier fade to 20 % and take no pointer (FloatingToolbar.module.css,
- * `[data-stroking]`), so writing near the bottom of the view never lands on a preset, and a
- * stroke that passes over the bar keeps drawing on the page beneath it.
+ * Stroke fade (`03-markup` MK-17; review finding 5): while a stroke is in progress on a page,
+ * and for `STROKE_LINGER_MS` after the last pointer lifts, the Markup palette (its ink strip
+ * included) fades to 20 % and takes no pointer (`data-stroking`), so writing near the bottom
+ * of the view never lands on a preset, and a stroke that passes over the palette keeps drawing
+ * on the page beneath it. It never fades while focus is inside the palette (A-13,
+ * `useStrokeFade`); the keyboard is never affected (no `inert`).
  *
  * A stroke is a primary press on a page of the page view (`[data-read-viewport]
- * [data-page-id]`) in Edit with a drawing tool armed (the pens and the Highlighter, the
- * eraser, the lasso, the shapes), the pen's eraser end or barrel button with any tool, or the
- * pen's tip with Select armed while "Pen draws in Edit" is on. Presses on chrome over the page
- * (contextual bars, editors, fields) are not strokes.
+ * [data-page-id]`) where the pointer may create (`canChange(id, 'freehand')`: Markup open and
+ * not locked) with a drawing tool armed (the pens and the Highlighter, the eraser, the lasso,
+ * the shapes), the pen's eraser end or barrel button with any tool, or the pen's tip with
+ * Select armed once a pen has been seen (MK-18). Presses on chrome over the page (contextual
+ * bars, editors, fields) are not strokes.
  *
  * The press is seen on the window in the capture phase, before the page's own handlers (which
- * may stop it), so the bar fades in the same task as the stroke begins. The listeners are
- * installed while something subscribes (the bar) and removed with the last subscriber.
+ * may stop it), so the palette fades in the same task as the stroke begins. The listeners are
+ * installed while something subscribes (the palette) and removed with the last subscriber.
  */
 import { useSyncExternalStore } from 'react';
 
@@ -128,4 +130,12 @@ export function resetStrokeState(): void {
   clearTimeout(lingerTimer);
   lingering = false;
   update();
+}
+
+/**
+ * The palette's fade (MK-17 §4): a stroke in progress, unless focus is inside the palette
+ * (`focusInside`), where a keyboard user is working and must keep seeing what they reach.
+ */
+export function useStrokeFade(focusInside: boolean): boolean {
+  return useStrokeInProgress() && !focusInside;
 }

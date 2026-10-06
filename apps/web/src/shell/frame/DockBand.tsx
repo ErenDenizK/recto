@@ -71,6 +71,8 @@ export function DockBand({
           )
         : false;
       pill.toggleAttribute('data-raised', rise);
+      // A palette with its ink strip's second row is taller than one bar (D2-3).
+      if (bar) pill.style.setProperty('--dock-h', `${Math.round(bar.offsetHeight)}px`);
     };
     measure();
     const observer = new ResizeObserver(measure);

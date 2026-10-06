@@ -146,28 +146,25 @@ describe('the Read lock (mounted)', () => {
     resetToolStore();
   });
 
-  it('a file opens in Read: the bar is one Edit button, which enters Edit and shows the groups', async () => {
+  it('a file opens on its page: the dock offers Markup and Fill & sign; Markup opens the palette', async () => {
     await mount();
     expect(mode()).toBe('read');
     const buttons = within(bar()).getAllByRole('button');
-    expect(buttons).toHaveLength(1);
-    const edit = buttons[0] as HTMLElement;
-    expect(edit).toHaveAccessibleName('Edit');
-    expect(edit).toHaveAttribute('aria-keyshortcuts', '2');
-    useToolStore.getState().showGroup('write');
+    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual(['Markup', 'Fill & sign']);
+    const markup = buttons[0] as HTMLElement;
+    expect(markup).toHaveAttribute('aria-keyshortcuts', '2');
 
-    edit.focus();
+    markup.focus();
     await userEvent.keyboard('{Enter}');
     expect(mode()).toBe('edit');
-    expect(useAnnouncer.getState().message).toBe('Edit mode');
-    // The row of groups, with the focus on it.
-    expect(useToolStore.getState().barGroup).toBeNull();
-    await waitFor(() => expect(within(bar()).getAllByRole('button').length).toBeGreaterThan(1));
-    expect(bar()).toContainElement(document.activeElement as HTMLElement);
+    expect(useAnnouncer.getState().message).toBe('Markup on. Select armed.');
+    // The palette, with the focus on its armed tool (Select).
+    const palette = await screen.findByRole('toolbar', { name: 'Markup' });
+    await waitFor(() => expect(palette).toContainElement(document.activeElement as HTMLElement));
 
-    // `1` (the mode command) collapses it again.
+    // `1` (the mode command) closes it again.
     await userEvent.keyboard('1');
-    await waitFor(() => expect(within(bar()).getAllByRole('button')).toHaveLength(1));
+    await waitFor(() => expect(within(bar()).getAllByRole('button')).toHaveLength(2));
   });
 
   it('in viewing a press on an annotation selects it with its bar; locked, nothing changes', async () => {
@@ -226,9 +223,9 @@ describe('the Read lock (mounted)', () => {
     const said = useAnnouncer.getState().message;
     expect(said.startsWith('Edit mode. ')).toBe(true);
     expect(said.match(/Edit mode/g)).toHaveLength(1);
-    // Visibly armed: the bar shows the tool's group, the page takes the pen.
+    // Visibly armed: the palette shows, the page takes the pen.
     await waitFor(() => expect(layer).toHaveAttribute('data-drawing'));
-    expect(useToolStore.getState().barGroup).not.toBeNull();
+    expect(screen.getByRole('toolbar', { name: 'Markup' })).toBeVisible();
   });
 
   it('the tool store arms nothing in Read and disarms on entering Read', async () => {

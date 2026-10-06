@@ -1,6 +1,5 @@
 import { useLayoutEffect } from 'react';
 
-import { registerPenBar } from './annotations/pen/PenBar.register';
 import { registerAppCommands } from './commands/app-commands';
 import { commandRegistry } from './commands/registry';
 import { registerDocumentCommands } from './document/document-commands';
@@ -36,8 +35,6 @@ export function App() {
   useLayoutEffect(() => registerDocumentCommands(commandRegistry), [locale]);
   useLayoutEffect(() => registerOutlineCommands(commandRegistry), [locale]);
   useLayoutEffect(() => registerSignatureCommands(commandRegistry), [locale]);
-  // The pen presets in the tool bar's Draw group (experience-redesign spec §6.2).
-  useLayoutEffect(() => registerPenBar(), []);
   // Signature validation on open (spec recognize-and-compare §3.1).
   useLayoutEffect(() => startSignatureValidation(), []);
   // Snapshots on this device and restore on launch (ADR-0032 §2.4, §2.5).

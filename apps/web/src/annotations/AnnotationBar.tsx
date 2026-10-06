@@ -13,7 +13,7 @@ import type { Annotation } from '@pdf-editor/engine';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
-import { useRovingTabindex } from '../shell/FloatingToolbar.roving';
+import { useRovingTabindex } from '../markup/roving';
 import { Icon } from '../ui/Icon';
 import { useFocusRescue } from '../ui/use-focus-rescue';
 import type { PageTarget } from './annotation-store';

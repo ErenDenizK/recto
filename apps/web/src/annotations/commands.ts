@@ -9,13 +9,14 @@
  * tool"; over selected text a markup or redact key only switches, keeping the selection, so
  * marking takes a second press. Delete does nothing in Read.
  *
- * Pressing the armed tool again (its button or its key) toggles its options tier: tiers open
- * only on request (review finding 5). `P` arms the last writing pen, never the Highlighter,
- * and `H` the Highlighter (DESIGN §4.1); each says the preset it armed ("Black pen, 1.5 pt").
+ * Pressing the armed tool again (its button or its key) opens its editor (`03-markup` MK-4,
+ * MK-8); its ink strip shows from arming (`10-ink` §2). `P` arms the last writing pen and P
+ * again the next one, never the Highlighter, and `H` the Highlighter (MK-6); each says the
+ * preset it armed ("Black pen, 1.5 pt").
  *
- * The Esc ladder (craft spec §3.5): the first Esc disarms to Select and clears the selection
- * (`selection.clear`, `clearAnnotationTools`); with nothing armed, the next Esc returns the
- * bar to its group row (shell/FloatingToolbar.tsx). Esc never leaves Edit.
+ * The Esc ladder (`03-markup` §5): the first Esc disarms to Select and clears the selection
+ * (`selection.clear`, `clearAnnotationTools`); with nothing armed, the next Esc closes Markup
+ * (`markup/MarkupPalette.tsx`).
  */
 // Registers the Edit text page layer (the tool itself is in ANNOTATION_TOOLS).
 import '../text-edit';
@@ -45,6 +46,7 @@ import { type ToolMode, useToolStore } from '../viewer/tool-store';
 import { deleteAnnotations } from './actions';
 import { commitOpenEditor } from './InlineEditors';
 import { deleteLassoSelection } from './lasso/edits';
+import { toolStyleGroup } from './drafts';
 import { activateHighlighter } from './pen/highlighter';
 import { isHighlighter, PRESET_INDICES, type PresetIndex, presetLabel } from './pen/presets';
 import { activePathSelection, useAnnotationStore } from './annotation-store';
@@ -93,6 +95,15 @@ export async function pickImageStamp(kind: 'image' | 'signature' = 'image'): Pro
   }
 }
 
+/** Arms a built-in stamp (MK-9's menu and the stamp commands), remembered as the last one. */
+export function armBuiltinStamp(name: (typeof BUILTIN_STAMPS)[number]['name']): void {
+  const store = useAnnotationStore.getState();
+  store.setPendingStamp(builtinPendingStamp(name));
+  store.select(null);
+  useToolStore.getState().setLastStamp(name);
+  useToolStore.getState().setMode('stamp');
+}
+
 /** Activates a tool the way its button and shortcut do. */
 export async function activateTool(tool: ToolDefinition): Promise<void> {
   const tools = useToolStore.getState();
@@ -111,11 +122,13 @@ export async function activateTool(tool: ToolDefinition): Promise<void> {
     // Redact: selected text becomes a mark (redaction spec §1.1); else the tool arms.
     if (tool.mode === 'redact' && (await markSelection())) return;
   }
-  if (tool.mode === 'stamp') {
+  // Stamp (MK-9): the stamp armed last, else the last built-in one (Draft at first).
+  if (tool.mode === 'stamp' && tools.mode !== 'stamp') {
     const pending = store.pendingStamp;
     if (!pending || pending.kind === 'signature') {
-      await pickImageStamp('image');
-      return;
+      const name =
+        BUILTIN_STAMPS.find((s) => s.name === tools.lastStamp)?.name ?? BUILTIN_STAMPS[0]?.name;
+      if (name) store.setPendingStamp(builtinPendingStamp(name));
     }
   }
   // The signature tool (D0-11, MK-12 §6): the signature of this session again, else the
@@ -128,11 +141,12 @@ export async function activateTool(tool: ToolDefinition): Promise<void> {
       return;
     }
   }
-  // The armed tool again: its options tier, on request. The pen's presets handle their own
-  // (`activatePen`, PenBar.tsx), so arming another preset never toggles it.
+  // The armed tool again (`03-markup` MK-4 §6, "a second press opens choices"): its editor,
+  // for a tool with options; the pen well handles its own presets (`activatePen`, PenWell).
   if (tool.mode !== 'select' && tool.mode !== 'ink' && tools.mode === tool.mode) {
-    const open = !tools.optionsOpen;
-    tools.setOptionsOpen(open);
+    if (!hasToolEditor(tool.mode)) return;
+    const open = !tools.editorOpen;
+    tools.setEditorOpen(open);
     if (open) announce(m.bar_options({ tool: tool.title() }), { key: 'tool' });
     return;
   }
@@ -142,33 +156,48 @@ export async function activateTool(tool: ToolDefinition): Promise<void> {
   announce(m.announce_tool({ tool: tool.title() }), { key: 'tool' });
 }
 
-/** The writing pen armed last this session (never the Highlighter); P arms it again. */
-let lastPen: PresetIndex | undefined;
+// The writing pen armed last this session (never the Highlighter; `tool-store.lastPen`): P
+// arms it again.
 useAnnotationStore.subscribe((state, previous) => {
   const { active, presets } = state.pen;
-  if (active !== previous.pen.active && !isHighlighter(presets[active])) lastPen = active;
+  if (active !== previous.pen.active && !isHighlighter(presets[active])) {
+    useToolStore.getState().setLastPen(active);
+  }
 });
+
+/** The writing pens, in well order (never the Highlighter). */
+function writingPens(): PresetIndex[] {
+  const { presets } = useAnnotationStore.getState().pen;
+  return PRESET_INDICES.filter((i) => !isHighlighter(presets[i]));
+}
 
 /** The pen preset P arms: the active one when it is a pen, else the last pen used. */
 export function writingPenIndex(): PresetIndex {
   const { active, presets } = useAnnotationStore.getState().pen;
   if (!isHighlighter(presets[active])) return active;
-  if (lastPen !== undefined && !isHighlighter(presets[lastPen])) return lastPen;
-  return PRESET_INDICES.find((i) => !isHighlighter(presets[i])) ?? active;
+  const last = useToolStore.getState().lastPen;
+  if (!isHighlighter(presets[last])) return last;
+  return writingPens()[0] ?? active;
+}
+
+/** Whether a tool has an editor that a second press opens (MK-8; the pen's is its own). */
+export function hasToolEditor(mode: ToolMode): boolean {
+  return mode === 'ink' || toolStyleGroup(mode) !== undefined;
 }
 
 /**
- * P: arms the pen with the last writing pen, never the Highlighter (DESIGN §4.1), and says
- * which ("Black pen, 1.5 pt"; from Read, "Edit mode. Black pen, 1.5 pt"). P again with that
- * pen armed toggles its options tier. Synchronous, so everything is said in one message.
+ * P (`03-markup` MK-6 §6): arms the last writing pen, never the Highlighter (DESIGN §4.1);
+ * P again, with a writing pen armed, arms the next one (1 → 2 → 3, wrapping). It says which
+ * ("Black pen, 1.5 pt"; from viewing, "Markup on. Black pen, 1.5 pt"). Synchronous, so
+ * everything is said in one message.
  */
 export function activatePen(): void {
   const tools = useToolStore.getState();
-  const index = writingPenIndex();
   const store = useAnnotationStore.getState();
-  if (tools.mode === 'ink' && markupOpen() && store.pen.active === index) {
-    tools.setOptionsOpen(!tools.optionsOpen);
-    return;
+  let index = writingPenIndex();
+  if (tools.mode === 'ink' && markupOpen() && !isHighlighter(store.pen.presets[store.pen.active])) {
+    const pens = writingPens();
+    index = pens[(pens.indexOf(store.pen.active) + 1) % pens.length] ?? index;
   }
   // The pen's path through `activateTool` never awaits, so it has armed when this returns.
   void activateTool(toolDefinition('ink'));
@@ -185,21 +214,7 @@ export function activatePen(): void {
  * point; every other tool creates with the pointer.
  */
 export function toolAct(mode: ToolMode): Act | null {
-  switch (mode) {
-    case 'select':
-      return null;
-    case 'edit-text':
-      return 'text';
-    case 'image':
-      return 'targeted';
-    case 'text-box':
-    case 'note':
-    case 'signature':
-    case 'stamp':
-      return 'place';
-    default:
-      return 'freehand';
-  }
+  return toolDefinition(mode).act;
 }
 
 export function registerAnnotationCommands(registry: CommandRegistry): () => void {
@@ -241,8 +256,7 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
         when: readMode,
         run: () => {
           if (!enterEditForTool()) return;
-          useAnnotationStore.getState().setPendingStamp(builtinPendingStamp(stamp.name));
-          useToolStore.getState().setMode('stamp');
+          armBuiltinStamp(stamp.name);
           announce(m.annot_place_stamp());
         },
       }),
