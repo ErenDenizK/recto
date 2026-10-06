@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
 });
 
-const bar = (page: Page): Locator => page.getByRole('toolbar', { name: 'Tools', exact: true });
+const bar = (page: Page): Locator => page.getByRole('toolbar', { name: 'Markup', exact: true });
 
 async function open(page: Page, name: string): Promise<void> {
   await page.goto('./?lang=en');
@@ -75,20 +75,24 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await enterEdit(page);
   await expectGlassClean(page, 'Edit');
 
-  // A tool menu on the bar.
-  await bar(page).getByRole('button', { name: 'Write', exact: true }).click();
-  await bar(page).locator('[aria-haspopup="menu"]').first().click();
+  // A tool menu on the palette (Shapes ▾, its second press).
+  await bar(page)
+    .getByRole('button', { name: /^Shapes/ })
+    .click();
+  await bar(page)
+    .getByRole('button', { name: /^Shapes/ })
+    .click();
   await expect(page.getByRole('menu')).toBeVisible();
   await expectGlassClean(page, 'Edit, a tool menu');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menu')).toHaveCount(0);
 
-  // An armed tool's options tier (T, the Text box, twice).
+  // An armed tool's ink strip (T, the Text box): a second row inside the palette's own glass,
+  // never glass of its own (quality-bar Q-4).
   await page.locator('body').press('t');
-  await page.locator('body').press('t');
-  await expect(page.getByTestId('options-tier')).toBeVisible();
-  walk = await expectGlassClean(page, 'Edit, options tier');
-  expect(names(walk).some((n) => n.includes('tier'))).toBe(true);
+  await expect(page.getByTestId('ink-strip')).toBeVisible();
+  walk = await expectGlassClean(page, 'Markup, ink strip');
+  expect(names(walk).some((n) => n.includes('strip'))).toBe(false);
   await page.keyboard.press('Escape');
 
   // The title menu (01-frame F5) takes the M4 solid twin: it opens over the sidebar's dark edge
@@ -193,7 +197,7 @@ test('the pen editor and its colour views, pushed in place', async ({ page }) =>
   await open(page, 'simple-text.pdf');
   await enterEdit(page);
   await page.locator('body').press('p');
-  await page.getByRole('radio', { name: 'Black pen, 1.5 pt' }).click();
+  await page.getByRole('button', { name: 'Black pen, 1.5 pt', exact: true }).click();
   const editor = page.getByTestId('pen-preset-editor');
   await expect(editor).toBeVisible();
   await page.mouse.move(700, 200);

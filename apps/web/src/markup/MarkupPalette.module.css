@@ -1,0 +1,296 @@
+/*
+ * The Markup palette (03-markup MK-2 to MK-17; 10-ink §2; quality-bar Q-4, Q-9).
+ *
+ * Geometry (Q-9): one bar of --bar-h (44 fine, 56 coarse) holding --bar-button controls (32,
+ * 44) on one centre line; 5 / 5 px of padding and the capsule's 1 px rim make the ends
+ * concentric with the round controls. Gaps: --palette-gap between the items of a group, and a
+ * 1 px hairline with --palette-sep-m each side between groups. `MarkupPalette.tsx` reads the
+ * same numbers from the rendered row to fold it (palette-fold.ts), so the CSS is the one source.
+ *
+ * The palette is the capsule's content (`shell/capsule/`): the capsule is the glass, and
+ * everything here is a fill (Q-4, no glass in glass). The content is laid out at its own size
+ * (`flex: none`), the tools row at the bar's height inside the rim; with the ink strip's second
+ * row the capsule grows upward by one row.
+ */
+.content {
+  --palette-gap: 2px;
+  --palette-sep-m: 6px;
+  --palette-pad: calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
+
+  display: flex;
+  flex: none;
+  /* The tools first in the DOM (Tab: tools, then the strip); the strip's row shows on top. */
+  flex-direction: column-reverse;
+  align-items: stretch;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .content {
+    --palette-gap: 4px;
+    --palette-sep-m: 8px;
+  }
+}
+
+/*
+ * With the strip's second row the capsule is two bars tall. Its corners keep the radius of one
+ * bar's round ends, so each row stays concentric with them; on one row that radius is the pill
+ * (quality-bar Q-6), so the shape is the same pill whenever the palette is one bar.
+ */
+:global(.glass[data-capsule='palette']) {
+  border-radius: calc(var(--bar-h) / 2);
+}
+
+/* --- Rows ------------------------------------------------------------------------------ */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: calc(var(--bar-h) - 2px);
+  padding-inline: var(--palette-pad);
+  white-space: nowrap;
+}
+
+/* The measurer's row (`PaletteMeasurer`): laid out at its full width, out of sight and reach,
+   and only for the commit that measures it. */
+.measurer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+  contain: layout style;
+}
+
+/* The ink strip's row (10-ink §2.2): the same height, a hairline above the tools, inset so it
+   ends where the round ends begin. */
+.stripRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: calc(var(--bar-h) - 2px);
+  padding-inline: calc(var(--bar-h) / 2 - 6px);
+}
+
+.stripRow::after {
+  content: '';
+  position: absolute;
+  right: calc(var(--bar-h) / 2);
+  bottom: 0;
+  left: calc(var(--bar-h) / 2);
+  height: 1px;
+  background: var(--border-hairline);
+}
+
+.group {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--palette-gap);
+}
+
+.sep {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin-inline: var(--palette-sep-m);
+  background: var(--border-hairline);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .sep {
+    height: 28px;
+  }
+}
+
+/* --- Controls -------------------------------------------------------------------------- */
+
+/* A tool with its name beside the glyph (Done, Sign, Edit text, Redact): the IconButton's
+   circle stretched to a pill, the same states, the same height. */
+.labelled {
+  gap: 6px;
+  grid-auto-flow: column;
+  width: auto;
+  padding-inline: 10px 12px;
+  font-size: var(--control-text);
+  font-weight: 500;
+  line-height: var(--control-lh);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .labelled {
+    padding-inline: 12px 16px;
+  }
+}
+
+.labelled > span {
+  color: inherit;
+}
+
+/* Select armed is the resting state, not a creating tool: the neutral "on" fill, no lime
+   (03-markup §2.3, ADR-0023 §5.1), so the one lime in view is a creating tool's. */
+.selectTool.selectTool[data-size='bar'][data-tool][aria-pressed='true'] {
+  background: var(--surface-on);
+  color: var(--text-primary);
+}
+
+@media (hover: hover) {
+  .selectTool.selectTool[data-size='bar'][data-tool][aria-pressed='true']:hover {
+    background: var(--surface-on);
+    color: var(--text-primary);
+  }
+}
+
+/* Done: a plain control, never lime (MK-3 §3); its name in the primary colour. */
+.done {
+  color: var(--text-primary);
+}
+
+/* A choice tool (MK-9): a 6 px caret at the top trailing corner, drawn in CSS (one glyph per
+   button, Q-9). On the armed fill it takes the glyph's colour. */
+.choice {
+  position: relative;
+}
+
+.choice::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 0;
+  height: 0;
+  border-bottom: 4px solid transparent;
+  border-right: 4px solid var(--text-tertiary);
+  pointer-events: none;
+}
+
+.choice[aria-pressed='true']::after {
+  border-right-color: currentColor;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .choice::after {
+    top: 8px;
+    right: 8px;
+  }
+}
+
+/* A labelled choice (Sign ▾) keeps its caret clear of the label. */
+.labelled.choice {
+  padding-inline-end: 16px;
+}
+
+.menuIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.menuKey {
+  composes: technical from global;
+  margin-left: auto;
+  padding-left: var(--space-3);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.menuHeading {
+  padding: 6px 12px 2px;
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  font-weight: 500;
+  line-height: var(--type-caption-lh);
+}
+
+.stampChip {
+  padding: 1px 6px;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-1);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* --- Field stepper (MK-14) -------------------------------------------------------------- */
+
+.stepper {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.stepperReadout {
+  display: grid;
+  min-width: 40px;
+  padding-inline: 2px;
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  font-weight: 500;
+  line-height: var(--control-lh);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* --- Saved-signature chips (MK-12) ------------------------------------------------------ */
+
+.chips {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--palette-gap);
+}
+
+.signatureChip {
+  composes: focus-inset from global;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--bar-button);
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
+}
+
+.signatureChip > span {
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .signatureChip:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.signatureChip:active {
+  background: var(--surface-active);
+  transform: scale(var(--press-scale));
+}
+
+/* Armed: the ring form (content inside, so no lime fill; 03.4). */
+.signatureChip[aria-pressed='true'] > span {
+  box-shadow:
+    0 0 0 2px var(--text-primary),
+    inset 0 0 0 1px var(--plate-edge);
+}
+
+@media (forced-colors: active) {
+  .signatureChip[aria-pressed='true'] > span {
+    outline: 2px solid Highlight;
+  }
+}
+
+:global(:root[data-motion='reduced']) .signatureChip:active {
+  transform: none;
+}

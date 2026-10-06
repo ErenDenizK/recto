@@ -79,11 +79,24 @@ function applyRoving(
  * @param preferred selector of the control that takes the Tab stop when the remembered one
  *   is gone (the armed tool, the group chip).
  */
-export function useRovingTabindex(ref: RefObject<HTMLElement | null>, preferred = '') {
+export function useRovingTabindex(
+  ref: RefObject<HTMLElement | null>,
+  preferred = '',
+  /**
+   * When this changes (the armed tool), the remembered stop is forgotten, so the Tab stop and
+   * F6 land on `preferred` again (03-markup MK-2 §8: the armed tool), unless focus is inside.
+   */
+  resetKey?: unknown,
+) {
   const current = useRef<HTMLElement | null>(null);
+  const lastKey = useRef(resetKey);
 
   // After every render, and whenever controls come and go inside (plug-ins, menus).
   useLayoutEffect(() => {
+    if (lastKey.current !== resetKey) {
+      lastKey.current = resetKey;
+      current.current = null;
+    }
     current.current = applyRoving(ref.current, current.current, preferred);
   });
   useLayoutEffect(() => {

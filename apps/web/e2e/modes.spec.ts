@@ -2,22 +2,20 @@
  * Read and Edit through the M8 control (ADR-0019 §2–§3, craft spec §3.2–§3.3, §10), with the
  * input rules of D1-5 (05-canvas §6; input-rules.spec.ts drives S1–S18): a file opens in Read;
  * nothing moves or arms there, while targeted acts (select an annotation, fill a field) and
- * the page menu's page operations need no Edit; `2` enters Edit and the tool bar appears; a
- * tab click leaves Home in the document's last mode; `1` returns to Read and the bar collapses
- * to the dock (D2-2); a tool key in Read switches to Edit and arms the tool. A Read selection's
- * "Edit text" opens the paragraph editor in Edit; in Edit, a first click on text shows
- * "Double-click to edit text", and the Text group arms Edit text, so one click opens a
- * paragraph.
+ * the page menu's page operations need no Edit; `2` opens Markup and its palette appears; a
+ * tab click leaves Home in the document's last state; `1` closes it and the dock shows its
+ * doors again (D2-3); a tool key in viewing opens Markup and arms the tool. A selection's
+ * "Edit text" opens the paragraph editor in Markup; there a first click on text shows
+ * "Double-click to edit text", and Edit text armed opens a paragraph in one click.
  */
 import { expect, type Page, test } from '@playwright/test';
 
 import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
 
-const bar = (page: Page) => page.getByRole('toolbar', { name: 'Tools', exact: true });
+const palette = (page: Page) => page.getByRole('toolbar', { name: 'Markup', exact: true });
 /**
  * Read and Edit as the frame shows them now that the mode switch is gone (D2-1): in viewing the
- * capsule is the dock, whose Markup is the way in; in Markup it is the palette, today's bar of
- * groups (spec X1, D2-2).
+ * capsule is the dock, whose Markup is the way in; in Markup it is the palette (spec X1, D2-2, D2-3).
  */
 const dock = (page: Page) => page.getByRole('toolbar', { name: 'Document tools', exact: true });
 const readShown = (page: Page) => dock(page).getByRole('button', { name: 'Markup', exact: true });
@@ -61,9 +59,9 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
   await expect(layer).toHaveAttribute('data-tool', 'select');
   await expect(layer).not.toHaveAttribute('data-drawing', /.*/);
 
-  // 2: Edit, the bar's groups.
+  // 2: Markup, the palette.
   await enterEdit(page);
-  await expect.poll(() => bar(page).getByRole('button').count()).toBeGreaterThan(1);
+  await expect(palette(page)).toBeVisible();
   // In Edit the square selects.
   await square.click({ position: { x: 4, y: 4 } });
   await expect(page.getByTestId('annotation-bar')).toBeVisible();
@@ -74,14 +72,14 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
   await expect(page.getByRole('radiogroup', { name: 'View mode' })).toHaveCount(0);
   await page.getByRole('tab', { name: 'annotations' }).click();
   await expect(editShown(page)).toBeVisible();
-  await expect.poll(() => bar(page).getByRole('button').count()).toBeGreaterThan(1);
+  await expect(palette(page)).toBeVisible();
 
-  // 1: Read again; the bar collapses.
+  // 1: viewing again; the palette goes.
   await page.keyboard.press('1');
   await expect(readShown(page)).toBeVisible();
-  await expect(bar(page)).toHaveCount(0);
+  await expect(palette(page)).toHaveCount(0);
 
-  // The dock's Markup enters Edit.
+  // The dock's Markup opens it.
   await readShown(page).click();
   await expect(editShown(page)).toBeVisible();
 });
@@ -98,8 +96,8 @@ test('a tool key in Read switches to Edit and arms the tool, changing nothing', 
   await expect(editShown(page)).toBeVisible();
   const layer = page.locator('[data-annotation-layer="0"]');
   await expect(layer).toHaveAttribute('data-tool', 'rectangle');
-  // Visibly armed: the tool's group is on the bar with the tool pressed.
-  await expect(bar(page).locator('[data-tool][aria-pressed="true"]')).toHaveCount(1);
+  // Visibly armed: the palette with the tool pressed.
+  await expect(palette(page).locator('[data-tool][aria-pressed="true"]')).toHaveCount(1);
   await expect(page.getByRole('status').filter({ hasText: /^Edit mode\. / })).toHaveCount(1);
   await expect(layer.locator('[data-annotation-id]')).toHaveCount(0);
 });
@@ -281,7 +279,7 @@ test('a Read selection offers "Edit text": Edit, with the paragraph editor at th
   await expect(foxLine(page)).toHaveText(FOX);
 });
 
-test('in Edit a first click on text says "Double-click to edit text"; the Text group opens it in one click', async ({
+test('in Edit a first click on text says "Double-click to edit text"; Edit text armed opens it in one click', async ({
   page,
 }) => {
   const at = await openFontsFixture(page);
@@ -293,12 +291,11 @@ test('in Edit a first click on text says "Double-click to edit text"; the Text g
   const editor = page.getByRole('textbox', { name: /^(Line text|Paragraph on page 1)$/ });
   await expect(editor).toHaveCount(0);
 
-  // Text arms Edit text, as Write arms the pen: one click opens the paragraph.
-  await bar(page).getByRole('button', { name: 'Text', exact: true }).click();
-  await expect(bar(page).getByRole('button', { name: 'Edit text', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  // Edit text armed: one click opens the paragraph.
+  await palette(page).getByRole('button', { name: 'Edit text', exact: true }).click();
+  await expect(
+    palette(page).getByRole('button', { name: 'Edit text', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
   // Edit text locates the page's runs once armed; a click lands on a run's target, so wait for
   // them (a software-rendered engine takes a while).
   await expect(page.locator('[data-text-edit-layer="0"] [data-text-run]').first()).toBeAttached({

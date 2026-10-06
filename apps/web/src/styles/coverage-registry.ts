@@ -72,17 +72,6 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
       '--bar-h, 44 px fine (56 coarse or with labels under); Pages · Locked · More with labels under is the narrowest (about 240 px)',
   },
   {
-    id: 'options-tier',
-    surface: 'Options tier',
-    module: 'shell/FloatingToolbar.module.css',
-    selector: '.tier',
-    composes: 'glass',
-    filter: '--glass-filter',
-    minWidth: 120,
-    minHeight: 40,
-    smallest: 'min-height 40 px; one style row',
-  },
-  {
     id: 'read-selection-bar',
     surface: 'Text selection bar',
     module: 'annotations/ReadSelectionBar.module.css',

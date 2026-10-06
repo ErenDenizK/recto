@@ -894,12 +894,12 @@ async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
 /** Tool switching (A-10: no View Transition for repeated actions). */
 async function switchTools(page: Page): Promise<void> {
   await enterEdit(page);
-  const bar = page.getByRole('toolbar', { name: 'Tools' });
-  await bar.getByRole('button', { name: 'Write', exact: true }).click();
-  await bar.getByRole('button', { name: 'Write: back to all groups' }).click();
-  await page.locator('body').press('u');
-  await page.locator('body').press('u');
-  await expect(page.getByTestId('options-tier')).toBeVisible();
+  const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+  await bar.getByRole('button', { name: 'Eraser' }).click();
+  await bar.getByRole('button', { name: 'Select' }).click();
+  await page.locator('body').press('p');
+  await page.locator('body').press('p');
+  await expect(page.getByTestId('ink-strip')).toBeVisible();
   await page.locator('body').press('Escape');
   await page.locator('body').press('Escape');
   await settleAnimations(page);

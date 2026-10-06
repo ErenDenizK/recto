@@ -3,7 +3,7 @@
  * browser mode, PDFium): in viewing the capsule is the dock (01-frame F10, D2-2), whose
  * Markup opens the bar of groups; nothing on the page selects,
  * arms or marks; a tool key switches to Edit and arms the tool, said once, mode first;
- * select-then-markup keeps the selection for a second press.
+ * a tool letter on a text selection marks it at once, with Markup left closed (D2-3).
  */
 import { getActiveDocument, type VirtualDocument } from '@pdf-editor/document-model';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -92,7 +92,6 @@ const enterEdit = () => {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
   if (id !== undefined) useUiStore.getState().openMarkup(id);
 };
-const bar = () => screen.getByRole('toolbar', { name: 'Tools' });
 const dock = () => screen.getByRole('toolbar', { name: 'Document tools' });
 
 function press(element: Element): void {
@@ -150,7 +149,7 @@ describe('the Read lock (mounted)', () => {
     resetToolStore();
   });
 
-  it('a file opens in viewing: the dock, whose Markup opens the groups with the focus, and `1` closes', async () => {
+  it('a file opens in viewing: the dock, whose Markup opens the palette with the focus, and `1` closes', async () => {
     // A desktop window: Fill & sign is "Sign" only on a compact one (F10 §5).
     await page.viewport(1280, 900);
     await mount();
@@ -162,20 +161,20 @@ describe('the Read lock (mounted)', () => {
     const markup = within(dock()).getByRole('button', { name: 'Markup' });
     expect(markup).toHaveAttribute('aria-keyshortcuts', '2');
     expect(markup).toHaveAttribute('aria-pressed', 'false');
-    useToolStore.getState().showGroup('write');
 
     markup.focus();
     await userEvent.keyboard('{Enter}');
     expect(mode()).toBe('edit');
     expect(useAnnouncer.getState().message).toBe('Markup on. Select armed.');
-    // The row of groups, with the focus on it: the capsule morphed, its focus followed.
-    expect(useToolStore.getState().barGroup).toBeNull();
-    await waitFor(() => expect(within(bar()).getAllByRole('button').length).toBeGreaterThan(1));
-    expect(bar()).toContainElement(document.activeElement as HTMLElement);
+    // The palette, with the focus on its armed tool (Select): the capsule morphed, its focus
+    // followed.
+    const palette = await screen.findByRole('toolbar', { name: 'Markup' });
+    await waitFor(() => expect(palette).toContainElement(document.activeElement as HTMLElement));
+    expect(within(palette).getByRole('button', { name: 'Select' })).toHaveFocus();
 
     // `1` (the mode command) closes it: the dock again.
     await userEvent.keyboard('1');
-    await waitFor(() => expect(screen.queryByRole('toolbar', { name: 'Tools' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('toolbar', { name: 'Markup' })).toBeNull());
     expect(within(dock()).getAllByRole('button')).toHaveLength(4);
   });
 
@@ -235,9 +234,9 @@ describe('the Read lock (mounted)', () => {
     const said = useAnnouncer.getState().message;
     expect(said.startsWith('Edit mode. ')).toBe(true);
     expect(said.match(/Edit mode/g)).toHaveLength(1);
-    // Visibly armed: the bar shows the tool's group, the page takes the pen.
+    // Visibly armed: the palette shows, the page takes the pen.
     await waitFor(() => expect(layer).toHaveAttribute('data-drawing'));
-    expect(useToolStore.getState().barGroup).not.toBeNull();
+    expect(screen.getByRole('toolbar', { name: 'Markup' })).toBeVisible();
   });
 
   it('the tool store arms nothing in Read and disarms on entering Read', async () => {
@@ -256,21 +255,17 @@ describe('the Read lock (mounted)', () => {
     expect(isMarkupOpen(useUiStore.getState(), id)).toBe(false);
   });
 
-  it('U over selected text in Read switches to Edit and keeps it; the second U marks it', async () => {
+  it('U over selected text in viewing marks it at once, a targeted act; Markup stays closed', async () => {
     const { container, target } = await mount();
     await selectSomeText(container);
-    await userEvent.keyboard('u');
-    expect(mode()).toBe('edit');
-    expect(useToolStore.getState().mode).toBe('select');
-    expect(window.getSelection()?.isCollapsed).toBe(false);
-    await whenIdle();
-    expect(await readAnnotations(target.source, 0)).toEqual([]);
-
     await userEvent.keyboard('u');
     await waitFor(async () => {
       const kinds = (await readAnnotations(target.source, 0)).map((a) => a.kind);
       expect(kinds).toEqual(['underline']);
     });
+    // A tool letter on a selection acts on it and never arms (03-markup §5).
+    expect(mode()).toBe('read');
+    expect(useToolStore.getState().mode).toBe('select');
   });
 
   it('the Read selection bar offers Copy and "Mark up…", which switches and keeps the selection', async () => {

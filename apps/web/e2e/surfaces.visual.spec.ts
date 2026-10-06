@@ -129,13 +129,8 @@ test.describe('surfaces', () => {
     await expect(page).toHaveScreenshot(`read-${size}.png`, SHOT);
 
     await enterEdit(page);
-    await page
-      .getByRole('toolbar', { name: 'Tools', exact: true })
-      .locator('[data-bar-group="text"]')
-      .click();
     await page.locator('body').press('t');
-    await page.locator('body').press('t');
-    await expect(page.getByTestId('options-tier')).toBeVisible();
+    await expect(page.getByTestId('ink-strip')).toBeVisible();
     // The keys above leave the group's focus ring showing; the baseline is the resting bar.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.mouse.move(0, 0);
