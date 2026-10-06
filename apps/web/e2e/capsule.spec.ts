@@ -237,6 +237,13 @@ test.describe('the capsule morph (Q-6)', () => {
       page,
     }, info) => {
       await openStripes(page, info);
+      // A white canvas, like the page: on the tablet the palette is wider than the page at fit
+      // width, so its end caps lie over the canvas, near black (luma 9), where no shadow can darken
+      // the frame by the 10 the shadow check reads. Every frame below is taken over it.
+      await page.evaluate(() =>
+        document.documentElement.style.setProperty('--canvas', 'rgb(255 255 255)'),
+      );
+      await settled(page);
       const node = await page.locator('[data-capsule]').elementHandle();
       expect(
         await page.locator('[data-capsule]').evaluate((el) => getComputedStyle(el).contain),
