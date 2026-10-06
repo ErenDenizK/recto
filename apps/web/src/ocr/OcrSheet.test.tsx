@@ -38,7 +38,7 @@ vi.mock('./ocr-run', () => ({
         callbacks,
         finish: () => {
           resolve({
-            label: 'Recognize text: 2 pages, eng',
+            label: 'Recognize text: 2 pages, English',
             pages: 2,
             languages: ['eng'],
             byQuality: { good: 1, review: 1, poor: 0, 'no-text': 0 },
@@ -140,7 +140,9 @@ describe('the OCR dialog', () => {
         .getByRole('checkbox', { name: /Turkish/ })
         .closest('label'),
     ).toHaveTextContent('On this device · 4.6 MB');
-    expect(within(dialog).getByTestId('ocr-languages-key')).toHaveTextContent('eng');
+    expect(within(dialog).getByTestId('ocr-languages-key')).toHaveTextContent(
+      'Recognized as English; the first language leads.',
+    );
     expect(dialog).toHaveTextContent('The first run downloads 2.0 MB from this site.');
 
     expect(within(dialog).getByRole('radio', { name: /Standard/ })).toBeChecked();
@@ -160,13 +162,15 @@ describe('the OCR dialog', () => {
       'aria-disabled',
       'true',
     );
-    // Adding Turkish puts it after English (the first language leads).
+    // Adding Turkish puts it after English (the first language leads), named, never coded.
     act(() => {
       within(dialog)
         .getByRole('checkbox', { name: /Turkish/ })
         .click();
     });
-    expect(within(dialog).getByTestId('ocr-languages-key')).toHaveTextContent('eng+tur');
+    expect(within(dialog).getByTestId('ocr-languages-key')).toHaveTextContent(
+      'Recognized as English and Turkish;',
+    );
     act(() => {
       english.click();
       within(dialog)
@@ -289,7 +293,7 @@ describe('the OCR dialog', () => {
     await waitFor(() => expect(runs).toHaveLength(1));
     act(() => runs[0]?.finish());
     const result = await screen.findByTestId('ocr-result');
-    expect(result).toHaveTextContent('Recognize text: 2 pages, eng');
+    expect(result).toHaveTextContent('Recognize text: 2 pages, English');
     expect(result).toHaveTextContent('Good: 1 · Review: 1');
     expect(result).toHaveTextContent('Words: 90 · low confidence: 4');
   });
@@ -327,7 +331,7 @@ describe('the OCR dialog', () => {
     // Back on the document it ran on, the result is still there.
     act(() => openOcrDialog(documentId as never));
     expect(await screen.findByTestId('ocr-result')).toHaveTextContent(
-      'Recognize text: 2 pages, eng',
+      'Recognize text: 2 pages, English',
     );
   });
 
