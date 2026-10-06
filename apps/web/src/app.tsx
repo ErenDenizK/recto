@@ -12,6 +12,8 @@ import { LocaleBoundary } from './i18n/LocaleBoundary';
 import { watchOcrJob } from './ocr';
 import { registerOutlineCommands } from './outline/outline-commands';
 import { AppShell } from './shell/AppShell';
+import { openSample, registerSampleCommands } from './sample/open-sample';
+import { openSampleFromLink } from './sample/sample-link';
 import { registerArrangeCommands } from './stage/arrange-commands';
 import { OperationDialogs } from './stage/OperationDialogs';
 import { startSession } from './session/session';
@@ -40,6 +42,9 @@ export function App() {
   useLayoutEffect(() => startSignatureValidation(), []);
   // Snapshots on this device and restore on launch (ADR-0032 §2.4, §2.5).
   useLayoutEffect(() => startSession({ edition: 'full' }), []);
+  // The teaching sample: ⌘K "Try the sample", and `?sample` once the restore is over (D4-2).
+  useLayoutEffect(() => registerSampleCommands(commandRegistry), [locale]);
+  useLayoutEffect(() => openSampleFromLink(openSample), []);
   // Its notice ("Restored 3 documents · Start fresh") is a toast (D0-5).
   useLayoutEffect(() => watchSessionNotice(), []);
   // A running OCR shows in the progress capsule while its dialog is closed (FB5).
