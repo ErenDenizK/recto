@@ -3,14 +3,15 @@
  * with certificate…" with the test PKI's certificate (`test/fixtures/pki/signer-rsa.p12`,
  * password "test-only", as in `apps/web/e2e/signatures.spec.ts`), the signer read from it,
  * then Save a copy, which signs the copy it writes (components/07-sheets.md §4). The
- * downloaded copy is dropped back on the window, and its signature checks out as "Intact"
- * under the certificate's name. The scene asserts that.
+ * downloaded copy is dropped back on the window, and the title menu's facts row opens S9, where
+ * its signature checks out as "Intact" under the certificate's name (spec D2-9). The scene
+ * asserts that.
  */
 import { readFile } from 'node:fs/promises';
 
 import { expect } from '@playwright/test';
 
-import { fixturePath, showInspector } from '../../../apps/web/e2e/helpers.ts';
+import { fixturePath } from '../../../apps/web/e2e/helpers.ts';
 import { scene } from '../lib/scene.ts';
 
 const FIXTURES = ['demo-agreement.pdf'] as const;
@@ -21,14 +22,11 @@ const SIGNER = 'pdf-editor Test Signer';
 scene({
   id: '07-sign',
   kind: 'clip',
-  // The Sign dialog in the middle, then Save a copy and the inspector's Signatures section
-  // on the right.
+  // The Sign dialog in the middle, then Save a copy and S9 Signatures on the right.
   crop: { x: 300, y: 0, width: 1140, height: 900 },
   async prepare(stage) {
     const { page } = stage;
     await stage.openFixtures(FIXTURES);
-    // The Signatures section is in the inspector, closed by default.
-    await showInspector(page);
     await stage.rendered(page.locator('main'), 1);
     // Document menu → Sign with certificate…, with the test certificate and its password,
     // checked: the clip opens on the dialog showing whose certificate it is. (Choosing the
@@ -89,9 +87,13 @@ scene({
     await expect(
       page.getByRole('tab', { name: 'demo-agreement-signed', selected: true }),
     ).toBeVisible();
+    // 3. The title menu's facts row says the signature's status; it opens S9.
+    await cursor.click(page.getByTestId('document-menu'), 350);
+    const fact = page.getByTestId('title-menu-signatures');
+    await expect(fact).toContainText('Intact', { timeout: 20_000 });
+    await cursor.click(fact, 350);
     const section = page.getByTestId('signatures-section');
     await expect(section.getByTestId('signature-status')).toHaveText('Intact', { timeout: 20_000 });
     await expect(section).toContainText(SIGNER);
-    // The drop left the pointer on the page, clear of the inspector's result.
   },
 });
