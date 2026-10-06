@@ -41,8 +41,10 @@
   gap: 8px;
 }
 
-.number {
-  width: 88px;
+/* A short number field: its label on one line above a narrow well. */
+.numberField {
+  width: 12rem;
+  max-width: 100%;
 }
 
 /* What the primary will make: one line in the secondary colour, the numbers tabular. */
@@ -96,12 +98,16 @@
   color: var(--glass-text-secondary);
 }
 
-.check {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--accent);
+.rowCheck {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .tag {

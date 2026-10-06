@@ -37,6 +37,7 @@ import {
 } from 'react';
 
 import { commandRegistry } from '../../commands/registry';
+import { useDragSession } from '../../dnd/drag-store';
 import { useCommands } from '../../commands/use-commands';
 import { m, useLocale } from '../../i18n';
 import { isLocked } from '../../state/lock-store';
@@ -80,8 +81,11 @@ export function Dock() {
   const doc = useActiveDocument();
   const shape = useCapsuleShape(doc?.id);
   const group = useToolStore((s) => s.barGroup);
-  // Faded and out of the pointer's way while a stroke is in progress (MK-17).
-  const stroking = useStrokeInProgress() && shape === 'palette';
+  // Faded and out of the pointer's way while a stroke is in progress (MK-17), and the Pages bar
+  // while pages are dragged (04-context §2.7 *contextual*: hidden while dragging).
+  const draggingPages = useDragSession((s) => s.session !== null);
+  const stroking =
+    (useStrokeInProgress() && shape === 'palette') || (draggingPages && shape === 'pages');
   // The page view's and the Pages grid's (whose content is the Pages bar, X21); Compare has its
   // own bar until the capsule becomes it.
   const view = useStageView();

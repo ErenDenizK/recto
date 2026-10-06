@@ -3088,5 +3088,6 @@
   "extract_toast_copied": "{count} sayfa yeni bir belgeye kopyalandı",
   "extract_toast_moved": "{count} sayfa yeni bir belgeye taşındı",
   "insert_images_primary": "{count} sayfa ekle",
-  "tab_drop_label": "{count} sayfayı {title} belgesine taşı"
+  "tab_drop_label": "{count} sayfayı {title} belgesine taşı",
+  "tab_drop_here": "{count} sayfayı buraya taşı"
 }

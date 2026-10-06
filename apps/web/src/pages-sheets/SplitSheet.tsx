@@ -193,7 +193,7 @@ export function SplitSheet({
       open={open && doc !== undefined}
       onClose={onClose}
       title={doc ? m.split_title({ title: doc.title }) : m.split_confirm()}
-      description={doc ? m.split_description({ pages: pagesPhrase(pageCount) }) : undefined}
+      subtitle={doc ? pagesPhrase(pageCount) : undefined}
       restored={restored}
       locked={
         refusal?.kind === 'locked' && doc
@@ -244,7 +244,7 @@ export function SplitSheet({
         </div>
         {draft.mode === 'every' ? (
           <div className={styles.group}>
-            <div className={styles.number}>
+            <div className={styles.numberField}>
               <SheetField
                 label={m.split_every_input_label()}
                 showLabel

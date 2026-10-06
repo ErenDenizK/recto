@@ -86,16 +86,16 @@
   flex: none;
   height: 48px;
   /* The collapse chevron hangs in the side gutter so the title lines up with the cells. */
-  padding: 0 var(--space-4) 0 0;
+  padding: 0 var(--grid-pad, var(--space-8)) 0 calc(var(--grid-pad, var(--space-8)) - 32px);
   background: var(--canvas);
 }
 
 .header::after {
   content: '';
   position: absolute;
-  right: var(--space-8);
+  right: var(--grid-pad, var(--space-8));
   bottom: 12px;
-  left: var(--space-8);
+  left: var(--grid-pad, var(--space-8));
   height: 1px;
   background: var(--border-hairline);
 }

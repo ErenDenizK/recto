@@ -1,11 +1,11 @@
 /**
  * A document tab as a drop target for pages (`components/01-frame.md` F4 §3, §4, §6;
  * `06-navigation.md` §2.4, PG5; RA-7): pages dragged from the Pages grid with the mouse that
- * hover a tab for 500 ms arm it (a 2 px `--accent-line` ring inside the tab and the label "Move
- * 2 pages to agreement.pdf" under it); dropping then moves them to the end of that document,
- * one `transferPages`, one undo step, with the Undo toast of a move to another document (06.24).
- * A drop before the tab is armed does nothing, so a drag that only passes over the strip never
- * moves pages by accident.
+ * hover a tab for 500 ms arm it (a 2 px `--accent-line` ring inside the tab, the label "Move 2
+ * pages here" in it, and "Move 2 pages to agreement.pdf" said); dropping then moves them to the
+ * end of that document, one `transferPages`, one undo step, with the Undo toast of a move to
+ * another document (06.24). A drop before the tab is armed does nothing, so a drag that only
+ * passes over the strip never moves pages by accident.
  *
  * Guard: the drop needs `canChange(target, 'pages')` and `canChange(source, 'pages')`; refused,
  * the ring turns neutral, the reason is said and nothing moves (F4 §6). Touch has no tab drop
@@ -97,8 +97,9 @@ export function attachTabDropTarget(element: HTMLElement, documentId: DocumentId
         element.setAttribute('data-tab-drop', armed ? 'armed' : 'refused');
         element.setAttribute(
           'data-tab-drop-label',
-          refused ?? m.tab_drop_label({ count: pageIds.length, title }),
+          refused ?? m.tab_drop_here({ count: pageIds.length }),
         );
+        announce(refused ?? m.tab_drop_label({ count: pageIds.length, title }));
       }, TAB_DROP_DELAY_MS);
     },
     onDragLeave: disarm,
