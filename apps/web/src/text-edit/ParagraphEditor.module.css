@@ -64,7 +64,7 @@
 }
 
 .header {
-  composes: glass from global;
+  composes: mat mat-bar s7 from global;
   position: absolute;
   z-index: 5;
   display: grid;

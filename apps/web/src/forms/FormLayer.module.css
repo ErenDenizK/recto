@@ -111,7 +111,7 @@ select.editor option:disabled {
 }
 
 .notice {
-  composes: glass from global;
+  composes: mat mat-bar s9 from global;
   position: absolute;
   z-index: 3;
   display: grid;
@@ -156,7 +156,7 @@ select.editor option:disabled {
    2 px it grew by come off the gap above, so its bottom edge, and what it covers on the page,
    stay where they were. */
 .lockNotice {
-  composes: glass from global;
+  composes: mat mat-bar s7 from global;
   position: absolute;
   z-index: 3;
   display: flex;

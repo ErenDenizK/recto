@@ -10,7 +10,7 @@
 
 /* The form sheet on the medium class keeps one height while the search filters, so the
    centred panel never jumps as rows come and go (07 §2.2: form ≤ 640 wide). */
-:global(.glass[data-sheet='settings'][data-presentation='form']) {
+:global(.mat[data-sheet='settings'][data-presentation='form']) {
   height: min(760px, calc(100dvh - 104px));
 }
 
@@ -19,7 +19,7 @@
  * list under it scrolls, in a scroll area (09 §21) whose edges fade where the list goes on, with
  * the sheet's inset after the last row, so no presentation cuts a row at its edge.
  */
-:global(.glass[data-sheet='settings'] [data-sheet-body]) {
+:global(.mat[data-sheet='settings'] [data-sheet-body]) {
   display: flex;
   flex-direction: column;
   overflow: hidden;

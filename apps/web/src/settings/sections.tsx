@@ -3,10 +3,10 @@
  * §9.5; spec 07.8), each bound to the store that already holds the setting, applied at once and
  * persisted there; there is no Save button.
  *
- * - **Appearance:** Glass panels and Reduce transparency (`appearance-store`, craft §7). Reduce
- *   transparency is forced on by `prefers-reduced-transparency`: the switch then shows on, is
- *   disabled and says "On, set by your system" (A-17), and a change of that system value while
- *   the sheet is open is announced (07 S3 §6: system-overridden values only). Reduce motion:
+ * - **Appearance:** Glass: Clear · Tinted · Solid (`appearance-store`, language.md §2.8), a
+ *   segmented control; `prefers-reduced-transparency` forces Solid: every segment disabled and
+ *   "Solid, set by your system" (A-17), and a change of that system value while the sheet is
+ *   open is announced (07 S3 §6: system-overridden values only). Reduce motion:
  *   System · On (language.md §7.6; spec D3-4), a segmented control; when the system asks for
  *   reduced motion it shows On, both segments disabled, and says "On, set by your system"
  *   (07 S3 §4), announced the same way when the system changes while the sheet is open. Its row
@@ -43,9 +43,9 @@ import {
 import { useExternalRequests } from '../privacy/external-requests';
 import { useSessionStore } from '../session/session-store';
 import { announce } from '../shell/announcer';
-import { setGlassPanels, setReduceTransparency } from '../shell/appearance-commands';
+import { setGlass } from '../shell/appearance-commands';
 import { BUILD_INFO, PRODUCT_NAME } from '../shell/about/build-info';
-import { useAppearanceStore } from '../state/appearance-store';
+import { effectiveGlass, type GlassSetting, useAppearanceStore } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
 import { useUiStore } from '../state/ui-store';
 import { Button } from '../ui/Button';
@@ -79,35 +79,42 @@ function useSystemTransparency(): boolean {
   return useSyncExternalStore(subscribeTransparency, systemTransparency, () => false);
 }
 
-export function GlassPanelsRow() {
-  const on = useAppearanceStore((s) => s.glassPanels);
-  return (
-    <Row id="glassPanels">
-      <Switch
-        className={styles.switch}
-        label={m.appearance_glass_panels()}
-        description={m.settings_glass_panels_hint()}
-        checked={on}
-        onCheckedChange={setGlassPanels}
-      />
-    </Row>
-  );
-}
-
-export function ReduceTransparencyRow() {
-  const on = useAppearanceStore((s) => s.reduceTransparency);
+/**
+ * Glass: Clear · Tinted · Solid (language.md §2.8; 07-sheets S3 §2, §4; A-17), a segmented
+ * control bound to `appearance-store`'s `glass`: it shows the setting in force (the start
+ * state until a choice is made) and applies at once, so the sheet's own glass shows the effect
+ * behind the control. When the system asks for reduced transparency it shows Solid, every
+ * segment disabled, and says "Solid, set by your system"; a change of that system value while
+ * the sheet is open is announced (07 S3 §6).
+ */
+export function GlassRow() {
+  const chosen = useAppearanceStore((s) => s.glass);
   const system = useSystemTransparency();
-  useAnnounceSystem(system, m.settings_reduce_transparency_system);
+  useAnnounceSystem(system, m.settings_glass_system_on);
+  const value = system ? 'solid' : effectiveGlass(chosen);
+  const reason = system ? m.settings_glass_system() : undefined;
   return (
-    <Row id="reduceTransparency">
-      <Switch
-        className={styles.switch}
-        label={m.appearance_reduce_transparency()}
-        description={m.settings_reduce_transparency_hint()}
-        checked={on || system}
-        system={system}
-        onCheckedChange={setReduceTransparency}
-      />
+    <Row id="glass" bar>
+      <Line
+        label={m.settings_glass()}
+        labelHidden
+        description={system ? m.settings_glass_system() : m.settings_glass_hint()}
+      >
+        <div className={styles.segmented}>
+          <Segmented<GlassSetting>
+            label={m.settings_glass()}
+            value={value}
+            onValueChange={(next) => {
+              if (next !== chosen) setGlass(next);
+            }}
+            options={[
+              { value: 'clear', label: m.settings_glass_clear(), disabled: system, reason },
+              { value: 'tinted', label: m.settings_glass_tinted(), disabled: system, reason },
+              { value: 'solid', label: m.settings_glass_solid(), disabled: system, reason },
+            ]}
+          />
+        </div>
+      </Line>
     </Row>
   );
 }

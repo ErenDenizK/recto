@@ -10,7 +10,7 @@
  *       light values (D3-7 adds them; the test keeps both selectors and §1 to one name set)
  *   §3  `:root`                        theme-free: type, shape, space, density, metrics
  *   §4  `@media (pointer: coarse), (any-pointer: coarse)`   coarse density
- *   §5  Settings: reduced transparency (media and in-app switch, identical), more contrast
+ *   §5  Settings: Glass Tinted and Solid (Solid identical to reduced transparency), more contrast
  *   §6  `@media (forced-colors: active)`
  *   §7  `@media (color-gamut: p3)`     the aurora's P3 stops
  *
@@ -34,8 +34,8 @@
  * History: the M6/M8 ladder (canvas #08090b, panels #181a1f, periwinkle #7c8cff, three glass
  * tiers) and D0-1's coverage rule and focus bands, D0-3's skeleton and control block, are
  * recorded in docs/specs/experience-redesign.md §7, craft.md §7 and redesign.md §11.1. D3-2
- * gives the skeleton its colours; the blurs stay D0-1's until materials.css (D3-3) takes σ per
- * surface from the coverage registry.
+ * gives the skeleton its colours; D3-3 composes them in `materials.css`, generated from the
+ * coverage registry with σ per surface.
  *
  * Motion has its own file, `motion.css` (language.md §10.1; spec D3-4), imported here first so
  * that everything that reads the tokens has the springs, eases and their reduced forms too.
@@ -241,6 +241,16 @@
   --rim-top: rgb(var(--white-rgb) / 0.34);
   --rim-bottom: rgb(var(--white-rgb) / 0.14);
   --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.12);
+  /* The denser tiers' rims (§2.4): menus a 0.60 edge and a 0.30 / 0.10 rim, sheets and the
+     floating panel 0.24 / 0.08; docked M3 only an inner light of 0.06 under its hairline. */
+  --rim-edge-strong: 0 0 0 1px rgb(0 0 0 / 0.6);
+  --rim-top-menu: rgb(var(--white-rgb) / 0.3);
+  --rim-bottom-menu: rgb(var(--white-rgb) / 0.1);
+  --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.1);
+  --rim-top-sheet: rgb(var(--white-rgb) / 0.24);
+  --rim-bottom-sheet: rgb(var(--white-rgb) / 0.08);
+  --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.08);
+  --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.06);
   /* Elevation (language.md §6.3): e1 handles and badges, e2 chips, e3 bars and toasts, e4
      menus and popovers, e5 sheets. No coloured shadow and no glow on a control (S-5). */
   --e0: none;
@@ -286,32 +296,16 @@
   --focus-light: var(--lime-300);
   --focus-dark: var(--n1);
 
-  /* Aliases (09-primitives §25 block 8), deleted at migration step 11: the M8 colour and glass
-     names keep working while modules move to the semantic ones. Today's three .glass classes
-     (global.css) read the bar, panel and menu tiers with D0-1's blurs: bars 7px, the docked
-     frame 5px, menus 12px and a one-row menu 7px. */
+  /* Aliases (09-primitives §25 block 8), deleted at migration step 11: the M8 colour names keep
+     working while modules move to the semantic ones. The M8 glass names (`--glass`,
+     `--glass-frame*`, `--glass-menu`, the σ-carrying filters, `--elevation-float`) left with the
+     `.glass*` classes when `materials.css` took over (D3-3, migration step 6). */
   --surface-0: var(--canvas);
   --surface-1: var(--surface-frame);
   --surface-2: var(--surface-raised);
   --surface-3: var(--surface-on);
   --accent-highlight: var(--select-wash);
   --accent-highlight-strong: var(--select-wash-strong);
-  --glass: var(--glass-bar-tint);
-  --glass-filter: blur(7px) var(--glass-bar-filter);
-  --glass-solid: var(--glass-bar-solid);
-  --glass-frame: var(--glass-panel-tint);
-  --glass-frame-filter: blur(5px) var(--glass-panel-filter);
-  --glass-frame-solid: var(--glass-panel-solid);
-  --glass-frame-highlight: inset 0 1px 0 rgb(var(--white-rgb) / 0.06);
-  --glass-menu: var(--glass-menu-tint);
-  --glass-menu-backdrop: blur(12px) var(--glass-menu-filter);
-  --glass-menu-short-backdrop: blur(7px) var(--glass-menu-filter);
-  /* The capsule (spec X1, D2-2): the dock, the Markup palette and Locked are one M2 element,
-     so they share one σ per size (language.md §2.9): 9 fine, 10 coarse (§4), 8 compact-height
-     (`shell/capsule/Capsule.module.css`). The morph changes its geometry, never this filter. */
-  --glass-capsule-filter: blur(9px) var(--glass-bar-filter);
-  --glass-capsule-short-filter: blur(8px) var(--glass-bar-filter);
-  --elevation-float: var(--rim-inner), var(--rim-edge), var(--glass-bar-shadow);
 }
 
 /* ── §2 Light theme ────────────────────────────────────────────────────────────────────────
@@ -453,8 +447,6 @@
     --control-h-lg: 52px;
     --bar-button: 44px;
     --bar-h: 56px;
-    /* The capsule's coarse σ (language.md §2.9: the 56 px dock at 10). */
-    --glass-capsule-filter: blur(10px) var(--glass-bar-filter);
     --chip-h: 36px;
     --check: 20px;
     --switch-w: 52px;
@@ -484,12 +476,26 @@
 }
 
 /* ── §5 Settings ───────────────────────────────────────────────────────────────────────────
- * Every glass tier falls back to its solid when transparency is unwelcome; rims, shadows and the
- * frame's highlight stay, so the surfaces keep their edges. The in-app "Reduce transparency"
- * switch sets the same values (Safari does not report the media query); tokens.test.ts keeps the
- * two blocks identical. More contrast is solid too, with the strong border instead of rim and
- * shadow, and secondary and tertiary text one step up (A-18).
+ * The Glass setting, Clear · Tinted · Solid (language.md §2.8, ADR-0024 §2.4; A-17), reaches
+ * this file as `data-glass` on the root (`state/appearance-store.ts`, `state/render-quality.ts`):
+ * Clear is the tokens of §1. Tinted lays every text-bearing tier's tint at alpha 0.90 and keeps
+ * the blur and the rim (it solves legibility, not cost). Solid puts every tier on its solid
+ * token with no filter; rims and shadows stay, so the surfaces keep their edges. The system's
+ * `prefers-reduced-transparency` forces Solid ("Solid, set by your system"), and its block is
+ * identical to `[data-glass='solid']` (tokens.test.ts holds the two to one body). The blur
+ * itself is `materials.css`'s, literal per tier and σ, which these blocks reset through the
+ * filter tokens and the root attribute it reads. More contrast is solid too, with the strong
+ * border instead of rim and shadow, and secondary and tertiary text one step up (A-18).
  */
+:root[data-glass='tinted'] {
+  --glass-chip-alpha: 0.9;
+  --glass-bar-alpha: 0.9;
+  --glass-panel-alpha: 0.9;
+  --glass-menu-alpha: 0.9;
+  --glass-sheet-alpha: 0.9;
+  --glass-lit-alpha: 0.9;
+}
+
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --glass-chip-tint: var(--glass-chip-solid);
@@ -504,16 +510,10 @@
     --glass-sheet-filter: none;
     --glass-lit-tint: var(--glass-lit-solid);
     --glass-lit-filter: none;
-    --glass-filter: none;
-    --glass-frame-filter: none;
-    --glass-menu-backdrop: none;
-    --glass-menu-short-backdrop: none;
-    --glass-capsule-filter: none;
-    --glass-capsule-short-filter: none;
   }
 }
 
-:root[data-transparency='reduced'] {
+:root[data-glass='solid'] {
   --glass-chip-tint: var(--glass-chip-solid);
   --glass-chip-filter: none;
   --glass-bar-tint: var(--glass-bar-solid);
@@ -526,12 +526,6 @@
   --glass-sheet-filter: none;
   --glass-lit-tint: var(--glass-lit-solid);
   --glass-lit-filter: none;
-  --glass-filter: none;
-  --glass-frame-filter: none;
-  --glass-menu-backdrop: none;
-  --glass-menu-short-backdrop: none;
-  --glass-capsule-filter: none;
-  --glass-capsule-short-filter: none;
 }
 
 @media (prefers-contrast: more) {
@@ -548,18 +542,16 @@
     --glass-sheet-filter: none;
     --glass-lit-tint: var(--glass-lit-solid);
     --glass-lit-filter: none;
-    --glass-filter: none;
-    --glass-frame-filter: none;
-    --glass-menu-backdrop: none;
-    --glass-menu-short-backdrop: none;
-    --glass-capsule-filter: none;
-    --glass-capsule-short-filter: none;
-    --glass-frame-highlight: none;
     --border-hairline: rgb(var(--white-rgb) / 0.22);
     --border-strong: rgb(var(--white-rgb) / 0.36);
     --border-glass: rgb(var(--white-rgb) / 0.36);
-    /* Edges come from the strong border alone: no shadow and no highlight. */
-    --elevation-float: none;
+    /* Edges come from the strong border alone (materials.css draws it): no rim, no shadow. */
+    --rim-edge: 0 0 #0000;
+    --rim-edge-strong: 0 0 #0000;
+    --rim-inner: 0 0 #0000;
+    --rim-inner-menu: 0 0 #0000;
+    --rim-inner-sheet: 0 0 #0000;
+    --rim-inner-docked: 0 0 #0000;
     --text-secondary: var(--n11);
     --text-tertiary: var(--n10);
   }
@@ -567,7 +559,8 @@
 
 /* ── §6 Forced colours ─────────────────────────────────────────────────────────────────────
  * Every tier is Canvas with its filter set to none explicitly: Chromium keeps the filter and the
- * tint's alpha otherwise (research 22 §6.2). Rims and shadows drop; the ring keeps its outline.
+ * tint's alpha otherwise (research 22 §6.2; materials.css resets the literal blur lines too).
+ * Rims and shadows drop; the ring keeps its outline.
  */
 @media (forced-colors: active) {
   :root {
@@ -589,15 +582,13 @@
     --glass-lit-tint: Canvas;
     --glass-lit-solid: Canvas;
     --glass-lit-filter: none;
-    --glass-filter: none;
-    --glass-frame-filter: none;
-    --glass-menu-backdrop: none;
-    --glass-menu-short-backdrop: none;
-    --glass-capsule-filter: none;
-    --glass-capsule-short-filter: none;
-    --glass-frame-highlight: none;
     --border-glass: CanvasText;
-    --elevation-float: none;
+    --rim-edge: 0 0 #0000;
+    --rim-edge-strong: 0 0 #0000;
+    --rim-inner: 0 0 #0000;
+    --rim-inner-menu: 0 0 #0000;
+    --rim-inner-sheet: 0 0 #0000;
+    --rim-inner-docked: 0 0 #0000;
   }
 }
 

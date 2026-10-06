@@ -36,7 +36,7 @@
  * bar's round ends, so each row stays concentric with them; on one row that radius is the pill
  * (quality-bar Q-6), so the shape is the same pill whenever the palette is one bar.
  */
-:global(.glass[data-capsule='palette']) {
+:global(.mat[data-capsule='palette']) {
   border-radius: calc(var(--bar-h) / 2);
 }
 

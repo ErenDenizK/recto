@@ -1,8 +1,8 @@
 /**
  * S3 in the browser (components/07-sheets.md §5.4, §5.6, §5.8, §5.9; spec redesign D0-10): the
  * side sheet of 480 px with its sections; search filters and says when nothing matches; an
- * opener's row is revealed and its control focused; a system override disables Reduce
- * transparency with its reason; Show tips again is dimmed with a reason until a tip is used
+ * opener's row is revealed and its control focused; a system override forces Glass to Solid,
+ * disabled, with its reason; Glass sets Clear · Tinted · Solid; Show tips again is dimmed with a reason until a tip is used
  * up; About Recto shows the About dialog's facts in order, for a pre-release and a release, in
  * the UI language.
  */
@@ -72,10 +72,10 @@ describe('the Settings sheet', () => {
     expect(within(dialog).getByRole('search')).toContainElement(search);
 
     await userEvent.type(search, 'gorunum');
-    expect(within(dialog).getByRole('switch', { name: 'Glass panels' })).toBeVisible();
+    expect(within(dialog).getByRole('radiogroup', { name: 'Glass' })).toBeVisible();
     expect(within(dialog).queryByRole('switch', { name: /Pen draws/ })).toBeNull();
     await waitFor(() =>
-      expect(within(dialog).getByRole('status')).toHaveTextContent('3 settings found'),
+      expect(within(dialog).getByRole('status')).toHaveTextContent('2 settings found'),
     );
     await userEvent.clear(search);
     await userEvent.type(search, 'xyzzy');
@@ -101,7 +101,7 @@ describe('the Settings sheet', () => {
     useAnnotationStore.getState().setAuthor('');
   });
 
-  it('a system setting forces Reduce transparency on, disabled, with its reason', async () => {
+  it('a system setting forces Glass to Solid, disabled, with its reason (A-17)', async () => {
     const real = window.matchMedia.bind(window);
     vi.spyOn(window, 'matchMedia').mockImplementation((query: string) =>
       query.includes('prefers-reduced-transparency')
@@ -116,11 +116,30 @@ describe('the Settings sheet', () => {
     act(() => openSettings({ section: 'appearance' }));
     render(<SettingsSheet />);
     const dialog = await screen.findByRole('dialog', { name: 'Settings' });
-    const control = within(dialog).getByRole('switch', { name: 'Reduce transparency' });
-    expect(control).toHaveAttribute('aria-checked', 'true');
-    expect(control).toHaveAttribute('aria-disabled', 'true');
-    expect(control).toHaveAccessibleDescription('On, set by your system');
-    expect(useAppearanceStore.getState().reduceTransparency).toBe(false);
+    await settled(dialog);
+    const group = within(dialog).getByRole('radiogroup', { name: 'Glass' });
+    const solid = within(group).getByRole('radio', { name: 'Solid' });
+    expect(solid).toBeChecked();
+    for (const radio of within(group).getAllByRole('radio')) {
+      expect(radio).toHaveAttribute('aria-disabled', 'true');
+    }
+    expect(within(dialog).getAllByText('Solid, set by your system')[0]).toBeVisible();
+    expect(useAppearanceStore.getState().glass).toBeNull();
+  });
+
+  it('sets Glass: Clear · Tinted · Solid, showing the start state until a choice', async () => {
+    act(() => openSettings({ row: 'glass' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const group = within(dialog).getByRole('radiogroup', { name: 'Glass' });
+    // Nothing picked: the start state, Clear under the test build's override (spec X36).
+    expect(within(group).getByRole('radio', { name: 'Clear' })).toBeChecked();
+    await userEvent.click(within(group).getByRole('radio', { name: 'Tinted' }));
+    expect(useAppearanceStore.getState().glass).toBe('tinted');
+    await userEvent.click(within(group).getByRole('radio', { name: 'Solid' }));
+    expect(useAppearanceStore.getState().glass).toBe('solid');
+    act(() => useAppearanceStore.setState({ glass: null }));
   });
 
   it('sets Reduce motion: System · On (language.md §7.6, spec D3-4)', async () => {

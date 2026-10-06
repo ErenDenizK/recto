@@ -101,6 +101,9 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_COMMIT__: JSON.stringify(appCommit()),
     __BUILD_DATE__: JSON.stringify(buildDate()),
+    // The test-only render override (spec X36; src/state/render-quality.ts): compiled in only
+    // for the builds Playwright tests, never for the deploy and release builds.
+    __RENDER_OVERRIDE__: JSON.stringify(process.env.RECTO_RENDER_OVERRIDE === '1'),
   },
   plugins: [
     react(),

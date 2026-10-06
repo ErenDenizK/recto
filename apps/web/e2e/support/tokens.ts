@@ -4,15 +4,14 @@
  * from the token source, never from a hard-coded colour, so D3's colour work can retune a tint,
  * a σ or a boost and the spec follows; a rendered surface that drifts from its tokens fails.
  *
- * Scopes, highest first: the Glass setting's block (Solid is today's
- * `:root[data-transparency='reduced']`; `[data-glass='solid']` and `[data-glass='tinted']` once
- * D3 writes them), the light theme's block when there is one, the dark theme block
+ * Scopes, highest first: the Glass setting's block (`:root[data-glass='solid']`,
+ * `:root[data-glass='tinted']`), the light theme's block when there is one, the dark theme block
  * (`:root, [data-theme='dark']`), then the theme-free `:root` block. `var()` is resolved
  * through the same chain, as the cascade does on the root.
  */
 import { readFileSync } from 'node:fs';
 
-import type { GlassComposition, GlassMode, RegistryEntry, Theme } from './harness';
+import type { GlassMode, RegistryEntry, Theme } from './harness';
 import type { GlassStyle, Rgb } from './pixels';
 
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -46,8 +45,7 @@ function block(selector: RegExp): Scope | undefined {
 const DARK = block(/^:root, \[data-theme='dark'\]$/);
 const THEME_FREE = block(/^:root$/);
 const LIGHT = block(/^(?::root)?\[data-theme='light'\]$/);
-const SOLID =
-  block(/^:root\[data-glass='solid'\]$/) ?? block(/^:root\[data-transparency='reduced'\]$/);
+const SOLID = block(/^:root\[data-glass='solid'\]$/);
 const TINTED = block(/^:root\[data-glass='tinted'\]$/);
 
 if (!DARK || !SOLID) {
@@ -57,7 +55,7 @@ if (!DARK || !SOLID) {
 /** The themes `tokens.css` defines: dark always, light once D3 adds its block. */
 export const TOKEN_THEMES: readonly Theme[] = LIGHT ? ['dark', 'light'] : ['dark'];
 
-/** The Glass settings `tokens.css` defines: Clear and Solid today, Tinted once D3 adds it. */
+/** The Glass settings `tokens.css` defines: Clear, and Tinted and Solid by their blocks. */
 export const TOKEN_GLASS_MODES: readonly GlassMode[] = TINTED
   ? ['clear', 'tinted', 'solid']
   : ['clear', 'solid'];
@@ -98,21 +96,14 @@ export function tokenColour(name: string, theme: Theme, glass: GlassMode = 'clea
 }
 
 /**
- * The tint token each composition paints (`styles/global.css`): `.glass` paints `--glass`,
- * `.glass-menu` points it at `--glass-menu`, the docked frame paints `--glass-frame` while
- * "Glass panels" is on. Each Solid block maps the tint to its solid token, so Solid needs no case
- * of its own.
+ * What an entry paints, by its tokens: its tier's tint, and `blur(σ)` then its tier's chain
+ * (`materials.css` writes the same literals), or `none` where the setting's block turns the
+ * tier's filter off (Solid).
  */
-const TINT: Record<GlassComposition, string> = {
-  glass: '--glass',
-  'glass glass-menu': '--glass-menu',
-  'glass-frame': '--glass-frame',
-};
-
-/** What an entry paints, by its tokens: its tint and its own filter token. */
 export function tokenGlass(entry: RegistryEntry, theme: Theme, glass: GlassMode): GlassStyle {
+  const chain = tokenValue(`--glass-${entry.tier}-filter`, theme, glass).trim();
   return {
-    background: tokenValue(TINT[entry.composes], theme, glass),
-    backdropFilter: tokenValue(entry.filter, theme, glass),
+    background: tokenValue(`--glass-${entry.tier}-tint`, theme, glass),
+    backdropFilter: chain === 'none' ? 'none' : `blur(${entry.sigma}px) ${chain}`,
   };
 }

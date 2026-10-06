@@ -4,7 +4,7 @@
  * 44 × 32 capsule with a 44 × 44 hit area (A-15) that the scroll moves by `transform`.
  *
  * Solid, not glass: a thumb is a small moving part and never blurs (quality-bar Q-5), so it is
- * M1's Solid rendering, `--glass-solid` with the glass hairline and `--e1`, the one small
+ * M1's Solid rendering, `--glass-chip-solid` with the glass hairline and `--e1`, the one small
  * shadow a control thumb may carry (tokens.css). The track fades itself in and out by
  * `opacity` over `--duration-fast` (Q-7) and is `visibility: hidden` at rest, so the hidden
  * thumb is neither seen, pressed nor focused. Reduced motion keeps the fade (tokens.css
@@ -45,7 +45,7 @@
   height: 32px;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-pill);
-  background: var(--glass-solid);
+  background: var(--glass-chip-solid);
   box-shadow: var(--e1);
   --shadow-own: var(--e1);
   color: var(--text-primary);

@@ -54,7 +54,7 @@ function Glass({
       }}
     >
       <div
-        className={theme === 'dark' ? 'glass glass-menu' : undefined}
+        className={theme === 'dark' ? 'mat mat-menu s12' : undefined}
         style={{
           padding: 16,
           borderRadius: 16,
