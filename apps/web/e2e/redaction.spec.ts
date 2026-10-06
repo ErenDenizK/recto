@@ -125,10 +125,10 @@ test('mark by selection and by area, list them, export and re-open with the mark
   await expect(redactLayer).toHaveAttribute('data-active', 'true');
   const box = await redactLayer.boundingBox();
   if (!box) throw new Error('page not rendered');
-  // Clear of the floating tool bar at the bottom of the stage.
-  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.55);
+  // Clear of the Markup palette at the bottom of the stage.
+  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.38);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.65, { steps: 8 });
+  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.48, { steps: 8 });
   await page.mouse.up();
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(2);
   await expect(page.getByTestId('annotation-bar')).toHaveCount(0);

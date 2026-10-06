@@ -197,11 +197,11 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
           document
             .elementFromPoint(x as number, y as number)
             ?.closest('[data-annotation-layer]') !== null,
-        [box.x + box.width * 0.3, box.y + box.height * 0.45],
+        [box.x + box.width * 0.3, box.y + box.height * 0.38],
       );
     })
     .toBe(true);
-  await clickPage(page, 0.3, 0.45);
+  await clickPage(page, 0.3, 0.38);
   await expect(stamps).toHaveCount(2, { timeout: 10_000 });
   await waitForSnapshot(page);
 
