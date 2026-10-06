@@ -13,10 +13,10 @@ import { announce } from '../shell/announcer';
 import { isPageView, useUiStore } from '../state/ui-store';
 import { READ_LAYOUTS, type ReadLayout, useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { openGoToPage } from './GoToPageDialog';
+import { openPillMenu } from '../shell/frame/frame-store';
 import { goToPageIndex, nextPage, previousPage } from './navigation';
 import { readController } from './read-controller';
-import { openSearchPanel, searchStep, useSearchStore } from './search';
+import { openFind, searchStep, useSearchStore } from './search';
 
 const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().workspace);
 const hasPages = () => (activeDocument()?.pages.length ?? 0) > 0;
@@ -51,7 +51,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       keywords: ['search', 'find', 'text', 'look up'],
       allowInInputs: true,
       when: () => activeDocument() !== undefined,
-      run: openSearchPanel,
+      run: openFind,
     }),
     registry.register({
       id: 'search.next',
@@ -85,7 +85,8 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       when: hasPages,
       run: () => {
         if (!isPageView(useUiStore.getState())) useUiStore.getState().showSurface('page');
-        openGoToPage();
+        // Go to page lives in the page pill's menu (01-frame F11 §6).
+        openPillMenu('page');
       },
     }),
     registry.register({

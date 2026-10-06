@@ -403,6 +403,23 @@ export function revealHit(hit: DocumentHit | undefined): void {
 /** What the left panel showed before Mod+F, so Esc can put it back. */
 let restoreView: { readonly open: boolean; readonly view: LeftPanelView } | null = null;
 
+/** The strip's Find entry while it is mounted (`shell/frame/FindEntry.tsx`, 01-frame F6). */
+let findEntryOpener: (() => void) | undefined;
+
+/** The Find entry registers how Mod+F reaches it; undefined when it unmounts. */
+export function setFindEntryOpener(opener: (() => void) | undefined): void {
+  findEntryOpener = opener;
+}
+
+/**
+ * Mod+F (01-frame F6 §6): focuses the frame's Find entry, opening it over the strip below
+ * 1280 px; without one (component tests), the Search panel as before.
+ */
+export function openFind(): void {
+  if (findEntryOpener) findEntryOpener();
+  else openSearchPanel();
+}
+
 /** Shows the Search panel in the left rail and focuses its field. */
 export function openSearchPanel(): void {
   const ui = useUiStore.getState();

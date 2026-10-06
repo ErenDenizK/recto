@@ -1,82 +1,15 @@
+/* The stage layer (01-frame F1): the free rectangle the frame's layers leave, written on :root
+   by frame-insets.ts. The reader's scroll container reaches out from here under the frame to
+   the shell's edges (stage/stage-bleed.ts); the Library and the grid lay out inside it. */
 .stage {
-  grid-area: stage;
-  position: relative;
+  position: absolute;
+  inset: var(--free-top, 0px) var(--free-right, 0px) var(--free-bottom, 0px) var(--free-left, 0px);
+  z-index: 0;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   background: var(--canvas);
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  /* Above the Read view's full-bleed page canvas, which scrolls under it (craft spec §7);
-     only its controls take the pointer. */
-  z-index: 1;
-  flex: none;
-  height: 48px;
-  pointer-events: none;
-}
-
-.header > * {
-  pointer-events: auto;
-}
-
-/* Read-mode layout switch, right-aligned so the mode switch stays centred. */
-.headerEnd {
-  position: absolute;
-  top: 50%;
-  right: var(--space-4);
-  transform: translateY(-50%);
-}
-
-.segmented {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
-  background: var(--surface-frame);
-}
-
-.segment {
-  composes: focus-inset from global;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-width: 72px;
-  height: 24px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-1);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
-}
-
-@media (hover: hover) {
-  .segment:hover {
-    color: var(--text-primary);
-  }
-}
-
-/* The Read segment's lock: the mode is carried by the glyph and the name, never colour. */
-.segmentIcon {
-  flex: none;
-  width: 12px;
-  height: 12px;
-}
-
-.segment[aria-checked='true'] {
-  background: var(--surface-on);
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
 
 .viewport {
@@ -199,26 +132,4 @@
   flex: 1;
   place-items: center;
   text-align: center;
-}
-
-.dropOverlay {
-  position: absolute;
-  inset: var(--space-3);
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  /* Dashed, like the light table's drop outline: one look for "drop files here" (J6). */
-  border: 1px dashed var(--accent-line);
-  border-radius: var(--radius-3);
-  background: var(--scrim);
-  pointer-events: none;
-}
-
-.dropLabel {
-  padding: 6px var(--space-3);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
-  background: var(--surface-on);
-  color: var(--text-primary);
-  font-size: var(--text-md);
 }

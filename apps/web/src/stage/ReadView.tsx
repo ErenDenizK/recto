@@ -18,11 +18,12 @@
  * With a text layer the page is a `region` whose content is its text; the canvas is
  * decorative.
  *
- * Full bleed (craft spec §7): the scroll container covers the whole app shell, under the
- * title bar, navigator, inspector and status bar, while fit, centring, the current page and
- * scroll-into-view use the unobscured rectangle (`view`, measured by `stage-bleed.ts`, the
- * stage's box below its header, with the stand-in scroll bars' room). At rest the pages sit
- * exactly where they sat inside the old, smaller viewport.
+ * Full bleed (craft spec §7; 01-frame F1): the scroll container covers the whole app shell,
+ * under the top strip, the sidebar, the inspector and the dock band, while fit, centring, the
+ * current page and scroll-into-view use the free rectangle (`view`, measured by `stage-bleed.ts`
+ * as the stage's box, which `shell/frame/frame-insets.ts` places in the free rectangle, with
+ * the stand-in scroll bars' room). Pages pass beneath the glass while scrolling and rest clear
+ * of it: fit, jumps and focus land inside the free rectangle (A-12).
  */
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
@@ -44,9 +45,9 @@ import { useSelectionStore } from '../state/selection-store';
 import { clamp, MAX_ZOOM, MIN_ZOOM, useUiStore } from '../state/ui-store';
 import { type ReadLayout, useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { SOFT_EDGE } from '../shell/frame/frame-insets';
 import styles from '../shell/Stage.module.css';
 import { type Box, userRectToCss } from '../viewer/geometry';
-import { GoToPageDialog } from '../viewer/GoToPageDialog';
 import {
   documentFingerprint,
   documentLabels,
@@ -69,8 +70,16 @@ import { type Insets, scrollbarSize, scrollbarsNeeded, useStageBleed } from './s
 import { useCanvasZoom, type ZoomColumn } from './use-canvas-zoom';
 
 const PAD_X = 48;
-const PAD_TOP = 16;
-const PAD_BOTTOM = 112;
+/**
+ * The first page rests, and jumps land, 24 px below the strip: clear of the soft scroll edge
+ * (01-frame F1 §3, spec 01.9).
+ */
+const PAD_TOP = SOFT_EDGE;
+/**
+ * The last page rests 16 px above the dock band: the free rectangle already leaves the band
+ * out (F1 §2: the scroller's bottom padding equals the bottom inset + 16).
+ */
+const PAD_BOTTOM = 16;
 const GAP = 16;
 /** Debounce before a zoom change requests sharper bitmaps. */
 const ZOOM_RENDER_DELAY_MS = 160;
@@ -364,7 +373,6 @@ export function ReadView({ doc }: { readonly doc: VirtualDocument }) {
             chipRef={chipRef}
           />
         ) : null}
-        <GoToPageDialog doc={doc} />
       </div>
       <PinchDetentChip ref={chipRef} />
       <PageScrubber doc={doc} viewport={viewport} />

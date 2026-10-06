@@ -21,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../../test/store-harness';
 import { resetAnnouncer, useAnnouncer } from '../../shell/announcer';
-import { useRegionCycling } from '../../shell/LeftRail.regions';
+import { useRegionCycling } from '../../shell/frame/regions';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { resetToastHints, setHistoryOpener, toast } from './toast';
 import { ACTION_MS, resetToasts, useToastStore } from './toast-store';
@@ -30,14 +30,14 @@ import { ToastRegion } from './ToastRegion';
 /** A shell with one header button, the F6 cycle installed, and the region beside it. */
 function Shell() {
   const ref = useRef<HTMLDivElement>(null);
-  useRegionCycling(ref);
+  useRegionCycling();
   return (
     <>
       <div ref={ref} data-testid="app-shell">
-        <header>
+        <header data-region="top">
           <button type="button">Tab</button>
         </header>
-        <main>
+        <main id="stage">
           <button type="button" data-read-viewport="">
             page
           </button>
