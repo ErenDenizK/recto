@@ -8,19 +8,22 @@
 import type { OcrLanguagePack } from '@pdf-editor/engine';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import imagesUrl from '../../../../test/fixtures/images.pdf?url';
 import { chooseOption } from '../../test/choose';
 import { fixtureFile } from '../../test/store-harness';
 import { commandRegistry } from '../commands/registry';
+import { m } from '../i18n';
 import { setOcrDependencies } from '../ocr/ocr-deps';
 import BatchSheet from './BatchSheet';
 import { registerBatchCommands } from './batch-commands';
 import { closeBatchDialog, openBatchDialog, useBatchStore } from './batch-store';
 
-beforeEach(() => {
+beforeEach(async () => {
+  // S21's centred 720 dialog (expanded and up); under 600 px Batch is dimmed (07.Q4).
+  await page.viewport(1440, 900);
   openBatchDialog();
 });
 afterEach(() => {
@@ -264,8 +267,33 @@ describe('Batch command', () => {
     try {
       await act(() => commandRegistry.execute('document.batch'));
       expect(useBatchStore.getState().open).toBe(true);
+      // A tool, not a document command: it stays out of the title menu's Document rows.
+      expect(commandRegistry.get('document.batch')?.group).toBe(m.group_tools());
     } finally {
       dispose();
     }
+  });
+
+  it('is dimmed with "Needs a wider window" under 600 px (07.Q4)', async () => {
+    closeBatchDialog();
+    const dispose = registerBatchCommands(commandRegistry);
+    try {
+      await page.viewport(560, 800);
+      const command = commandRegistry.get('document.batch');
+      if (!command) throw new Error('not registered');
+      expect(commandRegistry.isEnabled(command)).toBe(false);
+      expect(commandRegistry.disabledReason(command)).toBe('Needs a wider window');
+    } finally {
+      dispose();
+    }
+  });
+
+  it('is a centred 720 dialog from expanded up (S21 §2)', async () => {
+    render(<BatchSheet />);
+    const sheet = await screen.findByTestId('batch-dialog');
+    expect(sheet).toHaveAttribute('data-presentation', 'dialog');
+    expect(sheet).toHaveAttribute('data-kind', 'batch');
+    // Polled: the entrance grows it from 96 % on the motion core.
+    await expect.poll(() => sheet.getBoundingClientRect().width).toBe(720);
   });
 });

@@ -2,8 +2,8 @@
  * OCR end to end (spec recognize-and-compare §1.5, ADR-0012 §7) on scan-text.pdf, two scanned
  * pages without text (test/fixtures/manifest.json): the dialog proposes both pages and
  * English, the run recognises them with tesseract.js served from our origin, one history
- * entry records it, the right panel's OCR section shows each page's quality and J / K rings a
- * low-confidence word, Find finds words of the manifest, and the export's summary names the
+ * entry records it, Show results opens Review's Words to check (spec X33, D2-9) with each
+ * page's quality, languages and resolution, and J / K ring a low-confidence word, Find finds words of the manifest, and the export's summary names the
  * run. The exported file carries the words in its invisible layer (read back with pdf-lib);
  * undo removes the text and redo brings it back from the stored words.
  * Throughout, the request log shows no request to any other origin, and every worker the page
@@ -15,7 +15,14 @@ import { readFile } from 'node:fs/promises';
 import { decodePDFRawStream, PDFDict, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { copySummary, openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
+import {
+  copySummary,
+  historyStep,
+  inHistory,
+  openFixtures,
+  openSaveCopy,
+  useFileInputPicker,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'OCR is verified on Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -77,7 +84,7 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   // Nothing OCR-related is fetched before the dialog is used (spec §1.1).
   expect(ocrFiles).toEqual([]);
 
-  // 1. Document menu → Recognize text (OCR)…
+  // 1. Title menu → Recognize text (OCR)…: S10, a tool sheet.
   await page.getByTestId('document-menu').click();
   await page.getByRole('menuitem', { name: 'Recognize text (OCR)…' }).click();
   const dialog = page.getByTestId('ocr-dialog');
@@ -88,7 +95,7 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await expect(dialog.getByTestId('ocr-honesty')).toContainText('may contain errors');
   await dialog.getByRole('button', { name: 'Recognize 2 pages' }).click();
 
-  // 2. The run: progress in the dialog and the status bar; then the result.
+  // 2. The run: progress in the sheet; then the result.
   await expect(
     dialog.getByTestId('ocr-progress').or(dialog.getByTestId('ocr-result')),
   ).toBeVisible();
@@ -99,35 +106,30 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await dialog.getByRole('button', { name: 'Show results' }).click();
   await expect(dialog).toHaveCount(0);
 
-  // One history entry for the run.
-  await expect(
-    page
-      .getByRole('list', { name: /history/i })
-      .getByRole('button', { name: /Recognize text: 2 pages, eng/ }),
-  ).toBeVisible();
-
-  // 3. The OCR section: page 1's quality, languages and resolution; pages by quality.
-  const section = page.getByTestId('ocr-section');
-  await expect(section).toBeVisible();
-  await expect(section.getByTestId('ocr-quality')).toHaveText(/^(Good|Review|Poor) · \d+%$/);
-  await expect(section).toContainText('English');
-  await expect(section).toContainText('dpi');
-  await expect(
-    section.getByRole('list', { name: 'Pages by quality' }).getByRole('button'),
-  ).toHaveCount(2);
-  // Page 2 (skewed, with dust) from the document list: J rings its low-confidence word on the
-  // page (a 1px ring; the page is never tinted) and marks the row current.
-  await section
-    .getByRole('list', { name: 'Pages by quality' })
-    .getByRole('button', { name: /^Page 2/ })
-    .click();
-  await expect(section.getByRole('heading', { name: 'Page 2' })).toBeVisible();
-  const lowWords = section.getByTestId('ocr-low-words');
-  await expect(lowWords.getByRole('button')).not.toHaveCount(0);
+  // 3. Show results opened Review on Words to check (X33): each recognised page with its
+  // quality, languages and resolution, then its low-confidence words.
+  const reviewWords = page.getByTestId('review-words');
+  await expect(reviewWords).toBeVisible();
+  const pages = reviewWords.getByTestId('review-words-page');
+  await expect(pages).toHaveCount(2);
+  await expect(pages.first()).toContainText(/^Page 1 · (Good|Review|Poor)/);
+  await expect(pages.first()).toContainText('English');
+  await expect(pages.first()).toContainText('dpi');
+  await expect(pages.nth(1)).toContainText(/^Page 2 · (Good|Review|Poor)/);
+  // J rings a low-confidence word on its page (a 1px ring; the page is never tinted) and marks
+  // its row current.
+  await expect(reviewWords.getByTestId('review-word')).not.toHaveCount(0);
   await page.keyboard.press('j');
   await expect(page.getByTestId('ocr-focus-ring')).toHaveCount(1);
-  await expect(lowWords.locator('button[aria-current="true"]')).toHaveCount(1);
-  await expect(page.locator('[data-page-index="1"]').getByTestId('ocr-focus-ring')).toBeVisible();
+  await expect(reviewWords.locator('button[aria-current="true"]')).toHaveCount(1);
+  if (process.env.SHOTS_DIR) {
+    await page.screenshot({ path: `${process.env.SHOTS_DIR}/ocr-words-to-check-1440-en.png` });
+  }
+
+  // One history entry for the run.
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /Recognize text: 2 pages, eng/)).toBeVisible(),
+  );
 
   // 4. Find: words of the manifest are found in the recognised text.
   await page.keyboard.press(`${await mod(page)}+f`);
@@ -154,10 +156,11 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await page.keyboard.press('Escape');
   await expect(exportDialog).toHaveCount(0);
 
-  // 6. Undo reopens the original and replays the rest: no recognised text, no section; redo
-  // writes the stored words again without recognising anew.
+  // 6. Undo reopens the original and replays the rest: no recognised text, no page in Words to
+  // check (the filter stays for the session); redo writes the stored words again without
+  // recognising anew.
   await page.keyboard.press(`${await mod(page)}+z`);
-  await expect(section).toHaveCount(0);
+  await expect(pages).toHaveCount(0);
   await page.keyboard.press(`${await mod(page)}+f`);
   await field.fill('quick');
   await expect(page.getByTestId('find-count')).toHaveText('No matches', { timeout: 20_000 });
@@ -165,7 +168,7 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await field.press('Escape');
   await field.press('Escape');
   await page.keyboard.press(`${await mod(page)}+Shift+z`);
-  await expect(section.getByTestId('ocr-quality')).toBeVisible();
+  await expect(pages).toHaveCount(2);
   await page.keyboard.press(`${await mod(page)}+f`);
   await field.fill('quick');
   await expect(page.getByTestId('find-count')).toContainText('1 of', { timeout: 20_000 });

@@ -13,6 +13,7 @@ import { createContext, useContext, useState } from 'react';
 import { formatNumber, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Button } from '../ui/Button';
 import { EmptyNote } from '../ui/EmptyNote';
 import { Icon } from '../ui/Icon';
 import { openSignedVersion, useSignatureStore } from './signature-store';
@@ -276,14 +277,9 @@ function SignatureCard({
       </details>
       {hasSignedVersion(report) ? (
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.small}
-            disabled={opening}
-            onClick={() => void viewSigned()}
-          >
+          <Button variant="standard" busy={opening} onClick={() => void viewSigned()}>
             {m.signature_view_signed()}
-          </button>
+          </Button>
         </div>
       ) : null}
       {error ? (

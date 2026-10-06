@@ -31,7 +31,6 @@ import {
   enterEdit,
   fixturePath,
   openFixtures,
-  showInspector,
   useFileInputPicker,
   openSaveCopyFromMenu,
   showSidebar,
@@ -119,12 +118,11 @@ async function lasso(
 // ---------------------------------------------------------------------------
 
 test.describe('keyboard', () => {
-  test('F6 and Shift+F6 cycle strip, sidebar, page, tool bar, page pill and inspector (X9)', async ({
+  test('F6 and Shift+F6 cycle strip, sidebar, page, tool bar and page pill (X9)', async ({
     page,
   }) => {
     await openSimple(page);
     await enterEdit(page);
-    await showInspector(page);
     // An armed tool with options: its ink strip sits in the palette, but F6 lands on the
     // palette's tools, on the armed tool (T, the Text box).
     await page.locator('body').press('t');
@@ -137,7 +135,6 @@ test.describe('keyboard', () => {
     const title = page.getByRole('tablist', { name: 'Open documents' });
     // F6 stop 2 lands on the sidebar's current item (06 N1 §6): the current page's thumbnail.
     const navigator = page.getByRole('listbox', { name: /^Pages of/ });
-    const inspector = page.locator('#right-panel');
     const highlight = bar(page).getByRole('button', { name: 'Text box', exact: true });
     const pill = page.getByTestId('page-pill');
 
@@ -151,14 +148,11 @@ test.describe('keyboard', () => {
     await expect(highlight).toBeFocused();
     await page.keyboard.press('F6');
     await expect(pill).toBeFocused();
-    await page.keyboard.press('F6');
-    expect(await holdsFocus(inspector)).toBe(true);
+    // No inspector after the pill since D2-9: the cycle wraps to the strip.
     await page.keyboard.press('F6');
     await expect(title.getByRole('tab', { selected: true })).toBeFocused();
 
     // And back.
-    await page.keyboard.press('Shift+F6');
-    expect(await holdsFocus(inspector)).toBe(true);
     await page.keyboard.press('Shift+F6');
     await expect(pill).toBeFocused();
     await page.keyboard.press('Shift+F6');
@@ -977,17 +971,13 @@ test.describe('craft spec §9', () => {
   }) => {
     await openSimple(page);
     await enterEdit(page);
-    await showInspector(page);
     await viewport(page).focus();
     await page.keyboard.press('F6');
     const select = bar(page).getByRole('button', { name: 'Select', exact: true });
     await expect(select).toBeFocused();
-    // The page pill sits between the dock and the inspector in the F6 order (01-frame X9).
+    // The page pill comes after the dock in the F6 order (01-frame X9).
     await page.keyboard.press('F6');
     await expect(page.getByTestId('page-pill')).toBeFocused();
-    await page.keyboard.press('F6');
-    expect(await holdsFocus(page.locator('#right-panel'))).toBe(true);
-    await page.keyboard.press('Shift+F6');
     await page.keyboard.press('Shift+F6');
     await expect(select).toBeFocused();
     // Tab and Shift+Tab never stop on anything hidden, with Select and with a pen's strip.
@@ -1003,7 +993,6 @@ test.describe('craft spec §9', () => {
     page,
   }) => {
     await openWordTagged(page);
-    await showInspector(page);
     await armEditText(page);
     const targets = paragraphTargets(page);
     const count = await targets.count();
@@ -1185,7 +1174,6 @@ test.describe('glass (craft spec §7, §9)', () => {
     await appearance(page, { glassPanels: true, reduceTransparency: false });
     await openSimple(page);
     await expect(page.locator('html')).toHaveAttribute('data-glass-panels', '');
-    await showInspector(page);
     // Meaningful only if something is glass: the floating bar at least is translucent.
     expect(
       (await glassSurfaces(page)).some((surface) => surface.alpha < 1 || surface.filter !== 'none'),
@@ -1206,7 +1194,6 @@ test.describe('glass (craft spec §7, §9)', () => {
     await appearance(page, { glassPanels: true, reduceTransparency: true });
     await openWordTagged(page);
     await expect(page.locator('html')).toHaveAttribute('data-transparency', 'reduced');
-    await showInspector(page);
     const expectSolid = async (state: string) => {
       const surfaces = await glassSurfaces(page);
       expect(surfaces.length, state).toBeGreaterThan(0);

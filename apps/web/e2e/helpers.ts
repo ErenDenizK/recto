@@ -89,14 +89,35 @@ export async function sentInkWidths(page: Page): Promise<number[][][]> {
 }
 
 /**
- * Opens the inspector (Selection, Properties, History, Info), which is closed until the
- * person opens it (experience-redesign §4.2); tests that read the history or a section
- * call this first.
+ * Reads the History scrubber (08-feedback FB7), which took the inspector's History list (spec
+ * D2-9): a right-click on ↶ opens its list (fine pointers), `check` runs on it, and Esc closes
+ * it. Nothing is previewed, so closing leaves the document at the step it opened at. Steps are
+ * `historyStep(list, label)`; `data-state` says past, present or future.
  */
-export async function showInspector(page: Page): Promise<void> {
-  const inspector = page.locator('#right-panel');
-  if (!(await inspector.isVisible())) await page.keyboard.press('ControlOrMeta+Alt+b');
-  await expect(inspector).toBeVisible();
+export async function inHistory(
+  page: Page,
+  check: (list: Locator) => Promise<void>,
+): Promise<void> {
+  const scrubber = page.getByTestId('history-scrubber');
+  await page.getByTestId('undo-button').click({ button: 'right' });
+  await expect(scrubber).toBeVisible();
+  try {
+    await check(scrubber.getByTestId('history-list'));
+  } finally {
+    await page.keyboard.press('Escape');
+    await expect(scrubber).toHaveCount(0);
+  }
+}
+
+/** A step of the scrubber's list by its label: its name is "{label}, page {n}, {time}". */
+export function historyStep(list: Locator, label: string | RegExp): Locator {
+  return list.getByRole('option', {
+    name: typeof label === 'string' ? new RegExp(`^${escapeRegExp(label)}`) : label,
+  });
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**

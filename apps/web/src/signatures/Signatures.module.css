@@ -16,14 +16,15 @@
   border-top: 1px solid var(--border-hairline);
 }
 
+/* S9's labels: the footnote at 550 in the glass's secondary text, as the sheets' group labels
+   (language.md §4.3: no uppercase labels). */
 .sourceName {
   overflow: hidden;
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 550;
+  line-height: var(--type-footnote-lh);
   text-overflow: ellipsis;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -127,11 +128,10 @@
 }
 
 .subheading {
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 550;
+  line-height: var(--type-footnote-lh);
 }
 
 .lines {

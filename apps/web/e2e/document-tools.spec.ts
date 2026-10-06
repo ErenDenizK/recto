@@ -12,9 +12,10 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
   copySummary,
+  historyStep,
+  inHistory,
   openFixtures,
   openSaveCopy,
-  showInspector,
   useFileInputPicker,
 } from './helpers';
 
@@ -75,10 +76,7 @@ test('edit the title, set a password, export, and open the output with the passw
   await title.press('Enter');
   await expect(page.getByTestId('metadata-policy')).toContainText('Edited');
   await closeDocumentInfo(page);
-  await showInspector(page);
-  await expect(
-    page.getByRole('list', { name: /history/i }).getByRole('button', { name: 'Change Title' }),
-  ).toBeVisible();
+  await inHistory(page, (list) => expect(historyStep(list, 'Change Title')).toBeVisible());
 
   await runDocumentCommand(page, 'Set password…');
   const dialog = page.getByTestId('set-password-dialog');

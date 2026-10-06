@@ -21,7 +21,7 @@
  */
 import type { DocumentId, SourceId } from '@pdf-editor/document-model';
 import { type OcrLanguagePack, parsePageRange } from '@pdf-editor/engine';
-import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { formatNumber, getLocale, m } from '../i18n';
 import { useSignatureStore } from '../signatures/signature-store';
@@ -29,7 +29,9 @@ import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import toolStyles from '../tools/ToolDialog.module.css';
 import { Button } from '../ui/Button';
-import { Sheet, type SheetPrimary } from '../ui/sheet';
+import { Checkbox } from '../ui/Checkbox';
+import { RadioGroup } from '../ui/RadioGroup';
+import { Sheet, SheetField, type SheetPrimary } from '../ui/sheet';
 import { useRetained } from '../ui/use-retained';
 import { pageProgress, qualityLabel } from './labels';
 import styles from './Ocr.module.css';
@@ -218,9 +220,6 @@ function useRunForm(documentId: DocumentId | undefined): {
   const [chosen, setChosen] = useState<readonly string[] | null>(null);
   const [quality, setQuality] = useState<'standard' | 'high'>('standard');
   const [replace, setReplace] = useState<boolean | null>(null);
-  const scopeName = useId();
-  const qualityName = useId();
-  const rangeHint = useId();
 
   const effectiveScope = scope ?? defaultScope(targets, factsMap);
   const parsedRange = parsePageRange(range, pageCount);
@@ -290,10 +289,10 @@ function useRunForm(documentId: DocumentId | undefined): {
     },
     body: (
       <div className={styles.body} data-testid="ocr-form">
-        <fieldset className={toolStyles.fieldset}>
-          <legend className={toolStyles.legend}>{m.ocr_pages()}</legend>
+        <div className={styles.group}>
+          <p className={styles.legend}>{m.ocr_pages()}</p>
           {facts.status === 'loading' ? (
-            <p className={toolStyles.hint} role="status">
+            <p className={styles.hint} role="status">
               {m.ocr_checking_pages()}
             </p>
           ) : facts.status === 'failed' ? (
@@ -301,56 +300,44 @@ function useRunForm(documentId: DocumentId | undefined): {
               {m.ocr_facts_failed({ reason: facts.message })}
             </p>
           ) : null}
-          <div className={styles.stack}>
-            {(['without-text', 'all', 'current', 'range'] as const).map((option) => (
-              <label key={option} className={toolStyles.check}>
-                <input
-                  type="radio"
-                  name={scopeName}
-                  value={option}
-                  checked={effectiveScope === option}
-                  disabled={option === 'without-text' && withoutText === 0}
-                  onChange={() => setScope(option)}
-                />
-                <span>
-                  {option === 'without-text'
-                    ? m.ocr_scope_without_text({ count: withoutText })
-                    : option === 'all'
-                      ? m.ocr_scope_all({ count: targets.length })
-                      : option === 'current'
-                        ? m.ocr_scope_current({
-                            page: Math.min(currentPage, Math.max(0, pageCount - 1)) + 1,
-                          })
-                        : m.ocr_scope_range()}
-                </span>
-              </label>
-            ))}
-          </div>
+          <RadioGroup<OcrScope>
+            label={m.ocr_pages()}
+            value={effectiveScope}
+            onValueChange={setScope}
+            options={[
+              {
+                value: 'without-text',
+                label: m.ocr_scope_without_text({ count: withoutText }),
+                disabled: withoutText === 0,
+              },
+              { value: 'all', label: m.ocr_scope_all({ count: targets.length }) },
+              {
+                value: 'current',
+                label: m.ocr_scope_current({
+                  page: Math.min(currentPage, Math.max(0, pageCount - 1)) + 1,
+                }),
+              },
+              { value: 'range', label: m.ocr_scope_range() },
+            ]}
+          />
           {effectiveScope === 'range' ? (
-            <label className={toolStyles.field}>
-              <span className="visually-hidden">{m.ocr_scope_range()}</span>
-              <input
-                className={toolStyles.input}
-                value={range}
-                placeholder={`1-${pageCount}`}
-                aria-invalid={parsedRange === null}
-                aria-describedby={rangeHint}
-                onChange={(event) => setRange(event.target.value)}
-              />
-              <span id={rangeHint} className={toolStyles.hint}>
-                {parsedRange === null
-                  ? m.images_pages_invalid({ count: pageCount })
-                  : m.images_pages_hint()}
-              </span>
-            </label>
+            <SheetField
+              label={m.ocr_scope_range()}
+              value={range}
+              placeholder={`1-${pageCount}`}
+              spellCheck={false}
+              autoComplete="off"
+              error={parsedRange === null ? m.images_pages_invalid({ count: pageCount }) : null}
+              onChange={(event) => setRange(event.target.value)}
+            />
           ) : null}
           {targets.length < pageCount ? (
-            <p className={toolStyles.hint}>{m.ocr_scope_skipped()}</p>
+            <p className={styles.hint}>{m.ocr_scope_skipped()}</p>
           ) : null}
-        </fieldset>
+        </div>
 
-        <fieldset className={toolStyles.fieldset}>
-          <legend className={toolStyles.legend}>{m.ocr_languages()}</legend>
+        <div className={styles.group}>
+          <p className={styles.legend}>{m.ocr_languages()}</p>
           {packs.status === 'failed' ? (
             <p className={toolStyles.error} role="alert">
               {m.ocr_packs_failed({ reason: packs.message })}
@@ -358,81 +345,73 @@ function useRunForm(documentId: DocumentId | undefined): {
           ) : null}
           <ul className={styles.languages} aria-label={m.ocr_languages()}>
             {available.map((pack) => (
-              <li key={pack.code}>
-                <label className={styles.language}>
-                  <input
-                    type="checkbox"
-                    checked={languages.includes(pack.code)}
-                    onChange={(event) => toggleLanguage(pack.code, event.target.checked)}
-                  />
-                  <span className={styles.languageName}>{languageName(pack.code, locale)}</span>
-                  <span className={styles.meta} data-testid="ocr-language-state">
-                    {pack.onDevice
-                      ? m.ocr_pack_on_device({ size: formatMegabytes(pack.bytes, locale) })
-                      : m.ocr_pack_downloads({ size: formatMegabytes(pack.downloadBytes, locale) })}
-                  </span>
-                </label>
+              <li key={pack.code} className={styles.language}>
+                <Checkbox
+                  checked={languages.includes(pack.code)}
+                  onCheckedChange={(on) => toggleLanguage(pack.code, on)}
+                  label={
+                    <span className={styles.languageLabel}>
+                      <span className={styles.languageName}>{languageName(pack.code, locale)}</span>
+                      <span className={styles.meta} data-testid="ocr-language-state">
+                        {pack.onDevice
+                          ? m.ocr_pack_on_device({ size: formatMegabytes(pack.bytes, locale) })
+                          : m.ocr_pack_downloads({
+                              size: formatMegabytes(pack.downloadBytes, locale),
+                            })}
+                      </span>
+                    </span>
+                  }
+                />
               </li>
             ))}
           </ul>
           <div className={styles.row}>
-            <span className={toolStyles.hint} data-testid="ocr-languages-key">
+            <span className={styles.hint} data-testid="ocr-languages-key">
               {languages.length > 0
                 ? m.ocr_languages_order({ languages: languagesKey(languages) })
                 : m.ocr_languages_none()}
             </span>
             <span className={toolStyles.spacer} />
-            <button
-              type="button"
-              className={styles.link}
-              onClick={() => setOcrDialogView('languages')}
-            >
+            <Button variant="quiet" onClick={() => setOcrDialogView('languages')}>
               {m.ocr_manage_languages()}
-            </button>
+            </Button>
           </div>
           {download > 0 ? (
-            <p className={toolStyles.hint}>
+            <p className={styles.hint}>
               {m.ocr_download_note({ size: formatMegabytes(download, locale) })}
             </p>
           ) : null}
-        </fieldset>
+        </div>
 
-        <fieldset className={toolStyles.fieldset}>
-          <legend className={toolStyles.legend}>{m.ocr_quality()}</legend>
-          <div className={styles.presets}>
-            {(['standard', 'high'] as const).map((option) => (
-              <label key={option} className={toolStyles.preset}>
-                <input
-                  type="radio"
-                  name={qualityName}
-                  value={option}
-                  checked={quality === option}
-                  onChange={() => setQuality(option)}
-                />
-                <span className={toolStyles.presetName}>
-                  {option === 'standard' ? m.ocr_quality_standard() : m.ocr_quality_high()}
-                </span>
-                <span className={toolStyles.hint}>
-                  {option === 'standard'
-                    ? m.ocr_quality_standard_hint()
-                    : m.ocr_quality_high_hint()}
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <div className={styles.group}>
+          <p className={styles.legend}>{m.ocr_quality()}</p>
+          <RadioGroup<'standard' | 'high'>
+            label={m.ocr_quality()}
+            value={quality}
+            onValueChange={setQuality}
+            options={[
+              {
+                value: 'standard',
+                label: m.ocr_quality_standard(),
+                description: m.ocr_quality_standard_hint(),
+              },
+              {
+                value: 'high',
+                label: m.ocr_quality_high(),
+                description: m.ocr_quality_high_hint(),
+              },
+            ]}
+          />
+        </div>
 
         {replaceShown ? (
-          <div className={styles.stack}>
-            <label className={toolStyles.check}>
-              <input
-                type="checkbox"
-                checked={replaceChecked}
-                onChange={(event) => setReplace(event.target.checked)}
-              />
-              <span>{m.ocr_replace()}</span>
-            </label>
-            <p className={toolStyles.hint} data-testid="ocr-replace-hint">
+          <div className={styles.group}>
+            <Checkbox
+              checked={replaceChecked}
+              onCheckedChange={setReplace}
+              label={m.ocr_replace()}
+            />
+            <p className={styles.hint} data-testid="ocr-replace-hint">
               {invisible.foreign > 0
                 ? m.ocr_replace_foreign({ count: invisible.foreign })
                 : m.ocr_replace_ours({ count: invisible.ours })}
