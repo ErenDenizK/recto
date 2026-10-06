@@ -1,4 +1,4 @@
-import { type PageId, pageId } from '@pdf-editor/document-model';
+import { type PageId, pageId, type VirtualDocument } from '@pdf-editor/document-model';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,6 +7,8 @@ import {
   extendSelection,
   marqueeSelection,
   moveFocusIndex,
+  navigatorClick,
+  navigatorExtend,
   pruneClipboard,
   pruneSelection,
   rangeBetween,
@@ -14,6 +16,7 @@ import {
   selectAllOf,
   type SelectionSnapshot,
   toggleSelection,
+  visibleSelection,
 } from './selection-store';
 
 const order: PageId[] = ['a', 'b', 'c', 'd', 'e'].map(pageId);
@@ -128,5 +131,52 @@ describe('pruneClipboard', () => {
     expect(pruneClipboard(clipboard, (id) => id === b)).toEqual({ pageIds: [b], mode: 'cut' });
     expect(pruneClipboard(clipboard, () => false)).toBeNull();
     expect(pruneClipboard(null, () => true)).toBeNull();
+  });
+});
+
+describe('navigator safety (S10)', () => {
+  const grid = { selected: new Set<PageId>(), anchor: null, focused: d };
+
+  it('navigation never writes the selection: a plain click hands back the same state', () => {
+    expect(navigatorClick(EMPTY_SELECTION, order, b, plain, a)).toBe(EMPTY_SELECTION);
+    const selected = { selected: new Set([c]), anchor: c, focused: null };
+    expect(navigatorClick(selected, order, b, plain, a)).toBe(selected);
+  });
+
+  it('Shift-click selects from the anchor, else from the page being read', () => {
+    expect(ids(navigatorClick(EMPTY_SELECTION, order, d, { shift: true, mod: false }, b))).toEqual([
+      b,
+      c,
+      d,
+    ]);
+    const anchored = { selected: new Set([a]), anchor: a, focused: null };
+    expect(ids(navigatorClick(anchored, order, c, { shift: true, mod: false }, e))).toEqual([
+      a,
+      b,
+      c,
+    ]);
+  });
+
+  it('Mod-click toggles one page; the grid’s keyboard focus stays where it was', () => {
+    const next = navigatorClick(grid, order, b, { shift: false, mod: true }, a);
+    expect(ids(next)).toEqual([b]);
+    expect(next.focused).toBe(d);
+    expect(ids(navigatorClick(next, order, b, { shift: false, mod: true }, a))).toEqual([]);
+  });
+
+  it('Shift+Down extends from the row the key left, keeping the grid’s focus', () => {
+    const next = navigatorExtend(grid, order, b, c);
+    expect(ids(next)).toEqual([b, c]);
+    expect(next.anchor).toBe(b);
+    expect(next.focused).toBe(d);
+  });
+
+  it('a selection is visible on the page only where the navigator lists it', () => {
+    const shown = { pages: [c, a, e].map((id) => ({ id })) } as unknown as VirtualDocument;
+    const selected = new Set([a, b, c]);
+    expect(visibleSelection(selected, undefined)).toEqual([]);
+    expect(visibleSelection(new Set(), shown)).toEqual([]);
+    // In the list's page order; `b` belongs to a document the list does not show.
+    expect(visibleSelection(selected, shown)).toEqual([c, a]);
   });
 });

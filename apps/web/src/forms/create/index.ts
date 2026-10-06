@@ -108,7 +108,7 @@ export function startPlacing(kind: CreatedFieldKind): void {
   if (!getActiveDocument(useWorkspaceStore.getState().workspace)) return;
   if (!canEditActive()) return;
   const ui = useUiStore.getState();
-  if (!isPageView(ui)) ui.setViewMode('read');
+  if (!isPageView(ui)) ui.showSurface('page');
   useToolStore.getState().setMode('select');
   useFormStore.getState().setActive(null);
   const store = useCreateStore.getState();
@@ -132,7 +132,7 @@ export function setDesign(on: boolean): void {
   if (on && !canEditActive()) return;
   if (on) {
     const ui = useUiStore.getState();
-    if (!isPageView(ui)) ui.setViewMode('read');
+    if (!isPageView(ui)) ui.showSurface('page');
     useToolStore.getState().setMode('select');
     useFormStore.getState().setActive(null);
   }
@@ -148,8 +148,8 @@ const stop = () => {
 
 useUiStore.subscribe((state, previous) => {
   if (stageView(state) !== stageView(previous)) stop();
-  // The document left Edit: placing and editing fields stop.
-  else if (state.documentMode !== previous.documentMode && !canEditActive()) stop();
+  // The document left Edit (Markup closed): placing and editing fields stop.
+  else if (state.docUi !== previous.docUi && !canEditActive()) stop();
 });
 // Placing ended (placed, cancelled, stopped): forget the invoker.
 useCreateStore.subscribe((state, previous) => {
@@ -179,18 +179,21 @@ if (typeof window !== 'undefined') {
 }
 
 export function registerCreateFieldCommands(registry: CommandRegistry): () => void {
-  // Adding and editing fields are page edits: disabled in Read (ADR-0019 §3).
-  const hasDocument = () =>
-    (getActiveDocument(useWorkspaceStore.getState().workspace)?.pages.length ?? 0) > 0 &&
-    canEditActive();
+  const hasPages = () =>
+    (getActiveDocument(useWorkspaceStore.getState().workspace)?.pages.length ?? 0) > 0;
+  // Adding and editing fields are page edits: disabled outside Markup (M8's Read, ADR-0019 §3).
+  const hasDocument = () => hasPages() && canEditActive();
   const disposers = [
     ...FIELD_KINDS.map((kind) =>
       registry.register({
         id: `forms.add.${kind}`,
         title: m.cmd_forms_add({ kind: kindName(kind) }),
         group: m.group_tools(),
+        // Add field places at a point (X34): in Markup, the guard's "Open Markup to place"
+        // dims it elsewhere.
+        act: 'place',
         keywords: ['form', 'field', 'add', 'create', 'new', kind],
-        when: hasDocument,
+        when: hasPages,
         run: () => startPlacing(kind),
       }),
     ),
@@ -198,6 +201,7 @@ export function registerCreateFieldCommands(registry: CommandRegistry): () => vo
       id: 'forms.design',
       title: m.cmd_forms_design(),
       group: m.group_tools(),
+      act: 'targeted',
       keywords: ['form', 'fields', 'edit', 'move', 'resize', 'properties', 'prepare'],
       when: hasDocument,
       run: () => setDesign(!useCreateStore.getState().design),

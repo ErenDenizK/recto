@@ -55,7 +55,7 @@ describe('Read mode: resized pages', () => {
     await page.viewport(1280, 1000);
     resetWorkspace();
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
-    useUiStore.setState({ viewMode: 'read', paletteOpen: false });
+    useUiStore.setState({ docUi: {}, paletteOpen: false });
     const bytes = await (await fetch(annotationsUrl)).arrayBuffer();
     await openDocuments([new File([bytes], 'annotations.pdf', { type: 'application/pdf' })]);
     const doc = model().workspace.documents[model().workspace.documentOrder[0] ?? ('' as never)];

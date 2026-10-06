@@ -18,13 +18,13 @@
 import type { CommandRegistry } from '../commands/registry';
 import { chooseLocale, followsBrowser, getLocale, LOCALE_NAMES, m } from '../i18n';
 import { announce } from '../shell/announcer';
-import { useEditPolicyStore } from '../state/edit-policy-store';
+import { useInputPolicyStore } from '../state/input-policy-store';
 import { openSettings } from './open-settings';
 import { rowKeywords } from './search-index';
 
 /** Whether a one-time tip has been used up and "Show tips again" would bring it back. */
 export function tipsToShowAgain(): boolean {
-  return useEditPolicyStore.getState().editTextHintShown;
+  return useInputPolicyStore.getState().editTextHintShown;
 }
 
 /**
@@ -32,7 +32,7 @@ export function tipsToShowAgain(): boolean {
  * "Double-click to edit text" hint (craft §3.5); the facts chip arrives with the Library (D4).
  */
 export function showTipsAgain(): void {
-  useEditPolicyStore.setState({ editTextHintShown: false });
+  useInputPolicyStore.setState({ editTextHintShown: false });
   announce(m.settings_tips_reset());
 }
 
@@ -51,6 +51,7 @@ export function registerSettingsCommands(registry: CommandRegistry): () => void 
       id: 'settings.open',
       title: m.settings_command(),
       group: m.group_general(),
+      act: null,
       shortcut: 'Mod+,',
       run: () => openSettings(),
     }),
@@ -58,12 +59,14 @@ export function registerSettingsCommands(registry: CommandRegistry): () => void 
       id: 'settings.appearance',
       title: m.settings_cmd_appearance(),
       group: m.group_view(),
+      act: null,
       run: () => openSettings({ section: 'appearance' }),
     }),
     registry.register({
       id: 'language.browser',
       title: m.settings_cmd_language_browser(),
       group: m.group_language(),
+      act: null,
       keywords: ['language', 'dil', 'browser', 'tarayıcı', 'system', 'sistem', 'auto'],
       when: () => !followsBrowser(),
       run: followBrowserLanguage,
@@ -72,6 +75,7 @@ export function registerSettingsCommands(registry: CommandRegistry): () => void 
       id: 'settings.keptDocuments',
       title: m.settings_cmd_kept(),
       group: m.group_general(),
+      act: null,
       keywords: rowKeywords('keptDocuments'),
       run: () => openSettings({ row: 'keptDocuments' }),
     }),
@@ -79,6 +83,7 @@ export function registerSettingsCommands(registry: CommandRegistry): () => void 
       id: 'settings.savedSignatures',
       title: m.settings_cmd_signatures(),
       group: m.group_general(),
+      act: null,
       keywords: rowKeywords('savedSignatures'),
       run: () => openSettings({ row: 'savedSignatures' }),
     }),
@@ -86,6 +91,7 @@ export function registerSettingsCommands(registry: CommandRegistry): () => void 
       id: 'settings.commentName',
       title: m.settings_cmd_comment_name(),
       group: m.group_general(),
+      act: null,
       keywords: rowKeywords('commentName'),
       run: () => openSettings({ row: 'commentName' }),
     }),
@@ -93,6 +99,7 @@ export function registerSettingsCommands(registry: CommandRegistry): () => void 
       id: 'settings.showTips',
       title: m.settings_show_tips(),
       group: m.group_general(),
+      act: null,
       keywords: rowKeywords('showTips'),
       when: tipsToShowAgain,
       run: showTipsAgain,
@@ -101,6 +108,7 @@ export function registerSettingsCommands(registry: CommandRegistry): () => void 
       id: 'settings.privacy',
       title: m.settings_cmd_privacy(),
       group: m.group_general(),
+      act: null,
       keywords: rowKeywords('privacy'),
       run: () => openSettings({ row: 'privacy' }),
     }),

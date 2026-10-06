@@ -21,7 +21,7 @@ import {
 } from '@pdf-editor/document-model';
 
 import { useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
+import { stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { displayedSize, displayRectToUser } from '../viewer/geometry';
 import { pageFrame } from '../viewer/page-frame';
@@ -86,7 +86,7 @@ export function currentViewDestination(
   doc: VirtualDocument,
 ): PageDestination | undefined {
   if (doc.pages.length === 0) return undefined;
-  if (useUiStore.getState().viewMode === 'arrange') {
+  if (stageView(useUiStore.getState()) === 'grid') {
     const { focused, selected } = useSelectionStore.getState();
     const inDoc = (id: PageId | null) => id !== null && doc.pages.some((p) => p.id === id);
     const pageId =

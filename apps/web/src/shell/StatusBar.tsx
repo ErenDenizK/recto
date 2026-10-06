@@ -12,7 +12,7 @@ import { PrivacyIndicator } from '../privacy/PrivacyIndicator';
 import { SignatureStatusBadge } from '../signatures/SignatureBadge';
 import { useShownSections } from '../stage/arrange-data';
 import { useSelectionStore } from '../state/selection-store';
-import { MAX_ZOOM, MIN_ZOOM, stageView, useUiStore } from '../state/ui-store';
+import { MAX_ZOOM, MIN_ZOOM, useStageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
 import { IconButton } from '../ui/IconButton';
@@ -85,20 +85,20 @@ export function StatusBar() {
   const doc = useActiveDocument();
   const opening = useWorkspaceStore((s) => s.opening);
   // Arrange shows the page count; only a document view has a current page.
-  const viewMode = useUiStore(stageView);
+  const view = useStageView();
   const currentPage = useViewStore((s) => s.currentPage);
   const workspace = useWorkspaceStore((s) => s.workspace);
   const selection = useSelectionSummary();
   const pageCount = doc?.pages.length ?? 0;
   // Home shows every open file, not one document: no page, zoom, selection or signature of
   // the active one (review F16), only how many files are open.
-  const onHome = viewMode === 'home';
+  const onHome = view === 'home';
   let summary: string;
   if (onHome && doc) {
     summary = m.files_count({ count: workspace.documentOrder.length });
   } else if (!doc) {
     summary = opening > 0 ? m.status_opening({ count: opening }) : m.files_count({ count: 0 });
-  } else if (viewMode === 'read' && pageCount > 0) {
+  } else if (view === 'page' && pageCount > 0) {
     const current = Math.min(currentPage, pageCount - 1);
     const label = documentLabels(workspace, doc)[current];
     summary =
@@ -113,8 +113,8 @@ export function StatusBar() {
         <span className={styles.item} data-testid="status-pages">
           {summary}
         </span>
-        {viewMode === 'arrange' ? <ArrangeShown /> : null}
-        {viewMode === 'read' ? <SearchCount /> : null}
+        {view === 'grid' ? <ArrangeShown /> : null}
+        {view === 'page' ? <SearchCount /> : null}
         {selection && !onHome ? (
           <>
             <span className={styles.dot} aria-hidden="true">

@@ -25,7 +25,7 @@ import { useShortcuts } from '../commands/use-shortcuts';
 import { useAnnouncer } from '../shell/announcer';
 import { FloatingToolbar } from '../shell/FloatingToolbar';
 import { useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
+import { isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
@@ -137,7 +137,7 @@ describe('page context menu', () => {
     resetEditRunner();
     resetAnnotationStore();
     resetToolStore();
-    useUiStore.setState({ viewMode: 'read' });
+    useUiStore.setState({ docUi: {} });
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
   });
   afterEach(async () => {
@@ -170,9 +170,9 @@ describe('page context menu', () => {
     // It looks unavailable but can be chosen; choosing it is the explicit switch to Edit.
     expect(row).toHaveAttribute('data-quiet');
     expect(row).not.toHaveAttribute('aria-disabled');
-    expect(useUiStore.getState().documentMode[doc.id] ?? 'read').toBe('read');
+    expect(isMarkupOpen(useUiStore.getState(), doc.id)).toBe(false);
     await userEvent.click(row);
-    expect(useUiStore.getState().documentMode[doc.id]).toBe('edit');
+    expect(isMarkupOpen(useUiStore.getState(), doc.id)).toBe(true);
     expect(useAnnouncer.getState().message).toBe('Edit mode');
     expect(activeDoc().pages.map((p) => p.rotation)).toEqual(doc.pages.map((p) => p.rotation));
     await closed();
@@ -244,7 +244,7 @@ describe('page context menu', () => {
     await closed();
     rightClick(pageElement(container, 1));
     await userEvent.click(within(await menu()).getByRole('menuitem', { name: /^Arrange/ }));
-    expect(useUiStore.getState().viewMode).toBe('arrange');
+    expect(stageView(useUiStore.getState())).toBe('grid');
     expect([...useSelectionStore.getState().selected]).toEqual([third]);
   });
 

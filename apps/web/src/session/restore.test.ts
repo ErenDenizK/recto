@@ -22,8 +22,10 @@ import { revertDocument } from '../files/revert';
 import { openPdf } from '../shell/compact/compact-actions';
 import { resetCompactStore } from '../shell/compact/compact-store';
 import { openImagesAsDocument } from '../stage/section-operations';
+import { resetInputPolicyStore, useInputPolicyStore } from '../state/input-policy-store';
+import { lockOf, resetLockStore, useLockStore } from '../state/lock-store';
 import { fileFactsOf, isInFile, markSaved, resetSavedMarks } from '../state/saved-store';
-import { useUiStore } from '../state/ui-store';
+import { isMarkupOpen, surfaceOf, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import {
   type KeptRecordV1,
@@ -84,12 +86,16 @@ function writerFor(
     destination: 'document',
     zoom: 1.25,
     fitMode: null,
-    place: (id) => ({
-      page: 1,
-      view: 'read',
-      mode: id === model().workspace.activeDocument ? 'edit' : 'read',
-      ...fileFactsOf(id),
-    }),
+    place: (id) => {
+      const lock = lockOf(id);
+      return {
+        page: 1,
+        view: id === model().workspace.activeDocument ? 'read' : 'arrange',
+        mode: id === model().workspace.activeDocument ? 'edit' : 'read',
+        ...(lock === undefined ? {} : { lock }),
+        ...fileFactsOf(id),
+      };
+    },
     changed: (id) => tracker.changed(model().workspace, id),
   });
   return new SnapshotWriter({
@@ -118,10 +124,12 @@ describe('session restore', { timeout: 40_000 }, () => {
   beforeEach(() => {
     resetWorkspace();
     resetSessionStore();
-    useUiStore.setState({ documentMode: {}, lastView: {}, destination: 'document', zoom: 1 });
+    useUiStore.setState({ docUi: {}, destination: 'document', zoom: 1 });
   });
   afterEach(() => {
     resetWorkspace();
+    resetLockStore();
+    resetInputPolicyStore();
     vi.restoreAllMocks();
   });
 
@@ -149,14 +157,42 @@ describe('session restore', { timeout: 40_000 }, () => {
     // The engine has the bytes under the old ids: renders and export can read them.
     for (const id of sources)
       expect((await getEngineService().sourceBytes(id as never)).ok).toBe(true);
-    // Place: zoom and lock.
-    expect(useUiStore.getState().zoom).toBe(1.25);
-    expect(useUiStore.getState().documentMode[before.activeDocument as DocumentId]).toBe('edit');
+    // Place: zoom, Markup (M8's Edit, until D1-5) and each document's surface (the format's
+    // 'read' is the page, 'arrange' the grid).
+    const ui = useUiStore.getState();
+    const other = before.documentOrder.find((id) => id !== before.activeDocument);
+    expect(ui.zoom).toBe(1.25);
+    expect(isMarkupOpen(ui, before.activeDocument)).toBe(true);
+    expect(isMarkupOpen(ui, other)).toBe(false);
+    expect(surfaceOf(ui, before.activeDocument)).toBe('page');
+    expect(surfaceOf(ui, other)).toBe('grid');
     // Undo walks the 20 kept steps, and no further.
     expect(model().history.past).toHaveLength(20);
     for (let i = 0; i < 20; i++) expect(model().undo()).toBeDefined();
     expect(model().undo()).toBeUndefined();
     expect(model().workspace.documents[a]?.pages[0]?.rotation).toBe((5 * 90) % 360);
+  });
+
+  it('brings each document back with the lock it was kept with (redesign spec §7)', async () => {
+    const [a, b] = (await openFixtures()) as [DocumentId, DocumentId];
+    useLockStore.getState().lock(a, 'signed');
+    const storage = memorySnapshotStorage();
+    const writer = writerFor(storage);
+    writer.noteChange('view');
+    await writer.flush();
+    const manifest = await manifestOf(storage);
+    expect(manifest.documents.find((p) => p.id === a)?.lock).toBe('signed');
+    expect(manifest.documents.find((p) => p.id === b)).not.toHaveProperty('lock');
+    resetWorkspace();
+    resetLockStore();
+    // Restoring is not opening: "Open documents locked" does not lock the unlocked one.
+    useInputPolicyStore.setState({ openDocumentsLocked: true });
+    await restoreSession(storage, manifest);
+    expect(lockOf(a)).toBe('signed');
+    expect(lockOf(b)).toBeUndefined();
+    // A lock the format does not know fails the record, as any other bad field.
+    const bad = { ...manifest, documents: [{ ...manifest.documents[0], lock: 'edit' }] };
+    expect(() => parseSessionManifest(JSON.parse(JSON.stringify(bad)))).toThrow(/lock/);
   });
 
   it('restores the documents that remain when a source is missing, without the tail', async () => {
@@ -225,12 +261,35 @@ describe('session restore', { timeout: 40_000 }, () => {
     const result = await reopenKept(storage, `kept-${b}`);
     expect(result.ok).toBe(true);
     expect(model().workspace.documentOrder).toEqual([b]);
+    // Kept unlocked, and "Open documents locked" is off: it opens unlocked.
+    expect(lockOf(b)).toBeUndefined();
     expect(model().workspace.documents[b]?.pages[0]?.rotation).toBe(90);
     expect(model().history.present.label).toMatch(/^Open /);
     expect(model().undo()).toBeDefined();
     expect(model().workspace.documentOrder).toEqual([]);
     expect(a).toBeDefined();
     expect(await reopenKept(storage, 'kept-missing')).toEqual({ ok: false, reason: 'missing' });
+  });
+
+  it('a kept document reopens with its lock; with "Open documents locked" an unlocked one locks', async () => {
+    const [a, b] = (await openFixtures()) as [DocumentId, DocumentId];
+    useLockStore.getState().lock(a, 'user');
+    const storage = memorySnapshotStorage();
+    const writer = writerFor(storage);
+    writer.noteChange('content');
+    await writer.flush();
+    const before = model().workspace;
+    model().closeDocument(a);
+    model().closeDocument(b);
+    writer.noteClosed(before, [a, b]);
+    await writer.flush();
+    resetWorkspace();
+    resetLockStore();
+    useInputPolicyStore.setState({ openDocumentsLocked: true });
+    expect((await reopenKept(storage, `kept-${a}`)).ok).toBe(true);
+    expect((await reopenKept(storage, `kept-${b}`)).ok).toBe(true);
+    expect(lockOf(a)).toBe('user');
+    expect(lockOf(b)).toBe('default');
   });
 
   it('mergeKeptWorkspace adds only what the workspace lacks', async () => {

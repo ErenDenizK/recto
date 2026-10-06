@@ -4,7 +4,7 @@
  * and form fields in one list) and Files, plus Compare's Changes, shown only in the Compare
  * view and last so the other four never move. A collapsible, resizable panel shows the
  * chosen tab; choosing the open tab again collapses it (as in VS Code). State persists via
- * the UI store (`ui:v2`). With no file open the panel stays collapsed, since every tab would
+ * the UI store (`ui:v3`). With no file open the panel stays collapsed, since every tab would
  * only say "No document open" (M6 review A1); the stored state is kept, so it reopens as it
  * was when a file opens, and a tab picked meanwhile opens it. On Home, which shows every open
  * file rather than one document, only Files is offered (review F16).
@@ -20,7 +20,7 @@ import { type KeyboardEvent, lazy, Suspense, useRef, useState } from 'react';
 import { commandRegistry } from '../commands/registry';
 import { currentPlatform, toAriaKeyShortcut } from '../commands/shortcuts';
 import { formatNumber, m } from '../i18n';
-import { LEFT_PANEL_WIDTH, type LeftPanelView, stageView, useUiStore } from '../state/ui-store';
+import { LEFT_PANEL_WIDTH, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
 import { IconButton } from '../ui/IconButton';
 import { ResizeHandle } from '../ui/ResizeHandle';
@@ -100,7 +100,7 @@ export function LeftRail() {
   const toggleShortcut = useCommandShortcut('view.toggleLeftPanel');
   const shortcutsShortcut = useCommandShortcut('help.shortcuts');
   const railRef = useRef<HTMLDivElement>(null);
-  const comparing = useUiStore((s) => stageView(s) === 'compare');
+  const comparing = useUiStore((s) => s.destination === 'compare');
   // Home shows every open file, not one document: only Files, which lists them (review F16).
   const onHome = useUiStore((s) => s.destination === 'home');
   const tabs = onHome ? HOME_TABS : comparing ? [...TABS, CHANGES_TAB] : TABS;

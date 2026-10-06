@@ -630,6 +630,7 @@
   "diag_on_page": "page {page}",
   "history_start": "Start",
   "history_open": "Open {name}",
+  "history_opened": "Opened {name}",
   "history_close": "Close {name}",
   "history_move": [
     {
@@ -3951,6 +3952,10 @@
   "sheet_locked": "{name} is locked",
   "sheet_unlock": "Unlock",
   "sheet_locked_reason": "Locked",
+  "guard_locked": "Locked · unlock first",
+  "guard_open_markup_draw": "Open Markup to draw",
+  "guard_open_markup_place": "Open Markup to place",
+  "guard_no_document": "No document open",
   "sheet_draft_restored": "Your earlier settings are back",
   "sheet_bound_title": "{title} · {name}",
   "password_queue": "{index} of {count}",

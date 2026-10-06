@@ -56,7 +56,7 @@ export function TabArrangeMenu({
                 className={menuStyles.item}
                 onClick={() => {
                   showInArrange(documentId);
-                  useUiStore.getState().setViewMode('arrange');
+                  useUiStore.getState().showSurface('grid');
                 }}
               >
                 <span className={menuStyles.label}>{m.arrange_show()}</span>

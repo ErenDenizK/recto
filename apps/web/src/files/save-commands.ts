@@ -29,6 +29,7 @@ export function registerSaveCommands(registry: CommandRegistry): () => void {
       id: 'file.save',
       title: m.cmd_save(),
       group: m.group_file(),
+      act: null,
       shortcut: 'Mod+S',
       // Mod+S from a text field saves too, rather than the browser's "Save page as".
       allowInInputs: true,
@@ -44,6 +45,7 @@ export function registerSaveCommands(registry: CommandRegistry): () => void {
       id: 'file.revert',
       title: m.cmd_revert(),
       group: m.group_file(),
+      act: 'document',
       when: () => {
         const doc = activeDocument();
         if (!doc) return false;
