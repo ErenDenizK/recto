@@ -133,7 +133,7 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
       aria-orientation="horizontal"
       className={styles.toolbar}
       data-labels={form}
-      data-dock-view={locked ? 'locked' : 'dock'}
+      data-bar-view={locked ? 'locked' : 'dock'}
       onKeyDown={roving.onKeyDown}
       onFocus={roving.onFocus}
     >
