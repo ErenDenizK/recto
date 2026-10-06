@@ -32,8 +32,8 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 const WHITE: Rgb = [255, 255, 255];
 /** `--text-primary` and `--glass-text-secondary` (styles/tokens.css), kept in step by hand. */
-const TEXT_PRIMARY: Rgb = [0xe6, 0xe7, 0xea];
-const GLASS_TEXT_SECONDARY: Rgb = [0xbc, 0xc0, 0xc6];
+const TEXT_PRIMARY: Rgb = [0xe8, 0xe9, 0xec];
+const GLASS_TEXT_SECONDARY: Rgb = [0xbb, 0xbe, 0xc3];
 
 /** One blank US Letter page: white everywhere the bar and the menus can sit. */
 async function blankPdf(): Promise<Uint8Array> {
@@ -110,8 +110,8 @@ test(
     const beside = median4x4(image, pageBox.x + 40, centreY - 2);
     expect(beside, 'the page beside the bar is white').toEqual(WHITE);
     const model = glassModel(await glassStyle(bar), WHITE);
-    // The composite tokens.test.ts asserts for tier 1 over white.
-    expect(hex(model)).toBe('#47494d');
+    // The composite tokens.test.ts asserts for the bar tier (M2) over white.
+    expect(hex(model)).toBe('#444548');
     // Near the bar's top and bottom edges the page still leaks in (1 − c grows towards an
     // edge, research 22 §3.2): recorded, not asserted.
     const top = median4x4(image, group.x + 4, barBox.y + 2);
@@ -124,9 +124,9 @@ test(
       channelDistance(sample, model),
       `rendered ${hex(sample)} against the model ${hex(model)}`,
     ).toBeLessThanOrEqual(2);
-    // So the text on it holds what the model promises (tokens.test.ts: 7.29 and 4.93).
-    expect(contrastRatio(TEXT_PRIMARY, sample)).toBeGreaterThanOrEqual(7.1);
-    expect(contrastRatio(GLASS_TEXT_SECONDARY, sample)).toBeGreaterThanOrEqual(4.8);
+    // So the text on it holds what the model promises (tokens.test.ts: 7.90 and 5.14).
+    expect(contrastRatio(TEXT_PRIMARY, sample)).toBeGreaterThanOrEqual(7.7);
+    expect(contrastRatio(GLASS_TEXT_SECONDARY, sample)).toBeGreaterThanOrEqual(5.0);
   },
 );
 
@@ -180,7 +180,7 @@ test(
     });
     const sample = median4x4(image, point.x - 2, point.y - 2);
     const model = glassModel(await glassStyle(menu), WHITE);
-    expect(hex(model)).toBe('#393c42');
+    expect(hex(model)).toBe('#36383c');
     testInfo.annotations.push({
       type: 'menu over white',
       description: `rendered ${hex(sample)}, model ${hex(model)}; primary ${contrastRatio(TEXT_PRIMARY, sample).toFixed(2)}:1, glass secondary ${contrastRatio(GLASS_TEXT_SECONDARY, sample).toFixed(2)}:1`,
