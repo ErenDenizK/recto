@@ -568,7 +568,7 @@ test.describe('axe', () => {
     await openSimple(page);
     await expect(dock(page).getByRole('button', { name: 'Markup', exact: true })).toHaveAttribute(
       'aria-keyshortcuts',
-      '2',
+      'M 2',
     );
     await axe(page, 'Read, the lock and the dock');
     await enterEdit(page);

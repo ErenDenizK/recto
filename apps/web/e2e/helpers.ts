@@ -151,8 +151,10 @@ function escapeRegExp(text: string): string {
  * frame has no mode switch since D2-1, so the capsule is what tells).
  */
 export async function enterEdit(page: Page): Promise<void> {
-  await page.keyboard.press('2');
-  await expect(page.locator('[data-capsule="palette"]')).toBeVisible();
+  // `2` toggles Markup, as M does (key map v2, flows §7.3): pressed only when it is closed.
+  const palette = page.locator('[data-capsule="palette"]');
+  if (!(await palette.isVisible())) await page.keyboard.press('2');
+  await expect(palette).toBeVisible();
 }
 
 /** The dock's Markup door (01-frame F10), in English or Turkish. */

@@ -109,7 +109,7 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   await expect(cells).toHaveCount(3);
   for (let i = 0; i < 22; i++) {
     await cells.nth(i % 2).click();
-    await page.keyboard.press('r');
+    await page.keyboard.press('Shift+R');
   }
   // Opened and 22 rotations (the scrubber leaves out the empty start).
   await inHistory(page, (list) => expect(steps(list)).toHaveCount(23));
@@ -308,7 +308,7 @@ test('Clear in the privacy popover deletes every snapshot, for good', async ({
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');
   await cells.first().click();
-  await page.keyboard.press('r');
+  await page.keyboard.press('Shift+R');
   await waitForSnapshot(page);
   // One closed document kept for Recents, one open.
   await page.getByRole('tab', { name: 'rotated-pages' }).focus();
