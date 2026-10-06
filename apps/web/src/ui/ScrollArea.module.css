@@ -1,9 +1,9 @@
 /* Scroll area (09-primitives §21): overlay scrollbar, soft edges, contained overscroll. */
 .root {
   --sa-fade: 12px;
-  --sa-thumb: var(--scroll-thumb, rgb(255 255 255 / 0.4));
-  --sa-thumb-hover: rgb(255 255 255 / 0.55);
-  --sa-thumb-drag: var(--control-on, rgb(230 231 234 / 0.6));
+  --sa-thumb: var(--scroll-thumb);
+  --sa-thumb-hover: var(--scroll-thumb-hover);
+  --sa-thumb-drag: var(--control-on);
 
   position: relative;
   display: flex;

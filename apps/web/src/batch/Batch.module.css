@@ -245,7 +245,7 @@
 }
 
 .drop[data-over] {
-  border-color: var(--accent);
+  border-color: var(--accent-line);
   background: var(--accent-subtle);
 }
 
@@ -334,7 +334,7 @@
   padding: var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .footer {
@@ -425,7 +425,7 @@
 }
 
 .language input {
-  accent-color: var(--accent);
+  accent-color: var(--control-on);
 }
 
 .language:has(input:focus-visible) {

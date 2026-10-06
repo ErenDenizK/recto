@@ -11,7 +11,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--surface-0);
+  background: var(--canvas);
 }
 
 .scroller {

@@ -35,7 +35,7 @@ import { useShortcuts } from '../commands/use-shortcuts';
 import { ReadView } from '../stage/ReadView';
 import { highlighterIndex } from '../annotations/pen/highlighter';
 import { presetLabel } from '../annotations/pen/presets';
-import { canEditActive, useUiStore } from '../state/ui-store';
+import { isMarkupOpenActive, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
@@ -232,7 +232,7 @@ describe('tool bar (mounted)', () => {
     resetEditRunner();
     resetAnnotationStore();
     resetToolStore();
-    useUiStore.setState({ viewMode: 'read' });
+    useUiStore.setState({ docUi: {} });
   });
   afterEach(async () => {
     vi.restoreAllMocks();
@@ -392,9 +392,9 @@ describe('tool bar (mounted)', () => {
     expect(useToolStore.getState().barGroup).toBe('write');
 
     // The group stays when the bar unmounts (Arrange) and comes back.
-    useUiStore.getState().setViewMode('arrange');
+    useUiStore.getState().showSurface('grid');
     await waitFor(() => expect(screen.queryByRole('toolbar', { name: 'Tools' })).toBeNull());
-    useUiStore.getState().setViewMode('read');
+    useUiStore.getState().showSurface('page');
     expect(await screen.findByRole('toolbar', { name: 'Tools' })).toBeVisible();
     expect(useToolStore.getState().barGroup).toBe('write');
 
@@ -474,7 +474,7 @@ describe('tool bar (mounted)', () => {
       await userEvent.keyboard('{Escape}');
       expect(useToolStore.getState().barGroup).toBeNull();
       // Esc never leaves Edit.
-      expect(canEditActive()).toBe(true);
+      expect(isMarkupOpenActive()).toBe(true);
     }
   });
 
@@ -513,7 +513,7 @@ describe('tool bar (mounted)', () => {
     // From Read: the switch and the pen in one announcement.
     const id = useWorkspaceStore.getState().workspace.activeDocument;
     if (id === undefined) throw new Error('no document');
-    act(() => useUiStore.getState().setDocumentMode(id, 'read'));
+    act(() => useUiStore.getState().closeMarkup(id));
     act(() => useAnnotationStore.getState().armPreset(highlighter));
     await userEvent.keyboard('p');
     expect(useToolStore.getState().mode).toBe('ink');
@@ -610,7 +610,7 @@ describe('options tier', () => {
     resetEditRunner();
     resetAnnotationStore();
     resetToolStore();
-    useUiStore.setState({ viewMode: 'read' });
+    useUiStore.setState({ docUi: {} });
   });
   afterEach(async () => {
     await whenIdle();

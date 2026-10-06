@@ -37,7 +37,7 @@ import { useAnnotationStore } from '../annotations/annotation-store';
 import { pickFiles } from '../files/open-files';
 import { m } from '../i18n';
 import { openSettings } from '../settings/open-settings';
-import { canEditActive } from '../state/ui-store';
+import { canChangeActive } from '../viewer/input-state';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Segmented, SegmentedPanel } from '../ui/Segmented';
@@ -157,7 +157,8 @@ export default function NewSignatureSheet() {
       }
       resetDraft();
       close('close');
-      if (intent === 'use' && stamp && canEditActive()) armSignatureStamp(stamp);
+      // Arming places at a click: only in Markup, and never while locked (`place`).
+      if (intent === 'use' && stamp && canChangeActive('place')) armSignatureStamp(stamp);
     } finally {
       setBusy(false);
     }

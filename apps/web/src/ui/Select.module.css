@@ -10,9 +10,9 @@
 .trigger {
   composes: focus-inset from global;
   --sel-h: var(--control-h, 32px);
-  --sel-fill: var(--control-fill, rgb(255 255 255 / 0.08));
-  --sel-fill-hover: var(--control-fill-hover, rgb(255 255 255 / 0.12));
-  --sel-fill-pressed: var(--control-fill-pressed, rgb(255 255 255 / 0.16));
+  --sel-fill: var(--control-fill);
+  --sel-fill-hover: var(--control-fill-hover);
+  --sel-fill-pressed: var(--control-fill-pressed);
 
   display: inline-flex;
   align-items: center;

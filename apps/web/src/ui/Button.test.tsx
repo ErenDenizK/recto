@@ -45,10 +45,10 @@ describe('Button (09-primitives §3)', () => {
     const danger = screen.getByRole('button', { name: 'Delete page' });
 
     // Rest.
-    expect(bg(prominent)).toBe('rgb(124, 140, 255)');
+    expect(bg(prominent)).toBe('rgb(200, 251, 61)');
     expect(bg(standard)).toBe('rgba(255, 255, 255, 0.08)');
     expect(bg(quiet)).toBe('rgba(0, 0, 0, 0)');
-    expect(getComputedStyle(danger).color).toBe('rgb(255, 107, 107)');
+    expect(getComputedStyle(danger).color).toBe('rgb(253, 114, 115)');
 
     // Hover: one step (where the page can hover).
     for (const [el, want] of [
@@ -66,7 +66,7 @@ describe('Button (09-primitives §3)', () => {
     if (canHover()) {
       const off = await forceState(danger, ['hover']);
       expect(bg(danger)).toBe('rgba(255, 255, 255, 0.08)');
-      expect(getComputedStyle(danger).boxShadow).toContain('rgb(255, 107, 107)');
+      expect(getComputedStyle(danger).boxShadow).toContain('rgb(253, 114, 115)');
       await off();
     }
 
@@ -98,7 +98,7 @@ describe('Button (09-primitives §3)', () => {
     expect(document.activeElement).toBe(button);
     await userEvent.click(button, { force: true });
     expect(onClick).not.toHaveBeenCalled();
-    expect(getComputedStyle(button).color).toBe('rgb(74, 78, 85)');
+    expect(getComputedStyle(button).color).toBe('rgb(85, 88, 95)');
   });
 
   it('falls back to "Not available now" when disabled with no reason', () => {

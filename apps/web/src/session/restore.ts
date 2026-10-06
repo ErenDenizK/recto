@@ -37,7 +37,8 @@ import {
 } from '@pdf-editor/document-model';
 
 import { m } from '../i18n';
-import { useUiStore } from '../state/ui-store';
+import { lockOpened, restoreLocks } from '../state/lock-store';
+import { useUiStore, withDocumentUi } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import {
   documentSources,
@@ -332,26 +333,29 @@ export function applyPlaces(
   view?: Pick<SessionManifestV1, 'destination' | 'zoom' | 'fitMode'>,
 ): void {
   const ui = useUiStore.getState();
-  const documentMode = { ...ui.documentMode };
-  const lastView = { ...ui.lastView };
+  let docUi = ui.docUi;
   for (const place of places) {
     const doc = ws.documents[place.id];
     if (doc === undefined) continue;
-    if (place.mode === 'edit') documentMode[place.id] = 'edit';
-    lastView[place.id] = place.view;
+    // M8's names in the format: 'arrange' is the grid. Markup is never restored (redesign
+    // spec §7), so an older snapshot's 'edit' comes back in viewing. The lock is its own
+    // field.
+    docUi = withDocumentUi(docUi, place.id, {
+      surface: place.view === 'arrange' ? 'grid' : 'page',
+    });
     // The page view returns to the remembered page on mount (ReadView, CompactReader).
     const fingerprint = documentFingerprint(ws, doc);
     if (fingerprint !== undefined) rememberPosition(fingerprint, place.page);
   }
+  // Each document takes back the lock it was kept with, or none (redesign spec §7).
+  restoreLocks(places.filter((place) => ws.documents[place.id] !== undefined));
   const active = places.find((p) => p.id === ws.activeDocument);
   useUiStore.setState({
-    documentMode,
-    lastView,
+    docUi,
     ...(view === undefined
       ? {}
       : {
           destination: view.destination,
-          ...(active === undefined ? {} : { viewMode: active.view }),
           ...(view.fitMode === null
             ? { zoom: view.zoom, fitMode: null }
             : { fitMode: view.fitMode }),
@@ -531,6 +535,9 @@ export async function reopenKept(
   }
   const ws = useWorkspaceStore.getState().workspace;
   applyPlaces(ws, [record.place]);
+  // Reopening from Recents opens the document: unlocked when it was kept, "Open documents
+  // locked" applies as to any file (ADR-0029 §2.8); a kept lock stays.
+  lockOpened([documentId]);
   void replayEdits();
   return { ok: true, documentId, record };
 }

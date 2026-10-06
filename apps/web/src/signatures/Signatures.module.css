@@ -41,7 +41,7 @@
   padding: var(--space-3);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .status {
@@ -291,7 +291,7 @@
   padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-primary);
   font-size: var(--text-md);
 }
@@ -337,7 +337,7 @@
 .check input {
   flex: none;
   margin-top: 3px;
-  accent-color: var(--accent);
+  accent-color: var(--control-on);
 }
 
 .hint {
@@ -353,7 +353,7 @@
   padding: var(--space-3);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .command {
@@ -362,7 +362,7 @@
   padding: var(--space-2);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
-  background: var(--surface-0);
+  background: var(--canvas);
   color: var(--text-primary);
   font-size: var(--text-xs);
   line-height: 18px;

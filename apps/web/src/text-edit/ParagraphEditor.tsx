@@ -67,9 +67,9 @@ import { cssFamilyOf, ensureFace } from '../furniture/furniture-fonts';
 import { formatPercent, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { type PageOverlayProps, registerPageOverlay } from '../stage/page-overlays';
-import { useCanEdit } from '../state/ui-store';
 import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
 import type { PageFrame } from '../viewer/geometry';
+import { useCanChangeActive } from '../viewer/input-state';
 import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
 import { commitParagraphEdit, type ParagraphCommit } from './actions';
@@ -250,7 +250,8 @@ export async function openRunEditor(session: TextEditSession): Promise<'paragrap
 /** Shows the open paragraph's editor on its page (registered as a page overlay). */
 export function ParagraphEditLayer(props: PageOverlayProps) {
   const { sourceId, sourceIndex, pageId, visible } = props;
-  const editable = useCanEdit();
+  // A paragraph commit is a `text` act (ADR-0030): refused only while the document is locked.
+  const editable = useCanChangeActive('text');
   const session = useTextEditStore((s) =>
     s.paragraph?.target.pageId === pageId ? s.paragraph : null,
   );
@@ -263,7 +264,7 @@ export function ParagraphEditLayer(props: PageOverlayProps) {
     pageParagraphs(sourceId, sourceIndex).catch(() => undefined);
   }, [armed, visible, sourceId, sourceIndex, revision]);
 
-  // The Read lock: an editor open when the document leaves Edit closes (it commits).
+  // An editor open when the document is locked closes (it commits).
   useEffect(() => {
     if (session && !editable) useTextEditStore.getState().closeParagraph();
   }, [session, editable]);

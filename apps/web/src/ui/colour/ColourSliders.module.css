@@ -9,8 +9,8 @@
   --sv-text: 13px;
   --sv-lh: 18px;
   --sv-field-h: 32px;
-  --sv-well: var(--field-well, var(--surface-2));
-  --sv-border: var(--control-border, rgb(255 255 255 / 0.48));
+  --sv-well: var(--field-well, var(--surface-raised));
+  --sv-border: var(--control-border);
   --sv-label: var(--text-secondary);
   --sv-text-colour: var(--text-primary);
 

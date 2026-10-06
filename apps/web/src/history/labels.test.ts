@@ -22,6 +22,7 @@ import { m, setLocale } from '../i18n';
 import {
   inSentence,
   labelNamesPage,
+  openedLabel,
   redoTooltip,
   scrubberSteps,
   stepPhrase,
@@ -176,7 +177,27 @@ describe('scrubberSteps', () => {
       document: 'agreement',
     });
     expect(steps[0]?.name).toMatch(/^Rotate 1 page, page 2, \d\d[:.]\d\d$/);
-    expect(steps[1]).toMatchObject({ state: 'past', label: 'Open report.pdf', document: 'report' });
+    // The opening reads in the past tense in the scrubber (FB7 §5).
+    expect(steps[1]).toMatchObject({
+      state: 'past',
+      label: 'Opened report.pdf',
+      document: 'report',
+    });
     expect(steps[1]?.page).toBeUndefined();
+  });
+});
+
+describe('openedLabel', () => {
+  it('puts an opening in the past tense, for one file or a drop of several', () => {
+    expect(openedLabel(m.history_open({ name: 'report.pdf' }))).toBe('Opened report.pdf');
+    expect(openedLabel('Open 2 files')).toBe('Opened 2 files');
+    // Any other shape is kept.
+    expect(openedLabel('Rotate 1 page')).toBe('Rotate 1 page');
+    expect(openedLabel('Open ')).toBe('Open ');
+  });
+
+  it('keeps the Turkish, which is in the past tense already', () => {
+    setLocale('tr');
+    expect(openedLabel(m.history_open({ name: 'rapor.pdf' }))).toBe('rapor.pdf açıldı');
   });
 });

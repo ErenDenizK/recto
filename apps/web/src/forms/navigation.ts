@@ -37,7 +37,7 @@ export function activeStops(): FieldStop[] {
 /** Opens a field: shows its page in Read mode with the Select tool and activates it. */
 export function openField(stop: ActiveField): void {
   const ui = useUiStore.getState();
-  if (!isPageView(ui)) ui.setViewMode('read');
+  if (!isPageView(ui)) ui.showSurface('page');
   useToolStore.getState().setMode('select');
   // Filling a field leaves "Edit fields" (created fields fill instead of moving).
   if (useCreateStore.getState().design) useCreateStore.getState().setDesign(false);

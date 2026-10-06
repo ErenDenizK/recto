@@ -35,8 +35,9 @@ import {
 import { getEngineService } from '../engine/engine-service';
 import { forgetKept, keepRecent, onKeptRemoved, useRecentsStore } from '../files/recents';
 import { m } from '../i18n';
+import { lockOf, useLockStore } from '../state/lock-store';
 import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
-import { useUiStore } from '../state/ui-store';
+import { documentUi, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -105,16 +106,21 @@ function placeState(tracker: ChangeTracker): PlaceState {
   const ui = useUiStore.getState();
   const ws = useWorkspaceStore.getState().workspace;
   return {
-    destination: ui.destination,
+    // Compare is not restored: it falls back to the document (02.7).
+    destination: ui.destination === 'home' ? 'home' : 'document',
     zoom: ui.zoom,
     fitMode: ui.fitMode,
     place: (id) => {
-      const view =
-        id === ws.activeDocument && ui.destination === 'document' ? ui.viewMode : ui.lastView[id];
+      const { surface } = documentUi(ui, id);
+      const lock = lockOf(id);
       return {
         page: pages.get(id) ?? 0,
-        view: view === 'arrange' ? 'arrange' : 'read',
-        mode: ui.documentMode[id] === 'edit' ? 'edit' : 'read',
+        // The format keeps M8's names: the page view is 'read', the grid 'arrange'. Markup is
+        // never kept (redesign spec §7): a document comes back in viewing. The lock has its
+        // own field, kept with the document; unlocked writes nothing.
+        view: surface === 'grid' ? 'arrange' : 'read',
+        mode: 'read',
+        ...(lock === undefined ? {} : { lock }),
         ...fileFactsOf(id),
       };
     },
@@ -210,12 +216,13 @@ function watch(ctl: Controller): () => void {
       state.zoom !== previous.zoom ||
       state.fitMode !== previous.fitMode ||
       state.destination !== previous.destination ||
-      state.viewMode !== previous.viewMode ||
-      state.documentMode !== previous.documentMode ||
-      state.lastView !== previous.lastView
+      state.docUi !== previous.docUi
     ) {
       writer.noteChange('view');
     }
+  });
+  const offLocks = useLockStore.subscribe((state, previous) => {
+    if (state.locks !== previous.locks) writer.noteChange('view');
   });
   const offView = useViewStore.subscribe((state, previous) => {
     if (state.currentPage === previous.currentPage) return;
@@ -233,6 +240,7 @@ function watch(ctl: Controller): () => void {
   return () => {
     offWorkspace();
     offUi();
+    offLocks();
     offView();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', flushNow);

@@ -483,8 +483,8 @@ function MergeAllDialog({ order: given }: { readonly order?: readonly DocumentId
     const ids = rows.map((r) => r.id);
     if ((combining ? combineInto(ids, title) : mergeAll(ids, title)) === undefined) return;
     closeOperationDialog();
-    // Combined from Home: the new document opens in Read (experience-redesign §3).
-    if (useUiStore.getState().destination === 'home') useUiStore.getState().setViewMode('read');
+    // Combined from Home: the new document opens on its page (experience-redesign §3).
+    if (useUiStore.getState().destination === 'home') useUiStore.getState().showSurface('page');
   };
 
   const dialogTitle =

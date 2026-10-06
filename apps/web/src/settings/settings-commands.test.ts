@@ -10,7 +10,7 @@ import { registerAppCommands } from '../commands/app-commands';
 import { CommandRegistry } from '../commands/registry';
 import { followsBrowser, getLocale, setLocale } from '../i18n';
 import { registerAppearanceCommands } from '../shell/appearance-commands';
-import { resetEditPolicyStore, useEditPolicyStore } from '../state/edit-policy-store';
+import { resetInputPolicyStore, useInputPolicyStore } from '../state/input-policy-store';
 import { closeSheet, useSheetStore } from '../ui/sheet';
 import { SETTINGS_SHEET_ID } from './open-settings';
 import { SETTINGS_ROWS } from './search-index';
@@ -31,7 +31,7 @@ beforeEach(() => {
 afterEach(() => {
   for (const dispose of disposers) dispose();
   closeSheet();
-  resetEditPolicyStore();
+  resetInputPolicyStore();
   setLocale('en');
 });
 
@@ -63,11 +63,11 @@ describe('settings in the palette', () => {
   });
 
   it('shows tips again only when one has been used up', async () => {
-    resetEditPolicyStore({ editTextHintShown: false });
+    resetInputPolicyStore({ editTextHintShown: false });
     expect(await registry.execute('settings.showTips')).toBe(false);
-    resetEditPolicyStore({ editTextHintShown: true });
+    resetInputPolicyStore({ editTextHintShown: true });
     expect(await registry.execute('settings.showTips')).toBe(true);
-    expect(useEditPolicyStore.getState().editTextHintShown).toBe(false);
+    expect(useInputPolicyStore.getState().editTextHintShown).toBe(false);
   });
 
   it('follows the browser’s language, and a chosen language stops following', async () => {

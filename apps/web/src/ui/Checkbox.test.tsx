@@ -62,7 +62,7 @@ describe('Checkbox (09-primitives §8)', () => {
       await release();
     }
     await userEvent.click(box);
-    expect(getComputedStyle(box).backgroundColor).toBe('rgb(230, 231, 234)');
+    expect(getComputedStyle(box).backgroundColor).toBe('rgb(232, 233, 236)');
   });
 
   it('shows an error with a danger border and a message it is described by', () => {
@@ -70,7 +70,7 @@ describe('Checkbox (09-primitives §8)', () => {
     const box = screen.getByRole('checkbox', { name: 'Remove metadata' });
     expect(box).toHaveAttribute('aria-invalid', 'true');
     expect(box).toHaveAccessibleDescription('Choose at least one');
-    expect(getComputedStyle(box).boxShadow).toContain('rgb(255, 107, 107)');
+    expect(getComputedStyle(box).boxShadow).toContain('rgb(253, 114, 115)');
   });
 
   it('a parent box is mixed while some children are checked, and checks them all', async () => {
