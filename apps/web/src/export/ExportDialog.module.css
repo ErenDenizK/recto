@@ -153,7 +153,9 @@
   margin: var(--space-1) 0 0;
   padding: 0;
   list-style: none;
-  font-family: var(--font-mono);
+  /* `.technical` (fonts.css), spelled out: a descendant selector cannot compose it. */
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums slashed-zero;
   font-size: var(--text-xs);
 }
 

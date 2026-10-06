@@ -127,9 +127,9 @@
 }
 
 .code {
+  composes: technical from global;
   margin-left: var(--space-2);
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
 
@@ -245,8 +245,8 @@
 }
 
 .word {
+  composes: technical from global;
   overflow: hidden;
-  font-family: var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

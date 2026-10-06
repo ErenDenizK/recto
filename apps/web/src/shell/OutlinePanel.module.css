@@ -172,9 +172,9 @@
 }
 
 .noticeUrl {
+  composes: technical from global;
   overflow: hidden;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
