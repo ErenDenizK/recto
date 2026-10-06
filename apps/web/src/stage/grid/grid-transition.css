@@ -4,8 +4,8 @@
  * change's spring (styles/motion.css §4) and the two images cross-fade inside it.
  *
  * The rest of the view does not cross-fade: the old view stays opaque and the new one fades in
- * over it, quickly: in the first 150 ms of the view change's 240 ms (one duration for every
- * part of a View Transition, A-10). A cross-fade would show both docks at half strength, the dock fading out
+ * over it, quickly: in the first 62.5 % of the view change's --vt-duration (one duration for
+ * every part of a View Transition, A-10: 150 ms of 240, and shorter under reduced motion, A-9). A cross-fade would show both docks at half strength, the dock fading out
  * beside the Pages bar it morphs into; here the capsule is the new view's own, live, and its
  * *bar morph* starts from the dock's exact box, over the dock's image, so nothing doubles.
  * The capsule is never named: a named element is captured on its own, where its backdrop blur
@@ -16,7 +16,7 @@
 }
 
 :root[data-vt-grid='in']::view-transition-new(root) {
-  animation: vt-grid-in 240ms var(--ease-out) both;
+  animation: vt-grid-in var(--vt-duration) var(--ease-out) both;
 }
 
 /*
