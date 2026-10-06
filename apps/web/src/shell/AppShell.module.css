@@ -1,9 +1,8 @@
 /*
  * The shell as layers (01-frame F1, §1.1): the stage fills the free rectangle and the frame's
  * layers float above it, each positioned against the shell. The stack, bottom to top: page
- * scroller (z 0) · soft scroll edge (1) · sidebar (2) · inspector (2) · dock band (3) · top
- * strip or compact bar (4) · drop overlay (5); contextual bars, toasts, sheets, menus and
- * dialogs portal above.
+ * scroller (z 0) · soft scroll edge (1) · sidebar (2) · dock band (3) · top strip or compact
+ * bar (4) · drop overlay (5); contextual bars, toasts, sheets, menus and dialogs portal above.
  *
  * One backdrop root (quality-bar Q-3): the shell isolates its stacking but carries no filter,
  * opacity, mask, clip or transform, so every glass surface blurs the page itself. The reader's

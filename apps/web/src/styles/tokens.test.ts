@@ -941,10 +941,10 @@ describe('tokens.css', () => {
         expect(first(source), file).toMatch(/composes:\s*mat mat-menu s12\b[^;]* from global;/);
       }
       const docked = import.meta.glob<string>(
-        '../shell/{frame/TopStrip,frame/CompactTopBar,sidebar/Sidebar,RightPanel}.module.css',
+        '../shell/{frame/TopStrip,frame/CompactTopBar,sidebar/Sidebar}.module.css',
         { query: '?raw', import: 'default', eager: true },
       );
-      expect(Object.keys(docked)).toHaveLength(4);
+      expect(Object.keys(docked)).toHaveLength(3);
       for (const [file, source] of Object.entries(docked)) {
         const rule = first(source);
         expect(rule, file).toMatch(/composes:\s*mat mat-panel mat-docked s\d+[^;]* from global;/);
@@ -1201,8 +1201,9 @@ describe('tokens.css', () => {
       // the top strip, the compact bar and the page pill: one more. The capsule (D2-2) takes the
       // tool bar's glass into its own module; the Markup palette (D2-3) is content inside it, its
       // ink strip a row of the capsule's glass, so the bar's module and its options tier go. The
-      // Pages grid (D2-5) moves its bar into the capsule and adds its docked header.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(25);
+      // Pages grid (D2-5) moves its bar into the capsule and adds its docked header. The
+      // inspector leaves (D2-9): one fewer.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(24);
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',
         'mat-bar',

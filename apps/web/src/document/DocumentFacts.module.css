@@ -1,0 +1,75 @@
+/*
+ * The facts grid of Document info (components/07-sheets.md S4 §2): labels in the footnote size
+ * and the glass's secondary text, values in the body size, numbers tabular; then the honesty
+ * badges, each with its explanation written beside it. Plain text on the sheet's own surface
+ * (no glass in glass, quality-bar Q-4).
+ */
+.facts {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.grid dt {
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.grid dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+.badges {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badgeRow {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* A quiet text chip in the keycap shape; the warning colour says "export changes this". */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-1);
+  color: var(--warning);
+  font-size: var(--type-caption);
+  font-weight: 550;
+  line-height: 1;
+}
+
+.explanation {
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}

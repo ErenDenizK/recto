@@ -1,5 +1,5 @@
 /**
- * The Batch dialog in the browser: pick a built-in recipe, add files, run with the real
+ * S21 Batch in the browser: pick a built-in recipe, add files, run with the real
  * engines, see every file's status, download the ZIP; build a plain-text recipe and
  * download its .txt; build an OCR step from the language packs on offer; the recipe editor
  * refuses an invalid recipe with the reader's precise error; the palette command opens the
@@ -8,19 +8,22 @@
 import type { OcrLanguagePack } from '@pdf-editor/engine';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import imagesUrl from '../../../../test/fixtures/images.pdf?url';
 import { chooseOption } from '../../test/choose';
 import { fixtureFile } from '../../test/store-harness';
 import { commandRegistry } from '../commands/registry';
+import { m } from '../i18n';
 import { setOcrDependencies } from '../ocr/ocr-deps';
-import BatchDialog from './BatchDialog';
+import BatchSheet from './BatchSheet';
 import { registerBatchCommands } from './batch-commands';
 import { closeBatchDialog, openBatchDialog, useBatchStore } from './batch-store';
 
-beforeEach(() => {
+beforeEach(async () => {
+  // S21's centred 720 dialog (expanded and up); under 600 px Batch is dimmed (07.Q4).
+  await page.viewport(1440, 900);
   openBatchDialog();
 });
 afterEach(() => {
@@ -28,7 +31,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Batch dialog', () => {
+describe('S21 Batch', () => {
   it('runs "Number pages" over two files and offers the ZIP', async () => {
     const files = [
       await fixtureFile(simpleUrl, 'simple-text.pdf'),
@@ -56,7 +59,7 @@ describe('Batch dialog', () => {
     );
     vi.stubGlobal('showSaveFilePicker', savePicker);
 
-    render(<BatchDialog />);
+    render(<BatchSheet />);
     const dialog = await screen.findByTestId('batch-dialog');
     // Built-ins are listed; "Number pages" is selected by default.
     const recipe = await within(dialog).findByRole('button', { name: /Number pages/ });
@@ -96,7 +99,7 @@ describe('Batch dialog', () => {
     // A stand-in for the shell, whose drop handler opens files as tabs.
     render(
       <div onDrop={outside}>
-        <BatchDialog />
+        <BatchSheet />
       </div>,
     );
     const dialog = await screen.findByTestId('batch-dialog');
@@ -141,7 +144,7 @@ describe('Batch dialog', () => {
     );
     vi.stubGlobal('showSaveFilePicker', savePicker);
 
-    render(<BatchDialog />);
+    render(<BatchSheet />);
     const dialog = await screen.findByTestId('batch-dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
     const editor = await within(dialog).findByTestId('batch-editor');
@@ -207,7 +210,7 @@ describe('Batch dialog', () => {
       engineFiles: () => Promise.resolve([]),
     });
     try {
-      render(<BatchDialog />);
+      render(<BatchSheet />);
       const dialog = await screen.findByTestId('batch-dialog');
       await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
       const editor = await within(dialog).findByTestId('batch-editor');
@@ -240,7 +243,7 @@ describe('Batch dialog', () => {
   });
 
   it('shows the reader’s error when a recipe cannot be saved', async () => {
-    render(<BatchDialog />);
+    render(<BatchSheet />);
     const dialog = await screen.findByTestId('batch-dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
     const editor = await within(dialog).findByTestId('batch-editor');
@@ -264,8 +267,33 @@ describe('Batch command', () => {
     try {
       await act(() => commandRegistry.execute('document.batch'));
       expect(useBatchStore.getState().open).toBe(true);
+      // A tool, not a document command: it stays out of the title menu's Document rows.
+      expect(commandRegistry.get('document.batch')?.group).toBe(m.group_tools());
     } finally {
       dispose();
     }
+  });
+
+  it('is dimmed with "Needs a wider window" under 600 px (07.Q4)', async () => {
+    closeBatchDialog();
+    const dispose = registerBatchCommands(commandRegistry);
+    try {
+      await page.viewport(560, 800);
+      const command = commandRegistry.get('document.batch');
+      if (!command) throw new Error('not registered');
+      expect(commandRegistry.isEnabled(command)).toBe(false);
+      expect(commandRegistry.disabledReason(command)).toBe('Needs a wider window');
+    } finally {
+      dispose();
+    }
+  });
+
+  it('is a centred 720 dialog from expanded up (S21 §2)', async () => {
+    render(<BatchSheet />);
+    const sheet = await screen.findByTestId('batch-dialog');
+    expect(sheet).toHaveAttribute('data-presentation', 'dialog');
+    expect(sheet).toHaveAttribute('data-kind', 'batch');
+    // Polled: the entrance grows it from 96 % on the motion core.
+    await expect.poll(() => sheet.getBoundingClientRect().width).toBe(720);
   });
 });

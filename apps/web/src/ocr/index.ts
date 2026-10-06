@@ -1,6 +1,6 @@
 /**
- * OCR in the app (spec recognize-and-compare §1): the dialog and its run, the right panel's
- * OCR section, the language manager and the commands. Importing this module registers the
+ * OCR in the app (spec recognize-and-compare §1): S10 (`OcrSheet.tsx`) and its run, the review
+ * of its words (Review's Words to check), the language manager and the commands. Importing this module registers the
  * page layer that rings the focused word, and refreshes a source's pages whenever the OCR
  * runs it holds change (apply, undo, redo): the layer replaces the source's document, so
  * bitmaps, text, annotations and links of every page are read again.
@@ -15,8 +15,7 @@ import { useWorkspaceStore } from '../state/workspace-store';
 import { OcrLayer } from './OcrLayer';
 
 export { registerOcrCommands } from './ocr-commands';
-export { OcrDialogHost } from './OcrDialogHost';
-export { OcrSection, useHasOcrSection } from './OcrSection';
+export { OcrSheetHost } from './OcrSheetHost';
 export { watchOcrJob } from './ocr-job';
 
 registerPageOverlay(Object.assign(OcrLayer, { displayName: 'OcrLayer' }));

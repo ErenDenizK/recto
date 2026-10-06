@@ -1,23 +1,38 @@
+/*
+ * The annotation bar's ⋯ popover (04-context §5, §15): the popover recipe's M4 panel at 300 px,
+ * a facts list (labels in the footnote size and the glass's secondary text, values in the body
+ * size) and the comment in a solid well (never glass in glass, quality-bar Q-4).
+ */
+.popover {
+  width: min(300px, calc(100vw - 16px));
+}
+
 .properties {
   display: grid;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
 .facts {
   display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--space-1) var(--space-3);
-  font-size: var(--text-sm);
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 6px 16px;
+  margin: 0;
 }
 
 .facts dt {
-  color: var(--text-secondary);
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .facts dd {
   min-width: 0;
+  margin: 0;
   overflow-wrap: anywhere;
   color: var(--text-primary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
 }
 
 .numeric {
@@ -25,33 +40,38 @@
 }
 
 .locked {
-  margin-left: var(--space-2);
+  margin-left: 8px;
   color: var(--warning);
 }
 
 .note {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  margin: 0;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .contents {
   display: grid;
-  gap: var(--space-1);
+  gap: 6px;
 }
 
 .label {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 550;
+  line-height: var(--type-footnote-lh);
 }
 
 .contents textarea {
-  min-height: 80px;
-  padding: var(--space-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-2);
-  background: var(--surface-raised);
+  min-height: 72px;
+  padding: 8px 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--field-well);
   color: var(--text-primary);
   font: inherit;
-  font-size: var(--text-md);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
   resize: vertical;
 }

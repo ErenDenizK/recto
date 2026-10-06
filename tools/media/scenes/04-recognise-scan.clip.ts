@@ -2,8 +2,8 @@
  * Clip 4, "Recognise a scan" (spec §6): the scanned letter, Document menu → "Recognize text
  * (OCR)…", English, the first page (the second is Turkish). The recognition itself is cut,
  * not sped up, and a "shortened" caption says so (spec §2.3). Then the result: the page's
- * quality in the OCR section, and a recognised line selected with the pointer, as on any
- * page with text. The scene asserts that the selection holds the letter's words.
+ * quality in Review's Words to check (spec X33, D2-9), and a recognised line selected with the
+ * pointer, as on any page with text. The scene asserts that the selection holds the letter's words.
  */
 import { expect } from '@playwright/test';
 
@@ -16,8 +16,8 @@ const LINE = 'Temporary event notice: Autumn Head, 12 October 2024';
 scene({
   id: '04-recognise-scan',
   kind: 'clip',
-  // The page, the dialog and the inspector; the navigator's thumbnails are left out.
-  crop: { x: 320, y: 0, width: 1120, height: 900 },
+  // The page, the sheet and the sidebar's Words to check, where the results land.
+  crop: { x: 0, y: 0, width: 1440, height: 900 },
   async prepare(stage) {
     const { page } = stage;
     await stage.openFixtures(FIXTURES);
@@ -48,16 +48,16 @@ scene({
         if (!box) throw new Error('the OCR dialog is not laid out');
         return { x: box.x + box.width / 2, y: box.y + box.height + 26 };
       },
-      // Gone before the dialog closes and the inspector opens under it.
+      // Gone before the sheet closes and Words to check opens.
       { ms: 750 },
     );
     await expect(result).toContainText('Recognize text: 1 page, eng');
 
-    // 3. The result: the page's quality in the OCR section.
+    // 3. The result: Show results opens Review's Words to check with the page's quality.
     await cursor.click(dialog.getByRole('button', { name: 'Show results' }), 350);
     await expect(dialog).toHaveCount(0);
-    const quality = page.getByTestId('ocr-section').getByTestId('ocr-quality');
-    await expect(quality).toHaveText(/^Good · \d+%$/);
+    const quality = page.getByTestId('review-words-page').first();
+    await expect(quality).toContainText(/^Page 1 · Good/);
     await stage.hold(200);
 
     // 4. Select a recognised line by dragging across it, as on a page with real text. The
