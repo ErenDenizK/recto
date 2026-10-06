@@ -11,6 +11,7 @@ import {
   measureFrame,
   readSafeAreaInsets,
   sameInsets,
+  useFloatingBottomChrome,
   useSafeAreaInsets,
   withMinimum,
   ZERO_INSETS,
@@ -137,6 +138,27 @@ describe('the free rectangle (01-frame F1 §2)', () => {
       expect(freeInsets(measure)).toEqual({ top: 44, right: 0, bottom: 64, left: 280 });
     } finally {
       shell.remove();
+    }
+  });
+});
+
+describe('floating bottom chrome (08-feedback FB4 §2)', () => {
+  it('reports how high a bar outside the band rises, ignoring its entrance transform', () => {
+    const root = document.documentElement;
+    const view = document.createElement('div');
+    view.style.cssText = 'position: fixed; inset: 0;';
+    const bar = document.createElement('div');
+    bar.style.cssText =
+      'position: absolute; bottom: 16px; left: 0; height: 44px; width: 200px; transform: translateY(8px);';
+    view.append(bar);
+    document.body.append(view);
+    try {
+      const { unmount } = renderHook(() => useFloatingBottomChrome({ current: bar }));
+      expect(root.style.getPropertyValue('--chrome-float')).toBe('60px');
+      unmount();
+      expect(root.style.getPropertyValue('--chrome-float')).toBe('');
+    } finally {
+      view.remove();
     }
   });
 });
