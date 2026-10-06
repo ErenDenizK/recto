@@ -4,9 +4,9 @@
  * own, because the app's UI scale (11–15 px) is too small for reading prose. Dark only.
  */
 @import '../src/styles/tokens.css';
-/* The app's Inter: the same hashed files, from this origin (CSP `font-src 'self'`). The
-   browser fetches only the subsets the page's characters need. */
-@import '@fontsource-variable/inter/wght.css';
+/* The app's 'Inter Recto' (ADR-0027): the same files, from this origin (CSP `font-src 'self'`);
+   the browser fetches only the files the page's characters need. */
+@import '../src/styles/fonts.css';
 
 :root {
   --page-gutter: var(--space-4);
@@ -104,7 +104,8 @@ a:hover {
 }
 
 code {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums slashed-zero;
   font-size: 0.875em;
   padding: 1px var(--space-1);
   border: 1px solid var(--border-hairline);
