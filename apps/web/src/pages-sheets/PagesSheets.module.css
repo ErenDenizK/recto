@@ -24,7 +24,7 @@
   padding: 0;
   color: var(--glass-text-secondary);
   font-size: var(--type-footnote);
-  font-weight: 550;
+  font-weight: var(--weight-medium);
   line-height: var(--type-footnote-lh);
 }
 
@@ -155,10 +155,8 @@
   height: 28px;
   padding: 0 8px;
   border-radius: var(--radius-control);
-  /* The tag's 2 px underline, painted (not a shadow: rings, insets and e-tokens only). */
-  background:
-    linear-gradient(var(--tag-color), var(--tag-color)) bottom / 100% 2px no-repeat,
-    var(--surface-on);
+  background: var(--surface-on);
+  box-shadow: inset 0 -2px 0 var(--tag-color);
   color: var(--text-primary);
   font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;

@@ -69,7 +69,7 @@
 }
 
 .toast {
-  composes: glass from global;
+  composes: mat mat-bar s8 from global;
   /* How far a trailing control's box sits from the padding edge, so that its capsule sits as
      far from the rim as from the top and bottom. */
   --toast-trail: calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
@@ -230,7 +230,7 @@
     /* The centre on the pill's arc at 45°, r (1 − 1/√2) in from the outer corner. */
     inset-block-start: calc(var(--toast-h) / 2 * 0.2929 - var(--control-h) / 2 - 1px);
     inset-inline-start: calc(var(--toast-h) / 2 * 0.2929 - var(--control-h) / 2 - 1px);
-    background: var(--glass-solid) padding-box;
+    background: var(--glass-bar-solid) padding-box;
     box-shadow: var(--shadow-own);
     opacity: 0;
     transition:
@@ -243,13 +243,13 @@
   .toast[data-toast-id]:not([data-kind='failure']) .close:hover:not([aria-disabled='true']) {
     background:
       linear-gradient(var(--surface-hover), var(--surface-hover)) padding-box,
-      var(--glass-solid) padding-box;
+      var(--glass-bar-solid) padding-box;
   }
 
   .toast[data-toast-id]:not([data-kind='failure']) .close:active:not([aria-disabled='true']) {
     background:
       linear-gradient(var(--surface-active), var(--surface-active)) padding-box,
-      var(--glass-solid) padding-box;
+      var(--glass-bar-solid) padding-box;
   }
 
   .toast[data-toast-id]:not([data-kind='failure']):is(:hover, :focus-within) .close {
@@ -384,7 +384,7 @@
   }
 }
 
-/* Reduced motion, Reduce transparency and forced colours: a still 1 px accent rim. */
+/* Reduced motion, Glass Solid and forced colours: a still 1 px accent rim. */
 @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   .ring {
     padding: 1px;
@@ -394,7 +394,7 @@
 }
 
 :root[data-motion='reduced'] .ring,
-:root[data-transparency='reduced'] .ring {
+:root[data-glass='solid'] .ring {
   padding: 1px;
   background: var(--accent-line);
   animation: none;

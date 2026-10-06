@@ -16,15 +16,16 @@ import type { Rgb } from './pixels';
 
 export type GlassMode = 'clear' | 'tinted' | 'solid';
 export type Theme = 'dark' | 'light';
-/** What a module rule composes from `global.css` (`coverage-registry.ts`). */
-export type GlassComposition = 'glass' | 'glass glass-menu' | 'glass-frame';
+/** A material tier (`styles/token-registry.ts`). */
+export type GlassTier = 'chip' | 'bar' | 'panel' | 'menu' | 'sheet' | 'lit';
 
 /** The fields of a coverage registry entry the pixel spec reads. */
 export interface RegistryEntry {
   readonly id: string;
-  readonly composes: GlassComposition;
-  /** Its filter token, `--glass-filter` and the like. */
-  readonly filter: string;
+  readonly tier: GlassTier;
+  /** σ on a fine pointer, CSS px. */
+  readonly sigma: number;
+  readonly docked?: true;
   readonly minWidth: number;
   readonly minHeight: number;
 }

@@ -6,7 +6,7 @@
  * hidden once away (quality-bar Q-2, Q-7).
  */
 .bar {
-  composes: glass-frame from global;
+  composes: mat mat-panel mat-docked s8 from global;
   --control-h: 44px;
   --bar-button: 44px;
   position: absolute;

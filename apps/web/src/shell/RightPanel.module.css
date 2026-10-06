@@ -1,6 +1,7 @@
 .panel {
-  /* Docked frame: --surface-1, or the tier-2 glass with "Glass panels" on (global.css). */
-  composes: glass-frame from global;
+  /* Docked M3 (materials.css): solid --surface-frame over the bare canvas, glass where a page
+     passes beneath it. */
+  composes: mat mat-panel mat-docked s24 from global;
   /* A layer of the frame (01-frame F1 §2), on the right under the strip, until D2-9 removes the
      inspector; it insets the free rectangle while 400 px of stage remain (X23). */
   position: absolute;

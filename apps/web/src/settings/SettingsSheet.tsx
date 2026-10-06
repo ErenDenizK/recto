@@ -57,14 +57,13 @@ import {
 import {
   AboutRow,
   CommentNameRow,
-  GlassPanelsRow,
+  GlassRow,
   KeptDocumentsRow,
   LanguageRow,
   type MainRowId,
   PenDrawsRow,
   PrivacyRow,
   RecentsRow,
-  ReduceTransparencyRow,
   ShortcutsRow,
   ShowTipsRow,
 } from './sections';
@@ -77,8 +76,7 @@ type Push = (page: SettingsPageId) => void;
 const ROWS: Readonly<
   Record<MainRowId, (props: { onPush: Push; hint: string | undefined }) => ReactNode>
 > = {
-  glassPanels: () => <GlassPanelsRow />,
-  reduceTransparency: () => <ReduceTransparencyRow />,
+  glass: () => <GlassRow />,
   reduceMotion: () => <ReduceMotionRow />,
   language: () => <LanguageRow />,
   penDrawsInEdit: () => <PenDrawsRow />,

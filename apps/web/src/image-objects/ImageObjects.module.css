@@ -95,7 +95,7 @@
 }
 
 .bar {
-  composes: glass from global;
+  composes: mat mat-bar s8 c10 from global;
   position: absolute;
   z-index: 4;
   pointer-events: auto;

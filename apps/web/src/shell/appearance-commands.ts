@@ -1,28 +1,33 @@
 /**
- * Palette commands for the appearance settings (spec craft §7): "Glass panels" and "Reduce
- * transparency" toggle and say the new state; their titles carry the current one ("Glass
- * panels: off"). "Reduce motion" (language.md §7.6; spec D3-4) switches between System and On
- * the same way ("Reduce motion: System"). The Settings sheet's Appearance rows
- * (components/07-sheets.md S3; spec redesign D0-10) set the same values through the same
- * setters, and "Appearance settings…"
+ * Palette commands for the appearance settings (language.md §2.8, §7.6; spec D3-3, D3-4):
+ * "Glass: Clear", "Glass: Tinted" and "Glass: Solid" set the Glass setting (as the language
+ * commands set the language) and say it; "Reduce motion" switches between System and On and
+ * says the new state, its title carrying the current one ("Reduce motion: System"). The
+ * Settings sheet's Appearance rows (components/07-sheets.md S3; spec redesign D0-10) set the
+ * same values through the same setters, and "Appearance settings…"
  * (`settings/settings-commands.ts`) opens the sheet there: the Document menu's Appearance
  * submenu is gone (07 §25), and these commands stay so every setting is one ⌘K away.
  */
 import type { CommandRegistry } from '../commands/registry';
 import { m } from '../i18n';
-import { type MotionSetting, useAppearanceStore } from '../state/appearance-store';
+import {
+  type GlassSetting,
+  type MotionSetting,
+  useAppearanceStore,
+} from '../state/appearance-store';
 import { announce } from './announcer';
 
-/** Turns Glass panels on or off and announces it. */
-export function setGlassPanels(on: boolean): void {
-  useAppearanceStore.getState().setGlassPanels(on);
-  announce(on ? m.announce_glass_panels_on() : m.announce_glass_panels_off());
-}
+/** Each Glass value's command title, which is also what it announces. */
+const GLASS_TITLE: Record<GlassSetting, () => string> = {
+  clear: () => m.cmd_view_glass_clear(),
+  tinted: () => m.cmd_view_glass_tinted(),
+  solid: () => m.cmd_view_glass_solid(),
+};
 
-/** Turns Reduce transparency on or off and announces it. */
-export function setReduceTransparency(on: boolean): void {
-  useAppearanceStore.getState().setReduceTransparency(on);
-  announce(on ? m.announce_reduce_transparency_on() : m.announce_reduce_transparency_off());
+/** Sets Glass and announces it ("Glass: Tinted"). */
+export function setGlass(glass: GlassSetting): void {
+  useAppearanceStore.getState().setGlass(glass);
+  announce(GLASS_TITLE[glass]());
 }
 
 /** Sets Reduce motion to System or On and announces it. */
@@ -36,51 +41,44 @@ export function setMotion(motion: MotionSetting): void {
 /** Found in either UI language, as the language commands are. */
 const SHARED_KEYWORDS = ['appearance', 'settings', 'görünüm', 'görünüş', 'ayarlar'] as const;
 
+/** Every Glass command: transparency and its Turkish words, and the value's own. */
+const GLASS_KEYWORDS = [
+  ...SHARED_KEYWORDS,
+  'glass',
+  'transparency',
+  'frosted',
+  'blur',
+  'cam',
+  'saydamlık',
+  'buzlu',
+] as const;
+
+const GLASS_VALUE_KEYWORDS: Record<GlassSetting, readonly string[]> = {
+  clear: ['clear', 'saydam'],
+  tinted: ['tinted', 'translucent', 'yarı saydam'],
+  solid: ['solid', 'opaque', 'reduce transparency', 'opak'],
+};
+
 /**
- * Registers the three commands, titled with the current state ("Glass panels: off", review
- * F21), and registers them again whenever a setting changes so the palette always says it.
+ * Registers the four commands and registers them again whenever Reduce motion changes, so its
+ * title always says the current value.
  */
 export function registerAppearanceCommands(registry: CommandRegistry): () => void {
   let disposers: (() => void)[] = [];
   const register = () => {
     for (const dispose of disposers) dispose();
-    const { glassPanels, reduceTransparency, motion } = useAppearanceStore.getState();
+    const { motion } = useAppearanceStore.getState();
     disposers = [
-      registry.register({
-        id: 'view.glassPanels',
-        title: glassPanels ? m.cmd_view_glass_panels_on() : m.cmd_view_glass_panels_off(),
-        group: m.group_view(),
-        act: null,
-        keywords: [
-          ...SHARED_KEYWORDS,
-          'glass',
-          'frosted',
-          'blur',
-          'panels',
-          'toggle',
-          'cam',
-          'buzlu',
-        ],
-        run: () => setGlassPanels(!useAppearanceStore.getState().glassPanels),
-      }),
-      registry.register({
-        id: 'view.reduceTransparency',
-        title: reduceTransparency
-          ? m.cmd_view_reduce_transparency_on()
-          : m.cmd_view_reduce_transparency_off(),
-        group: m.group_view(),
-        act: null,
-        keywords: [
-          ...SHARED_KEYWORDS,
-          'transparency',
-          'opaque',
-          'solid',
-          'toggle',
-          'saydamlık',
-          'opak',
-        ],
-        run: () => setReduceTransparency(!useAppearanceStore.getState().reduceTransparency),
-      }),
+      ...(['clear', 'tinted', 'solid'] as const).map((glass) =>
+        registry.register({
+          id: `view.glass.${glass}`,
+          title: GLASS_TITLE[glass](),
+          group: m.group_view(),
+          act: null,
+          keywords: [...GLASS_KEYWORDS, ...GLASS_VALUE_KEYWORDS[glass]],
+          run: () => setGlass(glass),
+        }),
+      ),
       registry.register({
         id: 'view.reduceMotion',
         title:
@@ -104,13 +102,7 @@ export function registerAppearanceCommands(registry: CommandRegistry): () => voi
   };
   register();
   const unsubscribe = useAppearanceStore.subscribe((state, previous) => {
-    if (
-      state.glassPanels !== previous.glassPanels ||
-      state.reduceTransparency !== previous.reduceTransparency ||
-      state.motion !== previous.motion
-    ) {
-      register();
-    }
+    if (state.motion !== previous.motion) register();
   });
   return () => {
     unsubscribe();

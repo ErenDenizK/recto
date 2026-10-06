@@ -15,9 +15,9 @@
  * - danger: the standard fill under a danger label; hover adds a 1 px danger ring instead of a
  *   deeper fill (09 §3.4: a 0.12 fill would drop the label to 4.27:1).
  *
- * On today's floating glass (the M1/M2 bars) a fill would put the label under 7:1, so standard
- * and danger render quiet there (09 §3.3, §34 issue 3); menus and popovers (`.glass-menu`, M4)
- * keep the fill. Disabled is a neutral step, never the fill at reduced opacity, and stays
+ * On the floating glass of M1 chips and M2 bars (`.mat-chip`, `.mat-bar`) a fill would put the
+ * label under 7:1, so standard and danger render quiet there (09 §3.3, §34 issue 3); menus,
+ * popovers and sheets (M4, M5) keep the fill. Disabled is a neutral step, never the fill at reduced opacity, and stays
  * focusable (`aria-disabled`, Base UI's `focusableWhenDisabled`), so its reason can be read.
  * Every state comes from the control tokens of tokens.css, so the colour step (D3) changes
  * the values and nothing here.
@@ -167,12 +167,12 @@
 }
 
 /* On the floating glass (M1/M2) a filled button renders quiet; the danger label stays. */
-:where(.glass:not(.glass-menu)) :is(.btn-standard, .btn-danger) {
+:where(.mat-chip, .mat-bar) :is(.btn-standard, .btn-danger) {
   background: transparent;
 }
 
 @media (hover: hover) {
-  :where(.glass:not(.glass-menu))
+  :where(.mat-chip, .mat-bar)
     :is(.btn-standard, .btn-danger):hover:not([aria-disabled='true'], [data-blocked]) {
     background: var(--surface-hover);
   }

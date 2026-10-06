@@ -198,7 +198,7 @@ function backdropOn(el: HTMLElement): void {
  * reduced motion), then the stylesheet's filter, whole, for as long as the toast shows. Out,
  * as the `track` fade from `opacity` runs: the filter stays whole until the opacity falls to
  * `LIT`, then goes off, and the toast is hidden from `GONE` until the element goes. Without a
- * filter (Reduce transparency, Solid, forced colours) only the exit's hiding applies.
+ * filter (reduced transparency, Glass Solid, forced colours) only the exit's hiding applies.
  */
 export function fadeBackdrop(el: HTMLElement, direction: 'in' | 'out', opacity = 1): void {
   backdrops.get(el)?.();

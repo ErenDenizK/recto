@@ -263,9 +263,9 @@ describe('pen well', () => {
       const [r = 0, g = 0, b = 0] = (value.match(/[\d.]+/g) ?? []).map(Number);
       return [r, g, b];
     };
-    const glass = token('--glass');
+    const glass = token('--glass-bar-tint');
     const tintAlpha = Number(/\/\s*([\d.]+)/.exec(glass)?.[1]);
-    const brightness = Number(/brightness\(([\d.]+)\)/.exec(token('--glass-filter'))?.[1]);
+    const brightness = Number(/brightness\(([\d.]+)\)/.exec(token('--glass-bar-filter'))?.[1]);
     expect(tintAlpha).toBeGreaterThan(0);
     expect(brightness).toBeGreaterThan(0);
     const fill = (backdrop: string): Rgb => {

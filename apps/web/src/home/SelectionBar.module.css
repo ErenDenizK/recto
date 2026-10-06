@@ -6,7 +6,7 @@
  * keeps the fade (the spring token is instant there).
  */
 .bar {
-  composes: glass from global;
+  composes: mat mat-bar s8 c10 from global;
   position: absolute;
   bottom: var(--space-4);
   right: 0;

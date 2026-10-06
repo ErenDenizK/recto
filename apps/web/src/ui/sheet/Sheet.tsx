@@ -23,8 +23,8 @@
  *   scrim is its own element and fades (quality-bar Q-7). The exiting panel is `inert` from its
  *   first frame (A-13). A menu still closing when a sheet opens goes at once
  *   (`ui/menu-handoff.ts`), so the two never show through each other.
- * - **Glass** (§3): one surface, today's menu tier (`glass glass-menu`), registered in
- *   `styles/coverage-registry.ts` per presentation; M5's own values arrive in D3. Inputs and
+ * - **Glass** (§3): one surface, M5 (`mat mat-sheet`, materials.css), registered in
+ *   `styles/coverage-registry.ts` per presentation. Inputs and
  *   lists inside are solid wells, never glass (Q-4).
  *
  * Base UI's Dialog carries every presentation (AlertDialog's root for confirmations). Its
@@ -307,7 +307,11 @@ export function Sheet({
     >
       <Dialog.Portal>
         {layout.scrim ? (
-          <Dialog.Backdrop className={styles.scrim} data-presentation={layout.presentation} />
+          <Dialog.Backdrop
+            className={styles.scrim}
+            data-presentation={layout.presentation}
+            data-scrim=""
+          />
         ) : null}
         <Dialog.Popup
           ref={panelRef}
