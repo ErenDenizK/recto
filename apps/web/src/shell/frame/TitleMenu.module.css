@@ -1,0 +1,232 @@
+/*
+ * The title menu (01-frame F5 §2–§4): the popover primitive (M4, radius 16) at 320 px (360
+ * coarse), no taller than min(640 px, the room below the strip). The header holds the page,
+ * the name in an opaque well, the facts and status lines, the Lock switch and the privacy line;
+ * the rows scroll under it. Rows are the menu recipe's (32 fine, 44 coarse), section labels the
+ * footnote step at 600 in the secondary ink (no uppercase, D3-9). The switch's on-state is the
+ * menu's only accent, and the menu is transient.
+ */
+.popup {
+  display: flex;
+  flex-direction: column;
+  width: min(320px, calc(100vw - 16px));
+  max-height: min(640px, var(--available-height, calc(100dvh - 76px)));
+  padding: 0;
+  overflow: hidden;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .popup {
+    width: min(360px, calc(100vw - 16px));
+  }
+}
+
+.header {
+  display: grid;
+  gap: var(--space-2);
+  flex: none;
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.thumbBox {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 62px;
+}
+
+.thumb {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  background: var(--page-background);
+  box-shadow: 0 0 0 1px var(--border-hairline);
+}
+
+.identityText {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.nameRow {
+  display: block;
+}
+
+/* The name: an opaque well (G-18), --control-h tall at the control text size. */
+.name {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--n2, var(--canvas));
+  color: var(--text-primary);
+  font-size: var(--field-text);
+  font-weight: 600;
+  outline: none;
+}
+
+.name:focus-visible {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-out);
+  box-shadow: 0 0 0 1px var(--focus-dark);
+}
+
+.name[readonly] {
+  border-color: var(--border-hairline);
+  color: var(--text-secondary);
+}
+
+.facts,
+.status {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.facts {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  color: var(--text-secondary);
+}
+
+.lock {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lockSwitch {
+  padding-inline: 2px;
+}
+
+.unlockWarning {
+  display: grid;
+  gap: var(--space-2);
+  padding: 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-active);
+}
+
+.unlockBody {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.unlockActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* The privacy line: a row that opens ◎'s popover. */
+.privacy {
+  composes: focus-inset from global;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  margin: 0 -4px;
+  padding: 0 6px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  text-align: left;
+}
+
+.privacy > svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .privacy:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.privacyLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.privacyArrow {
+  color: var(--text-tertiary);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.group + .group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.groupLabel {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 600;
+  line-height: var(--type-footnote-lh);
+}
+
+/* A row is a button in the menu recipe's look; the keyboard's place is its focus. */
+.row {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.row:focus-visible,
+.row[data-popup-open] {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.row[data-disabled] {
+  color: var(--text-disabled);
+}
+
+.row[data-disabled]:hover {
+  background: transparent;
+  color: var(--text-disabled);
+}

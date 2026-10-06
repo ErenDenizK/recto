@@ -1,0 +1,131 @@
+/*
+ * The frame's overlay slots (01-frame F1 §3, F10 §2, F11 §2, F13 §2).
+ *
+ * The dock band: a zero-height line along the bottom of the free rectangle's width; the dock
+ * (today's floating tool bar) and the page pill position against it, 16 px up (12 on compact).
+ * It takes no pointer itself, only its surfaces do.
+ */
+.band {
+  --band-offset: 16px;
+  position: absolute;
+  right: var(--free-right, 0px);
+  bottom: 0;
+  left: var(--free-left, 0px);
+  z-index: 3;
+  height: 0;
+  pointer-events: none;
+}
+
+:global([data-frame='compact']) .band {
+  --band-offset: 12px;
+}
+
+/*
+ * Away (F13 §7, F12 §7): in Focus the dock and the pill fade and move 8 px down over
+ * --duration-fast and come back on --spring-quick; hidden on scroll they move out by their
+ * height. Each glass surface moves itself (no opacity or transform on an ancestor of glass,
+ * quality-bar Q-3); the band is `inert` meanwhile. Once away they are hidden, so nothing at rest
+ * holds a transform or takes a hit (Q-2).
+ */
+.band [data-region='toolbar'],
+.band [data-testid='options-tier'],
+.band [data-region='pill'] {
+  --away-y: 0px;
+}
+
+.band[data-away] [data-region='toolbar'],
+.band[data-away] [data-testid='options-tier'],
+.band[data-away] [data-region='pill'] {
+  --away-y: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(var(--away-y));
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    visibility 0s linear var(--duration-fast);
+}
+
+.band[data-away][data-hides-on-scroll] [data-region='toolbar'],
+.band[data-away][data-hides-on-scroll] [data-testid='options-tier'],
+.band[data-away][data-hides-on-scroll] [data-region='pill'] {
+  --away-y: calc(100% + var(--band-offset) + 8px);
+}
+
+.band:not([data-away]) [data-region='toolbar'],
+.band:not([data-away]) [data-region='pill'] {
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring);
+}
+
+/* The page pill keeps its own rise in its transform (PagePill.module.css). */
+.band[data-away] [data-region='pill'] {
+  transform: translateY(calc(var(--away-y) - var(--rise, 0px)));
+}
+
+/*
+ * The soft scroll edge (F1 §3, G-19): 24 px under the strip, the canvas fading to nothing, only
+ * once the page has scrolled. Over the stage's width (the free rectangle's), under the sidebar.
+ */
+.softEdge {
+  position: absolute;
+  top: var(--free-top, 0px);
+  right: var(--free-right, 0px);
+  left: var(--free-left, 0px);
+  z-index: 1;
+  height: 24px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--canvas) 85%, transparent),
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.softEdge[data-shown] {
+  opacity: 1;
+}
+
+@media (forced-colors: active) {
+  .softEdge {
+    display: none;
+  }
+}
+
+/* The drop overlay (F13 §2): a dim scrim over the free rectangle, a centred 320 × 160 card. */
+.drop {
+  position: absolute;
+  inset: var(--free-top, 0px) var(--free-right, 0px) var(--free-bottom, 0px) var(--free-left, 0px);
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: var(--scrim);
+  pointer-events: none;
+}
+
+.dropCard {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  width: 320px;
+  max-width: calc(100% - 32px);
+  height: 160px;
+  border: 1px solid var(--border-strong);
+  border-radius: 24px;
+  background: var(--surface-on);
+  box-shadow: var(--e4);
+  color: var(--text-primary);
+  font-size: var(--type-callout, var(--text-lg));
+  font-weight: 500;
+}
+
+.dropIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--text-secondary);
+}

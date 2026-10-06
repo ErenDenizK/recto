@@ -4297,5 +4297,126 @@
   "settings_signature_remove": "Remove {name}",
   "settings_signature_name_field": "Signature name",
   "settings_signature_added": "Added {date}",
-  "settings_cmd_signatures": "Saved signatures…"
+  "settings_cmd_signatures": "Saved signatures…",
+  "frame_library": "Library",
+  "frame_library_bar": "Library bar",
+  "frame_document_bar": "Document bar",
+  "frame_document_menu": "Document menu",
+  "frame_title_menu_name": "{name} document menu",
+  "frame_brand": "Recto",
+  "frame_more": "More",
+  "frame_settings": "Settings…",
+  "frame_keyboard_shortcuts": "Keyboard shortcuts",
+  "frame_sidebar_show": "Show sidebar",
+  "frame_sidebar_hide": "Hide sidebar",
+  "frame_tab_name_locked": "{name}, locked",
+  "frame_tab_name_edited_locked": "{name}, edited, locked",
+  "frame_tab_overflow": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} more",
+        "countPlural=*": "{count} more"
+      }
+    }
+  ],
+  "frame_tab_overflow_name": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} more open document",
+        "countPlural=*": "{count} more open documents"
+      }
+    }
+  ],
+  "frame_edited": "Edited",
+  "frame_close_name": "Close {name}",
+  "frame_closed_kept": "Closed {name}. Changes kept.",
+  "frame_closed_others": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Closed {count} other document",
+        "countPlural=*": "Closed {count} other documents"
+      }
+    }
+  ],
+  "frame_tab_moved": "{name} moved to position {position} of {count}",
+  "frame_rename": "Rename…",
+  "frame_lock": "Lock",
+  "frame_unlock": "Unlock",
+  "frame_show_in_grid": "Show in Pages grid",
+  "frame_move_left": "Move left",
+  "frame_move_right": "Move right",
+  "frame_close_others": "Close other documents",
+  "frame_name": "Name",
+  "frame_rename_invalid": "Use a name with letters or numbers",
+  "frame_status_no_changes": "No changes",
+  "frame_status_kept": "Edited, kept on this device",
+  "frame_status_not_kept": "Edited, not kept in this window",
+  "frame_privacy_line": "On this device · nothing uploaded",
+  "frame_lock_reason_user": "You locked it",
+  "frame_lock_reason_signed": "Signed file: changes break the signature",
+  "frame_lock_reason_restricted": "The file restricts changes",
+  "frame_lock_reason_default": "“Open documents locked” is on",
+  "frame_unlock_signed_body": "Any change removes the digital signature when you save. Save a copy with Signature signs it again.",
+  "frame_unlock_restricted_body": "The file’s author asked apps not to change it. Recto can change it anyway; other apps may still refuse the copy.",
+  "frame_keep_locked": "Keep locked",
+  "frame_unlock_anyway": "Unlock anyway",
+  "frame_lock_announce_locked": "{name} locked",
+  "frame_lock_announce_unlocked": "{name} unlocked",
+  "frame_section_file": "File",
+  "frame_section_pages": "Pages",
+  "frame_section_protect": "Protect",
+  "frame_section_convert": "Convert",
+  "frame_rotate_all": "Rotate all",
+  "frame_app_group": "Recto",
+  "frame_find": "Find",
+  "frame_find_no_matches": "No matches",
+  "frame_find_no_pages": "No pages",
+  "frame_privacy_clean": "Privacy: nothing has left this device",
+  "frame_privacy_external": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Privacy: {count} request to other sites",
+        "countPlural=*": "Privacy: {count} requests to other sites"
+      }
+    }
+  ],
+  "frame_pill_text": "{page} / {total} · {percent}",
+  "frame_pill_text_label": "{label} ({page} / {total}) · {percent}",
+  "frame_pill_name": "Page {current} of {total}, zoom {percent}. Page and view options",
+  "frame_pill_menu_name": "Page and view",
+  "frame_goto_of": "of {total}",
+  "frame_goto_range": "Pages 1–{last}",
+  "frame_goto_no_pages": "No pages",
+  "frame_page_announce": "Page {current} of {total}",
+  "frame_contents": "Contents",
+  "frame_all_contents": "All contents…",
+  "frame_contents_announce": "{title}, page {page}",
+  "frame_zoom": "Zoom",
+  "frame_fit": "Fit",
+  "frame_field_outlines": "Show field outlines",
+  "frame_focus": "Focus",
+  "frame_focus_command": "Focus: hide the tools",
+  "frame_focus_on": "Focus on. Press F or Esc to show the tools.",
+  "frame_focus_on_touch": "Focus on. Tap the page to show the tools.",
+  "frame_focus_off": "Focus off",
+  "frame_markup": "Markup",
+  "frame_back_name": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Library, {count} open document",
+        "countPlural=*": "Library, {count} open documents"
+      }
+    }
+  ],
+  "frame_compact_title_name": "{name}, document menu"
 }

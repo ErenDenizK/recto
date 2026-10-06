@@ -1,21 +1,24 @@
+/* ◎ (01-frame F8 §2): a --bar-button circle with the 20 px shield, the strip's other buttons'
+   states (hover wash, pressed, open held). External requests turn the glyph to the warning
+   colour, its triangle shape carrying the meaning (A-19), with an 11 px count badge. */
 .trigger {
-  /* Inset: the status bar clips its overflow, so an outside ring would be cut off. */
-  composes: focus-inset from global;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  height: 22px;
-  /* The hover fill bleeds into the gap after the preceding dot only: a bleed on the right
-     would overflow the status bar's left group and let it scroll when the trigger is
-     brought into view. */
-  margin-left: calc(var(--space-2) * -1);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-1);
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--bar-button);
+  height: var(--bar-button);
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
   transition:
     background-color var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out);
+}
+
+.trigger > svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  stroke-width: 1.5;
 }
 
 @media (hover: hover) {
@@ -23,6 +26,10 @@
     background: var(--surface-hover);
     color: var(--text-primary);
   }
+}
+
+.trigger:active {
+  background: var(--surface-active);
 }
 
 .trigger[data-popup-open] {
@@ -34,20 +41,21 @@
   color: var(--warning);
 }
 
-/* A small filled dot: success when clean, warning otherwise. Text carries meaning. */
-.mark {
-  width: 6px;
-  height: 6px;
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
   border-radius: var(--radius-round);
-  background: var(--success);
-}
-
-.trigger[data-state='external'] .mark {
-  background: var(--warning);
-}
-
-.dot {
-  color: var(--text-tertiary);
+  background: var(--surface-on);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .numeric {

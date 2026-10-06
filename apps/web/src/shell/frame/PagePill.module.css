@@ -1,0 +1,224 @@
+/*
+ * The page pill (01-frame F11 §2–§4): an M1 chip, 36 px fine / 44 coarse, at the dock band's
+ * trailing end, 16 px inside the free rectangle, centred on the dock (--bar-h). Text 13/18 at 500
+ * (15/20 coarse), tabular. Glass from the floating recipe (`glass from global`; coverage
+ * registry `page-pill`); D3-3 gives it the M1 tier. It rises 8 px above a bar that would come
+ * within 12 px (`data-raised`) and steps away with the dock in Focus.
+ */
+.pill {
+  composes: glass from global;
+  --pill-h: 36px;
+  --rise: 0px;
+  --pill-pad: 14px;
+  position: absolute;
+  right: var(--space-4);
+  bottom: calc(var(--band-offset, 16px) + (var(--bar-h) - var(--pill-h)) / 2);
+  box-sizing: border-box;
+  height: var(--pill-h);
+  padding: 0 var(--pill-pad);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  font-weight: 500;
+  line-height: var(--control-lh);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: auto;
+  /* The rise and the Focus step move it by transform only (Q-7), whole pixels at rest (Q-2). */
+  transform: translateY(calc(var(--away-y, 0px) - var(--rise)));
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .pill {
+    --pill-h: 44px;
+    --pill-pad: 16px;
+  }
+}
+
+@media (hover: hover) {
+  .pill:hover {
+    box-shadow:
+      inset 0 0 0 100vmax rgb(var(--white-rgb) / 0.045),
+      var(--elevation-float);
+  }
+}
+
+.pill[aria-expanded='true'] {
+  box-shadow:
+    inset 0 0 0 100vmax rgb(var(--white-rgb) / 0.075),
+    var(--elevation-float);
+}
+
+/* Rises above a bar it would touch (spec 01.6): 8 px above the bar's top. */
+.pill[data-raised] {
+  --rise: calc(var(--bar-h) + 8px - (var(--bar-h) - var(--pill-h)) / 2);
+}
+
+/* The menu (F11 §2): the popover primitive at 300 px (340 coarse). */
+.menu {
+  display: grid;
+  gap: 4px;
+  width: min(300px, calc(100vw - 16px));
+  padding: 8px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .menu {
+    width: min(340px, calc(100vw - 16px));
+  }
+}
+
+.goto {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  column-gap: var(--space-2);
+  padding: 2px 2px 4px;
+}
+
+.gotoLabel {
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.gotoField {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 48px;
+  height: var(--control-h);
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--n2, var(--canvas));
+  color: var(--text-primary);
+  font-size: var(--field-text);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+}
+
+.gotoField:focus-visible {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-out);
+  box-shadow: 0 0 0 1px var(--focus-dark);
+}
+
+.gotoField[aria-invalid] {
+  border-color: var(--glass-danger, var(--danger));
+}
+
+.gotoOf {
+  color: var(--text-secondary);
+  font-size: var(--control-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.gotoHint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+}
+
+.gotoHint:empty {
+  display: none;
+}
+
+.section {
+  display: grid;
+  gap: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  margin: 0;
+  padding: 0 8px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 600;
+}
+
+.entry {
+  composes: focus-inset from global;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  text-align: left;
+}
+
+.section + .entry,
+.goto + .entry {
+  margin-top: 4px;
+}
+
+@media (hover: hover) {
+  .entry:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.entry:active {
+  background: var(--surface-active);
+}
+
+.entryTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entryPage {
+  flex: none;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.check {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.zoomRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--control-h);
+  padding: 0 0 0 8px;
+}
+
+.rowLabel {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: var(--control-text);
+}
+
+.zoomValue {
+  min-width: 52px;
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.segmented {
+  margin: 2px 0;
+}

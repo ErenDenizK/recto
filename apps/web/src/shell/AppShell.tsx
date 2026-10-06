@@ -1,30 +1,45 @@
 /**
- * Application shell (DESIGN.md §2):
+ * The application shell as layers (`components/01-frame.md` F1, §1.1; ADR-0031; redesign spec
+ * D2-1). One stage with floating layers, in place of M8's 3 × 3 grid (title bar, rail,
+ * inspector, status bar):
  *
- *   title / tab bar ............................................
- *   left rail + panel | stage (+ floating tool bar) | inspector
- *   status bar .................................................
+ *   page scroller (the stage, `main`) · soft scroll edge · sidebar · inspector (until D2-9) ·
+ *   dock band (dock + page pill) · top strip or compact bar · drop overlay
+ *   … then, portalled: contextual bars · toasts · sheets · menus and popovers · dialogs ·
+ *   tooltips
  *
- * The shell is the stage's bleed area (`data-stage-bleed`, craft spec §7): the Read view's
- * page canvas extends under the docked frame, which stacks above it, and lays its pages out
- * in the rectangle the frame leaves free (stage/stage-bleed.ts).
+ * - **The free rectangle** (F1 §2; flows.md §6.2's rest rule): the layers report their boxes and
+ *   `useFreeRect` writes `--free-top|right|bottom|left` on `:root`. The stage sits in it, so
+ *   every fit, jump and focus lands inside it (A-12), while the reader's scroll container
+ *   reaches out under the frame to the window's edges (`stage/stage-bleed.ts`), so pages pass
+ *   beneath the glass while scrolling and rest clear of it.
+ * - **Size classes** (`size-class.ts`): the top strip from medium up, the compact bar on compact
+ *   and compact-height; the sidebar docks from expanded up and lays over the stage on medium.
+ *   Density follows the pointer, not the width.
+ * - **One backdrop root** (quality-bar Q-3): no layer carries a filter, opacity, mask or
+ *   transform between the page and a glass surface; the shell only isolates.
  *
- * Owns the global shortcut listener, window-wide file drops, the appearance settings on the
- * root element (Glass panels, Reduce transparency) and the Settings sheet's host (D0-10).
+ * Owns the global shortcut listener, F6 between regions (`regions.ts`, X9), window-wide file
+ * drops, the appearance settings on the root element, Focus and hide on scroll, and the hosts
+ * of sheets and dialogs.
  */
-import { type DragEvent, useEffect, useRef, useState } from 'react';
+import { type DragEvent, useCallback, useEffect, useRef, useState } from 'react';
 
+import { BatchDialogHost } from '../batch/BatchDialogHost';
 import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
-import { useAppearanceRoot } from '../state/appearance-store';
-import { useWorkspaceStore } from '../state/workspace-store';
+import { OcrDialogHost } from '../ocr';
 import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
 import { NewSignatureHost } from '../signatures/NewSignatureHost';
+import { useAppearanceRoot } from '../state/appearance-store';
+import { useInputPolicyStore } from '../state/input-policy-store';
+import { isMarkupOpen, useStageView, useUiStore } from '../state/ui-store';
+import { useWorkspaceStore } from '../state/workspace-store';
 import { ConfirmHost } from '../ui/sheet';
 import { ToastRegion } from '../ui/Toast/ToastRegion';
 import { TooltipProvider } from '../ui/Tooltip';
@@ -32,28 +47,62 @@ import { registerAppearanceCommands } from './appearance-commands';
 import { announce } from './announcer';
 import styles from './AppShell.module.css';
 import { CommandPalette } from './CommandPalette';
+import { CompactTopBar } from './frame/CompactTopBar';
+import { DockBand } from './frame/DockBand';
+import { DropOverlay } from './frame/DropOverlay';
+import { registerFocusCommands, watchFocusTap } from './frame/focus-mode';
+import { BAND_OFFSET, BAND_OFFSET_COMPACT, useFreeRect } from './frame/frame-insets';
+import { useFrameStore } from './frame/frame-store';
+import { useHideOnScroll } from './frame/hide-on-scroll';
+import { useRegionCycling } from './frame/regions';
+import { useSizeClass } from './frame/size-class';
+import { SoftEdge } from './frame/SoftEdge';
+import { TopStrip } from './frame/TopStrip';
 import { LeftRail } from './LeftRail';
-import { useRegionCycling } from './LeftRail.regions';
 import { LiveRegion } from './LiveRegion';
 import { PasswordDialog } from './PasswordDialog';
 import { RightPanel } from './RightPanel';
 import { ShortcutOverlay } from './ShortcutOverlay';
 import { Stage } from './Stage';
-import { StatusBar } from './StatusBar';
-import { TabBar } from './TabBar';
 
 export function AppShell() {
   useShortcuts();
   const [dragging, setDragging] = useState(false);
   // dragenter/dragleave fire for every child crossed; count depth to avoid flicker.
   const depth = useRef(0);
-  // F6 / Shift+F6 between the regions (experience-redesign §10).
   const shellRef = useRef<HTMLDivElement>(null);
-  useRegionCycling(shellRef);
+  // F6 / Shift+F6 between the regions (spec X9).
+  useRegionCycling();
   useAppearanceRoot();
   useEffect(() => registerAppearanceCommands(commandRegistry), []);
   // Settings… (Mod+,) and the commands that open the Settings sheet at a row (D0-10).
   useEffect(() => registerSettingsCommands(commandRegistry), []);
+  // F and the Esc rung for Focus (F13), after `selection.clear` in the Esc ladder.
+  useEffect(() => registerFocusCommands(commandRegistry), []);
+  useEffect(() => watchFocusTap(), []);
+
+  const frame = useSizeClass();
+  const compact = frame.size === 'compact' || frame.short;
+  const focus = useFrameStore((s) => s.focusMode);
+  const view = useStageView();
+  useFreeRect(shellRef, {
+    sidebarDocked: !compact && frame.size !== 'medium',
+    offset: compact ? BAND_OFFSET_COMPACT : BAND_OFFSET,
+    focus,
+  });
+
+  // Hide on scroll: compact classes, viewing only (F12).
+  const hideBlocked = useCallback(() => {
+    const ui = useUiStore.getState();
+    const id = useWorkspaceStore.getState().workspace.activeDocument;
+    return (
+      ui.destination !== 'document' ||
+      view !== 'page' ||
+      isMarkupOpen(ui, id) ||
+      useInputPolicyStore.getState().keepToolsVisible
+    );
+  }, [view]);
+  useHideOnScroll(compact && view === 'page', hideBlocked);
 
   const onDragEnter = (event: DragEvent) => {
     if (!dragHasFiles(event.dataTransfer)) return;
@@ -98,16 +147,24 @@ export function AppShell() {
         className={styles.shell}
         data-testid="app-shell"
         data-stage-bleed=""
+        data-frame={compact ? 'compact' : 'strip'}
+        data-focus-mode={focus || undefined}
         onDragEnter={onDragEnter}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        <TabBar />
-        <LeftRail />
         <Stage dragging={dragging} />
+        {view === 'page' ? <SoftEdge /> : null}
+        <LeftRail overlay={frame.size === 'medium' && !frame.short} />
         <RightPanel />
-        <StatusBar />
+        <DockBand size={frame.size} compact={compact} tight={frame.tight} />
+        {compact || frame.tight ? (
+          <CompactTopBar short={frame.short} tight={frame.tight} />
+        ) : (
+          <TopStrip />
+        )}
+        {dragging && view === 'page' ? <DropOverlay /> : null}
       </div>
       <CommandPalette />
       <ShortcutOverlay />
@@ -115,6 +172,8 @@ export function AppShell() {
       <NewSignatureHost />
       <PasswordDialog />
       <ConfirmHost />
+      <BatchDialogHost />
+      <OcrDialogHost />
       <ToastRegion />
       <LiveRegion />
     </TooltipProvider>

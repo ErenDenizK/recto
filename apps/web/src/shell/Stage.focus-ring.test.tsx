@@ -14,7 +14,7 @@ import { userEvent } from 'vitest/browser';
 
 import readStyles from '../stage/ReadView.module.css';
 import { STAGE_FOCUS_RING_ATTR, watchStageFocusRing } from './Stage';
-import { STAGE_ID } from './TabBar';
+import { STAGE_ID } from './frame/ids';
 
 function Fixture() {
   return (

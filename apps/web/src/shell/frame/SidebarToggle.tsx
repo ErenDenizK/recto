@@ -1,0 +1,30 @@
+/**
+ * ▤ Sidebar (`components/01-frame.md` F3): toggles the sidebar (Mod+B), in a document on
+ * medium and up and in the compact-height bar (spec 01.7). Pressed while the sidebar shows:
+ * the n5 fill and `aria-pressed`; focus stays on the button. It replaces the rail's toggle
+ * (5.1); the inspector toggle (3.9) leaves with the inspector (D2-9).
+ */
+import { PanelLeft } from 'lucide-react';
+
+import { m } from '../../i18n';
+import { useUiStore } from '../../state/ui-store';
+import { IconButton } from '../../ui/IconButton';
+import { useCommandShortcut } from '../use-command-shortcut';
+import { SIDEBAR_ID } from './ids';
+
+export function SidebarToggle() {
+  const open = useUiStore((s) => s.leftPanelOpen);
+  const toggle = useUiStore((s) => s.toggleLeftPanel);
+  const shortcut = useCommandShortcut('view.toggleLeftPanel');
+  return (
+    <IconButton
+      label={open ? m.frame_sidebar_hide() : m.frame_sidebar_show()}
+      icon={<PanelLeft />}
+      shortcut={shortcut}
+      aria-pressed={open}
+      aria-controls={open ? SIDEBAR_ID : undefined}
+      data-testid="sidebar-toggle"
+      onClick={toggle}
+    />
+  );
+}

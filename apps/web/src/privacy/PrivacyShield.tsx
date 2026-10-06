@@ -1,24 +1,32 @@
 /**
- * Status-bar privacy indicator (ARCHITECTURE.md §7): the live external-request count, and a
- * popover with the observed external URLs (expected: none), the CSP in one sentence plus
- * the enforced `connect-src`, the service worker's offline status, and the app version,
- * which opens Settings → About Recto (ADR-0017 §6; 07-sheets §25). One line says Recents stay on this device, with
- * "Clear recents" (craft §3.1), and what is kept on this device with Clear (ADR-0032 §2.7).
+ * The privacy shield ◎ (`components/01-frame.md` F8; ARCHITECTURE.md §7): keeps the product's
+ * promise in sight. A 32 / 44 px circle in the strip with `shield-check`; with external
+ * requests, `shield-warning` in the warning colour and a count badge (the count is in the
+ * name too, never alone). It opens the privacy popover (`04-context` §17, spec X29): the
+ * observed external URLs (expected: none), the CSP in one sentence plus the enforced
+ * `connect-src`, the service worker's offline status, Recents with "Clear recents" (craft
+ * §3.1), what is kept on this device with Clear (ADR-0032 §2.7), and the app version, which
+ * opens Settings → About Recto (ADR-0017 §6; 07-sheets §25). It replaces the status bar's
+ * "Local only · No external requests" (15.1.2). The title menu's privacy line opens it too
+ * (`openPrivacyShield`).
  */
 import { Popover } from '@base-ui/react/popover';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useRef } from 'react';
+import { create } from 'zustand';
 
 import { commandRegistry } from '../commands/registry';
-import { m } from '../i18n';
+import { formatNumber, m } from '../i18n';
 import { usePwaStore } from '../pwa/register';
 import { serviceWorkerLabel } from '../pwa/service-worker-label';
 import { BUILD_INFO } from '../shell/about/build-info';
 import { KeptOnDevice } from '../session/KeptOnDevice';
 import { openSettings } from '../settings/open-settings';
 import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
+import { Tooltip } from '../ui/Tooltip';
 import { documentCsp, parseCsp } from './csp';
 import { useExternalRequests } from './external-requests';
-import styles from './PrivacyIndicator.module.css';
+import styles from './PrivacyShield.module.css';
 
 /** The enforced `connect-src`, read from the page itself rather than restated. */
 function connectSrc(): string | undefined {
@@ -27,32 +35,45 @@ function connectSrc(): string | undefined {
   return sources === undefined ? undefined : `connect-src ${sources.join(' ')}`;
 }
 
-export function PrivacyIndicator({ className }: { readonly className?: string }) {
+const usePrivacyOpen = create<{ open: boolean }>()(() => ({ open: false }));
+
+/** Opens the shield's popover (the title menu's privacy line, F5). */
+export function openPrivacyShield(): void {
+  usePrivacyOpen.setState({ open: true });
+}
+
+export function PrivacyShield({ className }: { readonly className?: string }) {
   const { count, urls } = useExternalRequests();
   const swStatus = usePwaStore((s) => s.status);
   const updateAvailable = usePwaStore((s) => s.updateAvailable);
+  const open = usePrivacyOpen((s) => s.open);
   const clean = count === 0;
   const directive = connectSrc();
+  const name = clean ? m.frame_privacy_clean() : m.frame_privacy_external({ count });
   // Settings returns focus here: the version button closes with the popover.
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
-    <Popover.Root>
-      <Popover.Trigger
-        ref={triggerRef}
-        className={[styles.trigger, className].filter(Boolean).join(' ')}
-        data-state={clean ? 'clean' : 'external'}
-        data-testid="privacy-indicator"
-      >
-        <span className={styles.mark} aria-hidden="true" />
-        <span>{m.privacy_local_only()}</span>
-        <span className={styles.dot} aria-hidden="true">
-          ·
-        </span>
-        <span className={styles.numeric}>{m.privacy_external_requests({ count })}</span>
-      </Popover.Trigger>
+    <Popover.Root open={open} onOpenChange={(next) => usePrivacyOpen.setState({ open: next })}>
+      <Tooltip label={name}>
+        <Popover.Trigger
+          ref={triggerRef}
+          className={[styles.trigger, className].filter(Boolean).join(' ')}
+          aria-label={name}
+          aria-haspopup="dialog"
+          data-state={clean ? 'clean' : 'external'}
+          data-testid="privacy-indicator"
+        >
+          {clean ? <ShieldCheck aria-hidden="true" /> : <ShieldAlert aria-hidden="true" />}
+          {clean ? null : (
+            <span className={styles.badge} aria-hidden="true">
+              {formatNumber(count)}
+            </span>
+          )}
+        </Popover.Trigger>
+      </Tooltip>
       <PopoverPopup
-        side="top"
-        align="start"
+        side="bottom"
+        align="end"
         className={styles.popup}
         positionerClassName={styles.positioner}
       >

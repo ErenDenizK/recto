@@ -15,7 +15,8 @@
 .dock {
   position: absolute;
   right: 0;
-  bottom: var(--space-5);
+  /* The dock band's offset (01-frame F10 §2: 16 px, 12 on compact; frame/DockBand.module.css). */
+  bottom: var(--band-offset, var(--space-4));
   left: 0;
   z-index: 3;
   display: flex;
