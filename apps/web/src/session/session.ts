@@ -599,6 +599,15 @@ export function flushSession(): Promise<void> {
   return controller?.writer.flush() ?? Promise.resolve();
 }
 
+/**
+ * The snapshot storage this session keeps documents in, or undefined where nothing is kept (a
+ * private window, before the probe ends). Read-only use: the Library renders a Recents row's
+ * thumbnail from a kept snapshot's bytes (`02-library` 02.Q1, `home/recent-thumbs.ts`).
+ */
+export function snapshotStorage(): SnapshotStorage | undefined {
+  return controller?.storage;
+}
+
 /** Whether `id`'s document differs from the file it came from. */
 export function isDocumentChanged(id: DocumentId): boolean {
   const ws = useWorkspaceStore.getState().workspace;

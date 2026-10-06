@@ -28,6 +28,11 @@ export function setSelecting(on: boolean): void {
   if (!on) useUiStore.getState().setHomeSelection([], null);
 }
 
+/** Enters Select mode, keeping what is checked (a gesture that also checks a card). */
+export function enterSelecting(): void {
+  if (!useLibraryStore.getState().selecting) useLibraryStore.setState({ selecting: true });
+}
+
 /** Whether the Library is in Select mode: asked for, or with cards checked. */
 export function isSelecting(): boolean {
   if (useLibraryStore.getState().selecting) return true;

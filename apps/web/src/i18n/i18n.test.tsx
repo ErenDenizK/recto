@@ -71,7 +71,9 @@ describe('Language command', () => {
     useUiStore.setState({ paletteOpen: false, shortcutsOpen: false, recents: [] });
     resetWorkspace();
     render(<App />);
-    expect(screen.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    ).toBeVisible();
     await userEvent.keyboard(`{${MOD}>}k{/${MOD}}`);
     const input = await screen.findByRole('combobox', { name: 'Search commands' });
     await userEvent.type(input, 'türkçe');
@@ -79,7 +81,11 @@ describe('Language command', () => {
       expect(screen.getAllByRole('option')[0]).toHaveTextContent('Türkçe');
     });
     await userEvent.keyboard('{Enter}');
-    expect(await screen.findByRole('heading', { name: 'Başlamak için PDF bırakın' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.',
+      }),
+    ).toBeVisible();
     expect(screen.getByText('Yalnızca yerel')).toBeVisible();
     expect(document.documentElement.lang).toBe('tr');
 

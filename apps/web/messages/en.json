@@ -3632,13 +3632,8 @@
   "library_drop": "Drop to open",
   "library_drop_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Drop to open {count} file",
         "countPlural=*": "Drop to open {count} files"
@@ -3648,13 +3643,8 @@
   "library_head_open": "Open",
   "library_head_documents": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} document",
         "countPlural=*": "{count} documents"
@@ -3682,13 +3672,8 @@
   "library_clear_selection": "Clear selection",
   "library_closed_toast": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Closed {count} document · changes kept",
         "countPlural=*": "Closed {count} documents · changes kept"
@@ -3697,13 +3682,8 @@
   ],
   "library_announce_closed": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Closed {count} document. Changes kept",
         "countPlural=*": "Closed {count} documents. Changes kept"
@@ -3712,13 +3692,8 @@
   ],
   "library_announce_pages": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Pages of {count} document",
         "countPlural=*": "Pages of {count} documents"
@@ -3729,13 +3704,8 @@
   "library_announce_moved": "Moved {name} to position {position} of {count}",
   "library_opened_files": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Opened {count} file",
         "countPlural=*": "Opened {count} files"
@@ -3748,13 +3718,8 @@
   "library_nothing_uploaded": "Nothing is uploaded",
   "library_external_requests": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} external request",
         "countPlural=*": "{count} external requests"
@@ -3764,6 +3729,18 @@
   "library_language": "Language",
   "recents_kept_footnote": "Kept on this device while the browser keeps it",
   "recents_manage": "Manage",
+  "recents_clear_confirm_title": "Clear recent files?",
+  "recents_clear_confirm_body": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Kept changes for {count} document are deleted from this device. Saved files are not touched.",
+        "countPlural=*": "Kept changes for {count} documents are deleted from this device. Saved files are not touched."
+      }
+    }
+  ],
+  "recents_clear_confirm_action": "Clear",
   "privacy_recents": "Recent files are remembered on this device only.",
   "bar_group_fill": "Fill & sign",
   "bar_group_redact": "Redact",

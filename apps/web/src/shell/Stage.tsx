@@ -20,7 +20,8 @@ import { type KeyboardEvent, lazy, Suspense, useEffect, useRef } from 'react';
 import { commandRegistry } from '../commands/registry';
 import { currentPlatform, type ParsedShortcut, toAriaKeyShortcut } from '../commands/shortcuts';
 import { comparisonOpen, useCompareStore } from '../compare/compare-store';
-import { HomeView } from '../home/HomeView';
+import { DocumentDropOverlay } from '../home/DropOverlay';
+import { LibraryView } from '../home/LibraryView';
 import { m } from '../i18n';
 import { ArrangeView } from '../stage/ArrangeView';
 import { ReadView } from '../stage/ReadView';
@@ -101,7 +102,7 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
         aria-label={m.stage_start_label()}
         aria-busy={opening > 0}
       >
-        <HomeView dragging={dragging} />
+        <LibraryView dragging={dragging} />
       </main>
     );
   }
@@ -116,7 +117,7 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
         aria-busy={opening > 0}
       >
         <h1 className="visually-hidden">{m.home_long()}</h1>
-        <HomeView dragging={dragging} />
+        <LibraryView dragging={dragging} />
       </main>
     );
   }
@@ -153,12 +154,8 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
         </Suspense>
       ) : null}
       {view === 'compare' ? null : <FloatingToolbar />}
-      {/* In Arrange and Compare, the view outlines its own file-drop targets. */}
-      {dragging && view === 'page' ? (
-        <div className={styles.dropOverlay} aria-hidden="true">
-          <span className={styles.dropLabel}>{m.stage_drop_overlay()}</span>
-        </div>
-      ) : null}
+      {/* In Arrange and Compare, the view outlines its own file-drop targets (02-library L9). */}
+      <DocumentDropOverlay dragging={dragging && view === 'page'} />
     </main>
   );
 }

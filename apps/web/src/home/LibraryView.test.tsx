@@ -1,15 +1,15 @@
 /**
- * Home on real PDFs (Vitest browser mode, Chromium, PDFium; experience-redesign §3, §11):
- * the cards reflect the workspace, selection by click, Shift and Mod, Combine opens the
- * merge dialog in selection order, a card dropped on another opens it as [target, dragged],
- * Compare fills A and B, the keyboard path, drops on an empty workspace, and the empty
- * variant.
+ * The Library on real PDFs (Vitest browser mode, Chromium, PDFium; `02-library` L1–L9, L12):
+ * lit cards in tab order, one click opens, Select mode by Shift, Mod, the ○ and right-click, the
+ * static selection bar's dimmed reasons, Combine without a dialog in card order, Compare with the
+ * older file as A, Pages and Close, the keys (Esc ladder, Alt+arrows, F2), drops and the
+ * launcher's lift, Open PDFs… and Combine files…, the empty launcher, and Recents.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
 import '../styles/global.css';
 
-import type { DocumentId } from '@pdf-editor/document-model';
+import type { DocumentId, SourceId } from '@pdf-editor/document-model';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
@@ -34,9 +34,11 @@ import {
 import { setLocale } from '../i18n';
 import { closeOperationDialog } from '../stage/operation-dialogs-store';
 import { useAnnouncer } from '../shell/announcer';
+import { useLockStore } from '../state/lock-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
-import { HOME_CARD_TYPE } from './HomeView';
+import { isSelecting, resetLibraryStore } from './library-store';
+import { libraryTextSafeRect } from './text-safe';
 
 const MOD = currentPlatform === 'mac' ? 'Meta' : 'Control';
 
@@ -78,10 +80,6 @@ const selectedTitles = () =>
   within(grid())
     .getAllByRole('option', { selected: true })
     .map((o) => o.getAttribute('aria-label')?.split(',')[0]);
-const dialogRows = (dialog: HTMLElement) =>
-  within(dialog)
-    .getAllByTestId('merge-row')
-    .map((row) => /(simple-text|rotated-pages|mixed-sizes)/.exec(row.textContent ?? '')?.[1]);
 
 /**
  * Dispatches a native drag event carrying `data` (Testing Library's `fireEvent` copies the
@@ -95,23 +93,12 @@ function drag(target: Element, type: string, data: DataTransfer): void {
   });
 }
 
-/** A card drag as the browser sends it: dragstart, dragenter/over the target, drop, dragend. */
-function dragCard(source: HTMLElement, target: HTMLElement, drop = true): DataTransfer {
-  const data = new DataTransfer();
-  drag(source, 'dragstart', data);
-  drag(target, 'dragenter', data);
-  drag(target, 'dragover', data);
-  if (!drop) return data;
-  drag(target, 'drop', data);
-  drag(source, 'dragend', data);
-  return data;
-}
-
-describe('Home', () => {
+describe('Library', () => {
   beforeEach(async () => {
     await page.viewport(1440, 900);
     resetWorkspace();
     resetCompareStore();
+    resetLibraryStore();
     closeOperationDialog();
     useUiStore.setState({
       destination: 'document',
@@ -120,22 +107,24 @@ describe('Home', () => {
       homeAnchor: null,
       arrangePinned: [],
       arrangeHidden: [],
+      arrangeCollapsed: [],
       paletteOpen: false,
     });
   });
   afterEach(() => {
     closeOperationDialog();
     resetWorkspace();
+    resetLibraryStore();
   });
 
-  it('shows one card per open document, in tab order, with pages, size and a thumbnail', async () => {
+  it('shows one lit card per open document, in tab order, with pages, size and a thumbnail', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf');
     const options = within(grid()).getAllByRole('option');
     expect(options.map((o) => o.getAttribute('aria-label'))).toEqual([
-      expect.stringMatching(/^simple-text, 3 pages · \d+(\.\d)? KB$/),
-      expect.stringMatching(/^rotated-pages, 4 pages · \d+(\.\d)? KB$/),
+      expect.stringMatching(/^simple-text, 3 pages, \d+(\.\d)? KB$/),
+      expect.stringMatching(/^rotated-pages, 4 pages, \d+(\.\d)? KB$/),
     ]);
-    expect(options[0]).toHaveTextContent('Modified Sep 1, 2026');
+    expect(options[0]).toHaveAttribute('data-lit');
     // The first page through the shared thumbnail renderer.
     await waitFor(
       () => {
@@ -143,9 +132,15 @@ describe('Home', () => {
       },
       { timeout: 20_000 },
     );
-    expect(screen.getByText('2 files · 7 pages')).toBeVisible();
+    expect(screen.getByTestId('library-head')).toHaveTextContent('Open · 2 documents · 7 pages');
+    // The head row is the field's text-safe band (02.2), published for D3-8.
+    expect(screen.getByTestId('library-head')).toHaveAttribute('data-text-safe');
+    const rect = libraryTextSafeRect();
+    const head = screen.getByTestId('library-head').getBoundingClientRect();
+    expect(rect?.top).toBeCloseTo(head.top - 24);
+    expect(rect?.width).toBeCloseTo(head.width + 48);
 
-    // A closed tab leaves Home.
+    // A closed tab leaves the Library.
     const first = ws().documentOrder[0];
     if (first !== undefined) useWorkspaceStore.getState().closeDocument(first);
     await waitFor(() => {
@@ -153,184 +148,149 @@ describe('Home', () => {
     });
   }, 45_000);
 
-  it('selects with a click, adds with Mod, extends with Shift and clears between cards', async () => {
+  it('opens a card with one click; Shift, Mod, the ○ and right-click select', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
-    await userEvent.click(card('rotated-pages'));
-    expect(selectedTitles()).toEqual(['rotated-pages']);
+    // Not selecting: no bar, Select in the head.
+    expect(screen.queryByTestId('library-selection-bar')).toBeNull();
+    expect(screen.getByTestId('library-select')).toHaveAttribute('aria-pressed', 'false');
 
     await userEvent.keyboard(`{${MOD}>}`);
-    await userEvent.click(card('simple-text'));
+    await userEvent.click(card('rotated-pages'));
     await userEvent.keyboard(`{/${MOD}}`);
-    expect(selectedTitles()).toEqual(['simple-text', 'rotated-pages']);
-    // Selection order, not tab order.
-    expect(useUiStore.getState().homeSelection.map(titleOf)).toEqual([
-      'rotated-pages',
-      'simple-text',
-    ]);
-    expect(screen.getByText('2 selected')).toBeVisible();
-    // Said for a click as for the keyboard (spec §10).
-    expect(useAnnouncer.getState().message).toBe('2 files selected');
-
+    expect(selectedTitles()).toEqual(['rotated-pages']);
+    expect(screen.getByTestId('library-select')).toHaveAttribute('aria-pressed', 'true');
+    expect(useAnnouncer.getState().message).toBe('1 file selected');
     await userEvent.keyboard('{Shift>}');
     await userEvent.click(card('mixed-sizes'));
     await userEvent.keyboard('{/Shift}');
-    // The range runs from the anchor (simple-text, the last Mod-click) to mixed-sizes.
-    expect(selectedTitles()).toEqual(['simple-text', 'rotated-pages', 'mixed-sizes']);
-
-    fireEvent.click(grid());
-    expect(within(grid()).queryAllByRole('option', { selected: true })).toHaveLength(0);
-  });
-
-  it('labels Combine by its scope and opens the merge dialog in selection order', async () => {
-    await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
-    const combine = screen.getByTestId('home-combine');
-    expect(combine).toHaveTextContent('Combine all 3 files');
-    await userEvent.click(card('simple-text'));
-    // One selected: nothing to combine, so no button (never a disabled one, §3).
-    expect(screen.queryByTestId('home-combine')).toBeNull();
-
-    await userEvent.click(card('mixed-sizes'));
-    await userEvent.keyboard(`{${MOD}>}`);
-    await userEvent.click(card('simple-text'));
-    await userEvent.keyboard(`{/${MOD}}`);
-    expect(screen.getByTestId('home-combine')).toHaveTextContent('Combine 2 files');
-    await userEvent.click(screen.getByTestId('home-combine'));
-
-    const dialog = await screen.findByTestId('merge-all-dialog');
+    expect(selectedTitles()).toEqual(['rotated-pages', 'mixed-sizes']);
+    // In Select mode a plain click toggles.
+    await userEvent.click(card('rotated-pages'));
+    expect(selectedTitles()).toEqual(['mixed-sizes']);
     expect(
-      within(dialog).getByRole('heading', { name: 'Combine 2 documents' }),
-    ).toBeInTheDocument();
-    expect(dialogRows(dialog)).toEqual(['mixed-sizes', 'simple-text']);
-    // A new document's name, not the first file's (review F8); it follows the order until edited.
-    const name = within(dialog).getByRole('textbox', { name: 'Title of the merged document' });
-    expect(name).toHaveValue('Combined – mixed-sizes + simple-text');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Move simple-text up' }));
-    expect(name).toHaveValue('Combined – simple-text + mixed-sizes');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Move simple-text down' }));
-    expect(name).toHaveValue('Combined – mixed-sizes + simple-text');
+      within(screen.getByTestId('library-selection-bar')).getByText('1 selected'),
+    ).toBeVisible();
 
-    // Confirming makes a new document, keeps the files open and shows it in Read.
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Combine' }));
+    // Done leaves Select mode and clears.
+    await userEvent.click(screen.getByTestId('library-select'));
+    expect(within(grid()).queryAllByRole('option', { selected: true })).toHaveLength(0);
+    expect(screen.queryByTestId('library-selection-bar')).toBeNull();
+
+    // Right-click enters Select mode with the card checked; the ○ toggles.
+    fireEvent.contextMenu(card('simple-text'));
+    expect(selectedTitles()).toEqual(['simple-text']);
+    fireEvent.click(within(card('mixed-sizes')).getByTestId('library-card-check'));
+    expect(selectedTitles()).toEqual(['simple-text', 'mixed-sizes']);
+
+    // Not selecting, one click opens.
+    await userEvent.click(screen.getByTestId('library-select'));
+    await userEvent.click(card('rotated-pages'));
     await waitFor(() => {
       expect(shown()).toBe('page');
     });
-    expect(ws().documentOrder.map((id) => titleOf(id))).toEqual([
-      'simple-text',
-      'rotated-pages',
-      'mixed-sizes',
-      'Combined – mixed-sizes + simple-text',
-    ]);
-    expect(ws().documents[ws().activeDocument ?? ('' as DocumentId)]?.pages).toHaveLength(
-      (await pageCount('mixed-sizes')) + 3,
-    );
-    expect(useAnnouncer.getState().message).toBe(
-      `Combined 2 files into Combined – mixed-sizes + simple-text. Undo with ${
-        currentPlatform === 'mac' ? 'Command Z' : 'Control Z'
-      }`,
-    );
-    // "Combined 2 files · Undo": one step back to the three files.
-    const toast = await screen.findByTestId('combined-toast');
-    expect(toast).toHaveTextContent('Combined 2 files');
-    await userEvent.click(within(toast).getByRole('button', { name: 'Undo' }));
-    await waitFor(() => expect(screen.queryByTestId('combined-toast')).toBeNull());
-    expect(ws().documentOrder.map((id) => titleOf(id))).toEqual([
-      'simple-text',
-      'rotated-pages',
-      'mixed-sizes',
-    ]);
+    expect(titleOf(ws().activeDocument ?? undefined)).toBe('rotated-pages');
   });
 
-  it('opens the merge dialog with [target, dragged] when a card is dropped on another', async () => {
+  it('dims Combine and Compare with their reasons, so the bar never reflows', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
-    const data = dragCard(card('simple-text'), card('mixed-sizes'), false);
-    // The drop target is marked and says what a drop does.
-    expect(card('mixed-sizes')).toHaveAttribute('data-drop-target');
-    expect(screen.getByTestId('home-drop-label')).toHaveTextContent('Combine with mixed-sizes');
-    drag(card('mixed-sizes'), 'drop', data);
-
-    const dialog = await screen.findByTestId('merge-all-dialog');
-    expect(dialogRows(dialog)).toEqual(['mixed-sizes', 'simple-text']);
-    // The dialog is modal (the cards are hidden from the accessibility tree behind it).
-    expect(document.querySelector('[data-drop-target]')).toBeNull();
-    closeOperationDialog();
-    await waitFor(() => {
-      expect(screen.queryByTestId('merge-all-dialog')).toBeNull();
-      expect(screen.getByRole('listbox', { name: 'Files' })).toBeInTheDocument();
-    });
-
-    // The other way round; nothing merged without the dialog.
-    dragCard(card('rotated-pages'), card('simple-text'));
-    expect(dialogRows(await screen.findByTestId('merge-all-dialog'))).toEqual([
-      'simple-text',
-      'rotated-pages',
-    ]);
-    expect(ws().documentOrder).toHaveLength(3);
+    fireEvent.contextMenu(card('simple-text'));
+    const bar = screen.getByTestId('library-selection-bar');
+    expect(bar).toHaveAttribute('role', 'toolbar');
+    const combine = () => within(bar).getByTestId('library-combine');
+    const compare = () => within(bar).getByTestId('library-compare');
+    expect(combine()).toHaveAttribute('aria-disabled', 'true');
+    expect(combine()).toHaveAccessibleDescription('Select two or more documents to combine');
+    expect(compare()).toHaveAttribute('aria-disabled', 'true');
+    expect(compare()).toHaveAccessibleDescription('Select exactly two documents to compare');
+    fireEvent.contextMenu(card('mixed-sizes'));
+    expect(combine()).not.toHaveAttribute('aria-disabled', 'true');
+    expect(combine()).toHaveTextContent('Combine 2 files');
+    expect(compare()).not.toHaveAttribute('aria-disabled', 'true');
+    fireEvent.contextMenu(card('rotated-pages'));
+    expect(compare()).toHaveAttribute('aria-disabled', 'true');
+    expect(combine()).toHaveTextContent('Combine 3 files');
   });
 
-  it('ignores drags that are not cards and a card dropped on itself', async () => {
-    await openOnHome('simple-text.pdf', 'rotated-pages.pdf');
-    const text = new DataTransfer();
-    text.setData('text/plain', 'hello');
-    drag(card('rotated-pages'), 'dragover', text);
-    expect(card('rotated-pages')).not.toHaveAttribute('data-drop-target');
-    dragCard(card('rotated-pages'), card('rotated-pages'));
+  it('combines the checked cards in card order with no dialog, in the Pages grid, one Undo', async () => {
+    await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
+    // Checked in the opposite order to the cards.
+    fireEvent.contextMenu(card('mixed-sizes'));
+    fireEvent.contextMenu(card('simple-text'));
+    await userEvent.click(screen.getByTestId('library-combine'));
     expect(screen.queryByTestId('merge-all-dialog')).toBeNull();
-    expect(HOME_CARD_TYPE).toMatch(/^application\//);
+    await waitFor(() => {
+      expect(shown()).toBe('grid');
+    });
+    const created = ws().activeDocument;
+    expect(titleOf(created ?? undefined)).toBe('Combined – simple-text + mixed-sizes');
+    // Card order: simple-text's 3 pages, then mixed-sizes' 5; the sources stay open.
+    expect(ws().documents[created as DocumentId]?.pages).toHaveLength(8);
+    expect(ws().documentOrder).toHaveLength(4);
+    expect(useWorkspaceStore.getState().history.present.label).toBe('Combine 2 files');
+    expect(await screen.findByTestId('combined-toast')).toHaveTextContent('Combined 2 files');
+    useWorkspaceStore.getState().undo();
+    await waitFor(() => {
+      expect(ws().documentOrder).toHaveLength(3);
+    });
   });
 
-  it('compares exactly two selected files with A and B filled in', async () => {
-    await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
-    const home = () => within(screen.getByTestId('home'));
-    // Shown only when it applies (exactly two selected), never disabled.
-    expect(home().queryByRole('button', { name: 'Compare' })).toBeNull();
-    await userEvent.click(card('mixed-sizes'));
-    expect(home().queryByRole('button', { name: 'Compare' })).toBeNull();
-    await userEvent.keyboard(`{${MOD}>}`);
-    await userEvent.click(card('simple-text'));
-    await userEvent.keyboard(`{/${MOD}}`);
-    await userEvent.click(home().getByRole('button', { name: 'Compare' }));
+  it('compares two checked documents, the older file as A', async () => {
+    const [simple, , mixed] = await openOnHome(
+      'simple-text.pdf',
+      'rotated-pages.pdf',
+      'mixed-sizes.pdf',
+    );
+    // Give mixed-sizes the older file time.
+    act(() => {
+      const files = { ...useWorkspaceStore.getState().files };
+      for (const [id, file] of Object.entries(files)) {
+        if (file.name === 'mixed-sizes.pdf')
+          files[id as SourceId] = { ...file, lastModified: 1000 };
+      }
+      useWorkspaceStore.setState({ files });
+    });
+    fireEvent.contextMenu(card('simple-text'));
+    fireEvent.contextMenu(card('mixed-sizes'));
+    await userEvent.click(screen.getByTestId('library-compare'));
     await waitFor(() => {
       expect(shown()).toBe('compare');
     });
     const { a, b } = useCompareStore.getState();
-    expect([titleOf(a ?? undefined), titleOf(b ?? undefined)]).toEqual([
-      'mixed-sizes',
-      'simple-text',
-    ]);
+    expect([a, b]).toEqual([mixed, simple]);
   });
 
-  it('arranges the selection and closes selected files in one undoable step', async () => {
+  it('opens the Pages grid over every document, and closes the checked ones in one step', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
-    // Close waits for a selection: hidden, not disabled.
-    expect(within(screen.getByTestId('home')).queryByRole('button', { name: 'Close' })).toBeNull();
-    await userEvent.click(card('rotated-pages'));
-    await userEvent.keyboard(`{${MOD}>}`);
-    await userEvent.click(card('mixed-sizes'));
-    await userEvent.keyboard(`{/${MOD}}`);
-    await userEvent.click(
-      within(screen.getByTestId('home')).getByRole('button', { name: 'Close' }),
-    );
+    fireEvent.contextMenu(card('rotated-pages'));
+    fireEvent.contextMenu(card('mixed-sizes'));
+    await userEvent.click(screen.getByTestId('library-close'));
     await waitFor(() => {
       expect(within(grid()).getAllByRole('option')).toHaveLength(1);
     });
     expect(useWorkspaceStore.getState().history.present.label).toBe('Close 2 documents');
+    expect(await screen.findByTestId('library-closed-toast')).toHaveTextContent(
+      'Closed 2 documents · changes kept',
+    );
+    // Focus goes to the card now in the first closed card's place, else the one before.
+    await waitFor(() => {
+      expect(card('simple-text')).toHaveFocus();
+    });
     useWorkspaceStore.getState().undo();
     await waitFor(() => {
       expect(within(grid()).getAllByRole('option')).toHaveLength(3);
     });
 
-    await userEvent.click(card('mixed-sizes'));
-    await userEvent.click(
-      within(screen.getByTestId('home')).getByRole('button', { name: 'Arrange pages' }),
-    );
+    fireEvent.contextMenu(card('mixed-sizes'));
+    await userEvent.click(screen.getByTestId('library-pages'));
     await waitFor(() => {
       expect(shown()).toBe('grid');
     });
     expect(titleOf(ws().activeDocument ?? undefined)).toBe('mixed-sizes');
-    expect(await screen.findAllByRole('grid')).toHaveLength(1);
+    const collapsed = useUiStore.getState().arrangeCollapsed.map(titleOf);
+    expect(collapsed.sort()).toEqual(['rotated-pages', 'simple-text']);
   });
 
-  it('moves with arrows, toggles with Space, selects all with Mod+A and opens with Enter', async () => {
+  it('moves with arrows, checks with Space, Esc clears then leaves, Enter opens', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
     const options = within(grid()).getAllByRole('option');
     // Roving tabindex: one card is in the tab order.
@@ -338,15 +298,20 @@ describe('Home', () => {
     options[0]?.focus();
     await userEvent.keyboard('{ArrowRight}');
     expect(card('rotated-pages')).toHaveFocus();
-    expect(card('rotated-pages').tabIndex).toBe(0);
     await userEvent.keyboard(' ');
     expect(selectedTitles()).toEqual(['rotated-pages']);
     await userEvent.keyboard('{Shift>}{ArrowRight}{/Shift}');
     expect(selectedTitles()).toEqual(['rotated-pages', 'mixed-sizes']);
     await userEvent.keyboard('{Escape}');
     expect(within(grid()).queryAllByRole('option', { selected: true })).toHaveLength(0);
+    // Still in Select mode: the second Esc leaves it.
+    expect(isSelecting()).toBe(true);
+    await userEvent.keyboard('{Escape}');
+    expect(isSelecting()).toBe(false);
+    expect(shown()).toBe('home');
     await userEvent.keyboard(`{${MOD}>}a{/${MOD}}`);
     expect(selectedTitles()).toEqual(['simple-text', 'rotated-pages', 'mixed-sizes']);
+    await userEvent.keyboard('{Escape}{Escape}');
 
     await userEvent.keyboard('{Home}{Enter}');
     await waitFor(() => {
@@ -355,85 +320,60 @@ describe('Home', () => {
     expect(titleOf(ws().activeDocument ?? undefined)).toBe('simple-text');
   });
 
-  it('opens a card in Read on a double click; Home has no mode control', async () => {
-    await openOnHome('simple-text.pdf', 'rotated-pages.pdf');
-    const segment = () => screen.getByRole('radiogroup', { name: 'View mode' });
-    const glyph = () => screen.getByRole('button', { name: 'Home' });
-    // Home is a view of the open files (ADR-0019 §1): no Read · Edit · Arrange, no tab
-    // selected, the glyph current.
-    expect(screen.queryByRole('radiogroup', { name: 'View mode' })).toBeNull();
-    expect(glyph()).toHaveAttribute('aria-current', 'page');
+  it('reorders with Alt+arrows: tabs and Combine follow, one history entry', async () => {
+    await openOnHome('simple-text.pdf', 'rotated-pages.pdf', 'mixed-sizes.pdf');
+    card('simple-text').focus();
+    await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
+    expect(ws().documentOrder.map(titleOf)).toEqual([
+      'rotated-pages',
+      'simple-text',
+      'mixed-sizes',
+    ]);
+    expect(useWorkspaceStore.getState().history.present.label).toBe('Move simple-text');
+    expect(useAnnouncer.getState().message).toBe('Moved simple-text to position 2 of 3');
+    await waitFor(() => {
+      expect(card('simple-text')).toHaveFocus();
+    });
     expect(
       within(screen.getByRole('tablist', { name: 'Open documents' }))
         .getAllByRole('tab')
-        .filter((tab) => tab.getAttribute('aria-selected') === 'true'),
-    ).toEqual([]);
-    await userEvent.dblClick(card('rotated-pages'));
-    await waitFor(() => {
-      expect(shown()).toBe('page');
-    });
-    expect(titleOf(ws().activeDocument ?? undefined)).toBe('rotated-pages');
-    expect(
-      within(segment())
-        .getAllByRole('radio')
-        .map((radio) => radio.textContent),
-    ).toEqual(['Read', 'Edit', 'Arrange']);
-    expect(within(segment()).getByRole('radio', { name: 'Read, locked' })).toBeChecked();
-    expect(glyph()).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('tab', { name: 'rotated-pages', selected: true })).toBeVisible();
-
-    // The app glyph and 0 lead back.
-    await userEvent.click(glyph());
-    expect(shown()).toBe('home');
-    useUiStore.getState().showSurface('page');
-    document.body.focus();
-    await userEvent.keyboard('0');
-    expect(shown()).toBe('home');
+        .map((tab) => tab.textContent?.trim().replace(/\s+.*/, '')),
+    ).toEqual(['rotated-pages', 'simple-text', 'mixed-sizes']);
+    useWorkspaceStore.getState().undo();
+    expect(ws().documentOrder.map(titleOf)).toEqual([
+      'simple-text',
+      'rotated-pages',
+      'mixed-sizes',
+    ]);
   });
 
-  it('leaves Home by a tab click for that document in its last view and mode', async () => {
-    const [simple, rotated] = await openOnHome('simple-text.pdf', 'rotated-pages.pdf');
-    if (simple === undefined || rotated === undefined) throw new Error('not opened');
-    // rotated-pages was last shown in Arrange, in Edit.
-    act(() => {
-      useWorkspaceStore.getState().setActive(rotated);
-      useUiStore.getState().openMarkup(rotated);
-      useUiStore.getState().showSurface('grid');
-      useWorkspaceStore.getState().setActive(simple);
-      useUiStore.getState().showSurface('page');
-      useUiStore.getState().showHome();
-    });
-    await userEvent.click(screen.getByRole('tab', { name: 'rotated-pages' }));
-    expect(shown()).toBe('grid');
-    expect(titleOf(ws().activeDocument ?? undefined)).toBe('rotated-pages');
-    await userEvent.keyboard('0');
-    await userEvent.click(screen.getByRole('tab', { name: 'simple-text' }));
-    expect(shown()).toBe('page');
-    const segment = screen.getByRole('radiogroup', { name: 'View mode' });
-    expect(within(segment).getByRole('radio', { name: 'Read, locked' })).toBeChecked();
-    // The mode is per document: rotated-pages stays in Edit on the shared page view.
-    act(() => useWorkspaceStore.getState().setActive(rotated));
-    expect(within(segment).getByRole('radio', { name: 'Edit' })).toBeChecked();
-    await userEvent.keyboard('1');
-    expect(within(segment).getByRole('radio', { name: 'Read, locked' })).toBeChecked();
-    await userEvent.keyboard('2');
-    expect(within(segment).getByRole('radio', { name: 'Edit' })).toBeChecked();
+  it('renames with F2, refused with its reason on a locked document', async () => {
+    const [simple] = await openOnHome('simple-text.pdf', 'rotated-pages.pdf');
+    card('simple-text').focus();
+    await userEvent.keyboard('{F2}');
+    const input = await screen.findByRole('textbox', { name: 'Document title' });
+    await userEvent.clear(input);
+    await userEvent.type(input, 'notes{Enter}');
+    expect(titleOf(simple)).toBe('notes');
+
+    act(() => useLockStore.getState().lock(simple as DocumentId));
+    card('notes').focus();
+    await userEvent.keyboard('{F2}');
+    expect(screen.queryByRole('textbox', { name: 'Document title' })).toBeNull();
+    expect(card('notes')).toHaveAccessibleName(/, Locked$/);
   });
 
-  it('starts over after the last document closes: Home, then the next file in Read', async () => {
+  it('starts over after the last document closes: the launcher, then the next file in viewing', async () => {
     const ids = await openOnHome('simple-text.pdf');
     act(() => {
       for (const id of ids) useWorkspaceStore.getState().closeDocument(id);
     });
     expect(screen.getByTestId('home')).toHaveAttribute('data-variant', 'empty');
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
-    expect(useUiStore.getState()).toMatchObject({
-      destination: 'document',
-      docUi: {},
-    });
+    expect(useUiStore.getState()).toMatchObject({ destination: 'document', docUi: {} });
   });
 
-  it('shows Home with the new cards selected after two files are dropped on an empty app', async () => {
+  it('checks the new cards after two files are dropped, and lifts the launcher while dragging', async () => {
     render(<App />);
     const files = await Promise.all([
       fixture(simpleUrl, 'simple-text.pdf'),
@@ -444,6 +384,13 @@ describe('Home', () => {
     const shell = screen.getByTestId('app-shell');
     drag(shell, 'dragenter', data);
     drag(shell, 'dragover', data);
+    // No overlay on the Library: the launcher lifts and says what a release does.
+    const launcher = screen.getByTestId('library-launcher');
+    expect(launcher).toHaveAttribute('data-dragging');
+    expect(within(launcher).getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Drop to open 2 files',
+    );
+    expect(screen.queryByTestId('drop-overlay')).toBeNull();
     drag(shell, 'drop', data);
     await waitFor(
       () => {
@@ -452,9 +399,12 @@ describe('Home', () => {
       { timeout: 20_000 },
     );
     expect(shown()).toBe('home');
-    expect(screen.getByTestId('home-combine')).toHaveTextContent('Combine 2 files');
+    expect(screen.getByTestId('library-combine')).toHaveTextContent('Combine 2 files');
+    await waitFor(() => {
+      expect(card('simple-text')).toHaveFocus();
+    });
 
-    // A file dropped while Home shows joins the cards, selected.
+    // A file dropped while the Library shows joins the cards, checked.
     const more = new DataTransfer();
     more.items.add(await fixture(mixedUrl, 'mixed-sizes.pdf'));
     drag(screen.getByTestId('home'), 'drop', more);
@@ -466,7 +416,7 @@ describe('Home', () => {
     );
   }, 45_000);
 
-  it('shows Home with the new cards selected after two files are picked with "Open files"', async () => {
+  it('checks the new cards after two files are picked with Open PDFs…', async () => {
     const files = await Promise.all([
       fixture(simpleUrl, 'simple-text.pdf'),
       fixture(rotatedUrl, 'rotated-pages.pdf'),
@@ -479,7 +429,12 @@ describe('Home', () => {
     try {
       render(<App />);
       const empty = await screen.findByTestId('home');
-      await userEvent.click(within(empty).getByRole('button', { name: 'Open files' }));
+      // First focus on a first visit (J1).
+      const open = within(empty).getByRole('button', { name: 'Open PDFs…' });
+      await waitFor(() => {
+        expect(open).toHaveFocus();
+      });
+      await userEvent.click(open);
       await waitFor(
         () => {
           expect(within(grid()).getAllByRole('option', { selected: true })).toHaveLength(2);
@@ -487,14 +442,47 @@ describe('Home', () => {
         { timeout: 20_000 },
       );
       expect(shown()).toBe('home');
-      expect(screen.getByTestId('home-combine')).toHaveTextContent('Combine 2 files');
     } finally {
       if (picker) Object.defineProperty(window, 'showOpenFilePicker', picker);
       else Reflect.deleteProperty(window, 'showOpenFilePicker');
     }
   }, 45_000);
 
-  it('opens a single dropped file in Read', async () => {
+  it('Combine files… makes one document of the picked files, with no other tab', async () => {
+    const files = await Promise.all([
+      fixture(simpleUrl, 'simple-text.pdf'),
+      fixture(rotatedUrl, 'rotated-pages.pdf'),
+    ]);
+    const picker = Object.getOwnPropertyDescriptor(window, 'showOpenFilePicker');
+    Object.defineProperty(window, 'showOpenFilePicker', {
+      configurable: true,
+      value: () => Promise.resolve(files.map((file) => ({ getFile: () => Promise.resolve(file) }))),
+    });
+    try {
+      render(<App />);
+      const empty = await screen.findByTestId('home');
+      await userEvent.click(within(empty).getByRole('button', { name: 'Combine files…' }));
+      await waitFor(
+        () => {
+          expect(ws().documentOrder).toHaveLength(1);
+        },
+        { timeout: 20_000 },
+      );
+      expect(titleOf(ws().activeDocument ?? undefined)).toBe(
+        'Combined – simple-text + rotated-pages',
+      );
+      expect(ws().documents[ws().activeDocument as DocumentId]?.pages).toHaveLength(7);
+      expect(shown()).toBe('grid');
+      // One composed step: undo leaves nothing open.
+      useWorkspaceStore.getState().undo();
+      expect(ws().documentOrder).toHaveLength(0);
+    } finally {
+      if (picker) Object.defineProperty(window, 'showOpenFilePicker', picker);
+      else Reflect.deleteProperty(window, 'showOpenFilePicker');
+    }
+  }, 45_000);
+
+  it('opens a single dropped file in viewing; two over a document open as tabs with a toast', async () => {
     render(<App />);
     const data = new DataTransfer();
     data.items.add(await fixture(simpleUrl, 'simple-text.pdf'));
@@ -507,20 +495,45 @@ describe('Home', () => {
     );
     expect(shown()).toBe('page');
     expect(screen.queryByTestId('home')).toBeNull();
+
+    // Over a document: the overlay, then tabs and "Opened 2 files · Show in Library" (02.19).
+    const two = new DataTransfer();
+    two.items.add(await fixture(rotatedUrl, 'rotated-pages.pdf'));
+    two.items.add(await fixture(mixedUrl, 'mixed-sizes.pdf'));
+    const shell = screen.getByTestId('app-shell');
+    drag(shell, 'dragenter', two);
+    expect(await screen.findByTestId('drop-overlay')).toHaveTextContent('Drop to open 2 files');
+    drag(shell, 'drop', two);
+    await waitFor(
+      () => {
+        expect(ws().documentOrder).toHaveLength(3);
+      },
+      { timeout: 20_000 },
+    );
+    expect(shown()).toBe('page');
+    expect(screen.queryByTestId('drop-overlay')).toBeNull();
+    expect(await screen.findByTestId('library-opened-toast')).toHaveTextContent('Opened 2 files');
   }, 45_000);
 
-  it('is the empty state with no file open: the honest text, Open files and the shortcuts', async () => {
+  it('is the launcher with no file open: the headline, Open PDFs… and Combine files…', async () => {
     render(<App />);
     useUiStore.getState().showHome();
     const home = await screen.findByTestId('home');
     expect(home).toHaveAttribute('data-variant', 'empty');
-    expect(within(home).getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
-    expect(within(home).getByText(/never uploaded/)).toBeVisible();
-    expect(within(home).getByRole('button', { name: 'Open files' })).toBeVisible();
-    expect(within(home).getByRole('button', { name: 'Search commands' })).toBeVisible();
-    expect(within(home).getByRole('button', { name: 'Keyboard shortcuts' })).toBeVisible();
+    expect(home).toHaveAccessibleName('Library');
+    expect(
+      within(home).getByRole('heading', {
+        level: 1,
+        name: 'Read, mark up, sign and arrange PDFs.',
+      }),
+    ).toBeVisible();
+    expect(within(home).getByText('Nothing leaves this device.')).toBeVisible();
+    expect(within(home).getByRole('button', { name: 'Open PDFs…' })).toHaveClass('btn-prominent');
+    expect(within(home).getByRole('button', { name: 'Combine files…' })).toBeVisible();
+    expect(within(home).getByRole('button', { name: 'More' })).toBeVisible();
+    expect(within(home).getByRole('radiogroup', { name: 'Language' })).toBeVisible();
+    expect(within(home).getByTestId('library-privacy')).toHaveTextContent('Nothing is uploaded');
     expect(within(home).queryByRole('listbox')).toBeNull();
-    expect(within(home).getAllByRole('button')).toHaveLength(3);
   });
 
   it('is reached from the palette in both languages', async () => {
@@ -560,7 +573,7 @@ function fakeHandle(
   return handle;
 }
 
-describe('Recents on Home', () => {
+describe('Recents on the Library', () => {
   const recents = () => screen.getByRole('list', { name: 'Recent files' });
   const row = (name: string) =>
     within(recents()).getByRole('button', { name: new RegExp(`^${name.replace('.', '\\.')},`) });
@@ -632,8 +645,10 @@ describe('Recents on Home', () => {
     );
     expect(row('invoice.pdf')).toHaveAccessibleName('invoice.pdf, 812 B, yesterday, Open again…');
     expect(row('scan.pdf')).toHaveTextContent('now');
-    // One column: the open and drop card first, the recents under it (review F17).
-    const drop = within(home).getByRole('heading', { name: 'Drop PDFs to start' });
+    // One column: the launcher card first, the recents under it (L1 §2).
+    const drop = within(home).getByRole('heading', {
+      name: 'Read, mark up, sign and arrange PDFs.',
+    });
     expect(heading.compareDocumentPosition(drop) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     expect(within(home).getByRole('button', { name: 'Clear recents' })).toBeVisible();
   });
@@ -884,10 +899,3 @@ describe('Recents on Home', () => {
     expect(useRecentsStore.getState().entries).toHaveLength(1);
   }, 45_000);
 });
-
-async function pageCount(title: string): Promise<number> {
-  const name = `${title}.pdf`;
-  const { PDFDocument } = await import('@cantoo/pdf-lib');
-  const bytes = await (await fetch(FILES[name] ?? '')).arrayBuffer();
-  return (await PDFDocument.load(bytes)).getPageCount();
-}

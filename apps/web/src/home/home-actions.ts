@@ -26,7 +26,7 @@ import { currentPlatform } from '../commands/shortcuts';
 import { enterCompare } from '../compare/compare-commands';
 import { useCompareStore } from '../compare/compare-store';
 import { presentOpenFailures } from '../errors/present';
-import { isPdfFile, pickFiles, rememberFileHandle } from '../files/open-files';
+import { partitionFiles, pickFiles, rememberFileHandle } from '../files/open-files';
 import {
   canReopenRecent,
   type RecentEntry,
@@ -139,7 +139,7 @@ export function showOpened(
           focusCardSoon(ids[0]);
         },
       },
-      { key: 'library-opened-files' },
+      { key: 'library-opened-files', testId: 'library-opened-toast' },
     );
   }
 }
@@ -217,7 +217,7 @@ function showInGrid(id: DocumentId): void {
  */
 export async function combineFiles(): Promise<DocumentId | undefined> {
   const picked = await pickFiles('pdf');
-  const files = picked.filter(isPdfFile);
+  const files = partitionFiles(picked).pdfs;
   if (files.length === 0) return undefined;
   if (files.length === 1) {
     const wasEmpty = order().length === 0;

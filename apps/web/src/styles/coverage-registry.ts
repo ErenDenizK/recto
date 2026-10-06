@@ -458,4 +458,16 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     minHeight: 36,
     smallest: '36 px fine (44 coarse); "Release to see all pages" with its icon is about 200 px',
   },
+  {
+    id: 'library-selection-bar',
+    surface: 'Library selection bar (02-library L6)',
+    module: 'home/SelectionBar.module.css',
+    selector: '.bar',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 280,
+    minHeight: 44,
+    smallest:
+      '44 px fine (56 coarse); a narrow window drops the count: Combine, Compare, Pages, Close, ✕',
+  },
 ];
