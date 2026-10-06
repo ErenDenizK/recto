@@ -733,8 +733,8 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     await openSimple(page);
     await page.locator('body').press('p');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
-    // The palette's glass is what fades (MK-17).
-    const bar = page.locator('[data-markup-palette]');
+    // The palette's glass, the capsule, is what fades (MK-17).
+    const bar = page.locator('[data-capsule="palette"]');
     const page1 = await layer(page).boundingBox();
     const barBox = await bar.boundingBox();
     if (!page1 || !barBox) throw new Error('not laid out');

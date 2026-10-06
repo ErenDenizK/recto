@@ -140,9 +140,15 @@ async function pauseMorphAt(page: Page, fraction: number): Promise<Box> {
   return box;
 }
 
-/** Hides or shows the capsule's contents (not glass), or the capsule itself. */
+/**
+ * Hides or shows the capsule's contents (not glass), or the capsule itself. The page pill is
+ * always hidden: a palette wide enough to reach it raises it (spec 01.6), and its glass moving
+ * beside the capsule's end is not the capsule's edge.
+ */
 async function hide(page: Page, what: 'contents' | 'capsule' | 'none'): Promise<void> {
   await page.evaluate((w) => {
+    const pill = document.querySelector<HTMLElement>('[data-testid="page-pill"]');
+    if (pill) pill.style.visibility = 'hidden';
     const capsule = document.querySelector<HTMLElement>('[data-capsule]');
     if (!capsule) return;
     capsule.style.visibility = w === 'capsule' ? 'hidden' : '';
