@@ -12,8 +12,8 @@
  *
  * Rows whose behaviour another D1 package builds are `fixme` with the package named: the
  * selection bar's H U S C X, E then Enter, the page menu's "Add … here", the pending-marks bar
- * and the Rotated toast (D1-6), the navigator's navigating click (D1-9). Touch rows (S11–S13)
- * use the DevTools protocol's touch input, so they run in Chromium only.
+ * and the Rotated toast (D1-6). Touch rows (S11–S13) use the DevTools protocol's touch input,
+ * so they run in Chromium only.
  */
 import { decodePDFRawStream, PDFArray, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
@@ -492,7 +492,6 @@ for (const locked of [false, true]) {
     test(`S10 Delete after a navigating click on a thumbnail deletes nothing (${column})`, async ({
       page,
     }) => {
-      test.fixme(!locked, 'D1-9: a navigating click never selects (S10)');
       await openDoc(page, 'simple-text.pdf');
       const count = await page.locator('[data-read-viewport] [data-page-id]').count();
       await showPages(page);
