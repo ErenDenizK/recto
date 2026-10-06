@@ -44,7 +44,7 @@ import {
   resetRedactionApply,
   shortTextUnderMarks,
 } from './apply';
-import { notSearchedGroups, Outcome } from './ApplyRedactionsDialog';
+import { notSearchedGroups, Outcome } from './ApplySheet';
 import { createMarks, isRedactMark } from './marks';
 import { markKeyOf, resetRedactionStore, useRedactionStore } from './redaction-store';
 import { indexPageText, quadsForTextRange } from './text-index';

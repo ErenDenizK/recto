@@ -222,7 +222,7 @@
   padding-bottom: 16px;
 }
 
-.panel[data-presentation='dialog'][data-kind='confirmation'] .body {
+.panel[data-presentation='dialog'][data-kind='confirmation'] :is(.body, .reason) {
   padding-inline: 24px;
 }
 

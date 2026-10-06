@@ -1,0 +1,163 @@
+/* S19 Apply redactions (components/07-sheets.md §20): the body of a `confirmation` sheet
+ * (ui/sheet). Groups sit under a footnote-weight label, as the other sheets lay theirs out
+ * (ocr/Ocr.module.css, pages-sheets/PagesSheets.module.css); the result's facts and checks
+ * read as rows in a solid well (L§2.10). Also the result of "Crop pages…" with discard. */
+.form {
+  display: grid;
+  grid-auto-rows: max-content;
+  gap: 16px;
+  min-width: 0;
+}
+
+.text {
+  margin: 0;
+  color: var(--glass-text-secondary, var(--text-secondary));
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}
+
+.group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.legend {
+  margin: 0 0 2px;
+  color: var(--glass-text-secondary, var(--text-secondary));
+  font-size: var(--type-footnote);
+  font-weight: 550;
+  line-height: var(--type-footnote-lh);
+}
+
+/* The fill: the swatch row, a hairline, then the colour well (the ink strip's order reversed,
+   so the two named fills come first). */
+.fills {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatches {
+  flex: none;
+}
+
+.divider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--border-glass, var(--border-hairline));
+}
+
+.working {
+  display: grid;
+  padding: 8px 0;
+}
+
+.note {
+  margin: 0;
+  color: var(--glass-text-secondary, var(--text-secondary));
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* "Blank check passed": neutral text with a check-coloured dot (L§1.6: success marks verified
+   results only). */
+.verified {
+  margin: 0;
+  color: var(--glass-text-secondary, var(--text-secondary));
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.verified::before {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--success);
+  vertical-align: middle;
+  content: '';
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.sourceTitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  font-weight: 600;
+  line-height: var(--type-body-lh);
+}
+
+/* Facts and checks: rows in a solid well, label leading and value trailing. */
+.facts,
+.checks {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-control);
+  background: var(--field-well, var(--surface-raised));
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  list-style: none;
+}
+
+.fact,
+.checks > li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 2px 0;
+}
+
+.facts dt,
+.checks > li {
+  color: var(--text-secondary);
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.checks > li[data-passed='false'] {
+  color: var(--danger);
+}
+
+.status {
+  flex: none;
+  color: var(--text-primary);
+}
+
+.checks > li[data-passed='false'] .status {
+  color: var(--danger);
+}
+
+.findings {
+  composes: technical from global;
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0;
+  padding-left: var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  line-height: var(--type-caption-lh);
+}
