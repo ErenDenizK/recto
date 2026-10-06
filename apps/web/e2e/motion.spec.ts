@@ -46,6 +46,7 @@ import {
   enterEdit,
   fixturePath,
   openFixtures,
+  openSaveCopyFromMenu,
   sessionSettled,
   useFileInputPicker,
 } from './helpers';
@@ -815,14 +816,14 @@ async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
     timeout: 20_000,
   });
   await settleAnimations(page);
-  const saveCopy = page.getByRole('button', { name: 'Save a copy', exact: true });
-  await saveCopy.click();
+  // Save a copy from the title menu (01-frame F5): the menu's popup, then the side sheet.
+  await openSaveCopyFromMenu(page);
   await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
   await settleAnimations(page);
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('save-copy-sheet')).toHaveCount(0);
   await settleAnimations(page);
-  await saveCopy.hover();
+  await page.getByTestId('sidebar-toggle').hover();
   await expect(page.getByRole('tooltip').first()).toBeVisible();
   await settleAnimations(page);
   await page.mouse.move(2, 450);
@@ -836,7 +837,10 @@ async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
   await field.press('Enter');
   await field.press('Enter');
   await page.waitForTimeout(700);
+  // Esc clears the query, the next one leaves the field for the page (01-frame F6 §6).
   await field.press('Escape');
+  await field.press('Escape');
+  await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).not.toBe('INPUT');
   await settleAnimations(page);
 
   // A toast, and the undo reveal: delete a page in the grid, then undo.
