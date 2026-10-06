@@ -156,8 +156,10 @@ export default defineConfig({
       },
       workbox: {
         // App shell: HTML, JS (including worker and engine chunks), CSS and fonts. The
-        // manifest and its icons are added by the plugin (`includeManifestIcons`).
-        globPatterns: ['**/*.{html,js,css,woff2}'],
+        // manifest and its icons are added by the plugin (`includeManifestIcons`). The teaching
+        // sample (`sample/recto-sample-{en,tr}.pdf`, ≤ 125 KB each, 02-library 02.14) opens
+        // offline once the app has loaded with a connection.
+        globPatterns: ['**/*.{html,js,css,woff2}', 'sample/*.pdf'],
         // Wasm is runtime-cached (below); the 404 page is not part of the app shell.
         // `worker-engine-*.js` is EmbedPDF's own worker engine, the adapter's lazy default
         // factory: the app always passes a factory (ADR-0011), so it is never loaded. `ocr/`
