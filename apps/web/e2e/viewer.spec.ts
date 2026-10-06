@@ -199,12 +199,29 @@ test('go to page accepts numbers; Home and End jump to the ends', async ({ page 
   await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 });
 
-/** Picks a page layout in the page pill's menu (01-frame F11), where the layout switch went. */
+/**
+ * Picks a page layout in the page pill's menu (01-frame F11), where the layout switch went.
+ *
+ * The row is a `Segmented` (radios) while its labels fit the 300 px menu, else the `Select`
+ * with the same options and name (09-primitives §6.2). "Continuous · Single page · Two pages"
+ * fit its equal shares by under 5 px, so an engine whose text runs a little wider (CI's
+ * Chromium does) renders the Select: either is the row the spec allows.
+ */
 async function chooseLayout(page: Page, name: string): Promise<void> {
   await page.getByTestId('page-pill').click();
-  await page.getByTestId('page-pill-menu').getByRole('radio', { name }).click();
+  const menu = page.getByTestId('page-pill-menu');
+  const radio = menu.getByRole('radio', { name });
+  const select = menu.getByRole('combobox', { name: 'Page layout' });
+  await expect(radio.or(select)).toBeVisible();
+  if ((await radio.count()) > 0) {
+    await radio.click();
+  } else {
+    await select.click();
+    await page.getByRole('option', { name, exact: true }).click();
+    await expect(select).toHaveText(name);
+  }
   await page.keyboard.press('Escape');
-  await expect(page.getByTestId('page-pill-menu')).toHaveCount(0);
+  await expect(menu).toHaveCount(0);
 }
 
 test('two-up layout shows pages side by side', async ({ page }) => {
