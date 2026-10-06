@@ -1,10 +1,10 @@
 /**
  * The application shell as layers (`components/01-frame.md` F1, §1.1; ADR-0031; redesign spec
  * D2-1). One stage with floating layers, in place of M8's 3 × 3 grid (title bar, rail,
- * inspector, status bar):
+ * inspector, status bar; the inspector's parts found their homes in D2-9):
  *
- *   page scroller (the stage, `main`) · soft scroll edge · sidebar · inspector (until D2-9) ·
- *   dock band (dock + page pill) · top strip or compact bar · drop overlay
+ *   page scroller (the stage, `main`) · soft scroll edge · sidebar · dock band (dock + page
+ *   pill) · top strip or compact bar · drop overlay
  *   … then, portalled: contextual bars · toasts · sheets · menus and popovers · dialogs ·
  *   tooltips
  *
@@ -62,7 +62,6 @@ import { SoftEdge } from './frame/SoftEdge';
 import { TopStrip } from './frame/TopStrip';
 import { LiveRegion } from './LiveRegion';
 import { PasswordDialog } from './PasswordDialog';
-import { RightPanel } from './RightPanel';
 import { ShortcutOverlay } from './ShortcutOverlay';
 import { Sidebar } from './sidebar/Sidebar';
 import { Stage } from './Stage';
@@ -180,7 +179,6 @@ export function AppShell() {
         {frame.tight || (frame.size === 'compact' && !frame.short) ? null : (
           <Sidebar form={frame.short ? 'sheet' : sidebarOverlay ? 'overlay' : 'docked'} />
         )}
-        <RightPanel />
         <DockBand size={frame.size} compact={compact} tight={frame.tight} />
         {compact || frame.tight ? (
           <CompactTopBar short={frame.short} tight={frame.tight} />

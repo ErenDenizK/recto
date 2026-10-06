@@ -428,17 +428,6 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     smallest: 'the docked sidebar at its 240 px minimum width',
   },
   {
-    id: 'inspector',
-    surface: 'Inspector (right panel)',
-    module: 'shell/RightPanel.module.css',
-    selector: '.panel',
-    composes: 'glass-frame',
-    filter: '--glass-frame-filter',
-    minWidth: 240,
-    minHeight: 200,
-    smallest: 'its narrowest width',
-  },
-  {
     id: 'toast',
     surface: 'Toast and progress capsule (08-feedback FB4, FB5)',
     module: 'ui/Toast/Toast.module.css',

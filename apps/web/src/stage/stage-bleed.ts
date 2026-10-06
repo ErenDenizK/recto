@@ -111,7 +111,7 @@ export function useStageBleed(ref: RefObject<HTMLElement | null>): StageBleed {
       for (const child of area.children) resize.observe(child);
     };
     observe();
-    // The inspector mounts and unmounts as it opens and closes.
+    // Layers (the sidebar) mount and unmount as they open and close.
     const children = new MutationObserver(() => {
       observe();
       measure();

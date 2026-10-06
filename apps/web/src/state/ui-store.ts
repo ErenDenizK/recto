@@ -80,7 +80,6 @@ export type PagesView = 'thumbnails' | 'bookmarks';
 export type ReviewFilter = 'all' | 'comments' | 'redactions' | 'fields' | 'words';
 /** The docked sidebar's width (spec 06.18): 280 by default, 240–400, kept per device. */
 export const LEFT_PANEL_WIDTH = { min: 240, max: 400, default: 280 } as const;
-export const RIGHT_PANEL_WIDTH = { min: 240, max: 440, default: 280 } as const;
 
 /** Discrete zoom steps, as in most viewers. 1 = 100%. */
 export const ZOOM_LEVELS = [
@@ -127,9 +126,6 @@ export interface PersistedLayout {
   pagesView: PagesView;
   reviewFilter: ReviewFilter;
   leftPanelWidth: number;
-  /** The inspector: closed until the person opens it; the app never opens it by itself. */
-  rightPanelOpen: boolean;
-  rightPanelWidth: number;
 }
 
 /**
@@ -142,8 +138,6 @@ export const DEFAULT_LAYOUT: PersistedLayout = {
   pagesView: 'thumbnails',
   reviewFilter: 'all',
   leftPanelWidth: LEFT_PANEL_WIDTH.default,
-  rightPanelOpen: false,
-  rightPanelWidth: RIGHT_PANEL_WIDTH.default,
 };
 
 /** M8's `files` is no longer a section: a stored `files` reads as Pages. */
@@ -212,8 +206,8 @@ const width = (x: unknown, range: { min: number; max: number; default: number })
 
 /**
  * `ui:v3` as stored (redesign spec §7): the sidebar as one record, the Pages view and the
- * Review filter, and M8's inspector until D2-9 removes it. A stored value the sidebar no longer
- * knows (M8's `files`) falls back to Pages, field by field.
+ * Review filter. A stored value the sidebar no longer knows (M8's `files`) falls back to Pages,
+ * field by field; M8's `inspector` record, written until D2-9 removed the inspector, is ignored.
  */
 export interface StoredLayout {
   readonly sidebar: {
@@ -227,7 +221,6 @@ export interface StoredLayout {
   };
   readonly pagesView: PagesView;
   readonly reviewFilter: ReviewFilter;
-  readonly inspector: { readonly open: boolean; readonly width: number };
   /**
    * The Pages grid's scope and cell size (PG2, per device). Written only when either differs
    * from `DEFAULT_GRID`, so a layout stored before the grid had them reads as the default.
@@ -258,15 +251,12 @@ export function parseLayout(value: unknown): PersistedLayout {
   const v = record(value);
   if (v === undefined) return DEFAULT_LAYOUT;
   const sidebar = record(v.sidebar) ?? {};
-  const inspector = record(v.inspector) ?? {};
   return {
     leftPanelOpen: bool(sidebar.open, DEFAULT_LAYOUT.leftPanelOpen),
     leftPanelView: storedView(sidebar.section),
     pagesView: storedPagesView(v.pagesView),
     reviewFilter: storedFilter(v.reviewFilter),
     leftPanelWidth: width(sidebar.width, LEFT_PANEL_WIDTH),
-    rightPanelOpen: bool(inspector.open, DEFAULT_LAYOUT.rightPanelOpen),
-    rightPanelWidth: width(inspector.width, RIGHT_PANEL_WIDTH),
   };
 }
 
@@ -292,7 +282,6 @@ export function toStoredLayout(layout: PersistedLayout & Partial<GridPrefs>): St
     },
     pagesView: layout.pagesView,
     reviewFilter: layout.reviewFilter,
-    inspector: { open: layout.rightPanelOpen, width: layout.rightPanelWidth },
   };
 }
 
@@ -319,14 +308,13 @@ export function parseLayoutV2(value: unknown): PersistedLayout {
     pagesView: storedPagesView(v.pagesView),
     reviewFilter: storedFilter(v.reviewFilter),
     leftPanelWidth: width(v.leftPanelWidth, LEFT_PANEL_WIDTH),
-    rightPanelOpen: bool(v.rightPanelOpen, DEFAULT_LAYOUT.rightPanelOpen),
-    rightPanelWidth: width(v.rightPanelWidth, RIGHT_PANEL_WIDTH),
   };
 }
 
 /**
  * `ui:v2` → `ui:v3` (redesign spec §7): the navigator's tab becomes the sidebar's section and
- * its width the sidebar's; the Pages view, the Review filter and the inspector carry over.
+ * its width the sidebar's; the Pages view and the Review filter carry over (the inspector does
+ * not: D2-9 removed it).
  * Whether the navigator was open is not migrated (06.17): v2 stored it open for everyone who
  * never closed it, so its value says little about a choice, and the sidebar starts at its
  * default once.
@@ -338,8 +326,7 @@ export function migrateLayoutV2(v2: unknown): PersistedLayout {
 /**
  * `ui:v1` → `ui:v2`: the old view maps to its tab (outline → Pages with Bookmarks on;
  * search → Find; comments, redactions, forms → Review with that filter); widths and the
- * navigator's open state carry over. The inspector starts closed (decision 4): v1 stored
- * it open for everyone who never touched it, so its value says nothing about a choice.
+ * navigator's open state carry over. v1's inspector fields are not read (D2-9 removed it).
  */
 export function migrateLayout(v1: unknown): PersistedLayout {
   const v = record(v1);
@@ -354,7 +341,6 @@ export function migrateLayout(v1: unknown): PersistedLayout {
     ...target,
     leftPanelOpen: bool(v.leftPanelOpen, DEFAULT_LAYOUT.leftPanelOpen),
     leftPanelWidth: width(v.leftPanelWidth, LEFT_PANEL_WIDTH),
-    rightPanelWidth: width(v.rightPanelWidth, RIGHT_PANEL_WIDTH),
   };
 }
 
@@ -495,8 +481,6 @@ export interface UiState extends PersistedLayout {
   setPagesView: (view: PagesView) => void;
   setReviewFilter: (filter: ReviewFilter) => void;
   setLeftPanelWidth: (width: number) => void;
-  toggleRightPanel: () => void;
-  setRightPanelWidth: (width: number) => void;
   /**
    * Shows a document on `surface` (`id`, the active document by default), leaving the
    * Library or Compare. With no document only the destination changes.
@@ -565,11 +549,6 @@ const store = create<UiState>()((set, get) => ({
   setReviewFilter: (reviewFilter) => set({ reviewFilter }),
   setLeftPanelWidth: (width) =>
     set({ leftPanelWidth: clamp(Math.round(width), LEFT_PANEL_WIDTH.min, LEFT_PANEL_WIDTH.max) }),
-  toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
-  setRightPanelWidth: (width) =>
-    set({
-      rightPanelWidth: clamp(Math.round(width), RIGHT_PANEL_WIDTH.min, RIGHT_PANEL_WIDTH.max),
-    }),
   showSurface: (surface, id = activeDocumentId()) =>
     set((s) => ({
       destination: 'document',
@@ -666,8 +645,6 @@ useUiStore.subscribe((state, previous) => {
     state.pagesView !== previous.pagesView ||
     state.reviewFilter !== previous.reviewFilter ||
     state.leftPanelWidth !== previous.leftPanelWidth ||
-    state.rightPanelOpen !== previous.rightPanelOpen ||
-    state.rightPanelWidth !== previous.rightPanelWidth ||
     state.gridScope !== previous.gridScope ||
     state.arrangeSize !== previous.arrangeSize
   ) {
