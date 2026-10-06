@@ -12,7 +12,8 @@
     "i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/i18n/paraglide --strategy baseLocale --no-emit-readme --emit-ts-declarations --silent",
     "typecheck": "pnpm i18n && tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "materials": "node --experimental-strip-types --no-warnings=ExperimentalWarning ../../tooling/materials.ts"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^4.0.0",

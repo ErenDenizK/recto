@@ -2,8 +2,8 @@
  * The one popover recipe (10-ink.md §7; 04-context §15; quality-bar Q-7, Q-9), drawn by
  * `ui/Popover.tsx` and composed by the colour panel.
  *
- * - Material: M4 on today's tokens, the frosted tier 3 (`glass glass-menu`), blurred 12px
- *   (coverage registry `popover`).
+ * - Material: M4 (`mat mat-menu s12`), blurred 12px (coverage registry `popover`); a panel
+ *   that opens across a hard dark/white edge composes `mat-opaque`, its solid twin.
  * - Shape: radius 16, 12 px padding, `min(320px, 100vw − 16px)` wide.
  * - Title row: 44 px with the title (13/18 at 600 fine, 15/20 coarse) and ✕ at the end; it
  *   reaches 6 px into the padding above, so the ✕ sits concentric with the corner.
@@ -11,7 +11,7 @@
  *   fade, on transform and opacity only (Q-7). Reduced motion zeroes --duration-fast.
  */
 .popup {
-  composes: glass glass-menu from global;
+  composes: mat mat-menu s12 from global;
   --pop-icon-button: 32px;
   --pop-icon: 20px;
   --pop-title: 13px;

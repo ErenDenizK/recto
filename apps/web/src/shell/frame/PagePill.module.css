@@ -1,12 +1,12 @@
 /*
  * The page pill (01-frame F11 §2–§4): an M1 chip, 36 px fine / 44 coarse, at the dock band's
  * trailing end, 16 px inside the free rectangle, centred on the dock (--bar-h). Text 13/18 at 500
- * (15/20 coarse), tabular. Glass from the floating recipe (`glass from global`; coverage
- * registry `page-pill`); D3-3 gives it the M1 tier. It rises 8 px above a bar that would come
- * within 12 px (`data-raised`) and steps away with the dock in Focus.
+ * (15/20 coarse), tabular. M1 glass (`mat mat-chip s7 c8`; coverage registry `page-pill`), with
+ * the backdrop lens on Chromium (`styles/material-lens.ts`). It rises 8 px above a bar that
+ * would come within 12 px (`data-raised`) and steps away with the dock in Focus.
  */
 .pill {
-  composes: glass from global;
+  composes: mat mat-chip s7 c8 from global;
   --pill-h: 36px;
   --rise: 0px;
   --pill-pad: 14px;
@@ -57,16 +57,11 @@
 }
 
 /* The menu (F11 §2): the popover primitive at 300 px (340 coarse). */
-.menu.menu {
-  /* The M4 material's solid twin (quality bar Q-1, Q-3): this panel opens over the sidebar's
-     dark edge and the white page at once, and no blur radius evens a hard dark/white seam under
-     a tall panel, so it reads as one material whatever lies beneath. Doubled class: above the
-     global .glass-menu's variables. */
-  --glass: var(--glass-menu-solid);
-  --glass-filter: none;
-}
-
 .menu {
+  /* The M4 material's solid twin (`mat-opaque`; quality bar Q-1, Q-3): this panel opens over
+     the sidebar's dark edge and the white page at once, and no blur radius evens a hard
+     dark/white seam under a tall panel, so it reads as one material whatever lies beneath. */
+  composes: mat-opaque from global;
   display: grid;
   gap: 4px;
   width: min(300px, calc(100vw - 16px));

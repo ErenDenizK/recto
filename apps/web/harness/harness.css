@@ -19,7 +19,7 @@ body {
 }
 
 .surface {
-  /* The glass draws its own border, tint, filter and elevation (styles/global.css); corners are
+  /* The glass draws its own border, tint, filter and elevation (styles/materials.css); corners are
      square so the edge samples sit on straight sides. */
   border-radius: 0;
 }

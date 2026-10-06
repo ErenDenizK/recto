@@ -99,6 +99,14 @@ export const SEMANTIC_TOKENS: readonly string[] = [
   '--rim-top',
   '--rim-bottom',
   '--rim-inner',
+  '--rim-edge-strong',
+  '--rim-top-menu',
+  '--rim-bottom-menu',
+  '--rim-inner-menu',
+  '--rim-top-sheet',
+  '--rim-bottom-sheet',
+  '--rim-inner-sheet',
+  '--rim-inner-docked',
   ...steps('--e', [0, 1, 2, 3, 4, 5]),
 ];
 
@@ -130,7 +138,7 @@ export const CONTROL_TOKENS: readonly string[] = [
 
 /**
  * §1's aliases (09 §25 block 8), deleted at migration step 11: each M8 name and the token it
- * reads. The σ-carrying glass filters are today's `.glass*` classes: a blur, then a tier's chain.
+ * reads. The M8 glass names left with the `.glass*` classes (D3-3; `materials.css`).
  */
 export const THEME_ALIASES: Readonly<Record<string, string>> = {
   '--surface-0': '--canvas',
@@ -139,19 +147,6 @@ export const THEME_ALIASES: Readonly<Record<string, string>> = {
   '--surface-3': '--surface-on',
   '--accent-highlight': '--select-wash',
   '--accent-highlight-strong': '--select-wash-strong',
-  '--glass': '--glass-bar-tint',
-  '--glass-filter': '--glass-bar-filter',
-  '--glass-solid': '--glass-bar-solid',
-  '--glass-frame': '--glass-panel-tint',
-  '--glass-frame-filter': '--glass-panel-filter',
-  '--glass-frame-solid': '--glass-panel-solid',
-  '--glass-frame-highlight': '--white-rgb',
-  '--glass-menu': '--glass-menu-tint',
-  '--glass-menu-backdrop': '--glass-menu-filter',
-  '--glass-menu-short-backdrop': '--glass-menu-filter',
-  '--glass-capsule-filter': '--glass-bar-filter',
-  '--glass-capsule-short-filter': '--glass-bar-filter',
-  '--elevation-float': '--glass-bar-shadow',
 };
 
 /**

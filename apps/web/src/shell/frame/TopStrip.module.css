@@ -4,12 +4,12 @@
  * where F2 §2 drew 52: Q-9 amends it). Every control shares the bar's centre line; buttons are
  * circles, Save a capsule, tabs --radius-control. 12 px gutters (16 coarse).
  *
- * Material: the docked frame (`glass-frame from global`): solid --surface-frame at rest over the
- * bare canvas, the tier-2 glass with "Glass panels" on; a hairline on the bottom edge only, no
- * shadow. The page passes beneath it while scrolling (the reader bleeds under the frame).
+ * Material: docked M3 (`mat mat-panel mat-docked s8 c10`, ADR-0024 §2.8): over the bare canvas
+ * it composites to --surface-frame exactly, glass where a page passes; a hairline on the bottom
+ * edge only, no shadow. The page passes beneath it while scrolling (the reader bleeds under the frame).
  */
 .strip {
-  composes: glass-frame from global;
+  composes: mat mat-panel mat-docked s8 c10 from global;
   position: absolute;
   top: 0;
   right: 0;

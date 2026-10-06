@@ -2,12 +2,13 @@
  * PG2 Grid header (06-navigation PG2 §2–§3; quality-bar Q-8, Q-9). One band of the frame under
  * the top strip, --bar-h tall (44 fine, 56 coarse) with the strip's 12 / 16 px gutters, so its
  * controls share the strip's centre line and sizes: the segmented control and the slider at
- * --bar-button. The docked frame's material (`glass-frame`): solid --surface-frame at rest,
- * cells never pass under it (the scroller starts below it). The strip's hairline moves to the
+ * --bar-button. Docked M3 like the strip (`mat mat-panel mat-docked s8 c10`, coverage registry
+ * `grid-header`): it composites to --surface-frame over the canvas, and cells never pass under
+ * it (the scroller starts below it). The strip's hairline moves to the
  * header's bottom edge while the grid shows, so the two read as one band.
  */
 .header {
-  composes: glass-frame from global;
+  composes: mat mat-panel mat-docked s8 c10 from global;
   position: relative;
   z-index: 3;
   display: flex;
@@ -52,7 +53,7 @@
   overflow: hidden;
   min-width: 0;
   color: var(--text-primary);
-  font-weight: 550;
+  font-weight: var(--weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

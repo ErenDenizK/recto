@@ -1,8 +1,8 @@
 /**
  * Structure, contrast and colour pairs of the design tokens (language.md §1, §2.2, §2.6, §9.2,
  * §10.2; ADR-0023; components/09-primitives.md §2.2, §25, §27; redesign.md D0-1 for the coverage
- * registry and D3-2 for the colour language). The test reads the real `tokens.css` and
- * `global.css`, resolves `var()` references and computes WCAG 2.2 ratios and APCA Lc, so a
+ * registry, D3-2 for the colour language and D3-3 for the materials). The test reads the real
+ * `tokens.css` and `materials.css`, resolves `var()` references and computes WCAG 2.2 ratios and APCA Lc, so a
  * token change that breaks a pair fails here rather than in a screenshot review.
  *
  * Glass is modelled as the translucency audit measured it (docs/design/audit/translucency.md §6;
@@ -16,9 +16,16 @@ import { describe, expect, it } from 'vitest';
 
 import { INK, TINT } from '../annotations/palette';
 import { apcaContrast } from './apca';
-import { COVERAGE_REGISTRY, type GlassComposition } from './coverage-registry';
+import {
+  COVERAGE_REGISTRY,
+  compositionOf,
+  entryClasses,
+  type GlassSurfaceEntry,
+  SIGMA_STEPS,
+} from './coverage-registry';
 import focusCss from './focus.css?raw';
 import globalCss from './global.css?raw';
+import materialsCss from './materials.css?raw';
 import {
   CONTROL_TOKENS,
   GLASS_TIERS,
@@ -217,8 +224,8 @@ function glassFrom(tintToken: string, filterToken: string, backdrop: Rgb): Rgb {
 const tierOver = (tier: GlassTier, backdrop: Rgb): Rgb =>
   glassFrom(tierTokens(tier).tint, tierTokens(tier).filter, backdrop);
 
-/** Today's floating glass (`.glass`, the bar tier) as rendered over a uniform backdrop. */
-const glassOver = (backdrop: Rgb): Rgb => glassFrom('--glass', '--glass-filter', backdrop);
+/** The floating bar (M2, `.mat-bar`) as rendered over a uniform backdrop. */
+const glassOver = (backdrop: Rgb): Rgb => tierOver('bar', backdrop);
 
 const SURFACES = ['--canvas', '--surface-frame', '--surface-raised', '--surface-on'] as const;
 const canvas = () => colour('--canvas');
@@ -237,7 +244,7 @@ const BACKDROPS: readonly (readonly [string, () => Rgb])[] = [
   ['white page under the palette scrim', () => round8(over(scrim().rgb, scrim().alpha, WHITE))],
 ];
 
-/** Text colours used on glass: the scoped remap in global.css (.glass). */
+/** Text colours used on glass: the scoped remap in materials.css (`.mat`). */
 const GLASS_TEXT = ['--text-primary', '--glass-text-secondary', '--glass-danger', '--warning'];
 
 const AA_TEXT = 4.5;
@@ -554,7 +561,7 @@ describe('tokens.css', () => {
         atLeast(contrast(colour('--tool-active-fill'), glassOver(backdrop())), AA_NON_TEXT, name);
       }
       atLeast(
-        contrast(colour('--tool-active-fill'), colour('--glass-solid')),
+        contrast(colour('--tool-active-fill'), colour('--glass-bar-solid')),
         AA_NON_TEXT,
         'the opaque bar',
       );
@@ -817,49 +824,86 @@ describe('tokens.css', () => {
     });
   });
 
-  describe('today’s glass classes on the tiers (global.css; 09 §25 aliases)', () => {
-    it('reads the bar, panel and menu tiers with D0-1’s blurs', () => {
-      expect(resolve('--glass')).toBe(resolve('--glass-bar-tint'));
-      expect(resolve('--glass-filter')).toBe('blur(7px) saturate(1.8) brightness(0.44)');
-      expect(resolve('--glass-solid')).toBe(resolve('--surface-raised'));
-      expect(resolve('--glass-frame')).toBe(resolve('--glass-panel-tint'));
-      expect(resolve('--glass-frame-filter')).toBe('blur(5px) saturate(1.5) brightness(0.45)');
-      expect(resolve('--glass-frame-solid')).toBe(resolve('--surface-frame'));
-      expect(resolve('--glass-menu')).toBe(resolve('--glass-menu-tint'));
-      expect(resolve('--glass-menu-backdrop')).toBe('blur(12px) saturate(1.6) brightness(0.49)');
-      expect(resolve('--glass-menu-short-backdrop')).toBe(
-        'blur(7px) saturate(1.6) brightness(0.49)',
-      );
-      expect(resolve('--glass-menu-solid')).toBe(resolve('--surface-raised'));
+  describe('materials.css: the tiers on their tokens (09 §26; language.md §2.3, §2.4; D3-3)', () => {
+    const materials = stripComments(materialsCss);
+    /** The declarations of the first rule whose selector is exactly `selector`. */
+    const ruleOf = (selector: string): Map<string, string> => {
+      for (const match of materials.matchAll(/(?<=^|[{};])\s*([^{};@]+?)\s*\{([^{}]*)\}/g)) {
+        if ((match[1] ?? '').replace(/\s+/g, ' ') === selector) {
+          const map = new Map<string, string>();
+          for (const part of (match[2] ?? '').split(';')) {
+            const d = /^\s*([\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(part);
+            if (d?.[1] && d[2]) map.set(d[1], d[2].replace(/\s+/g, ' '));
+          }
+          return map;
+        }
+      }
+      return new Map();
+    };
+
+    it('points each tier at its tint, solid, shadow and the rim of §2.4', () => {
+      const rims: Readonly<Record<GlassTier, readonly [string, string, string, string]>> = {
+        chip: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
+        bar: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
+        panel: ['--rim-edge', '--rim-top-sheet', '--rim-bottom-sheet', '--rim-inner-sheet'],
+        menu: ['--rim-edge-strong', '--rim-top-menu', '--rim-bottom-menu', '--rim-inner-menu'],
+        sheet: ['--rim-edge-strong', '--rim-top-sheet', '--rim-bottom-sheet', '--rim-inner-sheet'],
+        lit: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
+      };
+      for (const tier of GLASS_TIERS) {
+        const rule = ruleOf(`.mat-${tier}`);
+        expect(rule.get('--mat-tint'), tier).toBe(`var(--glass-${tier}-tint)`);
+        expect(rule.get('--mat-solid'), tier).toBe(`var(--glass-${tier}-solid)`);
+        expect(rule.get('--mat-shadow'), tier).toBe(`var(--glass-${tier}-shadow)`);
+        const [edge, top, bottom, inner] = rims[tier];
+        expect(rule.get('--mat-edge'), tier).toBe(`var(${edge})`);
+        expect(rule.get('--mat-rim-top'), tier).toBe(`var(${top})`);
+        expect(rule.get('--mat-rim-bottom'), tier).toBe(`var(${bottom})`);
+        expect(rule.get('--mat-inner'), tier).toBe(`var(${inner})`);
+      }
+      // §2.4's values: M4 a 0.60 edge and a 0.30 / 0.10 rim, M5 and floating M3 0.24 / 0.08,
+      // docked M3 an inner light of 0.06.
+      expect(resolve('--rim-edge-strong')).toBe('0 0 0 1px rgb(0 0 0 / 0.6)');
+      expect(wash('--rim-top-menu').alpha).toBe(0.3);
+      expect(wash('--rim-bottom-menu').alpha).toBe(0.1);
+      expect(resolve('--rim-inner-menu')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.1)');
+      expect(wash('--rim-top-sheet').alpha).toBe(0.24);
+      expect(wash('--rim-bottom-sheet').alpha).toBe(0.08);
+      expect(resolve('--rim-inner-sheet')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.08)');
+      expect(resolve('--rim-inner-docked')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.06)');
       // The bar over a white page and over the canvas (e2e/glass-pixels.spec.ts samples them).
       expect(glassOver(WHITE)).toEqual(literal('#444548'));
       expect(glassOver(canvas())).toEqual(literal('#131418'));
     });
 
-    it('floats on one elevation: the inner light, the dark edge and the bar’s shadow', () => {
-      const layers = splitLayers(resolve('--elevation-float')).map((l) => l.trim());
-      expect(layers[0]).toMatch(/^inset 0 1px 0 /);
-      expect(layers[1]).toMatch(/^0 0 0 1px /);
-      for (const layer of layers.slice(2)) expect(layer).toMatch(/^0 \d+px \d+px -?\d+px /);
-      const frame = splitLayers(resolve('--glass-frame-highlight'));
-      expect(frame).toHaveLength(1);
-      expect(frame[0]?.trim()).toMatch(/^inset 0 1px 0 rgb\(/);
-    });
-
-    it('applies the elevation through the one global .glass rule', () => {
-      const css = stripComments(globalCss);
-      expect(css.match(/var\(--elevation-float\)/g)).toHaveLength(1);
-      const glassRule = /\.glass\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-      expect(glassRule).toMatch(/box-shadow:\s*var\(--elevation-float\)/);
-      const shadows = [...css.matchAll(/box-shadow:\s*([^;}]+)/g)].map((m) => (m[1] ?? '').trim());
-      expect(shadows.sort()).toEqual(['var(--elevation-float)', 'var(--glass-frame-highlight)']);
+    it('draws the base solid first, its rim lit from above, edge, inner light and shadow', () => {
+      const base = ruleOf('.mat');
+      expect(base.get('background')).toBe('var(--mat-solid)');
+      expect(base.get('border')).toBe('1px solid var(--border-glass)');
+      expect(base.get('border-top-color')).toBe('var(--mat-rim-top)');
+      expect(base.get('border-bottom-color')).toBe('var(--mat-rim-bottom)');
+      expect(base.get('--shadow-own')).toBe('var(--mat-edge), var(--mat-inner), var(--mat-shadow)');
+      expect(base.get('box-shadow')).toBe('var(--shadow-own)');
+      // Docked M3: no edge, no shadow, the module's hairline; lit glass: the masked rim.
+      expect(ruleOf('.mat-docked').get('--mat-shadow')).toBe('0 0 #0000');
+      expect(
+        materials,
+        'docked M3 draws no border of its own: the module draws the hairline on its free edge',
+      ).toMatch(/\.mat-docked\s*\{\s*border:\s*0;\s*\}/);
+      expect(ruleOf('.mat-lit::before').get('mask')).toMatch(/content-box exclude/);
+      // The tint and the text steps only where glass renders and Glass is not Solid.
+      const live = ruleOf(":where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat");
+      expect(live.get('background')).toBe('var(--mat-tint)');
+      expect(live.get('--text-secondary')).toBe('var(--glass-text-secondary)');
+      expect(live.get('--danger')).toBe('var(--glass-danger)');
+      // Filters never animate (language.md §2.1 rule 5).
+      expect(materials).not.toMatch(/transition|animation/);
     });
 
     it('uses no other drop shadow in component styles (rings, insets and e-tokens only)', () => {
       expect(Object.keys(modules).length).toBeGreaterThan(20);
       for (const [file, source] of Object.entries(modules)) {
         const css = stripComments(source);
-        expect(css.includes('--elevation-float'), `${file} reads --elevation-float`).toBe(false);
         for (const match of css.matchAll(/box-shadow:\s*([^;}]+)/g)) {
           const value = (match[1] ?? '').trim();
           if (value === 'none') continue;
@@ -872,39 +916,21 @@ describe('tokens.css', () => {
                 trimmed,
               );
             expect(lengths, `${file}: ${layer}`).not.toBeNull();
-            expect(
-              [lengths?.[1], lengths?.[2], lengths?.[3]].map((v) => Number.parseFloat(v ?? '1')),
-              `${file}: ${layer}`,
-            ).toEqual([0, 0, 0]);
+            const [x, y, blur] = [lengths?.[1], lengths?.[2], lengths?.[3]].map((v) =>
+              Number.parseFloat(v ?? '1'),
+            );
+            // An inset with no blur is a hard rule inside the box (a tab's underline), not a
+            // shadow: its offset may draw on one edge.
+            if (trimmed.startsWith('inset') && blur === 0) continue;
+            expect([x, y, blur], `${file}: ${layer}`).toEqual([0, 0, 0]);
           }
         }
       }
     });
 
-    it('paints the frame solid unless Glass panels is on, and maps its text then', () => {
-      const css = stripComments(globalCss);
-      const base = /(?:^|\})\s*\.glass-frame\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-      expect(base).toMatch(/background:\s*var\(--glass-frame-solid\)/);
-      expect(base).not.toMatch(/backdrop-filter/);
-      const onRule = /:root\[data-glass-panels\] \.glass-frame\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-      expect(onRule).toMatch(/--text-secondary:\s*var\(--glass-text-secondary\)/);
-      expect(onRule).toMatch(/--text-tertiary:\s*var\(--glass-text-secondary\)/);
-      expect(onRule).toMatch(/--danger:\s*var\(--glass-danger\)/);
-      expect(onRule).toMatch(/box-shadow:\s*var\(--glass-frame-highlight\)/);
-      const live =
-        /@supports[^{]*\{\s*:root\[data-glass-panels\] \.glass-frame\s*\{([^{}]*)\}/.exec(css);
-      expect(live?.[1]).toMatch(/backdrop-filter:\s*var\(--glass-frame-filter\)/);
-      expect(live?.[1]).toMatch(/background:\s*var\(--glass-frame\)/);
-      // Filters never animate.
-      expect(css).not.toMatch(/transition[^;]*(?:backdrop-filter|filter)/);
-    });
-
-    it('points menus, popovers and sheets at the menu tier through the one .glass rule', () => {
-      const css = stripComments(globalCss);
-      const menu = declarations(/\.glass-menu\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '');
-      expect(menu.get('--glass')).toBe('var(--glass-menu)');
-      expect(menu.get('--glass-filter')).toBe('var(--glass-menu-backdrop)');
-      expect(menu.get('--glass-solid')).toBe('var(--glass-menu-solid)');
+    it('puts menus and popovers on M4, the docked frame on docked M3, and two solid twins', () => {
+      const first = (source: string) =>
+        /^\.[\w]+\s*\{([^{}]*)\}/m.exec(stripComments(source))?.[1] ?? '';
       const menus = import.meta.glob<string>('../ui/{Menu,Popover}.module.css', {
         query: '?raw',
         import: 'default',
@@ -912,71 +938,105 @@ describe('tokens.css', () => {
       });
       expect(Object.keys(menus)).toHaveLength(2);
       for (const [file, source] of Object.entries(menus)) {
-        expect(source, file).toMatch(/composes:\s*glass glass-menu from global;/);
+        expect(first(source), file).toMatch(/composes:\s*mat mat-menu s12\b[^;]* from global;/);
       }
-    });
-
-    it('makes the docked surfaces compose the frame and paint no background of their own', () => {
       const docked = import.meta.glob<string>(
         '../shell/{frame/TopStrip,frame/CompactTopBar,sidebar/Sidebar}.module.css',
         { query: '?raw', import: 'default', eager: true },
       );
       expect(Object.keys(docked)).toHaveLength(3);
       for (const [file, source] of Object.entries(docked)) {
-        const css = stripComments(source);
-        const rule = /^\.[\w]+\s*\{([^{}]*)\}/m.exec(css)?.[1] ?? '';
-        expect(rule, file).toMatch(/composes:\s*glass-frame from global;/);
+        const rule = first(source);
+        expect(rule, file).toMatch(/composes:\s*mat mat-panel mat-docked s\d+[^;]* from global;/);
         expect(rule, file).not.toMatch(/background:/);
       }
+      // The title menu and the pill menu open over the sidebar's dark edge and the white page
+      // at once: M4's solid twin (01-frame F5, F11; quality bar Q-1, Q-3).
+      const twins = import.meta.glob<string>('../shell/frame/{TitleMenu,PagePill}.module.css', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      });
+      expect(Object.keys(twins)).toHaveLength(2);
+      for (const [file, source] of Object.entries(twins)) {
+        expect(stripComments(source), file).toMatch(/composes:\s*mat-opaque from global;/);
+      }
+      expect(ruleOf('.mat-opaque').get('--mat-tint')).toBe('var(--mat-solid)');
     });
   });
 
-  describe('settings: reduced transparency, more contrast, forced colours (§5, §6)', () => {
-    const attribute = declarations(
-      /:root\[data-transparency='reduced'\]\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '',
-    );
+  describe('settings: Glass, reduced transparency, more contrast, forced colours (§5, §6)', () => {
+    const block = (selector: RegExp) => declarations(selector.exec(tokensSource)?.[1] ?? '');
+    const solid = block(/:root\[data-glass='solid'\]\s*\{([^{}]*)\}/);
+    const tinted = block(/:root\[data-glass='tinted'\]\s*\{([^{}]*)\}/);
     const media = mediaOverrides('prefers-reduced-transparency: reduce');
     const more = mediaOverrides('prefers-contrast: more');
     const forced = mediaOverrides('forced-colors: active');
-    const SIGMA = [
-      '--glass-filter',
-      '--glass-frame-filter',
-      '--glass-menu-backdrop',
-      '--glass-capsule-filter',
-      '--glass-capsule-short-filter',
-    ];
+    const materials = stripComments(materialsCss);
 
-    it('the in-app switch sets exactly what the media query sets', () => {
-      expect(attribute.size).toBeGreaterThan(0);
-      expect([...attribute.entries()].sort()).toEqual([...media.entries()].sort());
+    it('Glass: Solid sets exactly what the system’s reduced transparency sets (A-17)', () => {
+      expect(solid.size).toBeGreaterThan(0);
+      expect([...solid.entries()].sort()).toEqual([...media.entries()].sort());
     });
 
-    it('makes every tier solid with no filter, and keeps rims, shadows and the highlight', () => {
-      for (const scope of [attribute, media, more]) {
+    it('Glass: Tinted lays every tier at alpha 0.90 and changes nothing else', () => {
+      expect([...tinted.keys()].sort()).toEqual(
+        GLASS_TIERS.map((t) => `--glass-${t}-alpha`).sort(),
+      );
+      for (const tier of GLASS_TIERS) {
+        expect(tinted.get(`--glass-${tier}-alpha`)).toBe('0.9');
+        expect(wash(`--glass-${tier}-tint`).alpha, tier).toBeLessThan(0.9);
+        expect(parseColour(resolve(`--glass-${tier}-tint`, tinted)).alpha, tier).toBe(0.9);
+        // At 0.90 even a backdrop that leaks unfiltered keeps text AA (language.md §2.8).
+        const leaked = round8(
+          over(parseColour(resolve(`--glass-${tier}-tint`, tinted)).rgb, 0.9, WHITE),
+        );
+        if (tier !== 'lit') {
+          atLeast(contrast(colour('--text-primary'), leaked), 7, `${tier} primary`);
+          atLeast(contrast(colour('--glass-text-secondary'), leaked), 4.5, `${tier} secondary`);
+        }
+      }
+    });
+
+    it('makes every tier solid with no filter, and keeps rims and shadows', () => {
+      for (const scope of [solid, media, more]) {
         for (const tier of GLASS_TIERS) {
           const t = tierTokens(tier);
           expect(scope.get(t.tint), t.tint).toBe(`var(${t.solid})`);
           expect(scope.get(t.filter), t.filter).toBe('none');
         }
-        for (const token of [...SIGMA, '--glass-menu-short-backdrop']) {
-          expect(scope.get(token), token).toBe('none');
+      }
+      for (const scope of [solid, media]) {
+        for (const name of ['--rim-edge', '--rim-inner', '--border-glass']) {
+          expect(scope.has(name), name).toBe(false);
         }
-        expect(resolve('--glass', scope)).toBe(resolve('--glass-bar-solid'));
-        expect(resolve('--glass-frame', scope)).toBe(resolve('--surface-frame'));
       }
-      for (const scope of [attribute, media]) {
-        expect(scope.has('--elevation-float')).toBe(false);
-        expect(scope.has('--glass-frame-highlight')).toBe(false);
-        expect(scope.has('--border-glass')).toBe(false);
+      // materials.css: every blur rule waits for a root that is not Solid; the OS preferences
+      // and forced colours turn both lines off whatever a rule says.
+      for (const match of materials.matchAll(/([^{};]+)\{[^{}]*backdrop-filter: blur/g)) {
+        expect(match[1], 'a blur rule').toContain(":not([data-glass='solid']");
       }
+      const unwelcome =
+        /@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\)\s*\{\s*\.mat\s*\{([^{}]*)\}/.exec(
+          materials,
+        )?.[1] ?? '';
+      expect(unwelcome).toMatch(/-webkit-backdrop-filter:\s*none !important/);
+      expect(unwelcome).toMatch(/(?:^|[^-])backdrop-filter:\s*none !important/);
+      expect(unwelcome).toMatch(/--text-secondary:\s*inherit/);
     });
 
     it('trades rim and shadow for the strong border and lifts text under more contrast (A-18)', () => {
-      expect(more.get('--elevation-float')).toBe('none');
-      expect(more.get('--glass-frame-highlight')).toBe('none');
+      for (const rim of ['--rim-edge', '--rim-edge-strong', '--rim-inner', '--rim-inner-menu']) {
+        expect(more.get(rim), rim).toBe('0 0 #0000');
+      }
       expect(parseColour(resolve('--border-strong', more)).alpha).toBe(0.36);
+      expect(parseColour(resolve('--border-glass', more)).alpha).toBe(0.36);
       expect(resolve('--text-secondary', more)).toBe(resolve('--n11'));
       expect(resolve('--text-tertiary', more)).toBe(resolve('--n10'));
+      const rule =
+        /@media \(prefers-contrast: more\)\s*\{\s*\.mat\s*\{([^{}]*)\}/.exec(materials)?.[1] ?? '';
+      expect(rule).toMatch(/border-color:\s*var\(--border-glass\)/);
+      expect(rule).toMatch(/--shadow-own:\s*0 0 #0000/);
     });
 
     it('drops every tier to Canvas with its filter off under forced colours', () => {
@@ -986,26 +1046,8 @@ describe('tokens.css', () => {
         expect(forced.get(t.solid), t.solid).toBe('Canvas');
         expect(forced.get(t.filter), t.filter).toBe('none');
       }
-      for (const token of [...SIGMA, '--glass-menu-short-backdrop', '--glass-frame-highlight']) {
-        expect(forced.get(token), token).toBe('none');
-      }
-      expect(forced.get('--elevation-float')).toBe('none');
+      expect(forced.get('--rim-edge')).toBe('0 0 #0000');
       expect(forced.get('--border-glass')).toBe('CanvasText');
-    });
-
-    it('falls back to the opaque surfaces in global.css under the switch too', () => {
-      const css = stripComments(globalCss);
-      const glass =
-        /:root\[data-transparency='reduced'\] \.glass\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-      expect(glass).toMatch(/background:\s*var\(--glass-solid\)/);
-      expect(glass).toMatch(/(?:^|[^-])backdrop-filter:\s*none/);
-      expect(glass).toMatch(/--text-secondary:\s*inherit/);
-      const frame =
-        /:root\[data-glass-panels\]\[data-transparency='reduced'\] \.glass-frame\s*\{([^{}]*)\}/.exec(
-          css,
-        )?.[1] ?? '';
-      expect(frame).toMatch(/background:\s*var\(--glass-frame-solid\)/);
-      expect(frame).toMatch(/(?:^|[^-])backdrop-filter:\s*none/);
     });
 
     it('swaps in the aurora’s P3 stops on wide-gamut screens and never the lime', () => {
@@ -1017,7 +1059,7 @@ describe('tokens.css', () => {
     });
   });
 
-  describe('coverage registry (redesign D0-1, language.md §2.9, A-2)', () => {
+  describe('coverage registry and materials.css (D0-1, D3-3; language.md §2.9, A-2)', () => {
     /** Abramowitz and Stegun 7.1.26: |error| < 1.5e-7, ample for a 0.985 floor. */
     const erf = (x: number): number => {
       const t = 1 / (1 + 0.3275911 * Math.abs(x));
@@ -1030,18 +1072,19 @@ describe('tokens.css', () => {
     /** The share of a w × h surface's backdrop its blur covers at the centre (research 22 §3.2). */
     const coverage = (w: number, h: number, sigma: number): number =>
       erf(h / (2 * Math.SQRT2 * sigma)) * erf(w / (2 * Math.SQRT2 * sigma));
-    const blurOf = (token: string): number => {
-      const match = /blur\(([\d.]+)px\)/.exec(resolve(token));
-      if (!match?.[1]) throw new Error(`${token} has no blur()`);
-      return Number(match[1]);
-    };
-
-    it('keeps D0-1’s blurs: bars 7px, menus 12px (one row 7px), frame 5px', () => {
-      expect(blurOf('--glass-filter')).toBe(7);
-      expect(blurOf('--glass-menu-backdrop')).toBe(12);
-      expect(blurOf('--glass-menu-short-backdrop')).toBe(7);
-      expect(blurOf('--glass-frame-filter')).toBe(5);
-    });
+    const materials = stripComments(materialsCss);
+    /** Every rule of materials.css with a backdrop filter: selector and the two lines. */
+    const filterRules = [...materials.matchAll(/([^{};]+)\{([^{}]*backdrop-filter[^{}]*)\}/g)].map(
+      (match) => ({
+        selector: (match[1] ?? '').replace(/\s+/g, ' ').trim(),
+        prefixed: /-webkit-backdrop-filter:\s*([^;]+);/.exec(match[2] ?? '')?.[1]?.trim(),
+        unprefixed: /(?:^|[\s;])backdrop-filter:\s*([^;]+);/.exec(match[2] ?? '')?.[1]?.trim(),
+      }),
+    );
+    /** The chain `materials.css` must write for a tier at σ: literal, the tier's tokens. */
+    const chain = (tier: GlassTier, sigma: number) =>
+      `blur(${sigma}px) ${resolve(`--glass-${tier}-filter`)}`;
+    const rulesFor = (suffix: string) => filterRules.filter((r) => r.selector.endsWith(suffix));
 
     it('reproduces the language table (36 px bar at 7px 0.990, 64 px menu at 12px 0.992)', () => {
       expect(coverage(360, 36, 7)).toBeCloseTo(0.99, 3);
@@ -1052,48 +1095,104 @@ describe('tokens.css', () => {
     });
 
     it.each(COVERAGE_REGISTRY.map((entry) => [entry.id, entry] as const))(
-      '%s meets c ≥ 0.985 at its smallest size',
-      (_, entry) => {
-        const sigma = blurOf(entry.filter);
-        const c = coverage(entry.minWidth, entry.minHeight, sigma);
-        expect(
-          c,
-          `${entry.surface}: ${entry.minWidth} × ${entry.minHeight} px at σ ${sigma}`,
-        ).toBeGreaterThanOrEqual(0.985);
+      '%s meets c ≥ 0.985 at every size it names, with σ from the steps',
+      (_, entry: GlassSurfaceEntry) => {
+        const sizes: [string, number, number, number][] = [
+          ['fine', entry.minWidth, entry.minHeight, entry.sigma],
+        ];
+        if (typeof entry.coarse === 'object') {
+          const { minWidth, minHeight, sigma } = entry.coarse;
+          sizes.push(['coarse', minWidth, minHeight, sigma]);
+        }
+        if (entry.short) {
+          sizes.push(['short', entry.short.minWidth, entry.short.minHeight, entry.short.sigma]);
+        }
+        for (const [size, w, h, sigma] of sizes) {
+          expect(SIGMA_STEPS, `${entry.id} ${size} σ`).toContain(sigma);
+          expect(
+            coverage(w, h, sigma),
+            `${entry.surface} (${size}): ${w} × ${h} px at σ ${sigma}`,
+          ).toBeGreaterThanOrEqual(0.985);
+        }
+        expect(GLASS_TIERS).toContain(entry.tier);
+        if (entry.docked) expect(entry.tier).toBe('panel');
+        if (entry.lens) expect(entry.tier).toBe('chip');
       },
     );
 
-    it('registers each surface once, with its tier’s filter', () => {
+    it('registers each surface once', () => {
       const ids = COVERAGE_REGISTRY.map((entry) => entry.id);
       expect(new Set(ids).size).toBe(ids.length);
-      const filters: Record<GlassComposition, readonly string[]> = {
-        glass: ['--glass-filter', '--glass-capsule-filter'],
-        'glass glass-menu': ['--glass-menu-backdrop', '--glass-menu-short-backdrop'],
-        'glass-frame': ['--glass-frame-filter'],
-      };
       for (const entry of COVERAGE_REGISTRY) {
-        expect(filters[entry.composes], entry.id).toContain(entry.filter);
         expect(entry.minWidth, entry.id).toBeGreaterThan(0);
         expect(entry.minHeight, entry.id).toBeGreaterThan(0);
       }
     });
 
-    it('holds every module rule that composes .glass, .glass-menu or .glass-frame, and no other', () => {
-      const found = new Set<string>();
+    it('holds one rule per tier × σ the registry uses, both lines literal and equal (G-22)', () => {
+      for (const entry of COVERAGE_REGISTRY) {
+        const want = chain(entry.tier, entry.sigma);
+        const cls = entry.oneRow ? `r${entry.sigma}` : `s${entry.sigma}`;
+        const rules = filterRules.filter((r) => r.selector.includes(`.mat-${entry.tier}.${cls}`));
+        const own = rules.find((r) => !r.selector.endsWith('.lens') && !r.selector.endsWith('.cs'));
+        expect(own, `${entry.id}: .mat-${entry.tier}.${cls}`).toBeDefined();
+        expect(own?.prefixed, entry.id).toBe(want);
+        expect(own?.unprefixed, entry.id).toBe(want);
+        if (typeof entry.coarse === 'object') {
+          const coarse = rulesFor(`.mat-${entry.tier}.c${entry.coarse.sigma}`)[0];
+          expect(coarse?.prefixed, `${entry.id} coarse`).toBe(
+            chain(entry.tier, entry.coarse.sigma),
+          );
+          expect(coarse?.unprefixed, `${entry.id} coarse`).toBe(coarse?.prefixed);
+        }
+        if (entry.short) {
+          const short = rulesFor(`.mat-${entry.tier}.h${entry.short.sigma}`)[0];
+          expect(short?.prefixed, `${entry.id} short`).toBe(chain(entry.tier, entry.short.sigma));
+          expect(short?.unprefixed, `${entry.id} short`).toBe(short?.prefixed);
+        }
+      }
+      // And nothing else: every blur rule belongs to a registered tier × σ, every prefixed line
+      // equals its unprefixed one, and only the Chromium lens reads a var() (no -webkit- line).
+      const used = new Set<string>();
+      for (const entry of COVERAGE_REGISTRY) {
+        used.add(`.mat-${entry.tier}.${entry.oneRow ? 'r' : 's'}${entry.sigma}`);
+        if (typeof entry.coarse === 'object') used.add(`.mat-${entry.tier}.c${entry.coarse.sigma}`);
+        if (entry.short) used.add(`.mat-${entry.tier}.h${entry.short.sigma}`);
+      }
+      for (const rule of filterRules) {
+        if (rule.unprefixed === 'none !important' || rule.unprefixed === 'none') continue;
+        const pair = /\.mat-\w+\.[schr]\d+/.exec(rule.selector)?.[0];
+        expect(used.has(pair ?? ''), rule.selector).toBe(true);
+        if (rule.selector.endsWith('.lens')) {
+          expect(rule.prefixed, rule.selector).toBeUndefined();
+          expect(rule.unprefixed).toMatch(/^var\(--lens\) blur\(/);
+          continue;
+        }
+        expect(rule.prefixed, rule.selector).toBe(rule.unprefixed);
+        expect(rule.prefixed, rule.selector).not.toMatch(/var\(/);
+      }
+    });
+
+    it('holds every module rule that composes a blurred material, and no other', () => {
+      const found = new Map<string, string>();
       for (const [file, source] of Object.entries(modules)) {
         const css = stripComments(source);
         for (const match of css.matchAll(
           /(\.[\w-]+)\s*\{\s*composes:\s*([^;]*?)\s+from global;/g,
         )) {
-          const classes = (match[2] ?? '').split(/\s+/).filter((c) => c.startsWith('glass'));
-          if (classes.length === 0) continue;
-          found.add(`${file.replace(/^\.\.\//, '')} ${match[1]} ${classes.join(' ')}`);
+          const classes = (match[2] ?? '').split(/\s+/);
+          const key = `${file.replace(/^\.\.\//, '')} ${match[1]}`;
+          // A material with a σ: lit glass (no blur until D3-8) and the solid twin are not.
+          if (!classes.includes('mat') || !classes.some((c) => /^s\d+$/.test(c))) continue;
+          found.set(key, classes.join(' '));
         }
       }
-      const registered = new Set(
-        COVERAGE_REGISTRY.map((entry) => `${entry.module} ${entry.selector} ${entry.composes}`),
-      );
-      expect([...found].sort()).toEqual([...registered].sort());
+      const registered = new Map<string, string>();
+      for (const entry of COVERAGE_REGISTRY) {
+        const key = `${entry.module} ${entry.selector}`;
+        registered.set(key, compositionOf(entry.module, entry.selector).join(' '));
+      }
+      expect([...found.entries()].sort()).toEqual([...registered.entries()].sort());
       // The spec row counted about nineteen modules on the M8 shell: seventeen compose glass
       // there (the TextLayer hint is solid: at 22 px it is under quality-bar Q-5's 32 px), and
       // the compact edition adds three, the toast stack (D0-5) one and the Sheet primitive one
@@ -1101,19 +1200,27 @@ describe('tokens.css', () => {
       // Library selection bar one (D4-1). The frame (D2-1) trades the title and status bars for
       // the top strip, the compact bar and the page pill: one more. The capsule (D2-2) takes the
       // tool bar's glass into its own module; the Markup palette (D2-3) is content inside it, its
-      // ink strip a row of the capsule's glass, so the bar's module and its options tier go.
+      // ink strip a row of the capsule's glass, so the bar's module and its options tier go. The
+      // Pages grid (D2-5) moves its bar into the capsule and adds its docked header.
       expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(25);
+      expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
+        'mat',
+        'mat-bar',
+        's9',
+        'c10',
+        'h8',
+      ]);
     });
 
-    it('gives a one-row menu the short blur in ui/Menu', () => {
-      const menu = import.meta.glob<string>('../ui/Menu.module.css', {
-        query: '?raw',
-        import: 'default',
-        eager: true,
-      });
-      const css = stripComments(Object.values(menu)[0] ?? '');
-      const rule = /\.popup:not\(:has\(> :nth-child\(2\)\)\)\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-      expect(declarations(rule).get('--glass-filter')).toBe('var(--glass-menu-short-backdrop)');
+    it('gives a one-row menu σ 8 through its own class, applied while it holds one child', () => {
+      expect(compositionOf('ui/Menu.module.css', '.popup')).toEqual([
+        'mat',
+        'mat-menu',
+        's12',
+        'r8',
+      ]);
+      const rule = rulesFor('.mat-menu.r8:not(:has(> :nth-child(2)))')[0];
+      expect(rule?.unprefixed).toBe(chain('menu', 8));
     });
   });
 
@@ -1213,6 +1320,7 @@ describe('tokens.css', () => {
 
     it('draws the three forms in focus.css from the tokens; global.css imports it', () => {
       expect(stripComments(globalCss)).toMatch(/@import '\.\/focus\.css';/);
+      expect(stripComments(globalCss)).toMatch(/@import '\.\/materials\.css';/);
       const css = stripComments(focusCss);
       /** Every declaration of the first rule matching `selector`, not only custom properties. */
       const rule = (selector: RegExp): Map<string, string> => {
@@ -1231,7 +1339,7 @@ describe('tokens.css', () => {
         '0 0 0 6px var(--focus-dark), var(--shadow-own, 0 0 #0000)',
       );
       const inset = rule(
-        /\.focus-inset:focus-visible,\s*\[data-focus='inset'\]:focus-visible,\s*\.glass :focus-visible/,
+        /\.focus-inset:focus-visible,\s*\[data-focus='inset'\]:focus-visible,\s*\.mat :focus-visible/,
       );
       expect(inset.get('outline-offset')).toBe('var(--focus-offset-in)');
       expect(inset.get('box-shadow')).toBe(

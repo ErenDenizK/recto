@@ -7,8 +7,8 @@
  * resize re-fits.
  *
  * Also here: which scroll bars the page column needs (the container hides its own, which would
- * sit under the frame, and `ScrollProxies` draws them in the unobscured rectangle). With
- * "Glass panels" on, every frame surface is glass (global.css); there is no geometry gate.
+ * sit under the frame, and `ScrollProxies` draws them in the unobscured rectangle). Every docked
+ * frame surface is M3 glass (materials.css, ADR-0024 §2.8); there is no geometry gate.
  */
 import { type RefObject, useLayoutEffect, useState } from 'react';
 

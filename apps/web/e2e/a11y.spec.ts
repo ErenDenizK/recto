@@ -11,10 +11,9 @@
  * - craft spec §9 (M8): Read with the lock, Edit with each of the five groups, the Edit text
  *   layer's paragraph targets (Tab between paragraphs, Enter opens) and the paragraph editor,
  *   the page context menu, the text selection bar in Read and Edit, a lasso selection with
- *   its handles and keyboard box, the Highlighter's announcement, Recents on Home, Glass
- *   panels and Reduce transparency, one state in Turkish; no Tab stop is ever hidden; the new
- *   surfaces neither move nor rise under reduced motion and turn solid under Reduce
- *   transparency;
+ *   its handles and keyboard box, the Highlighter's announcement, Recents on Home, Glass Clear
+ *   and Solid (spec D3-3), one state in Turkish; no Tab stop is ever hidden; the new surfaces
+ *   neither move nor rise under reduced motion and turn solid under Glass Solid;
  * - D0's sheets and toasts (spec redesign §8, blocking from D0): F6 reaches the toast region and
  *   a modal sheet holds focus and gives it back, with no focus ever on an invisible element
  *   (A-13); one announcer, the toast region and the sheets silent, a toast said once (A-14);
@@ -1145,7 +1144,7 @@ test.describe('craft spec §9', () => {
 /** Every glass surface on the page and what it paints (backdrop filter, background alpha). */
 const glassSurfaces = (page: Page) =>
   page.evaluate(() =>
-    [...document.querySelectorAll<HTMLElement>('.glass, .glass-frame, .glass-menu')]
+    [...document.querySelectorAll<HTMLElement>('.mat')]
       .filter((el) => el.checkVisibility())
       .map((el) => {
         const style = getComputedStyle(el);
@@ -1162,38 +1161,38 @@ const glassSurfaces = (page: Page) =>
 
 async function appearance(
   page: Page,
-  settings: { glassPanels: boolean; reduceTransparency: boolean },
+  settings: { glass: 'clear' | 'tinted' | 'solid' },
 ): Promise<void> {
   await page.addInitScript((value) => {
     localStorage.setItem('pdf-editor:appearance:v1', value);
   }, JSON.stringify(settings));
 }
 
-test.describe('glass (craft spec §7, §9)', () => {
-  test('Glass panels on: axe on Edit, the page menu and the selection bar', async ({ page }) => {
-    await appearance(page, { glassPanels: true, reduceTransparency: false });
+test.describe('glass (craft spec §9; ADR-0024 §2.4, spec D3-3)', () => {
+  test('Glass Clear: axe on Edit, the page menu and the selection bar', async ({ page }) => {
+    await appearance(page, { glass: 'clear' });
     await openSimple(page);
-    await expect(page.locator('html')).toHaveAttribute('data-glass-panels', '');
+    await expect(page.locator('html')).toHaveAttribute('data-glass', 'clear');
     // Meaningful only if something is glass: the floating bar at least is translucent.
     expect(
       (await glassSurfaces(page)).some((surface) => surface.alpha < 1 || surface.filter !== 'none'),
     ).toBe(true);
-    await axe(page, 'Glass panels, Read');
+    await axe(page, 'Glass Clear, Read');
     await selectWord(page);
-    await axe(page, 'Glass panels, the text selection bar');
+    await axe(page, 'Glass Clear, the text selection bar');
     await page.keyboard.press('Escape');
     await enterEdit(page);
     await page.locator('body').press('p');
     await expect(page.getByTestId('ink-strip')).toBeVisible();
-    await axe(page, 'Glass panels, Markup, a pen and its strip');
+    await axe(page, 'Glass Clear, Markup, a pen and its strip');
     await openPageMenu(page);
-    await axe(page, 'Glass panels, the page context menu');
+    await axe(page, 'Glass Clear, the page context menu');
   });
 
-  test('Reduce transparency: every glass tier is solid on the new surfaces', async ({ page }) => {
-    await appearance(page, { glassPanels: true, reduceTransparency: true });
+  test('Glass Solid: every glass tier is solid on the new surfaces', async ({ page }) => {
+    await appearance(page, { glass: 'solid' });
     await openWordTagged(page);
-    await expect(page.locator('html')).toHaveAttribute('data-transparency', 'reduced');
+    await expect(page.locator('html')).toHaveAttribute('data-glass', 'solid');
     const expectSolid = async (state: string) => {
       const surfaces = await glassSurfaces(page);
       expect(surfaces.length, state).toBeGreaterThan(0);
@@ -1214,7 +1213,7 @@ test.describe('glass (craft spec §7, §9)', () => {
     await page.keyboard.press('Enter');
     await expect(page.getByTestId('paragraph-header')).toBeVisible({ timeout: 20_000 });
     await expectSolid('Edit, Text, the paragraph editor');
-    await axe(page, 'Reduce transparency, the paragraph editor');
+    await axe(page, 'Glass Solid, the paragraph editor');
   });
 });
 

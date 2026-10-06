@@ -1,0 +1,286 @@
+/*
+ * Materials (components/09-primitives.md §26; language.md §2.3, §2.4, §2.8; ADR-0024; D3-3).
+ * GENERATED from styles/coverage-registry.ts and the tier tokens of tokens.css by
+ * `pnpm --filter @pdf-editor/web materials` (tooling/materials.ts, styles/materials-css.ts):
+ * do not edit. materials.test.ts fails when this file differs from what the generator writes.
+ *
+ * A surface composes `mat mat-<tier> s<σ>` (and `c<σ>`, `cs`, `h<σ>`, `r<σ>`,
+ * `mat-docked` as its registry entry says), from a CSS module or through ui/Surface.
+ */
+/* Tiers: the variables the base reads (language.md §2.2, §2.4). */
+.mat-chip {
+  --mat-tint: var(--glass-chip-tint);
+  --mat-solid: var(--glass-chip-solid);
+  --mat-shadow: var(--glass-chip-shadow);
+  --mat-edge: var(--rim-edge);
+  --mat-rim-top: var(--rim-top);
+  --mat-rim-bottom: var(--rim-bottom);
+  --mat-inner: var(--rim-inner);
+}
+.mat-bar {
+  --mat-tint: var(--glass-bar-tint);
+  --mat-solid: var(--glass-bar-solid);
+  --mat-shadow: var(--glass-bar-shadow);
+  --mat-edge: var(--rim-edge);
+  --mat-rim-top: var(--rim-top);
+  --mat-rim-bottom: var(--rim-bottom);
+  --mat-inner: var(--rim-inner);
+}
+.mat-panel {
+  --mat-tint: var(--glass-panel-tint);
+  --mat-solid: var(--glass-panel-solid);
+  --mat-shadow: var(--glass-panel-shadow);
+  --mat-edge: var(--rim-edge);
+  --mat-rim-top: var(--rim-top-sheet);
+  --mat-rim-bottom: var(--rim-bottom-sheet);
+  --mat-inner: var(--rim-inner-sheet);
+}
+.mat-menu {
+  --mat-tint: var(--glass-menu-tint);
+  --mat-solid: var(--glass-menu-solid);
+  --mat-shadow: var(--glass-menu-shadow);
+  --mat-edge: var(--rim-edge-strong);
+  --mat-rim-top: var(--rim-top-menu);
+  --mat-rim-bottom: var(--rim-bottom-menu);
+  --mat-inner: var(--rim-inner-menu);
+}
+.mat-sheet {
+  --mat-tint: var(--glass-sheet-tint);
+  --mat-solid: var(--glass-sheet-solid);
+  --mat-shadow: var(--glass-sheet-shadow);
+  --mat-edge: var(--rim-edge-strong);
+  --mat-rim-top: var(--rim-top-sheet);
+  --mat-rim-bottom: var(--rim-bottom-sheet);
+  --mat-inner: var(--rim-inner-sheet);
+}
+.mat-lit {
+  --mat-tint: var(--glass-lit-tint);
+  --mat-solid: var(--glass-lit-solid);
+  --mat-shadow: var(--glass-lit-shadow);
+  --mat-edge: var(--rim-edge);
+  --mat-rim-top: var(--rim-top);
+  --mat-rim-bottom: var(--rim-bottom);
+  --mat-inner: var(--rim-inner);
+}
+.mat-docked {
+  --mat-edge: 0 0 #0000;
+  --mat-inner: var(--rim-inner-docked);
+  --mat-shadow: 0 0 #0000;
+}
+.mat-opaque {
+  --mat-tint: var(--mat-solid);
+}
+
+/* The base: solid first, the lit rim, edge, inner light and shadow. */
+.mat {
+  --shadow-own: var(--mat-edge), var(--mat-inner), var(--mat-shadow);
+  border: 1px solid var(--border-glass);
+  border-top-color: var(--mat-rim-top);
+  border-bottom-color: var(--mat-rim-bottom);
+  background: var(--mat-solid);
+  box-shadow: var(--shadow-own);
+}
+.mat-docked {
+  border: 0;
+}
+.mat-lit {
+  --shadow-own: var(--mat-edge), var(--mat-inner);
+  position: relative;
+  border: 0;
+}
+.mat-lit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    var(--rim-top),
+    var(--border-hairline) 35%,
+    var(--rim-bottom)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+/* The tint and the glass text steps, where glass renders and the setting is not Solid. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat {
+    --text-secondary: var(--glass-text-secondary);
+    --text-tertiary: var(--glass-text-secondary);
+    --text-disabled: var(--glass-text-disabled);
+    --danger: var(--glass-danger);
+    background: var(--mat-tint);
+  }
+  :where(:root[data-degrade='3']) .mat.mat-panel {
+    --text-secondary: inherit;
+    --text-tertiary: inherit;
+    --text-disabled: inherit;
+    --danger: inherit;
+    background: var(--mat-solid);
+  }
+}
+
+/* σ: one rule per tier × σ in the coverage registry, literal on both lines (G-22). */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-chip.s7 {
+    -webkit-backdrop-filter: blur(7px) saturate(1.9) brightness(0.42);
+    backdrop-filter: blur(7px) saturate(1.9) brightness(0.42);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.s7 {
+    -webkit-backdrop-filter: blur(7px) saturate(1.8) brightness(0.44);
+    backdrop-filter: blur(7px) saturate(1.8) brightness(0.44);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.s8 {
+    -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(0.44);
+    backdrop-filter: blur(8px) saturate(1.8) brightness(0.44);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.s9 {
+    -webkit-backdrop-filter: blur(9px) saturate(1.8) brightness(0.44);
+    backdrop-filter: blur(9px) saturate(1.8) brightness(0.44);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.s10 {
+    -webkit-backdrop-filter: blur(10px) saturate(1.8) brightness(0.44);
+    backdrop-filter: blur(10px) saturate(1.8) brightness(0.44);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4'])) .mat-panel.s8 {
+    -webkit-backdrop-filter: blur(8px) saturate(1.5) brightness(0.45);
+    backdrop-filter: blur(8px) saturate(1.5) brightness(0.45);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4'])) .mat-panel.s24 {
+    -webkit-backdrop-filter: blur(24px) saturate(1.5) brightness(0.45);
+    backdrop-filter: blur(24px) saturate(1.5) brightness(0.45);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-menu.s12 {
+    -webkit-backdrop-filter: blur(12px) saturate(1.6) brightness(0.49);
+    backdrop-filter: blur(12px) saturate(1.6) brightness(0.49);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-menu.s16 {
+    -webkit-backdrop-filter: blur(16px) saturate(1.6) brightness(0.49);
+    backdrop-filter: blur(16px) saturate(1.6) brightness(0.49);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-menu.s24 {
+    -webkit-backdrop-filter: blur(24px) saturate(1.6) brightness(0.49);
+    backdrop-filter: blur(24px) saturate(1.6) brightness(0.49);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-sheet.s20 {
+    -webkit-backdrop-filter: blur(20px) saturate(1.4) brightness(0.5);
+    backdrop-filter: blur(20px) saturate(1.4) brightness(0.5);
+  }
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-sheet.s24 {
+    -webkit-backdrop-filter: blur(24px) saturate(1.4) brightness(0.5);
+    backdrop-filter: blur(24px) saturate(1.4) brightness(0.5);
+  }
+
+  /* Coarse pointers. */
+  @media (pointer: coarse), (any-pointer: coarse) {
+    :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-chip.c8 {
+      -webkit-backdrop-filter: blur(8px) saturate(1.9) brightness(0.42);
+      backdrop-filter: blur(8px) saturate(1.9) brightness(0.42);
+    }
+    :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.c10 {
+      -webkit-backdrop-filter: blur(10px) saturate(1.8) brightness(0.44);
+      backdrop-filter: blur(10px) saturate(1.8) brightness(0.44);
+    }
+    :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4'])) .mat-panel.c10 {
+      -webkit-backdrop-filter: blur(10px) saturate(1.5) brightness(0.45);
+      backdrop-filter: blur(10px) saturate(1.5) brightness(0.45);
+    }
+    :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-sheet.c20 {
+      -webkit-backdrop-filter: blur(20px) saturate(1.4) brightness(0.5);
+      backdrop-filter: blur(20px) saturate(1.4) brightness(0.5);
+    }
+    :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
+      .mat-panel.s24.cs {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      --text-secondary: inherit;
+      --text-tertiary: inherit;
+      --text-disabled: inherit;
+      --danger: inherit;
+      background: var(--mat-solid);
+    }
+  }
+
+  /* Compact-height (`:root[data-short]`). */
+  :where(:root[data-short]:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.h8 {
+    -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(0.44);
+    backdrop-filter: blur(8px) saturate(1.8) brightness(0.44);
+  }
+
+  /* One-row menus: too short for the menus’ σ. */
+  :where(:root:not([data-glass='solid'], [data-degrade='4']))
+  .mat-menu.r8:not(:has(> :nth-child(2))) {
+    -webkit-backdrop-filter: blur(8px) saturate(1.6) brightness(0.49);
+    backdrop-filter: blur(8px) saturate(1.6) brightness(0.49);
+  }
+
+  /* The backdrop lens (language.md §2.7, X20): fixed-size M1 chips, Chromium only, added by
+     script after detection (material-lens.ts) and never under Tinted, Solid or a ladder step;
+     the map is drawn at the chip's size, so its url() is the one var() here. */
+  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade])) .mat-chip.s7.lens {
+    backdrop-filter: var(--lens) blur(7px) saturate(1.9) brightness(0.42);
+  }
+}
+
+/* Under a modal scrim (dim only, G-31) the docked frame needs no blur: the backdrop is
+   still and dimmed, and its solid token is what it composites to over the canvas. It keeps the
+   budget of four blurred surfaces at rest (Q-11) with the sheet and a toast over the dock. */
+:where(:root:has([data-scrim]:not([data-ending-style]))) .mat.mat-docked {
+  --text-secondary: inherit;
+  --text-tertiary: inherit;
+  --text-disabled: inherit;
+  --danger: inherit;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: var(--mat-solid);
+}
+
+/* The solid twin: no filter, whatever σ its tier's surface composes. */
+.mat-opaque {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Transparency unwelcome, more contrast, forced colours: solid, no filter, the normal ladder. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  .mat {
+    --text-secondary: inherit;
+    --text-tertiary: inherit;
+    --text-disabled: inherit;
+    --danger: inherit;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* More contrast: the strong border instead of the rim, no shadow (language.md §2.4, A-18). */
+@media (prefers-contrast: more) {
+  .mat {
+    --shadow-own: 0 0 #0000;
+    border-color: var(--border-glass);
+  }
+  .mat.mat-lit {
+    border: 1px solid var(--border-glass);
+  }
+  .mat-lit::before {
+    content: none;
+  }
+}
+
+/* Forced colours: Canvas with a CanvasText edge (tokens.css §6). */
+@media (forced-colors: active) {
+  .mat {
+    border-color: CanvasText;
+  }
+  .mat-lit::before {
+    content: none;
+  }
+}

@@ -6,10 +6,8 @@
  *
  * `?entry=<coverage registry id>&backdrop=<name>&glass=clear|tinted|solid&theme=dark|light`
  * renders one glass surface of `styles/coverage-registry.ts` at its smallest registered size,
- * centred on whole CSS pixels over a backdrop that fills the viewport. The registry has no tier
- * and σ fields yet: the entry names its composition (`glass`, `glass glass-menu`,
- * `glass-frame`) and its filter token, and 09 §26's `.mat-<tier>.s<σ>` takes over here when
- * `materials.css` lands (the query then also accepts `tier` and `sigma`).
+ * centred on whole CSS pixels over a backdrop that fills the viewport, with the material classes
+ * its entry gives (09 §26's `.mat-<tier>.s<σ>`, `materials.css`).
  *
  * Backdrops are uniform except `edge`, and every colour is known, so a 4 × 4 median anywhere
  * inside the surface has one right answer: the token model of `e2e/support/pixels.ts`.

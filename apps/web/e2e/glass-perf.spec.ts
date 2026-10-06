@@ -1,5 +1,6 @@
 /**
- * Spike S2 measurements for "Glass panels" (craft spec §7, docs/research/14-glass-spike.md),
+ * Spike S2 measurements for docked glass (craft spec §7, docs/research/14-glass-spike.md;
+ * ADR-0024 §2.8: docked M3 glass by default, with Glass Solid as the opaque baseline),
  * Chromium only. A generated 50-page document of alternating text and image pages, both
  * panels open, scrolled frame by frame at fit width (pages beside the panels) and zoomed in
  * (pages under them), and the light table in Arrange (nothing under the frame), with the
@@ -183,7 +184,7 @@ async function scrollRun(page: Page, selector = '[data-read-viewport]'): Promise
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Chromium only (spike S2)');
 
-test('S2: frame times while scrolling 50 pages under both panels, Glass panels off and on', async ({
+test('S2: frame times while scrolling 50 pages under both panels, Glass Solid and Clear', async ({
   page,
 }, testInfo) => {
   test.setTimeout(240_000);
@@ -207,11 +208,11 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass panels o
   }
   results.devicePixelRatio = String(await page.evaluate(() => window.devicePixelRatio));
 
-  for (const glassPanels of [false, true]) {
+  for (const glass of ['solid', 'clear'] as const) {
     await page.goto('./');
     await page.evaluate(
-      ([key, on]) => localStorage.setItem(key as string, JSON.stringify({ glassPanels: on })),
-      [APPEARANCE_STORAGE_KEY, glassPanels] as const,
+      ([key, value]) => localStorage.setItem(key as string, JSON.stringify({ glass: value })),
+      [APPEARANCE_STORAGE_KEY, glass] as const,
     );
     // Start fresh: the first run's document would otherwise be restored (ADR-0032 §2.5).
     await reloadFresh(page);
@@ -224,10 +225,10 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass panels o
     await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
       timeout: 30_000,
     });
-    const label = glassPanels ? 'on' : 'off';
-    expect(
-      await page.evaluate(() => document.documentElement.hasAttribute('data-glass-panels')),
-    ).toBe(glassPanels);
+    const label = glass === 'clear' ? 'on' : 'off';
+    expect(await page.evaluate(() => document.documentElement.getAttribute('data-glass'))).toBe(
+      glass,
+    );
     // Fit width: the pages sit beside the panels.
     await page.waitForTimeout(500);
     results[`fit width, setting ${label}`] = await scrollRun(page);

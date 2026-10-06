@@ -155,7 +155,7 @@
 /* Centred by its auto margins, not translateX(-50%), so it rests on whole pixels (quality-bar
    Q-2); 46 px tall at the bars' 7px blur (coverage registry). */
 .banner {
-  composes: glass from global;
+  composes: mat mat-bar s8 from global;
   position: fixed;
   top: calc(var(--free-top, var(--bar-h)) + var(--space-3));
   right: 0;
