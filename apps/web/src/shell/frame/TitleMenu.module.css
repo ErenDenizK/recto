@@ -189,12 +189,74 @@
   color: var(--text-tertiary);
 }
 
+/*
+ * The rows scroll under the pinned header (F5 §2: no taller than min(640 px, the room below the
+ * strip); its 30 rows outgrow that at every size). The scroll is the menu recipe's
+ * (ui/Menu.module.css): a quiet fade of the panel's own colour at an edge with rows beyond it,
+ * the keyboard's row kept clear of the fade, and a keyboard jump (Up from the first row to
+ * the last) that glides rather than cuts, unless motion is reduced.
+ */
 .list {
+  --menu-fade: 16px;
   flex: 1;
   min-height: 0;
   padding: 6px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding-block: var(--menu-fade);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .list {
+    scroll-behavior: smooth;
+  }
+}
+
+/* The edge fades: sticky bands that answer the list's scroll-state queries, so nothing
+   animates at rest (A-23); without the queries the list still scrolls. */
+@supports (container-type: scroll-state) {
+  .list {
+    container-type: scroll-state;
+  }
+
+  .list::before,
+  .list::after {
+    content: '';
+    position: sticky;
+    z-index: 1;
+    display: block;
+    height: var(--menu-fade);
+    margin-inline: -6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .list::before {
+    top: -6px;
+    margin-top: -6px;
+    margin-bottom: calc(var(--menu-fade) * -1 + 6px);
+    background: linear-gradient(to bottom, var(--mat-tint), transparent);
+  }
+
+  .list::after {
+    bottom: -6px;
+    margin-top: calc(var(--menu-fade) * -1 + 6px);
+    margin-bottom: -6px;
+    background: linear-gradient(to top, var(--mat-tint), transparent);
+  }
+
+  @container scroll-state(scrollable: top) {
+    .list::before {
+      opacity: 1;
+    }
+  }
+
+  @container scroll-state(scrollable: bottom) {
+    .list::after {
+      opacity: 1;
+    }
+  }
 }
 
 .group + .group {
