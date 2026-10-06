@@ -64,7 +64,7 @@ describe('engine integration', () => {
     expect(screen.queryByTestId('page-pill')).toBeNull();
   }, 30_000);
 
-  it('rotates the selection with R and undoes it with Mod+Z', async () => {
+  it('rotates the selection with Shift+R and undoes it with Mod+Z', async () => {
     render(<App />);
     await openDocuments([await fixtureFile()]);
     useUiStore.getState().showSurface('grid');
@@ -72,7 +72,8 @@ describe('engine integration', () => {
     await userEvent.click(cells[1]!);
     expect(cells[1]).toHaveAttribute('aria-selected', 'true');
 
-    await userEvent.keyboard('r');
+    // Shift+R rotates; R alone is the Rectangle (key map v2, flows §7.2).
+    await userEvent.keyboard('{Shift>}R{/Shift}');
     await waitFor(() => {
       expect(screen.getAllByRole('gridcell')[1]).toHaveAccessibleName(/rotated 90 degrees/);
     });
