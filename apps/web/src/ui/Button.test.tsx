@@ -52,7 +52,8 @@ describe('Button (09-primitives §3)', () => {
 
     // Hover: one step (where the page can hover).
     for (const [el, want] of [
-      [prominent, /^rgb\(143, 157, 255\)$/],
+      // --accent-hover, one step lighter than the lime rest.
+      [prominent, /^rgb\(221, 255, 130\)$/],
       [standard, /^rgba\(255, 255, 255, 0\.12\)$/],
       // 0.045 is stored in 8 bits: 0.043.
       [quiet, /^rgba\(255, 255, 255, 0\.04\d*\)$/],

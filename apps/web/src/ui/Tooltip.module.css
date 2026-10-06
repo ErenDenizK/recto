@@ -52,7 +52,7 @@
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  transform: scale(var(--enter-scale));
+  transform: scale(var(--tooltip-scale));
 }
 
 .popup[data-instant] {

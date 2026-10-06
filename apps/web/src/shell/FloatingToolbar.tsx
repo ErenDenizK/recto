@@ -67,6 +67,7 @@ import { useCommands } from '../commands/use-commands';
 import { FIELD_KINDS, kindName } from '../forms/create';
 import { useFormStore } from '../forms/form-store';
 import { m } from '../i18n';
+import { reducedMotion } from '../motion/reduced-motion';
 import { useApplyDialogStore } from '../redaction/apply-store';
 import { showRedactionsPanel } from '../redaction/commands';
 import { openSettings } from '../settings/open-settings';
@@ -111,10 +112,6 @@ import { useStrokeInProgress } from './FloatingToolbar.stroke';
 /** The morph (spec §5.2): one movement. */
 const MORPH_MS = 160;
 const MORPH_EASING = 'cubic-bezier(0.2, 0, 0, 1)';
-
-const reducedMotion = () =>
-  typeof window.matchMedia === 'function' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function FloatingToolbar() {
   const pageView = useStageView() === 'page';

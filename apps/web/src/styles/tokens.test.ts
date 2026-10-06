@@ -1309,16 +1309,7 @@ describe('tokens.css', () => {
     });
   });
 
-  describe('motion (§7.5)', () => {
-    it('rises 4px and stands still under reduced motion', () => {
-      expect(resolve('--rise-distance')).toBe('4px');
-      expect(resolve('--motion-rise')).toBe('translateY(4px)');
-      const reduced = mediaOverrides('prefers-reduced-motion: reduce');
-      expect(reduced.get('--rise-distance')).toBe('0px');
-      expect(reduced.get('--duration-fast')).toBe('0ms');
-      expect(resolve('--motion-rise', reduced)).toBe('translateY(0px)');
-    });
-  });
+  // Motion (§7.5) is motion.css's, tested in motion.test.ts.
 
   describe('no colour literal outside the tokens (D3-2)', () => {
     /**
