@@ -519,6 +519,7 @@
   "diag_on_page": "sayfa {page}",
   "history_start": "Başlangıç",
   "history_open": "{name} açıldı",
+  "history_opened": "{name} açıldı",
   "history_close": "{name} kapatıldı",
   "history_move": "{count} sayfa taşındı",
   "history_rotate": "{count} sayfa döndürüldü",
