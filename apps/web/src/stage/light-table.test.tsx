@@ -36,7 +36,7 @@ async function openTwo() {
   ]);
   const ws = useWorkspaceStore.getState().workspace;
   const [simple, rotated] = ws.documentOrder;
-  useUiStore.getState().pinToArrange(ws.documentOrder);
+  useUiStore.getState().setGridScope('all');
   useUiStore.getState().showSurface('grid');
   const grids = await screen.findAllByRole('grid');
   expect(grids).toHaveLength(2);
@@ -55,7 +55,7 @@ describe('light table', () => {
     useSelectionStore.getState().setClipboard(null);
     useUiStore.setState({
       docUi: {},
-      arrangePinned: [],
+      gridScope: 'all',
       arrangeCollapsed: [],
       paletteOpen: false,
       arrangeSize: 1,
@@ -157,22 +157,48 @@ describe('light table', () => {
     for (const delta of after) expect(delta).toBeLessThanOrEqual(3);
   }, 30_000);
 
-  it('shows the contextual bar above a selection and hides it without one', async () => {
+  it('acts on a selection from the Pages bar; Esc clears it, then leaves the grid', async () => {
     await openTwo();
+    // The capsule holds the Pages bar in the grid (X21): nothing selected, Done and the count.
+    const bar = await screen.findByRole('toolbar', { name: 'Selected pages' });
+    expect(within(bar).getByRole('button', { name: 'Done' })).toBeInTheDocument();
     const cell = within(grid('rotated-pages')).getAllByRole('gridcell')[0]!;
     await userEvent.click(cell);
-    const bar = await screen.findByRole('toolbar', { name: 'Actions for 1 page' });
-    expect(bar).toBeVisible();
+    await waitFor(() => {
+      expect(within(bar).getByText('1 selected')).toBeInTheDocument();
+    });
     await userEvent.click(within(bar).getByRole('button', { name: 'Rotate right' }));
     await waitFor(() => {
       expect(within(grid('rotated-pages')).getAllByRole('gridcell')[0]).toHaveAccessibleName(
         /rotated 90 degrees/,
       );
     });
+    // The Esc ladder (flows §7.2): the selection first, then the grid itself.
     await userEvent.keyboard('{Escape}');
     await waitFor(() => {
-      expect(screen.queryByTestId('contextual-bar')).toBeNull();
+      expect(useSelectionStore.getState().selected.size).toBe(0);
     });
+    expect(screen.getAllByRole('grid')).toHaveLength(2);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.queryAllByRole('grid')).toHaveLength(0);
+    });
+  }, 30_000);
+
+  it('shows the active document alone in This document, with no section header', async () => {
+    await openTwo();
+    useUiStore.getState().setGridScope('document');
+    await waitFor(() => {
+      expect(screen.getAllByRole('grid')).toHaveLength(1);
+    });
+    const active = useWorkspaceStore.getState().workspace.activeDocument;
+    const title =
+      (active ? useWorkspaceStore.getState().workspace.documents[active]?.title : '') ?? '';
+    expect(screen.getByRole('grid', { name: title })).toBeVisible();
+    expect(screen.queryByRole('heading', { level: 2, name: title })).toBeNull();
+    // The scope switch says which is chosen; All open counts the documents.
+    expect(screen.getByRole('radio', { name: 'This document' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /^All open/ })).not.toBeChecked();
   }, 30_000);
 
   it('inserts OS files dropped on a section at the gap, as one undo step', async () => {

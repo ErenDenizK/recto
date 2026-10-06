@@ -49,6 +49,36 @@ describe('interleave', () => {
     expect(labelsOf(next, must(next.activeDocument))).toEqual(['1', '2', '3', '4']);
   });
 
+  it('keeps both inputs with keepSources: copies in a new tab after the later input (07.13)', () => {
+    const next = check(
+      interleave(ws, { a: k, b: f, mode: 'duplex-reverse-b', keepSources: true }, ids),
+    );
+    const created = must(next.activeDocument);
+    expect(names(next, created)).toEqual(['K1', 'F3', 'K2', 'F2', 'K3', 'F1']);
+    // Both sources stay open and untouched; the result sits after the later one (k).
+    expect(next.documentOrder).toEqual([f, k, created, c]);
+    expect(getDocument(next, f)).toBe(getDocument(ws, f));
+    expect(getDocument(next, k)).toBe(getDocument(ws, k));
+    const copies = pageIds(next, created);
+    for (const id of [...pageIds(ws, f), ...pageIds(ws, k)]) expect(copies).not.toContain(id);
+    expect(getDocument(next, created).title).toBe('K + F');
+  });
+
+  it('points a kept interleave’s outline at the copies', () => {
+    const outlined = open(['F', 2, { outline: pageOutline('F', 2) }], ['K', 2]);
+    const [of, ok] = outlined.docs as [DocumentId, DocumentId];
+    const next = check(
+      interleave(outlined.ws, { a: of, b: ok, mode: 'alternate', keepSources: true }, outlined.ids),
+    );
+    const created = must(next.activeDocument);
+    const copies = pageIds(next, created);
+    expect(outlineTitles(next, created)).toEqual(['F p1', 'F p2']);
+    expect(getDocument(next, created).outline[1]?.destination).toMatchObject({
+      kind: 'page',
+      page: copies[2],
+    });
+  });
+
   it('rejects self-interleave and unknown modes', () => {
     expectCode(() => interleave(ws, { a: f, b: f, mode: 'alternate' }, ids), 'invalid-argument');
     expectCode(() => interleave(ws, { a: f, b: k, mode: 'zip' as never }, ids), 'invalid-argument');

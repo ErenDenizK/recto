@@ -4,47 +4,29 @@
  * after a pause, opens the grid at the page under the gesture, as a *view change* (240 ms View
  * Transition, language.md §7.3).
  *
- * One function, so the Pages grid of D2-5 replaces what it opens without touching the zoom
- * controller. Today it opens Arrange (the light table, `stage/ArrangeView.tsx`): the page gets
- * the grid's keyboard focus and Arrange reveals it on mount (`takeGridReveal`), as the `3` key
- * does, and the mode is announced as that key announces it.
+ * One function, so the Pages grid replaces what it opens without touching the zoom
+ * controller: the grid's own entrance (`grid/grid-transition.ts`, spec D2-5), which morphs the
+ * page into its cell, focuses the cell and announces the grid.
  */
 import type { PageId } from '@pdf-editor/document-model';
 
-import { m } from '../i18n';
-import { viewTransition } from '../motion/view-transition';
-import { announce } from '../shell/announcer';
-import { useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
+import { enterGrid } from './grid/grid-transition';
 
-/** The page the grid shows first once it mounts; taken once. */
-let reveal: PageId | null = null;
+export { takeGridReveal } from './grid/grid-transition';
 
-/** The page to reveal as the grid mounts, if a door asked for one (taken once). */
-export function takeGridReveal(): PageId | null {
-  const page = reveal;
-  reveal = null;
-  return page;
-}
-
-/** What the door does; D2-5 swaps it for the Pages grid's own entrance. */
+/** What the door does: the Pages grid's entrance; tests may swap it. */
 type Door = (page: PageId) => void;
 
-const openArrange: Door = (page) => {
-  reveal = page;
-  useSelectionStore.getState().setFocused(page);
-  void viewTransition(() => useUiStore.getState().showSurface('grid'), { name: 'grid' });
-  announce(m.mode_arrange_long());
-};
+const openGrid: Door = (page) => enterGrid({ page });
 
-let door: Door = openArrange;
+let door: Door = openGrid;
 
 /** Opens the Pages grid at `page` of the active document (module header). */
 export function enterPagesGrid(page: PageId): void {
   door(page);
 }
 
-/** Replaces the door (the Pages grid, D2-5; tests); null restores today's. */
+/** Replaces the door (tests); null restores the Pages grid's. */
 export function setPagesGridDoor(next: Door | null): void {
-  door = next ?? openArrange;
+  door = next ?? openGrid;
 }

@@ -128,6 +128,8 @@ export default defineConfig({
         // The sidebar laid over the page, S13's touch drags and the section's own Find field
         // (spec D2-4).
         '**/sidebar.spec.ts',
+        // The Pages grid: J4 by touch, the pinch's sizes and its door to the page (spec D2-5).
+        '**/pages-grid.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

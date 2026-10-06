@@ -5,6 +5,7 @@
  */
 import {
   type DocumentId,
+  duplicatePages,
   findPageLocation,
   insertBlankPage,
   movePages,
@@ -22,8 +23,8 @@ import { inDocumentOrder, transferPages } from '../dnd/drop';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { type PageClipboard, useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import { toast } from '../ui/Toast/toast';
 
 const model = () => useWorkspaceStore.getState();
 const selection = () => useSelectionStore.getState();
@@ -219,32 +220,48 @@ export function movePagesToDocument(documentId: DocumentId): boolean {
   const doc = ws.documents[documentId];
   const pageIds = targetPages();
   if (doc === undefined || pageIds.length === 0) return false;
-  useUiStore.getState().pinToArrange([documentId], ws.activeDocument);
-  return (
+  const from = findPageLocation(ws, pageIds[0] as PageId)?.document;
+  const moved =
     transferPages({
       pageIds,
       target: { document: documentId, index: doc.pages.length },
       duplicate: false,
-    }) !== undefined
-  );
+    }) !== undefined;
+  // A move to another document gets the Undo toast (06.24); a move within one is announced.
+  if (moved && from !== undefined && from !== documentId) {
+    toast.undo(m.grid_moved_to_toast({ count: pageIds.length, title: doc.title }), {
+      documentId,
+      spoken: false,
+    });
+  }
+  return moved;
 }
 
 /**
- * "Move to new document" (spec §4 "Extract"): moves the target pages (from one or several
- * documents) into a new document placed after the first one's tab. The model's
- * `splitDocument` only splits one document into contiguous parts, so this is
- * `newEmptyDocument` + `movePages`. "Copy to new document" is in `section-operations.ts`.
+ * Extract (S16; spec §4 "Extract"): the target pages (from one or several documents), or
+ * `options.pageIds`, into a new document placed after the first one's tab, titled
+ * `options.title` (else "x – extract"). `keep` copies them and leaves the source as it was
+ * (no change to it: allowed on a locked document, flows §2.6); without it they move (a `pages`
+ * act on the source). The model's `splitDocument` only splits one document into contiguous
+ * parts, so this is `newEmptyDocument` + `movePages` (or `duplicatePages`). One history entry.
+ * Returns the new document.
  */
-export function extractPages(): boolean {
+export function extractPages(
+  options: {
+    readonly pageIds?: readonly PageId[];
+    readonly title?: string;
+    readonly keep?: boolean;
+  } = {},
+): DocumentId | undefined {
   const ws = model().workspace;
-  const pageIds = inDocumentOrder(ws, targetPages());
+  const pageIds = inDocumentOrder(ws, options.pageIds ?? targetPages());
   const first = pageIds[0];
   const location = first === undefined ? undefined : findPageLocation(ws, first);
   const source = location === undefined ? undefined : ws.documents[location.document];
-  if (source === undefined) return false;
-  const previousActive = ws.activeDocument;
+  if (source === undefined) return undefined;
   let created: DocumentId | undefined;
-  const title = m.extract_document_title({ title: source.title });
+  const title = options.title ?? m.extract_document_title({ title: source.title });
+  const keep = options.keep === true;
   const committed = model().applyOperation(
     (current, ids) => {
       const { workspace, documentId } = newEmptyDocument(current, ids, {
@@ -252,15 +269,24 @@ export function extractPages(): boolean {
         index: current.documentOrder.indexOf(source.id) + 1,
       });
       created = documentId;
-      return movePages(workspace, { pageIds, target: { document: documentId, index: 0 } });
+      const target = { document: documentId, index: 0 };
+      return keep
+        ? duplicatePages(workspace, pageIds, ids, { target })
+        : movePages(workspace, { pageIds, target });
     },
-    m.history_move_to_new({ pages: pagesPhrase(pageIds.length) }),
+    keep
+      ? m.history_copy_to_new({ pages: pagesPhrase(pageIds.length) })
+      : m.history_move_to_new({ pages: pagesPhrase(pageIds.length) }),
   );
-  if (!committed || created === undefined) return false;
-  useUiStore.getState().pinToArrange([created], previousActive);
-  select(pageIds);
-  announce(m.announce_moved_to_new({ pages: pagesPhrase(pageIds.length), title }));
-  return true;
+  if (!committed || created === undefined) return undefined;
+  const placed = model().workspace.documents[created]?.pages.map((p) => p.id) ?? [];
+  select(placed);
+  announce(
+    keep
+      ? m.announce_copied_to_new({ pages: pagesPhrase(pageIds.length), title })
+      : m.announce_moved_to_new({ pages: pagesPhrase(pageIds.length), title }),
+  );
+  return created;
 }
 
 /** Inserts one blank page after the focused (else last) target page. */

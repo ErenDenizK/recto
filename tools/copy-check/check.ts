@@ -222,6 +222,12 @@ const CATALOG_EXEMPTIONS: readonly {
     word: 'unlock',
     why: "the dock's Locked item names its action, Unlock… (01-frame F10), a verb on a lock, not a claim",
   },
+  {
+    file: 'en.json',
+    key: 'pages_bar_unlock',
+    word: 'unlock',
+    why: "the locked document's reduced Pages bar offers Unlock (X21), a verb on a lock, not a claim",
+  },
 ];
 
 /**
