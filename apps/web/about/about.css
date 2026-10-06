@@ -1,7 +1,9 @@
 /*
  * The about page (presentation spec §3). Plain CSS on the app's tokens: every colour, radius
  * and spacing step comes from tokens.css; only the page's type sizes and measures are its
- * own, because the app's UI scale (11–15 px) is too small for reading prose. Dark only.
+ * own, because the app's UI scale (11–15 px) is too small for reading prose. It follows the
+ * device's scheme: tokens.css carries the light values under `prefers-color-scheme: light` for a
+ * root without `data-theme` (ADR-0022 §2.4), which this page never sets.
  */
 @import '../src/styles/tokens.css';
 /* The app's 'Inter Recto' (ADR-0027): the same files, from this origin (CSP `font-src 'self'`);
@@ -33,7 +35,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: dark light;
   background: var(--surface-0);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -207,7 +209,7 @@ code {
 .button-primary {
   border-color: transparent;
   background: var(--accent);
-  color: var(--surface-0);
+  color: var(--accent-ink);
 }
 
 .button-primary:hover {
