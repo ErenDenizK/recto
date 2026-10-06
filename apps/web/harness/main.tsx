@@ -35,7 +35,7 @@ import { type Backdrop, BACKDROPS, type GlassMode, surfaceOrigin, type Theme } f
 /** The filter each composition's global rule reads (`styles/global.css`). */
 const OWN_FILTER: Record<GlassComposition, GlassFilterToken> = {
   glass: '--glass-filter',
-  'glass glass-menu': '--glass-menu-filter',
+  'glass glass-menu': '--glass-menu-backdrop',
   'glass-frame': '--glass-frame-filter',
 };
 
