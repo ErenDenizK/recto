@@ -294,6 +294,10 @@ test('in Edit a first click on text says "Double-click to edit text"; the Text g
     'aria-pressed',
     'true',
   );
+  // The tool's targets are located after it arms (a busy runner takes a while).
+  await expect(page.locator('[data-text-edit-layer="0"] button').first()).toBeAttached({
+    timeout: 20_000,
+  });
   await page.mouse.click(at.x, at.y);
   await expect(editor).toBeFocused({ timeout: 20_000 });
   await editor.press('Escape');
