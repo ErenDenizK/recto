@@ -75,7 +75,7 @@ export class Stage {
     this.ghost = ghost;
   }
 
-  /** Prepares `page` and opens the app at `path` (Home, English by default). */
+  /** Prepares `page` and opens the app at `path` (the Library, English by default). */
   static async open(page: Page, kind: SceneKind, path = './?lang=en'): Promise<Stage> {
     // Stills are single moments: no transitions caught half-way. Clips show real motion.
     await page.emulateMedia({
@@ -89,6 +89,18 @@ export class Stage {
     await page.addInitScript(() => {
       Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });
     });
+    // The real look (docs/specs/redesign.md X36, D3-3): Glass Clear and no cost-ladder step.
+    // The runner renders in software on four cores, where the app would start at Tinted and
+    // step 2, which no person on a GPU sees. The media build compiles the override in
+    // (RECTO_RENDER_OVERRIDE=1, playwright.config.ts and the media action); the deploy build
+    // ignores it. Light stays automatic, as on a device.
+    await page.addInitScript(() => {
+      (window as { __rectoRender?: unknown }).__rectoRender = {
+        degrade: 'off',
+        glass: 'clear',
+        light: 'auto',
+      };
+    });
     // Stills show the result, not a pointer.
     const cursor = await Cursor.install(page, kind === 'clip');
     const ghost = await DragGhost.install(page);
@@ -97,6 +109,14 @@ export class Stage {
     await fitWindow(page);
     await page.goto(path);
     await expect(page.getByTestId('app-shell')).toBeVisible();
+    // A build without the override would record Tinted glass at step 2: fail rather than
+    // publish that.
+    const root = page.locator('html');
+    await expect(root, 'Glass Clear (build with RECTO_RENDER_OVERRIDE=1)').toHaveAttribute(
+      'data-glass',
+      'clear',
+    );
+    await expect(root, 'no cost-ladder step').not.toHaveAttribute('data-degrade', /.*/);
     await page.evaluate(async () => {
       await document.fonts.ready;
       // Inter is loaded on first use; make sure every face the UI uses is in before frames.
@@ -127,7 +147,7 @@ export class Stage {
     await this.page.getByRole('button', { name: 'Open files' }).first().click();
     // The files are made in the page, stamped with the fixed clock: a path would carry the
     // checkout's modification time and Playwright stamps bytes with the real one, and the
-    // Info section shows the date.
+    // Library's cards and the document info show the date.
     const files = await Promise.all(
       names.map(async (name) => ({
         name,
@@ -197,6 +217,52 @@ export class Stage {
   }
 
   /**
+   * Waits until the Pages grid is up and its view change (one View Transition, 240 ms) has
+   * run: while it runs the transition's snapshot takes the pointer and the frame is a blend.
+   */
+  async gridSettled(): Promise<void> {
+    await expect(this.page.getByTestId('light-table')).toBeVisible();
+    await expect
+      .poll(() => this.page.evaluate(() => document.documentElement.hasAttribute('data-vt-grid')))
+      .toBe(false);
+  }
+
+  /**
+   * Fits the active document's page to the window ("Zoom to fit page", off camera), so a
+   * clip shows the whole page in the frame, as the scenes before the redesign did beside
+   * the navigator and the inspector.
+   */
+  async fitPage(): Promise<void> {
+    await this.command('Zoom to fit page');
+    await this.page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  }
+
+  /**
+   * Shows page `index` (0-based): centred in the view (at fit page it fills the view as page
+   * 1 does), or, given `top`, with its head that many CSS pixels from the window's top (for
+   * a page taller than the view; `scrollIntoView` alone would put its head under the strip).
+   */
+  async showPage(index: number, top?: number): Promise<void> {
+    await this.page
+      .locator(`[data-read-viewport] [data-page-index="${index}"]`)
+      .evaluate((el, at) => {
+        if (at === null) {
+          el.scrollIntoView({ block: 'center' });
+          return;
+        }
+        el.scrollIntoView({ block: 'start' });
+        const by = el.getBoundingClientRect().top - at;
+        el.closest('[data-read-viewport]')?.scrollBy({ top: by });
+      }, top ?? null);
+    await expect(this.pagePill()).toContainText(new RegExp(`\\b${index + 1} / \\d+`));
+  }
+
+  /** The page pill (01-frame F7): "label (n / count) · zoom" or "n / count · zoom". */
+  pagePill(): Locator {
+    return this.page.getByTestId('page-pill');
+  }
+
+  /**
    * Waits until every page canvas inside `scope` that is on screen has rendered (the
    * canvas's own `data-state`), and that there are at least `atLeast` of them.
    */
@@ -252,7 +318,7 @@ export class Stage {
         const data = new DataTransfer();
         for (const file of list) {
           const bytes = Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0));
-          // A fixed modification date: Home's cards show it (spec §2.1, deterministic).
+          // A fixed modification date: the Library and Recents show it (spec §2.1, deterministic).
           data.items.add(
             new File([bytes], file.name, { type: 'application/pdf', lastModified: modified }),
           );

@@ -1,8 +1,9 @@
 /**
- * Clip 5, "Compare two versions" (spec §6): the report against its revision. The
- * comparison runs and lists the changed areas, the onion skin lays the revision over the
- * original, and J steps to the changed paragraph. The scene asserts the summary of what
- * changed (three pages; test/fixtures/README.md, "Changes from v1 to v2").
+ * Clip 5, "Compare two versions" (spec §6): the report against its revision, from the Library
+ * (02-library L6, journey J12): both cards checked, the selection bar's Compare sets the older
+ * file as A. The comparison runs and lists the changed areas, the onion skin lays the revision
+ * over the original, and J steps to the changed paragraph. The scene asserts the summary of
+ * what changed (three pages; test/fixtures/README.md, "Changes from v1 to v2").
  */
 import { expect } from '@playwright/test';
 
@@ -17,35 +18,33 @@ scene({
   kind: 'clip',
   async prepare(stage) {
     const { page } = stage;
+    // Two files opened together land in the Library, both checked (02-library L6).
     await stage.openFixtures(FIXTURES);
-    // Two files opened together land on Home (ADR-0019 §1): 1 shows the active document in
-    // Read, and 4 is the Compare view; its setup chooses the two documents.
-    await page.keyboard.press('1');
-    await expect(page.getByRole('radio', { name: 'Read, locked' })).toBeChecked();
-    await page.keyboard.press('4');
-    const setup = page.getByTestId('compare-setup');
-    await expect(setup).toBeVisible();
-    // The two pickers are list boxes (Base UI Select): choose each document from its list.
-    await setup.getByRole('combobox', { name: 'Original (A)' }).click();
-    await page.getByRole('option', { name: ORIGINAL, exact: true }).click();
-    // The first list fades out before the second opens (both name the same documents).
-    await expect(page.getByRole('listbox')).toHaveCount(0);
-    await setup.getByRole('combobox', { name: 'Revised (B)' }).click();
-    await page.getByRole('option', { name: REVISED, exact: true }).click();
-    await expect(page.getByRole('listbox')).toHaveCount(0);
+    const cards = page.getByRole('listbox', { name: 'Files' }).getByRole('option');
+    await expect(page.getByRole('option', { selected: true })).toHaveCount(FIXTURES.length);
+    await stage.rendered(cards, FIXTURES.length);
     await stage.cursor.place(1100, 640);
   },
   async run(stage) {
     const { page, cursor } = stage;
-    const setup = page.getByTestId('compare-setup');
     await stage.hold(200);
 
-    // 1. Compare. The run (about three seconds here) is cut like OCR's, with the caption;
+    // 1. The selection bar's Compare: the setup with the original as A and the revision as B
+    //    (both files carry the same date, so the card order decides).
+    const bar = page.getByRole('toolbar', { name: 'Selected documents' });
+    await cursor.click(bar.getByRole('button', { name: 'Compare' }), 420);
+    const setup = page.getByTestId('compare-setup');
+    await expect(setup).toBeVisible();
+    await expect(setup.getByRole('combobox', { name: 'Original (A)' })).toContainText(ORIGINAL);
+    await expect(setup.getByRole('combobox', { name: 'Revised (B)' })).toContainText(REVISED);
+    await stage.hold(250);
+
+    // 2. Compare. The run (about three seconds here) is cut like OCR's, with the caption;
     //    then the changed pages and areas are listed.
     await cursor.click(setup.getByRole('button', { name: 'Compare', exact: true }), 420);
     const view = page.getByTestId('compare-view');
     await expect(page.getByTestId('compare-progress')).toBeVisible();
-    await stage.hold(300);
+    await stage.hold(250);
     const panel = page.getByTestId('changes-panel');
     await stage.cut(
       async () => {
@@ -61,25 +60,28 @@ scene({
     await expect(panel.getByTestId('changes-summary')).toHaveText(
       'Pages: 3 changed · 0 inserted · 0 deleted · 7 unchanged',
     );
-    await stage.hold(450);
+    await stage.hold(400);
 
-    // 2. The changed area of the foreword's page, boxed on both sides.
+    // 3. The changed area of the foreword's page, boxed on both sides.
     const area = panel
       .getByRole('region', { name: 'Page 3 ↔ 3' })
       .getByRole('button', { name: /changed area/ });
     await cursor.click(area, 420);
     await expect(view.locator('[data-current]').first()).toBeVisible();
     await stage.rendered(view, 2);
-    await stage.hold(500);
+    await stage.hold(450);
 
-    // 3. The onion skin: B over A.
+    // 4. The onion skin: B over A.
     const overlay = page.getByRole('radio', { name: 'Overlay' });
     await cursor.click(overlay, 420);
     await expect(overlay).toBeChecked();
     await stage.rendered(view, 1);
-    await stage.hold(450);
+    // Off the compare bar into the gutter right of the page, so the poster shows the bar
+    // and the paragraph with no pointer or hover on them.
+    await cursor.move(1372, 600, 400);
+    await stage.hold(150);
 
-    // 4. J: to the next change, the paragraph's first changed words.
+    // 5. J: to the next change, the paragraph's first changed words.
     // A shortcut of the whole view: nothing needs focusing (a focused viewport would draw
     // its focus ring round the clip's last frame).
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
