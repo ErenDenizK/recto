@@ -204,6 +204,24 @@ const CATALOG_EXEMPTIONS: readonly {
     word: 'unlock',
     why: 'the reason a dimmed item shows on a locked document, "Locked · unlock first" as 04-context §12 writes it (ADR-0030 §2.3), a verb on a lock, not a claim',
   },
+  {
+    file: 'en.json',
+    key: 'frame_unlock',
+    word: 'unlock',
+    why: "the title menu's Lock switch action (01-frame F4), a verb on a lock, not a claim",
+  },
+  {
+    file: 'en.json',
+    key: 'frame_unlock_anyway',
+    word: 'unlock',
+    why: "the one-time warning's confirm before unlocking a signed or restricted file (01-frame F4), a verb on a lock, not a claim",
+  },
+  {
+    file: 'en.json',
+    key: 'dock_locked_name',
+    word: 'unlock',
+    why: "the dock's Locked item names its action, Unlock… (01-frame F10), a verb on a lock, not a claim",
+  },
 ];
 
 /**

@@ -125,6 +125,9 @@ export default defineConfig({
         '**/sample.spec.ts',
         // The capsule's morph on rendered pixels at the coarse 56 px size (spec D2-2, Q-6).
         '**/capsule.spec.ts',
+        // The sidebar laid over the page, S13's touch drags and the section's own Find field
+        // (spec D2-4).
+        '**/sidebar.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

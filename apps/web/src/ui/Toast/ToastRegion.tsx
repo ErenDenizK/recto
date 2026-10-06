@@ -7,7 +7,7 @@
  * - **Silent.** `role="region"` named "Notifications", not live: `toast.ts` says each toast
  *   once through the announcer. Each toast is a `role="group"` named by its text.
  * - **Never takes focus.** F6 reaches it as the last stop of the cycle
- *   (`shell/LeftRail.regions.ts`, landing on the newest toast's action); Up and Down move
+ *   (`shell/frame/regions.ts`, landing on the newest toast's action); Up and Down move
  *   between toasts; Esc dismisses the focused one; after an action or a dismissal focus goes
  *   back to where it was before F6, else the page.
  * - **Holds** (A-24): hover, focus within, a pointer down on a toast, a hidden tab and an open

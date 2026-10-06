@@ -418,14 +418,14 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
   },
   {
     id: 'navigator',
-    surface: 'Sidebar slot (the navigator panel, 01-frame F1)',
-    module: 'shell/LeftRail.module.css',
+    surface: 'Sidebar (06-navigation N1; docked, overlay 320, side sheet 360)',
+    module: 'shell/sidebar/Sidebar.module.css',
     selector: '.sidebar',
     composes: 'glass-frame',
     filter: '--glass-frame-filter',
-    minWidth: 200,
+    minWidth: 240,
     minHeight: 200,
-    smallest: 'the panel at its 200 px minimum width',
+    smallest: 'the docked sidebar at its 240 px minimum width',
   },
   {
     id: 'inspector',

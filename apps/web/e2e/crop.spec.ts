@@ -23,6 +23,7 @@ import {
   showInspector,
   useFileInputPicker,
   openFindPanel,
+  showSidebar,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -126,12 +127,12 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
     buffer: bytes,
   });
   await expect(page.getByRole('tab', { name: 'cropped', selected: true })).toBeVisible();
-  // The pages have the cropped size, 468 × 612 pt (their sheets in the Pages panel).
+  // The pages have the cropped size, 468 × 612 pt (their sheets in the sidebar's thumbnails).
+  await showSidebar(page, 'Pages', 'Thumbnails');
   const sheet = page
     .getByRole('listbox', { name: 'Pages of cropped' })
     .getByRole('option', { name: 'Page 1' })
-    .locator('div > div')
-    .first();
+    .locator('[data-thumb]');
   await expect(sheet.locator('canvas')).toBeAttached({ timeout: 20_000 });
   const thumb = await sheet.boundingBox();
   if (!thumb) throw new Error('no thumbnail');
@@ -145,7 +146,7 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
   // also match the body line "This is page 1 of a three-page…": search ignores case).
   for (const needle of ['PAGE 1 OF simple-text', 'simple-text']) {
     await field.fill(needle);
-    await expect(page.getByTestId('search-status')).toHaveText('No results', {
+    await expect(page.getByTestId('search-status')).toHaveText('No matches', {
       timeout: 20_000,
     });
     await expect(page.getByTestId('search-hit')).toHaveCount(0);

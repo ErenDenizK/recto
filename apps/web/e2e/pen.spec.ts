@@ -15,6 +15,7 @@ import {
   reloadFresh,
   sentInkWidths,
   useFileInputPicker,
+  showSidebar,
 } from './helpers';
 
 function layer(page: Page, index = 0) {
@@ -308,8 +309,7 @@ test.describe('pen presets and bursts', () => {
     await expect(ink).toHaveCount(1);
     expect(await lastInkStyle(page)).toMatchObject({ paths: 2 });
 
-    const review = page.getByRole('tab', { name: /^Review/ });
-    if ((await review.getAttribute('aria-selected')) !== 'true') await review.click();
+    await showSidebar(page, 'Review');
     const rows = page.locator('[data-review-panel] [data-annotation-row]');
     await expect(rows).toHaveCount(1);
     await expect(rows.first()).toContainText('Pen · 2 strokes');
@@ -356,8 +356,7 @@ test.describe('pen presets and bursts', () => {
     const highlight = layer(page).locator('[data-annotation-kind="highlight"]');
     await expect(highlight).toHaveCount(1, { timeout: 10_000 });
     await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(0);
-    const review = page.getByRole('tab', { name: /^Review/ });
-    if ((await review.getAttribute('aria-selected')) !== 'true') await review.click();
+    await showSidebar(page, 'Review');
     const reviewRows = page.locator('[data-review-panel] [data-annotation-row]');
     await expect(reviewRows).toHaveCount(1);
     await expect(reviewRows.first()).toContainText('Highlight');

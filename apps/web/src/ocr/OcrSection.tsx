@@ -25,7 +25,7 @@ import {
   ocrRecords,
   QUALITY_ORDER,
 } from './ocr-model';
-import { focusOcrWord, sectionPageOf } from './ocr-review';
+import { focusOcrWord, sectionPageOf, showingWordsToCheck } from './ocr-review';
 import { setOcrFocus, useOcrStore } from './ocr-store';
 import { useOcrThresholds } from './ocr-thresholds';
 
@@ -57,9 +57,12 @@ export function OcrSection() {
   const rows = record && thresholds ? lowConfidenceRows(record, thresholds) : [];
   const locale = getLocale();
 
-  // The ring follows the section: leaving the page (or its text changing) clears it.
+  // The ring follows the section: leaving the page (or its text changing) clears it, unless
+  // Review's Words to check walks the document's words (spec X33), which own the ring then.
   const stale =
-    focus !== null && (focus.pageId !== pageId || !rows.some((row) => row.index === focus.word));
+    focus !== null &&
+    !showingWordsToCheck() &&
+    (focus.pageId !== pageId || !rows.some((row) => row.index === focus.word));
   useEffect(() => {
     if (stale) setOcrFocus(null);
   }, [stale]);

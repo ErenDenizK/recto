@@ -34,6 +34,7 @@ import {
   showInspector,
   useFileInputPicker,
   openSaveCopyFromMenu,
+  showSidebar,
 } from './helpers';
 import { settleAnimations } from './support/glass-walker';
 import { auditTargets } from './support/targets';
@@ -130,8 +131,12 @@ test.describe('keyboard', () => {
     await expect(page.getByTestId('ink-strip')).toBeVisible();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
+    // The sidebar is closed by default (06-navigation N1): ▤ shows it, focus back on the body.
+    await showSidebar(page, 'Pages', 'Thumbnails');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     const title = page.getByRole('tablist', { name: 'Open documents' });
-    const navigator = page.getByRole('tablist', { name: 'Navigator views' });
+    // F6 stop 2 lands on the sidebar's current item (06 N1 §6): the current page's thumbnail.
+    const navigator = page.getByRole('listbox', { name: /^Pages of/ });
     const inspector = page.locator('#right-panel');
     const highlight = bar(page).getByRole('button', { name: 'Text box', exact: true });
     const pill = page.getByTestId('page-pill');
@@ -139,7 +144,7 @@ test.describe('keyboard', () => {
     await page.keyboard.press('F6');
     await expect(title.getByRole('tab', { selected: true })).toBeFocused();
     await page.keyboard.press('F6');
-    await expect(navigator.getByRole('tab', { selected: true })).toBeFocused();
+    await expect(navigator.locator('[aria-current="page"]')).toBeFocused();
     await page.keyboard.press('F6');
     await expect(viewport(page)).toBeFocused();
     await page.keyboard.press('F6');
@@ -161,7 +166,7 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Shift+F6');
     await expect(viewport(page)).toBeFocused();
     await page.keyboard.press('Shift+F6');
-    await expect(navigator.getByRole('tab', { selected: true })).toBeFocused();
+    await expect(navigator.locator('[aria-current="page"]')).toBeFocused();
   });
 
   test('Library: the launcher, Select, then the cards; arrows, Space, the Esc ladder, Enter; F6 lands on a card', async ({
@@ -227,35 +232,36 @@ test.describe('keyboard', () => {
     ).toHaveAccessibleName(/mixed-sizes/);
   });
 
-  test('the navigator: the tablist, the Bookmarks switch and the Review filters', async ({
+  test('the sidebar: the section tabs, the Pages views and the Review filters', async ({
     page,
   }) => {
     await page.goto('./?lang=en');
     await openFixtures(page, ['annotations.pdf']);
-    const tabs = page.getByRole('tablist', { name: 'Navigator views' });
-    const tab = (id: string) => tabs.locator(`#rail-${id}`);
-    await tab('pages').focus();
+    await showSidebar(page, 'Pages');
+    const tabs = page.getByRole('tablist', { name: 'Sidebar sections' });
+    const tab = (name: RegExp) => tabs.getByRole('tab', { name });
+    await tab(/^Pages/).focus();
 
-    // Left and right (a horizontal row since D2-1), Home and End move between the tabs (one Tab stop); Enter opens.
+    // APG tabs drawn as the segmented control (06 N1 §6): Left and Right move and show
+    // (automatic activation), Home and End; one Tab stop.
     await page.keyboard.press('ArrowRight');
-    await expect(tab('find')).toBeFocused();
+    await expect(tab(/^Find/)).toBeFocused();
+    await expect(tab(/^Find/)).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('End');
-    await expect(tab('files')).toBeFocused();
+    await expect(tab(/^Review/)).toBeFocused();
+    await expect(tab(/^Review/)).toHaveAccessibleName(/^Review, \d+ items?$/);
     await page.keyboard.press('Home');
-    await expect(tab('pages')).toBeFocused();
-    await page.keyboard.press('ArrowLeft');
-    await expect(tab('files')).toBeFocused();
+    await expect(tab(/^Pages/)).toBeFocused();
     await expect(tabs.locator('[role="tab"][tabindex="0"]')).toHaveCount(1);
-    await page.keyboard.press('ArrowLeft');
-    await expect(tab('review')).toBeFocused();
-    await expect(tab('review')).toHaveAccessibleName(/^Review, \d+ items?$/);
-    await page.keyboard.press('Enter');
-    await expect(tab('review')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('End');
+    await expect(tab(/^Review/)).toHaveAttribute('aria-selected', 'true');
 
-    // Tab moves into the panel: the filters, a radio group (arrows choose, and say so).
+    // Tab moves into the section: the filters, a radio group (arrows choose, and say so); the
+    // four chips are static (06.13).
     const filters = page.getByRole('radiogroup', { name: 'Show' });
     await page.keyboard.press('Tab');
     await expect(filters.getByRole('radio', { name: /^All/ })).toBeFocused();
+    await expect(filters.getByRole('radio')).toHaveCount(4);
     await page.keyboard.press('ArrowRight');
     const comments = filters.getByRole('radio', { name: /^Comments/ });
     await expect(comments).toBeFocused();
@@ -269,25 +275,25 @@ test.describe('keyboard', () => {
       'true',
     );
 
-    // Pages: the Pages · Bookmarks switch is a radio group too.
-    await tab('review').focus();
+    // Pages: Thumbnails · Contents is a radio group too (no second "Pages").
+    await tab(/^Review/).focus();
     await page.keyboard.press('Home');
-    await page.keyboard.press('Enter');
-    await expect(tab('pages')).toHaveAttribute('aria-selected', 'true');
+    await expect(tab(/^Pages/)).toHaveAttribute('aria-selected', 'true');
     const view = page.getByRole('radiogroup', { name: 'Pages view' });
     await page.keyboard.press('Tab');
-    await expect(view.getByRole('radio', { name: 'Pages' })).toBeFocused();
+    await expect(view.getByRole('radio', { name: 'Thumbnails' })).toBeFocused();
     await page.keyboard.press('ArrowRight');
-    await expect(view.getByRole('radio', { name: 'Bookmarks' })).toHaveAttribute(
+    await expect(view.getByRole('radio', { name: 'Contents' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
     await expect(page.locator('[data-pages-view="bookmarks"]')).toBeVisible();
     await page.keyboard.press('ArrowLeft');
-    await expect(view.getByRole('radio', { name: 'Pages' })).toHaveAttribute(
+    await expect(view.getByRole('radio', { name: 'Thumbnails' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
+    await axe(page, 'Sidebar, thumbnails');
   });
 
   test('the palette: one Tab stop, arrows, a tool, its ink strip by Tab, Esc', async ({ page }) => {
@@ -389,7 +395,7 @@ test.describe('keyboard', () => {
     await expect(ink).toHaveCount(1, { timeout: 10_000 });
     await page.locator('body').press('Escape');
 
-    await page.locator('#rail-review').click();
+    await showSidebar(page, 'Review');
     const row = page.locator('[data-review-panel] [data-annotation-row]').first();
     await row.focus();
     await page.keyboard.press('Enter');
@@ -599,7 +605,7 @@ test.describe('axe', () => {
   test('the Review tab, the Document info sheet and the export dialog', async ({ page }) => {
     await page.goto('./?lang=en');
     await openFixtures(page, ['annotations.pdf']);
-    await page.locator('#rail-review').click();
+    await showSidebar(page, 'Review');
     await expect(page.locator('[data-review-panel] [data-annotation-row]').first()).toBeVisible();
     await axe(page, 'Review tab');
 
@@ -775,12 +781,12 @@ test('the focus ring tokens apply to the new controls', async ({ page }) => {
     expect(found.colour, name).toBe(found.light);
   };
 
-  await expectRing('navigator tab', page.locator('#rail-review'));
-  await page.locator('#rail-review').click();
+  const sidebar = await showSidebar(page, 'Pages', 'Thumbnails');
+  await expectRing('thumbnail', sidebar.locator('[role="option"][tabindex="0"]'));
+  await expectRing('sidebar tab', sidebar.getByRole('tab', { name: /^Review/ }));
+  await sidebar.getByRole('tab', { name: /^Review/ }).click();
   await expectRing('Review filter chip', page.getByRole('radio', { name: /^All/ }));
   await expectRing('Review row', page.locator('[data-annotation-row]').first());
-  await page.locator('#rail-files').click();
-  await expectRing('Files row', page.locator('[data-file-row] button').first());
 
   await page.keyboard.press('0');
   const firstCard = page.getByRole('listbox', { name: 'Files' }).getByRole('option').first();
@@ -1108,11 +1114,9 @@ test.describe('craft spec §9', () => {
   test('Home: Recents, when the build has them', async ({ page }) => {
     await page.goto('./?lang=en');
     await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
-    // Recents lists files opened lately that are not open now: close one (the sidebar's Files,
-    // in a document: the Library has no sidebar).
+    // Recents lists files opened lately that are not open now: close one (its tab's ✕).
     await page.getByRole('tab', { name: 'simple-text' }).click();
-    await page.locator('#rail-files').click();
-    await page.getByRole('button', { name: 'Close rotated-pages' }).click();
+    await page.getByTitle('Close rotated-pages').click();
     await expect(page.getByRole('tab', { name: 'rotated-pages' })).toHaveCount(0);
     await page.keyboard.press('0');
     await expect(page.getByTestId('home')).toBeVisible();
