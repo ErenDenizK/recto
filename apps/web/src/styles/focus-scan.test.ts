@@ -45,6 +45,9 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'image-objects/ImageObjects.module.css': {
     '.layer:focus-visible': 'focused from script to keep the keys on the page; targets show it',
   },
+  'shell/sidebar/FindSection.module.css': {
+    '.input:focus-visible': 'the well around the input draws the inset ring while it has focus',
+  },
   'stage/ReadView.module.css': {
     ':global(main:not([data-focus-ring])) .viewport:focus-visible':
       'the pages show their ring only after Tab or F6 (review finding 23)',
