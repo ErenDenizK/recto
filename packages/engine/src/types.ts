@@ -2121,8 +2121,12 @@ export interface SignRequest {
   readonly signerName?: string;
   /** Bytes reserved for the DER CMS (default 16384; at least 4096). */
   readonly reserveBytes?: number;
-  /** The claimed time (/M); default now. ISO 8601 or a Date. */
-  readonly date?: string | Date;
+  /**
+   * The claimed time (/M): ISO 8601, a Date, or epoch milliseconds. Default the worker's clock;
+   * the web app passes its own (`Date.now()` on the main thread) so the caller owns the time and
+   * tests and media can pin it.
+   */
+  readonly date?: string | Date | number;
 }
 
 export interface SignOptions extends EngineCallOptions {
@@ -3038,6 +3042,13 @@ export interface ParagraphLayoutAnalysis {
    * in the paragraph's own direction), points: growth beyond it leaves the page.
    */
   readonly pageRoom: number;
+  /**
+   * The empty space above the paragraph's ink up to the nearest block or graphic above it
+   * that overlaps it horizontally, else up to the visible box's top edge, points: where the
+   * editor's header may sit without covering content (components/05-canvas.md §17.3).
+   * Absent from analyses made before it existed.
+   */
+  readonly gapAbove?: number;
   /** Set when paragraph mode is refused; `input` then still describes the paragraph. */
   readonly refusal?: ParagraphEditRefusal;
 }

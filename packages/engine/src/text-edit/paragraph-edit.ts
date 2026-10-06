@@ -1193,6 +1193,7 @@ export class ParagraphWriter {
       gapBelow: prepared.gapBelow,
       paragraphGap: prepared.paragraphGap,
       pageRoom: prepared.pageRoom,
+      gapAbove: prepared.gapAbove,
       ...(prepared.refusal ? { refusal: prepared.refusal } : {}),
     };
   }

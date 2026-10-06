@@ -5,7 +5,6 @@ import {
   DETENT_SNAP_PX,
   detentsIn,
   keyStep,
-  knobDiameter,
   positionToValue,
   roundSignificant,
   roundToStep,
@@ -15,6 +14,7 @@ import {
   snapToDetent,
   STRETCH_MAX_PX,
   stretchFor,
+  strokeDot,
   taperPath,
   valueToPosition,
 } from './slider-math';
@@ -158,16 +158,51 @@ describe('rubber band', () => {
   });
 });
 
-describe('knob diameter (§3.3)', () => {
+describe('stroke dot (§3.3)', () => {
   it('is the stroke at the zoom, in CSS px', () => {
-    expect(knobDiameter(12, 1, false)).toEqual({ diameter: 16, notch: undefined });
+    expect(strokeDot(6, 1, false)).toBe(8);
   });
 
-  it('clamps with a notch that says which way the stroke differs', () => {
-    expect(knobDiameter(0.5, 1, false)).toEqual({ diameter: 8, notch: '-' });
-    expect(knobDiameter(24, 1, false)).toEqual({ diameter: 28, notch: '+' });
-    expect(knobDiameter(0.5, 1, true)).toEqual({ diameter: 10, notch: '-' });
-    expect(knobDiameter(24, 2, true)).toEqual({ diameter: 32, notch: '+' });
+  it('stays inside the knob, a ring of white kept around it', () => {
+    expect(strokeDot(0.25, 1, false)).toBe(2);
+    expect(strokeDot(24, 1, false)).toBe(14);
+    expect(strokeDot(0.25, 1, true)).toBe(3);
+    expect(strokeDot(24, 2, true)).toBe(20);
+  });
+});
+
+describe('the stops scale (widths with detents)', () => {
+  const STOPS: SliderRange = { ...PEN, scale: 'stops', detents: PEN_DETENTS };
+
+  it('puts the ends and every detent at equal shares of the travel', () => {
+    const stops = [0.25, ...PEN_DETENTS, 24];
+    stops.forEach((stop, i) => {
+      expect(valueToPosition(stop, STOPS)).toBeCloseTo(i / (stops.length - 1), 12);
+      expect(positionToValue(i / (stops.length - 1), STOPS)).toBeCloseTo(stop, 9);
+    });
+    // The small widths keep their room: 0.25–2 pt is 4 of the 9 spans.
+    expect(valueToPosition(2, STOPS)).toBeCloseTo(4 / 9, 12);
+  });
+
+  it('is logarithmic inside a span and round-trips', () => {
+    // Halfway (in log) between 3 and 5 pt is the middle of their span.
+    const mid = Math.sqrt(15);
+    expect(valueToPosition(mid, STOPS)).toBeCloseTo(5.5 / 9, 12);
+    for (let t = 0; t <= 1; t += 0.01) {
+      expect(valueToPosition(positionToValue(t, STOPS), STOPS)).toBeCloseTo(t, 9);
+    }
+  });
+
+  it('rounds like a log scale, and is the log scale without detents', () => {
+    expect(roundValue(1.4567, STOPS)).toBe(1.5);
+    const bare: SliderRange = { ...PEN, scale: 'stops' };
+    expect(valueToPosition(2, bare)).toBeCloseTo(valueToPosition(2, PEN), 12);
+  });
+
+  it('snaps to a detent that is now evenly placed', () => {
+    const travel = 180;
+    const at = valueToPosition(3, STOPS) + 2 / travel;
+    expect(snapToDetent(at, PEN_DETENTS, STOPS, travel, DETENT_SNAP_PX.fine).detent).toBe(3);
   });
 });
 

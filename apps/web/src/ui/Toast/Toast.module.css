@@ -26,8 +26,10 @@
   --toast-action-h: 28px;
   --toast-close-d: 24px;
   /* 12 px above the dock band (01-frame F13 §2): the free rectangle's bottom inset is the band
-     with its offset, the offset alone in Focus, and 0 on the Library (frame-insets.ts). */
-  --toast-band: calc(var(--free-bottom, 0px) + var(--space-3));
+     with its offset, the offset alone in Focus, and 0 on the Library (frame-insets.ts); a bar
+     that floats at a view's foot outside the band (the Library's selection bar) reports how
+     high it rises as --chrome-float, and the stack keeps above whichever is higher. */
+  --toast-band: calc(max(var(--free-bottom, 0px), var(--chrome-float, 0px)) + var(--space-3));
   position: fixed;
   right: 0;
   bottom: var(--toast-band);

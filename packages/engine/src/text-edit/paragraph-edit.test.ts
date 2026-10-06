@@ -981,6 +981,37 @@ describe('several changes in one session', () => {
   });
 });
 
+describe('the space above a paragraph', () => {
+  const page = (rule: boolean) =>
+    [
+      'BT /F1 18 Tf 1 0 0 1 40 250 Tm (The harbour report) Tj ET',
+      ...(rule ? ['40 232 120 3 re f'] : []),
+      'BT /F1 12 Tf 1 0 0 1 40 200 Tm (The harbour master walked along the quay) Tj ET',
+      'BT /F1 12 Tf 1 0 0 1 40 185.6 Tm (and counted the boats that came in with) Tj ET',
+      'BT /F1 12 Tf 1 0 0 1 40 171.2 Tm (the evening tide.) Tj ET',
+    ].join('\n');
+
+  test('reaches up to the block above it, and from the top block to the page edge', async () => {
+    const id = await h.open(await rawPdf({ size: [400, 300], content: page(false) }));
+    const [heading, paragraph] = await blocksOf(id);
+    if (!heading || !paragraph) throw new Error('two blocks expected');
+    const below = await h.editor.analyzeParagraphLayout(paragraph.ref);
+    expect(below.gapAbove).toBeCloseTo(heading.box.y - (paragraph.box.y + paragraph.box.height), 3);
+    const top = await h.editor.analyzeParagraphLayout(heading.ref);
+    expect(top.gapAbove).toBeCloseTo(300 - (heading.box.y + heading.box.height), 3);
+    await h.adapter.close(id);
+  });
+
+  test('stops at a graphic between them (a rule under a heading)', async () => {
+    const id = await h.open(await rawPdf({ size: [400, 300], content: page(true) }));
+    const [, paragraph] = await blocksOf(id);
+    if (!paragraph) throw new Error('no paragraph');
+    const analysis = await h.editor.analyzeParagraphLayout(paragraph.ref);
+    expect(analysis.gapAbove).toBeCloseTo(232 - (paragraph.box.y + paragraph.box.height), 1);
+    await h.adapter.close(id);
+  });
+});
+
 describe('the page edge', () => {
   test('a paragraph near the bottom that would grow off the page is refused, nothing written', async () => {
     const content = [

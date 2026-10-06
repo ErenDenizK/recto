@@ -128,6 +128,7 @@ export async function checkIdentity(
       pkcs12: pkcs12.slice(0),
       password,
       reason: 'Certificate check',
+      date: Date.now(),
     });
     return result.signer;
   } finally {
@@ -135,8 +136,12 @@ export async function checkIdentity(
   }
 }
 
-/** The engine request for a draft (a copy of the .p12; `rect` for a visible signature). */
-export function signRequestOf(draft: SignDraft, rect?: Rect): SignRequest {
+/**
+ * The engine request for a draft (a copy of the .p12; `rect` for a visible signature). The
+ * claimed time (/M) is read here, on the main thread, not in the worker: the app owns the clock,
+ * so tests and the media scenes can pin it (`vi.setSystemTime`, Playwright's clock).
+ */
+export function signRequestOf(draft: SignDraft, rect?: Rect, now = Date.now()): SignRequest {
   const text = (value: string | undefined) => {
     const trimmed = value?.trim();
     return trimmed === '' ? undefined : trimmed;
@@ -147,6 +152,7 @@ export function signRequestOf(draft: SignDraft, rect?: Rect): SignRequest {
   return {
     pkcs12: draft.pkcs12.slice(0),
     password: draft.password,
+    date: now,
     ...(reason ? { reason } : {}),
     ...(location ? { location } : {}),
     ...(contactInfo ? { contactInfo } : {}),

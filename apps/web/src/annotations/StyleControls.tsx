@@ -239,7 +239,7 @@ export function StyleControls(props: StyleControlsProps) {
         showLabel={layout === 'stack'}
         readout={layout === 'stack'}
         bubble={layout === 'row' ? 'always' : 'auto'}
-        scale="log"
+        scale="stops"
         track="taper"
         detents={WIDTH_STOPS.filter((w) => w >= 0.5 && w <= 12)}
         knobColor={inkAt(hex ?? '#000000', opacity)}

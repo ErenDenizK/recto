@@ -254,7 +254,17 @@ export function fitZooms(
   };
 }
 
-export function ReadView({ doc }: { readonly doc: VirtualDocument }) {
+export function ReadView({
+  doc,
+  prepared = false,
+}: {
+  readonly doc: VirtualDocument;
+  /**
+   * Mounted ahead of the view change out of the Pages grid (`grid-transition.ts`): laid out
+   * and drawn in the stage's place, but hidden and inert under the grid until it is revealed.
+   */
+  readonly prepared?: boolean;
+}) {
   const ws = useWorkspaceStore((s) => s.workspace);
   const zoom = useUiStore((s) => s.zoom);
   const fitMode = useUiStore((s) => s.fitMode);
@@ -342,7 +352,13 @@ export function ReadView({ doc }: { readonly doc: VirtualDocument }) {
   }, [fingerprint]);
 
   return (
-    <div ref={frameRef} className={readStyles.frame}>
+    <div
+      ref={frameRef}
+      className={readStyles.frame}
+      data-prepared={prepared ? '' : undefined}
+      inert={prepared}
+      aria-hidden={prepared ? true : undefined}
+    >
       <div
         ref={attachViewport}
         className={readStyles.viewport}

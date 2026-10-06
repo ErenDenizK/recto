@@ -12,8 +12,8 @@
  * - **Six swatches** (`ui/Swatch`): a pen's black, blue, red, green and purple, then its own
  *   or the last custom colour, else orange (`editorSwatches`); the Highlighter's four tints,
  *   a custom tint and a 50 % grey. The selected swatch is the colour's own ring (§5).
- * - **The width slider** (`ui/Slider`, §3): the log scale with the pen's detents, the tapered
- *   track, and the knob drawn as the stroke itself, in its ink, at the page's zoom; the
+ * - **The width slider** (`ui/Slider`, §3): the pen's detents evenly spaced (log between them),
+ *   the tapered track, and the stroke inside the knob, in its ink, at the page's zoom; the
  *   readout in tabular numerals ("1.5 pt", TR "1,5 pt").
  * - **Per tool** (§2.1): the Highlighter its tints and 6–18 pt; the eraser Whole stroke ·
  *   Partial and its size; a text box its colour and a font-size stepper; a note its colour;
@@ -174,7 +174,10 @@ function Colours({
   );
 }
 
-/** The width slider (§3.3): log scale, detents, the taper track and the stroke as its knob. */
+/**
+ * The width slider (§3.3): the stops scale (the detents evenly spaced, log between them), the
+ * taper track and the stroke inside its knob.
+ */
 function Width({
   value,
   min,
@@ -196,7 +199,7 @@ function Width({
       className={styles.width}
       label={m.pen_editor_width()}
       readout
-      scale="log"
+      scale="stops"
       track="taper"
       detents={detents}
       min={min}
