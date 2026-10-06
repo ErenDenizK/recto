@@ -43,15 +43,11 @@
   min-height: 0;
 }
 
-/* The section switch: one 44 px row (56 coarse), the segmented track centred in it (Q-9). */
+/* The section switch: one 44 px row (56 coarse), the segmented track centred in it (Q-9). A
+   margin, not padding: the control measures its own box to choose its layout. */
 .switch {
-  display: flex;
   flex: none;
-  flex-direction: column;
-  justify-content: center;
-  box-sizing: border-box;
-  height: var(--bar-h);
-  padding: 0 var(--space-3);
+  margin: calc((var(--bar-h) - var(--control-h)) / 2) var(--space-3);
 }
 
 .body {

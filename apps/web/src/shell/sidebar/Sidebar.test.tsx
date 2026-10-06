@@ -31,10 +31,7 @@ const open = async (url: string, name: string) => {
 
 const switcher = () => screen.getByRole('tablist', { name: 'Sidebar sections' });
 const option = (name: string) =>
-  within(screen.getByRole('listbox', { name: /^Pages of/ })).getByRole('option', {
-    name,
-    exact: true,
-  });
+  within(screen.getByRole('listbox', { name: /^Pages of/ })).getByRole('option', { name });
 /** The active document's page ids, in order. */
 function order(): PageId[] {
   const ws = useWorkspaceStore.getState().workspace;

@@ -6,13 +6,14 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, showSidebar, useFileInputPicker } from './helpers';
 
 const list = (page: Page) => page.getByRole('listbox', { name: /^Pages of outline-named-dests/ });
 const thumb = (page: Page, n: number) =>
   list(page).getByRole('option', { name: `Page ${n}`, exact: true });
-const pagesTab = (page: Page, count: number) =>
-  page.getByRole('tab', { name: `Pages, ${count} items` });
+/** The document's page count, read from the list's size (the pill says it too). */
+const pageCount = (page: Page, count: number) =>
+  expect(thumb(page, 1)).toHaveAttribute('aria-setsize', String(count));
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -20,7 +21,8 @@ test.beforeEach(async ({ page }) => {
   await page.goto('./?lang=en');
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await openFixtures(page, ['outline-named-dests.pdf']);
-  await expect(pagesTab(page, 6)).toHaveAttribute('aria-selected', 'true');
+  // The sidebar is closed by default (06-navigation N1): ▤ shows it on the thumbnails.
+  await showSidebar(page, 'Pages', 'Thumbnails');
   await expect(thumb(page, 3)).toBeVisible();
 });
 
@@ -39,7 +41,7 @@ test('S10: click a thumbnail, press Delete, nothing changes', async ({ page }) =
   await expect(page.getByTestId('page-pill')).toHaveText(/^4 \/ 6 · /);
   await page.keyboard.press('Delete');
 
-  await expect(pagesTab(page, 6)).toBeVisible();
+  await pageCount(page, 6);
   await expect(list(page).getByRole('option', { selected: true })).toHaveCount(0);
   await expect(page.getByTestId('toast')).toHaveCount(0);
   // The last step is still the open: ↶ offers no delete.
@@ -56,10 +58,10 @@ test('Delete removes an explicit, visible selection; Esc clears it', async ({ pa
   await page.keyboard.press('Escape');
   await expect(list(page).getByRole('option', { selected: true })).toHaveCount(0);
   await page.keyboard.press('Delete');
-  await expect(pagesTab(page, 6)).toBeVisible();
+  await pageCount(page, 6);
 
   await thumb(page, 2).click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Delete');
-  await expect(pagesTab(page, 5)).toBeVisible();
+  await pageCount(page, 5);
   await expect(page.getByTestId('toast').getByText('Deleted page 2')).toBeVisible();
 });

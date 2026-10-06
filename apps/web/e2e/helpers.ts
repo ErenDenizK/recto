@@ -190,16 +190,51 @@ export async function openSaveCopyFromMenu(page: Page): Promise<void> {
 }
 
 /**
- * Opens the sidebar's Find section and returns its field. Mod+F focuses the strip's Find entry
- * (01-frame F6 §6); Down from it opens the section with the hit list, Match case and Mark all.
+ * Opens the sidebar's Find section and returns the field that edits its query (06-navigation
+ * N4, spec 06.20): Mod+F focuses the strip's Find entry (01-frame F6 §6) and Down opens the
+ * section with the hit list, Match case and the results menu. From 1280 px on a fine pointer
+ * the strip holds the one field; below, the section shows its own.
  */
 export async function openFindPanel(page: Page): Promise<Locator> {
+  const strip = page.locator('[data-find-entry] input[type="search"]').first();
   await page.keyboard.press('ControlOrMeta+f');
-  await expect(page.locator('[data-find-entry] input[type="search"]').first()).toBeFocused();
+  await expect(strip).toBeFocused();
   await page.keyboard.press('ArrowDown');
-  const field = page.locator('#left-panel').getByRole('searchbox', { name: 'Find in document' });
-  await expect(field).toBeFocused();
-  return field;
+  const sidebar = page.getByRole('navigation', { name: 'Sidebar' });
+  await expect(sidebar.getByTestId('find-section')).toBeVisible();
+  const own = sidebar.getByRole('searchbox', { name: 'Find in document' });
+  return (await own.isVisible()) ? own : strip;
+}
+
+/** "Mark all N for redaction" from the Find section's results menu (06-navigation N4 §5). */
+export async function markAllMatches(page: Page): Promise<void> {
+  await page.getByTestId('find-results-more').filter({ visible: true }).click();
+  await page.getByTestId('search-mark-all').click();
+}
+
+/**
+ * Shows the sidebar (closed by default, 06-navigation N1) on `section`, and on the Pages
+ * section's `view`, and returns it. ▤ shows it; a section tab or a view changes it.
+ */
+export async function showSidebar(
+  page: Page,
+  section?: 'Pages' | 'Find' | 'Review',
+  view?: 'Thumbnails' | 'Contents',
+): Promise<Locator> {
+  const sidebar = page.getByRole('navigation', { name: /^(Sidebar|Kenar çubuğu)$/ });
+  if (!(await sidebar.isVisible())) await page.getByTestId('sidebar-toggle').click();
+  await expect(sidebar).toBeVisible();
+  if (section) {
+    const tab = sidebar.getByRole('tab', { name: new RegExp(`^${section}`) });
+    if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+  }
+  if (view) {
+    const radio = sidebar.getByRole('radio', { name: view });
+    if ((await radio.getAttribute('aria-checked')) !== 'true') await radio.click();
+    await expect(radio).toHaveAttribute('aria-checked', 'true');
+  }
+  return sidebar;
 }
 
 /**
