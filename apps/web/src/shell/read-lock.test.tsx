@@ -2,7 +2,7 @@
  * The Read lock (ADR-0019 §3, craft spec §3.3) on the mounted page view and bar (Vitest
  * browser mode, PDFium): the bar is one Edit button in Read; nothing on the page selects,
  * arms or marks; a tool key switches to Edit and arms the tool, said once, mode first;
- * select-then-markup keeps the selection for a second press.
+ * a tool letter on a text selection marks it at once, with Markup left closed (D2-3).
  */
 import { getActiveDocument, type VirtualDocument } from '@pdf-editor/document-model';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -244,21 +244,17 @@ describe('the Read lock (mounted)', () => {
     expect(isMarkupOpen(useUiStore.getState(), id)).toBe(false);
   });
 
-  it('U over selected text in Read switches to Edit and keeps it; the second U marks it', async () => {
+  it('U over selected text in viewing marks it at once, a targeted act; Markup stays closed', async () => {
     const { container, target } = await mount();
     await selectSomeText(container);
-    await userEvent.keyboard('u');
-    expect(mode()).toBe('edit');
-    expect(useToolStore.getState().mode).toBe('select');
-    expect(window.getSelection()?.isCollapsed).toBe(false);
-    await whenIdle();
-    expect(await readAnnotations(target.source, 0)).toEqual([]);
-
     await userEvent.keyboard('u');
     await waitFor(async () => {
       const kinds = (await readAnnotations(target.source, 0)).map((a) => a.kind);
       expect(kinds).toEqual(['underline']);
     });
+    // A tool letter on a selection acts on it and never arms (03-markup §5).
+    expect(mode()).toBe('read');
+    expect(useToolStore.getState().mode).toBe('select');
   });
 
   it('the Read selection bar offers Copy and "Mark up…", which switches and keeps the selection', async () => {

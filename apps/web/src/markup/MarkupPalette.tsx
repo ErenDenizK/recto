@@ -193,6 +193,7 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
   const door = useUiStore((s) => (id === undefined ? 'draw' : (s.docUi[id]?.paletteSet ?? 'draw')));
   const mode = useToolStore((s) => s.mode);
   const presets = useAnnotationStore((s) => s.pen.presets);
+  const activePen = useAnnotationStore((s) => s.pen.active);
   const stripKind = useStripKind();
   const signatures = useSignatures();
   const hasFields = useFieldStops().length > 0;
@@ -302,6 +303,7 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
   const roving = useRovingTabindex(
     rowRef,
     '[data-tool][aria-pressed="true"], [data-pen-preset][aria-pressed="true"]',
+    `${mode}|${activePen}`,
   );
   useLayoutEffect(() => {
     if (!takeFocusOnOpen()) return;

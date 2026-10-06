@@ -622,7 +622,10 @@ test.describe('axe', () => {
   test('the pen editor and the lasso bar', async ({ page }) => {
     await openSimple(page);
     await page.locator('body').press('p');
-    await page.getByRole('radio', { name: 'Black pen, 1.5 pt' }).click();
+    await page
+      .getByRole('toolbar', { name: 'Markup', exact: true })
+      .getByRole('button', { name: 'Black pen, 1.5 pt' })
+      .click();
     await expect(page.getByTestId('pen-preset-editor')).toBeVisible();
     await axe(page, 'pen editor');
     // The colour views, pushed in place inside the editor (10-ink §6).
@@ -903,7 +906,7 @@ test.describe('craft spec §9', () => {
     await page.keyboard.press('1');
     expect(await ring()).toBe('none');
     // F6 between the regions reaches the pages: the ring shows.
-    await bar(page).getByRole('button', { name: 'Edit', exact: true }).focus();
+    await page.locator('[data-dock-markup]').focus();
     for (let i = 0; i < 8; i++) {
       if (await viewport(page).evaluate((el) => el === document.activeElement)) break;
       await page.keyboard.press('F6');
@@ -912,14 +915,14 @@ test.describe('craft spec §9', () => {
     expect(await ring()).not.toBe('none');
   });
 
-  test('Read: F6 reaches the Edit button; the page menu and the selection bar; no hidden stop', async ({
+  test('Viewing: F6 reaches the Markup door; the page menu and the selection bar; no hidden stop', async ({
     page,
   }) => {
     await openSimple(page);
     // F6 from the pages: the tool bar, which in Read is the one Edit button.
     await viewport(page).focus();
     await page.keyboard.press('F6');
-    await expect(bar(page).getByRole('button', { name: 'Edit', exact: true })).toBeFocused();
+    await expect(page.locator('[data-dock-markup]')).toBeFocused();
     await viewport(page).focus();
     await tabWalk(page, 12);
 
@@ -1124,8 +1127,11 @@ test.describe('craft spec §9', () => {
   }) => {
     await openWordTagged(page, 'tr');
     await armEditText(page);
-    // Markup is open (the mode switch is gone, D2-1): the bar shows the Text group's chip.
-    await expect(page.getByRole('button', { name: 'Metin: tüm gruplara dön' })).toBeVisible();
+    // Markup is open (the mode switch is gone, D2-1): the palette shows Edit text armed.
+    await expect(page.getByRole('button', { name: 'Metni düzenle', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await expect(paragraphTargets(page).first()).toHaveAttribute(
       'aria-label',
       /^“.+” paragrafını düzenle$/,
