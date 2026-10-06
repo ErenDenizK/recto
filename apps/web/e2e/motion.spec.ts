@@ -760,11 +760,7 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
 // ---------------------------------------------------------------------------
 
 /** The Reduce motion setting as stored (appearance-store, language.md §7.6). */
-const REDUCE_MOTION_ON = JSON.stringify({
-  glassPanels: false,
-  reduceTransparency: false,
-  motion: 'reduced',
-});
+const REDUCE_MOTION_ON = JSON.stringify({ glass: null, motion: 'reduced' });
 
 /** Opens `name` from Home and waits for its first page. */
 async function openFile(page: Page, name = 'outline-named-dests.pdf'): Promise<void> {

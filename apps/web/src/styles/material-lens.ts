@@ -3,7 +3,7 @@
  * refraction on fixed-size M1 chips only (the page pill, and the facts chip when D4-3 brings
  * it), never the capsule, a bar, a panel, a menu, a sheet or a toast.
  *
- * - **Chromium only.** Safari and Firefox drop a whole `backdrop-filter` declaration that holds
+ * - **Chromium on the GPU only.** Safari and Firefox drop a whole `backdrop-filter` declaration that holds
  *   `url()` (blur included, research 16 §4.2), so the lens is never in a base declaration: this
  *   module adds the class `lens` after detecting Chromium (`navigator.userAgentData.brands`),
  *   and `materials.css`'s `.mat-chip.s<σ>.lens` rule prepends `var(--lens)`, the `url()` of a
@@ -20,7 +20,7 @@
 import { type RefObject, useEffect } from 'react';
 
 import { reducedMotion } from '../motion/reduced-motion';
-import { useRenderQualityStore } from '../state/render-quality';
+import { SOFTWARE_RENDERER, useRenderQualityStore, webglRenderer } from '../state/render-quality';
 
 /** The bezel the map bends, CSS px, and the largest pull at the rim. */
 export const LENS_BEZEL = 10;
@@ -30,12 +30,22 @@ export const MAX_LENSES = 3;
 const REGENERATE_MS = 150;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-/** Whether this engine draws a backdrop `url()` filter: Chromium (G-8). */
+let compositedOnGpu: boolean | undefined;
+
+/**
+ * Whether this engine draws a backdrop `url()` filter as the lens needs: Chromium (G-8), on
+ * the GPU (language.md §2.8's L3 asks for GPU compositing; the software compositor was seen
+ * dropping the filtered backdrop at part of the chip, so a software rasteriser gets no lens).
+ */
 export function chromiumBackdropLens(): boolean {
   if (typeof navigator === 'undefined') return false;
   const brands = (navigator as { userAgentData?: { brands?: { brand: string }[] } }).userAgentData
     ?.brands;
-  return Array.isArray(brands) && brands.some((entry) => /chromium/i.test(entry.brand));
+  if (!Array.isArray(brands) || !brands.some((entry) => /chromium/i.test(entry.brand))) {
+    return false;
+  }
+  compositedOnGpu ??= !SOFTWARE_RENDERER.test(webglRenderer());
+  return compositedOnGpu;
 }
 
 const media = (query: string): boolean =>
@@ -119,27 +129,30 @@ function lensDefs(): SVGDefsElement {
 export function lensFilter(width: number, height: number): string {
   const id = `lens-${width}x${height}`;
   if (document.getElementById(id)) return id;
+  // The region and the map are in the chip's own box (objectBoundingBox): the map is drawn at
+  // the chip's size and stretched over exactly that box, wherever the engine puts its origin.
   const filter = document.createElementNS(SVG_NS, 'filter');
   filter.id = id;
   filter.setAttribute('x', '0');
   filter.setAttribute('y', '0');
-  filter.setAttribute('width', String(width));
-  filter.setAttribute('height', String(height));
-  filter.setAttribute('filterUnits', 'userSpaceOnUse');
-  filter.setAttribute('primitiveUnits', 'userSpaceOnUse');
+  filter.setAttribute('width', '1');
+  filter.setAttribute('height', '1');
+  filter.setAttribute('primitiveUnits', 'objectBoundingBox');
   filter.setAttribute('color-interpolation-filters', 'sRGB');
   const image = document.createElementNS(SVG_NS, 'feImage');
   image.setAttribute('href', lensMap(width, height));
   image.setAttribute('x', '0');
   image.setAttribute('y', '0');
-  image.setAttribute('width', String(width));
-  image.setAttribute('height', String(height));
+  image.setAttribute('width', '1');
+  image.setAttribute('height', '1');
+  image.setAttribute('preserveAspectRatio', 'none');
   image.setAttribute('result', 'map');
   const displace = document.createElementNS(SVG_NS, 'feDisplacementMap');
   displace.setAttribute('in', 'SourceGraphic');
   displace.setAttribute('in2', 'map');
-  // A channel at 128 ± 127 moves a pixel by scale × (c / 255 − 0.5): ±LENS_PULL at the rim.
-  displace.setAttribute('scale', String(2 * LENS_PULL));
+  // A channel at 128 ± 127 moves a pixel by scale × (c / 255 − 0.5): ±LENS_PULL at the rim,
+  // the scale a fraction of the box's width in objectBoundingBox units.
+  displace.setAttribute('scale', String((2 * LENS_PULL) / width));
   displace.setAttribute('xChannelSelector', 'R');
   displace.setAttribute('yChannelSelector', 'G');
   filter.append(image, displace);
