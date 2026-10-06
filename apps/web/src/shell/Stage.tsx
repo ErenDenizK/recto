@@ -21,6 +21,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { LibraryView } from '../home/LibraryView';
 import { m } from '../i18n';
 import { ArrangeView } from '../stage/ArrangeView';
+import { usePreparedPageView } from '../stage/grid/grid-transition';
 import { ReadView } from '../stage/ReadView';
 import { type StageView, useStageView } from '../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
@@ -77,6 +78,14 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
   const opening = useWorkspaceStore((s) => s.opening);
   const doc = useActiveDocument();
   const view = useStageView();
+  // The grid's way out mounts the page view first, hidden under the grid, so the morph starts
+  // over a page already drawn (`grid-transition.ts`). Same slot and key as the page view proper,
+  // so the view change reveals it rather than mounting it.
+  const preparedId = usePreparedPageView();
+  const prepared = useWorkspaceStore((s) =>
+    preparedId === null ? undefined : s.workspace.documents[preparedId],
+  );
+  const readDoc = view === 'page' ? doc : view === 'grid' ? prepared : undefined;
 
   if (!hasDocuments) {
     return (
@@ -123,7 +132,9 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
       ) : null}
       {/* The grid is not keyed: it shows several documents (sections) and keeps its scroll. */}
       {view === 'grid' ? <ArrangeView /> : null}
-      {doc && doc.pages.length > 0 && view === 'page' ? <ReadView key={doc.id} doc={doc} /> : null}
+      {readDoc && readDoc.pages.length > 0 ? (
+        <ReadView key={readDoc.id} doc={readDoc} prepared={view !== 'page'} />
+      ) : null}
       {view === 'compare' ? (
         <Suspense fallback={null}>
           <CompareView dragging={dragging} />
