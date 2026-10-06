@@ -129,8 +129,9 @@ test('finds text, steps through the hits and clears with Escape', async ({ page 
 
 test('the navigator has four tabs with counts; the inspector starts closed', async ({ page }) => {
   const rail = page.getByRole('tablist', { name: 'Navigator views' });
-  // Labels under the icons; the badge shows the count (hidden at 0).
-  await expect(rail.getByRole('tab')).toHaveText([/^6Pages$/, 'Find', 'Review', /^1Files$/]);
+  // A row of labels; matches and review items show as badges, the page and file counts stay in
+  // the names (the pill and the tabs show them, D2-1).
+  await expect(rail.getByRole('tab')).toHaveText(['Pages', 'Find', 'Review', 'Files']);
   await expect(rail.getByRole('tab', { name: 'Pages, 6 items' })).toHaveAttribute(
     'aria-selected',
     'true',
