@@ -267,7 +267,6 @@ describe('page context menu', () => {
     expect(items[1]).toHaveTextContent('Rotate page 1 left');
     await userEvent.click(within(popup).getByRole('menuitem', { name: /^Edit text here/ }));
     expect(useToolStore.getState().mode).toBe('edit-text');
-    expect(useToolStore.getState().barGroup).toBe('text');
   });
 
   it('opens on Shift+F10 in the viewport for the current page; Esc closes it and returns the focus', async () => {

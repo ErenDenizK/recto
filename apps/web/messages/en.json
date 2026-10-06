@@ -1310,8 +1310,8 @@
   "tool_line": "Line",
   "tool_arrow": "Arrow",
   "tool_text_box": "Text box",
-  "tool_stamp": "Stamp or image",
-  "tool_signature": "Signature image",
+  "tool_stamp": "Stamp",
+  "tool_signature": "Sign",
   "tool_signature_tooltip": "A picture of your signature, not a digital signature",
   "tool_shapes_menu": "Shapes: {shape}",
   "tool_edit_text": "Edit text",
@@ -3853,7 +3853,7 @@
   "docinfo_title": "Document info",
   "docinfo_open": "Document info…",
   "docinfo_file": "File",
-  "bar_in_group": "Tool bar: {group}",
+  "bar_in_group": "Markup: {group}",
   "a11y_pages_viewport": "Pages of {title}",
   "about_command": "About {name}",
   "about_public_beta": "Public beta",
@@ -4544,5 +4544,42 @@
       }
     }
   ],
-  "frame_compact_title_name": "{name}, document menu"
+  "frame_compact_title_name": "{name}, document menu",
+  "markup_label": "Markup",
+  "markup_fill_sign": "Fill & sign",
+  "markup_done": "Done",
+  "markup_done_tooltip": "Close Markup (Esc)",
+  "markup_done_description": "Closes Markup",
+  "markup_on": "Markup on. Select armed.",
+  "markup_off": "Markup off.",
+  "markup_armed": "{tool} armed · Esc: Select",
+  "markup_choices_hint": "Press again for choices",
+  "markup_more_tools": "More tools",
+  "markup_more_tools_armed": "More tools, {tool} armed",
+  "markup_group_select": "Select",
+  "markup_group_draw": "Draw",
+  "markup_group_add": "Add",
+  "markup_group_sign": "Fill and sign",
+  "markup_group_page": "Page content",
+  "markup_certificate": "Certificate…",
+  "markup_find_sensitive": "Find sensitive data…",
+  "markup_fields": "Fields",
+  "markup_field_position": "{n}/{total}",
+  "markup_field_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} field",
+        "countPlural=*": "{count} fields"
+      }
+    }
+  ],
+  "markup_field_named": "Field {n} of {total}: {name}",
+  "markup_field_previous": "Previous field",
+  "markup_field_next": "Next field",
+  "markup_field_outlines": "Show field outlines",
+  "markup_no_fields": "This file has no form fields",
+  "markup_font_smaller": "Smaller text",
+  "markup_font_larger": "Larger text"
 }

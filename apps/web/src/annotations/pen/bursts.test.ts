@@ -411,10 +411,6 @@ describe('bursts on the engine', () => {
     useToolStore.getState().setMode('ink');
 
     await open();
-    useToolStore.getState().showGroup('text');
-    expect(currentBurst()).toBeNull();
-
-    await open();
     const [first] = await inks(page1);
     useAnnotationStore.getState().select({ ...page1, ids: [first?.id ?? ''] });
     expect(currentBurst()).toBeNull();

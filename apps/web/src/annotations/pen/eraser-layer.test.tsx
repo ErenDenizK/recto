@@ -32,7 +32,6 @@ import { AnnotationLayer } from '../AnnotationLayer';
 import { resetAnnotationStore, TOOL_STYLES_STORAGE_KEY } from '../annotation-store';
 import { readAnnotations, resetEditRunner, whenIdle } from '../edit-runner';
 import { resetBursts } from './bursts';
-import { registerPenBar } from './PenBar.register';
 import { resetPenSession } from './ink-input';
 import { PEN_PRESETS_STORAGE_KEY } from './presets';
 
@@ -154,11 +153,10 @@ describe('the eraser', () => {
     resetWorkspace();
   });
 
-  it('its options tier toggles Whole stroke and Partial and the size, remembered', async () => {
+  it('its ink strip, shown on arming, toggles Whole stroke and Partial and the size, remembered', async () => {
     const doc = await openDoc();
     useUiStore.getState().showSurface('page');
-    const dispose = registerPenBar();
-    try {
+    {
       render(
         <div
           style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 700 }}
@@ -167,10 +165,8 @@ describe('the eraser', () => {
           <FloatingToolbar />
         </div>,
       );
+      // The strip follows arming (10-ink §2.3): no request needed.
       act(() => useToolStore.getState().setMode('eraser'));
-      // Only on request (the eraser pressed again), never on arming.
-      expect(screen.queryByRole('toolbar', { name: 'Eraser options' })).toBeNull();
-      act(() => useToolStore.getState().setOptionsOpen(true));
       const tier = await screen.findByRole('toolbar', { name: 'Eraser options' });
       const modes = within(tier).getByRole('radiogroup', { name: 'Eraser mode' });
       const whole = within(modes).getByRole('radio', { name: 'Whole stroke' });
@@ -200,8 +196,6 @@ describe('the eraser', () => {
       useToolStore.setState({ eraserMode: 'stroke', eraserSize: 12 });
       resetToolStore();
       expect(useToolStore.getState()).toMatchObject({ eraserMode: 'partial', eraserSize: 24 });
-    } finally {
-      dispose();
     }
   });
 
