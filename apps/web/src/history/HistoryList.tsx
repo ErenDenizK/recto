@@ -19,10 +19,10 @@
  * are dimmed against the past ones (FB7 §4).
  */
 import { DEFAULT_HISTORY_TAIL } from '@pdf-editor/document-model';
-import { Check } from 'lucide-react';
 import { type KeyboardEvent, type Ref, useEffect, useId, useRef } from 'react';
 
 import { m } from '../i18n';
+import { Icon } from '../ui/Icon';
 import styles from './HistoryScrubber.module.css';
 import type { ScrubberStep } from './labels';
 
@@ -120,7 +120,7 @@ export function HistoryList({
                 {steps[row - 1]?.time === step.time ? null : step.time}
               </span>
               <span className={styles.check} aria-hidden="true">
-                {step.state === 'present' ? <Check /> : null}
+                {step.state === 'present' ? <Icon name="check" /> : null}
               </span>
               <span className={styles.label}>
                 <span className={styles.labelText}>{step.label}</span>

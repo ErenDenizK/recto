@@ -22,7 +22,6 @@
  *   Library's first focus; announced, with the changes kept (F4 §6).
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { ChevronDown, Lock, Plus, X } from 'lucide-react';
 import {
   type KeyboardEvent,
   type MouseEvent,
@@ -49,6 +48,7 @@ import { splitTabs, TAB_GAP_FINE, tabCapacity } from './tab-overflow';
 import { TabMenu } from './TabMenu';
 import { TabOverflow } from './TabOverflow';
 import styles from './TopStrip.module.css';
+import { Icon } from '../../ui/Icon';
 
 /** The active tab's description: it opens the document menu (F4 §5). */
 const MENU_HINT_ID = 'tab-document-menu-hint';
@@ -237,10 +237,17 @@ export function DocumentTabs({ onLibrary }: { readonly onLibrary: boolean }) {
                       />
                     ) : null}
                     {lock ? (
-                      <Lock className={styles.lock} aria-hidden="true" data-testid="tab-lock" />
+                      <Icon
+                        name="lock-simple"
+                        className={styles.lock}
+                        aria-hidden="true"
+                        data-testid="tab-lock"
+                      />
                     ) : null}
                     <SignatureTabGlyph documentId={doc.id} />
-                    {selected ? <ChevronDown className={styles.caret} aria-hidden="true" /> : null}
+                    {selected ? (
+                      <Icon name="caret-down" className={styles.caret} aria-hidden="true" />
+                    ) : null}
                   </button>
                   {/* Closing by keyboard is Delete or the tab menu; ✕ is the pointer's (APG). */}
                   <span
@@ -249,7 +256,7 @@ export function DocumentTabs({ onLibrary }: { readonly onLibrary: boolean }) {
                     title={m.frame_close_name({ name: doc.title })}
                     onClick={() => closeTab(doc.id, false)}
                   >
-                    <X />
+                    <Icon name="x" />
                   </span>
                 </div>
               </TabMenu>
@@ -275,7 +282,7 @@ function OpenButton() {
     <IconButton
       id="open-files-button"
       label={m.open_files()}
-      icon={<Plus />}
+      icon={<Icon name="plus" />}
       shortcut={shortcut}
       onClick={() => void openFilesFromPicker()}
     />

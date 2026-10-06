@@ -15,7 +15,6 @@
  *   Announced "report.pdf locked" / "report.pdf unlocked".
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { Lock } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
 import { m } from '../../i18n';
@@ -24,6 +23,7 @@ import { Button } from '../../ui/Button';
 import { Switch } from '../../ui/Switch';
 import { announce } from '../announcer';
 import styles from './TitleMenu.module.css';
+import { Icon } from '../../ui/Icon';
 
 /** Documents whose signed or restricted unlock warning was shown this session (F5 §6). */
 const warned = new Set<DocumentId>();
@@ -107,7 +107,7 @@ export function LockSwitch({
         label={m.frame_lock()}
         description={reason === undefined ? undefined : lockReasonText(reason)}
         disabled={readOnly}
-        glyph={<Lock />}
+        glyph={<Icon name="lock-simple" />}
         className={styles.lockSwitch}
       />
       {asking && reason !== undefined ? (

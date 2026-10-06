@@ -1,0 +1,91 @@
+/*
+ * Icon (09-primitives §30; language.md §5.1, §7.3; quality-bar Q-9). A whole-pixel box: 16 px
+ * unless `size` sets --icon-box; a control's own `svg` rule (one class and a type) outranks
+ * both, so the control decides (20 in bars, 16 in rows and menus). The fill twin rests hidden
+ * and cross-fades in when the glyph is selected: `data-filled='true'`, or `'auto'` inside a
+ * pressed, checked, selected or current control.
+ */
+.icon {
+  flex-shrink: 0;
+  width: var(--icon-box, var(--icon-sm));
+  height: var(--icon-box, var(--icon-sm));
+}
+
+.regular,
+.fill {
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.fill {
+  opacity: 0;
+}
+
+.icon[data-filled='true'] .regular,
+:global(
+    :is(
+      [aria-pressed='true'],
+      [aria-checked='true'],
+      [aria-selected='true'],
+      [aria-current='page'],
+      [aria-current='true']
+    )
+  )
+  .icon[data-filled='auto']
+  .regular {
+  opacity: 0;
+}
+
+.icon[data-filled='true'] .fill,
+:global(
+    :is(
+      [aria-pressed='true'],
+      [aria-checked='true'],
+      [aria-selected='true'],
+      [aria-current='page'],
+      [aria-current='true']
+    )
+  )
+  .icon[data-filled='auto']
+  .fill {
+  opacity: 1;
+}
+
+/* select (language.md §7.3, I-8): the glyph pops as it fills; the next arm restarts it. Reduce
+   motion cuts it to an instant swap through global.css's rule for every animation. */
+:global(
+  :is(
+    [aria-pressed='true'],
+    [aria-checked='true'],
+    [aria-selected='true'],
+    [aria-current='page'],
+    [aria-current='true']
+  )
+) .icon[data-filled='auto'] {
+  animation: icon-select var(--spring-pop) var(--ease-spring-pop);
+}
+
+@keyframes icon-select {
+  from {
+    transform: scale(0.88);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regular,
+  .fill {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .regular,
+:global(:root[data-motion='reduced']) .fill {
+  transition: none;
+}
+
+:global(:root[data-motion='reduced']) .icon[data-filled] {
+  animation: none;
+}

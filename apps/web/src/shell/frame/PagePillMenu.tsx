@@ -18,7 +18,6 @@
  */
 import { Popover } from '@base-ui/react/popover';
 import type { VirtualDocument } from '@pdf-editor/document-model';
-import { Check, Minus, Plus } from 'lucide-react';
 import { type SyntheticEvent, type RefObject, useId, useRef, useState } from 'react';
 
 import { commandRegistry } from '../../commands/registry';
@@ -41,6 +40,7 @@ import { useCommandShortcut } from '../use-command-shortcut';
 import { enterFocus } from './focus-mode';
 import { closePillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
+import { Icon } from '../../ui/Icon';
 
 /** Top-level Contents entries shown in the menu (F11 §6). */
 export const PILL_CONTENTS_MAX = 8;
@@ -247,7 +247,7 @@ function ZoomRows() {
         <span className={styles.rowLabel}>{m.frame_zoom()}</span>
         <IconButton
           label={m.zoom_out()}
-          icon={<Minus />}
+          icon={<Icon name="minus" />}
           shortcut={outShortcut}
           tooltipSide="top"
           disabled={zoom <= MIN_ZOOM}
@@ -258,7 +258,7 @@ function ZoomRows() {
         </span>
         <IconButton
           label={m.zoom_in()}
-          icon={<Plus />}
+          icon={<Icon name="plus" />}
           shortcut={inShortcut}
           tooltipSide="top"
           disabled={zoom >= MAX_ZOOM}
@@ -303,7 +303,7 @@ function FieldOutlines({ doc }: { readonly doc: VirtualDocument }) {
       onClick={() => void commandRegistry.execute('forms.highlight')}
     >
       <span className={styles.entryTitle}>{m.frame_field_outlines()}</span>
-      {highlight ? <Check className={styles.check} aria-hidden="true" /> : null}
+      {highlight ? <Icon name="check" className={styles.check} aria-hidden="true" /> : null}
     </button>
   );
 }

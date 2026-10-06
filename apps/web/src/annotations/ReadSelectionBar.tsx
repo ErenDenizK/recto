@@ -14,7 +14,6 @@
  * starts, above its first line (below it near the top of the page), once the pointer is up.
  * A click elsewhere ends the selection and the bar; Esc clears the selection.
  */
-import { ClipboardCopy, MessageSquarePlus, Pencil, TextCursorInput } from 'lucide-react';
 import { type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { commandRegistry } from '../commands/registry';
@@ -24,6 +23,7 @@ import { announce } from '../shell/announcer';
 import { useRovingTabindex } from '../shell/FloatingToolbar.roving';
 import { registerPageOverlay, type PageOverlayProps } from '../stage/page-overlays';
 import { useMarkupOpen } from '../state/ui-store';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Tooltip } from '../ui/Tooltip';
 import { openTextEditorAt } from '../text-edit/entry';
@@ -223,7 +223,7 @@ export function TextSelectionBar(props: PageOverlayProps) {
       <IconButton
         key={kind}
         label={tool.title()}
-        icon={<tool.Icon />}
+        icon={<Icon name={tool.icon} />}
         tooltipSide="top"
         // U and S say their key; H arms the Highlighter, whose tint may differ (craft §5.4).
         shortcut={
@@ -263,7 +263,7 @@ export function TextSelectionBar(props: PageOverlayProps) {
                   onPointerDown={keep}
                   onClick={() => void commentOnSelection(props)}
                 >
-                  <MessageSquarePlus aria-hidden="true" />
+                  <Icon name="chat-centered-dots" />
                   {m.selection_comment()}
                 </button>
               </Tooltip>
@@ -276,7 +276,7 @@ export function TextSelectionBar(props: PageOverlayProps) {
                 onPointerDown={keep}
                 onClick={() => void copy()}
               >
-                <ClipboardCopy aria-hidden="true" />
+                <Icon name="copy" />
                 {m.action_copy()}
               </button>
               <Tooltip label={m.selection_edit_text_tooltip()} side="top">
@@ -287,7 +287,7 @@ export function TextSelectionBar(props: PageOverlayProps) {
                   onPointerDown={keep}
                   onClick={() => void editTextAtSelection(props)}
                 >
-                  <TextCursorInput aria-hidden="true" />
+                  <Icon name="edit-text" />
                   {m.tool_edit_text()}
                 </button>
               </Tooltip>
@@ -299,7 +299,7 @@ export function TextSelectionBar(props: PageOverlayProps) {
                   onPointerDown={keep}
                   onClick={markUp}
                 >
-                  <Pencil aria-hidden="true" />
+                  <Icon name="pencil-simple" />
                   {m.selection_mark_up()}
                 </button>
               </Tooltip>

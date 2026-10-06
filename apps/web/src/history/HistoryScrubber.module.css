@@ -90,7 +90,6 @@
 .check svg {
   width: var(--icon-sm);
   height: var(--icon-sm);
-  stroke-width: 2;
 }
 
 .label {

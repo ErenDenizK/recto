@@ -6,16 +6,16 @@
  * document view) is D3-8's; until then the card is the solid raised surface. Moved out of
  * `Stage.tsx`; the grid and Compare outline their own drop targets.
  */
-import { FilePlus2 } from 'lucide-react';
 
 import { m } from '../../i18n';
 import styles from './DockBand.module.css';
+import { Icon } from '../../ui/Icon';
 
 export function DropOverlay() {
   return (
     <div className={styles.drop} aria-hidden="true" data-testid="drop-overlay">
       <div className={styles.dropCard}>
-        <FilePlus2 className={styles.dropIcon} />
+        <Icon name="file-plus" className={styles.dropIcon} />
         <span>{m.stage_drop_overlay()}</span>
       </div>
     </div>

@@ -4,13 +4,13 @@
  * the n5 fill and `aria-pressed`; focus stays on the button. It replaces the rail's toggle
  * (5.1); the inspector toggle (3.9) leaves with the inspector (D2-9).
  */
-import { PanelLeft } from 'lucide-react';
 
 import { m } from '../../i18n';
 import { useUiStore } from '../../state/ui-store';
 import { IconButton } from '../../ui/IconButton';
 import { useCommandShortcut } from '../use-command-shortcut';
 import { SIDEBAR_ID } from './ids';
+import { Icon } from '../../ui/Icon';
 
 export function SidebarToggle() {
   const open = useUiStore((s) => s.leftPanelOpen);
@@ -19,7 +19,7 @@ export function SidebarToggle() {
   return (
     <IconButton
       label={open ? m.frame_sidebar_hide() : m.frame_sidebar_show()}
-      icon={<PanelLeft />}
+      icon={<Icon name="sidebar-simple" />}
       shortcut={shortcut}
       aria-pressed={open}
       aria-controls={open ? SIDEBAR_ID : undefined}

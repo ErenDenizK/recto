@@ -16,27 +16,27 @@
  * The rules are store subscriptions, installed when this module is first imported (the
  * tool bar imports it), so they hold for shortcuts and the palette as well as the bar.
  */
-import { EyeOff, FilePen, type LucideIcon, MousePointer2, PenLine, Type } from 'lucide-react';
 
 import { pageKey, useAnnotationStore } from '../annotations/annotation-store';
 import { ANNOTATION_TOOLS, type ToolDefinition, toolsOfGroup } from '../annotations/tools';
 import { m } from '../i18n';
+import type { IconName } from '../ui/Icon';
 import { type BarGroup, ONE_SHOT_MODES, type ToolMode, useToolStore } from '../viewer/tool-store';
 import { announce } from './announcer';
 
 export interface BarGroupDefinition {
   readonly id: BarGroup;
   readonly label: () => string;
-  readonly Icon: LucideIcon;
+  readonly icon: IconName;
 }
 
 /** The five groups, in bar order. */
 export const BAR_GROUPS: readonly BarGroupDefinition[] = [
-  { id: 'select', label: m.bar_group_select, Icon: MousePointer2 },
-  { id: 'write', label: m.bar_group_write, Icon: PenLine },
-  { id: 'text', label: m.bar_group_text, Icon: Type },
-  { id: 'fill', label: m.bar_group_fill, Icon: FilePen },
-  { id: 'redact', label: m.bar_group_redact, Icon: EyeOff },
+  { id: 'select', label: m.bar_group_select, icon: 'cursor' },
+  { id: 'write', label: m.bar_group_write, icon: 'pen' },
+  { id: 'text', label: m.bar_group_text, icon: 'text-aa' },
+  { id: 'fill', label: m.bar_group_fill, icon: 'signature' },
+  { id: 'redact', label: m.bar_group_redact, icon: 'redact' },
 ];
 
 export function barGroupDefinition(group: BarGroup): BarGroupDefinition {

@@ -9,7 +9,6 @@
  * applies the ticked marks.
  */
 import type { Rect, SourceId } from '@pdf-editor/document-model';
-import { EyeOff, ScanSearch, ShieldAlert, Trash2, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 
 import { useAnnotationStore } from '../../annotations/annotation-store';
@@ -37,6 +36,7 @@ import { textUnderQuads } from '../../redaction/text-index';
 import { isPageView, useUiStore } from '../../state/ui-store';
 import { useViewStore } from '../../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
+import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import { Tooltip } from '../../ui/Tooltip';
 import styles from './RedactionsPanel.module.css';
@@ -88,7 +88,7 @@ function Honesty() {
   const detailId = useId();
   return (
     <div className={styles.honesty} role="note" data-testid="redaction-honesty">
-      <ShieldAlert aria-hidden="true" />
+      <Icon name="shield-warning" />
       <div className={styles.honestyText}>
         <p>
           {m.redaction_honesty_short()}{' '}
@@ -126,7 +126,7 @@ function Actions({ ticked }: { readonly ticked: number }) {
           if (doc) void findSensitiveData(doc);
         }}
       >
-        <ScanSearch aria-hidden="true" />
+        <Icon name="scan" />
         {m.redaction_find()}
       </button>
       {disabled ? (
@@ -270,7 +270,7 @@ export function MarkRow({
         onClick={() => revealMark(entry)}
       >
         <span className={styles.glyph} aria-hidden="true">
-          <EyeOff />
+          <Icon name="redact" />
         </span>
         <span
           className={snippet === '' ? styles.noText : styles.snippet}
@@ -282,7 +282,7 @@ export function MarkRow({
       <IconButton
         size="row"
         label={m.redaction_delete()}
-        icon={<Trash2 />}
+        icon={<Icon name="trash" />}
         tooltipSide="left"
         className={styles.delete}
         onClick={() => void deleteMark(entry)}
@@ -343,7 +343,7 @@ function Finder() {
         <IconButton
           size="row"
           label={m.redaction_find_close()}
-          icon={<X />}
+          icon={<Icon name="x" />}
           className={styles.close}
           onClick={clearFinder}
         />

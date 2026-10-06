@@ -12,7 +12,6 @@
  *   draft for the session, so Esc or ✕ never loses it (07 §0).
  * - The footer note says shortcuts never fire while typing in a field.
  */
-import { Search } from 'lucide-react';
 import { useId, useRef } from 'react';
 
 import { type Command, groupCommands } from '../commands/registry';
@@ -20,6 +19,7 @@ import { type ParsedShortcut, parseShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
 import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
+import { Icon } from '../ui/Icon';
 import { Keycaps } from '../ui/Keycaps';
 import { Sheet, SheetField, useSheetDraft } from '../ui/sheet';
 import { barGroupLabelOfCommand } from './FloatingToolbar.groups';
@@ -127,7 +127,7 @@ export function ShortcutOverlay() {
         placeholder={m.shortcuts_search_placeholder()}
         autoComplete="off"
         spellCheck={false}
-        leading={<Search aria-hidden="true" />}
+        leading={<Icon name="magnifying-glass" />}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />

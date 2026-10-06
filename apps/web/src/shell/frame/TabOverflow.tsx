@@ -7,7 +7,6 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import type { DocumentId } from '@pdf-editor/document-model';
-import { ChevronDown } from 'lucide-react';
 
 import { showTab } from '../../home/home-actions';
 import { m } from '../../i18n';
@@ -15,6 +14,7 @@ import type { TabItem } from '../../state/workspace-store';
 import menuStyles from '../../ui/Menu.module.css';
 import { tabDomId } from './ids';
 import styles from './TopStrip.module.css';
+import { Icon } from '../../ui/Icon';
 
 export function TabOverflow({
   tabs,
@@ -33,7 +33,7 @@ export function TabOverflow({
         data-testid="tab-overflow"
       >
         <span>{m.frame_tab_overflow({ count: tabs.length })}</span>
-        <ChevronDown aria-hidden="true" />
+        <Icon name="caret-down" aria-hidden="true" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="start" sideOffset={8} collisionPadding={8}>

@@ -21,7 +21,6 @@
  *
  * The inspector toggle stays at the trailing end until the inspector leaves (D2-9, spec 3.9).
  */
-import { PanelRight } from 'lucide-react';
 
 import { FurnitureDialogs } from '../../furniture';
 import { m } from '../../i18n';
@@ -41,6 +40,7 @@ import { SidebarToggle } from './SidebarToggle';
 import { TitleMenu } from './TitleMenu';
 import styles from './TopStrip.module.css';
 import { UndoRedo } from './UndoRedo';
+import { Icon } from '../../ui/Icon';
 
 /** The active tab, where the title menu opens and gives focus back. */
 export const activeTabElement = (): HTMLElement | null => {
@@ -96,7 +96,7 @@ function InspectorToggle() {
   return (
     <IconButton
       label={open ? m.right_panel_hide() : m.right_panel_show()}
-      icon={<PanelRight />}
+      icon={<Icon name="sidebar-simple" />}
       shortcut={shortcut}
       aria-pressed={open}
       aria-controls={open ? 'right-panel' : undefined}

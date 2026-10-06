@@ -11,7 +11,6 @@
  * (`openPrivacyShield`).
  */
 import { Popover } from '@base-ui/react/popover';
-import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useRef } from 'react';
 import { create } from 'zustand';
 
@@ -27,6 +26,7 @@ import { Tooltip } from '../ui/Tooltip';
 import { documentCsp, parseCsp } from './csp';
 import { useExternalRequests } from './external-requests';
 import styles from './PrivacyShield.module.css';
+import { Icon } from '../ui/Icon';
 
 /** The enforced `connect-src`, read from the page itself rather than restated. */
 function connectSrc(): string | undefined {
@@ -63,7 +63,11 @@ export function PrivacyShield({ className }: { readonly className?: string }) {
           data-state={clean ? 'clean' : 'external'}
           data-testid="privacy-indicator"
         >
-          {clean ? <ShieldCheck aria-hidden="true" /> : <ShieldAlert aria-hidden="true" />}
+          {clean ? (
+            <Icon name="shield-check" aria-hidden="true" />
+          ) : (
+            <Icon name="shield-warning" aria-hidden="true" />
+          )}
           {clean ? null : (
             <span className={styles.badge} aria-hidden="true">
               {formatNumber(count)}

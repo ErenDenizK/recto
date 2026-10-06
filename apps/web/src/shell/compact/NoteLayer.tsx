@@ -12,13 +12,13 @@
 import { Popover } from '@base-ui/react/popover';
 import type { SourceId } from '@pdf-editor/document-model';
 import type { Annotation, NoteAnnotation } from '@pdf-editor/engine';
-import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { getEngineService } from '../../engine/engine-service';
 import { getLocale, m } from '../../i18n';
 import type { PageOverlayProps } from '../../stage/page-overlays';
 import { distanceFromView, useViewStore } from '../../state/view-store';
+import { Icon } from '../../ui/Icon';
 import { userRectToCss } from '../../viewer/geometry';
 import { pageFrame } from '../../viewer/page-frame';
 import controls from './controls.module.css';
@@ -145,7 +145,7 @@ function NoteTarget({
                 {byline ? <p className={styles.byline}>{byline}</p> : null}
               </div>
               <Popover.Close className={controls.icon} aria-label={m.common_close()}>
-                <X aria-hidden="true" />
+                <Icon name="x" />
               </Popover.Close>
             </div>
             <Popover.Description className={styles.text} data-empty={text === '' || undefined}>

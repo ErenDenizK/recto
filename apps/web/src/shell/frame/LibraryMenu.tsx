@@ -5,13 +5,13 @@
  * until the dock (D2-2) brings More, the title menu ends with the same three rows.
  */
 import { Menu } from '@base-ui/react/menu';
-import { MoreHorizontal } from 'lucide-react';
 
 import { commandRegistry } from '../../commands/registry';
 import { m } from '../../i18n';
 import { openSettings } from '../../settings/open-settings';
 import { IconButton } from '../../ui/IconButton';
 import menuStyles from '../../ui/Menu.module.css';
+import { Icon } from '../../ui/Icon';
 
 /** The app items, shared with the title menu's interim tail. */
 export const APP_ITEMS = [
@@ -33,7 +33,11 @@ export function LibraryMenu() {
     <Menu.Root>
       <Menu.Trigger
         render={
-          <IconButton label={m.frame_more()} icon={<MoreHorizontal />} data-testid="library-menu" />
+          <IconButton
+            label={m.frame_more()}
+            icon={<Icon name="dots-three" />}
+            data-testid="library-menu"
+          />
         }
       />
       <Menu.Portal>
