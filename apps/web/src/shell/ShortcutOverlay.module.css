@@ -143,15 +143,39 @@
   line-height: var(--type-caption-lh);
 }
 
+/*
+ * As narrow as its keys allow (`width: 1%`), so the action keeps the room: a row's
+ * alternatives ("Ctrl Shift Z / Ctrl Y") wrap after 176 px instead of squeezing the title.
+ */
 .keys {
+  width: 1%;
   padding: 6px 0;
-  text-align: end;
   vertical-align: top;
+}
+
+.keyList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  width: max-content;
+  max-width: 176px;
+  margin-inline-start: auto;
+}
+
+.alternative {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   white-space: nowrap;
 }
 
-.keys > * + * {
-  margin-inline-start: var(--space-1);
+/* Between two alternatives: not a key, so it reads quieter than the caps. */
+.or {
+  color: var(--text-tertiary);
+  font-size: var(--type-caption);
+  line-height: var(--type-caption-lh);
 }
 
 .empty {

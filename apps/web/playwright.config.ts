@@ -138,6 +138,8 @@ export default defineConfig({
         '**/inspector-homes.spec.ts',
         // The light theme: no flash, the setting, axe in light on the tablet (spec D3-7).
         '**/theme.spec.ts',
+        // Key map v2 with a keyboard on the tablet (spec D2-7).
+        '**/keyboard-text.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

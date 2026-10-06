@@ -709,7 +709,11 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
 
   test('the History scrubber closed while it opens', async ({ page }) => {
     await openDocument(page);
-    await page.keyboard.press('r');
+    await page.keyboard.press('Shift+R');
+    // Shift+R on the current page says so with Undo (S18); its toast's glass is not this test's.
+    const rotated = page.getByRole('group', { name: /^Rotated page 1/ });
+    await rotated.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(rotated).toHaveCount(0);
     const undo = page.getByTestId('undo-button');
     await expect(undo).not.toHaveAttribute('aria-disabled');
     const scrubber = '[data-testid="history-scrubber"]';
