@@ -815,7 +815,7 @@
   "cmd_section_split_keywords": "separate, divide, split, break apart",
   "cmd_section_interleave_keywords": "interleave, duplex, collate, odd and even",
   "cmd_mode_compare_keywords": "diff, compare, difference, changes",
-  "cmd_mode_arrange_keywords": "organize, reorder, thumbnails, light table",
+  "cmd_mode_arrange_keywords": "arrange, organize, reorder, thumbnails, light table",
   "cmd_mode_read_keywords": "read, view, viewer, lock, locked",
   "cmd_mode_edit_keywords": "edit, annotate, mark up, write, draw, change",
   "cmd_document_ocr_keywords": "OCR, scan, recognize text",

@@ -10,7 +10,7 @@ import { pointerStream } from '../../test/pointer-stream';
 import type { PointerLike } from '../motion/gesture/arena';
 import { GESTURE } from '../motion/gesture/constants';
 import { longPress } from '../motion/gesture/long-press';
-import { pointerDrag, type PointerDragOptions } from './pointer-drag';
+import { attachPointerDrag, pointerDrag, type PointerDragOptions } from './pointer-drag';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -145,5 +145,60 @@ describe('pointerDrag', () => {
       .up(1);
     expect(t.onHoldRelease).toHaveBeenCalledOnce();
     expect(onFire).not.toHaveBeenCalled();
+  });
+});
+
+describe('attachPointerDrag', () => {
+  function pointer(type: string, target: EventTarget, x: number, y: number, pointerId = 21) {
+    target.dispatchEvent(
+      new PointerEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: x,
+        clientY: y,
+        pointerId,
+        pointerType: 'mouse',
+        isPrimary: true,
+        button: type === 'pointermove' ? -1 : 0,
+      }),
+    );
+  }
+  const click = (target: EventTarget) => {
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    target.dispatchEvent(event);
+    return event;
+  };
+
+  it("swallows the drop's click, but not the next press's when the drop brought none", () => {
+    const el = document.createElement('div');
+    const other = document.createElement('button');
+    document.body.append(el, other);
+    const onDrop = vi.fn();
+    const remove = attachPointerDrag(el, {
+      shouldStart: () => true,
+      onLift: () => true,
+      onMove: () => undefined,
+      onDrop,
+      onCancel: () => undefined,
+    });
+    try {
+      const drag = () => {
+        pointer('pointerdown', el, 10, 10);
+        pointer('pointermove', el, 10, 30);
+        pointer('pointerup', el, 10, 40);
+      };
+      drag();
+      expect(onDrop).toHaveBeenCalledOnce();
+      expect(click(el).defaultPrevented).toBe(true);
+      // A finger that moved brings no click: the next tap, within the echo window, is a tap.
+      drag();
+      pointer('pointerdown', other, 5, 5, 22);
+      pointer('pointerup', other, 5, 5, 22);
+      expect(click(other).defaultPrevented).toBe(false);
+    } finally {
+      remove();
+      el.remove();
+      other.remove();
+    }
   });
 });
