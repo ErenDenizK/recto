@@ -609,7 +609,7 @@
   "cmd_section_split_keywords": "böl, ayır, parçala",
   "cmd_section_interleave_keywords": "harmanla, çift taraflı, tek ve çift",
   "cmd_mode_compare_keywords": "karşılaştır, fark, değişiklikler",
-  "cmd_mode_arrange_keywords": "sırala, sayfa sırası, küçük resimler, ışıklı masa",
+  "cmd_mode_arrange_keywords": "düzenle, sırala, sayfa sırası, küçük resimler, ışıklı masa",
   "cmd_mode_read_keywords": "oku, okuma, görüntüle, kilit, kilitli",
   "cmd_mode_edit_keywords": "düzenle, düzenleme, açıklama ekle, işaretle, yaz, çiz, değiştir",
   "cmd_document_ocr_keywords": "metin tanı, tara, taranmış, OCR",

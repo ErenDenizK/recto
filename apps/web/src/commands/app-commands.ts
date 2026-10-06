@@ -638,7 +638,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       group: m.group_view(),
       act: null,
       shortcut: '3',
-      keywords: ['mode', 'light table', 'grid', 'organize', 'reorder', 'pages'],
+      keywords: ['mode', 'arrange', 'light table', 'grid', 'organize', 'reorder', 'pages'],
       when: () => activeDocument() !== undefined,
       // The Pages grid by its view change (PG1); `3` again goes back to the page (flows §7.2).
       run: () => {
