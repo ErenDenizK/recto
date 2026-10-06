@@ -81,7 +81,7 @@
   padding: 0 6px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--warning);
   font-size: var(--text-xs);
   font-weight: 500;

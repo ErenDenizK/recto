@@ -1,6 +1,6 @@
 /*
- * Redaction marks over the page. The mark red is the design token --danger (a pending,
- * destructive change); the page itself is never tinted beyond the marked areas. Above the
+ * Redaction marks over the page. The mark red is --redact-page (05-canvas §3; language.md §1.5),
+ * a content colour at 6.10:1 on white in both themes, not the chrome's --danger; the page itself is never tinted beyond the marked areas. Above the
  * annotation layer's hit targets (same z, later in the DOM) but transparent to pointers,
  * except with the Redact tool, when it takes the page like a drawing tool (z 2).
  */
@@ -26,14 +26,14 @@
 }
 
 .mark rect {
-  fill: color-mix(in srgb, var(--danger) 16%, transparent);
-  stroke: var(--danger);
+  fill: color-mix(in srgb, var(--redact-page) 16%, transparent);
+  stroke: var(--redact-page);
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
 .mark[data-excluded] rect {
-  fill: color-mix(in srgb, var(--danger) 6%, transparent);
+  fill: color-mix(in srgb, var(--redact-page) 6%, transparent);
   stroke-dasharray: 4 3;
 }
 
@@ -43,8 +43,8 @@
 
 .preview,
 .preview rect {
-  fill: color-mix(in srgb, var(--danger) 22%, transparent);
-  stroke: var(--danger);
+  fill: color-mix(in srgb, var(--redact-page) 22%, transparent);
+  stroke: var(--redact-page);
   stroke-width: 1;
   stroke-dasharray: 4 3;
 }
