@@ -255,8 +255,6 @@ const RULE: Rgb = [0.84, 0.85, 0.87];
 const PALE: Rgb = [0.955, 0.958, 0.965];
 const WHITE: Rgb = [1, 1, 1];
 const LIME: Rgb = [200 / 255, 251 / 255, 61 / 255];
-/** The selection blue on the page (#4e61ed, ADR-0023), for the selected miniature. */
-const SELECTION: Rgb = [78 / 255, 97 / 255, 237 / 255];
 
 type FaceId = 'sans' | 'bold' | 'serif';
 const FACES: Record<FaceId, { file: string; key: string; tag: string }> = {
@@ -1038,7 +1036,8 @@ function pagesPage(w: Writer, copy: SampleCopy, tags: Structure): void {
   title(w, c.title);
   let y = w.paragraph(STYLE.lead, LEFT, BODY_TOP, CONTENT_W - 40, 22, c.grid);
 
-  // Four miniatures across the measure, the third selected (as in the Pages grid).
+  // Four miniatures across the measure, the third selected (as in the Pages grid), framed in
+  // the lime the other pages' kicker and rules use: the sample keeps one accent.
   const gap = 26;
   const mw = (CONTENT_W - 3 * gap) / 4;
   const mh = mw * (PAGE_H / PAGE_W);
@@ -1052,7 +1051,7 @@ function pagesPage(w: Writer, copy: SampleCopy, tags: Structure): void {
     ops.push(...miniature(i + 1, x, top - mh + lift, mw, mh));
     if (selected)
       ops.push(
-        setStrokingRgbColor(...SELECTION),
+        setStrokingRgbColor(...LIME),
         setLineWidth(2),
         ...roundedPath(x - 4, top - mh + lift - 4, mw + 8, mh + 8, 4),
         stroke(),
