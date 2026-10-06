@@ -40,7 +40,7 @@ import { commandRegistry } from '../../commands/registry';
 import { useCommands } from '../../commands/use-commands';
 import { m, useLocale } from '../../i18n';
 import { isLocked } from '../../state/lock-store';
-import { type PaletteSet, useUiStore } from '../../state/ui-store';
+import { type PaletteSet, useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
@@ -81,7 +81,9 @@ export function Dock() {
   const group = useToolStore((s) => s.barGroup);
   // Faded and out of the pointer's way while a stroke is in progress (MK-17).
   const stroking = useStrokeInProgress() && shape === 'palette';
-  if (!doc) return null;
+  // The page view's: the grid and Compare have their own bars until the capsule becomes them.
+  const page = useStageView() === 'page';
+  if (!doc || !page) return null;
   return (
     // The capsule first, so Tab goes from the bar to its options; the column stacks them
     // bottom-up, so the tier still sits on top.
