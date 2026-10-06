@@ -17,7 +17,7 @@
   padding: 4px var(--space-2);
   border: 1px solid var(--border-glass);
   border-radius: 8px;
-  background: var(--surface-raised, var(--surface-3));
+  background: var(--surface-raised, var(--surface-on));
   color: var(--text-primary);
   font-size: var(--text-sm);
   font-weight: 500;
@@ -52,7 +52,7 @@
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  transform: scale(var(--enter-scale));
+  transform: scale(var(--tooltip-scale));
 }
 
 .popup[data-instant] {

@@ -1,14 +1,14 @@
 /**
  * The page context menu (ADR-0019 §4, craft spec §3.4): right-click, the Menu key or
  * Shift+F10 on a page in Read or Edit. In Edit it carries the page operations that left the
- * tool bar with the Pages group: Rotate page left and right, Delete page, Crop… and Arrange,
- * and "Edit text here", which arms Edit text. Every item acts on the page it was opened on,
+ * tool bar with the Pages group: Rotate page left and right, Delete page, Crop… and Show in
+ * Pages grid, and "Edit text here", which arms Edit text. Every item acts on the page it was opened on,
  * and Rotate and Delete say which ("Rotate page 3 left"). The Document menu keeps "Rotate
  * pages…" and "Crop…" for many pages.
  *
- * Read is locked (ADR-0019 §3, review finding 4): nothing in the menu changes a page there.
- * Rotate, Delete and Crop give way to one quiet row, "Switch to Edit to change pages", which
- * switches to Edit when chosen (an explicit choice, never implicit); Arrange stays.
+ * The page operations are `pages` acts (ADR-0030): offered in viewing and in Markup alike, and
+ * dimmed while the document is locked (S8), as "Edit text here" is (a `text` act); Show in
+ * Pages grid stays.
  *
  * One menu for the page view, mounted with the tool bar: it listens on the document for a
  * `contextmenu` over a page of the Read viewport, and for Shift+F10 or the Menu key with the
@@ -19,35 +19,38 @@
  * spec D1-7), through the gesture core's recogniser (`motion/gesture/`, 450 ms, 10 px): iOS
  * fires no `contextmenu` for a long press, and the recogniser keeps WebKit's callout and
  * selection off the pressed paper and swallows Android's own `contextmenu` and the release's
- * click. A press on a text run is left to native selection; a pointer that draws (a drawing
- * tool's layer with a pen, or a finger before a pen was seen) never long-presses.
+ * click. A press on a text run is left to native selection; a pointer that draws never
+ * long-presses (spec 04.11, `pointerDraws`: a drawing tool's pointer, a finger only while it
+ * draws, and the pen in Markup with Select once it writes there).
  *
  * A Base UI menu anchored at the pointer (or the page's visible corner from the keyboard), in
  * the menu glass (tier 3, ui/Menu.module.css). On close the focus returns where it was.
  */
 import { Menu } from '@base-ui/react/menu';
 import { findPageLocation, type PageId } from '@pdf-editor/document-model';
-import { Crop, LayoutGrid, Lock, RotateCcw, RotateCw, TextCursorInput, Trash2 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { activateTool } from '../annotations/commands';
 import { penSession, pointerRole } from '../annotations/pen/ink-input';
 import { toolDefinition } from '../annotations/tools';
 import { commandRegistry } from '../commands/registry';
-import { showDocumentMode } from '../home/home-actions';
 import { currentPlatform, type ParsedShortcut } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { attachLongPress } from '../motion/gesture';
 import { announce } from '../shell/announcer';
 import { useSelectionStore } from '../state/selection-store';
-import { useCanEdit } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
+import { penDrawsNow } from '../viewer/edit-policy';
+import { pointerDraws } from '../viewer/hit-order';
+import { pageInputNow, useCanChangeActive } from '../viewer/input-state';
 import { TEXT_LAYER_ATTR } from '../viewer/text-model';
 import { Keycaps } from '../ui/Keycaps';
 import { toast } from '../ui/Toast/toast';
 import menuStyles from '../ui/Menu.module.css';
 import { openOperationDialog } from './operation-dialogs-store';
+import { enterPagesGrid } from './pages-grid-door';
 import styles from './PageContextMenu.module.css';
 
 /** Where the menu opened and for which page. */
@@ -114,13 +117,9 @@ export function cropPage(pageId: PageId): boolean {
   return true;
 }
 
-/** "Arrange": the light table with this page selected (unless it is already in the selection). */
+/** "Show in Pages grid" (04-context §13): the grid at this page, its cell focused (PG1 §6). */
 export function arrangePage(pageId: PageId): void {
-  const selection = useSelectionStore.getState();
-  if (!selection.selected.has(pageId)) {
-    selection.apply({ selected: new Set([pageId]), anchor: pageId, focused: pageId });
-  }
-  void commandRegistry.execute('mode.arrange');
+  enterPagesGrid(pageId);
 }
 
 /** Whether a right-click lands on the current text selection (Copy is the browser's). */
@@ -141,12 +140,9 @@ function longPressPage(event: PointerEvent): HTMLElement | null {
   const page = target.closest<HTMLElement>('[data-read-viewport] [data-page-id]');
   if (!page || target.closest(OWN_MENU) || onSelectedText(target)) return null;
   if (target.closest(`[${TEXT_LAYER_ATTR}] > span`)) return null;
-  if (
-    target.closest('[data-drawing]') &&
-    pointerRole(penSession(), event, performance.now()) !== 'pan'
-  ) {
-    return null;
-  }
+  const state = pageInputNow(event.pointerType === 'pen' && penDrawsNow());
+  const fingerDraws = pointerRole(penSession(), event, performance.now()) !== 'pan';
+  if (pointerDraws(state, event.pointerType, fingerDraws)) return null;
   return page;
 }
 
@@ -165,6 +161,7 @@ function Item({
   icon,
   shortcut,
   quiet,
+  disabled,
   onClick,
 }: {
   readonly label: string;
@@ -172,12 +169,15 @@ function Item({
   readonly shortcut?: ParsedShortcut | undefined;
   /** Looks unavailable (the Read row), but can still be chosen. */
   readonly quiet?: boolean;
+  /** Dimmed and not chosen: the guard refuses its act (the document is locked). */
+  readonly disabled?: boolean;
   readonly onClick: () => void;
 }) {
   return (
     <Menu.Item
       className={quiet ? `${menuStyles.item} ${styles.quiet}` : menuStyles.item}
       data-quiet={quiet ? '' : undefined}
+      disabled={disabled}
       onClick={onClick}
     >
       {icon}
@@ -189,7 +189,10 @@ function Item({
 
 export function PageContextMenu() {
   const [request, setRequest] = useState<PageMenuRequest | null>(null);
-  const editable = useCanEdit();
+  // Page operations are `pages` acts, "Edit text here" a `text` act: both refused only while
+  // the document is locked (ADR-0030), when they show dimmed (S8).
+  const canPages = useCanChangeActive('pages');
+  const canEditText = useCanChangeActive('text');
   // Re-render when the page moves (its number changes) while the menu is open.
   useWorkspaceStore((s) => s.workspace);
   const restore = useRef<HTMLElement | null>(null);
@@ -300,56 +303,43 @@ export function PageContextMenu() {
           >
             {number === undefined ? null : (
               <>
-                {editable ? (
-                  <>
-                    <Item
-                      label={m.page_menu_edit_text()}
-                      icon={<TextCursorInput aria-hidden="true" className={styles.icon} />}
-                      shortcut={commandRegistry.get('tool.edit-text')?.shortcuts[0]}
-                      onClick={() => void activateTool(toolDefinition('edit-text'))}
-                    />
-                    <Menu.Separator className={menuStyles.separator} />
-                  </>
-                ) : null}
-                {editable ? (
-                  <>
-                    <Item
-                      label={m.page_menu_rotate_left({ number })}
-                      icon={<RotateCcw aria-hidden="true" className={styles.icon} />}
-                      onClick={run((id) => rotatePage(id, -90))}
-                    />
-                    <Item
-                      label={m.page_menu_rotate_right({ number })}
-                      icon={<RotateCw aria-hidden="true" className={styles.icon} />}
-                      onClick={run((id) => rotatePage(id, 90))}
-                    />
-                    <Item
-                      label={m.page_menu_delete({ number })}
-                      icon={<Trash2 aria-hidden="true" className={styles.icon} />}
-                      onClick={run(deletePage)}
-                    />
-                    <Menu.Separator className={menuStyles.separator} />
-                    <Item
-                      label={m.page_menu_crop()}
-                      icon={<Crop aria-hidden="true" className={styles.icon} />}
-                      onClick={run(cropPage)}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Item
-                      label={m.page_menu_switch_to_edit()}
-                      icon={<Lock aria-hidden="true" className={styles.icon} />}
-                      shortcut={commandRegistry.get('mode.edit')?.shortcuts[0]}
-                      quiet
-                      onClick={() => showDocumentMode('edit')}
-                    />
-                    <Menu.Separator className={menuStyles.separator} />
-                  </>
-                )}
                 <Item
-                  label={m.mode_arrange()}
-                  icon={<LayoutGrid aria-hidden="true" className={styles.icon} />}
+                  label={m.page_menu_edit_text()}
+                  icon={<Icon name="edit-text" className={styles.icon} />}
+                  shortcut={commandRegistry.get('tool.edit-text')?.shortcuts[0]}
+                  disabled={!canEditText}
+                  onClick={() => void activateTool(toolDefinition('edit-text'))}
+                />
+                <Menu.Separator className={menuStyles.separator} />
+                <Item
+                  label={m.page_menu_rotate_left({ number })}
+                  icon={<Icon name="arrow-counter-clockwise" className={styles.icon} />}
+                  disabled={!canPages}
+                  onClick={run((id) => rotatePage(id, -90))}
+                />
+                <Item
+                  label={m.page_menu_rotate_right({ number })}
+                  icon={<Icon name="arrow-clockwise" className={styles.icon} />}
+                  disabled={!canPages}
+                  onClick={run((id) => rotatePage(id, 90))}
+                />
+                <Item
+                  label={m.page_menu_delete({ number })}
+                  icon={<Icon name="trash" className={styles.icon} />}
+                  disabled={!canPages}
+                  onClick={run(deletePage)}
+                />
+                <Menu.Separator className={menuStyles.separator} />
+                <Item
+                  label={m.page_menu_crop()}
+                  icon={<Icon name="crop" className={styles.icon} />}
+                  disabled={!canPages}
+                  onClick={run(cropPage)}
+                />
+                <Menu.Separator className={menuStyles.separator} />
+                <Item
+                  label={m.frame_show_in_grid()}
+                  icon={<Icon name="squares-four" className={styles.icon} />}
                   shortcut={commandRegistry.get('mode.arrange')?.shortcuts[0]}
                   onClick={run(arrangePage)}
                 />

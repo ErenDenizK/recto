@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import { chromiumLaunchOptions } from '../../tooling/playwright-chromium.ts';
+import { HARNESS_PORT, HARNESS_URL } from './e2e/support/harness-server.ts';
 
 // End-to-end tests run against the production build served by `vite preview`, under the
 // same base path that GitHub Pages will use (VITE_BASE_PATH, default `/`).
@@ -13,8 +14,8 @@ const isCI = Boolean(process.env.CI);
  * and a mobile viewport, and a screen equal to the viewport, so the edition rule (a coarse
  * pointer and a screen side under 600 CSS px, `shell/frame/edition.ts`) sees a phone or a
  * tablet. `?edition` stays unset. The phones run only the compact edition's spec; the
- * tablet runs the full edition's smoke spec, the touch gestures (long press, D1-7) and ↶ ↷
- * with the History scrubber (D0-6) for now.
+ * tablet runs the full edition's smoke spec, the touch gestures (long press, D1-7; pinch and
+ * the page scrubber, D2-10) and ↶ ↷ with the History scrubber (D0-6) for now.
  * Both also run the bar audit (Q-9).
  */
 const PHONE = { width: 390, height: 844 };
@@ -46,7 +47,10 @@ const NOT_KEPT_SEEN = {
     },
   ],
 };
-/** No frames at rest on the compact reader too (quality-bar Q-10, A-23; spec D0-QA). */
+/**
+ * No frames at rest on the compact reader too (quality-bar Q-10, A-23; spec D0-QA); the tablet
+ * runs its idle, sweep and limits tests as well (spec D3-4).
+ */
 const MOTION_SPEC = '**/motion.spec.ts';
 const touchDevice = (
   size: { width: number; height: number },
@@ -101,14 +105,31 @@ export default defineConfig({
       name: 'tablet',
       testMatch: [
         '**/smoke.spec.ts',
+        '**/library.spec.ts',
         '**/long-press.spec.ts',
         '**/history.spec.ts',
         '**/tab-strip.spec.ts',
+        // The frame's free rectangle and jobs on the medium class (spec D2-1).
+        '**/frame-layout.spec.ts',
+        '**/canvas-zoom.spec.ts',
+        // The Markup palette's jobs on the tablet (spec D2-3).
+        '**/markup.spec.ts',
         BAR_AUDIT_SPEC,
         SHEETS_SPEC,
         SETTINGS_SPEC,
         ...SAVE_COPY_SPECS,
         MENUS_SPEC,
+        // Reduced motion per token and the limits on the tablet too (spec D3-4).
+        MOTION_SPEC,
+        // `?sample` opens the teaching sample on the tablet too (spec D4-2).
+        '**/sample.spec.ts',
+        // The capsule's morph on rendered pixels at the coarse 56 px size (spec D2-2, Q-6).
+        '**/capsule.spec.ts',
+        // The sidebar laid over the page, S13's touch drags and the section's own Find field
+        // (spec D2-4).
+        '**/sidebar.spec.ts',
+        // The Pages grid: J4 by touch, the pinch's sizes and its door to the page (spec D2-5).
+        '**/pages-grid.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },
@@ -124,12 +145,25 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    // Build first so the tests exercise exactly what is deployed; `pnpm build` in CI has
-    // already produced `dist/`, and E2E_SKIP_BUILD=1 reuses it.
-    command: `${process.env.E2E_SKIP_BUILD ? '' : 'pnpm build && '}pnpm preview --port ${port} --strictPort`,
-    url: new URL(basePath, `http://localhost:${port}`).href,
-    reuseExistingServer: !isCI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      // Build first so the tests exercise exactly what is deployed; `pnpm build` in CI has
+      // already produced `dist/`, and E2E_SKIP_BUILD=1 reuses it.
+      command: `${process.env.E2E_SKIP_BUILD ? '' : 'pnpm build && '}pnpm preview --port ${port} --strictPort`,
+      // The build compiles the test-only render override in (spec X36, e2e/support/
+      // render-override.ts); the deploy build does not.
+      env: { RECTO_RENDER_OVERRIDE: '1' },
+      url: new URL(basePath, `http://localhost:${port}`).href,
+      reuseExistingServer: !isCI,
+      timeout: 120_000,
+    },
+    {
+      // The rendered-pixel harness (09-primitives §28, spec 09.11, D3-1): its own Vite config on
+      // its own port, so the app above stays the deploy build. A dev server: nothing to build.
+      command: `pnpm exec vite --config harness/vite.config.ts --port ${HARNESS_PORT} --strictPort`,
+      url: HARNESS_URL,
+      reuseExistingServer: !isCI,
+      timeout: 60_000,
+    },
+  ],
 });

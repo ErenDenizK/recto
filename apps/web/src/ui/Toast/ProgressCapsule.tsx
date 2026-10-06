@@ -6,7 +6,7 @@
  * - Determinate: percentage (tabular, the locale places the sign) and a 2 px track filled by
  *   `scaleX` in 200 ms (*progress*); indeterminate: no percentage, no track.
  * - The processing ring turns on the border while the job runs (CSS only; a still rim under
- *   reduced motion, Reduce transparency, forced colours).
+ *   reduced motion, Glass Solid, forced colours).
  * - Cancel stops at the job's next safe point: "Stopping…", Cancel disabled.
  * - The body opens the job's own surface where it has one (the OCR dialog).
  * - `role="progressbar"` with the label as its value text (FB5 §8); the ring is hidden.

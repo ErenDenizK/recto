@@ -51,21 +51,16 @@
   "search_commands_placeholder": "Search commands…",
   "right_panel_hide": "Hide right panel",
   "right_panel_show": "Show right panel",
-  "empty_title": "Drop PDFs to start",
-  "empty_title_dragging": "Release to open",
   "empty_body_local": "Files open on this device and are never uploaded.",
-  "empty_body_combine": "Drop PDFs here or open them. With two or more open you can combine them on Home or from the Document menu, arrange their pages together or compare them.",
-  "empty_hints_label": "Get started",
   "keyboard_shortcuts": "Keyboard shortcuts",
   "stage_start_label": "Start",
   "stage_no_pages_title": "No pages left",
   "stage_no_pages_body": "Undo brings deleted pages back.",
-  "stage_drop_overlay": "Drop to open in new tabs",
   "view_mode_label": "View mode",
   "mode_read": "Read",
-  "mode_arrange": "Arrange",
+  "mode_arrange": "Pages grid",
   "mode_read_long": "Read mode, locked",
-  "mode_arrange_long": "Arrange pages",
+  "mode_arrange_long": "Pages grid",
   "mode_read_label": "Read, locked",
   "mode_edit": "Edit",
   "mode_edit_long": "Edit mode",
@@ -78,9 +73,9 @@
   "selection_mark_up_hint": "Highlight with H, underline with U, strike out with S",
   "selection_copied": "Text copied",
   "drop_no_pdfs": "No PDF or image files found in the drop",
-  "nav_label": "Navigator",
-  "nav_views_label": "Navigator views",
-  "nav_resize": "Resize navigator",
+  "nav_label": "Sidebar",
+  "nav_views_label": "Sidebar sections",
+  "nav_resize": "Resize sidebar",
   "view_pages": "Pages",
   "view_outline": "Outline",
   "view_files": "Files",
@@ -88,15 +83,13 @@
   "pages_empty_body": "Page thumbnails appear here.",
   "pages_none_title": "No pages",
   "pages_none_body": "This document has no pages left.",
-  "files_empty_title": "No files open",
-  "files_empty_body": "Every file you open stays on this device.",
   "pages_list_label": "Pages of {title}",
   "page_option_label": "Page {label}",
   "page_option_label_with_index": "Page {position} ({label})",
-  "outline_empty_no_document_body": "Bookmarks of the open document appear here.",
-  "outline_empty_title": "No outline",
+  "outline_empty_no_document_body": "The contents of the open document appear here.",
+  "outline_empty_title": "No contents",
   "outline_empty_body": "This document has no bookmarks.",
-  "outline_tree_label": "Outline of {title}",
+  "outline_tree_label": "Contents of {title}",
   "outline_unresolved": "Target page was removed",
   "outline_link_tooltip": "External link: {uri}",
   "outline_link_confirm": "Open this link in a new tab?",
@@ -195,6 +188,8 @@
   "zoom_value_label": "Zoom {percent}",
   "zoom_fit_width": "Fit width",
   "zoom_fit_page": "Fit page",
+  "zoom_grid_chip": "Release to see all pages",
+  "scrubber_label": "Scrub pages",
   "update_reload": "Reload",
   "update_later": "Later",
   "offline_ready_announcement": "Ready to work offline",
@@ -630,6 +625,7 @@
   "diag_on_page": "page {page}",
   "history_start": "Start",
   "history_open": "Open {name}",
+  "history_opened": "Opened {name}",
   "history_close": "Close {name}",
   "history_move": [
     {
@@ -781,11 +777,10 @@
   "cmd_toggle_left_panel": "Toggle left panel",
   "cmd_toggle_right_panel": "Toggle right panel",
   "cmd_show_pages": "Show pages",
-  "cmd_show_outline": "Show outline",
-  "cmd_show_files": "Show files",
+  "cmd_show_outline": "Show contents",
   "cmd_mode_read": "Switch to Read",
   "cmd_mode_edit": "Switch to Edit",
-  "cmd_mode_arrange": "Arrange pages",
+  "cmd_mode_arrange": "Pages grid",
   "cmd_zoom_in": "Zoom in",
   "cmd_zoom_out": "Zoom out",
   "cmd_zoom_fit": "Zoom to fit width",
@@ -793,7 +788,7 @@
   "cmd_zoom_actual": "Actual size",
   "cmd_thumbnails_larger": "Larger thumbnails",
   "cmd_thumbnails_smaller": "Smaller thumbnails",
-  "cmd_thumbnails_note": "Mod+Scroll in Arrange mode",
+  "cmd_thumbnails_note": "Mod+Scroll or a pinch in the Pages grid",
   "cmd_tool": "{tool} tool",
   "cmd_tool_select_keywords": "select, pointer, cursor, choose",
   "cmd_tool_edit_text_keywords": "edit text, typo, correct, change wording",
@@ -817,11 +812,10 @@
   "cmd_tool_signature_keywords": "signature, sign, autograph, handwritten signature",
   "cmd_document_sign_keywords": "digital signature, certificate, sign, e-signature, PAdES",
   "cmd_documents_merge_all_keywords": "combine, join, append, merge, concatenate",
-  "cmd_section_merge_keywords": "combine, join, append, merge",
   "cmd_section_split_keywords": "separate, divide, split, break apart",
   "cmd_section_interleave_keywords": "interleave, duplex, collate, odd and even",
   "cmd_mode_compare_keywords": "diff, compare, difference, changes",
-  "cmd_mode_arrange_keywords": "organize, reorder, thumbnails, light table",
+  "cmd_mode_arrange_keywords": "arrange, organize, reorder, thumbnails, light table",
   "cmd_mode_read_keywords": "read, view, viewer, lock, locked",
   "cmd_mode_edit_keywords": "edit, annotate, mark up, write, draw, change",
   "cmd_document_ocr_keywords": "OCR, scan, recognize text",
@@ -884,8 +878,6 @@
   "cell_from": ", from {name}",
   "cell_bookmarked": ", bookmarked",
   "announce_deleted_page": "Deleted {label}",
-  "arrange_show": "Show in Arrange",
-  "arrange_hide": "Hide from Arrange",
   "arrange_drop_background": "Drop to open as new documents",
   "section_empty": "No pages. Drop pages, PDFs or images here.",
   "section_expand": "Expand",
@@ -900,19 +892,17 @@
   "section_reverse": "Reverse pages",
   "section_interleave": "Interleave with…",
   "section_split": "Split…",
-  "section_merge": "Merge into…",
   "section_insert_images": "Insert images…",
   "section_rename": "Rename…",
   "section_close": "Close document",
-  "announce_removed_from_arrange": "{title} removed from Arrange",
-  "announce_showing_in_arrange": "Showing {title} in Arrange",
+  "announce_showing_in_arrange": "Showing {title} in the Pages grid",
   "announce_showing_all": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "Showing {count} document in Arrange",
-        "countPlural=*": "Showing {count} documents in Arrange"
+        "countPlural=one": "Showing {count} document in the Pages grid",
+        "countPlural=*": "Showing {count} documents in the Pages grid"
       }
     }
   ],
@@ -966,11 +956,11 @@
   "announce_inserted_pages_bookmarks": "Inserted {pages} and {bookmarks} from {from} at position {position} in {title}",
   "announce_opened_instead": "The section closed while the files were opening; opened {from} in new tabs",
   "cmd_cut_pages": "Cut pages",
-  "cmd_cut_pages_note": "Arrange mode. Paste after the focused page with Mod+V, also in another document.",
+  "cmd_cut_pages_note": "Pages grid. Paste after the focused page with Mod+V, also in another document.",
   "cmd_copy_pages": "Copy pages",
-  "cmd_arrange_only_note": "Arrange mode.",
+  "cmd_arrange_only_note": "Pages grid.",
   "cmd_paste_pages": "Paste pages after the focused page",
-  "cmd_paste_pages_note": "Arrange mode. Cut pages move; copied pages are duplicated.",
+  "cmd_paste_pages_note": "Pages grid. Cut pages move; copied pages are duplicated.",
   "cmd_paste_duplicates": "Paste pages as duplicates",
   "cmd_move_to_new_document": "Move pages to new document",
   "cmd_copy_to_new_document": "Copy pages to new document",
@@ -982,11 +972,9 @@
   "cmd_reverse_selection": "Reverse selection order",
   "cmd_select_odd": "Select odd pages",
   "cmd_select_even": "Select even pages",
-  "cmd_show_all_in_arrange": "Show all documents in Arrange",
+  "cmd_show_all_in_arrange": "Show all open documents in the Pages grid",
   "cmd_reverse_document": "Reverse pages of document",
   "cmd_split_document": "Split document…",
-  "cmd_merge_into": "Merge document into…",
-  "cmd_merge_all": "Merge all open documents…",
   "cmd_interleave": "Interleave with another document…",
   "cmd_rename_document": "Rename document",
   "cmd_rename_document_note": "Or double-click a tab or section title.",
@@ -1059,49 +1047,8 @@
   "range_error_reversed": "“{token}”: the range runs backwards.",
   "range_error_out_of_bounds": "“{token}”: the document has {count} pages.",
   "range_error_overlap": "“{first}” and “{second}” overlap.",
-  "merge_confirm": "Merge",
-  "merge_into_title": "Merge {title} into…",
-  "merge_into_description": "The pages of {title} are appended to the document you choose.",
-  "merge_into_target": "Append to",
-  "merge_into_preview": "{title} will have {pages}.",
-  "history_merge_into": "Merge {source} into {target}",
-  "announce_merged_into": "Appended {pages} from {source} to {target}",
-  "merge_all_title": "Merge all open documents",
-  "merge_all_description": "Pages are joined in this order. Use the arrows to change it.",
-  "merge_all_order_label": "Merge order",
-  "merge_all_name_label": "Title of the merged document",
-  "merge_all_preview": [
-    {
-      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Creates one document from {count} document with {pages}.",
-        "countPlural=*": "Creates one document from {count} documents with {pages}."
-      }
-    }
-  ],
   "merge_move_up": "Move {title} up",
   "merge_move_down": "Move {title} down",
-  "history_merge_all": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Merge {count} document",
-        "countPlural=*": "Merge {count} documents"
-      }
-    }
-  ],
-  "announce_merged_all": [
-    {
-      "declarations": ["input count", "input title", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Merged {count} document into {title}",
-        "countPlural=*": "Merged {count} documents into {title}"
-      }
-    }
-  ],
   "interleave_title": "Interleave {title} with…",
   "interleave_second_label": "Second document",
   "interleave_mode_label": "Order",
@@ -1312,8 +1259,8 @@
   "tool_line": "Line",
   "tool_arrow": "Arrow",
   "tool_text_box": "Text box",
-  "tool_stamp": "Stamp or image",
-  "tool_signature": "Signature image",
+  "tool_stamp": "Stamp",
+  "tool_signature": "Sign",
   "tool_signature_tooltip": "A picture of your signature, not a digital signature",
   "tool_shapes_menu": "Shapes: {shape}",
   "tool_edit_text": "Edit text",
@@ -3545,7 +3492,6 @@
       }
     }
   ],
-  "home_drop_combine": "Combine with {title}",
   "combined_title_two": "Combined – {first} + {second}",
   "combined_title_more": "Combined – {first} + {count} more",
   "home_combine_description": "Pages are joined in this order into a new document; the files stay open. Use the arrows to change the order.",
@@ -3585,7 +3531,6 @@
     }
   ],
   "home_combine_confirm": "Combine",
-  "home_modified": "Modified {date}",
   "home_announce_closed": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -3611,6 +3556,11 @@
   "recents_clear": "Clear recents",
   "cmd_clear_recents": "Clear recents",
   "cmd_file_clear_recents_keywords": "recent, recently opened, history, forget, privacy",
+  "cmd_try_sample": "Try the sample",
+  "cmd_file_sample_keywords": "sample, demo, example, tour, tutorial, try",
+  "sample_announce_opened": "Opened the sample. Its pages explain what to try",
+  "sample_offline": "The sample needs to load once with a connection",
+  "sample_failed": "Could not load the sample",
   "recents_hint_permission": "Needs permission",
   "recents_hint_open_again": "Open again…",
   "recents_more": "More actions for {name}",
@@ -3620,6 +3570,124 @@
   "recents_announce_removed": "{name} removed from recents",
   "recents_announce_cleared": "Recents cleared",
   "recents_clear_failed": "Recents were cleared from the list, but the copy kept on this device could not be deleted. Try Clear recents again, or clear this site’s data in your browser.",
+  "library_label": "Library",
+  "library_headline": "Read, mark up, sign and arrange PDFs.",
+  "library_line": "Nothing leaves this device.",
+  "library_open": "Open PDFs…",
+  "library_combine_files": "Combine files…",
+  "library_drop_hint": "or drop files anywhere",
+  "library_drop": "Drop to open",
+  "library_drop_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Drop to open {count} file",
+        "countPlural=*": "Drop to open {count} files"
+      }
+    }
+  ],
+  "library_head_open": "Open",
+  "library_head_documents": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} document",
+        "countPlural=*": "{count} documents"
+      }
+    }
+  ],
+  "library_select": "Select",
+  "library_done": "Done",
+  "library_select_all": "Select all",
+  "library_all_selected": "All documents are selected",
+  "library_announce_select_on": "Select mode. Space checks a document, Enter opens it",
+  "library_announce_select_off": "Select mode off",
+  "library_card_check": "Select {name}",
+  "library_card_edited": "Edited",
+  "library_card_locked": "Locked",
+  "library_card_signed": "Signed · locked",
+  "library_card_restricted": "Restricted by the file",
+  "library_card_opening": "Opening…",
+  "library_card_name_edited": "edited",
+  "library_bar_label": "Selected documents",
+  "library_combine_reason": "Select two or more documents to combine",
+  "library_compare_reason": "Select exactly two documents to compare",
+  "library_pages": "Pages",
+  "library_combine_short": "Combine",
+  "library_clear_selection": "Clear selection",
+  "library_closed_toast": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Closed {count} document · changes kept",
+        "countPlural=*": "Closed {count} documents · changes kept"
+      }
+    }
+  ],
+  "library_announce_closed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Closed {count} document. Changes kept",
+        "countPlural=*": "Closed {count} documents. Changes kept"
+      }
+    }
+  ],
+  "library_announce_pages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Pages of {count} document",
+        "countPlural=*": "Pages of {count} documents"
+      }
+    }
+  ],
+  "library_history_move": "Move {name}",
+  "library_announce_moved": "Moved {name} to position {position} of {count}",
+  "library_opened_files": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Opened {count} file",
+        "countPlural=*": "Opened {count} files"
+      }
+    }
+  ],
+  "library_show_in_library": "Show in Library",
+  "library_combine_files_one": "Choose two or more files to combine",
+  "library_more": "More",
+  "library_nothing_uploaded": "Nothing is uploaded",
+  "library_external_requests": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} external request",
+        "countPlural=*": "{count} external requests"
+      }
+    }
+  ],
+  "library_language": "Language",
+  "recents_kept_footnote": "Kept on this device while the browser keeps it",
+  "recents_manage": "Manage",
+  "recents_clear_confirm_title": "Clear recent files?",
+  "recents_clear_confirm_body": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Kept changes for {count} document are deleted from this device. Saved files are not touched.",
+        "countPlural=*": "Kept changes for {count} documents are deleted from this device. Saved files are not touched."
+      }
+    }
+  ],
+  "recents_clear_confirm_action": "Clear",
   "privacy_recents": "Recent files are remembered on this device only.",
   "bar_group_fill": "Fill & sign",
   "bar_group_redact": "Redact",
@@ -3632,7 +3700,6 @@
   "page_menu_rotate_right": "Rotate page {number} right",
   "page_menu_delete": "Delete page {number}",
   "page_menu_crop": "Crop…",
-  "page_menu_switch_to_edit": "Switch to Edit to change pages",
   "page_menu_rotated_left": "Rotated page {number} left",
   "page_menu_rotated_right": "Rotated page {number} right",
   "page_menu_deleted": "Deleted page {number}. Undo with {shortcut}",
@@ -3694,7 +3761,6 @@
   "nav_tab_pages": "Pages",
   "nav_tab_find": "Find",
   "nav_tab_review": "Review",
-  "nav_tab_files": "Files",
   "nav_count_name": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -3706,13 +3772,8 @@
     }
   ],
   "nav_pages_view_label": "Pages view",
-  "nav_pages_thumbnails": "Pages",
-  "nav_pages_bookmarks": "Bookmarks",
-  "nav_files_list": "Open documents",
-  "nav_files_meta": "{pages} · {size}",
-  "nav_files_close": "Close {name}",
-  "nav_files_select": "Select {name}",
-  "nav_files_show_home": "Show Home",
+  "nav_pages_thumbnails": "Thumbnails",
+  "nav_pages_bookmarks": "Contents",
   "review_filter_label": "Show",
   "review_filter_all": "All",
   "review_filter_comments": "Comments",
@@ -3735,7 +3796,7 @@
   "docinfo_title": "Document info",
   "docinfo_open": "Document info…",
   "docinfo_file": "File",
-  "bar_in_group": "Tool bar: {group}",
+  "bar_in_group": "Markup: {group}",
   "a11y_pages_viewport": "Pages of {title}",
   "about_command": "About {name}",
   "about_public_beta": "Public beta",
@@ -3754,16 +3815,27 @@
   "about_version_line": "Version {version}",
   "menu_about_page": "About this app",
   "appearance_heading": "Appearance",
-  "appearance_glass_panels": "Glass panels",
-  "appearance_reduce_transparency": "Reduce transparency",
-  "announce_glass_panels_on": "Glass panels on",
-  "announce_glass_panels_off": "Glass panels off",
-  "announce_reduce_transparency_on": "Reduced transparency on",
-  "announce_reduce_transparency_off": "Reduced transparency off",
-  "cmd_view_glass_panels_on": "Glass panels: on",
-  "cmd_view_glass_panels_off": "Glass panels: off",
-  "cmd_view_reduce_transparency_on": "Reduce transparency: on",
-  "cmd_view_reduce_transparency_off": "Reduce transparency: off",
+  "settings_glass": "Glass",
+  "settings_glass_clear": "Clear",
+  "settings_glass_tinted": "Tinted",
+  "settings_glass_solid": "Solid",
+  "settings_glass_hint": "Tinted keeps the blur behind denser glass; Solid turns it off.",
+  "settings_glass_system": "Solid, set by your system",
+  "settings_glass_system_on": "Glass is solid because of a system setting",
+  "settings_glass_keywords": "glass, transparency, translucent, frosted, blur, tinted, solid, opaque, contrast, accessibility, panels, appearance",
+  "cmd_view_glass_clear": "Glass: Clear",
+  "cmd_view_glass_tinted": "Glass: Tinted",
+  "cmd_view_glass_solid": "Glass: Solid",
+  "settings_reduce_motion": "Reduce motion",
+  "settings_reduce_motion_system": "System",
+  "settings_reduce_motion_on": "On",
+  "settings_reduce_motion_hint": "System follows your device’s setting.",
+  "settings_reduce_motion_system_on": "Motion is reduced because of a system setting",
+  "settings_reduce_motion_keywords": "motion, animation, movement, reduce, accessibility, vestibular, appearance",
+  "cmd_view_reduce_motion_system": "Reduce motion: System",
+  "cmd_view_reduce_motion_on": "Reduce motion: On",
+  "announce_reduce_motion_on": "Reduce motion on",
+  "announce_reduce_motion_system": "Reduce motion follows the system",
   "mode_edit_button": "Edit",
   "edit_text_hint": "Double-click to edit text",
   "pen_draws_in_edit": "Pen draws in Edit",
@@ -3951,6 +4023,12 @@
   "sheet_locked": "{name} is locked",
   "sheet_unlock": "Unlock",
   "sheet_locked_reason": "Locked",
+  "guard_locked": "Locked · unlock first",
+  "guard_open_markup_draw": "Open Markup to draw",
+  "guard_open_markup_place": "Open Markup to place",
+  "guard_no_document": "No document open",
+  "pen_hint": "Writing? Tap Markup, or let the pen write anywhere in Settings.",
+  "pen_hint_settings": "Settings",
   "sheet_draft_restored": "Your earlier settings are back",
   "sheet_bound_title": "{title} · {name}",
   "password_queue": "{index} of {count}",
@@ -4103,8 +4181,6 @@
   "settings_section_documents": "Documents and storage",
   "settings_section_privacy": "Privacy",
   "settings_section_more": "More",
-  "settings_glass_panels_hint": "The panels around the page turn to glass while a page passes beneath them.",
-  "settings_reduce_transparency_hint": "Every glass surface becomes solid.",
   "settings_language_browser": "Follow the browser ({language})",
   "settings_pen_draws_hint": "Auto turns on when a pen is first used.",
   "settings_kept_documents": "Kept documents",
@@ -4155,9 +4231,6 @@
   "settings_cmd_language_browser": "Language: follow the browser",
   "settings_language_followed": "Language follows the browser: {language}",
   "settings_show_tips_none": "Every tip shows already",
-  "settings_reduce_transparency_system": "Glass is solid because of a system setting",
-  "settings_glass_panels_keywords": "glass, frosted, blur, panels, translucent, frame, appearance",
-  "settings_reduce_transparency_keywords": "transparency, opaque, solid, contrast, accessibility, glass, appearance",
   "settings_language_keywords": "language, locale, english, turkish, browser, translate",
   "settings_pen_draws_keywords": "pen, stylus, pencil, draw, select, edit, ink",
   "settings_kept_documents_keywords": "kept, snapshots, restore, storage, clear, delete, device, changes, session",
@@ -4289,5 +4362,401 @@
   "settings_signature_remove": "Remove {name}",
   "settings_signature_name_field": "Signature name",
   "settings_signature_added": "Added {date}",
-  "settings_cmd_signatures": "Saved signatures…"
+  "settings_cmd_signatures": "Saved signatures…",
+  "frame_library": "Library",
+  "frame_library_bar": "Library bar",
+  "frame_document_bar": "Document bar",
+  "frame_document_menu": "Document menu",
+  "frame_title_menu_name": "{name} document menu",
+  "frame_brand": "Recto",
+  "frame_more": "More",
+  "frame_settings": "Settings…",
+  "frame_keyboard_shortcuts": "Keyboard shortcuts",
+  "frame_sidebar_show": "Show sidebar",
+  "frame_sidebar_hide": "Hide sidebar",
+  "frame_tab_name_locked": "{name}, locked",
+  "frame_tab_name_edited_locked": "{name}, edited, locked",
+  "frame_tab_overflow": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} more",
+        "countPlural=*": "{count} more"
+      }
+    }
+  ],
+  "frame_tab_overflow_name": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} more open document",
+        "countPlural=*": "{count} more open documents"
+      }
+    }
+  ],
+  "frame_edited": "Edited",
+  "frame_close_name": "Close {name}",
+  "frame_closed_kept": "Closed {name}. Changes kept.",
+  "frame_closed_others": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Closed {count} other document",
+        "countPlural=*": "Closed {count} other documents"
+      }
+    }
+  ],
+  "frame_tab_moved": "{name} moved to position {position} of {count}",
+  "frame_rename": "Rename…",
+  "frame_lock": "Lock",
+  "frame_unlock": "Unlock",
+  "frame_show_in_grid": "Show in Pages grid",
+  "frame_move_left": "Move left",
+  "frame_move_right": "Move right",
+  "frame_close_others": "Close other documents",
+  "frame_name": "Name",
+  "frame_rename_invalid": "Use a name with letters or numbers",
+  "frame_status_no_changes": "No changes",
+  "frame_status_kept": "Edited, kept on this device",
+  "frame_status_not_kept": "Edited, not kept in this window",
+  "frame_privacy_line": "On this device · nothing uploaded",
+  "frame_lock_reason_user": "You locked it",
+  "frame_lock_reason_signed": "Signed file: changes break the signature",
+  "frame_lock_reason_restricted": "The file restricts changes",
+  "frame_lock_reason_default": "“Open documents locked” is on",
+  "frame_unlock_signed_body": "Any change removes the digital signature when you save. Save a copy with Signature signs it again.",
+  "frame_unlock_restricted_body": "The file’s author asked apps not to change it. Recto can change it anyway; other apps may still refuse the copy.",
+  "frame_keep_locked": "Keep locked",
+  "frame_unlock_anyway": "Unlock anyway",
+  "frame_lock_announce_locked": "{name} locked",
+  "frame_lock_announce_unlocked": "{name} unlocked",
+  "frame_section_file": "File",
+  "frame_section_pages": "Pages",
+  "frame_section_protect": "Protect",
+  "frame_section_convert": "Convert",
+  "frame_rotate_all": "Rotate all",
+  "frame_app_group": "Recto",
+  "frame_find": "Find",
+  "frame_find_no_matches": "No matches",
+  "frame_find_no_pages": "No pages",
+  "frame_privacy_clean": "Privacy: nothing has left this device",
+  "frame_privacy_external": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Privacy: {count} request to other sites",
+        "countPlural=*": "Privacy: {count} requests to other sites"
+      }
+    }
+  ],
+  "frame_pill_text": "{page} / {total} · {percent}",
+  "frame_pill_text_label": "{label} ({page} / {total}) · {percent}",
+  "frame_pill_name": "Page {current} of {total}, zoom {percent}. Page and view options",
+  "frame_pill_menu_name": "Page and view",
+  "frame_goto_of": "of {total}",
+  "frame_goto_range": "Pages 1–{last}",
+  "frame_goto_no_pages": "No pages",
+  "frame_page_announce": "Page {current} of {total}",
+  "frame_contents": "Contents",
+  "frame_all_contents": "All contents…",
+  "frame_contents_announce": "{title}, page {page}",
+  "frame_zoom": "Zoom",
+  "frame_fit": "Fit",
+  "frame_field_outlines": "Show field outlines",
+  "frame_focus": "Focus",
+  "frame_focus_command": "Focus: hide the tools",
+  "frame_focus_on": "Focus on. Press F or Esc to show the tools.",
+  "frame_focus_on_touch": "Focus on. Tap the page to show the tools.",
+  "frame_focus_off": "Focus off",
+  "frame_markup": "Markup",
+  "frame_back_name": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Library, {count} open document",
+        "countPlural=*": "Library, {count} open documents"
+      }
+    }
+  ],
+  "frame_compact_title_name": "{name}, document menu",
+  "markup_label": "Markup",
+  "markup_fill_sign": "Fill & sign",
+  "markup_done": "Done",
+  "markup_done_tooltip": "Close Markup (Esc)",
+  "markup_done_description": "Closes Markup",
+  "markup_on": "Markup on. Select armed.",
+  "markup_off": "Markup off.",
+  "markup_armed": "{tool} armed · Esc: Select",
+  "markup_choices_hint": "Press again for choices",
+  "markup_more_tools": "More tools",
+  "markup_more_tools_armed": "More tools, {tool} armed",
+  "markup_group_select": "Select",
+  "markup_group_draw": "Draw",
+  "markup_group_add": "Add",
+  "markup_group_sign": "Fill and sign",
+  "markup_group_page": "Page content",
+  "markup_certificate": "Certificate…",
+  "markup_find_sensitive": "Find sensitive data…",
+  "markup_fields": "Fields",
+  "markup_field_position": "{n}/{total}",
+  "markup_field_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} field",
+        "countPlural=*": "{count} fields"
+      }
+    }
+  ],
+  "markup_field_named": "Field {n} of {total}: {name}",
+  "markup_field_previous": "Previous field",
+  "markup_field_next": "Next field",
+  "markup_field_outlines": "Show field outlines",
+  "markup_no_fields": "This file has no form fields",
+  "markup_font_smaller": "Smaller text",
+  "markup_font_larger": "Larger text",
+  "dock_label": "Document tools",
+  "dock_pages": "Pages",
+  "dock_markup": "Markup",
+  "dock_fill_sign": "Fill & sign",
+  "dock_sign": "Sign",
+  "dock_more": "More",
+  "dock_locked": "Locked",
+  "dock_locked_name": "Locked: {name}. Unlock…",
+  "dock_no_pages": "No pages to mark up",
+  "dock_more_edit_text": "Edit text",
+  "dock_more_redact": "Redact",
+  "dock_more_ocr": "Recognize text…",
+  "dock_more_compare": "Compare with…",
+  "dock_more_crop": "Crop pages…",
+  "dock_more_commands": "All commands…",
+  "markup_locked_closed": "Locked. Markup closed.",
+  "nav_resized": "Sidebar {width} pixels",
+  "nav_find_count_name": [
+    {
+      "declarations": ["input label", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label}, {count} match",
+        "countPlural=*": "{label}, {count} matches"
+      }
+    }
+  ],
+  "thumb_announce_page": "Page {page} of {total}",
+  "thumb_announce_lift": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moving 1 page",
+        "countPlural=*": "Moving {count} pages"
+      }
+    }
+  ],
+  "thumb_menu_select": "Select",
+  "thumb_menu_deselect": "Deselect",
+  "thumb_menu_rotate_left_many": "Rotate {count} pages left",
+  "thumb_menu_rotate_right_many": "Rotate {count} pages right",
+  "thumb_menu_delete_many": "Delete {count} pages",
+  "thumb_menu_crop": "Crop page…",
+  "thumb_menu_insert_blank": "Insert blank page after",
+  "thumb_menu_extract": "Extract to new document",
+  "thumb_menu_copy": "Copy page",
+  "thumb_menu_copy_many": "Copy {count} pages",
+  "thumb_menu_paste_after": "Paste pages after",
+  "thumb_menu_show_grid": "Show in Pages grid",
+  "thumb_menu_one_page": "A document needs one page",
+  "find_no_matches": "No matches in {title}",
+  "find_no_text": "No text on these pages",
+  "find_no_text_pages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "No text on 1 page",
+        "countPlural=*": "No text on {count} pages"
+      }
+    }
+  ],
+  "find_recognize": "Recognize text…",
+  "find_results_more": "More result actions",
+  "find_marked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Marked 1 match",
+        "countPlural=*": "Marked {count} matches"
+      }
+    }
+  ],
+  "review_filter_words": "Words to check",
+  "review_words_empty": "No words to check",
+  "review_words_recognised": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 page recognized",
+        "countPlural=*": "{count} pages recognized"
+      }
+    }
+  ],
+  "review_words_low": "Low confidence · {confidence}",
+  "find_match_case_chip": "Match case",
+  "grid_announce_enter": "Pages grid. {pages}. Page {page}.",
+  "grid_announce_leave": "Page {page} of {count}",
+  "grid_region_label": "Pages grid of {title}",
+  "grid_region_label_all": "Pages grid of {count} documents",
+  "grid_size_label": "Thumbnail size",
+  "grid_size_small": "Small",
+  "grid_size_medium": "Medium",
+  "grid_size_large": "Large",
+  "grid_size_larger": "Larger",
+  "grid_size_largest": "Largest",
+  "grid_size_announce": "Thumbnail size {name}",
+  "grid_sources": "Sources: {names}",
+  "grid_scope_label": "Show pages of",
+  "grid_scope_document": "This document",
+  "grid_scope_all": "All open",
+  "grid_scope_all_reason": "Only one document is open",
+  "grid_pinch_open": "Release to open page {page}",
+  "grid_moved_to_toast": [
+    {
+      "declarations": ["input count", "input title", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moved 1 page to {title}",
+        "countPlural=*": "Moved {count} pages to {title}"
+      }
+    }
+  ],
+  "pages_bar_label": "Selected pages",
+  "pages_bar_done": "Done",
+  "pages_bar_clear": "Clear selection",
+  "pages_bar_earlier": "Move earlier",
+  "pages_bar_later": "Move later",
+  "pages_bar_already_first": "Already first",
+  "pages_bar_already_last": "Already last",
+  "pages_bar_delete": "Delete",
+  "pages_bar_one_page": "A document needs one page",
+  "pages_bar_extract": "Extract",
+  "pages_bar_duplicate": "Duplicate",
+  "pages_bar_move_to": "Move to",
+  "pages_bar_new_document": "New document",
+  "pages_bar_more": "More actions",
+  "pages_bar_select_all": "Select all",
+  "pages_bar_unlock": "Unlock",
+  "pages_bar_insert_blank": "Insert blank page after",
+  "pages_bar_crop": "Crop…",
+  "pages_bar_resize": "Resize…",
+  "pages_bar_copy": "Copy",
+  "pages_bar_paste": "Paste after",
+  "pages_bar_copy_to_new": "Copy to new document",
+  "pages_bar_reverse": "Reverse order",
+  "pages_bar_select_odd": "Select odd",
+  "pages_bar_select_even": "Select even",
+  "pages_bar_insert_images": "Insert images…",
+  "pages_bar_split": "Split…",
+  "pages_bar_interleave": "Interleave…",
+  "cmd_extract_pages": "Extract pages…",
+  "cmd_grid_done": "Leave the Pages grid",
+  "cmd_combine_open": "Combine with open documents…",
+  "split_primary": "Split into {count}",
+  "split_mode_every_short": "Every n pages",
+  "split_part_label": "{part} of {parts}",
+  "split_toast": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Split into 1 document",
+        "countPlural=*": "Split into {count} documents"
+      }
+    }
+  ],
+  "interleave_sheet_title": "Interleave {title}",
+  "interleave_needs_second": "Open a second document first",
+  "interleave_preview_new": "Creates {title} with {pages}; both files stay open.",
+  "interleave_toast": "Interleaved into {title}",
+  "combine_sheet_title": "Combine with open documents",
+  "combine_sheet_description": "Makes a new document; the files stay open as they are.",
+  "combine_order_label": "Documents, in order",
+  "combine_name_label": "Name",
+  "combine_preview": "Creates 1 document with {pages}",
+  "combine_needs_two": "Choose at least two documents",
+  "combine_announce_moved": "Moved {title} to position {position}",
+  "extract_sheet_title": "Extract pages",
+  "extract_pages_label": "Pages",
+  "extract_mode_label": "The original",
+  "extract_keep": "Keep them in {title}",
+  "extract_remove": "Remove them from {title}",
+  "extract_primary": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Extract 1 page",
+        "countPlural=*": "Extract {count} pages"
+      }
+    }
+  ],
+  "extract_preview_keep": "Creates a new document with {pages}; the original stays as it is.",
+  "extract_preview_remove": "Creates a new document with {pages} and removes them from the original.",
+  "extract_toast_copied": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Copied 1 page to a new document",
+        "countPlural=*": "Copied {count} pages to a new document"
+      }
+    }
+  ],
+  "extract_toast_moved": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moved 1 page to a new document",
+        "countPlural=*": "Moved {count} pages to a new document"
+      }
+    }
+  ],
+  "insert_images_primary": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Insert 1 page",
+        "countPlural=*": "Insert {count} pages"
+      }
+    }
+  ],
+  "tab_drop_label": [
+    {
+      "declarations": ["input count", "input title", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move 1 page to {title}",
+        "countPlural=*": "Move {count} pages to {title}"
+      }
+    }
+  ],
+  "tab_drop_here": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move 1 page here",
+        "countPlural=*": "Move {count} pages here"
+      }
+    }
+  ]
 }

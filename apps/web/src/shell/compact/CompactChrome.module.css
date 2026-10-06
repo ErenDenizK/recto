@@ -1,8 +1,9 @@
 /*
  * The compact reader's chrome (ADR-0033 §2.3; components/01-frame.md F9, F12). Two glass
- * pieces over the pages (today's `.glass`; the new glass comes in D3):
+ * pieces over the pages (materials.css):
  *
- * - the top bar: 44 px plus the safe area, full width, a hairline below and no shadow;
+ * - the top bar: docked M3, 44 px plus the safe area, full width, a hairline below and no
+ *   shadow;
  * - the capsule: a 56 px pill of 44 px controls, centred above the home indicator.
  *
  * Hidden, each moves out by `transform` and fades by `opacity` on itself (never a wrapper,
@@ -11,7 +12,7 @@
  * is solid (CompactSheet.module.css), so none (Q-11).
  */
 .topBar {
-  composes: glass from global;
+  composes: mat mat-panel mat-docked s8 from global;
   position: fixed;
   top: 0;
   right: 0;
@@ -19,11 +20,11 @@
   z-index: 2;
   padding: env(safe-area-inset-top, 0px) max(env(safe-area-inset-right, 0px), 4px) 0
     max(env(safe-area-inset-left, 0px), 4px);
-  border-width: 0 0 1px;
-  border-radius: 0;
-  box-shadow: none;
+  border-bottom: 1px solid var(--border-hairline);
+  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
+     motion, where the fade stays (§7.5). */
   transition:
-    transform var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);
 }
 
@@ -51,9 +52,10 @@
   white-space: nowrap;
 }
 
-/* ⋯ menu: the menu tier of today's glass, rows of 44 px with 16 px icons (Q-9). */
+/* ⋯ menu: M4, rows of 44 px with 16 px icons (Q-9); a one-row menu (58 px, c 0.984 at 12px)
+   takes σ 8 (`r8`, coverage registry `compact-menu-one-row`). */
 .menu {
-  composes: glass glass-menu from global;
+  composes: mat mat-menu s12 r8 from global;
   min-width: 232px;
   max-width: calc(100vw - 16px);
   padding: 6px;
@@ -64,12 +66,6 @@
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
-}
-
-/* A one-row menu would be 58 px, too short for the menus' 12px blur (c 0.984): it takes 7px,
-   as ui/Menu's do (coverage registry, `compact-menu-one-row`). */
-.menu:not(:has(> :nth-child(2))) {
-  --glass-filter: var(--glass-menu-short-filter);
 }
 
 .menu[data-starting-style],
@@ -96,7 +92,6 @@
   width: 16px;
   height: 16px;
   color: var(--text-secondary);
-  stroke-width: 1.75;
 }
 
 /* The highlighted row is the keyboard's place in the menu (as in ui/Menu): neither band. */
@@ -148,7 +143,7 @@
 }
 
 .field:focus-within::before {
-  border-color: var(--accent);
+  border-color: var(--focus-light);
 }
 
 .field svg {
@@ -158,7 +153,6 @@
   height: 16px;
   margin-left: 12px;
   color: var(--text-secondary);
-  stroke-width: 1.75;
 }
 
 .input {
@@ -203,7 +197,7 @@
 }
 
 .capsule {
-  composes: glass from global;
+  composes: mat mat-bar s10 from global;
   position: fixed;
   right: 0;
   bottom: max(env(safe-area-inset-bottom, 0px), 12px);
@@ -218,8 +212,10 @@
   margin-inline: auto;
   padding: 0 6px;
   border-radius: var(--radius-round);
+  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
+     motion, where the fade stays (§7.5). */
   transition:
-    transform var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);
 }
 

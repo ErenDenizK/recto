@@ -1,8 +1,9 @@
 /*
  * The Sheet primitive (components/07-sheets.md §2.2–§2.4; quality-bar Q-2, Q-3, Q-4, Q-7, Q-9).
  *
- * One glass surface, the panel, in today's menu tier (`glass glass-menu`; M5's own σ and tint
- * arrive in D3), registered per presentation in styles/coverage-registry.ts. It is laid out at
+ * One glass surface, the panel, M5 (`mat mat-sheet s24 c20`: σ 24, the dialogs' value under
+ * 260 px that every presentation shares; 20 coarse), registered per presentation in
+ * styles/coverage-registry.ts. It is laid out at
  * its final size and moves by `transform` only (sheet-motion.ts): at rest it sits at
  * `--sheet-x` / `--sheet-y`, whole pixels the script writes (a bottom sheet's detent), so no
  * transform is left inline at rest (Q-2). The scrim is a separate element and fades. Nothing
@@ -22,7 +23,7 @@
 }
 
 .panel {
-  composes: glass glass-menu from global;
+  composes: mat mat-sheet s24 c20 from global;
   --sheet-radius: 20px;
   --sheet-bleed: 48px;
   --sheet-pad: 20px;
@@ -46,7 +47,7 @@
 
 /* Side sheet: 8 px from the title bar, the trailing edge and the bottom (07 §2.2). */
 .panel[data-presentation='side'] {
-  top: calc(var(--titlebar-height) + 8px);
+  top: calc(var(--free-top, var(--bar-h)) + 8px);
   bottom: 8px;
   inset-inline-end: 8px;
   width: min(var(--sheet-w), calc(100vw - 16px));

@@ -6,8 +6,13 @@
  * Selection may span documents and survives mode switches. Pages that leave the
  * workspace (delete, undo of an open) are pruned automatically, from the selection and
  * from the light table's page clipboard (Mod+X / Mod+C, spec §3).
+ *
+ * Selection is explicit (redesign spec §11 D1-9; 06-navigation §4): in the navigator a
+ * click, tap or arrow key only navigates, and only Shift, Mod and Space select
+ * (`navigatorClick`, `navigatorExtend`), so a navigating click can never arm Delete (S10).
+ * Delete then acts only on a selection the person can see (`visibleSelection`).
  */
-import type { PageId, Workspace } from '@pdf-editor/document-model';
+import type { DocumentId, PageId, VirtualDocument, Workspace } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
 import { useWorkspaceStore } from './workspace-store';
@@ -135,6 +140,53 @@ export function marqueeSelection(
   return { selected, anchor: first, focused: first };
 }
 
+/**
+ * A click on a navigator thumbnail (06-navigation §4.6). A plain click navigates and never
+ * selects (S10): it returns `state` itself. Shift selects the range from the anchor, else
+ * from `current` (the page being read); Mod toggles the page. The grid's keyboard focus
+ * (`focused`) is kept, so a gesture in the navigator never moves the grid's cursor.
+ */
+export function navigatorClick(
+  state: SelectionSnapshot,
+  order: readonly PageId[],
+  id: PageId,
+  modifiers: ClickModifiers,
+  current: PageId | null,
+): SelectionSnapshot {
+  if (!modifiers.shift && !modifiers.mod) return state;
+  const anchor = state.anchor !== null && order.includes(state.anchor) ? state.anchor : current;
+  const next = clickSelection({ ...state, anchor }, order, id, modifiers);
+  return { ...next, focused: state.focused };
+}
+
+/**
+ * Shift+Up/Down in the navigator: the range from the anchor, else from the row the key left
+ * (`from`), to `to`. The grid's `focused` is kept, as for `navigatorClick`.
+ */
+export function navigatorExtend(
+  state: SelectionSnapshot,
+  order: readonly PageId[],
+  from: PageId,
+  to: PageId,
+): SelectionSnapshot {
+  return { ...extendSelection({ ...state, focused: from }, order, to), focused: state.focused };
+}
+
+/**
+ * The selected pages a person can see on the page (S10, flows §3.1 "a visible selection
+ * only"): on the page the only place a page selection shows is the navigator's thumbnail
+ * list, so the selected pages of the document it lists (`shown`), in page order, and none
+ * while it is closed. The Pages grid badges every selected cell, so there the whole
+ * selection is visible and this is not asked.
+ */
+export function visibleSelection(
+  selected: ReadonlySet<PageId>,
+  shown: VirtualDocument | undefined,
+): PageId[] {
+  if (shown === undefined || selected.size === 0) return [];
+  return shown.pages.flatMap((page) => (selected.has(page.id) ? [page.id] : []));
+}
+
 /** Same members, regardless of order. */
 export function sameSelection(a: ReadonlySet<PageId>, b: ReadonlySet<PageId>): boolean {
   if (a.size !== b.size) return false;
@@ -171,19 +223,27 @@ export interface PageClipboard {
 
 interface SelectionState extends SelectionSnapshot {
   readonly clipboard: PageClipboard | null;
+  /**
+   * The document whose thumbnails the navigator lists while its list is on screen, else
+   * null: where a selection is visible on the page (`visibleSelection`, S10).
+   */
+  readonly navigatorDocument: DocumentId | null;
   apply: (next: SelectionSnapshot) => void;
   clear: () => void;
   setFocused: (id: PageId | null) => void;
   setClipboard: (clipboard: PageClipboard | null) => void;
+  setNavigatorDocument: (id: DocumentId | null) => void;
 }
 
 export const useSelectionStore = create<SelectionState>()((set) => ({
   ...EMPTY_SELECTION,
   clipboard: null,
+  navigatorDocument: null,
   apply: (next) => set({ selected: next.selected, anchor: next.anchor, focused: next.focused }),
   clear: () => set((s) => (s.selected.size === 0 ? s : { selected: new Set(), anchor: null })),
   setFocused: (focused) => set({ focused }),
   setClipboard: (clipboard) => set({ clipboard }),
+  setNavigatorDocument: (navigatorDocument) => set({ navigatorDocument }),
 }));
 
 /** Drops clipboard pages that no longer exist; null when none are left. */

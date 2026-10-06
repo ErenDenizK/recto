@@ -5,28 +5,23 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, useFileInputPicker, showSidebar } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
 });
 
-/** The navigator's Pages tab switched to Bookmarks (experience-redesign §4.1). */
+/** The sidebar's Pages section on Contents (06-navigation N3; spec X27). */
 async function showBookmarks(page: Page): Promise<void> {
-  const pages = page.getByRole('tab', { name: /^Pages/ });
-  if ((await pages.getAttribute('aria-selected')) !== 'true') await pages.click();
-  await page
-    .getByRole('radiogroup', { name: 'Pages view' })
-    .getByRole('radio', { name: 'Bookmarks' })
-    .click();
+  await showSidebar(page, 'Pages', 'Contents');
 }
 test('the outline panel shows the bookmarks and navigates Read mode', async ({ page }) => {
   await page.goto('./?lang=en');
   await openFixtures(page, ['outline-named-dests.pdf']);
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 
   await showBookmarks(page);
-  const tree = page.getByRole('tree', { name: /Outline of/ });
+  const tree = page.getByRole('tree', { name: /Contents of/ });
   // The authored open state (/Count sign, read by the engine's inspector): "Chapter 2"
   // starts expanded, "2.2 Results" collapsed.
   const chapter2 = tree.getByRole('treeitem', { name: 'Chapter 2 – Methods' });
@@ -38,7 +33,7 @@ test('the outline panel shows the bookmarks and navigates Read mode', async ({ p
   );
 
   await tree.getByRole('treeitem', { name: 'Appendix' }).click();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 6 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^6 \/ 6 · /);
 
   // Keyboard (APG tree): collapse, expand, walk into the children, activate one.
   await chapter2.focus();
@@ -56,18 +51,22 @@ test('the outline panel shows the bookmarks and navigates Read mode', async ({ p
   await page.keyboard.press('ArrowRight');
   await expect(tree.getByRole('treeitem', { name: '2.2.1 Details' })).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 5 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^5 \/ 6 · /);
   await page.keyboard.press('Home');
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 });
 
 test('?lang= overrides the language without persisting it', async ({ page }) => {
   await page.goto('./?lang=tr');
-  await expect(page.getByRole('heading', { name: 'Başlamak için PDF bırakın' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+  ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
-  await expect(page.getByTestId('privacy-indicator')).toContainText('Yalnızca yerel');
-  await expect(page.getByTestId('privacy-indicator')).toContainText('Dış istek yok');
+  // ◎ is a glyph now (01-frame F8): its name is in Turkish.
+  await expect(page.getByTestId('privacy-indicator')).toHaveAccessibleName(
+    'Gizlilik: bu cihazdan hiçbir veri çıkmadı',
+  );
 
   await page.goto('./');
   await expect(page.locator('html')).not.toHaveAttribute('lang', 'tr');
@@ -75,15 +74,23 @@ test('?lang= overrides the language without persisting it', async ({ page }) => 
 
 test('the Language command switches at runtime and persists', async ({ page }) => {
   await page.goto('./?lang=en');
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
-  await page.getByRole('button', { name: 'Search commands…' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
+  // The command field left the strip (01-frame §0); ⌘K stays a key.
+  await page.getByTestId('home-button').waitFor();
+  await page.keyboard.press('ControlOrMeta+k');
   await page.getByRole('combobox', { name: 'Search commands' }).fill('language');
   await page.getByRole('option', { name: 'Türkçe' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Başlamak için PDF bırakın' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+  ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
   // The explicit choice drops the override from the address and survives a reload.
   expect(new URL(page.url()).searchParams.has('lang')).toBe(false);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Başlamak için PDF bırakın' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+  ).toBeVisible();
 });

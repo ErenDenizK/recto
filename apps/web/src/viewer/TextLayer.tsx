@@ -6,21 +6,22 @@
  * page's readable content for assistive technology.
  *
  * Built for pages within one page of the viewport, kept while within three, dropped
- * beyond. Selectable only while text selection is live in the one hit order
- * (`hit-order.ts`: the Select tool, and always in Read).
+ * beyond. Selectable only while text selection is live in the hit router (`hit-order.ts`:
+ * viewing, Markup with Select, and Locked; never with a drawing tool, whose pointer draws).
  *
- * In Edit it is also the way into the page-text editor and its hover hint (craft spec
- * §3.5): with Select armed, a double-click on page text from a mouse, or from a pen used
- * as a pointer, opens the editor with the caret at the point (`openTextEditorAt`); never
- * from touch, never from a pen while "Pen draws in Edit" is on. After 400 ms of idle hover
- * (no button down, mouse or pen, not within 300 ms of a pen stroke) over page text with
- * Select or Edit text armed, a faint outline marks the run under the pointer, from this
- * layer's own text model; a target above the text in the hit order (annotation, field,
- * image) shows none, and none shows while a paragraph editor is open. Until the first such
- * double-click, the outline brings a one-line hint, "Double-click to edit text", once per
- * device (`edit-policy-store.ts`). A single click on page text with Select brings the same
- * hint at once, below the clicked line, so a person who expects a click to open the
- * paragraph learns the gesture (review finding 3).
+ * The double-click asymmetry (flows §3.2, 05-canvas §6, §9): in viewing and when locked a
+ * double-click selects a word, as on any page. Only in Markup with Select, where the person
+ * has chosen to change the document, is this layer also the door to the paragraph editor and
+ * its hover hint: a double-click on page text from a mouse, or from a pen while no pen draws
+ * (spec 05.12), opens the editor with the caret at the point (`openTextEditorAt`); never from
+ * touch. After 400 ms of idle hover (no button down, mouse or pen, not within 500 ms of a pen
+ * stroke) over page text there, an outline marks the paragraph under the pointer; a target
+ * above the text in the hit order (annotation, field, link, image) shows none, and none shows
+ * while a paragraph editor is open. Until the first such double-click, the outline brings a
+ * one-line hint, "Double-click to edit text", once per device (`input-policy-store.ts`). A
+ * single click on page text brings the same hint at once, below the clicked line, so a person
+ * who expects a click to open the paragraph learns the gesture (review finding 3). With the
+ * Edit text tool the tool's own targets are the affordance (`text-edit/`), so no outline.
  */
 import type { TextRun } from '@pdf-editor/engine';
 import {
@@ -36,20 +37,21 @@ import { cssPointToUser } from '../annotations/geometry';
 import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
-import { useEditPolicyStore } from '../state/edit-policy-store';
-import { useCanEdit } from '../state/ui-store';
+import { useInputPolicyStore } from '../state/input-policy-store';
 import { distanceFromView, useViewStore } from '../state/view-store';
 import { openTextEditorAt } from '../text-edit/entry';
 import { useParagraphBoxAt, useTextEditStore } from '../text-edit/text-edit-store';
 import { penDrawsNow, pointerLog } from './edit-policy';
 import {
+  doubleClickOpensEditor,
   HOVER_DELAY_MS,
   hitAt,
   hitKindOf,
   hoverAllowed,
+  hoverOutlines,
   isLive,
-  opensTextOnDoubleClick,
 } from './hit-order';
+import { pageInputNow, usePageInput } from './input-state';
 import { pageFrame } from './page-frame';
 import {
   layoutTextLines,
@@ -60,7 +62,6 @@ import {
 } from './text-model';
 import styles from './TextLayer.module.css';
 import { lineStyle } from './text-spans';
-import { useToolStore } from './tool-store';
 
 // The span geometry and the copy handler live in text-spans.ts, shared with the compact
 // edition's reader; ReadView imports the copy handler from here.
@@ -94,14 +95,14 @@ export function lineAt(lines: readonly TextLine[], p: { x: number; y: number }):
 export function TextLayer(props: PageOverlayProps) {
   const { sourceId, sourceIndex, pageIndex, pageId } = props;
   const distance = useViewStore((s) => distanceFromView(pageIndex, s.visibleRange));
-  const mode = useToolStore((s) => s.mode);
-  const editable = useCanEdit();
-  const selectable = isLive('text-selection', mode, editable);
-  // The idle hover outline: Edit only (ADR-0019 §5), and never over an open paragraph
-  // editor (its own glyphs and caret are the affordance then).
+  const { state } = usePageInput();
+  const selectable = isLive('text-selection', state);
+  // The idle hover outline: only where a double-click edits, Markup with Select (05-canvas
+  // §9), and never over an open paragraph editor (its own glyphs and caret are the affordance
+  // then).
   const paragraphOpen = useTextEditStore((s) => s.paragraph !== null);
-  const hovering = editable && (mode === 'select' || mode === 'edit-text') && !paragraphOpen;
-  const hintShown = useEditPolicyStore((s) => s.editTextHintShown);
+  const hovering = hoverOutlines(state) && !paragraphOpen;
+  const hintShown = useInputPolicyStore((s) => s.editTextHintShown);
   const [hover, setHover] = useState<{ readonly key: string; readonly line: number } | null>(null);
   // The first-click hint (module header): where it shows, until the next press.
   const [clickHint, setClickHint] = useState<{
@@ -237,8 +238,8 @@ export function TextLayer(props: PageOverlayProps) {
       : undefined,
   );
 
-  // Select, in Edit, before the first double-click: a plain click on text shows the hint.
-  const clickHints = hovering && mode === 'select' && !hintShown;
+  // Markup with Select, before the first double-click: a plain click on text shows the hint.
+  const clickHints = hovering && !hintShown;
   const layerShown = lines.length > 0;
   useEffect(() => {
     const layer = layerRef.current;
@@ -259,17 +260,20 @@ export function TextLayer(props: PageOverlayProps) {
   // A new revision keeps showing the previous text until the new text arrives.
   if (!hasLayer || lines.length === 0) return null;
 
-  /** Select, in Edit: a double-click on page text opens the editor with the caret there. */
+  /**
+   * Markup with Select: a double-click on page text opens the editor with the caret there.
+   * Elsewhere the browser's own double-click selects the word (the asymmetry, flows §3.2).
+   */
   const onDoubleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
-    if (!editable || mode !== 'select' || sourceId === undefined || event.button !== 0) return;
-    if (!opensTextOnDoubleClick(pointerLog.lastDownType, penDrawsNow())) return;
+    if (sourceId === undefined || event.button !== 0) return;
+    if (!doubleClickOpensEditor(pageInputNow(), pointerLog.lastDownType, penDrawsNow())) return;
     // The one hit order: only when page text is what is under the pointer.
     if (hitAt(event.clientX, event.clientY)?.kind !== 'text-selection') return;
     const r = event.currentTarget.getBoundingClientRect();
     const point = cssPointToUser(frame, { x: event.clientX - r.left, y: event.clientY - r.top });
     // The editor takes the place of the word the double-click selected.
     window.getSelection()?.removeAllRanges();
-    useEditPolicyStore.getState().markEditTextHintShown();
+    useInputPolicyStore.getState().markEditTextHintShown();
     setHover(null);
     void openTextEditorAt(
       { source: sourceId, pageIndex: sourceIndex, pageId, position: pageIndex + 1 },
@@ -278,7 +282,7 @@ export function TextLayer(props: PageOverlayProps) {
   };
 
   const outlined = hover?.key === key && hovering ? lines[hover.line] : undefined;
-  const hint = outlined !== undefined && mode === 'select' && !hintShown;
+  const hint = outlined !== undefined && !hintShown;
 
   return (
     <>
@@ -319,7 +323,7 @@ export function TextLayer(props: PageOverlayProps) {
               data-unit={paragraphBox ? 'paragraph' : 'line'}
             />
           ) : null}
-          {mode === 'select' && !hintShown ? (
+          {!hintShown ? (
             <div className={styles.hintStatus} role="status">
               {hint && outlined ? (
                 <span
@@ -336,7 +340,7 @@ export function TextLayer(props: PageOverlayProps) {
           ) : null}
         </div>
       ) : null}
-      {clickHint?.key === key && hovering && mode === 'select' && !hintShown && !hint ? (
+      {clickHint?.key === key && hovering && !hintShown && !hint ? (
         <div className={styles.hover} data-text-click-hint="">
           <div className={styles.hintStatus} role="status">
             <span className={styles.hint} style={{ left: clickHint.left, top: clickHint.top }}>

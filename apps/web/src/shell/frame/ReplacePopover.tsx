@@ -23,7 +23,9 @@ import popoverStyles from '../../ui/Popover.module.css';
 import styles from './ReplacePopover.module.css';
 import { SAVE_BUTTON_ID } from './SaveButton';
 
-const saveButton = () => document.getElementById(SAVE_BUTTON_ID);
+// Below Save; on a compact window, where Save lives in the title menu, below the title.
+const saveButton = () =>
+  document.getElementById(SAVE_BUTTON_ID) ?? document.getElementById('compact-title');
 
 export function ReplacePopover() {
   const pending = useSaveStore((s) => s.pending);

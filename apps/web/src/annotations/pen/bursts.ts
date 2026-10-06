@@ -460,7 +460,7 @@ export function installBurstRules(): void {
   if (installed) return;
   installed = true;
   useToolStore.subscribe((state, previous) => {
-    if (state.mode !== previous.mode || state.barGroup !== previous.barGroup) closeBurst();
+    if (state.mode !== previous.mode) closeBurst();
   });
   useAnnotationStore.subscribe((state, previous) => {
     if (state.selection !== null && state.selection !== previous.selection) closeBurst();

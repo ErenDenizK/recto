@@ -1,23 +1,32 @@
+/*
+ * The shell as layers (01-frame F1, §1.1): the stage fills the free rectangle and the frame's
+ * layers float above it, each positioned against the shell. The stack, bottom to top: page
+ * scroller (z 0) · soft scroll edge (1) · sidebar (2) · inspector (2) · dock band (3) · top
+ * strip or compact bar (4) · drop overlay (5); contextual bars, toasts, sheets, menus and
+ * dialogs portal above.
+ *
+ * One backdrop root (quality-bar Q-3): the shell isolates its stacking but carries no filter,
+ * opacity, mask, clip or transform, so every glass surface blurs the page itself. The reader's
+ * scroll container runs under the docked frame to the shell's edges (data-stage-bleed).
+ */
 .shell {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-rows: var(--titlebar-height) minmax(0, 1fr) var(--statusbar-height);
-  grid-template-areas:
-    'title title title'
-    'left stage right'
-    'status status status';
+  position: relative;
   width: 100%;
   height: 100%;
+  /* Every layer is positioned, so nothing in flow gives the shell a height: it takes the
+     window's even where its parent has none (a test's container). */
+  min-height: 100dvh;
   min-width: 0;
-  background: var(--surface-0);
+  overflow: hidden;
+  background: var(--canvas);
   isolation: isolate;
 }
 
-/*
- * Full-bleed stage (docs/specs/craft.md §7): the Read view's page canvas runs under the title
- * bar, navigator, inspector and status bar (stage/ReadView.tsx, stage/stage-bleed.ts), so the
- * docked frame stacks above the stage. Grid items take z-index without being positioned.
- */
-.shell > :not(main) {
-  z-index: 1;
+/* The drop overlay's layer (01-frame F13 §2): the free rectangle, above the dock band and the
+   strip's layer order, never taking a pointer (the drop goes to the shell). */
+.dropLayer {
+  position: absolute;
+  inset: var(--free-top, 0px) var(--free-right, 0px) var(--free-bottom, 0px) var(--free-left, 0px);
+  z-index: 5;
+  pointer-events: none;
 }

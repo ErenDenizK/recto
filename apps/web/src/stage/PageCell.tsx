@@ -1,15 +1,19 @@
 /**
- * One light-table cell. Props are primitives so `memo` skips every cell a model change does
- * not affect (spec §7: a drop re-renders only the affected cells); selection, drag and
- * clipboard state come from per-cell store selectors for the same reason.
+ * One Pages grid cell (`components/06-navigation.md` PG4, §2.2): the page, its label, and the
+ * marks. Props are primitives so `memo` skips every cell a model change does not affect (a drop
+ * re-renders only the affected cells); selection, drag and clipboard state come from per-cell
+ * store selectors for the same reason.
  *
- * The hover action row (rotate, delete) lives in the reserved label gutter and only
- * toggles visibility, so nothing moves on hover (spec §4). It is a pointer affordance:
- * keyboard users have R / Shift+R and Delete, so the actions are hidden from assistive
- * tech and never focusable.
+ * - **Marks** (§2.2): the page that was current on the page view has a 2 px lime ring 3 px out
+ *   and its label at 600 (`aria-current="page"`); a selected page an inset 2 px `--select` ring
+ *   and a check badge, top trailing, never colour alone (A-19); both when both hold. The focus
+ *   ring takes the gap form outside them.
+ * - **No hover actions** (06.10, baseline V10): their 20 px rotate and delete failed touch and
+ *   A-15; the Pages bar and the cell menu carry them.
+ * - The mouse drags on the native path (`dnd/page-drag.ts`); touch and pen on the grid's
+ *   pointer path after a lift (`grid/grid-pointer-drag.ts`).
  */
 import type { BlobId, DocumentId, PageId, Rotation, SourceId } from '@pdf-editor/document-model';
-import { Bookmark, RotateCw, Trash2 } from 'lucide-react';
 import {
   memo,
   Profiler,
@@ -26,10 +30,11 @@ import { m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { rotationPhrase } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
+import { changeRefusal, refusalReason } from '../state/guard';
 import { useSelectionStore } from '../state/selection-store';
-import { useWorkspaceStore } from '../state/workspace-store';
-import { toast } from '../ui/Toast/toast';
+import { Icon } from '../ui/Icon';
 import styles from './ArrangeView.module.css';
+import { showGridLockNotice } from './grid/grid-lock-notice';
 import { ResizedContent } from './ResizedContent';
 
 export interface PageCellProps {
@@ -67,6 +72,11 @@ export interface PageCellProps {
   readonly boxHeight: number;
   readonly outlined: boolean;
   readonly tabbable: boolean;
+  /** The page that was current on the page view (the lime ring). */
+  readonly current?: boolean | undefined;
+  /** Split's preview: the part this page starts (2-based) and how many parts (S13). */
+  readonly cutPart?: number | undefined;
+  readonly parts?: number | undefined;
   readonly visible: boolean;
 }
 
@@ -125,6 +135,9 @@ function PageCellInner({
   boxHeight,
   outlined,
   tabbable,
+  current = false,
+  cutPart,
+  parts,
   visible,
 }: PageCellProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -138,8 +151,16 @@ function PageCellInner({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    return attachPageDrag(el, pageId);
-  }, [pageId]);
+    // The guard at the lift (§2.4): a locked document lifts nothing and says why at the cell.
+    return attachPageDrag(el, pageId, () => {
+      const refusal = changeRefusal(documentId, 'pages');
+      if (!refusal) return true;
+      const reason = refusalReason(refusal);
+      announce(reason);
+      showGridLockNotice(el, reason);
+      return false;
+    });
+  }, [pageId, documentId]);
 
   const frame =
     contentLeft === undefined ||
@@ -150,10 +171,6 @@ function PageCellInner({
       : { left: contentLeft, top: contentTop, width: contentWidth, height: contentHeight };
 
   const position = String(index + 1);
-  const labelText =
-    label === position
-      ? m.page_option_label({ label: position })
-      : m.page_option_label_with_index({ position, label });
   const name = `${
     label === position
       ? m.cell_label({ position, count })
@@ -162,27 +179,13 @@ function PageCellInner({
     outlined ? m.cell_bookmarked() : ''
   }`;
 
-  const rotate = () => {
-    if (useWorkspaceStore.getState().rotatePages([pageId], 90)) {
-      announce(m.announce_rotated_right({ count: 1 }));
-    }
-  };
-  const remove = () => {
-    if (useWorkspaceStore.getState().deletePages([pageId])) {
-      // The Undo toast (FB4), said with the cell's own label as before.
-      toast.undo(m.toast_deleted_pages({ count: 1, page: index + 1 }), {
-        documentId,
-        spoken: m.announce_deleted_page({ label: labelText }),
-      });
-    }
-  };
-
   return (
     <div
       ref={ref}
       role="gridcell"
       aria-colindex={column + 1}
       aria-selected={selected}
+      aria-current={current ? 'page' : undefined}
       aria-label={name}
       tabIndex={tabbable ? 0 : -1}
       data-page-id={pageId}
@@ -190,10 +193,16 @@ function PageCellInner({
       data-focused={focused || undefined}
       data-dragging={dragging || undefined}
       data-cut={cut || undefined}
+      data-current={current || undefined}
       data-tag={colorIndex}
       className={styles.cell}
       style={{ width: cellWidth }}
     >
+      {cutPart !== undefined && parts !== undefined ? (
+        <span className={styles.cut} style={{ height: boxHeight }} aria-hidden="true">
+          <span className={styles.cutLabel}>{m.split_part_label({ part: cutPart, parts })}</span>
+        </span>
+      ) : null}
       <div className={styles.box} style={{ height: boxHeight }}>
         <div
           className={styles.thumbSheet}
@@ -212,35 +221,16 @@ function PageCellInner({
               priority={visible ? RENDER_PRIORITY.visible : RENDER_PRIORITY.offscreen}
             />
           </ResizedContent>
+          {selected ? (
+            <span className={styles.check} aria-hidden="true">
+              <Icon name="check" />
+            </span>
+          ) : null}
         </div>
       </div>
       <div className={styles.meta} aria-hidden="true">
         <span className={styles.label}>{label}</span>
-        {outlined ? <Bookmark className={styles.outlineGlyph} /> : null}
-        <span className={styles.hoverActions} data-hover-actions="">
-          <span
-            className={styles.hoverAction}
-            aria-hidden="true"
-            title={m.action_rotate_right()}
-            onClick={(event) => {
-              event.stopPropagation();
-              rotate();
-            }}
-          >
-            <RotateCw />
-          </span>
-          <span
-            className={styles.hoverAction}
-            aria-hidden="true"
-            title={m.action_delete()}
-            onClick={(event) => {
-              event.stopPropagation();
-              remove();
-            }}
-          >
-            <Trash2 />
-          </span>
-        </span>
+        {outlined ? <Icon name="bookmark-simple" className={styles.outlineGlyph} /> : null}
       </div>
     </div>
   );

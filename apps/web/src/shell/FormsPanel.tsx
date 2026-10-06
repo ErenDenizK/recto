@@ -20,25 +20,6 @@
 import { Menu } from '@base-ui/react/menu';
 import type { CreatedFieldKind, VirtualDocument } from '@pdf-editor/document-model';
 import type { FormField, FormFieldKind } from '@pdf-editor/engine';
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  CircleDot,
-  CircleHelp,
-  Eraser,
-  Highlighter,
-  List,
-  type LucideIcon,
-  MousePointerClick,
-  PenLine,
-  Plus,
-  SquareCheck,
-  SquareChevronDown,
-  SquareDashedMousePointer,
-  TextCursorInput,
-  TriangleAlert,
-} from 'lucide-react';
 import { useId } from 'react';
 
 import { clearActiveForm } from '../forms';
@@ -51,30 +32,31 @@ import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon, type IconName } from '../ui/Icon';
 import { Tooltip } from '../ui/Tooltip';
 import menuStyles from '../ui/Menu.module.css';
 import styles from './FormsPanel.module.css';
 import { ReviewPanel } from './review/ReviewPanel';
 
-const ICONS: Record<FormFieldKind, LucideIcon> = {
-  text: TextCursorInput,
-  checkbox: SquareCheck,
-  radio: CircleDot,
-  combobox: SquareChevronDown,
-  listbox: List,
-  button: MousePointerClick,
-  signature: PenLine,
-  unknown: CircleHelp,
+const ICONS: Record<FormFieldKind, IconName> = {
+  text: 'textbox',
+  checkbox: 'check-square',
+  radio: 'radio-button',
+  combobox: 'caret-circle-down',
+  listbox: 'list',
+  button: 'cursor-click',
+  signature: 'signature',
+  unknown: 'question',
 };
 
-const CREATE_ICONS: Record<CreatedFieldKind, LucideIcon> = {
-  text: TextCursorInput,
-  checkbox: SquareCheck,
-  radio: CircleDot,
-  dropdown: SquareChevronDown,
-  listbox: List,
-  signature: PenLine,
-  button: MousePointerClick,
+const CREATE_ICONS: Record<CreatedFieldKind, IconName> = {
+  text: 'textbox',
+  checkbox: 'check-square',
+  radio: 'radio-button',
+  dropdown: 'caret-circle-down',
+  listbox: 'list',
+  signature: 'signature',
+  button: 'cursor-click',
 };
 
 /** The Review list on the Fields filter, without the filter chips. */
@@ -138,7 +120,7 @@ export function FormTools({
       {xfa.withFields ? <XfaBadge /> : null}
       {xfa.only ? (
         <p className={styles.warning} role="note">
-          <TriangleAlert aria-hidden="true" />
+          <Icon name="warning" />
           <span>{m.forms_xfa_only()}</span>
         </p>
       ) : null}
@@ -156,15 +138,14 @@ function AddFieldMenu({ disabled }: { readonly disabled: boolean }) {
         aria-pressed={placing !== null}
         data-add-field=""
       >
-        <Plus aria-hidden="true" />
+        <Icon name="plus" />
         {m.forms_add_field()}
-        <ChevronDown aria-hidden="true" />
+        <Icon name="caret-down" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="start" sideOffset={4} collisionPadding={8}>
           <Menu.Popup className={menuStyles.popup}>
             {FIELD_KINDS.map((kind) => {
-              const Icon = CREATE_ICONS[kind];
               return (
                 <Menu.Item
                   key={kind}
@@ -172,7 +153,7 @@ function AddFieldMenu({ disabled }: { readonly disabled: boolean }) {
                   data-add-kind={kind}
                   onClick={() => startPlacing(kind)}
                 >
-                  <Icon aria-hidden="true" width={14} height={14} />
+                  <Icon name={CREATE_ICONS[kind]} />
                   <span className={menuStyles.label}>{kindName(kind)}</span>
                 </Menu.Item>
               );
@@ -211,7 +192,7 @@ function Toolbar({
             data-edit-fields=""
             onClick={() => setDesign(!design)}
           >
-            <SquareDashedMousePointer aria-hidden="true" />
+            <Icon name="selection" />
             {m.forms_design()}
           </button>
         ) : null}
@@ -223,7 +204,7 @@ function Toolbar({
               aria-pressed={highlight}
               onClick={() => useFormStore.getState().setHighlight(!highlight)}
             >
-              <Highlighter aria-hidden="true" />
+              <Icon name="highlighter" />
               {m.forms_highlight()}
             </button>
             <button
@@ -232,7 +213,7 @@ function Toolbar({
               disabled={!fillable}
               onClick={() => void clearActiveForm()}
             >
-              <Eraser aria-hidden="true" />
+              <Icon name="eraser" />
               {m.forms_clear_all()}
             </button>
           </>
@@ -283,7 +264,7 @@ function openRow(row: FieldStop): void {
     openField(row);
     return;
   }
-  useUiStore.getState().setViewMode('read');
+  useUiStore.getState().showSurface('page');
   useViewStore.getState().scrollToPage(row.pageId);
 }
 
@@ -304,7 +285,7 @@ export function FieldRow({
   const design = useCreateStore((s) => s.design);
   const selected = useCreateStore((s) => s.selected);
   const active = useFormStore((s) => s.active);
-  const Icon = ICONS[row.field.kind];
+  const icon = ICONS[row.field.kind];
   const value = valueText(row.field);
   const label = fieldLabel(row.field);
   const current =
@@ -328,7 +309,7 @@ export function FieldRow({
         onClick={() => openRow(row)}
       >
         <span className={styles.icon} aria-hidden="true">
-          <Icon />
+          <Icon name={icon} />
         </span>
         <span className={styles.body}>
           <span className={styles.name}>
@@ -363,7 +344,7 @@ export function FieldRow({
             disabled={createdIndex <= 0}
             onClick={() => row.fieldId && stepTabOrder(row.fieldId, -1)}
           >
-            <ArrowUp aria-hidden="true" />
+            <Icon name="arrow-up" />
           </button>
           <button
             type="button"
@@ -373,7 +354,7 @@ export function FieldRow({
             disabled={createdIndex < 0 || createdIndex >= createdOnPage.length - 1}
             onClick={() => row.fieldId && stepTabOrder(row.fieldId, 1)}
           >
-            <ArrowDown aria-hidden="true" />
+            <Icon name="arrow-down" />
           </button>
         </span>
       ) : null}

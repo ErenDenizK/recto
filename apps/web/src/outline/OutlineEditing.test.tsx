@@ -96,7 +96,7 @@ const lastLabel = () => useWorkspaceStore.getState().history.present.label;
 beforeEach(() => {
   resetWorkspace();
   resetOutlineView();
-  useUiStore.setState({ viewMode: 'read' });
+  useUiStore.setState({ docUi: {} });
   useViewStore.setState({ currentPage: 0 });
   useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
 });
@@ -330,7 +330,7 @@ describe('Outline panel editing', () => {
   it('lets the first bookmark be added from the empty state', async () => {
     load([]);
     renderPanel();
-    expect(screen.getByText('No outline')).toBeVisible();
+    expect(screen.getByText('No contents')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Add bookmark' }));
     await screen.findByRole('textbox', { name: 'Bookmark title' });
     await userEvent.keyboard('Cover{Enter}');

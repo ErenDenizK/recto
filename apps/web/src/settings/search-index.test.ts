@@ -47,10 +47,11 @@ describe('settings search', () => {
   });
 
   it('folds case and Turkish diacritics as the palette does', () => {
-    expect(ids('saydamlik')).toContain('reduceTransparency');
-    expect(ids('SAYDAMLIĞI')).toContain('reduceTransparency');
-    expect(ids('görünüm')).toEqual(expect.arrayContaining(['glassPanels', 'reduceTransparency']));
-    expect(ids('gorunum')).toEqual(expect.arrayContaining(['glassPanels', 'reduceTransparency']));
+    expect(ids('saydamlik')).toContain('glass');
+    expect(ids('SAYDAMLIK')).toContain('glass');
+    expect(ids('yari saydam')).toContain('glass');
+    expect(ids('görünüm')).toEqual(expect.arrayContaining(['glass', 'reduceMotion']));
+    expect(ids('gorunum')).toEqual(expect.arrayContaining(['glass', 'reduceMotion']));
     expect(ids('İPUÇLARI')).toContain('showTips');
     expect(ids('ipuclari')).toContain('showTips');
     expect(ids('turkce')).toContain('language');
@@ -59,7 +60,7 @@ describe('settings search', () => {
   });
 
   it('needs every word of the query, and finds nothing for nonsense', () => {
-    expect(ids('glass solid')).toEqual(['reduceTransparency']);
+    expect(ids('glass solid')).toEqual(['glass']);
     expect(ids('zzqx')).toEqual([]);
     expect(ids('   ')).toHaveLength(SETTINGS_ROWS.length);
     expect(queryWords('  Cam  PANEL ')).toEqual(['cam', 'panel']);
@@ -90,9 +91,9 @@ describe('opening at a target', () => {
       page: 'about',
       reveal: { row: 'aboutVersion' },
     });
-    expect(landingOf({ row: 'glassPanels' })).toEqual({
+    expect(landingOf({ row: 'glass' })).toEqual({
       page: null,
-      reveal: { row: 'glassPanels' },
+      reveal: { row: 'glass' },
     });
     expect(landingOf(null)).toEqual({ page: null, reveal: null });
   });

@@ -1,8 +1,8 @@
 /**
  * S3 in the browser (components/07-sheets.md §5.4, §5.6, §5.8, §5.9; spec redesign D0-10): the
  * side sheet of 480 px with its sections; search filters and says when nothing matches; an
- * opener's row is revealed and its control focused; a system override disables Reduce
- * transparency with its reason; Show tips again is dimmed with a reason until a tip is used
+ * opener's row is revealed and its control focused; a system override forces Glass to Solid,
+ * disabled, with its reason; Glass sets Clear · Tinted · Solid; Show tips again is dimmed with a reason until a tip is used
  * up; About Recto shows the About dialog's facts in order, for a pre-release and a release, in
  * the UI language.
  */
@@ -19,7 +19,7 @@ import { setLocale } from '../i18n';
 import { usePwaStore } from '../pwa/register';
 import { makeBuildInfo } from '../shell/about/build-info';
 import { DEFAULT_APPEARANCE, useAppearanceStore } from '../state/appearance-store';
-import { resetEditPolicyStore, useEditPolicyStore } from '../state/edit-policy-store';
+import { resetInputPolicyStore, useInputPolicyStore } from '../state/input-policy-store';
 import { closeSheet, useSheetStore } from '../ui/sheet';
 import { openSettings } from './open-settings';
 import { AboutPage } from './pages';
@@ -33,7 +33,7 @@ let estimate: MockInstance<StorageManager['estimate']>;
 beforeEach(async () => {
   useSheetStore.setState({ open: null, front: null, confirm: null, drafts: {} });
   useAppearanceStore.setState(DEFAULT_APPEARANCE);
-  resetEditPolicyStore();
+  resetInputPolicyStore();
   usePwaStore.setState({ status: 'ready', updateAvailable: false });
   estimate = vi.spyOn(navigator.storage, 'estimate').mockResolvedValue({
     usage: 5 * 1024 * 1024,
@@ -72,7 +72,7 @@ describe('the Settings sheet', () => {
     expect(within(dialog).getByRole('search')).toContainElement(search);
 
     await userEvent.type(search, 'gorunum');
-    expect(within(dialog).getByRole('switch', { name: 'Glass panels' })).toBeVisible();
+    expect(within(dialog).getByRole('radiogroup', { name: 'Glass' })).toBeVisible();
     expect(within(dialog).queryByRole('switch', { name: /Pen draws/ })).toBeNull();
     await waitFor(() =>
       expect(within(dialog).getByRole('status')).toHaveTextContent('2 settings found'),
@@ -101,7 +101,7 @@ describe('the Settings sheet', () => {
     useAnnotationStore.getState().setAuthor('');
   });
 
-  it('a system setting forces Reduce transparency on, disabled, with its reason', async () => {
+  it('a system setting forces Glass to Solid, disabled, with its reason (A-17)', async () => {
     const real = window.matchMedia.bind(window);
     vi.spyOn(window, 'matchMedia').mockImplementation((query: string) =>
       query.includes('prefers-reduced-transparency')
@@ -116,11 +116,74 @@ describe('the Settings sheet', () => {
     act(() => openSettings({ section: 'appearance' }));
     render(<SettingsSheet />);
     const dialog = await screen.findByRole('dialog', { name: 'Settings' });
-    const control = within(dialog).getByRole('switch', { name: 'Reduce transparency' });
-    expect(control).toHaveAttribute('aria-checked', 'true');
-    expect(control).toHaveAttribute('aria-disabled', 'true');
-    expect(control).toHaveAccessibleDescription('On, set by your system');
-    expect(useAppearanceStore.getState().reduceTransparency).toBe(false);
+    await settled(dialog);
+    const group = within(dialog).getByRole('radiogroup', { name: 'Glass' });
+    const solid = within(group).getByRole('radio', { name: 'Solid' });
+    expect(solid).toBeChecked();
+    for (const radio of within(group).getAllByRole('radio')) {
+      expect(radio).toHaveAttribute('aria-disabled', 'true');
+    }
+    expect(within(dialog).getAllByText('Solid, set by your system')[0]).toBeVisible();
+    expect(useAppearanceStore.getState().glass).toBeNull();
+  });
+
+  it('sets Glass: Clear · Tinted · Solid, showing the start state until a choice', async () => {
+    act(() => openSettings({ row: 'glass' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const group = within(dialog).getByRole('radiogroup', { name: 'Glass' });
+    // Nothing picked: the start state, Clear under the test build's override (spec X36).
+    expect(within(group).getByRole('radio', { name: 'Clear' })).toBeChecked();
+    await userEvent.click(within(group).getByRole('radio', { name: 'Tinted' }));
+    expect(useAppearanceStore.getState().glass).toBe('tinted');
+    await userEvent.click(within(group).getByRole('radio', { name: 'Solid' }));
+    expect(useAppearanceStore.getState().glass).toBe('solid');
+    act(() => useAppearanceStore.setState({ glass: null }));
+  });
+
+  it('sets Reduce motion: System · On (language.md §7.6, spec D3-4)', async () => {
+    act(() => openSettings({ row: 'reduceMotion' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const group = within(dialog).getByRole('radiogroup', { name: 'Reduce motion' });
+    const system = within(group).getByRole('radio', { name: 'System' });
+    const on = within(group).getByRole('radio', { name: 'On' });
+    expect(system).toBeChecked();
+    expect(within(dialog).getByText('System follows your device’s setting.')).toBeVisible();
+    await userEvent.click(on);
+    expect(useAppearanceStore.getState().motion).toBe('reduced');
+    expect(on).toBeChecked();
+    await userEvent.click(system);
+    expect(useAppearanceStore.getState().motion).toBe('system');
+  });
+
+  it('a system setting shows Reduce motion On, disabled, with its reason', async () => {
+    const real = window.matchMedia.bind(window);
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) =>
+      query.includes('prefers-reduced-motion')
+        ? ({
+            matches: true,
+            media: query,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+          } as unknown as MediaQueryList)
+        : real(query),
+    );
+    act(() => openSettings({ row: 'reduceMotion' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const group = within(dialog).getByRole('radiogroup', { name: 'Reduce motion' });
+    const on = within(group).getByRole('radio', { name: 'On' });
+    expect(on).toBeChecked();
+    for (const radio of within(group).getAllByRole('radio')) {
+      expect(radio).toHaveAttribute('aria-disabled', 'true');
+    }
+    // The row's second line, and each disabled segment's reason.
+    expect(within(dialog).getAllByText('On, set by your system')[0]).toBeVisible();
+    expect(useAppearanceStore.getState().motion).toBe('system');
   });
 
   it('Show tips again waits, with its reason, until a tip has been used up', async () => {
@@ -130,10 +193,10 @@ describe('the Settings sheet', () => {
     const button = () => within(dialog).getByRole('button', { name: 'Show again' });
     expect(button()).toHaveAttribute('aria-disabled', 'true');
     expect(button()).toHaveAccessibleDescription('Every tip shows already');
-    act(() => useEditPolicyStore.getState().markEditTextHintShown());
+    act(() => useInputPolicyStore.getState().markEditTextHintShown());
     expect(button()).not.toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(button());
-    expect(useEditPolicyStore.getState().editTextHintShown).toBe(false);
+    expect(useInputPolicyStore.getState().editTextHintShown).toBe(false);
   });
 
   it('pushes About Recto and comes back to the row that pushed it', async () => {
@@ -162,7 +225,7 @@ describe('About Recto (the About dialog’s facts, ADR-0017 §6)', () => {
     expect(within(about).getByTestId('about-prerelease')).toHaveTextContent('Public beta');
     expect(within(about).getByTestId('about-version')).toHaveTextContent('1.0.0-beta.0');
     expect(within(about).getByTestId('about-commit')).toHaveTextContent('abc1234');
-    expect(within(about).getByTestId('about-build-date')).toHaveTextContent('October 1, 2026');
+    expect(within(about).getByTestId('about-build-date')).toHaveTextContent('1 Oct 2026');
     expect(within(about).getByTestId('about-license')).toHaveTextContent('Apache-2.0');
     const notes = within(about).getByRole('link', { name: /Release notes/ });
     expect(notes).toHaveAttribute(
@@ -192,7 +255,7 @@ describe('About Recto (the About dialog’s facts, ADR-0017 §6)', () => {
       'Files never leave your device.',
       '1.0.0-beta.0',
       'abc1234',
-      'October 1, 2026',
+      '1 Oct 2026',
       'Apache-2.0',
       '5.0 MB',
       'Installed · works offline',
@@ -217,7 +280,7 @@ describe('About Recto (the About dialog’s facts, ADR-0017 §6)', () => {
   it('formats the build date in the UI language', () => {
     setLocale('tr');
     render(<AboutPage info={BETA} />);
-    expect(screen.getByTestId('about-build-date')).toHaveTextContent('1 Ekim 2026');
+    expect(screen.getByTestId('about-build-date')).toHaveTextContent('1 Eki 2026');
     expect(screen.getByTestId('about-prerelease')).toHaveTextContent('Açık beta');
     expect(screen.getByText('Dosyalar cihazınızdan asla çıkmaz.')).toBeVisible();
   });

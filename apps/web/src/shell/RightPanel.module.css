@@ -1,8 +1,14 @@
 .panel {
-  /* Docked frame: --surface-1, or the tier-2 glass with "Glass panels" on (global.css). */
-  composes: glass-frame from global;
-  grid-area: right;
-  position: relative;
+  /* Docked M3 (materials.css): solid --surface-frame over the bare canvas, glass where a page
+     passes beneath it. */
+  composes: mat mat-panel mat-docked s24 from global;
+  /* A layer of the frame (01-frame F1 §2), on the right under the strip, until D2-9 removes the
+     inspector; it insets the free rectangle while 400 px of stage remain (X23). */
+  position: absolute;
+  top: var(--free-top, 0px);
+  right: 0;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -81,7 +87,7 @@
   padding: 0 6px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--warning);
   font-size: var(--text-xs);
   font-weight: 500;

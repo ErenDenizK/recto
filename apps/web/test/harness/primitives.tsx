@@ -5,13 +5,11 @@
  * forced by the spec through CDP (`hover`, `active`, `focus-visible`), so hover, pressed and focus
  * show side by side. Served by the spec's own Vite dev server; not an app route, never built.
  */
-import '@fontsource-variable/inter/wght.css';
 import '../../src/styles/fonts.css';
 import '../../src/styles/tokens.css';
 import '../../src/styles/reset.css';
 import '../../src/styles/global.css';
 
-import { Lock, Save, Trash2, Undo2 } from 'lucide-react';
 import { type ReactNode, StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -22,6 +20,7 @@ import { Button } from '../../src/ui/Button';
 import { Checkbox } from '../../src/ui/Checkbox';
 import { Chip, ChipGroup } from '../../src/ui/Chip';
 import { EmptyNote } from '../../src/ui/EmptyNote';
+import { Icon } from '../../src/ui/Icon';
 import { IconButton } from '../../src/ui/IconButton';
 import { Keycaps } from '../../src/ui/Keycaps';
 import { Progress } from '../../src/ui/Progress';
@@ -53,7 +52,7 @@ function Row({ name, children }: { readonly name: string; readonly children: Rea
 function Buttons({ variant }: { readonly variant: 'prominent' | 'standard' | 'quiet' | 'danger' }) {
   const label =
     variant === 'danger' ? 'Delete page' : variant === 'prominent' ? 'Save copy' : 'Cancel';
-  const icon = variant === 'danger' ? <Trash2 /> : <Save />;
+  const icon = variant === 'danger' ? <Icon name="trash" /> : <Icon name="download-simple" />;
   return (
     <>
       <Button variant={variant} icon={icon}>
@@ -104,7 +103,10 @@ function Gallery() {
         <Button variant="prominent" busy busyLabel="Saving…">
           Save
         </Button>
-        <Button blocked={{ reason: 'Locked · Unlock', onPress: () => undefined }} icon={<Lock />}>
+        <Button
+          blocked={{ reason: 'Locked · Unlock', onPress: () => undefined }}
+          icon={<Icon name="lock-simple" />}
+        >
           Delete page
         </Button>
         <Button size="lg" variant="prominent">
@@ -125,18 +127,22 @@ function Gallery() {
         >
           <Button variant="standard">Copy</Button>
           <Button variant="danger">Delete</Button>
-          <IconButton label="Undo" icon={<Undo2 />} />
-          <IconButton label="Pen" icon={<Save />} aria-pressed data-tool="ink" />
+          <IconButton label="Undo" icon={<Icon name="arrow-u-up-left" />} />
+          <IconButton label="Pen" icon={<Icon name="pen" />} aria-pressed data-tool="ink" />
         </div>
       </Row>
       <Row name="IconButton">
-        <IconButton label="Undo" icon={<Undo2 />} />
-        <IconButton label="Undo" icon={<Undo2 />} data-force="hover" />
-        <IconButton label="Undo" icon={<Undo2 />} data-force="active" />
-        <IconButton label="Undo" icon={<Undo2 />} data-force="focus-visible" />
-        <IconButton label="Undo" icon={<Undo2 />} aria-pressed />
-        <IconButton label="Undo" icon={<Undo2 />} aria-disabled />
-        <IconButton label="Close" icon={<Undo2 />} size="row" />
+        <IconButton label="Undo" icon={<Icon name="arrow-u-up-left" />} />
+        <IconButton label="Undo" icon={<Icon name="arrow-u-up-left" />} data-force="hover" />
+        <IconButton label="Undo" icon={<Icon name="arrow-u-up-left" />} data-force="active" />
+        <IconButton
+          label="Undo"
+          icon={<Icon name="arrow-u-up-left" />}
+          data-force="focus-visible"
+        />
+        <IconButton label="Undo" icon={<Icon name="arrow-u-up-left" />} aria-pressed />
+        <IconButton label="Undo" icon={<Icon name="arrow-u-up-left" />} aria-disabled />
+        <IconButton label="Close" icon={<Icon name="arrow-u-up-left" />} size="row" />
       </Row>
       <Row name="Chips">
         <ChipGroup
@@ -188,7 +194,7 @@ function Gallery() {
         <Badge count={3} />
         <Badge count={120} />
         <Badge kind="dot" />
-        <Badge kind="status" tone="success" icon={<Lock />}>
+        <Badge kind="status" tone="success" icon={<Icon name="lock-simple" />}>
           Valid
         </Badge>
       </Row>

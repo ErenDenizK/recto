@@ -61,6 +61,7 @@ import { create } from 'zustand';
 
 import { type EngineFailure, getEngineService, type OpenedSource } from '../engine/engine-service';
 import { m } from '../i18n';
+import { lockOpened } from './lock-store';
 
 /** Number of source colour tags in tokens.css (`--tag-0` … `--tag-5`). */
 export const SOURCE_TAG_COUNT = 6;
@@ -175,6 +176,12 @@ interface WorkspaceState {
   withLease: <T>(task: (lease: ProtectionLease) => Promise<T>) => Promise<T>;
   closeDocument: (id: DocumentId) => void;
   setActive: (id: DocumentId) => void;
+  /**
+   * Moves document `id` to position `to` of `documentOrder` (the tab menu's Move left and
+   * Move right; 01-frame F4 §6, INV-19). Order is UI state kept in the snapshot, not a
+   * history step. Returns whether it moved.
+   */
+  reorderDocuments: (id: DocumentId, to: number) => boolean;
   movePages: (
     pageIds: readonly PageId[],
     target: PageTarget,
@@ -581,6 +588,8 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
         lease.release();
         collectGarbage();
       }
+      // "Open documents locked" (ADR-0029 §2.8): the one place documents open from files.
+      lockOpened(opened.map((o) => o.documentId));
       // Activate the first new document, as dropping several files reads left to right.
       const first = opened[0];
       if (first !== undefined && get().workspace.documents[first.documentId] !== undefined) {
@@ -645,6 +654,18 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
       const { workspace } = get();
       if (workspace.documents[id] === undefined) return;
       replacePresent(setActiveDocument(workspace, id));
+    },
+
+    reorderDocuments: (id, to) => {
+      const { workspace } = get();
+      const from = workspace.documentOrder.indexOf(id);
+      if (from < 0) return false;
+      const order = workspace.documentOrder.filter((other) => other !== id);
+      const index = Math.max(0, Math.min(order.length, to));
+      if (index === from) return false;
+      order.splice(index, 0, id);
+      replacePresent({ ...workspace, documentOrder: order });
+      return true;
     },
 
     movePages: (pageIds, target, options = {}) =>

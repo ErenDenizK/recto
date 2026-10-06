@@ -32,23 +32,26 @@ import { registerFurnitureCommands } from '../furniture';
 import { registerFormCommands } from '../forms';
 import { redoStep, undoStep } from '../history/actions';
 import { openHistoryScrubber } from '../history/scrubber-store';
-import { showDocumentMode, showHome, showOpened, watchDestination } from '../home/home-actions';
+import { showHome, showMarkup, showOpened, watchDestination } from '../home/home-actions';
 import { m } from '../i18n';
 import { registerLanguageCommands } from '../i18n/language-commands';
 import { registerOcrCommands } from '../ocr';
 import { PRODUCT_NAME } from '../shell/about/build-info';
 import { announce } from '../shell/announcer';
 import { focusOpenedPage } from '../shell/focus-opened-page';
-import { useAuthorPrompt } from '../shell/comment-author';
-import { openImagesAsDocument } from '../stage/section-operations';
-import { selectAllOf, useSelectionStore } from '../state/selection-store';
 import {
-  ARRANGE_SIZES,
-  type DocumentMode,
-  documentModeOf,
-  stageView,
-  useUiStore,
-} from '../state/ui-store';
+  showOverlaySidebar,
+  sidebarShown,
+  toggleSidebar,
+  useFrameStore,
+} from '../shell/frame/frame-store';
+import { SIDEBAR_ID } from '../shell/frame/ids';
+import { requestSidebarFocus } from '../shell/sidebar/sidebar-focus';
+import { useAuthorPrompt } from '../shell/comment-author';
+import { enterGrid, leaveGrid } from '../stage/grid/grid-transition';
+import { openImagesAsDocument } from '../stage/section-operations';
+import { selectAllOf, useSelectionStore, visibleSelection } from '../state/selection-store';
+import { ARRANGE_SIZES, isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { registerToolCommands } from '../tools/tool-commands';
@@ -63,15 +66,16 @@ const ui = () => useUiStore.getState();
 const model = () => useWorkspaceStore.getState();
 
 /**
- * The stage already shows `view` (Home, Arrange, or the page view in that document mode):
- * the view and mode commands then change nothing and say nothing (craft spec §9: a mode is
- * announced on change).
+ * The stage already shows `view` (Home, the grid, or the page view with Markup closed or
+ * open, M8's Read and Edit): the view and mode commands then change nothing and say nothing
+ * (craft spec §9: a mode is announced on change).
  */
-function showing(view: 'home' | 'arrange' | DocumentMode): boolean {
+function showing(view: 'home' | 'grid' | 'page' | 'markup'): boolean {
   const state = ui();
   const stage = stageView(state);
-  if (view === 'home' || view === 'arrange') return stage === view;
-  return stage === 'read' && documentModeOf(state, model().workspace.activeDocument) === view;
+  if (view === 'home' || view === 'grid') return stage === view;
+  const markup = isMarkupOpen(state, model().workspace.activeDocument);
+  return stage === 'page' && markup === (view === 'markup');
 }
 const selection = () => useSelectionStore.getState();
 const activeDocument = () => getActiveDocument(model().workspace);
@@ -201,11 +205,28 @@ export function targetPages(): PageId[] {
     }
     return ordered;
   }
-  if (focused !== null && stageView(ui()) === 'arrange') return [focused];
+  if (focused !== null && stageView(ui()) === 'grid') return [focused];
   return [];
 }
 
 const hasTargets = () => targetPages().length > 0;
+
+/**
+ * The documents the page commands change: those holding the target pages, in tab order
+ * (ADR-0030 §2.4: each is asked; in the grid's "All open" scope a selection may span several).
+ */
+export function targetDocuments(): DocumentId[] {
+  return documentsHolding(targetPages());
+}
+
+/** The documents holding `pageIds`, in tab order. */
+function documentsHolding(pageIds: readonly PageId[]): DocumentId[] {
+  const ws = model().workspace;
+  const pages = new Set(pageIds);
+  return ws.documentOrder.filter((id) =>
+    (ws.documents[id]?.pages ?? []).some((page) => pages.has(page.id)),
+  );
+}
 
 function rotate(delta: 90 | -90): void {
   const pages = targetPages();
@@ -215,8 +236,24 @@ function rotate(delta: 90 | -90): void {
   }
 }
 
+/**
+ * The pages Delete acts on: a selection the person can see only (S10, flows §3.1). In the
+ * Pages grid that is `targetPages()`; on the page, the selected pages the navigator lists,
+ * and none while it is closed. A navigating click in the navigator selects nothing, so a
+ * click then Delete changes nothing.
+ */
+export function visibleTargetPages(): PageId[] {
+  const stage = stageView(ui());
+  if (stage === 'grid') return targetPages();
+  if (stage !== 'page') return [];
+  const { selected, navigatorDocument } = selection();
+  const shown =
+    navigatorDocument === null ? undefined : model().workspace.documents[navigatorDocument];
+  return visibleSelection(selected, shown);
+}
+
 function deleteTargets(): void {
-  const pages = targetPages();
+  const pages = visibleTargetPages();
   if (pages.length === 0) return;
   // Focus the page after the deleted block (else before it) so keyboard work continues.
   const doc = activeDocument();
@@ -295,6 +332,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'file.open',
       title: m.cmd_open_files(),
       group: m.group_file(),
+      act: null,
       shortcut: 'Mod+O',
       keywords: ['add', 'import', 'pdf', 'load'],
       allowInInputs: true,
@@ -304,6 +342,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'file.clearRecents',
       title: m.cmd_clear_recents(),
       group: m.group_file(),
+      act: null,
       // Always offered, also with nothing remembered (craft §14 answer 3).
       run: clearRecentFiles,
     }),
@@ -311,6 +350,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'tab.close',
       title: m.cmd_close_tab(),
       group: m.group_file(),
+      act: null,
       shortcut: 'Mod+W',
       keywords: ['document', 'close'],
       note: m.cmd_close_tab_note(),
@@ -326,6 +366,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'view.palette',
       title: m.cmd_palette(),
       group: m.group_general(),
+      act: null,
       shortcut: 'Mod+K',
       allowInInputs: true,
       hiddenInPalette: true,
@@ -335,6 +376,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'help.shortcuts',
       title: m.cmd_shortcuts(),
       group: m.group_general(),
+      act: null,
       shortcut: '?',
       keywords: ['help', 'keys', 'keymap', 'hotkeys'],
       run: () => ui().setShortcutsOpen(!ui().shortcutsOpen),
@@ -345,6 +387,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'help.about',
       title: m.about_command({ name: PRODUCT_NAME }),
       group: m.group_general(),
+      act: null,
       keywords: ['version', 'build', 'release notes', 'licence', 'license', 'source', 'storage'],
       run: () => openSettings({ row: 'about' }),
     }),
@@ -354,12 +397,14 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'help.aboutPage',
       title: m.menu_about_page(),
       group: m.group_general(),
+      act: null,
       run: openAboutPage,
     }),
     registry.register({
       id: 'selection.clear',
       title: m.cmd_clear_selection(),
       group: m.group_general(),
+      act: null,
       shortcut: 'Escape',
       hiddenInPalette: true,
       when: () => hasAnnotationToolState() || selection().selected.size > 0,
@@ -376,6 +421,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'comments.setAuthor',
       title: m.cmd_set_author(),
       group: m.group_edit(),
+      act: null,
       run: () => {
         useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'comments' });
         useAuthorPrompt.getState().edit();
@@ -385,6 +431,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'edit.undo',
       title: m.cmd_undo(),
       group: m.group_edit(),
+      act: null,
       shortcut: 'Mod+Z',
       keywords: ['revert', 'back'],
       when: () => canUndo(model().history),
@@ -395,6 +442,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'edit.redo',
       title: m.cmd_redo(),
       group: m.group_edit(),
+      act: null,
       shortcut: ['Mod+Shift+Z', 'Mod+Y'],
       keywords: ['again', 'forward'],
       when: () => canRedo(model().history),
@@ -405,16 +453,17 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'edit.history',
       title: m.cmd_history(),
       group: m.group_edit(),
+      act: null,
       keywords: ['undo', 'steps', 'scrubber', 'jump'],
       when: () =>
-        useUiStore.getState().destination === 'document' &&
-        model().workspace.documentOrder.length > 0,
+        useUiStore.getState().destination !== 'home' && model().workspace.documentOrder.length > 0,
       run: openHistoryScrubber,
     }),
     registry.register({
       id: 'pages.selectAll',
       title: m.cmd_select_all(),
       group: m.group_pages(),
+      act: null,
       shortcut: 'Mod+A',
       keywords: ['selection', 'everything'],
       when: () => (activeDocument()?.pages.length ?? 0) > 0,
@@ -430,6 +479,8 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'pages.rotateRight',
       title: m.cmd_rotate_right(),
       group: m.group_pages(),
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'R',
       keywords: ['clockwise', 'turn', '90'],
       when: hasTargets,
@@ -439,6 +490,8 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'pages.rotateLeft',
       title: m.cmd_rotate_left(),
       group: m.group_pages(),
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Shift+R',
       keywords: ['counterclockwise', 'anticlockwise', 'turn', '90'],
       when: hasTargets,
@@ -448,15 +501,19 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'pages.delete',
       title: m.cmd_delete_pages(),
       group: m.group_pages(),
+      act: 'pages',
+      documents: () => documentsHolding(visibleTargetPages()),
       shortcut: ['Delete', 'Backspace'],
       keywords: ['remove'],
-      when: hasTargets,
+      when: () => visibleTargetPages().length > 0,
       run: deleteTargets,
     }),
     registry.register({
       id: 'pages.duplicate',
       title: m.cmd_duplicate_pages(),
       group: m.group_pages(),
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Mod+D',
       keywords: ['copy', 'clone'],
       note: m.cmd_duplicate_pages_note(),
@@ -470,6 +527,8 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'pages.moveBackward',
       title: m.cmd_move_backward(),
       group: m.group_pages(),
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Alt+Left',
       keywords: ['reorder', 'earlier', 'left'],
       when: hasTargets,
@@ -481,6 +540,8 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'pages.moveForward',
       title: m.cmd_move_forward(),
       group: m.group_pages(),
+      act: 'pages',
+      documents: targetDocuments,
       shortcut: 'Alt+Right',
       keywords: ['reorder', 'later', 'right'],
       when: hasTargets,
@@ -492,27 +553,38 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'view.toggleLeftPanel',
       title: m.cmd_toggle_left_panel(),
       group: m.group_view(),
+      act: null,
       shortcut: 'Mod+B',
-      keywords: ['sidebar', 'pages', 'outline', 'files'],
-      run: () => ui().toggleLeftPanel(),
+      keywords: ['sidebar', 'pages', 'outline', 'contents'],
+      // Mod+B moves focus to the open section's current item; ▤ keeps it (06-navigation N1 §6).
+      run: () => {
+        const inside = document.activeElement?.closest(`#${SIDEBAR_ID}`) != null;
+        toggleSidebar();
+        if (sidebarShown(ui().leftPanelOpen, useFrameStore.getState())) requestSidebarFocus();
+        else if (inside) document.querySelector<HTMLElement>('[data-read-viewport]')?.focus();
+      },
     }),
     registry.register({
       id: 'view.toggleRightPanel',
       title: m.cmd_toggle_right_panel(),
       group: m.group_view(),
+      act: null,
       shortcut: 'Mod+Alt+B',
       keywords: ['inspector', 'properties', 'history', 'info'],
       run: () => ui().toggleRightPanel(),
     }),
-    ...(['pages', 'outline', 'files'] as const).map((view) =>
+    // The sidebar's Pages and Contents (06-navigation N1); the open files are the Library's.
+    ...(['pages', 'outline'] as const).map((view) =>
       registry.register({
         id: `view.show.${view}`,
-        title: { pages: m.cmd_show_pages, outline: m.cmd_show_outline, files: m.cmd_show_files }[
-          view
-        ](),
+        title: { pages: m.cmd_show_pages, outline: m.cmd_show_outline }[view](),
         group: m.group_view(),
+        act: null,
         keywords: ['panel', 'sidebar'],
-        run: () => useUiStore.setState({ leftPanelOpen: true, leftPanelView: view }),
+        run: () => {
+          useUiStore.setState({ leftPanelOpen: true, leftPanelView: view });
+          showOverlaySidebar(true);
+        },
       }),
     ),
     // Home is a view of the open files; a document is in Read (locked) or Edit, and Arrange
@@ -521,6 +593,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'view.home',
       title: m.cmd_view_home(),
       group: m.group_view(),
+      act: null,
       shortcut: '0',
       run: () => {
         if (showing('home')) return;
@@ -532,40 +605,52 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'mode.read',
       title: m.cmd_mode_read(),
       group: m.group_view(),
+      act: null,
       shortcut: '1',
       keywords: ['mode', 'viewer', 'continuous', 'lock'],
       when: () => activeDocument() !== undefined,
       run: () => {
-        if (!showing('read')) showDocumentMode('read');
+        // `1` closes the grid too (flows §7.2), back to the page it opened at.
+        if (stageView(ui()) === 'grid') {
+          const id = model().workspace.activeDocument;
+          if (id !== undefined) ui().closeMarkup(id);
+          leaveGrid();
+          return;
+        }
+        if (!showing('page')) showMarkup(false);
       },
     }),
     registry.register({
       id: 'mode.edit',
       title: m.cmd_mode_edit(),
       group: m.group_view(),
+      act: null,
       shortcut: '2',
       keywords: ['mode', 'annotate', 'markup', 'write'],
       when: () => activeDocument() !== undefined,
       run: () => {
-        if (!showing('edit')) showDocumentMode('edit');
+        if (!showing('markup')) showMarkup(true);
       },
     }),
     registry.register({
       id: 'mode.arrange',
       title: m.cmd_mode_arrange(),
       group: m.group_view(),
+      act: null,
       shortcut: '3',
-      keywords: ['mode', 'light table', 'grid', 'organize', 'reorder'],
+      keywords: ['mode', 'arrange', 'light table', 'grid', 'organize', 'reorder', 'pages'],
+      when: () => activeDocument() !== undefined,
+      // The Pages grid by its view change (PG1); `3` again goes back to the page (flows §7.2).
       run: () => {
-        if (showing('arrange')) return;
-        ui().setViewMode('arrange');
-        announce(m.mode_arrange_long());
+        if (showing('grid')) leaveGrid();
+        else enterGrid();
       },
     }),
     registry.register({
       id: 'zoom.in',
       title: m.cmd_zoom_in(),
       group: m.group_zoom(),
+      act: null,
       shortcut: 'Mod+=',
       keywords: ['magnify', 'bigger'],
       run: () => ui().zoomIn(),
@@ -574,6 +659,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'zoom.out',
       title: m.cmd_zoom_out(),
       group: m.group_zoom(),
+      act: null,
       shortcut: 'Mod+-',
       keywords: ['smaller'],
       run: () => ui().zoomOut(),
@@ -582,6 +668,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'zoom.fit',
       title: m.cmd_zoom_fit(),
       group: m.group_zoom(),
+      act: null,
       shortcut: 'Mod+0',
       keywords: ['reset', 'fit'],
       run: () => ui().zoomFit(),
@@ -590,6 +677,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'zoom.fitPage',
       title: m.cmd_zoom_fit_page(),
       group: m.group_zoom(),
+      act: null,
       keywords: ['whole', 'fit', 'page'],
       run: () => ui().zoomFitPage(),
     }),
@@ -597,6 +685,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'zoom.actual',
       title: m.cmd_zoom_actual(),
       group: m.group_zoom(),
+      act: null,
       keywords: ['100%', 'reset', 'real'],
       run: () => ui().zoomActual(),
     }),
@@ -604,6 +693,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'arrange.larger',
       title: m.cmd_thumbnails_larger(),
       group: m.group_zoom(),
+      act: null,
       keywords: ['light table', 'cell size', 'bigger'],
       note: m.cmd_thumbnails_note(),
       when: () => ui().arrangeSize < ARRANGE_SIZES.length - 1,
@@ -615,6 +705,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       id: 'arrange.smaller',
       title: m.cmd_thumbnails_smaller(),
       group: m.group_zoom(),
+      act: null,
       keywords: ['light table', 'cell size'],
       note: m.cmd_thumbnails_note(),
       when: () => ui().arrangeSize > 0,

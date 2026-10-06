@@ -27,6 +27,7 @@ export function registerToolCommands(registry: CommandRegistry): () => void {
       id: 'document.compress',
       title: m.cmd_tools_compress(),
       group,
+      act: null,
       keywords: ['compress', 'optimize', 'reduce', 'size', 'shrink', 'downsample', 'jpeg'],
       when: hasPages,
       run: () => {
@@ -38,6 +39,7 @@ export function registerToolCommands(registry: CommandRegistry): () => void {
       id: 'document.exportImages',
       title: m.cmd_tools_export_images(),
       group,
+      act: null,
       keywords: ['png', 'jpeg', 'jpg', 'webp', 'image', 'rasterize', 'picture', 'zip', 'copy'],
       when: hasPages,
       run: () => {
@@ -49,6 +51,7 @@ export function registerToolCommands(registry: CommandRegistry): () => void {
       id: 'document.saveRepaired',
       title: m.cmd_tools_save_repaired(),
       group,
+      act: null,
       keywords: ['repair', 'fix', 'damaged', 'broken', 'qpdf', 'rewrite'],
       when: () => repairedSources().length > 0,
       run: () => {

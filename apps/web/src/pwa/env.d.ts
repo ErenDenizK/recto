@@ -8,3 +8,9 @@ declare const __APP_VERSION__: string;
 declare const __APP_COMMIT__: string;
 /** ISO 8601 build time (pinned by SOURCE_DATE_EPOCH when set). */
 declare const __BUILD_DATE__: string;
+/**
+ * Whether this build reads the test-only render override (spec X36, `state/render-quality.ts`):
+ * true only with `RECTO_RENDER_OVERRIDE=1` (Playwright's web server, CI's e2e build), so the
+ * deploy build compiles none of it.
+ */
+declare const __RENDER_OVERRIDE__: boolean;

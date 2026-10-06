@@ -58,7 +58,6 @@
 .stepper svg {
   width: 12px;
   height: 12px;
-  stroke-width: 2;
 }
 
 .side {
@@ -71,7 +70,7 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--control-fill, rgb(255 255 255 / 0.08));
+  background: var(--control-fill);
   color: var(--text-primary);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -101,7 +100,7 @@
   }
 
   .side:not([data-disabled]):hover {
-    background: var(--control-fill-hover, rgb(255 255 255 / 0.12));
+    background: var(--control-fill-hover);
   }
 }
 
@@ -110,7 +109,7 @@
 }
 
 .side:not([data-disabled]):active {
-  background: var(--control-fill-pressed, rgb(255 255 255 / 0.16));
+  background: var(--control-fill-pressed);
 }
 
 .stepper[data-disabled],

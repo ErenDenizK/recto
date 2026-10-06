@@ -21,6 +21,8 @@
     "test": "pnpm -r test",
     "test:e2e": "pnpm --filter @pdf-editor/web test:e2e",
     "changeset": "changeset",
+    "icons": "pnpm --filter @pdf-editor/icons-tool generate",
+    "icons:check": "pnpm --filter @pdf-editor/icons-tool check",
     "ci": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {

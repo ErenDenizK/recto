@@ -41,7 +41,7 @@
   border: 1px solid var(--border-strong);
   /* The field primitives' radius (09 §12), so native inputs not yet ported match them. */
   border-radius: var(--radius-control, 10px);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-primary);
   font-size: var(--text-md);
 }
@@ -57,7 +57,7 @@
 
 .check input {
   margin-top: 3px;
-  accent-color: var(--accent);
+  accent-color: var(--control-on);
 }
 
 .hint {
@@ -72,21 +72,32 @@
   overflow: hidden;
   border: none;
   border-radius: var(--radius-1);
-  background: var(--surface-3);
+  background: var(--surface-on);
   appearance: none;
 }
 
 .progress::-webkit-progress-bar {
-  background: var(--surface-3);
+  background: var(--control-track);
 }
 
 .progress::-webkit-progress-value {
-  background: var(--accent);
+  background: var(--progress-fill);
   transition: width var(--duration-base) var(--ease-out);
 }
 
+/* Reduced motion (language.md §7.5 *progress*): the bar steps to each value. */
+@media (prefers-reduced-motion: reduce) {
+  .progress::-webkit-progress-value {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .progress::-webkit-progress-value {
+  transition: none;
+}
+
 .progress::-moz-progress-bar {
-  background: var(--accent);
+  background: var(--progress-fill);
 }
 
 .verified {
@@ -153,7 +164,9 @@
   margin: var(--space-1) 0 0;
   padding: 0;
   list-style: none;
-  font-family: var(--font-mono);
+  /* `.technical` (fonts.css), spelled out: a descendant selector cannot compose it. */
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums slashed-zero;
   font-size: var(--text-xs);
 }
 
@@ -224,5 +237,5 @@
   margin: 0 calc(var(--space-6) * -1) calc(var(--space-6) * -1);
   padding: var(--space-3) var(--space-6) var(--space-6);
   border-top: 1px solid var(--border-hairline);
-  background: var(--surface-1);
+  background: var(--surface-frame);
 }

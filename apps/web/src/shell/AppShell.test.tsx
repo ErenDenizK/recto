@@ -6,20 +6,22 @@ import {
 } from '@pdf-editor/document-model';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { userEvent } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 
 import { App } from '../app';
 import { currentPlatform } from '../commands/shortcuts';
-import { useUiStore } from '../state/ui-store';
+import { stageView, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 
 const MOD = currentPlatform === 'mac' ? 'Meta' : 'Control';
 
 describe('AppShell', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // The strip and its tabs from the medium class up (01-frame F2); narrower is the compact bar.
+    await page.viewport(1440, 900);
     useUiStore.setState({
       // A test that runs "Arrange pages" must not leave the next one in Arrange.
-      viewMode: 'read',
+      docUi: {},
       paletteOpen: false,
       shortcutsOpen: false,
       recents: [],
@@ -27,11 +29,19 @@ describe('AppShell', () => {
     resetWorkspace();
   });
 
-  it('renders the shell with the empty state and privacy indicator', () => {
+  it('renders the shell with the empty state and the privacy shield', () => {
     render(<App />);
     expect(screen.getByTestId('app-shell')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
-    expect(screen.getByText(/external requests?/)).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    ).toBeVisible();
+    // ◎ in the strip and the Library footer's chip open the same popover.
+    expect(
+      screen.getByRole('button', { name: 'Privacy: nothing has left this device' }),
+    ).toBeVisible();
+    expect(screen.getByTestId('library-privacy')).toHaveTextContent('Nothing is uploaded');
+    // No dock on the Library with no file open: the launcher holds the actions.
+    expect(document.querySelector('[data-region="toolbar"]')).toBeNull();
   });
 
   it('opens the command palette on Mod+K with focus in the input, and closes on Esc', async () => {
@@ -57,13 +67,20 @@ describe('AppShell', () => {
     const input = await screen.findByRole('combobox', { name: 'Search commands' });
     await userEvent.type(input, 'arrange');
     await waitFor(() => {
-      expect(screen.getAllByRole('option')[0]).toHaveTextContent('Arrange pages');
+      expect(screen.getAllByRole('option')[0]).toHaveTextContent('Pages grid');
     });
     await userEvent.keyboard('{Enter}');
+    // With no document open there is no grid to show (the surface belongs to a document,
+    // redesign spec §7): the command is not available, and the stage keeps its empty state.
+    expect(useUiStore.getState().recents).not.toContain('mode.arrange');
+    expect(stageView(useUiStore.getState())).toBe('page');
+    await userEvent.keyboard('{Escape}');
     await waitFor(() => {
-      expect(useUiStore.getState().viewMode).toBe('arrange');
+      expect(screen.queryByRole('combobox', { name: 'Search commands' })).toBeNull();
     });
-    expect(useUiStore.getState().recents[0]).toBe('mode.arrange');
+    expect(
+      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    ).toBeVisible();
   });
 
   it('opens documents as tabs', async () => {
@@ -94,6 +111,7 @@ describe('AppShell', () => {
     );
     useWorkspaceStore.setState({ history: createHistory(workspace), workspace });
     expect(await screen.findByRole('tab', { name: 'report', selected: true })).toBeVisible();
-    expect(screen.getByRole('toolbar', { name: 'Tools' })).toBeVisible();
+    // The dock (01-frame F10) rests in the capsule once a document is open.
+    expect(screen.getByRole('toolbar', { name: 'Document tools' })).toBeVisible();
   });
 });

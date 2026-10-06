@@ -1,0 +1,99 @@
+/*
+ * The Library (02-library L1 §2): the canvas, one scroll column of at most 1184 px (6 × 184 +
+ * 5 × 16) centred, with 32 px gutters (24 under 840 px, 16 under 600). The section is the
+ * `library` size container its parts query (the empty card's stacked buttons, two cards per row,
+ * the bar's short labels). Empty, the launcher card sits about a third of the way down and the
+ * footer at the bottom; with documents the parts follow each other and the footer still ends
+ * the view.
+ */
+.library {
+  container: library / inline-size;
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--canvas);
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* A focused card stays clear of the selection bar (A-12): its 44 (56) px and 16 px. */
+  scroll-padding-bottom: calc(var(--bar-h) + 2 * var(--space-4));
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: calc(1184px + 2 * var(--gutter));
+  min-height: 100%;
+  margin: 0 auto;
+  padding: var(--space-6) var(--gutter) var(--space-4);
+  --gutter: var(--space-8);
+}
+
+/* Room for the selection bar under the last row while it shows. */
+.library[data-selecting] .column {
+  padding-bottom: calc(var(--bar-h) + 2 * var(--space-4));
+}
+
+.documents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* The footer ends the column at the bottom of the view however little is above it. */
+.column > footer {
+  margin-top: auto;
+}
+
+/*
+ * Empty: the card's top is anchored to the view's height alone, at 32.5 % of it less 69 px: where
+ * the earlier centring (1 part of the spare room above, 1.6 below) put the card at rest, at
+ * 1440 × 900 (its centre at 41 % of the view, the 02-library L1 look) and on the 820 × 1180
+ * tablet alike. The space above is never the card's own: a card whose height changes (the
+ * headline re-wrapping when Inter Recto replaces its fallback, a Recents list arriving under it)
+ * grows downwards and moves nothing above it, where centring moved all of it (the font swap's
+ * layout shift, fonts.spec). On a short view the space falls to nothing and the column scrolls.
+ * The view is a size container for that one length (`cqh`); it holds nothing fixed-position.
+ */
+.library[data-variant='empty'] .scroller {
+  container-type: size;
+}
+
+.empty {
+  display: grid;
+  grid-template-rows: max(0px, calc(32.5cqh - 69px - var(--space-6))) auto 1fr auto;
+  gap: 0;
+}
+
+.welcome {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.empty > footer {
+  grid-row: 4;
+}
+
+@container library (width < 840px) {
+  .column {
+    --gutter: var(--space-6);
+  }
+}
+
+@container library (width < 600px) {
+  .column {
+    --gutter: var(--space-4);
+    gap: var(--space-4);
+  }
+}

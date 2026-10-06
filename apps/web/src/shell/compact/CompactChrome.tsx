@@ -16,23 +16,12 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import type { VirtualDocument } from '@pdf-editor/document-model';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Ellipsis,
-  Hash,
-  Info,
-  LayoutGrid,
-  ListTree,
-  Search,
-  Share,
-} from 'lucide-react';
 import { type KeyboardEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 
 import { m } from '../../i18n';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { Icon } from '../../ui/Icon';
 import {
   clearSearch,
   runSearch,
@@ -86,7 +75,7 @@ export function CompactTopBar({ doc }: { readonly doc: VirtualDocument }) {
               aria-label={m.compact_library()}
               onClick={showLibrary}
             >
-              <ChevronLeft aria-hidden="true" />
+              <Icon name="caret-left" />
             </button>
             <h1 className={styles.title}>{doc.title}</h1>
             <MoreMenu doc={doc} />
@@ -111,32 +100,32 @@ function MoreMenu({ doc }: { readonly doc: VirtualDocument }) {
       }}
     >
       <Menu.Trigger className={controls.icon} aria-label={m.compact_more()}>
-        <Ellipsis aria-hidden="true" />
+        <Icon name="dots-three" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={6} collisionPadding={8}>
           <Menu.Popup className={styles.menu} data-testid="compact-menu">
             <Menu.Item className={styles.menuItem} onClick={openFind}>
-              <Search aria-hidden="true" />
+              <Icon name="magnifying-glass" />
               <span>{m.compact_find()}</span>
             </Menu.Item>
             {hasOutline ? (
               <Menu.Item className={styles.menuItem} onClick={() => openSheet('contents')}>
-                <ListTree aria-hidden="true" />
+                <Icon name="tree-view" />
                 <span>{m.compact_contents()}</span>
               </Menu.Item>
             ) : null}
             <Menu.Item className={styles.menuItem} onClick={() => openSheet('goto')}>
-              <Hash aria-hidden="true" />
+              <Icon name="hash" />
               <span>{m.goto_title()}</span>
             </Menu.Item>
             <Menu.Item className={styles.menuItem} onClick={() => void shareOrDownload()}>
-              {share ? <Share aria-hidden="true" /> : <Download aria-hidden="true" />}
+              {share ? <Icon name="export" /> : <Icon name="download-simple" />}
               <span>{share ? m.compact_share() : m.compact_download()}</span>
             </Menu.Item>
             <Menu.Separator className={styles.menuSeparator} />
             <Menu.Item className={styles.menuItem} onClick={() => openSheet('info')}>
-              <Info aria-hidden="true" />
+              <Icon name="info" />
               <span>{m.compact_info()}</span>
             </Menu.Item>
             <Menu.Item className={styles.menuItem} onClick={() => openSheet('about')}>
@@ -203,7 +192,7 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
   return (
     <form className={styles.find} role="search" onSubmit={onSubmit}>
       <label className={styles.field}>
-        <Search aria-hidden="true" />
+        <Icon name="magnifying-glass" />
         <input
           ref={inputRef}
           type="search"
@@ -228,7 +217,7 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
         disabled={hits.length === 0}
         onClick={() => searchStep(-1)}
       >
-        <ChevronLeft aria-hidden="true" />
+        <Icon name="caret-left" />
       </button>
       <button
         type="button"
@@ -237,7 +226,7 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
         disabled={hits.length === 0}
         onClick={() => searchStep(1)}
       >
-        <ChevronRight aria-hidden="true" />
+        <Icon name="caret-right" />
       </button>
       <button type="button" className={controls.text} onClick={close}>
         {m.compact_done()}
@@ -263,7 +252,7 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
         inert={away}
       >
         <button type="button" className={controls.text} onClick={() => openSheet('pages')}>
-          <LayoutGrid aria-hidden="true" />
+          <Icon name="squares-four" />
           {m.compact_pages()}
         </button>
         <button
@@ -277,7 +266,7 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
           {current + 1} / {total}
         </button>
         <button type="button" className={controls.text} onClick={openFind}>
-          <Search aria-hidden="true" />
+          <Icon name="magnifying-glass" />
           {m.compact_find()}
         </button>
       </nav>

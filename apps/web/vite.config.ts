@@ -101,6 +101,9 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_COMMIT__: JSON.stringify(appCommit()),
     __BUILD_DATE__: JSON.stringify(buildDate()),
+    // The test-only render override (spec X36; src/state/render-quality.ts): compiled in only
+    // for the builds Playwright tests, never for the deploy and release builds.
+    __RENDER_OVERRIDE__: JSON.stringify(process.env.RECTO_RENDER_OVERRIDE === '1'),
   },
   plugins: [
     react(),
@@ -142,8 +145,8 @@ export default defineConfig({
         scope: base,
         display: 'standalone',
         lang: 'en',
-        theme_color: '#181a1f',
-        background_color: '#08090b',
+        theme_color: '#17191e',
+        background_color: '#08090c',
         icons: [
           { src: 'icons/glyph.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
           {
@@ -156,8 +159,10 @@ export default defineConfig({
       },
       workbox: {
         // App shell: HTML, JS (including worker and engine chunks), CSS and fonts. The
-        // manifest and its icons are added by the plugin (`includeManifestIcons`).
-        globPatterns: ['**/*.{html,js,css,woff2}'],
+        // manifest and its icons are added by the plugin (`includeManifestIcons`). The teaching
+        // sample (`sample/recto-sample-{en,tr}.pdf`, ≤ 125 KB each, 02-library 02.14) opens
+        // offline once the app has loaded with a connection.
+        globPatterns: ['**/*.{html,js,css,woff2}', 'sample/*.pdf'],
         // Wasm is runtime-cached (below); the 404 page is not part of the app shell.
         // `worker-engine-*.js` is EmbedPDF's own worker engine, the adapter's lazy default
         // factory: the app always passes a factory (ADR-0011), so it is never loaded. `ocr/`

@@ -1,9 +1,12 @@
 /**
- * Page cells as drag sources (spec §3), on @atlaskit/pragmatic-drag-and-drop.
+ * Page cells as drag sources (spec §3; `components/06-navigation.md` §2.4), on
+ * @atlaskit/pragmatic-drag-and-drop, for the mouse: touch and pen lift on the gesture core's
+ * pointer path instead (`stage/grid/grid-pointer-drag.ts`, 06.11), so the native drag never
+ * starts from a finger or a pen here.
  *
- * Dragging a selected page drags the whole selection; dragging an unselected page selects
- * it first and drags it alone. The native drag preview is built with plain DOM (no React
- * root) so drag start stays well under the 50 ms budget: a copy of the first thumbnail's
+ * Dragging a selected page drags the whole selection; dragging an unselected page drags it
+ * alone, and lifting never selects (§2.4). The native drag preview is built with plain DOM (no
+ * React root) so drag start stays well under the 50 ms budget: a copy of the first thumbnail's
  * canvas, stacked sheets and a count badge when more than one page moves, scaled to 0.96
  * and at 0.9 opacity (no scaling with reduced motion).
  */
@@ -13,6 +16,7 @@ import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/ut
 import type { DocumentId, PageId } from '@pdf-editor/document-model';
 
 import { targetPages } from '../commands/app-commands';
+import { reducedMotion } from '../motion/reduced-motion';
 import { useSelectionStore } from '../state/selection-store';
 import styles from './dnd.module.css';
 
@@ -38,18 +42,29 @@ export function isTabDrag(data: Record<string | symbol, unknown>): data is TabDr
   return data.type === 'tab' && typeof data.documentId === 'string';
 }
 
-/** The pages a drag starting on `pageId` carries; selects it when it was not selected. */
+/**
+ * The pages a drag starting on `pageId` carries: the selection when it holds that page, else
+ * that page alone. The selection is left as it is (§2.4: lifting never selects).
+ */
 export function pagesForDrag(pageId: PageId): PageId[] {
   const { selected } = useSelectionStore.getState();
   if (selected.has(pageId)) return targetPages();
-  useSelectionStore
-    .getState()
-    .apply({ selected: new Set([pageId]), anchor: pageId, focused: pageId });
   return [pageId];
 }
 
-function prefersReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** The pointer type of the last press anywhere: the native drag is the mouse's alone. */
+let lastPressType = 'mouse';
+let watching = false;
+function watchPressType(): void {
+  if (watching || typeof window === 'undefined') return;
+  watching = true;
+  window.addEventListener(
+    'pointerdown',
+    (event) => {
+      lastPressType = event.pointerType;
+    },
+    { capture: true, passive: true },
+  );
 }
 
 /** Builds the preview into `container`: first thumbnail, stack and count badge. */
@@ -63,7 +78,8 @@ export function renderDragPreview(
   const height = Math.max(24, Math.round(rect?.height ?? 124));
   const root = document.createElement('div');
   root.className = styles.preview ?? '';
-  if (prefersReducedMotion()) root.dataset.still = 'true';
+  // One source for reduced motion, the system's or the setting's (language.md §7.5, A-9).
+  if (reducedMotion()) root.dataset.still = 'true';
   root.style.width = `${width}px`;
   root.style.height = `${height}px`;
   if (count > 1) {
@@ -98,9 +114,16 @@ export function renderDragPreview(
  * Makes a cell draggable. `thumb` is the page sheet inside the cell; the grab offset is
  * preserved relative to it.
  */
-export function attachPageDrag(cell: HTMLElement, pageId: PageId): () => void {
+export function attachPageDrag(
+  cell: HTMLElement,
+  pageId: PageId,
+  /** The guard at the lift (§2.4): false refuses the drag (a locked document). */
+  canLift: () => boolean = () => true,
+): () => void {
+  watchPressType();
   return draggable({
     element: cell,
+    canDrag: () => lastPressType === 'mouse' && canLift(),
     getInitialData: (): PageDragData => {
       performance.mark('light-table:drag-start');
       return { type: 'pages', pageIds: pagesForDrag(pageId) };

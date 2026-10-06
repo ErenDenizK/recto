@@ -44,8 +44,8 @@
   }
 }
 
-/* On today's floating glass (M2 bars) the chip rests without a fill (09 §5.3). */
-:global(.glass:not(.glass-menu)) .chip {
+/* On the floating glass (M1 chips, M2 bars) the chip rests without a fill (09 §5.3). */
+:global(:is(.mat.mat-chip, .mat.mat-bar)) .chip {
   background: transparent;
 }
 
@@ -54,7 +54,7 @@
     background: var(--control-fill-hover);
   }
 
-  :global(.glass:not(.glass-menu)) .chip:hover:not([aria-disabled='true']) {
+  :global(:is(.mat.mat-chip, .mat.mat-bar)) .chip:hover:not([aria-disabled='true']) {
     background: var(--surface-hover);
   }
 }
@@ -64,7 +64,7 @@
 }
 
 .chip:is([aria-checked='true'], [aria-pressed='true']),
-:global(.glass:not(.glass-menu)) .chip:is([aria-checked='true'], [aria-pressed='true']) {
+:global(:is(.mat.mat-chip, .mat.mat-bar)) .chip:is([aria-checked='true'], [aria-pressed='true']) {
   --shadow-own: inset 0 0 0 1px var(--accent-line);
   /* Secondary counts are under 4.5:1 on the accent wash; they step up to the label colour. */
   --text-secondary: var(--text-primary);

@@ -3,12 +3,19 @@
  * browser mode, PDFium): a double-click on page text with Select opens the text editor with
  * the caret at the point from a mouse or a pen used as a pointer, never from touch or a pen
  * that draws, and never in Read; Esc leaves without a change. The idle hover outline shows
- * after 400 ms, never within 300 ms of a pen stroke or from touch, with the one-time hint.
+ * after 400 ms, never within 500 ms of a pen stroke or from touch, with the one-time hint;
+ * locked, Markup gives no door, no outline and no pen eraser.
  * The pen draws in Select while "Pen draws in Edit" is on; its eraser end erases in any
  * tool. Holding Space pans. The Edit text and Image layers never take the page.
  *
  * Fixture: text-edit-fonts.pdf, whose first line (Helvetica, y = 700) is the sentence below.
  */
+// The app's styles, so the page's controls (the selection bar above a selected word, its icons)
+// take their real size and place, as they do in the app.
+import '../styles/tokens.css';
+import '../styles/reset.css';
+import '../styles/global.css';
+
 import { getActiveDocument, type VirtualDocument } from '@pdf-editor/document-model';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -31,10 +38,11 @@ import { useShortcuts } from '../commands/use-shortcuts';
 import { getEngineService } from '../engine/engine-service';
 import { ReadView } from '../stage/ReadView';
 import {
-  EDIT_POLICY_STORAGE_KEY,
-  resetEditPolicyStore,
-  useEditPolicyStore,
-} from '../state/edit-policy-store';
+  INPUT_POLICY_STORAGE_KEY,
+  resetInputPolicyStore,
+  useInputPolicyStore,
+} from '../state/input-policy-store';
+import { resetLockStore, useLockStore } from '../state/lock-store';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
@@ -85,7 +93,7 @@ async function mount(zoom = 0.75): Promise<Mounted> {
 
 const enterEdit = () => {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  if (id !== undefined) useUiStore.getState().setDocumentMode(id, 'edit');
+  if (id !== undefined) useUiStore.getState().openMarkup(id);
 };
 
 /** The text layer's span of the fixture's first line. */
@@ -166,11 +174,11 @@ describe('the Edit policy (mounted)', () => {
     resetAnnotationStore();
     resetToolStore();
     resetPenSession();
-    resetEditPolicyStore({ penDrawsInEdit: false });
+    resetInputPolicyStore({ penDrawsInMarkup: false });
     pointerLog.lastDownType = '';
     pointerLog.lastPenUpAt = Number.NEGATIVE_INFINITY;
     useTextEditStore.getState().close();
-    useUiStore.setState({ destination: 'document', viewMode: 'read', documentMode: {} });
+    useUiStore.setState({ destination: 'document', docUi: {} });
   });
   afterEach(async () => {
     cleanup();
@@ -179,8 +187,8 @@ describe('the Edit policy (mounted)', () => {
     resetWorkspace();
     resetToolStore();
     resetPenSession();
-    resetEditPolicyStore();
-    localStorage.removeItem(EDIT_POLICY_STORAGE_KEY);
+    resetInputPolicyStore();
+    localStorage.removeItem(INPUT_POLICY_STORAGE_KEY);
   });
 
   it('a mouse double-click on page text opens the editor with the caret there; Esc leaves it unchanged', async () => {
@@ -221,7 +229,7 @@ describe('the Edit policy (mounted)', () => {
     }
     expect(useToolStore.getState().mode).toBe('select');
     // The first double-click retires the hint for good.
-    expect(useEditPolicyStore.getState().editTextHintShown).toBe(true);
+    expect(useInputPolicyStore.getState().editTextHintShown).toBe(true);
 
     input.focus();
     await userEvent.keyboard('{Escape}');
@@ -242,20 +250,60 @@ describe('the Edit policy (mounted)', () => {
     expect(window.getSelection()?.toString().trim().length).toBeGreaterThan(0);
   });
 
+  it('locked, even in Markup: a double-click selects a word, no outline, no editor', async () => {
+    const { container, target } = await mount();
+    enterEdit();
+    const id = useWorkspaceStore.getState().workspace.activeDocument;
+    if (id === undefined) throw new Error('no document');
+    useLockStore.getState().lock(id);
+    const span = await foxSpan(container);
+    span.dispatchEvent(pointer('pointermove', centre(span), { pointerType: 'mouse' }));
+    await sleep(HOVER_DELAY_MS + 200);
+    expect(outline(container)).toBeNull();
+    await userEvent.dblClick(span);
+    await sleep(400);
+    expect(editorInput(container)).toBeNull();
+    expect(window.getSelection()?.toString().trim().length).toBeGreaterThan(0);
+    // The pen's eraser end does nothing (flows §3.1), and no tool arms.
+    useToolStore.getState().setMode('ink');
+    expect(useToolStore.getState().mode).toBe('select');
+    const at = centre(span);
+    const eraser = { pointerType: 'pen', pointerId: 52, button: 5, buttons: 32 } as const;
+    const down = pointer('pointerdown', at, eraser);
+    (document.elementFromPoint(at.x, at.y) as Element).dispatchEvent(down);
+    window.dispatchEvent(pointer('pointerup', at, eraser));
+    expect(down.defaultPrevented).toBe(true);
+    await whenIdle();
+    expect(await readAnnotations(target.source, 0)).toEqual([]);
+    resetLockStore();
+  });
+
   it('never from touch, never from a pen that draws; a pen used as a pointer opens it', async () => {
     const { container } = await mount();
     enterEdit();
-    const span = await foxSpan(container);
-    const at = centre(span);
+    let span = await foxSpan(container);
+    let at = centre(span);
 
+    // A touch double tap is the smart zoom (05.12; flows §7.1: "Same with Select"), never
+    // the editor: fit width ⇄ 250 % about the tap (here 75 % is wider than this frame's fit
+    // width, so it goes to fit width).
     tap(at, 'touch');
     tap(at, 'touch');
     doubleClick(span, at);
-    await sleep(400);
+    await waitFor(() => expect(useUiStore.getState().fitMode).toBe('width'), { timeout: 5000 });
+    const frame = container.querySelector('[data-zoom-frame]');
+    await waitFor(() => expect(frame).not.toHaveAttribute('data-zooming'), { timeout: 5000 });
     expect(editorInput(container)).toBeNull();
+    expect(useTextEditStore.getState().session).toBeNull();
+
+    // The line at the zoom the tap chose (it zoomed about the tap, so the line stays in view).
+    await sleep(100);
+    span = await foxSpan(container);
+    at = centre(span);
+    expect(document.elementFromPoint(at.x, at.y)).toBe(span);
 
     // "Pen draws in Edit": the pen's presses draw; its double-click opens nothing.
-    useEditPolicyStore.getState().setPenDrawsInEdit(true);
+    useInputPolicyStore.getState().setPenDrawsInMarkup(true);
     await waitFor(() => expect(container.querySelector('[data-pen-proxy]')).not.toBeNull());
     await sleep(50);
     // (Left of the middle: the dots it draws there are annotations, first in the hit order.)
@@ -268,7 +316,7 @@ describe('the Edit policy (mounted)', () => {
     expect(useTextEditStore.getState().session).toBeNull();
 
     // Off: the pen is a pointer, and its double-click opens the editor.
-    useEditPolicyStore.getState().setPenDrawsInEdit(false);
+    useInputPolicyStore.getState().setPenDrawsInMarkup(false);
     await sleep(50);
     tap(at, 'pen', { pressure: 0.5, pointerId: 22 });
     doubleClick(span, at);
@@ -312,14 +360,14 @@ describe('the Edit policy (mounted)', () => {
     expect(hint()).toBeNull();
     useToolStore.getState().setMode('select');
     // After the first double-click it never shows again.
-    useEditPolicyStore.getState().markEditTextHintShown();
+    useInputPolicyStore.getState().markEditTextHintShown();
     await sleep(50);
     click();
     await sleep(50);
     expect(hint()).toBeNull();
   });
 
-  it('the idle hover outline after 400 ms, never within 300 ms of a pen stroke, never touch; the hint once', async () => {
+  it('the idle hover outline after 400 ms, never within 500 ms of a pen stroke, never touch; the hint once', async () => {
     const { container } = await mount();
     enterEdit();
     const span = await foxSpan(container);
@@ -349,7 +397,7 @@ describe('the Edit policy (mounted)', () => {
     await sleep(HOVER_DELAY_MS + 200);
     expect(outline(container)).toBeNull();
 
-    // Within 300 ms of a pen leaving the surface: no outline from that move.
+    // Within 500 ms of a pen leaving the surface: no outline from that move.
     window.dispatchEvent(pointer('pointerup', at, { pointerType: 'pen', pointerId: 31 }));
     span.dispatchEvent(pointer('pointermove', at, { pointerType: 'pen' }));
     await sleep(HOVER_DELAY_MS + 200);
@@ -359,13 +407,14 @@ describe('the Edit policy (mounted)', () => {
     await waitFor(() => expect(outline(container)).not.toBeNull(), { timeout: 2000 });
 
     // After the first double-click the hint never shows again; the outline still does.
-    useEditPolicyStore.getState().markEditTextHintShown();
+    useInputPolicyStore.getState().markEditTextHintShown();
     await waitFor(() =>
       expect(container.querySelector('[data-text-hover] [role="status"]')).toBeNull(),
     );
     expect(container.textContent).not.toContain('Double-click to edit text');
 
-    // With Edit text armed, over its run targets: the outline, and no double-click hint.
+    // With Edit text armed, over its run targets: no outline (05-canvas §9: only Markup with
+    // Select; the tool's own targets are the affordance).
     useToolStore.getState().setMode('edit-text');
     const run = await waitFor(
       () => {
@@ -379,11 +428,12 @@ describe('the Edit policy (mounted)', () => {
     document.body.dispatchEvent(pointer('pointermove', { x: 1, y: 1 }, { pointerType: 'mouse' }));
     await waitFor(() => expect(outline(container)).toBeNull());
     run.dispatchEvent(pointer('pointermove', centre(run), { pointerType: 'mouse' }));
-    await waitFor(() => expect(outline(container)).not.toBeNull(), { timeout: 2000 });
+    await sleep(HOVER_DELAY_MS + 200);
+    expect(outline(container)).toBeNull();
   });
 
   it('with "Pen draws in Edit" the pen draws in Select and never reaches the text', async () => {
-    resetEditPolicyStore({ penDrawsInEdit: true });
+    resetInputPolicyStore({ penDrawsInMarkup: true });
     const { container, target } = await mount();
     enterEdit();
     const span = await foxSpan(container);

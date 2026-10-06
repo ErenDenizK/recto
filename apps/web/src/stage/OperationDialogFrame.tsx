@@ -4,12 +4,12 @@
  * parts) with a title and close button, and the Cancel / confirm action row.
  */
 import { Dialog } from '@base-ui/react/dialog';
-import { X } from 'lucide-react';
 import type { ReactNode, RefObject } from 'react';
 
 import styles from '../export/ExportDialog.module.css';
 import { m } from '../i18n';
 import overlay from '../shell/ShortcutOverlay.module.css';
+import { Icon } from '../ui/Icon';
 import local from './OperationDialogs.module.css';
 
 export function Frame({
@@ -37,7 +37,7 @@ export function Frame({
       <div className={overlay.header}>
         <Dialog.Title className={overlay.title}>{title}</Dialog.Title>
         <Dialog.Close className={overlay.close} aria-label={m.common_close()} disabled={busy}>
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </Dialog.Close>
       </div>
       {children}

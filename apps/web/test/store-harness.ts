@@ -87,10 +87,11 @@ export function gateEngine(held: readonly string[]): EngineGates {
 }
 
 /**
- * Puts the active document in Edit (ADR-0019 §3): a file opens in Read, where nothing on the
- * page can be selected, drawn on or filled.
+ * Puts the active document in Edit (ADR-0019 §3), which is Markup open (`docUi[id].markup`,
+ * redesign spec §7): a file opens in Read, where nothing on the page can be selected, drawn
+ * on or filled.
  */
 export function enterEditMode(): void {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  if (id !== undefined) useUiStore.getState().setDocumentMode(id, 'edit');
+  if (id !== undefined) useUiStore.getState().openMarkup(id);
 }

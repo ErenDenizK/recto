@@ -5,10 +5,10 @@
  * (04-context §19) once D1 brings it; until then the caller's `onUnlock` does what unlocking
  * means today.
  */
-import { Lock } from 'lucide-react';
 
 import { m } from '../../i18n';
 import { Button } from '../Button';
+import { Icon } from '../Icon';
 import styles from './Sheet.module.css';
 
 export function LockBanner({
@@ -20,7 +20,7 @@ export function LockBanner({
 }) {
   return (
     <div className={styles.lockBanner} data-testid="sheet-lock-banner">
-      <Lock aria-hidden="true" className={styles.lockGlyph} />
+      <Icon name="lock-simple" className={styles.lockGlyph} />
       <span className={styles.lockText}>{m.sheet_locked({ name })}</span>
       <Button variant="quiet" onClick={onUnlock}>
         {m.sheet_unlock()}

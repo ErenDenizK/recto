@@ -1,7 +1,7 @@
 /**
  * Home's chrome (review F16, F17, F25; Vitest browser mode, the real app and style sheets):
- * Home shows every open file, so the navigator offers only Files, the status bar shows no
- * page, zoom or selection of the active document, and no tab looks selected; tabs take
+ * Home shows every open file, so it has the Library's strip (01-frame F2 §4): no sidebar, no
+ * document controls and no page pill, and no tab looks selected; tabs take
  * their title's width up to 220 px before truncating; Recents are cards with a generic page
  * glyph, never a thumbnail.
  */
@@ -26,9 +26,9 @@ async function fixture(name: string): Promise<File> {
 }
 
 const railTabs = () =>
-  within(screen.getByRole('tablist', { name: /views/i }))
+  within(screen.getByRole('tablist', { name: 'Sidebar sections' }))
     .getAllByRole('tab')
-    .map((t) => t.id.replace(/^rail-/, ''));
+    .map((t) => t.textContent);
 
 describe('Home chrome', () => {
   beforeEach(async () => {
@@ -36,9 +36,7 @@ describe('Home chrome', () => {
     resetWorkspace();
     useUiStore.setState({
       destination: 'document',
-      viewMode: 'read',
-      documentMode: {},
-      lastView: {},
+      docUi: {},
       homeSelection: [],
       homeAnchor: null,
       leftPanelOpen: true,
@@ -50,26 +48,28 @@ describe('Home chrome', () => {
     resetWorkspace();
   });
 
-  it('offers only Files in the navigator and no per-document status on Home', async () => {
+  it('shows the Library strip on Home: no sidebar, ▤, Find, ↶ ↷, Save or page pill', async () => {
     render(<App />);
     await openDocuments([await fixture('first-file.pdf'), await fixture('demo-agreement.pdf')]);
-    await waitFor(() => expect(railTabs()).toEqual(['pages', 'find', 'review', 'files']));
+    await waitFor(() => expect(railTabs()).toEqual(['Pages', 'Find', 'Review']));
     expect(screen.getByRole('tabpanel', { name: /Pages/ })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /^Zoom/ }).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('page-pill')).toBeInTheDocument();
 
     useUiStore.getState().showHome();
     await screen.findByTestId('home');
-    // The navigator: Files only, and no document's Pages panel (the stored view is kept).
-    expect(railTabs()).toEqual(['files']);
-    // Still a Tab stop (the stored view's tab is not shown here).
-    expect(screen.getByRole('tab', { name: /^Files/ })).toHaveAttribute('tabindex', '0');
-    expect(screen.queryByRole('tabpanel')).toBeNull();
+    // The Library has no sidebar (it lists the files itself); the stored view is kept.
+    expect(screen.queryByRole('tablist', { name: 'Sidebar sections' })).toBeNull();
     expect(useUiStore.getState().leftPanelView).toBe('pages');
-    // The status bar: how many files, no page, zoom or signature of the active one.
-    expect(screen.getByTestId('status-pages')).toHaveTextContent('2 files');
-    expect(screen.queryAllByRole('button', { name: /^Zoom/ })).toHaveLength(0);
+    // The strip (01-frame F2 §4): ◆ current with its label, tabs, +, ◎ and ⋯ only.
+    const strip = screen.getByRole('banner', { name: 'Library bar' });
+    expect(within(strip).getByTestId('home-button')).toHaveAttribute('aria-current', 'page');
+    expect(within(strip).queryByTestId('sidebar-toggle')).toBeNull();
+    expect(within(strip).queryByRole('searchbox')).toBeNull();
+    expect(within(strip).queryByTestId('undo-redo')).toBeNull();
+    expect(within(strip).getByTestId('library-menu')).toBeVisible();
+    expect(screen.queryByTestId('page-pill')).toBeNull();
     // No tab is selected, nor looks it: no selected fill, no close affordance shown. A keyboard
-    // focus inside a tab shows its close on purpose (TabBar.module.css), and the focus may have
+    // focus inside a tab shows its close on purpose (frame/TopStrip.module.css), and the focus may have
     // been rescued into the tab list when Home took over, so judge the resting look unfocused.
     (document.activeElement as HTMLElement | null)?.blur();
     const tabs = screen.getAllByRole('tab', { name: /first-file|demo-agreement/ });
@@ -83,7 +83,7 @@ describe('Home chrome', () => {
         expect(getComputedStyle(wrap).backgroundColor).toBe('rgba(0, 0, 0, 0)');
         // A pointer resting over a tab, or a page that cannot hover (an earlier file of the run
         // that emulated touch leaves `hover: none` behind), shows the close on purpose
-        // (TabBar.module.css): neither is the resting look this checks.
+        // (frame/TopStrip.module.css): neither is the resting look this checks.
         if (!wrap.matches(':hover') && matchMedia('(hover: hover)').matches) {
           expect(getComputedStyle(close as HTMLElement).opacity).toBe('0');
         }
@@ -95,14 +95,10 @@ describe('Home chrome', () => {
       'rgba(0, 0, 0, 0)',
     );
 
-    // Files opens its list on Home.
-    screen.getByRole('tab', { name: /^Files/ }).click();
-    await waitFor(() => expect(screen.getByRole('tabpanel', { name: /Files/ })).toBeVisible());
-
-    // Back in the document, the document's navigator and status return.
-    useUiStore.getState().setViewMode('read');
-    await waitFor(() => expect(railTabs()).toEqual(['pages', 'find', 'review', 'files']));
-    expect(screen.getByTestId('status-pages').textContent).toMatch(/^Page 1 of /);
+    // Back in the document, the sidebar and the page pill return.
+    useUiStore.getState().showSurface('page');
+    await waitFor(() => expect(railTabs()).toEqual(['Pages', 'Find', 'Review']));
+    expect(screen.getByTestId('page-pill').textContent).toMatch(/^1 \/ /);
   });
 
   it('lets a tab take its title’s width up to 220 px before truncating', async () => {
@@ -129,19 +125,21 @@ describe('Home chrome', () => {
     expect(long.label.scrollWidth).toBeGreaterThan(long.label.clientWidth);
   });
 
-  it('shows Recents as cards with a page glyph and no thumbnail', async () => {
+  it('shows Recents in one lit panel under the launcher, a plain recent with the page glyph', async () => {
     await recordRecent({ name: 'report.pdf', size: 6246, pages: 6 });
     render(<App />);
     const list = await screen.findByRole('list', { name: 'Recent files' });
     const row = within(list).getByRole('button', { name: /^report\.pdf, / });
+    // No kept snapshot: the glyph, never a thumbnail (02.Q1).
     expect(row.querySelector('svg')).not.toBeNull();
     expect(list.querySelector('canvas, img')).toBeNull();
-    const card = row.closest('li') as HTMLElement;
-    const style = getComputedStyle(card);
-    expect(style.borderTopStyle).toBe('solid');
-    expect(style.backgroundColor).toBe('rgb(24, 26, 31)');
-    // One column, under the open and drop card.
-    const drop = screen.getByRole('heading', { name: 'Drop PDFs to start' });
-    expect(drop.getBoundingClientRect().bottom).toBeLessThan(card.getBoundingClientRect().top);
+    const panel = row.closest('section') as HTMLElement;
+    expect(panel).toHaveAttribute('data-lit');
+    // The lit tint over the canvas, no blur of its own until the field lands (D3-8).
+    expect(getComputedStyle(panel).backgroundColor).toBe('rgba(48, 51, 58, 0.58)');
+    expect(getComputedStyle(panel).backdropFilter).toBe('none');
+    // One column, under the launcher card.
+    const launcher = screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' });
+    expect(launcher.getBoundingClientRect().bottom).toBeLessThan(panel.getBoundingClientRect().top);
   });
 });

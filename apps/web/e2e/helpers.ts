@@ -100,15 +100,19 @@ export async function showInspector(page: Page): Promise<void> {
 }
 
 /**
- * Puts the active document in Edit with `2` (ADR-0019 §3): a file opens in Read, where
- * nothing on the page can be selected, moved, filled or drawn on, and the tool bar is one
- * Edit button.
+ * Puts the active document in Edit (Markup open) with `2` (ADR-0019 §3, ADR-0029): a file opens
+ * in viewing, where the capsule is the dock; in Markup it is the palette (spec X1, D2-2: the
+ * frame has no mode switch since D2-1, so the capsule is what tells).
  */
 export async function enterEdit(page: Page): Promise<void> {
   await page.keyboard.press('2');
-  await expect(page.getByRole('radio', { name: /^(Edit|Düzenleme)$/ })).toHaveAttribute(
-    'aria-checked',
-    'true',
+  await expect(page.locator('[data-capsule="palette"]')).toBeVisible();
+}
+
+/** The dock's Markup door (01-frame F10), in English or Turkish. */
+export function markupDoor(page: Page): Locator {
+  return page.locator(
+    '[data-capsule="dock"] > [data-capsule-layer="dock"] [data-dock-item="markup"]',
   );
 }
 
@@ -183,9 +187,95 @@ export async function useDownloadPath(page: Page): Promise<void> {
   });
 }
 
-/** Opens Save a copy (S2) for the active document from the tab bar's button. */
+/**
+ * Opens Save a copy from the title menu (01-frame F5: File · Save a copy…), where the strip's
+ * Export button went (D2-1).
+ */
+export async function openSaveCopyFromMenu(page: Page): Promise<void> {
+  await page.getByTestId('document-menu').click();
+  await page.getByRole('menuitem', { name: 'Save a copy…' }).click();
+}
+
+/**
+ * Opens the sidebar's Find section and returns the field that edits its query (06-navigation
+ * N4, spec 06.20): Mod+F focuses the strip's Find entry (01-frame F6 §6) and Down opens the
+ * section with the hit list, Match case and the results menu. From 1280 px on a fine pointer
+ * the strip holds the one field; below, the section shows its own.
+ */
+export async function openFindPanel(page: Page): Promise<Locator> {
+  const strip = page.locator('[data-find-entry] input[type="search"]').first();
+  await page.keyboard.press('ControlOrMeta+f');
+  await expect(strip).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  const sidebar = page.getByRole('navigation', { name: 'Sidebar' });
+  await expect(sidebar.getByTestId('find-section')).toBeVisible();
+  const own = sidebar.getByRole('searchbox', { name: 'Find in document' });
+  return (await own.isVisible()) ? own : strip;
+}
+
+/** "Mark all N for redaction" from the Find section's results menu (06-navigation N4 §5). */
+export async function markAllMatches(page: Page): Promise<void> {
+  await page.getByTestId('find-results-more').filter({ visible: true }).click();
+  await page.getByTestId('search-mark-all').click();
+}
+
+/**
+ * Shows the sidebar (closed by default, 06-navigation N1) on `section`, and on the Pages
+ * section's `view`, and returns it. ▤ shows it; a section tab or a view changes it.
+ */
+export async function showSidebar(
+  page: Page,
+  section?: 'Pages' | 'Find' | 'Review',
+  view?: 'Thumbnails' | 'Contents',
+): Promise<Locator> {
+  const sidebar = page.getByRole('navigation', { name: /^(Sidebar|Kenar çubuğu)$/ });
+  if (!(await sidebar.isVisible())) await page.getByTestId('sidebar-toggle').click();
+  await expect(sidebar).toBeVisible();
+  if (section) {
+    const tab = sidebar.getByRole('tab', { name: new RegExp(`^${section}`) });
+    if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+  }
+  if (view) {
+    const radio = sidebar.getByRole('radio', { name: view });
+    if ((await radio.getAttribute('aria-checked')) !== 'true') await radio.click();
+    await expect(radio).toHaveAttribute('aria-checked', 'true');
+  }
+  return sidebar;
+}
+
+/**
+ * The open documents' titles: the strip's tabs, then those its "N more" menu holds (01-frame
+ * F4: on a narrow strip the tabs that do not fit leave the tablist for that menu).
+ */
+export async function openDocumentTitles(page: Page): Promise<string[]> {
+  const shown = await page
+    .getByRole('tablist', { name: /^(Open documents|Açık belgeler)$/ })
+    .locator('[role="tab"]')
+    .evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute('title') ?? ''));
+  const overflow = page.getByTestId('tab-overflow');
+  if ((await overflow.count()) === 0) return shown;
+  await overflow.click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  const more = await menu.getByRole('menuitem').allTextContents();
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  return [...shown, ...more.map((title) => title.trim())];
+}
+
+/** Waits until `count` documents are open, wherever the strip shows them. */
+export async function expectOpenDocuments(
+  page: Page,
+  count: number,
+  timeout = 5_000,
+): Promise<void> {
+  await expect.poll(async () => (await openDocumentTitles(page)).length, { timeout }).toBe(count);
+}
+
+/** Opens Save a copy (S2) for the active document from the title menu. */
 export async function openSaveCopy(page: Page): Promise<Locator> {
-  await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+  await openSaveCopyFromMenu(page);
   const sheet = page.getByTestId('save-copy-sheet');
   await expect(sheet).toBeVisible();
   return sheet;

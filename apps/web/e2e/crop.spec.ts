@@ -17,7 +17,14 @@ import { readFile } from 'node:fs/promises';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, openSaveCopy, showInspector, useFileInputPicker } from './helpers';
+import {
+  openFixtures,
+  openSaveCopy,
+  showInspector,
+  useFileInputPicker,
+  openFindPanel,
+  showSidebar,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -120,19 +127,18 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
     buffer: bytes,
   });
   await expect(page.getByRole('tab', { name: 'cropped', selected: true })).toBeVisible();
-  // The pages have the cropped size, 468 × 612 pt (their sheets in the Pages panel).
+  // The pages have the cropped size, 468 × 612 pt (their sheets in the sidebar's thumbnails).
+  await showSidebar(page, 'Pages', 'Thumbnails');
   const sheet = page
     .getByRole('listbox', { name: 'Pages of cropped' })
     .getByRole('option', { name: 'Page 1' })
-    .locator('div > div')
-    .first();
+    .locator('[data-thumb]');
   await expect(sheet.locator('canvas')).toBeAttached({ timeout: 20_000 });
   const thumb = await sheet.boundingBox();
   if (!thumb) throw new Error('no thumbnail');
   expect(thumb.width / thumb.height).toBeCloseTo(CROP.width / CROP.height, 1);
 
-  await page.keyboard.press('ControlOrMeta+f');
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  const field = await openFindPanel(page);
   // The body text is there on every page (the search runs on the re-opened file)…
   await field.fill('quick brown fox');
   await expect(page.getByTestId('search-hit')).toHaveCount(3, { timeout: 20_000 });
@@ -140,7 +146,7 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
   // also match the body line "This is page 1 of a three-page…": search ignores case).
   for (const needle of ['PAGE 1 OF simple-text', 'simple-text']) {
     await field.fill(needle);
-    await expect(page.getByTestId('search-status')).toHaveText('No results', {
+    await expect(page.getByTestId('search-status')).toHaveText('No matches', {
       timeout: 20_000,
     });
     await expect(page.getByTestId('search-hit')).toHaveCount(0);

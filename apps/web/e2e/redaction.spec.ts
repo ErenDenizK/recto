@@ -29,6 +29,9 @@ import {
   showInspector,
   useDownloadPath,
   useFileInputPicker,
+  markAllMatches,
+  openFindPanel,
+  showSidebar,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -46,10 +49,9 @@ function historyRow(page: Page, label: string | RegExp) {
   return page.getByRole('list', { name: /history/i }).getByRole('button', { name: label });
 }
 
-/** The navigator's Review tab on its Marks filter (experience-redesign §4.1). */
+/** The sidebar's Review section on its Marks filter (06-navigation N5). */
 async function showMarks(page: Page): Promise<Locator> {
-  const review = page.getByRole('tab', { name: /^Review/ });
-  if ((await review.getAttribute('aria-selected')) !== 'true') await review.click();
+  await showSidebar(page, 'Review');
   await page.getByRole('radio', { name: /^Marks/ }).click();
   const panel = page.locator('[data-review-panel]');
   await expect(panel).toHaveAttribute('data-filter', 'redactions');
@@ -123,10 +125,10 @@ test('mark by selection and by area, list them, export and re-open with the mark
   await expect(redactLayer).toHaveAttribute('data-active', 'true');
   const box = await redactLayer.boundingBox();
   if (!box) throw new Error('page not rendered');
-  // Clear of the floating tool bar at the bottom of the stage.
-  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.55);
+  // Clear of the Markup palette at the bottom of the stage.
+  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.38);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.65, { steps: 8 });
+  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.48, { steps: 8 });
   await page.mouse.up();
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(2);
   await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
@@ -205,11 +207,10 @@ test('mark every search match, then review the marks with J and K', async ({ pag
   ).toBeAttached({
     timeout: 20_000,
   });
-  await page.keyboard.press('ControlOrMeta+f');
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  const field = await openFindPanel(page);
   await field.fill(TOKEN);
   await expect(page.getByTestId('search-hit')).toHaveCount(3);
-  await page.getByTestId('search-mark-all').click();
+  await markAllMatches(page);
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(3);
   await expect(historyRow(page, 'Mark 3 search matches for redaction')).toBeVisible();
 
@@ -277,10 +278,9 @@ test('apply marks made by selection, search and area; export; the re-opened expo
 
   // 2. By search: every match (lines 2 and 3 are new; line 1 is already marked).
   await page.keyboard.press('Escape');
-  await page.keyboard.press('ControlOrMeta+f');
-  await page.getByRole('searchbox', { name: 'Find in document' }).fill(TOKEN);
+  await (await openFindPanel(page)).fill(TOKEN);
   await expect(page.getByTestId('search-hit')).toHaveCount(3);
-  await page.getByTestId('search-mark-all').click();
+  await markAllMatches(page);
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(3);
 
   // 3. By area, below the text.
@@ -345,14 +345,13 @@ test('apply marks made by selection, search and area; export; the re-opened expo
     buffer: bytes,
   });
   await expect(page.getByRole('tab', { name: 'redacted', selected: true })).toBeVisible();
-  await page.keyboard.press('ControlOrMeta+f');
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  const field = await openFindPanel(page);
   // The rest of the text is there (the search runs on the re-opened file)…
   await field.fill('quick brown fox');
   await expect(page.getByTestId('search-hit')).toHaveCount(1, { timeout: 20_000 });
   // …and the token is not.
   await field.fill(TOKEN);
-  await expect(page.getByTestId('search-status')).toHaveText('No results', { timeout: 20_000 });
+  await expect(page.getByTestId('search-status')).toHaveText('No matches', { timeout: 20_000 });
   await expect(page.getByTestId('search-hit')).toHaveCount(0);
 });
 

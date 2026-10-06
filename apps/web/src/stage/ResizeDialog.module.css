@@ -1,4 +1,11 @@
 /* Layered on OperationDialogs.module.css and ExportDialog.module.css (form parts). */
+
+/* The body inside the Sheet primitive (S17): its groups stacked as the dialog's form had them. */
+.sheetBody {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
 .sizeRow {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr);
@@ -24,7 +31,7 @@
   padding: 2px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .segment {
@@ -85,7 +92,7 @@
   padding: 2px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .anchorCell {
@@ -119,7 +126,7 @@
 .anchorCell[aria-checked='true'] .anchorDot {
   width: 10px;
   height: 10px;
-  background: var(--accent);
+  background: var(--control-on);
 }
 
 .anchorGrid[aria-disabled] .anchorCell {
@@ -150,7 +157,7 @@
   width: 156px;
   height: 156px;
   border-radius: var(--radius-2);
-  background: var(--surface-0);
+  background: var(--canvas);
 }
 
 .previewSheet {

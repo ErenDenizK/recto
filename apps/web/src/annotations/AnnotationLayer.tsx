@@ -10,8 +10,18 @@
  * /Rect on /Rotate pages: `displayRect` and `dragAnnotation` (geometry.ts) handle it.
  *
  * With the Select tool the layer lets pointer events through (to the text layer) except
- * on annotations; with a drawing tool it captures the whole page. In Read (ADR-0019 §3) it
- * is inert: no hit targets, no drawing, no bar, no editor, no handles (`useCanEdit`).
+ * on annotations; with a drawing tool it captures the whole page. The hit router
+ * (`viewer/hit-order.ts`, 05-canvas §6) decides when annotations take a press, the change
+ * guard (`state/guard.ts`) whether the press may change one:
+ *
+ * - **Viewing** (Markup closed): a press selects an annotation and shows its bar, a targeted
+ *   act; nothing draws (the pen acts as a mouse and selects text, S1).
+ * - **Markup**: the same with Select; a drawing tool draws over annotations (ink never
+ *   hit-tests).
+ * - **Locked**: a press selects the annotation to show it, with no handles and no bar; nothing
+ *   moves, restyles or draws.
+ * - **A drag** moves only an annotation that was selected before the press; the first press on
+ *   an unselected one selects it and moves nothing (S14).
  *
  * Writing is never interrupted (experience-redesign spec §6.1): what a drawing tool creates
  * is not selected (no contextual bar, no inspector change), its preview stays until the
@@ -30,26 +40,28 @@
  * pen paths it touches as a path selection, highlights only those paths and shows the
  * contextual bar for them; its edits split an Ink when they take only some of its paths.
  *
- * Pen rules of the Edit policy (craft spec §3.5), in any tool while the document is in
- * Edit: the pen's eraser end is a temporary eraser and its barrel button a temporary lasso;
- * with "Pen draws in Edit" on, a pen touching the page while Select is armed draws with the
- * armed preset (the first pen preset when that is the Highlighter) and never reaches the
- * text below. A capture listener on the page's overlays takes those presses before any
+ * Pen rules (craft spec §3.5, flows §3.1), in any tool while Markup is open and the document
+ * not locked: the pen's eraser end is a temporary eraser and its barrel button a temporary
+ * lasso; with "Pen draws in Markup" on, a pen touching the page while Select is armed draws
+ * with the armed preset (the first pen preset when that is the Highlighter) and never reaches
+ * the text below, so a pen double tap writes and never opens the paragraph editor (S4). In
+ * viewing and locked the eraser end and the barrel do nothing. A capture listener on the page's overlays takes those presses before any
  * layer sees them and hands them to the eraser gesture or to a lasso or pen pipeline on a
  * proxy element that covers the layer. Annotation hit targets are live only for the tools
  * of the one hit order (`viewer/hit-order.ts`).
  */
 import type { Rect } from '@pdf-editor/document-model';
 import type { Annotation, NewAnnotation } from '@pdf-editor/engine';
-import { Lock } from 'lucide-react';
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 
 import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
-import { useCanEdit } from '../state/ui-store';
-import { penDrawsNow, usePenDrawsInEdit } from '../viewer/edit-policy';
+import { useCanChange } from '../state/guard';
+import { Icon } from '../ui/Icon';
+import { penDrawsNow, usePenDrawsInMarkup } from '../viewer/edit-policy';
 import { isLive, penButtonOf } from '../viewer/hit-order';
+import { usePageInput } from '../viewer/input-state';
 import { pageFrame } from '../viewer/page-frame';
 import { whenPainted } from '../viewer/read-controller';
 import { type ToolMode, useToolStore } from '../viewer/tool-store';
@@ -193,8 +205,12 @@ export function AnnotationLayer(props: PageOverlayProps) {
   const mode = useToolStore((s) => s.mode);
   // The eraser's circle (craft spec §5.6): its size is the cursor, the trail and the reach.
   const eraserSize = useToolStore((s) => s.eraserSize);
-  // The Read lock: every press below fails closed while the document is not in Edit.
-  const editable = useCanEdit();
+  // The router's state, and the guard's answers: `targeted` (select, move, restyle, delete a
+  // chosen annotation) is refused only when locked; `freehand` (every drawing tool, the pen's
+  // eraser end and barrel) needs Markup. Both fail closed without a document.
+  const input = usePageInput();
+  const canTarget = !input.locked;
+  const canDraw = useCanChange(input.id, 'freehand');
   const annotations = usePageAnnotations(sourceId, sourceIndex);
   const selection = useAnnotationStore((s) =>
     s.selection?.pageId === pageId ? s.selection : null,
@@ -229,8 +245,8 @@ export function AnnotationLayer(props: PageOverlayProps) {
   // press from the store and the layer registry, so nothing re-attaches per render. With
   // "Pen draws in Edit" and Select armed, the same pipeline listens on the pen proxy, which
   // only receives the pen presses the capture listener below hands on (craft spec §3.5).
-  const penArmed = editable && mode === 'ink' && sourceId !== undefined;
-  const penDraws = usePenDrawsInEdit(editable && mode === 'select');
+  const penArmed = canDraw && mode === 'ink' && sourceId !== undefined;
+  const penDraws = usePenDrawsInMarkup(canDraw && mode === 'select');
   const penInSelect = penDraws && sourceId !== undefined;
   const penProxyRef = useRef<HTMLDivElement>(null);
   const lassoProxyRef = useRef<HTMLDivElement>(null);
@@ -298,11 +314,22 @@ export function AnnotationLayer(props: PageOverlayProps) {
 
   // The pen's eraser end and barrel button in any tool, and the pen in Select while it
   // draws (craft spec §3.5): taken in the capture phase on the page's overlays, before the
-  // text, the annotations or a tool's own handlers see the press.
+  // text, the annotations or a tool's own handlers see the press. Outside Markup (viewing,
+  // locked) the eraser end and the barrel do nothing and the tip is a mouse (flows §3.1).
   useEffect(() => {
     const root = rootRef.current;
     const overlays = root?.parentElement;
-    if (!editable || sourceId === undefined || !root || !overlays) return;
+    if (sourceId === undefined || !root || !overlays) return;
+    if (!canDraw) {
+      const inert = (event: PointerEvent) => {
+        const part = penButtonOf(event);
+        if (part === undefined || part === 'tip' || isPenChrome(event.target)) return;
+        event.preventDefault();
+        event.stopPropagation();
+      };
+      overlays.addEventListener('pointerdown', inert, { capture: true });
+      return () => overlays.removeEventListener('pointerdown', inert, { capture: true });
+    }
     let detachLasso: (() => void) | null = null;
     const lassoStop = (event: Event) => event.stopPropagation();
 
@@ -403,10 +430,10 @@ export function AnnotationLayer(props: PageOverlayProps) {
       overlays.removeEventListener('pointerdown', onPointerDown, { capture: true });
       detachLasso?.();
     };
-  }, [editable, sourceId, pageId]);
+  }, [canDraw, sourceId, pageId]);
 
   // The lasso: native input while armed, like the pen (spec §6.5, lasso/lasso-input.ts).
-  const lassoArmed = editable && mode === 'lasso' && sourceId !== undefined;
+  const lassoArmed = canDraw && mode === 'lasso' && sourceId !== undefined;
   useEffect(() => {
     const element = rootRef.current;
     if (!lassoArmed || !element) return;
@@ -425,7 +452,7 @@ export function AnnotationLayer(props: PageOverlayProps) {
     pageId,
     position: pageIndex + 1,
   };
-  const drawing = editable && DRAWING_TOOLS.has(mode);
+  const drawing = canDraw && DRAWING_TOOLS.has(mode);
 
   const update = (next: Gesture | null) => {
     gestureRef.current = next;
@@ -567,11 +594,17 @@ export function AnnotationLayer(props: PageOverlayProps) {
   // -------------------------------------------------------------------------
 
   const onAnnotationPointerDown = (event: ReactPointerEvent, a: Annotation) => {
-    if (!editable || drawing || event.button !== 0) return;
+    if (!isLive('annotation', input.state) || drawing || event.button !== 0) return;
     event.stopPropagation();
     event.preventDefault();
     const store = useAnnotationStore.getState();
     const current = store.selection?.pageId === pageId ? store.selection.ids : [];
+    // Locked: the press shows the annotation (selected, no handles, no bar) and changes
+    // nothing (05-canvas §6; its read-only comment is the context bar's, 04-context).
+    if (!canTarget) {
+      store.select({ ...target, ids: [a.id] });
+      return;
+    }
     let ids: readonly string[];
     if (event.shiftKey || event.metaKey || event.ctrlKey) {
       ids = current.includes(a.id) ? current.filter((id) => id !== a.id) : [...current, a.id];
@@ -579,6 +612,9 @@ export function AnnotationLayer(props: PageOverlayProps) {
       ids = current.includes(a.id) ? current : [a.id];
     }
     store.select({ ...target, ids });
+    // The first press on an unselected annotation selects it and moves nothing (S14): a drag
+    // moves only what was already selected.
+    if (!current.includes(a.id)) return;
     if (a.flags?.locked || !canMove(a) || !ids.includes(a.id)) return;
     const movable = ids.filter((id) => {
       const x = annotations.find((b) => b.id === id);
@@ -610,7 +646,7 @@ export function AnnotationLayer(props: PageOverlayProps) {
   };
 
   const onHandlePointerDown = (event: ReactPointerEvent, a: Annotation, handle: Handle) => {
-    if (!editable || event.button !== 0) return;
+    if (!canTarget || event.button !== 0) return;
     event.stopPropagation();
     event.preventDefault();
     const start = localPoint(event);
@@ -635,7 +671,7 @@ export function AnnotationLayer(props: PageOverlayProps) {
   };
 
   const onAnnotationDoubleClick = (a: Annotation) => {
-    if (!editable || drawing || a.flags?.locked) return;
+    if (!canTarget || drawing || a.flags?.locked) return;
     const store = useAnnotationStore.getState();
     if (a.kind === 'free-text') {
       store.setEditor({
@@ -656,14 +692,16 @@ export function AnnotationLayer(props: PageOverlayProps) {
   // -------------------------------------------------------------------------
 
   const selected = selection ? annotations.filter((a) => selection.ids.includes(a.id)) : [];
-  // Live only for the tools of the one hit order (Select): Edit text and Image ignore them.
-  const hitsEnabled = editable && !drawing && isLive('annotation', mode, editable);
+  // Live only in the router's states that give annotations a meaning: viewing, Markup with
+  // Select, and Locked; Edit text, Image and every drawing tool ignore them.
+  const hitsEnabled = !drawing && isLive('annotation', input.state);
   return (
     <div
       ref={rootRef}
       className={styles.layer}
       data-annotation-layer={pageIndex}
       data-tool={mode}
+      data-input={input.state}
       data-drawing={drawing || undefined}
       style={drawing && mode === 'eraser' ? { cursor: eraserCursor(eraserSize) } : undefined}
       onPointerDown={onRootPointerDown}
@@ -702,7 +740,7 @@ export function AnnotationLayer(props: PageOverlayProps) {
             annotation={a}
             frame={frame}
             gesture={gesture}
-            single={editable && selected.length === 1}
+            single={canTarget && selected.length === 1}
             onHandle={onHandlePointerDown}
           />
         ))}
@@ -719,7 +757,7 @@ export function AnnotationLayer(props: PageOverlayProps) {
       {/* Where the pen rules hand on pen presses (Select drawing, the barrel's lasso). */}
       <div ref={penProxyRef} style={PROXY_STYLE} aria-hidden="true" data-pen-proxy="" />
       <div ref={lassoProxyRef} style={PROXY_STYLE} aria-hidden="true" data-lasso-proxy="" />
-      {editable && selected.length > 0 && gesture === null && editor === null ? (
+      {canTarget && selected.length > 0 && gesture === null && editor === null ? (
         <AnnotationBar
           target={target}
           annotations={selected}
@@ -727,7 +765,7 @@ export function AnnotationLayer(props: PageOverlayProps) {
           {...(lassoPaths ? { paths: lassoPaths } : {})}
         />
       ) : null}
-      {editable && editor ? <InlineEditorView editor={editor} frame={frame} /> : null}
+      {canTarget && editor ? <InlineEditorView editor={editor} frame={frame} /> : null}
     </div>
   );
 }
@@ -1005,7 +1043,7 @@ function SelectionOutline({
       {locked ? (
         <foreignObject x={box.left + box.width - 8} y={box.top - 18} width={20} height={20}>
           <span className={styles.lockBadge} title={m.annot_locked()}>
-            <Lock aria-hidden="true" />
+            <Icon name="lock-simple" />
           </span>
         </foreignObject>
       ) : null}

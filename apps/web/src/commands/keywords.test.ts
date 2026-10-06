@@ -11,6 +11,7 @@ import { registerDocumentCommands } from '../document/document-commands';
 import { setLocale } from '../i18n';
 import { registerOutlineCommands } from '../outline/outline-commands';
 import { registerSettingsCommands } from '../settings/settings-commands';
+import { registerSampleCommands } from '../sample/open-sample';
 import { buildSections } from '../shell/CommandPalette';
 import { registerSignatureCommands } from '../signatures/signature-commands';
 import { registerArrangeCommands } from '../stage/arrange-commands';
@@ -29,6 +30,7 @@ function allCommands(): CommandRegistry {
   registerOutlineCommands(registry);
   registerSignatureCommands(registry);
   registerSettingsCommands(registry);
+  registerSampleCommands(registry);
   return registry;
 }
 
@@ -114,6 +116,7 @@ describe('palette keyword search', () => {
       id: 'tool.ink',
       title: 'Pen tool',
       group: 'Tools',
+      act: null,
       keywords: ['annotate'],
       run: () => undefined,
     });
@@ -132,7 +135,7 @@ describe('palette keyword search', () => {
   it('finds Merge with combine, join and birleştir typed either way', () => {
     const registry = allCommands();
     for (const query of ['combine', 'join', 'birleştir', 'birlestir', 'BIRLESTIR']) {
-      expect(['documents.mergeAll', 'section.merge'], query).toContain(search(registry, query)[0]);
+      expect(['documents.mergeAll'], query).toContain(search(registry, query)[0]);
     }
   });
 
@@ -153,6 +156,6 @@ describe('palette keyword search', () => {
     const registry = allCommands();
     expect(search(registry, 'kalem')[0]).toBe('tool.ink');
     expect(search(registry, 'draw')[0]).toBe('tool.ink');
-    expect(['documents.mergeAll', 'section.merge']).toContain(search(registry, 'combine')[0]);
+    expect(['documents.mergeAll']).toContain(search(registry, 'combine')[0]);
   });
 });

@@ -1,61 +1,43 @@
 /** One icon per annotation kind, so colour is never the only cue (spec §9). */
 import type { Annotation } from '@pdf-editor/engine';
-import {
-  ArrowUpRight,
-  Circle,
-  EyeOff,
-  Highlighter,
-  Link,
-  type LucideIcon,
-  Minus,
-  PenLine,
-  Pentagon,
-  Spline,
-  Square,
-  Stamp,
-  StickyNote,
-  Strikethrough,
-  Type,
-  Underline,
-  Waves,
-} from 'lucide-react';
 
+import type { IconName } from '../ui/Icon';
 import { displayKind } from './geometry';
 
-export function annotationIcon(a: Annotation): LucideIcon {
+export function annotationIcon(a: Annotation): IconName {
   switch (displayKind(a)) {
     case 'highlight':
-      return Highlighter;
+      return 'highlighter';
     case 'underline':
-      return Underline;
+      return 'text-underline';
     case 'strikeout':
-      return Strikethrough;
+      return 'text-strikethrough';
     case 'squiggly':
-      return Waves;
+      return 'wave-sine';
     case 'ink':
-      return PenLine;
+      return 'pen';
     case 'square':
-      return Square;
+      return 'square';
     case 'circle':
-      return Circle;
+      return 'circle';
     case 'line':
-      return Minus;
+      return 'line-segment';
     case 'arrow':
-      return ArrowUpRight;
+      return 'arrow-up-right';
     case 'polygon':
-      return Pentagon;
+      return 'polygon';
     case 'polyline':
-      return Spline;
+      return 'line-segments';
     case 'free-text':
-      return Type;
+      return 'textbox';
     case 'text':
-      return StickyNote;
+      return 'note';
     case 'stamp':
     case 'signature':
-      return Stamp;
+      return 'stamp';
     case 'link':
-      return Link;
+      return 'link';
     case 'redact':
-      return EyeOff;
+      return 'redact';
   }
 }

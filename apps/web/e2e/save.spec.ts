@@ -17,7 +17,7 @@ import { readFile } from 'node:fs/promises';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import { fixturePath, markupDoor, openFixtures, useFileInputPicker } from './helpers';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -134,10 +134,8 @@ async function rotateFirstPage(page: Page): Promise<void> {
   await cell.click();
   await page.keyboard.press('r');
   await page.keyboard.press('1');
-  await expect(page.getByRole('radio', { name: /^(Read|Okuma)\b/ })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  );
+  // Viewing: the capsule is the dock (the mode switch went with the frame, D2-1; D2-2).
+  await expect(markupDoor(page)).toBeVisible();
 }
 
 const saveButton = (page: Page) => page.getByTestId('save-button');

@@ -14,12 +14,15 @@
  *
  * A click keeps the row clicked. The rule under the oldest step a reload keeps marks the
  * snapshot's tail (FB7 §2, flows.md §5.2), shown only while changes are kept on this device.
+ * A time is shown once for a run of rows in the same minute (the rows below it leave the
+ * column empty; each option's name still says its time). Steps that were undone, the future,
+ * are dimmed against the past ones (FB7 §4).
  */
 import { DEFAULT_HISTORY_TAIL } from '@pdf-editor/document-model';
-import { Check } from 'lucide-react';
 import { type KeyboardEvent, type Ref, useEffect, useId, useRef } from 'react';
 
 import { m } from '../i18n';
+import { Icon } from '../ui/Icon';
 import styles from './HistoryScrubber.module.css';
 import type { ScrubberStep } from './labels';
 
@@ -95,7 +98,7 @@ export function HistoryList({
       onKeyDown={onKeyDown}
     >
       <div ref={rowsRef} role="presentation" className={styles.rows}>
-        {steps.map((step) => (
+        {steps.map((step, row) => (
           <div key={step.index} role="presentation" className={styles.rowWrap}>
             {/* Options are driven from the listbox via aria-activedescendant (APG); they take
                 pointer input only and are never focused themselves. */}
@@ -113,9 +116,11 @@ export function HistoryList({
               data-active={step.index === active ? '' : undefined}
               onClick={() => onKeep(step.index)}
             >
-              <span className={styles.time}>{step.time}</span>
+              <span className={styles.time}>
+                {steps[row - 1]?.time === step.time ? null : step.time}
+              </span>
               <span className={styles.check} aria-hidden="true">
-                {step.state === 'present' ? <Check /> : null}
+                {step.state === 'present' ? <Icon name="check" /> : null}
               </span>
               <span className={styles.label}>
                 <span className={styles.labelText}>{step.label}</span>

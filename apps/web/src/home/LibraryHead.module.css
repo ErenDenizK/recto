@@ -1,0 +1,37 @@
+/*
+ * The open-documents head (02-library L4 §2): one row, 32 px fine / 44 coarse (the quiet
+ * buttons' height), the summary in footnote 500 on the canvas, the buttons trailing.
+ */
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--control-h);
+  padding-inline: var(--space-2) 0;
+}
+
+.summary {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.count {
+  color: var(--text-primary);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+}

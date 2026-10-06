@@ -17,10 +17,11 @@
  * - `after()` waits on the animation timeline, the clock the Web Animations above run on, so a
  *   held entrance stays in step with them when that clock is slowed (DevTools, the reviewer's
  *   frame captures) as well as in real time.
- * - `fadeBackdrop()` carries the glass's backdrop filter along with the toast's opacity, and
- *   takes it away while the toast is nearly transparent: Chromium draws a backdrop-filtered
- *   surface at a few per cent opacity darker than the page under it, which read as an empty
- *   dark pill once a leaving toast's text had faded.
+ * - `fadeBackdrop()` keeps the glass's backdrop filter off while the toast is nearly
+ *   transparent and whole while it shows: Chromium draws a backdrop-filtered surface at a few
+ *   per cent opacity darker than the page under it, which read as an empty dark pill once a
+ *   leaving toast's text had faded. The filter itself never animates (language.md §2.1
+ *   rule 5, §2.9).
  */
 import { reducedMotion, type Spring, solve, springs } from '../../motion';
 import { animateStyle, stopTransform } from '../../motion/animate';
@@ -158,13 +159,13 @@ export function after(ms: number, run: () => void, pace?: Animation | null): () 
 /**
  * Chromium draws any backdrop-filtered surface, an identity filter included, a step or two
  * darker than the page under it while the surface is nearly transparent: on a dark page a
- * fading glass toast read as an empty dark pill after its text had gone. So the filter's weight
- * follows the opacity and is gone by `LIT`, where the tint already outweighs it, and below
- * `GONE` the toast is not drawn at all (5 % of a toast is nothing anyone sees go). `none` is
- * the computed value only with no animation on the property (an interpolation towards it
- * computes as an identity list), so the entrance writes it inline while it waits, and the exit
- * ends on `visibility: hidden`, a discrete step on the opacity's own timeline: no frame shows
- * the toast nearly transparent and still filtered.
+ * fading glass toast read as an empty dark pill after its text had gone. The filter never
+ * animates (language.md §2.1 rule 5: glass fades on its opacity, never its filter), so it is
+ * switched, not faded: off below `LIT` of opacity, where the tint already outweighs what it
+ * blurs and a tenth of a toast hides the switch, and at the stylesheet's full value above it.
+ * Below `GONE` the toast is not drawn at all (5 % of a toast is nothing anyone sees go). The
+ * exit ends on `visibility: hidden`, a discrete step on the opacity's own timeline: no frame
+ * shows the toast nearly transparent and still filtered.
  */
 const LIT = 0.1;
 const GONE = 0.05;
@@ -178,7 +179,7 @@ function crossing(s: Spring, from: number, to: number, level: number): number {
   return 2;
 }
 
-/** What `fadeBackdrop()` has running on an element: waits and animations, to cancel. */
+/** What `fadeBackdrop()` has pending on an element: its wait and its hiding, to cancel. */
 const backdrops = new WeakMap<HTMLElement, () => void>();
 
 function backdropOff(el: HTMLElement): void {
@@ -192,41 +193,28 @@ function backdropOn(el: HTMLElement): void {
 }
 
 /**
- * Fades the backdrop filter of the glass element `el` with its opacity (FB4 §7), on the
- * zero-bounce spring curve the opacity takes (`--ease-spring`, which every zero-bounce token
- * shares). In: none until the opacity passes `LIT` on `quick` (`track` under reduced motion),
- * then up to the stylesheet's filter, which it leaves in place. Out, as the `track` fade from
- * `opacity` runs: from the filter as it is now (mid-entrance as the entrance has it) to none by
- * `LIT`, and hidden from `GONE` until the element goes. Without a filter (Reduce
- * transparency, Solid, forced colours) only the exit's hiding applies.
+ * Keeps the backdrop filter of the glass element `el` in step with its opacity fade (FB4 §7)
+ * without ever animating it. In: off until the opacity passes `LIT` on `quick` (`track` under
+ * reduced motion), then the stylesheet's filter, whole, for as long as the toast shows. Out,
+ * as the `track` fade from `opacity` runs: the filter stays whole until the opacity falls to
+ * `LIT`, then goes off, and the toast is hidden from `GONE` until the element goes. Without a
+ * filter (reduced transparency, Glass Solid, forced colours) only the exit's hiding applies.
  */
 export function fadeBackdrop(el: HTMLElement, direction: 'in' | 'out', opacity = 1): void {
-  const now = getComputedStyle(el).backdropFilter;
   backdrops.get(el)?.();
   backdrops.delete(el);
   backdropOn(el);
   if (typeof el.animate !== 'function') return;
   const filter = getComputedStyle(el).backdropFilter;
   const filtered = Boolean(filter) && filter !== 'none';
-  const easing =
-    getComputedStyle(document.documentElement).getPropertyValue('--ease-spring').trim() ||
-    'ease-out';
   if (direction === 'in') {
     if (!filtered) return;
     const s = reducedMotion() ? springs.track : springs.quick;
-    let run: Animation | null = null;
     backdropOff(el);
-    const wait = after(crossing(s, 0, 1, LIT) * 1000, () => {
-      backdropOn(el);
-      run = el.animate(
-        { backdropFilter: ['none', filter] },
-        { duration: crossing(s, 0, 1, 0.999) * 1000, easing },
-      );
-    });
-    backdrops.set(el, () => {
-      wait();
-      run?.cancel();
-    });
+    backdrops.set(
+      el,
+      after(crossing(s, 0, 1, LIT) * 1000, () => backdropOn(el)),
+    );
     return;
   }
   const until = (level: number) =>
@@ -235,16 +223,10 @@ export function fadeBackdrop(el: HTMLElement, direction: 'in' | 'out', opacity =
     { visibility: ['visible', 'hidden'] },
     { duration: until(GONE), fill: 'forwards' },
   );
-  const run =
-    filtered && now !== 'none' && until(LIT) > 0
-      ? el.animate(
-          { backdropFilter: [now, 'none'] },
-          { duration: until(LIT), easing, fill: 'forwards' },
-        )
-      : null;
-  if (!run) backdropOff(el);
+  // Already at or under a tenth (a toast that barely began): off at once.
+  const wait = filtered ? after(until(LIT), () => backdropOff(el)) : () => undefined;
   backdrops.set(el, () => {
     hide.cancel();
-    run?.cancel();
+    wait();
   });
 }

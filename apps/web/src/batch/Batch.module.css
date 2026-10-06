@@ -177,7 +177,6 @@
 .iconButton svg {
   width: 14px;
   height: 14px;
-  stroke-width: 1.5;
 }
 
 .iconButton:disabled {
@@ -224,10 +223,10 @@
 }
 
 .code {
+  composes: technical from global;
   display: block;
   margin-top: var(--space-1);
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
   font-size: 11px;
   word-break: break-word;
 }
@@ -245,7 +244,7 @@
 }
 
 .drop[data-over] {
-  border-color: var(--accent);
+  border-color: var(--accent-line);
   background: var(--accent-subtle);
 }
 
@@ -334,7 +333,7 @@
   padding: var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .footer {
@@ -425,7 +424,7 @@
 }
 
 .language input {
-  accent-color: var(--accent);
+  accent-color: var(--control-on);
 }
 
 .language:has(input:focus-visible) {

@@ -13,7 +13,6 @@
  *   the screen, so the first screen is one calm group rather than a button at the top of an
  *   empty canvas (XD-3).
  */
-import { FileText } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -25,6 +24,7 @@ import {
 import { formatFileSize, middleTruncate, relativeTime } from '../../home/home-model';
 import { getLocale, LOCALE_NAMES, type Locale, locales, m, setLocale } from '../../i18n';
 import { pagesPhrase } from '../../state/workspace-store';
+import { Icon } from '../../ui/Icon';
 import { AppGlyph } from '../AppGlyph';
 import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
@@ -172,7 +172,7 @@ function RecentsPlaceholder() {
       </div>
       <div className={styles.emptyRow}>
         <span className={styles.recentGlyph} aria-hidden="true">
-          <FileText />
+          <Icon name="file-text" />
         </span>
         <span className={styles.recentText}>
           <span className={styles.emptyTitle}>{m.compact_recents_empty_title()}</span>
@@ -227,7 +227,7 @@ function RecentRow({
         onClick={() => void openRecentEntry(entry)}
       >
         <span className={styles.recentGlyph} aria-hidden="true">
-          <FileText />
+          <Icon name="file-text" />
         </span>
         <span className={styles.recentText} aria-hidden="true">
           <span className={styles.recentName}>{middleTruncate(entry.name, NAME_LENGTH)}</span>

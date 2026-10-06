@@ -16,7 +16,6 @@
  *   document is locked (flows.md §2.5 rule 4).
  */
 import { canRedo, canUndo } from '@pdf-editor/document-model';
-import { Redo2, Undo2 } from 'lucide-react';
 import { type KeyboardEvent, type MouseEvent, useEffect, useId, useRef } from 'react';
 
 import { redoStep, undoStep } from '../../history/actions';
@@ -26,6 +25,7 @@ import { openHistoryScrubber, useHistoryScrubber } from '../../history/scrubber-
 import { m } from '../../i18n';
 import { useLongPress } from '../../motion/gesture';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import { setHistoryOpener } from '../../ui/Toast';
 import { useCommandShortcut } from '../use-command-shortcut';
@@ -72,7 +72,7 @@ export function UndoRedo() {
         ref={undoRef}
         label={m.cmd_undo()}
         tooltip={undoTooltip(history)}
-        icon={<Undo2 />}
+        icon={<Icon name="arrow-u-up-left" />}
         shortcut={undoShortcut}
         aria-disabled={undoable ? undefined : true}
         aria-haspopup="dialog"
@@ -88,7 +88,7 @@ export function UndoRedo() {
       <IconButton
         label={m.cmd_redo()}
         tooltip={redoTooltip(history)}
-        icon={<Redo2 />}
+        icon={<Icon name="arrow-u-up-right" />}
         shortcut={redoShortcut}
         aria-disabled={redoable ? undefined : true}
         aria-describedby={`${hintId}-redo`}

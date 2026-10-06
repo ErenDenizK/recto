@@ -5,18 +5,17 @@
  * the drafts per document visible. Served by the spec's own Vite dev server; not an app route,
  * never built.
  */
-import '@fontsource-variable/inter/wght.css';
 import '../../src/styles/fonts.css';
 import '../../src/styles/tokens.css';
 import '../../src/styles/reset.css';
 import '../../src/styles/global.css';
 
-import { RotateCcw } from 'lucide-react';
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { Button } from '../../src/ui/Button';
 import { Checkbox } from '../../src/ui/Checkbox';
+import { Icon } from '../../src/ui/Icon';
 import { RadioGroup } from '../../src/ui/RadioGroup';
 import {
   ConfirmHost,
@@ -190,7 +189,7 @@ function Gallery() {
           }
           secondary={
             kind === 'tool' || kind === 'task' ? (
-              <Button variant="quiet" icon={<RotateCcw aria-hidden="true" />}>
+              <Button variant="quiet" icon={<Icon name="arrow-counter-clockwise" />}>
                 Reset
               </Button>
             ) : undefined

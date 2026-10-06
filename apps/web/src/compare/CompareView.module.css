@@ -22,7 +22,7 @@
   padding: var(--space-6);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-3);
-  background: var(--surface-1);
+  background: var(--surface-frame);
 }
 
 .cardTitle {
@@ -53,7 +53,7 @@
 }
 
 .dropZone[data-active] {
-  border-color: var(--accent);
+  border-color: var(--accent-line);
   background: var(--accent-subtle);
 }
 
@@ -99,6 +99,7 @@
 }
 
 .stripCell {
+  composes: technical from global;
   composes: focus-inset from global;
   display: grid;
   place-items: center;
@@ -106,9 +107,8 @@
   height: 24px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
-  background: var(--surface-1);
+  background: var(--surface-frame);
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: 1;
 }
@@ -122,7 +122,7 @@
 
 .stripCell[data-status='inserted'],
 .stripCell[data-status='deleted'] {
-  background: var(--surface-3);
+  background: var(--surface-on);
 }
 
 .stripCell[aria-current='true'] {
@@ -154,7 +154,7 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--surface-0);
+  background: var(--canvas);
 }
 
 .columnName {
@@ -204,9 +204,9 @@
 }
 
 .rowGlyph {
+  composes: technical from global;
   width: 12px;
   color: var(--text-primary);
-  font-family: var(--font-mono);
   text-align: center;
 }
 
@@ -284,7 +284,7 @@
    would leave them between device pixels at rest (quality-bar Q-2). Both are in the coverage
    registry at the bars' 7px blur. */
 .toolbar {
-  composes: glass from global;
+  composes: mat mat-bar s8 c10 from global;
   position: absolute;
   right: 0;
   bottom: var(--space-5);
@@ -369,7 +369,7 @@
 }
 
 .progress {
-  composes: glass from global;
+  composes: mat mat-bar s10 from global;
   position: absolute;
   top: calc(var(--space-12) + var(--space-2));
   right: 0;

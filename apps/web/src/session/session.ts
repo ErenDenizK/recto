@@ -35,11 +35,13 @@ import {
 import { getEngineService } from '../engine/engine-service';
 import { forgetKept, keepRecent, onKeptRemoved, useRecentsStore } from '../files/recents';
 import { m } from '../i18n';
+import { isSampleFile } from '../sample/sample-file';
+import { lockOf, useLockStore } from '../state/lock-store';
 import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
-import { useUiStore } from '../state/ui-store';
+import { documentUi, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
-import { useWorkspaceStore } from '../state/workspace-store';
+import { documentSources, type SourceFileInfo, useWorkspaceStore } from '../state/workspace-store';
 import type { DocumentPlace, KeptRecordV1 } from './format';
 import {
   claimTabLock,
@@ -105,16 +107,21 @@ function placeState(tracker: ChangeTracker): PlaceState {
   const ui = useUiStore.getState();
   const ws = useWorkspaceStore.getState().workspace;
   return {
-    destination: ui.destination,
+    // Compare is not restored: it falls back to the document (02.7).
+    destination: ui.destination === 'home' ? 'home' : 'document',
     zoom: ui.zoom,
     fitMode: ui.fitMode,
     place: (id) => {
-      const view =
-        id === ws.activeDocument && ui.destination === 'document' ? ui.viewMode : ui.lastView[id];
+      const { surface } = documentUi(ui, id);
+      const lock = lockOf(id);
       return {
         page: pages.get(id) ?? 0,
-        view: view === 'arrange' ? 'arrange' : 'read',
-        mode: ui.documentMode[id] === 'edit' ? 'edit' : 'read',
+        // The format keeps M8's names: the page view is 'read', the grid 'arrange'. Markup is
+        // never kept (redesign spec §7): a document comes back in viewing. The lock has its
+        // own field, kept with the document; unlocked writes nothing.
+        view: surface === 'grid' ? 'arrange' : 'read',
+        mode: 'read',
+        ...(lock === undefined ? {} : { lock }),
         ...fileFactsOf(id),
       };
     },
@@ -177,6 +184,24 @@ function onBeforeUnload(event: BeforeUnloadEvent): void {
   event.returnValue = '';
 }
 
+/** Whether every source of document `id` is the teaching sample as the app opened it. */
+function isUnchangedSample(
+  ws: Workspace,
+  files: Readonly<Record<SourceId, SourceFileInfo>>,
+  id: DocumentId,
+): boolean {
+  const doc = ws.documents[id];
+  if (doc === undefined) return false;
+  const sources = documentSources(doc);
+  return (
+    sources.length > 0 &&
+    sources.every((source) => {
+      const info = files[source];
+      return info !== undefined && isSampleFile(info);
+    })
+  );
+}
+
 /** Keeps the writer told about every change worth keeping. */
 function watch(ctl: Controller): () => void {
   const { writer, tracker } = ctl;
@@ -194,7 +219,11 @@ function watch(ctl: Controller): () => void {
     // their blobs in the same change.
     if (closed.length > 0) {
       const { history, files, blobs, editBlobs } = previous;
-      writer.noteClosed(before, closed, { history, files, blobs, editBlobs });
+      // The teaching sample joins Recents only once changed (02-library 02.14).
+      const kept = closed.filter(
+        (id) => tracker.changed(before, id) || !isUnchangedSample(before, files, id),
+      );
+      writer.noteClosed(before, kept, { history, files, blobs, editBlobs });
     }
     if (added.length > 0) writer.noteReopened(added);
     const content =
@@ -210,12 +239,13 @@ function watch(ctl: Controller): () => void {
       state.zoom !== previous.zoom ||
       state.fitMode !== previous.fitMode ||
       state.destination !== previous.destination ||
-      state.viewMode !== previous.viewMode ||
-      state.documentMode !== previous.documentMode ||
-      state.lastView !== previous.lastView
+      state.docUi !== previous.docUi
     ) {
       writer.noteChange('view');
     }
+  });
+  const offLocks = useLockStore.subscribe((state, previous) => {
+    if (state.locks !== previous.locks) writer.noteChange('view');
   });
   const offView = useViewStore.subscribe((state, previous) => {
     if (state.currentPage === previous.currentPage) return;
@@ -233,6 +263,7 @@ function watch(ctl: Controller): () => void {
   return () => {
     offWorkspace();
     offUi();
+    offLocks();
     offView();
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', flushNow);
@@ -248,6 +279,14 @@ export interface StartOptions {
   readonly tabId?: string;
 }
 
+/**
+ * This page's claim on its tab (`claimThisTab`), made once and held for the page's life. React's
+ * development StrictMode starts the session, stops it and starts it again at once: a second
+ * claim made while the first is still being let go found this tab's own lock taken, took a new
+ * id, and so restored the session another tab closed last (or none) instead of this tab's own.
+ */
+let pageClaim: ReturnType<typeof claimThisTab> | undefined;
+
 /** Starts keeping and restoring for this tab (once per launch). Returns a stop function. */
 export function startSession(options: StartOptions): () => void {
   if (!enabled) return () => undefined;
@@ -260,11 +299,13 @@ export function startSession(options: StartOptions): () => void {
   );
   let releaseTab: ReleaseLock | undefined;
   void (async () => {
-    const claimed = await claimThisTab(options.tabId);
+    // The app's claim is the page's (kept for its life); a test's own id is its own.
+    const own = options.tabId === undefined;
+    const claimed = await (own ? (pageClaim ??= claimThisTab()) : claimThisTab(options.tabId));
     const { tabId } = claimed;
-    releaseTab = claimed.release;
+    if (!own) releaseTab = claimed.release;
     if (stopped) {
-      void releaseTab();
+      void releaseTab?.();
       return;
     }
     const available = options.storage
@@ -589,6 +630,15 @@ export async function clearKeptChanges(): Promise<boolean> {
 /** Writes the snapshot now (tests; the writer also does on hide). */
 export function flushSession(): Promise<void> {
   return controller?.writer.flush() ?? Promise.resolve();
+}
+
+/**
+ * The snapshot storage this session keeps documents in, or undefined where nothing is kept (a
+ * private window, before the probe ends). Read-only use: the Library renders a Recents row's
+ * thumbnail from a kept snapshot's bytes (`02-library` 02.Q1, `home/recent-thumbs.ts`).
+ */
+export function snapshotStorage(): SnapshotStorage | undefined {
+  return controller?.storage;
 }
 
 /** Whether `id`'s document differs from the file it came from. */

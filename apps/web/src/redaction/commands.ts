@@ -5,7 +5,7 @@
  */
 import type { CommandRegistry } from '../commands/registry';
 import { m } from '../i18n';
-import { canEditActive, isNavigatorShowing, isPageView, useUiStore } from '../state/ui-store';
+import { isNavigatorShowing, isPageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { useSearchStore } from '../viewer/search';
 import { useToolStore } from '../viewer/tool-store';
@@ -36,6 +36,7 @@ export function registerRedactionCommands(registry: CommandRegistry): () => void
       id: 'view.show.redactions',
       title: m.cmd_show_redactions(),
       group: m.group_view(),
+      act: null,
       keywords: ['panel', 'sidebar', 'redact', 'redaction', 'marks', 'black out'],
       run: showRedactionsPanel,
     }),
@@ -43,6 +44,7 @@ export function registerRedactionCommands(registry: CommandRegistry): () => void
       id: 'redaction.next',
       title: m.cmd_redaction_next(),
       group: m.group_tools(),
+      act: null,
       shortcut: 'J',
       keywords: ['redact', 'review', 'mark'],
       when: reviewing,
@@ -54,6 +56,7 @@ export function registerRedactionCommands(registry: CommandRegistry): () => void
       id: 'redaction.previous',
       title: m.cmd_redaction_previous(),
       group: m.group_tools(),
+      act: null,
       shortcut: 'K',
       keywords: ['redact', 'review', 'mark'],
       when: reviewing,
@@ -65,6 +68,7 @@ export function registerRedactionCommands(registry: CommandRegistry): () => void
       id: 'redaction.find',
       title: m.cmd_redaction_find(),
       group: m.group_tools(),
+      act: null,
       keywords: ['redact', 'sensitive', 'pii', 'email', 'phone', 'iban', 'tckn', 'card'],
       when: readMode,
       run: () => {
@@ -79,9 +83,10 @@ export function registerRedactionCommands(registry: CommandRegistry): () => void
       id: 'redaction.markMatches',
       title: m.cmd_redaction_mark_matches(),
       group: m.group_tools(),
+      act: 'targeted',
       keywords: ['redact', 'search', 'find', 'mark all'],
-      // Marks are page edits: disabled in Read (ADR-0019 §3).
-      when: () => readMode() && canEditActive() && useSearchStore.getState().hits.length > 0,
+      // A targeted act (X22): the guard dims it while the document is locked.
+      when: () => readMode() && useSearchStore.getState().hits.length > 0,
       run: () => markSearchHits().then(() => undefined),
     }),
   ];

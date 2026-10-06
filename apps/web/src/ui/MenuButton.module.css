@@ -2,9 +2,9 @@
 .button {
   composes: focus-inset from global;
   --mb-h: var(--control-h, 32px);
-  --mb-fill: var(--control-fill, rgb(255 255 255 / 0.08));
-  --mb-fill-hover: var(--control-fill-hover, rgb(255 255 255 / 0.12));
-  --mb-fill-pressed: var(--control-fill-pressed, rgb(255 255 255 / 0.16));
+  --mb-fill: var(--control-fill);
+  --mb-fill-hover: var(--control-fill-hover);
+  --mb-fill-pressed: var(--control-fill-pressed);
 
   display: inline-flex;
   align-items: center;

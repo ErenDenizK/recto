@@ -2,8 +2,10 @@
  * The History scrubber (08-feedback FB7 §2–§4): on the popover primitive (ui/Popover, M4 in
  * the coverage registry), 360 wide; nothing here composes glass.
  * Rows and wells are tint fills (quality-bar Q-4). The list is 360 wide and at most 400 tall;
- * rows are 36 px (44 coarse); the current step carries the check on --accent-muted and is the
- * only row in the primary text colour (language.md §2.6); future steps are dimmed.
+ * rows are 36 px (44 coarse); the current step carries the check on --accent-muted with
+ * primary text only on that fill (language.md §2.6). Past steps read in the primary colour and
+ * future (undone) steps in the secondary one, n11 on glass (FB7 §4): glass has two AA text
+ * steps (global.css), so the tertiary token would not dim them there.
  */
 .popup {
   width: min(360px, calc(100vw - 16px));
@@ -37,7 +39,7 @@
   height: 36px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-control);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: var(--text-md);
   cursor: default;
   transition: background-color var(--duration-fast) var(--ease-out);
@@ -65,7 +67,7 @@
 }
 
 .row[data-state='future'] {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* The active row (the keyboard's place; focus stays on the listbox, which shows the inset ring)
@@ -88,7 +90,6 @@
 .check svg {
   width: var(--icon-sm);
   height: var(--icon-sm);
-  stroke-width: 2;
 }
 
 .label {

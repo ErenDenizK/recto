@@ -1,0 +1,501 @@
+/*
+ * The top strip (01-frame F2–F4, F6): one bar of quality-bar Q-9's set, 44 px around 32 px
+ * controls on a fine pointer and 56 around 44 on a coarse one (XD-3 kept the coarse bar at 56
+ * where F2 §2 drew 52: Q-9 amends it). Every control shares the bar's centre line; buttons are
+ * circles, Save a capsule, tabs --radius-control. 12 px gutters (16 coarse).
+ *
+ * Material: docked M3 (`mat mat-panel mat-docked s8 c10`, ADR-0024 §2.8): over the bare canvas
+ * it composites to --surface-frame exactly, glass where a page passes; a hairline on the bottom
+ * edge only, no shadow. The page passes beneath it while scrolling (the reader bleeds under the frame).
+ */
+.strip {
+  composes: mat mat-panel mat-docked s8 c10 from global;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--bar-h);
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .strip {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* The bar's height includes its hairline, so a control's centre is the bar's (Q-9). */
+.strip {
+  box-sizing: border-box;
+}
+
+.lead,
+.trail {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-target);
+  flex: none;
+}
+
+.trail {
+  gap: var(--space-2);
+  margin-inline-start: auto;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .trail {
+    gap: var(--gap-target);
+  }
+}
+
+/* Chrome toggles in the strip are neutral (▤ open, the inspector): the n5 fill, never lime
+   (F3 §3: "no lime in the frame at rest"). */
+.strip [data-size='bar'][aria-pressed='true']:not([data-tool]) {
+  background: var(--surface-on);
+  color: var(--text-primary);
+}
+
+/* ◆ Library: the glyph in a bar-button circle; on the Library a capsule with its label. */
+.library {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: none;
+  min-width: var(--bar-button);
+  height: var(--bar-button);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .library:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.library:active {
+  background: var(--surface-active);
+}
+
+.library[aria-current='page'] {
+  padding: 0 var(--space-3) 0 6px;
+  background: var(--surface-on);
+  color: var(--text-primary);
+}
+
+.libraryLabel {
+  font-size: var(--control-text);
+  font-weight: 600;
+  line-height: var(--control-lh);
+}
+
+/*
+ * Tabs (F4). The region takes the room between the leading buttons and the trailing group
+ * (flex basis 0, so its width never depends on its tabs: DocumentTabs measures it to decide
+ * how many tabs fit, tab-overflow.ts). Inside, tabs are left-aligned with "N more" and +
+ * right after them.
+ */
+.tabsRegion {
+  --tab-min: 112px;
+  --tab-max: 220px;
+  --tab-gap: 2px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1 1 0;
+  /* XD-3: never narrower than one tab at its minimum, + and the ring's room. */
+  min-width: calc(var(--tab-min) + 4px + var(--space-1) + var(--bar-button));
+  margin-inline-start: var(--space-1);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .tabsRegion {
+    --tab-min: 128px;
+    --tab-max: 240px;
+    --tab-gap: 8px;
+  }
+}
+
+.tablist {
+  display: flex;
+  align-items: center;
+  gap: var(--tab-gap);
+  flex: 0 1 auto;
+  /* Never narrower than one tab (plus the focus ring's room): it scrolls instead. */
+  min-width: min(calc(var(--tab-min) + 4px), 100%);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-padding-inline: 24px;
+  /* Room for the focus ring, drawn outside the tab. */
+  padding: 4px;
+  margin: -4px -4px -4px -4px;
+}
+
+.tablist::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tabs beyond an edge (use-tablist-edges.ts) fade there, never cut to a bare dot (XD-3). */
+.tablist[data-more-start] {
+  mask-image: linear-gradient(to right, transparent, #000 24px);
+}
+
+.tablist[data-more-end] {
+  mask-image: linear-gradient(to left, transparent, #000 24px);
+}
+
+.tablist[data-more-start][data-more-end] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+}
+
+/* A tab is as wide as its title up to the maximum, and truncates only when the strip runs out
+   of room (review F25). One control height in the bar (Q-9): --control-h, --radius-control. */
+.tabWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: var(--tab-min);
+  max-width: var(--tab-max);
+  height: var(--control-h);
+  border-radius: var(--radius-control);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .tabWrap:hover {
+    background: var(--surface-hover);
+  }
+}
+
+/* The active tab: the n5 fill (F4 §3), no ring, no lime. */
+.tabWrap[data-selected] {
+  background: var(--surface-on);
+}
+
+/* One row in every tab: tag, name, glyphs and ✕ right after them (2 px from the name's box, as
+   the glyphs sit), centred in the tab. A tab whose title is shorter than the minimum width
+   (F4 §2) shares the spare room equally on both sides, so ✕ never floats away from a short
+   name ("forms-a") while it hugs the others. ✕ keeps its place when hidden (fine pointers,
+   inactive tabs): no hover layout shift. */
+.tab {
+  composes: focus-inset from global;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 0 4px 0 var(--space-3);
+  border-radius: inherit;
+  color: var(--text-secondary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  text-align: left;
+}
+
+.tabWrap[data-selected] .tab {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tag {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round);
+  background: var(--tag-color, var(--text-tertiary));
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ● changes not yet in the file (F4 §2, X13): 6 px after the name, the secondary ink. */
+.edited {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--text-secondary);
+}
+
+.lock,
+.caret {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.lock {
+  width: 14px;
+  height: 14px;
+}
+
+.caret {
+  width: 12px;
+  height: 12px;
+  margin-inline-start: -2px;
+}
+
+@media (forced-colors: active) {
+  .edited {
+    background: CanvasText;
+  }
+
+  .tabWrap[data-selected] {
+    background: Highlight;
+  }
+
+  .tabWrap[data-selected] .tab {
+    color: HighlightText;
+  }
+}
+
+.close {
+  display: grid;
+  flex: none;
+  margin-inline-start: -4px;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  color: var(--text-tertiary);
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.close svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  stroke-width: 1.75;
+}
+
+/* ✕ shows on the active tab, on hover and on keyboard focus (fine pointers); always on coarse
+   ones (F4 §2). A focus left on a tab by a click on the Library must not show it (review F16). */
+.tabWrap[data-selected] .close,
+.tabWrap:hover .close,
+.tabWrap:has(:focus-visible) .close {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .close:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+@media (hover: none) {
+  .close {
+    opacity: 1;
+  }
+
+  /* While the tabs overflow, ✕ stays on the selected tab only (XD-3). */
+  .tablist:is([data-more-start], [data-more-end]) .tabWrap:not([data-selected]) .close {
+    visibility: hidden;
+  }
+}
+
+/* "N more ▾": a capsule after the last visible tab, growing with its label (A-21). */
+.overflow {
+  composes: focus-inset from global;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: var(--control-h);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: var(--control-text);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.overflow svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .overflow:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.overflow[data-popup-open] {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.menuTag {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round);
+  background: var(--tag-color, var(--text-tertiary));
+}
+
+.menuEdited {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--text-secondary);
+}
+
+.openSlot {
+  display: flex;
+  flex: none;
+}
+
+/*
+ * Find (F6). From 1280 px on a fine pointer: the 280 px well, one control high (F6 §2 drew 28; quality-bar Q-9 sets 32) in the strip (fixed, so focus
+ * never lays the strip out again, spec 01.Q5). Below, ⌕ alone; pressing it (or Mod+F) lays the
+ * well over the strip's tab area, anchored to ⌕'s trailing edge, 280 px wide (240 at medium).
+ */
+.find {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.findWell {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 280px;
+  height: var(--control-h);
+  padding: 0 0 0 var(--space-3);
+  /* The edge is drawn inside (no border box), so the field and ‹ › are the full control height
+     and share the strip's centre line (Q-9). */
+  border-radius: var(--radius-pill);
+  background: var(--n2, var(--canvas));
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.findWell:focus-within {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-out);
+  box-shadow: 0 0 0 1px var(--focus-dark);
+}
+
+.findIcon {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.findInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  /* The field is the well's own surface: its corners follow the well's pill (Q-9). */
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--field-text);
+  outline: none;
+}
+
+/* The well draws the ring (above); the input inside it draws none of its own, so the global
+   ring's dark band does not paint a darker pill inside the well. */
+.findInput:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.findInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.findInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.findCount {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.findCount:empty {
+  display: none;
+}
+
+.findStep {
+  flex: none;
+}
+
+@media (min-width: 1280px) and (pointer: fine) {
+  .find[data-form='auto'] .findButton {
+    display: none;
+  }
+
+  .find[data-form='auto'] .findWell {
+    display: flex;
+  }
+}
+
+/* The laid-over field (below 1280 px, coarse pointers, the compact bar). */
+.find[data-open] .findWell {
+  position: absolute;
+  top: calc(50% - var(--control-h) / 2);
+  right: 0;
+  z-index: 1;
+  display: flex;
+  height: var(--control-h);
+}
+
+@media (min-width: 1280px) and (pointer: fine) {
+  .find[data-form='auto'][data-open] .findWell {
+    position: static;
+    height: var(--control-h);
+  }
+}
+
+@media (max-width: 839.98px) {
+  .find[data-open] .findWell {
+    width: 240px;
+  }
+}
+
+@media (forced-colors: active) {
+  .findWell {
+    border: 1px solid FieldText;
+    background: Field;
+    color: FieldText;
+  }
+}

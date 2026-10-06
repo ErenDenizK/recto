@@ -11,10 +11,10 @@
  * Every row carries `data-row` with its id from `search-index.ts`: search filters by it, and
  * an opener's target is revealed and focused through it.
  */
-import { ArrowUpRight, ChevronRight } from 'lucide-react';
 import { type ReactNode, useId } from 'react';
 
 import { m } from '../i18n';
+import { Icon } from '../ui/Icon';
 import styles from './Settings.module.css';
 
 export function Section({
@@ -140,9 +140,9 @@ export function NavRow({
       </span>
       {value ? <span className={styles.value}>{value}</span> : null}
       {href ? (
-        <ArrowUpRight className={styles.caret} aria-hidden="true" />
+        <Icon name="arrow-up-right" className={styles.caret} />
       ) : (
-        <ChevronRight className={styles.caret} aria-hidden="true" />
+        <Icon name="caret-right" className={styles.caret} />
       )}
     </>
   );

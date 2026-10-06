@@ -14,12 +14,12 @@ import {
   setMetadata,
   type VirtualDocument,
 } from '@pdf-editor/document-model';
-import { X } from 'lucide-react';
 import { type KeyboardEvent, type SyntheticEvent, useId, useState } from 'react';
 
 import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import styles from './DocumentTools.module.css';
 
 /** Suggestions for the language field; any well-formed BCP 47 tag is accepted. */
@@ -398,7 +398,7 @@ function CustomRow({
           title={m.meta_custom_remove({ key: name })}
           onClick={onRemove}
         >
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </button>
       </span>
     </>

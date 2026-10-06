@@ -93,6 +93,7 @@ export function RightPanel() {
       id={PANEL_ID}
       aria-label={m.inspector_label()}
       className={styles.panel}
+      data-frame-layer="side"
       style={{ width }}
     >
       <ResizeHandle

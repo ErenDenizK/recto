@@ -8,11 +8,18 @@
  *   with the unfiltered colours, as if no backdrop filter ran (research 22 §3.2), so the whole
  *   viewport is captured and cropped here, at CSS pixel scale.
  * - **A 4 × 4 median** at a text-free point, which ignores a stray antialiased pixel.
- * - **The model**, from the surface's own computed style: its tint (`background-color`) laid
- *   over its backdrop filter's `saturate()`, `brightness()` and `contrast()` applied to a
- *   uniform backdrop, per sRGB channel and rounded to 8 bits as the compositor writes it. Over
- *   a uniform backdrop the blur changes nothing, so what renders differs from the model only by
- *   what leaks in (1 − c of the coverage rule).
+ * - **The model**, from the surface's computed style or from its tokens (`support/tokens.ts`):
+ *   its tint (`background-color`) laid over its backdrop filter's `saturate()`, `brightness()`
+ *   and `contrast()` applied to a uniform backdrop, per sRGB channel and rounded to 8 bits as
+ *   the compositor writes it. Over a uniform backdrop the blur changes nothing, so what renders
+ *   differs from the model only by what leaks in (1 − c of the coverage rule).
+ * - **The leak** (D3-1, measured in Chromium with and without the GPU): the blur reads nothing
+ *   beyond the surface's border box, and the unfiltered backdrop shows through in proportion to
+ *   the Gaussian mass that falls outside it, `1 − m` at a point, where m is the coverage term
+ *   evaluated there (`coverageAt`). At the centre m is the registry's c ≥ 0.985, so the centre
+ *   holds the model within 2/255; 4 px inside an edge m is far lower (0.80 for σ 7), and the
+ *   edge sits between the model and the leak the coverage term predicts (`glassModel` with
+ *   `mass`).
  *
  * The PNG decoder handles what Playwright writes: 8-bit RGB or RGBA, not interlaced.
  */
@@ -163,37 +170,104 @@ function saturate([r, g, b]: Rgb, s: number): Rgb {
   ];
 }
 
+/** A colour as CSS writes it (`rgb(48 51 58 / 0.66)`, `rgba(48, 51, 58, 0.66)`, `#rrggbb`). */
+export function parseTint(value: string): { readonly rgb: Rgb; readonly alpha: number } {
+  const hexValue = /^\s*#([0-9a-f]{6})\s*$/i.exec(value)?.[1];
+  if (hexValue !== undefined) {
+    const n = Number.parseInt(hexValue, 16);
+    return { rgb: [(n >> 16) & 255, (n >> 8) & 255, n & 255], alpha: 1 };
+  }
+  const tint = /rgba?\(([^)]+)\)/
+    .exec(value)?.[1]
+    ?.split(/[\s,/]+/)
+    .filter(Boolean);
+  if (!tint || tint.length < 3) throw new Error(`no tint in ${value}`);
+  const [r, g, b] = tint.slice(0, 3).map(Number) as [number, number, number];
+  return { rgb: [r, g, b], alpha: tint[3] === undefined ? 1 : Number(tint[3]) };
+}
+
+/** The steps of a filter value in order (`[['blur', 7], ['saturate', 1.8], …]`); none for `none`. */
+export function filterSteps(filter: string): [string, number][] {
+  return [...filter.matchAll(/(blur|saturate|brightness|contrast)\(\s*([\d.]+)(?:px)?\s*\)/g)].map(
+    ([, fn, amount]) => [fn ?? '', Number(amount)],
+  );
+}
+
+/** σ of a filter's `blur()`, CSS px (0 without one). */
+export function blurOf(filter: string): number {
+  return filterSteps(filter).find(([fn]) => fn === 'blur')?.[1] ?? 0;
+}
+
+/** Abramowitz and Stegun 7.1.26 (|error| < 1.5e-7), as the glass walker uses. */
+function erf(x: number): number {
+  const sign = x < 0 ? -1 : 1;
+  const t = 1 / (1 + 0.3275911 * Math.abs(x));
+  const poly =
+    t *
+    (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+  return sign * (1 - poly * Math.exp(-x * x));
+}
+
+/**
+ * The coverage term at a point (`language.md` §2.9, A-2): the share of a Gaussian of σ centred
+ * at (`x`, `y`) that falls inside a `width` × `height` box, the point measured from the box's
+ * top-left corner. At the centre it is the registry's c = erf(h/2√2σ) · erf(w/2√2σ).
+ */
+export function coverageAt(
+  sigma: number,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+): number {
+  if (sigma <= 0) return 1;
+  const along = (length: number, p: number) =>
+    (erf(p / (Math.SQRT2 * sigma)) + erf((length - p) / (Math.SQRT2 * sigma))) / 2;
+  return along(width, x) * along(height, y);
+}
+
 /**
  * The model of a glass surface over a uniform `backdrop`: its filter chain in order (the blur
  * changes nothing on a uniform backdrop), then its tint over the result, rounded to 8 bits.
+ * With `mass` below 1 (the coverage term at the sampled point), the unfiltered backdrop shows
+ * through the filtered one in proportion `1 − mass`, as Chromium composites it.
  */
-export function glassModel(style: GlassStyle, backdrop: Rgb): Rgb {
-  const tint = /rgba?\(([^)]+)\)/
-    .exec(style.background)?.[1]
-    ?.split(/[\s,/]+/)
-    .filter(Boolean);
-  if (!tint || tint.length < 3) throw new Error(`no tint in ${style.background}`);
-  const [tr, tg, tb] = tint.slice(0, 3).map(Number) as [number, number, number];
-  const alpha = tint[3] === undefined ? 1 : Number(tint[3]);
+export function glassModel(style: GlassStyle, backdrop: Rgb, mass = 1): Rgb {
+  const { rgb: tint, alpha } = parseTint(style.background);
   let filtered: Rgb = backdrop;
-  for (const [, fn, amount] of style.backdropFilter.matchAll(
-    /(saturate|brightness|contrast)\(([\d.]+)\)/g,
-  )) {
-    const k = Number(amount);
+  for (const [fn, k] of filterSteps(style.backdropFilter)) {
     if (fn === 'saturate') filtered = saturate(filtered, k);
     else if (fn === 'brightness') filtered = filtered.map((v) => clamp(v * k)) as unknown as Rgb;
-    else filtered = filtered.map((v) => clamp((v - 127.5) * k + 127.5)) as unknown as Rgb;
+    else if (fn === 'contrast') {
+      filtered = filtered.map((v) => clamp((v - 127.5) * k + 127.5)) as unknown as Rgb;
+    }
   }
+  const under = (i: 0 | 1 | 2) => mass * filtered[i] + (1 - mass) * backdrop[i];
   return [
-    Math.round(clamp(alpha * tr + (1 - alpha) * filtered[0])),
-    Math.round(clamp(alpha * tg + (1 - alpha) * filtered[1])),
-    Math.round(clamp(alpha * tb + (1 - alpha) * filtered[2])),
+    Math.round(clamp(alpha * tint[0] + (1 - alpha) * under(0))),
+    Math.round(clamp(alpha * tint[1] + (1 - alpha) * under(1))),
+    Math.round(clamp(alpha * tint[2] + (1 - alpha) * under(2))),
   ];
 }
 
 /** The largest per-channel difference between two colours, in 8-bit levels. */
 export function channelDistance(a: Rgb, b: Rgb): number {
   return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
+}
+
+/**
+ * How far `sample` lies outside the per-channel range between `a` and `b`, in 8-bit levels (0
+ * when every channel lies between them): an edge sample against the span from the model without
+ * a leak to the model with the leak the coverage term predicts.
+ */
+export function rangeDistance(sample: Rgb, a: Rgb, b: Rgb): number {
+  return Math.max(
+    ...([0, 1, 2] as const).map((i) => {
+      const lo = Math.min(a[i], b[i]);
+      const hi = Math.max(a[i], b[i]);
+      return sample[i] < lo ? lo - sample[i] : sample[i] > hi ? sample[i] - hi : 0;
+    }),
+  );
 }
 
 /** WCAG 2.2 contrast ratio. */

@@ -15,7 +15,7 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, saveCopyBytes, useFileInputPicker } from './helpers';
+import { enterEdit, markupDoor, openFixtures, saveCopyBytes, useFileInputPicker } from './helpers';
 
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
@@ -144,17 +144,14 @@ test.describe('↶ ↷ and the History scrubber', () => {
     await open(page, 'simple-text.pdf');
     await enterEdit(page);
     await rectangle(page, 0, [0.15, 0.3], [0.35, 0.4]);
-    await rectangle(page, 0, [0.5, 0.5], [0.7, 0.6]);
+    await rectangle(page, 0, [0.5, 0.3], [0.7, 0.4]);
     const squares = layer(page).locator('[data-annotation-kind="square"]');
     await expect(squares).toHaveCount(2, { timeout: 10_000 });
     expect(await annotationCounts(await exportBytes(page))).toEqual([{ Square: 2 }, {}, {}]);
 
     // Back to Read (the M8 lock), then the scrubber: one step back, kept with Enter.
     await page.keyboard.press('1');
-    await expect(page.getByRole('radio', { name: 'Read, locked' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await expect(markupDoor(page)).toBeVisible();
     await page.getByTestId('undo-button').click({ button: 'right' });
     const scrubber = page.getByTestId('history-scrubber');
     await expect(scrubber).toBeVisible();
@@ -170,10 +167,7 @@ test.describe('↶ ↷ and the History scrubber', () => {
     await expect(scrubber).toHaveCount(0);
     await expect(page.getByTestId('undo-button')).toBeFocused();
     // Still in Read; the bytes hold the one rectangle history says.
-    await expect(page.getByRole('radio', { name: 'Read, locked' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await expect(markupDoor(page)).toBeVisible();
     expect(await annotationCounts(await exportBytes(page))).toEqual([{ Square: 1 }, {}, {}]);
 
     // Esc after a preview restores; the bytes stay at the kept step.

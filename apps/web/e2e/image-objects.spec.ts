@@ -11,7 +11,13 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, openSaveCopy, showInspector, useFileInputPicker } from './helpers';
+import {
+  openFixtures,
+  openSaveCopy,
+  showInspector,
+  useFileInputPicker,
+  showSidebar,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -117,7 +123,8 @@ test('move an image 50 px, extract it as PNG, export and re-open: the image move
     timeout: 20_000,
   });
   // The read view of a document opened right after the export dialog stays empty until
-  // something navigates (seen without image edits too): go to page 1 from the navigator.
+  // something navigates (seen without image edits too): go to page 1 from the sidebar.
+  await showSidebar(page, 'Pages', 'Thumbnails');
   await page
     .getByRole('listbox', { name: 'Pages of moved' })
     .getByRole('option', { name: 'Page 1' })

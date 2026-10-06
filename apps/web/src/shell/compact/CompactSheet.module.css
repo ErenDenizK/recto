@@ -8,8 +8,8 @@
  * glass, and once it has settled its solid layer fades in over `--duration-base` and then the
  * backdrop filter is removed, so nothing of the page (a page gap, a link's blue) shows through
  * the sheet at rest. Every compact sheet is modal over the scrim and rests at its one detent,
- * so every one settles solid. The solid is the menu tier's (`--glass-solid` inside
- * `.glass-menu`: n4, the value 07 §3 names `--glass-sheet-solid`). It is all done on the glass
+ * so every one settles solid. The solid is the sheet tier's (`--mat-solid` inside
+ * `.mat-sheet`: `--glass-sheet-solid`, 07 §3). It is all done on the glass
  * element itself, by transitions that start as Base UI drops `data-starting-style` (Q-3): the
  * fill waits for the rise (`--duration-base`), and the filter goes, at once, when the fill is
  * opaque (twice that). Closing and swiping keep the solid.
@@ -41,7 +41,7 @@
 }
 
 .sheet {
-  composes: glass glass-menu from global;
+  composes: mat mat-sheet s20 from global;
   --bleed: 48px;
   display: flex;
   flex-direction: column;
@@ -56,17 +56,18 @@
   color: var(--text-primary);
   outline: none;
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  /* The slide on a spring (language.md §7.3 *sheet*), instant under reduced motion (§7.5). */
   transition:
-    transform var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring),
     background-color var(--duration-base) var(--ease-out) var(--duration-base),
     -webkit-backdrop-filter 0ms linear calc(2 * var(--duration-base)),
     backdrop-filter 0ms linear calc(2 * var(--duration-base));
 }
 
 /* Settled: solid, no filter (the transitions above stage it). Under reduced transparency, more
-   contrast and forced colours `.glass` is solid from the start, which this keeps. */
+   contrast and forced colours `.mat` is solid from the start, which this keeps. */
 .sheet:not([data-starting-style]) {
-  background-color: var(--glass-solid);
+  background-color: var(--mat-solid);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }

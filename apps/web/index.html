@@ -8,7 +8,7 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
     />
-    <meta name="theme-color" content="#181a1f" />
+    <meta name="theme-color" content="#17191e" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Recto PDF" />
     <meta property="og:title" content="Recto" />
@@ -26,6 +26,15 @@
     />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="%BASE_URL%icons/glyph.svg" type="image/svg+xml" />
+    <!-- The UI face's Latin file, fetched with the HTML so the first paint is already in it
+         (ADR-0027 §2.1, quality-bar Q-8); styles/fonts.css declares it. -->
+    <link
+      rel="preload"
+      href="%BASE_URL%fonts/inter-recto-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <title>Recto</title>
   </head>
   <body>

@@ -1,9 +1,13 @@
 /**
- * Section operations (light-table spec §5) bound to the stores: split, merge into, merge
- * all, interleave, rename, copy to a new document, images as pages and page resize. Each
- * commits one history entry with a readable label, keeps the result visible in Arrange
- * when its inputs were, and announces the outcome. The dialogs and commands call these;
- * the math lives in `operation-plans.ts` (and the model's resize.ts).
+ * Section operations (light-table spec §5; `components/07-sheets.md` S13–S18) bound to the
+ * stores: split, combine, interleave, rename, copy to a new document, images as pages and page
+ * resize. Each commits one history entry with a readable label and announces the outcome. The
+ * sheets and commands call these; the math lives in `operation-plans.ts` (and the model's
+ * resize.ts).
+ *
+ * Combine and Interleave have one outcome (INV-12, spec 07.13): a new document after its
+ * sources, which stay open and untouched. M8's "Merge into…" and "Merge all", which consumed
+ * their inputs, are gone; the Pages grid's All open moves pages between documents instead.
  */
 import {
   type BlobId,
@@ -37,15 +41,18 @@ import {
 } from '../files/images';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { openTitleMenu } from '../shell/frame/frame-store';
+import { canChange } from '../state/guard';
+import { lockOpened } from '../state/lock-store';
 import { useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
+import { stageView, useUiStore } from '../state/ui-store';
 import {
   pagesPhrase,
   type ProtectionLease,
   type StoredBlob,
   useWorkspaceStore,
 } from '../state/workspace-store';
-import { shownInArrangeNow } from './arrange-data';
+import { shownInGridNow, showsAllDocuments } from './arrange-data';
 import { askImageSizing } from './operation-dialogs-store';
 import { type TitleProblem, validateTitle } from './operation-plans';
 
@@ -55,19 +62,6 @@ const ui = () => useUiStore.getState();
 /** Documents present after an operation that were not there before, in tab order. */
 function createdDocuments(before: Workspace, after: Workspace): DocumentId[] {
   return after.documentOrder.filter((id) => before.documents[id] === undefined);
-}
-
-/** Whether any of the documents is on the light table (not hidden, or the active tab). */
-function isShown(inputs: readonly DocumentId[]): boolean {
-  return inputs.some((id) => shownInArrangeNow(id));
-}
-
-/**
- * Results of an operation stay on the light table when any input was shown there. Pins of
- * consumed inputs are left in place: undo brings those documents back as they were shown.
- */
-function keepShown(wasShown: boolean, results: readonly DocumentId[]): void {
-  if (wasShown && results.length > 0) ui().pinToArrange(results);
 }
 
 export function titleProblemMessage(problem: TitleProblem): string {
@@ -105,7 +99,6 @@ export function splitSection(
   const doc = before.documents[documentId];
   if (doc === undefined) return [];
   let created: DocumentId[] = [];
-  const shown = isShown([documentId]);
   const committed = model().applyOperation(
     (ws, ids) => {
       const count = splitPartSizes(ws, documentId, spec).length;
@@ -118,8 +111,6 @@ export function splitSection(
     () => m.history_split({ title: doc.title, count: created.length }),
   );
   if (!committed) return [];
-  const remaining = model().workspace.documents[documentId] !== undefined;
-  keepShown(shown, remaining ? [documentId, ...created] : created);
   announce(m.announce_split({ title: doc.title, count: created.length }));
   return created;
 }
@@ -128,73 +119,30 @@ export function splitSection(
 // Merge
 // ---------------------------------------------------------------------------
 
-/** "Merge into…": appends `sourceId`'s pages to `targetId` (the result keeps its title). */
-export function mergeInto(sourceId: DocumentId, targetId: DocumentId): DocumentId | undefined {
-  const ws = model().workspace;
-  const source = ws.documents[sourceId];
-  const target = ws.documents[targetId];
-  if (source === undefined || target === undefined || sourceId === targetId) return undefined;
-  let created: DocumentId | undefined;
-  const shown = isShown([sourceId, targetId]);
-  const committed = model().applyOperation(
-    (current, ids) => {
-      const next = mergeDocuments(
-        current,
-        { documentIds: [targetId, sourceId], title: target.title },
-        ids,
-      );
-      created = next.activeDocument;
-      return next;
-    },
-    m.history_merge_into({ source: source.title, target: target.title }),
-  );
-  if (!committed || created === undefined) return undefined;
-  keepShown(shown, [created]);
-  announce(
-    m.announce_merged_into({
-      pages: pagesPhrase(source.pages.length),
-      source: source.title,
-      target: target.title,
-    }),
-  );
-  return created;
-}
-
 /**
- * "Merge all open documents": concatenates `order` into one document titled `title`. With
- * `keepSources` (Combine on Home, review F8) the inputs stay open and the result is a new
- * document made of copies of their pages; either way it is one history entry.
+ * Combine (the Library's selection bar, Combine with open documents…; INV-12, 02.10): a new
+ * document titled `title` made of copies of `order`'s pages, in that order, after the last of
+ * them; the sources stay open and untouched. One history entry, announced with its undo key.
  */
-export function mergeAll(
-  order: readonly DocumentId[],
-  title: string,
-  options: { readonly keepSources?: boolean } = {},
-): DocumentId | undefined {
+export function mergeAll(order: readonly DocumentId[], title: string): DocumentId | undefined {
   const checked = validateTitle(title);
   if (!checked.ok || order.length < 2) return undefined;
-  const keepSources = options.keepSources === true;
   let created: DocumentId | undefined;
-  const shown = isShown(order);
   const committed = model().applyOperation(
     (ws, ids) => {
       const next = mergeDocuments(
         ws,
-        { documentIds: order, title: checked.title, keepSources },
+        { documentIds: order, title: checked.title, keepSources: true },
         ids,
       );
       created = next.activeDocument;
       return next;
     },
-    keepSources
-      ? m.history_combine({ count: order.length })
-      : m.history_merge_all({ count: order.length }),
+    m.history_combine({ count: order.length }),
   );
   if (!committed || created === undefined) return undefined;
-  keepShown(shown, [created]);
   announce(
-    keepSources
-      ? m.announce_combined({ count: order.length, title: checked.title, shortcut: undoHint() })
-      : m.announce_merged_all({ count: order.length, title: checked.title }),
+    m.announce_combined({ count: order.length, title: checked.title, shortcut: undoHint() }),
   );
   return created;
 }
@@ -207,6 +155,11 @@ function undoHint(): string {
 // Interleave
 // ---------------------------------------------------------------------------
 
+/**
+ * Interleave (S14, spec 07.13): a new document of `a`'s and `b`'s pages alternated (or `b`
+ * reversed for a duplex scan), after the later of them; both sources stay open, untouched. One
+ * history entry. Asks no guard: the sources are only read (X32).
+ */
 export function interleaveWith(
   a: DocumentId,
   b: DocumentId,
@@ -217,17 +170,15 @@ export function interleaveWith(
   const second = ws.documents[b];
   if (first === undefined || second === undefined || a === b) return undefined;
   let created: DocumentId | undefined;
-  const shown = isShown([a, b]);
   const committed = model().applyOperation(
     (current, ids) => {
-      const next = interleave(current, { a, b, mode }, ids);
+      const next = interleave(current, { a, b, mode, keepSources: true }, ids);
       created = next.activeDocument;
       return next;
     },
     m.history_interleave({ a: first.title, b: second.title }),
   );
   if (!committed || created === undefined) return undefined;
-  keepShown(shown, [created]);
   announce(
     m.announce_interleaved({
       a: first.title,
@@ -261,11 +212,26 @@ export function renameDocumentTo(
   return { ok: true, changed };
 }
 
-/** Starts renaming in place: in the section header in Arrange mode, else in the tab. */
+/**
+ * Starts renaming: in place in the section header in the Pages grid's All open (PG3 §6), else
+ * in the title menu's name field (01-frame F5, spec 01.4). Rename is a `document` act at every
+ * entry point (X31: the title menu, the section header, F2 and the menus all come here), so a
+ * locked document does not start one (D1-4 opens the Unlock popover there).
+ */
 export function startRename(documentId: DocumentId, surface?: 'tab' | 'section'): void {
-  const where =
-    surface ?? (ui().viewMode === 'arrange' && shownInArrangeNow(documentId) ? 'section' : 'tab');
-  ui().setRenaming({ documentId, surface: where });
+  if (!canChange(documentId, 'document')) return;
+  const inSection =
+    surface === 'section' ||
+    (surface === undefined &&
+      stageView(ui()) === 'grid' &&
+      shownInGridNow(documentId) &&
+      showsAllDocuments(model().workspace, ui().gridScope));
+  if (inSection) {
+    ui().setRenaming({ documentId, surface: 'section' });
+    return;
+  }
+  if (model().workspace.activeDocument !== documentId) model().setActive(documentId);
+  openTitleMenu('name');
 }
 
 // ---------------------------------------------------------------------------
@@ -317,7 +283,6 @@ export function copyPagesToNewDocument(): boolean {
           .map((id) => ws.documents[id])
           .find((doc) => doc?.pages.some((p) => p.id === first));
   if (sourceDoc === undefined) return false;
-  const previousActive = ws.activeDocument;
   const title = m.copy_document_title({ title: sourceDoc.title });
   let created: DocumentId | undefined;
   const committed = model().applyOperation(
@@ -334,7 +299,6 @@ export function copyPagesToNewDocument(): boolean {
     m.history_copy_to_new({ pages: pagesPhrase(pageIds.length) }),
   );
   if (!committed || created === undefined) return false;
-  ui().pinToArrange([created], previousActive);
   const copies = model().workspace.documents[created]?.pages.map((p) => p.id) ?? [];
   useSelectionStore.getState().apply({
     selected: new Set(copies),
@@ -525,6 +489,8 @@ export async function openImagesAsDocument(
     if (failed.length > 0) announce(announceFailed(failed));
     return undefined;
   }
+  // Opened from files, like a PDF: "Open documents locked" applies (ADR-0029 §2.8).
+  if (created !== undefined) lockOpened([created]);
   announce([m.announce_opened({ name: title }), announceFailed(failed)].filter(Boolean).join('. '));
   return created;
 }

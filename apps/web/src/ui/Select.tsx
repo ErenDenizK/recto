@@ -17,10 +17,10 @@
  * be a `<label>` around the trigger (a press on it would open the list).
  */
 import { Select as BaseSelect } from '@base-ui/react/select';
-import { ChevronsUpDown } from 'lucide-react';
 import type { Ref } from 'react';
 
 import { m } from '../i18n';
+import { Icon } from './Icon';
 import styles from './Select.module.css';
 import { Tooltip } from './Tooltip';
 
@@ -91,7 +91,7 @@ export function Select<T extends string>({
         placeholder={placeholder ?? m.select_placeholder()}
       />
       <BaseSelect.Icon className={styles.icon}>
-        <ChevronsUpDown aria-hidden="true" />
+        <Icon name="caret-up-down" />
       </BaseSelect.Icon>
     </BaseSelect.Trigger>
   );

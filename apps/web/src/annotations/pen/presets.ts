@@ -319,6 +319,12 @@ export function dotSize(width: number): 10 | 13 | 16 {
   return 16;
 }
 
+/** `#rrggbb` at `alpha` as `rgb()`: a pen cell's dot, the width knob's ink. */
+export function inkFill(color: string, alpha: number): string {
+  const n = Number.parseInt(color.slice(1), 16);
+  return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${alpha})`;
+}
+
 /** The Highlighter (craft spec §5.4; drawn as a short capsule in the bar). */
 export function isHighlighter(p: PenPreset): boolean {
   return p.kind === 'highlighter';
@@ -327,7 +333,7 @@ export function isHighlighter(p: PenPreset): boolean {
 /**
  * The tool bar's fill behind the dots (tokens.css: the `--glass` tint rgb(48 51 58 / 0.66)
  * over a backdrop at `brightness(0.45)`): over the canvas (`--surface-0`) and over a white
- * page (`--page-background`). PenBar.test.tsx derives them from the tokens again.
+ * page (`--page-background`). PenWell.test.tsx derives them from the tokens again.
  */
 export const PEN_BAR_FILLS: readonly string[] = ['#212328', '#47494d'];
 /** Least contrast of a dot against the bar (WCAG 1.4.11, non-text). */
