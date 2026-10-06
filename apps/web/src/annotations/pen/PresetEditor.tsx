@@ -4,8 +4,8 @@
  * (`ui/Popover`), titled "Edit black pen", rising from the pen's cell.
  *
  * From top to bottom: the colour well and the six swatches (`editorSwatches`), the width on
- * the log taper slider with the stroke itself as its knob at the page's zoom (0.25–24 pt;
- * the Highlighter 6–18 pt), opacity on the checkerboard track (not for the Highlighter, which
+ * the taper slider (its stops evenly spaced) with the stroke inside its knob at the page's
+ * zoom (0.25–24 pt; the Highlighter 6–18 pt), opacity on the checkerboard track (not for the Highlighter, which
  * is always opaque with Multiply), the stroke preview on paper, the pressure note once a pen
  * with pressure has been seen, and Reset to default. Edits apply live to the preset, which
  * persists per device. Esc or ✕ closes only the editor (the Esc ladder's first step) and
@@ -86,7 +86,7 @@ interface ResizeState {
  * The preset editor (10-ink §6), one popover with two pages:
  *
  * - **Preset**: "Edit black pen" and ✕; the colour well, then six swatches
- *   (`editorSwatches`); Width on the log taper slider with the stroke as its knob; Opacity on
+ *   (`editorSwatches`); Width on the taper slider with the stroke inside its knob; Opacity on
  *   the checkerboard (not for the Highlighter); the stroke preview on paper (colour, width and
  *   opacity, live); the pressure note when a pen with pressure was seen; Reset to default.
  * - **Colour**: the well pushes the colour panel's views in place (Grid, Spectrum, Sliders,
@@ -285,7 +285,7 @@ export function PresetEditor({
             label={m.pen_editor_width()}
             showLabel
             readout
-            scale="log"
+            scale="stops"
             track="taper"
             detents={presetWidthStops(preset)}
             min={limits.min}

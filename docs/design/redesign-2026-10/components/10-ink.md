@@ -147,11 +147,17 @@ held        ╺━━━━━━━━━(◯)━━━━━━━━━━━
 - **Logarithmic** for widths. `t = ln(w / min) / ln(max / min)`, so the pen range of 0.25–24 pt
   puts 0.25–2 pt in the first 45 % of the travel.
 - **Detents** for the pen at 0.5, 1, 1.5, 2, 3, 5, 8 and 12 pt.
+- **Stops** for a width with detents (the pen, the Highlighter, a shape's stroke; D4-4): the
+  ends and the detents sit at equal shares of the travel, logarithmic within each span, so the
+  ticks under the track are evenly spaced at the preset widths and 0.25–2 pt still keeps 4 of 9
+  spans (44 %). Each tick sits on a whole pixel.
 - **The width track tapers.** Its height grows from 2 px to 12 px (fine) or 3 px to 16 px
   (coarse) along its length, drawn as one SVG path in `--control-track`.
-- **The width knob is the preview.** It is a disc of the ink's colour at the ink's opacity, with
-  diameter `width × zoom × 96/72` px clamped to 8–28 px (coarse 10–32). When clamped, a small
-  "+" or "−" notch in the ring says the stroke is larger or smaller than shown.
+- **The width knob holds the preview.** It is the round white knob of every slider (22 / 28 px,
+  e1 with a soft ambient shadow) with a dot of the ink's colour at the ink's opacity inside it,
+  diameter `width × zoom × 96/72` px clamped to the knob's inside, 2–14 px (coarse 3–20), so a
+  ring of white always frames it and the knob never changes size (D4-4: the stroke-sized knob
+  with its "+" / "−" notch read as a notched, uneven thumb).
 
 ### 3.4 Accessibility
 
