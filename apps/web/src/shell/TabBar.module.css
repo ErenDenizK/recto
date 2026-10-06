@@ -107,7 +107,7 @@
 }
 
 .tabWrap[data-selected] {
-  background: var(--surface-2);
+  background: var(--surface-raised);
   box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
 
@@ -228,7 +228,7 @@
   padding: 0 7px 0 var(--space-3);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-pill);
-  background: var(--surface-0);
+  background: var(--canvas);
   color: var(--text-tertiary);
   font-size: var(--text-md);
   text-align: left;
@@ -330,7 +330,7 @@
 .tabWrap[data-renaming] {
   gap: var(--space-2);
   padding: 0 var(--space-1) 0 var(--space-3);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
 

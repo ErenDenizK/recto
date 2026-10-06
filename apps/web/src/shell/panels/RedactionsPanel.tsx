@@ -297,7 +297,7 @@ export function MarkRow({
 
 function revealMatch(match: FinderMatch): void {
   const ui = useUiStore.getState();
-  if (!isPageView(ui)) ui.setViewMode('read');
+  if (!isPageView(ui)) ui.showSurface('page');
   const first = match.quads[0];
   useViewStore.getState().scrollToPage(match.pageId, first ? { reveal: first } : undefined);
 }

@@ -21,8 +21,8 @@ import { refreshCompareStale, requestReveal, useCompareStore } from './compare-s
 
 const runner = () => import('./compare-runner');
 
-/** The Compare view shows (not Home, where the view is only remembered). */
-const comparing = () => stageView(useUiStore.getState()) === 'compare';
+/** The Compare place shows (a destination, redesign spec §7). */
+const comparing = () => useUiStore.getState().destination === 'compare';
 
 const inCompare = () =>
   comparing() && useWorkspaceStore.getState().workspace.documentOrder.length > 0;
@@ -63,20 +63,20 @@ export function defaultPair(): { a: DocumentId | null; b: DocumentId | null } {
 }
 
 /** Where Esc returns to: the view Compare was entered from, Home included. */
-let previousMode: Exclude<StageView, 'compare'> = 'read';
+let previousMode: Exclude<StageView, 'compare'> = 'page';
 let previousPanel: { open: boolean; view: LeftPanelView } | null = null;
 
 /** Switches to the Compare view with the Changes panel open. */
 export function enterCompare(): void {
   if (comparing()) return;
-  useUiStore.getState().setViewMode('compare');
+  useUiStore.getState().showCompare();
 }
 
 /** Back to the view the user came from. */
 export function leaveCompare(): void {
   if (!comparing()) return;
   if (previousMode === 'home') useUiStore.getState().showHome();
-  else useUiStore.getState().setViewMode(previousMode);
+  else useUiStore.getState().showSurface(previousMode);
 }
 
 function onEnter(): void {
@@ -153,6 +153,7 @@ export function registerCompareCommands(registry: CommandRegistry): () => void {
       id: 'mode.compare',
       title: m.cmd_compare_mode(),
       group: m.group_view(),
+      act: null,
       shortcut: '4',
       keywords: ['compare', 'diff', 'difference', 'changes', 'versions', 'revision'],
       when: () => useWorkspaceStore.getState().workspace.documentOrder.length > 0,
@@ -165,6 +166,7 @@ export function registerCompareCommands(registry: CommandRegistry): () => void {
       id: 'compare.leave',
       title: m.cmd_compare_leave(),
       group: m.group_view(),
+      act: null,
       shortcut: 'Escape',
       hiddenInPalette: true,
       when: comparing,
@@ -174,6 +176,7 @@ export function registerCompareCommands(registry: CommandRegistry): () => void {
       id: 'compare.run',
       title: m.cmd_compare_run(),
       group: m.group_view(),
+      act: null,
       keywords: ['compare', 'diff', 'run', 'again'],
       when: () => {
         const { a, b, status } = useCompareStore.getState();
@@ -192,6 +195,7 @@ export function registerCompareCommands(registry: CommandRegistry): () => void {
       id: 'compare.next',
       title: m.cmd_compare_next(),
       group: m.group_view(),
+      act: null,
       shortcut: 'J',
       keywords: ['compare', 'change', 'next', 'diff'],
       when: () => inCompare() && (currentChangeList()?.flat.length ?? 0) > 0,
@@ -203,6 +207,7 @@ export function registerCompareCommands(registry: CommandRegistry): () => void {
       id: 'compare.previous',
       title: m.cmd_compare_previous(),
       group: m.group_view(),
+      act: null,
       shortcut: 'K',
       keywords: ['compare', 'change', 'previous', 'diff'],
       when: () => inCompare() && (currentChangeList()?.flat.length ?? 0) > 0,
@@ -214,6 +219,7 @@ export function registerCompareCommands(registry: CommandRegistry): () => void {
       id: 'compare.exportReport',
       title: m.cmd_compare_export_report(),
       group: m.group_view(),
+      act: null,
       keywords: ['compare', 'report', 'pdf', 'annotations', 'export'],
       when: hasFreshResult,
       run: () => runner().then((r) => r.exportComparisonReport()),
@@ -222,6 +228,7 @@ export function registerCompareCommands(registry: CommandRegistry): () => void {
       id: 'compare.exportChanges',
       title: m.cmd_compare_export_changes(),
       group: m.group_view(),
+      act: null,
       keywords: ['compare', 'changes', 'text', 'markdown', 'list', 'export'],
       when: hasResult,
       run: () => import('./changes-export').then((x) => x.exportChangesText()),

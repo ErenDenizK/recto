@@ -26,7 +26,7 @@
   z-index: 6;
   display: grid;
   place-items: center;
-  border: 1px dashed var(--accent);
+  border: 1px dashed var(--accent-line);
   border-radius: var(--radius-3);
   pointer-events: none;
 }
@@ -35,7 +35,7 @@
   padding: 6px var(--space-3);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-primary);
   font-size: var(--text-md);
 }
@@ -62,9 +62,9 @@
   content: '';
   position: absolute;
   inset: 0 var(--space-3);
-  border: 1px dashed var(--accent);
+  border: 1px dashed var(--select);
   border-radius: var(--radius-3);
-  background: var(--accent-subtle);
+  background: var(--select-subtle);
   pointer-events: none;
 }
 
@@ -79,7 +79,7 @@
   height: 48px;
   /* The collapse chevron hangs in the side gutter so the title lines up with the cells. */
   padding: 0 var(--space-4) 0 0;
-  background: var(--surface-0);
+  background: var(--canvas);
 }
 
 .header::after {
@@ -253,7 +253,7 @@
 }
 
 .cell[aria-selected='true'] .thumbSheet {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--select);
   outline-offset: 3px;
 }
 
@@ -342,7 +342,7 @@
   z-index: 2;
   width: 2px;
   border-radius: var(--radius-page);
-  background: var(--accent);
+  background: var(--select);
   pointer-events: none;
   transition: transform var(--duration-instant) var(--ease-out);
 }
@@ -355,8 +355,8 @@
   width: 14px;
   height: 14px;
   border-radius: var(--radius-round);
-  background: var(--accent);
-  color: var(--surface-0);
+  background: var(--select);
+  color: var(--select-ink);
   font-size: 12px;
   font-weight: 700;
   line-height: 14px;
@@ -372,9 +372,9 @@
 .marquee {
   position: absolute;
   z-index: 4;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--select);
   border-radius: var(--radius-page);
-  background: var(--accent-subtle);
+  background: var(--select-subtle);
   pointer-events: none;
 }
 

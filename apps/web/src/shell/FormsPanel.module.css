@@ -60,7 +60,7 @@
 }
 
 .check input {
-  accent-color: var(--accent);
+  accent-color: var(--control-on);
 }
 
 .xfa {
@@ -138,7 +138,7 @@
   width: 20px;
   height: 20px;
   border-radius: var(--radius-1);
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-secondary);
 }
 

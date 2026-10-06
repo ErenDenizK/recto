@@ -19,6 +19,7 @@ export function registerSignatureCommands(registry: CommandRegistry): () => void
     id: 'document.sign',
     title: m.cmd_sign(),
     group: m.group_document(),
+    act: null,
     keywords: ['signature', 'certificate', 'pades', 'p12', 'pfx', 'digital signature'],
     when: () =>
       active() !== undefined &&

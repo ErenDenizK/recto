@@ -8,12 +8,16 @@
  *   accessible name) and a click opens a confirmation popover; only its "Open" button
  *   opens a new tab, with `noopener`.
  *
- * Hotspots are live only with the Select tool, so annotation tools can draw over links.
+ * Links are in the one hit order after form widgets (05-canvas §6, spec 05.7): hotspots are live
+ * wherever the hit router makes links live (viewing, Markup with Select, Locked), so drawing
+ * tools draw over links. A press on a link that travels past the slop (`linkDragSelects`: 4 px
+ * for a mouse, 3 for a pen, 10 for touch) becomes a text selection from the press point and the
+ * link is not followed.
  */
 import { Popover } from '@base-ui/react/popover';
 import type { SourceId } from '@pdf-editor/document-model';
 import type { Annotation, LinkAnnotation } from '@pdf-editor/engine';
-import { useEffect, useState } from 'react';
+import { type PointerEvent as ReactPointerEvent, useEffect, useState } from 'react';
 
 import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
@@ -24,9 +28,10 @@ import { useActiveDocument } from '../state/workspace-store';
 import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
 import { Tooltip } from '../ui/Tooltip';
 import { userRectToCss } from './geometry';
+import { isLive, linkDragSelects } from './hit-order';
+import { usePageInput } from './input-state';
 import styles from './LinkLayer.module.css';
 import { pageFrame } from './page-frame';
-import { useToolStore } from './tool-store';
 
 const MAX_CACHED_PAGES = 300;
 const links = new Map<string, Promise<readonly LinkAnnotation[]>>();
@@ -64,7 +69,7 @@ export function clearLinksForSource(sourceId: SourceId): void {
 export function LinkLayer(props: PageOverlayProps) {
   const { sourceId, sourceIndex, pageIndex } = props;
   const near = useViewStore((s) => distanceFromView(pageIndex, s.visibleRange) <= 1);
-  const live = useToolStore((s) => s.mode === 'select');
+  const live = isLive('link', usePageInput().state);
   const doc = useActiveDocument();
   const [found, setFound] = useState<{
     key: string;
@@ -116,6 +121,7 @@ export function LinkLayer(props: PageOverlayProps) {
                 aria-disabled={target === undefined || undefined}
                 tabIndex={live ? 0 : -1}
                 data-link="internal"
+                onPointerDown={selectPastSlop}
                 onClick={() => {
                   if (target) useViewStore.getState().scrollToPage(target.id);
                 }}
@@ -130,6 +136,77 @@ export function LinkLayer(props: PageOverlayProps) {
       })}
     </div>
   );
+}
+
+/** What finds a caret under a point: the standard API, or WebKit's older one. */
+interface CaretLookup {
+  readonly caretPositionFromPoint:
+    | ((x: number, y: number) => { readonly offsetNode: Node; readonly offset: number } | null)
+    | undefined;
+  /** Safari before `caretPositionFromPoint` (the DOM typings mark it deprecated). */
+  readonly rangeFromPoint: ((x: number, y: number) => Range | null) | undefined;
+}
+
+/** The text position under a viewport point, or null. */
+function caretAt(x: number, y: number): { node: Node; offset: number } | null {
+  const doc = document as Partial<Document>;
+  const lookup: CaretLookup = {
+    caretPositionFromPoint: doc.caretPositionFromPoint?.bind(document),
+    rangeFromPoint: (
+      Reflect.get(document, 'caretRangeFromPoint') as CaretLookup['rangeFromPoint']
+    )?.bind(document),
+  };
+  const position = lookup.caretPositionFromPoint?.(x, y);
+  if (position) return { node: position.offsetNode, offset: position.offset };
+  const range = lookup.rangeFromPoint?.(x, y);
+  return range ? { node: range.startContainer, offset: range.startOffset } : null;
+}
+
+/**
+ * A press on a link (05-canvas §6, spec 05.7): while it stays within the slop it is a click
+ * that follows the link; once it travels past, the hotspots let the pointer through, the text
+ * from the press point to the pointer is selected as a drag would select it, and the click
+ * that ends the press is swallowed, so the link is not followed.
+ */
+function selectPastSlop(event: ReactPointerEvent<HTMLElement>): void {
+  if (event.button !== 0 || !event.isPrimary) return;
+  const hotspot = event.currentTarget;
+  const layer = hotspot.parentElement;
+  const start = { x: event.clientX, y: event.clientY };
+  const { pointerId, pointerType } = event;
+  let anchor: { node: Node; offset: number } | null = null;
+  const move = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) return;
+    if (anchor === null) {
+      if (!linkDragSelects(pointerType, e.clientX - start.x, e.clientY - start.y)) return;
+      if (layer) layer.dataset.selecting = '';
+      anchor = caretAt(start.x, start.y);
+      if (anchor === null) return;
+    }
+    const focus = caretAt(e.clientX, e.clientY);
+    if (focus)
+      window.getSelection()?.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset);
+  };
+  const swallow = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  const end = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) return;
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', end);
+    window.removeEventListener('pointercancel', end);
+    if (layer?.dataset.selecting === undefined) return;
+    // The click of this press (it lands on the hotspot) does not follow the link.
+    hotspot.addEventListener('click', swallow, { capture: true, once: true });
+    setTimeout(() => {
+      hotspot.removeEventListener('click', swallow, { capture: true });
+      delete layer.dataset.selecting;
+    });
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', end);
+  window.addEventListener('pointercancel', end);
 }
 
 function UriHotspot({
@@ -153,6 +230,7 @@ function UriHotspot({
           aria-label={label}
           tabIndex={tabIndex}
           data-link="uri"
+          onPointerDown={selectPastSlop}
         />
       </Tooltip>
       <PopoverPopup side="bottom" align="start" sideOffset={6} data-testid="link-confirm">

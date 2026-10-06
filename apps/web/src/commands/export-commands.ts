@@ -19,6 +19,7 @@ export function registerExportCommands(registry: CommandRegistry): () => void {
     id: 'file.export',
     title: m.cmd_export(),
     group: m.group_file(),
+    act: null,
     shortcut: 'Mod+Shift+S',
     note: m.save_copy_shortcut_note(),
     keywords: ['save', 'download', 'pdf', 'merge', 'write', 'copy', 'export', 'share'],

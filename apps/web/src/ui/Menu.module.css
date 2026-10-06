@@ -54,7 +54,7 @@
 /* A one-row menu (Recents' "Remove": 46 px) is too short for the menus' 12px blur: the page
    would show through its edges. It takes 7px (coverage registry, `menu-one-row`). */
 .popup:not(:has(> :nth-child(2))) {
-  --glass-filter: var(--glass-menu-short-filter);
+  --glass-filter: var(--glass-menu-short-backdrop);
 }
 
 .popup[data-starting-style],

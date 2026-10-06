@@ -34,6 +34,7 @@ function fake(id: string, available: boolean, title = id): Command {
     id,
     title,
     group: m.group_document(),
+    act: null,
     shortcuts: [],
     when: () => available,
     run: () => undefined,

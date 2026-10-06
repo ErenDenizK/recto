@@ -5,7 +5,7 @@
   padding: 2px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-1);
+  background: var(--surface-frame);
 }
 
 .segment {
@@ -33,7 +33,7 @@
 }
 
 .segment[aria-checked='true'] {
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-primary);
   box-shadow: inset 0 0 0 1px var(--border-hairline);
 }

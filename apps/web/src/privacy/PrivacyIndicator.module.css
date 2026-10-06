@@ -158,6 +158,6 @@
 
 @media (hover: hover) {
   .inlineLink:hover {
-    color: var(--accent-hover);
+    color: var(--text-primary);
   }
 }
