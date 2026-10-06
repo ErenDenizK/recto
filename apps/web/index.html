@@ -26,6 +26,15 @@
     />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="%BASE_URL%icons/glyph.svg" type="image/svg+xml" />
+    <!-- The UI face's Latin file, fetched with the HTML so the first paint is already in it
+         (ADR-0027 §2.1, quality-bar Q-8); styles/fonts.css declares it. -->
+    <link
+      rel="preload"
+      href="%BASE_URL%fonts/inter-recto-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <title>Recto</title>
   </head>
   <body>

@@ -357,13 +357,13 @@
 }
 
 .command {
+  composes: technical from global;
   display: block;
   padding: var(--space-2);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
   background: var(--canvas);
   color: var(--text-primary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: 18px;
   overflow-wrap: anywhere;

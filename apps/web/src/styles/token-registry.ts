@@ -154,15 +154,18 @@ export const THEME_ALIASES: Readonly<Record<string, string>> = {
 
 /** §3: theme-free type, shape, space, metrics, focus offsets, density and motion. */
 export const THEME_FREE_TOKENS: readonly string[] = [
+  // Type (ADR-0027, language.md §4; spec D3-5): the face, three weights (Q-8), the scale with
+  // a line height and a tracking per step.
   '--font-ui',
-  '--font-mono',
+  ...steps('--weight-', ['regular', 'medium', 'semibold']),
   '--tracking-ui',
   '--tracking-label',
   '--tracking-display',
-  ...['caption', 'footnote', 'body', 'callout'].flatMap((step) => [
-    `--type-${step}`,
-    `--type-${step}-lh`,
-  ]),
+  ...['caption', 'footnote', 'body', 'callout', 'title3', 'title2', 'title1', 'display'].flatMap(
+    (step) => [`--type-${step}`, `--type-${step}-lh`, `--track-${step}`],
+  ),
+  '--type-display-lg',
+  '--type-display-lg-lh',
   '--leading-tight',
   '--leading-base',
   ...steps('--radius-', ['page', 'xs', 'sm', 'md', 'capsule', 'pill', 'control']),
