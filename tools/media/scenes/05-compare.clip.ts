@@ -25,8 +25,14 @@ scene({
     await page.keyboard.press('4');
     const setup = page.getByTestId('compare-setup');
     await expect(setup).toBeVisible();
-    await setup.getByLabel('Original (A)').selectOption({ label: ORIGINAL });
-    await setup.getByLabel('Revised (B)').selectOption({ label: REVISED });
+    // The two pickers are list boxes (Base UI Select): choose each document from its list.
+    await setup.getByRole('combobox', { name: 'Original (A)' }).click();
+    await page.getByRole('option', { name: ORIGINAL, exact: true }).click();
+    // The first list fades out before the second opens (both name the same documents).
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await setup.getByRole('combobox', { name: 'Revised (B)' }).click();
+    await page.getByRole('option', { name: REVISED, exact: true }).click();
+    await expect(page.getByRole('listbox')).toHaveCount(0);
     await stage.cursor.place(1100, 640);
   },
   async run(stage) {
