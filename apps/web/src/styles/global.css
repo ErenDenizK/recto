@@ -14,12 +14,12 @@ body,
 
 html {
   color-scheme: dark;
-  background: var(--surface-0);
+  background: var(--canvas);
 }
 
 body {
   overflow: hidden;
-  background: var(--surface-0);
+  background: var(--canvas);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-md);
@@ -31,8 +31,10 @@ body {
   -webkit-user-select: none;
 }
 
+/* Selected text is the selection blue's wash, on the page and in fields alike (language.md
+   §1.9); the lime stays with interaction. */
 ::selection {
-  background: var(--accent-muted);
+  background: var(--select-wash);
   color: var(--text-primary);
 }
 
@@ -98,11 +100,12 @@ textarea,
  * the rule ships once, and sets no border, background or backdrop filter of its own.
  * Docked panels, dialogs and tooltips stay opaque and flat.
  *
- * The backdrop is blurred, colour-boosted and darkened before the 66% tint is laid on it, so a
- * white page shows through as #47494d at worst and every text colour used on the glass stays
- * AA (docs/design/audit/translucency.md §6, docs/specs/experience-redesign.md §7.2). Every glass
- * surface floats with the one elevation token, --elevation-float: inner top highlight, dark
- * hairline ring and one soft shadow (no other shadow anywhere in the chrome). The backdrop filter sits on the surface itself,
+ * It is the bar tier (M2, language.md §2.2): the backdrop is blurred, colour-boosted and
+ * darkened before the 55% graphite tint is laid on it, so a white page shows through as #444548
+ * at worst and every text colour used on the glass stays AA (primary 7.90:1, glass-secondary
+ * 5.14:1). Every glass surface floats with the one elevation token, --elevation-float: the inner
+ * top light, the dark edge and the bar's shadow (no other shadow anywhere in the chrome); the
+ * per-tier rims are materials.css's (D3-3). The backdrop filter sits on the surface itself,
  * never on a pseudo-element: popups fade with `opacity`, which would make the surface the
  * backdrop root of a child layer and drop its blur for the whole fade.
  */
@@ -157,13 +160,14 @@ textarea,
 }
 
 /*
- * Tier 3 (docs/specs/craft.md §7): menus and popovers compose `glass glass-menu`. The modifier
- * only points .glass at the denser tier-3 tint, filter and solid fallback, so the one rule
- * above still draws the border, the elevation, the text mapping and every fallback.
+ * The menu tier (M4, language.md §2.2; craft.md §7's tier 3): menus, popovers and sheets compose
+ * `glass glass-menu`. The modifier only points .glass at the denser menu tint, its 12px
+ * backdrop and solid fallback, so the one rule above still draws the border, the elevation, the
+ * text mapping and every fallback.
  */
 .glass-menu {
   --glass: var(--glass-menu);
-  --glass-filter: var(--glass-menu-filter);
+  --glass-filter: var(--glass-menu-backdrop);
   --glass-solid: var(--glass-menu-solid);
 }
 
