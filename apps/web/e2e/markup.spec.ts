@@ -85,7 +85,7 @@ for (const size of ['large', 'tablet'] as const) {
       await open(page);
       const inks = layer(page).locator('[data-annotation-kind="ink"]');
       const job = presses();
-      await job.click(page.locator('[data-dock-markup]'));
+      await job.click(page.locator('[data-dock-item="markup"]'));
       await job.click(palette(page).getByRole('button', { name: 'Black pen, 1.5 pt' }));
       // The ink strip shows from arming: the colours and the width, one press each.
       const strip = page.getByRole('toolbar', { name: 'Pen options' });
@@ -137,7 +137,7 @@ for (const size of ['large', 'tablet'] as const) {
       await open(page);
       const stamps = layer(page).locator('[data-annotation-kind="stamp"]');
       const first = presses();
-      await first.click(page.locator('[data-dock-fill]'));
+      await first.click(page.locator('[data-dock-item="sign"]'));
       await first.click(palette(page).getByRole('button', { name: 'Sign', exact: true }));
       const sheet = page.getByRole('dialog', { name: 'New signature' });
       await expect(sheet).toBeVisible();
@@ -170,7 +170,7 @@ for (const size of ['large', 'tablet'] as const) {
       await palette(page).getByRole('button', { name: 'Done' }).click();
       await expect(palette(page)).toHaveCount(0);
       const again = presses();
-      await again.click(page.locator('[data-dock-fill]'));
+      await again.click(page.locator('[data-dock-item="sign"]'));
       const chip = page.locator('[data-saved-signature]').first();
       await expect(chip).toBeVisible();
       await expect(chip).toHaveAccessibleName(/^Signature, added /);

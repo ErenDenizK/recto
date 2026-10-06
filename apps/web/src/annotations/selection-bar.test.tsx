@@ -20,7 +20,8 @@ import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { enterEditMode, fixtureFile } from '../../test/store-harness';
 import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
-import { FloatingToolbar } from '../shell/FloatingToolbar';
+import { Dock } from '../shell/frame/Dock';
+import { PageContextMenu } from '../stage/PageContextMenu';
 import { ReadView } from '../stage/ReadView';
 import { isMarkupOpen, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
@@ -39,7 +40,8 @@ function Harness({ doc }: { readonly doc: VirtualDocument }) {
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 700 }}>
       <ReadView doc={doc} />
-      <FloatingToolbar />
+      <Dock />
+      <PageContextMenu />
     </div>
   );
 }

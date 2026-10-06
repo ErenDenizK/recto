@@ -10,7 +10,9 @@ export function abovePalette(control: () => Element | null | undefined) {
     getBoundingClientRect: (): DOMRect => {
       const element = control();
       const own = element?.getBoundingClientRect() ?? new DOMRect();
-      const surface = element?.closest('[data-markup-palette]')?.getBoundingClientRect();
+      const surface = (
+        element?.closest('[data-capsule]') ?? element?.closest('[data-markup-palette]')
+      )?.getBoundingClientRect();
       if (!surface) return own;
       return new DOMRect(own.x, surface.y, own.width, own.bottom - surface.y);
     },

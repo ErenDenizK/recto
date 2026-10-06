@@ -31,7 +31,7 @@ import { ANNOTATION_TOOLS } from '../annotations/tools';
 import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { useAnnouncer } from '../shell/announcer';
-import { FloatingToolbar } from '../shell/FloatingToolbar';
+import { Dock } from '../shell/frame/Dock';
 import { ShortcutOverlay } from '../shell/ShortcutOverlay';
 import {
   memorySignatureBackend,
@@ -50,8 +50,8 @@ function Harness({ doc }: { readonly doc: VirtualDocument }) {
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 760 }}>
       <ReadView doc={doc} />
-      <div style={{ position: 'absolute', inset: 'auto 0 0 0', height: 0 }}>
-        <FloatingToolbar />
+      <div style={{ position: 'absolute', inset: 'auto 0 0 0', height: 0 }} data-frame-layer="band">
+        <Dock />
       </div>
     </div>
   );
@@ -94,7 +94,11 @@ const tool = (name: string | RegExp) => within(palette()).getByRole('button', { 
 const strip = () => screen.queryByTestId('ink-strip');
 
 async function openMarkup(door: 'Markup' | 'Fill & sign' = 'Markup'): Promise<void> {
-  await userEvent.click(screen.getByRole('button', { name: door }));
+  await userEvent.click(
+    within(screen.getByRole('toolbar', { name: 'Document tools' })).getByRole('button', {
+      name: door,
+    }),
+  );
   await waitFor(() => expect(isMarkupOpenActive()).toBe(true));
   await screen.findByRole('toolbar', { name: 'Markup' });
 }
@@ -155,8 +159,8 @@ describe('Markup palette', () => {
       .map((g) => g.getAttribute('aria-label'));
     expect(groups).toEqual(['Select', 'Draw', 'Add', 'Fill and sign', 'Page content']);
     expect(tool('Select')).toHaveAttribute('aria-pressed', 'true');
-    // Opened from the dock: focus moves to the palette's one Tab stop, the armed tool.
-    expect(tool('Select')).toHaveFocus();
+    // Opened from the dock: focus follows the capsule to the palette's Tab stop, the armed tool.
+    await waitFor(() => expect(tool('Select')).toHaveFocus());
     expect(
       within(palette())
         .getAllByRole('button')
@@ -178,7 +182,13 @@ describe('Markup palette', () => {
     await userEvent.click(tool('Done'));
     await waitFor(() => expect(isMarkupOpenActive()).toBe(false));
     expect(useAnnouncer.getState().message).toBe('Markup off.');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Markup' })).toHaveFocus());
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('toolbar', { name: 'Document tools' })).getByRole('button', {
+          name: 'Markup',
+        }),
+      ).toHaveFocus(),
+    );
   });
 
   it('arming a pen shows its ink strip: a swatch and the width edit the armed preset', async () => {
@@ -203,7 +213,7 @@ describe('Markup palette', () => {
     await userEvent.keyboard('{ArrowRight}');
     expect(useAnnotationStore.getState().pen.presets[2].width).toBe(3);
     // The strip is content inside the palette's own glass, in its row above the tools.
-    const surface = palette().closest('[data-markup-palette]') as HTMLElement;
+    const surface = palette().closest('[data-capsule]') as HTMLElement;
     expect(surface.contains(inks)).toBe(true);
     expect(inks.getBoundingClientRect().bottom).toBeLessThanOrEqual(
       palette().getBoundingClientRect().top + 1,
@@ -246,7 +256,7 @@ describe('Markup palette', () => {
     await screen.findByRole('toolbar', { name: 'Pen options' });
     await userEvent.click(tool('Black pen, 1.5 pt'));
     const editor = await screen.findByRole('dialog', { name: 'Edit black pen' });
-    const surface = palette().closest('[data-markup-palette]') as HTMLElement;
+    const surface = palette().closest('[data-capsule]') as HTMLElement;
     await waitFor(() =>
       expect(editor.getBoundingClientRect().bottom).toBeLessThanOrEqual(
         surface.getBoundingClientRect().top,
@@ -279,7 +289,7 @@ describe('Markup palette', () => {
     await waitFor(() =>
       expect(within(palette()).queryByRole('button', { name: 'Redact' })).toBeNull(),
     );
-    const width = palette().closest('[data-markup-palette]')?.getBoundingClientRect().width ?? 0;
+    const width = palette().closest('[data-capsule]')?.getBoundingClientRect().width ?? 0;
     expect(width).toBeLessThanOrEqual(640 - 32);
     await userEvent.click(tool('More tools'));
     const menu = await screen.findByRole('menu');
@@ -306,7 +316,7 @@ describe('Markup palette', () => {
   it('fades while a stroke runs and a second after, never with focus inside', async () => {
     const { layer } = await mount();
     await openMarkup();
-    const surface = palette().closest('[data-markup-palette]') as HTMLElement;
+    const surface = palette().closest('[data-capsule]') as HTMLElement;
     await userEvent.click(tool('Eraser'));
     // Focus is inside the palette (the eraser): no fade (A-13).
     let release = press(layer, [0.3, 0.3]);

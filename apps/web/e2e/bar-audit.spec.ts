@@ -282,7 +282,7 @@ test.describe('the full edition', () => {
     test.setTimeout(60_000);
     const run = collector(page);
     await openFull(page, 'simple-text.pdf');
-    await page.locator('[data-dock-fill]').click();
+    await page.locator('[data-dock-item="sign"]').click();
     const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
     await bar.getByRole('button', { name: 'Sign', exact: true }).click();
     const sheet = page.getByRole('dialog', { name: 'New signature' });

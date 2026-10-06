@@ -12,15 +12,14 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
 
-const bar = (page: Page) => page.getByRole('toolbar', { name: 'Tools', exact: true });
 const palette = (page: Page) => page.getByRole('toolbar', { name: 'Markup', exact: true });
 /**
- * Viewing and Markup as the frame shows them now that the mode switch is gone (D2-1): viewing
- * is the dock's doors (Markup, Fill & sign); Markup open is the palette (D2-3).
+ * Read and Edit as the frame shows them now that the mode switch is gone (D2-1): in viewing the
+ * capsule is the dock, whose Markup is the way in; in Markup it is the palette (spec X1, D2-2, D2-3).
  */
-const readShown = (page: Page) => page.locator('[data-dock-markup]');
-const editShown = (page: Page) =>
-  page.locator('[data-region="toolbar"]:not([data-bar-view="read"])');
+const dock = (page: Page) => page.getByRole('toolbar', { name: 'Document tools', exact: true });
+const readShown = (page: Page) => dock(page).getByRole('button', { name: 'Markup', exact: true });
+const editShown = (page: Page) => page.locator('[data-capsule="palette"]');
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
@@ -36,9 +35,9 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
     timeout: 20_000,
   });
 
-  // Viewing: the dock's doors into Markup.
+  // Read, with the lock; the capsule is the dock: Pages · Markup · Fill & sign · More.
   await expect(readShown(page)).toBeVisible();
-  await expect(bar(page).getByRole('button')).toHaveCount(2);
+  await expect(dock(page).getByRole('button')).toHaveCount(4);
   await expect(readShown(page)).toHaveAttribute('aria-keyshortcuts', '2');
 
   // A drag that starts on the unselected square selects it and moves nothing (S14; D1-5:
@@ -78,9 +77,9 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
   // 1: viewing again; the palette goes.
   await page.keyboard.press('1');
   await expect(readShown(page)).toBeVisible();
-  await expect(bar(page).getByRole('button')).toHaveCount(2);
+  await expect(palette(page)).toHaveCount(0);
 
-  // The Markup door opens it.
+  // The dock's Markup opens it.
   await readShown(page).click();
   await expect(editShown(page)).toBeVisible();
 });

@@ -4581,5 +4581,21 @@
   "markup_field_outlines": "Show field outlines",
   "markup_no_fields": "This file has no form fields",
   "markup_font_smaller": "Smaller text",
-  "markup_font_larger": "Larger text"
+  "markup_font_larger": "Larger text",
+  "dock_label": "Document tools",
+  "dock_pages": "Pages",
+  "dock_markup": "Markup",
+  "dock_fill_sign": "Fill & sign",
+  "dock_sign": "Sign",
+  "dock_more": "More",
+  "dock_locked": "Locked",
+  "dock_locked_name": "Locked: {name}. Unlock…",
+  "dock_no_pages": "No pages to mark up",
+  "dock_more_edit_text": "Edit text",
+  "dock_more_redact": "Redact",
+  "dock_more_ocr": "Recognize text…",
+  "dock_more_compare": "Compare with…",
+  "dock_more_crop": "Crop pages…",
+  "dock_more_commands": "All commands…",
+  "markup_locked_closed": "Locked. Markup closed."
 }

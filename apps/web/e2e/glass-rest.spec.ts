@@ -55,7 +55,8 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
 }) => {
   await open(page, 'simple-text.pdf');
   let walk = await expectGlassClean(page, 'Read');
-  expect(names(walk).some((n) => n.includes('toolbar'))).toBe(true);
+  // The capsule is the dock's glass (spec X1, D2-2).
+  expect(names(walk).some((n) => n.includes('capsule'))).toBe(true);
   // Q-8 read the bar's labels (so a clean walk means the text was looked at).
   expect(walk.texts).toBeGreaterThan(0);
   expect(walk.visible).toBeLessThanOrEqual(4);

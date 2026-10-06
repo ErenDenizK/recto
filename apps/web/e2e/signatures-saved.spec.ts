@@ -124,7 +124,7 @@ test('J8A: five presses the first time, three with a saved signature after a rel
 
   // The first time: New signature opens from the signature button (nothing is saved yet).
   const first = presses();
-  await first.click(page.locator('[data-dock-fill]'));
+  await first.click(page.locator('[data-dock-item="sign"]'));
   await first.click(bar(page).getByRole('button', { name: 'Sign', exact: true }));
   const sheet = page.getByRole('dialog', { name: 'New signature' });
   await expect(sheet).toBeVisible();
@@ -141,7 +141,7 @@ test('J8A: five presses the first time, three with a saved signature after a rel
   // Kept on this device: after a reload the signature is one press from armed.
   await reloadAndReopen(page);
   const again = presses();
-  await again.click(page.locator('[data-dock-fill]'));
+  await again.click(page.locator('[data-dock-item="sign"]'));
   const chip = bar(page).locator('[data-saved-signature]');
   await expect(chip).toHaveCount(1);
   await expect(chip).toHaveAccessibleName(/^Signature, added /);
@@ -215,7 +215,7 @@ test('Settings: add, rename, remove with Undo, and Remove all is final', async (
   await page.keyboard.press('Escape');
   // The tool has nothing to offer: its button opens New signature again.
   await openFixtures(page, ['simple-text.pdf']);
-  await page.locator('[data-dock-fill]').click();
+  await page.locator('[data-dock-item="sign"]').click();
   await expect(bar(page).locator('[data-saved-signature]')).toHaveCount(0);
   await bar(page).getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'New signature' })).toBeVisible();
@@ -235,7 +235,7 @@ test('a kept snapshot keeps a placed signature after its saved copy is removed',
     timeout: 20_000,
   });
   const stamps = layer(page).locator('[data-annotation-kind="stamp"]');
-  await page.locator('[data-dock-fill]').click();
+  await page.locator('[data-dock-item="sign"]').click();
   await bar(page).getByRole('button', { name: 'Sign', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'New signature' });
   await sheet.getByRole('tab', { name: 'Type' }).click();

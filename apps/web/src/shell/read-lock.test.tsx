@@ -1,13 +1,14 @@
 /**
  * The Read lock (ADR-0019 §3, craft spec §3.3) on the mounted page view and bar (Vitest
- * browser mode, PDFium): the bar is one Edit button in Read; nothing on the page selects,
+ * browser mode, PDFium): in viewing the capsule is the dock (01-frame F10, D2-2), whose
+ * Markup opens the bar of groups; nothing on the page selects,
  * arms or marks; a tool key switches to Edit and arms the tool, said once, mode first;
  * a tool letter on a text selection marks it at once, with Markup left closed (D2-3).
  */
 import { getActiveDocument, type VirtualDocument } from '@pdf-editor/document-model';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { userEvent } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
@@ -28,14 +29,16 @@ import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
 import { useAnnouncer } from './announcer';
-import { FloatingToolbar } from './FloatingToolbar';
+import { Dock } from './frame/Dock';
+import { PageContextMenu } from '../stage/PageContextMenu';
 
 function Harness({ doc }: { readonly doc: VirtualDocument }) {
   useShortcuts();
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 700 }}>
       <ReadView doc={doc} />
-      <FloatingToolbar />
+      <Dock />
+      <PageContextMenu />
     </div>
   );
 }
@@ -89,7 +92,7 @@ const enterEdit = () => {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
   if (id !== undefined) useUiStore.getState().openMarkup(id);
 };
-const bar = () => screen.getByRole('toolbar', { name: 'Tools' });
+const dock = () => screen.getByRole('toolbar', { name: 'Document tools' });
 
 function press(element: Element): void {
   const box = element.getBoundingClientRect();
@@ -146,25 +149,33 @@ describe('the Read lock (mounted)', () => {
     resetToolStore();
   });
 
-  it('a file opens on its page: the dock offers Markup and Fill & sign; Markup opens the palette', async () => {
+  it('a file opens in viewing: the dock, whose Markup opens the palette with the focus, and `1` closes', async () => {
+    // A desktop window: Fill & sign is "Sign" only on a compact one (F10 §5).
+    await page.viewport(1280, 900);
     await mount();
     expect(mode()).toBe('read');
-    const buttons = within(bar()).getAllByRole('button');
-    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual(['Markup', 'Fill & sign']);
-    const markup = buttons[0] as HTMLElement;
+    const names = within(dock())
+      .getAllByRole('button')
+      .map((b) => b.textContent);
+    expect(names).toEqual(['Pages', 'Markup', 'Fill & sign', 'More']);
+    const markup = within(dock()).getByRole('button', { name: 'Markup' });
     expect(markup).toHaveAttribute('aria-keyshortcuts', '2');
+    expect(markup).toHaveAttribute('aria-pressed', 'false');
 
     markup.focus();
     await userEvent.keyboard('{Enter}');
     expect(mode()).toBe('edit');
     expect(useAnnouncer.getState().message).toBe('Markup on. Select armed.');
-    // The palette, with the focus on its armed tool (Select).
+    // The palette, with the focus on its armed tool (Select): the capsule morphed, its focus
+    // followed.
     const palette = await screen.findByRole('toolbar', { name: 'Markup' });
     await waitFor(() => expect(palette).toContainElement(document.activeElement as HTMLElement));
+    expect(within(palette).getByRole('button', { name: 'Select' })).toHaveFocus();
 
-    // `1` (the mode command) closes it again.
+    // `1` (the mode command) closes it: the dock again.
     await userEvent.keyboard('1');
-    await waitFor(() => expect(within(bar()).getAllByRole('button')).toHaveLength(2));
+    await waitFor(() => expect(screen.queryByRole('toolbar', { name: 'Markup' })).toBeNull());
+    expect(within(dock()).getAllByRole('button')).toHaveLength(4);
   });
 
   it('in viewing a press on an annotation selects it with its bar; locked, nothing changes', async () => {
