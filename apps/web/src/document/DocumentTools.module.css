@@ -85,12 +85,14 @@
   line-height: var(--leading-base);
 }
 
+/* A label inside S4's groups: the footnote at 550 in the glass's secondary text, as the sheet's
+   own group labels (language.md §4.3: no uppercase labels). */
 .subheading {
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  margin: 0;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 550;
+  line-height: var(--type-footnote-lh);
 }
 
 .custom {

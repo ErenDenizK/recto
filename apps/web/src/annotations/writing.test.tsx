@@ -27,7 +27,7 @@ import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { documentFingerprint, POSITIONS_KEY, rememberPosition } from '../viewer/navigation';
 import { useToolStore } from '../viewer/tool-store';
-import { AnnotationProperties } from './AnnotationProperties';
+import { StyleControls } from './StyleControls';
 import {
   DEFAULT_STYLES,
   type PageTarget,
@@ -327,18 +327,15 @@ describe('tool style controls', () => {
     resetAnnotationStore();
   });
 
+  // The armed tool's controls (the ink strip's, 10-ink §2; the inspector showed them too until
+  // D2-9) edit the tool's style while nothing is selected.
   it('show the armed tool style with nothing selected; a swatch changes and keeps it', async () => {
     localStorage.removeItem(TOOL_STYLES_STORAGE_KEY);
     localStorage.removeItem(PEN_PRESETS_STORAGE_KEY);
     resetAnnotationStore();
-    render(<AnnotationProperties fallback={<p>Nothing selected</p>} />);
-    expect(screen.getByText('Nothing selected')).toBeVisible();
-
     useToolStore.getState().setMode('ink');
-    const section = await screen.findByRole('region', {
-      name: m.annot_tool_style({ tool: m.tool_ink() }),
-    });
-    expect(section).toBeVisible();
+    render(<StyleControls variant="tool" group="ink" />);
+    expect(await screen.findByRole('radio', { name: 'Blue' })).toBeVisible();
     screen.getByRole('radio', { name: 'Blue' }).click();
     await waitFor(() => expect(store().styles.ink.color).toBe(INK.blue));
     expect(screen.getByRole('radio', { name: 'Blue' })).toHaveAttribute('aria-checked', 'true');

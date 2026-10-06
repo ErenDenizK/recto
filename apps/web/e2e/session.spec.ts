@@ -17,15 +17,15 @@
 import { readFile } from 'node:fs/promises';
 
 import { PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
   enterEdit,
+  inHistory,
   markupDoor,
   openFixtures,
   openSaveCopy,
   sessionSettled,
-  showInspector,
   useFileInputPicker,
   waitForSnapshot,
 } from './helpers';
@@ -77,8 +77,9 @@ async function reload(page: Page): Promise<void> {
   await sessionSettled(page);
 }
 
-function historyRows(page: Page) {
-  return page.getByRole('list', { name: /history/i }).getByRole('button');
+/** The History scrubber's steps (FB7), newest first. */
+function steps(list: Locator): Locator {
+  return list.getByRole('option');
 }
 
 function layer(page: Page) {
@@ -110,8 +111,8 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
     await cells.nth(i % 2).click();
     await page.keyboard.press('r');
   }
-  await showInspector(page);
-  await expect(historyRows(page)).toHaveCount(24);
+  // Opened and 22 rotations (the scrubber leaves out the empty start).
+  await inHistory(page, (list) => expect(steps(list)).toHaveCount(23));
 
   // The page view in Edit, page 3, 150 %.
   await page.keyboard.press('2');
@@ -139,19 +140,25 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   // capsule the dock (D2-2).
   await expect(markupDoor(page)).toBeVisible();
 
-  // 20 undo steps came back with the present one, and Undo walks all of them.
-  await showInspector(page);
-  const rows = historyRows(page);
-  await expect(rows).toHaveCount(21);
-  await expect(rows.last()).toHaveAttribute('data-state', 'present');
+  // 20 undo steps came back with the present one, and Undo walks all of them (the scrubber
+  // lists the newest first).
+  await inHistory(page, async (list) => {
+    await expect(steps(list)).toHaveCount(21);
+    await expect(steps(list).first()).toHaveAttribute('data-state', 'present');
+  });
   await page.locator('[data-read-viewport]').focus();
   for (let i = 0; i < 20; i++) await page.keyboard.press('ControlOrMeta+z');
-  await expect(rows.first()).toHaveAttribute('data-state', 'present');
-  await expect(rows.nth(1)).toHaveAttribute('data-state', 'future');
+  await inHistory(page, async (list) => {
+    await expect(steps(list).last()).toHaveAttribute('data-state', 'present');
+    await expect(steps(list).nth(19)).toHaveAttribute('data-state', 'future');
+  });
   // Nothing older was kept: one more Undo changes nothing.
+  await page.locator('[data-read-viewport]').focus();
   await page.keyboard.press('ControlOrMeta+z');
-  await expect(rows.first()).toHaveAttribute('data-state', 'present');
-  await expect(rows).toHaveCount(21);
+  await inHistory(page, async (list) => {
+    await expect(steps(list).last()).toHaveAttribute('data-state', 'present');
+    await expect(steps(list)).toHaveCount(21);
+  });
 });
 
 test('a stamp and an image signature survive a reload; Undo across them; export succeeds', async ({

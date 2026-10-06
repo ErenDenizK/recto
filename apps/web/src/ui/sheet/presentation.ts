@@ -13,9 +13,13 @@
  * | confirmation         | bottom, content ≤ 60 %   | dialog 400     | dialog 400     | dialog 400      |
  * | overlay (shortcuts)  | full                     | full           | dialog 760     | dialog 760      |
  * | signature (S7)       | bottom at 92 %           | full           | form ≤ 640 ¹   | side 400 ¹      |
+ * | batch (S21)          | bottom at 92 %           | full           | form ≤ 640     | dialog 720 ²    |
  *
  * ¹ New signature on a fine pointer is a centred 520 dialog from medium up (07.5, flows §6.9's
  * row): its pad needs width, not height. On a coarse pointer it is a task sheet.
+ *
+ * ² Batch (S21) is a task sheet whose Recipe and Files sit side by side from expanded up, so it
+ * is a centred 720 dialog there (07.5, flows §6.9's row); below, it is a task sheet.
  *
  * compact-height (a window under 480 px tall and under 1000 wide) takes precedence over the
  * width class, as the table's column does. Settings on compact is 07 §1.1's "full sheet at
@@ -25,7 +29,14 @@
 import type { FrameClass } from '../../shell/frame/size-class';
 
 /** What a sheet is for (07 §0, §1.1). */
-export type SheetKind = 'tool' | 'task' | 'settings' | 'confirmation' | 'overlay' | 'signature';
+export type SheetKind =
+  | 'tool'
+  | 'task'
+  | 'settings'
+  | 'confirmation'
+  | 'overlay'
+  | 'signature'
+  | 'batch';
 
 /** The five presentations of 07 §0. */
 export type Presentation = 'side' | 'form' | 'dialog' | 'bottom' | 'full';
@@ -65,6 +76,7 @@ export const SHEET_WIDTH = {
   dialog: 400,
   overlay: 760,
   signature: 520,
+  batch: 720,
 } as const;
 
 type Column = 'compact' | 'short' | 'medium' | 'wide';
@@ -106,6 +118,9 @@ export function presentationOf(
       if (pointer === 'fine' && (column === 'medium' || column === 'wide')) {
         return layout('dialog', SHEET_WIDTH.signature, true);
       }
+      return presentationOf('task', frame);
+    case 'batch':
+      if (column === 'wide') return layout('dialog', SHEET_WIDTH.batch, true);
       return presentationOf('task', frame);
     case 'tool':
       if (column === 'compact') return layout('bottom', null, false, { detents: TOOL_DETENTS });

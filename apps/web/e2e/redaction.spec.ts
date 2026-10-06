@@ -26,16 +26,24 @@ import {
   enterEdit,
   openFixtures,
   openSaveCopy,
-  showInspector,
+  inHistory,
+  historyStep,
   useDownloadPath,
   useFileInputPicker,
   markAllMatches,
   openFindPanel,
   showSidebar,
+  stageAsBesideInspector,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
+
+// The page geometry these tests were written for (drags by fractions of a page that fit above
+// the dock): the stage beside the inspector's 280 px, which D2-9 removed.
+test.beforeEach(async ({ page }) => {
+  await stageAsBesideInspector(page);
+});
 
 const TOKEN = 'SECRET-7731';
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
@@ -43,10 +51,6 @@ const capture = Boolean(process.env.CAPTURE_SCREENSHOTS);
 
 function layer(page: Page, index = 0) {
   return page.locator(`[data-annotation-layer="${index}"]`);
-}
-
-function historyRow(page: Page, label: string | RegExp) {
-  return page.getByRole('list', { name: /history/i }).getByRole('button', { name: label });
 }
 
 /** The sidebar's Review section on its Marks filter (06-navigation N5). */
@@ -103,7 +107,6 @@ test('mark by selection and by area, list them, export and re-open with the mark
   await page.goto('./?lang=en');
   await openFixtures(page, ['redact-text-runs.pdf']);
   await enterEdit(page);
-  await showInspector(page);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
@@ -113,7 +116,9 @@ test('mark by selection and by area, list them, export and re-open with the mark
   await page.keyboard.press('x');
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(1);
   await expect(page.locator('[data-redaction-layer="0"] [data-redaction-mark]')).toHaveCount(1);
-  await expect(historyRow(page, 'Redaction mark on page 1')).toBeVisible();
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Redaction mark on page 1')).toBeVisible(),
+  );
   await expect(layer(page)).toHaveAttribute('data-tool', 'select');
   // A new mark never selects itself: no contextual bar over the line above (spec §5.2).
   await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
@@ -198,7 +203,6 @@ test('mark every search match, then review the marks with J and K', async ({ pag
   await page.goto('./?lang=en');
   await openFixtures(page, ['redact-text-runs.pdf']);
   await enterEdit(page);
-  await showInspector(page);
   await expect(
     page
       .getByTestId('text-layer')
@@ -212,7 +216,9 @@ test('mark every search match, then review the marks with J and K', async ({ pag
   await expect(page.getByTestId('search-hit')).toHaveCount(3);
   await markAllMatches(page);
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(3);
-  await expect(historyRow(page, 'Mark 3 search matches for redaction')).toBeVisible();
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Mark 3 search matches for redaction')).toBeVisible(),
+  );
 
   const panel = await showMarks(page);
   await expect(panel.getByTestId('redaction-snippet')).toHaveText([TOKEN, TOKEN, TOKEN]);
@@ -266,7 +272,6 @@ test('apply marks made by selection, search and area; export; the re-opened expo
   await page.goto('./?lang=en');
   await openFixtures(page, ['redact-text-runs.pdf']);
   await enterEdit(page);
-  await showInspector(page);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
@@ -325,7 +330,9 @@ test('apply marks made by selection, search and area; export; the re-opened expo
   }
   await dialog.getByRole('button', { name: 'Close' }).last().click();
   await expect(dialog).toBeHidden();
-  await expect(historyRow(page, 'Redactions applied (4 areas)')).toBeVisible();
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Redactions applied (4 areas)')).toBeVisible(),
+  );
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(0);
   await expect(panel.getByTestId('redaction-summary')).toHaveCount(0);
   await expect(page.getByTestId('text-layer').first()).not.toContainText(TOKEN);
@@ -367,7 +374,6 @@ test('keeping attachments: the self-check sees the token in the attachment and n
   await page.goto('./?lang=en');
   await openFixtures(page, ['redact-metadata.pdf']);
   await enterEdit(page);
-  await showInspector(page);
   await selectText(page, TOKEN);
   await page.keyboard.press('x');
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(1);
@@ -391,9 +397,9 @@ test('keeping attachments: the self-check sees the token in the attachment and n
     'false',
   );
   await expect(blocked.getByTestId('redaction-findings')).toContainText('Redacted text absent');
-  // Nothing happened: the mark is still a mark, no history entry.
+  // Nothing happened: the mark is still a mark (and History, read once the modal dialog has
+  // closed, holds one application: the one below).
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(1);
-  await expect(historyRow(page, /Redactions applied/)).toHaveCount(0);
 
   // Back: apply without keeping attachments. It passes, and so does the export.
   await dialog.getByRole('button', { name: 'Back' }).click();
@@ -403,7 +409,10 @@ test('keeping attachments: the self-check sees the token in the attachment and n
   await expect(result).toBeVisible({ timeout: 30_000 });
   await expect(result).toContainText('Attachments removed');
   await dialog.getByRole('button', { name: 'Close' }).last().click();
-  await expect(historyRow(page, 'Redactions applied (1 area)')).toBeVisible();
+  await inHistory(page, async (list) => {
+    await expect(historyStep(list, 'Redactions applied (1 area)')).toBeVisible();
+    await expect(historyStep(list, /Redactions applied/)).toHaveCount(1);
+  });
   const { bytes, summary } = await exportAndDownload(page);
   expect(summary[0]).toContain('Redaction: 1 area on 1 page, self-check passed (9 checks).');
   const pdf = await PDFDocument.load(bytes, { updateMetadata: false });
@@ -419,7 +428,6 @@ test('Esc and the backdrop while applying: the dialog stays and the blocked outc
   await page.goto('./?lang=en');
   await openFixtures(page, ['redact-metadata.pdf']);
   await enterEdit(page);
-  await showInspector(page);
   await selectText(page, TOKEN);
   await page.keyboard.press('x');
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(1);
@@ -473,7 +481,6 @@ test('Esc and the backdrop while applying: the dialog stays and the blocked outc
   await expect(
     page.locator('[role="status"][aria-live="polite"]').filter({ hasText: announced }),
   ).toHaveCount(1);
-  await expect(historyRow(page, /Redactions applied/)).toHaveCount(0);
   // While it worked, the header ✕ was disabled at every change.
   const close = await page.evaluate(
     () =>
@@ -485,6 +492,8 @@ test('Esc and the backdrop while applying: the dialog stays and the blocked outc
   // Once finished, Esc closes it; opened again, the form starts afresh.
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
+  // Nothing was applied: no history entry (read once the modal dialog has closed).
+  await inHistory(page, (list) => expect(historyStep(list, /Redactions applied/)).toHaveCount(0));
   await panel.getByTestId('redaction-apply').click();
   await expect(dialog.getByTestId('redaction-apply-confirm')).toBeVisible();
   await expect(dialog.getByTestId('redaction-blocked')).toHaveCount(0);
