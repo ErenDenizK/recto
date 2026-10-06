@@ -17,7 +17,13 @@ import { readFile } from 'node:fs/promises';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, openSaveCopy, showInspector, useFileInputPicker } from './helpers';
+import {
+  openFixtures,
+  openSaveCopy,
+  showInspector,
+  useFileInputPicker,
+  openFindPanel,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -131,8 +137,7 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
   if (!thumb) throw new Error('no thumbnail');
   expect(thumb.width / thumb.height).toBeCloseTo(CROP.width / CROP.height, 1);
 
-  await page.keyboard.press('ControlOrMeta+f');
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  const field = await openFindPanel(page);
   // The body text is there on every page (the search runs on the re-opened file)…
   await field.fill('quick brown fox');
   await expect(page.getByTestId('search-hit')).toHaveCount(3, { timeout: 20_000 });

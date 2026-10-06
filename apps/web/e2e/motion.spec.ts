@@ -171,7 +171,15 @@ test.describe('idle: no frames at rest (A-23, Q-10)', () => {
 
 /** What interrupts a motion, done in the page at the chosen frame. */
 type Interrupt =
-  | { readonly kind: 'key'; readonly key: string }
+  | {
+      readonly kind: 'key';
+      readonly key: string;
+      /** Ctrl (Linux and Windows, the app's Mod there) and Shift held with the key. */
+      readonly ctrl?: boolean;
+      readonly shift?: boolean;
+      /** Where the key goes, when not the focused element. */
+      readonly target?: string;
+    }
   | { readonly kind: 'click'; readonly selector: string }
   | { readonly kind: 'contextmenu'; readonly selector: string };
 
@@ -261,8 +269,17 @@ function interruptMidway(
             for (const a of held) a.playbackRate = 1;
             const before = read(el);
             if (interrupt.kind === 'key') {
-              const at = document.activeElement ?? document.body;
-              const init = { key: interrupt.key, bubbles: true, cancelable: true };
+              const at =
+                (interrupt.target ? document.querySelector(interrupt.target) : null) ??
+                document.activeElement ??
+                document.body;
+              const init = {
+                key: interrupt.key,
+                ctrlKey: interrupt.ctrl ?? false,
+                shiftKey: interrupt.shift ?? false,
+                bubbles: true,
+                cancelable: true,
+              };
               at.dispatchEvent(new KeyboardEvent('keydown', init));
               at.dispatchEvent(new KeyboardEvent('keyup', init));
             } else {
@@ -428,7 +445,13 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
   test('a side sheet closed while it opens, and reopened while it closes', async ({ page }) => {
     await openDocument(page);
     const panel = '[data-testid="save-copy-sheet"]';
-    const opener = page.getByRole('button', { name: 'Save a copy', exact: true });
+    // Save a copy by its key (Mod+Shift+S): the strip's Export button went (D2-1), and the
+    // title menu's row would add the menu's own motion to the measurement.
+    const opener = page.locator('[data-read-viewport]');
+    const open = async () => {
+      await opener.focus();
+      await page.keyboard.press('ControlOrMeta+Shift+s');
+    };
     // language.md §7.3 *dialog* side: 24 px and a fade, on `smooth` (the fade on `quick`).
     const slide = (target: number): Turn => ({
       channel: 'x',
@@ -445,7 +468,7 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
 
     // Esc mid-entrance: the exit starts where the entrance was, and the sheet goes.
     const closing = interruptMidway(page, panel, { kind: 'key', key: 'Escape' });
-    await opener.click();
+    await open();
     const close = await closing;
     expect(close.progress).toBeGreaterThan(0);
     expectTurn(close, slide(24), 'a sheet closed mid-entrance');
@@ -454,13 +477,17 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expectSettledClean(page, 'a sheet closed mid-entrance');
     await expect(opener).toBeFocused();
 
-    // Open to rest, Esc, and the opener again mid-exit: the sheet turns back and rests open.
-    await opener.click();
+    // Open to rest, Esc, and the key again mid-exit: the sheet turns back and rests open.
+    await open();
     await expect(page.locator(panel)).toBeVisible();
     await settleAnimations(page);
+    // Mid-exit, on the page (focus may still be in the leaving sheet, where shortcuts rest).
     const reopening = interruptMidway(page, panel, {
-      kind: 'click',
-      selector: '[aria-label="Save a copy"]',
+      kind: 'key',
+      key: 'S',
+      ctrl: true,
+      shift: true,
+      target: '[data-read-viewport]',
     });
     await page.keyboard.press('Escape');
     const reopen = await reopening;

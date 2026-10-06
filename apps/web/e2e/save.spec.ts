@@ -134,10 +134,10 @@ async function rotateFirstPage(page: Page): Promise<void> {
   await cell.click();
   await page.keyboard.press('r');
   await page.keyboard.press('1');
-  await expect(page.getByRole('radio', { name: /^(Read|Okuma)\b/ })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  );
+  // Read's dock: one Edit button (the mode switch went with the frame, D2-1).
+  await expect(
+    page.locator('[data-region="toolbar"]').getByRole('button', { name: /^(Edit|Düzenle)$/ }),
+  ).toBeVisible();
 }
 
 const saveButton = (page: Page) => page.getByTestId('save-button');

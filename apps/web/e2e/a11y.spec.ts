@@ -27,7 +27,14 @@ import { createRequire } from 'node:module';
 
 import { devices, expect, type Locator, type Page, test } from '@playwright/test';
 
-import { enterEdit, fixturePath, openFixtures, showInspector, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  fixturePath,
+  openFixtures,
+  showInspector,
+  useFileInputPicker,
+  openSaveCopyFromMenu,
+} from './helpers';
 import { settleAnimations } from './support/glass-walker';
 import { auditTargets } from './support/targets';
 
@@ -222,17 +229,17 @@ test.describe('keyboard', () => {
     const tab = (id: string) => tabs.locator(`#rail-${id}`);
     await tab('pages').focus();
 
-    // Arrows, Home and End move between the tabs (one Tab stop); Enter opens.
-    await page.keyboard.press('ArrowDown');
+    // Left and right (a horizontal row since D2-1), Home and End move between the tabs (one Tab stop); Enter opens.
+    await page.keyboard.press('ArrowRight');
     await expect(tab('find')).toBeFocused();
     await page.keyboard.press('End');
     await expect(tab('files')).toBeFocused();
     await page.keyboard.press('Home');
     await expect(tab('pages')).toBeFocused();
-    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowLeft');
     await expect(tab('files')).toBeFocused();
     await expect(tabs.locator('[role="tab"][tabindex="0"]')).toHaveCount(1);
-    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowLeft');
     await expect(tab('review')).toBeFocused();
     await expect(tab('review')).toHaveAccessibleName(/^Review, \d+ items?$/);
     await page.keyboard.press('Enter');
@@ -615,7 +622,7 @@ test.describe('axe', () => {
     await expect(page.getByTestId('document-info')).toHaveCount(0);
 
     // Save a copy (S2), each format and an open disclosure.
-    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await openSaveCopyFromMenu(page);
     const sheet = page.getByTestId('save-copy-sheet');
     await expect(sheet).toBeVisible();
     await sheet.getByRole('button', { name: /^Security, / }).click();
@@ -989,8 +996,12 @@ test.describe('craft spec §9', () => {
     await page.keyboard.press('F6');
     const select = bar(page).getByRole('button', { name: 'Select', exact: true });
     await expect(select).toBeFocused();
+    // The page pill sits between the dock and the inspector in the F6 order (01-frame X9).
+    await page.keyboard.press('F6');
+    await expect(page.getByTestId('page-pill')).toBeFocused();
     await page.keyboard.press('F6');
     expect(await holdsFocus(page.locator('#right-panel'))).toBe(true);
+    await page.keyboard.press('Shift+F6');
     await page.keyboard.press('Shift+F6');
     await expect(select).toBeFocused();
     // Every group: Enter opens it, Tab and Shift+Tab never stop on anything hidden (the
@@ -1352,8 +1363,9 @@ test.describe('D0 sheets and toasts', () => {
 
     // A modal sheet sits outside the cycle (X9): F6 and Tab stay inside it, Esc closes it and
     // focus goes back to the control that opened it.
-    const opener = page.getByRole('button', { name: 'Save a copy', exact: true });
-    await opener.click();
+    // Opened from the title menu, whose trigger (the active tab) takes the focus back.
+    const opener = page.getByTestId('document-menu');
+    await openSaveCopyFromMenu(page);
     const sheet = page.getByTestId('save-copy-sheet');
     await expect(sheet).toBeVisible();
     await expect.poll(() => holdsFocus(sheet)).toBe(true);
@@ -1444,7 +1456,7 @@ test.describe('D0 sheets and toasts', () => {
     expect(said.filter((text) => text.includes('Deleted page 2'))).toHaveLength(1);
     expect(await regions(), 'a toast').toEqual(one);
 
-    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await openSaveCopyFromMenu(page);
     await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
     expect(await regions(), 'Save a copy').toEqual(one);
     await page.keyboard.press('Escape');
@@ -1471,7 +1483,7 @@ test.describe('D0 sheets and toasts', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await openSaveCopyFromMenu(page);
     const saveCopy = page.getByTestId('save-copy-sheet');
     await expect(saveCopy).toBeVisible();
     await audit('Save a copy', saveCopy);

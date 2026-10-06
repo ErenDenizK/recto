@@ -24,7 +24,13 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, openSaveCopy, showInspector, useFileInputPicker } from './helpers';
+import {
+  openFixtures,
+  openSaveCopy,
+  showInspector,
+  useFileInputPicker,
+  openFindPanel,
+} from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -81,8 +87,8 @@ async function selectRange(page: Page, start: number, length: number): Promise<v
 
 /** Searches the active document (opens the Search panel when needed). */
 async function search(page: Page, query: string) {
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
-  if (!(await field.isVisible())) await page.keyboard.press('ControlOrMeta+f');
+  let field = page.locator('#left-panel').getByRole('searchbox', { name: 'Find in document' });
+  if (!(await field.isVisible())) field = await openFindPanel(page);
   await field.fill(query);
   return page.getByTestId('search-hit');
 }

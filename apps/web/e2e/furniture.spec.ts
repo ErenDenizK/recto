@@ -8,16 +8,13 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import { PDFDict, PDFDocument, PDFName, PDFStream } from '@cantoo/pdf-lib';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-import { openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
+import { openFixtures, openSaveCopy, useFileInputPicker, openFindPanel } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Download flow is verified on Chromium');
-
-const mod = (page: Page) =>
-  page.evaluate(() => (/mac/i.test(navigator.platform) ? 'Meta' : 'Control'));
 
 test('adds page numbers to rotated pages, exports them and reads them back', async ({ page }) => {
   await page.addInitScript({
@@ -78,8 +75,7 @@ test('adds page numbers to rotated pages, exports them and reads them back', asy
     buffer: bytes,
   });
   await expect(page.getByRole('tab', { name: 'numbered' })).toBeVisible();
-  await page.keyboard.press(`${await mod(page)}+f`);
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  const field = await openFindPanel(page);
   await field.fill('of 4');
   await expect(page.getByTestId('find-count')).toContainText('of 4');
   await expect(page.getByTestId('search-hit')).toHaveCount(4);
