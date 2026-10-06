@@ -6,20 +6,20 @@
  * must act on, assertively (§2.6, L§8). Colour is never the only signal: each tone has its
  * glyph and its words (A-19).
  */
-import { CircleCheck, CircleX, Info, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useEffect } from 'react';
 
 import { announce } from '../../shell/announcer';
+import { Icon, type IconName } from '../Icon';
 import styles from './SheetResult.module.css';
 
 export type ResultTone = 'success' | 'info' | 'warning' | 'error';
 
-const GLYPHS = {
-  success: CircleCheck,
-  info: Info,
-  warning: TriangleAlert,
-  error: CircleX,
-} as const;
+const GLYPHS: Readonly<Record<ResultTone, IconName>> = {
+  success: 'check-circle',
+  info: 'info',
+  warning: 'warning',
+  error: 'x-circle',
+};
 
 export function SheetResult({
   tone,
@@ -36,7 +36,6 @@ export function SheetResult({
   /** Actions or more content under the result. */
   readonly children?: ReactNode;
 }) {
-  const Glyph = GLYPHS[tone];
   useEffect(() => {
     announce(body ? `${title} ${body}` : title, {
       politeness: tone === 'error' ? 'assertive' : 'polite',
@@ -44,7 +43,7 @@ export function SheetResult({
   }, [tone, title, body]);
   return (
     <section className={styles.result} data-tone={tone} data-testid="sheet-result">
-      <Glyph aria-hidden="true" className={styles.glyph} />
+      <Icon name={GLYPHS[tone]} className={styles.glyph} />
       <h3 className={styles.title}>{title}</h3>
       {body ? <p className={styles.body}>{body}</p> : null}
       {details && details.length > 0 ? (

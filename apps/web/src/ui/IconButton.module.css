@@ -24,7 +24,6 @@
 .button svg {
   width: var(--icon-md);
   height: var(--icon-md);
-  stroke-width: 1.5;
 }
 
 .button[data-size='row'] {

@@ -15,10 +15,10 @@
  * controlled state, triggers and focus rules.
  */
 import { Popover } from '@base-ui/react/popover';
-import { X } from 'lucide-react';
 import { type ComponentProps, type ReactNode, useRef } from 'react';
 
 import { m } from '../i18n';
+import { Icon } from './Icon';
 import styles from './Popover.module.css';
 
 type PositionerProps = ComponentProps<typeof Popover.Positioner>;
@@ -110,7 +110,7 @@ export function PopoverHeader({
       </Popover.Title>
       {close ? (
         <Popover.Close className={styles.iconButton} aria-label={m.common_close()}>
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </Popover.Close>
       ) : leading ? (
         <span aria-hidden="true" />

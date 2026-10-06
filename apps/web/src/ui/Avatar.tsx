@@ -11,10 +11,10 @@
  * Base UI `Avatar` (`Root` and `Fallback`; there is no image source in Recto).
  */
 import { Avatar as BaseAvatar } from '@base-ui/react/avatar';
-import { User } from 'lucide-react';
 
 import { getLocale, m } from '../i18n';
 import styles from './Avatar.module.css';
+import { Icon } from './Icon';
 import { tagSlot } from './Tag';
 
 /** The first letter of a name, upper-cased in `locale`; null when it has none. */
@@ -46,7 +46,7 @@ export function Avatar({ name, index, size = 20, decorative = false, className }
       {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
     >
       <BaseAvatar.Fallback className={styles.fallback}>
-        {initial ?? <User aria-hidden="true" />}
+        {initial ?? <Icon name="user" />}
       </BaseAvatar.Fallback>
     </BaseAvatar.Root>
   );

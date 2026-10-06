@@ -4,7 +4,6 @@
  */
 import { Dialog } from '@base-ui/react/dialog';
 import type { VirtualDocument } from '@pdf-editor/document-model';
-import { X } from 'lucide-react';
 import { type SyntheticEvent, useId, useRef, useState } from 'react';
 import { create } from 'zustand';
 
@@ -12,6 +11,7 @@ import { m } from '../i18n';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import styles from './GoToPageDialog.module.css';
 import { documentLabels, hasCustomLabels, parseGoTo } from './navigation';
 
@@ -79,7 +79,7 @@ function GoToForm({ doc }: { readonly doc: VirtualDocument }) {
       <div className={overlay.header}>
         <Dialog.Title className={overlay.title}>{m.goto_title()}</Dialog.Title>
         <Dialog.Close className={overlay.close} aria-label={m.common_close()}>
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </Dialog.Close>
       </div>
       <form className={styles.body} onSubmit={onSubmit}>

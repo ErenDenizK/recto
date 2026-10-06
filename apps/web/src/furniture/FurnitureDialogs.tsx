@@ -16,7 +16,6 @@ import type {
   TextOverlay,
 } from '@pdf-editor/document-model';
 import { formatBates } from '@pdf-editor/engine/overlay-geometry';
-import { X } from 'lucide-react';
 import { type ReactNode, type SyntheticEvent, useEffect, useId, useState } from 'react';
 
 import styles from '../export/ExportDialog.module.css';
@@ -28,6 +27,7 @@ import overlay from '../shell/ShortcutOverlay.module.css';
 import local from '../stage/OperationDialogs.module.css';
 import { readJson, writeJson } from '../state/safe-storage';
 import { pagesPhrase, useTabItems, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { ColourPicker } from '../ui/colour/ColourPicker';
 import { NumberField as NumberInput } from '../ui/NumberField';
 import { Select } from '../ui/Select';
@@ -178,7 +178,7 @@ function Frame({
       <div className={overlay.header}>
         <Dialog.Title className={overlay.title}>{furnitureName(kind)}</Dialog.Title>
         <Dialog.Close className={overlay.close} aria-label={m.common_close()}>
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </Dialog.Close>
       </div>
       <form className={styles.body} onSubmit={submit}>

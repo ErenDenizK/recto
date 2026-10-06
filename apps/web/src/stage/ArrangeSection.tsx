@@ -20,7 +20,6 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 import { Menu } from '@base-ui/react/menu';
-import { ChevronDown, MoreHorizontal } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import { useDropHighlight } from '../dnd/drag-store';
@@ -38,6 +37,7 @@ import {
   type SourceFileInfo,
   useWorkspaceStore,
 } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import menuStyles from '../ui/Menu.module.css';
 import { Tooltip } from '../ui/Tooltip';
 import { selectParity } from './arrange-actions';
@@ -304,7 +304,7 @@ function SectionHeader({
         }
         onClick={toggle}
       >
-        <ChevronDown aria-hidden="true" />
+        <Icon name="caret-down" />
       </button>
       {renaming ? (
         <InlineTitleEditor
@@ -420,7 +420,7 @@ function SectionMenu({ section }: { readonly section: ShownSection }) {
         className={styles.headerButton}
         aria-label={m.section_actions_label({ title: doc.title })}
       >
-        <MoreHorizontal aria-hidden="true" />
+        <Icon name="dots-three" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={4} collisionPadding={8}>

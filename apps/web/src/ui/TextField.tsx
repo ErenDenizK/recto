@@ -16,7 +16,6 @@
  * - Wiring: the label names the input, the description or error describes it, and an error
  *   sets `aria-invalid`.
  */
-import { CircleX, Eye, EyeOff } from 'lucide-react';
 import {
   type ComponentPropsWithRef,
   type FocusEvent,
@@ -29,6 +28,7 @@ import {
 
 import { m } from '../i18n';
 import styles from './Field.module.css';
+import { Icon } from './Icon';
 
 interface FieldFrameProps {
   /** The visible label and the accessible name. */
@@ -110,7 +110,7 @@ function FieldFrame({
       {children}
       {error ? (
         <p id={ids.noteId} className={styles.error}>
-          <CircleX aria-hidden="true" />
+          <Icon name="x-circle" />
           <span>{error}</span>
         </p>
       ) : description ? (
@@ -197,7 +197,7 @@ export function TextField({
             disabled={disabled}
             onClick={() => setShown((s) => !s)}
           >
-            {shown ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+            {shown ? <Icon name="eye-slash" /> : <Icon name="eye" />}
           </button>
         ) : null}
       </div>

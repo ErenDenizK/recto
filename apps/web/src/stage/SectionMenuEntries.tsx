@@ -5,11 +5,11 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import type { DocumentId } from '@pdf-editor/document-model';
-import { ChevronRight } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
 import { useCommands } from '../commands/use-commands';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import menuStyles from '../ui/Menu.module.css';
 import {
   resolveSectionItem,
@@ -52,7 +52,7 @@ export function SectionMenuEntries({
                   <Menu.SubmenuRoot key={item.command}>
                     <Menu.SubmenuTrigger className={menuStyles.item}>
                       <span className={menuStyles.label}>{resolved.label}</span>
-                      <ChevronRight className={menuStyles.submenuArrow} aria-hidden="true" />
+                      <Icon name="caret-right" className={menuStyles.submenuArrow} />
                     </Menu.SubmenuTrigger>
                     <Menu.Portal>
                       <Menu.Positioner

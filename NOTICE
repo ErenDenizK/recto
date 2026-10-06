@@ -44,9 +44,10 @@ and are reproduced in the application's "About and licenses" view.
   Copyright (c) MUI and contributors.
   License: MIT.
 
-- Lucide icons (lucide-react)
-  Copyright (c) Lucide Contributors; portions Copyright (c) 2013-2022 Cole Bemis (Feather).
-  License: ISC.
+- Phosphor Icons (path data from @phosphor-icons/core, generated into
+  apps/web/src/ui/icons.generated.tsx by tools/icons/generate.ts)
+  Copyright (c) 2023 Phosphor Icons.
+  License: MIT.
 
 - TanStack Virtual (@tanstack/react-virtual)
   Copyright (c) 2021-present Tanner Linsley.

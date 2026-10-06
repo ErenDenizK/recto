@@ -52,13 +52,13 @@
  */
 import type { Rect } from '@pdf-editor/document-model';
 import type { Annotation, NewAnnotation } from '@pdf-editor/engine';
-import { Lock } from 'lucide-react';
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 
 import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
 import { useCanChange } from '../state/guard';
+import { Icon } from '../ui/Icon';
 import { penDrawsNow, usePenDrawsInMarkup } from '../viewer/edit-policy';
 import { isLive, penButtonOf } from '../viewer/hit-order';
 import { usePageInput } from '../viewer/input-state';
@@ -1043,7 +1043,7 @@ function SelectionOutline({
       {locked ? (
         <foreignObject x={box.left + box.width - 8} y={box.top - 18} width={20} height={20}>
           <span className={styles.lockBadge} title={m.annot_locked()}>
-            <Lock aria-hidden="true" />
+            <Icon name="lock-simple" />
           </span>
         </foreignObject>
       ) : null}

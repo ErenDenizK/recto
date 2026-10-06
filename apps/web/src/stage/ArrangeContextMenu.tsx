@@ -8,7 +8,6 @@
  */
 import { ContextMenu } from '@base-ui/react/context-menu';
 import { type DocumentId, findPageLocation, type PageId } from '@pdf-editor/document-model';
-import { ChevronRight } from 'lucide-react';
 import { type ReactNode, useId } from 'react';
 
 import { commandRegistry } from '../commands/registry';
@@ -17,6 +16,7 @@ import { m } from '../i18n';
 import { useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import { useTabItems, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { Keycaps } from '../ui/Keycaps';
 import menuStyles from '../ui/Menu.module.css';
 import { movePagesToDocument, selectFromSource, selectParity } from './arrange-actions';
@@ -119,7 +119,7 @@ function MenuItems({
       <ContextMenu.SubmenuRoot>
         <ContextMenu.SubmenuTrigger className={menuStyles.item} disabled={!hasSelection}>
           <span className={menuStyles.label}>{m.action_move_to()}</span>
-          <ChevronRight className={styles.menuSubmenuArrow} aria-hidden="true" />
+          <Icon name="caret-right" className={styles.menuSubmenuArrow} />
         </ContextMenu.SubmenuTrigger>
         <ContextMenu.Portal>
           <ContextMenu.Positioner side="right" align="start" sideOffset={4} collisionPadding={8}>

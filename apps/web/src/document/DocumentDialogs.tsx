@@ -20,7 +20,6 @@ import {
   type VirtualDocument,
   type Workspace,
 } from '@pdf-editor/document-model';
-import { X } from 'lucide-react';
 import { type Ref, type SyntheticEvent, useEffect, useId, useRef, useState } from 'react';
 
 import { formatNumber, m } from '../i18n';
@@ -28,6 +27,7 @@ import { announce } from '../shell/announcer';
 import { DocumentFacts } from '../shell/RightPanel';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { documentSources, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { useRetained } from '../ui/use-retained';
 import { DiagnosticsDetails } from './Diagnostics';
 import { useSourceDiagnostics } from './diagnostics';
@@ -159,7 +159,7 @@ function Header({ title }: { readonly title: string }) {
     <div className={overlay.header}>
       <Dialog.Title className={overlay.title}>{title}</Dialog.Title>
       <Dialog.Close className={overlay.close} aria-label={m.common_close()}>
-        <X aria-hidden="true" />
+        <Icon name="x" />
       </Dialog.Close>
     </div>
   );

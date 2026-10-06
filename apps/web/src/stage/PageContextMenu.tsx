@@ -28,7 +28,6 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import { findPageLocation, type PageId } from '@pdf-editor/document-model';
-import { Crop, LayoutGrid, RotateCcw, RotateCw, TextCursorInput, Trash2 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { activateTool } from '../annotations/commands';
@@ -42,6 +41,7 @@ import { announce } from '../shell/announcer';
 import { useSelectionStore } from '../state/selection-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { penDrawsNow } from '../viewer/edit-policy';
 import { pointerDraws } from '../viewer/hit-order';
 import { pageInputNow, useCanChangeActive } from '../viewer/input-state';
@@ -308,7 +308,7 @@ export function PageContextMenu() {
               <>
                 <Item
                   label={m.page_menu_edit_text()}
-                  icon={<TextCursorInput aria-hidden="true" className={styles.icon} />}
+                  icon={<Icon name="edit-text" className={styles.icon} />}
                   shortcut={commandRegistry.get('tool.edit-text')?.shortcuts[0]}
                   disabled={!canEditText}
                   onClick={() => void activateTool(toolDefinition('edit-text'))}
@@ -316,33 +316,33 @@ export function PageContextMenu() {
                 <Menu.Separator className={menuStyles.separator} />
                 <Item
                   label={m.page_menu_rotate_left({ number })}
-                  icon={<RotateCcw aria-hidden="true" className={styles.icon} />}
+                  icon={<Icon name="arrow-counter-clockwise" className={styles.icon} />}
                   disabled={!canPages}
                   onClick={run((id) => rotatePage(id, -90))}
                 />
                 <Item
                   label={m.page_menu_rotate_right({ number })}
-                  icon={<RotateCw aria-hidden="true" className={styles.icon} />}
+                  icon={<Icon name="arrow-clockwise" className={styles.icon} />}
                   disabled={!canPages}
                   onClick={run((id) => rotatePage(id, 90))}
                 />
                 <Item
                   label={m.page_menu_delete({ number })}
-                  icon={<Trash2 aria-hidden="true" className={styles.icon} />}
+                  icon={<Icon name="trash" className={styles.icon} />}
                   disabled={!canPages}
                   onClick={run(deletePage)}
                 />
                 <Menu.Separator className={menuStyles.separator} />
                 <Item
                   label={m.page_menu_crop()}
-                  icon={<Crop aria-hidden="true" className={styles.icon} />}
+                  icon={<Icon name="crop" className={styles.icon} />}
                   disabled={!canPages}
                   onClick={run(cropPage)}
                 />
                 <Menu.Separator className={menuStyles.separator} />
                 <Item
                   label={m.mode_arrange()}
-                  icon={<LayoutGrid aria-hidden="true" className={styles.icon} />}
+                  icon={<Icon name="squares-four" className={styles.icon} />}
                   shortcut={commandRegistry.get('mode.arrange')?.shortcuts[0]}
                   onClick={run(arrangePage)}
                 />

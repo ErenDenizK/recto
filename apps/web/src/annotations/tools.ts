@@ -4,30 +4,9 @@
  * place in the bar: they are offered by the contextual bar of a text selection and keep their
  * shortcuts and palette entries.
  */
-import {
-  ArrowUpRight,
-  Circle,
-  Eraser,
-  EyeOff,
-  Highlighter,
-  Image,
-  LassoSelect,
-  type LucideIcon,
-  Minus,
-  MousePointer2,
-  PenLine,
-  Signature,
-  Square,
-  Stamp,
-  StickyNote,
-  Strikethrough,
-  TextCursorInput,
-  Type,
-  Underline,
-  Waves,
-} from 'lucide-react';
 
 import { m } from '../i18n';
+import type { IconName } from '../ui/Icon';
 import type { BarGroup, ToolMode } from '../viewer/tool-store';
 
 export interface ToolDefinition {
@@ -38,7 +17,7 @@ export interface ToolDefinition {
   /** Name on the tool bar when it differs from the tool's name ("Mark" in Redact). */
   readonly barTitle?: () => string;
   readonly shortcut?: string;
-  readonly Icon: LucideIcon;
+  readonly icon: IconName;
   /** Extra command palette keywords. */
   readonly keywords?: readonly string[];
   /**
@@ -54,19 +33,19 @@ export interface ToolDefinition {
 /** Bar order within each group (craft spec §3.4); `select` stays first (the fallback). */
 export const ANNOTATION_TOOLS: readonly ToolDefinition[] = [
   // Select: the idle tool, the first chip of the group row.
-  { mode: 'select', title: m.tool_select, shortcut: 'V', Icon: MousePointer2, group: 'select' },
+  { mode: 'select', title: m.tool_select, shortcut: 'V', icon: 'cursor', group: 'select' },
   // Write: the pen (its presets and the Highlighter plug in, FloatingToolbar.slots.ts),
   // eraser, lasso, shapes.
-  { mode: 'ink', title: m.tool_ink, shortcut: 'P', Icon: PenLine, group: 'write' },
+  { mode: 'ink', title: m.tool_ink, shortcut: 'P', icon: 'pen', group: 'write' },
   // Shift+E: E is Edit text (spec §2.2).
-  { mode: 'eraser', title: m.tool_eraser, shortcut: 'Shift+E', Icon: Eraser, group: 'write' },
+  { mode: 'eraser', title: m.tool_eraser, shortcut: 'Shift+E', icon: 'eraser', group: 'write' },
   // The lasso selects pen strokes to recolour, resize, move or delete (spec §6.5).
   {
     mode: 'lasso',
     title: m.lasso_tool,
     tooltip: m.lasso_tool_tooltip,
     shortcut: 'Q',
-    Icon: LassoSelect,
+    icon: 'lasso',
     group: 'write',
     keywords: ['lasso', 'select', 'strokes'],
   },
@@ -74,7 +53,7 @@ export const ANNOTATION_TOOLS: readonly ToolDefinition[] = [
     mode: 'rectangle',
     title: m.tool_rectangle,
     shortcut: 'R',
-    Icon: Square,
+    icon: 'square',
     group: 'write',
     shape: true,
   },
@@ -82,16 +61,23 @@ export const ANNOTATION_TOOLS: readonly ToolDefinition[] = [
     mode: 'ellipse',
     title: m.tool_ellipse,
     shortcut: 'O',
-    Icon: Circle,
+    icon: 'circle',
     group: 'write',
     shape: true,
   },
-  { mode: 'line', title: m.tool_line, shortcut: 'L', Icon: Minus, group: 'write', shape: true },
+  {
+    mode: 'line',
+    title: m.tool_line,
+    shortcut: 'L',
+    icon: 'line-segment',
+    group: 'write',
+    shape: true,
+  },
   {
     mode: 'arrow',
     title: m.tool_arrow,
     shortcut: 'A',
-    Icon: ArrowUpRight,
+    icon: 'arrow-up-right',
     group: 'write',
     shape: true,
   },
@@ -101,18 +87,18 @@ export const ANNOTATION_TOOLS: readonly ToolDefinition[] = [
     title: m.tool_edit_text,
     tooltip: m.tool_edit_text_tooltip,
     shortcut: 'E',
-    Icon: TextCursorInput,
+    icon: 'edit-text',
     group: 'text',
     keywords: ['edit', 'text', 'replace', 'change', 'typo', 'word', 'font'],
   },
-  { mode: 'text-box', title: m.tool_text_box, shortcut: 'T', Icon: Type, group: 'text' },
-  { mode: 'note', title: m.tool_note, shortcut: 'N', Icon: StickyNote, group: 'text' },
+  { mode: 'text-box', title: m.tool_text_box, shortcut: 'T', icon: 'textbox', group: 'text' },
+  { mode: 'note', title: m.tool_note, shortcut: 'N', icon: 'note', group: 'text' },
   {
     mode: 'image',
     title: m.tool_image,
     tooltip: m.tool_image_tooltip,
     shortcut: 'I',
-    Icon: Image,
+    icon: 'image',
     group: 'text',
     keywords: ['image', 'picture', 'photo', 'move', 'resize', 'replace', 'extract', 'logo'],
   },
@@ -122,11 +108,11 @@ export const ANNOTATION_TOOLS: readonly ToolDefinition[] = [
     title: m.tool_signature,
     tooltip: m.tool_signature_tooltip,
     shortcut: 'G',
-    Icon: Signature,
+    icon: 'signature',
     group: 'fill',
   },
   // Shift+I: I is the Image tool (M4 §3).
-  { mode: 'stamp', title: m.tool_stamp, shortcut: 'Shift+I', Icon: Stamp, group: 'fill' },
+  { mode: 'stamp', title: m.tool_stamp, shortcut: 'Shift+I', icon: 'stamp', group: 'fill' },
   // Redact
   {
     mode: 'redact',
@@ -134,16 +120,16 @@ export const ANNOTATION_TOOLS: readonly ToolDefinition[] = [
     tooltip: m.tool_redact_tooltip,
     barTitle: m.bar_redact_mark,
     shortcut: 'X',
-    Icon: EyeOff,
+    icon: 'redact',
     group: 'redact',
   },
   // Text markups: no bar entry (the selection's contextual bar offers them); keys and the
   // palette arm them. H arms the Highlighter preset instead (craft spec §5.4,
   // `tool.highlighter`), so the Highlight tool has no key.
-  { mode: 'highlight', title: m.tool_highlight, Icon: Highlighter },
-  { mode: 'underline', title: m.tool_underline, shortcut: 'U', Icon: Underline },
-  { mode: 'strikeout', title: m.tool_strikeout, shortcut: 'S', Icon: Strikethrough },
-  { mode: 'squiggly', title: m.tool_squiggly, Icon: Waves },
+  { mode: 'highlight', title: m.tool_highlight, icon: 'highlighter' },
+  { mode: 'underline', title: m.tool_underline, shortcut: 'U', icon: 'text-underline' },
+  { mode: 'strikeout', title: m.tool_strikeout, shortcut: 'S', icon: 'text-strikethrough' },
+  { mode: 'squiggly', title: m.tool_squiggly, icon: 'wave-sine' },
 ];
 
 export function toolDefinition(mode: ToolMode): ToolDefinition {

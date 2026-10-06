@@ -96,7 +96,6 @@
   width: 16px;
   height: 16px;
   color: var(--text-secondary);
-  stroke-width: 1.75;
 }
 
 /* The highlighted row is the keyboard's place in the menu (as in ui/Menu): neither band. */
@@ -158,7 +157,6 @@
   height: 16px;
   margin-left: 12px;
   color: var(--text-secondary);
-  stroke-width: 1.75;
 }
 
 .input {
