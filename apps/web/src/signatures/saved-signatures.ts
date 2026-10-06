@@ -24,7 +24,7 @@ import { create } from 'zustand';
 
 import { type PendingStamp, useAnnotationStore } from '../annotations/annotation-store';
 import { drawnSignature, typedSignature } from '../annotations/stamps';
-import { getLocale, m } from '../i18n';
+import { formatDay, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useToolStore } from '../viewer/tool-store';
 
@@ -571,7 +571,5 @@ export function signatureLabel(signature: SavedSignature): string {
 
 /** The day a signature was kept, short: "3 Oct" / "3 Eki". */
 export function signatureDate(signature: SavedSignature): string {
-  return new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'short' }).format(
-    signature.createdAt,
-  );
+  return formatDay(signature.createdAt);
 }

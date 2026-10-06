@@ -27,7 +27,7 @@ import {
 
 import { RENDER_PRIORITY } from '../../engine/engine-service';
 import { formatFileSize } from '../../home/home-model';
-import { getLocale, m } from '../../i18n';
+import { formatDay, getLocale, m } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
 import { displaySize, fitInBox } from '../../pages/page-geometry';
 import { contentFrame, ResizedContent } from '../../stage/ResizedContent';
@@ -508,7 +508,7 @@ function About() {
   const date = new Date(BUILD_INFO.buildDate);
   const built = Number.isNaN(date.getTime())
     ? BUILD_INFO.buildDate
-    : new Intl.DateTimeFormat(getLocale(), { dateStyle: 'long' }).format(date);
+    : formatDay(date, { year: true });
   return (
     <div className={styles.about}>
       <div className={styles.aboutHead}>

@@ -206,7 +206,7 @@ describe('About Recto (the About dialog’s facts, ADR-0017 §6)', () => {
     expect(within(about).getByTestId('about-prerelease')).toHaveTextContent('Public beta');
     expect(within(about).getByTestId('about-version')).toHaveTextContent('1.0.0-beta.0');
     expect(within(about).getByTestId('about-commit')).toHaveTextContent('abc1234');
-    expect(within(about).getByTestId('about-build-date')).toHaveTextContent('October 1, 2026');
+    expect(within(about).getByTestId('about-build-date')).toHaveTextContent('1 Oct 2026');
     expect(within(about).getByTestId('about-license')).toHaveTextContent('Apache-2.0');
     const notes = within(about).getByRole('link', { name: /Release notes/ });
     expect(notes).toHaveAttribute(
@@ -236,7 +236,7 @@ describe('About Recto (the About dialog’s facts, ADR-0017 §6)', () => {
       'Files never leave your device.',
       '1.0.0-beta.0',
       'abc1234',
-      'October 1, 2026',
+      '1 Oct 2026',
       'Apache-2.0',
       '5.0 MB',
       'Installed · works offline',
@@ -261,7 +261,7 @@ describe('About Recto (the About dialog’s facts, ADR-0017 §6)', () => {
   it('formats the build date in the UI language', () => {
     setLocale('tr');
     render(<AboutPage info={BETA} />);
-    expect(screen.getByTestId('about-build-date')).toHaveTextContent('1 Ekim 2026');
+    expect(screen.getByTestId('about-build-date')).toHaveTextContent('1 Eki 2026');
     expect(screen.getByTestId('about-prerelease')).toHaveTextContent('Açık beta');
     expect(screen.getByText('Dosyalar cihazınızdan asla çıkmaz.')).toBeVisible();
   });

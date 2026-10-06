@@ -23,7 +23,7 @@ import { useEffect, useState } from 'react';
 
 import { formatFileSize } from '../home/home-model';
 import { formatBytes } from '../files/file-filters';
-import { getLocale, m, useLocale } from '../i18n';
+import { formatDay, m, useLocale } from '../i18n';
 import { documentCsp, parseCsp } from '../privacy/csp';
 import { useExternalRequests } from '../privacy/external-requests';
 import { usePwaStore } from '../pwa/register';
@@ -239,11 +239,11 @@ function useStorageUsage(): StorageUsage {
   return usage;
 }
 
-/** The build date in the UI language, e.g. "1 October 2026" / "1 Ekim 2026". */
+/** The build date in the UI language, day first: "1 Oct 2026" / "1 Eki 2026". */
 function formatBuildDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat(getLocale(), { dateStyle: 'long' }).format(date);
+  return formatDay(date, { year: true });
 }
 
 /** The about page, `about/` under the deployment base (a sibling of the app, F§2.1). */
