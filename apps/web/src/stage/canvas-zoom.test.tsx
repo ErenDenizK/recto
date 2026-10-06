@@ -186,7 +186,12 @@ describe('canvas zoom (05-canvas §4)', () => {
     expect(samples[last + 1]?.transformed).toBe(false);
     expect(Math.abs(committed.left - shown.left)).toBeLessThanOrEqual(1);
     expect(Math.abs(committed.top - shown.top)).toBeLessThanOrEqual(1);
-    expect(Math.abs(committed.width - shown.width)).toBeLessThanOrEqual(1);
+    // Each sheet is laid out on whole device pixels (`sheetSize`): the one under the transform
+    // carries up to half a pixel of rounding, magnified by the scale, and the committed one up
+    // to half a pixel more. Where the release lands (a fling projects its velocity, which a
+    // busy runner measures differently) sets how large that is.
+    const magnified = useUiStore.getState().zoom / zoom;
+    expect(Math.abs(committed.width - shown.width)).toBeLessThanOrEqual(0.5 * magnified + 0.5);
   }, 60_000);
 
   it('steps ×1.26 per Mod+wheel notch about the pointer, and commits once', async () => {
