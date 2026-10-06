@@ -405,7 +405,8 @@ describe('palette groups', () => {
       expect(row('Highlighter tool')).toHaveTextContent('Markup: Draw');
       expect(row('Note tool')).toHaveTextContent('Markup: Add');
       expect(row('Redact tool')).toHaveTextContent('Markup: Page content');
-      expect(row('Underline tool')).not.toHaveTextContent('Markup:');
+      // Underline acts on a text selection, so its row is in "On a selection" (key map v2).
+      expect(row('Underline the selection')).not.toHaveTextContent('Markup:');
     } finally {
       useUiStore.setState({ shortcutsOpen: false });
       dispose();
