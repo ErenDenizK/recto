@@ -8,11 +8,12 @@
  *
  * - **Groups** (`palette-groups.ts`): Select · Draw · Add · Fill & sign · Page content, each a
  *   named `role="group"`, a hairline between them.
- * - **Measured fold** (`palette-fold.ts`): the full row is laid out and measured once per
- *   language, density and set of items, then items drop their labels and fold into + in a
- *   fixed order until the row fits the free rectangle less 2 × 16 px. A `ResizeObserver` on the
- *   band re-runs the fold, one frame late at most, never during a stroke or while focus is
- *   inside.
+ * - **Measured fold** (`palette-fold.ts`, `palette-measure.ts`): the full row is laid out and
+ *   measured ahead, once per language, density and set of items (`PaletteMeasurer`, mounted
+ *   by the dock), then items drop their labels and fold into + in a fixed order until the row
+ *   fits the free rectangle less 2 × 16 px. A `ResizeObserver` on the band re-runs the fold,
+ *   one frame late at most, never during a stroke or while focus is inside. The palette so
+ *   arrives folded, and the capsule morphs to the size it keeps.
  * - **The ink strip** (`InkStrip.tsx`, `10-ink` §2): a second row of the same glass, above the
  *   tools, from the moment a tool with options arms; the capsule grows upward to hold it
  *   (`morphKey`), so the tools never move under the pointer that armed the pen. With the Fill
@@ -76,7 +77,7 @@ import { ChoiceTool } from './ChoiceTool';
 import { closeMarkupDoor } from './doors';
 import { InkStrip, useStripKind } from './InkStrip';
 import { MoreTools } from './MoreTools';
-import { type FoldMetrics, foldPalette, type FoldResult } from './palette-fold';
+import { foldPalette, type FoldResult } from './palette-fold';
 import {
   FOLD_STEPS,
   GROUP_LABEL,
@@ -85,6 +86,7 @@ import {
   type PaletteItem,
 } from './palette-groups';
 import styles from './MarkupPalette.module.css';
+import { type Measured, setAvailable, setMeasured, usePaletteLayout } from './palette-measure';
 import { useRovingTabindex } from './roving';
 import {
   AddFieldMenu,
@@ -105,15 +107,6 @@ const LABELLED: ReadonlySet<PaletteItem> = new Set(['done', 'sign', 'edit-text',
 /** The palette's margin inside the free rectangle, each side (MK-2 §2: 16 px). */
 const MARGIN = 16;
 
-/** One measuring of the full row (module header). */
-interface Measured {
-  readonly key: string;
-  readonly widths: Readonly<Record<string, number>>;
-  readonly metrics: FoldMetrics;
-  /** A bare labelled item: the round button's width. */
-  readonly button: number;
-}
-
 const px = (value: string) => Number.parseFloat(value) || 0;
 
 /** Reads the row's items and spacing (the CSS is the one source of the numbers). */
@@ -127,7 +120,7 @@ function measureRow(row: HTMLElement): Omit<Measured, 'key'> {
       const highlighter = el.querySelector<HTMLElement>('[data-item="highlighter"]');
       if (highlighter) width -= highlighter.getBoundingClientRect().width;
     }
-    widths[id] = width;
+    widths[id] = Math.round(width * 100) / 100;
   }
   const group = row.querySelector<HTMLElement>('[data-group]');
   const sep = row.querySelector<HTMLElement>('[data-sep]');
@@ -138,40 +131,160 @@ function measureRow(row: HTMLElement): Omit<Measured, 'key'> {
     metrics: {
       gap: group ? px(getComputedStyle(group).columnGap) : 0,
       separator: sep && sepStyle ? 1 + px(sepStyle.marginLeft) + px(sepStyle.marginRight) : 0,
-      // Both paddings and the glass's 1 px border each side.
+      // Both paddings and the capsule's 1 px rim each side.
       padding: px(rowStyle.paddingLeft) + px(rowStyle.paddingRight) + 2,
     },
-    button: px(getComputedStyle(row).getPropertyValue('--bar-button')) || 32,
+    button: px(rowStyle.getPropertyValue('--bar-button')) || 32,
   };
 }
 
-/** The palette's rows: what the capsule's content slot holds (module header). */
-export function MarkupPaletteContent() {
-  const rowRef = useRef<HTMLDivElement>(null);
-  // The band the capsule may fill (the fold's room), found once the row is mounted.
-  const [band, setBand] = useState<HTMLElement | null>(null);
-  const frozen = useStrokeInProgress();
-  const id = useWorkspaceStore((s) => s.workspace.activeDocument);
-  const door = useUiStore((s) => (id === undefined ? 'draw' : (s.docUi[id]?.paletteSet ?? 'draw')));
-  const mode = useToolStore((s) => s.mode);
-  const presets = useAnnotationStore((s) => s.pen.presets);
-  const activePen = useAnnotationStore((s) => s.pen.active);
-  const stripKind = useStripKind();
+/** What the items of the row show: the fold's result, or everything (the measuring row). */
+interface RowState {
+  readonly visible: ReadonlySet<string>;
+  readonly bare: ReadonlySet<string>;
+  readonly folded: readonly PaletteItem[];
+}
+
+/** The items the row may hold for this door and document, in row order. */
+function useCandidates(door: 'draw' | 'sign' | 'any'): readonly PaletteItem[] {
   const signatures = useSignatures();
   const hasFields = useFieldStops().length > 0;
-  const coarse = useCoarsePointer();
-  const locale = useLocale();
-  const frame = useSizeClass();
-  const wide = frame.size === 'large' || frame.size === 'xlarge';
-
-  // --- The fold ------------------------------------------------------------------------
-  const candidates = PALETTE_ITEMS.filter((item) =>
+  return PALETTE_ITEMS.filter((item) =>
     item === 'chips'
-      ? door === 'sign' && signatures.length > 0
+      ? door !== 'draw' && signatures.length > 0
       : item === 'stepper'
         ? hasFields
         : true,
   );
+}
+
+/** The row's runs and items (`role="group"` per run, a hairline between shown runs). */
+function PaletteRow({
+  candidates,
+  state,
+}: {
+  readonly candidates: readonly PaletteItem[];
+  readonly state: RowState;
+}) {
+  const runs: { group: string; items: PaletteItem[] }[] = [];
+  for (const item of candidates) {
+    if (!state.visible.has(item)) continue;
+    const group = ITEM_GROUP[item];
+    const last = runs[runs.length - 1];
+    if (last?.group === group) last.items.push(item);
+    else runs.push({ group, items: [item] });
+  }
+  return runs.map((run, index) => {
+    const name =
+      run.group === 'done' || run.group === 'more'
+        ? undefined
+        : GROUP_LABEL[run.group as keyof typeof GROUP_LABEL]();
+    return (
+      <GroupRun key={run.group} first={index === 0} name={name} group={run.group}>
+        {run.items.map((item) => (
+          <PaletteItemView key={item} item={item} state={state} />
+        ))}
+      </GroupRun>
+    );
+  });
+}
+
+function PaletteItemView({
+  item,
+  state,
+}: {
+  readonly item: PaletteItem;
+  readonly state: RowState;
+}): ReactNode {
+  const presets = useAnnotationStore((s) => s.pen.presets);
+  const hasFields = useFieldStops().length > 0;
+  const frame = useSizeClass();
+  const wide = frame.size === 'large' || frame.size === 'xlarge';
+  const { visible, bare, folded } = state;
+  switch (item) {
+    case 'done':
+      return (
+        <PaletteButton
+          item={item}
+          label={m.markup_done()}
+          tooltip={m.markup_done_tooltip()}
+          icon={<Icon name="check" />}
+          showLabel={!bare.has(item)}
+          className={styles.done}
+          aria-description={m.markup_done_description()}
+          data-markup-done=""
+          onClick={() => closeMarkupDoor()}
+        />
+      );
+    case 'select':
+      return <SimpleTool mode="select" item={item} />;
+    case 'pens': {
+      const pens = PRESET_INDICES.filter((i) => !isHighlighter(presets[i]));
+      const highlighters = PRESET_INDICES.filter((i) => isHighlighter(presets[i]));
+      return (
+        <PenWell
+          cells={visible.has('highlighter') ? [...pens, ...highlighters] : pens}
+          items={{ pens: 'pens', highlighter: 'highlighter' }}
+        />
+      );
+    }
+    case 'highlighter':
+      // Drawn inside the pens' well.
+      return null;
+    case 'eraser':
+    case 'lasso':
+    case 'text-box':
+    case 'note':
+    case 'image':
+      return <SimpleTool mode={item} item={item} />;
+    case 'edit-text':
+    case 'redact':
+      return <SimpleTool mode={item} item={item} showLabel={!bare.has(item)} />;
+    case 'shapes':
+      return <ShapesTool />;
+    case 'stamp':
+      return <StampTool />;
+    case 'sign':
+      return <SignButton showLabel={!bare.has(item)} chipsShown={visible.has('chips')} />;
+    case 'chips':
+      return <SignatureChips item={item} />;
+    case 'stepper':
+      return <FieldStepper countLabel={wide} />;
+    case 'add-field':
+      return <AddFieldMenu />;
+    case 'outlines':
+      return <OutlinesButton hasFields={hasFields} />;
+    case 'more':
+      return <MoreTools folded={folded} />;
+  }
+}
+
+const EVERYTHING: RowState = {
+  visible: new Set(PALETTE_ITEMS),
+  bare: new Set(),
+  folded: [],
+};
+
+/**
+ * The palette's measurer (MK-2 §2, `palette-measure.ts`), mounted by the dock with the page:
+ * whenever the language, the density, the items or the frame's width class change, it lays out
+ * every item the palette may show, labelled, where nobody sees or reaches it, measures it and
+ * takes it out again in the same commit (no frame ever paints it, and no query finds a second
+ * copy of a control). Beside it, the band's room, one frame late at most, never during a stroke
+ * or while focus is inside the palette (the controls would move under the hand or the keyboard).
+ * So the palette folds right on the frame it arrives in, and the capsule morphs to that size.
+ */
+export function PaletteMeasurer() {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const candidates = useCandidates('any');
+  const signatures = useSignatures();
+  const coarse = useCoarsePointer();
+  const locale = useLocale();
+  const frame = useSizeClass();
+  const wide = frame.size === 'large' || frame.size === 'xlarge';
+  const frozen = useStrokeInProgress();
+  const { measured } = usePaletteLayout();
   const key = [
     locale,
     coarse ? 'coarse' : 'fine',
@@ -179,55 +292,64 @@ export function MarkupPaletteContent() {
     Math.min(signatures.length, CHIP_COUNT),
     wide ? 'wide' : 'narrow',
   ].join('|');
-  const [measured, setMeasured] = useState<Measured | null>(null);
   const measuring = measured?.key !== key;
-  const [available, setAvailable] = useState(Number.POSITIVE_INFINITY);
 
   useLayoutEffect(() => {
     if (!measuring) return;
     const row = rowRef.current;
-    if (!row) return;
-    setMeasured({ key, ...measureRow(row) });
+    if (row) setMeasured({ key, ...measureRow(row) });
   }, [measuring, key]);
 
   useLayoutEffect(() => {
-    const row = rowRef.current;
-    setBand(row?.closest<HTMLElement>('[data-frame-layer="band"]') ?? document.body);
-  }, []);
-
-  // The room: the band's width less the margins, followed one frame late (MK-2 §2).
-  useLayoutEffect(() => {
-    const parent = band;
-    if (!parent) return;
+    const band =
+      hostRef.current?.closest<HTMLElement>('[data-frame-layer="band"]') ?? document.body;
     let raf = 0;
-    const measure = () => setAvailable(parent.clientWidth - 2 * MARGIN);
+    const measure = () => setAvailable(band.clientWidth - 2 * MARGIN);
     const update = () => {
-      const focused = document.activeElement;
       if (frozen || strokeInProgress()) return;
-      // Never while focus is inside: the controls would move under the keyboard.
-      if (
-        focused instanceof Node &&
-        rowRef.current?.closest('[data-markup-palette]')?.contains(focused)
-      ) {
-        return;
-      }
+      const focused = document.activeElement;
+      if (focused instanceof Element && focused.closest('[data-markup-palette]')) return;
       measure();
     };
     // The room now; later changes wait for the stroke to end and the focus to leave.
-    measure();
+    if (!frozen) measure();
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(update);
     });
-    observer.observe(parent);
+    observer.observe(band);
     return () => {
       observer.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [band, frozen]);
+  }, [frozen]);
 
+  return (
+    <div ref={hostRef} className={`${styles.content} ${styles.measurer}`} aria-hidden="true" inert>
+      {measuring ? (
+        <div ref={rowRef} className={styles.row}>
+          <PaletteRow candidates={candidates} state={EVERYTHING} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The palette's rows: what the capsule's content slot holds (module header). */
+export function MarkupPaletteContent() {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const id = useWorkspaceStore((s) => s.workspace.activeDocument);
+  const door = useUiStore((s) => (id === undefined ? 'draw' : (s.docUi[id]?.paletteSet ?? 'draw')));
+  const mode = useToolStore((s) => s.mode);
+  const activePen = useAnnotationStore((s) => s.pen.active);
+  const stripKind = useStripKind();
+  const signatures = useSignatures();
+  const candidates = useCandidates(door);
+  const { measured, available } = usePaletteLayout();
+
+  // --- The fold ------------------------------------------------------------------------
   const fold: FoldResult | null =
-    measuring || !measured
+    measured === null
       ? null
       : foldPalette(
           candidates.map((item) => ({
@@ -240,15 +362,17 @@ export function MarkupPaletteContent() {
           available,
           measured.metrics,
         );
-  const visible = new Set<string>(fold ? fold.visible : candidates);
-  const bare = fold?.bare ?? new Set<string>();
-  const folded = (fold?.folded ?? []) as readonly PaletteItem[];
+  const state: RowState = {
+    visible: new Set<string>(fold ? fold.visible : candidates),
+    bare: fold?.bare ?? new Set<string>(),
+    folded: (fold?.folded ?? []) as readonly PaletteItem[],
+  };
 
   const chipsInRow =
     stripKind === null &&
     door === 'sign' &&
     signatures.length > 0 &&
-    folded.includes('chips') &&
+    state.folded.includes('chips') &&
     (mode === 'select' || mode === 'signature');
 
   // --- Focus, roving and Esc -----------------------------------------------------------
@@ -289,80 +413,6 @@ export function MarkupPaletteContent() {
     else closeMarkupDoor();
   };
 
-  // --- The row ---------------------------------------------------------------------------
-  const pens = PRESET_INDICES.filter((i) => !isHighlighter(presets[i]));
-  const highlighters = PRESET_INDICES.filter((i) => isHighlighter(presets[i]));
-
-  const render = (item: PaletteItem): ReactNode => {
-    switch (item) {
-      case 'done':
-        return (
-          <PaletteButton
-            key={item}
-            item={item}
-            label={m.markup_done()}
-            tooltip={m.markup_done_tooltip()}
-            icon={<Icon name="check" />}
-            showLabel={!bare.has(item)}
-            className={styles.done}
-            aria-description={m.markup_done_description()}
-            data-markup-done=""
-            onClick={() => closeMarkupDoor()}
-          />
-        );
-      case 'select':
-        return <SimpleTool key={item} mode="select" item={item} />;
-      case 'pens':
-        return (
-          <PenWell
-            key={item}
-            cells={visible.has('highlighter') ? [...pens, ...highlighters] : pens}
-            items={{ pens: 'pens', highlighter: 'highlighter' }}
-          />
-        );
-      case 'highlighter':
-        // Drawn inside the pens' well.
-        return null;
-      case 'eraser':
-      case 'lasso':
-      case 'text-box':
-      case 'note':
-      case 'image':
-        return <SimpleTool key={item} mode={item} item={item} />;
-      case 'edit-text':
-      case 'redact':
-        return <SimpleTool key={item} mode={item} item={item} showLabel={!bare.has(item)} />;
-      case 'shapes':
-        return <ShapesTool key={item} />;
-      case 'stamp':
-        return <StampTool key={item} />;
-      case 'sign':
-        return (
-          <SignButton key={item} showLabel={!bare.has(item)} chipsShown={visible.has('chips')} />
-        );
-      case 'chips':
-        return <SignatureChips key={item} item={item} />;
-      case 'stepper':
-        return <FieldStepper key={item} countLabel={wide} />;
-      case 'add-field':
-        return <AddFieldMenu key={item} />;
-      case 'outlines':
-        return <OutlinesButton key={item} hasFields={hasFields} />;
-      case 'more':
-        return <MoreTools key={item} folded={folded} />;
-    }
-  };
-
-  // Shown items by run, in row order; a hairline between two shown runs.
-  const runs: { group: string; items: PaletteItem[] }[] = [];
-  for (const item of candidates) {
-    if (!visible.has(item)) continue;
-    const group = ITEM_GROUP[item];
-    const last = runs[runs.length - 1];
-    if (last?.group === group) last.items.push(item);
-    else runs.push({ group, items: [item] });
-  }
-
   return (
     <div
       className={styles.content}
@@ -376,22 +426,11 @@ export function MarkupPaletteContent() {
         aria-label={m.markup_label()}
         aria-orientation="horizontal"
         className={styles.row}
-        data-measuring={measuring ? '' : undefined}
         onKeyDownCapture={onKeyDownCapture}
         onKeyDown={roving.onKeyDown}
         onFocus={roving.onFocus}
       >
-        {runs.map((run, index) => {
-          const name =
-            run.group === 'done' || run.group === 'more'
-              ? undefined
-              : GROUP_LABEL[run.group as keyof typeof GROUP_LABEL]();
-          return (
-            <GroupRun key={run.group} first={index === 0} name={name} group={run.group}>
-              {run.items.map(render)}
-            </GroupRun>
-          );
-        })}
+        <PaletteRow candidates={candidates} state={state} />
       </div>
       {stripKind !== null || chipsInRow ? (
         <div

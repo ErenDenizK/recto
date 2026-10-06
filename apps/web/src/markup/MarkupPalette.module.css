@@ -52,9 +52,16 @@
   white-space: nowrap;
 }
 
-/* While the fold measures the full row it may be wider than the room: nothing wraps. */
-.row[data-measuring] {
-  justify-content: flex-start;
+/* The measurer's row (`PaletteMeasurer`): laid out at its full width, out of sight and reach,
+   and only for the commit that measures it. */
+.measurer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+  contain: layout style;
 }
 
 /* The ink strip's row (10-ink §2.2): the same height, a hairline above the tools, inset so it
