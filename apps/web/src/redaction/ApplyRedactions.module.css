@@ -94,12 +94,12 @@
 }
 
 .findings {
+  composes: technical from global;
   max-height: 180px;
   overflow-y: auto;
   margin: 0;
   padding-left: var(--space-4);
   color: var(--text-secondary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: var(--leading-base);
 }

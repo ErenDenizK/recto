@@ -149,8 +149,8 @@
 }
 
 .glyph {
+  composes: technical from global;
   color: var(--text-primary);
-  font-family: var(--font-mono);
   font-size: var(--text-md);
   line-height: var(--leading-base);
   text-align: center;

@@ -5,7 +5,7 @@
  * embeds); anything else is re-encoded to PNG. Signatures are images too: an "image
  * signature", never a digital signature.
  */
-import './signature-font.css';
+import '../styles/fonts.css';
 
 import { decodeImageFile } from '../files/images';
 import { m } from '../i18n';
@@ -80,12 +80,12 @@ export function builtinPendingStamp(name: BuiltinStamp['name']): PendingStamp {
 }
 
 /**
- * The family a typed signature is drawn in: Inter's true italic under its own name
- * (`signature-font.css`; MK-13 §6, no script font is bundled), then the UI face, so the placed
- * image matches New signature's preview and the plates (`signatures/SignaturePlate.tsx`).
+ * The family a typed signature is drawn in: Inter's true italic at 300 under its own name
+ * (`styles/fonts.css`, cut by `tools/fonts/subset.sh`; MK-13 §6, no script font is bundled),
+ * then the UI face, so the placed image matches New signature's preview and the plates (`signatures/SignaturePlate.tsx`).
  */
 export const TYPED_SIGNATURE_FONT =
-  "'Recto Signature', 'Inter Variable', Inter, Helvetica, Arial, sans-serif";
+  "'Recto Signature', 'Inter Recto', 'Inter Recto Fallback', Helvetica, Arial, sans-serif";
 /** A typed signature's size in points. */
 export const TYPED_SIGNATURE_SIZE = 36;
 /**

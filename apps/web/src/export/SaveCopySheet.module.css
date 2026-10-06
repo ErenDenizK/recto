@@ -278,6 +278,7 @@
 }
 
 .preview {
+  composes: technical from global;
   max-height: 240px;
   margin: 0;
   padding: 8px 12px;
@@ -285,7 +286,6 @@
   border-radius: var(--radius-control);
   background: var(--field-well);
   color: var(--text-primary);
-  font-family: var(--font-mono);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
   white-space: pre-wrap;

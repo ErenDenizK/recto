@@ -275,14 +275,14 @@
 }
 
 .mono {
-  font-family: var(--font-mono);
+  composes: technical from global;
   font-size: var(--type-footnote);
 }
 
 .code {
+  composes: technical from global;
   overflow-wrap: anywhere;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
 }

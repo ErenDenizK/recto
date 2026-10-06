@@ -2,8 +2,9 @@
  * Clip 7, "Sign, and see what was checked" (spec §6): the agreement, Document menu → "Sign
  * with certificate…" with the test PKI's certificate (`test/fixtures/pki/signer-rsa.p12`,
  * password "test-only", as in `apps/web/e2e/signatures.spec.ts`), the signer read from it,
- * then the export that signs. The downloaded file is dropped back on the window, and its
- * signature checks out as "Intact" under the certificate's name. The scene asserts that.
+ * then Save a copy, which signs the copy it writes (components/07-sheets.md §4). The
+ * downloaded copy is dropped back on the window, and its signature checks out as "Intact"
+ * under the certificate's name. The scene asserts that.
  */
 import { readFile } from 'node:fs/promises';
 
@@ -20,7 +21,8 @@ const SIGNER = 'pdf-editor Test Signer';
 scene({
   id: '07-sign',
   kind: 'clip',
-  // The dialogs in the middle and the inspector's Signatures section on the right.
+  // The Sign dialog in the middle, then Save a copy and the inspector's Signatures section
+  // on the right.
   crop: { x: 300, y: 0, width: 1140, height: 900 },
   async prepare(stage) {
     const { page } = stage;
@@ -51,24 +53,29 @@ scene({
     const sign = page.getByTestId('sign-dialog');
     await stage.hold(700);
 
-    // 1. On to the export, which signs the file it writes.
+    // 1. On to Save a copy, which signs the copy it writes: the Signature row says whose
+    //    certificate signs it. Download copy closes the sheet; the copy is built, signed and
+    //    checked as a job, and its toast says it was verified.
     await cursor.click(
       sign.getByRole('button', { name: /^(Continue to export|Use for export)$/ }),
       380,
     );
-    const dialog = page.getByTestId('export-dialog');
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByTestId('export-sign-identity')).toContainText(SIGNER);
-    await cursor.click(dialog.getByRole('button', { name: 'Export', exact: true }), 380);
-    await expect(dialog.getByTestId('export-verified')).toBeVisible({ timeout: 60_000 });
-    await expect(dialog.locator('[data-summary-item="signature"]')).toContainText(
-      `Signed by ${SIGNER}`,
+    const sheet = page.getByTestId('save-copy-sheet');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole('button', { name: /^Signature, / })).toHaveAccessibleName(
+      `Signature, Signed by ${SIGNER}`,
     );
-    const download = page.waitForEvent('download');
-    await cursor.click(dialog.getByRole('button', { name: 'Download' }), 380);
+    await stage.hold(500);
+    const download = page.waitForEvent('download', { timeout: 60_000 });
+    await cursor.click(sheet.getByRole('button', { name: 'Download copy' }), 380);
     const file = await download;
     const bytes = await readFile(await file.path());
-    await expect(dialog).toBeHidden();
+    await expect(sheet).toBeHidden();
+    const toast = page.getByTestId('save-copy-toast').last();
+    await expect(toast).toContainText(/^Downloaded demo-agreement.*· verified/, {
+      timeout: 60_000,
+    });
+    await stage.hold(400);
 
     // 2. Re-open the signed file: dropped on the window, as from the downloads folder.
     const view = await page.locator('main').boundingBox();
