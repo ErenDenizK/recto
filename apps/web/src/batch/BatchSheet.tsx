@@ -390,9 +390,8 @@ function BatchFlow({ open }: { readonly open: boolean }) {
 
   const recipeFocus: RefObject<HTMLElement | null> = {
     get current() {
-      return document.querySelector<HTMLElement>(
-        `[data-sheet="${BATCH_SHEET}"] [aria-pressed="true"]`,
-      );
+      const panel = document.querySelector<HTMLElement>(`[data-sheet="${BATCH_SHEET}"]`);
+      return panel?.querySelector<HTMLElement>('[aria-pressed="true"]') ?? panel;
     },
   };
 
