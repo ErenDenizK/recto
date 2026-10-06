@@ -93,6 +93,7 @@ import {
   CHIP_COUNT,
   FieldStepper,
   OutlinesButton,
+  PaletteLoads,
   SignatureChips,
   SignButton,
   useFieldStops,
@@ -145,10 +146,15 @@ interface RowState {
   readonly folded: readonly PaletteItem[];
 }
 
-/** The items the row may hold for this door and document, in row order. */
+/**
+ * The items the row may hold for this door and document, in row order. The measurer (`door`
+ * `any`) reads the signatures and fields already loaded and starts no load: the open palette
+ * does, and the measurer measures again when they arrive.
+ */
 function useCandidates(door: 'draw' | 'sign' | 'any'): readonly PaletteItem[] {
-  const signatures = useSignatures();
-  const hasFields = useFieldStops().length > 0;
+  const load = door !== 'any';
+  const signatures = useSignatures(load);
+  const hasFields = useFieldStops(load).length > 0;
   return PALETTE_ITEMS.filter((item) =>
     item === 'chips'
       ? door !== 'draw' && signatures.length > 0
@@ -278,7 +284,7 @@ export function PaletteMeasurer() {
   const hostRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const candidates = useCandidates('any');
-  const signatures = useSignatures();
+  const signatures = useSignatures(false);
   const coarse = useCoarsePointer();
   const locale = useLocale();
   const frame = useSizeClass();
@@ -328,7 +334,9 @@ export function PaletteMeasurer() {
     <div ref={hostRef} className={`${styles.content} ${styles.measurer}`} aria-hidden="true" inert>
       {measuring ? (
         <div ref={rowRef} className={styles.row}>
-          <PaletteRow candidates={candidates} state={EVERYTHING} />
+          <PaletteLoads value={false}>
+            <PaletteRow candidates={candidates} state={EVERYTHING} />
+          </PaletteLoads>
         </div>
       ) : null}
     </div>

@@ -20,7 +20,7 @@
 import { Menu } from '@base-ui/react/menu';
 import type { CreatedFieldKind, PageId } from '@pdf-editor/document-model';
 import { getActiveDocument } from '@pdf-editor/document-model';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { activateTool } from '../annotations/commands';
@@ -54,12 +54,23 @@ import { armedTooltip, PaletteButton } from './ToolButton';
 /** How many saved signatures show as chips (03.Q1: three). */
 export const CHIP_COUNT = 3;
 
-/** The saved signatures, loaded once the palette shows. */
-export function useSignatures(): readonly SavedSignature[] {
+/**
+ * Whether the palette's pieces may start loading what they show (the saved signatures, the
+ * fields' sources). False inside the palette's measurer, which lays them out with whatever is
+ * already loaded and never starts a load of its own.
+ */
+export const PaletteLoads = createContext(true);
+
+/**
+ * The saved signatures, loaded once the palette shows. With `load` false (or under
+ * `PaletteLoads` false), only those already loaded.
+ */
+export function useSignatures(loadHere = true): readonly SavedSignature[] {
   const signatures = useSavedSignatures((s) => s.signatures);
+  const load = useContext(PaletteLoads) && loadHere;
   useEffect(() => {
-    void loadSavedSignatures();
-  }, []);
+    if (load) void loadSavedSignatures();
+  }, [load]);
   return signatures;
 }
 
@@ -167,14 +178,18 @@ export function SignatureChips({ item }: { readonly item?: string | undefined })
 // Fields
 // ---------------------------------------------------------------------------
 
-/** The fillable fields of the active document, in tab order; their sources load on demand. */
-export function useFieldStops() {
+/**
+ * The fillable fields of the active document, in tab order; their sources load on demand
+ * (with `load` false, or under `PaletteLoads` false, only the sources already loaded).
+ */
+export function useFieldStops(loadHere = true) {
   const doc = useWorkspaceStore((s) => getActiveDocument(s.workspace));
   const sources = useFormStore((s) => s.sources);
+  const load = useContext(PaletteLoads) && loadHere;
   useEffect(() => {
-    if (!doc) return;
+    if (!doc || !load) return;
     for (const source of documentSources(doc)) useFormStore.getState().ensureSource(source);
-  }, [doc]);
+  }, [doc, load]);
   return doc ? fieldStops(doc, sources).filter((stop) => isFillable(stop.field)) : [];
 }
 
