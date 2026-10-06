@@ -17,171 +17,17 @@ import {
 } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { useFileInputPicker } from './helpers';
 
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
   'Tool downloads are verified on Chromium',
 );
 
-async function setUp(page: Page): Promise<void> {
-  // Force the <a download> path: Playwright cannot drive the native save picker.
-  await page.addInitScript({
-    content:
-      "Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });",
-  });
-  await useFileInputPicker(page);
-  await page.goto('./');
-  await expect(page.getByTestId('app-shell')).toBeVisible();
-  await openFixtures(page, ['images.pdf']);
-}
-
 async function openTool(page: Page, name: string): Promise<void> {
   await page.getByTestId('document-menu').click();
   await page.getByRole('menuitem', { name }).click();
 }
-
-test('the tool bar walks its five groups by mouse and keyboard', async ({ page }) => {
-  await setUp(page);
-  await enterEdit(page);
-  const bar = page.getByRole('toolbar', { name: 'Tools' });
-  const groups = ['Select', 'Write', 'Text', 'Fill & sign', 'Redact'];
-  // At rest: five labelled groups (ADR-0019 §4, craft spec §3.4).
-  await expect(bar.getByRole('button')).toHaveText(groups);
-  // Select is the idle tool: the first chip, on while nothing is armed.
-  const select = bar.getByRole('button', { name: 'Select', exact: true });
-  await expect(select).toHaveAttribute('aria-pressed', 'true');
-
-  // Mouse: each group with tools morphs the bar in place; its chip returns to the row.
-  const sample: Readonly<Record<string, string>> = {
-    Write: 'Eraser',
-    Text: 'Edit text',
-    'Fill & sign': 'Signature image',
-    Redact: 'Mark for redaction',
-  };
-  for (const group of Object.keys(sample)) {
-    await bar.getByRole('button', { name: group, exact: true }).click();
-    const chip = bar.getByRole('button', { name: `${group}: back to all groups` });
-    await expect(chip).toBeFocused();
-    await expect(
-      bar.getByRole('button', { name: sample[group] ?? group, exact: true }),
-    ).toBeVisible();
-    await expect(page.getByRole('status').filter({ hasText: `${group} tools` })).toHaveCount(1);
-    await chip.click();
-    await expect(bar.getByRole('button')).toHaveText(groups);
-  }
-  // The Text group holds Edit text, Text box, Note and Image.
-  await bar.getByRole('button', { name: 'Text', exact: true }).click();
-  for (const name of ['Edit text', 'Text box', 'Note', 'Image']) {
-    await expect(bar.getByRole('button', { name, exact: true })).toBeVisible();
-  }
-  await bar.getByRole('button', { name: 'Text: back to all groups' }).click();
-  // Picking Write armed the pen and picking Text Edit text (review finding 3), so Select is
-  // off; Select disarms it and the row stays (it has no tool row).
-  await expect(page.locator('[data-annotation-layer="0"]')).toHaveAttribute(
-    'data-tool',
-    'edit-text',
-  );
-  await expect(select).toHaveAttribute('aria-pressed', 'false');
-  await select.click();
-  await expect(select).toHaveAttribute('aria-pressed', 'true');
-  await expect(bar.getByRole('button')).toHaveText(groups);
-  await expect(page.locator('[data-annotation-layer="0"]')).toHaveAttribute('data-tool', 'select');
-
-  // The page operations moved to the page context menu, which names its page.
-  const first = await page.locator('[data-page-index="0"]').boundingBox();
-  if (!first) throw new Error('page 1 not laid out');
-  await page.mouse.click(first.x + 40, first.y + 40, { button: 'right' });
-  const pageMenu = page.getByTestId('page-context-menu');
-  await expect(pageMenu.getByRole('menuitem', { name: 'Rotate page 1 left' })).toBeVisible();
-  await expect(pageMenu.getByRole('menuitem', { name: 'Delete page 1' })).toBeVisible();
-  await expect(pageMenu.getByRole('menuitem', { name: /^Edit text here/ })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(pageMenu).toHaveCount(0);
-
-  // Keyboard: one Tab stop (the group used last), arrows, Enter opens, Esc disarms and returns.
-  await expect(bar.locator('button[tabindex="0"]')).toHaveCount(1);
-  await select.focus();
-  await page.keyboard.press('ArrowRight');
-  await expect(bar.getByRole('button', { name: 'Write', exact: true })).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(bar.getByRole('button', { name: 'Write: back to all groups' })).toBeFocused();
-  // The pen is its presets (experience-redesign spec §6.2): a radiogroup of ink dots.
-  await page.keyboard.press('ArrowRight');
-  const presets = bar.getByRole('radiogroup', { name: 'Pen presets' });
-  await expect(presets.getByRole('radio', { name: 'Black pen, 1.5 pt' })).toBeFocused();
-  await page.keyboard.press('ArrowRight');
-  const blue = presets.getByRole('radio', { name: 'Blue pen, 1.5 pt' });
-  await expect(blue).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(blue).toHaveAttribute('aria-checked', 'true');
-  await expect(blue).toHaveAttribute('data-armed', '');
-  await expect(page.locator('[data-annotation-layer="0"]')).toHaveAttribute('data-tool', 'ink');
-  // Arming opens nothing; the pen's tier stays hidden until a pen with pressure is seen.
-  await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
-  const tier = page.getByRole('toolbar', { name: 'Pen options' });
-  await expect(tier).toBeHidden();
-  await page.keyboard.press('Escape');
-  await expect(blue).not.toHaveAttribute('data-armed', '');
-  await expect(page.locator('[data-annotation-layer="0"]')).toHaveAttribute('data-tool', 'select');
-  await page.keyboard.press('Escape');
-  await expect(bar.getByRole('button')).toHaveText(groups);
-  await expect(bar.getByRole('button', { name: 'Write', exact: true })).toBeFocused();
-
-  // U arms Underline from the keyboard: no group holds it, so the row shows. Its options open
-  // only on request: U again (review finding 5).
-  await page.locator('body').press('u');
-  await expect(page.locator('[data-annotation-layer="0"]')).toHaveAttribute(
-    'data-tool',
-    'underline',
-  );
-  await expect(bar.getByRole('button')).toHaveText(groups);
-  await expect(page.getByTestId('options-tier')).toHaveCount(0);
-  await page.locator('body').press('u');
-  await expect(page.getByRole('toolbar', { name: 'Underline options' })).toBeVisible();
-  await page.locator('body').press('Escape');
-  await expect(page.getByTestId('options-tier')).toHaveCount(0);
-
-  // The Esc ladder from the page (craft spec §3.5): the first Esc disarms to Select, the
-  // Eraser and the Lasso included; the second returns the bar to the row. The armed tool's
-  // tooltip says so.
-  for (const key of ['Shift+E', 'q']) {
-    await page.locator('body').press(key);
-    await expect(bar).toHaveAttribute('data-bar-view', 'write');
-    await page.locator('body').press('Escape');
-    await expect(page.locator('[data-annotation-layer="0"]')).toHaveAttribute(
-      'data-tool',
-      'select',
-    );
-    await expect(bar).toHaveAttribute('data-bar-view', 'write');
-    await page.locator('body').press('Escape');
-    await expect(bar).toHaveAttribute('data-bar-view', 'groups');
-  }
-  await page.locator('body').press('Shift+E');
-  await bar.getByRole('button', { name: 'Eraser', exact: true }).hover();
-  await expect(page.getByText('Eraser · Esc: Select')).toBeVisible();
-  await page.locator('body').press('Escape');
-  await page.locator('body').press('Escape');
-
-  // A shortcut arms its tool and shows its group.
-  await page.locator('body').press('x');
-  await expect(bar.getByRole('button', { name: 'Mark for redaction' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await expect(bar.getByRole('button', { name: 'Redact: back to all groups' })).toBeVisible();
-
-  // The title menu (01-frame F5): Merge, Split and Rotate all under "Pages", Compare last.
-  await page.locator('body').press('Escape');
-  await page.getByTestId('document-menu').click();
-  const menu = page.getByRole('menu');
-  const pages = menu.getByRole('group', { name: 'Pages' });
-  for (const name of ['Merge files…', 'Split…', 'Rotate all']) {
-    await expect(pages.getByRole('menuitem', { name })).toBeVisible();
-  }
-  await expect(menu.getByRole('menuitem', { name: 'Compare with…' })).toBeVisible();
-  await page.keyboard.press('Escape');
-});
 
 /** A Letter page with a 1600 × 1200 Flate RGB "photo" placed 4 inches wide (400 dpi). */
 async function photoPdf(): Promise<Uint8Array> {

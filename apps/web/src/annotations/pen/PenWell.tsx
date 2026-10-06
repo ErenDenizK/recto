@@ -108,7 +108,7 @@ export function PenWell({ cells, items }: PenWellProps) {
     const label = presetLabel(i, preset);
     const armed = penArmed && i === active;
     return (
-      <Tooltip key={i} label={armedTooltip(label, armed, true)} side="top">
+      <Tooltip key={i} label={armedTooltip(label, armed, armed)} side="top">
         <button
           type="button"
           aria-pressed={armed}

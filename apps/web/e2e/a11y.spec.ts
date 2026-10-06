@@ -57,7 +57,7 @@ async function openSimple(page: Page): Promise<void> {
   });
 }
 
-const bar = (page: Page): Locator => page.getByRole('toolbar', { name: 'Tools', exact: true });
+const bar = (page: Page): Locator => page.getByRole('toolbar', { name: 'Markup', exact: true });
 const layer = (page: Page): Locator => page.locator('[data-annotation-layer="0"]');
 const viewport = (page: Page): Locator => page.locator('[data-read-viewport]');
 /** The polite live region (shell/LiveRegion.tsx). */
@@ -121,12 +121,10 @@ test.describe('keyboard', () => {
     await openSimple(page);
     await enterEdit(page);
     await showInspector(page);
-    // An armed tool with options: the tier sits by the bar, but F6 lands on the bar, on the
-    // armed tool. (T, the Text box in the Text group: the text markups have no bar entry since
-    // craft spec §3.4, and H arms the Highlighter preset, whose tier is empty.)
+    // An armed tool with options: its ink strip sits in the palette, but F6 lands on the
+    // palette's tools, on the armed tool (T, the Text box).
     await page.locator('body').press('t');
-    await page.locator('body').press('t');
-    await expect(page.getByTestId('options-tier')).toBeVisible();
+    await expect(page.getByTestId('ink-strip')).toBeVisible();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
     const title = page.getByRole('tablist', { name: 'Open documents' });
@@ -289,85 +287,68 @@ test.describe('keyboard', () => {
     );
   });
 
-  test('the tool bar: groups, a tool, its options tier by Tab, Esc', async ({ page }) => {
+  test('the palette: one Tab stop, arrows, a tool, its ink strip by Tab, Esc', async ({ page }) => {
     await openSimple(page);
     await enterEdit(page);
     await expect(bar(page).locator('button[tabindex="0"]')).toHaveCount(1);
     await bar(page).locator('button[tabindex="0"]').focus();
     await page.keyboard.press('Home');
-    // Select, the idle tool, is the row's first chip (craft spec §3.4).
+    // Done leads the palette; Select, armed on opening, follows (03-markup MK-2, MK-3).
+    await expect(bar(page).getByRole('button', { name: 'Done', exact: true })).toBeFocused();
+    await page.keyboard.press('ArrowRight');
     const select = bar(page).getByRole('button', { name: 'Select', exact: true });
     await expect(select).toBeFocused();
     await expect(select).toHaveAttribute('aria-pressed', 'true');
-    await page.keyboard.press('ArrowRight');
-    await expect(bar(page).getByRole('button', { name: 'Write', exact: true })).toBeFocused();
-    await page.keyboard.press('ArrowRight');
-    await expect(bar(page).getByRole('button', { name: 'Text', exact: true })).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect(bar(page).getByRole('button', { name: 'Text: back to all groups' })).toBeFocused();
-    await expect(status(page)).toHaveText('Text tools');
 
-    // Arrows within the group (Edit text, Text box, Note); Enter arms a tool (aria-pressed).
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowRight');
+    // Arrows reach Note; Enter arms it (aria-pressed), its ink strip follows arming.
     const note = bar(page).getByRole('button', { name: 'Note', exact: true });
+    for (let i = 0; i < 12; i++) {
+      if (await note.evaluate((el) => el === document.activeElement)) break;
+      await page.keyboard.press('ArrowRight');
+    }
     await expect(note).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(note).toHaveAttribute('aria-pressed', 'true');
     await expect(status(page)).toHaveText('Note tool');
-    // Its options open only on request: Enter on the armed tool again (review finding 5).
-    const tier = page.getByRole('toolbar', { name: 'Note options' });
-    await expect(tier).toHaveCount(0);
-    await expect(note).toHaveAttribute('aria-description', 'Press again for options');
-    await page.keyboard.press('Enter');
-    await expect(tier).toBeVisible();
-    await expect(status(page)).toHaveText('Note options');
+    const strip = page.getByRole('toolbar', { name: 'Note options' });
+    await expect(strip).toBeVisible();
 
-    // Tab goes from the bar to its options tier: one Tab stop, arrows, and keys that work.
+    // Tab goes from the tools to the strip: one Tab stop, arrows, and keys that work.
     await page.keyboard.press('Tab');
-    expect(await holdsFocus(tier)).toBe(true);
-    await expect(tier.locator('[tabindex="0"]')).toHaveCount(1);
+    expect(await holdsFocus(strip)).toBe(true);
+    await expect(strip.locator('[tabindex="0"]')).toHaveCount(1);
     const before = await focusedName(page);
     await page.keyboard.press('ArrowRight');
     expect(await focusedName(page)).not.toBe(before);
-    const swatch = tier.getByRole('radio').first();
+    const swatch = strip.getByRole('radio').first();
     await swatch.focus();
     await page.keyboard.press('Space');
     await expect(swatch).toHaveAttribute('aria-checked', 'true');
-    const opacity = tier.getByRole('slider', { name: 'Opacity' });
-    await opacity.focus();
-    const value = await opacity.inputValue();
-    await page.keyboard.press('ArrowDown');
-    await expect(opacity).not.toHaveValue(value);
-    // Esc from the tier disarms; the tier goes and focus returns to the bar.
+    // Esc from the strip disarms; the strip goes.
     await page.keyboard.press('Escape');
-    await expect(tier).toHaveCount(0);
+    await expect(strip).toHaveCount(0);
     await expect(note).toHaveAttribute('aria-pressed', 'false');
-    await expect(note).toBeFocused();
-    // With nothing armed, Esc on the bar returns to the row, on the group used.
+    // With nothing armed, Esc in the palette closes Markup; focus goes to the dock's door.
+    await note.focus();
     await page.keyboard.press('Escape');
-    await expect(bar(page).getByRole('button', { name: 'Text', exact: true })).toBeFocused();
+    await expect(bar(page)).toHaveCount(0);
+    await expect(page.locator('[data-dock-markup]')).toBeFocused();
   });
 
-  test('the pen presets: arrows, Enter arms, Enter again opens the editor, Esc closes it only', async ({
+  test('the pen well: arrows, Enter arms, Enter again opens the editor, Esc closes it only', async ({
     page,
   }) => {
     await openSimple(page);
     await enterEdit(page);
     await bar(page).locator('button[tabindex="0"]').focus();
-    await page.keyboard.press('Home');
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('Enter');
-    await expect(status(page)).toHaveText('Write tools');
-    await page.keyboard.press('ArrowRight');
-    const presets = bar(page).getByRole('radiogroup', { name: 'Pen presets' });
-    await expect(presets.getByRole('radio', { name: 'Black pen, 1.5 pt' })).toBeFocused();
-    await page.keyboard.press('ArrowRight');
-    const blue = presets.getByRole('radio', { name: 'Blue pen, 1.5 pt' });
+    const blue = bar(page).getByRole('button', { name: 'Blue pen, 1.5 pt' });
+    for (let i = 0; i < 6; i++) {
+      if (await blue.evaluate((el) => el === document.activeElement)) break;
+      await page.keyboard.press('ArrowRight');
+    }
     await expect(blue).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(blue).toHaveAttribute('data-armed', '');
+    await expect(blue).toHaveAttribute('aria-pressed', 'true');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
     // The preset, said once, in place of "Pen tool".
     await expect(status(page)).toHaveText('Blue pen, 1.5 pt');
@@ -390,7 +371,7 @@ test.describe('keyboard', () => {
       'aria-checked',
       'true',
     );
-    // Esc closes the editor only: the pen stays armed, focus back on its dot.
+    // Esc closes the editor only: the pen stays armed, focus back on its cell.
     await page.keyboard.press('Escape');
     await expect(editor).toHaveCount(0);
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
@@ -579,28 +560,23 @@ test.describe('axe', () => {
     page,
   }) => {
     await openSimple(page);
-    await expect(bar(page).getByRole('button', { name: 'Edit', exact: true })).toHaveAttribute(
-      'aria-keyshortcuts',
-      '2',
-    );
-    await axe(page, 'Read, the lock and the Edit button');
+    await expect(page.locator('[data-dock-markup]')).toHaveAttribute('aria-keyshortcuts', '2');
+    await axe(page, 'Viewing, the dock');
     await enterEdit(page);
-    await axe(page, 'Edit, the groups');
-    // Select arms from its chip and has no tool row (craft spec §3.4).
-    const select = bar(page).getByRole('button', { name: 'Select', exact: true });
-    await bar(page).getByRole('button', { name: 'Write', exact: true }).click();
-    await bar(page).getByRole('button', { name: 'Write: back to all groups' }).click();
-    await select.click();
-    await expect(select).toHaveAttribute('aria-pressed', 'true');
-    await axe(page, 'Edit, Select');
-    // The four groups with tools.
-    for (const group of ['Write', 'Text', 'Fill & sign', 'Redact']) {
-      await bar(page).getByRole('button', { name: group, exact: true }).click();
-      const chip = bar(page).getByRole('button', { name: `${group}: back to all groups` });
-      await expect(chip).toBeVisible();
-      await axe(page, `Edit, ${group}`);
-      await chip.click();
+    await axe(page, 'Markup, Select');
+    // Each ink strip, and + with its menu.
+    for (const key of ['p', 'h', 'Shift+E', 't', 'r']) {
+      await page.locator('body').press(key);
+      await expect(page.getByTestId('ink-strip')).toBeVisible();
+      await axe(page, `Markup, the strip after ${key}`);
     }
+    await page.keyboard.press('Escape');
+    await bar(page)
+      .getByRole('button', { name: /^More tools/ })
+      .click();
+    await expect(page.getByRole('menu')).toBeVisible();
+    await axe(page, 'Markup, More tools');
+    await page.keyboard.press('Escape');
     // The page context menu (right-click on a page).
     const first = await page.locator('[data-page-index="0"]').boundingBox();
     if (!first) throw new Error('page 1 not laid out');
@@ -609,10 +585,9 @@ test.describe('axe', () => {
     await axe(page, 'Edit, the page context menu');
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('page-context-menu')).toHaveCount(0);
-    await page.locator('body').press('u');
-    await page.locator('body').press('u');
-    await expect(page.getByTestId('options-tier')).toBeVisible();
-    await axe(page, 'Edit, Underline options');
+    await page.locator('body').press('n');
+    await expect(page.getByTestId('ink-strip')).toBeVisible();
+    await axe(page, 'Markup, Note options');
   });
 
   test('the Review tab, the Document info sheet and the export dialog', async ({ page }) => {
@@ -730,45 +705,28 @@ const longestDuration = (locator: Locator): Promise<number> =>
 const REDUCED_MS = 150;
 
 test.describe('reduced motion', () => {
-  test('without it, the morph moves (so the check below is meaningful)', async ({ page }) => {
-    await openSimple(page);
-    await enterEdit(page);
-    await recordScripted(page);
-    await bar(page).getByRole('button', { name: 'Write', exact: true }).click();
-    expect(await longestScripted(page)).toBeGreaterThanOrEqual(100);
-  });
-
-  test('with it, the morph, the rise-in and the transitions are off', async ({ page }) => {
+  test('with it, the presses, the preset editor and the strip do not move', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openSimple(page);
     await enterEdit(page);
-    const draw = bar(page).getByRole('button', { name: 'Write', exact: true });
-    expect(await longestDuration(draw)).toBeLessThanOrEqual(REDUCED_MS);
-    await recordScripted(page);
-    await draw.click();
-    // No morph: nothing was animated, nothing animates.
-    expect(await longestScripted(page)).toBeLessThanOrEqual(REDUCED_MS);
-    expect(await longestAnimation(page)).toBeLessThanOrEqual(REDUCED_MS);
-    const dot = page.getByRole('radio', { name: 'Black pen, 1.5 pt' });
+    const dot = bar(page).getByRole('button', { name: 'Black pen, 1.5 pt' });
     expect(await longestDuration(dot)).toBeLessThanOrEqual(REDUCED_MS);
+    await recordScripted(page);
     // The preset editor rises in without movement (opened from the keyboard: arm, then
     // Enter again on the armed preset).
     await dot.focus();
     await page.keyboard.press('Enter');
-    await expect(dot).toHaveAttribute('data-armed', '');
+    await expect(dot).toHaveAttribute('aria-pressed', 'true');
+    const strip = page.getByTestId('ink-strip');
+    await expect(strip).toBeVisible();
+    expect(await longestDuration(strip)).toBeLessThanOrEqual(REDUCED_MS);
     await page.keyboard.press('Enter');
     const editor = page.getByTestId('pen-preset-editor');
     await expect(editor).toBeVisible();
     expect(await longestDuration(editor)).toBeLessThanOrEqual(REDUCED_MS);
     expect(await longestAnimation(page)).toBeLessThanOrEqual(REDUCED_MS);
+    expect(await longestScripted(page)).toBeLessThanOrEqual(REDUCED_MS);
     await page.keyboard.press('Escape');
-    // So does the options tier (asked for: U again).
-    await page.locator('body').press('u');
-    await page.locator('body').press('u');
-    const tier = page.getByTestId('options-tier');
-    await expect(tier).toBeVisible();
-    expect(await longestDuration(tier)).toBeLessThanOrEqual(REDUCED_MS);
-    expect(await longestAnimation(page)).toBeLessThanOrEqual(REDUCED_MS);
   });
 });
 
@@ -834,9 +792,8 @@ test('the focus ring tokens apply to the new controls', async ({ page }) => {
   await expect(viewport(page)).toBeFocused();
   expect(await viewport(page).evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('solid');
   await enterEdit(page);
-  await expectRing('bar group', bar(page).getByRole('button', { name: 'Write', exact: true }));
-  await bar(page).getByRole('button', { name: 'Write', exact: true }).click();
-  await expectRing('ink dot', page.getByRole('radio', { name: 'Blue pen, 1.5 pt' }));
+  await expectRing('palette tool', bar(page).getByRole('button', { name: 'Eraser', exact: true }));
+  await expectRing('ink dot', bar(page).getByRole('button', { name: 'Blue pen, 1.5 pt' }));
   await page.locator('body').press('p');
   await stroke(page, [0.3, 0.45], [0.5, 0.46]);
   await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(1, {
@@ -1000,7 +957,7 @@ test.describe('craft spec §9', () => {
     await expect(selectionBar).toHaveCount(0);
   });
 
-  test('Edit: F6 lands on the Select chip; each group by keyboard with no hidden stop', async ({
+  test('Markup: F6 lands on the armed tool; the palette by keyboard with no hidden stop', async ({
     page,
   }) => {
     await openSimple(page);
@@ -1018,24 +975,13 @@ test.describe('craft spec §9', () => {
     await page.keyboard.press('Shift+F6');
     await page.keyboard.press('Shift+F6');
     await expect(select).toBeFocused();
-    // Every group: Enter opens it, Tab and Shift+Tab never stop on anything hidden (the
-    // other groups' tools are not mounted while one group shows).
-    for (const group of ['Write', 'Text', 'Fill & sign', 'Redact']) {
-      await bar(page).locator('button[tabindex="0"]').focus();
-      await page.keyboard.press('Home');
-      const chosen = bar(page).getByRole('button', { name: group, exact: true });
-      for (let i = 0; i < 6; i++) {
-        if (await chosen.evaluate((el) => el === document.activeElement)) break;
-        await page.keyboard.press('ArrowRight');
-      }
-      await page.keyboard.press('Enter');
-      const chip = bar(page).getByRole('button', { name: `${group}: back to all groups` });
-      await expect(chip).toBeFocused();
-      await tabWalk(page, 4);
-      await chip.focus();
-      await tabWalk(page, 4, true);
-      await chip.click();
-    }
+    // Tab and Shift+Tab never stop on anything hidden, with Select and with a pen's strip.
+    await tabWalk(page, 4);
+    await select.focus();
+    await tabWalk(page, 4, true);
+    await page.locator('body').press('p');
+    await bar(page).locator('button[tabindex="0"]').focus();
+    await tabWalk(page, 4);
   });
 
   test('Edit text: Tab moves between paragraphs, Enter opens, Esc returns; axe', async ({
@@ -1233,8 +1179,9 @@ test.describe('glass (craft spec §7, §9)', () => {
     await axe(page, 'Glass panels, the text selection bar');
     await page.keyboard.press('Escape');
     await enterEdit(page);
-    await bar(page).getByRole('button', { name: 'Write', exact: true }).click();
-    await axe(page, 'Glass panels, Edit, Write');
+    await page.locator('body').press('p');
+    await expect(page.getByTestId('ink-strip')).toBeVisible();
+    await axe(page, 'Glass panels, Markup, a pen and its strip');
     await openPageMenu(page);
     await axe(page, 'Glass panels, the page context menu');
   });

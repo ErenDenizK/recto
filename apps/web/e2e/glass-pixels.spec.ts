@@ -106,10 +106,10 @@ test(
   async ({ page, browserName }, testInfo) => {
     test.skip(browserName !== 'chromium', APP_SURFACES_CHROMIUM_ONLY);
     await openBlankPage(page, testInfo.outputPath('white-page.pdf'));
-    // Edit: the bar with its five groups, about 436 × 44 px.
+    // Markup: the palette's glass (03-markup MK-2), one 44 px row.
     await page.keyboard.press('2');
-    const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
-    await expect(bar.locator('[data-bar-group]').first()).toBeVisible();
+    const bar = page.locator('[data-markup-palette]');
+    await expect(bar.locator('[data-labelled]').first()).toBeVisible();
     await page.mouse.move(340, 450);
     const barBox = await bar.boundingBox();
     const pageBox = await page.locator('[data-page-index="0"]').first().boundingBox();
@@ -118,14 +118,12 @@ test(
     expect(pageBox.x).toBeLessThan(barBox.x - 40);
     expect(pageBox.x + pageBox.width).toBeGreaterThan(barBox.x + barBox.width + 40);
     expect(pageBox.y).toBeLessThan(barBox.y - 40);
-    // The group nearest the bar's middle that is not the shown one (no fill): its left padding,
-    // 12 px before its icon, is glass and nothing else, far from the bar's ends.
+    // The labelled tool nearest the palette's middle that is not armed (no fill): its left
+    // padding, before its icon, is glass and nothing else, far from the palette's ends.
     const group = await bar.evaluate((el) => {
       const middle = el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2;
-      const groups = [...el.querySelectorAll<HTMLElement>('[data-bar-group]')]
-        .filter(
-          (g) => g.getAttribute('aria-pressed') !== 'true' && !g.hasAttribute('data-bar-chip'),
-        )
+      const groups = [...el.querySelectorAll<HTMLElement>('[data-labelled]')]
+        .filter((g) => g.getAttribute('aria-pressed') !== 'true')
         .map((g) => g.getBoundingClientRect());
       groups.sort(
         (a, b) => Math.abs(a.left + a.width / 2 - middle) - Math.abs(b.left + b.width / 2 - middle),

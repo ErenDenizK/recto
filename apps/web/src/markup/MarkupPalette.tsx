@@ -518,7 +518,7 @@ function SimpleTool({
       tooltip={
         mode === 'select'
           ? (tool.tooltip?.() ?? label)
-          : armedTooltip(tool.tooltip?.() ?? label, armed, choices)
+          : armedTooltip(tool.tooltip?.() ?? label, armed, choices && armed)
       }
       icon={<Icon name={tool.icon} />}
       command={`tool.${mode}`}

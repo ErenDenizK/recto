@@ -98,7 +98,7 @@ test.describe('the full edition', () => {
     await useFileInputPicker(page);
   });
 
-  test('Home, Read, Edit with each group and a tier, menus, Arrange, a dialog', async ({
+  test('Home, Read, Markup with each ink strip, menus, the preset editor, Arrange, a dialog', async ({
     page,
   }) => {
     // Some twenty states in one walk: more than the default 30 s on a loaded machine.
@@ -125,32 +125,34 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
 
     await enterEdit(page);
-    const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
-    for (const group of ['select', 'write', 'text', 'fill', 'redact']) {
-      const button = bar.locator(`[data-bar-group="${group}"]`);
-      if ((await button.count()) === 0) continue;
-      await button.first().click();
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+    await page.mouse.move(2, 450);
+    await run.audit('Markup, Select');
+    // Each tool with an ink strip (10-ink §2): the palette and its strip row, one system.
+    for (const key of ['p', 'h', 'Shift+E', 't', 'n', 'r']) {
+      await page.locator('body').press(key);
+      await expect(page.getByTestId('ink-strip')).toBeVisible();
       await page.mouse.move(2, 450);
-      await run.audit(`Edit, ${group}`);
-      // Back to the group row.
-      const chip = bar.locator('[data-bar-chip]');
-      if ((await chip.count()) > 0) await chip.first().click();
+      await run.audit(`Markup, the ink strip after ${key}`);
     }
+    await page.keyboard.press('Escape');
 
-    // A tool menu on the bar.
-    await bar.locator('[data-bar-group="write"]').click();
-    await bar.locator('[aria-haspopup="menu"]').first().click();
+    // A tool menu on the palette (Shapes ▾, its second press).
+    await bar.getByRole('button', { name: /^Shapes/ }).click();
+    await bar.getByRole('button', { name: /^Shapes/ }).click();
     await expect(page.getByRole('menu')).toBeVisible();
-    await run.audit('Edit, a tool menu');
+    await run.audit('Markup, a tool menu');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menu')).toHaveCount(0);
+    await page.keyboard.press('Escape');
 
-    // An armed tool's options tier (T, the Text box, twice).
-    await page.locator('body').press('t');
-    await page.locator('body').press('t');
-    await expect(page.getByTestId('options-tier')).toBeVisible();
-    await page.mouse.move(2, 450);
-    await run.audit('Edit, options tier');
+    // The preset editor (a second press on the armed pen).
+    await bar.getByRole('button', { name: 'Black pen, 1.5 pt' }).click();
+    await bar.getByRole('button', { name: 'Black pen, 1.5 pt' }).click();
+    await expect(page.getByTestId('pen-preset-editor')).toBeVisible();
+    await run.audit('Markup, the preset editor');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
     await page.keyboard.press('Escape');
 
     // The title menu (01-frame F5): its header controls and its rows, from the active tab.
@@ -280,10 +282,9 @@ test.describe('the full edition', () => {
     test.setTimeout(60_000);
     const run = collector(page);
     await openFull(page, 'simple-text.pdf');
-    await enterEdit(page);
-    const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
-    await bar.locator('[data-bar-group="fill"]').click();
-    await bar.getByRole('button', { name: 'Signature image', exact: true }).click();
+    await page.locator('[data-dock-fill]').click();
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+    await bar.getByRole('button', { name: 'Sign', exact: true }).click();
     const sheet = page.getByRole('dialog', { name: 'New signature' });
     await expect(sheet).toBeVisible();
     const pad = sheet.getByRole('img', { name: /^Signature pad/ });
@@ -305,9 +306,9 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
     await expect(bar.locator('[data-saved-signature]')).toHaveCount(1);
     await page.mouse.move(2, 450);
-    await run.audit('Edit, fill, a saved signature chip');
+    await run.audit('Markup, Fill & sign, a saved signature chip');
 
-    await bar.getByRole('button', { name: 'Signature image', exact: true }).click();
+    await bar.getByRole('button', { name: 'Sign', exact: true }).click({ button: 'right' });
     await expect(page.getByRole('menu')).toBeVisible();
     await run.audit('Edit, the signature menu');
     await page.keyboard.press('Escape');

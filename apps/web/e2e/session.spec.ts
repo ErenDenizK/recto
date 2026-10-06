@@ -167,16 +167,15 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
   });
   const stamps = layer(page).locator('[data-annotation-kind="stamp"]');
 
-  // A built-in stamp from the Fill & sign group.
-  const bar = page.getByRole('toolbar', { name: 'Tools' });
-  await bar.getByRole('button', { name: 'Fill & sign' }).click();
-  await bar.getByRole('button', { name: 'Stamp or image' }).click();
+  // A built-in stamp from Stamp ▾ (its choices: a right-click).
+  const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+  await bar.getByRole('button', { name: 'Stamp', exact: true }).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Draft' }).click();
   await clickPage(page, 0.7, 0.3);
   await expect(stamps).toHaveCount(1, { timeout: 10_000 });
 
   // An image signature drawn on the pad (today's signature tool), placed on the page.
-  await bar.getByRole('button', { name: 'Signature image' }).click();
+  await bar.getByRole('button', { name: 'Sign', exact: true }).click();
   const pad = page.getByLabel('Signature pad: draw with the mouse, pen or finger');
   await expect(pad).toBeVisible();
   const box = await pad.boundingBox();

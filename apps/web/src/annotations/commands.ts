@@ -112,11 +112,17 @@ export async function activateTool(tool: ToolDefinition): Promise<void> {
   if (id !== undefined && !isMarkupOpen(useUiStore.getState(), id)) {
     // Select is the idle tool of viewing and Markup alike: V in viewing changes nothing.
     if (tool.mode === 'select') return;
+    // A tool letter on a text selection acts on it and never arms (`03-markup` §5, flows
+    // §7.2): U, S and X mark the selection as a targeted act, with Markup left closed.
+    if ((isMarkupMode(tool.mode) || tool.mode === 'redact') && hasTextSelection()) {
+      if (!canChange(id, 'targeted')) return;
+      if (tool.mode === 'redact') await markSelection();
+      else await markupFromSelection(tool.mode);
+      return;
+    }
     // Viewing: open Markup and arm, synchronously so that both are said in one
-    // announcement; a locked document opens nothing. Selected text stays selected and is
-    // marked by a second press.
+    // announcement; a locked document opens nothing.
     if (!enterEditForTool()) return;
-    if ((isMarkupMode(tool.mode) || tool.mode === 'redact') && hasTextSelection()) return;
   } else {
     if (isMarkupMode(tool.mode) && (await markupFromSelection(tool.mode))) return;
     // Redact: selected text becomes a mark (redaction spec §1.1); else the tool arms.
