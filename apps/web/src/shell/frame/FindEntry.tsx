@@ -106,10 +106,20 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
     else if (status === 'searching') count = '…';
   }
 
+  /** Enter pressed before the first hit arrived: show it as soon as it does. */
+  const pending = useRef(false);
+  useEffect(() => {
+    if (!pending.current || current < 0) return;
+    pending.current = false;
+    revealHit(selectHit(current));
+  }, [current]);
+
   const step = (direction: 1 | -1) => {
     const state = useSearchStore.getState();
-    // The first Enter shows the hit the search picked (from the reader's page).
+    // The first Enter shows the hit the search picked (from the reader's page); typed fast,
+    // before the search has found it, the hit shows when it arrives.
     if (!state.currentChosen && state.current >= 0) revealHit(selectHit(state.current));
+    else if (state.hits.length === 0 && state.query.trim() !== '') pending.current = true;
     else searchStep(direction);
   };
 
@@ -121,6 +131,7 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
       event.preventDefault();
       openSearchPanel();
     } else if (event.key === 'Escape') {
+      pending.current = false;
       event.preventDefault();
       event.stopPropagation();
       if (useSearchStore.getState().query !== '') {
