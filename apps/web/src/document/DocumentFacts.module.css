@@ -1,7 +1,7 @@
 /*
  * The facts grid of Document info (components/07-sheets.md S4 §2): labels in the footnote size
  * and the glass's secondary text, values in the body size, numbers tabular; then the honesty
- * badges, each with its explanation written beside it. Plain text on the sheet's own surface
+ * badges (`ui/Badge` label pills, neutral), each with its explanation written beside it. Plain text on the sheet's own surface
  * (no glass in glass, quality-bar Q-4).
  */
 .facts {
@@ -41,31 +41,23 @@
 
 .badges {
   display: grid;
-  gap: 8px;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 10px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Each row shares the list's columns, so every explanation starts on one line. */
 .badgeRow {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: baseline;
-  gap: 10px;
 }
 
-/* A quiet text chip in the keycap shape; the warning colour says "export changes this". */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  padding: 0 7px;
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-1);
-  color: var(--warning);
-  font-size: var(--type-caption);
-  font-weight: 550;
-  line-height: 1;
+.badgeRow > :first-child {
+  justify-self: start;
 }
 
 .explanation {

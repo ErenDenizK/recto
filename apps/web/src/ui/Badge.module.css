@@ -38,6 +38,26 @@
   background: var(--text-primary);
 }
 
+.badge[data-kind='label'] {
+  box-sizing: border-box;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--badge-fill);
+  color: var(--text-primary);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  line-height: var(--type-caption-lh);
+  white-space: nowrap;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .badge[data-kind='label'] {
+    height: 24px;
+    padding: 0 10px;
+  }
+}
+
 .badge[data-kind='status'] {
   gap: 4px;
   color: var(--text-secondary);
