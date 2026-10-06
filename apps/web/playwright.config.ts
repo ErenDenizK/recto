@@ -13,8 +13,8 @@ const isCI = Boolean(process.env.CI);
  * and a mobile viewport, and a screen equal to the viewport, so the edition rule (a coarse
  * pointer and a screen side under 600 CSS px, `shell/frame/edition.ts`) sees a phone or a
  * tablet. `?edition` stays unset. The phones run only the compact edition's spec; the
- * tablet runs the full edition's smoke spec, the touch gestures (long press, D1-7) and ↶ ↷
- * with the History scrubber (D0-6) for now.
+ * tablet runs the full edition's smoke spec, the touch gestures (long press, D1-7; pinch and
+ * the page scrubber, D2-10) and ↶ ↷ with the History scrubber (D0-6) for now.
  * Both also run the bar audit (Q-9).
  */
 const PHONE = { width: 390, height: 844 };
@@ -104,6 +104,7 @@ export default defineConfig({
         '**/long-press.spec.ts',
         '**/history.spec.ts',
         '**/tab-strip.spec.ts',
+        '**/canvas-zoom.spec.ts',
         BAR_AUDIT_SPEC,
         SHEETS_SPEC,
         SETTINGS_SPEC,

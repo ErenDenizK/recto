@@ -86,6 +86,7 @@ import { ArrangeContextMenuPopup } from './ArrangeContextMenu';
 import { ArrangeSection } from './ArrangeSection';
 import styles from './ArrangeView.module.css';
 import { ContextualBar } from './ContextualBar';
+import { takeGridReveal } from './pages-grid-door';
 
 /** Wheel delta that steps the cell size once with Mod+Scroll. */
 const WHEEL_STEP = 60;
@@ -282,6 +283,20 @@ function LightTable({
       align: 'auto',
     });
   };
+
+  // The door from the page view (pages-grid-door.ts) opens the table with that page centred.
+  useEffect(() => {
+    const page = takeGridReveal();
+    const location = page === null ? undefined : locate(page);
+    const sectionLayout = location && layout.sections[location.section];
+    if (location && sectionLayout) {
+      virtualizer.scrollToIndex(rowItemIndex(sectionLayout, location.index, metrics.columns), {
+        align: 'center',
+      });
+    }
+    // Mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activateSectionOf = (id: PageId) => {
     const location = locate(id);

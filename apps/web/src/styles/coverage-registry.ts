@@ -447,4 +447,15 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     smallest:
       'the progress capsule: 40 px fine, at least 240 px wide; a toast is 48 px and 360 px (one surface each, at most three)',
   },
+  {
+    id: 'pinch-detent-chip',
+    surface: 'Pinch detent chip (05-canvas §4, 05.11)',
+    module: 'stage/PinchDetentChip.module.css',
+    selector: '.chip',
+    composes: 'glass',
+    filter: '--glass-filter',
+    minWidth: 200,
+    minHeight: 36,
+    smallest: '36 px fine (44 coarse); "Release to see all pages" with its icon is about 200 px',
+  },
 ];
