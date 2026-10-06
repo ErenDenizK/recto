@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import { chromiumLaunchOptions } from '../../tooling/playwright-chromium.ts';
+import { HARNESS_PORT, HARNESS_URL } from './e2e/support/harness-server.ts';
 
 // End-to-end tests run against the production build served by `vite preview`, under the
 // same base path that GitHub Pages will use (VITE_BASE_PATH, default `/`).
@@ -125,12 +126,22 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    // Build first so the tests exercise exactly what is deployed; `pnpm build` in CI has
-    // already produced `dist/`, and E2E_SKIP_BUILD=1 reuses it.
-    command: `${process.env.E2E_SKIP_BUILD ? '' : 'pnpm build && '}pnpm preview --port ${port} --strictPort`,
-    url: new URL(basePath, `http://localhost:${port}`).href,
-    reuseExistingServer: !isCI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      // Build first so the tests exercise exactly what is deployed; `pnpm build` in CI has
+      // already produced `dist/`, and E2E_SKIP_BUILD=1 reuses it.
+      command: `${process.env.E2E_SKIP_BUILD ? '' : 'pnpm build && '}pnpm preview --port ${port} --strictPort`,
+      url: new URL(basePath, `http://localhost:${port}`).href,
+      reuseExistingServer: !isCI,
+      timeout: 120_000,
+    },
+    {
+      // The rendered-pixel harness (09-primitives §28, spec 09.11, D3-1): its own Vite config on
+      // its own port, so the app above stays the deploy build. A dev server: nothing to build.
+      command: `pnpm exec vite --config harness/vite.config.ts --port ${HARNESS_PORT} --strictPort`,
+      url: HARNESS_URL,
+      reuseExistingServer: !isCI,
+      timeout: 60_000,
+    },
+  ],
 });
