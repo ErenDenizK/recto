@@ -164,22 +164,51 @@
   --select-wash: rgb(78 97 237 / 0.25);
   --select-wash-strong: rgb(78 97 237 / 0.45);
 
-  --font-ui: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+  /* Type (ADR-0027, language.md §4; spec D3-5). One face, 'Inter Recto' (styles/fonts.css),
+     with its metric-matched fallback next so a cold load moves nothing (quality-bar Q-8).
+     JetBrains Mono left the UI: technical strings use the `.technical` class (fonts.css). */
+  --font-ui: 'Inter Recto', 'Inter Recto Fallback', ui-sans-serif, system-ui, sans-serif;
+  /* Weights are 400, 500 and 600 only (Q-8, which rounds language.md §4.3's 450 · 550 · 650):
+     running text, buttons and labels, titles. */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
   --tracking-ui: 0.01em;
   --tracking-label: 0.04em;
   --tracking-display: -0.011em;
 
   /* The type scale (language.md §4.2), fine-pointer sizes; the coarse steps are in the density
-     block below. Today's four sizes are its first four steps, so the old names alias them. */
-  --type-caption: 11px; /* labels, keycaps, badges */
+     block below. Size, line height and tracking per step; tracking is the dark theme's
+     (+0.005 em at 13 px and under, T-6), and a light theme sets its own. At most three sizes
+     per surface, weight before size (X-3); nothing under --type-caption on glass (Q-8).
+     Today's four sizes are its first four steps, so the old names alias them; the --track-*
+     steps are for the rebuilt surfaces (D2), so the M8 text keeps --tracking-ui until then. */
+  --type-caption: 11px; /* badges, counts, keycaps; 500 */
   --type-caption-lh: 14px;
-  --type-footnote: 12px; /* secondary */
+  --track-caption: 0.015em;
+  --type-footnote: 12px; /* secondary lines, metadata; section labels at 500 */
   --type-footnote-lh: 16px;
-  --type-body: 13px; /* UI base */
+  --track-footnote: 0.01em;
+  --type-body: 13px; /* UI base: rows, menus; buttons at 500 */
   --type-body-lh: 18px;
-  --type-callout: 15px; /* empty-state heading */
+  --track-body: 0.005em;
+  --type-callout: 15px; /* sheet body, empty-state text */
   --type-callout-lh: 20px;
+  --track-callout: -0.005em;
+  --type-title3: 17px; /* panel and sheet titles; 600 */
+  --type-title3-lh: 22px;
+  --track-title3: -0.01em;
+  --type-title2: 22px; /* dialog titles, Library section heads; 600 */
+  --type-title2-lh: 28px;
+  --track-title2: -0.015em;
+  --type-title1: 28px; /* Library greeting, About sections; 600 */
+  --type-title1-lh: 36px;
+  --track-title1: -0.02em;
+  --type-display: 40px; /* About only, never in a clipping box; 600 */
+  --type-display-lh: 44px;
+  --type-display-lg: 56px;
+  --type-display-lg-lh: 60px;
+  --track-display: -0.022em;
   --leading-tight: 16px;
   --leading-base: 20px;
 
@@ -381,8 +410,24 @@
     --switch-w: 52px;
     --switch-h: 32px;
     --gap-target: 8px;
-    --control-text: var(--type-callout);
-    --control-lh: var(--type-callout-lh);
+    /* The coarse type step (language.md §4.2; spec D3-5): every step one size up, so a
+       control's label (body) is 15/20 here, as it was before the step existed. */
+    --type-caption: 12px;
+    --type-caption-lh: 16px;
+    --type-footnote: 13px;
+    --type-footnote-lh: 18px;
+    --type-body: 15px;
+    --type-body-lh: 20px;
+    --type-callout: 17px;
+    --type-callout-lh: 22px;
+    --type-title3: 19px;
+    --type-title3-lh: 24px;
+    --type-title2: 24px;
+    --type-title2-lh: 30px;
+    --type-title1: 30px;
+    --type-title1-lh: 38px;
+    --control-text: var(--type-body);
+    --control-lh: var(--type-body-lh);
     /* iOS zooms into a field set under 16 px (language.md §4.2). */
     --field-text: 16px;
     --press-scale: 0.94;
