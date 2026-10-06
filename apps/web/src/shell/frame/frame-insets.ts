@@ -261,3 +261,62 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
     };
   }, [shell, sidebarDocked, offset, focus]);
 }
+
+// ---------------------------------------------------------------------------------------------
+// Floating bottom chrome outside the band (08-feedback FB4 §2, 01-frame F13 §2)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Bars that float at the foot of a view but are not band items: the Library's selection bar
+ * (02-library L6), which sits 16 px above the view's edge inside the stage. They must not move
+ * the free rectangle (the Library would lay out again under a selection, and the bar, inside
+ * the stage, would ride up on its own inset), but the toast stack keeps above them all the
+ * same: toasts stack above the dock band and every bar in it, never over one (FB4 §2).
+ *
+ * Each such bar registers its element; the most any of them rises above the window's bottom
+ * edge is written as `--chrome-float` on `:root` (0 px, and removed, when none shows), which
+ * the toast region takes with `--free-bottom` (`ui/Toast/Toast.module.css`).
+ */
+const floating = new Map<HTMLElement, number>();
+
+/** How far `element`'s layout box rises above the viewport's bottom edge (transforms ignored). */
+function riseOf(element: HTMLElement): number {
+  let top = 0;
+  for (
+    let node: HTMLElement | null = element;
+    node;
+    node = node.offsetParent as HTMLElement | null
+  ) {
+    top += node.offsetTop;
+  }
+  return Math.max(0, element.ownerDocument.documentElement.clientHeight - top);
+}
+
+function writeFloating(root: HTMLElement): void {
+  const rise = Math.max(0, ...floating.values());
+  if (rise > 0) root.style.setProperty('--chrome-float', `${Math.round(rise)}px`);
+  else root.style.removeProperty('--chrome-float');
+}
+
+/** Registers a floating bottom bar (see above) while it is mounted. */
+export function useFloatingBottomChrome(ref: RefObject<HTMLElement | null>): void {
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const root = element.ownerDocument.documentElement;
+    const measure = () => {
+      floating.set(element, element.getClientRects().length > 0 ? riseOf(element) : 0);
+      writeFloating(root);
+    };
+    measure();
+    const resize = new ResizeObserver(measure);
+    resize.observe(element);
+    window.addEventListener('resize', measure);
+    return () => {
+      resize.disconnect();
+      window.removeEventListener('resize', measure);
+      floating.delete(element);
+      writeFloating(root);
+    };
+  }, [ref]);
+}
