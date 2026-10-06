@@ -27,21 +27,25 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import {
   openFixtures,
   openSaveCopy,
-  showInspector,
+  inHistory,
+  historyStep,
   useFileInputPicker,
   openFindPanel,
+  stageAsBesideInspector,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
 
+// The page geometry these tests were written for (drags by fractions of a page that fit above
+// the dock): the stage beside the inspector's 280 px, which D2-9 removed.
+test.beforeEach(async ({ page }) => {
+  await stageAsBesideInspector(page);
+});
+
 const FOX = 'The quick brown fox jumps over the lazy dog';
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 const capture = Boolean(process.env.CAPTURE_SCREENSHOTS);
-
-function historyRow(page: Page, label: string | RegExp) {
-  return page.getByRole('list', { name: /history/i }).getByRole('button', { name: label });
-}
 
 /** The run targets of a line of the fixture, in reading order (0 = Helvetica, 1 = subset). */
 function line(page: Page, index: number) {
@@ -105,7 +109,6 @@ test.beforeEach(async ({ page }) => {
 
 async function openFonts(page: Page): Promise<void> {
   await openFixtures(page, ['text-edit-fonts.pdf']);
-  await showInspector(page);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
@@ -155,9 +158,11 @@ test('replace a word in the Helvetica line, export, re-open: the edited line rea
   // Leaving commits the change as one history entry (decision §13 #9).
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0, { timeout: 20_000 });
-  await expect(historyRow(page, /^Paragraph edited \(same font/)).toHaveCount(1, {
-    timeout: 20_000,
-  });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited \(same font/)).toHaveCount(1, {
+      timeout: 20_000,
+    }),
+  );
   // The runs are located again and the edited line now reads with the new word (the engine
   // keeps the line in as few text objects as possible, so "cat" may share a run).
   await expect(page.locator('[data-text-edit-layer="0"] [data-text-run*="cat"]')).toBeAttached();
@@ -210,7 +215,7 @@ test('keyboard: the focus returns to the paragraph after Esc and after a commit'
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0);
   await expect(first).toBeFocused();
-  await expect(historyRow(page, /^Paragraph edited/)).toHaveCount(0);
+  await inHistory(page, (list) => expect(historyStep(list, /^Paragraph edited/)).toHaveCount(0));
   await expect(page.getByRole('button', { name: 'Edit text' })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -231,7 +236,9 @@ test('keyboard: the focus returns to the paragraph after Esc and after a commit'
   // Esc commits; the line is new runs and a new paragraph, the focus goes to its target.
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0, { timeout: 20_000 });
-  await expect(historyRow(page, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 }),
+  );
   const focused = page.locator('[data-text-edit-layer="0"] [data-text-paragraph]:focus');
   await expect(focused).toHaveAttribute('aria-label', /^Edit paragraph “The quick brown fox/, {
     timeout: 20_000,
@@ -276,9 +283,11 @@ test('a character the Identity-H subset lacks shows the honesty line naming the 
   }
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0, { timeout: 20_000 });
-  await expect(historyRow(page, 'Paragraph edited (some characters in Inter)')).toBeVisible({
-    timeout: 20_000,
-  });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Paragraph edited (some characters in Inter)')).toBeVisible({
+      timeout: 20_000,
+    }),
+  );
 
   // Undo reopens the source and replays nothing: the line reads "fox" again.
   await expect(lines).toHaveCount(count - 1);
@@ -293,7 +302,6 @@ test('rotated page: the editor turns with the line; an upright line is edited in
   const upright = 'Page 1 rotate 90 line 2 reads upright';
   const sideways = 'Page 1 rotate 90 line 1: The quick brown fox jumps over the lazy dog';
   await openFixtures(page, ['text-edit-rotated.pdf']);
-  await showInspector(page);
   await page.locator('[data-read-viewport]').focus();
   await page.keyboard.press('e');
   const runs = page.locator('[data-text-edit-layer="0"]');
@@ -315,7 +323,7 @@ test('rotated page: the editor turns with the line; an upright line is edited in
   // Esc without a change: the editor closes, nothing is applied, the tool stays armed.
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0);
-  await expect(historyRow(page, /^Paragraph edited/)).toHaveCount(0);
+  await inHistory(page, (list) => expect(historyStep(list, /^Paragraph edited/)).toHaveCount(0));
   await expect(page.getByRole('button', { name: 'Edit text' })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -331,7 +339,9 @@ test('rotated page: the editor turns with the line; an upright line is edited in
   await expect(overlay).toHaveAttribute('data-preview', '', { timeout: 20_000 });
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0, { timeout: 20_000 });
-  await expect(historyRow(page, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 }),
+  );
   await expect(runs.locator('[data-text-run*="looks"]')).toBeAttached();
 });
 
@@ -340,7 +350,6 @@ test('a paragraph that refuses paragraph mode opens the line editor instead', as
   // refused, the clicked run opens in the line editor with the reason announced.
   const inForm = 'Outer form: SECRET-7731 stays';
   await openFixtures(page, ['redact-form-xobject.pdf']);
-  await showInspector(page);
   await page.locator('[data-read-viewport]').focus();
   await page.keyboard.press('e');
   const run = page.locator(`[data-text-edit-layer="0"] [data-text-run="${inForm}"]`);

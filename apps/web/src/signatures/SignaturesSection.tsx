@@ -1,18 +1,20 @@
 /**
- * The Inspector's Signatures section (spec recognize-and-compare §3.1, §3.4): per signed
- * source of the active document, each signature's status with the fixed honesty line, the
+ * The content of S9 Signatures (`SignaturesSheet.tsx`; spec recognize-and-compare §3.1, §3.4;
+ * spec D2-9, which moved it out of the inspector): per signed source of the document, each signature's status with the fixed honesty line, the
  * weak-algorithm flag, signer facts and the claimed time, later changes by revision, the
  * certificates as embedded and every check; "View signed version" opens the signed revision
  * as a new document. Below, the plain export statement: a rewrite removes existing
  * signatures (ADR-0013). Never says "valid".
  */
-import type { SourceDocument } from '@pdf-editor/document-model';
+import type { DocumentId, SourceDocument } from '@pdf-editor/document-model';
 import type { SignatureReport, SignerFacts } from '@pdf-editor/engine';
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 import { formatNumber, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
-import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
+import { useWorkspaceStore } from '../state/workspace-store';
+import { Button } from '../ui/Button';
+import { EmptyNote } from '../ui/EmptyNote';
 import { Icon } from '../ui/Icon';
 import { openSignedVersion, useSignatureStore } from './signature-store';
 import styles from './Signatures.module.css';
@@ -53,22 +55,28 @@ export function StatusGlyph({ tone }: { readonly tone: StatusTone | undefined })
   return <Icon name="shield" />;
 }
 
-/** Whether the active document shows the section (a signed source, or a signed-version view). */
-export function useHasSignatureSection(): boolean {
-  const doc = useActiveDocument();
-  return useSignedSources(doc?.id).length > 0;
-}
+/** Called once View signed version has opened the signed revision (S9 closes then). */
+const SignedVersionOpened = createContext<(() => void) | undefined>(undefined);
 
-export function SignaturesSection() {
-  const doc = useActiveDocument();
-  const sources = useSignedSources(doc?.id);
-  if (!doc || sources.length === 0) return null;
+export function SignaturesSection({
+  documentId,
+  onSignedVersionOpened,
+}: {
+  readonly documentId: DocumentId;
+  readonly onSignedVersionOpened?: () => void;
+}) {
+  const sources = useSignedSources(documentId);
+  if (sources.length === 0) {
+    return <EmptyNote title={m.signatures_empty()} />;
+  }
   return (
-    <div className={styles.section} data-testid="signatures-section">
-      {sources.map((source) => (
-        <SourceSignatures key={source.id} source={source} showName={sources.length > 1} />
-      ))}
-    </div>
+    <SignedVersionOpened.Provider value={onSignedVersionOpened}>
+      <div className={styles.section} data-testid="signatures-section">
+        {sources.map((source) => (
+          <SourceSignatures key={source.id} source={source} showName={sources.length > 1} />
+        ))}
+      </div>
+    </SignedVersionOpened.Provider>
   );
 }
 
@@ -127,12 +135,14 @@ function SignatureCard({
   const tone = statusTone(report.status);
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const opened = useContext(SignedVersionOpened);
   const viewSigned = async () => {
     setOpening(true);
     setError(null);
     try {
       await openSignedVersion(source, report);
       announce(m.announce_signed_version_opened({ name: source.name }));
+      opened?.();
     } catch (failure) {
       setError(
         m.signature_view_failed({
@@ -267,14 +277,9 @@ function SignatureCard({
       </details>
       {hasSignedVersion(report) ? (
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.small}
-            disabled={opening}
-            onClick={() => void viewSigned()}
-          >
+          <Button variant="standard" busy={opening} onClick={() => void viewSigned()}>
             {m.signature_view_signed()}
-          </button>
+          </Button>
         </div>
       ) : null}
       {error ? (

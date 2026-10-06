@@ -76,7 +76,6 @@ describe('the free rectangle (01-frame F1 §2)', () => {
     top: 44,
     sidebar: 0,
     sidebarDocked: true,
-    side: 0,
     band: 44,
     offset: BAND_OFFSET,
     focus: false,
@@ -91,11 +90,8 @@ describe('the free rectangle (01-frame F1 §2)', () => {
     expect(freeInsets({ ...large, sidebar: 320, sidebarDocked: false }).left).toBe(0);
   });
 
-  it('insets a side panel only while 400 px of stage remain beside it (X23)', () => {
-    expect(freeInsets({ ...large, side: 400 }).right).toBe(400);
-    // 820 px with a docked 280 sidebar: 140 px would remain, so the panel overlays.
-    expect(freeInsets({ ...large, width: 820, sidebar: 280, side: 400 }).right).toBe(0);
-    expect(freeInsets({ ...large, width: 1080, sidebar: 280, side: 400 }).right).toBe(400);
+  it('insets nothing on the right: no panel docks there since the inspector left (D2-9)', () => {
+    expect(freeInsets({ ...large, sidebar: 280 }).right).toBe(0);
   });
 
   it('keeps the offset alone in Focus, and nothing on the Library (no band item)', () => {
@@ -137,7 +133,7 @@ describe('the free rectangle (01-frame F1 §2)', () => {
     document.body.append(shell);
     try {
       const measure = measureFrame(shell, { sidebarDocked: true, offset: 16, focus: false });
-      expect(measure).toMatchObject({ width: 1000, top: 44, sidebar: 280, side: 0, band: 48 });
+      expect(measure).toMatchObject({ width: 1000, top: 44, sidebar: 280, band: 48 });
       expect(freeInsets(measure)).toEqual({ top: 44, right: 0, bottom: 64, left: 280 });
     } finally {
       shell.remove();

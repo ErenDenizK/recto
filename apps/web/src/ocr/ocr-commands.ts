@@ -1,8 +1,8 @@
 /**
  * OCR commands (spec recognize-and-compare §1.5): "Recognize text (OCR)…" in the palette and,
  * with the Document group, the tab bar's Document menu; "OCR languages…" (the language
- * manager: the app has no Settings screen); J / K through the OCR section's low-confidence
- * words. No shortcut opens the dialog (docs/DESIGN.md §4: every action is in the palette;
+ * manager); J / K through Review's Words to check (spec X33; the inspector's OCR section went
+ * there in D2-9). No shortcut opens the sheet (docs/DESIGN.md §4: every action is in the palette;
  * the single-key shortcuts are taken).
  */
 import { getActiveDocument } from '@pdf-editor/document-model';

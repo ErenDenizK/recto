@@ -1,10 +1,10 @@
 /**
  * The application shell as layers (`components/01-frame.md` F1, §1.1; ADR-0031; redesign spec
  * D2-1). One stage with floating layers, in place of M8's 3 × 3 grid (title bar, rail,
- * inspector, status bar):
+ * inspector, status bar; the inspector's parts found their homes in D2-9):
  *
- *   page scroller (the stage, `main`) · soft scroll edge · sidebar · inspector (until D2-9) ·
- *   dock band (dock + page pill) · top strip or compact bar · drop overlay
+ *   page scroller (the stage, `main`) · soft scroll edge · sidebar · dock band (dock + page
+ *   pill) · top strip or compact bar · drop overlay
  *   … then, portalled: contextual bars · toasts · sheets · menus and popovers · dialogs ·
  *   tooltips
  *
@@ -25,7 +25,7 @@
  */
 import { type DragEvent, useCallback, useEffect, useRef, useState } from 'react';
 
-import { BatchDialogHost } from '../batch/BatchDialogHost';
+import { BatchSheetHost } from '../batch/BatchSheetHost';
 import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
@@ -34,10 +34,11 @@ import { FurnitureDialogs } from '../furniture';
 import { DocumentDropOverlay } from '../home/DropOverlay';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
-import { OcrDialogHost } from '../ocr';
+import { OcrSheetHost } from '../ocr';
 import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
 import { NewSignatureHost } from '../signatures/NewSignatureHost';
+import { SignaturesSheet } from '../signatures/SignaturesSheet';
 import { useAppearanceRoot } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
 import { isMarkupOpen, useStageView, useUiStore } from '../state/ui-store';
@@ -62,7 +63,6 @@ import { SoftEdge } from './frame/SoftEdge';
 import { TopStrip } from './frame/TopStrip';
 import { LiveRegion } from './LiveRegion';
 import { PasswordDialog } from './PasswordDialog';
-import { RightPanel } from './RightPanel';
 import { ShortcutOverlay } from './ShortcutOverlay';
 import { Sidebar } from './sidebar/Sidebar';
 import { Stage } from './Stage';
@@ -180,7 +180,6 @@ export function AppShell() {
         {frame.tight || (frame.size === 'compact' && !frame.short) ? null : (
           <Sidebar form={frame.short ? 'sheet' : sidebarOverlay ? 'overlay' : 'docked'} />
         )}
-        <RightPanel />
         <DockBand size={frame.size} compact={compact} tight={frame.tight} />
         {compact || frame.tight ? (
           <CompactTopBar short={frame.short} tight={frame.tight} />
@@ -198,10 +197,11 @@ export function AppShell() {
       <ShortcutOverlay />
       <SettingsHost />
       <NewSignatureHost />
+      <SignaturesSheet />
       <PasswordDialog />
       <ConfirmHost />
-      <BatchDialogHost />
-      <OcrDialogHost />
+      <BatchSheetHost />
+      <OcrSheetHost />
       <FurnitureDialogs />
       <ReplacePopover />
       <ToastRegion />

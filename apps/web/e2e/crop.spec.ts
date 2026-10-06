@@ -20,14 +20,22 @@ import { expect, type Page, test } from '@playwright/test';
 import {
   openFixtures,
   openSaveCopy,
-  showInspector,
   useFileInputPicker,
   openFindPanel,
+  inHistory,
+  historyStep,
   showSidebar,
+  stageAsBesideInspector,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
+
+// The page geometry these tests were written for (drags by fractions of a page that fit above
+// the dock): the stage beside the inspector's 280 px, which D2-9 removed.
+test.beforeEach(async ({ page }) => {
+  await stageAsBesideInspector(page);
+});
 
 const CROP = { x: 72, y: 72, width: 468, height: 612 };
 
@@ -57,7 +65,6 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await openFixtures(page, ['simple-text.pdf']);
-  await showInspector(page);
 
   // Read mode, "Crop pages…" from the command palette: no selection, so all pages.
   await expect(page.locator('[data-page-index="0"]').first()).toBeVisible({ timeout: 20_000 });
@@ -98,11 +105,9 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
   );
   await dialog.getByRole('button', { name: 'Close' }).last().click();
   await expect(dialog).toBeHidden();
-  await expect(
-    page
-      .getByRole('list', { name: /history/i })
-      .getByRole('button', { name: 'Crop 3 pages and remove the content outside' }),
-  ).toBeVisible();
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Crop 3 pages and remove the content outside')).toBeVisible(),
+  );
 
   // Export (verified), then read the download: every page has the crop as its /CropBox.
   const bytes = await exportAndDownload(page);
@@ -158,7 +163,6 @@ test('draw the crop area on the page in Read mode; Esc goes back unchanged', asy
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await openFixtures(page, ['simple-text.pdf']);
-  await showInspector(page);
 
   // Arrange: "Crop pages…" from the context menu of page 1.
   await page.keyboard.press('3');

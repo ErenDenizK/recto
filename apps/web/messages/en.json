@@ -49,8 +49,6 @@
   "open_files": "Open files",
   "search_commands": "Search commands",
   "search_commands_placeholder": "Search commands…",
-  "right_panel_hide": "Hide right panel",
-  "right_panel_show": "Show right panel",
   "empty_body_local": "Files open on this device and are never uploaded.",
   "keyboard_shortcuts": "Keyboard shortcuts",
   "stage_start_label": "Start",
@@ -239,22 +237,6 @@
   "action_coming_soon": "Coming in M1",
   "action_coming_soon_tooltip": "{label} · Coming in M1",
   "action_select_pages_first": "Select pages first",
-  "inspector_label": "Inspector",
-  "inspector_resize": "Resize inspector",
-  "inspector_selection": "Selection",
-  "inspector_properties": "Properties",
-  "inspector_history": "History",
-  "inspector_info": "Info",
-  "inspector_no_properties_title": "No properties",
-  "inspector_no_properties_body": "Properties of the selection appear here.",
-  "inspector_nothing_selected_title": "Nothing selected",
-  "inspector_nothing_selected_body": "Select pages or annotations to act on them.",
-  "inspector_selected": "Selected",
-  "inspector_from_documents": " from {count} documents",
-  "inspector_pages": "Pages",
-  "inspector_no_changes_title": "No changes yet",
-  "inspector_no_changes_body": "Every edit is recorded here and can be undone.",
-  "inspector_history_label": "Undo history",
   "info_name": "Name",
   "info_files": "Files",
   "info_size": "Size",
@@ -271,8 +253,7 @@
   "badge_xfa_explanation": "XFA: this form uses XFA, which is not supported. Exporting keeps the regular form fields and removes the XFA data.",
   "badge_signed": "signed",
   "badge_signed_explanation": "Signed: exporting will invalidate the signature unless saved incrementally.",
-  "signature_badge_explanation": "Signed: export writes a new file, which cannot keep the signature. See Signatures in the Inspector.",
-  "inspector_signatures": "Signatures",
+  "signature_badge_explanation": "Signed: export writes a new file, which cannot keep the signature. Signatures… in the document menu shows each one.",
   "signature_status_intact": "Intact",
   "signature_status_intact_changed_later": "Intact, changed later",
   "signature_status_changed_after_signing": "Changed after signing",
@@ -775,7 +756,6 @@
   "cmd_move_backward": "Move pages back one slot",
   "cmd_move_forward": "Move pages forward one slot",
   "cmd_toggle_left_panel": "Toggle left panel",
-  "cmd_toggle_right_panel": "Toggle right panel",
   "cmd_show_pages": "Show pages",
   "cmd_show_outline": "Show contents",
   "cmd_mode_read": "Switch to Read",
@@ -866,7 +846,6 @@
   "action_copy_to_new_document": "Copy to new document",
   "action_insert_blank_after": "Insert blank page after",
   "action_move_to": "Move to…",
-  "action_properties": "Properties",
   "action_cut": "Cut",
   "action_copy": "Copy",
   "action_paste_after": "Paste after",
@@ -1819,7 +1798,6 @@
   "pen_preset_reset_done": "{name} reset to default",
   "pen_width_note": "Width changes are stored in the stroke's appearance. Viewers that redraw ink themselves show it at one width.",
   "annot_tool_style": "{tool} tool style",
-  "annot_tool_style_hint": "Applies to what you draw next. To change an annotation, select it first.",
   "annot_replay_failed": "Some annotation changes could not be undone or redone in the document",
   "view_forms": "Forms",
   "cmd_show_forms": "Show forms panel",
@@ -3189,7 +3167,6 @@
   "ocr_cmd_languages": "OCR languages…",
   "ocr_cmd_next_word": "Next low-confidence word",
   "ocr_cmd_previous_word": "Previous low-confidence word",
-  "ocr_inspector_title": "OCR",
   "ocr_title": "Recognize text (OCR)",
   "ocr_pages": "Pages",
   "ocr_checking_pages": "Checking which pages have text…",
@@ -3374,16 +3351,8 @@
   "ocr_quality_review_explanation": "Some words may be wrong: check the words listed below.",
   "ocr_quality_poor_explanation": "Many words may be wrong. A cleaner scan, High quality or another language may help.",
   "ocr_quality_no_text_explanation": "No words were recognized on this page.",
-  "ocr_section_page": "Page {page}",
-  "ocr_section_quality": "Quality",
-  "ocr_section_languages": "Languages",
-  "ocr_section_dpi": "Resolution",
   "ocr_dpi": "{dpi} dpi",
-  "ocr_section_words": "Words",
-  "ocr_section_low_words_label": "Low-confidence words on page {page}",
   "ocr_no_low_words": "No low-confidence words.",
-  "ocr_section_no_layer": "Page {page} has no text recognized by this app.",
-  "ocr_section_document": "Pages by quality",
   "ocr_word_announce": "Word {index} of {total}: {word}, {confidence} confidence",
   "ocr_status": [
     {
@@ -3794,7 +3763,6 @@
   "review_empty_title": "Nothing to review",
   "review_empty_body": "Comments, redaction marks and form fields of this document appear here.",
   "docinfo_title": "Document info",
-  "docinfo_open": "Document info…",
   "docinfo_file": "File",
   "bar_in_group": "Markup: {group}",
   "a11y_pages_viewport": "Pages of {title}",
@@ -4758,5 +4726,45 @@
         "countPlural=*": "Move {count} pages here"
       }
     }
-  ]
+  ],
+  "signatures_title": "Signatures",
+  "signatures_empty": "This file has no digital signatures.",
+  "signatures_none_reason": "No signatures in this file",
+  "cmd_signatures": "Signatures…",
+  "cmd_document_signatures_keywords": "signatures, signed, verify, validate, seal",
+  "ocr_no_pages": "Choose at least one page.",
+  "ocr_done_toast": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} page recognized",
+        "countPlural=*": "{count} pages recognized"
+      }
+    }
+  ],
+  "ocr_done_toast_words": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 word to check",
+        "countPlural=*": "{count} words to check"
+      }
+    }
+  ],
+  "ocr_review": "Review",
+  "review_words_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 word",
+        "countPlural=*": "{count} words"
+      }
+    }
+  ],
+  "batch_needs_wider": "Needs a wider window",
+  "annot_more": "More properties",
+  "annot_text": "Text"
 }

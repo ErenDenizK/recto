@@ -76,7 +76,7 @@ describe('status words', () => {
   it('uses no form of the word "valid" in any signature text', () => {
     const texts = Object.entries(en as Record<string, unknown>)
       .filter(([key]) =>
-        /^(signature_|sign_|export_sign|summary_signature|inspector_signatures)/.test(key),
+        /^(signature_|signatures_|cmd_signatures|sign_|export_sign|summary_signature)/.test(key),
       )
       .map(([, value]) => JSON.stringify(value));
     expect(texts.length).toBeGreaterThan(50);
