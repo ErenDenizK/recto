@@ -330,6 +330,17 @@
   transition: transform 200ms var(--ease-standard);
 }
 
+/* Reduced motion (§7.5 *progress*): the fill steps to each value. */
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}
+
+:root[data-motion='reduced'] .fill {
+  transition: none;
+}
+
 :dir(rtl) .fill {
   transform-origin: right center;
 }
