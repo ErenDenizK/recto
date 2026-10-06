@@ -53,11 +53,13 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
   await expect(page.getByRole('radiogroup', { name: 'View mode' })).toHaveCount(0);
   await page.keyboard.press('1');
   await expect(read).toBeVisible();
-  // 4 switches to the Compare place; the Changes panel opens in the sidebar.
+  // 4 switches to the Compare place; the Changes list opens in the sidebar's slot, alone (the
+  // rail's Changes tab is gone, 06-navigation N1; the Compare place docks it in D2-6).
   await page.keyboard.press('4');
   const setup = page.getByTestId('compare-setup');
   await expect(setup).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Changes' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#left-panel[data-section="changes"]')).toBeVisible();
+  await expect(page.getByRole('tablist', { name: 'Sidebar sections' })).toHaveCount(0);
 
   await setup.getByRole('combobox', { name: 'Original (A)' }).click();
   await page.getByRole('option', { name: 'compare-a' }).click();

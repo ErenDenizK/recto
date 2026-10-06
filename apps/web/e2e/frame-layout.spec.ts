@@ -62,12 +62,13 @@ async function expectInFree(page: Page, target: Rect, what: string): Promise<voi
   expect(target.left, `${what}: right of a docked sidebar`).toBeGreaterThanOrEqual(free.left - 0.5);
   expect(target.right, `${what}: inside the right edge`).toBeLessThanOrEqual(free.right + 0.5);
   for (const surface of await chromeRects(page)) {
-    // The overlay sidebar (medium) lies over the stage by design; it is a sheet, not chrome.
+    // The overlay sidebar (medium) lies over the stage by design; it is a sheet, not chrome. It
+    // floats inset 8 from the leading edge (06-navigation N1 §2).
     const overlay = await page
       .locator('[data-frame-layer="sidebar"][data-overlay]')
       .count()
       .then((n) => n > 0);
-    if (overlay && surface.left === 0 && surface.top >= free.top - 0.5) continue;
+    if (overlay && surface.left <= 8.5 && surface.top >= free.top - 0.5) continue;
     expect(
       intersects(target, surface),
       `${what}: under the frame at ${JSON.stringify(surface)}`,

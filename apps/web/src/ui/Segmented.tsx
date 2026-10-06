@@ -386,6 +386,7 @@ export function SegmentedPanel({
   value,
   className,
   keepMounted = false,
+  tabIndex,
   children,
 }: {
   readonly value: string;
@@ -395,10 +396,20 @@ export function SegmentedPanel({
    * can stack the panels and size them by the tallest (New signature's fixed body, Q-7).
    */
   readonly keepMounted?: boolean | undefined;
+  /**
+   * -1 when the panel always holds a control of its own, so Tab from the track lands on that
+   * control rather than on the panel (APG tabs: the panel is a Tab stop only without one).
+   */
+  readonly tabIndex?: number | undefined;
   readonly children: ReactNode;
 }) {
   return (
-    <Tabs.Panel value={value} className={className} keepMounted={keepMounted}>
+    <Tabs.Panel
+      value={value}
+      className={className}
+      keepMounted={keepMounted}
+      {...(tabIndex === undefined ? {} : { tabIndex })}
+    >
       {children}
     </Tabs.Panel>
   );
