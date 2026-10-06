@@ -72,7 +72,7 @@
 }
 
 /* The base: solid first, the lit rim, edge, inner light and shadow. */
-:where(.mat) {
+.mat {
   --shadow-own: var(--mat-edge), var(--mat-inner), var(--mat-shadow);
   border: 1px solid var(--border-glass);
   border-top-color: var(--mat-rim-top);
@@ -80,10 +80,10 @@
   background: var(--mat-solid);
   box-shadow: var(--shadow-own);
 }
-:where(.mat.mat-docked) {
+.mat-docked {
   border: 0;
 }
-:where(.mat.mat-lit) {
+.mat-lit {
   --shadow-own: var(--mat-edge), var(--mat-inner);
   position: relative;
   border: 0;
@@ -112,14 +112,14 @@
 
 /* The tint and the glass text steps, where glass renders and the setting is not Solid. */
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-  :where(:root:not([data-glass='solid'], [data-degrade='4'])) :where(.mat) {
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat {
     --text-secondary: var(--glass-text-secondary);
     --text-tertiary: var(--glass-text-secondary);
     --text-disabled: var(--glass-text-disabled);
     --danger: var(--glass-danger);
     background: var(--mat-tint);
   }
-  :where(:root[data-degrade='3']) :where(.mat.mat-panel) {
+  :where(:root[data-degrade='3']) .mat.mat-panel {
     --text-secondary: inherit;
     --text-tertiary: inherit;
     --text-disabled: inherit;
@@ -228,6 +228,19 @@
   :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade])) .mat-chip.s7.lens {
     backdrop-filter: var(--lens) blur(7px) saturate(1.9) brightness(0.42);
   }
+}
+
+/* Under a modal scrim (dim only, G-31) the docked frame needs no blur: the backdrop is
+   still and dimmed, and its solid token is what it composites to over the canvas. It keeps the
+   budget of four blurred surfaces at rest (Q-11) with the sheet and a toast over the dock. */
+:where(:root:has([data-scrim]:not([data-ending-style]))) .mat.mat-docked {
+  --text-secondary: inherit;
+  --text-tertiary: inherit;
+  --text-disabled: inherit;
+  --danger: inherit;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: var(--mat-solid);
 }
 
 /* The solid twin: no filter, whatever σ its tier's surface composes. */

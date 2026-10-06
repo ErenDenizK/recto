@@ -27,7 +27,8 @@
  *    `cs` for solid), compact-height (`h<σ>`) and one-row menus (`r<σ>`) follow, each later and
  *    at least as specific, and the backdrop lens of the M1 chips last (`.lens`, Chromium only:
  *    the one rule that reads a `var()`, the map `material-lens.ts` draws at the chip's size).
- * 5. **Resets.** Reduced transparency, more contrast and forced colours turn every filter off
+ * 5. **Resets.** Docked M3 under a modal sheet's scrim (`data-scrim`), the solid twin, reduced
+ *    transparency, more contrast and forced colours turn every filter off
  *    and bring the normal text ladder back; more contrast draws the strong border instead of rim
  *    and shadow (A-18).
  */
@@ -150,7 +151,7 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
   // 2. The base.
   out.push('\n/* The base: solid first, the lit rim, edge, inner light and shadow. */\n');
   out.push(
-    block(':where(.mat)', [
+    block('.mat', [
       '--shadow-own: var(--mat-edge), var(--mat-inner), var(--mat-shadow);',
       'border: 1px solid var(--border-glass);',
       'border-top-color: var(--mat-rim-top);',
@@ -159,9 +160,9 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
       'box-shadow: var(--shadow-own);',
     ]),
   );
-  out.push(block(':where(.mat.mat-docked)', ['border: 0;']));
+  out.push(block('.mat-docked', ['border: 0;']));
   out.push(
-    block(':where(.mat.mat-lit)', [
+    block('.mat-lit', [
       '--shadow-own: var(--mat-edge), var(--mat-inner);',
       'position: relative;',
       'border: 0;',
@@ -188,14 +189,14 @@ ${SUPPORTS} {
 `);
   out.push(
     block(
-      ":where(:root:not([data-glass='solid'], [data-degrade='4'])) :where(.mat)",
+      ":where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat",
       [...TEXT_ON_GLASS, 'background: var(--mat-tint);'],
       '  ',
     ),
   );
   out.push(
     block(
-      ":where(:root[data-degrade='3']) :where(.mat.mat-panel)",
+      ":where(:root[data-degrade='3']) .mat.mat-panel",
       [...TEXT_RESET, 'background: var(--mat-solid);'],
       '  ',
     ),
@@ -279,6 +280,13 @@ ${SUPPORTS} {
   out.push('}\n');
 
   // 5. Resets.
+  out.push(
+    `
+/* Under a modal scrim (dim only, G-31) the docked frame needs no blur: the backdrop is
+   still and dimmed, and its solid token is what it composites to over the canvas. It keeps the
+   budget of four blurred surfaces at rest (Q-11) with the sheet and a toast over the dock. */
+${block(':where(:root:has([data-scrim]:not([data-ending-style]))) .mat.mat-docked', [...TEXT_RESET, '-webkit-backdrop-filter: none !important;', 'backdrop-filter: none !important;', 'background: var(--mat-solid);'])}`,
+  );
   out.push(
     `\n/* The solid twin: no filter, whatever σ its tier's surface composes. */\n${block('.mat-opaque', ['-webkit-backdrop-filter: none !important;', 'backdrop-filter: none !important;'])}`,
   );

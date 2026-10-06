@@ -307,7 +307,11 @@ export function Sheet({
     >
       <Dialog.Portal>
         {layout.scrim ? (
-          <Dialog.Backdrop className={styles.scrim} data-presentation={layout.presentation} />
+          <Dialog.Backdrop
+            className={styles.scrim}
+            data-presentation={layout.presentation}
+            data-scrim=""
+          />
         ) : null}
         <Dialog.Popup
           ref={panelRef}
