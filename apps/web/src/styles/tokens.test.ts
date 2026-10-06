@@ -1201,8 +1201,9 @@ describe('tokens.css', () => {
       // the top strip, the compact bar and the page pill: one more. The capsule (D2-2) takes the
       // tool bar's glass into its own module; the Markup palette (D2-3) is content inside it, its
       // ink strip a row of the capsule's glass, so the bar's module and its options tier go. The
-      // Pages grid (D2-5) moves its bar into the capsule and adds its docked header.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(25);
+      // Pages grid (D2-5) moves its bar into the capsule and adds its docked header. The
+      // inspector leaves (D2-9): one fewer.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(24);
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',
         'mat-bar',
