@@ -4,11 +4,14 @@
  * and track press.
  *
  * - **Scales and rounding** live in `slider-math.ts`. Base UI works on the knob's *position*
- *   (0–`SCALE`), and this wrapper maps it to the value: linear, or logarithmic for widths,
- *   rounded to `step` (or two significant digits on a log scale). The value is controlled.
+ *   (0–`SCALE`), and this wrapper maps it to the value: linear, logarithmic, or `stops` for a
+ *   width with detents (the ends and the detents evenly spaced, log between them, so the
+ *   ticks under the track are even), rounded to `step` (or two significant digits off the
+ *   linear scale). The value is controlled.
  * - **Tracks.** `fill` (neutral fill to the knob), `gradient` (the caller's CSS gradient is
  *   the scale, with an optional checkerboard for opacity) and `taper` (the width track: one
- *   SVG path that thickens towards the end, with the knob drawn as the stroke itself).
+ *   SVG path that thickens towards the end; the knob is the round white knob of every slider
+ *   with the stroke inside it as a dot of its real size at the zoom, clamped to the knob).
  * - **Feel** (§3.2). Holding the knob turns it into a lens: a CSS copy of the track inside
  *   it, magnified, never a backdrop filter (Q-5). Detents are magnetic within 4 px (mouse)
  *   or 6 px (touch, pen) and tick the knob as they catch. A drag past an end stretches the
@@ -50,13 +53,13 @@ import {
   DETENT_SNAP_PX,
   detentsIn,
   keyStep,
-  knobDiameter,
   positionToValue,
   roundValue,
   type SliderRange,
   type SliderScale,
   snapToDetent,
   stretchFor,
+  strokeDot,
   taperPath,
   valueToPosition,
 } from './slider-math';
@@ -187,8 +190,8 @@ export function Slider({
   style,
   inputRef,
 }: SliderProps) {
-  const range: SliderRange = { min, max, scale };
-  const stops = detentsIn(detents, range);
+  const stops = detentsIn(detents, { min, max, scale });
+  const range: SliderRange = { min, max, scale, ...(scale === 'stops' ? { detents: stops } : {}) };
   const position = valueToPosition(value, range);
   const coarse = useCoarsePointer();
   const labelId = useId();
@@ -205,7 +208,7 @@ export function Slider({
   const [bubbleState, setBubbleState] = useState<'hidden' | 'shown' | 'leaving'>('hidden');
 
   const knob = track === 'taper' ? 'stroke' : knobColor !== undefined ? 'colour' : 'plain';
-  const stroke = track === 'taper' ? knobDiameter(value, zoom, coarse) : undefined;
+  const stroke = track === 'taper' ? strokeDot(value, zoom, coarse) : undefined;
   const lens = held?.lens === true;
 
   // The taper path is measured, so its round caps are true circles at any width.
@@ -450,7 +453,7 @@ export function Slider({
     '--slider-pos': position,
     ...(gradient !== undefined ? { '--sl-gradient': gradient } : {}),
     ...(knobColor !== undefined ? { '--sl-knob-color': knobColor } : {}),
-    ...(stroke ? { '--sl-stroke': `${stroke.diameter}px` } : {}),
+    ...(stroke !== undefined ? { '--sl-stroke': `${stroke}px` } : {}),
   } as CSSProperties;
 
   const art = (
@@ -531,13 +534,6 @@ export function Slider({
                 {knob !== 'stroke' ? (
                   <span className={styles.lens} aria-hidden="true">
                     <span className={styles.lensArt}>{art}</span>
-                  </span>
-                ) : null}
-                {stroke?.notch ? (
-                  <span className={styles.notch} data-notch={stroke.notch} aria-hidden="true">
-                    <svg viewBox="0 0 8 8" focusable="false">
-                      <path d={stroke.notch === '+' ? 'M1.5 4h5M4 1.5v5' : 'M1.5 4h5'} />
-                    </svg>
                   </span>
                 ) : null}
               </span>

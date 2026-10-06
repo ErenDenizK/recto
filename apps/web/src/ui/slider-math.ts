@@ -5,7 +5,10 @@
  *   scale maps that position to a value. Linear for opacity, hue, saturation, brightness and
  *   quality. Logarithmic for widths: `t = ln(w / min) / ln(max / min)`, so the pen's range of
  *   0.25–24 pt gives 0.25–2 pt the first 45 % of the travel, where the small widths people
- *   write with need the room. Both directions round-trip within 1e-9 of the value.
+ *   write with need the room. Stops for a width with detents (the pen's, the Highlighter's):
+ *   the ends and the detents sit at equal shares of the travel, so their ticks are evenly
+ *   spaced, and each span between two stops is logarithmic (the pen's 0.25–2 pt keep 4 of 9
+ *   spans, 44 %). Every scale round-trips within 1e-9 of the value.
  * - **Rounding.** Linear values round to the slider's step from its minimum (as a native
  *   range does). Logarithmic values round to two significant digits (0.37, 1.5, 13 pt), the
  *   precision a readout shows, unless the caller gives a step.
@@ -18,30 +21,32 @@
  *   at most 6 px, Apple's scroll-view curve `(1 − 1 / (x·c / d + 1)) · d`. The motion core
  *   (`09-primitives` §31) will offer the same function; this copy keeps the primitive free of
  *   that package until it lands.
- * - **Knob diameter** (§3.3): the width slider's knob is the stroke as it will draw,
- *   `width × zoom × 96/72` px, clamped to 8–28 px (coarse 10–32); a clamped knob says which
- *   way the stroke differs with a notch.
+ * - **Stroke dot** (§3.3): the width slider's knob is the round white knob of every slider
+ *   holding the stroke as it will draw, a dot of `width × zoom × 96/72` px clamped to the
+ *   knob's inside (2–14 px fine, 3–20 coarse), so the knob itself never changes size.
  * - **Taper** (§3.3): the width track as one SVG path, a pill whose height grows from start
  *   to end, with true tangents between its two round caps.
  * - **Bubble** (§3.1): how far the value bubble shifts to stay inside the viewport.
  */
 
-export type SliderScale = 'linear' | 'log';
+export type SliderScale = 'linear' | 'log' | 'stops';
 
 export interface SliderRange {
   readonly min: number;
   readonly max: number;
   readonly scale: SliderScale;
+  /** The `stops` scale's inner stops (the detents); without any it is the log scale. */
+  readonly detents?: readonly number[] | undefined;
 }
 
 /** Most a dragged track stretches past either end, CSS px (§3.2). */
 export const STRETCH_MAX_PX = 6;
 /** Detent snap distance, CSS px: fine (mouse) and coarse (touch, pen) pointers (§3.2). */
 export const DETENT_SNAP_PX = { fine: 4, coarse: 6 } as const;
-/** The width knob's clamp, CSS px (§3.3). */
-export const KNOB_DIAMETER = {
-  fine: { min: 8, max: 28 },
-  coarse: { min: 10, max: 32 },
+/** The width knob's stroke dot, CSS px (§3.3): inside the 22 / 28 px knob, a 4 px ring kept. */
+export const STROKE_DOT = {
+  fine: { min: 2, max: 14 },
+  coarse: { min: 3, max: 20 },
 } as const;
 /** CSS px per point at 100 % zoom. */
 export const PX_PER_PT = 96 / 72;
@@ -57,11 +62,28 @@ function valid(range: SliderRange): boolean {
   return range.scale === 'linear' || range.min > 0;
 }
 
+/** The `stops` scale's stops: both ends and the detents strictly inside, ascending. */
+function scaleStops(range: SliderRange): number[] {
+  const inner = (range.detents ?? []).filter((d) => d > range.min && d < range.max);
+  return [range.min, ...new Set(inner.sort((a, b) => a - b)), range.max];
+}
+
 /** The knob's position (0–1) for a value, clamped to the range. */
 export function valueToPosition(value: number, range: SliderRange): number {
   if (!valid(range) || !Number.isFinite(value)) return 0;
   const v = clamp(value, range.min, range.max);
-  if (range.scale === 'log') return Math.log(v / range.min) / Math.log(range.max / range.min);
+  if (range.scale === 'stops') {
+    const stops = scaleStops(range);
+    const spans = stops.length - 1;
+    for (let i = 0; i < spans; i++) {
+      const a = stops[i] as number;
+      const b = stops[i + 1] as number;
+      if (v <= b || i === spans - 1) return (i + Math.log(v / a) / Math.log(b / a)) / spans;
+    }
+  }
+  if (range.scale !== 'linear') {
+    return Math.log(v / range.min) / Math.log(range.max / range.min);
+  }
   return (v - range.min) / (range.max - range.min);
 }
 
@@ -69,7 +91,15 @@ export function valueToPosition(value: number, range: SliderRange): number {
 export function positionToValue(position: number, range: SliderRange): number {
   if (!valid(range) || !Number.isFinite(position)) return range.min;
   const t = clamp(position, 0, 1);
-  if (range.scale === 'log') return range.min * (range.max / range.min) ** t;
+  if (range.scale === 'stops') {
+    const stops = scaleStops(range);
+    const spans = stops.length - 1;
+    const i = Math.min(spans - 1, Math.floor(t * spans));
+    const a = stops[i] as number;
+    const b = stops[i + 1] as number;
+    return a * (b / a) ** (t * spans - i);
+  }
+  if (range.scale !== 'linear') return range.min * (range.max / range.min) ** t;
   return range.min + t * (range.max - range.min);
 }
 
@@ -104,7 +134,7 @@ export function roundSignificant(value: number, digits = 2): number {
 export function roundValue(value: number, range: SliderRange, step?: number): number {
   let rounded: number;
   if (step !== undefined && step > 0) rounded = roundToStep(value, step, range.min);
-  else if (range.scale === 'log') rounded = roundSignificant(value, 2);
+  else if (range.scale !== 'linear') rounded = roundSignificant(value, 2);
   else rounded = roundToStep(value, 1, range.min);
   return clamp(rounded, range.min, range.max);
 }
@@ -185,7 +215,7 @@ export function keyStep(
     }
     return clamp(at, range.min, range.max);
   }
-  if (range.scale === 'log' && options.step === undefined) {
+  if (range.scale !== 'linear' && options.step === undefined) {
     const t = valueToPosition(value, range) + direction * count * LOG_KEY_STEP;
     const next = roundValue(positionToValue(t, range), range);
     // Two significant digits can round a small move back to where it started: take the
@@ -216,20 +246,12 @@ export function stretchFor(overshoot: number): number {
   return rubberBand(overshoot, STRETCH_MAX_PX);
 }
 
-export interface KnobDiameter {
-  /** CSS px, clamped. */
-  readonly diameter: number;
-  /** The stroke is larger (`+`) or smaller (`-`) than the clamped knob shows. */
-  readonly notch: '+' | '-' | undefined;
-}
-
-/** The width knob (§3.3): the stroke's diameter at `zoom`, clamped per pointer density. */
-export function knobDiameter(widthPt: number, zoom: number, coarse: boolean): KnobDiameter {
-  const limits = coarse ? KNOB_DIAMETER.coarse : KNOB_DIAMETER.fine;
+/** The width knob's stroke dot (§3.3): the stroke's diameter at `zoom`, clamped, CSS px. */
+export function strokeDot(widthPt: number, zoom: number, coarse: boolean): number {
+  const limits = coarse ? STROKE_DOT.coarse : STROKE_DOT.fine;
   const raw = widthPt * zoom * PX_PER_PT;
-  if (!Number.isFinite(raw) || raw < limits.min) return { diameter: limits.min, notch: '-' };
-  if (raw > limits.max) return { diameter: limits.max, notch: '+' };
-  return { diameter: raw, notch: undefined };
+  if (!Number.isFinite(raw)) return limits.min;
+  return clamp(raw, limits.min, limits.max);
 }
 
 function n(value: number): string {

@@ -1,8 +1,9 @@
 /*
  * The one Slider (10-ink.md §3; supersedes 09-primitives §10 and ui/Range).
  *
- * Elevation. Raised parts (knob, notch, bubble) take e1 / e2 (language.md §6.3) through one
- * custom property, `--sl-shadow`, which each sets for itself.
+ * Elevation. Raised parts (knob, bubble) take e1 / e2 (language.md §6.3) through one custom
+ * property, `--sl-shadow`, which each sets for itself; the white knobs (colour, width) add a
+ * soft ambient layer under e1, so they sit on the track like Apple's.
  *
  * Geometry. A row of [label] [control] [readout]. The control is the hit area (32 fine, 44
  * coarse) and the knob's travel: its inline padding is half the knob, so the knob's centre
@@ -62,6 +63,7 @@
   --sl-lens-rim: rgb(255 255 255 / 0.7);
   --sl-e1: var(--e1);
   --sl-e2: var(--e2);
+  --sl-ambient: 0 2px 6px rgb(0 0 0 / 0.22);
   --sl-checker-a: rgb(255 255 255 / 0.3);
   --sl-checker-b: rgb(255 255 255 / 0.12);
   --sl-bubble-fill: var(--surface-raised);
@@ -151,6 +153,7 @@
   --sl-lens-rim: rgb(21 23 28 / 0.3);
   --sl-e1: 0 1px 2px rgb(21 23 28 / 0.12);
   --sl-e2: 0 4px 12px -4px rgb(21 23 28 / 0.2);
+  --sl-ambient: 0 2px 6px rgb(21 23 28 / 0.14);
   --sl-checker-a: #ffffff;
   --sl-checker-b: #d5d7dc;
   --sl-bubble-fill: #fbfbfd;
@@ -302,6 +305,8 @@
 
 /* --- Detent ticks ------------------------------------------------------------------- */
 
+/* Each tick is placed on a whole CSS pixel, so the even spacing of the stops scale reads even
+   (a 2 px mark at fractional offsets antialiases to marks of different weights). */
 .ticks {
   position: absolute;
   inset: 0;
@@ -317,7 +322,7 @@
   margin-left: -1px;
   border-radius: 1px;
   background: var(--sl-tick);
-  transform: translateX(calc(var(--sl-knob) / 2 + var(--tick-pos) * 100cqw));
+  transform: translateX(round(calc(var(--sl-knob) / 2 + var(--tick-pos) * 100cqw), 1px));
   transition: background-color var(--duration-fast) var(--ease-out);
 }
 
@@ -379,9 +384,16 @@
 }
 
 /* A colour slider's knob: the colour inside a 3 px white ring (§3.1). */
-.root[data-knob='colour'] .knob {
+.root[data-knob='colour'] .knob,
+.root[data-knob='stroke'] .knob {
   background: var(--sl-knob-white);
-  --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.18), var(--sl-e1);
+  --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.18), var(--sl-e1), var(--sl-ambient);
+}
+
+@media (hover: hover) {
+  .root:is([data-knob='colour'], [data-knob='stroke']):not([data-disabled]) .control:hover .knob {
+    --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.18), var(--sl-e1), var(--sl-e2);
+  }
 }
 
 .swatch {
@@ -398,44 +410,11 @@
     repeating-conic-gradient(#ffffff 0% 25%, #d5d7dc 0% 50%) 50% 50% / 6px 6px;
 }
 
-/* The width knob is the stroke (§3.3): a disc of the ink at its opacity, its real size at
-   the zoom (clamped), inside a thin ring; a notch says the stroke is larger or smaller. */
-.root[data-knob='stroke'] .knob {
-  width: calc(var(--sl-stroke) + 4px);
-  height: calc(var(--sl-stroke) + 4px);
-  background: var(--sl-knob-white);
-  --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.2), var(--sl-e1);
-  overflow: visible;
-}
-
+/* The width knob (§3.3): the same white knob, with the stroke inside it as a dot of the ink at
+   its opacity and its real size at the zoom, clamped to the knob's inside (`strokeDot`), so
+   the knob never changes size and a 4 px ring of white always frames the dot. */
 .root[data-knob='stroke'] .swatch {
-  inset: 2px;
-}
-
-.notch {
-  /* Small and set on the ring itself at 45° (its centre on the knob's edge), in the ring's own
-     white with no hairline or shadow of its own, so it merges with the ring: a mark of the
-     knob, not a badge on it, as the 9 px "−" disc off the corner read (XD-3 finding 3). */
-  --sl-notch: 6px;
-  --sl-notch-at: calc((var(--sl-stroke) + 4px) * 0.1464 - var(--sl-notch) / 2);
-
-  position: absolute;
-  top: var(--sl-notch-at);
-  right: var(--sl-notch-at);
-  display: grid;
-  place-items: center;
-  width: var(--sl-notch);
-  height: var(--sl-notch);
-  border-radius: 50%;
-  background: var(--sl-knob-white);
-}
-
-.notch svg {
-  width: 4px;
-  height: 4px;
-  stroke: #4f535a;
-  stroke-width: 1.4;
-  stroke-linecap: round;
+  inset: calc((var(--sl-knob) - var(--sl-stroke)) / 2);
 }
 
 .root[data-disabled] .knob {
