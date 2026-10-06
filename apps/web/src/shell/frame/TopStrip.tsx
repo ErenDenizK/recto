@@ -13,9 +13,8 @@
  *   fold.
  * - **Never signals Markup** (`language.md` §0.1 principle 8) and carries no lime at rest:
  *   Save and the active tab are neutral fills.
- * - Material: the docked frame (`glass-frame`): solid at rest over the bare canvas, the page
- *   passing beneath it while scrolling; hairline on the bottom edge only. D3-3's materials
- *   bring M3.
+ * - Material: docked M3 (materials.css): the frame colour at rest over the bare canvas, glass
+ *   where the page passes beneath it while scrolling; hairline on the bottom edge only.
  * - Landmark `header` named "Document bar" / "Library bar"; Tab order ◆ → ▤ → active tab → "N
  *   more" → + → Find → ↶ → ↷ → Save → ◎; F6 lands on the active tab (the Library: ◆).
  *

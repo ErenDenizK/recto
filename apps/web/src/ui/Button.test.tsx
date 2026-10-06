@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { Button } from './Button';
+import { Surface } from './Surface';
 import { canHover, forceState, stillStyles } from './test-states';
 
 stillStyles();
@@ -177,12 +178,12 @@ describe('Button (09-primitives §3)', () => {
   it('renders quiet on the floating glass, filled on a menu', () => {
     render(
       <>
-        <div className="glass" data-testid="bar">
+        <Surface tier="bar" sigma={8} data-testid="bar">
           <Button>On the bar</Button>
-        </div>
-        <div className="glass glass-menu">
+        </Surface>
+        <Surface tier="menu" sigma={12}>
           <Button>In a menu</Button>
-        </div>
+        </Surface>
       </>,
     );
     expect(bg(screen.getByRole('button', { name: 'On the bar' }))).toBe('rgba(0, 0, 0, 0)');

@@ -11,7 +11,7 @@
  * pinch's frames lay nothing out. Under reduced motion the fade is instant (tokens.css).
  */
 .chip {
-  composes: glass from global;
+  composes: mat mat-chip s7 c8 from global;
   position: absolute;
   top: 0;
   left: 0;

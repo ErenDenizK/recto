@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { Chip, ChipGroup } from './Chip';
+import { Surface } from './Surface';
 import { canHover, forceState, stillStyles } from './test-states';
 
 stillStyles();
@@ -87,9 +88,9 @@ describe('ChipGroup (09-primitives §5)', () => {
 
   it('rests without a fill on the floating glass', () => {
     render(
-      <div className="glass">
+      <Surface tier="bar" sigma={8}>
         <Filters />
-      </div>,
+      </Surface>,
     );
     expect(
       getComputedStyle(screen.getByRole('radio', { name: 'Comments, 2 items' })).backgroundColor,
