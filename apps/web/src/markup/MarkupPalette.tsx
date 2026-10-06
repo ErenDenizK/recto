@@ -523,6 +523,7 @@ function SimpleTool({
       icon={<Icon name={tool.icon} />}
       command={`tool.${mode}`}
       showLabel={showLabel}
+      className={mode === 'select' ? styles.selectTool : undefined}
       aria-pressed={armed}
       aria-haspopup={choices ? 'dialog' : undefined}
       onClick={() => void activateTool(tool)}
