@@ -30,11 +30,11 @@
  * tooltip says so ("Esc: Select").
  * Arrange shows only its own selection bar, so this bar is Read-only.
  *
- * A document in Read (ADR-0019 §3) shows the same capsule with one Edit button (`2`):
- * nothing can be armed from it; pressing it enters Edit and shows the row of groups.
- *
- * The page context menu (stage/PageContextMenu.tsx) mounts with the bar: both belong to the
- * page view.
+ * Since D2-2 this bar is the Markup content of the capsule (`shell/capsule/`, spec X1): the
+ * capsule is the glass and morphs between the dock (`shell/frame/Dock.tsx`), this bar and
+ * Locked, so the bar draws no surface of its own and its group changes are the capsule's
+ * morph (`morphKey`, the shown group); its group buttons are the morph's named pieces. The
+ * Markup palette of D2-3 (`markup/`) replaces it in the same slot.
  */
 import { Menu } from '@base-ui/react/menu';
 import type { CreatedFieldKind } from '@pdf-editor/document-model';
@@ -42,7 +42,6 @@ import {
   type KeyboardEvent,
   type ReactElement,
   type ReactNode,
-  type RefObject,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -67,7 +66,6 @@ import { useCommands } from '../commands/use-commands';
 import { FIELD_KINDS, kindName } from '../forms/create';
 import { useFormStore } from '../forms/form-store';
 import { m } from '../i18n';
-import { reducedMotion } from '../motion/reduced-motion';
 import { useApplyDialogStore } from '../redaction/apply-store';
 import { showRedactionsPanel } from '../redaction/commands';
 import { openSettings } from '../settings/open-settings';
@@ -81,18 +79,16 @@ import {
   useSavedSignatures,
 } from '../signatures/saved-signatures';
 import { SignaturePlate } from '../signatures/SignaturePlate';
-import { PageContextMenu } from '../stage/PageContextMenu';
 import { Icon, type IconName } from '../ui/Icon';
 import { type SizeClass, useSizeClass } from './frame/size-class';
 import { useLockStore } from '../state/lock-store';
-import { isMarkupOpenActive, useMarkupOpen, useStageView } from '../state/ui-store';
+import { isMarkupOpenActive } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { IconButton } from '../ui/IconButton';
 import iconButtonStyles from '../ui/IconButton.module.css';
 import menuStyles from '../ui/Menu.module.css';
 import { Tooltip } from '../ui/Tooltip';
 import { useFocusRescue } from '../ui/use-focus-rescue';
-import { showMarkup } from '../home/home-actions';
 import { useSearchStore } from '../viewer/search';
 import { type BarGroup, type ToolMode, useToolStore } from '../viewer/tool-store';
 import {
@@ -107,78 +103,17 @@ import {
 import styles from './FloatingToolbar.module.css';
 import { useRovingTabindex } from './FloatingToolbar.roving';
 import { usePenSlots } from './FloatingToolbar.slots';
-import { useStrokeInProgress } from './FloatingToolbar.stroke';
-
-/** The morph (spec §5.2): one movement. */
-const MORPH_MS = 160;
-const MORPH_EASING = 'cubic-bezier(0.2, 0, 0, 1)';
-
-export function FloatingToolbar() {
-  const pageView = useStageView() === 'page';
-  const editable = useMarkupOpen();
-  return (
-    <>
-      {pageView ? editable ? <Dock /> : <ReadDock /> : null}
-      {pageView ? <PageContextMenu /> : null}
-    </>
-  );
-}
-
-/** Set by the Read bar's Edit button: the bar that replaces it takes the focus. */
-let focusBarOnMount = false;
-
-/** Read (ADR-0019 §3, spec §3.2): the capsule holds one Edit button, the way into Edit. */
-function ReadDock() {
-  return (
-    <div className={styles.dock}>
-      <div
-        role="toolbar"
-        aria-label={m.toolbar_label()}
-        aria-orientation="horizontal"
-        className={styles.toolbar}
-        data-annotation-keep=""
-        data-region="toolbar"
-        data-bar-view="read"
-      >
-        <Tooltip label={m.cmd_mode_edit()} shortcut={shortcutOf('mode.edit')} side="top">
-          <button
-            type="button"
-            className={`${styles.group} ${styles.readEdit}`}
-            data-read-edit=""
-            aria-keyshortcuts="2"
-            onClick={(event) => {
-              focusBarOnMount = event.currentTarget.contains(document.activeElement);
-              showBarGroups();
-              showMarkup(true);
-            }}
-          >
-            <Icon name="pencil-simple" className={styles.groupIcon} />
-            <span className={styles.groupLabel}>{m.mode_edit_button()}</span>
-          </button>
-        </Tooltip>
-      </div>
-    </div>
-  );
-}
-
-function Dock() {
-  // Faded and out of the pointer's way while a stroke is in progress (module header).
-  const stroking = useStrokeInProgress();
-  return (
-    // The bar first, so Tab goes from the bar to its options (spec §10); the dock stacks
-    // them bottom-up, so the tier still sits on top of the bar.
-    <div className={styles.dock} data-stroking={stroking ? '' : undefined}>
-      <Bar />
-      <OptionsTier />
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // The bar
 // ---------------------------------------------------------------------------
 
-function Bar() {
+/**
+ * The bar's group row and group tools: the Markup content of the capsule until D2-3's palette.
+ * The capsule (`shell/frame/Dock.tsx`) passes the shown group as its `morphKey`, so a group
+ * change is one morph of the glass, with the picked group's button sliding to the leading end.
+ */
+export function MarkupBar() {
   const group = useToolStore((s) => s.barGroup);
   const lastGroup = useToolStore((s) => s.lastGroup);
   // Re-render when commands register or their availability may change.
@@ -192,14 +127,6 @@ function Bar() {
         '[data-tool][aria-pressed="true"], [data-pen-preset][data-armed]',
   );
   const refocus = useRef<BarGroup | null>(null);
-  useBarMorph(ref, group);
-
-  // Entered from the Read bar's Edit button: the focus moves on to the row of groups.
-  useLayoutEffect(() => {
-    if (!focusBarOnMount) return;
-    focusBarOnMount = false;
-    ref.current?.querySelector<HTMLElement>('[tabindex="0"], [data-bar-group]')?.focus();
-  }, []);
 
   // Esc back to the row: the focus stays on that group's button.
   useLayoutEffect(() => {
@@ -268,7 +195,6 @@ function Bar() {
       aria-orientation="horizontal"
       className={styles.toolbar}
       data-annotation-keep=""
-      data-region="toolbar"
       data-bar-view={group ?? 'groups'}
       onKeyDownCapture={onKeyDownCapture}
       onKeyDown={roving.onKeyDown}
@@ -291,69 +217,6 @@ function itemKey(item: BarItem, index: number): string {
     default:
       return `${item.kind}:${index}`;
   }
-}
-
-/**
- * The morph (spec §5.2, §7.5): the picked group's button and the chip are one element, so it
- * keeps the focus; it slides between its place in the row and the left end while the other
- * items fade in beside it and the capsule's width follows. Layout is measured after every
- * render, so the movement starts from where things were drawn last.
- */
-function useBarMorph(ref: RefObject<HTMLDivElement | null>, group: BarGroup | null) {
-  const last = useRef<{
-    group: BarGroup | null;
-    width: number;
-    lefts: Map<string, number>;
-  } | null>(null);
-  useLayoutEffect(() => {
-    const bar = ref.current;
-    if (!bar) return;
-    const lefts = new Map<string, number>();
-    for (const el of bar.querySelectorAll<HTMLElement>('[data-bar-group]')) {
-      lefts.set(el.dataset.barGroup ?? '', el.getBoundingClientRect().left);
-    }
-    const now = { group, width: bar.getBoundingClientRect().width, lefts };
-    const before = last.current;
-    last.current = now;
-    if (!before || before.group === group || reducedMotion() || !('animate' in bar)) return;
-    const timing = { duration: MORPH_MS, easing: MORPH_EASING };
-    // The capsule's width follows, clipped while it moves.
-    if (Math.abs(before.width - now.width) > 0.5) {
-      bar.dataset.morphing = '';
-      const resize = bar.animate(
-        [{ width: `${before.width}px` }, { width: `${now.width}px` }],
-        timing,
-      );
-      const done = () => {
-        delete bar.dataset.morphing;
-      };
-      resize.onfinish = done;
-      resize.oncancel = done;
-    }
-    // The shared element slides from where it was.
-    const key = group ?? before.group;
-    if (key === null) return;
-    const moving = bar.querySelector<HTMLElement>(`[data-bar-group="${key}"]`);
-    const from = before.lefts.get(key);
-    const to = now.lefts.get(key);
-    if (moving && from !== undefined && to !== undefined && Math.abs(from - to) > 0.5) {
-      moving.animate(
-        [{ transform: `translateX(${from - to}px)` }, { transform: 'translateX(0)' }],
-        timing,
-      );
-    }
-    // Everything else slides in beside it.
-    for (const el of bar.children) {
-      if (el === moving || !(el instanceof HTMLElement)) continue;
-      el.animate(
-        [
-          { opacity: 0, transform: `translateX(${group === null ? 0 : -8}px)` },
-          { opacity: 1, transform: 'translateX(0)' },
-        ],
-        timing,
-      );
-    }
-  }, [ref, group]);
 }
 
 function GroupButton({
@@ -384,6 +247,7 @@ function GroupButton({
         type="button"
         className={styles.group}
         data-bar-group={group.id}
+        data-capsule-item={`group:${group.id}`}
         data-bar-chip={chip ? '' : undefined}
         data-last={!chip && lastGroup === group.id ? '' : undefined}
         aria-label={chip ? m.bar_group_back({ group: label }) : undefined}
@@ -761,7 +625,7 @@ function CommandButton({ id }: { readonly id: string }) {
  * The armed tool's options, attached to the top of the bar (spec §5.2), shown only on
  * request: the armed tool pressed again (`optionsOpen`).
  */
-function OptionsTier() {
+export function OptionsTier() {
   const mode = useToolStore((s) => s.mode);
   const open = useToolStore((s) => s.optionsOpen);
   const { EraserTier } = usePenSlots();
@@ -774,7 +638,7 @@ function OptionsTier() {
 
 /** Esc disarms the tool and the tier goes: focus moves to the bar's Tab stop. */
 const barTabStop = (tier: HTMLElement) =>
-  tier.parentElement?.querySelector<HTMLElement>('[data-region="toolbar"] [tabindex="0"]');
+  tier.parentElement?.querySelector<HTMLElement>('[data-capsule] [tabindex="0"]');
 
 function Tier({
   mode,

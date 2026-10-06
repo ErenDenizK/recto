@@ -42,7 +42,7 @@ import { announce } from '../shell/announcer';
 import { openOperationDialog } from '../stage/operation-dialogs-store';
 import { validateTitle } from '../stage/operation-plans';
 import { mergeAll } from '../stage/section-operations';
-import { lockOpened } from '../state/lock-store';
+import { isLocked, lockOpened } from '../state/lock-store';
 import { useUiStore } from '../state/ui-store';
 import { addLoadedSource, type LoadedSources, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
@@ -77,6 +77,12 @@ export function showTab(id: DocumentId): void {
 export function showMarkup(open: boolean): void {
   const id = model().workspace.activeDocument;
   if (id === undefined) return;
+  // A locked document has no Markup: its capsule shows Locked (spec X1, D2-2), so `2` and the
+  // other doors say why instead of opening a state nothing could be done in.
+  if (open && isLocked(id)) {
+    announce(m.guard_locked());
+    return;
+  }
   if (open) ui().openMarkup(id);
   else ui().closeMarkup(id);
   ui().showSurface('page', id);

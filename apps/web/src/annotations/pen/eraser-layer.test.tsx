@@ -23,7 +23,8 @@ import { page, userEvent } from 'vitest/browser';
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { enterEditMode, fixtureFile } from '../../../test/store-harness';
 import { displaySize } from '../../pages/page-geometry';
-import { FloatingToolbar } from '../../shell/FloatingToolbar';
+import { Dock } from '../../shell/frame/Dock';
+import { PageContextMenu } from '../../stage/PageContextMenu';
 import { ReadView } from '../../stage/ReadView';
 import { useUiStore } from '../../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
@@ -164,7 +165,8 @@ describe('the eraser', () => {
           style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 700 }}
         >
           <ReadView doc={doc} />
-          <FloatingToolbar />
+          <Dock />
+          <PageContextMenu />
         </div>,
       );
       act(() => useToolStore.getState().setMode('eraser'));

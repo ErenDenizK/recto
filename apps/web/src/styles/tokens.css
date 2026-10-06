@@ -306,6 +306,11 @@
   --glass-menu: var(--glass-menu-tint);
   --glass-menu-backdrop: blur(12px) var(--glass-menu-filter);
   --glass-menu-short-backdrop: blur(7px) var(--glass-menu-filter);
+  /* The capsule (spec X1, D2-2): the dock, the Markup palette and Locked are one M2 element,
+     so they share one σ per size (language.md §2.9): 9 fine, 10 coarse (§4), 8 compact-height
+     (`shell/capsule/Capsule.module.css`). The morph changes its geometry, never this filter. */
+  --glass-capsule-filter: blur(9px) var(--glass-bar-filter);
+  --glass-capsule-short-filter: blur(8px) var(--glass-bar-filter);
   --elevation-float: var(--rim-inner), var(--rim-edge), var(--glass-bar-shadow);
 }
 
@@ -448,6 +453,8 @@
     --control-h-lg: 52px;
     --bar-button: 44px;
     --bar-h: 56px;
+    /* The capsule's coarse σ (language.md §2.9: the 56 px dock at 10). */
+    --glass-capsule-filter: blur(10px) var(--glass-bar-filter);
     --chip-h: 36px;
     --check: 20px;
     --switch-w: 52px;
@@ -501,6 +508,8 @@
     --glass-frame-filter: none;
     --glass-menu-backdrop: none;
     --glass-menu-short-backdrop: none;
+    --glass-capsule-filter: none;
+    --glass-capsule-short-filter: none;
   }
 }
 
@@ -521,6 +530,8 @@
   --glass-frame-filter: none;
   --glass-menu-backdrop: none;
   --glass-menu-short-backdrop: none;
+  --glass-capsule-filter: none;
+  --glass-capsule-short-filter: none;
 }
 
 @media (prefers-contrast: more) {
@@ -541,6 +552,8 @@
     --glass-frame-filter: none;
     --glass-menu-backdrop: none;
     --glass-menu-short-backdrop: none;
+    --glass-capsule-filter: none;
+    --glass-capsule-short-filter: none;
     --glass-frame-highlight: none;
     --border-hairline: rgb(var(--white-rgb) / 0.22);
     --border-strong: rgb(var(--white-rgb) / 0.36);
@@ -580,6 +593,8 @@
     --glass-frame-filter: none;
     --glass-menu-backdrop: none;
     --glass-menu-short-backdrop: none;
+    --glass-capsule-filter: none;
+    --glass-capsule-short-filter: none;
     --glass-frame-highlight: none;
     --border-glass: CanvasText;
     --elevation-float: none;

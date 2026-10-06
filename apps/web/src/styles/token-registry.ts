@@ -149,6 +149,8 @@ export const THEME_ALIASES: Readonly<Record<string, string>> = {
   '--glass-menu': '--glass-menu-tint',
   '--glass-menu-backdrop': '--glass-menu-filter',
   '--glass-menu-short-backdrop': '--glass-menu-filter',
+  '--glass-capsule-filter': '--glass-bar-filter',
+  '--glass-capsule-short-filter': '--glass-bar-filter',
   '--elevation-float': '--glass-bar-shadow',
 };
 
