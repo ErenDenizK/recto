@@ -57,7 +57,11 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
   const searchedDoc = useSearchStore((s) => s.documentId);
   const open = useFrameStore((s) => s.findOpen);
   const focusSerial = useFrameStore((s) => s.findFocus);
-  const panelRuns = useUiStore((s) => s.leftPanelOpen && s.leftPanelView === 'find');
+  // The sidebar's Find section runs the search while it shows (laid over the page on medium,
+  // it shows only once asked for).
+  const findShown = useUiStore((s) => s.leftPanelOpen && s.leftPanelView === 'find');
+  const sidebarUp = useFrameStore((s) => !s.sidebarOverlay || s.overlaySidebarShown);
+  const panelRuns = findShown && sidebarUp;
   const shortcut = useCommandShortcut('search.open');
   const inputRef = useRef<HTMLInputElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

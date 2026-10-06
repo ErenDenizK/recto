@@ -50,3 +50,64 @@
   display: grid;
   gap: 2px;
 }
+
+/* Words to check (spec X33): one row per word, the word and its confidence on one line. */
+.wordRow {
+  composes: focus-inset from global;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px var(--space-2);
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  text-align: left;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .wordRow:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.wordRow:active {
+  background: var(--surface-active);
+}
+
+.wordRow[aria-current='true'] {
+  background: var(--accent-muted);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .wordRow {
+    min-height: 44px;
+  }
+}
+
+.word {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wordMeta {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+}
+
+.wordsSummary {
+  margin: var(--space-3) 0 0;
+  color: var(--text-tertiary);
+  font-size: var(--type-footnote);
+}

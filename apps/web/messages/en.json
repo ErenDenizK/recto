@@ -73,9 +73,9 @@
   "selection_mark_up_hint": "Highlight with H, underline with U, strike out with S",
   "selection_copied": "Text copied",
   "drop_no_pdfs": "No PDF or image files found in the drop",
-  "nav_label": "Navigator",
-  "nav_views_label": "Navigator views",
-  "nav_resize": "Resize navigator",
+  "nav_label": "Sidebar",
+  "nav_views_label": "Sidebar sections",
+  "nav_resize": "Resize sidebar",
   "view_pages": "Pages",
   "view_outline": "Outline",
   "view_files": "Files",
@@ -83,15 +83,13 @@
   "pages_empty_body": "Page thumbnails appear here.",
   "pages_none_title": "No pages",
   "pages_none_body": "This document has no pages left.",
-  "files_empty_title": "No files open",
-  "files_empty_body": "Every file you open stays on this device.",
   "pages_list_label": "Pages of {title}",
   "page_option_label": "Page {label}",
   "page_option_label_with_index": "Page {position} ({label})",
-  "outline_empty_no_document_body": "Bookmarks of the open document appear here.",
-  "outline_empty_title": "No outline",
+  "outline_empty_no_document_body": "The contents of the open document appear here.",
+  "outline_empty_title": "No contents",
   "outline_empty_body": "This document has no bookmarks.",
-  "outline_tree_label": "Outline of {title}",
+  "outline_tree_label": "Contents of {title}",
   "outline_unresolved": "Target page was removed",
   "outline_link_tooltip": "External link: {uri}",
   "outline_link_confirm": "Open this link in a new tab?",
@@ -779,8 +777,7 @@
   "cmd_toggle_left_panel": "Toggle left panel",
   "cmd_toggle_right_panel": "Toggle right panel",
   "cmd_show_pages": "Show pages",
-  "cmd_show_outline": "Show outline",
-  "cmd_show_files": "Show files",
+  "cmd_show_outline": "Show contents",
   "cmd_mode_read": "Switch to Read",
   "cmd_mode_edit": "Switch to Edit",
   "cmd_mode_arrange": "Arrange pages",
@@ -3812,7 +3809,6 @@
   "nav_tab_pages": "Pages",
   "nav_tab_find": "Find",
   "nav_tab_review": "Review",
-  "nav_tab_files": "Files",
   "nav_count_name": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -3824,13 +3820,8 @@
     }
   ],
   "nav_pages_view_label": "Pages view",
-  "nav_pages_thumbnails": "Pages",
-  "nav_pages_bookmarks": "Bookmarks",
-  "nav_files_list": "Open documents",
-  "nav_files_meta": "{pages} · {size}",
-  "nav_files_close": "Close {name}",
-  "nav_files_select": "Select {name}",
-  "nav_files_show_home": "Show Home",
+  "nav_pages_thumbnails": "Thumbnails",
+  "nav_pages_bookmarks": "Contents",
   "review_filter_label": "Show",
   "review_filter_all": "All",
   "review_filter_comments": "Comments",
@@ -4544,5 +4535,77 @@
       }
     }
   ],
-  "frame_compact_title_name": "{name}, document menu"
+  "frame_compact_title_name": "{name}, document menu",
+  "nav_resized": "Sidebar {width} pixels",
+  "nav_find_count_name": [
+    {
+      "declarations": ["input label", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{label}, {count} match",
+        "countPlural=*": "{label}, {count} matches"
+      }
+    }
+  ],
+  "thumb_announce_page": "Page {page} of {total}",
+  "thumb_announce_lift": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moving 1 page",
+        "countPlural=*": "Moving {count} pages"
+      }
+    }
+  ],
+  "thumb_menu_select": "Select",
+  "thumb_menu_deselect": "Deselect",
+  "thumb_menu_rotate_left_many": "Rotate {count} pages left",
+  "thumb_menu_rotate_right_many": "Rotate {count} pages right",
+  "thumb_menu_delete_many": "Delete {count} pages",
+  "thumb_menu_crop": "Crop page…",
+  "thumb_menu_insert_blank": "Insert blank page after",
+  "thumb_menu_extract": "Extract to new document",
+  "thumb_menu_copy": "Copy page",
+  "thumb_menu_copy_many": "Copy {count} pages",
+  "thumb_menu_paste_after": "Paste pages after",
+  "thumb_menu_show_grid": "Show in Pages grid",
+  "thumb_menu_one_page": "A document needs one page",
+  "find_no_matches": "No matches in {title}",
+  "find_no_text": "No text on these pages",
+  "find_no_text_pages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "No text on 1 page",
+        "countPlural=*": "No text on {count} pages"
+      }
+    }
+  ],
+  "find_recognize": "Recognize text…",
+  "find_results_more": "More result actions",
+  "find_marked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Marked 1 match",
+        "countPlural=*": "Marked {count} matches"
+      }
+    }
+  ],
+  "review_filter_words": "Words to check",
+  "review_words_empty": "No words to check",
+  "review_words_recognised": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 page recognized",
+        "countPlural=*": "{count} pages recognized"
+      }
+    }
+  ],
+  "review_words_low": "Low confidence · {confidence}"
 }

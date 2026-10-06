@@ -64,7 +64,8 @@ interface PageEntryLike {
   readonly annotations: readonly Annotation[];
 }
 
-const FILTER_KIND: Readonly<Record<Exclude<ReviewFilter, 'all'>, ReviewKind>> = {
+/** Words to check (spec X33) are OCR words, not review items: the list has none of them. */
+const FILTER_KIND: Readonly<Record<Exclude<ReviewFilter, 'all' | 'words'>, ReviewKind>> = {
   comments: 'comment',
   redactions: 'mark',
   fields: 'field',
@@ -159,10 +160,12 @@ export function collectReviewItems(
 
 export function filterItems(items: readonly ReviewItem[], filter: ReviewFilter): ReviewItem[] {
   if (filter === 'all') return [...items];
+  if (filter === 'words') return [];
   const kind = FILTER_KIND[filter];
   return items.filter((item) => item.kind === kind);
 }
 
+/** Counts per filter; `words` is counted from the OCR results (`words-to-check.ts`), 0 here. */
 export type ReviewCounts = Readonly<Record<ReviewFilter, number>>;
 
 export function countItems(items: readonly ReviewItem[]): ReviewCounts {
@@ -174,7 +177,7 @@ export function countItems(items: readonly ReviewItem[]): ReviewCounts {
     else if (item.kind === 'mark') redactions++;
     else fields++;
   }
-  return { all: items.length, comments, redactions, fields };
+  return { all: items.length, comments, redactions, fields, words: 0 };
 }
 
 export interface ReviewGroup {
