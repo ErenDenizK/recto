@@ -149,6 +149,8 @@
   "zoom_value_label": "Yakınlaştırma {percent}",
   "zoom_fit_width": "Genişliğe sığdır",
   "zoom_fit_page": "Sayfaya sığdır",
+  "zoom_grid_chip": "Tüm sayfaları görmek için bırakın",
+  "scrubber_label": "Sayfalarda gezin",
   "update_reload": "Yeniden yükle",
   "update_later": "Sonra",
   "offline_ready_announcement": "Çevrimdışı çalışmaya hazır",

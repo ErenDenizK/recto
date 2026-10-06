@@ -195,6 +195,8 @@
   "zoom_value_label": "Zoom {percent}",
   "zoom_fit_width": "Fit width",
   "zoom_fit_page": "Fit page",
+  "zoom_grid_chip": "Release to see all pages",
+  "scrubber_label": "Scrub pages",
   "update_reload": "Reload",
   "update_later": "Later",
   "offline_ready_announcement": "Ready to work offline",
