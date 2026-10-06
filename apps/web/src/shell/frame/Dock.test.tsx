@@ -184,6 +184,9 @@ describe('dock', () => {
     await mount();
     await userEvent.click(within(dock()).getByRole('button', { name: 'Pages' }));
     const id = useWorkspaceStore.getState().workspace.activeDocument;
-    expect(documentUi(useUiStore.getState(), id).surface).toBe('grid');
+    // The grid's view change applies the surface in its update callback (grid-transition.ts).
+    await waitFor(() => {
+      expect(documentUi(useUiStore.getState(), id).surface).toBe('grid');
+    });
   });
 });

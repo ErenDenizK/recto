@@ -548,6 +548,7 @@ function LightTable({
             pageIds: data.pageIds,
             target: { document: highlight.section, index },
             duplicate: location.current.input.altKey,
+            select: false,
           });
         },
       }),
@@ -923,6 +924,11 @@ function LightTable({
           onPointerMove={onPointerMove}
           onPointerUp={endMarquee}
           onPointerCancel={endMarquee}
+          // A finger's hold lifts the page (grid-pointer-drag.ts); Base UI's own 500 ms touch
+          // menu is not used for pages (spec X5), so its handler is kept out.
+          onTouchStart={(event: { preventBaseUIHandler?: () => void }) =>
+            event.preventBaseUIHandler?.()
+          }
         >
           {sections.map((section, i) => {
             const rows = rowsBySection.get(i);

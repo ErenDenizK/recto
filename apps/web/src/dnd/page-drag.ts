@@ -114,11 +114,16 @@ export function renderDragPreview(
  * Makes a cell draggable. `thumb` is the page sheet inside the cell; the grab offset is
  * preserved relative to it.
  */
-export function attachPageDrag(cell: HTMLElement, pageId: PageId): () => void {
+export function attachPageDrag(
+  cell: HTMLElement,
+  pageId: PageId,
+  /** The guard at the lift (§2.4): false refuses the drag (a locked document). */
+  canLift: () => boolean = () => true,
+): () => void {
   watchPressType();
   return draggable({
     element: cell,
-    canDrag: () => lastPressType === 'mouse',
+    canDrag: () => lastPressType === 'mouse' && canLift(),
     getInitialData: (): PageDragData => {
       performance.mark('light-table:drag-start');
       return { type: 'pages', pageIds: pagesForDrag(pageId) };

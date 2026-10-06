@@ -29,9 +29,12 @@ import { RENDER_PRIORITY } from '../engine/engine-service';
 import { m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { rotationPhrase } from '../pages/page-geometry';
+import { announce } from '../shell/announcer';
+import { changeRefusal, refusalReason } from '../state/guard';
 import { useSelectionStore } from '../state/selection-store';
 import { Icon } from '../ui/Icon';
 import styles from './ArrangeView.module.css';
+import { showGridLockNotice } from './grid/grid-lock-notice';
 import { ResizedContent } from './ResizedContent';
 
 export interface PageCellProps {
@@ -148,8 +151,16 @@ function PageCellInner({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    return attachPageDrag(el, pageId);
-  }, [pageId]);
+    // The guard at the lift (§2.4): a locked document lifts nothing and says why at the cell.
+    return attachPageDrag(el, pageId, () => {
+      const refusal = changeRefusal(documentId, 'pages');
+      if (!refusal) return true;
+      const reason = refusalReason(refusal);
+      announce(reason);
+      showGridLockNotice(el, reason);
+      return false;
+    });
+  }, [pageId, documentId]);
 
   const frame =
     contentLeft === undefined ||

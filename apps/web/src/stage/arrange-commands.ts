@@ -193,7 +193,6 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       title: m.cmd_extract_pages(),
       group: pages,
       act: null,
-      via: 'sheet',
       shortcut: 'Mod+Shift+E',
       keywords: ['extract', 'split', 'new', 'separate', 'move to new document'],
       when: hasTargets,
@@ -342,7 +341,7 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       title: m.cmd_show_all_in_arrange(),
       group: view,
       act: null,
-      keywords: ['pages grid', 'all open', 'sections', 'combine', 'documents'],
+      keywords: ['pages grid', 'all open', 'sections', 'documents'],
       when: () =>
         model().workspace.documentOrder.length > 1 && !(inArrange() && ui().gridScope === 'all'),
       run: () => {
@@ -393,7 +392,6 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       title: m.cmd_combine_open(),
       group: documents,
       act: null,
-      via: 'sheet',
       keywords: ['combine', 'join', 'concatenate', 'append', 'one file', 'merge'],
       when: () => model().workspace.documentOrder.length > 1,
       run: () => {

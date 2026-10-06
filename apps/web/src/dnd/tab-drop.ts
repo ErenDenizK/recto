@@ -60,6 +60,7 @@ export function dropPagesOnTab(target: DocumentId, pageIds: readonly PageId[]): 
     pageIds,
     target: { document: target, index: doc.pages.length },
     duplicate: false,
+    select: false,
   });
   if (result === undefined) return false;
   toast.undo(m.grid_moved_to_toast({ count: pageIds.length, title: doc.title }), {

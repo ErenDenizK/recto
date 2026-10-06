@@ -79,11 +79,17 @@
   white-space: nowrap;
 }
 
-/* The segmented control measures its labels against its frame: give it its content's width. */
+/* The segmented control measures its labels against its frame, so the frame has a width of
+   its own, with room for both labels in English and Turkish (else it falls back to a Select). */
 .scope {
   flex: none;
-  width: max-content;
-  max-width: 24rem;
+  width: 16rem;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .scope {
+    width: 19rem;
+  }
 }
 
 .spacer {
