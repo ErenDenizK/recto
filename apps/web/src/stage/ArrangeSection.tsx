@@ -32,7 +32,7 @@ import { isPageDrag, isTabDrag } from '../dnd/page-drag';
 import { m } from '../i18n';
 import { displaySize, fitInBox } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
-import { SOURCE_BADGES } from '../shell/RightPanel';
+import { SOURCE_BADGES } from '../document/DocumentFacts';
 import { selectAllOf, useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import {

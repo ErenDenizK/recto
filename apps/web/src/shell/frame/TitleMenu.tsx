@@ -3,8 +3,9 @@
  * headed like the macOS title popover, opened from the active tab (or the compact bar's title).
  *
  * - **Header:** the first page, the editable name, "12 pages · 2.4 MB", the status of the
- *   changes, the **Lock** switch with its reason (`LockSwitch.tsx`) and the privacy line,
- *   which opens ◎'s popover.
+ *   changes, the facts rows (a signed file's "Intact, changed later", which opens S9
+ *   Signatures: spec D2-9 moved it here from the status bar and the inspector), the **Lock**
+ *   switch with its reason (`LockSwitch.tsx`) and the privacy line, which opens ◎'s popover.
  * - **Rows:** File · Pages · Add to pages · Protect · Convert, then Compare with… and Document
  *   info… (`TitleMenuItems.ts`). Static: a row the guard or its command refuses dims with its
  *   reason and stays where it is (RA-21); activating it announces the reason and keeps the
@@ -44,6 +45,8 @@ import { m, useLocale } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
 import { displaySize, fitInBox } from '../../pages/page-geometry';
 import { openPrivacyShield } from '../../privacy/PrivacyShield';
+import { SignatureFactGlyph, useSignatureFact } from '../../signatures/SignatureBadge';
+import { openSignaturesSheet } from '../../signatures/SignaturesSheet';
 import { useSessionStore } from '../../session/session-store';
 import { contentFrame, ResizedContent } from '../../stage/ResizedContent';
 import { renameDocumentTo } from '../../stage/section-operations';
@@ -184,6 +187,7 @@ function Header({
           </p>
         </div>
       </div>
+      <SignatureFactRow doc={doc} />
       <LockSwitch documentId={doc.id} title={doc.title} />
       <Popover.Close
         className={styles.privacy}
@@ -197,6 +201,35 @@ function Header({
         <Icon name="caret-right" className={styles.privacyArrow} aria-hidden="true" />
       </Popover.Close>
     </div>
+  );
+}
+
+/**
+ * A signed file's facts row (F5 §2): the status word of its signatures with the shield, and
+ * "removed on export" once a signed source carries edits; a press opens S9 Signatures.
+ */
+function SignatureFactRow({ doc }: { readonly doc: VirtualDocument }) {
+  const fact = useSignatureFact(doc.id);
+  if (fact === null) return null;
+  return (
+    <Popover.Close
+      className={styles.privacy}
+      aria-label={fact.label}
+      data-testid="title-menu-signatures"
+      onClick={() => {
+        closeMenusAtOnce();
+        openSignaturesSheet(doc.id);
+      }}
+    >
+      <SignatureFactGlyph tone={fact.tone} />
+      <span className={styles.privacyLabel}>
+        {fact.text}
+        {fact.edited ? (
+          <span className={styles.factMuted}> · {m.signature_badge_edited()}</span>
+        ) : null}
+      </span>
+      <Icon name="caret-right" className={styles.privacyArrow} aria-hidden="true" />
+    </Popover.Close>
   );
 }
 

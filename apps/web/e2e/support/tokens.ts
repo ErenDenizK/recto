@@ -35,7 +35,9 @@ function declarations(body: string): Scope {
 
 /** The custom properties of the first top-level rule whose selector matches `selector`. */
 function block(selector: RegExp): Scope | undefined {
-  for (const match of source.matchAll(/(^|[{};])\s*([^{};@]+?)\s*\{([^{}]*)\}/g)) {
+  // The boundary is looked behind, not consumed, so a rule right after another's `}` (the light
+  // block after the dark one) is found too.
+  for (const match of source.matchAll(/(^|(?<=[{};]))\s*([^{};@]+?)\s*\{([^{}]*)\}/g)) {
     const prelude = (match[2] ?? '').replace(/\s+/g, ' ');
     if (selector.test(prelude)) return declarations(match[3] ?? '');
   }

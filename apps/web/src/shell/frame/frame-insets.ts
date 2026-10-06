@@ -124,8 +124,6 @@ export function useSafeAreaInsets(): Insets {
 export const BAND_OFFSET = 16;
 /** The same on compact and compact-height (`max(safe-bottom, 12px)`). */
 export const BAND_OFFSET_COMPACT = 12;
-/** A side panel insets the free rectangle only while this much stage stays beside it (X23). */
-export const MIN_STAGE_BESIDE_SHEET = 400;
 /** The soft scroll edge under the strip, and how far below the strip jumps land (01.9). */
 export const SOFT_EDGE = 24;
 
@@ -139,8 +137,6 @@ export interface FrameMeasure {
   readonly sidebar: number;
   /** The sidebar is docked (expanded and up) rather than laid over the stage (medium). */
   readonly sidebarDocked: boolean;
-  /** Width of a side panel on the right (the inspector until D2-9, tool side sheets); 0 if none. */
-  readonly side: number;
   /** Height of the tallest resting item of the dock band (dock, palette, pill); 0 if none. */
   readonly band: number;
   /** The band's offset from the bottom edge (16, or 12 on compact). */
@@ -151,9 +147,9 @@ export interface FrameMeasure {
 
 /**
  * The free rectangle's insets from the window's edges (F1 §2): top is the top layer; left the
- * docked sidebar (an overlay sidebar insets nothing); right a side panel while at least 400 px
- * of stage remain beside it (X23), else it overlays; bottom the band with its offset, the
- * offset alone in Focus, and nothing while no band item shows (the Library).
+ * docked sidebar (an overlay sidebar insets nothing); right nothing, since no layer docks there
+ * once the inspector is gone (D2-9; sheets portal above the frame); bottom the band with its
+ * offset, the offset alone in Focus, and nothing while no band item shows (the Library).
  *
  * Hide on scroll (F12) changes nothing here: the bars move by transform and the page keeps
  * its place ("the page does not reflow"); a jump is made from visible chrome, so it starts
@@ -161,16 +157,12 @@ export interface FrameMeasure {
  */
 export function freeInsets(measure: FrameMeasure): Insets {
   const left = measure.sidebarDocked ? measure.sidebar : 0;
-  const right =
-    measure.side > 0 && measure.width - left - measure.side >= MIN_STAGE_BESIDE_SHEET
-      ? measure.side
-      : 0;
   const bottom = measure.focus
     ? measure.offset
     : measure.band > 0
       ? measure.offset + measure.band
       : 0;
-  return { top: measure.top, right, bottom, left };
+  return { top: measure.top, right: 0, bottom, left };
 }
 
 /** `--free-*` custom properties for `insets`. */
@@ -187,7 +179,6 @@ export function freeInsetVars(insets: Insets): Readonly<Record<string, string>> 
 export const FRAME_LAYER = {
   top: '[data-frame-layer="top"]',
   sidebar: '[data-frame-layer="sidebar"]',
-  side: '[data-frame-layer="side"]',
   band: '[data-frame-layer="band"]',
   // The page pill marks itself; the dock (today's floating tool bar, D2-2's capsule) is the
   // band's toolbar.
@@ -209,7 +200,6 @@ export interface FrameOptions {
 export function measureFrame(shell: HTMLElement, options: FrameOptions): FrameMeasure {
   const top = laidOut(shell.querySelector<HTMLElement>(FRAME_LAYER.top));
   const sidebar = laidOut(shell.querySelector<HTMLElement>(FRAME_LAYER.sidebar));
-  const side = laidOut(shell.querySelector<HTMLElement>(FRAME_LAYER.side));
   let band = 0;
   for (const item of shell.querySelectorAll<HTMLElement>(FRAME_LAYER.bandItem)) {
     if (laidOut(item)) band = Math.max(band, item.offsetHeight);
@@ -219,7 +209,6 @@ export function measureFrame(shell: HTMLElement, options: FrameOptions): FrameMe
     top: top?.offsetHeight ?? 0,
     sidebar: sidebar?.offsetWidth ?? 0,
     sidebarDocked: options.sidebarDocked,
-    side: side?.offsetWidth ?? 0,
     band,
     offset: options.offset,
     focus: options.focus,
@@ -257,7 +246,7 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
     };
     observe();
     measure();
-    // Layers mount and unmount: the shell's own children (sidebar, side panel), and the band's
+    // Layers mount and unmount: the shell's own children (the sidebar), and the band's
     // items (the dock leaves on the Library, the pill in the grid).
     const mutation = new MutationObserver(() => {
       observe();

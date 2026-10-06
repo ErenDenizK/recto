@@ -46,6 +46,7 @@ const TITLES: Record<Exclude<SheetKind, 'confirmation'>, string> = {
   settings: 'Settings',
   overlay: 'Keyboard shortcuts',
   signature: 'New signature',
+  batch: 'Batch',
 };
 
 /** A sheet's body: a field and a choice kept as drafts per document, and a few rows. */

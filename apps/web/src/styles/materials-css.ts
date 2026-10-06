@@ -106,7 +106,7 @@ export interface MaterialsInputs {
   readonly entries: readonly GlassSurfaceEntry[];
   /** The dark theme's chains (tokens.css §1). */
   readonly filters: TierFilters;
-  /** The light theme's chains, once D3-7 writes them (tokens.css §2). */
+  /** The light theme's chains (tokens.css §2, D3-7): every σ rule again under `[data-theme='light']`. */
   readonly lightFilters?: TierFilters;
 }
 
@@ -271,10 +271,12 @@ ${SUPPORTS} {
      script after detection (material-lens.ts) and never under Tinted, Solid or a ladder step;
      the map is drawn at the chip's size, so its url() is the one var() here. */
 `);
-    for (const [tier, sigma] of lensed) {
-      out.push(
-        `  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade])) .mat-${tier}.s${sigma}.lens {\n    backdrop-filter: var(--lens) ${chain(tier, sigma, filters)};\n  }\n`,
-      );
+    for (const [theme, chains] of themes) {
+      for (const [tier, sigma] of lensed) {
+        out.push(
+          `  :where(:root${theme}:not([data-glass='solid'], [data-glass='tinted'], [data-degrade])) .mat-${tier}.s${sigma}.lens {\n    backdrop-filter: var(--lens) ${chain(tier, sigma, chains)};\n  }\n`,
+        );
+      }
     }
   }
   out.push('}\n');
@@ -311,7 +313,9 @@ ${block('.mat', ['border-color: CanvasText;'], '  ')}${block('.mat-lit::before',
  */
 export function tierFiltersOf(tokensCss: string, selector: string): TierFilters | undefined {
   const source = tokensCss.replace(/\/\*[\s\S]*?\*\//g, '');
-  for (const match of source.matchAll(/(^|[{};])\s*([^{};@]+?)\s*\{([^{}]*)\}/g)) {
+  // The boundary is looked behind, not consumed, so a rule that follows another's `}` directly
+  // (the light block after the dark one) is found too.
+  for (const match of source.matchAll(/(^|(?<=[{};]))\s*([^{};@]+?)\s*\{([^{}]*)\}/g)) {
     if ((match[2] ?? '').replace(/\s+/g, ' ') !== selector) continue;
     const body = match[3] ?? '';
     const result: Partial<Record<GlassTier, string>> = {};
@@ -325,7 +329,7 @@ export function tierFiltersOf(tokensCss: string, selector: string): TierFilters 
   return undefined;
 }
 
-/** The dark theme block's selector, and the light one D3-7 adds. */
+/** The dark theme block's selector, and the light one (D3-7). */
 export const DARK_BLOCK = ":root, [data-theme='dark']";
 export const LIGHT_BLOCK = "[data-theme='light']";
 

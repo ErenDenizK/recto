@@ -60,6 +60,20 @@ function mount(doc: VirtualDocument) {
   );
 }
 
+/** The thumb's page once two frames in a row agree on it. */
+async function settledValue(thumb: HTMLElement): Promise<number> {
+  const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+  let previous = Number.NaN;
+  for (let i = 0; i < 120; i++) {
+    const value = Number(thumb.getAttribute('aria-valuenow'));
+    if (value === previous) return value;
+    previous = value;
+    await frame();
+    await frame();
+  }
+  return previous;
+}
+
 describe('pageAtFraction', () => {
   it('maps the thumb travel onto pages, ends included', () => {
     expect(pageAtFraction(0, 400)).toBe(0);
@@ -141,7 +155,9 @@ describe('PageScrubber (05-canvas §5)', () => {
       await touch('touchMove', [[x, t.top + t.height / 2 + ((middle - t.top) * i) / 8]]);
     }
     await waitFor(() => expect(thumb).toHaveAttribute('data-dragging'));
-    const dragged = Number(thumb.getAttribute('aria-valuenow'));
+    // Read the page once the last move has landed: on a slow runner the moves are still being
+    // applied when the drag starts, and a value read early is overtaken by the next one.
+    const dragged = await settledValue(thumb);
     expect(dragged).toBeGreaterThan(150);
     expect(dragged).toBeLessThan(250);
     expect(thumb).toHaveAttribute('aria-valuetext', `Page ${dragged} of 400`);

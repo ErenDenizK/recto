@@ -2,8 +2,8 @@
  * S3 in the browser (components/07-sheets.md §5.4, §5.6, §5.8, §5.9; spec redesign D0-10): the
  * side sheet of 480 px with its sections; search filters and says when nothing matches; an
  * opener's row is revealed and its control focused; a system override forces Glass to Solid,
- * disabled, with its reason; Glass sets Clear · Tinted · Solid; Show tips again is dimmed with a reason until a tip is used
- * up; About Recto shows the About dialog's facts in order, for a pre-release and a release, in
+ * disabled, with its reason; Theme sets System · Light · Dark and Glass Clear · Tinted · Solid;
+ * Show tips again is dimmed with a reason until a tip is used up; About Recto shows the About dialog's facts in order, for a pre-release and a release, in
  * the UI language.
  */
 import '../styles/tokens.css';
@@ -72,10 +72,11 @@ describe('the Settings sheet', () => {
     expect(within(dialog).getByRole('search')).toContainElement(search);
 
     await userEvent.type(search, 'gorunum');
+    expect(within(dialog).getByRole('radiogroup', { name: 'Theme' })).toBeVisible();
     expect(within(dialog).getByRole('radiogroup', { name: 'Glass' })).toBeVisible();
     expect(within(dialog).queryByRole('switch', { name: /Pen draws/ })).toBeNull();
     await waitFor(() =>
-      expect(within(dialog).getByRole('status')).toHaveTextContent('2 settings found'),
+      expect(within(dialog).getByRole('status')).toHaveTextContent('3 settings found'),
     );
     await userEvent.clear(search);
     await userEvent.type(search, 'xyzzy');
@@ -140,6 +141,24 @@ describe('the Settings sheet', () => {
     await userEvent.click(within(group).getByRole('radio', { name: 'Solid' }));
     expect(useAppearanceStore.getState().glass).toBe('solid');
     act(() => useAppearanceStore.setState({ glass: null }));
+  });
+
+  it('sets Theme: System · Light · Dark, the first row of Appearance (spec D3-7)', async () => {
+    act(() => openSettings({ row: 'theme' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const appearance = within(dialog).getByRole('region', { name: 'Appearance' });
+    expect(appearance.querySelector('[data-row]')?.getAttribute('data-row')).toBe('theme');
+    const group = within(dialog).getByRole('radiogroup', { name: 'Theme' });
+    expect(within(group).getByRole('radio', { name: 'System' })).toBeChecked();
+    expect(within(dialog).getByText('System follows your device.')).toBeVisible();
+    await userEvent.click(within(group).getByRole('radio', { name: 'Light' }));
+    expect(useAppearanceStore.getState().theme).toBe('light');
+    await userEvent.click(within(group).getByRole('radio', { name: 'Dark' }));
+    expect(useAppearanceStore.getState().theme).toBe('dark');
+    await userEvent.click(within(group).getByRole('radio', { name: 'System' }));
+    expect(useAppearanceStore.getState().theme).toBe('system');
   });
 
   it('sets Reduce motion: System · On (language.md §7.6, spec D3-4)', async () => {

@@ -9,6 +9,8 @@
  * once is kept there too, so the switch shows what is on the device. Imported files
  * (`.traineddata` or `.traineddata.gz`, never a URL) are checked to be Tesseract language
  * files and kept in the origin-private file system; one named like a served pack overrides it.
+ *
+ * A page pushed in S10 (`OcrSheet.tsx`): the sheet's ‹ Back returns to the form.
  */
 import type { OcrLanguagePack } from '@pdf-editor/engine';
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
@@ -16,6 +18,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { toFailure } from '../engine/engine-service';
 import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { Button } from '../ui/Button';
 import toolStyles from '../tools/ToolDialog.module.css';
 import styles from './Ocr.module.css';
 import { ocrDependencies } from './ocr-deps';
@@ -33,7 +36,7 @@ function importError(error: unknown): string {
   return m.ocr_import_failed({ reason: failure.message });
 }
 
-export function OcrLanguages({ onBack }: { readonly onBack: (() => void) | undefined }) {
+export function OcrLanguages() {
   const [packs, setPacks] = useState<readonly OcrLanguagePack[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
@@ -112,7 +115,7 @@ export function OcrLanguages({ onBack }: { readonly onBack: (() => void) | undef
   };
 
   return (
-    <div className={`${toolStyles.body} ${styles.body}`} data-testid="ocr-languages">
+    <div className={styles.body} data-testid="ocr-languages">
       <p className={toolStyles.description}>{m.ocr_languages_intro()}</p>
       {packs === null && error === null ? (
         <p className={toolStyles.hint} role="status">
@@ -192,20 +195,10 @@ export function OcrLanguages({ onBack }: { readonly onBack: (() => void) | undef
         onChange={(event) => void importFile(event)}
         data-testid="ocr-import-input"
       />
-      <div className={toolStyles.actions}>
-        {onBack ? (
-          <button type="button" className={toolStyles.secondary} onClick={onBack}>
-            {m.ocr_back()}
-          </button>
-        ) : null}
-        <span className={toolStyles.spacer} />
-        <button
-          type="button"
-          className={toolStyles.secondary}
-          onClick={() => input.current?.click()}
-        >
+      <div className={styles.row}>
+        <Button variant="standard" onClick={() => input.current?.click()}>
           {m.ocr_import()}
-        </button>
+        </Button>
       </div>
     </div>
   );

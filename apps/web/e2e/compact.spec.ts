@@ -570,3 +570,38 @@ test.describe('the compact edition', () => {
     );
   });
 });
+
+test.describe('the compact edition in the light theme (spec D3-7)', () => {
+  test.use({ colorScheme: 'light' });
+
+  test('follows the device’s light scheme, and About’s Theme row sets it', async ({ page }) => {
+    await openLibrary(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    const canvas = () =>
+      page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
+    expect(await canvas()).toBe('rgb(230, 232, 235)');
+    await shot(page, 'compact-library-light');
+
+    await openPdf(page, 'outline-named-dests.pdf');
+    await expect(capsule(page)).toBeVisible();
+    await shot(page, 'compact-reader-light');
+    await page.getByRole('button', { name: 'More' }).click();
+    await page.getByTestId('compact-menu').getByRole('menuitem', { name: 'About Recto' }).click();
+    const about = page.getByTestId('compact-about-sheet');
+    const theme = about.getByRole('radiogroup', { name: 'Theme' });
+    await theme.scrollIntoViewIfNeeded();
+    await expect(theme.getByRole('radio', { name: 'System' })).toBeChecked();
+    // The sheet's text holds AA on its light surface.
+    const colours = await about.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return [style.color, style.backgroundColor];
+    });
+    expect(contrast(colours[0] ?? '', colours[1] ?? '')).toBeGreaterThanOrEqual(4.5);
+    await shot(page, 'compact-about-theme-light');
+    await theme.getByRole('radio', { name: 'Dark' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    expect(await canvas()).toBe('rgb(8, 9, 12)');
+    await theme.getByRole('radio', { name: 'System' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+});

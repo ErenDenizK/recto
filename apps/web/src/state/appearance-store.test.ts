@@ -20,8 +20,8 @@ afterEach(() => {
 });
 
 describe('appearance settings', () => {
-  it('leaves Glass unpicked (the start state applies) and Reduce motion on System', () => {
-    expect(DEFAULT_APPEARANCE).toEqual({ glass: null, motion: 'system' });
+  it('starts on Theme System, Glass unpicked (the start state applies), Reduce motion System', () => {
+    expect(DEFAULT_APPEARANCE).toEqual({ theme: 'system', glass: null, motion: 'system' });
     localStorage.removeItem(APPEARANCE_STORAGE_KEY);
     expect(loadAppearance()).toEqual(DEFAULT_APPEARANCE);
     // Under automation the test build's override starts at Clear (spec X36).
@@ -33,10 +33,16 @@ describe('appearance settings', () => {
     for (const value of [undefined, null, 42, 'x', [], [true]]) {
       expect(parseAppearance(value)).toEqual(DEFAULT_APPEARANCE);
     }
-    expect(parseAppearance({ glass: 'tinted', motion: 'reduced' })).toEqual({
+    expect(parseAppearance({ theme: 'light', glass: 'tinted', motion: 'reduced' })).toEqual({
+      theme: 'light',
       glass: 'tinted',
       motion: 'reduced',
     });
+    // A stored value from before D3-7 (no theme), or a stray one, follows the system.
+    expect(parseAppearance({ glass: 'tinted' }).theme).toBe('system');
+    expect(parseAppearance({ theme: 'sepia' }).theme).toBe('system');
+    expect(parseAppearance({ theme: true }).theme).toBe('system');
+    expect(parseAppearance({ theme: 'dark' }).theme).toBe('dark');
     expect(parseAppearance({ glass: 'frosted' }).glass).toBeNull();
     expect(parseAppearance({ glass: true }).glass).toBeNull();
     // A stored value from before D3-4 (no motion), or a stray one, follows the system.
@@ -54,9 +60,10 @@ describe('appearance settings', () => {
       APPEARANCE_STORAGE_KEY,
       JSON.stringify({ glassPanels: true, reduceTransparency: true, motion: 'reduced' }),
     );
-    expect(loadAppearance()).toEqual({ glass: 'solid', motion: 'reduced' });
+    expect(loadAppearance()).toEqual({ theme: 'system', glass: 'solid', motion: 'reduced' });
     // Written back in the new shape, so the migration runs once.
     expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) ?? 'null')).toEqual({
+      theme: 'system',
       glass: 'solid',
       motion: 'reduced',
     });
@@ -65,20 +72,25 @@ describe('appearance settings', () => {
   it('persists each change under its versioned key', () => {
     useAppearanceStore.getState().setGlass('tinted');
     expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) ?? 'null')).toEqual({
+      theme: 'system',
       glass: 'tinted',
       motion: 'system',
     });
     useAppearanceStore.getState().setGlass('solid');
     useAppearanceStore.getState().setMotion('reduced');
-    expect(loadAppearance()).toEqual({ glass: 'solid', motion: 'reduced' });
+    useAppearanceStore.getState().setTheme('light');
+    expect(loadAppearance()).toEqual({ theme: 'light', glass: 'solid', motion: 'reduced' });
   });
 
   it('writes the settings as root attributes', () => {
     const root = document.createElement('div');
-    applyAppearance(root, { glass: 'solid', motion: 'reduced' });
+    applyAppearance(root, { theme: 'light', glass: 'solid', motion: 'reduced' });
+    expect(root.getAttribute('data-theme')).toBe('light');
     expect(root.getAttribute('data-glass')).toBe('solid');
     expect(root.getAttribute('data-motion')).toBe('reduced');
     applyAppearance(root, DEFAULT_APPEARANCE);
+    // System, in a browser that reports a dark scheme (vitest.config.ts).
+    expect(root.getAttribute('data-theme')).toBe('dark');
     expect(root.getAttribute('data-glass')).toBe('clear');
     expect(root.hasAttribute('data-motion')).toBe(false);
   });
@@ -88,10 +100,13 @@ describe('appearance settings', () => {
     const { unmount } = renderHook(() => useAppearanceRoot());
     expect(root.getAttribute('data-glass')).toBe('clear');
     expect(root.hasAttribute('data-degrade')).toBe(false);
+    expect(root.getAttribute('data-theme')).toBe('dark');
     act(() => {
+      useAppearanceStore.getState().setTheme('light');
       useAppearanceStore.getState().setGlass('tinted');
       useAppearanceStore.getState().setMotion('reduced');
     });
+    expect(root.getAttribute('data-theme')).toBe('light');
     expect(root.getAttribute('data-glass')).toBe('tinted');
     expect(root.getAttribute('data-motion')).toBe('reduced');
     act(() => useRenderQualityStore.getState().stepDown());
@@ -100,6 +115,9 @@ describe('appearance settings', () => {
     expect(root.hasAttribute('data-glass')).toBe(false);
     expect(root.hasAttribute('data-motion')).toBe(false);
     expect(root.hasAttribute('data-degrade')).toBe(false);
+    // The theme stays: the boot script owns it from the first paint (theme.ts).
+    expect(root.getAttribute('data-theme')).toBe('light');
+    root.removeAttribute('data-theme');
   });
 
   it('makes every tier solid under Glass Solid and dense under Tinted (computed styles)', async () => {

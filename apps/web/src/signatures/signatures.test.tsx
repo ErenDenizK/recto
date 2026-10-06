@@ -1,7 +1,7 @@
 /**
  * Signatures in the app (spec recognize-and-compare §3, ADR-0013) against the real engines:
- * validation on open through the engine service and the signature worker, the Inspector
- * section's statuses for every signed fixture, "View signed version", the full rewrite of an
+ * validation on open through the engine service and the signature worker, S9's statuses for
+ * every signed fixture (the section the inspector held until D2-9), "View signed version", the full rewrite of an
  * edited signed source (no signatures left), signing as the last export step, the refusals,
  * and the shared worker's idle termination.
  */
@@ -39,6 +39,12 @@ import { SignaturesSection } from './SignaturesSection';
 import { checkIdentity, type SignDraft, signingFailureText, signingReason } from './signing';
 
 const model = () => useWorkspaceStore.getState();
+
+/** S9's content for the active document, following it as "View signed version" opens a tab. */
+function ActiveSignatures() {
+  const id = useWorkspaceStore((s) => s.workspace.activeDocument);
+  return id === undefined ? null : <SignaturesSection documentId={id} />;
+}
 const PASSWORD = 'test-only';
 /**
  * The test PKI's .p12 files (Vite 8 refuses to serve *.p12, so they are read through the
@@ -102,7 +108,7 @@ describe('validation on open', () => {
   for (const [name, url, expected] of cases) {
     it(`${name}: ${expected.join(', ')}`, async () => {
       await openFixture(url, name);
-      render(<SignaturesSection />);
+      render(<ActiveSignatures />);
       expect(await shownStatuses()).toEqual(expected);
       const cards = screen.getAllByTestId('signature-card');
       for (const card of cards) {
@@ -135,13 +141,13 @@ describe('validation on open', () => {
 
   it('does not check unsigned files', async () => {
     await openFixture(simpleUrl, 'simple-text.pdf');
-    render(<SignaturesSection />);
+    render(<ActiveSignatures />);
     expect(screen.queryByTestId('signatures-section')).toBeNull();
   });
 
   it('"View signed version" opens revision 2 as a new document that is Intact', async () => {
     await openFixture(modifiedUrl, 'signed-then-modified.pdf');
-    render(<SignaturesSection />);
+    render(<ActiveSignatures />);
     await shownStatuses();
     screen.getByRole('button', { name: 'View signed version' }).click();
     await waitFor(() => expect(model().workspace.documentOrder).toHaveLength(2), {
@@ -161,7 +167,7 @@ describe('validation on open', () => {
 describe('export and signatures', () => {
   it('an edited signed source exports as a full rewrite without signatures', async () => {
     const { doc, source } = await openFixture(modifiedUrl, 'signed-then-modified.pdf');
-    render(<SignaturesSection />);
+    render(<ActiveSignatures />);
     await shownStatuses();
     const page = doc.pages[0];
     if (!page) throw new Error('no page');

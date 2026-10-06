@@ -89,14 +89,60 @@ export async function sentInkWidths(page: Page): Promise<number[][][]> {
 }
 
 /**
- * Opens the inspector (Selection, Properties, History, Info), which is closed until the
- * person opens it (experience-redesign §4.2); tests that read the history or a section
- * call this first.
+ * Reads the History scrubber (08-feedback FB7), which took the inspector's History list (spec
+ * D2-9): a right-click on ↶ opens its list (fine pointers), `check` runs on it, and Esc closes
+ * it. Nothing is previewed, so closing leaves the document at the step it opened at, and focus
+ * goes back to the element that had it. Steps are
+ * `historyStep(list, label)`; `data-state` says past, present or future.
  */
-export async function showInspector(page: Page): Promise<void> {
-  const inspector = page.locator('#right-panel');
-  if (!(await inspector.isVisible())) await page.keyboard.press('ControlOrMeta+Alt+b');
-  await expect(inspector).toBeVisible();
+export async function inHistory(
+  page: Page,
+  check: (list: Locator) => Promise<void>,
+): Promise<void> {
+  const scrubber = page.getByTestId('history-scrubber');
+  const focused = await page.evaluateHandle(() => document.activeElement);
+  // Forced: ↶ is aria-disabled at the oldest step, and a right-click still opens the list.
+  // Pressed again if a closing dialog's backdrop took the first press.
+  await expect(async () => {
+    if (!(await scrubber.isVisible())) {
+      await page.getByTestId('undo-button').click({ button: 'right', force: true });
+    }
+    await expect(scrubber).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
+  try {
+    await check(scrubber.getByTestId('history-list'));
+  } finally {
+    await page.keyboard.press('Escape');
+    await expect(scrubber).toHaveCount(0);
+    // Focus back where the test had it (the scrubber gives it to ↶).
+    await focused.evaluate((element) => {
+      if (element instanceof HTMLElement && element !== document.body) element.focus();
+    });
+  }
+}
+
+/** The inspector's default width while it was open (M8; D2-9 removed it). */
+const FORMER_INSPECTOR_WIDTH = 280;
+
+/**
+ * Narrows the window by the inspector's former width, for the specs whose page geometry (drags
+ * by fractions of a page that fits above the dock, rows in view) was written beside it.
+ */
+export async function stageAsBesideInspector(page: Page): Promise<void> {
+  const size = page.viewportSize();
+  if (!size) return;
+  await page.setViewportSize({ width: size.width - FORMER_INSPECTOR_WIDTH, height: size.height });
+}
+
+/** A step of the scrubber's list by its label: its name is "{label}, page {n}, {time}". */
+export function historyStep(list: Locator, label: string | RegExp): Locator {
+  return list.getByRole('option', {
+    name: typeof label === 'string' ? new RegExp(`^${escapeRegExp(label)}`) : label,
+  });
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**

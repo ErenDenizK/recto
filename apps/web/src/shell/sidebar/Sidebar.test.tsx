@@ -181,7 +181,10 @@ describe('N4 Find: one field from 1280 px (06.20)', () => {
     useUiStore.setState({ leftPanelView: 'find' });
     render(<Sidebar />);
     const section = await screen.findByTestId('find-section');
-    expect(within(section).queryByRole('searchbox', { name: 'Find in document' })).toBeNull();
+    // The size class follows the viewport a frame after beforeEach's resize, which can lag under load.
+    await expect
+      .poll(() => within(section).queryByRole('searchbox', { name: 'Find in document' }))
+      .toBeNull();
     await page.viewport(1000, 800);
     await expect
       .poll(() => within(section).queryByRole('searchbox', { name: 'Find in document' }))

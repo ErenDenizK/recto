@@ -36,6 +36,7 @@ export type SettingsSectionId =
 export type SettingsPageId = 'kept' | 'signatures' | 'privacy' | 'about';
 
 export type SettingsRowId =
+  | 'theme'
   | 'glass'
   | 'reduceMotion'
   | 'language'
@@ -117,6 +118,13 @@ const PRIVACY = ['settings.privacy'] as const;
 
 /** Every row, in its order on the sheet (a page's rows in their order on the page). */
 export const SETTINGS_ROWS: readonly SettingsRow[] = [
+  {
+    id: 'theme',
+    section: 'appearance',
+    title: at(m.settings_theme),
+    keywords: at(m.settings_theme_keywords),
+    commands: ['view.theme.system', 'view.theme.light', 'view.theme.dark', 'settings.appearance'],
+  },
   {
     id: 'glass',
     section: 'appearance',

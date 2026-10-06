@@ -8,7 +8,7 @@
  */
 
 .frame {
-  --current-ring: var(--accent);
+  --current-ring: var(--accent-ring);
   position: relative;
   display: flex;
   flex: 1;
