@@ -98,38 +98,3 @@
     display: none;
   }
 }
-
-/* The drop overlay (F13 §2): a dim scrim over the free rectangle, a centred 320 × 160 card. */
-.drop {
-  position: absolute;
-  inset: var(--free-top, 0px) var(--free-right, 0px) var(--free-bottom, 0px) var(--free-left, 0px);
-  z-index: 5;
-  display: grid;
-  place-items: center;
-  background: var(--scrim);
-  pointer-events: none;
-}
-
-.dropCard {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: var(--space-2);
-  box-sizing: border-box;
-  width: 320px;
-  max-width: calc(100% - 32px);
-  height: 160px;
-  border: 1px solid var(--border-strong);
-  border-radius: 24px;
-  background: var(--surface-on);
-  box-shadow: var(--e4);
-  color: var(--text-primary);
-  font-size: var(--type-callout, var(--text-lg));
-  font-weight: 500;
-}
-
-.dropIcon {
-  width: 24px;
-  height: 24px;
-  color: var(--text-secondary);
-}

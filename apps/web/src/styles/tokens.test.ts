@@ -1091,10 +1091,10 @@ describe('tokens.css', () => {
       // The spec row counted about nineteen modules on the M8 shell: seventeen compose glass
       // there (the TextLayer hint is solid: at 22 px it is under quality-bar Q-5's 32 px), and
       // the compact edition adds three, the toast stack (D0-5) one and the Sheet primitive one
-      // (D0-4: one panel, an entry per presentation), and the pinch detent chip one (D2-10).
-      // The frame (D2-1) trades the title and status bars for the top strip, the compact bar
-      // and the page pill: one more.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(24);
+      // (D0-4: one panel, an entry per presentation), the pinch detent chip one (D2-10) and the
+      // Library selection bar one (D4-1). The frame (D2-1) trades the title and status bars for
+      // the top strip, the compact bar and the page pill: one more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(25);
     });
 
     it('gives a one-row menu the short blur in ui/Menu', () => {

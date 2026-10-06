@@ -22,6 +22,7 @@ import { Menu } from '@base-ui/react/menu';
 import { useSyncExternalStore } from 'react';
 
 import { commandRegistry } from '../../commands/registry';
+import { LibraryMenu } from '../../home/LibraryMenu';
 import { formatNumber, m } from '../../i18n';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
 import { useLock } from '../../state/lock-store';
@@ -35,7 +36,6 @@ import { useCommandShortcut } from '../use-command-shortcut';
 import styles from './CompactTopBar.module.css';
 import { FindEntry } from './FindEntry';
 import { openTitleMenu, useFrameStore } from './frame-store';
-import { LibraryMenu } from './LibraryMenu';
 import { SidebarToggle } from './SidebarToggle';
 import { TitleMenu } from './TitleMenu';
 import { UndoRedo } from './UndoRedo';

@@ -1,0 +1,150 @@
+/*
+ * The launcher (02-library L2 §2): the empty card, 560 wide, 32 padding, radius 20 (language.md
+ * §6.1's xl, a panel; the shape step brings the token), and the 88 px row with documents. Both
+ * are lit (lit.module.css). Buttons are `ui/Button` at the large size (36 fine, 52 coarse), so
+ * the row's controls share one height and one centre line (Q-9). Drag-over lifts the surface
+ * 2 px on --spring-quick and deepens its shadow to e3 (L2 §4); with reduced motion only the
+ * shadow changes.
+ */
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: min(560px, 100%);
+  padding: var(--space-8);
+  border-radius: 20px;
+  text-align: center;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-4);
+  color: var(--text-primary);
+}
+
+.headline {
+  max-width: 496px;
+  margin: 0;
+  font-size: var(--type-title1);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title1-lh);
+  letter-spacing: var(--track-title1);
+  text-wrap: balance;
+  font-variant-numeric: tabular-nums;
+}
+
+.line {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--track-callout);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+/* The arrival focus on Open PDFs… draws no ring until a key is pressed (Launcher.tsx). */
+.card [data-quiet-focus]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.hint {
+  margin: var(--space-3) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* "or drop files anywhere" is for fine pointers only (L2 §5). */
+@media (pointer: coarse), (any-pointer: coarse) {
+  .hint {
+    display: none;
+  }
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  box-sizing: border-box;
+  min-height: 88px;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-6);
+  border-radius: 20px;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.rowTitle {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--type-title2);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title2-lh);
+  letter-spacing: var(--track-title2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card[data-dragging],
+.row[data-dragging] {
+  --shadow-own: var(--rim-edge), var(--rim-inner), var(--e3);
+  transform: translateY(-2px);
+}
+
+/* Reduced motion: the lift is the shadow only (L2 §7). */
+@media (prefers-reduced-motion: reduce) {
+  .card[data-dragging],
+  .row[data-dragging] {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .card[data-dragging],
+:root[data-motion='reduced'] .row[data-dragging] {
+  transform: none;
+}
+
+/* Narrow columns (a narrow window of the full edition): the empty card's buttons stack full
+   width, Open PDFs… last, in thumb reach (L2 §2, M-13). */
+@container library (width < 520px) {
+  .card {
+    align-items: stretch;
+    padding: var(--space-6);
+    text-align: start;
+  }
+
+  .glyph {
+    margin-inline: 0;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

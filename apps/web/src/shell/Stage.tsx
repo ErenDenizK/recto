@@ -1,13 +1,13 @@
 /**
  * The stage: the page scroller layer of the frame (`components/01-frame.md` F1; redesign spec
  * D2-1). It sits in the free rectangle (`--free-*`, `frame/frame-insets.ts`), and shows the
- * Library (`home/HomeView`), a document's page (`stage/ReadView`), its Pages grid
+ * Library (`home/LibraryView`), a document's page (`stage/ReadView`), its Pages grid
  * (`stage/ArrangeView`) or Compare (`compare/CompareView`, loaded on first use).
  *
  * There is no stage header and no Read · Edit · Arrange control any more (ADR-0029): a
  * document opens on its page, Markup opens from the dock, the grid from the dock's Pages and
  * the tab menu (and `3`), Compare from the title menu. The layout switch moved into the page
- * pill's menu, the drop overlay into the frame (`frame/DropOverlay.tsx`), the floating tool bar
+ * pill's menu, the document drop overlay (`home/DropOverlay`) into a frame layer over the free rectangle, the floating tool bar
  * into the dock band (`frame/DockBand.tsx`). The page view is keyed by document so switching
  * tabs starts fresh.
  *
@@ -18,7 +18,7 @@
  */
 import { lazy, Suspense, useEffect } from 'react';
 
-import { HomeView } from '../home/HomeView';
+import { LibraryView } from '../home/LibraryView';
 import { m } from '../i18n';
 import { ArrangeView } from '../stage/ArrangeView';
 import { ReadView } from '../stage/ReadView';
@@ -86,7 +86,7 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
         aria-label={m.stage_start_label()}
         aria-busy={opening > 0}
       >
-        <HomeView dragging={dragging} />
+        <LibraryView dragging={dragging} />
       </main>
     );
   }
@@ -100,7 +100,7 @@ export function Stage({ dragging }: { readonly dragging: boolean }) {
         aria-busy={opening > 0}
       >
         <h1 className="visually-hidden">{m.home_long()}</h1>
-        <HomeView dragging={dragging} />
+        <LibraryView dragging={dragging} />
       </main>
     );
   }

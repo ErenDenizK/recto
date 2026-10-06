@@ -56,10 +56,10 @@ import menuStyles from '../../ui/Menu.module.css';
 import { PopoverPopup } from '../../ui/Popover';
 import { announce } from '../announcer';
 import { closeTitleMenu, useFrameStore } from './frame-store';
-import { APP_ITEMS } from './LibraryMenu';
 import { LockSwitch } from './LockSwitch';
 import styles from './TitleMenu.module.css';
 import {
+  APP_ITEMS,
   mergeFiles,
   rotateDocumentPages,
   rotateScope,

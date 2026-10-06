@@ -1,0 +1,91 @@
+/*
+ * Lit glass in its static form (language.md §2.5; `02-library` §2.3 L2, L5, L7, L9 §3): the
+ * Library's launcher, cards, Recents panel and the drop card. Lit glass is for surfaces no page
+ * passes under, and its worst backdrop is the Library field (D3-8, deferred until the owner's
+ * brand kit). Until the field exists the backdrop is the bare canvas, where a blur changes
+ * nothing, so these surfaces paint the lit tint over the canvas without `backdrop-filter`: the
+ * same colour lit glass composites to there (`#1e2025`, §2.2), with the M2 rim and no blur to
+ * pay for, which also keeps the Library inside Q-11's four blurred surfaces at rest (only the
+ * selection bar blurs, over cards that scroll under it).
+ *
+ * D3-8 turns the blur on where the field shows: every lit surface carries `data-lit` (σ 28 for
+ * cards and panels, 16 for the 88 px launcher row through `data-lit="row"`, 20 on coarse
+ * pointers; spec 02.3, 02.4), so the field's module adds one rule and nothing here moves. Dark
+ * only, like the app until D3-7: the light theme's M2 light tier replaces it then.
+ *
+ * Inside, text takes the glass steps (glass-secondary n11 holds 4.80:1 over the field's brightest
+ * allowed pixel, §2.2) and the surface takes no hover wash (a white wash drops glass-secondary
+ * to 4.24:1): lit surfaces show hover by lifting.
+ */
+.lit {
+  --text-secondary: var(--glass-text-secondary);
+  --text-tertiary: var(--glass-text-secondary);
+  --text-disabled: var(--glass-text-disabled);
+  --danger: var(--glass-danger);
+  /* Read by the focus ring (styles/focus.css), so focus adds its bands to the rim. */
+  --shadow-own: var(--rim-edge), var(--rim-inner);
+  position: relative;
+  background: var(--glass-lit-tint);
+  box-shadow: var(--shadow-own);
+  color: var(--text-primary);
+}
+
+/* The lit rim: light from above, following the radius (§2.3's `.mat::before`). */
+.lit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    var(--rim-top),
+    var(--border-hairline) 35%,
+    var(--rim-bottom)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+/* Solid (Reduce transparency, the in-app switch): n4 with the rim kept (§2.8). */
+@media (prefers-reduced-transparency: reduce) {
+  .lit {
+    background: var(--glass-lit-solid);
+  }
+}
+
+:root[data-transparency='reduced'] .lit {
+  background: var(--glass-lit-solid);
+}
+
+/* More contrast: the strong border instead of the rim (§2.4). */
+@media (prefers-contrast: more) {
+  .lit {
+    --shadow-own: 0 0 #0000;
+    /* --border-strong is white 0.36 under more contrast (tokens.css §5). */
+    border: 1px solid var(--border-strong);
+    background: var(--glass-lit-solid);
+  }
+
+  .lit::before {
+    content: none;
+  }
+}
+
+/* Forced colours: Canvas with a CanvasText border (L2 §3). */
+@media (forced-colors: active) {
+  .lit {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+
+  .lit::before {
+    content: none;
+  }
+}

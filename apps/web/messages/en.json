@@ -51,16 +51,11 @@
   "search_commands_placeholder": "Search commands…",
   "right_panel_hide": "Hide right panel",
   "right_panel_show": "Show right panel",
-  "empty_title": "Drop PDFs to start",
-  "empty_title_dragging": "Release to open",
   "empty_body_local": "Files open on this device and are never uploaded.",
-  "empty_body_combine": "Drop PDFs here or open them. With two or more open you can combine them on Home or from the Document menu, arrange their pages together or compare them.",
-  "empty_hints_label": "Get started",
   "keyboard_shortcuts": "Keyboard shortcuts",
   "stage_start_label": "Start",
   "stage_no_pages_title": "No pages left",
   "stage_no_pages_body": "Undo brings deleted pages back.",
-  "stage_drop_overlay": "Drop to open in new tabs",
   "view_mode_label": "View mode",
   "mode_read": "Read",
   "mode_arrange": "Arrange",
@@ -3548,7 +3543,6 @@
       }
     }
   ],
-  "home_drop_combine": "Combine with {title}",
   "combined_title_two": "Combined – {first} + {second}",
   "combined_title_more": "Combined – {first} + {count} more",
   "home_combine_description": "Pages are joined in this order into a new document; the files stay open. Use the arrows to change the order.",
@@ -3588,7 +3582,6 @@
     }
   ],
   "home_combine_confirm": "Combine",
-  "home_modified": "Modified {date}",
   "home_announce_closed": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -3614,6 +3607,11 @@
   "recents_clear": "Clear recents",
   "cmd_clear_recents": "Clear recents",
   "cmd_file_clear_recents_keywords": "recent, recently opened, history, forget, privacy",
+  "cmd_try_sample": "Try the sample",
+  "cmd_file_sample_keywords": "sample, demo, example, tour, tutorial, try",
+  "sample_announce_opened": "Opened the sample. Its pages explain what to try",
+  "sample_offline": "The sample needs to load once with a connection",
+  "sample_failed": "Could not load the sample",
   "recents_hint_permission": "Needs permission",
   "recents_hint_open_again": "Open again…",
   "recents_more": "More actions for {name}",
@@ -3623,6 +3621,124 @@
   "recents_announce_removed": "{name} removed from recents",
   "recents_announce_cleared": "Recents cleared",
   "recents_clear_failed": "Recents were cleared from the list, but the copy kept on this device could not be deleted. Try Clear recents again, or clear this site’s data in your browser.",
+  "library_label": "Library",
+  "library_headline": "Read, mark up, sign and arrange PDFs.",
+  "library_line": "Nothing leaves this device.",
+  "library_open": "Open PDFs…",
+  "library_combine_files": "Combine files…",
+  "library_drop_hint": "or drop files anywhere",
+  "library_drop": "Drop to open",
+  "library_drop_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Drop to open {count} file",
+        "countPlural=*": "Drop to open {count} files"
+      }
+    }
+  ],
+  "library_head_open": "Open",
+  "library_head_documents": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} document",
+        "countPlural=*": "{count} documents"
+      }
+    }
+  ],
+  "library_select": "Select",
+  "library_done": "Done",
+  "library_select_all": "Select all",
+  "library_all_selected": "All documents are selected",
+  "library_announce_select_on": "Select mode. Space checks a document, Enter opens it",
+  "library_announce_select_off": "Select mode off",
+  "library_card_check": "Select {name}",
+  "library_card_edited": "Edited",
+  "library_card_locked": "Locked",
+  "library_card_signed": "Signed · locked",
+  "library_card_restricted": "Restricted by the file",
+  "library_card_opening": "Opening…",
+  "library_card_name_edited": "edited",
+  "library_bar_label": "Selected documents",
+  "library_combine_reason": "Select two or more documents to combine",
+  "library_compare_reason": "Select exactly two documents to compare",
+  "library_pages": "Pages",
+  "library_combine_short": "Combine",
+  "library_clear_selection": "Clear selection",
+  "library_closed_toast": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Closed {count} document · changes kept",
+        "countPlural=*": "Closed {count} documents · changes kept"
+      }
+    }
+  ],
+  "library_announce_closed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Closed {count} document. Changes kept",
+        "countPlural=*": "Closed {count} documents. Changes kept"
+      }
+    }
+  ],
+  "library_announce_pages": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Pages of {count} document",
+        "countPlural=*": "Pages of {count} documents"
+      }
+    }
+  ],
+  "library_history_move": "Move {name}",
+  "library_announce_moved": "Moved {name} to position {position} of {count}",
+  "library_opened_files": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Opened {count} file",
+        "countPlural=*": "Opened {count} files"
+      }
+    }
+  ],
+  "library_show_in_library": "Show in Library",
+  "library_combine_files_one": "Choose two or more files to combine",
+  "library_more": "More",
+  "library_nothing_uploaded": "Nothing is uploaded",
+  "library_external_requests": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} external request",
+        "countPlural=*": "{count} external requests"
+      }
+    }
+  ],
+  "library_language": "Language",
+  "recents_kept_footnote": "Kept on this device while the browser keeps it",
+  "recents_manage": "Manage",
+  "recents_clear_confirm_title": "Clear recent files?",
+  "recents_clear_confirm_body": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Kept changes for {count} document are deleted from this device. Saved files are not touched.",
+        "countPlural=*": "Kept changes for {count} documents are deleted from this device. Saved files are not touched."
+      }
+    }
+  ],
+  "recents_clear_confirm_action": "Clear",
   "privacy_recents": "Recent files are remembered on this device only.",
   "bar_group_fill": "Fill & sign",
   "bar_group_redact": "Redact",

@@ -22,6 +22,7 @@
  * The inspector toggle stays at the trailing end until the inspector leaves (D2-9, spec 3.9).
  */
 
+import { LibraryMenu } from '../../home/LibraryMenu';
 import { m } from '../../i18n';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
 import { useUiStore } from '../../state/ui-store';
@@ -32,7 +33,6 @@ import { DocumentTabs } from './DocumentTabs';
 import { FindEntry } from './FindEntry';
 import { tabDomId } from './ids';
 import { LibraryButton } from './LibraryButton';
-import { LibraryMenu } from './LibraryMenu';
 import { SaveButton } from './SaveButton';
 import { SidebarToggle } from './SidebarToggle';
 import { TitleMenu } from './TitleMenu';

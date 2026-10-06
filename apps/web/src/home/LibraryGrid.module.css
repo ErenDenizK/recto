@@ -1,0 +1,44 @@
+/*
+ * The cards' grid (02-library L1 §2, L5 §2): fixed 184 px tracks (200 coarse) with 16 px gaps,
+ * wrapping to the column; the column's 1184 px cap holds six. Under 352 px the cards take the
+ * whole width, one per row (A-20); narrow windows of the full edition share two per row.
+ */
+.grid {
+  --card-w: 184px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--card-w));
+  gap: var(--space-4);
+  outline: none;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .grid {
+    --card-w: 200px;
+  }
+}
+
+@container library (width < 600px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container library (width < 352px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The insertion caret between cards while one is dragged (L5 §4). */
+.caret {
+  position: absolute;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent-line);
+  pointer-events: none;
+}
+
+.grid[data-dragging] {
+  cursor: grabbing;
+}
