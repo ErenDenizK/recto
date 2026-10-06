@@ -6,12 +6,11 @@
  * else on the page that could move, animate or carry text.
  *
  * The query (`harness/backdrops.ts`) picks the entry, the backdrop, the Glass setting and the
- * theme. The surface takes the registry's smallest size, composes the classes its module
- * composes, takes the entry's filter token where it is not its composition's own (the one-row
- * menus' `--glass-menu-short-filter`, as `ui/Menu.module.css` does), and sits on whole CSS
- * pixels at the viewport's centre. The root carries what the app's settings would set:
- * `data-theme`, `data-glass`, Solid as `data-transparency='reduced'` (today's switch), and
- * `data-glass-panels` for the docked frame, whose glass exists only with that setting on.
+ * theme. The surface takes the registry's smallest size, carries the material classes its
+ * entry gives (`mat mat-<tier> s<σ>`, a one-row menu its menu's classes and `r<σ>`, applied
+ * because the surface holds no second child), and sits on whole CSS pixels at the viewport's
+ * centre. The root carries what the app's settings would set: `data-theme` and `data-glass`.
+ * Fine-pointer σ only: the harness runs on a fine pointer.
  *
  * When the page has painted, `<html data-harness-ready>` is set; a query it cannot render sets
  * `data-harness-error` instead, with the reason as the page's only text.
@@ -26,18 +25,11 @@ import { createRoot } from 'react-dom/client';
 
 import {
   COVERAGE_REGISTRY,
-  type GlassComposition,
-  type GlassFilterToken,
+  compositionOf,
+  entryClasses,
   type GlassSurfaceEntry,
 } from '../src/styles/coverage-registry';
 import { type Backdrop, BACKDROPS, type GlassMode, surfaceOrigin, type Theme } from './backdrops';
-
-/** The filter each composition's global rule reads (`styles/global.css`). */
-const OWN_FILTER: Record<GlassComposition, GlassFilterToken> = {
-  glass: '--glass-filter',
-  'glass glass-menu': '--glass-menu-backdrop',
-  'glass-frame': '--glass-frame-filter',
-};
 
 const GLASS_MODES: readonly GlassMode[] = ['clear', 'tinted', 'solid'];
 const THEMES: readonly Theme[] = ['dark', 'light'];
@@ -59,9 +51,6 @@ function readScene(search: string): Scene | string {
   if (!GLASS_MODES.includes(glass)) return `No Glass setting "${glass}".`;
   const theme = (params.get('theme') ?? 'dark') as Theme;
   if (!THEMES.includes(theme)) return `No theme "${theme}".`;
-  if (entry.composes === 'glass-frame' && entry.filter !== OWN_FILTER['glass-frame']) {
-    return `The docked frame reads only ${OWN_FILTER['glass-frame']}.`;
-  }
   return { entry, backdrop, glass, theme };
 }
 
@@ -70,14 +59,13 @@ function applyRoot(scene: Scene): void {
   const root = document.documentElement;
   root.dataset.theme = scene.theme;
   root.dataset.glass = scene.glass;
-  if (scene.glass === 'solid') root.dataset.transparency = 'reduced';
-  if (scene.entry.composes === 'glass-frame') root.setAttribute('data-glass-panels', '');
 }
 
-/** `blur(σ)` of a filter value, 0 for `none`. */
-function blurOf(filter: string): number {
-  const match = /blur\(\s*([\d.]+)px\s*\)/.exec(filter);
-  return match ? Number(match[1]) : 0;
+/** The classes the surface carries: a one-row menu's are its menu's and its own `r<σ>`. */
+function classesOf(entry: GlassSurfaceEntry): string {
+  return (entry.oneRow ? compositionOf(entry.module, entry.selector) : entryClasses(entry)).join(
+    ' ',
+  );
 }
 
 const css = (colour: Backdrop['under']): string =>
@@ -86,14 +74,12 @@ const css = (colour: Backdrop['under']): string =>
 function Harness({ scene, band }: { scene: Scene; band: number }) {
   const { entry, backdrop } = scene;
   const origin = surfaceOrigin(entry.minWidth, entry.minHeight);
-  const surface: CSSProperties & Record<`--${string}`, string> = {
+  const surface: CSSProperties = {
     left: origin.x,
     top: origin.y,
     width: entry.minWidth,
     height: entry.minHeight,
   };
-  if (entry.filter !== OWN_FILTER[entry.composes])
-    surface['--glass-filter'] = `var(${entry.filter})`;
   return (
     <>
       <div
@@ -114,7 +100,7 @@ function Harness({ scene, band }: { scene: Scene; band: number }) {
         />
       ) : null}
       <div
-        className={`surface ${entry.composes}`}
+        className={`surface ${classesOf(entry)}`}
         style={surface}
         data-harness-surface={entry.id}
         data-edge-band={backdrop.beyond ? band : undefined}
@@ -132,11 +118,9 @@ if (typeof scene === 'string') {
   document.documentElement.dataset.harnessError = scene;
 } else {
   applyRoot(scene);
-  // The sharp edge's white band reaches three σ of the surface's own blur, read from its filter
-  // token as this scene resolves it (none under Solid): a blur that keeps to its kernel sees
-  // only white, so the model holds there.
-  const filter = getComputedStyle(document.documentElement).getPropertyValue(scene.entry.filter);
-  const band = Math.ceil(3 * blurOf(filter));
+  // The sharp edge's white band reaches three σ of the surface's own blur (none under Solid): a
+  // blur that keeps to its kernel sees only white, so the model holds there.
+  const band = scene.glass === 'solid' ? 0 : Math.ceil(3 * scene.entry.sigma);
   createRoot(container).render(<Harness scene={scene} band={band} />);
   // Two frames: React has committed and the compositor has drawn the backdrop filter.
   requestAnimationFrame(() =>

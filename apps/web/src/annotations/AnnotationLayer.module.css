@@ -182,7 +182,7 @@
 
 /* Contextual bar: glass over the document, like the floating tool bar. */
 .bar {
-  composes: glass from global;
+  composes: mat mat-bar s8 c10 from global;
   position: absolute;
   z-index: 4;
   display: flex;
@@ -251,7 +251,7 @@
 }
 
 .notePopup {
-  composes: glass from global;
+  composes: mat mat-menu s16 from global;
   position: absolute;
   z-index: 5;
   display: grid;

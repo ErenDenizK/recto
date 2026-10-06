@@ -150,6 +150,9 @@ export default defineConfig({
       // Build first so the tests exercise exactly what is deployed; `pnpm build` in CI has
       // already produced `dist/`, and E2E_SKIP_BUILD=1 reuses it.
       command: `${process.env.E2E_SKIP_BUILD ? '' : 'pnpm build && '}pnpm preview --port ${port} --strictPort`,
+      // The build compiles the test-only render override in (spec X36, e2e/support/
+      // render-override.ts); the deploy build does not.
+      env: { RECTO_RENDER_OVERRIDE: '1' },
       url: new URL(basePath, `http://localhost:${port}`).href,
       reuseExistingServer: !isCI,
       timeout: 120_000,

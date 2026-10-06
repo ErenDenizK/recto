@@ -68,8 +68,9 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
   await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
   walk = await expectGlassClean(page, 'Read, text selection bar');
-  // The dock, the selection bar and the page pill (01-frame F11).
-  expect(walk.visible).toBe(3);
+  // The top strip (docked M3, ADR-0024 §2.8), the dock, the selection bar and the page pill
+  // (01-frame F11): the four of a resting screen.
+  expect(walk.visible).toBe(4);
   await page.keyboard.press('Escape');
 
   await enterEdit(page);
@@ -92,7 +93,8 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.locator('body').press('t');
   await expect(page.getByTestId('ink-strip')).toBeVisible();
   walk = await expectGlassClean(page, 'Markup, ink strip');
-  expect(names(walk).some((n) => n.includes('strip'))).toBe(false);
+  // (The top strip, a `header`, is docked glass of its own: not the ink strip.)
+  expect(names(walk).some((n) => !n.startsWith('header') && n.includes('strip'))).toBe(false);
   await page.keyboard.press('Escape');
 
   // The title menu (01-frame F5) takes the M4 solid twin: it opens over the sidebar's dark edge
@@ -129,7 +131,7 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
     })
     .catch(() => 'gone');
   expect(
-    names(walk).some((n) => n.includes('glass-menu')),
+    names(walk).some((n) => n.includes('mat-menu')),
     `the Document menu among the visible glass (${names(walk).join(', ')}); the menu: ${look}`,
   ).toBe(true);
   await page.keyboard.press('Escape');

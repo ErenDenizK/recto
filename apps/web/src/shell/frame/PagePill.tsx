@@ -10,6 +10,8 @@
  * - **Text:** always the percentage (spec 01.Q3), tabular, its minimum width set by the digit
  *   count of the page total, so scrolling never changes its width. Not a live region: jumps
  *   announce "Page 7 of 12" themselves.
+ * - **Material:** M1 (`Surface`, `mat mat-chip s7 c8`), with the backdrop lens on Chromium
+ *   (`styles/material-lens.ts`): a fixed-size chip, the one kind that takes it (X20).
  * - **Opens** its menu (`PagePillMenu.tsx`, mounted by the band) on click, Enter or Space with focus on the first
  *   control; Mod+G opens it with Go to page focused and selected.
  */
@@ -17,6 +19,7 @@ import { formatPercent, m } from '../../i18n';
 import { useUiStore } from '../../state/ui-store';
 import { useViewStore } from '../../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
+import { Surface } from '../../ui/Surface';
 import { documentLabels } from '../../viewer/navigation';
 import { openPillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
@@ -65,7 +68,12 @@ export function PagePill() {
   const labels = documentLabels(workspace, doc);
   const { text, name } = pillText(labels[current], current, total, zoom);
   return (
-    <button
+    <Surface
+      as="button"
+      tier="chip"
+      sigma={7}
+      coarse={8}
+      lens
       type="button"
       id="page-pill"
       className={styles.pill}
@@ -80,6 +88,6 @@ export function PagePill() {
       onClick={() => openPillMenu('first')}
     >
       {text}
-    </button>
+    </Surface>
   );
 }
