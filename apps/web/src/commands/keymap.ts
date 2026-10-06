@@ -75,7 +75,10 @@ export interface KeymapEntry {
   readonly title?: () => string;
 }
 
-/** Where each bound command is listed (flows §7.2's areas mapped onto S22's groups). */
+/**
+ * Where each bound command is listed (flows §7.2's areas mapped onto S22's groups), in the
+ * order the overlay reads them; the tools follow the palette's order (registration).
+ */
 export const KEYMAP_ENTRIES: Readonly<Record<string, KeymapEntry>> = {
   // Places: 0 1 M/2 3 4.
   'view.home': { group: 'places' },
@@ -118,15 +121,15 @@ export const KEYMAP_ENTRIES: Readonly<Record<string, KeymapEntry>> = {
   'nav.goToPage': { group: 'view' },
   'nav.previousPage': { group: 'view' },
   'nav.nextPage': { group: 'view' },
+  'view.focus': { group: 'view' },
+  'view.toggleLeftPanel': { group: 'view' },
+  'zoom.in': { group: 'view' },
+  'zoom.out': { group: 'view' },
+  'zoom.fit': { group: 'view' },
   'nav.screenDown': { group: 'view' },
   'nav.screenUp': { group: 'view' },
   'nav.firstPage': { group: 'view' },
   'nav.lastPage': { group: 'view' },
-  'zoom.in': { group: 'view' },
-  'zoom.out': { group: 'view' },
-  'zoom.fit': { group: 'view' },
-  'view.toggleLeftPanel': { group: 'view' },
-  'view.focus': { group: 'view' },
   'compare.next': { group: 'view', row: 'step-next' },
   'redaction.next': { group: 'view', row: 'step-next' },
   'ocr.nextWord': { group: 'view', row: 'step-next' },
@@ -193,27 +196,52 @@ export const EXTRA_ROWS: readonly {
   readonly command?: string;
   /** Keys no command binds (the browser's copy). */
   readonly keys?: readonly string[];
+  /** Where it reads: just before or after a `KEYMAP_ENTRIES` row. */
+  readonly place: { readonly before: string } | { readonly after: string };
 }[] = [
   {
     id: 'selection.highlight',
     group: 'selection',
     title: m.keymap_row_highlight,
     command: 'tool.highlighter',
+    place: { before: 'tool.underline' },
   },
   {
     id: 'selection.redact',
     group: 'selection',
     title: m.keymap_row_redact,
     command: 'tool.redact',
+    place: { after: 'tool.strikeout' },
   },
-  { id: 'selection.copy', group: 'selection', title: m.keymap_row_copy, keys: ['Mod+C'] },
+  {
+    id: 'selection.copy',
+    group: 'selection',
+    title: m.keymap_row_copy,
+    keys: ['Mod+C'],
+    place: { after: 'tool.strikeout' },
+  },
   {
     id: 'commands.regions',
     group: 'commands',
     title: m.keymap_row_regions,
     keys: ['F6', 'Shift+F6'],
+    place: { after: 'settings.open' },
   },
 ];
+
+const ENTRY_ORDER = new Map(Object.keys(KEYMAP_ENTRIES).map((id, index) => [id, index]));
+
+/** Where a row reads in its group: its entry's place; the tools (no entry) after, in order. */
+function rankOf(id: string, commands: readonly string[] = [id]): number {
+  const extra = EXTRA_ROWS.findIndex((row) => row.id === id);
+  const row = EXTRA_ROWS[extra];
+  if (row) {
+    const anchor = 'before' in row.place ? row.place.before : row.place.after;
+    const side = 'before' in row.place ? -0.5 : 0.5;
+    return (ENTRY_ORDER.get(anchor) ?? Number.MAX_SAFE_INTEGER) + side + extra / 100;
+  }
+  return Math.min(...commands.map((c) => ENTRY_ORDER.get(c) ?? Number.MAX_SAFE_INTEGER));
+}
 
 /** In-widget keys: a focused list, bar or field handles them, not the registry. */
 export const WIDGET_KEYS: readonly { title: () => string; keys: readonly ParsedShortcut[] }[] = [
@@ -253,47 +281,51 @@ export interface KeymapRow {
 }
 
 /**
- * The overlay's rows from the registry's commands, in S22's groups: each bound command once
- * (merged rows once for all their commands), then `EXTRA_ROWS`. A bound command with no entry
- * is listed under Commands, so nothing bound is ever missing (`keymap.test.tsx` fails on it).
+ * The overlay's rows from the registry's commands, in S22's groups and `KEYMAP_ENTRIES`'
+ * order: each bound command once (a merged row once for all its commands), `EXTRA_ROWS` at
+ * their places. A bound command with no entry is listed under Commands, so nothing bound is
+ * ever missing (`keymap.test.tsx` fails on it).
  */
 export function keymapRows(
   commands: readonly Command[],
   note: (command: Command) => KeymapRow['notes'],
 ): { readonly group: KeymapGroup; readonly rows: readonly KeymapRow[] }[] {
   const byId = new Map(commands.map((c) => [c.id, c]));
-  const rows = new Map<KeymapGroup, KeymapRow[]>(KEYMAP_GROUPS.map((g) => [g, []]));
-  const merged = new Map<MergedRow, { row: KeymapRow; seen: Set<string> }>();
+  const rows = new Map<KeymapGroup, { row: KeymapRow; rank: number }[]>(
+    KEYMAP_GROUPS.map((g) => [g, []]),
+  );
+  // A merged row gathers its commands' keys, each once, and reads at its first command's place.
+  const merged = new Map<MergedRow, { keys: ParsedShortcut[]; ids: string[] }>();
   for (const command of commands) {
     if (command.shortcuts.length === 0) continue;
     const entry = keymapEntry(command.id) ?? { group: 'commands' };
-    const list = rows.get(entry.group) ?? [];
     if (entry.row !== undefined) {
-      const existing = merged.get(entry.row);
-      if (existing) {
-        for (const shortcut of command.shortcuts) {
-          const key = bindingKey(shortcut);
-          if (existing.seen.has(key)) continue;
-          existing.seen.add(key);
-          (existing.row.keys as ParsedShortcut[]).push(shortcut);
-        }
-        continue;
+      const into = merged.get(entry.row) ?? { keys: [], ids: [] };
+      if (into.ids.length === 0) {
+        merged.set(entry.row, into);
+        const row: KeymapRow = {
+          id: `row.${entry.row}`,
+          title: mergedRowTitle(entry.row),
+          notes: [],
+          keys: into.keys,
+        };
+        rows.get(entry.group)?.push({ row, rank: 0 });
       }
-      const row: KeymapRow = {
-        id: `row.${entry.row}`,
-        title: mergedRowTitle(entry.row),
-        notes: [],
-        keys: [...command.shortcuts],
-      };
-      merged.set(entry.row, { row, seen: new Set(command.shortcuts.map(bindingKey)) });
-      list.push(row);
+      into.ids.push(command.id);
+      for (const shortcut of command.shortcuts) {
+        const key = bindingKey(shortcut);
+        if (!into.keys.some((k) => bindingKey(k) === key)) into.keys.push(shortcut);
+      }
       continue;
     }
-    list.push({
-      id: command.id,
-      title: (entry.title?.() ?? command.title).replace(/…$/, ''),
-      notes: note(command),
-      keys: command.shortcuts,
+    rows.get(entry.group)?.push({
+      row: {
+        id: command.id,
+        title: (entry.title?.() ?? command.title).replace(/…$/, ''),
+        notes: note(command),
+        keys: command.shortcuts,
+      },
+      rank: rankOf(command.id),
     });
   }
   for (const extra of EXTRA_ROWS) {
@@ -301,7 +333,19 @@ export function keymapRows(
       ? (byId.get(extra.command)?.shortcuts ?? [])
       : (extra.keys ?? []).map(parseShortcut);
     if (keys.length === 0) continue;
-    rows.get(extra.group)?.push({ id: extra.id, title: extra.title(), notes: [], keys });
+    rows.get(extra.group)?.push({
+      row: { id: extra.id, title: extra.title(), notes: [], keys },
+      rank: rankOf(extra.id),
+    });
   }
-  return KEYMAP_GROUPS.map((group) => ({ group, rows: rows.get(group) ?? [] }));
+  return KEYMAP_GROUPS.map((group) => ({
+    group,
+    rows: (rows.get(group) ?? [])
+      .map(({ row, rank }) => {
+        const members = [...merged.entries()].find(([name]) => row.id === `row.${name}`);
+        return { row, rank: members ? rankOf(row.id, members[1].ids) : rank };
+      })
+      .sort((a, b) => a.rank - b.rank)
+      .map(({ row }) => row),
+  }));
 }
