@@ -428,6 +428,13 @@
   outline: none;
 }
 
+/* The well draws the ring (above); the input inside it draws none of its own, so the global
+   ring's dark band does not paint a darker pill inside the well. */
+.findInput:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .findInput::placeholder {
   color: var(--text-tertiary);
 }
