@@ -279,6 +279,14 @@ export interface StartOptions {
   readonly tabId?: string;
 }
 
+/**
+ * This page's claim on its tab (`claimThisTab`), made once and held for the page's life. React's
+ * development StrictMode starts the session, stops it and starts it again at once: a second
+ * claim made while the first is still being let go found this tab's own lock taken, took a new
+ * id, and so restored the session another tab closed last (or none) instead of this tab's own.
+ */
+let pageClaim: ReturnType<typeof claimThisTab> | undefined;
+
 /** Starts keeping and restoring for this tab (once per launch). Returns a stop function. */
 export function startSession(options: StartOptions): () => void {
   if (!enabled) return () => undefined;
@@ -291,11 +299,13 @@ export function startSession(options: StartOptions): () => void {
   );
   let releaseTab: ReleaseLock | undefined;
   void (async () => {
-    const claimed = await claimThisTab(options.tabId);
+    // The app's claim is the page's (kept for its life); a test's own id is its own.
+    const own = options.tabId === undefined;
+    const claimed = await (own ? (pageClaim ??= claimThisTab()) : claimThisTab(options.tabId));
     const { tabId } = claimed;
-    releaseTab = claimed.release;
+    if (!own) releaseTab = claimed.release;
     if (stopped) {
-      void releaseTab();
+      void releaseTab?.();
       return;
     }
     const available = options.storage
