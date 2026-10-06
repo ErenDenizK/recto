@@ -1,5 +1,5 @@
-/* Signatures: Inspector section, status badge, Sign dialog (DESIGN.md §2–§4). Docked and
-   dialog surfaces are opaque; colour marks state only, always with a word beside it. */
+/* Signatures: S9's cards, the tab glyph and the title menu's facts row, the Sign dialog
+   (DESIGN.md §2–§4). Dialog surfaces are opaque; colour marks state only, always with a word beside it. */
 
 .section {
   display: grid;
@@ -253,6 +253,12 @@
 .tabGlyph svg {
   width: 12px;
   height: 12px;
+}
+
+/* The same shield at the title menu's facts-row icon size (01-frame F5 §2). */
+.factGlyph svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 /* ---- Sign dialog (layered on ShortcutOverlay.module.css's popup) ---- */

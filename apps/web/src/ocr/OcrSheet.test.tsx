@@ -18,7 +18,7 @@ import { resetJobs } from '../jobs/job-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToasts } from '../ui/Toast/toast-store';
 import { ToastRegion } from '../ui/Toast/ToastRegion';
-import OcrDialog from './OcrDialog';
+import OcrSheet from './OcrSheet';
 import { watchOcrJob } from './ocr-job';
 import { type OcrDependencies, ocrDependencies, setOcrDependencies } from './ocr-deps';
 import type { OcrRunCallbacks } from './ocr-run';
@@ -109,7 +109,7 @@ describe('the OCR dialog', () => {
     useDeps();
     const { documentId } = await openScan();
     openOcrDialog(documentId as never);
-    render(<OcrDialog />);
+    render(<OcrSheet />);
     const dialog = await screen.findByTestId('ocr-dialog');
     // Facts from the PDFium worker: both scanned pages lack text.
     const withoutText = await within(dialog).findByRole('radio', {
@@ -191,7 +191,7 @@ describe('the OCR dialog', () => {
       };
     });
     openOcrDialog(documentId as never);
-    const { unmount } = render(<OcrDialog />);
+    const { unmount } = render(<OcrSheet />);
     const dialog = await screen.findByTestId('ocr-dialog');
     // Our own earlier layer: replacing is proposed (a re-run).
     const replace = await within(dialog).findByRole('checkbox', {
@@ -208,7 +208,7 @@ describe('the OCR dialog', () => {
 
     // Another tool's text is kept unless the user chooses to replace it.
     foreign = true;
-    render(<OcrDialog />);
+    render(<OcrSheet />);
     const again = await screen.findByTestId('ocr-dialog');
     await waitFor(() =>
       expect(within(again).getByTestId('ocr-replace-hint')).toHaveTextContent(
@@ -224,7 +224,7 @@ describe('the OCR dialog', () => {
     useDeps();
     const { documentId } = await openScan();
     openOcrDialog(documentId as never);
-    render(<OcrDialog />);
+    render(<OcrSheet />);
     const dialog = await screen.findByTestId('ocr-dialog');
     const run = await within(dialog).findByRole('button', { name: 'Recognize 2 pages' });
     await waitFor(() => expect(run).toBeEnabled());
@@ -259,7 +259,7 @@ describe('the OCR dialog', () => {
     useDeps();
     const { documentId } = await openScan();
     openOcrDialog(documentId as never);
-    render(<OcrDialog />);
+    render(<OcrSheet />);
     const run = await screen.findByRole('button', { name: 'Recognize 2 pages' });
     await waitFor(() => expect(run).toBeEnabled());
     act(() => run.click());
@@ -275,7 +275,7 @@ describe('the OCR dialog', () => {
     useDeps();
     const { documentId } = await openScan();
     openOcrDialog(documentId as never);
-    render(<OcrDialog />);
+    render(<OcrSheet />);
     const run = await screen.findByRole('button', { name: 'Recognize 2 pages' });
     await waitFor(() => expect(run).toBeEnabled());
     act(() => run.click());
@@ -322,7 +322,7 @@ describe('the OCR dialog', () => {
     try {
       render(
         <>
-          <OcrDialog />
+          <OcrSheet />
           <ToastRegion />
         </>,
       );
@@ -351,7 +351,7 @@ describe('the OCR dialog', () => {
     useDeps();
     const { documentId } = await openScan();
     openOcrDialog(documentId as never);
-    render(<OcrDialog />);
+    render(<OcrSheet />);
     const dialog = await screen.findByTestId('ocr-dialog');
     act(() => within(dialog).getByRole('button', { name: 'Manage languages…' }).click());
     const manager = await screen.findByTestId('ocr-languages');

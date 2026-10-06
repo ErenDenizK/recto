@@ -1,5 +1,5 @@
 /**
- * The Batch dialog in the browser: pick a built-in recipe, add files, run with the real
+ * S21 Batch in the browser: pick a built-in recipe, add files, run with the real
  * engines, see every file's status, download the ZIP; build a plain-text recipe and
  * download its .txt; build an OCR step from the language packs on offer; the recipe editor
  * refuses an invalid recipe with the reader's precise error; the palette command opens the
@@ -16,7 +16,7 @@ import { chooseOption } from '../../test/choose';
 import { fixtureFile } from '../../test/store-harness';
 import { commandRegistry } from '../commands/registry';
 import { setOcrDependencies } from '../ocr/ocr-deps';
-import BatchDialog from './BatchDialog';
+import BatchSheet from './BatchSheet';
 import { registerBatchCommands } from './batch-commands';
 import { closeBatchDialog, openBatchDialog, useBatchStore } from './batch-store';
 
@@ -28,7 +28,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Batch dialog', () => {
+describe('S21 Batch', () => {
   it('runs "Number pages" over two files and offers the ZIP', async () => {
     const files = [
       await fixtureFile(simpleUrl, 'simple-text.pdf'),
@@ -56,7 +56,7 @@ describe('Batch dialog', () => {
     );
     vi.stubGlobal('showSaveFilePicker', savePicker);
 
-    render(<BatchDialog />);
+    render(<BatchSheet />);
     const dialog = await screen.findByTestId('batch-dialog');
     // Built-ins are listed; "Number pages" is selected by default.
     const recipe = await within(dialog).findByRole('button', { name: /Number pages/ });
@@ -96,7 +96,7 @@ describe('Batch dialog', () => {
     // A stand-in for the shell, whose drop handler opens files as tabs.
     render(
       <div onDrop={outside}>
-        <BatchDialog />
+        <BatchSheet />
       </div>,
     );
     const dialog = await screen.findByTestId('batch-dialog');
@@ -141,7 +141,7 @@ describe('Batch dialog', () => {
     );
     vi.stubGlobal('showSaveFilePicker', savePicker);
 
-    render(<BatchDialog />);
+    render(<BatchSheet />);
     const dialog = await screen.findByTestId('batch-dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
     const editor = await within(dialog).findByTestId('batch-editor');
@@ -207,7 +207,7 @@ describe('Batch dialog', () => {
       engineFiles: () => Promise.resolve([]),
     });
     try {
-      render(<BatchDialog />);
+      render(<BatchSheet />);
       const dialog = await screen.findByTestId('batch-dialog');
       await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
       const editor = await within(dialog).findByTestId('batch-editor');
@@ -240,7 +240,7 @@ describe('Batch dialog', () => {
   });
 
   it('shows the reader’s error when a recipe cannot be saved', async () => {
-    render(<BatchDialog />);
+    render(<BatchSheet />);
     const dialog = await screen.findByTestId('batch-dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'New' }));
     const editor = await within(dialog).findByTestId('batch-editor');

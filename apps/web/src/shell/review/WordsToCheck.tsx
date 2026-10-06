@@ -1,9 +1,11 @@
 /**
  * Review's Words to check (`components/06-navigation.md` N5; spec X33, which re-homes the
- * inspector's OCR section here): after OCR has run on the document, its low-confidence words
- * grouped by page, each page heading with its quality word (Good · Review · Poor · No text).
- * A row (or J / K, `ocr/ocr-review.ts`) scrolls to the word and rings it on the page
- * (`05-canvas` §27); nothing changes, so it works locked.
+ * inspector's OCR section here; spec D2-9): after OCR has run on the document, every
+ * recognised page in page order, its heading with the quality word and mean confidence
+ * (Good · Review · Poor · No text) and a line with its languages, resolution and word count,
+ * then its low-confidence words. A page heading goes to the page; a word (or J / K,
+ * `ocr/ocr-review.ts`) scrolls to it and rings it on the page (`05-canvas` §27). Nothing
+ * changes, so it works locked. Under the list, the pages by quality ("Good: 3 · Review: 1").
  *
  * The filter appears once OCR has run on the document and stays for the session
  * (`useHasWordsToCheck`), so undoing the run leaves an empty filter rather than a chip that
@@ -11,12 +13,21 @@
  */
 import type { DocumentId, VirtualDocument } from '@pdf-editor/document-model';
 
-import { formatPercent, m } from '../../i18n';
+import { formatNumber, formatPercent, getLocale, m } from '../../i18n';
 import { qualityLabel } from '../../ocr/labels';
-import { documentHasOcr, documentQualityRows, ocrRecords } from '../../ocr/ocr-model';
+import {
+  countByQuality,
+  documentHasOcr,
+  documentQualityRows,
+  languageList,
+  type OcrPageRow,
+  ocrRecords,
+  QUALITY_ORDER,
+} from '../../ocr/ocr-model';
 import { type DocumentWord, documentWords, focusOcrWord } from '../../ocr/ocr-review';
 import { useOcrStore } from '../../ocr/ocr-store';
 import { useOcrThresholds } from '../../ocr/ocr-thresholds';
+import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { EmptyNote } from '../../ui/EmptyNote';
 import styles from './ReviewPanel.module.css';
@@ -34,6 +45,8 @@ export function useHasWordsToCheck(doc: VirtualDocument | undefined): boolean {
 
 export interface WordsToCheckData {
   readonly words: readonly DocumentWord[];
+  /** The document's recognised pages, in page order. */
+  readonly pages: readonly OcrPageRow[];
   /** Pages of the document with recognised text. */
   readonly recognised: number;
 }
@@ -43,72 +56,100 @@ export function useDocumentWords(): WordsToCheckData {
   const ws = useWorkspaceStore((s) => s.workspace);
   const thresholds = useOcrThresholds();
   const doc = ws.activeDocument === undefined ? undefined : ws.documents[ws.activeDocument];
-  if (!thresholds || !doc) return { words: [], recognised: 0 };
-  return {
-    words: documentWords(ws, thresholds),
-    recognised: documentQualityRows(doc, ocrRecords(ws.engineEdits, thresholds)).length,
-  };
+  if (!thresholds || !doc) return { words: [], pages: [], recognised: 0 };
+  const pages = documentQualityRows(doc, ocrRecords(ws.engineEdits, thresholds)).sort(
+    (a, b) => a.docIndex - b.docIndex,
+  );
+  return { words: documentWords(ws, thresholds), pages, recognised: pages.length };
 }
 
 const percent = (value: number) => formatPercent(Math.round(value) / 100);
 
 export function WordsToCheck({ data }: { readonly data: WordsToCheckData }) {
   const focus = useOcrStore((s) => s.focus);
-  const { words, recognised } = data;
-  if (words.length === 0) {
-    return (
-      <div className={styles.empty}>
-        <EmptyNote
-          title={m.review_words_empty()}
-          body={recognised > 0 ? m.review_words_recognised({ count: recognised }) : undefined}
-        />
-      </div>
-    );
-  }
-  const groups: { key: string; words: DocumentWord[] }[] = [];
+  const { words, pages, recognised } = data;
+  const locale = getLocale();
+  const byPage = new Map<string, DocumentWord[]>();
   for (const word of words) {
-    const last = groups[groups.length - 1];
-    if (last?.key === word.section.page.id) last.words.push(word);
-    else groups.push({ key: word.section.page.id, words: [word] });
+    const list = byPage.get(word.section.page.id);
+    if (list) list.push(word);
+    else byPage.set(word.section.page.id, [word]);
   }
+  const counts = countByQuality(pages);
+  const qualities = QUALITY_ORDER.filter((q) => counts[q] > 0)
+    .map((q) => `${qualityLabel(q)}: ${formatNumber(counts[q])}`)
+    .join(' · ');
   return (
     <div className={styles.scroll} data-testid="review-words">
-      {groups.map((group) => {
-        const first = group.words[0];
-        if (!first) return null;
-        const page = m.comments_page({ page: first.section.docIndex + 1 });
+      {words.length === 0 ? (
+        <div className={styles.empty}>
+          <EmptyNote title={m.review_words_empty()} />
+        </div>
+      ) : null}
+      {pages.map((row) => {
+        const page = m.comments_page({ page: row.docIndex + 1 });
+        const { record } = row;
+        const facts = [
+          languageList(record.languages, locale),
+          record.dpi === undefined ? undefined : m.ocr_dpi({ dpi: formatNumber(record.dpi) }),
+          m.review_words_count({ count: record.words.length }),
+        ].filter(Boolean);
+        const pageWords = byPage.get(row.pageId) ?? [];
         return (
-          <section key={group.key} className={styles.group} aria-label={page}>
-            <h3 className={styles.pageTitle}>
-              {page} · {qualityLabel(first.section.record.quality)}
-            </h3>
-            <ul className={styles.list}>
-              {group.words.map((word) => {
-                const current =
-                  focus?.pageId === word.section.page.id && focus.word === word.row.index;
-                return (
-                  <li key={word.row.index}>
-                    <button
-                      type="button"
-                      className={styles.wordRow}
-                      aria-current={current ? 'true' : undefined}
-                      data-sidebar-current={current ? '' : undefined}
-                      data-testid="review-word"
-                      onClick={() => focusOcrWord(word.section, word.row)}
-                    >
-                      <span className={styles.word}>“{word.row.text}”</span>
-                      <span className={styles.wordMeta}>
-                        {m.review_words_low({ confidence: percent(word.row.confidence) })}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+          <section
+            key={row.pageId}
+            className={styles.group}
+            aria-label={page}
+            data-testid="review-words-page"
+            data-quality={record.quality}
+          >
+            <button
+              type="button"
+              className={styles.pageRow}
+              onClick={() => useViewStore.getState().scrollToPage(row.pageId)}
+            >
+              <span className={styles.pageRowTitle}>
+                {page} · {qualityLabel(record.quality)}
+              </span>
+              {record.words.length > 0 ? (
+                <span className={styles.wordMeta}>{percent(record.meanConfidence)}</span>
+              ) : null}
+            </button>
+            <p className={styles.pageFacts}>{facts.join(' · ')}</p>
+            {pageWords.length > 0 ? (
+              <ul className={styles.list}>
+                {pageWords.map((word) => {
+                  const current =
+                    focus?.pageId === word.section.page.id && focus.word === word.row.index;
+                  return (
+                    <li key={word.row.index}>
+                      <button
+                        type="button"
+                        className={styles.wordRow}
+                        aria-current={current ? 'true' : undefined}
+                        data-sidebar-current={current ? '' : undefined}
+                        data-testid="review-word"
+                        onClick={() => focusOcrWord(word.section, word.row)}
+                      >
+                        <span className={styles.word}>“{word.row.text}”</span>
+                        <span className={styles.wordMeta}>
+                          {m.review_words_low({ confidence: percent(word.row.confidence) })}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
           </section>
         );
       })}
-      <p className={styles.wordsSummary}>{m.review_words_recognised({ count: recognised })}</p>
+      {recognised > 0 ? (
+        <p className={styles.wordsSummary}>
+          {m.review_words_recognised({ count: recognised })}
+          {qualities === '' ? '' : ` · ${qualities}`}
+        </p>
+      ) : null}
     </div>
   );
 }

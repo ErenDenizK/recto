@@ -25,7 +25,7 @@
  */
 import { type DragEvent, useCallback, useEffect, useRef, useState } from 'react';
 
-import { BatchDialogHost } from '../batch/BatchDialogHost';
+import { BatchSheetHost } from '../batch/BatchSheetHost';
 import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
@@ -34,10 +34,11 @@ import { FurnitureDialogs } from '../furniture';
 import { DocumentDropOverlay } from '../home/DropOverlay';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
-import { OcrDialogHost } from '../ocr';
+import { OcrSheetHost } from '../ocr';
 import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
 import { NewSignatureHost } from '../signatures/NewSignatureHost';
+import { SignaturesSheet } from '../signatures/SignaturesSheet';
 import { useAppearanceRoot } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
 import { isMarkupOpen, useStageView, useUiStore } from '../state/ui-store';
@@ -196,10 +197,11 @@ export function AppShell() {
       <ShortcutOverlay />
       <SettingsHost />
       <NewSignatureHost />
+      <SignaturesSheet />
       <PasswordDialog />
       <ConfirmHost />
-      <BatchDialogHost />
-      <OcrDialogHost />
+      <BatchSheetHost />
+      <OcrSheetHost />
       <FurnitureDialogs />
       <ReplacePopover />
       <ToastRegion />

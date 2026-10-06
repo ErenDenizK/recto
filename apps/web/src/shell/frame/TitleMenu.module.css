@@ -189,6 +189,11 @@
   color: var(--text-tertiary);
 }
 
+/* A facts row's quiet tail ("· removed on export", F5 §2). */
+.factMuted {
+  color: var(--text-tertiary);
+}
+
 .list {
   flex: 1;
   min-height: 0;

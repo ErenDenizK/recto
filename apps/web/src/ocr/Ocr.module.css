@@ -1,30 +1,11 @@
-/* OCR dialog, language manager, right-panel section and page ring (spec
- * recognize-and-compare §1.5; DESIGN.md §3). The dialog layers on ShortcutOverlay's popup and
- * ToolDialog's form parts, docked right so the pages stay in view (as the furniture dialogs). */
-.side.side {
-  top: 64px;
-  right: 16px;
-  left: auto;
-  width: min(420px, calc(100vw - 32px));
-  max-height: calc(100vh - 96px);
-  transform: none;
-}
-
-.side.side[data-starting-style],
-.side.side[data-ending-style] {
-  transform: translateX(8px);
-}
-
-/* No scrim: the document stays readable next to the dialog. */
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: transparent;
-}
-
+/* S10 Recognize text, its language manager and the page ring (spec recognize-and-compare §1.5;
+ * components/07-sheets.md §12). The sheet is the Sheet primitive's (ui/sheet); these rules lay
+ * out its body, with ToolDialog's form parts. */
 .body {
+  display: grid;
+  grid-auto-rows: max-content;
   gap: var(--space-4);
+  min-width: 0;
 }
 
 .stack {
@@ -173,90 +154,6 @@
   line-height: var(--leading-base);
 }
 
-/* ---- Right panel section ---- */
-
-.section {
-  display: grid;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
-.facts {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: var(--space-1) var(--space-3);
-  margin: 0;
-  font-size: var(--text-sm);
-}
-
-.facts dt {
-  color: var(--text-tertiary);
-}
-
-.facts dd {
-  margin: 0;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.subTitle {
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-}
-
-.rows {
-  display: grid;
-  gap: 1px;
-  max-height: 240px;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.rowButton {
-  composes: focus-inset from global;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: 26px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-2);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  text-align: left;
-}
-
-@media (hover: hover) {
-  .rowButton:hover {
-    background: var(--surface-hover);
-  }
-}
-
-/* The current row: accent-muted; tertiary text steps up to secondary (DESIGN §3). */
-.rowButton[aria-current='true'] {
-  background: var(--accent-muted);
-  --text-tertiary: var(--text-secondary);
-}
-
-.word {
-  composes: technical from global;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.empty {
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
-  line-height: var(--leading-base);
-}
-
 /* ---- Page overlay: the focused word, a 1px ring in the page's selection blue (--select,
    language.md §1.5); the page is never tinted ---- */
 
@@ -270,15 +167,4 @@
   position: absolute;
   border-radius: var(--radius-page);
   box-shadow: 0 0 0 1px var(--select);
-}
-
-/* The form's actions stay in view while the options scroll. */
-.stickyActions {
-  position: sticky;
-  /* The sticky edge is inset by the scroller's bottom padding: reach through it. */
-  bottom: calc(-1 * var(--space-6));
-  margin: 0 calc(-1 * var(--space-6)) calc(-1 * var(--space-6));
-  padding: var(--space-3) var(--space-6) var(--space-6);
-  border-top: 1px solid var(--border-hairline);
-  background: var(--surface-frame);
 }

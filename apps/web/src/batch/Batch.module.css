@@ -1,18 +1,35 @@
 /*
- * The Batch dialog (spec §5): a large, opaque dialog (DESIGN.md §2: dialogs are opaque),
- * layered on ShortcutOverlay.module.css's popup and ToolDialog.module.css's controls.
+ * S21 Batch and recipes (components/07-sheets.md §22) inside the Sheet primitive's body: the
+ * recipes and the files side by side (a centred 720 dialog from expanded up), stacked in a
+ * narrow window; ToolDialog.module.css's controls. The flow reaches the panel's edges (it undoes
+ * the body's padding) and keeps one height, so its panes scroll and its footer stays put.
  */
-.popup {
-  width: min(1040px, calc(100vw - 32px));
-  height: min(760px, calc(100vh - 48px));
-  max-height: none;
+.flow {
+  display: flex;
+  flex-direction: column;
+  height: min(600px, calc(100dvh - 160px));
+  min-height: 0;
+  margin: -4px calc(-1 * var(--sheet-pad, 20px)) calc(-1 * var(--sheet-pad, 20px));
+  border-top: 1px solid var(--border-hairline);
 }
 
 .layout {
   display: grid;
   flex: 1;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   min-height: 0;
+}
+
+@media (max-width: 599px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 2fr) minmax(0, 3fr);
+  }
+
+  .layout > .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-hairline);
+  }
 }
 
 .sidebar {

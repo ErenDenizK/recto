@@ -9,7 +9,7 @@
  *   first", "Nothing changed since opening"); only the "Remove …" twins of page furniture and
  *   the repair rows appear just while there is something to remove or repair, as before.
  * - **Rows today's app has no command for** (Print…, Share…, Insert pages from file…,
- *   Signatures…, Apply redactions…) are left out until their packages bring them; every
+ *   Apply redactions…) are left out until their packages bring them; every
  *   command of the "Document" group that no section names joins the last section, so tools
  *   registered elsewhere still appear.
  * - **Interim tail:** Settings…, Keyboard shortcuts and About Recto close the menu until the
@@ -102,6 +102,8 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
       command('document.setPassword'),
       command('document.removePassword', { onlyWhenAvailable: true }),
       command('document.sign'),
+      // S9, which took the inspector's Signatures section (D2-9); dimmed on an unsigned file.
+      command('document.signatures'),
       command('redaction.find'),
       command('document.stripMetadata'),
     ],
@@ -114,8 +116,6 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
       command('document.compress'),
       command('document.exportImages'),
       command('document.exportMarkdown'),
-      // Batch moves to ⌘K and the Library's ⋯ with D2-9; here until then.
-      command('document.batch'),
     ],
   },
   {
