@@ -109,6 +109,7 @@ describe('AppShell', () => {
     );
     useWorkspaceStore.setState({ history: createHistory(workspace), workspace });
     expect(await screen.findByRole('tab', { name: 'report', selected: true })).toBeVisible();
-    expect(screen.getByRole('toolbar', { name: 'Tools' })).toBeVisible();
+    // The dock (01-frame F10) rests in the capsule once a document is open.
+    expect(screen.getByRole('toolbar', { name: 'Document tools' })).toBeVisible();
   });
 });
