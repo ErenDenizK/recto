@@ -22,13 +22,43 @@
  *   is in `sheets.spec.ts` ("Q-10: a detent change grabbed mid-flight …").
  *
  * The motion core's own `retarget()` is proved frame by frame in `src/motion/animate.test.ts`;
- * here it is proved through what uses it. A-7 to A-10 (pauses, flashes, reduced motion per
- * token, transition limits) join this spec with the motion tokens of D3-4.
+ * here it is proved through what uses it.
+ *
+ * With the motion tokens (spec D3-4; ADR-0026, ADR-0028 §2 item 1; language.md §7.5, §9.1):
+ *
+ * - **A-7, A-23** (pauses; effects never cost input): no frames at rest in every document view
+ *   (viewing, Markup, the Pages grid), and a scroll starts nothing that costs layout or paint.
+ *   The light field's own pauses (ink, drag, pinch, hidden) arrive with it (D3-8).
+ * - **A-8** (no flash): ten seconds of full-viewport frames, sampled as fast as the engine
+ *   draws them, swing less than 0.10 in relative luminance in every 341 × 256 region.
+ * - **A-9** (reduced motion per token): a tour of the app's motion (palette, Settings with a
+ *   pushed page, a side sheet, a tooltip, the find step, tool switching, a toast, the undo
+ *   reveal) under the system query and under the Reduce motion setting; every animation that
+ *   starts changes only opacity or colour, for 150 ms at most (`support/motion-sweep.ts`).
+ * - **A-10** (limits): the same tour at full motion; whatever moves is within 1 % of its end by
+ *   500 ms, a View Transition runs 240 ms (the pages grid's door), tool switching starts none.
+ *
+ * The tablet project runs the idle, sweep and limits tests at its own size (820 × 1180, touch).
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, sessionSettled, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  fixturePath,
+  openFixtures,
+  sessionSettled,
+  useFileInputPicker,
+} from './helpers';
 import { expectGlassClean, settleAnimations } from './support/glass-walker';
+import {
+  type AnimationRecord,
+  installRecorder,
+  judge,
+  recorded,
+  startRecording,
+  viewTransitions,
+} from './support/motion-sweep';
+import { decodePng } from './support/pixels';
 
 const COMPACT = new Set(['phone', 'phone-land']);
 /** The measured window of A-23: two seconds with no input. */
@@ -429,6 +459,8 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
 
   test.beforeEach(async ({ page }, info) => {
     test.skip(COMPACT.has(info.project.name), 'the full edition');
+    // The tablet presents sheets as form and bottom sheets; sheets.spec.ts interrupts those.
+    test.skip(info.project.name === 'tablet', 'the desktop presentations');
     await useFileInputPicker(page);
   });
 
@@ -719,5 +751,336 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expectGlassClean(page, 'the scrubber reopened');
     await page.keyboard.press('Escape');
     await expect(page.locator(scrubber)).toHaveCount(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D3-4: the motion tokens (A-7 to A-10, A-23)
+// ---------------------------------------------------------------------------
+
+/** The Reduce motion setting as stored (appearance-store, language.md §7.6). */
+const REDUCE_MOTION_ON = JSON.stringify({
+  glassPanels: false,
+  reduceTransparency: false,
+  motion: 'reduced',
+});
+
+/** Opens `name` from Home and waits for its first page. */
+async function openFile(page: Page, name = 'outline-named-dests.pdf'): Promise<void> {
+  await page.goto('./?lang=en');
+  await sessionSettled(page);
+  await openFixtures(page, [name]);
+  await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+    timeout: 20_000,
+  });
+  await page.mouse.move(2, 450);
+}
+
+/**
+ * The tour: the app's motion as it is today, from Home to a document, each step left to come to
+ * rest. What starts on the way is recorded (`support/motion-sweep.ts`). `door` adds the pages
+ * grid's View Transition (a Mod+wheel notch at fit page after a pause), on fine pointers.
+ */
+async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
+  await page.goto('./?lang=en');
+  await sessionSettled(page);
+  await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+  await settleAnimations(page);
+  await startRecording(page);
+
+  // *popup*: the palette.
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(page.getByRole('combobox', { name: 'Search commands' })).toBeFocused();
+  await settleAnimations(page);
+  await page.keyboard.press('Escape');
+  await settleAnimations(page);
+
+  // *sheet*, *sheet push* (X8) and the Reduce motion row: Settings, About Recto, Back.
+  await page.locator('body').press('ControlOrMeta+,');
+  const settings = page.getByTestId('settings-sheet');
+  await expect(settings).toBeVisible();
+  await settleAnimations(page);
+  await settings.getByRole('button', { name: /About Recto/ }).click();
+  await expect(settings.getByTestId('settings-about')).toBeVisible();
+  await settleAnimations(page);
+  await settings.getByRole('button', { name: 'Back' }).click();
+  await settleAnimations(page);
+  await page.keyboard.press('Escape');
+  await expect(settings).toHaveCount(0);
+  await settleAnimations(page);
+
+  // A document, a side sheet, a tooltip.
+  await openFixtures(page, ['outline-named-dests.pdf']);
+  await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+    timeout: 20_000,
+  });
+  await settleAnimations(page);
+  const saveCopy = page.getByRole('button', { name: 'Save a copy', exact: true });
+  await saveCopy.click();
+  await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
+  await settleAnimations(page);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('save-copy-sheet')).toHaveCount(0);
+  await settleAnimations(page);
+  await saveCopy.hover();
+  await expect(page.getByRole('tooltip').first()).toBeVisible();
+  await settleAnimations(page);
+  await page.mouse.move(2, 450);
+  await settleAnimations(page);
+
+  // *find step* (05.2): scroll-to, then the undo reveal's ring on the hit.
+  await page.keyboard.press('ControlOrMeta+f');
+  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  await field.fill('page');
+  await expect(page.locator('[data-testid="search-highlights"] [data-current]')).toHaveCount(1);
+  await field.press('Enter');
+  await field.press('Enter');
+  await page.waitForTimeout(700);
+  await field.press('Escape');
+  await settleAnimations(page);
+
+  // A toast, and the undo reveal: delete a page in the grid, then undo.
+  await page.keyboard.press('3');
+  const cells = page.locator('[role="gridcell"][data-page-id]');
+  await expect(cells.first()).toBeVisible();
+  await cells.nth(1).click();
+  await page.mouse.move(2, 450);
+  await page.keyboard.press('Delete');
+  await expect(page.locator('[data-region="toasts"] [data-toast-id]')).toHaveCount(1);
+  await settleAnimations(page);
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.waitForTimeout(700);
+  await settleAnimations(page);
+  // Back to the page (1: Read; R would rotate the selected page here).
+  await page.keyboard.press('1');
+  await expect(page.locator('[data-read-viewport]')).toBeVisible();
+  await settleAnimations(page);
+
+  if (o.door) {
+    // *view change*: the pages grid's door (05-canvas §4), a 240 ms View Transition.
+    const box = await page.locator('[data-read-viewport]').boundingBox();
+    if (!box) throw new Error('no page viewport');
+    const centre = [box.x + box.width / 2, box.y + box.height / 2] as const;
+    await page.evaluate(async ([x, y]) => {
+      const notch = () =>
+        document.querySelector('[data-read-viewport]')?.dispatchEvent(
+          new WheelEvent('wheel', {
+            clientX: x,
+            clientY: y,
+            deltaY: 100,
+            ctrlKey: true,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      for (let i = 0; i < 10; i++) {
+        notch();
+        await new Promise((r) => setTimeout(r, 40));
+      }
+      await new Promise((r) => setTimeout(r, 400));
+      notch();
+    }, centre);
+    await expect(page.getByTestId('light-table')).toBeVisible();
+    await settleAnimations(page);
+    await page.keyboard.press('1');
+    await settleAnimations(page);
+  }
+}
+
+/** Tool switching (A-10: no View Transition for repeated actions). */
+async function switchTools(page: Page): Promise<void> {
+  await enterEdit(page);
+  const bar = page.getByRole('toolbar', { name: 'Tools' });
+  await bar.getByRole('button', { name: 'Write', exact: true }).click();
+  await bar.getByRole('button', { name: 'Write: back to all groups' }).click();
+  await page.locator('body').press('u');
+  await page.locator('body').press('u');
+  await expect(page.getByTestId('options-tier')).toBeVisible();
+  await page.locator('body').press('Escape');
+  await page.locator('body').press('Escape');
+  await settleAnimations(page);
+}
+
+const listed = (records: readonly AnimationRecord[]) =>
+  [...new Set(records.map((r) => `${r.kind} on ${r.target}${r.pseudo ?? ''}`))].join('\n');
+
+test.describe('motion tokens (spec D3-4)', () => {
+  // The full edition at 1440 × 900; the tablet at its own size.
+  test.use({
+    viewport: async ({ viewport }, use, info) => {
+      await use(info.project.name === 'tablet' ? viewport : { width: 1440, height: 900 });
+    },
+  });
+
+  test.beforeEach(async ({ page }, info) => {
+    test.skip(COMPACT.has(info.project.name), 'the full edition');
+    await useFileInputPicker(page);
+    await installRecorder(page);
+  });
+
+  test('A-10: at full motion whatever moves settles within 500 ms; one 240 ms View Transition', async ({
+    page,
+  }, info) => {
+    test.setTimeout(120_000);
+    const door = info.project.use.hasTouch !== true;
+    await tour(page, { door });
+    const records = await recorded(page);
+    await info.attach('animations', { body: listed(records), contentType: 'text/plain' });
+    // The tour moves things (so the reduced runs below mean something).
+    expect((await judge(page, records, 'reduced')).length, listed(records)).toBeGreaterThan(0);
+    expect(await judge(page, records, 'limits')).toEqual([]);
+    if (door) {
+      const pseudo = records.filter((r) => r.pseudo?.startsWith('::view-transition'));
+      expect(pseudo.length, 'the door ran a View Transition').toBeGreaterThan(0);
+      for (const r of pseudo) expect(r.duration).toBe(240);
+    }
+
+    // Tool switching starts no View Transition.
+    await startRecording(page);
+    const before = await viewTransitions(page);
+    await switchTools(page);
+    expect(await viewTransitions(page)).toBe(before);
+    const switching = await recorded(page);
+    expect(listed(switching.filter((r) => r.pseudo?.startsWith('::view-transition')))).toBe('');
+    expect(await judge(page, switching, 'limits')).toEqual([]);
+  });
+
+  for (const path of ['the system query', 'the Reduce motion setting'] as const) {
+    test(`A-9: under ${path} only opacity and colour change, for 150 ms at most`, async ({
+      page,
+    }, info) => {
+      test.setTimeout(120_000);
+      if (path === 'the system query') {
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+      } else {
+        await page.addInitScript((stored) => {
+          localStorage.setItem('pdf-editor:appearance:v1', stored);
+        }, REDUCE_MOTION_ON);
+      }
+      await tour(page, { door: info.project.use.hasTouch !== true });
+      if (path === 'the Reduce motion setting') {
+        await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
+      }
+      const records = await recorded(page);
+      await info.attach('animations', { body: listed(records), contentType: 'text/plain' });
+      expect(records.length, 'the tour still fades things').toBeGreaterThan(0);
+      expect(await judge(page, records, 'reduced'), listed(records)).toEqual([]);
+      await startRecording(page);
+      await switchTools(page);
+      const switching = await recorded(page);
+      expect(await judge(page, switching, 'reduced'), listed(switching)).toEqual([]);
+    });
+  }
+
+  test('the Reduce motion setting reduces at once, is kept, and System gives motion back', async ({
+    page,
+  }) => {
+    await page.goto('./?lang=en');
+    await sessionSettled(page);
+    const settings = page.getByTestId('settings-sheet');
+    const group = settings.getByRole('radiogroup', { name: 'Reduce motion' });
+    // A token's duration in ms (the build may write 150ms as .15s).
+    const read = async (name: string) => {
+      const value = await page.evaluate(
+        (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(),
+        name,
+      );
+      const n = Number.parseFloat(value);
+      return value.endsWith('ms') ? n : n * 1000;
+    };
+    await page.locator('body').press('ControlOrMeta+,');
+    await expect(group.getByRole('radio', { name: 'System' })).toBeChecked();
+    await group.getByRole('radio', { name: 'On' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
+    expect(await read('--spring-smooth')).toBe(0);
+    expect(await read('--duration-base')).toBe(150);
+    await page.reload();
+    await sessionSettled(page);
+    await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
+    await page.locator('body').press('ControlOrMeta+,');
+    await expect(group.getByRole('radio', { name: 'On' })).toBeChecked();
+    await group.getByRole('radio', { name: 'System' }).click();
+    await expect(page.locator('html')).not.toHaveAttribute('data-motion');
+    expect(await read('--spring-smooth')).toBe(530);
+  });
+
+  test('A-7, A-23: no frames at rest in Markup and in the Pages grid', async ({ page }) => {
+    await countFrames(page);
+    await openFile(page);
+    await enterEdit(page);
+    await page.mouse.move(2, 450);
+    expectIdle(await idleFor(page), 'Markup');
+    await page.keyboard.press('3');
+    await expect(page.locator('[role="gridcell"][data-page-id]').first()).toBeVisible();
+    await page.mouse.move(2, 450);
+    expectIdle(await idleFor(page), 'the Pages grid');
+  });
+
+  test('A-23: a scroll starts nothing that costs layout or paint', async ({ page }) => {
+    await openFile(page);
+    await settleAnimations(page);
+    await startRecording(page);
+    await page.locator('[data-read-viewport]').hover();
+    for (let i = 0; i < 12; i++) {
+      await page.mouse.wheel(0, 120);
+      await page.waitForTimeout(30);
+    }
+    await page.waitForTimeout(400);
+    const costly = (await recorded(page)).filter((r) =>
+      r.frames.some((f) =>
+        Object.keys(f).some((k) =>
+          /^(width|height|top|left|right|bottom|inset|margin.*|padding.*|filter|backdropFilter|webkitBackdropFilter)$/.test(
+            k,
+          ),
+        ),
+      ),
+    );
+    expect(listed(costly)).toBe('');
+  });
+
+  test('A-8: ten seconds at rest swing under 0.10 in every 341 × 256 region', async ({ page }) => {
+    test.setTimeout(90_000);
+    await openFile(page);
+    await settleAnimations(page);
+    const size = page.viewportSize() ?? { width: 1440, height: 900 };
+    const cols = Math.ceil(size.width / 341);
+    const rows = Math.ceil(size.height / 256);
+    const lows = new Array<number>(cols * rows).fill(1);
+    const highs = new Array<number>(cols * rows).fill(0);
+    const linear = (c: number) => {
+      const v = c / 255;
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    const until = Date.now() + 10_000;
+    let samples = 0;
+    while (Date.now() < until) {
+      const image = decodePng(await page.screenshot({ scale: 'css' }));
+      const sums = new Array<number>(cols * rows).fill(0);
+      const counts = new Array<number>(cols * rows).fill(0);
+      // Every fourth pixel each way: a region's mean, not its detail.
+      for (let y = 0; y < image.height; y += 4) {
+        for (let x = 0; x < image.width; x += 4) {
+          const i = (y * image.width + x) * 4;
+          const lum =
+            0.2126 * linear(image.data[i] ?? 0) +
+            0.7152 * linear(image.data[i + 1] ?? 0) +
+            0.0722 * linear(image.data[i + 2] ?? 0);
+          const cell =
+            Math.min(rows - 1, Math.floor(y / 256)) * cols +
+            Math.min(cols - 1, Math.floor(x / 341));
+          sums[cell] = (sums[cell] ?? 0) + lum;
+          counts[cell] = (counts[cell] ?? 0) + 1;
+        }
+      }
+      for (let cell = 0; cell < cols * rows; cell++) {
+        const mean = (sums[cell] ?? 0) / Math.max(1, counts[cell] ?? 0);
+        lows[cell] = Math.min(lows[cell] ?? 1, mean);
+        highs[cell] = Math.max(highs[cell] ?? 0, mean);
+      }
+      samples += 1;
+    }
+    expect(samples, 'frames sampled in 10 s').toBeGreaterThanOrEqual(10);
+    const swing = Math.max(...highs.map((high, cell) => high - (lows[cell] ?? 0)));
+    expect(swing).toBeLessThan(0.1);
   });
 });

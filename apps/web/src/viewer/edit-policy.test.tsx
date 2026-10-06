@@ -10,6 +10,12 @@
  *
  * Fixture: text-edit-fonts.pdf, whose first line (Helvetica, y = 700) is the sentence below.
  */
+// The app's styles, so the page's controls (the selection bar above a selected word, its icons)
+// take their real size and place, as they do in the app.
+import '../styles/tokens.css';
+import '../styles/reset.css';
+import '../styles/global.css';
+
 import { getActiveDocument, type VirtualDocument } from '@pdf-editor/document-model';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -275,14 +281,26 @@ describe('the Edit policy (mounted)', () => {
   it('never from touch, never from a pen that draws; a pen used as a pointer opens it', async () => {
     const { container } = await mount();
     enterEdit();
-    const span = await foxSpan(container);
-    const at = centre(span);
+    let span = await foxSpan(container);
+    let at = centre(span);
 
+    // A touch double tap is the smart zoom (05.12; flows §7.1: "Same with Select"), never
+    // the editor: fit width ⇄ 250 % about the tap (here 75 % is wider than this frame's fit
+    // width, so it goes to fit width).
     tap(at, 'touch');
     tap(at, 'touch');
     doubleClick(span, at);
-    await sleep(400);
+    await waitFor(() => expect(useUiStore.getState().fitMode).toBe('width'), { timeout: 5000 });
+    const frame = container.querySelector('[data-zoom-frame]');
+    await waitFor(() => expect(frame).not.toHaveAttribute('data-zooming'), { timeout: 5000 });
     expect(editorInput(container)).toBeNull();
+    expect(useTextEditStore.getState().session).toBeNull();
+
+    // The line at the zoom the tap chose (it zoomed about the tap, so the line stays in view).
+    await sleep(100);
+    span = await foxSpan(container);
+    at = centre(span);
+    expect(document.elementFromPoint(at.x, at.y)).toBe(span);
 
     // "Pen draws in Edit": the pen's presses draw; its double-click opens nothing.
     useInputPolicyStore.getState().setPenDrawsInMarkup(true);

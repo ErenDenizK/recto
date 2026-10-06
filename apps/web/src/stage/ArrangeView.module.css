@@ -108,6 +108,16 @@
   transition: transform var(--duration-fast) var(--ease-out);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .headerButton svg {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .headerButton svg {
+  transition: none;
+}
+
 .headerButton[aria-expanded='false'] svg {
   transform: rotate(-90deg);
 }
@@ -365,6 +375,10 @@
   .insertionBar {
     transition: none;
   }
+}
+
+:global(:root[data-motion='reduced']) .insertionBar {
+  transition: none;
 }
 
 .marquee {

@@ -22,8 +22,10 @@
   border-width: 0 0 1px;
   border-radius: 0;
   box-shadow: none;
+  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
+     motion, where the fade stays (§7.5). */
   transition:
-    transform var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);
 }
 
@@ -216,8 +218,10 @@
   margin-inline: auto;
   padding: 0 6px;
   border-radius: var(--radius-round);
+  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
+     motion, where the fade stays (§7.5). */
   transition:
-    transform var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);
 }
 
