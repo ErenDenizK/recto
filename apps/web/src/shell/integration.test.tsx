@@ -50,14 +50,16 @@ describe('engine integration', () => {
     );
     const thumbnail = document.querySelector<HTMLCanvasElement>('canvas[data-state="rendered"]');
     expect(thumbnail?.width).toBeGreaterThan(0);
-    expect(screen.getByTestId('status-pages')).toHaveTextContent('Page 1 of 3');
+    // The page pill (01-frame F11) has the page and the total the status bar showed.
+    expect(screen.getByTestId('page-pill').textContent).toMatch(/^1 \/ 3 · /);
     expect(screen.getAllByRole('option')).toHaveLength(3);
 
     useUiStore.getState().showSurface('grid');
     await waitFor(() => {
       expect(screen.getAllByRole('gridcell')).toHaveLength(3);
     });
-    expect(screen.getByTestId('status-pages')).toHaveTextContent('3 pages');
+    // The grid has no page pill; its header counts the pages (D2-5).
+    expect(screen.queryByTestId('page-pill')).toBeNull();
   }, 30_000);
 
   it('rotates the selection with R and undoes it with Mod+Z', async () => {
@@ -94,7 +96,7 @@ describe('engine integration', () => {
     // A click navigates (page 2 becomes current) and selects nothing.
     await userEvent.click(within(list).getByRole('option', { name: 'Page 2' }));
     await waitFor(() => {
-      expect(screen.getByTestId('status-pages')).toHaveTextContent('Page 2 of 3');
+      expect(screen.getByTestId('page-pill').textContent).toMatch(/^2 \/ 3 · /);
     });
     expect(within(list).getByRole('option', { name: 'Page 2' })).toHaveAttribute(
       'aria-selected',

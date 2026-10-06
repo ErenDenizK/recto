@@ -115,7 +115,7 @@ test('a new user merges two dropped files in under five actions', async ({ page 
     documentTabs(page).and(page.getByRole('tab', { selected: true })),
   ).toHaveAccessibleName('Combined – simple-text + rotated-pages, edited');
   await expect(page.getByTestId('home')).toHaveCount(0);
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 7');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 7 · /);
   expect(user.actions).toBeLessThanOrEqual(5);
   expect(user.actions).toBe(3);
 
@@ -155,7 +155,7 @@ test('a new user merges two files opened with "Open files" in under five actions
   await expect(dialog).toBeHidden();
 
   await expect(documentTabs(page)).toHaveCount(3);
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 7');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 7 · /);
   expect(user.actions).toBeLessThanOrEqual(5);
   expect(user.actions).toBe(4);
 });
@@ -170,7 +170,9 @@ test('the Files tab shares Home’s selection, combines and leads to Home', asyn
   await expect(documentTabs(page).and(page.getByRole('tab', { selected: true }))).toHaveCount(0);
   await documentTabs(page).first().click();
   await expect(page.getByTestId('home')).toHaveCount(0);
-  await expect(page.getByRole('radio', { name: 'Read, locked' })).toBeChecked();
+  await expect(
+    page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Edit', exact: true }),
+  ).toBeVisible();
   await expect(page.getByTestId('home-button')).not.toHaveAttribute('aria-current', 'page');
 
   await page.getByRole('tab', { name: /^Files/ }).click();
@@ -204,28 +206,29 @@ test('the Files tab shares Home’s selection, combines and leads to Home', asyn
   await expect(dialog.getByTestId('merge-row').nth(1)).toContainText('simple-text');
 });
 
-test('the navigator stays collapsed while no file is open and reopens as it was', async ({
-  page,
-}) => {
+test('the sidebar shows only in a document, and as it was stored', async ({ page }) => {
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const panel = page.locator('#left-panel');
   const rail = page.getByRole('tablist', { name: 'Navigator views' });
-  await expect(rail.getByRole('tab')).toHaveCount(4);
+  // No file open: the Library, no sidebar and no ▤ (01-frame F2 §4).
   await expect(panel).toHaveCount(0);
-  await expect(rail.getByRole('tab', { selected: true })).toHaveCount(0);
+  await expect(page.getByTestId('sidebar-toggle')).toHaveCount(0);
 
   await openFixtures(page, ['simple-text.pdf']);
   await expect(panel).toBeVisible();
   await expect(rail.getByRole('tab', { name: /^Pages/ })).toHaveAttribute('aria-selected', 'true');
+  // ▤ closes and opens it; it stays closed on the next document.
+  await page.getByTestId('sidebar-toggle').click();
+  await expect(panel).toHaveCount(0);
+  await expect(page.getByTestId('sidebar-toggle')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByTestId('sidebar-toggle').click();
+  await expect(panel).toBeVisible();
 
-  // Closing the last file collapses it again; a tab picked meanwhile opens it.
+  // Closing the last file leaves for the Library: no sidebar there.
   await rail.getByRole('tab', { name: /^Files/ }).click();
   await panel.getByRole('button', { name: 'Close simple-text' }).click();
   await expect(panel).toHaveCount(0);
-  await rail.getByRole('tab', { name: 'Files' }).click();
-  await expect(panel).toBeVisible();
-  await expect(panel.getByText('No files open')).toBeVisible();
 });
 
 test('a card dragged onto another opens the merge dialog with the target first', async ({
@@ -267,7 +270,7 @@ test('a card dragged onto another opens the merge dialog with the target first',
   await expect(
     documentTabs(page).and(page.getByRole('tab', { selected: true })),
   ).toHaveAccessibleName('Combined – rotated-pages + simple-text, edited');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 7');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 7 · /);
 });
 
 test('Home frames every file, not one document (review F16, F25)', async ({ page }) => {
@@ -276,12 +279,10 @@ test('Home frames every file, not one document (review F16, F25)', async ({ page
   await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
   await expect(page.getByTestId('home')).toBeVisible();
   const rail = page.getByRole('tablist', { name: 'Navigator views' });
-  // The navigator offers Files only, the status bar no page or zoom, and no tab looks active.
-  await expect(rail.getByRole('tab')).toHaveCount(1);
-  await expect(rail.getByRole('tab', { name: /^Files/ })).toBeVisible();
+  // The Library's strip (01-frame F2 §4): no sidebar, no page pill, and no tab looks active.
+  await expect(rail).toHaveCount(0);
   await expect(page.locator('#left-panel')).toHaveCount(0);
-  await expect(page.getByTestId('status-pages')).toHaveText('2 files');
-  await expect(page.getByRole('button', { name: /^Zoom/ })).toHaveCount(0);
+  await expect(page.getByTestId('page-pill')).toHaveCount(0);
   await page.mouse.move(700, 600);
   for (const tab of await documentTabs(page).all()) {
     await expect(tab).toHaveAttribute('aria-selected', 'false');
@@ -295,10 +296,10 @@ test('Home frames every file, not one document (review F16, F25)', async ({ page
     });
     expect(fits).toBe(true);
   }
-  // In a document the navigator and the status are the document's again.
+  // In a document the sidebar (as it was stored) and the page pill return.
   await documentTabs(page).first().click();
   await expect(rail.getByRole('tab')).toHaveCount(4);
-  await expect(page.getByTestId('status-pages')).toHaveText(/^Page 1 of /);
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ /);
 });
 
 test('the keyboard path: Tab to the cards, arrows, Space and Enter', async ({ page }) => {
@@ -336,7 +337,9 @@ test('the keyboard path: Tab to the cards, arrows, Space and Enter', async ({ pa
   await expect(
     documentTabs(page).and(page.getByRole('tab', { selected: true })),
   ).toHaveAccessibleName(/mixed-sizes/);
-  await expect(page.getByRole('radio', { name: 'Read, locked' })).toBeChecked();
+  await expect(
+    page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Edit', exact: true }),
+  ).toBeVisible();
   await expect(page.getByTestId('home-button')).not.toHaveAttribute('aria-current', 'page');
 
   // The app glyph leads back to Home.
@@ -384,7 +387,9 @@ test('Recents remember a closed file across a reload, open it again and clear', 
   page.on('filechooser', onChooser);
   await row.click();
   await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
-  await expect(page.getByRole('radio', { name: 'Read, locked' })).toBeChecked();
+  await expect(
+    page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Edit', exact: true }),
+  ).toBeVisible();
   expect(picked).toBe(false);
   page.off('filechooser', onChooser);
 

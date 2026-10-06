@@ -47,7 +47,8 @@ test('signed-then-modified: Intact, changed later with the honesty line', async 
   await expect(section.getByTestId('signature-changes')).toContainText(
     'Revision 3: annotations, page 1',
   );
-  await expect(page.getByTestId('status-signatures')).toContainText('Intact, changed later');
+  // The status bar's badge became the tab's seal (01-frame F13 §1; the facts chip is D4-3).
+  await expect(page.getByTestId('tab-signature-glyph')).toBeVisible();
   await expect(section).not.toContainText(/\bvalid\b/i);
 });
 
@@ -56,7 +57,7 @@ test('signed-tampered: Broken', async ({ page }) => {
   const section = page.getByTestId('signatures-section');
   await expect(section.getByTestId('signature-status')).toHaveText('Broken', { timeout: 20_000 });
   await expect(section.getByTestId('signature-honesty')).toHaveText(HONESTY);
-  await expect(page.getByTestId('status-signatures')).toContainText('Broken');
+  await expect(page.getByTestId('tab-signature-glyph')).toBeVisible();
 });
 
 test('sign simple-text.pdf through Save a copy; the download re-opens as Intact', async ({

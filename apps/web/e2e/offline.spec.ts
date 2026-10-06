@@ -72,7 +72,7 @@ test('the shell and the engine work offline after one visit', async ({ page, con
 
   await openFixtures(page, ['simple-text.pdf']);
   await expect(page.getByRole('tab', { name: 'simple-text', selected: true })).toBeVisible();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 3');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 3 · /);
   // A page actually rendered through PDFium (wasm from the cache).
   await expect(page.locator('main canvas[data-state="rendered"]').first()).toBeVisible();
 

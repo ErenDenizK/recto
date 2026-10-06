@@ -27,7 +27,7 @@ test.beforeEach(async ({ page }) => {
 test('S10: click a thumbnail, press Delete, nothing changes', async ({ page }) => {
   await thumb(page, 3).click();
   // The click navigates: page 3 is current, focused, and not selected.
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 6 · /);
   await expect(thumb(page, 3)).toBeFocused();
   await expect(thumb(page, 3)).toHaveAttribute('aria-current', 'page');
   await expect(thumb(page, 3)).toHaveAttribute('aria-selected', 'false');
@@ -36,7 +36,7 @@ test('S10: click a thumbnail, press Delete, nothing changes', async ({ page }) =
   await page.keyboard.press('Backspace');
   // Arrow keys navigate as well; they select nothing either.
   await page.keyboard.press('ArrowDown');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 4 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^4 \/ 6 · /);
   await page.keyboard.press('Delete');
 
   await expect(pagesTab(page, 6)).toBeVisible();

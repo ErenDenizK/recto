@@ -110,7 +110,7 @@ test('replace a word in the Helvetica line, export, re-open: the edited line rea
 }) => {
   await openFonts(page);
   const before = await search(page, 'fox');
-  await expect(page.getByTestId('status-search')).toContainText(/of \d+/);
+  await expect(page.getByTestId('find-count')).toContainText(/of \d+/);
   const foxBefore = await before.count();
   expect(foxBefore).toBeGreaterThan(1);
   await page.keyboard.press('Escape');

@@ -726,7 +726,7 @@ test('a press on a link that travels past the slop selects text and does not fol
   await expect(link).toBeVisible({ timeout: 20_000 });
   const box = await link.boundingBox();
   if (!box) throw new Error('no link');
-  const pageNumber = page.getByTestId('status-pages');
+  const pageNumber = page.getByTestId('page-pill');
   const shown = await pageNumber.textContent();
   await page.mouse.move(box.x + 3, box.y + box.height / 2);
   await page.mouse.down();
@@ -737,5 +737,5 @@ test('a press on a link that travels past the slop selects text and does not fol
   await expect(pageNumber).toHaveText(shown ?? '');
   // A click within the slop follows it.
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-  await expect(pageNumber).toHaveText('Page 4 of 6');
+  await expect(pageNumber).toHaveText(/^4 \/ 6 · /);
 });

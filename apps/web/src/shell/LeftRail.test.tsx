@@ -1,7 +1,7 @@
 /**
- * The navigator (experience-redesign §4.1, §10): four labelled tabs with counts in their
- * accessible names, Compare's Changes only in Compare and last, a roving tabindex, the
- * Pages tab's Bookmarks switch (remembered), and the tabs' panels.
+ * The sidebar's slot (01-frame F1; redesign D2-1, the rail removed): four labelled tabs in a row
+ * with counts in their accessible names, Compare's Changes only in Compare and last, a roving
+ * tabindex, only in a document, the Pages tab's Bookmarks switch (remembered), and the panels.
  */
 import { act, cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -34,7 +34,8 @@ beforeEach(() => {
   resetEditRunner();
   resetAnnotationStore();
   resetFormStore();
-  useUiStore.setState({ ...DEFAULT_LAYOUT, docUi: {} });
+  // The sidebar shows only in a document (an earlier test may leave the Library shown).
+  useUiStore.setState({ ...DEFAULT_LAYOUT, docUi: {}, destination: 'document' });
 });
 afterEach(async () => {
   await whenIdle();
@@ -44,22 +45,22 @@ afterEach(async () => {
 });
 
 describe('Navigator', () => {
-  it('shows four labelled tabs; counts are in the names and on the badges', async () => {
+  it('shows four labelled tabs in a row; counts are in the names, matches and review items on badges', async () => {
+    await open(formsAUrl, 'forms-a.pdf');
     render(<LeftRail />);
-    expect(tabNames()).toEqual(['Pages', 'Find', 'Review', 'Files']);
     expect(
       within(rail())
         .getAllByRole('tab')
-        .map((tab) => tab.textContent),
+        .map((tab) => tab.querySelector('span')?.textContent),
     ).toEqual(['Pages', 'Find', 'Review', 'Files']);
-
-    await open(formsAUrl, 'forms-a.pdf');
     await expect.poll(() => tabNames()[2]).toMatch(/^Review, \d+ items$/);
     expect(tabNames()[0]).toBe('Pages, 2 items');
     expect(tabNames()[1]).toBe('Find');
     expect(tabNames()[3]).toBe('Files, 1 item');
-    expect(screen.getByTestId('rail-count-pages')).toHaveTextContent('2');
+    // The page count is the pill's and the file count the tabs': no badge for either.
+    expect(screen.queryByTestId('rail-count-pages')).toBeNull();
     expect(screen.queryByTestId('rail-count-find')).toBeNull();
+    expect(screen.getByTestId('rail-count-review')).toBeVisible();
   });
 
   it('caps the badge at 99+ and hides it at 0', () => {
@@ -69,21 +70,29 @@ describe('Navigator', () => {
     expect(badgeText(100)).toBe('99+');
   });
 
-  it('adds Changes only in Compare, after the four', () => {
+  it('adds Changes only in Compare, after the four', async () => {
+    await open(formsAUrl, 'forms-a.pdf');
     render(<LeftRail />);
     act(() => useUiStore.getState().showCompare());
-    expect(tabNames()).toEqual(['Pages', 'Find', 'Review', 'Files', 'Changes']);
+    expect(tabNames().map((name) => name?.split(',')[0])).toEqual([
+      'Pages',
+      'Find',
+      'Review',
+      'Files',
+      'Changes',
+    ]);
     act(() => useUiStore.getState().showSurface('page'));
-    expect(tabNames()).toEqual(['Pages', 'Find', 'Review', 'Files']);
+    expect(tabNames()).toHaveLength(4);
   });
 
-  it('is a tablist with a roving tabindex; Enter opens, the open tab again collapses', async () => {
+  it('is a horizontal tablist with a roving tabindex; Enter shows, the shown tab again closes', async () => {
+    await open(formsAUrl, 'forms-a.pdf');
     render(<LeftRail />);
     const tabs = within(rail()).getAllByRole('tab');
     expect(tabs.map((tab) => tab.tabIndex)).toEqual([0, -1, -1, -1]);
-    expect(rail()).toHaveAttribute('aria-orientation', 'vertical');
+    expect(rail()).toHaveAttribute('aria-orientation', 'horizontal');
     tabs[0]?.focus();
-    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}');
     expect(tabs[2]).toHaveFocus();
     expect(tabs.map((tab) => tab.tabIndex)).toEqual([-1, -1, 0, -1]);
     await userEvent.keyboard('{Enter}');
@@ -99,23 +108,19 @@ describe('Navigator', () => {
     expect(useUiStore.getState().leftPanelOpen).toBe(false);
   });
 
-  it('stays collapsed while no file is open and reopens as it was when one opens', async () => {
+  it('shows only in a document, as it was: not with no file, not on the Library', async () => {
     useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'review' });
     render(<LeftRail />);
-    expect(screen.queryByRole('tabpanel')).toBeNull();
-    expect(within(rail()).queryByRole('tab', { selected: true })).toBeNull();
+    expect(screen.queryByRole('tablist', { name: 'Navigator views' })).toBeNull();
     // The stored state is untouched.
     expect(useUiStore.getState().leftPanelOpen).toBe(true);
 
     await open(formsAUrl, 'forms-a.pdf');
     expect(await screen.findByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'rail-review');
-
-    // A tab picked while no file is open opens the panel anyway.
-    act(() => resetWorkspace());
+    act(() => useUiStore.getState().showHome());
     expect(screen.queryByRole('tabpanel')).toBeNull();
-    await userEvent.click(within(rail()).getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'rail-files');
-    expect(screen.getByText('No files open')).toBeVisible();
+    act(() => useUiStore.getState().showSurface('page'));
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'rail-review');
   });
 
   it('switches Pages to Bookmarks and remembers it', async () => {

@@ -560,10 +560,6 @@ test.describe('axe', () => {
     page,
   }) => {
     await openSimple(page);
-    // Read carries its mode without colour: the lock glyph and the name (craft spec §9).
-    const read = page.getByRole('radio', { name: 'Read, locked' });
-    await expect(read).toHaveAttribute('aria-checked', 'true');
-    await expect(read.getByTestId('read-lock')).toBeVisible();
     await expect(bar(page).getByRole('button', { name: 'Edit', exact: true })).toHaveAttribute(
       'aria-keyshortcuts',
       '2',
@@ -968,7 +964,9 @@ test.describe('craft spec §9', () => {
     await selectionBar.getByRole('button', { name: 'Mark up…' }).focus();
     await page.keyboard.press('Enter');
     // The Edit row on the same selection, the focus on its first markup.
-    await expect(page.getByRole('radio', { name: 'Edit' })).toHaveAttribute('aria-checked', 'true');
+    await expect(
+      page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Select', exact: true }),
+    ).toBeVisible();
     await expect(
       selectionBar.getByRole('button', { name: 'Underline', exact: true }),
     ).toBeVisible();

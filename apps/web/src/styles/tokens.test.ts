@@ -918,7 +918,7 @@ describe('tokens.css', () => {
 
     it('makes the docked surfaces compose the frame and paint no background of their own', () => {
       const docked = import.meta.glob<string>(
-        '../shell/{TabBar,LeftRail,RightPanel,StatusBar}.module.css',
+        '../shell/{frame/TopStrip,frame/CompactTopBar,LeftRail,RightPanel}.module.css',
         { query: '?raw', import: 'default', eager: true },
       );
       expect(Object.keys(docked)).toHaveLength(4);
@@ -1092,7 +1092,9 @@ describe('tokens.css', () => {
       // there (the TextLayer hint is solid: at 22 px it is under quality-bar Q-5's 32 px), and
       // the compact edition adds three, the toast stack (D0-5) one and the Sheet primitive one
       // (D0-4: one panel, an entry per presentation), and the pinch detent chip one (D2-10).
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(23);
+      // The frame (D2-1) trades the title and status bars for the top strip, the compact bar
+      // and the page pill: one more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(24);
     });
 
     it('gives a one-row menu the short blur in ui/Menu', () => {

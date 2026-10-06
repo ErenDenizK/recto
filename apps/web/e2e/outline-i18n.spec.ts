@@ -23,7 +23,7 @@ async function showBookmarks(page: Page): Promise<void> {
 test('the outline panel shows the bookmarks and navigates Read mode', async ({ page }) => {
   await page.goto('./?lang=en');
   await openFixtures(page, ['outline-named-dests.pdf']);
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 
   await showBookmarks(page);
   const tree = page.getByRole('tree', { name: /Outline of/ });
@@ -38,7 +38,7 @@ test('the outline panel shows the bookmarks and navigates Read mode', async ({ p
   );
 
   await tree.getByRole('treeitem', { name: 'Appendix' }).click();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 6 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^6 \/ 6 · /);
 
   // Keyboard (APG tree): collapse, expand, walk into the children, activate one.
   await chapter2.focus();
@@ -56,10 +56,10 @@ test('the outline panel shows the bookmarks and navigates Read mode', async ({ p
   await page.keyboard.press('ArrowRight');
   await expect(tree.getByRole('treeitem', { name: '2.2.1 Details' })).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 5 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^5 \/ 6 · /);
   await page.keyboard.press('Home');
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 });
 
 test('?lang= overrides the language without persisting it', async ({ page }) => {

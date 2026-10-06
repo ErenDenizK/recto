@@ -28,8 +28,7 @@
   transform: translateY(calc(var(--away-y, 0px) - var(--rise)));
   transition:
     transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out);
+    opacity var(--duration-fast) var(--ease-out);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -39,18 +38,17 @@
   }
 }
 
+/* The states' washes over the glass tint (09-primitives §2.3), as a layer of its own so the
+   tint, rim and elevation stay the glass recipe's. */
 @media (hover: hover) {
   .pill:hover {
-    box-shadow:
-      inset 0 0 0 100vmax rgb(var(--white-rgb) / 0.045),
-      var(--elevation-float);
+    background-image: linear-gradient(var(--surface-hover), var(--surface-hover));
   }
 }
 
+.pill:active,
 .pill[aria-expanded='true'] {
-  box-shadow:
-    inset 0 0 0 100vmax rgb(var(--white-rgb) / 0.075),
-    var(--elevation-float);
+  background-image: linear-gradient(var(--surface-active), var(--surface-active));
 }
 
 /* Rises above a bar it would touch (spec 01.6): 8 px above the bar's top. */

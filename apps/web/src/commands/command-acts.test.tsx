@@ -22,6 +22,7 @@ import { registerSettingsCommands } from '../settings/settings-commands';
 import { CommandPalette } from '../shell/CommandPalette';
 import { registerAppearanceCommands } from '../shell/appearance-commands';
 import { registerSignatureCommands } from '../signatures/signature-commands';
+import { registerFocusCommands } from '../shell/frame/focus-mode';
 import { registerArrangeCommands } from '../stage/arrange-commands';
 import { resolveSectionItem, sectionMenuItems } from '../stage/section-menu';
 import { type Act, isAct } from '../state/guard';
@@ -42,6 +43,7 @@ function registerEverything(registry: CommandRegistry): () => void {
     registerSignatureCommands(registry),
     registerAppearanceCommands(registry),
     registerSettingsCommands(registry),
+    registerFocusCommands(registry),
   ];
   return () => {
     for (const dispose of disposers) dispose();

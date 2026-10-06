@@ -21,7 +21,7 @@ test.beforeEach(async ({ page, context, browserName }) => {
   }
   await page.goto('./?lang=en');
   await openFixtures(page, ['outline-named-dests.pdf']);
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 });
 
 const mod = (page: Page) =>
@@ -84,7 +84,7 @@ test('finds text, steps through the hits and clears with Escape', async ({ page 
   await expect(page.getByTestId('search-hint')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Next result' })).toBeVisible();
 
-  const status = page.getByTestId('status-search');
+  const status = page.getByTestId('find-count');
   await expect(status).toContainText('1 of 6');
   await expect(page.getByTestId('search-hit')).toHaveCount(6);
   // Mod+F shows the navigator's Find tab, its count in the name.
@@ -96,10 +96,10 @@ test('finds text, steps through the hits and clears with Escape', async ({ page 
 
   await field.press('Enter');
   await expect(status).toContainText('2 of 6');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 2 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^2 \/ 6 · /);
   await field.press('Enter');
   await expect(status).toContainText('3 of 6');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 6 · /);
   await field.press('Shift+Enter');
   await expect(status).toContainText('2 of 6');
   await page.keyboard.press('F3');
@@ -151,16 +151,16 @@ test('the navigator has four tabs with counts; the inspector starts closed', asy
 
 test('an internal link navigates; an external one asks first', async ({ page }) => {
   await page.keyboard.press(']');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 2 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^2 \/ 6 · /);
 
   const links = page.locator('[data-page-index="1"] [data-link]');
   await expect(links).toHaveCount(3);
   await page.getByRole('button', { name: 'Go to page 4' }).click();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 4 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^4 \/ 6 · /);
 
   await page.keyboard.press('[');
   await page.keyboard.press('[');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 2 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^2 \/ 6 · /);
   let popups = 0;
   page.on('popup', () => {
     popups += 1;
@@ -174,21 +174,32 @@ test('an internal link navigates; an external one asks first', async ({ page }) 
 });
 
 test('go to page accepts numbers; Home and End jump to the ends', async ({ page }) => {
+  // Go to page lives in the page pill's menu; Mod+G opens it on the field (01-frame F11 §6).
   await page.keyboard.press(`${await mod(page)}+g`);
-  const input = page.getByRole('textbox', { name: 'Page number or label' });
+  const input = page.getByRole('textbox', { name: 'Go to page' });
+  await expect(input).toBeFocused();
   await input.fill('9');
-  await expect(page.getByText('No page “9”')).toBeVisible();
+  await input.press('Enter');
+  await expect(page.getByText('Pages 1–6')).toBeVisible();
   await input.fill('5');
   await input.press('Enter');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 5 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^5 \/ 6 · /);
   await page.keyboard.press('End');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 6 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^6 \/ 6 · /);
   await page.keyboard.press('Home');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 });
 
+/** Picks a page layout in the page pill's menu (01-frame F11), where the layout switch went. */
+async function chooseLayout(page: Page, name: string): Promise<void> {
+  await page.getByTestId('page-pill').click();
+  await page.getByTestId('page-pill-menu').getByRole('radio', { name }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('page-pill-menu')).toHaveCount(0);
+}
+
 test('two-up layout shows pages side by side', async ({ page }) => {
-  await page.getByRole('radio', { name: 'Two pages' }).click();
+  await chooseLayout(page, 'Two pages');
   const left = page.locator('[data-page-index="0"]');
   const right = page.locator('[data-page-index="1"]');
   await expect(right).toBeVisible();
@@ -200,27 +211,25 @@ test('two-up layout shows pages side by side', async ({ page }) => {
   await expect(page.locator('main canvas[data-state="rendered"]').first()).toBeVisible();
 
   await page.keyboard.press(']');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 6');
-  await page.getByRole('radio', { name: 'Continuous' }).click();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 6 · /);
+  await chooseLayout(page, 'Continuous');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 6 · /);
 });
 
-test('the status bar keeps page, privacy and zoom; the view switch lives over the stage', async ({
+test('the frame: the page pill has page and zoom, ◎ the privacy; no mode switch (D2-1)', async ({
   page,
 }) => {
-  const status = page.getByRole('contentinfo');
-  await expect(status.getByTestId('status-pages')).toHaveText('Page 1 of 6');
-  await expect(status.getByTestId('privacy-indicator')).toBeVisible();
-  await expect(status.getByRole('button', { name: 'Zoom in' })).toBeVisible();
-  await expect(status.getByRole('button', { name: 'Read mode' })).toHaveCount(0);
-  await expect(status.getByRole('button', { name: 'Arrange pages' })).toHaveCount(0);
-  // Read (locked) · Edit · Arrange; Home is the app glyph, not a segment (ADR-0019 §1–§2).
-  const modes = page.getByRole('radiogroup', { name: 'View mode' }).getByRole('radio');
-  await expect(modes).toHaveText(['Read', 'Edit', 'Arrange']);
-  await expect(modes.first()).toHaveAccessibleName('Read, locked');
-  for (const [index, key] of ['1', '2', '3'].entries()) {
-    await expect(modes.nth(index)).toHaveAttribute('aria-keyshortcuts', key);
-  }
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · \d+%$/);
+  await expect(page.getByTestId('privacy-indicator')).toBeVisible();
+  await expect(page.getByRole('contentinfo')).toHaveCount(0);
+  await expect(page.getByRole('radiogroup', { name: 'View mode' })).toHaveCount(0);
+  // Zoom moved into the pill's menu (01-frame F11 §5).
+  await page.getByTestId('page-pill').click();
+  const menu = page.getByTestId('page-pill-menu');
+  await expect(menu.getByRole('button', { name: 'Zoom in' })).toBeVisible();
+  await expect(menu.getByRole('radio', { name: 'Fit width' })).toBeChecked();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('page-pill')).toBeFocused();
 });
 
 /** A PDF with 500 annotations, 50 on each of 10 pages: notes, squares and pen strokes. */
@@ -325,7 +334,7 @@ test('Read mode renders pages after Arrange without a resize', async ({ page }) 
   await page.keyboard.press('1');
   await expect(page.locator('[data-read-viewport] [data-page-index="0"]')).toBeVisible();
   await expect(readBitmap(page)).toBeVisible({ timeout: 5_000 });
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 });
 
 // Regression (M6 review): the fitted zoom kept the viewport centre in place across a resize,
@@ -390,7 +399,7 @@ test('a document opened in Read mode renders its pages, and so does the tab left
   await expect(readBitmap(page)).toBeVisible({ timeout: 5_000 });
 
   await page.getByRole('tab', { name: 'outline-named-dests' }).click();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
   await expect(readBitmap(page)).toBeVisible({ timeout: 5_000 });
 });
 
@@ -404,10 +413,10 @@ test('screenshots of find and the two-up layout (design review)', async ({ brows
   await page.keyboard.press(`${await mod(page)}+f`);
   const field = page.getByRole('searchbox', { name: 'Find in document' });
   await field.fill('page');
-  await expect(page.getByTestId('status-search')).toContainText('1 of 7');
+  await expect(page.getByTestId('find-count')).toContainText('1 of 7');
   await field.press('Enter');
   await field.press('Enter');
-  await expect(page.getByTestId('status-search')).toContainText('3 of 7');
+  await expect(page.getByTestId('find-count')).toContainText('3 of 7');
   await expect(
     page.locator('[data-read-viewport] canvas[data-state="rendered"]').first(),
   ).toBeVisible();
@@ -416,9 +425,9 @@ test('screenshots of find and the two-up layout (design review)', async ({ brows
 
   await field.press('Escape');
   await page.getByRole('tab', { name: /^Pages/ }).click();
-  await page.getByRole('radio', { name: 'Two pages' }).click();
+  await chooseLayout(page, 'Two pages');
   await page.keyboard.press('Home');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 6');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
   await expect(page.locator('[data-page-index="1"] canvas[data-state="rendered"]')).toBeVisible();
   await page.mouse.move(720, 450);
   await page.waitForTimeout(500);
