@@ -1101,7 +1101,8 @@ describe('tokens.css', () => {
       // Library selection bar one (D4-1). The frame (D2-1) trades the title and status bars for
       // the top strip, the compact bar and the page pill: one more. The capsule (D2-2) takes the
       // tool bar's glass into its own module; the Markup palette (D2-3) is content inside it, its
-      // ink strip a row of the capsule's glass, so the bar's module and its options tier go.
+      // ink strip a row of the capsule's glass, so the bar's module and its options tier go. The
+      // Pages grid (D2-5) trades the Arrange bar for its header, docked frame material.
       expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(25);
     });
 
