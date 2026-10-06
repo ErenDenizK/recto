@@ -36,8 +36,21 @@
   color: var(--text-secondary);
 }
 
+.wellMenu,
+.rowMenu {
+  display: contents;
+}
+
 @media (min-width: 1280px) and (pointer: fine) {
-  .well {
+  .well,
+  .wellMenu {
+    display: none;
+  }
+}
+
+/* Below 1280 px (and on coarse pointers) the results ⋯ sits in the field, beside ‹ ›. */
+@media not ((min-width: 1280px) and (pointer: fine)) {
+  .rowMenu {
     display: none;
   }
 }
@@ -67,6 +80,12 @@
   outline: none;
 }
 
+/* The well draws the ring (above); the input inside it draws none of its own. */
+.input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .input::placeholder {
   color: var(--text-tertiary);
 }
@@ -85,6 +104,13 @@
 
 .spacer {
   flex: 1;
+}
+
+/* The option chips may shorten (ellipsis; the full name stays their accessible name) so the
+   results ⋯ keeps its place on the row. */
+.option {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .count {

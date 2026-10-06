@@ -4607,5 +4607,6 @@
       }
     }
   ],
-  "review_words_low": "Low confidence · {confidence}"
+  "review_words_low": "Low confidence · {confidence}",
+  "find_match_case_chip": "Match case"
 }

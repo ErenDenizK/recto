@@ -2994,5 +2994,6 @@
   "review_filter_words": "Kontrol edilecek sözcükler",
   "review_words_empty": "Kontrol edilecek sözcük yok",
   "review_words_recognised": "{count} sayfa tanındı",
-  "review_words_low": "Düşük güven · {confidence}"
+  "review_words_low": "Düşük güven · {confidence}",
+  "find_match_case_chip": "Büyük/küçük harf"
 }

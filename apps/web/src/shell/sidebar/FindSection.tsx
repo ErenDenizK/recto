@@ -192,20 +192,33 @@ function FindView({ doc }: { readonly doc: VirtualDocument }) {
               />
             </>
           ) : null}
+          {hits.length > 0 ? (
+            <span className={styles.wellMenu}>
+              <ResultsMenu count={hits.length} busy={status === 'searching'} />
+            </span>
+          ) : null}
         </div>
         <div className={styles.row}>
           <Chip
-            label={m.search_match_case()}
+            label={m.find_match_case_chip()}
+            name={m.search_match_case()}
             pressed={matchCase}
+            className={styles.option}
             onClick={() => setSearchOptions({ matchCase: !matchCase })}
           />
           <Chip
             label={m.search_whole_word()}
             pressed={wholeWord}
+            className={styles.option}
             onClick={() => setSearchOptions({ wholeWord: !wholeWord })}
           />
           <span className={styles.spacer} />
-          {hasQuery ? <ResultsMenu count={hits.length} busy={status === 'searching'} /> : null}
+          {/* From 1280 px the strip holds the field, so the results ⋯ sits on this row. */}
+          {hits.length > 0 ? (
+            <span className={styles.rowMenu}>
+              <ResultsMenu count={hits.length} busy={status === 'searching'} />
+            </span>
+          ) : null}
         </div>
       </div>
       {textlessCount > 0 ? (
