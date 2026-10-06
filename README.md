@@ -43,7 +43,7 @@ content under each mark instead of drawing a box over it.
 **Drag pages from one PDF into another.**
 Every open document is a section of the light table, and bookmarks, links, page labels and
 form fields go with their pages or are reconciled on export
-([e2e](apps/web/e2e/light-table.spec.ts), [golden files](packages/engine/test/merge-golden.test.ts)).
+([e2e](apps/web/e2e/pages-grid.spec.ts), [golden files](packages/engine/test/merge-golden.test.ts)).
 An export always writes a new file, so signatures in a source are removed, and the export
 dialog says so.
 
