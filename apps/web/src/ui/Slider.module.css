@@ -63,7 +63,7 @@
   --sl-lens-rim: rgb(255 255 255 / 0.7);
   --sl-e1: var(--e1);
   --sl-e2: var(--e2);
-  --sl-ambient: 0 2px 6px rgb(0 0 0 / 0.22);
+  --sl-ambient: 0 2px 6px rgb(0 0 0 / 0.18);
   --sl-checker-a: rgb(255 255 255 / 0.3);
   --sl-checker-b: rgb(255 255 255 / 0.12);
   --sl-bubble-fill: var(--surface-raised);
