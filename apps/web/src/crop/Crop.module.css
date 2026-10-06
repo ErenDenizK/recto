@@ -157,7 +157,7 @@
 .banner {
   composes: glass from global;
   position: fixed;
-  top: calc(var(--titlebar-height) + var(--space-3));
+  top: calc(var(--free-top, var(--bar-h)) + var(--space-3));
   right: 0;
   left: 0;
   z-index: 50;

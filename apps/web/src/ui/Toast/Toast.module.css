@@ -25,7 +25,9 @@
   /* FB4 §2: the action's visible capsule and ✕'s circle. */
   --toast-action-h: 28px;
   --toast-close-d: 24px;
-  --toast-band: calc(var(--statusbar-height) + var(--space-5) + var(--bar-h) + var(--space-3));
+  /* 12 px above the dock band (01-frame F13 §2): the free rectangle's bottom inset is the band
+     with its offset, the offset alone in Focus, and 0 on the Library (frame-insets.ts). */
+  --toast-band: calc(var(--free-bottom, 0px) + var(--space-3));
   position: fixed;
   right: 0;
   bottom: var(--toast-band);

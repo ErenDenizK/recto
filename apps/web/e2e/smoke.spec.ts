@@ -14,45 +14,35 @@ test('the application shell loads', async ({ page }) => {
   await expect(page.getByTestId('app-shell')).toBeVisible();
 });
 
-test('the status bar stays put while the privacy popover opens and closes', async ({ page }) => {
+test('the frame stays put while the privacy popover opens and closes', async ({ page }) => {
   await useFileInputPicker(page);
   await page.goto('./');
   await openFixtures(page, ['simple-text.pdf']);
-  const label = page.getByTestId('status-pages');
-  await expect(label).toHaveText('Page 1 of 3');
-  const bar = await page.locator('footer').boundingBox();
-  const before = await label.boundingBox();
-  expect(bar).not.toBeNull();
-  expect(before).not.toBeNull();
-  // Nothing overflows the bar's left group, so nothing there can scroll it.
-  expect(
-    await label.evaluate((el) => {
-      const group = el.parentElement;
-      return group ? group.scrollWidth - group.clientWidth : -1;
-    }),
-  ).toBe(0);
+  // The page and zoom live in the page pill (01-frame F11), where the status bar showed them.
+  const pill = page.getByTestId('page-pill');
+  await expect(pill).toHaveText(/^1 \/ 3 · /);
+  const strip = page.locator('[data-bar="title"]');
+  const before = { strip: await strip.boundingBox(), pill: await pill.boundingBox() };
+  expect(before.strip).not.toBeNull();
 
-  // Keyboard only: focus the trigger, open with Enter, close with Escape.
+  // Keyboard only: focus ◎, open with Enter, close with Escape (01-frame F8).
   const trigger = page.getByTestId('privacy-indicator');
   const popover = page.getByRole('dialog');
   await trigger.focus();
   await page.keyboard.press('Enter');
   await expect(popover).toBeVisible();
-  expect((await label.boundingBox())?.x).toBe(before?.x);
   await page.keyboard.press('Escape');
   await expect(popover).toBeHidden();
   await expect(trigger).toBeFocused();
-  expect((await label.boundingBox())?.x).toBe(before?.x);
 
-  // A click scrolls the trigger into view first; that used to shift the bar 8px left.
   await trigger.click();
   await expect(popover).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(popover).toBeHidden();
 
-  // The label keeps its place and its first letter ("Page", not "age").
-  expect((await label.boundingBox())?.x).toBe(before?.x);
-  expect(before?.x).toBeGreaterThanOrEqual(bar?.x ?? Number.POSITIVE_INFINITY);
+  // Nothing in the frame moved.
+  expect(await strip.boundingBox()).toEqual(before.strip);
+  expect(await pill.boundingBox()).toEqual(before.pill);
 });
 
 test('the start card says what several files do, in both languages', async ({ page }) => {
@@ -76,10 +66,7 @@ test('the palette finds commands by keywords in both languages, without diacriti
   await page.goto('./?lang=en');
   const search = async (query: string) => {
     // The shortcut is registered when the shell mounts; a press before that is lost.
-    await page
-      .getByRole('button', { name: /^(Search commands|Komut ara)/ })
-      .first()
-      .waitFor();
+    await page.getByTestId('home-button').waitFor();
     await page.keyboard.press('ControlOrMeta+k');
     const input = page.getByRole('combobox', { name: /^(Search commands|Komut ara)$/ });
     await input.fill(query);

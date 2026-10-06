@@ -85,13 +85,12 @@ test.describe('light table', () => {
     await expect(grid(page, 'simple-text')).toBeVisible();
     await expect(grid(page, 'rotated-pages')).toBeVisible();
     await expect(grid(page, 'forms-a')).toBeVisible();
-    await expect(page.getByTestId('status-shown')).toHaveText('3 documents shown');
+    await expect(page.getByRole('grid')).toHaveCount(3);
 
     await page.getByRole('tab', { name: 'rotated-pages' }).click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'Hide from Arrange' }).click();
     await expect(page.getByRole('grid')).toHaveCount(2);
     await expect(grid(page, 'rotated-pages')).toHaveCount(0);
-    await expect(page.getByTestId('status-shown')).toHaveText('2 documents shown');
 
     await page.getByRole('tab', { name: 'rotated-pages' }).click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'Show in Arrange' }).click();

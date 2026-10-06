@@ -12,6 +12,16 @@ body,
   height: 100%;
 }
 
+/* The frame fills the dynamic viewport and the page never rubber-bands the whole app
+   (01-frame F1 §9; research 19 M-23). */
+#root {
+  height: 100dvh;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
 html {
   color-scheme: dark;
   background: var(--canvas);

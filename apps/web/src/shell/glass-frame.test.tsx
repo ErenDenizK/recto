@@ -26,12 +26,9 @@ function frame() {
     if (!el) throw new Error(`no ${selector}`);
     return getComputedStyle(el);
   };
-  return {
-    shell,
-    title: pick('header'),
-    navigator: pick('[data-region="navigator"]'),
-    status: pick('footer'),
-  };
+  // The top strip (01-frame F2); the sidebar shows only in a document and the status bar is
+  // gone (D2-1), so the strip is the frame with no document open.
+  return { shell, title: pick('header') };
 }
 
 const blurOf = (style: CSSStyleDeclaration) =>
@@ -49,35 +46,35 @@ describe('the docked frame', () => {
 
   it('stays the opaque --surface-1 frame with Glass panels off', () => {
     render(<App />);
-    const { shell, title, navigator, status } = frame();
+    const { shell, title } = frame();
     expect(shell).toHaveAttribute('data-stage-bleed');
-    for (const style of [title, navigator, status]) {
+    for (const style of [title]) {
       expect(style.backgroundColor).toBe(SURFACE_1);
       expect(['', 'none']).toContain(blurOf(style));
       expect(style.boxShadow).toBe('none');
     }
-    // The stage sits under the frame.
-    expect(title.zIndex).toBe('1');
+    // The stage sits under the frame (the strip is the top layer, AppShell.module.css).
+    expect(title.zIndex).toBe('4');
   });
 
   it('makes every frame surface glass while Glass panels is on, with no page near too', async () => {
     render(<App />);
     act(() => useAppearanceStore.getState().setGlassPanels(true));
     await waitFor(() => expect(document.documentElement).toHaveAttribute('data-glass-panels'));
-    const { shell, title, navigator, status } = frame();
+    const { shell, title } = frame();
     // Nothing is open: no page anywhere, and the frame is glass all the same (review F7).
     expect(shell.hasAttribute('data-glass-near')).toBe(false);
-    for (const style of [title, navigator, status]) {
-      // σ 5: a fifth of the 28 px status bar, the shortest frame bar (coverage registry, D0-1).
+    for (const style of [title]) {
+      // σ 5 at the 44 px strip (coverage registry, D0-1).
       expect(blurOf(style)).toBe('blur(5px) saturate(1.5) brightness(0.45)');
       expect(style.backgroundColor).toBe('rgba(30, 32, 38, 0.74)');
     }
     // No shadow on docked glass: the inner top highlight only, on every surface.
-    for (const style of [title, navigator, status]) {
+    for (const style of [title]) {
       expect(style.boxShadow).toMatch(/^rgba\(255, 255, 255, 0\.06\) 0px 1px 0px 0px inset$/);
     }
     // Text steps up to the glass ladder at once, so nothing jumps when the blur turns on.
-    expect(status.getPropertyValue('--text-secondary').trim()).toBe('#bbbec3');
+    expect(title.getPropertyValue('--text-secondary').trim()).toBe('#bbbec3');
 
     act(() => useAppearanceStore.getState().setReduceTransparency(true));
     await waitFor(() =>

@@ -51,11 +51,11 @@ test('edit the outline, export, and read the new tree back', async ({ page }, te
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await openFixtures(page, ['outline-named-dests.pdf']);
-  const status = page.getByTestId('status-pages');
-  await expect(status).toHaveText('Page 1 of 6');
+  const status = page.getByTestId('page-pill');
+  await expect(status).toHaveText(/^1 \/ 6 · /);
 
   await page.keyboard.press(']');
-  await expect(status).toHaveText('Page 2 of 6');
+  await expect(status).toHaveText(/^2 \/ 6 · /);
   // Scroll a little into page 2: the bookmark remembers the position (/XYZ top).
   const page2 = page.locator('[data-page-index="1"]');
   const box = await page2.boundingBox();
@@ -63,7 +63,7 @@ test('edit the outline, export, and read the new tree back', async ({ page }, te
   await page.mouse.move(box.x + box.width / 2, box.y + 100);
   await page.mouse.wheel(0, 150);
   await expect.poll(async () => (await page2.boundingBox())?.y ?? 0).toBeLessThan(box.y - 100);
-  await expect(status).toHaveText('Page 2 of 6');
+  await expect(status).toHaveText(/^2 \/ 6 · /);
 
   await showBookmarks(page);
   const tree = page.getByRole('tree', { name: /Outline of/ });
@@ -98,7 +98,7 @@ test('edit the outline, export, and read the new tree back', async ({ page }, te
   );
   // Clicking the bookmark still navigates to its page.
   await added.click();
-  await expect(status).toHaveText('Page 2 of 6');
+  await expect(status).toHaveText(/^2 \/ 6 · /);
 
   // 4. Export under a new name, verified by the PDFium pass, and download.
   const dialog = await openSaveCopy(page);
@@ -162,7 +162,7 @@ test('edit the outline, export, and read the new tree back', async ({ page }, te
   );
   expect(levels).toEqual(expected);
   await reopened.getByRole('treeitem', { name: 'Appendix A' }).click();
-  await expect(status).toHaveText('Page 6 of 6');
+  await expect(status).toHaveText(/^6 \/ 6 · /);
   await reopened.getByRole('treeitem', { name: 'Methods overview' }).click();
-  await expect(status).toHaveText('Page 2 of 6');
+  await expect(status).toHaveText(/^2 \/ 6 · /);
 });

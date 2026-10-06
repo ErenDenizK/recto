@@ -81,7 +81,7 @@ test('adds page numbers to rotated pages, exports them and reads them back', asy
   await page.keyboard.press(`${await mod(page)}+f`);
   const field = page.getByRole('searchbox', { name: 'Find in document' });
   await field.fill('of 4');
-  await expect(page.getByTestId('status-search')).toContainText('of 4');
+  await expect(page.getByTestId('find-count')).toContainText('of 4');
   await expect(page.getByTestId('search-hit')).toHaveCount(4);
   await field.fill('Page 3 of 4');
   await expect(page.getByTestId('search-hit')).toHaveCount(1);

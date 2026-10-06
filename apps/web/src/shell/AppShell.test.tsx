@@ -6,7 +6,7 @@ import {
 } from '@pdf-editor/document-model';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { userEvent } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 
 import { App } from '../app';
 import { currentPlatform } from '../commands/shortcuts';
@@ -16,7 +16,9 @@ import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 const MOD = currentPlatform === 'mac' ? 'Meta' : 'Control';
 
 describe('AppShell', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // The strip and its tabs from the medium class up (01-frame F2); narrower is the compact bar.
+    await page.viewport(1440, 900);
     useUiStore.setState({
       // A test that runs "Arrange pages" must not leave the next one in Arrange.
       docUi: {},
@@ -27,11 +29,13 @@ describe('AppShell', () => {
     resetWorkspace();
   });
 
-  it('renders the shell with the empty state and privacy indicator', () => {
+  it('renders the shell with the empty state and the privacy shield', () => {
     render(<App />);
     expect(screen.getByTestId('app-shell')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
-    expect(screen.getByText(/external requests?/)).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Privacy: nothing has left this device' }),
+    ).toBeVisible();
   });
 
   it('opens the command palette on Mod+K with focus in the input, and closes on Esc', async () => {

@@ -388,11 +388,9 @@
   --space-12: 48px;
 
   /* Shell metrics. --control-height is the M8 row and field height (28 px); controls take
-     --control-h from the density below. The title bar is a bar of Q-9's set: 44 px around 32 px
-     controls (56 coarse, §4). The navigator holds an icon, an 11 px label and a count. */
-  --titlebar-height: 44px;
-  --statusbar-height: 28px;
-  --rail-width: 64px;
+     --control-h from the density below. The frame (01-frame F1) has no fixed metrics of its
+     own: the top strip is a --bar-h bar and every layer reports its box, so the free rectangle
+     is measured (--free-top|right|bottom|left on :root, shell/frame/frame-insets.ts). */
   --control-height: 28px;
 
   /* The focus ring's offsets (language.md §9.2; styles/focus.css). */
@@ -537,8 +535,6 @@
     /* iOS zooms into a field set under 16 px (language.md §4.2). */
     --field-text: 16px;
     --press-scale: 0.94;
-    /* The title bar holds 44 px controls on a coarse pointer: a 56 px bar (Q-9's coarse bar). */
-    --titlebar-height: 56px;
   }
 }
 

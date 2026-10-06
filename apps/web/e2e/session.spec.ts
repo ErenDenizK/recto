@@ -116,7 +116,7 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   await page.keyboard.press('2');
   await page.keyboard.press(']');
   await page.keyboard.press(']');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 3');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 3 · /);
   await page.getByRole('button', { name: /^Zoom \d+%/ }).click();
   await page.getByRole('menuitemradio', { name: '150%' }).click();
   await expect(page.getByRole('button', { name: /^Zoom 150%/ })).toBeVisible();
@@ -127,7 +127,7 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   const notice = page.getByTestId('session-notice');
   await expect(notice).toContainText('Restored simple-text');
   await expect(notice.getByRole('button', { name: 'Start fresh' })).toBeVisible();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 3');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 3 · /);
   await expect(page.getByRole('button', { name: /^Zoom 150%/ })).toBeVisible();
   // Markup is never restored (redesign spec §7): the document comes back in viewing.
   await expect(page.getByRole('radio', { name: /^Edit$/ })).toHaveAttribute(
@@ -285,7 +285,7 @@ test('a closed document reopens from Recents with its change and no file picker'
   });
   await row.click();
   await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
-  await expect(page.getByTestId('status-pages')).toHaveText(/of 2$/);
+  await expect(page.getByTestId('page-pill')).toHaveText(/ \/ 2 · /);
   expect(picked).toBe(false);
 });
 

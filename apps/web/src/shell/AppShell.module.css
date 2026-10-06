@@ -13,6 +13,9 @@
   position: relative;
   width: 100%;
   height: 100%;
+  /* Every layer is positioned, so nothing in flow gives the shell a height: it takes the
+     window's even where its parent has none (a test's container). */
+  min-height: 100dvh;
   min-width: 0;
   overflow: hidden;
   background: var(--canvas);

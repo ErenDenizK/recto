@@ -31,6 +31,8 @@ const STATUS = 28;
 const RIGHT = 300;
 /** PAD_X in ReadView: the fitted page keeps this much canvas on either side. */
 const PAD_X = 48;
+/** PAD_TOP in ReadView: the first page rests 24 px below the frame, clear of the soft edge. */
+const PAD_TOP = 24;
 
 function activeDocument(): VirtualDocument {
   const { workspace } = useWorkspaceStore.getState();
@@ -122,7 +124,7 @@ describe('Read mode: full-bleed stage', () => {
         expect(Math.abs((sheet?.width ?? 0) - (free - 2 * PAD_X))).toBeLessThanOrEqual(1);
         expect(Math.abs((sheet?.left ?? 0) - (left + PAD_X))).toBeLessThanOrEqual(1);
         // Below the title bar and the stage header, with the top padding.
-        expect(Math.abs((sheet?.top ?? 0) - (TITLE + HEADER + 16))).toBeLessThanOrEqual(1);
+        expect(Math.abs((sheet?.top ?? 0) - (TITLE + HEADER + PAD_TOP))).toBeLessThanOrEqual(1);
       });
       return useUiStore.getState().zoom;
     };
@@ -181,7 +183,7 @@ describe('Read mode: full-bleed stage', () => {
     // At rest the first page sits clear of the title bar and the stage header…
     await waitFor(() => {
       const top = firstPage(container)?.getBoundingClientRect().top ?? 0;
-      expect(Math.abs(top - (TITLE + HEADER + 16))).toBeLessThanOrEqual(1);
+      expect(Math.abs(top - (TITLE + HEADER + PAD_TOP))).toBeLessThanOrEqual(1);
     });
     // …the pages run on under the status bar; scrolled, the first one's top edge passes under
     // the title bar.

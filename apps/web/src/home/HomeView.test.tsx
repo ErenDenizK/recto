@@ -34,7 +34,7 @@ import {
 import { setLocale } from '../i18n';
 import { closeOperationDialog } from '../stage/operation-dialogs-store';
 import { useAnnouncer } from '../shell/announcer';
-import { stageView, useUiStore } from '../state/ui-store';
+import { isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { HOME_CARD_TYPE } from './HomeView';
 
@@ -57,6 +57,9 @@ const FILES: Readonly<Record<string, string>> = {
 const ws = () => useWorkspaceStore.getState().workspace;
 /** What the stage shows: Home or a document view. */
 const shown = () => stageView(useUiStore.getState());
+/** Markup open on the active document (the M8 control's Edit; the frame shows it in the dock). */
+const markupOpen = () =>
+  isMarkupOpen(useUiStore.getState(), useWorkspaceStore.getState().workspace.activeDocument);
 const titleOf = (id: DocumentId | undefined) =>
   id === undefined ? undefined : ws().documents[id]?.title;
 
@@ -357,8 +360,7 @@ describe('Home', () => {
 
   it('opens a card in Read on a double click; Home has no mode control', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf');
-    const segment = () => screen.getByRole('radiogroup', { name: 'View mode' });
-    const glyph = () => screen.getByRole('button', { name: 'Home' });
+    const glyph = () => screen.getByTestId('home-button');
     // Home is a view of the open files (ADR-0019 §1): no Read · Edit · Arrange, no tab
     // selected, the glyph current.
     expect(screen.queryByRole('radiogroup', { name: 'View mode' })).toBeNull();
@@ -373,12 +375,9 @@ describe('Home', () => {
       expect(shown()).toBe('page');
     });
     expect(titleOf(ws().activeDocument ?? undefined)).toBe('rotated-pages');
-    expect(
-      within(segment())
-        .getAllByRole('radio')
-        .map((radio) => radio.textContent),
-    ).toEqual(['Read', 'Edit', 'Arrange']);
-    expect(within(segment()).getByRole('radio', { name: 'Read, locked' })).toBeChecked();
+    // No mode control in the frame any more (D2-1): the page, with Markup closed.
+    expect(screen.queryByRole('radiogroup', { name: 'View mode' })).toBeNull();
+    expect(markupOpen()).toBe(false);
     expect(glyph()).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('tab', { name: 'rotated-pages', selected: true })).toBeVisible();
 
@@ -409,15 +408,14 @@ describe('Home', () => {
     await userEvent.keyboard('0');
     await userEvent.click(screen.getByRole('tab', { name: 'simple-text' }));
     expect(shown()).toBe('page');
-    const segment = screen.getByRole('radiogroup', { name: 'View mode' });
-    expect(within(segment).getByRole('radio', { name: 'Read, locked' })).toBeChecked();
-    // The mode is per document: rotated-pages stays in Edit on the shared page view.
+    expect(markupOpen()).toBe(false);
+    // Markup is per document: rotated-pages stays in it on the shared page view.
     act(() => useWorkspaceStore.getState().setActive(rotated));
-    expect(within(segment).getByRole('radio', { name: 'Edit' })).toBeChecked();
+    expect(markupOpen()).toBe(true);
     await userEvent.keyboard('1');
-    expect(within(segment).getByRole('radio', { name: 'Read, locked' })).toBeChecked();
+    expect(markupOpen()).toBe(false);
     await userEvent.keyboard('2');
-    expect(within(segment).getByRole('radio', { name: 'Edit' })).toBeChecked();
+    expect(markupOpen()).toBe(true);
   });
 
   it('starts over after the last document closes: Home, then the next file in Read', async () => {
@@ -426,7 +424,7 @@ describe('Home', () => {
       for (const id of ids) useWorkspaceStore.getState().closeDocument(id);
     });
     expect(screen.getByTestId('home')).toHaveAttribute('data-variant', 'empty');
-    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByTestId('home-button')).toHaveAttribute('aria-current', 'page');
     expect(useUiStore.getState()).toMatchObject({
       destination: 'document',
       docUi: {},

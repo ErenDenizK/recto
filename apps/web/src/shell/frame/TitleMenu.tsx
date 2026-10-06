@@ -177,8 +177,7 @@ function Header({
           {first ? <Thumb workspace={workspace} page={first} /> : null}
         </div>
         <div className={styles.identityText}>
-          {/* Keyed by the title: a rename elsewhere (a section header, Undo) starts the field again. */}
-          <NameField key={doc.title} doc={doc} inputRef={nameRef} />
+          <NameField doc={doc} inputRef={nameRef} />
           <p className={styles.facts}>{facts}</p>
           <p className={styles.status} data-testid="title-menu-status">
             {status}
@@ -247,6 +246,13 @@ function NameField({
 }) {
   const [draft, setDraft] = useState(doc.title);
   const [problem, setProblem] = useState<string | null>(null);
+  // A rename elsewhere (a section header, Undo, this field's own Enter) shows here: the draft
+  // follows the title whenever the title changes (state derived during render).
+  const [seen, setSeen] = useState(doc.title);
+  if (seen !== doc.title) {
+    setSeen(doc.title);
+    setDraft(doc.title);
+  }
   const allowed = useCanChange(doc.id, 'document');
   const hintId = useId();
 

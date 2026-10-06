@@ -189,7 +189,9 @@ export const FRAME_LAYER = {
   sidebar: '[data-frame-layer="sidebar"]',
   side: '[data-frame-layer="side"]',
   band: '[data-frame-layer="band"]',
-  bandItem: '[data-band-item]',
+  // The page pill marks itself; the dock (today's floating tool bar, D2-2's capsule) is the
+  // band's toolbar.
+  bandItem: '[data-band-item], [data-frame-layer="band"] [data-region="toolbar"]',
 } as const;
 
 /** The element if it takes space (present and not `display: none`), else null. */

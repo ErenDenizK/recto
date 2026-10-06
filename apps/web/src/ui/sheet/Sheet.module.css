@@ -46,7 +46,7 @@
 
 /* Side sheet: 8 px from the title bar, the trailing edge and the bottom (07 §2.2). */
 .panel[data-presentation='side'] {
-  top: calc(var(--titlebar-height) + 8px);
+  top: calc(var(--free-top, var(--bar-h)) + 8px);
   bottom: 8px;
   inset-inline-end: 8px;
   width: min(var(--sheet-w), calc(100vw - 16px));
