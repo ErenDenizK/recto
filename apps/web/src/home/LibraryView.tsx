@@ -27,7 +27,7 @@ import { Launcher } from './Launcher';
 import { LibraryFooter } from './LibraryFooter';
 import { LibraryGrid } from './LibraryGrid';
 import { LibraryHead } from './LibraryHead';
-import { setSelecting, useSelecting } from './library-store';
+import { enterSelecting, setSelecting, useSelecting } from './library-store';
 import styles from './LibraryView.module.css';
 import { RecentList } from './RecentList';
 import { SelectionBar } from './SelectionBar';
@@ -93,8 +93,10 @@ function LibraryWithCards({
       if (target instanceof HTMLElement && target.closest('[role="dialog"], [role="menu"]')) {
         return;
       }
-      if (selection.length > 0) useUiStore.getState().setHomeSelection([], null);
-      else setSelecting(false);
+      if (selection.length > 0) {
+        enterSelecting();
+        useUiStore.getState().setHomeSelection([], null);
+      } else setSelecting(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

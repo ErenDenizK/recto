@@ -51,16 +51,11 @@
   "search_commands_placeholder": "Search commands…",
   "right_panel_hide": "Hide right panel",
   "right_panel_show": "Show right panel",
-  "empty_title": "Drop PDFs to start",
-  "empty_title_dragging": "Release to open",
   "empty_body_local": "Files open on this device and are never uploaded.",
-  "empty_body_combine": "Drop PDFs here or open them. With two or more open you can combine them on Home or from the Document menu, arrange their pages together or compare them.",
-  "empty_hints_label": "Get started",
   "keyboard_shortcuts": "Keyboard shortcuts",
   "stage_start_label": "Start",
   "stage_no_pages_title": "No pages left",
   "stage_no_pages_body": "Undo brings deleted pages back.",
-  "stage_drop_overlay": "Drop to open in new tabs",
   "view_mode_label": "View mode",
   "mode_read": "Read",
   "mode_arrange": "Arrange",
@@ -3548,7 +3543,6 @@
       }
     }
   ],
-  "home_drop_combine": "Combine with {title}",
   "combined_title_two": "Combined – {first} + {second}",
   "combined_title_more": "Combined – {first} + {count} more",
   "home_combine_description": "Pages are joined in this order into a new document; the files stay open. Use the arrows to change the order.",
@@ -3588,7 +3582,6 @@
     }
   ],
   "home_combine_confirm": "Combine",
-  "home_modified": "Modified {date}",
   "home_announce_closed": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

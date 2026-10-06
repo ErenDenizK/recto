@@ -105,6 +105,7 @@ export default defineConfig({
       name: 'tablet',
       testMatch: [
         '**/smoke.spec.ts',
+        '**/library.spec.ts',
         '**/long-press.spec.ts',
         '**/history.spec.ts',
         '**/tab-strip.spec.ts',

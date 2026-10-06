@@ -34,6 +34,9 @@ let queue: Promise<unknown> = Promise.resolve();
 export function recentThumb(snapshotId: string): Promise<RecentThumb | null> {
   const known = cache.get(snapshotId);
   if (known) return known;
+  // Before the session has opened its storage there is nothing to read yet: ask again later
+  // (the row asks once the session says it keeps documents) rather than remember "none".
+  if (!snapshotStorage()) return Promise.resolve(null);
   // One render at a time, after the ones asked for before.
   const next = queue.then(() => render(snapshotId)).catch(() => null);
   queue = next;

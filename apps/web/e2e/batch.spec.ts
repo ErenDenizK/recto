@@ -113,7 +113,9 @@ test('runs "Number pages" over two files and downloads a ZIP of numbered PDFs', 
   });
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
 
   await page.keyboard.press('ControlOrMeta+k');
   await page.getByRole('combobox', { name: 'Search commands' }).fill('batch');
@@ -167,7 +169,9 @@ test('runs "Number pages" over two files and downloads a ZIP of numbered PDFs', 
   // Files never became tabs.
   await dialog.getByRole('button', { name: 'Close' }).first().click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
 });
 
 test('runs a Markdown recipe over dropped files and downloads the text', async ({ page }) => {
@@ -176,7 +180,9 @@ test('runs a Markdown recipe over dropped files and downloads the text', async (
       "Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });",
   });
   await page.goto('./?lang=en');
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
 
   await page.keyboard.press('ControlOrMeta+k');
   await page.getByRole('combobox', { name: 'Search commands' }).fill('batch');
@@ -260,7 +266,9 @@ test('runs a Markdown recipe over dropped files and downloads the text', async (
   // Files never became tabs.
   await dialog.getByRole('button', { name: 'Close' }).first().click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
 });
 
 test('runs "Scan to searchable" over a scan and downloads a searchable PDF', async ({
@@ -284,7 +292,9 @@ test('runs "Scan to searchable" over a scan and downloads a searchable PDF', asy
   });
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
 
   await page.keyboard.press('ControlOrMeta+k');
   await page.getByRole('combobox', { name: 'Search commands' }).fill('batch');
@@ -331,5 +341,7 @@ test('runs "Scan to searchable" over a scan and downloads a searchable PDF', asy
   // The file never became a tab.
   await dialog.getByRole('button', { name: 'Close' }).first().click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
 });

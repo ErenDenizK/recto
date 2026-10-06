@@ -60,7 +60,9 @@ test('the shell and the engine work offline after one visit', async ({ page, con
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByTestId('app-shell')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
   // Really offline: anything not in a cache fails.
   const reachable = await page.evaluate(() =>
     fetch('./not-cached.txt', { cache: 'no-store' }).then(

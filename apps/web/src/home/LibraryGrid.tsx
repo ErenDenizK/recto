@@ -360,8 +360,11 @@ export function LibraryGrid({
         if (!selecting) return;
         event.preventDefault();
         event.stopPropagation();
-        if (selection.length > 0) selectOnHome([], current);
-        else setSelecting(false);
+        // The ladder (L1 §6): the checks first, staying in Select mode, then the mode.
+        if (selection.length > 0) {
+          enterSelecting();
+          selectOnHome([], current);
+        } else setSelecting(false);
         return;
     }
   };
