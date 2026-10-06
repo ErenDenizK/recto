@@ -165,7 +165,7 @@ describe('the registry is the key map’s one source', () => {
     }
     const places = groups.find((g) => g.group === 'places')?.rows.map((r) => r.id);
     expect(places).toEqual(['view.home', 'mode.read', 'mode.edit', 'mode.arrange', 'mode.compare']);
-    // On a selection reads as flows §7.2 lists it: H U S X, copy, then Delete.
+    // On a selection reads as flows §7.2 lists it: H U S X, then copy.
     const selection = groups.find((g) => g.group === 'selection')?.rows.map((r) => r.id);
     expect(selection).toEqual([
       'selection.highlight',
@@ -173,10 +173,23 @@ describe('the registry is the key map’s one source', () => {
       'tool.strikeout',
       'selection.redact',
       'selection.copy',
+    ]);
+    // Commands: ⌘K, ?, Settings, F6, then Esc's ladder and Delete on an object.
+    expect(groups.find((g) => g.group === 'commands')?.rows.map((r) => r.id)).toEqual([
+      'view.palette',
+      'help.shortcuts',
+      'settings.open',
+      'commands.regions',
+      'row.escape',
       'row.delete-object',
     ]);
     // The tools in the palette's order, Select first; the steps through lists close View.
-    expect(groups.find((g) => g.group === 'tools')?.rows[0]?.id).toBe('tool.select');
+    expect(
+      groups
+        .find((g) => g.group === 'tools')
+        ?.rows.slice(0, 4)
+        .map((r) => r.id),
+    ).toEqual(['tool.select', 'tool.ink', 'tool.highlighter', 'tool.eraser']);
     expect(
       groups
         .find((g) => g.group === 'view')

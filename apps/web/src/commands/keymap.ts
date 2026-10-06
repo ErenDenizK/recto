@@ -77,7 +77,8 @@ export interface KeymapEntry {
 
 /**
  * Where each bound command is listed (flows §7.2's areas mapped onto S22's groups), in the
- * order the overlay reads them; the tools follow the palette's order (registration).
+ * order the overlay reads them. A tool this table does not name (a new one) is listed with
+ * the tools, after them.
  */
 export const KEYMAP_ENTRIES: Readonly<Record<string, KeymapEntry>> = {
   // Places: 0 1 M/2 3 4.
@@ -86,11 +87,26 @@ export const KEYMAP_ENTRIES: Readonly<Record<string, KeymapEntry>> = {
   'mode.edit': { group: 'places' },
   'mode.arrange': { group: 'places' },
   'mode.compare': { group: 'places' },
-  // On a selection: the text markups that have no palette place (MK-2), Delete.
+  // Tools: open Markup and arm, in the palette's order (MK-2), the Highlighter beside the pen.
+  'tool.select': { group: 'tools' },
+  'tool.ink': { group: 'tools' },
+  'tool.highlighter': { group: 'tools' },
+  'tool.eraser': { group: 'tools' },
+  'tool.lasso': { group: 'tools' },
+  'tool.rectangle': { group: 'tools' },
+  'tool.ellipse': { group: 'tools' },
+  'tool.line': { group: 'tools' },
+  'tool.arrow': { group: 'tools' },
+  'tool.text-box': { group: 'tools' },
+  'tool.note': { group: 'tools' },
+  'tool.image': { group: 'tools' },
+  'tool.stamp': { group: 'tools' },
+  'tool.signature': { group: 'tools' },
+  'tool.edit-text': { group: 'tools' },
+  'tool.redact': { group: 'tools' },
+  // On a selection (of text): the text markups that have no palette place (MK-2).
   'tool.underline': { group: 'selection', title: m.keymap_row_underline },
   'tool.strikeout': { group: 'selection', title: m.keymap_row_strikeout },
-  'annotation.delete': { group: 'selection', row: 'delete-object' },
-  'image.delete': { group: 'selection', row: 'delete-object' },
   // Pages.
   'pages.selectAll': { group: 'pages' },
   'pages.rotateRight': { group: 'pages' },
@@ -144,12 +160,15 @@ export const KEYMAP_ENTRIES: Readonly<Record<string, KeymapEntry>> = {
   'view.leaveFocus': { group: 'commands', row: 'escape' },
   'grid.done': { group: 'commands', row: 'escape' },
   'compare.leave': { group: 'commands', row: 'escape' },
+  // Delete on a selected annotation or image (a page's Delete is under Pages).
+  'annotation.delete': { group: 'commands', row: 'delete-object' },
+  'image.delete': { group: 'commands', row: 'delete-object' },
   // History.
   'edit.undo': { group: 'history' },
   'edit.redo': { group: 'history' },
 };
 
-/** Where a bound command is listed: its entry, or Tools for every tool key. */
+/** Where a bound command is listed: its entry, or Tools for a tool key it does not name. */
 export function keymapEntry(id: string): KeymapEntry | undefined {
   const entry = KEYMAP_ENTRIES[id];
   if (entry) return entry;
