@@ -231,6 +231,67 @@ test(
   },
 );
 
+test.describe('in the light theme (spec D3-7)', () => {
+  test.use({ colorScheme: 'light' });
+
+  test(
+    'the palette over a white page renders the floored light bar within 2 levels',
+    { tag: '@pixels' },
+    async ({ page, browserName }, testInfo) => {
+      test.skip(browserName !== 'chromium', APP_SURFACES_CHROMIUM_ONLY);
+      await openBlankPage(page, testInfo.outputPath('white-page.pdf'));
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+      await page.keyboard.press('2');
+      const bar = page.locator('[data-markup-palette]');
+      await expect(bar.locator('[data-labelled]').first()).toBeVisible();
+      await page.mouse.move(340, 450);
+      const barBox = await bar.boundingBox();
+      const pageBox = await page.locator('[data-page-index="0"]').first().boundingBox();
+      if (!barBox || !pageBox) throw new Error('bar or page not laid out');
+      expect(pageBox.x).toBeLessThan(barBox.x - 40);
+      // The left padding of the unarmed labelled tool nearest the middle: glass and nothing else.
+      const group = await bar.evaluate((el) => {
+        const middle = el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2;
+        const groups = [...el.querySelectorAll<HTMLElement>('[data-labelled]')]
+          .filter((g) => g.getAttribute('aria-pressed') !== 'true')
+          .map((g) => g.getBoundingClientRect());
+        groups.sort(
+          (a, b) =>
+            Math.abs(a.left + a.width / 2 - middle) - Math.abs(b.left + b.width / 2 - middle),
+        );
+        const r = groups[0];
+        return r ? { x: r.left } : null;
+      });
+      if (!group) throw new Error('no group on the bar');
+      const centreY = barBox.y + barBox.height / 2;
+      const image = await fullViewportPixels(page);
+      await testInfo.attach('light bar over a white page', {
+        body: await page.screenshot({ animations: 'disabled' }),
+        contentType: 'image/png',
+      });
+      const sample = median4x4(image, group.x + 4, centreY - 2);
+      expect(median4x4(image, pageBox.x + 40, centreY - 2), 'the page beside the bar').toEqual(
+        WHITE,
+      );
+      const model = glassModel(await glassStyle(page.locator('[data-capsule]')), WHITE);
+      // The composite tokens.test.ts asserts for the light bar tier (M2) over white.
+      expect(hex(model)).toBe('#fbfbfd');
+      expect(
+        channelDistance(sample, model),
+        `rendered ${hex(sample)} against the model ${hex(model)}`,
+      ).toBeLessThanOrEqual(2);
+      const primary = tokenColour('--text-primary', 'light');
+      const secondary = tokenColour('--glass-text-secondary', 'light');
+      testInfo.annotations.push({
+        type: 'light bar over white',
+        description: `rendered ${hex(sample)}, model ${hex(model)}; primary ${contrastRatio(primary, sample).toFixed(2)}:1, glass secondary ${contrastRatio(secondary, sample).toFixed(2)}:1`,
+      });
+      expect(contrastRatio(primary, sample)).toBeGreaterThanOrEqual(15);
+      expect(contrastRatio(secondary, sample)).toBeGreaterThanOrEqual(9);
+    },
+  );
+});
+
 /** The four edge samples: 4 px inside each side at its middle (09-primitives §28). */
 const EDGE_INSET = 4;
 
