@@ -103,17 +103,38 @@ test('a side sheet of 480 px from expanded up, a form sheet on the tablet, glass
   await expect(panel.getByRole('button', { name: /About Recto/ })).toBeFocused();
 });
 
+/**
+ * The Glass row's control: a segmented control, or the menu it becomes where the row is too
+ * narrow for its three segments (09-primitives §6; the tablet's form sheet at 44 px).
+ */
+const glassRow = (page: Page) => sheet(page).locator('[data-row="glass"]');
+
+async function expectGlass(page: Page, value: 'Clear' | 'Tinted' | 'Solid'): Promise<void> {
+  const menu = glassRow(page).getByRole('combobox', { name: 'Glass' });
+  if ((await menu.count()) > 0) await expect(menu).toContainText(value);
+  else await expect(glassRow(page).getByRole('radio', { name: value })).toBeChecked();
+}
+
+async function chooseGlass(page: Page, value: 'Clear' | 'Tinted' | 'Solid'): Promise<void> {
+  const menu = glassRow(page).getByRole('combobox', { name: 'Glass' });
+  if ((await menu.count()) > 0) {
+    await menu.click();
+    await page.getByRole('option', { name: value, exact: true }).click();
+  } else {
+    await glassRow(page).getByRole('radio', { name: value }).click();
+  }
+}
+
 test('Glass: Clear · Tinted · Solid applies at once, persists, and ⌘K sets it (A-17)', async ({
   page,
 }) => {
   await page.goto('./?lang=en');
   await openSettings(page);
-  const glass = sheet(page).getByRole('radiogroup', { name: 'Glass' });
   // Nothing picked: the start state (Clear under the test-only render override, X36).
-  await expect(glass.getByRole('radio', { name: 'Clear' })).toBeChecked();
+  await expectGlass(page, 'Clear');
   await expect(page.locator('html')).toHaveAttribute('data-glass', 'clear');
-  await glass.getByRole('radio', { name: 'Tinted' }).click();
-  await expect(glass.getByRole('radio', { name: 'Tinted' })).toBeChecked();
+  await chooseGlass(page, 'Tinted');
+  await expectGlass(page, 'Tinted');
   await expect(page.locator('html')).toHaveAttribute('data-glass', 'tinted');
   // The sheet itself shows the effect: its tint is now at 0.90.
   const tint = await sheet(page).evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -128,9 +149,7 @@ test('Glass: Clear · Tinted · Solid applies at once, persists, and ⌘K sets i
   await palette(page, 'Glass solid', 'Glass: Solid');
   await expect(page.locator('html')).toHaveAttribute('data-glass', 'solid');
   await openSettings(page);
-  await expect(
-    sheet(page).getByRole('radiogroup', { name: 'Glass' }).getByRole('radio', { name: 'Solid' }),
-  ).toBeChecked();
+  await expectGlass(page, 'Solid');
   // Solid: no backdrop filter on the sheet.
   const filter = await sheet(page).evaluate((el) => getComputedStyle(el).backdropFilter || 'none');
   expect(filter).toBe('none');
@@ -146,7 +165,7 @@ test('search finds each row in English and Turkish, and says when nothing matche
   if (info.project.name === TABLET) {
     // A coarse pointer starts on the first row, so no keyboard pops up (07 S3 §6).
     await expect(
-      panel.getByRole('radiogroup', { name: 'Glass' }).getByRole('radio', { name: 'Clear' }),
+      glassRow(page).locator('[role="radio"][aria-checked="true"], [role="combobox"]').first(),
     ).toBeFocused();
     await search.click();
   } else {

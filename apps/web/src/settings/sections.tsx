@@ -100,7 +100,7 @@ export function GlassRow() {
         labelHidden
         description={system ? m.settings_glass_system() : m.settings_glass_hint()}
       >
-        <div className={styles.segmented}>
+        <div className={styles.segmented} data-values="3">
           <Segmented<GlassSetting>
             label={m.settings_glass()}
             value={value}
