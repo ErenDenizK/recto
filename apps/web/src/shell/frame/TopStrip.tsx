@@ -22,7 +22,6 @@
  * The inspector toggle stays at the trailing end until the inspector leaves (D2-9, spec 3.9).
  */
 
-import { FurnitureDialogs } from '../../furniture';
 import { m } from '../../i18n';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
 import { useUiStore } from '../../state/ui-store';
@@ -34,7 +33,6 @@ import { FindEntry } from './FindEntry';
 import { tabDomId } from './ids';
 import { LibraryButton } from './LibraryButton';
 import { LibraryMenu } from './LibraryMenu';
-import { ReplacePopover } from './ReplacePopover';
 import { SaveButton } from './SaveButton';
 import { SidebarToggle } from './SidebarToggle';
 import { TitleMenu } from './TitleMenu';
@@ -82,8 +80,6 @@ export function TopStrip() {
         )}
       </div>
       {onLibrary ? null : <TitleMenu anchor={activeTabElement} />}
-      <FurnitureDialogs />
-      <ReplacePopover />
     </header>
   );
 }

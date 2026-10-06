@@ -46,6 +46,7 @@ import { clamp, MAX_ZOOM, MIN_ZOOM, useUiStore } from '../state/ui-store';
 import { type ReadLayout, useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { SOFT_EDGE } from '../shell/frame/frame-insets';
+import { SIZE_CLASS_MIN_WIDTH } from '../shell/frame/size-class';
 import styles from '../shell/Stage.module.css';
 import { type Box, userRectToCss } from '../viewer/geometry';
 import {
@@ -70,6 +71,8 @@ import { type Insets, scrollbarSize, scrollbarsNeeded, useStageBleed } from './s
 import { useCanvasZoom, type ZoomColumn } from './use-canvas-zoom';
 
 const PAD_X = 48;
+/** The widest fitted row of pages from xlarge, CSS px (01-frame F1 §2). */
+const XLARGE_FIT_CAP = 1100;
 /**
  * The first page rests, and jumps land, 24 px below the strip: clear of the soft scroll edge
  * (01-frame F1 §3, spec 01.9).
@@ -239,7 +242,11 @@ export function fitZooms(
 ): { width: number; page: number } {
   const width = el.clientWidth - view.left - view.right;
   const height = el.clientHeight - view.top - view.bottom;
-  const byWidth = (width - PAD_X * 2 - layout.maxGaps * GAP) / (layout.maxWidth * CSS_PX_PER_PT);
+  // From the xlarge class (the viewport spans the window) a fitted row is at most 1100 px of
+  // page: a line stays readable on a wide screen (01-frame F1 §2, research 19 M-11).
+  const room = width - PAD_X * 2 - layout.maxGaps * GAP;
+  const row = el.clientWidth >= SIZE_CLASS_MIN_WIDTH.xlarge ? Math.min(room, XLARGE_FIT_CAP) : room;
+  const byWidth = row / (layout.maxWidth * CSS_PX_PER_PT);
   const byHeight = (height - PAD_TOP - GAP) / (layout.maxHeight * CSS_PX_PER_PT);
   return {
     width: clamp(byWidth, MIN_ZOOM, MAX_ZOOM),

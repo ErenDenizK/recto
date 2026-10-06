@@ -30,6 +30,7 @@ import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
+import { FurnitureDialogs } from '../furniture';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
 import { OcrDialogHost } from '../ocr';
@@ -54,6 +55,7 @@ import { registerFocusCommands, watchFocusTap } from './frame/focus-mode';
 import { BAND_OFFSET, BAND_OFFSET_COMPACT, useFreeRect } from './frame/frame-insets';
 import { useFrameStore } from './frame/frame-store';
 import { useHideOnScroll } from './frame/hide-on-scroll';
+import { ReplacePopover } from './frame/ReplacePopover';
 import { useRegionCycling } from './frame/regions';
 import { useSizeClass } from './frame/size-class';
 import { SoftEdge } from './frame/SoftEdge';
@@ -178,6 +180,8 @@ export function AppShell() {
       <ConfirmHost />
       <BatchDialogHost />
       <OcrDialogHost />
+      <FurnitureDialogs />
+      <ReplacePopover />
       <ToastRegion />
       <LiveRegion />
     </TooltipProvider>
