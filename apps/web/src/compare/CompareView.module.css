@@ -99,6 +99,7 @@
 }
 
 .stripCell {
+  composes: technical from global;
   composes: focus-inset from global;
   display: grid;
   place-items: center;
@@ -108,7 +109,6 @@
   border-radius: var(--radius-1);
   background: var(--surface-1);
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: 1;
 }
@@ -204,9 +204,9 @@
 }
 
 .rowGlyph {
+  composes: technical from global;
   width: 12px;
   color: var(--text-primary);
-  font-family: var(--font-mono);
   text-align: center;
 }
 

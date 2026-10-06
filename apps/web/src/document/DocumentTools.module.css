@@ -254,12 +254,12 @@
 }
 
 .list {
+  composes: technical from global;
   max-height: 160px;
   margin: var(--space-1) 0 0;
   padding: 0;
   overflow-y: auto;
   list-style: none;
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: 18px;
 }
