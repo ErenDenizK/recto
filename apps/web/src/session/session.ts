@@ -35,12 +35,13 @@ import {
 import { getEngineService } from '../engine/engine-service';
 import { forgetKept, keepRecent, onKeptRemoved, useRecentsStore } from '../files/recents';
 import { m } from '../i18n';
+import { isSampleFile } from '../sample/sample-file';
 import { lockOf, useLockStore } from '../state/lock-store';
 import { adoptFileFacts, fileFactsOf } from '../state/saved-store';
 import { documentUi, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { readJson, writeJson } from '../state/safe-storage';
-import { useWorkspaceStore } from '../state/workspace-store';
+import { documentSources, type SourceFileInfo, useWorkspaceStore } from '../state/workspace-store';
 import type { DocumentPlace, KeptRecordV1 } from './format';
 import {
   claimTabLock,
@@ -183,6 +184,24 @@ function onBeforeUnload(event: BeforeUnloadEvent): void {
   event.returnValue = '';
 }
 
+/** Whether every source of document `id` is the teaching sample as the app opened it. */
+function isUnchangedSample(
+  ws: Workspace,
+  files: Readonly<Record<SourceId, SourceFileInfo>>,
+  id: DocumentId,
+): boolean {
+  const doc = ws.documents[id];
+  if (doc === undefined) return false;
+  const sources = documentSources(doc);
+  return (
+    sources.length > 0 &&
+    sources.every((source) => {
+      const info = files[source];
+      return info !== undefined && isSampleFile(info);
+    })
+  );
+}
+
 /** Keeps the writer told about every change worth keeping. */
 function watch(ctl: Controller): () => void {
   const { writer, tracker } = ctl;
@@ -200,7 +219,11 @@ function watch(ctl: Controller): () => void {
     // their blobs in the same change.
     if (closed.length > 0) {
       const { history, files, blobs, editBlobs } = previous;
-      writer.noteClosed(before, closed, { history, files, blobs, editBlobs });
+      // The teaching sample joins Recents only once changed (02-library 02.14).
+      const kept = closed.filter(
+        (id) => tracker.changed(before, id) || !isUnchangedSample(before, files, id),
+      );
+      writer.noteClosed(before, kept, { history, files, blobs, editBlobs });
     }
     if (added.length > 0) writer.noteReopened(added);
     const content =
