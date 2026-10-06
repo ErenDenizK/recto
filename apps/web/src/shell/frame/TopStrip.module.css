@@ -190,16 +190,21 @@
   background: var(--surface-on);
 }
 
+/* One row in every tab: tag, name, glyphs and ✕ right after them (2 px from the name's box, as
+   the glyphs sit), centred in the tab. A tab whose title is shorter than the minimum width
+   (F4 §2) shares the spare room equally on both sides, so ✕ never floats away from a short
+   name ("forms-a") while it hugs the others. ✕ keeps its place when hidden (fine pointers,
+   inactive tabs): no hover layout shift. */
 .tab {
   composes: focus-inset from global;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   width: 100%;
   height: 100%;
   min-width: 0;
-  /* Space for ✕ is always reserved: no hover layout shift. */
-  padding: 0 30px 0 var(--space-3);
+  padding: 0 4px 0 var(--space-3);
   border-radius: inherit;
   color: var(--text-secondary);
   font-size: var(--control-text);
@@ -267,10 +272,9 @@
 }
 
 .close {
-  position: absolute;
-  top: calc(50% - 12px);
-  right: 4px;
   display: grid;
+  flex: none;
+  margin-inline-start: -4px;
   place-items: center;
   width: 24px;
   height: 24px;
