@@ -50,7 +50,7 @@ import { Capsule } from '../capsule/Capsule';
 import { type CapsuleShape, useCapsuleShape } from '../capsule/capsule-content';
 import { openMarkupDoor } from '../../markup/doors';
 import { useStripKind } from '../../markup/InkStrip';
-import { MarkupPaletteContent } from '../../markup/MarkupPalette';
+import { MarkupPaletteContent, PaletteMeasurer } from '../../markup/MarkupPalette';
 import { useRovingTabindex } from '../../markup/roving';
 import { useStrokeFade } from '../../markup/stroke-fade';
 import styles from './Dock.module.css';
@@ -99,6 +99,8 @@ export function Dock() {
       >
         {(content) => <DockContent shape={content} doc={doc} />}
       </Capsule>
+      {/* Measures the palette ahead, so it arrives folded to the band (MK-2 §2). */}
+      <PaletteMeasurer />
     </div>
   );
 }

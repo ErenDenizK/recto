@@ -197,7 +197,7 @@ test('the pen editor and its colour views, pushed in place', async ({ page }) =>
   await open(page, 'simple-text.pdf');
   await enterEdit(page);
   await page.locator('body').press('p');
-  await page.getByRole('radio', { name: 'Black pen, 1.5 pt' }).click();
+  await page.getByRole('button', { name: 'Black pen, 1.5 pt', exact: true }).click();
   const editor = page.getByTestId('pen-preset-editor');
   await expect(editor).toBeVisible();
   await page.mouse.move(700, 200);
