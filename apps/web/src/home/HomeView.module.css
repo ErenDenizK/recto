@@ -114,7 +114,18 @@
   user-select: none;
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out);
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
+}
+
+/* *Press* on a large surface (language.md §7.3, spec 02.5): 0.98, or 0.96 under a finger, in
+   --duration-instant; released on --spring-press. Reduced motion: colour change only. */
+.card:active:not([data-drop-target]) {
+  transform: scale(var(--press-scale-large));
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
 }
 
 @media (hover: hover) {

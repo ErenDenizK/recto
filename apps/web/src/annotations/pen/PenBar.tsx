@@ -48,7 +48,7 @@ import {
 } from 'react';
 
 import { formatNumber, formatPercent, m } from '../../i18n';
-import { animateStyle, type Motion, reducedMotion, springToLinear } from '../../motion';
+import { animateStyle, type Motion, reducedMotion, sheetPush } from '../../motion';
 import { announce } from '../../shell/announcer';
 import type { PenBarProps } from '../../shell/FloatingToolbar.slots';
 import { useUiStore } from '../../state/ui-store';
@@ -225,24 +225,6 @@ export function PenBar({ armed, arm }: PenBarProps) {
 type EditorPage = 'preset' | 'colour';
 
 /**
- * *Sheet push* inside the popover (language §7.3, as Settings): the page that comes in slides
- * 24 px from the side it comes from and fades in; nothing stays on it at rest (Q-2).
- */
-function pushMotion(element: Element | null, direction: 1 | -1): void {
-  if (!(element instanceof HTMLElement) || typeof element.animate !== 'function') return;
-  const reduced = reducedMotion();
-  const frames = reduced
-    ? [{ opacity: 0 }, { opacity: 1 }]
-    : [
-        { transform: `translateX(${24 * direction}px)`, opacity: 0 },
-        { transform: 'none', opacity: 1 },
-      ];
-  const curve = reduced ? { duration: 150, easing: 'ease-out' } : springToLinear('smooth');
-  const animation = element.animate(frames, { duration: curve.duration, easing: curve.easing });
-  animation.onfinish = () => animation.cancel();
-}
-
-/**
  * Moves Base UI's positioner, which it places with `transform: translate(x, y)`, up by `dy` px
  * now. Base UI follows a size change of the popover on its next measure, a frame or more
  * late, which would bob a popover anchored above the bar; placed here first, its own update
@@ -358,7 +340,8 @@ function PresetEditor({
     const start = running?.value ?? from;
     // The height the positioner is placed for now: what it holds, else the page that left.
     const placed = held?.height ?? from;
-    pushMotion(popup.querySelector(`[data-editor-page="${page}"]`), page === 'colour' ? 1 : -1);
+    // *Sheet push* inside the popover (language §7.3, X8, as Settings).
+    sheetPush(popup.querySelector(`[data-editor-page="${page}"]`), page === 'colour' ? 1 : -1);
     if (Math.abs(to - start) >= 1 && !reducedMotion()) {
       if (pinned) {
         const hold = Math.max(start, to);

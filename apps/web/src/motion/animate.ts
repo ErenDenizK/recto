@@ -23,10 +23,11 @@
  * exactly to the target (the 0.1 % "CSS duration" rule of language.md §7.1).
  *
  * Under reduced motion (§7.5) a segment is instant and carries no momentum; a fade (opacity, or
- * a number marked `fade`) is kept on `track`, within 150 ms and without overshoot.
+ * a number marked `fade`) is kept, without overshoot, on `REDUCED_FADE`: `track`'s shape a
+ * little shorter, so that its last 120 Hz keyframe still lands inside A-9's 150 ms (D3-4).
  */
 import { reducedMotion } from './reduced-motion';
-import { energy, type Spring, type SpringName, solve, springOf, springs } from './springs';
+import { energy, type Spring, type SpringName, solve, spring, springOf } from './springs';
 
 /** A number, or a tuple of numbers moving together on one spring (`[x, y, scale]`). */
 export type MotionValue = number | readonly number[];
@@ -83,6 +84,12 @@ export type Styled = Element & ElementCSSInlineStyle;
 
 type Vec = number[];
 type State = [value: Vec, velocity: Vec, settled: boolean];
+
+/**
+ * The reduced fade (§7.5): critically damped like `track` (d 0.10 s), at d 0.09 s, so it settles
+ * (0.1 % energy) in about 140 ms where `track`'s 120 Hz keyframes ran to 158 ms.
+ */
+const REDUCED_FADE = spring(0.09);
 
 /** A segment ends when its energy has fallen to this fraction (0.1 % of the amplitude, squared). */
 const PRECISION = 1e-6;
@@ -186,7 +193,7 @@ function motion<T extends MotionValue>(
       // §7.5: under reduced motion a spatial move is instant and a fade runs on `track`; neither
       // carries momentum.
       core.g = reducedMotion()
-        ? segment(fade ? springs.track : null, value, vec(to), [])
+        ? segment(fade ? REDUCED_FADE : null, value, vec(to), [])
         : segment(springOf(o.spring), value, vec(to), v);
       if (!busy) finished = new Promise((r) => (resolve = r));
       busy = true;

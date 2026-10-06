@@ -56,8 +56,9 @@
   color: var(--text-primary);
   outline: none;
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  /* The slide on a spring (language.md §7.3 *sheet*), instant under reduced motion (§7.5). */
   transition:
-    transform var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring),
     background-color var(--duration-base) var(--ease-out) var(--duration-base),
     -webkit-backdrop-filter 0ms linear calc(2 * var(--duration-base)),
     backdrop-filter 0ms linear calc(2 * var(--duration-base));

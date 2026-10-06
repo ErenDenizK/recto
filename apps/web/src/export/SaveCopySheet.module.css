@@ -89,6 +89,10 @@
   }
 }
 
+:global(:root[data-motion='reduced']) .section {
+  animation: none;
+}
+
 .pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -197,6 +201,10 @@
   }
 }
 
+:global(:root[data-motion='reduced']) .chevron {
+  transition: none;
+}
+
 .disclosurePanel {
   display: grid;
   grid-column: 2;
@@ -210,6 +218,10 @@
   .disclosurePanel {
     animation: none;
   }
+}
+
+:global(:root[data-motion='reduced']) .disclosurePanel {
+  animation: none;
 }
 
 /* An honest line under a control: the outcome, a hint. */

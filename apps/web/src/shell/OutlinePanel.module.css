@@ -206,3 +206,7 @@
     transition: none;
   }
 }
+
+:global(:root[data-motion='reduced']) .toggle svg {
+  transition: none;
+}

@@ -33,6 +33,10 @@
   }
 }
 
+:global(:root[data-motion='reduced']) .sheet {
+  transition: none;
+}
+
 .body {
   display: grid;
   align-content: start;

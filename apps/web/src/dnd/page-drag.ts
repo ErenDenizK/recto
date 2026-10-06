@@ -13,6 +13,7 @@ import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/ut
 import type { DocumentId, PageId } from '@pdf-editor/document-model';
 
 import { targetPages } from '../commands/app-commands';
+import { reducedMotion } from '../motion/reduced-motion';
 import { useSelectionStore } from '../state/selection-store';
 import styles from './dnd.module.css';
 
@@ -48,10 +49,6 @@ export function pagesForDrag(pageId: PageId): PageId[] {
   return [pageId];
 }
 
-function prefersReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 /** Builds the preview into `container`: first thumbnail, stack and count badge. */
 export function renderDragPreview(
   container: HTMLElement,
@@ -63,7 +60,8 @@ export function renderDragPreview(
   const height = Math.max(24, Math.round(rect?.height ?? 124));
   const root = document.createElement('div');
   root.className = styles.preview ?? '';
-  if (prefersReducedMotion()) root.dataset.still = 'true';
+  // One source for reduced motion, the system's or the setting's (language.md §7.5, A-9).
+  if (reducedMotion()) root.dataset.still = 'true';
   root.style.width = `${width}px`;
   root.style.height = `${height}px`;
   if (count > 1) {
