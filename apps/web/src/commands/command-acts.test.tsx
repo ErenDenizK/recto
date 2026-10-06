@@ -64,7 +64,7 @@ const SPEC_ACTS: Readonly<Record<string, Act | null>> = {
   'pages.moveForward': 'pages',
   'pages.moveToStart': 'pages',
   'pages.insertBlank': 'pages',
-  'pages.extract': 'pages',
+  'pages.extract': null,
   'pages.cut': 'pages',
   'pages.paste': 'pages',
   'pages.crop': 'pages',

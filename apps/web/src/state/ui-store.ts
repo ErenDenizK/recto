@@ -51,6 +51,12 @@ export const DEFAULT_DOCUMENT_UI: DocumentUi = {
 /** What the stage shows: the Library, Compare, or the active document's surface. */
 export type StageView = 'home' | 'compare' | Surface;
 /**
+ * What the Pages grid shows (`components/06-navigation.md` PG2; flows §2.4): the active
+ * document's pages, or every open document as sections in tab order. Kept per device. Replaces
+ * M8's `arrangePinned` and `arrangeHidden` ("Hide from Arrange").
+ */
+export type GridScope = 'document' | 'all';
+/**
  * The sidebar's sections (`components/06-navigation.md` N1): Pages (thumbnails or Contents),
  * Find, Review. M8's Files tab is gone (the Library and the tabs list the open files). `changes`
  * is Compare's Changes list, which the sidebar's slot holds in Compare until the Compare place
@@ -90,6 +96,8 @@ export const ARRANGE_SIZES = [
   { label: 'XXL', width: 400 },
 ] as const;
 const DEFAULT_ARRANGE_SIZE = 1;
+/** The grid's scope and cell size until the person picks (PG2: This document, Medium). */
+export const DEFAULT_GRID = { scope: 'document', size: DEFAULT_ARRANGE_SIZE } as const;
 /** Read mode keeps zoom fitted to the stage while a fit mode is on. */
 export type FitMode = 'width' | 'page';
 export const MAX_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1] ?? 5;
@@ -220,6 +228,17 @@ export interface StoredLayout {
   readonly pagesView: PagesView;
   readonly reviewFilter: ReviewFilter;
   readonly inspector: { readonly open: boolean; readonly width: number };
+  /**
+   * The Pages grid's scope and cell size (PG2, per device). Written only when either differs
+   * from `DEFAULT_GRID`, so a layout stored before the grid had them reads as the default.
+   */
+  readonly grid?: { readonly scope: GridScope; readonly size: number };
+}
+
+/** The Pages grid's per-device choices (PG2): scope and cell size (an `ARRANGE_SIZES` index). */
+export interface GridPrefs {
+  readonly gridScope: GridScope;
+  readonly arrangeSize: number;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -256,9 +275,14 @@ export function parseLayout(value: unknown): PersistedLayout {
  * default: M8 opened the navigator for everyone, and M9 starts the sidebar closed for
  * everyone once (06.17), which then needs only the default to change.
  */
-export function toStoredLayout(layout: PersistedLayout): StoredLayout {
+export function toStoredLayout(layout: PersistedLayout & Partial<GridPrefs>): StoredLayout {
   const section = layout.leftPanelView === 'changes' ? 'pages' : layout.leftPanelView;
+  const scope = layout.gridScope ?? DEFAULT_GRID.scope;
+  const size = layout.arrangeSize ?? DEFAULT_GRID.size;
   return {
+    ...(scope === DEFAULT_GRID.scope && size === DEFAULT_GRID.size
+      ? {}
+      : { grid: { scope, size } }),
     sidebar: {
       ...(layout.leftPanelOpen === DEFAULT_LAYOUT.leftPanelOpen
         ? {}
@@ -269,6 +293,19 @@ export function toStoredLayout(layout: PersistedLayout): StoredLayout {
     pagesView: layout.pagesView,
     reviewFilter: layout.reviewFilter,
     inspector: { open: layout.rightPanelOpen, width: layout.rightPanelWidth },
+  };
+}
+
+/** The grid's scope and size from a stored `ui:v3`, field by field (defaults otherwise). */
+export function parseGridPrefs(value: unknown): GridPrefs {
+  const grid = record(record(value)?.grid) ?? {};
+  const size = grid.size;
+  return {
+    gridScope: grid.scope === 'all' ? 'all' : DEFAULT_GRID.scope,
+    arrangeSize:
+      typeof size === 'number' && Number.isInteger(size)
+        ? clamp(size, 0, ARRANGE_SIZES.length - 1)
+        : DEFAULT_GRID.size,
   };
 }
 
@@ -334,6 +371,11 @@ export function loadLayout(): PersistedLayout {
   const layout = migrateLayoutV2(v2 !== undefined ? v2 : migrateLayout(v1));
   writeJson(LAYOUT_STORAGE_KEY, toStoredLayout(layout));
   return layout;
+}
+
+/** The grid's stored scope and size (`ui:v3`'s `grid`), or the defaults. */
+export function loadGridPrefs(): GridPrefs {
+  return parseGridPrefs(readJson(LAYOUT_STORAGE_KEY));
 }
 
 const activeDocumentId = () => useWorkspaceStore.getState().workspace.activeDocument;
@@ -420,25 +462,21 @@ export interface UiState extends PersistedLayout {
   zoom: number;
   /** While set, the stage keeps zoom fitted (to width or whole page) as it resizes. */
   fitMode: FitMode | null;
-  /** Index into ARRANGE_SIZES. */
+  /** Index into ARRANGE_SIZES: the Pages grid's cell size (PG2), kept per device. */
   arrangeSize: number;
+  /** What the Pages grid shows (PG2), kept per device. */
+  gridScope: GridScope;
   paletteOpen: boolean;
   shortcutsOpen: boolean;
   /** Command ids, most recent first. In memory only. */
   recents: readonly string[];
-  /**
-   * Documents pinned into the light table as sections, besides the active one (spec §1).
-   * Session only; ids of closed documents are ignored by readers and pruned on unpin.
-   */
-  arrangePinned: readonly DocumentId[];
-  /**
-   * Documents hidden from the light table (experience-redesign §8: Arrange shows every open
-   * document by default; "Hide from Arrange" takes one out). The active document is always
-   * shown. Session only; ids of closed documents are ignored by readers.
-   */
-  arrangeHidden: readonly DocumentId[];
-  /** Light-table sections shown collapsed (header only). Session only. */
+  /** Pages grid sections shown collapsed (header only) in All open (PG3). Session only. */
   arrangeCollapsed: readonly DocumentId[];
+  /**
+   * What a Combine made each new document from (PG6): the sources' titles, in order, for the
+   * grid header's "Sources: …" line. Session only, never in the snapshot.
+   */
+  combinedFrom: Readonly<Record<DocumentId, readonly string[]>>;
   /** A document title being edited in place: in its tab or its light-table section. */
   renaming: { readonly documentId: DocumentId; readonly surface: 'tab' | 'section' } | null;
   /**
@@ -489,41 +527,28 @@ export interface UiState extends PersistedLayout {
   setPaletteOpen: (open: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
   pushRecent: (commandId: string) => void;
-  /**
-   * Pins documents into the light table. `alsoKeep` (the active document) is pinned too,
-   * so switching tabs later never drops a section the user was looking at.
-   */
-  pinToArrange: (ids: readonly DocumentId[], alsoKeep?: DocumentId) => void;
-  unpinFromArrange: (id: DocumentId) => void;
-  /** Takes a document off the light table until it is shown again (`pinToArrange`). */
-  hideFromArrange: (id: DocumentId) => void;
+  /** The Pages grid's scope (PG2): this document, or every open one as sections. */
+  setGridScope: (scope: GridScope) => void;
+  /** Records what a Combine made `id` from (PG6's "Sources:" line). */
+  setCombinedFrom: (id: DocumentId, titles: readonly string[]) => void;
   setArrangeCollapsed: (id: DocumentId, collapsed: boolean) => void;
   setRenaming: (renaming: UiState['renaming']) => void;
   /** Replaces the Home selection; `anchor` defaults to the last selected card. */
   setHomeSelection: (selection: readonly DocumentId[], anchor?: DocumentId | null) => void;
 }
 
-function withIds(
-  list: readonly DocumentId[],
-  ids: readonly (DocumentId | undefined)[],
-): readonly DocumentId[] {
-  const added = ids.filter((id): id is DocumentId => id !== undefined && !list.includes(id));
-  return added.length === 0 ? list : [...list, ...new Set(added)];
-}
-
 const store = create<UiState>()((set, get) => ({
   ...loadLayout(),
+  ...loadGridPrefs(),
   destination: 'document',
   docUi: {},
   zoom: 1,
   fitMode: 'width',
-  arrangeSize: DEFAULT_ARRANGE_SIZE,
   paletteOpen: false,
   shortcutsOpen: false,
   recents: [],
-  arrangePinned: [],
-  arrangeHidden: [],
   arrangeCollapsed: [],
+  combinedFrom: {},
   renaming: null,
   homeSelection: [],
   homeAnchor: null,
@@ -587,32 +612,9 @@ const store = create<UiState>()((set, get) => ({
     set(shortcutsOpen ? { shortcutsOpen, paletteOpen: false } : { shortcutsOpen }),
   pushRecent: (id) =>
     set((s) => ({ recents: [id, ...s.recents.filter((r) => r !== id)].slice(0, MAX_RECENTS) })),
-  pinToArrange: (ids, alsoKeep) =>
-    set((s) => {
-      const arrangePinned = withIds(s.arrangePinned, [alsoKeep, ...ids]);
-      const shown = new Set([alsoKeep, ...ids]);
-      const arrangeHidden = s.arrangeHidden.some((id) => shown.has(id))
-        ? s.arrangeHidden.filter((id) => !shown.has(id))
-        : s.arrangeHidden;
-      return arrangePinned === s.arrangePinned && arrangeHidden === s.arrangeHidden
-        ? s
-        : { arrangePinned, arrangeHidden };
-    }),
-  unpinFromArrange: (id) =>
-    set((s) =>
-      s.arrangePinned.includes(id)
-        ? { arrangePinned: s.arrangePinned.filter((pinned) => pinned !== id) }
-        : s,
-    ),
-  hideFromArrange: (id) =>
-    set((s) =>
-      s.arrangeHidden.includes(id)
-        ? s
-        : {
-            arrangeHidden: [...s.arrangeHidden, id],
-            arrangePinned: s.arrangePinned.filter((pinned) => pinned !== id),
-          },
-    ),
+  setGridScope: (gridScope) => set((s) => (s.gridScope === gridScope ? s : { gridScope })),
+  setCombinedFrom: (id, titles) =>
+    set((s) => ({ combinedFrom: { ...s.combinedFrom, [id]: [...titles] } })),
   setRenaming: (renaming) => set({ renaming }),
   setHomeSelection: (selection, anchor) =>
     set({
@@ -665,7 +667,9 @@ useUiStore.subscribe((state, previous) => {
     state.reviewFilter !== previous.reviewFilter ||
     state.leftPanelWidth !== previous.leftPanelWidth ||
     state.rightPanelOpen !== previous.rightPanelOpen ||
-    state.rightPanelWidth !== previous.rightPanelWidth
+    state.rightPanelWidth !== previous.rightPanelWidth ||
+    state.gridScope !== previous.gridScope ||
+    state.arrangeSize !== previous.arrangeSize
   ) {
     writeJson(LAYOUT_STORAGE_KEY, toStoredLayout(state));
   }

@@ -55,7 +55,9 @@ export function DockBand({
   const away = focus || (compact && hidden);
   const narrow = size === 'compact' || size === 'medium';
   // No dock on the Library with no file open (the stage shows the launcher there).
-  const showDock = view === 'page' && doc !== undefined && !(tight && !markup);
+  // The grid's capsule is its Pages bar, with Done: it shows on short viewports too.
+  const showDock =
+    doc !== undefined && (view === 'grid' || (view === 'page' && !(tight && !markup)));
   const showPill = view === 'page' && (doc?.pages.length ?? 0) > 0 && !(markup && narrow) && !tight;
 
   // The pill rises above a bar that would touch it.

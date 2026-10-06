@@ -67,15 +67,17 @@ describe('AppShell', () => {
     const input = await screen.findByRole('combobox', { name: 'Search commands' });
     await userEvent.type(input, 'arrange');
     await waitFor(() => {
-      expect(screen.getAllByRole('option')[0]).toHaveTextContent('Arrange pages');
+      expect(screen.getAllByRole('option')[0]).toHaveTextContent('Pages grid');
     });
     await userEvent.keyboard('{Enter}');
-    // The command ran. With no document open there is no grid to show (the surface belongs
-    // to a document, redesign spec §7), so the stage keeps its empty state.
-    await waitFor(() => {
-      expect(useUiStore.getState().recents[0]).toBe('mode.arrange');
-    });
+    // With no document open there is no grid to show (the surface belongs to a document,
+    // redesign spec §7): the command is not available, and the stage keeps its empty state.
+    expect(useUiStore.getState().recents).not.toContain('mode.arrange');
     expect(stageView(useUiStore.getState())).toBe('page');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.queryByRole('combobox', { name: 'Search commands' })).toBeNull();
+    });
     expect(
       screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
     ).toBeVisible();

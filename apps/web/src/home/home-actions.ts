@@ -165,11 +165,11 @@ export function openInRead(id: DocumentId): void {
   ui().showSurface('page', id);
 }
 
-/** The merge dialog, pre-ordered: the selection, a card drop's pair, or every tab. */
+/** Combine with open documents (S15), pre-ordered: the selection, a card drop's pair. */
 export function combine(ids: readonly DocumentId[]): void {
   const live = liveSelection(order(), ids);
   if (live.length < 2) return;
-  openOperationDialog({ kind: 'merge-all', order: live });
+  openOperationDialog({ kind: 'combine', order: live });
 }
 
 /**
@@ -179,8 +179,12 @@ export function combine(ids: readonly DocumentId[]): void {
  * (`08-feedback` FB4; the combine's own announcement already says it, so the toast is quiet).
  */
 export function combineInto(ids: readonly DocumentId[], title: string): DocumentId | undefined {
-  const created = mergeAll(ids, title, { keepSources: true });
+  const ws = model().workspace;
+  const titles = ids.map((id) => ws.documents[id]?.title ?? '');
+  const created = mergeAll(ids, title);
   if (created !== undefined) {
+    // The grid header's "Sources: …" line, for the session (PG6).
+    ui().setCombinedFrom(created, titles);
     toast.undo(m.combined_toast({ count: ids.length }), {
       documentId: created,
       spoken: false,
@@ -207,10 +211,10 @@ export function combineNow(selection: readonly DocumentId[]): DocumentId | undef
   return created;
 }
 
-/** A new document on its own in the Pages grid (Combine, Combine files…). */
-function showInGrid(id: DocumentId): void {
+/** A new document on its own in the Pages grid (Combine, Combine files…; PG6). */
+export function showInGrid(id: DocumentId): void {
   model().setActive(id);
-  ui().pinToArrange([id]);
+  ui().setGridScope('document');
   ui().showSurface('grid', id);
 }
 
@@ -316,7 +320,7 @@ export function pagesSelected(selection: readonly DocumentId[]): void {
   const first = checked[0] ?? all[0];
   if (first === undefined) return;
   model().setActive(first);
-  ui().pinToArrange(all);
+  ui().setGridScope('all');
   for (const id of all) ui().setArrangeCollapsed(id, checked.length > 0 && !checked.includes(id));
   setSelecting(false);
   ui().showSurface('grid', first);
@@ -400,10 +404,8 @@ export function arrangeOnHome(selection: readonly DocumentId[]): void {
   const first = shown[0];
   if (first === undefined) return;
   model().setActive(first);
-  ui().pinToArrange(shown);
-  if (selected.length > 0) {
-    for (const id of all) if (!shown.includes(id)) ui().hideFromArrange(id);
-  }
+  ui().setGridScope(shown.length > 1 ? 'all' : 'document');
+  for (const id of all) ui().setArrangeCollapsed(id, !shown.includes(id));
   ui().showSurface('grid', first);
 }
 

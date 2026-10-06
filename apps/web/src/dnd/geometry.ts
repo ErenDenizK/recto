@@ -42,18 +42,28 @@ export interface GridMetrics {
   readonly gapX: number;
 }
 
-export function gridMetrics(width: number, cellWidth: number): GridMetrics {
+/**
+ * The grid's metrics for a container `width` wide. With `centre`, the columns sit in the
+ * middle (the Pages grid, PG1 §2): the side padding grows from `GRID.padX` to share what the
+ * columns leave, so the grid reads as one block, as a contact sheet does.
+ */
+export function gridMetrics(
+  width: number,
+  cellWidth: number,
+  options: { readonly centre?: boolean } = {},
+): GridMetrics {
   const boxHeight = Math.round(cellWidth * GRID.boxAspect);
   const columns = Math.max(
     1,
     Math.floor((width - GRID.padX * 2 + GRID.gapX) / (cellWidth + GRID.gapX)),
   );
+  const used = columns * cellWidth + (columns - 1) * GRID.gapX;
   return {
     cellWidth,
     boxHeight,
     rowHeight: boxHeight + GRID.metaHeight + GRID.gapY,
     columns,
-    padX: GRID.padX,
+    padX: options.centre === true ? Math.max(GRID.padX, Math.floor((width - used) / 2)) : GRID.padX,
     gapX: GRID.gapX,
   };
 }
@@ -74,6 +84,11 @@ export interface SectionSpec<Id extends string = string> {
   readonly id: Id;
   readonly count: number;
   readonly collapsed: boolean;
+  /**
+   * Whether the section has a header (default true). The Pages grid's This document scope
+   * draws none: the grid header's title stands for it (06-navigation PG2, PG3).
+   */
+  readonly header?: boolean;
 }
 
 export interface SectionLayout<Id extends string = string> {
@@ -131,15 +146,20 @@ export interface ArrangeLayout<Id extends string = string> {
 export function computeLayout<Id extends string>(
   specs: readonly SectionSpec<Id>[],
   metrics: GridMetrics,
+  /** Room under the last section: the Pages grid passes the Pages bar's inset + 16 (PG1). */
+  padBottom: number = GRID.padBottom,
+  /** Room above the first section. */
+  padTop: number = GRID.padTop,
 ): ArrangeLayout<Id> {
   const sections: SectionLayout<Id>[] = [];
   const items: LayoutItem[] = [];
-  let y = GRID.padTop;
+  let y = padTop;
   specs.forEach((spec, index) => {
     const top = y;
     const firstItem = items.length;
-    items.push({ kind: 'header', section: index, start: y, size: GRID.headerHeight });
-    y += GRID.headerHeight;
+    const headerHeight = spec.header === false ? 0 : GRID.headerHeight;
+    items.push({ kind: 'header', section: index, start: y, size: headerHeight });
+    y += headerHeight;
     const gridTop = y;
     let rows = 0;
     let gridHeight = 0;
@@ -173,7 +193,7 @@ export function computeLayout<Id extends string>(
       firstItem,
     });
   });
-  return { sections, items, totalHeight: y + GRID.padBottom };
+  return { sections, items, totalHeight: y + padBottom };
 }
 
 /** Item index of a cell's row (for scrollToIndex). */
