@@ -76,7 +76,6 @@ describe('light table', () => {
     expect(within(grid('rotated-pages')).getAllByRole('gridcell')[1]).toHaveAccessibleName(
       /^Page 2 of 4, from rotated-pages\.pdf, rotated 90 degrees$/,
     );
-    expect(screen.getByTestId('status-shown')).toHaveTextContent('2 documents shown');
   }, 30_000);
 
   it('moves a page across documents with the keyboard: cut, arrow into the other section, paste', async () => {

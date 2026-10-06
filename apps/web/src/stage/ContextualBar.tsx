@@ -122,6 +122,11 @@ export function ContextualBar({
     bottom: viewBottom,
   });
   if (position === null) return null;
+  // "N selected", or "N selected in M documents" across sections (light-table spec §2; the
+  // status bar that said so went with the frame, 01-frame F13).
+  const documents = sections.filter((section) =>
+    section.doc.pages.some((page) => selected.has(page.id)),
+  ).length;
 
   const run = (command: string) => () => void commandRegistry.execute(command);
   const buttons: { key: string; element: (tabIndex: number) => ReactElement }[] = [
@@ -271,7 +276,9 @@ export function ContextualBar({
         onKeyDown={onKeyDown}
       >
         <span className={styles.contextCount} aria-hidden="true">
-          {m.status_selected({ count: selected.size })}
+          {documents > 1
+            ? m.status_selected_in_documents({ count: selected.size, documents })
+            : m.status_selected({ count: selected.size })}
         </span>
         <span className={styles.contextDivider} aria-hidden="true" />
         {buttons.map((button, i) => (

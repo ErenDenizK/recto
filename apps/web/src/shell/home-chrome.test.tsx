@@ -69,7 +69,7 @@ describe('Home chrome', () => {
     expect(within(strip).getByTestId('library-menu')).toBeVisible();
     expect(screen.queryByTestId('page-pill')).toBeNull();
     // No tab is selected, nor looks it: no selected fill, no close affordance shown. A keyboard
-    // focus inside a tab shows its close on purpose (TabBar.module.css), and the focus may have
+    // focus inside a tab shows its close on purpose (frame/TopStrip.module.css), and the focus may have
     // been rescued into the tab list when Home took over, so judge the resting look unfocused.
     (document.activeElement as HTMLElement | null)?.blur();
     const tabs = screen.getAllByRole('tab', { name: /first-file|demo-agreement/ });
@@ -83,7 +83,7 @@ describe('Home chrome', () => {
         expect(getComputedStyle(wrap).backgroundColor).toBe('rgba(0, 0, 0, 0)');
         // A pointer resting over a tab, or a page that cannot hover (an earlier file of the run
         // that emulated touch leaves `hover: none` behind), shows the close on purpose
-        // (TabBar.module.css): neither is the resting look this checks.
+        // (frame/TopStrip.module.css): neither is the resting look this checks.
         if (!wrap.matches(':hover') && matchMedia('(hover: hover)').matches) {
           expect(getComputedStyle(close as HTMLElement).opacity).toBe('0');
         }

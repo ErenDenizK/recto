@@ -2,7 +2,7 @@
  * The tab list's scroll edges (XD-3). When the open documents do not fit, the tab list scrolls;
  * a tab cut at the edge showed a bare colour dot or half a glyph, the look the review flagged.
  * This marks the list with `data-more-start` and `data-more-end` while tabs lie beyond that
- * edge, so TabBar.module.css fades the edge out (the strip says "more this way" instead of
+ * edge, so frame/TopStrip.module.css fades the edge out (the strip says "more this way" instead of
  * cutting a name), and keeps the active tab in view when the window or the tabs change size
  * (a tablet turned to portrait). Until D2's "N more" overflow menu (01-frame F4 §2) replaces
  * scrolling, this is the strip's overflow.
@@ -11,7 +11,7 @@ import { useCallback } from 'react';
 
 /** Sub-pixel slack, so a list scrolled to its end does not still read as "more". */
 const EDGE_SLACK = 1;
-/** The faded edge (TabBar.module.css, also the list's `scroll-padding-inline`), CSS px. */
+/** The faded edge (frame/TopStrip.module.css, also the list's `scroll-padding-inline`), CSS px. */
 const EDGE_FADE = 24;
 
 function markEdges(list: HTMLElement): void {

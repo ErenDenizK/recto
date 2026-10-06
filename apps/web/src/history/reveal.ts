@@ -58,7 +58,7 @@ export function flashRing(element: HTMLElement): Animation | undefined {
 }
 
 function pageElement(pageId: PageId): HTMLElement | null {
-  // The stage (`STAGE_ID` in shell/TabBar.tsx, not imported: TabBar renders ↶ ↷).
+  // The stage (`STAGE_ID` in shell/frame/ids.ts).
   const stage = document.getElementById('stage') ?? document;
   return stage.querySelector<HTMLElement>(`[data-page-id="${CSS.escape(pageId)}"]`);
 }
