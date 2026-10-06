@@ -60,7 +60,6 @@ describe('regions (X9)', () => {
       '[data-region="toolbar"]',
       '[data-region="context"]',
       '[data-region="pill"]',
-      '#right-panel',
       '[data-region="toasts"]',
     ]);
   });

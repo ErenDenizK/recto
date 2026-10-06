@@ -318,7 +318,16 @@ function CustomKeys({ doc }: { readonly doc: VirtualDocument }) {
       ) : (
         <p className={styles.note}>{m.meta_custom_empty()}</p>
       )}
-      <form className={styles.addKey} onSubmit={add} aria-label={m.meta_custom_add_label()}>
+      {/* A group, not a form: it sits in the sheet's form (S4), and Enter in either field adds. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+      <div
+        role="group"
+        className={styles.addKey}
+        aria-label={m.meta_custom_add_label()}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && event.target instanceof HTMLInputElement) add(event);
+        }}
+      >
         <input
           id={keyId}
           className={styles.input}
@@ -342,7 +351,7 @@ function CustomKeys({ doc }: { readonly doc: VirtualDocument }) {
           autoComplete="off"
           onChange={(event) => setValue(event.target.value)}
         />
-        <button type="submit" className={styles.small} disabled={key.trim() === ''}>
+        <button type="button" className={styles.small} disabled={key.trim() === ''} onClick={add}>
           {m.meta_custom_add()}
         </button>
         {error ? (
@@ -350,7 +359,7 @@ function CustomKeys({ doc }: { readonly doc: VirtualDocument }) {
             {error}
           </span>
         ) : null}
-      </form>
+      </div>
     </div>
   );
 }

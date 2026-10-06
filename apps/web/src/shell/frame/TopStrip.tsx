@@ -19,7 +19,8 @@
  * - Landmark `header` named "Document bar" / "Library bar"; Tab order ◆ → ▤ → active tab → "N
  *   more" → + → Find → ↶ → ↷ → Save → ◎; F6 lands on the active tab (the Library: ◆).
  *
- * The inspector toggle stays at the trailing end until the inspector leaves (D2-9, spec 3.9).
+ * No inspector toggle (inventory 3.9): the inspector is gone and its parts live in the History
+ * scrubber, the bars' ⋯, the title menu and its sheets (spec D2-9).
  */
 
 import { LibraryMenu } from '../../home/LibraryMenu';
@@ -27,8 +28,6 @@ import { m } from '../../i18n';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
 import { useUiStore } from '../../state/ui-store';
 import { useHasDocuments, useWorkspaceStore } from '../../state/workspace-store';
-import { IconButton } from '../../ui/IconButton';
-import { useCommandShortcut } from '../use-command-shortcut';
 import { DocumentTabs } from './DocumentTabs';
 import { FindEntry } from './FindEntry';
 import { tabDomId } from './ids';
@@ -38,7 +37,6 @@ import { SidebarToggle } from './SidebarToggle';
 import { TitleMenu } from './TitleMenu';
 import styles from './TopStrip.module.css';
 import { UndoRedo } from './UndoRedo';
-import { Icon } from '../../ui/Icon';
 
 /** The active tab, where the title menu opens and gives focus back. */
 export const activeTabElement = (): HTMLElement | null => {
@@ -74,29 +72,11 @@ export function TopStrip() {
             <FindEntry />
             <UndoRedo />
             <SaveButton />
-            <InspectorToggle />
             <PrivacyShield />
           </>
         )}
       </div>
       {onLibrary ? null : <TitleMenu anchor={activeTabElement} />}
     </header>
-  );
-}
-
-/** The inspector's toggle, until the inspector leaves (D2-9). */
-function InspectorToggle() {
-  const open = useUiStore((s) => s.rightPanelOpen);
-  const toggle = useUiStore((s) => s.toggleRightPanel);
-  const shortcut = useCommandShortcut('view.toggleRightPanel');
-  return (
-    <IconButton
-      label={open ? m.right_panel_hide() : m.right_panel_show()}
-      icon={<Icon name="sidebar-simple" />}
-      shortcut={shortcut}
-      aria-pressed={open}
-      aria-controls={open ? 'right-panel' : undefined}
-      onClick={toggle}
-    />
   );
 }
