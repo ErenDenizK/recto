@@ -271,31 +271,36 @@ function DockButton({
   readonly onActivate: () => void;
 }) {
   const disabled = reason !== undefined;
+  const button = (
+    <button
+      type="button"
+      className={styles.item}
+      data-capsule-item={item}
+      data-dock-item={item}
+      data-capsule-focus={focusOnArrival ? '' : undefined}
+      aria-label={name}
+      aria-pressed={pressed}
+      aria-haspopup={popup}
+      aria-keyshortcuts={keys}
+      aria-disabled={disabled ? 'true' : undefined}
+      onClick={(event: ReactMouseEvent) => {
+        if (disabled) {
+          event.preventDefault();
+          announce(reason);
+          return;
+        }
+        onActivate();
+      }}
+    >
+      <Icon name={icon} className={styles.icon} />
+      <span className={styles.label}>{label}</span>
+    </button>
+  );
+  // The label is always shown (RA-20): a tooltip only adds the key or the reason (F10 §5).
+  if (shortcut === undefined && reason === undefined) return button;
   return (
     <Tooltip label={label} shortcut={shortcut} reason={reason} side="top">
-      <button
-        type="button"
-        className={styles.item}
-        data-capsule-item={item}
-        data-dock-item={item}
-        data-capsule-focus={focusOnArrival ? '' : undefined}
-        aria-label={name}
-        aria-pressed={pressed}
-        aria-haspopup={popup}
-        aria-keyshortcuts={keys}
-        aria-disabled={disabled ? 'true' : undefined}
-        onClick={(event: ReactMouseEvent) => {
-          if (disabled) {
-            event.preventDefault();
-            announce(reason);
-            return;
-          }
-          onActivate();
-        }}
-      >
-        <Icon name={icon} className={styles.icon} />
-        <span className={styles.label}>{label}</span>
-      </button>
+      {button}
     </Tooltip>
   );
 }

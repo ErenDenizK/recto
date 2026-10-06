@@ -16,7 +16,9 @@
  *   was on screen before (the same element, or the leaving content's piece with that key, such
  *   as the dock's Pages in Locked) slides from where it was drawn to its new place, translate
  *   only, so a label is never scaled (Q-8); its leaving twin hides at once. New pieces fade in,
- *   12 ms apart for at most ten (MP rule: ≤ 10 × 12 ms). There are no clones.
+ *   12 ms apart for at most ten (MP rule: ≤ 10 × 12 ms), once most of the leaving content has
+ *   faded (a fade through, `FADE_THROUGH_MS`), so two rows never print over each other. There
+ *   are no clones.
  * - **Interruptible.** Every move retargets from where it is with its velocity (Q-10): a size
  *   in flight keeps its spring, a piece mid-slide is stopped where it is drawn and slides on
  *   from there, and a leaving content asked back fades in from its present opacity.
@@ -39,6 +41,11 @@ export const STAGGER_MS = 12;
 export const STAGGER_STEPS = 10;
 /** The capsule keeps this far from each side of the band (01-frame F10 §2: 16 px). */
 export const CAPSULE_EDGE = 16;
+/**
+ * How long a new content waits before its pieces fade in: most of the leaving content's
+ * `--duration-fast` fade, so the two never read as one double-printed row (a fade through).
+ */
+export const FADE_THROUGH_MS = 80;
 /** Moves and size changes smaller than this (CSS px) are not animated. */
 const STILL = 0.5;
 
@@ -196,10 +203,13 @@ export class CapsuleMorph {
         easing: EASE.out,
       });
     } else if (newContent && (reduced || !layer.querySelector(`[${CAPSULE_ITEM}]`))) {
-      // A content with no named pieces, or any content under reduced motion, fades in whole.
+      // A content with no named pieces, or any content under reduced motion (a plain
+      // cross-fade), fades in whole.
       layer.animate([{ opacity: 0 }, { opacity: 1 }], {
         duration: duration(reduced ? 'fast' : 'base'),
         easing: EASE.out,
+        delay: reduced ? 0 : FADE_THROUGH_MS,
+        fill: 'backwards',
       });
     }
     for (const leaving of capsule.querySelectorAll<HTMLElement>(
@@ -280,7 +290,7 @@ export class CapsuleMorph {
           element.animate([{ opacity: 0 }, { opacity: 1 }], {
             duration: duration('base'),
             easing: EASE.out,
-            delay: staggerDelay(fresh++),
+            delay: (newContent ? FADE_THROUGH_MS : 0) + staggerDelay(fresh++),
             fill: 'backwards',
           });
         }
