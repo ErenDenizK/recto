@@ -1,4 +1,6 @@
-/* Avatar (09-primitives §18): a tag-coloured disc with one initial in ink. */
+/* Avatar (09-primitives §18): a tag-coloured disc with one initial, ink on the dark theme's
+   pale tags (≥ 7.16:1) and paper on the light theme's deep ones (≥ 4.67:1): the glyph colour of
+   a filled control, n1 in each theme. */
 .avatar {
   display: inline-grid;
   flex: none;
@@ -8,7 +10,7 @@
   overflow: hidden;
   border-radius: var(--radius-pill);
   background: var(--avatar-colour, var(--surface-on));
-  color: var(--canvas);
+  color: var(--control-on-ink);
   font-size: var(--type-caption);
   font-weight: 600;
   line-height: var(--type-caption-lh);
