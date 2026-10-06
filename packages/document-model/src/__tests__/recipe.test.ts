@@ -1390,7 +1390,9 @@ describe('property: serialized recipes never hold passwords', () => {
       }).toThrow(RecipeError);
     }
     expect(withSecurity).toBeGreaterThan(RUNS / 4);
-  });
+    // 3000 runs take about 2 s locally and up to 6 s on a busy CI runner: the default 5 s is a
+    // clock, not the property.
+  }, 30_000);
 });
 
 // ---------------------------------------------------------------------------
