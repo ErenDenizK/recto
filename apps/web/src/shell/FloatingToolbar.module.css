@@ -65,6 +65,11 @@
   }
 }
 
+:global(:root[data-motion='reduced']) .toolbar,
+:global(:root[data-motion='reduced']) .tier {
+  transition: none;
+}
+
 .toolbar {
   composes: glass from global;
   display: flex;

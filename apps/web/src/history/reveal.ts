@@ -7,21 +7,21 @@
  * - The page scrolls only when it is not in view already (the smallest move; the page view's
  *   scroll requests keep it inside the unobscured rectangle). The free rectangle of the
  *   redesigned frame (`revealInFree`) replaces this when the D2 shell lands.
- * - The ring is one Web Animations run on the page's outline in `--select` (the page's
- *   selection blue, spec D0-1), so nothing is left on the element and nothing runs after it
- *   (quality-bar Q-2, Q-10: idle at rest). Reduced motion keeps the flash, which only changes
- *   colour, and shortens it.
+ * - The ring is the catalogue's *undo reveal* (`ringFlash`, language.md §7.3, spec D3-4): one
+ *   Web Animations run on the page's outline in `--select` (the page's selection blue, spec
+ *   D0-1), 80 ms in, 160 held, 260 out (A-10's 500 ms), so nothing is left on the element and
+ *   nothing runs after it (quality-bar Q-2, Q-10: idle at rest). Under reduced motion the ring
+ *   is held still for the 500 ms, then removed.
  */
 import type { HistoryEntryMeta, PageId, Workspace } from '@pdf-editor/document-model';
 
-import { reducedMotion } from '../motion';
+import { RING_FLASH, ringFlash } from '../motion';
 
 import { isPageView, useUiStore } from '../state/ui-store';
 import { distanceFromView, useViewStore } from '../state/view-store';
 
-/** How long the ring shows (ms): in, hold, out. */
-export const REVEAL_FLASH_MS = 900;
-const REVEAL_FLASH_REDUCED_MS = 400;
+/** How long the ring shows (ms): in, hold, out (A-10). */
+export const REVEAL_FLASH_MS = RING_FLASH.totalMs;
 /** How many frames to wait for a scrolled-to page to be laid out before giving up. */
 const MAX_WAIT_FRAMES = 30;
 
@@ -39,22 +39,9 @@ export function revealTarget(
   return page === undefined ? undefined : { index, pageId: page.id };
 }
 
-/** Flashes the ring on `element` once. */
+/** Flashes the ring on `element` once (*undo reveal*). */
 export function flashRing(element: HTMLElement): Animation | undefined {
-  if (typeof element.animate !== 'function') return undefined;
-  const ring = getComputedStyle(document.documentElement).getPropertyValue('--select').trim();
-  const color = ring === '' ? 'Highlight' : ring;
-  const clear = 'rgb(0 0 0 / 0)';
-  const frame = (outlineColor: string) => ({
-    outlineColor,
-    outlineStyle: 'solid',
-    outlineWidth: '3px',
-    outlineOffset: '3px',
-  });
-  return element.animate([frame(clear), frame(color), frame(color), frame(clear)], {
-    duration: reducedMotion() ? REVEAL_FLASH_REDUCED_MS : REVEAL_FLASH_MS,
-    easing: 'ease-out',
-  });
+  return ringFlash(element, 'select');
 }
 
 function pageElement(pageId: PageId): HTMLElement | null {

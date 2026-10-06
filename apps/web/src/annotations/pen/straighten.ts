@@ -72,7 +72,8 @@ export function straightEnd(start: Point, end: Point, snap: boolean): Point {
   return snap ? snapAngle(start, end) : end;
 }
 
-/** Whether the person asked for reduced motion (no straighten cue then). */
-export function prefersReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
+/**
+ * Whether motion is reduced (no straighten cue then): the system's query or the Reduce motion
+ * setting, from the one source (language.md §7.5, A-9).
+ */
+export { reducedMotion as prefersReducedMotion } from '../../motion/reduced-motion';

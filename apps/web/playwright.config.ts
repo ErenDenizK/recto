@@ -47,7 +47,10 @@ const NOT_KEPT_SEEN = {
     },
   ],
 };
-/** No frames at rest on the compact reader too (quality-bar Q-10, A-23; spec D0-QA). */
+/**
+ * No frames at rest on the compact reader too (quality-bar Q-10, A-23; spec D0-QA); the tablet
+ * runs its idle, sweep and limits tests as well (spec D3-4).
+ */
 const MOTION_SPEC = '**/motion.spec.ts';
 const touchDevice = (
   size: { width: number; height: number },
@@ -111,6 +114,8 @@ export default defineConfig({
         SETTINGS_SPEC,
         ...SAVE_COPY_SPECS,
         MENUS_SPEC,
+        // Reduced motion per token and the limits on the tablet too (spec D3-4).
+        MOTION_SPEC,
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

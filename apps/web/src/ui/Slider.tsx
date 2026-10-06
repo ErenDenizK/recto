@@ -44,6 +44,7 @@ import {
 } from 'react';
 
 import { formatNumber } from '../i18n';
+import { reducedMotion } from '../motion/reduced-motion';
 import {
   bubbleShift,
   DETENT_SNAP_PX,
@@ -129,12 +130,6 @@ function isCoarse(): boolean {
 /** Whether the pointer is coarse (touch screen present): the knob clamp and sizes follow. */
 export function useCoarsePointer(): boolean {
   return useSyncExternalStore(subscribeCoarse, isCoarse, () => false);
-}
-
-/** The OS preference or the app's Reduce motion setting (`data-motion`, language §7.6). */
-function reducedMotion(): boolean {
-  if (document.documentElement.dataset.motion === 'reduced') return true;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /** The detent haptic (FB13): Android only, when the haptics setting is on. */
