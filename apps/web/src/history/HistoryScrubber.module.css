@@ -11,6 +11,18 @@
   width: min(360px, calc(100vw - 16px));
 }
 
+/* The *popup* entrance plays on every opening. The open state is ours (`scrubber-store.ts`),
+   so Base UI never sees an opening and keeps the instant flag of the last close: after Esc
+   ("dismiss") or a press outside (its focus-out, "focus") the next popup mounted with
+   `data-instant`, which ui/Popover reads as "no motion", and it appeared at once.
+   A dismissal still closes at once: `data-instant` with `data-ending-style` keeps ui/Popover's
+   rule. */
+.popup[data-instant]:not([data-ending-style]) {
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
 .empty {
   padding: var(--space-4) 0 var(--space-3);
 }
