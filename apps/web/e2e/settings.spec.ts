@@ -103,28 +103,37 @@ test('a side sheet of 480 px from expanded up, a form sheet on the tablet, glass
   await expect(panel.getByRole('button', { name: /About Recto/ })).toBeFocused();
 });
 
-test('a switch applies at once, persists, and its palette command says it', async ({ page }) => {
+test('Glass: Clear · Tinted · Solid applies at once, persists, and ⌘K sets it (A-17)', async ({
+  page,
+}) => {
   await page.goto('./?lang=en');
   await openSettings(page);
-  const glass = sheet(page).getByRole('switch', { name: 'Glass panels' });
-  await expect(glass).toHaveAttribute('aria-checked', 'false');
-  await glass.click();
-  await expect(glass).toHaveAttribute('aria-checked', 'true');
-  await expect(page.locator('html')).toHaveAttribute('data-glass-panels', '');
+  const glass = sheet(page).getByRole('radiogroup', { name: 'Glass' });
+  // Nothing picked: the start state (Clear under the test-only render override, X36).
+  await expect(glass.getByRole('radio', { name: 'Clear' })).toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-glass', 'clear');
+  await glass.getByRole('radio', { name: 'Tinted' }).click();
+  await expect(glass.getByRole('radio', { name: 'Tinted' })).toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-glass', 'tinted');
+  // The sheet itself shows the effect: its tint is now at 0.90.
+  const tint = await sheet(page).evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(tint).toMatch(/, 0\.9\)$/);
   await page.keyboard.press('Escape');
   await expect(sheet(page)).toHaveCount(0);
 
   await page.reload();
   await expect(page.getByTestId('app-shell')).toBeVisible();
-  await expect(page.locator('html')).toHaveAttribute('data-glass-panels', '');
-  // The same setting from ⌘K: its title carries the state, and it turns it off.
-  await palette(page, 'Glass panels', 'Glass panels: on');
-  await expect(page.locator('html')).not.toHaveAttribute('data-glass-panels', '');
+  await expect(page.locator('html')).toHaveAttribute('data-glass', 'tinted');
+  // The same setting from ⌘K.
+  await palette(page, 'Glass solid', 'Glass: Solid');
+  await expect(page.locator('html')).toHaveAttribute('data-glass', 'solid');
   await openSettings(page);
-  await expect(sheet(page).getByRole('switch', { name: 'Glass panels' })).toHaveAttribute(
-    'aria-checked',
-    'false',
-  );
+  await expect(
+    sheet(page).getByRole('radiogroup', { name: 'Glass' }).getByRole('radio', { name: 'Solid' }),
+  ).toBeChecked();
+  // Solid: no backdrop filter on the sheet.
+  const filter = await sheet(page).evaluate((el) => getComputedStyle(el).backdropFilter || 'none');
+  expect(filter).toBe('none');
 });
 
 test('search finds each row in English and Turkish, and says when nothing matches', async ({
@@ -136,7 +145,9 @@ test('search finds each row in English and Turkish, and says when nothing matche
   const search = panel.getByRole('searchbox', { name: 'Search settings' });
   if (info.project.name === TABLET) {
     // A coarse pointer starts on the first row, so no keyboard pops up (07 S3 §6).
-    await expect(panel.getByRole('switch', { name: 'Glass panels' })).toBeFocused();
+    await expect(
+      panel.getByRole('radiogroup', { name: 'Glass' }).getByRole('radio', { name: 'Clear' }),
+    ).toBeFocused();
     await search.click();
   } else {
     // A fine pointer starts in the search field.
@@ -145,9 +156,9 @@ test('search finds each row in English and Turkish, and says when nothing matche
 
   const rows = () => panel.locator('[data-row]');
   const cases: readonly [string, string][] = [
-    ['transparency', 'reduceTransparency'],
-    ['saydamlik', 'reduceTransparency'],
-    ['buzlu', 'glassPanels'],
+    ['transparency', 'glass'],
+    ['saydamlik', 'glass'],
+    ['buzlu', 'glass'],
     ['kalem', 'penDrawsInEdit'],
     ['stylus', 'penDrawsInEdit'],
     ['yazar', 'commentName'],
@@ -192,7 +203,7 @@ test('Türkçe without a reload, Follow the browser, and the choice survives a r
   // Search in Turkish finds an English keyword too.
   const search = sheet(page).getByRole('searchbox', { name: 'Ayarlarda ara' });
   await search.fill('glass');
-  await expect(sheet(page).locator('[data-row="glassPanels"]')).toBeVisible();
+  await expect(sheet(page).locator('[data-row="glass"]')).toBeVisible();
   await search.fill('');
 
   await sheet(page)
