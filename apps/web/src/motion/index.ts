@@ -12,6 +12,10 @@
  * - `reduced-motion.ts`: `reducedMotion()` from the OS query or `data-motion`, the only source
  *   script asks (§7.5–§7.6, A-9).
  * - `view-transition.ts`: `viewTransition()` at 240 ms (§7.4).
+ * - `tokens.ts`: the motion tokens for script, the twins of `styles/motion.css` (D3-4): ease
+ *   durations with their reduced values, press scales (02.5), the sheet push and the ring.
+ * - `catalogue.ts`: the catalogue entries that run from script (§7.3): `sheetPush` (X8),
+ *   `ringFlash` (*undo reveal*), `revealWhenShown` (*find step*, 05.2), `fold` (02.6).
  *
  * CSS transitions with `linear()` springs and Base UI's starting and ending styles remain the
  * first route for popups, bars, press and feedback (§7.4); gestures live in `motion/gesture/`.
@@ -26,8 +30,9 @@ export {
   type StyleProperty,
   type Styled,
 } from './animate';
+export { fold, type RingColour, revealWhenShown, ringFlash, sheetPush } from './catalogue';
 export { flip } from './flip';
-export { reducedMotion, subscribeReducedMotion } from './reduced-motion';
+export { reducedMotion, subscribeReducedMotion, systemReducedMotion } from './reduced-motion';
 export {
   type LinearEasing,
   type Spring,
@@ -37,5 +42,25 @@ export {
   springs,
   springToLinear,
 } from './springs';
+export {
+  DURATION_MS,
+  type DurationName,
+  duration,
+  EASE,
+  ENTER_SCALE,
+  LARGE_SURFACE_PX,
+  MOTION_TOKENS,
+  PRESS_SCALE,
+  type PressPointer,
+  pressScale,
+  REDUCED_DURATION_MS,
+  RING_FLASH,
+  RISE_PX,
+  SHEET_PUSH_PX,
+  SPRING_CSS_MS,
+  TOOLTIP_SCALE,
+  VT_MS,
+  VT_REDUCED_MS,
+} from './tokens';
 export { project, rubberBand, type VelocityTracker, velocityTracker } from './velocity';
 export { VIEW_TRANSITION_MS, viewTransition } from './view-transition';

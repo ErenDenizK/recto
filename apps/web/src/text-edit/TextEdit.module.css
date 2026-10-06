@@ -269,3 +269,8 @@
     transition: none;
   }
 }
+
+:global(:root[data-motion='reduced']) .run,
+:global(:root[data-motion='reduced']) .paragraph {
+  transition: none;
+}
