@@ -46,7 +46,7 @@
 
 /* The page being read: a ring outside the sheet (not colour alone: its label is bold too). */
 .thumbButton[aria-current='page'] .thumb {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-ring);
   outline-offset: 2px;
 }
 

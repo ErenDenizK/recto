@@ -97,7 +97,7 @@
   padding: 0 8px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
-  background: var(--n2, var(--canvas));
+  background: var(--field-well);
   color: var(--text-primary);
   font-size: var(--field-text);
   font-variant-numeric: tabular-nums;

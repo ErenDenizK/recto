@@ -1,8 +1,8 @@
 /**
  * Every token `tokens.css` defines, by block and layer (components/09-primitives.md §25;
  * language.md §10.1). `tokens.test.ts` holds the file to this list both ways (nothing missing,
- * nothing unlisted), keeps raw layer-1 names out of every module, and, once D3-7 adds the light
- * theme, checks that it redefines exactly the names of §1. A new token is added here first.
+ * nothing unlisted), keeps raw layer-1 names out of every module, and checks that the light
+ * theme (D3-7) redefines exactly the names of §1. A new token is added here first.
  */
 
 const steps = (prefix: string, values: readonly (number | string)[]): string[] =>
@@ -66,6 +66,7 @@ export const SEMANTIC_TOKENS: readonly string[] = [
   '--tool-active-fill-hover',
   '--tool-active-fill-pressed',
   '--tool-active-ink',
+  '--accent-ring',
   // Content.
   '--page-background',
   '--page-shadow',
@@ -108,6 +109,8 @@ export const SEMANTIC_TOKENS: readonly string[] = [
   '--rim-inner-sheet',
   '--rim-inner-docked',
   ...steps('--e', [0, 1, 2, 3, 4, 5]),
+  // Tracking of the three small type steps, per theme (language.md §4.2, T-6).
+  ...steps('--track-', ['caption', 'footnote', 'body']),
 ];
 
 /** §1, layer 3: the control block of `ui/` (09 §2.2) and the focus bands. */
@@ -162,8 +165,10 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   '--tracking-label',
   '--tracking-display',
   ...['caption', 'footnote', 'body', 'callout', 'title3', 'title2', 'title1', 'display'].flatMap(
-    (step) => [`--type-${step}`, `--type-${step}-lh`, `--track-${step}`],
+    (step) => [`--type-${step}`, `--type-${step}-lh`],
   ),
+  // The larger steps track alike in both themes; caption, footnote and body are in §1 and §2.
+  ...steps('--track-', ['callout', 'title3', 'title2', 'title1', 'display']),
   '--type-display-lg',
   '--type-display-lg-lh',
   '--leading-tight',
@@ -206,7 +211,7 @@ export const THEME_FREE_ALIASES: Readonly<Record<string, string>> = {
   '--icon-toolbar': '--icon-md',
 };
 
-/** Every name §1 defines; D3-7's light blocks must define exactly these. */
+/** Every name §1 defines; the light blocks (§2, D3-7) define exactly these. */
 export const THEME_TOKENS: readonly string[] = [
   ...RAW_TOKENS,
   ...SEMANTIC_TOKENS,

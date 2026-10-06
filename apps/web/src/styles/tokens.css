@@ -7,7 +7,7 @@
  *
  *   §1  `:root, [data-theme='dark']`   every colour and material token, dark values
  *   §2  `[data-theme='light']` and `@media (prefers-color-scheme: light)`: the same names with
- *       light values (D3-7 adds them; the test keeps both selectors and §1 to one name set)
+ *       light values (D3-7; the test keeps both selectors and §1 to one name set)
  *   §3  `:root`                        theme-free: type, shape, space, density, metrics
  *   §4  `@media (pointer: coarse), (any-pointer: coarse)`   coarse density
  *   §5  Settings: Glass Tinted and Solid (Solid identical to reduced transparency), more contrast
@@ -132,7 +132,7 @@
   --accent-subtle: rgb(var(--lime-rgb) / 0.08);
   --accent-muted: rgb(var(--lime-rgb) / 0.12);
   --accent-line: rgb(var(--lime-rgb) / 0.5);
-  /* The prominent button and the armed tool: lime fill, ink label (dark); D3-7 turns both to
+  /* The prominent button and the armed tool: lime fill, ink label (dark); light turns both to
      an ink fill with a lime label. */
   --primary-fill: var(--accent);
   --primary-fill-hover: var(--accent-hover);
@@ -142,6 +142,11 @@
   --tool-active-fill-hover: var(--accent-hover);
   --tool-active-fill-pressed: var(--accent-pressed);
   --tool-active-ink: var(--accent-ink);
+  /* Lime as a thin ring or line of its own (language.md §1.9): the 2 px current-thumbnail ring,
+     the selected Library card, drop lines, the processing arc and the success bloom on a rim.
+     Lime itself in the dark theme; lime-800 in the light one, where lime vanishes (1.21:1 on
+     white). */
+  --accent-ring: var(--accent);
 
   /* Layer 2: content (language.md §1.5). The page is white, never themed, and keeps a hairline
      instead of a shadow. --select is the blue of every selection mark on a page (lasso box,
@@ -296,6 +301,12 @@
   --focus-light: var(--lime-300);
   --focus-dark: var(--n1);
 
+  /* Layer 2: tracking of the three small steps (language.md §4.2, T-6): light text on a dark
+     ground spreads, so dark tracks +0.005 em more than light at 13 px and under. */
+  --track-caption: 0.015em;
+  --track-footnote: 0.01em;
+  --track-body: 0.005em;
+
   /* Aliases (09-primitives §25 block 8), deleted at migration step 11: the M8 colour names keep
      working while modules move to the semantic ones. The M8 glass names (`--glass`,
      `--glass-frame*`, `--glass-menu`, the σ-carrying filters, `--elevation-float`) left with the
@@ -309,11 +320,481 @@
 }
 
 /* ── §2 Light theme ────────────────────────────────────────────────────────────────────────
- * D3-7 (ADR-0022 §2.4) adds `[data-theme='light']` and
- * `@media (prefers-color-scheme: light) { :root:not([data-theme]) { … } }` here, each with
- * every name of §1 and light values (language.md §1.3–§1.6, §2.2 light table); `tokens.test.ts`
- * holds both selectors and §1 to one name set. Until then the app is dark only.
+ * ADR-0022 §2.4 (spec D3-7): Theme System · Light · Dark, default System, equal to dark. Every
+ * name of §1 again with its light value (language.md §1.3–§1.6, §2.2's light table, §2.4, §6.3;
+ * 09-primitives §2.2), twice: `[data-theme='light']`, which `state/theme.ts` and the boot script
+ * (`public/theme.js`, before the first paint) set whenever light is in force, Light chosen or
+ * System on a light device; and the same block under `prefers-color-scheme: light` for a root
+ * without the attribute (a page that has not run the script). `tokens.test.ts` keeps both to §1's
+ * names and to each other. The page is never themed: white, its inks and `--select` hold.
  */
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Layer 1: the same graphite, hue 265, read the other way up (language.md §1.3): n1 is the
+     lightest, n12 the ink. */
+  --n1: #fdfdff; /* 0.995 0.002 */
+  --n2: #f6f7f9; /* 0.975 0.003 */
+  --n3: #eff0f3; /* 0.955 0.004 */
+  --n4: #e6e8eb; /* 0.930 0.005 */
+  --n5: #dee0e4; /* 0.905 0.006 */
+  --n6: #d5d7dc; /* 0.880 0.007 */
+  --n7: #c5c7cd; /* 0.830 0.008 */
+  --n8: #a8abb1; /* 0.740 0.010 */
+  --n9: #5d6067; /* 0.490 0.012 */
+  --n10: #4f535a; /* 0.440 0.013 */
+  --n11: #3f424a; /* 0.380 0.013 */
+  --n12: #15171c; /* 0.205 0.010 */
+
+  /* Layer 1: one lime in both themes (ADR-0023 §2.2); the ramp does not turn over. */
+  --lime-50: #effed0;
+  --lime-100: #e1fea1;
+  --lime-200: #d2fe59;
+  --lime-300: #c8fb3d;
+  --lime-400: #bbef39;
+  --lime-500: #a5dd34;
+  --lime-600: #80b128;
+  --lime-700: #5f8a1b;
+  --lime-800: #446713;
+  --lime-900: #2f490a;
+  --lime-950: #1a2d04;
+  --lime-rgb: 200 251 61;
+  --white-rgb: 255 255 255;
+  --ink-rgb: 21 23 28;
+
+  /* Layer 1: the aurora as pigment on a light ground (ADR-0022 §2.4, AU-21; language.md §1.6):
+     lime, mint and teal, applied by the field (D3-8) as bg · (1 − k(1 − stop)) in linear light,
+     k ≤ 0.45. Lemon, the hottest light, has no pigment of its own and keeps its value. */
+  --aurora-teal: #41b2b2;
+  --aurora-mint: #61d19a;
+  --aurora-lime: #a0da3e;
+  --aurora-lemon: #faee40;
+
+  /* Layer 2: surfaces (language.md §1.3, light roles). The canvas is n4, a quiet grey under a
+     white page, so the page stays the brightest thing; the frame is n2 and raised surfaces,
+     cards and inputs n1, paper over the canvas. Washes are ink: hover 0.04, pressed 0.07. */
+  --canvas: var(--n4);
+  --surface-sunken: var(--n3);
+  --surface-frame: var(--n2);
+  --surface-raised: var(--n1);
+  --surface-on: var(--n5);
+  --surface-hover: rgb(var(--ink-rgb) / 0.04);
+  --surface-active: rgb(var(--ink-rgb) / 0.07);
+  /* Dim only, never a blur (G-31). */
+  --scrim: rgb(var(--ink-rgb) / 0.28);
+
+  /* Layer 2: borders, in ink. The glass border is the hairline too: light glass draws its shape
+     with a dark edge outside and a white rim inside (language.md §2.4). */
+  --border-hairline: rgb(var(--ink-rgb) / 0.1);
+  --border-strong: rgb(var(--ink-rgb) / 0.18);
+  --border-glass: rgb(var(--ink-rgb) / 0.1);
+  --border-swatch: rgb(var(--ink-rgb) / 0.28);
+  --border-opaque: var(--n7);
+
+  /* Layer 2: text (language.md §1.7, light columns). Primary 16.73:1 on the frame (Lc 100),
+     secondary 7.21 (Lc 82), tertiary 5.88 (Lc 77), never on n6 (4.37). */
+  --text-primary: var(--n12);
+  --text-secondary: var(--n10);
+  --text-tertiary: var(--n9);
+  --text-disabled: var(--n8);
+  --glass-text-secondary: var(--n11);
+  --glass-text-disabled: #7f838a; /* 2.45:1 worst over black, 3.68:1 typical */
+
+  /* Layer 2: interaction. Lime always touches ink (ADR-0023 §2.3): in light the prominent
+     button and the armed tool are an ink fill with a lime label (14.79:1; on hover n11 8.29,
+     pressed #000 17.32). Lime is never text on a light surface; its 1 px lines are lime-800
+     (6.57 on white, 5.35 on the canvas), current rows ink 0.07. */
+  --accent: var(--lime-300);
+  --accent-hover: #ddff82;
+  --accent-pressed: #b2e93c;
+  --accent-ink: #08090c;
+  --accent-subtle: rgb(var(--ink-rgb) / 0.04);
+  --accent-muted: rgb(var(--ink-rgb) / 0.07);
+  --accent-line: var(--lime-800);
+  --primary-fill: var(--n12);
+  --primary-fill-hover: var(--n11);
+  --primary-fill-pressed: #000000;
+  --primary-ink: var(--lime-300);
+  --tool-active-fill: var(--n12);
+  --tool-active-fill-hover: var(--n11);
+  --tool-active-fill-pressed: #000000;
+  --tool-active-ink: var(--lime-300);
+  --accent-ring: var(--lime-800);
+
+  /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
+     and no shadow. */
+  --page-background: #ffffff;
+  --page-shadow: 0 0 0 1px rgb(var(--ink-rgb) / 0.14);
+  --page-under: #e9eaee;
+  --plate-edge: rgb(0 0 0 / 0.08);
+  --plate-ring: rgb(0 0 0 / 0.18);
+  --select: #4e61ed;
+  --select-rgb: 78 97 237;
+  --select-ink: #ffffff;
+  --select-subtle: rgb(var(--select-rgb) / 0.08);
+  --select-muted: rgb(var(--select-rgb) / 0.16);
+  --select-wash: rgb(var(--select-rgb) / 0.25);
+  --select-wash-strong: rgb(var(--select-rgb) / 0.45);
+  --redact-page: #c21725;
+  --crop-dim: rgb(var(--ink-rgb) / 0.45);
+
+  /* Layer 2: status, dark enough for a light ground (language.md §1.6): danger 6.10 on white
+     and 4.97 on the canvas, warning 4.67, success 4.60; each steps down once more on glass.
+     Warning and danger are one colour to a deuteranope here (ΔE 1.3): the triangle, the cross
+     and the words carry them. */
+  --danger: #c21725;
+  --warning: #985600;
+  --success: #007654;
+  --glass-danger: #a20519;
+  --glass-warning: #754100;
+  --glass-success: #005c41;
+  --warning-line: rgb(152 86 0 / 0.35);
+
+  /* Layer 2: tags, deepened for light (ADR-0023 §2.8), all ≥ 4.43:1 on the frame. */
+  --tag-0: #327f6e;
+  --tag-1: #966b21;
+  --tag-2: #945067;
+  --tag-3: #5d728e;
+  --tag-4: #7c68a1;
+  --tag-5: #965c39;
+
+  --light-cap-under-glass: 0.6;
+
+  /* Layer 2: materials, light (language.md §2.2, ADR-0022 §2.4, G-25). Light glass is floored,
+     not inverted: `contrast(0.45) brightness(1.4)` after the saturate lifts black under it to
+     0.385 before the tint, so black is its worst backdrop as white is dark glass's. Over black:
+     chip #ccccce, bar #cfcfd1, panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text
+     keeps ≥ 11.18:1 and glass-secondary ≥ 6.27:1; over white they stay paper (#fafafc–#fcfcfd),
+     and the panel over the canvas lands within a level of the frame (n2). Lit glass is dark
+     only: in light its surfaces take the bar's values (spec 02.3), floored over any pigment. */
+  --glass-chip-alpha: 0.7;
+  --glass-chip-tint: rgb(250 250 252 / var(--glass-chip-alpha));
+  --glass-chip-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+  --glass-chip-solid: var(--n1);
+  --glass-chip-shadow: var(--e2);
+  --glass-bar-alpha: 0.72;
+  --glass-bar-tint: rgb(250 250 252 / var(--glass-bar-alpha));
+  --glass-bar-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+  --glass-bar-solid: var(--n1);
+  --glass-bar-shadow: var(--e3);
+  --glass-panel-alpha: 0.76;
+  --glass-panel-tint: rgb(248 249 251 / var(--glass-panel-alpha));
+  --glass-panel-filter: saturate(1.4) contrast(0.45) brightness(1.4);
+  --glass-panel-solid: var(--n2);
+  --glass-panel-shadow: var(--e4);
+  --glass-menu-alpha: 0.78;
+  --glass-menu-tint: rgb(250 250 252 / var(--glass-menu-alpha));
+  --glass-menu-filter: saturate(1.4) contrast(0.45) brightness(1.4);
+  --glass-menu-solid: var(--n1);
+  --glass-menu-shadow: var(--e4);
+  --glass-sheet-alpha: 0.88;
+  --glass-sheet-tint: rgb(250 250 252 / var(--glass-sheet-alpha));
+  --glass-sheet-filter: saturate(1.3) contrast(0.45) brightness(1.4);
+  --glass-sheet-solid: var(--n1);
+  --glass-sheet-shadow: var(--e5);
+  --glass-lit-alpha: 0.72;
+  --glass-lit-tint: rgb(250 250 252 / var(--glass-lit-alpha));
+  --glass-lit-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+  --glass-lit-solid: var(--n1);
+  --glass-lit-shadow: var(--e3);
+  /* Rims (language.md §2.4, light): a thin ink edge outside holds the shape over a white page,
+     a white rim lit from above (0.85 at the top, 0.40 at the bottom) and a white inner light
+     (0.60) hold it over the canvas. Menus and sheets take a slightly firmer edge, as in dark. */
+  --rim-edge: 0 0 0 1px rgb(15 17 22 / 0.12);
+  --rim-top: rgb(var(--white-rgb) / 0.85);
+  --rim-bottom: rgb(var(--white-rgb) / 0.4);
+  --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-edge-strong: 0 0 0 1px rgb(15 17 22 / 0.14);
+  --rim-top-menu: rgb(var(--white-rgb) / 0.85);
+  --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
+  --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
+  --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
+  --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
+  --e0: none;
+  --e1: 0 1px 2px rgb(var(--ink-rgb) / 0.12);
+  --e2: 0 4px 12px -4px rgb(var(--ink-rgb) / 0.2);
+  --e3: 0 10px 28px -10px rgb(var(--ink-rgb) / 0.24), 0 2px 6px -2px rgb(var(--ink-rgb) / 0.14);
+  --e4: 0 16px 40px -12px rgb(var(--ink-rgb) / 0.25);
+  --e5: 0 30px 80px -20px rgb(var(--ink-rgb) / 0.28);
+
+  /* Layer 3: the control block, light (09-primitives §2.2): ink washes one step apart, the
+     control edge ink 0.55 (≥ 3.61:1 against the worst light glass), on-states n12 with an n1
+     glyph, thumbs and knobs paper (n1) lifted by e1 and ringed by the control edge. */
+  --control-fill: rgb(var(--ink-rgb) / 0.06);
+  --control-fill-hover: rgb(var(--ink-rgb) / 0.09);
+  --control-fill-pressed: rgb(var(--ink-rgb) / 0.12);
+  --control-border: rgb(var(--ink-rgb) / 0.55);
+  --control-border-hover: rgb(var(--ink-rgb) / 0.7);
+  --control-on: var(--n12);
+  --control-on-ink: var(--n1);
+  --control-thumb-off: var(--n9);
+  --control-thumb: var(--n1);
+  --control-knob: var(--n1);
+  --control-track: rgb(var(--ink-rgb) / 0.28);
+  --control-range: var(--n12);
+  --control-disabled-fill: var(--n5);
+  --progress-fill: var(--n12);
+  --field-well: var(--n1);
+  --field-placeholder: var(--n10);
+  --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
+  --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
+  --badge-fill: var(--n4);
+  --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
+  /* The focus ring serves both themes unchanged (language.md §9.2): lime and #08090c. */
+  --focus-light: var(--lime-300);
+  --focus-dark: #08090c;
+
+  /* Tracking (language.md §4.2): dark text on light needs less. */
+  --track-caption: 0.01em;
+  --track-footnote: 0.005em;
+  --track-body: 0em;
+
+  /* Aliases, deleted at migration step 11. */
+  --surface-0: var(--canvas);
+  --surface-1: var(--surface-frame);
+  --surface-2: var(--surface-raised);
+  --surface-3: var(--surface-on);
+  --accent-highlight: var(--select-wash);
+  --accent-highlight-strong: var(--select-wash-strong);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+
+    /* Layer 1: the same graphite, hue 265, read the other way up (language.md §1.3): n1 is the
+       lightest, n12 the ink. */
+    --n1: #fdfdff; /* 0.995 0.002 */
+    --n2: #f6f7f9; /* 0.975 0.003 */
+    --n3: #eff0f3; /* 0.955 0.004 */
+    --n4: #e6e8eb; /* 0.930 0.005 */
+    --n5: #dee0e4; /* 0.905 0.006 */
+    --n6: #d5d7dc; /* 0.880 0.007 */
+    --n7: #c5c7cd; /* 0.830 0.008 */
+    --n8: #a8abb1; /* 0.740 0.010 */
+    --n9: #5d6067; /* 0.490 0.012 */
+    --n10: #4f535a; /* 0.440 0.013 */
+    --n11: #3f424a; /* 0.380 0.013 */
+    --n12: #15171c; /* 0.205 0.010 */
+
+    /* Layer 1: one lime in both themes (ADR-0023 §2.2); the ramp does not turn over. */
+    --lime-50: #effed0;
+    --lime-100: #e1fea1;
+    --lime-200: #d2fe59;
+    --lime-300: #c8fb3d;
+    --lime-400: #bbef39;
+    --lime-500: #a5dd34;
+    --lime-600: #80b128;
+    --lime-700: #5f8a1b;
+    --lime-800: #446713;
+    --lime-900: #2f490a;
+    --lime-950: #1a2d04;
+    --lime-rgb: 200 251 61;
+    --white-rgb: 255 255 255;
+    --ink-rgb: 21 23 28;
+
+    /* Layer 1: the aurora as pigment on a light ground (ADR-0022 §2.4, AU-21; language.md §1.6):
+       lime, mint and teal, applied by the field (D3-8) as bg · (1 − k(1 − stop)) in linear light,
+       k ≤ 0.45. Lemon, the hottest light, has no pigment of its own and keeps its value. */
+    --aurora-teal: #41b2b2;
+    --aurora-mint: #61d19a;
+    --aurora-lime: #a0da3e;
+    --aurora-lemon: #faee40;
+
+    /* Layer 2: surfaces (language.md §1.3, light roles). The canvas is n4, a quiet grey under a
+       white page, so the page stays the brightest thing; the frame is n2 and raised surfaces,
+       cards and inputs n1, paper over the canvas. Washes are ink: hover 0.04, pressed 0.07. */
+    --canvas: var(--n4);
+    --surface-sunken: var(--n3);
+    --surface-frame: var(--n2);
+    --surface-raised: var(--n1);
+    --surface-on: var(--n5);
+    --surface-hover: rgb(var(--ink-rgb) / 0.04);
+    --surface-active: rgb(var(--ink-rgb) / 0.07);
+    /* Dim only, never a blur (G-31). */
+    --scrim: rgb(var(--ink-rgb) / 0.28);
+
+    /* Layer 2: borders, in ink. The glass border is the hairline too: light glass draws its shape
+       with a dark edge outside and a white rim inside (language.md §2.4). */
+    --border-hairline: rgb(var(--ink-rgb) / 0.1);
+    --border-strong: rgb(var(--ink-rgb) / 0.18);
+    --border-glass: rgb(var(--ink-rgb) / 0.1);
+    --border-swatch: rgb(var(--ink-rgb) / 0.28);
+    --border-opaque: var(--n7);
+
+    /* Layer 2: text (language.md §1.7, light columns). Primary 16.73:1 on the frame (Lc 100),
+       secondary 7.21 (Lc 82), tertiary 5.88 (Lc 77), never on n6 (4.37). */
+    --text-primary: var(--n12);
+    --text-secondary: var(--n10);
+    --text-tertiary: var(--n9);
+    --text-disabled: var(--n8);
+    --glass-text-secondary: var(--n11);
+    --glass-text-disabled: #7f838a; /* 2.45:1 worst over black, 3.68:1 typical */
+
+    /* Layer 2: interaction. Lime always touches ink (ADR-0023 §2.3): in light the prominent
+       button and the armed tool are an ink fill with a lime label (14.79:1; on hover n11 8.29,
+       pressed #000 17.32). Lime is never text on a light surface; its 1 px lines are lime-800
+       (6.57 on white, 5.35 on the canvas), current rows ink 0.07. */
+    --accent: var(--lime-300);
+    --accent-hover: #ddff82;
+    --accent-pressed: #b2e93c;
+    --accent-ink: #08090c;
+    --accent-subtle: rgb(var(--ink-rgb) / 0.04);
+    --accent-muted: rgb(var(--ink-rgb) / 0.07);
+    --accent-line: var(--lime-800);
+    --primary-fill: var(--n12);
+    --primary-fill-hover: var(--n11);
+    --primary-fill-pressed: #000000;
+    --primary-ink: var(--lime-300);
+    --tool-active-fill: var(--n12);
+    --tool-active-fill-hover: var(--n11);
+    --tool-active-fill-pressed: #000000;
+    --tool-active-ink: var(--lime-300);
+    --accent-ring: var(--lime-800);
+
+    /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
+       and no shadow. */
+    --page-background: #ffffff;
+    --page-shadow: 0 0 0 1px rgb(var(--ink-rgb) / 0.14);
+    --page-under: #e9eaee;
+    --plate-edge: rgb(0 0 0 / 0.08);
+    --plate-ring: rgb(0 0 0 / 0.18);
+    --select: #4e61ed;
+    --select-rgb: 78 97 237;
+    --select-ink: #ffffff;
+    --select-subtle: rgb(var(--select-rgb) / 0.08);
+    --select-muted: rgb(var(--select-rgb) / 0.16);
+    --select-wash: rgb(var(--select-rgb) / 0.25);
+    --select-wash-strong: rgb(var(--select-rgb) / 0.45);
+    --redact-page: #c21725;
+    --crop-dim: rgb(var(--ink-rgb) / 0.45);
+
+    /* Layer 2: status, dark enough for a light ground (language.md §1.6): danger 6.10 on white
+       and 4.97 on the canvas, warning 4.67, success 4.60; each steps down once more on glass.
+       Warning and danger are one colour to a deuteranope here (ΔE 1.3): the triangle, the cross
+       and the words carry them. */
+    --danger: #c21725;
+    --warning: #985600;
+    --success: #007654;
+    --glass-danger: #a20519;
+    --glass-warning: #754100;
+    --glass-success: #005c41;
+    --warning-line: rgb(152 86 0 / 0.35);
+
+    /* Layer 2: tags, deepened for light (ADR-0023 §2.8), all ≥ 4.43:1 on the frame. */
+    --tag-0: #327f6e;
+    --tag-1: #966b21;
+    --tag-2: #945067;
+    --tag-3: #5d728e;
+    --tag-4: #7c68a1;
+    --tag-5: #965c39;
+
+    --light-cap-under-glass: 0.6;
+
+    /* Layer 2: materials, light (language.md §2.2, ADR-0022 §2.4, G-25). Light glass is floored,
+       not inverted: `contrast(0.45) brightness(1.4)` after the saturate lifts black under it to
+       0.385 before the tint, so black is its worst backdrop as white is dark glass's. Over black:
+       chip #ccccce, bar #cfcfd1, panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text
+       keeps ≥ 11.18:1 and glass-secondary ≥ 6.27:1; over white they stay paper (#fafafc–#fcfcfd),
+       and the panel over the canvas lands within a level of the frame (n2). Lit glass is dark
+       only: in light its surfaces take the bar's values (spec 02.3), floored over any pigment. */
+    --glass-chip-alpha: 0.7;
+    --glass-chip-tint: rgb(250 250 252 / var(--glass-chip-alpha));
+    --glass-chip-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+    --glass-chip-solid: var(--n1);
+    --glass-chip-shadow: var(--e2);
+    --glass-bar-alpha: 0.72;
+    --glass-bar-tint: rgb(250 250 252 / var(--glass-bar-alpha));
+    --glass-bar-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+    --glass-bar-solid: var(--n1);
+    --glass-bar-shadow: var(--e3);
+    --glass-panel-alpha: 0.76;
+    --glass-panel-tint: rgb(248 249 251 / var(--glass-panel-alpha));
+    --glass-panel-filter: saturate(1.4) contrast(0.45) brightness(1.4);
+    --glass-panel-solid: var(--n2);
+    --glass-panel-shadow: var(--e4);
+    --glass-menu-alpha: 0.78;
+    --glass-menu-tint: rgb(250 250 252 / var(--glass-menu-alpha));
+    --glass-menu-filter: saturate(1.4) contrast(0.45) brightness(1.4);
+    --glass-menu-solid: var(--n1);
+    --glass-menu-shadow: var(--e4);
+    --glass-sheet-alpha: 0.88;
+    --glass-sheet-tint: rgb(250 250 252 / var(--glass-sheet-alpha));
+    --glass-sheet-filter: saturate(1.3) contrast(0.45) brightness(1.4);
+    --glass-sheet-solid: var(--n1);
+    --glass-sheet-shadow: var(--e5);
+    --glass-lit-alpha: 0.72;
+    --glass-lit-tint: rgb(250 250 252 / var(--glass-lit-alpha));
+    --glass-lit-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+    --glass-lit-solid: var(--n1);
+    --glass-lit-shadow: var(--e3);
+    /* Rims (language.md §2.4, light): a thin ink edge outside holds the shape over a white page,
+       a white rim lit from above (0.85 at the top, 0.40 at the bottom) and a white inner light
+       (0.60) hold it over the canvas. Menus and sheets take a slightly firmer edge, as in dark. */
+    --rim-edge: 0 0 0 1px rgb(15 17 22 / 0.12);
+    --rim-top: rgb(var(--white-rgb) / 0.85);
+    --rim-bottom: rgb(var(--white-rgb) / 0.4);
+    --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-edge-strong: 0 0 0 1px rgb(15 17 22 / 0.14);
+    --rim-top-menu: rgb(var(--white-rgb) / 0.85);
+    --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
+    --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
+    --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
+    --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
+    --e0: none;
+    --e1: 0 1px 2px rgb(var(--ink-rgb) / 0.12);
+    --e2: 0 4px 12px -4px rgb(var(--ink-rgb) / 0.2);
+    --e3: 0 10px 28px -10px rgb(var(--ink-rgb) / 0.24), 0 2px 6px -2px rgb(var(--ink-rgb) / 0.14);
+    --e4: 0 16px 40px -12px rgb(var(--ink-rgb) / 0.25);
+    --e5: 0 30px 80px -20px rgb(var(--ink-rgb) / 0.28);
+
+    /* Layer 3: the control block, light (09-primitives §2.2): ink washes one step apart, the
+       control edge ink 0.55 (≥ 3.61:1 against the worst light glass), on-states n12 with an n1
+       glyph, thumbs and knobs paper (n1) lifted by e1 and ringed by the control edge. */
+    --control-fill: rgb(var(--ink-rgb) / 0.06);
+    --control-fill-hover: rgb(var(--ink-rgb) / 0.09);
+    --control-fill-pressed: rgb(var(--ink-rgb) / 0.12);
+    --control-border: rgb(var(--ink-rgb) / 0.55);
+    --control-border-hover: rgb(var(--ink-rgb) / 0.7);
+    --control-on: var(--n12);
+    --control-on-ink: var(--n1);
+    --control-thumb-off: var(--n9);
+    --control-thumb: var(--n1);
+    --control-knob: var(--n1);
+    --control-track: rgb(var(--ink-rgb) / 0.28);
+    --control-range: var(--n12);
+    --control-disabled-fill: var(--n5);
+    --progress-fill: var(--n12);
+    --field-well: var(--n1);
+    --field-placeholder: var(--n10);
+    --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
+    --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
+    --badge-fill: var(--n4);
+    --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
+    /* The focus ring serves both themes unchanged (language.md §9.2): lime and #08090c. */
+    --focus-light: var(--lime-300);
+    --focus-dark: #08090c;
+
+    /* Tracking (language.md §4.2): dark text on light needs less. */
+    --track-caption: 0.01em;
+    --track-footnote: 0.005em;
+    --track-body: 0em;
+
+    /* Aliases, deleted at migration step 11. */
+    --surface-0: var(--canvas);
+    --surface-1: var(--surface-frame);
+    --surface-2: var(--surface-raised);
+    --surface-3: var(--surface-on);
+    --accent-highlight: var(--select-wash);
+    --accent-highlight-strong: var(--select-wash-strong);
+  }
+}
 
 /* ── §3 Theme-free ─────────────────────────────────────────────────────────────────────── */
 :root {
@@ -331,21 +812,18 @@
   --tracking-display: -0.011em;
 
   /* The type scale (language.md §4.2), fine-pointer sizes; the coarse steps are in §4. Size,
-     line height and tracking per step. The tracking is the dark theme's (+0.005 em at 13 px
-     and under, T-6); D3-7 moves the --track-* names into §1 and §2 when light gets its own.
+     line height and tracking per step; caption, footnote and body track per theme (T-6: light
+     text on dark needs +0.005 em more at 13 px and under), so those three are in §1 and §2.
      At most three sizes per surface, weight before size (X-3); nothing under --type-caption
      on glass (Q-8). Today's four sizes are its first four steps, so the old names alias them;
      the --track-* steps are for the rebuilt surfaces (D2), so the M8 text keeps --tracking-ui
      until then. */
   --type-caption: 11px; /* badges, counts, keycaps; 500 */
   --type-caption-lh: 14px;
-  --track-caption: 0.015em;
   --type-footnote: 12px; /* secondary lines, metadata; section labels at 500 */
   --type-footnote-lh: 16px;
-  --track-footnote: 0.01em;
   --type-body: 13px; /* UI base: rows, menus; buttons at 500 */
   --type-body-lh: 18px;
-  --track-body: 0.005em;
   --type-callout: 15px; /* sheet body, empty-state text */
   --type-callout-lh: 20px;
   --track-callout: -0.005em;
@@ -554,6 +1032,13 @@
     --rim-inner-docked: 0 0 #0000;
     --text-secondary: var(--n11);
     --text-tertiary: var(--n10);
+  }
+
+  /* The strong border in ink for light (language.md §2.4: rgb(21 23 28 / 0.40)). */
+  :root[data-theme='light'] {
+    --border-hairline: rgb(var(--ink-rgb) / 0.22);
+    --border-strong: rgb(var(--ink-rgb) / 0.4);
+    --border-glass: rgb(var(--ink-rgb) / 0.4);
   }
 }
 

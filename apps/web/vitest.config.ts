@@ -80,7 +80,12 @@ export default mergeConfig(
       browser: {
         enabled: true,
         headless: true,
-        provider: playwright({ launchOptions: chromiumLaunchOptions() }),
+        // Dark, as the suite was written: Theme defaults to System (spec D3-7) and Playwright
+        // reports a light scheme unless told; light tests set `data-theme` themselves.
+        provider: playwright({
+          launchOptions: chromiumLaunchOptions(),
+          contextOptions: { colorScheme: 'dark' },
+        }),
         instances: [{ browser: 'chromium' }],
       },
     },

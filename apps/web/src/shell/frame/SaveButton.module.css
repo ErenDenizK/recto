@@ -79,8 +79,8 @@
 .ring {
   background: conic-gradient(
     from var(--save-ring-turn),
-    var(--accent) 0deg 40deg,
-    color-mix(in srgb, var(--accent) 60%, transparent) 90deg,
+    var(--accent-ring) 0deg 40deg,
+    color-mix(in srgb, var(--accent-ring) 60%, transparent) 90deg,
     transparent 150deg 360deg
   );
   animation: save-ring-turn 2.4s linear infinite;
@@ -95,7 +95,7 @@
 /* The success bloom (FB6 §3): the ring's light on the rim, in 180 ms, held 120 ms, out over
    900 ms, once. */
 .bloom {
-  background: var(--accent);
+  background: var(--accent-ring);
   opacity: 0;
   animation: save-bloom 1200ms var(--ease-out) 1;
 }

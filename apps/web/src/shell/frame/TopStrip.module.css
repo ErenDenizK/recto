@@ -398,7 +398,7 @@
   /* The edge is drawn inside (no border box), so the field and ‹ › are the full control height
      and share the strip's centre line (Q-9). */
   border-radius: var(--radius-pill);
-  background: var(--n2, var(--canvas));
+  background: var(--field-well);
   box-shadow: inset 0 0 0 1px var(--border-strong);
   color: var(--text-secondary);
 }

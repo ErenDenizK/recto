@@ -65,18 +65,19 @@
   color: var(--text-disabled);
 }
 
-/* The one primary action of a place: the accent fill (today's tokens; the lime is D3). */
+/* The one primary action of a place: the prominent fill, lime with an ink label in dark, ink
+   with a lime label in light (ADR-0023 §2.3). */
 .primary {
   composes: btn-prominent from global;
   min-width: 200px;
   padding: 0 24px;
-  /* The shared rule above sets the chrome's text colour; the fill's label is canvas-dark. */
-  color: var(--canvas);
+  /* The shared rule above sets the chrome's text colour; the fill's label is the primary ink. */
+  color: var(--primary-ink);
   font-weight: 600;
 }
 
 /* Disabled (Go with no page typed; Open PDF while a file opens): the shared disabled step,
-   `--control-disabled-fill` under the disabled label (Q-14). The canvas-dark label above would
+   `--control-disabled-fill` under the disabled label (Q-14). The primary's label above would
    all but vanish on that fill, and `.btn`'s disabled label is not composed here. */
 .primary:is(:disabled, [aria-disabled='true']) {
   color: var(--text-disabled);
