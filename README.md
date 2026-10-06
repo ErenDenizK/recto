@@ -17,7 +17,7 @@ recognise scans, compare, sign.
 
 </div>
 
-<a href="https://erendenizk.github.io/recto/"><img src="https://erendenizk.github.io/recto/media/00-hero.png" width="100%" alt="The light table in Arrange: three demo documents, each a row of page thumbnails"></a>
+<a href="https://erendenizk.github.io/recto/"><img src="https://erendenizk.github.io/recto/media/00-hero.png" width="100%" alt="The Pages grid: three demo documents, each a section of page thumbnails"></a>
 
 **Status:** public beta (`1.0.0-beta` versions, [ADR-0017](docs/adr/0017-versioning-and-releases.md)).
 Built and maintained by one person; not audited by a third party. The end-to-end tests run in

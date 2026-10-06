@@ -6,7 +6,9 @@ import { viewportOptions } from './lib/viewport.ts';
 
 // Media scenes (docs/specs/presentation.md §2) run against the production build served by
 // `vite preview`, on a port of their own so a running e2e server (4173) is never reused by
-// mistake. MEDIA_SKIP_BUILD=1 reuses apps/web/dist, like E2E_SKIP_BUILD in the e2e config.
+// mistake. MEDIA_SKIP_BUILD=1 reuses apps/web/dist, like E2E_SKIP_BUILD in the e2e config;
+// that build must have been made with RECTO_RENDER_OVERRIDE=1, as the media action makes it,
+// or the scenes record the software rasteriser's start state (lib/stage.ts).
 const port = Number(process.env.MEDIA_PORT ?? 4180);
 const origin = `http://localhost:${port}`;
 const build = process.env.MEDIA_SKIP_BUILD ? '' : 'pnpm --filter @pdf-editor/web build && ';
@@ -43,6 +45,9 @@ export default defineConfig({
   projects: [{ name: 'chromium' }],
   webServer: {
     command: `${build}pnpm --filter @pdf-editor/web preview --port ${port} --strictPort`,
+    // The build compiles the test-only render override in (docs/specs/redesign.md X36), as
+    // the media action's build does; the deploy build does not.
+    env: { RECTO_RENDER_OVERRIDE: '1' },
     url: `${origin}/`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

@@ -1,5 +1,5 @@
 /**
- * Clip 4, "Recognise a scan" (spec §6): the scanned letter, Document menu → "Recognize text
+ * Clip 4, "Recognise a scan" (spec §6): the scanned letter, the title menu → "Recognize text
  * (OCR)…", English, the first page (the second is Turkish). The recognition itself is cut,
  * not sped up, and a "shortened" caption says so (spec §2.3). Then the result: the page's
  * quality in Review's Words to check (spec X33, D2-9), and a recognised line selected with the
@@ -21,13 +21,22 @@ scene({
   async prepare(stage) {
     const { page } = stage;
     await stage.openFixtures(FIXTURES);
-    await stage.rendered(page.locator('main'), 1);
+    await stage.rendered(page.locator('[data-read-viewport]'), 1);
+    // The sheet once off camera, so its code is loaded: on camera it opens as on a second
+    // use, not after a first load the viewer would watch.
+    await page.getByTestId('document-menu').click();
+    await page.getByRole('menuitem', { name: 'Recognize text (OCR)…' }).click();
+    await expect(page.getByTestId('ocr-dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('ocr-dialog')).toHaveCount(0);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await stage.cursor.place(1000, 560);
   },
   async run(stage) {
     const { page, cursor } = stage;
 
-    // 1. Document menu → Recognize text (OCR)…: English, the current page.
+    // 1. The title menu (opened from the active tab, 01-frame F5) → Recognize text (OCR)…, the
+    //    S10 sheet: English, the current page.
     await cursor.click(page.getByTestId('document-menu'), 350);
     await cursor.click(page.getByRole('menuitem', { name: 'Recognize text (OCR)…' }), 350);
     const dialog = page.getByTestId('ocr-dialog');
@@ -36,17 +45,17 @@ scene({
     await cursor.click(dialog.getByRole('radio', { name: 'Current page (1)' }), 350);
     await cursor.click(dialog.getByRole('button', { name: 'Recognize 1 page' }), 350);
     await expect(dialog.getByTestId('ocr-progress')).toBeVisible();
-    await stage.hold(300);
 
-    // 2. The wait, cut: the clip goes straight from the progress to the result, and the
-    //    caption sits just under the dialog.
+    // 2. The wait, cut: the clip goes straight from the progress to the result. The sheet
+    //    runs the window's height, so the caption sits over the page beside it, level with
+    //    the sheet's head, where the result appears.
     const result = dialog.getByTestId('ocr-result');
     await stage.cut(
       () => expect(result).toBeVisible({ timeout: 180_000 }),
       async () => {
         const box = await dialog.boundingBox();
-        if (!box) throw new Error('the OCR dialog is not laid out');
-        return { x: box.x + box.width / 2, y: box.y + box.height + 26 };
+        if (!box) throw new Error('the OCR sheet is not laid out');
+        return { x: box.x / 2, y: box.y + 72 };
       },
       // Gone before the sheet closes and Words to check opens.
       { ms: 750 },
@@ -58,7 +67,7 @@ scene({
     await expect(dialog).toHaveCount(0);
     const quality = page.getByTestId('review-words-page').first();
     await expect(quality).toContainText(/^Page 1 · Good/);
-    await stage.hold(200);
+    await stage.hold(100);
 
     // 4. Select a recognised line by dragging across it, as on a page with real text. The
     //    recognised text layer has one span per line; this one reads as the ground truth.
@@ -67,9 +76,9 @@ scene({
     const lineBox = await line.boundingBox();
     if (!lineBox) throw new Error('the recognised line is not laid out');
     const y = lineBox.y + lineBox.height / 2;
-    await cursor.move(lineBox.x + 1, y, 420);
+    await cursor.move(lineBox.x + 1, y, 380);
     await cursor.down();
-    await cursor.move(lineBox.x + lineBox.width - 1, y, 500);
+    await cursor.move(lineBox.x + lineBox.width - 1, y, 450);
     await cursor.up();
     await expect
       .poll(() => page.evaluate(() => window.getSelection()?.toString().trim() ?? ''))
