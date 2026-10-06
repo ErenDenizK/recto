@@ -1,11 +1,11 @@
 /*
- * N1 Sidebar (06-navigation §3, §2.1): the docked frame material (`glass-frame`, the M3 stand-in
- * until D3-3) with a hairline on its free edge and no shadow; laid over the page (medium) a
+ * N1 Sidebar (06-navigation §3, §2.1): docked M3 (`mat mat-panel mat-docked s24`; solid on a
+ * coarse pointer, `cs`, M-31) with a hairline on its free edge and no shadow; laid over the page (medium) a
  * floating panel inset 8 with radius 20 and e4; on compact-height a side sheet under the top
  * bar. Rows, the switch and wells inside use fills, never a second glass (Q-4).
  */
 .sidebar {
-  composes: glass-frame from global;
+  composes: mat mat-panel mat-docked s24 cs from global;
   position: absolute;
   top: var(--free-top, 0px);
   bottom: 0;

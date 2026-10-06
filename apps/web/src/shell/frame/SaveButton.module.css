@@ -114,7 +114,7 @@
   }
 }
 
-/* Reduced motion, Reduce transparency: a still rim while saving, a static rim for the bloom. */
+/* Reduced motion, Glass Solid: a still rim while saving, a static rim for the bloom. */
 @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   .ring {
     padding: 1px;
@@ -131,7 +131,7 @@
   }
 }
 
-:root:is([data-motion='reduced'], [data-transparency='reduced']) .ring {
+:root:is([data-motion='reduced'], [data-glass='solid']) .ring {
   padding: 1px;
   background: var(--accent-line);
   animation: none;
@@ -141,7 +141,7 @@
   animation: none;
 }
 
-:root:is([data-motion='reduced'], [data-transparency='reduced']) .bloom {
+:root:is([data-motion='reduced'], [data-glass='solid']) .bloom {
   animation: save-bloom-still 1000ms steps(1, end) 1;
 }
 

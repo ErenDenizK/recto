@@ -28,8 +28,7 @@ registerPageOverlay(AnnotationLayer);
 getEngineService().onSourceClosed(clearLinksForSource);
 
 /** Elements whose presses keep the annotation selection (chrome that edits it). */
-const KEEP_SELECTOR =
-  '[data-annotation-keep], #right-panel, [role="dialog"], [data-comments-panel]';
+const KEEP_SELECTOR = '[data-annotation-keep], [role="dialog"], [data-comments-panel]';
 
 if (typeof window !== 'undefined') {
   window.addEventListener(

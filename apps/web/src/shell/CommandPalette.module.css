@@ -15,7 +15,7 @@
    like the menus (--motion-rise). Centred by its auto margins, so at rest it carries no
    transform and sits on whole pixels (quality-bar Q-2). */
 .popup {
-  composes: glass from global;
+  composes: mat mat-menu s24 from global;
   position: fixed;
   top: min(18vh, 160px);
   right: 0;

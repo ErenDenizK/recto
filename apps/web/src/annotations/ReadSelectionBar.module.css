@@ -8,7 +8,7 @@
 }
 
 .bar {
-  composes: glass from global;
+  composes: mat mat-bar s8 c10 from global;
   position: absolute;
   display: flex;
   align-items: center;

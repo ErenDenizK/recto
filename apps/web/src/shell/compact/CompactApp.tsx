@@ -58,7 +58,8 @@ function applyViewport(): () => void {
 export function CompactApp() {
   useLayoutEffect(() => applyViewport(), []);
   // The appearance settings reach the root here too: Reduce motion (About's row, or kept from
-  // the full edition on this device) and Reduce transparency, which the sheets' CSS reads.
+  // the full edition on this device) and Glass with its start state and cost ladder, which the
+  // materials read.
   useAppearanceRoot();
   // Encrypted files ask for their password in the compact sheet.
   useEffect(() => {

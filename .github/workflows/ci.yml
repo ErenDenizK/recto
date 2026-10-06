@@ -83,6 +83,10 @@ jobs:
 
       - name: Build
         run: pnpm build
+        # The e2e jobs below test this build: it compiles the test-only render override in
+        # (docs/specs/redesign.md X36). deploy.yml and release.yml build without it.
+        env:
+          RECTO_RENDER_OVERRIDE: '1'
 
       # Downloadable preview of this commit's build (ADR-0004); also reused by e2e below.
       - name: Upload build

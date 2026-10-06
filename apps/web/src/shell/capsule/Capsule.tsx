@@ -6,8 +6,8 @@
  * mounts another glass surface, so backdrop, rim, inner light and shadow are always this
  * element's and change shape only through its own width and height (`capsule-morph.ts`).
  *
- * **Material.** M2 (`glass from global`) with one σ per size, not per content: 9 fine, 10 coarse,
- * 8 compact-height (`--glass-capsule-filter`, language.md §2.9). No lens (X20): a line may rest
+ * **Material.** M2 (`mat mat-bar s9 c10 h8`, materials.css) with one σ per size, not per
+ * content: 9 fine, 10 coarse, 8 compact-height (language.md §2.9). No lens (X20): a line may rest
  * under the dock, and the morph must never change the filter. `contain: layout style`, so the
  * layout a morph costs stays inside the capsule (Q-6); its own box is the one thing that moves.
  *
