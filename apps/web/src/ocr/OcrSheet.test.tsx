@@ -70,6 +70,17 @@ function packs(): OcrDependencies['packs'] {
 
 let realFacts: OcrDependencies['facts'] | undefined;
 
+/**
+ * S10's primary once the pages and packs have loaded. Queried afresh: while dimmed it carries
+ * its reason (and a tooltip around it), so the enabled one may be a new element.
+ */
+async function enabledRun(name = 'Recognize 2 pages'): Promise<HTMLElement> {
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name })).not.toHaveAttribute('aria-disabled', 'true'),
+  );
+  return screen.getByRole('button', { name });
+}
+
 async function openScan(): Promise<{ documentId: string; source: SourceId }> {
   const report = await useWorkspaceStore
     .getState()
@@ -141,11 +152,14 @@ describe('the OCR dialog', () => {
     expect(within(dialog).queryByTestId('ocr-signed-warning')).toBeNull();
 
     const run = within(dialog).getByRole('button', { name: 'Recognize 2 pages' });
-    expect(run).toBeEnabled();
+    expect(run).not.toHaveAttribute('aria-disabled', 'true');
     act(() => {
       within(dialog).getByRole('radio', { name: 'Current page (1)' }).click();
     });
-    expect(within(dialog).getByRole('button', { name: 'Recognize 1 page' })).toBeEnabled();
+    expect(within(dialog).getByRole('button', { name: 'Recognize 1 page' })).not.toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     // Adding Turkish puts it after English (the first language leads).
     act(() => {
       within(dialog)
@@ -162,7 +176,10 @@ describe('the OCR dialog', () => {
     expect(within(dialog).getByTestId('ocr-languages-key')).toHaveTextContent(
       'Choose at least one language.',
     );
-    expect(within(dialog).getByRole('button', { name: 'Recognize 1 page' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Recognize 1 page' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('offers to replace earlier text and warns about signatures', async () => {
@@ -225,9 +242,8 @@ describe('the OCR dialog', () => {
     const { documentId } = await openScan();
     openOcrDialog(documentId as never);
     render(<OcrSheet />);
-    const dialog = await screen.findByTestId('ocr-dialog');
-    const run = await within(dialog).findByRole('button', { name: 'Recognize 2 pages' });
-    await waitFor(() => expect(run).toBeEnabled());
+    await screen.findByTestId('ocr-dialog');
+    const run = await enabledRun();
     const edits = useWorkspaceStore.getState().workspace.engineEdits;
     act(() => run.click());
 
@@ -240,14 +256,22 @@ describe('the OCR dialog', () => {
     expect(runs[0]?.request.replace).toBe(false);
 
     // Hidden: the run continues (the status bar shows it).
-    act(() => within(progress).getByRole('button', { name: 'Continue in background' }).click());
+    act(() =>
+      within(screen.getByTestId('ocr-dialog'))
+        .getByRole('button', { name: 'Continue in background' })
+        .click(),
+    );
     await waitFor(() => expect(useOcrStore.getState().dialog).toBeNull());
     expect(useOcrStore.getState().run.kind).toBe('running');
 
     // Opened again: the progress, and Cancel.
     act(() => openOcrDialog(documentId as never));
-    const back = await screen.findByTestId('ocr-progress');
-    act(() => within(back).getByRole('button', { name: 'Cancel recognition' }).click());
+    await screen.findByTestId('ocr-progress');
+    act(() =>
+      within(screen.getByTestId('ocr-dialog'))
+        .getByRole('button', { name: 'Cancel recognition' })
+        .click(),
+    );
     await waitFor(() => expect(useOcrStore.getState().run.kind).toBe('cancelled'));
     expect(await screen.findByTestId('ocr-outcome')).toHaveTextContent(
       'Recognition cancelled. The document is unchanged.',
@@ -260,8 +284,7 @@ describe('the OCR dialog', () => {
     const { documentId } = await openScan();
     openOcrDialog(documentId as never);
     render(<OcrSheet />);
-    const run = await screen.findByRole('button', { name: 'Recognize 2 pages' });
-    await waitFor(() => expect(run).toBeEnabled());
+    const run = await enabledRun();
     act(() => run.click());
     await waitFor(() => expect(runs).toHaveLength(1));
     act(() => runs[0]?.finish());
@@ -276,12 +299,15 @@ describe('the OCR dialog', () => {
     const { documentId } = await openScan();
     openOcrDialog(documentId as never);
     render(<OcrSheet />);
-    const run = await screen.findByRole('button', { name: 'Recognize 2 pages' });
-    await waitFor(() => expect(run).toBeEnabled());
+    const run = await enabledRun();
     act(() => run.click());
     await waitFor(() => expect(runs).toHaveLength(1));
-    const progress = await screen.findByTestId('ocr-progress');
-    act(() => within(progress).getByRole('button', { name: 'Continue in background' }).click());
+    await screen.findByTestId('ocr-progress');
+    act(() =>
+      within(screen.getByTestId('ocr-dialog'))
+        .getByRole('button', { name: 'Continue in background' })
+        .click(),
+    );
     await waitFor(() => expect(useOcrStore.getState().dialog).toBeNull());
     act(() => runs[0]?.finish());
     await waitFor(() => expect(useOcrStore.getState().run.kind).toBe('done'));
@@ -363,7 +389,7 @@ describe('the OCR dialog', () => {
     expect(
       within(manager).getByRole('switch', { name: 'Keep English available offline' }),
     ).not.toBeChecked();
-    act(() => within(manager).getByRole('button', { name: 'Back' }).click());
+    act(() => screen.getByRole('button', { name: 'Back' }).click());
     expect(await screen.findByRole('button', { name: 'Recognize 2 pages' })).toBeInTheDocument();
   });
 });

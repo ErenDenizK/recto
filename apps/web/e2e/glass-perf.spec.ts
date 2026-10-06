@@ -18,7 +18,7 @@ import { deflateSync } from 'node:zlib';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { reloadFresh, showInspector, useFileInputPicker } from './helpers';
+import { reloadFresh, useFileInputPicker } from './helpers';
 
 /** `src/state/appearance-store.ts` (kept in step by hand: e2e does not import app code). */
 const APPEARANCE_STORAGE_KEY = 'pdf-editor:appearance:v1';
@@ -135,7 +135,6 @@ async function scrollRun(page: Page, selector = '[data-read-viewport]'): Promise
       const surfaces: readonly (readonly [string, string])[] = [
         ['title', ':scope > header'],
         ['left', ':scope > [data-region="navigator"]'],
-        ['right', ':scope > #right-panel'],
       ];
       const near = new Set<string>();
       const times: number[] = [];
@@ -225,7 +224,6 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass panels o
     await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
       timeout: 30_000,
     });
-    await showInspector(page);
     const label = glassPanels ? 'on' : 'off';
     expect(
       await page.evaluate(() => document.documentElement.hasAttribute('data-glass-panels')),
@@ -233,7 +231,7 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass panels o
     // Fit width: the pages sit beside the panels.
     await page.waitForTimeout(500);
     results[`fit width, setting ${label}`] = await scrollRun(page);
-    // Zoomed in four steps (150 %): the pages run under the navigator and the inspector.
+    // Zoomed in four steps (150 %): the pages run under the navigator.
     await page.evaluate(() => {
       const viewport = document.querySelector<HTMLElement>('[data-read-viewport]');
       viewport?.focus();

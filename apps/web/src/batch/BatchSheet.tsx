@@ -27,7 +27,15 @@ import {
   planRecipeRun,
   utf8ByteLength,
 } from '@pdf-editor/document-model';
-import { type DragEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  type RefObject,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { formatBytes, isHiddenName } from '../files/file-filters';
 import { dragHasFiles, filesFromDataTransfer, pickFiles } from '../files/open-files';
@@ -209,22 +217,55 @@ function BatchFlow({ open }: { readonly open: boolean }) {
     });
   };
 
-  const onDragOver = (event: DragEvent) => {
+  const onDragOver = (event: globalThis.DragEvent) => {
     if (!dragHasFiles(event.dataTransfer)) return;
     event.preventDefault();
     event.stopPropagation();
     const accepting = view.kind === 'setup';
-    event.dataTransfer.dropEffect = accepting ? 'copy' : 'none';
+    if (event.dataTransfer) event.dataTransfer.dropEffect = accepting ? 'copy' : 'none';
     setOver(accepting);
   };
-  const onDrop = (event: DragEvent) => {
+  const onDrop = (event: globalThis.DragEvent) => {
     if (!dragHasFiles(event.dataTransfer)) return;
     event.preventDefault();
     event.stopPropagation();
     setOver(false);
     if (view.kind !== 'setup') return;
     // Everything but hidden files: the plan lists what it skips and why.
-    void filesFromDataTransfer(event.dataTransfer, (f) => !isHiddenName(f.name)).then(addFiles);
+    const data = event.dataTransfer;
+    if (data) void filesFromDataTransfer(data, (f) => !isHiddenName(f.name)).then(addFiles);
+  };
+
+  // Drags anywhere on the sheet are the batch's (its header too): they never reach the window,
+  // which would open the file in the tab, nor the shell, which would open them as documents.
+  // Native listeners on the sheet's panel, found from the flow once the portal has mounted it,
+  // read the latest handlers.
+  const drag = useRef({ over: onDragOver, drop: onDrop });
+  useLayoutEffect(() => {
+    drag.current = { over: onDragOver, drop: onDrop };
+  });
+  const flowRef = (flow: HTMLDivElement | null) => {
+    const panel = flow?.closest<HTMLElement>('[data-sheet]');
+    if (!panel) return undefined;
+    const enter = (event: globalThis.DragEvent) => {
+      if (dragHasFiles(event.dataTransfer)) event.stopPropagation();
+    };
+    const over = (event: globalThis.DragEvent) => drag.current.over(event);
+    const leave = (event: globalThis.DragEvent) => {
+      event.stopPropagation();
+      setOver(false);
+    };
+    const drop = (event: globalThis.DragEvent) => drag.current.drop(event);
+    panel.addEventListener('dragenter', enter);
+    panel.addEventListener('dragover', over);
+    panel.addEventListener('dragleave', leave);
+    panel.addEventListener('drop', drop);
+    return () => {
+      panel.removeEventListener('dragenter', enter);
+      panel.removeEventListener('dragover', over);
+      panel.removeEventListener('dragleave', leave);
+      panel.removeEventListener('drop', drop);
+    };
   };
 
   const importRecipe = async (file: File | undefined) => {
@@ -347,6 +388,14 @@ function BatchFlow({ open }: { readonly open: boolean }) {
       });
   };
 
+  const recipeFocus: RefObject<HTMLElement | null> = {
+    get current() {
+      return document.querySelector<HTMLElement>(
+        `[data-sheet="${BATCH_SHEET}"] [aria-pressed="true"]`,
+      );
+    },
+  };
+
   const title =
     view.kind === 'edit'
       ? view.id === undefined
@@ -362,23 +411,11 @@ function BatchFlow({ open }: { readonly open: boolean }) {
       onClose={closeBatchDialog}
       title={title}
       back={view.kind === 'edit' ? () => setView({ kind: 'setup' }) : undefined}
+      // S21 §6: focus on the chosen recipe (the popup itself until the list has loaded).
+      initialFocus={recipeFocus}
       testId="batch-dialog"
     >
-      {/* Drags inside the sheet are the batch's: they never reach the shell (which would show
-          its drop overlay and open the files as tabs). */}
-      <div
-        className={styles.flow}
-        data-file-drop-zone=""
-        onDragEnter={(event) => {
-          if (dragHasFiles(event.dataTransfer)) event.stopPropagation();
-        }}
-        onDragOver={onDragOver}
-        onDragLeave={(event) => {
-          event.stopPropagation();
-          setOver(false);
-        }}
-        onDrop={onDrop}
-      >
+      <div ref={flowRef} className={styles.flow} data-file-drop-zone="">
         {view.kind === 'edit' ? (
           <RecipeEditor
             initial={view.recipe}

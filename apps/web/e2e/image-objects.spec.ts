@@ -14,17 +14,14 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import {
   openFixtures,
   openSaveCopy,
-  showInspector,
+  inHistory,
+  historyStep,
   useFileInputPicker,
   showSidebar,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
-
-function historyRow(page: Page, label: string | RegExp) {
-  return page.getByRole('list', { name: /history/i }).getByRole('button', { name: label });
-}
 
 /** The image targets of the first page (present while the Image tool is active). */
 function firstImage(page: Page): Locator {
@@ -65,7 +62,6 @@ test('move an image 50 px, extract it as PNG, export and re-open: the image move
   page,
 }) => {
   await openFixtures(page, ['images.pdf']);
-  await showInspector(page);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
@@ -86,7 +82,9 @@ test('move an image 50 px, extract it as PNG, export and re-open: the image move
   for (let step = 1; step <= 10; step++) await page.mouse.move(x + 5 * step, y);
   await page.mouse.up();
 
-  await expect(historyRow(page, 'Image moved')).toBeVisible({ timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Image moved')).toBeVisible({ timeout: 20_000 }),
+  );
   const expectedX = 126 + 50 * ptPerPx;
   await expect
     .poll(async () => (await imageRect(firstImage(page)))[0] ?? 0, { timeout: 20_000 })
@@ -141,7 +139,6 @@ test('keyboard: arrows nudge the selected image, Delete removes it, undo brings 
   page,
 }) => {
   await openFixtures(page, ['images.pdf']);
-  await showInspector(page);
   await armImageTool(page);
   const target = firstImage(page);
   await expect(target).toBeVisible({ timeout: 20_000 });
@@ -150,12 +147,16 @@ test('keyboard: arrows nudge the selected image, Delete removes it, undo brings 
   await expect(selection).toBeFocused();
 
   await page.keyboard.press('Shift+ArrowRight');
-  await expect(historyRow(page, 'Image moved')).toBeVisible({ timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Image moved')).toBeVisible({ timeout: 20_000 }),
+  );
   await expect.poll(async () => (await imageRect(firstImage(page)))[0]).toBeCloseTo(136, 1);
   await expect(selection).toBeFocused();
 
   await page.keyboard.press('Delete');
-  await expect(historyRow(page, 'Image deleted')).toBeVisible({ timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Image deleted')).toBeVisible({ timeout: 20_000 }),
+  );
   await expect(page.locator('[data-image-layer="0"] [data-image-object]')).toHaveCount(0);
 
   // Undo of a removal reopens the source and replays the move.
@@ -171,7 +172,6 @@ test('keyboard: the bar is one Tab stop with arrow keys; Mod+Arrow resizes keepi
   page,
 }) => {
   await openFixtures(page, ['images.pdf']);
-  await showInspector(page);
   await armImageTool(page);
   const target = firstImage(page);
   await expect(target).toBeVisible({ timeout: 20_000 });
@@ -207,7 +207,9 @@ test('keyboard: the bar is one Tab stop with arrow keys; Mod+Arrow resizes keepi
   await selection.focus();
   const live = page.locator('div[role="status"][aria-live="polite"].visually-hidden');
   await page.keyboard.press('ControlOrMeta+ArrowRight');
-  await expect(historyRow(page, 'Image resized')).toBeVisible({ timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Image resized')).toBeVisible({ timeout: 20_000 }),
+  );
   await expect(live).toHaveText(/Image resized to 361 × 270\.[78] pt/);
   await expect.poll(async () => (await imageRect(firstImage(page)))[2]).toBeCloseTo(361, 1);
   await expect.poll(async () => (await imageRect(firstImage(page)))[3]).toBeCloseTo(270.75, 1);

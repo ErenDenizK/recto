@@ -13,7 +13,8 @@ import {
   enterEdit,
   openFixtures,
   reloadFresh,
-  showInspector,
+  inHistory,
+  historyStep,
   useFileInputPicker,
   showSidebar,
 } from './helpers';
@@ -68,10 +69,6 @@ async function yellowShare(
   }, png.toString('base64'));
 }
 
-function historyRow(page: Page, label: string | RegExp) {
-  return page.getByRole('list', { name: /history/i }).getByRole('button', { name: label });
-}
-
 test.describe('annotations', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -100,25 +97,29 @@ test.describe('annotations', () => {
     await page.keyboard.press('Escape');
     await expect(layer(page)).toHaveAttribute('data-tool', 'select');
 
-    // Selecting it shows the contextual bar; the inspector stays closed (decision 4).
+    // Selecting it shows the contextual bar (the inspector is gone, spec D2-9).
     const square = await rectangle.boundingBox();
     if (!square) throw new Error('rectangle hit target not rendered');
     await page.mouse.click(square.x + 4, square.y + square.height / 2);
     await expect(page.getByTestId('annotation-bar')).toBeVisible();
-    await expect(page.locator('#right-panel')).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
 
-    await showInspector(page);
-    await expect(historyRow(page, /Rectangle on page 1/)).toHaveAttribute('data-state', 'present');
+    await inHistory(page, (list) =>
+      expect(historyStep(list, /Rectangle on page 1/)).toHaveAttribute('data-state', 'present'),
+    );
 
     await page.keyboard.press('ControlOrMeta+z');
     await expect(rectangle).toHaveCount(0);
-    await expect(historyRow(page, /Rectangle on page 1/)).toHaveAttribute('data-state', 'future');
+    await inHistory(page, (list) =>
+      expect(historyStep(list, /Rectangle on page 1/)).toHaveAttribute('data-state', 'future'),
+    );
 
     await page.keyboard.press('ControlOrMeta+Shift+z');
     await expect(rectangle).toHaveCount(1);
-    await expect(historyRow(page, /Rectangle on page 1/)).toHaveAttribute('data-state', 'present');
+    await inHistory(page, (list) =>
+      expect(historyStep(list, /Rectangle on page 1/)).toHaveAttribute('data-state', 'present'),
+    );
   });
 
   test('selected text, then U, underlines it', async ({ browserName, page }) => {
@@ -126,7 +127,6 @@ test.describe('annotations', () => {
     await page.goto('./');
     await openFixtures(page, ['simple-text.pdf']);
     await enterEdit(page);
-    await showInspector(page);
     const line = page
       .getByTestId('text-layer')
       .first()
@@ -135,7 +135,7 @@ test.describe('annotations', () => {
     await line.click({ clickCount: 3 });
     await page.keyboard.press('u');
     await expect(layer(page).locator('[data-annotation-kind="underline"]')).toHaveCount(1);
-    await expect(historyRow(page, /Underline on page 1/)).toBeVisible();
+    await inHistory(page, (list) => expect(historyStep(list, /Underline on page 1/)).toBeVisible());
     // The tool did not change: the selection was used.
     await expect(layer(page)).toHaveAttribute('data-tool', 'select');
   });
@@ -151,7 +151,6 @@ test.describe('annotations', () => {
     await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
       timeout: 20_000,
     });
-    await showInspector(page);
     // Text box: click, type, Escape commits.
     await page.locator('body').press('t');
     await drag(page, 0, [0.15, 0.6], [0.15, 0.6]);
@@ -160,7 +159,7 @@ test.describe('annotations', () => {
     await editor.fill('Reviewed');
     await editor.press('Escape');
     await expect(layer(page).locator('[data-annotation-kind="free-text"]')).toHaveCount(1);
-    await expect(historyRow(page, /Text box on page 1/)).toBeVisible();
+    await inHistory(page, (list) => expect(historyStep(list, /Text box on page 1/)).toBeVisible());
 
     // Ink, then erase it.
     await page.locator('body').press('Escape');
@@ -170,7 +169,7 @@ test.describe('annotations', () => {
     await page.locator('body').press('Shift+E');
     await drag(page, 0, [0.45, 0.4], [0.45, 0.52]);
     await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(0);
-    await expect(historyRow(page, /Erased 1 stroke/)).toBeVisible();
+    await inHistory(page, (list) => expect(historyStep(list, /Erased 1 stroke/)).toBeVisible());
 
     // Built-in stamp from Stamp ▾ (its choices: a right-click): a placing tool, so Select
     // comes back and the stamp is not selected (03-markup §3).
@@ -180,7 +179,7 @@ test.describe('annotations', () => {
     await drag(page, 0, [0.7, 0.35], [0.7, 0.35]);
     const stamp = layer(page).locator('[data-annotation-kind="stamp"]');
     await expect(stamp).toHaveCount(1);
-    await expect(historyRow(page, /Stamp on page 1/)).toBeVisible();
+    await inHistory(page, (list) => expect(historyStep(list, /Stamp on page 1/)).toBeVisible());
     await expect(layer(page)).toHaveAttribute('data-tool', 'select');
     await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
 
@@ -247,7 +246,6 @@ test.describe('annotations', () => {
     await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
       timeout: 20_000,
     });
-    await showInspector(page);
     // Records any contextual bar or selection outline, however briefly it appears.
     await page.evaluate(() => {
       const seen: string[] = [];
@@ -267,7 +265,9 @@ test.describe('annotations', () => {
       await expect(ink.locator('polyline')).toHaveCount(i + 1, { timeout: 10_000 });
     }
     await expect(ink).toHaveCount(1);
-    await expect(historyRow(page, /Pen on page 1 · 3 strokes/)).toBeVisible();
+    await inHistory(page, (list) =>
+      expect(historyStep(list, /Pen on page 1 · 3 strokes/)).toBeVisible(),
+    );
     await page.waitForTimeout(300);
     expect(
       await page.evaluate(
@@ -277,10 +277,9 @@ test.describe('annotations', () => {
     await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
     await expect(layer(page).locator('[data-selected-annotation]')).toHaveCount(0);
 
-    // With the pen armed and nothing selected, the inspector edits the pen's style.
-    const inspector = page.locator('#right-panel');
-    if (!(await inspector.isVisible())) await page.keyboard.press('ControlOrMeta+Alt+b');
-    const penStyle = inspector.getByRole('region', { name: /tool style$/ });
+    // With the pen armed and nothing selected, the ink strip edits the pen's style (10-ink §2;
+    // the inspector did until D2-9).
+    const penStyle = page.getByTestId('ink-strip');
     await penStyle.getByRole('radio', { name: 'Blue' }).click();
     await expect(penStyle.getByRole('radio', { name: 'Blue' })).toHaveAttribute(
       'aria-checked',
@@ -296,7 +295,6 @@ test.describe('annotations', () => {
     });
     await page.locator('body').press('p');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
-    if (!(await inspector.isVisible())) await page.keyboard.press('ControlOrMeta+Alt+b');
     await expect(penStyle.getByRole('radio', { name: 'Blue' })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -324,9 +322,6 @@ test.describe('annotations', () => {
     await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
       timeout: 20_000,
     });
-    // With the inspector the page fits above the tool bar and its options tier, so the drags
-    // below land on the page.
-    await showInspector(page);
     const tool = async (key: string) => {
       await page.locator('body').press(key);
     };
