@@ -515,7 +515,7 @@ describe('Library', () => {
     expect(await screen.findByTestId('library-opened-toast')).toHaveTextContent('Opened 2 files');
   }, 45_000);
 
-  it('is the launcher with no file open: the headline, Open PDFs… and Combine files…', async () => {
+  it('is the launcher with no file open: the headline, Open PDFs…, the sample and Combine files…', async () => {
     render(<App />);
     useUiStore.getState().showHome();
     const home = await screen.findByTestId('home');
@@ -529,6 +529,7 @@ describe('Library', () => {
     ).toBeVisible();
     expect(within(home).getByText('Nothing leaves this device.')).toBeVisible();
     expect(within(home).getByRole('button', { name: 'Open PDFs…' })).toHaveClass('btn-prominent');
+    expect(within(home).getByRole('button', { name: 'Try the sample' })).toBeVisible();
     expect(within(home).getByRole('button', { name: 'Combine files…' })).toBeVisible();
     expect(within(home).getByRole('button', { name: 'More' })).toBeVisible();
     expect(within(home).getByRole('radiogroup', { name: 'Language' })).toBeVisible();

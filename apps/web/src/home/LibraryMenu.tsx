@@ -1,9 +1,8 @@
 /**
- * The Library ⋯ menu (`02-library` L12, decision 02.18): Combine files… · Batch… · Settings… ·
- * Keyboard shortcuts (fine pointers only) · About Recto. Try the sample joins it first with the
- * teaching sample (D4-2). Spec L12 places the menu in the top strip; until the M9 top strip
- * (D2-1) hosts it, the launcher carries this trigger, and the strip can mount the same
- * component. Base UI `Menu` with the menu recipe (M4); guard: none, nothing here changes a
+ * The Library ⋯ menu (`02-library` L12, decision 02.18): Try the sample · Combine files… ·
+ * Batch… · Settings… · Keyboard shortcuts (fine pointers only) · About Recto. Spec L12 places
+ * the menu in the top strip; until the M9 top strip (D2-1) hosts it, the launcher carries this
+ * trigger, and the strip can mount the same component. Base UI `Menu` with the menu recipe (M4); guard: none, nothing here changes a
  * document.
  */
 import { Menu } from '@base-ui/react/menu';
@@ -16,6 +15,7 @@ import { Icon } from '../ui/Icon';
 import iconButtonStyles from '../ui/IconButton.module.css';
 import menuStyles from '../ui/Menu.module.css';
 import { Tooltip } from '../ui/Tooltip';
+import { openSample } from '../sample/open-sample';
 import { combineFiles } from './home-actions';
 
 interface Item {
@@ -27,6 +27,7 @@ interface Item {
 }
 
 const ITEMS: readonly Item[] = [
+  { id: 'sample', label: m.cmd_try_sample, run: () => void openSample() },
   { id: 'combine-files', label: m.library_combine_files, run: () => void combineFiles() },
   { id: 'batch', label: m.cmd_batch, run: () => void commandRegistry.execute('document.batch') },
   {
