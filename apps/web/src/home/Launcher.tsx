@@ -13,6 +13,10 @@
  * - **Drag-over** (L9 on the Library): no overlay; the card or row lifts 2 px with the e3
  *   shadow and its headline becomes "Drop to open 2 files".
  *
+ * - **Busy** (L2 §4): Open PDFs… is busy while the engine reads the picked files, but not while
+ *   a password prompt (07-sheets S6) waits for the person: that wait is theirs, not the app's,
+ *   and the prompt's own Open shows the busy state once a password is being tried.
+ *
  * None of the actions changes an open document (no guard). Open PDFs… carries
  * `data-library-open`, where focus goes after Start fresh and after closing the last card.
  */
@@ -22,6 +26,7 @@ import { useCommandShortcut } from '../shell/use-command-shortcut';
 import { currentPlatform, toAriaKeyShortcut } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { AppGlyph } from '../shell/AppGlyph';
+import { usePasswordStore } from '../state/password-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
@@ -44,7 +49,9 @@ export interface LauncherProps {
 }
 
 export function Launcher({ variant, dragging, dragCount, selecting = false }: LauncherProps) {
+  // A file waiting on its password still counts as opening; the prompt is what is on screen.
   const opening = useWorkspaceStore((s) => s.opening > 0);
+  const prompting = usePasswordStore((s) => s.queue.length > 0);
   const shortcut = useCommandShortcut('file.open');
   const openRef = useRef<HTMLButtonElement>(null);
   const sampleAvailable = useSampleAvailable();
@@ -74,7 +81,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
       variant={selecting ? 'standard' : 'prominent'}
       size="lg"
       icon={<Icon name="folder-open" />}
-      busy={opening}
+      busy={opening && !prompting}
       busyLabel={m.library_card_opening()}
       aria-keyshortcuts={shortcut ? toAriaKeyShortcut(shortcut, currentPlatform) : undefined}
       data-library-open=""
