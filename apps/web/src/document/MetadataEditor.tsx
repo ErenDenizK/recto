@@ -4,6 +4,10 @@
  * creation date (read-only) and custom Info keys. A field commits on Enter or when it
  * loses focus; each change is one history entry and switches the export policy to
  * "explicit" (`setMetadata`). Escape restores the stored value.
+ *
+ * The fields are the primitives' wells (`ui/Field.module.css`: 32 px fine, 44 px coarse, the
+ * control border and radius, the inset focus ring) beside their labels, and Add and Remove are
+ * the primitives' buttons (quality-bar Q-9).
  */
 import {
   customKeyProblem,
@@ -19,7 +23,10 @@ import { type KeyboardEvent, type SyntheticEvent, useId, useState } from 'react'
 import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Button } from '../ui/Button';
+import field from '../ui/Field.module.css';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import styles from './DocumentTools.module.css';
 
 /** Suggestions for the language field; any well-formed BCP 47 tag is accepted. */
@@ -215,19 +222,21 @@ function TextField({
         {label}
       </label>
       <span className={styles.fieldControl}>
-        <input
-          id={id}
-          className={styles.input}
-          value={draft}
-          list={list}
-          spellCheck={false}
-          autoComplete="off"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={commit}
-          onKeyDown={onKeyDown}
-        />
+        <span className={field.well} data-invalid={error ? '' : undefined}>
+          <input
+            id={id}
+            className={field.input}
+            value={draft}
+            list={list}
+            spellCheck={false}
+            autoComplete="off"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={commit}
+            onKeyDown={onKeyDown}
+          />
+        </span>
         {error ? (
           <span id={`${id}-error`} className={styles.error}>
             {error}
@@ -328,32 +337,36 @@ function CustomKeys({ doc }: { readonly doc: VirtualDocument }) {
           if (event.key === 'Enter' && event.target instanceof HTMLInputElement) add(event);
         }}
       >
-        <input
-          id={keyId}
-          className={styles.input}
-          placeholder={m.meta_custom_key()}
-          aria-label={m.meta_custom_key()}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${keyId}-error` : undefined}
-          value={key}
-          spellCheck={false}
-          autoComplete="off"
-          onChange={(event) => {
-            setKey(event.target.value);
-            setError(undefined);
-          }}
-        />
-        <input
-          className={styles.input}
-          placeholder={m.meta_custom_value()}
-          aria-label={m.meta_custom_value()}
-          value={value}
-          autoComplete="off"
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <button type="button" className={styles.small} disabled={key.trim() === ''} onClick={add}>
+        <span className={field.well} data-invalid={error ? '' : undefined}>
+          <input
+            id={keyId}
+            className={field.input}
+            placeholder={m.meta_custom_key()}
+            aria-label={m.meta_custom_key()}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${keyId}-error` : undefined}
+            value={key}
+            spellCheck={false}
+            autoComplete="off"
+            onChange={(event) => {
+              setKey(event.target.value);
+              setError(undefined);
+            }}
+          />
+        </span>
+        <span className={field.well}>
+          <input
+            className={field.input}
+            placeholder={m.meta_custom_value()}
+            aria-label={m.meta_custom_value()}
+            value={value}
+            autoComplete="off"
+            onChange={(event) => setValue(event.target.value)}
+          />
+        </span>
+        <Button variant="standard" disabled={key.trim() === ''} onClick={add}>
           {m.meta_custom_add()}
-        </button>
+        </Button>
         {error ? (
           <span id={`${keyId}-error`} className={styles.error} role="alert">
             {error}
@@ -383,32 +396,31 @@ function CustomRow({
         {name}
       </label>
       <span className={styles.fieldRow}>
-        <input
-          id={id}
-          className={styles.input}
-          value={draft}
-          autoComplete="off"
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={() => {
-            if (draft !== value) onCommit(draft);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && draft !== value) onCommit(draft);
-            if (event.key === 'Escape' && draft !== value) {
-              event.stopPropagation();
-              setDraft(value);
-            }
-          }}
-        />
-        <button
-          type="button"
-          className={styles.iconButton}
-          aria-label={m.meta_custom_remove({ key: name })}
-          title={m.meta_custom_remove({ key: name })}
+        <span className={field.well}>
+          <input
+            id={id}
+            className={field.input}
+            value={draft}
+            autoComplete="off"
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={() => {
+              if (draft !== value) onCommit(draft);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && draft !== value) onCommit(draft);
+              if (event.key === 'Escape' && draft !== value) {
+                event.stopPropagation();
+                setDraft(value);
+              }
+            }}
+          />
+        </span>
+        <IconButton
+          size="row"
+          label={m.meta_custom_remove({ key: name })}
+          icon={<Icon name="x" />}
           onClick={onRemove}
-        >
-          <Icon name="x" />
-        </button>
+        />
       </span>
     </>
   );
