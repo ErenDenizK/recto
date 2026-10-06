@@ -101,7 +101,8 @@ function Sidebar({
   readonly overlay: boolean;
 }) {
   const width = useUiStore((s) => s.leftPanelWidth);
-  const showView = useUiStore((s) => s.showLeftPanelView);
+  // The tabs sit inside the sidebar: the selected one stays (APG tabs), ▤ and Mod+B close it.
+  const showView = useUiStore((s) => s.showNavigator);
   const setWidth = useUiStore((s) => s.setLeftPanelWidth);
   const toggleShortcut = useCommandShortcut('view.toggleLeftPanel');
   const tabsRef = useRef<HTMLDivElement>(null);

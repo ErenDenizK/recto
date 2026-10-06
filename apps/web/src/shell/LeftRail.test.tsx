@@ -85,7 +85,7 @@ describe('Navigator', () => {
     expect(tabNames()).toHaveLength(4);
   });
 
-  it('is a horizontal tablist with a roving tabindex; Enter shows, the shown tab again closes', async () => {
+  it('is a horizontal tablist with a roving tabindex; Enter shows, the shown tab again stays', async () => {
     await open(formsAUrl, 'forms-a.pdf');
     render(<LeftRail />);
     const tabs = within(rail()).getAllByRole('tab');
@@ -104,8 +104,10 @@ describe('Navigator', () => {
     expect(tabs[3]).toHaveFocus();
     await userEvent.keyboard('{Home}');
     expect(tabs[0]).toHaveFocus();
+    // The tabs are inside the sidebar: pressing the shown one keeps it (▤ and Mod+B close).
     await userEvent.click(tabs[2] as HTMLElement);
-    expect(useUiStore.getState().leftPanelOpen).toBe(false);
+    expect(useUiStore.getState().leftPanelOpen).toBe(true);
+    expect(tabs[2]).toHaveAttribute('aria-selected', 'true');
   });
 
   it('shows only in a document, as it was: not with no file, not on the Library', async () => {
