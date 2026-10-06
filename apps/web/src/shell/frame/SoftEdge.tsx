@@ -9,9 +9,12 @@
 import { useEffect, useRef } from 'react';
 
 import styles from './DockBand.module.css';
+import { useFrameStore } from './frame-store';
 
 export function SoftEdge() {
   const ref = useRef<HTMLDivElement>(null);
+  // While hide on scroll has moved the bar away there is no strip edge to soften.
+  const away = useFrameStore((s) => s.chromeHidden);
   useEffect(() => {
     const edge = ref.current;
     if (!edge) return;
@@ -23,5 +26,7 @@ export function SoftEdge() {
     document.addEventListener('scroll', onScroll, { capture: true, passive: true });
     return () => document.removeEventListener('scroll', onScroll, true);
   }, []);
-  return <div ref={ref} className={styles.softEdge} aria-hidden="true" />;
+  return (
+    <div ref={ref} className={styles.softEdge} data-away={away || undefined} aria-hidden="true" />
+  );
 }

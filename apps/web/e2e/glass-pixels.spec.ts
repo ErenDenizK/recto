@@ -171,11 +171,13 @@ test(
   async ({ page, browserName }, testInfo) => {
     test.skip(browserName !== 'chromium', APP_SURFACES_CHROMIUM_ONLY);
     await openBlankPage(page, testInfo.outputPath('white-page.pdf'));
-    await page
-      .getByRole('button', { name: /^Document/ })
-      .first()
-      .click();
-    const menu = page.getByRole('menu').first();
+    // The title menu opens below the active tab (01-frame F5): with the sidebar closed it lies
+    // over the page.
+    if ((await page.locator('#left-panel').count()) > 0) {
+      await page.getByTestId('sidebar-toggle').click();
+    }
+    await page.getByTestId('document-menu').click();
+    const menu = page.getByTestId('title-menu');
     await expect(menu).toBeVisible();
     const pageBox = await page.locator('[data-page-index="0"]').first().boundingBox();
     const menuBox = await menu.boundingBox();

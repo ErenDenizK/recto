@@ -14,8 +14,13 @@ import { expect, type Page, test } from '@playwright/test';
 import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
 
 const bar = (page: Page) => page.getByRole('toolbar', { name: 'Tools', exact: true });
-const modeRadio = (page: Page, name: string) =>
-  page.getByRole('radiogroup', { name: 'View mode' }).getByRole('radio', { name, exact: true });
+/**
+ * Read and Edit as the frame shows them now that the mode switch is gone (D2-1): Read is the
+ * dock's one Edit button; Edit (Markup open) is the bar's groups.
+ */
+const readShown = (page: Page) => bar(page).getByRole('button', { name: 'Edit', exact: true });
+const editShown = (page: Page) =>
+  page.locator('[data-region="toolbar"]:not([data-bar-view="read"])');
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
@@ -32,7 +37,7 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
   });
 
   // Read, with the lock; the bar is one Edit button.
-  await expect(modeRadio(page, 'Read, locked')).toHaveAttribute('aria-checked', 'true');
+  await expect(readShown(page)).toBeVisible();
   await expect(bar(page).getByRole('button')).toHaveCount(1);
   const edit = bar(page).getByRole('button', { name: 'Edit' });
   await expect(edit).toHaveAttribute('aria-keyshortcuts', '2');
@@ -68,17 +73,17 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
   await page.keyboard.press('0');
   await expect(page.getByRole('radiogroup', { name: 'View mode' })).toHaveCount(0);
   await page.getByRole('tab', { name: 'annotations' }).click();
-  await expect(modeRadio(page, 'Edit')).toHaveAttribute('aria-checked', 'true');
+  await expect(editShown(page)).toBeVisible();
   await expect.poll(() => bar(page).getByRole('button').count()).toBeGreaterThan(1);
 
   // 1: Read again; the bar collapses.
   await page.keyboard.press('1');
-  await expect(modeRadio(page, 'Read, locked')).toHaveAttribute('aria-checked', 'true');
+  await expect(readShown(page)).toBeVisible();
   await expect(bar(page).getByRole('button')).toHaveCount(1);
 
   // The Edit button enters Edit.
   await bar(page).getByRole('button', { name: 'Edit' }).click();
-  await expect(modeRadio(page, 'Edit')).toHaveAttribute('aria-checked', 'true');
+  await expect(editShown(page)).toBeVisible();
 });
 
 test('a tool key in Read switches to Edit and arms the tool, changing nothing', async ({
@@ -88,9 +93,9 @@ test('a tool key in Read switches to Edit and arms the tool, changing nothing', 
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
-  await expect(modeRadio(page, 'Read, locked')).toHaveAttribute('aria-checked', 'true');
+  await expect(readShown(page)).toBeVisible();
   await page.keyboard.press('r');
-  await expect(modeRadio(page, 'Edit')).toHaveAttribute('aria-checked', 'true');
+  await expect(editShown(page)).toBeVisible();
   const layer = page.locator('[data-annotation-layer="0"]');
   await expect(layer).toHaveAttribute('data-tool', 'rectangle');
   // Visibly armed: the tool's group is on the bar with the tool pressed.
@@ -116,7 +121,7 @@ test('form fields fill without leaving Read: a fill is a targeted act (D1-5, S6,
   const checked = await agree.getAttribute('aria-checked');
   await agree.click();
   await expect(agree).toHaveAttribute('aria-checked', checked === 'true' ? 'false' : 'true');
-  await expect(modeRadio(page, 'Read, locked')).toHaveAttribute('aria-checked', 'true');
+  await expect(readShown(page)).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------
@@ -256,7 +261,7 @@ test("Read's page menu offers the page operations, pages acts without Edit (D1-5
     await expect(menu.getByRole('menuitem', { name }).first()).toBeVisible();
   }
   await page.keyboard.press('Escape');
-  await expect(modeRadio(page, 'Read, locked')).toHaveAttribute('aria-checked', 'true');
+  await expect(readShown(page)).toBeVisible();
 });
 
 test('a Read selection offers "Edit text": Edit, with the paragraph editor at the selection', async ({
@@ -267,7 +272,7 @@ test('a Read selection offers "Edit text": Edit, with the paragraph editor at th
   const selectionBar = page.getByRole('toolbar', { name: 'Selected text' });
   await expect(selectionBar).toBeVisible();
   await selectionBar.getByRole('button', { name: 'Edit text' }).click();
-  await expect(modeRadio(page, 'Edit')).toHaveAttribute('aria-checked', 'true');
+  await expect(editShown(page)).toBeVisible();
   const editor = page.getByRole('textbox', { name: /^(Line text|Paragraph on page 1)$/ });
   await expect(editor).toBeFocused({ timeout: 20_000 });
   // Nothing changed yet; Esc leaves it as it was.

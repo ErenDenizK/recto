@@ -136,7 +136,6 @@ async function scrollRun(page: Page, selector = '[data-read-viewport]'): Promise
         ['title', ':scope > header'],
         ['left', ':scope > [data-region="navigator"]'],
         ['right', ':scope > #right-panel'],
-        ['status', ':scope > footer'],
       ];
       const near = new Set<string>();
       const times: number[] = [];

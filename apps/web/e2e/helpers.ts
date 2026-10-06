@@ -100,16 +100,13 @@ export async function showInspector(page: Page): Promise<void> {
 }
 
 /**
- * Puts the active document in Edit with `2` (ADR-0019 §3): a file opens in Read, where
- * nothing on the page can be selected, moved, filled or drawn on, and the tool bar is one
- * Edit button.
+ * Puts the active document in Edit (Markup open) with `2` (ADR-0019 §3, ADR-0029): a file opens
+ * in viewing, where the tool bar is one Edit button; in Markup it shows its groups (the frame
+ * has no mode switch since D2-1, so the bar is what tells).
  */
 export async function enterEdit(page: Page): Promise<void> {
   await page.keyboard.press('2');
-  await expect(page.getByRole('radio', { name: /^(Edit|Düzenleme)$/ })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  );
+  await expect(page.locator('[data-region="toolbar"]:not([data-bar-view="read"])')).toBeVisible();
 }
 
 /**

@@ -493,7 +493,7 @@ function MenuRow({
         (enabled && shortcut ? (
           <Keycaps shortcut={shortcut} tone="quiet" />
         ) : !enabled && reason ? (
-          <span id={reasonId} className={menuStyles.hint}>
+          <span id={reasonId} className={menuStyles.hint} aria-hidden="true">
             {reason}
           </span>
         ) : null)}

@@ -89,6 +89,10 @@
   opacity: 1;
 }
 
+.softEdge[data-away] {
+  opacity: 0;
+}
+
 @media (forced-colors: active) {
   .softEdge {
     display: none;

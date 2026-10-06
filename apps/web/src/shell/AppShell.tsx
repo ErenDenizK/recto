@@ -156,7 +156,11 @@ export function AppShell() {
       >
         <Stage dragging={dragging} />
         {view === 'page' ? <SoftEdge /> : null}
-        <LeftRail overlay={frame.size === 'medium' && !frame.short} />
+        {/* Compact windows keep the sidebar in the phone Pages sheet (M10, ADR-0033): none here;
+            compact-height lays it over the stage (▤ in the bar, spec 01.7). */}
+        {frame.tight || (frame.size === 'compact' && !frame.short) ? null : (
+          <LeftRail overlay={frame.size === 'medium' || frame.short} />
+        )}
         <RightPanel />
         <DockBand size={frame.size} compact={compact} tight={frame.tight} />
         {compact || frame.tight ? (

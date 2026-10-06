@@ -4,7 +4,7 @@
  * Results, options and the full list stay in the sidebar's Find section (family 05), which
  * shares the query and hits (`viewer/search.ts`).
  *
- * - **Forms.** From 1280 px (fine pointer): a 280 × 28 field in the strip, an opaque well with
+ * - **Forms.** From 1280 px (fine pointer): a 280 px field (32 high, Q-9) in the strip, an opaque well with
  *   the magnifier leading and the count trailing. Below that, and on coarse pointers below
  *   1280 px, a ⌕ button; pressing it (or Mod+F) lays the same field over the strip's tab area,
  *   anchored to the ⌕'s trailing edge, 280 px wide (240 at medium): a well inside the strip's
@@ -178,13 +178,13 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
             }
           }}
         />
-        <span id={countId} className={styles.findCount} aria-live="polite">
+        <span id={countId} className={styles.findCount} aria-live="polite" data-testid="find-count">
           {count}
         </span>
         {hasQuery ? (
           <>
             <IconButton
-              size="row"
+              size="bar"
               className={styles.findStep}
               label={m.search_previous()}
               icon={<Icon name="caret-up" />}
@@ -192,7 +192,7 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
               onClick={() => step(-1)}
             />
             <IconButton
-              size="row"
+              size="bar"
               className={styles.findStep}
               label={m.search_next()}
               icon={<Icon name="caret-down" />}
