@@ -75,7 +75,7 @@ describe('the Settings sheet', () => {
     expect(within(dialog).getByRole('switch', { name: 'Glass panels' })).toBeVisible();
     expect(within(dialog).queryByRole('switch', { name: /Pen draws/ })).toBeNull();
     await waitFor(() =>
-      expect(within(dialog).getByRole('status')).toHaveTextContent('2 settings found'),
+      expect(within(dialog).getByRole('status')).toHaveTextContent('3 settings found'),
     );
     await userEvent.clear(search);
     await userEvent.type(search, 'xyzzy');
@@ -121,6 +121,50 @@ describe('the Settings sheet', () => {
     expect(control).toHaveAttribute('aria-disabled', 'true');
     expect(control).toHaveAccessibleDescription('On, set by your system');
     expect(useAppearanceStore.getState().reduceTransparency).toBe(false);
+  });
+
+  it('sets Reduce motion: System · On (language.md §7.6, spec D3-4)', async () => {
+    act(() => openSettings({ row: 'reduceMotion' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const group = within(dialog).getByRole('radiogroup', { name: 'Reduce motion' });
+    const system = within(group).getByRole('radio', { name: 'System' });
+    const on = within(group).getByRole('radio', { name: 'On' });
+    expect(system).toBeChecked();
+    expect(within(dialog).getByText('System follows your device’s setting.')).toBeVisible();
+    await userEvent.click(on);
+    expect(useAppearanceStore.getState().motion).toBe('reduced');
+    expect(on).toBeChecked();
+    await userEvent.click(system);
+    expect(useAppearanceStore.getState().motion).toBe('system');
+  });
+
+  it('a system setting shows Reduce motion On, disabled, with its reason', async () => {
+    const real = window.matchMedia.bind(window);
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) =>
+      query.includes('prefers-reduced-motion')
+        ? ({
+            matches: true,
+            media: query,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+          } as unknown as MediaQueryList)
+        : real(query),
+    );
+    act(() => openSettings({ row: 'reduceMotion' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const group = within(dialog).getByRole('radiogroup', { name: 'Reduce motion' });
+    const on = within(group).getByRole('radio', { name: 'On' });
+    expect(on).toBeChecked();
+    for (const radio of within(group).getAllByRole('radio')) {
+      expect(radio).toHaveAttribute('aria-disabled', 'true');
+    }
+    // The row's second line, and each disabled segment's reason.
+    expect(within(dialog).getAllByText('On, set by your system')[0]).toBeVisible();
+    expect(useAppearanceStore.getState().motion).toBe('system');
   });
 
   it('Show tips again waits, with its reason, until a tip has been used up', async () => {

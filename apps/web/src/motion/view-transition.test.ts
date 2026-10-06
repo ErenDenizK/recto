@@ -1,10 +1,11 @@
 /**
- * `viewTransition()`: 240 ms at most, the update awaited, focus restored, and a plain update
- * where View Transitions are missing or motion is reduced (language.md §7.4; research 22 §5.5;
- * spec D0-12).
+ * `viewTransition()`: 240 ms at most, the update awaited, focus restored, a plain update where
+ * View Transitions are missing, and a 150 ms root cross-fade under reduced motion (language.md
+ * §7.4, §7.5; research 22 §5.5; spec D0-12, D3-4).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { VT_REDUCED_MS } from './tokens';
 import { VIEW_TRANSITION_MS, viewTransition } from './view-transition';
 
 /** Hides `document.startViewTransition` as an engine without View Transitions would. */
@@ -68,14 +69,23 @@ describe('viewTransition', () => {
     expect(document.activeElement).toBe(to);
   });
 
-  it('skips the transition under reduced motion', async () => {
+  it('cross-fades the root under reduced motion, cut off at 150 ms (§7.5)', async () => {
     if (!document.startViewTransition) return;
     document.documentElement.dataset.motion = 'reduced';
+    const style = document.createElement('style');
+    style.dataset.test = '';
+    style.textContent =
+      '::view-transition-old(root), ::view-transition-new(root) { animation-duration: 3s; }';
+    document.head.append(style);
     const start = vi.spyOn(document, 'startViewTransition');
     const update = vi.fn();
     await viewTransition(update);
     expect(update).toHaveBeenCalledOnce();
-    expect(start).not.toHaveBeenCalled();
+    expect(start).toHaveBeenCalledOnce();
+    const transition = start.mock.results[0]?.value as ViewTransition;
+    const began = performance.now();
+    await transition.finished;
+    expect(performance.now() - began).toBeLessThan(VT_REDUCED_MS + 600);
   });
 
   it('runs a View Transition with the name as its type, cut off at 240 ms', async () => {

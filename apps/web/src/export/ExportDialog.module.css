@@ -85,6 +85,17 @@
   transition: width var(--duration-base) var(--ease-out);
 }
 
+/* Reduced motion (language.md §7.5 *progress*): the bar steps to each value. */
+@media (prefers-reduced-motion: reduce) {
+  .progress::-webkit-progress-value {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .progress::-webkit-progress-value {
+  transition: none;
+}
+
 .progress::-moz-progress-bar {
   background: var(--progress-fill);
 }

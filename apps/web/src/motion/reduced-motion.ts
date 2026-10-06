@@ -14,7 +14,15 @@ const QUERY = '(prefers-reduced-motion: reduce)';
 
 /** True when the system or the in-app setting asks for reduced motion (§7.6). */
 export function reducedMotion(): boolean {
-  return document.documentElement.dataset.motion === 'reduced' || matchMedia(QUERY).matches;
+  return document.documentElement.dataset.motion === 'reduced' || systemReducedMotion();
+}
+
+/**
+ * True when the system alone asks (`prefers-reduced-motion: reduce`): for the Reduce motion
+ * setting to show "On, set by your system" (§7.6). Animations ask `reducedMotion()`.
+ */
+export function systemReducedMotion(): boolean {
+  return typeof matchMedia === 'function' && matchMedia(QUERY).matches;
 }
 
 /**

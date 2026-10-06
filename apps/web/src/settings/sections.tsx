@@ -6,7 +6,10 @@
  * - **Appearance:** Glass panels and Reduce transparency (`appearance-store`, craft §7). Reduce
  *   transparency is forced on by `prefers-reduced-transparency`: the switch then shows on, is
  *   disabled and says "On, set by your system" (A-17), and a change of that system value while
- *   the sheet is open is announced (07 S3 §6: system-overridden values only).
+ *   the sheet is open is announced (07 S3 §6: system-overridden values only). Reduce motion:
+ *   System · On (language.md §7.6; spec D3-4), a segmented control; when the system asks for
+ *   reduced motion it shows On, both segments disabled, and says "On, set by your system"
+ *   (07 S3 §4), announced the same way when the system changes while the sheet is open.
  * - **Language:** English · Türkçe · Follow the browser (07.8), names in their own language;
  *   applied without a reload (`locale.ts`), and the sheet comes back at this row after the
  *   shell remounts in the new language.
@@ -36,12 +39,13 @@ import {
   subscribeLocale,
   useLocale,
 } from '../i18n';
+import { subscribeReducedMotion, systemReducedMotion } from '../motion/reduced-motion';
 import { useExternalRequests } from '../privacy/external-requests';
 import { useSessionStore } from '../session/session-store';
 import { announce } from '../shell/announcer';
-import { setGlassPanels, setReduceTransparency } from '../shell/appearance-commands';
+import { setGlassPanels, setMotion, setReduceTransparency } from '../shell/appearance-commands';
 import { BUILD_INFO, PRODUCT_NAME } from '../shell/about/build-info';
-import { useAppearanceStore } from '../state/appearance-store';
+import { type MotionSetting, useAppearanceStore } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
 import { useUiStore } from '../state/ui-store';
 import { Button } from '../ui/Button';
@@ -74,6 +78,21 @@ function useSystemTransparency(): boolean {
   return useSyncExternalStore(subscribeTransparency, systemTransparency, () => false);
 }
 
+/** Whether the system asks for reduced motion, from the motion module (the one source, A-9). */
+function useSystemMotion(): boolean {
+  return useSyncExternalStore(subscribeReducedMotion, systemReducedMotion, () => false);
+}
+
+/** Announces the system turning a setting on while the sheet is open, never the first read. */
+function useAnnounceSystem(system: boolean, say: () => string): void {
+  const seen = useRef(system);
+  useEffect(() => {
+    if (seen.current === system) return;
+    seen.current = system;
+    if (system) announce(say());
+  }, [system, say]);
+}
+
 export function GlassPanelsRow() {
   const on = useAppearanceStore((s) => s.glassPanels);
   return (
@@ -92,13 +111,7 @@ export function GlassPanelsRow() {
 export function ReduceTransparencyRow() {
   const on = useAppearanceStore((s) => s.reduceTransparency);
   const system = useSystemTransparency();
-  // Announce a change of the system's value while the sheet is open, never the first read.
-  const seen = useRef(system);
-  useEffect(() => {
-    if (seen.current === system) return;
-    seen.current = system;
-    if (system) announce(m.settings_reduce_transparency_system());
-  }, [system]);
+  useAnnounceSystem(system, m.settings_reduce_transparency_system);
   return (
     <Row id="reduceTransparency">
       <Switch
@@ -109,6 +122,45 @@ export function ReduceTransparencyRow() {
         system={system}
         onCheckedChange={setReduceTransparency}
       />
+    </Row>
+  );
+}
+
+export function ReduceMotionRow() {
+  const motion = useAppearanceStore((s) => s.motion);
+  const system = useSystemMotion();
+  useAnnounceSystem(system, m.settings_reduce_motion_system_on);
+  return (
+    <Row id="reduceMotion" bar>
+      <Line
+        label={m.settings_reduce_motion()}
+        labelHidden
+        description={system ? m.switch_system_on() : m.settings_reduce_motion_hint()}
+      >
+        <div className={styles.segmented}>
+          <Segmented<MotionSetting>
+            label={m.settings_reduce_motion()}
+            value={system ? 'reduced' : motion}
+            onValueChange={(next) => {
+              if (next !== motion) setMotion(next);
+            }}
+            options={[
+              {
+                value: 'system',
+                label: m.settings_reduce_motion_system(),
+                disabled: system,
+                reason: system ? m.switch_system_on() : undefined,
+              },
+              {
+                value: 'reduced',
+                label: m.settings_reduce_motion_on(),
+                disabled: system,
+                reason: system ? m.switch_system_on() : undefined,
+              },
+            ]}
+          />
+        </div>
+      </Line>
     </Row>
   );
 }

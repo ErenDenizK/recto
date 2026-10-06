@@ -707,8 +707,12 @@ const longestDuration = (locator: Locator): Promise<number> =>
     return Math.max(...ms(style.transitionDuration), ...ms(style.animationDuration));
   });
 
-/** The global reduced-motion floor (styles/global.css): 0.01 ms, i.e. none. */
-const NONE_MS = 0.01;
+/**
+ * The reduced-motion ceiling (language.md §7.5; ADR-0028 §2.5, A-9): motion is reduced per token
+ * (styles/motion.css), so springs are instant and fades keep 100–150 ms; nothing lasts longer.
+ * `motion.spec.ts` sweeps what animates, property by property.
+ */
+const REDUCED_MS = 150;
 
 test.describe('reduced motion', () => {
   test('without it, the morph moves (so the check below is meaningful)', async ({ page }) => {
@@ -724,14 +728,14 @@ test.describe('reduced motion', () => {
     await openSimple(page);
     await enterEdit(page);
     const draw = bar(page).getByRole('button', { name: 'Write', exact: true });
-    expect(await longestDuration(draw)).toBeLessThanOrEqual(NONE_MS);
+    expect(await longestDuration(draw)).toBeLessThanOrEqual(REDUCED_MS);
     await recordScripted(page);
     await draw.click();
     // No morph: nothing was animated, nothing animates.
-    expect(await longestScripted(page)).toBeLessThanOrEqual(NONE_MS);
-    expect(await longestAnimation(page)).toBeLessThanOrEqual(NONE_MS);
+    expect(await longestScripted(page)).toBeLessThanOrEqual(REDUCED_MS);
+    expect(await longestAnimation(page)).toBeLessThanOrEqual(REDUCED_MS);
     const dot = page.getByRole('radio', { name: 'Black pen, 1.5 pt' });
-    expect(await longestDuration(dot)).toBeLessThanOrEqual(NONE_MS);
+    expect(await longestDuration(dot)).toBeLessThanOrEqual(REDUCED_MS);
     // The preset editor rises in without movement (opened from the keyboard: arm, then
     // Enter again on the armed preset).
     await dot.focus();
@@ -740,16 +744,16 @@ test.describe('reduced motion', () => {
     await page.keyboard.press('Enter');
     const editor = page.getByTestId('pen-preset-editor');
     await expect(editor).toBeVisible();
-    expect(await longestDuration(editor)).toBeLessThanOrEqual(NONE_MS);
-    expect(await longestAnimation(page)).toBeLessThanOrEqual(NONE_MS);
+    expect(await longestDuration(editor)).toBeLessThanOrEqual(REDUCED_MS);
+    expect(await longestAnimation(page)).toBeLessThanOrEqual(REDUCED_MS);
     await page.keyboard.press('Escape');
     // So does the options tier (asked for: U again).
     await page.locator('body').press('u');
     await page.locator('body').press('u');
     const tier = page.getByTestId('options-tier');
     await expect(tier).toBeVisible();
-    expect(await longestDuration(tier)).toBeLessThanOrEqual(NONE_MS);
-    expect(await longestAnimation(page)).toBeLessThanOrEqual(NONE_MS);
+    expect(await longestDuration(tier)).toBeLessThanOrEqual(REDUCED_MS);
+    expect(await longestAnimation(page)).toBeLessThanOrEqual(REDUCED_MS);
   });
 });
 
@@ -1250,8 +1254,8 @@ test('reduced motion: the new surfaces neither move nor rise', async ({ page }) 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openWordTagged(page);
   const still = async (state: string, locator: Locator) => {
-    expect(await longestDuration(locator), state).toBeLessThanOrEqual(NONE_MS);
-    expect(await longestAnimation(page), state).toBeLessThanOrEqual(NONE_MS);
+    expect(await longestDuration(locator), state).toBeLessThanOrEqual(REDUCED_MS);
+    expect(await longestAnimation(page), state).toBeLessThanOrEqual(REDUCED_MS);
   };
   await recordScripted(page);
   await still('the text selection bar', await selectWord(page));
@@ -1268,7 +1272,7 @@ test('reduced motion: the new surfaces neither move nor rise', async ({ page }) 
   const header = page.getByTestId('paragraph-header');
   await expect(header).toBeVisible({ timeout: 20_000 });
   await still('the paragraph editor header', header);
-  expect(await longestScripted(page)).toBeLessThanOrEqual(NONE_MS);
+  expect(await longestScripted(page)).toBeLessThanOrEqual(REDUCED_MS);
 });
 
 // ---------------------------------------------------------------------------

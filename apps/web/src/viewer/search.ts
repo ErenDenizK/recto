@@ -16,6 +16,7 @@ import type { SearchHit } from '@pdf-editor/engine';
 import { create } from 'zustand';
 
 import { getEngineService } from '../engine/engine-service';
+import { revealWhenShown } from '../motion/catalogue';
 import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 
@@ -385,7 +386,11 @@ export function requestSearchFocus(): void {
   useSearchStore.setState((s) => ({ focusSerial: s.focusSerial + 1 }));
 }
 
-/** Shows a hit: Read mode, its page scrolled so the match is visible. */
+/**
+ * Shows a hit: Read mode, its page scrolled so the match is visible, then the hit flashes the
+ * undo reveal's ring once it is laid out: the catalogue's *find step* (language.md §7.3, spec
+ * 05.2; reduced motion: an instant scroll and a still ring).
+ */
 export function revealHit(hit: DocumentHit | undefined): void {
   if (!hit) return;
   const ui = useUiStore.getState();
@@ -394,6 +399,10 @@ export function revealHit(hit: DocumentHit | undefined): void {
   useViewStore
     .getState()
     .scrollToPage(hit.pageId, bounds === undefined ? undefined : { reveal: bounds });
+  // One hit is current, drawn by `SearchHighlights` once its page is laid out.
+  void revealWhenShown(() =>
+    document.querySelector('[data-testid="search-highlights"] [data-current]'),
+  );
 }
 
 // ---------------------------------------------------------------------------
