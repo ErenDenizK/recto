@@ -22,11 +22,17 @@
  * σ step and the generated rules are checked against it.
  */
 
-/** The filter token a surface's backdrop blur comes from (`tokens.css`). */
+/**
+ * The token a surface's whole backdrop filter comes from (`tokens.css`): the blur, then its
+ * tier's chain. Since D3-2 the tier tokens (`--glass-bar-filter`, `--glass-menu-filter`, …) hold
+ * the chain after the blur, as `materials.css` will compose them, so today's `.glass*` classes
+ * read σ-carrying tokens: `--glass-filter` (bars, 7px), `--glass-frame-filter` (the docked frame,
+ * 5px), `--glass-menu-backdrop` (menus, 12px) and `--glass-menu-short-backdrop` (one row, 7px).
+ */
 export type GlassFilterToken =
   | '--glass-filter'
-  | '--glass-menu-filter'
-  | '--glass-menu-short-filter'
+  | '--glass-menu-backdrop'
+  | '--glass-menu-short-backdrop'
   | '--glass-frame-filter';
 
 /** What a module rule composes from `global.css`. */
@@ -222,7 +228,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/Menu.module.css',
     selector: '.popup',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 200,
     minHeight: 78,
     smallest: 'min-width 200 px; two 32 px rows, 6 px padding, the border: 78 px',
@@ -233,7 +239,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/Menu.module.css',
     selector: '.popup',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-short-filter',
+    filter: '--glass-menu-short-backdrop',
     minWidth: 200,
     minHeight: 46,
     smallest: "Recents' Remove: one 32 px row, 6 px padding, the border: 46 px",
@@ -244,7 +250,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/Popover.module.css',
     selector: '.popup',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 288,
     minHeight: 72,
     smallest: 'min(320 px, the window less 16 px); a title and one line',
@@ -255,7 +261,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/sheet/Sheet.module.css',
     selector: '.panel',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 304,
     minHeight: 200,
     smallest:
@@ -267,7 +273,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/sheet/Sheet.module.css',
     selector: '.panel',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 568,
     minHeight: 160,
     smallest:
@@ -279,7 +285,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/sheet/Sheet.module.css',
     selector: '.panel',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 288,
     minHeight: 168,
     smallest:
@@ -291,7 +297,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/sheet/Sheet.module.css',
     selector: '.panel',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 536,
     minHeight: 240,
     smallest: "min(760 px, the window less 64 px) at the medium class's 600 px",
@@ -302,7 +308,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/sheet/Sheet.module.css',
     selector: '.panel',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 320,
     minHeight: 140,
     smallest:
@@ -314,7 +320,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'ui/sheet/Sheet.module.css',
     selector: '.panel',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 320,
     minHeight: 248,
     smallest: 'a 320 × 256 window (A-20) under the 8 px top inset',
@@ -347,7 +353,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'shell/compact/CompactChrome.module.css',
     selector: '.menu',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 232,
     minHeight: 102,
     smallest: 'min-width 232 px; two 44 px rows, 6 px padding, the border: 102 px',
@@ -358,7 +364,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'shell/compact/CompactChrome.module.css',
     selector: '.menu',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-short-filter',
+    filter: '--glass-menu-short-backdrop',
     minWidth: 232,
     minHeight: 58,
     smallest: 'one 44 px row, 6 px padding, the border: 58 px',
@@ -369,7 +375,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'shell/compact/CompactSheet.module.css',
     selector: '.sheet',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 320,
     minHeight: 140,
     smallest: 'the shortest sheet (Go to page): its handle, title and one field',
@@ -380,7 +386,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     module: 'shell/compact/NoteLayer.module.css',
     selector: '.popup',
     composes: 'glass glass-menu',
-    filter: '--glass-menu-filter',
+    filter: '--glass-menu-backdrop',
     minWidth: 296,
     minHeight: 96,
     smallest: 'min(320 px, the window less 24 px); its header with Close and one line',

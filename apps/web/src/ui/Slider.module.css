@@ -49,22 +49,22 @@
   --sl-readout: 13px;
   --sl-readout-lh: 18px;
   /* Colour (dark). */
-  --sl-track-fill: var(--control-track, rgb(255 255 255 / 0.24));
+  --sl-track-fill: var(--control-track);
   --sl-range: var(--control-range, var(--text-primary));
   --sl-knob-fill: var(--text-primary);
-  --sl-knob-ring: var(--control-border, rgb(255 255 255 / 0.48));
-  --sl-knob-white: rgb(255 255 255);
+  --sl-knob-ring: var(--control-border);
+  --sl-knob-white: var(--control-knob);
   --sl-tick: var(--text-disabled);
   --sl-tick-passed: var(--text-secondary);
   --sl-disabled: var(--text-disabled);
   --sl-readout-colour: var(--text-primary);
   --sl-label-colour: var(--text-secondary);
   --sl-lens-rim: rgb(255 255 255 / 0.7);
-  --sl-e1: 0 1px 2px rgb(0 0 0 / 0.3);
-  --sl-e2: 0 4px 12px -4px rgb(0 0 0 / 0.5);
+  --sl-e1: var(--e1);
+  --sl-e2: var(--e2);
   --sl-checker-a: rgb(255 255 255 / 0.3);
   --sl-checker-b: rgb(255 255 255 / 0.12);
-  --sl-bubble-fill: var(--glass-solid, var(--surface-2));
+  --sl-bubble-fill: var(--glass-solid, var(--surface-raised));
   --sl-bubble-rim: rgb(255 255 255 / 0.12);
   /* Motion (language.md §7.1–§7.2; the motion tokens land with D0-12). */
   --sl-ease-spring: var(

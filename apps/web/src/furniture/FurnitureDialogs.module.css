@@ -139,7 +139,7 @@ div.number > :nth-child(2) {
   margin: 0;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-1);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .anchor {
@@ -169,7 +169,7 @@ div.number > :nth-child(2) {
 .anchor:has(input:checked)::after {
   width: 10px;
   height: 10px;
-  background: var(--accent);
+  background: var(--control-on);
 }
 
 .anchor:has(input:focus-visible) {

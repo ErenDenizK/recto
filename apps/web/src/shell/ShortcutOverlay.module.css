@@ -28,7 +28,7 @@
   max-height: min(640px, calc(100vh - 64px));
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-3);
-  background: var(--surface-1);
+  background: var(--surface-frame);
   transform: translate(-50%, -50%);
   outline: none;
   box-shadow: none;

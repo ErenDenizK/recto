@@ -24,7 +24,7 @@
   padding: 2px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .segment {
@@ -85,7 +85,7 @@
   padding: 2px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .anchorCell {
@@ -119,7 +119,7 @@
 .anchorCell[aria-checked='true'] .anchorDot {
   width: 10px;
   height: 10px;
-  background: var(--accent);
+  background: var(--control-on);
 }
 
 .anchorGrid[aria-disabled] .anchorCell {
@@ -150,7 +150,7 @@
   width: 156px;
   height: 156px;
   border-radius: var(--radius-2);
-  background: var(--surface-0);
+  background: var(--canvas);
 }
 
 .previewSheet {
