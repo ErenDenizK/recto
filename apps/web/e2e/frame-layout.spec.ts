@@ -9,7 +9,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
 
 interface Rect {
   readonly left: number;
@@ -94,6 +94,19 @@ async function setSidebar(page: Page, open: boolean): Promise<void> {
   await expect(toggle).toHaveAttribute('aria-pressed', String(open));
 }
 
+/** Opens files through + (or the Library's Open on a compact window, which has no tabs). */
+async function openAny(page: Page, names: readonly string[]): Promise<void> {
+  const chooser = page.waitForEvent('filechooser');
+  await page
+    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
+    .first()
+    .click();
+  await (await chooser).setFiles(names.map(fixturePath));
+  await expect(page.locator('[data-read-viewport] canvas').first()).toBeVisible({
+    timeout: 20_000,
+  });
+}
+
 const CLASSES = [
   { name: 'compact', width: 560, height: 800 },
   { name: 'expanded', width: 1180, height: 820 },
@@ -116,7 +129,7 @@ test.describe('A-12: jumps land in the free rectangle', () => {
       for (const size of classes) {
         await page.setViewportSize({ width: size.width, height: size.height });
         await page.goto('./?lang=en&edition=full');
-        await openFixtures(page, ['outline-named-dests.pdf']);
+        await openAny(page, ['outline-named-dests.pdf']);
         await expect(
           page.locator('[data-read-viewport] canvas[data-state="rendered"]').first(),
         ).toBeVisible({ timeout: 20_000 });
@@ -207,7 +220,7 @@ test.describe('the frame per class', () => {
 
     // A-20 at 320 × 256 (400 % zoom of a 1280 × 1024 window): one 44 px capsule, ≤ 25 % chrome.
     await page.setViewportSize({ width: 320, height: 256 });
-    await expect(top).toHaveAttribute('data-tight', '');
+    await expect(top).toHaveAttribute('data-tight');
     const area = await page.evaluate(() => {
       let sum = 0;
       for (const el of document.querySelectorAll<HTMLElement>(
@@ -231,7 +244,7 @@ test.describe('the frame per class', () => {
   }) => {
     await page.setViewportSize({ width: 560, height: 800 });
     await page.goto('./?lang=en&edition=full');
-    await openFixtures(page, ['many-pages.pdf']);
+    await openAny(page, ['many-pages.pdf']);
     const top = page.locator('[data-region="top"]');
     const band = page.locator('[data-frame-layer="band"]');
     await expect(page.locator('[data-read-viewport] canvas').first()).toBeVisible({
@@ -244,8 +257,8 @@ test.describe('the frame per class', () => {
       await page.mouse.wheel(0, 120);
       await page.waitForTimeout(80);
     }
-    await expect(top).toHaveAttribute('inert', '');
-    await expect(band).toHaveAttribute('inert', '');
+    await expect(top).toHaveAttribute('inert');
+    await expect(band).toHaveAttribute('inert');
     // Up 8 px or more: back.
     await page.mouse.wheel(0, -60);
     await expect(top).not.toHaveAttribute('inert');
@@ -254,7 +267,7 @@ test.describe('the frame per class', () => {
       await page.mouse.wheel(0, 120);
       await page.waitForTimeout(80);
     }
-    await expect(top).toHaveAttribute('inert', '');
+    await expect(top).toHaveAttribute('inert');
     await page.keyboard.press('Shift');
     await expect(top).not.toHaveAttribute('inert');
   });
@@ -268,7 +281,7 @@ test.describe('the frame per class', () => {
     const band = page.locator('[data-frame-layer="band"]');
     await page.locator('[data-read-viewport]').focus();
     await page.keyboard.press('f');
-    await expect(band).toHaveAttribute('data-away', '');
+    await expect(band).toHaveAttribute('data-away');
     await expect(page.locator('[data-region="top"]')).toBeVisible();
     // The free rectangle's bottom falls to the band's offset.
     expect((await freeRect(page)).bottom).toBe(900 - 16);
@@ -277,7 +290,7 @@ test.describe('the frame per class', () => {
     // The touch route: the pill menu's Focus.
     await page.getByTestId('page-pill').click();
     await page.getByTestId('pill-focus').click();
-    await expect(band).toHaveAttribute('data-away', '');
+    await expect(band).toHaveAttribute('data-away');
     await page.keyboard.press('f');
     await expect(band).not.toHaveAttribute('data-away');
   });

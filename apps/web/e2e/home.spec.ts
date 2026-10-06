@@ -199,7 +199,9 @@ test('the Files tab shares Home’s selection, combines and leads to Home', asyn
       .evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')?.split(',')[0])),
   ).resolves.toEqual(['simple-text', 'rotated-pages']);
 
-  await panel.getByRole('button', { name: 'Combine 2 files' }).click();
+  // The Library has no sidebar (01-frame F2 §4): its own bar combines the same selection.
+  await expect(panel).toHaveCount(0);
+  await page.getByRole('button', { name: 'Combine 2 files' }).click();
   const dialog = page.getByTestId('merge-all-dialog');
   // Selection order: rotated-pages was ticked first.
   await expect(dialog.getByTestId('merge-row').nth(0)).toContainText('rotated-pages');

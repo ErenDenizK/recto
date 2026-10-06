@@ -10,7 +10,13 @@
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { enterEdit, fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  fixturePath,
+  openFixtures,
+  useFileInputPicker,
+  openSaveCopyFromMenu,
+} from './helpers';
 import { expectGlassClean, walkGlass } from './support/glass-walker';
 
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -143,7 +149,7 @@ test('a sheet over a document and a toast: six at most while it comes in, four a
   await page.mouse.move(700, 450);
   await expectGlassClean(page, 'Edit with a toast');
   // Save a copy comes in over it: the transition budget, read mid-entrance (Q-11).
-  await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+  await openSaveCopyFromMenu(page);
   await expect(page.getByTestId('save-copy-sheet')).toBeAttached();
   const mid = await walkGlass(page, { atRest: false });
   expect(

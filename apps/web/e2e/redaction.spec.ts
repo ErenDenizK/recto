@@ -29,6 +29,7 @@ import {
   showInspector,
   useDownloadPath,
   useFileInputPicker,
+  openFindPanel,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -205,8 +206,7 @@ test('mark every search match, then review the marks with J and K', async ({ pag
   ).toBeAttached({
     timeout: 20_000,
   });
-  await page.keyboard.press('ControlOrMeta+f');
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  const field = await openFindPanel(page);
   await field.fill(TOKEN);
   await expect(page.getByTestId('search-hit')).toHaveCount(3);
   await page.getByTestId('search-mark-all').click();
@@ -277,8 +277,7 @@ test('apply marks made by selection, search and area; export; the re-opened expo
 
   // 2. By search: every match (lines 2 and 3 are new; line 1 is already marked).
   await page.keyboard.press('Escape');
-  await page.keyboard.press('ControlOrMeta+f');
-  await page.getByRole('searchbox', { name: 'Find in document' }).fill(TOKEN);
+  await (await openFindPanel(page)).fill(TOKEN);
   await expect(page.getByTestId('search-hit')).toHaveCount(3);
   await page.getByTestId('search-mark-all').click();
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(3);
@@ -345,8 +344,7 @@ test('apply marks made by selection, search and area; export; the re-opened expo
     buffer: bytes,
   });
   await expect(page.getByRole('tab', { name: 'redacted', selected: true })).toBeVisible();
-  await page.keyboard.press('ControlOrMeta+f');
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  const field = await openFindPanel(page);
   // The rest of the text is there (the search runs on the re-opened file)…
   await field.fill('quick brown fox');
   await expect(page.getByTestId('search-hit')).toHaveCount(1, { timeout: 20_000 });

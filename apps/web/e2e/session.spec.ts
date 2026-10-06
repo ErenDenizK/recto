@@ -117,9 +117,15 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   await page.keyboard.press(']');
   await page.keyboard.press(']');
   await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 3 · /);
-  await page.getByRole('button', { name: /^Zoom \d+%/ }).click();
-  await page.getByRole('menuitemradio', { name: '150%' }).click();
-  await expect(page.getByRole('button', { name: /^Zoom 150%/ })).toBeVisible();
+  // Zoom by its keys to 150 % (the pill says it; the zoom menu went with the status bar).
+  const pill = page.getByTestId('page-pill');
+  for (let i = 0; i < 12; i++) {
+    const zoom = Number((await pill.textContent())?.match(/(\d+)%/)?.[1] ?? 0);
+    if (zoom === 150) break;
+    await page.keyboard.press(zoom > 150 ? 'ControlOrMeta+-' : 'ControlOrMeta+=');
+    await expect(pill).not.toHaveText(new RegExp(` ${zoom}%$`));
+  }
+  await expect(pill).toHaveText(/^3 \/ 3 · 150%$/);
   await waitForSnapshot(page);
 
   await reload(page);
@@ -127,13 +133,12 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   const notice = page.getByTestId('session-notice');
   await expect(notice).toContainText('Restored simple-text');
   await expect(notice.getByRole('button', { name: 'Start fresh' })).toBeVisible();
-  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 3 · /);
-  await expect(page.getByRole('button', { name: /^Zoom 150%/ })).toBeVisible();
-  // Markup is never restored (redesign spec §7): the document comes back in viewing.
-  await expect(page.getByRole('radio', { name: /^Edit$/ })).toHaveAttribute(
-    'aria-checked',
-    'false',
-  );
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 3 · 150%$/);
+  // Markup is never restored (redesign spec §7): the document comes back in viewing, Read's
+  // dock its one Edit button.
+  await expect(
+    page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Edit', exact: true }),
+  ).toBeVisible();
 
   // 20 undo steps came back with the present one, and Undo walks all of them.
   await showInspector(page);

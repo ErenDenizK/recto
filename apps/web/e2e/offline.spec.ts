@@ -77,6 +77,9 @@ test('the shell and the engine work offline after one visit', async ({ page, con
   await expect(page.locator('main canvas[data-state="rendered"]').first()).toBeVisible();
 
   // Nothing left the device.
-  await expect(page.getByTestId('privacy-indicator')).toContainText('No external requests');
+  // ◎ is a glyph now (01-frame F8): its name says it.
+  await expect(page.getByTestId('privacy-indicator')).toHaveAccessibleName(
+    'Privacy: nothing has left this device',
+  );
   await context.setOffline(false);
 });

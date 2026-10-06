@@ -180,9 +180,31 @@ export async function useDownloadPath(page: Page): Promise<void> {
   });
 }
 
-/** Opens Save a copy (S2) for the active document from the tab bar's button. */
+/**
+ * Opens Save a copy from the title menu (01-frame F5: File · Save a copy…), where the strip's
+ * Export button went (D2-1).
+ */
+export async function openSaveCopyFromMenu(page: Page): Promise<void> {
+  await page.getByTestId('document-menu').click();
+  await page.getByRole('menuitem', { name: 'Save a copy…' }).click();
+}
+
+/**
+ * Opens the sidebar's Find section and returns its field. Mod+F focuses the strip's Find entry
+ * (01-frame F6 §6); Down from it opens the section with the hit list, Match case and Mark all.
+ */
+export async function openFindPanel(page: Page): Promise<Locator> {
+  await page.keyboard.press('ControlOrMeta+f');
+  await expect(page.locator('[data-find-entry] input[type="search"]').first()).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  const field = page.locator('#left-panel').getByRole('searchbox', { name: 'Find in document' });
+  await expect(field).toBeFocused();
+  return field;
+}
+
+/** Opens Save a copy (S2) for the active document from the title menu. */
 export async function openSaveCopy(page: Page): Promise<Locator> {
-  await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+  await openSaveCopyFromMenu(page);
   const sheet = page.getByTestId('save-copy-sheet');
   await expect(sheet).toBeVisible();
   return sheet;

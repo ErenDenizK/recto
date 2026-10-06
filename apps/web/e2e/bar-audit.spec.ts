@@ -19,7 +19,13 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  fixturePath,
+  openFixtures,
+  useFileInputPicker,
+  openSaveCopyFromMenu,
+} from './helpers';
 import { auditBars, type BarFinding, type ControlKind } from './support/bar-audit';
 import { focusStops, type Leak, nativeLeaks } from './support/native-leaks';
 
@@ -170,7 +176,7 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
 
     // Save a copy, a task Sheet (D0-9): its header and footer, with a pushed page's ‹ Back.
-    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await openSaveCopyFromMenu(page);
     const saveCopy = page.getByTestId('save-copy-sheet');
     await expect(saveCopy).toBeVisible();
     await run.audit('the Save a copy sheet');
@@ -353,7 +359,7 @@ test.describe('the full edition', () => {
     await tab('Read', () => page.locator('body').focus());
 
     // The two D0 sheets, whose Tab cycles are trapped.
-    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await openSaveCopyFromMenu(page);
     await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
     await tab('the Save a copy sheet');
     await page.keyboard.press('Escape');

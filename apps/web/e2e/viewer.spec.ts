@@ -74,26 +74,22 @@ test('selects page text with the mouse and copies it with lines kept', async ({
 });
 
 test('finds text, steps through the hits and clears with Escape', async ({ page }) => {
+  // Mod+F focuses the strip's Find entry (01-frame F6 §6); its count and steps sit in the well.
   await page.keyboard.press(`${await mod(page)}+f`);
-  const field = page.getByRole('searchbox', { name: 'Find in document' });
+  const strip = page.locator('[data-region="top"]');
+  const field = strip.getByRole('searchbox', { name: 'Find in document' });
   await expect(field).toBeFocused();
-  // Before a query: one hint line with the shortcut, and no count or previous/next yet.
-  await expect(page.getByTestId('search-hint')).toContainText('Type to search the document’s text');
-  await expect(page.getByRole('button', { name: 'Next result' })).toHaveCount(0);
+  await expect(strip.getByRole('button', { name: 'Next result' })).toHaveCount(0);
   await field.fill('outline-named-dests');
-  await expect(page.getByTestId('search-hint')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Next result' })).toBeVisible();
+  await expect(strip.getByRole('button', { name: 'Next result' })).toBeVisible();
 
   const status = page.getByTestId('find-count');
   await expect(status).toContainText('1 of 6');
-  await expect(page.getByTestId('search-hit')).toHaveCount(6);
-  // Mod+F shows the navigator's Find tab, its count in the name.
-  await expect(page.getByRole('tab', { name: 'Find, 6 items' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
   await expect(page.locator('[data-testid="search-highlights"]').first()).toBeVisible();
 
+  // The first Enter shows the hit the search picked; the next ones step.
+  await field.press('Enter');
+  await expect(status).toContainText('1 of 6');
   await field.press('Enter');
   await expect(status).toContainText('2 of 6');
   await expect(page.getByTestId('page-pill')).toHaveText(/^2 \/ 6 · /);
@@ -105,17 +101,30 @@ test('finds text, steps through the hits and clears with Escape', async ({ page 
   await page.keyboard.press('F3');
   await expect(status).toContainText('3 of 6');
 
+  // Down opens the sidebar's Find section: the hit list, its count in the tab's name.
+  await field.press('ArrowDown');
+  const panel = page.locator('#left-panel');
+  const panelField = panel.getByRole('searchbox', { name: 'Find in document' });
+  await expect(panelField).toBeFocused();
+  await expect(panel.getByTestId('search-hit')).toHaveCount(6);
+  await expect(page.getByRole('tab', { name: 'Find, 6 items' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
   // Match case finds nothing for the upper-cased query.
-  await field.fill('OUTLINE');
+  await panelField.fill('OUTLINE');
   // A new search starts from the reader's page (page 3).
   await expect(status).toContainText('3 of 6');
-  await page.getByRole('button', { name: 'Match case' }).click();
-  await expect(page.getByTestId('search-status')).toHaveText('No results');
+  await panel.getByRole('button', { name: 'Match case' }).click();
+  await expect(panel.getByTestId('search-status')).toHaveText('No results');
 
+  // Escape in the strip's field clears the search: no count, no highlights.
+  await field.focus();
   await field.press('Escape');
-  await expect(status).toHaveCount(0);
+  await expect(status).toBeEmpty();
   await expect(page.locator('[data-testid="search-highlights"]')).toHaveCount(0);
-  await expect(page.getByRole('searchbox', { name: 'Find in document' })).toHaveCount(0);
+  await expect(field).toHaveValue('');
 });
 
 test('the navigator has four tabs with counts; the inspector starts closed', async ({ page }) => {
