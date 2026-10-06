@@ -58,9 +58,9 @@
   "stage_no_pages_body": "Undo brings deleted pages back.",
   "view_mode_label": "View mode",
   "mode_read": "Read",
-  "mode_arrange": "Arrange",
+  "mode_arrange": "Pages grid",
   "mode_read_long": "Read mode, locked",
-  "mode_arrange_long": "Arrange pages",
+  "mode_arrange_long": "Pages grid",
   "mode_read_label": "Read, locked",
   "mode_edit": "Edit",
   "mode_edit_long": "Edit mode",
@@ -780,7 +780,7 @@
   "cmd_show_outline": "Show contents",
   "cmd_mode_read": "Switch to Read",
   "cmd_mode_edit": "Switch to Edit",
-  "cmd_mode_arrange": "Arrange pages",
+  "cmd_mode_arrange": "Pages grid",
   "cmd_zoom_in": "Zoom in",
   "cmd_zoom_out": "Zoom out",
   "cmd_zoom_fit": "Zoom to fit width",
@@ -788,7 +788,7 @@
   "cmd_zoom_actual": "Actual size",
   "cmd_thumbnails_larger": "Larger thumbnails",
   "cmd_thumbnails_smaller": "Smaller thumbnails",
-  "cmd_thumbnails_note": "Mod+Scroll in Arrange mode",
+  "cmd_thumbnails_note": "Mod+Scroll or a pinch in the Pages grid",
   "cmd_tool": "{tool} tool",
   "cmd_tool_select_keywords": "select, pointer, cursor, choose",
   "cmd_tool_edit_text_keywords": "edit text, typo, correct, change wording",
@@ -812,7 +812,6 @@
   "cmd_tool_signature_keywords": "signature, sign, autograph, handwritten signature",
   "cmd_document_sign_keywords": "digital signature, certificate, sign, e-signature, PAdES",
   "cmd_documents_merge_all_keywords": "combine, join, append, merge, concatenate",
-  "cmd_section_merge_keywords": "combine, join, append, merge",
   "cmd_section_split_keywords": "separate, divide, split, break apart",
   "cmd_section_interleave_keywords": "interleave, duplex, collate, odd and even",
   "cmd_mode_compare_keywords": "diff, compare, difference, changes",
@@ -879,8 +878,6 @@
   "cell_from": ", from {name}",
   "cell_bookmarked": ", bookmarked",
   "announce_deleted_page": "Deleted {label}",
-  "arrange_show": "Show in Arrange",
-  "arrange_hide": "Hide from Arrange",
   "arrange_drop_background": "Drop to open as new documents",
   "section_empty": "No pages. Drop pages, PDFs or images here.",
   "section_expand": "Expand",
@@ -895,19 +892,17 @@
   "section_reverse": "Reverse pages",
   "section_interleave": "Interleave with…",
   "section_split": "Split…",
-  "section_merge": "Merge into…",
   "section_insert_images": "Insert images…",
   "section_rename": "Rename…",
   "section_close": "Close document",
-  "announce_removed_from_arrange": "{title} removed from Arrange",
-  "announce_showing_in_arrange": "Showing {title} in Arrange",
+  "announce_showing_in_arrange": "Showing {title} in the Pages grid",
   "announce_showing_all": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "Showing {count} document in Arrange",
-        "countPlural=*": "Showing {count} documents in Arrange"
+        "countPlural=one": "Showing {count} document in the Pages grid",
+        "countPlural=*": "Showing {count} documents in the Pages grid"
       }
     }
   ],
@@ -961,11 +956,11 @@
   "announce_inserted_pages_bookmarks": "Inserted {pages} and {bookmarks} from {from} at position {position} in {title}",
   "announce_opened_instead": "The section closed while the files were opening; opened {from} in new tabs",
   "cmd_cut_pages": "Cut pages",
-  "cmd_cut_pages_note": "Arrange mode. Paste after the focused page with Mod+V, also in another document.",
+  "cmd_cut_pages_note": "Pages grid. Paste after the focused page with Mod+V, also in another document.",
   "cmd_copy_pages": "Copy pages",
-  "cmd_arrange_only_note": "Arrange mode.",
+  "cmd_arrange_only_note": "Pages grid.",
   "cmd_paste_pages": "Paste pages after the focused page",
-  "cmd_paste_pages_note": "Arrange mode. Cut pages move; copied pages are duplicated.",
+  "cmd_paste_pages_note": "Pages grid. Cut pages move; copied pages are duplicated.",
   "cmd_paste_duplicates": "Paste pages as duplicates",
   "cmd_move_to_new_document": "Move pages to new document",
   "cmd_copy_to_new_document": "Copy pages to new document",
@@ -977,11 +972,9 @@
   "cmd_reverse_selection": "Reverse selection order",
   "cmd_select_odd": "Select odd pages",
   "cmd_select_even": "Select even pages",
-  "cmd_show_all_in_arrange": "Show all documents in Arrange",
+  "cmd_show_all_in_arrange": "Show all open documents in the Pages grid",
   "cmd_reverse_document": "Reverse pages of document",
   "cmd_split_document": "Split document…",
-  "cmd_merge_into": "Merge document into…",
-  "cmd_merge_all": "Merge all open documents…",
   "cmd_interleave": "Interleave with another document…",
   "cmd_rename_document": "Rename document",
   "cmd_rename_document_note": "Or double-click a tab or section title.",
@@ -1054,49 +1047,8 @@
   "range_error_reversed": "“{token}”: the range runs backwards.",
   "range_error_out_of_bounds": "“{token}”: the document has {count} pages.",
   "range_error_overlap": "“{first}” and “{second}” overlap.",
-  "merge_confirm": "Merge",
-  "merge_into_title": "Merge {title} into…",
-  "merge_into_description": "The pages of {title} are appended to the document you choose.",
-  "merge_into_target": "Append to",
-  "merge_into_preview": "{title} will have {pages}.",
-  "history_merge_into": "Merge {source} into {target}",
-  "announce_merged_into": "Appended {pages} from {source} to {target}",
-  "merge_all_title": "Merge all open documents",
-  "merge_all_description": "Pages are joined in this order. Use the arrows to change it.",
-  "merge_all_order_label": "Merge order",
-  "merge_all_name_label": "Title of the merged document",
-  "merge_all_preview": [
-    {
-      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Creates one document from {count} document with {pages}.",
-        "countPlural=*": "Creates one document from {count} documents with {pages}."
-      }
-    }
-  ],
   "merge_move_up": "Move {title} up",
   "merge_move_down": "Move {title} down",
-  "history_merge_all": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Merge {count} document",
-        "countPlural=*": "Merge {count} documents"
-      }
-    }
-  ],
-  "announce_merged_all": [
-    {
-      "declarations": ["input count", "input title", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Merged {count} document into {title}",
-        "countPlural=*": "Merged {count} documents into {title}"
-      }
-    }
-  ],
   "interleave_title": "Interleave {title} with…",
   "interleave_second_label": "Second document",
   "interleave_mode_label": "Order",

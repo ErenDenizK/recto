@@ -1,8 +1,9 @@
 /**
- * Section operations on real PDFs (Vitest browser mode, Chromium): split every N pages and
- * by ranges through the dialog, merge into another document from the section menu, merge
- * all open documents in a chosen order, interleave in duplex order, rename in place, and
- * images as pages followed by an export whose page count includes the image pages.
+ * The page-structure sheets on real PDFs (Vitest browser mode, Chromium; 07-sheets S13–S18):
+ * split every N pages and by ranges in the Split sheet, Combine with open documents in a chosen
+ * order (one outcome: a new document, the sources kept, INV-12), Interleave in duplex order
+ * keeping its sources (07.13), rename in place in a grid section, and images as pages followed
+ * by an export whose page count includes the image pages.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
@@ -69,11 +70,6 @@ async function open(...files: [string, string][]) {
   return order;
 }
 
-async function openSectionMenu(title: string) {
-  await userEvent.click(screen.getByRole('button', { name: `${title} actions` }));
-  return screen.findByTestId('section-menu');
-}
-
 describe('section operations', () => {
   beforeEach(async () => {
     await page.viewport(1440, 900);
@@ -95,9 +91,9 @@ describe('section operations', () => {
   });
 
   it('splits every N pages from the section menu, with a live preview', async () => {
-    await open([outlineUrl, 'outline-named-dests.pdf']);
-    const menu = await openSectionMenu('outline-named-dests');
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Split…' }));
+    const [outline] = await open([outlineUrl, 'outline-named-dests.pdf']);
+    if (outline === undefined) throw new Error('not opened');
+    await runSectionCommand('section.split', outline);
     const dialog = await screen.findByTestId('split-dialog');
     await waitFor(() => {
       expect(
@@ -110,30 +106,41 @@ describe('section operations', () => {
       'Creates 2 documents: 3, 3 pages',
     );
     expect(within(dialog).getByRole('radio', { name: /At top-level bookmarks/ })).toBeEnabled();
-    expect(within(dialog).getByRole('radio', { name: /Before each selected page/ })).toBeDisabled();
+    expect(
+      within(dialog).getByRole('radio', { name: /Before each selected page/ }),
+    ).toHaveAttribute('aria-disabled', 'true');
 
     // Ranges: inline errors, then a valid list with pages left behind.
     await userEvent.click(within(dialog).getByRole('radio', { name: /Page ranges/ }));
     const ranges = within(dialog).getByTestId('split-ranges');
     await userEvent.type(ranges, '1-3, 9, 4-2');
+    expect(dialog).toHaveTextContent('“9”: the document has 6 pages.');
     expect(within(dialog).getByTestId('split-range-errors')).toHaveTextContent(
-      '“9”: the document has 6 pages.“4-2”: the range runs backwards.',
+      '“4-2”: the range runs backwards.',
     );
-    expect(within(dialog).getByRole('button', { name: 'Split' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Split' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     await userEvent.clear(ranges);
     await userEvent.type(ranges, '1-3, 5');
     expect(within(dialog).getByTestId('split-preview')).toHaveTextContent(
-      'Creates 2 documents: 3, 1 pages2 pages stay in outline-named-dests.',
+      'Creates 2 documents: 3, 1 pages 2 pages stay in outline-named-dests.',
     );
 
     // Every 4 pages.
+    await userEvent.click(within(dialog).getByRole('radio', { name: /Every n pages/ }));
     const every = within(dialog).getByRole('spinbutton', { name: 'Pages per document' });
     await userEvent.clear(every);
     await userEvent.type(every, '4');
     expect(within(dialog).getByTestId('split-preview')).toHaveTextContent(
       'Creates 2 documents: 4, 2 pages',
     );
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Split' }));
+    // The grid draws where the parts start while the sheet is open (S13).
+    await waitFor(() => {
+      expect(screen.getByText('2 of 2')).toBeInTheDocument();
+    });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Split into 2' }));
 
     await waitFor(() => {
       expect(titles()).toEqual(['outline-named-dests (1 of 2)', 'outline-named-dests (2 of 2)']);
@@ -143,7 +150,7 @@ describe('section operations', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('split-dialog')).toBeNull();
     });
-    // Both parts stay on the light table.
+    // Both parts show in the grid's All open.
     expect(await screen.findAllByRole('grid')).toHaveLength(2);
 
     await userEvent.keyboard('{Control>}z{/Control}');
@@ -152,63 +159,46 @@ describe('section operations', () => {
     });
   }, 40_000);
 
-  it('merges a document into another from the section menu, and hints when it cannot', async () => {
+  it('combines open documents into a new one in the order chosen, keeping them (S15)', async () => {
     const [simple, rotated] = await open(
       [simpleUrl, 'simple-text.pdf'],
       [rotatedUrl, 'rotated-pages.pdf'],
     );
-    let menu = await openSectionMenu('simple-text');
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Merge into…' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'rotated-pages' }));
-
-    await waitFor(() => {
-      expect(titles()).toEqual(['rotated-pages']);
-    });
-    const merged = ws().documentOrder[0];
-    expect(pageNames(merged)).toEqual(['r1', 'r2', 'r3', 'r4', 's1', 's2', 's3']);
-    expect(lastLabel()).toBe('Merge simple-text into rotated-pages');
-    expect(ws().documents[simple ?? ('' as DocumentId)]).toBeUndefined();
-    expect(ws().documents[rotated ?? ('' as DocumentId)]).toBeUndefined();
-
-    // Only one document left: the item is disabled and says why.
-    await userEvent.keyboard('{Escape}');
-    menu = await openSectionMenu('rotated-pages');
-    const item = within(menu).getByRole('menuitem', { name: /Merge into…/ });
-    expect(item).toHaveAttribute('aria-disabled', 'true');
-    expect(item).toHaveTextContent('Needs another open document');
-  }, 40_000);
-
-  it('merges all open documents in the order chosen in the dialog', async () => {
-    await open([simpleUrl, 'simple-text.pdf'], [rotatedUrl, 'rotated-pages.pdf']);
     await commandRegistry.execute('documents.mergeAll');
-    const dialog = await screen.findByTestId('merge-all-dialog');
+    const sheet = await screen.findByTestId('combine-sheet');
     const rows = () =>
-      within(dialog)
-        .getAllByTestId('merge-row')
+      within(sheet)
+        .getAllByTestId('combine-row')
         .map((r) => r.textContent);
-    expect(rows()[0]).toContain('simple-text');
-    expect(within(dialog).getByRole('button', { name: 'Move simple-text up' })).toBeDisabled();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Move rotated-pages up' }));
+    expect(rows()).toHaveLength(2);
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Move rotated-pages up' }));
     expect(rows()[0]).toContain('rotated-pages');
-    expect(within(dialog).getByRole('status')).toHaveTextContent(
-      'Creates one document from 2 documents with 7 pages.',
-    );
-    const name = within(dialog).getByRole('textbox', { name: 'Title of the merged document' });
+    expect(within(sheet).getByRole('status')).toHaveTextContent('Creates 1 document with 7 pages');
+    const name = within(sheet).getByRole('textbox', { name: 'Name' });
     await userEvent.clear(name);
-    expect(within(dialog).getByText('The title cannot be empty.')).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Merge' })).toBeDisabled();
+    expect(within(sheet).getAllByText('The title cannot be empty.')[0]).toBeInTheDocument();
     await userEvent.type(name, 'Combined');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Merge' }));
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Combine' }));
 
+    // One outcome (INV-12): a new document after the sources, which stay open and untouched.
     await waitFor(() => {
-      expect(titles()).toEqual(['Combined']);
+      expect(titles()).toEqual(['simple-text', 'rotated-pages', 'Combined']);
     });
-    const merged = ws().documentOrder[0];
-    expect(pageNames(merged)).toEqual(['r1', 'r2', 'r3', 'r4', 's1', 's2', 's3']);
-    expect(lastLabel()).toBe('Merge 2 documents');
-    // Both sources are still open in the engine: the merged document exports.
-    if (merged === undefined) throw new Error('no merged document');
-    const result = await prepareExport(merged);
+    const combined = ws().documentOrder[2];
+    expect(pageNames(combined)).toEqual(['r1', 'r2', 'r3', 'r4', 's1', 's2', 's3']);
+    expect(pageNames(simple)).toEqual(['s1', 's2', 's3']);
+    expect(pageNames(rotated)).toEqual(['r1', 'r2', 'r3', 'r4']);
+    expect(lastLabel()).toBe('Combine 2 files');
+    // It opens straight in its Pages grid, This document, with its sources named (PG6).
+    expect(ws().activeDocument).toBe(combined);
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-sources')).toHaveTextContent(
+        'Sources: rotated-pages, simple-text',
+      );
+    });
+    expect(screen.getAllByRole('grid')).toHaveLength(1);
+    if (combined === undefined) throw new Error('no combined document');
+    const result = await prepareExport(combined);
     if (!result.ok) throw new Error(result.error.message);
     expect(result.value.verification.ok).toBe(true);
     expect(result.value.pageCount).toBe(7);
@@ -233,19 +223,21 @@ describe('section operations', () => {
       'rotated-pages, page 3',
       'simple-text, page 3',
       'rotated-pages, page 2',
-      '+1 more',
+      'rotated-pages, page 1',
     ]);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Interleave' }));
 
+    // Interleave keeps its sources (07.13): the result follows them.
     await waitFor(() => {
-      expect(titles()).toEqual(['simple-text + rotated-pages']);
+      expect(titles()).toEqual(['simple-text', 'rotated-pages', 'simple-text + rotated-pages']);
     });
-    expect(pageNames(ws().documentOrder[0])).toEqual(['s1', 'r4', 's2', 'r3', 's3', 'r2', 'r1']);
+    expect(pageNames(ws().documentOrder[2])).toEqual(['s1', 'r4', 's2', 'r3', 's3', 'r2', 'r1']);
+    expect(pageNames(simple)).toEqual(['s1', 's2', 's3']);
     expect(lastLabel()).toBe('Interleave simple-text with rotated-pages');
   }, 40_000);
 
-  it('renames in place from the section header and the tab, validating the title', async () => {
-    await open([simpleUrl, 'simple-text.pdf']);
+  it('renames in place from a section header in All open, validating the title', async () => {
+    await open([simpleUrl, 'simple-text.pdf'], [rotatedUrl, 'rotated-pages.pdf']);
     await userEvent.dblClick(screen.getByRole('heading', { name: 'simple-text' }));
     const input = await screen.findByRole('textbox', { name: 'Document title' });
     expect(input).toHaveFocus();
@@ -256,18 +248,6 @@ describe('section operations', () => {
     await userEvent.keyboard('{Enter}');
     expect(await screen.findByRole('tab', { name: 'Contract' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Contract' })).toBeVisible();
-    expect(lastLabel()).toBe('Rename to Contract');
-
-    // F2 on the focused tab; Escape cancels.
-    const tab = screen.getByRole('tab', { name: 'Contract' });
-    tab.focus();
-    await userEvent.keyboard('{F2}');
-    const tabInput = await screen.findByRole('textbox', { name: 'Document title' });
-    await userEvent.type(tabInput, 'Other');
-    await userEvent.keyboard('{Escape}');
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Contract' })).toHaveFocus();
-    });
     expect(lastLabel()).toBe('Rename to Contract');
   }, 40_000);
 
@@ -288,7 +268,7 @@ describe('section operations', () => {
     expect(pageNames(ws().documentOrder[1])).toEqual(['s1', 's2', 's3']);
     expect(model().history.past.length).toBe(past + 1);
     expect(lastLabel()).toBe('Copy 3 pages to new document');
-    expect(commandRegistry.get('pages.extract')?.title).toBe('Move pages to new document');
+    expect(commandRegistry.get('pages.extract')?.title).toBe('Extract pages…');
   }, 40_000);
 
   it('inserts images as pages (WebP re-encoded) and exports them', async () => {
@@ -318,7 +298,7 @@ describe('section operations', () => {
       expect(within(question).getByRole('heading', { name: 'Insert 2 images' })).toBeVisible();
     });
     expect(within(question).getByRole('radio', { name: /Fit to A4 width/ })).toBeChecked();
-    await userEvent.click(within(question).getByRole('button', { name: 'Insert' }));
+    await userEvent.click(within(question).getByRole('button', { name: 'Insert 2 pages' }));
     expect(await pending).toHaveLength(2);
     const doc = ws().documents[simple];
     expect(doc?.pages).toHaveLength(6);

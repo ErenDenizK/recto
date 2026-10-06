@@ -177,16 +177,16 @@ test('a sheet over a document and a toast: six at most while it comes in, four a
   await page.keyboard.press('Escape');
 });
 
-test('Arrange with its contextual bar', async ({ page }) => {
+test('the Pages grid with its Pages bar', async ({ page }) => {
   await open(page, 'simple-text.pdf');
   await page.keyboard.press('3');
   await expect(page.getByTestId('light-table')).toBeVisible();
-  await expectGlassClean(page, 'Arrange');
+  await expectGlassClean(page, 'Pages grid');
   await page.getByTestId('light-table').getByRole('gridcell').nth(1).click();
-  await expect(page.getByTestId('contextual-bar')).toBeVisible();
-  await page.mouse.move(700, 880);
-  const walk = await expectGlassClean(page, 'Arrange, a page selected');
-  expect(names(walk).some((n) => n.includes('contextBar'))).toBe(true);
+  await expect(page.getByTestId('pages-bar')).toContainText('1 selected');
+  await page.mouse.move(700, 200);
+  const walk = await expectGlassClean(page, 'Pages grid, a page selected');
+  expect(names(walk).some((n) => n.includes('capsule'))).toBe(true);
 });
 
 test('the pen editor and its colour views, pushed in place', async ({ page }) => {

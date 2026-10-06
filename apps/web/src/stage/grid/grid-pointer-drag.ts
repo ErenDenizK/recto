@@ -202,7 +202,7 @@ export function attachGridPointerDrag(
         announce(refusalReason(refusal));
         return;
       }
-      const result = transferPages({ pageIds, target, duplicate: false });
+      const result = transferPages({ pageIds, target, duplicate: false, select: false });
       if (result === undefined) return;
       haptic();
       if (from !== undefined && from !== target.document) {

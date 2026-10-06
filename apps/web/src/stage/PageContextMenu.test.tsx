@@ -167,7 +167,7 @@ describe('page context menu', () => {
       'Rotate page 2 right',
       'Delete page 2',
       'Crop…',
-      expect.stringMatching(/^Arrange/),
+      expect.stringMatching(/^Show in Pages grid/),
     ]);
     // `pages` acts need no Markup (ADR-0030): a rotation from viewing, one step.
     await userEvent.click(within(popup).getByRole('menuitem', { name: 'Rotate page 2 right' }));
@@ -175,7 +175,7 @@ describe('page context menu', () => {
     expect(isMarkupOpen(useUiStore.getState(), doc.id)).toBe(false);
     await closed();
 
-    // Locked: the same rows, dimmed with nothing changed (Arrange stays).
+    // Locked: the same rows, dimmed with nothing changed (Show in Pages grid stays).
     useLockStore.getState().lock(doc.id);
     const before = activeDoc().pages.map((p) => p.rotation);
     rightClick(pageElement(container, 1));
@@ -185,9 +185,9 @@ describe('page context menu', () => {
         within(locked).getByRole('menuitem', { name: new RegExp(`^${name}`) }),
       ).toHaveAttribute('aria-disabled', 'true');
     }
-    expect(within(locked).getByRole('menuitem', { name: /^Arrange/ })).not.toHaveAttribute(
-      'aria-disabled',
-    );
+    expect(
+      within(locked).getByRole('menuitem', { name: /^Show in Pages grid/ }),
+    ).not.toHaveAttribute('aria-disabled');
     await userEvent.click(within(locked).getByRole('menuitem', { name: 'Delete page 2' }), {
       force: true,
     });
@@ -212,7 +212,7 @@ describe('page context menu', () => {
       'Rotate page 2 right',
       'Delete page 2',
       'Crop…',
-      expect.stringMatching(/^Arrange/),
+      expect.stringMatching(/^Show in Pages grid/),
     ]);
 
     await userEvent.click(within(popup).getByRole('menuitem', { name: 'Rotate page 2 right' }));
@@ -255,9 +255,14 @@ describe('page context menu', () => {
     // The old page 3 is page 2 now.
     await closed();
     rightClick(pageElement(container, 1));
-    await userEvent.click(within(await menu()).getByRole('menuitem', { name: /^Arrange/ }));
-    expect(stageView(useUiStore.getState())).toBe('grid');
-    expect([...useSelectionStore.getState().selected]).toEqual([third]);
+    await userEvent.click(
+      within(await menu()).getByRole('menuitem', { name: /^Show in Pages grid/ }),
+    );
+    await waitFor(() => {
+      expect(stageView(useUiStore.getState())).toBe('grid');
+    });
+    // The grid opens at that page, its cell focused; the surface change clears the selection.
+    expect(useSelectionStore.getState().focused).toBe(third);
   });
 
   it('offers "Edit text here" in Edit, which arms Edit text', async () => {
