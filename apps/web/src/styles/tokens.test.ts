@@ -918,7 +918,7 @@ describe('tokens.css', () => {
 
     it('makes the docked surfaces compose the frame and paint no background of their own', () => {
       const docked = import.meta.glob<string>(
-        '../shell/{frame/TopStrip,frame/CompactTopBar,LeftRail,RightPanel}.module.css',
+        '../shell/{frame/TopStrip,frame/CompactTopBar,sidebar/Sidebar,RightPanel}.module.css',
         { query: '?raw', import: 'default', eager: true },
       );
       expect(Object.keys(docked)).toHaveLength(4);

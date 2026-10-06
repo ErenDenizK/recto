@@ -55,6 +55,8 @@ export interface SegmentedOption<T extends string> {
   readonly reason?: string | undefined;
   /** A tooltip that explains the choice, also its accessible description. */
   readonly description?: string | undefined;
+  /** The accessible name when it should say more than the label ("Review, 3 items"). */
+  readonly name?: string | undefined;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -67,6 +69,10 @@ export interface SegmentedProps<T extends string> {
   /** Tabs only: the panels (`SegmentedPanel`), rendered after the control. */
   readonly children?: ReactNode;
   readonly className?: string | undefined;
+  /** A class for the box around the track (its spacing in a bar or a header). */
+  readonly frameClassName?: string | undefined;
+  /** Tabs only: a class for the tabs root, which holds the track and the panels. */
+  readonly tabsClassName?: string | undefined;
 }
 
 /** How the segments are laid out (09 §6.2). */
@@ -113,6 +119,8 @@ export function Segmented<T extends string>({
   semantics = 'radio',
   children,
   className,
+  frameClassName,
+  tabsClassName,
 }: SegmentedProps<T>) {
   const frameRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -306,7 +314,9 @@ export function Segmented<T extends string>({
               disabled={option.disabled}
               className={styles.segment}
               style={cell(i)}
+              aria-label={option.name}
               data-segment=""
+              data-value={option.value}
               data-checked={option.value === value ? '' : undefined}
             >
               {segmentContent(option)}
@@ -333,6 +343,7 @@ export function Segmented<T extends string>({
               disabled={option.disabled}
               className={styles.segment}
               style={cell(i)}
+              aria-label={option.name}
               data-segment=""
             >
               {segmentContent(option)}
@@ -344,7 +355,7 @@ export function Segmented<T extends string>({
   }
 
   const frame = (
-    <div ref={frameRef} className={styles.frame}>
+    <div ref={frameRef} className={[styles.frame, frameClassName].filter(Boolean).join(' ')}>
       {control}
       {/* The labels at their natural widths, for the layout choice; never seen or read. */}
       <div ref={measureRef} className={styles.measure} aria-hidden="true">
@@ -359,7 +370,11 @@ export function Segmented<T extends string>({
 
   if (semantics !== 'tabs') return frame;
   return (
-    <Tabs.Root value={value} onValueChange={(next) => onValueChange(next as T)}>
+    <Tabs.Root
+      value={value}
+      onValueChange={(next) => onValueChange(next as T)}
+      className={tabsClassName}
+    >
       {frame}
       {children}
     </Tabs.Root>

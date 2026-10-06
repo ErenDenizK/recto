@@ -39,6 +39,8 @@ const TARGETS = [
   // The toast region: the newest toast's action, else its first button.
   '[data-toast-newest] [data-toast-action]',
   '[data-toast-newest] button',
+  // The sidebar's current item (06-navigation N1 §6: F6 stop 2 lands there).
+  '[data-sidebar-current][tabindex="0"]',
   '[role="tab"][tabindex="0"]',
   // The Library: the card that holds the grid's Tab stop.
   '[role="option"][tabindex="0"]',

@@ -1,17 +1,20 @@
 /**
- * The navigator's Review tab (experience-redesign §4.1): one list of the comments and other
- * annotations, the redaction marks and the form fields, grouped by page, with filter chips
- * All · Comments · Marks · Fields and their counts. Rows keep their kind's actions: a
- * comment selects its annotation; a mark reveals, deletes and (in Marks) ticks for "Apply
- * redactions", with J / K review; a field opens its editor (or, in "Edit fields", selects
- * a created field). Settings show where they apply: the author name is asked once above
- * the first comment; the redaction header in Marks; the field tools in Fields.
+ * N5 Review section (`components/06-navigation.md` N5; redesign spec D2-4): one list of what
+ * someone added to the document, the comments and other annotations, the redaction marks and
+ * the form fields, grouped by page, with filter chips All · Comments · Marks · Fields and,
+ * once OCR has run on the document, Words to check (spec X33, `WordsToCheck.tsx`). Rows keep
+ * their kind's actions: a comment selects its annotation; a mark reveals, deletes and (in
+ * Marks) ticks for "Apply redactions", with J / K review; a field opens its editor (or, in
+ * "Edit fields", selects a created field). Settings show where they apply: the author name
+ * is asked once above the first comment; the redaction header in Marks; the field tools in
+ * Fields.
  *
- * Chips show only for kinds the document has (All, then each present kind, plus the chosen
- * one); "Find sensitive data" and the Marks header stay reachable through the tool bar's
- * Redact group. The list is virtualized (TanStack Virtual, as the thumbnails and search
- * results): a page heading and each row are one entry, rendered in flow between two spacers
- * so the page sections, headings and lists keep their structure.
+ * The chips are static (RA-21; spec 06.13): every filter shows, a zero count included, so
+ * nothing moves under the pointer as items come and go; an empty filter says so. Marks keep
+ * their header with Apply until the pending-marks bar (`04-context` §9) takes it over. The
+ * list is virtualized (TanStack Virtual, as the thumbnails and search results): a page
+ * heading and each row are one entry, rendered in flow between two spacers so the page
+ * sections, headings and lists keep their structure.
  */
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -41,29 +44,37 @@ import {
   useReviewData,
 } from './review-items';
 import styles from './ReviewPanel.module.css';
+import { useDocumentWords, useHasWordsToCheck, WordsToCheck } from './WordsToCheck';
 
 export const FILTER_LABELS: Readonly<Record<ReviewFilter, () => string>> = {
   all: m.review_filter_all,
   comments: m.review_filter_comments,
   redactions: m.review_filter_marks,
   fields: m.review_filter_fields,
+  words: m.review_filter_words,
 };
 
 const FILTERS: readonly ReviewFilter[] = ['all', 'comments', 'redactions', 'fields'];
 
-/** The chips to show: All, every kind present, and the chosen filter (even when empty). */
-export function shownFilters(counts: ReviewCounts, chosen: ReviewFilter): ReviewFilter[] {
-  return FILTERS.filter((value) => value === 'all' || value === chosen || counts[value] > 0);
+/**
+ * The chips to show (spec 06.13, RA-21): all four always, zero counts included, and Words to
+ * check once OCR has run on the document (X33).
+ */
+export function shownFilters(words: boolean): ReviewFilter[] {
+  return words ? [...FILTERS, 'words'] : [...FILTERS];
 }
 
 /** `filter` pins the list to one filter and hides the chips (an embedded, single-kind list). */
 export function ReviewPanel({ filter: pinned }: { readonly filter?: ReviewFilter } = {}) {
   const chosen = useUiStore((s) => s.reviewFilter);
-  const filter = pinned ?? chosen;
   const doc = useActiveDocument();
+  const hasWords = useHasWordsToCheck(doc);
+  const wordData = useDocumentWords();
+  // Words to check without OCR on this document reads as All (the chip is not offered).
+  const filter = pinned ?? (chosen === 'words' && !hasWords ? 'all' : chosen);
   useReadReviewData();
   const { items, loading } = useReviewData();
-  const counts = countItems(items);
+  const counts = { ...countItems(items), words: wordData.words.length };
   const shown = filterItems(items, filter);
   const editing = useAuthorPrompt((s) => s.editing);
   const ask = useAuthorPrompt((s) => !s.asked && !s.editing);
@@ -77,7 +88,9 @@ export function ReviewPanel({ filter: pinned }: { readonly filter?: ReviewFilter
       // Clicks in the list keep the annotation selection the rows make.
       data-annotation-keep=""
     >
-      {pinned === undefined ? <FilterChips filter={filter} counts={counts} /> : null}
+      {pinned === undefined ? (
+        <FilterChips filter={filter} counts={counts} words={hasWords} />
+      ) : null}
       {editing ? <AuthorPrompt focusOnMount /> : null}
       {!editing && ask && counts.comments > 0 && (filter === 'all' || filter === 'comments') ? (
         <AuthorPrompt />
@@ -91,7 +104,9 @@ export function ReviewPanel({ filter: pinned }: { readonly filter?: ReviewFilter
           rows={shown.flatMap((item) => (item.kind === 'field' ? [item.stop] : []))}
         />
       ) : null}
-      {shown.length === 0 ? (
+      {filter === 'words' ? (
+        <WordsToCheck data={wordData} />
+      ) : shown.length === 0 ? (
         <div className={styles.empty} aria-busy={loading}>
           <Empty filter={filter} loading={loading} />
         </div>
@@ -105,9 +120,11 @@ export function ReviewPanel({ filter: pinned }: { readonly filter?: ReviewFilter
 function FilterChips({
   filter,
   counts,
+  words,
 }: {
   readonly filter: ReviewFilter;
   readonly counts: ReviewCounts;
+  readonly words: boolean;
 }) {
   const setFilter = useUiStore((s) => s.setReviewFilter);
   return (
@@ -119,7 +136,7 @@ function FilterChips({
         setFilter(next);
         announce(m.review_announce_filter({ label: FILTER_LABELS[next](), count: counts[next] }));
       }}
-      chips={shownFilters(counts, filter).map((value) => ({
+      chips={shownFilters(words).map((value) => ({
         value,
         label: FILTER_LABELS[value](),
         count: formatNumber(counts[value]),
