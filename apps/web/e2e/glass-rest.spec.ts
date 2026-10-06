@@ -90,8 +90,23 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   expect(names(walk).some((n) => n.includes('tier'))).toBe(true);
   await page.keyboard.press('Escape');
 
-  // The title menu (01-frame F5), from the active tab.
+  // The title menu (01-frame F5) takes the M4 solid twin: it opens over the sidebar's dark edge
+  // and the page at once, where blurred glass showed a seam (Q-1, Q-3).
   await page.getByTestId('document-menu').click();
+  const titleMenu = page.getByTestId('title-menu');
+  await expect(titleMenu).toBeVisible();
+  expect(
+    await titleMenu.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return style.getPropertyValue('backdrop-filter') || 'none';
+    }),
+  ).toBe('none');
+  await expectGlassClean(page, 'the title menu');
+  await page.keyboard.press('Escape');
+  await expect(titleMenu).toHaveCount(0);
+
+  // The tab menu (right-click on the active tab): a glass menu.
+  await page.getByTestId('document-menu').click({ button: 'right' });
   await expect(page.getByRole('menu')).toBeVisible();
   walk = await expectGlassClean(page, 'the Document menu');
   // What the menu looked like to the walk, should it not count it (seen on WebKit in CI).
