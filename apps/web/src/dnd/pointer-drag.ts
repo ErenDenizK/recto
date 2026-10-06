@@ -190,13 +190,21 @@ export function attachPointerDrag(
   const view = doc.defaultView ?? window;
   /** After a hold or a drag, the release's click (and Android's menu echo) are not taps. */
   let swallowUntil = Number.NEGATIVE_INFINITY;
+  /** A held touch whose lift was refused, until the finger leaves. */
+  let refusedTouch = false;
   const swallowSoon = () => {
     swallowUntil = performance.now() + GESTURE.clickEchoMs;
   };
 
   const recogniser = pointerDrag<PointerEvent>({
     shouldStart: (e) => options.shouldStart(e),
-    onLift: (e, start) => options.onLift(e, start),
+    onLift: (e, start) => {
+      const lifted = options.onLift(e, start);
+      // A held finger refused at the lift (a locked document) meant a drag, not a pan: its
+      // moves stay the gesture's, or Chromium would scroll, or swipe back through history.
+      if (!lifted && e.pointerType === 'touch') refusedTouch = true;
+      return lifted;
+    },
     onMove: (e) => options.onMove(e),
     onDrop: (e) => {
       swallowSoon();
@@ -216,9 +224,12 @@ export function attachPointerDrag(
 
   // After a touch hold the finger's moves are the drag's, not a scroll.
   const onTouchMove = (event: TouchEvent) => {
-    if (recogniser.phase === 'held' || recogniser.phase === 'lifted') {
+    if (refusedTouch || recogniser.phase === 'held' || recogniser.phase === 'lifted') {
       if (event.cancelable) event.preventDefault();
     }
+  };
+  const onTouchEnd = (event: TouchEvent) => {
+    if (event.touches.length === 0) refusedTouch = false;
   };
   const onContextMenu = (event: Event) => {
     if (recogniser.phase === 'holding' || recogniser.phase === 'held') {
@@ -226,6 +237,15 @@ export function attachPointerDrag(
     } else if (performance.now() < swallowUntil) {
       event.preventDefault();
       event.stopPropagation();
+    }
+  };
+  /**
+   * A new press after the release: the release's click did not come (a finger that moved
+   * makes none), and will not, so the next tap's click is a tap (as `attachLongPress`).
+   */
+  const onNextPress = () => {
+    if (recogniser.phase !== 'held' && recogniser.phase !== 'lifted') {
+      swallowUntil = Number.NEGATIVE_INFINITY;
     }
   };
   const onClick = (event: Event) => {
@@ -241,16 +261,23 @@ export function attachPointerDrag(
     recogniser.cancel();
   };
   const capture = { capture: true } as const;
+  const PASSIVE = { passive: true } as const;
   view.addEventListener('touchmove', onTouchMove, { passive: false });
+  view.addEventListener('touchend', onTouchEnd, PASSIVE);
+  view.addEventListener('touchcancel', onTouchEnd, PASSIVE);
   target.addEventListener('contextmenu', onContextMenu, capture);
   view.addEventListener('click', onClick, capture);
+  view.addEventListener('pointerdown', onNextPress, { capture: true, passive: true });
   view.addEventListener('keydown', onKeyDown, capture);
   const remove = attachRecogniser(target, recogniser);
   return () => {
     remove();
     view.removeEventListener('touchmove', onTouchMove);
+    view.removeEventListener('touchend', onTouchEnd);
+    view.removeEventListener('touchcancel', onTouchEnd);
     target.removeEventListener('contextmenu', onContextMenu, capture);
     view.removeEventListener('click', onClick, capture);
+    view.removeEventListener('pointerdown', onNextPress, capture);
     view.removeEventListener('keydown', onKeyDown, capture);
   };
 }

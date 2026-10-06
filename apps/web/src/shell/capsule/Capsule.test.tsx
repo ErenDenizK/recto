@@ -22,6 +22,7 @@ function Content({ shape }: { readonly shape: CapsuleShape }) {
     dock: ['pages', 'markup', 'sign', 'more'],
     locked: ['pages', 'locked', 'more'],
     palette: ['done', 'select', 'pen', 'eraser', 'shapes', 'text', 'note', 'more-tools'],
+    pages: ['done', 'count', 'select-all', 'more'],
   };
   return (
     <div role="toolbar" aria-label={shape} style={{ display: 'flex', height: 42 }}>

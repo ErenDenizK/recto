@@ -255,7 +255,7 @@ test("Read's page menu offers the page operations, pages acts without Edit (D1-5
   if (!box) throw new Error('page 1 not laid out');
   await page.mouse.click(box.x + 40, box.y + 40, { button: 'right' });
   const menu = page.getByTestId('page-context-menu');
-  for (const name of [/^Rotate page 1/, /^Delete page 1/, /^Crop/, /^Arrange/]) {
+  for (const name of [/^Rotate page 1/, /^Delete page 1/, /^Crop/, /^Show in Pages grid/]) {
     await expect(menu.getByRole('menuitem', { name }).first()).toBeVisible();
   }
   await page.keyboard.press('Escape');

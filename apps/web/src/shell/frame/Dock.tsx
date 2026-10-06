@@ -37,6 +37,7 @@ import {
 } from 'react';
 
 import { commandRegistry } from '../../commands/registry';
+import { useDragSession } from '../../dnd/drag-store';
 import { useCommands } from '../../commands/use-commands';
 import { m, useLocale } from '../../i18n';
 import { isLocked } from '../../state/lock-store';
@@ -53,6 +54,7 @@ import { useStripKind } from '../../markup/InkStrip';
 import { MarkupPaletteContent, PaletteMeasurer } from '../../markup/MarkupPalette';
 import { useRovingTabindex } from '../../markup/roving';
 import { useStrokeFade } from '../../markup/stroke-fade';
+import { PagesBar, usePagesBarKey } from '../../stage/grid/PagesBar';
 import styles from './Dock.module.css';
 import { type DockLabelForm, dockLabelForm, dockRoom } from './dock-labels';
 import { openTitleMenu } from './frame-store';
@@ -76,11 +78,16 @@ export function Dock() {
   const strip = useStripKind();
   const [focusInside, setFocusInside] = useState(false);
   // Faded and out of the pointer's way while a stroke is in progress, never with focus inside
-  // (MK-17).
-  const stroking = useStrokeFade(focusInside) && shape === 'palette';
-  // The page view's: the grid and Compare have their own bars until the capsule becomes them.
-  const page = useStageView() === 'page';
-  if (!doc || !page) return null;
+  // (MK-17), and the Pages bar while pages are dragged (04-context §2.7 *contextual*: hidden while
+  // dragging).
+  const strokeFade = useStrokeFade(focusInside);
+  const draggingPages = useDragSession((s) => s.session !== null);
+  const stroking = (strokeFade && shape === 'palette') || (draggingPages && shape === 'pages');
+  // The page view's and the Pages grid's (whose content is the Pages bar, X21); Compare has its
+  // own bar until the capsule becomes it.
+  const view = useStageView();
+  const pagesKey = usePagesBarKey(doc?.id);
+  if (!doc || (view !== 'page' && view !== 'grid')) return null;
   return (
     <div
       className={styles.dock}
@@ -94,7 +101,9 @@ export function Dock() {
     >
       <Capsule
         shape={shape}
-        morphKey={shape === 'palette' ? (strip ?? 'tools') : undefined}
+        morphKey={
+          shape === 'palette' ? (strip ?? 'tools') : shape === 'pages' ? pagesKey : undefined
+        }
         stroking={stroking}
       >
         {(content) => <DockContent shape={content} doc={doc} />}
@@ -113,6 +122,7 @@ function DockContent({
   readonly doc: VirtualDocument;
 }): ReactNode {
   if (shape === 'palette') return <MarkupPaletteContent />;
+  if (shape === 'pages') return <PagesBar doc={doc} />;
   return <DockItems locked={shape === 'locked'} doc={doc} />;
 }
 

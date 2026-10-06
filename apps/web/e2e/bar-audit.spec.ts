@@ -212,14 +212,14 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // Arrange and its contextual bar.
+    // The Pages grid and its Pages bar (the capsule, X21).
     await page.keyboard.press('3');
     await expect(page.getByTestId('light-table')).toBeVisible();
-    await run.audit('Arrange');
+    await run.audit('Pages grid');
     await page.getByTestId('light-table').getByRole('gridcell').nth(1).click();
-    await expect(page.getByTestId('contextual-bar')).toBeVisible();
+    await expect(page.getByTestId('pages-bar')).toContainText('1 selected');
     await page.mouse.move(2, 450);
-    await run.audit('Arrange, a page selected');
+    await run.audit('Pages grid, a page selected');
 
     // ↶ ↷ sit in the title bar (audited with it above); the History scrubber under ↶, after a
     // step to scrub (D0-6): its list on a fine pointer, its slider and Cancel on a coarse one.

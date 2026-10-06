@@ -12,7 +12,6 @@ import { findPageLocation, insertBlankPage, type PageId } from '@pdf-editor/docu
 
 import { inDocumentOrder, transferPages } from '../../dnd/drop';
 import { m } from '../../i18n';
-import { extractPages } from '../../stage/arrange-actions';
 import { cropPage, deletePage, rotatePage } from '../../stage/PageContextMenu';
 import { openOperationDialog } from '../../stage/operation-dialogs-store';
 import { enterPagesGrid } from '../../stage/pages-grid-door';
@@ -110,12 +109,11 @@ export function insertBlankAfterPage(pageId: PageId): boolean {
   return true;
 }
 
-/** "Extract page…": the pages move to a new document after this one (`extractPages`). */
+/** "Extract page…": the Extract pages sheet with these pages (S16). */
 export function extractPagesOf(ids: readonly PageId[]): boolean {
-  const first = ids[0] ?? null;
-  // The shared action reads the selection; this is an explicit command, so it may write it.
-  useSelectionStore.getState().apply({ selected: new Set(ids), anchor: first, focused: first });
-  return extractPages();
+  if (ids.length === 0) return false;
+  openOperationDialog({ kind: 'extract', pageIds: [...ids] });
+  return true;
 }
 
 /** "Copy page": the in-app page clipboard (`selection-store`), as the grid's Mod+C. */

@@ -48,6 +48,7 @@ import {
 import { SIDEBAR_ID } from '../shell/frame/ids';
 import { requestSidebarFocus } from '../shell/sidebar/sidebar-focus';
 import { useAuthorPrompt } from '../shell/comment-author';
+import { enterGrid, leaveGrid } from '../stage/grid/grid-transition';
 import { openImagesAsDocument } from '../stage/section-operations';
 import { selectAllOf, useSelectionStore, visibleSelection } from '../state/selection-store';
 import { ARRANGE_SIZES, isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
@@ -609,6 +610,13 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       keywords: ['mode', 'viewer', 'continuous', 'lock'],
       when: () => activeDocument() !== undefined,
       run: () => {
+        // `1` closes the grid too (flows §7.2), back to the page it opened at.
+        if (stageView(ui()) === 'grid') {
+          const id = model().workspace.activeDocument;
+          if (id !== undefined) ui().closeMarkup(id);
+          leaveGrid();
+          return;
+        }
         if (!showing('page')) showMarkup(false);
       },
     }),
@@ -630,11 +638,12 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       group: m.group_view(),
       act: null,
       shortcut: '3',
-      keywords: ['mode', 'light table', 'grid', 'organize', 'reorder'],
+      keywords: ['mode', 'arrange', 'light table', 'grid', 'organize', 'reorder', 'pages'],
+      when: () => activeDocument() !== undefined,
+      // The Pages grid by its view change (PG1); `3` again goes back to the page (flows §7.2).
       run: () => {
-        if (showing('grid')) return;
-        ui().showSurface('grid');
-        announce(m.mode_arrange_long());
+        if (showing('grid')) leaveGrid();
+        else enterGrid();
       },
     }),
     registry.register({
