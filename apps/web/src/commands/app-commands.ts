@@ -39,7 +39,14 @@ import { registerOcrCommands } from '../ocr';
 import { PRODUCT_NAME } from '../shell/about/build-info';
 import { announce } from '../shell/announcer';
 import { focusOpenedPage } from '../shell/focus-opened-page';
-import { toggleSidebar } from '../shell/frame/frame-store';
+import {
+  showOverlaySidebar,
+  sidebarShown,
+  toggleSidebar,
+  useFrameStore,
+} from '../shell/frame/frame-store';
+import { SIDEBAR_ID } from '../shell/frame/ids';
+import { requestSidebarFocus } from '../shell/sidebar/sidebar-focus';
 import { useAuthorPrompt } from '../shell/comment-author';
 import { openImagesAsDocument } from '../stage/section-operations';
 import { selectAllOf, useSelectionStore, visibleSelection } from '../state/selection-store';
@@ -547,8 +554,14 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       group: m.group_view(),
       act: null,
       shortcut: 'Mod+B',
-      keywords: ['sidebar', 'pages', 'outline', 'files'],
-      run: toggleSidebar,
+      keywords: ['sidebar', 'pages', 'outline', 'contents'],
+      // Mod+B moves focus to the open section's current item; ▤ keeps it (06-navigation N1 §6).
+      run: () => {
+        const inside = document.activeElement?.closest(`#${SIDEBAR_ID}`) != null;
+        toggleSidebar();
+        if (sidebarShown(ui().leftPanelOpen, useFrameStore.getState())) requestSidebarFocus();
+        else if (inside) document.querySelector<HTMLElement>('[data-read-viewport]')?.focus();
+      },
     }),
     registry.register({
       id: 'view.toggleRightPanel',
@@ -559,16 +572,18 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       keywords: ['inspector', 'properties', 'history', 'info'],
       run: () => ui().toggleRightPanel(),
     }),
-    ...(['pages', 'outline', 'files'] as const).map((view) =>
+    // The sidebar's Pages and Contents (06-navigation N1); the open files are the Library's.
+    ...(['pages', 'outline'] as const).map((view) =>
       registry.register({
         id: `view.show.${view}`,
-        title: { pages: m.cmd_show_pages, outline: m.cmd_show_outline, files: m.cmd_show_files }[
-          view
-        ](),
+        title: { pages: m.cmd_show_pages, outline: m.cmd_show_outline }[view](),
         group: m.group_view(),
         act: null,
         keywords: ['panel', 'sidebar'],
-        run: () => useUiStore.setState({ leftPanelOpen: true, leftPanelView: view }),
+        run: () => {
+          useUiStore.setState({ leftPanelOpen: true, leftPanelView: view });
+          showOverlaySidebar(true);
+        },
       }),
     ),
     // Home is a view of the open files; a document is in Read (locked) or Edit, and Arrange

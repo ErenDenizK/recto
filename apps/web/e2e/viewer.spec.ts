@@ -1,7 +1,7 @@
 /**
  * Read-mode viewer (spec viewer-annotations §1): text selection and copy, find in document,
  * internal and external links, go to page, and the two-up layout, on outline-named-dests.pdf.
- * The navigator's four tabs and the closed inspector on first run, with Document info in the
+ * The sidebar closed on first run with its three sections, and the closed inspector, with Document info in the
  * Document menu (experience-redesign §4); the status bar without a second view switch; Read
  * through a narrow-then-wide window resize.
  */
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, reloadFresh, useFileInputPicker } from './helpers';
+import { openFixtures, reloadFresh, useFileInputPicker, showSidebar } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -101,23 +101,24 @@ test('finds text, steps through the hits and clears with Escape', async ({ page 
   await page.keyboard.press('F3');
   await expect(status).toContainText('3 of 6');
 
-  // Down opens the sidebar's Find section: the hit list, its count in the tab's name.
+  // Down opens the sidebar's Find section: the hit list, its count in the tab's name. At
+  // 1440 px the strip holds the one field (spec 06.20): the section shows none of its own.
   await field.press('ArrowDown');
-  const panel = page.locator('#left-panel');
-  const panelField = panel.getByRole('searchbox', { name: 'Find in document' });
-  await expect(panelField).toBeFocused();
+  const panel = page.getByRole('navigation', { name: 'Sidebar' });
   await expect(panel.getByTestId('search-hit')).toHaveCount(6);
-  await expect(page.getByRole('tab', { name: 'Find, 6 items' })).toHaveAttribute(
+  await expect(panel.getByRole('searchbox', { name: 'Find in document' })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Find, 6 matches' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
 
   // Match case finds nothing for the upper-cased query.
-  await panelField.fill('OUTLINE');
+  await field.fill('OUTLINE');
   // A new search starts from the reader's page (page 3).
   await expect(status).toContainText('3 of 6');
   await panel.getByRole('button', { name: 'Match case' }).click();
-  await expect(panel.getByTestId('search-status')).toHaveText('No results');
+  await expect(status).toHaveText('No matches');
+  await expect(panel.getByText('No matches in outline-named-dests')).toBeVisible();
 
   // Escape in the strip's field clears the search: no count, no highlights.
   await field.focus();
@@ -127,16 +128,20 @@ test('finds text, steps through the hits and clears with Escape', async ({ page 
   await expect(field).toHaveValue('');
 });
 
-test('the navigator has four tabs with counts; the inspector starts closed', async ({ page }) => {
-  const rail = page.getByRole('tablist', { name: 'Navigator views' });
-  // A row of labels; matches and review items show as badges, the page and file counts stay in
-  // the names (the pill and the tabs show them, D2-1).
-  await expect(rail.getByRole('tab')).toHaveText(['Pages', 'Find', 'Review', 'Files']);
-  await expect(rail.getByRole('tab', { name: 'Pages, 6 items' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
-  await expect(rail.getByRole('tab', { name: 'Files, 1 item' })).toBeVisible();
+test('the sidebar starts closed with three sections; the inspector starts closed', async ({
+  page,
+}) => {
+  // Closed by default on every size (06-navigation N1, 06.17); ▤ shows it on Pages.
+  await expect(page.getByRole('navigation', { name: 'Sidebar' })).toHaveCount(0);
+  await page.getByTestId('sidebar-toggle').click();
+  const rail = page.getByRole('tablist', { name: 'Sidebar sections' });
+  await expect(rail.getByRole('tab')).toHaveText(['Pages', 'Find', 'Review']);
+  await expect(rail.getByRole('tab', { name: 'Pages' })).toHaveAttribute('aria-selected', 'true');
+  // The Pages views name the two views, never a second "Pages".
+  await expect(page.getByRole('radiogroup', { name: 'Pages view' }).getByRole('radio')).toHaveText([
+    'Thumbnails',
+    'Contents',
+  ]);
   await expect(page.locator('#right-panel')).toHaveCount(0);
 
   // Document info is a sheet from the Document menu, not a form in the inspector.
@@ -291,6 +296,7 @@ test('the Review tab shows the first of 500 items within 100 ms, without a long 
     mimeType: 'application/pdf',
     buffer: await fiveHundredAnnotations(),
   });
+  await showSidebar(page, 'Pages');
   const review = page.getByRole('tab', { name: /^Review/ });
   // Every page's annotations are read (the badge counts them) before the tab opens.
   await expect(review).toHaveAccessibleName('Review, 500 items', { timeout: 30_000 });

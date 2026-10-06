@@ -1,6 +1,9 @@
 /**
- * Left rail "Outline": the active document's bookmarks from the model (`doc.outline`),
- * browsed and edited in place.
+ * N3 Contents (`components/06-navigation.md` N3; spec X27, the outline labelled Contents): the
+ * active document's bookmarks from the model (`doc.outline`), browsed and edited in place in
+ * the sidebar's Pages section. The current location (the deepest entry at or before the page
+ * being read) carries the current-row wash and `aria-current="location"`; edits are
+ * `document` acts, so Add bookmark dims while the document is locked and jumping still works.
  *
  * APG tree view with a flat DOM (rows carry level / set size / position), roving tabindex
  * and keyboard: Up/Down move, Right expands or enters, Left collapses or goes to the
@@ -83,6 +86,7 @@ import {
   startRenaming,
   useOutlineViewStore,
 } from '../outline/outline-view-store';
+import { refusalReason, useChangeRefusal } from '../state/guard';
 import { useSelectionStore } from '../state/selection-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
@@ -123,15 +127,21 @@ export function OutlinePanel() {
 /** "Add bookmark" and, when some targets were deleted, the dead-link notice. */
 function OutlineToolbar({ doc }: { readonly doc: VirtualDocument }) {
   const dead = countDeadOutlineLinks(doc.outline);
+  // Bookmarks are a `document` act: dimmed (focusable, with the reason) while locked.
+  const refusal = useChangeRefusal(doc.id, 'document');
   return (
     <>
       <div role="toolbar" aria-label={m.outline_toolbar_label()} className={editStyles.toolbar}>
-        <Tooltip label={m.outline_add_tooltip()} side="bottom">
+        <Tooltip label={refusal ? refusalReason(refusal) : m.outline_add_tooltip()} side="bottom">
           <button
             type="button"
             className={editStyles.toolButton}
             disabled={doc.pages.length === 0}
-            onClick={() => addBookmark(doc.id)}
+            aria-disabled={refusal ? true : undefined}
+            data-locked={refusal ? '' : undefined}
+            onClick={() => {
+              if (!refusal) addBookmark(doc.id);
+            }}
           >
             <Icon name="bookmark-simple" />
             {m.outline_add()}
@@ -208,6 +218,19 @@ function OutlineTree({ doc }: { readonly doc: VirtualDocument }) {
 
   const rows = flattenOutline(doc.outline, expanded);
   const pageIndex = new Map(doc.pages.map((page, index) => [page.id, index]));
+  const currentPage = useViewStore((s) => s.currentPage);
+  // The current location: the entry at or before the page being read, the later (deeper) one
+  // of two on the same page.
+  let locationKey: string | undefined;
+  let locationIndex = -1;
+  for (const row of rows) {
+    const destination = row.node.destination;
+    if (destination?.kind !== 'page') continue;
+    const index = pageIndex.get(destination.page);
+    if (index === undefined || index > currentPage || index < locationIndex) continue;
+    locationIndex = index;
+    locationKey = row.key;
+  }
   const activeKey =
     focusedKey !== undefined && rows.some((r) => r.key === focusedKey) ? focusedKey : rows[0]?.key;
 
@@ -438,6 +461,8 @@ function OutlineTree({ doc }: { readonly doc: VirtualDocument }) {
         aria-posinset={row.posInSet}
         aria-expanded={row.hasChildren ? row.expanded : undefined}
         aria-selected={row.key === activeKey}
+        aria-current={row.key === locationKey ? 'location' : undefined}
+        data-sidebar-current={row.key === activeKey ? '' : undefined}
         aria-describedby={description === undefined ? undefined : `${baseId}-${row.key}-desc`}
         tabIndex={row.key === activeKey && !renaming ? 0 : -1}
         className={styles.row}

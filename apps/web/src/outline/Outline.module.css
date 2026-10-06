@@ -13,6 +13,11 @@
   composes: btn btn-standard from global;
 }
 
+/* Locked (06-navigation N3 §4): dimmed, still focusable, the reason in the tooltip. */
+.toolButton[data-locked] {
+  color: var(--text-disabled);
+}
+
 /* Honesty notice (DESIGN.md §4.4): inline, with the fix next to it. */
 .dead {
   display: flex;

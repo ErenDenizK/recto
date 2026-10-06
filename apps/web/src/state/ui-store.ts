@@ -51,20 +51,29 @@ export const DEFAULT_DOCUMENT_UI: DocumentUi = {
 /** What the stage shows: the Library, Compare, or the active document's surface. */
 export type StageView = 'home' | 'compare' | Surface;
 /**
- * The navigator's tabs (experience-redesign §4.1). `changes` is the Compare view's Changes
- * list, shown only in Compare; not persisted (a comparison lives for the session).
+ * The sidebar's sections (`components/06-navigation.md` N1): Pages (thumbnails or Contents),
+ * Find, Review. M8's Files tab is gone (the Library and the tabs list the open files). `changes`
+ * is Compare's Changes list, which the sidebar's slot holds in Compare until the Compare place
+ * (CP5, D2-6) docks its own; never offered as a section, never persisted.
  */
-export type LeftPanelView = 'pages' | 'find' | 'review' | 'files' | 'changes';
+export type LeftPanelView = 'pages' | 'find' | 'review' | 'changes';
 /**
  * Views of the seven-tab rail (`ui:v1`). Still accepted when the state is set (commands
  * written against them keep working) and mapped by `navigatorTarget`; never stored.
  */
 export type LegacyLeftPanelView = 'outline' | 'search' | 'comments' | 'redactions' | 'forms';
-/** What the Pages tab shows: thumbnails, or the outline ("Bookmarks"). Remembered. */
+/**
+ * What the Pages section shows: thumbnails, or the outline, labelled Contents (spec X27; the
+ * stored value keeps M8's name). Remembered.
+ */
 export type PagesView = 'thumbnails' | 'bookmarks';
-/** The Review tab's filter chips (experience-redesign §4.1). Remembered. */
-export type ReviewFilter = 'all' | 'comments' | 'redactions' | 'fields';
-export const LEFT_PANEL_WIDTH = { min: 200, max: 420, default: 248 } as const;
+/**
+ * The Review section's filter chips (06-navigation N5): All · Comments · Marks · Fields, and
+ * Words to check once OCR has run on the document (spec X33). Remembered.
+ */
+export type ReviewFilter = 'all' | 'comments' | 'redactions' | 'fields' | 'words';
+/** The docked sidebar's width (spec 06.18): 280 by default, 240–400, kept per device. */
+export const LEFT_PANEL_WIDTH = { min: 240, max: 400, default: 280 } as const;
 export const RIGHT_PANEL_WIDTH = { min: 240, max: 440, default: 280 } as const;
 
 /** Discrete zoom steps, as in most viewers. 1 = 100%. */
@@ -115,8 +124,12 @@ export interface PersistedLayout {
   rightPanelWidth: number;
 }
 
+/**
+ * The sidebar is closed by default on every size (06-navigation N1, F§6.1) and remembered per
+ * device (this device's `localStorage`) once the person changes it; so is its width.
+ */
 export const DEFAULT_LAYOUT: PersistedLayout = {
-  leftPanelOpen: true,
+  leftPanelOpen: false,
   leftPanelView: 'pages',
   pagesView: 'thumbnails',
   reviewFilter: 'all',
@@ -125,7 +138,8 @@ export const DEFAULT_LAYOUT: PersistedLayout = {
   rightPanelWidth: RIGHT_PANEL_WIDTH.default,
 };
 
-const STORED_VIEWS: readonly LeftPanelView[] = ['pages', 'find', 'review', 'files'];
+/** M8's `files` is no longer a section: a stored `files` reads as Pages. */
+const STORED_VIEWS: readonly LeftPanelView[] = ['pages', 'find', 'review'];
 const LEGACY_VIEWS: readonly LegacyLeftPanelView[] = [
   'outline',
   'search',
@@ -133,7 +147,13 @@ const LEGACY_VIEWS: readonly LegacyLeftPanelView[] = [
   'redactions',
   'forms',
 ];
-const REVIEW_FILTERS: readonly ReviewFilter[] = ['all', 'comments', 'redactions', 'fields'];
+const REVIEW_FILTERS: readonly ReviewFilter[] = [
+  'all',
+  'comments',
+  'redactions',
+  'fields',
+  'words',
+];
 
 export function isLegacyView(view: unknown): view is LegacyLeftPanelView {
   return LEGACY_VIEWS.includes(view as LegacyLeftPanelView);
@@ -184,9 +204,8 @@ const width = (x: unknown, range: { min: number; max: number; default: number })
 
 /**
  * `ui:v3` as stored (redesign spec §7): the sidebar as one record, the Pages view and the
- * Review filter, and M8's inspector until the frame (D2-1) removes it. The sidebar's `files`
- * section is M8's Files tab, read until the sidebar (D2-4) removes it; a stored value it no
- * longer knows then falls back to Pages, field by field.
+ * Review filter, and M8's inspector until D2-9 removes it. A stored value the sidebar no longer
+ * knows (M8's `files`) falls back to Pages, field by field.
  */
 export interface StoredLayout {
   readonly sidebar: {
@@ -290,7 +309,7 @@ export function migrateLayout(v1: unknown): PersistedLayout {
   if (v === undefined) return DEFAULT_LAYOUT;
   const view = v.leftPanelView;
   const target =
-    isLegacyView(view) || view === 'pages' || view === 'files'
+    isLegacyView(view) || view === 'pages'
       ? navigatorTarget(view)
       : { leftPanelView: DEFAULT_LAYOUT.leftPanelView };
   return {

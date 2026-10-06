@@ -18,7 +18,13 @@
 import { decodePDFRawStream, PDFArray, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, saveCopyBytes, useDownloadPath, useFileInputPicker } from './helpers';
+import {
+  openFixtures,
+  saveCopyBytes,
+  useDownloadPath,
+  useFileInputPicker,
+  showSidebar,
+} from './helpers';
 
 const FOX = 'The quick brown fox jumps over the lazy dog';
 const EDITOR = /^(Line text|Paragraph on page 1)$/;
@@ -223,9 +229,9 @@ async function pdfFacts(bytes: Buffer): Promise<unknown[]> {
 }
 
 /** The navigator on its Pages tab (it may be open already: a second press would close it). */
+/** The sidebar (closed by default, 06-navigation N1) on its thumbnails. */
 async function showPages(page: Page): Promise<void> {
-  const tab = page.getByRole('tab', { name: /^Pages/ });
-  if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
+  await showSidebar(page, 'Pages', 'Thumbnails');
 }
 
 async function centreOf(locator: Locator): Promise<{ x: number; y: number }> {

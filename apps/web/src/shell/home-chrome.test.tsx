@@ -26,9 +26,9 @@ async function fixture(name: string): Promise<File> {
 }
 
 const railTabs = () =>
-  within(screen.getByRole('tablist', { name: /views/i }))
+  within(screen.getByRole('tablist', { name: 'Sidebar sections' }))
     .getAllByRole('tab')
-    .map((t) => t.id.replace(/^rail-/, ''));
+    .map((t) => t.textContent);
 
 describe('Home chrome', () => {
   beforeEach(async () => {
@@ -51,14 +51,14 @@ describe('Home chrome', () => {
   it('shows the Library strip on Home: no sidebar, ▤, Find, ↶ ↷, Save or page pill', async () => {
     render(<App />);
     await openDocuments([await fixture('first-file.pdf'), await fixture('demo-agreement.pdf')]);
-    await waitFor(() => expect(railTabs()).toEqual(['pages', 'find', 'review', 'files']));
+    await waitFor(() => expect(railTabs()).toEqual(['Pages', 'Find', 'Review']));
     expect(screen.getByRole('tabpanel', { name: /Pages/ })).toBeInTheDocument();
     expect(screen.getByTestId('page-pill')).toBeInTheDocument();
 
     useUiStore.getState().showHome();
     await screen.findByTestId('home');
     // The Library has no sidebar (it lists the files itself); the stored view is kept.
-    expect(screen.queryByRole('tablist', { name: /views/i })).toBeNull();
+    expect(screen.queryByRole('tablist', { name: 'Sidebar sections' })).toBeNull();
     expect(useUiStore.getState().leftPanelView).toBe('pages');
     // The strip (01-frame F2 §4): ◆ current with its label, tabs, +, ◎ and ⋯ only.
     const strip = screen.getByRole('banner', { name: 'Library bar' });
@@ -97,7 +97,7 @@ describe('Home chrome', () => {
 
     // Back in the document, the sidebar and the page pill return.
     useUiStore.getState().showSurface('page');
-    await waitFor(() => expect(railTabs()).toEqual(['pages', 'find', 'review', 'files']));
+    await waitFor(() => expect(railTabs()).toEqual(['Pages', 'Find', 'Review']));
     expect(screen.getByTestId('page-pill').textContent).toMatch(/^1 \/ /);
   });
 
