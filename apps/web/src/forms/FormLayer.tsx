@@ -20,12 +20,12 @@
  * Edit button, and no editor opens; switching is always the person's choice.
  */
 import type { FormField } from '@pdf-editor/engine';
-import { BadgeAlert, Pencil } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 
 import { showMarkup } from '../home/home-actions';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
+import { Icon } from '../ui/Icon';
 import { type Box, type PageFrame, userRectToCss } from '../viewer/geometry';
 import { isLive } from '../viewer/hit-order';
 import { useCanChangeActive, usePageInput } from '../viewer/input-state';
@@ -312,7 +312,7 @@ function EditNotice({ box, onEdit }: { readonly box: Box; readonly onEdit: () =>
         onPointerDown={(event) => event.preventDefault()}
         onClick={onEdit}
       >
-        <Pencil aria-hidden="true" />
+        <Icon name="pencil-simple" />
         {m.mode_edit_button()}
       </button>
     </div>
@@ -344,7 +344,7 @@ function SignatureNotice({
             <div className={styles.noticeMeta}>{formatPdfDate(signature.date)}</div>
           ) : null}
           <span className={styles.badge}>
-            <BadgeAlert aria-hidden="true" />
+            <Icon name="seal-warning" />
             {m.forms_signature_not_validated()}
           </span>
         </>

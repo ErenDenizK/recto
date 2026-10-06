@@ -26,7 +26,6 @@
 import { Menu } from '@base-ui/react/menu';
 import { Popover } from '@base-ui/react/popover';
 import type { VirtualDocument, VirtualPage, Workspace } from '@pdf-editor/document-model';
-import { ChevronRight, ShieldCheck } from 'lucide-react';
 import {
   type KeyboardEvent,
   type ReactElement,
@@ -67,6 +66,7 @@ import {
   type ShownRow,
   shownTitleMenu,
 } from './TitleMenuItems';
+import { Icon } from '../../ui/Icon';
 
 const subscribe = (listener: () => void) => commandRegistry.subscribe(listener);
 const snapshot = () => commandRegistry.list();
@@ -193,9 +193,9 @@ function Header({
           openPrivacyShield();
         }}
       >
-        <ShieldCheck aria-hidden="true" />
+        <Icon name="shield-check" aria-hidden="true" />
         <span className={styles.privacyLabel}>{m.frame_privacy_line()}</span>
-        <ChevronRight className={styles.privacyArrow} aria-hidden="true" />
+        <Icon name="caret-right" className={styles.privacyArrow} aria-hidden="true" />
       </Popover.Close>
     </div>
   );
@@ -528,7 +528,7 @@ function RotateRow({ row, tabIndex }: { readonly row: ShownRow; readonly tabInde
         disabled={!row.enabled}
       >
         <span className={menuStyles.label}>{row.label}</span>
-        <ChevronRight className={menuStyles.submenuArrow} aria-hidden="true" />
+        <Icon name="caret-right" className={menuStyles.submenuArrow} aria-hidden="true" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="right" align="start" sideOffset={4} collisionPadding={8}>

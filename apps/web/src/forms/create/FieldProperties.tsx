@@ -20,11 +20,11 @@ import {
   MAX_FIELD_FONT_SIZE,
   type Rect,
 } from '@pdf-editor/document-model';
-import { Copy, Plus, Trash2, X } from 'lucide-react';
 import { type ReactElement, useId, useState } from 'react';
 
 import { m } from '../../i18n';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { Icon } from '../../ui/Icon';
 import { useCreateStore } from './create-store';
 import styles from './CreatedFields.module.css';
 import {
@@ -430,7 +430,7 @@ function Body({
               className={styles.action}
               onClick={() => addRadioButtonNear(field.id, widget, bounds)}
             >
-              <Plus aria-hidden="true" />
+              <Icon name="plus" />
               {m.forms_prop_add_button()}
             </button>
             <button
@@ -439,7 +439,7 @@ function Body({
               disabled={field.widgets.length < 2}
               onClick={() => removeRadioButtonAt(field.id, widget)}
             >
-              <X aria-hidden="true" />
+              <Icon name="x" />
               {m.forms_prop_remove_button()}
             </button>
           </div>
@@ -590,7 +590,7 @@ function Body({
           className={styles.action}
           onClick={() => duplicateField(field.id, bounds)}
         >
-          <Copy aria-hidden="true" />
+          <Icon name="copy" />
           {m.forms_prop_duplicate()}
         </button>
         <button
@@ -602,7 +602,7 @@ function Body({
             deleteField(field.id);
           }}
         >
-          <Trash2 aria-hidden="true" />
+          <Icon name="trash" />
           {m.forms_prop_delete()}
         </button>
       </div>

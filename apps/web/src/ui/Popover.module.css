@@ -118,7 +118,6 @@
 .iconButton svg {
   width: var(--pop-icon);
   height: var(--pop-icon);
-  stroke-width: 1.75;
 }
 
 @media (hover: hover) {

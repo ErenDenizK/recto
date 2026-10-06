@@ -7,7 +7,7 @@
  * comment appears; "Set comment author name…" in the palette asks again.
  */
 import type { Annotation } from '@pdf-editor/engine';
-import { createElement, type SyntheticEvent, useEffect, useId, useRef, useState } from 'react';
+import { type SyntheticEvent, useEffect, useId, useRef, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { annotationIcon } from '../annotations/icons';
@@ -16,6 +16,7 @@ import { getLocale, m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { announce } from './announcer';
 import { useAuthorPrompt } from './comment-author';
 import styles from './CommentsPanel.module.css';
@@ -118,7 +119,7 @@ export function CommentRow({ item }: { readonly item: CommentItem }) {
         onClick={() => openComment(item)}
       >
         <span className={styles.icon} style={{ color: a.color ?? undefined }} aria-hidden="true">
-          {createElement(annotationIcon(a))}
+          <Icon name={annotationIcon(a)} />
         </span>
         <span className={styles.body}>
           <span className={styles.meta}>

@@ -18,7 +18,6 @@
  *   the sidebar's Find section is showing (it runs the same search).
  * - Guard: none (reading).
  */
-import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useRef } from 'react';
 
 import { currentPlatform, toAriaKeyShortcut } from '../../commands/shortcuts';
@@ -41,6 +40,7 @@ import {
 import { useCommandShortcut } from '../use-command-shortcut';
 import { closeFindOverlay, focusFindEntry, useFrameStore } from './frame-store';
 import styles from './TopStrip.module.css';
+import { Icon } from '../../ui/Icon';
 
 /** Pause after typing before the search restarts (as the sidebar's field). */
 const TYPING_DELAY_MS = 150;
@@ -143,7 +143,7 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
         ref={buttonRef}
         className={styles.findButton}
         label={m.frame_find()}
-        icon={<Search />}
+        icon={<Icon name="magnifying-glass" />}
         shortcut={shortcut}
         aria-expanded={open}
         disabled={disabled}
@@ -153,7 +153,7 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
         }}
       />
       <div role="search" className={styles.findWell}>
-        <Search className={styles.findIcon} aria-hidden="true" />
+        <Icon name="magnifying-glass" className={styles.findIcon} aria-hidden="true" />
         <input
           ref={inputRef}
           type="search"
@@ -187,7 +187,7 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
               size="row"
               className={styles.findStep}
               label={m.search_previous()}
-              icon={<ChevronUp />}
+              icon={<Icon name="caret-up" />}
               disabled={hits === 0}
               onClick={() => step(-1)}
             />
@@ -195,7 +195,7 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
               size="row"
               className={styles.findStep}
               label={m.search_next()}
-              icon={<ChevronDown />}
+              icon={<Icon name="caret-down" />}
               disabled={hits === 0}
               onClick={() => step(1)}
             />

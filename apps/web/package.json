@@ -23,7 +23,6 @@
     "@pdf-editor/document-model": "workspace:*",
     "@pdf-editor/engine": "workspace:*",
     "@tanstack/react-virtual": "^3.14.13",
-    "lucide-react": "^1.48.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "workbox-window": "^7.4.1",

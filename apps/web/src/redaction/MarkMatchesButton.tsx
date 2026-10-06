@@ -3,10 +3,10 @@
  * per hit, all in one history entry. Waits for the search to finish so every hit is in.
  * Marks are page edits, so the button shows only while the document is in Edit.
  */
-import { EyeOff } from 'lucide-react';
 import { useState } from 'react';
 
 import { formatNumber, m } from '../i18n';
+import { Icon } from '../ui/Icon';
 import { useCanChangeActive } from '../viewer/input-state';
 import { useSearchStore } from '../viewer/search';
 import styles from './MarkMatchesButton.module.css';
@@ -30,7 +30,7 @@ export function MarkMatchesButton() {
         void markSearchHits().finally(() => setBusy(false));
       }}
     >
-      <EyeOff aria-hidden="true" />
+      <Icon name="redact" />
       {m.redaction_mark_matches({ count, countText: formatNumber(count) })}
     </button>
   );

@@ -47,7 +47,6 @@ import type {
   ParagraphStyleInfo,
 } from '@pdf-editor/engine';
 import { BUNDLED_FACES, faceFamilyName } from '@pdf-editor/engine/fonts';
-import { Info } from 'lucide-react';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -67,6 +66,7 @@ import { cssFamilyOf, ensureFace } from '../furniture/furniture-fonts';
 import { formatPercent, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { type PageOverlayProps, registerPageOverlay } from '../stage/page-overlays';
+import { Icon } from '../ui/Icon';
 import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
 import type { PageFrame } from '../viewer/geometry';
 import { useCanChangeActive } from '../viewer/input-state';
@@ -1585,7 +1585,7 @@ export function ParagraphEditor({
               aria-label={m.paragraph_info_label()}
               data-testid="paragraph-info"
             >
-              <Info aria-hidden="true" />
+              <Icon name="info" />
             </Popover.Trigger>
             <PopoverPopup side="bottom" align="end" data-paragraph-editor="">
               <PopoverHeader title={m.paragraph_info_label()} />

@@ -13,11 +13,11 @@
  * - `Chip` alone is a toggle (`pressed`, `aria-pressed`) or an action; `onRemove` adds a 16 px
  *   ✕ ("Remove: {name}") and makes Delete and Backspace on the focused chip remove it.
  */
-import { Check, X } from 'lucide-react';
 import { type KeyboardEvent, type ReactNode, useRef } from 'react';
 
 import { m } from '../i18n';
 import styles from './Chip.module.css';
+import { Icon } from './Icon';
 
 export interface ChipOption<T extends string> {
   readonly value: T;
@@ -166,7 +166,7 @@ export function Chip({
           if (!disabled) onRemove();
         }}
       >
-        <X aria-hidden="true" />
+        <Icon name="x" />
       </button>
     </span>
   );
@@ -183,7 +183,7 @@ function ChipContent({
 }): ReactNode {
   return (
     <>
-      {selected ? <Check className={styles.check} aria-hidden="true" /> : null}
+      {selected ? <Icon name="check" className={styles.check} /> : null}
       <span className={styles.label}>{label}</span>
       {count !== undefined ? <span className={styles.count}>{count}</span> : null}
     </>

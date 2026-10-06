@@ -19,7 +19,6 @@
  *   from the first frame.
  */
 import { Menu } from '@base-ui/react/menu';
-import { ChevronDown, ChevronLeft, Lock, MoreHorizontal } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
 import { commandRegistry } from '../../commands/registry';
@@ -40,6 +39,7 @@ import { LibraryMenu } from './LibraryMenu';
 import { SidebarToggle } from './SidebarToggle';
 import { TitleMenu } from './TitleMenu';
 import { UndoRedo } from './UndoRedo';
+import { Icon } from '../../ui/Icon';
 
 /** Below this width ↷ moves into the title menu (spec 01.8). */
 export const REDO_FOLD_WIDTH = 336;
@@ -118,7 +118,7 @@ function BackButton({ count }: { readonly count: number }) {
       data-testid="home-button"
       icon={
         <span className={styles.backIcon}>
-          <ChevronLeft aria-hidden="true" />
+          <Icon name="caret-left" aria-hidden="true" />
           <span className={styles.backCount}>{formatNumber(count)}</span>
         </span>
       }
@@ -150,8 +150,8 @@ function TitleButton() {
     >
       <span className={styles.titleText}>{doc.title}</span>
       {edited ? <span className={styles.edited} aria-hidden="true" /> : null}
-      {lock ? <Lock className={styles.lock} aria-hidden="true" /> : null}
-      <ChevronDown className={styles.caret} aria-hidden="true" />
+      {lock ? <Icon name="lock-simple" className={styles.lock} aria-hidden="true" /> : null}
+      <Icon name="caret-down" className={styles.caret} aria-hidden="true" />
     </button>
   );
 }
@@ -185,7 +185,11 @@ function MoreMenu() {
     <Menu.Root>
       <Menu.Trigger
         render={
-          <IconButton label={m.frame_more()} icon={<MoreHorizontal />} data-testid="compact-more" />
+          <IconButton
+            label={m.frame_more()}
+            icon={<Icon name="dots-three" />}
+            data-testid="compact-more"
+          />
         }
       />
       <Menu.Portal>

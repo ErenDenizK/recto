@@ -8,16 +8,6 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import type { DocumentId, PageId } from '@pdf-editor/document-model';
-import {
-  Copy,
-  FileOutput,
-  FilePlus2,
-  FolderInput,
-  PanelRight,
-  RotateCcw,
-  RotateCw,
-  Trash2,
-} from 'lucide-react';
 import { type KeyboardEvent, type ReactElement, useRef, useState } from 'react';
 
 import { commandRegistry } from '../commands/registry';
@@ -28,6 +18,7 @@ import { useCommandShortcut } from '../shell/use-command-shortcut';
 import { useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import { pagesPhrase, useTabItems } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import iconButtonStyles from '../ui/IconButton.module.css';
 import menuStyles from '../ui/Menu.module.css';
@@ -139,7 +130,7 @@ export function ContextualBar({
       element: (tabIndex) => (
         <IconButton
           label={m.action_rotate_left()}
-          icon={<RotateCcw />}
+          icon={<Icon name="arrow-counter-clockwise" />}
           shortcut={rotateLeft}
           tabIndex={tabIndex}
           onClick={run('pages.rotateLeft')}
@@ -151,7 +142,7 @@ export function ContextualBar({
       element: (tabIndex) => (
         <IconButton
           label={m.action_rotate_right()}
-          icon={<RotateCw />}
+          icon={<Icon name="arrow-clockwise" />}
           shortcut={rotateRight}
           tabIndex={tabIndex}
           onClick={run('pages.rotateRight')}
@@ -163,7 +154,7 @@ export function ContextualBar({
       element: (tabIndex) => (
         <IconButton
           label={m.action_delete()}
-          icon={<Trash2 />}
+          icon={<Icon name="trash" />}
           shortcut={deleteKey}
           tabIndex={tabIndex}
           onClick={run('pages.delete')}
@@ -175,7 +166,7 @@ export function ContextualBar({
       element: (tabIndex) => (
         <IconButton
           label={m.action_duplicate()}
-          icon={<Copy />}
+          icon={<Icon name="copy" />}
           shortcut={duplicateKey}
           tabIndex={tabIndex}
           onClick={run('pages.duplicate')}
@@ -187,7 +178,7 @@ export function ContextualBar({
       element: (tabIndex) => (
         <IconButton
           label={m.action_move_to_new_document()}
-          icon={<FileOutput />}
+          icon={<Icon name="file-arrow-up" />}
           shortcut={extractKey}
           tabIndex={tabIndex}
           onClick={run('pages.extract')}
@@ -199,7 +190,7 @@ export function ContextualBar({
       element: (tabIndex) => (
         <IconButton
           label={m.action_insert_blank_after()}
-          icon={<FilePlus2 />}
+          icon={<Icon name="file-plus" />}
           tabIndex={tabIndex}
           onClick={run('pages.insertBlank')}
         />
@@ -216,7 +207,7 @@ export function ContextualBar({
               aria-label={m.action_move_to()}
               tabIndex={tabIndex}
             >
-              <FolderInput />
+              <Icon name="folder" />
             </Menu.Trigger>
           </Tooltip>
           <Menu.Portal>
@@ -243,7 +234,7 @@ export function ContextualBar({
       element: (tabIndex) => (
         <IconButton
           label={m.action_properties()}
-          icon={<PanelRight />}
+          icon={<Icon name="sidebar-simple" />}
           tabIndex={tabIndex}
           onClick={() => useUiStore.setState({ rightPanelOpen: true })}
         />

@@ -39,20 +39,6 @@
 import { Menu } from '@base-ui/react/menu';
 import type { CreatedFieldKind } from '@pdf-editor/document-model';
 import {
-  BadgeCheck,
-  ChevronLeft,
-  ImagePlus,
-  type LucideIcon,
-  Pencil,
-  Plus,
-  RectangleEllipsis,
-  ScanSearch,
-  Settings,
-  ShieldCheck,
-  SquarePlus,
-  TextSearch,
-} from 'lucide-react';
-import {
   type KeyboardEvent,
   type ReactElement,
   type ReactNode,
@@ -95,6 +81,7 @@ import {
 } from '../signatures/saved-signatures';
 import { SignaturePlate } from '../signatures/SignaturePlate';
 import { PageContextMenu } from '../stage/PageContextMenu';
+import { Icon, type IconName } from '../ui/Icon';
 import { type SizeClass, useSizeClass } from './frame/size-class';
 import { useLockStore } from '../state/lock-store';
 import { isMarkupOpenActive, useMarkupOpen, useStageView } from '../state/ui-store';
@@ -168,7 +155,7 @@ function ReadDock() {
               showMarkup(true);
             }}
           >
-            <Pencil aria-hidden="true" className={styles.groupIcon} />
+            <Icon name="pencil-simple" className={styles.groupIcon} />
             <span className={styles.groupLabel}>{m.mode_edit_button()}</span>
           </button>
         </Tooltip>
@@ -383,7 +370,6 @@ function GroupButton({
   // Select is the idle tool (craft spec §3.4): its chip is on while nothing else is armed.
   const selectOn = useToolStore((s) => group.id === 'select' && s.mode === 'select');
   const label = group.label();
-  const { Icon } = group;
   const select = group.id === 'select';
   return (
     <Tooltip
@@ -411,8 +397,8 @@ function GroupButton({
           else pickBarGroup(group.id);
         }}
       >
-        {chip ? <ChevronLeft className={styles.chipChevron} aria-hidden="true" /> : null}
-        <Icon aria-hidden="true" className={styles.groupIcon} />
+        {chip ? <Icon name="caret-left" className={styles.chipChevron} /> : null}
+        <Icon name={group.icon} className={styles.groupIcon} />
         <span className={styles.groupLabel}>{label}</span>
       </button>
     </Tooltip>
@@ -441,7 +427,7 @@ function BarItemView({ item }: { readonly item: BarItem }): ReactNode {
           size="bar"
           tooltipSide="top"
           label={m.bar_apply_redactions()}
-          icon={<ShieldCheck />}
+          icon={<Icon name="shield-check" />}
           aria-haspopup="dialog"
           onClick={() => {
             showRedactionsPanel();
@@ -473,7 +459,7 @@ function ToolButton({ tool }: { readonly tool: ToolDefinition }) {
       tooltipSide="top"
       label={label}
       tooltip={armedTooltip(tool.tooltip?.() ?? label, armed)}
-      icon={<tool.Icon />}
+      icon={<Icon name={tool.icon} />}
       shortcut={shortcutOf(`tool.${tool.mode}`)}
       aria-pressed={armed}
       aria-description={armed && hasOptionsTier(tool.mode) ? m.bar_options_hint() : undefined}
@@ -546,7 +532,7 @@ function ShapesMenu({ shapes }: { readonly shapes: readonly ToolDefinition[] }) 
     <MenuButton
       label={label}
       tooltip={armedTooltip(label, armed)}
-      icon={<shown.Icon />}
+      icon={<Icon name={shown.icon} />}
       pressed={armed}
       tool="shapes"
     >
@@ -561,7 +547,7 @@ function ShapesMenu({ shapes }: { readonly shapes: readonly ToolDefinition[] }) 
             void activateTool(tool);
           }}
         >
-          <tool.Icon aria-hidden="true" className={styles.menuIcon} />
+          <Icon name={tool.icon} className={styles.menuIcon} />
           <span className={menuStyles.label}>{tool.title()}</span>
           {tool.shortcut ? <kbd className={styles.menuKey}>{tool.shortcut}</kbd> : null}
         </Menu.Item>
@@ -580,9 +566,14 @@ function StampMenu() {
     useToolStore.getState().setMode('stamp');
   };
   return (
-    <MenuButton label={stamp.title()} icon={<stamp.Icon />} pressed={active} tool="stamp">
+    <MenuButton
+      label={stamp.title()}
+      icon={<Icon name={stamp.icon} />}
+      pressed={active}
+      tool="stamp"
+    >
       <Menu.Item className={menuStyles.item} onClick={() => void pickImageStamp('image')}>
-        <ImagePlus aria-hidden="true" className={styles.menuIcon} />
+        <Icon name="image" className={styles.menuIcon} />
         <span className={menuStyles.label}>{m.stamp_image()}</span>
       </Menu.Item>
       {BUILTIN_STAMPS.map((s) => (
@@ -636,7 +627,7 @@ function SignatureEntry({ tool }: { readonly tool: ToolDefinition }) {
       <MenuButton
         label={label}
         tooltip={armedTooltip(tool.tooltip?.() ?? label, armed)}
-        icon={<tool.Icon />}
+        icon={<Icon name={tool.icon} />}
         pressed={armed}
         tool="signature"
       >
@@ -653,14 +644,14 @@ function SignatureEntry({ tool }: { readonly tool: ToolDefinition }) {
         ))}
         <Menu.Separator className={menuStyles.separator} />
         <Menu.Item className={menuStyles.item} onClick={() => openNewSignature()}>
-          <Plus aria-hidden="true" className={styles.menuIcon} />
+          <Icon name="plus" className={styles.menuIcon} />
           <span className={menuStyles.label}>{m.signature_menu_new()}</span>
         </Menu.Item>
         <Menu.Item
           className={menuStyles.item}
           onClick={() => openSettings({ row: 'savedSignatures' })}
         >
-          <Settings aria-hidden="true" className={styles.menuIcon} />
+          <Icon name="gear-six" className={styles.menuIcon} />
           <span className={menuStyles.label}>{m.signature_menu_manage()}</span>
         </Menu.Item>
       </MenuButton>
@@ -703,7 +694,7 @@ function SignatureChip({
 
 function FieldsMenu() {
   return (
-    <MenuButton label={m.forms_add_field()} icon={<SquarePlus />}>
+    <MenuButton label={m.forms_add_field()} icon={<Icon name="plus-square" />}>
       {FIELD_KINDS.map((kind: CreatedFieldKind) => (
         <Menu.Item
           key={kind}
@@ -719,12 +710,12 @@ function FieldsMenu() {
 
 /** Command buttons: icon and the bar's name for them. */
 const COMMAND_BUTTONS: Readonly<
-  Record<string, { readonly Icon: LucideIcon; readonly label?: () => string }>
+  Record<string, { readonly icon: IconName; readonly label?: () => string }>
 > = {
-  'forms.highlight': { Icon: RectangleEllipsis },
-  'document.sign': { Icon: BadgeCheck },
-  'redaction.find': { Icon: ScanSearch },
-  'redaction.markMatches': { Icon: TextSearch, label: m.bar_mark_matches },
+  'forms.highlight': { icon: 'textbox' },
+  'document.sign': { icon: 'seal-check' },
+  'redaction.find': { icon: 'scan' },
+  'redaction.markMatches': { icon: 'list-magnifying-glass', label: m.bar_mark_matches },
 };
 
 function CommandButton({ id }: { readonly id: string }) {
@@ -748,7 +739,7 @@ function CommandButton({ id }: { readonly id: string }) {
       tooltipSide="top"
       label={label}
       tooltip={reason === undefined ? undefined : `${label} · ${reason}`}
-      icon={<spec.Icon />}
+      icon={<Icon name={spec.icon} />}
       shortcut={command.shortcuts[0]}
       aria-pressed={id === 'forms.highlight' ? highlightOn : undefined}
       aria-disabled={enabled ? undefined : 'true'}
