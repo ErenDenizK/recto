@@ -40,6 +40,8 @@ describe('AppShell', () => {
       screen.getByRole('button', { name: 'Privacy: nothing has left this device' }),
     ).toBeVisible();
     expect(screen.getByTestId('library-privacy')).toHaveTextContent('Nothing is uploaded');
+    // No dock on the Library with no file open: the launcher holds the actions.
+    expect(document.querySelector('[data-region="toolbar"]')).toBeNull();
   });
 
   it('opens the command palette on Mod+K with focus in the input, and closes on Esc', async () => {
