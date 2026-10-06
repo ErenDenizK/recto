@@ -2121,8 +2121,12 @@ export interface SignRequest {
   readonly signerName?: string;
   /** Bytes reserved for the DER CMS (default 16384; at least 4096). */
   readonly reserveBytes?: number;
-  /** The claimed time (/M); default now. ISO 8601 or a Date. */
-  readonly date?: string | Date;
+  /**
+   * The claimed time (/M): ISO 8601, a Date, or epoch milliseconds. Default the worker's clock;
+   * the web app passes its own (`Date.now()` on the main thread) so the caller owns the time and
+   * tests and media can pin it.
+   */
+  readonly date?: string | Date | number;
 }
 
 export interface SignOptions extends EngineCallOptions {
