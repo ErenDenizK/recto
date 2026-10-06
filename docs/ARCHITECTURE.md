@@ -261,7 +261,12 @@ repaired copy rather than an incremental save onto a broken xref.
   "Keep available offline" (ADR-0012).
 - Strict CSP in a `<meta>` tag, the same on the app and the about page: `default-src
   'self'`, `connect-src 'self'`, `worker-src 'self'`, `script-src 'self'
-  'wasm-unsafe-eval'`, `object-src 'none'`, `form-action 'none'`. The privacy indicator in
+  'wasm-unsafe-eval'`, `object-src 'none'`, `form-action 'none'`. Directives that only work as
+  a response header are left out: browsers ignore `frame-ancestors` (and `sandbox`,
+  `report-uri`) in a `<meta>` policy and log a console error on every load, and GitHub Pages
+  cannot set response headers (ADR-0004), so the deploy has no way to forbid framing. A custom
+  domain behind a CDN that can add headers would carry `frame-ancestors 'none'` there. The
+  privacy indicator in
   the status bar reads the live `PerformanceObserver` resource list to display "No external
   requests" (it cannot see WebSocket frames or requests the CSP blocked).
 - Cross-origin isolation (`coi-serviceworker`) is **not** used in v1; it is a documented

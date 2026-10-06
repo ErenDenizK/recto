@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import aboutHtml from '../../about/index.html?raw';
 import indexHtml from '../../index.html?raw';
 import { documentCsp, externalSources, parseCsp } from './csp';
 
-function shippedPolicy(): string {
-  const doc = new DOMParser().parseFromString(indexHtml, 'text/html');
+function shippedPolicy(html = indexHtml): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
   const policy = documentCsp(doc);
-  if (policy === undefined) throw new Error('index.html has no CSP meta tag');
+  if (policy === undefined) throw new Error('the page has no CSP meta tag');
   return policy;
 }
 
@@ -23,6 +24,18 @@ describe('index.html Content Security Policy', () => {
     const csp = parseCsp(shippedPolicy());
     expect(csp.get('default-src')).toEqual(["'self'"]);
     expect(csp.get('object-src')).toEqual(["'none'"]);
+  });
+
+  // Browsers ignore these in a meta policy and log an error on every load (CSP3 §6.1);
+  // GitHub Pages cannot send them as headers (ADR-0004).
+  it.each([
+    ['index.html', indexHtml],
+    ['about/index.html', aboutHtml],
+  ])('%s carries no header-only directive', (_name, html) => {
+    const csp = parseCsp(shippedPolicy(html));
+    for (const directive of ['frame-ancestors', 'sandbox', 'report-uri']) {
+      expect(csp.has(directive)).toBe(false);
+    }
   });
 });
 
