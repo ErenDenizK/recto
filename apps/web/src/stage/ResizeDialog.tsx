@@ -1,9 +1,10 @@
 /**
- * "Resize pages…" (M4 page resize): a paper preset or a custom size (pt, mm or in, with an
- * orientation swap), how the content meets the new size (Scale, Fit, Canvas), a 3 × 3
- * anchor grid, the pages to apply it to (selection, the whole document, or every page of
- * the first page's size) and a live preview of the first page drawn by the same page
- * canvas the light table uses (low priority). Commits one history entry
+ * S17 Resize pages (`components/07-sheets.md` §19; M4 page resize), a task sheet on the Sheet
+ * primitive: a paper preset or a custom size (pt, mm or in, with an orientation swap), how the
+ * content meets the new size (Scale, Fit, Canvas), a 3 × 3 anchor grid, the pages to apply it
+ * to (selection, the whole document, or every page of the first page's size) and a live
+ * preview of the first page drawn by the same page canvas the grid uses (low priority).
+ * Guard `pages` (a locked document shows the sheet's lock banner). Commits one history entry
  * (`resizePagesTo`); the model's `resizePages` converts the displayed request per page.
  */
 import {
@@ -28,18 +29,19 @@ import {
   type VirtualPage,
   type Workspace,
 } from '@pdf-editor/document-model';
-import { Fragment, type KeyboardEvent, type SyntheticEvent, useId, useRef, useState } from 'react';
+import { Fragment, type KeyboardEvent, useId, useRef, useState } from 'react';
 
 import { RENDER_PRIORITY } from '../engine/engine-service';
 import styles from '../export/ExportDialog.module.css';
 import { formatNumber, m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { displaySize, fitInBox } from '../pages/page-geometry';
+import { openTitleMenu } from '../shell/frame/frame-store';
+import { useChangeRefusal } from '../state/guard';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { Select } from '../ui/Select';
-import { Actions, Frame } from './OperationDialogFrame';
+import { Sheet } from '../ui/sheet';
 import local from './OperationDialogs.module.css';
-import { closeOperationDialog } from './operation-dialogs-store';
 import own from './ResizeDialog.module.css';
 import { ResizedContent } from './ResizedContent';
 import { resizePagesTo } from './section-operations';
@@ -159,11 +161,16 @@ function findPage(ws: Workspace, id: PageId | undefined): VirtualPage | undefine
 export function ResizeDialog({
   documentId,
   pageIds,
+  open = true,
+  onClose,
 }: {
   readonly documentId: DocumentId;
   readonly pageIds: readonly PageId[];
+  readonly open?: boolean;
+  readonly onClose: () => void;
 }) {
   const ws = useWorkspaceStore((s) => s.workspace);
+  const refusal = useChangeRefusal(documentId, 'pages');
   const doc = ws.documents[documentId];
   const selection = pageIds.filter((id) => findPage(ws, id) !== undefined);
   const firstPage = findPage(ws, selection[0]) ?? doc?.pages[0];
@@ -236,11 +243,10 @@ export function ResizeDialog({
     if (preset === 'custom') setCustom({ width: custom.height, height: custom.width });
   };
 
-  const submit = (event: SyntheticEvent) => {
-    event.preventDefault();
+  const submit = () => {
     if (!ready) return;
     resizePagesTo(targets, request, size === undefined ? '' : sizeLabel(size, unit));
-    closeOperationDialog();
+    onClose();
   };
 
   const field = (side: 'width' | 'height', id: string, label: string) => (
@@ -269,8 +275,22 @@ export function ResizeDialog({
   const referenceLabel = reference === undefined ? '' : sizeLabel(reference, unit);
 
   return (
-    <Frame title={m.resize_title()} testId="resize-dialog" initialFocus={presetRef} wide>
-      <form className={styles.body} onSubmit={submit}>
+    <Sheet
+      id="resize"
+      kind="task"
+      open={open}
+      onClose={onClose}
+      title={m.resize_title()}
+      testId="resize-dialog"
+      initialFocus={presetRef}
+      locked={
+        refusal?.kind === 'locked'
+          ? { name: doc.title, onUnlock: () => openTitleMenu('menu') }
+          : undefined
+      }
+      primary={{ label: m.resize_confirm(), onPress: submit, disabled: !ready }}
+    >
+      <div className={own.sheetBody}>
         <fieldset className={local.options}>
           <legend className={local.legend}>{m.resize_size_label()}</legend>
           <div className={own.sizeRow}>
@@ -450,9 +470,8 @@ export function ResizeDialog({
                   })}
           </p>
         </div>
-        <Actions confirm={m.resize_confirm()} disabled={!ready} />
-      </form>
-    </Frame>
+      </div>
+    </Sheet>
   );
 }
 

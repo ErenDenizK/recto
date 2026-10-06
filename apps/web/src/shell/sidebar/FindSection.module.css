@@ -1,0 +1,281 @@
+/*
+ * N4 Find section (06-navigation §6, §2.1): an opaque well for the field (the strip's, F6 §3),
+ * text chips for the options, the count and ‹ › ⋯ on one centre line, then results in rows on
+ * the panel. The hit word is set in 600, never washed (washes are for the page, L§1.5).
+ */
+.empty {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.root {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.controls {
+  display: grid;
+  flex: none;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-2);
+}
+
+/* One input, one query (spec 06.20): from 1280 px on a fine pointer the strip holds the field. */
+.well {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: var(--control-h);
+  padding: 0 2px 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--n2, var(--canvas));
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.wellMenu,
+.rowMenu {
+  display: contents;
+}
+
+@media (min-width: 1280px) and (pointer: fine) {
+  .well,
+  .wellMenu {
+    display: none;
+  }
+}
+
+/* Below 1280 px (and on coarse pointers) the results ⋯ sits in the field, beside ‹ ›. */
+@media not ((min-width: 1280px) and (pointer: fine)) {
+  .rowMenu {
+    display: none;
+  }
+}
+
+.well:focus-within {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-offset-out);
+  box-shadow: 0 0 0 1px var(--focus-dark);
+}
+
+.wellIcon {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--field-text, var(--type-body));
+  outline: none;
+}
+
+/* The well draws the ring (above); the input inside it draws none of its own. */
+.input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-target);
+  min-width: 0;
+  min-height: var(--control-h);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* The option chips may shorten (ellipsis; the full name stays their accessible name) so the
+   results ⋯ keeps its place on the row. */
+.option {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.count {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.count:empty {
+  display: none;
+}
+
+/* Before a query: one quiet line, what Find does. */
+.hint {
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  color: var(--text-tertiary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* Textless pages (N4 §4): one line and the door to the OCR sheet. */
+.textless {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0 var(--space-3) var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 12px;
+  background: var(--surface-hover);
+}
+
+.textlessIcon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--text-secondary);
+}
+
+.textlessText {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.recognize {
+  composes: focus-inset from global;
+  grid-column: 2;
+  justify-self: start;
+  height: var(--chip-h);
+  padding: 0 10px;
+  margin-left: -10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--accent-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .recognize:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.list {
+  position: relative;
+  width: 100%;
+  outline: none;
+}
+
+.pageHeader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--space-4) 6px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pageCount {
+  color: var(--text-tertiary);
+}
+
+.hit {
+  composes: focus-inset from global;
+  position: absolute;
+  top: 0;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  height: 50px;
+  padding: 6px var(--space-2);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: 18px;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .hit:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.hit:active {
+  background: var(--surface-active);
+}
+
+.hit[aria-selected='true'] {
+  background: var(--accent-muted);
+  color: var(--text-primary);
+}
+
+.context {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.match {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+@media (forced-colors: active) {
+  .well {
+    border: 1px solid FieldText;
+    background: Field;
+    color: FieldText;
+  }
+
+  .hit[aria-selected='true'] {
+    background: Highlight;
+    color: HighlightText;
+  }
+}

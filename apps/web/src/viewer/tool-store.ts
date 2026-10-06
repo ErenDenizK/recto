@@ -1,21 +1,22 @@
 /**
- * The active Read-mode tool. Minimal API shared by the viewer (text selection) and the
- * annotation tools (spec §2): `mode` and `setMode`. Tools are sticky until Esc, which
- * returns to `select`.
+ * The active tool. Minimal API shared by the viewer (text selection) and the annotation tools
+ * (spec §2): `mode` and `setMode`. Drawing tools stay armed until Esc, which returns to
+ * `select`; placing tools return to Select once they have placed their object (`03-markup` §3,
+ * `finishOneShot`).
  *
- * It also holds the tool bar's group state (experience-redesign spec §5.1–§5.2, craft spec
- * §3.4): the group whose tools the bar shows (`barGroup`, null for the row of five groups),
- * the group used last in this session (`lastGroup`), and the tool a one-shot tool (stamp,
- * signature image) returns to once it has placed its object (`previousMode`).
+ * It also holds what the Markup palette remembers for the session (`03-markup` §7): the pen
+ * P arms (`lastPen`, MK-6), the shape kind and built-in stamp its choice tools show
+ * (`lastShape`, `lastStamp`, MK-9), and whether the armed tool's editor is open (`editorOpen`,
+ * MK-8: a second press of the armed tool or of its key opens it).
  *
- * Arming is guarded by the Read lock (ADR-0019 §3): a tool other than Select arms only for a
- * document in Edit, and the tool goes back to Select whenever the active document is not in
- * Edit (`1`, another tab in Read). Callers that arm from Read switch to Edit first
+ * Arming is guarded by the change guard (flows §2.4, ADR-0030): a tool other than Select arms
+ * only when `canChange(id, 'freehand')`, that is in Markup and not locked, and the tool goes
+ * back to Select whenever that stops holding for the active document (Markup closed, the
+ * document locked, another tab). Callers that arm from viewing open Markup first
  * (`activateTool`).
  *
- * The armed tool's options tier opens only on request (`optionsOpen`): pressing the armed tool
- * again (its button or its key) toggles it, and arming another tool closes it, so nothing
- * rises over the page on its own (craft spec §3.5, review finding 5).
+ * The armed tool's options need no request: its ink strip follows arming (`10-ink` §2.3). Its
+ * full editor opens on request and closes when another tool arms or the tool disarms.
  *
  * The eraser's options (craft spec §5.6) live here too: Stroke or Partial (`eraserMode`) and
  * the eraser's diameter on screen (`eraserSize`), persisted per device beside the pen
@@ -23,8 +24,10 @@
  */
 import { create } from 'zustand';
 
+import { canChange } from '../state/guard';
+import { useLockStore } from '../state/lock-store';
 import { readJson, writeJson } from '../state/safe-storage';
-import { canEdit, useUiStore } from '../state/ui-store';
+import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 
 export type ToolMode =
@@ -53,11 +56,22 @@ export type ToolMode =
   | 'image';
 
 /**
- * The Edit bar's groups (ADR-0019 §4, craft spec §3.4), in bar order. Select is the idle
- * tool: its chip in the row arms it and shows no tool row.
+ * The Markup palette's groups (`03-markup` MK-2, flows §4.3), in palette order. Select is the
+ * idle tool and leads the palette after Done.
  */
-export const BAR_GROUP_IDS = ['select', 'write', 'text', 'fill', 'redact'] as const;
-export type BarGroup = (typeof BAR_GROUP_IDS)[number];
+export const PALETTE_GROUP_IDS = ['select', 'draw', 'add', 'sign', 'page'] as const;
+export type PaletteGroup = (typeof PALETTE_GROUP_IDS)[number];
+
+/** The kinds the Shapes button arms (MK-9), in its menu's order. */
+export const SHAPE_MODES = ['rectangle', 'ellipse', 'line', 'arrow'] as const;
+export type ShapeMode = (typeof SHAPE_MODES)[number];
+
+export function isShapeMode(mode: ToolMode): mode is ShapeMode {
+  return (SHAPE_MODES as readonly ToolMode[]).includes(mode);
+}
+
+/** A pen preset slot (`annotations/pen/presets.ts`): three pens, then the Highlighter. */
+export type PenSlot = 0 | 1 | 2 | 3;
 
 /**
  * What the eraser takes (craft spec §5.6): whole strokes, or only the parts of pen strokes
@@ -94,49 +108,58 @@ function writeEraserSettings(settings: EraserSettings): void {
   writeJson(ERASER_STORAGE_KEY, { v: 1, mode: settings.eraserMode, size: settings.eraserSize });
 }
 
-/** Tools that place one object and give the pointer back (spec §5.2). */
+/** Tools that place one object and give the pointer back to Select (`03-markup` §3). */
 export const ONE_SHOT_MODES: ReadonlySet<ToolMode> = new Set<ToolMode>(['stamp', 'signature']);
 
 interface ToolState {
   readonly mode: ToolMode;
-  /** The tool before the current one-shot tool, else the tool before the current one. */
+  /** The tool armed before the current one. */
   readonly previousMode: ToolMode;
-  /** The group whose tools the bar shows; null shows the row of groups. */
-  readonly barGroup: BarGroup | null;
-  /** The group shown last in this session (kept while the row is shown). */
-  readonly lastGroup: BarGroup | null;
   readonly eraserMode: EraserMode;
   readonly eraserSize: EraserSize;
-  /** Whether the armed tool's options tier is shown (only on request; closed on arming). */
-  readonly optionsOpen: boolean;
+  /** The writing pen armed last this session (never the Highlighter): P arms it (MK-6). */
+  readonly lastPen: PenSlot;
+  /** The shape kind the Shapes button shows and arms (MK-9). */
+  readonly lastShape: ShapeMode;
+  /** The built-in stamp the Stamp button shows (MK-9); null until one is chosen. */
+  readonly lastStamp: string | null;
+  /** Whether the armed tool's editor is open (MK-8); arming another tool closes it. */
+  readonly editorOpen: boolean;
   setMode: (mode: ToolMode) => void;
-  /** Shows or hides the armed tool's options tier. */
-  setOptionsOpen: (open: boolean) => void;
+  /** Opens or closes the armed tool's editor. */
+  setEditorOpen: (open: boolean) => void;
+  /** Remembers the writing pen P arms next. */
+  setLastPen: (slot: PenSlot) => void;
+  setLastStamp: (name: string) => void;
   /** Stroke or Partial; remembered per device. */
   setEraserMode: (mode: EraserMode) => void;
   /** The eraser's diameter on screen; remembered per device. */
   setEraserSize: (size: EraserSize) => void;
-  /** Shows a group's tools, or the row of groups (null). */
-  showGroup: (group: BarGroup | null) => void;
-  /** After a one-shot tool placed its object: back to the tool used before it. */
+  /** After a placing tool placed its object: back to Select (`03-markup` §3). */
   finishOneShot: () => void;
 }
 
 /**
- * Whether the active document is in Read, so no tool but Select may arm. With no document
- * open there is no page to change, and the tool state is only remembered.
+ * Whether no tool but Select may arm for the active document: the pointer may not create
+ * there (`canChange(id, 'freehand')` is false: Markup closed, or locked). With no document open
+ * there is no page to change, and the tool state is only remembered.
  */
 function locked(): boolean {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  return id !== undefined && !canEdit(id);
+  return id !== undefined && !canChange(id, 'freehand');
 }
 
-export const useToolStore = create<ToolState>()((set, get) => ({
+const SESSION = {
   mode: 'select',
   previousMode: 'select',
-  barGroup: null,
-  lastGroup: null,
-  optionsOpen: false,
+  lastPen: 0,
+  lastShape: 'rectangle',
+  lastStamp: null,
+  editorOpen: false,
+} as const;
+
+export const useToolStore = create<ToolState>()((set, get) => ({
+  ...SESSION,
   ...readEraserSettings(),
   setMode: (mode) =>
     set((s) =>
@@ -144,14 +167,14 @@ export const useToolStore = create<ToolState>()((set, get) => ({
         ? s
         : {
             mode,
-            previousMode: ONE_SHOT_MODES.has(s.mode) ? s.previousMode : s.mode,
-            optionsOpen: false,
+            previousMode: s.mode,
+            editorOpen: false,
+            ...(isShapeMode(mode) ? { lastShape: mode } : {}),
           },
     ),
-  setOptionsOpen: (optionsOpen) =>
-    set((s) => (s.optionsOpen === optionsOpen ? s : { optionsOpen })),
-  showGroup: (group) =>
-    set((s) => (s.barGroup === group ? s : { barGroup: group, lastGroup: group ?? s.lastGroup })),
+  setEditorOpen: (editorOpen) => set((s) => (s.editorOpen === editorOpen ? s : { editorOpen })),
+  setLastPen: (lastPen) => set((s) => (s.lastPen === lastPen ? s : { lastPen })),
+  setLastStamp: (lastStamp) => set((s) => (s.lastStamp === lastStamp ? s : { lastStamp })),
   setEraserMode: (eraserMode) => {
     if (get().eraserMode === eraserMode) return;
     set({ eraserMode });
@@ -163,20 +186,21 @@ export const useToolStore = create<ToolState>()((set, get) => ({
     writeEraserSettings(get());
   },
   finishOneShot: () => {
-    const { mode, previousMode } = get();
-    if (!ONE_SHOT_MODES.has(mode)) return;
-    get().setMode(ONE_SHOT_MODES.has(previousMode) ? 'select' : previousMode);
+    if (ONE_SHOT_MODES.has(get().mode)) get().setMode('select');
   },
 }));
 
-// The Read lock: nothing stays armed for a document that is not in Edit.
+// Nothing stays armed where the pointer may not create: Markup closed, or the document locked.
 const disarmWhenLocked = () => {
   if (useToolStore.getState().mode !== 'select' && locked()) {
     useToolStore.getState().setMode('select');
   }
 };
 useUiStore.subscribe((state, previous) => {
-  if (state.documentMode !== previous.documentMode) disarmWhenLocked();
+  if (state.docUi !== previous.docUi) disarmWhenLocked();
+});
+useLockStore.subscribe((state, previous) => {
+  if (state.locks !== previous.locks) disarmWhenLocked();
 });
 useWorkspaceStore.subscribe((state, previous) => {
   if (state.workspace.activeDocument !== previous.workspace.activeDocument) disarmWhenLocked();
@@ -184,12 +208,5 @@ useWorkspaceStore.subscribe((state, previous) => {
 
 /** Tests: the state of a fresh session (the eraser's options read back from storage). */
 export function resetToolStore(): void {
-  useToolStore.setState({
-    mode: 'select',
-    previousMode: 'select',
-    barGroup: null,
-    lastGroup: null,
-    optionsOpen: false,
-    ...readEraserSettings(),
-  });
+  useToolStore.setState({ ...SESSION, ...readEraserSettings() });
 }

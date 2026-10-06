@@ -14,60 +14,60 @@ test('the application shell loads', async ({ page }) => {
   await expect(page.getByTestId('app-shell')).toBeVisible();
 });
 
-test('the status bar stays put while the privacy popover opens and closes', async ({ page }) => {
+test('the frame stays put while the privacy popover opens and closes', async ({ page }) => {
   await useFileInputPicker(page);
   await page.goto('./');
   await openFixtures(page, ['simple-text.pdf']);
-  const label = page.getByTestId('status-pages');
-  await expect(label).toHaveText('Page 1 of 3');
-  const bar = await page.locator('footer').boundingBox();
-  const before = await label.boundingBox();
-  expect(bar).not.toBeNull();
-  expect(before).not.toBeNull();
-  // Nothing overflows the bar's left group, so nothing there can scroll it.
-  expect(
-    await label.evaluate((el) => {
-      const group = el.parentElement;
-      return group ? group.scrollWidth - group.clientWidth : -1;
-    }),
-  ).toBe(0);
+  // The page and zoom live in the page pill (01-frame F11), where the status bar showed them.
+  const pill = page.getByTestId('page-pill');
+  await expect(pill).toHaveText(/^1 \/ 3 · /);
+  const strip = page.locator('[data-bar="title"]');
+  const before = { strip: await strip.boundingBox(), pill: await pill.boundingBox() };
+  expect(before.strip).not.toBeNull();
 
-  // Keyboard only: focus the trigger, open with Enter, close with Escape.
+  // Keyboard only: focus ◎, open with Enter, close with Escape (01-frame F8).
   const trigger = page.getByTestId('privacy-indicator');
   const popover = page.getByRole('dialog');
   await trigger.focus();
   await page.keyboard.press('Enter');
   await expect(popover).toBeVisible();
-  expect((await label.boundingBox())?.x).toBe(before?.x);
   await page.keyboard.press('Escape');
   await expect(popover).toBeHidden();
   await expect(trigger).toBeFocused();
-  expect((await label.boundingBox())?.x).toBe(before?.x);
 
-  // A click scrolls the trigger into view first; that used to shift the bar 8px left.
   await trigger.click();
   await expect(popover).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(popover).toBeHidden();
 
-  // The label keeps its place and its first letter ("Page", not "age").
-  expect((await label.boundingBox())?.x).toBe(before?.x);
-  expect(before?.x).toBeGreaterThanOrEqual(bar?.x ?? Number.POSITIVE_INFINITY);
+  // Nothing in the frame moved.
+  expect(await strip.boundingBox()).toEqual(before.strip);
+  expect(await pill.boundingBox()).toEqual(before.pill);
 });
 
-test('the start card says what several files do, in both languages', async ({ page }) => {
+test('the launcher says what Recto does and offers its first steps, in both languages', async ({
+  page,
+}) => {
+  // 02-library L2: the headline, the privacy line, Open PDFs…, Try the sample, Combine files….
   await page.goto('./?lang=en');
+  const launcher = page.getByTestId('library-launcher');
   await expect(
-    page.getByText(
-      'Drop PDFs here or open them. With two or more open you can combine them on Home or from the Document menu, arrange their pages together or compare them.',
-    ),
+    launcher.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
   ).toBeVisible();
+  await expect(launcher.getByText('Nothing leaves this device.')).toBeVisible();
+  for (const name of ['Open PDFs…', 'Try the sample', 'Combine files…']) {
+    await expect(launcher.getByRole('button', { name })).toBeVisible();
+  }
   await page.goto('./?lang=tr');
   await expect(
-    page.getByText(
-      'PDF’leri buraya bırakın ya da açın. İki veya daha fazla dosya açıkken onları ana ekranda ya da Belge menüsünden birleştirebilir, sayfalarını birlikte düzenleyebilir veya karşılaştırabilirsiniz.',
-    ),
+    launcher.getByRole('heading', {
+      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.',
+    }),
   ).toBeVisible();
+  await expect(launcher.getByText('Hiçbir şey bu cihazdan çıkmaz.')).toBeVisible();
+  for (const name of ['PDF aç…', 'Örnek belgeyi deneyin', 'Dosyaları birleştir…']) {
+    await expect(launcher.getByRole('button', { name })).toBeVisible();
+  }
 });
 
 test('the palette finds commands by keywords in both languages, without diacritics', async ({
@@ -76,10 +76,7 @@ test('the palette finds commands by keywords in both languages, without diacriti
   await page.goto('./?lang=en');
   const search = async (query: string) => {
     // The shortcut is registered when the shell mounts; a press before that is lost.
-    await page
-      .getByRole('button', { name: /^(Search commands|Komut ara)/ })
-      .first()
-      .waitFor();
+    await page.getByTestId('home-button').waitFor();
     await page.keyboard.press('ControlOrMeta+k');
     const input = page.getByRole('combobox', { name: /^(Search commands|Komut ara)$/ });
     await input.fill(query);
@@ -89,7 +86,7 @@ test('the palette finds commands by keywords in both languages, without diacriti
   await page.keyboard.press('Escape');
   await expect(await search('ciz')).toContainText('Pen tool');
   await page.keyboard.press('Escape');
-  await expect(await search('birlestir')).toContainText(/Merge (all open documents|document into)/);
+  await expect(await search('birlestir')).toContainText('Combine with open documents…');
   await page.keyboard.press('Escape');
   await expect(await search('sertifika')).toContainText('Sign with certificate…');
   await page.keyboard.press('Escape');
@@ -182,8 +179,7 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await expect(page.getByRole('dialog')).toBeVisible();
   await shot('m0-shell-privacy-1440.png', { x: 0, y: 640, width: 520, height: 260 });
   await page.keyboard.press('Escape');
-  const bar = page.getByRole('toolbar', { name: 'Tools' });
-  await bar.getByRole('button', { name: 'Write', exact: true }).click();
+  const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
   await bar.getByRole('button', { name: /^Eraser/ }).hover();
   // Base UI tooltips open after 500 ms and carry no role.
   await page.waitForTimeout(900);

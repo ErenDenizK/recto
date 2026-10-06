@@ -1,7 +1,6 @@
 // Visual gallery of the ink family (10-ink.md §3–§5): renders every part on dark glass over
 // a page and on light glass, in fine and coarse density, and writes screenshots to
 // apps/web/test-results/ink/. Not part of the suite: run on demand with INK_SHOTS.
-import '@fontsource-variable/inter/wght.css';
 import '../styles/fonts.css';
 import '../styles/tokens.css';
 import '../styles/reset.css';
@@ -55,7 +54,7 @@ function Glass({
       }}
     >
       <div
-        className={theme === 'dark' ? 'glass glass-menu' : undefined}
+        className={theme === 'dark' ? 'mat mat-menu s12' : undefined}
         style={{
           padding: 16,
           borderRadius: 16,

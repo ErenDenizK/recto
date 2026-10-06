@@ -44,7 +44,6 @@
   flex: none;
   width: 20px;
   height: 20px;
-  stroke-width: 1.75;
 }
 
 @media (hover: hover) {
@@ -72,7 +71,7 @@
   min-width: 200px;
   padding: 0 24px;
   /* The shared rule above sets the chrome's text colour; the fill's label is canvas-dark. */
-  color: var(--surface-0);
+  color: var(--canvas);
   font-weight: 600;
 }
 

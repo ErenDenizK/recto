@@ -1,0 +1,22 @@
+/*
+ * Lit glass (language.md §2.5; `02-library` §2.3 L2, L5, L7, L9 §3): the Library's launcher,
+ * cards, Recents panel and the drop card, through `materials.css`'s `mat mat-lit` (D3-3): the lit
+ * tint, its rim from above as a masked `::before` that follows the radius, the outer edge and
+ * the inner light, the glass text steps, Tinted at 0.90 and Solid on its solid token.
+ *
+ * Lit glass is for surfaces no page passes under, and its worst backdrop is the Library field
+ * (D3-8, deferred until the owner's brand kit). Until the field exists the backdrop is the bare
+ * canvas, where a blur changes nothing, so these surfaces carry no σ class: the lit tint over the
+ * canvas is the colour lit glass composites to there (`#1e2025`, §2.2), with no blur to pay
+ * for, which also keeps the Library inside Q-11's four blurred surfaces at rest (only the
+ * selection bar blurs, over cards that scroll under it). D3-8 turns the blur on where the field
+ * shows: every lit surface carries `data-lit` (σ 28 for cards and panels, 16 for the 88 px
+ * launcher row through `data-lit="row"`, 20 on coarse pointers; spec 02.3, 02.4).
+ *
+ * Lit surfaces take no hover wash (a white wash drops glass-secondary to 4.24:1): they show
+ * hover by lifting. Dark only, like the app until D3-7: the light theme's M2 replaces it then.
+ */
+.lit {
+  composes: mat mat-lit from global;
+  color: var(--text-primary);
+}

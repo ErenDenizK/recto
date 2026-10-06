@@ -23,13 +23,13 @@
  * - The views share one width; their sizes are whole pixels at both densities.
  */
 import { ContextMenu } from '@base-ui/react/context-menu';
-import { ChevronLeft, Pipette, X } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 
 import { formatNumber, formatPercent, m } from '../../i18n';
 import { announce } from '../../shell/announcer';
 import { readJson, writeJson } from '../../state/safe-storage';
 import { type PixelSampler, samplePagePixels } from '../../viewer/page-pixels';
+import { Icon } from '../Icon';
 import menuStyles from '../Menu.module.css';
 import { Segmented } from '../Segmented';
 import { Slider, useCoarsePointer } from '../Slider';
@@ -289,7 +289,7 @@ export function ColourPanel({
         );
       }}
     >
-      <Pipette aria-hidden="true" />
+      <Icon name="eyedropper" />
     </button>
   );
 
@@ -317,7 +317,7 @@ export function ColourPanel({
               onClick={back}
               data-colour-back=""
             >
-              <ChevronLeft aria-hidden="true" />
+              <Icon name="caret-left" />
             </button>
           ) : null}
           {eyedropper}
@@ -332,7 +332,7 @@ export function ColourPanel({
             aria-label={m.common_close()}
             onClick={close}
           >
-            <X aria-hidden="true" />
+            <Icon name="x" />
           </button>
         </div>
       </div>

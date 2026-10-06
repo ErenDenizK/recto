@@ -21,5 +21,5 @@ export {
   subscribeLocale,
 } from './locale';
 export { m } from './paraglide/messages.js';
-export { formatNumber, formatPercent, formatSize } from './format';
+export { formatDay, formatNumber, formatPercent, formatSize } from './format';
 export { useLocale } from './use-locale';

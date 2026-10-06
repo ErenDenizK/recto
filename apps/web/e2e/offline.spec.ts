@@ -60,7 +60,9 @@ test('the shell and the engine work offline after one visit', async ({ page, con
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByTestId('app-shell')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
   // Really offline: anything not in a cache fails.
   const reachable = await page.evaluate(() =>
     fetch('./not-cached.txt', { cache: 'no-store' }).then(
@@ -72,11 +74,14 @@ test('the shell and the engine work offline after one visit', async ({ page, con
 
   await openFixtures(page, ['simple-text.pdf']);
   await expect(page.getByRole('tab', { name: 'simple-text', selected: true })).toBeVisible();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 1 of 3');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 3 · /);
   // A page actually rendered through PDFium (wasm from the cache).
   await expect(page.locator('main canvas[data-state="rendered"]').first()).toBeVisible();
 
   // Nothing left the device.
-  await expect(page.getByTestId('privacy-indicator')).toContainText('No external requests');
+  // ◎ is a glyph now (01-frame F8): its name says it.
+  await expect(page.getByTestId('privacy-indicator')).toHaveAccessibleName(
+    'Privacy: nothing has left this device',
+  );
   await context.setOffline(false);
 });

@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 import { useId, useState } from 'react';
 
 import { getLocale, m } from '../i18n';
-import { useCanEdit } from '../state/ui-store';
+import { useCanChangeActive } from '../viewer/input-state';
 import { useToolStore } from '../viewer/tool-store';
 import { updateAnnotations } from './actions';
 import { selectedAnnotations, useAnnotationStore } from './annotation-store';
@@ -33,7 +33,8 @@ export function AnnotationProperties({ fallback }: { readonly fallback: ReactNod
   const selection = useAnnotationStore((s) => s.selection);
   const pages = useAnnotationStore((s) => s.pages);
   const mode = useToolStore((s) => s.mode);
-  const editable = useCanEdit();
+  // Restyling a selected annotation is a targeted act: refused only while locked.
+  const editable = useCanChangeActive('targeted');
   const titleId = useId();
   const annotations = selectedAnnotations({ selection, pages });
   const first = annotations[0];

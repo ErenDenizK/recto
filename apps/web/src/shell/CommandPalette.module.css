@@ -15,7 +15,7 @@
    like the menus (--motion-rise). Centred by its auto margins, so at rest it carries no
    transform and sits on whole pixels (quality-bar Q-2). */
 .popup {
-  composes: glass from global;
+  composes: mat mat-menu s24 from global;
   position: fixed;
   top: min(18vh, 160px);
   right: 0;
@@ -140,6 +140,18 @@
 .groupHint {
   color: var(--text-tertiary);
   font-size: var(--text-sm);
+}
+
+/* Why a dimmed row cannot run, in the keycap's place: secondary text, not tertiary, so it
+   stays readable beside the disabled title (04-context §12.4). */
+.reason {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty {

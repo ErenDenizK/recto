@@ -4,7 +4,6 @@
  * input and `aria-activedescendant` points at the active option.
  */
 import { Dialog } from '@base-ui/react/dialog';
-import { Search } from 'lucide-react';
 import {
   type KeyboardEvent,
   useDeferredValue,
@@ -21,14 +20,17 @@ import { parseShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
 import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
+import { Icon } from '../ui/Icon';
 import { Keycaps } from '../ui/Keycaps';
 import styles from './CommandPalette.module.css';
-import { barGroupLabelOfCommand } from './FloatingToolbar.groups';
+import { paletteGroupLabelOfCommand } from '../markup/palette-groups';
 
 interface Row {
   readonly command: Command;
   readonly positions: readonly number[];
   readonly enabled: boolean;
+  /** Why a dimmed row cannot run ("Locked · unlock first"; ADR-0030 §2.3, RA-21). */
+  readonly reason: string | undefined;
 }
 
 interface Section {
@@ -39,19 +41,22 @@ interface Section {
 /** Internal id of the recents section; its heading is translated when rendered. */
 const RECENT_GROUP = 'Recent';
 
-/** Builds the visible sections: recents first when the query is empty, else by relevance. */
+/**
+ * Builds the visible sections: recents first when the query is empty, else by relevance. A
+ * dimmed row carries its reason (`reasonOf`, the registry's `disabledReason`).
+ */
 export function buildSections(
   query: string,
   commands: readonly Command[],
   recents: readonly string[],
   isEnabled: (command: Command) => boolean,
+  reasonOf: (command: Command) => string | undefined = () => undefined,
 ): Section[] {
   const visible = commands.filter((c) => !c.hiddenInPalette);
-  const toRow = (command: Command, positions: readonly number[] = []): Row => ({
-    command,
-    positions,
-    enabled: isEnabled(command),
-  });
+  const toRow = (command: Command, positions: readonly number[] = []): Row => {
+    const enabled = isEnabled(command);
+    return { command, positions, enabled, reason: enabled ? undefined : reasonOf(command) };
+  };
 
   if (query.trim() === '') {
     const recentCommands = recents
@@ -151,7 +156,14 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const baseId = useId();
 
   const sections = useMemo(
-    () => buildSections(deferredQuery, commands, recents, (c) => commandRegistry.isEnabled(c)),
+    () =>
+      buildSections(
+        deferredQuery,
+        commands,
+        recents,
+        (c) => commandRegistry.isEnabled(c),
+        (c) => commandRegistry.disabledReason(c),
+      ),
     [deferredQuery, commands, recents],
   );
   const rows = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
@@ -207,7 +219,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     <Dialog.Popup className={styles.popup} initialFocus={inputRef}>
       <Dialog.Title className="visually-hidden">{m.palette_title()}</Dialog.Title>
       <div className={styles.searchRow}>
-        <Search className={styles.searchIcon} aria-hidden="true" />
+        <Icon name="magnifying-glass" className={styles.searchIcon} />
         <input
           ref={inputRef}
           className={styles.input}
@@ -257,6 +269,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
               {section.rows.map((row) => {
                 const shortcut = row.command.shortcuts[0];
                 const selected = row === active;
+                const reasonId = row.reason ? `${optionId(row.command.id)}-reason` : undefined;
                 return (
                   // Options are driven from the combobox input via aria-activedescendant
                   // (APG); they take pointer input only and are never focused themselves.
@@ -268,6 +281,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                     tabIndex={-1}
                     aria-selected={selected}
                     aria-disabled={!row.enabled || undefined}
+                    aria-describedby={reasonId}
                     className={styles.option}
                     onPointerMove={() => {
                       if (row.enabled && !selected) setActiveId(row.command.id);
@@ -286,12 +300,26 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                       <span className={styles.groupHint}>{row.command.group}</span>
                     ) : null}
                     {/* The tool bar group of a tool (experience-redesign spec §5.1). */}
-                    {section.group !== RECENT_GROUP && barGroupLabelOfCommand(row.command.id) ? (
+                    {section.group !== RECENT_GROUP &&
+                    paletteGroupLabelOfCommand(row.command.id) ? (
                       <span className={styles.groupHint} data-bar-group-hint="">
-                        {barGroupLabelOfCommand(row.command.id)}
+                        {paletteGroupLabelOfCommand(row.command.id)}
                       </span>
                     ) : null}
-                    {shortcut ? <Keycaps shortcut={shortcut} /> : null}
+                    {/* The reason takes the keycap's place (04-context §12.2); it is the
+                        option's description, not part of its name. */}
+                    {row.reason ? (
+                      <span
+                        id={reasonId}
+                        className={styles.reason}
+                        data-reason=""
+                        aria-hidden="true"
+                      >
+                        {row.reason}
+                      </span>
+                    ) : shortcut ? (
+                      <Keycaps shortcut={shortcut} />
+                    ) : null}
                   </div>
                 );
               })}

@@ -18,7 +18,6 @@ import {
   type RasterBackground,
   type RasterFormat,
 } from '@pdf-editor/engine';
-import { ChevronRight, Info, TriangleAlert } from 'lucide-react';
 import { type ReactNode, type RefObject, useId } from 'react';
 
 import type { ConvertPageBreak } from '@pdf-editor/engine';
@@ -31,6 +30,7 @@ import { openSignDialog, setSignOnExport, useSignStore } from '../signatures/sig
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
+import { Icon } from '../ui/Icon';
 import { NumberField } from '../ui/NumberField';
 import { RadioGroup, type RadioOption } from '../ui/RadioGroup';
 import { Segmented } from '../ui/Segmented';
@@ -121,10 +121,9 @@ export function Notice({
   readonly children: ReactNode;
   readonly testId?: string;
 }) {
-  const Glyph = tone === 'warning' ? TriangleAlert : Info;
   return (
     <div className={styles.notice} data-tone={tone} data-testid={testId} role="note">
-      <Glyph aria-hidden="true" className={styles.noticeGlyph} />
+      <Icon name={tone === 'warning' ? 'warning' : 'info'} className={styles.noticeGlyph} />
       <div className={styles.noticeBody}>{children}</div>
     </div>
   );
@@ -306,7 +305,7 @@ function Disclosure({
         </span>
         <span className={styles.disclosureEnd}>
           <span className={styles.disclosureValue}>{value}</span>
-          <ChevronRight aria-hidden="true" className={styles.chevron} />
+          <Icon name="caret-right" className={styles.chevron} />
         </span>
       </button>
       {open ? (

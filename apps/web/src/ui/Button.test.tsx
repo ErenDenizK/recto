@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { Button } from './Button';
+import { Surface } from './Surface';
 import { canHover, forceState, stillStyles } from './test-states';
 
 stillStyles();
@@ -45,14 +46,15 @@ describe('Button (09-primitives §3)', () => {
     const danger = screen.getByRole('button', { name: 'Delete page' });
 
     // Rest.
-    expect(bg(prominent)).toBe('rgb(124, 140, 255)');
+    expect(bg(prominent)).toBe('rgb(200, 251, 61)');
     expect(bg(standard)).toBe('rgba(255, 255, 255, 0.08)');
     expect(bg(quiet)).toBe('rgba(0, 0, 0, 0)');
-    expect(getComputedStyle(danger).color).toBe('rgb(255, 107, 107)');
+    expect(getComputedStyle(danger).color).toBe('rgb(253, 114, 115)');
 
     // Hover: one step (where the page can hover).
     for (const [el, want] of [
-      [prominent, /^rgb\(143, 157, 255\)$/],
+      // --accent-hover, one step lighter than the lime rest.
+      [prominent, /^rgb\(221, 255, 130\)$/],
       [standard, /^rgba\(255, 255, 255, 0\.12\)$/],
       // 0.045 is stored in 8 bits: 0.043.
       [quiet, /^rgba\(255, 255, 255, 0\.04\d*\)$/],
@@ -66,7 +68,7 @@ describe('Button (09-primitives §3)', () => {
     if (canHover()) {
       const off = await forceState(danger, ['hover']);
       expect(bg(danger)).toBe('rgba(255, 255, 255, 0.08)');
-      expect(getComputedStyle(danger).boxShadow).toContain('rgb(255, 107, 107)');
+      expect(getComputedStyle(danger).boxShadow).toContain('rgb(253, 114, 115)');
       await off();
     }
 
@@ -98,7 +100,7 @@ describe('Button (09-primitives §3)', () => {
     expect(document.activeElement).toBe(button);
     await userEvent.click(button, { force: true });
     expect(onClick).not.toHaveBeenCalled();
-    expect(getComputedStyle(button).color).toBe('rgb(74, 78, 85)');
+    expect(getComputedStyle(button).color).toBe('rgb(85, 88, 95)');
   });
 
   it('falls back to "Not available now" when disabled with no reason', () => {
@@ -176,12 +178,12 @@ describe('Button (09-primitives §3)', () => {
   it('renders quiet on the floating glass, filled on a menu', () => {
     render(
       <>
-        <div className="glass" data-testid="bar">
+        <Surface tier="bar" sigma={8} data-testid="bar">
           <Button>On the bar</Button>
-        </div>
-        <div className="glass glass-menu">
+        </Surface>
+        <Surface tier="menu" sigma={12}>
           <Button>In a menu</Button>
-        </div>
+        </Surface>
       </>,
     );
     expect(bg(screen.getByRole('button', { name: 'On the bar' }))).toBe('rgba(0, 0, 0, 0)');

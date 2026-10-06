@@ -24,7 +24,6 @@
 .button svg {
   width: var(--icon-md);
   height: var(--icon-md);
-  stroke-width: 1.5;
 }
 
 .button[data-size='row'] {
@@ -92,13 +91,13 @@
 
 @media (hover: hover) {
   .button[data-size='bar'][data-tool][aria-pressed='true']:hover {
-    background: var(--accent-hover);
+    background: var(--tool-active-fill-hover);
     color: var(--tool-active-ink);
   }
 }
 
 .button[data-size='bar'][data-tool][aria-pressed='true']:active {
-  background: var(--accent-pressed);
+  background: var(--tool-active-fill-pressed);
 }
 
 .button:is([aria-disabled='true'], :disabled) {

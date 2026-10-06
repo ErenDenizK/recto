@@ -30,14 +30,14 @@
  * - **Accessibility** (MK-13 §8): the pad is `role="img"` with a live "Signature drawn, 3
  *   strokes"; Type is the keyboard path (Tab to the field, type, Enter uses it).
  */
-import { ImagePlus } from 'lucide-react';
 import { type PointerEvent, useEffect, useId, useRef, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { pickFiles } from '../files/open-files';
 import { m } from '../i18n';
 import { openSettings } from '../settings/open-settings';
-import { canEditActive } from '../state/ui-store';
+import { Icon } from '../ui/Icon';
+import { canChangeActive } from '../viewer/input-state';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Segmented, SegmentedPanel } from '../ui/Segmented';
@@ -157,7 +157,8 @@ export default function NewSignatureSheet() {
       }
       resetDraft();
       close('close');
-      if (intent === 'use' && stamp && canEditActive()) armSignatureStamp(stamp);
+      // Arming places at a click: only in Markup, and never while locked (`place`).
+      if (intent === 'use' && stamp && canChangeActive('place')) armSignatureStamp(stamp);
     } finally {
       setBusy(false);
     }
@@ -262,7 +263,7 @@ export default function NewSignatureSheet() {
                   aria-describedby={imageHintId}
                   onClick={() => void chooseImage()}
                 >
-                  <ImagePlus className={styles.emptyGlyph} aria-hidden="true" />
+                  <Icon name="image" className={styles.emptyGlyph} />
                   <span id={`${imageHintId}-action`} className={styles.emptyAction}>
                     {m.signature_choose_image()}
                   </span>

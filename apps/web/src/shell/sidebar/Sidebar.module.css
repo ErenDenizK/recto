@@ -1,0 +1,98 @@
+/*
+ * N1 Sidebar (06-navigation §3, §2.1): docked M3 (`mat mat-panel mat-docked s24`; solid on a
+ * coarse pointer, `cs`, M-31) with a hairline on its free edge and no shadow; laid over the page (medium) a
+ * floating panel inset 8 with radius 20 and e4; on compact-height a side sheet under the top
+ * bar. Rows, the switch and wells inside use fills, never a second glass (Q-4).
+ */
+.sidebar {
+  composes: mat mat-panel mat-docked s24 cs from global;
+  position: absolute;
+  top: var(--free-top, 0px);
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: 0;
+  max-width: calc(100% - 48px);
+  border-right: 1px solid var(--border-hairline);
+}
+
+/* Medium: a floating panel over the page, clear of the strip and the dock band (F1 §2). */
+.sidebar[data-form='overlay'] {
+  top: calc(var(--free-top, 0px) + 8px);
+  bottom: calc(var(--free-bottom, 0px) + 8px);
+  left: 8px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 20px;
+  box-shadow: var(--e4);
+  overflow: hidden;
+}
+
+/* Compact-height: a side sheet from the leading edge under the top bar, full height. */
+.sidebar[data-form='sheet'] {
+  box-shadow: var(--e4);
+}
+
+/* The tabs root holds the switch and the shown section. */
+.tabs {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The section switch: one 44 px row (56 coarse), the segmented track centred in it (Q-9). A
+   margin, not padding: the control measures its own box to choose its layout. */
+.switch {
+  flex: none;
+  margin: calc((var(--bar-h) - var(--control-h)) / 2) var(--space-3);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.section {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Review keeps its own padding; its list scrolls inside. */
+.section[data-view='review'] {
+  overflow: auto;
+  padding: var(--space-1) var(--space-3) var(--space-4);
+}
+
+/* Compare's Changes list in the slot (CP5's place until D2-6). */
+.changes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Section bodies cross-fade when the switch changes them (06 §3.7; the fade token keeps 100 ms
+   under reduced motion, language.md §7.5). Opacity only: nothing moves, nothing rests scaled. */
+.section {
+  animation: section-in var(--duration-fast) var(--ease-out);
+}
+
+@keyframes section-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  .sidebar {
+    border-color: CanvasText;
+  }
+}

@@ -7,7 +7,7 @@
  * - **Silent.** `role="region"` named "Notifications", not live: `toast.ts` says each toast
  *   once through the announcer. Each toast is a `role="group"` named by its text.
  * - **Never takes focus.** F6 reaches it as the last stop of the cycle
- *   (`shell/LeftRail.regions.ts`, landing on the newest toast's action); Up and Down move
+ *   (`shell/frame/regions.ts`, landing on the newest toast's action); Up and Down move
  *   between toasts; Esc dismisses the focused one; after an action or a dismissal focus goes
  *   back to where it was before F6, else the page.
  * - **Holds** (A-24): hover, focus within, a pointer down on a toast, a hidden tab and an open
@@ -16,15 +16,15 @@
  *   re-flowing by a translate-only FLIP on `quick`, and a new toast rises 16 px and fades in on
  *   `quick` once the toast above it is far enough ahead that the two pills never meet; out by
  *   a fade on `track` (about 120 ms), `inert` from its first frame (A-13), and only then does
- *   the stack close up. Each fade carries the glass's backdrop filter with the opacity, so a
- *   fading toast never leaves a dark empty pill. A toast's width is its own, so nothing ever
+ *   the stack close up. Each fade switches the glass's backdrop filter off while the toast is
+ *   nearly transparent and keeps it whole while it shows (it never animates), so a fading
+ *   toast never leaves a dark empty pill. A toast's width is its own, so nothing ever
  *   tweens a width. A swipe (touch, pen) past half the width or faster than 800 px/s flings it
  *   away, else it springs back. Each animation moves the toast's own element (the glass, never
  *   a wrapper), is interruptible from where it is, and leaves no transform or `will-change`.
  * - **Both editions**: the compact edition passes `edition="compact"` and whether its capsule
  *   is on screen (`band`), so the stack sits above the capsule or the home indicator.
  */
-import { CheckCircle2, RefreshCw, TriangleAlert, X, XCircle } from 'lucide-react';
 import {
   type KeyboardEvent,
   type PointerEvent,
@@ -39,6 +39,7 @@ import { flushSync } from 'react-dom';
 import { m } from '../../i18n';
 import { animateStyle, type Motion, velocityTracker } from '../../motion';
 import { Button } from '../Button';
+import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
 import { ProgressCapsule } from './ProgressCapsule';
 import { after, entranceDelay, fadeBackdrop, RISE_PX, reflow } from './stack-motion';
@@ -266,15 +267,15 @@ export function ToastRegion({ edition = 'full', band = 'shown' }: ToastRegionPro
 function glyphOf(toast: Toast): ReactNode {
   switch (toast.kind) {
     case 'success':
-      return <CheckCircle2 className={styles.glyph} data-tone="success" aria-hidden="true" />;
+      return <Icon name="check-circle" className={styles.glyph} data-tone="success" />;
     case 'failure':
       return toast.tone === 'warning' ? (
-        <TriangleAlert className={styles.glyph} data-tone="warning" aria-hidden="true" />
+        <Icon name="warning" className={styles.glyph} data-tone="warning" />
       ) : (
-        <XCircle className={styles.glyph} data-tone="danger" aria-hidden="true" />
+        <Icon name="x-circle" className={styles.glyph} data-tone="danger" />
       );
     case 'system':
-      return <RefreshCw className={styles.glyph} aria-hidden="true" />;
+      return <Icon name="arrows-clockwise" className={styles.glyph} />;
     default:
       return null;
   }
@@ -320,7 +321,7 @@ function ToastView({
   });
 
   // *toast* in: 16 px up and a fade on the glass element itself (Q-3), its backdrop filter
-  // with it. Held hidden, 16 px down, while the stack above makes room.
+  // switched on once a tenth of the toast is drawn. Held hidden, 16 px down, while the stack above makes room.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
@@ -369,8 +370,8 @@ function ToastView({
     };
   }, []);
 
-  // Out: inert at once (A-13), a fade of the glass and its backdrop from wherever the entrance
-  // is, then gone. A toast still held never showed: it goes at once.
+  // Out: inert at once (A-13), a fade of the glass from wherever the entrance is (its backdrop
+  // switched off at a tenth), then gone. A toast still held never showed: it goes at once.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!leaving || !el) return;
@@ -510,7 +511,7 @@ function ToastView({
           {dismissible ? (
             <IconButton
               label={m.toast_dismiss()}
-              icon={<X />}
+              icon={<Icon name="x" />}
               className={styles.close}
               tooltipSide="top"
               onClick={() => onDone('dismissed')}

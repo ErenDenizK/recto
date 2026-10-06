@@ -7,7 +7,7 @@
  *   served by a Vite dev server this spec starts (no gallery ships in the app). Hover, pressed and
  *   focus are forced through CDP on the elements marked `data-force`, so they show side by side.
  *   Taken at a fine pointer and at a coarse one (touch, as the `tablet` project).
- * - **Surfaces**: Home, Read and Edit (with the Text group's options tier) of the production
+ * - **Surfaces**: Home, Read and Edit (the Markup palette with its ink strip) of the production
  *   build at 1440 × 900 (fine) and 820 × 1180 (coarse, the tablet).
  *
  * Only the dark theme exists until D3, which adds the light baselines. Baselines are Chromium's
@@ -129,13 +129,8 @@ test.describe('surfaces', () => {
     await expect(page).toHaveScreenshot(`read-${size}.png`, SHOT);
 
     await enterEdit(page);
-    await page
-      .getByRole('toolbar', { name: 'Tools', exact: true })
-      .locator('[data-bar-group="text"]')
-      .click();
     await page.locator('body').press('t');
-    await page.locator('body').press('t');
-    await expect(page.getByTestId('options-tier')).toBeVisible();
+    await expect(page.getByTestId('ink-strip')).toBeVisible();
     // The keys above leave the group's focus ring showing; the baseline is the resting bar.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.mouse.move(0, 0);

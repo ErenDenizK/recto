@@ -11,7 +11,7 @@
   --sw-dot-on: 14px;
   --sw-gap: 2px;
   --sw-ring: 2px;
-  --sw-contrast: rgb(255 255 255 / 0.55);
+  --sw-contrast: var(--swatch-contrast);
   --sw-strong: var(--text-primary);
   --sw-spring: var(--spring-press, 300ms);
   --sw-ease: var(--ease-spring, cubic-bezier(0.2, 0, 0, 1));

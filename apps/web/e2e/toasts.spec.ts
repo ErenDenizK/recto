@@ -94,6 +94,37 @@ test('"Deleted page 2 · Undo" holds while hovered, F6 reaches it, and Undo brin
   await expect(toast).toHaveCount(0);
 });
 
+test('a toast stays readable above a modal sheet and its scrim', async ({ page }, info) => {
+  // 07-sheets §1.1 rule 6: … scrim → modal sheets → toasts. A toast under the scrim was dimmed
+  // and could not be read while the sheet it was about stayed open (task 27).
+  await page.goto('./?lang=en');
+  await openFixtures(page, ['simple-text.pdf']);
+  await deleteSecondPage(page);
+  const toast = page.getByRole('group', { name: 'Deleted page 2' });
+  await expect(toast).toBeVisible();
+  await page.locator('body').press('?');
+  const sheet = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+  await expect(sheet).toBeVisible();
+  // A modal pauses the toast's timer (FB4 §4), so it is still there, and on top: the element
+  // drawn at its centre is the toast's own. (The modal hides the rest of the page from the
+  // accessibility tree, so the toast is found by its markup here.)
+  const shown = page.locator('[data-region="toasts"] [data-toast-id]', {
+    hasText: 'Deleted page 2',
+  });
+  await expect(shown).toBeVisible();
+  const box = await shown.boundingBox();
+  if (!box) throw new Error('the toast has no box');
+  const onTop = await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-toast-id]')?.textContent ?? null,
+    { x: box.x + 24, y: box.y + box.height / 2 },
+  );
+  expect(onTop).toContain('Deleted page 2');
+  if (SHOTS && info.project.name === 'chromium') {
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SHOTS}/toast-over-sheet-1440.png` });
+  }
+});
+
 for (const lang of ['en', 'tr'] as const) {
   test(`the stack at 1440 × 900 (${lang})`, async ({ page }, info) => {
     test.skip(!SHOTS || info.project.name !== 'chromium', 'screenshots on request (TOAST_SHOTS)');

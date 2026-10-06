@@ -170,7 +170,7 @@
   width: 20px;
   height: 20px;
   border-radius: var(--radius-round);
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--warning);
   box-shadow: 0 0 0 1px var(--border-hairline);
 }
@@ -182,7 +182,7 @@
 
 /* Contextual bar: glass over the document, like the floating tool bar. */
 .bar {
-  composes: glass from global;
+  composes: mat mat-bar s8 c10 from global;
   position: absolute;
   z-index: 4;
   display: flex;
@@ -251,7 +251,7 @@
 }
 
 .notePopup {
-  composes: glass from global;
+  composes: mat mat-menu s16 from global;
   position: absolute;
   z-index: 5;
   display: grid;
@@ -278,7 +278,7 @@
   padding: var(--space-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-primary);
   font: inherit;
   resize: vertical;

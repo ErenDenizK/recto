@@ -18,6 +18,7 @@ export function registerLanguageCommands(registry: CommandRegistry): () => void 
       id: `language.${locale}`,
       title: LOCALE_NAMES[locale],
       group: m.group_language(),
+      act: null,
       keywords: ['language', 'dil', 'locale', 'lang', ...KEYWORDS[locale]],
       when: () => getLocale() !== locale,
       run: () => {

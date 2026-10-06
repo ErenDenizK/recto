@@ -6,13 +6,13 @@
  * upright whatever the page rotation. One Tab stop (roving tabindex, DESIGN.md §5): arrow
  * keys, Home and End move between its buttons.
  */
-import { Download, ImageUp, Layers, Trash2 } from 'lucide-react';
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import { type Box, cssBoxToUser, type PageFrame } from '../annotations/geometry';
 import { pickFiles } from '../files/open-files';
 import { formatNumber, m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { deleteImage, extractImage, replaceImage } from './actions';
 import styles from './ImageObjects.module.css';
 import type { ImageSelection } from './image-store';
@@ -129,7 +129,7 @@ export function ImageBar({
       </span>
       {image.inForm ? (
         <span className={styles.note} data-testid="image-in-form">
-          <Layers aria-hidden="true" />
+          <Icon name="stack" />
           {m.image_object_in_form()}
         </span>
       ) : null}
@@ -147,7 +147,7 @@ export function ImageBar({
           })
         }
       >
-        <ImageUp aria-hidden="true" />
+        <Icon name="image" />
         {m.image_object_replace()}
       </button>
       <button
@@ -163,7 +163,7 @@ export function ImageBar({
         onFocus={() => setFocusIndex(1)}
         onClick={() => run(() => extractImage(target, image, title))}
       >
-        <Download aria-hidden="true" />
+        <Icon name="download-simple" />
         {m.image_object_extract()}
       </button>
       <button
@@ -175,7 +175,7 @@ export function ImageBar({
         onFocus={() => setFocusIndex(2)}
         onClick={() => run(() => deleteImage(target, image))}
       >
-        <Trash2 aria-hidden="true" />
+        <Icon name="trash" />
         {m.image_object_delete()}
       </button>
     </div>

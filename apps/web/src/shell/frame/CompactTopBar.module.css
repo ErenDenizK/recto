@@ -1,0 +1,161 @@
+/*
+ * The compact top bar (01-frame F9 §2–§4): 44 px plus the top safe area, sides padded
+ * max(safe area, 8 px), 44 px buttons (the coarse control) whatever the pointer, so the folded
+ * frame keeps one target size. The docked frame material, hairline on the bottom edge.
+ * Hidden on scroll (F12) or in Focus it moves up by its own height on transform only and is
+ * hidden once away (quality-bar Q-2, Q-7).
+ */
+.bar {
+  composes: mat mat-panel mat-docked s8 from global;
+  --control-h: 44px;
+  --bar-button: 44px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  box-sizing: content-box;
+  height: 44px;
+  padding: env(safe-area-inset-top, 0px) max(env(safe-area-inset-right, 0px), 8px) 0
+    max(env(safe-area-inset-left, 0px), 8px);
+  border-bottom: 1px solid var(--border-hairline);
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.bar[data-away] {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-100%);
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-out),
+    visibility 0s linear var(--spring-quick);
+}
+
+/* ↷ folds into the title menu below 336 px (spec 01.8). */
+.bar[data-fold-redo] [data-testid='redo-button'] {
+  display: none;
+}
+
+/*
+ * Short viewports (F1 §6, `data-tight`): one 44 px capsule at the bottom, centred, holding ‹ N,
+ * the title, ↶ and ⋯: chrome stays near 17 % of a 320 × 256 window (A-20).
+ */
+.bar[data-tight] {
+  top: auto;
+  right: 0;
+  bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  left: 0;
+  /* Centred by its auto margins, never translate(-50%): whole pixels at rest (Q-2). */
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  margin-inline: auto;
+  padding: 0 4px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--e3);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding-inline: 6px;
+  color: var(--text-primary);
+  font-size: var(--type-callout, 15px);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.bar .back {
+  width: 52px;
+}
+
+.backIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.backIcon > svg {
+  width: 20px;
+  height: 20px;
+  margin-inline-start: -4px;
+}
+
+.backCount {
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The title: the document menu's trigger, ≥ 64 px, a middle-sized ellipsis at 15/20, 600. */
+.title {
+  composes: focus-inset from global;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 64px;
+  height: 44px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+@media (hover: hover) {
+  .title:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.title:active,
+.title[aria-expanded='true'] {
+  background: var(--surface-active);
+}
+
+.titleText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edited {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--text-secondary);
+}
+
+.lock {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.caret {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.bar[data-tight] .title {
+  flex: 0 1 auto;
+  max-width: 160px;
+}

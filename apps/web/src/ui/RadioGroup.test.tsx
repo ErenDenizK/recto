@@ -46,7 +46,7 @@ describe('RadioGroup (09-primitives §9)', () => {
     expect(same).toHaveAttribute('aria-checked', 'true');
     expect(same.getBoundingClientRect().width).toBe(16);
     expect(same.closest('label')?.getBoundingClientRect().height).toBe(32);
-    expect(getComputedStyle(same).backgroundColor).toBe('rgb(230, 231, 234)');
+    expect(getComputedStyle(same).backgroundColor).toBe('rgb(232, 233, 236)');
     expect(screen.getByText('about 1.1 MB')).toBeVisible();
     // The estimate is part of the option's name (07-sheets §4.8).
     expect(screen.getByRole('radio', { name: 'Smaller, about 1.1 MB' })).toBeInTheDocument();

@@ -1,20 +1,32 @@
 /**
- * Arrange mode: the light table (docs/specs/light-table.md). One scroll container with a
- * stack of sections (every open document unless hidden; the active one always), each a
- * virtualized grid of page cells. TanStack Virtual picks the rendered range over a flat
- * list of header / row / gap items; positions come from `dnd/geometry.ts`, which also does
- * hit testing, so drops and marquees work on rows that are not in the DOM.
+ * The Pages grid (`components/06-navigation.md` PG1–PG5; flows.md §2.1; spec D2-5): the
+ * document's pages, or every open document as sections, at thumbnail size, to select, move,
+ * rotate, delete, extract and combine. M8's light table (docs/specs/light-table.md) kept and
+ * routed by `docUi[id].surface === 'grid'`; the file keeps its name (spec X25).
  *
- * Interaction:
- * - Click / Shift / Mod select (Shift ranges within a section); marquee on empty space
- *   (additive with Shift or Mod) with edge auto-scroll; selection spans sections.
- * - Keys: arrows move focus (wrapping across rows and sections), Shift+arrows extend,
- *   Space toggles, Home/End, Enter opens in Read mode, Alt+arrows move pages one slot,
- *   Alt+Shift+arrows move to the row (left/right) or section (up/down) edge.
- *   Clipboard (Mod+X/C/V), R, Delete, Mod+D, Mod+A, Esc are commands.
- * - Drag and drop on @atlaskit/pragmatic-drag-and-drop: pages between gaps (Alt copies),
- *   tabs onto the table (pin), OS files onto a section (insert at the gap) or the
- *   background (open as documents, handled by the shell's window-wide drop).
+ * One scroll container under the grid header (`grid/GridHeader.tsx`) with a stack of sections
+ * (the active document in This document, each open document in All open), each a virtualized
+ * grid of page cells. TanStack Virtual picks the rendered range over a flat list of header / row
+ * / gap items; positions come from `dnd/geometry.ts`, which also does hit testing, so drops and
+ * marquees work on rows that are not in the DOM. The scroller reaches under the Pages bar, and
+ * the last row clears it by 16 px (PG1 §2).
+ *
+ * Interaction (PG1 §6, PG4 §6):
+ * - A click replaces the selection, Shift ranges within a section, Mod toggles; a tap toggles
+ *   (06.5); a press on empty canvas draws a marquee (mouse and pen; additive with Shift or Mod)
+ *   with edge auto-scroll. Selection spans sections.
+ * - A double-click, a double tap or Enter opens the page (`leaveGrid`), on its own tab.
+ * - Keys: arrows move focus (wrapping across rows and sections), Shift+arrows extend, Space
+ *   toggles, Home/End, Alt+arrows move pages one slot, Alt+Shift+arrows move to the row
+ *   (left/right) or section (up/down) edge. Clipboard (Mod+X/C/V), Delete, Mod+D, Mod+A and
+ *   Esc (clear the selection, then leave the grid) are commands.
+ * - Mod+wheel (and a trackpad pinch) steps the cell size; a pinch steps it by detent and, past
+ *   the largest size, opens the page under the fingers (`grid/pinch-in-grid.ts`).
+ * - Drag and drop: the mouse on @atlaskit/pragmatic-drag-and-drop (pages between gaps, Alt
+ *   copies; tabs onto the grid show All open; OS files onto a section insert at the gap or, on
+ *   the background, open as documents through the shell's window-wide drop); touch and pen on
+ *   the gesture core's pointer path after a lift (`grid/grid-pointer-drag.ts`, §2.4).
+ * - Moves, drops, size steps and collapses reflow the cells by FLIP (`grid/flip-cells.tsx`).
  */
 import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
 import { autoScrollForExternal } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/external';
@@ -36,6 +48,7 @@ import {
   type PointerEvent,
   type RefObject,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -56,7 +69,6 @@ import {
   computeLayout,
   edgeScrollSpeed,
   gapAt,
-  GRID,
   type GridMetrics,
   gridMetrics,
   normalizeRect,
@@ -77,15 +89,21 @@ import {
   useSelectionStore,
 } from '../state/selection-store';
 import { ARRANGE_SIZES, useUiStore } from '../state/ui-store';
+import { useSheetStore } from '../ui/sheet';
 import { useViewStore } from '../state/view-store';
-import { useWorkspaceStore } from '../state/workspace-store';
+import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
 import { type MoveEdge, movePagesToEdge } from './arrange-actions';
 import { provideArrangeColumns } from './arrange-commands';
 import { pageIndexes, type ShownSection, useShownSections } from './arrange-data';
 import { ArrangeContextMenuPopup } from './ArrangeContextMenu';
 import { ArrangeSection } from './ArrangeSection';
 import styles from './ArrangeView.module.css';
-import { ContextualBar } from './ContextualBar';
+import { FlipCells } from './grid/flip-cells';
+import { GridHeader } from './grid/GridHeader';
+import { GridLockNotice } from './grid/grid-lock-notice';
+import { attachGridPointerDrag } from './grid/grid-pointer-drag';
+import { leaveGrid, takeGridReveal } from './grid/grid-transition';
+import { GridPinchChip, useGridPinch } from './grid/pinch-in-grid';
 
 /** Wheel delta that steps the cell size once with Mod+Scroll. */
 const WHEEL_STEP = 60;
@@ -93,6 +111,10 @@ const WHEEL_STEP = 60;
 const MARQUEE_THRESHOLD = 4;
 /** Collapsed sections expand after hovering a drag over them this long (spec §3). */
 const EXPAND_DELAY_MS = 600;
+/** Room between the last row and the Pages bar (PG1 §2). */
+const BAR_CLEARANCE = 16;
+/** Room above the first row when no section header stands there (This document). */
+const PAD_TOP_PLAIN = 24;
 
 const NAV_KEYS: readonly string[] = [
   'ArrowLeft',
@@ -107,13 +129,90 @@ function isMod(event: { metaKey: boolean; ctrlKey: boolean }): boolean {
   return currentPlatform === 'mac' ? event.metaKey : event.ctrlKey;
 }
 
+/**
+ * How far the scroller reaches under the dock band (`ArrangeView.module.css`): the free
+ * rectangle's bottom inset, which the frame writes on `:root` (01-frame F1 §2).
+ */
+function useBandOverhang(viewport: RefObject<HTMLElement | null>): number {
+  const [overhang, setOverhang] = useState(0);
+  useLayoutEffect(() => {
+    const read = () => {
+      const el = viewport.current;
+      if (!el) return;
+      const margin = Number.parseFloat(getComputedStyle(el).marginBottom);
+      setOverhang(Number.isFinite(margin) ? Math.max(0, -margin) : 0);
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    window.addEventListener('resize', read);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', read);
+    };
+  }, [viewport]);
+  return overhang;
+}
+
+/**
+ * How much of the grid's width a side tool sheet covers (Split, S13; spec X23): tool sheets
+ * inset the free rectangle while at least 400 px of stage remain, so the columns re-centre in
+ * what is left and no cell sits under the sheet.
+ */
+function useToolSheetInset(viewport: RefObject<HTMLElement | null>): number {
+  const front = useSheetStore((s) => s.front);
+  const [inset, setInset] = useState(0);
+  useLayoutEffect(() => {
+    const el = viewport.current;
+    if (!el || front === null) return;
+    let observer: ResizeObserver | undefined;
+    let frame = 0;
+    let tries = 0;
+    // The sheet's portal mounts it a frame or so after the store names it.
+    const attach = () => {
+      const sheet = document.querySelector<HTMLElement>(
+        `[data-sheet="${CSS.escape(front)}"][data-kind="tool"][data-presentation="side"]`,
+      );
+      if (!sheet) {
+        setInset(0);
+        if (tries++ < 20) frame = requestAnimationFrame(attach);
+        return;
+      }
+      const measure = () => {
+        // Its layout width (a transform in flight is motion), its 8 px from the edge and 8 more.
+        const covered = sheet.offsetWidth + 16;
+        setInset(el.clientWidth - covered >= 400 ? covered : 0);
+      };
+      measure();
+      observer = new ResizeObserver(measure);
+      observer.observe(sheet);
+      observer.observe(el);
+    };
+    frame = requestAnimationFrame(attach);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [viewport, front]);
+  return front === null ? 0 : inset;
+}
+
 export function ArrangeView() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const stepArrangeSize = useUiStore((s) => s.stepArrangeSize);
   const backgroundTarget = useDropHighlight((s) => s.highlight?.kind === 'background');
+  const scope = useUiStore((s) => s.gridScope);
+  const documents = useWorkspaceStore((s) => s.workspace.documentOrder.length);
+  const doc = useActiveDocument();
+  const overhang = useBandOverhang(viewportRef);
+  const inset = useToolSheetInset(viewportRef);
+  const pinchChip = useRef<HTMLDivElement>(null);
+  useGridPinch(viewportRef, pinchChip);
 
-  useEffect(() => {
+  // Measured in a layout effect so the grid's first rows are drawn in the commit that shows it:
+  // the view change names a cell inside its update callback (grid-transition.ts).
+  useLayoutEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
     const measure = () => setWidth(el.clientWidth);
@@ -123,13 +222,14 @@ export function ArrangeView() {
     return () => observer.disconnect();
   }, []);
 
-  // Mod+Scroll changes the cell size (non-passive: it must cancel browser zoom).
+  // Mod+Scroll (and a trackpad pinch, which arrives as Ctrl+wheel) steps the cell size
+  // (non-passive: it must cancel the browser's zoom).
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
     let accumulated = 0;
     const onWheel = (event: WheelEvent) => {
-      if (!isMod(event)) return;
+      if (!isMod(event) && !event.ctrlKey) return;
       event.preventDefault();
       accumulated += event.deltaY;
       if (Math.abs(accumulated) < WHEEL_STEP) return;
@@ -141,17 +241,36 @@ export function ArrangeView() {
     return () => el.removeEventListener('wheel', onWheel);
   }, [stepArrangeSize]);
 
+  const all = scope === 'all' && documents > 1;
+  const label = all
+    ? m.grid_region_label_all({ count: documents })
+    : m.grid_region_label({ title: doc?.title ?? '' });
+
   return (
-    <div className={styles.frame}>
-      <div ref={viewportRef} className={styles.viewport} data-testid="light-table">
-        {width > 0 ? <LightTable width={width} viewportRef={viewportRef} /> : null}
+    <section className={styles.frame} aria-label={label} data-pages-grid="">
+      <GridHeader />
+      <div
+        ref={viewportRef}
+        className={styles.viewport}
+        data-testid="light-table"
+        data-grid-viewport=""
+      >
+        {width - inset > 0 ? (
+          <LightTable
+            width={width - inset}
+            viewportRef={viewportRef}
+            padBottom={overhang + BAR_CLEARANCE}
+          />
+        ) : null}
       </div>
       {backgroundTarget ? (
         <div className={styles.backgroundOutline} aria-hidden="true">
           <span className={styles.dropLabel}>{m.arrange_drop_background()}</span>
         </div>
       ) : null}
-    </div>
+      <GridPinchChip ref={pinchChip} />
+      <GridLockNotice />
+    </section>
   );
 }
 
@@ -192,7 +311,7 @@ function dropHighlightAt(
     state.metrics,
     section.count,
     location.input.clientX - rect.left,
-    location.input.clientY - rect.top - GRID.headerHeight,
+    location.input.clientY - rect.top - (section.gridTop - section.top),
   );
   return {
     kind: 'gap',
@@ -203,12 +322,30 @@ function dropHighlightAt(
   };
 }
 
+/** The scroll offset that centres page `index` of section `section` (the entrance's reveal). */
+function revealOffset(
+  layout: ArrangeLayout<DocumentId>,
+  metrics: GridMetrics,
+  section: number,
+  index: number,
+  viewportHeight: number,
+): number {
+  const sectionLayout = layout.sections[section];
+  if (!sectionLayout) return 0;
+  const row = sectionLayout.count === 0 ? 0 : Math.floor(index / Math.max(1, metrics.columns));
+  const top = sectionLayout.gridTop + row * metrics.rowHeight;
+  const centred = top - (viewportHeight - metrics.rowHeight) / 2;
+  return Math.max(0, Math.min(centred, layout.totalHeight - viewportHeight));
+}
+
 function LightTable({
   width,
   viewportRef,
+  padBottom,
 }: {
   readonly width: number;
   readonly viewportRef: RefObject<HTMLDivElement | null>;
+  readonly padBottom: number;
 }) {
   'use no memo'; // TanStack Virtual mutates its instance; the React Compiler must not cache it.
   const sections = useShownSections();
@@ -216,29 +353,59 @@ function LightTable({
   const files = useWorkspaceStore((s) => s.files);
   const setActive = useWorkspaceStore((s) => s.setActive);
   const arrangeSize = useUiStore((s) => s.arrangeSize);
-  const setViewMode = useUiStore((s) => s.setViewMode);
   const focused = useSelectionStore((s) => s.focused);
   const apply = useSelectionStore((s) => s.apply);
-  const scrollToPage = useViewStore((s) => s.scrollToPage);
+  const currentIndex = useViewStore((s) => s.currentPage);
   const dragging = useDragSession((s) => s.session !== null);
   const tableRef = useRef<HTMLDivElement>(null);
   const marqueeRef = useRef<MarqueeDrag | null>(null);
   const scrollFocusPending = useRef(false);
+  /** The pointer type of the last press: a tap toggles, a click replaces (06.5). */
+  const pressType = useRef<string>('mouse');
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(
     null,
   );
   const [menuPage, setMenuPage] = useState<PageId | null>(null);
 
   const cellWidth = (ARRANGE_SIZES[arrangeSize] ?? ARRANGE_SIZES[1]).width;
-  const metrics = gridMetrics(width, cellWidth);
+  const metrics = gridMetrics(width, cellWidth, { centre: true });
   const specs = sections.map((s) => ({
     id: s.doc.id,
     count: s.doc.pages.length,
     collapsed: s.collapsed,
+    header: s.header,
   }));
-  const layout = computeLayout(specs, metrics);
+  // This document has no section header: the first row keeps a header's air above it.
+  const padTop = sections[0]?.header === false ? PAD_TOP_PLAIN : 8;
+  const layout = computeLayout(specs, metrics, padBottom, padTop);
   const el = viewportRef.current;
-  const screenRows = Math.max(1, Math.ceil((el?.clientHeight ?? 800) / metrics.rowHeight));
+  const viewportHeight = el?.clientHeight ?? 800;
+  const screenRows = Math.max(1, Math.ceil(viewportHeight / metrics.rowHeight));
+
+  const locate = (id: PageId): { section: number; index: number } | undefined => {
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
+      const index = section ? pageIndexes(section.doc).get(id) : undefined;
+      if (index !== undefined) return { section: i, index };
+    }
+    return undefined;
+  };
+
+  // The entrance (grid-transition.ts) asks for a page: the first render already draws its row,
+  // centred, so the view change finds the cell in its update callback. The scroll is written
+  // before the virtualizer reads it (this effect is declared first).
+  const [initialOffset] = useState(() => {
+    const page = takeGridReveal();
+    const location = page === null ? undefined : locate(page);
+    return location === undefined
+      ? 0
+      : revealOffset(layout, metrics, location.section, location.index, viewportHeight);
+  });
+  useLayoutEffect(() => {
+    if (initialOffset > 0 && viewportRef.current) viewportRef.current.scrollTop = initialOffset;
+    // Mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Opted out of the compiler above ('use no memo'), so the instance is read fresh.
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -246,13 +413,15 @@ function LightTable({
     count: layout.items.length,
     getScrollElement: () => viewportRef.current,
     estimateSize: (index) => layout.items[index]?.size ?? 0,
-    paddingStart: GRID.padTop,
-    paddingEnd: GRID.padBottom,
+    paddingStart: padTop,
+    paddingEnd: padBottom,
+    initialOffset,
+    initialRect: { width, height: viewportHeight },
     // Spec §7: render the visible range ± one screen (at low priority).
     overscan: screenRows + 1,
   });
-  const layoutKey = `${metrics.rowHeight}:${metrics.columns}:${specs
-    .map((s) => `${s.id}/${s.count}/${s.collapsed ? 1 : 0}`)
+  const layoutKey = `${metrics.rowHeight}:${metrics.columns}:${padBottom}:${specs
+    .map((s) => `${s.id}/${s.count}/${s.collapsed ? 1 : 0}/${s.header ? 1 : 0}`)
     .join(',')}`;
   useEffect(() => {
     virtualizer.measure();
@@ -265,15 +434,6 @@ function LightTable({
   });
 
   useEffect(() => provideArrangeColumns(() => stateRef.current.metrics.columns), []);
-
-  const locate = (id: PageId): { section: number; index: number } | undefined => {
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i];
-      const index = section ? pageIndexes(section.doc).get(id) : undefined;
-      if (index !== undefined) return { section: i, index };
-    }
-    return undefined;
-  };
 
   const scrollToCell = (section: number, index: number) => {
     const sectionLayout = layout.sections[section];
@@ -388,6 +548,7 @@ function LightTable({
             pageIds: data.pageIds,
             target: { document: highlight.section, index },
             duplicate: location.current.input.altKey,
+            select: false,
           });
         },
       }),
@@ -425,6 +586,14 @@ function LightTable({
         finish();
       },
     );
+  }, [viewportRef]);
+
+  // Touch and pen lift pages on the pointer path (§2.4); the mouse keeps the native drag above.
+  useEffect(() => {
+    const table = tableRef.current;
+    const viewport = viewportRef.current;
+    if (!table || !viewport) return;
+    return attachGridPointerDrag(table, viewport, () => stateRef.current);
   }, [viewportRef]);
 
   // ------------------------------------------------------------------ focus
@@ -568,16 +737,10 @@ function LightTable({
       apply(toggleSelection(state, id));
       return;
     }
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.altKey && !isMod(event) && !event.shiftKey) {
       event.preventDefault();
-      openInRead(id);
+      leaveGrid({ page: id });
     }
-  };
-
-  const openInRead = (id: PageId) => {
-    activateSectionOf(id);
-    setViewMode('read');
-    scrollToPage(id);
   };
 
   // ------------------------------------------------------------------ pointer
@@ -591,15 +754,21 @@ function LightTable({
     if (id === undefined) return;
     const location = locate(id);
     const order = location ? (sections[location.section]?.doc.pages.map((p) => p.id) ?? []) : [];
-    apply(
-      clickSelection(selectionSnapshot(), order, id, { shift: event.shiftKey, mod: isMod(event) }),
-    );
+    const state = selectionSnapshot();
+    // A tap toggles, so a finger selects many without modifiers (06.5, INV-R8); a click
+    // replaces, with Shift and Mod as on the desktop.
+    const next =
+      pressType.current === 'touch'
+        ? toggleSelection(state, id)
+        : clickSelection(state, order, id, { shift: event.shiftKey, mod: isMod(event) });
+    apply(next);
     activateSectionOf(id);
+    announce(m.status_selected({ count: next.selected.size }));
   };
 
   const onDoubleClick = (event: MouseEvent<HTMLDivElement>) => {
     const id = cellFrom(event);
-    if (id !== undefined) openInRead(id);
+    if (id !== undefined) leaveGrid({ page: id });
   };
 
   const onContextMenu = (event: MouseEvent<HTMLDivElement>) => {
@@ -651,6 +820,8 @@ function LightTable({
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    pressType.current = event.pointerType;
+    // Touch never marquees: a finger scrolls, taps toggle, a long press lifts (PG5 §6).
     if (event.button !== 0 || event.pointerType === 'touch') return;
     const target = event.target as Element;
     if (
@@ -721,80 +892,109 @@ function LightTable({
     if (layoutItem.kind === 'row') rows.push(layoutItem.row);
     rowsBySection.set(layoutItem.section, rows);
   }
-  const viewTop = el?.scrollTop ?? 0;
-  const viewBottom = viewTop + (el?.clientHeight ?? 0);
+  const viewTop = el?.scrollTop ?? initialOffset;
+  const viewBottom = viewTop + viewportHeight;
   const marqueeRect =
     marquee === null ? null : normalizeRect(marquee.x1, marquee.y1, marquee.x2, marquee.y2);
+  // The page that was current on the page view: the lime ring (§2.2).
+  const activeId = ws.activeDocument;
+  const activeDoc = activeId === undefined ? undefined : ws.documents[activeId];
+  const currentId = activeDoc?.pages[Math.min(currentIndex, activeDoc.pages.length - 1)]?.id;
 
   return (
     <ContextMenu.Root>
-      <ContextMenu.Trigger
-        ref={tableRef}
-        className={styles.table}
-        style={{ height: layout.totalHeight }}
-        tabIndex={-1}
-        data-dragging={dragging || undefined}
-        onClick={onClick}
-        onDoubleClick={onDoubleClick}
-        onKeyDown={onKeyDown}
-        onContextMenu={onContextMenu}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endMarquee}
-        onPointerCancel={endMarquee}
+      {/* Reflow on what a person did (a move, a size step, a collapse), never on a resize. */}
+      <FlipCells
+        root={tableRef}
+        flipKey={`${arrangeSize}|${specs
+          .map((s) => `${s.id}/${s.collapsed ? 1 : 0}/${s.header ? 1 : 0}`)
+          .join(',')}|${sectionsSignature(sections)}`}
       >
-        {sections.map((section, i) => {
-          const rows = rowsBySection.get(i);
-          const sectionLayout = layout.sections[i];
-          if (rows === undefined || sectionLayout === undefined) return null;
-          const first = rows[0];
-          const focusedIndex = focused === null ? undefined : pageIndexes(section.doc).get(focused);
-          const focusedRendered =
-            focusedIndex !== undefined && rows.includes(Math.floor(focusedIndex / metrics.columns));
-          const tabbableId = focusedRendered
-            ? (focused ?? undefined)
-            : first === undefined
-              ? undefined
-              : section.doc.pages[first * metrics.columns]?.id;
-          return (
-            <ArrangeSection
-              key={section.doc.id}
-              section={section}
-              layout={sectionLayout}
-              metrics={metrics}
-              rows={rows}
-              ws={ws}
-              files={files}
-              viewTop={viewTop}
-              viewBottom={viewBottom}
-              tabbableId={tabbableId}
+        <ContextMenu.Trigger
+          ref={tableRef}
+          className={styles.table}
+          style={{ height: layout.totalHeight }}
+          tabIndex={-1}
+          data-dragging={dragging || undefined}
+          onClick={onClick}
+          onDoubleClick={onDoubleClick}
+          onKeyDown={onKeyDown}
+          onContextMenu={onContextMenu}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endMarquee}
+          onPointerCancel={endMarquee}
+          // A finger's hold lifts the page (grid-pointer-drag.ts); Base UI's own 500 ms touch
+          // menu is not used for pages (spec X5), so its handler is kept out.
+          onTouchStart={(event: { preventBaseUIHandler?: () => void }) =>
+            event.preventBaseUIHandler?.()
+          }
+        >
+          {sections.map((section, i) => {
+            const rows = rowsBySection.get(i);
+            const sectionLayout = layout.sections[i];
+            if (rows === undefined || sectionLayout === undefined) return null;
+            const first = rows[0];
+            const focusedIndex =
+              focused === null ? undefined : pageIndexes(section.doc).get(focused);
+            const focusedRendered =
+              focusedIndex !== undefined &&
+              rows.includes(Math.floor(focusedIndex / metrics.columns));
+            const tabbableId = focusedRendered
+              ? (focused ?? undefined)
+              : first === undefined
+                ? undefined
+                : section.doc.pages[first * metrics.columns]?.id;
+            return (
+              <ArrangeSection
+                key={section.doc.id}
+                section={section}
+                layout={sectionLayout}
+                metrics={metrics}
+                rows={rows}
+                ws={ws}
+                files={files}
+                viewTop={viewTop}
+                viewBottom={viewBottom}
+                tabbableId={tabbableId}
+                currentId={section.doc.id === activeId ? currentId : undefined}
+              />
+            );
+          })}
+          {marqueeRect ? (
+            <div
+              className={styles.marquee}
+              data-testid="marquee"
+              aria-hidden="true"
+              style={{
+                left: marqueeRect.left,
+                top: marqueeRect.top,
+                width: marqueeRect.right - marqueeRect.left,
+                height: marqueeRect.bottom - marqueeRect.top,
+              }}
             />
-          );
-        })}
-        {marqueeRect ? (
-          <div
-            className={styles.marquee}
-            data-testid="marquee"
-            aria-hidden="true"
-            style={{
-              left: marqueeRect.left,
-              top: marqueeRect.top,
-              width: marqueeRect.right - marqueeRect.left,
-              height: marqueeRect.bottom - marqueeRect.top,
-            }}
-          />
-        ) : null}
-        <ContextualBar
-          sections={sections}
-          layout={layout}
-          metrics={metrics}
-          width={width}
-          viewTop={viewTop}
-          viewBottom={viewBottom}
-          suppressed={marquee !== null}
-        />
-      </ContextMenu.Trigger>
+          ) : null}
+        </ContextMenu.Trigger>
+      </FlipCells>
       <ArrangeContextMenuPopup pageId={menuPage} sectionIds={sections.map((s) => s.doc.id)} />
     </ContextMenu.Root>
   );
+}
+
+/**
+ * What the cells' places depend on beyond the layout key: each section's page order. A
+ * reorder within a section keeps its count, so the order itself is part of the FLIP key.
+ */
+const signatures = new WeakMap<ShownSection['doc']['pages'], string>();
+function sectionsSignature(sections: readonly ShownSection[]): string {
+  return sections
+    .map((s) => {
+      let signature = signatures.get(s.doc.pages);
+      if (signature === undefined) {
+        signature = s.doc.pages.map((p) => p.id).join(',');
+        signatures.set(s.doc.pages, signature);
+      }
+      return signature;
+    })
+    .join('|');
 }

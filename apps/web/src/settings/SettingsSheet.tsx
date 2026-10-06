@@ -7,9 +7,9 @@
  * - **Presentation** (`ui/sheet/presentation.ts`, kind `settings`): a 480 px side sheet over a
  *   scrim from the expanded class up, a form sheet (≤ 640) on medium, a bottom sheet at 92 % on
  *   a compact desktop window. One grouped scroll at every size; Kept documents, Saved
- *   signatures, Privacy and About Recto push a page (‹ Back in the header, *sheet push* motion: 24 px and a fade on the
- *   smooth spring, a 150 ms fade under reduced motion, transform and opacity only, cleared at
- *   the end, quality-bar Q-2, Q-7).
+ *   signatures, Privacy and About Recto push a page (‹ Back in the header, the catalogue's
+ *   *sheet push*, X8: 24 px and a fade on the smooth spring, a 150 ms fade under reduced
+ *   motion, transform and opacity only, cleared at the end, quality-bar Q-2, Q-7).
  * - **Search** (`search-index.ts`): filters rows by their EN and TR titles and keywords without
  *   diacritics; a match inside a pushed page shows that page's row with what it found. The
  *   field is `role="search"`, the result count is polite, and no match says "No setting matches
@@ -28,7 +28,7 @@
 import { Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
-import { springToLinear, reducedMotion } from '../motion';
+import { sheetPush } from '../motion';
 import { useLastInput, usePointerCapabilities } from '../shell/frame/input-modality';
 import { ScrollArea } from '../ui/ScrollArea';
 import { SearchField } from '../ui/SearchField';
@@ -57,17 +57,17 @@ import {
 import {
   AboutRow,
   CommentNameRow,
-  GlassPanelsRow,
+  GlassRow,
   KeptDocumentsRow,
   LanguageRow,
   type MainRowId,
   PenDrawsRow,
   PrivacyRow,
   RecentsRow,
-  ReduceTransparencyRow,
   ShortcutsRow,
   ShowTipsRow,
 } from './sections';
+import { ReduceMotionRow } from './ReduceMotionRow';
 import styles from './Settings.module.css';
 
 type Push = (page: SettingsPageId) => void;
@@ -76,8 +76,8 @@ type Push = (page: SettingsPageId) => void;
 const ROWS: Readonly<
   Record<MainRowId, (props: { onPush: Push; hint: string | undefined }) => ReactNode>
 > = {
-  glassPanels: () => <GlassPanelsRow />,
-  reduceTransparency: () => <ReduceTransparencyRow />,
+  glass: () => <GlassRow />,
+  reduceMotion: () => <ReduceMotionRow />,
   language: () => <LanguageRow />,
   penDrawsInEdit: () => <PenDrawsRow />,
   keptDocuments: (props) => <KeptDocumentsRow {...props} />,
@@ -134,21 +134,6 @@ function revealTarget(target: SettingsTarget, root: ParentNode | null): void {
   });
 }
 
-/** *Sheet push* (07 §27.3): the page slides 24 px in from the side it comes from and fades. */
-function pushMotion(element: HTMLElement | null, direction: 1 | -1): void {
-  if (!element || typeof element.animate !== 'function') return;
-  const frames = reducedMotion()
-    ? [{ opacity: 0 }, { opacity: 1 }]
-    : [
-        { transform: `translateX(${24 * direction}px)`, opacity: 0 },
-        { transform: 'none', opacity: 1 },
-      ];
-  const curve = reducedMotion() ? { duration: 150, easing: 'ease-out' } : springToLinear('smooth');
-  const animation = element.animate(frames, { duration: curve.duration, easing: curve.easing });
-  // Nothing stays on the element at rest (Q-2).
-  animation.onfinish = () => animation.cancel();
-}
-
 export default function SettingsSheet() {
   const open = useSheetOpen(SETTINGS_SHEET_ID);
   const [query, setQuery] = useSheetDraft<string>(SETTINGS_SHEET_ID, null, '');
@@ -197,7 +182,7 @@ export default function SettingsSheet() {
     if (previous === page) return;
     shownPage.current = page;
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
-    pushMotion(bodyRef.current, page === null ? -1 : 1);
+    sheetPush(bodyRef.current, page === null ? -1 : 1);
     if (!panel()?.contains(document.activeElement) && document.activeElement !== document.body) {
       return;
     }

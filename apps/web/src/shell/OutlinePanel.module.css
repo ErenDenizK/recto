@@ -40,10 +40,16 @@
   gap: 2px;
   height: 28px;
   padding-inline-end: var(--space-2);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-control);
   color: var(--text-secondary);
   cursor: default;
   user-select: none;
+}
+
+/* The current location (06-navigation N3 §4): the current-row wash, primary text. */
+.row[aria-current='location'] {
+  background: var(--accent-muted);
+  color: var(--text-primary);
 }
 
 /* Drag and drop: the dragged row dims; the target shows a line (before / after) or an
@@ -78,7 +84,7 @@
 
 .row[data-drop='into'] {
   background: var(--accent-muted);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
 @media (hover: hover) {
@@ -161,7 +167,7 @@
   padding: var(--space-3);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-3);
+  background: var(--surface-on);
 }
 
 .noticeTitle {
@@ -172,9 +178,9 @@
 }
 
 .noticeUrl {
+  composes: technical from global;
   overflow: hidden;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -205,4 +211,8 @@
   .toggle svg {
     transition: none;
   }
+}
+
+:global(:root[data-motion='reduced']) .toggle svg {
+  transition: none;
 }

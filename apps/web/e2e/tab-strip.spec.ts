@@ -1,10 +1,11 @@
 /**
- * The title bar's tabs at every width a full edition meets (XD-3; quality-bar Q-8, Q-9;
+ * The top strip's tabs at every width a full edition meets (XD-3, 01-frame F4; quality-bar Q-8, Q-9;
  * redesign §8 A-21): with one and with four documents open, in English and Turkish, the active
  * tab is wholly in view and at least its minimum width (01-frame F4 §2: 112 px fine, 128
  * coarse), its name shows at least `MIN_LABEL` px of text, and a name that does not fit ends in
- * an ellipsis with the full name kept as the tab's tooltip and accessible name. Tabs beyond an
- * edge of the scrolling list fade at that edge, never cut to a bare dot. The bar is one of Q-9's
+ * an ellipsis with the full name kept as the tab's tooltip and accessible name. Tabs that do not
+ * fit go into "N more" (spec 01.Q1); should the list still scroll, its edge fades, never cut to
+ * a bare dot. The bar is one of Q-9's
  * heights (44 fine, 56 coarse) and nothing in it is pushed past the window.
  *
  * Runs on `chromium` (fine pointer: 768, 1024, 1180 and 1440 px) and `tablet` (coarse: 768,
@@ -144,13 +145,41 @@ for (const lang of ['en', 'tr'] as const) {
     await expect(last).toBeVisible();
     await last.click();
     await expect(last).toHaveAttribute('tabindex', '0');
+    // F2 opens the title menu on its name field (01-frame F4 §6, spec 01.4).
     await last.press('F2');
-    const editor = page.locator('[data-bar="title"] input');
+    const editor = page.getByTestId('title-menu-name');
     await expect(editor).toBeFocused();
     await editor.fill(LONG_NAME[lang]);
     await editor.press('Enter');
+    await page.keyboard.press('Escape');
+    await expect(editor).toHaveCount(0);
     const renamed = page.getByRole('tab', { name: new RegExp(`^${LONG_NAME[lang]}`) });
     await expect(renamed).toHaveAttribute('tabindex', '0');
     await check('four tabs', LONG_NAME[lang]);
   });
 }
+
+test('✕ sits the same distance after every tab’s name, a short one too', async ({ page }) => {
+  // 01-frame F4 §2: a tab shorter than its minimum width ("forms-a") floated its ✕ to the far
+  // end while the others hugged their names. On the Library every tab shows (none active);
+  // ✕ always shows on a coarse pointer and keeps its place while hidden on a fine one.
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  await openFixtures(page, ['simple-text.pdf', 'forms-a.pdf', 'rotated-pages.pdf']);
+  await page.keyboard.press('0');
+  await expect(page.getByTestId('home')).toBeVisible();
+  const gaps = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[data-bar="title"] [role="tab"]')].map((tab) => {
+      const name = [...tab.querySelectorAll('span')].find(
+        (span) => span.getAttribute('aria-hidden') !== 'true' && span.textContent,
+      );
+      const close = tab.querySelector('[title^="Close"]');
+      if (!name || !close) return Number.NaN;
+      return close.getBoundingClientRect().left - name.getBoundingClientRect().right;
+    }),
+  );
+  expect(gaps).toHaveLength(3);
+  for (const gap of gaps) {
+    expect(Math.abs(gap - (gaps[0] ?? 0)), JSON.stringify(gaps)).toBeLessThan(1);
+  }
+});

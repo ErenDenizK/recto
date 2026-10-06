@@ -8,8 +8,7 @@
  */
 import { ContextMenu } from '@base-ui/react/context-menu';
 import { type DocumentId, findPageLocation, type PageId } from '@pdf-editor/document-model';
-import { ChevronRight } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 
 import { commandRegistry } from '../commands/registry';
 import { useCommand } from '../commands/use-commands';
@@ -17,6 +16,7 @@ import { m } from '../i18n';
 import { useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import { useTabItems, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { Keycaps } from '../ui/Keycaps';
 import menuStyles from '../ui/Menu.module.css';
 import { movePagesToDocument, selectFromSource, selectParity } from './arrange-actions';
@@ -26,14 +26,25 @@ function CommandItem({ command, label }: { readonly command: string; readonly la
   const registered = useCommand(command);
   const enabled = registered !== undefined && commandRegistry.isEnabled(registered);
   const shortcut = registered?.shortcuts[0];
+  // A dimmed item says why, in the keycap's place ("Locked · unlock first"; ADR-0030 §2.3).
+  const reason =
+    registered === undefined || enabled ? undefined : commandRegistry.disabledReason(registered);
+  const reasonId = useId();
   return (
     <ContextMenu.Item
       className={menuStyles.item}
       disabled={!enabled}
+      aria-describedby={reason ? reasonId : undefined}
       onClick={() => void commandRegistry.execute(command)}
     >
       <span className={menuStyles.label}>{label}</span>
-      {shortcut ? <Keycaps shortcut={shortcut} tone="quiet" /> : null}
+      {reason ? (
+        <span id={reasonId} className={menuStyles.hint} aria-hidden="true">
+          {reason}
+        </span>
+      ) : shortcut ? (
+        <Keycaps shortcut={shortcut} tone="quiet" />
+      ) : null}
     </ContextMenu.Item>
   );
 }
@@ -108,7 +119,7 @@ function MenuItems({
       <ContextMenu.SubmenuRoot>
         <ContextMenu.SubmenuTrigger className={menuStyles.item} disabled={!hasSelection}>
           <span className={menuStyles.label}>{m.action_move_to()}</span>
-          <ChevronRight className={styles.menuSubmenuArrow} aria-hidden="true" />
+          <Icon name="caret-right" className={styles.menuSubmenuArrow} />
         </ContextMenu.SubmenuTrigger>
         <ContextMenu.Portal>
           <ContextMenu.Positioner side="right" align="start" sideOffset={4} collisionPadding={8}>

@@ -2,6 +2,11 @@
  * The compact reader's sheets (ADR-0033 §2.3): Pages (a thumbnail grid to jump), Contents
  * (the file's outline), Go to page, Document info and About. One opens at a time, from the
  * capsule or the ⋯ menu; a jump closes its sheet and lands the page under the top bar.
+ *
+ * The compact edition has no Settings sheet; its one setting besides the Library's language
+ * switch is Reduce motion (language.md §7.6, A-9), at the end of About as the full edition's
+ * own row (`settings/ReduceMotionRow.tsx`, the same `appearance-store` field), so a person who
+ * wants less motion than their system asks for can say so on a phone too.
  */
 import type {
   OutlineNode,
@@ -10,7 +15,6 @@ import type {
   VirtualPage,
   Workspace,
 } from '@pdf-editor/document-model';
-import { ArrowUpRight } from 'lucide-react';
 import {
   type ReactNode,
   type RefObject,
@@ -23,12 +27,15 @@ import {
 
 import { RENDER_PRIORITY } from '../../engine/engine-service';
 import { formatFileSize } from '../../home/home-model';
-import { getLocale, m } from '../../i18n';
+import { formatDay, getLocale, m } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
 import { displaySize, fitInBox } from '../../pages/page-geometry';
 import { contentFrame, ResizedContent } from '../../stage/ResizedContent';
+import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
+import { Section } from '../../settings/rows';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { Icon } from '../../ui/Icon';
 import { documentLabels, hasCustomLabels, parseGoTo } from '../../viewer/navigation';
 import { BUILD_INFO, LICENSE_ID, PRODUCT_NAME, REPOSITORY_URL } from '../about/build-info';
 import { AppGlyph } from '../AppGlyph';
@@ -343,7 +350,7 @@ function Contents({ doc }: { readonly doc: VirtualDocument }) {
                       })}
                     </span>
                   </span>
-                  <ArrowUpRight className={styles.contentsIcon} aria-hidden="true" />
+                  <Icon name="arrow-up-right" className={styles.contentsIcon} />
                 </a>
               </li>
             );
@@ -501,7 +508,7 @@ function About() {
   const date = new Date(BUILD_INFO.buildDate);
   const built = Number.isNaN(date.getTime())
     ? BUILD_INFO.buildDate
-    : new Intl.DateTimeFormat(getLocale(), { dateStyle: 'long' }).format(date);
+    : formatDay(date, { year: true });
   return (
     <div className={styles.about}>
       <div className={styles.aboutHead}>
@@ -533,14 +540,19 @@ function About() {
           rel="noreferrer"
         >
           <span>{m.about_release_notes()}</span>
-          <ArrowUpRight aria-hidden="true" />
+          <Icon name="arrow-up-right" />
           <span className="visually-hidden"> {m.about_new_tab()}</span>
         </a>
         <a className={styles.link} href={REPOSITORY_URL} target="_blank" rel="noreferrer">
           <span>{m.about_source()}</span>
-          <ArrowUpRight aria-hidden="true" />
+          <Icon name="arrow-up-right" />
           <span className="visually-hidden"> {m.about_new_tab()}</span>
         </a>
+      </div>
+      <div className={styles.aboutSettings}>
+        <Section title={m.appearance_heading()}>
+          <ReduceMotionRow />
+        </Section>
       </div>
     </div>
   );

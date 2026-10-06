@@ -15,6 +15,7 @@ import {
   reloadFresh,
   sentInkWidths,
   useFileInputPicker,
+  showSidebar,
 } from './helpers';
 
 function layer(page: Page, index = 0) {
@@ -243,21 +244,21 @@ test.describe('pen presets and bursts', () => {
     await recordInkStyles(page);
   });
 
-  test('presets in the Draw group: arm blue, draw, reload, still blue; an edit changes the next stroke', async ({
+  test('presets in the pen well: arm blue, draw, reload, still blue; an edit changes the next stroke', async ({
     page,
   }) => {
+    // Two opens and a reload in one walk.
+    test.slow();
     await openSimple(page);
-    const bar = page.getByRole('toolbar', { name: 'Tools' });
-    await bar.getByRole('button', { name: 'Write', exact: true }).click();
-    const presets = bar.getByRole('radiogroup', { name: 'Pen presets' });
-    await expect(presets.getByRole('radio')).toHaveCount(4);
-    await expect(presets.getByRole('radio', { name: 'Black pen, 1.5 pt' })).toBeVisible();
-    await expect(presets.getByRole('radio', { name: 'Yellow highlighter, 12 pt' })).toBeVisible();
-    const blue = presets.getByRole('radio', { name: 'Blue pen, 1.5 pt' });
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+    const presets = bar.locator('[data-pen-well]');
+    await expect(presets.locator('[data-pen-preset]')).toHaveCount(4);
+    await expect(presets.getByRole('button', { name: 'Black pen, 1.5 pt' })).toBeVisible();
+    await expect(presets.getByRole('button', { name: 'Yellow highlighter, 12 pt' })).toBeVisible();
+    const blue = presets.getByRole('button', { name: 'Blue pen, 1.5 pt' });
     await blue.click();
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
-    await expect(blue).toHaveAttribute('aria-checked', 'true');
-    await expect(blue).toHaveAttribute('data-armed', '');
+    await expect(blue).toHaveAttribute('aria-pressed', 'true');
     // Arming opens nothing.
     await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
 
@@ -272,10 +273,9 @@ test.describe('pen presets and bursts', () => {
     await page.locator('body').press('p');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
     const again = page
-      .getByRole('radiogroup', { name: 'Pen presets' })
-      .getByRole('radio', { name: 'Blue pen, 1.5 pt' });
-    await expect(again).toHaveAttribute('aria-checked', 'true');
-    await expect(again).toHaveAttribute('data-armed', '');
+      .getByRole('toolbar', { name: 'Markup', exact: true })
+      .getByRole('button', { name: 'Blue pen, 1.5 pt' });
+    await expect(again).toHaveAttribute('aria-pressed', 'true');
     await mouseStroke(page, [0.2, 0.3], [0.5, 0.31]);
     await expect(ink).toHaveCount(1, { timeout: 10_000 });
     expect(await lastInkStyle(page)).toMatchObject({ color: '#1760EE', strokeWidth: 1.5 });
@@ -309,8 +309,7 @@ test.describe('pen presets and bursts', () => {
     await expect(ink).toHaveCount(1);
     expect(await lastInkStyle(page)).toMatchObject({ paths: 2 });
 
-    const review = page.getByRole('tab', { name: /^Review/ });
-    if ((await review.getAttribute('aria-selected')) !== 'true') await review.click();
+    await showSidebar(page, 'Review');
     const rows = page.locator('[data-review-panel] [data-annotation-row]');
     await expect(rows).toHaveCount(1);
     await expect(rows.first()).toContainText('Pen · 2 strokes');
@@ -331,9 +330,9 @@ test.describe('pen presets and bursts', () => {
     await page.locator('body').press('h');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
     const highlighter = page
-      .getByRole('radiogroup', { name: 'Pen presets' })
-      .getByRole('radio', { name: 'Yellow highlighter, 12 pt' });
-    await expect(highlighter).toHaveAttribute('aria-checked', 'true');
+      .getByRole('toolbar', { name: 'Markup', exact: true })
+      .getByRole('button', { name: 'Yellow highlighter, 12 pt' });
+    await expect(highlighter).toHaveAttribute('aria-pressed', 'true');
 
     // The longest line of the page's text, as the text layer places it.
     const rows = page.getByTestId('text-layer').first().locator('span[data-row]');
@@ -357,8 +356,7 @@ test.describe('pen presets and bursts', () => {
     const highlight = layer(page).locator('[data-annotation-kind="highlight"]');
     await expect(highlight).toHaveCount(1, { timeout: 10_000 });
     await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(0);
-    const review = page.getByRole('tab', { name: /^Review/ });
-    if ((await review.getAttribute('aria-selected')) !== 'true') await review.click();
+    await showSidebar(page, 'Review');
     const reviewRows = page.locator('[data-review-panel] [data-annotation-row]');
     await expect(reviewRows).toHaveCount(1);
     await expect(reviewRows.first()).toContainText('Highlight');
@@ -734,7 +732,8 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     await openSimple(page);
     await page.locator('body').press('p');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
-    const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
+    // The palette's glass, the capsule, is what fades (MK-17).
+    const bar = page.locator('[data-capsule="palette"]');
     const page1 = await layer(page).boundingBox();
     const barBox = await bar.boundingBox();
     if (!page1 || !barBox) throw new Error('not laid out');
@@ -756,9 +755,9 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     const xs = (path ?? []).map((p) => p[0] ?? 0);
     expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan((to - from) * 0.9);
     await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
-    await expect(bar.getByRole('radio', { name: 'Black pen, 1.5 pt' })).toHaveAttribute(
-      'data-armed',
-      '',
+    await expect(bar.getByRole('button', { name: 'Black pen, 1.5 pt' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
     // A second after the stroke, the bar is back.
     await expect(bar).toHaveCSS('opacity', '1', { timeout: 3000 });
@@ -769,31 +768,31 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     page,
   }) => {
     await openSimple(page);
-    const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
     const said = (text: string) => page.getByRole('status').filter({ hasText: text });
     await page.locator('body').press('p');
-    await bar.getByRole('radio', { name: 'Blue pen, 1.5 pt' }).click();
+    await bar.getByRole('button', { name: 'Blue pen, 1.5 pt' }).click();
     await page.locator('body').press('h');
-    await expect(bar.getByRole('radio', { name: 'Yellow highlighter, 12 pt' })).toHaveAttribute(
-      'data-armed',
-      '',
+    await expect(bar.getByRole('button', { name: 'Yellow highlighter, 12 pt' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
     await expect(said('Yellow highlighter, 12 pt')).toHaveCount(1);
     await page.locator('body').press('p');
-    await expect(bar.getByRole('radio', { name: 'Blue pen, 1.5 pt' })).toHaveAttribute(
-      'data-armed',
-      '',
+    await expect(bar.getByRole('button', { name: 'Blue pen, 1.5 pt' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
     await expect(said('Blue pen, 1.5 pt')).toHaveCount(1);
   });
 
-  test('picking Draw arms the pen: the first stroke draws', async ({ page }) => {
+  test('a pen cell arms the pen: the first stroke draws', async ({ page }) => {
     await openSimple(page);
-    const bar = page.getByRole('toolbar', { name: 'Tools' });
-    await bar.getByRole('button', { name: 'Write', exact: true }).click();
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+    const black = bar.getByRole('button', { name: 'Black pen, 1.5 pt' });
+    await black.click();
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
-    const black = bar.getByRole('radio', { name: 'Black pen, 1.5 pt' });
-    await expect(black).toHaveAttribute('data-armed', '');
+    await expect(black).toHaveAttribute('aria-pressed', 'true');
     await mouseStroke(page, [0.2, 0.3], [0.5, 0.31]);
     await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(1, {
       timeout: 10_000,
@@ -801,7 +800,7 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     // Another Draw tool: no preset ring.
     await page.locator('body').press('q');
     await expect(layer(page)).toHaveAttribute('data-tool', 'lasso');
-    await expect(bar.locator('[data-pen-preset][data-armed]')).toHaveCount(0);
+    await expect(bar.locator('[data-pen-preset][aria-pressed="true"]')).toHaveCount(0);
   });
 
   test('the next line is a new burst; Ctrl+Z inside a burst removes its last stroke only', async ({
@@ -855,13 +854,10 @@ test.describe('eraser and straight lines (craft spec §5.6)', () => {
     const cut = { x: midX - 3, y: y - 6, width: 6, height: 12 };
     expect(await darkShare(page, cut)).toBeGreaterThan(0.1);
 
-    // The eraser's tier, asked for (Shift+E again: tiers open only on request): Partial,
-    // remembered.
+    // The eraser's ink strip, shown on arming (10-ink §2.3): Partial, remembered.
     await page.locator('body').press('Shift+E');
     await expect(layer(page)).toHaveAttribute('data-tool', 'eraser');
     const tier = page.getByRole('toolbar', { name: 'Eraser options' });
-    await expect(tier).toHaveCount(0);
-    await page.locator('body').press('Shift+E');
     await tier.getByRole('radio', { name: 'Partial' }).click();
     await expect(tier.getByRole('radio', { name: 'Partial' })).toHaveAttribute(
       'aria-checked',

@@ -7,7 +7,7 @@
  * Runs at 1440 × 900 on the desktop projects (fine), on the `tablet` project (coarse, the full
  * edition at 820 × 1180) and, for the compact edition, on `phone`. States: Home, Read, the
  * text selection bar, Edit with each of the bar's five groups, an options tier, a tool menu,
- * the Document menu, the page context menu, Arrange with its contextual bar, the History
+ * the title menu and the page pill's menu (D2-1), the page context menu, Arrange with its contextual bar, the History
  * scrubber under ↶ (D0-6), the toast stack (an Undo toast and a failure toast, hovered so ✕
  * shows), an annotation's bar, a dialog with its footer, the Save a copy sheet's header and
  * footer (D0-9), the sheets of D0-4 (the shortcuts overlay's header, the password prompt's
@@ -19,7 +19,13 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  fixturePath,
+  openFixtures,
+  useFileInputPicker,
+  openSaveCopyFromMenu,
+} from './helpers';
 import { auditBars, type BarFinding, type ControlKind } from './support/bar-audit';
 import { focusStops, type Leak, nativeLeaks } from './support/native-leaks';
 
@@ -92,7 +98,7 @@ test.describe('the full edition', () => {
     await useFileInputPicker(page);
   });
 
-  test('Home, Read, Edit with each group and a tier, menus, Arrange, a dialog', async ({
+  test('Home, Read, Markup with each ink strip, menus, the preset editor, Arrange, a dialog', async ({
     page,
   }) => {
     // Some twenty states in one walk: more than the default 30 s on a loaded machine.
@@ -119,43 +125,49 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
 
     await enterEdit(page);
-    const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
-    for (const group of ['select', 'write', 'text', 'fill', 'redact']) {
-      const button = bar.locator(`[data-bar-group="${group}"]`);
-      if ((await button.count()) === 0) continue;
-      await button.first().click();
-      await page.mouse.move(2, 450);
-      await run.audit(`Edit, ${group}`);
-      // Back to the group row.
-      const chip = bar.locator('[data-bar-chip]');
-      if ((await chip.count()) > 0) await chip.first().click();
-    }
-
-    // A tool menu on the bar.
-    await bar.locator('[data-bar-group="write"]').click();
-    await bar.locator('[aria-haspopup="menu"]').first().click();
-    await expect(page.getByRole('menu')).toBeVisible();
-    await run.audit('Edit, a tool menu');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('menu')).toHaveCount(0);
-
-    // An armed tool's options tier (T, the Text box, twice).
-    await page.locator('body').press('t');
-    await page.locator('body').press('t');
-    await expect(page.getByTestId('options-tier')).toBeVisible();
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
     await page.mouse.move(2, 450);
-    await run.audit('Edit, options tier');
+    await run.audit('Markup, Select');
+    // Each tool with an ink strip (10-ink §2): the palette and its strip row, one system.
+    for (const key of ['p', 'h', 'Shift+E', 't', 'n', 'r']) {
+      await page.locator('body').press(key);
+      await expect(page.getByTestId('ink-strip')).toBeVisible();
+      await page.mouse.move(2, 450);
+      await run.audit(`Markup, the ink strip after ${key}`);
+    }
     await page.keyboard.press('Escape');
 
-    // The Document menu.
-    await page
-      .getByRole('button', { name: /^Document/ })
-      .first()
-      .click();
+    // A tool menu on the palette (Shapes ▾, its second press).
+    await bar.getByRole('button', { name: /^Shapes/ }).click();
+    await bar.getByRole('button', { name: /^Shapes/ }).click();
     await expect(page.getByRole('menu')).toBeVisible();
-    await run.audit('the Document menu');
+    await run.audit('Markup, a tool menu');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menu')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+
+    // The preset editor (a second press on the armed pen).
+    await bar.getByRole('button', { name: 'Black pen, 1.5 pt' }).click();
+    await bar.getByRole('button', { name: 'Black pen, 1.5 pt' }).click();
+    await expect(page.getByTestId('pen-preset-editor')).toBeVisible();
+    await run.audit('Markup, the preset editor');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+
+    // The title menu (01-frame F5): its header controls and its rows, from the active tab.
+    await page.getByTestId('document-menu').click();
+    await expect(page.getByTestId('title-menu').getByRole('menu')).toBeVisible();
+    await run.audit('the title menu');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('title-menu')).toHaveCount(0);
+
+    // The page pill's menu (01-frame F11).
+    await page.getByTestId('page-pill').click();
+    await expect(page.getByTestId('page-pill-menu')).toBeVisible();
+    await run.audit('the page pill menu');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('page-pill-menu')).toHaveCount(0);
 
     // The page context menu.
     const first = await page.locator('[data-page-index="0"]').boundingBox();
@@ -166,7 +178,7 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
 
     // Save a copy, a task Sheet (D0-9): its header and footer, with a pushed page's ‹ Back.
-    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await openSaveCopyFromMenu(page);
     const saveCopy = page.getByTestId('save-copy-sheet');
     await expect(saveCopy).toBeVisible();
     await run.audit('the Save a copy sheet');
@@ -200,14 +212,14 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // Arrange and its contextual bar.
+    // The Pages grid and its Pages bar (the capsule, X21).
     await page.keyboard.press('3');
     await expect(page.getByTestId('light-table')).toBeVisible();
-    await run.audit('Arrange');
+    await run.audit('Pages grid');
     await page.getByTestId('light-table').getByRole('gridcell').nth(1).click();
-    await expect(page.getByTestId('contextual-bar')).toBeVisible();
+    await expect(page.getByTestId('pages-bar')).toContainText('1 selected');
     await page.mouse.move(2, 450);
-    await run.audit('Arrange, a page selected');
+    await run.audit('Pages grid, a page selected');
 
     // ↶ ↷ sit in the title bar (audited with it above); the History scrubber under ↶, after a
     // step to scrub (D0-6): its list on a fine pointer, its slider and Cancel on a coarse one.
@@ -270,10 +282,9 @@ test.describe('the full edition', () => {
     test.setTimeout(60_000);
     const run = collector(page);
     await openFull(page, 'simple-text.pdf');
-    await enterEdit(page);
-    const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
-    await bar.locator('[data-bar-group="fill"]').click();
-    await bar.getByRole('button', { name: 'Signature image', exact: true }).click();
+    await page.locator('[data-dock-item="sign"]').click();
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+    await bar.getByRole('button', { name: 'Sign', exact: true }).click();
     const sheet = page.getByRole('dialog', { name: 'New signature' });
     await expect(sheet).toBeVisible();
     const pad = sheet.getByRole('img', { name: /^Signature pad/ });
@@ -295,9 +306,9 @@ test.describe('the full edition', () => {
     await page.keyboard.press('Escape');
     await expect(bar.locator('[data-saved-signature]')).toHaveCount(1);
     await page.mouse.move(2, 450);
-    await run.audit('Edit, fill, a saved signature chip');
+    await run.audit('Markup, Fill & sign, a saved signature chip');
 
-    await bar.getByRole('button', { name: 'Signature image', exact: true }).click();
+    await bar.getByRole('button', { name: 'Sign', exact: true }).click({ button: 'right' });
     await expect(page.getByRole('menu')).toBeVisible();
     await run.audit('Edit, the signature menu');
     await page.keyboard.press('Escape');
@@ -349,7 +360,7 @@ test.describe('the full edition', () => {
     await tab('Read', () => page.locator('body').focus());
 
     // The two D0 sheets, whose Tab cycles are trapped.
-    await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+    await openSaveCopyFromMenu(page);
     await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
     await tab('the Save a copy sheet');
     await page.keyboard.press('Escape');

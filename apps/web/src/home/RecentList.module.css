@@ -1,0 +1,217 @@
+/*
+ * Recents (02-library L7 §2–§4): one lit panel, radius 20, the column's width (560 under the
+ * empty launcher); a 32 px head ("Recent" · Clear recents), rows 48 px with the 32 × 40 page or
+ * the glyph, the name, then "10 pages · 2.4 MB · Edited, changes kept · yesterday" trailing, and
+ * the row's ⋯. Rows are fills inside the panel, never glass (Q-4): hover is one fill step behind
+ * the text, focus the inset ring.
+ */
+.panel {
+  container: recents / inline-size;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: 20px;
+}
+
+.panel[data-variant='empty'] {
+  width: min(560px, 100%);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 0 var(--space-1) var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
+}
+
+.list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.open {
+  composes: focus-inset from global;
+  display: grid;
+  flex: 1;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  min-width: 0;
+  min-height: 48px;
+  padding: 4px 48px 4px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
+}
+
+@media (hover: hover) {
+  .open:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.open:active {
+  background: var(--surface-active);
+  transform: scale(var(--press-scale-large));
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+.glyph,
+.thumb {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 40px;
+  color: var(--text-secondary);
+}
+
+.glyph svg,
+.thumb > svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.thumbCanvas {
+  display: block;
+  border-radius: var(--radius-page);
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--type-body);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  gap: 0 var(--space-1);
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.meta > span + span::before {
+  content: '· ';
+}
+
+.hint {
+  color: var(--text-primary);
+}
+
+/* Narrow panels: the facts go under the name. */
+@container recents (width < 560px) {
+  .open {
+    grid-template-columns: 32px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  .glyph,
+  .thumb {
+    grid-row: span 2;
+  }
+
+  .meta {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+}
+
+.more {
+  composes: focus-inset from global;
+  position: absolute;
+  right: var(--space-2);
+  display: grid;
+  place-items: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.more svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .more:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.note,
+.footnote {
+  margin: var(--space-2) var(--space-3) 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.footnote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 4px;
+  margin-top: var(--space-3);
+}
+
+.footnoteIcon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--warning);
+}
+
+.inlineLink {
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

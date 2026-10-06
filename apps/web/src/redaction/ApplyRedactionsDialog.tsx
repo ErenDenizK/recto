@@ -15,7 +15,6 @@
  */
 import { Dialog } from '@base-ui/react/dialog';
 import type { ForensicReport, RedactionGateReport } from '@pdf-editor/engine';
-import { X } from 'lucide-react';
 import { type SyntheticEvent, useEffect, useRef, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
@@ -23,6 +22,7 @@ import exportStyles from '../export/ExportDialog.module.css';
 import { formatNumber, m } from '../i18n';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { ColourPicker } from '../ui/colour/ColourPicker';
 import { useRetained } from '../ui/use-retained';
 import {
@@ -170,7 +170,7 @@ function ApplyFlow({ onClose }: { readonly onClose: () => void }) {
           aria-label={m.common_close()}
           disabled={step.kind === 'working'}
         >
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </Dialog.Close>
       </div>
 

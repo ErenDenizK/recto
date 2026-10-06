@@ -20,9 +20,10 @@ import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { enterEditMode, fixtureFile } from '../../test/store-harness';
 import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
-import { FloatingToolbar } from '../shell/FloatingToolbar';
+import { Dock } from '../shell/frame/Dock';
+import { PageContextMenu } from '../stage/PageContextMenu';
 import { ReadView } from '../stage/ReadView';
-import { useUiStore } from '../state/ui-store';
+import { isMarkupOpen, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { useTextEditStore } from '../text-edit/text-edit-store';
@@ -39,7 +40,8 @@ function Harness({ doc }: { readonly doc: VirtualDocument }) {
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 700 }}>
       <ReadView doc={doc} />
-      <FloatingToolbar />
+      <Dock />
+      <PageContextMenu />
     </div>
   );
 }
@@ -102,7 +104,7 @@ describe('the text selection bar', () => {
     resetEditRunner();
     resetAnnotationStore();
     resetToolStore();
-    useUiStore.setState({ viewMode: 'read' });
+    useUiStore.setState({ docUi: {} });
   });
   afterEach(async () => {
     window.getSelection()?.removeAllRanges();
@@ -195,7 +197,7 @@ describe('the text selection bar', () => {
     const bar = await selectionBar();
     await userEvent.click(within(bar).getByRole('button', { name: /Edit text/ }));
     const id = useWorkspaceStore.getState().workspace.activeDocument;
-    expect(id === undefined ? undefined : useUiStore.getState().documentMode[id]).toBe('edit');
+    expect(isMarkupOpen(useUiStore.getState(), id)).toBe(true);
     // The selection gives way to the editor, with a caret and no change yet.
     await waitFor(
       () => {

@@ -1,0 +1,60 @@
+/*
+ * The Pages bar (04-context §10; quality-bar Q-8, Q-9). It is a content of the capsule and takes
+ * the dock's control system as it is (`shell/frame/Dock.module.css`: the toolbar row and its
+ * --bar-button items with a 20 px glyph and a 500 label), so the morph from the dock changes
+ * nothing but the items. Here only what the dock has no need of: the count, separators,
+ * square glyph-only items, Move to's caret and Delete's danger label.
+ */
+.bar {
+  gap: 2px;
+}
+
+.count {
+  flex: none;
+  padding: 0 var(--space-2);
+  color: var(--glass-text-secondary);
+  font-size: var(--control-text);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--control-lh);
+  white-space: nowrap;
+}
+
+.separator {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 var(--space-1);
+  background: var(--border-hairline);
+}
+
+/* Glyph-only items are square: the bar's height, a circle inside the capsule (Q-9). */
+.bar [data-icon-only] {
+  width: var(--bar-button);
+  padding: 0;
+}
+
+.bar [data-danger] {
+  color: var(--danger);
+}
+
+.bar [data-danger][aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+.caret {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-inline-start: -2px;
+  color: var(--text-secondary);
+}
+
+@media (forced-colors: active) {
+  .separator {
+    background: CanvasText;
+  }
+
+  .bar [data-danger] {
+    color: ButtonText;
+  }
+}

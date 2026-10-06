@@ -133,7 +133,7 @@ describe('outline tree helpers', () => {
 describe('OutlinePanel', () => {
   beforeEach(() => {
     resetWorkspace();
-    useUiStore.setState({ viewMode: 'read' });
+    useUiStore.setState({ docUi: {} });
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
   });
   afterEach(() => {
@@ -147,13 +147,13 @@ describe('OutlinePanel', () => {
     unmount();
     loadDocument([]);
     renderPanel();
-    expect(screen.getByText('No outline')).toBeVisible();
+    expect(screen.getByText('No contents')).toBeVisible();
   });
 
   it('renders the tree honouring open flags, with warnings for unresolved nodes', () => {
     loadDocument();
     renderPanel();
-    const tree = screen.getByRole('tree', { name: 'Outline of book' });
+    const tree = screen.getByRole('tree', { name: 'Contents of book' });
     const items = within(tree).getAllByRole('treeitem');
     expect(items.map((i) => i.children[1]?.textContent)).toEqual([
       'Chapter 1',
@@ -199,7 +199,7 @@ describe('OutlinePanel', () => {
 
   it('selects the target page in Arrange mode', async () => {
     const doc = loadDocument();
-    useUiStore.setState({ viewMode: 'arrange' });
+    useUiStore.getState().showSurface('grid');
     renderPanel();
     await userEvent.click(screen.getByRole('treeitem', { name: /2\.1 Setup/ }));
     expect([...useSelectionStore.getState().selected]).toEqual([doc.pages[2]!.id]);

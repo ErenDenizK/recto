@@ -13,10 +13,10 @@ import { announce } from '../shell/announcer';
 import { isPageView, useUiStore } from '../state/ui-store';
 import { READ_LAYOUTS, type ReadLayout, useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { openGoToPage } from './GoToPageDialog';
+import { openPillMenu } from '../shell/frame/frame-store';
 import { goToPageIndex, nextPage, previousPage } from './navigation';
 import { readController } from './read-controller';
-import { openSearchPanel, searchStep, useSearchStore } from './search';
+import { openFind, searchStep, useSearchStore } from './search';
 
 const activeDocument = () => getActiveDocument(useWorkspaceStore.getState().workspace);
 const hasPages = () => (activeDocument()?.pages.length ?? 0) > 0;
@@ -46,16 +46,18 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       id: 'search.open',
       title: m.cmd_find(),
       group: m.group_navigate(),
+      act: null,
       shortcut: 'Mod+F',
       keywords: ['search', 'find', 'text', 'look up'],
       allowInInputs: true,
       when: () => activeDocument() !== undefined,
-      run: openSearchPanel,
+      run: openFind,
     }),
     registry.register({
       id: 'search.next',
       title: m.cmd_find_next(),
       group: m.group_navigate(),
+      act: null,
       shortcut: 'F3',
       keywords: ['search', 'next match'],
       allowInInputs: true,
@@ -66,6 +68,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       id: 'search.previous',
       title: m.cmd_find_previous(),
       group: m.group_navigate(),
+      act: null,
       shortcut: 'Shift+F3',
       keywords: ['search', 'previous match'],
       allowInInputs: true,
@@ -76,18 +79,21 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       id: 'nav.goToPage',
       title: m.cmd_go_to_page(),
       group: m.group_navigate(),
+      act: null,
       shortcut: 'Mod+G',
       keywords: ['jump', 'page number', 'label', 'go'],
       when: hasPages,
       run: () => {
-        if (!isPageView(useUiStore.getState())) useUiStore.getState().setViewMode('read');
-        openGoToPage();
+        if (!isPageView(useUiStore.getState())) useUiStore.getState().showSurface('page');
+        // Go to page lives in the page pill's menu (01-frame F11 §6).
+        openPillMenu('page');
       },
     }),
     registry.register({
       id: 'nav.previousPage',
       title: m.cmd_previous_page(),
       group: m.group_navigate(),
+      act: null,
       shortcut: '[',
       keywords: ['back', 'page up'],
       when: reading,
@@ -99,6 +105,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       id: 'nav.nextPage',
       title: m.cmd_next_page(),
       group: m.group_navigate(),
+      act: null,
       shortcut: ']',
       keywords: ['forward', 'page down'],
       when: reading,
@@ -110,6 +117,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       id: 'nav.screenDown',
       title: m.cmd_screen_down(),
       group: m.group_navigate(),
+      act: null,
       shortcut: ['PageDown', 'Space'],
       hiddenInPalette: true,
       when: readingWithFocus,
@@ -119,6 +127,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       id: 'nav.screenUp',
       title: m.cmd_screen_up(),
       group: m.group_navigate(),
+      act: null,
       shortcut: ['PageUp', 'Shift+Space'],
       hiddenInPalette: true,
       when: readingWithFocus,
@@ -128,6 +137,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       id: 'nav.firstPage',
       title: m.cmd_first_page(),
       group: m.group_navigate(),
+      act: null,
       shortcut: 'Home',
       keywords: ['start', 'beginning', 'top'],
       when: readingWithFocus,
@@ -139,6 +149,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
       id: 'nav.lastPage',
       title: m.cmd_last_page(),
       group: m.group_navigate(),
+      act: null,
       shortcut: 'End',
       keywords: ['bottom'],
       when: readingWithFocus,
@@ -151,6 +162,7 @@ export function registerViewerCommands(registry: CommandRegistry): () => void {
         id: `layout.${layout}`,
         title: m.cmd_layout({ layout: layoutTitle(layout) }),
         group: m.group_view(),
+        act: null,
         keywords: ['layout', 'pages', 'spread', 'two pages', 'single page', 'continuous'],
         when: hasPages,
         run: () => setReadLayout(layout),

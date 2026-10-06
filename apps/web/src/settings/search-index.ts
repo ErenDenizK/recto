@@ -11,8 +11,8 @@
  *   with `page` lives inside one, and search lists it under the page's row.
  * - **Search** matches every word of the query against the row's title, its section or page
  *   and its keywords, in **every** UI language, folding case and diacritics the way the
- *   palette does (`commands/fuzzy.ts`): "saydamlik" finds "Saydamlığı azalt" in the English
- *   UI, and "glass" finds it in the Turkish one.
+ *   palette does (`commands/fuzzy.ts`): "saydamlik" finds Glass ("Cam") in the English UI,
+ *   and "glass" finds it in the Turkish one.
  *
  * **Saved signatures (D0-11)** push their page from Documents and storage, after Kept
  * documents, as in 07 S3's anatomy (`SavedSignatures.tsx`).
@@ -36,8 +36,8 @@ export type SettingsSectionId =
 export type SettingsPageId = 'kept' | 'signatures' | 'privacy' | 'about';
 
 export type SettingsRowId =
-  | 'glassPanels'
-  | 'reduceTransparency'
+  | 'glass'
+  | 'reduceMotion'
   | 'language'
   | 'penDrawsInEdit'
   | 'keptDocuments'
@@ -118,18 +118,18 @@ const PRIVACY = ['settings.privacy'] as const;
 /** Every row, in its order on the sheet (a page's rows in their order on the page). */
 export const SETTINGS_ROWS: readonly SettingsRow[] = [
   {
-    id: 'glassPanels',
+    id: 'glass',
     section: 'appearance',
-    title: at(m.appearance_glass_panels),
-    keywords: at(m.settings_glass_panels_keywords),
-    commands: ['view.glassPanels', 'settings.appearance'],
+    title: at(m.settings_glass),
+    keywords: at(m.settings_glass_keywords),
+    commands: ['view.glass.clear', 'view.glass.tinted', 'view.glass.solid', 'settings.appearance'],
   },
   {
-    id: 'reduceTransparency',
+    id: 'reduceMotion',
     section: 'appearance',
-    title: at(m.appearance_reduce_transparency),
-    keywords: at(m.settings_reduce_transparency_keywords),
-    commands: ['view.reduceTransparency', 'settings.appearance'],
+    title: at(m.settings_reduce_motion),
+    keywords: at(m.settings_reduce_motion_keywords),
+    commands: ['view.reduceMotion', 'settings.appearance'],
   },
   {
     id: 'language',

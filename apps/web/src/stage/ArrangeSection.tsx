@@ -1,7 +1,10 @@
 /**
- * One light-table section: a sticky header (title, page count, source colour tags,
- * honesty badges, collapse toggle, section menu) and a `role="grid"` of the rows the
- * virtualizer currently shows (spec §1, §6, §8).
+ * One Pages grid section (`components/06-navigation.md` PG3): in All open a header (title,
+ * page count, source colour tags, honesty badges, collapse toggle, section menu), and a
+ * `role="grid"` of the rows the virtualizer currently shows. In This document the grid header
+ * stands for the section's (PG2), so it has none. The header stays in flow on the canvas and
+ * sticks to the scroller's top: no glass, so no third frosted band under the strip and the
+ * grid header (PG3 Issue 8).
  *
  * The section element is a drop target for page drags, tab drags and OS files; the table
  * computes the insertion gap from pointer coordinates (dnd/geometry.ts), so targets carry
@@ -20,10 +23,10 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 import { Menu } from '@base-ui/react/menu';
-import { ChevronDown, MoreHorizontal } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import { useDropHighlight } from '../dnd/drag-store';
+import { cutPartAt, useSplitPreview } from '../pages-sheets/split-preview';
 import { type GridMetrics, GRID, gapBar, type SectionLayout } from '../dnd/geometry';
 import { isPageDrag, isTabDrag } from '../dnd/page-drag';
 import { m } from '../i18n';
@@ -38,6 +41,7 @@ import {
   type SourceFileInfo,
   useWorkspaceStore,
 } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import menuStyles from '../ui/Menu.module.css';
 import { Tooltip } from '../ui/Tooltip';
 import { selectParity } from './arrange-actions';
@@ -69,6 +73,8 @@ interface ArrangeSectionProps {
   readonly viewBottom: number;
   /** Roving tabindex: the section's one tabbable cell. */
   readonly tabbableId: PageId | undefined;
+  /** The page that was current on the page view (the lime ring, §2.2), if in this section. */
+  readonly currentId?: PageId | undefined;
 }
 
 export function ArrangeSection({
@@ -81,9 +87,14 @@ export function ArrangeSection({
   viewTop,
   viewBottom,
   tabbableId,
+  currentId,
 }: ArrangeSectionProps) {
   const ref = useRef<HTMLElement>(null);
   const blobs = useWorkspaceStore((s) => s.blobs);
+  // Split's cut lines while its sheet is open (S13).
+  const split = useSplitPreview((s) =>
+    s.preview?.documentId === section.doc.id ? s.preview : null,
+  );
   const { doc } = section;
   const documentId = doc.id;
   const outlined = useDropHighlight((s) => {
@@ -121,18 +132,21 @@ export function ArrangeSection({
     <section
       ref={ref}
       className={styles.section}
-      style={{ top: layout.top, height }}
-      aria-labelledby={sectionDomId(documentId, 'title')}
+      // The header lines up with the centred columns (`--grid-pad`, ArrangeView.module.css).
+      style={{ top: layout.top, height, ['--grid-pad' as string]: `${metrics.padX}px` }}
+      aria-labelledby={section.header ? sectionDomId(documentId, 'title') : undefined}
+      aria-label={section.header ? undefined : doc.title}
       data-section-id={documentId}
       data-drop-outline={outlined || undefined}
       {...{ [FILE_DROP_ZONE_ATTRIBUTE]: '' }}
     >
-      <SectionHeader section={section} ws={ws} files={files} />
+      {section.header ? <SectionHeader section={section} ws={ws} files={files} /> : null}
       {section.collapsed ? null : (
         <div
           id={sectionDomId(documentId, 'grid')}
           role="grid"
-          aria-labelledby={sectionDomId(documentId, 'title')}
+          aria-labelledby={section.header ? sectionDomId(documentId, 'title') : undefined}
+          aria-label={section.header ? undefined : doc.title}
           aria-multiselectable="true"
           aria-rowcount={Math.max(1, layout.rows)}
           aria-colcount={metrics.columns}
@@ -207,6 +221,9 @@ export function ArrangeSection({
                         boxHeight={metrics.boxHeight}
                         outlined={outline.has(page.id)}
                         tabbable={page.id === tabbableId}
+                        current={page.id === currentId}
+                        cutPart={cutPartAt(split, documentId, index)}
+                        parts={split?.parts}
                         visible={visible}
                       />
                     );
@@ -304,7 +321,7 @@ function SectionHeader({
         }
         onClick={toggle}
       >
-        <ChevronDown aria-hidden="true" />
+        <Icon name="caret-down" />
       </button>
       {renaming ? (
         <InlineTitleEditor
@@ -362,22 +379,12 @@ function SectionHeader({
 }
 
 function SectionMenu({ section }: { readonly section: ShownSection }) {
-  const { doc, collapsed, hideable } = section;
+  const { doc, collapsed } = section;
   const ui = useUiStore.getState;
   const apply = useSelectionStore((s) => s.apply);
   const focused = useSelectionStore((s) => s.focused);
 
   const builtIn: { key: string; label: string; run: () => void; disabled?: boolean }[] = [
-    // Every open document is shown (experience-redesign §8); the active one stays.
-    {
-      key: 'hide',
-      label: m.arrange_hide(),
-      disabled: !hideable,
-      run: () => {
-        ui().hideFromArrange(doc.id);
-        announce(m.announce_removed_from_arrange({ title: doc.title }));
-      },
-    },
     {
       key: 'collapse',
       label: collapsed ? m.section_expand() : m.section_collapse(),
@@ -420,7 +427,7 @@ function SectionMenu({ section }: { readonly section: ShownSection }) {
         className={styles.headerButton}
         aria-label={m.section_actions_label({ title: doc.title })}
       >
-        <MoreHorizontal aria-hidden="true" />
+        <Icon name="dots-three" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={4} collisionPadding={8}>

@@ -25,12 +25,19 @@
   /* FB4 §2: the action's visible capsule and ✕'s circle. */
   --toast-action-h: 28px;
   --toast-close-d: 24px;
-  --toast-band: calc(var(--statusbar-height) + var(--space-5) + var(--bar-h) + var(--space-3));
+  /* 12 px above the dock band (01-frame F13 §2): the free rectangle's bottom inset is the band
+     with its offset, the offset alone in Focus, and 0 on the Library (frame-insets.ts). */
+  --toast-band: calc(var(--free-bottom, 0px) + var(--space-3));
   position: fixed;
   right: 0;
   bottom: var(--toast-band);
   left: 0;
-  z-index: 30;
+  /* Above a modal sheet's scrim (40) and the sheet itself (41), so a toast about the sheet's
+     work (a failure, Try again, a skipped password file) stays readable while it is open,
+     never dimmed under the scrim (07-sheets §1.1 rule 6: … scrim → modal sheets → toasts);
+     below menus and popovers (50), which open over everything they come from (01-frame
+     §1.1). The frame's layers, the dock band and its tiers among them, are all under 10. */
+  z-index: 45;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -62,7 +69,7 @@
 }
 
 .toast {
-  composes: glass from global;
+  composes: mat mat-bar s8 from global;
   /* How far a trailing control's box sits from the padding edge, so that its capsule sits as
      far from the rim as from the top and bottom. */
   --toast-trail: calc((var(--toast-h) - var(--control-h)) / 2 - 1px);
@@ -223,7 +230,7 @@
     /* The centre on the pill's arc at 45°, r (1 − 1/√2) in from the outer corner. */
     inset-block-start: calc(var(--toast-h) / 2 * 0.2929 - var(--control-h) / 2 - 1px);
     inset-inline-start: calc(var(--toast-h) / 2 * 0.2929 - var(--control-h) / 2 - 1px);
-    background: var(--glass-solid) padding-box;
+    background: var(--glass-bar-solid) padding-box;
     box-shadow: var(--shadow-own);
     opacity: 0;
     transition:
@@ -236,13 +243,13 @@
   .toast[data-toast-id]:not([data-kind='failure']) .close:hover:not([aria-disabled='true']) {
     background:
       linear-gradient(var(--surface-hover), var(--surface-hover)) padding-box,
-      var(--glass-solid) padding-box;
+      var(--glass-bar-solid) padding-box;
   }
 
   .toast[data-toast-id]:not([data-kind='failure']) .close:active:not([aria-disabled='true']) {
     background:
       linear-gradient(var(--surface-active), var(--surface-active)) padding-box,
-      var(--glass-solid) padding-box;
+      var(--glass-bar-solid) padding-box;
   }
 
   .toast[data-toast-id]:not([data-kind='failure']):is(:hover, :focus-within) .close {
@@ -330,6 +337,17 @@
   transition: transform 200ms var(--ease-standard);
 }
 
+/* Reduced motion (§7.5 *progress*): the fill steps to each value. */
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}
+
+:root[data-motion='reduced'] .fill {
+  transition: none;
+}
+
 :dir(rtl) .fill {
   transform-origin: right center;
 }
@@ -366,7 +384,7 @@
   }
 }
 
-/* Reduced motion, Reduce transparency and forced colours: a still 1 px accent rim. */
+/* Reduced motion, Glass Solid and forced colours: a still 1 px accent rim. */
 @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   .ring {
     padding: 1px;
@@ -376,7 +394,7 @@
 }
 
 :root[data-motion='reduced'] .ring,
-:root[data-transparency='reduced'] .ring {
+:root[data-glass='solid'] .ring {
   padding: 1px;
   background: var(--accent-line);
   animation: none;

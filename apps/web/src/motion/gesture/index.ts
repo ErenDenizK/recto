@@ -7,6 +7,7 @@
  *   multi-finger taps, the pen quiet time, the reserved edges).
  * - `arena.ts`: the per-element arena that arbitrates (a claim resets the others).
  * - `long-press.ts`, `taps.ts`, `multi-finger-tap.ts`, `pinch.ts`: the pure recognisers.
+ * - `wheel-zoom.ts`: the trackpad pinch and the Mod+wheel notch, told apart (D2-10).
  * - `dom.ts`: the attach functions (capture-phase presses, window releases, WebKit's callout,
  *   Android's `contextmenu` echo, Safari's gesture events).
  * - `hooks.ts`: `useLongPress`, `useTaps`, `useMultiFingerTap`, `usePinch`.
@@ -36,3 +37,12 @@ export { type LongPress, type LongPressOptions, longPress } from './long-press';
 export { type MultiFingerTapOptions, multiFingerTap } from './multi-finger-tap';
 export { type Pinch, type PinchOptions, type Point, pinch } from './pinch';
 export { doubleTapReach, type TapOptions, taps } from './taps';
+export {
+  attachWheelZoom,
+  WHEEL_ZOOM,
+  type WheelLike,
+  type WheelZoom,
+  type WheelZoomOptions,
+  wheelZoom,
+  wheelZoomKind,
+} from './wheel-zoom';

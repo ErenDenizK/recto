@@ -13,7 +13,7 @@
   width: min(400px, calc(100vw - 16px));
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-3);
-  background: var(--surface-1);
+  background: var(--surface-frame);
   outline: none;
   box-shadow: none;
   transition:
@@ -31,6 +31,10 @@
   .sheet {
     transition: none;
   }
+}
+
+:global(:root[data-motion='reduced']) .sheet {
+  transition: none;
 }
 
 .body {

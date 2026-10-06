@@ -1,6 +1,10 @@
 /**
- * Home's pure rules (experience-redesign §3): what a card shows, how selection grows with
- * clicks and keys, what "Combine" combines and in which order, and how sizes read.
+ * The Library's pure rules (`02-library` L5–L7; experience-redesign §3 before it): what a card
+ * shows, how selection grows with clicks and keys, what Combine combines and in which order
+ * (card order, 02.9), which of two documents Compare takes as A, where a moved card lands,
+ * and how sizes and times read. The file keeps its M8 name (`home-model.ts`): the code name of
+ * the place is still `home`, and the compact edition, Settings and the session read
+ * `formatFileSize` and `relativeTime` from here.
  */
 import type { DocumentId, SourceId, VirtualPage, Workspace } from '@pdf-editor/document-model';
 
@@ -75,9 +79,67 @@ export function combineScope(
   return null;
 }
 
-/** A card dropped on another: the target first, the dragged card after it. */
-export function dropOrder(target: DocumentId, dragged: DocumentId): readonly DocumentId[] {
-  return target === dragged ? [target] : [target, dragged];
+/**
+ * What the Library's Combine merges (L6, 02.9): the checked cards **in card order** (the tab
+ * order, which drag and Alt+arrows change), not the order they were checked in. Empty when
+ * fewer than two are checked, so the bar dims Combine with its reason.
+ */
+export function combineOrder(
+  order: readonly DocumentId[],
+  selection: readonly DocumentId[],
+): DocumentId[] {
+  const checked = new Set(liveSelection(order, selection));
+  const ids = order.filter((id) => checked.has(id));
+  return ids.length >= 2 ? ids : [];
+}
+
+/**
+ * Compare's A and B from two checked cards (L6): the older file is A, by its modification
+ * time, else card order (a document made in the app has no file time). Swap is in the
+ * Compare bar.
+ */
+export function compareOrder(
+  order: readonly DocumentId[],
+  pair: readonly [DocumentId, DocumentId],
+  modified: (id: DocumentId) => number | undefined,
+): [DocumentId, DocumentId] {
+  const [first, second] = [...pair].sort((x, y) => order.indexOf(x) - order.indexOf(y)) as [
+    DocumentId,
+    DocumentId,
+  ];
+  const a = modified(first);
+  const b = modified(second);
+  if (a !== undefined && b !== undefined && b < a) return [second, first];
+  return [first, second];
+}
+
+/**
+ * The card order after moving `id` to `toIndex` (Alt+Left/Right, a drag's drop; L5, INV-19):
+ * the same documents, `id` at `toIndex` clamped into range. Unchanged (the same array) when
+ * the card is already there or unknown.
+ */
+export function movedOrder(
+  order: readonly DocumentId[],
+  id: DocumentId,
+  toIndex: number,
+): readonly DocumentId[] {
+  const from = order.indexOf(id);
+  if (from < 0) return order;
+  const to = Math.min(order.length - 1, Math.max(0, toIndex));
+  if (to === from) return order;
+  const next = order.filter((other) => other !== id);
+  next.splice(to, 0, id);
+  return next;
+}
+
+/**
+ * Where a dragged card goes when it is dropped in the gap before the card at `gap` (0 … n, n
+ * after the last): the gap counts the cards as they are, the dragged one included, so a gap
+ * just before or after the card itself changes nothing.
+ */
+export function gapToIndex(order: readonly DocumentId[], id: DocumentId, gap: number): number {
+  const from = order.indexOf(id);
+  return gap > from ? gap - 1 : gap;
 }
 
 /** Cards between `from` and `to` (inclusive) in tab order, starting at `from`. */

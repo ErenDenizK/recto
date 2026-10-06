@@ -8,7 +8,7 @@
 }
 
 .bar {
-  composes: glass from global;
+  composes: mat mat-bar s8 c10 from global;
   position: absolute;
   display: flex;
   align-items: center;
@@ -27,10 +27,6 @@
 
 .action {
   composes: btn btn-quiet from global;
-}
-
-.action svg {
-  stroke-width: 1.5;
 }
 
 /* Between the markups and Comment in Edit. */

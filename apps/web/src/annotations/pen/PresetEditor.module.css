@@ -1,0 +1,139 @@
+/* The preset editor (10-ink §6): the popover recipe (ui/Popover.module.css), 320 px fine and
+   360 coarse, the colour panel's widths, so its two pages are one width. Both pages lay out on
+   the colour panel's column (288 / 324 px, centred, 4 / 6 px in from the padding) and its
+   [label] [track] [readout] columns (ColourPanel.module.css): the well's ring, the labels and
+   the colour page's controls start on one line, the last swatch's dot, the readouts and ✕'s
+   circle end on another. Rhythm on the 4 px grid: 8 between rows, as the colour page.
+
+   Height: never more than the room above the bar (`--available-height`, Base UI), scrolling
+   within; while a page change springs the popover's own height (PresetEditor.tsx), the overflow is
+   clipped so no scroll bar flashes. While the eyedropper samples the page the popover steps
+   aside (it stays mounted). */
+.editor {
+  --ed-col: 288px;
+  --ed-inset: 4px;
+
+  max-height: var(--available-height, calc(100vh - 16px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .editor {
+    --ed-col: 324px;
+    --ed-inset: 6px;
+
+    width: min(360px, calc(100vw - 16px));
+  }
+}
+
+/* The positioner holds the larger height while the popover's own springs (PresetEditor.tsx); the
+   popover sits at its foot, by the bar. */
+.editorPositioner {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.editor {
+  flex: none;
+  pointer-events: auto;
+}
+
+.editor[data-resizing] {
+  overflow: hidden;
+}
+
+.editor[data-sampling] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 8px;
+  width: var(--ed-col);
+  margin-inline: auto;
+}
+
+.page[hidden] {
+  display: none;
+}
+
+.page > * {
+  grid-column: 1 / -1;
+}
+
+/* The title row of the recipe, its ✕ where the colour page's is (concentric with the corner). */
+.page > .header {
+  grid-row: 1;
+  margin: -6px calc(-6px - var(--ed-inset)) -4px 0;
+}
+
+/* The well, a hairline, then the swatches: the first dot's edge on the column's end, the gaps
+   whole pixels, the same pitch for five swatches as for six. */
+.colours {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  container-type: inline-size;
+}
+
+.wellDivider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--border-hairline);
+}
+
+.colours > .swatches {
+  --ed-swatch-gap: round(
+    down,
+    (
+      100cqw -
+      var(--sw-target) -
+      17px +
+      (var(--sw-target) - var(--sw-dot)) /
+      2 -
+      6 *
+      var(--sw-target)
+    ) /
+    5,
+    1px
+  );
+
+  flex-wrap: nowrap;
+  gap: var(--ed-swatch-gap);
+  margin-inline: auto calc((var(--sw-target) - var(--sw-dot)) / -2);
+}
+
+/* A slider is a row of the page's columns. */
+.page > .slider {
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+
+.page > .reset {
+  justify-self: start;
+  margin-top: var(--space-1);
+}
+
+.colourPage {
+  display: block;
+}
+
+/* The honesty note (DESIGN.md §3): a --warning-line hairline around the text, no tint. */
+.note {
+  margin: 0;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--warning-line);
+  border-radius: var(--radius-2);
+  color: var(--glass-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 16px;
+  max-width: 52ch;
+  text-wrap: pretty;
+}

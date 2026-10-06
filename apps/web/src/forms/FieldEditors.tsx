@@ -142,7 +142,10 @@ export function TextEditor({ field, here, box, frame }: EditorProps) {
   if (comb && field.maxLength) {
     const cell = width / field.maxLength;
     const glyph = fontSize * 0.6;
-    combStyle.fontFamily = 'var(--font-mono)';
+    // A comb's cells assume a 0.6 em advance. The UI has no monospaced face (ADR-0027 §2.2), so
+    // the comb takes the platform's: Menlo (macOS), DejaVu Sans Mono (Linux) and Courier New
+    // (Windows) all advance 0.6 em.
+    combStyle.fontFamily = 'Menlo, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace';
     combStyle.letterSpacing = `${Math.max(0, cell - glyph)}px`;
     combStyle.paddingLeft = `${Math.max(0, (cell - glyph) / 2)}px`;
     combStyle.paddingRight = 0;

@@ -76,8 +76,8 @@
   }
 }
 
-/* Reduced motion: the segment holds still, centred, and pulses (A-9's progress exemption);
-   restated with !important over the global rule that cuts animations to one 0.01 ms run. */
+/* Reduced motion: the segment holds still, centred, and pulses (A-9's progress exemption); a
+   determinate fill steps to each value (language.md §7.5 *progress*: static rim, percentage). */
 @media (prefers-reduced-motion: reduce) {
   .root[data-indeterminate] .fill {
     left: 35%;
@@ -92,6 +92,10 @@
 :global(:root[data-motion='reduced']) .root[data-indeterminate] .fill {
   left: 35%;
   animation: pulse 1.6s ease-in-out infinite;
+}
+
+:global(:root[data-motion='reduced']) .fill {
+  transition: none;
 }
 
 @media (forced-colors: active) {

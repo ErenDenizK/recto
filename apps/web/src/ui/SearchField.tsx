@@ -13,11 +13,11 @@
  *   follows every keystroke. Enter and Shift+Enter belong to the caller (`onKeyDown`).
  * - The count is shown only; the caller announces results in its own live region.
  */
-import { Search, X } from 'lucide-react';
 import { type ComponentPropsWithRef, useEffect, useRef } from 'react';
 
 import { m } from '../i18n';
 import styles from './Field.module.css';
+import { Icon } from './Icon';
 import search from './SearchField.module.css';
 
 /** How long typing pauses before the search runs (ms). */
@@ -73,7 +73,7 @@ export function SearchField({
       className={[styles.well, search.well, className].filter(Boolean).join(' ')}
       data-disabled={rest.disabled ? '' : undefined}
     >
-      <Search className={search.glass} aria-hidden="true" />
+      <Icon name="magnifying-glass" className={search.glass} />
       <input
         {...rest}
         ref={(node) => {
@@ -111,7 +111,7 @@ export function SearchField({
             own.current?.focus();
           }}
         >
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </button>
       ) : null}
     </div>

@@ -1,0 +1,51 @@
+/*
+ * The pinch detent chip (05-canvas §4, spec 05.11): "Release to see all pages", 24 px above the
+ * fingers while a pinch is armed to open the Pages grid. An M1 chip, transient glass at the
+ * tier-2 blur (σ 7 at 36 px, c ≥ 0.989; registered in styles/coverage-registry.ts), 36 px on a
+ * fine pointer and 44 on a coarse one.
+ *
+ * It lives beside the page view, never inside the zoom layer, so no transform of the pages
+ * reaches it (Q-3). At rest it is `hidden`: no glass at rest (Q-11). A gesture shows the
+ * element (`hidden` off, the gesture's one layout, before its first frame); arming fades the
+ * chip itself in by `opacity` over `--duration-fast` and moves it by `transform` only, so the
+ * pinch's frames lay nothing out. Under reduced motion the fade is instant (tokens.css).
+ */
+.chip {
+  composes: mat mat-chip s7 c8 from global;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding-inline: var(--space-3) var(--space-4);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  font-weight: 500;
+  line-height: var(--type-body-lh);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.chip[data-shown] {
+  opacity: 1;
+}
+
+.icon {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .chip {
+    height: 44px;
+    font-size: var(--type-callout);
+    line-height: var(--type-callout-lh);
+  }
+}

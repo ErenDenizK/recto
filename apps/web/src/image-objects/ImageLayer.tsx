@@ -1,8 +1,9 @@
 /**
- * Image layer (M4 §3), a page overlay in Edit mode. Its root never takes the page (craft
- * spec §3.5, `viewer/hit-order.ts`): it lets the pointer through and only its targets are
- * live. With the Image tool (I) every image object of the page becomes a target over its
- * bounds; hovering outlines the one under the pointer. A click selects an image (a selection
+ * Image layer (M4 §3), a page overlay of Markup's Image tool. Its root never takes the page
+ * (05-canvas §6, `viewer/hit-order.ts`): it lets the pointer through and only its targets are
+ * live, and only where the hit router makes images live: Markup with the Image tool (I), never
+ * in viewing or locked, where an image is reached through the page menu. There every image
+ * object of the page becomes a target over its bounds; hovering outlines the one under the pointer. A click selects an image (a selection
  * box with eight handles and the contextual bar); dragging it moves it, dragging a handle
  * resizes it (Shift keeps the aspect ratio, Alt resizes from the centre). Each committed
  * drag is one history entry. With the selection focused, arrow keys nudge by 1 pt (Shift:
@@ -28,11 +29,10 @@ import { currentPlatform, parseShortcut, toAriaKeyShortcut } from '../commands/s
 import { type Box, cssBoxToUser, type PageFrame, rectToCss } from '../annotations/geometry';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
-import { useCanEdit } from '../state/ui-store';
 import { usePageRevision } from '../text-edit/runs';
-import { HIT_LAYER_Z } from '../viewer/hit-order';
+import { HIT_LAYER_Z, isLive } from '../viewer/hit-order';
+import { usePageInput } from '../viewer/input-state';
 import { pageFrame } from '../viewer/page-frame';
-import { useToolStore } from '../viewer/tool-store';
 import { deleteImage, transformImage } from './actions';
 import {
   boxChanged,
@@ -74,9 +74,9 @@ interface Gesture {
 
 export function ImageLayer(props: PageOverlayProps) {
   const { sourceId, sourceIndex, pageId, pageIndex, visible } = props;
-  // Never in Read (ADR-0019 §3), even if the tool were armed.
-  const editable = useCanEdit();
-  const active = useToolStore((s) => s.mode === 'image') && editable;
+  // Only with the Image tool in Markup, never locked (the router's matrix), even if the tool
+  // were armed.
+  const active = isLive('image', usePageInput().state);
   const selection = useImageStore((s) =>
     s.selection?.target.pageId === pageId ? s.selection : null,
   );

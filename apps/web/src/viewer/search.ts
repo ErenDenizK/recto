@@ -16,6 +16,8 @@ import type { SearchHit } from '@pdf-editor/engine';
 import { create } from 'zustand';
 
 import { getEngineService } from '../engine/engine-service';
+import { revealWhenShown } from '../motion/catalogue';
+import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 
@@ -385,15 +387,23 @@ export function requestSearchFocus(): void {
   useSearchStore.setState((s) => ({ focusSerial: s.focusSerial + 1 }));
 }
 
-/** Shows a hit: Read mode, its page scrolled so the match is visible. */
+/**
+ * Shows a hit: Read mode, its page scrolled so the match is visible, then the hit flashes the
+ * undo reveal's ring once it is laid out: the catalogue's *find step* (language.md §7.3, spec
+ * 05.2; reduced motion: an instant scroll and a still ring).
+ */
 export function revealHit(hit: DocumentHit | undefined): void {
   if (!hit) return;
   const ui = useUiStore.getState();
-  if (!isPageView(ui)) ui.setViewMode('read');
+  if (!isPageView(ui)) ui.showSurface('page');
   const bounds = hitBounds(hit);
   useViewStore
     .getState()
     .scrollToPage(hit.pageId, bounds === undefined ? undefined : { reveal: bounds });
+  // One hit is current, drawn by `SearchHighlights` once its page is laid out.
+  void revealWhenShown(() =>
+    document.querySelector('[data-testid="search-highlights"] [data-current]'),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -403,6 +413,23 @@ export function revealHit(hit: DocumentHit | undefined): void {
 /** What the left panel showed before Mod+F, so Esc can put it back. */
 let restoreView: { readonly open: boolean; readonly view: LeftPanelView } | null = null;
 
+/** The strip's Find entry while it is mounted (`shell/frame/FindEntry.tsx`, 01-frame F6). */
+let findEntryOpener: (() => void) | undefined;
+
+/** The Find entry registers how Mod+F reaches it; undefined when it unmounts. */
+export function setFindEntryOpener(opener: (() => void) | undefined): void {
+  findEntryOpener = opener;
+}
+
+/**
+ * Mod+F (01-frame F6 §6): focuses the frame's Find entry, opening it over the strip below
+ * 1280 px; without one (component tests), the Search panel as before.
+ */
+export function openFind(): void {
+  if (findEntryOpener) findEntryOpener();
+  else openSearchPanel();
+}
+
 /** Shows the Search panel in the left rail and focuses its field. */
 export function openSearchPanel(): void {
   const ui = useUiStore.getState();
@@ -410,6 +437,8 @@ export function openSearchPanel(): void {
     restoreView = { open: ui.leftPanelOpen, view: ui.leftPanelView };
     useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'find' });
   }
+  // Laid over the page (medium), the sidebar shows once asked for: this asks.
+  showOverlaySidebar(true);
   requestSearchFocus();
 }
 

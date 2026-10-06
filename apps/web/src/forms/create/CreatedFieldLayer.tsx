@@ -37,7 +37,6 @@ import {
   MIN_FIELD_SIDE,
   type Rect,
 } from '@pdf-editor/document-model';
-import { SlidersHorizontal } from 'lucide-react';
 import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -51,8 +50,9 @@ import {
 
 import { m } from '../../i18n';
 import type { PageOverlayProps } from '../../stage/page-overlays';
-import { useUiStore } from '../../state/ui-store';
+import { useStageView } from '../../state/ui-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { Icon } from '../../ui/Icon';
 import {
   type Box,
   displayedSize,
@@ -182,7 +182,7 @@ export function CreatedFieldLayer(props: PageOverlayProps) {
   const { pageId, pageIndex } = props;
   const ws = useWorkspaceStore((s) => s.workspace);
   const mode = useToolStore((s) => s.mode);
-  const viewMode = useUiStore((s) => s.viewMode);
+  const pageView = useStageView() === 'page';
   const placing = useCreateStore((s) => s.placing);
   const design = useCreateStore((s) => s.design);
   const selected = useCreateStore((s) => s.selected);
@@ -206,7 +206,7 @@ export function CreatedFieldLayer(props: PageOverlayProps) {
       if (w.page === pageId) placed.push({ field, widget, rect: w.rect });
     });
   }
-  const live = mode === 'select' && viewMode === 'read';
+  const live = mode === 'select' && pageView;
   const isPlacing = placing !== null && live;
   const isDesign = design && live && !isPlacing;
 
@@ -655,7 +655,7 @@ export function CreatedFieldLayer(props: PageOverlayProps) {
               data-created-properties=""
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <SlidersHorizontal aria-hidden="true" />
+              <Icon name="sliders-horizontal" />
             </button>
           }
         />

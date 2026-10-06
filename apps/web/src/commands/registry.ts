@@ -1,9 +1,31 @@
 /**
  * The command registry. Every user-facing action is a command: it appears in the command
  * palette and the shortcut overlay, and may be bound to a shortcut (DESIGN.md §4.1).
+ *
+ * Every command declares the kind of change it makes, its `act` (ADR-0030 §2.3; redesign spec
+ * §7), or `null` when it changes no document. The registry asks the change guard
+ * (`state/guard.ts`) for each document the command changes, so a command on a locked document,
+ * or a drawing command outside Markup, is dimmed with the guard's reason in the palette, the
+ * menus and the bars rather than hidden (RA-21). `registry.test.ts` walks every command the app
+ * registers and fails on one that declares no act.
  */
+import type { DocumentId } from '@pdf-editor/document-model';
+
+import { type Act, type ChangeRefusal, changeRefusal, isAct, refusalReason } from '../state/guard';
+import { useWorkspaceStore } from '../state/workspace-store';
 import { messageKeywords } from './keywords';
 import { type ParsedShortcut, parseShortcut } from './shortcuts';
+
+/**
+ * How a command reaches its act when the command itself does not make it:
+ *
+ * - `markup`: it opens Markup before it acts (a Markup door, ADR-0029 §2.2: a tool key, a
+ *   placing tool), so a `freehand` or `place` act needs only an unlocked document.
+ * - `sheet`: it opens a sheet whose primary makes the act. A locked sheet still opens and
+ *   previews, with its lock banner, and its primary asks the guard (07-sheets §1.4; D1-8), so
+ *   the command itself is not dimmed.
+ */
+export type CommandVia = 'markup' | 'sheet';
 
 export interface CommandDefinition {
   /** Stable, namespaced id, e.g. `file.open`. */
@@ -11,6 +33,26 @@ export interface CommandDefinition {
   readonly title: string;
   /** Palette and overlay group heading, e.g. `File`, `View`. */
   readonly group: string;
+  /**
+   * The kind of change the command makes (ADR-0030 §2.2–§2.3), or `null` for a command that
+   * changes no document: views, panels and settings; opening files; Save, Save a copy and
+   * other outputs; Compare; Combine and Interleave, which read their sources (X32); closing a
+   * tab (X12); Undo, Redo and History (ADR-0030 §2.7). Required, so that every command says.
+   */
+  readonly act: Act | null;
+  /** How the act is reached when the command does not make it directly. */
+  readonly via?: CommandVia;
+  /**
+   * The documents the act changes, each asked separately (ADR-0030 §2.4): the pages'
+   * documents for a page command, the section's for a section command, both ends of a move.
+   * Default: the active document. None (an empty list) fails closed.
+   */
+  readonly documents?: () => readonly DocumentId[];
+  /**
+   * Why the command is unavailable while `when` says no ("Nothing changed since opening"),
+   * shown beside the dimmed item. The guard's refusals carry their own reason.
+   */
+  readonly reason?: () => string | undefined;
   /** One shortcut, or several; the first is the one displayed. */
   readonly shortcut?: string | readonly string[];
   /**
@@ -47,6 +89,11 @@ export class CommandRegistry {
     if (this.byId.has(definition.id)) {
       throw new Error(`Command "${definition.id}" is already registered`);
     }
+    // Fails loudly, as a duplicate id does: a command that might commit must say what it
+    // changes, or the guard cannot dim it (ADR-0030 §2.3).
+    if (definition.act !== null && !isAct(definition.act)) {
+      throw new Error(`Command "${definition.id}" declares no act (an Act, or null)`);
+    }
     const raw = definition.shortcut;
     const list: readonly string[] = raw === undefined ? [] : typeof raw === 'string' ? [raw] : raw;
     const catalog = messageKeywords(definition.id);
@@ -78,11 +125,46 @@ export class CommandRegistry {
     return this.snapshot;
   }
 
+  /**
+   * The guard's refusal of the command's act now (ADR-0030 §2.3), for the first of its
+   * documents that refuses, or undefined when the act may happen. A command with no act, or
+   * one that reaches it through a sheet, is never refused here.
+   */
+  refusalOf(command: Command): ChangeRefusal | undefined {
+    const { act } = command;
+    if (act === null || command.via === 'sheet') return undefined;
+    const documents = command.documents ? command.documents() : activeDocuments();
+    if (documents.length === 0) return { kind: 'unknown' };
+    const context = command.via === 'markup' ? { opensMarkup: true } : undefined;
+    for (const id of documents) {
+      const refusal = changeRefusal(id, act, context);
+      if (refusal !== undefined) return refusal;
+    }
+    return undefined;
+  }
+
+  /** Whether the command may run now: its `when`, and the guard for its act. */
   isEnabled(command: Command): boolean {
     try {
-      return command.when ? command.when() : true;
+      if (command.when && !command.when()) return false;
+      return this.refusalOf(command) === undefined;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Why a dimmed command cannot run, for the item's reason line or description: its own
+   * `reason` while `when` says no, else the guard's ("Locked · unlock first"). Undefined while
+   * it can run, or when nothing says why.
+   */
+  disabledReason(command: Command): string | undefined {
+    try {
+      if (command.when && !command.when()) return command.reason?.();
+      const refusal = this.refusalOf(command);
+      return refusal === undefined ? undefined : refusalReason(refusal);
+    } catch {
+      return undefined;
     }
   }
 
@@ -105,6 +187,12 @@ export class CommandRegistry {
     this.snapshot = [...this.byId.values()];
     for (const listener of this.listeners) listener();
   }
+}
+
+/** The active document, as the documents a command changes by default. */
+function activeDocuments(): readonly DocumentId[] {
+  const id = useWorkspaceStore.getState().workspace.activeDocument;
+  return id === undefined ? [] : [id];
 }
 
 /** Groups commands preserving the order in which groups first appear. */

@@ -1,7 +1,7 @@
 /**
  * Glass at rest in today's main states (docs/specs/redesign.md D0-1 and D0-QA; quality-bar.md
  * Q-1 to Q-5, Q-8, Q-11): Home, Read, Read with the text selection bar, Edit with the floating bar, an
- * options tier and a tool menu, the Document menu and the page context menu, the command
+ * options tier and a tool menu, the title menu, the page pill's menu and the page context menu, the command
  * palette, Arrange with its contextual bar, and an annotation's bar and note. In each the walker
  * (e2e/support/glass-walker.ts) finds every backdrop-filter surface and checks one backdrop root,
  * no glass in glass, 32 px at the least, integer positions and no will-change at rest, the
@@ -10,7 +10,13 @@
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { enterEdit, fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  fixturePath,
+  openFixtures,
+  useFileInputPicker,
+  openSaveCopyFromMenu,
+} from './helpers';
 import { expectGlassClean, walkGlass } from './support/glass-walker';
 
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -19,7 +25,7 @@ test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
 });
 
-const bar = (page: Page): Locator => page.getByRole('toolbar', { name: 'Tools', exact: true });
+const bar = (page: Page): Locator => page.getByRole('toolbar', { name: 'Markup', exact: true });
 
 async function open(page: Page, name: string): Promise<void> {
   await page.goto('./?lang=en');
@@ -49,7 +55,8 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
 }) => {
   await open(page, 'simple-text.pdf');
   let walk = await expectGlassClean(page, 'Read');
-  expect(names(walk).some((n) => n.includes('toolbar'))).toBe(true);
+  // The capsule is the dock's glass (spec X1, D2-2).
+  expect(names(walk).some((n) => n.includes('capsule'))).toBe(true);
   // Q-8 read the bar's labels (so a clean walk means the text was looked at).
   expect(walk.texts).toBeGreaterThan(0);
   expect(walk.visible).toBeLessThanOrEqual(4);
@@ -61,33 +68,52 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
   await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
   walk = await expectGlassClean(page, 'Read, text selection bar');
-  expect(walk.visible).toBe(2);
+  // The top strip (docked M3, ADR-0024 §2.8), the dock, the selection bar and the page pill
+  // (01-frame F11): the four of a resting screen.
+  expect(walk.visible).toBe(4);
   await page.keyboard.press('Escape');
 
   await enterEdit(page);
   await expectGlassClean(page, 'Edit');
 
-  // A tool menu on the bar.
-  await bar(page).getByRole('button', { name: 'Write', exact: true }).click();
-  await bar(page).locator('[aria-haspopup="menu"]').first().click();
+  // A tool menu on the palette (Shapes ▾, its second press).
+  await bar(page)
+    .getByRole('button', { name: /^Shapes/ })
+    .click();
+  await bar(page)
+    .getByRole('button', { name: /^Shapes/ })
+    .click();
   await expect(page.getByRole('menu')).toBeVisible();
   await expectGlassClean(page, 'Edit, a tool menu');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menu')).toHaveCount(0);
 
-  // An armed tool's options tier (T, the Text box, twice).
+  // An armed tool's ink strip (T, the Text box): a second row inside the palette's own glass,
+  // never glass of its own (quality-bar Q-4).
   await page.locator('body').press('t');
-  await page.locator('body').press('t');
-  await expect(page.getByTestId('options-tier')).toBeVisible();
-  walk = await expectGlassClean(page, 'Edit, options tier');
-  expect(names(walk).some((n) => n.includes('tier'))).toBe(true);
+  await expect(page.getByTestId('ink-strip')).toBeVisible();
+  walk = await expectGlassClean(page, 'Markup, ink strip');
+  // (The top strip, a `header`, is docked glass of its own: not the ink strip.)
+  expect(names(walk).some((n) => !n.startsWith('header') && n.includes('strip'))).toBe(false);
   await page.keyboard.press('Escape');
 
-  // The Document menu.
-  await page
-    .getByRole('button', { name: /^Document/ })
-    .first()
-    .click();
+  // The title menu (01-frame F5) takes the M4 solid twin: it opens over the sidebar's dark edge
+  // and the page at once, where blurred glass showed a seam (Q-1, Q-3).
+  await page.getByTestId('document-menu').click();
+  const titleMenu = page.getByTestId('title-menu');
+  await expect(titleMenu).toBeVisible();
+  expect(
+    await titleMenu.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return style.getPropertyValue('backdrop-filter') || 'none';
+    }),
+  ).toBe('none');
+  await expectGlassClean(page, 'the title menu');
+  await page.keyboard.press('Escape');
+  await expect(titleMenu).toHaveCount(0);
+
+  // The tab menu (right-click on the active tab): a glass menu.
+  await page.getByTestId('document-menu').click({ button: 'right' });
   await expect(page.getByRole('menu')).toBeVisible();
   walk = await expectGlassClean(page, 'the Document menu');
   // What the menu looked like to the walk, should it not count it (seen on WebKit in CI).
@@ -105,7 +131,7 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
     })
     .catch(() => 'gone');
   expect(
-    names(walk).some((n) => n.includes('glass-menu')),
+    names(walk).some((n) => n.includes('mat-menu')),
     `the Document menu among the visible glass (${names(walk).join(', ')}); the menu: ${look}`,
   ).toBe(true);
   await page.keyboard.press('Escape');
@@ -117,6 +143,12 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.mouse.click(first.x + 40, first.y + 40, { button: 'right' });
   await expect(page.getByTestId('page-context-menu')).toBeVisible();
   await expectGlassClean(page, 'the page context menu');
+  await page.keyboard.press('Escape');
+
+  // The page pill's menu (01-frame F11).
+  await page.getByTestId('page-pill').click();
+  await expect(page.getByTestId('page-pill-menu')).toBeVisible();
+  await expectGlassClean(page, 'the page pill menu');
   await page.keyboard.press('Escape');
 
   // The command palette.
@@ -139,7 +171,7 @@ test('a sheet over a document and a toast: six at most while it comes in, four a
   await page.mouse.move(700, 450);
   await expectGlassClean(page, 'Edit with a toast');
   // Save a copy comes in over it: the transition budget, read mid-entrance (Q-11).
-  await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+  await openSaveCopyFromMenu(page);
   await expect(page.getByTestId('save-copy-sheet')).toBeAttached();
   const mid = await walkGlass(page, { atRest: false });
   expect(
@@ -151,23 +183,23 @@ test('a sheet over a document and a toast: six at most while it comes in, four a
   await page.keyboard.press('Escape');
 });
 
-test('Arrange with its contextual bar', async ({ page }) => {
+test('the Pages grid with its Pages bar', async ({ page }) => {
   await open(page, 'simple-text.pdf');
   await page.keyboard.press('3');
   await expect(page.getByTestId('light-table')).toBeVisible();
-  await expectGlassClean(page, 'Arrange');
+  await expectGlassClean(page, 'Pages grid');
   await page.getByTestId('light-table').getByRole('gridcell').nth(1).click();
-  await expect(page.getByTestId('contextual-bar')).toBeVisible();
-  await page.mouse.move(700, 880);
-  const walk = await expectGlassClean(page, 'Arrange, a page selected');
-  expect(names(walk).some((n) => n.includes('contextBar'))).toBe(true);
+  await expect(page.getByTestId('pages-bar')).toContainText('1 selected');
+  await page.mouse.move(700, 200);
+  const walk = await expectGlassClean(page, 'Pages grid, a page selected');
+  expect(names(walk).some((n) => n.includes('capsule'))).toBe(true);
 });
 
 test('the pen editor and its colour views, pushed in place', async ({ page }) => {
   await open(page, 'simple-text.pdf');
   await enterEdit(page);
   await page.locator('body').press('p');
-  await page.getByRole('radio', { name: 'Black pen, 1.5 pt' }).click();
+  await page.getByRole('button', { name: 'Black pen, 1.5 pt', exact: true }).click();
   const editor = page.getByTestId('pen-preset-editor');
   await expect(editor).toBeVisible();
   await page.mouse.move(700, 200);
@@ -196,6 +228,11 @@ test('an annotation’s bar and a note', async ({ page }) => {
     .click({ force: true });
   await expect(page.getByTestId('annotation-bar')).toBeVisible();
   await expectGlassClean(page, 'Edit, an annotation selected');
+  // The note is on page 2: with the sidebar closed by default (06-navigation N1) the page fits
+  // a wider column, so go there first.
+  await page.getByTestId('page-pill').click();
+  await page.getByRole('textbox', { name: 'Go to page' }).fill('2');
+  await page.keyboard.press('Enter');
   const note = page.locator('[data-annotation-kind="text"]').first();
   await note.dblclick({ force: true });
   await expect(page.locator('[class*="notePopup"]')).toBeVisible();

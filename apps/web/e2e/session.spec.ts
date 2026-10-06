@@ -21,6 +21,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import {
   enterEdit,
+  markupDoor,
   openFixtures,
   openSaveCopy,
   sessionSettled,
@@ -116,10 +117,16 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   await page.keyboard.press('2');
   await page.keyboard.press(']');
   await page.keyboard.press(']');
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 3');
-  await page.getByRole('button', { name: /^Zoom \d+%/ }).click();
-  await page.getByRole('menuitemradio', { name: '150%' }).click();
-  await expect(page.getByRole('button', { name: /^Zoom 150%/ })).toBeVisible();
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 3 · /);
+  // Zoom by its keys to 150 % (the pill says it; the zoom menu went with the status bar).
+  const pill = page.getByTestId('page-pill');
+  for (let i = 0; i < 12; i++) {
+    const zoom = Number((await pill.textContent())?.match(/(\d+)%/)?.[1] ?? 0);
+    if (zoom === 150) break;
+    await page.keyboard.press(zoom > 150 ? 'ControlOrMeta+-' : 'ControlOrMeta+=');
+    await expect(pill).not.toHaveText(new RegExp(` ${zoom}%$`));
+  }
+  await expect(pill).toHaveText(/^3 \/ 3 · 150%$/);
   await waitForSnapshot(page);
 
   await reload(page);
@@ -127,9 +134,10 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   const notice = page.getByTestId('session-notice');
   await expect(notice).toContainText('Restored simple-text');
   await expect(notice.getByRole('button', { name: 'Start fresh' })).toBeVisible();
-  await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 3');
-  await expect(page.getByRole('button', { name: /^Zoom 150%/ })).toBeVisible();
-  await expect(page.getByRole('radio', { name: /^Edit$/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 3 · 150%$/);
+  // Markup is never restored (redesign spec §7): the document comes back in viewing, its
+  // capsule the dock (D2-2).
+  await expect(markupDoor(page)).toBeVisible();
 
   // 20 undo steps came back with the present one, and Undo walks all of them.
   await showInspector(page);
@@ -158,16 +166,15 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
   });
   const stamps = layer(page).locator('[data-annotation-kind="stamp"]');
 
-  // A built-in stamp from the Fill & sign group.
-  const bar = page.getByRole('toolbar', { name: 'Tools' });
-  await bar.getByRole('button', { name: 'Fill & sign' }).click();
-  await bar.getByRole('button', { name: 'Stamp or image' }).click();
+  // A built-in stamp from Stamp ▾ (its choices: a right-click).
+  const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+  await bar.getByRole('button', { name: 'Stamp', exact: true }).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Draft' }).click();
   await clickPage(page, 0.7, 0.3);
   await expect(stamps).toHaveCount(1, { timeout: 10_000 });
 
   // An image signature drawn on the pad (today's signature tool), placed on the page.
-  await bar.getByRole('button', { name: 'Signature image' }).click();
+  await bar.getByRole('button', { name: 'Sign', exact: true }).click();
   const pad = page.getByLabel('Signature pad: draw with the mouse, pen or finger');
   await expect(pad).toBeVisible();
   const box = await pad.boundingBox();
@@ -190,11 +197,11 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
           document
             .elementFromPoint(x as number, y as number)
             ?.closest('[data-annotation-layer]') !== null,
-        [box.x + box.width * 0.3, box.y + box.height * 0.45],
+        [box.x + box.width * 0.3, box.y + box.height * 0.38],
       );
     })
     .toBe(true);
-  await clickPage(page, 0.3, 0.45);
+  await clickPage(page, 0.3, 0.38);
   await expect(stamps).toHaveCount(2, { timeout: 10_000 });
   await waitForSnapshot(page);
 
@@ -281,7 +288,7 @@ test('a closed document reopens from Recents with its change and no file picker'
   });
   await row.click();
   await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
-  await expect(page.getByTestId('status-pages')).toHaveText(/of 2$/);
+  await expect(page.getByTestId('page-pill')).toHaveText(/ \/ 2 · /);
   expect(picked).toBe(false);
 });
 

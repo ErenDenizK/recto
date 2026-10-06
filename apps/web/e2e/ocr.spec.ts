@@ -133,9 +133,9 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await page.keyboard.press(`${await mod(page)}+f`);
   const field = page.getByRole('searchbox', { name: 'Find in document' });
   await field.fill('quick');
-  await expect(page.getByTestId('status-search')).toContainText(/1 of [12]/, { timeout: 20_000 });
+  await expect(page.getByTestId('find-count')).toContainText(/1 of [12]/, { timeout: 20_000 });
   await field.fill('recognition');
-  await expect(page.getByTestId('status-search')).toContainText('1 of', { timeout: 20_000 });
+  await expect(page.getByTestId('find-count')).toContainText('1 of', { timeout: 20_000 });
   await field.press('Escape');
 
   // 5. Export: the summary names the run; the file's layer holds the words.
@@ -160,13 +160,15 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await expect(section).toHaveCount(0);
   await page.keyboard.press(`${await mod(page)}+f`);
   await field.fill('quick');
-  await expect(page.getByTestId('search-status')).toHaveText('No results', { timeout: 20_000 });
+  await expect(page.getByTestId('find-count')).toHaveText('No matches', { timeout: 20_000 });
+  // Esc clears the query, the next one leaves the field for the page (01-frame F6 §6).
+  await field.press('Escape');
   await field.press('Escape');
   await page.keyboard.press(`${await mod(page)}+Shift+z`);
   await expect(section.getByTestId('ocr-quality')).toBeVisible();
   await page.keyboard.press(`${await mod(page)}+f`);
   await field.fill('quick');
-  await expect(page.getByTestId('status-search')).toContainText('1 of', { timeout: 20_000 });
+  await expect(page.getByTestId('find-count')).toContainText('1 of', { timeout: 20_000 });
   await field.press('Escape');
 
   // The engine and the pack came from our origin; nothing left it.
@@ -244,5 +246,5 @@ test('after "Keep available offline", OCR works with the network off', async ({
   await dialog.getByRole('button', { name: 'Show results' }).click();
   await page.keyboard.press('ControlOrMeta+f');
   await page.getByRole('searchbox', { name: 'Find in document' }).fill('lazy');
-  await expect(page.getByTestId('status-search')).toContainText('1 of', { timeout: 20_000 });
+  await expect(page.getByTestId('find-count')).toContainText('1 of', { timeout: 20_000 });
 });

@@ -2,8 +2,10 @@
  * The one menu recipe (10-ink.md §7, 04-context §12, quality-bar Q-7 and Q-9), used by every
  * menu, context menu and Select popup (`ui/Select.tsx`).
  *
- * - Material: M4 on today's tokens, the frosted tier 3 (`glass glass-menu`), blurred 12px; a
- *   menu of two rows or more is at least 78 px tall, c 0.996 (coverage registry `menu`).
+ * - Material: M4 (`mat mat-menu s12`), blurred 12px; a menu of two rows or more is at least
+ *   78 px tall, c 0.996 (coverage registry `menu`). A one-row menu (Recents' "Remove": 46 px)
+ *   is too short for 12px, the page would show through its edges: it takes 8px (`r8`,
+ *   registry `menu-one-row`).
  * - Shape: radius 16, the popover's, concentric with 10 px rows inside 6 px of padding.
  * - Rows: 32 px on fine pointers, 44 on coarse (Q-9's control heights), icons 16 px, the label
  *   takes the space (`.label`, flex 1), so keycaps or a reason sit right-aligned after it.
@@ -17,7 +19,7 @@
  *   of the fade (`scroll-padding-block`). The Document menu at 44 px rows outgrows a tablet.
  */
 .popup {
-  composes: glass glass-menu from global;
+  composes: mat mat-menu s12 r8 from global;
   --menu-row: 32px;
   --menu-pad: 6px;
   --menu-icon: 16px;
@@ -51,12 +53,6 @@
   }
 }
 
-/* A one-row menu (Recents' "Remove": 46 px) is too short for the menus' 12px blur: the page
-   would show through its edges. It takes 7px (coverage registry, `menu-one-row`). */
-.popup:not(:has(> :nth-child(2))) {
-  --glass-filter: var(--glass-menu-short-filter);
-}
-
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
@@ -67,7 +63,8 @@
    submenu row closed the submenu (the Document menu's Rotate pages, DocumentMenu.test.tsx). */
 .popup:is([data-side='top'], [data-side='bottom'], [data-side='none'])[data-starting-style],
 .popup:is([data-side='top'], [data-side='bottom'], [data-side='none'])[data-ending-style] {
-  transform: scale(0.96);
+  /* 0.96, and 1 under reduced motion (styles/motion.css): then the menu only fades. */
+  transform: scale(var(--enter-scale));
 }
 
 /* The menu's positioner (Base UI's, `role="presentation"`) stacks above the floating bars
@@ -114,14 +111,14 @@
     top: calc(var(--menu-pad) * -1);
     margin-top: calc(var(--menu-pad) * -1);
     margin-bottom: calc(var(--menu-fade) * -1 + var(--menu-pad));
-    background: linear-gradient(to bottom, var(--glass), transparent);
+    background: linear-gradient(to bottom, var(--mat-tint), transparent);
   }
 
   .popup::after {
     bottom: calc(var(--menu-pad) * -1);
     margin-top: calc(var(--menu-fade) * -1 + var(--menu-pad));
     margin-bottom: calc(var(--menu-pad) * -1);
-    background: linear-gradient(to top, var(--glass), transparent);
+    background: linear-gradient(to top, var(--mat-tint), transparent);
   }
 
   @container scroll-state(scrollable: top) {

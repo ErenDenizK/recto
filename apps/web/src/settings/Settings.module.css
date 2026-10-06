@@ -10,7 +10,7 @@
 
 /* The form sheet on the medium class keeps one height while the search filters, so the
    centred panel never jumps as rows come and go (07 §2.2: form ≤ 640 wide). */
-:global(.glass[data-sheet='settings'][data-presentation='form']) {
+:global(.mat[data-sheet='settings'][data-presentation='form']) {
   height: min(760px, calc(100dvh - 104px));
 }
 
@@ -19,7 +19,7 @@
  * list under it scrolls, in a scroll area (09 §21) whose edges fade where the list goes on, with
  * the sheet's inset after the last row, so no presentation cuts a row at its edge.
  */
-:global(.glass[data-sheet='settings'] [data-sheet-body]) {
+:global(.mat[data-sheet='settings'] [data-sheet-body]) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -116,10 +116,17 @@
   }
 }
 
+/* Reduced motion (language.md §7.5, as the undo reveal): the tint is held still, then goes. */
 @media (prefers-reduced-motion: reduce) {
   .row[data-revealed] {
     animation-duration: 600ms;
+    animation-timing-function: steps(1, end);
   }
+}
+
+:global(:root[data-motion='reduced']) .row[data-revealed] {
+  animation-duration: 600ms;
+  animation-timing-function: steps(1, end);
 }
 
 /*
@@ -150,6 +157,18 @@
 .field {
   flex: none;
   width: min(220px, 50%);
+}
+
+/* A two-value segmented control in a row (Reduce motion: System · On), trailing like a field. */
+.segmented {
+  flex: none;
+  width: min(176px, 50%);
+}
+
+/* Three values (Glass: Clear · Tinted · Solid): room for their labels at the coarse step and in
+   Turkish (Saydam · Yarı saydam · Opak), so the row keeps its segments rather than a menu. */
+.segmented[data-values='3'] {
+  width: min(272px, 60%);
 }
 
 .label {
@@ -275,14 +294,14 @@
 }
 
 .mono {
-  font-family: var(--font-mono);
+  composes: technical from global;
   font-size: var(--type-footnote);
 }
 
 .code {
+  composes: technical from global;
   overflow-wrap: anywhere;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
 }

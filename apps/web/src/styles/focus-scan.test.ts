@@ -31,6 +31,10 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'annotations/AnnotationLayer.module.css': {
     '.freeText:focus-visible': 'in-place editor (language.md §2.10): its frame and the caret',
   },
+  'home/Launcher.module.css': {
+    '.card [data-quiet-focus]:focus-visible':
+      'Open PDFs… focused by the page on arrival (J1); the first key press restores the ring',
+  },
   'forms/FormLayer.module.css': {
     '.editor:focus-visible': 'in-place field editor: its border and the caret',
   },
@@ -40,6 +44,12 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   },
   'image-objects/ImageObjects.module.css': {
     '.layer:focus-visible': 'focused from script to keep the keys on the page; targets show it',
+  },
+  'shell/frame/TopStrip.module.css': {
+    '.findInput:focus-visible': 'the well around the input draws the ring while it has focus',
+  },
+  'shell/sidebar/FindSection.module.css': {
+    '.input:focus-visible': 'the well around the input draws the inset ring while it has focus',
   },
   'stage/ReadView.module.css': {
     ':global(main:not([data-focus-ring])) .viewport:focus-visible':
