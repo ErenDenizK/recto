@@ -1,7 +1,8 @@
 /**
- * Derived data for the light table, memoized on model identity so selectors return stable
- * references: which documents are shown as sections (all open ones unless hidden), where
- * each page sits, and which pages are outline targets (spec §6).
+ * Derived data for the Pages grid (`components/06-navigation.md` PG1–PG3), memoized on model
+ * identity so selectors return stable references: which documents are shown as sections (the
+ * active one in This document, every open one in All open), where each page sits, and which
+ * pages are outline targets.
  */
 import {
   type DocumentId,
@@ -11,45 +12,45 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 
-import { useUiStore } from '../state/ui-store';
+import { type GridScope, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 
 export interface ShownSection {
   readonly doc: VirtualDocument;
   readonly collapsed: boolean;
-  /** Whether "Hide from Arrange" applies: every section but the active document's. */
-  readonly hideable: boolean;
+  /**
+   * Whether the section draws its header (PG3): in All open. In This document the grid
+   * header's title stands for it (PG2), so the section has none.
+   */
+  readonly header: boolean;
+}
+
+/** Whether the grid shows every open document: All open, with a second document to show. */
+export function showsAllDocuments(ws: Workspace, scope: GridScope): boolean {
+  return scope === 'all' && ws.documentOrder.length > 1;
 }
 
 /**
- * Whether a document is on the light table: every open document is, unless hidden with
- * "Hide from Arrange" (experience-redesign §8, decision 12); the active one always is.
+ * Sections in tab order (PG3): the active document alone in This document, every open
+ * document in All open. Collapsing applies in All open only.
  */
-export function isShownInArrange(
-  ws: Workspace,
-  hidden: readonly DocumentId[],
-  id: DocumentId,
-): boolean {
-  return ws.documents[id] !== undefined && (id === ws.activeDocument || !hidden.includes(id));
-}
-
-/** Sections in tab order: every open document that is not hidden, and the active one. */
 export function shownSections(
   ws: Workspace,
-  hidden: readonly DocumentId[],
+  scope: GridScope,
   collapsed: readonly DocumentId[],
 ): ShownSection[] {
+  const all = showsAllDocuments(ws, scope);
   return ws.documentOrder.flatMap((id): ShownSection[] => {
     const doc = ws.documents[id];
-    if (doc === undefined || !isShownInArrange(ws, hidden, id)) return [];
-    return [{ doc, collapsed: collapsed.includes(id), hideable: id !== ws.activeDocument }];
+    if (doc === undefined || (!all && id !== ws.activeDocument)) return [];
+    return [{ doc, collapsed: all && collapsed.includes(id), header: all }];
   });
 }
 
 let last:
   | {
       ws: Workspace;
-      hidden: readonly DocumentId[];
+      scope: GridScope;
       collapsed: readonly DocumentId[];
       value: ShownSection[];
     }
@@ -57,12 +58,12 @@ let last:
 
 function cachedSections(
   ws: Workspace,
-  hidden: readonly DocumentId[],
+  scope: GridScope,
   collapsed: readonly DocumentId[],
 ): ShownSection[] {
-  if (last?.ws === ws && last.hidden === hidden && last.collapsed === collapsed) return last.value;
-  const value = shownSections(ws, hidden, collapsed);
-  // Keep the previous array when nothing shown changed (e.g. an edit in a hidden tab).
+  if (last?.ws === ws && last.scope === scope && last.collapsed === collapsed) return last.value;
+  const value = shownSections(ws, scope, collapsed);
+  // Keep the previous array when nothing shown changed (e.g. an edit in a document not shown).
   const previous = last?.value;
   const same =
     previous?.length === value.length &&
@@ -70,27 +71,25 @@ function cachedSections(
       (s, i) =>
         s.doc === value[i]?.doc &&
         s.collapsed === value[i].collapsed &&
-        s.hideable === value[i].hideable,
+        s.header === value[i].header,
     );
   const result = same ? previous : value;
-  last = { ws, hidden, collapsed, value: result };
+  last = { ws, scope, collapsed, value: result };
   return result;
 }
 
 export function useShownSections(): ShownSection[] {
   const ws = useWorkspaceStore((s) => s.workspace);
-  const hidden = useUiStore((s) => s.arrangeHidden);
+  const scope = useUiStore((s) => s.gridScope);
   const collapsed = useUiStore((s) => s.arrangeCollapsed);
-  return cachedSections(ws, hidden, collapsed);
+  return cachedSections(ws, scope, collapsed);
 }
 
-/** Non-hook form of `isShownInArrange` for commands and operations. */
-export function shownInArrangeNow(id: DocumentId): boolean {
-  return isShownInArrange(
-    useWorkspaceStore.getState().workspace,
-    useUiStore.getState().arrangeHidden,
-    id,
-  );
+/** Whether the grid shows `id` as a section now: the active document, others in All open. */
+export function shownInGridNow(id: DocumentId): boolean {
+  const ws = useWorkspaceStore.getState().workspace;
+  if (ws.documents[id] === undefined) return false;
+  return id === ws.activeDocument || showsAllDocuments(ws, useUiStore.getState().gridScope);
 }
 
 const indexCache = new WeakMap<VirtualDocument, ReadonlyMap<PageId, number>>();

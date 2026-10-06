@@ -1,9 +1,9 @@
 /**
  * The tab menu (`components/01-frame.md` F4 §5, §6; inventory 8.13): right-click, a 450 ms
  * long press or Shift+F10 on a tab. Rename… · Lock · Show in Pages grid · Move left · Move
- * right · Close · Close other documents. It replaces `stage/TabArrangeMenu.tsx`; until the
- * Pages grid's scope switch (D2-5) takes it, "Hide from Arrange" / "Show in Arrange" stays as
- * the last row so no function is lost, and the tab stays draggable onto the light table.
+ * right · Close · Close other documents. It replaces `stage/TabArrangeMenu.tsx`; M8's "Hide
+ * from Arrange" went to the Pages grid's scope switch (PG2), and the tab stays draggable onto
+ * the grid, which then shows All open.
  *
  * - Rename… activates the document and opens the title menu with its name field focused
  *   (spec 01.4: rename lives in the title menu's header).
@@ -13,16 +13,17 @@
  * - Close asks nothing (changes stay on the device, ADR-0032); focus goes to the next tab.
  */
 import { draggable } from '@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter';
+import { combine } from '@atlaskit/pragmatic-drag-and-drop/utils/combine';
 import { ContextMenu } from '@base-ui/react/context-menu';
 import type { DocumentId } from '@pdf-editor/document-model';
 import { type ReactElement, useCallback } from 'react';
 
-import { showInArrange } from '../../dnd/drop';
 import type { TabDragData } from '../../dnd/page-drag';
+import { attachTabDropTarget } from '../../dnd/tab-drop';
 import { showTab } from '../../home/home-actions';
 import { m } from '../../i18n';
+import { enterGrid } from '../../stage/grid/grid-transition';
 import { useLock, useLockStore } from '../../state/lock-store';
-import { useUiStore } from '../../state/ui-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import menuStyles from '../../ui/Menu.module.css';
 import { announce } from '../announcer';
@@ -54,18 +55,20 @@ export function toggleLockFromTab(id: DocumentId, title: string): void {
 }
 
 export function TabMenu({ documentId, title, onClose, children }: TabMenuProps) {
-  const hidden = useUiStore((s) => s.arrangeHidden.includes(documentId));
-  const active = useWorkspaceStore((s) => s.workspace.activeDocument === documentId);
   const order = useWorkspaceStore((s) => s.workspace.documentOrder);
   const index = order.indexOf(documentId);
   const locked = useLock(documentId) !== undefined;
   const dragRef = useCallback(
     (element: HTMLElement | null) => {
       if (element === null) return;
-      return draggable({
-        element,
-        getInitialData: (): TabDragData => ({ type: 'tab', documentId }),
-      });
+      // Draggable onto the grid, and a drop target for pages from it (F4 §6, dnd/tab-drop.ts).
+      return combine(
+        draggable({
+          element,
+          getInitialData: (): TabDragData => ({ type: 'tab', documentId }),
+        }),
+        attachTabDropTarget(element, documentId),
+      );
     },
     [documentId],
   );
@@ -109,8 +112,7 @@ export function TabMenu({ documentId, title, onClose, children }: TabMenuProps) 
               className={menuStyles.item}
               onClick={() => {
                 showTab(documentId);
-                useUiStore.getState().showSurface('grid', documentId);
-                announce(m.mode_arrange_long());
+                enterGrid();
               }}
             >
               <span className={menuStyles.label}>{m.frame_show_in_grid()}</span>
@@ -141,32 +143,6 @@ export function TabMenu({ documentId, title, onClose, children }: TabMenuProps) 
             >
               <span className={menuStyles.label}>{m.frame_close_others()}</span>
             </ContextMenu.Item>
-            {active ? null : (
-              <>
-                <ContextMenu.Separator className={menuStyles.separator} />
-                {hidden ? (
-                  <ContextMenu.Item
-                    className={menuStyles.item}
-                    onClick={() => {
-                      showInArrange(documentId);
-                      useUiStore.getState().showSurface('grid');
-                    }}
-                  >
-                    <span className={menuStyles.label}>{m.arrange_show()}</span>
-                  </ContextMenu.Item>
-                ) : (
-                  <ContextMenu.Item
-                    className={menuStyles.item}
-                    onClick={() => {
-                      useUiStore.getState().hideFromArrange(documentId);
-                      announce(m.announce_removed_from_arrange({ title }));
-                    }}
-                  >
-                    <span className={menuStyles.label}>{m.arrange_hide()}</span>
-                  </ContextMenu.Item>
-                )}
-              </>
-            )}
           </ContextMenu.Popup>
         </ContextMenu.Positioner>
       </ContextMenu.Portal>

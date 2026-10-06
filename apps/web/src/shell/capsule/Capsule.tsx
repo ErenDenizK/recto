@@ -48,7 +48,7 @@ import { CapsuleMorph, type CapsuleSnapshot, snapshotCapsule } from './capsule-m
 import styles from './Capsule.module.css';
 
 /** Layers in one fixed DOM order, so React never moves a node that may hold focus. */
-const ORDER: readonly CapsuleShape[] = ['dock', 'locked', 'palette'];
+const ORDER: readonly CapsuleShape[] = ['dock', 'locked', 'palette', 'pages'];
 
 export interface CapsuleProps {
   /** The content showing now. */

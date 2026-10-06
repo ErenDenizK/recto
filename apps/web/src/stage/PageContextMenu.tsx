@@ -1,14 +1,14 @@
 /**
  * The page context menu (ADR-0019 §4, craft spec §3.4): right-click, the Menu key or
  * Shift+F10 on a page in Read or Edit. In Edit it carries the page operations that left the
- * tool bar with the Pages group: Rotate page left and right, Delete page, Crop… and Arrange,
- * and "Edit text here", which arms Edit text. Every item acts on the page it was opened on,
+ * tool bar with the Pages group: Rotate page left and right, Delete page, Crop… and Show in
+ * Pages grid, and "Edit text here", which arms Edit text. Every item acts on the page it was opened on,
  * and Rotate and Delete say which ("Rotate page 3 left"). The Document menu keeps "Rotate
  * pages…" and "Crop…" for many pages.
  *
  * The page operations are `pages` acts (ADR-0030): offered in viewing and in Markup alike, and
- * dimmed while the document is locked (S8), as "Edit text here" is (a `text` act); Arrange
- * stays.
+ * dimmed while the document is locked (S8), as "Edit text here" is (a `text` act); Show in
+ * Pages grid stays.
  *
  * One menu for the page view, mounted with the tool bar: it listens on the document for a
  * `contextmenu` over a page of the Read viewport, and for Shift+F10 or the Menu key with the
@@ -50,6 +50,7 @@ import { Keycaps } from '../ui/Keycaps';
 import { toast } from '../ui/Toast/toast';
 import menuStyles from '../ui/Menu.module.css';
 import { openOperationDialog } from './operation-dialogs-store';
+import { enterPagesGrid } from './pages-grid-door';
 import styles from './PageContextMenu.module.css';
 
 /** Where the menu opened and for which page. */
@@ -116,13 +117,9 @@ export function cropPage(pageId: PageId): boolean {
   return true;
 }
 
-/** "Arrange": the light table with this page selected (unless it is already in the selection). */
+/** "Show in Pages grid" (04-context §13): the grid at this page, its cell focused (PG1 §6). */
 export function arrangePage(pageId: PageId): void {
-  const selection = useSelectionStore.getState();
-  if (!selection.selected.has(pageId)) {
-    selection.apply({ selected: new Set([pageId]), anchor: pageId, focused: pageId });
-  }
-  void commandRegistry.execute('mode.arrange');
+  enterPagesGrid(pageId);
 }
 
 /** Whether a right-click lands on the current text selection (Copy is the browser's). */
@@ -341,7 +338,7 @@ export function PageContextMenu() {
                 />
                 <Menu.Separator className={menuStyles.separator} />
                 <Item
-                  label={m.mode_arrange()}
+                  label={m.frame_show_in_grid()}
                   icon={<Icon name="squares-four" className={styles.icon} />}
                   shortcut={commandRegistry.get('mode.arrange')?.shortcuts[0]}
                   onClick={run(arrangePage)}

@@ -586,6 +586,12 @@ export type InterleaveMode = 'alternate' | 'duplex-reverse-b';
  * Interleaves two documents into a new one (a1, b1, a2, b2, …; leftovers appended).
  * 'duplex-reverse-b' reverses b first — the order a scanner produces when the stack is
  * flipped to scan back sides. Both inputs are consumed; the result takes a's tab slot.
+ *
+ * With `keepSources` (redesign spec 07.13: one outcome, a new document, as Combine) the inputs
+ * stay open, untouched: the result is made of copies of their pages (fresh ids, as
+ * `mergeDocuments` makes them with `keepSources`), its outline points at the copies, created
+ * form fields stay with the inputs, and it goes in a new tab right after the later input in
+ * tab order. Without it the behaviour is unchanged, for recipes.
  */
 export function interleave(
   ws: Workspace,
@@ -594,6 +600,7 @@ export function interleave(
     readonly b: DocumentId;
     readonly mode: InterleaveMode;
     readonly title?: string;
+    readonly keepSources?: boolean;
   },
   ids: IdGenerator,
 ): Workspace {
@@ -609,13 +616,22 @@ export function interleave(
   const a = requireDocument(ws, args.a);
   const b = requireDocument(ws, args.b);
   const title = assertTitle(args.title ?? `${a.title} + ${b.title}`);
+  const keep = args.keepSources === true;
+  // Kept inputs lend copies of their pages; `copied` maps each original id to its copy.
+  const copied = new Map<PageId, PageId>();
+  const take = (page: VirtualPage): VirtualPage => {
+    if (!keep) return page;
+    const copy: VirtualPage = { ...page, id: ids.page() };
+    copied.set(page.id, copy.id);
+    return copy;
+  };
   const bPages = args.mode === 'duplex-reverse-b' ? [...b.pages].reverse() : b.pages;
   const pages: VirtualPage[] = [];
   for (let i = 0; i < Math.max(a.pages.length, bPages.length); i++) {
     const fromA = a.pages[i];
     const fromB = bPages[i];
-    if (fromA !== undefined) pages.push(fromA);
-    if (fromB !== undefined) pages.push(fromB);
+    if (fromA !== undefined) pages.push(take(fromA));
+    if (fromB !== undefined) pages.push(take(fromB));
   }
   // Interleaved pages come from unrelated sequences; any existing labels would read as
   // "1, 1, 2, 2", so labels restart as plain decimal when either input carried any.
@@ -630,13 +646,20 @@ export function interleave(
       id: ids.document(),
       title,
       pages,
-      outline: pruneOutline([...a.outline, ...b.outline], live),
+      outline: pruneOutline(
+        keep ? retargetOutline([...a.outline, ...b.outline], copied) : [...a.outline, ...b.outline],
+        live,
+      ),
       labels:
         hadLabels && pages.length > 0 ? [{ startIndex: 0, style: 'decimal', firstNumber: 1 }] : [],
       clean: false,
     },
-    pruneFields(joinFields(a.fields, b.fields), live),
+    keep ? undefined : pruneFields(joinFields(a.fields, b.fields), live),
   );
+  if (keep) {
+    const last = ws.documentOrder.indexOf(a.id) > ws.documentOrder.indexOf(b.id) ? a.id : b.id;
+    return replaceDocumentsInOrder(ws, [], [doc], last, true);
+  }
   return replaceDocumentsInOrder(ws, [a.id, b.id], [doc], a.id);
 }
 

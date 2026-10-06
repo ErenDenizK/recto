@@ -13,7 +13,7 @@
  * - Keys: Tab and the arrows move inside; `4` with exactly two checked compares (the grid's
  *   own keys handle Delete and Esc).
  *
- * M2 glass (`composes: glass`), 44 high around 32 px controls (56 / 44 coarse), bottom centre
+ * M2 glass (`mat mat-bar s8 c10`), 44 high around 32 px controls (56 / 44 coarse), bottom centre
  * 16 px above the view's edge; it floats over cards that scroll under it. Shown while one or
  * more cards are checked.
  */
