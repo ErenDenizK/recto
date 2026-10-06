@@ -202,10 +202,23 @@ test('J12: ○ A, ○ B, Compare: three steps from the Library', async ({ page }
   expect(person.steps).toBe(3);
 });
 
+/**
+ * Whether this launch keeps snapshots (ADR-0032 §2.5). An engine whose test context refuses OPFS
+ * (Playwright's WebKit, like a private window) keeps none and says so; Chromium always keeps.
+ */
+async function keepsSnapshots(page: Page, browserName: string): Promise<boolean> {
+  await sessionSettled(page);
+  if ((await page.locator('html').getAttribute('data-session')) !== 'off') return true;
+  expect(browserName, 'Chromium always keeps').not.toBe('chromium');
+  return false;
+}
+
 test('J14: a closed document reopens from Recents in one step, with its thumbnail', async ({
   page,
+  browserName,
 }) => {
   await page.goto('./?lang=en');
+  const kept = await keepsSnapshots(page, browserName);
   const chooser = page.waitForEvent('filechooser');
   await openButton(page).click();
   await (await chooser).setFiles(fixturePath('simple-text.pdf'));
@@ -213,12 +226,25 @@ test('J14: a closed document reopens from Recents in one step, with its thumbnai
   await page.getByRole('tab', { name: 'simple-text' }).focus();
   await page.keyboard.press('Delete');
   await expect(openButton(page)).toBeVisible();
+  const recents = page.getByRole('list', { name: 'Recent files' });
+  const row = recents.getByRole('button', { name: /^simple-text\.pdf, / });
+  if (!kept) {
+    // No snapshot to reopen in one step: Recents (IndexedDB) still lists the closed file, and
+    // says changes are not kept rather than that they are (L7's footnote).
+    await expect(row).toBeVisible();
+    await expect(page.getByTestId('recent-not-kept')).toContainText(
+      'Changes are not kept in this window',
+    );
+    await expect(page.getByTestId('recent-kept-footnote')).toHaveCount(0);
+    test.skip(
+      true,
+      `${browserName} keeps no snapshots in this context (OPFS refused): Recents lists the file and says so`,
+    );
+  }
   await waitForSnapshot(page);
 
   await page.reload();
   await sessionSettled(page);
-  const recents = page.getByRole('list', { name: 'Recent files' });
-  const row = recents.getByRole('button', { name: /^simple-text\.pdf, / });
   await expect(row).toBeVisible();
   // A kept row shows its first page (02.Q1) and the panel says where it is kept.
   await expect(row.getByTestId('recent-thumb')).toBeVisible({ timeout: 20_000 });
@@ -239,8 +265,12 @@ test('J14: a closed document reopens from Recents in one step, with its thumbnai
 
 test('J14 at zero: documents open when the browser closed are back after a reload', async ({
   page,
+  browserName,
 }) => {
   await page.goto('./?lang=en');
+  if (!(await keepsSnapshots(page, browserName))) {
+    test.skip(true, `${browserName} keeps no snapshots in this context (OPFS refused)`);
+  }
   const chooser = page.waitForEvent('filechooser');
   await openButton(page).click();
   await (await chooser).setFiles(['simple-text.pdf', 'rotated-pages.pdf'].map(fixturePath));

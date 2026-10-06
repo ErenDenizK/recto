@@ -98,7 +98,7 @@ jobs:
           retention-days: 7
 
   e2e:
-    name: E2E (${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards || 2 }})
+    name: E2E (${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards || 3 }})
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -109,7 +109,9 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium, firefox, webkit]
-        shard: [1, 2]
+        # Three shards per desktop engine: with the V2 specs and the rendered-pixel harness, a
+        # shard of two ran 17 min in Chromium and past the 20 min limit in Firefox and WebKit.
+        shard: [1, 2, 3]
         # Rendered glass pixels without the GPU (the @pixels specs only, docs/specs/redesign.md
         # D0-1): a handful of tests, one shard.
         include:
@@ -150,7 +152,7 @@ jobs:
         run: >-
           pnpm --filter @pdf-editor/web test:e2e
           --project=${{ matrix.project }}
-          --shard=${{ matrix.shard }}/${{ matrix.shards || 2 }}
+          --shard=${{ matrix.shard }}/${{ matrix.shards || 3 }}
         env:
           E2E_SKIP_BUILD: '1'
 
