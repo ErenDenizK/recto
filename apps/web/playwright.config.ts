@@ -134,6 +134,8 @@ export default defineConfig({
         '**/sidebar.spec.ts',
         // The Pages grid: J4 by touch, the pinch's sizes and its door to the page (spec D2-5).
         '**/pages-grid.spec.ts',
+        // The light theme: no flash, the setting, axe in light on the tablet (spec D3-7).
+        '**/theme.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },
