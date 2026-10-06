@@ -53,10 +53,22 @@
   margin-top: auto;
 }
 
-/* Empty: space above (1 part) and below (1.6 parts) put the card near 38 % of the height. */
+/*
+ * Empty: the card's top is anchored at 40 % of the view less 160 px (half the card's nominal 320,
+ * L2 §2), so its centre rests near 40 % of the height. The space above is the view's alone,
+ * never the card's: a card whose height changes (the headline re-wrapping when Inter Recto
+ * replaces its fallback, a Recents list arriving under it) grows downwards and moves nothing
+ * above it, where centring the card in the leftover space moved all of it (the font swap's
+ * layout shift, fonts.spec). On a short view the space falls to nothing and the column scrolls.
+ * The view is a size container for that one length (`cqh`); it holds nothing fixed-position.
+ */
+.library[data-variant='empty'] .scroller {
+  container-type: size;
+}
+
 .empty {
   display: grid;
-  grid-template-rows: 1fr auto 1.6fr auto;
+  grid-template-rows: max(0px, calc(40cqh - 160px - var(--space-6))) auto 1fr auto;
   gap: 0;
 }
 
