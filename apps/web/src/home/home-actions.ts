@@ -1,23 +1,36 @@
 /**
- * What Home's cards and buttons do (experience-redesign §3), and how the shell moves between
- * Home and a document (ADR-0019 §1–§2). Combining always goes through the merge dialog, card
- * drops included (§13 decision 2): nothing merges without it. Combining keeps the files open
- * and makes a new document of them (review F8).
+ * What the Library's launcher, cards and selection bar do (`02-library` L2, L5, L6, L7, L9), and
+ * how the shell moves between the Library and a document (ADR-0019 §1–§2). The file keeps its
+ * M8 name: the place's code name is still `home`, and the tabs, the Files list and the
+ * commands call `showTab`, `showHome`, `showOpened` and `selectOnHome` from here.
+ *
+ * - **Combine asks nothing** on the Library (L6, INV-12): `combineNow` makes the new document
+ *   from the checked cards in card order (02.9), keeps the sources open, opens it in its Pages
+ *   grid and shows "Combined 2 files · Undo". `combineFiles` (the launcher's Combine files…)
+ *   combines picked files without opening them as documents, one composed history step
+ *   (02.10). The Files list and ⌘K keep the dialog (`combine`) until D2-5 moves them.
+ * - **Opening, checking, reordering and closing change no document** (02.8, X12): they ask no
+ *   guard; only a card's F2 rename is a `document` act.
  */
 import {
   closeDocument,
   type DocumentId,
+  mergeDocuments,
   removeSourceIfUnreferenced,
+  reorderDocuments,
   type SourceId,
 } from '@pdf-editor/document-model';
 
-import { noteReopenedFrom, openDocuments } from '../commands/app-commands';
+import { noteReopenedFrom, openDocuments, openFilesFromPicker } from '../commands/app-commands';
+import { currentPlatform } from '../commands/shortcuts';
 import { enterCompare } from '../compare/compare-commands';
 import { useCompareStore } from '../compare/compare-store';
-import { pickFiles, rememberFileHandle } from '../files/open-files';
+import { presentOpenFailures } from '../errors/present';
+import { isPdfFile, pickFiles, rememberFileHandle } from '../files/open-files';
 import {
   canReopenRecent,
   type RecentEntry,
+  recordRecent,
   removeRecent,
   reopenRecent,
   setRecentNote,
@@ -27,11 +40,14 @@ import { m } from '../i18n';
 import { reopenFromSnapshot } from '../session/session';
 import { announce } from '../shell/announcer';
 import { openOperationDialog } from '../stage/operation-dialogs-store';
+import { validateTitle } from '../stage/operation-plans';
 import { mergeAll } from '../stage/section-operations';
+import { lockOpened } from '../state/lock-store';
 import { useUiStore } from '../state/ui-store';
-import { useWorkspaceStore } from '../state/workspace-store';
+import { addLoadedSource, type LoadedSources, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
-import { liveSelection } from './home-model';
+import { combinedTitle, combineOrder, compareOrder, liveSelection, movedOrder } from './home-model';
+import { resetLibraryStore, setSelecting } from './library-store';
 
 const ui = () => useUiStore.getState();
 const model = () => useWorkspaceStore.getState();
@@ -78,6 +94,7 @@ export function watchDestination(): () => void {
     if (state.workspace === previous.workspace) return;
     if (state.workspace.documentOrder.length === 0 && previous.workspace.documentOrder.length > 0) {
       useUiStore.setState({ destination: 'document', docUi: {} });
+      resetLibraryStore();
     }
   });
 }
@@ -89,9 +106,11 @@ export function selectOnHome(ids: readonly DocumentId[], anchor?: DocumentId | n
 }
 
 /**
- * After files were opened, dropped or picked alike ("Open files", the palette, the menu):
- * Home with the new cards selected when two or more arrive on an empty workspace or any
- * arrive while Home is showing; one file opened on an empty workspace goes to Read.
+ * After files were opened, dropped or picked alike (Open PDFs…, the palette, a drop; L2, L9):
+ * the Library with the new cards checked (Select mode, the bar up) when two or more arrive on
+ * an empty workspace or any arrive while the Library shows, with focus on the first new card;
+ * one file opened on an empty workspace goes to its page. Two or more opened over a document
+ * open as tabs and stay there, with "Opened 3 files · Show in Library" (02.19).
  */
 export function showOpened(
   ids: readonly DocumentId[],
@@ -106,7 +125,31 @@ export function showOpened(
   if (onHome || context.wasEmpty) {
     ui().showHome();
     selectOnHome(ids);
+    focusCardSoon(ids[0]);
+    return;
   }
+  if (ids.length > 1) {
+    toast.action(
+      m.library_opened_files({ count: ids.length }),
+      {
+        label: m.library_show_in_library(),
+        run: () => {
+          ui().showHome();
+          ui().setHomeSelection(liveSelection(order(), ids));
+          focusCardSoon(ids[0]);
+        },
+      },
+      { key: 'library-opened-files' },
+    );
+  }
+}
+
+/** Focuses a card once the Library has rendered it (after a view change or an open). */
+export function focusCardSoon(id: DocumentId | undefined): void {
+  if (id === undefined) return;
+  requestAnimationFrame(() => {
+    document.querySelector<HTMLElement>(`[role="option"][data-document-id="${id}"]`)?.focus();
+  });
 }
 
 /** Opens a card: that document's page, on its tab. */
@@ -141,6 +184,193 @@ export function combineInto(ids: readonly DocumentId[], title: string): Document
   return created;
 }
 
+/**
+ * The selection bar's Combine (L6, INV-12, J3): a new document of the checked cards **in card
+ * order** (02.9), titled "Combined – A + B", the sources kept open; one history entry. It opens
+ * in its Pages grid with "Combined 2 files · Undo", and Select mode ends.
+ */
+export function combineNow(selection: readonly DocumentId[]): DocumentId | undefined {
+  const ids = combineOrder(order(), selection);
+  if (ids.length < 2) return undefined;
+  const ws = model().workspace;
+  const title = combinedTitle(ids.map((id) => ws.documents[id]?.title ?? ''));
+  const created = combineInto(ids, title);
+  if (created === undefined) return undefined;
+  setSelecting(false);
+  showInGrid(created);
+  return created;
+}
+
+/** A new document on its own in the Pages grid (Combine, Combine files…). */
+function showInGrid(id: DocumentId): void {
+  model().setActive(id);
+  ui().pinToArrange([id]);
+  ui().showSurface('grid', id);
+}
+
+/**
+ * The launcher's Combine files… (L2, 02.10): the system picker, several files; two or more
+ * PDFs become one new document in the order picked, opened in its Pages grid, and only it
+ * opens: the picked files load as sources, never as documents of their own, all in one
+ * composed history step. They go to Recents as opened files (no snapshot). One file opens as
+ * usual, with "Choose two or more files to combine".
+ */
+export async function combineFiles(): Promise<DocumentId | undefined> {
+  const picked = await pickFiles('pdf');
+  const files = picked.filter(isPdfFile);
+  if (files.length === 0) return undefined;
+  if (files.length === 1) {
+    const wasEmpty = order().length === 0;
+    const ids = await openDocuments(files);
+    const [only] = ids;
+    if (only !== undefined) {
+      if (wasEmpty) ui().showSurface('page', only);
+      else openInRead(only);
+    }
+    toast.info(m.library_combine_files_one(), { key: 'library-combine-one' });
+    return undefined;
+  }
+  const title = combinedTitle(files.map((file) => file.name.replace(/\.pdf$/i, '')));
+  const checked = validateTitle(title);
+  if (!checked.ok) return undefined;
+  let created: DocumentId | undefined;
+  let skipped: LoadedSources['skipped'] = [];
+  let used: readonly File[] = [];
+  const committed = await model().applyComposed(
+    async (lease) => {
+      const result = await model().loadSources(files, lease);
+      skipped = result.skipped;
+      used = result.loaded.map((l) => l.file);
+      return result.loaded.length >= 2 ? result.loaded : undefined;
+    },
+    (ws, ids, loaded) => {
+      let next = ws;
+      const made: DocumentId[] = [];
+      for (const { source } of loaded) {
+        const r = addLoadedSource(next, source, ids);
+        next = r.workspace;
+        made.push(r.documentId);
+      }
+      next = mergeDocuments(next, { documentIds: made, title: checked.title }, ids);
+      created = next.activeDocument;
+      return next;
+    },
+    (loaded) => m.history_combine({ count: loaded.length }),
+  );
+  presentOpenFailures(skipped, files.length);
+  if (!committed || created === undefined) return undefined;
+  for (const file of used) void recordRecent({ name: file.name, size: file.size });
+  // Opened from files: "Open documents locked" applies (ADR-0029 §2.8).
+  lockOpened([created]);
+  showInGrid(created);
+  toast.undo(m.combined_toast({ count: used.length }), {
+    documentId: created,
+    spoken: m.announce_combined({
+      count: used.length,
+      title: checked.title,
+      shortcut: currentPlatform === 'mac' ? m.undo_hint_mac() : m.undo_hint_other(),
+    }),
+    testId: 'combined-toast',
+  });
+  return created;
+}
+
+/** Open PDFs… (L2; the `file.open` command, Mod+O): the picker, then `showOpened`. */
+export function openPdfs(): Promise<void> {
+  return openFilesFromPicker();
+}
+
+/**
+ * The selection bar's Compare (L6, J12): exactly two checked cards; the older file is A
+ * (`compareOrder`), Swap is in the Compare bar.
+ */
+export async function compareSelected(selection: readonly DocumentId[]): Promise<void> {
+  const live = liveSelection(order(), selection);
+  const [x, y] = live;
+  if (live.length !== 2 || x === undefined || y === undefined) return;
+  const { files, workspace } = model();
+  const modified = (id: DocumentId): number | undefined => {
+    const first = workspace.documents[id]?.pages[0]?.ref;
+    const file = first?.kind === 'source' ? files[first.source] : undefined;
+    return file !== undefined && file.lastModified > 0 ? file.lastModified : undefined;
+  };
+  const [a, b] = compareOrder(order(), [x, y], modified);
+  setSelecting(false);
+  await compareOnHome(a, b);
+}
+
+/**
+ * The selection bar's Pages (L6, 06.9): the Pages grid over every open document, the checked
+ * ones open and the others collapsed to their headers, the first checked one current.
+ */
+export function pagesSelected(selection: readonly DocumentId[]): void {
+  const all = order();
+  const live = liveSelection(all, selection);
+  const checked = all.filter((id) => live.includes(id));
+  const first = checked[0] ?? all[0];
+  if (first === undefined) return;
+  model().setActive(first);
+  ui().pinToArrange(all);
+  for (const id of all) ui().setArrangeCollapsed(id, checked.length > 0 && !checked.includes(id));
+  setSelecting(false);
+  ui().showSurface('grid', first);
+  announce(m.library_announce_pages({ count: checked.length || all.length }));
+}
+
+/**
+ * The selection bar's Close and Delete in Select mode (L6): the checked documents close as one
+ * step, their snapshots go to Recents, and the Undo toast brings them back. Focus goes to the
+ * card now at the first closed card's place, else the one before, else Open PDFs….
+ */
+export function closeSelected(selection: readonly DocumentId[]): void {
+  const before = order();
+  const ids = liveSelection(before, selection);
+  if (ids.length === 0) return;
+  const firstIndex = Math.min(...ids.map((id) => before.indexOf(id)));
+  closeOnHome(ids, { quiet: true });
+  const after = order();
+  if (after.length === before.length) return;
+  toast.undo(m.library_closed_toast({ count: ids.length }), {
+    spoken: m.library_announce_closed({ count: ids.length }),
+    keepOnClose: true,
+    testId: 'library-closed-toast',
+  });
+  setSelecting(false);
+  const next = after[Math.min(firstIndex, after.length - 1)];
+  if (next !== undefined) {
+    focusCardSoon(next);
+    return;
+  }
+  requestAnimationFrame(() => {
+    document.querySelector<HTMLElement>('[data-library-open]')?.focus();
+  });
+}
+
+/**
+ * Moves a card to `toIndex` (Alt+Left/Right, a drag's drop; L5, INV-19): the tab order, and so
+ * Combine's order, changes with it, as one history entry "Moved report.pdf". No guard: the
+ * order of the open documents is no document's content (02.8).
+ */
+export function moveCard(id: DocumentId, toIndex: number): boolean {
+  const current = order();
+  const next = movedOrder(current, id, toIndex);
+  if (next === current) return false;
+  const title = model().workspace.documents[id]?.title ?? '';
+  const moved = model().applyOperation(
+    (ws) => reorderDocuments(ws, next),
+    m.library_history_move({ name: title }),
+  );
+  if (!moved) return false;
+  announce(
+    m.library_announce_moved({
+      name: title,
+      position: next.indexOf(id) + 1,
+      count: next.length,
+    }),
+  );
+  return true;
+}
+
 /** Compare with A and B chosen: the first and second selected cards. */
 export async function compareOnHome(a: DocumentId, b: DocumentId): Promise<void> {
   if (a === b) return;
@@ -171,8 +401,14 @@ export function arrangeOnHome(selection: readonly DocumentId[]): void {
   ui().showSurface('grid', first);
 }
 
-/** Closes the selected documents as one undoable step. */
-export function closeOnHome(selection: readonly DocumentId[]): void {
+/**
+ * Closes the selected documents as one undoable step. `quiet` leaves the announcement to the
+ * caller's toast (the Library's Close says it with its Undo).
+ */
+export function closeOnHome(
+  selection: readonly DocumentId[],
+  options: { readonly quiet?: boolean } = {},
+): void {
   const ids = liveSelection(order(), selection);
   if (ids.length === 0) return;
   const ws = model().workspace;
@@ -195,6 +431,7 @@ export function closeOnHome(selection: readonly DocumentId[]): void {
   }, label);
   if (!closed) return;
   ui().setHomeSelection([], null);
+  if (options.quiet === true) return;
   announce(
     ids.length === 1
       ? m.announce_closed({ name: names[0] ?? '' })
