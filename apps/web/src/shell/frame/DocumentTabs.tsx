@@ -248,16 +248,21 @@ export function DocumentTabs({ onLibrary }: { readonly onLibrary: boolean }) {
                     {selected ? (
                       <Icon name="caret-down" className={styles.caret} aria-hidden="true" />
                     ) : null}
+                    {/* Closing by keyboard is Delete or the tab menu; ✕ is the pointer's (APG):
+                        hidden from assistive technology and never focusable, so it may sit in
+                        the tab's own row, right after the name, where every tab puts it. */}
+                    <span
+                      aria-hidden="true"
+                      className={styles.close}
+                      title={m.frame_close_name({ name: doc.title })}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        closeTab(doc.id, false);
+                      }}
+                    >
+                      <Icon name="x" />
+                    </span>
                   </button>
-                  {/* Closing by keyboard is Delete or the tab menu; ✕ is the pointer's (APG). */}
-                  <span
-                    aria-hidden="true"
-                    className={styles.close}
-                    title={m.frame_close_name({ name: doc.title })}
-                    onClick={() => closeTab(doc.id, false)}
-                  >
-                    <Icon name="x" />
-                  </span>
                 </div>
               </TabMenu>
             );
