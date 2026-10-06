@@ -330,7 +330,7 @@ describe('Outline panel editing', () => {
   it('lets the first bookmark be added from the empty state', async () => {
     load([]);
     renderPanel();
-    expect(screen.getByText('No outline')).toBeVisible();
+    expect(screen.getByText('No contents')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Add bookmark' }));
     await screen.findByRole('textbox', { name: 'Bookmark title' });
     await userEvent.keyboard('Cover{Enter}');
