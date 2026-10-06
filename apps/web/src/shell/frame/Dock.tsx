@@ -49,6 +49,7 @@ import { useToolStore } from '../../viewer/tool-store';
 import { announce } from '../announcer';
 import { Capsule } from '../capsule/Capsule';
 import { type CapsuleShape, useCapsuleShape } from '../capsule/capsule-content';
+import { PagesBar, usePagesBarKey } from '../../stage/grid/PagesBar';
 import { MarkupBar, OptionsTier } from '../FloatingToolbar';
 import { pickBarGroup, showBarGroups } from '../FloatingToolbar.groups';
 import { useRovingTabindex } from '../FloatingToolbar.roving';
@@ -81,16 +82,20 @@ export function Dock() {
   const group = useToolStore((s) => s.barGroup);
   // Faded and out of the pointer's way while a stroke is in progress (MK-17).
   const stroking = useStrokeInProgress() && shape === 'palette';
-  // The page view's: the grid and Compare have their own bars until the capsule becomes them.
-  const page = useStageView() === 'page';
-  if (!doc || !page) return null;
+  // The page view's and the Pages grid's (whose content is the Pages bar, X21); Compare has its
+  // own bar until the capsule becomes it.
+  const view = useStageView();
+  const pagesKey = usePagesBarKey(doc?.id);
+  if (!doc || (view !== 'page' && view !== 'grid')) return null;
   return (
     // The capsule first, so Tab goes from the bar to its options; the column stacks them
     // bottom-up, so the tier still sits on top.
     <div className={styles.dock} data-dock="" data-stroking={stroking ? '' : undefined}>
       <Capsule
         shape={shape}
-        morphKey={shape === 'palette' ? (group ?? 'groups') : undefined}
+        morphKey={
+          shape === 'palette' ? (group ?? 'groups') : shape === 'pages' ? pagesKey : undefined
+        }
         stroking={stroking}
       >
         {(content) => <DockContent shape={content} doc={doc} />}
@@ -108,6 +113,7 @@ function DockContent({
   readonly doc: VirtualDocument;
 }): ReactNode {
   if (shape === 'palette') return <MarkupBar />;
+  if (shape === 'pages') return <PagesBar doc={doc} />;
   return <DockItems locked={shape === 'locked'} doc={doc} />;
 }
 

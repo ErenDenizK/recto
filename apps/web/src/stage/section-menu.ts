@@ -48,18 +48,6 @@ export function needsOtherDocumentHint(id: DocumentId): string | undefined {
   return hasOtherDocument(id) ? undefined : m.hint_needs_other_document();
 }
 
-let mergeTargets: (documentId: DocumentId) => readonly SectionSubmenuEntry[] = () => [];
-
-/** The operations module provides the Merge into… targets (avoids an import cycle). */
-export function provideMergeTargets(
-  provider: (documentId: DocumentId) => readonly SectionSubmenuEntry[],
-): () => void {
-  mergeTargets = provider;
-  return () => {
-    if (mergeTargets === provider) mergeTargets = () => [];
-  };
-}
-
 const BUILT_IN: readonly SectionMenuItem[] = [
   {
     command: 'section.reverse',
@@ -78,13 +66,6 @@ const BUILT_IN: readonly SectionMenuItem[] = [
     label: m.section_split,
     group: 'pages',
     hint: (id) => (pageCount(id) > 1 ? undefined : m.hint_needs_two_pages()),
-  },
-  {
-    command: 'section.merge',
-    label: m.section_merge,
-    group: 'pages',
-    hint: needsOtherDocumentHint,
-    submenu: (id) => mergeTargets(id),
   },
   { command: 'section.insertImages', label: m.section_insert_images, group: 'pages' },
   { command: 'section.rename', label: m.section_rename, group: 'document' },

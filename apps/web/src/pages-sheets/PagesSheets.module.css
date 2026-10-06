@@ -1,0 +1,179 @@
+/*
+ * The page-structure sheets (components/07-sheets.md S13–S18) inside the Sheet primitive's body
+ * (ui/sheet/Sheet.module.css): groups of controls stacked 20 px apart, a footnote-weight
+ * label over each, solid wells for lists and previews (never glass in glass, quality-bar Q-4),
+ * tabular numerals for counts. Sizes and type come from the sheet's tokens, so the same rows
+ * are 28 px on a fine pointer and 44 on a coarse one.
+ */
+.stack {
+  display: grid;
+  gap: 20px;
+}
+
+.group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  margin: 0 0 2px;
+  padding: 0;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 550;
+  line-height: var(--type-footnote-lh);
+}
+
+.hint {
+  margin: 0;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.number {
+  width: 88px;
+}
+
+/* What the primary will make: one line in the secondary colour, the numbers tabular. */
+.preview {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--control-lh);
+}
+
+.preview[data-problem] {
+  color: var(--glass-text-secondary);
+}
+
+.problems {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* A list of open documents (Combine, Interleave): one solid well of rows. */
+.list {
+  display: grid;
+  margin: 0;
+  padding: 4px;
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+  box-shadow: inset 0 0 0 1px var(--control-border);
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--control-h);
+  padding: 0 4px 0 8px;
+  border-radius: calc(var(--radius-control) - 4px);
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+}
+
+.row[data-off] .rowTitle {
+  color: var(--glass-text-secondary);
+}
+
+.check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.tag {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round);
+  background: var(--tag-color);
+}
+
+.rowTitle {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  flex: none;
+  color: var(--glass-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rowButtons {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+/* The resulting order (Interleave): small fills, A and B told apart by letter and tag. */
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  background: var(--surface-on);
+  box-shadow: inset 0 -2px 0 var(--tag-color);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+}
+
+.slotLetter {
+  font-weight: 650;
+}
+
+.slotMore {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+}
+
+.legendLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}

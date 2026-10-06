@@ -4625,5 +4625,144 @@
     }
   ],
   "review_words_low": "Low confidence · {confidence}",
-  "find_match_case_chip": "Match case"
+  "find_match_case_chip": "Match case",
+  "grid_announce_enter": "Pages grid. {pages}. Page {page}.",
+  "grid_announce_leave": "Page {page} of {count}",
+  "grid_region_label": "Pages grid of {title}",
+  "grid_region_label_all": "Pages grid of {count} documents",
+  "grid_size_label": "Thumbnail size",
+  "grid_size_small": "Small",
+  "grid_size_medium": "Medium",
+  "grid_size_large": "Large",
+  "grid_size_larger": "Larger",
+  "grid_size_largest": "Largest",
+  "grid_size_announce": "Thumbnail size {name}",
+  "grid_sources": "Sources: {names}",
+  "grid_scope_label": "Show pages of",
+  "grid_scope_document": "This document",
+  "grid_scope_all": "All open",
+  "grid_scope_all_reason": "Only one document is open",
+  "grid_pinch_open": "Release to open page {page}",
+  "grid_moved_to_toast": [
+    {
+      "declarations": ["input count", "input title", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moved 1 page to {title}",
+        "countPlural=*": "Moved {count} pages to {title}"
+      }
+    }
+  ],
+  "pages_bar_label": "Selected pages",
+  "pages_bar_done": "Done",
+  "pages_bar_clear": "Clear selection",
+  "pages_bar_earlier": "Move earlier",
+  "pages_bar_later": "Move later",
+  "pages_bar_already_first": "Already first",
+  "pages_bar_already_last": "Already last",
+  "pages_bar_delete": "Delete",
+  "pages_bar_one_page": "A document needs one page",
+  "pages_bar_extract": "Extract",
+  "pages_bar_duplicate": "Duplicate",
+  "pages_bar_move_to": "Move to",
+  "pages_bar_new_document": "New document",
+  "pages_bar_more": "More actions",
+  "pages_bar_select_all": "Select all",
+  "pages_bar_unlock": "Unlock",
+  "pages_bar_insert_blank": "Insert blank page after",
+  "pages_bar_crop": "Crop…",
+  "pages_bar_resize": "Resize…",
+  "pages_bar_copy": "Copy",
+  "pages_bar_paste": "Paste after",
+  "pages_bar_copy_to_new": "Copy to new document",
+  "pages_bar_reverse": "Reverse order",
+  "pages_bar_select_odd": "Select odd",
+  "pages_bar_select_even": "Select even",
+  "pages_bar_insert_images": "Insert images…",
+  "pages_bar_split": "Split…",
+  "pages_bar_interleave": "Interleave…",
+  "cmd_extract_pages": "Extract pages…",
+  "cmd_grid_done": "Leave the Pages grid",
+  "cmd_combine_open": "Combine with open documents…",
+  "split_primary": "Split into {count}",
+  "split_mode_every_short": "Every n pages",
+  "split_part_label": "{part} of {parts}",
+  "split_toast": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Split into 1 document",
+        "countPlural=*": "Split into {count} documents"
+      }
+    }
+  ],
+  "interleave_sheet_title": "Interleave {title}",
+  "interleave_needs_second": "Open a second document first",
+  "interleave_preview_new": "Creates {title} with {pages}; both files stay open.",
+  "interleave_toast": "Interleaved into {title}",
+  "combine_sheet_title": "Combine with open documents",
+  "combine_sheet_description": "Makes a new document; the files stay open as they are.",
+  "combine_order_label": "Documents, in order",
+  "combine_name_label": "Name",
+  "combine_preview": "Creates 1 document with {pages}",
+  "combine_needs_two": "Choose at least two documents",
+  "combine_announce_moved": "Moved {title} to position {position}",
+  "extract_sheet_title": "Extract pages",
+  "extract_pages_label": "Pages",
+  "extract_mode_label": "The original",
+  "extract_keep": "Keep them in {title}",
+  "extract_remove": "Remove them from {title}",
+  "extract_primary": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Extract 1 page",
+        "countPlural=*": "Extract {count} pages"
+      }
+    }
+  ],
+  "extract_preview_keep": "Creates a new document with {pages}; the original stays as it is.",
+  "extract_preview_remove": "Creates a new document with {pages} and removes them from the original.",
+  "extract_toast_copied": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Copied 1 page to a new document",
+        "countPlural=*": "Copied {count} pages to a new document"
+      }
+    }
+  ],
+  "extract_toast_moved": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Moved 1 page to a new document",
+        "countPlural=*": "Moved {count} pages to a new document"
+      }
+    }
+  ],
+  "insert_images_primary": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Insert 1 page",
+        "countPlural=*": "Insert {count} pages"
+      }
+    }
+  ],
+  "tab_drop_label": [
+    {
+      "declarations": ["input count", "input title", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move 1 page to {title}",
+        "countPlural=*": "Move {count} pages to {title}"
+      }
+    }
+  ]
 }

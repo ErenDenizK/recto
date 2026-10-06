@@ -36,7 +36,7 @@ async function openTwo() {
   ]);
   const ws = useWorkspaceStore.getState().workspace;
   const [simple, rotated] = ws.documentOrder;
-  useUiStore.getState().pinToArrange(ws.documentOrder);
+  useUiStore.getState().setGridScope('all');
   useUiStore.getState().showSurface('grid');
   const grids = await screen.findAllByRole('grid');
   expect(grids).toHaveLength(2);
@@ -55,7 +55,7 @@ describe('light table', () => {
     useSelectionStore.getState().setClipboard(null);
     useUiStore.setState({
       docUi: {},
-      arrangePinned: [],
+      gridScope: 'all',
       arrangeCollapsed: [],
       paletteOpen: false,
       arrangeSize: 1,
