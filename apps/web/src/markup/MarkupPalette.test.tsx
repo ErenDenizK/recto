@@ -198,7 +198,10 @@ describe('Markup palette', () => {
     expect(useToolStore.getState().mode).toBe('ink');
     const inks = await screen.findByRole('toolbar', { name: 'Pen options' });
     // One press away: the well, six swatches, the width (10-ink §2.1).
-    expect(within(inks).getByRole('button', { name: 'More colours' })).toBeVisible();
+    // The strip's row fades in as the capsule grows to hold it.
+    await waitFor(() =>
+      expect(within(inks).getByRole('button', { name: 'More colours' })).toBeVisible(),
+    );
     expect(within(inks).getAllByRole('radio')).toHaveLength(6);
     expect(within(inks).getByRole('radio', { name: 'Red' })).toHaveAttribute(
       'aria-checked',
@@ -273,7 +276,8 @@ describe('Markup palette', () => {
     await openMarkup();
     await userEvent.click(tool('Eraser'));
     expect(useToolStore.getState().mode).toBe('eraser');
-    expect(await screen.findByRole('toolbar', { name: 'Eraser options' })).toBeVisible();
+    const strip = await screen.findByRole('toolbar', { name: 'Eraser options' });
+    await waitFor(() => expect(strip).toBeVisible());
     await userEvent.keyboard('{Escape}');
     expect(useToolStore.getState().mode).toBe('select');
     expect(isMarkupOpenActive()).toBe(true);
