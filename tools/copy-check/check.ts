@@ -198,6 +198,12 @@ const CATALOG_EXEMPTIONS: readonly {
     word: 'unlock',
     why: "the lock banner's action on a locked document (07-sheets §2.4), a verb on a lock, not a claim",
   },
+  {
+    file: 'en.json',
+    key: 'guard_locked',
+    word: 'unlock',
+    why: 'the reason a dimmed item shows on a locked document, "Locked · unlock first" as 04-context §12 writes it (ADR-0030 §2.3), a verb on a lock, not a claim',
+  },
 ];
 
 /**
