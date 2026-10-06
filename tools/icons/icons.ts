@@ -1,0 +1,136 @@
+/**
+ * The icon pipeline's pure half (ADR-0027 §2.6; components/09-primitives.md §30): it checks
+ * `manifest.json` against the Phosphor set and renders `apps/web/src/ui/icons.generated.tsx`.
+ * `generate.ts` does the reading and writing; everything here takes its inputs as arguments so
+ * the tests can feed it a few hand-written SVGs.
+ *
+ * Verified names first (spec redesign §11.1 D3-6, Issue 13): every app name must resolve to a
+ * Phosphor regular SVG, every `fill` icon to its `-fill` twin, and every Lucide table entry to an
+ * app name; one miss fails the run with all the misses listed, so no name reaches the app
+ * unchecked.
+ */
+
+/** One icon of the manifest: its Phosphor name when it differs, and whether it takes the twin. */
+export interface ManifestIcon {
+  readonly from?: string;
+  readonly fill?: boolean;
+}
+
+export interface Manifest {
+  readonly source: { readonly package: string; readonly version: string };
+  readonly icons: Readonly<Record<string, ManifestIcon>>;
+  /** Lucide name → app name, or [default, …names used where it meant something else]. */
+  readonly lucide: Readonly<Record<string, string | readonly string[]>>;
+  readonly context?: Readonly<Record<string, string>>;
+}
+
+/** Path data of one icon: the regular weight, and the fill twin for selectable glyphs. */
+export interface IconPaths {
+  readonly r: readonly string[];
+  readonly f?: readonly string[];
+}
+
+/** Reads one SVG of the set: `weight` is the folder, `file` the name without `.svg`. */
+export type ReadSvg = (weight: 'regular' | 'fill', file: string) => string | undefined;
+
+const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+const SVG =
+  /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 256 256" fill="currentColor">(.*)<\/svg>\s*$/s;
+const PATH = /<path d="([^"]+)"\/>/g;
+
+/**
+ * The path data of one Phosphor SVG. Phosphor 2.1.1 draws every glyph as `<path d>` elements
+ * on a 256 grid filled with `currentColor` (the regular weight is an outline, not a stroke), so
+ * anything else (another element, an attribute, a different grid) is refused rather than
+ * silently dropped.
+ */
+export function svgPaths(svg: string): readonly string[] | string {
+  const body = SVG.exec(svg.trim())?.[1];
+  if (body === undefined) return 'is not a 256-grid currentColor SVG';
+  const paths = [...body.matchAll(PATH)].map((m) => m[1] ?? '');
+  if (paths.length === 0 || body.replace(PATH, '') !== '')
+    return 'holds more than <path d> elements';
+  return paths;
+}
+
+/** Checks the manifest and collects the paths; `errors` lists every miss at once. */
+export function buildIcons(
+  manifest: Manifest,
+  read: ReadSvg,
+): { readonly icons: ReadonlyMap<string, IconPaths>; readonly errors: readonly string[] } {
+  const errors: string[] = [];
+  const icons = new Map<string, IconPaths>();
+  for (const name of Object.keys(manifest.icons).sort()) {
+    const entry = manifest.icons[name] ?? {};
+    const source = entry.from ?? name;
+    if (!NAME.test(name)) errors.push(`"${name}": not a kebab-case app name`);
+    const take = (weight: 'regular' | 'fill', file: string): readonly string[] | undefined => {
+      const svg = read(weight, file);
+      if (svg === undefined) {
+        errors.push(
+          weight === 'regular'
+            ? `"${name}": no Phosphor icon "${source}" (assets/regular/${file}.svg)`
+            : `"${name}": "${source}" has no fill twin (assets/fill/${file}.svg)`,
+        );
+        return undefined;
+      }
+      const paths = svgPaths(svg);
+      if (typeof paths === 'string') {
+        errors.push(`"${name}": assets/${weight}/${file}.svg ${paths}`);
+        return undefined;
+      }
+      return paths;
+    };
+    const r = take('regular', source);
+    const f = entry.fill === true ? take('fill', `${source}-fill`) : undefined;
+    if (r) icons.set(name, f ? { r, f } : { r });
+  }
+  for (const [lucide, target] of Object.entries(manifest.lucide)) {
+    for (const name of typeof target === 'string' ? [target] : target) {
+      if (!(name in manifest.icons))
+        errors.push(`lucide "${lucide}" → "${name}": no such app icon`);
+    }
+  }
+  for (const lucide of Object.keys(manifest.context ?? {})) {
+    if (!Array.isArray(manifest.lucide[lucide]))
+      errors.push(`context "${lucide}": only names with several targets need one`);
+  }
+  return { icons, errors };
+}
+
+const quote = (s: string) => `'${s}'`;
+
+/** The generated module, before formatting (`generate.ts` runs it through Biome). */
+export function renderModule(manifest: Manifest, icons: ReadonlyMap<string, IconPaths>): string {
+  const names = [...icons.keys()];
+  const entries = names.map((name) => {
+    const { r, f } = icons.get(name) as IconPaths;
+    const weights = [`r: [${r.map(quote).join(', ')}]`];
+    if (f) weights.push(`f: [${f.map(quote).join(', ')}]`);
+    return `${quote(name)}: { ${weights.join(', ')} },`;
+  });
+  const { package: pkg, version } = manifest.source;
+  return `/**
+ * Generated by tools/icons/generate.ts from tools/icons/manifest.json and
+ * ${pkg} ${version} (MIT, Phosphor Icons). Do not edit: change the manifest and run
+ * \`pnpm icons\`.
+ *
+ * Each icon is Phosphor's path data on its 256 grid: \`r\` the regular weight (outline at rest),
+ * \`f\` the fill twin for glyphs that show a selected state (ADR-0027 §2.7, language.md §5.1 I-2).
+ * \`ui/Icon.tsx\` draws them.
+ */
+
+/** Path data of one icon. */
+export interface IconPaths {
+  readonly r: readonly string[];
+  readonly f?: readonly string[];
+}
+
+/** Every icon the app may draw; a name outside this union does not type-check. */
+export type IconName = ${names.map(quote).join(' | ')};
+
+export const ICONS: Readonly<Record<IconName, IconPaths>> = {
+${entries.join('\n')}
+};
+`;
+}

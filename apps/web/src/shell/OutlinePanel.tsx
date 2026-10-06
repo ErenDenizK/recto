@@ -39,7 +39,6 @@ import {
   type VirtualDocument,
 } from '@pdf-editor/document-model';
 import { defaultRangeExtractor, type Range, useVirtualizer } from '@tanstack/react-virtual';
-import { BookmarkPlus, ChevronRight, ExternalLink, TriangleAlert } from 'lucide-react';
 import {
   type ComponentPropsWithoutRef,
   type KeyboardEvent,
@@ -88,6 +87,7 @@ import { useSelectionStore } from '../state/selection-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { Tooltip } from '../ui/Tooltip';
 import { EmptyNote } from '../ui/EmptyNote';
 import styles from './OutlinePanel.module.css';
@@ -133,14 +133,14 @@ function OutlineToolbar({ doc }: { readonly doc: VirtualDocument }) {
             disabled={doc.pages.length === 0}
             onClick={() => addBookmark(doc.id)}
           >
-            <BookmarkPlus aria-hidden="true" />
+            <Icon name="bookmark-simple" />
             {m.outline_add()}
           </button>
         </Tooltip>
       </div>
       {dead > 0 ? (
         <div className={editStyles.dead} data-testid="outline-dead-links">
-          <TriangleAlert aria-hidden="true" />
+          <Icon name="warning" />
           <span className={editStyles.deadText}>{m.outline_dead_links({ count: dead })}</span>
           <button
             type="button"
@@ -411,11 +411,11 @@ function OutlineTree({ doc }: { readonly doc: VirtualDocument }) {
         description = m.outline_page_label({ label });
       }
     } else if (destination?.kind === 'uri') {
-      meta = <ExternalLink className={styles.icon} aria-hidden="true" />;
+      meta = <Icon name="arrow-square-out" className={styles.icon} />;
       description = m.outline_link_tooltip({ uri: destination.uri });
       tooltip = description;
     } else if (destination?.kind === 'unresolved') {
-      meta = <TriangleAlert className={styles.warning} aria-hidden="true" />;
+      meta = <Icon name="warning" className={styles.warning} />;
       description = m.outline_unresolved();
       tooltip = description;
     }
@@ -448,7 +448,7 @@ function OutlineTree({ doc }: { readonly doc: VirtualDocument }) {
         }}
       >
         <span className={styles.toggle} data-part={row.hasChildren ? 'toggle' : undefined}>
-          {row.hasChildren ? <ChevronRight aria-hidden="true" /> : null}
+          {row.hasChildren ? <Icon name="caret-right" /> : null}
         </span>
         {renaming ? (
           <OutlineRenameField

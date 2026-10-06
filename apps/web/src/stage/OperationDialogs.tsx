@@ -7,7 +7,6 @@
  */
 import { Dialog } from '@base-ui/react/dialog';
 import type { DocumentId, InterleaveMode, SplitSpec } from '@pdf-editor/document-model';
-import { ArrowDown, ArrowUp } from 'lucide-react';
 import { type SyntheticEvent, useId, useRef, useState } from 'react';
 
 import styles from '../export/ExportDialog.module.css';
@@ -22,6 +21,7 @@ import {
   useTabItems,
   useWorkspaceStore,
 } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { useRetained } from '../ui/use-retained';
 import { combineInto } from '../home/home-actions';
@@ -506,14 +506,14 @@ function MergeAllDialog({ order: given }: { readonly order?: readonly DocumentId
                 <IconButton
                   size="row"
                   label={m.merge_move_up({ title: tab.title })}
-                  icon={<ArrowUp />}
+                  icon={<Icon name="arrow-up" />}
                   disabled={index === 0}
                   onClick={() => move(index, -1)}
                 />
                 <IconButton
                   size="row"
                   label={m.merge_move_down({ title: tab.title })}
-                  icon={<ArrowDown />}
+                  icon={<Icon name="arrow-down" />}
                   disabled={index === rows.length - 1}
                   onClick={() => move(index, 1)}
                 />

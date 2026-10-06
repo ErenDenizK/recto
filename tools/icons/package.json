@@ -1,0 +1,14 @@
+{
+  "name": "@pdf-editor/icons-tool",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generates apps/web/src/ui/icons.generated.tsx from Phosphor (regular and fill) for the names in manifest.json, failing on any name the set does not have (ADR-0027 §2.6, components/09-primitives.md §30).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "generate": "node --experimental-strip-types --no-warnings=ExperimentalWarning generate.ts",
+    "check": "node --experimental-strip-types --no-warnings=ExperimentalWarning generate.ts --check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

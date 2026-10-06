@@ -181,7 +181,6 @@
 .close svg {
   width: var(--icon-sm);
   height: var(--icon-sm);
-  stroke-width: 1.75;
 }
 
 /* Only a keyboard focus shows the close affordance on an unselected tab: on Home, where no
@@ -241,7 +240,6 @@
   flex: none;
   width: var(--icon-sm);
   height: var(--icon-sm);
-  stroke-width: 1.75;
 }
 
 @media (hover: hover) {
@@ -277,7 +275,6 @@
   .search > svg {
     width: var(--icon-md);
     height: var(--icon-md);
-    stroke-width: 1.5;
   }
 
   @media (hover: hover) {

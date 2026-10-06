@@ -17,7 +17,6 @@
  *   it is not shown.
  * - Where this window keeps nothing (IndexedDB refused), the page says so and offers nothing.
  */
-import { Pencil, Trash2 } from 'lucide-react';
 import {
   type KeyboardEvent,
   useCallback,
@@ -45,6 +44,7 @@ import {
 } from '../signatures/saved-signatures';
 import { SignaturePlate } from '../signatures/SignaturePlate';
 import { Button } from '../ui/Button';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { confirm } from '../ui/sheet';
 import { TextField } from '../ui/TextField';
@@ -263,14 +263,14 @@ function SignatureRow({
               size="bar"
               label={m.settings_signature_rename({ name: label })}
               tooltip={m.settings_signature_rename({ name: label })}
-              icon={<Pencil />}
+              icon={<Icon name="pencil-simple" />}
               onClick={() => setEditing(true)}
             />
             <IconButton
               size="bar"
               label={m.settings_signature_remove({ name: label })}
               tooltip={m.settings_signature_remove({ name: label })}
-              icon={<Trash2 />}
+              icon={<Icon name="trash" />}
               onClick={onRemove}
             />
           </>

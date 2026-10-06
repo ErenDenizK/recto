@@ -23,7 +23,6 @@ import {
   planRecipeRun,
   utf8ByteLength,
 } from '@pdf-editor/document-model';
-import { X } from 'lucide-react';
 import { type DragEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { formatBytes, isHiddenName } from '../files/file-filters';
@@ -33,6 +32,7 @@ import { announce } from '../shell/announcer';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { deliverFile } from '../tools/deliver-file';
 import tool from '../tools/ToolDialog.module.css';
+import { Icon } from '../ui/Icon';
 import styles from './Batch.module.css';
 import { closeBatchDialog, useBatchStore } from './batch-store';
 import {
@@ -362,7 +362,7 @@ function BatchFlow() {
       <div className={overlay.header}>
         <Dialog.Title className={overlay.title}>{title}</Dialog.Title>
         <Dialog.Close className={overlay.close} aria-label={m.common_close()}>
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </Dialog.Close>
       </div>
       {view.kind === 'edit' ? (
@@ -622,7 +622,7 @@ function BatchFlow() {
                                 setFiles(files.filter((f) => fileKey(f) !== fileKey(file)))
                               }
                             >
-                              <X aria-hidden="true" />
+                              <Icon name="x" />
                             </button>
                           </li>
                         );

@@ -12,7 +12,6 @@
  * follows a 300 ms pause and runs again on commit when the text changed since.
  */
 import type { TextEditability, TextRunAnalysis } from '@pdf-editor/engine';
-import { Ban, Check, CircleDashed, Info, type LucideIcon, TriangleAlert } from 'lucide-react';
 import {
   type KeyboardEvent,
   useCallback,
@@ -45,6 +44,7 @@ import {
   singleLine,
   wordAt,
 } from './model';
+import { Icon, type IconName } from '../ui/Icon';
 import styles from './TextEdit.module.css';
 import { runAnalysis, type TextEditSession, useTextEditStore } from './text-edit-store';
 
@@ -65,12 +65,12 @@ type Analysis = { readonly session: TextEditSession } & (
   | { readonly error: string }
 );
 
-const TONE_ICONS: Record<BadgeTone | 'pending', LucideIcon> = {
-  same: Check,
-  info: Info,
-  warning: TriangleAlert,
-  blocked: Ban,
-  pending: CircleDashed,
+const TONE_ICONS: Record<BadgeTone | 'pending', IconName> = {
+  same: 'check',
+  info: 'info',
+  warning: 'warning',
+  blocked: 'prohibit',
+  pending: 'circle-dashed',
 };
 
 /** The query `checkEditability` gets for `text` (unchanged text: the whole line as is). */
@@ -274,7 +274,7 @@ export function TextEditor({
   const pending = !exact && (text !== run.text || !estimate);
   const badge = result ? honestyBadge(result) : undefined;
   const tone: BadgeTone | 'pending' = badge?.tone ?? 'pending';
-  const Icon = TONE_ICONS[tone];
+  const icon = TONE_ICONS[tone];
   const fitState = result ? fitStateOf(result) : undefined;
   const resolved = resolveFit(fitState, choice);
 
@@ -341,7 +341,7 @@ export function TextEditor({
           role="status"
           aria-busy={pending || undefined}
         >
-          <Icon aria-hidden="true" />
+          <Icon name={icon} />
           <span>{badge?.label ?? (checkError ? '' : m.text_edit_badge_checking())}</span>
         </div>
         {badge?.detail ? <div className={styles.detail}>{badge.detail}</div> : null}

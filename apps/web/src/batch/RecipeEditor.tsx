@@ -15,11 +15,11 @@ import {
   type RecipeStepKind,
   readRecipe,
 } from '@pdf-editor/document-model';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { m } from '../i18n';
 import tool from '../tools/ToolDialog.module.css';
+import { Icon } from '../ui/Icon';
 import { Select } from '../ui/Select';
 import styles from './Batch.module.css';
 import { recipeErrorText, stepDetail, stepKindLabel, waitingForLabel } from './labels';
@@ -154,9 +154,9 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
                   >
                     <span className={styles.stepTitle}>
                       {expanded ? (
-                        <ChevronDown aria-hidden="true" size={12} />
+                        <Icon name="caret-down" size={16} />
                       ) : (
-                        <ChevronRight aria-hidden="true" size={12} />
+                        <Icon name="caret-right" size={16} />
                       )}{' '}
                       {label}
                     </span>
@@ -176,7 +176,7 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
                       title={m.batch_step_move_up({ step: label })}
                       onClick={() => move(index, -1)}
                     >
-                      <ArrowUp aria-hidden="true" />
+                      <Icon name="arrow-up" />
                     </button>
                     <button
                       type="button"
@@ -186,7 +186,7 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
                       title={m.batch_step_move_down({ step: label })}
                       onClick={() => move(index, 1)}
                     >
-                      <ArrowDown aria-hidden="true" />
+                      <Icon name="arrow-down" />
                     </button>
                     <button
                       type="button"
@@ -198,7 +198,7 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
                         setError(null);
                       }}
                     >
-                      <Trash2 aria-hidden="true" />
+                      <Icon name="trash" />
                     </button>
                   </span>
                   {expanded ? (

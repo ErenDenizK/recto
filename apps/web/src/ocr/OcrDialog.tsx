@@ -19,7 +19,6 @@
 import { Dialog } from '@base-ui/react/dialog';
 import type { DocumentId, SourceId } from '@pdf-editor/document-model';
 import { type OcrLanguagePack, parsePageRange } from '@pdf-editor/engine';
-import { X } from 'lucide-react';
 import { type SyntheticEvent, useEffect, useId, useMemo, useState } from 'react';
 
 import { formatNumber, getLocale, m } from '../i18n';
@@ -29,6 +28,7 @@ import toolStyles from '../tools/ToolDialog.module.css';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { pageProgress, qualityLabel } from './labels';
 import styles from './Ocr.module.css';
 import { OcrLanguages } from './OcrLanguages';
@@ -73,7 +73,7 @@ export default function OcrDialog() {
               {dialog?.view === 'languages' ? m.ocr_languages_title() : m.ocr_title()}
             </Dialog.Title>
             <Dialog.Close className={overlay.close} aria-label={m.common_close()}>
-              <X aria-hidden="true" />
+              <Icon name="x" />
             </Dialog.Close>
           </div>
           {dialog?.view === 'languages' ? (

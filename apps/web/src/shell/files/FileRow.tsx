@@ -3,10 +3,10 @@
  * for Home's selection, the tag dot, the name, "12 pages · 2.8 MB", the active marker and a
  * close button. A plain row over plain props, so Home's list form can use it too.
  */
-import { X } from 'lucide-react';
 
 import { formatBytes } from '../../files/file-filters';
 import { m } from '../../i18n';
+import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import styles from './FileRow.module.css';
 
@@ -64,7 +64,7 @@ export function FileRow({
       <IconButton
         size="row"
         label={m.nav_files_close({ name })}
-        icon={<X />}
+        icon={<Icon name="x" />}
         tooltipSide="right"
         className={styles.close}
         onClick={onClose}

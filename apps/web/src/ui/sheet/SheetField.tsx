@@ -9,9 +9,9 @@
  * The field primitives of 09 §12 (Text, Search, Number) come with D0-3 part 2; this is the
  * sheet's own until then, and moves onto them when they land.
  */
-import { CircleX } from 'lucide-react';
 import { type ComponentPropsWithRef, type ReactNode, useId } from 'react';
 
+import { Icon } from '../Icon';
 import styles from './SheetField.module.css';
 
 export interface SheetFieldProps
@@ -61,7 +61,7 @@ export function SheetField({
       </div>
       {error ? (
         <p id={errorId} className={styles.error}>
-          <CircleX aria-hidden="true" className={styles.errorGlyph} />
+          <Icon name="x-circle" className={styles.errorGlyph} />
           <span>{error}</span>
         </p>
       ) : null}

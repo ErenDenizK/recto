@@ -25,7 +25,6 @@
  */
 import type { PageId } from '@pdf-editor/document-model';
 import type { Annotation } from '@pdf-editor/engine';
-import { Move, Trash2 } from 'lucide-react';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -38,6 +37,7 @@ import { createPortal } from 'react-dom';
 
 import { m } from '../../i18n';
 import { announce } from '../../shell/announcer';
+import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import { activePathSelection, useAnnotationStore } from '../annotation-store';
 import { type Box, type PageFrame, userToCss } from '../geometry';
@@ -561,7 +561,7 @@ export function LassoBarControls({
       <IconButton
         label={strokesOnly ? m.lasso_move() : m.lasso_move_selection()}
         tooltip={strokesOnly ? m.lasso_move_tooltip() : m.lasso_move_selection_tooltip()}
-        icon={<Move />}
+        icon={<Icon name="arrows-out-cardinal" />}
         className={styles.grip}
         data-lasso-move=""
         // Its arrows nudge the selection (keys.ts), not move along the bar.
@@ -575,7 +575,7 @@ export function LassoBarControls({
       />
       <IconButton
         label={m.annot_delete()}
-        icon={<Trash2 />}
+        icon={<Icon name="trash" />}
         onClick={() => void deleteLassoSelection()}
       />
     </>

@@ -15,7 +15,6 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import { getActiveDocument, type PageId } from '@pdf-editor/document-model';
-import { ChevronRight, FileCog } from 'lucide-react';
 import { Fragment, useSyncExternalStore } from 'react';
 
 import { BatchDialogHost } from '../batch/BatchDialogHost';
@@ -28,6 +27,7 @@ import { announce } from '../shell/announcer';
 import { openSettings } from '../settings/open-settings';
 import { useSelectionStore } from '../state/selection-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import menuStyles from '../ui/Menu.module.css';
 import styles from './DocumentMenu.module.css';
 
@@ -239,7 +239,7 @@ export function DocumentMenu({ visible }: { readonly visible: boolean }) {
       {visible && any ? (
         <Menu.Root>
           <Menu.Trigger className={styles.trigger} data-testid="document-menu">
-            <FileCog aria-hidden="true" />
+            <Icon name="file-text" />
             <span>{m.tools_menu()}</span>
           </Menu.Trigger>
           <Menu.Portal>
@@ -326,7 +326,7 @@ function RotateSubmenu({ label, enabled }: { readonly label: string; readonly en
     <Menu.SubmenuRoot>
       <Menu.SubmenuTrigger className={menuStyles.item} disabled={!enabled}>
         <span className={menuStyles.label}>{label}</span>
-        <ChevronRight className={menuStyles.submenuArrow} aria-hidden="true" />
+        <Icon name="caret-right" className={menuStyles.submenuArrow} />
       </Menu.SubmenuTrigger>
       <Menu.Portal>
         <Menu.Positioner side="left" align="start" sideOffset={4} collisionPadding={8}>
