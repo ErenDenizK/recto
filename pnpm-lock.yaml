@@ -218,6 +218,8 @@ importers:
         specifier: 5.3.0
         version: 5.3.0
 
+  tools/icons: {}
+
   tools/media: {}
 
   tools/ocr-spike:
