@@ -57,12 +57,12 @@
 
 /* Selected: an inset 2 px lime ring inside the rim (7.39:1 against lit glass). */
 .card[data-selected] {
-  --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--accent);
+  --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--accent-ring);
 }
 
 @media (hover: hover) {
   .card[data-selected]:hover:not([data-dragging]) {
-    --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--accent), var(--e3);
+    --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--accent-ring), var(--e3);
   }
 }
 
@@ -111,10 +111,12 @@
   box-shadow: var(--e1);
 }
 
+/* Selected: the filled check in the primary's two colours, lime on ink in dark and ink on lime
+   in light (ADR-0023 §2.3: lime always touches ink; on a light card the disc is ink). */
 .card[data-selected] .disc {
   border: 0;
-  background: var(--accent-ink);
-  color: var(--accent);
+  background: var(--primary-ink);
+  color: var(--primary-fill);
 }
 
 .disc svg {

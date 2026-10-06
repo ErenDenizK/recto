@@ -8,7 +8,7 @@
  * both shapes when both hold. Focus: the inset two-band ring round the row, outside the marks.
  */
 .scroll {
-  --current-ring: var(--accent);
+  --current-ring: var(--accent-ring);
   position: relative;
   flex: 1;
   min-height: 0;
