@@ -33,7 +33,7 @@ type Door = (page: PageId) => void;
 const openArrange: Door = (page) => {
   reveal = page;
   useSelectionStore.getState().setFocused(page);
-  void viewTransition(() => useUiStore.getState().setViewMode('arrange'), { name: 'grid' });
+  void viewTransition(() => useUiStore.getState().showSurface('grid'), { name: 'grid' });
   announce(m.mode_arrange_long());
 };
 
