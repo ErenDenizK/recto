@@ -54,11 +54,12 @@
 }
 
 /*
- * Empty: the card's top is anchored at 40 % of the view less 160 px (half the card's nominal 320,
- * L2 §2), so its centre rests near 40 % of the height. The space above is the view's alone,
- * never the card's: a card whose height changes (the headline re-wrapping when Inter Recto
- * replaces its fallback, a Recents list arriving under it) grows downwards and moves nothing
- * above it, where centring the card in the leftover space moved all of it (the font swap's
+ * Empty: the card's top is anchored to the view's height alone, at 32.5 % of it less 69 px: where
+ * the earlier centring (1 part of the spare room above, 1.6 below) put the card at rest, at
+ * 1440 × 900 (its centre at 41 % of the view, the 02-library L1 look) and on the 820 × 1180
+ * tablet alike. The space above is never the card's own: a card whose height changes (the
+ * headline re-wrapping when Inter Recto replaces its fallback, a Recents list arriving under it)
+ * grows downwards and moves nothing above it, where centring moved all of it (the font swap's
  * layout shift, fonts.spec). On a short view the space falls to nothing and the column scrolls.
  * The view is a size container for that one length (`cqh`); it holds nothing fixed-position.
  */
@@ -68,7 +69,7 @@
 
 .empty {
   display: grid;
-  grid-template-rows: max(0px, calc(40cqh - 160px - var(--space-6))) auto 1fr auto;
+  grid-template-rows: max(0px, calc(32.5cqh - 69px - var(--space-6))) auto 1fr auto;
   gap: 0;
 }
 
