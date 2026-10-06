@@ -165,19 +165,16 @@ test.describe('annotations', () => {
     await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(0);
     await expect(historyRow(page, /Erased 1 stroke/)).toBeVisible();
 
-    // Built-in stamp from the Fill & sign group's menu: a one-shot tool, so the eraser comes
-    // back and the stamp is not selected (experience-redesign spec §5.2).
-    const bar = page.getByRole('toolbar', { name: 'Tools' });
-    // The eraser's group (Write) is shown: its chip returns to the row of groups.
-    await bar.getByRole('button', { name: 'Write: back to all groups' }).click();
-    await bar.getByRole('button', { name: 'Fill & sign' }).click();
-    await bar.getByRole('button', { name: 'Stamp or image' }).click();
+    // Built-in stamp from Stamp ▾ (its choices: a right-click): a placing tool, so Select
+    // comes back and the stamp is not selected (03-markup §3).
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+    await bar.getByRole('button', { name: 'Stamp', exact: true }).click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'Draft' }).click();
     await drag(page, 0, [0.7, 0.35], [0.7, 0.35]);
     const stamp = layer(page).locator('[data-annotation-kind="stamp"]');
     await expect(stamp).toHaveCount(1);
     await expect(historyRow(page, /Stamp on page 1/)).toBeVisible();
-    await expect(layer(page)).toHaveAttribute('data-tool', 'eraser');
+    await expect(layer(page)).toHaveAttribute('data-tool', 'select');
     await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
 
     // Selected explicitly, Delete removes it; undo brings it back.
@@ -369,10 +366,11 @@ test.describe('annotations', () => {
     await page.getByRole('textbox', { name: 'Text box text' }).fill('Numbers updated in v2');
     await page.getByRole('textbox', { name: 'Text box text' }).press('Escape');
     await tool('Escape');
-    // From the text box's group (Text) back to the row, then Fill & sign.
-    await page.getByRole('button', { name: /: back to all groups$/ }).click();
-    await page.getByRole('button', { name: 'Fill & sign' }).click();
-    await page.getByRole('button', { name: 'Stamp or image' }).click();
+    // Stamp ▾'s choices (a right-click).
+    await page
+      .getByRole('toolbar', { name: 'Markup', exact: true })
+      .getByRole('button', { name: 'Stamp', exact: true })
+      .click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'Approved' }).click();
     await drag(page, 0, [0.72, 0.68], [0.72, 0.68]);
     await tool('Escape');
@@ -434,12 +432,11 @@ test.describe('annotations', () => {
       });
     const ink = layer(page).locator('[data-annotation-kind="ink"]');
 
-    // The Write group: four presets as ink dots, then Eraser, Lasso and Shapes.
-    const bar = page.getByRole('toolbar', { name: 'Tools' });
-    await bar.getByRole('button', { name: 'Write', exact: true }).click();
-    const presets = bar.getByRole('radiogroup', { name: 'Pen presets' });
+    // The pen well: three pens and the Highlighter as ink dots (MK-6).
+    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+    const presets = bar.locator('[data-pen-well]');
     // Yellow highlighter over "quick brown".
-    await presets.getByRole('radio', { name: /^Yellow highlighter/ }).click();
+    await presets.getByRole('button', { name: /^Yellow highlighter/ }).click();
     await stroke([
       [0.165, 0.243],
       [0.29, 0.243],
@@ -447,7 +444,7 @@ test.describe('annotations', () => {
     await expect(ink).toHaveCount(1, { timeout: 10_000 });
     // Red: a ring around "lazy dog".
     await page.waitForTimeout(1700);
-    await presets.getByRole('radio', { name: /^Red pen/ }).click();
+    await presets.getByRole('button', { name: /^Red pen/ }).click();
     await stroke(
       Array.from({ length: 48 }, (_, i): [number, number] => {
         const a = (i / 44) * 2 * Math.PI - 2.6;
@@ -457,7 +454,7 @@ test.describe('annotations', () => {
     await expect(ink).toHaveCount(2, { timeout: 10_000 });
     // Blue: a handwritten line in three strokes, one burst.
     await page.waitForTimeout(1700);
-    await presets.getByRole('radio', { name: /^Blue pen/ }).click();
+    await presets.getByRole('button', { name: /^Blue pen/ }).click();
     await stroke(loops(0.12, 0.36, 6));
     await stroke(loops(0.32, 0.36, 4));
     // The underline sits close under the loops: a gap of more than 0.6 of the median stroke

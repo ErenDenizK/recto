@@ -106,7 +106,7 @@ test('add a text field and a checkbox by drag, fill them, export: the fields exi
   await openFixtures(page, ['simple-text.pdf']);
   await enterEdit(page);
   // No fields yet: the Review tab has no Fields chip (chips show the kinds present); "Add
-  // field" is in the tool bar's Fill & sign group (experience-redesign §4.1).
+  // field" is in the Markup palette's Fill & sign group (03-markup MK-14).
   const review = page.getByRole('tab', { name: /^Review/ });
   await review.click();
   await expect(page.getByRole('radio', { name: /^Fields/ })).toHaveCount(0);
@@ -115,9 +115,8 @@ test('add a text field and a checkbox by drag, fill them, export: the fields exi
   const pageBox = page.locator('[data-page-index="0"]');
   await expect(pageBox).toBeVisible({ timeout: 20_000 });
 
-  const bar = page.getByRole('toolbar', { name: 'Tools', exact: true });
+  const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
   const fromBar = async () => {
-    await bar.getByRole('button', { name: 'Fill & sign', exact: true }).click();
     await bar.getByRole('button', { name: 'Add field' }).click();
   };
   const fromReview = () => page.locator('[data-add-field]').click();
