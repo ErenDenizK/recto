@@ -3042,6 +3042,13 @@ export interface ParagraphLayoutAnalysis {
    * in the paragraph's own direction), points: growth beyond it leaves the page.
    */
   readonly pageRoom: number;
+  /**
+   * The empty space above the paragraph's ink up to the nearest block or graphic above it
+   * that overlaps it horizontally, else up to the visible box's top edge, points: where the
+   * editor's header may sit without covering content (components/05-canvas.md §17.3).
+   * Absent from analyses made before it existed.
+   */
+  readonly gapAbove?: number;
   /** Set when paragraph mode is refused; `input` then still describes the paragraph. */
   readonly refusal?: ParagraphEditRefusal;
 }

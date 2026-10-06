@@ -7,7 +7,8 @@
  * is hatched on hover (design audit D6). The rest of the page stays unmarked. Marks on the
  * page use its selection blue (--select, language.md §1.5). The inline editor matches the
  * free-text editor (dashed frame on an opaque page-white field, so the original glyphs never
- * show through); its header is a glass popover like the note popup.
+ * show through); its header is the paragraph editor's material (05-canvas §17.4, "Line editor
+ * fallback: same header"), M4's solid twin, since it rests over the neighbouring lines.
  */
 
 /* The layer holds the focus after a commit while the page's runs are located again: the inset
@@ -137,7 +138,7 @@
  * follow with more air (polish pass 2026-10-02).
  */
 .panel {
-  composes: mat mat-bar s7 from global;
+  composes: mat mat-menu mat-opaque from global;
   position: absolute;
   z-index: 5;
   display: grid;

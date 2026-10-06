@@ -882,13 +882,19 @@ compact: header becomes the accessory above the keyboard
  ╰────────────────────────────────────╯ choices rise as a tier above it
 ```
 
-Placement order: beside (trailing, then leading) when the margin outside the page is ≥ 280 px;
-else above the paragraph if the free rectangle has room; else below; never over the paragraph or
-within 8 px of it. Compact: accessory (M-28).
+Placement order (`text-edit/header-place.ts`): beside (trailing, then leading) when the room
+beside the paragraph, up to the free rectangle's edge, takes a header of at least 160 px (the
+hint wraps; a page at fit width on a laptop leaves about 170 px); else above the paragraph in
+the empty space up to the content above it, text or graphic (the analysis's `gapAbove`), when
+the header and 8 px either side fit there; else below it likewise (`gapBelow`); else docked at
+the foot of the free rectangle above the capsule (its head when the foot would cover the
+paragraph). Never over the paragraph or within 8 px of it. Compact: accessory (M-28).
 
 **Material and light.** Canvas and plate: solid page white, the page's own ink. Outline content.
 Header M4 (it holds secondary sentences; rows with secondary text live on M3–M5, `language.md`
-§2.6), radius `--radius-md` (16 squircle), e4, σ 24 (16 under 120 px). Compact accessory M2 in the
+§2.6) as its solid twin (`mat-opaque`, D4-4: where only the docked place is left it rests over
+page lines, and blurred text under a small card reads as a smudge), radius 16, e4; the line
+editor's header takes the same material. Compact accessory M2 in the
 dock's element (σ 10). Solid: n4 / n1 with rim; forced colours `Canvas`, buttons `ButtonFace`.
 
 ### 17.4 States
