@@ -30,9 +30,10 @@
  *   loses text silently: an undecided overlap is kept for the session's return (or
  *   discarded with an announcement when the session is gone); any other draft is committed,
  *   and a failure keeps the text and says so.
- * - **Header**: in the page margin beside the paragraph, else docked above the floating
- *   bar, never over the text above: the honesty line (spec §4.5), the overflow line (§4.6)
- *   and an info popover with the §4.10 text. No font, size or colour controls; "Join with
+ * - **Header** (05-canvas §17.3): beside the paragraph, else in the empty space above or below
+ *   it, else docked above the capsule (`header-place.ts`), never over the paragraph; M4's
+ *   solid twin, so nothing on the page shows through it. It holds the hint, the honesty line
+ *   (spec §4.5), the overflow line (§4.6) and an info popover with the §4.10 text. No font, size or colour controls; "Join with
  *   next" and "Split here" stay hidden until detection takes hints.
  */
 import { Popover } from '@base-ui/react/popover';
@@ -124,22 +125,10 @@ import {
   type TextEditSession,
   useTextEditStore,
 } from './text-edit-store';
+import { type HeaderPlace, placeHeader } from './header-place';
 
 /** Pause after the last keystroke before the dry run and its preview (spec §4.7, §4.8). */
 export const PREVIEW_DELAY_MS = 300;
-/** Gap between the paragraph and the header, CSS pixels. */
-const HEADER_GAP = 8;
-/** The header goes in a page margin at least this wide (CSS pixels), at most this wide. */
-const MARGIN_HEADER_WIDTH = 180;
-const MAX_HEADER_WIDTH = 340;
-
-/** Where the header sits (layer CSS pixels): beside the paragraph, docked above the bar, or below. */
-interface HeaderPlace {
-  readonly side: 'right' | 'left' | 'dock' | 'below';
-  readonly left: number;
-  readonly top: number;
-  readonly maxWidth?: number;
-}
 
 /** The paragraph's area rendered without its text (the plate) at a device scale. */
 interface PlateImage {
@@ -1259,62 +1248,51 @@ export function ParagraphEditor({
 
   const headerKey = `${frame.scale}:${value === null}:${busy}:${error ?? ''}:${state?.text ?? ''}`;
 
-  // The header never covers the text: in the page margin beside the paragraph when there is
-  // room, else docked above the floating bar, else below the paragraph.
+  // The header never covers the paragraph and, wherever there is room, no other content
+  // either (05-canvas §17.3; `header-place.ts` holds the order). It is placed in the layer's
+  // pixels against the free rectangle, so it follows the zoom, the text, the scroll and the
+  // frame (a sidebar opening, the capsule changing shape).
   const [scrolled, setScrolled] = useState(0);
+  const gapAbove = value?.analysis.gapAbove;
+  const gapBelow = value?.analysis.gapBelow;
   useLayoutEffect(() => {
     const header = headerRef.current;
     const root = rootRef.current;
     if (!header || !root) return;
-    const page = rectToCss(frame, {
-      x: frame.originX,
-      y: frame.originY,
-      width: frame.size.width,
-      height: frame.size.height,
-    });
     const textLeft = Math.min(paragraphBox.left, box.left);
     const textRight = Math.max(paragraphBox.left + paragraphBox.width, box.left + box.width);
     const textTop = Math.min(paragraphBox.top, box.top);
     const textBottom = Math.max(paragraphBox.top + paragraphBox.height, box.top + box.height);
-    const right = page.left + page.width - textRight - 2 * HEADER_GAP;
-    const left = textLeft - page.left - 2 * HEADER_GAP;
-    let next: HeaderPlace;
-    if (right >= MARGIN_HEADER_WIDTH) {
-      next = {
-        side: 'right',
-        left: textRight + HEADER_GAP,
-        top: textTop,
-        maxWidth: Math.min(MAX_HEADER_WIDTH, right),
-      };
-    } else if (left >= MARGIN_HEADER_WIDTH) {
-      next = {
-        side: 'left',
-        left: textLeft - HEADER_GAP,
-        top: textTop,
-        maxWidth: Math.min(MAX_HEADER_WIDTH, left),
-      };
-    } else {
-      const layer = root.getBoundingClientRect();
-      const bar = document.querySelector<HTMLElement>('[data-bar-view]')?.getBoundingClientRect();
-      const height = header.offsetHeight;
-      const width = header.offsetWidth;
-      const docked = bar
-        ? {
-            left: bar.left + bar.width / 2 - width / 2 - layer.left,
-            top: bar.top - HEADER_GAP - height - layer.top,
-          }
-        : undefined;
-      const overText =
-        docked !== undefined &&
-        docked.top < textBottom + HEADER_GAP &&
-        docked.top + height > textTop - HEADER_GAP &&
-        docked.left < textRight &&
-        docked.left + width > textLeft;
-      next =
-        docked && !overText
-          ? { side: 'dock', left: docked.left, top: docked.top }
-          : { side: 'below', left: Math.max(0, textLeft), top: textBottom + HEADER_GAP };
-    }
+    const layer = root.getBoundingClientRect();
+    const frameStyle = getComputedStyle(root.ownerDocument.documentElement);
+    const inset = (side: string) =>
+      Number.parseFloat(frameStyle.getPropertyValue(`--free-${side}`)) || 0;
+    const view = root.ownerDocument.documentElement;
+    const free = {
+      left: inset('left') - layer.left,
+      top: inset('top') - layer.top,
+      right: view.clientWidth - inset('right') - layer.left,
+      bottom: view.clientHeight - inset('bottom') - layer.top,
+    };
+    // The spaces above and below are measured along the paragraph's own lines: they hold on
+    // screen only while those run left to right, unrotated.
+    const upright =
+      frame.rotation === 0 && block.direction.x === 1 && Math.abs(block.direction.y) < 1e-6;
+    const points = frame.scale * (frame.stretchY ?? 1);
+    const contentTop = paragraphBox.top - (gapAbove ?? 0) * points;
+    const contentBottom = paragraphBox.top + paragraphBox.height + (gapBelow ?? 0) * points;
+    // Measured at its widest, so a header that wrapped in a narrow margin measures anew.
+    const wrapped = header.style.maxWidth;
+    header.style.maxWidth = '';
+    const size = { width: header.offsetWidth, height: header.offsetHeight };
+    header.style.maxWidth = wrapped;
+    const next = placeHeader({
+      text: { left: textLeft, top: textTop, right: textRight, bottom: textBottom },
+      free,
+      header: size,
+      above: upright && gapAbove !== undefined ? textTop - contentTop : undefined,
+      below: upright && gapBelow !== undefined ? contentBottom - textBottom : undefined,
+    });
     setPlace((prev) =>
       prev.side === next.side &&
       prev.left === next.left &&
@@ -1323,32 +1301,41 @@ export function ParagraphEditor({
         ? prev
         : next,
     );
-    // The header's size follows its lines; its place the zoom, the text and (docked) the scroll.
+    // The header's size follows its lines; its place the zoom, the text and the scroll.
   }, [
     frame,
+    block.direction,
     paragraphBox.left,
     paragraphBox.top,
     paragraphBox.width,
     paragraphBox.height,
     box,
+    gapAbove,
+    gapBelow,
     headerKey,
     scrolled,
     choice,
   ]);
 
-  // Docked above the bar, the header follows the scroll.
+  // The scroll and the window move the layer against the free rectangle: one place a frame.
   useEffect(() => {
-    if (place.side !== 'dock') return;
     const viewport = rootRef.current?.closest<HTMLElement>('[data-read-viewport]');
-    if (!viewport) return;
-    const onScroll = () => setScrolled((n) => n + 1);
-    viewport.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      viewport.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+    let pending = 0;
+    const onMove = () => {
+      if (pending) return;
+      pending = requestAnimationFrame(() => {
+        pending = 0;
+        setScrolled((n) => n + 1);
+      });
     };
-  }, [place.side]);
+    viewport?.addEventListener('scroll', onMove, { passive: true });
+    window.addEventListener('resize', onMove);
+    return () => {
+      cancelAnimationFrame(pending);
+      viewport?.removeEventListener('scroll', onMove);
+      window.removeEventListener('resize', onMove);
+    };
+  }, []);
 
   const substitutions = useMemo(() => {
     if (preview && draft !== null && preview.text === draft.text) {
