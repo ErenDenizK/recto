@@ -28,13 +28,11 @@
  * holds a transform or takes a hit (Q-2).
  */
 .band [data-region='toolbar'],
-.band [data-testid='options-tier'],
 .band [data-region='pill'] {
   --away-y: 0px;
 }
 
 .band[data-away] [data-region='toolbar'],
-.band[data-away] [data-testid='options-tier'],
 .band[data-away] [data-region='pill'] {
   --away-y: 8px;
   opacity: 0;
@@ -47,7 +45,6 @@
 }
 
 .band[data-away][data-hides-on-scroll] [data-region='toolbar'],
-.band[data-away][data-hides-on-scroll] [data-testid='options-tier'],
 .band[data-away][data-hides-on-scroll] [data-region='pill'] {
   --away-y: calc(100% + var(--band-offset) + 8px);
 }
