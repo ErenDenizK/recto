@@ -1100,8 +1100,9 @@ describe('tokens.css', () => {
       // (D0-4: one panel, an entry per presentation), the pinch detent chip one (D2-10) and the
       // Library selection bar one (D4-1). The frame (D2-1) trades the title and status bars for
       // the top strip, the compact bar and the page pill: one more. The capsule (D2-2) takes the
-      // tool bar's glass into its own module; the options tier stays in the bar's: one more.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(26);
+      // tool bar's glass into its own module; the Markup palette (D2-3) is content inside it, its
+      // ink strip a row of the capsule's glass, so the bar's module and its options tier go.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(25);
     });
 
     it('gives a one-row menu the short blur in ui/Menu', () => {

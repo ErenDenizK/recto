@@ -23,7 +23,7 @@ import { useUiStore } from '../state/ui-store';
 import { Icon } from '../ui/Icon';
 import { Keycaps } from '../ui/Keycaps';
 import styles from './CommandPalette.module.css';
-import { barGroupLabelOfCommand } from './FloatingToolbar.groups';
+import { paletteGroupLabelOfCommand } from '../markup/palette-groups';
 
 interface Row {
   readonly command: Command;
@@ -300,9 +300,10 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                       <span className={styles.groupHint}>{row.command.group}</span>
                     ) : null}
                     {/* The tool bar group of a tool (experience-redesign spec §5.1). */}
-                    {section.group !== RECENT_GROUP && barGroupLabelOfCommand(row.command.id) ? (
+                    {section.group !== RECENT_GROUP &&
+                    paletteGroupLabelOfCommand(row.command.id) ? (
                       <span className={styles.groupHint} data-bar-group-hint="">
-                        {barGroupLabelOfCommand(row.command.id)}
+                        {paletteGroupLabelOfCommand(row.command.id)}
                       </span>
                     ) : null}
                     {/* The reason takes the keycap's place (04-context §12.2); it is the

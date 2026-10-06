@@ -112,6 +112,8 @@ export default defineConfig({
         // The frame's free rectangle and jobs on the medium class (spec D2-1).
         '**/frame-layout.spec.ts',
         '**/canvas-zoom.spec.ts',
+        // The Markup palette's jobs on the tablet (spec D2-3).
+        '**/markup.spec.ts',
         BAR_AUDIT_SPEC,
         SHEETS_SPEC,
         SETTINGS_SPEC,

@@ -11,9 +11,9 @@
  *   Markup and Fill & sign, opening the title menu with its Lock switch until the Unlock
  *   popover of `lock/` lands (spec X4). Lock engaging while the palette is open morphs it into
  *   Locked and closes Markup (`watchLockClosesMarkup`).
- * - **Palette:** the Markup content, today's group bar (`../FloatingToolbar.tsx`) until D2-3's
- *   palette takes the slot; its options tier rises above the capsule as a sibling (no glass in
- *   glass, Q-4), and both fade while a stroke is in progress (MK-17).
+ * - **Palette:** the Markup palette (`markup/MarkupPalette.tsx`, D2-3), its ink strip a second
+ *   row inside the same glass (no glass in glass, Q-4); the capsule fades while a stroke is in
+ *   progress, never with focus inside (MK-17).
  * - **Labels** are always shown (RA-20): beside the icons when the dock fits so, else under
  *   them (`dock-labels.ts`); a compact window stacks them, as the phone's dock does.
  * - **Keyboard:** one Tab stop with arrows between items (roving); F6 lands on the last focused
@@ -45,14 +45,14 @@ import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-stor
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
 import { Tooltip } from '../../ui/Tooltip';
-import { useToolStore } from '../../viewer/tool-store';
 import { announce } from '../announcer';
 import { Capsule } from '../capsule/Capsule';
 import { type CapsuleShape, useCapsuleShape } from '../capsule/capsule-content';
-import { MarkupBar, OptionsTier } from '../FloatingToolbar';
-import { pickBarGroup, showBarGroups } from '../FloatingToolbar.groups';
-import { useRovingTabindex } from '../FloatingToolbar.roving';
-import { useStrokeInProgress } from '../FloatingToolbar.stroke';
+import { openMarkupDoor } from '../../markup/doors';
+import { useStripKind } from '../../markup/InkStrip';
+import { MarkupPaletteContent, PaletteMeasurer } from '../../markup/MarkupPalette';
+import { useRovingTabindex } from '../../markup/roving';
+import { useStrokeFade } from '../../markup/stroke-fade';
 import styles from './Dock.module.css';
 import { type DockLabelForm, dockLabelForm, dockRoom } from './dock-labels';
 import { openTitleMenu } from './frame-store';
@@ -65,37 +65,42 @@ import { type SizeClass, useSizeClass } from './size-class';
 export function openMarkupFrom(set: PaletteSet): void {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
   if (id === undefined || isLocked(id)) return;
-  const ui = useUiStore.getState();
-  ui.openMarkup(id, set);
-  ui.showSurface('page', id);
-  // Today's bar shows Fill & sign's group for the Sign set, its row of groups otherwise.
-  if (set === 'sign') pickBarGroup('fill');
-  else showBarGroups();
-  announce(m.markup_on());
+  openMarkupDoor(set);
 }
 
-/** The capsule with the dock, the palette or Locked, and the palette's options tier above it. */
+/** The capsule with the dock, the palette or Locked. */
 export function Dock() {
   const doc = useActiveDocument();
   const shape = useCapsuleShape(doc?.id);
-  const group = useToolStore((s) => s.barGroup);
-  // Faded and out of the pointer's way while a stroke is in progress (MK-17).
-  const stroking = useStrokeInProgress() && shape === 'palette';
+  // The armed tool's ink strip is the palette's second row: arming one grows the capsule.
+  const strip = useStripKind();
+  const [focusInside, setFocusInside] = useState(false);
+  // Faded and out of the pointer's way while a stroke is in progress, never with focus inside
+  // (MK-17).
+  const stroking = useStrokeFade(focusInside) && shape === 'palette';
   // The page view's: the grid and Compare have their own bars until the capsule becomes them.
   const page = useStageView() === 'page';
   if (!doc || !page) return null;
   return (
-    // The capsule first, so Tab goes from the bar to its options; the column stacks them
-    // bottom-up, so the tier still sits on top.
-    <div className={styles.dock} data-dock="" data-stroking={stroking ? '' : undefined}>
+    <div
+      className={styles.dock}
+      data-dock=""
+      data-stroking={stroking ? '' : undefined}
+      onFocus={() => setFocusInside(true)}
+      onBlur={(event) => {
+        const next = event.relatedTarget;
+        if (!(next instanceof Node) || !event.currentTarget.contains(next)) setFocusInside(false);
+      }}
+    >
       <Capsule
         shape={shape}
-        morphKey={shape === 'palette' ? (group ?? 'groups') : undefined}
+        morphKey={shape === 'palette' ? (strip ?? 'tools') : undefined}
         stroking={stroking}
       >
         {(content) => <DockContent shape={content} doc={doc} />}
       </Capsule>
-      {shape === 'palette' ? <OptionsTier /> : null}
+      {/* Measures the palette ahead, so it arrives folded to the band (MK-2 §2). */}
+      <PaletteMeasurer />
     </div>
   );
 }
@@ -107,7 +112,7 @@ function DockContent({
   readonly shape: CapsuleShape;
   readonly doc: VirtualDocument;
 }): ReactNode {
-  if (shape === 'palette') return <MarkupBar />;
+  if (shape === 'palette') return <MarkupPaletteContent />;
   return <DockItems locked={shape === 'locked'} doc={doc} />;
 }
 

@@ -2,10 +2,9 @@
  * Saved signatures end to end (spec redesign D0-11; flows.md J8A; components/07-sheets.md §9
  * and S3 §6; 03-markup.md MK-12, MK-13):
  *
- * - J8A with the dock's Fill & sign door (01-frame F10, D2-2), which opens Markup on its Sign
- *   set: the first signature takes five presses (Fill & sign · Signature image · draw · Use
- *   signature · the page) and is kept ("Save for next time" is on); after a reload it takes
- *   three (Fill & sign · its chip · the page), the M9 count of flows §8.
+ * - J8A through the Fill & sign door (D2-3): the first signature takes five presses (Fill &
+ *   sign · Sign · draw · Use signature · the page) and is kept ("Save for next time" is on);
+ *   after a reload it takes three (Fill & sign · its chip · the page).
  * - Settings → Saved signatures: Add… keeps a typed one and comes back to the page (New
  *   signature replaced Settings, and Settings comes back open), rename, remove with "Removed a
  *   saved signature · Undo", and Remove all…, which asks once and is final: nothing comes back
@@ -27,7 +26,7 @@ function layer(page: Page): Locator {
 }
 
 function bar(page: Page): Locator {
-  return page.getByRole('toolbar', { name: 'Tools', exact: true });
+  return page.getByRole('toolbar', { name: 'Markup', exact: true });
 }
 
 /** Counts the presses a journey takes (J8A), each a real click or key. */
@@ -126,7 +125,7 @@ test('J8A: five presses the first time, three with a saved signature after a rel
   // The first time: New signature opens from the signature button (nothing is saved yet).
   const first = presses();
   await first.click(page.locator('[data-dock-item="sign"]'));
-  await first.click(bar(page).getByRole('button', { name: 'Signature image', exact: true }));
+  await first.click(bar(page).getByRole('button', { name: 'Sign', exact: true }));
   const sheet = page.getByRole('dialog', { name: 'New signature' });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole('checkbox', { name: 'Save for next time' })).toBeChecked();
@@ -135,7 +134,7 @@ test('J8A: five presses the first time, three with a saved signature after a rel
   await first.click(sheet.getByRole('button', { name: 'Use signature' }));
   await expect(sheet).toBeHidden();
   await expect(layer(page)).toHaveAttribute('data-tool', 'signature');
-  await first.run(() => placeOnPage(page, 0.3, 0.45));
+  await first.run(() => placeOnPage(page, 0.3, 0.38));
   await expect(stamps).toHaveCount(1, { timeout: 10_000 });
   expect(first.count).toBe(5);
 
@@ -155,8 +154,8 @@ test('J8A: five presses the first time, three with a saved signature after a rel
   // One-shot: placed, the tool returns and the chip lets go.
   await expect(chip).toHaveAttribute('aria-pressed', 'false');
 
-  // The signature button now offers the saved ones first, then New signature….
-  await bar(page).getByRole('button', { name: 'Signature image', exact: true }).click();
+  // Sign ▾ offers the saved ones first, then New signature… (its choices: a right-click).
+  await bar(page).getByRole('button', { name: 'Sign', exact: true }).click({ button: 'right' });
   const menu = page.getByRole('menu');
   await expect(menu.getByRole('menuitem', { name: /^Signature, added / })).toHaveCount(1);
   await expect(menu.getByRole('menuitem', { name: 'New signature…' })).toBeVisible();
@@ -218,7 +217,7 @@ test('Settings: add, rename, remove with Undo, and Remove all is final', async (
   await openFixtures(page, ['simple-text.pdf']);
   await page.locator('[data-dock-item="sign"]').click();
   await expect(bar(page).locator('[data-saved-signature]')).toHaveCount(0);
-  await bar(page).getByRole('button', { name: 'Signature image', exact: true }).click();
+  await bar(page).getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'New signature' })).toBeVisible();
 });
 
@@ -237,7 +236,7 @@ test('a kept snapshot keeps a placed signature after its saved copy is removed',
   });
   const stamps = layer(page).locator('[data-annotation-kind="stamp"]');
   await page.locator('[data-dock-item="sign"]').click();
-  await bar(page).getByRole('button', { name: 'Signature image', exact: true }).click();
+  await bar(page).getByRole('button', { name: 'Sign', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'New signature' });
   await sheet.getByRole('tab', { name: 'Type' }).click();
   await sheet.getByRole('textbox', { name: 'Your name' }).fill('Ada Lovelace');

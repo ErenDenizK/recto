@@ -53,7 +53,7 @@
 
 /* Rises above a bar it would touch (spec 01.6): 8 px above the bar's top. */
 .pill[data-raised] {
-  --rise: calc(var(--bar-h) + 8px - (var(--bar-h) - var(--pill-h)) / 2);
+  --rise: calc(var(--dock-h, var(--bar-h)) + 8px - (var(--bar-h) - var(--pill-h)) / 2);
 }
 
 /* The menu (F11 §2): the popover primitive at 300 px (340 coarse). */

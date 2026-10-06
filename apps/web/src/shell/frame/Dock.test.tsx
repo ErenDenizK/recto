@@ -118,7 +118,7 @@ describe('dock', () => {
     expect(useAnnouncer.getState().message).toBe('Markup on. Select armed.');
     expect(capsule()).toBe(node);
     expect(node.dataset.capsule).toBe('palette');
-    const bar = screen.getByRole('toolbar', { name: 'Tools' });
+    const bar = screen.getByRole('toolbar', { name: 'Markup' });
     expect(bar).toContainElement(document.activeElement as HTMLElement);
     await settle();
     await userEvent.keyboard('1');
@@ -127,11 +127,11 @@ describe('dock', () => {
     expect(document.activeElement).toBe(within(dock()).getByRole('button', { name: 'Markup' }));
   });
 
-  it('Fill & sign opens the palette on the Fill & sign group', async () => {
+  it('Fill & sign opens the palette on its Sign set, Select armed', async () => {
     await mount();
     await userEvent.click(within(dock()).getByRole('button', { name: 'Fill & sign' }));
     expect(markupOpen()).toBe(true);
-    expect(useToolStore.getState().barGroup).toBe('fill');
+    expect(useToolStore.getState().mode).toBe('select');
     const id = useWorkspaceStore.getState().workspace.activeDocument;
     expect(documentUi(useUiStore.getState(), id).paletteSet).toBe('sign');
   });

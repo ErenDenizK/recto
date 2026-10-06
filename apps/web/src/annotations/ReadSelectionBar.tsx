@@ -20,7 +20,7 @@ import { commandRegistry } from '../commands/registry';
 import { showMarkup } from '../home/home-actions';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
-import { useRovingTabindex } from '../shell/FloatingToolbar.roving';
+import { useRovingTabindex } from '../markup/roving';
 import { registerPageOverlay, type PageOverlayProps } from '../stage/page-overlays';
 import { useMarkupOpen } from '../state/ui-store';
 import { Icon } from '../ui/Icon';

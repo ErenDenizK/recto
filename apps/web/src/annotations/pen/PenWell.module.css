@@ -1,0 +1,149 @@
+/*
+ * The pen well (03-markup MK-6; language.md §1.9; quality-bar Q-4, Q-9).
+ *
+ * One quiet well (a fill, never glass: Q-4) of --bar-button cells with no gap, so the four
+ * read as one control. Dots are content colours: 10 / 13 / 16 px by width on a fine pointer,
+ * 2 px larger on a coarse one; the Highlighter a 20 x 8 tint capsule. A dot whose ink is under
+ * 3:1 against the glass carries a light inner ring (`needsDotRing`).
+ *
+ * Armed: a 2 px ring in the primary text colour (n12, never lime: the colour of the ink is the
+ * signal) with the dot inside it, 24 px fine and 30 coarse; it springs in from 0.88 on the
+ * press spring (*select*), instantly under reduced motion. Hover washes the cell; a press
+ * presses the dot (0.94).
+ */
+.well {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hover);
+}
+
+.cell {
+  composes: focus-inset from global;
+  --ring: 24px;
+
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--bar-button);
+  height: var(--bar-button);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  forced-color-adjust: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .cell {
+    --ring: 30px;
+  }
+}
+
+/* The armed ring: hidden until armed, then it springs in. */
+.cell::before {
+  content: '';
+  grid-area: 1 / 1;
+  box-sizing: border-box;
+  width: var(--ring);
+  height: var(--ring);
+  border: 2px solid var(--text-primary);
+  border-radius: var(--radius-pill);
+  opacity: 0;
+  transform: scale(0.88);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
+}
+
+.cell[aria-pressed='true']::before {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: hover) {
+  .cell:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.cell:active .mark {
+  transform: scale(0.94);
+  transition-duration: var(--duration-instant);
+}
+
+.mark {
+  grid-area: 1 / 1;
+  box-sizing: border-box;
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  transition: transform var(--spring-press) var(--ease-spring);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .mark {
+    width: calc(var(--dot) + 2px);
+    height: calc(var(--dot) + 2px);
+  }
+}
+
+/* A dark ink (below 3:1 on the glass): a light inner ring, so the dot keeps its edge. */
+.mark[data-ring] {
+  box-shadow: inset 0 0 0 1px var(--swatch-contrast);
+}
+
+:global([data-theme='light']) .mark[data-ring] {
+  box-shadow: none;
+}
+
+.mark[data-shape='capsule'] {
+  width: 20px;
+  height: 8px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .mark[data-shape='capsule'] {
+    width: 24px;
+    height: 10px;
+  }
+}
+
+/* Light theme: a pale tint keeps its edge with the ink ring. */
+:global([data-theme='light']) .mark[data-shape='capsule'] {
+  box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.25);
+}
+
+@media (prefers-contrast: more) {
+  .cell[aria-pressed='true']::before {
+    border-width: 3px;
+  }
+}
+
+@media (forced-colors: active) {
+  .well {
+    outline: 1px solid CanvasText;
+  }
+
+  .cell[aria-pressed='true']::before {
+    border-color: Highlight;
+  }
+}
+
+:global(:root[data-motion='reduced']) .cell::before,
+:global(:root[data-motion='reduced']) .mark {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell::before,
+  .mark {
+    transition: none;
+  }
+}

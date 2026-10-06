@@ -179,8 +179,7 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await expect(page.getByRole('dialog')).toBeVisible();
   await shot('m0-shell-privacy-1440.png', { x: 0, y: 640, width: 520, height: 260 });
   await page.keyboard.press('Escape');
-  const bar = page.getByRole('toolbar', { name: 'Tools' });
-  await bar.getByRole('button', { name: 'Write', exact: true }).click();
+  const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
   await bar.getByRole('button', { name: /^Eraser/ }).hover();
   // Base UI tooltips open after 500 ms and carry no role.
   await page.waitForTimeout(900);
