@@ -916,10 +916,13 @@ describe('tokens.css', () => {
                 trimmed,
               );
             expect(lengths, `${file}: ${layer}`).not.toBeNull();
-            expect(
-              [lengths?.[1], lengths?.[2], lengths?.[3]].map((v) => Number.parseFloat(v ?? '1')),
-              `${file}: ${layer}`,
-            ).toEqual([0, 0, 0]);
+            const [x, y, blur] = [lengths?.[1], lengths?.[2], lengths?.[3]].map((v) =>
+              Number.parseFloat(v ?? '1'),
+            );
+            // An inset with no blur is a hard rule inside the box (a tab's underline), not a
+            // shadow: its offset may draw on one edge.
+            if (trimmed.startsWith('inset') && blur === 0) continue;
+            expect([x, y, blur], `${file}: ${layer}`).toEqual([0, 0, 0]);
           }
         }
       }
