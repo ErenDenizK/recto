@@ -11,6 +11,7 @@ import { registerDocumentCommands } from '../document/document-commands';
 import { setLocale } from '../i18n';
 import { registerOutlineCommands } from '../outline/outline-commands';
 import { registerSettingsCommands } from '../settings/settings-commands';
+import { registerSampleCommands } from '../sample/open-sample';
 import { buildSections } from '../shell/CommandPalette';
 import { registerSignatureCommands } from '../signatures/signature-commands';
 import { registerArrangeCommands } from '../stage/arrange-commands';
@@ -29,6 +30,7 @@ function allCommands(): CommandRegistry {
   registerOutlineCommands(registry);
   registerSignatureCommands(registry);
   registerSettingsCommands(registry);
+  registerSampleCommands(registry);
   return registry;
 }
 
