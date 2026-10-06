@@ -1,92 +1,52 @@
 /*
- * Glass over the document (the global .glass rule in styles/global.css: tint, blur, hairline,
- * --elevation-float), with its opaque fallbacks for browsers without backdrop-filter and for
- * reduced transparency, more contrast and forced colours. The bar is a capsule; the armed
- * tool's solid accent fill lives in ui/IconButton.module.css. Both surfaces are in the coverage
- * registry (styles/coverage-registry.ts): 44 and 40 px tall at the bars' 7px blur.
- *
- * The dock anchors the bar and its options tier. The tier is the bar's sibling, not its
- * child: a glass surface is the backdrop root of its descendants, so a nested tier would
- * blur nothing.
- *
- * The dock is centred by its auto margins, not by `translateX(-50%)`: half of a width such as
- * 435.6 px left the glass and its labels between device pixels at rest (quality-bar Q-2).
+ * The Markup bar and its options tier (spec X1, D2-2). The bar is the Markup content of the
+ * capsule (`shell/capsule/Capsule.module.css`), which is the glass and morphs between the
+ * dock, this bar and Locked, so the bar draws no surface: it is a row laid out at its own size,
+ * one rim (1 px) less than the capsule's --bar-h. The tier is still its own glass surface, a
+ * sibling of the capsule in the dock (`shell/frame/Dock.module.css`), never inside it: glass in
+ * glass would blur nothing (quality-bar Q-4). It is in the coverage registry at 40 px tall.
  */
-.dock {
-  position: absolute;
-  right: 0;
-  /* The dock band's offset (01-frame F10 §2: 16 px, 12 on compact; frame/DockBand.module.css). */
-  bottom: var(--band-offset, var(--space-4));
-  left: 0;
-  z-index: 3;
-  display: flex;
-  /* The bar comes first in the DOM (Tab order: bar, then options); the tier sits on top. */
-  flex-direction: column-reverse;
-  align-items: center;
-  gap: var(--space-1);
-  width: fit-content;
-  max-width: calc(100% - 2 * var(--space-4));
-  margin-inline: auto;
-  /* Only the surfaces take the pointer; the gap beside the tier is the page's. */
-  pointer-events: none;
-}
-
-.toolbar,
-.tier {
-  pointer-events: auto;
-}
 
 /*
  * While a stroke is in progress on a page and for a second after (FloatingToolbar.stroke.ts),
- * the bar and its tier fade to 20 % and let the pointer through to the page, so a stroke near
- * the bottom of the view never lands on a preset. Each surface fades itself: an opacity on
- * the dock would make it the backdrop root of the glass. The fade back is quick but visible;
- * under reduced motion both changes are instant.
+ * the tier fades to 20 % and lets the pointer through to the page, as the capsule does
+ * (Capsule.module.css), so a stroke near the bottom of the view never lands on a preset.
  */
-.toolbar,
 .tier {
+  pointer-events: auto;
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-.dock[data-stroking] > .toolbar,
-.dock[data-stroking] > .tier {
+[data-stroking] > .tier {
   opacity: 0.2;
   pointer-events: none;
 }
 
-.dock[data-stroking] > .toolbar *,
-.dock[data-stroking] > .tier * {
+[data-stroking] > .tier * {
   pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toolbar,
   .tier {
     transition: none;
   }
 }
 
-:global(:root[data-motion='reduced']) .toolbar,
 :global(:root[data-motion='reduced']) .tier {
   transition: none;
 }
 
 .toolbar {
-  composes: glass from global;
   display: flex;
+  flex: none;
   align-items: center;
   gap: 2px;
-  /* --bar-h (44 px fine, 56 px coarse; quality-bar Q-9): a --bar-button control (32 / 44 px),
-     5 px of padding and the 1 px glass border each side. */
-  height: var(--bar-h);
+  box-sizing: border-box;
+  /* --bar-h (44 px fine, 56 px coarse; quality-bar Q-9) less the capsule's 1 px rim each side:
+     a --bar-button control (32 / 44 px) and 5 px of padding. */
+  height: calc(var(--bar-h) - 2px);
   padding: calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
-  border-radius: var(--radius-capsule);
   white-space: nowrap;
-}
-
-/* While the capsule's width follows a group change, its content is clipped to it. */
-.toolbar[data-morphing] {
-  overflow: hidden;
 }
 
 /* Buttons in the capsule are round, concentric with its ends (22 - 1 border - 5 padding = 16,
@@ -176,25 +136,6 @@
 
   .group:not([data-bar-chip]) {
     padding: 0 var(--space-2);
-  }
-}
-
-/* Read's one Edit button (ADR-0019 §3): the group look, its name always shown. */
-.readEdit {
-  color: var(--text-primary);
-}
-
-@media (max-width: 640px) {
-  .group.readEdit:not([data-bar-chip]) .groupLabel {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-  }
-
-  .group.readEdit {
-    padding: 0 var(--space-3);
   }
 }
 
