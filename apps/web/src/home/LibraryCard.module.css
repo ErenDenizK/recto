@@ -1,0 +1,231 @@
+/*
+ * A Library card (02-library L5 §2–§4, §7): 184 × 284 on a fine pointer (200 × 312 coarse), 12
+ * padding, radius 16 (language.md §6.1's lg for a card; the shape step brings the token), lit
+ * (lit.module.css). The thumbnail is content: page white with its hairline, never themed.
+ *
+ * Motion: hover lifts the card on --spring-quick; a press scales it by --press-scale-large
+ * (02.5) on --spring-press; the ○ fades on --duration-fast. Every token is reduced per token
+ * (styles/motion.css); the lift's transform has its own reduced twin below, leaving the e3
+ * shadow only (L5 §7).
+ */
+.card {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 284px;
+  padding: var(--space-3);
+  border-radius: 16px;
+  cursor: default;
+  outline-offset: var(--focus-offset-out);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    box-shadow var(--duration-base) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .card:hover:not([data-dragging]) {
+    --shadow-own: var(--rim-edge), var(--rim-inner), var(--e3);
+    transform: translateY(-2px);
+  }
+}
+
+.card:active:not([data-dragging]) {
+  transform: scale(var(--press-scale-large));
+  transition:
+    transform var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+/* Reduced motion: no lift; the e3 shadow says hover alone (L5 §7). */
+@media (prefers-reduced-motion: reduce) {
+  .card:hover:not([data-dragging]) {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .card:hover:not([data-dragging]) {
+  transform: none;
+}
+
+/* Selected: an inset 2 px lime ring inside the rim (7.39:1 against lit glass). */
+.card[data-selected] {
+  --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--accent);
+}
+
+@media (hover: hover) {
+  .card[data-selected]:hover:not([data-dragging]) {
+    --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--accent), var(--e3);
+  }
+}
+
+.card[data-dragging] {
+  opacity: 0.4;
+}
+
+.thumbBox {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--radius-page);
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+}
+
+/* The ○: 24 px visual, 8 px in from the thumbnail's top-leading corner, 32 px hit (44 coarse). */
+.check {
+  position: absolute;
+  top: calc(var(--space-3) + 8px - 4px);
+  left: calc(var(--space-3) + 8px - 4px);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.disc {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--text-primary);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: var(--e1);
+}
+
+.card[data-selected] .disc {
+  border: 0;
+  background: var(--accent-ink);
+  color: var(--accent);
+}
+
+.disc svg {
+  width: 24px;
+  height: 24px;
+}
+
+.card[data-selecting] .check,
+.card:focus-visible .check {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .card:hover .check {
+    opacity: 1;
+  }
+}
+
+.meta {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  margin-top: var(--space-2);
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
+}
+
+.tag {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--tag-color);
+}
+
+.nameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The edited ● (01-frame's saved mark, the tab's own). */
+.edited {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-radius: var(--radius-pill);
+  background: var(--text-primary);
+}
+
+.details,
+.state {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: var(--type-footnote-lh);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stateIcon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+.stateText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rename {
+  width: 100%;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .card {
+    height: 312px;
+  }
+
+  .check {
+    top: calc(var(--space-3) + 8px - 10px);
+    left: calc(var(--space-3) + 8px - 10px);
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Forced colours: Canvas, a CanvasText border, the selection in Highlight (L5 §3). */
+@media (forced-colors: active) {
+  .card[data-selected] {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+}

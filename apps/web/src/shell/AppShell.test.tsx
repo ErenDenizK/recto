@@ -30,7 +30,9 @@ describe('AppShell', () => {
   it('renders the shell with the empty state and privacy indicator', () => {
     render(<App />);
     expect(screen.getByTestId('app-shell')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    ).toBeVisible();
     expect(screen.getByText(/external requests?/)).toBeVisible();
   });
 
@@ -66,7 +68,9 @@ describe('AppShell', () => {
       expect(useUiStore.getState().recents[0]).toBe('mode.arrange');
     });
     expect(stageView(useUiStore.getState())).toBe('page');
-    expect(screen.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    ).toBeVisible();
   });
 
   it('opens documents as tabs', async () => {

@@ -27,7 +27,18 @@ function connectSrc(): string | undefined {
   return sources === undefined ? undefined : `connect-src ${sources.join(' ')}`;
 }
 
-export function PrivacyIndicator({ className }: { readonly className?: string }) {
+export function PrivacyIndicator({
+  className,
+  variant = 'status',
+}: {
+  readonly className?: string | undefined;
+  /**
+   * `status`: the status bar's line. `chip`: the Library footer's chip (`02-library` L12),
+   * "Nothing is uploaded", or "1 external request" once the monitor counts one; the same
+   * popover either way.
+   */
+  readonly variant?: 'status' | 'chip';
+}) {
   const { count, urls } = useExternalRequests();
   const swStatus = usePwaStore((s) => s.status);
   const updateAvailable = usePwaStore((s) => s.updateAvailable);
@@ -41,14 +52,22 @@ export function PrivacyIndicator({ className }: { readonly className?: string })
         ref={triggerRef}
         className={[styles.trigger, className].filter(Boolean).join(' ')}
         data-state={clean ? 'clean' : 'external'}
-        data-testid="privacy-indicator"
+        data-testid={variant === 'chip' ? 'library-privacy' : 'privacy-indicator'}
       >
         <span className={styles.mark} aria-hidden="true" />
-        <span>{m.privacy_local_only()}</span>
-        <span className={styles.dot} aria-hidden="true">
-          ·
-        </span>
-        <span className={styles.numeric}>{m.privacy_external_requests({ count })}</span>
+        {variant === 'chip' ? (
+          <span className={styles.numeric}>
+            {clean ? m.library_nothing_uploaded() : m.library_external_requests({ count })}
+          </span>
+        ) : (
+          <>
+            <span>{m.privacy_local_only()}</span>
+            <span className={styles.dot} aria-hidden="true">
+              ·
+            </span>
+            <span className={styles.numeric}>{m.privacy_external_requests({ count })}</span>
+          </>
+        )}
       </Popover.Trigger>
       <PopoverPopup
         side="top"

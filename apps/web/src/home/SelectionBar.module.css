@@ -1,0 +1,78 @@
+/*
+ * The selection bar (02-library L6 §2–§3, §7): M2 glass (the bar tier of global.css, σ 7 at
+ * 44 px, c 0.994), a pill 44 high around 32 px controls (56 around 44 on a coarse pointer, Q-9),
+ * bottom centre 16 px above the view's edge. It rises in by *tier rise* on --spring-quick from
+ * 8 px below, fading on --duration-base, both on the glass element itself (Q-3); reduced motion
+ * keeps the fade (the spring token is instant there).
+ */
+.bar {
+  composes: glass from global;
+  position: absolute;
+  bottom: var(--space-4);
+  right: 0;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--space-4));
+  margin-inline: auto;
+  height: var(--bar-h);
+  padding: 0 var(--space-2) 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out);
+}
+
+@starting-style {
+  .bar {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+.count {
+  flex: none;
+  padding-right: var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-body-lh);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.divider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin: 0 var(--space-1);
+  background: var(--border-hairline);
+}
+
+.short {
+  display: none;
+}
+
+/* Narrow windows: the count moves to the head (02.17) and Combine says only "Combine". */
+@container library (width < 600px) {
+  .count,
+  .count + .divider {
+    display: none;
+  }
+
+  .bar {
+    padding-left: var(--space-2);
+  }
+
+  .long {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
+}

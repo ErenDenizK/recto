@@ -31,6 +31,10 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'annotations/AnnotationLayer.module.css': {
     '.freeText:focus-visible': 'in-place editor (language.md §2.10): its frame and the caret',
   },
+  'home/Launcher.module.css': {
+    '.card [data-quiet-focus]:focus-visible':
+      'Open PDFs… focused by the page on arrival (J1); the first key press restores the ring',
+  },
   'forms/FormLayer.module.css': {
     '.editor:focus-visible': 'in-place field editor: its border and the caret',
   },
