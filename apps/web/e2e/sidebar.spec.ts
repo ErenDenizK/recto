@@ -127,9 +127,21 @@ test('S13: a touch drag scrolls the sidebar and moves nothing; a long press then
   );
   await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
   expect(await order(page)).toEqual(before);
+  // The fling goes on after the finger lifts: back to the top only once it has come to rest, or
+  // it scrolls on under the next press, which then lifts another thumbnail than the one measured.
+  await expect
+    .poll(() =>
+      scroller.evaluate(async (el) => {
+        const at = el.scrollTop;
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        return el.scrollTop === at;
+      }),
+    )
+    .toBe(true);
   await scroller.evaluate((el) => {
     el.scrollTop = 0;
   });
+  await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBe(0);
 
   // A 450 ms hold, then a move: thumbnail 4 lands above thumbnail 2.
   const from = await centre(thumb(page, 4));
