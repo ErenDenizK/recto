@@ -10,6 +10,12 @@
  *
  * Fixture: text-edit-fonts.pdf, whose first line (Helvetica, y = 700) is the sentence below.
  */
+// The app's styles, so the page's controls (the selection bar above a selected word, its icons)
+// take their real size and place, as they do in the app.
+import '../styles/tokens.css';
+import '../styles/reset.css';
+import '../styles/global.css';
+
 import { getActiveDocument, type VirtualDocument } from '@pdf-editor/document-model';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
