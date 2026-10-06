@@ -86,7 +86,7 @@ test('a long press on a page opens the page menu at the press, once', async ({
   await page.waitForTimeout(500);
   await expect(menu).toHaveCount(1);
   await expect(menu).toBeVisible();
-  await expect(menu.getByRole('menuitem', { name: /^Arrange/ })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: /^Show in Pages grid/ })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('long-press-menu.png') });
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);

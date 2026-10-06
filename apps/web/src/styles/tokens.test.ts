@@ -1171,11 +1171,6 @@ describe('tokens.css', () => {
     });
 
     it('holds every module rule that composes a blurred material, and no other', () => {
-      // The Pages grid's bar is converted when D2-5 lands (its module is that package's): until
-      // then it still composes M8's `glass`, which no longer exists.
-      const AWAITING: Readonly<Record<string, string>> = {
-        'stage/ArrangeView.module.css .contextBar': 'glass',
-      };
       const found = new Map<string, string>();
       for (const [file, source] of Object.entries(modules)) {
         const css = stripComments(source);
@@ -1184,10 +1179,6 @@ describe('tokens.css', () => {
         )) {
           const classes = (match[2] ?? '').split(/\s+/);
           const key = `${file.replace(/^\.\.\//, '')} ${match[1]}`;
-          if (key in AWAITING) {
-            found.set(key, classes.join(' '));
-            continue;
-          }
           // A material with a σ: lit glass (no blur until D3-8) and the solid twin are not.
           if (!classes.includes('mat') || !classes.some((c) => /^s\d+$/.test(c))) continue;
           found.set(key, classes.join(' '));
@@ -1196,7 +1187,7 @@ describe('tokens.css', () => {
       const registered = new Map<string, string>();
       for (const entry of COVERAGE_REGISTRY) {
         const key = `${entry.module} ${entry.selector}`;
-        registered.set(key, AWAITING[key] ?? compositionOf(entry.module, entry.selector).join(' '));
+        registered.set(key, compositionOf(entry.module, entry.selector).join(' '));
       }
       expect([...found.entries()].sort()).toEqual([...registered.entries()].sort());
       // The spec row counted about nineteen modules on the M8 shell: seventeen compose glass
@@ -1206,7 +1197,8 @@ describe('tokens.css', () => {
       // Library selection bar one (D4-1). The frame (D2-1) trades the title and status bars for
       // the top strip, the compact bar and the page pill: one more. The capsule (D2-2) takes the
       // tool bar's glass into its own module; the Markup palette (D2-3) is content inside it, its
-      // ink strip a row of the capsule's glass, so the bar's module and its options tier go.
+      // ink strip a row of the capsule's glass, so the bar's module and its options tier go. The
+      // Pages grid (D2-5) moves its bar into the capsule and adds its docked header.
       expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(25);
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',

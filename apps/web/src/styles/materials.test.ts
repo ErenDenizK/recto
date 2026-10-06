@@ -11,7 +11,7 @@
  *   dither Recto has). The concept prototype's glass read as dirty because its sheets carried a
  *   128 px noise tile scaled up on HiDPI screens.
  * - **The `.glass*` rules are gone** (D3-3's acceptance): no `.glass`, `.glass-menu` or
- *   `.glass-frame` rule or composition is left, but the Pages grid's bar, which D2-5 converts.
+ *   `.glass-frame` rule or composition is left.
  * - **Lit glass stays off the page** (language.md §10.2): no module under `stage/`, `viewer/` or
  *   `pages/` composes `mat-lit` or reads the lit module.
  * - **Material classes come from CSS modules or `ui/Surface`**: no other script writes a `mat-`
@@ -55,9 +55,6 @@ const modules = import.meta.glob<string>('../**/*.module.css', {
   import: 'default',
   eager: true,
 });
-
-/** The Pages grid's module, converted by D2-5 (its package owns the file). */
-const AWAITING_D2_5 = '../stage/ArrangeView.module.css';
 
 describe('materials.css (09-primitives §26, D3-3)', () => {
   it('is what the generator writes from the coverage registry and tokens.css', () => {
@@ -135,10 +132,9 @@ describe('the M8 glass classes are gone (D3-3)', () => {
     }
   });
 
-  it('leaves no module composing them, nor a selector reaching them, but D2-5’s grid', () => {
+  it('leaves no module composing them, nor a selector reaching them', () => {
     for (const [file, source] of Object.entries(modules)) {
       const css = stripComments(source);
-      if (file === AWAITING_D2_5) continue;
       expect(css, file).not.toMatch(/composes:[^;]*\bglass(?:-menu|-frame)?\b[^;]*from global/);
       expect(css, file).not.toMatch(/:global\([^)]*\.glass(?:-menu|-frame)?\b/);
     }

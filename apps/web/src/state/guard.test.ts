@@ -9,6 +9,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { setLocale } from '../i18n';
+import { closeTitleMenu, useFrameStore } from '../shell/frame/frame-store';
 import { startRename } from '../stage/section-operations';
 import {
   type Act,
@@ -203,17 +204,22 @@ describe('refusalReason (dimmed items carry their reason)', () => {
 });
 
 describe('rename is a document act at every entry point (X31)', () => {
-  // The tab (double-click, F2 in the tab bar), the grid's section header (double-click) and
-  // the menus' and F2's `section.rename` all start renaming through `startRename`.
+  // The tab (F2 in the tab bar), the grid's section header in All open (double-click) and the
+  // menus' and F2's `section.rename` all start renaming through `startRename`: in place in a
+  // section, else in the title menu's Name field.
+  const started = () =>
+    useUiStore.getState().renaming?.documentId === a ||
+    useFrameStore.getState().titleMenu === 'name';
   for (const surface of ['tab', 'section', undefined] as const) {
     it(`starts in the ${surface ?? 'default'} place only while unlocked`, () => {
       startRename(a, surface);
-      expect(useUiStore.getState().renaming?.documentId).toBe(a);
+      expect(started()).toBe(true);
       useUiStore.setState({ renaming: null });
+      closeTitleMenu();
       for (const reason of LOCK_REASONS) {
         useLockStore.getState().lock(a, reason);
         startRename(a, surface);
-        expect(useUiStore.getState().renaming).toBeNull();
+        expect(started()).toBe(false);
       }
     });
   }
