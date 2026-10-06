@@ -11,6 +11,7 @@ import type { Rect } from '@pdf-editor/document-model';
 import { type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
+import { Button } from '../ui/Button';
 import { createAnnotations, updateAnnotations } from './actions';
 import { type InlineEditor, useAnnotationStore } from './annotation-store';
 import { noteIconRect, type PageFrame, rectToCss, roundRect } from './geometry';
@@ -377,13 +378,15 @@ function NoteEditor({
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKeyDown}
       />
+      {/* Save is the standard fill, not lime: the armed Note tool is the view's one lime
+          (language.md §0.1 rule 3); Cancel is quiet. */}
       <div className={styles.noteActions}>
-        <button type="button" className={styles.secondary} onClick={close}>
+        <Button variant="quiet" onClick={close}>
           {m.annot_cancel()}
-        </button>
-        <button type="button" className={styles.primary} onClick={save}>
+        </Button>
+        <Button variant="standard" onClick={save}>
           {m.annot_save()}
-        </button>
+        </Button>
       </div>
     </div>
   );
