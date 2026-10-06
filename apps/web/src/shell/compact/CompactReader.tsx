@@ -23,6 +23,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { m } from '../../i18n';
+import { reducedMotion } from '../../motion/reduced-motion';
 import { displaySize } from '../../pages/page-geometry';
 import { useViewStore } from '../../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
@@ -131,10 +132,6 @@ interface Ranges {
 
 const sameRange = (a: Ranges['visible'], b: Ranges['visible']) =>
   a.first === b.first && a.last === b.last;
-
-function reducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
 
 function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
   const ws = useWorkspaceStore((s) => s.workspace);

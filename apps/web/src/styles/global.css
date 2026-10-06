@@ -63,16 +63,7 @@ textarea,
   border: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* Reduced motion is per token (language.md §7.5; ADR-0026 §3): motion.css, not a global rule. */
 
 [data-tag='0'] {
   --tag-color: var(--tag-0);

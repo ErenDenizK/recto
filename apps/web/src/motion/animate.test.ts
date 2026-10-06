@@ -188,7 +188,7 @@ describe('animate: numbers on one requestAnimationFrame loop', () => {
     const motion = animate(0, 1, { spring: 'glide', fade: true, onUpdate });
     expect(onUpdate).not.toHaveBeenCalled();
     await motion.finished;
-    // `track` ends at about 150 ms; `glide` would take 680.
+    // The reduced fade ends within 150 ms; `glide` would take 680.
     expect(performance.now() - start).toBeLessThan(450);
     expect(onUpdate.mock.calls.length).toBeGreaterThan(1);
   });
@@ -334,7 +334,8 @@ describe('animateStyle: elements on Web Animations', () => {
     const fade = animateStyle(el, 'opacity', 0, 1, { spring: 'smooth' });
     const [animation] = el.getAnimations();
     expect(animation).toBeDefined();
-    expect(Number(animation!.effect!.getTiming().duration)).toBeLessThanOrEqual(170);
+    // A-9: a reduced fade lasts 150 ms at most (D3-4 shortened it from track's 158).
+    expect(Number(animation!.effect!.getTiming().duration)).toBeLessThanOrEqual(150);
     await fade.finished;
     expect(el.style.opacity).toBe('');
   });

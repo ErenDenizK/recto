@@ -8,10 +8,9 @@
  *   §1  `:root, [data-theme='dark']`   every colour and material token, dark values
  *   §2  `[data-theme='light']` and `@media (prefers-color-scheme: light)`: the same names with
  *       light values (D3-7 adds them; the test keeps both selectors and §1 to one name set)
- *   §3  `:root`                        theme-free: type, shape, space, density, motion, metrics
+ *   §3  `:root`                        theme-free: type, shape, space, density, metrics
  *   §4  `@media (pointer: coarse), (any-pointer: coarse)`   coarse density
- *   §5  Settings: reduced transparency (media and in-app switch, identical), more contrast,
- *       reduced motion
+ *   §5  Settings: reduced transparency (media and in-app switch, identical), more contrast
  *   §6  `@media (forced-colors: active)`
  *   §7  `@media (color-gamut: p3)`     the aurora's P3 stops
  *
@@ -37,7 +36,11 @@
  * recorded in docs/specs/experience-redesign.md §7, craft.md §7 and redesign.md §11.1. D3-2
  * gives the skeleton its colours; the blurs stay D0-1's until materials.css (D3-3) takes σ per
  * surface from the coverage registry.
+ *
+ * Motion has its own file, `motion.css` (language.md §10.1; spec D3-4), imported here first so
+ * that everything that reads the tokens has the springs, eases and their reduced forms too.
  */
+@import './motion.css';
 
 /* ── §1 Dark theme ─────────────────────────────────────────────────────────────────────── */
 :root,
@@ -421,73 +424,9 @@
   --control-text: var(--type-body);
   --control-lh: var(--type-body-lh);
   --field-text: 13px;
-  --press-scale: 0.97;
 
-  /* One curve. instant: drag feedback only · fast: state changes, popup enter and exit ·
-     base: scrims, drag-over. Menus, popovers and the palette rise in: they start
-     --rise-distance nearer their anchor (--motion-rise for a popup above it) at opacity 0 and
-     settle over --duration-fast. Tooltips and dialogs enter from --enter-scale. */
-  --duration-instant: 60ms;
-  --duration-fast: 120ms;
-  --duration-base: 180ms;
-  --ease-out: cubic-bezier(0.2, 0, 0, 1);
-  --enter-scale: 0.98;
-  --rise-distance: 4px;
-  --motion-rise: translateY(var(--rise-distance));
-
-  /* CSS springs (language.md §7.1–§7.2): one curve for every zero-bounce spring, from the
-     analytic solution (motion/springs.ts), and the pop curve for one small glyph. */
-  --ease-spring: linear(
-    0,
-    0.005 1.2%,
-    0.02 2.3%,
-    0.046 3.7%,
-    0.084 5.2%,
-    0.159 7.7%,
-    0.366 13.8%,
-    0.461 16.8%,
-    0.556 20.2%,
-    0.639 23.5%,
-    0.709 26.8%,
-    0.767 30.2%,
-    0.817 33.7%,
-    0.861 37.5%,
-    0.9 42%,
-    0.93 46.8%,
-    0.954 52.3%,
-    0.971 58.5%,
-    0.983 65.3%,
-    0.991 73.7%,
-    1
-  );
-  --ease-spring-pop: linear(
-    0,
-    0.007 1.5%,
-    0.026 3%,
-    0.058 4.7%,
-    0.105 6.5%,
-    0.209 9.8%,
-    0.453 16.8%,
-    0.559 20%,
-    0.659 23.3%,
-    0.742 26.5%,
-    0.809 29.5%,
-    0.868 32.7%,
-    0.915 35.8%,
-    0.954 39.2%,
-    0.984 42.8%,
-    1.006 46.7%,
-    1.02 50.8%,
-    1.027 55.7%,
-    1.027 63.3%,
-    1.008 84.2%,
-    1
-  );
-  --spring-press: 300ms;
-  --spring-quick: 420ms;
-  --spring-pop: 410ms;
-  --spring-track: 150ms;
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Motion (language.md §7): the springs, eases, press scales and entrances are motion.css's,
+     imported above, with their reduced forms (spec D3-4). */
 
   /* Aliases (09 §25 block 8), deleted at migration step 11. */
   --font-sans: var(--font-ui);
@@ -536,7 +475,6 @@
     --control-lh: var(--type-body-lh);
     /* iOS zooms into a field set under 16 px (language.md §4.2). */
     --field-text: 16px;
-    --press-scale: 0.94;
     /* The title bar holds 44 px controls on a coarse pointer: a 56 px bar (Q-9's coarse bar). */
     --titlebar-height: 56px;
   }
@@ -615,15 +553,6 @@
     --elevation-float: none;
     --text-secondary: var(--n11);
     --text-tertiary: var(--n10);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --duration-instant: 0ms;
-    --duration-fast: 0ms;
-    --duration-base: 0ms;
-    --rise-distance: 0px;
   }
 }
 

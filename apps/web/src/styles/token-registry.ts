@@ -152,7 +152,10 @@ export const THEME_ALIASES: Readonly<Record<string, string>> = {
   '--elevation-float': '--glass-bar-shadow',
 };
 
-/** §3: theme-free type, shape, space, metrics, focus offsets, density and motion. */
+/**
+ * §3: theme-free type, shape, space, metrics, focus offsets and density. Motion is `motion.css`'s,
+ * named in `motion/tokens.ts` (`MOTION_TOKENS`) and held to it by `motion.test.ts`.
+ */
 export const THEME_FREE_TOKENS: readonly string[] = [
   // Type (ADR-0027, language.md §4; spec D3-5): the face, three weights (Q-8), the scale with
   // a line height and a tracking per step.
@@ -192,21 +195,6 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   '--control-text',
   '--control-lh',
   '--field-text',
-  '--press-scale',
-  '--duration-instant',
-  '--duration-fast',
-  '--duration-base',
-  '--ease-out',
-  '--enter-scale',
-  '--rise-distance',
-  '--motion-rise',
-  '--ease-spring',
-  '--ease-spring-pop',
-  '--spring-press',
-  '--spring-quick',
-  '--spring-pop',
-  '--spring-track',
-  '--ease-standard',
 ];
 
 /** §3's aliases, deleted at migration step 11. */

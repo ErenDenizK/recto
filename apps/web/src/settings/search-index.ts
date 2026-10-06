@@ -38,6 +38,7 @@ export type SettingsPageId = 'kept' | 'signatures' | 'privacy' | 'about';
 export type SettingsRowId =
   | 'glassPanels'
   | 'reduceTransparency'
+  | 'reduceMotion'
   | 'language'
   | 'penDrawsInEdit'
   | 'keptDocuments'
@@ -130,6 +131,13 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     title: at(m.appearance_reduce_transparency),
     keywords: at(m.settings_reduce_transparency_keywords),
     commands: ['view.reduceTransparency', 'settings.appearance'],
+  },
+  {
+    id: 'reduceMotion',
+    section: 'appearance',
+    title: at(m.settings_reduce_motion),
+    keywords: at(m.settings_reduce_motion_keywords),
+    commands: ['view.reduceMotion', 'settings.appearance'],
   },
   {
     id: 'language',

@@ -36,6 +36,10 @@
   }
 }
 
+:global(:root[data-motion='reduced']) .trail[data-closed] {
+  animation: none;
+}
+
 @keyframes fade-out {
   to {
     opacity: 0;
