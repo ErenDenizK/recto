@@ -7,6 +7,10 @@
  * menu's only accent, and the menu is transient.
  */
 .popup {
+  /* The menu recipe's row metrics (ui/Menu.module.css), for the rows inside the popover. */
+  --menu-row: 32px;
+  --menu-pad: 6px;
+  --menu-icon: 16px;
   display: flex;
   flex-direction: column;
   width: min(320px, calc(100vw - 16px));
@@ -17,6 +21,7 @@
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .popup {
+    --menu-row: 44px;
     width: min(360px, calc(100vw - 16px));
   }
 }
