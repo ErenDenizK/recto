@@ -64,7 +64,8 @@ describe('S21 Batch', () => {
     // Built-ins are listed; "Number pages" is selected by default.
     const recipe = await within(dialog).findByRole('button', { name: /Number pages/ });
     expect(recipe).toHaveAttribute('aria-pressed', 'true');
-    expect(within(dialog).getByText('Built in, read-only')).toBeVisible();
+    // The sheet fades in from opacity 0; on a slow runner the list is there before its first frame.
+    await waitFor(() => expect(within(dialog).getByText('Built in, read-only')).toBeVisible());
     expect(within(dialog).getByTestId('batch-run')).toBeDisabled();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add files…' }));

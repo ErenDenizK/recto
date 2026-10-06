@@ -293,7 +293,9 @@ describe('section operations', () => {
       await generatedImage('image/webp', 1200, 600, 'wide.webp'),
       await generatedImage('image/jpeg', 300, 400, 'photo.jpg'),
     ]);
-    const question = await screen.findByTestId('image-size-dialog');
+    // The question (S18's InsertImagesSheet) comes after both images are decoded and the WebP
+    // re-encoded as PNG: about 150 ms here, past findBy's 1 s default on a loaded CI runner.
+    const question = await screen.findByTestId('image-size-dialog', {}, { timeout: 10_000 });
     await waitFor(() => {
       expect(within(question).getByRole('heading', { name: 'Insert 2 images' })).toBeVisible();
     });
