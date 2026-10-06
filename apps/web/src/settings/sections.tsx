@@ -17,7 +17,6 @@
  * - **More:** Privacy (pushes), Keyboard shortcuts (opens S22; on a coarse pointer only once a
  *   key has been pressed, L§6.2) and About Recto (pushes).
  */
-import { Info, Keyboard, ShieldCheck } from 'lucide-react';
 import { useEffect, useId, useRef, useSyncExternalStore } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
@@ -46,6 +45,7 @@ import { useAppearanceStore } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
 import { useUiStore } from '../state/ui-store';
 import { Button } from '../ui/Button';
+import { Icon } from '../ui/Icon';
 import { Segmented } from '../ui/Segmented';
 import { Switch } from '../ui/Switch';
 import { TextField } from '../ui/TextField';
@@ -279,7 +279,7 @@ export function PrivacyRow({
   return (
     <NavRow
       id="privacy"
-      icon={<ShieldCheck className={styles.icon} aria-hidden="true" />}
+      icon={<Icon name="shield-check" className={styles.icon} />}
       label={m.settings_section_privacy()}
       value={count === 0 ? m.settings_privacy_clean() : m.settings_privacy_external({ count })}
       hint={hint}
@@ -292,7 +292,7 @@ export function ShortcutsRow() {
   return (
     <NavRow
       id="shortcuts"
-      icon={<Keyboard className={styles.icon} aria-hidden="true" />}
+      icon={<Icon name="keyboard" className={styles.icon} />}
       label={m.keyboard_shortcuts()}
       // S22 is its own sheet; opening it replaces Settings (07 §1.1 rule 1).
       onPress={() => useUiStore.getState().setShortcutsOpen(true)}
@@ -310,7 +310,7 @@ export function AboutRow({
   return (
     <NavRow
       id="about"
-      icon={<Info className={styles.icon} aria-hidden="true" />}
+      icon={<Icon name="info" className={styles.icon} />}
       label={m.about_command({ name: PRODUCT_NAME })}
       // The version is literal text: its hyphens neither spaced nor raised (see pages.tsx).
       value={

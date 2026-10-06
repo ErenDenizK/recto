@@ -7,10 +7,10 @@
  * primary are one height and share one centre line.
  */
 import { Dialog } from '@base-ui/react/dialog';
-import { ChevronLeft, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { m } from '../../i18n';
+import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
 import styles from './Sheet.module.css';
 
@@ -40,7 +40,7 @@ export function SheetHeader({
     closeLabel === null ? null : (
       <IconButton
         label={closeLabel}
-        icon={<X aria-hidden="true" />}
+        icon={<Icon name="x" />}
         className={styles.headerButton}
         onClick={onClose}
       />
@@ -56,7 +56,7 @@ export function SheetHeader({
       {back ? (
         <IconButton
           label={m.sheet_back()}
-          icon={<ChevronLeft aria-hidden="true" />}
+          icon={<Icon name="caret-left" />}
           className={styles.headerButton}
           onClick={back}
         />

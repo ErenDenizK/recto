@@ -24,7 +24,6 @@
  * - **Both editions**: the compact edition passes `edition="compact"` and whether its capsule
  *   is on screen (`band`), so the stack sits above the capsule or the home indicator.
  */
-import { CheckCircle2, RefreshCw, TriangleAlert, X, XCircle } from 'lucide-react';
 import {
   type KeyboardEvent,
   type PointerEvent,
@@ -39,6 +38,7 @@ import { flushSync } from 'react-dom';
 import { m } from '../../i18n';
 import { animateStyle, type Motion, velocityTracker } from '../../motion';
 import { Button } from '../Button';
+import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
 import { ProgressCapsule } from './ProgressCapsule';
 import { after, entranceDelay, fadeBackdrop, RISE_PX, reflow } from './stack-motion';
@@ -266,15 +266,15 @@ export function ToastRegion({ edition = 'full', band = 'shown' }: ToastRegionPro
 function glyphOf(toast: Toast): ReactNode {
   switch (toast.kind) {
     case 'success':
-      return <CheckCircle2 className={styles.glyph} data-tone="success" aria-hidden="true" />;
+      return <Icon name="check-circle" className={styles.glyph} data-tone="success" />;
     case 'failure':
       return toast.tone === 'warning' ? (
-        <TriangleAlert className={styles.glyph} data-tone="warning" aria-hidden="true" />
+        <Icon name="warning" className={styles.glyph} data-tone="warning" />
       ) : (
-        <XCircle className={styles.glyph} data-tone="danger" aria-hidden="true" />
+        <Icon name="x-circle" className={styles.glyph} data-tone="danger" />
       );
     case 'system':
-      return <RefreshCw className={styles.glyph} aria-hidden="true" />;
+      return <Icon name="arrows-clockwise" className={styles.glyph} />;
     default:
       return null;
   }
@@ -510,7 +510,7 @@ function ToastView({
           {dismissible ? (
             <IconButton
               label={m.toast_dismiss()}
-              icon={<X />}
+              icon={<Icon name="x" />}
               className={styles.close}
               tooltipSide="top"
               onClick={() => onDone('dismissed')}

@@ -21,18 +21,6 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 import type { PagePair, PixelDiffResult, TextChange } from '@pdf-editor/engine';
 import {
-  ChevronDown,
-  ChevronUp,
-  Columns2,
-  Flame,
-  FolderOpen,
-  Layers,
-  Maximize2,
-  RefreshCw,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react';
-import {
   type DragEvent,
   type KeyboardEvent,
   type ReactNode,
@@ -62,6 +50,7 @@ import { useCommandShortcut } from '../shell/use-command-shortcut';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import toolStyles from '../tools/ToolDialog.module.css';
+import { Icon, type IconName } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Select } from '../ui/Select';
 import { Slider } from '../ui/Slider';
@@ -223,7 +212,7 @@ function CompareSetup({ dragging }: { readonly dragging: boolean }) {
             className={`${toolStyles.secondary} ${styles.fileButton}`}
             onClick={() => void pickFiles('pdf').then(addSecondFile)}
           >
-            <FolderOpen aria-hidden="true" className={styles.buttonIcon} />
+            <Icon name="folder-open" className={styles.buttonIcon} />
             {m.compare_open_file()}
           </button>
         </div>
@@ -891,9 +880,9 @@ function ProgressCard({ centred }: { readonly centred: boolean }) {
   );
 }
 
-const LAYOUTS: readonly { id: CompareLayout; label: () => string; Icon: typeof Columns2 }[] = [
-  { id: 'side', label: m.compare_layout_side, Icon: Columns2 },
-  { id: 'overlay', label: m.compare_layout_overlay, Icon: Layers },
+const LAYOUTS: readonly { id: CompareLayout; label: () => string; icon: IconName }[] = [
+  { id: 'side', label: m.compare_layout_side, icon: 'columns' },
+  { id: 'overlay', label: m.compare_layout_overlay, icon: 'stack' },
 ];
 
 function CompareToolbar({ scale, changes }: { readonly scale: number; readonly changes: number }) {
@@ -925,7 +914,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
   return (
     <div className={styles.toolbar} role="toolbar" aria-label={m.compare_toolbar_label()}>
       <div role="radiogroup" aria-label={m.compare_layout_label()} className={styles.segments}>
-        {LAYOUTS.map(({ id, label, Icon }) => (
+        {LAYOUTS.map(({ id, label, icon }) => (
           <button
             key={id}
             type="button"
@@ -937,7 +926,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
             onKeyDown={onLayoutKey}
             onClick={() => useCompareStore.setState({ layout: id })}
           >
-            <Icon aria-hidden="true" className={styles.segmentIcon} />
+            <Icon name={icon} className={styles.segmentIcon} />
             {label()}
           </button>
         ))}
@@ -960,7 +949,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <IconButton
         label={m.compare_heatmap()}
         tooltip={done ? m.compare_heatmap() : m.compare_heatmap_pending()}
-        icon={<Flame />}
+        icon={<Icon name="fire" />}
         size="bar"
         aria-pressed={heatmap}
         aria-disabled={!done || !hasHeat ? 'true' : undefined}
@@ -972,7 +961,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <span className={styles.divider} aria-hidden="true" />
       <IconButton
         label={m.cmd_zoom_out()}
-        icon={<ZoomOut />}
+        icon={<Icon name="magnifying-glass-minus" />}
         size="bar"
         shortcut={zoomOutShortcut}
         onClick={() => ui().zoomOut()}
@@ -982,14 +971,14 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       </span>
       <IconButton
         label={m.cmd_zoom_in()}
-        icon={<ZoomIn />}
+        icon={<Icon name="magnifying-glass-plus" />}
         size="bar"
         shortcut={zoomInShortcut}
         onClick={() => ui().zoomIn()}
       />
       <IconButton
         label={m.cmd_zoom_fit()}
-        icon={<Maximize2 />}
+        icon={<Icon name="arrows-out-simple" />}
         size="bar"
         shortcut={fitShortcut}
         onClick={() => ui().zoomFit()}
@@ -997,7 +986,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <span className={styles.divider} aria-hidden="true" />
       <IconButton
         label={m.cmd_compare_previous()}
-        icon={<ChevronUp />}
+        icon={<Icon name="caret-up" />}
         size="bar"
         shortcut={previousShortcut}
         aria-disabled={changes === 0 ? 'true' : undefined}
@@ -1005,7 +994,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       />
       <IconButton
         label={m.cmd_compare_next()}
-        icon={<ChevronDown />}
+        icon={<Icon name="caret-down" />}
         size="bar"
         shortcut={nextShortcut}
         aria-disabled={changes === 0 ? 'true' : undefined}
@@ -1014,7 +1003,7 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
       <span className={styles.divider} aria-hidden="true" />
       <IconButton
         label={m.compare_run_again()}
-        icon={<RefreshCw />}
+        icon={<Icon name="arrows-clockwise" />}
         size="bar"
         aria-disabled={done ? undefined : 'true'}
         onClick={() => {

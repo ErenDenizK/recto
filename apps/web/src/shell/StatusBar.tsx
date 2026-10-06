@@ -5,7 +5,6 @@
  * (DESIGN.md §3).
  */
 import { Menu } from '@base-ui/react/menu';
-import { Minus, Plus, Search } from 'lucide-react';
 
 import { formatNumber, formatPercent, m } from '../i18n';
 import { PrivacyIndicator } from '../privacy/PrivacyIndicator';
@@ -15,6 +14,7 @@ import { useSelectionStore } from '../state/selection-store';
 import { MAX_ZOOM, MIN_ZOOM, useStageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { documentLabels } from '../viewer/navigation';
 import { useSearchStore } from '../viewer/search';
@@ -72,7 +72,7 @@ function SearchCount() {
         ·
       </span>
       <span className={`${styles.item} ${styles.search}`} data-testid="status-search">
-        <Search aria-hidden="true" />
+        <Icon name="magnifying-glass" />
         <span className="visually-hidden">{m.status_search_prefix()}</span>
         {text}
       </span>
@@ -164,7 +164,7 @@ function ZoomControls() {
       <IconButton
         size="row"
         label={m.zoom_out()}
-        icon={<Minus />}
+        icon={<Icon name="minus" />}
         shortcut={outShortcut}
         tooltipSide="top"
         className={styles.small}
@@ -217,7 +217,7 @@ function ZoomControls() {
       <IconButton
         size="row"
         label={m.zoom_in()}
-        icon={<Plus />}
+        icon={<Icon name="plus" />}
         shortcut={inShortcut}
         tooltipSide="top"
         className={styles.small}

@@ -17,7 +17,6 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import type { DocumentId, SourceId, VirtualPage, Workspace } from '@pdf-editor/document-model';
-import { FileText, MoreHorizontal } from 'lucide-react';
 import {
   type DragEvent,
   type KeyboardEvent,
@@ -40,6 +39,7 @@ import { EmptyState } from '../shell/EmptyState';
 import { contentFrame, ResizedContent } from '../stage/ResizedContent';
 import { useUiStore } from '../state/ui-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import menuStyles from '../ui/Menu.module.css';
 import {
   arrangeOnHome,
@@ -646,7 +646,7 @@ function RecentRow({
       >
         {/* A generic page: thumbnails are never stored (the privacy promise, F17). */}
         <span className={styles.recentGlyph} aria-hidden="true">
-          <FileText />
+          <Icon name="file-text" />
         </span>
         <span className={styles.recentText} aria-hidden="true">
           <span className={styles.recentName}>
@@ -667,7 +667,7 @@ function RecentRow({
           aria-label={m.recents_more({ name: entry.name })}
           onKeyDown={onKeyDown}
         >
-          <MoreHorizontal aria-hidden="true" />
+          <Icon name="dots-three" />
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner side="bottom" align="end" sideOffset={4} collisionPadding={8}>

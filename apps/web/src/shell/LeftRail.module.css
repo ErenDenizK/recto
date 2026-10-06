@@ -67,7 +67,6 @@
 .tabIcon svg {
   width: var(--icon-chrome);
   height: var(--icon-chrome);
-  stroke-width: 1.5;
 }
 
 .badge {

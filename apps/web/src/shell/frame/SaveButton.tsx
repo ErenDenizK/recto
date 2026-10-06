@@ -15,7 +15,6 @@
  *
  * The questions a save asks (unapplied marks, Replace) are `ReplacePopover`, anchored here.
  */
-import { Check } from 'lucide-react';
 import { useEffect, useId } from 'react';
 
 import { currentPlatform, parseShortcut, toAriaKeyShortcut } from '../../commands/shortcuts';
@@ -25,6 +24,7 @@ import { useJobStore } from '../../jobs/job-store';
 import { useInFile } from '../../state/saved-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { Tooltip } from '../../ui/Tooltip';
 import { useCommandShortcut } from '../use-command-shortcut';
 import styles from './SaveButton.module.css';
@@ -86,7 +86,7 @@ export function SaveButton() {
       {/* "Saved ✓" holds its width in the cell too, so the check never moves the label. */}
       <span className={styles.label} data-shown={verified || undefined}>
         {m.save_label_saved()}
-        <Check className={styles.check} aria-hidden="true" />
+        <Icon name="check" className={styles.check} />
       </span>
       {state === 'saving' ? (
         <span className={styles.label} data-shown="">

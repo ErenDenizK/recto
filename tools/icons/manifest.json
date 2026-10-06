@@ -191,7 +191,7 @@
     "MousePointerClick": "cursor-click",
     "Move": "arrows-out-cardinal",
     "PanelRight": "sidebar-simple",
-    "PenLine": "pen",
+    "PenLine": ["pen", "signature"],
     "Pencil": "pencil-simple",
     "Pentagon": "polygon",
     "Pipette": "eyedropper",
@@ -237,6 +237,7 @@
   "context": {
     "EyeOff": "redact: the Redact tool, group and annotation kind; eye-slash: hide a password",
     "Minus": "line-segment: the Line tool and annotation kind; minus: steppers and zoom out",
+    "PenLine": "pen: the Pen tool, the Write group and the ink annotation kind; signature: a form's signature field",
     "TextCursorInput": "edit-text: Edit text (tool, selection bar, page menu); textbox: a form's text field",
     "Type": "textbox: the Text box tool and annotation kind; text-aa: the Text group"
   }

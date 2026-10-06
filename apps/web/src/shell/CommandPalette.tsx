@@ -4,7 +4,6 @@
  * input and `aria-activedescendant` points at the active option.
  */
 import { Dialog } from '@base-ui/react/dialog';
-import { Search } from 'lucide-react';
 import {
   type KeyboardEvent,
   useDeferredValue,
@@ -21,6 +20,7 @@ import { parseShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
 import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
+import { Icon } from '../ui/Icon';
 import { Keycaps } from '../ui/Keycaps';
 import styles from './CommandPalette.module.css';
 import { barGroupLabelOfCommand } from './FloatingToolbar.groups';
@@ -219,7 +219,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     <Dialog.Popup className={styles.popup} initialFocus={inputRef}>
       <Dialog.Title className="visually-hidden">{m.palette_title()}</Dialog.Title>
       <div className={styles.searchRow}>
-        <Search className={styles.searchIcon} aria-hidden="true" />
+        <Icon name="magnifying-glass" className={styles.searchIcon} />
         <input
           ref={inputRef}
           className={styles.input}

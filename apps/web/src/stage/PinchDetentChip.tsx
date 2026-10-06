@@ -5,16 +5,16 @@
  * (`use-canvas-zoom.ts`) shows, places and fades it by attributes and `transform`, never by a
  * render, so a pinch's frames lay nothing out; see the CSS module for the material.
  */
-import { LayoutGrid } from 'lucide-react';
 import type { Ref } from 'react';
 
 import { m } from '../i18n';
+import { Icon } from '../ui/Icon';
 import styles from './PinchDetentChip.module.css';
 
 export function PinchDetentChip({ ref }: { readonly ref: Ref<HTMLDivElement> }) {
   return (
     <div ref={ref} className={styles.chip} data-testid="pinch-detent-chip" aria-hidden hidden>
-      <LayoutGrid className={styles.icon} aria-hidden="true" />
+      <Icon name="squares-four" className={styles.icon} />
       {m.zoom_grid_chip()}
     </div>
   );

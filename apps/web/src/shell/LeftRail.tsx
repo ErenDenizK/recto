@@ -14,7 +14,6 @@
  * count ("Review, 3 items"). F6 / Shift+F6 cycle the app's regions (`LeftRail.regions.ts`,
  * installed by the app shell).
  */
-import { FileDiff, FileStack, Files, Keyboard, MessageSquareText, Search } from 'lucide-react';
 import { type KeyboardEvent, lazy, Suspense, useRef, useState } from 'react';
 
 import { commandRegistry } from '../commands/registry';
@@ -22,6 +21,7 @@ import { currentPlatform, toAriaKeyShortcut } from '../commands/shortcuts';
 import { formatNumber, m } from '../i18n';
 import { LEFT_PANEL_WIDTH, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
+import { Icon, type IconName } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { ResizeHandle } from '../ui/ResizeHandle';
 import { useSearchStore } from '../viewer/search';
@@ -36,21 +36,21 @@ import { useCommandShortcut } from './use-command-shortcut';
 interface Tab {
   readonly id: LeftPanelView;
   readonly label: () => string;
-  readonly Icon: typeof FileStack;
+  readonly icon: IconName;
 }
 
 const TABS: readonly Tab[] = [
-  { id: 'pages', label: m.nav_tab_pages, Icon: FileStack },
-  { id: 'find', label: m.nav_tab_find, Icon: Search },
-  { id: 'review', label: m.nav_tab_review, Icon: MessageSquareText },
-  { id: 'files', label: m.nav_tab_files, Icon: Files },
+  { id: 'pages', label: m.nav_tab_pages, icon: 'squares-four' },
+  { id: 'find', label: m.nav_tab_find, icon: 'magnifying-glass' },
+  { id: 'review', label: m.nav_tab_review, icon: 'chat-centered-text' },
+  { id: 'files', label: m.nav_tab_files, icon: 'files' },
 ];
 
 /** On Home: the open files, nothing tied to one document (review F16). */
 const HOME_TABS: readonly Tab[] = TABS.filter((t) => t.id === 'files');
 
 /** Shown only in the Compare view, after the four (spec recognize-and-compare §2.2). */
-const CHANGES_TAB: Tab = { id: 'changes', label: m.compare_changes, Icon: FileDiff };
+const CHANGES_TAB: Tab = { id: 'changes', label: m.compare_changes, icon: 'compare' };
 
 // The Changes list loads with the Compare view.
 const ChangesPanel = lazy(() => import('../compare/ChangesPanel'));
@@ -146,7 +146,7 @@ export function LeftRail() {
           aria-label={m.nav_views_label()}
           className={styles.railTabs}
         >
-          {tabs.map(({ id, label, Icon }) => {
+          {tabs.map(({ id, label, icon }) => {
             const selected = open && view === id;
             const count = counts[id] ?? 0;
             const badge = badgeText(count);
@@ -175,7 +175,7 @@ export function LeftRail() {
                 }}
               >
                 <span className={styles.tabIcon} aria-hidden="true">
-                  <Icon />
+                  <Icon name={icon} />
                   {badge !== '' ? (
                     <span className={styles.badge} data-testid={`rail-count-${id}`}>
                       {badge}
@@ -193,7 +193,7 @@ export function LeftRail() {
           <IconButton
             size="row"
             label={m.keyboard_shortcuts()}
-            icon={<Keyboard />}
+            icon={<Icon name="keyboard" />}
             tooltipSide="right"
             shortcut={shortcutsShortcut}
             aria-haspopup="dialog"
