@@ -93,7 +93,8 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.locator('body').press('t');
   await expect(page.getByTestId('ink-strip')).toBeVisible();
   walk = await expectGlassClean(page, 'Markup, ink strip');
-  expect(names(walk).some((n) => n.includes('strip'))).toBe(false);
+  // (The top strip, a `header`, is docked glass of its own: not the ink strip.)
+  expect(names(walk).some((n) => !n.startsWith('header') && n.includes('strip'))).toBe(false);
   await page.keyboard.press('Escape');
 
   // The title menu (01-frame F5) takes the M4 solid twin: it opens over the sidebar's dark edge
