@@ -294,9 +294,13 @@ describe('Confirm (07 §3)', () => {
     });
     // A destructive action carries its glyph, not colour alone (07 §3.8, A-19).
     expect(screen.getByRole('button', { name: 'Revert' }).querySelector('svg')).not.toBeNull();
-    // A press on the scrim answers nothing.
+    // A press on the scrim answers nothing, and starts no exit. The dialog fades in from
+    // opacity 0 and the focus lands before its first frame, so a slow runner could take the
+    // press (and the visibility check) while it is still transparent: let the entrance end.
+    await settle(dialog);
     await userEvent.click(document.body, { position: { x: 10, y: 10 }, force: true });
     expect(screen.getByRole('alertdialog')).toBeVisible();
+    expect(dialog.getAnimations()).toHaveLength(0);
     await userEvent.click(screen.getByRole('button', { name: 'Revert' }));
     await expect(answer).resolves.toBe(true);
 
