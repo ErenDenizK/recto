@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import type { DocumentId } from '@pdf-editor/document-model';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CommandRegistry, groupCommands } from './registry';
+import { resetLockStore, useLockStore } from '../state/lock-store';
+import { useUiStore } from '../state/ui-store';
+import { useWorkspaceStore } from '../state/workspace-store';
+import { type CommandDefinition, CommandRegistry, groupCommands } from './registry';
 import { dispatchShortcut, isEditableTarget } from './use-shortcuts';
 
 function keydown(init: KeyboardEventInit, target: EventTarget = document.body): KeyboardEvent {
@@ -12,7 +16,13 @@ function keydown(init: KeyboardEventInit, target: EventTarget = document.body): 
 describe('CommandRegistry', () => {
   it('registers, lists, and unregisters commands', () => {
     const registry = new CommandRegistry();
-    const dispose = registry.register({ id: 'a', title: 'A', group: 'G', run: () => undefined });
+    const dispose = registry.register({
+      id: 'a',
+      title: 'A',
+      group: 'G',
+      act: null,
+      run: () => undefined,
+    });
     expect(registry.list().map((c) => c.id)).toEqual(['a']);
     expect(registry.get('a')?.shortcuts).toEqual([]);
     dispose();
@@ -21,15 +31,16 @@ describe('CommandRegistry', () => {
 
   it('rejects duplicate ids and invalid shortcuts', () => {
     const registry = new CommandRegistry();
-    registry.register({ id: 'a', title: 'A', group: 'G', run: () => undefined });
+    registry.register({ id: 'a', title: 'A', group: 'G', act: null, run: () => undefined });
     expect(() =>
-      registry.register({ id: 'a', title: 'A', group: 'G', run: () => undefined }),
+      registry.register({ id: 'a', title: 'A', group: 'G', act: null, run: () => undefined }),
     ).toThrow(/already registered/);
     expect(() =>
       registry.register({
         id: 'b',
         title: 'B',
         group: 'G',
+        act: null,
         shortcut: 'Mod+',
         run: () => undefined,
       }),
@@ -42,16 +53,22 @@ describe('CommandRegistry', () => {
     registry.subscribe(listener);
     const first = registry.list();
     expect(registry.list()).toBe(first);
-    registry.register({ id: 'a', title: 'A', group: 'G', run: () => undefined });
+    registry.register({ id: 'a', title: 'A', group: 'G', act: null, run: () => undefined });
     expect(listener).toHaveBeenCalledTimes(1);
     expect(registry.list()).not.toBe(first);
   });
 
   it('does not let a stale disposer remove a re-registered command', () => {
     const registry = new CommandRegistry();
-    const disposeOld = registry.register({ id: 'a', title: 'A', group: 'G', run: () => undefined });
+    const disposeOld = registry.register({
+      id: 'a',
+      title: 'A',
+      group: 'G',
+      act: null,
+      run: () => undefined,
+    });
     disposeOld();
-    registry.register({ id: 'a', title: 'A2', group: 'G', run: () => undefined });
+    registry.register({ id: 'a', title: 'A2', group: 'G', act: null, run: () => undefined });
     disposeOld();
     expect(registry.get('a')?.title).toBe('A2');
   });
@@ -60,7 +77,7 @@ describe('CommandRegistry', () => {
     const registry = new CommandRegistry();
     const run = vi.fn();
     let enabled = false;
-    registry.register({ id: 'a', title: 'A', group: 'G', run, when: () => enabled });
+    registry.register({ id: 'a', title: 'A', group: 'G', act: null, run, when: () => enabled });
     expect(await registry.execute('a')).toBe(false);
     enabled = true;
     expect(await registry.execute('a')).toBe(true);
@@ -74,6 +91,7 @@ describe('CommandRegistry', () => {
       id: 'a',
       title: 'A',
       group: 'G',
+      act: null,
       run: () => undefined,
       when: () => {
         throw new Error('boom');
@@ -81,6 +99,137 @@ describe('CommandRegistry', () => {
     });
     const command = registry.get('a');
     expect(command && registry.isEnabled(command)).toBe(false);
+  });
+});
+
+describe('CommandRegistry acts (ADR-0030 §2.3)', () => {
+  const a = 'doc-a' as DocumentId;
+  const b = 'doc-b' as DocumentId;
+  const empty = useWorkspaceStore.getState().workspace;
+  const doc = (id: DocumentId) => ({ id, title: id, pages: [], outline: [] }) as unknown;
+
+  beforeEach(() => {
+    useWorkspaceStore.setState({
+      workspace: {
+        ...empty,
+        documents: { [a]: doc(a), [b]: doc(b) } as typeof empty.documents,
+        documentOrder: [a, b],
+        activeDocument: a,
+      },
+    });
+  });
+  afterEach(() => {
+    useWorkspaceStore.setState({ workspace: empty });
+    useUiStore.setState({ docUi: {} });
+    resetLockStore();
+  });
+
+  const definition = (overrides: Partial<CommandDefinition>): CommandDefinition => ({
+    id: 'x',
+    title: 'X',
+    group: 'G',
+    act: null,
+    run: () => undefined,
+    ...overrides,
+  });
+
+  it('fails on a command that declares no act, or an act the guard does not know', () => {
+    const registry = new CommandRegistry();
+    const { act: _none, ...withoutAct } = definition({});
+    expect(() => registry.register(withoutAct as CommandDefinition)).toThrow(/declares no act/);
+    expect(() =>
+      registry.register(definition({ id: 'y', act: 'edit' as CommandDefinition['act'] })),
+    ).toThrow(/declares no act/);
+    expect(registry.list()).toEqual([]);
+    // `null` says the command changes no document.
+    registry.register(definition({ id: 'z', act: null }));
+    expect(registry.get('z')?.act).toBeNull();
+  });
+
+  it('dims a committing command on a locked document, with the reason, and never runs it', async () => {
+    const registry = new CommandRegistry();
+    const run = vi.fn();
+    registry.register(definition({ id: 'rotate', act: 'pages', run }));
+    registry.register(definition({ id: 'zoom', act: null, run }));
+    const rotate = registry.get('rotate');
+    const zoom = registry.get('zoom');
+    if (!rotate || !zoom) throw new Error('not registered');
+    expect(registry.isEnabled(rotate)).toBe(true);
+    expect(registry.disabledReason(rotate)).toBeUndefined();
+
+    useLockStore.getState().lock(a);
+    expect(registry.isEnabled(rotate)).toBe(false);
+    expect(registry.refusalOf(rotate)).toEqual({ kind: 'locked', reason: 'user' });
+    expect(registry.disabledReason(rotate)).toBe('Locked · unlock first');
+    expect(await registry.execute('rotate')).toBe(false);
+    // A command that changes no document is not touched by the lock.
+    expect(registry.isEnabled(zoom)).toBe(true);
+    expect(await registry.execute('zoom')).toBe(true);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for each document the command changes (ADR-0030 §2.4)', () => {
+    const registry = new CommandRegistry();
+    let documents: DocumentId[] = [a, b];
+    registry.register(definition({ id: 'move', act: 'pages', documents: () => documents }));
+    const move = registry.get('move');
+    if (!move) throw new Error('not registered');
+    expect(registry.isEnabled(move)).toBe(true);
+    useLockStore.getState().lock(b, 'signed');
+    expect(registry.refusalOf(move)).toEqual({ kind: 'locked', reason: 'signed' });
+    documents = [a];
+    expect(registry.isEnabled(move)).toBe(true);
+    // No document to change fails closed.
+    documents = [];
+    expect(registry.refusalOf(move)).toEqual({ kind: 'unknown' });
+    expect(registry.disabledReason(move)).toBe('No document open');
+  });
+
+  it('lets a Markup door arm outside Markup, and dims a freehand command that is not one', () => {
+    const registry = new CommandRegistry();
+    registry.register(definition({ id: 'pen', act: 'freehand', via: 'markup' }));
+    registry.register(definition({ id: 'stroke', act: 'freehand' }));
+    registry.register(definition({ id: 'field', act: 'place' }));
+    const [pen, stroke, field] = ['pen', 'stroke', 'field'].map((id) => registry.get(id));
+    if (!pen || !stroke || !field) throw new Error('not registered');
+    expect(registry.isEnabled(pen)).toBe(true);
+    expect(registry.disabledReason(stroke)).toBe('Open Markup to draw');
+    expect(registry.disabledReason(field)).toBe('Open Markup to place');
+    useUiStore.getState().openMarkup(a);
+    expect(registry.isEnabled(stroke)).toBe(true);
+    expect(registry.isEnabled(field)).toBe(true);
+    useLockStore.getState().lock(a);
+    expect(registry.disabledReason(pen)).toBe('Locked · unlock first');
+  });
+
+  it('leaves a command that opens a sheet available while locked: the sheet asks (07 §1.4)', () => {
+    const registry = new CommandRegistry();
+    registry.register(definition({ id: 'numbers', act: 'document', via: 'sheet' }));
+    const numbers = registry.get('numbers');
+    if (!numbers) throw new Error('not registered');
+    useLockStore.getState().lock(a);
+    expect(registry.isEnabled(numbers)).toBe(true);
+  });
+
+  it('gives the command’s own reason while `when` says no, before the guard’s', () => {
+    const registry = new CommandRegistry();
+    let ready = false;
+    registry.register(
+      definition({
+        id: 'revert',
+        act: 'document',
+        when: () => ready,
+        reason: () => 'Nothing changed since opening',
+      }),
+    );
+    const revert = registry.get('revert');
+    if (!revert) throw new Error('not registered');
+    useLockStore.getState().lock(a);
+    expect(registry.disabledReason(revert)).toBe('Nothing changed since opening');
+    ready = true;
+    expect(registry.disabledReason(revert)).toBe('Locked · unlock first');
+    useLockStore.getState().unlock(a);
+    expect(registry.disabledReason(revert)).toBeUndefined();
   });
 });
 
@@ -107,11 +256,19 @@ describe('dispatchShortcut', () => {
       id: 'palette',
       title: 'Palette',
       group: 'G',
+      act: null,
       shortcut: 'Mod+K',
       allowInInputs: true,
       run: palette,
     });
-    registry.register({ id: 'read', title: 'Read', group: 'G', shortcut: '1', run: read });
+    registry.register({
+      id: 'read',
+      title: 'Read',
+      group: 'G',
+      act: null,
+      shortcut: '1',
+      run: read,
+    });
     return { registry, palette, read };
   }
 

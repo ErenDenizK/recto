@@ -129,7 +129,11 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   await expect(notice.getByRole('button', { name: 'Start fresh' })).toBeVisible();
   await expect(page.getByTestId('status-pages')).toHaveText('Page 3 of 3');
   await expect(page.getByRole('button', { name: /^Zoom 150%/ })).toBeVisible();
-  await expect(page.getByRole('radio', { name: /^Edit$/ })).toHaveAttribute('aria-checked', 'true');
+  // Markup is never restored (redesign spec §7): the document comes back in viewing.
+  await expect(page.getByRole('radio', { name: /^Edit$/ })).toHaveAttribute(
+    'aria-checked',
+    'false',
+  );
 
   // 20 undo steps came back with the present one, and Undo walks all of them.
   await showInspector(page);

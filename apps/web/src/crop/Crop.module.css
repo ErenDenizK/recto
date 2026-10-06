@@ -54,7 +54,7 @@
   width: 228px;
   height: 228px;
   border-radius: var(--radius-2);
-  background: var(--surface-0);
+  background: var(--canvas);
 }
 
 .previewSheet {
@@ -67,10 +67,10 @@
   touch-action: none;
 }
 
-/* What the crop hides: the scrim over the page outside the rectangle. */
+/* What the crop hides: the dim over the page outside the rectangle (--crop-dim, 05-canvas §3). */
 .shade {
   position: absolute;
-  background: var(--scrim);
+  background: var(--crop-dim);
   pointer-events: none;
 }
 

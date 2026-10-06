@@ -26,7 +26,7 @@ describe('Progress (09-primitives §24)', () => {
     expect(screen.getByText('40%')).toBeVisible();
     const fill = bar.querySelector('[class*="fill"]') as HTMLElement;
     expect(fill.parentElement?.getBoundingClientRect().height).toBe(4);
-    expect(getComputedStyle(fill).backgroundColor).toBe('rgb(230, 231, 234)');
+    expect(getComputedStyle(fill).backgroundColor).toBe('rgb(232, 233, 236)');
     expect(fill.style.transform).toBe('scaleX(0.4)');
   });
 
@@ -100,7 +100,7 @@ describe('EmptyNote (09-primitives §22)', () => {
       />,
     );
     const title = screen.getByText('No comments');
-    expect(getComputedStyle(title).color).toBe('rgb(230, 231, 234)');
+    expect(getComputedStyle(title).color).toBe('rgb(232, 233, 236)');
     expect(getComputedStyle(title.parentElement as Element).textAlign).toBe('center');
     screen.getByRole('button', { name: 'Recognize text…' }).click();
     expect(clicked).toBe(1);

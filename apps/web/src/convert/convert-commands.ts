@@ -16,6 +16,7 @@ export function registerConvertCommands(registry: CommandRegistry): () => void {
     id: 'document.exportMarkdown',
     title: m.cmd_convert_markdown(),
     group: m.group_document(),
+    act: null,
     keywords: ['markdown', 'md', 'text', 'txt', 'convert', 'extract', 'export', 'plain'],
     when: () => (activeDocument()?.pages.length ?? 0) > 0,
     run: () => {

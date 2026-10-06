@@ -12,7 +12,7 @@
   overflow: hidden;
   border-radius: var(--radius-sm);
   background: var(--page-background);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  box-shadow: inset 0 0 0 1px var(--plate-edge);
   /* The plate is the page's white in both themes: its text is the ink, never the theme's. */
   color-scheme: light;
 }

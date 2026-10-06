@@ -29,6 +29,8 @@ interface Row {
   readonly command: Command;
   readonly positions: readonly number[];
   readonly enabled: boolean;
+  /** Why a dimmed row cannot run ("Locked · unlock first"; ADR-0030 §2.3, RA-21). */
+  readonly reason: string | undefined;
 }
 
 interface Section {
@@ -39,19 +41,22 @@ interface Section {
 /** Internal id of the recents section; its heading is translated when rendered. */
 const RECENT_GROUP = 'Recent';
 
-/** Builds the visible sections: recents first when the query is empty, else by relevance. */
+/**
+ * Builds the visible sections: recents first when the query is empty, else by relevance. A
+ * dimmed row carries its reason (`reasonOf`, the registry's `disabledReason`).
+ */
 export function buildSections(
   query: string,
   commands: readonly Command[],
   recents: readonly string[],
   isEnabled: (command: Command) => boolean,
+  reasonOf: (command: Command) => string | undefined = () => undefined,
 ): Section[] {
   const visible = commands.filter((c) => !c.hiddenInPalette);
-  const toRow = (command: Command, positions: readonly number[] = []): Row => ({
-    command,
-    positions,
-    enabled: isEnabled(command),
-  });
+  const toRow = (command: Command, positions: readonly number[] = []): Row => {
+    const enabled = isEnabled(command);
+    return { command, positions, enabled, reason: enabled ? undefined : reasonOf(command) };
+  };
 
   if (query.trim() === '') {
     const recentCommands = recents
@@ -151,7 +156,14 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   const baseId = useId();
 
   const sections = useMemo(
-    () => buildSections(deferredQuery, commands, recents, (c) => commandRegistry.isEnabled(c)),
+    () =>
+      buildSections(
+        deferredQuery,
+        commands,
+        recents,
+        (c) => commandRegistry.isEnabled(c),
+        (c) => commandRegistry.disabledReason(c),
+      ),
     [deferredQuery, commands, recents],
   );
   const rows = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
@@ -257,6 +269,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
               {section.rows.map((row) => {
                 const shortcut = row.command.shortcuts[0];
                 const selected = row === active;
+                const reasonId = row.reason ? `${optionId(row.command.id)}-reason` : undefined;
                 return (
                   // Options are driven from the combobox input via aria-activedescendant
                   // (APG); they take pointer input only and are never focused themselves.
@@ -268,6 +281,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                     tabIndex={-1}
                     aria-selected={selected}
                     aria-disabled={!row.enabled || undefined}
+                    aria-describedby={reasonId}
                     className={styles.option}
                     onPointerMove={() => {
                       if (row.enabled && !selected) setActiveId(row.command.id);
@@ -291,7 +305,20 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                         {barGroupLabelOfCommand(row.command.id)}
                       </span>
                     ) : null}
-                    {shortcut ? <Keycaps shortcut={shortcut} /> : null}
+                    {/* The reason takes the keycap's place (04-context §12.2); it is the
+                        option's description, not part of its name. */}
+                    {row.reason ? (
+                      <span
+                        id={reasonId}
+                        className={styles.reason}
+                        data-reason=""
+                        aria-hidden="true"
+                      >
+                        {row.reason}
+                      </span>
+                    ) : shortcut ? (
+                      <Keycaps shortcut={shortcut} />
+                    ) : null}
                   </div>
                 );
               })}

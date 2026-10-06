@@ -115,9 +115,7 @@ describe('Home', () => {
     closeOperationDialog();
     useUiStore.setState({
       destination: 'document',
-      viewMode: 'read',
-      documentMode: {},
-      lastView: {},
+      docUi: {},
       homeSelection: [],
       homeAnchor: null,
       arrangePinned: [],
@@ -214,7 +212,7 @@ describe('Home', () => {
     // Confirming makes a new document, keeps the files open and shows it in Read.
     await userEvent.click(within(dialog).getByRole('button', { name: 'Combine' }));
     await waitFor(() => {
-      expect(shown()).toBe('read');
+      expect(shown()).toBe('page');
     });
     expect(ws().documentOrder.map((id) => titleOf(id))).toEqual([
       'simple-text',
@@ -326,7 +324,7 @@ describe('Home', () => {
       within(screen.getByTestId('home')).getByRole('button', { name: 'Arrange pages' }),
     );
     await waitFor(() => {
-      expect(shown()).toBe('arrange');
+      expect(shown()).toBe('grid');
     });
     expect(titleOf(ws().activeDocument ?? undefined)).toBe('mixed-sizes');
     expect(await screen.findAllByRole('grid')).toHaveLength(1);
@@ -352,7 +350,7 @@ describe('Home', () => {
 
     await userEvent.keyboard('{Home}{Enter}');
     await waitFor(() => {
-      expect(shown()).toBe('read');
+      expect(shown()).toBe('page');
     });
     expect(titleOf(ws().activeDocument ?? undefined)).toBe('simple-text');
   });
@@ -372,7 +370,7 @@ describe('Home', () => {
     ).toEqual([]);
     await userEvent.dblClick(card('rotated-pages'));
     await waitFor(() => {
-      expect(shown()).toBe('read');
+      expect(shown()).toBe('page');
     });
     expect(titleOf(ws().activeDocument ?? undefined)).toBe('rotated-pages');
     expect(
@@ -387,7 +385,7 @@ describe('Home', () => {
     // The app glyph and 0 lead back.
     await userEvent.click(glyph());
     expect(shown()).toBe('home');
-    useUiStore.getState().setViewMode('read');
+    useUiStore.getState().showSurface('page');
     document.body.focus();
     await userEvent.keyboard('0');
     expect(shown()).toBe('home');
@@ -399,18 +397,18 @@ describe('Home', () => {
     // rotated-pages was last shown in Arrange, in Edit.
     act(() => {
       useWorkspaceStore.getState().setActive(rotated);
-      useUiStore.getState().setDocumentMode(rotated, 'edit');
-      useUiStore.getState().setViewMode('arrange');
+      useUiStore.getState().openMarkup(rotated);
+      useUiStore.getState().showSurface('grid');
       useWorkspaceStore.getState().setActive(simple);
-      useUiStore.getState().setViewMode('read');
+      useUiStore.getState().showSurface('page');
       useUiStore.getState().showHome();
     });
     await userEvent.click(screen.getByRole('tab', { name: 'rotated-pages' }));
-    expect(shown()).toBe('arrange');
+    expect(shown()).toBe('grid');
     expect(titleOf(ws().activeDocument ?? undefined)).toBe('rotated-pages');
     await userEvent.keyboard('0');
     await userEvent.click(screen.getByRole('tab', { name: 'simple-text' }));
-    expect(shown()).toBe('read');
+    expect(shown()).toBe('page');
     const segment = screen.getByRole('radiogroup', { name: 'View mode' });
     expect(within(segment).getByRole('radio', { name: 'Read, locked' })).toBeChecked();
     // The mode is per document: rotated-pages stays in Edit on the shared page view.
@@ -431,8 +429,7 @@ describe('Home', () => {
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
     expect(useUiStore.getState()).toMatchObject({
       destination: 'document',
-      viewMode: 'read',
-      documentMode: {},
+      docUi: {},
     });
   });
 
@@ -508,7 +505,7 @@ describe('Home', () => {
       },
       { timeout: 20_000 },
     );
-    expect(shown()).toBe('read');
+    expect(shown()).toBe('page');
     expect(screen.queryByTestId('home')).toBeNull();
   }, 45_000);
 
@@ -598,9 +595,7 @@ describe('Recents on Home', () => {
     resetWorkspace();
     useUiStore.setState({
       destination: 'document',
-      viewMode: 'read',
-      documentMode: {},
-      lastView: {},
+      docUi: {},
       homeSelection: [],
       homeAnchor: null,
       paletteOpen: false,
@@ -815,7 +810,7 @@ describe('Recents on Home', () => {
     });
     expect(handle.requested).toBe(1);
     expect(titleOf(ws().activeDocument)).toBe('simple-text');
-    expect(shown()).toBe('read');
+    expect(shown()).toBe('page');
     // Still one entry, now on top, with its handle.
     await waitFor(() => {
       expect(useRecentsStore.getState().entries).toHaveLength(1);
@@ -846,7 +841,7 @@ describe('Recents on Home', () => {
       expect(ws().documentOrder).toHaveLength(1);
     });
     expect(picker.calls).toBe(1);
-    expect(shown()).toBe('read');
+    expect(shown()).toBe('page');
   }, 45_000);
 
   it('opens the file dialog for an entry without a handle and says so in one line', async () => {

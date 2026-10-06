@@ -14,7 +14,7 @@
   padding: 0 5px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-secondary);
   font-family: var(--font-sans);
   font-size: var(--text-xs);

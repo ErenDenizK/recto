@@ -1,22 +1,35 @@
 /**
- * Contrast and structure of the design tokens (docs/specs/experience-redesign.md §7.1–§7.3, §11;
- * docs/specs/craft.md §7 for the three glass tiers; DESIGN.md §3; docs/specs/redesign.md D0-1 for
- * the coverage registry, the page's selection blue and the focus bands). The test reads the real `tokens.css` and `global.css`, resolves `var()`
- * references and computes WCAG 2.2 contrast ratios, so a token change that breaks a ratio fails
- * here rather than in a screenshot review.
+ * Structure, contrast and colour pairs of the design tokens (language.md §1, §2.2, §2.6, §9.2,
+ * §10.2; ADR-0023; components/09-primitives.md §2.2, §25, §27; redesign.md D0-1 for the coverage
+ * registry and D3-2 for the colour language). The test reads the real `tokens.css` and
+ * `global.css`, resolves `var()` references and computes WCAG 2.2 ratios and APCA Lc, so a
+ * token change that breaks a pair fails here rather than in a screenshot review.
  *
- * Glass is modelled the way the translucency audit measured it (docs/design/audit/
- * translucency.md §6): over a uniform backdrop the blur changes nothing, so the rendered glass
- * is `tint · a + clamp(brightness · saturate(backdrop)) · (1 − a)` per sRGB channel, rounded to
- * 8 bits as the compositor writes it. Uniform backdrops are the worst cases: a large white area
- * stays white under any blur.
+ * Glass is modelled as the translucency audit measured it (docs/design/audit/translucency.md §6;
+ * research 16 §6.3: Chromium within ±1/255): over a uniform backdrop the blur changes nothing,
+ * so the rendered glass is `a · tint + (1 − a) · filter(backdrop)`, the filter chain applied per
+ * sRGB channel in order and clamped, rounded to 8 bits as the compositor writes it. Uniform
+ * backdrops are the worst cases: a large white area stays white under any blur. The coverage
+ * term (D0-1) keeps the rendered edges within that model.
  */
 import { describe, expect, it } from 'vitest';
 
-import { TINT } from '../annotations/palette';
+import { INK, TINT } from '../annotations/palette';
+import { apcaContrast } from './apca';
 import { COVERAGE_REGISTRY, type GlassComposition } from './coverage-registry';
 import focusCss from './focus.css?raw';
 import globalCss from './global.css?raw';
+import {
+  CONTROL_TOKENS,
+  GLASS_TIERS,
+  type GlassTier,
+  RAW_TOKENS,
+  SEMANTIC_TOKENS,
+  THEME_ALIASES,
+  THEME_FREE_ALIASES,
+  THEME_FREE_TOKENS,
+  THEME_TOKENS,
+} from './token-registry';
 import tokensCss from './tokens.css?raw';
 
 type Rgb = readonly [number, number, number];
@@ -58,15 +71,20 @@ function splitLayers(value: string): string[] {
 }
 
 const tokensSource = stripComments(tokensCss);
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** The dark theme: `:root, [data-theme='dark'] { … }`. */
-const rootBlock = /:root,\s*\[data-theme='dark'\]\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '';
-const root = declarations(rootBlock);
+/** §1, the dark theme: `:root, [data-theme='dark'] { … }`. */
+const theme = declarations(
+  /:root,\s*\[data-theme='dark'\]\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '',
+);
+/** §3, the theme-free block: the first plain `:root { … }` outside any at-rule. */
+const free = declarations(/(?:^|\n):root\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '');
+/** Everything at rest: the theme over the theme-free block. */
+const root = new Map([...free, ...theme]);
 
 /** The `:root` overrides inside `@media (<query>)`. */
 function mediaOverrides(query: string): Map<string, string> {
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const block = new RegExp(`@media \\(${escaped}\\)\\s*\\{\\s*:root\\s*\\{([^{}]*)\\}`).exec(
+  const block = new RegExp(`@media \\(${escape(query)}\\)\\s*\\{\\s*:root\\s*\\{([^{}]*)\\}`).exec(
     tokensSource,
   )?.[1];
   return declarations(block ?? '');
@@ -104,8 +122,8 @@ const colour = (name: string): Rgb => {
   if (parsed.alpha !== 1) throw new Error(`${name} is translucent; composite it first`);
   return parsed.rgb;
 };
-
-const literal = (hex: string): Rgb => parseColour(hex).rgb;
+const wash = (name: string): Colour => parseColour(resolve(name));
+const literal = (hex: string): Rgb => parseColour(hex.toLowerCase()).rgb;
 
 const map3 = (c: Rgb, f: (v: number, i: number) => number): Rgb => [
   f(c[0], 0),
@@ -120,11 +138,19 @@ const over = (top: Rgb, alpha: number, bottom: Rgb): Rgb =>
 
 const round8 = (c: Rgb): Rgb => map3(c, (v) => Math.round(clamp(v)));
 
+/** A translucent token laid on an opaque colour, rounded as the compositor writes it. */
+const on = (token: string, under: Rgb): Rgb => {
+  const top = wash(token);
+  return round8(over(top.rgb, top.alpha, under));
+};
+
+const linear = (v: number) => {
+  const s = v / 255;
+  return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+};
+
 function relativeLuminance(c: Rgb): number {
-  const [r, g, b] = map3(c, (v) => {
-    const s = v / 255;
-    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  });
+  const [r, g, b] = map3(c, linear);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
@@ -137,20 +163,13 @@ function contrast(a: Rgb, b: Rgb): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/** |APCA Lc| of `text` on `background`. */
+const lc = (text: Rgb, background: Rgb) => Math.abs(apcaContrast(text, background));
+
 /** CIE L* (D65), which shows dark steps better than the WCAG ratio. */
 function lightness(c: Rgb): number {
   const y = relativeLuminance(c);
   return y > 216 / 24389 ? 116 * Math.cbrt(y) - 16 : (y * 24389) / 27;
-}
-
-/** The filter functions of a tier's filter token that change a uniform backdrop. */
-function glassFilter(token = '--glass-filter'): { saturate: number; brightness: number } {
-  const filter = resolve(token);
-  const amount = (fn: string) => {
-    const match = new RegExp(`${fn}\\(([\\d.]+)\\)`).exec(filter);
-    return match?.[1] === undefined ? 1 : Number(match[1]);
-  };
-  return { saturate: amount('saturate'), brightness: amount('brightness') };
 }
 
 /** Filter Effects `saturate()` matrix, applied in sRGB as Chromium does for CSS filters. */
@@ -166,265 +185,665 @@ function saturate(c: Rgb, s: number): Rgb {
   });
 }
 
-/** A glass tier: its tint, filter and opaque fallback tokens. */
-interface Tier {
-  readonly tint: string;
-  readonly filter: string;
-  readonly solid: string;
+/**
+ * A filter chain over a uniform backdrop, in order (language.md §1.2): `blur()` changes nothing
+ * there; `saturate()`, `contrast()` (the light theme's floor) and `brightness()` per channel,
+ * clamped after each.
+ */
+function applyFilter(filter: string, backdrop: Rgb): Rgb {
+  let out = backdrop;
+  for (const [, fn, amount] of filter.matchAll(/(saturate|brightness|contrast)\(([\d.]+)\)/g)) {
+    const k = Number(amount);
+    if (fn === 'saturate') out = saturate(out, k);
+    else if (fn === 'brightness') out = map3(out, (v) => clamp(v * k));
+    else out = map3(out, (v) => clamp((v - 127.5) * k + 127.5));
+  }
+  return out;
 }
 
-const TIER_1: Tier = { tint: '--glass', filter: '--glass-filter', solid: '--glass-solid' };
-const TIER_2: Tier = {
-  tint: '--glass-frame',
-  filter: '--glass-frame-filter',
-  solid: '--glass-frame-solid',
-};
-const TIER_3: Tier = {
-  tint: '--glass-menu',
-  filter: '--glass-menu-filter',
-  solid: '--glass-menu-solid',
-};
+/** A tier's tokens (language.md §2.2). */
+const tierTokens = (tier: GlassTier) => ({
+  tint: `--glass-${tier}-tint`,
+  filter: `--glass-${tier}-filter`,
+  solid: `--glass-${tier}-solid`,
+});
 
-/** A tier as rendered over a uniform backdrop. */
-function tierOver(tier: Tier, backdrop: Rgb): Rgb {
-  const tint = parseColour(resolve(tier.tint));
-  const { saturate: s, brightness: k } = glassFilter(tier.filter);
-  const filtered = map3(saturate(backdrop, s), (v) => clamp(v * k));
-  return round8(over(tint.rgb, tint.alpha, filtered));
+/** A glass surface from a tint token and a filter token, as rendered over a uniform backdrop. */
+function glassFrom(tintToken: string, filterToken: string, backdrop: Rgb): Rgb {
+  const tint = wash(tintToken);
+  return round8(over(tint.rgb, tint.alpha, applyFilter(resolve(filterToken), backdrop)));
 }
 
-/** The floating glass (tier 1) as rendered over a uniform backdrop. */
-const glassOver = (backdrop: Rgb): Rgb => tierOver(TIER_1, backdrop);
+const tierOver = (tier: GlassTier, backdrop: Rgb): Rgb =>
+  glassFrom(tierTokens(tier).tint, tierTokens(tier).filter, backdrop);
 
-const SURFACES = ['--surface-0', '--surface-1', '--surface-2', '--surface-3'] as const;
-const BODY_TEXT = [
-  '--text-primary',
-  '--text-secondary',
-  '--text-tertiary',
-  '--accent',
-  '--danger',
-  '--success',
-  '--warning',
-] as const;
-/** Text colours used on glass: the scoped remap in global.css (.glass). */
-const GLASS_TEXT = [
-  '--text-primary',
-  '--glass-text-secondary',
-  '--glass-danger',
-  '--warning',
-] as const;
+/** Today's floating glass (`.glass`, the bar tier) as rendered over a uniform backdrop. */
+const glassOver = (backdrop: Rgb): Rgb => glassFrom('--glass', '--glass-filter', backdrop);
 
-const canvas = () => colour('--surface-0');
-const scrim = () => parseColour(resolve('--scrim'));
+const SURFACES = ['--canvas', '--surface-frame', '--surface-raised', '--surface-on'] as const;
+const canvas = () => colour('--canvas');
+const WHITE = literal('#ffffff');
+const BLACK = literal('#000000');
+const scrim = () => wash('--scrim');
 
 /** Uniform backdrops behind floating chrome; white is the worst case for light text. */
 const BACKDROPS: readonly (readonly [string, () => Rgb])[] = [
-  ['white page', () => literal('#ffffff')],
+  ['white page', () => WHITE],
   ['yellow figure', () => literal('#f3d933')],
   ['mid grey', () => literal('#808080')],
   ['saturated blue', () => literal('#2a6fd6')],
-  ['black page', () => literal('#000000')],
+  ['black page', () => BLACK],
   ['app canvas', canvas],
-  [
-    'white page under the palette scrim',
-    () => round8(over(scrim().rgb, scrim().alpha, literal('#ffffff'))),
-  ],
+  ['white page under the palette scrim', () => round8(over(scrim().rgb, scrim().alpha, WHITE))],
 ];
+
+/** Text colours used on glass: the scoped remap in global.css (.glass). */
+const GLASS_TEXT = ['--text-primary', '--glass-text-secondary', '--glass-danger', '--warning'];
 
 const AA_TEXT = 4.5;
 const AA_NON_TEXT = 3;
+/** language.md §1.2: ratios are quoted to two places, so a pair holds at its value − 0.005. */
+const atLeast = (value: number, minimum: number, label: string) =>
+  expect(value, label).toBeGreaterThanOrEqual(minimum - 0.005);
+
+/**
+ * Custom properties the runtime sets on elements: Base UI's positioners and drawers, and the
+ * layout values components write in `style`.
+ */
+const RUNTIME = /^--(anchor-|available-|transform-origin|drawer-|popup-|positioner-)/;
+
+const modules = import.meta.glob<string>('../**/*.module.css', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
 
 describe('tokens.css', () => {
-  it('parses the dark theme', () => {
-    expect(root.size).toBeGreaterThan(60);
+  describe('the registry: seven blocks, three layers, aliases (09 §25, language.md §10.1)', () => {
+    it('defines exactly the registered names in §1 and §3', () => {
+      expect([...theme.keys()].sort()).toEqual([...THEME_TOKENS].sort());
+      expect([...free.keys()].sort()).toEqual(
+        [...THEME_FREE_TOKENS, ...Object.keys(THEME_FREE_ALIASES)].sort(),
+      );
+      const all = [...THEME_TOKENS, ...THEME_FREE_TOKENS, ...Object.keys(THEME_FREE_ALIASES)];
+      expect(new Set(all).size, 'a name registered twice').toBe(all.length);
+      // Every role modules paint with resolves to a value at rest.
+      for (const name of [...SEMANTIC_TOKENS, ...CONTROL_TOKENS]) {
+        expect(() => resolve(name), name).not.toThrow();
+      }
+    });
+
+    it('keeps the blocks in order: theme, light (D3-7), theme-free, coarse, settings, forced, P3', () => {
+      const at = (pattern: RegExp) => tokensSource.search(pattern);
+      const order = [
+        at(/:root,\s*\[data-theme='dark'\]/),
+        at(/(?:^|\n):root\s*\{/),
+        at(/@media \(pointer: coarse\)/),
+        at(/@media \(prefers-reduced-transparency: reduce\)/),
+        at(/@media \(forced-colors: active\)/),
+        at(/@media \(color-gamut: p3\)/),
+      ];
+      for (const index of order) expect(index).toBeGreaterThanOrEqual(0);
+      expect([...order].sort((a, b) => a - b)).toEqual(order);
+    });
+
+    it('points every alias at its semantic name', () => {
+      for (const [alias, target] of Object.entries({ ...THEME_ALIASES, ...THEME_FREE_ALIASES })) {
+        expect(root.get(alias), alias).toContain(`var(${target})`);
+      }
+      expect(resolve('--surface-0')).toBe(resolve('--canvas'));
+      expect(resolve('--surface-1')).toBe(resolve('--surface-frame'));
+      expect(resolve('--surface-2')).toBe(resolve('--surface-raised'));
+      expect(resolve('--surface-3')).toBe(resolve('--surface-on'));
+      expect(resolve('--radius-2')).toBe('6px');
+    });
+
+    it('defines every name tokens.css reads', () => {
+      for (const [, name] of tokensSource.matchAll(/var\((--[\w-]+)\)/g)) {
+        expect(root.has(name ?? ''), `${name} is read but not defined`).toBe(true);
+      }
+    });
+
+    it('keeps the raw ramps (layer 1) inside tokens.css', () => {
+      const sources = import.meta.glob<string>(['../**/*.{css,ts,tsx}', '!../**/*.test.{ts,tsx}'], {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      });
+      const raw = new RegExp(`var\\((${RAW_TOKENS.map(escape).join('|')})\\)`);
+      for (const [file, source] of Object.entries(sources)) {
+        if (file === './tokens.css' || file.endsWith('/styles/tokens.css')) continue;
+        expect(raw.exec(stripComments(source))?.[1], `${file} reads a raw token`).toBeUndefined();
+      }
+    });
+
+    it('lets D3-7 add the light theme with exactly the names of §1', () => {
+      const light = /\[data-theme='light'\]\s*\{([^{}]*)\}/.exec(tokensSource)?.[1];
+      const system =
+        /@media \(prefers-color-scheme: light\)\s*\{\s*:root:not\(\[data-theme\]\)\s*\{([^{}]*)\}/.exec(
+          tokensSource,
+        )?.[1];
+      // Both selectors or neither (language.md §10.1, 09 §25 block 2).
+      expect(light === undefined).toBe(system === undefined);
+      if (light === undefined || system === undefined) return;
+      const names = [...THEME_TOKENS].sort();
+      expect([...declarations(light).keys()].sort()).toEqual(names);
+      expect([...declarations(system).entries()].sort()).toEqual(
+        [...declarations(light).entries()].sort(),
+      );
+    });
+
+    it('reads no undefined token in any module, unless it carries a fallback', () => {
+      const sources = import.meta.glob<string>(
+        ['../**/*.{css,ts,tsx}', '../../test/harness/**/*.{css,tsx}', '!../**/*.test.{ts,tsx}'],
+        { query: '?raw', import: 'default', eager: true },
+      );
+      const defined = new Set(root.keys());
+      for (const source of Object.values(sources)) {
+        for (const [, name] of source.matchAll(/(--[\w-]+)\s*:/g)) defined.add(name ?? '');
+        for (const [, name] of source.matchAll(/['"`](--[\w-]+)['"`]/g)) defined.add(name ?? '');
+      }
+      const missing: string[] = [];
+      for (const [file, source] of Object.entries(sources)) {
+        if (!file.endsWith('.css')) continue;
+        for (const [, name] of stripComments(source).matchAll(/var\((--[\w-]+)\)/g)) {
+          if (!defined.has(name ?? '') && !RUNTIME.test(name ?? ''))
+            missing.push(`${file}: ${name}`);
+        }
+      }
+      expect(missing).toEqual([]);
+    });
   });
 
-  it('keeps every token name and adds the M6 ones', () => {
-    const names = [
-      // The ladder and glass of the refinement pass (names never change).
-      ...SURFACES,
-      '--surface-hover',
-      '--surface-active',
-      '--glass',
-      '--glass-filter',
-      '--glass-solid',
-      '--scrim',
-      '--border-hairline',
-      '--border-strong',
-      '--border-glass',
-      '--border-swatch',
-      '--text-primary',
-      '--text-secondary',
-      '--text-tertiary',
-      '--text-disabled',
-      '--glass-text-secondary',
-      '--glass-text-disabled',
-      '--glass-danger',
-      '--accent',
-      '--accent-hover',
-      '--accent-pressed',
-      '--accent-subtle',
-      '--accent-muted',
-      '--accent-line',
-      '--accent-highlight',
-      '--accent-highlight-strong',
-      '--page-shadow',
-      '--radius-page',
-      '--radius-1',
-      '--radius-2',
-      '--radius-3',
-      '--radius-round',
-      '--duration-instant',
-      '--duration-fast',
-      '--duration-base',
-      '--ease-out',
-      '--enter-scale',
-      // M6 (experience-redesign §7.2–§7.5).
-      '--elevation-float',
-      '--tool-active-fill',
-      '--tool-active-ink',
-      '--radius-capsule',
-      '--rise-distance',
-      '--motion-rise',
-      // M8 (craft §7): tiers 2 and 3.
-      '--glass-frame',
-      '--glass-frame-filter',
-      '--glass-frame-solid',
-      '--glass-frame-highlight',
-      '--glass-menu',
-      '--glass-menu-filter',
-      '--glass-menu-solid',
-      // M9 D0-1 (redesign §11.1): the one-row menu's blur, the selection blue, the focus bands.
-      '--glass-menu-short-filter',
-      '--select',
-      '--select-subtle',
-      '--select-muted',
-      '--select-wash',
-      '--select-wash-strong',
-      '--focus-light',
-      '--focus-dark',
-      '--focus-offset-out',
-      '--focus-offset-in',
-      '--focus-offset-gap',
-    ];
-    for (const name of names) expect(root.has(name), name).toBe(true);
-  });
+  describe('neutrals: cool graphite, hue 265 (language.md §1.3, ADR-0023 §2.6)', () => {
+    it('holds the ramp of the language table', () => {
+      const ramp = [
+        '#08090c',
+        '#101215',
+        '#17191e',
+        '#1f2227',
+        '#272a30',
+        '#303339',
+        '#3f4249',
+        '#55585f',
+        '#91949a',
+        '#a1a5ab',
+        '#bbbec3',
+        '#e8e9ec',
+      ];
+      ramp.forEach((hex, i) => expect(resolve(`--n${i + 1}`), `--n${i + 1}`).toBe(hex));
+      for (let i = 1; i < ramp.length; i++) {
+        expect(lightness(literal(ramp[i] ?? ''))).toBeGreaterThan(
+          lightness(literal(ramp[i - 1] ?? '')),
+        );
+      }
+    });
 
-  describe('surface ladder (§7.1)', () => {
-    it('steps up from the canvas, with the canvas-to-panel step visible (≥ 1.14:1, L* ≥ 6)', () => {
+    it('maps the roles: canvas n1, wells n2, frame n3, raised n4, on n5; text n12 · n10 · n9 · n8', () => {
+      const roles: Readonly<Record<string, string>> = {
+        '--canvas': '--n1',
+        '--surface-sunken': '--n2',
+        '--surface-frame': '--n3',
+        '--surface-raised': '--n4',
+        '--surface-on': '--n5',
+        '--border-opaque': '--n7',
+        '--text-primary': '--n12',
+        '--glass-text-secondary': '--n11',
+        '--text-secondary': '--n10',
+        '--text-tertiary': '--n9',
+        '--text-disabled': '--n8',
+      };
+      for (const [role, step] of Object.entries(roles)) {
+        expect(resolve(role), role).toBe(resolve(step));
+      }
+    });
+
+    it('keeps the page the brightest thing (white page vs canvas ≥ 19.8:1)', () => {
+      expect(resolve('--page-background')).toBe('#ffffff');
+      expect(contrast(WHITE, canvas())).toBeGreaterThanOrEqual(19.8);
+    });
+
+    it('steps the docked frame visibly off the canvas (L* ≥ 6) and the raised surface off it', () => {
       const [s0, s1, s2, s3] = SURFACES.map(colour) as [Rgb, Rgb, Rgb, Rgb];
-      expect(contrast(s0, s1)).toBeGreaterThanOrEqual(1.14);
       expect(lightness(s1) - lightness(s0)).toBeGreaterThanOrEqual(6);
-      expect(contrast(s1, s2)).toBeGreaterThanOrEqual(1.085);
-      expect(contrast(s2, s3)).toBeGreaterThanOrEqual(1.105);
       expect(lightness(s0)).toBeLessThan(lightness(s1));
       expect(lightness(s1)).toBeLessThan(lightness(s2));
       expect(lightness(s2)).toBeLessThan(lightness(s3));
     });
 
-    it('keeps the page the brightest thing (white page vs canvas ≥ 19.9:1)', () => {
-      expect(contrast(colour('--page-background'), canvas())).toBeGreaterThanOrEqual(19.895);
-    });
-
-    it.each(BODY_TEXT)('%s is AA body text on every surface', (text) => {
-      for (const surface of SURFACES) {
-        expect(
-          contrast(colour(text), colour(surface)),
-          `${text} on ${surface}`,
-        ).toBeGreaterThanOrEqual(AA_TEXT);
+    it('holds the text pairs of language.md §1.7 (WCAG and APCA, A-1, A-4)', () => {
+      // [text, surface, WCAG, |Lc| or 0 when the table gives none]
+      const pairs: readonly (readonly [string, string, number, number])[] = [
+        ['--n12', '--n1', 16.4, 93],
+        ['--n12', '--n3', 14.48, 92],
+        ['--n12', '--n5', 11.85, 90],
+        ['--n11', '--n1', 10.68, 67],
+        ['--n11', '--n3', 9.43, 66],
+        ['--n11', '--n5', 7.72, 64],
+        ['--n10', '--n1', 8.05, 53],
+        ['--n10', '--n3', 7.11, 52],
+        ['--n10', '--n5', 5.81, 50],
+        ['--n9', '--n1', 6.55, 44],
+        ['--n9', '--n3', 5.78, 43],
+        ['--n9', '--n5', 4.73, 41],
+        ['--n8', '--n1', 2.79, 0],
+        ['--n8', '--n3', 2.47, 0],
+        ['--n8', '--n5', 2.02, 0],
+      ];
+      for (const [text, surface, ratio, apca] of pairs) {
+        const t = colour(text);
+        const s = colour(surface);
+        expect(contrast(t, s), `${text} on ${surface}`).toBeCloseTo(ratio, 1);
+        if (apca > 0) expect(lc(t, s), `Lc ${text} on ${surface}`).toBeCloseTo(apca, -0.5);
       }
     });
 
-    it('meets the minima the spec lists (primary 11.6, secondary 5.35, tertiary 4.71, accent 4.83, danger 5.18)', () => {
-      const minimum = (text: string) =>
-        Math.min(...SURFACES.map((surface) => contrast(colour(text), colour(surface))));
-      expect(minimum('--text-primary')).toBeGreaterThanOrEqual(11.595);
-      expect(minimum('--text-secondary')).toBeGreaterThanOrEqual(5.345);
-      expect(minimum('--text-tertiary')).toBeGreaterThanOrEqual(4.705);
-      expect(minimum('--accent')).toBeGreaterThanOrEqual(4.825);
-      expect(minimum('--danger')).toBeGreaterThanOrEqual(5.175);
-    });
-
-    it('keeps secondary and tertiary text AA on hovered and current rows of a panel', () => {
-      const panel = colour('--surface-1');
-      for (const wash of ['--surface-hover', '--surface-active']) {
-        const fill = parseColour(resolve(wash));
-        const row = round8(over(fill.rgb, fill.alpha, panel));
-        for (const text of ['--text-secondary', '--text-tertiary']) {
-          expect(contrast(colour(text), row), `${text} on ${wash}`).toBeGreaterThanOrEqual(AA_TEXT);
+    it('keeps body text AA on every surface of the ladder, and tertiary off n6', () => {
+      for (const text of ['--text-primary', '--text-secondary', '--text-tertiary']) {
+        for (const surface of SURFACES) {
+          atLeast(contrast(colour(text), colour(surface)), AA_TEXT, `${text} on ${surface}`);
         }
       }
+      // 4.16:1: tertiary never sits on n6 (language.md §1.7).
+      expect(contrast(colour('--text-tertiary'), colour('--n6'))).toBeLessThan(AA_TEXT);
+      expect(resolve('--badge-fill')).toBe(resolve('--n6'));
     });
 
-    it('keeps the accent (focus ring, UI) at ≥ 3:1 on every surface', () => {
-      for (const surface of SURFACES) {
-        expect(contrast(colour('--accent'), colour(surface))).toBeGreaterThanOrEqual(AA_NON_TEXT);
+    it('gates primary text at APCA Lc 75 on every solid surface (A-4)', () => {
+      for (const surface of [...SURFACES, '--surface-sunken']) {
+        expect(lc(colour('--text-primary'), colour(surface)), surface).toBeGreaterThanOrEqual(75);
       }
     });
 
-    it('keeps the primary button label AA in all three states', () => {
-      for (const fill of ['--accent', '--accent-hover', '--accent-pressed']) {
-        expect(contrast(colour('--surface-0'), colour(fill)), fill).toBeGreaterThanOrEqual(AA_TEXT);
+    it('keeps secondary and tertiary text AA on hovered and pressed rows of the frame', () => {
+      const frame = colour('--surface-frame');
+      for (const state of ['--surface-hover', '--surface-active']) {
+        const row = on(state, frame);
+        for (const text of ['--text-secondary', '--text-tertiary']) {
+          atLeast(contrast(colour(text), row), AA_TEXT, `${text} on ${state}`);
+        }
       }
     });
   });
 
-  describe('glass and elevation (§7.2)', () => {
-    // M6 review (A4): the backdrop is darkened less (0.36 -> 0.45), so the bar over a white page
-    // reads as glass (#47494d, was #3f4145) rather than a slab; over the canvas nothing changes.
-    it('models the composites: #47494d over a white page, #212328 over the canvas', () => {
-      expect(glassOver(literal('#ffffff'))).toEqual(literal('#47494d'));
-      expect(glassOver(canvas())).toEqual(literal('#212328'));
-    });
-
-    it('lets the bar read over the canvas (≥ 1.27:1, against 1.03:1 before M6)', () => {
-      expect(contrast(glassOver(canvas()), canvas())).toBeGreaterThanOrEqual(1.265);
-    });
-
-    it.each(BACKDROPS)('keeps glass text AA over a %s', (_, backdrop) => {
-      const glass = glassOver(backdrop());
-      for (const text of GLASS_TEXT) {
-        expect(contrast(colour(text), glass), text).toBeGreaterThanOrEqual(AA_TEXT);
+  describe('interaction: one lime (language.md §1.4, ADR-0023 §2.2–§2.4, §2.9)', () => {
+    it('is #c8fb3d, once: the accent, the focus band and the brand read --lime-300', () => {
+      expect(resolve('--lime-300')).toBe('#c8fb3d');
+      expect(resolve('--accent')).toBe('#c8fb3d');
+      expect(resolve('--focus-light')).toBe(resolve('--accent'));
+      // The channel triplet the alphas use is the same lime.
+      expect(resolve('--lime-rgb').split(' ').map(Number)).toEqual([...colour('--lime-300')]);
+      expect(resolve('--select-rgb').split(' ').map(Number)).toEqual([...colour('--select')]);
+      for (const token of ['--accent-subtle', '--accent-muted', '--accent-line']) {
+        expect(wash(token).rgb, token).toEqual(colour('--accent'));
       }
-      expect(contrast(colour('--accent'), glass), 'focus ring').toBeGreaterThanOrEqual(AA_NON_TEXT);
+      expect(wash('--accent-subtle').alpha).toBe(0.08);
+      expect(wash('--accent-muted').alpha).toBe(0.12);
+      expect(wash('--accent-line').alpha).toBe(0.5);
+      expect(resolve('--accent-hover')).toBe('#ddff82');
+      expect(resolve('--accent-pressed')).toBe('#b2e93c');
     });
 
-    it('meets the white-page numbers (primary 7.30, secondary 4.94, danger 4.63, warning 5.54)', () => {
-      const glass = glassOver(literal('#ffffff'));
-      expect(contrast(colour('--text-primary'), glass)).toBeGreaterThanOrEqual(7.29);
-      expect(contrast(colour('--glass-text-secondary'), glass)).toBeGreaterThanOrEqual(4.93);
-      expect(contrast(colour('--glass-danger'), glass)).toBeGreaterThanOrEqual(4.63);
-      expect(contrast(colour('--warning'), glass)).toBeGreaterThanOrEqual(5.535);
+    it('keeps the ramp of the language table, 300 and 800 bold', () => {
+      const ramp: Readonly<Record<number, string>> = {
+        50: '#effed0',
+        100: '#e1fea1',
+        200: '#d2fe59',
+        300: '#c8fb3d',
+        400: '#bbef39',
+        500: '#a5dd34',
+        600: '#80b128',
+        700: '#5f8a1b',
+        800: '#446713',
+        900: '#2f490a',
+        950: '#1a2d04',
+      };
+      for (const [step, hex] of Object.entries(ramp)) expect(resolve(`--lime-${step}`)).toBe(hex);
+      // Lime-800, the light theme's line: 6.57 on white, 5.35 on the light canvas (n4 #e6e8eb).
+      atLeast(contrast(colour('--lime-800'), WHITE), 6.57, 'lime-800 on white');
+      atLeast(contrast(colour('--lime-800'), literal('#e6e8eb')), 5.35, 'lime-800 on light canvas');
     });
 
-    it('lifts the bar over a white page (9.0:1 to the page, against 10.2:1 at brightness 0.36)', () => {
-      expect(glassFilter().brightness).toBe(0.45);
-      expect(contrast(glassOver(literal('#ffffff')), literal('#ffffff'))).toBeLessThan(9.05);
+    it('always touches ink: ink on lime 16.42 (Lc 93), on hover 17.73, pressed 13.86', () => {
+      const ink = colour('--accent-ink');
+      expect(resolve('--accent-ink')).toBe('#08090c');
+      atLeast(contrast(ink, colour('--accent')), 16.42, 'ink on lime');
+      expect(lc(ink, colour('--accent'))).toBeGreaterThanOrEqual(92.5);
+      atLeast(contrast(ink, colour('--accent-hover')), 17.73, 'ink on hover');
+      atLeast(contrast(ink, colour('--accent-pressed')), 13.86, 'ink on pressed');
     });
 
-    it('keeps the opaque fallback on the raised surface', () => {
-      expect(resolve('--glass-solid')).toBe(resolve('--surface-2'));
-      for (const text of GLASS_TEXT) {
-        expect(contrast(colour(text), colour('--glass-solid')), text).toBeGreaterThanOrEqual(
-          AA_TEXT,
+    it('fills the prominent button and the armed tool with lime and an ink label', () => {
+      expect(resolve('--primary-fill')).toBe(resolve('--accent'));
+      expect(resolve('--primary-fill-hover')).toBe(resolve('--accent-hover'));
+      expect(resolve('--primary-fill-pressed')).toBe(resolve('--accent-pressed'));
+      expect(resolve('--primary-ink')).toBe(resolve('--accent-ink'));
+      expect(resolve('--tool-active-fill')).toBe(resolve('--accent'));
+      expect(resolve('--tool-active-fill-hover')).toBe(resolve('--accent-hover'));
+      expect(resolve('--tool-active-fill-pressed')).toBe(resolve('--accent-pressed'));
+      expect(resolve('--tool-active-ink')).toBe(resolve('--accent-ink'));
+    });
+
+    it('gives current rows lime 0.12: on the frame primary 10.67, secondary 5.23, tertiary 4.26', () => {
+      const row = on('--accent-muted', colour('--surface-frame'));
+      atLeast(contrast(colour('--text-primary'), row), 10.67, 'primary');
+      atLeast(contrast(colour('--text-secondary'), row), 5.23, 'secondary');
+      // Tertiary steps up to secondary on a current row (language.md §1.7).
+      expect(contrast(colour('--text-tertiary'), row)).toBeLessThan(AA_TEXT);
+    });
+
+    it('draws 1 px lines at lime 0.50: 4.56 on the canvas, 4.49 on the frame', () => {
+      atLeast(contrast(on('--accent-line', canvas()), canvas()), 4.56, 'on the canvas');
+      const frame = colour('--surface-frame');
+      atLeast(contrast(on('--accent-line', frame), frame), 4.49, 'on the frame');
+    });
+
+    it('fills armed tools ≥ 3:1 against every dark tier over a white page (A-3: 7.79 to 9.99)', () => {
+      const minima: Readonly<Record<GlassTier, number>> = {
+        chip: 7.79,
+        bar: 7.91,
+        panel: 9.99,
+        menu: 9.69,
+        sheet: 9.97,
+        lit: 5.85,
+      };
+      for (const tier of GLASS_TIERS) {
+        atLeast(contrast(colour('--accent'), tierOver(tier, WHITE)), minima[tier], tier);
+      }
+      for (const [name, backdrop] of BACKDROPS) {
+        atLeast(contrast(colour('--tool-active-fill'), glassOver(backdrop())), AA_NON_TEXT, name);
+      }
+      atLeast(
+        contrast(colour('--tool-active-fill'), colour('--glass-solid')),
+        AA_NON_TEXT,
+        'the opaque bar',
+      );
+    });
+  });
+
+  describe('content: the page, selection, redaction, crop (language.md §1.5)', () => {
+    it('is #4e61ed, ≥ 3:1 on white and on the yellow and green highlighter tints', () => {
+      expect(resolve('--select')).toBe('#4e61ed');
+      const select = colour('--select');
+      atLeast(contrast(select, WHITE), 4.93, 'white');
+      atLeast(contrast(select, literal(TINT.yellow)), 4.0, 'yellow tint');
+      atLeast(contrast(select, literal(TINT.green)), 3.53, 'green tint');
+      // The check badge's glyph on it (06-navigation §2.2).
+      atLeast(contrast(colour('--select-ink'), select), 4.93, 'glyph on select');
+    });
+
+    it('draws its washes in the same blue: 0.25 for selection and hits, 0.45 for the current hit', () => {
+      for (const token of [
+        '--select-subtle',
+        '--select-muted',
+        '--select-wash',
+        '--select-wash-strong',
+      ]) {
+        expect(wash(token).rgb, token).toEqual(colour('--select'));
+        expect(wash(token).alpha, token).toBeLessThan(0.5);
+      }
+      expect(wash('--select-wash').alpha).toBe(0.25);
+      expect(wash('--select-wash-strong').alpha).toBe(0.45);
+    });
+
+    it('marks redactions on the page in #c21725 (6.10 on white), not the chrome danger', () => {
+      expect(resolve('--redact-page')).toBe('#c21725');
+      atLeast(contrast(colour('--redact-page'), WHITE), 6.1, 'redaction on white');
+      expect(resolve('--redact-page')).not.toBe(resolve('--danger'));
+      expect(wash('--crop-dim')).toEqual({ rgb: [21, 23, 28], alpha: 0.45 });
+      const sources = import.meta.glob<string>('../redaction/RedactionLayer.module.css', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      });
+      const css = stripComments(Object.values(sources)[0] ?? '');
+      expect(css).toMatch(/var\(--redact-page\)/);
+      expect(css).not.toMatch(/var\(--danger\)/);
+    });
+  });
+
+  describe('status and tags (language.md §1.6, ADR-0023 §2.7–§2.8)', () => {
+    it('holds danger, warning (hue 72) and success on the frame: 6.56, 10.18, 9.25', () => {
+      expect(resolve('--danger')).toBe('#fd7273');
+      expect(resolve('--warning')).toBe('#ffb756');
+      expect(resolve('--success')).toBe('#56d1a3');
+      const frame = colour('--surface-frame');
+      atLeast(contrast(colour('--danger'), frame), 6.56, 'danger');
+      atLeast(contrast(colour('--warning'), frame), 10.18, 'warning');
+      atLeast(contrast(colour('--success'), frame), 9.25, 'success');
+      for (const status of ['--danger', '--warning', '--success']) {
+        for (const surface of SURFACES) {
+          atLeast(contrast(colour(status), colour(surface)), AA_TEXT, `${status} on ${surface}`);
+        }
+      }
+      expect(wash('--warning-line').rgb).toEqual(colour('--warning'));
+    });
+
+    it('steps danger up on glass (#ffa4a4) and keeps warning and success as they are', () => {
+      expect(resolve('--glass-danger')).toBe('#ffa4a4');
+      expect(resolve('--glass-warning')).toBe(resolve('--warning'));
+      expect(resolve('--glass-success')).toBe(resolve('--success'));
+      expect(contrast(colour('--danger'), glassOver(WHITE))).toBeLessThan(AA_TEXT);
+      atLeast(contrast(colour('--glass-danger'), glassOver(WHITE)), 5.07, 'glass danger');
+    });
+
+    it('draws six tag dots ≥ 3:1 (all ≥ 4.43 on the wells), tag 4 lilac, none at the lime’s hue', () => {
+      expect(resolve('--tag-4')).toBe('#b1a1d1');
+      for (let i = 0; i < 6; i++) {
+        const tag = colour(`--tag-${i}`);
+        atLeast(contrast(tag, colour('--surface-sunken')), 4.43, `--tag-${i} on n2`);
+        for (const surface of SURFACES) {
+          atLeast(contrast(tag, colour(surface)), AA_NON_TEXT, `--tag-${i} on ${surface}`);
+        }
+        expect(Math.abs(okhue(tag) - okhue(colour('--accent'))), `--tag-${i} hue`).toBeGreaterThan(
+          20,
         );
       }
     });
+  });
 
-    it('defines one elevation: inner top highlight, hairline ring, one soft shadow', () => {
-      const layers = splitLayers(resolve('--elevation-float'));
-      expect(layers).toHaveLength(3);
-      expect(layers[0]?.trim()).toMatch(/^inset 0 1px 0 /);
-      expect(layers[1]?.trim()).toMatch(/^0 0 0 1px /);
-      expect(layers[2]?.trim()).toMatch(/^0 \d+px \d+px -?\d+px /);
+  describe('colour vision (language.md §1.8, A-19)', () => {
+    it('reproduces the pairs table under protanopia, deuteranopia and tritanopia', () => {
+      // [a, b, normal, protan, deutan, tritan] in ΔE_OK × 100.
+      const pairs: readonly (readonly [Rgb, Rgb, number, number, number, number])[] = [
+        [colour('--accent'), literal(TINT.yellow), 7.6, 2.2, 2.2, 7.5],
+        [colour('--accent'), literal(TINT.green), 7.4, 5.3, 6.9, 8.4],
+        [colour('--accent'), colour('--warning'), 19.0, 15.2, 9.0, 17.9],
+        [colour('--accent'), colour('--success'), 20.1, 18.3, 20.5, 18.0],
+        [colour('--accent'), colour('--danger'), 35.9, 32.8, 21.3, 32.6],
+        [colour('--success'), colour('--danger'), 29.1, 17.9, 7.0, 34.2],
+        [colour('--select'), literal(INK.blue), 4.5, 0.7, 1.8, 0.3],
+      ];
+      for (const [a, b, ...expected] of pairs) {
+        const got = CVD.map((matrix) => deltaE(a, b, matrix));
+        got.forEach((value, i) => expect(value).toBeCloseTo(expected[i] ?? Number.NaN, 0));
+      }
     });
 
-    it('drops the elevation for more contrast and forced colours, keeps it for reduced transparency', () => {
-      expect(mediaOverrides('prefers-contrast: more').get('--elevation-float')).toBe('none');
-      expect(mediaOverrides('forced-colors: active').get('--elevation-float')).toBe('none');
-      expect(mediaOverrides('prefers-reduced-transparency: reduce').has('--elevation-float')).toBe(
-        false,
+    it('keeps lime off the page: no --accent in any page layer outside its chrome', () => {
+      // The pairs above say why (lime vs the yellow highlighter is ΔE 2.2 for protanopes and
+      // deuteranopes); the scan is in the selection block below.
+      expect(deltaE(colour('--accent'), literal(TINT.yellow), CVD[1] ?? null)).toBeLessThan(10);
+    });
+  });
+
+  describe('materials: five tiers and lit glass (language.md §2.2, §2.6)', () => {
+    /** Over white, the composite, then primary · glass-sec · danger · warning, APCA P / S. */
+    const TABLE: Readonly<
+      Record<GlassTier, readonly [string, number, number, number, number, number, number]>
+    > = {
+      chip: ['#454648', 7.78, 5.07, 4.99, 5.47, 82, 56],
+      bar: ['#444548', 7.9, 5.14, 5.07, 5.55, 82, 56],
+      panel: ['#34363a', 9.97, 6.49, 6.4, 7.01, 87, 61],
+      menu: ['#36383c', 9.68, 6.3, 6.21, 6.8, 86, 60],
+      sheet: ['#34363b', 9.96, 6.49, 6.39, 7.0, 87, 61],
+      // Lit glass is never over a page: its worst is the field's brightest pixel.
+      lit: ['#57585d', 7.38, 4.8, 4.73, 5.19, 81, 54],
+    };
+    const LEMON = literal('#c8be34');
+    const worst = (tier: GlassTier) => (tier === 'lit' ? LEMON : WHITE);
+
+    it.each(GLASS_TIERS)(
+      '%s composites over white and its worst backdrop as the table says',
+      (tier) => {
+        const [hex, primary, secondary, danger, warning, apcaP, apcaS] = TABLE[tier];
+        expect(tierOver(tier, WHITE)).toEqual(literal(hex));
+        const glass = tierOver(tier, worst(tier));
+        atLeast(contrast(colour('--text-primary'), glass), primary, 'primary');
+        atLeast(contrast(colour('--glass-text-secondary'), glass), secondary, 'glass secondary');
+        atLeast(contrast(colour('--glass-danger'), glass), danger, 'glass danger');
+        atLeast(contrast(colour('--warning'), glass), warning, 'warning');
+        expect(lc(colour('--text-primary'), glass)).toBeCloseTo(apcaP, -0.5);
+        expect(lc(colour('--glass-text-secondary'), glass)).toBeCloseTo(apcaS, -0.5);
+        // A-4: primary text holds APCA Lc 75 on every tier.
+        expect(lc(colour('--text-primary'), glass)).toBeGreaterThanOrEqual(75);
+      },
+    );
+
+    it('keeps every page tier dark over white (Y ≤ 0.062, G-4); lit glass is forbidden there', () => {
+      for (const tier of GLASS_TIERS.filter((t) => t !== 'lit')) {
+        expect(relativeLuminance(tierOver(tier, WHITE)), tier).toBeLessThanOrEqual(0.062);
+      }
+      expect(relativeLuminance(tierOver('lit', WHITE))).toBeGreaterThan(0.062);
+      expect(Number(resolve('--light-cap-under-glass'))).toBeLessThanOrEqual(0.6);
+    });
+
+    it('composites the panel over the canvas to the frame (n3) exactly', () => {
+      expect(tierOver('panel', canvas())).toEqual(colour('--surface-frame'));
+      expect(tierOver('panel', canvas())).toEqual(colour('--glass-panel-solid'));
+      // Chip and bar differ from the canvas by about 1.06–1.08:1: the rim carries their edge.
+      expect(tierOver('bar', canvas())).toEqual(literal('#131418'));
+      expect(tierOver('menu', canvas())).toEqual(literal('#1b1d22'));
+    });
+
+    it('keeps glass text AA over every backdrop of today’s floating glass', () => {
+      for (const [name, backdrop] of BACKDROPS) {
+        const glass = glassOver(backdrop());
+        for (const text of GLASS_TEXT) {
+          atLeast(contrast(colour(text), glass), AA_TEXT, `${text} over a ${name}`);
+        }
+      }
+    });
+
+    it('keeps glass text AA on each tier over white, the canvas, mid grey and black', () => {
+      for (const tier of GLASS_TIERS.filter((t) => t !== 'lit')) {
+        for (const backdrop of [WHITE, canvas(), literal('#808080'), BLACK]) {
+          const glass = tierOver(tier, backdrop);
+          for (const text of GLASS_TEXT) {
+            atLeast(contrast(colour(text), glass), AA_TEXT, `${text} on ${tier}`);
+          }
+        }
+      }
+    });
+
+    it('measures states inside glass over white as §2.6 does (the tier densities rest on it)', () => {
+      // [tier, hover glass-sec, pressed glass-sec, current primary, current glass-sec]
+      const rows: readonly (readonly [GlassTier, number, number, number, number])[] = [
+        ['chip', 4.47, 4.07, 5.75, 3.75],
+        ['bar', 4.53, 4.13, 5.84, 3.8],
+        ['panel', 5.66, 5.15, 7.17, 4.67],
+        ['menu', 5.49, 4.99, 7.03, 4.58],
+        ['sheet', 5.65, 5.15, 7.17, 4.67],
+      ];
+      const secondary = colour('--glass-text-secondary');
+      for (const [tier, hover, pressed, currentP, currentS] of rows) {
+        const glass = tierOver(tier, WHITE);
+        expect(contrast(secondary, on('--surface-hover', glass)), `${tier} hover`).toBeCloseTo(
+          hover,
+          1,
+        );
+        expect(contrast(secondary, on('--surface-active', glass)), `${tier} pressed`).toBeCloseTo(
+          pressed,
+          1,
+        );
+        const current = on('--accent-muted', glass);
+        expect(contrast(colour('--text-primary'), current), `${tier} current`).toBeCloseTo(
+          currentP,
+          1,
+        );
+        expect(contrast(secondary, current), `${tier} current secondary`).toBeCloseTo(currentS, 1);
+      }
+    });
+
+    it('lists the APCA warnings: secondary text under Lc 60 (A-4; a new one fails until listed)', () => {
+      const warnings: string[] = [];
+      const check = (label: string, text: string, under: Rgb) => {
+        const value = lc(colour(text), under);
+        if (value < 60) warnings.push(`${label}: ${text} Lc ${Math.round(value)}`);
+      };
+      for (const surface of SURFACES) check(surface, '--text-secondary', colour(surface));
+      for (const tier of GLASS_TIERS) {
+        check(`${tier} over its worst`, '--glass-text-secondary', tierOver(tier, worst(tier)));
+      }
+      expect(warnings).toEqual([
+        '--canvas: --text-secondary Lc 53',
+        '--surface-frame: --text-secondary Lc 52',
+        '--surface-raised: --text-secondary Lc 51',
+        '--surface-on: --text-secondary Lc 50',
+        'chip over its worst: --glass-text-secondary Lc 56',
+        'bar over its worst: --glass-text-secondary Lc 56',
+        'lit over its worst: --glass-text-secondary Lc 54',
+      ]);
+    });
+
+    it('keeps alphas as their own tokens, solids opaque, shadows from the elevation scale', () => {
+      const shadows: Readonly<Record<GlassTier, string>> = {
+        chip: '--e2',
+        bar: '--e3',
+        panel: '--e4',
+        menu: '--e4',
+        sheet: '--e5',
+        lit: '--e3',
+      };
+      for (const tier of GLASS_TIERS) {
+        expect(root.get(`--glass-${tier}-tint`), tier).toContain(`var(--glass-${tier}-alpha)`);
+        expect(wash(`--glass-${tier}-tint`).alpha).toBe(Number(resolve(`--glass-${tier}-alpha`)));
+        expect(wash(`--glass-${tier}-solid`).alpha).toBe(1);
+        expect(resolve(`--glass-${tier}-filter`), tier).not.toMatch(/blur/);
+        expect(root.get(`--glass-${tier}-shadow`)).toBe(`var(${shadows[tier]})`);
+      }
+    });
+
+    it('defines the rims and e0–e5 of language.md §2.4 and §6.3', () => {
+      expect(resolve('--rim-edge')).toBe('0 0 0 1px rgb(0 0 0 / 0.5)');
+      expect(resolve('--rim-inner')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.12)');
+      expect(wash('--rim-top').alpha).toBe(0.34);
+      expect(wash('--rim-bottom').alpha).toBe(0.14);
+      expect(resolve('--e0')).toBe('none');
+      expect(splitLayers(resolve('--e3'))).toHaveLength(2);
+      for (const e of ['--e1', '--e2', '--e4', '--e5']) {
+        expect(resolve(e)).toMatch(/^0 \d+px \d+px (-\d+px )?rgb\(0 0 0 \/ 0\.\d+\)$/);
+      }
+    });
+  });
+
+  describe('today’s glass classes on the tiers (global.css; 09 §25 aliases)', () => {
+    it('reads the bar, panel and menu tiers with D0-1’s blurs', () => {
+      expect(resolve('--glass')).toBe(resolve('--glass-bar-tint'));
+      expect(resolve('--glass-filter')).toBe('blur(7px) saturate(1.8) brightness(0.44)');
+      expect(resolve('--glass-solid')).toBe(resolve('--surface-raised'));
+      expect(resolve('--glass-frame')).toBe(resolve('--glass-panel-tint'));
+      expect(resolve('--glass-frame-filter')).toBe('blur(5px) saturate(1.5) brightness(0.45)');
+      expect(resolve('--glass-frame-solid')).toBe(resolve('--surface-frame'));
+      expect(resolve('--glass-menu')).toBe(resolve('--glass-menu-tint'));
+      expect(resolve('--glass-menu-backdrop')).toBe('blur(12px) saturate(1.6) brightness(0.49)');
+      expect(resolve('--glass-menu-short-backdrop')).toBe(
+        'blur(7px) saturate(1.6) brightness(0.49)',
       );
+      expect(resolve('--glass-menu-solid')).toBe(resolve('--surface-raised'));
+      // The bar over a white page and over the canvas (e2e/glass-pixels.spec.ts samples them).
+      expect(glassOver(WHITE)).toEqual(literal('#444548'));
+      expect(glassOver(canvas())).toEqual(literal('#131418'));
+    });
+
+    it('floats on one elevation: the inner light, the dark edge and the bar’s shadow', () => {
+      const layers = splitLayers(resolve('--elevation-float')).map((l) => l.trim());
+      expect(layers[0]).toMatch(/^inset 0 1px 0 /);
+      expect(layers[1]).toMatch(/^0 0 0 1px /);
+      for (const layer of layers.slice(2)) expect(layer).toMatch(/^0 \d+px \d+px -?\d+px /);
+      const frame = splitLayers(resolve('--glass-frame-highlight'));
+      expect(frame).toHaveLength(1);
+      expect(frame[0]?.trim()).toMatch(/^inset 0 1px 0 rgb\(/);
     });
 
     it('applies the elevation through the one global .glass rule', () => {
@@ -432,26 +851,25 @@ describe('tokens.css', () => {
       expect(css.match(/var\(--elevation-float\)/g)).toHaveLength(1);
       const glassRule = /\.glass\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
       expect(glassRule).toMatch(/box-shadow:\s*var\(--elevation-float\)/);
+      const shadows = [...css.matchAll(/box-shadow:\s*([^;}]+)/g)].map((m) => (m[1] ?? '').trim());
+      expect(shadows.sort()).toEqual(['var(--elevation-float)', 'var(--glass-frame-highlight)']);
     });
 
-    it('uses no other drop shadow in component styles (rings and insets only)', () => {
-      const modules = import.meta.glob<string>('../**/*.module.css', {
-        query: '?raw',
-        import: 'default',
-        eager: true,
-      });
+    it('uses no other drop shadow in component styles (rings, insets and e-tokens only)', () => {
       expect(Object.keys(modules).length).toBeGreaterThan(20);
       for (const [file, source] of Object.entries(modules)) {
         const css = stripComments(source);
         expect(css.includes('--elevation-float'), `${file} reads --elevation-float`).toBe(false);
         for (const match of css.matchAll(/box-shadow:\s*([^;}]+)/g)) {
           const value = (match[1] ?? '').trim();
-          if (value === 'none' || /^var\(--[\w-]+\)$/.test(value)) continue;
+          if (value === 'none') continue;
           for (const layer of splitLayers(value)) {
+            const trimmed = layer.trim();
+            if (/^var\(--[\w-]+(?:,[^)]*)?\)$/.test(trimmed)) continue;
             // `[inset] 0 0 <blur> <spread> colour`: no offset and no blur, only a ring.
             const lengths =
               /^(?:inset\s+)?(-?[\d.]+(?:px)?)\s+(-?[\d.]+(?:px)?)\s+(-?[\d.]+(?:px)?)/.exec(
-                layer.trim(),
+                trimmed,
               );
             expect(lengths, `${file}: ${layer}`).not.toBeNull();
             expect(
@@ -462,233 +880,134 @@ describe('tokens.css', () => {
         }
       }
     });
-  });
-
-  describe('three glass tiers (craft §7)', () => {
-    const TIERS: readonly (readonly [string, Tier])[] = [
-      ['1 floating', TIER_1],
-      ['2 docked frame', TIER_2],
-      ['3 menus and popovers', TIER_3],
-    ];
-    /** The four backdrops the spec names: white, the canvas, mid grey and black. */
-    const FOUR: readonly (readonly [string, () => Rgb])[] = [
-      ['white', () => literal('#ffffff')],
-      ['the canvas', canvas],
-      ['#808080', () => literal('#808080')],
-      ['black', () => literal('#000000')],
-    ];
-    const cases = TIERS.flatMap(([name, tier]) =>
-      FOUR.map(([backdrop, rgb]) => [name, backdrop, tier, rgb] as const),
-    );
-
-    it.each(cases)(
-      'tier %s over %s keeps glass text AA and the accent at 3:1',
-      (_, __, tier, rgb) => {
-        const glass = tierOver(tier, rgb());
-        for (const text of [
-          '--text-primary',
-          '--glass-text-secondary',
-          '--glass-danger',
-          '--warning',
-        ]) {
-          expect(contrast(colour(text), glass), text).toBeGreaterThanOrEqual(AA_TEXT);
-        }
-        expect(contrast(colour('--accent'), glass), 'accent').toBeGreaterThanOrEqual(AA_NON_TEXT);
-      },
-    );
-
-    it('composites tier 2 to --surface-1 over the canvas (#181a1f) and to #36373c over white', () => {
-      expect(tierOver(TIER_2, canvas())).toEqual(colour('--surface-1'));
-      expect(tierOver(TIER_2, canvas())).toEqual(literal('#181a1f'));
-      expect(tierOver(TIER_2, canvas())).toEqual(colour('--glass-frame-solid'));
-      expect(tierOver(TIER_2, literal('#ffffff'))).toEqual(literal('#36373c'));
-    });
-
-    it('composites tier 3 to #212329 over the canvas and #393c42 over white', () => {
-      expect(tierOver(TIER_3, canvas())).toEqual(literal('#212329'));
-      expect(tierOver(TIER_3, literal('#ffffff'))).toEqual(literal('#393c42'));
-    });
-
-    it('meets the worst-case numbers over white (tiers 1 / 2 / 3)', () => {
-      const minima: readonly (readonly [string, readonly [number, number, number]])[] = [
-        ['--text-primary', [7.29, 9.6, 8.94]],
-        ['--glass-text-secondary', [4.93, 6.495, 6.05]],
-        ['--glass-danger', [4.63, 6.095, 5.68]],
-        ['--accent', [3.025, 3.985, 3.71]],
-      ];
-      const white = literal('#ffffff');
-      for (const [text, perTier] of minima) {
-        TIERS.forEach(([name, tier], i) => {
-          expect(
-            contrast(colour(text), tierOver(tier, white)),
-            `${text} on tier ${name}`,
-          ).toBeGreaterThanOrEqual(perTier[i] ?? Number.POSITIVE_INFINITY);
-        });
-      }
-    });
-
-    it('keeps tier 2 dense (alpha ≥ 0.78) and its fallback on --surface-1, tier 3 on the menu surface', () => {
-      expect(parseColour(resolve('--glass-frame')).alpha).toBeGreaterThanOrEqual(0.78);
-      expect(resolve('--glass-frame-solid')).toBe(resolve('--surface-1'));
-      expect(resolve('--glass-menu-solid')).toBe(resolve('--glass-solid'));
-      for (const tier of [TIER_2, TIER_3]) {
-        for (const text of GLASS_TEXT) {
-          expect(
-            contrast(colour(text), colour(tier.solid)),
-            `${text} on ${tier.solid}`,
-          ).toBeGreaterThanOrEqual(AA_TEXT);
-        }
-      }
-    });
-
-    it('gives the docked frame no shadow: one inset 1px top highlight', () => {
-      const layers = splitLayers(resolve('--glass-frame-highlight'));
-      expect(layers).toHaveLength(1);
-      expect(layers[0]?.trim()).toMatch(/^inset 0 1px 0 rgb\(/);
-    });
-
-    it('allows only the floating elevation and the frame highlight as shadows in global.css', () => {
-      const css = stripComments(globalCss);
-      const shadows = [...css.matchAll(/box-shadow:\s*([^;}]+)/g)].map((m) => (m[1] ?? '').trim());
-      expect(shadows.sort()).toEqual(['var(--elevation-float)', 'var(--glass-frame-highlight)']);
-      expect(css.match(/var\(--glass-frame-highlight\)/g)).toHaveLength(1);
-      const frameRule =
-        /:root\[data-glass-panels\] \.glass-frame\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-      expect(frameRule).toMatch(/box-shadow:\s*var\(--glass-frame-highlight\)/);
-    });
 
     it('paints the frame solid unless Glass panels is on, and maps its text then', () => {
       const css = stripComments(globalCss);
       const base = /(?:^|\})\s*\.glass-frame\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
       expect(base).toMatch(/background:\s*var\(--glass-frame-solid\)/);
       expect(base).not.toMatch(/backdrop-filter/);
-      const on = /:root\[data-glass-panels\] \.glass-frame\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-      expect(on).toMatch(/--text-secondary:\s*var\(--glass-text-secondary\)/);
-      expect(on).toMatch(/--text-tertiary:\s*var\(--glass-text-secondary\)/);
-      expect(on).toMatch(/--danger:\s*var\(--glass-danger\)/);
-      // Every frame surface blurs while the setting is on (no geometry gate, review F7), behind
-      // the support check.
+      const onRule = /:root\[data-glass-panels\] \.glass-frame\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
+      expect(onRule).toMatch(/--text-secondary:\s*var\(--glass-text-secondary\)/);
+      expect(onRule).toMatch(/--text-tertiary:\s*var\(--glass-text-secondary\)/);
+      expect(onRule).toMatch(/--danger:\s*var\(--glass-danger\)/);
+      expect(onRule).toMatch(/box-shadow:\s*var\(--glass-frame-highlight\)/);
       const live =
         /@supports[^{]*\{\s*:root\[data-glass-panels\] \.glass-frame\s*\{([^{}]*)\}/.exec(css);
       expect(live?.[1]).toMatch(/backdrop-filter:\s*var\(--glass-frame-filter\)/);
       expect(live?.[1]).toMatch(/background:\s*var\(--glass-frame\)/);
-      expect(css).not.toMatch(/data-glass-near/);
       // Filters never animate.
       expect(css).not.toMatch(/transition[^;]*(?:backdrop-filter|filter)/);
     });
 
-    it('points menus and popovers at tier 3 through the one .glass rule', () => {
+    it('points menus, popovers and sheets at the menu tier through the one .glass rule', () => {
       const css = stripComments(globalCss);
       const menu = declarations(/\.glass-menu\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '');
       expect(menu.get('--glass')).toBe('var(--glass-menu)');
-      expect(menu.get('--glass-filter')).toBe('var(--glass-menu-filter)');
+      expect(menu.get('--glass-filter')).toBe('var(--glass-menu-backdrop)');
       expect(menu.get('--glass-solid')).toBe('var(--glass-menu-solid)');
-      const modules = import.meta.glob<string>('../ui/{Menu,Popover}.module.css', {
+      const menus = import.meta.glob<string>('../ui/{Menu,Popover}.module.css', {
         query: '?raw',
         import: 'default',
         eager: true,
       });
-      expect(Object.keys(modules)).toHaveLength(2);
-      for (const [file, source] of Object.entries(modules)) {
+      expect(Object.keys(menus)).toHaveLength(2);
+      for (const [file, source] of Object.entries(menus)) {
         expect(source, file).toMatch(/composes:\s*glass glass-menu from global;/);
       }
     });
 
     it('makes the docked surfaces compose the frame and paint no background of their own', () => {
-      const modules = import.meta.glob<string>(
+      const docked = import.meta.glob<string>(
         '../shell/{TabBar,LeftRail,RightPanel,StatusBar}.module.css',
         { query: '?raw', import: 'default', eager: true },
       );
-      expect(Object.keys(modules)).toHaveLength(4);
-      for (const [file, source] of Object.entries(modules)) {
+      expect(Object.keys(docked)).toHaveLength(4);
+      for (const [file, source] of Object.entries(docked)) {
         const css = stripComments(source);
-        const root = /^\.[\w]+\s*\{([^{}]*)\}/m.exec(css)?.[1] ?? '';
-        expect(root, file).toMatch(/composes:\s*glass-frame from global;/);
-        expect(root, file).not.toMatch(/background:/);
+        const rule = /^\.[\w]+\s*\{([^{}]*)\}/m.exec(css)?.[1] ?? '';
+        expect(rule, file).toMatch(/composes:\s*glass-frame from global;/);
+        expect(rule, file).not.toMatch(/background:/);
       }
-    });
-
-    describe('Reduce transparency', () => {
-      const attribute = declarations(
-        /:root\[data-transparency='reduced'\]\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '',
-      );
-      const media = mediaOverrides('prefers-reduced-transparency: reduce');
-
-      it('the in-app switch sets exactly what the media query sets', () => {
-        expect(attribute.size).toBeGreaterThan(0);
-        expect([...attribute.entries()].sort()).toEqual([...media.entries()].sort());
-      });
-
-      it('makes every tier solid and keeps rings, shadows and the highlight', () => {
-        for (const scope of [attribute, media]) {
-          for (const tier of [TIER_1, TIER_2, TIER_3]) {
-            expect(scope.get(tier.tint), tier.tint).toBe(`var(${tier.solid})`);
-            expect(scope.get(tier.filter), tier.filter).toBe('none');
-          }
-          expect(scope.get('--glass-menu-short-filter')).toBe('none');
-          expect(scope.has('--elevation-float')).toBe(false);
-          expect(scope.has('--glass-frame-highlight')).toBe(false);
-          expect(scope.has('--border-glass')).toBe(false);
-        }
-      });
-
-      it('flattens every tier for more contrast and forced colours, without the highlight', () => {
-        const more = mediaOverrides('prefers-contrast: more');
-        for (const tier of [TIER_1, TIER_2, TIER_3]) {
-          expect(more.get(tier.tint), tier.tint).toBe(`var(${tier.solid})`);
-          expect(more.get(tier.filter), tier.filter).toBe('none');
-        }
-        expect(more.get('--glass-frame-highlight')).toBe('none');
-        expect(more.get('--glass-menu-short-filter')).toBe('none');
-        const forced = mediaOverrides('forced-colors: active');
-        expect(forced.get('--glass-menu-short-filter')).toBe('none');
-        expect(forced.get('--glass-frame')).toBe('Canvas');
-        expect(forced.get('--glass-menu')).toBe('Canvas');
-        expect(forced.get('--glass-frame-highlight')).toBe('none');
-      });
-
-      it('falls back to the opaque surfaces in global.css under the switch too', () => {
-        const css = stripComments(globalCss);
-        const glass =
-          /:root\[data-transparency='reduced'\] \.glass\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-        expect(glass).toMatch(/background:\s*var\(--glass-solid\)/);
-        expect(glass).toMatch(/(?:^|[^-])backdrop-filter:\s*none/);
-        expect(glass).toMatch(/--text-secondary:\s*inherit/);
-        const frame =
-          /:root\[data-glass-panels\]\[data-transparency='reduced'\] \.glass-frame\s*\{([^{}]*)\}/.exec(
-            css,
-          )?.[1] ?? '';
-        expect(frame).toMatch(/background:\s*var\(--glass-frame-solid\)/);
-        expect(frame).toMatch(/(?:^|[^-])backdrop-filter:\s*none/);
-      });
     });
   });
 
-  describe('capsule bar and active state (§7.3)', () => {
-    it('makes the floating bar a capsule', () => {
-      expect(resolve('--radius-capsule')).toBe(resolve('--radius-round'));
+  describe('settings: reduced transparency, more contrast, forced colours (§5, §6)', () => {
+    const attribute = declarations(
+      /:root\[data-transparency='reduced'\]\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '',
+    );
+    const media = mediaOverrides('prefers-reduced-transparency: reduce');
+    const more = mediaOverrides('prefers-contrast: more');
+    const forced = mediaOverrides('forced-colors: active');
+    const SIGMA = ['--glass-filter', '--glass-frame-filter', '--glass-menu-backdrop'];
+
+    it('the in-app switch sets exactly what the media query sets', () => {
+      expect(attribute.size).toBeGreaterThan(0);
+      expect([...attribute.entries()].sort()).toEqual([...media.entries()].sort());
     });
 
-    it('fills the armed tool with the accent and a canvas-dark icon (≥ 6.69:1)', () => {
-      expect(resolve('--tool-active-fill')).toBe(resolve('--accent'));
-      expect(resolve('--tool-active-ink')).toBe(resolve('--surface-0'));
-      const ink = colour('--tool-active-ink');
-      expect(contrast(ink, colour('--tool-active-fill'))).toBeGreaterThanOrEqual(6.685);
-      for (const fill of ['--accent-hover', '--accent-pressed']) {
-        expect(contrast(ink, colour(fill)), fill).toBeGreaterThanOrEqual(AA_TEXT);
+    it('makes every tier solid with no filter, and keeps rims, shadows and the highlight', () => {
+      for (const scope of [attribute, media, more]) {
+        for (const tier of GLASS_TIERS) {
+          const t = tierTokens(tier);
+          expect(scope.get(t.tint), t.tint).toBe(`var(${t.solid})`);
+          expect(scope.get(t.filter), t.filter).toBe('none');
+        }
+        for (const token of [...SIGMA, '--glass-menu-short-backdrop']) {
+          expect(scope.get(token), token).toBe('none');
+        }
+        expect(resolve('--glass', scope)).toBe(resolve('--glass-bar-solid'));
+        expect(resolve('--glass-frame', scope)).toBe(resolve('--surface-frame'));
+      }
+      for (const scope of [attribute, media]) {
+        expect(scope.has('--elevation-float')).toBe(false);
+        expect(scope.has('--glass-frame-highlight')).toBe(false);
+        expect(scope.has('--border-glass')).toBe(false);
       }
     });
 
-    it('keeps the fill ≥ 3:1 against the bar (5.28:1 over the canvas, 3.03:1 over a white page)', () => {
-      const fill = colour('--tool-active-fill');
-      expect(contrast(fill, glassOver(canvas()))).toBeGreaterThanOrEqual(5.275);
-      expect(contrast(fill, glassOver(literal('#ffffff')))).toBeGreaterThanOrEqual(3.025);
-      for (const [name, backdrop] of BACKDROPS) {
-        expect(contrast(fill, glassOver(backdrop())), name).toBeGreaterThanOrEqual(AA_NON_TEXT);
+    it('trades rim and shadow for the strong border and lifts text under more contrast (A-18)', () => {
+      expect(more.get('--elevation-float')).toBe('none');
+      expect(more.get('--glass-frame-highlight')).toBe('none');
+      expect(parseColour(resolve('--border-strong', more)).alpha).toBe(0.36);
+      expect(resolve('--text-secondary', more)).toBe(resolve('--n11'));
+      expect(resolve('--text-tertiary', more)).toBe(resolve('--n10'));
+    });
+
+    it('drops every tier to Canvas with its filter off under forced colours', () => {
+      for (const tier of GLASS_TIERS) {
+        const t = tierTokens(tier);
+        expect(forced.get(t.tint), t.tint).toBe('Canvas');
+        expect(forced.get(t.solid), t.solid).toBe('Canvas');
+        expect(forced.get(t.filter), t.filter).toBe('none');
       }
-      expect(contrast(fill, colour('--glass-solid')), 'opaque bar').toBeGreaterThanOrEqual(
-        AA_NON_TEXT,
+      for (const token of [...SIGMA, '--glass-menu-short-backdrop', '--glass-frame-highlight']) {
+        expect(forced.get(token), token).toBe('none');
+      }
+      expect(forced.get('--elevation-float')).toBe('none');
+      expect(forced.get('--border-glass')).toBe('CanvasText');
+    });
+
+    it('falls back to the opaque surfaces in global.css under the switch too', () => {
+      const css = stripComments(globalCss);
+      const glass =
+        /:root\[data-transparency='reduced'\] \.glass\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
+      expect(glass).toMatch(/background:\s*var\(--glass-solid\)/);
+      expect(glass).toMatch(/(?:^|[^-])backdrop-filter:\s*none/);
+      expect(glass).toMatch(/--text-secondary:\s*inherit/);
+      const frame =
+        /:root\[data-glass-panels\]\[data-transparency='reduced'\] \.glass-frame\s*\{([^{}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(frame).toMatch(/background:\s*var\(--glass-frame-solid\)/);
+      expect(frame).toMatch(/(?:^|[^-])backdrop-filter:\s*none/);
+    });
+
+    it('swaps in the aurora’s P3 stops on wide-gamut screens and never the lime', () => {
+      const p3 = mediaOverrides('color-gamut: p3');
+      expect([...p3.keys()].sort()).toEqual(
+        ['--aurora-lemon', '--aurora-lime', '--aurora-mint', '--aurora-teal'].sort(),
       );
+      for (const value of p3.values()) expect(value).toMatch(/^oklch\(/);
     });
   });
 
@@ -711,16 +1030,11 @@ describe('tokens.css', () => {
       return Number(match[1]);
     };
 
-    it('lowers the three blurs as the spec row says: bars 7px, menus 12px (one row 7px), frame 5px', () => {
+    it('keeps D0-1’s blurs: bars 7px, menus 12px (one row 7px), frame 5px', () => {
       expect(blurOf('--glass-filter')).toBe(7);
-      expect(blurOf('--glass-menu-filter')).toBe(12);
-      expect(blurOf('--glass-menu-short-filter')).toBe(7);
+      expect(blurOf('--glass-menu-backdrop')).toBe(12);
+      expect(blurOf('--glass-menu-short-backdrop')).toBe(7);
       expect(blurOf('--glass-frame-filter')).toBe(5);
-      // The rest of each chain is unchanged, so every composite above still holds.
-      expect(resolve('--glass-filter')).toBe('blur(7px) saturate(1.8) brightness(0.45)');
-      expect(resolve('--glass-menu-filter')).toBe('blur(12px) saturate(1.6) brightness(0.5)');
-      expect(resolve('--glass-menu-short-filter')).toBe('blur(7px) saturate(1.6) brightness(0.5)');
-      expect(resolve('--glass-frame-filter')).toBe('blur(5px) saturate(1.4) brightness(0.6)');
     });
 
     it('reproduces the language table (36 px bar at 7px 0.990, 64 px menu at 12px 0.992)', () => {
@@ -748,7 +1062,7 @@ describe('tokens.css', () => {
       expect(new Set(ids).size).toBe(ids.length);
       const filters: Record<GlassComposition, readonly string[]> = {
         glass: ['--glass-filter'],
-        'glass glass-menu': ['--glass-menu-filter', '--glass-menu-short-filter'],
+        'glass glass-menu': ['--glass-menu-backdrop', '--glass-menu-short-backdrop'],
         'glass-frame': ['--glass-frame-filter'],
       };
       for (const entry of COVERAGE_REGISTRY) {
@@ -759,11 +1073,6 @@ describe('tokens.css', () => {
     });
 
     it('holds every module rule that composes .glass, .glass-menu or .glass-frame, and no other', () => {
-      const modules = import.meta.glob<string>('../**/*.module.css', {
-        query: '?raw',
-        import: 'default',
-        eager: true,
-      });
       const found = new Set<string>();
       for (const [file, source] of Object.entries(modules)) {
         const css = stripComments(source);
@@ -782,56 +1091,27 @@ describe('tokens.css', () => {
       // The spec row counted about nineteen modules on the M8 shell: seventeen compose glass
       // there (the TextLayer hint is solid: at 22 px it is under quality-bar Q-5's 32 px), and
       // the compact edition adds three, the toast stack (D0-5) one and the Sheet primitive one
-      // (D0-4: one panel, an entry per presentation).
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(22);
+      // (D0-4: one panel, an entry per presentation), and the pinch detent chip one (D2-10).
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(23);
     });
 
     it('gives a one-row menu the short blur in ui/Menu', () => {
-      const modules = import.meta.glob<string>('../ui/Menu.module.css', {
+      const menu = import.meta.glob<string>('../ui/Menu.module.css', {
         query: '?raw',
         import: 'default',
         eager: true,
       });
-      const css = stripComments(Object.values(modules)[0] ?? '');
+      const css = stripComments(Object.values(menu)[0] ?? '');
       const rule = /\.popup:not\(:has\(> :nth-child\(2\)\)\)\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '';
-      expect(declarations(rule).get('--glass-filter')).toBe('var(--glass-menu-short-filter)');
+      expect(declarations(rule).get('--glass-filter')).toBe('var(--glass-menu-short-backdrop)');
     });
   });
 
-  describe('the selection blue on the page (language.md §1.5, redesign D0-1)', () => {
-    const tint = (hex: string): Rgb => literal(hex.toLowerCase());
-
-    it('is #4e61ed, ≥ 3:1 on white and on the yellow and green highlighter tints', () => {
-      expect(resolve('--select')).toBe('#4e61ed');
-      const select = colour('--select');
-      // language.md §1.5: 4.93 on white, 4.00 on the yellow tint, 3.53 on the green one.
-      expect(contrast(select, literal('#ffffff'))).toBeGreaterThanOrEqual(4.93);
-      expect(contrast(select, tint(TINT.yellow))).toBeGreaterThanOrEqual(3.995);
-      expect(contrast(select, tint(TINT.green))).toBeGreaterThanOrEqual(3.525);
-      for (const backdrop of [literal('#ffffff'), tint(TINT.yellow), tint(TINT.green)]) {
-        expect(contrast(select, backdrop)).toBeGreaterThanOrEqual(AA_NON_TEXT);
-      }
-    });
-
-    it('draws its washes in the same blue', () => {
-      for (const token of [
-        '--select-subtle',
-        '--select-muted',
-        '--select-wash',
-        '--select-wash-strong',
-      ]) {
-        const wash = parseColour(resolve(token));
-        expect(wash.rgb, token).toEqual(colour('--select'));
-        expect(wash.alpha, token).toBeLessThan(0.5);
-      }
-      expect(parseColour(resolve('--select-wash')).alpha).toBe(0.25);
-      expect(parseColour(resolve('--select-wash-strong')).alpha).toBe(0.45);
-    });
-
+  describe('the page layers keep to content colours (ADR-0023 §2.1, A-19)', () => {
     /**
      * The modules that draw on the page. A few also hold chrome (the controls of a popover or a
-     * panel beside the page marks), which keeps the accent until the colour step (D3): those
-     * rules are listed by selector, and no other rule may use the accent.
+     * panel beside the page marks), which may use the lime as chrome does: those rules are
+     * listed by selector, and no other rule may read an --accent token.
      */
     const PAGE_LAYERS: Readonly<Record<string, readonly string[]>> = {
       'viewer/LinkLayer.module.css': [],
@@ -840,19 +1120,16 @@ describe('tokens.css', () => {
       'annotations/AnnotationLayer.module.css': [],
       'annotations/lasso/Lasso.module.css': [],
       'forms/FormLayer.module.css': [],
-      'forms/create/CreatedFields.module.css': [
-        '.check input',
-        ".segment[aria-checked='true']",
-        ".swatch[aria-checked='true']",
-      ],
+      'forms/create/CreatedFields.module.css': [".segment[aria-checked='true']"],
       'image-objects/ImageObjects.module.css': [],
       'text-edit/TextEdit.module.css': [".choice[aria-pressed='true']"],
       'text-edit/ParagraphEditor.module.css': ['.action[data-default]'],
       'crop/Crop.module.css': [],
+      'redaction/RedactionLayer.module.css': [],
       'stage/ReadView.module.css': [],
       'furniture/FurnitureLayer.module.css': [],
       'shell/compact/NoteLayer.module.css': [],
-      'ocr/Ocr.module.css': ['.language input', '.switch input', ".rowButton[aria-current='true']"],
+      'ocr/Ocr.module.css': [".rowButton[aria-current='true']"],
       'compare/CompareView.module.css': [
         '.dropZone[data-active]',
         ".stripCell[aria-current='true']",
@@ -860,33 +1137,28 @@ describe('tokens.css', () => {
       ],
     };
 
-    it('leaves no #7c8cff or --accent in the page layers', () => {
-      const modules = import.meta.glob<string>('../**/*.module.css', {
-        query: '?raw',
-        import: 'default',
-        eager: true,
-      });
+    it('leaves no lime, #7c8cff or --accent on the page', () => {
       for (const [file, chrome] of Object.entries(PAGE_LAYERS)) {
         const source = modules[`../${file}`];
         expect(source, file).toBeDefined();
         const css = stripComments(source ?? '');
-        expect(css, file).not.toMatch(/#7c8cff|124\s+140\s+255/i);
+        expect(css, file).not.toMatch(/#7c8cff|124\s+140\s+255|#c8fb3d|200\s+251\s+61/i);
         for (const match of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-          if (!(match[2] ?? '').includes('--accent')) continue;
+          if (!/--(accent|tool-active|primary-fill)/.test(match[2] ?? '')) continue;
           const selector = (match[1] ?? '').trim().replace(/\s+/g, ' ');
-          expect(chrome, `${file}: ${selector} uses the accent on the page`).toContain(selector);
+          expect(chrome, `${file}: ${selector} uses the lime on the page`).toContain(selector);
         }
       }
     });
 
-    it('paints the page-layer canvases (paragraph editor, compare heat map) in it too', () => {
+    it('paints the page-layer canvases (paragraph editor, compare heat map) in content colours', () => {
       const sources = import.meta.glob<string>(
         ['../text-edit/ParagraphEditor.tsx', '../compare/compare-runner.ts'],
         { query: '?raw', import: 'default', eager: true },
       );
       expect(Object.keys(sources)).toHaveLength(2);
       for (const [file, source] of Object.entries(sources)) {
-        expect(source, file).not.toMatch(/#7c8cff|124,\s*140,\s*255|'--accent/i);
+        expect(source, file).not.toMatch(/#7c8cff|124,\s*140,\s*255|#c8fb3d|'--accent/i);
       }
     });
   });
@@ -898,28 +1170,28 @@ describe('tokens.css', () => {
     it('keeps its bands ≥ 9:1 apart (WCAG C40): lime on ink, 16.42:1', () => {
       expect(resolve('--focus-light')).toBe('#c8fb3d');
       expect(resolve('--focus-dark')).toBe('#08090c');
-      expect(contrast(light(), dark())).toBeGreaterThanOrEqual(9);
-      expect(contrast(light(), dark())).toBeGreaterThanOrEqual(16.42);
+      atLeast(contrast(light(), dark()), 16.42, 'bands');
     });
 
-    it('shows one band at ≥ 3:1 over every backdrop it meets', () => {
+    it('shows one band at ≥ 3:1 over every backdrop it meets (weakest: the select blue 4.07)', () => {
       const backdrops: readonly (readonly [string, Rgb])[] = [
-        ['white page', literal('#ffffff')],
-        ['yellow tint', literal(TINT.yellow.toLowerCase())],
-        ['green tint', literal(TINT.green.toLowerCase())],
+        ['white page', WHITE],
+        ['yellow tint', literal(TINT.yellow)],
+        ['green tint', literal(TINT.green)],
         ['select blue', colour('--select')],
-        ['blue ink', literal('#1760ee')],
-        ['red ink', literal('#db1c22')],
+        ['blue ink', literal(INK.blue)],
+        ['red ink', literal(INK.red)],
         ['mid grey', literal('#808080')],
-        ['accent fill', colour('--accent')],
-        ...SURFACES.map((name) => [name, colour(name)] as const),
-        ['glass over white', glassOver(literal('#ffffff'))],
-        ['glass over the canvas', glassOver(canvas())],
-        ['menu glass over white', tierOver(TIER_3, literal('#ffffff'))],
+        ['aurora lime at I 0.25', round8(over(literal('#bbed26'), 0.25, canvas()))],
+        ['lime fill', colour('--accent')],
+        ['danger', colour('--danger')],
+        ...[...SURFACES, '--surface-sunken'].map((name) => [name, colour(name)] as const),
+        ...GLASS_TIERS.map((tier) => [`${tier} over white`, tierOver(tier, WHITE)] as const),
+        ['bar over the canvas', glassOver(canvas())],
       ];
       for (const [name, backdrop] of backdrops) {
         const best = Math.max(contrast(light(), backdrop), contrast(dark(), backdrop));
-        expect(best, name).toBeGreaterThanOrEqual(AA_NON_TEXT);
+        atLeast(best, name === 'select blue' ? 4.07 : AA_NON_TEXT, name);
       }
     });
 
@@ -965,79 +1237,71 @@ describe('tokens.css', () => {
     });
   });
 
-  describe('the control block and density (09-primitives §2.1–§2.2, §25; redesign D0-3)', () => {
-    /** The theme-free `:root { … }` block (density, springs). */
-    const density = declarations(/(?:^|\n):root\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '');
+  describe('the control block and density (09-primitives §2.1–§2.2, §25)', () => {
     const coarse = mediaOverrides('pointer: coarse), (any-pointer: coarse');
+    const M4 = () => tierOver('menu', WHITE);
+    const M5 = () => tierOver('sheet', WHITE);
+    const M2 = () => tierOver('bar', WHITE);
 
     it('defines the control tokens', () => {
-      for (const name of [
-        '--control-fill',
-        '--control-fill-hover',
-        '--control-fill-pressed',
-        '--control-border',
-        '--control-border-hover',
-        '--control-on',
-        '--control-on-ink',
-        '--control-thumb-off',
-        '--control-track',
-        '--control-range',
-        '--primary-fill',
-        '--primary-ink',
-        '--field-well',
-        '--field-placeholder',
-        '--scroll-thumb',
-        '--badge-fill',
-        '--radius-control',
-        '--radius-pill',
-      ]) {
-        expect(root.has(name), name).toBe(true);
-      }
+      for (const name of CONTROL_TOKENS) expect(theme.has(name), name).toBe(true);
       expect(resolve('--radius-control')).toBe('10px');
     });
 
-    it('keeps on-states and the range fill neutral, never the accent (10-ink §3.1)', () => {
-      expect(resolve('--control-range')).toBe(resolve('--text-primary'));
-      expect(resolve('--control-on')).toBe(resolve('--text-primary'));
-      expect(resolve('--control-range')).not.toBe(resolve('--accent'));
-      // The on-state glyph on the on-fill, and the on-fill on every surface.
-      expect(contrast(colour('--control-on-ink'), colour('--control-on'))).toBeGreaterThan(7);
-      for (const surface of SURFACES) {
-        expect(contrast(colour('--control-on'), colour(surface)), surface).toBeGreaterThan(7);
+    it('keeps on-states, the range and progress neutral: n12 with an ink glyph (09 §34 #1)', () => {
+      for (const token of ['--control-on', '--control-range', '--progress-fill']) {
+        expect(resolve(token), token).toBe(resolve('--n12'));
+        expect(resolve(token), token).not.toBe(resolve('--accent'));
       }
+      expect(resolve('--control-on-ink')).toBe(resolve('--n1'));
+      atLeast(contrast(colour('--control-on-ink'), colour('--control-on')), 16.4, 'glyph');
+      atLeast(contrast(colour('--control-on'), M5()), 9.96, 'on-fill vs M5');
+      atLeast(contrast(colour('--control-on'), M2()), 7.9, 'on-fill vs M2');
+      for (const surface of SURFACES) {
+        atLeast(contrast(colour('--control-on'), colour(surface)), 7, surface);
+      }
+    });
+
+    it('holds 09 §2.2’s pairs: fills, border, thumb, well, scroll thumb, badge', () => {
+      const primary = colour('--text-primary');
+      atLeast(contrast(primary, on('--control-fill', M5())), 7.78, 'n12 on fill over M5');
+      atLeast(contrast(primary, on('--control-fill-hover', M5())), 6.86, 'on hover fill');
+      atLeast(contrast(primary, on('--control-fill-pressed', M5())), 6.06, 'on pressed fill');
+      atLeast(contrast(primary, on('--control-fill', M4())), 7.55, 'n12 on fill over M4');
+      atLeast(contrast(on('--control-border', M5()), M5()), 4.09, 'border vs M5');
+      atLeast(contrast(on('--control-border', M4()), M4()), 4.06, 'border vs M4');
+      const well = colour('--field-well');
+      expect(resolve('--field-well')).toBe(resolve('--n2'));
+      atLeast(contrast(on('--control-border', well), well), 5.01, 'border vs its well');
+      atLeast(contrast(colour('--control-thumb-off'), M5()), 6.49, 'thumb off vs M5');
+      atLeast(contrast(colour('--field-placeholder'), well), 7.58, 'placeholder');
+      atLeast(contrast(primary, well), 15.45, 'text in the well');
+      atLeast(
+        contrast(on('--scroll-thumb', tierOver('panel', WHITE)), tierOver('panel', WHITE)),
+        3.33,
+        'scroll thumb vs M3',
+      );
+      atLeast(contrast(primary, colour('--badge-fill')), 10.43, 'badge');
     });
 
     it('draws the control border at ≥ 3:1 against every surface (A-3)', () => {
-      const border = parseColour(resolve('--control-border'));
-      for (const surface of SURFACES) {
+      for (const surface of [...SURFACES, '--surface-sunken']) {
         const under = colour(surface);
-        const ring = round8(over(border.rgb, border.alpha, under));
-        expect(contrast(ring, under), surface).toBeGreaterThanOrEqual(AA_NON_TEXT);
+        atLeast(contrast(on('--control-border', under), under), AA_NON_TEXT, surface);
       }
     });
 
-    it('keeps the M8 names as aliases of the semantic ones (§25 block 8)', () => {
-      expect(root.get('--surface-0')).toBe('var(--canvas)');
-      expect(root.get('--surface-2')).toBe('var(--surface-raised)');
-      expect(root.get('--text-md')).toBe('var(--type-body)');
-      expect(root.get('--radius-2')).toBe('var(--radius-sm)');
-      expect(root.get('--radius-round')).toBe('var(--radius-capsule)');
-      // Today's values hold until D3 changes them.
-      expect(resolve('--surface-0')).toBe('#08090b');
-      expect(resolve('--radius-2')).toBe('6px');
-    });
-
     it('sizes controls 32 px fine and 44 px coarse, in bars of 44 and 56 (Q-9)', () => {
-      expect(density.get('--control-h')).toBe('32px');
-      expect(density.get('--bar-button')).toBe('32px');
-      expect(density.get('--bar-h')).toBe('44px');
+      expect(free.get('--control-h')).toBe('32px');
+      expect(free.get('--bar-button')).toBe('32px');
+      expect(free.get('--bar-h')).toBe('44px');
       expect(coarse.get('--control-h')).toBe('44px');
       expect(coarse.get('--bar-button')).toBe('44px');
       expect(coarse.get('--bar-h')).toBe('56px');
       expect(coarse.get('--field-text')).toBe('16px');
       // Icons stay 16 and 20 at both densities (Q-9).
-      expect(density.get('--icon-sm')).toBe('16px');
-      expect(density.get('--icon-md')).toBe('20px');
+      expect(free.get('--icon-sm')).toBe('16px');
+      expect(free.get('--icon-md')).toBe('20px');
       expect(coarse.has('--icon-sm')).toBe(false);
       expect(coarse.has('--icon-md')).toBe(false);
     });
@@ -1053,4 +1317,160 @@ describe('tokens.css', () => {
       expect(resolve('--motion-rise', reduced)).toBe('translateY(0px)');
     });
   });
+
+  describe('no colour literal outside the tokens (D3-2)', () => {
+    /**
+     * The colour literals CSS modules may keep, by file: content that is not chrome (the page's
+     * own text and the inks of in-place editors, the PDF's form look, the hue spectrum and
+     * transparency checkerboard of the colour panel, the hue ring of a custom colour), masks
+     * (`#000` in a mask is coverage, not colour), and the light theme's values inside
+     * `:global([data-theme='light'])` rules, which D3-7 moves into tokens.css. Everything else
+     * paints with a token.
+     */
+    const ALLOWED: Readonly<Record<string, readonly string[]>> = {
+      'text-edit/TextEdit.module.css': ['#000000'],
+      'forms/create/CreatedFields.module.css': ['#000000', 'rgb(153 193 218)'],
+      'forms/FormLayer.module.css': ['#111111'],
+      'annotations/AnnotationLayer.module.css': ['rgb(255 255 255 / 0.85)'],
+      'annotations/lasso/Lasso.module.css': ['#fff', '#000'],
+      'signatures/NewSignatureSheet.module.css': ['rgb(26 35 126 / 0.45)'],
+      'ui/colour/ColourSpectrum.module.css': [
+        '#ffffff',
+        '#000000',
+        '#ff0000',
+        '#ffff00',
+        '#00ff00',
+        '#00ffff',
+        '#0000ff',
+        '#ff00ff',
+        'rgb(255 255 255 / 0)',
+        'rgb(0 0 0 / 0)',
+        'rgb(0 0 0 / 0.25)',
+        'rgb(0 0 0 / 0.2)',
+        'rgb(0 0 0 / 0.5)',
+      ],
+      'ui/colour/ColourWell.module.css': [
+        '#ff3b30',
+        '#ff9500',
+        '#ffcc00',
+        '#34c759',
+        '#00c7be',
+        '#007aff',
+        '#5856d6',
+        '#af52de',
+        '#ff2d55',
+        '#ffffff',
+        '#d5d7dc',
+      ],
+      'ui/colour/Eyedropper.module.css': [
+        'rgb(255 255 255 / 0.9)',
+        'rgb(0 0 0 / 0.28)',
+        'rgb(0 0 0 / 0.7)',
+        '#ffffff',
+      ],
+      'ui/colour/ColourGrid.module.css': ['rgb(0 0 0 / 0.55)', '#ffffff'],
+      'ui/colour/ColourPanel.module.css': ['#8a8d93'],
+      // The knob's notch glyph sits on the white knob; the lens rim, the transparency checker
+      // and the readout bubble's rim are the slider's own (10-ink §3.2).
+      'ui/Slider.module.css': [
+        '#ffffff',
+        '#d5d7dc',
+        '#4f535a',
+        'rgb(0 0 0 / 0.18)',
+        'rgb(0 0 0 / 0.12)',
+        'rgb(0 0 0 / 0.2)',
+        'rgb(255 255 255 / 0.35)',
+        'rgb(255 255 255 / 0.7)',
+        'rgb(255 255 255 / 0.3)',
+        'rgb(255 255 255 / 0.12)',
+      ],
+      'ui/Swatch.module.css': ['#e5322d', '#ffffff', 'rgb(21 23 28 / 0.35)'],
+    };
+    const LITERAL = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/gi;
+    /** The rules of a module outside any `:global([data-theme='light'])` selector. */
+    const darkRules = (css: string) =>
+      [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter((m) => !(m[1] ?? '').includes("data-theme='light'"))
+        .map((m) => m[2] ?? '');
+
+    it('keeps every chrome colour in tokens.css', () => {
+      const stray: string[] = [];
+      const unused = new Set(
+        Object.entries(ALLOWED).flatMap(([file, values]) => values.map((v) => `${file}: ${v}`)),
+      );
+      for (const [file, source] of Object.entries(modules)) {
+        const name = file.replace(/^\.\.\//, '');
+        const allowed = new Set((ALLOWED[name] ?? []).map((v) => v.toLowerCase()));
+        for (const body of darkRules(stripComments(source))) {
+          // Masks draw coverage, not colour.
+          const painted = body.replace(/(?:-webkit-)?mask(?:-image)?\s*:[^;]*;?/g, '');
+          for (const [found] of painted.matchAll(LITERAL)) {
+            const value = found.toLowerCase().replace(/\s+/g, ' ');
+            unused.delete(`${name}: ${value}`);
+            // `0 0 #0000`: the empty shadow --shadow-own starts at.
+            if (value !== '#0000' && !allowed.has(value)) stray.push(`${name}: ${found}`);
+          }
+        }
+      }
+      expect(stray).toEqual([]);
+      // The list stays honest: every literal it allows is still there.
+      expect([...unused]).toEqual([]);
+    });
+  });
 });
+
+/** OKLab of an 8-bit sRGB colour (Ottosson). */
+function oklab(c: Rgb, matrix: readonly (readonly number[])[] | null = null): Rgb {
+  let [r, g, b] = map3(c, linear);
+  if (matrix) {
+    const m = matrix as readonly [readonly number[], readonly number[], readonly number[]];
+    const sim = m.map((row) =>
+      Math.min(1, Math.max(0, (row[0] ?? 0) * r + (row[1] ?? 0) * g + (row[2] ?? 0) * b)),
+    ) as [number, number, number];
+    [r, g, b] = sim;
+  }
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const mm = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [
+    0.2104542553 * l + 0.793617785 * mm - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * mm + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * mm - 0.808675766 * s,
+  ];
+}
+
+/** OKLCH hue in degrees. */
+function okhue(c: Rgb): number {
+  const [, a, b] = oklab(c);
+  return ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+}
+
+/**
+ * Machado, Oliveira and Fernandes (2009) at severity 1.0, in linear sRGB (language.md §1.2):
+ * none, protanopia, deuteranopia, tritanopia.
+ */
+const CVD: readonly (readonly (readonly number[])[] | null)[] = [
+  null,
+  [
+    [0.152286, 1.052583, -0.204868],
+    [0.114503, 0.786281, 0.099216],
+    [-0.003882, -0.048116, 1.051998],
+  ],
+  [
+    [0.367322, 0.860646, -0.227968],
+    [0.280085, 0.672501, 0.047413],
+    [-0.01182, 0.04294, 0.968881],
+  ],
+  [
+    [1.255528, -0.076749, -0.178779],
+    [-0.078411, 0.930809, 0.147602],
+    [0.004733, 0.691367, 0.3039],
+  ],
+];
+
+/** ΔE_OK × 100 between two colours as seen under `matrix`. */
+function deltaE(a: Rgb, b: Rgb, matrix: readonly (readonly number[])[] | null): number {
+  const p = oklab(a, matrix);
+  const q = oklab(b, matrix);
+  return 100 * Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+}

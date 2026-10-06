@@ -61,6 +61,7 @@ import { create } from 'zustand';
 
 import { type EngineFailure, getEngineService, type OpenedSource } from '../engine/engine-service';
 import { m } from '../i18n';
+import { lockOpened } from './lock-store';
 
 /** Number of source colour tags in tokens.css (`--tag-0` … `--tag-5`). */
 export const SOURCE_TAG_COUNT = 6;
@@ -581,6 +582,8 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
         lease.release();
         collectGarbage();
       }
+      // "Open documents locked" (ADR-0029 §2.8): the one place documents open from files.
+      lockOpened(opened.map((o) => o.documentId));
       // Activate the first new document, as dropping several files reads left to right.
       const first = opened[0];
       if (first !== undefined && get().workspace.documents[first.documentId] !== undefined) {

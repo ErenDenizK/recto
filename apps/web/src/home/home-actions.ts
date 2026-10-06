@@ -28,7 +28,7 @@ import { reopenFromSnapshot } from '../session/session';
 import { announce } from '../shell/announcer';
 import { openOperationDialog } from '../stage/operation-dialogs-store';
 import { mergeAll } from '../stage/section-operations';
-import { type DocumentMode, useUiStore } from '../state/ui-store';
+import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { liveSelection } from './home-model';
@@ -44,7 +44,8 @@ export function showHome(): void {
 
 /**
  * Makes a document the active tab (its tab, its Files row). On Home this leaves Home for the
- * document in the view and mode it was last shown in (ADR-0019 §1); elsewhere the view stays.
+ * document on its surface, with Markup as it was (ADR-0019 §1); elsewhere what the stage
+ * shows stays (`ui-store` carries the surface to the new tab).
  */
 export function showTab(id: DocumentId): void {
   if (model().workspace.documents[id] === undefined) return;
@@ -53,56 +54,32 @@ export function showTab(id: DocumentId): void {
 }
 
 /**
- * Read (locked) or Edit for the active document (`1`, `2`, the mode control): the page view
- * in both, so switching never moves the page (ADR-0019 §2). Announced.
+ * Markup open or closed for the active document (`2` and `1`, M8's Edit and Read segments):
+ * the page view in both, so switching never moves the page (ADR-0019 §2). Announced with
+ * M8's words, which the visible control still uses.
  */
-export function showDocumentMode(mode: DocumentMode): void {
+export function showMarkup(open: boolean): void {
   const id = model().workspace.activeDocument;
   if (id === undefined) return;
-  ui().setDocumentMode(id, mode);
-  ui().setViewMode('read');
-  announce(mode === 'read' ? m.read_locked_announce() : m.mode_edit_long());
+  if (open) ui().openMarkup(id);
+  else ui().closeMarkup(id);
+  ui().showSurface('page', id);
+  announce(open ? m.mode_edit_long() : m.read_locked_announce());
 }
 
 /**
- * Keeps the shell in step with the open documents: remembers the view each document is
- * shown in (for leaving Home by its tab) and, once the last document closes, starts over as
- * on a fresh start, so Home's empty state shows and the next file opens in Read.
+ * Keeps the shell in step with the open documents: once the last document closes, starts
+ * over as on a fresh start, so Home's empty state shows and the next file opens on its page
+ * with Markup closed. (Each document keeps its own surface, `docUi`; the one shown follows
+ * a tab switch in `ui-store`.)
  */
 export function watchDestination(): () => void {
-  const remember = () => {
-    const state = ui();
-    const id = model().workspace.activeDocument;
-    // Compare is entered with its own command; a tab click never lands in it.
-    if (state.destination !== 'document' || id === undefined || state.viewMode === 'compare') {
-      return;
-    }
-    state.rememberView(id, state.viewMode);
-  };
-  const offUi = useUiStore.subscribe((state, previous) => {
-    if (state.viewMode !== previous.viewMode || state.destination !== previous.destination) {
-      remember();
-    }
-  });
-  const offWorkspace = useWorkspaceStore.subscribe((state, previous) => {
+  return useWorkspaceStore.subscribe((state, previous) => {
     if (state.workspace === previous.workspace) return;
-    if (state.workspace.documentOrder.length === 0) {
-      if (previous.workspace.documentOrder.length > 0) {
-        useUiStore.setState({
-          destination: 'document',
-          viewMode: 'read',
-          documentMode: {},
-          lastView: {},
-        });
-      }
-      return;
+    if (state.workspace.documentOrder.length === 0 && previous.workspace.documentOrder.length > 0) {
+      useUiStore.setState({ destination: 'document', docUi: {} });
     }
-    if (state.workspace.activeDocument !== previous.workspace.activeDocument) remember();
   });
-  return () => {
-    offUi();
-    offWorkspace();
-  };
 }
 
 /** Selects cards on Home and says how many are selected. */
@@ -123,7 +100,7 @@ export function showOpened(
   if (ids.length === 0) return;
   const onHome = ui().destination === 'home';
   if (context.wasEmpty && ids.length === 1) {
-    if (onHome) ui().setViewMode('read');
+    if (onHome) ui().showSurface('page');
     return;
   }
   if (onHome || context.wasEmpty) {
@@ -132,11 +109,11 @@ export function showOpened(
   }
 }
 
-/** Opens a card: Read on that document's tab. */
+/** Opens a card: that document's page, on its tab. */
 export function openInRead(id: DocumentId): void {
   if (model().workspace.documents[id] === undefined) return;
   model().setActive(id);
-  ui().setViewMode('read');
+  ui().showSurface('page', id);
 }
 
 /** The merge dialog, pre-ordered: the selection, a card drop's pair, or every tab. */
@@ -191,7 +168,7 @@ export function arrangeOnHome(selection: readonly DocumentId[]): void {
   if (selected.length > 0) {
     for (const id of all) if (!shown.includes(id)) ui().hideFromArrange(id);
   }
-  ui().setViewMode('arrange');
+  ui().showSurface('grid', first);
 }
 
 /** Closes the selected documents as one undoable step. */

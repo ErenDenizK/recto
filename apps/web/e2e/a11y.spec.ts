@@ -945,14 +945,11 @@ test.describe('craft spec §9', () => {
     await viewport(page).focus();
     await tabWalk(page, 12);
 
-    // The page context menu in Read: no page operation and no "Edit text here"; one quiet row
-    // switches to Edit (review finding 4).
+    // The page context menu in viewing: the page operations are `pages` acts, offered without
+    // Markup (ADR-0030, S8).
     const menu = await openPageMenu(page);
-    await expect(
-      menu.getByRole('menuitem', { name: /^Switch to Edit to change pages/ }),
-    ).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Rotate page 1 right' })).toHaveCount(0);
-    await expect(menu.getByRole('menuitem', { name: /Edit text here/ })).toHaveCount(0);
+    await expect(menu.getByRole('menuitem', { name: 'Rotate page 1 right' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: /Edit text here/ })).toBeVisible();
     await axe(page, 'Read, the page context menu');
     await page.keyboard.press('Escape');
     await expect(menu).toHaveCount(0);

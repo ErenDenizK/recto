@@ -51,6 +51,9 @@ export function registerFurnitureCommands(registry: CommandRegistry): () => void
       id,
       title: title(),
       group: m.group_document(),
+      // The sheet opens on a locked document too, with its lock banner (07-sheets S11).
+      act: 'document',
+      via: 'sheet',
       keywords,
       when: () => (activeDocument()?.pages.length ?? 0) > 0,
       run: () => {
@@ -62,6 +65,7 @@ export function registerFurnitureCommands(registry: CommandRegistry): () => void
       id: `${id}.remove`,
       title: removeLabel(kind),
       group: m.group_document(),
+      act: 'document',
       keywords: [...keywords, 'remove', 'delete'],
       note: m.furniture_remove_note({ name: furnitureName(kind) }),
       when: () => {

@@ -24,8 +24,9 @@ import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { useAnnouncer } from '../shell/announcer';
 import { FloatingToolbar } from '../shell/FloatingToolbar';
+import { resetLockStore, useLockStore } from '../state/lock-store';
 import { useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
+import { isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
@@ -137,7 +138,7 @@ describe('page context menu', () => {
     resetEditRunner();
     resetAnnotationStore();
     resetToolStore();
-    useUiStore.setState({ viewMode: 'read' });
+    useUiStore.setState({ docUi: {} });
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
   });
   afterEach(async () => {
@@ -149,7 +150,7 @@ describe('page context menu', () => {
     resetWorkspace();
   });
 
-  it('in Read offers no page change: one quiet row switches to Edit, Arrange stays', async () => {
+  it('in viewing offers the page operations (S8); locked, they are dimmed and change nothing', async () => {
     const { container, doc } = await mount();
     const kept = rightClick(pageElement(container, 1));
     expect(kept).toBe(false);
@@ -159,31 +160,40 @@ describe('page context menu', () => {
       .getAllByRole('menuitem')
       .map((item) => item.textContent?.trim());
     expect(names).toEqual([
-      expect.stringMatching(/^Switch to Edit to change pages/),
+      expect.stringMatching(/^Edit text here/),
+      'Rotate page 2 left',
+      'Rotate page 2 right',
+      'Delete page 2',
+      'Crop…',
       expect.stringMatching(/^Arrange/),
     ]);
-    // Neither Edit's own item nor a page operation is offered in Read (ADR-0019 §3).
-    for (const name of ['Edit text here', /^Rotate page/, /^Delete page/, 'Crop…']) {
-      expect(within(popup).queryByRole('menuitem', { name })).toBeNull();
-    }
-    const row = within(popup).getByRole('menuitem', { name: /^Switch to Edit to change pages/ });
-    // It looks unavailable but can be chosen; choosing it is the explicit switch to Edit.
-    expect(row).toHaveAttribute('data-quiet');
-    expect(row).not.toHaveAttribute('aria-disabled');
-    expect(useUiStore.getState().documentMode[doc.id] ?? 'read').toBe('read');
-    await userEvent.click(row);
-    expect(useUiStore.getState().documentMode[doc.id]).toBe('edit');
-    expect(useAnnouncer.getState().message).toBe('Edit mode');
-    expect(activeDoc().pages.map((p) => p.rotation)).toEqual(doc.pages.map((p) => p.rotation));
+    // `pages` acts need no Markup (ADR-0030): a rotation from viewing, one step.
+    await userEvent.click(within(popup).getByRole('menuitem', { name: 'Rotate page 2 right' }));
+    expect(activeDoc().pages[1]?.rotation).toBe(((doc.pages[1]?.rotation ?? 0) + 90) % 360);
+    expect(isMarkupOpen(useUiStore.getState(), doc.id)).toBe(false);
     await closed();
 
-    // In Edit the page operations are back.
+    // Locked: the same rows, dimmed with nothing changed (Arrange stays).
+    useLockStore.getState().lock(doc.id);
+    const before = activeDoc().pages.map((p) => p.rotation);
     rightClick(pageElement(container, 1));
-    const edit = await menu();
-    expect(within(edit).getByRole('menuitem', { name: 'Rotate page 2 right' })).toBeVisible();
-    expect(within(edit).queryByRole('menuitem', { name: /^Switch to Edit/ })).toBeNull();
+    const locked = await menu();
+    for (const name of ['Edit text here', 'Rotate page 2 left', 'Delete page 2', 'Crop…']) {
+      expect(
+        within(locked).getByRole('menuitem', { name: new RegExp(`^${name}`) }),
+      ).toHaveAttribute('aria-disabled', 'true');
+    }
+    expect(within(locked).getByRole('menuitem', { name: /^Arrange/ })).not.toHaveAttribute(
+      'aria-disabled',
+    );
+    await userEvent.click(within(locked).getByRole('menuitem', { name: 'Delete page 2' }), {
+      force: true,
+    });
+    expect(activeDoc().pages.map((p) => p.rotation)).toEqual(before);
+    expect(activeDoc().pages).toHaveLength(doc.pages.length);
     await userEvent.keyboard('{Escape}');
     await closed();
+    resetLockStore();
   });
 
   it('in Edit names the clicked page and rotates that page', async () => {
@@ -244,7 +254,7 @@ describe('page context menu', () => {
     await closed();
     rightClick(pageElement(container, 1));
     await userEvent.click(within(await menu()).getByRole('menuitem', { name: /^Arrange/ }));
-    expect(useUiStore.getState().viewMode).toBe('arrange');
+    expect(stageView(useUiStore.getState())).toBe('grid');
     expect([...useSelectionStore.getState().selected]).toEqual([third]);
   });
 

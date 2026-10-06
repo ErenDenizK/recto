@@ -22,6 +22,8 @@ export function registerOcrCommands(registry: CommandRegistry): () => void {
       id: 'document.ocr',
       title: m.ocr_cmd(),
       group: m.group_document(),
+      act: 'document',
+      via: 'sheet',
       keywords: ['ocr', 'recognize', 'text', 'scan', 'searchable', 'tesseract', 'metin', 'tanı'],
       when: () => {
         const doc = activeDocument();
@@ -39,6 +41,7 @@ export function registerOcrCommands(registry: CommandRegistry): () => void {
       id: 'document.ocrLanguages',
       title: m.ocr_cmd_languages(),
       group: m.group_tools(),
+      act: null,
       keywords: ['ocr', 'language', 'languages', 'offline', 'download', 'traineddata', 'import'],
       run: () => openOcrDialog(activeDocument()?.id, 'languages'),
     }),
@@ -46,6 +49,7 @@ export function registerOcrCommands(registry: CommandRegistry): () => void {
       id: 'ocr.nextWord',
       title: m.ocr_cmd_next_word(),
       group: m.group_tools(),
+      act: null,
       shortcut: 'J',
       keywords: ['ocr', 'review', 'word', 'confidence'],
       when: reviewingOcr,
@@ -57,6 +61,7 @@ export function registerOcrCommands(registry: CommandRegistry): () => void {
       id: 'ocr.previousWord',
       title: m.ocr_cmd_previous_word(),
       group: m.group_tools(),
+      act: null,
       shortcut: 'K',
       keywords: ['ocr', 'review', 'word', 'confidence'],
       when: reviewingOcr,
