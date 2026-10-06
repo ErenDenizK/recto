@@ -1,10 +1,10 @@
 /**
- * Clip 8, "Pages to Markdown" (spec §6): the report's pages 2–4 through Document menu →
- * "Export as Markdown / text…", which opens Save a copy on Text (components/07-sheets.md
- * §4.1): Markdown, a page range; the preview shows the pages' headings as Markdown headings,
- * and Copy puts the Markdown on the clipboard. The scene asserts the headings
- * (test/fixtures/README.md: Contents, Chair's foreword, The year in numbers) and what was
- * copied.
+ * Clip 8, "Pages to Markdown" (spec §6): the report's pages 2–4 through the title menu
+ * (opened from the active tab, 01-frame F5) → "Export as Markdown / text…", which opens Save
+ * a copy on Text (components/07-sheets.md §4.1): Markdown, a page range; the preview shows
+ * the pages' headings as Markdown headings, and Copy puts the Markdown on the clipboard. The
+ * scene asserts the headings (test/fixtures/README.md: Contents, Chair's foreword, The year in
+ * numbers) and what was copied.
  */
 import { expect } from '@playwright/test';
 
@@ -15,22 +15,22 @@ const FIXTURES = ['demo-report-v1.pdf'] as const;
 scene({
   id: '08-markdown',
   kind: 'clip',
-  // The Document menu and the Save a copy sheet at the window's right edge, with the
-  // report's cover beside them.
-  crop: { x: 440, y: 0, width: 1000, height: 900 },
+  // No crop: the title menu opens from the tab at the left, the Save a copy sheet is a side
+  // sheet on the right, and the report's cover sits between them.
   async prepare(stage) {
     const { page } = stage;
     // Copy writes to the clipboard, and the scene reads it back.
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await stage.openFixtures(FIXTURES);
-    await stage.rendered(page.locator('main'), 1);
+    await stage.fitPage();
+    await stage.rendered(page.locator('[data-read-viewport]'), 1);
     await stage.cursor.place(1060, 620);
   },
   async run(stage) {
     const { page, cursor } = stage;
     await stage.hold(200);
 
-    // 1. Document menu → Export as Markdown / text…: Save a copy, on Text, Markdown.
+    // 1. The title menu → Export as Markdown / text…: Save a copy, on Text, Markdown.
     await cursor.click(page.getByTestId('document-menu'), 400);
     await cursor.click(page.getByRole('menuitem', { name: 'Export as Markdown / text…' }), 380);
     const sheet = page.getByTestId('save-copy-sheet');
