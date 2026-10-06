@@ -1,12 +1,10 @@
 /**
  * Clip 8, "Pages to Markdown" (spec §6): the report's pages 2–4 through Document menu →
- * "Export as Markdown / text…", Markdown, a page range; the preview shows the pages'
- * headings as Markdown headings. The scene asserts them (test/fixtures/README.md: Contents,
- * Chair's foreword, The year in numbers).
- *
- * The spec's last beat, "Copy", has no control in the app: the dialog offers Cancel and
- * Download only (apps/web/src/convert/ConvertDialog.tsx). The clip ends on the preview,
- * with the pointer resting by Download, and leaves the beat out rather than faking it.
+ * "Export as Markdown / text…", which opens Save a copy on Text (components/07-sheets.md
+ * §4.1): Markdown, a page range; the preview shows the pages' headings as Markdown headings,
+ * and Copy puts the Markdown on the clipboard. The scene asserts the headings
+ * (test/fixtures/README.md: Contents, Chair's foreword, The year in numbers) and what was
+ * copied.
  */
 import { expect } from '@playwright/test';
 
@@ -17,10 +15,13 @@ const FIXTURES = ['demo-report-v1.pdf'] as const;
 scene({
   id: '08-markdown',
   kind: 'clip',
-  // The dialog: options on the left, the preview on the right.
-  crop: { x: 240, y: 96, width: 960, height: 720 },
+  // The Document menu and the Save a copy sheet at the window's right edge, with the
+  // report's cover beside them.
+  crop: { x: 440, y: 0, width: 1000, height: 900 },
   async prepare(stage) {
     const { page } = stage;
+    // Copy writes to the clipboard, and the scene reads it back.
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await stage.openFixtures(FIXTURES);
     await stage.rendered(page.locator('main'), 1);
     await stage.cursor.place(1060, 620);
@@ -29,34 +30,43 @@ scene({
     const { page, cursor } = stage;
     await stage.hold(200);
 
-    // 1. Document menu → Export as Markdown / text…
+    // 1. Document menu → Export as Markdown / text…: Save a copy, on Text, Markdown.
     await cursor.click(page.getByTestId('document-menu'), 400);
     await cursor.click(page.getByRole('menuitem', { name: 'Export as Markdown / text…' }), 380);
-    const dialog = page.getByTestId('convert-dialog');
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('radio', { name: /^Markdown/ })).toBeChecked();
+    const sheet = page.getByTestId('save-copy-sheet');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole('radio', { name: 'Text', exact: true })).toBeChecked();
+    await expect(sheet.getByRole('radio', { name: 'Markdown', exact: true })).toBeChecked();
 
     // 2. Pages 2–4.
-    await cursor.click(dialog.getByRole('radio', { name: 'Page range' }), 380);
-    const range = dialog.getByRole('textbox', { name: 'Page range' });
+    await cursor.click(sheet.getByRole('radio', { name: 'Range', exact: true }), 380);
+    const range = sheet.getByRole('textbox', { name: 'Page range' });
+    // Range shows the field but leaves focus on its radio: Tab goes on to the field (a
+    // pointer trip there cost most of a second of an eight-second clip).
+    await page.keyboard.press('Tab');
+    await expect(range).toBeFocused();
     await range.pressSequentially('2-4', { delay: 70 });
 
     // 3. The preview: the three pages' headings, as Markdown.
-    const preview = dialog.getByTestId('convert-preview');
-    await expect(preview).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+    const preview = sheet.getByTestId('convert-preview');
     // The range is applied: the preview starts at page 2's heading, not at the cover.
-    await expect(preview).toHaveText(/^# Contents\n/);
+    await expect(preview).toHaveText(/^# Contents\n/, { timeout: 30_000 });
+    await expect(preview).toHaveAttribute('data-state', 'ready');
     await expect(preview).toContainText(/^#+ Chair’s foreword$/m);
     await expect(preview).toContainText(/^#+ The year in numbers$/m);
-    await expect(dialog.getByTestId('convert-output')).toHaveText(/^Downloads demo-report-v1\./);
-    await stage.hold(400);
-    // Down the preview to the foreword's heading and the next page's.
+    await expect(sheet.getByRole('textbox', { name: 'Name' })).toHaveValue(
+      /^demo-report-v1\.(md|zip)$/,
+    );
+    await stage.hold(300);
+    // Down the preview to the foreword's heading.
     await cursor.moveTo(preview, 400, { x: 0.6, y: 0.55 });
     await preview.evaluate((el) => el.scrollBy({ top: 150, behavior: 'smooth' }));
-    await stage.hold(450);
-    // Just right of Download, clear of the preview and inside the crop.
-    const download = await dialog.getByRole('button', { name: 'Download' }).boundingBox();
-    if (!download) throw new Error('the Download button is not laid out');
-    await cursor.move(download.x + download.width + 10, download.y + download.height / 2, 420);
+    await stage.hold(250);
+
+    // 4. Copy: the Markdown to the clipboard.
+    await cursor.click(sheet.getByRole('button', { name: 'Copy', exact: true }), 420);
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toMatch(/^# Contents\n/);
   },
 });
