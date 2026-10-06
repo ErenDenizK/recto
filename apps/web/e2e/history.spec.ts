@@ -15,7 +15,7 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, saveCopyBytes, useFileInputPicker } from './helpers';
+import { enterEdit, markupDoor, openFixtures, saveCopyBytes, useFileInputPicker } from './helpers';
 
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
@@ -151,9 +151,7 @@ test.describe('↶ ↷ and the History scrubber', () => {
 
     // Back to Read (the M8 lock), then the scrubber: one step back, kept with Enter.
     await page.keyboard.press('1');
-    await expect(
-      page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Edit', exact: true }),
-    ).toBeVisible();
+    await expect(markupDoor(page)).toBeVisible();
     await page.getByTestId('undo-button').click({ button: 'right' });
     const scrubber = page.getByTestId('history-scrubber');
     await expect(scrubber).toBeVisible();
@@ -169,9 +167,7 @@ test.describe('↶ ↷ and the History scrubber', () => {
     await expect(scrubber).toHaveCount(0);
     await expect(page.getByTestId('undo-button')).toBeFocused();
     // Still in Read; the bytes hold the one rectangle history says.
-    await expect(
-      page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Edit', exact: true }),
-    ).toBeVisible();
+    await expect(markupDoor(page)).toBeVisible();
     expect(await annotationCounts(await exportBytes(page))).toEqual([{ Square: 1 }, {}, {}]);
 
     // Esc after a preview restores; the bytes stay at the kept step.
