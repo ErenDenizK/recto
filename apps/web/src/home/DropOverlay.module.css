@@ -31,6 +31,13 @@
   transition: transform var(--spring-quick) var(--ease-spring);
 }
 
+/* A page lies under this card, which lit glass never allows unblurred (language.md §2.5: lit
+   over white is forbidden). Until the field and its blur arrive (D3-8) the card takes the lit
+   tier's solid twin (n4, principle 7), so no page line shows through it. */
+.overlay .card {
+  background: var(--glass-lit-solid);
+}
+
 @starting-style {
   .overlay {
     opacity: 0;
