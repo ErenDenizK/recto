@@ -31,7 +31,7 @@ import type { TextRun } from '@pdf-editor/engine';
 
 import { m } from '../../i18n';
 import { announce } from '../../shell/announcer';
-import { canEditActive } from '../../state/ui-store';
+import { isMarkupOpenActive } from '../../state/ui-store';
 import { useToolStore } from '../../viewer/tool-store';
 import { createAnnotations } from '../actions';
 import { type PageTarget, useAnnotationStore } from '../annotation-store';
@@ -427,7 +427,7 @@ export async function activateHighlighter(
   const index = highlighterIndex(pen);
   const preset = index === undefined ? undefined : pen.presets[index];
   if (hasTextSelection()) {
-    if (!canEditActive()) {
+    if (!isMarkupOpenActive()) {
       await activate(toolDefinition('highlight'));
       return;
     }

@@ -6,7 +6,8 @@
  *
  * M8's global `viewMode`, per-document `documentMode` and `lastView` are gone: Compare is a
  * destination, the page view or the light table is the document's `surface`, and M8's Edit
- * is the document's `markup` (`canEdit` reads it until the input rules replace it, D1-5).
+ * is the document's `markup`; whether a document may change is the change guard's
+ * (`state/guard.ts`).
  *
  * Panel layout is persisted to localStorage (`ui:v3`, see `safe-storage.ts`); everything
  * else is per session.
@@ -33,9 +34,8 @@ export type Surface = 'page' | 'grid';
 export type PaletteSet = 'draw' | 'sign';
 /**
  * One document's UI (redesign spec §7, flows §2.4). `surface` is kept in the session
- * snapshot. `markup` is whether Markup is open: until the input rules land (D1-5) it carries
- * M8's Edit, so `canEdit` reads it and the snapshot keeps it as M8 kept Edit. `paletteSet`
- * is the last door into Markup, for the session.
+ * snapshot. `markup` is whether Markup is open (the input rules, `viewer/hit-order.ts`, and the
+ * change guard read it). `paletteSet` is the last door into Markup, for the session.
  */
 export interface DocumentUi {
   readonly surface: Surface;
@@ -379,7 +379,7 @@ export function isPageView(
   return stageView(state, id) === 'page';
 }
 
-/** Whether Markup is open for `id` (M8's Edit until D1-5); false for no document. */
+/** Whether Markup is open for `id`; false for no document. */
 export function isMarkupOpen(
   state: Pick<UiState, 'docUi'>,
   id: DocumentId | null | undefined,
@@ -675,26 +675,16 @@ export function useStageView(): StageView {
 }
 
 /**
- * The Read lock (ADR-0019 §3), kept as a shim with M8's meaning until the input rules
- * replace it (D1-5; `canChange` in D1-2): whether `id` may change from the page. True only
- * while Markup is open for the document (M8's Edit, `docUi[id].markup`); an unknown or
- * missing document is locked, so a missed check fails closed. Whole-document operations
- * with their own dialog (Document menu, Arrange) and Undo / Redo do not ask.
+ * Whether Markup is open for the active document: the Markup state of the tool bar and the
+ * Esc ladder (flows §3.1). Whether the document may change is the change guard's question
+ * (`state/guard.ts`, `canChange(id, act)`), which replaced M8's `canEdit` (D1-5).
  */
-export function canEdit(
-  id: DocumentId | null | undefined,
-  state: Pick<UiState, 'docUi'> = useUiStore.getState(),
-): boolean {
-  return id != null && state.docUi[id]?.markup === true;
+export function isMarkupOpenActive(): boolean {
+  return isMarkupOpen(useUiStore.getState(), activeDocumentId());
 }
 
-/** `canEdit` for the active document. */
-export function canEditActive(): boolean {
-  return canEdit(activeDocumentId());
-}
-
-/** Whether Markup is open for the active document (the page layers and the bar follow it). */
-export function useCanEdit(): boolean {
+/** `isMarkupOpenActive` for components. */
+export function useMarkupOpen(): boolean {
   const id = useWorkspaceStore((s) => s.workspace.activeDocument);
-  return useUiStore((s) => canEdit(id, s));
+  return useUiStore((s) => isMarkupOpen(s, id));
 }

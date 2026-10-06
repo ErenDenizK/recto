@@ -28,8 +28,8 @@ export interface DocumentPlace {
   /** The page view or the light table (Compare is a session place, never restored). */
   readonly view: 'read' | 'arrange';
   /**
-   * M8's Read or Edit. D1-1 writes Markup as `'edit'` (it carries M8's Edit) until the
-   * input rules replace it; a document's lock is `lock`, never this.
+   * M8's Read or Edit, kept in the format for older snapshots: written as `'read'` and ignored
+   * on restore, since Markup is never kept (redesign spec §7); a document's lock is `lock`.
    */
   readonly mode: 'read' | 'edit';
   /**
