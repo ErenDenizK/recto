@@ -132,7 +132,8 @@ export function ArrangeSection({
     <section
       ref={ref}
       className={styles.section}
-      style={{ top: layout.top, height }}
+      // The header lines up with the centred columns (`--grid-pad`, ArrangeView.module.css).
+      style={{ top: layout.top, height, ['--grid-pad' as string]: `${metrics.padX}px` }}
       aria-labelledby={section.header ? sectionDomId(documentId, 'title') : undefined}
       aria-label={section.header ? undefined : doc.title}
       data-section-id={documentId}

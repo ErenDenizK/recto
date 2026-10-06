@@ -89,6 +89,7 @@ import {
   useSelectionStore,
 } from '../state/selection-store';
 import { ARRANGE_SIZES, useUiStore } from '../state/ui-store';
+import { useSheetStore } from '../ui/sheet';
 import { useViewStore } from '../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
 import { type MoveEdge, movePagesToEdge } from './arrange-actions';
@@ -153,6 +154,49 @@ function useBandOverhang(viewport: RefObject<HTMLElement | null>): number {
   return overhang;
 }
 
+/**
+ * How much of the grid's width a side tool sheet covers (Split, S13; spec X23): tool sheets
+ * inset the free rectangle while at least 400 px of stage remain, so the columns re-centre in
+ * what is left and no cell sits under the sheet.
+ */
+function useToolSheetInset(viewport: RefObject<HTMLElement | null>): number {
+  const front = useSheetStore((s) => s.front);
+  const [inset, setInset] = useState(0);
+  useLayoutEffect(() => {
+    const el = viewport.current;
+    if (!el || front === null) return;
+    let observer: ResizeObserver | undefined;
+    let frame = 0;
+    let tries = 0;
+    // The sheet's portal mounts it a frame or so after the store names it.
+    const attach = () => {
+      const sheet = document.querySelector<HTMLElement>(
+        `[data-sheet="${CSS.escape(front)}"][data-kind="tool"][data-presentation="side"]`,
+      );
+      if (!sheet) {
+        setInset(0);
+        if (tries++ < 20) frame = requestAnimationFrame(attach);
+        return;
+      }
+      const measure = () => {
+        // Its layout width (a transform in flight is motion), its 8 px from the edge and 8 more.
+        const covered = sheet.offsetWidth + 16;
+        setInset(el.clientWidth - covered >= 400 ? covered : 0);
+      };
+      measure();
+      observer = new ResizeObserver(measure);
+      observer.observe(sheet);
+      observer.observe(el);
+    };
+    frame = requestAnimationFrame(attach);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [viewport, front]);
+  return front === null ? 0 : inset;
+}
+
 export function ArrangeView() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -162,6 +206,7 @@ export function ArrangeView() {
   const documents = useWorkspaceStore((s) => s.workspace.documentOrder.length);
   const doc = useActiveDocument();
   const overhang = useBandOverhang(viewportRef);
+  const inset = useToolSheetInset(viewportRef);
   const pinchChip = useRef<HTMLDivElement>(null);
   useGridPinch(viewportRef, pinchChip);
 
@@ -210,9 +255,9 @@ export function ArrangeView() {
         data-testid="light-table"
         data-grid-viewport=""
       >
-        {width > 0 ? (
+        {width - inset > 0 ? (
           <LightTable
-            width={width}
+            width={width - inset}
             viewportRef={viewportRef}
             padBottom={overhang + BAR_CLEARANCE}
           />

@@ -13,7 +13,7 @@
  *   header (PG6), one undo step, "Combined 2 files · Undo".
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { type KeyboardEvent, useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { flushSync } from 'react-dom';
 
 import { m } from '../i18n';
@@ -24,6 +24,7 @@ import { announce } from '../shell/announcer';
 import { validateTitle } from '../stage/operation-plans';
 import { titleProblemMessage } from '../stage/section-operations';
 import { pagesPhrase, useTabItems, useWorkspaceStore } from '../state/workspace-store';
+import { Checkbox } from '../ui/Checkbox';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Sheet, SheetField, useSheetDraft } from '../ui/sheet';
@@ -115,15 +116,29 @@ export function CombineSheet({
       checked: d.checked.includes(id) ? d.checked.filter((c) => c !== id) : [...d.checked, id],
     }));
 
-  const onRowKey = (event: KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
-    event.preventDefault();
-    move(index, event.key === 'ArrowUp' ? -1 : 1);
-    requestAnimationFrame(() => {
-      const row = listRef.current?.children[index + (event.key === 'ArrowUp' ? -1 : 1)];
-      row?.querySelector<HTMLElement>('input')?.focus();
-    });
-  };
+  // Alt+Up / Alt+Down on a row's checkbox move the row (§17 §6), focus staying with it.
+  const moveRef = useRef(move);
+  useEffect(() => {
+    moveRef.current = move;
+  });
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+      const row = (event.target as Element).closest('li');
+      const index = row ? [...list.children].indexOf(row) : -1;
+      if (index < 0) return;
+      event.preventDefault();
+      const step = event.key === 'ArrowUp' ? -1 : 1;
+      moveRef.current(index, step);
+      requestAnimationFrame(() => {
+        list.children[index + step]?.querySelector<HTMLElement>('[role="checkbox"]')?.focus();
+      });
+    };
+    list.addEventListener('keydown', onKey);
+    return () => list.removeEventListener('keydown', onKey);
+  }, [open]);
 
   const submit = () => {
     if (!enough || !checkedName.ok) return;
@@ -172,19 +187,17 @@ export function CombineSheet({
                   data-off={on ? undefined : ''}
                   data-testid="combine-row"
                 >
-                  <input
-                    type="checkbox"
-                    className={styles.check}
+                  <Checkbox
+                    className={styles.rowCheck}
                     checked={on}
-                    aria-label={row.title}
-                    aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                    onChange={() => toggle(row.id)}
-                    onKeyDown={(event) => onRowKey(event, index)}
+                    onCheckedChange={() => toggle(row.id)}
+                    label={
+                      <span className={styles.rowLabel} title={row.title}>
+                        <span className={styles.tag} data-tag={row.colorIndex} aria-hidden="true" />
+                        <span className={styles.rowTitle}>{row.title}</span>
+                      </span>
+                    }
                   />
-                  <span className={styles.tag} data-tag={row.colorIndex} aria-hidden="true" />
-                  <span className={styles.rowTitle} title={row.title}>
-                    {row.title}
-                  </span>
                   <span className={styles.rowMeta}>{pagesPhrase(row.pageCount)}</span>
                   <span className={styles.rowButtons}>
                     <IconButton

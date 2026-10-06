@@ -4764,5 +4764,15 @@
         "countPlural=*": "Move {count} pages to {title}"
       }
     }
+  ],
+  "tab_drop_here": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Move 1 page here",
+        "countPlural=*": "Move {count} pages here"
+      }
+    }
   ]
 }

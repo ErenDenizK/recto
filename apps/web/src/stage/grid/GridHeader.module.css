@@ -79,8 +79,11 @@
   white-space: nowrap;
 }
 
+/* The segmented control measures its labels against its frame: give it its content's width. */
 .scope {
   flex: none;
+  width: max-content;
+  max-width: 24rem;
 }
 
 .spacer {
