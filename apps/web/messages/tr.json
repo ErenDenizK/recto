@@ -2976,5 +2976,22 @@
   "frame_focus_off": "Odak kapalı",
   "frame_markup": "İşaretle",
   "frame_back_name": "Kitaplık, {count} açık belge",
-  "frame_compact_title_name": "{name}, belge menüsü"
+  "frame_compact_title_name": "{name}, belge menüsü",
+  "dock_label": "Belge araçları",
+  "dock_pages": "Sayfalar",
+  "dock_markup": "İşaretle",
+  "dock_fill_sign": "Doldur ve imzala",
+  "dock_sign": "İmzala",
+  "dock_more": "Diğer",
+  "dock_locked": "Kilitli",
+  "dock_locked_name": "Kilitli: {name}. Kilidi aç…",
+  "dock_no_pages": "İşaretlenecek sayfa yok",
+  "dock_more_edit_text": "Metni düzenle",
+  "dock_more_redact": "Karart",
+  "dock_more_ocr": "Metni tanı…",
+  "dock_more_compare": "Karşılaştır…",
+  "dock_more_crop": "Sayfaları kırp…",
+  "dock_more_commands": "Tüm komutlar…",
+  "markup_on": "İşaretleme açık. Seçim etkin.",
+  "markup_locked_closed": "Kilitlendi. İşaretleme kapandı."
 }

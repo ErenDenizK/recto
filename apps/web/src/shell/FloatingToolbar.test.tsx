@@ -40,7 +40,8 @@ import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
 import { useAnnouncer } from './announcer';
-import { FloatingToolbar } from './FloatingToolbar';
+import { Dock } from './frame/Dock';
+import { PageContextMenu } from '../stage/PageContextMenu';
 import { ShortcutOverlay } from './ShortcutOverlay';
 import { BAR_GROUPS, type BarItem, barGroupOfCommand, barItems } from './FloatingToolbar.groups';
 import { registerPenSlots } from './FloatingToolbar.slots';
@@ -145,7 +146,8 @@ function Harness({ doc }: { readonly doc: VirtualDocument }) {
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 700 }}>
       <ReadView doc={doc} />
-      <FloatingToolbar />
+      <Dock />
+      <PageContextMenu />
     </div>
   );
 }
@@ -254,11 +256,14 @@ describe('tool bar (mounted)', () => {
     const chip = within(bar()).getByRole('button', { name: 'Write: back to all groups' });
     expect(chip).toBe(write);
     expect(chip).toHaveFocus();
-    // One movement: the chip slides from its place in the row, the rest fades in beside it.
+    // One morph of the capsule (D2-2, Q-6): the chip, a named piece, slides from its place in
+    // the row on the smooth spring while the capsule's own width follows.
     const chipMove = animate.mock.contexts.indexOf(chip);
     expect(chipMove).toBeGreaterThanOrEqual(0);
-    expect(animate.mock.calls[chipMove]?.[1]).toMatchObject({ duration: 160 });
-    expect(JSON.stringify(animate.mock.calls[chipMove]?.[0])).toContain('translateX(');
+    expect(animate.mock.calls[chipMove]?.[1]).toMatchObject({ fill: 'forwards' });
+    expect(JSON.stringify(animate.mock.calls[chipMove]?.[0])).toContain('translate(');
+    const capsule = bar().closest('[data-capsule]') as HTMLElement;
+    expect(animate.mock.contexts).toContain(capsule);
     await settle();
     // Read after the slide (mid-animation the FLIP transform still holds the chip near its old
     // place): the chip leads the row. Its page position is not compared with the group button's,
@@ -271,8 +276,8 @@ describe('tool bar (mounted)', () => {
     expect(within(bar()).getByRole('button', { name: 'Eraser' })).toBeVisible();
     expect(within(bar()).getByRole('button', { name: /^Shapes/ })).toBeVisible();
     expect(useAnnouncer.getState().message).toBe('Write tools');
-    // The bar keeps its height (44 px, spec §7.3).
-    expect(bar().getBoundingClientRect().height).toBeCloseTo(44, 0);
+    // The capsule keeps its height (44 px, spec §7.3).
+    expect(capsule.getBoundingClientRect().height).toBeCloseTo(44, 0);
 
     await userEvent.click(chip);
     expect(groupNames()).toEqual(GROUPS);
@@ -523,7 +528,7 @@ describe('tool bar (mounted)', () => {
 
   it('fades the bar and lets the pointer through while a stroke is in progress, and a second after', async () => {
     const { layer } = await mount();
-    const dock = bar().parentElement as HTMLElement;
+    const dock = bar().closest('[data-dock]') as HTMLElement;
     const box = layer.getBoundingClientRect();
     const init = {
       bubbles: true,

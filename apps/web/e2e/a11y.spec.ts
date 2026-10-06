@@ -58,6 +58,9 @@ async function openSimple(page: Page): Promise<void> {
 }
 
 const bar = (page: Page): Locator => page.getByRole('toolbar', { name: 'Tools', exact: true });
+/** The dock in viewing (01-frame F10; spec X1, D2-2). */
+const dock = (page: Page): Locator =>
+  page.getByRole('toolbar', { name: 'Document tools', exact: true });
 const layer = (page: Page): Locator => page.locator('[data-annotation-layer="0"]');
 const viewport = (page: Page): Locator => page.locator('[data-read-viewport]');
 /** The polite live region (shell/LiveRegion.tsx). */
@@ -579,11 +582,11 @@ test.describe('axe', () => {
     page,
   }) => {
     await openSimple(page);
-    await expect(bar(page).getByRole('button', { name: 'Edit', exact: true })).toHaveAttribute(
+    await expect(dock(page).getByRole('button', { name: 'Markup', exact: true })).toHaveAttribute(
       'aria-keyshortcuts',
       '2',
     );
-    await axe(page, 'Read, the lock and the Edit button');
+    await axe(page, 'Read, the lock and the dock');
     await enterEdit(page);
     await axe(page, 'Edit, the groups');
     // Select arms from its chip and has no tool row (craft spec §3.4).
@@ -946,7 +949,7 @@ test.describe('craft spec §9', () => {
     await page.keyboard.press('1');
     expect(await ring()).toBe('none');
     // F6 between the regions reaches the pages: the ring shows.
-    await bar(page).getByRole('button', { name: 'Edit', exact: true }).focus();
+    await dock(page).getByRole('button', { name: 'Pages', exact: true }).focus();
     for (let i = 0; i < 8; i++) {
       if (await viewport(page).evaluate((el) => el === document.activeElement)) break;
       await page.keyboard.press('F6');
@@ -955,14 +958,14 @@ test.describe('craft spec §9', () => {
     expect(await ring()).not.toBe('none');
   });
 
-  test('Read: F6 reaches the Edit button; the page menu and the selection bar; no hidden stop', async ({
+  test('Read: F6 reaches the dock; the page menu and the selection bar; no hidden stop', async ({
     page,
   }) => {
     await openSimple(page);
-    // F6 from the pages: the tool bar, which in Read is the one Edit button.
+    // F6 from the pages: the dock, on its Tab stop (Pages until another item had focus).
     await viewport(page).focus();
     await page.keyboard.press('F6');
-    await expect(bar(page).getByRole('button', { name: 'Edit', exact: true })).toBeFocused();
+    await expect(dock(page).getByRole('button', { name: 'Pages', exact: true })).toBeFocused();
     await viewport(page).focus();
     await tabWalk(page, 12);
 
@@ -989,7 +992,7 @@ test.describe('craft spec §9', () => {
     await selectionBar.getByRole('button', { name: 'Mark up…' }).focus();
     await page.keyboard.press('Enter');
     // The Edit row on the same selection, the focus on its first markup.
-    await expect(page.locator('[data-region="toolbar"]:not([data-bar-view="read"])')).toBeVisible();
+    await expect(page.locator('[data-capsule="palette"]')).toBeVisible();
     await expect(
       selectionBar.getByRole('button', { name: 'Underline', exact: true }),
     ).toBeVisible();

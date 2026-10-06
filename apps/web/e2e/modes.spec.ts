@@ -4,7 +4,7 @@
  * nothing moves or arms there, while targeted acts (select an annotation, fill a field) and
  * the page menu's page operations need no Edit; `2` enters Edit and the tool bar appears; a
  * tab click leaves Home in the document's last mode; `1` returns to Read and the bar collapses
- * to one Edit button; a tool key in Read switches to Edit and arms the tool. A Read selection's
+ * to the dock (D2-2); a tool key in Read switches to Edit and arms the tool. A Read selection's
  * "Edit text" opens the paragraph editor in Edit; in Edit, a first click on text shows
  * "Double-click to edit text", and the Text group arms Edit text, so one click opens a
  * paragraph.
@@ -15,12 +15,13 @@ import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
 
 const bar = (page: Page) => page.getByRole('toolbar', { name: 'Tools', exact: true });
 /**
- * Read and Edit as the frame shows them now that the mode switch is gone (D2-1): Read is the
- * dock's one Edit button; Edit (Markup open) is the bar's groups.
+ * Read and Edit as the frame shows them now that the mode switch is gone (D2-1): in viewing the
+ * capsule is the dock, whose Markup is the way in; in Markup it is the palette, today's bar of
+ * groups (spec X1, D2-2).
  */
-const readShown = (page: Page) => bar(page).getByRole('button', { name: 'Edit', exact: true });
-const editShown = (page: Page) =>
-  page.locator('[data-region="toolbar"]:not([data-bar-view="read"])');
+const dock = (page: Page) => page.getByRole('toolbar', { name: 'Document tools', exact: true });
+const readShown = (page: Page) => dock(page).getByRole('button', { name: 'Markup', exact: true });
+const editShown = (page: Page) => page.locator('[data-capsule="palette"]');
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
@@ -36,11 +37,10 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
     timeout: 20_000,
   });
 
-  // Read, with the lock; the bar is one Edit button.
+  // Read, with the lock; the capsule is the dock: Pages · Markup · Fill & sign · More.
   await expect(readShown(page)).toBeVisible();
-  await expect(bar(page).getByRole('button')).toHaveCount(1);
-  const edit = bar(page).getByRole('button', { name: 'Edit' });
-  await expect(edit).toHaveAttribute('aria-keyshortcuts', '2');
+  await expect(dock(page).getByRole('button')).toHaveCount(4);
+  await expect(readShown(page)).toHaveAttribute('aria-keyshortcuts', '2');
 
   // A drag that starts on the unselected square selects it and moves nothing (S14; D1-5:
   // selecting is a targeted act in viewing, input-rules.spec covers the rest).
@@ -79,10 +79,10 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
   // 1: Read again; the bar collapses.
   await page.keyboard.press('1');
   await expect(readShown(page)).toBeVisible();
-  await expect(bar(page).getByRole('button')).toHaveCount(1);
+  await expect(bar(page)).toHaveCount(0);
 
-  // The Edit button enters Edit.
-  await bar(page).getByRole('button', { name: 'Edit' }).click();
+  // The dock's Markup enters Edit.
+  await readShown(page).click();
   await expect(editShown(page)).toBeVisible();
 });
 
