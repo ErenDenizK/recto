@@ -152,9 +152,7 @@ describe('the Settings sheet', () => {
     expect(appearance.querySelector('[data-row]')?.getAttribute('data-row')).toBe('theme');
     const group = within(dialog).getByRole('radiogroup', { name: 'Theme' });
     expect(within(group).getByRole('radio', { name: 'System' })).toBeChecked();
-    expect(
-      within(dialog).getByText('System follows your device’s light or dark appearance.'),
-    ).toBeVisible();
+    expect(within(dialog).getByText('System follows your device.')).toBeVisible();
     await userEvent.click(within(group).getByRole('radio', { name: 'Light' }));
     expect(useAppearanceStore.getState().theme).toBe('light');
     await userEvent.click(within(group).getByRole('radio', { name: 'Dark' }));

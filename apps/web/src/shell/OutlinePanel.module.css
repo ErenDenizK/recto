@@ -70,7 +70,7 @@
   left: var(--drop-indent, 0);
   height: 2px;
   border-radius: var(--radius-page);
-  background: var(--accent);
+  background: var(--accent-ring);
   pointer-events: none;
 }
 

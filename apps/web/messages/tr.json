@@ -2365,7 +2365,7 @@
   "settings_theme_system": "Sistem",
   "settings_theme_light": "Açık",
   "settings_theme_dark": "Koyu",
-  "settings_theme_hint": "Sistem, cihazınızın açık ya da koyu görünüşünü izler.",
+  "settings_theme_hint": "Sistem, cihazınızı izler.",
   "settings_theme_keywords": "tema, açık, koyu, aydınlık, karanlık, mod, açık mod, koyu mod, gece, gündüz, renk, sistem, görünüş, görünüm",
   "cmd_view_theme_system": "Tema: Sistem",
   "cmd_view_theme_light": "Tema: Açık",
