@@ -28,7 +28,7 @@ import { DEFAULT_LAYOUT, useUiStore } from '../../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { useAnnouncer } from '../announcer';
 import { AUTHOR_ASKED_STORAGE_KEY, resetAuthorPrompt, useAuthorPrompt } from '../comment-author';
-import { ReviewPanel } from './ReviewPanel';
+import { ReviewPanel, shownFilters } from './ReviewPanel';
 import '../../forms/index';
 
 const openFixture = async (url: string, name: string) => {
@@ -208,7 +208,7 @@ describe('Review list', () => {
     }
   });
 
-  it('says what to open without a document, with the All chip alone', () => {
+  it('says what to open without a document; the four chips are static (06.13)', () => {
     render(<ReviewPanel />);
     expect(screen.getByText('No document open')).toBeVisible();
     expect(
@@ -218,10 +218,10 @@ describe('Review list', () => {
       within(screen.getByRole('radiogroup'))
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['All0']);
+    ).toEqual(['All0', 'Comments0', 'Marks0', 'Fields0']);
   });
 
-  it('shows chips only for the kinds present, and the chosen one', async () => {
+  it('keeps every chip with its count as kinds come and go (RA-21), no Words without OCR', async () => {
     await openFixture(annotationsUrl, 'annotations.pdf');
     setAnnotations({ 0: [note, pen] });
     render(<ReviewPanel />);
@@ -230,16 +230,14 @@ describe('Review list', () => {
       within(screen.getByRole('radiogroup', { name: 'Show' }))
         .getAllByRole('radio')
         .map((r) => r.textContent);
-    expect(chips()).toEqual(['All2', 'Comments2']);
-    // A mark appears: so does its chip.
+    expect(chips()).toEqual(['All2', 'Comments2', 'Marks0', 'Fields0']);
     act(() => setAnnotations({ 0: [note, pen, mark] }));
-    expect(chips()).toEqual(['All3', 'Comments2', 'Marks1']);
-    // The chosen filter keeps its chip when it empties (the Redact group opens it too).
+    expect(chips()).toEqual(['All3', 'Comments2', 'Marks1', 'Fields0']);
     await userEvent.click(radio(/^Marks/));
     act(() => setAnnotations({ 0: [note, pen] }));
-    expect(chips()).toEqual(['All2', 'Comments2', 'Marks0']);
-    await userEvent.click(radio(/^All/));
-    expect(chips()).toEqual(['All2', 'Comments2']);
+    expect(chips()).toEqual(['All2', 'Comments2', 'Marks0', 'Fields0']);
+    expect(shownFilters(false)).toEqual(['all', 'comments', 'redactions', 'fields']);
+    expect(shownFilters(true)).toEqual(['all', 'comments', 'redactions', 'fields', 'words']);
   });
 });
 

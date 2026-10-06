@@ -29,7 +29,9 @@ import {
   showInspector,
   useDownloadPath,
   useFileInputPicker,
+  markAllMatches,
   openFindPanel,
+  showSidebar,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
@@ -47,10 +49,9 @@ function historyRow(page: Page, label: string | RegExp) {
   return page.getByRole('list', { name: /history/i }).getByRole('button', { name: label });
 }
 
-/** The navigator's Review tab on its Marks filter (experience-redesign §4.1). */
+/** The sidebar's Review section on its Marks filter (06-navigation N5). */
 async function showMarks(page: Page): Promise<Locator> {
-  const review = page.getByRole('tab', { name: /^Review/ });
-  if ((await review.getAttribute('aria-selected')) !== 'true') await review.click();
+  await showSidebar(page, 'Review');
   await page.getByRole('radio', { name: /^Marks/ }).click();
   const panel = page.locator('[data-review-panel]');
   await expect(panel).toHaveAttribute('data-filter', 'redactions');
@@ -209,7 +210,7 @@ test('mark every search match, then review the marks with J and K', async ({ pag
   const field = await openFindPanel(page);
   await field.fill(TOKEN);
   await expect(page.getByTestId('search-hit')).toHaveCount(3);
-  await page.getByTestId('search-mark-all').click();
+  await markAllMatches(page);
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(3);
   await expect(historyRow(page, 'Mark 3 search matches for redaction')).toBeVisible();
 
@@ -279,7 +280,7 @@ test('apply marks made by selection, search and area; export; the re-opened expo
   await page.keyboard.press('Escape');
   await (await openFindPanel(page)).fill(TOKEN);
   await expect(page.getByTestId('search-hit')).toHaveCount(3);
-  await page.getByTestId('search-mark-all').click();
+  await markAllMatches(page);
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(3);
 
   // 3. By area, below the text.
@@ -350,7 +351,7 @@ test('apply marks made by selection, search and area; export; the re-opened expo
   await expect(page.getByTestId('search-hit')).toHaveCount(1, { timeout: 20_000 });
   // …and the token is not.
   await field.fill(TOKEN);
-  await expect(page.getByTestId('search-status')).toHaveText('No results', { timeout: 20_000 });
+  await expect(page.getByTestId('search-status')).toHaveText('No matches', { timeout: 20_000 });
   await expect(page.getByTestId('search-hit')).toHaveCount(0);
 });
 

@@ -5,20 +5,15 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, useFileInputPicker, showSidebar } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
 });
 
-/** The navigator's Pages tab switched to Bookmarks (experience-redesign §4.1). */
+/** The sidebar's Pages section on Contents (06-navigation N3; spec X27). */
 async function showBookmarks(page: Page): Promise<void> {
-  const pages = page.getByRole('tab', { name: /^Pages/ });
-  if ((await pages.getAttribute('aria-selected')) !== 'true') await pages.click();
-  await page
-    .getByRole('radiogroup', { name: 'Pages view' })
-    .getByRole('radio', { name: 'Bookmarks' })
-    .click();
+  await showSidebar(page, 'Pages', 'Contents');
 }
 test('the outline panel shows the bookmarks and navigates Read mode', async ({ page }) => {
   await page.goto('./?lang=en');
@@ -26,7 +21,7 @@ test('the outline panel shows the bookmarks and navigates Read mode', async ({ p
   await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
 
   await showBookmarks(page);
-  const tree = page.getByRole('tree', { name: /Outline of/ });
+  const tree = page.getByRole('tree', { name: /Contents of/ });
   // The authored open state (/Count sign, read by the engine's inspector): "Chapter 2"
   // starts expanded, "2.2 Results" collapsed.
   const chapter2 = tree.getByRole('treeitem', { name: 'Chapter 2 – Methods' });

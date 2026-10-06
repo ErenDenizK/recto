@@ -40,10 +40,16 @@
   gap: 2px;
   height: 28px;
   padding-inline-end: var(--space-2);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-control);
   color: var(--text-secondary);
   cursor: default;
   user-select: none;
+}
+
+/* The current location (06-navigation N3 §4): the current-row wash, primary text. */
+.row[aria-current='location'] {
+  background: var(--accent-muted);
+  color: var(--text-primary);
 }
 
 /* Drag and drop: the dragged row dims; the target shows a line (before / after) or an

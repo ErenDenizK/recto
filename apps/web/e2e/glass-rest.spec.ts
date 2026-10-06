@@ -222,6 +222,11 @@ test('an annotation’s bar and a note', async ({ page }) => {
     .click({ force: true });
   await expect(page.getByTestId('annotation-bar')).toBeVisible();
   await expectGlassClean(page, 'Edit, an annotation selected');
+  // The note is on page 2: with the sidebar closed by default (06-navigation N1) the page fits
+  // a wider column, so go there first.
+  await page.getByTestId('page-pill').click();
+  await page.getByRole('textbox', { name: 'Go to page' }).fill('2');
+  await page.keyboard.press('Enter');
   const note = page.locator('[data-annotation-kind="text"]').first();
   await note.dblclick({ force: true });
   await expect(page.locator('[class*="notePopup"]')).toBeVisible();

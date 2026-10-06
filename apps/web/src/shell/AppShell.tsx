@@ -60,11 +60,11 @@ import { useRegionCycling } from './frame/regions';
 import { useSizeClass } from './frame/size-class';
 import { SoftEdge } from './frame/SoftEdge';
 import { TopStrip } from './frame/TopStrip';
-import { LeftRail } from './LeftRail';
 import { LiveRegion } from './LiveRegion';
 import { PasswordDialog } from './PasswordDialog';
 import { RightPanel } from './RightPanel';
 import { ShortcutOverlay } from './ShortcutOverlay';
+import { Sidebar } from './sidebar/Sidebar';
 import { Stage } from './Stage';
 
 export function AppShell() {
@@ -178,7 +178,7 @@ export function AppShell() {
         {/* Compact windows keep the sidebar in the phone Pages sheet (M10, ADR-0033): none here;
             compact-height lays it over the stage (▤ in the bar, spec 01.7). */}
         {frame.tight || (frame.size === 'compact' && !frame.short) ? null : (
-          <LeftRail overlay={sidebarOverlay} />
+          <Sidebar form={frame.short ? 'sheet' : sidebarOverlay ? 'overlay' : 'docked'} />
         )}
         <RightPanel />
         <DockBand size={frame.size} compact={compact} tight={frame.tight} />

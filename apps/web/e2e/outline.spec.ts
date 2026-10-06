@@ -10,7 +10,7 @@ import type { PDFNumber } from '@cantoo/pdf-lib';
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFRef } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
+import { openFixtures, openSaveCopy, useFileInputPicker, showSidebar } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Download flow is verified on Chromium');
 
@@ -33,14 +33,9 @@ function outlineOf(doc: PDFDocument): string[] {
   return out;
 }
 
-/** The navigator's Pages tab switched to Bookmarks (experience-redesign §4.1). */
+/** The sidebar's Pages section on Contents (06-navigation N3; spec X27). */
 async function showBookmarks(page: Page): Promise<void> {
-  const pages = page.getByRole('tab', { name: /^Pages/ });
-  if ((await pages.getAttribute('aria-selected')) !== 'true') await pages.click();
-  await page
-    .getByRole('radiogroup', { name: 'Pages view' })
-    .getByRole('radio', { name: 'Bookmarks' })
-    .click();
+  await showSidebar(page, 'Pages', 'Contents');
 }
 test('edit the outline, export, and read the new tree back', async ({ page }, testInfo) => {
   // Force the <a download> path: Playwright cannot drive the native save picker.
@@ -66,7 +61,7 @@ test('edit the outline, export, and read the new tree back', async ({ page }, te
   await expect(status).toHaveText(/^2 \/ 6 · /);
 
   await showBookmarks(page);
-  const tree = page.getByRole('tree', { name: /Outline of/ });
+  const tree = page.getByRole('tree', { name: /Contents of/ });
   await expect(tree.getByRole('treeitem')).toHaveCount(5);
 
   // 1. Add a bookmark to page 2 (the page in view), renamed as it is created.
@@ -141,7 +136,7 @@ test('edit the outline, export, and read the new tree back', async ({ page }, te
     'aria-selected',
     'true',
   );
-  const reopened = page.getByRole('tree', { name: 'Outline of outline-edited' });
+  const reopened = page.getByRole('tree', { name: 'Contents of outline-edited' });
   const reChapter1 = reopened.getByRole('treeitem', { name: 'Chapter 1: Introduction' });
   // Chapter 1 was authored closed, so its new child starts hidden.
   await expect(reChapter1).toHaveAttribute('aria-expanded', 'false');
