@@ -1,8 +1,14 @@
 /**
  * Left rail "Pages": a virtualized thumbnail list of the active document. Thumbnails render
  * from the engine at the list's cell width × devicePixelRatio; labels come from the model
- * (`effectiveLabel`). Click selects the page and scrolls the stage to it (Read mode).
- * Listbox keyboard: Up/Down/Home/End move and select, Shift extends, Space toggles.
+ * (`effectiveLabel`).
+ *
+ * A navigating click never selects (S10; 06-navigation §4.6): a click, or Up/Down/Home/End,
+ * moves the row focus and scrolls the page view to the page, and writes no selection, so
+ * Delete after a click changes nothing. Selection is explicit: Shift-click or Shift+Up/Down
+ * select a range, Mod-click or Space toggle a page, Esc clears. While the list is on screen
+ * it tells the selection store which document it shows, so Delete acts on the selected pages
+ * listed here and on nothing while the list is closed (`visibleSelection`).
  */
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
@@ -27,10 +33,11 @@ import { m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { displaySize, fitInBox } from '../pages/page-geometry';
 import {
-  clickSelection,
-  extendSelection,
   moveFocusIndex,
+  navigatorClick,
+  navigatorExtend,
   selectionSnapshot,
+  type SelectionSnapshot,
   toggleSelection,
   useSelectionStore,
 } from '../state/selection-store';
@@ -58,6 +65,16 @@ export function PagesPanel({ doc }: { readonly doc: VirtualDocument }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  // The selection is visible here while the list is mounted (S10).
+  useEffect(() => {
+    const store = useSelectionStore.getState();
+    store.setNavigatorDocument(doc.id);
+    return () => {
+      if (useSelectionStore.getState().navigatorDocument === doc.id) {
+        useSelectionStore.getState().setNavigatorDocument(null);
+      }
+    };
+  }, [doc.id]);
   return (
     <div ref={scrollRef} className={styles.pagesScroll}>
       {width > 0 ? <PageList key={doc.id} doc={doc} width={width} scrollRef={scrollRef} /> : null}
@@ -80,8 +97,11 @@ function PageList({
   const pageView = useStageView() === 'page';
   const currentPage = useViewStore((s) => s.currentPage);
   const scrollToPage = useViewStore((s) => s.scrollToPage);
-  const focused = useSelectionStore((s) => s.focused);
   const apply = useSelectionStore((s) => s.apply);
+  const clear = useSelectionStore((s) => s.clear);
+  // The row with keyboard focus (roving tabindex). The list's own: navigating writes nothing
+  // to the selection store, not even the grid's `focused` (S10).
+  const [cursor, setCursor] = useState<PageId | null>(null);
 
   const boxWidth = Math.max(48, Math.round(width * BOX_WIDTH_RATIO));
   const boxHeight = Math.round(boxWidth * BOX_ASPECT);
@@ -117,12 +137,12 @@ function PageList({
     if (pageView) virtualizer.scrollToIndex(currentPage, { align: 'auto' });
   }, [virtualizer, pageView, currentPage]);
 
-  const focusedIndex = focused === null ? -1 : order.indexOf(focused);
+  const focusedIndex = cursor === null ? -1 : order.indexOf(cursor);
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const list = listRef.current;
-    if (!list || focused === null || !list.contains(document.activeElement)) return;
-    const option = list.querySelector<HTMLElement>(`[data-page-id="${CSS.escape(focused)}"]`);
+    if (!list || cursor === null || !list.contains(document.activeElement)) return;
+    const option = list.querySelector<HTMLElement>(`[data-page-id="${CSS.escape(cursor)}"]`);
     if (option && document.activeElement !== option) option.focus({ preventScroll: true });
   });
 
@@ -132,12 +152,20 @@ function PageList({
     if (index >= 0) virtualizer.scrollToIndex(index, { align: 'auto' });
   };
 
+  /** Writes an explicit selection; a navigating gesture hands back the state unchanged. */
+  const select = (next: SelectionSnapshot, state: SelectionSnapshot) => {
+    if (next !== state) apply(next);
+  };
+
   const onClick = (event: MouseEvent<HTMLDivElement>) => {
     const option = (event.target as Element).closest<HTMLElement>('[data-page-id]');
     const id = option?.dataset.pageId as PageId | undefined;
     if (id === undefined) return;
     const mod = currentPlatform === 'mac' ? event.metaKey : event.ctrlKey;
-    apply(clickSelection(selectionSnapshot(), order, id, { shift: event.shiftKey, mod }));
+    const state = selectionSnapshot();
+    const reading = pageView ? (order[currentPage] ?? null) : null;
+    select(navigatorClick(state, order, id, { shift: event.shiftKey, mod }, reading), state);
+    setCursor(id);
     go(id);
   };
 
@@ -154,9 +182,10 @@ function PageList({
       event.preventDefault();
       const next = moveFocusIndex(current, pages.length, keys[event.key as keyof typeof keys], 1);
       const id = order[next];
-      if (id === undefined) return;
-      if (event.shiftKey) apply(extendSelection(state, order, id));
-      else apply(clickSelection(state, order, id, { shift: false, mod: false }));
+      const from = order[current];
+      if (id === undefined || from === undefined) return;
+      if (event.shiftKey) apply(navigatorExtend(state, order, from, id));
+      setCursor(id);
       go(id);
       return;
     }
@@ -164,7 +193,13 @@ function PageList({
       const id = order[current];
       if (id === undefined) return;
       event.preventDefault();
-      apply(toggleSelection(state, id));
+      apply({ ...toggleSelection(state, id), focused: state.focused });
+      return;
+    }
+    // Esc clears the selection; with none it falls through to the app's Esc.
+    if (event.key === 'Escape' && state.selected.size > 0) {
+      event.preventDefault();
+      clear();
     }
   };
 

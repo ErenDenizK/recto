@@ -630,6 +630,7 @@
   "diag_on_page": "page {page}",
   "history_start": "Start",
   "history_open": "Open {name}",
+  "history_opened": "Opened {name}",
   "history_close": "Close {name}",
   "history_move": [
     {
