@@ -95,7 +95,7 @@ describe('Language command', () => {
         name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.',
       }),
     ).toBeVisible();
-    expect(screen.getByText('Yalnızca yerel')).toBeVisible();
+    expect(screen.getByText('Hiçbir şey yüklenmez')).toBeVisible();
     expect(document.documentElement.lang).toBe('tr');
 
     // Command titles follow the language too.
