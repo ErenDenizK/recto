@@ -379,6 +379,9 @@ test.describe('the capsule morph (Q-6)', () => {
           return r ? [selector, r.x, r.y, r.width, r.height].join(' ') : `${selector} missing`;
         }),
       );
+    const capsuleWidth = () =>
+      page.locator('[data-capsule]').evaluate((el) => el.getBoundingClientRect().width);
+    const dockWidth = await capsuleWidth();
     const before = await rects();
     await page.keyboard.press('2');
     await pauseMorphAt(page, 0.5);
@@ -386,17 +389,36 @@ test.describe('the capsule morph (Q-6)', () => {
     await release(page);
     await settled(page);
 
-    // Reverse mid-morph: the width continues from where it is drawn.
-    await page.keyboard.press('1');
-    await page.waitForTimeout(120);
-    const going = await page
-      .locator('[data-capsule]')
-      .evaluate((el) => el.getBoundingClientRect().width);
-    await page.keyboard.press('2');
-    const turned = await page
-      .locator('[data-capsule]')
-      .evaluate((el) => el.getBoundingClientRect().width);
-    expect(Math.abs(turned - going)).toBeLessThan(40);
+    // Reverse mid-morph: the width continues from where it is drawn. Driven and read inside the
+    // page, frame by frame: a key's round trip from the test lets frames pass, and the short
+    // morph back to the dock can end before a later read.
+    const reversal = await page.evaluate(async () => {
+      const capsule = document.querySelector('[data-capsule]') as HTMLElement;
+      const width = () => capsule.getBoundingClientRect().width;
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      const press = (key: string) => {
+        const target = document.activeElement ?? document.body;
+        for (const type of ['keydown', 'keyup']) {
+          target.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true, cancelable: true }));
+        }
+      };
+      const start = width();
+      press('1');
+      // Under way back to the dock: the first frame drawn 16 px or more narrower.
+      let going = width();
+      for (let i = 0; i < 60 && start - going < 16; i++) {
+        await frame();
+        going = width();
+      }
+      press('2');
+      await frame();
+      return { start, going, turned: width() };
+    });
+    // The turn happened mid-morph, neither at the palette's width nor at the dock's.
+    expect(reversal.going).toBeLessThan(reversal.start - 1);
+    expect(reversal.going).toBeGreaterThan(dockWidth + 1);
+    // The next frame drawn continues from that width rather than jumping to either end.
+    expect(Math.abs(reversal.turned - reversal.going)).toBeLessThan(40);
     await settled(page);
     await expect(page.locator('[data-capsule]')).toHaveAttribute('data-capsule', 'palette');
   });
