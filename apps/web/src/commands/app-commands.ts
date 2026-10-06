@@ -32,7 +32,11 @@ import { registerFurnitureCommands } from '../furniture';
 import { registerFormCommands } from '../forms';
 import { redoStep, undoStep } from '../history/actions';
 import { openHistoryScrubber } from '../history/scrubber-store';
-import { showHome, showMarkup, showOpened, watchDestination } from '../home/home-actions';
+import { showHome, showOpened, watchDestination } from '../home/home-actions';
+import { closeMarkupDoor, openMarkupDoor } from '../markup/doors';
+import { isLocked } from '../state/lock-store';
+import { useViewStore } from '../state/view-store';
+import { noteKeyOneChanged } from './keymap-notice';
 import { m } from '../i18n';
 import { registerLanguageCommands } from '../i18n/language-commands';
 import { registerOcrCommands } from '../ocr';
@@ -228,12 +232,42 @@ function documentsHolding(pageIds: readonly PageId[]): DocumentId[] {
   );
 }
 
+/**
+ * The pages Shift+R and Shift+Alt+R turn (flows §7.2, §3.5 S18; `06-navigation` N2 §6): in
+ * the grid, the selection or the focused cell; on the page, the selection the navigator shows,
+ * else the current page (`current`). Nothing elsewhere (the Library, Compare).
+ */
+export function rotateTargets(): { readonly pages: PageId[]; readonly current: boolean } {
+  const stage = stageView(ui());
+  if (stage === 'grid') return { pages: targetPages(), current: false };
+  if (stage !== 'page') return { pages: [], current: false };
+  const shown = visibleTargetPages();
+  if (shown.length > 0) return { pages: shown, current: false };
+  const page = activeDocument()?.pages[useViewStore.getState().currentPage];
+  return { pages: page === undefined ? [] : [page.id], current: page !== undefined };
+}
+
+const hasRotateTargets = () => rotateTargets().pages.length > 0;
+
+/**
+ * Turns the rotation targets a quarter. The current page, turned while reading with nothing
+ * selected, is a targeted act the person did not see selected, so it says so with Undo: "Rotated
+ * page 3 right · Undo" (S18); a selection is announced.
+ */
 function rotate(delta: 90 | -90): void {
-  const pages = targetPages();
-  if (model().rotatePages(pages, delta)) {
-    const count = pages.length;
-    announce(delta > 0 ? m.announce_rotated_right({ count }) : m.announce_rotated_left({ count }));
+  const { pages, current } = rotateTargets();
+  const doc = activeDocument();
+  if (!model().rotatePages(pages, delta)) return;
+  if (current && doc) {
+    const page = doc.pages.findIndex((p) => p.id === pages[0]) + 1;
+    toast.undo(
+      delta > 0 ? m.toast_rotated_page_right({ page }) : m.toast_rotated_page_left({ page }),
+      { documentId: doc.id },
+    );
+    return;
   }
+  const count = pages.length;
+  announce(delta > 0 ? m.announce_rotated_right({ count }) : m.announce_rotated_left({ count }));
 }
 
 /**
@@ -480,10 +514,11 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       title: m.cmd_rotate_right(),
       group: m.group_pages(),
       act: 'pages',
-      documents: targetDocuments,
-      shortcut: 'R',
+      documents: () => documentsHolding(rotateTargets().pages),
+      // Shift+R everywhere; plain R is the Rectangle, and inert in the grid (flows §7.3).
+      shortcut: 'Shift+R',
       keywords: ['clockwise', 'turn', '90'],
-      when: hasTargets,
+      when: hasRotateTargets,
       run: () => rotate(90),
     }),
     registry.register({
@@ -491,10 +526,10 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       title: m.cmd_rotate_left(),
       group: m.group_pages(),
       act: 'pages',
-      documents: targetDocuments,
-      shortcut: 'Shift+R',
+      documents: () => documentsHolding(rotateTargets().pages),
+      shortcut: 'Shift+Alt+R',
       keywords: ['counterclockwise', 'anticlockwise', 'turn', '90'],
-      when: hasTargets,
+      when: hasRotateTargets,
       run: () => rotate(-90),
     }),
     registry.register({
@@ -578,8 +613,9 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
         },
       }),
     ),
-    // Home is a view of the open files; a document is in Read (locked) or Edit, and Arrange
-    // and Compare are views beside them (ADR-0019 §1–§2). Keys follow the control: 1–4.
+    // The places (key map v2, flows §7.2–§7.3; `keymap.ts`): `0` the Library, `1` viewing,
+    // `M` (and its alias `2`) Markup, `3` the Pages grid, `4` Compare (`compare-commands.ts`).
+    // The ids are M8's, so palette recents and the command catalogue's keywords carry over.
     registry.register({
       id: 'view.home',
       title: m.cmd_view_home(),
@@ -598,17 +634,29 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       group: m.group_view(),
       act: null,
       shortcut: '1',
-      keywords: ['mode', 'viewer', 'continuous', 'lock'],
+      keywords: ['mode', 'viewer', 'continuous', 'reading'],
       when: () => activeDocument() !== undefined,
+      // Viewing: closes Markup, the grid and Compare, and never locks (flows §7.3). The first
+      // press on a device that used M8, where `1` locked, says so once (`keymap-notice.ts`).
       run: () => {
-        // `1` closes the grid too (flows §7.2), back to the page it opened at.
+        noteKeyOneChanged();
+        const id = model().workspace.activeDocument;
+        if (id === undefined) return;
+        // `1` closes the grid too, back to the page it opened at.
         if (stageView(ui()) === 'grid') {
-          const id = model().workspace.activeDocument;
-          if (id !== undefined) ui().closeMarkup(id);
+          ui().closeMarkup(id);
           leaveGrid();
           return;
         }
-        if (!showing('page')) showMarkup(false);
+        if (showing('page')) return;
+        // On the page with Markup open: Done's path (commits an open editor, "Markup off.").
+        if (showing('markup')) {
+          closeMarkupDoor();
+          return;
+        }
+        ui().closeMarkup(id);
+        ui().showSurface('page', id);
+        announce(m.announce_viewing({ name: activeDocument()?.title ?? '' }));
       },
     }),
     registry.register({
@@ -616,11 +664,20 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       title: m.cmd_mode_edit(),
       group: m.group_view(),
       act: null,
-      shortcut: '2',
+      // M opens and closes Markup; `2`, M8's Edit, is its alias (flows §7.3; `03-markup` §5),
+      // so muscle memory and the e2e `enterEdit` helper keep working.
+      shortcut: ['M', '2'],
       keywords: ['mode', 'annotate', 'markup', 'write'],
       when: () => activeDocument() !== undefined,
       run: () => {
-        if (!showing('markup')) showMarkup(true);
+        if (showing('markup')) {
+          closeMarkupDoor();
+          return;
+        }
+        // The dock's door (MK-1): Select armed, "Markup on. Select armed."; a locked document
+        // opens nothing, and the key says why (its dock shows Locked).
+        const id = model().workspace.activeDocument;
+        if (!openMarkupDoor('draw') && isLocked(id)) announce(m.guard_locked());
       },
     }),
     registry.register({

@@ -6,7 +6,8 @@
  *
  * - **Dock:** Pages · Markup · Fill & sign · More (Sign on a compact window). Pages opens the
  *   grid (`3`); Markup opens the palette on its Draw set and Fill & sign on its Sign set, Select
- *   armed (`2`; M in D2-7); More lists the rarer doors (flows §4.2) with ⌘K last.
+ *   armed (`M`, alias `2`; `G` arms the last signature, D2-7); More lists the rarer doors
+ *   (flows §4.2) with ⌘K last.
  * - **Locked** (F10 §2, §4): a locked document's dock is Pages · Locked · More. Locked replaces
  *   Markup and Fill & sign, opening the title menu with its Lock switch until the Unlock
  *   popover of `lock/` lands (spec X4). Lock engaging while the palette is open morphs it into
@@ -37,6 +38,7 @@ import {
 } from 'react';
 
 import { commandRegistry } from '../../commands/registry';
+import { currentPlatform, toAriaKeyShortcut } from '../../commands/shortcuts';
 import { useDragSession } from '../../dnd/drag-store';
 import { useCommands } from '../../commands/use-commands';
 import { m, useLocale } from '../../i18n';
@@ -128,6 +130,17 @@ function DockContent({
 
 const shortcutOf = (id: string) => commandRegistry.get(id)?.shortcuts[0];
 
+/**
+ * A command's every key as `aria-keyshortcuts` (key map v2, `commands/keymap.ts`): Markup's
+ * "M 2", Pages' "3", Fill & sign's "G" (F10 §5–§6), read from the registry so the dock never
+ * names a key the registry does not bind.
+ */
+const keysOf = (id: string) => {
+  const shortcuts = commandRegistry.get(id)?.shortcuts ?? [];
+  if (shortcuts.length === 0) return undefined;
+  return shortcuts.map((s) => toAriaKeyShortcut(s, currentPlatform)).join(' ');
+};
+
 /** The dock's resting items (F10 §2): Pages · Markup · Fill & sign · More, or Locked. */
 function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: VirtualDocument }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -157,7 +170,7 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
         icon="squares-four"
         label={m.dock_pages()}
         shortcut={shortcutOf('mode.arrange')}
-        keys="3"
+        keys={keysOf('mode.arrange')}
         onActivate={() => void commandRegistry.execute('mode.arrange')}
       />
       {locked ? (
@@ -177,7 +190,7 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
             icon="pen-nib"
             label={m.dock_markup()}
             shortcut={shortcutOf('mode.edit')}
-            keys="2"
+            keys={keysOf('mode.edit')}
             pressed={false}
             reason={reason}
             focusOnArrival={door === 'draw'}
@@ -187,6 +200,8 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
             item="sign"
             icon="signature"
             label={compact ? m.dock_sign() : m.dock_fill_sign()}
+            shortcut={shortcutOf('tool.signature')}
+            keys={keysOf('tool.signature')}
             reason={reason}
             focusOnArrival={door === 'sign'}
             onActivate={() => openMarkupFrom('sign')}

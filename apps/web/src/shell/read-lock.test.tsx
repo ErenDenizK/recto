@@ -159,7 +159,7 @@ describe('the Read lock (mounted)', () => {
       .map((b) => b.textContent);
     expect(names).toEqual(['Pages', 'Markup', 'Fill & sign', 'More']);
     const markup = within(dock()).getByRole('button', { name: 'Markup' });
-    expect(markup).toHaveAttribute('aria-keyshortcuts', '2');
+    expect(markup).toHaveAttribute('aria-keyshortcuts', 'M 2');
     expect(markup).toHaveAttribute('aria-pressed', 'false');
 
     markup.focus();

@@ -70,7 +70,7 @@ test.describe('the download path', () => {
     const cell = page.locator('[role="gridcell"][data-page-id]').first();
     await expect(cell).toBeVisible();
     await cell.click();
-    await page.keyboard.press('r');
+    await page.keyboard.press('Shift+R');
 
     const title =
       (await documentTabs.and(page.getByRole('tab', { selected: true })).textContent())?.trim() ??

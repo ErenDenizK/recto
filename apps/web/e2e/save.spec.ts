@@ -132,7 +132,7 @@ async function rotateFirstPage(page: Page): Promise<void> {
   const cell = page.locator('[role="gridcell"][data-page-id]').first();
   await expect(cell).toBeVisible();
   await cell.click();
-  await page.keyboard.press('r');
+  await page.keyboard.press('Shift+R');
   await page.keyboard.press('1');
   // Viewing: the capsule is the dock (the mode switch went with the frame, D2-1; D2-2).
   await expect(markupDoor(page)).toBeVisible();

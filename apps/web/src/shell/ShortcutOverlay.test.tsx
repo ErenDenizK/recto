@@ -1,6 +1,7 @@
 /**
  * S22 on the Sheet (components/07-sheets.md §23.9): every registered shortcut appears, in
- * tables; typing filters; what was typed stays after Esc (the sheet's draft).
+ * tables, in key map v2's groups (EN and TR) with the platform's keycaps; typing filters;
+ * what was typed stays after Esc (the sheet's draft).
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
@@ -11,7 +12,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
 import { registerAppCommands } from '../commands/app-commands';
+import { keymapRows } from '../commands/keymap';
 import { commandRegistry } from '../commands/registry';
+import { setLocale } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { useSheetStore } from '../ui/sheet/sheet-store';
 import { ShortcutOverlay } from './ShortcutOverlay';
@@ -40,13 +43,81 @@ describe('the shortcuts overlay (07 §23)', () => {
     const titles = within(dialog)
       .getAllByRole('rowheader')
       .map((cell) => cell.firstElementChild?.textContent);
-    for (const command of commandRegistry.list()) {
-      if (command.shortcuts.length === 0) continue;
-      expect(titles).toContain(command.title.replace(/…$/, ''));
-    }
+    // Every row of key map v2 (each bound command; a merged row once), from the registry.
+    const rows = keymapRows(commandRegistry.list(), () => []).flatMap((g) => g.rows);
+    expect(rows.length).toBeGreaterThan(50);
+    for (const row of rows) expect(titles).toContain(row.title);
     expect(
       within(dialog).getByText('Shortcuts never fire while you type in a field.'),
     ).toBeVisible();
+  });
+
+  it('groups the map as S22 names them, with the platform’s keycaps, in EN and TR', async () => {
+    useUiStore.setState({ shortcutsOpen: true });
+    const { unmount } = render(<ShortcutOverlay />);
+    const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    const headings = (root: HTMLElement) =>
+      within(root)
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.textContent);
+    expect(headings(dialog)).toEqual([
+      'Places',
+      'Tools',
+      'On a selection',
+      'Pages',
+      'Files',
+      'View',
+      'Commands',
+      'History',
+      'In a focused list or bar',
+    ]);
+    const places = within(dialog).getByRole('table', { name: 'Places' });
+    const placeRows = within(places)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.textContent);
+    expect(placeRows).toEqual([
+      'Library0',
+      'Back to viewing1',
+      'Open or close MarkupM2',
+      'Pages grid3',
+      'Compare4',
+    ]);
+    // Mod reads as the platform's modifier: Ctrl here (⌘ on Apple, `shortcuts.test.ts`).
+    const files = within(dialog).getByRole('table', { name: 'Files' });
+    const save = within(files)
+      .getByRole('rowheader', { name: /^Save$/ })
+      .closest('tr');
+    expect(save?.textContent).toMatch(/CtrlS$/);
+    unmount();
+    act(() => useUiStore.setState({ shortcutsOpen: false }));
+
+    // Turkish: titles are read at registration, so the commands register again.
+    dispose();
+    setLocale('tr');
+    dispose = registerAppCommands();
+    try {
+      act(() => useUiStore.setState({ shortcutsOpen: true }));
+      render(<ShortcutOverlay />);
+      const tr = await screen.findByRole('dialog', { name: 'Klavye kısayolları' });
+      expect(headings(tr)).toEqual([
+        'Yerler',
+        'Araçlar',
+        'Seçili metinde',
+        'Sayfalar',
+        'Dosyalar',
+        'Görünüm',
+        'Komutlar',
+        'Geçmiş',
+        'Odaktaki liste ya da çubukta',
+      ]);
+      expect(within(tr).getByRole('rowheader', { name: 'Görüntülemeye dön' })).toBeInTheDocument();
+      expect(
+        within(tr).getByRole('rowheader', { name: 'İşaretlemeyi aç veya kapat' }),
+      ).toBeInTheDocument();
+    } finally {
+      setLocale('en');
+    }
   });
 
   it('typing filters, and the search stays after Esc', async () => {
