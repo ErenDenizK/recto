@@ -39,7 +39,7 @@ const blurOf = (style: CSSStyleDeclaration) =>
 
 describe('the docked frame', () => {
   beforeEach(() => {
-    useUiStore.setState({ viewMode: 'read', paletteOpen: false, shortcutsOpen: false });
+    useUiStore.setState({ docUi: {}, paletteOpen: false, shortcutsOpen: false });
     useAppearanceStore.setState(DEFAULT_APPEARANCE);
     resetWorkspace();
   });

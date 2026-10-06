@@ -46,7 +46,7 @@ describe('furniture dialogs', () => {
     await page.viewport(1440, 900);
     resetWorkspace();
     closeFurnitureDialog();
-    useUiStore.setState({ viewMode: 'read', paletteOpen: false });
+    useUiStore.setState({ docUi: {}, paletteOpen: false });
   });
   afterEach(() => {
     closeFurnitureDialog();

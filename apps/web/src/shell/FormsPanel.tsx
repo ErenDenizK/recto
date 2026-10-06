@@ -283,7 +283,7 @@ function openRow(row: FieldStop): void {
     openField(row);
     return;
   }
-  useUiStore.getState().setViewMode('read');
+  useUiStore.getState().showSurface('page');
   useViewStore.getState().scrollToPage(row.pageId);
 }
 

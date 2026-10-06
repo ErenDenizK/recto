@@ -96,7 +96,7 @@ const lastLabel = () => useWorkspaceStore.getState().history.present.label;
 beforeEach(() => {
   resetWorkspace();
   resetOutlineView();
-  useUiStore.setState({ viewMode: 'read' });
+  useUiStore.setState({ docUi: {} });
   useViewStore.setState({ currentPage: 0 });
   useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
 });
