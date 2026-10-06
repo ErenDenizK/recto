@@ -49,6 +49,7 @@ import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
 import { Tooltip } from '../../ui/Tooltip';
 import { extractPages, movePagesToDocument } from '../arrange-actions';
+import { openOperationDialog } from '../operation-dialogs-store';
 import { leaveGrid } from './grid-transition';
 import styles from './PagesBar.module.css';
 
@@ -179,8 +180,17 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
         { id: 'section.insertImages', label: m.pages_bar_insert_images() },
         { id: 'section.split', label: m.pages_bar_split() },
         { id: 'section.interleave', label: m.pages_bar_interleave() },
-        { id: 'pages.resize', label: m.pages_bar_resize() },
-        { id: 'pages.crop', label: m.pages_bar_crop() },
+        // Nothing selected: the whole document, not the focused cell (S8, S12).
+        {
+          id: 'pages.resize',
+          label: m.pages_bar_resize(),
+          run: () => openOperationDialog({ kind: 'resize', documentId: doc.id, pageIds: [] }),
+        },
+        {
+          id: 'pages.crop',
+          label: m.pages_bar_crop(),
+          run: () => openOperationDialog({ kind: 'crop', documentId: doc.id, pageIds: [] }),
+        },
       ];
 
   return (
@@ -338,6 +348,8 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
 interface MoreEntry {
   readonly id: string;
   readonly label: string;
+  /** Runs instead of the command (whose enablement still decides). */
+  readonly run?: () => void;
 }
 
 function BarButton({
@@ -475,7 +487,10 @@ function MoreMenu({ entries }: { readonly entries: readonly MoreEntry[] }) {
                   className={menuStyles.item}
                   data-command={entry.id}
                   disabled={reason !== undefined}
-                  onClick={() => void commandRegistry.execute(entry.id)}
+                  onClick={() => {
+                    if (entry.run) entry.run();
+                    else void commandRegistry.execute(entry.id);
+                  }}
                 >
                   <span className={menuStyles.label}>{entry.label}</span>
                   {reason ? <span className={menuStyles.hint}>{reason}</span> : null}

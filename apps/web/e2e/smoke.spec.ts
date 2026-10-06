@@ -86,7 +86,7 @@ test('the palette finds commands by keywords in both languages, without diacriti
   await page.keyboard.press('Escape');
   await expect(await search('ciz')).toContainText('Pen tool');
   await page.keyboard.press('Escape');
-  await expect(await search('birlestir')).toContainText(/Merge (all open documents|document into)/);
+  await expect(await search('birlestir')).toContainText('Combine with open documents…');
   await page.keyboard.press('Escape');
   await expect(await search('sertifika')).toContainText('Sign with certificate…');
   await page.keyboard.press('Escape');
