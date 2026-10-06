@@ -91,18 +91,18 @@
 }
 
 .code {
+  composes: technical from global;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
 
 .urls {
+  composes: technical from global;
   display: grid;
   gap: 2px;
   max-height: 120px;
   overflow: auto;
   color: var(--warning);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
 

@@ -193,16 +193,16 @@ div.number > :nth-child(2) {
 }
 
 .tokens {
+  composes: technical from global;
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: var(--leading-base);
 }
 
 .sample {
+  composes: technical from global;
   overflow: hidden;
   color: var(--text-primary);
-  font-family: var(--font-mono);
   font-size: var(--text-sm);
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -5,7 +5,6 @@
  * forced by the spec through CDP (`hover`, `active`, `focus-visible`), so hover, pressed and focus
  * show side by side. Served by the spec's own Vite dev server; not an app route, never built.
  */
-import '@fontsource-variable/inter/wght.css';
 import '../../src/styles/fonts.css';
 import '../../src/styles/tokens.css';
 import '../../src/styles/reset.css';

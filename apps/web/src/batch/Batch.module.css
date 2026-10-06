@@ -224,10 +224,10 @@
 }
 
 .code {
+  composes: technical from global;
   display: block;
   margin-top: var(--space-1);
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
   font-size: 11px;
   word-break: break-word;
 }
