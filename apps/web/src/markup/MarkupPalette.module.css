@@ -2,85 +2,42 @@
  * The Markup palette (03-markup MK-2 to MK-17; 10-ink §2; quality-bar Q-4, Q-9).
  *
  * Geometry (Q-9): one bar of --bar-h (44 fine, 56 coarse) holding --bar-button controls (32,
- * 44) on one centre line; 5 / 5 px of padding and the 1 px glass border make the ends
+ * 44) on one centre line; 5 / 5 px of padding and the capsule's 1 px rim make the ends
  * concentric with the round controls. Gaps: --palette-gap between the items of a group, and a
  * 1 px hairline with --palette-sep-m each side between groups. `MarkupPalette.tsx` reads the
- * same three numbers to fold the row (palette-fold.ts), so the CSS is the one source.
+ * same numbers from the rendered row to fold it (palette-fold.ts), so the CSS is the one source.
  *
- * The surface below is today's stand-in for the capsule of D2-2 (`shell/capsule/`): the glass
- * is the surface itself, and everything inside it is a fill (Q-4, no glass in glass). With the
- * ink strip's second row it grows upward by one row; its corners stay concentric with the
- * rows' round ends (radius half a bar).
- *
- * The dock centres the surface by its auto margins (Q-2: no half-pixel translate). When the
- * strip sits inline it hangs off the trailing end like a drawer: `--drawer` pads the dock's
- * leading side by the strip's width, so the tools stay centred and never move under the
- * pointer that armed the pen.
+ * The palette is the capsule's content (`shell/capsule/`): the capsule is the glass, and
+ * everything here is a fill (Q-4, no glass in glass). The content is laid out at its own size
+ * (`flex: none`), the tools row at the bar's height inside the rim; with the ink strip's second
+ * row the capsule grows upward by one row.
  */
-.dock {
+.content {
   --palette-gap: 2px;
   --palette-sep-m: 6px;
   --palette-pad: calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
 
-  position: absolute;
-  right: 0;
-  /* The dock band's offset (01-frame F10 §2: 16 px, 12 on compact; frame/DockBand.module.css). */
-  bottom: var(--band-offset, var(--space-4));
-  left: 0;
-  z-index: 3;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-sizing: border-box;
-  width: fit-content;
-  max-width: calc(100% - 2 * var(--space-4));
-  margin-inline: auto;
-  padding-inline-start: var(--drawer, 0px);
-  /* Only the surface takes the pointer. */
-  pointer-events: none;
+  flex: none;
+  /* The tools first in the DOM (Tab: tools, then the strip); the strip's row shows on top. */
+  flex-direction: column-reverse;
+  align-items: stretch;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
-  .dock {
+  .content {
     --palette-gap: 4px;
     --palette-sep-m: 8px;
   }
 }
 
-.surface {
-  composes: glass from global;
-  display: flex;
-  /* The tools first in the DOM (Tab: tools, then the strip); the strip's row shows on top. */
-  flex-direction: column-reverse;
-  align-items: stretch;
-  max-width: 100%;
-  border-radius: calc(var(--bar-h) / 2);
-  pointer-events: auto;
-  transition: opacity var(--duration-fast) var(--ease-out);
-}
-
 /*
- * Stroke fade (MK-17, stroke-fade.ts): 20 % and no pointer while a stroke runs and for a second
- * after. Opacity on the glass element itself, never on an ancestor (Q-3); the keyboard is
- * untouched (no inert).
+ * With the strip's second row the capsule is two bars tall. Its corners keep the radius of one
+ * bar's round ends, so each row stays concentric with them; on one row that radius is the pill
+ * (quality-bar Q-6), so the shape is the same pill whenever the palette is one bar.
  */
-.surface[data-stroking] {
-  opacity: 0.2;
-  pointer-events: none;
-}
-
-.surface[data-stroking] * {
-  pointer-events: none;
-}
-
-:global(:root[data-motion='reduced']) .surface {
-  transition: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .surface {
-    transition: none;
-  }
+:global(.glass[data-capsule='palette']) {
+  border-radius: calc(var(--bar-h) / 2);
 }
 
 /* --- Rows ------------------------------------------------------------------------------ */
@@ -120,13 +77,6 @@
   left: calc(var(--bar-h) / 2);
   height: 1px;
   background: var(--border-hairline);
-}
-
-.stripHost {
-  display: flex;
-  flex: none;
-  min-width: 0;
-  max-width: 100%;
 }
 
 .group {

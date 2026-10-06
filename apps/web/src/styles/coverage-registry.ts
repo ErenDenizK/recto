@@ -33,7 +33,9 @@ export type GlassFilterToken =
   | '--glass-filter'
   | '--glass-menu-backdrop'
   | '--glass-menu-short-backdrop'
-  | '--glass-frame-filter';
+  | '--glass-frame-filter'
+  /** The capsule's one σ per size (spec X1, D2-2): 9 fine, 10 coarse, 8 compact-height. */
+  | '--glass-capsule-filter';
 
 /** What a module rule composes from `global.css`. */
 export type GlassComposition = 'glass' | 'glass glass-menu' | 'glass-frame';
@@ -58,16 +60,16 @@ export interface GlassSurfaceEntry {
 
 export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
   {
-    id: 'markup-palette',
-    surface: 'Markup palette and the dock (with the ink strip as its second row)',
-    module: 'markup/MarkupPalette.module.css',
-    selector: '.surface',
+    id: 'capsule',
+    surface: 'Capsule: the dock, the Markup palette and Locked (spec X1)',
+    module: 'shell/capsule/Capsule.module.css',
+    selector: '.capsule',
     composes: 'glass',
-    filter: '--glass-filter',
-    minWidth: 120,
+    filter: '--glass-capsule-filter',
+    minWidth: 240,
     minHeight: 44,
     smallest:
-      'one 44 px row; at 320 px the folded palette (Done, Select, the pens, +) is the narrowest',
+      '--bar-h, 44 px fine (56 coarse or with labels under); Pages · Locked · More with labels under is the narrowest (about 240 px)',
   },
   {
     id: 'read-selection-bar',

@@ -46,8 +46,10 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
 }) => {
   await setUp(page);
   // Two files opened together land on Home (experience-redesign §3); 1 shows the active
-  // document on its page (viewing: the dock's Markup door; there is no mode switch, D2-1).
-  const read = page.locator('[data-dock-markup]');
+  // document on its page (viewing: the capsule is the dock; there is no mode switch, D2-1).
+  const read = page
+    .getByRole('toolbar', { name: 'Document tools', exact: true })
+    .getByRole('button', { name: 'Markup', exact: true });
   await expect(page.getByRole('radiogroup', { name: 'View mode' })).toHaveCount(0);
   await page.keyboard.press('1');
   await expect(read).toBeVisible();

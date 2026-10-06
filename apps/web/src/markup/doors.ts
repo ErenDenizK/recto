@@ -3,21 +3,21 @@
  * dock's Markup opens the palette on its Draw set, Fill & sign on its Sign set (Select armed,
  * the saved signatures inline, the field stepper); Done, the second Esc and `1` close it.
  *
- * The dock that calls these is the frame's (D2-2's capsule); today's stand-in is the Read dock
- * in `shell/FloatingToolbar.tsx`.
+ * The dock that calls these is the capsule's (`shell/frame/Dock.tsx`); focus follows the
+ * capsule's morph (`shell/capsule/Capsule.tsx`): into the armed Select on opening when it was
+ * in the capsule, back to the door Markup was opened through on closing.
  *
  * - **Opening** asks the guard first (`canChange(id, 'freehand', { opensMarkup: true })`): a
- *   locked document opens nothing (the Unlock popover is the Lock UI's). It arms Select and
- *   says "Markup on. Select armed." once (A-14).
+ *   locked document opens nothing (its dock shows Locked instead). It arms Select and says
+ *   "Markup on. Select armed." once (A-14).
  * - **Closing** (Done, MK-3 §6) commits an open text box or note editor, disarms, then closes
- *   Markup, and says "Markup off." Focus goes to the dock's Markup button when it was inside
- *   the palette, else it stays where it was (the page).
+ *   Markup, and says "Markup off."
  */
 import { commitOpenEditor } from '../annotations/InlineEditors';
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { m } from '../i18n';
-import { loadSavedSignatures } from '../signatures/saved-signatures';
 import { announce } from '../shell/announcer';
+import { loadSavedSignatures } from '../signatures/saved-signatures';
 import { canChange } from '../state/guard';
 import { isMarkupOpen, type PaletteSet, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -25,31 +25,11 @@ import { useToolStore } from '../viewer/tool-store';
 
 const activeId = () => useWorkspaceStore.getState().workspace.activeDocument;
 
-/** Set by a door pressed from the dock: the palette takes the focus when it mounts. */
-let focusOnOpen = false;
-
-/** Whether the palette that just mounted takes the focus (read once). */
-export function takeFocusOnOpen(): boolean {
-  const take = focusOnOpen;
-  focusOnOpen = false;
-  return take;
-}
-
-/** Set by Done or Esc from inside the palette: the dock's door takes the focus back. */
-let focusDockOnClose: PaletteSet | null = null;
-
-/** The door the dock focuses after Markup closed from inside the palette (read once). */
-export function takeDockFocus(): PaletteSet | null {
-  const door = focusDockOnClose;
-  focusDockOnClose = null;
-  return door;
-}
-
 /**
- * Opens Markup for the active document on `set`, with Select armed. `focus`: the palette takes
- * the focus (opened from the dock). False when nothing opened (no document, or locked).
+ * Opens Markup for the active document on `set`, with Select armed. False when nothing opened
+ * (no document, or locked).
  */
-export function openMarkupDoor(set: PaletteSet, options: { readonly focus?: boolean } = {}) {
+export function openMarkupDoor(set: PaletteSet): boolean {
   const id = activeId();
   if (id === undefined || !canChange(id, 'freehand', { opensMarkup: true })) return false;
   const ui = useUiStore.getState();
@@ -58,13 +38,12 @@ export function openMarkupDoor(set: PaletteSet, options: { readonly focus?: bool
   ui.showSurface('page', id);
   useToolStore.getState().setMode('select');
   if (set === 'sign') void loadSavedSignatures();
-  focusOnOpen = options.focus === true;
   if (!wasOpen) announce(m.markup_on());
   return true;
 }
 
 /** Closes Markup (Done, Esc at Select): module header. */
-export function closeMarkupDoor(options: { readonly fromPalette?: boolean } = {}): void {
+export function closeMarkupDoor(): void {
   const id = activeId();
   if (id === undefined) return;
   const ui = useUiStore.getState();
@@ -75,7 +54,6 @@ export function closeMarkupDoor(options: { readonly fromPalette?: boolean } = {}
     useAnnotationStore.getState().setEditor(null);
   }
   useToolStore.getState().setMode('select');
-  focusDockOnClose = options.fromPalette ? (ui.docUi[id]?.paletteSet ?? 'draw') : null;
   ui.closeMarkup(id);
   announce(m.markup_off());
 }

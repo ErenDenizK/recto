@@ -284,6 +284,16 @@ a.contentsRow:active {
   color: var(--text-secondary);
 }
 
+/* About's Appearance group (Reduce motion, the Settings sheet's own row): its name lines up
+   with the facts and the statement, 12 px in, where the sheet's coarse rows pad 16. */
+.aboutSettings {
+  margin-top: 8px;
+}
+
+.aboutSettings [data-row] {
+  --row-pad: 12px;
+}
+
 .link:active {
   background: var(--surface-active);
 }

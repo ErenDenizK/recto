@@ -68,6 +68,7 @@ export function PaletteButton({
         data-size="bar"
         data-tool={tool}
         data-item={item}
+        data-capsule-item={item === 'done' ? 'markup' : item}
         data-labelled={showLabel ? '' : undefined}
         {...rest}
       >

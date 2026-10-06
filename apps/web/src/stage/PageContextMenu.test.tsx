@@ -23,7 +23,8 @@ import { resetEditRunner, whenIdle } from '../annotations/edit-runner';
 import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { useAnnouncer } from '../shell/announcer';
-import { FloatingToolbar } from '../shell/FloatingToolbar';
+import { Dock } from '../shell/frame/Dock';
+import { PageContextMenu } from './PageContextMenu';
 import { resetLockStore, useLockStore } from '../state/lock-store';
 import { useSelectionStore } from '../state/selection-store';
 import { isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
@@ -41,7 +42,8 @@ function Harness() {
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 800 }}>
       <ReadView doc={doc} />
-      <FloatingToolbar />
+      <Dock />
+      <PageContextMenu />
     </div>
   );
 }

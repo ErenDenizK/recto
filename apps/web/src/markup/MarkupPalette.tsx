@@ -13,11 +13,11 @@
  *   fixed order until the row fits the free rectangle less 2 × 16 px. A `ResizeObserver` on the
  *   band re-runs the fold, one frame late at most, never during a stroke or while focus is
  *   inside.
- * - **The ink strip** (`InkStrip.tsx`, `10-ink` §2): from large up it hangs inline off the
- *   trailing end when the room allows, as a drawer, so the tools stay where the pointer left
- *   them; otherwise it is a second row of the same glass, above the tools. With the Fill & sign
- *   door and Select armed, that row holds the saved-signature chips the row had no room for
- *   (03.7).
+ * - **The ink strip** (`InkStrip.tsx`, `10-ink` §2): a second row of the same glass, above the
+ *   tools, from the moment a tool with options arms; the capsule grows upward to hold it
+ *   (`morphKey`), so the tools never move under the pointer that armed the pen. With the Fill
+ *   & sign door and Select armed, that row holds the saved-signature chips the row had no room
+ *   for (03.7).
  * - **Second press** on the armed tool opens its editor: the pen's preset editor
  *   (`annotations/pen/PresetEditor.tsx`), or the style editor of shapes, text box and note.
  * - **Stroke fade** (MK-17, `stroke-fade.ts`): 20 % and no pointer while a stroke runs, never
@@ -28,14 +28,15 @@
  * - **Keyboard**: one Tab stop (the armed tool), ←/→ between controls, Home/End, ↑ opens the
  *   focused tool's choices; Tab goes on into the strip.
  *
- * The glass element here (`.surface`) stands in for the capsule of D2-2 (`shell/capsule/`):
- * `MarkupPaletteContent` is the part that goes into its content slot, and the palette reports
- * its own size by layout, nothing else, so the capsule can morph to it.
+ * The palette is the capsule's Markup content (`shell/capsule/`, `shell/frame/Dock.tsx`; spec
+ * X1): the capsule is the glass, measures this content at its own size and morphs to it. Its
+ * pieces carry `data-capsule-item` keys (Done is `markup`, so it grows out of the dock's Markup
+ * door; Sign is `sign`, Fill & sign's), and the armed Select takes the focus on arrival
+ * (`data-capsule-focus`). The capsule fades it during a stroke.
  */
 import { Menu } from '@base-ui/react/menu';
 import { Popover } from '@base-ui/react/popover';
 import {
-  type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
   useEffect,
@@ -72,7 +73,7 @@ import { useCoarsePointer } from '../ui/Slider';
 import { isShapeMode, SHAPE_MODES, type ToolMode, useToolStore } from '../viewer/tool-store';
 import { abovePalette } from './anchor';
 import { ChoiceTool } from './ChoiceTool';
-import { closeMarkupDoor, takeFocusOnOpen } from './doors';
+import { closeMarkupDoor } from './doors';
 import { InkStrip, useStripKind } from './InkStrip';
 import { MoreTools } from './MoreTools';
 import { type FoldMetrics, foldPalette, type FoldResult } from './palette-fold';
@@ -95,7 +96,7 @@ import {
   useFieldStops,
   useSignatures,
 } from './SignGroup';
-import { strokeInProgress, useStrokeFade } from './stroke-fade';
+import { strokeInProgress, useStrokeInProgress } from './stroke-fade';
 import { armedTooltip, PaletteButton } from './ToolButton';
 
 /** Items that carry a label the fold may drop (they keep their glyph). */
@@ -116,7 +117,7 @@ interface Measured {
 const px = (value: string) => Number.parseFloat(value) || 0;
 
 /** Reads the row's items and spacing (the CSS is the one source of the numbers). */
-function measureRow(row: HTMLElement, dock: HTMLElement): Omit<Measured, 'key'> {
+function measureRow(row: HTMLElement): Omit<Measured, 'key'> {
   const widths: Record<string, number> = {};
   for (const el of row.querySelectorAll<HTMLElement>('[data-item]')) {
     const id = el.dataset.item ?? '';
@@ -140,55 +141,16 @@ function measureRow(row: HTMLElement, dock: HTMLElement): Omit<Measured, 'key'> 
       // Both paddings and the glass's 1 px border each side.
       padding: px(rowStyle.paddingLeft) + px(rowStyle.paddingRight) + 2,
     },
-    button: px(getComputedStyle(dock).getPropertyValue('--bar-button')) || 32,
+    button: px(getComputedStyle(row).getPropertyValue('--bar-button')) || 32,
   };
 }
 
-export function MarkupPalette() {
-  const [dock, setDock] = useState<HTMLDivElement | null>(null);
-  const [focusInside, setFocusInside] = useState(false);
-  const fading = useStrokeFade(focusInside);
-  const [drawer, setDrawer] = useState(0);
-  return (
-    <div
-      ref={setDock}
-      className={styles.dock}
-      style={drawer > 0 ? ({ '--drawer': `${drawer}px` } as CSSProperties) : undefined}
-      data-markup-dock=""
-    >
-      <div
-        className={styles.surface}
-        data-region="toolbar"
-        data-markup-palette=""
-        data-annotation-keep=""
-        data-stroking={fading ? '' : undefined}
-        onFocus={() => setFocusInside(true)}
-        onBlur={(event) => {
-          const next = event.relatedTarget;
-          if (!(next instanceof Node) || !event.currentTarget.contains(next)) {
-            setFocusInside(false);
-          }
-        }}
-      >
-        <MarkupPaletteContent dock={dock} onDrawer={setDrawer} frozen={fading || focusInside} />
-      </div>
-    </div>
-  );
-}
-
-export interface MarkupPaletteContentProps {
-  /** The element whose parent is the band the palette may fill (the fold's room). */
-  readonly dock: HTMLElement | null;
-  /** The inline strip's width (with its separator), by which the host pads its leading side. */
-  readonly onDrawer: (width: number) => void;
-  /** No re-fold now: a stroke is running or focus is inside (MK-2 §2). */
-  readonly frozen: boolean;
-}
-
 /** The palette's rows: what the capsule's content slot holds (module header). */
-export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteContentProps) {
+export function MarkupPaletteContent() {
   const rowRef = useRef<HTMLDivElement>(null);
-  const stripRef = useRef<HTMLDivElement>(null);
+  // The band the capsule may fill (the fold's room), found once the row is mounted.
+  const [band, setBand] = useState<HTMLElement | null>(null);
+  const frozen = useStrokeInProgress();
   const id = useWorkspaceStore((s) => s.workspace.activeDocument);
   const door = useUiStore((s) => (id === undefined ? 'draw' : (s.docUi[id]?.paletteSet ?? 'draw')));
   const mode = useToolStore((s) => s.mode);
@@ -224,18 +186,31 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
   useLayoutEffect(() => {
     if (!measuring) return;
     const row = rowRef.current;
-    if (!row || !dock) return;
-    setMeasured({ key, ...measureRow(row, dock) });
-  }, [measuring, key, dock]);
+    if (!row) return;
+    setMeasured({ key, ...measureRow(row) });
+  }, [measuring, key]);
+
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    setBand(row?.closest<HTMLElement>('[data-frame-layer="band"]') ?? document.body);
+  }, []);
 
   // The room: the band's width less the margins, followed one frame late (MK-2 §2).
   useLayoutEffect(() => {
-    const parent = dock?.parentElement;
+    const parent = band;
     if (!parent) return;
     let raf = 0;
     const measure = () => setAvailable(parent.clientWidth - 2 * MARGIN);
     const update = () => {
+      const focused = document.activeElement;
       if (frozen || strokeInProgress()) return;
+      // Never while focus is inside: the controls would move under the keyboard.
+      if (
+        focused instanceof Node &&
+        rowRef.current?.closest('[data-markup-palette]')?.contains(focused)
+      ) {
+        return;
+      }
       measure();
     };
     // The room now; later changes wait for the stroke to end and the focus to leave.
@@ -249,7 +224,7 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
       observer.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [dock, frozen]);
+  }, [band, frozen]);
 
   const fold: FoldResult | null =
     measuring || !measured
@@ -269,30 +244,7 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
   const bare = fold?.bare ?? new Set<string>();
   const folded = (fold?.folded ?? []) as readonly PaletteItem[];
 
-  // --- The strip: inline as a drawer, or a second row ----------------------------------
-  const stripKey = `${stripKind ?? ''}|${locale}|${coarse}`;
-  const [strip, setStrip] = useState<{ readonly key: string; readonly width: number } | null>(null);
-  const separator = measured?.metrics.separator ?? 13;
-  const inline =
-    stripKind !== null &&
-    fold !== null &&
-    wide &&
-    strip?.key === stripKey &&
-    fold.width + 2 * (strip.width + separator) <= available;
-  useLayoutEffect(() => {
-    const element = stripRef.current;
-    if (!element || stripKind === null) return;
-    const width = element.getBoundingClientRect().width;
-    if (strip?.key !== stripKey || Math.abs(strip.width - width) > 0.5) {
-      setStrip({ key: stripKey, width });
-    }
-  }, [stripKind, stripKey, strip]);
-  useLayoutEffect(() => {
-    onDrawer(inline && strip ? strip.width + separator : 0);
-  }, [inline, strip, separator, onDrawer]);
-
   const chipsInRow =
-    !inline &&
     stripKind === null &&
     door === 'sign' &&
     signatures.length > 0 &&
@@ -305,11 +257,6 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
     '[data-tool][aria-pressed="true"], [data-pen-preset][aria-pressed="true"]',
     `${mode}|${activePen}`,
   );
-  useLayoutEffect(() => {
-    if (!takeFocusOnOpen()) return;
-    rowRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus();
-  }, []);
-
   // The ladder's last step from the page (§5): with nothing armed or selected (the window's
   // Escape disarmed it on the press before), Esc closes Markup and focus stays on the page. In
   // the bubble phase on the document, so a widget that takes Esc (an editor, a menu, the
@@ -339,7 +286,7 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
     event.preventDefault();
     event.stopPropagation();
     if (hasAnnotationToolState()) clearAnnotationTools();
-    else closeMarkupDoor({ fromPalette: true });
+    else closeMarkupDoor();
   };
 
   // --- The row ---------------------------------------------------------------------------
@@ -360,7 +307,7 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
             className={styles.done}
             aria-description={m.markup_done_description()}
             data-markup-done=""
-            onClick={() => closeMarkupDoor({ fromPalette: true })}
+            onClick={() => closeMarkupDoor()}
           />
         );
       case 'select':
@@ -416,19 +363,13 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
     else runs.push({ group, items: [item] });
   }
 
-  const stripNode =
-    stripKind === null ? null : (
-      <div
-        ref={stripRef}
-        className={styles.stripHost}
-        data-strip-placement={inline ? 'inline' : 'row'}
-      >
-        <InkStrip kind={stripKind} />
-      </div>
-    );
-
   return (
-    <>
+    <div
+      className={styles.content}
+      data-markup-palette=""
+      data-annotation-keep=""
+      data-palette-set={door}
+    >
       <div
         ref={rowRef}
         role="toolbar"
@@ -436,7 +377,6 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
         aria-orientation="horizontal"
         className={styles.row}
         data-measuring={measuring ? '' : undefined}
-        data-palette-set={door}
         onKeyDownCapture={onKeyDownCapture}
         onKeyDown={roving.onKeyDown}
         onFocus={roving.onFocus}
@@ -452,20 +392,19 @@ export function MarkupPaletteContent({ dock, onDrawer, frozen }: MarkupPaletteCo
             </GroupRun>
           );
         })}
-        {inline ? (
-          <>
-            <span className={styles.sep} data-sep="" aria-hidden="true" />
-            {stripNode}
-          </>
-        ) : null}
       </div>
-      {!inline && (stripNode || chipsInRow) ? (
-        <div className={styles.stripRow} data-strip-row="" onKeyDownCapture={onKeyDownCapture}>
-          {stripNode ?? <SignatureChips />}
+      {stripKind !== null || chipsInRow ? (
+        <div
+          className={styles.stripRow}
+          data-strip-row=""
+          data-capsule-item={`strip:${stripKind ?? 'chips'}`}
+          onKeyDownCapture={onKeyDownCapture}
+        >
+          {stripKind !== null ? <InkStrip kind={stripKind} /> : <SignatureChips />}
         </div>
       ) : null}
       <ToolEditor rowRef={rowRef} />
-    </>
+    </div>
   );
 }
 
@@ -526,6 +465,8 @@ function SimpleTool({
       command={`tool.${mode}`}
       showLabel={showLabel}
       className={mode === 'select' ? styles.selectTool : undefined}
+      // The capsule's focus on arrival (Capsule.tsx): the armed Select, the palette's Tab stop.
+      data-capsule-focus={mode === 'select' && armed ? '' : undefined}
       aria-pressed={armed}
       aria-haspopup={choices ? 'dialog' : undefined}
       onClick={() => void activateTool(tool)}

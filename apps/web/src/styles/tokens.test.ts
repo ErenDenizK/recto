@@ -938,7 +938,13 @@ describe('tokens.css', () => {
     const media = mediaOverrides('prefers-reduced-transparency: reduce');
     const more = mediaOverrides('prefers-contrast: more');
     const forced = mediaOverrides('forced-colors: active');
-    const SIGMA = ['--glass-filter', '--glass-frame-filter', '--glass-menu-backdrop'];
+    const SIGMA = [
+      '--glass-filter',
+      '--glass-frame-filter',
+      '--glass-menu-backdrop',
+      '--glass-capsule-filter',
+      '--glass-capsule-short-filter',
+    ];
 
     it('the in-app switch sets exactly what the media query sets', () => {
       expect(attribute.size).toBeGreaterThan(0);
@@ -1061,7 +1067,7 @@ describe('tokens.css', () => {
       const ids = COVERAGE_REGISTRY.map((entry) => entry.id);
       expect(new Set(ids).size).toBe(ids.length);
       const filters: Record<GlassComposition, readonly string[]> = {
-        glass: ['--glass-filter'],
+        glass: ['--glass-filter', '--glass-capsule-filter'],
         'glass glass-menu': ['--glass-menu-backdrop', '--glass-menu-short-backdrop'],
         'glass-frame': ['--glass-frame-filter'],
       };
@@ -1093,8 +1099,9 @@ describe('tokens.css', () => {
       // the compact edition adds three, the toast stack (D0-5) one and the Sheet primitive one
       // (D0-4: one panel, an entry per presentation), the pinch detent chip one (D2-10) and the
       // Library selection bar one (D4-1). The frame (D2-1) trades the title and status bars for
-      // the top strip, the compact bar and the page pill: one more.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(25);
+      // the top strip, the compact bar and the page pill: one more. The capsule (D2-2) takes the
+      // tool bar's glass into its own module; the options tier stays in the bar's: one more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(26);
     });
 
     it('gives a one-row menu the short blur in ui/Menu', () => {
