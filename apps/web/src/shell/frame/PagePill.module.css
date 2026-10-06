@@ -77,12 +77,14 @@
   }
 }
 
+/* One column for every row: labels 8 px in, as the entries' text; the field, Go, the zoom
+   buttons and the segmented tracks run to the menu's content edges. */
 .goto {
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
   column-gap: var(--space-2);
-  padding: 2px 2px 4px;
+  padding: 2px 0 4px 8px;
 }
 
 .gotoLabel {
