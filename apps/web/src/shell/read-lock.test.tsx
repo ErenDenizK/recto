@@ -28,14 +28,16 @@ import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
 import { useAnnouncer } from './announcer';
-import { FloatingToolbar } from './FloatingToolbar';
+import { Dock } from './frame/Dock';
+import { PageContextMenu } from '../stage/PageContextMenu';
 
 function Harness({ doc }: { readonly doc: VirtualDocument }) {
   useShortcuts();
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 700 }}>
       <ReadView doc={doc} />
-      <FloatingToolbar />
+      <Dock />
+      <PageContextMenu />
     </div>
   );
 }

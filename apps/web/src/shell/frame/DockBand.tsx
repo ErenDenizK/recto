@@ -1,8 +1,8 @@
 /**
  * The dock band (`components/01-frame.md` F1 §2, F10 §2, F11 §2, F13): the overlay slot along
  * the bottom of the free rectangle where the dock rests and the page pill sits at its trailing
- * end. Today's floating tool bar (`shell/FloatingToolbar.tsx`) rests here until the capsule and
- * the dock of D2-2 replace it in place; the Markup palette (D2-3) grows from the same anchor.
+ * end. The capsule rests here (`Dock.tsx`, spec X1): the dock in viewing, morphing in place into
+ * the Markup palette and Locked from the same anchor.
  *
  * - **Anchor:** bottom centre of the free rectangle, 16 px up (12 on compact); the band spans
  *   the free rectangle's width, so a docked sidebar moves the dock's centre with the page.
@@ -15,19 +15,19 @@
  * - Short viewports fold the bar into the compact capsule: the dock and the pill step aside in
  *   viewing there (F1 §6).
  */
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { isMarkupOpen, useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument } from '../../state/workspace-store';
-import { FloatingToolbar } from '../FloatingToolbar';
+import { PageContextMenu } from '../../stage/PageContextMenu';
+import { watchLockClosesMarkup } from '../capsule/capsule-content';
+import { Dock } from './Dock';
 import styles from './DockBand.module.css';
+import { PILL_CLEARANCE } from './dock-labels';
 import { useFrameStore } from './frame-store';
 import { PagePill } from './PagePill';
 import { PagePillMenu } from './PagePillMenu';
 import type { SizeClass } from './size-class';
-
-/** The pill keeps at least this much room beside a bar before it rises (spec 01.6). */
-export const PILL_CLEARANCE = 12;
 
 /** Whether the pill must rise: the bar's trailing edge comes within 12 px of the pill. */
 export function pillMustRise(barRight: number, pillLeft: number): boolean {
@@ -50,6 +50,8 @@ export function DockBand({
   const focus = useFrameStore((s) => s.focusMode);
   const hidden = useFrameStore((s) => s.chromeHidden);
   const bandRef = useRef<HTMLDivElement>(null);
+  // A lock engaging while Markup is open closes it (MK-1 §6), for every document.
+  useEffect(() => watchLockClosesMarkup(), []);
   const away = focus || (compact && hidden);
   const narrow = size === 'compact' || size === 'medium';
   // No dock on the Library with no file open (the stage shows the launcher there).
@@ -97,7 +99,9 @@ export function DockBand({
       data-hides-on-scroll={compact ? '' : undefined}
       inert={away}
     >
-      {showDock ? <FloatingToolbar /> : null}
+      {showDock ? <Dock /> : null}
+      {/* The page menu belongs to the page view, as the dock does. */}
+      {view === 'page' && doc ? <PageContextMenu /> : null}
       {showPill ? <PagePill /> : null}
       {view === 'page' && doc ? <PagePillMenu doc={doc} /> : null}
     </div>

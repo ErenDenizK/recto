@@ -40,7 +40,8 @@ import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
 import { useAnnouncer } from './announcer';
-import { FloatingToolbar } from './FloatingToolbar';
+import { Dock } from './frame/Dock';
+import { PageContextMenu } from '../stage/PageContextMenu';
 import { ShortcutOverlay } from './ShortcutOverlay';
 import { BAR_GROUPS, type BarItem, barGroupOfCommand, barItems } from './FloatingToolbar.groups';
 import { registerPenSlots } from './FloatingToolbar.slots';
@@ -145,7 +146,8 @@ function Harness({ doc }: { readonly doc: VirtualDocument }) {
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: 700 }}>
       <ReadView doc={doc} />
-      <FloatingToolbar />
+      <Dock />
+      <PageContextMenu />
     </div>
   );
 }
