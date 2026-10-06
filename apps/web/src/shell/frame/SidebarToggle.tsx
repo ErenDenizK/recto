@@ -6,15 +6,14 @@
  */
 
 import { m } from '../../i18n';
-import { useUiStore } from '../../state/ui-store';
 import { IconButton } from '../../ui/IconButton';
 import { useCommandShortcut } from '../use-command-shortcut';
+import { toggleSidebar, useSidebarShown } from './frame-store';
 import { SIDEBAR_ID } from './ids';
 import { Icon } from '../../ui/Icon';
 
 export function SidebarToggle() {
-  const open = useUiStore((s) => s.leftPanelOpen);
-  const toggle = useUiStore((s) => s.toggleLeftPanel);
+  const open = useSidebarShown();
   const shortcut = useCommandShortcut('view.toggleLeftPanel');
   return (
     <IconButton
@@ -24,7 +23,7 @@ export function SidebarToggle() {
       aria-pressed={open}
       aria-controls={open ? SIDEBAR_ID : undefined}
       data-testid="sidebar-toggle"
-      onClick={toggle}
+      onClick={toggleSidebar}
     />
   );
 }

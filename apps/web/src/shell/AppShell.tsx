@@ -53,7 +53,7 @@ import { DockBand } from './frame/DockBand';
 import { DropOverlay } from './frame/DropOverlay';
 import { registerFocusCommands, watchFocusTap } from './frame/focus-mode';
 import { BAND_OFFSET, BAND_OFFSET_COMPACT, useFreeRect } from './frame/frame-insets';
-import { useFrameStore } from './frame/frame-store';
+import { setSidebarOverlay, showOverlaySidebar, useFrameStore } from './frame/frame-store';
 import { useHideOnScroll } from './frame/hide-on-scroll';
 import { ReplacePopover } from './frame/ReplacePopover';
 import { useRegionCycling } from './frame/regions';
@@ -92,6 +92,21 @@ export function AppShell() {
     offset: compact ? BAND_OFFSET_COMPACT : BAND_OFFSET,
     focus,
   });
+
+  // The sidebar is laid over the page on medium and compact-height (F1 §2): it shows once asked
+  // for in this window, by ▤ or Mod+B or by any route that opens it or changes its view.
+  const sidebarOverlay = frame.size === 'medium' || frame.short;
+  useEffect(() => setSidebarOverlay(sidebarOverlay), [sidebarOverlay]);
+  useEffect(
+    () =>
+      useUiStore.subscribe((now, before) => {
+        if (!now.leftPanelOpen) return;
+        if (!before.leftPanelOpen || now.leftPanelView !== before.leftPanelView) {
+          showOverlaySidebar(true);
+        }
+      }),
+    [],
+  );
 
   // Hide on scroll: compact classes, viewing only (F12).
   const hideBlocked = useCallback(() => {
@@ -161,7 +176,7 @@ export function AppShell() {
         {/* Compact windows keep the sidebar in the phone Pages sheet (M10, ADR-0033): none here;
             compact-height lays it over the stage (▤ in the bar, spec 01.7). */}
         {frame.tight || (frame.size === 'compact' && !frame.short) ? null : (
-          <LeftRail overlay={frame.size === 'medium' || frame.short} />
+          <LeftRail overlay={sidebarOverlay} />
         )}
         <RightPanel />
         <DockBand size={frame.size} compact={compact} tight={frame.tight} />

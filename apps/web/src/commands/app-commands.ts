@@ -39,6 +39,7 @@ import { registerOcrCommands } from '../ocr';
 import { PRODUCT_NAME } from '../shell/about/build-info';
 import { announce } from '../shell/announcer';
 import { focusOpenedPage } from '../shell/focus-opened-page';
+import { toggleSidebar } from '../shell/frame/frame-store';
 import { useAuthorPrompt } from '../shell/comment-author';
 import { openImagesAsDocument } from '../stage/section-operations';
 import { selectAllOf, useSelectionStore, visibleSelection } from '../state/selection-store';
@@ -547,7 +548,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       act: null,
       shortcut: 'Mod+B',
       keywords: ['sidebar', 'pages', 'outline', 'files'],
-      run: () => ui().toggleLeftPanel(),
+      run: toggleSidebar,
     }),
     registry.register({
       id: 'view.toggleRightPanel',

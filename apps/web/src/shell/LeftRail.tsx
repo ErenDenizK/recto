@@ -16,7 +16,7 @@
  *   between tabs, Enter / Space choose; Tab moves into the panel. The accessible name carries
  *   the count ("Review, 3 items"). F6 lands on the selected tab (`frame/regions.ts`).
  */
-import { type KeyboardEvent, lazy, Suspense, useRef, useState } from 'react';
+import { type KeyboardEvent, lazy, Suspense, useEffect, useRef, useState } from 'react';
 
 import { currentPlatform, toAriaKeyShortcut } from '../commands/shortcuts';
 import { formatNumber, m } from '../i18n';
@@ -25,6 +25,7 @@ import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/
 import { ResizeHandle } from '../ui/ResizeHandle';
 import { useSearchStore } from '../viewer/search';
 import { FilesList } from './files/FilesList';
+import { showOverlaySidebar, useFrameStore } from './frame/frame-store';
 import { SIDEBAR_ID } from './frame/ids';
 import styles from './LeftRail.module.css';
 import { PagesTab } from './panels/PagesTab';
@@ -83,7 +84,9 @@ export function LeftRail({ overlay = false }: { readonly overlay?: boolean }) {
   const hasDocuments = useHasDocuments();
   const onLibrary = useUiStore((s) => s.destination === 'home');
   const comparing = useUiStore((s) => s.destination === 'compare');
-  const open = stored && hasDocuments && !onLibrary;
+  // Laid over the page, it shows only once asked for in this window (frame-store).
+  const asked = useFrameStore((s) => !overlay || s.overlaySidebarShown);
+  const open = stored && hasDocuments && !onLibrary && asked;
   if (!open) return null;
   return <Sidebar view={view} comparing={comparing} overlay={overlay} />;
 }
@@ -136,6 +139,34 @@ function Sidebar({
 
   const keys = toggleShortcut ? toAriaKeyShortcut(toggleShortcut, currentPlatform) : undefined;
 
+  // Laid over the page: a press outside it (but on ▤, which toggles it) or Esc puts it away,
+  // Esc returning focus to ▤.
+  const asideRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!overlay) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (asideRef.current?.contains(target)) return;
+      if (target.closest('[data-testid="sidebar-toggle"], [role="dialog"], [role="menu"]')) return;
+      showOverlaySidebar(false);
+    };
+    // Bubbling, so an Esc a field or a list inside uses (and prevents) stays theirs.
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      showOverlaySidebar(false);
+      document.querySelector<HTMLElement>('[data-testid="sidebar-toggle"]')?.focus();
+    };
+    const aside = asideRef.current;
+    document.addEventListener('pointerdown', onPointerDown, true);
+    aside?.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      aside?.removeEventListener('keydown', onKeyDown);
+    };
+  }, [overlay]);
+
   return (
     <aside
       id={SIDEBAR_ID}
@@ -145,6 +176,7 @@ function Sidebar({
       data-frame-layer="sidebar"
       data-overlay={overlay || undefined}
       style={{ width }}
+      ref={asideRef}
     >
       <div
         ref={tabsRef}

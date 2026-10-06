@@ -17,6 +17,7 @@ import { create } from 'zustand';
 
 import { getEngineService } from '../engine/engine-service';
 import { revealWhenShown } from '../motion/catalogue';
+import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 
@@ -436,6 +437,8 @@ export function openSearchPanel(): void {
     restoreView = { open: ui.leftPanelOpen, view: ui.leftPanelView };
     useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'find' });
   }
+  // Laid over the page (medium), the sidebar shows once asked for: this asks.
+  showOverlaySidebar(true);
   requestSearchFocus();
 }
 
