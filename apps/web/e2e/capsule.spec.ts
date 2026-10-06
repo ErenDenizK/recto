@@ -155,9 +155,6 @@ async function hide(page: Page, what: 'contents' | 'capsule' | 'none'): Promise<
     for (const layer of capsule.querySelectorAll<HTMLElement>('[data-capsule-layer]')) {
       layer.style.visibility = w === 'contents' ? 'hidden' : '';
     }
-    for (const tier of document.querySelectorAll<HTMLElement>('[data-testid="options-tier"]')) {
-      tier.style.visibility = w === 'none' ? '' : 'hidden';
-    }
   }, what);
 }
 
