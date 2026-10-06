@@ -877,7 +877,7 @@ describe('tokens.css', () => {
     });
 
     it('draws the base solid first, its rim lit from above, edge, inner light and shadow', () => {
-      const base = ruleOf(':where(.mat)');
+      const base = ruleOf('.mat');
       expect(base.get('background')).toBe('var(--mat-solid)');
       expect(base.get('border')).toBe('1px solid var(--border-glass)');
       expect(base.get('border-top-color')).toBe('var(--mat-rim-top)');
@@ -886,12 +886,13 @@ describe('tokens.css', () => {
       expect(base.get('box-shadow')).toBe('var(--shadow-own)');
       // Docked M3: no edge, no shadow, the module's hairline; lit glass: the masked rim.
       expect(ruleOf('.mat-docked').get('--mat-shadow')).toBe('0 0 #0000');
-      expect(ruleOf(':where(.mat.mat-docked)').get('border')).toBe('0');
+      expect(
+        materials,
+        'docked M3 draws no border of its own: the module draws the hairline on its free edge',
+      ).toMatch(/\.mat-docked\s*\{\s*border:\s*0;\s*\}/);
       expect(ruleOf('.mat-lit::before').get('mask')).toMatch(/content-box exclude/);
       // The tint and the text steps only where glass renders and Glass is not Solid.
-      const live = ruleOf(
-        ":where(:root:not([data-glass='solid'], [data-degrade='4'])) :where(.mat)",
-      );
+      const live = ruleOf(":where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat");
       expect(live.get('background')).toBe('var(--mat-tint)');
       expect(live.get('--text-secondary')).toBe('var(--glass-text-secondary)');
       expect(live.get('--danger')).toBe('var(--glass-danger)');
