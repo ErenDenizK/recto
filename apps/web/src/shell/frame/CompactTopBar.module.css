@@ -37,12 +37,6 @@
     visibility 0s linear var(--spring-quick);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .bar[data-away] {
-    transform: none;
-  }
-}
-
 /* ↷ folds into the title menu below 336 px (spec 01.8). */
 .bar[data-fold-redo] [data-testid='redo-button'] {
   display: none;
