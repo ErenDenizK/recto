@@ -1,7 +1,5 @@
-// Fonts are self-hosted from node_modules (CSP: font-src 'self', no data: URLs). Subsets
-// load on demand through unicode-range, so unused scripts cost nothing. See fonts.css for
-// why JetBrains Mono is declared by hand.
-import '@fontsource-variable/inter/wght.css';
+// 'Inter Recto' is served from this origin (public/fonts/, CSP font-src 'self'); fonts.css
+// declares it and index.html preloads its Latin file (ADR-0027 §2.1).
 import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/reset.css';
@@ -10,6 +8,7 @@ import './styles/global.css';
 import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { getLocale } from './i18n/locale';
 import { startServiceWorker } from './pwa/register';
 import { launchEdition } from './shell/frame/edition';
 import { useSizeClass } from './shell/frame/size-class';
@@ -20,6 +19,14 @@ if (!container) {
 }
 
 startServiceWorker();
+
+/**
+ * Turkish needs the Latin Extended file (ğ İ ş) on its first screen; `index.html` preloads only
+ * the Latin one (ADR-0027 §2.1: English sessions never pay for it), so a Turkish launch asks for
+ * it now, while the edition's chunk loads, rather than when the first ş is laid out (Q-8).
+ */
+if (getLocale() === 'tr')
+  void document.fonts?.load("1em 'Inter Recto'", 'ğİş').catch(() => undefined);
 
 /**
  * The edition is decided once, here, before anything renders (ADR-0033 §2.1): a phone gets
