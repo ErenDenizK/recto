@@ -231,11 +231,14 @@ describe('export and signatures', () => {
       signer,
     };
     const phases: string[] = [];
+    // The main thread owns the signing clock: the worker writes the time it is handed.
+    const signedAt = Date.UTC(2026, 8, 28, 10);
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(signedAt);
     const prepared = await prepareExport(doc.id, {
       compression: null,
       sign: draft,
       onProgress: (p) => phases.push(p.phase),
-    });
+    }).finally(() => clock.mockRestore());
     if (!prepared.ok) throw new Error(prepared.error.message);
     expect(phases.at(-1)).toBe('signing');
     expect(prepared.value.verification.ok).toBe(true);
@@ -248,6 +251,7 @@ describe('export and signatures', () => {
     expect(reports.map((r) => [r.status, r.reason, r.coversWholeFile])).toEqual([
       ['intact', 'Approved', true],
     ]);
+    expect(reports[0]?.claimedTime).toBe(new Date(signedAt).toISOString());
     const items = summarizeReport(prepared.value.report, prepared.value.sourceNotes, undefined, {
       ...(prepared.value.signature ? { signature: prepared.value.signature } : {}),
     });

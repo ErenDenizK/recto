@@ -279,7 +279,8 @@ export async function signPdf(
   progress(2);
   throwIfAborted(options);
 
-  // 3. Placeholder, widget and field; one commit matching the source's xref kind.
+  // 3. Placeholder, widget and field; one commit matching the source's xref kind. The claimed
+  // time is the caller's when given (the web app owns its clock); the worker's clock otherwise.
   const date = request.date === undefined ? new Date() : new Date(request.date);
   if (Number.isNaN(date.getTime()))
     throw new SigningError('bad-request', 'The signing date is invalid.');
