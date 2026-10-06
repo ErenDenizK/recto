@@ -64,13 +64,16 @@
   composes: mat-opaque from global;
   display: grid;
   gap: 4px;
-  width: min(300px, calc(100vw - 16px));
+  /* 20 px over F11's 300 / 340: "Continuous · Single page · Two pages" filled 300 to within
+     5 px, so an engine whose text runs a little wider fell back to a Select (09 §6.2) under a
+     Segmented Fit row. The extra room keeps both rows Segmented, in English and Turkish. */
+  width: min(320px, calc(100vw - 16px));
   padding: 8px;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .menu {
-    width: min(340px, calc(100vw - 16px));
+    width: min(360px, calc(100vw - 16px));
   }
 }
 

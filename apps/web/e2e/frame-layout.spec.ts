@@ -309,6 +309,15 @@ test.describe('jobs through the frame', () => {
     await expect(page.getByTestId('page-pill')).toHaveText(/^7 \/ 400 · /);
   });
 
+  test('the pill menu’s Fit and layout rows stay Segmented in Turkish', async ({ page }) => {
+    await page.goto('./?lang=tr');
+    await openFixtures(page, ['many-pages.pdf']);
+    await page.getByTestId('page-pill').click();
+    const menu = page.getByTestId('page-pill-menu');
+    await expect(menu.getByRole('radio', { name: 'İki sayfa' })).toBeVisible();
+    await expect(menu.getByRole('radiogroup')).toHaveCount(2);
+  });
+
   test('J15a: Find in three steps (field or ⌕ · type · Enter)', async ({ page }) => {
     await page.goto('./?lang=en');
     await openFixtures(page, ['simple-text.pdf']);
