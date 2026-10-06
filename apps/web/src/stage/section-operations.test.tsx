@@ -63,7 +63,7 @@ async function open(...files: [string, string][]) {
   render(<App />);
   await openDocuments(await Promise.all(files.map(([url, name]) => fixture(url, name))));
   const order = ws().documentOrder;
-  useUiStore.getState().pinToArrange(order);
+  useUiStore.getState().setGridScope('all');
   useUiStore.getState().showSurface('grid');
   expect(await screen.findAllByRole('grid')).toHaveLength(order.length);
   return order;
@@ -82,7 +82,7 @@ describe('section operations', () => {
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
     useUiStore.setState({
       docUi: {},
-      arrangePinned: [],
+      gridScope: 'all',
       arrangeCollapsed: [],
       paletteOpen: false,
       arrangeSize: 1,

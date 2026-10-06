@@ -327,12 +327,15 @@ function openAsTabs(
   };
 }
 
-/** Shows a document as a light-table section (tab drop, "Show in Arrange"). */
+/**
+ * Shows a document as a Pages grid section (a tab dropped on the grid): the grid's scope turns
+ * to All open (06-navigation PG2), with that section expanded.
+ */
 export function showInArrange(documentId: PageTarget['document']): void {
   const ws = model().workspace;
   const doc = ws.documents[documentId];
   if (doc === undefined) return;
-  useUiStore.getState().pinToArrange([documentId], ws.activeDocument);
+  useUiStore.getState().setGridScope('all');
   useUiStore.getState().setArrangeCollapsed(documentId, false);
   announce(m.announce_showing_in_arrange({ title: doc.title }));
 }

@@ -1,8 +1,8 @@
 /**
- * Which section-operation dialog is open (split, merge, interleave, resize, crop, image
- * sizing).
- * One dialog at a time; `OperationDialogs` renders it. The image-sizing dialog is a
- * question: `askImageSizing` resolves when the user answers (undefined when cancelled).
+ * Which page-structure sheet is open (`components/07-sheets.md` S13–S18: split, interleave,
+ * combine with open documents, extract, resize, insert images) or the crop dialog (S12).
+ * One at a time; `OperationDialogs` renders it. Insert images is a question:
+ * `askImageSizing` resolves when the person answers (undefined when cancelled).
  */
 import type { DocumentId, PageId } from '@pdf-editor/document-model';
 import { create } from 'zustand';
@@ -12,14 +12,18 @@ import type { ImageSizing } from '../files/images';
 export type OperationDialog =
   | { readonly kind: 'split'; readonly documentId: DocumentId }
   | { readonly kind: 'interleave'; readonly documentId: DocumentId }
-  | { readonly kind: 'merge-into'; readonly documentId: DocumentId }
   | {
-      readonly kind: 'merge-all';
+      readonly kind: 'combine';
       /**
-       * The documents to merge, pre-ordered (Home's selection or a card drop,
-       * experience-redesign §3); every open document in tab order when absent.
+       * The documents checked first, pre-ordered; the active document and the others in tab
+       * order when absent (S15).
        */
       readonly order?: readonly DocumentId[];
+    }
+  | {
+      readonly kind: 'extract';
+      /** The pages to extract, prefilled from the selection (S16). */
+      readonly pageIds: readonly PageId[];
     }
   | {
       readonly kind: 'resize';

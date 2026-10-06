@@ -105,8 +105,7 @@ describe('Library', () => {
       docUi: {},
       homeSelection: [],
       homeAnchor: null,
-      arrangePinned: [],
-      arrangeHidden: [],
+      gridScope: 'all',
       arrangeCollapsed: [],
       paletteOpen: false,
     });
