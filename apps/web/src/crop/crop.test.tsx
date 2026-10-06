@@ -131,7 +131,7 @@ function reset() {
   useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
   useUiStore.setState({
     docUi: {},
-    arrangePinned: [],
+    gridScope: 'all',
     arrangeCollapsed: [],
     paletteOpen: false,
     renaming: null,
@@ -245,7 +245,7 @@ describe('crop pages dialog', () => {
 
   it('opens from the section menu for every page of the document', async () => {
     const id = await openInApp(simpleUrl, 'simple-text.pdf');
-    useUiStore.getState().pinToArrange([id]);
+    useUiStore.getState().setGridScope('all');
     useUiStore.getState().showSurface('grid');
     expect(await screen.findAllByRole('grid')).toHaveLength(1);
     await runSectionCommand('section.crop', id);

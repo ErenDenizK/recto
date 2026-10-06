@@ -64,6 +64,11 @@ export interface PageTransfer {
   readonly duplicate: boolean;
   /** Keyboard moves coalesce into one undo step within 800 ms. */
   readonly coalesceKey?: string;
+  /**
+   * Select the placed pages (default). A drag's drop leaves the selection alone (06-navigation
+   * §2.4: lifting never selects), so a tap after a touch drag selects only what it taps.
+   */
+  readonly select?: boolean;
 }
 
 export interface TransferResult {
@@ -143,11 +148,12 @@ export function transferPages(transfer: PageTransfer): TransferResult | undefine
   );
   if (!committed || result === undefined) return undefined;
   const placed = result.pageIds;
-  useSelectionStore.getState().apply({
-    selected: new Set(placed),
-    anchor: placed[0] ?? null,
-    focused: placed[0] ?? null,
-  });
+  if (transfer.select !== false)
+    useSelectionStore.getState().apply({
+      selected: new Set(placed),
+      anchor: placed[0] ?? null,
+      focused: placed[0] ?? null,
+    });
   announce(result.announcement);
   performance.measure('light-table:transfer-commit', 'light-table:transfer');
   // Upper bound for "drop to painted": two frames later the re-render has been painted.
@@ -327,12 +333,15 @@ function openAsTabs(
   };
 }
 
-/** Shows a document as a light-table section (tab drop, "Show in Arrange"). */
+/**
+ * Shows a document as a Pages grid section (a tab dropped on the grid): the grid's scope turns
+ * to All open (06-navigation PG2), with that section expanded.
+ */
 export function showInArrange(documentId: PageTarget['document']): void {
   const ws = model().workspace;
   const doc = ws.documents[documentId];
   if (doc === undefined) return;
-  useUiStore.getState().pinToArrange([documentId], ws.activeDocument);
+  useUiStore.getState().setGridScope('all');
   useUiStore.getState().setArrangeCollapsed(documentId, false);
   announce(m.announce_showing_in_arrange({ title: doc.title }));
 }

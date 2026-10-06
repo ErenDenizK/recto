@@ -25,11 +25,12 @@ test('resize all pages to A4 (fit), export and download a verified PDF', async (
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await openFixtures(page, ['mixed-sizes.pdf']);
 
-  // Arrange mode, then "Resize pages…" from the section menu.
+  // The Pages grid, then "Resize…" from the Pages bar's More actions (no selection: every
+  // page of the document).
   await page.keyboard.press('3');
   await expect(page.locator('[role="gridcell"][data-page-id]').first()).toBeVisible();
-  await page.getByRole('button', { name: 'mixed-sizes actions' }).click();
-  await page.getByRole('menuitem', { name: 'Resize pages…' }).click();
+  await page.getByTestId('pages-bar').getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('menuitem', { name: 'Resize…' }).click();
 
   const dialog = page.getByTestId('resize-dialog');
   await expect(dialog).toBeVisible();

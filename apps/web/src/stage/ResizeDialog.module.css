@@ -1,4 +1,11 @@
 /* Layered on OperationDialogs.module.css and ExportDialog.module.css (form parts). */
+
+/* The body inside the Sheet primitive (S17): its groups stacked as the dialog's form had them. */
+.sheetBody {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
 .sizeRow {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr);

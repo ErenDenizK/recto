@@ -1,0 +1,51 @@
+/*
+ * The Pages grid's view change (06-navigation PG1 §7; grid-transition.ts), while `<html>` has
+ * `data-vt-grid`. The page and its cell share `page-current`: their group moves on the view
+ * change's spring (styles/motion.css §4) and the two images cross-fade inside it.
+ *
+ * The rest of the view does not cross-fade: the old view stays opaque and the new one fades in
+ * over it, quickly: in the first 62.5 % of the view change's --vt-duration (one duration for
+ * every part of a View Transition, A-10: 150 ms of 240, and shorter under reduced motion, A-9). A cross-fade would show both docks at half strength, the dock fading out
+ * beside the Pages bar it morphs into; here the capsule is the new view's own, live, and its
+ * *bar morph* starts from the dock's exact box, over the dock's image, so nothing doubles.
+ * The capsule is never named: a named element is captured on its own, where its backdrop blur
+ * would have nothing to blur (quality-bar Q-1).
+ */
+:root[data-vt-grid]::view-transition-old(root) {
+  animation: none;
+}
+
+:root[data-vt-grid='in']::view-transition-new(root) {
+  animation: vt-grid-in var(--vt-duration) var(--ease-out) both;
+}
+
+/*
+ * Leaving, the page view takes the place at once, under the cell growing back into its page:
+ * a fade would print the Pages bar over the dock it morphs back into, and the page soon covers
+ * the view anyway.
+ */
+:root[data-vt-grid='out']::view-transition-new(root) {
+  animation: none;
+}
+
+@keyframes vt-grid-in {
+  from {
+    opacity: 0;
+  }
+
+  62.5%,
+  to {
+    opacity: 1;
+  }
+}
+
+::view-transition-group(page-current) {
+  animation-timing-function: var(--ease-spring);
+}
+
+::view-transition-old(page-current),
+::view-transition-new(page-current) {
+  /* Both sides fill the group: the page's image scales into the cell's, never letterboxed. */
+  height: 100%;
+  object-fit: fill;
+}
