@@ -19,11 +19,18 @@ runs:
     # The media tool serves the build with `vite preview` at the server root
     # (tools/media/playwright.config.ts), so it records a build made for `/`. The Pages
     # build (base /<repository>/) cannot be served there; the pixels are the same.
+    #
+    # It compiles the test-only render override in (docs/specs/redesign.md X36), as CI's e2e
+    # build does: the runner renders in software on four cores, where the app would start at
+    # Glass Tinted and the cost ladder's step 2; the media show the real look, Clear and no
+    # step (tools/media/lib/stage.ts). This build only feeds the scenes; the site and the
+    # release's dist zip are built by their own jobs, without it.
     - name: Build for the root path
       shell: bash
       run: pnpm build
       env:
         VITE_BASE_PATH: /
+        RECTO_RENDER_OVERRIDE: '1'
 
     - name: Record and encode
       shell: bash
