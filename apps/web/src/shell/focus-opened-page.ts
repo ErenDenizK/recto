@@ -17,8 +17,8 @@
 /** About one second at 60 Hz: the page view mounts within a few frames of the open. */
 const MAX_FRAMES = 60;
 
-// The stage and tab ids (`STAGE_ID`, `tabDomId` in shell/TabBar.tsx), not imported: TabBar
-// imports the open command, which calls this (as history/reveal.ts does).
+// The stage and tab ids (`STAGE_ID`, `tabDomId` in shell/frame/ids.ts), kept here as literals
+// as before the frame (D2-1) moved them.
 const STAGE = 'stage';
 const tabId = (documentId: string) => `tab-${documentId}`;
 
