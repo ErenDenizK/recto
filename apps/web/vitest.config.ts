@@ -1,8 +1,29 @@
+import { fileURLToPath } from 'node:url';
+
 import { playwright } from '@vitest/browser-playwright';
-import { defineConfig, mergeConfig } from 'vitest/config';
+import { configDefaults, defineConfig, mergeConfig } from 'vitest/config';
 
 import { chromiumLaunchOptions } from '../../tooling/playwright-chromium.ts';
 import viteConfig from './vite.config.ts';
+
+/**
+ * The files that emulate a touch screen over CDP (`Emulation.setTouchEmulationEnabled`) to test
+ * coarse-pointer layouts. Turning that emulation off does not give the page its fine pointer
+ * back: Playwright's headless Chromium reports `pointer: fine` and `hover: hover` only through
+ * its launch flags (`--blink-settings=primaryPointerType=…`), and Chromium restores the
+ * platform's pointers instead, which headless has none of (`pointer: none`, `hover: none`).
+ * Browser mode runs every file of a worker in one page, so that state outlived the file and
+ * every later file in the worker lost its fine-pointer layout (in CI, the sidebar's Find field
+ * at 1440 px). These files run in their own project, on their own pages; `test/fine-pointer.ts`
+ * fails any other file that starts without a fine pointer, naming the cause.
+ */
+const TOUCH_EMULATING = [
+  'src/ui/fields.test.tsx',
+  'src/ui/ink.gallery.test.tsx',
+  'src/ui/Select.test.tsx',
+  'src/ui/Slider.test.tsx',
+  'src/stage/PageScrubber.test.tsx',
+];
 
 // Component tests run in a real browser (Vitest browser mode) with the same Vite plugins
 // (React, React Compiler, `@` alias) as the application build.
@@ -86,7 +107,15 @@ export default mergeConfig(
           launchOptions: chromiumLaunchOptions(),
           contextOptions: { colorScheme: 'dark' },
         }),
-        instances: [{ browser: 'chromium' }],
+        instances: [
+          {
+            browser: 'chromium',
+            exclude: [...configDefaults.exclude, ...TOUCH_EMULATING],
+            // An instance's own setup files are not resolved against the root; give the path.
+            setupFiles: [fileURLToPath(new URL('./test/fine-pointer.ts', import.meta.url))],
+          },
+          { browser: 'chromium', name: 'chromium-touch', include: TOUCH_EMULATING },
+        ],
       },
     },
   }),
