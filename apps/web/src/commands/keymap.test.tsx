@@ -107,8 +107,11 @@ describe('the registry is the key map’s one source', () => {
     for (const id of Object.keys(KEYMAP_ENTRIES)) {
       expect(commandRegistry.get(id)?.shortcuts.length ?? 0, id).toBeGreaterThan(0);
     }
-    // The overlay's extra rows take their keys from a bound command, or are the browser's.
+    // The overlay's extra rows take their keys from a bound command, or are the browser's, and
+    // read beside an entry.
     for (const row of EXTRA_ROWS) {
+      const anchor = 'before' in row.place ? row.place.before : row.place.after;
+      expect(KEYMAP_ENTRIES[anchor], `${row.id} reads beside ${anchor}`).toBeDefined();
       if (row.command === undefined) {
         expect(row.keys?.length ?? 0, row.id).toBeGreaterThan(0);
         continue;
@@ -162,6 +165,24 @@ describe('the registry is the key map’s one source', () => {
     }
     const places = groups.find((g) => g.group === 'places')?.rows.map((r) => r.id);
     expect(places).toEqual(['view.home', 'mode.read', 'mode.edit', 'mode.arrange', 'mode.compare']);
+    // On a selection reads as flows §7.2 lists it: H U S X, copy, then Delete.
+    const selection = groups.find((g) => g.group === 'selection')?.rows.map((r) => r.id);
+    expect(selection).toEqual([
+      'selection.highlight',
+      'tool.underline',
+      'tool.strikeout',
+      'selection.redact',
+      'selection.copy',
+      'row.delete-object',
+    ]);
+    // The tools in the palette's order, Select first; the steps through lists close View.
+    expect(groups.find((g) => g.group === 'tools')?.rows[0]?.id).toBe('tool.select');
+    expect(
+      groups
+        .find((g) => g.group === 'view')
+        ?.rows.map((r) => r.id)
+        .slice(-2),
+    ).toEqual(['row.step-next', 'row.step-previous']);
     // Esc's ladder and J/K read as one row each.
     const rows = groups.flatMap((g) => g.rows);
     expect(rows.filter((r) => r.keys.some((k) => k.key === 'Escape'))).toHaveLength(1);
