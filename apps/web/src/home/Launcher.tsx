@@ -4,11 +4,11 @@
  *
  * - **Empty** (no document open): a lit card about a third of the way down the view, with the
  *   glyph, the headline (the view's `h1`), "Nothing leaves this device.", **Open PDFs…** (the
- *   view's one lime, first focus, J1 = 2) and **Combine files…**, then "or drop files anywhere"
- *   on fine pointers. Batch… lives in the ⋯ menu here (02.Q3); Try the sample joins with the
- *   teaching sample (D4-2).
- * - **Row** (documents open): one lit row, 88 px, "Library" and Open PDFs… · Combine files… ·
- *   Batch… · ⋯. In Select mode the lime moves to the selection bar's Combine, so Open PDFs…
+ *   view's one lime, first focus, J1 = 2), **Try the sample** (the teaching sample, J1 = 1;
+ *   dimmed with its reason offline before the sample was ever loaded) and **Combine files…**,
+ *   then "or drop files anywhere" on fine pointers. Batch… lives in the ⋯ menu here (02.Q3).
+ * - **Row** (documents open): one lit row, 88 px, "Library" and Open PDFs… · Try the sample ·
+ *   Combine files… · Batch… · ⋯. In Select mode the lime moves to the selection bar's Combine, so Open PDFs…
  *   turns secondary (one lime per view, principle 3).
  * - **Drag-over** (L9 on the Library): no overlay; the card or row lifts 2 px with the e3
  *   shadow and its headline becomes "Drop to open 2 files".
@@ -27,10 +27,12 @@ import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { commandRegistry } from '../commands/registry';
 import { dropTitle } from './DropOverlay';
+import { openSample } from '../sample/open-sample';
 import { combineFiles, openPdfs } from './home-actions';
 import styles from './Launcher.module.css';
 import { LibraryMenu } from './LibraryMenu';
 import lit from './lit.module.css';
+import { useSampleAvailable } from './use-sample-available';
 
 export interface LauncherProps {
   readonly variant: 'card' | 'row';
@@ -46,6 +48,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
   const opening = useWorkspaceStore((s) => s.opening > 0);
   const shortcut = useCommandShortcut('file.open');
   const openRef = useRef<HTMLButtonElement>(null);
+  const sampleAvailable = useSampleAvailable();
 
   // First focus on a first visit (J1, L1 §6): Open PDFs…, unless something already has it.
   // Focus placed by the page, not by a key, draws no ring yet (`data-quiet-focus`): a lime ring
@@ -82,9 +85,22 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
       {m.library_open()}
     </Button>
   );
-  const combine = (
+  const sample = (
     <Button
       variant={variant === 'card' ? 'standard' : 'quiet'}
+      size="lg"
+      icon={variant === 'card' ? <Icon name="book-open-text" /> : undefined}
+      disabled={!sampleAvailable}
+      reason={m.sample_offline()}
+      data-testid="library-sample"
+      onClick={() => void openSample()}
+    >
+      {m.cmd_try_sample()}
+    </Button>
+  );
+  const combine = (
+    <Button
+      variant="quiet"
       size="lg"
       data-testid="library-combine-files"
       onClick={() => void combineFiles()}
@@ -106,6 +122,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
         </h2>
         <div className={styles.rowActions}>
           {open}
+          {sample}
           {combine}
           <Button
             variant="quiet"
@@ -136,6 +153,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
       <p className={styles.line}>{m.library_line()}</p>
       <div className={styles.actions}>
         {open}
+        {sample}
         {combine}
       </div>
       <p className={styles.hint}>{m.library_drop_hint()}</p>
