@@ -848,19 +848,26 @@ function PageColumn({
     }
   });
 
-  // On mount: a selection shows its first page; otherwise the remembered position.
+  // On mount: a selection shows its first page; otherwise the remembered position. The page is
+  // chosen once per mount and kept in a ref: React's development StrictMode runs this effect,
+  // cleans up and runs it again on the same instance, and the second run must show the page
+  // again (the first run's scroll is undone), not find the position already applied.
+  const firstPage = useRef<number | null>(null);
   useEffect(() => {
-    const { selected } = useSelectionStore.getState();
-    const selectedIndex = selected.size > 0 ? pages.findIndex((p) => selected.has(p.id)) : -1;
-    if (selectedIndex > 0) {
-      showPage(selectedIndex);
-    } else if (fingerprint !== undefined && !restored.has(doc.id)) {
-      const remembered = recallPosition(fingerprint);
-      if (remembered !== undefined && remembered > 0 && remembered < pages.length) {
-        showPage(remembered);
+    if (firstPage.current === null) {
+      const { selected } = useSelectionStore.getState();
+      const selectedIndex = selected.size > 0 ? pages.findIndex((p) => selected.has(p.id)) : -1;
+      let index = selectedIndex > 0 ? selectedIndex : -1;
+      if (index < 0 && fingerprint !== undefined && !restored.has(doc.id)) {
+        const remembered = recallPosition(fingerprint);
+        if (remembered !== undefined && remembered > 0 && remembered < pages.length) {
+          index = remembered;
+        }
       }
+      firstPage.current = index;
+      restored.add(doc.id);
     }
-    restored.add(doc.id);
+    if (firstPage.current > 0) showPage(firstPage.current);
     // Mount only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
