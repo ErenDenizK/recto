@@ -73,11 +73,13 @@ describe('animate: numbers on one requestAnimationFrame loop', () => {
     await motion.finished;
     expect(motion.value).toBe(0);
     // The drawn frames never jump: each step is within the fastest speed seen over its time.
+    // The spring's true peak can fall between two drawn frames, a few per cent above the
+    // fastest sampled one, so the bound carries 5 %; a jump would be many times over it.
     const fastest = Math.max(...samples.map(([, , velocity]) => Math.abs(velocity)));
     for (let i = 1; i < samples.length; i++) {
       const [ta, a] = samples[i - 1]!;
       const [tb, b] = samples[i]!;
-      expect(Math.abs(b - a)).toBeLessThanOrEqual(fastest * ((tb - ta) / 1000) + 0.5);
+      expect(Math.abs(b - a)).toBeLessThanOrEqual(fastest * 1.05 * ((tb - ta) / 1000) + 0.5);
     }
   });
 
