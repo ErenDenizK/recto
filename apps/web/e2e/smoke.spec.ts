@@ -45,19 +45,29 @@ test('the frame stays put while the privacy popover opens and closes', async ({ 
   expect(await pill.boundingBox()).toEqual(before.pill);
 });
 
-test('the start card says what several files do, in both languages', async ({ page }) => {
+test('the launcher says what Recto does and offers its first steps, in both languages', async ({
+  page,
+}) => {
+  // 02-library L2: the headline, the privacy line, Open PDFs…, Try the sample, Combine files….
   await page.goto('./?lang=en');
+  const launcher = page.getByTestId('library-launcher');
   await expect(
-    page.getByText(
-      'Drop PDFs here or open them. With two or more open you can combine them on Home or from the Document menu, arrange their pages together or compare them.',
-    ),
+    launcher.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
   ).toBeVisible();
+  await expect(launcher.getByText('Nothing leaves this device.')).toBeVisible();
+  for (const name of ['Open PDFs…', 'Try the sample', 'Combine files…']) {
+    await expect(launcher.getByRole('button', { name })).toBeVisible();
+  }
   await page.goto('./?lang=tr');
   await expect(
-    page.getByText(
-      'PDF’leri buraya bırakın ya da açın. İki veya daha fazla dosya açıkken onları ana ekranda ya da Belge menüsünden birleştirebilir, sayfalarını birlikte düzenleyebilir veya karşılaştırabilirsiniz.',
-    ),
+    launcher.getByRole('heading', {
+      name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.',
+    }),
   ).toBeVisible();
+  await expect(launcher.getByText('Hiçbir şey bu cihazdan çıkmaz.')).toBeVisible();
+  for (const name of ['PDF aç…', 'Örnek belgeyi deneyin', 'Dosyaları birleştir…']) {
+    await expect(launcher.getByRole('button', { name })).toBeVisible();
+  }
 });
 
 test('the palette finds commands by keywords in both languages, without diacritics', async ({

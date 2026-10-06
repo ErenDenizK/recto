@@ -21,3 +21,12 @@
   background: var(--canvas);
   isolation: isolate;
 }
+
+/* The drop overlay's layer (01-frame F13 §2): the free rectangle, above the dock band and the
+   strip's layer order, never taking a pointer (the drop goes to the shell). */
+.dropLayer {
+  position: absolute;
+  inset: var(--free-top, 0px) var(--free-right, 0px) var(--free-bottom, 0px) var(--free-left, 0px);
+  z-index: 5;
+  pointer-events: none;
+}

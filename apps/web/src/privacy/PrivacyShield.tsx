@@ -42,42 +42,76 @@ export function openPrivacyShield(): void {
   usePrivacyOpen.setState({ open: true });
 }
 
-export function PrivacyShield({ className }: { readonly className?: string }) {
+export function PrivacyShield({
+  className,
+  variant = 'shield',
+}: {
+  readonly className?: string | undefined;
+  /**
+   * `shield`: ◎ in the strip (01-frame F8). `chip`: the Library footer's chip (`02-library`
+   * L12), "Nothing is uploaded", or "1 external request" once the monitor counts one. The same
+   * popover either way; only the shield answers `openPrivacyShield`, so the two never open
+   * together.
+   */
+  readonly variant?: 'shield' | 'chip';
+}) {
   const { count, urls } = useExternalRequests();
   const swStatus = usePwaStore((s) => s.status);
   const updateAvailable = usePwaStore((s) => s.updateAvailable);
-  const open = usePrivacyOpen((s) => s.open);
+  const shieldOpen = usePrivacyOpen((s) => s.open);
+  const chip = variant === 'chip';
   const clean = count === 0;
   const directive = connectSrc();
   const name = clean ? m.frame_privacy_clean() : m.frame_privacy_external({ count });
   // Settings returns focus here: the version button closes with the popover.
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
-    <Popover.Root open={open} onOpenChange={(next) => usePrivacyOpen.setState({ open: next })}>
-      <Tooltip label={name}>
+    <Popover.Root
+      {...(chip
+        ? {}
+        : {
+            open: shieldOpen,
+            onOpenChange: (next: boolean) => usePrivacyOpen.setState({ open: next }),
+          })}
+    >
+      {chip ? (
         <Popover.Trigger
           ref={triggerRef}
-          className={[styles.trigger, className].filter(Boolean).join(' ')}
-          aria-label={name}
-          aria-haspopup="dialog"
+          className={[styles.chip, className].filter(Boolean).join(' ')}
           data-state={clean ? 'clean' : 'external'}
-          data-testid="privacy-indicator"
+          data-testid="library-privacy"
         >
-          {clean ? (
-            <Icon name="shield-check" aria-hidden="true" />
-          ) : (
-            <Icon name="shield-warning" aria-hidden="true" />
-          )}
-          {clean ? null : (
-            <span className={styles.badge} aria-hidden="true">
-              {formatNumber(count)}
-            </span>
-          )}
+          <span className={styles.mark} aria-hidden="true" />
+          <span className={styles.numeric}>
+            {clean ? m.library_nothing_uploaded() : m.library_external_requests({ count })}
+          </span>
         </Popover.Trigger>
-      </Tooltip>
+      ) : (
+        <Tooltip label={name}>
+          <Popover.Trigger
+            ref={triggerRef}
+            className={[styles.trigger, className].filter(Boolean).join(' ')}
+            aria-label={name}
+            aria-haspopup="dialog"
+            data-state={clean ? 'clean' : 'external'}
+            data-testid="privacy-indicator"
+          >
+            {clean ? (
+              <Icon name="shield-check" aria-hidden="true" />
+            ) : (
+              <Icon name="shield-warning" aria-hidden="true" />
+            )}
+            {clean ? null : (
+              <span className={styles.badge} aria-hidden="true">
+                {formatNumber(count)}
+              </span>
+            )}
+          </Popover.Trigger>
+        </Tooltip>
+      )}
       <PopoverPopup
-        side="bottom"
-        align="end"
+        side={chip ? 'top' : 'bottom'}
+        align={chip ? 'start' : 'end'}
         className={styles.popup}
         positionerClassName={styles.positioner}
       >

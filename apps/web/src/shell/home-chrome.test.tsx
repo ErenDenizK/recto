@@ -125,19 +125,21 @@ describe('Home chrome', () => {
     expect(long.label.scrollWidth).toBeGreaterThan(long.label.clientWidth);
   });
 
-  it('shows Recents as cards with a page glyph and no thumbnail', async () => {
+  it('shows Recents in one lit panel under the launcher, a plain recent with the page glyph', async () => {
     await recordRecent({ name: 'report.pdf', size: 6246, pages: 6 });
     render(<App />);
     const list = await screen.findByRole('list', { name: 'Recent files' });
     const row = within(list).getByRole('button', { name: /^report\.pdf, / });
+    // No kept snapshot: the glyph, never a thumbnail (02.Q1).
     expect(row.querySelector('svg')).not.toBeNull();
     expect(list.querySelector('canvas, img')).toBeNull();
-    const card = row.closest('li') as HTMLElement;
-    const style = getComputedStyle(card);
-    expect(style.borderTopStyle).toBe('solid');
-    expect(style.backgroundColor).toBe('rgb(23, 25, 30)');
-    // One column, under the open and drop card.
-    const drop = screen.getByRole('heading', { name: 'Drop PDFs to start' });
-    expect(drop.getBoundingClientRect().bottom).toBeLessThan(card.getBoundingClientRect().top);
+    const panel = row.closest('section') as HTMLElement;
+    expect(panel).toHaveAttribute('data-lit');
+    // The lit tint over the canvas, no blur of its own until the field lands (D3-8).
+    expect(getComputedStyle(panel).backgroundColor).toBe('rgba(48, 51, 58, 0.58)');
+    expect(getComputedStyle(panel).backdropFilter).toBe('none');
+    // One column, under the launcher card.
+    const launcher = screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' });
+    expect(launcher.getBoundingClientRect().bottom).toBeLessThan(panel.getBoundingClientRect().top);
   });
 });

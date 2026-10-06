@@ -1,6 +1,7 @@
 /**
- * Home's pure rules (experience-redesign §3, §11): combine scope and order, card drop order,
- * click and keyboard selection, grid steps, size formatting and middle truncation.
+ * The Library's pure rules (02-library L5–L7; experience-redesign §3, §11): combine scope and
+ * the selection bar's card order, Compare's A and B, moving a card, click and keyboard
+ * selection, grid steps, size formatting and middle truncation.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 import { describe, expect, it } from 'vitest';
@@ -10,12 +11,15 @@ import { MAX_TITLE_LENGTH } from '../stage/operation-plans';
 import {
   combinedTitle,
   clickSelection,
+  combineOrder,
   combineScope,
-  dropOrder,
+  compareOrder,
   formatFileSize,
+  gapToIndex,
   gridStep,
   liveSelection,
   middleTruncate,
+  movedOrder,
   rangeBetween,
   relativeTime,
   toggleSelection,
@@ -50,14 +54,48 @@ describe('combine scope', () => {
   });
 });
 
-describe('card drop order', () => {
-  it('puts the target first and the dragged card after it', () => {
-    expect(dropOrder(b, d)).toEqual([b, d]);
-    expect(dropOrder(d, b)).toEqual([d, b]);
+describe('the selection bar’s Combine order (02.9)', () => {
+  it('combines the checked cards in card order, not the order they were checked in', () => {
+    expect(combineOrder(order, [d, b])).toEqual([b, d]);
+    expect(combineOrder(order, [c, a, d])).toEqual([a, c, d]);
   });
 
-  it('is one card when a card is dropped on itself', () => {
-    expect(dropOrder(a, a)).toEqual([a]);
+  it('has nothing to combine below two checked cards, closed ones ignored', () => {
+    expect(combineOrder(order, [b])).toEqual([]);
+    expect(combineOrder([a, b], [b, d])).toEqual([]);
+  });
+});
+
+describe('Compare’s A and B', () => {
+  it('takes the older file as A', () => {
+    const times: Partial<Record<DocumentId, number>> = { [a]: 200, [c]: 100 };
+    expect(compareOrder(order, [a, c], (id) => times[id])).toEqual([c, a]);
+  });
+
+  it('falls back to card order without both file times', () => {
+    const times: Partial<Record<DocumentId, number>> = { [c]: 100 };
+    expect(compareOrder(order, [c, a], (id) => times[id])).toEqual([a, c]);
+  });
+});
+
+describe('moving a card', () => {
+  it('moves one card to an index, clamped, keeping the others in order', () => {
+    expect(movedOrder(order, a, 2)).toEqual([b, c, a, d]);
+    expect(movedOrder(order, d, -4)).toEqual([d, a, b, c]);
+    expect(movedOrder(order, b, 99)).toEqual([a, c, d, b]);
+  });
+
+  it('returns the same order when nothing moves', () => {
+    expect(movedOrder(order, b, 1)).toBe(order);
+    expect(movedOrder(order, 'x' as DocumentId, 0)).toBe(order);
+  });
+
+  it('maps a drop gap to the index the card takes', () => {
+    // Gaps 1 and 2 sit either side of b: no move.
+    expect(gapToIndex(order, b, 1)).toBe(1);
+    expect(gapToIndex(order, b, 2)).toBe(1);
+    expect(gapToIndex(order, b, 4)).toBe(3);
+    expect(gapToIndex(order, d, 0)).toBe(0);
   });
 });
 

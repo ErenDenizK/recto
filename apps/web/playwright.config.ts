@@ -105,6 +105,7 @@ export default defineConfig({
       name: 'tablet',
       testMatch: [
         '**/smoke.spec.ts',
+        '**/library.spec.ts',
         '**/long-press.spec.ts',
         '**/history.spec.ts',
         '**/tab-strip.spec.ts',
@@ -118,6 +119,8 @@ export default defineConfig({
         MENUS_SPEC,
         // Reduced motion per token and the limits on the tablet too (spec D3-4).
         MOTION_SPEC,
+        // `?sample` opens the teaching sample on the tablet too (spec D4-2).
+        '**/sample.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

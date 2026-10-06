@@ -57,6 +57,15 @@
 }
 
 /* The menu (F11 §2): the popover primitive at 300 px (340 coarse). */
+.menu.menu {
+  /* The M4 material's solid twin (quality bar Q-1, Q-3): this panel opens over the sidebar's
+     dark edge and the white page at once, and no blur radius evens a hard dark/white seam under
+     a tall panel, so it reads as one material whatever lies beneath. Doubled class: above the
+     global .glass-menu's variables. */
+  --glass: var(--glass-menu-solid);
+  --glass-filter: none;
+}
+
 .menu {
   display: grid;
   gap: 4px;

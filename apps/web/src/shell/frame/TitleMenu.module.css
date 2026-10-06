@@ -6,6 +6,15 @@
  * footnote step at 600 in the secondary ink (no uppercase, D3-9). The switch's on-state is the
  * menu's only accent, and the menu is transient.
  */
+.popup.popup {
+  /* The M4 material's solid twin (quality bar Q-1, Q-3): this panel opens over the sidebar's
+     dark edge and the white page at once, and no blur radius evens a hard dark/white seam under
+     a tall panel, so it reads as one material whatever lies beneath. Doubled class: above the
+     global .glass-menu's variables. */
+  --glass: var(--glass-menu-solid);
+  --glass-filter: none;
+}
+
 .popup {
   /* The menu recipe's row metrics (ui/Menu.module.css), for the rows inside the popover. */
   --menu-row: 32px;

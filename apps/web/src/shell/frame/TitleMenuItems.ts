@@ -24,6 +24,7 @@ import { openDocuments } from '../../commands/app-commands';
 import { type Command, commandRegistry } from '../../commands/registry';
 import { pickFiles } from '../../files/open-files';
 import { m } from '../../i18n';
+import { openSettings } from '../../settings/open-settings';
 import { changeRefusal, refusalReason } from '../../state/guard';
 import { useSelectionStore } from '../../state/selection-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
@@ -232,3 +233,18 @@ export function rotateDocumentPages(delta: 90 | -90 | 180): void {
         : m.announce_rotated_left({ count }),
   );
 }
+
+/** The app items at the title menu's end, until the dock's More (D2-2) takes them. */
+export const APP_ITEMS = [
+  { id: 'settings', label: () => m.frame_settings(), run: () => openSettings() },
+  {
+    id: 'shortcuts',
+    label: () => m.frame_keyboard_shortcuts(),
+    run: () => void commandRegistry.execute('help.shortcuts'),
+  },
+  {
+    id: 'about',
+    label: () => m.menu_about_page(),
+    run: () => void commandRegistry.execute('help.aboutPage'),
+  },
+] as const;

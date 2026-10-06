@@ -1,0 +1,88 @@
+/*
+ * The drop overlay (02-library L9 §2–§3, §7): a dim-only scrim (G-31, no blur) over the whole
+ * stage and a 360 × 200 lit card in its centre (300 × 180 on coarse pointers). The scrim fades
+ * in on --duration-base; the card enters by *popup* from --enter-scale on --spring-quick. Both
+ * tokens are per-token reduced (styles/motion.css), so reduced motion leaves the fade only.
+ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--scrim);
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  width: min(360px, 100%);
+  min-height: 200px;
+  padding: var(--space-6);
+  border-radius: 20px;
+  text-align: center;
+  transition: transform var(--spring-quick) var(--ease-spring);
+}
+
+/* A page lies under this card, which lit glass never allows unblurred (language.md §2.5: lit
+   over white is forbidden). Until the field and its blur arrive (D3-8) the card takes the lit
+   tier's solid twin (n4, principle 7), so no page line shows through it. */
+.overlay .card {
+  background: var(--glass-lit-solid);
+}
+
+@starting-style {
+  .overlay {
+    opacity: 0;
+  }
+
+  .card {
+    transform: scale(var(--enter-scale));
+  }
+}
+
+.glyph {
+  width: 32px;
+  height: 32px;
+  margin-bottom: var(--space-1);
+  color: var(--text-primary);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-title3);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title3-lh);
+  letter-spacing: var(--track-title3);
+  font-variant-numeric: tabular-nums;
+}
+
+.body {
+  max-width: 280px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: balance;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .card {
+    width: min(300px, 100%);
+    min-height: 180px;
+  }
+}
+
+/* Forced colours: a dashed CanvasText border and no scrim colour (L9 §3). */
+@media (forced-colors: active) {
+  .card {
+    border: 2px dashed CanvasText;
+  }
+}

@@ -32,10 +32,14 @@ describe('AppShell', () => {
   it('renders the shell with the empty state and the privacy shield', () => {
     render(<App />);
     expect(screen.getByTestId('app-shell')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    ).toBeVisible();
+    // ◎ in the strip and the Library footer's chip open the same popover.
     expect(
       screen.getByRole('button', { name: 'Privacy: nothing has left this device' }),
     ).toBeVisible();
+    expect(screen.getByTestId('library-privacy')).toHaveTextContent('Nothing is uploaded');
   });
 
   it('opens the command palette on Mod+K with focus in the input, and closes on Esc', async () => {
@@ -70,7 +74,9 @@ describe('AppShell', () => {
       expect(useUiStore.getState().recents[0]).toBe('mode.arrange');
     });
     expect(stageView(useUiStore.getState())).toBe('page');
-    expect(screen.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    ).toBeVisible();
   });
 
   it('opens documents as tabs', async () => {

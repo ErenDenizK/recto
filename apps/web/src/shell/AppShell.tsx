@@ -31,6 +31,7 @@ import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
 import { FurnitureDialogs } from '../furniture';
+import { DocumentDropOverlay } from '../home/DropOverlay';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
 import { OcrDialogHost } from '../ocr';
@@ -40,7 +41,7 @@ import { NewSignatureHost } from '../signatures/NewSignatureHost';
 import { useAppearanceRoot } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
 import { isMarkupOpen, useStageView, useUiStore } from '../state/ui-store';
-import { useWorkspaceStore } from '../state/workspace-store';
+import { useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
 import { ConfirmHost } from '../ui/sheet';
 import { ToastRegion } from '../ui/Toast/ToastRegion';
 import { TooltipProvider } from '../ui/Tooltip';
@@ -50,7 +51,6 @@ import styles from './AppShell.module.css';
 import { CommandPalette } from './CommandPalette';
 import { CompactTopBar } from './frame/CompactTopBar';
 import { DockBand } from './frame/DockBand';
-import { DropOverlay } from './frame/DropOverlay';
 import { registerFocusCommands, watchFocusTap } from './frame/focus-mode';
 import { BAND_OFFSET, BAND_OFFSET_COMPACT, useFreeRect } from './frame/frame-insets';
 import { setSidebarOverlay, showOverlaySidebar, useFrameStore } from './frame/frame-store';
@@ -87,6 +87,8 @@ export function AppShell() {
   const compact = frame.size === 'compact' || frame.short;
   const focus = useFrameStore((s) => s.focusMode);
   const view = useStageView();
+  // The Library (no file, or Home) lifts its launcher instead of an overlay (02-library L9).
+  const hasDocuments = useHasDocuments();
   useFreeRect(shellRef, {
     sidebarDocked: !compact && frame.size !== 'medium',
     offset: compact ? BAND_OFFSET_COMPACT : BAND_OFFSET,
@@ -185,7 +187,12 @@ export function AppShell() {
         ) : (
           <TopStrip />
         )}
-        {dragging && view === 'page' ? <DropOverlay /> : null}
+        {/* The one document drop overlay (02-library L9, 01-frame F13): over the free rectangle,
+            above the dock band. The Library lifts its launcher instead; the grid and Compare
+            outline their own targets. Mounted always, so it reads the drag's file count. */}
+        <div className={styles.dropLayer}>
+          <DocumentDropOverlay dragging={dragging && hasDocuments && view === 'page'} />
+        </div>
       </div>
       <CommandPalette />
       <ShortcutOverlay />

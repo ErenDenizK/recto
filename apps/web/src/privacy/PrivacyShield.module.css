@@ -58,6 +58,36 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The Library footer's chip (02-library L12): text and a 6 px dot, success when clean and
+   warning otherwise (the text carries the meaning). LibraryFooter.module.css gives it the M1
+   chip's height, fill and rim. */
+.chip {
+  composes: focus-gap from global;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.chip[data-state='external'] {
+  color: var(--warning);
+}
+
+.mark {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--success);
+}
+
+.chip[data-state='external'] .mark {
+  background: var(--warning);
+}
+
 .numeric {
   font-variant-numeric: tabular-nums;
 }

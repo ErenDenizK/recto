@@ -343,3 +343,30 @@ test.describe('jobs through the frame', () => {
     await expect(page.getByRole('tab', { name: 'simple-text, locked' })).toBeVisible();
   });
 });
+
+test('the sidebar shows only in a document, and as it was stored (moved from home.spec)', async ({
+  page,
+}) => {
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  const panel = page.locator('#left-panel');
+  const rail = page.getByRole('tablist', { name: 'Navigator views' });
+  // No file open: the Library, no sidebar and no ▤ (01-frame F2 §4).
+  await expect(panel).toHaveCount(0);
+  await expect(page.getByTestId('sidebar-toggle')).toHaveCount(0);
+
+  await openFixtures(page, ['simple-text.pdf']);
+  await expect(panel).toBeVisible();
+  await expect(rail.getByRole('tab', { name: /^Pages/ })).toHaveAttribute('aria-selected', 'true');
+  // ▤ closes and opens it; it stays closed on the next document.
+  await page.getByTestId('sidebar-toggle').click();
+  await expect(panel).toHaveCount(0);
+  await expect(page.getByTestId('sidebar-toggle')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByTestId('sidebar-toggle').click();
+  await expect(panel).toBeVisible();
+
+  // Closing the last file leaves for the Library: no sidebar there.
+  await rail.getByRole('tab', { name: /^Files/ }).click();
+  await panel.getByRole('button', { name: 'Close simple-text' }).click();
+  await expect(panel).toHaveCount(0);
+});
