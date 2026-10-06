@@ -25,8 +25,8 @@ body {
   overscroll-behavior: none;
 }
 
+/* `color-scheme` is the theme block's (tokens.css §1, §2), so native parts follow the theme. */
 html {
-  color-scheme: dark;
   background: var(--canvas);
 }
 
