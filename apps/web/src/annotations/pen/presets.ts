@@ -333,7 +333,7 @@ export function isHighlighter(p: PenPreset): boolean {
 /**
  * The tool bar's fill behind the dots (tokens.css: the `--glass` tint rgb(48 51 58 / 0.66)
  * over a backdrop at `brightness(0.45)`): over the canvas (`--surface-0`) and over a white
- * page (`--page-background`). PenBar.test.tsx derives them from the tokens again.
+ * page (`--page-background`). PenWell.test.tsx derives them from the tokens again.
  */
 export const PEN_BAR_FILLS: readonly string[] = ['#212328', '#47494d'];
 /** Least contrast of a dot against the bar (WCAG 1.4.11, non-text). */

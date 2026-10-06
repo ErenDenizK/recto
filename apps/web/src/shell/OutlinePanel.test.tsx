@@ -147,13 +147,13 @@ describe('OutlinePanel', () => {
     unmount();
     loadDocument([]);
     renderPanel();
-    expect(screen.getByText('No outline')).toBeVisible();
+    expect(screen.getByText('No contents')).toBeVisible();
   });
 
   it('renders the tree honouring open flags, with warnings for unresolved nodes', () => {
     loadDocument();
     renderPanel();
-    const tree = screen.getByRole('tree', { name: 'Outline of book' });
+    const tree = screen.getByRole('tree', { name: 'Contents of book' });
     const items = within(tree).getAllByRole('treeitem');
     expect(items.map((i) => i.children[1]?.textContent)).toEqual([
       'Chapter 1',

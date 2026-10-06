@@ -1,0 +1,255 @@
+/*
+ * N2 Thumbnail list (06-navigation §4, §2.2, §2.3): rows of one height rule (padding 8 · page ·
+ * 8 · label 16 · 8, `thumbnail-layout.ts`), inset 8 from the sidebar's edges, a hover wash of
+ * radius 12 over the full row. Thumbnails are content: solid, a page hairline, no shadow.
+ *
+ * Marks: current page, a 2 px lime ring 3 px out (`--current-ring`, which D3-7's light theme
+ * sets to lime-800); selected, an inset `--select` ring and a 20 px check badge (24 coarse);
+ * both shapes when both hold. Focus: the inset two-band ring round the row, outside the marks.
+ */
+.scroll {
+  --current-ring: var(--accent);
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* A finger's vertical drag scrolls (S13); a page lifts only after a 450 ms hold. */
+  touch-action: pan-y;
+}
+
+.list {
+  position: relative;
+  width: 100%;
+  outline: none;
+  box-shadow: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.option {
+  composes: focus-inset from global;
+  position: absolute;
+  top: 0;
+  left: 8px;
+  display: grid;
+  justify-items: center;
+  row-gap: 8px;
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  padding: 8px;
+  border-radius: 12px;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .list:not([data-dragging]) .option:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.option:active,
+.option[data-held] {
+  background: var(--surface-active);
+}
+
+/* The lifted pages stay in place, dimmed (§2.4). */
+.option[data-dragged] {
+  opacity: 0.4;
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet {
+  position: relative;
+  flex: none;
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+  border-radius: var(--radius-page);
+  /* Clips the bitmap; the current ring is the sheet's own outline, never clipped. */
+  overflow: hidden;
+}
+
+.sheet[data-current] {
+  outline: 2px solid var(--current-ring);
+  outline-offset: 3px;
+}
+
+/* Selected: the blue ring inside the page, above the bitmap. */
+.sheet[data-selected]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--select);
+  pointer-events: none;
+}
+
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--select);
+  color: var(--select-ink);
+  box-shadow: 0 0 0 1.5px var(--page-background);
+}
+
+.badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .badge {
+    width: 24px;
+    height: 24px;
+  }
+
+  .badge svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 16px;
+  max-width: 100%;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.labelText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option[aria-current='page'] .label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.mark {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+/* The drop gap (§2.2): a 2 px `--select` bar 120 px wide with 4 px caps, in the row gap. */
+.gap {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 60px);
+  width: 120px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--select);
+  pointer-events: none;
+}
+
+.gap::before,
+.gap::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--select);
+}
+
+.gap::before {
+  left: -2px;
+}
+
+.gap::after {
+  right: -2px;
+}
+
+/* The Lock notice at a refused row (§2.3 Locked; 04 §19's words). */
+.lockNotice {
+  position: absolute;
+  top: 8px;
+  left: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    var(--e2, none);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  pointer-events: none;
+}
+
+.lockIcon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+/* The drag preview (§2.4, PG5): the thumbnail under the pointer, content, never glass. */
+.preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.menuIcon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+@media (forced-colors: active) {
+  .sheet[data-current] {
+    outline-color: Highlight;
+  }
+
+  .sheet[data-selected]::after {
+    box-shadow: inset 0 0 0 2px Highlight;
+  }
+
+  .option[aria-selected='true'] .label {
+    color: HighlightText;
+    background: Highlight;
+  }
+
+  .gap,
+  .gap::before,
+  .gap::after {
+    background: CanvasText;
+  }
+}

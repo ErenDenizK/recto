@@ -13,16 +13,15 @@ import { fileURLToPath } from 'node:url';
 import { PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, openSaveCopy, useFileInputPicker, showSidebar } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Download flow is verified on Chromium');
 
-/** The navigator's Review tab on its Fields filter (experience-redesign §4.1). */
+/** The sidebar's Review section on its Fields filter (06-navigation N5). */
 async function showFields(page: Page): Promise<void> {
-  const review = page.getByRole('tab', { name: /^Review/ });
-  if ((await review.getAttribute('aria-selected')) !== 'true') await review.click();
+  await showSidebar(page, 'Review');
   await page.getByRole('radio', { name: /^Fields/ }).click();
   await expect(page.locator('[data-review-panel]')).toHaveAttribute('data-filter', 'fields');
 }
@@ -105,11 +104,10 @@ test('add a text field and a checkbox by drag, fill them, export: the fields exi
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await openFixtures(page, ['simple-text.pdf']);
   await enterEdit(page);
-  // No fields yet: the Review tab has no Fields chip (chips show the kinds present); "Add
-  // field" is in the Markup palette's Fill & sign group (03-markup MK-14).
-  const review = page.getByRole('tab', { name: /^Review/ });
-  await review.click();
-  await expect(page.getByRole('radio', { name: /^Fields/ })).toHaveCount(0);
+  // No fields yet: Review's Fields chip says 0 (static chips, 06.13); "Add field" is in the
+  // Markup palette's Fill & sign group (03-markup MK-14).
+  await showSidebar(page, 'Review');
+  await expect(page.getByRole('radio', { name: /^Fields/ })).toHaveText('Fields0');
 
   const layer = page.locator('[data-page-index="0"] [data-created-field-layer]');
   const pageBox = page.locator('[data-page-index="0"]');

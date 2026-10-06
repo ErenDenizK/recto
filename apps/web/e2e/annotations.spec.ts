@@ -9,7 +9,14 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, reloadFresh, showInspector, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  openFixtures,
+  reloadFresh,
+  showInspector,
+  useFileInputPicker,
+  showSidebar,
+} from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 const capture = Boolean(process.env.CAPTURE_SCREENSHOTS);
@@ -389,7 +396,7 @@ test.describe('annotations', () => {
 
     await tool('Escape');
     await tool('Escape');
-    await page.getByRole('tab', { name: /^Review/ }).click();
+    await showSidebar(page, 'Review');
     await expect(page.getByText('Check these figures against the Q3 report.')).toBeVisible();
     await page.waitForTimeout(400);
     await page.screenshot({
@@ -485,7 +492,7 @@ test.describe('annotations', () => {
       .getByRole('button', { name: 'Save' })
       .click();
     await page.locator('body').press('Escape');
-    await page.getByRole('tab', { name: /^Review/ }).click();
+    await showSidebar(page, 'Review');
     await expect(page.locator('[data-review-panel] [data-annotation-row]')).toHaveCount(4);
     await page.mouse.move(720, 600);
     await page.waitForTimeout(400);
