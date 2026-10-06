@@ -151,7 +151,7 @@ test.describe('keyboard', () => {
     await expect(navigator.getByRole('tab', { selected: true })).toBeFocused();
   });
 
-  test('Home: the toolbar row, then the grid; arrows, Space, Enter; F6 lands on a card', async ({
+  test('Library: the launcher, Select, then the cards; arrows, Space, the Esc ladder, Enter; F6 lands on a card', async ({
     page,
   }) => {
     await page.goto('./?lang=en');
@@ -163,22 +163,26 @@ test.describe('keyboard', () => {
     const card = (title: string) => grid.getByRole('option', { name: new RegExp(`^${title},`) });
     const stops = grid.locator('[role="option"][tabindex="0"]');
 
-    // Nothing selected: Escape on a card clears what opening selected.
+    // Opened together, they arrive checked: Esc clears the checks, the second Esc leaves Select.
     await card('simple-text').focus();
     await page.keyboard.press('Escape');
     await expect(grid.getByRole('option', { selected: true })).toHaveCount(0);
+    await expect(page.getByTestId('library-select')).toHaveText('Done');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('library-select')).toHaveText('Select');
 
-    // The row first (Open files, Arrange pages, Combine…: the buttons shown), in order.
-    const row = home.getByRole('button');
-    const shown = await row.count();
-    expect(shown).toBeGreaterThanOrEqual(3);
-    await row.first().focus();
-    for (let i = 1; i < shown; i++) {
+    // The launcher's actions first, then Select, then one Tab stop in the grid (L1 §6).
+    const launcher = page.getByTestId('library-launcher').getByRole('button');
+    const actions = await launcher.count();
+    expect(actions).toBe(5);
+    await launcher.first().focus();
+    await expect(launcher.first()).toHaveAccessibleName('Open PDFs…');
+    for (let i = 1; i < actions; i++) {
       await page.keyboard.press('Tab');
-      await expect(row.nth(i)).toBeFocused();
+      await expect(launcher.nth(i)).toBeFocused();
     }
-    await expect(page.getByTestId('home-combine')).toBeFocused();
-    // Then one Tab stop in the grid (roving tabindex).
+    await page.keyboard.press('Tab');
+    await expect(page.getByTestId('library-select')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(card('simple-text')).toBeFocused();
     await expect(stops).toHaveCount(1);
@@ -190,12 +194,13 @@ test.describe('keyboard', () => {
     await expect(status(page)).toHaveText('1 file selected');
     await page.keyboard.press('Shift+ArrowRight');
     await expect(status(page)).toHaveText('2 files selected');
+    // The bar's controls are reachable by Tab, the dimmed ones too (RA-21).
+    const bar = page.getByRole('toolbar', { name: 'Selected documents' });
+    await expect(bar.getByRole('button', { name: 'Combine 2 files' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(status(page)).toHaveText('0 files selected');
-    await page.keyboard.press('Shift+Tab');
-    await expect(page.getByTestId('home-combine')).toBeFocused();
-    // A card has no ⋯ menu yet (Combine is the row's button and a card drop), so Shift+F10
-    // and the context menu key have nothing to open: no step to test.
+    await expect(bar).toHaveCount(0);
+    await page.keyboard.press('Escape');
 
     // F6 from the title bar: the navigator, then the stage, which lands on the grid's stop.
     await page.getByTestId('home-button').focus();
@@ -548,7 +553,9 @@ async function axe(page: Page, name: string): Promise<void> {
 test.describe('axe', () => {
   test('Home, empty and with files', async ({ page }) => {
     await page.goto('./?lang=en');
-    await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+    ).toBeVisible();
     await axe(page, 'empty Home');
     await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
     await page.keyboard.press('0');
@@ -802,9 +809,11 @@ test('the focus ring tokens apply to the new controls', async ({ page }) => {
 
   await page.keyboard.press('0');
   const firstCard = page.getByRole('listbox', { name: 'Files' }).getByRole('option').first();
-  await expectRing('Home card', firstCard);
-  await expectRing('Home action', page.getByTestId('home-combine'));
-  await firstCard.dblclick();
+  await expectRing('Library card', firstCard);
+  await expectRing('Library action', page.getByTestId('library-open'));
+  // The two arrived checked (Select mode, where a click toggles): Enter opens either way.
+  await firstCard.focus();
+  await page.keyboard.press('Enter');
 
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,

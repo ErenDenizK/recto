@@ -352,10 +352,12 @@ function KeptThumb({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [source, setSource] = useState<HTMLCanvasElement | null>(null);
+  // The snapshot storage opens with the session; until then there is nothing to read.
+  const keeping = useSessionStore((s) => s.keeping);
 
   useEffect(() => {
     const box = boxRef.current;
-    if (!box) return undefined;
+    if (!box || keeping !== 'available') return undefined;
     let cancelled = false;
     const observer = new IntersectionObserver((records) => {
       if (!records.some((r) => r.isIntersecting)) return;
@@ -371,7 +373,7 @@ function KeptThumb({
       cancelled = true;
       observer.disconnect();
     };
-  }, [snapshotId]);
+  }, [snapshotId, keeping]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;

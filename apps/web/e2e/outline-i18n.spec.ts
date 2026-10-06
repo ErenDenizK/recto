@@ -64,7 +64,9 @@ test('the outline panel shows the bookmarks and navigates Read mode', async ({ p
 
 test('?lang= overrides the language without persisting it', async ({ page }) => {
   await page.goto('./?lang=tr');
-  await expect(page.getByRole('heading', { name: 'Başlamak için PDF bırakın' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+  ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
   await expect(page.getByTestId('privacy-indicator')).toContainText('Yalnızca yerel');
   await expect(page.getByTestId('privacy-indicator')).toContainText('Dış istek yok');
@@ -75,15 +77,21 @@ test('?lang= overrides the language without persisting it', async ({ page }) => 
 
 test('the Language command switches at runtime and persists', async ({ page }) => {
   await page.goto('./?lang=en');
-  await expect(page.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Search commands…' }).click();
   await page.getByRole('combobox', { name: 'Search commands' }).fill('language');
   await page.getByRole('option', { name: 'Türkçe' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Başlamak için PDF bırakın' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+  ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
   // The explicit choice drops the override from the address and survives a reload.
   expect(new URL(page.url()).searchParams.has('lang')).toBe(false);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Başlamak için PDF bırakın' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+  ).toBeVisible();
 });
