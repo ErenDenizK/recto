@@ -411,7 +411,9 @@ test.describe('the compact edition', () => {
     // reaches the root as in the full edition, and System takes it off again.
     const motion = about.getByRole('radiogroup', { name: 'Reduce motion' });
     await motion.scrollIntoViewIfNeeded();
-    await expect(motion).toBeInViewport({ ratio: 1 });
+    // 0.98, not 1: on a phone on its side the group ends a fraction of a pixel under the scroll
+    // edge after rounding (CI measured 0.995), which no one can see.
+    await expect(motion).toBeInViewport({ ratio: 0.98 });
     await motion.getByRole('radio', { name: 'On' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
     await shot(page, 'compact-about-reduce-motion');
