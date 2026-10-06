@@ -173,6 +173,13 @@ function contrast(a: Rgb, b: Rgb): number {
 /** |APCA Lc| of `text` on `background`. */
 const lc = (text: Rgb, background: Rgb) => Math.abs(apcaContrast(text, background));
 
+/** `#rrggbb` of an 8-bit colour. */
+const hexOf = (c: Rgb): string => `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+
+/** The largest per-channel difference of two 8-bit colours. */
+const channelGap = (a: Rgb, b: Rgb): number =>
+  Math.max(...a.map((v, i) => Math.abs(v - (b[i as 0 | 1 | 2] ?? 0))));
+
 /** CIE L* (D65), which shows dark steps better than the WCAG ratio. */
 function lightness(c: Rgb): number {
   const y = relativeLuminance(c);
@@ -1428,14 +1435,452 @@ describe('tokens.css', () => {
 
   // Motion (§7.5) is motion.css's, tested in motion.test.ts.
 
+  describe('the light theme (ADR-0022 §2.4, ADR-0023 §2.3; language.md §1.3–§1.9, §2.2, §2.4, §6.3; spec D3-7)', () => {
+    /** §2, `[data-theme='light']`, over the theme-free block: the light theme at rest. */
+    const lightBlock = declarations(
+      /(?:^|\n)\[data-theme='light'\]\s*\{([^{}]*)\}/.exec(tokensSource)?.[1] ?? '',
+    );
+    const light = new Map([...free, ...lightBlock]);
+    const value = (name: string) => resolve(name, light);
+    const tone = (name: string): Rgb => {
+      const parsed = parseColour(value(name));
+      if (parsed.alpha !== 1) throw new Error(`${name} is translucent; composite it first`);
+      return parsed.rgb;
+    };
+    const tint = (name: string): Colour => parseColour(value(name));
+    const laid = (token: string, under: Rgb): Rgb => {
+      const top = tint(token);
+      return round8(over(top.rgb, top.alpha, under));
+    };
+    const glass = (tier: GlassTier, backdrop: Rgb): Rgb => {
+      const t = tint(`--glass-${tier}-tint`);
+      return round8(over(t.rgb, t.alpha, applyFilter(value(`--glass-${tier}-filter`), backdrop)));
+    };
+    const LIGHT_SURFACES = SURFACES;
+    const ink = () => tone('--text-primary');
+
+    it('keeps one name set with the dark theme, and the media block identical (structure)', () => {
+      expect([...lightBlock.keys()].sort()).toEqual([...THEME_TOKENS].sort());
+      // Every name the light block reads resolves inside it or the theme-free block.
+      for (const name of THEME_TOKENS) expect(() => value(name), name).not.toThrow();
+      expect(stripComments(tokensCss)).toMatch(
+        /\[data-theme='light'\]\s*\{\s*color-scheme: light;/,
+      );
+      // More contrast draws its strong border in ink (language.md §2.4: ink 0.40).
+      const contrastLight = declarations(
+        /@media \(prefers-contrast: more\)\s*\{[^@]*?:root\[data-theme='light'\]\s*\{([^{}]*)\}/.exec(
+          tokensSource,
+        )?.[1] ?? '',
+      );
+      expect(contrastLight.get('--border-glass')).toBe('rgb(var(--ink-rgb) / 0.4)');
+      expect(contrastLight.get('--border-strong')).toBe('rgb(var(--ink-rgb) / 0.4)');
+    });
+
+    it('turns the graphite over: the light ramp of language.md §1.3, darker step by step', () => {
+      const ramp = [
+        '#fdfdff',
+        '#f6f7f9',
+        '#eff0f3',
+        '#e6e8eb',
+        '#dee0e4',
+        '#d5d7dc',
+        '#c5c7cd',
+        '#a8abb1',
+        '#5d6067',
+        '#4f535a',
+        '#3f424a',
+        '#15171c',
+      ];
+      ramp.forEach((hex, i) => expect(value(`--n${i + 1}`), `--n${i + 1}`).toBe(hex));
+      for (let i = 1; i < ramp.length; i++) {
+        expect(lightness(literal(ramp[i] ?? ''))).toBeLessThan(
+          lightness(literal(ramp[i - 1] ?? '')),
+        );
+      }
+      // The lime ramp does not turn over: one lime in both themes (ADR-0023 §2.2).
+      for (const step of [50, 300, 800, 950]) {
+        expect(value(`--lime-${step}`)).toBe(resolve(`--lime-${step}`));
+      }
+    });
+
+    it('maps the light roles: canvas n4, wells n3, frame n2, raised n1, on n5; text as dark', () => {
+      const roles: Readonly<Record<string, string>> = {
+        '--canvas': '--n4',
+        '--surface-sunken': '--n3',
+        '--surface-frame': '--n2',
+        '--surface-raised': '--n1',
+        '--surface-on': '--n5',
+        '--border-opaque': '--n7',
+        '--text-primary': '--n12',
+        '--glass-text-secondary': '--n11',
+        '--text-secondary': '--n10',
+        '--text-tertiary': '--n9',
+        '--text-disabled': '--n8',
+        '--field-well': '--n1',
+        '--badge-fill': '--n4',
+        '--glass-panel-solid': '--n2',
+        '--glass-bar-solid': '--n1',
+      };
+      for (const [role, step] of Object.entries(roles)) {
+        expect(value(role), role).toBe(value(step));
+      }
+      // The page is never themed, and stays the brightest thing on screen.
+      expect(value('--page-background')).toBe('#ffffff');
+      for (const surface of [...LIGHT_SURFACES, '--surface-sunken']) {
+        expect(relativeLuminance(tone(surface)), surface).toBeLessThan(relativeLuminance(WHITE));
+      }
+      // The canvas is a quiet grey under the page, and paper (n1) sits above it.
+      expect(lightness(tone('--surface-raised')) - lightness(tone('--canvas'))).toBeGreaterThan(5);
+      expect(value('--glass-text-disabled')).toBe('#7f838a');
+    });
+
+    it('holds the light text pairs of language.md §1.7 (WCAG and APCA, A-1, A-4)', () => {
+      // [text, surface, WCAG, |Lc| or 0 when the table gives none]
+      const pairs: readonly (readonly [string, string, number, number])[] = [
+        ['--n12', '--n1', 17.65, 104],
+        ['--n12', '--n2', 16.73, 100],
+        ['--n12', '--n4', 14.61, 91],
+        ['--n11', '--n1', 9.89, 92],
+        ['--n11', '--n2', 9.38, 89],
+        ['--n11', '--n4', 8.19, 80],
+        ['--n10', '--n1', 7.61, 86],
+        ['--n10', '--n2', 7.21, 82],
+        ['--n10', '--n4', 6.3, 73],
+        ['--n9', '--n1', 6.2, 80],
+        ['--n9', '--n2', 5.88, 77],
+        ['--n9', '--n4', 5.13, 68],
+        ['--n8', '--n1', 2.27, 0],
+        ['--n8', '--n2', 2.15, 0],
+        ['--n8', '--n4', 1.87, 0],
+      ];
+      for (const [text, surface, ratio, apca] of pairs) {
+        const t = tone(text);
+        const s = tone(surface);
+        expect(contrast(t, s), `${text} on ${surface}`).toBeCloseTo(ratio, 1);
+        if (apca > 0) expect(lc(t, s), `Lc ${text} on ${surface}`).toBeCloseTo(apca, -0.5);
+      }
+    });
+
+    it('keeps body text AA on every light surface, tertiary off n6, primary at Lc 75', () => {
+      for (const text of ['--text-primary', '--text-secondary', '--text-tertiary']) {
+        for (const surface of [...LIGHT_SURFACES, '--surface-sunken']) {
+          atLeast(contrast(tone(text), tone(surface)), AA_TEXT, `${text} on ${surface}`);
+        }
+      }
+      // 4.37:1: tertiary never sits on n6 (language.md §1.7).
+      expect(contrast(tone('--text-tertiary'), tone('--n6'))).toBeCloseTo(4.37, 1);
+      for (const surface of [...LIGHT_SURFACES, '--surface-sunken']) {
+        expect(lc(ink(), tone(surface)), surface).toBeGreaterThanOrEqual(75);
+      }
+      // Hovered and pressed rows of the frame (ink washes 0.04 and 0.07).
+      const frame = tone('--surface-frame');
+      for (const state of ['--surface-hover', '--surface-active']) {
+        expect(tint(state).rgb, state).toEqual(ink());
+        for (const text of ['--text-secondary', '--text-tertiary']) {
+          atLeast(contrast(tone(text), laid(state, frame)), AA_TEXT, `${text} on ${state}`);
+        }
+      }
+    });
+
+    it('puts lime on ink: the prominent button and the armed tool are ink with a lime label', () => {
+      for (const prefix of ['--primary', '--tool-active']) {
+        expect(value(`${prefix}-fill`), prefix).toBe(value('--n12'));
+        expect(value(`${prefix}-fill-hover`), prefix).toBe(value('--n11'));
+        expect(value(`${prefix}-fill-pressed`), prefix).toBe('#000000');
+        expect(value(prefix === '--primary' ? '--primary-ink' : '--tool-active-ink')).toBe(
+          '#c8fb3d',
+        );
+      }
+      const lime = tone('--accent');
+      expect(value('--accent')).toBe('#c8fb3d');
+      atLeast(contrast(lime, tone('--primary-fill')), 14.79, 'lime on ink');
+      atLeast(contrast(lime, tone('--primary-fill-hover')), 8.29, 'lime on hover n11');
+      atLeast(contrast(lime, tone('--primary-fill-pressed')), 17.32, 'lime on #000');
+      // Ink on lime where lime is still a fill (the focus band, a dark-ink glyph on lime).
+      expect(value('--accent-ink')).toBe('#08090c');
+      expect(value('--focus-light')).toBe('#c8fb3d');
+      expect(value('--focus-dark')).toBe('#08090c');
+      // Lime is never text on a light surface: it fails every one of them.
+      for (const surface of [...LIGHT_SURFACES, '--surface-sunken']) {
+        expect(contrast(lime, tone(surface)), surface).toBeLessThan(1.3);
+      }
+    });
+
+    it('draws lines and rings in lime-800 and current rows in ink 0.07 (language.md §1.9)', () => {
+      expect(value('--accent-line')).toBe('#446713');
+      expect(value('--accent-ring')).toBe('#446713');
+      expect(resolve('--accent-ring')).toBe('#c8fb3d');
+      const line = tone('--accent-line');
+      atLeast(contrast(line, WHITE), 6.57, 'lime-800 on white');
+      atLeast(contrast(line, tone('--canvas')), 5.35, 'lime-800 on the canvas');
+      for (const tier of GLASS_TIERS) {
+        atLeast(contrast(line, glass(tier, BLACK)), 4.1, `lime-800 on ${tier} over black`);
+      }
+      for (const token of ['--accent-subtle', '--accent-muted']) {
+        expect(tint(token).rgb, token).toEqual(ink());
+      }
+      expect(tint('--accent-subtle').alpha).toBe(0.04);
+      expect(tint('--accent-muted').alpha).toBe(0.07);
+      const row = laid('--accent-muted', tone('--surface-frame'));
+      atLeast(contrast(ink(), row), 14.5, 'primary on a current row');
+      atLeast(contrast(tone('--text-secondary'), row), 6.25, 'secondary');
+      atLeast(contrast(tone('--text-tertiary'), row), 5.09, 'tertiary');
+    });
+
+    it('keeps the content colours of the page unthemed (language.md §1.5)', () => {
+      for (const name of [
+        '--page-background',
+        '--select',
+        '--select-ink',
+        '--select-wash',
+        '--select-wash-strong',
+        '--redact-page',
+        '--crop-dim',
+        '--plate-edge',
+        '--plate-ring',
+      ]) {
+        expect(value(name), name).toBe(resolve(name));
+      }
+      // The page keeps its hairline, ink 0.14, and no shadow.
+      expect(value('--page-shadow')).toBe('0 0 0 1px rgb(21 23 28 / 0.14)');
+      atLeast(contrast(tone('--select'), tone('--canvas')), 4.02, '--select on the light canvas');
+    });
+
+    it('floors its glass over black (G-25) as language.md §2.2’s light table says', () => {
+      // [over black, over white, over the light canvas, primary · glass-sec · danger · warning
+      //  · ink fill over black, APCA primary / secondary over black]
+      const TABLE: Readonly<
+        Record<
+          Exclude<GlassTier, 'lit'>,
+          readonly [string, string, string, number, number, number, number, number, number, number]
+        >
+      > = {
+        chip: ['#ccccce', '#fcfcfd', '#f8f8fb', 11.18, 6.27, 5.09, 5.21, 11.18, 75, 64],
+        bar: ['#cfcfd1', '#fbfbfd', '#f8f8fb', 11.53, 6.46, 5.25, 5.37, 11.53, 77, 66],
+        panel: ['#d4d5d6', '#fafafc', '#f7f8fa', 12.2, 6.84, 5.56, 5.69, 12.2, 80, 69],
+        menu: ['#d9d9da', '#fbfbfd', '#f8f9fb', 12.71, 7.13, 5.79, 5.93, 12.71, 83, 71],
+        sheet: ['#e8e8ea', '#fbfbfc', '#f9f9fb', 14.65, 8.21, 6.67, 6.83, 14.65, 91, 80],
+      };
+      for (const [tier, row] of Object.entries(TABLE) as [
+        Exclude<GlassTier, 'lit'>,
+        (typeof TABLE)[Exclude<GlassTier, 'lit'>],
+      ][]) {
+        const [black, white, onCanvas, primary, secondary, danger, warning, fill, apcaP, apcaS] =
+          row;
+        expect(value(`--glass-${tier}-filter`), tier).toMatch(
+          /^saturate\([\d.]+\) contrast\(0\.45\) brightness\(1\.4\)$/,
+        );
+        const worst = glass(tier, BLACK);
+        expect(hexOf(worst), `${tier} over black`).toBe(black);
+        expect(hexOf(glass(tier, WHITE)), `${tier} over white`).toBe(white);
+        expect(hexOf(glass(tier, tone('--canvas'))), `${tier} over the canvas`).toBe(onCanvas);
+        atLeast(contrast(ink(), worst), primary, `${tier} primary`);
+        atLeast(contrast(tone('--glass-text-secondary'), worst), secondary, `${tier} secondary`);
+        atLeast(contrast(tone('--glass-danger'), worst), danger, `${tier} danger`);
+        atLeast(contrast(tone('--glass-warning'), worst), warning, `${tier} warning`);
+        atLeast(contrast(tone('--tool-active-fill'), worst), fill, `${tier} ink fill`);
+        expect(lc(ink(), worst), `${tier} Lc primary`).toBeCloseTo(apcaP, -0.5);
+        expect(lc(tone('--glass-text-secondary'), worst), `${tier} Lc secondary`).toBeCloseTo(
+          apcaS,
+          -0.5,
+        );
+        // A-4: primary text holds APCA Lc 75 on every tier.
+        expect(lc(ink(), worst)).toBeGreaterThanOrEqual(74.5);
+      }
+      // Lit glass is dark only: its surfaces take the bar's values in light (spec 02.3).
+      for (const part of ['alpha', 'filter', 'solid', 'shadow']) {
+        expect(value(`--glass-lit-${part}`), part).toBe(value(`--glass-bar-${part}`));
+      }
+      expect(tint('--glass-lit-tint')).toEqual(tint('--glass-bar-tint'));
+      // The docked panel at rest lands within a level of the frame (n2).
+      expect(
+        channelGap(glass('panel', tone('--canvas')), tone('--surface-frame')),
+      ).toBeLessThanOrEqual(1);
+    });
+
+    it('keeps glass text AA on each light tier over black, mid grey, the canvas and white', () => {
+      const texts = [
+        '--text-primary',
+        '--glass-text-secondary',
+        '--glass-danger',
+        '--glass-warning',
+      ];
+      for (const tier of GLASS_TIERS) {
+        for (const backdrop of [
+          BLACK,
+          literal('#808080'),
+          tone('--canvas'),
+          WHITE,
+          literal('#2a6fd6'),
+        ]) {
+          const under = glass(tier, backdrop);
+          for (const text of texts) {
+            atLeast(contrast(tone(text), under), AA_TEXT, `${text} on ${tier}`);
+          }
+          atLeast(contrast(tone('--tool-active-fill'), under), AA_NON_TEXT, `ink fill on ${tier}`);
+        }
+      }
+    });
+
+    it('holds the light control block of 09 §2.2', () => {
+      const M5 = glass('sheet', BLACK);
+      const M4 = glass('menu', BLACK);
+      for (const [token, alpha] of [
+        ['--control-fill', 0.06],
+        ['--control-fill-hover', 0.09],
+        ['--control-fill-pressed', 0.12],
+        ['--control-border', 0.55],
+        ['--control-border-hover', 0.7],
+        ['--control-track', 0.28],
+        ['--scroll-thumb', 0.5],
+        ['--swatch-contrast', 0.55],
+      ] as const) {
+        expect(tint(token), token).toEqual({ rgb: ink(), alpha });
+      }
+      atLeast(contrast(ink(), laid('--control-fill', M5)), 12.98, 'n12 on fill over M5');
+      atLeast(contrast(ink(), laid('--control-fill-hover', M5)), 12.23, 'on hover fill');
+      atLeast(contrast(ink(), laid('--control-fill-pressed', M5)), 11.53, 'on pressed fill');
+      atLeast(contrast(laid('--control-border', M5), M5), 3.76, 'border vs M5');
+      atLeast(contrast(laid('--control-border', M4), M4), 3.61, 'border vs M4');
+      const well = tone('--field-well');
+      atLeast(contrast(laid('--control-border', well), well), 3.95, 'border vs its well');
+      atLeast(contrast(tone('--control-on'), M5), 14.65, 'on-fill vs M5');
+      atLeast(contrast(tone('--control-on-ink'), tone('--control-on')), 17.65, 'glyph on on-fill');
+      atLeast(contrast(tone('--control-thumb-off'), M5), 5.15, 'thumb off vs M5');
+      atLeast(contrast(tone('--field-placeholder'), well), 7.61, 'placeholder');
+      atLeast(contrast(ink(), well), 17.65, 'text in the well');
+      const panel = glass('panel', BLACK);
+      atLeast(contrast(laid('--scroll-thumb', panel), panel), 3.09, 'scroll thumb vs M3');
+      atLeast(contrast(ink(), tone('--badge-fill')), 14.61, 'badge');
+      for (const surface of [...LIGHT_SURFACES, '--surface-sunken']) {
+        const under = tone(surface);
+        atLeast(contrast(laid('--control-border', under), under), AA_NON_TEXT, surface);
+      }
+      // Thumbs and knobs are paper lifted by e1; on-states stay neutral (09 §34 #1).
+      expect(value('--control-thumb')).toBe(value('--n1'));
+      expect(value('--control-knob')).toBe(value('--n1'));
+      for (const token of ['--control-on', '--control-range', '--progress-fill']) {
+        expect(value(token), token).toBe(value('--n12'));
+      }
+    });
+
+    it('holds light status on white and the canvas, and its glass steps (language.md §1.6)', () => {
+      expect(value('--danger')).toBe('#c21725');
+      expect(value('--warning')).toBe('#985600');
+      expect(value('--success')).toBe('#007654');
+      atLeast(contrast(tone('--danger'), WHITE), 6.1, 'danger on white');
+      atLeast(contrast(tone('--danger'), tone('--canvas')), 4.97, 'danger on the canvas');
+      atLeast(contrast(tone('--warning'), tone('--canvas')), 4.67, 'warning on the canvas');
+      atLeast(contrast(tone('--success'), tone('--canvas')), 4.6, 'success on the canvas');
+      // On every surface a status line sits on; not on n5, the on-state fill (warning 4.33 there,
+      // language.md gives it for n4 and up), which carries a control's label, never a status.
+      for (const status of ['--danger', '--warning', '--success']) {
+        for (const surface of [
+          '--canvas',
+          '--surface-frame',
+          '--surface-raised',
+          '--surface-sunken',
+        ]) {
+          atLeast(contrast(tone(status), tone(surface)), AA_TEXT, `${status} on ${surface}`);
+        }
+      }
+      expect(value('--glass-danger')).toBe('#a20519');
+      expect(value('--glass-warning')).toBe('#754100');
+      expect(value('--glass-success')).toBe('#005c41');
+      expect(tint('--warning-line').rgb).toEqual(tone('--warning'));
+      // Warning and danger are one colour to a deuteranope here (ΔE 1.3): never alone.
+      expect(deltaE(tone('--warning'), tone('--danger'), CVD[2] ?? null)).toBeLessThan(10);
+    });
+
+    it('deepens the six tag dots for light (all ≥ 4.43 on the frame, ≥ 3:1 everywhere)', () => {
+      const tags = ['#327f6e', '#966b21', '#945067', '#5d728e', '#7c68a1', '#965c39'];
+      tags.forEach((hex, i) => expect(value(`--tag-${i}`)).toBe(hex));
+      for (let i = 0; i < 6; i++) {
+        const tag = tone(`--tag-${i}`);
+        atLeast(contrast(tag, tone('--surface-frame')), 4.43, `--tag-${i} on n2`);
+        for (const surface of [...LIGHT_SURFACES, '--surface-sunken']) {
+          atLeast(contrast(tag, tone(surface)), AA_NON_TEXT, `--tag-${i} on ${surface}`);
+        }
+      }
+    });
+
+    it('shows one focus band at ≥ 3:1 over every light surface and glass', () => {
+      const bands = [tone('--focus-light'), tone('--focus-dark')];
+      const backdrops: readonly (readonly [string, Rgb])[] = [
+        ...[...LIGHT_SURFACES, '--surface-sunken'].map((name) => [name, tone(name)] as const),
+        ...GLASS_TIERS.flatMap((tier) => [
+          [`${tier} over white`, glass(tier, WHITE)] as const,
+          [`${tier} over black`, glass(tier, BLACK)] as const,
+        ]),
+        ['ink fill', tone('--primary-fill')],
+      ];
+      for (const [name, backdrop] of backdrops) {
+        const best = Math.max(...bands.map((band) => contrast(band, backdrop)));
+        atLeast(best, AA_NON_TEXT, name);
+      }
+    });
+
+    it('draws white rims lit from above, an ink edge, and shadows in ink at 40 % (§2.4, §6.3)', () => {
+      expect(value('--rim-edge')).toBe('0 0 0 1px rgb(15 17 22 / 0.12)');
+      expect(value('--rim-inner')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.6)');
+      expect(tint('--rim-top')).toEqual({ rgb: WHITE, alpha: 0.85 });
+      expect(tint('--rim-bottom')).toEqual({ rgb: WHITE, alpha: 0.4 });
+      expect(tint('--border-glass').rgb).toEqual(ink());
+      // The dark scale's geometry, ink at 40 % of each alpha.
+      for (const e of ['--e1', '--e2', '--e3', '--e4', '--e5']) {
+        const dark = splitLayers(resolve(e));
+        const lit = splitLayers(value(e));
+        expect(lit.length, e).toBe(dark.length);
+        dark.forEach((layer, i) => {
+          const geometry = (text: string) => text.replace(/rgb\([^)]*\)/, '').trim();
+          const alpha = (text: string) => Number(/\/ ([\d.]+)\)/.exec(text)?.[1]);
+          const lightLayer = lit[i] ?? '';
+          expect(geometry(lightLayer), e).toBe(geometry(layer));
+          expect(lightLayer, e).toContain('rgb(21 23 28 /');
+          expect(alpha(lightLayer), e).toBeCloseTo(alpha(layer) * 0.4, 2);
+        });
+      }
+      // Tracking at 13 px and under is lighter in light (language.md §4.2).
+      expect(value('--track-caption')).toBe('0.01em');
+      expect(value('--track-footnote')).toBe('0.005em');
+      expect(value('--track-body')).toBe('0em');
+    });
+
+    it('writes every σ rule and the lens again under [data-theme=light] in materials.css', () => {
+      const materials = stripComments(materialsCss);
+      const rules = [...materials.matchAll(/([^{};]+)\{([^{}]*backdrop-filter[^{}]*)\}/g)]
+        .map((match) => ({
+          selector: (match[1] ?? '').replace(/\s+/g, ' ').trim(),
+          unprefixed: /(?:^|[\s;])backdrop-filter:\s*([^;]+);/.exec(match[2] ?? '')?.[1]?.trim(),
+        }))
+        .filter((rule) => rule.selector.includes("[data-theme='light']"));
+      for (const entry of COVERAGE_REGISTRY) {
+        const cls = entry.oneRow ? `r${entry.sigma}` : `s${entry.sigma}`;
+        const rule = rules.find(
+          (r) => r.selector.includes(`.mat-${entry.tier}.${cls}`) && !r.selector.endsWith('.lens'),
+        );
+        expect(rule?.unprefixed, entry.id).toBe(
+          `blur(${entry.sigma}px) ${value(`--glass-${entry.tier}-filter`)}`,
+        );
+        if (entry.lens) {
+          const lens = rules.find((r) => r.selector.endsWith(`.mat-${entry.tier}.${cls}.lens`));
+          expect(lens?.unprefixed, `${entry.id} lens`).toBe(
+            `var(--lens) blur(${entry.sigma}px) ${value(`--glass-${entry.tier}-filter`)}`,
+          );
+        }
+      }
+    });
+  });
+
   describe('no colour literal outside the tokens (D3-2)', () => {
     /**
      * The colour literals CSS modules may keep, by file: content that is not chrome (the page's
      * own text and the inks of in-place editors, the PDF's form look, the hue spectrum and
      * transparency checkerboard of the colour panel, the hue ring of a custom colour), masks
      * (`#000` in a mask is coverage, not colour), and the light theme's values inside
-     * `:global([data-theme='light'])` rules, which D3-7 moves into tokens.css. Everything else
-     * paints with a token.
+     * `:global([data-theme='light'])` rules: the few primitives whose local tokens differ by
+     * theme beyond the shared ones (a knob, a swatch's contrast ring), keyed on the attribute
+     * that `state/theme.ts` always resolves (D3-7). Everything else paints with a token.
      */
     const ALLOWED: Readonly<Record<string, readonly string[]>> = {
       'text-edit/TextEdit.module.css': ['#000000'],

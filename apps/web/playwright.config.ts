@@ -76,6 +76,10 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: new URL(basePath, `http://localhost:${port}`).href,
+    // Theme follows the system by default (spec D3-7) and Playwright reports a light scheme
+    // unless told otherwise: every spec runs dark, as its baselines and models were written,
+    // and the light ones say `test.use({ colorScheme: 'light' })`.
+    colorScheme: 'dark',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -132,6 +136,8 @@ export default defineConfig({
         '**/pages-grid.spec.ts',
         // The inspector's parts in their homes on the medium class (spec D2-9).
         '**/inspector-homes.spec.ts',
+        // The light theme: no flash, the setting, axe in light on the tablet (spec D3-7).
+        '**/theme.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },
