@@ -2,6 +2,11 @@
  * The compact reader's sheets (ADR-0033 §2.3): Pages (a thumbnail grid to jump), Contents
  * (the file's outline), Go to page, Document info and About. One opens at a time, from the
  * capsule or the ⋯ menu; a jump closes its sheet and lands the page under the top bar.
+ *
+ * The compact edition has no Settings sheet; its one setting besides the Library's language
+ * switch is Reduce motion (language.md §7.6, A-9), at the end of About as the full edition's
+ * own row (`settings/ReduceMotionRow.tsx`, the same `appearance-store` field), so a person who
+ * wants less motion than their system asks for can say so on a phone too.
  */
 import type {
   OutlineNode,
@@ -26,6 +31,8 @@ import { getLocale, m } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
 import { displaySize, fitInBox } from '../../pages/page-geometry';
 import { contentFrame, ResizedContent } from '../../stage/ResizedContent';
+import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
+import { Section } from '../../settings/rows';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
@@ -541,6 +548,11 @@ function About() {
           <Icon name="arrow-up-right" />
           <span className="visually-hidden"> {m.about_new_tab()}</span>
         </a>
+      </div>
+      <div className={styles.aboutSettings}>
+        <Section title={m.appearance_heading()}>
+          <ReduceMotionRow />
+        </Section>
       </div>
     </div>
   );
