@@ -72,23 +72,30 @@ describe('the shortcuts overlay (07 §23)', () => {
       'In a focused list or bar',
     ]);
     const places = within(dialog).getByRole('table', { name: 'Places' });
-    const placeRows = within(places)
-      .getAllByRole('row')
-      .slice(1)
-      .map((row) => row.textContent);
+    // Each row: the action, then its caps (alternatives apart) and the keys the cell reads.
+    const read = (row: Element) => {
+      const caps = [...row.querySelectorAll('kbd')].map((k) => k.textContent).join(' ');
+      const spoken = row.querySelector('td .visually-hidden')?.textContent;
+      return `${row.querySelector('th')?.firstElementChild?.textContent}|${caps}|${spoken}`;
+    };
+    const placeRows = within(places).getAllByRole('row').slice(1).map(read);
     expect(placeRows).toEqual([
-      'Library0',
-      'Back to viewing1',
-      'Open or close MarkupM2',
-      'Pages grid3',
-      'Compare4',
+      'Library|0|0',
+      'Back to viewing|1|1',
+      'Open or close Markup|M 2|M, 2',
+      'Pages grid|3|3',
+      'Compare|4|4',
     ]);
     // Mod reads as the platform's modifier: Ctrl here (⌘ on Apple, `shortcuts.test.ts`).
     const files = within(dialog).getByRole('table', { name: 'Files' });
     const save = within(files)
       .getByRole('rowheader', { name: /^Save$/ })
       .closest('tr');
-    expect(save?.textContent).toMatch(/CtrlS$/);
+    expect(save && read(save)).toBe('Save|Ctrl S|Control+S');
+    const history = within(dialog).getByRole('table', { name: 'History' });
+    const redo = within(history).getByRole('rowheader', { name: 'Redo' }).closest('tr');
+    expect(redo && read(redo)).toBe('Redo|Ctrl Shift Z Ctrl Y|Control+Shift+Z, Control+Y');
+    expect(redo?.querySelectorAll('[aria-hidden="true"]').length).toBeGreaterThan(0);
     unmount();
     act(() => useUiStore.setState({ shortcutsOpen: false }));
 

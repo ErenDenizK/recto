@@ -18,6 +18,7 @@ import { useId, useRef } from 'react';
 
 import { type KeymapRow, WIDGET_KEYS, keymapGroupTitle, keymapRows } from '../commands/keymap';
 import type { Command } from '../commands/registry';
+import { currentPlatform, toAriaKeyShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
 import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
@@ -125,9 +126,25 @@ export function ShortcutOverlay() {
                         ))}
                       </th>
                       <td className={styles.keys}>
-                        {row.keys.map((shortcut, index) => (
-                          <Keycaps key={index} shortcut={shortcut} tone="onGlass" />
-                        ))}
+                        {/* The caps are decorative; the cell reads the keys (§23.8). */}
+                        <span className="visually-hidden">
+                          {row.keys
+                            .map((shortcut) => toAriaKeyShortcut(shortcut, currentPlatform))
+                            .join(', ')}
+                        </span>
+                        <span className={styles.keyList}>
+                          {/* "/" stays with the caps after it, so a wrap never ends a line. */}
+                          {row.keys.map((shortcut, index) => (
+                            <span key={index} className={styles.alternative}>
+                              {index > 0 ? (
+                                <span className={styles.or} aria-hidden="true">
+                                  /
+                                </span>
+                              ) : null}
+                              <Keycaps shortcut={shortcut} tone="onGlass" />
+                            </span>
+                          ))}
+                        </span>
                       </td>
                     </tr>
                   ))}
