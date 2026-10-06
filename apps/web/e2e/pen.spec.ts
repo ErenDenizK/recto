@@ -243,9 +243,11 @@ test.describe('pen presets and bursts', () => {
     await recordInkStyles(page);
   });
 
-  test('presets in the Draw group: arm blue, draw, reload, still blue; an edit changes the next stroke', async ({
+  test('presets in the pen well: arm blue, draw, reload, still blue; an edit changes the next stroke', async ({
     page,
   }) => {
+    // Two opens and a reload in one walk.
+    test.slow();
     await openSimple(page);
     const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
     const presets = bar.locator('[data-pen-well]');
