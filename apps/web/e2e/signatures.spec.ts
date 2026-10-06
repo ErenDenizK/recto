@@ -1,19 +1,19 @@
 /**
  * Signatures end to end (spec recognize-and-compare §3, ADR-0013): validation on open shows
- * the status and the honesty line in the Inspector; signing through the export dialog with
+ * the status word in the title menu's facts row and, from it or its Signatures… row, S9 with
+ * the status and the honesty line (spec D2-9: the inspector's section moved there); signing through the export dialog with
  * the test PKI's .p12 produces a download that re-opens as Intact, with the summary line;
  * a legacy 3DES .p12 is refused with the re-export command.
  */
 import { readFile } from 'node:fs/promises';
 
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
   copySummary,
   fixturePath,
   openFixtures,
   openSaveCopy,
-  showInspector,
   useFileInputPicker,
 } from './helpers';
 
@@ -33,13 +33,35 @@ async function start(page: Page, fixtures: readonly string[]): Promise<void> {
   await page.goto('./');
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await openFixtures(page, fixtures);
-  // The signatures section is in the inspector, closed by default.
-  await showInspector(page);
+}
+
+/**
+ * S9 Signatures for the active document: from the title menu's facts row (`via: 'facts'`,
+ * which shows `status` first) or its Protect section's Signatures… row.
+ */
+async function openSignatures(
+  page: Page,
+  via: 'facts' | 'menu',
+  status?: string,
+): Promise<Locator> {
+  await page.getByTestId('document-menu').click();
+  const menu = page.getByTestId('title-menu');
+  await expect(menu).toBeVisible();
+  if (via === 'facts') {
+    const fact = menu.getByTestId('title-menu-signatures');
+    if (status !== undefined) await expect(fact).toContainText(status, { timeout: 20_000 });
+    await fact.click();
+  } else {
+    await menu.getByRole('menuitem', { name: 'Signatures…' }).click();
+  }
+  const sheet = page.getByTestId('signatures-sheet');
+  await expect(sheet).toBeVisible();
+  return sheet.getByTestId('signatures-section');
 }
 
 test('signed-then-modified: Intact, changed later with the honesty line', async ({ page }) => {
   await start(page, ['signed-then-modified.pdf']);
-  const section = page.getByTestId('signatures-section');
+  const section = await openSignatures(page, 'facts', 'Intact, changed later');
   await expect(section.getByTestId('signature-status')).toHaveText('Intact, changed later', {
     timeout: 20_000,
   });
@@ -54,7 +76,7 @@ test('signed-then-modified: Intact, changed later with the honesty line', async 
 
 test('signed-tampered: Broken', async ({ page }) => {
   await start(page, ['signed-tampered.pdf']);
-  const section = page.getByTestId('signatures-section');
+  const section = await openSignatures(page, 'menu');
   await expect(section.getByTestId('signature-status')).toHaveText('Broken', { timeout: 20_000 });
   await expect(section.getByTestId('signature-honesty')).toHaveText(HONESTY);
   await expect(page.getByTestId('tab-signature-glyph')).toBeVisible();
@@ -104,7 +126,7 @@ test('sign simple-text.pdf through Save a copy; the download re-opens as Intact'
     buffer: bytes,
   });
   await expect(page.getByRole('tab', { name: 'signed-download' })).toBeVisible();
-  const section = page.getByTestId('signatures-section');
+  const section = await openSignatures(page, 'facts');
   await expect(section.getByTestId('signature-status')).toHaveText('Intact', { timeout: 20_000 });
   await expect(section.getByTestId('signature-honesty')).toHaveText(HONESTY);
   await expect(section).toContainText('pdf-editor Test Signer');

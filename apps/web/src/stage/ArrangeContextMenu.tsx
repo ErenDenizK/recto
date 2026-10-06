@@ -14,7 +14,6 @@ import { commandRegistry } from '../commands/registry';
 import { useCommand } from '../commands/use-commands';
 import { m } from '../i18n';
 import { useSelectionStore } from '../state/selection-store';
-import { useUiStore } from '../state/ui-store';
 import { useTabItems, useWorkspaceStore } from '../state/workspace-store';
 import { Icon } from '../ui/Icon';
 import { Keycaps } from '../ui/Keycaps';
@@ -166,11 +165,6 @@ function MenuItems({
         }}
       />
       <CommandItem command="pages.reverseSelection" label={m.cmd_reverse_selection()} />
-      <Separator />
-      <ActionItem
-        label={m.action_properties()}
-        onClick={() => useUiStore.setState({ rightPanelOpen: true })}
-      />
     </>
   );
 }

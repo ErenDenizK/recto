@@ -43,6 +43,23 @@ describe('presentationOf (07 §1.1)', () => {
     }
   });
 
+  it('batch (S21): a centred 720 dialog from expanded up, a task sheet below (07.5)', () => {
+    for (const size of WIDE) {
+      expect(presentationOf('batch', at(size))).toMatchObject({
+        presentation: 'dialog',
+        width: 720,
+        modal: true,
+        scrim: true,
+        role: 'dialog',
+      });
+    }
+    expect(presentationOf('batch', at('medium'))).toEqual(presentationOf('task', at('medium')));
+    expect(presentationOf('batch', at('compact'))).toEqual(presentationOf('task', at('compact')));
+    expect(presentationOf('batch', at('large', true))).toEqual(
+      presentationOf('task', at('large', true)),
+    );
+  });
+
   it('task sheets: bottom at 92 %, full on compact-height, form 640 on medium, side 400 with a scrim', () => {
     const compact = presentationOf('task', at('compact'));
     expect(compact).toMatchObject({ presentation: 'bottom', modal: true, scrim: true });

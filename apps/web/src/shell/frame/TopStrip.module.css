@@ -53,7 +53,7 @@
   }
 }
 
-/* Chrome toggles in the strip are neutral (▤ open, the inspector): the n5 fill, never lime
+/* Chrome toggles in the strip are neutral (▤ open): the n5 fill, never lime
    (F3 §3: "no lime in the frame at rest"). */
 .strip [data-size='bar'][aria-pressed='true']:not([data-tool]) {
   background: var(--surface-on);

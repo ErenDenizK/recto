@@ -2,7 +2,7 @@
  * ▤ Sidebar (`components/01-frame.md` F3): toggles the sidebar (Mod+B), in a document on
  * medium and up and in the compact-height bar (spec 01.7). Pressed while the sidebar shows:
  * the n5 fill and `aria-pressed`; focus stays on the button. It replaces the rail's toggle
- * (5.1); the inspector toggle (3.9) leaves with the inspector (D2-9).
+ * (5.1); the inspector toggle (3.9) left with the inspector (D2-9).
  */
 
 import { m } from '../../i18n';

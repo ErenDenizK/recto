@@ -1,24 +1,31 @@
 /**
- * Right panel "Properties" for selected annotations (spec §2): the contextual bar's
- * controls plus kind, author, dates and the comment text. With nothing selected and a
- * drawing tool armed it shows that tool's style, so colour and width can be chosen before
- * drawing (experience-redesign spec §6.3). The tool bar's options tier is the primary place
- * for these controls (§5.2, the same `StyleControls`); this panel repeats them. Renders
- * `fallback` otherwise. In Read (ADR-0019 §3) the facts and the comment show read-only.
+ * The annotation bar's ⋯ (`components/04-context.md` §5, §14 "Annotation ⋯"; spec D2-9): the
+ * properties the bar has no room for, in a popover on the one primitive (`ui/Popover`, §15).
+ * It replaces the inspector's Properties section (inventory 6.3, INV-13), whose style controls
+ * the bar already carries (colour, opacity, width or font size, Comment, Delete):
+ *
+ * - **Facts:** type, author, modified and page of the one selected annotation (the count when
+ *   several are selected), and "Locked" for a PDF-locked one.
+ * - **Text:** the comment (or a text box's text), edited in place; a change commits on blur or
+ *   Mod+Enter as one undo step, coalesced per annotation. On a locked document it can be read
+ *   and copied, not changed (a `targeted` act, refused by the guard).
+ *
+ * The armed tool's style, which the inspector also showed with nothing selected, is the ink
+ * strip's (`10-ink` §2).
  */
-import type { ReactNode } from 'react';
-import { useId, useState } from 'react';
+import { Popover } from '@base-ui/react/popover';
+import type { Annotation } from '@pdf-editor/engine';
+import { useState } from 'react';
 
 import { getLocale, m } from '../i18n';
+import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
+import { PopoverHeader, PopoverPopup } from '../ui/Popover';
 import { useCanChangeActive } from '../viewer/input-state';
-import { useToolStore } from '../viewer/tool-store';
 import { updateAnnotations } from './actions';
-import { selectedAnnotations, useAnnotationStore } from './annotation-store';
-import { toolStyleGroup } from './drafts';
+import type { PageTarget } from './annotation-store';
 import { annotationName, capitalize } from './labels';
 import styles from './AnnotationProperties.module.css';
-import { StyleControls } from './StyleControls';
-import { toolDefinition } from './tools';
 
 const dateFormat = (iso: string) => {
   const date = new Date(iso);
@@ -29,38 +36,58 @@ const dateFormat = (iso: string) => {
       );
 };
 
-export function AnnotationProperties({ fallback }: { readonly fallback: ReactNode }) {
-  const selection = useAnnotationStore((s) => s.selection);
-  const pages = useAnnotationStore((s) => s.pages);
-  const mode = useToolStore((s) => s.mode);
-  // Restyling a selected annotation is a targeted act: refused only while locked.
-  const editable = useCanChangeActive('targeted');
-  const titleId = useId();
-  const annotations = selectedAnnotations({ selection, pages });
-  const first = annotations[0];
-  if (!selection || !first) {
-    const group = toolStyleGroup(mode);
-    if (group === undefined) return <>{fallback}</>;
-    const title = m.annot_tool_style({ tool: toolDefinition(mode).title() });
-    return (
-      <section
-        className={styles.properties}
-        aria-labelledby={titleId}
+/** ⋯ at the end of the annotation bar, and the popover it opens. */
+export function AnnotationPropertiesButton({
+  target,
+  annotations,
+  name,
+}: {
+  readonly target: PageTarget;
+  readonly annotations: readonly Annotation[];
+  /** The bar's name for the selection ("Pen", "3 annotations"). */
+  readonly name: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        render={
+          <IconButton
+            label={m.annot_more()}
+            icon={<Icon name="dots-three" />}
+            data-testid="annotation-more"
+          />
+        }
+      />
+      <PopoverPopup
+        side="bottom"
+        align="end"
+        className={styles.popover}
         data-annotation-keep=""
-        data-testid="tool-style"
+        data-testid="annotation-properties"
       >
-        <p id={titleId} className={styles.label}>
-          {title}
-        </p>
-        <p className={styles.note}>{m.annot_tool_style_hint()}</p>
-        <StyleControls variant="tool" group={group} />
-      </section>
-    );
-  }
+        <PopoverHeader title={m.annot_bar_label({ name })} />
+        <AnnotationProperties target={target} annotations={annotations} />
+      </PopoverPopup>
+    </Popover.Root>
+  );
+}
+
+export function AnnotationProperties({
+  target,
+  annotations,
+}: {
+  readonly target: PageTarget;
+  readonly annotations: readonly Annotation[];
+}) {
+  // Changing a selected annotation's text is a targeted act: refused only while locked.
+  const editable = useCanChangeActive('targeted');
+  const first = annotations[0];
+  if (!first) return null;
   const single = annotations.length === 1;
   const locked = annotations.every((a) => a.flags?.locked);
   return (
-    <div className={styles.properties} data-annotation-keep="" data-testid="annotation-properties">
+    <div className={styles.properties}>
       <dl className={styles.facts}>
         <dt>{m.annot_kind()}</dt>
         <dd>
@@ -75,25 +102,22 @@ export function AnnotationProperties({ fallback }: { readonly fallback: ReactNod
             <dd>{first.author && first.author !== '' ? first.author : m.annot_no_author()}</dd>
             <dt>{m.annot_modified()}</dt>
             <dd className={styles.numeric}>{first.modified ? dateFormat(first.modified) : '—'}</dd>
-            <dt>{m.annot_page()}</dt>
-            <dd className={styles.numeric}>{selection.position}</dd>
           </>
         ) : null}
+        <dt>{m.annot_page()}</dt>
+        <dd className={styles.numeric}>{target.position}</dd>
       </dl>
-      {locked ? (
-        <p className={styles.note}>{m.annot_locked()}</p>
-      ) : editable ? (
-        <StyleControls target={selection} annotations={annotations} variant="panel" />
-      ) : null}
+      {locked ? <p className={styles.note}>{m.annot_locked()}</p> : null}
       {single ? (
         <ContentsField
           key={`${first.id}:${first.contents ?? ''}`}
           initial={first.kind === 'free-text' ? first.text : (first.contents ?? '')}
+          label={first.kind === 'free-text' ? m.annot_text() : m.annot_comment_text()}
           disabled={first.flags?.locked === true}
           readOnly={!editable}
           onCommit={(value) =>
             void updateAnnotations(
-              selection,
+              target,
               [first.id],
               (a) =>
                 a.kind === 'free-text'
@@ -113,13 +137,15 @@ export function AnnotationProperties({ fallback }: { readonly fallback: ReactNod
 
 function ContentsField({
   initial,
+  label,
   disabled,
   readOnly,
   onCommit,
 }: {
   readonly initial: string;
+  readonly label: string;
   readonly disabled: boolean;
-  /** Read: the comment can be read and copied, not changed. */
+  /** Locked: the text can be read and copied, not changed. */
   readonly readOnly: boolean;
   readonly onCommit: (value: string) => void;
 }) {
@@ -129,10 +155,10 @@ function ContentsField({
   };
   return (
     <label className={styles.contents}>
-      <span className={styles.label}>{m.annot_comment_text()}</span>
+      <span className={styles.label}>{label}</span>
       <textarea
         value={value}
-        rows={4}
+        rows={3}
         disabled={disabled}
         readOnly={readOnly}
         placeholder={m.annot_comment_placeholder()}

@@ -114,6 +114,7 @@ const SPEC_ACTS: Readonly<Record<string, Act | null>> = {
   'file.export': null,
   'file.open': null,
   'document.sign': null,
+  'document.signatures': null,
   'document.compress': null,
   'document.batch': null,
   'edit.undo': null,

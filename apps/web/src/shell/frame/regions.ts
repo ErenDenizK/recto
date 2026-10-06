@@ -3,7 +3,7 @@
  * §15; A-13): one implementation of the cycle, which takes over `shell/LeftRail.regions.ts`.
  *
  *   top strip (or the compact bar) → sidebar → page → tool sheet → facts chip → pending-marks
- *   bar → dock or palette → contextual bar → page pill → inspector (until D2-9) → toasts
+ *   bar → dock or palette → contextual bar → page pill → toasts
  *
  * - **Landing targets:** the active tab (the Library: ◆), the sidebar's current item, the page
  *   viewport, the sheet's first control, the chip, Apply, the last focused dock item, the bar,
@@ -30,7 +30,6 @@ export const REGIONS = [
   '[data-region="toolbar"]',
   '[data-region="context"]',
   '[data-region="pill"]',
-  '#right-panel',
   '[data-region="toasts"]',
 ] as const;
 
