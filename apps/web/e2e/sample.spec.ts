@@ -7,7 +7,13 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, sessionSettled, useFileInputPicker, waitForSnapshot } from './helpers';
+import {
+  openFixtures,
+  sessionSettled,
+  useFileInputPicker,
+  waitForSnapshot,
+  openDocumentTitles,
+} from './helpers';
 
 const sampleTabs = (page: Page) => page.getByRole('tab', { name: /^Recto (sample|örnek belge)/ });
 
@@ -68,7 +74,12 @@ test('the palette’s Try the sample opens a fresh copy each time', async ({ pag
       timeout: 20_000,
     });
   }
-  await expect(sampleTabs(page)).toHaveCount(2);
+  // The second copy may sit in the strip's "N more" menu on a narrow strip (01-frame F4).
+  await expect
+    .poll(async () =>
+      (await openDocumentTitles(page)).filter((title) => /^Recto (sample|örnek belge)/.test(title)),
+    )
+    .toHaveLength(2);
 });
 
 test('with a restored session the sample opens as one more tab', async ({ page }) => {
@@ -87,7 +98,7 @@ test('with a restored session the sample opens as one more tab', async ({ page }
   await expect(page.getByRole('tab', { name: 'Recto sample', selected: true })).toBeVisible({
     timeout: 20_000,
   });
-  await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
+  expect(await openDocumentTitles(page)).toContain('simple-text');
   await expectCleanAddress(page);
 });
 

@@ -161,6 +161,8 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await page.keyboard.press(`${await mod(page)}+f`);
   await field.fill('quick');
   await expect(page.getByTestId('find-count')).toHaveText('No matches', { timeout: 20_000 });
+  // Esc clears the query, the next one leaves the field for the page (01-frame F6 §6).
+  await field.press('Escape');
   await field.press('Escape');
   await page.keyboard.press(`${await mod(page)}+Shift+z`);
   await expect(section.getByTestId('ocr-quality')).toBeVisible();

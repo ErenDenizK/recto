@@ -9,7 +9,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import { fixturePath, openFixtures, sessionSettled, useFileInputPicker } from './helpers';
 
 interface Rect {
   readonly left: number;
@@ -96,9 +96,11 @@ async function setSidebar(page: Page, open: boolean): Promise<void> {
 
 /** Opens files through + (or the Library's Open on a compact window, which has no tabs). */
 async function openAny(page: Page, names: readonly string[]): Promise<void> {
+  // A reload restores the last session first; Open waits for it.
+  await sessionSettled(page);
   const chooser = page.waitForEvent('filechooser');
   await page
-    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
+    .getByRole('button', { name: /^(Open files|Open PDFs…|Dosya aç|PDF aç…)$/ })
     .first()
     .click();
   await (await chooser).setFiles(names.map(fixturePath));
@@ -346,7 +348,9 @@ test.describe('jobs through the frame', () => {
 
 test('the sidebar shows only in a document, and as it was stored (moved from home.spec)', async ({
   page,
-}) => {
+}, info) => {
+  // On the tablet the sidebar is laid over the page and shows only when asked for.
+  test.skip(info.project.name === 'tablet', 'docked sidebars only');
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const panel = page.locator('#left-panel');

@@ -202,6 +202,35 @@ export async function openFindPanel(page: Page): Promise<Locator> {
   return field;
 }
 
+/**
+ * The open documents' titles: the strip's tabs, then those its "N more" menu holds (01-frame
+ * F4: on a narrow strip the tabs that do not fit leave the tablist for that menu).
+ */
+export async function openDocumentTitles(page: Page): Promise<string[]> {
+  const shown = await page
+    .getByRole('tablist', { name: /^(Open documents|Açık belgeler)$/ })
+    .locator('[role="tab"]')
+    .evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute('title') ?? ''));
+  const overflow = page.getByTestId('tab-overflow');
+  if ((await overflow.count()) === 0) return shown;
+  await overflow.click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  const more = await menu.getByRole('menuitem').allTextContents();
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  return [...shown, ...more.map((title) => title.trim())];
+}
+
+/** Waits until `count` documents are open, wherever the strip shows them. */
+export async function expectOpenDocuments(
+  page: Page,
+  count: number,
+  timeout = 5_000,
+): Promise<void> {
+  await expect.poll(async () => (await openDocumentTitles(page)).length, { timeout }).toBe(count);
+}
+
 /** Opens Save a copy (S2) for the active document from the title menu. */
 export async function openSaveCopy(page: Page): Promise<Locator> {
   await openSaveCopyFromMenu(page);

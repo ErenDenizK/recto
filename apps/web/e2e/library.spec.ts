@@ -18,7 +18,13 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { fixturePath, sessionSettled, useFileInputPicker, waitForSnapshot } from './helpers';
+import {
+  fixturePath,
+  sessionSettled,
+  useFileInputPicker,
+  waitForSnapshot,
+  expectOpenDocuments,
+} from './helpers';
 
 /** Counts what a person does: each click, tap, key press, drop and file choice is one step. */
 class Person {
@@ -120,7 +126,7 @@ test('J3: Open PDFs…, pick both, Combine 2 files: three steps, no dialog', asy
   await person.press(bar.getByRole('button', { name: 'Combine 2 files' }));
 
   await expect(page.getByTestId('merge-all-dialog')).toHaveCount(0);
-  await expect(tabs(page)).toHaveCount(3);
+  await expectOpenDocuments(page, 3);
   await expect(tabs(page).and(page.getByRole('tab', { selected: true }))).toHaveAccessibleName(
     'Combined – simple-text + rotated-pages, edited',
   );
@@ -131,7 +137,7 @@ test('J3: Open PDFs…, pick both, Combine 2 files: three steps, no dialog', asy
 
   // Undo takes away only the new document.
   await toast.getByRole('button', { name: 'Undo' }).click();
-  await expect(tabs(page)).toHaveCount(2);
+  await expectOpenDocuments(page, 2);
 });
 
 test('J3 by drop: two files dropped, then Combine 2 files: two steps', async ({
@@ -150,7 +156,7 @@ test('J3 by drop: two files dropped, then Combine 2 files: two steps', async ({
   await person.drop(page.getByTestId('app-shell'), ['simple-text.pdf', 'rotated-pages.pdf']);
   await expect(checked(page)).toHaveCount(2, { timeout: 20_000 });
   await person.press(page.getByRole('button', { name: 'Combine 2 files' }));
-  await expect(tabs(page)).toHaveCount(3);
+  await expectOpenDocuments(page, 3);
   await expect(page.getByTestId('combined-toast')).toContainText('Combined 2 files');
   expect(person.steps).toBe(2);
 });
@@ -191,11 +197,8 @@ test('J12: ○ A, ○ B, Compare: three steps from the Library', async ({ page }
     }),
   );
   await expect(library(page)).toHaveCount(0);
-  await expect(
-    page.getByRole('radiogroup', { name: 'View mode' }).getByRole('radio', {
-      name: 'Compare',
-    }),
-  ).toBeChecked();
+  // Compare shows (its setup or its view); the frame has no mode switch to read it from (D2-1).
+  await expect(page.getByRole('heading', { name: 'Compare mode' })).toBeAttached();
   expect(person.steps).toBe(3);
 });
 
@@ -245,7 +248,7 @@ test('J14 at zero: documents open when the browser closed are back after a reloa
   await waitForSnapshot(page);
   await page.reload();
   await sessionSettled(page);
-  await expect(tabs(page)).toHaveCount(2, { timeout: 20_000 });
+  await expectOpenDocuments(page, 2, 20_000);
 });
 
 test('a card dragged with the mouse reorders the cards and the tabs', async ({
@@ -299,7 +302,7 @@ test('files dragged over a document show the lit drop card, and open as tabs', a
   await dropFiles(shell, ['rotated-pages.pdf', 'mixed-sizes.pdf'], false);
   await expect(page.getByTestId('drop-overlay')).toContainText('Drop to open 2 files');
   await dropFiles(shell, ['rotated-pages.pdf', 'mixed-sizes.pdf']);
-  await expect(tabs(page)).toHaveCount(3, { timeout: 20_000 });
+  await expectOpenDocuments(page, 3, 20_000);
   await expect(page.getByTestId('drop-overlay')).toHaveCount(0);
   const toast = page.getByTestId('library-opened-toast');
   await expect(toast).toContainText('Opened 2 files');
