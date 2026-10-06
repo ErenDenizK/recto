@@ -18,10 +18,17 @@ import {
   historyStep,
   useFileInputPicker,
   showSidebar,
+  stageAsBesideInspector,
 } from './helpers';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Covered in Chromium');
 test.use({ viewport: { width: 1440, height: 900 } });
+
+// The page geometry these tests were written for (drags by fractions of a page that fit above
+// the dock): the stage beside the inspector's 280 px, which D2-9 removed.
+test.beforeEach(async ({ page }) => {
+  await stageAsBesideInspector(page);
+});
 
 /** The image targets of the first page (present while the Image tool is active). */
 function firstImage(page: Page): Locator {
@@ -147,17 +154,16 @@ test('keyboard: arrows nudge the selected image, Delete removes it, undo brings 
   await expect(selection).toBeFocused();
 
   await page.keyboard.press('Shift+ArrowRight');
-  await inHistory(page, (list) =>
-    expect(historyStep(list, 'Image moved')).toBeVisible({ timeout: 20_000 }),
-  );
   await expect.poll(async () => (await imageRect(firstImage(page)))[0]).toBeCloseTo(136, 1);
   await expect(selection).toBeFocused();
 
   await page.keyboard.press('Delete');
-  await inHistory(page, (list) =>
-    expect(historyStep(list, 'Image deleted')).toBeVisible({ timeout: 20_000 }),
-  );
   await expect(page.locator('[data-image-layer="0"] [data-image-object]')).toHaveCount(0);
+  // Both steps in the History scrubber, read once the keys are done (it takes the focus).
+  await inHistory(page, async (list) => {
+    await expect(historyStep(list, 'Image moved')).toBeVisible({ timeout: 20_000 });
+    await expect(historyStep(list, 'Image deleted')).toBeVisible({ timeout: 20_000 });
+  });
 
   // Undo of a removal reopens the source and replays the move.
   await page.keyboard.press('ControlOrMeta+z');
@@ -207,10 +213,7 @@ test('keyboard: the bar is one Tab stop with arrow keys; Mod+Arrow resizes keepi
   await selection.focus();
   const live = page.locator('div[role="status"][aria-live="polite"].visually-hidden');
   await page.keyboard.press('ControlOrMeta+ArrowRight');
-  await inHistory(page, (list) =>
-    expect(historyStep(list, 'Image resized')).toBeVisible({ timeout: 20_000 }),
-  );
-  await expect(live).toHaveText(/Image resized to 361 × 270\.[78] pt/);
+  await expect(live).toHaveText(/Image resized to 361 × 270\.[78] pt/, { timeout: 20_000 });
   await expect.poll(async () => (await imageRect(firstImage(page)))[2]).toBeCloseTo(361, 1);
   await expect.poll(async () => (await imageRect(firstImage(page)))[3]).toBeCloseTo(270.75, 1);
   await expect(selection).toBeFocused();
@@ -221,4 +224,5 @@ test('keyboard: the bar is one Tab stop with arrow keys; Mod+Arrow resizes keepi
   await expect.poll(async () => (await imageRect(firstImage(page)))[2]).toBeCloseTo(351, 1);
   await expect.poll(async () => (await imageRect(firstImage(page)))[3]).toBeCloseTo(263.25, 1);
   expect((await imageRect(firstImage(page)))[0]).toBeCloseTo(x ?? 0, 1);
+  await inHistory(page, (list) => expect(historyStep(list, 'Image resized').first()).toBeVisible());
 });

@@ -21,6 +21,7 @@ import {
   inHistory,
   openFixtures,
   openSaveCopy,
+  showSidebar,
   useFileInputPicker,
 } from './helpers';
 
@@ -168,6 +169,9 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await field.press('Escape');
   await field.press('Escape');
   await page.keyboard.press(`${await mod(page)}+Shift+z`);
+  // Find took the sidebar: back to Review's Words to check, which has both pages again.
+  const sidebar = await showSidebar(page, 'Review');
+  await sidebar.getByRole('radio', { name: /^Words to check/ }).click();
   await expect(pages).toHaveCount(2);
   await page.keyboard.press(`${await mod(page)}+f`);
   await field.fill('quick');
