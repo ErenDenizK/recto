@@ -76,6 +76,10 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: new URL(basePath, `http://localhost:${port}`).href,
+    // Theme follows the system by default (spec D3-7) and Playwright reports a light scheme
+    // unless told otherwise: every spec runs dark, as its baselines and models were written,
+    // and the light ones say `test.use({ colorScheme: 'light' })`.
+    colorScheme: 'dark',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

@@ -3,10 +3,11 @@
  * (the file's outline), Go to page, Document info and About. One opens at a time, from the
  * capsule or the ⋯ menu; a jump closes its sheet and lands the page under the top bar.
  *
- * The compact edition has no Settings sheet; its one setting besides the Library's language
- * switch is Reduce motion (language.md §7.6, A-9), at the end of About as the full edition's
- * own row (`settings/ReduceMotionRow.tsx`, the same `appearance-store` field), so a person who
- * wants less motion than their system asks for can say so on a phone too.
+ * The compact edition has no Settings sheet; its settings besides the Library's language
+ * switch are Theme (ADR-0022 §2.4, spec D3-7) and Reduce motion (language.md §7.6, A-9), at the
+ * end of About as the full edition's own rows (`settings/ThemeRow.tsx`,
+ * `settings/ReduceMotionRow.tsx`, the same `appearance-store` fields), so a person who wants
+ * light on a dark phone, or less motion than their system asks for, can say so on a phone too.
  */
 import type {
   OutlineNode,
@@ -32,6 +33,7 @@ import { PageCanvas } from '../../pages/PageCanvas';
 import { displaySize, fitInBox } from '../../pages/page-geometry';
 import { contentFrame, ResizedContent } from '../../stage/ResizedContent';
 import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
+import { ThemeRow } from '../../settings/ThemeRow';
 import { Section } from '../../settings/rows';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
@@ -551,6 +553,7 @@ function About() {
       </div>
       <div className={styles.aboutSettings}>
         <Section title={m.appearance_heading()}>
+          <ThemeRow />
           <ReduceMotionRow />
         </Section>
       </div>

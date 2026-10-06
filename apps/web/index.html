@@ -3,12 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
     />
-    <meta name="theme-color" content="#17191e" />
+    <!-- Each scheme's canvas (ADR-0022 §2.4); theme.js below sets both to a chosen theme's. -->
+    <meta name="theme-color" content="#08090c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#e6e8eb" media="(prefers-color-scheme: light)" />
+    <!-- The theme before the first paint (spec D3-7; src/state/theme.ts): a classic script, so
+         it runs here, before the body; the CSP allows no inline one. -->
+    <script src="%BASE_URL%theme.js"></script>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Recto PDF" />
     <meta property="og:title" content="Recto" />
