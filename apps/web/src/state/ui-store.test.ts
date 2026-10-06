@@ -33,7 +33,7 @@ describe('parseLayoutV2 (M8)', () => {
   it('falls back to defaults for garbage', () => {
     for (const value of [undefined, null, 42, 'x', []]) {
       expect(parseLayoutV2(value)).toMatchObject({
-        leftPanelOpen: true,
+        leftPanelOpen: false,
         leftPanelView: 'pages',
         leftPanelWidth: LEFT_PANEL_WIDTH.default,
       });
@@ -43,8 +43,8 @@ describe('parseLayoutV2 (M8)', () => {
   it('keeps valid fields, clamps widths, and rejects unknown views', () => {
     expect(
       parseLayoutV2({
-        leftPanelOpen: false,
-        leftPanelView: 'files',
+        leftPanelOpen: true,
+        leftPanelView: 'review',
         pagesView: 'bookmarks',
         reviewFilter: 'fields',
         leftPanelWidth: 10_000,
@@ -52,8 +52,8 @@ describe('parseLayoutV2 (M8)', () => {
         rightPanelWidth: 1,
       }),
     ).toEqual({
-      leftPanelOpen: false,
-      leftPanelView: 'files',
+      leftPanelOpen: true,
+      leftPanelView: 'review',
       pagesView: 'bookmarks',
       reviewFilter: 'fields',
       leftPanelWidth: LEFT_PANEL_WIDTH.max,
@@ -61,6 +61,8 @@ describe('parseLayoutV2 (M8)', () => {
       rightPanelWidth: RIGHT_PANEL_WIDTH.min,
     });
     expect(parseLayoutV2({ leftPanelView: 'bogus' }).leftPanelView).toBe('pages');
+    // M8's Files tab is gone (06-navigation N1): the Library lists the open files.
+    expect(parseLayoutV2({ leftPanelView: 'files' }).leftPanelView).toBe('pages');
     // v1 views are not v2 values; Changes lives only as long as a comparison.
     expect(parseLayoutV2({ leftPanelView: 'outline' }).leftPanelView).toBe('pages');
     expect(parseLayoutV2({ leftPanelView: 'changes' }).leftPanelView).toBe('pages');
@@ -81,16 +83,16 @@ describe('ui:v3 (redesign spec §7)', () => {
   it('parses field by field: the sidebar record, the views, the inspector', () => {
     expect(
       parseLayout({
-        sidebar: { open: false, section: 'files', width: 10_000 },
+        sidebar: { open: true, section: 'files', width: 10_000 },
         pagesView: 'bookmarks',
-        reviewFilter: 'fields',
+        reviewFilter: 'words',
         inspector: { open: true, width: 1 },
       }),
     ).toEqual({
-      leftPanelOpen: false,
-      leftPanelView: 'files',
+      leftPanelOpen: true,
+      leftPanelView: 'pages',
       pagesView: 'bookmarks',
-      reviewFilter: 'fields',
+      reviewFilter: 'words',
       leftPanelWidth: LEFT_PANEL_WIDTH.max,
       rightPanelOpen: true,
       rightPanelWidth: RIGHT_PANEL_WIDTH.min,
@@ -104,6 +106,12 @@ describe('ui:v3 (redesign spec §7)', () => {
     expect(parseLayout({ sidebar: { section: 'outline' } }).leftPanelView).toBe('pages');
   });
 
+  it('starts the sidebar closed, 280 px wide (06-navigation N1, 06.17, 06.18)', () => {
+    expect(DEFAULT_LAYOUT.leftPanelOpen).toBe(false);
+    expect(LEFT_PANEL_WIDTH).toEqual({ min: 240, max: 400, default: 280 });
+    expect(parseLayout(undefined).leftPanelOpen).toBe(false);
+  });
+
   it('stores the sidebar open state only when it differs from the default (06.17)', () => {
     expect(toStoredLayout(DEFAULT_LAYOUT)).toEqual({
       sidebar: { section: 'pages', width: LEFT_PANEL_WIDTH.default },
@@ -111,8 +119,8 @@ describe('ui:v3 (redesign spec §7)', () => {
       reviewFilter: 'all',
       inspector: { open: false, width: RIGHT_PANEL_WIDTH.default },
     });
-    expect(toStoredLayout({ ...DEFAULT_LAYOUT, leftPanelOpen: false }).sidebar).toEqual({
-      open: false,
+    expect(toStoredLayout({ ...DEFAULT_LAYOUT, leftPanelOpen: true }).sidebar).toEqual({
+      open: true,
       section: 'pages',
       width: LEFT_PANEL_WIDTH.default,
     });
@@ -122,7 +130,7 @@ describe('ui:v3 (redesign spec §7)', () => {
     );
     for (const layout of [
       DEFAULT_LAYOUT,
-      { ...DEFAULT_LAYOUT, leftPanelOpen: false, leftPanelView: 'review' as const },
+      { ...DEFAULT_LAYOUT, leftPanelOpen: true, leftPanelView: 'review' as const },
       { ...DEFAULT_LAYOUT, pagesView: 'bookmarks' as const, rightPanelOpen: true },
     ]) {
       expect(parseLayout(toStoredLayout(layout))).toEqual(layout);
@@ -131,7 +139,7 @@ describe('ui:v3 (redesign spec §7)', () => {
 });
 
 describe('ui:v2 → ui:v3 migration (redesign spec §7, 06.17)', () => {
-  const views = ['pages', 'find', 'review', 'files'] as const;
+  const views = ['pages', 'find', 'review'] as const;
   const pagesViews = ['thumbnails', 'bookmarks'] as const;
   const filters = ['all', 'comments', 'redactions', 'fields'] as const;
   const combinations = views.flatMap((leftPanelView) =>
@@ -202,7 +210,7 @@ describe('ui:v2 → ui:v3 migration (redesign spec §7, 06.17)', () => {
         rightPanelWidth: 300,
       };
       localStorage.setItem(V2_LAYOUT_STORAGE_KEY, JSON.stringify(v2));
-      expect(loadLayout()).toEqual({ ...v2, leftPanelOpen: true });
+      expect(loadLayout()).toEqual({ ...v2, leftPanelOpen: false });
       expect(v3()).toEqual({
         sidebar: { section: 'find', width: 260 },
         pagesView: 'bookmarks',
@@ -260,7 +268,7 @@ describe('ui:v1 → ui:v2 migration', () => {
       { leftPanelView: 'review', pagesView: 'thumbnails', reviewFilter: 'redactions' },
     ],
     ['forms', { leftPanelView: 'review', pagesView: 'thumbnails', reviewFilter: 'fields' }],
-    ['files', { leftPanelView: 'files', pagesView: 'thumbnails', reviewFilter: 'all' }],
+    ['files', { leftPanelView: 'pages', pagesView: 'thumbnails', reviewFilter: 'all' }],
     ['changes', { leftPanelView: 'pages', pagesView: 'thumbnails', reviewFilter: 'all' }],
     ['bogus', { leftPanelView: 'pages', pagesView: 'thumbnails', reviewFilter: 'all' }],
   ])('maps the v1 view %s', (view, expected) => {
@@ -335,14 +343,16 @@ describe('navigator state', () => {
   it('says whether a view is showing; a filter shows under All too', () => {
     const state = {
       ...DEFAULT_LAYOUT,
+      leftPanelOpen: true,
       leftPanelView: 'review' as const,
       reviewFilter: 'all' as const,
     };
     expect(isNavigatorShowing(state, 'redactions')).toBe(true);
     expect(isNavigatorShowing({ ...state, reviewFilter: 'fields' }, 'redactions')).toBe(false);
     expect(isNavigatorShowing({ ...state, leftPanelOpen: false }, 'review')).toBe(false);
-    expect(isNavigatorShowing({ ...DEFAULT_LAYOUT }, 'outline')).toBe(false);
-    expect(isNavigatorShowing({ ...DEFAULT_LAYOUT, pagesView: 'bookmarks' }, 'outline')).toBe(true);
+    const open = { ...DEFAULT_LAYOUT, leftPanelOpen: true };
+    expect(isNavigatorShowing(open, 'outline')).toBe(false);
+    expect(isNavigatorShowing({ ...open, pagesView: 'bookmarks' }, 'outline')).toBe(true);
   });
 
   it('persists the layout under ui:v3', () => {
