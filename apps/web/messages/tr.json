@@ -1712,6 +1712,7 @@
   "redaction_honesty": "İşaretler yalnızca işarettir: karartma uygulanana kadar altlarındaki metin dosyada kalır ve işaretler herkes tarafından kaldırılabilir. Dosya dışa aktarıldıktan sonra uygulanan karartma geri alınamaz.",
   "redaction_honesty_short": "İşaretler, siz uygulayana kadar hiçbir şeyi gizlemez.",
   "redaction_honesty_more": "Neden?",
+  "notice_less": "Daha az",
   "redaction_summary": "{countText} işaret · {selectedText} seçili",
   "redaction_no_document_body": "Karartma için içerik işaretlemek üzere bir PDF açın.",
   "redaction_loading": "İşaretler okunuyor…",

@@ -35,6 +35,7 @@ import { DocumentDropOverlay } from '../home/DropOverlay';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
 import { OcrSheetHost } from '../ocr';
+import { ApplyRedactionsSheet } from '../redaction/ApplySheet';
 import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
 import { NewSignatureHost } from '../signatures/NewSignatureHost';
@@ -202,6 +203,7 @@ export function AppShell() {
       <ConfirmHost />
       <BatchSheetHost />
       <OcrSheetHost />
+      <ApplyRedactionsSheet />
       <FurnitureDialogs />
       <ReplacePopover />
       <ToastRegion />
