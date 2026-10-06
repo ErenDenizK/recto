@@ -5,8 +5,10 @@
  * - **Rest** (fine pointer, not selecting): the ○ hidden; hover lifts the card 2 px with the e3
  *   shadow (no wash on lit glass) and shows the ○. **Pressed**: the large-surface press scale
  *   (02.5). **Focus**: the outset two-band ring, which follows the radius.
- * - **Select mode**: the ○ always shown; **selected**: `check-circle` filled, ink on lime, and an
- *   inset 2 px lime ring; `aria-selected` carries it (the ○ is `aria-hidden`).
+ * - **Select mode**: the ○ always shown; **selected**: `check-circle` filled and an inset 2 px
+ *   ring, both in the neutral `--control-on` (language.md §1.1: checks and other on states are
+ *   neutral), so the selection bar's Combine stays the view's one lime; `aria-selected` carries
+ *   it (the ○ is `aria-hidden`).
  * - **Edited** ● after the name and "Edited" in line 3; **locked**: line 3 leads with the lock
  *   glyph and "Locked", "Signed · locked" or "Restricted by the file" (no tint, A-19).
  * - **Dragging** (reorder): the source at 40 % opacity; the grid draws the insertion caret.
@@ -26,14 +28,13 @@ import { contentFrame, ResizedContent } from '../stage/ResizedContent';
 import type { LockReason } from '../state/lock-store';
 import { pagesPhrase } from '../state/workspace-store';
 import { Icon, type IconName } from '../ui/Icon';
-import { formatFileSize, type HomeCardData, middleTruncate } from './home-model';
+import { formatFileSize, type HomeCardData } from './home-model';
 import styles from './LibraryCard.module.css';
 import lit from './lit.module.css';
 
 /** The thumbnail box (L5 §2): 160 × 200 fine, 176 × 220 coarse. */
 export const THUMB_FINE = { width: 160, height: 200 } as const;
 export const THUMB_COARSE = { width: 176, height: 220 } as const;
-const NAME_LENGTH = 30;
 
 /** Line 3's lock state (L5 §4): glyph and words, never a tint. */
 function lockState(lock: LockReason | undefined): { icon: IconName; text: string } | undefined {
@@ -152,7 +153,8 @@ export function LibraryCard({
         ) : (
           <span className={styles.name} aria-hidden="true">
             <span className={styles.tag} data-tag={card.colorIndex} />
-            <span className={styles.nameText}>{middleTruncate(card.title, NAME_LENGTH)}</span>
+            {/* One end ellipsis, by CSS: a middle cut as well read "Combined – sim…t …". */}
+            <span className={styles.nameText}>{card.title}</span>
             {edited ? <span className={styles.edited} data-testid="library-card-edited" /> : null}
           </span>
         )}
