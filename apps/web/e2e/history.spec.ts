@@ -144,7 +144,7 @@ test.describe('↶ ↷ and the History scrubber', () => {
     await open(page, 'simple-text.pdf');
     await enterEdit(page);
     await rectangle(page, 0, [0.15, 0.3], [0.35, 0.4]);
-    await rectangle(page, 0, [0.5, 0.5], [0.7, 0.6]);
+    await rectangle(page, 0, [0.5, 0.3], [0.7, 0.4]);
     const squares = layer(page).locator('[data-annotation-kind="square"]');
     await expect(squares).toHaveCount(2, { timeout: 10_000 });
     expect(await annotationCounts(await exportBytes(page))).toEqual([{ Square: 2 }, {}, {}]);

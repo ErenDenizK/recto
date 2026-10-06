@@ -276,7 +276,7 @@ function Sections({ section }: { readonly section: Section }) {
       tabsClassName={styles.tabs}
     >
       {SECTIONS.map(({ value }) => (
-        <SegmentedPanel key={value} value={value} className={styles.body}>
+        <SegmentedPanel key={value} value={value} className={styles.body} tabIndex={-1}>
           <div className={styles.section} data-sidebar-body="" data-view={value}>
             {value === 'pages' ? <PagesSection /> : null}
             {value === 'find' ? <FindSection /> : null}
