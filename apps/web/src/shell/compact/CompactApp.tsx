@@ -19,6 +19,8 @@ import { useEffect, useLayoutEffect } from 'react';
 import { getEngineService } from '../../engine/engine-service';
 import { loadRecents } from '../../files/recents';
 import { LocaleBoundary } from '../../i18n/LocaleBoundary';
+import { fetchSampleBytes, sampleFile } from '../../sample/sample-file';
+import { openSampleFromLink } from '../../sample/sample-link';
 import { isDocumentChanged, startSession } from '../../session/session';
 import { watchSessionNotice } from '../../session/session-toast';
 import { requestPassword } from '../../state/password-store';
@@ -31,7 +33,7 @@ import styles from './CompactApp.module.css';
 import { CompactLibrary } from './CompactLibrary';
 import { CompactPassword } from './CompactPassword';
 import { CompactReader } from './CompactReader';
-import { shareOrDownload } from './compact-actions';
+import { openPdf, shareOrDownload } from './compact-actions';
 import { capsuleAway, showLibrary, showReader, useCompactStore } from './compact-store';
 
 const VIEWPORT =
@@ -81,6 +83,15 @@ export function CompactApp() {
           useCompactStore.setState({ openedDocument: isDocumentChanged(doc.id) ? null : doc });
           showReader();
         },
+      }),
+    [],
+  );
+  // `?sample` from the about page opens the teaching sample in the reader (D4-2).
+  useEffect(
+    () =>
+      openSampleFromLink(async (locale) => {
+        const loaded = await fetchSampleBytes(locale);
+        if (loaded.ok) await openPdf(sampleFile(locale, loaded.bytes, []));
       }),
     [],
   );
