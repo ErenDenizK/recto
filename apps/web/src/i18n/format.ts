@@ -12,6 +12,20 @@ export function formatNumber(value: number, options?: Intl.NumberFormatOptions):
   return new Intl.NumberFormat(getLocale(), options).format(value);
 }
 
+/**
+ * A day, short and day first: "3 Oct" / "3 Eki", with `year` "3 Oct 2026" / "3 Eki 2026"
+ * (03-markup MK-11's "Signature, added 3 Oct"). English takes the `en-GB` conventions for it:
+ * `en` alone puts the month first ("Oct 3, 2026").
+ */
+export function formatDay(date: Date | number, options: { readonly year?: boolean } = {}): string {
+  const locale = getLocale();
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : locale, {
+    day: 'numeric',
+    month: 'short',
+    ...(options.year ? { year: 'numeric' } : {}),
+  }).format(date);
+}
+
 const SIZE_UNITS = ['KB', 'MB', 'GB', 'TB'] as const;
 
 /**

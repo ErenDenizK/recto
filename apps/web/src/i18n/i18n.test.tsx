@@ -7,7 +7,7 @@ import { commandRegistry } from '../commands/registry';
 import { currentPlatform } from '../commands/shortcuts';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace } from '../state/workspace-store';
-import { detectLocale, getLocale, m, matchLocale, setLocale } from '.';
+import { detectLocale, formatDay, getLocale, m, matchLocale, setLocale } from '.';
 import { LOCALE_STORAGE_KEY } from './locale';
 import en from '../../messages/en.json';
 import tr from '../../messages/tr.json';
@@ -53,6 +53,15 @@ describe('messages', () => {
     expect(m.pages_count({ count: 1 }, { locale: 'tr' })).toBe('1 sayfa');
     expect(m.pages_count({ count: 3 }, { locale: 'tr' })).toBe('3 sayfa');
     expect(m.privacy_external_requests({ count: 0 }, { locale: 'tr' })).toBe('Dış istek yok');
+  });
+
+  it('writes a day first in both languages ("3 Oct 2026" / "3 Eki 2026")', () => {
+    const day = new Date(2026, 9, 3, 12);
+    expect(formatDay(day)).toBe('3 Oct');
+    expect(formatDay(day, { year: true })).toBe('3 Oct 2026');
+    setLocale('tr');
+    expect(formatDay(day)).toBe('3 Eki');
+    expect(formatDay(day, { year: true })).toBe('3 Eki 2026');
   });
 
   it('switches at runtime, persists, and updates <html lang dir>', () => {
