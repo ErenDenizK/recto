@@ -94,7 +94,7 @@ describe('presentation per kind and size class (07 §1.1)', () => {
     expect(innerWidth - box.right).toBe(8);
     expect(innerHeight - box.bottom).toBe(8);
     expect(document.querySelector('[data-presentation][class*="scrim"]')).not.toBeNull();
-    expect(getComputedStyle(panel).backdropFilter).toContain('blur(12px)');
+    expect(getComputedStyle(panel).backdropFilter).toContain('blur(24px)');
   });
 
   it('a tool sheet is a side sheet with no scrim, and the page stays live', async () => {
