@@ -407,6 +407,16 @@ test.describe('the compact edition', () => {
     const source = about.getByRole('link', { name: /^Source/ });
     await source.scrollIntoViewIfNeeded();
     await expect(source).toBeInViewport({ ratio: 1 });
+    // Reduce motion, the full edition's row (no Settings sheet here), at About's end: On
+    // reaches the root as in the full edition, and System takes it off again.
+    const motion = about.getByRole('radiogroup', { name: 'Reduce motion' });
+    await motion.scrollIntoViewIfNeeded();
+    await expect(motion).toBeInViewport({ ratio: 1 });
+    await motion.getByRole('radio', { name: 'On' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
+    await shot(page, 'compact-about-reduce-motion');
+    await motion.getByRole('radio', { name: 'System' }).click();
+    await expect(page.locator('html')).not.toHaveAttribute('data-motion', 'reduced');
     await page.keyboard.press('Escape');
 
     await more.click();

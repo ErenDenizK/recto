@@ -64,11 +64,11 @@ import {
   PenDrawsRow,
   PrivacyRow,
   RecentsRow,
-  ReduceMotionRow,
   ReduceTransparencyRow,
   ShortcutsRow,
   ShowTipsRow,
 } from './sections';
+import { ReduceMotionRow } from './ReduceMotionRow';
 import styles from './Settings.module.css';
 
 type Push = (page: SettingsPageId) => void;
