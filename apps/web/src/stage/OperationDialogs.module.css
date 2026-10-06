@@ -112,8 +112,8 @@
 }
 
 .rangeInput {
+  composes: technical from global;
   width: 100%;
-  font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
 
