@@ -668,7 +668,6 @@ for (const locked of [false, true]) {
     test(`S18 Shift+R while reading ${locked ? 'rotates nothing' : 'rotates the current page, with Undo'}`, async ({
       page,
     }) => {
-      test.fixme(!locked, 'D1-6 and key map v2: Shift+R rotates the current page with a toast');
       await openDoc(page, 'simple-text.pdf');
       const first = page.locator('[data-page-index="0"]');
       const before = await first.boundingBox();

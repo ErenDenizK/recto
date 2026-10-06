@@ -709,7 +709,7 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
 
   test('the History scrubber closed while it opens', async ({ page }) => {
     await openDocument(page);
-    await page.keyboard.press('r');
+    await page.keyboard.press('Shift+R');
     const undo = page.getByTestId('undo-button');
     await expect(undo).not.toHaveAttribute('aria-disabled');
     const scrubber = '[data-testid="history-scrubber"]';

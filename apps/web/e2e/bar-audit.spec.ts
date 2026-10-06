@@ -223,7 +223,7 @@ test.describe('the full edition', () => {
 
     // ↶ ↷ sit in the title bar (audited with it above); the History scrubber under ↶, after a
     // step to scrub (D0-6): its list on a fine pointer, its slider and Cancel on a coarse one.
-    await page.keyboard.press('r');
+    await page.keyboard.press('Shift+R');
     await expect(page.getByTestId('undo-button')).not.toHaveAttribute('aria-disabled');
     await page.getByTestId('undo-button').click({ button: 'right' });
     await expect(page.getByTestId('history-scrubber')).toBeVisible();

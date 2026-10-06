@@ -546,13 +546,13 @@ describe('Library', () => {
   it('is reached from the palette in both languages', async () => {
     render(<App />);
     const command = commandRegistry.list().find((c) => c.id === 'view.home');
-    expect(command?.title).toBe('Show Home');
+    expect(command?.title).toBe('Library');
     expect(command?.keywords).toEqual(expect.arrayContaining(['overview', 'ana ekran']));
     await userEvent.keyboard(`{${MOD}>}k{/${MOD}}`);
     const input = await screen.findByRole('combobox', { name: 'Search commands' });
     await userEvent.type(input, 'ana ekran');
     await waitFor(() => {
-      expect(screen.getAllByRole('option')[0]).toHaveTextContent('Show Home');
+      expect(screen.getAllByRole('option')[0]).toHaveTextContent('Library');
     });
     await userEvent.keyboard('{Enter}');
     await waitFor(() => {
