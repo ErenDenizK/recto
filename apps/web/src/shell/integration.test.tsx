@@ -35,6 +35,8 @@ describe('engine integration', () => {
   });
 
   it('opens a PDF, renders thumbnails and pages, and reports the page count', async () => {
+    // The sidebar is closed by default (06-navigation N1): this test opens it on Pages.
+    useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'pages', pagesView: 'thumbnails' });
     render(<App />);
     await openDocuments([await fixtureFile()]);
 
