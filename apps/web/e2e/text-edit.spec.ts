@@ -122,14 +122,14 @@ test('replace a word in the Helvetica line, export, re-open: the edited line rea
   await page.keyboard.press('Escape');
   await page.locator('[data-read-viewport]').focus();
 
-  // E arms the tool (in Read it switches to Edit first) and shows its group, Text (craft spec
-  // §3.4); the page's runs become targets.
+  // E arms the tool (in Read it opens Markup first): the capsule is the Markup palette, which
+  // has no groups since D2-3 (03-markup MK-1), and the page's runs become targets.
   await page.keyboard.press('e');
   await expect(page.getByRole('button', { name: 'Edit text' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await expect(page.getByRole('button', { name: 'Text: back to all groups' })).toBeVisible();
+  await expect(page.locator('[data-capsule]')).toHaveAttribute('data-capsule', 'palette');
   await clickWord(page, 0, 'fox');
 
   // The line is a paragraph: the paragraph editor opens with its mirror focused.
