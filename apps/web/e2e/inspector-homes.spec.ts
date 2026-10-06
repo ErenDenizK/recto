@@ -17,7 +17,7 @@
  */
 import { expect, type Locator, type Page, test, type TestInfo } from '@playwright/test';
 
-import { historyStep, inHistory, openFixtures, useFileInputPicker } from './helpers';
+import { enterEdit, historyStep, inHistory, openFixtures, useFileInputPicker } from './helpers';
 
 const isTablet = (info: TestInfo) => info.project.name === 'tablet';
 
@@ -50,10 +50,11 @@ async function titleMenuRow(page: Page, command: string): Promise<Locator> {
   return menu.locator(`[data-command="${command}"]`);
 }
 
-async function runPalette(page: Page, query: string): Promise<void> {
+/** Runs the command ⌘K lists first for `query`, which must be the one named `name`. */
+async function runPalette(page: Page, query: string, name: RegExp): Promise<void> {
   await page.keyboard.press('ControlOrMeta+k');
   await page.getByRole('combobox').fill(query);
-  await expect(page.getByRole('option', { selected: true })).toBeVisible();
+  await expect(page.getByRole('option', { selected: true, name })).toBeVisible();
   await page.keyboard.press('Enter');
 }
 
@@ -71,14 +72,24 @@ for (const lang of ['en', 'tr'] as const) {
 
     test('Properties: the annotation bar’s ⋯', async ({ page }, info) => {
       await start(page, info, lang, ['annotations.pdf']);
-      // A Review row selects its annotation (06-navigation N5); its bar carries ⋯.
-      await page.getByTestId('sidebar-toggle').click();
-      const sidebar = page.getByRole('navigation').filter({ has: page.getByRole('tablist') });
-      await sidebar.getByRole('tab').nth(2).click();
-      await page.getByText('Sticky note text on page 2').click();
+      if (isTablet(info)) {
+        // The tablet lays the sidebar over the page: select the note on the page, in Markup
+        // with Select (a tap selects there).
+        await enterEdit(page);
+        await page.keyboard.press(']');
+        const note = page.locator('[data-annotation-layer="1"] [data-annotation-kind="text"]');
+        await expect(note).toBeVisible({ timeout: 20_000 });
+        await note.click();
+      } else {
+        // A Review row selects its annotation (06-navigation N5).
+        await page.getByTestId('sidebar-toggle').click();
+        const sidebar = page.getByRole('navigation').filter({ has: page.getByRole('tablist') });
+        await sidebar.getByRole('tab').nth(2).click();
+        await page.getByText('Sticky note text on page 2').click();
+      }
+      // Its bar carries ⋯.
       const bar = page.getByTestId('annotation-bar');
       await expect(bar).toBeVisible({ timeout: 20_000 });
-      if (isTablet(info)) await page.getByTestId('sidebar-toggle').click();
       await bar.getByTestId('annotation-more').click();
       const popover = page.getByTestId('annotation-properties');
       await expect(popover).toBeVisible();
@@ -147,7 +158,7 @@ for (const lang of ['en', 'tr'] as const) {
 
     test('Batch: S21 from ⌘K', async ({ page }, info) => {
       await start(page, info, lang, ['simple-text.pdf']);
-      await runPalette(page, 'batch');
+      await runPalette(page, 'batch', lang === 'tr' ? /^Toplu/ : /^Batch/);
       const sheet = page.getByTestId('batch-dialog');
       await expect(sheet).toBeVisible();
       await expect(sheet).toHaveAttribute('data-presentation', isTablet(info) ? 'form' : 'dialog');
@@ -164,7 +175,11 @@ for (const lang of ['en', 'tr'] as const) {
         await expect(page.getByTestId('title-menu')).toHaveCount(0);
       }
       if (isTablet(info)) {
-        await runPalette(page, 'history');
+        await runPalette(
+          page,
+          lang === 'tr' ? 'Geçmişi göster' : 'Show history',
+          lang === 'tr' ? /^Geçmişi göster/ : /^Show history/,
+        );
       } else {
         await page.getByTestId('undo-button').click({ button: 'right' });
       }
