@@ -1,0 +1,24 @@
+/*
+ * S4 Document info inside the Sheet primitive's body (components/07-sheets.md §6): the File,
+ * Metadata and Password groups stacked 20 px apart under footnote-weight labels, as the other
+ * sheets lay out their groups (pages-sheets/PagesSheets.module.css).
+ */
+.stack {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.legend {
+  margin: 0 0 2px;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 550;
+  line-height: var(--type-footnote-lh);
+}

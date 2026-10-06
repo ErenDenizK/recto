@@ -21,7 +21,6 @@ import {
   migrateLayoutV2,
   parseLayout,
   parseLayoutV2,
-  RIGHT_PANEL_WIDTH,
   stageView,
   surfaceOf,
   toStoredLayout,
@@ -57,8 +56,6 @@ describe('parseLayoutV2 (M8)', () => {
       pagesView: 'bookmarks',
       reviewFilter: 'fields',
       leftPanelWidth: LEFT_PANEL_WIDTH.max,
-      rightPanelOpen: true,
-      rightPanelWidth: RIGHT_PANEL_WIDTH.min,
     });
     expect(parseLayoutV2({ leftPanelView: 'bogus' }).leftPanelView).toBe('pages');
     // M8's Files tab is gone (06-navigation N1): the Library lists the open files.
@@ -72,15 +69,14 @@ describe('parseLayoutV2 (M8)', () => {
     });
   });
 
-  it('keeps the inspector closed by default (experience-redesign decision 4)', () => {
-    expect(DEFAULT_LAYOUT.rightPanelOpen).toBe(false);
-    expect(parseLayoutV2(undefined).rightPanelOpen).toBe(false);
-    expect(parseLayoutV2({}).rightPanelOpen).toBe(false);
+  it('drops M8’s inspector fields: the inspector is gone (spec D2-9)', () => {
+    expect(DEFAULT_LAYOUT).not.toHaveProperty('rightPanelOpen');
+    expect(parseLayoutV2({ rightPanelOpen: true, rightPanelWidth: 320 })).toEqual(DEFAULT_LAYOUT);
   });
 });
 
 describe('ui:v3 (redesign spec §7)', () => {
-  it('parses field by field: the sidebar record, the views, the inspector', () => {
+  it('parses field by field: the sidebar record and the views; the inspector is ignored', () => {
     expect(
       parseLayout({
         sidebar: { open: true, section: 'files', width: 10_000 },
@@ -94,8 +90,6 @@ describe('ui:v3 (redesign spec §7)', () => {
       pagesView: 'bookmarks',
       reviewFilter: 'words',
       leftPanelWidth: LEFT_PANEL_WIDTH.max,
-      rightPanelOpen: true,
-      rightPanelWidth: RIGHT_PANEL_WIDTH.min,
     });
     for (const value of [undefined, null, 42, 'x', [], {}, { sidebar: 'x', inspector: [] }]) {
       expect(parseLayout(value)).toEqual(DEFAULT_LAYOUT);
@@ -117,7 +111,6 @@ describe('ui:v3 (redesign spec §7)', () => {
       sidebar: { section: 'pages', width: LEFT_PANEL_WIDTH.default },
       pagesView: 'thumbnails',
       reviewFilter: 'all',
-      inspector: { open: false, width: RIGHT_PANEL_WIDTH.default },
     });
     expect(toStoredLayout({ ...DEFAULT_LAYOUT, leftPanelOpen: true }).sidebar).toEqual({
       open: true,
@@ -131,7 +124,7 @@ describe('ui:v3 (redesign spec §7)', () => {
     for (const layout of [
       DEFAULT_LAYOUT,
       { ...DEFAULT_LAYOUT, leftPanelOpen: true, leftPanelView: 'review' as const },
-      { ...DEFAULT_LAYOUT, pagesView: 'bookmarks' as const, rightPanelOpen: true },
+      { ...DEFAULT_LAYOUT, pagesView: 'bookmarks' as const },
     ]) {
       expect(parseLayout(toStoredLayout(layout))).toEqual(layout);
     }
@@ -145,23 +138,19 @@ describe('ui:v2 → ui:v3 migration (redesign spec §7, 06.17)', () => {
   const combinations = views.flatMap((leftPanelView) =>
     pagesViews.flatMap((pagesView) =>
       filters.flatMap((reviewFilter) =>
-        [true, false].flatMap((leftPanelOpen) =>
-          [true, false].map((rightPanelOpen) => ({
-            leftPanelOpen,
-            leftPanelView,
-            pagesView,
-            reviewFilter,
-            leftPanelWidth: 300,
-            rightPanelOpen,
-            rightPanelWidth: 320,
-          })),
-        ),
+        [true, false].map((leftPanelOpen) => ({
+          leftPanelOpen,
+          leftPanelView,
+          pagesView,
+          reviewFilter,
+          leftPanelWidth: 300,
+        })),
       ),
     ),
   );
 
   it.each(combinations)(
-    'maps open $leftPanelOpen on $leftPanelView ($pagesView, $reviewFilter), inspector $rightPanelOpen',
+    'maps open $leftPanelOpen on $leftPanelView ($pagesView, $reviewFilter)',
     (v2) => {
       const layout = migrateLayoutV2(v2);
       // Every field carries over except whether the navigator was open (06.17).
@@ -170,7 +159,6 @@ describe('ui:v2 → ui:v3 migration (redesign spec §7, 06.17)', () => {
         sidebar: { section: v2.leftPanelView, width: 300 },
         pagesView: v2.pagesView,
         reviewFilter: v2.reviewFilter,
-        inspector: { open: v2.rightPanelOpen, width: 320 },
       });
     },
   );
@@ -210,12 +198,13 @@ describe('ui:v2 → ui:v3 migration (redesign spec §7, 06.17)', () => {
         rightPanelWidth: 300,
       };
       localStorage.setItem(V2_LAYOUT_STORAGE_KEY, JSON.stringify(v2));
-      expect(loadLayout()).toEqual({ ...v2, leftPanelOpen: false });
+      // M8's inspector fields are not carried (spec D2-9).
+      const { rightPanelOpen: _open, rightPanelWidth: _width, ...kept } = v2;
+      expect(loadLayout()).toEqual({ ...kept, leftPanelOpen: false });
       expect(v3()).toEqual({
         sidebar: { section: 'find', width: 260 },
         pagesView: 'bookmarks',
         reviewFilter: 'comments',
-        inspector: { open: true, width: 300 },
       });
       expect(JSON.parse(localStorage.getItem(V2_LAYOUT_STORAGE_KEY) ?? 'null')).toEqual(v2);
       // A later v2 write (an old tab) does not migrate again.
@@ -276,19 +265,16 @@ describe('ui:v1 → ui:v2 migration', () => {
       ...expected,
       leftPanelOpen: true,
       leftPanelWidth: 300,
-      // v1 stored the inspector open for everyone; v2 starts it closed.
-      rightPanelOpen: false,
-      rightPanelWidth: 320,
     });
   });
 
   it('carries the navigator state and clamps widths; garbage gives the defaults', () => {
     expect(
       migrateLayout({ leftPanelOpen: false, leftPanelWidth: 1, rightPanelWidth: 10_000 }),
-    ).toMatchObject({
+    ).toEqual({
+      ...DEFAULT_LAYOUT,
       leftPanelOpen: false,
       leftPanelWidth: LEFT_PANEL_WIDTH.min,
-      rightPanelWidth: RIGHT_PANEL_WIDTH.max,
     });
     for (const value of [undefined, null, 42, 'x']) {
       expect(migrateLayout(value)).toEqual(DEFAULT_LAYOUT);
@@ -304,9 +290,8 @@ describe('ui:v1 → ui:v2 migration', () => {
     beforeEach(clear);
     afterEach(clear);
 
-    it('starts a new install with the defaults, inspector closed', () => {
+    it('starts a new install with the defaults', () => {
       expect(loadLayout()).toEqual(DEFAULT_LAYOUT);
-      expect(loadLayout().rightPanelOpen).toBe(false);
     });
 
     it('migrates v1 once and then reads v3', () => {

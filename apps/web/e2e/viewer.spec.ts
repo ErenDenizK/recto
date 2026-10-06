@@ -1,16 +1,16 @@
 /**
  * Read-mode viewer (spec viewer-annotations §1): text selection and copy, find in document,
  * internal and external links, go to page, and the two-up layout, on outline-named-dests.pdf.
- * The sidebar closed on first run with its three sections, and the closed inspector, with Document info in the
- * Document menu (experience-redesign §4); the status bar without a second view switch; Read
- * through a narrow-then-wide window resize.
+ * The sidebar closed on first run with its three sections, no inspector (spec D2-9) and Document
+ * info as S4 from the title menu; the status bar without a second view switch; Read through a
+ * narrow-then-wide window resize.
  */
 import { fileURLToPath } from 'node:url';
 
 import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, reloadFresh, useFileInputPicker, showSidebar } from './helpers';
+import { openFixtures, useFileInputPicker, showSidebar } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -128,7 +128,7 @@ test('finds text, steps through the hits and clears with Escape', async ({ page 
   await expect(field).toHaveValue('');
 });
 
-test('the sidebar starts closed with three sections; the inspector starts closed', async ({
+test('the sidebar starts closed with three sections; no inspector; Document info is S4', async ({
   page,
 }) => {
   // Closed by default on every size (06-navigation N1, 06.17); ▤ shows it on Pages.
@@ -144,24 +144,18 @@ test('the sidebar starts closed with three sections; the inspector starts closed
   ]);
   await expect(page.locator('#right-panel')).toHaveCount(0);
 
-  // Document info is a sheet from the Document menu, not a form in the inspector.
+  // Document info is S4 from the title menu, with the inspector's file facts (spec D2-9).
   await page.getByTestId('document-menu').click();
   await page.getByRole('menuitem', { name: 'Document info…' }).click();
   const sheet = page.getByRole('dialog', { name: 'Document info' });
   await expect(sheet.getByTestId('metadata-editor')).toBeVisible();
-  await expect(sheet.getByText('outline-named-dests.pdf')).toBeVisible();
+  await expect(sheet.getByTestId('document-facts')).toContainText('outline-named-dests.pdf');
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
-  await expect(page.locator('#right-panel')).toHaveCount(0);
 
-  // The inspector opens only when asked (Mod+Alt+B) and is remembered across a reload.
+  // Mod+Alt+B opened the inspector; it is unbound now (flows §7.3).
   await page.keyboard.press('ControlOrMeta+Alt+b');
-  await expect(page.locator('#right-panel')).toBeVisible();
-  await expect(page.locator('#right-panel').getByTestId('metadata-editor')).toHaveCount(0);
-  // Start fresh: the open document would otherwise be restored (ADR-0032 §2.5).
-  await reloadFresh(page);
-  await openFixtures(page, ['outline-named-dests.pdf']);
-  await expect(page.locator('#right-panel')).toBeVisible();
+  await expect(page.locator('#right-panel')).toHaveCount(0);
 });
 
 test('an internal link navigates; an external one asks first', async ({ page }) => {

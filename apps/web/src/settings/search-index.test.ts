@@ -51,7 +51,11 @@ describe('settings search', () => {
     expect(ids('SAYDAMLIK')).toContain('glass');
     expect(ids('yari saydam')).toContain('glass');
     expect(ids('görünüm')).toEqual(expect.arrayContaining(['glass', 'reduceMotion']));
-    expect(ids('gorunum')).toEqual(expect.arrayContaining(['glass', 'reduceMotion']));
+    expect(ids('gorunum')).toEqual(expect.arrayContaining(['theme', 'glass', 'reduceMotion']));
+    // Theme by its words in either language (spec D3-7).
+    expect(ids('dark mode')).toEqual(['theme']);
+    expect(ids('karanlik')).toEqual(['theme']);
+    expect(ids('ACIK')).toContain('theme');
     expect(ids('İPUÇLARI')).toContain('showTips');
     expect(ids('ipuclari')).toContain('showTips');
     expect(ids('turkce')).toContain('language');

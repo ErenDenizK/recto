@@ -15,7 +15,8 @@ import { expect, type Page, test } from '@playwright/test';
 import {
   fixturePath,
   openSaveCopy,
-  showInspector,
+  inHistory,
+  historyStep,
   useFileInputPicker,
   openFindPanel,
 } from './helpers';
@@ -57,10 +58,6 @@ async function seriousViolations(page: Page): Promise<string[]> {
   });
 }
 
-function historyRows(page: Page, label: string | RegExp) {
-  return page.getByRole('list', { name: /history/i }).getByRole('button', { name: label });
-}
-
 /** Searches the active document (opens the Search panel when needed). */
 async function search(page: Page, query: string) {
   let field = page.locator('#left-panel').getByRole('searchbox', { name: 'Find in document' });
@@ -86,7 +83,6 @@ test('type a word into a paragraph, preview, Esc commits once; the export reads 
   await page.getByRole('button', { name: 'Open files' }).first().click();
   await (await chooser).setFiles(fixturePath('text-edit-corpus/word-tagged.pdf'));
   await expect(page.getByRole('tab', { name: 'word-tagged' })).toBeVisible();
-  await showInspector(page);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
@@ -128,7 +124,9 @@ test('type a word into a paragraph, preview, Esc commits once; the export reads 
 
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0, { timeout: 20_000 });
-  await expect(historyRows(page, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 }),
+  );
 
   // Export and download.
   await page.keyboard.press('Escape');
@@ -165,7 +163,6 @@ test('typing ‘ğ’ into a Helvetica paragraph names Noto Sans; the export rea
   await page.getByRole('button', { name: 'Open files' }).first().click();
   await (await chooser).setFiles(fixturePath('text-edit-fonts.pdf'));
   await expect(page.getByRole('tab', { name: 'text-edit-fonts' })).toBeVisible();
-  await showInspector(page);
   await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
     timeout: 20_000,
   });
@@ -204,9 +201,10 @@ test('typing ‘ğ’ into a Helvetica paragraph names Noto Sans; the export rea
 
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0, { timeout: 20_000 });
-  await expect(historyRows(page, 'Paragraph edited (some characters in Noto Sans)')).toHaveCount(
-    1,
-    { timeout: 20_000 },
+  await inHistory(page, (list) =>
+    expect(historyStep(list, 'Paragraph edited (some characters in Noto Sans)')).toHaveCount(1, {
+      timeout: 20_000,
+    }),
   );
 
   // Export, re-open, search: the word with the substituted character reads back.

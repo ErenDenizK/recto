@@ -79,7 +79,7 @@
   padding: 0 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
-  background: var(--n2, var(--canvas));
+  background: var(--field-well);
   color: var(--text-primary);
   font-size: var(--field-text);
   font-weight: 600;
@@ -181,6 +181,11 @@
 }
 
 .privacyArrow {
+  color: var(--text-tertiary);
+}
+
+/* A facts row's quiet tail ("· removed on export", F5 §2). */
+.factMuted {
   color: var(--text-tertiary);
 }
 

@@ -8,6 +8,10 @@
  * taken paths rather than their whole inks, and the annotations taken whole), names the mix
  * ("3 strokes, 1 arrow") and shows the lasso's controls (`lasso/LassoSelection.tsx`):
  * colour, opacity, width, a move grip and Delete.
+ *
+ * ⋯ at its end opens the selection's other properties (type, author, modified, page, the
+ * comment's text; `AnnotationProperties.tsx`, 04-context §5), which the inspector held until
+ * D2-9; a locked annotation keeps it, to read them.
  */
 import type { Annotation } from '@pdf-editor/engine';
 import { useLayoutEffect, useRef, useState } from 'react';
@@ -26,6 +30,7 @@ import {
   pickedWhole,
   picksOfSelection,
 } from './lasso/geometry';
+import { AnnotationPropertiesButton } from './AnnotationProperties';
 import { LassoBarControls } from './lasso/LassoSelection';
 import styles from './AnnotationLayer.module.css';
 import { StyleControls } from './StyleControls';
@@ -138,6 +143,12 @@ export function AnnotationBar({
           ) : (
             <StyleControls target={target} annotations={annotations} variant="bar" />
           )}
+        </>
+      )}
+      {paths ? null : (
+        <>
+          <span className={styles.barDivider} aria-hidden="true" />
+          <AnnotationPropertiesButton target={target} annotations={annotations} name={name} />
         </>
       )}
     </div>

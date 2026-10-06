@@ -564,15 +564,6 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
         else if (inside) document.querySelector<HTMLElement>('[data-read-viewport]')?.focus();
       },
     }),
-    registry.register({
-      id: 'view.toggleRightPanel',
-      title: m.cmd_toggle_right_panel(),
-      group: m.group_view(),
-      act: null,
-      shortcut: 'Mod+Alt+B',
-      keywords: ['inspector', 'properties', 'history', 'info'],
-      run: () => ui().toggleRightPanel(),
-    }),
     // The sidebar's Pages and Contents (06-navigation N1); the open files are the Library's.
     ...(['pages', 'outline'] as const).map((view) =>
       registry.register({

@@ -68,6 +68,7 @@ import {
   ShowTipsRow,
 } from './sections';
 import { ReduceMotionRow } from './ReduceMotionRow';
+import { ThemeRow } from './ThemeRow';
 import styles from './Settings.module.css';
 
 type Push = (page: SettingsPageId) => void;
@@ -76,6 +77,7 @@ type Push = (page: SettingsPageId) => void;
 const ROWS: Readonly<
   Record<MainRowId, (props: { onPush: Push; hint: string | undefined }) => ReactNode>
 > = {
+  theme: () => <ThemeRow />,
   glass: () => <GlassRow />,
   reduceMotion: () => <ReduceMotionRow />,
   language: () => <LanguageRow />,

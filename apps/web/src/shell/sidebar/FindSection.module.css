@@ -31,7 +31,7 @@
   height: var(--control-h);
   padding: 0 2px 0 var(--space-3);
   border-radius: var(--radius-pill);
-  background: var(--n2, var(--canvas));
+  background: var(--field-well);
   box-shadow: inset 0 0 0 1px var(--border-strong);
   color: var(--text-secondary);
 }

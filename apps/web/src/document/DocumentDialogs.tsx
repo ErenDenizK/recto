@@ -3,9 +3,8 @@
  * password and Strip metadata. Each result is one history entry on the document model
  * (`setSecurity`, `removePassword`, `setMetadataStrip`) and takes effect at export.
  *
- * And the Document info sheet (experience-redesign §4.2): the file facts and honesty
- * badges, editable metadata, the password and the diagnostics, moved out of the inspector.
- * A password dialog opened from the sheet returns to it when it closes.
+ * Document info is the S4 sheet (`DocumentInfoSheet.tsx`, spec D2-9), opened through the same
+ * store: a password dialog opened from it returns to it when it closes.
  *
  * Mounted twice: once at the app root (`origin="app"`) and once inside the export dialog
  * (`origin="export"`), so a dialog opened from the export dialog nests in its modal stack.
@@ -24,12 +23,10 @@ import { type Ref, type SyntheticEvent, useEffect, useId, useRef, useState } fro
 
 import { formatNumber, m } from '../i18n';
 import { announce } from '../shell/announcer';
-import { DocumentFacts } from '../shell/RightPanel';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { documentSources, useWorkspaceStore } from '../state/workspace-store';
 import { Icon } from '../ui/Icon';
 import { useRetained } from '../ui/use-retained';
-import { DiagnosticsDetails } from './Diagnostics';
 import { useSourceDiagnostics } from './diagnostics';
 import {
   closeDocumentDialog,
@@ -37,10 +34,8 @@ import {
   openDocumentDialog,
   useDocumentDialogStore,
 } from './document-store';
-import infoStyles from './DocumentInfo.module.css';
+import { DocumentInfoSheet } from './DocumentInfoSheet';
 import styles from './DocumentTools.module.css';
-import { MetadataEditor } from './MetadataEditor';
-import { SecurityInfo } from './SecurityInfo';
 import {
   initialValues,
   normalizePermissions,
@@ -82,23 +77,29 @@ export function DocumentDialogs({
 }: {
   readonly origin?: DocumentDialog['origin'];
 }) {
-  const dialog = useDocumentDialogStore((s) => (s.dialog?.origin === origin ? s.dialog : null));
+  // Document info is its own sheet (`DocumentInfoSheet.tsx`).
+  const dialog = useDocumentDialogStore((s) =>
+    s.dialog?.origin === origin && s.dialog.kind !== 'info' ? s.dialog : null,
+  );
   const [shown, release] = useRetained(dialog);
   return (
-    <Dialog.Root
-      open={dialog !== null}
-      onOpenChange={(open) => {
-        if (!open) closeDocumentDialog();
-      }}
-      onOpenChangeComplete={(open) => {
-        if (!open) release();
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className={overlay.backdrop} />
-        {shown ? <DialogBody key={`${shown.kind}-${shown.documentId}`} dialog={shown} /> : null}
-      </Dialog.Portal>
-    </Dialog.Root>
+    <>
+      {origin === 'app' ? <DocumentInfoSheet /> : null}
+      <Dialog.Root
+        open={dialog !== null}
+        onOpenChange={(open) => {
+          if (!open) closeDocumentDialog();
+        }}
+        onOpenChangeComplete={(open) => {
+          if (!open) release();
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className={overlay.backdrop} />
+          {shown ? <DialogBody key={`${shown.kind}-${shown.documentId}`} dialog={shown} /> : null}
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 }
 
@@ -113,45 +114,8 @@ function DialogBody({ dialog }: { readonly dialog: DocumentDialog }) {
     case 'strip-metadata':
       return <StripMetadataFlow doc={doc} />;
     case 'info':
-      return <DocumentInfoSheet doc={doc} />;
+      return null;
   }
-}
-
-// ---------------------------------------------------------------------------
-// Document info
-// ---------------------------------------------------------------------------
-
-/** The side sheet: facts and badges, metadata (focused on Title), password, diagnostics. */
-function DocumentInfoSheet({ doc }: { readonly doc: VirtualDocument }) {
-  const ws = useWorkspaceStore((s) => s.workspace);
-  const sources = documentSources(doc).flatMap((id) => {
-    const source = ws.sources[id];
-    return source ? [source] : [];
-  });
-  return (
-    <Dialog.Popup
-      className={infoStyles.sheet}
-      initialFocus={() =>
-        document.querySelector<HTMLElement>(
-          '[data-document-info] [data-testid="metadata-editor"] input',
-        )
-      }
-      data-testid="document-info"
-      data-document-info=""
-    >
-      <Header title={m.docinfo_title()} />
-      <div className={infoStyles.body}>
-        <Dialog.Description className="visually-hidden">{doc.title}</Dialog.Description>
-        <h3 className={infoStyles.subTitle}>{m.docinfo_file()}</h3>
-        <DocumentFacts doc={doc} />
-        <h3 className={infoStyles.subTitle}>{m.info_metadata()}</h3>
-        <MetadataEditor doc={doc} />
-        <h3 className={infoStyles.subTitle}>{m.info_security()}</h3>
-        <SecurityInfo doc={doc} />
-        {sources.length > 0 ? <DiagnosticsDetails sources={sources} /> : null}
-      </div>
-    </Dialog.Popup>
-  );
 }
 
 function Header({ title }: { readonly title: string }) {
