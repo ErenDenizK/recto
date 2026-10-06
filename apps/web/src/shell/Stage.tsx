@@ -26,50 +26,23 @@ import { ReadView } from '../stage/ReadView';
 import { type StageView, useStageView } from '../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
 import { EmptyNote } from '../ui/EmptyNote';
+import { FOCUS_RING_ATTR, watchFocusRing } from './frame/focus-ring';
 import { STAGE_ID, tabDomId } from './frame/ids';
 import styles from './Stage.module.css';
 
 // The Compare view (spec recognize-and-compare §2.2) loads with its first use.
 const CompareView = lazy(() => import('../compare/CompareView'));
 
-/** Keys after which the stage shows its focus ring: Tab (and Shift+Tab) and F6. */
-const NAVIGATION_KEYS: ReadonlySet<string> = new Set(['Tab', 'F6']);
-/** A focus change this soon after a navigation key came from it (ms). */
-const NAVIGATION_FOCUS_MS = 500;
 /** On the stage while the focus inside it arrived by Tab or F6 (ReadView.module.css). */
-export const STAGE_FOCUS_RING_ATTR = 'data-focus-ring';
+export const STAGE_FOCUS_RING_ATTR = FOCUS_RING_ATTR;
 
 /**
  * Marks the stage with `data-focus-ring` while the focus in it arrived by Tab or F6, and
  * clears it on any other focus change and on a press, so the pages' ring shows only after
- * keyboard navigation (module header). Returns a disposer.
+ * keyboard navigation (frame/focus-ring.ts). Returns a disposer.
  */
 export function watchStageFocusRing(doc: Document = document): () => void {
-  let navigatedAt = Number.NEGATIVE_INFINITY;
-  const stage = () => doc.getElementById(STAGE_ID);
-  const onKeyDown = (event: globalThis.KeyboardEvent) => {
-    navigatedAt = NAVIGATION_KEYS.has(event.key) ? performance.now() : Number.NEGATIVE_INFINITY;
-  };
-  const onFocusIn = (event: FocusEvent) => {
-    const main = stage();
-    if (!main || !(event.target instanceof Node) || !main.contains(event.target)) return;
-    main.toggleAttribute(
-      STAGE_FOCUS_RING_ATTR,
-      performance.now() - navigatedAt <= NAVIGATION_FOCUS_MS,
-    );
-  };
-  const onPointerDown = () => {
-    navigatedAt = Number.NEGATIVE_INFINITY;
-    stage()?.removeAttribute(STAGE_FOCUS_RING_ATTR);
-  };
-  doc.addEventListener('keydown', onKeyDown, true);
-  doc.addEventListener('focusin', onFocusIn, true);
-  doc.addEventListener('pointerdown', onPointerDown, true);
-  return () => {
-    doc.removeEventListener('keydown', onKeyDown, true);
-    doc.removeEventListener('focusin', onFocusIn, true);
-    doc.removeEventListener('pointerdown', onPointerDown, true);
-  };
+  return watchFocusRing(() => doc.getElementById(STAGE_ID), doc);
 }
 
 export function Stage({ dragging }: { readonly dragging: boolean }) {
