@@ -16,6 +16,7 @@ import {
   openFixtures,
   useFileInputPicker,
   openSaveCopyFromMenu,
+  showSidebar,
 } from './helpers';
 import { expectGlassClean, walkGlass } from './support/glass-walker';
 
@@ -181,6 +182,28 @@ test('a sheet over a document and a toast: six at most while it comes in, four a
   const walk = await expectGlassClean(page, 'Save a copy over a toast');
   expect(names(walk).some((n) => n.includes('panel'))).toBe(true);
   await page.keyboard.press('Escape');
+});
+
+test('the docked sidebar with the strip, the dock, the pill and a contextual bar: four at rest', async ({
+  page,
+}) => {
+  await open(page, 'simple-text.pdf');
+  const sidebar = await showSidebar(page, 'Pages');
+  await expect(sidebar).toHaveAttribute('data-form', 'docked');
+  await page.mouse.move(700, 450);
+  // A double-clicked word: the text selection bar joins the strip, the dock and the pill.
+  const rows = page.getByTestId('text-layer').first().locator('span[data-row]');
+  const word = await rows.first().boundingBox();
+  if (!word) throw new Error('no text');
+  await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
+  await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
+  const walk = await expectGlassClean(page, 'Read, docked sidebar, text selection bar');
+  // Q-11: the docked sidebar rests on its solid twin (it lies over the canvas), so the
+  // contextual bar is the "one more" of the four.
+  expect(walk.visible).toBeLessThanOrEqual(4);
+  expect(names(walk).some((n) => n.includes('sidebar'))).toBe(false);
+  const solid = await sidebar.evaluate((el) => getComputedStyle(el).backdropFilter);
+  expect(solid).toBe('none');
 });
 
 test('the Pages grid with its Pages bar', async ({ page }) => {

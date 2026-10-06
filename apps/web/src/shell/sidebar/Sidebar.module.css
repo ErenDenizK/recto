@@ -19,6 +19,21 @@
   border-right: 1px solid var(--border-hairline);
 }
 
+/* Docked, it rests on its solid twin (quality-bar Q-11, D4-4): it lies over the canvas, where
+   its tint over the blurred canvas composites to the solid token anyway, and a blur here took
+   the "one more" of the four resting surfaces (strip, dock, pill, one more), so a contextual
+   bar, a toast or a popover made five. The same as the docked frame under a scrim
+   (styles/materials.css); the floating form below keeps its glass. */
+.sidebar[data-form='docked'] {
+  --text-secondary: inherit;
+  --text-tertiary: inherit;
+  --text-disabled: inherit;
+  --danger: inherit;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: var(--mat-solid);
+}
+
 /* Medium: a floating panel over the page, clear of the strip and the dock band (F1 §2). */
 .sidebar[data-form='overlay'] {
   top: calc(var(--free-top, 0px) + 8px);
