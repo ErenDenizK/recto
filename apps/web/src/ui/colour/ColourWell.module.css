@@ -5,7 +5,7 @@
   --well-disc: 24px;
   --well-gap: 2px;
   --well-ring: 2px;
-  --well-contrast: rgb(255 255 255 / 0.55);
+  --well-contrast: var(--swatch-contrast);
 
   position: relative;
   display: grid;

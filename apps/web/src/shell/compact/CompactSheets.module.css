@@ -170,7 +170,7 @@ a.contentsRow:active {
 }
 
 .gotoInput:focus {
-  border-color: var(--accent);
+  border-color: var(--focus-light);
 }
 
 .gotoInput[aria-invalid='true'] {

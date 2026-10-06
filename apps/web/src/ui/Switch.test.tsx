@@ -63,7 +63,7 @@ describe('Switch (09-primitives §7)', () => {
       await release();
     }
     await userEvent.click(control);
-    expect(getComputedStyle(control).backgroundColor).toBe('rgb(230, 231, 234)');
+    expect(getComputedStyle(control).backgroundColor).toBe('rgb(232, 233, 236)');
     expect(thumbX(control)).toBe(16);
     const press = await forceState(control, ['active']);
     expect((control.firstElementChild as HTMLElement).getBoundingClientRect().width).toBe(20);

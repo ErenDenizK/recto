@@ -130,7 +130,7 @@
   min-height: 64px;
   padding: 10px 12px;
   border-radius: var(--radius-3);
-  background: var(--surface-1);
+  background: var(--surface-frame);
   color: var(--text-primary);
   text-align: start;
   touch-action: manipulation;
@@ -139,12 +139,12 @@
 
 @media (hover: hover) {
   .recentRow:hover {
-    background: var(--surface-2);
+    background: var(--surface-raised);
   }
 }
 
 .recentRow:active {
-  background: var(--surface-3);
+  background: var(--surface-on);
 }
 
 .recentGlyph {

@@ -10,15 +10,15 @@
   width: min(440px, 100%);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-3);
-  background: var(--surface-1);
+  background: var(--surface-frame);
   transition:
     border-color var(--duration-base) var(--ease-out),
     background-color var(--duration-base) var(--ease-out);
 }
 
 .card[data-dragging] {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--surface-1), var(--accent) 6%);
+  border-color: var(--accent-line);
+  background: color-mix(in srgb, var(--surface-frame), var(--accent) 6%);
 }
 
 .target {
@@ -37,7 +37,7 @@
   margin-bottom: var(--space-5);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-3);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-secondary);
   transition: color var(--duration-base) var(--ease-out);
 }

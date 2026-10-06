@@ -5,7 +5,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--surface-0);
+  background: var(--canvas);
 }
 
 .header {
@@ -39,7 +39,7 @@
   padding: 2px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-1);
+  background: var(--surface-frame);
 }
 
 .segment {
@@ -74,7 +74,7 @@
 }
 
 .segment[aria-checked='true'] {
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-primary);
   box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
@@ -186,7 +186,7 @@
 }
 
 .cell[aria-selected='true'] .thumbSheet {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--select);
   outline-offset: 3px;
 }
 
@@ -208,7 +208,7 @@
   display: grid;
   place-items: center;
   /* Dashed, like the light table's drop outline: one look for "drop files here" (J6). */
-  border: 1px dashed var(--accent);
+  border: 1px dashed var(--accent-line);
   border-radius: var(--radius-3);
   background: var(--scrim);
   pointer-events: none;
@@ -218,7 +218,7 @@
   padding: 6px var(--space-3);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-primary);
   font-size: var(--text-md);
 }

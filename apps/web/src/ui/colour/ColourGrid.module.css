@@ -45,7 +45,7 @@
 
 /* White would vanish into a light panel: a hairline keeps the top-left cell's edge. */
 .row:first-child .cell:first-child {
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  box-shadow: inset 0 0 0 1px var(--plate-edge);
 }
 
 .row:first-child .cell:first-child {

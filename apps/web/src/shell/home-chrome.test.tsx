@@ -139,7 +139,7 @@ describe('Home chrome', () => {
     const card = row.closest('li') as HTMLElement;
     const style = getComputedStyle(card);
     expect(style.borderTopStyle).toBe('solid');
-    expect(style.backgroundColor).toBe('rgb(24, 26, 31)');
+    expect(style.backgroundColor).toBe('rgb(23, 25, 30)');
     // One column, under the open and drop card.
     const drop = screen.getByRole('heading', { name: 'Drop PDFs to start' });
     expect(drop.getBoundingClientRect().bottom).toBeLessThan(card.getBoundingClientRect().top);
