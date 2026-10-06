@@ -177,7 +177,6 @@
 .iconButton svg {
   width: 14px;
   height: 14px;
-  stroke-width: 1.5;
 }
 
 .iconButton:disabled {

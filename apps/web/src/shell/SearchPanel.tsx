@@ -8,13 +8,13 @@
  */
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { VirtualDocument } from '@pdf-editor/document-model';
-import { CaseSensitive, ChevronDown, ChevronUp, Search, WholeWord } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
 import { formatNumber, m } from '../i18n';
 import { MarkMatchesButton } from '../redaction/MarkMatchesButton';
 import { useViewStore } from '../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Keycaps } from '../ui/Keycaps';
 import { documentLabels, hasCustomLabels } from '../viewer/navigation';
@@ -113,7 +113,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
     <div className={styles.root}>
       <div className={styles.controls}>
         <div className={styles.field}>
-          <Search className={styles.fieldIcon} aria-hidden="true" />
+          <Icon name="magnifying-glass" className={styles.fieldIcon} />
           <input
             ref={inputRef}
             type="search"
@@ -131,7 +131,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
             <IconButton
               size="row"
               label={m.search_match_case()}
-              icon={<CaseSensitive />}
+              icon={<Icon name="text-aa" />}
               aria-pressed={matchCase}
               className={styles.toggle}
               onClick={() => setSearchOptions({ matchCase: !matchCase })}
@@ -139,7 +139,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
             <IconButton
               size="row"
               label={m.search_whole_word()}
-              icon={<WholeWord />}
+              icon={<Icon name="text-a-underline" />}
               aria-pressed={wholeWord}
               className={styles.toggle}
               onClick={() => setSearchOptions({ wholeWord: !wholeWord })}
@@ -169,7 +169,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
           <IconButton
             size="row"
             label={m.search_previous()}
-            icon={<ChevronUp />}
+            icon={<Icon name="caret-up" />}
             shortcut={previousShortcut}
             disabled={hits.length === 0}
             className={styles.step}
@@ -178,7 +178,7 @@ function SearchView({ doc }: { readonly doc: VirtualDocument }) {
           <IconButton
             size="row"
             label={m.search_next()}
-            icon={<ChevronDown />}
+            icon={<Icon name="caret-down" />}
             shortcut={nextShortcut}
             disabled={hits.length === 0}
             className={styles.step}

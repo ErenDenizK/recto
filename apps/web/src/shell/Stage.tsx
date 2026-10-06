@@ -15,7 +15,6 @@
  * whole stage as if the page were selected.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { Lock } from 'lucide-react';
 import { type KeyboardEvent, lazy, Suspense, useEffect, useRef } from 'react';
 
 import { commandRegistry } from '../commands/registry';
@@ -34,6 +33,7 @@ import {
   useUiStore,
 } from '../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { Tooltip } from '../ui/Tooltip';
 import { LayoutSwitch } from '../viewer/LayoutSwitch';
 import { EmptyNote } from '../ui/EmptyNote';
@@ -266,7 +266,7 @@ export function ModeSwitch() {
               onClick={() => choose(item.id)}
             >
               {item.id === 'read' ? (
-                <Lock className={styles.segmentIcon} aria-hidden="true" data-testid="read-lock" />
+                <Icon name="lock-simple" className={styles.segmentIcon} data-testid="read-lock" />
               ) : null}
               {item.label()}
             </button>

@@ -12,7 +12,6 @@
 import { Dialog } from '@base-ui/react/dialog';
 import type { DocumentId } from '@pdf-editor/document-model';
 import type { SignerFacts } from '@pdf-editor/engine';
-import { X } from 'lucide-react';
 import { type SyntheticEvent, useId, useRef, useState } from 'react';
 
 import { openSaveCopy } from '../export/export-store';
@@ -20,6 +19,7 @@ import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import overlay from '../shell/ShortcutOverlay.module.css';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { useRetained } from '../ui/use-retained';
 import { NumberField } from '../ui/NumberField';
 import { Select } from '../ui/Select';
@@ -184,7 +184,7 @@ function SignFlow({
       <div className={overlay.header}>
         <Dialog.Title className={overlay.title}>{m.sign_dialog_title()}</Dialog.Title>
         <Dialog.Close className={overlay.close} aria-label={m.common_close()}>
-          <X aria-hidden="true" />
+          <Icon name="x" />
         </Dialog.Close>
       </div>
       <form className={styles.dialogBody} onSubmit={(event) => void onSubmit(event)} noValidate>

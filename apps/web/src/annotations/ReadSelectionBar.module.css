@@ -29,10 +29,6 @@
   composes: btn btn-quiet from global;
 }
 
-.action svg {
-  stroke-width: 1.5;
-}
-
 /* Between the markups and Comment in Edit. */
 .divider {
   flex: none;

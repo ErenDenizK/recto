@@ -2,19 +2,19 @@
  * Read-mode page layout: continuous, single page, two-up. Icon segmented control in the
  * stage header (APG radio group: arrows move and select), next to the mode switch.
  */
-import { Columns2, File, GalleryVertical } from 'lucide-react';
 import { type KeyboardEvent, useRef } from 'react';
 
 import { m } from '../i18n';
 import { READ_LAYOUTS, type ReadLayout, useViewStore } from '../state/view-store';
+import { Icon, type IconName } from '../ui/Icon';
 import { Tooltip } from '../ui/Tooltip';
 import styles from './LayoutSwitch.module.css';
 import { layoutTitle, setReadLayout } from './viewer-commands';
 
-const ICONS: Record<ReadLayout, typeof File> = {
-  continuous: GalleryVertical,
-  single: File,
-  'two-up': Columns2,
+const ICONS: Record<ReadLayout, IconName> = {
+  continuous: 'rows',
+  single: 'file',
+  'two-up': 'columns',
 };
 
 export function LayoutSwitch() {
@@ -36,7 +36,6 @@ export function LayoutSwitch() {
   return (
     <div ref={ref} role="radiogroup" aria-label={m.layout_label()} className={styles.segmented}>
       {READ_LAYOUTS.map((id) => {
-        const Icon = ICONS[id];
         const checked = layout === id;
         const title = layoutTitle(id);
         return (
@@ -52,7 +51,7 @@ export function LayoutSwitch() {
               onKeyDown={onKeyDown}
               onClick={() => setReadLayout(id)}
             >
-              <Icon aria-hidden="true" />
+              <Icon name={ICONS[id]} />
             </button>
           </Tooltip>
         );

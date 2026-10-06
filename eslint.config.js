@@ -164,6 +164,20 @@ export default defineConfig(
     },
     rules: {
       'react-hooks/exhaustive-deps': 'error',
+      // Icons are Phosphor, generated at build time into ui/icons.generated.tsx and drawn by
+      // ui/Icon.tsx (ADR-0027 §2.6, 09-primitives §30): neither icon library is imported.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'lucide-react', message: 'Use <Icon name> from ui/Icon (ADR-0027).' },
+            {
+              name: '@phosphor-icons/react',
+              message: 'Use <Icon name> from ui/Icon; add the name to tools/icons/manifest.json.',
+            },
+          ],
+        },
+      ],
     },
   },
 );

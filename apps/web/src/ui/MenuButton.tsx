@@ -10,9 +10,9 @@
  * open it keeps the pressed fill.
  */
 import { Menu } from '@base-ui/react/menu';
-import { ChevronDown } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { Icon } from './Icon';
 import styles from './MenuButton.module.css';
 
 export interface MenuButtonProps {
@@ -50,7 +50,7 @@ export function MenuButton({
         </span>
       ) : null}
       <span className={styles.label}>{children}</span>
-      <ChevronDown className={styles.caret} aria-hidden="true" />
+      <Icon name="caret-down" className={styles.caret} />
     </Menu.Trigger>
   );
 }

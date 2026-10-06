@@ -16,11 +16,11 @@
  *   both separators are accepted while typing when unambiguous (Base UI's parser).
  */
 import { NumberField as BaseNumberField } from '@base-ui/react/number-field';
-import { ChevronDown, ChevronUp, Minus, Plus } from 'lucide-react';
 import { type FocusEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
 import { formatNumber, getLocale, m } from '../i18n';
 import field from './Field.module.css';
+import { Icon } from './Icon';
 import styles from './NumberField.module.css';
 import { useCoarsePointer } from './Slider';
 
@@ -146,7 +146,7 @@ export function NumberField({
       className={coarse ? `${styles.side} ${styles.before}` : styles.stepper}
       aria-label={m.number_decrease()}
     >
-      {coarse ? <Minus aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+      {coarse ? <Icon name="minus" /> : <Icon name="caret-down" />}
     </BaseNumberField.Decrement>
   );
   const increment = (
@@ -154,7 +154,7 @@ export function NumberField({
       className={coarse ? styles.side : styles.stepper}
       aria-label={m.number_increase()}
     >
-      {coarse ? <Plus aria-hidden="true" /> : <ChevronUp aria-hidden="true" />}
+      {coarse ? <Icon name="plus" /> : <Icon name="caret-up" />}
     </BaseNumberField.Increment>
   );
 

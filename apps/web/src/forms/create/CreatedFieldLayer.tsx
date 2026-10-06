@@ -37,7 +37,6 @@ import {
   MIN_FIELD_SIDE,
   type Rect,
 } from '@pdf-editor/document-model';
-import { SlidersHorizontal } from 'lucide-react';
 import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -53,6 +52,7 @@ import { m } from '../../i18n';
 import type { PageOverlayProps } from '../../stage/page-overlays';
 import { useStageView } from '../../state/ui-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { Icon } from '../../ui/Icon';
 import {
   type Box,
   displayedSize,
@@ -655,7 +655,7 @@ export function CreatedFieldLayer(props: PageOverlayProps) {
               data-created-properties=""
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <SlidersHorizontal aria-hidden="true" />
+              <Icon name="sliders-horizontal" />
             </button>
           }
         />

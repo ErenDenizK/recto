@@ -16,12 +16,12 @@
  *   again of §8.5 comes with the toast system, D0-5).
  * - The password is never a draft: it lives in the form for one try and is gone with it.
  */
-import { Eye, EyeOff } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
 import { answerPassword, type PasswordRequest, usePasswordStore } from '../state/password-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Sheet, SheetField } from '../ui/sheet';
 import { announce } from './announcer';
@@ -147,7 +147,7 @@ function PasswordSheet({
             size="row"
             label={m.password_show()}
             aria-pressed={show}
-            icon={show ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+            icon={show ? <Icon name="eye-slash" /> : <Icon name="eye" />}
             onClick={() => setShow(!show)}
           />
         }

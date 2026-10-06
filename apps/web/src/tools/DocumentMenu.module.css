@@ -5,10 +5,6 @@
   color: var(--text-secondary);
 }
 
-.trigger svg {
-  stroke-width: 1.5;
-}
-
 @media (hover: hover) {
   .trigger:hover {
     color: var(--text-primary);

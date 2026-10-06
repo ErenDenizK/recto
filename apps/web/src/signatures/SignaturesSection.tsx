@@ -8,12 +8,12 @@
  */
 import type { SourceDocument } from '@pdf-editor/document-model';
 import type { SignatureReport, SignerFacts } from '@pdf-editor/engine';
-import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { formatNumber, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { openSignedVersion, useSignatureStore } from './signature-store';
 import styles from './Signatures.module.css';
 import {
@@ -48,9 +48,9 @@ const dateOnly = (iso: string) => {
 
 /** The shield glyph for a tone (the word always stands beside it). */
 export function StatusGlyph({ tone }: { readonly tone: StatusTone | undefined }) {
-  if (tone === 'ok') return <ShieldCheck aria-hidden="true" />;
-  if (tone === 'problem') return <ShieldAlert aria-hidden="true" />;
-  return <Shield aria-hidden="true" />;
+  if (tone === 'ok') return <Icon name="shield-check" />;
+  if (tone === 'problem') return <Icon name="shield-warning" />;
+  return <Icon name="shield" />;
 }
 
 /** Whether the active document shows the section (a signed source, or a signed-version view). */

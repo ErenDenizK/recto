@@ -9,7 +9,6 @@
  * tech and never focusable.
  */
 import type { BlobId, DocumentId, PageId, Rotation, SourceId } from '@pdf-editor/document-model';
-import { Bookmark, RotateCw, Trash2 } from 'lucide-react';
 import {
   memo,
   Profiler,
@@ -28,6 +27,7 @@ import { rotationPhrase } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
 import { useSelectionStore } from '../state/selection-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Icon } from '../ui/Icon';
 import { toast } from '../ui/Toast/toast';
 import styles from './ArrangeView.module.css';
 import { ResizedContent } from './ResizedContent';
@@ -216,7 +216,7 @@ function PageCellInner({
       </div>
       <div className={styles.meta} aria-hidden="true">
         <span className={styles.label}>{label}</span>
-        {outlined ? <Bookmark className={styles.outlineGlyph} /> : null}
+        {outlined ? <Icon name="bookmark-simple" className={styles.outlineGlyph} /> : null}
         <span className={styles.hoverActions} data-hover-actions="">
           <span
             className={styles.hoverAction}
@@ -227,7 +227,7 @@ function PageCellInner({
               rotate();
             }}
           >
-            <RotateCw />
+            <Icon name="arrow-clockwise" />
           </span>
           <span
             className={styles.hoverAction}
@@ -238,7 +238,7 @@ function PageCellInner({
               remove();
             }}
           >
-            <Trash2 />
+            <Icon name="trash" />
           </span>
         </span>
       </div>

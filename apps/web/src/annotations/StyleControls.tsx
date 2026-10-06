@@ -14,11 +14,11 @@
  * or width can be set before drawing; with a selection it shows (and edits) the selection.
  */
 import type { Annotation } from '@pdf-editor/engine';
-import { MessageSquare, Trash2 } from 'lucide-react';
 import { Fragment, type ReactNode, useRef, useState } from 'react';
 
 import { formatNumber, formatPercent, m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
+import { Icon } from '../ui/Icon';
 import { ColourPicker } from '../ui/colour/ColourPicker';
 import { IconButton } from '../ui/IconButton';
 import { Select } from '../ui/Select';
@@ -309,7 +309,7 @@ export function StyleControls(props: StyleControlsProps) {
           <span className={styles.divider} aria-hidden="true" />
           <IconButton
             label={m.annot_comment()}
-            icon={<MessageSquare />}
+            icon={<Icon name="chat-centered-text" />}
             disabled={disabled || editable.length !== 1}
             onClick={() => {
               if (!first) return;
@@ -327,7 +327,7 @@ export function StyleControls(props: StyleControlsProps) {
       {props.variant === 'tool' ? null : (
         <IconButton
           label={m.annot_delete()}
-          icon={<Trash2 />}
+          icon={<Icon name="trash" />}
           disabled={disabled}
           onClick={() => {
             // A lasso selection deletes the taken strokes only, never the whole annotation.

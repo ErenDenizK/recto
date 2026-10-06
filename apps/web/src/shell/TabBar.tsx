@@ -11,7 +11,6 @@
  * and a click, Enter or Space shows the tab's document in its last view and mode.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { Download, PanelRight, Plus, Search, X } from 'lucide-react';
 import { type KeyboardEvent, useEffect } from 'react';
 
 import { openFilesFromPicker } from '../commands/app-commands';
@@ -28,6 +27,7 @@ import { useTabItems, useWorkspaceStore } from '../state/workspace-store';
 import { SignatureTabGlyph } from '../signatures/SignatureBadge';
 import { DocumentMenu } from '../tools/DocumentMenu';
 import { useSavedStore, matchesMark } from '../state/saved-store';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Keycaps } from '../ui/Keycaps';
 import { HomeButton } from './AppGlyph';
@@ -198,7 +198,7 @@ export function TabBar() {
                       className={styles.close}
                       onClick={() => closeTab(doc.id, doc.title, false)}
                     >
-                      <X />
+                      <Icon name="x" />
                     </span>
                   </div>
                 </TabArrangeMenu>
@@ -209,7 +209,7 @@ export function TabBar() {
         <IconButton
           id="open-files-button"
           label={m.open_files()}
-          icon={<Plus />}
+          icon={<Icon name="plus" />}
           shortcut={openShortcut}
           onClick={() => void openFilesFromPicker()}
         />
@@ -225,7 +225,7 @@ export function TabBar() {
           }
           onClick={() => void commandRegistry.execute('view.palette')}
         >
-          <Search aria-hidden="true" />
+          <Icon name="magnifying-glass" />
           <span className={styles.searchLabel}>{m.search_commands_placeholder()}</span>
           {paletteShortcut ? <Keycaps shortcut={paletteShortcut} /> : null}
         </button>
@@ -236,7 +236,7 @@ export function TabBar() {
         {documents.length > 0 ? (
           <IconButton
             label={m.export_document()}
-            icon={<Download />}
+            icon={<Icon name="download-simple" />}
             shortcut={exportShortcut}
             aria-haspopup="dialog"
             onClick={() => void commandRegistry.execute('file.export')}
@@ -245,7 +245,7 @@ export function TabBar() {
         {documents.length > 0 ? (
           <IconButton
             label={rightPanelOpen ? m.right_panel_hide() : m.right_panel_show()}
-            icon={<PanelRight />}
+            icon={<Icon name="sidebar-simple" />}
             shortcut={rightShortcut}
             aria-pressed={rightPanelOpen}
             aria-controls={rightPanelOpen ? 'right-panel' : undefined}
