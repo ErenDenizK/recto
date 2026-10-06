@@ -171,14 +171,15 @@ test('the tool bar walks its five groups by mouse and keyboard', async ({ page }
   );
   await expect(bar.getByRole('button', { name: 'Redact: back to all groups' })).toBeVisible();
 
-  // The Document menu: Merge, Split, Compare and Rotate under "Combine and split".
+  // The title menu (01-frame F5): Merge, Split and Rotate all under "Pages", Compare last.
   await page.locator('body').press('Escape');
   await page.getByTestId('document-menu').click();
   const menu = page.getByRole('menu');
-  await expect(menu.getByText('Combine and split')).toBeVisible();
-  for (const name of ['Merge files…', 'Split…', 'Compare with…', 'Rotate pages']) {
-    await expect(menu.getByRole('menuitem', { name })).toBeVisible();
+  const pages = menu.getByRole('group', { name: 'Pages' });
+  for (const name of ['Merge files…', 'Split…', 'Rotate all']) {
+    await expect(pages.getByRole('menuitem', { name })).toBeVisible();
   }
+  await expect(menu.getByRole('menuitem', { name: 'Compare with…' })).toBeVisible();
   await page.keyboard.press('Escape');
 });
 

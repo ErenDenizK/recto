@@ -1,7 +1,7 @@
 /**
  * Glass at rest in today's main states (docs/specs/redesign.md D0-1 and D0-QA; quality-bar.md
  * Q-1 to Q-5, Q-8, Q-11): Home, Read, Read with the text selection bar, Edit with the floating bar, an
- * options tier and a tool menu, the Document menu and the page context menu, the command
+ * options tier and a tool menu, the title menu, the page pill's menu and the page context menu, the command
  * palette, Arrange with its contextual bar, and an annotation's bar and note. In each the walker
  * (e2e/support/glass-walker.ts) finds every backdrop-filter surface and checks one backdrop root,
  * no glass in glass, 32 px at the least, integer positions and no will-change at rest, the
@@ -61,7 +61,8 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
   await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
   walk = await expectGlassClean(page, 'Read, text selection bar');
-  expect(walk.visible).toBe(2);
+  // The dock, the selection bar and the page pill (01-frame F11).
+  expect(walk.visible).toBe(3);
   await page.keyboard.press('Escape');
 
   await enterEdit(page);
@@ -83,11 +84,8 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   expect(names(walk).some((n) => n.includes('tier'))).toBe(true);
   await page.keyboard.press('Escape');
 
-  // The Document menu.
-  await page
-    .getByRole('button', { name: /^Document/ })
-    .first()
-    .click();
+  // The title menu (01-frame F5), from the active tab.
+  await page.getByTestId('document-menu').click();
   await expect(page.getByRole('menu')).toBeVisible();
   walk = await expectGlassClean(page, 'the Document menu');
   // What the menu looked like to the walk, should it not count it (seen on WebKit in CI).
@@ -117,6 +115,12 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.mouse.click(first.x + 40, first.y + 40, { button: 'right' });
   await expect(page.getByTestId('page-context-menu')).toBeVisible();
   await expectGlassClean(page, 'the page context menu');
+  await page.keyboard.press('Escape');
+
+  // The page pill's menu (01-frame F11).
+  await page.getByTestId('page-pill').click();
+  await expect(page.getByTestId('page-pill-menu')).toBeVisible();
+  await expectGlassClean(page, 'the page pill menu');
   await page.keyboard.press('Escape');
 
   // The command palette.

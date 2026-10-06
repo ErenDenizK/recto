@@ -45,26 +45,16 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
   page,
 }) => {
   await setUp(page);
-  // Two files opened together land on Home (experience-redesign §3), which has no mode
-  // control (ADR-0019 §1); 1 shows the active document in Read.
-  const compareSegment = page.getByRole('radio', { name: 'Compare', exact: true });
-  const read = page.getByRole('radio', { name: 'Read, locked' });
+  // Two files opened together land on Home (experience-redesign §3); 1 shows the active
+  // document on its page (Read: the dock's one Edit button; there is no mode switch, D2-1).
+  const read = page
+    .getByRole('toolbar', { name: 'Tools', exact: true })
+    .getByRole('button', { name: 'Edit', exact: true });
   await expect(page.getByRole('radiogroup', { name: 'View mode' })).toHaveCount(0);
   await page.keyboard.press('1');
-  await expect(read).toBeChecked();
-  // No comparison open: the control (Read · Edit · Arrange) has no Compare segment and its
-  // arrows skip it.
-  await expect(compareSegment).toHaveCount(0);
-  await read.focus();
-  await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('radio', { name: 'Edit', exact: true })).toBeChecked();
-  await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('radio', { name: 'Arrange', exact: true })).toBeChecked();
-  await page.keyboard.press('ArrowRight');
-  await expect(read).toBeChecked();
-  // 4 switches to the Compare view; the Changes panel opens in the left rail.
+  await expect(read).toBeVisible();
+  // 4 switches to the Compare place; the Changes panel opens in the sidebar.
   await page.keyboard.press('4');
-  await expect(compareSegment).toBeChecked();
   const setup = page.getByTestId('compare-setup');
   await expect(setup).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Changes' })).toHaveAttribute('aria-selected', 'true');
@@ -146,11 +136,10 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
   // The deleted page is noted where it stood.
   expect(pages.reduce((n, c) => n + (c.Text ?? 0), 0)).toBe(1);
 
-  // Esc leaves the view; the (read-only) result is kept and its segment returns to it.
+  // Esc leaves the view; the (read-only) result is kept and 4 returns to it.
   await page.locator('[data-compare-viewport]').focus();
   await page.keyboard.press('Escape');
-  await expect(read).toBeChecked();
-  await expect(compareSegment).toBeVisible();
+  await expect(read).toBeVisible();
 
   // A page command on a compared document: the result is marked out of date.
   await page.keyboard.press('3');
@@ -158,7 +147,7 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
   await expect(cell).toBeVisible();
   await cell.click();
   await page.keyboard.press('r');
-  await compareSegment.click();
+  await page.keyboard.press('4');
   await expect(view).toHaveAttribute('data-status', 'done');
   await expect(view).toHaveAttribute('data-stale', '');
   await expect(page.getByTestId('compare-stale')).toContainText(
@@ -175,7 +164,6 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
   // New comparison releases it: once the view is left, the segment is gone.
   await view.getByRole('button', { name: 'New comparison' }).click();
   await expect(page.getByTestId('compare-setup')).toBeVisible();
-  await read.click();
-  await expect(read).toBeChecked();
-  await expect(compareSegment).toHaveCount(0);
+  await page.keyboard.press('1');
+  await expect(read).toBeVisible();
 });

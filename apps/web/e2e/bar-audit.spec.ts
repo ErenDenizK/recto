@@ -7,7 +7,7 @@
  * Runs at 1440 × 900 on the desktop projects (fine), on the `tablet` project (coarse, the full
  * edition at 820 × 1180) and, for the compact edition, on `phone`. States: Home, Read, the
  * text selection bar, Edit with each of the bar's five groups, an options tier, a tool menu,
- * the Document menu, the page context menu, Arrange with its contextual bar, the History
+ * the title menu and the page pill's menu (D2-1), the page context menu, Arrange with its contextual bar, the History
  * scrubber under ↶ (D0-6), the toast stack (an Undo toast and a failure toast, hovered so ✕
  * shows), an annotation's bar, a dialog with its footer, the Save a copy sheet's header and
  * footer (D0-9), the sheets of D0-4 (the shortcuts overlay's header, the password prompt's
@@ -147,15 +147,19 @@ test.describe('the full edition', () => {
     await run.audit('Edit, options tier');
     await page.keyboard.press('Escape');
 
-    // The Document menu.
-    await page
-      .getByRole('button', { name: /^Document/ })
-      .first()
-      .click();
-    await expect(page.getByRole('menu')).toBeVisible();
-    await run.audit('the Document menu');
+    // The title menu (01-frame F5): its header controls and its rows, from the active tab.
+    await page.getByTestId('document-menu').click();
+    await expect(page.getByTestId('title-menu').getByRole('menu')).toBeVisible();
+    await run.audit('the title menu');
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect(page.getByTestId('title-menu')).toHaveCount(0);
+
+    // The page pill's menu (01-frame F11).
+    await page.getByTestId('page-pill').click();
+    await expect(page.getByTestId('page-pill-menu')).toBeVisible();
+    await run.audit('the page pill menu');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('page-pill-menu')).toHaveCount(0);
 
     // The page context menu.
     const first = await page.locator('[data-page-index="0"]').boundingBox();

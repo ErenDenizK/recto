@@ -108,7 +108,7 @@ async function lasso(
 // ---------------------------------------------------------------------------
 
 test.describe('keyboard', () => {
-  test('F6 and Shift+F6 cycle title bar, navigator, stage, tool bar and inspector', async ({
+  test('F6 and Shift+F6 cycle strip, sidebar, page, tool bar, page pill and inspector (X9)', async ({
     page,
   }) => {
     await openSimple(page);
@@ -126,6 +126,7 @@ test.describe('keyboard', () => {
     const navigator = page.getByRole('tablist', { name: 'Navigator views' });
     const inspector = page.locator('#right-panel');
     const highlight = bar(page).getByRole('button', { name: 'Text box', exact: true });
+    const pill = page.getByTestId('page-pill');
 
     await page.keyboard.press('F6');
     await expect(title.getByRole('tab', { selected: true })).toBeFocused();
@@ -136,6 +137,8 @@ test.describe('keyboard', () => {
     await page.keyboard.press('F6');
     await expect(highlight).toBeFocused();
     await page.keyboard.press('F6');
+    await expect(pill).toBeFocused();
+    await page.keyboard.press('F6');
     expect(await holdsFocus(inspector)).toBe(true);
     await page.keyboard.press('F6');
     await expect(title.getByRole('tab', { selected: true })).toBeFocused();
@@ -143,6 +146,8 @@ test.describe('keyboard', () => {
     // And back.
     await page.keyboard.press('Shift+F6');
     expect(await holdsFocus(inspector)).toBe(true);
+    await page.keyboard.press('Shift+F6');
+    await expect(pill).toBeFocused();
     await page.keyboard.press('Shift+F6');
     await expect(highlight).toBeFocused();
     await page.keyboard.press('Shift+F6');
@@ -197,9 +202,8 @@ test.describe('keyboard', () => {
     // A card has no ⋯ menu yet (Combine is the row's button and a card drop), so Shift+F10
     // and the context menu key have nothing to open: no step to test.
 
-    // F6 from the title bar: the navigator, then the stage, which lands on the grid's stop.
+    // F6 from the strip: the Library has no sidebar, so the stage, which lands on the grid's stop.
     await page.getByTestId('home-button').focus();
-    await page.keyboard.press('F6');
     await page.keyboard.press('F6');
     await expect(card('mixed-sizes')).toBeFocused();
     await page.keyboard.press('Enter');
@@ -964,9 +968,7 @@ test.describe('craft spec §9', () => {
     await selectionBar.getByRole('button', { name: 'Mark up…' }).focus();
     await page.keyboard.press('Enter');
     // The Edit row on the same selection, the focus on its first markup.
-    await expect(
-      page.locator('[data-region="toolbar"]').getByRole('button', { name: 'Select', exact: true }),
-    ).toBeVisible();
+    await expect(page.locator('[data-region="toolbar"]:not([data-bar-view="read"])')).toBeVisible();
     await expect(
       selectionBar.getByRole('button', { name: 'Underline', exact: true }),
     ).toBeVisible();
@@ -1126,12 +1128,12 @@ test.describe('craft spec §9', () => {
   test('Home: Recents, when the build has them', async ({ page }) => {
     await page.goto('./?lang=en');
     await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
-    // Recents lists files opened lately that are not open now: close one (the Files panel).
+    // Recents lists files opened lately that are not open now: close one (the sidebar's Files,
+    // in a document: the Library has no sidebar).
+    await page.getByRole('tab', { name: 'simple-text' }).click();
     await page.locator('#rail-files').click();
     await page.getByRole('button', { name: 'Close rotated-pages' }).click();
     await expect(page.getByRole('tab', { name: 'rotated-pages' })).toHaveCount(0);
-    // On Home the navigator offers Files only (review F16): its tab again collapses the panel.
-    await page.locator('#rail-files').click();
     await page.keyboard.press('0');
     await expect(page.getByTestId('home')).toBeVisible();
     const recents = page.getByRole('list', { name: 'Recent files' });
@@ -1151,10 +1153,7 @@ test.describe('craft spec §9', () => {
   }) => {
     await openWordTagged(page, 'tr');
     await armEditText(page);
-    await expect(page.getByRole('radio', { name: 'Düzenleme' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    // Markup is open (the mode switch is gone, D2-1): the bar shows the Text group's chip.
     await expect(page.getByRole('button', { name: 'Metin: tüm gruplara dön' })).toBeVisible();
     await expect(paragraphTargets(page).first()).toHaveAttribute(
       'aria-label',

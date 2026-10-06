@@ -105,6 +105,8 @@ export default defineConfig({
         '**/long-press.spec.ts',
         '**/history.spec.ts',
         '**/tab-strip.spec.ts',
+        // The frame's free rectangle and jobs on the medium class (spec D2-1).
+        '**/frame-layout.spec.ts',
         '**/canvas-zoom.spec.ts',
         BAR_AUDIT_SPEC,
         SHEETS_SPEC,

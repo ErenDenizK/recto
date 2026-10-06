@@ -372,7 +372,7 @@
 }
 
 /*
- * Find (F6). From 1280 px on a fine pointer: the 280 × 28 well in the strip (fixed, so focus
+ * Find (F6). From 1280 px on a fine pointer: the 280 px well, one control high (F6 §2 drew 28; quality-bar Q-9 sets 32) in the strip (fixed, so focus
  * never lays the strip out again, spec 01.Q5). Below, ⌕ alone; pressing it (or Mod+F) lays the
  * well over the strip's tab area, anchored to ⌕'s trailing edge, 280 px wide (240 at medium).
  */
@@ -389,11 +389,13 @@
   gap: 6px;
   box-sizing: border-box;
   width: 280px;
-  height: 28px;
-  padding: 0 4px 0 var(--space-2);
-  border: 1px solid var(--border-strong);
+  height: var(--control-h);
+  padding: 0 0 0 var(--space-3);
+  /* The edge is drawn inside (no border box), so the field and ‹ › are the full control height
+     and share the strip's centre line (Q-9). */
   border-radius: var(--radius-pill);
   background: var(--n2, var(--canvas));
+  box-shadow: inset 0 0 0 1px var(--border-strong);
   color: var(--text-secondary);
 }
 
@@ -467,7 +469,7 @@
 @media (min-width: 1280px) and (pointer: fine) {
   .find[data-form='auto'][data-open] .findWell {
     position: static;
-    height: 28px;
+    height: var(--control-h);
   }
 }
 
@@ -479,7 +481,7 @@
 
 @media (forced-colors: active) {
   .findWell {
-    border-color: FieldText;
+    border: 1px solid FieldText;
     background: Field;
     color: FieldText;
   }
