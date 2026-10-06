@@ -14,7 +14,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -68,6 +68,33 @@ test('a damaged file shows a visible failure toast until it is dismissed (INV-6)
   await expect(toast).toBeVisible();
   await toast.getByRole('button', { name: 'Dismiss' }).click();
   await expect(toast).toHaveCount(0);
+});
+
+test('on the Library the stack keeps 12 px above the selection bar, never over it (FB4 §2)', async ({
+  page,
+}) => {
+  await page.goto('./?lang=en');
+  // Two files land in the Library checked: the selection bar is up (02-library L6).
+  const chooser = page.waitForEvent('filechooser');
+  await page
+    .getByRole('button', { name: /^(Open files|Dosya aç)$/ })
+    .first()
+    .click();
+  await (await chooser).setFiles(['simple-text.pdf', 'rotated-pages.pdf'].map(fixturePath));
+  const bar = page.getByTestId('library-selection-bar');
+  await expect(bar).toBeVisible({ timeout: 20_000 });
+  await openDamaged(page);
+  const toast = page.getByRole('group', { name: 'Could not open scan.pdf: the file is damaged.' });
+  await expect(toast).toBeVisible();
+  await expect(bar).toBeVisible();
+  // Both at rest (their entrances move them by transform).
+  await page.waitForFunction(() =>
+    document.getAnimations().every((a) => a.playState !== 'running'),
+  );
+  const toastBox = await toast.boundingBox();
+  const barBox = await bar.boundingBox();
+  if (!toastBox || !barBox) throw new Error('not laid out');
+  expect(barBox.y - (toastBox.y + toastBox.height)).toBeCloseTo(12, 0);
 });
 
 test('"Deleted page 2 · Undo" holds while hovered, F6 reaches it, and Undo brings the page back', async ({

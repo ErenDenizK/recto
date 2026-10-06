@@ -35,7 +35,10 @@
  *   below, the page's typical gap between vertically adjacent blocks of a column (at most
  *   `gapBelow`), so growth keeps it; 0 at the margin. `pageRoom`: the space from the ink
  *   down to the edge of the page's visible box (CropBox ∩ MediaBox), which growth must never
- *   cross (craft §4.6).
+ *   cross (craft §4.6). `gapAbove`: the mirror of `gapBelow` upward, the empty space above the
+ *   paragraph's ink up to the nearest block or graphic above it that overlaps it horizontally,
+ *   else up to the visible box's top edge; the editor's header sits there only when it fits
+ *   (components/05-canvas.md §17.3: never over content).
  */
 import type { Font } from '@cantoo/fontkit';
 import type { Rect, SourceId } from '@pdf-editor/document-model';
@@ -218,6 +221,8 @@ export interface PreparedParagraph {
   readonly paragraphGap: number;
   /** Space from the paragraph's ink to the visible box's edge below it (points). */
   readonly pageRoom: number;
+  /** Empty space above the paragraph's ink up to the content above it (points). */
+  readonly gapAbove: number;
   readonly refusal?: ParagraphEditRefusal;
 }
 
@@ -938,6 +943,36 @@ function layoutInputOf(
   };
 }
 
+/** `gapAbove`: the empty space above the paragraph's ink (see the module comment). */
+export function spaceAbove(model: ParagraphModel): number {
+  const { block, blocks, u } = model;
+  const sameFrame = (b: ParagraphBlock) =>
+    Math.abs(b.direction.x - u.x) < 1e-6 && Math.abs(b.direction.y - u.y) < 1e-6;
+  const mine = textSpaceExtent(block.box, u);
+  const page = textSpaceExtent(model.pageBox, u);
+  const left = block.measure.left;
+  const right = Math.max(block.measure.right, columnRight(model));
+  const overlaps = (x0: number, x1: number) => Math.min(x1, right) - Math.max(x0, left) > 1;
+  let nearest = page.y1;
+  for (const other of blocks) {
+    if (other.ref.index === block.ref.index || !sameFrame(other)) continue;
+    const e = textSpaceExtent(other.box, u);
+    if (e.y0 < mine.y1 - 0.5 || !overlaps(e.x0, e.x1)) continue;
+    nearest = Math.min(nearest, e.y0);
+  }
+  // A graphic that holds the paragraph (a filled box behind it) is not above it.
+  const center = userPoint(u, (mine.x0 + mine.x1) / 2, (mine.y0 + mine.y1) / 2);
+  for (const g of model.graphics) {
+    const contains =
+      center.x >= g.x && center.x <= g.x + g.width && center.y >= g.y && center.y <= g.y + g.height;
+    if (contains) continue;
+    const e = textSpaceExtent(g, u);
+    if (e.y0 < mine.y1 - 0.5 || !overlaps(e.x0, e.x1)) continue;
+    nearest = Math.min(nearest, e.y0);
+  }
+  return Math.max(0, nearest - mine.y1);
+}
+
 /** `gapBelow`, `paragraphGap` and `pageRoom` (see the module comment). */
 export function overflowFacts(model: ParagraphModel): {
   gapBelow: number;
@@ -1073,6 +1108,7 @@ export async function prepareParagraph(
     gapBelow,
     paragraphGap,
     pageRoom,
+    gapAbove: spaceAbove(model),
     ...(refusal ? { refusal } : {}),
   };
 }

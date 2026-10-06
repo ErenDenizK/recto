@@ -20,11 +20,18 @@
  *   changes (06-navigation §1.1), and the grid's keyboard focus starts on that page's cell.
  * - **Announcements** (PG1 §5): "Pages grid. 12 pages. Page 3." on entry, "Page 7 of 12" on
  *   leaving.
+ * - **The way out is prepared** (D4-4): the page view is mounted first, hidden under the grid
+ *   (`usePreparedPageView`, `Stage.tsx`), scrolled to the page, and the transition starts once
+ *   that page has drawn (a frame after its canvas renders, at most `PREPARE_MS`). Mounting the
+ *   page view inside the transition's update held the captured cell on screen for frames
+ *   (the update and the new view's first rendering ran before the morph could start), so the
+ *   cell sat still, then jumped; now the update only reveals a view that is already drawn.
  *
  * Reduced motion keeps the transition but strips every name (`styles/motion.css`): a root
  * cross-fade cut at 150 ms. Size steps and scope switches never come here (A-10).
  */
 import type { DocumentId, PageId } from '@pdf-editor/document-model';
+import { useSyncExternalStore } from 'react';
 
 import { m } from '../../i18n';
 import { viewTransition } from '../../motion/view-transition';
@@ -46,6 +53,44 @@ const GRID_ATTRIBUTE = 'data-vt-grid';
 const entries = new Map<DocumentId, { readonly page: PageId; readonly index: number }>();
 /** The page the grid reveals (centred, focused) as it mounts; taken once. */
 let reveal: PageId | null = null;
+
+/** The longest the way out waits for the page view to draw its page before it starts, ms. */
+export const PREPARE_MS = 200;
+/** The document whose page view is mounted, hidden, while the grid prepares its way out. */
+let prepared: DocumentId | null = null;
+const preparedListeners = new Set<() => void>();
+
+function setPrepared(id: DocumentId | null): void {
+  if (prepared === id) return;
+  prepared = id;
+  for (const listener of preparedListeners) listener();
+}
+
+/** The document whose page view `Stage` mounts hidden under the grid, while the way out prepares. */
+export function usePreparedPageView(): DocumentId | null {
+  return useSyncExternalStore(
+    (listener) => {
+      preparedListeners.add(listener);
+      return () => preparedListeners.delete(listener);
+    },
+    () => prepared,
+    () => null,
+  );
+}
+
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+/** Resolves once `page`'s canvas in the page view has rendered, or after `PREPARE_MS`. */
+async function pageDrawn(page: PageId): Promise<void> {
+  const end = performance.now() + PREPARE_MS;
+  while (performance.now() < end) {
+    const canvas = document.querySelector(
+      `[data-read-viewport] [data-page-id="${CSS.escape(page)}"] canvas[data-state="rendered"]`,
+    );
+    if (canvas) return;
+    await nextFrame();
+  }
+}
 
 /** The page to reveal as the grid mounts, if an entrance asked for one (taken once). */
 export function takeGridReveal(): PageId | null {
@@ -212,18 +257,41 @@ export function leaveGrid(options: { readonly page?: PageId } = {}): void {
   if (id === undefined) return;
   const doc = ws.documents[id];
   const page = options.page ?? gridReturnPage(id);
-  const from = page === undefined ? null : cellSheet(page);
+  // A way out already preparing finishes on its own.
+  if (prepared !== null) return;
   useSelectionStore.getState().clear();
-  change(
-    'out',
-    from,
-    () => {
-      if (useWorkspaceStore.getState().workspace.activeDocument !== id) workspace.setActive(id);
-      useUiStore.getState().showSurface('page', id);
-      if (page !== undefined) useViewStore.getState().scrollToPage(page);
-    },
-    () => (page === undefined ? null : pageElement(page)),
-  );
+  // Without View Transitions nothing is held, so nothing is prepared: the view changes at once.
+  const prepare = page !== undefined && typeof document.startViewTransition === 'function';
+  const out = () =>
+    change(
+      'out',
+      page === undefined ? null : cellSheet(page),
+      () => {
+        if (useWorkspaceStore.getState().workspace.activeDocument !== id) workspace.setActive(id);
+        useUiStore.getState().showSurface('page', id);
+        setPrepared(null);
+        if (page !== undefined && !prepare) useViewStore.getState().scrollToPage(page);
+      },
+      () => (page === undefined ? null : pageElement(page)),
+    );
+  if (!prepare || page === undefined) {
+    out();
+  } else {
+    setPrepared(id);
+    void (async () => {
+      // The page view mounts (hidden) on the next render; then it scrolls to the page.
+      await nextFrame();
+      useViewStore.getState().scrollToPage(page);
+      await pageDrawn(page);
+      await nextFrame();
+      // Left meanwhile (another view, the document closed): the hidden view goes.
+      if (prepared !== id || stageView(useUiStore.getState()) !== 'grid') {
+        setPrepared(null);
+        return;
+      }
+      out();
+    })();
+  }
   const index = page === undefined || !doc ? -1 : (pageIndexes(doc).get(page) ?? -1);
   if (doc && index >= 0) {
     announce(m.grid_announce_leave({ page: index + 1, count: doc.pages.length }));

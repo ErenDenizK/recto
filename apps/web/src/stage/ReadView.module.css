@@ -12,6 +12,14 @@
   min-height: 0;
 }
 
+/* Prepared under the Pages grid for its way out (grid-transition.ts): the stage's whole box,
+   as when shown, out of the grid's flow, and not seen until the view change reveals it. */
+.frame[data-prepared] {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+
 /* Its ring is the inset form (styles/focus.css), as for every page layer. */
 .viewport {
   composes: focus-inset from global;

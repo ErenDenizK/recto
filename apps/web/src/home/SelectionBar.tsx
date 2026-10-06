@@ -18,10 +18,11 @@
  * more cards are checked.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { type KeyboardEvent, useEffect } from 'react';
+import { type KeyboardEvent, useEffect, useRef } from 'react';
 
 import { formatNumber, m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { useFloatingBottomChrome } from '../shell/frame/frame-insets';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
@@ -74,8 +75,13 @@ export function SelectionBar({ selection }: { readonly selection: readonly Docum
     focusCardSoon(had);
   };
 
+  // The toast stack keeps above the bar ("Restored 3 documents" after a reload; FB4 §2).
+  const barRef = useRef<HTMLDivElement>(null);
+  useFloatingBottomChrome(barRef);
+
   return (
     <div
+      ref={barRef}
       role="toolbar"
       aria-label={m.library_bar_label()}
       className={styles.bar}

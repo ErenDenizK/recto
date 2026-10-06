@@ -145,7 +145,11 @@ export default defineConfig({
         scope: base,
         display: 'standalone',
         lang: 'en',
-        theme_color: '#17191e',
+        // A manifest holds one colour, not one per scheme. It is the dark canvas (ADR-0022 §2.4),
+        // the same as the splash's `background_color`, so the launch never flashes a third
+        // tone; once the page loads, index.html's `theme-color` metas (one per scheme, set
+        // before the first paint by public/theme.js) take over in browsers that honour them.
+        theme_color: '#08090c',
         background_color: '#08090c',
         icons: [
           { src: 'icons/glyph.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
