@@ -1,0 +1,25 @@
+/*
+ * The harness page (harness/main.tsx): a still, text-free scene. The backdrop fills the
+ * viewport; the surface and the sharp edge's band sit on whole CSS pixels. Nothing animates and
+ * nothing scrolls, so a full-viewport screenshot has one right answer.
+ */
+html,
+body {
+  overflow: hidden;
+}
+
+.backdrop,
+.band,
+.surface {
+  position: fixed;
+}
+
+.backdrop {
+  inset: 0;
+}
+
+.surface {
+  /* The glass draws its own border, tint, filter and elevation (styles/global.css); corners are
+     square so the edge samples sit on straight sides. */
+  border-radius: 0;
+}

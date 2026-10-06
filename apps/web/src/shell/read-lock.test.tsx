@@ -22,7 +22,8 @@ import { INK } from '../annotations/palette';
 import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { ReadView } from '../stage/ReadView';
-import { canEdit, documentModeOf, useUiStore } from '../state/ui-store';
+import { resetLockStore, useLockStore } from '../state/lock-store';
+import { isMarkupOpen, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
@@ -79,14 +80,14 @@ async function mount(): Promise<Mounted> {
   };
 }
 
+/** M8's words for the active document's Markup state, as the control still shows them. */
 const mode = () =>
-  documentModeOf(
-    useUiStore.getState(),
-    useWorkspaceStore.getState().workspace.activeDocument ?? undefined,
-  );
+  isMarkupOpen(useUiStore.getState(), useWorkspaceStore.getState().workspace.activeDocument)
+    ? 'edit'
+    : 'read';
 const enterEdit = () => {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  if (id !== undefined) useUiStore.getState().setDocumentMode(id, 'edit');
+  if (id !== undefined) useUiStore.getState().openMarkup(id);
 };
 const bar = () => screen.getByRole('toolbar', { name: 'Tools' });
 
@@ -135,7 +136,7 @@ describe('the Read lock (mounted)', () => {
     resetEditRunner();
     resetAnnotationStore();
     resetToolStore();
-    useUiStore.setState({ destination: 'document', viewMode: 'read', documentMode: {} });
+    useUiStore.setState({ destination: 'document', docUi: {} });
   });
   afterEach(async () => {
     cleanup();
@@ -169,7 +170,7 @@ describe('the Read lock (mounted)', () => {
     await waitFor(() => expect(within(bar()).getAllByRole('button')).toHaveLength(1));
   });
 
-  it('in Read a press on an annotation selects nothing; in Edit it selects', async () => {
+  it('in viewing a press on an annotation selects it with its bar; locked, nothing changes', async () => {
     const { layer, target } = await mount();
     const created = await createAnnotations(target, [
       {
@@ -189,24 +190,31 @@ describe('the Read lock (mounted)', () => {
       if (!h) throw new Error('no hit target');
       return h;
     });
-    expect(getComputedStyle(hit).pointerEvents).toBe('none');
-    press(hit);
-    expect(useAnnotationStore.getState().selection).toBeNull();
-    // Delete has nothing to act on and is not live.
-    await userEvent.keyboard('{Delete}');
-    expect((await readAnnotations(target.source, 0)).map((a) => a.id)).toContain(id);
-
-    enterEdit();
+    // Viewing (05-canvas §6): annotations take the press, a targeted act; Markup stays closed.
     await waitFor(() => expect(getComputedStyle(hit).pointerEvents).not.toBe('none'));
     press(hit);
     expect(useAnnotationStore.getState().selection?.ids).toEqual([id]);
     expect(await screen.findByTestId('annotation-bar')).toBeVisible();
-
-    // Back to Read: the selection and its bar go.
+    expect(mode()).toBe('read');
+    // Opening and closing Markup keeps the selection: selecting is not a mode.
     const docId = useWorkspaceStore.getState().workspace.activeDocument;
-    if (docId !== undefined) useUiStore.getState().setDocumentMode(docId, 'read');
+    if (docId === undefined) throw new Error('no document');
+    enterEdit();
+    useUiStore.getState().closeMarkup(docId);
+    expect(useAnnotationStore.getState().selection?.ids).toEqual([id]);
+
+    // Locked: the selection and its bar go; a press shows the annotation, with no bar, and
+    // Delete removes nothing.
+    useLockStore.getState().lock(docId);
     expect(useAnnotationStore.getState().selection).toBeNull();
     await waitFor(() => expect(screen.queryByTestId('annotation-bar')).toBeNull());
+    press(hit);
+    expect(useAnnotationStore.getState().selection?.ids).toEqual([id]);
+    await userEvent.keyboard('{Delete}');
+    await whenIdle();
+    expect((await readAnnotations(target.source, 0)).map((a) => a.id)).toContain(id);
+    expect(screen.queryByTestId('annotation-bar')).toBeNull();
+    resetLockStore();
   });
 
   it('p in Read switches to Edit and arms the pen, said once, mode first', async () => {
@@ -236,7 +244,7 @@ describe('the Read lock (mounted)', () => {
     expect(mode()).toBe('read');
     expect(useToolStore.getState().mode).toBe('select');
     const id = useWorkspaceStore.getState().workspace.activeDocument;
-    expect(canEdit(id)).toBe(false);
+    expect(isMarkupOpen(useUiStore.getState(), id)).toBe(false);
   });
 
   it('U over selected text in Read switches to Edit and keeps it; the second U marks it', async () => {

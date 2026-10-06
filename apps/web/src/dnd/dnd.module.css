@@ -1,8 +1,9 @@
 /*
- * Native drag preview (light-table spec §3). The browser snapshots this element once when
- * the drag starts, so it is static: no transitions, no custom properties that could change.
- * The literals mirror the tokens: radius 2px = --radius-page, 11px = --radius-round on a 22px
- * pill, #7c8cff = --accent, #0a0b0d = --surface-0, #ffffff = --page-background.
+ * Native drag preview (light-table spec §3; 06-navigation §13). The browser snapshots this
+ * element once when the drag starts, so it is static: no transitions. Colours are tokens, read
+ * once at the snapshot: the page, the sheet under it, and a count badge in n12 on n4. The
+ * literals mirror the shape tokens: radius 2px = --radius-page, 11px = --radius-round on a 22px
+ * pill.
  */
 .preview {
   position: relative;
@@ -20,12 +21,12 @@
   position: absolute;
   inset: 0;
   border-radius: 2px;
-  background: #ffffff;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.18);
+  background: var(--page-background);
+  box-shadow: 0 0 0 1px var(--plate-ring);
 }
 
 .previewSheet {
-  background: #e9eaee;
+  background: var(--page-under);
 }
 
 .previewFace {
@@ -46,8 +47,9 @@
   height: 22px;
   padding: 0 6px;
   border-radius: 11px;
-  background: #7c8cff;
-  color: #0a0b0d;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--border-hairline);
   font: 600 12px / 22px var(--font-ui);
   font-variant-numeric: tabular-nums;
   text-align: center;

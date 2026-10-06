@@ -156,7 +156,7 @@ describe('the eraser', () => {
 
   it('its options tier toggles Whole stroke and Partial and the size, remembered', async () => {
     const doc = await openDoc();
-    useUiStore.setState({ viewMode: 'read' });
+    useUiStore.getState().showSurface('page');
     const dispose = registerPenBar();
     try {
       render(

@@ -18,6 +18,12 @@
   pointer-events: auto;
 }
 
+/* A press that left its link selects the text under it (05-canvas §6): the hotspots let the
+   pointer through to the text layer until the press ends. */
+.layer[data-selecting] .hotspot {
+  pointer-events: none;
+}
+
 @media (hover: hover) {
   .layer[data-live='true'] .hotspot:hover {
     background: var(--select-subtle);

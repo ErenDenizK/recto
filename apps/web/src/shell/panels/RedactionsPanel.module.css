@@ -134,7 +134,7 @@
   width: 14px;
   height: 14px;
   margin: 0 var(--space-1);
-  accent-color: var(--accent);
+  accent-color: var(--control-on);
 }
 
 .item {
@@ -159,7 +159,7 @@
   width: 20px;
   height: 20px;
   border-radius: var(--radius-1);
-  background: var(--surface-3);
+  background: var(--surface-on);
   color: var(--text-secondary);
 }
 

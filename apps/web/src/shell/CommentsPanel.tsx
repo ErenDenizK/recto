@@ -88,7 +88,7 @@ export function AuthorPrompt({ focusOnMount = false }: { readonly focusOnMount?:
 function openComment(item: CommentItem): void {
   const workspace = useWorkspaceStore.getState();
   if (workspace.workspace.activeDocument !== item.documentId) workspace.setActive(item.documentId);
-  useUiStore.getState().setViewMode('read');
+  useUiStore.getState().showSurface('page');
   useViewStore.getState().scrollToPage(item.pageId);
   useAnnotationStore.getState().select({
     source: item.source,

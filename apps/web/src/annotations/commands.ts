@@ -37,9 +37,11 @@ import {
   loadSavedSignatures,
   useSavedSignatures,
 } from '../signatures/saved-signatures';
-import { canEdit, canEditActive, isPageView, useUiStore } from '../state/ui-store';
+import { type Act, canChange } from '../state/guard';
+import { useLockStore } from '../state/lock-store';
+import { isMarkupOpen, isPageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { useToolStore } from '../viewer/tool-store';
+import { type ToolMode, useToolStore } from '../viewer/tool-store';
 import { deleteAnnotations } from './actions';
 import { commitOpenEditor } from './InlineEditors';
 import { deleteLassoSelection } from './lasso/edits';
@@ -54,15 +56,21 @@ const readMode = () =>
   isPageView(useUiStore.getState()) &&
   useWorkspaceStore.getState().workspace.documentOrder.length > 0;
 
+/** Whether Markup is open for the active document (the tool bar's groups, tools arm). */
+const markupOpen = () =>
+  isMarkupOpen(useUiStore.getState(), useWorkspaceStore.getState().workspace.activeDocument);
+
 /**
- * Before a tool arms: a document in Read switches to Edit, said first so that the tool named
- * next follows it ("Edit mode. Blue pen"). False when there is no document to edit.
+ * Before a tool arms: in viewing Markup opens, said first so that the tool named next follows
+ * it ("Edit mode. Blue pen"). False when there is no document, or when it is locked: a tool
+ * key opens nothing there (flows §3.1; the Unlock popover is the Lock UI's).
  */
 export function enterEditForTool(): boolean {
   const id = useWorkspaceStore.getState().workspace.activeDocument;
   if (id === undefined) return false;
-  if (canEdit(id)) return true;
-  useUiStore.getState().setDocumentMode(id, 'edit');
+  if (!canChange(id, 'freehand', { opensMarkup: true })) return false;
+  if (isMarkupOpen(useUiStore.getState(), id)) return true;
+  useUiStore.getState().openMarkup(id);
   announce(m.mode_edit_long());
   return true;
 }
@@ -90,12 +98,13 @@ export async function activateTool(tool: ToolDefinition): Promise<void> {
   const tools = useToolStore.getState();
   const store = useAnnotationStore.getState();
   const id = useWorkspaceStore.getState().workspace.activeDocument;
-  if (id !== undefined && !canEdit(id)) {
-    // Select is the idle tool of both modes: V in Read changes nothing.
+  if (id !== undefined && !isMarkupOpen(useUiStore.getState(), id)) {
+    // Select is the idle tool of viewing and Markup alike: V in viewing changes nothing.
     if (tool.mode === 'select') return;
-    // Read (ADR-0019 §3): switch to Edit and arm, synchronously so that both are said in
-    // one announcement. Selected text stays selected and is marked by a second press.
-    enterEditForTool();
+    // Viewing: open Markup and arm, synchronously so that both are said in one
+    // announcement; a locked document opens nothing. Selected text stays selected and is
+    // marked by a second press.
+    if (!enterEditForTool()) return;
     if ((isMarkupMode(tool.mode) || tool.mode === 'redact') && hasTextSelection()) return;
   } else {
     if (isMarkupMode(tool.mode) && (await markupFromSelection(tool.mode))) return;
@@ -157,7 +166,7 @@ export function activatePen(): void {
   const tools = useToolStore.getState();
   const index = writingPenIndex();
   const store = useAnnotationStore.getState();
-  if (tools.mode === 'ink' && canEditActive() && store.pen.active === index) {
+  if (tools.mode === 'ink' && markupOpen() && store.pen.active === index) {
     tools.setOptionsOpen(!tools.optionsOpen);
     return;
   }
@@ -169,6 +178,30 @@ export function activatePen(): void {
   announce(presetLabel(index, useAnnotationStore.getState().pen.presets[index]), { key: 'tool' });
 }
 
+/**
+ * The act a tool's command declares (ADR-0030 §2.2; X34): what the armed tool makes on the
+ * page. Select makes nothing; Edit text commits through the paragraph editor; the Image tool
+ * moves, resizes or replaces the image the person chose; the placing tools put an object at a
+ * point; every other tool creates with the pointer.
+ */
+export function toolAct(mode: ToolMode): Act | null {
+  switch (mode) {
+    case 'select':
+      return null;
+    case 'edit-text':
+      return 'text';
+    case 'image':
+      return 'targeted';
+    case 'text-box':
+    case 'note':
+    case 'signature':
+    case 'stamp':
+      return 'place';
+    default:
+      return 'freehand';
+  }
+}
+
 export function registerAnnotationCommands(registry: CommandRegistry): () => void {
   const disposers = [
     ...ANNOTATION_TOOLS.map((tool) =>
@@ -176,6 +209,9 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
         id: `tool.${tool.mode}`,
         title: m.cmd_tool({ tool: tool.title() }),
         group: m.group_tools(),
+        act: toolAct(tool.mode),
+        // A tool key is a Markup door (ADR-0029 §2.2): it opens Markup, then arms.
+        ...(tool.mode === 'select' ? {} : { via: 'markup' as const }),
         ...(tool.shortcut === undefined ? {} : { shortcut: tool.shortcut }),
         keywords: ['tool', 'annotate', 'annotation', ...(tool.keywords ?? [])],
         when: readMode,
@@ -187,6 +223,8 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'tool.highlighter',
       title: m.cmd_tool({ tool: m.tool_highlighter() }),
       group: m.group_tools(),
+      act: 'freehand',
+      via: 'markup',
       shortcut: 'H',
       keywords: ['tool', 'annotate', 'annotation', 'highlight'],
       when: readMode,
@@ -197,6 +235,8 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
         id: `stamp.${stamp.name.toLowerCase()}`,
         title: m.cmd_stamp({ name: stamp.label() }),
         group: m.group_tools(),
+        act: 'place',
+        via: 'markup',
         keywords: ['stamp', 'annotate', stamp.name],
         when: readMode,
         run: () => {
@@ -211,6 +251,8 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'stamp.image',
       title: m.cmd_stamp_image(),
       group: m.group_tools(),
+      act: 'place',
+      via: 'markup',
       keywords: ['stamp', 'image', 'picture', 'logo'],
       when: readMode,
       run: () => pickImageStamp('image').then(() => undefined),
@@ -219,9 +261,11 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'annotation.delete',
       title: m.cmd_delete_annotation(),
       group: m.group_edit(),
+      act: 'targeted',
       shortcut: ['Delete', 'Backspace'],
       keywords: ['remove', 'annotation', 'comment'],
-      when: () => readMode() && canEditActive() && useAnnotationStore.getState().selection !== null,
+      // A targeted act: in viewing and Markup alike, the guard refuses it while locked.
+      when: () => readMode() && useAnnotationStore.getState().selection !== null,
       run: async () => {
         const state = useAnnotationStore.getState();
         // A lasso selection deletes the taken strokes only (lasso/edits.ts).
@@ -233,9 +277,10 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'image.delete',
       title: m.cmd_delete_image(),
       group: m.group_edit(),
+      act: 'targeted',
       shortcut: ['Delete', 'Backspace'],
       keywords: ['remove', 'image', 'picture'],
-      when: () => readMode() && canEditActive() && useImageStore.getState().selection !== null,
+      when: () => readMode() && useImageStore.getState().selection !== null,
       run: async () => {
         const selection = useImageStore.getState().selection;
         if (selection) await deleteImage(selection.target, selection.image);
@@ -245,6 +290,7 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
       id: 'view.show.comments',
       title: m.cmd_show_comments(),
       group: m.group_view(),
+      act: null,
       keywords: ['panel', 'sidebar', 'annotations', 'notes'],
       run: () => useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'comments' }),
     }),
@@ -257,13 +303,18 @@ export function registerAnnotationCommands(registry: CommandRegistry): () => voi
 }
 
 /**
- * Entering Read (`1`, the control, a tab whose document is in Read) commits an open inline
- * editor and drops the annotation and image selections, so nothing stays half-edited behind
- * the lock (the tool store disarms the tool itself).
+ * The active document becoming locked (or a tab whose document is) commits an open inline
+ * editor and drops the annotation selection, so nothing stays half-edited behind the lock;
+ * leaving Markup drops the image selection, which belongs to Markup's Image tool (the tool
+ * store disarms the tool itself). An annotation selected in viewing stays selected when Markup
+ * opens or closes: selecting is not a mode (05-canvas §6).
  */
 function watchReadLock(): () => void {
   const lock = () => {
-    if (canEditActive()) return;
+    if (!markupOpen() && useImageStore.getState().selection !== null) {
+      useImageStore.getState().select(null);
+    }
+    if (canChange(useWorkspaceStore.getState().workspace.activeDocument, 'targeted')) return;
     const store = useAnnotationStore.getState();
     if (store.editor !== null) {
       commitOpenEditor();
@@ -273,13 +324,17 @@ function watchReadLock(): () => void {
     if (useImageStore.getState().selection !== null) useImageStore.getState().select(null);
   };
   const offUi = useUiStore.subscribe((state, previous) => {
-    if (state.documentMode !== previous.documentMode) lock();
+    if (state.docUi !== previous.docUi) lock();
+  });
+  const offLock = useLockStore.subscribe((state, previous) => {
+    if (state.locks !== previous.locks) lock();
   });
   const offWorkspace = useWorkspaceStore.subscribe((state, previous) => {
     if (state.workspace.activeDocument !== previous.workspace.activeDocument) lock();
   });
   return () => {
     offUi();
+    offLock();
     offWorkspace();
   };
 }

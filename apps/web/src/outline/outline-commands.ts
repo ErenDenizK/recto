@@ -18,6 +18,7 @@ export function registerOutlineCommands(registry: CommandRegistry): () => void {
       id: 'outline.addBookmark',
       title: m.cmd_outline_add(),
       group: m.group_document(),
+      act: 'document',
       keywords: ['bookmark', 'outline', 'toc', 'contents', 'add', 'new'],
       when: () => (activeDocument()?.pages.length ?? 0) > 0,
       run: () => {
@@ -31,6 +32,7 @@ export function registerOutlineCommands(registry: CommandRegistry): () => void {
       id: 'outline.removeDeadLinks',
       title: m.cmd_outline_remove_dead(),
       group: m.group_document(),
+      act: 'document',
       keywords: ['bookmark', 'outline', 'broken', 'unresolved', 'dead', 'clean'],
       when: () => countDeadOutlineLinks(activeDocument()?.outline ?? []) > 0,
       run: () => {

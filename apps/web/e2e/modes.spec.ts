@@ -1,11 +1,13 @@
 /**
- * Read and Edit (ADR-0019 §2–§3, craft spec §3.2–§3.3, §10): a file opens in Read with the
- * lock; nothing moves, fills or arms there; `2` enters Edit and the tool bar appears; a tab
- * click leaves Home in the document's last mode; `1` returns to Read and the bar collapses
- * to one Edit button; a tool key in Read switches to Edit and arms the tool. Read's page menu
- * changes no page (one row switches to Edit), and a Read selection's "Edit text" opens the
- * paragraph editor in Edit; in Edit, a first click on text shows "Double-click to edit text",
- * and the Text group arms Edit text, so one click opens a paragraph.
+ * Read and Edit through the M8 control (ADR-0019 §2–§3, craft spec §3.2–§3.3, §10), with the
+ * input rules of D1-5 (05-canvas §6; input-rules.spec.ts drives S1–S18): a file opens in Read;
+ * nothing moves or arms there, while targeted acts (select an annotation, fill a field) and
+ * the page menu's page operations need no Edit; `2` enters Edit and the tool bar appears; a
+ * tab click leaves Home in the document's last mode; `1` returns to Read and the bar collapses
+ * to one Edit button; a tool key in Read switches to Edit and arms the tool. A Read selection's
+ * "Edit text" opens the paragraph editor in Edit; in Edit, a first click on text shows
+ * "Double-click to edit text", and the Text group arms Edit text, so one click opens a
+ * paragraph.
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -35,19 +37,18 @@ test('opens in Read with the lock; nothing moves or arms; 2 and 1 switch; a tab 
   const edit = bar(page).getByRole('button', { name: 'Edit' });
   await expect(edit).toHaveAttribute('aria-keyshortcuts', '2');
 
-  // A drag on the square neither selects nor moves it; Delete does nothing.
+  // A drag that starts on the unselected square selects it and moves nothing (S14; D1-5:
+  // selecting is a targeted act in viewing, input-rules.spec covers the rest).
   const square = page.locator('[data-annotation-id="fixture-annot-square-1"]');
   await expect(square).toBeAttached();
   const before = await square.boundingBox();
   if (!before) throw new Error('no square');
-  const cx = before.x + before.width / 2;
-  const cy = before.y + before.height / 2;
-  await page.mouse.move(cx, cy);
+  await page.mouse.move(before.x + 4, before.y + 4);
   await page.mouse.down();
-  await page.mouse.move(cx + 60, cy + 40, { steps: 5 });
+  await page.mouse.move(before.x + 64, before.y + 44, { steps: 5 });
   await page.mouse.up();
-  await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
-  await page.keyboard.press('Delete');
+  await expect(page.getByTestId('annotation-bar')).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(square).toBeAttached();
   expect(await square.boundingBox()).toEqual(before);
   // Nothing armed: the page keeps the Select pointer and the bar has no tools.
@@ -98,32 +99,24 @@ test('a tool key in Read switches to Edit and arms the tool, changing nothing', 
   await expect(layer.locator('[data-annotation-id]')).toHaveCount(0);
 });
 
-test('form fields are read-only in Read: a click shows "Switch to Edit to fill" and its Edit button', async ({
+test('form fields fill without leaving Read: a fill is a targeted act (D1-5, S6, S7)', async ({
   page,
 }) => {
   await openFixtures(page, ['forms-a.pdf']);
   const target = page.locator('[data-form-layer="0"] [data-field-name="name"]');
   await expect(target).toBeVisible({ timeout: 20_000 });
   await target.click();
-  await expect(target).toBeFocused();
-  await expect(page.locator('[data-form-editor="name"]')).toHaveCount(0);
-  const notice = page.getByRole('status').filter({ hasText: 'Switch to Edit to fill' });
-  await expect(notice).toBeVisible();
+  const editor = page.locator('[data-form-editor="name"]');
+  await expect(editor).toBeFocused();
+  await expect(editor).toHaveValue('Alice Example');
+  await editor.press('Escape');
 
-  // A checkbox does not toggle.
+  // A checkbox toggles; the document stays where it was.
   const agree = page.locator('[data-form-layer="0"] [data-field-name="agree"]');
   const checked = await agree.getAttribute('aria-checked');
   await agree.click();
-  await expect(agree).toHaveAttribute('aria-checked', checked ?? '');
+  await expect(agree).toHaveAttribute('aria-checked', checked === 'true' ? 'false' : 'true');
   await expect(modeRadio(page, 'Read, locked')).toHaveAttribute('aria-checked', 'true');
-
-  // The notice's Edit button switches; the field then fills.
-  await target.click();
-  await notice.getByRole('button', { name: 'Edit' }).click();
-  await expect(modeRadio(page, 'Edit')).toHaveAttribute('aria-checked', 'true');
-  const editor = page.locator('[data-form-editor="name"]');
-  await expect(editor).toBeVisible();
-  await expect(editor).toHaveValue('Alice Example');
 });
 
 // ---------------------------------------------------------------------------
@@ -249,7 +242,7 @@ test('a pen stroke over text never opens the editor', async ({ page }) => {
   await expect(layer).toHaveAttribute('data-tool', 'select');
 });
 
-test("Read's page menu changes no page: one row switches to Edit, where the page operations are", async ({
+test("Read's page menu offers the page operations, pages acts without Edit (D1-5, S8)", async ({
   page,
 }) => {
   await openFixtures(page, ['simple-text.pdf']);
@@ -257,20 +250,13 @@ test("Read's page menu changes no page: one row switches to Edit, where the page
   await expect(first.locator('canvas[data-state="rendered"]')).toBeAttached({ timeout: 20_000 });
   const box = await first.boundingBox();
   if (!box) throw new Error('page 1 not laid out');
-  const pages = await page.locator('[data-page-index]').count();
   await page.mouse.click(box.x + 40, box.y + 40, { button: 'right' });
   const menu = page.getByTestId('page-context-menu');
-  await expect(menu.getByRole('menuitem')).toHaveCount(2);
-  for (const name of [/^Rotate page/, /^Delete page/, /^Crop/]) {
-    await expect(menu.getByRole('menuitem', { name })).toHaveCount(0);
+  for (const name of [/^Rotate page 1/, /^Delete page 1/, /^Crop/, /^Arrange/]) {
+    await expect(menu.getByRole('menuitem', { name }).first()).toBeVisible();
   }
-  await expect(menu.getByRole('menuitem', { name: /^Arrange/ })).toBeVisible();
-  await menu.getByRole('menuitem', { name: /^Switch to Edit to change pages/ }).click();
-  await expect(modeRadio(page, 'Edit')).toHaveAttribute('aria-checked', 'true');
-  await expect(page.locator('[data-page-index]')).toHaveCount(pages);
-  await page.mouse.click(box.x + 40, box.y + 40, { button: 'right' });
-  await expect(menu.getByRole('menuitem', { name: 'Delete page 1' })).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(modeRadio(page, 'Read, locked')).toHaveAttribute('aria-checked', 'true');
 });
 
 test('a Read selection offers "Edit text": Edit, with the paragraph editor at the selection', async ({

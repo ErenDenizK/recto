@@ -1,21 +1,32 @@
 /**
- * The one hit order and the Edit policy's pointer rules (craft spec §3.5, §10): the order
- * itself, which targets are live per tool, the winner among stacked targets whatever their
- * stacking, and the pointer roles (double-click entry, idle hover, pen eraser and barrel).
+ * The hit router (05-canvas §6) and its pointer rules: the order itself, links included; the
+ * live-kind matrix (9 states × 6 kinds); the winner among stacked targets whatever their
+ * stacking; the double-click asymmetry, the hover gate, the link slop, drawing pointers and the
+ * first-pen hint; the pointer roles (double-click entry, idle hover, pen eraser and barrel).
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   createPointerLog,
+  doubleClickOpensEditor,
+  HIT_MATRIX,
   HIT_ORDER,
   type HitKind,
   hitAt,
   hitKindOf,
+  hitMeaning,
   hoverAllowed,
+  hoverOutlines,
+  INPUT_STATES,
+  type InputState,
+  inputStateOf,
   isLive,
+  linkDragSelects,
   liveHitKinds,
   opensTextOnDoubleClick,
   penButtonOf,
+  pointerDraws,
+  showsPenHint,
   topHit,
   watchPointers,
 } from './hit-order';
@@ -30,6 +41,9 @@ function target(kind: HitKind | 'paper'): HTMLElement {
       break;
     case 'form-widget':
       element.setAttribute('data-field-name', 'name');
+      break;
+    case 'link':
+      element.setAttribute('data-link', 'internal');
       break;
     case 'image':
       element.setAttribute('data-image-object', '');
@@ -57,8 +71,15 @@ afterEach(() => {
 });
 
 describe('the hit order', () => {
-  it('is annotation, form widget, image, text run, text selection', () => {
-    expect(HIT_ORDER).toEqual(['annotation', 'form-widget', 'image', 'text-run', 'text-selection']);
+  it('is annotation, form widget, link, image, text run, text selection', () => {
+    expect(HIT_ORDER).toEqual([
+      'annotation',
+      'form-widget',
+      'link',
+      'image',
+      'text-run',
+      'text-selection',
+    ]);
   });
 
   it('knows each kind by its marks, and nothing else', () => {
@@ -84,6 +105,8 @@ describe('the hit order', () => {
       element: annotation,
     });
     expect(topHit([text, image, widget])?.kind).toBe('form-widget');
+    expect(topHit([text, image, target('link')])?.kind).toBe('link');
+    expect(topHit([target('link'), widget])?.kind).toBe('form-widget');
     expect(topHit([text, image])?.kind).toBe('image');
     expect(topHit([text, target('text-run')])?.kind).toBe('text-run');
     expect(topHit([paper, text])?.kind).toBe('text-selection');
@@ -109,31 +132,146 @@ describe('the hit order', () => {
   });
 });
 
-describe('live targets per tool (craft spec §3.5)', () => {
-  const kinds = (mode: ToolMode, editable = true) => [...liveHitKinds(mode, editable)].sort();
+describe('the live-kind matrix (05-canvas §6): 9 states × 6 kinds', () => {
+  const kinds = (state: InputState) => [...liveHitKinds(state)].sort();
+  const facts = (markup: boolean, tool: ToolMode, locked = false, penDraws = false) =>
+    inputStateOf({ markup, tool, locked, penDraws });
 
-  it('Read: text selection only, whatever the tool', () => {
-    expect(kinds('select', false)).toEqual(['text-selection']);
-    expect(kinds('edit-text', false)).toEqual(['text-selection']);
-    expect(kinds('ink', false)).toEqual(['text-selection']);
-  });
-
-  it('Select: annotations, form widgets and text selection', () => {
-    expect(kinds('select')).toEqual(['annotation', 'form-widget', 'text-selection']);
-  });
-
-  it('Edit text takes text runs only; Image images only', () => {
-    expect(kinds('edit-text')).toEqual(['text-run']);
-    expect(isLive('annotation', 'edit-text', true)).toBe(false);
-    expect(kinds('image')).toEqual(['image']);
-    expect(isLive('annotation', 'image', true)).toBe(false);
-  });
-
-  it('a drawing tool captures the page itself: no target is live', () => {
-    for (const mode of ['ink', 'eraser', 'lasso', 'highlight', 'rectangle', 'text-box'] as const) {
-      expect(kinds(mode)).toEqual([]);
-      expect(isLive('text-run', mode, true)).toBe(false);
+  it('names the state: Locked wins, then viewing, then the armed tool', () => {
+    expect(facts(false, 'select')).toBe('viewing');
+    expect(facts(true, 'select')).toBe('markup-select');
+    expect(facts(true, 'select', false, true)).toBe('markup-select-pen');
+    for (const tool of ['ink', 'eraser', 'lasso', 'highlight', 'rectangle', 'arrow'] as const) {
+      expect(facts(true, tool)).toBe('markup-draw');
     }
+    for (const tool of ['text-box', 'note', 'stamp', 'signature'] as const) {
+      expect(facts(true, tool)).toBe('markup-place');
+    }
+    expect(facts(true, 'image')).toBe('markup-image');
+    expect(facts(true, 'edit-text')).toBe('markup-edit-text');
+    expect(facts(true, 'redact')).toBe('markup-redact');
+    expect(facts(false, 'select', true)).toBe('locked');
+    expect(facts(true, 'ink', true, true)).toBe('locked');
+  });
+
+  it('every state has a row and every row every kind', () => {
+    expect(Object.keys(HIT_MATRIX).sort()).toEqual([...INPUT_STATES].sort());
+    expect(INPUT_STATES).toHaveLength(9);
+    for (const state of INPUT_STATES) {
+      expect(Object.keys(HIT_MATRIX[state]).sort()).toEqual([...HIT_ORDER].sort());
+    }
+  });
+
+  it('viewing: select annotations, fill fields, follow links, select text; images by menu', () => {
+    expect(HIT_MATRIX.viewing).toEqual({
+      annotation: 'select',
+      'form-widget': 'fill',
+      link: 'follow',
+      image: 'menu',
+      'text-run': null,
+      'text-selection': 'select-text',
+    });
+    expect(kinds('viewing')).toEqual(['annotation', 'form-widget', 'link', 'text-selection']);
+  });
+
+  it('Markup with Select: the same, and the double-click door on page text', () => {
+    expect(hitMeaning('text-run', 'markup-select')).toBe('door');
+    expect(hitMeaning('annotation', 'markup-select')).toBe('select');
+    // The door goes through the text selection's spans: no run targets.
+    expect(kinds('markup-select')).toEqual(['annotation', 'form-widget', 'link', 'text-selection']);
+  });
+
+  it('a pen that draws with Select, and every drawing, placing or Redact tool: no target', () => {
+    const states = ['markup-select-pen', 'markup-draw', 'markup-place', 'markup-redact'] as const;
+    for (const state of states) {
+      expect(kinds(state)).toEqual([]);
+      for (const kind of HIT_ORDER) expect(hitMeaning(kind, state)).toBeNull();
+    }
+  });
+
+  it('Image takes images only; Edit text takes text runs only', () => {
+    expect(kinds('markup-image')).toEqual(['image']);
+    expect(hitMeaning('image', 'markup-image')).toBe('transform');
+    expect(kinds('markup-edit-text')).toEqual(['text-run']);
+    expect(isLive('annotation', 'markup-edit-text')).toBe(false);
+    expect(isLive('annotation', 'markup-image')).toBe(false);
+  });
+
+  it('Locked: annotations show their comment, fields focus, links follow, text selects', () => {
+    expect(HIT_MATRIX.locked).toEqual({
+      annotation: 'comment',
+      'form-widget': 'focus',
+      link: 'follow',
+      image: 'menu',
+      'text-run': null,
+      'text-selection': 'select-text',
+    });
+    expect(kinds('locked')).toEqual(['annotation', 'form-widget', 'link', 'text-selection']);
+  });
+});
+
+describe('the double-click asymmetry and the hover outline (flows §3.2, 05-canvas §9)', () => {
+  it('opens the editor only in Markup with Select; selects a word everywhere else', () => {
+    for (const state of INPUT_STATES) {
+      expect(doubleClickOpensEditor(state, 'mouse', false)).toBe(state === 'markup-select');
+    }
+    // Never from touch; never from a pen once a pen draws (spec 05.12).
+    expect(doubleClickOpensEditor('markup-select', 'touch', false)).toBe(false);
+    expect(doubleClickOpensEditor('markup-select', 'pen', true)).toBe(false);
+    expect(doubleClickOpensEditor('markup-select', 'pen', false)).toBe(true);
+  });
+
+  it('outlines on hover only in Markup with Select', () => {
+    for (const state of INPUT_STATES) {
+      expect(hoverOutlines(state)).toBe(state === 'markup-select');
+    }
+  });
+});
+
+describe('links, long press and the first-pen hint (05-canvas §6, spec 04.11, flows §3.4)', () => {
+  it('a press on a link selects text past 4 px (mouse), 3 px (pen), 10 px (touch)', () => {
+    expect(linkDragSelects('mouse', 3, 0)).toBe(false);
+    expect(linkDragSelects('mouse', 4, 0)).toBe(true);
+    expect(linkDragSelects('pen', 2, 2)).toBe(false);
+    expect(linkDragSelects('pen', 3, 0)).toBe(true);
+    expect(linkDragSelects('touch', 6, 6)).toBe(false);
+    expect(linkDragSelects('touch', 0, 10)).toBe(true);
+    expect(linkDragSelects('', 4, 0)).toBe(true);
+  });
+
+  it('a drawing pointer never long-presses', () => {
+    expect(pointerDraws('markup-draw', 'mouse', false)).toBe(true);
+    expect(pointerDraws('markup-draw', 'pen', false)).toBe(true);
+    expect(pointerDraws('markup-place', 'pen', false)).toBe(true);
+    expect(pointerDraws('markup-redact', 'mouse', false)).toBe(true);
+    // A finger draws only while "Draw with finger" holds (before a pen was seen).
+    expect(pointerDraws('markup-draw', 'touch', true)).toBe(true);
+    expect(pointerDraws('markup-draw', 'touch', false)).toBe(false);
+    // The pen that writes in Markup with Select; a finger there scrolls and may long-press.
+    expect(pointerDraws('markup-select-pen', 'pen', false)).toBe(true);
+    expect(pointerDraws('markup-select-pen', 'touch', true)).toBe(false);
+    for (const state of ['viewing', 'markup-select', 'markup-image', 'locked'] as const) {
+      expect(pointerDraws(state, 'pen', true)).toBe(false);
+      expect(pointerDraws(state, 'touch', true)).toBe(false);
+    }
+  });
+
+  it('the first pen touch in viewing on a touch screen, once, never locked', () => {
+    const base = {
+      pointerType: 'pen',
+      maxTouchPoints: 5,
+      state: 'viewing',
+      penWritesWithoutMarkup: false,
+      shown: false,
+    } as const;
+    expect(showsPenHint(base)).toBe(true);
+    expect(showsPenHint({ ...base, pointerType: 'mouse' })).toBe(false);
+    // A desktop drawing tablet (M-24).
+    expect(showsPenHint({ ...base, maxTouchPoints: 0 })).toBe(false);
+    expect(showsPenHint({ ...base, state: 'locked' })).toBe(false);
+    expect(showsPenHint({ ...base, state: 'markup-select' })).toBe(false);
+    expect(showsPenHint({ ...base, penWritesWithoutMarkup: true })).toBe(false);
+    expect(showsPenHint({ ...base, shown: true })).toBe(false);
   });
 });
 
@@ -149,16 +287,16 @@ describe('pointer roles', () => {
     expect(opensTextOnDoubleClick('', true)).toBe(true);
   });
 
-  it('the idle hover: mouse or hovering pen, no button, not within 300 ms of a pen stroke', () => {
+  it('the idle hover: mouse or hovering pen, no button, not within 500 ms of a pen stroke', () => {
     const now = 10_000;
     const never = Number.NEGATIVE_INFINITY;
     expect(hoverAllowed({ pointerType: 'mouse', buttons: 0 }, now, never)).toBe(true);
     expect(hoverAllowed({ pointerType: 'pen', buttons: 0 }, now, never)).toBe(true);
     expect(hoverAllowed({ pointerType: 'touch', buttons: 0 }, now, never)).toBe(false);
     expect(hoverAllowed({ pointerType: 'mouse', buttons: 1 }, now, never)).toBe(false);
-    expect(hoverAllowed({ pointerType: 'pen', buttons: 0 }, now, now - 299)).toBe(false);
+    expect(hoverAllowed({ pointerType: 'pen', buttons: 0 }, now, now - 499)).toBe(false);
     expect(hoverAllowed({ pointerType: 'mouse', buttons: 0 }, now, now - 100)).toBe(false);
-    expect(hoverAllowed({ pointerType: 'mouse', buttons: 0 }, now, now - 300)).toBe(true);
+    expect(hoverAllowed({ pointerType: 'mouse', buttons: 0 }, now, now - 500)).toBe(true);
   });
 
   it("the pen's eraser end and barrel button", () => {

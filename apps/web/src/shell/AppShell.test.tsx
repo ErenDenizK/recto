@@ -10,7 +10,7 @@ import { userEvent } from 'vitest/browser';
 
 import { App } from '../app';
 import { currentPlatform } from '../commands/shortcuts';
-import { useUiStore } from '../state/ui-store';
+import { stageView, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 
 const MOD = currentPlatform === 'mac' ? 'Meta' : 'Control';
@@ -19,7 +19,7 @@ describe('AppShell', () => {
   beforeEach(() => {
     useUiStore.setState({
       // A test that runs "Arrange pages" must not leave the next one in Arrange.
-      viewMode: 'read',
+      docUi: {},
       paletteOpen: false,
       shortcutsOpen: false,
       recents: [],
@@ -60,10 +60,13 @@ describe('AppShell', () => {
       expect(screen.getAllByRole('option')[0]).toHaveTextContent('Arrange pages');
     });
     await userEvent.keyboard('{Enter}');
+    // The command ran. With no document open there is no grid to show (the surface belongs
+    // to a document, redesign spec §7), so the stage keeps its empty state.
     await waitFor(() => {
-      expect(useUiStore.getState().viewMode).toBe('arrange');
+      expect(useUiStore.getState().recents[0]).toBe('mode.arrange');
     });
-    expect(useUiStore.getState().recents[0]).toBe('mode.arrange');
+    expect(stageView(useUiStore.getState())).toBe('page');
+    expect(screen.getByRole('heading', { name: 'Drop PDFs to start' })).toBeVisible();
   });
 
   it('opens documents as tabs', async () => {

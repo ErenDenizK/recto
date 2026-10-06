@@ -45,7 +45,7 @@
   width: 14px;
   height: 14px;
   margin: 3px 0 0;
-  accent-color: var(--accent);
+  accent-color: var(--control-on);
 }
 
 /* Everything after the radio stacks in the second column. */
@@ -208,7 +208,7 @@
   padding: 0 var(--space-1) 0 var(--space-2);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-2);
-  background: var(--surface-2);
+  background: var(--surface-raised);
 }
 
 .rowIndex {
@@ -243,7 +243,7 @@
   padding: 0 var(--space-2);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-1);
-  background: var(--surface-2);
+  background: var(--surface-raised);
   color: var(--text-primary);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
