@@ -120,9 +120,13 @@ test('the chrome is set in the shipped face, from this origin, preloaded once', 
       ),
     ],
   }));
-  expect(face.family.startsWith("'Inter Recto'") || face.family.startsWith('"Inter Recto"')).toBe(
-    true,
-  );
+  // The first family, however the engine serializes it: Chromium and Firefox keep the quotes,
+  // while CSSOM lets a name of plain identifiers serialize bare (`Inter Recto, …`).
+  const first = face.family
+    .split(',')[0]
+    ?.trim()
+    .replace(/^(['"])(.*)\1$/, '$2');
+  expect(first, face.family).toBe('Inter Recto');
   expect(face.loaded).toBe(true);
   expect(face.origins).toEqual([new URL(page.url()).origin]);
   await page.context().close();
