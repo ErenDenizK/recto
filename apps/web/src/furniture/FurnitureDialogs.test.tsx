@@ -117,7 +117,9 @@ describe('furniture dialogs', () => {
     await waitFor(() => expect(useFurnitureStore.getState().dialog).toBeNull());
     expect(model().history.past.length).toBe(pastBefore + 2);
     expect(activeDoc()?.pages.every((p) => p.overlays.length === 0)).toBe(true);
-  });
+    // About 4 s here (three sheet openings, each with a live preview render); a slow runner
+    // takes several times that.
+  }, 30_000);
 
   it('numbers several documents with one Bates counter and remembers the last number', async () => {
     localStorage.removeItem('pdf-editor:bates-last-number');
