@@ -60,7 +60,7 @@ scene({
       // Gone before the sheet closes and Words to check opens.
       { ms: 750 },
     );
-    await expect(result).toContainText('Recognize text: 1 page, eng');
+    await expect(result).toContainText('Recognize text: 1 page, English');
 
     // 3. The result: Show results opens Review's Words to check with the page's quality.
     await cursor.click(dialog.getByRole('button', { name: 'Show results' }), 350);
