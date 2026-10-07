@@ -10,6 +10,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
 import { createAnnotations } from '../annotations/actions';
@@ -234,9 +235,10 @@ describe('the Read lock (mounted)', () => {
     const said = useAnnouncer.getState().message;
     expect(said.startsWith('Edit mode. ')).toBe(true);
     expect(said.match(/Edit mode/g)).toHaveLength(1);
-    // Visibly armed: the palette shows, the page takes the pen.
+    // Visibly armed: the palette shows, the page takes the pen. The capsule fades through
+    // from the dock to the palette: its content shows once that has run.
     await waitFor(() => expect(layer).toHaveAttribute('data-drawing'));
-    expect(screen.getByRole('toolbar', { name: 'Markup' })).toBeVisible();
+    expect(await settled(screen.getByRole('toolbar', { name: 'Markup' }))).toBeVisible();
   });
 
   it('the tool store arms nothing in Read and disarms on entering Read', async () => {
