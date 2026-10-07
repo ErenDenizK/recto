@@ -19,6 +19,7 @@ import {
 } from '@pdf-editor/document-model';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { revertAvailability } from '../files/revert';
 import {
   adoptFileFacts,
   editSignature,
@@ -106,6 +107,16 @@ describe('saved mark', () => {
     const id = only(opened);
     observeDocuments(opened, 1);
     expect(isInFile(renameDocument(opened, id, 'Quarterly report'), id)).toBe(true);
+  });
+
+  it('a rename alone leaves nothing to revert; a change after it does (V2 review item 22)', () => {
+    const opened = withSource(createWorkspace(), 'report.pdf');
+    const id = only(opened);
+    observeDocuments(opened, 1);
+    const renamed = renameDocument(opened, id, 'Quarterly report');
+    expect(revertAvailability(renamed, id).available).toBe(false);
+    const page = renamed.documents[id]?.pages[0]?.id ?? ('' as PageId);
+    expect(revertAvailability(rotatePages(renamed, [page], 90), id).available).toBe(true);
   });
 
   it('engine edits (annotations) count as changes to the document', () => {
