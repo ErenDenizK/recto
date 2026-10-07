@@ -51,6 +51,10 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'shell/sidebar/FindSection.module.css': {
     '.input:focus-visible': 'the well around the input draws the inset ring while it has focus',
   },
+  'shell/compact/CompactReader.module.css': {
+    '.reader:not([data-focus-ring]) .scroller:focus-visible':
+      'the phone reader shows its ring only after Tab, as the stage does (review finding 2)',
+  },
   'stage/ReadView.module.css': {
     ':global(main:not([data-focus-ring])) .viewport:focus-visible':
       'the pages show their ring only after Tab or F6 (review finding 23)',
