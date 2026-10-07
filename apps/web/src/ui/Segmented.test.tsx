@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import { Segmented, SegmentedPanel, segmentedLayout } from './Segmented';
 
 type View = 'grid' | 'spectrum' | 'sliders';
@@ -50,6 +51,11 @@ function Host({
   );
 }
 
+/**
+ * Lets a resize reach the group (its ResizeObserver picks the layout). The thumb's spring is
+ * waited out with `settled(thumb)` instead: a fixed pause can end before a slow runner has
+ * even started it.
+ */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 500));
 
 function thumbOf(group: HTMLElement): HTMLElement {
@@ -86,7 +92,7 @@ describe('Segmented, radio semantics', () => {
     expectOver(thumb, screen.getByRole('radio', { name: 'Grid' }));
     await userEvent.click(screen.getByRole('radio', { name: 'Sliders' }));
     expect(screen.getByRole('radio', { name: 'Sliders' })).toHaveAttribute('aria-checked', 'true');
-    await settle();
+    await settled(thumb);
     expectOver(thumb, screen.getByRole('radio', { name: 'Sliders' }));
     // At rest the thumb carries no transform (Q-2): layout alone placed it.
     expect(getComputedStyle(thumb).transform).toBe('none');
@@ -98,10 +104,10 @@ describe('Segmented, radio semantics', () => {
     render(<Host zoom={2} />);
     const group = screen.getByRole('radiogroup', { name: 'View' });
     await userEvent.click(screen.getByRole('radio', { name: 'Spectrum' }));
-    await settle();
+    await settled(thumbOf(group));
     expectOver(thumbOf(group), screen.getByRole('radio', { name: 'Spectrum' }));
     await userEvent.click(screen.getByRole('radio', { name: 'Sliders' }));
-    await settle();
+    await settled(thumbOf(group));
     expectOver(thumbOf(group), screen.getByRole('radio', { name: 'Sliders' }));
   });
 
@@ -115,7 +121,7 @@ describe('Segmented, radio semantics', () => {
     expect(animations.length).toBe(1);
     // Mid-flight its layout box is already the target's; only the transform moves.
     expect(thumb.offsetWidth).toBeCloseTo(before, 0);
-    await settle();
+    await settled(thumb);
     expect(thumb.getAnimations().length).toBe(0);
   });
 
@@ -197,7 +203,7 @@ describe('Segmented, radio semantics', () => {
     expect(screen.getByTestId('value').textContent).toBe('grid');
     fire('pointerup', to.left + 20, group);
     expect(screen.getByTestId('value').textContent).toBe('sliders');
-    await settle();
+    await settled(thumbOf(group));
     expectOver(thumbOf(group), screen.getByRole('radio', { name: 'Sliders' }));
   });
 });
@@ -212,7 +218,7 @@ describe('Segmented, tabs semantics', () => {
     await userEvent.keyboard('{ArrowRight}');
     expect(screen.getByRole('tab', { name: 'Spectrum' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Spectrum panel');
-    await settle();
+    await settled(thumbOf(list));
     expectOver(thumbOf(list), screen.getByRole('tab', { name: 'Spectrum' }));
   });
 });

@@ -35,6 +35,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../test/settled';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
@@ -193,7 +194,9 @@ describe('crop pages dialog', () => {
     expect(within(dialog).getByTestId('crop-top')).toHaveValue('108');
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Crop' }));
-    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(lastLabel()).toBe('Crop 1 page');
     expect(pageAt(id, 0).cropBox).toEqual(CROPPED);
     expect(pageAt(id, 1).cropBox).toBeUndefined();
@@ -236,7 +239,9 @@ describe('crop pages dialog', () => {
       '1 page will show their whole page again',
     );
     await userEvent.click(within(again).getByRole('button', { name: 'Remove crop' }));
-    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(lastLabel()).toBe('Reset the crop of 1 page');
     expect(pageAt(id, 0).cropBox).toBeUndefined();
     model().undo();
@@ -259,7 +264,9 @@ describe('crop pages dialog', () => {
       '3 pages will be cropped, the first to 8.5 × 10 in',
     );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Crop' }));
-    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(lastLabel()).toBe('Crop 3 pages');
     for (let i = 0; i < 3; i++) {
       expect(pageAt(id, i).cropBox).toEqual({ x: 0, y: 72, width: 612, height: 720 });
@@ -280,7 +287,9 @@ describe('crop pages dialog', () => {
     await chooseOption(within(dialog).getByTestId('crop-unit'), 'pt');
     await typeMargin(dialog, 'top', '72');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Crop' }));
-    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     const crop = pageAt(id, 1).cropBox;
     expect(crop?.x).toBeCloseTo(72, 6);
     expect(crop?.y).toBeCloseTo(0, 6);
@@ -344,7 +353,9 @@ describe('crop pages dialog: removal and resized pages', () => {
     const left = (await readAnnotations(source, 0)).filter(isRedactMark);
     expect(left.map((a) => a.id)).toEqual([body?.id]);
     await userEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
 
     // Opened again: the form, not the old sheet.
     await commandRegistry.execute('pages.crop');

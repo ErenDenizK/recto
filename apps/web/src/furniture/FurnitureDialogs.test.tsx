@@ -12,6 +12,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../test/settled';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { App } from '../app';
@@ -80,7 +81,9 @@ describe('furniture dialogs', () => {
     await userEvent.click(within(dialog).getByRole('radio', { name: 'Top right' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
     await waitFor(() => expect(useFurnitureStore.getState().dialog).toBeNull());
-    await waitFor(() => expect(screen.queryByTestId('furniture-dialog-page-numbers')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('furniture-dialog-page-numbers')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(model().history.past.length).toBe(pastBefore + 1);
     expect(model().history.present.label).toBe('Page numbers');
     const doc = activeDoc();

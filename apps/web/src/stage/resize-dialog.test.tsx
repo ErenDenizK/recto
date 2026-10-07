@@ -20,6 +20,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../test/settled';
 import mixedUrl from '../../../../test/fixtures/mixed-sizes.pdf?url';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import { App } from '../app';
@@ -157,7 +158,9 @@ describe('resize pages dialog', () => {
     expect(sheet.querySelector('[data-resized]')).not.toBeNull();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Resize' }));
-    await waitFor(() => expect(screen.queryByTestId('resize-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('resize-dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(lastLabel()).toBe('Resize 1 page');
     expect(shownSizes(id)[1]).toEqual([792, 612]);
     const resized = ws().documents[id]?.pages[1]?.resize;
@@ -185,7 +188,9 @@ describe('resize pages dialog', () => {
     ).toBeChecked();
     await userEvent.click(within(dialog).getByRole('radio', { name: 'Portrait' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Resize' }));
-    await waitFor(() => expect(screen.queryByTestId('resize-dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('resize-dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     expect(lastLabel()).toBe('Resize 5 pages');
     // A4 portrait, Letter portrait, landscape (/Rotate 90), landscape (MediaBox), square.
     expect(shownSizes(id)).toEqual([

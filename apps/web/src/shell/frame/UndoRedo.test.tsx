@@ -25,6 +25,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { settled } from '../../../test/settled';
 import { registerAppCommands } from '../../commands/app-commands';
 import { closeHistoryScrubber, useHistoryScrubber } from '../../history/scrubber-store';
 import { setLocale } from '../../i18n';
@@ -233,7 +234,7 @@ describe('the History scrubber (08-feedback FB7)', () => {
     await waitFor(() => expect(presentIndex()).toBe(3));
     await userEvent.keyboard('{ArrowDown}');
     await waitFor(() => expect(presentIndex()).toBe(2));
-    expect(screen.getByRole('heading', { name: 'Previewing step 2' })).toBeVisible();
+    expect(await settled(screen.getByRole('heading', { name: 'Previewing step 2' }))).toBeVisible();
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(scrubber()).toBeNull());
     expect(presentIndex()).toBe(2);
