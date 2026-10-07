@@ -94,13 +94,13 @@
   margin-top: var(--space-2);
 }
 
+/* Section heads in sentence case at footnote 550, secondary (T-9: no uppercase labels). */
 .groupLabel {
   padding: 6px var(--space-3) 4px;
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 550;
+  line-height: var(--type-footnote-lh);
 }
 
 .option {
