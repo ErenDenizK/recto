@@ -458,17 +458,21 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Enter');
     const sheet = page.getByTestId('document-info');
     await expect(sheet).toBeVisible();
-    // Trapped: in the sheet, or on one of the trap's own focus guards (Base UI's invisible
-    // edges, which hand focus back to the sheet on the next Tab).
-    const trapped = () =>
-      page.evaluate(() => {
-        const el = document.activeElement;
-        if (!el) return false;
-        return (
-          el.closest('[data-testid="document-info"]') !== null ||
-          el.hasAttribute('data-base-ui-focus-guard')
-        );
-      });
+    // Trapped: in the sheet once focus has settled. A Tab off the last control lands on one of
+    // the trap's own focus guards (Base UI's invisible edges), which hands focus back to the
+    // sheet on the next animation frame (FloatingFocusManager's `enqueueFocus`); a Tab pressed
+    // before that frame would leave from the guard, faster than any key repeat, so each read
+    // waits for focus to leave a guard first. A focus that escaped the sheet still fails.
+    const trapped = async () => {
+      await page.waitForFunction(
+        () => document.activeElement?.hasAttribute('data-base-ui-focus-guard') !== true,
+        undefined,
+        { timeout: 2_000 },
+      );
+      return page.evaluate(
+        () => document.activeElement?.closest('[data-testid="document-info"]') != null,
+      );
+    };
     await expect.poll(() => holdsFocus(sheet)).toBe(true);
     for (let i = 0; i < 25; i++) {
       await page.keyboard.press('Tab');
