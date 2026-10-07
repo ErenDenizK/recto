@@ -5,7 +5,7 @@
  */
 import { getActiveDocument, type SourceId } from '@pdf-editor/document-model';
 import { diagnoseSource } from '@pdf-editor/engine';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
@@ -240,7 +240,8 @@ describe('Strip metadata and diagnostics', () => {
     expect(within(dialog).getByTestId('strip-count-attachments')).toHaveTextContent('1 found');
     expect(within(dialog).getByTestId('strip-count-xmp')).toHaveTextContent('1 found');
     expect(within(dialog).getByTestId('strip-count-javascript')).toHaveTextContent('none found');
-    expect(within(dialog).getByText(/attachment\.txt/)).toBeVisible();
+    // The checklist is a new popup that fades in: wait out its entrance before asking if it shows.
+    await waitFor(() => expect(within(dialog).getByText(/attachment\.txt/)).toBeVisible());
     // Annotation authors are optional: not selected by default.
     expect(within(dialog).getByLabelText(/Annotation authors and dates/)).not.toBeChecked();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Strip on export' }));
