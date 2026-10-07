@@ -119,7 +119,7 @@ async function pauseMorphAt(page: Page, fraction: number): Promise<Box> {
       const first = effect.getKeyframes()[0] ?? {};
       return 'width' in first || 'height' in first;
     };
-    for (let i = 0; i < 30 && !document.getAnimations().some(isSize); i++) {
+    for (let i = 0; i < 60 && !document.getAnimations().some(isSize); i++) {
       await new Promise((resolve) => requestAnimationFrame(resolve));
     }
     const all = document.getAnimations();
@@ -435,21 +435,35 @@ test.describe('the capsule morph (Q-6)', () => {
     const restWidth = await page
       .locator('[data-capsule]')
       .evaluate((el) => el.getBoundingClientRect().width);
-    await page.keyboard.press('2');
+    // The key is pressed inside the page and the animations read on the next frame: the whole
+    // change lasts 150 ms, which a round trip from the test can outlast on a loaded runner.
     const seen = await page.evaluate(async () => {
       const capsule = document.querySelector('[data-capsule]') as HTMLElement;
+      const target = document.activeElement ?? document.body;
+      for (const type of ['keydown', 'keyup']) {
+        target.dispatchEvent(
+          new KeyboardEvent(type, { key: '2', bubbles: true, cancelable: true }),
+        );
+      }
       await new Promise((resolve) => requestAnimationFrame(resolve));
       return capsule.getAnimations({ subtree: true }).map((a) => {
         const effect = a.effect as KeyframeEffect;
         const props = new Set(effect.getKeyframes().flatMap((f) => Object.keys(f)));
         for (const meta of ['offset', 'computedOffset', 'easing', 'composite']) props.delete(meta);
-        return { props: [...props], duration: Number(effect.getComputedTiming().duration) };
+        const timing = effect.getComputedTiming();
+        return {
+          props: [...props],
+          end: Number(timing.endTime),
+          duration: Number(timing.duration),
+        };
       });
     });
     expect(seen.length).toBeGreaterThan(0);
-    for (const { props, duration } of seen) {
+    // A fade through within A-9's 150 ms: out, then in, each fade and the whole change no longer.
+    for (const { props, end, duration } of seen) {
       expect(props).toEqual(['opacity']);
       expect(duration).toBeLessThanOrEqual(150);
+      expect(Math.round(end)).toBeLessThanOrEqual(150);
     }
     const width = await page
       .locator('[data-capsule]')
@@ -640,16 +654,23 @@ test.describe('the capsule morph never prints two contents at once', () => {
       }
       const pseudo = (a: Animation) => String((a.effect as KeyframeEffect | null)?.pseudoElement);
       const isVt = (a: Animation) => pseudo(a).includes('view-transition');
-      for (let i = 0; i < 120 && !document.getAnimations().some(isVt); i++) {
+      // The root group's start is the view change's: wait until it has one (an animation is
+      // pending, with no start time, on the frame it is created), and read every animation's
+      // place from it, so each is paused where it is 80 ms into the view change.
+      const rootGroup = () =>
+        document
+          .getAnimations()
+          .find((a) => pseudo(a) === '::view-transition-group(root)' && a.startTime !== null);
+      for (let i = 0; i < 120 && !rootGroup(); i++) {
         await new Promise((resolve) => requestAnimationFrame(resolve));
       }
+      const t0 = Number(rootGroup()?.startTime ?? Number.NaN);
       const all = document.getAnimations();
       const vt = all.filter(isVt);
-      const t0 = Math.min(...vt.map((a) => Number(a.startTime ?? 0)));
       for (const a of all) {
         a.pause();
-        const started = Number(a.startTime ?? t0);
-        a.currentTime = Math.max(0, t0 + 80 - (Number.isFinite(started) ? started : t0));
+        const started = a.startTime === null ? t0 : Number(a.startTime);
+        a.currentTime = Math.max(0, t0 + 80 - started);
       }
       await new Promise((resolve) => requestAnimationFrame(resolve));
       const capsule = document.querySelector('[data-capsule]') as HTMLElement;
@@ -669,6 +690,10 @@ test.describe('the capsule morph never prints two contents at once', () => {
     ]);
     expect(mid.box.width).toBeLessThan(palette.width - 40);
     const during = await frame(page);
+    await info.attach('80 ms into the view change', {
+      body: await page.screenshot({ animations: 'allow', scale: 'css' }),
+      contentType: 'image/png',
+    });
     await page.evaluate(() => {
       for (const a of document.getAnimations()) if (a.playState === 'paused') a.play();
       Reflect.set(ViewTransition.prototype, 'skipTransition', Reflect.get(window, '__skip'));
