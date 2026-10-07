@@ -80,7 +80,13 @@ describe('the Settings sheet', () => {
     );
     await userEvent.clear(search);
     await userEvent.type(search, 'xyzzy');
-    expect(within(dialog).getByText('No setting matches “xyzzy”')).toBeVisible();
+    // The note, not the polite status: on a slow runner the spoken count has caught up with
+    // the typing by now and says the same words.
+    expect(
+      within(dialog).getByText('No setting matches “xyzzy”', {
+        ignore: '[role="status"], script, style',
+      }),
+    ).toBeVisible();
     await waitFor(() =>
       expect(within(dialog).getByRole('status')).toHaveTextContent('No setting matches “xyzzy”'),
     );
