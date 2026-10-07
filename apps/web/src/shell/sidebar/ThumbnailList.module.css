@@ -3,12 +3,14 @@
  * 8 · label 16 · 8, `thumbnail-layout.ts`), inset 8 from the sidebar's edges, a hover wash of
  * radius 12 over the full row. Thumbnails are content: solid, a page hairline, no shadow.
  *
- * Marks: current page, a 2 px lime ring 3 px out (`--current-ring`, which D3-7's light theme
- * sets to lime-800); selected, an inset `--select` ring and a 20 px check badge (24 coarse);
- * both shapes when both hold. Focus: the inset two-band ring round the row, outside the marks.
+ * Marks, as the Pages grid draws them (ArrangeView.module.css): current page, its label at 600
+ * and a 1 px neutral ring 3 px out (`--current-ring`); selected, a light `--select` wash with
+ * its 2 px edge inside the page and a 20 px check badge (24 coarse); both when both hold.
+ * Focus: the inset two-band ring round the row on `:focus-visible`, outside the marks; the
+ * current ring steps aside while its row holds keyboard focus. Lime is never a mark here.
  */
 .scroll {
-  --current-ring: var(--accent-ring);
+  --current-ring: var(--control-border);
   position: relative;
   flex: 1;
   min-height: 0;
@@ -77,17 +79,18 @@
   overflow: hidden;
 }
 
-.sheet[data-current] {
-  outline: 2px solid var(--current-ring);
+.option:not(:focus-visible) .sheet[data-current] {
+  outline: 1px solid var(--current-ring);
   outline-offset: 3px;
 }
 
-/* Selected: the blue ring inside the page, above the bitmap. */
+/* Selected: the blue wash and its edge inside the page, above the bitmap. */
 .sheet[data-selected]::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  background: var(--select-subtle);
   box-shadow: inset 0 0 0 2px var(--select);
   pointer-events: none;
 }
