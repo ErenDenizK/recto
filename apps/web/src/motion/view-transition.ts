@@ -27,12 +27,14 @@ export const VIEW_TRANSITION_MS = VT_MS;
 
 /**
  * Runs `update` as a View Transition. `name` becomes the transition's type for
- * `:active-view-transition-type()` where engines support types. Resolves once the update has
- * been applied, and rejects if it throws.
+ * `:active-view-transition-type()` where engines support types. `ready` is called once both
+ * views are captured and the pseudo-elements are about to animate (the new view's boxes are
+ * final then); never where View Transitions are missing. Resolves once the update has been
+ * applied, and rejects if it throws.
  */
 export function viewTransition(
   update: () => void | Promise<void>,
-  o: { readonly name?: string } = {},
+  o: { readonly name?: string; readonly ready?: () => void } = {},
 ): Promise<void> {
   const focused = document.activeElement as HTMLElement | null;
   const run = async () => {
@@ -46,7 +48,10 @@ export function viewTransition(
     o.name && 'types' in ViewTransition.prototype ? { update: run, types: [o.name] } : run,
   );
   transition.ready.then(
-    () => setTimeout(() => transition.skipTransition(), cap),
+    () => {
+      o.ready?.();
+      setTimeout(() => transition.skipTransition(), cap);
+    },
     () => undefined,
   );
   return transition.updateCallbackDone;
