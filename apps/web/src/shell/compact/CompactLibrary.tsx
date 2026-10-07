@@ -1,6 +1,7 @@
 /**
  * The compact edition's Library (ADR-0033 §2.3, §3): the one primary button, **Open PDF**,
- * the Recents, the reading-only line, and the language switch. Nothing else.
+ * **Try the sample** as a text button under it (02-library L10), the Recents, the
+ * reading-only line, and the language switch. Nothing else.
  *
  * - The reading-only line ("Reading only on phones for now…") is the Library's own line under
  *   the button, never a modal (ADR-0033 §3 "Honesty").
@@ -28,7 +29,7 @@ import { Icon } from '../../ui/Icon';
 import { AppGlyph } from '../AppGlyph';
 import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
-import { isOpenEntry, openRecentEntry, pickAndOpen } from './compact-actions';
+import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
 import { useCompactStore } from './compact-store';
 import controls from './controls.module.css';
 import styles from './CompactLibrary.module.css';
@@ -63,6 +64,16 @@ export function CompactLibrary() {
           onClick={() => void pickAndOpen()}
         >
           {opening ? m.compact_opening() : m.compact_open_pdf()}
+        </button>
+        <button
+          type="button"
+          className={controls.text}
+          disabled={opening}
+          data-testid="compact-sample"
+          onClick={() => void trySample()}
+        >
+          <Icon name="book-open-text" />
+          {m.cmd_try_sample()}
         </button>
         <p className={styles.honesty}>{m.compact_reading_only()}</p>
         {openError ? (

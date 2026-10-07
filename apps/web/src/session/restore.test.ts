@@ -18,13 +18,20 @@ import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile, pngFile } from '../../test/store-harness';
 import { getEngineService } from '../engine/engine-service';
 import { useRecentsStore } from '../files/recents';
-import { revertDocument } from '../files/revert';
+import { revertAvailability, revertDocument } from '../files/revert';
 import { openPdf } from '../shell/compact/compact-actions';
 import { resetCompactStore } from '../shell/compact/compact-store';
 import { openImagesAsDocument } from '../stage/section-operations';
 import { resetInputPolicyStore, useInputPolicyStore } from '../state/input-policy-store';
 import { lockOf, resetLockStore, useLockStore } from '../state/lock-store';
-import { fileFactsOf, isInFile, markSaved, resetSavedMarks } from '../state/saved-store';
+import {
+  fileFactsOf,
+  fileIsAsOpened,
+  isInFile,
+  markSaved,
+  originOf,
+  resetSavedMarks,
+} from '../state/saved-store';
 import { isMarkupOpen, surfaceOf, useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import {
@@ -510,8 +517,10 @@ describe('the launch flow', { timeout: 40_000 }, () => {
       }
     });
     try {
-      expect(await revertDocument(doc)).toBe(true);
-      expect(isInFile(model().workspace, doc)).toBe(false);
+      expect(originOf(model().workspace, doc)).toBeDefined();
+      expect(fileIsAsOpened(doc)).toBe(false);
+      // The name is not in the file: a rename alone leaves nothing to revert.
+      expect(revertAvailability(model().workspace, doc).available).toBe(false);
     } finally {
       stop();
     }

@@ -28,9 +28,14 @@
  *   Any other size change (a resize, the locale, a fold, labels stacking) is followed at once,
  *   without motion (F10 §7: "label form changes on resize without animation").
  * - Mark the pieces of a content `data-capsule-item="<key>"` (buttons, groups, separators). A
- *   piece whose key was on screen before slides from where it was (the dock's Pages and More
- *   into Locked; D2-3 can give Done the key `markup` so it grows out of the dock's Markup); new
- *   pieces fade in. A content with no marked pieces fades in whole.
+ *   piece whose key was on screen before slides from where it was when it looks the same (its
+ *   text and icon: the dock's Pages and More into Locked); a twin that looks different (the
+ *   dock's Markup and the palette's Done, which share `markup`) fades out with its content while
+ *   the new one fades in at its place. Contents fade through: the arriving one only once the
+ *   leaving one is gone, whole when nothing slides, piece by piece when something does (then a
+ *   new piece in a slide's path waits for it to pass).
+ * - A content rests on the capsule's bottom edge, centred across: a second row (the ink strip)
+ *   rises above the first, which stays put.
  * - Mark the control that should take focus when the content arrives with
  *   `data-capsule-focus` (the dock marks the door Markup closed through). Without one, focus
  *   that was in the capsule goes to the twin of the piece that had it, else the content's Tab

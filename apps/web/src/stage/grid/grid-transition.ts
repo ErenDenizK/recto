@@ -14,7 +14,9 @@
  *   150 ms (`grid-transition.css`, while `<html>` has `data-vt-grid`), so the dock never shows
  *   at half strength beside the Pages bar it morphs into. The capsule is not named (a named
  *   element is captured on its own, where its backdrop blur has nothing to blur, Q-1): its own
- *   *bar morph* runs live in the new view, from the dock's box (spec X21).
+ *   *bar morph* runs live in the new view, from the dock's box (spec X21), and the band it lies
+ *   in shows the new view at once (`setCapsuleBand`), so the old view's capsule is never seen
+ *   behind the new one as it narrows (no clone of the capsule, Q-6).
  * - **Entry** remembers the page that was current, per document, so Done, Esc and `3` return
  *   to it (the nearest surviving page if it was deleted). Selection clears when the surface
  *   changes (06-navigation §1.1), and the grid's keyboard focus starts on that page's cell.
@@ -158,6 +160,53 @@ function unnameSoon(elements: readonly (HTMLElement | null)[]): void {
 }
 
 /**
+ * The capsule's band (`grid-transition.css`): the bottom of the window up to the capsule's top
+ * and the reach of its shadow above it. Entering the grid, the new view shows there at once, so
+ * that the old view's capsule is never drawn beside the new one, whose bar morph narrows from it
+ * (spec X21; Q-6: no clones), and the shared page's images leave the band out, so the page
+ * lifting off towards its cell never covers the capsule (language.md §7.3 *view change*: chrome
+ * stays on top).
+ */
+const CAPSULE_BAND = '--vt-grid-band';
+/**
+ * The band's top in the `page-current` group's own coordinates, as the group leaves (`-from`)
+ * and as it arrives (`-to`). The group's top moves between its two places on the view change's
+ * spring, and the cut moves on the same curve and duration (`grid-transition.css`).
+ */
+const CUT_FROM = '--vt-grid-cut-from';
+const CUT_TO = '--vt-grid-cut-to';
+/** Set on `<html>` while both sides of the shared page are named and the band is cut. */
+const CUT_ATTRIBUTE = 'data-vt-grid-cut';
+/** How far the capsule's shadow (`--e3`) reaches above its top, with a margin (CSS px). */
+const SHADOW_REACH = 12;
+/** Counts view changes, so one that ends does not take the styles of the next. */
+let changes = 0;
+
+/** Sets the band from the capsule's top; returns the band's top (viewport px), or null. */
+function setCapsuleBand(root: HTMLElement): number | null {
+  const capsule = document.querySelector('[data-capsule]')?.getBoundingClientRect();
+  if (!capsule || capsule.height === 0) return null;
+  const top = capsule.top - SHADOW_REACH;
+  root.style.setProperty(CAPSULE_BAND, `${Math.ceil(Math.max(0, window.innerHeight - top))}px`);
+  return top;
+}
+
+/**
+ * The band's top below the top of `element`, in the element's own CSS px: a group is the
+ * element's untransformed box, carried by a transform that holds any scale the element is drawn
+ * at.
+ */
+function bandIn(element: HTMLElement, rect: DOMRect, top: number): string {
+  const scale = element.offsetHeight > 0 ? rect.height / element.offsetHeight : 1;
+  return `${((top - rect.top) / (scale || 1)).toFixed(2)}px`;
+}
+
+function clearCapsuleBand(root: HTMLElement): void {
+  root.removeAttribute(CUT_ATTRIBUTE);
+  for (const property of [CAPSULE_BAND, CUT_FROM, CUT_TO]) root.style.removeProperty(property);
+}
+
+/**
  * Runs `apply` as the grid's view change, with `named` named in the old view and what `find`
  * returns named in the new one.
  */
@@ -171,6 +220,14 @@ function change(
   name(named);
   const root = document.documentElement;
   root.setAttribute(GRID_ATTRIBUTE, direction);
+  clearCapsuleBand(root);
+  // Leaving the grid nothing is cut: the page is not in the new root's image (a named element
+  // is captured on its own), so leaving it out under the capsule would open a hole there.
+  const band = direction === 'in' ? setCapsuleBand(root) : null;
+  if (band !== null && named) {
+    root.style.setProperty(CUT_FROM, bandIn(named, named.getBoundingClientRect(), band));
+  }
+  const generation = ++changes;
   let arrived: HTMLElement | null = null;
   void viewTransition(
     async () => {
@@ -181,17 +238,34 @@ function change(
       arrived = find();
       // Name the arriving side only when the leaving side was named too: half a pair would
       // fly in from the root's corner.
-      if (named) name(arrived);
+      if (named) {
+        name(arrived);
+        if (band !== null && arrived) {
+          root.style.setProperty(CUT_TO, bandIn(arrived, arrived.getBoundingClientRect(), band));
+          root.setAttribute(CUT_ATTRIBUTE, '');
+        }
+      }
       after?.();
     },
-    { name: 'grid' },
+    {
+      name: 'grid',
+      // Both views are captured: the arriving side is at its final place now, where the cut
+      // must end.
+      ready: () => {
+        if (band === null || !arrived || !root.hasAttribute(CUT_ATTRIBUTE)) return;
+        root.style.setProperty(CUT_TO, bandIn(arrived, arrived.getBoundingClientRect(), band));
+      },
+      // The transition is over (it is cut at VT_MS, view-transition.ts): its styles go with it,
+      // unless a later view change has taken them over.
+      finished: () => {
+        if (generation !== changes) return;
+        root.removeAttribute(GRID_ATTRIBUTE);
+        clearCapsuleBand(root);
+      },
+    },
   )
     .catch(() => undefined)
-    .finally(() => {
-      // The transition is cut at VT_MS (view-transition.ts); its styles go with it.
-      window.setTimeout(() => root.removeAttribute(GRID_ATTRIBUTE), VT_MS + 60);
-      unnameSoon([named, arrived]);
-    });
+    .finally(() => unnameSoon([named, arrived]));
 }
 
 /**

@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { Capsule } from './Capsule';
 import type { CapsuleShape } from './capsule-content';
+import { LEAVE_MS, TRACE_OPACITY } from './capsule-morph';
 
 /** A content of `width` × 42 px, with named pieces of 60 px. */
 function Content({ shape }: { readonly shape: CapsuleShape }) {
@@ -250,6 +251,97 @@ describe('capsule', () => {
       await wait(50);
     });
     expect(el.querySelector('[data-capsule-layer="dock"]')).toBeNull();
+  });
+
+  it('fades through: the arriving content starts only once the leaving one is gone', async () => {
+    const { rerender } = render(<Harness shape="dock" />);
+    rerender(<Harness shape="palette" />);
+    const el = capsule();
+    const fadeOf = (layer: string) =>
+      morphs().find((a) => {
+        const effect = a.effect as KeyframeEffect;
+        return (
+          effect.target === el.querySelector(`[data-capsule-layer="${layer}"]`) &&
+          'opacity' in (effect.getKeyframes()[0] ?? {})
+        );
+      });
+    const out = fadeOf('dock')?.effect?.getComputedTiming();
+    const into = fadeOf('palette')?.effect?.getComputedTiming();
+    if (!out || !into) throw new Error('no fades');
+    // Out in LEAVE_MS; in from then on: never two contents drawn at once (the V2 review's
+    // "PÆgae", Pages and the highlighter printing as one word).
+    expect(Number(out.endTime)).toBeLessThanOrEqual(LEAVE_MS);
+    expect(Number(into.delay)).toBeGreaterThanOrEqual(Number(out.endTime) - 1);
+    // A content whose pieces have no twin that looks the same fades in whole: none of its
+    // pieces (nor anything between them) is drawn before its turn.
+    const pieces = [...el.querySelectorAll('[data-capsule-layer="palette"] [data-capsule-item]')];
+    expect(pieces.every((piece) => piece.getAnimations().length === 0)).toBe(true);
+    await settle();
+  });
+
+  it('a twin that looks different is not slid into: it fades out, and the new one fades in', async () => {
+    const labels: Record<string, string> = { dock: 'More', locked: '+' };
+    function Labelled({ shape }: { readonly shape: CapsuleShape }) {
+      const keys = shape === 'dock' ? ['pages', 'markup', 'more'] : ['pages', 'more'];
+      return (
+        <div style={{ display: 'flex', height: 42 }}>
+          {keys.map((key) => (
+            <button
+              key={key}
+              type="button"
+              data-capsule-item={key}
+              style={{ width: 60, height: 32, margin: '5px 0', flex: 'none' }}
+            >
+              {key === 'more' ? labels[shape] : key}
+            </button>
+          ))}
+        </div>
+      );
+    }
+    const at = (shape: CapsuleShape) => (
+      <div style={{ display: 'flex', justifyContent: 'center', width: 1200 }}>
+        <Capsule shape={shape}>{(content) => <Labelled shape={content} />}</Capsule>
+      </div>
+    );
+    const { rerender } = render(at('dock'));
+    rerender(at('locked'));
+    const el = capsule();
+    const piece = (layer: string, key: string) =>
+      el.querySelector(`[data-capsule-layer="${layer}"] [data-capsule-item="${key}"]`) as Element;
+    const transforms = (target: Element) =>
+      target.getAnimations().filter((a) => {
+        const frames = (a.effect as KeyframeEffect).getKeyframes();
+        return 'transform' in (frames[0] ?? {});
+      });
+    // Pages looks the same in both: it slides, and its leaving twin hides.
+    expect(transforms(piece('locked', 'pages')).length).toBeGreaterThan(0);
+    expect(piece('dock', 'pages')).toHaveAttribute('data-capsule-handed');
+    // "More" and "+" share a key but not a look: no slide, the old one fades with its content.
+    expect(transforms(piece('locked', 'more'))).toHaveLength(0);
+    expect(piece('dock', 'more')).not.toHaveAttribute('data-capsule-handed');
+    await settle();
+  });
+
+  it('turning back mid-morph never shows both contents: the one leaving mid-arrival holds', async () => {
+    const { rerender } = render(<Harness shape="dock" />);
+    rerender(<Harness shape="palette" />);
+    await nextFrame();
+    // Back before the dock has faded: the palette, not yet shown, leaves from where it is.
+    rerender(<Harness shape="dock" />);
+    await nextFrame();
+    const el = capsule();
+    const opacity = (layer: string) =>
+      Number(
+        getComputedStyle(el.querySelector(`[data-capsule-layer="${layer}"]`) as Element).opacity,
+      );
+    expect(opacity('palette')).toBeLessThanOrEqual(TRACE_OPACITY);
+    expect(opacity('dock')).toBeGreaterThan(0.5);
+    await settle();
+    await act(async () => {
+      await wait(50);
+    });
+    expect(el.querySelector('[data-capsule-layer="palette"]')).toBeNull();
+    expect(opacity('dock')).toBe(1);
   });
 
   it('keeps focus in the capsule: it follows the twin of the focused piece, else the Tab stop', async () => {

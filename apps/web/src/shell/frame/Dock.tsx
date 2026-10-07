@@ -48,9 +48,11 @@ import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-stor
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
 import { Tooltip } from '../../ui/Tooltip';
+import { centredRoom, snapToWholePixels } from '../../ui/whole-pixels';
 import { announce } from '../announcer';
 import { Capsule } from '../capsule/Capsule';
 import { type CapsuleShape, useCapsuleShape } from '../capsule/capsule-content';
+import { abovePalette } from '../../markup/anchor';
 import { openMarkupDoor } from '../../markup/doors';
 import { useStripKind } from '../../markup/InkStrip';
 import { MarkupPaletteContent, PaletteMeasurer } from '../../markup/MarkupPalette';
@@ -153,6 +155,14 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
   const empty = doc.pages.length === 0;
   const reason = empty ? m.dock_no_pages() : undefined;
   const compact = frame.size === 'compact';
+  // The capsule rests at this bar's size plus its rim, centred in the dock by a flex column:
+  // with the labels' fractional width it sat between pixels (x 517.72, V2 review item 16). The
+  // bar's width rounds so the capsule's edges both land on whole pixels (Q-2).
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    return snapToWholePixels(el, 'width', { container: () => centredRoom(el, '[data-capsule]') });
+  }, []);
   return (
     <div
       ref={ref}
@@ -350,16 +360,30 @@ const MORE_APP_ITEMS: readonly { readonly id: string; readonly label: () => stri
 ];
 
 function MoreMenu() {
+  const [trigger, setTrigger] = useState<HTMLElement | null>(null);
   return (
     <Menu.Root>
       <Tooltip label={m.dock_more()} shortcut={shortcutOf('view.palette')} side="top">
-        <Menu.Trigger className={styles.item} data-capsule-item="more" data-dock-item="more">
+        <Menu.Trigger
+          ref={setTrigger}
+          className={styles.item}
+          data-capsule-item="more"
+          data-dock-item="more"
+        >
           <Icon name="dots-three" className={styles.icon} />
           <span className={styles.label}>{m.dock_more()}</span>
         </Menu.Trigger>
       </Tooltip>
       <Menu.Portal>
-        <Menu.Positioner side="top" align="end" sideOffset={8} collisionPadding={8}>
+        {/* 8 px above the capsule's glass, in line with More: anchored to More alone, the
+            menu sat 8 px above the button, about 2 px above the glass (V2 review item 18). */}
+        <Menu.Positioner
+          side="top"
+          align="end"
+          sideOffset={8}
+          collisionPadding={8}
+          anchor={abovePalette(() => trigger)}
+        >
           <Menu.Popup className={menuStyles.popup} aria-label={m.dock_more()}>
             {MORE_ITEMS.map((item) => (
               <MoreItem key={item.id} id={item.id} label={item.label()} />

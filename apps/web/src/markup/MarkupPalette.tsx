@@ -31,9 +31,11 @@
  *
  * The palette is the capsule's Markup content (`shell/capsule/`, `shell/frame/Dock.tsx`; spec
  * X1): the capsule is the glass, measures this content at its own size and morphs to it. Its
- * pieces carry `data-capsule-item` keys (Done is `markup`, so it grows out of the dock's Markup
- * door; Sign is `sign`, Fill & sign's), and the armed Select takes the focus on arrival
- * (`data-capsule-focus`). The capsule fades it during a stroke.
+ * pieces carry `data-capsule-item` keys (Done is `markup`, the dock's Markup door's twin; Sign is
+ * `sign`, Fill & sign's), and the armed Select takes the focus on arrival (`data-capsule-focus`).
+ * The twins look different, so each fades in at its own place after the dock has faded out,
+ * rather than one label sliding over the new tools as the other (`capsule-morph.ts`). The capsule
+ * fades it during a stroke.
  */
 import { Menu } from '@base-ui/react/menu';
 import { Popover } from '@base-ui/react/popover';
@@ -68,6 +70,7 @@ import { useSizeClass } from '../shell/frame/size-class';
 import { isMarkupOpenActive, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Icon } from '../ui/Icon';
+import { centredRoom, snapToWholePixels } from '../ui/whole-pixels';
 import menuStyles from '../ui/Menu.module.css';
 import { PopoverHeader, PopoverPopup } from '../ui/Popover';
 import { useCoarsePointer } from '../ui/Slider';
@@ -346,6 +349,14 @@ export function PaletteMeasurer() {
 /** The palette's rows: what the capsule's content slot holds (module header). */
 export function MarkupPaletteContent() {
   const rowRef = useRef<HTMLDivElement>(null);
+  // The capsule rests at this content's size, centred in the dock: its width rounds so the
+  // palette's glass rests on whole pixels (Q-2; it sat at x 190.88, V2 review item 16).
+  const contentRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return undefined;
+    return snapToWholePixels(el, 'width', { container: () => centredRoom(el, '[data-capsule]') });
+  }, []);
   const id = useWorkspaceStore((s) => s.workspace.activeDocument);
   const door = useUiStore((s) => (id === undefined ? 'draw' : (s.docUi[id]?.paletteSet ?? 'draw')));
   const mode = useToolStore((s) => s.mode);
@@ -423,6 +434,7 @@ export function MarkupPaletteContent() {
 
   return (
     <div
+      ref={contentRef}
       className={styles.content}
       data-markup-palette=""
       data-annotation-keep=""

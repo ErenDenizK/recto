@@ -27,12 +27,20 @@ export const VIEW_TRANSITION_MS = VT_MS;
 
 /**
  * Runs `update` as a View Transition. `name` becomes the transition's type for
- * `:active-view-transition-type()` where engines support types. Resolves once the update has
- * been applied, and rejects if it throws.
+ * `:active-view-transition-type()` where engines support types. `ready` is called once both
+ * views are captured and the pseudo-elements are about to animate (the new view's boxes are
+ * final then); never where View Transitions are missing. `finished` is called once the
+ * transition is over and its pseudo-elements are gone (where View Transitions are missing, once
+ * the update has run), so styles that serve it go then and not before. Resolves once the update
+ * has been applied, and rejects if it throws.
  */
 export function viewTransition(
   update: () => void | Promise<void>,
-  o: { readonly name?: string } = {},
+  o: {
+    readonly name?: string;
+    readonly ready?: () => void;
+    readonly finished?: () => void;
+  } = {},
 ): Promise<void> {
   const focused = document.activeElement as HTMLElement | null;
   const run = async () => {
@@ -40,14 +48,18 @@ export function viewTransition(
     // Focus that went with the old DOM comes back if its element survived (22 §5.5).
     if (document.activeElement === document.body) focused?.focus({ preventScroll: true });
   };
-  if (!document.startViewTransition) return run();
+  if (!document.startViewTransition) return run().finally(() => o.finished?.());
   const cap = reducedMotion() ? VT_REDUCED_MS : VIEW_TRANSITION_MS;
   const transition = document.startViewTransition(
     o.name && 'types' in ViewTransition.prototype ? { update: run, types: [o.name] } : run,
   );
   transition.ready.then(
-    () => setTimeout(() => transition.skipTransition(), cap),
+    () => {
+      o.ready?.();
+      setTimeout(() => transition.skipTransition(), cap);
+    },
     () => undefined,
   );
+  void transition.finished.catch(() => undefined).finally(() => o.finished?.());
   return transition.updateCallbackDone;
 }

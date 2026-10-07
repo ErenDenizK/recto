@@ -19,7 +19,7 @@ import { useEffect, useLayoutEffect } from 'react';
 import { getEngineService } from '../../engine/engine-service';
 import { loadRecents } from '../../files/recents';
 import { LocaleBoundary } from '../../i18n/LocaleBoundary';
-import { fetchSampleBytes, sampleFile } from '../../sample/sample-file';
+import { loadSampleFile } from '../../sample/sample-file';
 import { openSampleFromLink } from '../../sample/sample-link';
 import { isDocumentChanged, startSession } from '../../session/session';
 import { watchSessionNotice } from '../../session/session-toast';
@@ -95,8 +95,8 @@ export function CompactApp() {
   useEffect(
     () =>
       openSampleFromLink(async (locale) => {
-        const loaded = await fetchSampleBytes(locale);
-        if (loaded.ok) await openPdf(sampleFile(locale, loaded.bytes, []));
+        const file = await loadSampleFile(locale, []);
+        if (file !== undefined) await openPdf(file);
       }),
     [],
   );

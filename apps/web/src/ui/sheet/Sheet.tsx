@@ -53,6 +53,7 @@ import { useSizeClass } from '../../shell/frame/size-class';
 import { Button } from '../Button';
 import { closeMenusAtOnce } from '../menu-handoff';
 import { LockBanner } from './LockBanner';
+import { snapToWholePixels } from '../whole-pixels';
 import { presentationOf, type SheetKind } from './presentation';
 import styles from './Sheet.module.css';
 import { createSheetMotion, type SheetMotion } from './sheet-motion';
@@ -189,8 +190,28 @@ export function Sheet({
   // The panel enters as soon as it is in the document (the portal may mount it a render after
   // `open` turns true) and leaves when `open` turns false; both retarget from where it is.
   const panelEl = useRef<HTMLDivElement | null>(null);
+  const snapped = useRef<{ el: HTMLElement; dispose: () => void } | null>(null);
+  /** Keeps a centred panel on whole pixels (the layout effect below says why). */
+  const snapCentred = (el: HTMLElement | null, presentation: string | null) => {
+    const target = el && (presentation === 'form' || presentation === 'dialog') ? el : null;
+    if (snapped.current?.el === target) return;
+    snapped.current?.dispose();
+    snapped.current = null;
+    if (!target) return;
+    const root = document.documentElement;
+    const width = snapToWholePixels(target, 'width', { container: () => root.clientWidth });
+    const height = snapToWholePixels(target, 'height', { container: () => root.clientHeight });
+    snapped.current = {
+      el: target,
+      dispose: () => {
+        width();
+        height();
+      },
+    };
+  };
   const panelRef = useCallback((el: HTMLDivElement | null) => {
     panelEl.current = el;
+    snapCentred(el, layoutRef.current.presentation);
     const motion = motionOf();
     motion.attach(el);
     if (el && openRef.current) {
@@ -201,6 +222,14 @@ export function Sheet({
   useLayoutEffect(() => {
     motionOf().setLayout(layout);
   });
+  // A form sheet or a centred dialog is centred by auto margins, so its content's fractional
+  // height put it between pixels (y 174.09): its size rounds so it rests on whole pixels (Q-2).
+  // Followed from the ref (the portal may mount the panel without this component rendering)
+  // and from each render (the presentation changes with the window).
+  useLayoutEffect(() => {
+    snapCentred(panelEl.current, layout.presentation);
+  });
+  useEffect(() => () => snapCentred(null, null), []);
   useLayoutEffect(() => {
     if (open) {
       // A menu whose item opened this sheet goes at once, never over the entrance (Q-7).
