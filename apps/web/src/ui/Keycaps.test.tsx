@@ -5,10 +5,19 @@ import '../styles/global.css';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
+import { cdp, userEvent } from 'vitest/browser';
 
 import { formatShortcut, parseShortcut } from '../commands/shortcuts';
 import { Keycaps } from './Keycaps';
 import { ResizeHandle } from './ResizeHandle';
+
+/** Chrome DevTools Protocol, typed loosely (the provider's session type is not exported). */
+function devtools(method: string, params: object): Promise<unknown> {
+  return (cdp() as unknown as { send(m: string, p: object): Promise<unknown> }).send(
+    method,
+    params,
+  );
+}
 
 describe('Keycaps (09-primitives §15)', () => {
   it('draws 18 px caps with radius 4, decorative', () => {
@@ -37,6 +46,28 @@ describe('Keycaps (09-primitives §15)', () => {
     // Synthetic events are not keys a person pressed.
     fireEvent.keyDown(window, { key: 'a' });
     expect(document.documentElement.hasAttribute('data-keys')).toBe(false);
+  });
+
+  it('a finger or a pen marks the root as touch input, a mouse or a key clears it', async () => {
+    const root = document.documentElement;
+    root.removeAttribute('data-touch-input');
+    render(<button type="button">Target</button>);
+    const target = screen.getByRole('button', { name: 'Target' });
+    await userEvent.click(target);
+    expect(root.hasAttribute('data-touch-input')).toBe(false);
+    // A real touch press through CDP, so the events are trusted.
+    await devtools('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    try {
+      const box = target.getBoundingClientRect();
+      const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      await devtools('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+      await devtools('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await expect.poll(() => root.hasAttribute('data-touch-input')).toBe(true);
+    } finally {
+      await devtools('Emulation.setTouchEmulationEnabled', { enabled: false });
+    }
+    await userEvent.keyboard('{Shift}');
+    expect(root.hasAttribute('data-touch-input')).toBe(false);
   });
 });
 
