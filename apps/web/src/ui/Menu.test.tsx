@@ -145,8 +145,16 @@ describe('the menu → sheet hand-off (Q-7)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'File' }));
     const menu = await screen.findByRole('menu', { name: 'File' });
     await waitFor(() => expect(menu.getAnimations().length).toBe(0));
+    // The mark lasts MENU_HANDOFF_MS; a slow runner can take longer than that to hand the
+    // click back, so it is recorded as it is set rather than looked for afterwards.
+    let marked = false;
+    const watch = new MutationObserver(() => {
+      marked ||= document.documentElement.hasAttribute('data-menu-handoff');
+    });
+    watch.observe(document.documentElement, { attributeFilter: ['data-menu-handoff'] });
     await userEvent.click(screen.getByRole('menuitem', { name: 'Save a copy…' }));
-    expect(document.documentElement.hasAttribute('data-menu-handoff')).toBe(true);
+    watch.disconnect();
+    expect(marked).toBe(true);
     // Two frames: Base UI's ending style, then the unmount; no 120 ms fade over the sheet.
     await frames(3);
     expect(screen.queryByRole('menu', { name: 'File' })).toBeNull();
