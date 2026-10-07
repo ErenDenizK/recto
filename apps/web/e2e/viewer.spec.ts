@@ -201,25 +201,13 @@ test('go to page accepts numbers; Home and End jump to the ends', async ({ page 
 
 /**
  * Picks a page layout in the page pill's menu (01-frame F11), where the layout switch went.
- *
- * The row is a `Segmented` (radios) while its labels fit the 300 px menu, else the `Select`
- * with the same options and name (09-primitives §6.2). "Continuous · Single page · Two pages"
- * fit its equal shares by under 5 px, so an engine whose text runs a little wider (CI's
- * Chromium does) renders the Select: either is the row the spec allows.
+ * The row is a `Segmented` (radios): the menu is wide enough for "Continuous · Single page ·
+ * Two pages" in every engine (PagePill.module.css), so it never falls back to the Select.
  */
 async function chooseLayout(page: Page, name: string): Promise<void> {
   await page.getByTestId('page-pill').click();
   const menu = page.getByTestId('page-pill-menu');
-  const radio = menu.getByRole('radio', { name });
-  const select = menu.getByRole('combobox', { name: 'Page layout' });
-  await expect(radio.or(select)).toBeVisible();
-  if ((await radio.count()) > 0) {
-    await radio.click();
-  } else {
-    await select.click();
-    await page.getByRole('option', { name, exact: true }).click();
-    await expect(select).toHaveText(name);
-  }
+  await menu.getByRole('radio', { name }).click();
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);
 }

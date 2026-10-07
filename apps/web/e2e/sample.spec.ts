@@ -60,6 +60,28 @@ test('?sample=tr opens the Turkish sample in an English UI', async ({ page }) =>
   await expectRendered(page);
 });
 
+test('Fill & sign on the welcome page brings the sample’s form into view', async ({ page }) => {
+  // V2 review item 23: the door opened the Sign set and nothing on page 1 changed.
+  await page.goto('./?sample');
+  await expect(page.getByRole('tab', { name: 'Recto sample', selected: true })).toBeVisible({
+    timeout: 20_000,
+  });
+  await expectRendered(page);
+  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 4 · /);
+  const formPage = page.locator('[data-page-index="1"]');
+  await expect(formPage).not.toBeInViewport({ ratio: 0.3 });
+  await page
+    .locator('[data-capsule]')
+    .getByRole('button', { name: /^Fill & sign/ })
+    .click();
+  // The pill hides while Markup is open on medium (03-markup decision 3): the page tells.
+  await expect(formPage).toBeInViewport({ ratio: 0.3 });
+  const field = page.locator('[data-form-layer] [data-field-name]').first();
+  await expect(field).toBeInViewport();
+  // The door focuses the palette, not the field: typing does not fill it yet.
+  await expect(field).not.toBeFocused();
+});
+
 test('the palette’s Try the sample opens a fresh copy each time', async ({ page }) => {
   await page.goto('./');
   await sessionSettled(page);

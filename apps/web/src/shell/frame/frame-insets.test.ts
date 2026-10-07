@@ -91,8 +91,18 @@ describe('the free rectangle (01-frame F1 §2)', () => {
     expect(freeInsets({ ...large, sidebar: 320, sidebarDocked: false }).left).toBe(0);
   });
 
-  it('insets nothing on the right: no panel docks there since the inspector left (D2-9)', () => {
+  it('insets nothing on the right without a side sheet (no panel docks there, D2-9)', () => {
     expect(freeInsets({ ...large, sidebar: 280 }).right).toBe(0);
+  });
+
+  it('insets an open side sheet while 400 px of stage remains, else it overlays', () => {
+    // The OCR sheet at 1440: 400 px wide, 8 px off the edge (V2 review item 6).
+    expect(freeInsets({ ...large, sideSheet: 408 }).right).toBe(408);
+    // With the docked sidebar, 1440 - 280 - 408 = 752 px remain.
+    expect(freeInsets({ ...large, sidebar: 280, sideSheet: 408 }).right).toBe(408);
+    // 800 - 408 = 392 px would remain: the sheet overlays.
+    expect(freeInsets({ ...large, width: 800, sideSheet: 408 }).right).toBe(0);
+    expect(freeInsets({ ...large, width: 808, sideSheet: 408 }).right).toBe(408);
   });
 
   it('keeps the offset alone in Focus, and nothing on the Library (no band item)', () => {

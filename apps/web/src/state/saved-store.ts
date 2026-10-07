@@ -201,15 +201,26 @@ export function fileFactsOf(id: DocumentId): FileFacts {
  * restore gave a pristine document goes when its file is known to be written over (the file
  * holds the saved changes, not these bytes) or when it is no file's (a copy of pages another
  * document showed, alone now).
+ *
+ * The other way round, a pristine copy of its kept origin whose file was not written over is in
+ * its file even when the restore gave it no mark: restored beside a combine of its pages, it
+ * shared its source with another document, so `observeDocuments` could not tell it was the
+ * file, and every untouched source of a combine came back marked ● (V2 review item 7).
  */
-export function adoptFileFacts(id: DocumentId, facts: Partial<FileFacts>): void {
+export function adoptFileFacts(
+  id: DocumentId,
+  facts: Partial<FileFacts>,
+  state: { readonly workspace: Workspace; readonly entryAt: number } = currentState(),
+): void {
   if (facts.writtenOver === false) writtenOver.delete(id);
   else writtenOver.add(id);
   const { origins } = facts;
   const noFile = origins?.length === 0;
+  const asOpened = facts.writtenOver === false ? asOpenedMark(state, id, origins) : undefined;
   useSavedStore.setState((s) => {
     const { [id]: _origins, ...otherOrigins } = s.origins;
     const { [id]: _mark, ...otherMarks } = s.marks;
+    const marks = facts.writtenOver === true || noFile ? otherMarks : s.marks;
     return {
       origins:
         origins === undefined
@@ -217,9 +228,29 @@ export function adoptFileFacts(id: DocumentId, facts: Partial<FileFacts>): void 
           : origins.length > 0
             ? { ...s.origins, [id]: origins }
             : otherOrigins,
-      marks: facts.writtenOver === true || noFile ? otherMarks : s.marks,
+      marks:
+        asOpened !== undefined && marks[id] === undefined ? { ...marks, [id]: asOpened } : marks,
     };
   });
+}
+
+/** The "as opened" mark for document `id` when it is a pristine copy of its newest origin. */
+function asOpenedMark(
+  state: { readonly workspace: Workspace; readonly entryAt: number },
+  id: DocumentId,
+  origins: readonly SourceId[] | undefined,
+): SavedMark | undefined {
+  const origin = origins?.at(-1);
+  const doc = state.workspace.documents[id];
+  const first = doc?.pages[0]?.ref;
+  if (origin === undefined || doc === undefined || first?.kind !== 'source') return undefined;
+  if (first.source !== origin || !isPristineDocument(state.workspace, doc)) return undefined;
+  return {
+    entryAt: state.entryAt,
+    document: doc,
+    edits: editSignature(state.workspace, doc),
+    handleKept: false,
+  };
 }
 
 /**

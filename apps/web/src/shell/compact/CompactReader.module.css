@@ -24,6 +24,13 @@
   scrollbar-width: none;
 }
 
+/* The pages take focus on arrival; their ring (the whole screen) shows only when the focus
+   reached them by Tab or F6 (`watchFocusRing` on `.reader`), never on opening or after a tap. */
+.reader:not([data-focus-ring]) .scroller:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .scroller::-webkit-scrollbar {
   display: none;
 }

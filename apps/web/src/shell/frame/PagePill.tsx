@@ -15,11 +15,14 @@
  * - **Opens** its menu (`PagePillMenu.tsx`, mounted by the band) on click, Enter or Space with focus on the first
  *   control; Mod+G opens it with Go to page focused and selected.
  */
+import { type CSSProperties, useLayoutEffect, useRef } from 'react';
+
 import { formatPercent, m } from '../../i18n';
 import { useUiStore } from '../../state/ui-store';
 import { useViewStore } from '../../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
 import { Surface } from '../../ui/Surface';
+import { snapToWholePixels } from '../../ui/whole-pixels';
 import { documentLabels } from '../../viewer/navigation';
 import { openPillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
@@ -62,6 +65,14 @@ export function PagePill() {
   const currentPage = useViewStore((s) => s.currentPage);
   const zoom = useUiStore((s) => s.zoom);
   const open = useFrameStore((s) => s.pillMenu !== null);
+  // Held by its trailing edge, the pill's left edge is wherever its text's width puts it
+  // (x 1314.69): its width rounds so it rests on whole pixels (Q-2, V2 review item 16).
+  const pillRef = useRef<HTMLButtonElement>(null);
+  const hasDoc = doc !== undefined;
+  useLayoutEffect(() => {
+    const el = pillRef.current;
+    return el ? snapToWholePixels(el, 'width') : undefined;
+  }, [hasDoc]);
   if (!doc) return null;
   const total = doc.pages.length;
   const current = Math.min(currentPage, Math.max(0, total - 1));
@@ -84,7 +95,12 @@ export function PagePill() {
       data-region="pill"
       data-band-item=""
       data-testid="page-pill"
-      style={{ minWidth: `calc(${pillMinChars(total, 4)}ch + 2 * var(--pill-pad))` }}
+      ref={pillRef}
+      // The digit-count minimum as a property the stylesheet reads, so the whole-pixel minimum
+      // (`snapToWholePixels`, inline) can sit over it and come off again.
+      style={
+        { '--pill-min': `calc(${pillMinChars(total, 4)}ch + 2 * var(--pill-pad))` } as CSSProperties
+      }
       onClick={() => openPillMenu('first')}
     >
       {text}
