@@ -166,10 +166,25 @@ describe('the menu → sheet hand-off (Q-7)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'File' }));
     const menu = await screen.findByRole('menu', { name: 'File' });
     await waitFor(() => expect(menu.getAnimations().length).toBe(0));
+    // Recorded as they happen: on a loaded runner the 120 ms fade can be over before the click
+    // comes back and two frames go by, so a look at the running animations afterwards misses it.
+    let marked = false;
+    const watch = new MutationObserver(() => {
+      marked ||= document.documentElement.hasAttribute('data-menu-handoff');
+    });
+    watch.observe(document.documentElement, { attributeFilter: ['data-menu-handoff'] });
+    const faded: string[] = [];
+    const onRun = (event: TransitionEvent) => {
+      if (event.target === menu) faded.push(event.propertyName);
+    };
+    menu.addEventListener('transitionrun', onRun);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Nothing' }));
     await frames(2);
+    await waitFor(() => expect(faded).toContain('opacity'));
+    watch.disconnect();
+    menu.removeEventListener('transitionrun', onRun);
+    expect(marked).toBe(false);
     expect(document.documentElement.hasAttribute('data-menu-handoff')).toBe(false);
-    expect(menu.getAnimations().length).toBeGreaterThan(0);
     await waitFor(() => expect(screen.queryByRole('menu', { name: 'File' })).toBeNull());
   });
 });

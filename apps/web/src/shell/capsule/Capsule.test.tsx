@@ -10,7 +10,7 @@ import '../../styles/tokens.css';
 import '../../styles/reset.css';
 import '../../styles/global.css';
 
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { Capsule } from './Capsule';
@@ -129,9 +129,9 @@ describe('capsule', () => {
       return (a.effect as KeyframeEffect).target === el && 'width' in (frames[0] ?? {});
     });
     expect(sizes).toHaveLength(1);
-    await wait(120);
+    // Read as soon as it is under way: a fixed pause can run past the spring on a loaded runner.
+    await waitFor(() => expect(width()).toBeGreaterThan(DOCK + 2), { interval: 4 });
     const mid = width();
-    expect(mid).toBeGreaterThan(DOCK + 2);
     expect(mid).toBeLessThan(PALETTE - 2);
     // Mid-morph the shape is still the pill, and the filter has not changed (X20).
     expect(getComputedStyle(el).borderTopLeftRadius).toBe('999px');
@@ -204,9 +204,11 @@ describe('capsule', () => {
     const el = capsule();
     const dock = el.querySelector('[data-capsule-layer="dock"]');
     rerender(<Harness shape="palette" />);
-    await wait(100);
+    // Turned back as soon as the width is under way, while the dock is still fading out
+    // (LEAVE_MS, 90 ms): a fixed 100 ms pause outlived that fade, and on a loaded runner the
+    // dock had gone before the turn.
+    await waitFor(() => expect(width()).toBeGreaterThan(DOCK + 2), { interval: 4 });
     const at = width();
-    expect(at).toBeGreaterThan(DOCK + 2);
     rerender(<Harness shape="dock" />);
     // The width continues from where it was drawn (velocity kept), and the dock comes back.
     expect(Math.abs(width() - at)).toBeLessThan(12);

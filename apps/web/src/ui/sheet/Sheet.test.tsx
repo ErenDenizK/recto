@@ -187,7 +187,9 @@ describe('focus, keys and drafts (07 §2.6)', () => {
     await waitFor(() => expect(panel.contains(document.activeElement)).toBe(true));
     for (let i = 0; i < 8; i++) {
       await userEvent.keyboard('{Tab}');
-      expect(panel.contains(document.activeElement)).toBe(true);
+      // A Tab past either end lands on Base UI's focus guard, which hands focus back into the
+      // panel from its own focus handler; a loaded runner can ask in between.
+      await waitFor(() => expect(panel.contains(document.activeElement)).toBe(true));
     }
   });
 
