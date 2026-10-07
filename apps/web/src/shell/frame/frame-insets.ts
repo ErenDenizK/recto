@@ -143,13 +143,23 @@ export interface FrameMeasure {
   readonly offset: number;
   /** Focus (F13): the dock and pill are away, so the bottom inset falls to the offset alone. */
   readonly focus: boolean;
+  /**
+   * What an open side sheet covers at the window's trailing edge: its width and the gap
+   * outside it (0 with none open). Optional for callers that measure no sheet.
+   */
+  readonly sideSheet?: number;
 }
+
+/** A side sheet insets the free rectangle only while this much stage remains (F1 §2). */
+export const SIDE_SHEET_MIN_STAGE = 400;
 
 /**
  * The free rectangle's insets from the window's edges (F1 §2): top is the top layer; left the
- * docked sidebar (an overlay sidebar insets nothing); right nothing, since no layer docks there
- * once the inspector is gone (D2-9; sheets portal above the frame); bottom the band with its
- * offset, the offset alone in Focus, and nothing while no band item shows (the Library).
+ * docked sidebar (an overlay sidebar insets nothing); right an open side sheet (a tool or task
+ * sheet, 07-sheets §2.2) while at least 400 px of stage remains beside it, else it overlays, so
+ * the dock band, the pill and the pages keep clear of it (V2 review item 6: the OCR sheet covered
+ * the dock's More); bottom the band with its offset, the offset alone in Focus, and nothing while
+ * no band item shows (the Library).
  *
  * Hide on scroll (F12) changes nothing here: the bars move by transform and the page keeps
  * its place ("the page does not reflow"); a jump is made from visible chrome, so it starts
@@ -157,12 +167,14 @@ export interface FrameMeasure {
  */
 export function freeInsets(measure: FrameMeasure): Insets {
   const left = measure.sidebarDocked ? measure.sidebar : 0;
+  const sheet = measure.sideSheet ?? 0;
+  const right = sheet > 0 && measure.width - left - sheet >= SIDE_SHEET_MIN_STAGE ? sheet : 0;
   const bottom = measure.focus
     ? measure.offset
     : measure.band > 0
       ? measure.offset + measure.band
       : 0;
-  return { top: measure.top, right: 0, bottom, left };
+  return { top: measure.top, right, bottom, left };
 }
 
 /** `--free-*` custom properties for `insets`. */
@@ -184,6 +196,23 @@ export const FRAME_LAYER = {
   // band's toolbar.
   bandItem: '[data-band-item], [data-frame-layer="band"] [data-region="toolbar"]',
 } as const;
+
+/** An open side sheet's panel (ui/sheet/Sheet.tsx portals it outside the shell). */
+const SIDE_SHEET = '[data-sheet][data-presentation="side"]:not([inert])';
+
+/**
+ * How much of the window's trailing edge an open side sheet covers: from its leading edge to the
+ * window's (its layout box, so its entrance in flight changes nothing). 0 with none open.
+ */
+export function sideSheetCover(doc: Document): number {
+  const width = doc.documentElement.clientWidth;
+  let cover = 0;
+  for (const panel of doc.querySelectorAll<HTMLElement>(SIDE_SHEET)) {
+    if (!laidOut(panel)) continue;
+    cover = Math.max(cover, width - panel.offsetLeft);
+  }
+  return Math.max(0, Math.round(cover));
+}
 
 /** The element if it takes space (present and not `display: none`), else null. */
 function laidOut(element: HTMLElement | null): HTMLElement | null {
@@ -212,6 +241,7 @@ export function measureFrame(shell: HTMLElement, options: FrameOptions): FrameMe
     band,
     offset: options.offset,
     focus: options.focus,
+    sideSheet: sideSheetCover(shell.ownerDocument),
   };
 }
 
@@ -255,9 +285,35 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
     mutation.observe(element, { childList: true });
     const band = element.querySelector(FRAME_LAYER.band);
     if (band) mutation.observe(band, { childList: true, subtree: true });
+    // Side sheets portal into the body: a portal coming or going, and a panel turning inert
+    // as it closes, re-measure (the body's own subtree, the app, is not watched).
+    const body = element.ownerDocument.body;
+    const portals = new MutationObserver(measure);
+    const watchPortals = () => {
+      portals.disconnect();
+      for (const child of Array.from(body.children)) {
+        if (child.contains(element)) continue;
+        portals.observe(child, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['inert', 'data-presentation'],
+        });
+      }
+    };
+    const bodyWatch = new MutationObserver(() => {
+      watchPortals();
+      measure();
+    });
+    bodyWatch.observe(body, { childList: true });
+    watchPortals();
+    window.addEventListener('resize', measure);
     return () => {
       resize.disconnect();
       mutation.disconnect();
+      portals.disconnect();
+      bodyWatch.disconnect();
+      window.removeEventListener('resize', measure);
     };
   }, [shell, sidebarDocked, offset, focus]);
 }
