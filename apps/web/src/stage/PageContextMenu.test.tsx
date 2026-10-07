@@ -16,6 +16,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../test/settled';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import { enterEditMode, fixtureFile } from '../../test/store-harness';
 import { resetAnnotationStore } from '../annotations/annotation-store';
@@ -113,18 +114,28 @@ function press(type: string, target: Element, pointerType = 'touch'): void {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** The open menu, once its items have risen in. */
+/**
+ * The open menu, once its items have risen in. A long press opens it only after its hold and a
+ * loaded runner adds its own delay to that and to the entrance, so the wait is longer than
+ * `waitFor`'s 1 s default.
+ */
 async function menu(): Promise<HTMLElement> {
-  return waitFor(() => {
-    const popup = screen.getByTestId('page-context-menu');
-    if (popup.hasAttribute('data-closed')) throw new Error('still closing');
-    expect(within(popup).getAllByRole('menuitem')[0]).toBeVisible();
-    return popup;
-  });
+  return waitFor(
+    () => {
+      const popup = screen.getByTestId('page-context-menu');
+      if (popup.hasAttribute('data-closed')) throw new Error('still closing');
+      expect(within(popup).getAllByRole('menuitem')[0]).toBeVisible();
+      return popup;
+    },
+    { timeout: EXIT_TIMEOUT },
+  );
 }
 
 /** Waits for the last menu to have gone (its exit transition), so the next one is new. */
-const closed = () => waitFor(() => expect(screen.queryByTestId('page-context-menu')).toBeNull());
+const closed = () =>
+  waitFor(() => expect(screen.queryByTestId('page-context-menu')).toBeNull(), {
+    timeout: EXIT_TIMEOUT,
+  });
 
 describe('page context menu', () => {
   let disposeCommands: () => void = () => undefined;

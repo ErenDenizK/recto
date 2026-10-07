@@ -6,7 +6,7 @@
  */
 import type { SourceId } from '@pdf-editor/document-model';
 import type { Annotation } from '@pdf-editor/engine';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
@@ -277,10 +277,15 @@ describe('Review: a long list', () => {
     // The end of the list is reachable by scrolling, page 2's heading with it.
     const scroller = document.querySelector<HTMLElement>('[data-review-scroll]');
     if (!scroller) throw new Error('no scroller');
-    for (let i = 0; i < 4; i++) {
-      scroller.scrollTop = scroller.scrollHeight;
-      await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 20)));
-    }
+    // Each scroll lets the list measure the rows it reaches and grow; scrolled again until the
+    // end shows, as many frames as that takes (a slow runner needs more than a fast one).
+    await waitFor(
+      () => {
+        scroller.scrollTop = scroller.scrollHeight;
+        expect(screen.getByText('Note 249')).toBeVisible();
+      },
+      { timeout: 5000 },
+    );
     expect(screen.getByRole('region', { name: 'Page 2' })).toBeVisible();
     expect(screen.getByText('Note 249')).toBeVisible();
     expect(screen.queryByText('Note 0')).toBeNull();

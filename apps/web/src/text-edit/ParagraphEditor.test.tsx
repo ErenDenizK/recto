@@ -165,6 +165,29 @@ function setupEngine(
   return { spies, session, fixture };
 }
 
+/**
+ * Types `keys` one by one and counts the pauses the editor saw: gaps of `PREVIEW_DELAY_MS` or
+ * more between the page's `beforeinput` events, read where the editor sees them (a loaded
+ * runner can deliver a key late although the test sent it on time). `pauses()` also counts the
+ * pause after the last key once it has lasted that long, since that key's preview is then due.
+ */
+async function typeTimed(keys: string): Promise<{ between: number; pauses: () => number }> {
+  const times: number[] = [];
+  const seen = (event: Event) => times.push(event.timeStamp);
+  document.addEventListener('beforeinput', seen, true);
+  try {
+    for (const key of keys) await userEvent.keyboard(key);
+  } finally {
+    document.removeEventListener('beforeinput', seen, true);
+  }
+  const between = times.slice(1).filter((t, k) => t - (times[k] ?? t) >= PREVIEW_DELAY_MS).length;
+  const last = times.at(-1) ?? performance.now();
+  return {
+    between,
+    pauses: () => between + (performance.now() - last >= PREVIEW_DELAY_MS ? 1 : 0),
+  };
+}
+
 function renderEditor(session: ParagraphSession) {
   act(() => useTextEditStore.getState().openParagraph(session));
   const view = render(<ParagraphEditor session={session} frame={FRAME} revision={0} />);
@@ -207,7 +230,7 @@ describe('ParagraphEditor', () => {
     const clear = vi.spyOn(CanvasRenderingContext2D.prototype, 'clearRect');
     const fill = vi.spyOn(CanvasRenderingContext2D.prototype, 'fill');
     const calls = spies.analyze.mock.calls.length;
-    await userEvent.keyboard('very ');
+    const typed = await typeTimed('very ');
     await waitFor(() =>
       expect(mirror.textContent).toBe(
         'The very quick brown fox jumps over the lazy dog and runs away.',
@@ -217,8 +240,11 @@ describe('ParagraphEditor', () => {
     // The rewritten lines are drawn from the glyph outlines.
     expect(fill.mock.calls.length).toBeGreaterThan(0);
     expect(spies.analyze.mock.calls.length).toBe(calls);
-    // The one dry run at open renders the plate (the paragraph emptied); none per keystroke.
-    expect(spies.preview.mock.calls.map((c) => c[2]?.text)).toEqual(['']);
+    // The one dry run at open renders the plate (the paragraph emptied); none per keystroke:
+    // a draft's preview only after a pause the editor saw (a loaded runner makes some).
+    const texts = spies.preview.mock.calls.map((c) => c[2]?.text);
+    expect(texts[0]).toBe('');
+    expect(texts.length - 1).toBeLessThanOrEqual(typed.pauses());
     expect(spies.dryRun).not.toHaveBeenCalled();
   });
 
@@ -228,15 +254,10 @@ describe('ParagraphEditor', () => {
     await ready(mirror);
     // Typed key by key: a loaded machine can stretch a gap past the pause, and a preview
     // for that gap is correct. None comes while keys follow within the pause.
-    const times: number[] = [];
-    for (const key of 'abc') {
-      times.push(performance.now());
-      await userEvent.keyboard(key);
-    }
-    const pauses = times.slice(1).filter((t, k) => t - (times[k] ?? t) >= PREVIEW_DELAY_MS).length;
+    const typed = await typeTimed('abc');
     // The plate's dry run (text '') is not a preview of the draft.
     const drafts = () => spies.preview.mock.calls.filter((c) => c[2]?.text !== '');
-    expect(drafts().length).toBeLessThanOrEqual(pauses);
+    expect(drafts().length).toBeLessThanOrEqual(typed.pauses());
     await waitFor(
       () =>
         expect(drafts().at(-1)?.[2]?.text).toBe(
@@ -245,7 +266,7 @@ describe('ParagraphEditor', () => {
       { timeout: 2000 },
     );
     const previews = spies.preview.mock.calls.length;
-    expect(drafts().length).toBeLessThanOrEqual(1 + pauses);
+    expect(drafts().length).toBeLessThanOrEqual(1 + typed.between);
     const edit = drafts().at(-1)?.[2];
     expect(edit?.caretSpan).toEqual({ start: 4, end: 4 });
     expect(edit?.layout).toBeDefined();

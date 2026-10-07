@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import { App } from '../app';
 import { commandRegistry } from '../commands/registry';
 import { currentPlatform } from '../commands/shortcuts';
@@ -100,7 +101,8 @@ describe('Language command', () => {
 
     // Command titles follow the language too.
     await userEvent.keyboard(`{${MOD}>}k{/${MOD}}`);
-    expect(await screen.findByRole('combobox', { name: 'Komut ara' })).toBeVisible();
+    // The palette fades in: ask once its entrance has run.
+    expect(await settled(await screen.findByRole('combobox', { name: 'Komut ara' }))).toBeVisible();
     expect(screen.getByRole('option', { name: /Sol paneli aç\/kapat/ })).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
   });

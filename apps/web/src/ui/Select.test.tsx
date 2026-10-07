@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { cdp, userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import menuStyles from './Menu.module.css';
 import { MenuButton } from './MenuButton';
 import { Select, type SelectOption } from './Select';
@@ -18,9 +19,6 @@ function devtools(method: string, params: object): Promise<unknown> {
     params,
   );
 }
-
-/** Past the popup's scale-in (120 ms). */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
 const SIZES: readonly SelectOption<string>[] = [
   { value: 'a4', label: 'A4' },
@@ -67,7 +65,8 @@ describe('Select', () => {
     const listbox = await screen.findByRole('listbox');
     const popup = listbox.closest(`.${menuStyles.popup?.split(' ')[0]}`) as HTMLElement;
     expect(popup).not.toBeNull();
-    await settle();
+    // Past the popup's scale-in: a fixed pause can end before a slow runner's first frame.
+    await settled(popup);
     expect(getComputedStyle(popup).borderTopLeftRadius).toBe('16px');
     const letter = screen.getByRole('option', { name: 'Letter' });
     expect(letter.getBoundingClientRect().height).toBe(32);
@@ -108,7 +107,7 @@ describe('Select', () => {
       expect(trigger.getBoundingClientRect().height).toBe(44);
       await userEvent.click(trigger);
       const a5 = await screen.findByRole('option', { name: 'A5' });
-      await settle();
+      await settled(a5);
       expect(a5.getBoundingClientRect().height).toBe(44);
     } finally {
       await devtools('Emulation.setTouchEmulationEnabled', { enabled: false });
@@ -139,8 +138,7 @@ describe('MenuButton', () => {
     expect(button).toHaveAttribute('aria-haspopup', 'menu');
     expect(button.getBoundingClientRect().height).toBe(32);
     await userEvent.click(button);
-    await screen.findByRole('menu');
-    await settle();
+    await settled(await screen.findByRole('menu'));
     expect(button).toHaveAttribute('aria-expanded', 'true');
     expect(button).toHaveAttribute('data-popup-open');
     const row = screen.getByRole('menuitem', { name: 'Rectangle' });

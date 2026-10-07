@@ -10,6 +10,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../test/settled';
 import { requestPassword, usePasswordStore } from '../state/password-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { useSheetStore } from '../ui/sheet/sheet-store';
@@ -63,7 +64,9 @@ describe('the password prompt (07 §8)', () => {
     // Still there while PDFium tries; gone once the file has opened.
     expect(screen.getByRole('alertdialog')).toBeVisible();
     act(() => useWorkspaceStore.setState({ opening: 0 }));
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
   });
 
   it('Skip file and Esc leave the file closed; the queue shows its place', async () => {
@@ -81,6 +84,8 @@ describe('the password prompt (07 §8)', () => {
     expect(screen.getByRole('alertdialog')).toHaveAccessibleDescription(/^b\.pdf is protected/);
     await userEvent.keyboard('{Escape}');
     await expect(second).resolves.toBeNull();
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
   });
 });
