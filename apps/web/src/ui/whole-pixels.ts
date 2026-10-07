@@ -68,3 +68,21 @@ export function snapToWholePixels(
     element.style.removeProperty(property);
   };
 }
+
+/**
+ * The room a surface centred in its parent leaves its content (`content` inside the surface
+ * `closest(selector)` finds): the parent's width less the surface's border and padding. The
+ * capsule's contents (the dock's bar, the Markup palette) round against it, so the capsule,
+ * which rests at its content's size, lands on whole pixels too.
+ */
+export function centredRoom(content: HTMLElement, selector: string): number | undefined {
+  const surface = content.closest<HTMLElement>(selector);
+  const parent = surface?.parentElement;
+  if (!surface || !parent) return undefined;
+  const style = getComputedStyle(surface);
+  const chrome = ['borderLeftWidth', 'borderRightWidth', 'paddingLeft', 'paddingRight'] as const;
+  return chrome.reduce(
+    (room, side) => room - (Number.parseFloat(style[side]) || 0),
+    parent.clientWidth,
+  );
+}
