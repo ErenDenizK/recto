@@ -203,6 +203,17 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
   });
 
+  test('Try the sample opens the teaching sample in the reader', async ({ page }) => {
+    await openLibrary(page);
+    await page.getByRole('button', { name: 'Try the sample' }).click();
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Recto sample' })).toBeVisible();
+    await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
+  });
+
   test('the pages take focus on arrival without a ring; Tab back to them shows it', async ({
     page,
   }) => {

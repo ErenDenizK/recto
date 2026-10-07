@@ -10,6 +10,8 @@
  * fixed date as its `lastModified`, which, with the name, tells the session a sample from a
  * person's own file (`isSampleFile`): the sample joins Recents only once changed (02.14).
  */
+import { m } from '../i18n';
+import { toast } from '../ui/Toast/toast';
 import type { SampleLocale } from './sample-param';
 
 /** The document title per sample language (L10 §5). */
@@ -80,4 +82,25 @@ export function sampleFile(
     type: 'application/pdf',
     lastModified: SAMPLE_LAST_MODIFIED,
   });
+}
+
+/**
+ * Loads the sample and makes its File, or says why it could not (a failure toast: "The sample
+ * needs to load once with a connection" offline before the first load, else "Could not load
+ * the sample") and resolves to undefined. Both editions' doors use it: `openSample` on the
+ * full edition, the compact Library's Try the sample and `?sample` link on phones.
+ */
+export async function loadSampleFile(
+  locale: SampleLocale,
+  openTitles: Iterable<string>,
+): Promise<File | undefined> {
+  const loaded = await fetchSampleBytes(locale);
+  if (!loaded.ok) {
+    toast.failure(loaded.reason === 'offline' ? m.sample_offline() : m.sample_failed(), {
+      key: 'sample-failed',
+      testId: 'sample-failed',
+    });
+    return undefined;
+  }
+  return sampleFile(locale, loaded.bytes, openTitles);
 }
