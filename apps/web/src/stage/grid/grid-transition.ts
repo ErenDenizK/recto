@@ -255,19 +255,17 @@ function change(
         if (band === null || !arrived || !root.hasAttribute(CUT_ATTRIBUTE)) return;
         root.style.setProperty(CUT_TO, bandIn(arrived, arrived.getBoundingClientRect(), band));
       },
-    },
-  )
-    .catch(() => undefined)
-    .finally(() => {
-      // The transition is cut at VT_MS (view-transition.ts); its styles go with it, unless a
-      // later view change has taken them over.
-      window.setTimeout(() => {
+      // The transition is over (it is cut at VT_MS, view-transition.ts): its styles go with it,
+      // unless a later view change has taken them over.
+      finished: () => {
         if (generation !== changes) return;
         root.removeAttribute(GRID_ATTRIBUTE);
         clearCapsuleBand(root);
-      }, VT_MS + 60);
-      unnameSoon([named, arrived]);
-    });
+      },
+    },
+  )
+    .catch(() => undefined)
+    .finally(() => unnameSoon([named, arrived]));
 }
 
 /**

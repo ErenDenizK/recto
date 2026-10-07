@@ -108,4 +108,26 @@ describe('viewTransition', () => {
     // A 3 s stylesheet transition ends at the cap (with room for a slow test machine).
     expect(performance.now() - began).toBeLessThan(VIEW_TRANSITION_MS + 600);
   });
+
+  it('says when both views are captured, and when the transition is over', async () => {
+    withoutViewTransitions();
+    const finished = vi.fn();
+    const ready = vi.fn();
+    await viewTransition(() => undefined, { ready, finished });
+    // Without View Transitions nothing is captured; it is over once the update has run.
+    expect(ready).not.toHaveBeenCalled();
+    expect(finished).toHaveBeenCalledOnce();
+    Reflect.deleteProperty(document, 'startViewTransition');
+    if (!document.startViewTransition) return;
+    const start = vi.spyOn(document, 'startViewTransition');
+    const order: string[] = [];
+    await viewTransition(() => undefined, {
+      ready: () => order.push('ready'),
+      finished: () => order.push('finished'),
+    });
+    const transition = start.mock.results[0]?.value as ViewTransition;
+    await transition.finished;
+    await Promise.resolve();
+    expect(order).toEqual(['ready', 'finished']);
+  });
 });
