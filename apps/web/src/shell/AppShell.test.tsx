@@ -8,6 +8,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import { App } from '../app';
 import { currentPlatform } from '../commands/shortcuts';
 import { stageView, useUiStore } from '../state/ui-store';
@@ -111,7 +112,8 @@ describe('AppShell', () => {
     );
     useWorkspaceStore.setState({ history: createHistory(workspace), workspace });
     expect(await screen.findByRole('tab', { name: 'report', selected: true })).toBeVisible();
-    // The dock (01-frame F10) rests in the capsule once a document is open.
-    expect(screen.getByRole('toolbar', { name: 'Document tools' })).toBeVisible();
+    // The dock (01-frame F10) rests in the capsule once a document is open: it fades in as
+    // the capsule morphs to hold it, so it is asked about once that has run.
+    expect(await settled(screen.getByRole('toolbar', { name: 'Document tools' }))).toBeVisible();
   });
 });

@@ -1,7 +1,7 @@
 import '../styles/tokens.css';
 import '../styles/global.css';
 
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cdp, userEvent } from 'vitest/browser';
@@ -178,14 +178,23 @@ describe('SearchField', () => {
   });
 
   it('searches 150 ms after typing pauses', async () => {
-    const onSearch = vi.fn();
+    // Each search's time and each key's, as the page saw them: a loaded runner can hand the
+    // typing back after the pause has run, or deliver the second key a pause after the first.
+    const searched: number[] = [];
+    const onSearch = vi.fn(() => searched.push(performance.now()));
     render(<Host onSearch={onSearch} />);
-    await userEvent.click(screen.getByRole('searchbox'));
+    const box = screen.getByRole('searchbox');
+    const typed: number[] = [];
+    box.addEventListener('input', (event) => typed.push(event.timeStamp));
+    await userEvent.click(box);
     await userEvent.keyboard('ab');
-    expect(onSearch).not.toHaveBeenCalled();
     await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
-    expect(onSearch).toHaveBeenCalledTimes(1);
-    expect(onSearch).toHaveBeenLastCalledWith('ab');
+    await waitFor(() => expect(onSearch).toHaveBeenLastCalledWith('ab'));
+    // One search per pause: after the last key, and after any gap between keys that reached it.
+    const gaps = typed.slice(1).filter((t, k) => t - (typed[k] ?? t) >= 150).length;
+    expect(onSearch).toHaveBeenCalledTimes(1 + gaps);
+    // Never while typing: the search for "ab" came a full pause after its key.
+    expect((searched.at(-1) ?? 0) - (typed.at(-1) ?? 0)).toBeGreaterThanOrEqual(149);
   });
 
   it('says "No results" without marking the field as an error', () => {

@@ -15,6 +15,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../test/settled';
 import outlineUrl from '../../../../test/fixtures/outline-named-dests.pdf?url';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
@@ -147,8 +148,8 @@ describe('section operations', () => {
     });
     expect(ws().documentOrder.map((id) => ws().documents[id]?.pages.length)).toEqual([4, 2]);
     expect(lastLabel()).toBe('Split outline-named-dests into 2');
-    await waitFor(() => {
-      expect(screen.queryByTestId('split-dialog')).toBeNull();
+    await waitFor(() => expect(screen.queryByTestId('split-dialog')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
     });
     // Both parts show in the grid's All open.
     expect(await screen.findAllByRole('grid')).toHaveLength(2);

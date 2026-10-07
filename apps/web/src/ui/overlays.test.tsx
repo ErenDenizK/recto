@@ -6,6 +6,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import { parseShortcut } from '../commands/shortcuts';
 import { PopoverBody, PopoverHeader, PopoverPopup } from './Popover';
 import { ScrollArea } from './ScrollArea';
@@ -48,7 +49,7 @@ describe('Tooltip', () => {
     expect(tip).toHaveTextContent('Undo');
     expect(tip.querySelectorAll('kbd').length).toBeGreaterThan(0);
     // Hoverable: moving onto the tooltip (at rest after its entrance) keeps it.
-    await wait(200);
+    await settled(tip);
     await userEvent.hover(tip);
     await wait(150);
     expect(screen.getByRole('tooltip')).toBeVisible();
@@ -202,7 +203,7 @@ describe('Popover', () => {
     // The entry animates transform and opacity only (Q-7).
     const props = getComputedStyle(dialog).transitionProperty;
     expect(props.split(',').map((p) => p.trim())).toEqual(['opacity', 'transform']);
-    await wait(250);
+    await settled(dialog);
     const style = getComputedStyle(dialog);
     expect(style.borderTopLeftRadius).toBe('16px');
     expect(style.paddingTop).toBe('12px');

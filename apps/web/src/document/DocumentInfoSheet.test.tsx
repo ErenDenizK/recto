@@ -9,6 +9,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT, settled } from '../../test/settled';
 import formUrl from '../../../../test/fixtures/forms-a.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
@@ -53,7 +54,8 @@ describe('S4 Document info', () => {
     renderSheets();
     expect(commandRegistry.get('document.info')?.title).toBe('Document info…');
     await act(() => commandRegistry.execute('document.info'));
-    const sheet = await screen.findByRole('dialog', { name: 'Document info' });
+    // The sheet fades in: its facts are asked about once the entrance has run.
+    const sheet = await settled(await screen.findByRole('dialog', { name: 'Document info' }));
     expect(sheet).toHaveAttribute('data-sheet', 'document-info');
     const facts = within(sheet).getByTestId('document-facts');
     expect(within(facts).getByText('simple-text.pdf')).toBeVisible();
@@ -65,14 +67,18 @@ describe('S4 Document info', () => {
     expect(within(sheet).getByTestId('security-outcome')).toBeVisible();
 
     await userEvent.keyboard('{Escape}');
-    await expect.poll(() => screen.queryByRole('dialog', { name: 'Document info' })).toBeNull();
+    await expect
+      .poll(() => screen.queryByRole('dialog', { name: 'Document info' }), {
+        timeout: EXIT_TIMEOUT,
+      })
+      .toBeNull();
   });
 
   it('writes each badge’s explanation out, so touch reads it too (inventory 6.7)', async () => {
     await open(formUrl, 'forms-a.pdf');
     renderSheets();
     await act(() => commandRegistry.execute('document.info'));
-    const sheet = await screen.findByRole('dialog', { name: 'Document info' });
+    const sheet = await settled(await screen.findByRole('dialog', { name: 'Document info' }));
     const notes = within(sheet).getByRole('list', { name: m.info_notes() });
     expect(within(notes).getByText(m.badge_form())).toBeVisible();
     expect(within(notes).getByText(m.badge_form_explanation())).toBeVisible();
