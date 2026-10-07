@@ -11,9 +11,9 @@
  *   menu; Mod+A selects every page; Esc clears. While the list is on screen it tells the
  *   selection store which document it shows (`visibleSelection`), so Delete acts on the
  *   selected pages listed here.
- * - **Marks** (§2.2): the current page has a 2 px lime ring 3 px out and its label at 600,
- *   `aria-current="page"`; a selected page an inset `--select` ring and a check badge, never
- *   colour alone (A-19); both shapes when both hold.
+ * - **Marks** (§2.2, the Pages grid's, PageCell.tsx): the current page has its label at 600 and
+ *   a 1 px neutral ring 3 px out, `aria-current="page"`; a selected page a light `--select`
+ *   wash with its edge and a check badge, never colour alone (A-19); both when both hold.
  * - **Drag** (§2.4) on the pointer path (`dnd/pointer-drag.ts`): a mouse or pen lifts after 4 px,
  *   a finger after a 450 ms hold and then movement, so a finger that moves first scrolls the
  *   list (S13). It moves the page under the pointer, or the selection when it holds that page,

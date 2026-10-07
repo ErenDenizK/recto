@@ -103,6 +103,8 @@ export interface SheetPrimary {
   /** A destructive act: the danger label on the standard fill, never lime (§2.4, §27.14). */
   readonly danger?: boolean;
   readonly icon?: ReactNode;
+  /** `data-testid` on the button, for a sheet whose tests name its act. */
+  readonly testId?: string | undefined;
 }
 
 export interface SheetProps {
@@ -267,6 +269,7 @@ export function Sheet({
       busyLabel={primary.busyLabel}
       blocked={locked ? { reason: m.sheet_locked_reason(), onPress: locked.onUnlock } : undefined}
       data-sheet-primary=""
+      data-testid={primary.testId}
     >
       {locked ? m.sheet_locked_reason() : primary.label}
     </Button>

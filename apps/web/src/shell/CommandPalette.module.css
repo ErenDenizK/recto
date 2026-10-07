@@ -94,13 +94,14 @@
   margin-top: var(--space-2);
 }
 
+/* Section heads in sentence case at footnote, secondary (T-9: no uppercase labels); 500, the
+   nearest of the weights text on glass may take (quality-bar Q-8), as the menus' headings. */
 .groupLabel {
   padding: 6px var(--space-3) 4px;
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
   font-weight: 500;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  line-height: var(--type-footnote-lh);
 }
 
 .option {

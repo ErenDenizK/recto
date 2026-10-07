@@ -48,7 +48,6 @@ import { FONT_SIZES, strokeWidthText } from '../annotations/StyleControls';
 import { toolDefinition } from '../annotations/tools';
 import { formatNumber, m } from '../i18n';
 import { useApplyDialogStore } from '../redaction/apply-store';
-import { showRedactionsPanel } from '../redaction/commands';
 import { useUiStore } from '../state/ui-store';
 import { Button } from '../ui/Button';
 import { ColourPicker } from '../ui/colour/ColourPicker';
@@ -364,7 +363,8 @@ function EraserStrip() {
 
 /**
  * Redact: Apply, until the pending-marks bar of `04-context` (D1-6) holds it ("2 marks · Mark
- * area · Apply"). Not an ink option; it keeps J10 within reach meanwhile.
+ * area · Apply"). Not an ink option; it keeps J10 within reach meanwhile. It opens the S19
+ * sheet alone (07-sheets §20.1); the sidebar stays as it was.
  */
 function RedactStrip(): ReactNode {
   return (
@@ -373,10 +373,7 @@ function RedactStrip(): ReactNode {
       icon={<Icon name="shield-check" />}
       aria-haspopup="dialog"
       data-apply-redactions=""
-      onClick={() => {
-        showRedactionsPanel();
-        useApplyDialogStore.getState().setOpen(true);
-      }}
+      onClick={() => useApplyDialogStore.getState().setOpen(true)}
     >
       {m.bar_apply_redactions()}
     </Button>

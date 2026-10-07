@@ -153,6 +153,22 @@
   padding: 0 10px;
 }
 
+/*
+ * One material under the title: over a white page the blurred backdrop shows the page's edges
+ * through the glass, and behind the title they read as a lighter band that stops short of the
+ * ✕ (V2 review). The header lays the sheet's own tint once more at its top and lets it fade by
+ * its bottom edge, so whatever passes beneath, the title sits on the same surface as the body,
+ * with no edge of its own. Glass only: the solid twin has nothing showing through. A bottom
+ * sheet's grabber sits above its header, so it keeps the plain surface.
+ */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  :where(:root:not([data-glass='solid'], [data-degrade='4']))
+    .panel:not([data-presentation='bottom'])
+    .header {
+    background: linear-gradient(to bottom, var(--mat-tint) 30%, transparent);
+  }
+}
+
 .panel[data-presentation='bottom'] .header {
   min-height: 56px;
 }
@@ -222,7 +238,7 @@
   padding-bottom: 16px;
 }
 
-.panel[data-presentation='dialog'][data-kind='confirmation'] .body {
+.panel[data-presentation='dialog'][data-kind='confirmation'] :is(.body, .reason) {
   padding-inline: 24px;
 }
 

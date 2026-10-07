@@ -1,12 +1,15 @@
 /**
  * Passwords in the Info section (spec document-tools.md §4): the restriction notice for
  * owner-only sources (inline, expandable; this app does not enforce the author's
- * restrictions and says so), what export will do, and the Set / Remove password actions.
+ * restrictions and says so), what export will do, and the Set / Remove password actions, on
+ * the primitives' badge and buttons (quality-bar Q-9).
  */
 import type { PermissionFlags, VirtualDocument } from '@pdf-editor/document-model';
 
 import { m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
 import { openDocumentDialog } from './document-store';
 import styles from './DocumentTools.module.css';
 import {
@@ -29,7 +32,7 @@ export function SecurityInfo({ doc }: { readonly doc: VirtualDocument }) {
       {restricted.map((source) => (
         <details key={source.id} className={styles.notice} data-testid="restricted-notice">
           <summary>
-            <span className={styles.badge}>{m.badge_restricted()}</span>{' '}
+            <Badge kind="label">{m.badge_restricted()}</Badge>{' '}
             {m.restricted_summary({
               // restrictedSources only lists sources with permissions.
               restricted: restrictionList(source.flags.permissions as PermissionFlags),
@@ -70,21 +73,13 @@ export function SecurityInfo({ doc }: { readonly doc: VirtualDocument }) {
         </dd>
       </dl>
       <div className={styles.buttons}>
-        <button
-          type="button"
-          className={styles.small}
-          onClick={() => openDocumentDialog('set-password', doc.id)}
-        >
+        <Button variant="standard" onClick={() => openDocumentDialog('set-password', doc.id)}>
           {doc.security ? m.cmd_change_password() : m.cmd_set_password()}
-        </button>
+        </Button>
         {canRemove ? (
-          <button
-            type="button"
-            className={styles.small}
-            onClick={() => openDocumentDialog('remove-password', doc.id)}
-          >
+          <Button variant="standard" onClick={() => openDocumentDialog('remove-password', doc.id)}>
             {m.cmd_remove_password()}
-          </button>
+          </Button>
         ) : null}
       </div>
       {locked.length > 0 && doc.security === undefined && !doc.passwordRemoved ? (

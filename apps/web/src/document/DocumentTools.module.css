@@ -13,15 +13,17 @@
 .fields {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
-  align-items: center;
-  gap: 6px var(--space-3);
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
 }
 
 .fieldLabel {
   overflow: hidden;
-  color: var(--text-tertiary);
-  line-height: 18px;
+  color: var(--glass-text-secondary);
+  font-size: var(--type-footnote);
+  /* One line as tall as the well beside it, so the label sits on the field's centre line. */
+  line-height: var(--control-h);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -39,30 +41,15 @@
   min-width: 0;
 }
 
-.input {
-  composes: focus-inset from global;
-  width: 100%;
-  min-width: 0;
-  height: 26px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-1);
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-}
-
-/* The shared input look: the control border, no hover, the focus ring at offset 0 (design
-   audit F4, H4). */
-
-.input[aria-invalid='true'] {
-  border-color: var(--danger);
+/* The fields are ui/Field.module.css's wells; a custom key's well grows beside its ✕. */
+.fieldRow > :first-child {
+  flex: 1;
 }
 
 .readonly {
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
-  line-height: 26px;
+  line-height: var(--control-h);
 }
 
 .note {
@@ -102,13 +89,14 @@
 .addKey {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .addKey .error {
   grid-column: 1 / -1;
 }
 
+/* Export sections' small buttons (ExportSections.tsx), until they move onto ui/Button. */
 .small {
   height: 26px;
   padding: 0 var(--space-2);
@@ -130,32 +118,10 @@
   }
 }
 
-.iconButton {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-1);
-  color: var(--text-tertiary);
-}
-
-.iconButton svg {
-  width: 14px;
-  height: 14px;
-}
-
-@media (hover: hover) {
-  .iconButton:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
 .buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .facts {
@@ -167,7 +133,7 @@
 }
 
 .facts dt {
-  color: var(--text-tertiary);
+  color: var(--glass-text-secondary);
 }
 
 .facts dd {
@@ -189,12 +155,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Honesty notice: badge + expandable explanation, inline (DESIGN.md §4.4). */
-/* Honesty notice: the one recipe, a warning hairline and no fill (design audit J4, D14). */
+/* The restricted notice: FB9's recipe (ui/Notice), as a disclosure: a warning hairline, no
+   fill, radius-sm, 8 × 12. */
 .notice {
-  padding: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--warning-line);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   line-height: var(--leading-base);
@@ -207,20 +173,6 @@
 .notice p {
   margin-top: var(--space-2);
   color: var(--text-tertiary);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  height: 18px;
-  padding: 0 6px;
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-1);
-  background: var(--surface-frame);
-  color: var(--warning);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  line-height: 1;
 }
 
 /* ---- Diagnostics ---- */

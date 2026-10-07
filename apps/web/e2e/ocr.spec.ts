@@ -92,7 +92,7 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('radio', { name: 'Pages without text (2 pages)' })).toBeChecked();
   await expect(dialog.getByRole('checkbox', { name: /English/ })).toBeChecked();
-  await expect(dialog.getByTestId('ocr-languages-key')).toContainText('eng');
+  await expect(dialog.getByTestId('ocr-languages-key')).toContainText('Recognized as English');
   await expect(dialog.getByTestId('ocr-honesty')).toContainText('may contain errors');
   await dialog.getByRole('button', { name: 'Recognize 2 pages' }).click();
 
@@ -102,7 +102,7 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
   ).toBeVisible();
   const result = dialog.getByTestId('ocr-result');
   await expect(result).toBeVisible({ timeout: 180_000 });
-  await expect(result).toContainText('Recognize text: 2 pages, eng');
+  await expect(result).toContainText('Recognize text: 2 pages, English');
   await expect(page.getByTestId('status-ocr')).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Show results' }).click();
   await expect(dialog).toHaveCount(0);
@@ -129,7 +129,7 @@ test('recognise scan-text.pdf offline-first: panel, search, export, no foreign r
 
   // One history entry for the run.
   await inHistory(page, (list) =>
-    expect(historyStep(list, /Recognize text: 2 pages, eng/)).toBeVisible(),
+    expect(historyStep(list, /Recognize text: 2 pages, English/)).toBeVisible(),
   );
 
   // 4. Find: words of the manifest are found in the recognised text.
@@ -247,7 +247,7 @@ test('after "Keep available offline", OCR works with the network off', async ({
   );
   await dialog.getByRole('radio', { name: 'Current page (1)' }).check();
   await dialog.getByRole('button', { name: 'Recognize 1 page' }).click();
-  await expect(dialog.getByTestId('ocr-result')).toContainText('Recognize text: 1 page, eng', {
+  await expect(dialog.getByTestId('ocr-result')).toContainText('Recognize text: 1 page, English', {
     timeout: 180_000,
   });
   await dialog.getByRole('button', { name: 'Show results' }).click();

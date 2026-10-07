@@ -250,6 +250,7 @@
   color: currentcolor;
 }
 
+/* The note's popover: the Popover primitive's shape (radius 16, 12 px padding; ui/Popover). */
 .notePopup {
   composes: mat mat-menu s16 from global;
   position: absolute;
@@ -258,7 +259,7 @@
   gap: var(--space-2);
   width: 240px;
   padding: var(--space-3);
-  border-radius: var(--radius-2);
+  border-radius: 16px;
   color: var(--text-primary);
   font-size: var(--text-md);
   pointer-events: auto;
@@ -273,27 +274,31 @@
   font-size: var(--text-sm);
 }
 
+/* The text: a field well (ui/Field.module.css: the control border and radius, the inset ring).
+   No native resize grip (quality-bar Q-14): it grows with its text instead, to eight lines. */
 .noteText {
+  composes: focus-inset from global;
+  box-sizing: border-box;
   min-height: 72px;
-  padding: var(--space-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-2);
-  background: var(--surface-raised);
+  max-height: calc(8 * var(--type-body-lh) + 2 * var(--space-2));
+  padding: var(--space-2) 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--field-well, var(--surface-raised));
   color: var(--text-primary);
   font: inherit;
-  resize: vertical;
+  field-sizing: content;
+  resize: none;
+}
+
+@media (hover: hover) {
+  .noteText:hover {
+    border-color: var(--control-border-hover);
+  }
 }
 
 .noteActions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
-}
-
-.primary {
-  composes: btn btn-prominent from global;
-}
-
-.secondary {
-  composes: btn btn-standard from global;
 }
