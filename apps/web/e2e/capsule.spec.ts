@@ -457,3 +457,239 @@ test.describe('the capsule morph (Q-6)', () => {
     expect(width).not.toBeCloseTo(restWidth, 0);
   });
 });
+
+/**
+ * Drives `steps` inside the page (a key, or a number of frames to wait) and reads every frame
+ * drawn until `ms` have passed: each capsule piece's ink (its box less padding, where its icon
+ * and label are drawn, clipped to the capsule's box) and its opacity as drawn (its own times
+ * its ancestors' up to the capsule). Returns each pair of pieces both above trace opacity whose
+ * ink overlaps in some frame: leaving over arriving, or a slide over a new piece.
+ */
+async function overlapsDuring(
+  page: Page,
+  steps: readonly (string | number)[],
+  ms = 900,
+): Promise<{ readonly frames: number; readonly overlaps: readonly string[] }> {
+  return page.evaluate(
+    async ({ steps, ms, trace }) => {
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      const capsule = document.querySelector('[data-capsule]') as HTMLElement;
+      const n = (v: string) => Number.parseFloat(v) || 0;
+      const opacityOf = (el: Element) => {
+        let o = 1;
+        for (let e: Element | null = el; e && e !== capsule.parentElement; e = e.parentElement) {
+          const s = getComputedStyle(e);
+          if (s.visibility === 'hidden' || s.display === 'none') return 0;
+          o *= Number(s.opacity);
+        }
+        return o;
+      };
+      const read = () => {
+        const cb = capsule.getBoundingClientRect();
+        const out: { name: string; o: number; box: readonly number[] }[] = [];
+        for (const el of capsule.querySelectorAll('[data-capsule-layer] [data-capsule-item]')) {
+          if (el.querySelector('[data-capsule-item]')) continue;
+          const r = el.getBoundingClientRect();
+          const s = getComputedStyle(el);
+          let [left, top, right, bottom] = [
+            r.left + n(s.paddingLeft) + n(s.borderLeftWidth),
+            r.top + n(s.paddingTop) + n(s.borderTopWidth),
+            r.right - n(s.paddingRight) - n(s.borderRightWidth),
+            r.bottom - n(s.paddingBottom) - n(s.borderBottomWidth),
+          ];
+          if (right - left < 2 || bottom - top < 2) {
+            [left, top, right, bottom] = [r.left, r.top, r.right, r.bottom];
+          }
+          const box = [
+            Math.max(left, cb.left),
+            Math.max(top, cb.top),
+            Math.min(right, cb.right),
+            Math.min(bottom, cb.bottom),
+          ] as const;
+          const o = opacityOf(el);
+          if (o <= trace || box[2] - box[0] < 1 || box[3] - box[1] < 1) continue;
+          const layer = el.closest('[data-capsule-layer]');
+          const leaving = layer?.hasAttribute('data-leaving') ? ' (leaving)' : '';
+          const name = `${layer?.getAttribute('data-capsule-layer')}${leaving}: ${el.getAttribute('data-capsule-item')}`;
+          out.push({ name, o, box });
+        }
+        return out;
+      };
+      const overlaps = new Set<string>();
+      let frames = 0;
+      const start = performance.now();
+      let pending = [...steps];
+      while (performance.now() - start < ms) {
+        const step = pending[0];
+        if (typeof step === 'string') {
+          const target = document.activeElement ?? document.body;
+          for (const type of ['keydown', 'keyup']) {
+            target.dispatchEvent(
+              new KeyboardEvent(type, { key: step, bubbles: true, cancelable: true }),
+            );
+          }
+          pending = pending.slice(1);
+        } else if (typeof step === 'number') {
+          pending = step > 1 ? [step - 1, ...pending.slice(1)] : pending.slice(1);
+        }
+        await frame();
+        frames++;
+        const pieces = read();
+        for (const [i, a] of pieces.entries()) {
+          for (const b of pieces.slice(i + 1)) {
+            const ix =
+              Math.min(a.box[2] ?? 0, b.box[2] ?? 0) - Math.max(a.box[0] ?? 0, b.box[0] ?? 0);
+            const iy =
+              Math.min(a.box[3] ?? 0, b.box[3] ?? 0) - Math.max(a.box[1] ?? 0, b.box[1] ?? 0);
+            if (ix > 1 && iy > 1) {
+              overlaps.add(`${a.name} (${a.o.toFixed(2)}) × ${b.name} (${b.o.toFixed(2)})`);
+            }
+          }
+        }
+      }
+      return { frames, overlaps: [...overlaps] };
+    },
+    { steps, ms, trace: 0.1 },
+  );
+}
+
+/**
+ * The V2 review found the morph printing two contents at once for its first 150–250 ms
+ * ("Pages" and the highlighter as one word, swatches under Done, a "Pages" ghost over the
+ * shapes after a reversal) and the Pages grid's View Transition showing the old palette, full
+ * width, behind the narrowing capsule. Every frame is read here: no piece above trace opacity
+ * (0.1) is drawn over another, whatever the transition, and the capsule is never cloned.
+ */
+test.describe('the capsule morph never prints two contents at once', () => {
+  // Titles in ASCII: the stripes PDF is written under the test's output directory, named from
+  // the title, and Chromium's file chooser silently drops a file whose path holds an arrow.
+  const cases: readonly {
+    readonly name: string;
+    readonly before?: readonly string[];
+    readonly steps: readonly (string | number)[];
+  }[] = [
+    { name: 'dock to palette', steps: ['2'] },
+    { name: 'palette to dock', before: ['2'], steps: ['1'] },
+    { name: 'dock to palette to dock, turned back after 4 frames', steps: ['2', 4, '1'] },
+    {
+      name: 'palette to dock to palette, turned back after 3 frames',
+      before: ['2'],
+      steps: ['1', 3, '2'],
+    },
+    {
+      name: 'dock to palette, turned back at 10 frames and again at 14',
+      steps: ['2', 10, '1', 4, '2'],
+    },
+  ];
+  for (const { name, before = [], steps } of cases) {
+    test(name, async ({ page }, info) => {
+      await openStripes(page, info);
+      for (const key of before) {
+        await page.keyboard.press(key);
+        await settled(page);
+      }
+      const { frames, overlaps } = await overlapsDuring(page, steps);
+      expect(frames).toBeGreaterThan(10);
+      expect(overlaps).toEqual([]);
+    });
+  }
+
+  test('dock to Locked to dock: Pages and More slide, and never over Markup or Fill & sign', async ({
+    page,
+  }, info) => {
+    await openStripes(page, info);
+    await page.getByRole('tab', { name: 'stripes' }).click();
+    const lock = page.getByRole('switch', { name: 'Lock' });
+    await expect(lock).toBeVisible();
+    // The switch is pressed inside the page while the frames are read, so the morph is in them.
+    const press = () => lock.evaluate((el) => (el as HTMLElement).click());
+    const locking = overlapsDuring(page, [6]);
+    await press();
+    expect((await locking).overlaps).toEqual([]);
+    await expect(page.locator('[data-capsule]')).toHaveAttribute('data-capsule', 'locked');
+    await settled(page);
+    const unlocking = overlapsDuring(page, [6]);
+    await press();
+    expect((await unlocking).overlaps).toEqual([]);
+    await expect(page.locator('[data-capsule]')).toHaveAttribute('data-capsule', 'dock');
+  });
+
+  test('into the Pages grid: no clone of the capsule, and no old palette beside it', async ({
+    page,
+  }, info) => {
+    await openStripes(page, info);
+    test.skip(
+      !(await page.evaluate(() => typeof document.startViewTransition === 'function')),
+      'This engine has no View Transitions: the grid opens without one, so nothing is captured',
+    );
+    await page.keyboard.press('2');
+    await settled(page);
+    const palette = await page.locator('[data-capsule]').boundingBox();
+    if (!palette) throw new Error('no capsule');
+    // Hold the view change (it is cut at 240 ms) and pause every animation 80 ms into it: the
+    // capsule is narrowing from the palette's box then.
+    const mid = await page.evaluate(async () => {
+      const proto = ViewTransition.prototype;
+      Reflect.set(window, '__skip', Reflect.get(proto, 'skipTransition'));
+      proto.skipTransition = () => undefined;
+      const target = document.activeElement ?? document.body;
+      for (const type of ['keydown', 'keyup']) {
+        target.dispatchEvent(
+          new KeyboardEvent(type, { key: '3', bubbles: true, cancelable: true }),
+        );
+      }
+      const pseudo = (a: Animation) => String((a.effect as KeyframeEffect | null)?.pseudoElement);
+      const isVt = (a: Animation) => pseudo(a).includes('view-transition');
+      for (let i = 0; i < 120 && !document.getAnimations().some(isVt); i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      const all = document.getAnimations();
+      const vt = all.filter(isVt);
+      const t0 = Math.min(...vt.map((a) => Number(a.startTime ?? 0)));
+      for (const a of all) {
+        a.pause();
+        const started = Number(a.startTime ?? t0);
+        a.currentTime = Math.max(0, t0 + 80 - (Number.isFinite(started) ? started : t0));
+      }
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const capsule = document.querySelector('[data-capsule]') as HTMLElement;
+      const box = capsule.getBoundingClientRect();
+      return {
+        groups: [...new Set(vt.map(pseudo))].filter((p) => p.startsWith('::view-transition-group')),
+        name: getComputedStyle(capsule).viewTransitionName,
+        box: { x: box.x, y: box.y, width: box.width, height: box.height },
+      };
+    });
+    // No clone: the capsule is not captured on its own (only the root and the shared page are
+    // named), so it is drawn once, live, in the new view.
+    expect(['', 'none']).toContain(mid.name);
+    expect([...mid.groups].sort()).toEqual([
+      '::view-transition-group(page-current)',
+      '::view-transition-group(root)',
+    ]);
+    expect(mid.box.width).toBeLessThan(palette.width - 40);
+    const during = await frame(page);
+    await page.evaluate(() => {
+      for (const a of document.getAnimations()) if (a.playState === 'paused') a.play();
+      Reflect.set(ViewTransition.prototype, 'skipTransition', Reflect.get(window, '__skip'));
+    });
+    await settled(page);
+    await page.waitForTimeout(400);
+    const rest = await page.locator('[data-capsule]').boundingBox();
+    if (!rest) throw new Error('no capsule');
+    const after = await frame(page);
+    // Beside the narrowing capsule, inside the old palette's box (and beside the Pages bar at
+    // rest): the new view as it rests, never the old palette faded over it.
+    const y = mid.box.y + mid.box.height / 2;
+    const xs: number[] = [];
+    for (let x = palette.x + 12; x < palette.x + palette.width - 12; x += 8) {
+      const beside = (left: number, width: number) => x < left - 12 || x > left + width + 12;
+      if (beside(mid.box.x, mid.box.width) && beside(rest.x, rest.width)) xs.push(x);
+    }
+    expect(xs.length).toBeGreaterThan(4);
+    const ghosts = xs
+      .map((x) => ({ x, d: distance(pixel(during, x, y), pixel(after, x, y)) }))
+      .filter(({ d }) => d > 6);
+    expect(ghosts, JSON.stringify(ghosts.slice(0, 8))).toEqual([]);
+  });
+});

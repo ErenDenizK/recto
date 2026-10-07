@@ -31,9 +31,11 @@
  *
  * The palette is the capsule's Markup content (`shell/capsule/`, `shell/frame/Dock.tsx`; spec
  * X1): the capsule is the glass, measures this content at its own size and morphs to it. Its
- * pieces carry `data-capsule-item` keys (Done is `markup`, so it grows out of the dock's Markup
- * door; Sign is `sign`, Fill & sign's), and the armed Select takes the focus on arrival
- * (`data-capsule-focus`). The capsule fades it during a stroke.
+ * pieces carry `data-capsule-item` keys (Done is `markup`, the dock's Markup door's twin; Sign is
+ * `sign`, Fill & sign's), and the armed Select takes the focus on arrival (`data-capsule-focus`).
+ * The twins look different, so each fades in at its own place after the dock has faded out,
+ * rather than one label sliding over the new tools as the other (`capsule-morph.ts`). The capsule
+ * fades it during a stroke.
  */
 import { Menu } from '@base-ui/react/menu';
 import { Popover } from '@base-ui/react/popover';
