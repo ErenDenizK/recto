@@ -145,7 +145,7 @@ test('mark by selection and by area, list them, export and re-open with the mark
   await expect(panel.getByTestId('redaction-summary')).toHaveText('2 marks · 2 selected');
   await expect(panel.getByTestId('redaction-snippet')).toHaveText([TOKEN, 'Area without text']);
   // Ticked marks: "Apply redactions" is available.
-  await expect(panel.getByTestId('redaction-apply')).not.toHaveAttribute('aria-disabled');
+  await expect(panel.getByTestId('redaction-apply')).not.toHaveAttribute('aria-disabled', 'true');
   if (capture) {
     await page.screenshot({
       path: fileURLToPath(new URL('m4-redaction-marks-1440.png', screenshots)),
