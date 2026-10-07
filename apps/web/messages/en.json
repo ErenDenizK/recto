@@ -2530,6 +2530,7 @@
   "redaction_honesty": "Marks are only marks: the text under them stays in the file, and anyone can remove a mark, until redactions are applied. Applying cannot be undone once the file is exported.",
   "redaction_honesty_short": "Marks hide nothing until you apply them.",
   "redaction_honesty_more": "Why?",
+  "notice_less": "Less",
   "redaction_summary": [
     {
       "declarations": [

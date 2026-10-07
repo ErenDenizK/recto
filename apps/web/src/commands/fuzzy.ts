@@ -146,16 +146,48 @@ export function fuzzyMatch(query: string, text: string): FuzzyMatch | null {
   return { score: total, positions };
 }
 
+/** Whether `index` starts a word of `text` (its first unit, or one after a separator). */
+function atWordStart(text: string, index: number): boolean {
+  return index === 0 || SEPARATORS.has(text[index - 1] ?? '');
+}
+
+/**
+ * What to highlight of `text` for `query`: each word of the query where it appears as one
+ * contiguous run, at a word start when there is one ("rot" in "Rotate pages"), else anywhere
+ * ("tate"); folded as the matcher folds. A word with no run of its own is left unmarked, so a
+ * scattered subsequence never lights up letters across a sentence (V2 review: "rotate" bolded
+ * r, o, t, a, t, e in "Tüm arama sonuçlarını karartma için işaretle").
+ */
+export function highlightPositions(query: string, text: string): number[] {
+  const t = foldForSearch(text);
+  const words = foldForSearch(query.normalize('NFC').trim()).split(/\s+/).filter(Boolean);
+  const marked = new Set<number>();
+  for (const word of words) {
+    let start = -1;
+    for (let at = t.indexOf(word); at >= 0; at = t.indexOf(word, at + 1)) {
+      if (start < 0) start = at;
+      if (atWordStart(text, at)) {
+        start = at;
+        break;
+      }
+    }
+    for (let i = 0; start >= 0 && i < word.length; i++) marked.add(start + i);
+  }
+  return [...marked].sort((a, b) => a - b);
+}
+
 export interface Ranked<T> {
   readonly item: T;
   readonly score: number;
-  /** Matched positions in the item's primary text (for highlighting). */
+  /** What to highlight in the item's primary text: contiguous runs only (`highlightPositions`). */
   readonly positions: readonly number[];
 }
 
 /**
  * Filters and sorts items by fuzzy score. `secondary` texts (keywords, group names) can
- * match too, at a discount, and contribute no highlight positions. Ties keep input order.
+ * match too, at a discount; such a match highlights nothing in the primary text. The primary
+ * text's highlight is its contiguous runs of the query, never the scattered letters the score
+ * aligned (`highlightPositions`). Ties keep input order.
  */
 export function fuzzyFilter<T>(
   query: string,
@@ -168,14 +200,15 @@ export function fuzzyFilter<T>(
   }
   const ranked: (Ranked<T> & { order: number })[] = [];
   items.forEach((item, order) => {
-    const main = fuzzyMatch(query, primary(item));
-    let best: Ranked<T> | null = main
-      ? { item, score: main.score, positions: main.positions }
-      : null;
+    const title = primary(item);
+    const main = fuzzyMatch(query, title);
+    // Only a title that matches itself is marked; a keyword-only match marks nothing.
+    const positions = main ? highlightPositions(query, title) : [];
+    let best: Ranked<T> | null = main ? { item, score: main.score, positions } : null;
     for (const text of secondary(item)) {
       const alt = fuzzyMatch(query, text);
       if (alt && (!best || alt.score * 0.75 > best.score)) {
-        best = { item, score: alt.score * 0.75, positions: main?.positions ?? [] };
+        best = { item, score: alt.score * 0.75, positions };
       }
     }
     if (best) ranked.push({ ...best, order });

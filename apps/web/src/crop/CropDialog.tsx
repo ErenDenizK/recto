@@ -6,7 +6,7 @@
  * (selection, the whole document, or every page of the first page's size) and, honesty
  * first, whether to also remove the content outside the crop through the redaction
  * pipeline. A plain crop commits at once; with the removal the dialog shows the
- * redaction's progress and then its result sheet (redaction/ApplyRedactionsDialog.tsx).
+ * redaction's progress and then its result sheet (redaction/ApplySheet.tsx).
  * The run and its outcome live in crop-store.ts: the dialog cannot close while it works.
  * Before the removal it warns about redaction marks reaching outside the crop (deleted,
  * not applied).
@@ -34,7 +34,7 @@ import styles from '../export/ExportDialog.module.css';
 import { formatNumber, m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { fitInBox } from '../pages/page-geometry';
-import { Outcome } from '../redaction/ApplyRedactionsDialog';
+import { Outcome } from '../redaction/ApplySheet';
 import { Actions, Frame } from '../stage/OperationDialogFrame';
 import local from '../stage/OperationDialogs.module.css';
 import { closeOperationDialog } from '../stage/operation-dialogs-store';

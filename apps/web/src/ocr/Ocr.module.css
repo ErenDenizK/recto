@@ -135,14 +135,21 @@
   accent-color: var(--control-on);
 }
 
-/* The one honesty-notice recipe: a warning hairline, no tint, no stripe. */
-.notice {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-2);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  line-height: var(--leading-base);
+/* A finished run: what ran as the title, then its counts as footnote lines (notices are
+   ui/Notice, FB9). */
+.summary {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.resultTitle {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: var(--type-callout);
+  font-weight: 600;
+  line-height: var(--type-callout-lh);
+  text-wrap: balance;
 }
 
 /* ---- Page overlay: the focused word, a 1px ring in the page's selection blue (--select,

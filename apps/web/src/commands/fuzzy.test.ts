@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { foldForSearch, fuzzyFilter, fuzzyMatch } from './fuzzy';
+import { foldForSearch, fuzzyFilter, fuzzyMatch, highlightPositions } from './fuzzy';
 
 describe('fuzzyMatch', () => {
   it('returns null when the query is not a subsequence', () => {
@@ -107,5 +107,42 @@ describe('fuzzyFilter', () => {
       ).map((r) => r.item.title);
     expect(find('ciz')[0]).toBe('Pen');
     expect(find('birlestir')).toEqual(['Merge all open documents…']);
+  });
+});
+
+describe('highlightPositions', () => {
+  it('marks the query as one run, at a word start when there is one', () => {
+    expect(highlightPositions('rot', 'Rotate pages right')).toEqual([0, 1, 2]);
+    expect(highlightPositions('pag', 'Rotate pages right')).toEqual([7, 8, 9]);
+    // "at" first appears inside "Rotate"; the word start in "at once" wins.
+    expect(highlightPositions('at', 'Rotate at once')).toEqual([7, 8]);
+    expect(highlightPositions('tate', 'Rotate')).toEqual([2, 3, 4, 5]);
+  });
+
+  it('marks each word of the query on its own, folded as the matcher folds', () => {
+    expect(highlightPositions('zoom in', 'Zoom in')).toEqual([0, 1, 2, 3, 5, 6]);
+    expect(highlightPositions('dondur', 'Sayfayı döndür')).toEqual([8, 9, 10, 11, 12, 13]);
+  });
+
+  it('marks nothing for a scattered subsequence', () => {
+    expect(highlightPositions('zi', 'Zoom in')).toEqual([]);
+    const title = 'Tüm arama sonuçlarını karartma için işaretle';
+    expect(fuzzyMatch('rotate', title)).not.toBeNull();
+    expect(highlightPositions('rotate', title)).toEqual([]);
+  });
+
+  it('gives keyword-only matches no highlight in fuzzyFilter', () => {
+    const ranked = fuzzyFilter(
+      'rotate',
+      [
+        { title: 'Sayfaları sağa döndür', keywords: ['rotate'] },
+        { title: 'Rotate pages right', keywords: [] },
+      ],
+      (i) => i.title,
+      (i) => i.keywords,
+    );
+    const byTitle = new Map(ranked.map((r) => [r.item.title, r.positions]));
+    expect(byTitle.get('Sayfaları sağa döndür')).toEqual([]);
+    expect(byTitle.get('Rotate pages right')).toEqual([0, 1, 2, 3, 4, 5]);
   });
 });

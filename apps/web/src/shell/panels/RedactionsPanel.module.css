@@ -6,95 +6,10 @@
   border-bottom: 1px solid var(--border-hairline);
 }
 
-/* Honesty notice (DESIGN.md §3: warning colour for honesty notices, inline, not modal). */
-.honesty {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-2);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  line-height: 18px;
-  text-wrap: pretty;
-}
-
-.honesty svg {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin-top: 2px;
-  color: var(--warning);
-}
-
-.honestyText {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.honestyMore {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-secondary);
-  font: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  .honestyMore:hover {
-    color: var(--text-primary);
-  }
-}
-
-.honestyDetail {
-  color: var(--text-secondary);
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-.button,
-.apply {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: var(--control-height);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
-}
-
-.button svg {
-  width: 14px;
-  height: 14px;
-}
-
-.button:disabled,
-.apply[aria-disabled='true'] {
-  color: var(--text-disabled);
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .button:not(:disabled):hover,
-  .apply:not([aria-disabled='true']):hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
 }
 
 .summary {
@@ -268,8 +183,4 @@
 .finderActions {
   display: flex;
   justify-content: flex-end;
-}
-
-.primary {
-  composes: btn btn-prominent from global;
 }

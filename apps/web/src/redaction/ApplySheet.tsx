@@ -1,71 +1,73 @@
 /**
- * "Apply redactions" (spec redaction-and-text-editing §1.2): a confirmation that says
- * exactly what will happen (ticked marks become permanent removals, irreversible once
- * exported, attachments removed unless kept, fill and overlay text, "area only"), then the
- * apply with its self-check, then a result sheet with every report, or, when the gate or
- * the self-check stopped it, the stage and the findings with the document unchanged.
+ * S19 Apply redactions (`components/07-sheets.md` §20; spec redaction-and-text-editing §1.2): a
+ * confirmation on the one Sheet primitive that says exactly what will happen (ticked marks
+ * become permanent removals, irreversible once exported, attachments removed unless kept, fill
+ * and overlay text, "area only"), then the apply with its self-check, then the result with
+ * every report, or, when the gate or the self-check stopped it, the stage and the findings with
+ * the document unchanged.
+ *
+ * - **One surface.** The sheet is mounted in the shell (`AppShell`), so the markup bar's Apply
+ *   redactions… opens it alone; the Review sidebar stays as it was (§20.1: pending bar → Apply,
+ *   title → Apply redactions…). The Marks filter's button opens the same sheet.
+ * - **Controls** are the primitives' (quality-bar Q-9): the fill is a swatch row (black, white)
+ *   beside the colour well for a custom colour, as in the ink strip (`10-ink` §5); the overlay
+ *   text is a text field; the options are checkboxes with their descriptions; the honesty line
+ *   is the FB9 notice. Labels are sentence case (T-9).
+ * - **The act** is the danger label with the `redact` glyph, never lime (§20.3, §27.14), and
+ *   takes focus on open: the apply can be undone while the document is open (§20.6).
  *
  * Short text under the ticked marks (fewer than 4 characters, e.g. "NDA") is removed inside
  * the marks only; the form lists it with a tick per string to search and scrub it
- * document-wide as well. The sheet says which short strings were left to the areas, and
+ * document-wide as well. The result says which short strings were left to the areas, and
  * which streams the self-check could not decode and so did not search.
  *
- * The run and its outcome live in apply-store.ts: the dialog cannot be closed while it
- * works (Esc and the backdrop are ignored), and it shows the outcome until closed.
+ * The run and its outcome live in apply-store.ts: the sheet cannot be closed while it works
+ * (Esc is ignored and a confirmation's scrim ignores presses), and it shows the outcome until
+ * closed.
  */
-import { Dialog } from '@base-ui/react/dialog';
 import type { ForensicReport, RedactionGateReport } from '@pdf-editor/engine';
-import { type SyntheticEvent, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
-import exportStyles from '../export/ExportDialog.module.css';
 import { formatNumber, m } from '../i18n';
-import overlay from '../shell/ShortcutOverlay.module.css';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
-import { Icon } from '../ui/Icon';
+import { Button } from '../ui/Button';
+import { Checkbox } from '../ui/Checkbox';
 import { ColourPicker } from '../ui/colour/ColourPicker';
-import { useRetained } from '../ui/use-retained';
+import { Icon } from '../ui/Icon';
+import { Notice } from '../ui/Notice';
+import { Progress } from '../ui/Progress';
+import { Sheet, type SheetPrimary } from '../ui/sheet';
+import { Swatch } from '../ui/Swatch';
+import { SwatchGroup } from '../ui/SwatchGroup';
+import { TextField } from '../ui/TextField';
 import {
   type ApplyChoices,
   type ApplyOutcome,
   DEFAULT_CHOICES,
-  type FillChoice,
   type ShortText,
   type SourceRedaction,
   shortTextUnderMarks,
 } from './apply';
-import styles from './ApplyRedactions.module.css';
 import { dismissApplyOutcome, runApply, useApplyDialogStore } from './apply-store';
+import styles from './ApplySheet.module.css';
 import { collectMarks, type MarkEntry, useRedactionStore } from './redaction-store';
 import { checkName, failingCheckLines, leftoverName } from './report-text';
 
-type Step =
-  | { readonly kind: 'form' }
-  | { readonly kind: 'working' }
-  | { readonly kind: 'done'; readonly outcome: ApplyOutcome };
+/** The sheet's id (the one-at-a-time rule; `[data-sheet]` in tests). */
+export const APPLY_SHEET = 'redaction-apply';
 
-export function ApplyRedactionsDialog() {
+const BLACK = '#000000';
+const WHITE = '#FFFFFF';
+
+/** Mount once in the shell: the sheet, from its first opening on. */
+export function ApplyRedactionsSheet() {
   const open = useApplyDialogStore((s) => s.open);
-  const setOpen = useApplyDialogStore((s) => s.setOpen);
-  // Keep the popup mounted while it animates closed (see useRetained).
-  const [shown, release] = useRetained(open ? true : null);
-  return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={setOpen}
-      onOpenChangeComplete={(isOpen) => {
-        if (isOpen) return;
-        release();
-        // The sheet was seen; the next opening starts from the form.
-        dismissApplyOutcome();
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className={overlay.backdrop} />
-        {shown ? <ApplyFlow onClose={() => setOpen(false)} /> : null}
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
+  const opened = useApplyDialogStore((s) => s.opened);
+  if (opened === 0) return null;
+  // A new key per opening: the form's choices start afresh, and the closing sheet keeps what
+  // it showed while it leaves.
+  return <ApplyFlow key={opened} open={open} />;
 }
 
 interface TickCounts {
@@ -115,216 +117,202 @@ function useShortTexts(marks: readonly MarkEntry[]): readonly ShortText[] {
 
 const shortKey = (s: ShortText) => `${s.source}\u0000${s.text}`;
 
-const FILLS: readonly { readonly id: FillChoice; readonly swatch?: string }[] = [
-  { id: 'black', swatch: '#000000' },
-  { id: 'white', swatch: '#ffffff' },
-  { id: 'custom' },
-];
-
-function fillLabel(id: FillChoice): string {
-  if (id === 'black') return m.redaction_fill_black();
-  if (id === 'white') return m.redaction_fill_white();
-  return m.redaction_fill_custom();
+/** The fill as one colour: what the well shows and the swatch row checks. */
+function fillColour(choices: ApplyChoices): string {
+  if (choices.fill === 'black') return BLACK;
+  if (choices.fill === 'white') return WHITE;
+  return choices.customColor.toUpperCase();
 }
 
-function ApplyFlow({ onClose }: { readonly onClose: () => void }) {
+/** A colour chosen in the well or the row: black and white are their own choices. */
+function fillOf(colour: string): Pick<ApplyChoices, 'fill'> & Partial<ApplyChoices> {
+  const hex = colour.toUpperCase();
+  if (hex === BLACK) return { fill: 'black' };
+  if (hex === WHITE) return { fill: 'white' };
+  return { fill: 'custom', customColor: hex.toLowerCase() };
+}
+
+function ApplyFlow({ open }: { readonly open: boolean }) {
   const run = useApplyDialogStore((s) => s.run);
-  const step: Step =
-    run.kind === 'working'
-      ? { kind: 'working' }
-      : run.kind === 'done'
-        ? { kind: 'done', outcome: run.outcome }
-        : { kind: 'form' };
+  const close = () => useApplyDialogStore.getState().setOpen(false);
   const [choices, setChoices] = useState<ApplyChoices>(DEFAULT_CHOICES);
   const { ticked, unticked, marks } = useTickCounts();
-  const shortTexts = useShortTexts(step.kind === 'form' ? marks : []);
+  const shortTexts = useShortTexts(run.kind === 'idle' ? marks : []);
   const [searched, setSearched] = useState<ReadonlySet<string>>(new Set());
-  const primaryRef = useRef<HTMLButtonElement>(null);
   const set = (patch: Partial<ApplyChoices>) => setChoices((c) => ({ ...c, ...patch }));
 
+  // The result's Close takes focus when the work ends (a field that submitted is gone).
   useEffect(() => {
-    if (step.kind === 'done') primaryRef.current?.focus();
-  }, [step.kind]);
+    if (run.kind !== 'done') return;
+    document
+      .querySelector<HTMLElement>(`[data-sheet="${APPLY_SHEET}"] [data-sheet-primary]`)
+      ?.focus();
+  }, [run.kind]);
 
-  const apply = async (event: SyntheticEvent) => {
-    event.preventDefault();
+  const apply = () => {
     const alsoSearch = shortTexts.filter((s) => searched.has(shortKey(s)));
-    await runApply({ ...choices, alsoSearch });
+    void runApply({ ...choices, alsoSearch });
   };
 
-  return (
-    <Dialog.Popup
-      className={`${overlay.popup} ${exportStyles.popup} ${styles.popup}`}
-      data-testid="redaction-apply-dialog"
-    >
-      <div className={overlay.header}>
-        <Dialog.Title className={overlay.title}>
-          {step.kind === 'done' && step.outcome.kind === 'applied'
-            ? m.redaction_result_title()
-            : step.kind === 'done' && step.outcome.kind === 'blocked'
-              ? m.redaction_blocked_title()
-              : m.redaction_apply_title()}
-        </Dialog.Title>
-        <Dialog.Close
-          className={overlay.close}
-          aria-label={m.common_close()}
-          disabled={step.kind === 'working'}
-        >
-          <Icon name="x" />
-        </Dialog.Close>
+  let title = m.redaction_apply_title();
+  let description: ReactNode;
+  let body: ReactNode;
+  let primary: SheetPrimary;
+  let secondary: ReactNode;
+  if (run.kind === 'done') {
+    title =
+      run.outcome.kind === 'applied'
+        ? m.redaction_result_title()
+        : run.outcome.kind === 'blocked'
+          ? m.redaction_blocked_title()
+          : m.redaction_apply_title();
+    body = <Outcome outcome={run.outcome} />;
+    primary = { label: m.common_close(), onPress: close };
+    secondary =
+      run.outcome.kind === 'applied' ? undefined : (
+        <Button variant="quiet" onClick={dismissApplyOutcome}>
+          {m.common_back()}
+        </Button>
+      );
+  } else {
+    const working = run.kind === 'working';
+    description = working ? undefined : (
+      <>
+        {m.redaction_apply_scope({ count: ticked, countText: formatNumber(ticked) })}{' '}
+        {unticked > 0
+          ? m.redaction_apply_unticked({ count: unticked, countText: formatNumber(unticked) })
+          : null}
+      </>
+    );
+    primary = {
+      label: m.redaction_apply_confirm(),
+      onPress: apply,
+      danger: true,
+      icon: <Icon name="redact" />,
+      disabled: ticked === 0,
+      reason: ticked === 0 ? m.redaction_apply_none() : undefined,
+      busy: working,
+      testId: 'redaction-apply-confirm',
+    };
+    body = working ? (
+      <div role="status" className={styles.working}>
+        <Progress value={null} label={m.redaction_applying()} hideValue />
       </div>
+    ) : (
+      <ApplyForm
+        choices={choices}
+        set={set}
+        shortTexts={shortTexts}
+        searched={searched}
+        setSearched={setSearched}
+      />
+    );
+  }
 
-      {step.kind === 'form' ? (
-        <form className={exportStyles.body} onSubmit={(event) => void apply(event)}>
-          <Dialog.Description className={exportStyles.description}>
-            {m.redaction_apply_scope({ count: ticked, countText: formatNumber(ticked) })}{' '}
-            {unticked > 0
-              ? m.redaction_apply_unticked({ count: unticked, countText: formatNumber(unticked) })
-              : null}
-          </Dialog.Description>
-          <p className={exportStyles.description}>{m.redaction_apply_what()}</p>
-          <p className={styles.warning} role="note">
-            {m.redaction_apply_irreversible()}
-          </p>
-          <fieldset className={exportStyles.section}>
-            <legend className={exportStyles.sectionTitle}>{m.redaction_apply_fill()}</legend>
-            <div className={styles.fills} role="radiogroup" aria-label={m.redaction_apply_fill()}>
-              {FILLS.map((fill) => (
-                <label key={fill.id} className={styles.fill}>
-                  <input
-                    type="radio"
-                    name="redaction-fill"
-                    checked={choices.fill === fill.id}
-                    onChange={() => set({ fill: fill.id })}
-                  />
-                  {fill.swatch ? (
-                    <span
-                      className={styles.swatch}
-                      style={{ background: fill.swatch }}
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                  {fillLabel(fill.id)}
-                </label>
-              ))}
-              {choices.fill === 'custom' ? (
-                <ColourPicker
-                  value={choices.customColor.toUpperCase()}
-                  label={m.redaction_fill_custom_label()}
-                  onChange={(customColor) => set({ customColor: customColor.toLowerCase() })}
-                  side="right"
-                />
-              ) : null}
-            </div>
-            <label className={exportStyles.field}>
-              <span className={exportStyles.label}>{m.redaction_overlay_label()}</span>
-              <input
-                className={exportStyles.input}
-                value={choices.overlayText}
-                placeholder={m.redaction_overlay_placeholder()}
-                maxLength={60}
-                spellCheck={false}
-                autoComplete="off"
-                onChange={(event) => set({ overlayText: event.target.value })}
-              />
-            </label>
-          </fieldset>
-          <fieldset className={exportStyles.section}>
-            <label className={exportStyles.check}>
-              <input
-                type="checkbox"
-                checked={choices.keepAttachments}
-                onChange={(event) => set({ keepAttachments: event.target.checked })}
-              />
-              <span>
-                {m.redaction_keep_attachments()}
-                <span className={exportStyles.hint}>{m.redaction_keep_attachments_hint()}</span>
-              </span>
-            </label>
-            <label className={exportStyles.check}>
-              <input
-                type="checkbox"
-                checked={choices.areaOnly}
-                onChange={(event) => set({ areaOnly: event.target.checked })}
-              />
-              <span>
-                {m.redaction_area_only()}
-                <span className={exportStyles.hint}>{m.redaction_area_only_hint()}</span>
-              </span>
-            </label>
-          </fieldset>
-          {shortTexts.length > 0 && !choices.areaOnly ? (
-            <fieldset className={exportStyles.section} data-testid="redaction-short-texts">
-              <legend className={exportStyles.sectionTitle}>{m.redaction_short_title()}</legend>
-              <p className={styles.note}>{m.redaction_short_hint()}</p>
-              {shortTexts.map((short) => {
-                const key = shortKey(short);
-                return (
-                  <label key={key} className={exportStyles.check}>
-                    <input
-                      type="checkbox"
-                      checked={searched.has(key)}
-                      onChange={(event) => {
-                        const next = new Set(searched);
-                        if (event.target.checked) next.add(key);
-                        else next.delete(key);
-                        setSearched(next);
-                      }}
-                    />
-                    <span>{m.redaction_short_search({ text: short.text })}</span>
-                  </label>
-                );
-              })}
-            </fieldset>
-          ) : null}
-          <div className={exportStyles.actions}>
-            <Dialog.Close className={exportStyles.secondary}>{m.common_cancel()}</Dialog.Close>
-            <button
-              type="submit"
-              className={exportStyles.primary}
-              disabled={ticked === 0}
-              data-testid="redaction-apply-confirm"
-            >
-              {m.redaction_apply_confirm()}
-            </button>
-          </div>
-        </form>
-      ) : null}
+  return (
+    <Sheet
+      id={APPLY_SHEET}
+      kind="confirmation"
+      open={open}
+      onClose={close}
+      title={title}
+      description={description}
+      primary={primary}
+      secondary={secondary}
+      {...(run.kind === 'idle' ? {} : { cancel: false as const })}
+      initialFocus="primary"
+      testId="redaction-apply-dialog"
+    >
+      {body}
+    </Sheet>
+  );
+}
 
-      {step.kind === 'working' ? (
-        <div className={exportStyles.body}>
-          <p className={exportStyles.description} role="status">
-            {m.redaction_applying()}
-          </p>
-          <progress className={exportStyles.progress} aria-label={m.redaction_applying()} />
+function ApplyForm({
+  choices,
+  set,
+  shortTexts,
+  searched,
+  setSearched,
+}: {
+  readonly choices: ApplyChoices;
+  readonly set: (patch: Partial<ApplyChoices>) => void;
+  readonly shortTexts: readonly ShortText[];
+  readonly searched: ReadonlySet<string>;
+  readonly setSearched: (next: ReadonlySet<string>) => void;
+}) {
+  const colour = fillColour(choices);
+  return (
+    <div className={styles.form} data-testid="redaction-apply-form">
+      <p className={styles.text}>{m.redaction_apply_what()}</p>
+      <Notice>{m.redaction_apply_irreversible()}</Notice>
+      <div className={styles.group}>
+        <p className={styles.legend}>{m.redaction_apply_fill()}</p>
+        <div className={styles.fills}>
+          <SwatchGroup
+            label={m.redaction_apply_fill()}
+            value={colour === BLACK || colour === WHITE ? colour : null}
+            onValueChange={(value) => set(fillOf(value))}
+            className={styles.swatches}
+          >
+            <Swatch value={BLACK} name={m.redaction_fill_black()} />
+            <Swatch value={WHITE} name={m.redaction_fill_white()} />
+          </SwatchGroup>
+          <span className={styles.divider} aria-hidden="true" />
+          <ColourPicker
+            value={colour}
+            label={m.redaction_fill_custom_label()}
+            onChange={(value) => set(fillOf(value))}
+            side="right"
+          />
+        </div>
+      </div>
+      <TextField
+        label={m.redaction_overlay_label()}
+        value={choices.overlayText}
+        onValueChange={(overlayText) => set({ overlayText })}
+        placeholder={m.redaction_overlay_placeholder()}
+        maxLength={60}
+        spellCheck={false}
+        autoComplete="off"
+      />
+      <div className={styles.group}>
+        <Checkbox
+          checked={choices.keepAttachments}
+          onCheckedChange={(keepAttachments) => set({ keepAttachments })}
+          label={m.redaction_keep_attachments()}
+          description={m.redaction_keep_attachments_hint()}
+        />
+        <Checkbox
+          checked={choices.areaOnly}
+          onCheckedChange={(areaOnly) => set({ areaOnly })}
+          label={m.redaction_area_only()}
+          description={m.redaction_area_only_hint()}
+        />
+      </div>
+      {shortTexts.length > 0 && !choices.areaOnly ? (
+        <div className={styles.group} data-testid="redaction-short-texts">
+          <p className={styles.legend}>{m.redaction_short_title()}</p>
+          <p className={styles.note}>{m.redaction_short_hint()}</p>
+          {shortTexts.map((short) => {
+            const key = shortKey(short);
+            return (
+              <Checkbox
+                key={key}
+                checked={searched.has(key)}
+                onCheckedChange={(on) => {
+                  const next = new Set(searched);
+                  if (on) next.add(key);
+                  else next.delete(key);
+                  setSearched(next);
+                }}
+                label={m.redaction_short_search({ text: short.text })}
+              />
+            );
+          })}
         </div>
       ) : null}
-
-      {step.kind === 'done' ? (
-        <div className={exportStyles.body}>
-          <Outcome outcome={step.outcome} />
-          <div className={exportStyles.actions}>
-            {step.outcome.kind === 'applied' ? null : (
-              <button
-                type="button"
-                className={exportStyles.secondary}
-                onClick={dismissApplyOutcome}
-              >
-                {m.common_back()}
-              </button>
-            )}
-            <button
-              ref={primaryRef}
-              type="button"
-              className={exportStyles.primary}
-              onClick={onClose}
-            >
-              {m.common_close()}
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </Dialog.Popup>
+    </div>
   );
 }
 
@@ -351,7 +339,7 @@ export function Outcome({ outcome }: { readonly outcome: ApplyOutcome }) {
           : [];
     return (
       <div className={styles.stack} data-testid="redaction-blocked">
-        <p className={exportStyles.error} role="alert" data-stage={outcome.stage}>
+        <p className={styles.error} role="alert" data-stage={outcome.stage}>
           {outcome.stage === 'gate' ? m.redaction_blocked_gate() : m.redaction_blocked_forensic()}
         </p>
         {outcome.name ? (
@@ -378,12 +366,12 @@ export function Outcome({ outcome }: { readonly outcome: ApplyOutcome }) {
   }
   if (outcome.kind === 'error') {
     return (
-      <p className={exportStyles.error} role="alert">
+      <p className={styles.error} role="alert">
         {m.redaction_apply_failed()} {outcome.message}
       </p>
     );
   }
-  return <p className={exportStyles.description}>{m.redaction_apply_none()}</p>;
+  return <p className={styles.text}>{m.redaction_apply_none()}</p>;
 }
 
 function gateLines(gate: RedactionGateReport): string[] {
@@ -464,7 +452,7 @@ function SourceResult({
       ) : report.structure === 'untagged' ? (
         <p className={styles.note}>{m.redaction_result_tags_removed()}</p>
       ) : null}
-      {result.gate.ok ? <p className={exportStyles.verified}>{m.redaction_result_gate()}</p> : null}
+      {result.gate.ok ? <p className={styles.verified}>{m.redaction_result_gate()}</p> : null}
       <CheckList report={result.forensic} />
     </section>
   );

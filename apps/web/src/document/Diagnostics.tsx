@@ -15,6 +15,7 @@ import {
   useDiagnosticsStore,
   useSourceDiagnostics,
 } from './diagnostics';
+import { Button } from '../ui/Button';
 import styles from './DocumentTools.module.css';
 import { handlerLabel } from './security-text';
 
@@ -236,13 +237,9 @@ function StructuralWarnings({
             <p className={styles.error}>{m.diag_structure_failed({ reason: check.message })}</p>
           ) : null}
           <div className={styles.buttons}>
-            <button
-              type="button"
-              className={styles.small}
-              onClick={() => requestStructuralCheck(sourceId)}
-            >
+            <Button variant="standard" onClick={() => requestStructuralCheck(sourceId)}>
               {m.diag_structure_run()}
-            </button>
+            </Button>
           </div>
         </>
       ) : check.status === 'running' ? (

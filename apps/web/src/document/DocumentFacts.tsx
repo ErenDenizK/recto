@@ -13,6 +13,7 @@ import type { SourceFlags, VirtualDocument } from '@pdf-editor/document-model';
 import { formatBytes } from '../files/file-filters';
 import { getLocale, m } from '../i18n';
 import { documentSources, useWorkspaceStore } from '../state/workspace-store';
+import { Badge } from '../ui/Badge';
 import styles from './DocumentFacts.module.css';
 
 const dateFormat = (value: number) =>
@@ -87,7 +88,7 @@ export function DocumentFacts({ doc }: { readonly doc: VirtualDocument }) {
         <ul className={styles.badges} aria-label={m.info_notes()}>
           {badges.map((badge) => (
             <li key={badge.flag} className={styles.badgeRow}>
-              <span className={styles.badge}>{badge.label}</span>
+              <Badge kind="label">{badge.label}</Badge>
               <span className={styles.explanation}>{badge.explanation}</span>
             </li>
           ))}

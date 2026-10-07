@@ -30,6 +30,7 @@ import { useWorkspaceStore } from '../state/workspace-store';
 import toolStyles from '../tools/ToolDialog.module.css';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
+import { Notice } from '../ui/Notice';
 import { RadioGroup } from '../ui/RadioGroup';
 import { Sheet, SheetField, type SheetPrimary } from '../ui/sheet';
 import { useRetained } from '../ui/use-retained';
@@ -45,8 +46,8 @@ import {
   type FactsBySource,
   formatMegabytes,
   invisibleTextOf,
+  languageList,
   languageName,
-  languagesKey,
   lacksVisibleText,
   type OcrScope,
   scopeTargets,
@@ -368,7 +369,7 @@ function useRunForm(documentId: DocumentId | undefined): {
           <div className={styles.row}>
             <span className={styles.hint} data-testid="ocr-languages-key">
               {languages.length > 0
-                ? m.ocr_languages_order({ languages: languagesKey(languages) })
+                ? m.ocr_languages_order({ languages: languageList(languages, locale) })
                 : m.ocr_languages_none()}
             </span>
             <span className={toolStyles.spacer} />
@@ -420,13 +421,9 @@ function useRunForm(documentId: DocumentId | undefined): {
         ) : null}
 
         {signedSources.length > 0 ? (
-          <p className={styles.notice} data-testid="ocr-signed-warning">
-            {m.ocr_signed_warning()}
-          </p>
+          <Notice testId="ocr-signed-warning">{m.ocr_signed_warning()}</Notice>
         ) : null}
-        <p className={styles.notice} data-testid="ocr-honesty">
-          {m.ocr_honesty()}
-        </p>
+        <Notice testId="ocr-honesty">{m.ocr_honesty()}</Notice>
       </div>
     ),
   };
@@ -486,23 +483,23 @@ function Outcome({ run }: { readonly run: Exclude<OcrRun, { kind: 'idle' | 'runn
       .map((q) => `${qualityLabel(q)}: ${formatNumber(result.byQuality[q])}`);
     return (
       <div className={styles.body} data-testid="ocr-result">
-        <p className={toolStyles.strong}>{result.label}</p>
-        <p className={toolStyles.description}>{parts.join(' · ')}</p>
-        <p className={toolStyles.hint}>
-          {m.ocr_result_words({
-            words: formatNumber(result.words),
-            low: formatNumber(result.lowConfidence),
-          })}
-        </p>
-        {result.timedOut > 0 ? (
-          <p className={styles.notice}>{m.ocr_result_timed_out({ count: result.timedOut })}</p>
-        ) : null}
-        {result.reducedDpi > 0 ? (
-          <p className={toolStyles.hint}>
-            {m.ocr_result_reduced_dpi({ count: result.reducedDpi })}
+        <div className={styles.summary}>
+          <p className={styles.resultTitle}>{result.label}</p>
+          <p className={styles.hint}>{parts.join(' · ')}</p>
+          <p className={styles.hint}>
+            {m.ocr_result_words({
+              words: formatNumber(result.words),
+              low: formatNumber(result.lowConfidence),
+            })}
           </p>
+          {result.reducedDpi > 0 ? (
+            <p className={styles.hint}>{m.ocr_result_reduced_dpi({ count: result.reducedDpi })}</p>
+          ) : null}
+        </div>
+        {result.timedOut > 0 ? (
+          <Notice>{m.ocr_result_timed_out({ count: result.timedOut })}</Notice>
         ) : null}
-        <p className={styles.notice}>{m.ocr_honesty()}</p>
+        <Notice>{m.ocr_honesty()}</Notice>
       </div>
     );
   }

@@ -55,14 +55,15 @@
   transform: none;
 }
 
-/* Selected: an inset 2 px lime ring inside the rim (7.39:1 against lit glass). */
+/* Selected: an inset 2 px ring inside the rim in the neutral on colour (language.md §1.1:
+   checks are --control-on, never lime), so Combine stays the view's one lime. */
 .card[data-selected] {
-  --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--accent-ring);
+  --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--control-on);
 }
 
 @media (hover: hover) {
   .card[data-selected]:hover:not([data-dragging]) {
-    --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--accent-ring), var(--e3);
+    --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--control-on), var(--e3);
   }
 }
 
@@ -111,12 +112,12 @@
   box-shadow: var(--e1);
 }
 
-/* Selected: the filled check in the primary's two colours, lime on ink in dark and ink on lime
-   in light (ADR-0023 §2.3: lime always touches ink; on a light card the disc is ink). */
+/* Selected: the filled check as every checkbox draws it, the disc in --control-on and the tick
+   cut out of it in --control-on-ink (09-primitives §8; language.md §1.1). */
 .card[data-selected] .disc {
   border: 0;
-  background: var(--primary-ink);
-  color: var(--primary-fill);
+  background: var(--control-on-ink);
+  color: var(--control-on);
 }
 
 .disc svg {

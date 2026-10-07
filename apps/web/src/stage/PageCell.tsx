@@ -4,10 +4,11 @@
  * re-renders only the affected cells); selection, drag and clipboard state come from per-cell
  * store selectors for the same reason.
  *
- * - **Marks** (§2.2): the page that was current on the page view has a 2 px lime ring 3 px out
- *   and its label at 600 (`aria-current="page"`); a selected page an inset 2 px `--select` ring
- *   and a check badge, top trailing, never colour alone (A-19); both when both hold. The focus
- *   ring takes the gap form outside them.
+ * - **Marks** (§2.2, as the V2 review settled them): the page that was current on the page view
+ *   has its label at 600 and a 1 px neutral ring 3 px out (`aria-current="page"`); a selected
+ *   page a light `--select` wash with a 2 px edge and a check badge, top trailing, never colour
+ *   alone (A-19); both when both hold. The focus ring takes the gap form outside them, on
+ *   keyboard focus only, and the current ring steps aside under it (ArrangeView.module.css).
  * - **No hover actions** (06.10, baseline V10): their 20 px rotate and delete failed touch and
  *   A-15; the Pages bar and the cell menu carry them.
  * - The mouse drags on the native path (`dnd/page-drag.ts`); touch and pen on the grid's

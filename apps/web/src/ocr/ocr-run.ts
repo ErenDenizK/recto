@@ -50,10 +50,10 @@ import {
   type OcrRecognizerLease,
   toFailure,
 } from '../engine/engine-service';
-import { formatNumber, m } from '../i18n';
+import { formatNumber, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { factsOf, languagesKey, type OcrTarget, replaceModeFor } from './ocr-model';
+import { factsOf, languageList, type OcrTarget, replaceModeFor } from './ocr-model';
 import type { OcrPhase, OcrRunRequest, OcrRunResult } from './ocr-store';
 
 /** Pages recognised at once (the recognizer pool has one or two workers). */
@@ -278,9 +278,10 @@ export async function recognizeAndApply(
       throwIfAborted(signal);
       onProgress({ phase: 'write' });
       const report = ocrReportOf(results, { totalMs: performance.now() - started });
+      // Language names in the UI language ("English", "İngilizce"), never Tesseract's codes.
       const label = m.ocr_history_label({
         count: report.pages,
-        languages: languagesKey(codes),
+        languages: languageList(codes, getLocale()),
       });
       const plans = plansOf(request, results);
       let stale: number[] = [];

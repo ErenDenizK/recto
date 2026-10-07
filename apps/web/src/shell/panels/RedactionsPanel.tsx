@@ -5,11 +5,12 @@
  * one line with a "Why?" disclosure, what a mark is (only a mark until applied; applying
  * is irreversible after export) and holds the sensitive-data finder, whose matches are
  * reviewed here before "Mark selected". "Apply redactions" is enabled while a listed mark
- * is ticked and opens the confirmation dialog (redaction/ApplyRedactionsDialog.tsx), which
- * applies the ticked marks.
+ * is ticked and opens the S19 sheet (redaction/ApplySheet.tsx, mounted in the shell), which
+ * applies the ticked marks. The honesty line is the FB9 notice and the actions are the
+ * primitives' buttons (quality-bar Q-9).
  */
 import type { Rect, SourceId } from '@pdf-editor/document-model';
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { useAnnotationStore } from '../../annotations/annotation-store';
 import { pageText } from '../../annotations/page-text';
@@ -25,7 +26,6 @@ import {
 } from '../../redaction';
 import type { PatternId } from '../../redaction/patterns';
 import { PATTERN_IDS } from '../../redaction/patterns';
-import { ApplyRedactionsDialog } from '../../redaction/ApplyRedactionsDialog';
 import { useApplyDialogStore } from '../../redaction/apply-store';
 import {
   type FinderMatch,
@@ -36,9 +36,10 @@ import { textUnderQuads } from '../../redaction/text-index';
 import { isPageView, useUiStore } from '../../state/ui-store';
 import { useViewStore } from '../../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
+import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
-import { Tooltip } from '../../ui/Tooltip';
+import { Notice } from '../../ui/Notice';
 import styles from './RedactionsPanel.module.css';
 
 const PATTERN_NAMES: Readonly<Record<PatternId, () => string>> = {
@@ -82,81 +83,45 @@ export function RedactionTools({ entries }: { readonly entries: readonly MarkEnt
   );
 }
 
-/** "Marks hide nothing until you apply them. Why?": one line, the full text on demand. */
+/** "Marks hide nothing until you apply them. Why?": one line, the full text on demand (FB9). */
 function Honesty() {
-  const [open, setOpen] = useState(false);
-  const detailId = useId();
   return (
-    <div className={styles.honesty} role="note" data-testid="redaction-honesty">
-      <Icon name="shield-warning" />
-      <div className={styles.honestyText}>
-        <p>
-          {m.redaction_honesty_short()}{' '}
-          <button
-            type="button"
-            className={styles.honestyMore}
-            aria-expanded={open}
-            aria-controls={detailId}
-            onClick={() => setOpen(!open)}
-          >
-            {m.redaction_honesty_more()}
-          </button>
-        </p>
-        <p id={detailId} className={styles.honestyDetail} hidden={!open}>
-          {m.redaction_honesty()}
-        </p>
-      </div>
-    </div>
+    <Notice
+      testId="redaction-honesty"
+      more={{ label: m.redaction_honesty_more(), detail: m.redaction_honesty() }}
+    >
+      {m.redaction_honesty_short()}
+    </Notice>
   );
 }
 
 function Actions({ ticked }: { readonly ticked: number }) {
   const doc = useActiveDocument();
-  const noteId = useId();
   const status = useRedactionStore((s) => s.finder.status);
   const openApply = useApplyDialogStore((s) => s.setOpen);
-  const disabled = ticked === 0;
   return (
     <div className={styles.actions}>
-      <button
-        type="button"
-        className={styles.button}
+      <Button
+        variant="standard"
+        icon={<Icon name="scan" />}
         disabled={!doc || status === 'running'}
         onClick={() => {
           if (doc) void findSensitiveData(doc);
         }}
       >
-        <Icon name="scan" />
         {m.redaction_find()}
-      </button>
-      {disabled ? (
-        <Tooltip label={m.redaction_apply_none()} side="bottom">
-          <button
-            type="button"
-            className={styles.apply}
-            aria-disabled="true"
-            aria-describedby={noteId}
-            data-testid="redaction-apply"
-          >
-            {m.redaction_apply()}
-          </button>
-        </Tooltip>
-      ) : (
-        <button
-          type="button"
-          className={styles.apply}
-          data-testid="redaction-apply"
-          onClick={() => openApply(true)}
-        >
-          {m.redaction_apply()}
-        </button>
-      )}
-      {disabled ? (
-        <span id={noteId} className="visually-hidden">
-          {m.redaction_apply_none()}
-        </span>
-      ) : null}
-      <ApplyRedactionsDialog />
+      </Button>
+      <Button
+        variant="standard"
+        icon={<Icon name="redact" />}
+        disabled={ticked === 0}
+        reason={m.redaction_apply_none()}
+        aria-haspopup="dialog"
+        data-testid="redaction-apply"
+        onClick={() => openApply(true)}
+      >
+        {m.redaction_apply()}
+      </Button>
     </div>
   );
 }
@@ -415,17 +380,17 @@ function Finder() {
       })}
       {current.length > 0 ? (
         <div className={styles.finderActions}>
-          <button
-            type="button"
-            className={styles.primary}
-            disabled={chosen === 0 || busy}
+          <Button
+            variant="standard"
+            disabled={chosen === 0}
+            busy={busy}
             onClick={() => {
               setBusy(true);
               void markCheckedFinds().finally(() => setBusy(false));
             }}
           >
             {m.redaction_mark_selected({ count: chosen, countText: formatNumber(chosen) })}
-          </button>
+          </Button>
         </div>
       ) : null}
     </section>

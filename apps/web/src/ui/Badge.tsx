@@ -8,6 +8,9 @@
  * - `dot`: 6 px (8 coarse) in the primary colour.
  * - `status`: a 12 px glyph (16 coarse) in the status colour and the caller's words, no fill
  *   (colour is never the only cue, A-19).
+ * - `label`: a short word on the count's fill, a pill 20 px high (24 coarse), caption at 600 in
+ *   the primary colour: a fact about a file beside its explanation (Document info's "has form",
+ *   "tagged"). Neutral, never the warning colour: the explanation says what changes.
  *
  * Decorative: `aria-hidden`, never focusable. The count is part of the host's accessible name
  * ("Review, 3 items"), which the host writes.
@@ -29,6 +32,11 @@ export type BadgeProps =
   | { readonly kind?: 'count'; readonly count: number; readonly className?: string | undefined }
   | { readonly kind: 'dot'; readonly className?: string | undefined }
   | {
+      readonly kind: 'label';
+      readonly children: ReactNode;
+      readonly className?: string | undefined;
+    }
+  | {
       readonly kind: 'status';
       readonly tone: 'success' | 'warning' | 'danger';
       readonly icon: ReactNode;
@@ -39,7 +47,8 @@ export type BadgeProps =
 export function Badge(props: BadgeProps) {
   // Only an increase pops (09 §17.7): a new key replays the entrance once. Derived from the
   // previous count during render, so no effect runs and nothing flashes.
-  const count = props.kind === 'dot' || props.kind === 'status' ? 0 : props.count;
+  const count =
+    props.kind === 'dot' || props.kind === 'status' || props.kind === 'label' ? 0 : props.count;
   const [seen, setSeen] = useState(count);
   const [pops, setPops] = useState(0);
   if (count !== seen) {
@@ -50,6 +59,13 @@ export function Badge(props: BadgeProps) {
 
   if (props.kind === 'dot') {
     return <span className={className} data-kind="dot" aria-hidden="true" />;
+  }
+  if (props.kind === 'label') {
+    return (
+      <span className={className} data-kind="label" aria-hidden="true">
+        {props.children}
+      </span>
+    );
   }
   if (props.kind === 'status') {
     return (
