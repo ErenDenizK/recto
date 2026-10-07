@@ -47,6 +47,11 @@ async function titleMenuRow(page: Page, command: string): Promise<Locator> {
   await page.getByTestId('document-menu').click();
   const menu = page.getByTestId('title-menu');
   await expect(menu).toBeVisible();
+  // The menu at rest before a row is pressed: a press during its entrance can land on a row
+  // that is still moving into place.
+  await menu.evaluate((el) =>
+    Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => undefined))),
+  );
   return menu.locator(`[data-command="${command}"]`);
 }
 
@@ -145,7 +150,10 @@ for (const lang of ['en', 'tr'] as const) {
       await start(page, info, lang, ['scan-text.pdf']);
       await (await titleMenuRow(page, 'document.ocr')).click();
       const sheet = page.getByTestId('ocr-dialog');
-      await expect(sheet).toBeVisible();
+      // S10's code loads on its first opening (`OcrSheetHost`, a lazy chunk with the engine
+      // helpers it uses), which on a loaded CI runner can outlast the default 5 s (a flaky
+      // WebKit run found no sheet after 5 s and passed on its retry).
+      await expect(sheet).toBeVisible({ timeout: 15_000 });
       await expect(sheet).toHaveAttribute('data-kind', 'tool');
       await expect(sheet.locator('[data-sheet-primary]')).toBeVisible();
       await expect(sheet.locator('[data-sheet-primary]')).not.toHaveAttribute(

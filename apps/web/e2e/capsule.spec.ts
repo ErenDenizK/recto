@@ -35,7 +35,7 @@ import { PDFDocument, rgb } from '@cantoo/pdf-lib';
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 
 import { useFileInputPicker } from './helpers';
-import { decodePng, type Image } from './support/pixels';
+import { decodePng, type Image, screenshotsShowBackdropFilters } from './support/pixels';
 
 test.use({
   viewport: async ({ viewport }, use, info) => {
@@ -231,11 +231,35 @@ function edgePoints(box: Box, k: number, side: 'top' | 'bottom'): [number, numbe
   return out;
 }
 
+/**
+ * Whether this engine's screenshots show backdrop filters (`support/pixels.ts`), probed once per
+ * worker on a blank white page. Firefox's and WebKit's capture paths can paint without the
+ * compositor's backdrop pass, so the stripes under the capsule come out sharp in the screenshot
+ * whatever the screen shows: there the blur half of "inside is blurred" cannot be read, and it
+ * is left out with an annotation. Everything else the morph test reads is box shadow, rim and
+ * tint, which every capture paints.
+ */
+let blurVisible: boolean | undefined;
+async function captureShowsBlur(page: Page, info: TestInfo): Promise<boolean> {
+  if (blurVisible === undefined) {
+    await page.setContent('<body style="margin: 0; background: #fff"></body>');
+    blurVisible = (await screenshotsShowBackdropFilters(page)).shown;
+  }
+  if (!blurVisible) {
+    info.annotations.push({
+      type: 'blur not judged',
+      description: `${info.project.name}: screenshots here do not show backdrop filters (a backdrop-filter probe captured as the bare page), so the stripes' spread inside the capsule is not read`,
+    });
+  }
+  return blurVisible;
+}
+
 test.describe('the capsule morph (Q-6)', () => {
   for (const fraction of [0.25, 0.5, 0.75]) {
     test(`dock → palette at ${fraction * 100} %: one node, a pill's edge, the page outside, glass inside, the shadow all round`, async ({
       page,
     }, info) => {
+      const blurred = await captureShowsBlur(page, info);
       await openStripes(page, info);
       // A white canvas, like the page: on the tablet the palette is wider than the page at fit
       // width, so its end caps lie over the canvas, near black (luma 9), where no shadow can darken
@@ -305,7 +329,7 @@ test.describe('the capsule morph (Q-6)', () => {
         const glass = ys.map((y) => luma(pixel(mid, x, y)));
         const page0 = ys.map((y) => luma(pixel(bare, x, y)));
         check(
-          spread(glass) < Math.max(4, spread(page0) / 10),
+          !blurred || spread(glass) < Math.max(4, spread(page0) / 10),
           `inside at x ${x.toFixed(1)}: spread ${spread(glass).toFixed(1)} against the page's ${spread(page0).toFixed(1)}`,
         );
         const mean = glass.reduce((s, v) => s + v, 0) / glass.length;

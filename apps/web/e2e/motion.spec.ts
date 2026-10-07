@@ -337,7 +337,19 @@ function interruptMidway(
             return;
           }
           if (performance.now() - started > 8_000) {
-            reject(new Error(`${target} never moved mid-way`));
+            // What the last frame saw, so a failure on CI says which half of the window it missed.
+            const seen = el
+              ? `present, data-instant ${el.getAttribute('data-instant') ?? 'unset'}, opacity ${getComputedStyle(el).opacity}, animations ${
+                  el
+                    .getAnimations()
+                    .map(
+                      (a) =>
+                        `${a.playState} ${Math.round(Number(a.currentTime ?? 0))} ms ${a.effect?.getComputedTiming().progress ?? '-'}`,
+                    )
+                    .join('; ') || 'none'
+                }`
+              : 'not in the document';
+            reject(new Error(`${target} never moved mid-way (${seen})`));
             return;
           }
           requestAnimationFrame(step);
@@ -741,10 +753,57 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expectSettledClean(page, state);
 
     // Esc mid-entrance: a dismissal closes a popover at once (`data-instant`, ui/Popover), so
-    // it is gone in a frame, with nothing left behind.
-    const dismissing = interruptMidway(page, scrubber, { kind: 'key', key: 'Escape' }, 10);
+    // it is gone in a frame, with nothing left behind. Armed on the entrance's own
+    // `transitionrun`, not on a frame that finds it running: on CI WebKit the frame sampler
+    // never saw this second entrance mid-way, eight seconds long, while the first one above
+    // passed. The event fires however the engine paces its frames; the entrance runs at a
+    // quarter speed until a frame finds it under way, so Esc lands inside it, and its progress
+    // then is recorded.
+    const dismissing = page.evaluate(
+      (selector) =>
+        new Promise<{ entered: boolean; progress: number }>((resolve) => {
+          const timer = setTimeout(() => {
+            document.removeEventListener('transitionrun', onRun, true);
+            resolve({ entered: false, progress: 0 });
+          }, 8_000);
+          function onRun(event: TransitionEvent) {
+            const el = event.target as Element;
+            if (!el.matches(selector)) return;
+            document.removeEventListener('transitionrun', onRun, true);
+            clearTimeout(timer);
+            const entrance = el.getAnimations();
+            for (const a of entrance) a.playbackRate = 0.25;
+            // The first frame that finds it under way (a start time can resolve a frame late).
+            let frames = 0;
+            const step = () => {
+              const progress = Math.max(
+                0,
+                ...entrance.map((a) => a.effect?.getComputedTiming().progress ?? 0),
+              );
+              if (progress === 0 && frames++ < 10) {
+                requestAnimationFrame(step);
+                return;
+              }
+              for (const a of entrance) a.playbackRate = 1;
+              const at = document.activeElement ?? document.body;
+              for (const type of ['keydown', 'keyup']) {
+                at.dispatchEvent(
+                  new KeyboardEvent(type, { key: 'Escape', bubbles: true, cancelable: true }),
+                );
+              }
+              resolve({ entered: true, progress });
+            };
+            requestAnimationFrame(step);
+          }
+          document.addEventListener('transitionrun', onRun, true);
+        }),
+      scrubber,
+    );
     await undo.click({ button: 'right' });
-    expect((await dismissing).progress).toBeGreaterThan(0);
+    const dismissed = await dismissing;
+    expect(dismissed.entered, 'the scrubber opened after ✕ plays its entrance').toBe(true);
+    expect(dismissed.progress).toBeGreaterThan(0);
+    expect(dismissed.progress).toBeLessThan(1);
     await expect(page.locator(scrubber)).toHaveCount(0);
     await expectSettledClean(page, 'the scrubber dismissed mid-entrance');
 

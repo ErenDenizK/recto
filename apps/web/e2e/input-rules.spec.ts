@@ -740,7 +740,20 @@ test('a press on a link that travels past the slop selects text and does not fol
   await expect.poll(() => selectionText(page)).not.toBe('');
   await page.waitForTimeout(300);
   await expect(pageNumber).toHaveText(shown ?? '');
+  // The press is over: the hotspots take the pointer again (`LinkLayer`'s `data-selecting`
+  // goes with the press), so the link is what a click at its middle hits. On CI WebKit the
+  // click below did not follow; these say which half failed if it happens again.
+  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await expect(page.locator('[data-testid="link-layer"][data-selecting]')).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        ({ x, y }) => document.elementFromPoint(x, y)?.getAttribute('aria-label') ?? null,
+        centre,
+      ),
+    )
+    .toBe('Go to page 4');
   // A click within the slop follows it.
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.click(centre.x, centre.y);
   await expect(pageNumber).toHaveText(/^4 \/ 6 · /);
 });
