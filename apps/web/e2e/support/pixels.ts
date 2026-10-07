@@ -118,6 +118,48 @@ export async function fullViewportPixels(page: Page): Promise<Image> {
   return decodePng(png);
 }
 
+/**
+ * Whether this engine's full-viewport screenshot shows a backdrop filter at all (D3-1). A
+ * 48 px probe with `backdrop-filter: invert(1)` is laid over the page's bottom-left corner,
+ * which must be uniform and not mid grey, and the screenshot must show its backdrop inverted
+ * there, within 8/255. Chromium's does (with and without the GPU). Where the capture path
+ * paints without the compositor's backdrop pass, the probe reads as the bare page, and no
+ * rendered-pixel check of glass can be judged from that engine's screenshots: what it shows
+ * is the tint over the unfiltered page, whatever the screen shows.
+ */
+export async function screenshotsShowBackdropFilters(
+  page: Page,
+): Promise<{ readonly shown: boolean; readonly probe: Rgb; readonly beside: Rgb }> {
+  const size = 48;
+  const inset = 16;
+  await page.evaluate(
+    ({ size, inset }) => {
+      const probe = document.createElement('div');
+      probe.dataset.backdropProbe = '';
+      Object.assign(probe.style, {
+        position: 'fixed',
+        left: `${inset}px`,
+        bottom: `${inset}px`,
+        width: `${size}px`,
+        height: `${size}px`,
+        zIndex: '2147483647',
+        webkitBackdropFilter: 'invert(1)',
+        backdropFilter: 'invert(1)',
+      });
+      document.body.append(probe);
+      return new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    },
+    { size, inset },
+  );
+  const image = await fullViewportPixels(page);
+  await page.evaluate(() => document.querySelector('[data-backdrop-probe]')?.remove());
+  const y = image.height - inset - size / 2 - 2;
+  const probe = median4x4(image, inset + size / 2 - 2, y);
+  const beside = median4x4(image, inset + size + 16, y);
+  const inverted: Rgb = [255 - beside[0], 255 - beside[1], 255 - beside[2]];
+  return { shown: channelDistance(probe, inverted) <= 8, probe, beside };
+}
+
 /** The per-channel median of the 4 × 4 pixels whose top-left corner is (`x`, `y`). */
 export function median4x4(image: Image, x: number, y: number): Rgb {
   const left = Math.round(x);

@@ -27,6 +27,9 @@
  * - primary and secondary text at least 4.5:1 on what rendered at the centre (A-1);
  * - and the surface's computed tint and filter equal to its tokens, so a module rule that drifts
  *   from the registry shows here.
+ *
+ * The pixel checks need a screenshot that shows backdrop filters; an engine whose capture does
+ * not (probed, not assumed: see `captureShowsFilters` below) keeps the computed checks only.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -56,6 +59,7 @@ import {
   parseTint,
   type Rgb,
   rangeDistance,
+  screenshotsShowBackdropFilters,
 } from './support/pixels';
 import { TOKEN_GLASS_MODES, TOKEN_THEMES, tokenColour, tokenGlass } from './support/tokens';
 
@@ -92,6 +96,34 @@ async function openBlankPage(page: Page, file: string): Promise<void> {
 }
 
 /**
+ * Waits until the capsule rests (spec X1, D2-2): `2` morphs the dock into the palette on Web
+ * Animations (the size on its spring, the leaving content's fade, the new pieces' fade-through
+ * and FLIP slides, `shell/capsule/capsule-morph.ts`), and at rest the motion core removes the
+ * capsule's inline size. Boxes read before that are mid-morph: a piece mid-slide is drawn away
+ * from its place, so the point sampled after the screenshot (which finishes every animation)
+ * lands somewhere else, on a label or near the capsule's end, where the page leaks in. On CI
+ * that read #535557 and #83858b for the models #444548 and #fbfbfd.
+ */
+async function capsuleAtRest(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const capsule = document.querySelector<HTMLElement>('[data-capsule]');
+      if (!capsule) return false;
+      const moving = document
+        .getAnimations()
+        .some(
+          (a) =>
+            a.playState === 'running' &&
+            Number.isFinite(Number(a.effect?.getComputedTiming().endTime)),
+        );
+      return !moving && capsule.style.width === '' && capsule.style.height === '';
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
+}
+
+/**
  * The app's own surfaces, in Chromium only: where a page and its chrome land differs by engine
  * (fonts, the bar's width), so the points sampled here are Chromium's. Every engine samples the
  * same materials in the harness below, where nothing but the glass and its backdrop renders.
@@ -111,6 +143,7 @@ test(
     const bar = page.locator('[data-markup-palette]');
     await expect(bar.locator('[data-labelled]').first()).toBeVisible();
     await page.mouse.move(340, 450);
+    await capsuleAtRest(page);
     const barBox = await bar.boundingBox();
     const pageBox = await page.locator('[data-page-index="0"]').first().boundingBox();
     if (!barBox || !pageBox) throw new Error('bar or page not laid out');
@@ -139,6 +172,8 @@ test(
       body: await page.screenshot({ animations: 'disabled' }),
       contentType: 'image/png',
     });
+    // The points were read from the bar the screenshot shows.
+    expect(await bar.boundingBox(), 'the palette after the screenshot').toEqual(barBox);
     const sample = median4x4(image, group.x + 4, centreY - 2);
     const beside = median4x4(image, pageBox.x + 40, centreY - 2);
     expect(beside, 'the page beside the bar is white').toEqual(WHITE);
@@ -245,6 +280,7 @@ test.describe('in the light theme (spec D3-7)', () => {
       const bar = page.locator('[data-markup-palette]');
       await expect(bar.locator('[data-labelled]').first()).toBeVisible();
       await page.mouse.move(340, 450);
+      await capsuleAtRest(page);
       const barBox = await bar.boundingBox();
       const pageBox = await page.locator('[data-page-index="0"]').first().boundingBox();
       if (!barBox || !pageBox) throw new Error('bar or page not laid out');
@@ -269,6 +305,7 @@ test.describe('in the light theme (spec D3-7)', () => {
         body: await page.screenshot({ animations: 'disabled' }),
         contentType: 'image/png',
       });
+      expect(await bar.boundingBox(), 'the palette after the screenshot').toEqual(barBox);
       const sample = median4x4(image, group.x + 4, centreY - 2);
       expect(median4x4(image, pageBox.x + 40, centreY - 2), 'the page beside the bar').toEqual(
         WHITE,
@@ -295,6 +332,22 @@ test.describe('in the light theme (spec D3-7)', () => {
 /** The four edge samples: 4 px inside each side at its middle (09-primitives §28). */
 const EDGE_INSET = 4;
 
+/**
+ * Whether the engine's screenshots show backdrop filters, probed once per worker on the
+ * harness's white page (`screenshotsShowBackdropFilters`).
+ *
+ * Firefox and WebKit failed every registry entry on CI (with the capsule morph's "inside is
+ * blurred" check in capsule.spec), while Chromium passed them all: their screenshot paths can
+ * paint the page without the compositor's backdrop pass (Firefox's snapshot outside WebRender,
+ * WebKit's outside its compositing layers), so the capture shows the tint over the unfiltered
+ * page. Such a capture cannot judge rendered glass, and the model is not wrong for it. Where the
+ * probe finds no filter, the pixel checks below are not made, and the test says so in an
+ * annotation; the computed tint, filter, band and box are still checked in that engine. Where
+ * the probe sees the filter (Chromium today, and any engine whose capture learns it), every
+ * check runs at the spec's ±2/255 and ±4/255.
+ */
+let captureShowsFilters: Awaited<ReturnType<typeof screenshotsShowBackdropFilters>> | undefined;
+
 test.describe('every coverage registry entry in the rendered-pixel harness', () => {
   test.use({ viewport: HARNESS_VIEWPORT });
 
@@ -302,8 +355,26 @@ test.describe('every coverage registry entry in the rendered-pixel harness', () 
     test(
       `${entry.id} (${entry.minWidth} × ${entry.minHeight}) renders its tokens over every backdrop`,
       { tag: '@pixels' },
-      async ({ page }, testInfo) => {
-        test.setTimeout(90_000);
+      async ({ page, browserName }, testInfo) => {
+        // Thirty scenes take 7 to 10 s in every engine on CI; a hung scene fails within this
+        // instead of holding a shard for minutes through two retries.
+        test.setTimeout(45_000);
+        if (captureShowsFilters === undefined) {
+          await openHarness(page, {
+            entry: entry.id,
+            backdrop: 'white',
+            glass: 'clear',
+            theme: 'dark',
+          });
+          captureShowsFilters = await screenshotsShowBackdropFilters(page);
+        }
+        const capture = captureShowsFilters;
+        if (!capture.shown) {
+          testInfo.annotations.push({
+            type: 'rendered pixels not judged',
+            description: `${browserName}: a backdrop-filter: invert(1) probe over ${hex(capture.beside)} captured as ${hex(capture.probe)}, so this engine's screenshots do not show backdrop filters; only the computed tint, filter, band and box are checked`,
+          });
+        }
         const { minWidth: width, minHeight: height } = entry;
         const origin = surfaceOrigin(width, height);
         // The 4 × 4 samples' top-left corners, from the surface's top-left corner; the coverage
@@ -360,6 +431,7 @@ test.describe('every coverage registry entry in the rendered-pixel harness', () 
                 expect.soft(band, `${scene}: the white band reaches 3σ`).toBe(Math.ceil(3 * sigma));
               }
 
+              if (!capture.shown) continue;
               const image = await fullViewportPixels(page);
               const under =
                 typeof backdrop.under === 'string'
