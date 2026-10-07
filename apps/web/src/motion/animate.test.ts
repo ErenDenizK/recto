@@ -104,24 +104,33 @@ describe('animate: numbers on one requestAnimationFrame loop', () => {
   });
 
   it("keeps one loop when a motion starts inside another one's onComplete", async () => {
-    const stamps: number[] = [];
+    // Count the frames asked for but not yet run: one loop never has more than one pending. (Timing
+    // gaps between steps would say the same, but a busy runner delivers frames back to back.)
+    const native = window.requestAnimationFrame.bind(window);
+    let pending = 0;
+    let most = 0;
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      pending += 1;
+      most = Math.max(most, pending);
+      return native((time) => {
+        pending -= 1;
+        callback(time);
+      });
+    });
+    let steps = 0;
     let chained: ReturnType<typeof animate<number>> | undefined;
     const first = animate(0, 1, {
       spring: 'quick',
       onComplete: () => {
-        chained = animate(0, 100, {
-          spring: 'track',
-          onUpdate: () => stamps.push(performance.now()),
-        });
+        chained = animate(0, 100, { spring: 'track', onUpdate: () => (steps += 1) });
       },
     });
     await first.finished;
     await wait(150);
     chained?.stop();
-    // Two loops would step the motion twice in each frame, well under a millisecond apart.
-    const gaps = stamps.slice(1).map((t, k) => t - (stamps[k] as number));
-    expect(stamps.length).toBeGreaterThan(3);
-    expect(Math.min(...gaps)).toBeGreaterThan(2);
+    raf.mockRestore();
+    expect(steps).toBeGreaterThan(3);
+    expect(most).toBe(1);
   });
 
   it('stop() halts where it is and returns position and velocity for a gesture', async () => {
