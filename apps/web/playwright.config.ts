@@ -80,6 +80,12 @@ export default defineConfig({
     // unless told otherwise: every spec runs dark, as its baselines and models were written,
     // and the light ones say `test.use({ colorScheme: 'light' })`.
     colorScheme: 'dark',
+    // A step that never resolves (a click on a control that never becomes actionable, a file
+    // chooser that never opens, a navigation that never commits) fails within these instead
+    // of waiting out the whole test: on CI WebKit one such step held frame-layout's A-12 test
+    // for its full two minutes on each of three tries, which took a shard past its timeout.
+    actionTimeout: 30_000,
+    navigationTimeout: 30_000,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
