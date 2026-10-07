@@ -71,16 +71,23 @@ const PAUSE_MS = 300;
 /**
  * Types `keys` with `gap` ms between them and returns the measured mean gap and how many
  * gaps reached the editor's pause. A loaded machine can stretch a gap past the pause, and
- * then a dry run between those keys is correct behaviour, not a per-keystroke call.
+ * then a dry run between those keys is correct behaviour, not a per-keystroke call. The gaps
+ * are measured where the editor sees them, between the page's `input` events: a loaded runner
+ * can deliver a key late although the test sent it on time.
  */
 async function typeSlowly(keys: string, gap: number): Promise<{ mean: number; pauses: number }> {
   const times: number[] = [];
+  const seen = (event: Event) => times.push(event.timeStamp);
+  document.addEventListener('input', seen, true);
   let first = true;
-  for (const key of keys) {
-    if (!first) await sleep(gap);
-    first = false;
-    times.push(performance.now());
-    await userEvent.keyboard(key);
+  try {
+    for (const key of keys) {
+      if (!first) await sleep(gap);
+      first = false;
+      await userEvent.keyboard(key);
+    }
+  } finally {
+    document.removeEventListener('input', seen, true);
   }
   const intervals = times.slice(1).map((t, k) => t - (times[k] ?? t));
   const mean = intervals.reduce((sum, t) => sum + t, 0) / Math.max(1, intervals.length);

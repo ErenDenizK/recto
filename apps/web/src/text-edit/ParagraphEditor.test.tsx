@@ -227,11 +227,16 @@ describe('ParagraphEditor', () => {
     const { mirror, container } = renderEditor(session);
     await ready(mirror);
     // Typed key by key: a loaded machine can stretch a gap past the pause, and a preview
-    // for that gap is correct. None comes while keys follow within the pause.
+    // for that gap is correct. None comes while keys follow within the pause. The gaps are
+    // read where the editor sees them, between the page's `beforeinput` events: a loaded
+    // runner can deliver a key late although the test sent it on time.
     const times: number[] = [];
-    for (const key of 'abc') {
-      times.push(performance.now());
-      await userEvent.keyboard(key);
+    const seen = (event: Event) => times.push(event.timeStamp);
+    document.addEventListener('beforeinput', seen, true);
+    try {
+      for (const key of 'abc') await userEvent.keyboard(key);
+    } finally {
+      document.removeEventListener('beforeinput', seen, true);
     }
     const pauses = times.slice(1).filter((t, k) => t - (times[k] ?? t) >= PREVIEW_DELAY_MS).length;
     // The plate's dry run (text '') is not a preview of the draft.
