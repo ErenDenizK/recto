@@ -10,6 +10,7 @@ import { act, cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { settled } from '../../../test/settled';
 import outlineUrl from '../../../../../test/fixtures/outline-named-dests.pdf?url';
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../../test/store-harness';
@@ -161,14 +162,15 @@ describe('N2 thumbnail listbox', () => {
     render(<Sidebar />);
     await userEvent.click(option('Page 2'));
     await userEvent.keyboard('{Shift>}{F10}{/Shift}');
-    const menu = await screen.findByTestId('thumbnail-menu');
+    // The menu fades in: ask once its entrance has run.
+    const menu = await settled(await screen.findByTestId('thumbnail-menu'));
     expect(within(menu).getByRole('menuitem', { name: 'Delete page 2' })).toBeVisible();
     expect(within(menu).getByRole('menuitem', { name: 'Show in Pages grid' })).toBeVisible();
     await userEvent.keyboard('{Escape}');
     await userEvent.keyboard('{Shift>}{ArrowDown}{/Shift}');
     await userEvent.keyboard('{Shift>}{F10}{/Shift}');
     expect(
-      within(await screen.findByTestId('thumbnail-menu')).getByRole('menuitem', {
+      within(await settled(await screen.findByTestId('thumbnail-menu'))).getByRole('menuitem', {
         name: 'Delete 2 pages',
       }),
     ).toBeVisible();

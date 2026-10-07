@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { EXIT_TIMEOUT } from '../../../test/settled';
 import { ConfirmHost } from './Confirm';
 import type { SheetKind } from './presentation';
 import { Sheet, type SheetCloseReason } from './Sheet';
@@ -176,7 +177,8 @@ describe('focus, keys and drafts (07 §2.6)', () => {
     const panel = panelOf();
     await waitFor(() => expect(panel.contains(document.activeElement)).toBe(true));
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(opener).toHaveFocus());
+    // Focus returns once the exit has run and the panel has gone.
+    await waitFor(() => expect(opener).toHaveFocus(), { timeout: EXIT_TIMEOUT });
   });
 
   it('traps Tab in a modal sheet', async () => {
@@ -211,7 +213,9 @@ describe('focus, keys and drafts (07 §2.6)', () => {
     await userEvent.type(field, '7');
     await userEvent.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledWith('escape');
-    await waitFor(() => expect(screen.queryByTestId('sheet-sheet')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('sheet-sheet')).toBeNull(), {
+      timeout: EXIT_TIMEOUT,
+    });
     await userEvent.click(screen.getByRole('button', { name: 'Open Page numbers' }));
     expect(await screen.findByRole('textbox', { name: 'Start at' })).toHaveValue('7');
   });

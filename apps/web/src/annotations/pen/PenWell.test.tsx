@@ -12,6 +12,7 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { settled } from '../../../test/settled';
 import { setLocale } from '../../i18n';
 import { useAnnouncer } from '../../shell/announcer';
 import { swatchName } from '../../ui/Swatch';
@@ -128,7 +129,8 @@ describe('pen well', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
 
     await userEvent.click(dot('Blue pen, 1.5 pt'));
-    const editor = await screen.findByRole('dialog', { name: 'Edit blue pen' });
+    // The editor fades in: ask once its entrance has run (a slow runner is still at frame one).
+    const editor = await settled(await screen.findByRole('dialog', { name: 'Edit blue pen' }));
     expect(editor).toBeVisible();
     expect(useToolStore.getState().editorOpen).toBe(true);
     // A press on the open preset's cell closes it again.
@@ -218,7 +220,9 @@ describe('pen well', () => {
     );
     await userEvent.click(within(highlighter).getByRole('radio', { name: 'Pink' }));
     expect(store().pen.presets[3]).toEqual({ ...DEFAULT_PRESETS[3], color: TINT.pink });
-    const pink = await screen.findByRole('dialog', { name: 'Edit pink highlighter' });
+    const pink = await settled(
+      await screen.findByRole('dialog', { name: 'Edit pink highlighter' }),
+    );
     expect(pink).toBeVisible();
     // The Highlighter (craft spec §5.4): widths 6–18 pt, no opacity (always opaque).
     const width = within(pink).getByRole('slider', { name: 'Width' });
@@ -239,14 +243,18 @@ describe('pen well', () => {
     await userEvent.keyboard('{ArrowUp}');
     expect(useToolStore.getState().mode).toBe('ink');
     expect(store().pen.active).toBe(2);
-    expect(await screen.findByRole('dialog', { name: 'Edit red pen' })).toBeVisible();
+    expect(
+      await settled(await screen.findByRole('dialog', { name: 'Edit red pen' })),
+    ).toBeVisible();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(useToolStore.getState().mode).toBe('ink');
     await waitFor(() => expect(dot(/^Red pen/)).toHaveFocus());
     // Enter on the armed cell is a press: its editor.
     await userEvent.keyboard('{Enter}');
-    expect(await screen.findByRole('dialog', { name: 'Edit red pen' })).toBeVisible();
+    expect(
+      await settled(await screen.findByRole('dialog', { name: 'Edit red pen' })),
+    ).toBeVisible();
   });
 
   it('dark dots get a light inner ring, 3:1 or more on the bar over a page and the canvas', () => {
@@ -373,7 +381,7 @@ describe('pen well', () => {
     render(<Harness />);
     await userEvent.click(dot(/^Black pen/));
     await userEvent.click(dot(/^Black pen/));
-    const editor = await screen.findByRole('dialog', { name: 'Edit black pen' });
+    const editor = await settled(await screen.findByRole('dialog', { name: 'Edit black pen' }));
     // The stroke preview is on the preset page (10-ink §6).
     expect(within(editor).getByRole('img', { name: 'Stroke preview' })).toBeVisible();
     // Reset has nothing to do while the preset is its default.
@@ -426,12 +434,16 @@ describe('pen well', () => {
     const tr = (name: RegExp) => within(presets()).getByRole('button', { name });
     await userEvent.click(tr(/^Mavi kalem/));
     await userEvent.click(tr(/^Mavi kalem/));
-    expect(await screen.findByRole('dialog', { name: 'Mavi kalem düzenle' })).toBeVisible();
+    expect(
+      await settled(await screen.findByRole('dialog', { name: 'Mavi kalem düzenle' })),
+    ).toBeVisible();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     // A custom colour: the preset's place names it.
     act(() => store().editPreset(1, { color: '#123456' }));
     await userEvent.click(tr(/^Kalem 2/));
-    expect(await screen.findByRole('dialog', { name: 'Kalem 2 düzenle' })).toBeVisible();
+    expect(
+      await settled(await screen.findByRole('dialog', { name: 'Kalem 2 düzenle' })),
+    ).toBeVisible();
   });
 });

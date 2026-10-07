@@ -13,6 +13,7 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
+import { settled } from '../../../test/settled';
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../../test/store-harness';
 import { registerAppCommands } from '../../commands/app-commands';
@@ -131,8 +132,8 @@ describe('the popover (F5 §6, §8)', () => {
     expect(name).toHaveValue('leasex');
     await userEvent.keyboard('{Escape}');
     expect(name).toHaveValue('lease');
-    // Esc reverted and kept the menu open.
-    expect(screen.getByRole('dialog')).toBeVisible();
+    // Esc reverted and kept the menu open: no exit runs once its own entrance has.
+    expect(await settled(screen.getByRole('dialog'))).toBeVisible();
   });
 
   it('locks with the reason "user" and unlocks through the switch (the lock store)', async () => {
