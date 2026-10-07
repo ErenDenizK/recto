@@ -7,7 +7,7 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import type { DocumentId, OverlayOp, SecurityPolicy } from '@pdf-editor/document-model';
 import { presetSettings } from '@pdf-editor/engine';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import imagesUrl from '../../../../test/fixtures/images.pdf?url';
 import { prepareExport } from '../export/export-service';
@@ -97,7 +97,9 @@ describe('document tools on a password-protected document', () => {
         onProgress: (p) => phases.push(p.phase),
       });
       expect(result.after).toBeLessThanOrEqual(result.before);
-      expect(phases).toContain('lossless');
+      // Progress comes over its own port, so on a loaded runner the last phases can land after
+      // the result has.
+      await vi.waitFor(() => expect(phases).toContain('lossless'));
     }
   });
 
