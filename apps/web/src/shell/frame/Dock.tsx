@@ -48,6 +48,7 @@ import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-stor
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
 import { Tooltip } from '../../ui/Tooltip';
+import { snapToWholePixels } from '../../ui/whole-pixels';
 import { announce } from '../announcer';
 import { Capsule } from '../capsule/Capsule';
 import { type CapsuleShape, useCapsuleShape } from '../capsule/capsule-content';
@@ -142,6 +143,22 @@ const keysOf = (id: string) => {
   return shortcuts.map((s) => toAriaKeyShortcut(s, currentPlatform)).join(' ');
 };
 
+/**
+ * The width the dock leaves the capsule's content: the dock's, less the capsule's border and
+ * padding (it centres the capsule; `snapToWholePixels` makes the remainder even).
+ */
+function capsuleRoom(content: HTMLElement): number | undefined {
+  const capsule = content.closest<HTMLElement>('[data-capsule]');
+  const dock = capsule?.closest<HTMLElement>('[data-dock]');
+  if (!capsule || !dock) return undefined;
+  const style = getComputedStyle(capsule);
+  const chrome = ['borderLeftWidth', 'borderRightWidth', 'paddingLeft', 'paddingRight'] as const;
+  return chrome.reduce(
+    (room, side) => room - (Number.parseFloat(style[side]) || 0),
+    dock.clientWidth,
+  );
+}
+
 /** The dock's resting items (F10 §2): Pages · Markup · Fill & sign · More, or Locked. */
 function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: VirtualDocument }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -154,6 +171,14 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
   const empty = doc.pages.length === 0;
   const reason = empty ? m.dock_no_pages() : undefined;
   const compact = frame.size === 'compact';
+  // The capsule rests at this bar's size plus its rim, centred in the dock by a flex column:
+  // with the labels' fractional width it sat between pixels (x 517.72, V2 review item 16). The
+  // bar's width rounds so the capsule's edges both land on whole pixels (Q-2).
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    return snapToWholePixels(el, 'width', { container: () => capsuleRoom(el) });
+  }, []);
   return (
     <div
       ref={ref}
