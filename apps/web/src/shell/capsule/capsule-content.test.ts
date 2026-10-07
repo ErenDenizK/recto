@@ -9,7 +9,16 @@ import { LOCK_REASONS, resetLockStore, useLockStore } from '../../state/lock-sto
 import { isMarkupOpen, useUiStore } from '../../state/ui-store';
 import { useAnnouncer } from '../announcer';
 import { capsuleShape, watchLockClosesMarkup } from './capsule-content';
-import { restingSize, STAGGER_MS, STAGGER_STEPS, staggerDelay } from './capsule-morph';
+import {
+  boxesOverlap,
+  firstContact,
+  lastContact,
+  restingSize,
+  slideBoxAt,
+  STAGGER_MS,
+  STAGGER_STEPS,
+  staggerDelay,
+} from './capsule-morph';
 
 const A = 'doc-a' as DocumentId;
 const B = 'doc-b' as DocumentId;
@@ -71,5 +80,46 @@ describe('capsule-morph helpers', () => {
     expect(staggerDelay(3)).toBe(3 * STAGGER_MS);
     expect(staggerDelay(40)).toBe((STAGGER_STEPS - 1) * STAGGER_MS);
     expect(STAGGER_STEPS * STAGGER_MS).toBeLessThanOrEqual(120);
+  });
+
+  // A piece 100 px wide sliding 300 px to the right, to rest at 300–400 (the dock's Pages into
+  // Locked, scaled up): its path is read from the same spring the slide runs on.
+  const path = {
+    ink: { left: 300, top: 0, right: 400, bottom: 32 },
+    dx: -300,
+    dy: 0,
+    vx: 0,
+    vy: 0,
+  };
+
+  it('reads a slide from its spring: drawn at the start, at rest by the end', () => {
+    expect(slideBoxAt(path, 0).left).toBeCloseTo(0, 5);
+    const mid = slideBoxAt(path, 150).left;
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).toBeLessThan(300);
+    expect(slideBoxAt(path, 600).left).toBeCloseTo(300, 0);
+  });
+
+  it('knows when a slide first reaches a box and when it has left it for good', () => {
+    // A leaving piece in the middle of the path: reached part way, before the slide ends.
+    const between = { left: 150, top: 0, right: 200, bottom: 32 };
+    const first = firstContact([path], between);
+    expect(first).not.toBeNull();
+    expect(first ?? 0).toBeGreaterThan(0);
+    expect(first ?? 0).toBeLessThan(200);
+    // A new piece just past the start is passed early; one at the end is reached only there.
+    expect(lastContact([path], { left: 105, top: 0, right: 150, bottom: 32 })).toBeLessThan(
+      lastContact([path], { left: 380, top: 0, right: 420, bottom: 32 }),
+    );
+    // A piece off the path is never reached, and never waits.
+    const below = { left: 150, top: 40, right: 200, bottom: 72 };
+    expect(firstContact([path], below)).toBeNull();
+    expect(lastContact([path], below)).toBe(0);
+  });
+
+  it('counts boxes as overlapping only when they share more than a pixel each way', () => {
+    const a = { left: 0, top: 0, right: 10, bottom: 10 };
+    expect(boxesOverlap(a, { left: 9.5, top: 0, right: 20, bottom: 10 })).toBe(false);
+    expect(boxesOverlap(a, { left: 5, top: 5, right: 20, bottom: 20 })).toBe(true);
   });
 });
