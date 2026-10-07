@@ -194,10 +194,13 @@
  * strip); its 30 rows outgrow that at every size). The scroll is the menu recipe's
  * (ui/Menu.module.css): a quiet fade of the panel's own colour at an edge with rows beyond it,
  * the keyboard's row kept clear of the fade, and a keyboard jump (Up from the first row to
- * the last) that glides rather than cuts, unless motion is reduced.
+ * the last) that glides rather than cuts, unless motion is reduced. The fade here is 44 px,
+ * solid for its outer 40 %, so the row at a scrolling edge reads as cut off: the recipe's 16 px fell on the list's padding whenever the
+ * cut landed between groups (as at 1440 × 900, under "Page numbers…"), so 29 rows read as
+ * the whole menu (V2 review item 9).
  */
 .list {
-  --menu-fade: 16px;
+  --menu-fade: 44px;
   flex: 1;
   min-height: 0;
   padding: 6px;
@@ -236,14 +239,14 @@
     top: -6px;
     margin-top: -6px;
     margin-bottom: calc(var(--menu-fade) * -1 + 6px);
-    background: linear-gradient(to bottom, var(--mat-tint), transparent);
+    background: linear-gradient(to bottom, var(--mat-tint) 40%, transparent);
   }
 
   .list::after {
     bottom: -6px;
     margin-top: calc(var(--menu-fade) * -1 + 6px);
     margin-bottom: -6px;
-    background: linear-gradient(to top, var(--mat-tint), transparent);
+    background: linear-gradient(to top, var(--mat-tint) 40%, transparent);
   }
 
   @container scroll-state(scrollable: top) {

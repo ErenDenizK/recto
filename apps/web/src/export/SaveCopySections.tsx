@@ -102,8 +102,11 @@ const ROW_LABELS = [
 export function LabelColumn() {
   return (
     <div className={styles.labelColumn} aria-hidden="true">
-      {ROW_LABELS.map((label) => (
-        <span key={label()} className={styles.rowLabel}>
+      {ROW_LABELS.map((label, index) => (
+        // Labels repeat across formats (Images' and Text's "Type"): the list is fixed, so
+        // its index is a stable key.
+        // biome-ignore lint/suspicious/noArrayIndexKey: see above
+        <span key={index} className={styles.rowLabel}>
           {label()}
         </span>
       ))}

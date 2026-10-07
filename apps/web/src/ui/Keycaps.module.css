@@ -36,14 +36,17 @@
   border-color: var(--border-glass);
 }
 
-/* A coarse pointer: 20 px caps, and none until a physical key has been pressed (data-keys). */
+/* A coarse pointer: 20 px caps, and none until a physical key has been pressed (data-keys),
+   nor while the last input was a finger or a pen (data-touch-input: a menu a long press
+   opened lists no shortcuts). */
 @media (pointer: coarse), (any-pointer: coarse) {
   .cap {
     min-width: 20px;
     height: 20px;
   }
 
-  :global(:root:not([data-keys])) .keycaps {
+  :global(:root:not([data-keys])) .keycaps,
+  :global(:root[data-touch-input]) .keycaps {
     display: none;
   }
 }

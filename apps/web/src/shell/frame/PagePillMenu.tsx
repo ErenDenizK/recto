@@ -6,7 +6,9 @@
  * - **Go to page** takes a page number or a page label ("iv", "#3"), as the Go to page dialog
  *   it replaces did (`viewer/navigation.ts`); Enter jumps into the free rectangle, closes the
  *   menu and focuses the page; an unknown page shows "Pages 1–12" under the field and keeps
- *   focus. Mod+G opens the menu with this field focused and selected.
+ *   focus. The field selects its value whenever it takes focus, so typing replaces the page.
+ *   Mod+G, a click and Enter open the menu with the field focused; a tap opens it with the
+ *   menu focused instead, so the on-screen keyboard stays down until the field is tapped.
  * - **Contents:** up to 8 top-level entries with their page (tabular); a choice jumps, closes
  *   and announces "Terms, page 4". "All contents…" opens the sidebar on the outline.
  * - **Zoom** − 96 % +: the buttons keep the menu open; Mod+= Mod+- Mod+0 work anywhere.
@@ -38,6 +40,7 @@ import { layoutTitle, setReadLayout } from '../../viewer/viewer-commands';
 import { announce } from '../announcer';
 import { useCommandShortcut } from '../use-command-shortcut';
 import { enterFocus } from './focus-mode';
+import { lastInput, readPointerCapabilities } from './input-modality';
 import { closePillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
 import { Icon } from '../../ui/Icon';
@@ -73,19 +76,25 @@ function PillMenuPopup({
   readonly focusPageField: boolean;
 }) {
   const fieldRef = useRef<HTMLInputElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   return (
     <PopoverPopup
+      ref={popupRef}
       side="top"
       align="end"
       anchor={pill}
       className={styles.menu}
       // Focus mode hides the pill: then the menu shows where the pill was (F11 §6).
-      initialFocus={() => fieldRef.current}
+      // A tap opens it on the menu itself: focusing the number field would raise the
+      // on-screen keyboard over the menu (V2 review item 3). Mod+G still focuses the field.
+      initialFocus={() =>
+        focusPageField || !openedByTouch() ? fieldRef.current : (popupRef.current ?? true)
+      }
       finalFocus={() => pill() ?? document.querySelector<HTMLElement>('[data-read-viewport]')}
       aria-label={m.frame_pill_menu_name()}
       data-testid="page-pill-menu"
     >
-      <GoToPage doc={doc} fieldRef={fieldRef} select={focusPageField} />
+      <GoToPage doc={doc} fieldRef={fieldRef} />
       <Contents doc={doc} />
       <ZoomRows />
       {doc.pages.length > 0 ? <FieldOutlines doc={doc} /> : null}
@@ -94,14 +103,19 @@ function PillMenuPopup({
   );
 }
 
+/** The last input was a finger or a pen (or, before any input, the device is touch-first). */
+function openedByTouch(): boolean {
+  const input = lastInput();
+  if (input !== undefined) return input === 'touch' || input === 'pen';
+  return readPointerCapabilities().primary === 'coarse';
+}
+
 function GoToPage({
   doc,
   fieldRef,
-  select,
 }: {
   readonly doc: VirtualDocument;
   readonly fieldRef: RefObject<HTMLInputElement | null>;
-  readonly select: boolean;
 }) {
   const workspace = useWorkspaceStore((s) => s.workspace);
   const currentPage = useViewStore((s) => s.currentPage);
@@ -110,7 +124,6 @@ function GoToPage({
   const [value, setValue] = useState(() => labels[currentPage] ?? String(currentPage + 1));
   const [invalid, setInvalid] = useState(false);
   const hintId = useId();
-  const selected = useRef(false);
 
   const onSubmit = (event: SyntheticEvent) => {
     event.preventDefault();
@@ -145,11 +158,9 @@ function GoToPage({
         aria-describedby={hintId}
         data-testid="pill-goto"
         onFocus={(event) => {
-          // Mod+G selects the field once, so typing replaces the current page.
-          if (select && !selected.current) {
-            selected.current = true;
-            event.currentTarget.select();
-          }
+          // The field arrives holding the current page, selected, so typing replaces it
+          // ("1" then 2 gives 2, not 12): on opening, on Mod+G and on Tab back to it.
+          event.currentTarget.select();
         }}
         onChange={(event) => {
           setValue(event.target.value);
