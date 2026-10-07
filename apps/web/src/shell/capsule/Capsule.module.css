@@ -5,7 +5,7 @@
  * (`s9 c10 h8`: 9 fine, 10 coarse, 8 compact-height; materials.css), never per content, so
  * a morph never touches the filter (language.md §2.1 rule 5; X20: no lens). The pill radius
  * holds throughout. `contain: layout style` keeps the layout of its own width and height inside
- * it while they move (Q-6); `overflow: hidden` clips the contents to the pill as it reshapes
+ * it while they move (Q-6); `overflow: clip` clips the contents to the pill as it reshapes
  * (the shadow is outside the clip, so it follows the edge at every frame).
  *
  * Its size at rest is its content's: no width or height is set here, and the morph leaves none
@@ -17,11 +17,11 @@
   position: relative;
   display: flex;
   flex: none;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   box-sizing: border-box;
   max-width: calc(100% - 2 * var(--space-4));
-  overflow: hidden;
+  overflow: clip;
   border-radius: var(--radius-capsule);
   contain: layout style;
   pointer-events: auto;
@@ -29,8 +29,12 @@
 }
 
 /*
- * A content: laid out at its own size and centred, so it keeps its place on screen while the
- * capsule's edge moves around it (capsule-morph.ts). The one showing is in flow and sets the
+ * A content: laid out at its own size, centred across and resting on the capsule's bottom edge,
+ * so it keeps its place on screen while the capsule's edges move around it (capsule-morph.ts):
+ * the capsule is centred in the dock band and stands on its bottom, so it grows to both sides
+ * and upwards (the ink strip's second row rises above the tools, which stay put). Centred
+ * vertically instead, the tools would sink by half the strip's height the moment the strip
+ * arrived and climb back with the capsule's height. The one showing is in flow and sets the
  * resting size; a leaving one lies over it, takes no pointer and is `inert` (Capsule.tsx).
  */
 .layer {
@@ -43,6 +47,7 @@
 .layer[data-leaving] {
   position: absolute;
   inset: 0;
+  align-items: flex-end;
   pointer-events: none;
 }
 

@@ -5,18 +5,37 @@
  *
  * The rest of the view does not cross-fade: the old view stays opaque and the new one fades in
  * over it, quickly: in the first 62.5 % of the view change's --vt-duration (one duration for
- * every part of a View Transition, A-10: 150 ms of 240, and shorter under reduced motion, A-9). A cross-fade would show both docks at half strength, the dock fading out
- * beside the Pages bar it morphs into; here the capsule is the new view's own, live, and its
- * *bar morph* starts from the dock's exact box, over the dock's image, so nothing doubles.
+ * every part of a View Transition, A-10: 150 ms of 240, and shorter under reduced motion, A-9).
+ * A cross-fade would show both docks at half strength, the dock fading out beside the Pages bar
+ * it morphs into.
+ *
  * The capsule is never named: a named element is captured on its own, where its backdrop blur
- * would have nothing to blur (quality-bar Q-1).
+ * has nothing to blur and leaks square corners past the pill (quality-bar Q-1). It stays in the
+ * root's images, and its *bar morph* runs live in the new view from the old content's box. So
+ * that the old view's capsule (the palette, full width) is never seen behind the new one as it
+ * narrows, the band the capsule lies in shows the new view at once: `--vt-grid-band`, from the
+ * bottom of the window up to the capsule's top and its shadow (`grid-transition.ts`). The new
+ * view's mask is opaque there and fades in above it through a 32 px feather; only the mask's
+ * alpha moves (`--vt-grid-fade`). Without a capsule the band is below the window and the whole
+ * new view fades in.
  */
+@property --vt-grid-fade {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
 :root[data-vt-grid]::view-transition-old(root) {
   animation: none;
 }
 
 :root[data-vt-grid='in']::view-transition-new(root) {
   animation: vt-grid-in var(--vt-duration) var(--ease-out) both;
+  mask-image: linear-gradient(
+    to top,
+    #000 var(--vt-grid-band, -32px),
+    rgb(0 0 0 / var(--vt-grid-fade)) calc(var(--vt-grid-band, -32px) + 32px)
+  );
 }
 
 /*
@@ -30,12 +49,12 @@
 
 @keyframes vt-grid-in {
   from {
-    opacity: 0;
+    --vt-grid-fade: 0;
   }
 
   62.5%,
   to {
-    opacity: 1;
+    --vt-grid-fade: 1;
   }
 }
 
@@ -48,4 +67,43 @@
   /* Both sides fill the group: the page's image scales into the cell's, never letterboxed. */
   height: 100%;
   object-fit: fill;
+}
+
+/*
+ * Entering, the shared page is drawn above the root, so the part of it in the capsule's band (a
+ * page runs on under the dock; at the start of its flight the cell's image is stretched to the
+ * page's size too) would cover the capsule as it lifts off. Both images leave out what lies
+ * below `--vt-grid-cut`, the band's top measured from the group's top, whatever the group's
+ * place: the group's top moves from the page's place to the cell's on `--ease-spring` over
+ * `--vt-duration` (styles/motion.css §4), and the cut moves between the same two places
+ * (grid-transition.ts) on the same curve, so it holds still on screen. A 24 px soft edge, never
+ * a hard line. Leaving, nothing is cut (grid-transition.ts says why).
+ */
+@property --vt-grid-cut {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 100000px;
+}
+
+:root[data-vt-grid-cut]::view-transition-image-pair(page-current) {
+  animation: vt-grid-cut var(--vt-duration) var(--ease-spring) both;
+}
+
+:root[data-vt-grid-cut]::view-transition-old(page-current),
+:root[data-vt-grid-cut]::view-transition-new(page-current) {
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(var(--vt-grid-cut) - 24px),
+    transparent var(--vt-grid-cut)
+  );
+}
+
+@keyframes vt-grid-cut {
+  from {
+    --vt-grid-cut: var(--vt-grid-cut-from);
+  }
+
+  to {
+    --vt-grid-cut: var(--vt-grid-cut-to);
+  }
 }
