@@ -131,16 +131,19 @@
   color: inherit;
 }
 
-/* Select armed is the resting state, not a creating tool: the neutral "on" fill, no lime
-   (03-markup §2.3, ADR-0023 §5.1), so the one lime in view is a creating tool's. */
+/* Select armed is the resting state, not a creating tool: a neutral "on" fill with the fill
+   glyph, no lime (03-markup §2.3, ADR-0023 §5.1), so the one lime in view is a creating tool's.
+   The fill is a wash, not the opaque n5 of --surface-on: n5 vanished on the dark bar and read
+   grey on the light one, so the two themes disagreed (V2 review); the pressed wash (white 0.16
+   / ink 0.12) reads the same step above either glass. */
 .selectTool.selectTool[data-size='bar'][data-tool][aria-pressed='true'] {
-  background: var(--surface-on);
+  background: var(--control-fill-pressed);
   color: var(--text-primary);
 }
 
 @media (hover: hover) {
   .selectTool.selectTool[data-size='bar'][data-tool][aria-pressed='true']:hover {
-    background: var(--surface-on);
+    background: var(--control-fill-pressed);
     color: var(--text-primary);
   }
 }
