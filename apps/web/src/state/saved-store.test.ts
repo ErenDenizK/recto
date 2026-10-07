@@ -10,6 +10,7 @@ import {
   createWorkspace,
   type DocumentId,
   type EngineEdit,
+  mergeDocuments,
   type PageId,
   renameDocument,
   rotatePages,
@@ -270,6 +271,45 @@ describe('saved mark', () => {
     expect(originOf(opened, id)).toBe(source);
     expect(fileIsAsOpened(id)).toBe(false);
     expect(isInFile(opened, id)).toBe(true);
+  });
+
+  it('the untouched sources of a combine restore in their files (V2 review item 7)', () => {
+    const two = withSource(withSource(createWorkspace(), 'a.pdf'), 'b.pdf');
+    const [a, b] = two.documentOrder as [DocumentId, DocumentId];
+    observeDocuments(two, 1);
+    const sourceOf = (id: DocumentId) => {
+      const ref = two.documents[id]?.pages[0]?.ref;
+      if (ref?.kind !== 'source') throw new Error('no source');
+      return ref.source;
+    };
+    const facts = { a: fileFactsOf(a), b: fileFactsOf(b) };
+    expect(facts.a).toEqual({ origins: [sourceOf(a)], writtenOver: false });
+    const combined = mergeDocuments(
+      two,
+      { documentIds: [a, b], title: 'Combined - a + b', keepSources: true },
+      ids,
+    );
+    const made = combined.documentOrder.find((id) => id !== a && id !== b) as DocumentId;
+    const page = combined.documents[made]?.pages[0]?.id ?? ('' as PageId);
+    const rotated = rotatePages(combined, [page], 90);
+
+    // A reload: the combine shows a's and b's sources, so the restore cannot tell they are
+    // the files; their kept facts say so.
+    resetSavedMarks();
+    observeDocuments(rotated, 1);
+    expect(isInFile(rotated, a)).toBe(false);
+    adoptFileFacts(a, facts.a, { workspace: rotated, entryAt: 1 });
+    adoptFileFacts(b, facts.b, { workspace: rotated, entryAt: 1 });
+    adoptFileFacts(made, { origins: [], writtenOver: false }, { workspace: rotated, entryAt: 1 });
+    expect(isInFile(rotated, a)).toBe(true);
+    expect(isInFile(rotated, b)).toBe(true);
+    expect(isInFile(rotated, made)).toBe(false);
+    // A changed source still reads as changed.
+    resetSavedMarks();
+    const changed = rotatePages(rotated, [two.documents[a]?.pages[0]?.id as PageId], 90);
+    observeDocuments(changed, 1);
+    adoptFileFacts(a, facts.a, { workspace: changed, entryAt: 1 });
+    expect(isInFile(changed, a)).toBe(false);
   });
 
   it('remembers the source a document came from; the newest one present wins', () => {
