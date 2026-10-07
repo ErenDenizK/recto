@@ -35,6 +35,7 @@ import {
   rememberPosition,
 } from '../../viewer/navigation';
 import { pageFrame } from '../../viewer/page-frame';
+import { watchFocusRing } from '../frame/focus-ring';
 import { useSafeAreaInsets } from '../frame/frame-insets';
 import { lastInput } from '../frame/input-modality';
 import { CompactCapsule, CompactTopBar } from './CompactChrome';
@@ -94,9 +95,14 @@ const INTERACTIVE =
 
 export function CompactReader() {
   const doc = useActiveDocument();
+  const readerRef = useRef<HTMLDivElement>(null);
+  // The pages take focus on arrival (PageScroller), which Chromium rings as `:focus-visible`
+  // when no pointer was used yet (a link or a restored session): the ring shows only after
+  // Tab or F6, as on the full edition's stage.
+  useEffect(() => watchFocusRing(() => readerRef.current), []);
   if (!doc) return null;
   return (
-    <div className={styles.reader} data-testid="compact-reader">
+    <div ref={readerRef} className={styles.reader} data-testid="compact-reader">
       <PageScroller key={doc.id} doc={doc} />
       <CompactTopBar doc={doc} />
       <CompactCapsule doc={doc} />

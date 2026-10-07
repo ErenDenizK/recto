@@ -203,6 +203,35 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
   });
 
+  test('Try the sample opens the teaching sample in the reader', async ({ page }) => {
+    await openLibrary(page);
+    await page.getByRole('button', { name: 'Try the sample' }).click();
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Recto sample' })).toBeVisible();
+    await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
+  });
+
+  test('the pages take focus on arrival without a ring; Tab back to them shows it', async ({
+    page,
+  }) => {
+    // A link straight to a document: no pointer was used, so Chromium would ring the scripted
+    // focus as :focus-visible (V2 review item 2). The ring waits for Tab or F6.
+    await page.goto('./?sample');
+    await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+      'data-state',
+      'rendered',
+    );
+    await expect(pages(page)).toBeFocused();
+    await expect(pages(page)).toHaveCSS('outline-style', 'none');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(pages(page)).toBeFocused();
+    await expect(pages(page)).toHaveCSS('outline-style', 'solid');
+  });
+
   test('scrolling hides the chrome and a scroll up or a tap shows it', async ({ page }) => {
     await openLibrary(page);
     await openPdf(page, 'simple-text.pdf');

@@ -23,8 +23,7 @@ import { announce } from '../shell/announcer';
 import { focusOpenedPage } from '../shell/focus-opened-page';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { toast } from '../ui/Toast/toast';
-import { fetchSampleBytes, sampleFile } from './sample-file';
+import { loadSampleFile } from './sample-file';
 import type { SampleLocale } from './sample-param';
 
 export type { SampleLocale } from './sample-param';
@@ -58,15 +57,8 @@ export async function openSample(
   locale: SampleLocale = uiSampleLocale(),
 ): Promise<DocumentId | undefined> {
   const before = document.activeElement;
-  const loaded = await fetchSampleBytes(locale);
-  if (!loaded.ok) {
-    toast.failure(loaded.reason === 'offline' ? m.sample_offline() : m.sample_failed(), {
-      key: 'sample-failed',
-      testId: 'sample-failed',
-    });
-    return undefined;
-  }
-  const file = sampleFile(locale, loaded.bytes, openTitles());
+  const file = await loadSampleFile(locale, openTitles());
+  if (file === undefined) return undefined;
   const { opened, skipped } = await useWorkspaceStore.getState().openFiles([file]);
   presentOpenFailures(skipped, 1);
   const id = opened[0]?.documentId;

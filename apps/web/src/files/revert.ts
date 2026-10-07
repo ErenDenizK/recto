@@ -17,13 +17,13 @@
  * version? · Your 3 changes since opening go. Undo brings them back. · Revert", focus on Revert
  * since Undo brings everything back.
  *
- * Available when the document came from one file (`originOf`) and differs from it; else the
- * command is dimmed with "Nothing changed since opening". The guard (`canChange(id,
+ * Available when the document came from one file (`originOf`) and differs from it in what Save
+ * writes (a rename alone does not count, and a revert keeps the name); else the command is
+ * dimmed with "Nothing changed since opening". The guard (`canChange(id,
  * 'document')`, 07-sheets S1 §6) joins with D1.
  */
 import {
   type DocumentId,
-  documentTitleFromName,
   type History,
   type IdGenerator,
   removeSourceIfUnreferenced,
@@ -57,12 +57,12 @@ export function revertAvailability(ws: Workspace, id: DocumentId): RevertAvailab
   if (doc === undefined || source === undefined || info === undefined) {
     return { available: false, reason: m.revert_unavailable() };
   }
+  // The name is the tab's, not the file's: Save writes no title and the title menu reads
+  // "No changes" after a rename (saved-store `sameFileContent`), so a rename alone leaves
+  // nothing to revert (V2 review item 22), and a revert keeps it (`replaceWithOpened`).
   const first = doc.pages[0]?.ref;
   const asOpened =
-    first?.kind === 'source' &&
-    first.source === source &&
-    isPristineDocument(ws, doc) &&
-    doc.title === documentTitleFromName(info.name);
+    first?.kind === 'source' && first.source === source && isPristineDocument(ws, doc);
   if (asOpened) return { available: false, reason: m.revert_nothing_changed() };
   return { available: true, source };
 }
@@ -87,8 +87,9 @@ export function changesSinceOpening(history: History, id: DocumentId): number {
 }
 
 /**
- * The workspace with document `id` replaced by a fresh document of `opened` under the same id
- * and in the same place; the sources it showed leave when nothing else shows them.
+ * The workspace with document `id` replaced by a fresh document of `opened` under the same id,
+ * in the same place and under the same name (a rename is not a change to the file); the
+ * sources it showed leave when nothing else shows them.
  */
 export function replaceWithOpened(
   ws: Workspace,
@@ -106,7 +107,7 @@ export function replaceWithOpened(
   const { activeDocument: _active, ...rest } = added.workspace;
   let next: Workspace = {
     ...rest,
-    documents: { ...others, [id]: { ...fresh, id } },
+    documents: { ...others, [id]: { ...fresh, id, title: doc.title } },
     documentOrder: ws.documentOrder,
     ...(ws.activeDocument === undefined ? {} : { activeDocument: ws.activeDocument }),
   };

@@ -28,7 +28,9 @@ Site limit 1 GB, 10-minute `Cache-Control`, project sites live under `/repo/`.
   runtime-cached; `registerType: 'prompt'` for updates.
 - Strict CSP via `<meta http-equiv>` (no headers available): `default-src 'self'`,
   `connect-src 'self'`, `worker-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'`,
-  `img-src 'self' blob: data:`, `font-src 'self'`, `object-src 'none'`.
+  `img-src 'self' blob: data:`, `font-src 'self'`, `object-src 'none'`. Header-only directives
+  (`frame-ancestors`, `sandbox`, `report-uri`) are ignored in a meta policy, so framing cannot
+  be forbidden on GitHub Pages; that waits for a host that can send headers.
 - Recommend a custom domain before v1.0 to avoid shared-origin storage and service
   worker clashes with other project sites on the same `github.io` origin.
 
