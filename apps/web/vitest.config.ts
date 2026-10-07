@@ -19,6 +19,7 @@ import viteConfig from './vite.config.ts';
  */
 const TOUCH_EMULATING = [
   'src/ui/fields.test.tsx',
+  'src/ui/Keycaps.touch.test.tsx',
   'src/ui/ink.gallery.test.tsx',
   'src/ui/Select.test.tsx',
   'src/ui/Slider.test.tsx',
