@@ -262,6 +262,28 @@
   white-space: nowrap;
 }
 
+/* A name with an ending to keep (tab-overflow.ts `nameEnding`): the head truncates first, down
+   to a letter and its ellipsis, "Recto sa… (extract)"; only then does the ending give way. The
+   word space between them is a margin, so the ellipsis never stands a space away from it. */
+.nameSplit {
+  display: flex;
+  min-width: 0;
+}
+
+.nameSplit > .name {
+  flex: 0 1000 auto;
+  min-width: 1.6em;
+}
+
+.nameTail {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  margin-inline-start: 0.28em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ● changes not yet in the file (F4 §2, X13): 6 px after the name, the secondary ink. */
 .edited {
   flex: none;
