@@ -5,10 +5,11 @@
  * - **Dot.** 18 px (fine) or 22 px (coarse). A colour whose edge would fall below 3:1 on the
  *   theme's glass (black on dark glass, white on light glass; `needsContrastRing`) gets a
  *   1 px inner contrast ring, white 0.55 on dark and ink 0.55 on light.
- * - **Selected.** The dot shrinks to 14 / 18 px inside a 2 px ring of the same colour with a
- *   2 px gap (the GoodNotes and Apple form): the colour itself shows the selection, never
- *   lime. A colour that needs the contrast ring carries it on the selection ring too, so the
- *   ring holds 3:1 against the glass (A-3). `prefers-contrast: more` adds an n12 outer ring.
+ * - **Selected.** The dot shrinks to 14 / 18 px inside a 2 px ring in the primary text colour
+ *   (n12, never lime) with a 2 px gap: the armed pen's ring in the palette's pen well, so the
+ *   tool row and the ink strip mark a chosen colour alike (owner feedback F3). A ring of the
+ *   colour itself (§5's first form) left black on dark glass as an empty grey circle that read
+ *   as a second control beside the colour well. `prefers-contrast: more` adds an outer ring.
  * - **Hover** grows the dot 1.08 on the press spring; a press shrinks it to 0.94.
  * - **No fill** (`NO_FILL`): a white dot with a red diagonal, named "No fill".
  * - **Names.** The accessible name is the caller's (`name`, e.g. the palette's "Blue"), else
