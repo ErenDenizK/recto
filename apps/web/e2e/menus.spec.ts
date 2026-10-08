@@ -115,3 +115,96 @@ test.describe('the Document menu', () => {
     await expect(sheet).toBeVisible();
   });
 });
+
+/**
+ * Pop-ups fit (owner feedback 2026-10-08, F2: "some pop-ups do not fit"): every popover, menu
+ * and sheet stays inside the visual viewport and scrolls inside, its header kept. The privacy
+ * panel was the one seen running off a tablet's bottom edge.
+ */
+test.describe('pop-ups fit the window', () => {
+  const SIZES = [
+    { width: 1180, height: 820 },
+    { width: 1024, height: 768 },
+    // Shorter than the privacy panel: it must scroll inside, its title kept.
+    { width: 1024, height: 560 },
+  ];
+
+  async function inside(page: Page, selector: string, what: string): Promise<void> {
+    const box = await page.locator(selector).first().boundingBox();
+    if (!box) throw new Error(`${what}: not laid out`);
+    const view = await page.evaluate(() => ({
+      width: window.innerWidth,
+      height: window.visualViewport?.height ?? window.innerHeight,
+    }));
+    expect(box.y, `${what}: top`).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height, `${what}: bottom`).toBeLessThanOrEqual(view.height + 0.5);
+    expect(box.x, `${what}: left`).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, `${what}: right`).toBeLessThanOrEqual(view.width + 0.5);
+  }
+
+  test('privacy, the title menu, the page pill menu, Move to and Settings', async ({
+    page,
+  }, info) => {
+    test.skip(TOUCH.has(info.project.name), 'sizes desktop windows');
+    test.setTimeout(120_000);
+    await openDocument(page, info.project.name);
+    for (const size of SIZES) {
+      await page.setViewportSize(size);
+      const at = `${size.width} × ${size.height}`;
+
+      await page.getByTestId('privacy-indicator').click();
+      const privacy = page.getByRole('dialog', { name: 'Nothing has left this device' });
+      await expect(privacy).toBeVisible();
+      await page.waitForTimeout(300);
+      await inside(page, '[role="dialog"]', `${at}: privacy`);
+      // Its body scrolls under the title: the last line (the version) is reachable, and the
+      // title stays where it was.
+      const title = privacy.getByRole('heading', { name: 'Nothing has left this device' });
+      const before = await title.boundingBox();
+      const version = privacy.getByTestId('privacy-version');
+      await version.scrollIntoViewIfNeeded();
+      await expect(version).toBeInViewport();
+      expect(await title.boundingBox(), `${at}: the title stays`).toEqual(before);
+      await page.keyboard.press('Escape');
+      await expect(privacy).toBeHidden();
+
+      await page.getByTestId('document-menu').click();
+      await expect(page.getByTestId('title-menu')).toBeVisible();
+      await page.waitForTimeout(300);
+      await inside(page, '[data-testid="title-menu"]', `${at}: title menu`);
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('title-menu')).toHaveCount(0);
+
+      await page.getByTestId('page-pill').click();
+      await expect(page.getByTestId('page-pill-menu')).toBeVisible();
+      await page.waitForTimeout(300);
+      await inside(page, '[data-testid="page-pill-menu"]', `${at}: page pill menu`);
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('page-pill-menu')).toHaveCount(0);
+    }
+
+    // Move to ▾ on the Pages bar (shed into More when the bar is short of room).
+    await page.setViewportSize({ width: 1180, height: 820 });
+    await page.locator('body').press('3');
+    const cell = page.getByTestId('light-table').getByRole('gridcell').nth(1);
+    await cell.click({ modifiers: ['ControlOrMeta'] });
+    const pagesBar = page.getByTestId('pages-bar');
+    await expect(pagesBar).toContainText('1 selected');
+    const moveTo = pagesBar.getByRole('button', { name: /^Move to/ });
+    if ((await moveTo.count()) > 0) await moveTo.click();
+    else await pagesBar.getByRole('button', { name: 'More actions' }).click();
+    await expect(page.getByRole('menu')).toBeVisible();
+    await page.waitForTimeout(300);
+    await inside(page, '[role="menu"]', 'Move to');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toHaveCount(0);
+
+    // Settings in a short window.
+    await page.setViewportSize({ width: 1024, height: 560 });
+    await page.locator('body').press('ControlOrMeta+,');
+    const settings = page.getByTestId('settings-sheet');
+    await expect(settings).toBeVisible();
+    await page.waitForTimeout(400);
+    await inside(page, '[data-testid="settings-sheet"]', 'Settings');
+  });
+});

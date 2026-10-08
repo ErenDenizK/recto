@@ -319,6 +319,39 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
 }
 
 // ---------------------------------------------------------------------------------------------
+// The visual viewport (owner feedback 2026-10-08, F2: pop-ups must fit)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Writes the visual viewport's height as `--visual-h` on `:root` and keeps it current. The
+ * layout viewport (`100dvh`, and the room Base UI's positioners measure) stays tall while an
+ * on-screen keyboard, a pinch zoom or the browser's own bars cover part of the window, so every
+ * popover, menu and sheet also caps its height to this, less its insets, and scrolls inside
+ * (ui/Popover.module.css, ui/Menu.module.css, ui/sheet/Sheet.module.css).
+ */
+export function useVisualViewportHeight(): void {
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const viewport = window.visualViewport;
+    const write = () => {
+      const height = Math.round(viewport?.height ?? window.innerHeight);
+      const value = `${height}px`;
+      if (root.style.getPropertyValue('--visual-h') !== value) {
+        root.style.setProperty('--visual-h', value);
+      }
+    };
+    write();
+    window.addEventListener('resize', write);
+    viewport?.addEventListener('resize', write);
+    return () => {
+      window.removeEventListener('resize', write);
+      viewport?.removeEventListener('resize', write);
+      root.style.removeProperty('--visual-h');
+    };
+  }, []);
+}
+
+// ---------------------------------------------------------------------------------------------
 // Floating bottom chrome outside the band (08-feedback FB4 §2, 01-frame F13 §2)
 // ---------------------------------------------------------------------------------------------
 

@@ -19,7 +19,18 @@
 
   box-sizing: border-box;
   width: min(320px, calc(100vw - 16px));
+  /* Room (F2 of the owner's 2026-10-08 feedback): never taller than what the positioner
+     measures on its side (inside its 8 px collision padding) nor than the visual viewport less
+     8 px at each end (frame-insets.ts' --visual-h, smaller under a keyboard or a pinch). A
+     longer popover scrolls inside: its body (`PopoverScroll`) under a fixed header, or, without
+     one, the whole panel. */
+  max-height: min(
+    var(--available-height, calc(100dvh - 16px)),
+    calc(var(--visual-h, 100dvh) - 16px)
+  );
   padding: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-radius: 16px;
   color: var(--text-primary);
   outline: none;
@@ -132,6 +143,30 @@
 .iconButton[aria-pressed='true'] {
   background: var(--surface-active);
   color: var(--text-primary);
+}
+
+/* --- Scrolling body ---------------------------------------------------------------------- */
+
+/* With a `PopoverScroll`, the title row stays and the rest scrolls under it, to the panel's
+   edges (the padding moves inside the scroller, so the content's edge never cuts a row). */
+.popup:has(> .scroll) {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.popup:has(> .scroll) > .header {
+  flex: none;
+}
+
+.scroll {
+  flex: 0 1 auto;
+  min-height: 0;
+  margin: 0 -12px;
+  padding: 0 12px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* --- Body -------------------------------------------------------------------------------- */
