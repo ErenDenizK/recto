@@ -98,22 +98,22 @@ test('the chrome is set in the shipped face, from this origin, preloaded once', 
 }) => {
   const page = await freshPage(browser);
   const fonts: string[] = [];
+  let latinFetches = 0;
+  await page.route('**/fonts/inter-recto-latin.woff2', async (route) => {
+    latinFetches += 1;
+    await route.continue();
+  });
   page.on('request', (request) => {
     if (request.resourceType() === 'font' || /\.(woff2?|ttf|otf)(\?|$)/.test(request.url())) {
       fonts.push(new URL(request.url()).pathname);
     }
   });
   await coldLoad(page, 'tr');
-  // Fetched once: counted as the page's own resource timing, not as `request` events. WebKit
-  // reports the face's use of the preloaded file as a second request although it is served from
-  // the memory cache; a second fetch would have a second timing entry.
-  const latin = await page.evaluate(
-    () =>
-      performance
-        .getEntriesByType('resource')
-        .filter((e) => new URL(e.name).pathname.endsWith('/fonts/inter-recto-latin.woff2')).length,
-  );
-  expect(latin, fonts.join('\n')).toBe(1);
+  // Fetched once: counted where a request leaves the page for the network (the route), not as
+  // `request` events or resource-timing entries. WebKit reports the face's use of the preloaded
+  // file as a second request and a second timing entry although it is served from the memory
+  // cache; a real second fetch would reach the route twice.
+  expect(latinFetches, fonts.join('\n')).toBe(1);
   expect(fonts.some((path) => path.endsWith('/fonts/inter-recto-latin-ext.woff2'))).toBe(true);
   expect(fonts.filter((path) => /fontsource|jetbrains|inter-latin-wght/i.test(path))).toEqual([]);
   const face = await page.evaluate(() => ({
