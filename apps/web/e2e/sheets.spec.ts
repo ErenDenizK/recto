@@ -273,7 +273,13 @@ test.describe('the gallery', () => {
         const box = await sheet.boundingBox();
         expect(box?.width).toBe(width);
         if (presentation === 'side') {
-          expect(cls.size.width - ((box?.x ?? 0) + (box?.width ?? 0))).toBe(8);
+          // A side sheet slides in: its resting gap to the window's edge, not a frame of the slide.
+          await expect
+            .poll(async () => {
+              const now = await sheet.boundingBox();
+              return cls.size.width - ((now?.x ?? 0) + (now?.width ?? 0));
+            })
+            .toBe(8);
         }
         if (kind === 'tool' && presentation === 'bottom') {
           // Opens at the 40 % detent; the page stays live above it.

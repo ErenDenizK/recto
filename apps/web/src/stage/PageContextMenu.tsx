@@ -122,11 +122,24 @@ export function arrangePage(pageId: PageId): void {
   enterPagesGrid(pageId);
 }
 
-/** Whether a right-click lands on the current text selection (Copy is the browser's). */
-function onSelectedText(target: Element): boolean {
+/**
+ * Whether a right-click lands on the current text selection (Copy is the browser's): the point
+ * lies in one of the selection's boxes. `containsNode(target, true)` alone would say yes for the
+ * page's blank margin whenever any text on that page is selected, which Firefox keeps after a
+ * double-click.
+ */
+function onSelectedText(target: Element, at: { x: number; y: number }): boolean {
   const selection = globalThis.getSelection?.() ?? null;
   if (!selection || selection.isCollapsed || selection.rangeCount === 0) return false;
-  return selection.containsNode(target, true);
+  if (!selection.containsNode(target, true)) return false;
+  for (let index = 0; index < selection.rangeCount; index += 1) {
+    for (const box of selection.getRangeAt(index).getClientRects()) {
+      if (at.x >= box.left && at.x <= box.right && at.y >= box.top && at.y <= box.bottom) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -138,7 +151,12 @@ function longPressPage(event: PointerEvent): HTMLElement | null {
   const target = event.target;
   if (!(target instanceof Element)) return null;
   const page = target.closest<HTMLElement>('[data-read-viewport] [data-page-id]');
-  if (!page || target.closest(OWN_MENU) || onSelectedText(target)) return null;
+  if (
+    !page ||
+    target.closest(OWN_MENU) ||
+    onSelectedText(target, { x: event.clientX, y: event.clientY })
+  )
+    return null;
   if (target.closest(`[${TEXT_LAYER_ATTR}] > span`)) return null;
   const state = pageInputNow(event.pointerType === 'pen' && penDrawsNow());
   const fingerDraws = pointerRole(penSession(), event, performance.now()) !== 'pan';
@@ -214,7 +232,11 @@ export function PageContextMenu() {
         event.preventDefault();
         return;
       }
-      if (event.target.closest(OWN_MENU) || onSelectedText(event.target)) return;
+      if (
+        event.target.closest(OWN_MENU) ||
+        onSelectedText(event.target, { x: event.clientX, y: event.clientY })
+      )
+        return;
       event.preventDefault();
       open(page, { x: event.clientX, y: event.clientY });
     };

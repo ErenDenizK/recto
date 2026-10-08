@@ -159,7 +159,8 @@ test.describe('annotations', () => {
     });
     // Text box: click, type, Escape commits.
     await page.locator('body').press('t');
-    await drag(page, 0, [0.15, 0.6], [0.15, 0.6]);
+    // 50 % down: with the floating top pieces the page starts lower, and 60 % is below the window.
+    await drag(page, 0, [0.15, 0.5], [0.15, 0.5]);
     const editor = page.getByRole('textbox', { name: 'Text box text' });
     await expect(editor).toBeFocused();
     await editor.fill('Reviewed');
