@@ -5,10 +5,12 @@
  * - **Rest** (fine pointer, not selecting): the ○ hidden; hover lifts the card 2 px with the e3
  *   shadow (no wash on lit glass) and shows the ○. **Pressed**: the large-surface press scale
  *   (02.5). **Focus**: the outset two-band ring, which follows the radius.
- * - **Select mode**: the ○ always shown; **selected**: `check-circle` filled and an inset 2 px
- *   ring, both in the neutral `--control-on` (language.md §1.1: checks and other on states are
- *   neutral), so the selection bar's Combine stays the view's one lime; `aria-selected` carries
- *   it (the ○ is `aria-hidden`).
+ * - **Select mode**: the ○ always shown; **selected**: the ○ filled and a 2 px ring 2 px out
+ *   around the first page, as a Pages grid cell draws it (`ui/CheckBadge`, 06-navigation §2.2;
+ *   owner feedback F4): the badge sits inside the page's top-trailing corner, so it never covers
+ *   the card's text or hangs over the page's edge, and takes the page's selection blue, which
+ *   leaves the selection bar's Combine the view's one lime; `aria-selected` carries it (the ○ is
+ *   `aria-hidden`).
  * - **Edited** ● after the name and "Edited" in line 3; **locked**: line 3 leads with the lock
  *   glyph and "Locked", "Signed · locked" or "Restricted by the file" (no tint, A-19).
  * - **Dragging** (reorder): the source at 40 % opacity; the grid draws the insertion caret.
@@ -17,7 +19,7 @@
  * accessible name says all three lines ("report, 12 pages, 2.4 MB, edited, locked").
  */
 import type { VirtualPage, Workspace } from '@pdf-editor/document-model';
-import type { MouseEvent, PointerEvent, Ref } from 'react';
+import type { MouseEvent, PointerEvent, ReactNode, Ref } from 'react';
 
 import { RENDER_PRIORITY } from '../engine/engine-service';
 import { m, useLocale } from '../i18n';
@@ -27,6 +29,7 @@ import { InlineTitleEditor } from '../stage/InlineTitleEditor';
 import { contentFrame, ResizedContent } from '../stage/ResizedContent';
 import type { LockReason } from '../state/lock-store';
 import { pagesPhrase } from '../state/workspace-store';
+import { CheckBadge } from '../ui/CheckBadge';
 import { Icon, type IconName } from '../ui/Icon';
 import { formatFileSize, type HomeCardData } from './home-model';
 import styles from './LibraryCard.module.css';
@@ -124,24 +127,17 @@ export function LibraryCard({
       onContextMenu={onContextMenu}
       onPointerDown={onPointerDown}
     >
+      {/* The ○: the check badge in the page's corner, in a 40 px (48 coarse) hit area that
+          reaches the corner; the option carries the state, and Space is its key (the grid's). */}
       <div className={styles.thumbBox} style={{ height: thumb.height }}>
         {card.firstPage ? (
-          <LibraryThumb workspace={workspace} page={card.firstPage} box={thumb} />
-        ) : null}
+          <LibraryThumb workspace={workspace} page={card.firstPage} box={thumb}>
+            <CardCheck selected={selected} onCheck={onCheck} />
+          </LibraryThumb>
+        ) : (
+          <CardCheck selected={selected} onCheck={onCheck} />
+        )}
       </div>
-      {/* The ○: a 24 px disc in a 32 px (44 coarse) hit area; the option carries the state,
-          and Space is its key (the grid's). */}
-      <span
-        className={styles.check}
-        aria-hidden="true"
-        data-testid="library-card-check"
-        onClick={onCheck}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <span className={styles.disc}>
-          {selected ? <Icon name="check-circle" filled size={24} /> : null}
-        </span>
-      </span>
       <div className={styles.meta}>
         {renaming ? (
           <InlineTitleEditor
@@ -170,15 +166,37 @@ export function LibraryCard({
   );
 }
 
+function CardCheck({
+  selected,
+  onCheck,
+}: {
+  readonly selected: boolean;
+  readonly onCheck: (event: MouseEvent) => void;
+}) {
+  return (
+    <span
+      className={styles.check}
+      aria-hidden="true"
+      data-testid="library-card-check"
+      onClick={onCheck}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CheckBadge checked={selected} className={styles.badge} />
+    </span>
+  );
+}
+
 /** The first page through the shared thumbnail renderer, fitted into the card's box. */
 function LibraryThumb({
   workspace,
   page,
   box,
+  children,
 }: {
   readonly workspace: Workspace;
   readonly page: VirtualPage;
   readonly box: { readonly width: number; readonly height: number };
+  readonly children?: ReactNode;
 }) {
   const size = displaySize(workspace, page);
   const fitted = fitInBox(size, box.width, box.height);
@@ -197,6 +215,7 @@ function LibraryThumb({
           priority={RENDER_PRIORITY.visible}
         />
       </ResizedContent>
+      {children}
     </div>
   );
 }
