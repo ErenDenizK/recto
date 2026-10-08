@@ -113,6 +113,20 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
       '--bar-h, 44 px fine (56 coarse or with labels under); Pages · Locked · More with labels under is the narrowest (about 240 px)',
   },
   {
+    id: 'strip-piece',
+    surface: "Markup palette's floating ink strip (owner feedback F3; the capsule's material)",
+    module: 'markup/StripPiece.module.css',
+    selector: '.piece',
+    tier: 'bar',
+    sigma: 9,
+    coarse: { sigma: 10, minWidth: 200, minHeight: 56 },
+    short: { sigma: 8, minWidth: 160, minHeight: 44 },
+    minWidth: 160,
+    minHeight: 44,
+    smallest:
+      '--bar-h, 44 px fine (56 coarse), hugging its content: the narrowest strip is its colours row (four 32 px swatches and the well, 44 px targets coarse) in 5 px of padding and the 1 px rim',
+  },
+  {
     id: 'read-selection-bar',
     surface: 'Text selection bar',
     module: 'annotations/ReadSelectionBar.module.css',

@@ -65,16 +65,14 @@
   --sl-readout-colour: var(--text-primary);
   --sl-label-colour: var(--text-secondary);
   --sl-e2: var(--e2);
-  /* The glass knob (dark): body, gloss and edge light, rim, drop shadow at rest and raised. */
-  --sl-glass-tint: rgb(255 255 255 / 0.2);
-  --sl-glass-tint-held: rgb(255 255 255 / 0.06);
-  --sl-glass-gloss: rgb(255 255 255 / 0.5);
-  --sl-glass-edge: rgb(255 255 255 / 0.34);
-  --sl-glass-rim:
-    inset 0 0 0 1px rgb(255 255 255 / 0.78), inset 0 1.5px 1px rgb(255 255 255 / 0.55),
-    inset 0 -2px 3px rgb(0 0 0 / 0.22);
-  --sl-glass-drop: 0 1px 2px rgb(0 0 0 / 0.4), 0 3px 8px -1px rgb(0 0 0 / 0.36);
-  --sl-glass-drop-raised: 0 1px 2px rgb(0 0 0 / 0.36), 0 6px 14px -2px rgb(0 0 0 / 0.42);
+  /* The glass knob (tokens.css, per theme): body, gloss and edge light, rim, drop shadow at rest and raised. */
+  --sl-glass-tint: var(--control-knob-tint);
+  --sl-glass-tint-held: var(--control-knob-tint-held);
+  --sl-glass-gloss: var(--control-knob-gloss);
+  --sl-glass-edge: var(--control-knob-edge);
+  --sl-glass-rim: var(--control-knob-rim);
+  --sl-glass-drop: var(--control-knob-drop);
+  --sl-glass-drop-raised: var(--control-knob-drop-raised);
   --sl-dot-edge: rgb(255 255 255 / 0.7);
   --sl-checker-a: rgb(255 255 255 / 0.3);
   --sl-checker-b: rgb(255 255 255 / 0.12);
@@ -161,16 +159,6 @@
   --sl-readout-colour: #15171c;
   --sl-label-colour: #4f535a;
   --sl-e2: 0 4px 12px -4px rgb(21 23 28 / 0.2);
-  /* The glass knob (light): whiter glass with an ink hairline, so its edge holds on white. */
-  --sl-glass-tint: rgb(255 255 255 / 0.6);
-  --sl-glass-tint-held: rgb(255 255 255 / 0.18);
-  --sl-glass-gloss: rgb(255 255 255 / 0.95);
-  --sl-glass-edge: rgb(255 255 255 / 0.8);
-  --sl-glass-rim:
-    inset 0 0 0 1px rgb(21 23 28 / 0.26), inset 0 1.5px 1px rgb(255 255 255 / 1),
-    inset 0 -2px 3px rgb(21 23 28 / 0.12);
-  --sl-glass-drop: 0 1px 2px rgb(21 23 28 / 0.26), 0 3px 9px -1px rgb(21 23 28 / 0.28);
-  --sl-glass-drop-raised: 0 1px 2px rgb(21 23 28 / 0.22), 0 7px 16px -2px rgb(21 23 28 / 0.32);
   --sl-dot-edge: rgb(255 255 255 / 0.8);
   --sl-checker-a: #ffffff;
   --sl-checker-b: #d5d7dc;
@@ -450,7 +438,7 @@
   z-index: 1;
   border-radius: 50%;
   background: linear-gradient(var(--sl-knob-color), var(--sl-knob-color));
-  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.16);
+  box-shadow: var(--control-knob-ring);
 }
 
 .root[data-checker] .swatch {
@@ -471,7 +459,7 @@
   inset: calc((var(--sl-knob) - var(--sl-stroke)) / 2);
   box-shadow:
     0 0 0 0.5px var(--sl-dot-edge),
-    0 0.5px 1.5px rgb(0 0 0 / 0.25);
+    var(--control-knob-dot-drop);
 }
 
 .root[data-disabled] .knob {
