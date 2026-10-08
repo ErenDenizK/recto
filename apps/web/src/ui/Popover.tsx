@@ -24,12 +24,21 @@ import styles from './Popover.module.css';
 type PositionerProps = ComponentProps<typeof Popover.Positioner>;
 type PopupProps = Omit<ComponentProps<typeof Popover.Popup>, 'className'>;
 
+/** Flip within the anchor's axis only; never beside it (Base UI's dropdown rule). */
+const SCROLLING_POPUP = { fallbackAxisSide: 'none' } as const;
+
 export interface PopoverPopupProps extends PopupProps {
   readonly side?: PositionerProps['side'];
   readonly align?: PositionerProps['align'];
   readonly sideOffset?: PositionerProps['sideOffset'];
   readonly anchor?: PositionerProps['anchor'];
   readonly collisionPadding?: PositionerProps['collisionPadding'];
+  /**
+   * How it avoids the window's edges. By default it may flip to the opposite side but never to
+   * the perpendicular axis: a popover too tall for the room below its anchor stays there and
+   * scrolls inside (F2), instead of jumping beside the anchor over the bar it came from.
+   */
+  readonly collisionAvoidance?: PositionerProps['collisionAvoidance'];
   readonly className?: string | undefined;
   /** On the positioner (a stacking order of the host's). */
   readonly positionerClassName?: string | undefined;
@@ -41,6 +50,7 @@ export function PopoverPopup({
   sideOffset = 8,
   anchor,
   collisionPadding = 8,
+  collisionAvoidance = SCROLLING_POPUP,
   className,
   positionerClassName,
   initialFocus,
@@ -66,6 +76,7 @@ export function PopoverPopup({
         align={align}
         sideOffset={sideOffset}
         collisionPadding={collisionPadding}
+        collisionAvoidance={collisionAvoidance}
         className={positionerClassName}
         {...(anchor === undefined ? {} : { anchor })}
       >
@@ -131,6 +142,21 @@ export function PopoverBody({
       {children}
     </Popover.Description>
   );
+}
+
+/**
+ * What scrolls under the title row when the popover outgrows the room it has (the visual
+ * viewport less 8 px at each end, or the positioner's room on its side): everything after
+ * `PopoverHeader`. Without one, a tall popover scrolls as a whole.
+ */
+export function PopoverScroll({
+  className,
+  children,
+}: {
+  readonly className?: string | undefined;
+  readonly children: ReactNode;
+}) {
+  return <div className={[styles.scroll, className].filter(Boolean).join(' ')}>{children}</div>;
 }
 
 /** The recipe's class names, for panels that draw their own header (the colour panel). */

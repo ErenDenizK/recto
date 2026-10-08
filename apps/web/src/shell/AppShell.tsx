@@ -54,7 +54,12 @@ import { CommandPalette } from './CommandPalette';
 import { CompactTopBar } from './frame/CompactTopBar';
 import { DockBand } from './frame/DockBand';
 import { registerFocusCommands, watchFocusTap } from './frame/focus-mode';
-import { BAND_OFFSET, BAND_OFFSET_COMPACT, useFreeRect } from './frame/frame-insets';
+import {
+  BAND_OFFSET,
+  BAND_OFFSET_COMPACT,
+  useFreeRect,
+  useVisualViewportHeight,
+} from './frame/frame-insets';
 import { setSidebarOverlay, showOverlaySidebar, useFrameStore } from './frame/frame-store';
 import { useHideOnScroll } from './frame/hide-on-scroll';
 import { ReplacePopover } from './frame/ReplacePopover';
@@ -77,6 +82,8 @@ export function AppShell() {
   // F6 / Shift+F6 between the regions (spec X9).
   useRegionCycling();
   useAppearanceRoot();
+  // Pop-ups cap their height to the visual viewport (F2).
+  useVisualViewportHeight();
   useEffect(() => registerAppearanceCommands(commandRegistry), []);
   // Settings… (Mod+,) and the commands that open the Settings sheet at a row (D0-10).
   useEffect(() => registerSettingsCommands(commandRegistry), []);

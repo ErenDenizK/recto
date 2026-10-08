@@ -21,7 +21,7 @@ import { serviceWorkerLabel } from '../pwa/service-worker-label';
 import { BUILD_INFO } from '../shell/about/build-info';
 import { KeptOnDevice } from '../session/KeptOnDevice';
 import { openSettings } from '../settings/open-settings';
-import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
+import { PopoverBody, PopoverHeader, PopoverPopup, PopoverScroll } from '../ui/Popover';
 import { Tooltip } from '../ui/Tooltip';
 import { documentCsp, parseCsp } from './csp';
 import { useExternalRequests } from './external-requests';
@@ -116,63 +116,65 @@ export function PrivacyShield({
         positionerClassName={styles.positioner}
       >
         <PopoverHeader title={clean ? m.privacy_title_clean() : m.privacy_title_external()} />
-        <PopoverBody>{m.privacy_body()}</PopoverBody>
+        <PopoverScroll>
+          <PopoverBody>{m.privacy_body()}</PopoverBody>
 
-        {/* Recents are kept on this device only and can always be cleared (craft §3.1). */}
-        <p className={`${styles.value} ${styles.recents}`} data-testid="privacy-recents">
-          <span>
-            {m.privacy_recents()}{' '}
-            <Popover.Close
-              className={styles.inlineLink}
-              onClick={() => void commandRegistry.execute('file.clearRecents')}
-            >
-              {m.recents_clear()}
-            </Popover.Close>
-          </span>
-        </p>
-
-        {/* Snapshots of open and closed documents, with Clear (ADR-0032 §2.7). */}
-        <KeptOnDevice />
-
-        <section className={styles.section} aria-label={m.privacy_requests_heading()}>
-          <h3 className={styles.heading}>{m.privacy_requests_heading()}</h3>
-          {urls.length > 0 ? (
-            <ul className={styles.urls} data-testid="external-urls">
-              {urls.map((url) => (
-                <li key={url} title={url}>
-                  {url}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className={styles.value}>{m.privacy_requests_none()}</p>
-          )}
-        </section>
-
-        <section className={styles.section} aria-label={m.privacy_csp_heading()}>
-          <h3 className={styles.heading}>{m.privacy_csp_heading()}</h3>
-          <p className={styles.value}>{m.privacy_csp_body()}</p>
-          {directive ? <code className={styles.code}>{directive}</code> : null}
-        </section>
-
-        <section className={styles.section} aria-label={m.privacy_offline_heading()}>
-          <h3 className={styles.heading}>{m.privacy_offline_heading()}</h3>
-          <p className={styles.value} data-testid="sw-status" data-status={swStatus}>
-            <span className={styles.swMark} data-status={swStatus} aria-hidden="true" />
-            {serviceWorkerLabel(swStatus, updateAvailable)}
+          {/* Recents are kept on this device only and can always be cleared (craft §3.1). */}
+          <p className={`${styles.value} ${styles.recents}`} data-testid="privacy-recents">
+            <span>
+              {m.privacy_recents()}{' '}
+              <Popover.Close
+                className={styles.inlineLink}
+                onClick={() => void commandRegistry.execute('file.clearRecents')}
+              >
+                {m.recents_clear()}
+              </Popover.Close>
+            </span>
           </p>
-        </section>
 
-        <section className={styles.section}>
-          <Popover.Close
-            className={styles.version}
-            aria-haspopup="dialog"
-            data-testid="privacy-version"
-            onClick={() => openSettings({ row: 'about' }, { returnTo: triggerRef.current })}
-          >
-            {m.about_version_line({ version: BUILD_INFO.version })}
-          </Popover.Close>
-        </section>
+          {/* Snapshots of open and closed documents, with Clear (ADR-0032 §2.7). */}
+          <KeptOnDevice />
+
+          <section className={styles.section} aria-label={m.privacy_requests_heading()}>
+            <h3 className={styles.heading}>{m.privacy_requests_heading()}</h3>
+            {urls.length > 0 ? (
+              <ul className={styles.urls} data-testid="external-urls">
+                {urls.map((url) => (
+                  <li key={url} title={url}>
+                    {url}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={styles.value}>{m.privacy_requests_none()}</p>
+            )}
+          </section>
+
+          <section className={styles.section} aria-label={m.privacy_csp_heading()}>
+            <h3 className={styles.heading}>{m.privacy_csp_heading()}</h3>
+            <p className={styles.value}>{m.privacy_csp_body()}</p>
+            {directive ? <code className={styles.code}>{directive}</code> : null}
+          </section>
+
+          <section className={styles.section} aria-label={m.privacy_offline_heading()}>
+            <h3 className={styles.heading}>{m.privacy_offline_heading()}</h3>
+            <p className={styles.value} data-testid="sw-status" data-status={swStatus}>
+              <span className={styles.swMark} data-status={swStatus} aria-hidden="true" />
+              {serviceWorkerLabel(swStatus, updateAvailable)}
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <Popover.Close
+              className={styles.version}
+              aria-haspopup="dialog"
+              data-testid="privacy-version"
+              onClick={() => openSettings({ row: 'about' }, { returnTo: triggerRef.current })}
+            >
+              {m.about_version_line({ version: BUILD_INFO.version })}
+            </Popover.Close>
+          </section>
+        </PopoverScroll>
       </PopoverPopup>
     </Popover.Root>
   );
