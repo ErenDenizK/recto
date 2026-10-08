@@ -190,7 +190,8 @@ test('draw the crop area on the page in Read mode; Esc goes back unchanged', asy
   await expect(dialog.getByTestId('crop-unit')).toHaveText('pt');
   await expect(dialog.getByTestId('crop-top')).toHaveValue('0');
 
-  // Draw again, and drag a rectangle from 10% to 90% across and 10% to 60% down.
+  // Draw again, and drag a rectangle from 10% to 90% across and 10% to 55% down
+  // (the floating top pieces start the page lower, so 60% would leave the window).
   await dialog.getByRole('button', { name: 'Draw crop area' }).click();
   await expect(layer).toBeVisible();
   const box = await layer.boundingBox();
@@ -200,7 +201,7 @@ test('draw the crop area on the page in Read mode; Esc goes back unchanged', asy
     y: box.y + box.height * fy,
   });
   const from = at(0.1, 0.1);
-  const to = at(0.9, 0.6);
+  const to = at(0.9, 0.55);
   // Keep the drag inside the viewport (the page may be taller than the window).
   if (to.y > 880) throw new Error(`page too tall for the drag: ${to.y}`);
   // The dialog's backdrop fades out first: press once the layer is what is under the pointer.
@@ -223,19 +224,19 @@ test('draw the crop area on the page in Read mode; Esc goes back unchanged', asy
   await expect(banner).toBeHidden();
   const value = async (side: string) =>
     Number(await dialog.getByTestId(`crop-${side}`).inputValue());
-  // Letter: 612 × 792 pt; the drawn rectangle leaves 10% above, 40% below, 10% each side.
+  // Letter: 612 × 792 pt; the drawn rectangle leaves 10% above, 45% below, 10% each side.
   expect(await value('top')).toBeCloseTo(0.1 * 792, -1);
-  expect(await value('bottom')).toBeCloseTo(0.4 * 792, -1);
+  expect(await value('bottom')).toBeCloseTo(0.45 * 792, -1);
   expect(await value('left')).toBeCloseTo(0.1 * 612, -1);
   expect(await value('right')).toBeCloseTo(0.1 * 612, -1);
   await expect(dialog.getByTestId('crop-summary')).toContainText('1 page will be cropped');
   await dialog.getByRole('button', { name: 'Crop', exact: true }).click();
   await expect(dialog).toBeHidden();
 
-  // Read mode shows the cropped page: 80% of the width, 50% of the height.
+  // Read mode shows the cropped page: 80% of the width, 45% of the height.
   await expect
     .poll(() => aspect(page), { timeout: 10_000 })
-    .toBeCloseTo((0.8 * 612) / (0.5 * 792), 1);
+    .toBeCloseTo((0.8 * 612) / (0.45 * 792), 1);
   // The text layer follows the crop: the body text is still selectable on the page.
   await expect(page.getByTestId('text-layer').first()).toContainText('quick brown fox');
 });
