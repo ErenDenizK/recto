@@ -52,6 +52,7 @@ describe('light table', () => {
     await page.viewport(1440, 900);
     resetWorkspace();
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
+    useSelectionStore.getState().setSelecting(false);
     useSelectionStore.getState().setClipboard(null);
     useUiStore.setState({
       docUi: {},
@@ -81,7 +82,7 @@ describe('light table', () => {
   it('moves a page across documents with the keyboard: cut, arrow into the other section, paste', async () => {
     await openTwo();
     const first = within(grid('simple-text')).getAllByRole('gridcell')[0]!;
-    await userEvent.click(first);
+    await userEvent.click(first, { modifiers: ['ControlOrMeta'] });
     await userEvent.keyboard(`{${mod}>}x{/${mod}}`);
     expect(useSelectionStore.getState().clipboard?.mode).toBe('cut');
     // One row per section at this width: ArrowDown crosses into the next section.
@@ -157,11 +158,77 @@ describe('light table', () => {
     for (const delta of after) expect(delta).toBeLessThanOrEqual(3);
   }, 30_000);
 
-  it('acts on a selection from the Pages bar; Esc clears it, then leaves the grid', async () => {
+  it('opens a page with a click; in selection mode a click toggles (the Photos model)', async () => {
     await openTwo();
-    // The capsule holds the Pages bar in the grid (X21): nothing selected, Done and the count.
+    const bar = await screen.findByRole('toolbar', { name: 'Selected pages' });
+    // At rest the bar offers Select, and no page acts (PG4 §6, owner feedback F4).
+    expect(within(bar).getByRole('button', { name: 'Select' })).toBeInTheDocument();
+    expect(within(bar).queryByRole('button', { name: 'Delete' })).toBeNull();
+    // Select: nothing selected yet, every click toggles.
+    await userEvent.click(within(bar).getByRole('button', { name: 'Select' }));
+    await waitFor(() => {
+      expect(within(bar).getByText('Select pages')).toBeInTheDocument();
+    });
+    const cells = within(grid('simple-text')).getAllByRole('gridcell');
+    await userEvent.click(cells[0]!);
+    await userEvent.click(cells[2]!);
+    await waitFor(() => {
+      expect(within(bar).getByText('2 selected')).toBeInTheDocument();
+    });
+    await userEvent.click(cells[0]!);
+    await userEvent.click(cells[2]!);
+    // Deselecting the last page keeps Select on, as Photos' Select does.
+    await waitFor(() => {
+      expect(within(bar).getByText('Select pages')).toBeInTheDocument();
+    });
+    expect(screen.getAllByRole('grid')).toHaveLength(2);
+    // Done ends selection mode and stays in the grid; then a click opens the page.
+    await userEvent.click(within(bar).getByRole('button', { name: 'Done' }));
+    await waitFor(() => {
+      expect(within(bar).getByRole('button', { name: 'Select' })).toBeInTheDocument();
+    });
+    expect(useSelectionStore.getState().selecting).toBe(false);
+    expect(screen.getAllByRole('grid')).toHaveLength(2);
+    const second = cells[1]!.dataset.pageId;
+    await userEvent.click(cells[1]!);
+    await waitFor(() => {
+      expect(screen.queryAllByRole('grid')).toHaveLength(0);
+    });
+    expect(useSelectionStore.getState().selected.size).toBe(0);
+    expect(
+      document.querySelector(`[data-read-viewport] [data-page-id="${second ?? ''}"]`),
+    ).not.toBeNull();
+  }, 30_000);
+
+  it('Mod-click starts selection mode; deselecting the last page ends it', async () => {
+    await openTwo();
+    const bar = await screen.findByRole('toolbar', { name: 'Selected pages' });
+    const cells = within(grid('simple-text')).getAllByRole('gridcell');
+    await userEvent.click(cells[1]!, { modifiers: ['ControlOrMeta'] });
+    await waitFor(() => {
+      expect(within(bar).getByText('1 selected')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('light-table').querySelector('[data-selecting]')).not.toBeNull();
+    // In the mode a plain click toggles.
+    await userEvent.click(cells[2]!);
+    await waitFor(() => {
+      expect(within(bar).getByText('2 selected')).toBeInTheDocument();
+    });
+    await userEvent.click(cells[2]!);
+    await userEvent.click(cells[1]!);
+    await waitFor(() => {
+      expect(within(bar).getByRole('button', { name: 'Select' })).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('light-table').querySelector('[data-selecting]')).toBeNull();
+    expect(screen.getAllByRole('grid')).toHaveLength(2);
+  }, 30_000);
+
+  it('acts on a selection from the Pages bar; Esc ends selection mode, then leaves the grid', async () => {
+    await openTwo();
+    // The capsule holds the Pages bar in the grid (X21): at rest, Done, the count and Select.
     const bar = await screen.findByRole('toolbar', { name: 'Selected pages' });
     expect(within(bar).getByRole('button', { name: 'Done' })).toBeInTheDocument();
+    await userEvent.click(within(bar).getByRole('button', { name: 'Select' }));
     const cell = within(grid('rotated-pages')).getAllByRole('gridcell')[0]!;
     await userEvent.click(cell);
     await waitFor(() => {
@@ -173,11 +240,13 @@ describe('light table', () => {
         /rotated 90 degrees/,
       );
     });
-    // The Esc ladder (flows §7.2): the selection first, then the grid itself.
+    // The Esc ladder (flows §7.2): the selection and its mode first, then the grid itself.
     await userEvent.keyboard('{Escape}');
     await waitFor(() => {
       expect(useSelectionStore.getState().selected.size).toBe(0);
     });
+    expect(useSelectionStore.getState().selecting).toBe(false);
+    expect(within(bar).getByRole('button', { name: 'Select' })).toBeInTheDocument();
     expect(screen.getAllByRole('grid')).toHaveLength(2);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => {

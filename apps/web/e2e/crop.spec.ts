@@ -167,7 +167,7 @@ test('draw the crop area on the page in Read mode; Esc goes back unchanged', asy
   // Arrange: "Crop pages…" from the context menu of page 1.
   await page.keyboard.press('3');
   const cell = page.locator('[role="gridcell"][data-page-id]').first();
-  await cell.click();
+  await cell.click({ modifiers: ['ControlOrMeta'] });
   await cell.click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Crop pages…' }).click();
   const dialog = page.getByTestId('crop-dialog');

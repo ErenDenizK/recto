@@ -3051,6 +3051,8 @@
   "pages_bar_new_document": "Yeni belge",
   "pages_bar_more": "Diğer işlemler",
   "pages_bar_select_all": "Tümünü seç",
+  "pages_bar_select": "Seç",
+  "pages_bar_select_prompt": "Sayfa seçin",
   "pages_bar_unlock": "Kilidi aç",
   "pages_bar_insert_blank": "Arkasına boş sayfa ekle",
   "pages_bar_crop": "Kırp…",
