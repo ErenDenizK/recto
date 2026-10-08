@@ -577,14 +577,16 @@ test.describe('touch', () => {
     await expect.poll(() => cellSize(page)).toBe('Largest');
     const chip = page.getByTestId('grid-pinch-chip');
     await expect(chip).toHaveAttribute('data-shown', '');
-    const named = /^Release to open page (\d+)$/.exec((await chip.textContent())?.trim() ?? '');
-    expect(named).not.toBeNull();
-    const index = Number(named?.[1]) - 1;
     // Pinching back below the threshold hides it again.
     await touch(cdp, 'touchMove', pair(250));
     await expect(chip).not.toHaveAttribute('data-shown', '');
     await touch(cdp, 'touchMove', pair(280));
     await expect(chip).toHaveAttribute('data-shown', '');
+    // The cells keep growing as the fingers spread, so the page under them can change: the chip
+    // is read at the release, and it is that page the release opens.
+    const named = /^Release to open page (\d+)$/.exec((await chip.textContent())?.trim() ?? '');
+    expect(named).not.toBeNull();
+    const index = Number(named?.[1]) - 1;
     await touch(cdp, 'touchEnd', []);
     await expect(grid(page)).toHaveCount(0);
     await expect(page.locator(`[data-read-viewport] [data-page-index="${index}"]`)).toBeInViewport({
