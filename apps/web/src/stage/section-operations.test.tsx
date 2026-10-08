@@ -258,7 +258,7 @@ describe('section operations', () => {
     const cells = within(screen.getByRole('grid', { name: 'simple-text' })).getAllByRole(
       'gridcell',
     );
-    await userEvent.click(cells[0]!);
+    await userEvent.click(cells[0]!, { modifiers: ['ControlOrMeta'] });
     await userEvent.click(cells[2]!, { modifiers: ['Shift'] });
     const past = model().history.past.length;
     await commandRegistry.execute('pages.copyToNew');

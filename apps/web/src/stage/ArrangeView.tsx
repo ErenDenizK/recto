@@ -12,11 +12,14 @@
  * not in the DOM. The scroller reaches under the strip's pieces and the Pages bar; the first
  * row rests below the pieces and the last clears the bar by 16 px (PG1 §2).
  *
- * Interaction (PG1 §6, PG4 §6):
- * - A click replaces the selection, Shift ranges within a section, Mod toggles; a tap toggles
- *   (06.5); a press on empty canvas draws a marquee (mouse and pen; additive with Shift or Mod)
- *   with edge auto-scroll. Selection spans sections.
- * - A double-click, a double tap or Enter opens the page (`leaveGrid`), on its own tab.
+ * Interaction (PG1 §6, PG4 §6, owner feedback F4: the Photos model):
+ * - Outside selection mode a click or a tap opens the page (`leaveGrid`), on its own tab, as
+ *   Enter does. Selection mode (`gridSelecting`) starts from the Pages bar's Select, a long
+ *   press released in place (touch), Shift- or Mod-click, the check circle a fine pointer's
+ *   hover shows, Space, or a marquee; in it a click or a tap toggles, Shift ranges within a
+ *   section, and Done or Esc ends it. Selection spans sections.
+ * - A press on empty canvas draws a marquee (mouse and pen; additive with Shift or Mod) with
+ *   edge auto-scroll.
  * - Keys: arrows move focus (wrapping across rows and sections), Shift+arrows extend, Space
  *   toggles, Home/End, Alt+arrows move pages one slot, Alt+Shift+arrows move to the row
  *   (left/right) or section (up/down) edge. Clipboard (Mod+X/C/V), Delete, Mod+D, Mod+A and
@@ -82,6 +85,7 @@ import { announce } from '../shell/announcer';
 import {
   clickSelection,
   extendSelection,
+  gridSelecting,
   marqueeSelection,
   sameSelection,
   type SelectionSnapshot,
@@ -384,8 +388,8 @@ function LightTable({
   const tableRef = useRef<HTMLDivElement>(null);
   const marqueeRef = useRef<MarqueeDrag | null>(null);
   const scrollFocusPending = useRef(false);
-  /** The pointer type of the last press: a tap toggles, a click replaces (06.5). */
-  const pressType = useRef<string>('mouse');
+  /** Selection mode (PG4 §6): taps toggle, the check circles show. */
+  const selecting = useSelectionStore(gridSelecting);
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(
     null,
   );
@@ -464,6 +468,8 @@ function LightTable({
   });
 
   useEffect(() => provideArrangeColumns(() => stateRef.current.metrics.columns), []);
+  // Select holds only inside the grid: leaving it ends the mode (the selection itself stays).
+  useEffect(() => () => useSelectionStore.getState().setSelecting(false), []);
 
   const scrollToCell = (section: number, index: number) => {
     const sectionLayout = layout.sections[section];
@@ -782,23 +788,26 @@ function LightTable({
   const onClick = (event: MouseEvent<HTMLDivElement>) => {
     const id = cellFrom(event);
     if (id === undefined) return;
+    const shift = event.shiftKey;
+    const mod = isMod(event);
+    const circle = (event.target as Element).closest('[data-select-toggle]') !== null;
+    // Outside selection mode a plain click or tap opens the page (PG4 §6, the Photos model), so
+    // someone who came to look and jump never selects by accident.
+    if (!gridSelecting(useSelectionStore.getState()) && !shift && !mod && !circle) {
+      leaveGrid({ page: id });
+      return;
+    }
     const location = locate(id);
     const order = location ? (sections[location.section]?.doc.pages.map((p) => p.id) ?? []) : [];
     const state = selectionSnapshot();
-    // A tap toggles, so a finger selects many without modifiers (06.5, INV-R8); a click
-    // replaces, with Shift and Mod as on the desktop.
-    const next =
-      pressType.current === 'touch'
-        ? toggleSelection(state, id)
-        : clickSelection(state, order, id, { shift: event.shiftKey, mod: isMod(event) });
+    // In selection mode a click or a tap toggles, so a finger selects many without modifiers
+    // (INV-R8); Shift ranges from the anchor and Mod toggles, as on the desktop.
+    const next = shift
+      ? clickSelection(state, order, id, { shift, mod })
+      : toggleSelection(state, id);
     apply(next);
     activateSectionOf(id);
     announce(m.status_selected({ count: next.selected.size }));
-  };
-
-  const onDoubleClick = (event: MouseEvent<HTMLDivElement>) => {
-    const id = cellFrom(event);
-    if (id !== undefined) leaveGrid({ page: id });
   };
 
   const onContextMenu = (event: MouseEvent<HTMLDivElement>) => {
@@ -806,7 +815,10 @@ function LightTable({
     setMenuPage(id ?? null);
     if (id === undefined) return;
     const state = selectionSnapshot();
-    if (!state.selected.has(id)) apply({ selected: new Set([id]), anchor: id, focused: id });
+    // Outside selection mode the menu acts on the page under it (`targetPages` takes the
+    // focused cell) and selects nothing; in it, on the selection that holds the page.
+    if (!gridSelecting(useSelectionStore.getState())) apply({ ...state, focused: id, anchor: id });
+    else if (!state.selected.has(id)) apply({ selected: new Set([id]), anchor: id, focused: id });
     else apply({ ...state, focused: id });
     activateSectionOf(id);
   };
@@ -850,7 +862,6 @@ function LightTable({
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    pressType.current = event.pointerType;
     // Touch never marquees: a finger scrolls, taps toggle, a long press lifts (PG5 §6).
     if (event.button !== 0 || event.pointerType === 'touch') return;
     const target = event.target as Element;
@@ -946,8 +957,8 @@ function LightTable({
           style={{ height: layout.totalHeight }}
           tabIndex={-1}
           data-dragging={dragging || undefined}
+          data-selecting={selecting || undefined}
           onClick={onClick}
-          onDoubleClick={onDoubleClick}
           onKeyDown={onKeyDown}
           onContextMenu={onContextMenu}
           onPointerDown={onPointerDown}

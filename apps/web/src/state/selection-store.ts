@@ -11,6 +11,11 @@
  * click, tap or arrow key only navigates, and only Shift, Mod and Space select
  * (`navigatorClick`, `navigatorExtend`), so a navigating click can never arm Delete (S10).
  * Delete then acts only on a selection the person can see (`visibleSelection`).
+ *
+ * The Pages grid has a selection mode (06-navigation PG4 §6, owner feedback F4, the Photos
+ * model): outside it a tap or click opens the page, inside it a tap toggles. `gridSelecting`
+ * says whether it is on: while anything is selected, or after the Pages bar's Select
+ * (`selecting`), which holds with nothing selected until Done or Esc, as Photos' Select does.
  */
 import type { DocumentId, PageId, VirtualDocument, Workspace } from '@pdf-editor/document-model';
 import { create } from 'zustand';
@@ -228,23 +233,52 @@ interface SelectionState extends SelectionSnapshot {
    * null: where a selection is visible on the page (`visibleSelection`, S10).
    */
   readonly navigatorDocument: DocumentId | null;
+  /**
+   * The Pages grid's Select (PG4 §6): selection mode held on with nothing selected, until Done,
+   * Esc, leaving the grid, or a removal that takes every selected page.
+   */
+  readonly selecting: boolean;
   apply: (next: SelectionSnapshot) => void;
   clear: () => void;
   setFocused: (id: PageId | null) => void;
   setClipboard: (clipboard: PageClipboard | null) => void;
   setNavigatorDocument: (id: DocumentId | null) => void;
+  setSelecting: (on: boolean) => void;
+  /** Done and Esc in selection mode: the selection cleared and the mode off. */
+  endSelecting: () => void;
 }
 
 export const useSelectionStore = create<SelectionState>()((set) => ({
   ...EMPTY_SELECTION,
   clipboard: null,
   navigatorDocument: null,
+  selecting: false,
   apply: (next) => set({ selected: next.selected, anchor: next.anchor, focused: next.focused }),
   clear: () => set((s) => (s.selected.size === 0 ? s : { selected: new Set(), anchor: null })),
   setFocused: (focused) => set({ focused }),
   setClipboard: (clipboard) => set({ clipboard }),
   setNavigatorDocument: (navigatorDocument) => set({ navigatorDocument }),
+  setSelecting: (selecting) => set((s) => (s.selecting === selecting ? s : { selecting })),
+  endSelecting: () =>
+    set((s) =>
+      s.selected.size === 0 && !s.selecting
+        ? s
+        : { selected: new Set(), anchor: null, selecting: false },
+    ),
 }));
+
+/**
+ * Whether the Pages grid is in selection mode (PG4 §6): a tap toggles instead of opening, every
+ * cell shows its check circle, and the Pages bar shows the selection's actions. On while
+ * anything is selected, so a Cmd-click, a long press, the hover check, Space or a marquee start
+ * it and deselecting the last page ends it; held on with nothing selected after Select.
+ */
+export function gridSelecting(state: {
+  readonly selected: ReadonlySet<PageId>;
+  readonly selecting: boolean;
+}): boolean {
+  return state.selecting || state.selected.size > 0;
+}
 
 /** Drops clipboard pages that no longer exist; null when none are left. */
 export function pruneClipboard(
@@ -277,7 +311,13 @@ useWorkspaceStore.subscribe((state, previous) => {
   if (empty && clipboard === null) return;
   const exists = pageExistsIn(state.workspace);
   const next = pruneSelection(current, exists);
-  if (next !== current) useSelectionStore.getState().apply(next);
+  if (next !== current) {
+    useSelectionStore.getState().apply(next);
+    // A removal that took every selected page ends Select too (Photos after a delete).
+    if (current.selected.size > 0 && next.selected.size === 0) {
+      useSelectionStore.getState().setSelecting(false);
+    }
+  }
   const nextClipboard = pruneClipboard(clipboard, exists);
   if (nextClipboard !== clipboard) useSelectionStore.getState().setClipboard(nextClipboard);
 });

@@ -5,6 +5,9 @@
  *
  * - **Lift.** A finger lifts a page after a 450 ms hold within 10 px, then movement, so a finger
  *   that moves first scrolls the grid; a pen after 4 px. The mouse never takes this path.
+ * - **Hold released in place** (touch): selects the page, starting selection mode, or toggles
+ *   it in that mode (PG4 §6, owner feedback F4: the Photos model, where a tap opens). The
+ *   release's click is swallowed (`attachPointerDrag`), so it does not toggle back.
  * - **What moves:** the page under the finger, or the selection when it holds that page;
  *   lifting never selects. The guard asks `canChange(id, 'pages')` at the lift: a locked
  *   document lifts nothing, says why, and shows the Lock notice at the cell (§2.3 Locked).
@@ -32,6 +35,7 @@ import { attachPointerDrag } from '../../dnd/pointer-drag';
 import { m } from '../../i18n';
 import { announce } from '../../shell/announcer';
 import { changeRefusal, refusalReason } from '../../state/guard';
+import { selectionSnapshot, toggleSelection, useSelectionStore } from '../../state/selection-store';
 import { useUiStore } from '../../state/ui-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { toast } from '../../ui/Toast/toast';
@@ -141,6 +145,14 @@ export function attachGridPointerDrag(
   const removeDrag = attachPointerDrag(table, {
     shouldStart: (e) => e.pointerType !== 'mouse' && cellOf(e.target) !== null,
     onHold: () => haptic(),
+    onHoldRelease: (e) => {
+      const cell = cellOf(e.target);
+      const id = cell?.dataset.pageId as PageId | undefined;
+      if (id === undefined) return;
+      const next = toggleSelection(selectionSnapshot(), id);
+      useSelectionStore.getState().apply(next);
+      announce(m.status_selected({ count: next.selected.size }));
+    },
     onLift: (e, start) => {
       const cell = cellOf(start.target);
       const id = cell?.dataset.pageId as PageId | undefined;

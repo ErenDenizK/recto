@@ -3,10 +3,16 @@
  * selected pages, as the capsule's content (`shell/capsule/`): the dock morphs into it in the
  * Pages grid, and in viewing while pages are selected explicitly in the sidebar.
  *
+ *   ✓ Done │ 12 pages │ ◯ Select │ ⋯                     (grid at rest: Done leaves the grid)
+ *   ✓ Done │ Select pages │ Select all │ ⋯                 (selection mode, nothing selected)
  *   ✓ Done │ 3 selected │ ↺ ↻ │ ‹ › │ Delete │ Extract │ Duplicate │ Move to ▾ │ ⋯
- *   ✓ Done │ 12 pages │ Select all │ ⋯                     (nothing selected)
  *   ✕ │ 3 selected │ …                                     (viewing: ✕ clears the sidebar's)
  *   ✓ Done │ 3 selected │ Extract │ Copy │ Unlock          (locked)
+ *
+ * - **Selection mode** (06-navigation PG4 §6, owner feedback F4: the Photos model): the grid's
+ *   bar shows the selection's acts only in it (`gridSelecting`). At rest Select starts it and
+ *   Done leaves the grid; in it Done (and Esc) ends it, clearing the selection, and the grid
+ *   stays.
  *
  * - **Every act is a registered command** with its `act` (F§2.5), so the guard dims it with
  *   the registry's reason and it is one undo step, with a toast for removals; Extract and Copy
@@ -75,11 +81,13 @@ export function usePagesBarSelection(): readonly PageId[] {
   return visibleSelection(selected, shown);
 }
 
-/** A key for the capsule's morph inside the bar: nothing selected, some, and locked. */
+/** A key for the capsule's morph inside the bar: rest, selecting, some selected, and locked. */
 export function usePagesBarKey(id: DocumentId | undefined): string {
   const count = usePagesBarSelection().length;
+  const selecting = useSelectionStore((s) => s.selecting);
   const locked = useLock(id) !== undefined;
-  return `${count > 0 ? 'some' : 'none'}:${locked ? 'locked' : 'open'}`;
+  const form = count > 0 ? 'some' : selecting ? 'selecting' : 'none';
+  return `${form}:${locked ? 'locked' : 'open'}`;
 }
 
 const shortcutOf = (id: string) => commandRegistry.get(id)?.shortcuts[0];
@@ -146,15 +154,23 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
   useWorkspaceStore((s) => s.workspace);
   const count = selection.length;
   const some = count > 0;
+  const held = useSelectionStore((s) => s.selecting);
+  // The grid's selection mode (PG4 §6); in viewing the bar only shows with a selection.
+  const selecting = some || (grid && held);
   const { first, last, all } = some ? edges(selection) : { first: false, last: false, all: false };
 
   const run = (id: string) => () => void commandRegistry.execute(id);
   const done = () => {
-    if (grid) leaveGrid();
-    else {
-      useSelectionStore.getState().clear();
-      announce(m.status_selected({ count: 0 }));
+    if (grid && !selecting) {
+      leaveGrid();
+      return;
     }
+    useSelectionStore.getState().endSelecting();
+    announce(m.status_selected({ count: 0 }));
+  };
+  const startSelecting = () => {
+    useSelectionStore.getState().setSelecting(true);
+    announce(m.pages_bar_select_prompt());
   };
 
   const more: MoreEntry[] = some
@@ -175,6 +191,8 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
       ]
     : [
         { id: 'pages.paste', label: m.pages_bar_paste() },
+        // Select all has its own button in selection mode; at rest it waits here.
+        ...(selecting ? [] : [{ id: 'pages.selectAll', label: m.pages_bar_select_all() }]),
         { id: 'pages.select.odd', label: m.pages_bar_select_odd() },
         { id: 'pages.select.even', label: m.pages_bar_select_even() },
         { id: 'section.insertImages', label: m.pages_bar_insert_images() },
@@ -226,7 +244,11 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
         />
       )}
       <span className={styles.count} data-capsule-item="count" aria-live="off">
-        {some ? m.status_selected({ count }) : m.pages_count({ count: doc.pages.length })}
+        {some
+          ? m.status_selected({ count })
+          : selecting
+            ? m.pages_bar_select_prompt()
+            : m.pages_count({ count: doc.pages.length })}
       </span>
       <span className={styles.separator} data-capsule-item="sep-1" aria-hidden="true" />
       {some && !locked ? (
@@ -321,13 +343,21 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
           />
         </>
       ) : null}
-      {!some ? (
+      {!some && selecting ? (
         <BarButton
           item="select-all"
           icon="selection"
           label={m.pages_bar_select_all()}
           shortcut={shortcutOf('pages.selectAll')}
           onActivate={run('pages.selectAll')}
+        />
+      ) : null}
+      {!selecting ? (
+        <BarButton
+          item="select"
+          icon="check-circle"
+          label={m.pages_bar_select()}
+          onActivate={startSelecting}
         />
       ) : null}
       {locked ? (

@@ -275,79 +275,73 @@
 }
 
 /*
- * Three marks, three forms, one colour each (§2.2 as the V2 review settled it):
+ * Three marks, three forms, one colour each (§2.2; owner feedback F4, the Photos look):
  * - current (the page you were on): a subtle marker, its label at 600 in the primary colour and
- *   a 1 px neutral ring 3 px out; while the cell holds keyboard focus the focus ring says where
- *   you are and the ring steps aside, so the two never stack;
- * - selected: the blue, once: a light `--select` wash with its 2 px edge inside the page, and
- *   the check badge (the shape, A-19);
- * - focus: the standard two-band ring in its gap form, on `:focus-visible` only (`.cell`).
+ *   a 1 px neutral ring 3 px out; while the cell holds keyboard focus or is selected the other
+ *   mark says enough, and the ring steps aside so two rings never stack;
+ * - selected: the blue, as a 2 px `--select` ring 2 px out from the page and the filled check
+ *   badge inside its top-trailing corner (the shape, A-19); nothing washes over the page;
+ * - focus: the standard two-band ring in its gap form around the whole cell, lime and ink, on
+ *   `:focus-visible` only (`.cell`), so it never reads as the blue selection ring.
  */
-.cell[data-current]:not(:focus-visible) .thumbSheet {
+.cell[data-current]:not(:focus-visible, [aria-selected='true']) .thumbSheet {
   outline: 1px solid var(--current-ring);
   outline-offset: 3px;
 }
 
-.cell[aria-selected='true'] .thumbSheet::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  border-radius: inherit;
-  background: var(--select-subtle);
-  box-shadow: inset 0 0 0 2px var(--select);
-  pointer-events: none;
+.cell[aria-selected='true'] .thumbSheet {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
 }
 
+/*
+ * The check circle (PG4 §2, `ui/CheckBadge`): 6 px inside the thumbnail's top-trailing corner, so
+ * it never hangs over the edge. Shown on every cell in selection mode (`.table[data-selecting]`),
+ * on hover for a fine pointer outside it (a click on it starts selecting), and always while
+ * selected. Its hit area reaches the corner (6 px more on each side).
+ */
 .check {
   position: absolute;
   top: 6px;
   right: 6px;
   z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.check::before {
+  content: '';
+  position: absolute;
+  inset: -7.5px;
   border-radius: var(--radius-pill);
-  background: var(--select);
-  color: var(--select-ink);
-  box-shadow: 0 0 0 1.5px var(--page-background);
-  animation: check-in var(--duration-fast) var(--ease-out);
 }
 
-.check svg {
-  width: 14px;
-  height: 14px;
+.table[data-selecting] .check,
+.cell[aria-selected='true'] .check {
+  opacity: 1;
+  pointer-events: auto;
 }
 
-@media (pointer: coarse), (any-pointer: coarse) {
-  .check {
-    width: 24px;
-    height: 24px;
+@media (hover: hover) and (pointer: fine) {
+  .cell:hover .check {
+    opacity: 1;
+    pointer-events: auto;
   }
 
-  .check svg {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-/* *select* (language.md §7.3): the badge grows in; reduced motion fades only. */
-@keyframes check-in {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
+  .cell:not([aria-selected='true']) .check:hover {
+    background: rgb(0 0 0 / 0.24);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .check {
-    animation-name: check-fade;
+    transition: none;
   }
 }
 
 :global(:root[data-motion='reduced']) .check {
-  animation-name: check-fade;
+  transition: none;
 }
 
 @keyframes check-fade {
@@ -356,7 +350,7 @@
   }
 }
 
-/* Label row and hover actions share the reserved gutter under the thumbnail. */
+/* The label row in the reserved gutter under the thumbnail. */
 .meta {
   position: relative;
   display: flex;
@@ -485,12 +479,7 @@
     outline-color: Highlight;
   }
 
-  .cell[aria-selected='true'] .thumbSheet::before {
-    box-shadow: inset 0 0 0 2px Highlight;
-  }
-
-  .check {
-    background: Highlight;
-    color: HighlightText;
+  .cell[aria-selected='true'] .thumbSheet {
+    outline-color: Highlight;
   }
 }

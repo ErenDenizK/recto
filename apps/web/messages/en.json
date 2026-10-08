@@ -4655,6 +4655,8 @@
   "pages_bar_new_document": "New document",
   "pages_bar_more": "More actions",
   "pages_bar_select_all": "Select all",
+  "pages_bar_select": "Select",
+  "pages_bar_select_prompt": "Select pages",
   "pages_bar_unlock": "Unlock",
   "pages_bar_insert_blank": "Insert blank page after",
   "pages_bar_crop": "Crop…",

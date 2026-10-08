@@ -1296,7 +1296,7 @@ async function deleteSecondPage(page: Page): Promise<Locator> {
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');
   await expect(cells).toHaveCount(3);
-  await cells.nth(1).click();
+  await cells.nth(1).click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Delete');
   await expect(cells).toHaveCount(2);
   const toast = page.getByRole('group', { name: 'Deleted page 2' });
@@ -1405,7 +1405,10 @@ test.describe('D0 sheets and toasts', () => {
 
     // Every change of the polite region, from just before the delete.
     await page.keyboard.press('3');
-    await page.locator('[role="gridcell"][data-page-id]').nth(1).click();
+    await page
+      .locator('[role="gridcell"][data-page-id]')
+      .nth(1)
+      .click({ modifiers: ['ControlOrMeta'] });
     await page.evaluate(() => {
       const said: string[] = [];
       (window as unknown as { __said: string[] }).__said = said;

@@ -325,7 +325,7 @@ test.describe('axe in light (the a11y matrix’s light column)', () => {
     const cells = page.locator('[role="gridcell"][data-page-id]');
     await expect(cells).toHaveCount(3);
     await axe(page, 'light: the Pages grid');
-    await cells.nth(1).click();
+    await cells.nth(1).click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('Delete');
     await expect(page.getByRole('group', { name: 'Deleted page 2' })).toBeVisible();
     await axe(page, 'light: the grid with a toast');

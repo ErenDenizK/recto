@@ -54,7 +54,12 @@ import { requestSidebarFocus } from '../shell/sidebar/sidebar-focus';
 import { useAuthorPrompt } from '../shell/comment-author';
 import { enterGrid, leaveGrid } from '../stage/grid/grid-transition';
 import { openImagesAsDocument } from '../stage/section-operations';
-import { selectAllOf, useSelectionStore, visibleSelection } from '../state/selection-store';
+import {
+  gridSelecting,
+  selectAllOf,
+  useSelectionStore,
+  visibleSelection,
+} from '../state/selection-store';
 import { ARRANGE_SIZES, isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
@@ -441,11 +446,12 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       act: null,
       shortcut: 'Escape',
       hiddenInPalette: true,
-      when: () => hasAnnotationToolState() || selection().selected.size > 0,
+      when: () => hasAnnotationToolState() || gridSelecting(selection()),
       run: () => {
         // Esc returns to Select and drops the annotation selection first (spec §2).
         if (clearAnnotationTools()) return;
-        selection().clear();
+        // Then the selection, and the Pages grid's selection mode with it (PG4 §6).
+        selection().endSelecting();
       },
     }),
     // Before the page commands: in Read mode R, Delete, ... act on annotations.
