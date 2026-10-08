@@ -59,12 +59,12 @@
   inset: 0;
   width: min(var(--sheet-w), calc(100vw - 32px));
   height: fit-content;
-  max-height: calc(100dvh - 104px);
+  max-height: calc(min(100dvh, var(--visual-h, 100dvh)) - 104px);
   margin: auto;
 }
 
 .panel[data-presentation='dialog'] {
-  max-height: calc(100dvh - 96px);
+  max-height: calc(min(100dvh, var(--visual-h, 100dvh)) - 96px);
 }
 
 .panel[data-presentation='dialog'][data-kind='overlay'] {

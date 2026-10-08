@@ -1,37 +1,69 @@
 /*
- * The top strip (01-frame F2–F4, F6): one bar of quality-bar Q-9's set, 44 px around 32 px
- * controls on a fine pointer and 56 around 44 on a coarse one (XD-3 kept the coarse bar at 56
- * where F2 §2 drew 52: Q-9 amends it). Every control shares the bar's centre line; buttons are
- * circles, Save a capsule, tabs --radius-control. 12 px gutters (16 coarse).
+ * The top strip (01-frame F2–F4, F6; owner feedback 2026-10-08, F1): no band, two floating
+ * glass pieces over the canvas. Each is a capsule of quality-bar Q-9's set, --bar-h high (44 px
+ * around 32 px controls on a fine pointer, 56 around 44 on a coarse one), the bottom capsule's
+ * material, padding and pill radius, so the frame reads as one family top and bottom: every
+ * control shares its piece's centre line; buttons are circles, Save a capsule, tabs
+ * --radius-control.
  *
- * Material: docked M3 (`mat mat-panel mat-docked s8 c10`, ADR-0024 §2.8): over the bare canvas
- * it composites to --surface-frame exactly, glass where a page passes; a hairline on the bottom
- * edge only, no shadow. The page passes beneath it while scrolling (the reader bleeds under the frame).
+ * The `header` is only the line they float on: transparent, pointer-transparent, inset 16 px
+ * from the window's edges as the dock band is (DockBand.module.css), its box (inset + piece)
+ * the free rectangle's top inset (frame-insets.ts). The page scrolls beneath the pieces and
+ * the bare canvas between them.
  */
 .strip {
-  composes: mat mat-panel mat-docked s8 c10 from global;
+  --float-inset: var(--space-4);
+  --lead-max: 760px;
   position: absolute;
   top: 0;
   right: 0;
   left: 0;
   z-index: 4;
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  box-sizing: border-box;
+  height: calc(var(--float-inset) + var(--bar-h));
+  padding: var(--float-inset) var(--float-inset) 0;
+  pointer-events: none;
+}
+
+/*
+ * A piece: M2 glass (`mat mat-bar s9 c10`, coverage registry `top-strip`), as the capsule.
+ * The two pieces count as the one top-strip surface of quality-bar Q-11's budget
+ * (`data-glass-group`): together they cover less than the band they replace.
+ */
+.piece {
+  composes: mat mat-bar s9 c10 from global;
+  display: flex;
+  flex: none;
   align-items: center;
   gap: var(--space-2);
-  height: var(--bar-h);
-  padding: 0 var(--space-3);
-  border-bottom: 1px solid var(--border-hairline);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .strip {
-    padding: 0 var(--space-4);
-  }
-}
-
-/* The bar's height includes its hairline, so a control's centre is the bar's (Q-9). */
-.strip {
   box-sizing: border-box;
+  min-width: 0;
+  height: var(--bar-h);
+  padding: 0 calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
+  border-radius: var(--radius-capsule);
+  pointer-events: auto;
+}
+
+/* The leading piece hugs its tabs up to --lead-max and gives way to the trailing one. */
+.piece[data-top-piece='lead'] {
+  flex: 0 1 auto;
+  max-width: min(var(--lead-max), 100%);
+}
+
+/* Under a modal scrim (dim only, G-31) the pieces rest on their solid twin, as the docked frame
+   did: the backdrop is still and dimmed, and the budget of four (Q-11) stays with the sheet. */
+:global(:root:has([data-scrim]:not([data-ending-style]))) .piece {
+  --text-secondary: inherit;
+  --text-tertiary: inherit;
+  --text-disabled: inherit;
+  --danger: inherit;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: var(--mat-solid);
 }
 
 .lead,
@@ -44,7 +76,6 @@
 
 .trail {
   gap: var(--space-2);
-  margin-inline-start: auto;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -100,10 +131,10 @@
 }
 
 /*
- * Tabs (F4). The region takes the room between the leading buttons and the trailing group
- * (flex basis 0, so its width never depends on its tabs: DocumentTabs measures it to decide
- * how many tabs fit, tab-overflow.ts). Inside, tabs are left-aligned with "N more" and +
- * right after them.
+ * Tabs (F4). The region hugs its tabs inside the leading piece, which grows with them up to
+ * its maximum; DocumentTabs measures the room the pieces leave (never the region itself, whose
+ * width follows its tabs) to decide how many tabs fit (tab-overflow.ts). "N more" and + come
+ * right after the tabs.
  */
 .tabsRegion {
   --tab-min: 112px;
@@ -112,7 +143,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  flex: 1 1 0;
+  flex: 0 1 auto;
   /* XD-3: never narrower than one tab at its minimum, + and the ring's room. */
   min-width: calc(var(--tab-min) + 4px + var(--space-1) + var(--bar-button));
   margin-inline-start: var(--space-1);
@@ -486,6 +517,22 @@
   }
 }
 
+/* In a floating piece the opened field takes its place in the piece, which grows to hold it
+   (a well inside the piece's glass, never over the bare canvas); ⌕ steps out of sight but
+   keeps focus for Esc to return to. The leading piece gives way (DocumentTabs re-measures). */
+.piece .find[data-open] .findWell {
+  position: static;
+}
+
+.piece .find[data-open] .findButton {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  clip-path: inset(50%);
+}
+
 @media (max-width: 839.98px) {
   .find[data-open] .findWell {
     width: 240px;
@@ -498,4 +545,43 @@
     background: Field;
     color: FieldText;
   }
+}
+
+/* The Pages grid's title in the selected tab (F1 of the owner's 2026-10-08 feedback; PG2 §2):
+   "name · 4 pages", the count in the secondary ink and never truncated; the tab may grow by
+   the count's width so the name keeps its room. */
+.count {
+  flex: none;
+  color: var(--text-secondary);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.count::before {
+  content: '·';
+  margin-inline-end: 6px;
+}
+
+.tabWrap[data-selected]:has(.count) {
+  max-width: calc(var(--tab-max) + 88px);
+}
+
+/* A note after the tabs (the grid's "Sources: …"): one quiet line, truncated, its full text
+   in the tooltip (Q-8). */
+.note {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 240px;
+  overflow: hidden;
+  padding-inline: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note:empty {
+  display: none;
 }

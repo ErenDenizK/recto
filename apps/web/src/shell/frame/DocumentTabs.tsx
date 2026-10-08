@@ -25,6 +25,7 @@ import type { DocumentId } from '@pdf-editor/document-model';
 import {
   type KeyboardEvent,
   type MouseEvent,
+  type ReactNode,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -37,7 +38,7 @@ import { m } from '../../i18n';
 import { SignatureTabGlyph } from '../../signatures/SignatureBadge';
 import { useLockStore } from '../../state/lock-store';
 import { matchesMark, useSavedStore } from '../../state/saved-store';
-import { useTabItems, useWorkspaceStore } from '../../state/workspace-store';
+import { pagesPhrase, useTabItems, useWorkspaceStore } from '../../state/workspace-store';
 import { IconButton } from '../../ui/IconButton';
 import { announce } from '../announcer';
 import { useCommandShortcut } from '../use-command-shortcut';
@@ -62,6 +63,30 @@ function lengthVar(element: Element, name: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
+/**
+ * The widest the tab region may grow inside the leading piece (TopStrip.module.css): the piece
+ * at its maximum (`--lead-max`, and never closer to the trailing piece than the strip's gap)
+ * less what else the piece holds (◆ ▤, the grid's page count, its padding and gaps).
+ */
+function tabRoom(
+  region: HTMLElement,
+  piece: HTMLElement,
+  strip: HTMLElement,
+  trail: HTMLElement | null,
+): number {
+  const style = getComputedStyle(strip);
+  const inner =
+    strip.clientWidth -
+    (Number.parseFloat(style.paddingLeft) || 0) -
+    (Number.parseFloat(style.paddingRight) || 0);
+  const between = Number.parseFloat(style.columnGap) || 0;
+  const widest = Math.min(
+    lengthVar(strip, '--lead-max', inner),
+    inner - (trail ? trail.offsetWidth + between : 0),
+  );
+  return widest - (piece.offsetWidth - region.offsetWidth);
+}
+
 /** Focus the Library's first focus after the last tab closes (F4 §6). */
 function focusLibrary(): void {
   requestAnimationFrame(() =>
@@ -69,7 +94,20 @@ function focusLibrary(): void {
   );
 }
 
-export function DocumentTabs({ onLibrary }: { readonly onLibrary: boolean }) {
+export function DocumentTabs({
+  onLibrary,
+  pageCount,
+  after,
+}: {
+  readonly onLibrary: boolean;
+  /**
+   * The Pages grid's title (owner feedback 2026-10-08, F1; 06-navigation PG2 §2): the selected
+   * tab carries the page count after its name, where the grid's header band showed it.
+   */
+  readonly pageCount?: number | undefined;
+  /** A note after the tabs, before + (the grid's "Sources: …" of a Combine's result). */
+  readonly after?: ReactNode;
+}) {
   const documents = useTabItems();
   const activeId = useWorkspaceStore((s) => s.workspace.activeDocument ?? null);
   const setActive = useWorkspaceStore((s) => s.setActive);
@@ -82,15 +120,23 @@ export function DocumentTabs({ onLibrary }: { readonly onLibrary: boolean }) {
   const regionRef = useRef<HTMLDivElement>(null);
   const [capacity, setCapacity] = useState(Number.POSITIVE_INFINITY);
 
-  // How many tabs fit: the region's room less + (and the chip when it shows).
+  // How many tabs fit: the room the floating pieces leave the region (TopStrip.module.css),
+  // less + (and the chip when it shows). The region hugs its tabs, so its own width is not the
+  // room: that is the leading piece at its widest less the piece's other parts (`tabRoom`).
   useLayoutEffect(() => {
     const region = regionRef.current;
     if (!region) return;
+    const piece = region.closest<HTMLElement>('[data-top-piece]');
+    const strip = piece?.parentElement ?? null;
+    const trail = strip?.querySelector<HTMLElement>('[data-top-piece="trail"]') ?? null;
     const measure = () => {
       const plus = region.querySelector<HTMLElement>('[data-strip-open]');
       const chip = region.querySelector<HTMLElement>('[data-testid="tab-overflow"]');
       const gap = lengthVar(region, '--tab-gap', TAB_GAP_FINE);
-      const room = region.clientWidth - (plus ? plus.offsetWidth + 8 : 0) - 4;
+      const width = piece && strip ? tabRoom(region, piece, strip, trail) : region.clientWidth;
+      const note = region.querySelector<HTMLElement>('[data-strip-note]');
+      const room =
+        width - (plus ? plus.offsetWidth + 8 : 0) - (note ? note.offsetWidth + 4 : 0) - 4;
       const next = tabCapacity(
         documents.length,
         room,
@@ -103,6 +149,7 @@ export function DocumentTabs({ onLibrary }: { readonly onLibrary: boolean }) {
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(region);
+    for (const el of [piece, strip, trail]) if (el) observer.observe(el);
     return () => observer.disconnect();
   }, [documents.length]);
 
@@ -228,6 +275,15 @@ export function DocumentTabs({ onLibrary }: { readonly onLibrary: boolean }) {
                   >
                     <span className={styles.tag} data-tag={doc.colorIndex} aria-hidden="true" />
                     <span className={styles.name}>{doc.title}</span>
+                    {selected && pageCount !== undefined ? (
+                      <span
+                        className={styles.count}
+                        aria-hidden="true"
+                        data-testid="grid-title-count"
+                      >
+                        {pagesPhrase(pageCount)}
+                      </span>
+                    ) : null}
                     {isEdited ? (
                       <span
                         className={styles.edited}
@@ -273,6 +329,11 @@ export function DocumentTabs({ onLibrary }: { readonly onLibrary: boolean }) {
         {m.frame_document_menu()}
       </span>
       <TabOverflow tabs={overflow} edited={edited} />
+      {after ? (
+        <span data-strip-note="" className={styles.note}>
+          {after}
+        </span>
+      ) : null}
       <div data-strip-open="" className={styles.openSlot}>
         <OpenButton />
       </div>

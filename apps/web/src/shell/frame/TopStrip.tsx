@@ -13,8 +13,17 @@
  *   fold.
  * - **Never signals Markup** (`language.md` §0.1 principle 8) and carries no lime at rest:
  *   Save and the active tab are neutral fills.
- * - Material: docked M3 (materials.css): the frame colour at rest over the bare canvas, glass
- *   where the page passes beneath it while scrolling; hairline on the bottom edge only.
+ * - **Floating pieces, no band** (owner feedback 2026-10-08, F1): two glass capsules over the
+ *   canvas, inset from the window's edges as the bottom capsule is (16 px), of the capsule's
+ *   material (M2, `mat mat-bar`), its height (--bar-h) and its pill radius: the leading piece
+ *   holds ◆ ▤ and the tabs (in the Pages grid the selected tab adds the page count), the
+ *   trailing piece Find, ↶ ↷, Save and ◎. The middle is bare canvas; the page scrolls beneath
+ *   both. The `header` itself is a transparent, pointer-transparent line whose box (the inset
+ *   and the pieces' height) is the free rectangle's top inset (frame-insets.ts), so jumps and
+ *   fits land below the pieces (A-12).
+ * - The leading piece hugs its tabs up to `--lead-max` and never meets the trailing one
+ *   (24 px between them at the least); past that the tabs shrink, then go into "N more"
+ *   (DocumentTabs measures the room the pieces leave, not the piece itself).
  * - Landmark `header` named "Document bar" / "Library bar"; Tab order ◆ → ▤ → active tab → "N
  *   more" → + → Find → ↶ → ↷ → Save → ◎; F6 lands on the active tab (the Library: ◆).
  *
@@ -25,8 +34,9 @@
 import { LibraryMenu } from '../../home/LibraryMenu';
 import { m } from '../../i18n';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
-import { useUiStore } from '../../state/ui-store';
-import { useHasDocuments, useWorkspaceStore } from '../../state/workspace-store';
+import { useStageView, useUiStore } from '../../state/ui-store';
+import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../../state/workspace-store';
+import { GridSources } from '../../stage/grid/GridPieces';
 import { DocumentTabs } from './DocumentTabs';
 import { FindEntry } from './FindEntry';
 import { tabDomId } from './ids';
@@ -46,21 +56,33 @@ export const activeTabElement = (): HTMLElement | null => {
 export function TopStrip() {
   const hasDocuments = useHasDocuments();
   const onLibrary = useUiStore((s) => s.destination === 'home') || !hasDocuments;
+  const grid = useStageView() === 'grid' && !onLibrary;
+  const pageCount = useActiveDocument()?.pages.length ?? 0;
   return (
     <header
       className={styles.strip}
       aria-label={onLibrary ? m.frame_library_bar() : m.frame_document_bar()}
       data-region="top"
       data-frame-layer="top"
-      data-bar="title"
       data-destination={onLibrary ? 'library' : 'document'}
     >
-      <div className={styles.lead}>
-        <LibraryButton current={onLibrary} />
-        {onLibrary ? null : <SidebarToggle />}
+      <div className={styles.piece} data-top-piece="lead" data-bar="title" data-glass-group="top">
+        <div className={styles.lead}>
+          <LibraryButton current={onLibrary} />
+          {onLibrary ? null : <SidebarToggle />}
+        </div>
+        <DocumentTabs
+          onLibrary={onLibrary}
+          pageCount={grid ? pageCount : undefined}
+          after={grid ? <GridSources /> : null}
+        />
       </div>
-      <DocumentTabs onLibrary={onLibrary} />
-      <div className={styles.trail}>
+      <div
+        className={`${styles.piece} ${styles.trail}`}
+        data-top-piece="trail"
+        data-bar="title-trail"
+        data-glass-group="top"
+      >
         {onLibrary ? (
           <>
             <PrivacyShield />

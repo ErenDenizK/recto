@@ -1,0 +1,146 @@
+/*
+ * The Pages grid's floating pieces (GridPieces.tsx; 06-navigation PG2 §2–§3; owner feedback
+ * 2026-10-08, F1; quality-bar Q-8, Q-9). Each rests in the dock band's slot at a bottom corner,
+ * 16 px inside the free rectangle (the page pill's place in the reader, PagePill.module.css),
+ * on the capsule's line: --bar-h high (44 fine, 56 coarse) around --bar-button controls, the
+ * capsule's padding and pill radius, so the bottom row reads as one family.
+ *
+ * M2 glass (`mat mat-bar s8 c10`, coverage registry `grid-piece`): σ 8 so a folded piece, a
+ * 44 px circle, still meets the coverage rule; 10 at 56 px on a coarse pointer.
+ */
+.piece {
+  composes: mat mat-bar s8 c10 from global;
+  --rise: 0px;
+  position: absolute;
+  bottom: var(--band-offset, 16px);
+  left: var(--space-4);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--bar-h);
+  padding: 0 calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
+  border-radius: var(--radius-capsule);
+  pointer-events: auto;
+  /* The rise moves it by transform only (Q-7), whole pixels at rest (Q-2). */
+  transform: translateY(calc(-1 * var(--rise)));
+  transition: transform var(--spring-quick) var(--ease-spring);
+}
+
+.trail {
+  right: var(--space-4);
+  left: auto;
+}
+
+/* Folded: a circle of the bar's height around the one control. */
+.piece[data-compact] {
+  justify-content: center;
+  width: var(--bar-h);
+  padding: 0;
+}
+
+/* Where even a circle would touch the capsule, both rise 8 px above it (spec 01.6's rule). */
+.piece[data-raised] {
+  --rise: calc(var(--capsule-h, var(--bar-h)) + 8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .piece {
+  transition: none;
+}
+
+/* The segmented control measures its labels against its frame, so the frame has a width of
+   its own, with room for both labels in English and Turkish (else it falls back to a Select). */
+.scope {
+  flex: none;
+  width: 16rem;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .scope {
+    width: 19rem;
+  }
+}
+
+.size {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+}
+
+.slider {
+  width: 160px;
+}
+
+.small,
+.large {
+  flex: none;
+}
+
+.small {
+  width: 14px;
+  height: 14px;
+}
+
+.large {
+  width: 20px;
+  height: 20px;
+}
+
+/* At an end, that end's glyph dims (PG2 §4). */
+.small[data-end],
+.large[data-end] {
+  color: var(--text-disabled);
+}
+
+/* The folded Size's popover: the slider across its width. */
+.sizePopup {
+  width: min(280px, calc(100vw - 16px));
+}
+
+.sizeInPopup {
+  padding: var(--space-2) 0 var(--space-1);
+}
+
+.sizeInPopup .slider {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+/* The Lock notice at a refused cell (grid-lock-notice.tsx), as the sidebar's. */
+.lockNotice {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    var(--e2, none);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.lockIcon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}

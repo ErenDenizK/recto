@@ -935,7 +935,7 @@ describe('tokens.css', () => {
       }
     });
 
-    it('puts menus and popovers on M4, the docked frame on docked M3, and two solid twins', () => {
+    it('puts menus and popovers on M4, the docked frame on docked M3, the strip on the capsule’s M2, and two solid twins', () => {
       const first = (source: string) =>
         /^\.[\w]+\s*\{([^{}]*)\}/m.exec(stripComments(source))?.[1] ?? '';
       const menus = import.meta.glob<string>('../ui/{Menu,Popover}.module.css', {
@@ -948,15 +948,28 @@ describe('tokens.css', () => {
         expect(first(source), file).toMatch(/composes:\s*mat mat-menu s12\b[^;]* from global;/);
       }
       const docked = import.meta.glob<string>(
-        '../shell/{frame/TopStrip,frame/CompactTopBar,sidebar/Sidebar}.module.css',
+        '../shell/{frame/CompactTopBar,sidebar/Sidebar}.module.css',
         { query: '?raw', import: 'default', eager: true },
       );
-      expect(Object.keys(docked)).toHaveLength(3);
+      expect(Object.keys(docked)).toHaveLength(2);
       for (const [file, source] of Object.entries(docked)) {
         const rule = first(source);
         expect(rule, file).toMatch(/composes:\s*mat mat-panel mat-docked s\d+[^;]* from global;/);
         expect(rule, file).not.toMatch(/background:/);
       }
+      // The top strip is no band (owner feedback 2026-10-08, F1): its floating pieces are the
+      // capsule's M2 glass, never docked, never a background of their own at rest.
+      const strip = stripComments(
+        import.meta.glob<string>('../shell/frame/TopStrip.module.css', {
+          query: '?raw',
+          import: 'default',
+          eager: true,
+        })['../shell/frame/TopStrip.module.css'] ?? '',
+      );
+      const piece = /^\.piece\s*\{([^{}]*)\}/m.exec(strip)?.[1] ?? '';
+      expect(piece).toMatch(/composes:\s*mat mat-bar s9 c10 from global;/);
+      expect(piece).not.toMatch(/background:/);
+      expect(strip).not.toMatch(/mat-docked/);
       // The title menu and the pill menu open over the sidebar's dark edge and the white page
       // at once: M4's solid twin (01-frame F5, F11; quality bar Q-1, Q-3).
       const twins = import.meta.glob<string>('../shell/frame/{TitleMenu,PagePill}.module.css', {

@@ -13,7 +13,10 @@
   --ed-col: 288px;
   --ed-inset: 4px;
 
-  max-height: var(--available-height, calc(100vh - 16px));
+  max-height: min(
+    var(--available-height, calc(100vh - 16px)),
+    calc(var(--visual-h, 100dvh) - 16px)
+  );
   overflow-y: auto;
   overscroll-behavior: contain;
 }
