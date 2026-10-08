@@ -39,6 +39,32 @@
 }
 
 /*
+ * Reduced motion (A-9): only opacity may move, and Firefox reports a registered custom property
+ * animated on a pseudo-element as a moved property of its own. So the new view fades in by its
+ * opacity within the reduced --vt-duration, and the mask holds still at its opaque `--vt-grid-fade`
+ * (the initial value 1): no names are kept, so there is no capsule morph for the band to protect.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-vt-grid='in']::view-transition-new(root) {
+    animation-name: vt-grid-in-reduced;
+  }
+}
+
+:root[data-motion='reduced'][data-vt-grid='in']::view-transition-new(root) {
+  animation-name: vt-grid-in-reduced;
+}
+
+@keyframes vt-grid-in-reduced {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/*
  * Leaving, the page view takes the place at once, under the cell growing back into its page:
  * a fade would print the Pages bar over the dock it morphs back into, and the page soon covers
  * the view anyway.
