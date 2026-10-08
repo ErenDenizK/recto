@@ -1,17 +1,17 @@
 /*
- * The launcher (02-library L2 §2): the empty card, 560 wide, 32 padding, radius 20 (language.md
- * §6.1's xl, a panel; the shape step brings the token), and the 88 px row with documents. Both
- * are lit (lit.module.css). Buttons are `ui/Button` at the large size (36 fine, 52 coarse), so
- * the row's controls share one height and one centre line (Q-9). Drag-over lifts the surface
- * 2 px on --spring-quick and deepens its shadow to e3 (L2 §4); with reduced motion only the
- * shadow changes.
+ * The launcher (02-library L2 §2, reorganised 2026-10-08; Launcher.tsx): the empty card, 560
+ * wide, 32 padding, radius 20 (language.md §6.1's xl, a panel), and with documents the brand
+ * header over one lit row. Both surfaces are lit (lit.module.css). Buttons are `ui/Button` at
+ * the large size (36 fine, 52 coarse), so every control shares one height and one centre line
+ * (Q-9). Drag-over lifts the surface 2 px on --spring-quick and deepens its shadow to e3 (L2
+ * §4); with reduced motion only the shadow changes.
  */
 .card {
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
-  width: min(560px, 100%);
+  width: min(600px, 100%);
   padding: var(--space-8);
   border-radius: 20px;
   text-align: center;
@@ -21,11 +21,7 @@
 }
 
 .glyph {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
   color: var(--text-primary);
 }
 
@@ -48,12 +44,13 @@
   letter-spacing: var(--track-callout);
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-3);
+.card .well {
   margin-top: var(--space-6);
+}
+
+.card .more {
+  justify-content: center;
+  margin-top: var(--space-4);
 }
 
 /* The arrival focus on Open PDFs… draws no ring until a key is pressed (Launcher.tsx). */
@@ -62,18 +59,106 @@
   box-shadow: none;
 }
 
-.hint {
-  margin: var(--space-3) 0 0;
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--type-footnote-lh);
+/*
+ * The well: Open PDFs… and "or drop files anywhere" inside one dashed capsule, the drop target
+ * made visible. Shown on touch too (iPadOS drags files in from Files and other apps), where
+ * L2 §5 kept the hint to fine pointers. The capsule keeps 6 px round the button, so its radius is the button's plus 6
+ * (concentric, Q-5). Dragging, the line turns solid accent over the accent's faint wash.
+ */
+.well {
+  --well-inset: 6px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: var(--well-inset) var(--space-5) var(--well-inset) var(--well-inset);
+  border: 1px dashed color-mix(in srgb, var(--text-primary) 22%, transparent);
+  border-radius: calc(var(--control-h-lg) / 2 + var(--well-inset));
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 
-/* "or drop files anywhere" is for fine pointers only (L2 §5). */
-@media (pointer: coarse), (any-pointer: coarse) {
-  .hint {
-    display: none;
-  }
+.well[data-dragging] {
+  border-style: solid;
+  border-color: var(--accent-line);
+  background: var(--accent-subtle);
+}
+
+.wellHint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-callout);
+  line-height: var(--control-lh);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.well[data-dragging] .wellHint {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+/* More ways to start: equal standard buttons, one gap, wrapping as a group. */
+.more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/*
+ * With documents: the brand header, then the row. The header sits on the canvas and its aura
+ * (LibraryView.module.css) with no surface of its own: the mark, the wordmark in the app face at
+ * title1 and the line under it.
+ */
+.rowWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-inline: var(--space-2);
+}
+
+.brandMark {
+  color: var(--text-primary);
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wordmark {
+  margin: 0;
+  font-size: var(--type-title1);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title1-lh);
+  letter-spacing: var(--track-title1);
+}
+
+.tagline {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+}
+
+.row .well {
+  flex: 1 1 320px;
+  justify-content: flex-start;
 }
 
 .row {
@@ -84,31 +169,11 @@
   gap: var(--space-3) var(--space-4);
   box-sizing: border-box;
   min-height: 88px;
-  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-6);
+  padding: var(--space-4);
   border-radius: 20px;
   transition:
     transform var(--spring-quick) var(--ease-spring),
     box-shadow var(--duration-base) var(--ease-out);
-}
-
-.rowTitle {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  font-size: var(--type-title2);
-  font-weight: var(--weight-semibold);
-  line-height: var(--type-title2-lh);
-  letter-spacing: var(--track-title2);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.rowActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
 }
 
 .card[data-dragging],
@@ -130,6 +195,16 @@
   transform: none;
 }
 
+@media (forced-colors: active) {
+  .well {
+    border-color: CanvasText;
+  }
+
+  .well[data-dragging] {
+    border-color: Highlight;
+  }
+}
+
 /* Narrow columns (a narrow window of the full edition): the empty card's buttons stack full
    width, Open PDFs… last, in thumb reach (L2 §2, M-13). */
 @container library (width < 520px) {
@@ -139,12 +214,16 @@
     text-align: start;
   }
 
-  .glyph {
-    margin-inline: 0;
+  .card .well {
+    order: 2;
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: var(--space-4);
   }
 
-  .actions {
-    flex-direction: column-reverse;
+  .card .more {
+    flex-direction: column;
     align-items: stretch;
+    margin-top: var(--space-6);
   }
 }
