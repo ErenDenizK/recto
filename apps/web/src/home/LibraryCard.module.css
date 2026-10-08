@@ -55,18 +55,6 @@
   transform: none;
 }
 
-/* Selected: an inset 2 px ring inside the rim in the neutral on colour (language.md §1.1:
-   checks are --control-on, never lime), so Combine stays the view's one lime. */
-.card[data-selected] {
-  --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--control-on);
-}
-
-@media (hover: hover) {
-  .card[data-selected]:hover:not([data-dragging]) {
-    --shadow-own: var(--rim-edge), var(--rim-inner), inset 0 0 0 2px var(--control-on), var(--e3);
-  }
-}
-
 .card[data-dragging] {
   opacity: 0.4;
 }
@@ -87,45 +75,37 @@
   box-shadow: var(--page-shadow);
 }
 
-/* The ○: 24 px visual, 8 px in from the thumbnail's top-leading corner, 32 px hit (44 coarse). */
+/* Selected: a 2 px ring 2 px out around the first page, as a Pages grid cell draws it
+   (06-navigation §2.2; owner feedback F4). */
+.card[data-selected] .sheet {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* The ○ (ui/CheckBadge): 6 px inside the page's top-trailing corner, in a 40 px hit area (48
+   coarse) that reaches the corner, so the badge never covers the card's text or the page's edge. */
 .check {
   position: absolute;
-  top: calc(var(--space-3) + 8px - 4px);
-  left: calc(var(--space-3) + 8px - 4px);
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  padding: 6px;
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-.disc {
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  width: 24px;
-  height: 24px;
-  border: 1.5px solid var(--text-primary);
-  border-radius: var(--radius-pill);
-  background: var(--surface-raised);
-  box-shadow: var(--e1);
-}
-
-/* Selected: the filled check as every checkbox draws it, the disc in --control-on and the tick
-   cut out of it in --control-on-ink (09-primitives §8; language.md §1.1). */
-.card[data-selected] .disc {
-  border: 0;
-  background: var(--control-on-ink);
-  color: var(--control-on);
-}
-
-.disc svg {
-  width: 24px;
-  height: 24px;
+.thumbBox > .check {
+  position: relative;
 }
 
 .card[data-selecting] .check,
+.card[data-selected] .check,
 .card:focus-visible .check {
   opacity: 1;
 }
@@ -218,17 +198,14 @@
   }
 
   .check {
-    top: calc(var(--space-3) + 8px - 10px);
-    left: calc(var(--space-3) + 8px - 10px);
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
   }
 }
 
 /* Forced colours: Canvas, a CanvasText border, the selection in Highlight (L5 §3). */
 @media (forced-colors: active) {
-  .card[data-selected] {
-    outline: 3px solid Highlight;
-    outline-offset: -3px;
+  .card[data-selected] .sheet {
+    outline-color: Highlight;
   }
 }
