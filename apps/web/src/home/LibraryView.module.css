@@ -17,6 +17,8 @@
 }
 
 .scroller {
+  /* Above the aura, which comes first in the tree. */
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -95,5 +97,123 @@
   .column {
     --gutter: var(--space-4);
     gap: var(--space-4);
+  }
+}
+
+/*
+ * The aura (LibraryView.tsx `LibraryAura`; owner feedback 2026-10-08): the mark's three colours
+ * as soft light behind the column, rising from the top like the field's lobes (L3 §2) and fixed
+ * to the view. Apple-calm: low peaks, no grain, no blur filter and no animation, so it costs one
+ * paint and nothing at rest (Q-1, Q-10; no backdrop, so Q-11's budget is untouched).
+ *
+ * Each lobe is one radial gradient filling its own box (`closest-side`), its alpha falling on an
+ * bell curve of eleven stops rather than a straight line, so the fall-off has no visible edge or
+ * band even at 8 bits. Colours are the mark's stops (brand/mark.ts); each theme sets the peaks.
+ *
+ * The cost ladder (materials.css): Solid glass keeps the light at 70 % like the field (L3 §3);
+ * degrade step 4, more contrast and forced colours turn it off.
+ */
+.aura {
+  --aura-mint: 105 234 163;
+  /* On the dark canvas a faint pure lime or yellow reads as olive, so the dark theme's lime is
+     the mark's lime a third of the way to its mint and its yellow lobe is the faintest. */
+  --aura-lime: 170 249 118;
+  --aura-yellow: 237 250 109;
+  --aura-peak-mint: 0.17;
+  --aura-peak-lime: 0.15;
+  --aura-peak-yellow: 0.05;
+  --aura-peak-low: 0.1;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+:global([data-theme='light']) .aura {
+  --aura-lime: 203 255 95;
+  --aura-peak-mint: 0.26;
+  --aura-peak-lime: 0.3;
+  --aura-peak-yellow: 0.24;
+  --aura-peak-low: 0.18;
+}
+
+@media (prefers-color-scheme: light) {
+  :global(:root:not([data-theme])) .aura {
+    --aura-lime: 203 255 95;
+    --aura-peak-mint: 0.26;
+    --aura-peak-lime: 0.3;
+    --aura-peak-yellow: 0.3;
+  }
+}
+
+.lobe {
+  --c: var(--aura-lime);
+  --a: var(--aura-peak-lime);
+  position: absolute;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--c) / var(--a)) 0%,
+    rgb(var(--c) / calc(var(--a) * 0.95)) 10%,
+    rgb(var(--c) / calc(var(--a) * 0.84)) 20%,
+    rgb(var(--c) / calc(var(--a) * 0.69)) 30%,
+    rgb(var(--c) / calc(var(--a) * 0.53)) 40%,
+    rgb(var(--c) / calc(var(--a) * 0.38)) 50%,
+    rgb(var(--c) / calc(var(--a) * 0.25)) 60%,
+    rgb(var(--c) / calc(var(--a) * 0.14)) 70%,
+    rgb(var(--c) / calc(var(--a) * 0.07)) 80%,
+    rgb(var(--c) / calc(var(--a) * 0.02)) 90%,
+    rgb(var(--c) / 0) 100%
+  );
+}
+
+/* The mark's gradient laid across the view, each lobe's centre near or past an edge so mostly
+   its fall-off shows: mint from the left, lime from overhead, yellow lime high right, and a low
+   mint swell under the cards so the lower view is not bare (L3 §2's second lobe). */
+.lobe[data-lobe='mint'] {
+  --c: var(--aura-mint);
+  --a: var(--aura-peak-mint);
+  top: -10%;
+  left: -40%;
+  width: 76%;
+  height: 100%;
+}
+
+.lobe[data-lobe='lime'] {
+  top: -34%;
+  left: 8%;
+  width: 84%;
+  height: 80%;
+}
+
+.lobe[data-lobe='yellow'] {
+  --c: var(--aura-yellow);
+  --a: var(--aura-peak-yellow);
+  top: -30%;
+  right: -22%;
+  width: 58%;
+  height: 76%;
+}
+
+.lobe[data-lobe='low'] {
+  --c: var(--aura-mint);
+  --a: var(--aura-peak-low);
+  bottom: -46%;
+  left: 30%;
+  width: 90%;
+  height: 90%;
+}
+
+:global(:root[data-glass='solid']) .aura {
+  opacity: 0.7;
+}
+
+:global(:root[data-degrade='4']) .aura {
+  display: none;
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  .aura {
+    display: none;
   }
 }
