@@ -176,8 +176,9 @@ rings in `CanvasText` (L§9.3). Light: none in the family (L§3.2).
 | Mark | Dark | Light | Ratio | Shape cue (A-19) |
 |---|---|---|---|---|
 | Current page | 2 px lime ring, offset 3 px | 2 px lime-800 `#446713` | 16.42 on n1 · 5.35 on the light canvas (L§1.4) | Ring plus label weight 550, `aria-current="page"` |
-| Selected | 2 px `--select` ring inset 0 + check badge 20 px (24 coarse): `check` fill white on `--select`, top trailing, inset 6 | same | Ring 4.04 c. on n1 · 4.02 on the light canvas; check 4.93 | Badge, not colour |
-| Current and selected | Lime ring outside, blue ring inside, badge | same | — | Both shapes |
+| Selected | 2 px `--select` ring 2 px out from the page (no wash over it) + check badge 22 px (26 coarse): a white-rimmed `--select` disc with a white `check`, inside the page's top-trailing corner, inset 6 (`ui/CheckBadge`) | same | Ring 4.04 c. on n1 · 4.02 on the light canvas; check 4.93 | Badge, not colour |
+| Selection mode, unselected | The same badge empty: a white 1.5 px rim over a 12 % black scrim with a soft shadow, legible on white pages and dark scans | same | — | Empty circle |
+| Current and selected | The blue ring; the current page keeps its 550 label | same | — | Ring plus label |
 | Drop gap | 2 px `--select` bar in the reserved gutter, 4 px end caps | same | 4.04 c. / 4.02 | Bar with caps |
 | Drag source | Opacity 0.4 | same | — | Dimmed copy stays in place |
 | Focus | Two-band ring L§9.2 around the row or cell, outside the marks | same | 16.42 between bands | — |
@@ -659,8 +660,9 @@ itself; no light (L§3.2). The Pages bar is the dock's M2 element (F10).
 | State | What shows |
 |---|---|
 | Entering | *view change*: the current page morphs into its cell; focus on that cell |
-| Rest, nothing selected | Pages bar "Done · 12 pages · Select all · ⋯" (`04` §10) |
-| Selection | Badges; Pages bar with the count |
+| Rest | Pages bar "Done · 12 pages · Select · ⋯" (`04` §10); Done leaves the grid; a click or tap opens a page |
+| Selection mode, nothing selected (after Select) | Every cell shows its empty circle; Pages bar "Done · Select pages · Select all · ⋯" |
+| Selection | Rings and badges; Pages bar with the count and the acts; Done ends the mode |
 | Dragging | §2.4; Pages bar hidden while dragging (*contextual* rule), back 150 ms after the drop |
 | Busy (a page operation over 400 ms, e.g. inserting a file) | The affected cells show skeletons; the toast stack shows progress |
 | Locked | Dock-element Pages bar locked form; no lift (Lock notice at the cell); keys open the Unlock popover |
@@ -680,8 +682,8 @@ All open "Pages grid of 3 documents" / "3 belgenin sayfa ızgarası". Announceme
 | Dock Pages, `3`, ⊞, Show in Pages grid | Enter at the current page (or the named one) |
 | Pinch released > 15 % below fit page (`05` §4) | Enter at the page under the midpoint |
 | Mod+wheel at fit page, after a 300 ms pause | Enter (`05` §4) |
-| Done, Esc (no selection), `3` | Back to the page that was current on entry (nearest surviving page if deleted) |
-| Double-click, double tap, Enter on a cell | Open that page (other section → switch to its tab) |
+| Done, Esc (not selecting), `3` | Back to the page that was current on entry (nearest surviving page if deleted) |
+| Click or tap on a cell (not selecting), Enter | Open that page (other section → switch to its tab) |
 | Pinch in the grid | Steps the size by detent per ×1.4 of scale; past the largest size by 15 %: chip "Release to open page 7" / "7. sayfayı açmak için bırakın" (`05` §4's chip); release opens the cell under the midpoint |
 | Mod+wheel in the grid | Steps the size (60 px of delta per step, today); stops at the ends |
 | `1` · `0` · `M` | Viewing · Library · Markup (leave the grid first) |
@@ -782,6 +784,13 @@ slider keys and clamp at 390 px; rendered pixel over cells; axe.
 
 ## 11. PG3 Section and section header
 
+> **Amended 2026-10-08 (owner feedback F4, "Better UI").** A quieter header: caret, the source
+> tag dots, the name at 15/20 600, the count in the secondary ink, and badges only for what a
+> page operation must respect (Encrypted, Repaired, XFA, Signed) as system tags (a filled
+> capsule, no outline); "Has form" and "Tagged" stay in Document info. No hairline. While the
+> header sticks, the canvas fills the room above it up to the scroller's top, so no sliver of
+> cells shows between it and the strip's pieces (the section clips that fill while in flow).
+
 **1 · Role.** In All open, one section per open document in tab order, so pages move between
 documents by drag (J3 by drag, J4). Replaces 10.2.
 
@@ -820,17 +829,30 @@ collapse; e2e drag between sections.
 
 ## 12. PG4 Page cell
 
+> **Amended 2026-10-08 (owner feedback F4: "selecting and opening are both clicks").** The
+> grid takes the Photos model. Outside selection mode a click or a tap opens the page.
+> Selection mode starts from the Pages bar's Select, a long press released in place (touch),
+> Shift- or Mod-click, the check circle a fine pointer's hover shows, Space, or a marquee; in
+> it a click or a tap toggles, and Done or Esc ends it (clearing the selection, staying in the
+> grid). The mode lasts while anything is selected, so deselecting the last page ends a mode a
+> gesture started, as on Photos for the web; Select holds it with nothing selected until Done
+> or Esc, as Photos' Select does. A removal that takes every selected page ends it too. The
+> selected look loses its wash: a ring 2 px out and the badge inside the corner (§2.2). The
+> rows below are as amended.
+
 **1 · Role.** One page in the grid: shows it, takes selection, opens, drags. Replaces 10.3 and its
 20 px hover actions.
 
 **2 · Anatomy.** Thumbnail box `cell × 1.3` (page aspect inside, centred), label row 28 below
-(§2.2), check badge top trailing. Whole cell is the hit area (≥ 96 × 153 at S). Rotation shows by
+(§2.2), check badge inside the page's top-trailing corner. Whole cell is the hit area (≥ 96 ×
+153 at S); the badge's own hit area reaches the corner. Rotation shows by
 the thumbnail turning, then the new bitmap.
 
 **3 · Material and light.** Content; marks per §2.2. No light.
 
 **4 · States.** Rest; hover (fine: label row wash only, no actions); pressed; focus ring; current
-(lime ring: the page you were on); selected (badge and blue ring); dragging source 0.4; loading
+(neutral ring: the page you were on); selecting (empty circle); selected (badge and blue ring);
+dragging source 0.4; loading
 skeleton; rotated (bitmap swap after the turn); locked (unchanged); error (`warning` glyph, "Page
 could not be drawn").
 
@@ -841,13 +863,14 @@ could not be drawn").
 
 | Input | Effect | Guard |
 |---|---|---|
-| Click | Selects this cell only (replaces) | none |
-| Shift-click · Mod-click | Range within the section · toggle | none |
-| Tap (touch) | Toggles the cell (multi-select by taps, INV-R8; Issue 5) | none |
-| Pen tap | As a click | none |
-| Double-click, double tap, Enter | Opens the page (PG1) | none |
-| Press on empty canvas and drag (mouse, pen) | Marquee (PG5) | none |
-| Right-click, long press without moving, Shift+F10 | Cell menu for the cell, or the selection that contains it | items per act |
+| Click, tap, pen tap (not selecting) | Opens the page (PG1) | none |
+| Click, tap, pen tap (selecting) | Toggles the cell (multi-select by taps, INV-R8) | none |
+| Shift-click · Mod-click | Range within the section · toggle; either starts selecting | none |
+| Hover (fine pointer) | Shows the empty check circle; a click on it toggles and starts selecting | none |
+| Long press released without moving (touch) | Toggles the cell; starts selecting | none |
+| Space · Enter | Toggles (starts selecting) · opens the page | none |
+| Press on empty canvas and drag (mouse, pen) | Marquee (PG5); starts selecting | none |
+| Right-click, Shift+F10 | Cell menu: selecting, for the selection that holds the cell (selecting it first); not selecting, for the cell alone, selecting nothing | items per act |
 | Drag | §2.4 | `pages` |
 
 Focus stays on the acted cell; after a delete it moves to the next cell (or the previous at the
@@ -1261,9 +1284,9 @@ stale.
 4. **A thumbnail menu.** `04` §14 has no row for it. Decided: the page menu's page group (no "Add
    … here", no "Edit text here") plus Recognize text on this page, and Select on coarse pointers.
    `04` should add the row.
-5. **Click and tap differ in the grid.** A click replaces the selection; a tap toggles (F§7.1
-   "tap selects"; INV-R8 needs multi-select without modifiers). Conventional (Files, Photos), but
-   two rules by pointer type.
+5. **Click and tap in the grid.** Superseded 2026-10-08 (owner feedback F4): one rule for
+   every pointer, the Photos model. A click or a tap opens; in selection mode it toggles
+   (INV-R8's multi-select without modifiers holds there). PG4 §6.
 6. **The phone Pages sheet keeps one meaning per detent.** A tap selects at 40 % and at 92 %.
    Navigation is a double tap, the pill or the scrubber. Contents and Review rows lower the sheet
    to 40 %.

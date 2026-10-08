@@ -370,10 +370,10 @@ selected 3 px `Highlight`.
 | State | Change |
 |---|---|
 | Rest | `.mat-lit`, e0, ○ hidden (fine, not selecting) |
-| Hover (fine) | Lift: `translateY(-2px)`, e0 → e3 (no wash, §2.5); ○ fades in (n12 1.5 px ring on a 24 px n4 disc, legible over white) |
+| Hover (fine) | Lift: `translateY(-2px)`, e0 → e3 (no wash, §2.5); ○ fades in (the empty check badge, `06` §2.2, legible over white) |
 | Pressed | *press*: scale 0.98 mouse, 0.96 touch (Issue 5); press light white 0.12 / 0.24 |
 | Focus-visible | Two-band ring, `outline-offset: 2px`, follows the radius; ○ shown |
-| Selected | `check-circle-fill` 24 px, ink on lime (dark) / lime on ink (light); inset 2 px ring `--accent` (dark) / `#446713` (light); `aria-selected="true"` |
+| Selected | Amended 2026-10-08 (owner feedback F4): the Pages grid's look (`06` §2.2): the check badge filled `--select` inside the first page's top-trailing corner (inset 6, 40 px hit, 48 coarse), never over the card's text, and a 2 px `--select` ring 2 px out around the page; `aria-selected="true"` |
 | Select mode, unselected | ○ always shown |
 | Disabled | Never |
 | Loading (opening, restoring) | Name shown; skeleton at the page's aspect ratio (n3 dark, `#eff0f3` light), then low resolution, then sharp, fade 120 ms (X-5); line 3 "Opening…" |
