@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 import { create } from 'zustand';
 
 import { Icon } from '../../ui/Icon';
-import styles from './GridHeader.module.css';
+import styles from './GridPieces.module.css';
 
 /** How long the notice stays (ms). */
 export const GRID_LOCK_NOTICE_MS = 3000;

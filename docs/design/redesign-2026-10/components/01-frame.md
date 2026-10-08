@@ -247,6 +247,17 @@ a test hook; axe at each class.
 
 ## 3. F2 Top strip
 
+> **Amended 2026-10-08 (owner feedback F1, "no stacked bars").** The strip is no longer a
+> full-width docked band. On medium and up it is two floating glass pieces over the canvas,
+> inset 16 px from the window's edges like the dock: a leading piece (◆, ▤, the tabs and +) that
+> hugs its tabs up to 760 px and a trailing piece (Find, ↶ ↷, Save, ◎). Both are the capsule's
+> M2 material (`mat mat-bar s9 c10`), height (`--bar-h`) and pill radius. The page scrolls
+> beneath them and the bare canvas between them. The header's box (inset and piece) is the free
+> rectangle's top inset. The two pieces count as one surface of Q-11's budget. Under a modal
+> scrim they rest on their solid twin. The docked sidebar now runs the window's full height,
+> with the leading piece floating over its top. The compact bar (F9) is unchanged. The anatomy
+> below still gives the controls, their order and their sizes inside the pieces.
+
 **1 · Role.** The slim frame on medium and up (`flows.md` §6.1): ◆, ▤, tabs with the active
 title, +, Find, ↶ ↷, Save, ◎. No ⋯ in a document (view options live in the pill, app items in
 More). On the Library: ◆ Library (current), tabs, +, ◎, ⋯ (Library menu, family 04). In Compare

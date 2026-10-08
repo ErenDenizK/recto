@@ -3,8 +3,9 @@
  * live in dnd/geometry.ts (GRID); anything here that affects layout must agree with them.
  *
  * The canvas behind solid cells: no glass on the grid itself and no light (PG1 §3, language.md
- * §3.2). The scroller reaches down under the dock band by the free rectangle's bottom inset, so
- * cells pass beneath the Pages bar's glass, and the last row clears it (ArrangeView.tsx).
+ * §3.2). The scroller reaches up under the strip's pieces and down under the dock band by the
+ * free rectangle's top and bottom insets, so cells pass beneath the glass at both ends and rest
+ * clear of it (ArrangeView.tsx).
  */
 
 .frame {
@@ -22,6 +23,7 @@
   position: relative;
   flex: 1;
   min-height: 0;
+  margin-top: calc(-1 * var(--free-top, 0px));
   margin-bottom: calc(-1 * var(--free-bottom, 0px));
   overflow: auto;
   overscroll-behavior: contain;
@@ -80,7 +82,8 @@
 
 .header {
   position: sticky;
-  top: 0;
+  /* Below the strip's floating pieces, which the scroller runs under. */
+  top: var(--free-top, 0px);
   z-index: 3;
   display: flex;
   align-items: center;
