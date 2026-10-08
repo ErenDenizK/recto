@@ -15,7 +15,10 @@
   composes: popup from '../Popover.module.css';
   /* Never taller than the room on its side: the panel scrolls rather than running into the
      bars or covering its well (XD-3 finding 1). */
-  max-height: var(--available-height, calc(100vh - 16px));
+  max-height: min(
+    var(--available-height, calc(100vh - 16px)),
+    calc(var(--visual-h, 100dvh) - 16px)
+  );
   overflow-y: auto;
   overscroll-behavior: contain;
 }

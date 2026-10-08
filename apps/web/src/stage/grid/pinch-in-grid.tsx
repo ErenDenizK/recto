@@ -24,7 +24,7 @@ import { ARRANGE_SIZES, useUiStore } from '../../state/ui-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
 import chipStyles from '../PinchDetentChip.module.css';
-import { gridSizeAnnouncement } from './GridHeader';
+import { gridSizeAnnouncement } from './GridPieces';
 import { leaveGrid } from './grid-transition';
 
 /** Scale per size detent (PG1 §6). */

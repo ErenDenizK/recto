@@ -4,12 +4,13 @@
  * rotate, delete, extract and combine. M8's light table (docs/specs/light-table.md) kept and
  * routed by `docUi[id].surface === 'grid'`; the file keeps its name (spec X25).
  *
- * One scroll container under the grid header (`grid/GridHeader.tsx`) with a stack of sections
- * (the active document in This document, each open document in All open), each a virtualized
- * grid of page cells. TanStack Virtual picks the rendered range over a flat list of header / row
- * / gap items; positions come from `dnd/geometry.ts`, which also does hit testing, so drops and
- * marquees work on rows that are not in the DOM. The scroller reaches under the Pages bar, and
- * the last row clears it by 16 px (PG1 §2).
+ * One scroll container with a stack of sections (the active document in This document, each
+ * open document in All open), each a virtualized grid of page cells; its controls float as
+ * glass pieces over it (`grid/GridPieces.tsx`), with no header band. TanStack Virtual picks the
+ * rendered range over a flat list of header / row / gap items; positions come from
+ * `dnd/geometry.ts`, which also does hit testing, so drops and marquees work on rows that are
+ * not in the DOM. The scroller reaches under the strip's pieces and the Pages bar; the first
+ * row rests below the pieces and the last clears the bar by 16 px (PG1 §2).
  *
  * Interaction (PG1 §6, PG4 §6):
  * - A click replaces the selection, Shift ranges within a section, Mod toggles; a tap toggles
@@ -99,7 +100,6 @@ import { ArrangeContextMenuPopup } from './ArrangeContextMenu';
 import { ArrangeSection } from './ArrangeSection';
 import styles from './ArrangeView.module.css';
 import { FlipCells } from './grid/flip-cells';
-import { GridHeader } from './grid/GridHeader';
 import { GridLockNotice } from './grid/grid-lock-notice';
 import { attachGridPointerDrag } from './grid/grid-pointer-drag';
 import { leaveGrid, takeGridReveal } from './grid/grid-transition';
@@ -129,18 +129,33 @@ function isMod(event: { metaKey: boolean; ctrlKey: boolean }): boolean {
   return currentPlatform === 'mac' ? event.metaKey : event.ctrlKey;
 }
 
+/** How far the scroller reaches beyond the stage, under the strip's pieces and the dock band. */
+interface Overhang {
+  readonly top: number;
+  readonly bottom: number;
+}
+
 /**
- * How far the scroller reaches under the dock band (`ArrangeView.module.css`): the free
- * rectangle's bottom inset, which the frame writes on `:root` (01-frame F1 §2).
+ * How far the scroller reaches under the strip's floating pieces and the dock band
+ * (`ArrangeView.module.css`): the free rectangle's top and bottom insets, which the frame writes
+ * on `:root` (01-frame F1 §2), so cells pass beneath the glass at both ends and rest clear of it.
  */
-function useBandOverhang(viewport: RefObject<HTMLElement | null>): number {
-  const [overhang, setOverhang] = useState(0);
+function useBandOverhang(viewport: RefObject<HTMLElement | null>): Overhang {
+  const [overhang, setOverhang] = useState<Overhang>({ top: 0, bottom: 0 });
   useLayoutEffect(() => {
     const read = () => {
       const el = viewport.current;
       if (!el) return;
-      const margin = Number.parseFloat(getComputedStyle(el).marginBottom);
-      setOverhang(Number.isFinite(margin) ? Math.max(0, -margin) : 0);
+      const style = getComputedStyle(el);
+      const reach = (margin: string) => {
+        const value = Number.parseFloat(margin);
+        return Number.isFinite(value) ? Math.max(0, -value) : 0;
+      };
+      const top = reach(style.marginTop);
+      const bottom = reach(style.marginBottom);
+      setOverhang((previous) =>
+        previous.top === top && previous.bottom === bottom ? previous : { top, bottom },
+      );
     };
     read();
     const observer = new MutationObserver(read);
@@ -248,7 +263,6 @@ export function ArrangeView() {
 
   return (
     <section className={styles.frame} aria-label={label} data-pages-grid="">
-      <GridHeader />
       <div
         ref={viewportRef}
         className={styles.viewport}
@@ -259,7 +273,9 @@ export function ArrangeView() {
           <LightTable
             width={width - inset}
             viewportRef={viewportRef}
-            padBottom={overhang + BAR_CLEARANCE}
+            padBottom={overhang.bottom + BAR_CLEARANCE}
+            overTop={overhang.top}
+            overBottom={overhang.bottom}
           />
         ) : null}
       </div>
@@ -329,12 +345,15 @@ function revealOffset(
   section: number,
   index: number,
   viewportHeight: number,
+  over: Overhang,
 ): number {
   const sectionLayout = layout.sections[section];
   if (!sectionLayout) return 0;
   const row = sectionLayout.count === 0 ? 0 : Math.floor(index / Math.max(1, metrics.columns));
   const top = sectionLayout.gridTop + row * metrics.rowHeight;
-  const centred = top - (viewportHeight - metrics.rowHeight) / 2;
+  // Centred in what the glass leaves clear, not in the scroller that runs under it.
+  const clear = viewportHeight - over.top - over.bottom;
+  const centred = top - over.top - (clear - metrics.rowHeight) / 2;
   return Math.max(0, Math.min(centred, layout.totalHeight - viewportHeight));
 }
 
@@ -342,10 +361,15 @@ function LightTable({
   width,
   viewportRef,
   padBottom,
+  overTop,
+  overBottom,
 }: {
   readonly width: number;
   readonly viewportRef: RefObject<HTMLDivElement | null>;
   readonly padBottom: number;
+  /** How far the scroller runs under the strip's pieces: the first row rests below them. */
+  readonly overTop: number;
+  readonly overBottom: number;
 }) {
   'use no memo'; // TanStack Virtual mutates its instance; the React Compiler must not cache it.
   const sections = useShownSections();
@@ -376,7 +400,7 @@ function LightTable({
     header: s.header,
   }));
   // This document has no section header: the first row keeps a header's air above it.
-  const padTop = sections[0]?.header === false ? PAD_TOP_PLAIN : 8;
+  const padTop = overTop + (sections[0]?.header === false ? PAD_TOP_PLAIN : 8);
   const layout = computeLayout(specs, metrics, padBottom, padTop);
   const el = viewportRef.current;
   const viewportHeight = el?.clientHeight ?? 800;
@@ -399,7 +423,10 @@ function LightTable({
     const location = page === null ? undefined : locate(page);
     return location === undefined
       ? 0
-      : revealOffset(layout, metrics, location.section, location.index, viewportHeight);
+      : revealOffset(layout, metrics, location.section, location.index, viewportHeight, {
+          top: overTop,
+          bottom: overBottom,
+        });
   });
   useLayoutEffect(() => {
     if (initialOffset > 0 && viewportRef.current) viewportRef.current.scrollTop = initialOffset;
@@ -417,10 +444,13 @@ function LightTable({
     paddingEnd: padBottom,
     initialOffset,
     initialRect: { width, height: viewportHeight },
+    // A cell scrolled into view (keys, a reveal) lands clear of the glass at both ends.
+    scrollPaddingStart: overTop + 8,
+    scrollPaddingEnd: overBottom + 8,
     // Spec §7: render the visible range ± one screen (at low priority).
     overscan: screenRows + 1,
   });
-  const layoutKey = `${metrics.rowHeight}:${metrics.columns}:${padBottom}:${specs
+  const layoutKey = `${metrics.rowHeight}:${metrics.columns}:${padTop}:${padBottom}:${specs
     .map((s) => `${s.id}/${s.count}/${s.collapsed ? 1 : 0}/${s.header ? 1 : 0}`)
     .join(',')}`;
   useEffect(() => {

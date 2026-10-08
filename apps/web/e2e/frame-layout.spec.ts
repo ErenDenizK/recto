@@ -216,7 +216,20 @@ test.describe('the frame per class', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     const top = page.locator('[data-region="top"]');
     await expect(top).toHaveAttribute('aria-label', 'Document bar');
-    await expect(top).toHaveCSS('height', '44px');
+    // Two floating pieces, 44 px high and inset 16 px like the dock (owner feedback F1): the
+    // strip's box, the free rectangle's top, is the inset and a piece.
+    await expect(top).toHaveCSS('height', '60px');
+    await expect(top).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    const pieces = top.locator('[data-top-piece]');
+    await expect(pieces).toHaveCount(2);
+    for (const piece of await pieces.all()) {
+      await expect(piece).toHaveCSS('height', '44px');
+      const box = await piece.boundingBox();
+      expect(box?.y).toBe(16);
+    }
+    expect((await pieces.first().boundingBox())?.x).toBe(16);
+    const trail = await pieces.last().boundingBox();
+    expect(trail ? 1440 - (trail.x + trail.width) : 0).toBe(16);
     await expect(page.getByTestId('sidebar-toggle')).toBeVisible();
 
     await page.setViewportSize({ width: 560, height: 800 });

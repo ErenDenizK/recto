@@ -145,16 +145,17 @@ test.describe('the Glass setting on the root (language.md §2.8, A-17)', () => {
       await openManyPages(page);
       await expect(page.locator('html')).toHaveAttribute('data-glass', glass);
       const capsule = await styleOf(page, '[data-capsule]');
-      const strip = await styleOf(page, '[data-testid="app-shell"] > header');
+      // The strip is two floating pieces of the capsule's material (owner feedback F1).
+      const strip = await styleOf(page, '[data-testid="app-shell"] > header [data-top-piece]');
       if (glass === 'tinted') {
         expect(capsule.background).toMatch(/, 0\.9\)$/);
         expect(capsule.filter).toMatch(/^blur\(9px\)/);
         expect(strip.background).toMatch(/, 0\.9\)$/);
-        expect(strip.filter).toMatch(/^blur\(8px\)/);
+        expect(strip.filter).toMatch(/^blur\(9px\)/);
       } else {
         expect(capsule.background).toMatch(/^rgb\(/);
         expect(capsule.filter).toBe('none');
-        expect(strip.background).toBe('rgb(23, 25, 30)');
+        expect(strip.background).toBe(capsule.background);
         expect(strip.filter).toBe('none');
       }
       // No lens anywhere but an M1 chip (language.md §2.7, X20).

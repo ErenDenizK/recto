@@ -90,6 +90,29 @@ async function enterGrid(page: Page): Promise<void> {
   await settled(page);
 }
 
+/**
+ * The cell size's name, from the Size piece in either form (GridPieces.tsx): the slider's value,
+ * or the folded button's name ("Thumbnail size Large") where the Pages bar leaves no room.
+ */
+async function cellSize(page: Page): Promise<string | null> {
+  const slider = page.getByRole('slider', { name: 'Thumbnail size' });
+  if ((await slider.count()) > 0) return slider.getAttribute('aria-valuetext');
+  const button = page.locator('[data-grid-piece="size"]').getByRole('button');
+  const name = (await button.getAttribute('aria-label')) ?? (await button.textContent()) ?? '';
+  return /^Thumbnail size (.+)$/.exec(name.trim())?.[1] ?? null;
+}
+
+/** Shows All open through the Scope piece in either form: the radio, or the folded toggle. */
+async function showAllOpen(page: Page): Promise<void> {
+  const radio = page.getByRole('radio', { name: /^All open/ });
+  if ((await radio.count()) > 0) await radio.click();
+  else
+    await page
+      .locator('[data-grid-piece="scope"]')
+      .getByRole('button', { name: 'All open' })
+      .click();
+}
+
 type Finger = [number, number];
 
 async function touch(cdp: CDPSession, type: 'touchStart' | 'touchMove' | 'touchEnd', at: Finger[]) {
@@ -205,6 +228,73 @@ test('the grid opens by one View Transition, the page morphing into its cell', a
   expect(seen).toEqual(['in', 'page-current']);
 });
 
+test('no header band: the title in the tab, scope and size float clear of the Pages bar', async ({
+  page,
+}, info) => {
+  // Owner feedback 2026-10-08, F1 ("two bars too many"); PG2 as amended.
+  test.skip(info.project.name === 'tablet', 'sizes desktop windows');
+  await open(page, ['simple-text.pdf']);
+  await enterGrid(page);
+  await expect(page.locator('[data-grid-header]')).toHaveCount(0);
+  await expect(page.getByTestId('document-menu')).toContainText('simple-text');
+  await expect(page.getByTestId('grid-title-count')).toHaveText('3 pages');
+  const pieces = page.locator('[data-grid-piece]');
+  await expect(pieces).toHaveCount(2);
+
+  const rects = () =>
+    page.evaluate(() => {
+      const box = (el: Element | null) => {
+        const r = el?.getBoundingClientRect();
+        return r ? { left: r.left, right: r.right, top: r.top, bottom: r.bottom } : null;
+      };
+      return {
+        capsule: box(document.querySelector('[data-frame-layer="band"] [data-region="toolbar"]')),
+        pieces: [...document.querySelectorAll('[data-grid-piece]')].map((el) => ({
+          ...box(el),
+          compact: el.hasAttribute('data-compact'),
+          raised: el.hasAttribute('data-raised'),
+        })),
+      };
+    });
+  for (const width of [1440, 1180, 1024]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const selected of [false, true]) {
+      if (selected)
+        await cells(page)
+          .nth(1)
+          .click({ modifiers: ['ControlOrMeta'] });
+      await expect(bar(page)).toContainText(selected ? '1 selected' : '3 pages');
+      // The capsule's morph and the pieces' folding settle.
+      await page.waitForTimeout(700);
+      const { capsule, pieces: found } = await rects();
+      if (!capsule) throw new Error('no capsule');
+      for (const piece of found) {
+        const apart =
+          (piece.right ?? 0) + 12 <= capsule.left + 0.5 ||
+          (piece.left ?? 0) >= capsule.right + 12 - 0.5 ||
+          (piece.bottom ?? 0) <= capsule.top + 0.5;
+        expect(
+          apart,
+          `${width}, ${selected ? 'a page selected' : 'none'}: ${JSON.stringify({ capsule, piece })}`,
+        ).toBe(true);
+      }
+      if (width === 1440 && !selected) {
+        expect(found.every((piece) => !piece.compact)).toBe(true);
+      }
+      if (selected) await page.keyboard.press('Escape');
+    }
+  }
+  // At 1024 with a page selected the Size piece folds to a button whose popover has the slider.
+  await cells(page)
+    .nth(1)
+    .click({ modifiers: ['ControlOrMeta'] });
+  await expect(bar(page)).toContainText('1 selected');
+  const size = page.locator('[data-grid-piece="size"]');
+  await expect(size).toHaveAttribute('data-compact');
+  await size.getByRole('button', { name: /^Thumbnail size/ }).click();
+  await expect(page.getByRole('slider', { name: 'Thumbnail size' })).toBeVisible();
+});
+
 test('Combine with open documents goes straight into the grid, the sources kept', async ({
   page,
 }) => {
@@ -257,7 +347,8 @@ test('a drop on a tab after 500 ms moves the pages to that document', async ({
   await expect(wrap).toHaveAttribute('data-tab-drop', 'armed');
   await expect(wrap).toHaveAttribute('data-tab-drop-label', 'Move 1 page here');
   await page.mouse.up();
-  await expect(page.locator('[data-grid-header]')).toContainText('rotated-pages');
+  // The grid's title is the strip's selected tab (owner feedback F1: no header band).
+  await expect(page.getByTestId('document-menu')).toContainText('rotated-pages');
   await expect(cells(page)).toHaveCount(5);
   await expect.poll(async () => (await order(page)).at(-1)).toBe(lifted);
   await expect(
@@ -266,7 +357,7 @@ test('a drop on a tab after 500 ms moves the pages to that document', async ({
   await expect(page.locator('[data-tab-drop]')).toHaveCount(0);
   // One Undo puts it back, and shows where it came from.
   await page.keyboard.press('ControlOrMeta+z');
-  await expect(page.locator('[data-grid-header]')).toContainText('simple-text');
+  await expect(page.getByTestId('document-menu')).toContainText('simple-text');
   await expect(cells(page)).toHaveCount(3);
 });
 
@@ -276,7 +367,7 @@ test.describe('All open', () => {
   async function allOpen(page: Page): Promise<void> {
     await open(page, ['simple-text.pdf', 'rotated-pages.pdf']);
     await enterGrid(page);
-    await page.getByRole('radio', { name: /^All open/ }).click();
+    await showAllOpen(page);
     await expect(page.getByRole('grid')).toHaveCount(2);
     // The cells glide to their places (FLIP); wait until they rest.
     const lastCell = page.getByRole('grid', { name: 'rotated-pages' }).getByRole('gridcell').last();
@@ -377,8 +468,7 @@ test.describe('touch', () => {
     await openNested(page, 'demo/demo-report-v1.pdf');
     await enterGrid(page);
     await expect(cells(page)).toHaveCount(10);
-    const slider = page.getByRole('slider', { name: 'Thumbnail size' });
-    await expect(slider).toHaveAttribute('aria-valuetext', 'Medium');
+    await expect.poll(() => cellSize(page)).toBe('Medium');
     const cdp = await page.context().newCDPSession(page);
     const box = await grid(page).boundingBox();
     if (!box) throw new Error('no grid');
@@ -391,13 +481,13 @@ test.describe('touch', () => {
     await touch(cdp, 'touchStart', pair(200));
     for (let gap = 190; gap >= 130; gap -= 10) await touch(cdp, 'touchMove', pair(gap));
     await touch(cdp, 'touchEnd', []);
-    await expect(slider).toHaveAttribute('aria-valuetext', 'Small');
+    await expect.poll(() => cellSize(page)).toBe('Small');
 
     // Spread past Largest (4 steps of ×1.4 from Small, then 15 % more): the cells grow live,
     // the chip names the page now under the fingers, and the release opens that page.
     await touch(cdp, 'touchStart', pair(60));
     for (let gap = 80; gap <= 280; gap += 20) await touch(cdp, 'touchMove', pair(gap));
-    await expect(slider).toHaveAttribute('aria-valuetext', 'Largest');
+    await expect.poll(() => cellSize(page)).toBe('Largest');
     const chip = page.getByTestId('grid-pinch-chip');
     await expect(chip).toHaveAttribute('data-shown', '');
     const named = /^Release to open page (\d+)$/.exec((await chip.textContent())?.trim() ?? '');

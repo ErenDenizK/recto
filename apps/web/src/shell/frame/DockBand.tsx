@@ -19,6 +19,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { isMarkupOpen, useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument } from '../../state/workspace-store';
+import { GridPieces } from '../../stage/grid/GridPieces';
 import { PageContextMenu } from '../../stage/PageContextMenu';
 import { watchLockClosesMarkup } from '../capsule/capsule-content';
 import { Dock } from './Dock';
@@ -104,6 +105,8 @@ export function DockBand({
       inert={away}
     >
       {showDock ? <Dock /> : null}
+      {/* The grid's scope and size, at the band's corners (F1, GridPieces.tsx). */}
+      {view === 'grid' && doc ? <GridPieces /> : null}
       {/* The page menu belongs to the page view, as the dock does. */}
       {view === 'page' && doc ? <PageContextMenu /> : null}
       {showPill ? <PagePill /> : null}
