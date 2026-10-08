@@ -10,16 +10,19 @@
  *   linear scale). The value is controlled.
  * - **Tracks.** `fill` (neutral fill to the knob), `gradient` (the caller's CSS gradient is
  *   the scale, with an optional checkerboard for opacity) and `taper` (the width track: one
- *   SVG path that thickens towards the end; the knob is the round white knob of every slider
- *   with the stroke inside it as a dot of its real size at the zoom, clamped to the knob).
- * - **Feel** (§3.2). Holding the knob turns it into a lens: a CSS copy of the track inside
- *   it, magnified, never a backdrop filter (Q-5). Detents are magnetic within 4 px (mouse)
+ *   SVG path that thickens towards the end; the knob is the glass knob of every slider with
+ *   the stroke inside it as a dot of its real size at the zoom, clamped to the knob).
+ * - **Glass knob** (owner feedback F3, "glass hover slider"; supersedes §3.1's white disc): a
+ *   clear lens over the track, a CSS copy of the track inside it, magnified, never a backdrop
+ *   filter (Q-5), under a rim with a top highlight and an inner shadow. It grows 1.15 under a
+ *   hovering pointer and 1.25 while held, on the press spring.
+ * - **Feel** (§3.2). Detents are magnetic within 4 px (mouse)
  *   or 6 px (touch, pen) and tick the knob as they catch. A drag past an end stretches the
  *   track by up to 6 px and springs back. A press on the track springs the knob to the
  *   point and a drag can continue from there. All of it is CSS driven by two registered
  *   numbers on the root (`--slider-pos`, `--slider-stretch`), so the knob, the fill and the
- *   lens copy move as one. Reduced motion turns off the lens, the stretch, the tick and the
- *   springs; values still snap.
+ *   lens copy move as one. Reduced motion turns off the knob's growth, the stretch, the tick
+ *   and the springs; values still snap.
  * - **Value bubble** (§3.1): while held, above the knob, kept inside the viewport.
  *   `bubble="auto"` shows it for touch and pen only (a finger hides the knob; a readout
  *   beside the slider serves the mouse), `"always"` for every pointer, `"never"` not at all.
@@ -160,7 +163,7 @@ interface Interaction {
 }
 
 interface Held {
-  /** The knob is a lens while held (not on a taper track, not with reduced motion). */
+  /** The held knob grows as a lens (not with reduced motion). */
   readonly lens: boolean;
 }
 
@@ -348,7 +351,7 @@ export function Slider({
       stretched: false,
       committed: false,
     };
-    setHeld({ lens: !reduced && track !== 'taper' });
+    setHeld({ lens: !reduced });
     if (showBubble(event.pointerType)) {
       window.clearTimeout(timers.current.bubble);
       setBubbleState('shown');
@@ -530,12 +533,10 @@ export function Slider({
           >
             <span ref={tickRef} className={styles.tick}>
               <span className={styles.knob}>
+                <span className={styles.lens} aria-hidden="true">
+                  <span className={styles.lensArt}>{art}</span>
+                </span>
                 {knob !== 'plain' ? <span className={styles.swatch} /> : null}
-                {knob !== 'stroke' ? (
-                  <span className={styles.lens} aria-hidden="true">
-                    <span className={styles.lensArt}>{art}</span>
-                  </span>
-                ) : null}
               </span>
             </span>
             {bubbleState !== 'hidden' ? (
