@@ -198,7 +198,7 @@ describe('Markup palette', () => {
     expect(useToolStore.getState().mode).toBe('ink');
     const inks = await screen.findByRole('toolbar', { name: 'Pen options' });
     // One press away: the well, six swatches, the width (10-ink §2.1).
-    // The strip's row fades in as the capsule grows to hold it.
+    // The strip's piece rises in above the palette.
     await waitFor(() =>
       expect(within(inks).getByRole('button', { name: 'More colours' })).toBeVisible(),
     );
@@ -215,14 +215,22 @@ describe('Markup palette', () => {
     width.focus();
     await userEvent.keyboard('{ArrowRight}');
     expect(useAnnotationStore.getState().pen.presets[2].width).toBe(3);
-    // The strip is content inside the palette's own glass, in its row above the tools.
+    // The strip floats above the palette as its own glass piece (owner feedback F3), centred
+    // over it and hugging its content; the capsule stays one bar.
     const surface = palette().closest('[data-capsule]') as HTMLElement;
-    expect(surface.contains(inks)).toBe(true);
-    expect(inks.getBoundingClientRect().bottom).toBeLessThanOrEqual(
-      palette().getBoundingClientRect().top + 1,
-    );
-    // Select has no strip.
+    const piece = inks.closest('[data-strip-piece]') as HTMLElement;
+    expect(surface.contains(inks)).toBe(false);
+    expect(piece).not.toBeNull();
+    const box = piece.getBoundingClientRect();
+    const capsule = surface.getBoundingClientRect();
+    expect(box.bottom).toBeLessThanOrEqual(capsule.top - 4);
+    expect(Math.abs(box.left + box.width / 2 - (capsule.left + capsule.width / 2))).toBeLessThan(1);
+    expect(box.width).toBeLessThan(capsule.width);
+    expect(capsule.height).toBeLessThanOrEqual(57);
+    // Select has no strip: the piece leaves, inert from its first frame out, then unmounts.
     await userEvent.click(tool('Select'));
+    expect(piece).toHaveAttribute('inert');
+    expect(screen.queryByRole('toolbar', { name: 'Pen options' })).toBeNull();
     await waitFor(() => expect(strip()).toBeNull());
   });
 

@@ -12,9 +12,9 @@
  *   Markup and Fill & sign, opening the title menu with its Lock switch until the Unlock
  *   popover of `lock/` lands (spec X4). Lock engaging while the palette is open morphs it into
  *   Locked and closes Markup (`watchLockClosesMarkup`).
- * - **Palette:** the Markup palette (`markup/MarkupPalette.tsx`, D2-3), its ink strip a second
- *   row inside the same glass (no glass in glass, Q-4); the capsule fades while a stroke is in
- *   progress, never with focus inside (MK-17).
+ * - **Palette:** the Markup palette (`markup/MarkupPalette.tsx`, D2-3), its ink strip a glass
+ *   piece of its own floating above the capsule (`markup/StripPiece.tsx`, owner feedback F3);
+ *   both fade while a stroke is in progress, never with focus inside (MK-17).
  * - **Labels** are always shown (RA-20): beside the icons when the dock fits so, else under
  *   them (`dock-labels.ts`); a compact window stacks them, as the phone's dock does.
  * - **Keyboard:** one Tab stop with arrows between items (roving); F6 lands on the last focused
@@ -54,8 +54,8 @@ import { Capsule } from '../capsule/Capsule';
 import { type CapsuleShape, useCapsuleShape } from '../capsule/capsule-content';
 import { abovePalette } from '../../markup/anchor';
 import { openMarkupDoor } from '../../markup/doors';
-import { useStripKind } from '../../markup/InkStrip';
-import { MarkupPaletteContent, PaletteMeasurer } from '../../markup/MarkupPalette';
+import { MarkupPaletteContent, PaletteMeasurer, usePaletteStrip } from '../../markup/MarkupPalette';
+import { StripPiece } from '../../markup/StripPiece';
 import { useRovingTabindex } from '../../markup/roving';
 import { useStrokeFade } from '../../markup/stroke-fade';
 import { PagesBar, usePagesBarKey } from '../../stage/grid/PagesBar';
@@ -78,8 +78,8 @@ export function openMarkupFrom(set: PaletteSet): void {
 export function Dock() {
   const doc = useActiveDocument();
   const shape = useCapsuleShape(doc?.id);
-  // The armed tool's ink strip is the palette's second row: arming one grows the capsule.
-  const strip = useStripKind();
+  // The armed tool's ink strip (or the Fill & sign door's chips), a piece above the palette.
+  const strip = usePaletteStrip();
   const [focusInside, setFocusInside] = useState(false);
   // Faded and out of the pointer's way while a stroke is in progress, never with focus inside
   // (MK-17), and the Pages bar while pages are dragged (04-context §2.7 *contextual*: hidden while
@@ -105,15 +105,15 @@ export function Dock() {
     >
       <Capsule
         shape={shape}
-        morphKey={
-          shape === 'palette' ? (strip ?? 'tools') : shape === 'pages' ? pagesKey : undefined
-        }
+        morphKey={shape === 'pages' ? pagesKey : undefined}
         stroking={stroking}
       >
         {(content) => <DockContent shape={content} doc={doc} />}
       </Capsule>
       {/* Measures the palette ahead, so it arrives folded to the band (MK-2 §2). */}
       <PaletteMeasurer />
+      {/* The ink strip floats above the palette as its own piece (owner feedback F3). */}
+      <StripPiece content={shape === 'palette' ? strip : null} stroking={stroking} />
     </div>
   );
 }

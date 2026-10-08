@@ -1,9 +1,9 @@
 /*
  * The one Slider (10-ink.md §3; supersedes 09-primitives §10 and ui/Range).
  *
- * Elevation. Raised parts (knob, bubble) take e1 / e2 (language.md §6.3) through one custom
- * property, `--sl-shadow`, which each sets for itself; the white knobs (colour, width) add a
- * soft ambient layer under e1, so they sit on the track like Apple's.
+ * Elevation. Raised parts (knob, bubble) take their shadow through one custom property,
+ * `--sl-shadow`, which each sets for itself: the bubble e2 (language.md §6.3), the glass knob
+ * its own two-layer drop, raised under a hovering pointer and while held.
  *
  * Geometry. A row of [label] [control] [readout]. The control is the hit area (32 fine, 44
  * coarse) and the knob's travel: its inline padding is half the knob, so the knob's centre
@@ -18,11 +18,11 @@
  * the point (--spring-quick), a drag that continues from it follows on --spring-track, and
  * a drag or a key otherwise moves 1:1 with no transition. A drag past an end stretches the
  * track (`--slider-stretch`, a share of its width set by script, at most 6 px) and springs
- * back on release (the pop spring: `10-ink` names it "bouncy"). Holding the knob scales it
- * 1.25 (--spring-press, "snappy") and turns it into a lens: a copy of the track, magnified,
- * inside a clear rim, with the real track masked out beneath so nothing doubles (Q-5: no
- * backdrop-filter on a moving part). Reduced motion: no lens, no stretch, no tick, no
- * spring; values still snap.
+ * back on release (the pop spring: `10-ink` names it "bouncy"). The knob is always a glass
+ * lens (owner feedback F3): a copy of the track, magnified, inside a clear rim, with the real
+ * track masked out beneath so nothing doubles (Q-5: no backdrop-filter on a moving part). It
+ * grows 1.15 under a hovering pointer and 1.25 held (--spring-press, "snappy"). Reduced
+ * motion: no growth, no stretch, no tick, no spring; values still snap.
  *
  * Colour. Local tokens read the control tokens of 09-primitives §2.2 when they exist and
  * fall back to the spec values, per theme. The fill is neutral (n12), never lime (§3.1).
@@ -40,6 +40,13 @@
   initial-value: 0;
 }
 
+/* The glass knob's growth (1 at rest, 1.15 hovered, 1.25 held), read by the knob and the hole. */
+@property --sl-scale {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
 .root {
   /* Density (10-ink §3.1, 09 §2.1). */
   --sl-track: 6px;
@@ -52,18 +59,23 @@
   /* Colour (dark). */
   --sl-track-fill: var(--control-track);
   --sl-range: var(--control-range, var(--text-primary));
-  --sl-knob-fill: var(--text-primary);
-  --sl-knob-ring: var(--control-border);
-  --sl-knob-white: var(--control-knob);
   --sl-tick: var(--text-disabled);
   --sl-tick-passed: var(--text-secondary);
   --sl-disabled: var(--text-disabled);
   --sl-readout-colour: var(--text-primary);
   --sl-label-colour: var(--text-secondary);
-  --sl-lens-rim: rgb(255 255 255 / 0.7);
-  --sl-e1: var(--e1);
   --sl-e2: var(--e2);
-  --sl-ambient: 0 2px 6px rgb(0 0 0 / 0.18);
+  /* The glass knob (dark): body, gloss and edge light, rim, drop shadow at rest and raised. */
+  --sl-glass-tint: rgb(255 255 255 / 0.2);
+  --sl-glass-tint-held: rgb(255 255 255 / 0.06);
+  --sl-glass-gloss: rgb(255 255 255 / 0.5);
+  --sl-glass-edge: rgb(255 255 255 / 0.34);
+  --sl-glass-rim:
+    inset 0 0 0 1px rgb(255 255 255 / 0.78), inset 0 1.5px 1px rgb(255 255 255 / 0.55),
+    inset 0 -2px 3px rgb(0 0 0 / 0.22);
+  --sl-glass-drop: 0 1px 2px rgb(0 0 0 / 0.4), 0 3px 8px -1px rgb(0 0 0 / 0.36);
+  --sl-glass-drop-raised: 0 1px 2px rgb(0 0 0 / 0.36), 0 6px 14px -2px rgb(0 0 0 / 0.42);
+  --sl-dot-edge: rgb(255 255 255 / 0.7);
   --sl-checker-a: rgb(255 255 255 / 0.3);
   --sl-checker-b: rgb(255 255 255 / 0.12);
   --sl-bubble-fill: var(--surface-raised);
@@ -143,17 +155,23 @@
 :global([data-theme='light']) .root {
   --sl-track-fill: var(--control-track, rgb(21 23 28 / 0.28));
   --sl-range: var(--control-range, #15171c);
-  --sl-knob-fill: #fdfdff;
-  --sl-knob-ring: var(--control-border, rgb(21 23 28 / 0.55));
   --sl-tick: #a8abb1;
   --sl-tick-passed: #4f535a;
   --sl-disabled: #a8abb1;
   --sl-readout-colour: #15171c;
   --sl-label-colour: #4f535a;
-  --sl-lens-rim: rgb(21 23 28 / 0.3);
-  --sl-e1: 0 1px 2px rgb(21 23 28 / 0.12);
   --sl-e2: 0 4px 12px -4px rgb(21 23 28 / 0.2);
-  --sl-ambient: 0 2px 6px rgb(21 23 28 / 0.14);
+  /* The glass knob (light): whiter glass with an ink hairline, so its edge holds on white. */
+  --sl-glass-tint: rgb(255 255 255 / 0.6);
+  --sl-glass-tint-held: rgb(255 255 255 / 0.18);
+  --sl-glass-gloss: rgb(255 255 255 / 0.95);
+  --sl-glass-edge: rgb(255 255 255 / 0.8);
+  --sl-glass-rim:
+    inset 0 0 0 1px rgb(21 23 28 / 0.26), inset 0 1.5px 1px rgb(255 255 255 / 1),
+    inset 0 -2px 3px rgb(21 23 28 / 0.12);
+  --sl-glass-drop: 0 1px 2px rgb(21 23 28 / 0.26), 0 3px 9px -1px rgb(21 23 28 / 0.28);
+  --sl-glass-drop-raised: 0 1px 2px rgb(21 23 28 / 0.22), 0 7px 16px -2px rgb(21 23 28 / 0.32);
+  --sl-dot-edge: rgb(255 255 255 / 0.8);
   --sl-checker-a: #ffffff;
   --sl-checker-b: #d5d7dc;
   --sl-bubble-fill: #fbfbfd;
@@ -208,10 +226,23 @@
   cursor: pointer;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  --sl-scale: 1;
+  transition: --sl-scale var(--sl-spring-press) var(--sl-ease-spring);
+}
+
+@media (hover: hover) {
+  .control:hover {
+    --sl-scale: 1.15;
+  }
+}
+
+.root[data-lens] .control {
+  --sl-scale: 1.25;
 }
 
 .root[data-disabled] .control {
   cursor: default;
+  --sl-scale: 1;
 }
 
 /* --- Track --------------------------------------------------------------------------- */
@@ -233,9 +264,10 @@
   margin-top: calc(var(--sl-taper-end) / -2);
 }
 
-/* While the knob is a lens, the track beneath it is cut away; the lens draws its copy. */
-.root[data-lens] .track {
-  --sl-hole-r: calc(var(--sl-knob) * 1.25 / 2 - 0.5px);
+/* The knob is a lens: the track beneath it is cut away, a hair inside its rim at whatever size
+   it has grown to, and the lens draws its magnified copy, so nothing doubles. */
+.root:not([data-disabled]) .track {
+  --sl-hole-r: calc(var(--sl-knob) * var(--sl-scale) / 2 - 0.75px);
   -webkit-mask-image: radial-gradient(
     circle at calc(var(--sl-knob) / 2 + var(--slider-pos) * 100cqw) 50%,
     transparent var(--sl-hole-r),
@@ -361,6 +393,21 @@
   place-items: center;
 }
 
+/*
+ * The knob is a liquid-glass lens (owner feedback F3, "glass hover slider"; supersedes §3.1's
+ * white disc): clear glass over the track, never an opaque disc. Inside its round clip, from the
+ * back: the copy of the track, magnified 1.28 and kept aligned under the knob's centre (the
+ * refraction), with the real track cut away beneath it; the lens body, a faint tint brighter
+ * at the top and at the rim (the edge light); a colour knob's colour or the width knob's ink
+ * dot; then the rim, a hairline with a top highlight and a soft inner shadow at the bottom,
+ * drawn over everything (`::after`). Outside, a two-layer drop shadow lifts it off the track.
+ * All of it is gradients and shadows: no backdrop filter (Q-5, and no glass in the strip's
+ * glass), so a drag repaints one small disc.
+ *
+ * It grows on the press spring (`--sl-scale`, a registered number, so the knob and the hole cut
+ * in the track grow as one): 1.15 under a hovering pointer, 1.25 held (`data-lens`); reduced
+ * motion keeps it at 1.
+ */
 .knob {
   position: relative;
   box-sizing: border-box;
@@ -368,40 +415,42 @@
   height: var(--sl-knob);
   overflow: hidden;
   border-radius: 50%;
-  background: var(--sl-knob-fill);
+  background: transparent;
   box-shadow: var(--sl-shadow);
-  --sl-shadow: inset 0 0 0 1px var(--sl-knob-ring), var(--sl-e1);
-  transition:
-    transform var(--sl-spring-press) var(--sl-ease-spring),
-    box-shadow var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
+  --sl-shadow: var(--sl-glass-drop);
+  transform: scale(var(--sl-scale));
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* The rim: over the lens and the dot, so the edge stays crisp on any track. */
+.knob::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 50%;
+  box-shadow: var(--sl-glass-rim);
+  pointer-events: none;
 }
 
 @media (hover: hover) {
   .root:not([data-disabled]) .control:hover .knob {
-    --sl-shadow: inset 0 0 0 1px var(--sl-knob-ring), var(--sl-e2);
+    --sl-shadow: var(--sl-glass-drop-raised);
   }
 }
 
-/* A colour slider's knob: the colour inside a 3 px white ring (§3.1). */
-.root[data-knob='colour'] .knob,
-.root[data-knob='stroke'] .knob {
-  background: var(--sl-knob-white);
-  --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.18), var(--sl-e1), var(--sl-ambient);
+.root[data-lens] .knob {
+  --sl-shadow: var(--sl-glass-drop-raised);
 }
 
-@media (hover: hover) {
-  .root:is([data-knob='colour'], [data-knob='stroke']):not([data-disabled]) .control:hover .knob {
-    --sl-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.18), var(--sl-e1), var(--sl-e2);
-  }
-}
-
+/* A colour slider's knob: the colour inside a 3 px ring of the glass (§3.1). */
 .swatch {
   position: absolute;
   inset: 3px;
+  z-index: 1;
   border-radius: 50%;
   background: linear-gradient(var(--sl-knob-color), var(--sl-knob-color));
-  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.12);
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.16);
 }
 
 .root[data-checker] .swatch {
@@ -410,15 +459,27 @@
     repeating-conic-gradient(#ffffff 0% 25%, #d5d7dc 0% 50%) 50% 50% / 6px 6px;
 }
 
-/* The width knob (§3.3): the same white knob, with the stroke inside it as a dot of the ink at
-   its opacity and its real size at the zoom, clamped to the knob's inside (`strokeDot`), so
-   the knob never changes size and a 4 px ring of white always frames the dot. */
+/* Held, a colour knob is all lens: the scale under it, magnified, is what the colour is. */
+.root[data-knob='colour'][data-lens] .swatch {
+  display: none;
+}
+
+/* The width knob (§3.3): the stroke inside the lens as a dot of the ink at its opacity and its
+   real size at the zoom, clamped to the knob's inside (`strokeDot`), so the knob never changes
+   size and a ring of glass always frames the dot. It stays while held: the lens grows round it. */
 .root[data-knob='stroke'] .swatch {
   inset: calc((var(--sl-knob) - var(--sl-stroke)) / 2);
+  box-shadow:
+    0 0 0 0.5px var(--sl-dot-edge),
+    0 0.5px 1.5px rgb(0 0 0 / 0.25);
 }
 
 .root[data-disabled] .knob {
   background: var(--sl-disabled);
+  box-shadow: none;
+}
+
+.root[data-disabled] .knob::after {
   box-shadow: none;
 }
 
@@ -427,41 +488,28 @@
 }
 
 /* Keyboard focus: the outset form of styles/focus.css (09 §19), restated on the knob, which
-   the focus never reaches (it is on the thumb's input), with the knob's own ring kept. */
+   the focus never reaches (it is on the thumb's input). */
 .thumb:has(:focus-visible) .knob {
   outline: 2px solid var(--focus-light);
   outline-offset: var(--focus-offset-out);
-  box-shadow:
-    0 0 0 6px var(--focus-dark),
-    inset 0 0 0 1px var(--sl-knob-ring);
+  box-shadow: 0 0 0 6px var(--focus-dark);
 }
 
 /* --- Lens ----------------------------------------------------------------------------- */
 
 .lens {
-  display: none;
-}
-
-.root[data-lens] .knob {
-  transform: scale(1.25);
-  background: transparent;
-  --sl-shadow: inset 0 0 0 1px var(--sl-lens-rim), var(--sl-e2);
-}
-
-.root[data-lens] .swatch {
-  display: none;
-}
-
-.root[data-lens] .lens {
-  display: block;
   position: absolute;
   inset: 0;
-  border-radius: 50%;
   overflow: hidden;
+  border-radius: 50%;
 }
 
-/* The copy of the track, magnified so it reads 1.6× once the knob's own 1.25 is applied,
-   and placed so the point under the knob's centre stays under it. */
+.root[data-disabled] .lens {
+  display: none;
+}
+
+/* The copy of the track, magnified 1.28 (1.6 once the held knob's 1.25 applies) and placed so
+   the point under the knob's centre stays under it. */
 .lensArt {
   position: absolute;
   left: 0;
@@ -472,13 +520,26 @@
   transform: translate(calc(var(--slider-pos) * -100cqw), -50%) scale(1.28);
 }
 
-/* The lens's inner light: a soft top gloss over the copy. */
+.root[data-track='taper'] .lensArt {
+  height: var(--sl-taper-end);
+}
+
+/* The lens body: a faint tint, brighter at the top (the inner light) and towards the rim (the
+   edge light a curved glass catches), over the copy. */
 .lens::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(120% 75% at 50% 0%, rgb(255 255 255 / 0.35), transparent 62%);
+  background:
+    radial-gradient(110% 70% at 50% 0%, var(--sl-glass-gloss), transparent 60%),
+    radial-gradient(circle, transparent 52%, var(--sl-glass-edge) 100%), var(--sl-glass-tint);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+/* Held, the glass clears: the track under it reads through the lens. */
+.root[data-lens] .lens::after {
+  --sl-glass-tint: var(--sl-glass-tint-held);
 }
 
 /* --- Value bubble ------------------------------------------------------------------- */
@@ -560,16 +621,28 @@
 
 /* --- Settings ------------------------------------------------------------------------------ */
 
+/* Reduced motion: no stretch, no spring, and the knob keeps its size (the press scales go to
+   their resting values, motion.css §3). */
 @media (prefers-reduced-motion: reduce) {
   .root {
     --sl-pos-duration: 0s !important;
     --sl-stretch-duration: 0s !important;
+  }
+
+  .control {
+    --sl-scale: 1 !important;
+    transition: none;
   }
 }
 
 :global(:root[data-motion='reduced']) .root {
   --sl-pos-duration: 0s !important;
   --sl-stretch-duration: 0s !important;
+}
+
+:global(:root[data-motion='reduced']) .control {
+  --sl-scale: 1 !important;
+  transition: none;
 }
 
 :global(:root[data-motion='reduced']) .knob,
@@ -594,6 +667,11 @@
 
   .knob {
     background: ButtonText;
+  }
+
+  .lens,
+  .knob::after {
+    display: none;
   }
 
   .thumb:has(:focus-visible) .knob {
