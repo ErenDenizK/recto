@@ -131,6 +131,9 @@ test and the work package that first carries it.
 **Q-11 Budgets.**
 - At most four `backdrop-filter` surfaces visible at rest (top strip, dock, page pill, one
   more), and at most six during a transition.
+- The pieces of one surface count once (2026-10-08, owner feedback F1): the top strip's two
+  floating pieces are the "top strip", and the Pages grid's scope and size pieces are one
+  surface. Each pair covers less than the band it replaced. They carry `data-glass-group`.
 - σ only from the tier table.
 - Chrome interactions respond within 100 ms (INP).
 - Sheets, panels and the colour panel load on first use.

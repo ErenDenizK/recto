@@ -717,6 +717,16 @@ steps; axe.
 
 ## 10. PG2 Grid header: scope and size
 
+> **Amended 2026-10-08 (owner feedback F1).** There is no header band. The document's name and
+> page count are the strip's selected tab ("report.pdf · 12 pages"), and a Combine's sources sit
+> after the tabs. Scope floats at the bottom-leading corner and Size at the bottom-trailing one,
+> each a small M2 glass piece (`mat mat-bar s8 c10`) the capsule's height, on its line, in the
+> slot the page pill takes in the reader (`stage/grid/GridPieces.tsx`). A piece keeps 12 px from
+> the capsule. Where its full form would come closer, it folds to a circle: Scope to an "All
+> open" toggle, Size to a button whose popover holds the slider. Where even a circle would
+> touch, both rise 8 px above the capsule. The cells scroll beneath the strip's pieces and the
+> Pages bar.
+
 **1 · Role.** Choose what the grid shows and how big the cells are, visibly (INV-21). Replaces
 "Hide from Arrange" (8.13) and the hidden Mod+wheel-only size.
 

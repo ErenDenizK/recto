@@ -1,7 +1,7 @@
 /**
- * The soft scroll edge (`components/01-frame.md` F1 §3; research 16 G-19; spec 01.9): a 24 px
- * band under the strip, the canvas colour fading to nothing, shown only once the page has
- * scrolled, so text passing under the strip dissolves instead of being cut. Jumps land 24 px
+ * The soft scroll edge (`components/01-frame.md` F1 §3; research 16 G-19; spec 01.9): the canvas
+ * colour behind the strip's floating pieces, fading to nothing 24 px below them, shown only
+ * once the page has scrolled, so text passing under the pieces dissolves instead of being cut. Jumps land 24 px
  * below the strip (the reader's scroll padding), so it never covers a target. Pointer-
  * transparent and `aria-hidden`; gone in forced colours. Its visibility is an attribute set
  * from the reader's scroll, not React state: scrolling renders nothing.
@@ -20,7 +20,10 @@ export function SoftEdge() {
     if (!edge) return;
     const onScroll = (event: Event) => {
       const target = event.target;
-      if (!(target instanceof HTMLElement) || !target.hasAttribute('data-read-viewport')) return;
+      if (!(target instanceof HTMLElement)) return;
+      // The reader, and the Pages grid, whose cells pass beneath the pieces too.
+      if (!target.hasAttribute('data-read-viewport') && !target.hasAttribute('data-grid-viewport'))
+        return;
       edge.toggleAttribute('data-shown', target.scrollTop > 0);
     };
     document.addEventListener('scroll', onScroll, { capture: true, passive: true });

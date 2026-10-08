@@ -267,6 +267,14 @@ test.describe('the capsule morph (Q-6)', () => {
       await page.evaluate(() =>
         document.documentElement.style.setProperty('--canvas', 'rgb(255 255 255)'),
       );
+      // The shadow is read in the 2–6 px under the capsule's edge, so the stripes' phase there
+      // matters: a black stripe cannot darken. The strip's floating pieces (owner feedback F1)
+      // start the page 16 px lower than the docked band did; scroll it back by as much, so the
+      // white band the check was calibrated over lies under the edge again.
+      await page.evaluate(() => {
+        const reader = document.querySelector<HTMLElement>('[data-read-viewport]');
+        if (reader) reader.scrollTop += 16;
+      });
       await settled(page);
       const node = await page.locator('[data-capsule]').elementHandle();
       expect(
@@ -664,6 +672,10 @@ test.describe('the capsule morph never prints two contents at once', () => {
     await settled(page);
     const palette = await page.locator('[data-capsule]').boundingBox();
     if (!palette) throw new Error('no capsule');
+    // The grid's own floating pieces at the band's corners (GridPieces.tsx, owner feedback F1)
+    // arrive with the new view's cross-fade where the palette's ends were: they are not the old
+    // palette, so they are kept out of both frames compared below.
+    await page.addStyleTag({ content: '[data-grid-piece] { visibility: hidden !important; }' });
     // Hold the view change (it is cut at 240 ms) and pause every animation 80 ms into it: the
     // capsule is narrowing from the palette's box then.
     const mid = await page.evaluate(async () => {

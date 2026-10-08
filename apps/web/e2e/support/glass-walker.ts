@@ -13,7 +13,8 @@
  *   or a translation by whole device pixels (a fractional one puts the surface and its text
  *   between device pixels: the position must round, Q-2; at 2× a half CSS pixel is whole, as
  *   Floating UI rounds it), and the element has no `will-change`.
- * - **Q-11, the budget.** At most four visible surfaces at rest (six during a transition).
+ * - **Q-11, the budget.** At most four visible surfaces at rest (six during a transition); the
+ *   pieces of one surface (`data-glass-group`, the top strip's two) count as one.
  * - **Q-8, text set once and sharp.** Every visible piece of text on a glass surface (an element
  *   with a text node of its own, or a text field) is at least 11 px, weighs 400, 500 or 600,
  *   and at rest sits under no scale between it and the glass (the glass and what is above it
@@ -333,7 +334,20 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
         }
       });
 
-      const visibleCount = surfaces.filter((s) => s.visible).length;
+      // Pieces of one surface (`data-glass-group`: the top strip's two floating pieces, the
+      // Pages grid's scope and size) count once: together they cover less than the one band
+      // each pair replaced (owner feedback 2026-10-08, F1).
+      const groups = new Set<string>();
+      let visibleCount = 0;
+      found.forEach(({ el }, i) => {
+        if (!surfaces[i]?.visible) return;
+        const group = el.getAttribute('data-glass-group');
+        if (group !== null) {
+          if (groups.has(group)) return;
+          groups.add(group);
+        }
+        visibleCount += 1;
+      });
       const max = atRest ? maxAtRest : maxInTransition;
       if (visibleCount > max) {
         violations.push({

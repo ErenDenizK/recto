@@ -62,19 +62,22 @@
 }
 
 /*
- * The soft scroll edge (F1 §3, G-19): 24 px under the strip, the canvas fading to nothing, only
- * once the page has scrolled. Over the stage's width (the free rectangle's), under the sidebar.
+ * The soft scroll edge (F1 §3, G-19): behind the strip's floating pieces and 24 px below them,
+ * the canvas fading to nothing, only once the page has scrolled, so text passing under the
+ * pieces and the bare canvas between them dissolves instead of being cut. Over the stage's
+ * width (the free rectangle's), under the sidebar.
  */
 .softEdge {
   position: absolute;
-  top: var(--free-top, 0px);
+  top: 0;
   right: var(--free-right, 0px);
   left: var(--free-left, 0px);
   z-index: 1;
-  height: 24px;
+  height: calc(var(--free-top, 0px) + 24px);
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--canvas) 85%, transparent),
+    color-mix(in srgb, var(--canvas) 72%, transparent),
+    color-mix(in srgb, var(--canvas) 30%, transparent) calc(100% - 24px),
     transparent
   );
   opacity: 0;

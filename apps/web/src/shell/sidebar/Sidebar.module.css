@@ -25,6 +25,10 @@
    bar, a toast or a popover made five. The same as the docked frame under a scrim
    (styles/materials.css); the floating form below keeps its glass. */
 .sidebar[data-form='docked'] {
+  /* The full height of the window: the strip's leading piece floats over its top, as over the
+     canvas (TopStrip.module.css), and its contents start below the piece. */
+  top: 0;
+  padding-top: var(--free-top, 0px);
   --text-secondary: inherit;
   --text-tertiary: inherit;
   --text-disabled: inherit;
