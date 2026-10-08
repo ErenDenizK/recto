@@ -13,7 +13,9 @@
  *   or a translation by whole device pixels (a fractional one puts the surface and its text
  *   between device pixels: the position must round, Q-2; at 2× a half CSS pixel is whole, as
  *   Floating UI rounds it), and the element has no `will-change`.
- * - **Q-11, the budget.** At most four visible surfaces at rest (six during a transition).
+ * - **Q-11, the budget.** At most four visible surfaces at rest (six during a transition). The
+ *   palette's floating ink strip (`data-strip-piece`, owner feedback F3) is the dock's second
+ *   piece, counted with the capsule as Q-11's "dock", not as a surface of its own.
  * - **Q-8, text set once and sharp.** Every visible piece of text on a glass surface (an element
  *   with a text node of its own, or a text field) is at least 11 px, weighs 400, 500 or 600,
  *   and at rest sits under no scale between it and the glass (the glass and what is above it
@@ -50,6 +52,8 @@ export interface GlassSurface {
   /** Coverage at its rendered size (A-2). */
   readonly coverage: number;
   readonly visible: boolean;
+  /** The dock's second piece (the ink strip), counted with the capsule (Q-11). */
+  readonly dockPiece: boolean;
   readonly filter: string;
 }
 
@@ -258,6 +262,7 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
           sigma,
           coverage: Math.round(c * 10_000) / 10_000,
           visible,
+          dockPiece: el.hasAttribute('data-strip-piece'),
           filter,
         };
       });
@@ -333,7 +338,7 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
         }
       });
 
-      const visibleCount = surfaces.filter((s) => s.visible).length;
+      const visibleCount = surfaces.filter((s) => s.visible && !s.dockPiece).length;
       const max = atRest ? maxAtRest : maxInTransition;
       if (visibleCount > max) {
         violations.push({

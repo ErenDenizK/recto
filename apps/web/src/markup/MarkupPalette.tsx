@@ -14,11 +14,12 @@
  *   fits the free rectangle less 2 × 16 px. A `ResizeObserver` on the band re-runs the fold,
  *   one frame late at most, never during a stroke or while focus is inside. The palette so
  *   arrives folded, and the capsule morphs to the size it keeps.
- * - **The ink strip** (`InkStrip.tsx`, `10-ink` §2): a second row of the same glass, above the
- *   tools, from the moment a tool with options arms; the capsule grows upward to hold it
- *   (`morphKey`), so the tools never move under the pointer that armed the pen. With the Fill
- *   & sign door and Select armed, that row holds the saved-signature chips the row had no room
- *   for (03.7).
+ * - **The ink strip** (`InkStrip.tsx`, `10-ink` §2; owner feedback F3): its own small glass
+ *   piece floating above the capsule (`StripPiece.tsx`, mounted by the dock), hugging its
+ *   content, from the moment a tool with options arms; the capsule keeps one row, so the tools
+ *   never move under the pointer that armed the pen. With the Fill & sign door and Select
+ *   armed, the piece holds the saved-signature chips the row had no room for (03.7;
+ *   `usePaletteStrip`).
  * - **Second press** on the armed tool opens its editor: the pen's preset editor
  *   (`annotations/pen/PresetEditor.tsx`), or the style editor of shapes, text box and note.
  * - **Stroke fade** (MK-17, `stroke-fade.ts`): 20 % and no pointer while a stroke runs, never
@@ -78,7 +79,7 @@ import { isShapeMode, SHAPE_MODES, type ToolMode, useToolStore } from '../viewer
 import { abovePalette } from './anchor';
 import { ChoiceTool } from './ChoiceTool';
 import { closeMarkupDoor } from './doors';
-import { InkStrip, useStripKind } from './InkStrip';
+import { useStripKind } from './InkStrip';
 import { MoreTools } from './MoreTools';
 import { foldPalette, type FoldResult } from './palette-fold';
 import {
@@ -102,6 +103,7 @@ import {
   useFieldStops,
   useSignatures,
 } from './SignGroup';
+import type { StripContent } from './StripPiece';
 import { strokeInProgress, useStrokeInProgress } from './stroke-fade';
 import { armedTooltip, PaletteButton } from './ToolButton';
 
@@ -346,27 +348,19 @@ export function PaletteMeasurer() {
   );
 }
 
-/** The palette's rows: what the capsule's content slot holds (module header). */
-export function MarkupPaletteContent() {
-  const rowRef = useRef<HTMLDivElement>(null);
-  // The capsule rests at this content's size, centred in the dock: its width rounds so the
-  // palette's glass rests on whole pixels (Q-2; it sat at x 190.88, V2 review item 16).
-  const contentRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = contentRef.current;
-    if (!el) return undefined;
-    return snapToWholePixels(el, 'width', { container: () => centredRoom(el, '[data-capsule]') });
-  }, []);
+/** The palette's door on the active document: Draw, or Fill & sign's Sign set. */
+function usePaletteDoor(): 'draw' | 'sign' {
   const id = useWorkspaceStore((s) => s.workspace.activeDocument);
-  const door = useUiStore((s) => (id === undefined ? 'draw' : (s.docUi[id]?.paletteSet ?? 'draw')));
-  const mode = useToolStore((s) => s.mode);
-  const activePen = useAnnotationStore((s) => s.pen.active);
-  const stripKind = useStripKind();
-  const signatures = useSignatures();
+  return useUiStore((s) => (id === undefined ? 'draw' : (s.docUi[id]?.paletteSet ?? 'draw')));
+}
+
+/** The measured fold of the row for `door` (MK-2 §2): the candidates and what each shows. */
+function useRowState(door: 'draw' | 'sign'): {
+  readonly candidates: readonly PaletteItem[];
+  readonly state: RowState;
+} {
   const candidates = useCandidates(door);
   const { measured, available } = usePaletteLayout();
-
-  // --- The fold ------------------------------------------------------------------------
   const fold: FoldResult | null =
     measured === null
       ? null
@@ -381,18 +375,64 @@ export function MarkupPaletteContent() {
           available,
           measured.metrics,
         );
-  const state: RowState = {
-    visible: new Set<string>(fold ? fold.visible : candidates),
-    bare: fold?.bare ?? new Set<string>(),
-    folded: (fold?.folded ?? []) as readonly PaletteItem[],
+  return {
+    candidates,
+    state: {
+      visible: new Set<string>(fold ? fold.visible : candidates),
+      bare: fold?.bare ?? new Set<string>(),
+      folded: (fold?.folded ?? []) as readonly PaletteItem[],
+    },
   };
+}
 
-  const chipsInRow =
-    stripKind === null &&
+/**
+ * What the palette's floating strip holds (`StripPiece.tsx`; owner feedback F3): the armed
+ * tool's ink strip; else, with the Fill & sign door, Select or Sign armed and no room for the
+ * saved-signature chips in the row, those chips (03.7); else nothing.
+ */
+export function usePaletteStrip(): StripContent | null {
+  const door = usePaletteDoor();
+  const mode = useToolStore((s) => s.mode);
+  const kind = useStripKind();
+  const signatures = useSignatures();
+  const { state } = useRowState(door);
+  if (kind !== null) return kind;
+  const chips =
     door === 'sign' &&
     signatures.length > 0 &&
     state.folded.includes('chips') &&
     (mode === 'select' || mode === 'signature');
+  return chips ? 'chips' : null;
+}
+
+/**
+ * The Esc ladder inside the palette and its strip (§5): Esc disarms to Select, then closes
+ * Markup. Keys React carries from portals (the editors, menus) are theirs.
+ */
+export function paletteEscape(event: KeyboardEvent<HTMLElement>): void {
+  if (event.key !== 'Escape' || event.defaultPrevented) return;
+  if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  if (hasAnnotationToolState()) clearAnnotationTools();
+  else closeMarkupDoor();
+}
+
+/** The palette's row: what the capsule's content slot holds (module header). */
+export function MarkupPaletteContent() {
+  const rowRef = useRef<HTMLDivElement>(null);
+  // The capsule rests at this content's size, centred in the dock: its width rounds so the
+  // palette's glass rests on whole pixels (Q-2; it sat at x 190.88, V2 review item 16).
+  const contentRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return undefined;
+    return snapToWholePixels(el, 'width', { container: () => centredRoom(el, '[data-capsule]') });
+  }, []);
+  const door = usePaletteDoor();
+  const mode = useToolStore((s) => s.mode);
+  const activePen = useAnnotationStore((s) => s.pen.active);
+  const { candidates, state } = useRowState(door);
 
   // --- Focus, roving and Esc -----------------------------------------------------------
   const roving = useRovingTabindex(
@@ -422,16 +462,6 @@ export function MarkupPaletteContent() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const onKeyDownCapture = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Escape' || event.defaultPrevented) return;
-    // React carries keys from portals (the editors, menus) through here: those are theirs.
-    if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    if (hasAnnotationToolState()) clearAnnotationTools();
-    else closeMarkupDoor();
-  };
-
   return (
     <div
       ref={contentRef}
@@ -446,22 +476,12 @@ export function MarkupPaletteContent() {
         aria-label={m.markup_label()}
         aria-orientation="horizontal"
         className={styles.row}
-        onKeyDownCapture={onKeyDownCapture}
+        onKeyDownCapture={paletteEscape}
         onKeyDown={roving.onKeyDown}
         onFocus={roving.onFocus}
       >
         <PaletteRow candidates={candidates} state={state} />
       </div>
-      {stripKind !== null || chipsInRow ? (
-        <div
-          className={styles.stripRow}
-          data-strip-row=""
-          data-capsule-item={`strip:${stripKind ?? 'chips'}`}
-          onKeyDownCapture={onKeyDownCapture}
-        >
-          {stripKind !== null ? <InkStrip kind={stripKind} /> : <SignatureChips />}
-        </div>
-      ) : null}
       <ToolEditor rowRef={rowRef} />
     </div>
   );

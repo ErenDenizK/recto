@@ -24,10 +24,14 @@
  * is its armed preset (persisted per device). Opacity is not here: it lives in the colour panel
  * and the preset editor, and the knob shows it.
  *
- * The strip is content, not glass (Q-4): it sits in the palette's own glass, inline or as a
- * second row (`MarkupPalette.tsx`). No label text shows inside it; accessible names carry the
- * meaning and tooltips name each control after the delay (§2.2). It is a `toolbar` named
- * "{tool} options"; the swatches are one radio stop (§2.3).
+ * The strip is content, not glass (Q-4): it sits in its own small glass piece floating above
+ * the palette (`StripPiece.tsx`, owner feedback F3). No label text shows inside it; accessible
+ * names carry the meaning and tooltips name each control after the delay (§2.2). It is a
+ * `toolbar` named "{tool} options"; the swatches are one radio stop (§2.3).
+ *
+ * The width sliders show no value bubble: the readout sits right beside the track, in view of a
+ * finger on the knob, and a bubble rising from the knob over the strip's rim read as a notch
+ * stuck on the knob (owner feedback F3, "bug").
  */
 import { type ReactNode, useRef } from 'react';
 
@@ -198,6 +202,7 @@ function Width({
       className={styles.width}
       label={m.pen_editor_width()}
       readout
+      bubble="never"
       scale="stops"
       track="taper"
       detents={detents}
@@ -349,6 +354,7 @@ function EraserStrip() {
         className={styles.width}
         label={m.eraser_size_label()}
         readout
+        bubble="never"
         scale="log"
         detents={ERASER_SIZES}
         min={ERASER_SIZES[0]}
