@@ -1047,11 +1047,17 @@ test.describe('motion tokens (spec D3-4)', () => {
       const records = await recorded(page);
       await info.attach('animations', { body: listed(records), contentType: 'text/plain' });
       expect(records.length, 'the tour still fades things').toBeGreaterThan(0);
-      expect(await judge(page, records, 'reduced'), listed(records)).toEqual([]);
+      // The message names the offenders first: the list of everything that ran is not them.
+      const offending = await judge(page, records, 'reduced');
+      expect(offending, `${offending.join('\n')}\n--- all:\n${listed(records)}`).toEqual([]);
       await startRecording(page);
       await switchTools(page);
       const switching = await recorded(page);
-      expect(await judge(page, switching, 'reduced'), listed(switching)).toEqual([]);
+      const offendingSwitch = await judge(page, switching, 'reduced');
+      expect(
+        offendingSwitch,
+        `${offendingSwitch.join('\n')}\n--- all:\n${listed(switching)}`,
+      ).toEqual([]);
     });
   }
 
