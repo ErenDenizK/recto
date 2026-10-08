@@ -19,7 +19,7 @@
  */
 import { Popover } from '@base-ui/react/popover';
 import { DEFAULT_HISTORY_TAIL } from '@pdf-editor/document-model';
-import { type RefObject, useRef, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
 import { useSessionStore } from '../session/session-store';
@@ -46,6 +46,20 @@ export interface HistoryScrubberProps {
 export function HistoryScrubber({ anchor }: HistoryScrubberProps) {
   const open = useHistoryScrubber((s) => s.opening !== null);
   const last = useHistoryScrubber((s) => s.last);
+  // Esc closes it wherever focus is. Base UI listens on the document in the bubble phase, so a
+  // selection that handles Esc itself (the image's, which stops it) would keep it open while
+  // focus has not yet moved into the popup. Captured on the window, before any of them.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeHistoryScrubber();
+    };
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
+  }, [open]);
   return (
     <Popover.Root
       open={open}
