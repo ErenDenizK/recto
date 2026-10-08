@@ -323,6 +323,39 @@ describe('page context menu', () => {
     window.getSelection()?.removeAllRanges();
   });
 
+  it('opens the page menu on blank paper while other text on the page stays selected', async () => {
+    const { container } = await mount();
+    const span = await waitFor(() => {
+      const found = [
+        ...container.querySelectorAll<HTMLElement>(
+          '[data-page-index="0"] [data-testid="text-layer"] span',
+        ),
+      ].find((s) => (s.textContent ?? '').trim().length > 3);
+      if (!found) throw new Error('no text yet');
+      return found;
+    });
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    const page = pageElement(container, 0);
+    const box = span.getBoundingClientRect();
+    // The page's corner, well away from the selected run (Firefox keeps a double-click's
+    // selection, and `containsNode` alone counts the whole page as touched by it).
+    const kept = page.dispatchEvent(
+      new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        button: 2,
+        clientX: Math.max(box.left - 60, 1),
+        clientY: box.bottom + 80,
+      }),
+    );
+    expect(kept).toBe(false);
+    await menu();
+    window.getSelection()?.removeAllRanges();
+  });
+
   it('opens on a long press on the paper (touch) at the press point, once', async () => {
     const { container } = await mount();
     const canvas = pageElement(container, 1).querySelector('canvas');
