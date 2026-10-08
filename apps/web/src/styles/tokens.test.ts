@@ -1223,8 +1223,9 @@ describe('tokens.css', () => {
       // ink strip a row of the capsule's glass, so the bar's module and its options tier go. The
       // Pages grid (D2-5) moves its bar into the capsule and adds its docked header. The
       // inspector leaves (D2-9): one fewer. The paragraph and line editors' headers take M4's
-      // solid twin (D4-4: they rest over page text): two fewer.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(22);
+      // solid twin (D4-4: they rest over page text): two fewer. The Markup palette's floating ink
+      // strip (owner feedback F3) is a piece of glass of its own above the capsule: one more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(23);
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',
         'mat-bar',
@@ -1939,14 +1940,11 @@ describe('tokens.css', () => {
       ],
       'ui/colour/ColourGrid.module.css': ['rgb(0 0 0 / 0.55)', '#ffffff'],
       'ui/colour/ColourPanel.module.css': ['#8a8d93'],
-      // The knob's notch glyph sits on the white knob; the lens rim, the transparency checker
-      // and the readout bubble's rim are the slider's own (10-ink §3.2).
+      // The transparency checker, the width dot's edge and the readout bubble's rim are the
+      // slider's own (10-ink §3.2); the glass knob's colours are --control-knob-* tokens.
       'ui/Slider.module.css': [
         '#ffffff',
         '#d5d7dc',
-        'rgb(0 0 0 / 0.18)',
-        'rgb(0 0 0 / 0.12)',
-        'rgb(255 255 255 / 0.35)',
         'rgb(255 255 255 / 0.7)',
         'rgb(255 255 255 / 0.3)',
         'rgb(255 255 255 / 0.12)',
