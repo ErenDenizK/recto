@@ -353,7 +353,7 @@
   }
 
   .cell:not([aria-selected='true']) .check:hover {
-    background: rgb(0 0 0 / 0.24);
+    background: var(--check-badge-scrim-hover);
   }
 }
 

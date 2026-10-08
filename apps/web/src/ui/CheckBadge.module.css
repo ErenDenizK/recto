@@ -11,13 +11,11 @@
   box-sizing: border-box;
   width: 22px;
   height: 22px;
-  border: 1.5px solid #ffffff;
+  border: 1.5px solid var(--check-badge-rim);
   border-radius: var(--radius-pill);
-  background: rgb(0 0 0 / 0.12);
+  background: var(--check-badge-scrim);
   color: var(--select-ink);
-  box-shadow:
-    0 0 0 0.5px rgb(0 0 0 / 0.22),
-    0 1px 3px rgb(0 0 0 / 0.22);
+  box-shadow: var(--check-badge-shadow);
 }
 
 .badge[data-checked] {
