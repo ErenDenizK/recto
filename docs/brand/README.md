@@ -320,9 +320,9 @@ Linux: PNG at 32, 128, 256, 512. Small sizes come from the pixel-fitted masters.
 
 | Place | What appears | Size |
 |---|---|---|
-| Browser tab | `glyph.svg` | 16, 32 px |
-| Top strip | The glyph as the ◆ Library button, `currentColor` (`01-frame` F3) | 20 px |
-| Library launcher | The glyph, duotone; it may catch the aurora's light (BR-M6: decorative, unfocusable, still under reduced motion; `02-library` L2) | 48 px |
+| Browser tab | `glyph.svg` (gradient on dark tabs, near-black on light), `favicon.ico` | 16, 32 px |
+| Top strip | The mark as the ◆ Library button, `BrandMark` auto: gradient on dark, ink on light (`01-frame` F3) | 18 px |
+| Library | The mark on the empty card (56 px) and, with documents, in the brand header beside the "Recto" wordmark (40 px), over the static aura in the mark's colours (BR-M6: decorative, unfocusable, still; `02-library` L2) | 40, 56 px |
 | Settings → About Recto row | The name and version as text, no mark (the About dialog is removed, `07-sheets` §25) | — |
 | Installed app | The app icon | OS sizes |
 | Exported PDF | The name as text in `/Producer`, nothing visible | — |
