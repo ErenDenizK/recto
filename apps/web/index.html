@@ -30,7 +30,12 @@
       content="Recto: a PDF editor that runs entirely in your browser. Nothing is uploaded."
     />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- The Recto mark (docs/brand/README.md; tools/media `app-icons` writes every file): the
+         ICO for browsers without SVG favicons, the SVG (gradient on dark, near-black on
+         light tabs) for the rest, the opaque tile for the iOS and iPadOS Home Screen. -->
+    <link rel="icon" href="%BASE_URL%favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" href="%BASE_URL%icons/glyph.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
     <!-- The UI face's Latin file, fetched with the HTML so the first paint is already in it
          (ADR-0027 §2.1, quality-bar Q-8); styles/fonts.css declares it. -->
     <link

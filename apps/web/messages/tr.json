@@ -2198,6 +2198,7 @@
   "library_open": "PDF aç…",
   "library_combine_files": "Dosyaları birleştir…",
   "library_drop_hint": "ya da dosyaları istediğiniz yere bırakın",
+  "library_start_group": "Başlamanın diğer yolları",
   "library_drop": "Açmak için bırakın",
   "library_drop_count": "{count} dosyayı açmak için bırakın",
   "library_head_open": "Açık",

@@ -883,7 +883,7 @@ strong border, no shadow; forced colours: `Canvas`, 1 px `ButtonText` border, it
 |---|---|---|---|---|
 | Toolbar name | Document tools | Belge araçları | — | — |
 | Pages | Pages | Sayfalar | `squares-four` | 3 |
-| Markup | Markup | İşaretle | `pen-nib` | M |
+| Markup | Markup | İşaretle | `marker-circle` (a circled tip, unlike Fill & sign's horizontal `signature`; owner feedback 2026-10-08) | M |
 | Fill & sign · Sign | Fill & sign · Sign | Doldur ve imzala · İmzala | `signature` | G (arms the signature) |
 | More | More | Diğer | `dots-three` | Ctrl K lists all commands |
 | Locked | Locked (name: "Locked: report.pdf. Unlock…") | Kilitli ("Kilitli: report.pdf. Kilidi aç…") | `lock-simple` | — |

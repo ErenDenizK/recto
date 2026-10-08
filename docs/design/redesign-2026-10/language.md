@@ -724,7 +724,7 @@ Every Phosphor name was found in `@phosphor-icons/core` 2.1.1 with its `-fill` t
 | Concept | Lucide today | Phosphor |
 |---|---|---|
 | Select (tool and group) · pen · highlighter · eraser · lasso | `MousePointer2` · `PenLine` · `Highlighter` · `Eraser` · `LassoSelect` | `cursor` · ink dot (`pen` where a glyph is needed) · `highlighter` · `eraser` · `lasso` |
-| Dock: Pages · Markup · Fill & sign · More (new) | — | `squares-four` · `pen-nib` (pens show ink dots, so the nib is free) · `signature` · `dots-three` |
+| Dock: Pages · Markup · Fill & sign · More (new) | — | `squares-four` · `marker-circle` (was `pen-nib`, too close to `signature` at 20 px; owner feedback 2026-10-08) · `signature` · `dots-three` |
 | Rectangle · ellipse · line · arrow | `Square` · `Circle` · `Minus` · `ArrowUpRight` | `square` · `circle` · `line-segment` · `arrow-up-right` |
 | Edit text · text box · Text group · note | `TextCursorInput` · `Type` · `Type` · `StickyNote` | custom *edit-text* (fallback `cursor-text`) · `textbox` · `text-aa` · `note` |
 | Underline · strikeout · squiggly | `Underline` · `Strikethrough` · `Waves` | `text-underline` · `text-strikethrough` · `wave-sine` |

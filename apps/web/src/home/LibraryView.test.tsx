@@ -116,6 +116,37 @@ describe('Library', () => {
     resetLibraryStore();
   });
 
+  it('heads the documents with the brand, a drop well round Open PDFs… and one group of starts', async () => {
+    await openOnHome('simple-text.pdf');
+    const home = screen.getByTestId('home');
+    // Identity: the mark in its auto tone (the gradient on dark) and the wordmark.
+    expect(within(home).getByRole('heading', { level: 2, name: 'Recto' })).toBeVisible();
+    expect(home.querySelector('header svg[data-tone="auto"] linearGradient')).not.toBeNull();
+    expect(within(home).getByText('Nothing leaves this device.')).toBeVisible();
+    // Open: the view's one lime, inside the well that says files can be dropped.
+    const launcher = screen.getByTestId('library-launcher');
+    const open = within(launcher).getByRole('button', { name: 'Open PDFs…' });
+    expect(open).toHaveClass('btn-prominent');
+    expect(open.parentElement).toHaveTextContent('or drop files anywhere');
+    // More ways to start: three equal standard buttons, each with its glyph.
+    const group = within(launcher).getByRole('group', { name: 'More ways to start' });
+    const starts = within(group).getAllByRole('button');
+    expect(starts.map((b) => b.textContent)).toEqual([
+      'Try the sample',
+      'Combine files…',
+      'Batch…',
+    ]);
+    for (const button of starts) {
+      expect(button).toHaveClass('btn-standard');
+      expect(button.querySelector('svg[data-icon]')).not.toBeNull();
+    }
+    // The aura: decorative, still, behind the column.
+    const aura = screen.getByTestId('library-aura');
+    expect(aura).toHaveAttribute('aria-hidden', 'true');
+    expect(aura.getAnimations({ subtree: true })).toHaveLength(0);
+    expect(getComputedStyle(aura).pointerEvents).toBe('none');
+  });
+
   it('shows one lit card per open document, in tab order, with pages, size and a thumbnail', async () => {
     await openOnHome('simple-text.pdf', 'rotated-pages.pdf');
     const options = within(grid()).getAllByRole('option');
