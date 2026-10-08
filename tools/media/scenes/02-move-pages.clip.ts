@@ -53,9 +53,10 @@ scene({
       .evaluate((cell) => cell.getAttribute('data-page-id'));
     await stage.hold(300);
 
-    // Select pages 3 and 4: a click, then a Shift-click; the Pages bar counts them.
-    await cursor.click(report.nth(2), 420, { x: 0.5, y: 0.45 });
+    // Select pages 3 and 4: Shift-clicks (a plain click opens a page; 06-navigation PG1); the
+    // Pages bar counts them.
     await page.keyboard.down('Shift');
+    await cursor.click(report.nth(2), 420, { x: 0.5, y: 0.45 });
     await cursor.click(report.nth(3), 360, { x: 0.5, y: 0.45 });
     await page.keyboard.up('Shift');
     await expect(report.nth(3)).toHaveAttribute('aria-selected', 'true');
