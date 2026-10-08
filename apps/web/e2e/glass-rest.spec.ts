@@ -89,13 +89,12 @@ test('Read, the selection bar, Edit with an options tier, menus and the palette'
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menu')).toHaveCount(0);
 
-  // An armed tool's ink strip (T, the Text box): a second row inside the palette's own glass,
-  // never glass of its own (quality-bar Q-4).
+  // An armed tool's ink strip (T, the Text box): its own small glass piece above the palette
+  // (owner feedback F3), beside the capsule, never glass inside glass (quality-bar Q-4).
   await page.locator('body').press('t');
   await expect(page.getByTestId('ink-strip')).toBeVisible();
   walk = await expectGlassClean(page, 'Markup, ink strip');
-  // (The top strip, a `header`, is docked glass of its own: not the ink strip.)
-  expect(names(walk).some((n) => !n.startsWith('header') && n.includes('strip'))).toBe(false);
+  expect(names(walk).some((n) => n.includes('piece'))).toBe(true);
   await page.keyboard.press('Escape');
 
   // The title menu (01-frame F5) takes the M4 solid twin: it opens over the sidebar's dark edge
