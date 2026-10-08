@@ -84,9 +84,13 @@ medium and expanded, a second row inside the same capsule (one glass element, on
 
 ### 2.2 Material and layout
 
-- **Inside the palette's glass element.** The strip is not its own glass (`quality-bar.md` Q-4).
-- **Medium and expanded:** the capsule grows upward by one row (44 fine, 52 coarse) through its
-  own geometry (Q-6).
+- **Its own floating piece** (owner feedback F3, 2026-10, replacing the second row inside the
+  palette's glass): a small glass piece of the capsule's material (M2, σ 9 / 10 / 8) and pill
+  radius, one bar tall, centred 8 px above the capsule and hugging its content, so no glass
+  stands empty beside the strip (`markup/StripPiece.tsx`). It is a sibling of the capsule, never
+  inside it (Q-4), and counts with the capsule as Q-11's dock. It rises in (opacity and 6 px on
+  `--spring-smooth`) when a tool with options arms and drops out when the strip goes; between
+  tools it morphs its own width. Reduced motion: the fade alone, within 150 ms.
 - **The capsule's maximum width** is the free rectangle less 32 px. When the inline strip does not
   fit, the second row is used; the fold is measured, never guessed (03.9).
 - **No label text inside the strip.** Accessible names carry the meaning, and tooltips name each
@@ -120,8 +124,12 @@ held        ╺━━━━━━━━━(◯)━━━━━━━━━━━
   light, never lime: `language.md` §1.2). The rest is `--control-track`. A gradient track (hue,
   saturation, brightness, opacity, width taper) has no fill, because the track itself is the
   scale.
-- **Knob:** a white disc (n1 light; in the dark theme n12 with a 1 px `--control-border`) with
-  e1. A colour slider's knob shows the selected colour inside a 3 px white ring.
+- **Knob:** a liquid-glass lens (owner feedback F3, 2026-10, replacing the white disc): clear
+  glass over a CSS copy of the track magnified 1.28, a faint tint brighter at the top and the
+  rim, a 1 px rim with a top highlight and an inner shadow, and a two-layer drop shadow; no
+  backdrop filter (Q-5). It grows 1.15 under a hovering pointer and 1.25 held on the press
+  spring, and clears further while held. A colour slider's knob shows the selected colour inside
+  a 3 px ring of the glass; the width knob keeps its ink dot (§3.3).
 - **Value bubble:** an M1 chip (`language.md` §2.1, σ 8) with the readout, shown while held. It
   always shows on coarse pointers, where the finger hides the knob, and on fine pointers when the
   slider has no readout beside it. It is clamped inside the viewport.
@@ -281,9 +289,11 @@ uses the `ui/Popover` primitive, the same as every popover (Q-9).
 
 - **Dot:** 18 px fine, 22 px coarse, in a 32 / 44 target. Content colour with a 1 px inner ring
   (white 0.55 in dark, ink 0.55 in light) so black reads on dark glass and white on light glass.
-- **Selected:** the dot shrinks to 14 / 18 px inside a 2 px ring of the same colour, with a 2 px
-  gap (the GoodNotes and Apple form). The colour itself shows selection, and it is never lime.
-  `prefers-contrast: more` adds an n12 outer ring.
+- **Selected:** the dot shrinks to 14 / 18 px inside a 2 px ring in the primary text colour (n12),
+  with a 2 px gap: the armed pen's ring in the palette's pen well, so the tool row and the strip
+  mark a chosen colour alike, never lime. (Owner feedback F3, 2026-10: a ring of the colour itself
+  left black on dark glass as an empty grey circle beside the colour well.)
+  `prefers-contrast: more` adds an outer ring.
 - **Hover:** the dot grows 1.08 (`--spring-snappy`); press 0.94.
 - **⊘ No fill:** a white dot with a red diagonal, named "No fill" / "Dolgu yok".
 - **Accessibility:** a `radio` named by colour inside a `radiogroup`. The selected ring passes
