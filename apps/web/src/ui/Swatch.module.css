@@ -1,6 +1,7 @@
 /*
  * Swatch and SwatchGroup (10-ink.md §5). Geometry, fine / coarse: target 32 / 44, dot 18 / 22;
- * selected: dot 14 / 18 inside a 2 px ring of the colour with a 2 px gap (ring 22 / 26).
+ * selected: dot 14 / 18 inside a 2 px ring in the primary text colour with a 2 px gap (ring
+ * 22 / 26), the armed pen's ring in the palette's pen well (owner feedback F3).
  * The dot and the ring are centred by grid, so every size is a whole pixel on a whole-pixel
  * centre. Colour comes only from the content (`--swatch`); forced colours keep it.
  */
@@ -71,7 +72,7 @@
   width: var(--sw-ring-size);
   height: var(--sw-ring-size);
   border: var(--sw-ring) solid;
-  border-color: var(--swatch, transparent);
+  border-color: var(--sw-strong);
   border-radius: 50%;
   opacity: 0;
   transform: scale(0.88);
@@ -95,22 +96,13 @@
   box-shadow: inset 0 0 0 1px var(--sw-contrast);
 }
 
-.swatch[data-ring-dark][data-checked] .ring {
-  box-shadow: 0 0 0 1px var(--sw-contrast);
-}
-
 /* Light theme: the light-theme rule replaces the dark one. */
-:global([data-theme='light']) .swatch .dot,
-:global([data-theme='light']) .swatch[data-checked] .ring {
+:global([data-theme='light']) .swatch .dot {
   box-shadow: none;
 }
 
 :global([data-theme='light']) .swatch[data-ring-light] .dot {
   box-shadow: inset 0 0 0 1px var(--sw-contrast);
-}
-
-:global([data-theme='light']) .swatch[data-ring-light][data-checked] .ring {
-  box-shadow: 0 0 0 1px var(--sw-contrast);
 }
 
 /* No fill: a white dot with a red diagonal (the ⊘ form). */
@@ -125,10 +117,6 @@
     ),
     #ffffff;
   box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.35);
-}
-
-.swatch[data-none][data-checked] .ring {
-  border-color: var(--sw-strong);
 }
 
 @media (hover: hover) {

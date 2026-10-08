@@ -194,6 +194,32 @@ describe('Slider', () => {
     expect(value()).toBe(1);
   });
 
+  it('draws every knob as clear glass over a copy of its track, the width knob too', () => {
+    render(
+      <Slider
+        value={1.5}
+        min={0.25}
+        max={24}
+        scale="log"
+        track="taper"
+        knobColor="#1A1A1A"
+        label="Width"
+        bubble="never"
+      />,
+    );
+    const g = geometry();
+    const knob = g.thumb.querySelector<HTMLElement>('[class*="knob"]')!;
+    // Clear glass, never the opaque white disc (owner feedback F3).
+    expect(getComputedStyle(knob).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    // No backdrop filter on a moving part (Q-5): the lens is a copy of the track.
+    expect(getComputedStyle(knob).backdropFilter).toBe('none');
+    const lens = knob.querySelector<HTMLElement>('[class*="lens"]')!;
+    expect(getComputedStyle(lens).display).toBe('block');
+    expect(lens.querySelector('svg[data-taper]')).not.toBeNull();
+    // The ink dot stays above the lens.
+    expect(knob.lastElementChild?.className).toMatch(/swatch/);
+  });
+
   it('turns the held knob into a lens, and not with reduced motion', async () => {
     render(<Controlled initial={40} min={0} max={100} label="Size" />);
     let g = geometry();
