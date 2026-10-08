@@ -216,7 +216,11 @@ test.describe('the full edition', () => {
     await page.keyboard.press('3');
     await expect(page.getByTestId('light-table')).toBeVisible();
     await run.audit('Pages grid');
-    await page.getByTestId('light-table').getByRole('gridcell').nth(1).click();
+    await page
+      .getByTestId('light-table')
+      .getByRole('gridcell')
+      .nth(1)
+      .click({ modifiers: ['ControlOrMeta'] });
     await expect(page.getByTestId('pages-bar')).toContainText('1 selected');
     await page.mouse.move(2, 450);
     await run.audit('Pages grid, a page selected');
@@ -244,7 +248,10 @@ test.describe('the full edition', () => {
     // The toast stack (D0-5): "Deleted page 2 · Undo" under a failure toast, each a
     // `[data-bar="toast"]`, the Undo toast hovered so its ✕ shows too. Last, so every state
     // above sees the document unchanged.
-    await page.locator('[role="gridcell"][data-page-id]').nth(1).click();
+    await page
+      .locator('[role="gridcell"][data-page-id]')
+      .nth(1)
+      .click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('Delete');
     const chooser = page.waitForEvent('filechooser');
     await page

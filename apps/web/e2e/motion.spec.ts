@@ -586,7 +586,7 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await page.keyboard.press('3');
     const cells = page.locator('[role="gridcell"][data-page-id]');
     await expect(cells).toHaveCount(3);
-    await cells.nth(1).click();
+    await cells.nth(1).click({ modifiers: ['ControlOrMeta'] });
     await settleAnimations(page);
     const toast = '[data-region="toasts"] [data-toast-id]';
     const dismissing = interruptMidway(page, toast, {
@@ -686,12 +686,12 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await page.keyboard.press('3');
     const cells = page.locator('[role="gridcell"][data-page-id]');
     await expect(cells).toHaveCount(3);
-    await cells.nth(1).click();
+    await cells.nth(1).click({ modifiers: ['ControlOrMeta'] });
     await page.mouse.move(2, 450);
     await page.keyboard.press('Delete');
     await expect(region.getByRole('group')).toHaveCount(2);
     await page.waitForTimeout(150);
-    await cells.nth(0).click();
+    await cells.nth(0).click({ modifiers: ['ControlOrMeta'] });
     await page.mouse.move(2, 450);
     await page.keyboard.press('Delete');
     await expect(region.getByRole('group')).toHaveCount(3);
@@ -926,7 +926,7 @@ async function tour(page: Page, o: { readonly door: boolean }): Promise<void> {
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');
   await expect(cells.first()).toBeVisible();
-  await cells.nth(1).click();
+  await cells.nth(1).click({ modifiers: ['ControlOrMeta'] });
   await page.mouse.move(2, 450);
   await page.keyboard.press('Delete');
   await expect(page.locator('[data-region="toasts"] [data-toast-id]')).toHaveCount(1);

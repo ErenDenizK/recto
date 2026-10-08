@@ -4,11 +4,13 @@
  * re-renders only the affected cells); selection, drag and clipboard state come from per-cell
  * store selectors for the same reason.
  *
- * - **Marks** (§2.2, as the V2 review settled them): the page that was current on the page view
- *   has its label at 600 and a 1 px neutral ring 3 px out (`aria-current="page"`); a selected
- *   page a light `--select` wash with a 2 px edge and a check badge, top trailing, never colour
- *   alone (A-19); both when both hold. The focus ring takes the gap form outside them, on
- *   keyboard focus only, and the current ring steps aside under it (ArrangeView.module.css).
+ * - **Marks** (§2.2; owner feedback F4): the page that was current on the page view has its
+ *   label at 600 and a 1 px neutral ring 3 px out (`aria-current="page"`); a selected page a
+ *   2 px `--select` ring 2 px out and a filled check badge inside the thumbnail's top-trailing
+ *   corner, never colour alone (A-19), and no wash over the page. In selection mode every other
+ *   cell shows the empty check circle in that place, and a fine pointer's hover shows it outside
+ *   the mode, where a click on it starts selecting (ArrangeView.tsx). The focus ring takes the
+ *   gap form outside the cell, on keyboard focus only (ArrangeView.module.css).
  * - **No hover actions** (06.10, baseline V10): their 20 px rotate and delete failed touch and
  *   A-15; the Pages bar and the cell menu carry them.
  * - The mouse drags on the native path (`dnd/page-drag.ts`); touch and pen on the grid's
@@ -33,6 +35,7 @@ import { rotationPhrase } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
 import { changeRefusal, refusalReason } from '../state/guard';
 import { useSelectionStore } from '../state/selection-store';
+import { CheckBadge } from '../ui/CheckBadge';
 import { Icon } from '../ui/Icon';
 import styles from './ArrangeView.module.css';
 import { showGridLockNotice } from './grid/grid-lock-notice';
@@ -222,11 +225,9 @@ function PageCellInner({
               priority={visible ? RENDER_PRIORITY.visible : RENDER_PRIORITY.offscreen}
             />
           </ResizedContent>
-          {selected ? (
-            <span className={styles.check} aria-hidden="true">
-              <Icon name="check" />
-            </span>
-          ) : null}
+          {/* The check circle (§2.2): empty, or filled when selected; the cell carries the state
+              (`aria-selected`), and Space is its key. */}
+          <CheckBadge checked={selected} className={styles.check} data-select-toggle="" />
         </div>
       </div>
       <div className={styles.meta} aria-hidden="true">

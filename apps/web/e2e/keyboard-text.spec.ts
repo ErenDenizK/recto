@@ -125,7 +125,10 @@ test.describe('the places, by key', () => {
 
     // In the grid, with a page selected: R neither rotates nor arms (flows §7.3).
     await page.keyboard.press('3');
-    await grid(page).getByRole('gridcell').first().click();
+    await grid(page)
+      .getByRole('gridcell')
+      .first()
+      .click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('r');
     await page.waitForTimeout(300);
     await expect(grid(page)).toBeVisible();

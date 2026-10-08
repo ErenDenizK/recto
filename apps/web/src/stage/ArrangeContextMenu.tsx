@@ -3,8 +3,10 @@
  * document", the clipboard (cut / copy / paste) and selection helpers: select all from this
  * source, odd / even pages, reverse selection order.
  *
- * Right-clicking an unselected page selects it first (the table does that before the menu
- * opens), so every item acts on the selection.
+ * In selection mode, right-clicking an unselected page selects it first (the table does that
+ * before the menu opens), so every item acts on the selection; outside it the page is focused
+ * and selects nothing, and the items act on that page (`targetPages` takes the focused cell;
+ * PG4 §6, owner feedback F4).
  */
 import { ContextMenu } from '@base-ui/react/context-menu';
 import { type DocumentId, findPageLocation, type PageId } from '@pdf-editor/document-model';

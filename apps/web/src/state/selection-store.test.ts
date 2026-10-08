@@ -5,6 +5,7 @@ import {
   clickSelection,
   EMPTY_SELECTION,
   extendSelection,
+  gridSelecting,
   marqueeSelection,
   moveFocusIndex,
   navigatorClick,
@@ -16,6 +17,7 @@ import {
   selectAllOf,
   type SelectionSnapshot,
   toggleSelection,
+  useSelectionStore,
   visibleSelection,
 } from './selection-store';
 
@@ -178,5 +180,27 @@ describe('navigator safety (S10)', () => {
     expect(visibleSelection(new Set(), shown)).toEqual([]);
     // In the list's page order; `b` belongs to a document the list does not show.
     expect(visibleSelection(selected, shown)).toEqual([c, a]);
+  });
+});
+
+describe('the Pages grid selection mode (PG4 §6, the Photos model)', () => {
+  const one = new Set([pageId('p1')]);
+
+  it('is on while anything is selected, or while Select holds it with nothing selected', () => {
+    expect(gridSelecting({ selected: new Set(), selecting: false })).toBe(false);
+    expect(gridSelecting({ selected: one, selecting: false })).toBe(true);
+    expect(gridSelecting({ selected: new Set(), selecting: true })).toBe(true);
+  });
+
+  it('Done and Esc clear the selection and end Select', () => {
+    const store = useSelectionStore.getState();
+    store.apply({ selected: one, anchor: pageId('p1'), focused: pageId('p1') });
+    store.setSelecting(true);
+    useSelectionStore.getState().endSelecting();
+    const after = useSelectionStore.getState();
+    expect(after.selected.size).toBe(0);
+    expect(after.selecting).toBe(false);
+    // The keyboard focus stays where it was.
+    expect(after.focused).toBe(pageId('p1'));
   });
 });

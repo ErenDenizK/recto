@@ -108,8 +108,11 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   const cells = page.locator('[role="gridcell"][data-page-id]');
   await expect(cells).toHaveCount(3);
   for (let i = 0; i < 22; i++) {
-    await cells.nth(i % 2).click();
+    // One page at a time: Mod-click selects it (a plain click opens it, PG4 §6), Esc ends the
+    // selection before the next.
+    await cells.nth(i % 2).click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('Shift+R');
+    await page.keyboard.press('Escape');
   }
   // Opened and 22 rotations (the scrubber leaves out the empty start).
   await inHistory(page, (list) => expect(steps(list)).toHaveCount(23));
@@ -273,7 +276,7 @@ test('a closed document reopens from Recents with its change and no file picker'
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');
   await expect(cells).toHaveCount(3);
-  await cells.nth(1).click();
+  await cells.nth(1).click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Delete');
   await expect(cells).toHaveCount(2);
   await waitForSnapshot(page);
@@ -307,7 +310,7 @@ test('Clear in the privacy popover deletes every snapshot, for good', async ({
   await openFixtures(page, ['simple-text.pdf', 'rotated-pages.pdf']);
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');
-  await cells.first().click();
+  await cells.first().click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Shift+R');
   await waitForSnapshot(page);
   // One closed document kept for Recents, one open.
@@ -343,7 +346,7 @@ test('the compact edition restores a document edited in the full one and offers 
   await openFixtures(page, ['simple-text.pdf']);
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');
-  await cells.nth(1).click();
+  await cells.nth(1).click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Delete');
   await expect(cells).toHaveCount(2);
   await waitForSnapshot(page);

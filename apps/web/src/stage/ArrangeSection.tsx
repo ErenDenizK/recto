@@ -1,10 +1,16 @@
 /**
- * One Pages grid section (`components/06-navigation.md` PG3): in All open a header (title,
- * page count, source colour tags, honesty badges, collapse toggle, section menu), and a
- * `role="grid"` of the rows the virtualizer currently shows. In This document the grid header
- * stands for the section's (PG2), so it has none. The header stays in flow on the canvas and
- * sticks to the scroller's top: no glass, so no third frosted band under the strip and the
- * grid header (PG3 Issue 8).
+ * One Pages grid section (`components/06-navigation.md` PG3): in All open a header (collapse
+ * toggle, source colour tags, title, page count, the honesty badges that change what a page
+ * operation does, section menu), and a `role="grid"` of the rows the virtualizer currently
+ * shows. In This document the strip's title stands for the section's (PG2), so it has none.
+ * The header stays in flow on the canvas and sticks below the strip's pieces: no glass, so no
+ * frosted band under the strip (PG3 Issue 8); while it sticks, the canvas fills the room above
+ * it, so no sliver of cells shows between it and the pieces (owner feedback F4).
+ *
+ * The header is quiet (owner feedback F4, "Better UI"): the name and its count, and a badge
+ * only for what a page operation must respect (encrypted, repaired, XFA, signed), drawn as a
+ * system tag (a filled capsule, no outline). A form and a structure tree are facts about the
+ * file, not about its pages: the Document info sheet lists them (`DocumentFacts`).
  *
  * The section element is a drop target for page drags, tab drags and OS files; the table
  * computes the insertion gap from pointer coordinates (dnd/geometry.ts), so targets carry
@@ -56,6 +62,14 @@ import { startRename } from './section-operations';
 
 /** DOM attribute that tells the shell's window-wide file drop to leave a drop alone. */
 export const FILE_DROP_ZONE_ATTRIBUTE = 'data-file-drop-zone';
+
+/** The honesty badges a section header shows: the facts a page operation must respect. */
+const SECTION_BADGES: ReadonlySet<string> = new Set([
+  'encrypted',
+  'repaired',
+  'hasXfa',
+  'hasSignatures',
+]);
 
 export function sectionDomId(documentId: DocumentId, part: 'title' | 'grid' | 'menu'): string {
   return `arrange-${part}-${documentId}`;
@@ -137,6 +151,7 @@ export function ArrangeSection({
       aria-labelledby={section.header ? sectionDomId(documentId, 'title') : undefined}
       aria-label={section.header ? undefined : doc.title}
       data-section-id={documentId}
+      data-headed={section.header || undefined}
       data-drop-outline={outlined || undefined}
       {...{ [FILE_DROP_ZONE_ATTRIBUTE]: '' }}
     >
@@ -295,8 +310,10 @@ function SectionHeader({
     (s) => s.renaming?.documentId === doc.id && s.renaming.surface === 'section',
   );
   const sources = documentSources(doc);
-  const badges = SOURCE_BADGES.filter((badge) =>
-    sources.some((id) => ws.sources[id]?.flags[badge.flag] === true),
+  const badges = SOURCE_BADGES.filter(
+    (badge) =>
+      SECTION_BADGES.has(badge.flag) &&
+      sources.some((id) => ws.sources[id]?.flags[badge.flag] === true),
   );
   const toggle = () => {
     setCollapsed(doc.id, !collapsed);
@@ -323,6 +340,22 @@ function SectionHeader({
       >
         <Icon name="caret-down" />
       </button>
+      <span className={styles.sectionTags}>
+        {sources.map((id) => {
+          const file = files[id];
+          const name = file?.name ?? ws.sources[id]?.name ?? m.unknown_file();
+          return (
+            <span
+              key={id}
+              className={styles.sectionTag}
+              data-tag={file?.colorIndex ?? 0}
+              title={name}
+              role="img"
+              aria-label={m.section_pages_from({ name })}
+            />
+          );
+        })}
+      </span>
       {renaming ? (
         <InlineTitleEditor
           documentId={doc.id}
@@ -344,22 +377,6 @@ function SectionHeader({
           {doc.title}
         </h2>
       )}
-      <span className={styles.sectionTags}>
-        {sources.map((id) => {
-          const file = files[id];
-          const name = file?.name ?? ws.sources[id]?.name ?? m.unknown_file();
-          return (
-            <span
-              key={id}
-              className={styles.sectionTag}
-              data-tag={file?.colorIndex ?? 0}
-              title={name}
-              role="img"
-              aria-label={m.section_pages_from({ name })}
-            />
-          );
-        })}
-      </span>
       <span className={styles.sectionCount}>{pagesPhrase(doc.pages.length)}</span>
       {badges.length > 0 ? (
         <span className={styles.badges}>

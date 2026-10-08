@@ -69,7 +69,8 @@ describe('engine integration', () => {
     await openDocuments([await fixtureFile()]);
     useUiStore.getState().showSurface('grid');
     const cells = await screen.findAllByRole('gridcell');
-    await userEvent.click(cells[1]!);
+    // A plain click opens the page (PG4 §6); Mod-click selects.
+    await userEvent.click(cells[1]!, { modifiers: ['ControlOrMeta'] });
     expect(cells[1]).toHaveAttribute('aria-selected', 'true');
 
     // Shift+R rotates; R alone is the Rectangle (key map v2, flows §7.2).

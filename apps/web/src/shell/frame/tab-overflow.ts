@@ -53,3 +53,16 @@ export function splitTabs<T>(tabs: readonly T[], active: number, capacity: numbe
     overflow: [...tabs.slice(0, start), ...tabs.slice(start + shown)],
   };
 }
+
+/**
+ * A name's distinguishing ending (owner feedback F4): a trailing parenthetical, "(extract)",
+ * "(2)", or number, " 2", of at most 16 characters, which stays while the rest of the name
+ * truncates (the strip draws the space between them). Null when the name has none, or when
+ * nothing would be left before it.
+ */
+export function nameEnding(title: string): { head: string; tail: string } | null {
+  const match = /^(.*?\S)(\s*\([^()]{1,14}\)|\s+\d{1,4})$/u.exec(title);
+  if (!match) return null;
+  const [, head = '', tail = ''] = match;
+  return { head, tail: tail.trim() };
+}
