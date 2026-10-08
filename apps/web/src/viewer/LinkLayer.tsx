@@ -191,11 +191,15 @@ function selectPastSlop(event: ReactPointerEvent<HTMLElement>): void {
     e.preventDefault();
     e.stopPropagation();
   };
-  const end = (e: PointerEvent) => {
-    if (e.pointerId !== pointerId) return;
+  // Whichever of these the engine delivers first ends the press: WebKit has been seen not to
+  // deliver `pointerup` to the window once a selection drag began, which left `data-selecting`
+  // (and the hotspots without pointer events) on. Captured, so nothing stops them on the way.
+  const ENDS = ['pointerup', 'pointercancel', 'mouseup', 'dragend'] as const;
+  const capture = { capture: true } as const;
+  const end = (e: Event) => {
+    if (e instanceof PointerEvent && e.pointerId !== pointerId) return;
     window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', end);
-    window.removeEventListener('pointercancel', end);
+    for (const type of ENDS) window.removeEventListener(type, end, capture);
     if (layer?.dataset.selecting === undefined) return;
     // The click of this press (it lands on the hotspot) does not follow the link.
     hotspot.addEventListener('click', swallow, { capture: true, once: true });
@@ -205,8 +209,7 @@ function selectPastSlop(event: ReactPointerEvent<HTMLElement>): void {
     });
   };
   window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', end);
-  window.addEventListener('pointercancel', end);
+  for (const type of ENDS) window.addEventListener(type, end, capture);
 }
 
 function UriHotspot({
