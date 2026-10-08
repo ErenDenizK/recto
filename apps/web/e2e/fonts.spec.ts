@@ -104,8 +104,16 @@ test('the chrome is set in the shipped face, from this origin, preloaded once', 
     }
   });
   await coldLoad(page, 'tr');
-  const latin = fonts.filter((path) => path.endsWith('/fonts/inter-recto-latin.woff2'));
-  expect(latin, fonts.join('\n')).toHaveLength(1);
+  // Fetched once: counted as the page's own resource timing, not as `request` events. WebKit
+  // reports the face's use of the preloaded file as a second request although it is served from
+  // the memory cache; a second fetch would have a second timing entry.
+  const latin = await page.evaluate(
+    () =>
+      performance
+        .getEntriesByType('resource')
+        .filter((e) => new URL(e.name).pathname.endsWith('/fonts/inter-recto-latin.woff2')).length,
+  );
+  expect(latin, fonts.join('\n')).toBe(1);
   expect(fonts.some((path) => path.endsWith('/fonts/inter-recto-latin-ext.woff2'))).toBe(true);
   expect(fonts.filter((path) => /fontsource|jetbrains|inter-latin-wght/i.test(path))).toEqual([]);
   const face = await page.evaluate(() => ({
