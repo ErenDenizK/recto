@@ -40,6 +40,44 @@ What changes here:
   (ADR-0023) until then.
 - **Phases 3 to 5** stand, using the owner's kit.
 
+## The mark: files and usage (2026-10-08)
+
+The owner's R (`logo/recto-mark-source.png`, 1024 × 1024) is traced to vector: two flat
+polygons, the top piece's bowl one smooth curve. Rasterised in Chromium, the trace sits within
+1.5 px of the PNG on every edge (0.07 px on average) and its colours within 1 level of 255. The
+geometry lives once, in `apps/web/src/brand/mark.ts`; everything else is made from it.
+
+| File | What it is | Use it for |
+|---|---|---|
+| `logo/recto-mark.svg` | The mark in the source's 1024 frame, gradient | Press, slides, the About page, anything on a dark ground |
+| `logo/recto-mark-black.svg` | One ink, `#0B0C0E` | Light grounds, print, one-colour reproduction |
+| `logo/recto-mark-white.svg` | One ink, white | Photos and dark grounds where the gradient would compete |
+| `apps/web/public/icons/glyph.svg` | The mark cropped tight; gradient on dark, near-black on light | Favicon, the README |
+| `icons/icon.svg`, `icon-192.png`, `icon-512.png` | The rounded dark tile | Install icon (`any`) |
+| `icons/app-icon.svg`, `icon-maskable-512.png` | The full-bleed tile | Maskable icon |
+| `icons/apple-touch-icon.png` | The full-bleed tile, 180 px, opaque | iOS and iPadOS Home Screen |
+| `public/favicon.ico` | The rounded tile at 16, 32, 48 | Browsers without SVG favicons |
+
+`pnpm --filter @pdf-editor/media-tool app-icons` (`tools/media/lib/app-icons.ts`) writes all of
+them. The in-app mark is `BrandMark` (`apps/web/src/brand/BrandMark.tsx`): the gradient on dark,
+`currentColor` on light (`tone="auto"`), or always one of them.
+
+**Gradient.** Linear, from the bottom left to the top right at 46.75°: mint `#69EAA3` → lime
+`#CBFF5F` at 59 % → yellow lime `#EDFA6D`. In the 1024 frame it runs from (135.6, 912.1) to
+(835.8, 167.8) in user space, so the colours land where the source has them at any size.
+
+**Usage.**
+
+- The gradient needs a dark ground (n1 to n4, or a photo darker than about 20 % luminance). On a
+  light ground use the black mark; the gradient falls under 1.3:1 against white.
+- Clear space: the source frame's margin, about 14 % of the mark's height on every side. Never
+  smaller than 16 px; at 16 to 48 px use the tile (`favicon.ico`) or the glyph, never the mark on
+  a busy ground.
+- Do not recolour the gradient, rotate, outline, add shadows or effects, or set the mark in a
+  box other than the app tile.
+- In the app it appears on the ◆ Library button and the Library's header, and nowhere near a page
+  (§6).
+
 
 ## 0. Summary
 
