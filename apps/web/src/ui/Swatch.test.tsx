@@ -42,7 +42,7 @@ describe('Swatch', () => {
     expect(screen.getByTestId('value').textContent).toBe('#1A1A1A');
   });
 
-  it('shrinks the chosen dot inside a ring of its colour with a gap, in a 32 px target', () => {
+  it('shrinks the chosen dot inside a primary-text ring with a gap, in a 32 px target', () => {
     render(<Row initial="#1760EE" />);
     const blue = screen.getByRole('radio', { name: 'Blue' });
     const red = screen.getByRole('radio', { name: 'Red' });
@@ -50,7 +50,13 @@ describe('Swatch', () => {
     const [ring, dot] = blue.children as unknown as HTMLElement[];
     expect(dot!.getBoundingClientRect().width).toBe(14);
     expect(ring!.getBoundingClientRect().width).toBe(22);
-    expect(getComputedStyle(ring!).borderTopColor).toBe('rgb(23, 96, 238)');
+    // The pen well's armed ring (owner feedback F3), not the colour's own.
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--text-primary)';
+    blue.append(probe);
+    expect(getComputedStyle(ring!).borderTopColor).toBe(getComputedStyle(probe).color);
+    expect(getComputedStyle(ring!).borderTopColor).not.toBe('rgb(23, 96, 238)');
+    probe.remove();
     expect(red.children[1]!.getBoundingClientRect().width).toBe(18);
   });
 
