@@ -438,15 +438,22 @@ test.describe('the capsule morph (Q-6)', () => {
         await frame();
         going = width();
       }
+      const pressed = performance.now();
       press('2');
       await frame();
-      return { start, going, turned: width() };
+      return { start, going, turned: width(), elapsed: performance.now() - pressed };
     });
     // The turn happened mid-morph, neither at the palette's width nor at the dock's.
     expect(reversal.going).toBeLessThan(reversal.start - 1);
     expect(reversal.going).toBeGreaterThan(dockWidth + 1);
-    // The next frame drawn continues from that width rather than jumping to either end.
-    expect(Math.abs(reversal.turned - reversal.going)).toBeLessThan(40);
+    // The next frame drawn continues from that width rather than jumping to either end. The
+    // spring keeps its speed through the turn, so what it travels in that frame grows with the
+    // frame's length (Chromium: 36 px in one 60 Hz frame): 40 px holds for a frame or two, while
+    // a slow one (CI WebKit, software rendering) may legitimately carry it much further, and
+    // then the turn must still be short of a jump across the whole travel.
+    const travel = reversal.start - dockWidth;
+    const moved = Math.abs(reversal.turned - reversal.going);
+    expect(moved).toBeLessThan(reversal.elapsed <= 34 ? 40 : travel / 2);
     await settled(page);
     await expect(page.locator('[data-capsule]')).toHaveAttribute('data-capsule', 'palette');
   });

@@ -150,6 +150,10 @@ test.describe('A-12: jumps land in the free rectangle', () => {
 
         // A Find hit (Mod+F): the current hit in the free rectangle.
         await page.keyboard.press('ControlOrMeta+f');
+        // The field has focus before the typing starts: letters that land on the page are tool
+        // shortcuts (P opens Markup, which hides the pill at the narrow classes), and WebKit
+        // moves focus a frame later than Chromium.
+        await expect(page.locator('input[type="search"]:focus')).toHaveCount(1);
         await page.keyboard.type('Appendix');
         await page.keyboard.press('Enter');
         const hit = page.locator('[data-testid="search-highlights"] [data-current]').first();

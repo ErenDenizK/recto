@@ -94,6 +94,22 @@ async function pageDrawn(page: PageId): Promise<void> {
   }
 }
 
+/**
+ * Resolves once the hidden page view's pages are mounted, or after `PREPARE_MS`. A scroll
+ * request made before the page column mounts (a render after the viewport) is lost: the column
+ * takes the store's latest request as handled when it mounts, so on a slow frame the page
+ * view opened at its top.
+ */
+async function pageViewMounted(): Promise<void> {
+  const end = performance.now() + PREPARE_MS;
+  while (
+    performance.now() < end &&
+    !document.querySelector('[data-read-viewport] [data-page-index]')
+  ) {
+    await nextFrame();
+  }
+}
+
 /** The page to reveal as the grid mounts, if an entrance asked for one (taken once). */
 export function takeGridReveal(): PageId | null {
   const page = reveal;
@@ -355,6 +371,7 @@ export function leaveGrid(options: { readonly page?: PageId } = {}): void {
     void (async () => {
       // The page view mounts (hidden) on the next render; then it scrolls to the page.
       await nextFrame();
+      await pageViewMounted();
       useViewStore.getState().scrollToPage(page);
       await pageDrawn(page);
       await nextFrame();
