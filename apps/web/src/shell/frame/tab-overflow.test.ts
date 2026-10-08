@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { splitTabs, TAB_GAP_FINE, tabCapacity } from './tab-overflow';
+import { nameEnding, splitTabs, TAB_GAP_FINE, tabCapacity } from './tab-overflow';
 
 /** The overflow chip's width in English ("3 more ▾") and Turkish ("3 daha ▾"), about. */
 const CHIP = { en: 92, tr: 88 } as const;
@@ -60,5 +60,28 @@ describe('which tabs show (01-frame F4 §2: the active tab and its neighbours st
     const split = splitTabs(tabs, 4, 0);
     expect(split.visible).toEqual(['e']);
     expect(split.overflow).toEqual(['a', 'b', 'c', 'd', 'f']);
+  });
+});
+
+describe('a tab name keeps its ending when it truncates (owner feedback F4)', () => {
+  it('keeps a trailing parenthetical or number whole', () => {
+    expect(nameEnding('Recto sample (extract)')).toEqual({
+      head: 'Recto sample',
+      tail: '(extract)',
+    });
+    expect(nameEnding('Recto sample (2)')).toEqual({ head: 'Recto sample', tail: '(2)' });
+    expect(nameEnding('Recto örnek belge (ayıklanan)')).toEqual({
+      head: 'Recto örnek belge',
+      tail: '(ayıklanan)',
+    });
+    expect(nameEnding('scan 2')).toEqual({ head: 'scan', tail: '2' });
+  });
+
+  it('cuts at the end when there is no short ending, or nothing before it', () => {
+    expect(nameEnding('report')).toBeNull();
+    expect(nameEnding('Combined – simple-text, rotated-pages')).toBeNull();
+    expect(nameEnding('2024')).toBeNull();
+    expect(nameEnding('(extract)')).toBeNull();
+    expect(nameEnding('notes (a very long remark here)')).toBeNull();
   });
 });

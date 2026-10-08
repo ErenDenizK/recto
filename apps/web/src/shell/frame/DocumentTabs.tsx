@@ -15,6 +15,10 @@
  * - **State:** ● after the name while the changes are not yet in the file (kept on this
  *   device, X13); a lock glyph while locked (the reason is in the tab's name and the title
  *   menu, A-19: never a tint); the signature glyph on signed files; ▾ on the active tab.
+ * - **Names** truncate gracefully (owner feedback F4): a name ending in a parenthetical or a
+ *   number ("report (extract)", "scan 2") keeps that ending and cuts its middle, "report…
+ *   (extract)", so two tabs of one family stay told apart; others end in an ellipsis. In a
+ *   strip short of room (tabs in "N more"), the grid's page count leaves the active tab first.
  * - **Overflow** (01.Q1): the visible tabs are measured against the room the strip leaves;
  *   when they would fall under 112 px (128 coarse), the rest go into "N more ▾"
  *   (`TabOverflow.tsx`, `tab-overflow.ts`).
@@ -45,7 +49,7 @@ import { useCommandShortcut } from '../use-command-shortcut';
 import { useTablistEdges } from '../use-tablist-edges';
 import { openTitleMenu, useFrameStore } from './frame-store';
 import { STAGE_ID, tabDomId } from './ids';
-import { splitTabs, TAB_GAP_FINE, tabCapacity } from './tab-overflow';
+import { nameEnding, splitTabs, TAB_GAP_FINE, tabCapacity } from './tab-overflow';
 import { TabMenu } from './TabMenu';
 import { TabOverflow } from './TabOverflow';
 import styles from './TopStrip.module.css';
@@ -274,8 +278,10 @@ export function DocumentTabs({
                     onMouseDown={(event) => onMouseDown(event, doc.id)}
                   >
                     <span className={styles.tag} data-tag={doc.colorIndex} aria-hidden="true" />
-                    <span className={styles.name}>{doc.title}</span>
-                    {selected && pageCount !== undefined ? (
+                    <TabName title={doc.title} />
+                    {/* The grid's count gives way first when the strip runs short of room
+                        (owner feedback F4): the name is what tells the tabs apart. */}
+                    {selected && pageCount !== undefined && overflow.length === 0 ? (
                       <span
                         className={styles.count}
                         aria-hidden="true"
@@ -338,6 +344,18 @@ export function DocumentTabs({
         <OpenButton />
       </div>
     </div>
+  );
+}
+
+/** The tab's name: one end ellipsis, or a middle cut that keeps its ending (`nameEnding`). */
+function TabName({ title }: { readonly title: string }) {
+  const split = nameEnding(title);
+  if (split === null) return <span className={styles.name}>{title}</span>;
+  return (
+    <span className={styles.nameSplit}>
+      <span className={styles.name}>{split.head}</span>
+      <span className={styles.nameTail}>{split.tail}</span>
+    </span>
   );
 }
 
