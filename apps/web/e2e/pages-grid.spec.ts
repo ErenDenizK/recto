@@ -3,8 +3,11 @@
  * `07-sheets` S15; spec redesign D2-5, §10.3: `light-table.spec.ts` became this spec).
  *
  * - **J4 through the grid in 5 presses** (flows §8.1): mouse, Pages · drag page 5 before 2 ·
- *   click 7 · Delete · Done; touch (`tablet`), Pages · long-press drag 5 before 2 · tap 7 ·
- *   Delete · Done. Each counted press is a `press`.
+ *   Mod-click 7 · Delete · Done; touch (`tablet`), Pages · long-press drag 5 before 2 ·
+ *   long-press 7 · Delete · Done. Each counted press is a `press`.
+ * - **Open or select** (PG4 §6, owner feedback F4: the Photos model): outside selection mode a
+ *   click or a tap opens the page; Select, Mod-click, a long press or the hover check start the
+ *   mode, where a click or a tap toggles; Done ends it.
  * - **Combine with open documents** goes straight into the new document's grid, with one
  *   outcome: the sources stay open and untouched (INV-12); M8's Merge dialog is gone.
  * - **A drop on a tab** after 500 ms moves the pages to that document (F4 §6, PG5).
@@ -176,12 +179,27 @@ test('J4: move page 5 before 2, delete 7 and keep reading, in 5 presses through 
   // Lifting and dropping never select (§2.4).
   await expect(grid(page).locator('[aria-selected="true"]')).toHaveCount(0);
 
-  // Page 7 stays seventh: one click (a tap on touch) selects it.
-  await job.press(cells(page).nth(6));
+  // Page 7 stays seventh: a Mod-click (a long press on touch) selects it; a plain click or tap
+  // would open it (PG4 §6).
+  if (touchy) {
+    job.count();
+    const cdp = await page.context().newCDPSession(page);
+    const at = await centreOf(cells(page).nth(6));
+    await touch(cdp, 'touchStart', [at]);
+    await page.waitForTimeout(600);
+    await touch(cdp, 'touchEnd', []);
+  } else {
+    job.count();
+    await cells(page)
+      .nth(6)
+      .click({ modifiers: ['ControlOrMeta'] });
+  }
   await expect(bar(page)).toContainText('1 selected');
   await job.press(bar(page).getByRole('button', { name: 'Delete' }));
   await expect(cells(page)).toHaveCount(9);
   await expect.poll(() => order(page)).toEqual(moved.filter((_, i) => i !== 6));
+  // The delete took the selection, and selection mode with it: Done leaves the grid.
+  await expect(bar(page).getByRole('button', { name: 'Select' })).toBeVisible();
   await job.press(bar(page).getByRole('button', { name: 'Done' }));
   await expect(grid(page)).toHaveCount(0);
   await expect(page.locator('[data-read-viewport]')).toBeVisible();
@@ -193,7 +211,9 @@ test('Esc clears the selection, then leaves the grid; 3 enters and leaves it too
 }) => {
   await open(page, ['simple-text.pdf']);
   await enterGrid(page);
-  await cells(page).nth(1).click();
+  await cells(page)
+    .nth(1)
+    .click({ modifiers: ['ControlOrMeta'] });
   await expect(bar(page)).toContainText('1 selected');
   await page.keyboard.press('Escape');
   await expect(bar(page)).toContainText('3 pages');
@@ -202,6 +222,71 @@ test('Esc clears the selection, then leaves the grid; 3 enters and leaves it too
   await expect(grid(page)).toHaveCount(0);
   await enterGrid(page);
   await page.keyboard.press('3');
+  await expect(grid(page)).toHaveCount(0);
+});
+
+test('a click opens a page; Select, then clicks toggle; Done ends selecting', async ({ page }) => {
+  await open(page, ['simple-text.pdf']);
+  const touchy = await coarse(page);
+  const press = (target: Locator) => (touchy ? target.tap() : target.click());
+  await enterGrid(page);
+  // At rest the bar has no page acts, and nothing shows a check (owner feedback F4).
+  await expect(bar(page).getByRole('button', { name: 'Delete' })).toHaveCount(0);
+  await expect(grid(page).locator('[data-selecting]')).toHaveCount(0);
+
+  // Select: the circles show, a click or a tap toggles, and the bar shows the acts.
+  await bar(page).getByRole('button', { name: 'Select' }).click();
+  await expect(bar(page)).toContainText('Select pages');
+  await expect(grid(page).locator('[data-selecting]')).toHaveCount(1);
+  await press(cells(page).nth(0));
+  await press(cells(page).nth(2));
+  await expect(bar(page)).toContainText('2 selected');
+  await expect(bar(page).getByRole('button', { name: 'Delete' })).toBeVisible();
+  await expect(cells(page).nth(2)).toHaveAttribute('aria-selected', 'true');
+  await press(cells(page).nth(2));
+  await expect(cells(page).nth(2)).toHaveAttribute('aria-selected', 'false');
+  await expect(bar(page)).toContainText('1 selected');
+
+  // Done ends selecting and stays in the grid.
+  await bar(page).getByRole('button', { name: 'Done' }).click();
+  await expect(bar(page)).toContainText('3 pages');
+  await expect(grid(page).locator('[aria-selected="true"]')).toHaveCount(0);
+  await expect(grid(page)).toBeVisible();
+
+  // Outside selection mode a click or a tap opens the page, on the page view.
+  await settled(page);
+  await press(cells(page).nth(2));
+  await expect(grid(page)).toHaveCount(0);
+  await expect(page.locator('[data-read-viewport] [data-page-index="2"]')).toBeInViewport({
+    ratio: 0.3,
+  });
+});
+
+test('the hover check starts selecting; deselecting the last page ends it', async ({ page }) => {
+  test.skip(await coarse(page), 'a fine pointer hovers');
+  await open(page, ['simple-text.pdf']);
+  await enterGrid(page);
+  const cell = cells(page).nth(1);
+  const check = cell.locator('[data-select-toggle]');
+  await expect(check).toHaveCSS('opacity', '0');
+  await cell.hover();
+  await expect(check).toHaveCSS('opacity', '1');
+  await check.click();
+  await expect(cell).toHaveAttribute('aria-selected', 'true');
+  await expect(bar(page)).toContainText('1 selected');
+  // Its badge sits inside the page's corner, never over its edge (owner feedback F4).
+  const [badge, sheet] = await Promise.all([
+    check.boundingBox(),
+    cell.locator('[data-thumb]').boundingBox(),
+  ]);
+  if (!badge || !sheet) throw new Error('not laid out');
+  expect(badge.x + badge.width).toBeLessThanOrEqual(sheet.x + sheet.width);
+  expect(badge.y).toBeGreaterThanOrEqual(sheet.y);
+  // A click toggles in the mode; the last page deselected ends it, and a click opens again.
+  await cell.click();
+  await expect(bar(page)).toContainText('3 pages');
+  await expect(grid(page).locator('[data-selecting]')).toHaveCount(0);
+  await cell.click();
   await expect(grid(page)).toHaveCount(0);
 });
 
@@ -452,7 +537,9 @@ test('a locked document lifts nothing and says why', async ({ page, browserName 
   await expect(page.getByTestId('grid-lock-notice')).toHaveText('Locked · unlock first');
   expect(await order(page)).toEqual(before);
   // The Pages bar keeps its locked form: what changes nothing, and Unlock.
-  await cells(page).nth(1).click();
+  await cells(page)
+    .nth(1)
+    .click({ modifiers: ['ControlOrMeta'] });
   await expect(bar(page).getByRole('button', { name: 'Unlock' })).toBeVisible();
   await expect(bar(page).getByRole('button', { name: 'Delete' })).toHaveCount(0);
 });

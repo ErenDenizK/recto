@@ -468,7 +468,7 @@ source document, §6.16 lists it; those lines were applied on 2026-10-04.
 |---|---|---|---|
 | 06.1 | Sidebar in the grid | The Pages section hides in the grid and returns after; Contents, Find or Review stay and their jumps focus cells; ▤ stays enabled | A |
 | 06.2 | Arrow keys in the thumbnail list | Navigate the page view (as a click); Space and Shift+arrows select | A |
-| 06.5 | Click and tap in the grid | A click replaces the selection; a tap toggles it | A |
+| 06.5 | Click and tap in the grid | Amended 2026-10-08 (owner feedback F4, the Photos model): outside selection mode a click or a tap opens the page; Select, a long press, Shift- or Mod-click, the hover check or Space start the mode, where a click or a tap toggles; Done or Esc ends it (`06-navigation` PG4 §6) | A |
 | 06.6 | Phone Pages sheet | A tap selects at both detents; double tap opens the page; Contents and Review rows lower the sheet to 40 % | A |
 | 06.9 | Library → Pages with a subset checked | Scope All open with the unchecked sections collapsed; `02-library` L6 matches | A |
 | 06.10 | Hover rotate and delete on cells | Removed (baseline V10); the Pages bar and cell menu cover them | A |

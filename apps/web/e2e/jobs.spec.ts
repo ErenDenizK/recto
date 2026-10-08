@@ -132,7 +132,7 @@ test('J14: a document open when the browser closed is back, with its change, in 
   await page.keyboard.press('3');
   const cells = page.locator('[role="gridcell"][data-page-id]');
   await expect(cells).toHaveCount(3);
-  await cells.nth(1).click();
+  await cells.nth(1).click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Delete');
   await expect(cells).toHaveCount(2);
   await waitForSnapshot(page);

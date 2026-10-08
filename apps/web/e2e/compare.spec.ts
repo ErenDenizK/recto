@@ -147,7 +147,7 @@ test('compare-a against compare-b: the seeded changes, the heat map and the repo
   await page.keyboard.press('3');
   const cell = page.locator('[role="gridcell"][data-page-id]').first();
   await expect(cell).toBeVisible();
-  await cell.click();
+  await cell.click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Shift+R');
   await page.keyboard.press('4');
   await expect(view).toHaveAttribute('data-status', 'done');

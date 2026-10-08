@@ -489,7 +489,8 @@ Grid, large (48 px; 56 coarse)
 ╭────────────────────────────────────────────────────────────────────────────────────╮
 │ ✓ Done │ 3 selected │ ↺ ↻ │ ‹ › │ ⌦ Delete │ Extract │ Duplicate │ Move to ▾ │ ⋯ │
 ╰────────────────────────────────────────────────────────────────────────────────────╯
-Nothing selected: │ ✓ Done │ 12 pages │ Select all │ ⋯ │
+At rest (not selecting): │ ✓ Done │ 12 pages │ ◯ Select │ ⋯ │   (Select all in ⋯)
+Selecting, nothing selected: │ ✓ Done │ Select pages │ Select all │ ⋯ │
 Viewing, sidebar selection: ✕ (clear) replaces ✓ Done; in Markup it rises as a tier above the palette
 Compact (64 px): │ ✓ │ 3 · ↺ ↻ · ‹ › · Delete │ ⋯ │   (Extract, Duplicate, Move to in ⋯)
 Locked: │ ✓ Done │ 3 selected │ Extract │ Copy │ ⊡ Unlock │
@@ -500,14 +501,16 @@ Locked: │ ✓ Done │ 3 selected │ Extract │ Copy │ ⊡ Unlock │
 4. **States.** §2.5; ‹ disabled at the first page ("Already first"), › at the last; Delete dims
    when every page would go ("A document needs one page").
 5. **Copy.** Done · {n} selected · Rotate left · Rotate right · Move earlier · Move later · Delete
-   · Extract · Duplicate · Move to · Select all · ⋯ Insert blank page after · Crop… · Copy ·
-   Paste after / Bitti · {n} seçili · Sola döndür · Sağa döndür · Öne al · Geriye al · Sil · Yeni
-   belgeye · Çoğalt · Taşı · Tümünü seç · Arkasına boş sayfa ekle · Kırp… · Kopyala · Arkasına
+   · Extract · Duplicate · Move to · Select · Select pages · Select all · ⋯ Insert blank page after
+   · Crop… · Copy · Paste after / Bitti · {n} seçili · Seç · Sayfa seçin · Sola döndür · Sağa
+   döndür · Öne al · Geriye al · Sil · Yeni belgeye · Çoğalt · Taşı · Tümünü seç · Arkasına boş sayfa ekle · Kırp… · Kopyala · Arkasına
    yapıştır. Icons `check`, `arrow-counter-clockwise`, `arrow-clockwise`, `caret-left`,
    `caret-right`, `trash`, custom *extract* (fallback `file-arrow-up`), `copy`, `folder-simple`.
 6. **Behaviour.** All `pages` except Extract and Copy (no change; allowed locked). Keys:
    Shift+R, Shift+Alt+R, Alt+arrows, Mod+D, Mod+Shift+E, Delete (F§7.2). Each act is one undo step
-   with a toast for removals ("Deleted 3 pages · Undo"). Done leaves the grid (F§2.1); ✕ clears
+   with a toast for removals ("Deleted 3 pages · Undo"). Done leaves the grid (F§2.1), or,
+   while selecting, ends selection mode and stays (amended 2026-10-08, owner feedback F4: the
+   bar shows the acts only in selection mode, `06` PG4 §6); ✕ clears
    the sidebar selection. Move to ▾ lists the other open documents and "New document" (§14).
 7. **Motion.** *bar morph* from the dock (`clip-path`, chips FLIP with 15 ms stagger); count
    *replace*; RM 120 ms cross-fade.

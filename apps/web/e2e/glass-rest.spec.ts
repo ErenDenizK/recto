@@ -164,7 +164,11 @@ test('a sheet over a document and a toast: six at most while it comes in, four a
   await open(page, 'simple-text.pdf');
   // A toast: "Deleted page 2 · Undo".
   await page.keyboard.press('3');
-  await page.getByTestId('light-table').getByRole('gridcell').nth(1).click();
+  await page
+    .getByTestId('light-table')
+    .getByRole('gridcell')
+    .nth(1)
+    .click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Delete');
   await expect(page.getByRole('group', { name: 'Deleted page 2' })).toBeVisible();
   await page.keyboard.press('2');
@@ -210,7 +214,11 @@ test('the Pages grid with its Pages bar', async ({ page }) => {
   await page.keyboard.press('3');
   await expect(page.getByTestId('light-table')).toBeVisible();
   await expectGlassClean(page, 'Pages grid');
-  await page.getByTestId('light-table').getByRole('gridcell').nth(1).click();
+  await page
+    .getByTestId('light-table')
+    .getByRole('gridcell')
+    .nth(1)
+    .click({ modifiers: ['ControlOrMeta'] });
   await expect(page.getByTestId('pages-bar')).toContainText('1 selected');
   await page.mouse.move(700, 200);
   const walk = await expectGlassClean(page, 'Pages grid, a page selected');

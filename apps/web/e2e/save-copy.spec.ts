@@ -69,11 +69,12 @@ test.describe('the download path', () => {
     await page.keyboard.press('3');
     const cell = page.locator('[role="gridcell"][data-page-id]').first();
     await expect(cell).toBeVisible();
-    await cell.click();
+    await cell.click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('Shift+R');
 
+    // The name alone: in the Pages grid the active tab also shows the page count (PG2).
     const title =
-      (await documentTabs.and(page.getByRole('tab', { selected: true })).textContent())?.trim() ??
+      (await documentTabs.and(page.getByRole('tab', { selected: true })).getAttribute('title')) ??
       '';
     const expected = EXPECTED[title];
     expect(expected, `active tab "${title}"`).toBeDefined();

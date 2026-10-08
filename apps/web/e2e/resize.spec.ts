@@ -118,7 +118,7 @@ test('a rotated, resized page lines up in Read mode: text selects, annotations c
   // Arrange: turn page 1 a quarter, then resize it to A4 (Fit), anchored top-left.
   await page.keyboard.press('3');
   const cell = page.locator('[role="gridcell"][data-page-id]').first();
-  await cell.click();
+  await cell.click({ modifiers: ['ControlOrMeta'] });
   await page.keyboard.press('Shift+R');
   await cell.click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Resize pages…' }).click();
