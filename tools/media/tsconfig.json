@@ -10,6 +10,7 @@
     "lib/**/*.ts",
     "scenes/**/*.ts",
     "../../tooling/*.ts",
-    "../../apps/web/e2e/helpers.ts"
+    "../../apps/web/e2e/helpers.ts",
+    "../../apps/web/src/brand/mark.ts"
   ]
 }

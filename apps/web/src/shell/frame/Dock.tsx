@@ -197,7 +197,7 @@ function DockItems({ locked, doc }: { readonly locked: boolean; readonly doc: Vi
         <>
           <DockButton
             item="markup"
-            icon="pen-nib"
+            icon="marker-circle"
             label={m.dock_markup()}
             shortcut={shortcutOf('mode.edit')}
             keys={keysOf('mode.edit')}

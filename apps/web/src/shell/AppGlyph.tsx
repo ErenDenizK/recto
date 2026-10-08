@@ -1,18 +1,11 @@
 /**
- * Placeholder brand glyph (DESIGN.md §6): one path, no gradient, legible at 16px.
- * A page with a folded corner, drawn as one path of two subpaths. Kept in sync with
- * `public/icons/glyph.svg` and `public/icons/app-icon.svg`.
- *
- * The strip's ◆ Library button draws it (`frame/LibraryButton.tsx`, 01-frame F3), as do the
- * compact edition and Settings, until the owner's mark replaces it (D4-8).
+ * The brand glyph in one ink (DESIGN.md §6; docs/brand/README.md "The mark: files and usage"):
+ * the owner's R mark in `currentColor`, for the compact edition and Settings, where it takes
+ * its row's ink. The ◆ Library button and the Library header draw `BrandMark` in its `auto` tone
+ * (the gradient on dark) instead.
  */
-export const GLYPH_PATH =
-  'M6 2.5h7v5.5a2 2 0 0 0 2 2h5.5v9.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2ZM14.75 2.5 20.5 8.25h-4.75a1 1 0 0 1-1-1Z';
+import { BrandMark } from '../brand/BrandMark';
 
 export function AppGlyph({ size = 16 }: { readonly size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d={GLYPH_PATH} fill="currentColor" fillRule="evenodd" />
-    </svg>
-  );
+  return <BrandMark size={size} tone="mono" />;
 }

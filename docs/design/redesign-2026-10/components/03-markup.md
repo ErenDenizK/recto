@@ -739,7 +739,7 @@ editor built from it). Strings and behaviour rules below stay.*
 4. **States.** Shown once per device (`input-policy-store.penHintShown`); never when locked.
 5. **Content.** "Writing? Tap Markup, or let the pen write anywhere in Settings." / "Yazmak mı
    istiyorsunuz? İşaretle'ye dokunun ya da Ayarlar'dan kalemin her yerde yazmasına izin verin.";
-   "Settings" / "Ayarlar"; "Got it" / "Anladım"; glyph `pen-nib`.
+   "Settings" / "Ayarlar"; "Got it" / "Anladım"; glyph `marker-circle` (Markup's).
 6. **Behaviour.** Appears on the first pen pointerdown on a page in viewing (`pointerType ===
    'pen'`, `maxTouchPoints > 0`); the pen still selects text as a mouse. Stays until dismissed or
    Markup opens; never takes focus. Settings opens Settings at Pen and touch.

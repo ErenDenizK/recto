@@ -151,8 +151,18 @@ export default defineConfig({
         // before the first paint by public/theme.js) take over in browsers that honour them.
         theme_color: '#08090c',
         background_color: '#08090c',
+        // The Recto mark on its dark tile (docs/brand/README.md, brand plan §5.1; written by
+        // tools/media `app-icons`): the rounded tile as `any`, the full-bleed tile as `maskable`.
         icons: [
-          { src: 'icons/glyph.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          {
+            src: 'icons/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
           {
             src: 'icons/app-icon.svg',
             sizes: 'any',
