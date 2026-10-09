@@ -1119,8 +1119,7 @@ export type TextTier2Refusal =
   | 'ambiguous-encoding'
   | 'clipped';
 
-/** Shrink-to-fit floor (spec §2.5): the replacement may shrink to 75% of the run's size. */
-export const TEXT_EDIT_SHRINK_FLOOR = 0.75;
+export { TEXT_EDIT_SHRINK_FLOOR } from './constants';
 
 /** Width of the replacement in one tier's font against the free space. */
 export interface TextFitOption {
@@ -1762,6 +1761,55 @@ export interface VerifyRedactedOutputOptions extends EngineCallOptions {
 }
 
 /**
+ * One act a save receipt reports on (docs/plan/v1/PLAN.md E13-c): an Apply redactions, with
+ * the areas it removed and the text it took out, searched for in the saved file.
+ */
+export interface SaveReceiptAct {
+  readonly kind: 'redaction';
+  /** Areas the act removed on the saved pages. */
+  readonly areas: number;
+  /** The redacted strings (`RedactionPlan.strings`). Never part of the receipt itself. */
+  readonly terms: readonly string[];
+}
+
+/** What the search of the saved file found for one act. Counts only, never the text. */
+export interface SaveReceiptActResult {
+  readonly kind: SaveReceiptAct['kind'];
+  readonly areas: number;
+  /** Distinct strings searched for. */
+  readonly termsSearched: number;
+  /** Matches of those strings left in the saved file: the receipt's promise is 0. */
+  readonly matches: number;
+  /** Saved pages (0-based) with a match, ascending. */
+  readonly matchPages: readonly number[];
+}
+
+/**
+ * The receipt of one save (E13-c, for the receipt UI E13-u): "3 areas removed · searched the
+ * saved file: 0 matches remain". Computed on the exact bytes saved, by PDFium.
+ */
+export interface SaveReceipt {
+  /** One entry per act, in the order given. */
+  readonly acts: readonly SaveReceiptActResult[];
+  /** Areas removed over every act. */
+  readonly areasRemoved: number;
+  /** Distinct strings searched for over every act. */
+  readonly termsSearched: number;
+  /** Matches left over every act (a string shared by two acts counts once). */
+  readonly matchesRemain: number;
+  /** Pages of the saved file that were searched (0 when there was nothing to search). */
+  readonly pagesSearched: number;
+  /** Size of the saved file, bytes. */
+  readonly bytes: number;
+}
+
+/** Options of `PdfRedactor.computeSaveReceipt`. */
+export interface SaveReceiptOptions extends EngineCallOptions {
+  /** User password of an encrypted output. */
+  readonly password?: string;
+}
+
+/**
  * Redaction on the hosted engine (ADR-0011 §3), exposed across the worker by `PdfiumProxy`.
  * Named apart from `PdfEditor.applyRedactions` (which applies /Redact annotations in place,
  * without the scrub or the self-check).
@@ -1788,6 +1836,16 @@ export interface PdfRedactor {
     plans: readonly RedactionPlan[],
     options?: VerifyRedactedOutputOptions,
   ): Promise<ForensicReport>;
+  /**
+   * The save receipt (`computeSaveReceipt`, redaction/receipt.ts) of `bytes`, opened in a
+   * scratch document with `options.password`; `bytes` is not opened when no act has a string
+   * to search for.
+   */
+  computeSaveReceipt(
+    bytes: ArrayBuffer,
+    acts: readonly SaveReceiptAct[],
+    options?: SaveReceiptOptions,
+  ): Promise<SaveReceipt>;
 }
 
 // ---------------------------------------------------------------------------

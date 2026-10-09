@@ -8,12 +8,14 @@
  *   window, storage refused) it says reloading closes them (FB4 issue 9).
  * - Update checks run on window focus (throttled) in addition to the browser's own checks.
  * - Once the app shell is cached, the engine wasm is fetched in idle time so the runtime
- *   cache holds it (CacheFirst) and the first offline session can open files. Skipped
- *   when the user asked the browser to save data.
+ *   cache holds it (CacheFirst) and the first offline session can open files: PDFium first,
+ *   then qpdf (Compress, Save repaired copy), so those jobs work offline too (PF-17, V1-F15).
+ *   Skipped when the user asked the browser to save data.
  *
  * Status feeds the privacy popover; nothing here contacts another origin.
  */
 import wasmUrl from '@embedpdf/pdfium/pdfium.wasm?url';
+import qpdfWasmUrl from '@pdf-editor/engine/qpdf.wasm?url';
 import { registerSW } from 'virtual:pwa-register';
 import { create } from 'zustand';
 
@@ -92,7 +94,8 @@ function whenControlled(): Promise<void> {
 }
 
 /**
- * Fetches the engine wasm through the service worker so it lands in the runtime cache.
+ * Fetches the engine wasm (PDFium, then qpdf) through the service worker so it lands in the
+ * runtime cache.
  * "Offline ready" can fire before the new worker has claimed the page; a fetch made then
  * bypasses the worker and caches nothing, so wait for control first.
  */
@@ -100,8 +103,11 @@ function warmEngineCache(): void {
   if (saveData()) return;
   const run = () => {
     void whenControlled()
-      .then(() => fetch(wasmUrl, { credentials: 'same-origin' }))
-      .then((response) => response.arrayBuffer())
+      .then(async () => {
+        for (const url of [wasmUrl, qpdfWasmUrl]) {
+          await (await fetch(url, { credentials: 'same-origin' })).arrayBuffer();
+        }
+      })
       .catch(() => {
         // Offline or evicted: the engine fetches it on first use instead.
       });

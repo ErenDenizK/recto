@@ -53,6 +53,7 @@ import { scrubMetadata } from './scrub-metadata';
 import { scrubStrings } from './scrub-strings';
 import { pruneStructure } from './scrub-structure';
 import { RedactedStringMatcher } from './strings';
+import { PDFLIB_LOAD_TICKS, PDFLIB_SAVE_TICKS } from '../pdflib/ticks';
 
 /** Scrub steps; `ScrubOptions.skip` exists to prove the forensic check catches each one. */
 export type ScrubStep =
@@ -105,6 +106,7 @@ export async function scrubRedactedDocument(
   let doc: PDFDocument;
   try {
     doc = await PDFDocument.load(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), {
+      ...PDFLIB_LOAD_TICKS,
       updateMetadata: false,
     });
   } catch (cause) {
@@ -220,6 +222,7 @@ export async function scrubRedactedDocument(
   const id = PDFHexString.fromBytes(crypto.getRandomValues(new Uint8Array(16)));
   context.trailerInfo.ID = context.obj([id, id]);
   const out = await doc.save({
+    ...PDFLIB_SAVE_TICKS,
     useObjectStreams: true,
     updateFieldAppearances: false,
     addDefaultPage: false,
@@ -267,6 +270,7 @@ export async function fillRedactionAreas(
   plan: RedactionPlan,
 ): Promise<{ bytes: ArrayBuffer; warnings: string[] }> {
   const doc = await PDFDocument.load(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), {
+    ...PDFLIB_LOAD_TICKS,
     updateMetadata: false,
   });
   const warnings: string[] = [];
@@ -290,6 +294,7 @@ export async function fillRedactionAreas(
   await doc.flush();
   dropUnreachable(doc);
   const out = await doc.save({
+    ...PDFLIB_SAVE_TICKS,
     useObjectStreams: true,
     updateFieldAppearances: false,
     addDefaultPage: false,

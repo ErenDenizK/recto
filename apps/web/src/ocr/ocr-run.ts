@@ -33,6 +33,7 @@ import {
   type OcrLayerPlan,
   type OcrPageResult,
   type OcrRecognizer,
+  ocrPoolSize,
   ocrReportOf,
   type PdfOcrLayer,
 } from '@pdf-editor/engine';
@@ -56,8 +57,8 @@ import { useWorkspaceStore } from '../state/workspace-store';
 import { factsOf, languageList, type OcrTarget, replaceModeFor } from './ocr-model';
 import type { OcrPhase, OcrRunRequest, OcrRunResult } from './ocr-store';
 
-/** Pages recognised at once (the recognizer pool has one or two workers). */
-const LANES = 2;
+/** Pages recognised at once: one per recognizer in the pool (PF-10, `ocrPoolSize`). */
+const LANES = ocrPoolSize();
 
 /** Times the pages that changed during the run are recognised again. */
 export const RECHECKS = 2;

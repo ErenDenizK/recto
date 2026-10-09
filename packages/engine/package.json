@@ -39,6 +39,10 @@
       "types": "./src/annotations/ink-outline.ts",
       "import": "./src/annotations/ink-outline.ts"
     },
+    "./constants": {
+      "types": "./src/constants.ts",
+      "import": "./src/constants.ts"
+    },
     "./fonts": {
       "types": "./src/fonts/index.ts",
       "import": "./src/fonts/index.ts"
