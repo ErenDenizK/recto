@@ -1,0 +1,35 @@
+/* The Unlock popover (04-context §19; D1-4a): the popover recipe at 320 px (ui/Popover), the
+   reason's glyph leading the title (A-19: glyph and word, no warning wash), the body, then the
+   answers on one row at the end, the default last (as the Replace question). */
+.popup {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.glyph {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  color: var(--text-secondary);
+}
+
+.titleText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}

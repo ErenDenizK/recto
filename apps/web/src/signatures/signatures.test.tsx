@@ -32,6 +32,7 @@ import { getSignatureWorkers, SignatureWorkerHost } from '../engine/engine-servi
 import { prepareExport } from '../export/export-service';
 import { summarizeReport } from '../export/summary';
 import { m } from '../i18n';
+import { resetLockStore, useLockStore } from '../state/lock-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { stripSignatures } from './pdf-pass';
 import { setSignatureDependencies, startSignatureValidation } from './signature-store';
@@ -65,6 +66,7 @@ let stop: (() => void) | undefined;
 
 beforeEach(() => {
   resetWorkspace();
+  resetLockStore();
   resetEditRunner();
   resetAnnotationStore();
   setSignatureDependencies(undefined);
@@ -171,6 +173,9 @@ describe('export and signatures', () => {
     await shownStatuses();
     const page = doc.pages[0];
     if (!page) throw new Error('no page');
+    // A signed file opens locked (D1-4a): the person unlocks it anyway before editing.
+    expect(useLockStore.getState().locks[doc.id]).toBe('signed');
+    useLockStore.getState().unlock(doc.id);
     await createAnnotations({ source, pageIndex: 0, pageId: page.id, position: 1 }, [
       {
         kind: 'free-text',

@@ -64,6 +64,7 @@ import {
 import { setSidebarOverlay, showOverlaySidebar, useFrameStore } from './frame/frame-store';
 import { useHideOnScroll } from './frame/hide-on-scroll';
 import { ReplacePopover } from './frame/ReplacePopover';
+import { UnlockPopover } from './frame/UnlockPopover';
 import { useRegionCycling } from './frame/regions';
 import { useSizeClass } from './frame/size-class';
 import { SoftEdge } from './frame/SoftEdge';
@@ -219,6 +220,7 @@ export function AppShell() {
       <ApplyRedactionsSheet />
       <FurnitureDialogs />
       <ReplacePopover />
+      <UnlockPopover />
       <ToastRegion />
       <LiveRegion />
     </TooltipProvider>
