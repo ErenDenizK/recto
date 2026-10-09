@@ -19,7 +19,13 @@
  *   contents are never drawn over each other (the V2 review saw "Pages" and the highlighter
  *   print as one word when the two fades overlapped). A reversal mid-morph keeps the rule: the
  *   content that is leaving now fades from the opacity it has, and the one asked back waits for
- *   it, then fades in from the opacity it had kept.
+ *   it, then fades in from the opacity it had kept (never jumping back to whole).
+ * - **The edge brings the content** (owner, "Animation!"). A piece is never drawn cut by the
+ *   moving edge: each part of the arriving content fades in once the capsule's edge has passed
+ *   it, read from the width's own spring, so a wider content spreads out from the centre with
+ *   the glass instead of being uncovered like a strip under a wipe. With nothing sliding, the
+ *   parts also go centre-out 12 ms apart, so even a narrower content (the palette back into
+ *   the dock) arrives as one gesture from the middle rather than as a block.
  * - **Pieces by FLIP.** Content marks its pieces `data-capsule-item="<key>"`. A piece seen
  *   before slides from where it was drawn to its new place, translate only, so a label is never
  *   scaled (Q-8): the same element (a morph inside one content), or the leaving content's piece
@@ -33,7 +39,8 @@
  *   (MP rule: ≤ 10 × 12 ms). There are no clones.
  * - **Interruptible.** Every move retargets from where it is with its velocity (Q-10): a size
  *   in flight keeps its spring, a piece mid-slide is stopped where it is drawn and slides on
- *   from there, and a leaving content asked back fades in from its present opacity.
+ *   from there, and a leaving content asked back fades in from its present opacity; a content
+ *   turned away before any of it showed is gone at once, so the one asked back never waits.
  * - **Reduced motion** (§7.5): no size travel and no slides; a change of content is the same
  *   fade through in `--duration-fast` (100 ms reduced): out in half of it, then in, all within
  *   150 ms (A-9); a change inside one content is instant.
@@ -66,6 +73,8 @@ export const TRACE_OPACITY = 0.1;
 const STILL = 0.5;
 /** The id of an arriving fade, so a content that leaves mid-fade can hold it where it is. */
 const ARRIVE = 'capsule-arrive';
+/** The id of a leaving piece's own early fade, undone when its content is asked back. */
+const CLEAR = 'capsule-clear';
 /** How far ahead a slide's path is read (ms), and in what steps: past `--spring-smooth`'s 99 %. */
 const PATH_MS = 600;
 const PATH_STEP_MS = 8;
@@ -198,6 +207,50 @@ export function lastContact(paths: readonly SlidePath[], box: Box): number {
   return 0;
 }
 
+/**
+ * The capsule's width as it moves: the resting width `to` and, as the morph starts, the
+ * displacement `x` from it and the velocity `v` (px/s), on `--spring-smooth` as `animateStyle`
+ * drives it; `centre` is the capsule's centre line (viewport x) and `pad` its rim and padding
+ * on each side.
+ */
+export interface EdgePath {
+  readonly to: number;
+  readonly x: number;
+  readonly v: number;
+  readonly centre: number;
+  readonly pad: number;
+}
+
+/**
+ * The first moment (ms) the capsule's edges have passed the middle of `box`, 0 when they
+ * already have: its fade starts there, so by the time it reads (a quarter of `--duration-base`
+ * on `--ease-out`) the edge is past it and nothing legible is drawn cut by the clip, while the
+ * content keeps pace with the glass rather than trailing its spring's slow tail. A box beyond
+ * the resting capsule is never passed: it shows once the width has come to rest (`PATH_MS`).
+ */
+export function uncoverTime(edge: EdgePath, box: Box): number {
+  const middle = Math.abs((box.left + box.right) / 2 - edge.centre);
+  const reach = middle + (box.right - box.left) / 4 + edge.pad;
+  for (let t = 0; t <= PATH_MS; t += PATH_STEP_MS) {
+    const [x] = solve(springs.smooth, edge.x, edge.v, t / 1000);
+    if ((edge.to + x) / 2 >= reach - STILL) return t;
+  }
+  return PATH_MS;
+}
+
+/**
+ * The first moment (ms) a narrowing capsule's edges reach `box`, so a leaving piece there would
+ * start to be drawn cut; null when they never do.
+ */
+export function coverTime(edge: EdgePath, box: Box): number | null {
+  const reach = Math.max(edge.centre - box.left, box.right - edge.centre) + edge.pad;
+  for (let t = 0; t <= PATH_MS; t += PATH_STEP_MS) {
+    const [x] = solve(springs.smooth, edge.x, edge.v, t / 1000);
+    if ((edge.to + x) / 2 < reach - STILL) return t;
+  }
+  return null;
+}
+
 /** A piece's ink: its box less padding and border, where its icon and label are drawn. */
 function inkOf(element: Element, rect: DOMRect = element.getBoundingClientRect()): Box {
   const s = getComputedStyle(element);
@@ -282,6 +335,8 @@ export class CapsuleMorph {
   private height: Motion | null = null;
   /** Each leaving content's fade, and when (performance.now()) it is gone. */
   private readonly fades = new Map<Element, { readonly fade: Animation; readonly end: number }>();
+  /** The parts of a content that arrives part by part, so leaving can read how much shows. */
+  private readonly parts = new WeakMap<Element, readonly HTMLElement[]>();
 
   /** @param left called with a leaving content's key once it has faded out. */
   constructor(private readonly left: (key: string) => void) {}
@@ -302,6 +357,9 @@ export class CapsuleMorph {
     // Every read before the first write, so layout is computed once (flip.ts's rule).
     const planned = reduced ? [] : this.plan(layer, before);
     const back = this.fades.get(layer);
+    // A content asked back fades in from the opacity its fade had left it at: read before the
+    // fade is cancelled, which would draw it whole at once.
+    const kept = back ? Number(getComputedStyle(layer).opacity) : 1;
     this.fades.delete(layer);
     back?.fade.cancel();
 
@@ -313,25 +371,27 @@ export class CapsuleMorph {
 
     const slides = planned.filter((p) => p.was);
     if (back) {
-      this.comeBack(layer, wait);
-    } else if (newContent && (reduced || slides.length === 0)) {
-      // Nothing slides from the leaving content: the new one fades in whole once it is gone.
+      this.comeBack(layer, kept, wait);
+    } else if (newContent && reduced) {
+      // Reduced motion: the new content fades in whole once the leaving one is gone (§7.5).
       layer.animate([{ opacity: 0 }, { opacity: 1 }], {
-        duration: duration(reduced ? 'fast' : 'base'),
+        duration: duration('fast'),
         easing: EASE.out,
         delay: wait,
         fill: 'backwards',
         id: ARRIVE,
       });
     }
-    this.resize(capsule, layer, before, reduced);
+    const edge = this.resize(capsule, layer, before, reduced);
     if (!reduced) {
       const paths = this.slide(slides);
       this.clearPaths(capsule, paths, now);
-      // Pieces fade in one by one when some slide (they must wait for the slides to pass) or
-      // inside one content (a group shown); a content that fades in whole has done so above.
-      const oneByOne = !back && (newContent ? slides.length > 0 : before.items.size > 0);
-      if (oneByOne) this.arrive(layer, planned, paths, newContent, wait);
+      if (edge) this.clearEdge(capsule, edge, now);
+      // A new content arrives part by part behind the edge; inside one content only what is
+      // new arrives (a group shown); a content asked back still has its own fades.
+      if (!back && (newContent || before.items.size > 0)) {
+        this.arrive(layer, planned, paths, newContent, wait, edge);
+      }
     }
 
     // Focus that was in the capsule stays in it (MK-1 §6): on the arriving content's marked
@@ -375,9 +435,15 @@ export class CapsuleMorph {
     )) {
       if (this.fades.has(leaving)) continue;
       const from = Number(getComputedStyle(leaving).opacity);
+      // How much of it shows: a content still arriving part by part shows its most opaque part
+      // (none while it waits behind the edge), so turning it away takes only what is seen.
+      const parts = this.parts.get(leaving);
+      const shown = parts
+        ? from * Math.max(0, ...parts.map((part) => Number(getComputedStyle(part).opacity)))
+        : from;
       for (const a of leaving.getAnimations()) if (a.id === ARRIVE) a.cancel();
       for (const a of leaving.getAnimations({ subtree: true })) if (a.id === ARRIVE) a.pause();
-      const length = (reduced ? duration('fast') / 2 : LEAVE_MS) * from;
+      const length = (reduced ? duration('fast') / 2 : LEAVE_MS) * shown;
       const fade = leaving.animate([{ opacity: from }, { opacity: 0 }], {
         duration: length,
         easing: EASE.exit,
@@ -392,11 +458,15 @@ export class CapsuleMorph {
     }
   }
 
-  /** A content asked back fades in from the opacity it has, once the leaving ones are gone. */
-  private comeBack(layer: HTMLElement, wait: number): void {
-    const from = Number(getComputedStyle(layer).opacity);
+  /** A content asked back fades in from the opacity `from` it had kept, once the leaving go. */
+  private comeBack(layer: HTMLElement, from: number, wait: number): void {
     for (const a of layer.getAnimations({ subtree: true })) {
       if (a.id === ARRIVE && a.playState === 'paused') a.play();
+      // A piece that had cleared out of an edge's or a slide's way comes back the way it went.
+      if (a.id === CLEAR) {
+        a.reverse();
+        a.onfinish = () => a.cancel();
+      }
     }
     if (from >= 1) return;
     layer.animate([{ opacity: from }, { opacity: 1 }], {
@@ -408,27 +478,41 @@ export class CapsuleMorph {
     });
   }
 
-  /** The capsule's own width and height, from the size in flight to the new resting size. */
+  /**
+   * The capsule's own width and height, from the size in flight to the new resting size;
+   * returns the path its edges take (null under reduced motion, where the size is instant).
+   */
   private resize(
     capsule: HTMLElement,
     layer: HTMLElement,
     before: CapsuleSnapshot,
     reduced: boolean,
-  ): void {
+  ): EdgePath | null {
     if (reduced) {
       // Instant: whatever is in flight stops, and the capsule is its content's size at once.
       for (const motion of [this.width, this.height]) motion?.stop();
       this.width = this.height = null;
       capsule.style.removeProperty('width');
       capsule.style.removeProperty('height');
-      return;
+      return null;
     }
     const box = layer.getBoundingClientRect();
     const room =
       (capsule.parentElement?.clientWidth ?? Number.POSITIVE_INFINITY) - 2 * CAPSULE_EDGE;
-    const to = restingSize(box, chromeOf(capsule), room);
+    const chrome = chromeOf(capsule);
+    const to = restingSize(box, chrome, room);
     this.width = this.spring(capsule, 'width', this.width, before.width, to.width);
     this.height = this.spring(capsule, 'height', this.height, before.height, to.height);
+    // The layer is centred in the capsule, itself centred in the band, so the two share a
+    // centre line at every width; the edges start from the width drawn, with its velocity.
+    const width = this.width;
+    return {
+      to: to.width,
+      x: width ? width.value - to.width : 0,
+      v: width ? width.velocity : 0,
+      centre: box.left + box.width / 2,
+      pad: chrome.x / 2,
+    };
   }
 
   private spring(
@@ -490,6 +574,7 @@ export class CapsuleMorph {
         piece.animate([{ opacity: 1 }, { opacity: 0 }], {
           duration: Math.max(16, contact),
           easing: 'linear',
+          id: CLEAR,
           fill: 'forwards',
         });
       }
@@ -497,8 +582,37 @@ export class CapsuleMorph {
   }
 
   /**
+   * The narrowing edge never cuts a leaving piece either: each part of a leaving content the
+   * edge reaches before the content's fade ends fades out on its own, gone at that moment.
+   */
+  private clearEdge(capsule: HTMLElement, edge: EdgePath, now: number): void {
+    if (edge.x <= STILL) return;
+    for (const [leaving, { end }] of this.fades) {
+      if (!capsule.contains(leaving) || !(leaving instanceof HTMLElement)) continue;
+      const named = new Set<Element>(leaving.querySelectorAll(`[${CAPSULE_ITEM}]`));
+      const parts = arrivingParts(leaving, named).filter(
+        (part) => !part.hasAttribute('data-capsule-handed'),
+      );
+      // Read every box before the first fade is written.
+      const contacts = parts.map((part) => coverTime(edge, inkOf(part)));
+      parts.forEach((part, index) => {
+        const contact = contacts[index];
+        if (contact == null || now + contact >= end) return;
+        const from = Number(getComputedStyle(part).opacity);
+        part.animate([{ opacity: from }, { opacity: 0 }], {
+          duration: Math.max(16, contact),
+          easing: EASE.exit,
+          id: CLEAR,
+          fill: 'forwards',
+        });
+      });
+    }
+  }
+
+  /**
    * New pieces, and the unnamed parts between them, fade in after the leaving content is gone,
-   * 12 ms apart; one in a slide's path waits until the slide has passed it.
+   * each once the capsule's edge has passed it, 12 ms apart (centre-out when nothing slides,
+   * in reading order beside slides); one in a slide's path waits until the slide has passed it.
    */
   private arrive(
     layer: HTMLElement,
@@ -506,6 +620,7 @@ export class CapsuleMorph {
     paths: readonly SlidePath[],
     newContent: boolean,
     wait: number,
+    edge: EdgePath | null,
   ): void {
     const fresh = new Set<Element>(planned.filter((p) => !p.was).map((p) => p.element));
     const parts = newContent
@@ -514,12 +629,27 @@ export class CapsuleMorph {
           .filter((p) => !p.was && !p.element.parentElement?.closest(`[${CAPSULE_ITEM}]`))
           .map((p) => p.element);
     // Read every box before the first fade is written.
-    const passed = parts.map((part) => (paths.length > 0 ? lastContact(paths, inkOf(part)) : 0));
+    const inks = parts.map((part) => inkOf(part));
+    const passed = inks.map((ink) => (paths.length > 0 ? lastContact(paths, ink) : 0));
+    const uncovered = inks.map((ink) => (edge ? uncoverTime(edge, ink) : 0));
+    const order = parts.map((_, index) => index);
+    if (paths.length === 0 && edge) {
+      const off = (index: number) => {
+        const ink = inks[index] as Box;
+        return Math.abs((ink.left + ink.right) / 2 - edge.centre);
+      };
+      [...order].sort((a, b) => off(a) - off(b)).forEach((index, step) => (order[index] = step));
+    }
+    if (newContent && paths.length === 0) this.parts.set(layer, parts);
     parts.forEach((part, index) => {
       part.animate([{ opacity: 0 }, { opacity: 1 }], {
         duration: duration('base'),
         easing: EASE.out,
-        delay: Math.max(wait + staggerDelay(index), passed[index] ?? 0),
+        delay: Math.max(
+          wait + staggerDelay(order[index] ?? index),
+          passed[index] ?? 0,
+          uncovered[index] ?? 0,
+        ),
         fill: 'backwards',
         id: ARRIVE,
       });

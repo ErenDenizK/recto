@@ -38,9 +38,9 @@ import { StyleControls } from './StyleControls';
 /** Esc or Delete from the bar: focus stays on the page rather than falling to <body>. */
 const pageViewport = (bar: HTMLElement) => bar.closest<HTMLElement>('[data-read-viewport]');
 
-const BAR_HEIGHT = 40;
-/** Width assumed before the bar has been measured. */
+/** Size assumed before the bar has been measured: one piece high (--piece-h, G1). */
 const INITIAL_WIDTH = 480;
+const INITIAL_HEIGHT = 40;
 
 export function AnnotationBar({
   target,
@@ -59,6 +59,8 @@ export function AnnotationBar({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(INITIAL_WIDTH);
+  // One piece high: 40 fine, 48 coarse (G1), so it is measured, not assumed.
+  const [height, setHeight] = useState(INITIAL_HEIGHT);
   const roving = useRovingTabindex(ref);
   useFocusRescue(ref, pageViewport);
   useLayoutEffect(() => {
@@ -66,6 +68,7 @@ export function AnnotationBar({
     if (!element) return;
     const measure = () => {
       if (element.offsetWidth > 0) setWidth(element.offsetWidth);
+      if (element.offsetHeight > 0) setHeight(element.offsetHeight);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -99,7 +102,7 @@ export function AnnotationBar({
     (frame.rotation === 90 || frame.rotation === 270 ? frame.size.height : frame.size.width) *
     frame.scale;
   // Above the selection; below it when the selection touches the top of the page.
-  const y = top - BAR_HEIGHT - 12 >= -BAR_HEIGHT ? top - BAR_HEIGHT - 12 : bottom + 12;
+  const y = top - height - 12 >= -height ? top - height - 12 : bottom + 12;
   // Centred on the selection, kept within the page (the stage clips beyond it).
   const x =
     width >= pageWidth

@@ -45,6 +45,7 @@ import { m, useLocale } from '../../i18n';
 import { isLocked } from '../../state/lock-store';
 import { type PaletteSet, useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
+import { Button } from '../../ui/Button';
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
 import { Tooltip } from '../../ui/Tooltip';
@@ -311,10 +312,13 @@ function DockButton({
   readonly onActivate: () => void;
 }) {
   const disabled = reason !== undefined;
+  // An M quiet button (ui/Button; system-audit-2026-10 §3.3), dimmed by `aria-disabled` alone
+  // so a press still says why (RA-21) instead of being swallowed.
   const button = (
-    <button
-      type="button"
+    <Button
+      variant="quiet"
       className={styles.item}
+      icon={<Icon name={icon} className={styles.icon} />}
       data-capsule-item={item}
       data-dock-item={item}
       data-capsule-focus={focusOnArrival ? '' : undefined}
@@ -332,9 +336,8 @@ function DockButton({
         onActivate();
       }}
     >
-      <Icon name={icon} className={styles.icon} />
-      <span className={styles.label}>{label}</span>
-    </button>
+      {label}
+    </Button>
   );
   // The label is always shown (RA-20): a tooltip only adds the key or the reason (F10 §5).
   if (shortcut === undefined && reason === undefined) return button;
@@ -366,12 +369,12 @@ function MoreMenu() {
       <Tooltip label={m.dock_more()} shortcut={shortcutOf('view.palette')} side="top">
         <Menu.Trigger
           ref={setTrigger}
-          className={styles.item}
+          className={`btn btn-quiet ${styles.item}`}
           data-capsule-item="more"
           data-dock-item="more"
         >
           <Icon name="dots-three" className={styles.icon} />
-          <span className={styles.label}>{m.dock_more()}</span>
+          <span data-btn-label="">{m.dock_more()}</span>
         </Menu.Trigger>
       </Tooltip>
       <Menu.Portal>
