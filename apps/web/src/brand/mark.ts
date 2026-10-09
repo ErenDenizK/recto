@@ -39,5 +39,21 @@ export const MARK_GRADIENT = {
   ],
 } as const;
 
+/**
+ * The gradient on a light ground (system-audit-2026-10 §3.9: the mark keeps its gradient in
+ * both themes): the same mint → lime → yellow-lime ramp at the same angle and knee, taken down
+ * in lightness until every stop holds 3.3:1 against the light theme's glass (`#eceef1`) and
+ * 3.9:1 against white (WCAG 1.4.11's 3:1 for a graphic). The source's stops fall under 1.3:1
+ * there, which is why the light theme drew the mark in ink until now.
+ */
+export const MARK_GRADIENT_LIGHT = {
+  ...MARK_GRADIENT,
+  stops: [
+    { offset: 0, color: '#178A6E' },
+    { offset: 0.5944, color: '#4F8F12' },
+    { offset: 1, color: '#738A0C' },
+  ],
+} as const;
+
 /** The mono treatments (the brand's near-black on light, white on dark). */
 export const MARK_INK = { black: '#0B0C0E', white: '#FFFFFF' } as const;

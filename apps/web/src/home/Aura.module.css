@@ -60,7 +60,14 @@
   will-change: auto;
 }
 
+/* The drift loops (Q-10: a loop is named, never a bare time), one per lobe, each a prime
+   number of seconds, so the lobes never fall back into step. */
 .lobe {
+  --loop-mint: 41s;
+  --loop-lime: 53s;
+  --loop-yellow: 47s;
+  --loop-glint: 59s;
+  --loop-low: 37s;
   --c: var(--aura-lime);
   --a: var(--aura-peak-lime);
   position: absolute;
@@ -79,7 +86,7 @@
     transparent 100%
   );
   will-change: transform, opacity;
-  animation: aura-drift-a 41s ease-in-out infinite alternate;
+  animation: aura-drift-a var(--loop-mint) ease-in-out infinite alternate;
 }
 
 /* The mark's gradient laid across the view, each lobe's centre near or past an edge so mostly
@@ -100,7 +107,7 @@
   width: 84%;
   height: 80%;
   animation-name: aura-drift-b;
-  animation-duration: 53s;
+  animation-duration: var(--loop-lime);
 }
 
 .lobe[data-lobe='yellow'] {
@@ -111,7 +118,7 @@
   width: 60%;
   height: 76%;
   animation-name: aura-drift-c;
-  animation-duration: 47s;
+  animation-duration: var(--loop-yellow);
 }
 
 .lobe[data-lobe='glint'] {
@@ -121,7 +128,7 @@
   width: 56%;
   height: 70%;
   animation-name: aura-drift-b;
-  animation-duration: 59s;
+  animation-duration: var(--loop-glint);
   animation-direction: alternate-reverse;
 }
 
@@ -133,7 +140,7 @@
   width: 92%;
   height: 90%;
   animation-name: aura-drift-c;
-  animation-duration: 37s;
+  animation-duration: var(--loop-low);
   animation-direction: alternate-reverse;
 }
 

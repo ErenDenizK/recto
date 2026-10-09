@@ -2,9 +2,14 @@
  * The Library (`02-library` L1; the place `destination === 'home'`, code name kept): the welcome
  * and the open documents, in one scroll column of at most 1184 px (six cards), centred.
  *
- *   empty            launcher card (L2) · Recent (L7) · footer (L12)
- *   with documents   launcher row (L2) · head (L4) · cards (L5) · Recent (L7) · footer (L12)
+ *   empty            launcher (L2) · Recent (L7) · footer (L12)
+ *   with documents   title and launcher (L2) · head (L4) · cards (L5) · Recent (L7) · footer
  *                    + the selection bar (L6) floating at the bottom while cards are checked
+ *
+ * The column's edge and the footer's pieces keep the strip's inset (system-audit-2026-10 §3.1,
+ * §3.9): the column runs --piece-inset from the window's edges until it reaches its cap, then
+ * centres; the footer is outside it, at the window's bottom corners like the strip's pieces at
+ * the top ones.
  *
  * The view is the canvas with no glass of its own (L1 §3); each part takes its tier. Behind the
  * column glows the aura (`Aura.tsx`), the CSS form of the Library field (L3) in the mark's
@@ -63,8 +68,8 @@ export function LibraryView({ dragging }: { readonly dragging: boolean }) {
               <Launcher variant="card" dragging={dragging} dragCount={dragCount} />
               <RecentList variant="empty" />
             </div>
-            <LibraryFooter />
           </div>
+          <LibraryFooter />
         </div>
       </section>
     );
@@ -129,8 +134,8 @@ function LibraryWithCards({
             <LibraryGrid cards={cards} workspace={workspace} />
           </div>
           <RecentList variant="cards" />
-          <LibraryFooter />
         </div>
+        <LibraryFooter />
       </div>
       {selection.length > 0 ? <SelectionBar selection={selection} /> : null}
     </section>

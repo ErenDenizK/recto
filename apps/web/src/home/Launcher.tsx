@@ -1,28 +1,30 @@
 /**
- * The launcher (`02-library` L2, reorganised after the owner's review of 2026-10-08; replaces
- * `shell/EmptyState.tsx` and Home's Open files button): the welcome and the Library's open
- * actions, in three tiers that read the same in both variants:
+ * The launcher (`02-library` L2, reorganised after the owner's review of 2026-10-08 and on
+ * system-audit-2026-10 §3.9; replaces `shell/EmptyState.tsx` and Home's Open files button): the
+ * welcome and the Library's open actions, in three tiers that read the same in both variants:
  *
- * 1. **Identity.** Empty, the Recto mark (`BrandMark`, the gradient on dark) with the headline.
- *    With documents the mark is the tab's alone (owner feedback 2026-10-09, G3: the Library
- *    tab is the home button and always shows it), so the view heads itself with a large
- *    "Library" title and "Nothing leaves this device." under it.
- * 2. **Open.** **Open PDFs…** (the view's one lime, first focus when empty, J1 = 2). In the
- *    card it sits in a dashed *well* that reads as the drop target, beside "or drop files
- *    anywhere" (on touch too: iPadOS drags files in); in the row the whole row is the target and
- *    the line ends it. While files are dragged over the window the well or the row lights in the
- *    accent and says what a release does.
+ * 1. **Identity.** Empty, the Recto mark (`BrandMark`, its gradient in both themes) with the
+ *    headline and the promise. With documents the mark is the tab's alone (owner feedback
+ *    2026-10-09, G3: the Library tab is the home button and always shows it), so the view heads
+ *    itself with a large "Library" title and "Nothing leaves this device." under it.
+ * 2. **Open.** **Open PDFs…** (the view's one lime, first focus when empty, J1 = 2).
  * 3. **More ways to start.** **Try the sample** (dimmed with its reason offline before the
  *    sample was ever loaded), **Combine files…** and **Batch…**, one group of equal standard
  *    buttons with their glyphs, never loose text links.
  *
- * - **Empty** (no document open): a lit card about a third of the way down the view.
- * - **Row** (documents open): the title, then one lit row of equal buttons, one piece high
- *   (--piece-h, G1) like the strip's pieces and the footer's pills: Open PDFs… first and lime,
- *   the group after it, the drop line trailing. In Select mode the lime moves to the selection
- *   bar's Combine, so Open PDFs… turns secondary (one lime per view, principle 3).
- * - **Drag-over** (L9 on the Library): no overlay; the card or row lifts 2 px with the e3
- *   shadow, the empty card's headline becomes "Drop to open 2 files" and the row's line says it.
+ * Both variants hold the actions in **one launcher shape** (§3.9, I-12): a lit capsule piece
+ * with every action at the one L size (40 fine, 52 coarse; §3.3), Open PDFs… first and lime,
+ * the group after it, and the drop line ending it in body ("or drop files anywhere"; on
+ * touch too, iPadOS drags files in). No separate drop well: the whole window is the target,
+ * and the piece says so.
+ *
+ * - **Empty** (no document open): mark, headline and promise on the canvas about a third of
+ *   the way down the view, the piece centred under them.
+ * - **Row** (documents open): the title, then the piece. In Select mode the lime moves to the
+ *   selection bar's Combine, so Open PDFs… turns secondary (one lime per view, principle 3).
+ * - **Drag-over** (L9 on the Library): no overlay; the piece lifts 2 px with the e3 shadow and
+ *   a dashed accent line; the empty headline becomes "Drop to open 2 files", the row's drop
+ *   line says it.
  * - **Busy** (L2 §4): Open PDFs… is busy while the engine reads the picked files, but not while
  *   a password prompt (07-sheets S6) waits for the person: that wait is theirs, not the app's,
  *   and the prompt's own Open shows the busy state once a password is being tried.
@@ -140,6 +142,27 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
     </div>
   );
 
+  // The one launcher shape (§3.9): the actions, then the drop line, in one lit piece. Empty,
+  // the headline above says what a release does, so the line keeps its hint.
+  const says = dragging && variant === 'row';
+  const piece = (
+    <div
+      className={`${lit.lit} ${styles.piece}`}
+      data-lit="row"
+      data-dragging={dragging || undefined}
+      data-testid={variant === 'row' ? 'library-launcher' : undefined}
+    >
+      <div className={styles.actions}>
+        {open}
+        {more}
+      </div>
+      <p className={styles.dropLine} aria-live={says ? 'off' : undefined}>
+        <Icon name="tray-arrow-down" className={styles.dropIcon} />
+        <span>{says ? dropTitle(dragCount) : m.library_drop_hint()}</span>
+      </p>
+    </div>
+  );
+
   if (variant === 'row') {
     return (
       <div className={styles.rowWrap}>
@@ -147,40 +170,21 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
           <h2 className={styles.titleText}>{m.library_label()}</h2>
           <p className={styles.tagline}>{m.library_line()}</p>
         </header>
-        <div
-          className={`${lit.lit} ${styles.row}`}
-          data-lit="row"
-          data-dragging={dragging || undefined}
-          data-testid="library-launcher"
-        >
-          <div className={styles.actions}>
-            {open}
-            {more}
-          </div>
-          <p className={styles.dropLine} aria-live={dragging ? 'off' : undefined}>
-            <Icon name="tray-arrow-down" className={styles.dropIcon} />
-            <span>{dragging ? dropTitle(dragCount) : m.library_drop_hint()}</span>
-          </p>
-        </div>
+        {piece}
       </div>
     );
   }
 
   return (
     <div
-      className={`${lit.lit} ${styles.card}`}
-      data-lit=""
+      className={styles.welcome}
       data-dragging={dragging || undefined}
       data-testid="library-launcher"
     >
       <BrandMark size={56} className={styles.glyph} />
       <h1 className={styles.headline}>{dragging ? dropTitle(dragCount) : m.library_headline()}</h1>
       <p className={styles.line}>{m.library_line()}</p>
-      <div className={styles.well} data-dragging={dragging || undefined}>
-        {open}
-        <p className={styles.wellHint}>{m.library_drop_hint()}</p>
-      </div>
-      {more}
+      {piece}
     </div>
   );
 }

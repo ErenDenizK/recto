@@ -111,6 +111,17 @@
   width: min(360px, calc(100vw - 16px));
 }
 
+/* Opened upward from the Library footer's chip, it stays under the strip's pieces: the room
+   above the chip less the free rectangle's top (--free-top), so on a 1180 × 820 or 820 × 1180
+   tablet it scrolls inside rather than running over the tabs (PLAN W0-e, E8a; system audit
+   §3.6: content taller than the room scrolls). */
+.popup[data-side='top'] {
+  max-height: min(
+    calc(var(--available-height, 100dvh) - var(--free-top, 0px)),
+    calc(var(--visual-h, 100dvh) - 16px)
+  );
+}
+
 .section {
   display: grid;
   gap: 2px;
@@ -119,13 +130,12 @@
   border-top: 1px solid var(--border-hairline);
 }
 
+/* Section labels: footnote 600, secondary, sentence case (system-audit-2026-10 §3.4, T-9). */
 .heading {
-  color: var(--text-tertiary);
-  font-size: var(--type-caption);
-  font-weight: 500;
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-footnote-lh);
 }
 
 .value {

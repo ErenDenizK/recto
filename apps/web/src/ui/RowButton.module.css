@@ -1,0 +1,61 @@
+/*
+ * RowButton (RowButton.tsx): the states of a row that is one press target; the caller lays out
+ * its children. No fill at rest, the hover and pressed washes, the inset focus ring, radius
+ * --radius-control unless the caller's row sets its own (a sheet group's rows are square and
+ * the group clips them). The base sits in `:where()`, so a caller's one class overrides its
+ * layout whatever order the sheets load in.
+ */
+.row {
+  composes: focus-inset from global;
+}
+
+:where(.row) {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--spring-press) var(--ease-spring);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.row:active {
+  background: var(--surface-active);
+  transition: background-color var(--duration-instant) var(--ease-out);
+}
+
+.row[data-press]:active {
+  transform: scale(var(--press-scale-large));
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+.row:disabled,
+.row[aria-disabled='true'] {
+  color: var(--text-tertiary);
+}
+
+@media (forced-colors: active) {
+  .row:hover {
+    outline: 1px solid Highlight;
+  }
+}

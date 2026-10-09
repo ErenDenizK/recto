@@ -6,8 +6,9 @@
  * "explicit" (`setMetadata`). Escape restores the stored value.
  *
  * The fields are the primitives' wells (`ui/Field.module.css`: 32 px fine, 44 px coarse, the
- * control border and radius, the inset focus ring) beside their labels, and Add and Remove are
- * the primitives' buttons (quality-bar Q-9).
+ * control border and radius, the inset focus ring), each trailing its label in a SheetRow of
+ * the Metadata and Custom keys groups (system-audit-2026-10 §3.6.1), and Add and Remove are the
+ * primitives' buttons (quality-bar Q-9).
  */
 import {
   customKeyProblem,
@@ -27,6 +28,8 @@ import { Button } from '../ui/Button';
 import field from '../ui/Field.module.css';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
+import { SheetGroup, SheetRow } from '../ui/sheet';
+import layout from './DocumentInfoSheet.module.css';
 import styles from './DocumentTools.module.css';
 
 /** Suggestions for the language field; any well-formed BCP 47 tag is accepted. */
@@ -121,11 +124,11 @@ export function MetadataEditor({ doc }: { readonly doc: VirtualDocument }) {
   const created = meta.creationDate === undefined ? undefined : new Date(meta.creationDate);
   const listId = useId();
   return (
-    <div className={styles.metadata} data-testid="metadata-editor">
-      <p className={styles.note} data-testid="metadata-policy">
-        {policyText(meta)}
-      </p>
-      <div className={styles.fields}>
+    <div className={layout.stack} data-testid="metadata-editor">
+      <SheetGroup
+        label={m.info_metadata()}
+        footnote={<span data-testid="metadata-policy">{policyText(meta)}</span>}
+      >
         {TEXT_FIELDS.map((field) => (
           <TextField
             key={`${doc.id}:${field}:${meta[field] ?? ''}`}
@@ -157,21 +160,26 @@ export function MetadataEditor({ doc }: { readonly doc: VirtualDocument }) {
             )
           }
         />
-        <datalist id={listId}>
-          {COMMON_LANGUAGE_TAGS.map((tag) => (
-            <option key={tag} value={tag} label={languageName(tag) ?? tag} />
-          ))}
-        </datalist>
-        <span className={styles.fieldLabel}>{m.meta_created()}</span>
-        <span className={styles.readonly} data-testid="metadata-created">
-          {created && !Number.isNaN(created.getTime())
-            ? new Intl.DateTimeFormat(getLocale(), {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              }).format(created)
-            : '—'}
-        </span>
-      </div>
+        <SheetRow
+          title={m.meta_created()}
+          value={
+            <span data-testid="metadata-created">
+              {created && !Number.isNaN(created.getTime())
+                ? new Intl.DateTimeFormat(getLocale(), {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  }).format(created)
+                : '—'}
+            </span>
+          }
+        />
+      </SheetGroup>
+      {/* Outside the group, so its rows stay adjacent for their hairlines. */}
+      <datalist id={listId}>
+        {COMMON_LANGUAGE_TAGS.map((tag) => (
+          <option key={tag} value={tag} label={languageName(tag) ?? tag} />
+        ))}
+      </datalist>
       <CustomKeys doc={doc} />
     </div>
   );
@@ -217,11 +225,8 @@ function TextField({
     }
   };
   return (
-    <>
-      <label className={styles.fieldLabel} htmlFor={id}>
-        {label}
-      </label>
-      <span className={styles.fieldControl}>
+    <SheetRow title={label} labelFor={id}>
+      <span className={layout.fieldControl}>
         <span className={field.well} data-invalid={error ? '' : undefined}>
           <input
             id={id}
@@ -245,7 +250,7 @@ function TextField({
           <span className={styles.hint}>{hint}</span>
         ) : null}
       </span>
-    </>
+    </SheetRow>
   );
 }
 
@@ -293,10 +298,9 @@ function CustomKeys({ doc }: { readonly doc: VirtualDocument }) {
     setError(undefined);
   };
   return (
-    <div className={styles.custom}>
-      <h3 className={styles.subheading}>{m.meta_custom()}</h3>
+    <SheetGroup label={m.meta_custom()}>
       {keys.length > 0 ? (
-        <div className={styles.fields}>
+        <>
           {keys.map((name) => (
             <CustomRow
               key={`${doc.id}:${name}:${custom[name] ?? ''}`}
@@ -323,15 +327,15 @@ function CustomKeys({ doc }: { readonly doc: VirtualDocument }) {
               }}
             />
           ))}
-        </div>
+        </>
       ) : (
-        <p className={styles.note}>{m.meta_custom_empty()}</p>
+        <SheetRow description={m.meta_custom_empty()} />
       )}
       {/* A group, not a form: it sits in the sheet's form (S4), and Enter in either field adds. */}
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
-      <div
+      <SheetRow
+        full
         role="group"
-        className={styles.addKey}
+        className={layout.addKey}
         aria-label={m.meta_custom_add_label()}
         onKeyDown={(event) => {
           if (event.key === 'Enter' && event.target instanceof HTMLInputElement) add(event);
@@ -372,8 +376,8 @@ function CustomKeys({ doc }: { readonly doc: VirtualDocument }) {
             {error}
           </span>
         ) : null}
-      </div>
-    </div>
+      </SheetRow>
+    </SheetGroup>
   );
 }
 
@@ -391,11 +395,8 @@ function CustomRow({
   const [draft, setDraft] = useState(value);
   const id = useId();
   return (
-    <>
-      <label className={styles.fieldLabel} htmlFor={id} title={name}>
-        {name}
-      </label>
-      <span className={styles.fieldRow}>
+    <SheetRow title={<span title={name}>{name}</span>} labelFor={id}>
+      <span className={layout.fieldRow}>
         <span className={field.well}>
           <input
             id={id}
@@ -422,6 +423,6 @@ function CustomRow({
           onClick={onRemove}
         />
       </span>
-    </>
+    </SheetRow>
   );
 }
