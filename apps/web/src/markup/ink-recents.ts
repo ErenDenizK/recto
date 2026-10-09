@@ -85,23 +85,23 @@ function subscribe(listener: () => void): () => void {
 const EMPTY: readonly string[] = [];
 
 /**
- * The four colours the strip shows beside the well (system-audit-2026-10 §3.7, one layout for
- * every tool): the tool's recents, newest first, then `suggested` in order to fill the row.
- * Never its current colour (the well shows it) and never one of the dock's pens (`dock`), which
- * the pens themselves show (owner feedback G8, "repeat?").
+ * The colours the strip shows beside the well, at most four (owner feedback G8): the tool's
+ * recents, newest first, never its current colour (the well shows it). A pen and the
+ * Highlighter show their recents alone (`suggested` empty: their colours are the dock's, and a
+ * pen that never changed colour shows none); a text box, a note and the shapes, which have no
+ * pens in the dock, fill the row with `suggested`, their own palette.
  */
 export function stripColours(
   list: readonly string[],
   colour: string,
-  suggested: readonly string[],
-  dock: readonly string[],
+  suggested: readonly string[] = [],
 ): readonly string[] {
-  const left = new Set([colour, ...dock].map((hex) => hex.toUpperCase()));
+  const current = colour.toUpperCase();
   const out: string[] = [];
   for (const candidate of [...list, ...suggested]) {
     if (out.length === INK_RECENT_SHOWN) break;
     const hex = candidate.toUpperCase();
-    if (!left.has(hex) && !out.includes(hex)) out.push(hex);
+    if (hex !== current && !out.includes(hex)) out.push(hex);
   }
   return out;
 }

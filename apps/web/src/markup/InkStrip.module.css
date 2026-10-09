@@ -1,26 +1,22 @@
 /*
  * The ink strip (10-ink §2; quality-bar Q-4, Q-9; owner feedback G8; system-audit-2026-10
- * §3.7). Content inside its glass piece: no fill of its own, no border. One layout and one
- * width for every tool, in the palette family's sizes (--palette-*, `MarkupPalette.module.css`):
+ * §3.7). Content inside its glass piece: no fill of its own, no border. One layout for every
+ * tool, in the palette family's sizes (--palette-*, `MarkupPalette.module.css`):
  *
- *   [ well · four recents ] │ [ slider · readout ]
+ *   [ well · its recents ] │ [ slider · readout ]
  *
- * Two slots of fixed width. The colour slot holds the well and four colours in M targets
- * (--palette-control), the recents --palette-dot dots; the eraser's Whole stroke · Partial
- * takes the same slot. The width slot holds the slider and its readout (the text box's size is
- * a slider too). A hairline of the palette's separator sets them apart. A tool without a colour
- * keeps its slider in the same place; the note, with no size, shows the colour slot alone. So
- * the strip, anchored at the capsule's leading edge (`StripPiece`), never moves its controls
- * between tools. Windows under 560 px let the width slot wrap under the colours rather than clip
- * (A-20).
- *
- * The colour slot is six controls wide on a fine pointer (192: the eraser's two labels need
- * more than five), five and their gaps on a coarse one (236); its five controls share the room
- * in even gaps (--strip-gap, 8 fine, 4 coarse).
+ * The colour slot hugs what it holds (G8: no empty glass): the well and up to four recent
+ * colours in M targets (--palette-control), the recents --palette-dot dots, --palette-gap
+ * apart. The width slot holds the slider and its readout at one width for every tool (the text
+ * box's size is a slider too); a hairline of the palette's separator sets the two apart. The
+ * eraser's Whole stroke · Partial takes the colour slot at its own fixed width (--strip-modes:
+ * the two labels fit there as a segmented control); the note, with no size, shows the colour
+ * slot alone. The strip is anchored at the capsule's leading edge (`StripPiece`), so the well
+ * never moves between tools. Windows under 560 px let the width slot wrap under the colours
+ * rather than clip (A-20).
  */
 .strip {
-  --strip-slot: calc(6 * var(--palette-control));
-  --strip-gap: calc((var(--strip-slot) - 5 * var(--palette-control)) / 4);
+  --strip-modes: calc(6 * var(--palette-control));
 
   display: flex;
   flex-wrap: nowrap;
@@ -31,7 +27,7 @@
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .strip {
-    --strip-slot: calc(5 * var(--palette-control) + 4 * var(--palette-gap));
+    --strip-modes: calc(5 * var(--palette-control) + 4 * var(--palette-gap));
   }
 }
 
@@ -43,13 +39,12 @@
   }
 }
 
-/* The colour slot: the well and four colours, whatever the tool. */
+/* The colour slot: the well and the tool's recents, hugging them. */
 .colours {
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--strip-gap);
-  width: var(--strip-slot);
+  gap: var(--palette-gap);
 }
 
 /* The well: its conic ring fills the M control (disc, gap 2, ring 2 / 3). */
@@ -63,13 +58,13 @@
   --sw-dot: var(--palette-dot);
 
   flex-wrap: nowrap;
-  gap: var(--strip-gap);
+  gap: var(--palette-gap);
 }
 
-/* The eraser's modes take the colour slot, the segmented control its whole width. */
+/* The eraser's modes in the colour slot, the segmented control its whole width. */
 .slotted {
   flex: none;
-  width: var(--strip-slot);
+  width: var(--strip-modes);
 }
 
 .slottedControl {

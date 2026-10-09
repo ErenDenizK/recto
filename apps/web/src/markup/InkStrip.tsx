@@ -3,18 +3,21 @@
  * tool's colour and size, one press away from the moment it arms.
  *
  * ```
- * ◉  ● ● ● ●  │  ━━━━━━━━◯━━━━━━━━━━  1.5 pt
+ * ◉  ● ●  │  ━━━━━━━━◯━━━━━━━━━━  1.5 pt
  * ```
  *
- * One layout and one width for every tool (system-audit-2026-10 §3.7): the colour slot, a
- * hairline, the width slot (`InkStrip.module.css`), so nothing moves between tools.
+ * One layout for every tool (system-audit-2026-10 §3.7, under the owner's G8 answer): the
+ * colour slot, which hugs what it holds, a hairline, and the width slot, the same for every tool
+ * (`InkStrip.module.css`), anchored at the capsule's leading edge.
  *
  * - **◉ the colour well** (`ui/colour/ColourPicker`): the armed tool's colour inside the conic
  *   hue ring, which opens the colour panel (Grid · Spectrum · Sliders, eyedropper, saved
  *   colours) above it. It is named by the colour ("Colour: Blue").
- * - **Four colours** (`ink-recents.ts`, `stripColours`): the colours this pen (or tool) had
- *   before, newest first, then its palette to fill the row; never its current colour and never
- *   one of the dock's pens, which the pens already show (owner feedback G8, "repeat?").
+ * - **Recent colours** (`ink-recents.ts`, `stripColours`; owner answer to G8, 2026-10-09): up
+ *   to four colours this pen (or tool) had before, newest first, never its current one. No
+ *   fixed swatch row: it repeated the dock's pens ("repeat?"). Before a pen has changed colour
+ *   the row is empty. A text box, a note and the shapes have no pens in the dock, so their own
+ *   palette fills the row after their recents.
  * - **The width slider** (`ui/Slider`, §3): the pen's detents evenly spaced (log between them)
  *   on the plain track, the lens knob with a neutral dot (§3.7); the readout in tabular
  *   numerals ("1.5 pt", TR "1,5 pt").
@@ -43,7 +46,7 @@ import { useAnnotationStore } from '../annotations/annotation-store';
 import { normalizeHex } from '../annotations/colors';
 import { toolStyleGroup } from '../annotations/drafts';
 import {
-  HIGHLIGHTER_GREY,
+  editorSwatches,
   HIGHLIGHTER_SWATCHES,
   isHighlighter,
   PEN_SWATCHES,
@@ -138,14 +141,11 @@ function Divider() {
   return <span className={styles.divider} aria-hidden="true" />;
 }
 
-/** The colours that fill a tool's row after its recents: the tints, or the inks. */
-const TINT_FILL = [...HIGHLIGHTER_SWATCHES.map((s) => s.color), HIGHLIGHTER_GREY];
-const INK_FILL = PEN_SWATCHES.map((s) => s.color);
-
 /**
- * The colour slot (§2.1; system-audit-2026-10 §3.7): the well with the tool's current colour,
- * which opens the colour panel, then four colours (`stripColours`): this tool's recents, newest
- * first, then its palette, never a colour the dock's pens already show (`PenWell`). Every pick
+ * The colour slot (§2.1; owner feedback G8): the well with the tool's current colour, which
+ * opens the colour panel, then up to four colours this tool had before (`stripColours`), newest
+ * first. A pen's are its recents alone: its colours are the dock's (`PenWell`), so a pen that
+ * never changed colour shows the well by itself, and the slot hugs what it holds. Every pick
  * goes through `applyStyle`, so the armed pen's dot in the dock follows the panel live; the
  * colour the tool leaves becomes its first recent once the panel commits (a 600 ms pause or its
  * close) or a recent is picked.
@@ -155,20 +155,18 @@ function Colours({
   colour,
   opacity,
   preview,
-  tints = false,
+  suggested = [],
 }: {
   readonly recents: InkRecentKey;
   readonly colour: string;
   /** Undefined: no opacity in the panel (the Highlighter, text). */
   readonly opacity?: number | undefined;
   readonly preview?: { readonly width: number; readonly kind: 'pen' | 'highlighter' } | undefined;
-  /** Fill the row with the highlighter tints (the Highlighter, a note), not the inks. */
-  readonly tints?: boolean | undefined;
+  /** Colours that fill the row after the recents (tools with no pens in the dock). */
+  readonly suggested?: readonly string[] | undefined;
 }) {
   const hex = colour.toUpperCase();
-  const presets = useAnnotationStore((s) => s.pen.presets);
-  const dock = presets.filter((p) => !isHighlighter(p)).map((p) => p.color);
-  const recents = stripColours(useInkRecents(key), hex, tints ? TINT_FILL : INK_FILL, dock);
+  const recents = stripColours(useInkRecents(key), hex, suggested);
   // The colour the panel's changes started from, until they commit.
   const base = useRef<string | null>(null);
   return (
@@ -267,7 +265,6 @@ function PenStrip() {
         colour={preset.color}
         opacity={highlighter ? undefined : preset.opacity}
         preview={{ width: preset.width, kind: highlighter ? 'highlighter' : 'pen' }}
-        tints={highlighter}
       />
       <Divider />
       <Width
@@ -293,13 +290,17 @@ function nearestFontSize(value: number): number {
 /** The shapes' stroke, a text box's colour and size, a note's colour (§2.1). */
 function StyleStrip({ kind }: { readonly kind: 'text' | 'note' | 'shape' }) {
   const style = useAnnotationStore((s) => s.styles[kind]);
+  const like: PenPreset =
+    kind === 'note'
+      ? { color: style.color, width: 12, opacity: 1, kind: 'highlighter' }
+      : { color: style.color, width: style.strokeWidth, opacity: style.opacity };
   return (
     <>
       <Colours
         recents={kind}
         colour={style.color}
         opacity={kind === 'shape' ? style.opacity : undefined}
-        tints={kind === 'note'}
+        suggested={editorSwatches(like).map((swatch) => swatch.color)}
       />
       {kind === 'shape' ? (
         <>
