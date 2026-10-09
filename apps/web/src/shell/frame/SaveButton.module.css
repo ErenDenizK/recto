@@ -45,15 +45,29 @@
   }
 }
 
-/* The check beside "Saved" (FB6): it pops in once after a verified save. Neutral ink: the
-   success colour stands only beside the word "verified" (08-feedback FB4), in the toast. */
+/* The check beside "Saved" (FB6): it draws in once after a verified save, from its leading
+   end (a clip opening on --spring-quick) with a small pop (motion-2026-10 frame.md §5), then
+   the label settles to "Saved" (SaveButton.tsx, CHECK_HOLD_MS). Neutral ink: the success
+   colour stands only beside the word "verified" (08-feedback FB4), in the toast. */
 .check {
   width: var(--icon-sm);
   height: var(--icon-sm);
 }
 
 .label[data-shown] > .check {
-  animation: save-check-pop var(--spring-pop) var(--ease-spring-pop) 1;
+  animation:
+    save-check-draw var(--spring-quick) var(--ease-spring) 80ms both,
+    save-check-pop var(--spring-pop) var(--ease-spring-pop) 80ms both;
+}
+
+@keyframes save-check-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 @keyframes save-check-pop {
@@ -101,6 +115,41 @@
   }
 }
 
+/* Saving: a soft light sweeps across the capsule once per --loop-sweep, under the label and
+   the ring (frame.md §5), so the wait reads as work in progress even before the first
+   percentage. Transform only; clipped to the capsule. Reduced motion and Glass Solid: none
+   (the still rim says it). */
+.shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 60%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent-ring) 22%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: save-shimmer var(--loop-sweep) var(--ease-standard) infinite;
+}
+
+@keyframes save-shimmer {
+  to {
+    transform: translateX(270%);
+  }
+}
+
 /* The success bloom (FB6 §3): the ring's light on the rim, in 180 ms, held 120 ms, out over
    900 ms, once: --loop-bloom. */
 .bloom {
@@ -138,6 +187,10 @@
   .label[data-shown] > .check {
     animation: none;
   }
+
+  .shimmer {
+    display: none;
+  }
 }
 
 :root:is([data-motion='reduced'], [data-glass='solid']) .ring {
@@ -148,6 +201,10 @@
 
 :root[data-motion='reduced'] .label[data-shown] > .check {
   animation: none;
+}
+
+:root:is([data-motion='reduced'], [data-glass='solid']) .shimmer {
+  display: none;
 }
 
 :root:is([data-motion='reduced'], [data-glass='solid']) .bloom {
@@ -166,7 +223,8 @@
 
 @media (forced-colors: active) {
   .ring,
-  .bloom {
+  .bloom,
+  .shimmer {
     display: none;
   }
 }
