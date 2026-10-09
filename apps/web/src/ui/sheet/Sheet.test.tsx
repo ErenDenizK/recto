@@ -198,6 +198,33 @@ describe('focus, keys and drafts (07 §2.6)', () => {
     await waitFor(() => expect(field()).toHaveFocus());
   });
 
+  it('focuses the field from a pointer when the sheet asks for it (focusField)', async () => {
+    function Typing() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Open prompt
+          </button>
+          <Sheet
+            id="typing"
+            kind="confirmation"
+            open={open}
+            onClose={() => setOpen(false)}
+            title="Password required"
+            primary={{ label: 'Open', onPress: () => undefined }}
+            focusField
+          >
+            <SheetField label="Password" type="password" />
+          </Sheet>
+        </>
+      );
+    }
+    render(<Typing />);
+    await userEvent.click(screen.getByRole('button', { name: 'Open prompt' }));
+    await waitFor(() => expect(screen.getByLabelText('Password')).toHaveFocus());
+  });
+
   it('traps Tab in a modal sheet', async () => {
     render(<Harness kind="task" />);
     const panel = panelOf();

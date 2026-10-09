@@ -275,7 +275,11 @@ export function DocumentTabs({
   };
 
   return (
-    <div ref={regionRef} className={styles.tabsRegion}>
+    <div
+      ref={regionRef}
+      className={styles.tabsRegion}
+      data-empty={documents.length === 0 || undefined}
+    >
       {documents.length > 0 ? (
         <div ref={tablistRef} role="tablist" aria-label={m.tabs_label()} className={styles.tablist}>
           {withLeaving(visible, leaving).map(({ item: doc, leaving: gone }) => {
