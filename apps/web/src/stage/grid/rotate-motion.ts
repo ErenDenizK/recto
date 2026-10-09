@@ -5,14 +5,16 @@
  *
  * The cell lays out the new shape at once (its sheet's box swaps width and height); the sheet
  * then starts turned back by the rotation, scaled to the old box, so the first frame looks like
- * the page before, and springs to rest on `smooth`'s curve, on Web Animations (the compositor). A
- * sheet turned again mid-flight starts the next turn from where it is drawn. The page's bitmap is redrawn for the new rotation (`PageCanvas` clears it
+ * the page before, and springs to rest on `smooth`, sampled at 120 Hz onto Web Animations (the
+ * compositor). A sheet turned again mid-flight retargets: its angle, scale and their velocities
+ * are read analytically from the running segment, so a second press speeds the turn on through
+ * instead of restarting it. The page's bitmap is redrawn for the new rotation (`PageCanvas` clears it
  * meanwhile), so a still copy of the old bitmap, turned to match, covers the sheet until the new
  * one is drawn, then fades. Nothing is left on the sheet at rest (Q-2). Under reduced motion the
  * page swaps (§7.5).
  */
 import { reducedMotion } from '../../motion/reduced-motion';
-import { springToLinear } from '../../motion/springs';
+import { solve, springs } from '../../motion/springs';
 import { duration, EASE } from '../../motion/tokens';
 
 /** The size a sheet had before the change (CSS px). */
@@ -27,17 +29,54 @@ export function turnBetween(from: number, to: number): number {
   return d > 180 ? d - 360 : d;
 }
 
-const spins = new WeakMap<HTMLElement, Animation>();
+/**
+ * A running turn: the spring segment it was started on (displacement from rest and velocity per
+ * channel: angle in degrees, scale − 1) and its animation, so a retarget reads where the sheet is
+ * and how fast it moves analytically, at the animation's own time.
+ */
+interface Spin {
+  readonly anim: Animation;
+  readonly angle: readonly [x: number, v: number];
+  readonly scale: readonly [x: number, v: number];
+}
+
+const spins = new WeakMap<HTMLElement, Spin>();
 const covers = new WeakMap<HTMLElement, { el: HTMLCanvasElement; turn: number }>();
 /** How long the old bitmap may cover the sheet while the new one is drawn, ms. */
 const COVER_MAX_MS = 1500;
+/** Keyframe rate of the sampled spring (as `animateStyle`). */
+const FPS = 120;
 
-/** The turn (degrees) and scale `sheet` is drawn at now, read from its computed transform. */
-function pose(sheet: HTMLElement): [angle: number, scale: number] {
-  const value = getComputedStyle(sheet).transform;
-  if (!value || value === 'none') return [0, 1];
-  const m = new DOMMatrixReadOnly(value);
-  return [(Math.atan2(m.b, m.a) * 180) / Math.PI, Math.hypot(m.a, m.b)];
+/**
+ * Where the turn `spin` is now and how fast it moves: [angle, angle velocity, scale − 1, scale
+ * velocity], per second.
+ */
+export function spinState(spin: Spin): [number, number, number, number] {
+  const t = Number(spin.anim.currentTime ?? 0) / 1000;
+  const s = springs.smooth;
+  const [a, va] = solve(s, spin.angle[0], spin.angle[1], t);
+  const [k, vk] = solve(s, spin.scale[0], spin.scale[1], t);
+  return [a, va, k, vk];
+}
+
+/**
+ * The spring from `angle`/`scale` (displacements from rest) with their velocities, sampled at
+ * 120 Hz until it is still: the keyframes of one turn.
+ */
+function frames(angle: readonly [number, number], scale: readonly [number, number]): Keyframe[] {
+  const out: Keyframe[] = [];
+  const s = springs.smooth;
+  for (let i = 0; i < FPS * 2; i++) {
+    const t = i / FPS;
+    const [a, va] = solve(s, angle[0], angle[1], t);
+    const [k, vk] = solve(s, scale[0], scale[1], t);
+    out.push({ transform: `rotate(${a.toFixed(3)}deg) scale(${(1 + k).toFixed(5)})` });
+    const still =
+      Math.abs(a) < 0.01 && Math.abs(va) < 1 && Math.abs(k) < 1e-4 && Math.abs(vk) < 0.01;
+    if (i > 0 && still) break;
+  }
+  out.push({ transform: 'rotate(0deg) scale(1)' });
+  return out;
 }
 
 /** Turns `sheet` (the cell's `[data-thumb]`, already in its new shape) by `turn` degrees. */
@@ -48,24 +87,30 @@ export function spinSheet(sheet: HTMLElement, turn: number, before: SheetSize): 
   if (width === 0 || height === 0) return;
   const quarter = Math.abs(turn) % 180 === 90;
   const scale = before.width / (quarter ? height : width);
-  // A sheet still turning goes on from where it is drawn (its old box is the turning one).
+  // A sheet still turning goes on from where it is and as fast as it turns there: the new
+  // layout is `turn` further on and `scale` times the old box.
   const running = spins.get(sheet);
-  const [angle, size] = running ? pose(sheet) : [0, 1];
-  running?.cancel();
+  const [a, va, k, vk] = running ? spinState(running) : [0, 0, 0, 0];
+  running?.anim.cancel();
   cover(sheet, turn, width, height);
-  const smooth = springToLinear('smooth');
-  const spin = sheet.animate(
-    [
-      { transform: `rotate(${angle - turn}deg) scale(${size * scale})` },
-      { transform: 'rotate(0deg) scale(1)' },
-    ],
-    { duration: smooth.duration, easing: smooth.easing },
-  );
+  const angle = [a - turn, va] as const;
+  const size = [(1 + k) * scale - 1, vk * scale] as const;
+  const keyframes = frames(angle, size);
+  const anim = sheet.animate(keyframes, {
+    duration: ((keyframes.length - 1) * 1000) / FPS,
+    easing: 'linear',
+  });
+  const spin: Spin = { anim, angle, scale: size };
   spins.set(sheet, spin);
   const done = () => {
     if (spins.get(sheet) === spin) spins.delete(sheet);
   };
-  spin.finished.then(done, done);
+  anim.finished.then(done, done);
+}
+
+/** The running turn of `sheet`, if any (for tests). */
+export function runningSpin(sheet: HTMLElement): Spin | undefined {
+  return spins.get(sheet);
 }
 
 /** The still copy of the old bitmap, turned by the turns since it was taken (module header). */
