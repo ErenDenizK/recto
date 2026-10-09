@@ -270,7 +270,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -301,7 +301,7 @@
   display: block;
   height: 2px;
   overflow: hidden;
-  border-radius: 1px;
+  border-radius: var(--radius-capsule);
   background: var(--control-track);
 }
 
