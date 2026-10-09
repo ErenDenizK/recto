@@ -49,6 +49,13 @@
  *    bytes in PDFium (and re-runs the redaction self-check when there is one), and the worker
  *    is terminated; only then are the signed bytes offered, with the signature in the summary.
  *
+ * 6. The file as it is (PLAN D1-3, V1-F12; ADR-0032 §5.3, Save while locked): a document that
+ *    is still exactly the file it was opened from (`asOpened`: the same parts, pages in
+ *    order, no engine edit) and an export that asks for nothing new (no password, size,
+ *    compatibility, flattening, comments left out or signing) hands out the file's own bytes,
+ *    byte for byte, after the same PDFium re-open check. Nothing is rewritten, so a signed
+ *    file keeps its signatures and a locked document's copy is its file.
+ *
  * Order for an edited, redacted source: engine save (annotation and form post-passes) →
  * `finalizeTextEdits` → signature values removed → assembly (and encryption) → compression →
  * PDFium verification → redaction self-check → signing → PDFium re-open (and self-check).
@@ -105,6 +112,7 @@ import {
   signingFailureText,
   signRequestOf,
 } from '../signatures/signing';
+import { asOpenedSource } from '../state/saved-store';
 import { blobsOfDocument, useWorkspaceStore } from '../state/workspace-store';
 import { compressExport, type ExportCompressor } from '../tools/export-compression';
 import { type OcrExportSummary, ocrExportSummaryOf, thresholdsOf } from '../ocr/ocr-model';
@@ -309,6 +317,12 @@ export interface ExportDependencies {
    * broken) signature values and an export with `sign` fails.
    */
   readonly signatures?: ExportSignatureSteps;
+  /**
+   * The source whose own bytes are the document exactly, when it is still its file as opened
+   * (`state/saved-store.ts` `asOpenedSource`). An export that asks for nothing new then hands
+   * out those bytes unchanged (step 6). Without it every export is assembled.
+   */
+  readonly asOpened?: (ws: Workspace, documentId: DocumentId) => SourceId | undefined;
 }
 
 const defaultSignatureSteps: ExportSignatureSteps = {
@@ -322,6 +336,7 @@ const defaultDependencies = (): ExportDependencies => ({
   engine: getEngineService(),
   assembler: getAssembler,
   workspace: () => useWorkspaceStore.getState().workspace,
+  asOpened: asOpenedSource,
   blobs: (id) => useWorkspaceStore.getState().blobs[id]?.bytes,
   // Duck-typed: the store gains `dirtySources` with the annotation tools (M2).
   dirtySources: () =>
@@ -617,6 +632,8 @@ async function prepareExportNow(
   if (doc === undefined) return failed(m.export_error_closed());
   if (doc.pages.length === 0) return failed(m.export_error_no_pages());
   try {
+    const original = fileAsItIs(ws, documentId, options, deps);
+    if (original !== undefined) return await passThrough(ws, doc, original, options, deps, started);
     const engineModule = await import('@pdf-editor/engine');
     const {
       annotationIdsOfEdits,
@@ -966,6 +983,103 @@ async function prepareExportNow(
       codeOf(failure.code),
     );
   }
+}
+
+/**
+ * The source to hand out as it is (step 6), or undefined when the export must be assembled:
+ * the document is its file as opened, the engine holds no edit for it, and the options ask
+ * for nothing the file does not already have.
+ */
+function fileAsItIs(
+  ws: Workspace,
+  documentId: DocumentId,
+  options: ExportOptions,
+  deps: ExportDependencies,
+): SourceId | undefined {
+  const source = deps.asOpened?.(ws, documentId);
+  if (source === undefined) return undefined;
+  const compression =
+    options.compression === undefined ? deps.compressionFor?.(documentId) : options.compression;
+  const dirty = deps.dirtySources?.();
+  const asks =
+    options.security != null ||
+    options.compatibility === true ||
+    options.flattenAnnotations === true ||
+    options.flattenForms === true ||
+    options.includeComments === false ||
+    options.sign !== undefined ||
+    compression != null;
+  // Encrypted and repaired files are rewritten (step 2); so is a source with engine edits.
+  if (asks || needsEngineSave(ws, source, dirty ? { dirty } : {})) return undefined;
+  if ((deps.appliedEdits?.(source).length ?? 0) > 0) return undefined;
+  return source;
+}
+
+/** Step 6: the file's own bytes, re-opened in PDFium like any export before they are offered. */
+async function passThrough(
+  ws: Workspace,
+  doc: VirtualDocument,
+  source: SourceId,
+  options: ExportOptions,
+  deps: ExportDependencies,
+  started: number,
+): Promise<EngineResult<PreparedExport>> {
+  const { signal, onProgress } = options;
+  onProgress?.({ phase: 'reading', done: 0, total: 1 });
+  const read = await deps.engine.sourceBytes(source);
+  if (!read.ok) {
+    const name = ws.sources[source]?.name ?? m.unknown_file();
+    return failed(
+      m.export_error_read({ name, reason: read.error.message }),
+      codeOf(read.error.code),
+    );
+  }
+  const bytes = read.value;
+  if (signal?.aborted) return failed(m.export_error_cancelled(), 'aborted');
+  onProgress?.({ phase: 'verifying', done: 0, total: 1 });
+  const { planExport } = await import('@pdf-editor/engine');
+  const { expectation } = planExport(ws, doc.id);
+  // Pages, sizes and rotations: what the file is. Its outline, labels and form are its own.
+  const verified = await deps.engine.verify(
+    bytes.slice(0),
+    {
+      pageCount: expectation.pageCount,
+      pageSizes: expectation.pageSizes,
+      ...(expectation.rotations ? { rotations: expectation.rotations } : {}),
+    },
+    signal,
+  );
+  if (!verified.ok) {
+    return failed(
+      m.export_error_check({ reason: verified.error.message }),
+      codeOf(verified.error.code),
+    );
+  }
+  onProgress?.({ phase: 'verifying', done: 1, total: 1 });
+  return {
+    ok: true,
+    value: {
+      bytes,
+      report: {
+        outlineNodesKept: 0,
+        outlineNodesDropped: 0,
+        linksRewritten: 0,
+        linksDropped: 0,
+        formFieldsRenamed: [],
+        formFieldsUnified: [],
+        structureTreeRemoved: false,
+        xfaRemoved: false,
+        warnings: [],
+      },
+      sourceNotes: { securityRemoved: [], repaired: [] },
+      verification: verified.value,
+      pageCount: doc.pages.length,
+      sourceCount: 1,
+      durationMs: performance.now() - started,
+      receiptActs: [],
+      outcome: { passwordRemoved: false, metadata: doc.metadata },
+    },
+  };
 }
 
 function codeOf(code: string): 'internal' | 'aborted' {
