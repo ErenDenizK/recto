@@ -14,3 +14,11 @@ declare const __BUILD_DATE__: string;
  * deploy build compiles none of it.
  */
 declare const __RENDER_OVERRIDE__: boolean;
+/** The build target, `web` until DT-0 adds `desktop` (editions.md §4.1, PLAN ED-1). */
+declare const __TARGET__: 'web' | 'desktop';
+/**
+ * Whether this build carries lab code (editions.md §4.4, PLAN ED-3): true only with
+ * `RECTO_LAB=1`. Lab code sits behind `if (__LAB__)` with a dynamic import, so the deploy and
+ * release builds compile none of it.
+ */
+declare const __LAB__: boolean;

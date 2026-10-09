@@ -5,7 +5,8 @@
     "jsx": "react-jsx",
     "types": ["vite/client"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "#platform": ["./src/platform/web/index.ts"]
     }
   },
   "include": ["src", "test", "harness"],

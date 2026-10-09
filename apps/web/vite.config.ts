@@ -91,6 +91,23 @@ function buildDate(): string {
   return date.toISOString();
 }
 
+/**
+ * The build target (docs/plan/v1/editions.md §4.1, PLAN ED-1): `#platform` resolves to
+ * `src/platform/<target>/`, so a build carries one target's adapter and nothing of another's.
+ * Only `web` exists until DT-0 adds `desktop`.
+ */
+const target = process.env.RECTO_TARGET ?? 'web';
+if (target !== 'web') {
+  throw new Error(`RECTO_TARGET=${target}: only the web target exists (DT-0 adds desktop).`);
+}
+
+/**
+ * Lab flags (editions.md §4.4, PLAN ED-3): unfinished work sits behind `if (__LAB__)` with a
+ * dynamic import, so a build without `RECTO_LAB=1` (every deploy and release build, Vitest and
+ * Playwright's) compiles none of it. tools/qa/bundle-budget.ts fails a build that carries some.
+ */
+const lab = process.env.RECTO_LAB === '1';
+
 /** Escapes a string for use inside a RegExp. */
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -104,6 +121,8 @@ export default defineConfig({
     // The test-only render override (spec X36; src/state/render-quality.ts): compiled in only
     // for the builds Playwright tests, never for the deploy and release builds.
     __RENDER_OVERRIDE__: JSON.stringify(process.env.RECTO_RENDER_OVERRIDE === '1'),
+    __TARGET__: JSON.stringify(target),
+    __LAB__: JSON.stringify(lab),
   },
   plugins: [
     react(),
@@ -255,6 +274,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '#platform': fileURLToPath(new URL(`./src/platform/${target}/index.ts`, import.meta.url)),
     },
   },
   worker: {

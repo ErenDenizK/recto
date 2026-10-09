@@ -2,9 +2,9 @@
  * The saved mark (spec redesign X13; ADR-0032 §2.1, §5.2; ADR-0030 §5.2): which state of each
  * document is in its file, kept beside the model and never in it.
  *
- * `VirtualDocument.clean` and `markDocumentClean` stay unused: writing a flag into
- * `documents[id]` would make a save look like a change to the document (and trip the Lock check
- * of ADR-0030 once it lands in `commit()`). Instead this store keeps, per document, the mark of
+ * `markDocumentClean` stays unused and `VirtualDocument.clean` is never written: writing a flag
+ * into `documents[id]` would make a save look like a change to the document (and trip the Lock
+ * check of ADR-0030 in `commit()`). Instead this store keeps, per document, the mark of
  * what was last written: the `at` of the history entry present then (`entryAt`, X13's shape),
  * the document object itself and the ids of its sources' engine edits. Since history entries
  * share structure, a document is in its file exactly while the workspace still holds those same
@@ -122,6 +122,14 @@ function fileSource(ws: Workspace, doc: VirtualDocument): SourceId | undefined {
 /** Documents already looked at once (a document that appeared changed never gets a first mark). */
 const seen = new Set<DocumentId>();
 
+/**
+ * Each document that is a file, as it was first seen untouched: the state whose bytes are the
+ * file's own.
+ * Saves leave it alone (unlike the marks), so `asOpenedSource` can tell a document that still
+ * is its file from one saved since with changes.
+ */
+const openedAs = new Map<DocumentId, VirtualDocument>();
+
 /** Notes the documents of `ws` seen for the first time (see the module comment). */
 export function observeDocuments(ws: Workspace, entryAt: number): void {
   const marks: Record<DocumentId, SavedMark> = {};
@@ -137,6 +145,10 @@ export function observeDocuments(ws: Workspace, entryAt: number): void {
     if (origin === undefined) continue;
     origins[id] = [origin];
     marks[id] = { entryAt, document: doc, edits: editSignature(ws, doc), handleKept: false };
+    // Only a document no operation touched yet: a restored one whose outline or metadata
+    // changed before the reload is pristine in its pages but no longer the file's bytes.
+    // (`clean` is read here only, at first sight; MDL-1 replaces it when it removes the flag.)
+    if (doc.clean) openedAs.set(id, doc);
   }
   if (Object.keys(marks).length === 0 && Object.keys(origins).length === 0) return;
   useSavedStore.setState((s) => ({
@@ -217,6 +229,8 @@ export function adoptFileFacts(
   const { origins } = facts;
   const noFile = origins?.length === 0;
   const asOpened = facts.writtenOver === false ? asOpenedMark(state, id, origins) : undefined;
+  // A copy of pages another document showed is no file: its bytes are not a source's own.
+  if (noFile) openedAs.delete(id);
   useSavedStore.setState((s) => {
     const { [id]: _origins, ...otherOrigins } = s.origins;
     const { [id]: _mark, ...otherMarks } = s.marks;
@@ -251,6 +265,22 @@ function asOpenedMark(
     edits: editSignature(state.workspace, doc),
     handleKept: false,
   };
+}
+
+/**
+ * The source whose original bytes are document `id` exactly, when the document is still its
+ * file as opened: the same parts as when first seen (`sameFileContent`; a rename is no change
+ * to the file), pages in order with nothing added, and no engine edit on its source. A copy or
+ * a save of such a document can hand out the file's own bytes, byte for byte, instead of a
+ * rewrite (PLAN D1-3, V1-F12: a locked signed file keeps its bytes and its signatures).
+ */
+export function asOpenedSource(ws: Workspace, id: DocumentId): SourceId | undefined {
+  const doc = ws.documents[id];
+  const opened = openedAs.get(id);
+  if (doc === undefined || opened === undefined || !sameFileContent(doc, opened)) return undefined;
+  const first = doc.pages[0]?.ref;
+  if (first?.kind !== 'source' || !isPristineDocument(ws, doc)) return undefined;
+  return first.source;
 }
 
 /**
@@ -314,5 +344,6 @@ watchSavedMarks();
 export function resetSavedMarks(): void {
   seen.clear();
   writtenOver.clear();
+  openedAs.clear();
   useSavedStore.setState({ marks: {}, origins: {} });
 }

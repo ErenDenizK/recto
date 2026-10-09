@@ -17,9 +17,9 @@
  * jumps never ask (ADR-0030 §2.7).
  *
  * Every committing command declares its act in the registry (`commands/registry.ts`), which
- * asks this guard for each document the command changes (ADR-0030 §2.4). From D1-3,
- * `workspace-store`'s `commit()` refuses a change to a locked document whatever asked, so a
- * site that forgets the guard still fails closed.
+ * asks this guard for each document the command changes (ADR-0030 §2.4). Behind it,
+ * `workspace-store`'s `commit()` refuses a change to a locked document whatever asked
+ * (`lock-check.ts`, D1-3), so a site that forgets the guard still fails closed.
  *
  * Reads the workspace (which documents exist), the Markup flag of `ui-store` and `lock-store`;
  * none of them imports this module.
