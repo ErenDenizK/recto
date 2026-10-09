@@ -396,6 +396,9 @@ describe('form layer in viewing and locked (05-canvas §6, ADR-0030)', () => {
     expect(screen.queryByRole('textbox', { name: 'name' })).toBeNull();
     const notice = await screen.findByRole('status');
     expect(within(notice).getByRole('button')).toBeVisible();
+    // Esc on the field closes the notice, which would otherwise sit over the checkbox below.
+    await userEvent.keyboard('{Escape}');
+    await expect.poll(() => screen.queryByRole('status')).toBeNull();
 
     // A checkbox does not toggle either, in Markup too.
     useUiStore.getState().openMarkup(model().workspace.activeDocument as DocumentId);

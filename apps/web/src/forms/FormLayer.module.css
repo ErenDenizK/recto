@@ -73,7 +73,7 @@
   position: absolute;
   z-index: 1;
   margin: 0;
-  padding: 0 3px;
+  padding: 0 var(--space-half);
   border: 1px solid var(--select);
   border-radius: var(--radius-page);
   background: var(--page-background);
@@ -97,7 +97,7 @@
 }
 
 textarea.editor {
-  padding: 2px 3px;
+  padding: var(--space-half);
   resize: none;
 }
 
@@ -162,7 +162,7 @@ select.editor option:disabled {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  /* 5 px above and below the 24 px Edit button and the border: 36 px. */
+  /* 5 px above and below the S Edit button (ui/Button, 24 px) and the border: 36 px. */
   margin-top: -2px;
   padding: calc(var(--space-1) + 1px) var(--space-1) calc(var(--space-1) + 1px) var(--space-3);
   border-radius: var(--radius-sm);
@@ -170,30 +170,4 @@ select.editor option:disabled {
   font-size: var(--type-footnote);
   white-space: nowrap;
   pointer-events: auto;
-}
-
-.lockEdit {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: 24px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-xs);
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.lockEdit svg {
-  width: 14px;
-  height: 14px;
-}
-
-@media (hover: hover) {
-  .lockEdit:hover {
-    background: var(--surface-hover);
-  }
-}
-
-.lockEdit:active {
-  background: var(--surface-active);
 }

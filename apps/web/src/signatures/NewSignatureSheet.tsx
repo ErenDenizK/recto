@@ -255,9 +255,11 @@ export default function NewSignatureSheet() {
                   </div>
                 </>
               ) : (
-                // The empty well is the target itself: the whole dashed area picks an image.
+                // The empty well is the target itself: the whole dashed area picks an image
+                // (MK-13), a drop well rather than a button in a row, so it keeps its own shape.
                 <button
                   type="button"
+                  // eslint-disable-next-line recto/q9-controls
                   className={styles.emptyImage}
                   aria-labelledby={`${imageHintId}-action`}
                   aria-describedby={imageHintId}
