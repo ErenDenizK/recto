@@ -30,6 +30,14 @@ import { Icon } from '../../ui/Icon';
 /** Documents whose signed or restricted unlock warning was shown this session (F5 §6). */
 const warned = new Set<DocumentId>();
 
+/**
+ * The warning was shown for `id` elsewhere (the Unlock popover, `UnlockPopover.tsx`), so the
+ * switch unlocks at once afterwards: once per document per session, wherever it was read.
+ */
+export function noteUnlockWarned(id: DocumentId): void {
+  warned.add(id);
+}
+
 /** Tests: the session starts again. */
 export function resetLockWarnings(): void {
   warned.clear();
