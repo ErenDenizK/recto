@@ -7,10 +7,11 @@
  * frosted band under the strip (PG3 Issue 8); while it sticks, the canvas fills the room above
  * it, so no sliver of cells shows between it and the pieces (owner feedback F4).
  *
- * The header is quiet (owner feedback F4, "Better UI"): the name and its count, and a badge
- * only for what a page operation must respect (encrypted, repaired, XFA, signed), drawn as a
- * system tag (a filled capsule, no outline). A form and a structure tree are facts about the
- * file, not about its pages: the Document info sheet lists them (`DocumentFacts`).
+ * The header is one quiet line (owner feedback F4, "Better UI"; system-audit-2026-10 I-33): the
+ * name in body 600, then its count and a tag only for what a page operation must respect
+ * (encrypted, repaired, XFA, signed) as footnote text after middle dots, each with a tooltip
+ * that says what it changes; no chips. A form and a structure tree are facts about the file,
+ * not about its pages: the Document info sheet lists them (`DocumentFacts`).
  *
  * The section element is a drop target for page drags, tab drags and OS files; the table
  * computes the insertion gap from pointer coordinates (dnd/geometry.ts), so targets carry
@@ -48,6 +49,7 @@ import {
   useWorkspaceStore,
 } from '../state/workspace-store';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import menuStyles from '../ui/Menu.module.css';
 import { Tooltip } from '../ui/Tooltip';
 import { selectParity } from './arrange-actions';
@@ -326,20 +328,19 @@ function SectionHeader({
 
   return (
     <header className={styles.header} data-section-header="">
-      <button
-        type="button"
+      <IconButton
+        size="row"
         className={styles.headerButton}
         aria-expanded={!collapsed}
         aria-controls={collapsed ? undefined : sectionDomId(doc.id, 'grid')}
-        aria-label={
+        label={
           collapsed
             ? m.section_expand_label({ title: doc.title })
             : m.section_collapse_label({ title: doc.title })
         }
+        icon={<Icon name="caret-down" />}
         onClick={toggle}
-      >
-        <Icon name="caret-down" />
-      </button>
+      />
       <span className={styles.sectionTags}>
         {sources.map((id) => {
           const file = files[id];
@@ -377,18 +378,17 @@ function SectionHeader({
           {doc.title}
         </h2>
       )}
-      <span className={styles.sectionCount}>{pagesPhrase(doc.pages.length)}</span>
-      {badges.length > 0 ? (
-        <span className={styles.badges}>
-          {badges.map((badge) => (
-            <Tooltip key={badge.flag} label={badge.explanation}>
-              <button type="button" className={styles.badge} aria-label={badge.explanation}>
-                {badge.label}
-              </button>
-            </Tooltip>
-          ))}
-        </span>
-      ) : null}
+      <span className={styles.sectionMeta}>
+        <span className={styles.sectionCount}>{pagesPhrase(doc.pages.length)}</span>
+        {badges.map((badge) => (
+          <Tooltip key={badge.flag} label={badge.explanation}>
+            <span className={styles.badge} data-section-tag={badge.flag}>
+              {badge.label}
+              <span className="visually-hidden">{`: ${badge.explanation}`}</span>
+            </span>
+          </Tooltip>
+        ))}
+      </span>
       <span className={styles.headerSpacer} />
       <SectionMenu section={section} />
     </header>

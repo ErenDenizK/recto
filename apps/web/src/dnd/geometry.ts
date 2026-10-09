@@ -22,6 +22,11 @@ export const GRID = {
   metaHeight: 28,
   /** Thumbnail box aspect (height / width): fits Letter; A4 portrait is narrower. */
   boxAspect: 1.3,
+  /**
+   * The flattest box a grid of wide pages takes (`boxAspectOf`): it still holds the check badge
+   * clear of the page's edges at the smallest cell size.
+   */
+  minBoxAspect: 0.4,
   headerHeight: 48,
   /** Space after a section's last row. */
   sectionGap: 16,
@@ -42,6 +47,33 @@ export interface GridMetrics {
   readonly gapX: number;
 }
 
+export interface GridMetricsOptions {
+  /** Centre the columns in the width (the Pages grid, PG1 §2). */
+  readonly centre?: boolean;
+  /**
+   * The most cells any row will hold (the longest section): with `centre`, a document with
+   * fewer pages than the width has columns centres the cells it has, not empty columns, so a
+   * short document does not sit in the top-left of a wide window (system-audit-2026-10 I-34).
+   */
+  readonly items?: number;
+  /** The thumbnail box's aspect, height / width (`boxAspectOf`); defaults to `GRID.boxAspect`. */
+  readonly boxAspect?: number;
+}
+
+/**
+ * The box every thumbnail of a grid fits in, as height / width: the tallest shown page's
+ * aspect, between `GRID.minBoxAspect` and `GRID.boxAspect` (plan E6a). A grid of wide pages
+ * gets flat boxes, so its labels sit under the pages rather than a box's height below them; in
+ * a grid of mixed pages the portraits set the box and the others stand on its foot line.
+ */
+export function boxAspectOf(sizes: Iterable<{ readonly width: number; readonly height: number }>) {
+  let tallest = 0;
+  for (const size of sizes) {
+    if (size.width > 0 && size.height > 0) tallest = Math.max(tallest, size.height / size.width);
+  }
+  return tallest === 0 ? GRID.boxAspect : clamp(tallest, GRID.minBoxAspect, GRID.boxAspect);
+}
+
 /**
  * The grid's metrics for a container `width` wide. With `centre`, the columns sit in the
  * middle (the Pages grid, PG1 §2): the side padding grows from `GRID.padX` to share what the
@@ -50,14 +82,16 @@ export interface GridMetrics {
 export function gridMetrics(
   width: number,
   cellWidth: number,
-  options: { readonly centre?: boolean } = {},
+  options: GridMetricsOptions = {},
 ): GridMetrics {
-  const boxHeight = Math.round(cellWidth * GRID.boxAspect);
+  const aspect = clamp(options.boxAspect ?? GRID.boxAspect, GRID.minBoxAspect, GRID.boxAspect);
+  const boxHeight = Math.round(cellWidth * aspect);
   const columns = Math.max(
     1,
     Math.floor((width - GRID.padX * 2 + GRID.gapX) / (cellWidth + GRID.gapX)),
   );
-  const used = columns * cellWidth + (columns - 1) * GRID.gapX;
+  const filled = Math.max(1, Math.min(columns, options.items ?? columns));
+  const used = filled * cellWidth + (filled - 1) * GRID.gapX;
   return {
     cellWidth,
     boxHeight,

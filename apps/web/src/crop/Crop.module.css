@@ -1,51 +1,25 @@
 /*
- * "Crop pages…" (M4 §3): the dialog's margin row and preview (layered on
- * OperationDialogs.module.css and ExportDialog.module.css), the Read-mode drawing layer and
- * its floating hint.
+ * "Crop pages…" (M4 §3, S12): the sheet's preview (the rows are the sheet grammar's and the page
+ * sheets' parts, pages-sheets/PagesSheets.module.css), the Read-mode drawing layer and its
+ * floating hint.
  */
 
-/* Top, right, bottom, left, unit. */
-.marginRow {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 0.9fr);
-  gap: var(--space-2);
-  align-items: end;
+/* The preview row (S12): the page with its crop rectangle centred on top, then what the crop
+   will make and the Draw and Reset actions under it, so the 228 px page keeps the whole
+   width of a 400 px sheet. */
+.previewStack[data-full] {
+  flex-direction: column;
+  align-items: stretch;
 }
 
-.marginInput {
-  width: 100%;
-  min-width: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.marginInput[aria-invalid='true'] {
-  border-color: var(--danger);
-}
-
-.previewRow {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: var(--space-4);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border-hairline);
+.previewStack > :first-child {
+  align-self: center;
 }
 
 .previewSide {
   display: grid;
   gap: var(--space-2);
   align-content: start;
-}
-
-.previewSide > p {
-  padding-top: 0;
-  border-top: none;
-}
-
-.buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
 }
 
 .previewBox {
@@ -117,26 +91,6 @@
   cursor: nesw-resize;
 }
 
-/* Honesty notice (as the redaction apply dialog): what a crop does and does not do. */
-.notice {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
-  text-wrap: pretty;
-}
-
-.warning {
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
-  text-wrap: pretty;
-}
-
 /* Read mode: the layer takes the page while drawing, above every other page layer. */
 .layer {
   z-index: 4;
@@ -153,9 +107,9 @@
 }
 
 /* Centred by its auto margins, not translateX(-50%), so it rests on whole pixels (quality-bar
-   Q-2); 46 px tall at the bars' 7px blur (coverage registry). */
+   Q-2). A floating piece (G1): --piece-h high, the capsule radius, an M action at its end. */
 .banner {
-  composes: mat mat-bar s8 from global;
+  composes: mat mat-bar s7 c8 from global;
   position: fixed;
   top: calc(var(--free-top, var(--bar-h)) + var(--space-3));
   right: 0;
@@ -164,27 +118,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  box-sizing: border-box;
+  height: var(--piece-h);
+  padding: 0 var(--piece-pad) 0 var(--space-4);
   width: max-content;
   max-width: calc(100vw - 2 * var(--space-4));
   margin-inline: auto;
-  border-radius: var(--radius-md);
+  border-radius: var(--piece-radius);
   color: var(--text-primary);
   font-size: var(--type-body);
-}
-
-.bannerButton {
-  height: var(--control-h);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-body);
-}
-
-@media (hover: hover) {
-  .bannerButton:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
 }

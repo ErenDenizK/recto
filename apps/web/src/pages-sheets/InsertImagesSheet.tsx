@@ -12,7 +12,7 @@
 import { A4, type ImageSizing, imagePageSize } from '../files/images';
 import { formatNumber, m } from '../i18n';
 import { RadioGroup } from '../ui/RadioGroup';
-import { Sheet, useSheetDraft } from '../ui/sheet';
+import { Sheet, SheetGroup, useSheetDraft } from '../ui/sheet';
 import styles from './PagesSheets.module.css';
 
 export const INSERT_IMAGES_SHEET = 'insert-images';
@@ -55,34 +55,32 @@ export function InsertImagesSheet({
       }}
       testId="image-size-dialog"
     >
-      <div className={styles.stack}>
-        <div className={styles.group}>
-          <p className={styles.legend}>{m.image_size_label()}</p>
-          <RadioGroup<ImageSizing>
-            label={m.image_size_label()}
-            value={choice}
-            onValueChange={setChoice}
-            options={[
-              {
-                value: 'fit-a4',
-                label: m.image_size_fit(),
-                description: m.image_size_fit_hint({
-                  width: cm(Math.min(fitted.width, A4.width)),
-                  height: cm(fitted.height),
-                }),
-              },
-              {
-                value: 'original',
-                label: m.image_size_original(),
-                description: m.image_size_original_hint({
-                  width: cm(largest.width),
-                  height: cm(largest.height),
-                }),
-              },
-            ]}
-          />
-        </div>
-      </div>
+      <SheetGroup label={m.image_size_label()}>
+        <RadioGroup<ImageSizing>
+          className={styles.choices}
+          label={m.image_size_label()}
+          value={choice}
+          onValueChange={setChoice}
+          options={[
+            {
+              value: 'fit-a4',
+              label: m.image_size_fit(),
+              description: m.image_size_fit_hint({
+                width: cm(Math.min(fitted.width, A4.width)),
+                height: cm(fitted.height),
+              }),
+            },
+            {
+              value: 'original',
+              label: m.image_size_original(),
+              description: m.image_size_original_hint({
+                width: cm(largest.width),
+                height: cm(largest.height),
+              }),
+            },
+          ]}
+        />
+      </SheetGroup>
     </Sheet>
   );
 }

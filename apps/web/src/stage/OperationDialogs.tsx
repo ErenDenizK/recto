@@ -7,23 +7,19 @@
  * dialogs; Merge into… is gone (the Pages grid's All open moves pages between documents, 07
  * §25) and Combine has one outcome, a new document with its sources kept (INV-12).
  *
- * Crop pages (S12) keeps its dialog frame here until its own package moves it to a sheet.
+ * Crop pages (S12) is a task sheet too (`crop/CropDialog.tsx`).
  *
  * `operation-dialogs-store.ts` says which one is open; each sheet stays mounted with the last
  * subject it was opened for, so it can animate closed (the Sheet primitive's exit).
  */
-import { Dialog } from '@base-ui/react/dialog';
 import { useState } from 'react';
 
 import { CropDialog, CropDrawBanner } from '../crop';
-import { dismissCropOutcome, isCropWorking } from '../crop/crop-store';
 import { CombineSheet } from '../pages-sheets/CombineSheet';
 import { ExtractSheet } from '../pages-sheets/ExtractSheet';
 import { InsertImagesSheet } from '../pages-sheets/InsertImagesSheet';
 import { InterleaveSheet } from '../pages-sheets/InterleaveSheet';
 import { SplitSheet } from '../pages-sheets/SplitSheet';
-import overlay from '../shell/ShortcutOverlay.module.css';
-import { useRetained } from '../ui/use-retained';
 import {
   answerImageSizing,
   closeOperationDialog,
@@ -91,35 +87,33 @@ export function OperationDialogs() {
   );
 }
 
-/** Crop pages (S12) in M8's dialog frame, until its package moves it onto the Sheet. */
+/**
+ * Crop pages (S12) on the Sheet primitive. Each opening mounts the sheet afresh (its key counts
+ * the openings), so it starts from the page's crop or the drawing it resumes, as M8's dialog
+ * did; between openings the last subject keeps it mounted while it animates closed.
+ */
 function CropHost({ dialog }: { readonly dialog: Of<'crop'> | null }) {
-  // Keep the popup mounted while it animates closed (see useRetained).
-  const [shown, release] = useRetained(dialog);
+  const open = dialog !== null;
+  const [last, setLast] = useState<Of<'crop'> | null>(dialog);
+  const [opens, setOpens] = useState(open ? 1 : 0);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (dialog !== null && dialog !== last) setLast(dialog);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setOpens(opens + 1);
+  }
+  const shown = dialog ?? last;
   return (
-    <Dialog.Root
-      open={dialog !== null}
-      onOpenChange={(open) => {
-        // Esc and the backdrop do nothing while a crop removes content (crop-store.ts).
-        if (!open && !isCropWorking()) closeOperationDialog();
-      }}
-      onOpenChangeComplete={(open) => {
-        if (open) return;
-        // A crop's result sheet was seen: the next crop dialog starts from the form.
-        if (shown) dismissCropOutcome(shown.documentId);
-        release();
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className={overlay.backdrop} />
-        {shown === null ? null : (
-          <CropDialog
-            key={shown.documentId}
-            documentId={shown.documentId}
-            pageIds={shown.pageIds}
-          />
-        )}
-      </Dialog.Portal>
+    <>
+      {shown === null ? null : (
+        <CropDialog
+          key={`${shown.documentId}:${opens}`}
+          documentId={shown.documentId}
+          pageIds={shown.pageIds}
+          open={open}
+        />
+      )}
       <CropDrawBanner />
-    </Dialog.Root>
+    </>
   );
 }

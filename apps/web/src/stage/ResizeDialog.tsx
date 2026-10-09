@@ -1,14 +1,15 @@
 /**
  * S17 Resize pages (`components/07-sheets.md` §19; M4 page resize), a task sheet on the Sheet
- * primitive: a paper preset or a custom size (pt, mm or in, with an orientation swap), how the
- * content meets the new size (Scale, Fit, Canvas), a 3 × 3 anchor grid, the pages to apply it
- * to (selection, the whole document, or every page of the first page's size) and a live
- * preview of the first page drawn by the same page canvas the grid uses (low priority).
+ * primitive in the sheet grammar (system-audit-2026-10 §3.6.1: inset grouped lists of M rows):
+ * Size (a paper preset or a custom width and height in mm, in or pt, the orientation, keep each
+ * page's orientation), Content (Fit, Scale, Canvas, stretch, a 3 × 3 anchor grid), Apply to
+ * (selection, the whole document, or every page of the first page's size) and a live preview
+ * of the first page drawn by the same page canvas the grid uses (low priority). Every control
+ * is a `ui/` one: no native radios or checkboxes (Q-9, Q-14).
  * Guard `pages` (a locked document shows the sheet's lock banner). Commits one history entry
  * (`resizePagesTo`); the model's `resizePages` converts the displayed request per page.
  */
 import {
-  ANCHOR_POSITIONS,
   type Anchor,
   type DocumentId,
   MAX_PAGE_SIDE,
@@ -29,19 +30,23 @@ import {
   type VirtualPage,
   type Workspace,
 } from '@pdf-editor/document-model';
-import { Fragment, type KeyboardEvent, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 import { RENDER_PRIORITY } from '../engine/engine-service';
-import styles from '../export/ExportDialog.module.css';
 import { formatNumber, m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { displaySize, fitInBox } from '../pages/page-geometry';
 import { openTitleMenu } from '../shell/frame/frame-store';
 import { useChangeRefusal } from '../state/guard';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import parts from '../pages-sheets/PagesSheets.module.css';
+import { AnchorGrid } from '../ui/AnchorGrid';
+import { Checkbox } from '../ui/Checkbox';
+import { NumberField } from '../ui/NumberField';
+import { RadioGroup } from '../ui/RadioGroup';
+import { Segmented } from '../ui/Segmented';
 import { Select } from '../ui/Select';
-import { Sheet } from '../ui/sheet';
-import local from './OperationDialogs.module.css';
+import { Sheet, SheetGroup, SheetRow } from '../ui/sheet';
 import own from './ResizeDialog.module.css';
 import { ResizedContent } from './ResizedContent';
 import { resizePagesTo } from './section-operations';
@@ -184,7 +189,6 @@ export function ResizeDialog({
   );
   const [custom, setCustom] = useState<Size>(() => reference ?? PAPER_SIZES.a4);
   const [unit, setUnit] = useState<ResizeUnit>('mm');
-  const [drafts, setDrafts] = useState<{ width?: string; height?: string }>({});
   const [matchOrientation, setMatchOrientation] = useState(true);
   const [mode, setMode] = useState<ResizeMode>('fit');
   const [stretch, setStretch] = useState(false);
@@ -195,7 +199,6 @@ export function ResizeDialog({
   const widthId = useId();
   const heightId = useId();
   const presetId = useId();
-  const unitId = useId();
 
   if (doc === undefined) return null;
 
@@ -226,10 +229,7 @@ export function ResizeDialog({
   const ready = targets.length > 0 && sizeValid;
   const anchorDisabled = mode === 'scale' && stretch;
 
-  const setSide = (side: 'width' | 'height', text: string) => {
-    setDrafts((current) => ({ ...current, [side]: text }));
-    const value = Number(text.replace(',', '.'));
-    if (text.trim() === '' || !Number.isFinite(value)) return;
+  const setSide = (side: 'width' | 'height', value: number) => {
     const next = { ...shownSize, [side]: fromUnit(value, unit) };
     setCustom(next);
     setLandscape(next.width > next.height);
@@ -239,7 +239,6 @@ export function ResizeDialog({
   const swapOrientation = (toLandscape: boolean) => {
     if (toLandscape === landscape) return;
     setLandscape(toLandscape);
-    setDrafts({});
     if (preset === 'custom') setCustom({ width: custom.height, height: custom.width });
   };
 
@@ -249,30 +248,25 @@ export function ResizeDialog({
     onClose();
   };
 
-  const field = (side: 'width' | 'height', id: string, label: string) => (
-    <div className={styles.field}>
-      <label className={styles.label} htmlFor={id}>
-        {label}
-      </label>
-      <input
-        id={id}
-        type="text"
-        inputMode="decimal"
-        className={`${styles.input} ${own.sizeInput}`}
-        value={drafts[side] ?? formatNumber(toUnit(shownSize[side], unit), { useGrouping: false })}
-        disabled={preset === 'original'}
-        aria-invalid={!sizeValid || undefined}
-        aria-describedby={sizeValid ? undefined : sizeErrorId}
-        spellCheck={false}
-        autoComplete="off"
-        data-testid={`resize-${side}`}
-        onChange={(event) => setSide(side, event.target.value)}
-        onBlur={() => setDrafts({})}
-      />
-    </div>
+  const field = (side: 'width' | 'height', id: string) => (
+    <NumberField
+      id={id}
+      className={parts.number}
+      label={side === 'width' ? m.resize_width() : m.resize_height()}
+      value={toUnit(shownSize[side], unit)}
+      step={unit === 'pt' ? 1 : unit === 'mm' ? 1 : 0.1}
+      format={{ maximumFractionDigits: DIGITS[unit], useGrouping: false }}
+      disabled={preset === 'original'}
+      aria-describedby={sizeValid ? undefined : sizeErrorId}
+      data-testid={`resize-${side}`}
+      onValueChange={(next) => {
+        if (next !== null && Number.isFinite(next)) setSide(side, next);
+      }}
+    />
   );
 
   const referenceLabel = reference === undefined ? '' : sizeLabel(reference, unit);
+  const original = preset === 'original';
 
   return (
     <Sheet
@@ -290,174 +284,147 @@ export function ResizeDialog({
       }
       primary={{ label: m.resize_confirm(), onPress: submit, disabled: !ready }}
     >
-      <div className={own.sheetBody}>
-        <fieldset className={local.options}>
-          <legend className={local.legend}>{m.resize_size_label()}</legend>
-          <div className={own.sizeRow}>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor={presetId}>
-                {m.resize_preset_label()}
-              </label>
-              <Select<ResizePreset>
-                triggerRef={presetRef}
-                id={presetId}
-                block
-                label={m.resize_preset_label()}
-                value={preset}
-                data-testid="resize-preset"
-                onValueChange={(next) => {
-                  setPreset(next);
-                  setDrafts({});
-                }}
-                options={[
-                  ...PRESETS.map((id) => ({ value: id, label: presetName(id) })),
-                  { value: 'custom', label: m.resize_preset_custom() },
-                  { value: 'original', label: m.resize_preset_original() },
-                ]}
-              />
-            </div>
-            {field('width', widthId, m.resize_width())}
-            {field('height', heightId, m.resize_height())}
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor={unitId}>
-                {m.resize_unit_label()}
-              </label>
-              <Select
-                id={unitId}
-                block
-                label={m.resize_unit_label()}
-                value={unit}
-                onValueChange={(next) => {
-                  setUnit(next);
-                  setDrafts({});
-                }}
-                options={(['mm', 'in', 'pt'] as const).map((u) => ({
-                  value: u,
-                  label: unitName(u),
-                }))}
-              />
-            </div>
-          </div>
-          {sizeValid ? null : (
-            <span id={sizeErrorId} className={local.fieldError}>
+      <SheetGroup
+        label={m.resize_size_label()}
+        footnote={
+          sizeValid ? undefined : (
+            <span id={sizeErrorId} className={parts.error}>
               {m.resize_error_size({
                 min: formatNumber(toUnit(MIN_PAGE_SIDE, unit)),
                 max: formatNumber(toUnit(MAX_PAGE_SIDE, unit)),
                 unit: unitName(unit),
               })}
             </span>
-          )}
-          <div
-            className={own.segmented}
-            role="radiogroup"
-            aria-label={m.resize_orientation_label()}
-            data-disabled={preset === 'original' || undefined}
-          >
-            {([false, true] as const).map((value) => (
-              <label key={String(value)} className={own.segment}>
-                <input
-                  type="radio"
-                  name="resize-orientation"
-                  checked={landscape === value}
-                  disabled={preset === 'original'}
-                  onChange={() => swapOrientation(value)}
-                />
-                <span>{value ? m.resize_landscape() : m.resize_portrait()}</span>
-              </label>
-            ))}
-          </div>
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={matchOrientation}
-              disabled={preset === 'original'}
-              onChange={(event) => setMatchOrientation(event.target.checked)}
-            />
-            <span>
-              {m.resize_match_orientation()}
-              <span className={styles.hint}>{m.resize_match_orientation_hint()}</span>
-            </span>
-          </label>
-        </fieldset>
-
-        <div className={own.modeRow} data-disabled={preset === 'original' || undefined}>
-          <fieldset className={local.options}>
-            <legend className={local.legend}>{m.resize_mode_label()}</legend>
-            {(['fit', 'scale', 'canvas'] as const).map((value) => (
-              <Fragment key={value}>
-                <label className={local.option}>
-                  <input
-                    type="radio"
-                    name="resize-mode"
-                    checked={mode === value}
-                    disabled={preset === 'original'}
-                    onChange={() => setMode(value)}
-                  />
-                  <span className={local.optionTitle}>{modeTitle(value)}</span>
-                  <span className={local.optionHint}>{modeHint(value)}</span>
-                </label>
-                {value === 'scale' ? (
-                  <label className={`${styles.check} ${own.stretch}`}>
-                    <input
-                      type="checkbox"
-                      checked={stretch}
-                      disabled={mode !== 'scale' || preset === 'original'}
-                      onChange={(event) => setStretch(event.target.checked)}
-                    />
-                    <span>{m.resize_stretch()}</span>
-                  </label>
-                ) : null}
-              </Fragment>
-            ))}
-          </fieldset>
-          <div className={own.anchorBlock}>
-            <span className={local.legend} id={`${presetId}-anchor`}>
-              {m.resize_anchor_label()}
-            </span>
-            <AnchorGrid
-              value={anchor}
-              disabled={anchorDisabled || preset === 'original'}
-              labelledBy={`${presetId}-anchor`}
-              onChange={setAnchor}
-            />
-          </div>
-        </div>
-
-        <fieldset className={local.options}>
-          <legend className={local.legend}>{m.resize_scope_label()}</legend>
-          {selection.length > 0 ? (
-            <ScopeOption
-              scope="selection"
-              current={scope}
-              onChange={setScope}
-              label={m.resize_scope_selection({ count: selection.length })}
-            />
-          ) : null}
-          <ScopeOption
-            scope="document"
-            current={scope}
-            onChange={setScope}
-            label={m.resize_scope_document({ title: doc.title, count: doc.pages.length })}
+          )
+        }
+      >
+        <SheetRow title={m.resize_preset_label()} labelFor={presetId}>
+          <Select<ResizePreset>
+            triggerRef={presetRef}
+            id={presetId}
+            label={m.resize_preset_label()}
+            value={preset}
+            data-testid="resize-preset"
+            onValueChange={setPreset}
+            options={[
+              ...PRESETS.map((id) => ({ value: id, label: presetName(id) })),
+              { value: 'custom', label: m.resize_preset_custom() },
+              { value: 'original', label: m.resize_preset_original() },
+            ]}
           />
-          {reference === undefined ? null : (
-            <ScopeOption
-              scope="same-size"
-              current={scope}
-              onChange={setScope}
-              label={m.resize_scope_same_size({
-                size: referenceLabel,
-                count: pagesOfSize(ws, documentId, reference).length,
-              })}
-            />
-          )}
-        </fieldset>
+        </SheetRow>
+        <SheetRow title={m.resize_width()} labelFor={widthId}>
+          {field('width', widthId)}
+        </SheetRow>
+        <SheetRow title={m.resize_height()} labelFor={heightId}>
+          {field('height', heightId)}
+        </SheetRow>
+        <SheetRow title={m.resize_unit_label()}>
+          <Segmented<ResizeUnit>
+            frameClassName={parts.segmented}
+            label={m.resize_unit_label()}
+            value={unit}
+            onValueChange={setUnit}
+            options={(['mm', 'in', 'pt'] as const).map((u) => ({ value: u, label: unitName(u) }))}
+          />
+        </SheetRow>
+        <SheetRow title={m.resize_orientation_label()}>
+          <Segmented<'portrait' | 'landscape'>
+            frameClassName={parts.segmented}
+            label={m.resize_orientation_label()}
+            value={landscape ? 'landscape' : 'portrait'}
+            onValueChange={(next) => swapOrientation(next === 'landscape')}
+            options={[
+              { value: 'portrait', label: m.resize_portrait(), disabled: original },
+              { value: 'landscape', label: m.resize_landscape(), disabled: original },
+            ]}
+          />
+        </SheetRow>
+        <SheetRow full>
+          <Checkbox
+            label={m.resize_match_orientation()}
+            description={m.resize_match_orientation_hint()}
+            checked={matchOrientation}
+            disabled={original}
+            onCheckedChange={setMatchOrientation}
+          />
+        </SheetRow>
+      </SheetGroup>
 
-        <div className={own.previewRow}>
+      <SheetGroup label={m.resize_mode_label()}>
+        <RadioGroup<ResizeMode>
+          className={parts.choices}
+          label={m.resize_mode_label()}
+          value={mode}
+          disabled={original}
+          onValueChange={setMode}
+          options={(['fit', 'scale', 'canvas'] as const).map((value) => ({
+            value,
+            label: modeTitle(value),
+            description: modeHint(value),
+          }))}
+        />
+        <SheetRow full>
+          <Checkbox
+            label={m.resize_stretch()}
+            checked={stretch}
+            disabled={mode !== 'scale' || original}
+            onCheckedChange={setStretch}
+          />
+        </SheetRow>
+        <SheetRow title={<span id={`${presetId}-anchor`}>{m.resize_anchor_label()}</span>}>
+          <AnchorGrid
+            value={anchor}
+            disabled={anchorDisabled || original}
+            labelledBy={`${presetId}-anchor`}
+            names={anchorName}
+            data-testid="resize-anchor"
+            onChange={setAnchor}
+          />
+        </SheetRow>
+      </SheetGroup>
+
+      <SheetGroup label={m.resize_scope_label()}>
+        <RadioGroup<ResizeScope>
+          className={parts.choices}
+          label={m.resize_scope_label()}
+          value={scope}
+          onValueChange={setScope}
+          options={[
+            ...(selection.length > 0
+              ? [
+                  {
+                    value: 'selection' as const,
+                    label: m.resize_scope_selection({ count: selection.length }),
+                  },
+                ]
+              : []),
+            {
+              value: 'document' as const,
+              label: m.resize_scope_document({ title: doc.title, count: doc.pages.length }),
+            },
+            ...(reference === undefined
+              ? []
+              : [
+                  {
+                    value: 'same-size' as const,
+                    label: m.resize_scope_same_size({
+                      size: referenceLabel,
+                      count: pagesOfSize(ws, documentId, reference).length,
+                    }),
+                  },
+                ]),
+          ]}
+        />
+      </SheetGroup>
+
+      <SheetGroup>
+        <SheetRow full className={parts.previewRow}>
           <Preview ws={ws} pageId={targets[0]} request={sizeValid ? request : undefined} />
           <p
-            className={local.preview}
+            className={parts.summary}
             role="status"
-            data-ok={ready || undefined}
+            data-problem={ready ? undefined : ''}
             data-testid="resize-summary"
           >
             {targets.length === 0
@@ -469,8 +436,8 @@ export function ResizeDialog({
                     size: sizeLabel(size, unit),
                   })}
           </p>
-        </div>
-      </div>
+        </SheetRow>
+      </SheetGroup>
     </Sheet>
   );
 }
@@ -495,115 +462,6 @@ function modeHint(mode: ResizeMode): string {
     case 'canvas':
       return m.resize_mode_canvas_hint();
   }
-}
-
-function ScopeOption({
-  scope,
-  current,
-  label,
-  onChange,
-}: {
-  readonly scope: ResizeScope;
-  readonly current: ResizeScope;
-  readonly label: string;
-  readonly onChange: (scope: ResizeScope) => void;
-}) {
-  return (
-    <label className={local.option}>
-      <input
-        type="radio"
-        name="resize-scope"
-        checked={current === scope}
-        onChange={() => onChange(scope)}
-      />
-      <span className={local.optionTitle}>{label}</span>
-    </label>
-  );
-}
-
-/**
- * The 3 × 3 anchor grid: a radio group with a roving tab stop; arrow keys move in two
- * dimensions (no wrap), Home / End jump to the first / last position.
- */
-export function AnchorGrid({
-  value,
-  disabled,
-  labelledBy,
-  onChange,
-}: {
-  readonly value: Anchor;
-  readonly disabled: boolean;
-  readonly labelledBy: string;
-  readonly onChange: (anchor: Anchor) => void;
-}) {
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const index = ANCHOR_POSITIONS.indexOf(value);
-
-  const move = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (disabled) return;
-    const row = Math.floor(index / 3);
-    const column = index % 3;
-    let next: number;
-    switch (event.key) {
-      case 'ArrowLeft':
-        next = column > 0 ? index - 1 : index;
-        break;
-      case 'ArrowRight':
-        next = column < 2 ? index + 1 : index;
-        break;
-      case 'ArrowUp':
-        next = row > 0 ? index - 3 : index;
-        break;
-      case 'ArrowDown':
-        next = row < 2 ? index + 3 : index;
-        break;
-      case 'Home':
-        next = 0;
-        break;
-      case 'End':
-        next = 8;
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
-    const anchor = ANCHOR_POSITIONS[next];
-    if (anchor === undefined) return;
-    onChange(anchor);
-    refs.current[next]?.focus();
-  };
-
-  return (
-    <div
-      className={own.anchorGrid}
-      role="radiogroup"
-      aria-labelledby={labelledBy}
-      aria-disabled={disabled || undefined}
-      data-testid="resize-anchor"
-    >
-      {ANCHOR_POSITIONS.map((anchor, i) => (
-        <button
-          key={anchor}
-          ref={(element) => {
-            refs.current[i] = element;
-          }}
-          type="button"
-          role="radio"
-          aria-checked={anchor === value}
-          aria-label={anchorName(anchor)}
-          aria-disabled={disabled || undefined}
-          tabIndex={anchor === value ? 0 : -1}
-          className={own.anchorCell}
-          onKeyDown={move}
-          onClick={() => {
-            if (!disabled) onChange(anchor);
-          }}
-        >
-          <span className={own.anchorDot} aria-hidden="true" />
-        </button>
-      ))}
-    </div>
-  );
 }
 
 /** The first target page at its new size, content placed as the export will draw it. */

@@ -37,6 +37,7 @@
     "chat-centered-text": { "fill": true },
     "check": {},
     "check-circle": { "fill": true },
+    "check-fat": { "fill": true },
     "check-square": {},
     "circle": { "fill": true },
     "circle-dashed": {},

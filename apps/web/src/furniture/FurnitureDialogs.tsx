@@ -1,12 +1,16 @@
 /**
- * Page furniture dialogs (document-tools spec §2): Page numbers, Header and footer, Bates
- * numbering, Watermark. Each dialog is docked to the right with no scrim so the pages show
- * the live preview (furniture-store.ts) while settings change; Apply commits one history
- * entry, Cancel and Esc discard the preview, Remove deletes that kind of furniture (one
- * history entry). Styled as the other operation dialogs (ShortcutOverlay popup and
- * ExportDialog form parts).
+ * Page furniture sheets (document-tools spec §2; S11 in components/07-sheets.md): Page numbers,
+ * Header and footer, Bates numbering, Watermark. Each is a tool sheet on the Sheet primitive:
+ * non-modal and beside the pages, with no scrim, so the pages show the live preview
+ * (furniture-store.ts) while settings change; Apply commits one history entry, Cancel, ✕ and
+ * Esc discard the preview, Remove deletes that kind of furniture (one history entry).
+ *
+ * The body is the sheet grammar (system-audit-2026-10 §3.6.1): inset grouped lists of M rows,
+ * sentence-case section labels, every control a `ui/` one (Q-9, Q-14). Number fields sit as a
+ * row's trailing control at a width that holds their value and, on a coarse pointer, their two
+ * 44 px buttons beside the well, so the buttons never cover the number; the footer stays in
+ * the sheet's room under the scrolling body.
  */
-import { Dialog } from '@base-ui/react/dialog';
 import type {
   Anchor,
   BatesConfig,
@@ -16,23 +20,25 @@ import type {
   TextOverlay,
 } from '@pdf-editor/document-model';
 import { formatBates } from '@pdf-editor/engine/overlay-geometry';
-import { type ReactNode, type SyntheticEvent, useEffect, useId, useState } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 
-import styles from '../export/ExportDialog.module.css';
 import { decodeImageFile } from '../files/images';
 import { pickFiles } from '../files/open-files';
 import { formatNumber, formatPercent, m } from '../i18n';
+import parts from '../pages-sheets/PagesSheets.module.css';
 import { announce } from '../shell/announcer';
-import overlay from '../shell/ShortcutOverlay.module.css';
-import local from '../stage/OperationDialogs.module.css';
 import { readJson, writeJson } from '../state/safe-storage';
 import { pagesPhrase, useTabItems, useWorkspaceStore } from '../state/workspace-store';
-import { Icon } from '../ui/Icon';
+import { AnchorGrid } from '../ui/AnchorGrid';
+import { Button } from '../ui/Button';
+import { Checkbox } from '../ui/Checkbox';
 import { ColourPicker } from '../ui/colour/ColourPicker';
 import { NumberField as NumberInput } from '../ui/NumberField';
+import { Segmented } from '../ui/Segmented';
 import { Select } from '../ui/Select';
+import { Sheet, SheetGroup, SheetRow } from '../ui/sheet';
 import { Slider } from '../ui/Slider';
-import { useRetained } from '../ui/use-retained';
+import { TextField } from '../ui/TextField';
 import {
   applyBatesRun,
   applyFurniture,
@@ -66,49 +72,53 @@ import {
   type WatermarkSettings,
   watermarkOverlay,
 } from './furniture-model';
-import { closeFurnitureDialog, setFurniturePreview, useFurnitureStore } from './furniture-store';
-import local2 from './FurnitureDialogs.module.css';
+import {
+  closeFurnitureDialog,
+  type FurnitureDialogState,
+  setFurniturePreview,
+  useFurnitureStore,
+} from './furniture-store';
+import own from './FurnitureDialogs.module.css';
 import { dropPreviewBlob, isPreviewBlob, putPreviewBlob, takePreviewBlob } from './preview-blobs';
 
+/**
+ * Hosts the open furniture sheet. Each opening (its nonce) mounts the sheet afresh, so it starts
+ * from the document's furniture again; the last opening stays mounted while it animates closed.
+ */
 export function FurnitureDialogs() {
   const dialog = useFurnitureStore((s) => s.dialog);
-  const [shown, release] = useRetained(dialog);
+  const [last, setLast] = useState<FurnitureDialogState | null>(dialog);
+  if (dialog !== null && dialog !== last) setLast(dialog);
+  const shown = dialog ?? last;
+  if (shown === null) return null;
   return (
-    <Dialog.Root
+    <Content
+      key={shown.nonce}
+      kind={shown.kind}
+      documentId={shown.documentId}
       open={dialog !== null}
-      onOpenChange={(open) => {
-        if (!open) closeFurnitureDialog();
-      }}
-      onOpenChangeComplete={(open) => {
-        if (!open) release();
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Backdrop className={local2.backdrop} />
-        {shown === null ? null : (
-          <Content key={shown.nonce} kind={shown.kind} documentId={shown.documentId} />
-        )}
-      </Dialog.Portal>
-    </Dialog.Root>
+    />
   );
 }
 
 function Content({
   kind,
   documentId,
+  open,
 }: {
   readonly kind: FurnitureKind;
   readonly documentId: DocumentId;
+  readonly open: boolean;
 }) {
   switch (kind) {
     case 'page-numbers':
-      return <PageNumbersDialog documentId={documentId} />;
+      return <PageNumbersDialog documentId={documentId} open={open} />;
     case 'header-footer':
-      return <HeaderFooterDialog documentId={documentId} />;
+      return <HeaderFooterDialog documentId={documentId} open={open} />;
     case 'bates':
-      return <BatesDialog documentId={documentId} />;
+      return <BatesDialog documentId={documentId} open={open} />;
     case 'watermark':
-      return <WatermarkDialog documentId={documentId} />;
+      return <WatermarkDialog documentId={documentId} open={open} />;
   }
 }
 
@@ -154,6 +164,7 @@ export function removeFurnitureFrom(documentId: DocumentId, kind: FurnitureKind)
 function Frame({
   kind,
   documentId,
+  open,
   existing,
   canApply,
   onApply,
@@ -161,64 +172,44 @@ function Frame({
 }: {
   readonly kind: FurnitureKind;
   readonly documentId: DocumentId;
+  readonly open: boolean;
   readonly existing: boolean;
   readonly canApply: boolean;
   readonly onApply: () => void;
   readonly children: ReactNode;
 }) {
-  const submit = (event: SyntheticEvent) => {
-    event.preventDefault();
-    if (canApply) onApply();
-  };
   return (
-    <Dialog.Popup
-      className={`${overlay.popup} ${styles.popup} ${local2.side}`}
-      data-testid={`furniture-dialog-${kind}`}
+    <Sheet
+      id="furniture"
+      kind="tool"
+      open={open}
+      onClose={() => closeFurnitureDialog()}
+      title={furnitureName(kind)}
+      testId={`furniture-dialog-${kind}`}
+      primary={{ label: m.furniture_apply(), onPress: onApply, disabled: !canApply }}
+      cancel={m.sheet_cancel()}
+      secondary={
+        existing ? (
+          <Button
+            variant="danger"
+            onClick={() => {
+              if (removeFurnitureFrom(documentId, kind)) closeFurnitureDialog();
+            }}
+          >
+            {m.furniture_remove()}
+          </Button>
+        ) : null
+      }
     >
-      <div className={overlay.header}>
-        <Dialog.Title className={overlay.title}>{furnitureName(kind)}</Dialog.Title>
-        <Dialog.Close className={overlay.close} aria-label={m.common_close()}>
-          <Icon name="x" />
-        </Dialog.Close>
-      </div>
-      <form className={styles.body} onSubmit={submit}>
-        <p className={styles.hint}>{m.furniture_preview_note()}</p>
-        {children}
-        <div className={local2.actions}>
-          {existing ? (
-            <button
-              type="button"
-              className={local2.danger}
-              onClick={() => {
-                if (removeFurnitureFrom(documentId, kind)) closeFurnitureDialog();
-              }}
-            >
-              {m.furniture_remove()}
-            </button>
-          ) : (
-            <span />
-          )}
-          <Dialog.Close className={styles.secondary}>{m.common_cancel()}</Dialog.Close>
-          <button type="submit" className={styles.primary} disabled={!canApply}>
-            {m.furniture_apply()}
-          </button>
-        </div>
-      </form>
-    </Dialog.Popup>
-  );
-}
-
-function Section({ legend, children }: { readonly legend: string; readonly children: ReactNode }) {
-  return (
-    <fieldset className={local2.section}>
-      <legend className={local2.legend}>{legend}</legend>
+      <p className={own.lead}>{m.furniture_preview_note()}</p>
       {children}
-    </fieldset>
+    </Sheet>
   );
 }
 
-function NumberField({
-  label,
+/** A number as a row's trailing control: the title names it. */
+function NumberRow({
+  title,
   value,
   onChange,
   min,
@@ -227,7 +218,7 @@ function NumberField({
   unit,
   testId,
 }: {
-  readonly label: string;
+  readonly title: string;
   readonly value: number;
   readonly onChange: (value: number) => void;
   readonly min?: number;
@@ -236,35 +227,60 @@ function NumberField({
   readonly unit?: string;
   readonly testId?: string;
 }) {
+  const id = useId();
   return (
-    <NumberInput
-      className={local2.number}
-      label={label}
-      showLabel
-      value={Number.isFinite(value) ? value : null}
-      unit={unit}
-      step={step}
-      data-testid={testId}
-      onValueChange={(next) => {
-        if (next !== null && Number.isFinite(next)) onChange(next);
-      }}
-      {...(min === undefined ? {} : { min })}
-      {...(max === undefined ? {} : { max })}
-    />
+    <SheetRow title={title} labelFor={id}>
+      <NumberInput
+        id={id}
+        className={parts.number}
+        label={title}
+        value={Number.isFinite(value) ? value : null}
+        unit={unit}
+        step={step}
+        data-testid={testId}
+        onValueChange={(next) => {
+          if (next !== null && Number.isFinite(next)) onChange(next);
+        }}
+        {...(min === undefined ? {} : { min })}
+        {...(max === undefined ? {} : { max })}
+      />
+    </SheetRow>
   );
 }
 
-const ANCHORS: readonly Anchor[] = [
-  'top-left',
-  'top-center',
-  'top-right',
-  'middle-left',
-  'center',
-  'middle-right',
-  'bottom-left',
-  'bottom-center',
-  'bottom-right',
-];
+/** A line of text as a row's trailing control: the title names it. */
+function TextRow({
+  title,
+  label,
+  value,
+  onChange,
+  placeholder,
+  testId,
+}: {
+  readonly title: string;
+  /** The accessible name when it says more than the title. */
+  readonly label?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder?: string;
+  readonly testId?: string;
+}) {
+  return (
+    <SheetRow title={<span aria-hidden="true">{title}</span>}>
+      <TextField
+        className={parts.text}
+        label={label ?? title}
+        hideLabel
+        value={value}
+        placeholder={placeholder}
+        spellCheck={false}
+        autoComplete="off"
+        data-testid={testId}
+        onValueChange={onChange}
+      />
+    </SheetRow>
+  );
+}
 
 export function anchorName(anchor: Anchor): string {
   switch (anchor) {
@@ -289,31 +305,6 @@ export function anchorName(anchor: Anchor): string {
   }
 }
 
-function AnchorPicker({
-  value,
-  onChange,
-}: {
-  readonly value: Anchor;
-  readonly onChange: (anchor: Anchor) => void;
-}) {
-  const name = useId();
-  return (
-    <div role="radiogroup" aria-label={m.furniture_anchor_label()} className={local2.anchors}>
-      {ANCHORS.map((anchor) => (
-        <label key={anchor} className={local2.anchor} title={anchorName(anchor)}>
-          <input
-            type="radio"
-            name={name}
-            aria-label={anchorName(anchor)}
-            checked={value === anchor}
-            onChange={() => onChange(anchor)}
-          />
-        </label>
-      ))}
-    </div>
-  );
-}
-
 function PositionSection({
   anchor,
   onAnchor,
@@ -322,6 +313,7 @@ function PositionSection({
   onMargins,
   mirror,
   onMirror,
+  children,
 }: {
   readonly anchor?: Anchor;
   readonly onAnchor?: (anchor: Anchor) => void;
@@ -330,43 +322,49 @@ function PositionSection({
   readonly onMargins: (x: number, y: number) => void;
   readonly mirror?: boolean;
   readonly onMirror?: (mirror: boolean) => void;
+  readonly children?: ReactNode;
 }) {
+  const anchorId = useId();
   return (
-    <Section legend={m.furniture_position()}>
-      <div className={local2.row}>
-        {anchor !== undefined && onAnchor ? (
-          <AnchorPicker value={anchor} onChange={onAnchor} />
-        ) : null}
-        <div className={local2.section} style={{ border: 'none', padding: 0 }}>
-          <NumberField
-            label={m.furniture_margin_x()}
-            value={marginX}
-            min={0}
-            max={500}
-            unit={m.furniture_unit_pt()}
-            onChange={(x) => onMargins(Math.max(0, x), marginY)}
+    <SheetGroup label={m.furniture_position()}>
+      {anchor !== undefined && onAnchor ? (
+        <SheetRow title={<span id={anchorId}>{m.furniture_anchor_label()}</span>}>
+          <AnchorGrid
+            value={anchor}
+            disabled={false}
+            labelledBy={anchorId}
+            names={anchorName}
+            onChange={onAnchor}
           />
-          <NumberField
-            label={m.furniture_margin_y()}
-            value={marginY}
-            min={0}
-            max={500}
-            unit={m.furniture_unit_pt()}
-            onChange={(y) => onMargins(marginX, Math.max(0, y))}
-          />
-        </div>
-      </div>
-      {onMirror ? (
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={mirror === true}
-            onChange={(e) => onMirror(e.target.checked)}
-          />
-          <span>{m.furniture_mirror()}</span>
-        </label>
+        </SheetRow>
       ) : null}
-    </Section>
+      <NumberRow
+        title={m.furniture_margin_x()}
+        value={marginX}
+        min={0}
+        max={500}
+        unit={m.furniture_unit_pt()}
+        onChange={(x) => onMargins(Math.max(0, x), marginY)}
+      />
+      <NumberRow
+        title={m.furniture_margin_y()}
+        value={marginY}
+        min={0}
+        max={500}
+        unit={m.furniture_unit_pt()}
+        onChange={(y) => onMargins(marginX, Math.max(0, y))}
+      />
+      {onMirror ? (
+        <SheetRow full>
+          <Checkbox
+            label={m.furniture_mirror()}
+            checked={mirror === true}
+            onCheckedChange={onMirror}
+          />
+        </SheetRow>
+      ) : null}
+      {children}
+    </SheetGroup>
   );
 }
 
@@ -384,17 +382,18 @@ function Percent({
   readonly max?: number;
 }) {
   return (
-    <Slider
-      className={local2.range}
-      label={label}
-      showLabel
-      readout
-      min={min}
-      max={max}
-      value={Math.round(value * 100)}
-      format={(percent) => formatPercent(percent / 100)}
-      onValueChange={(percent) => onChange(percent / 100)}
-    />
+    <SheetRow full>
+      <Slider
+        label={label}
+        showLabel
+        readout
+        min={min}
+        max={max}
+        value={Math.round(value * 100)}
+        format={(percent) => formatPercent(percent / 100)}
+        onValueChange={(percent) => onChange(percent / 100)}
+      />
+    </SheetRow>
   );
 }
 
@@ -407,54 +406,48 @@ function StyleSection({
   readonly onChange: (style: TextStyle) => void;
   readonly showOpacity?: boolean;
 }) {
+  const fontId = useId();
   return (
-    <Section legend={m.furniture_text()}>
-      <div className={local2.row}>
-        <div className={local2.inline}>
-          <span aria-hidden="true">{m.furniture_font()}</span>
-          <Select
-            label={m.furniture_font()}
-            value={style.family}
-            onValueChange={(family) => onChange({ ...style, family })}
-            options={FONT_FAMILIES.map((family) => ({ value: family, label: family }))}
-          />
-        </div>
-        <NumberField
-          label={m.furniture_size()}
-          value={style.size}
-          min={4}
-          max={400}
-          unit={m.furniture_unit_pt()}
-          onChange={(size) => onChange({ ...style, size: Math.min(400, Math.max(4, size)) })}
+    <SheetGroup label={m.furniture_text()}>
+      <SheetRow title={m.furniture_font()} labelFor={fontId}>
+        <Select
+          id={fontId}
+          label={m.furniture_font()}
+          value={style.family}
+          onValueChange={(family) => onChange({ ...style, family })}
+          options={FONT_FAMILIES.map((family) => ({ value: family, label: family }))}
         />
-      </div>
-      <div className={local2.row}>
-        <label className={styles.check}>
-          <input
-            type="checkbox"
+      </SheetRow>
+      <NumberRow
+        title={m.furniture_size()}
+        value={style.size}
+        min={4}
+        max={400}
+        unit={m.furniture_unit_pt()}
+        onChange={(size) => onChange({ ...style, size: Math.min(400, Math.max(4, size)) })}
+      />
+      <SheetRow full>
+        <div className={own.pair}>
+          <Checkbox
+            label={m.furniture_bold()}
             checked={style.bold}
-            onChange={(e) => onChange({ ...style, bold: e.target.checked })}
+            onCheckedChange={(bold) => onChange({ ...style, bold })}
           />
-          <span>{m.furniture_bold()}</span>
-        </label>
-        <label className={styles.check}>
-          <input
-            type="checkbox"
+          <Checkbox
+            label={m.furniture_italic()}
             checked={style.italic}
-            onChange={(e) => onChange({ ...style, italic: e.target.checked })}
-          />
-          <span>{m.furniture_italic()}</span>
-        </label>
-        <div className={local2.inline}>
-          <span aria-hidden="true">{m.furniture_color()}</span>
-          <ColourPicker
-            value={style.color.toUpperCase()}
-            label={m.furniture_color()}
-            onChange={(color) => onChange({ ...style, color })}
-            side="right"
+            onCheckedChange={(italic) => onChange({ ...style, italic })}
           />
         </div>
-      </div>
+      </SheetRow>
+      <SheetRow title={<span aria-hidden="true">{m.furniture_color()}</span>}>
+        <ColourPicker
+          value={style.color.toUpperCase()}
+          label={m.furniture_color()}
+          onChange={(color) => onChange({ ...style, color })}
+          side="left"
+        />
+      </SheetRow>
       {showOpacity ? (
         <Percent
           label={m.furniture_opacity()}
@@ -463,7 +456,7 @@ function StyleSection({
           onChange={(opacity) => onChange({ ...style, opacity })}
         />
       ) : null}
-    </Section>
+    </SheetGroup>
   );
 }
 
@@ -478,6 +471,7 @@ function RangeSection({
   readonly onChange: (range: RangeChoice) => void;
   readonly children?: ReactNode;
 }) {
+  const rangeId = useId();
   const modes: readonly [RangeMode, () => string][] = [
     ['all', m.furniture_range_all],
     ['skip-first', m.furniture_range_skip_first],
@@ -486,36 +480,37 @@ function RangeSection({
     ['custom', m.furniture_range_custom],
   ];
   return (
-    <Section legend={m.furniture_pages()}>
-      <div className={local2.row}>
+    <SheetGroup>
+      <SheetRow title={m.furniture_pages()} labelFor={rangeId}>
         <Select
+          id={rangeId}
           label={m.furniture_pages()}
           value={range.mode}
           data-testid="furniture-range"
           onValueChange={(mode) => onChange({ ...range, mode })}
           options={modes.map(([mode, label]) => ({ value: mode, label: label() }))}
         />
-        {range.mode === 'custom' ? (
-          <>
-            <NumberField
-              label={m.furniture_range_from()}
-              value={range.from}
-              min={1}
-              max={pageCount}
-              onChange={(from) => onChange({ ...range, from: Math.max(1, Math.round(from)) })}
-            />
-            <NumberField
-              label={m.furniture_range_to()}
-              value={range.to}
-              min={1}
-              max={pageCount}
-              onChange={(to) => onChange({ ...range, to: Math.max(1, Math.round(to)) })}
-            />
-          </>
-        ) : null}
-      </div>
+      </SheetRow>
+      {range.mode === 'custom' ? (
+        <>
+          <NumberRow
+            title={m.furniture_range_from()}
+            value={range.from}
+            min={1}
+            max={pageCount}
+            onChange={(from) => onChange({ ...range, from: Math.max(1, Math.round(from)) })}
+          />
+          <NumberRow
+            title={m.furniture_range_to()}
+            value={range.to}
+            min={1}
+            max={pageCount}
+            onChange={(to) => onChange({ ...range, to: Math.max(1, Math.round(to)) })}
+          />
+        </>
+      ) : null}
       {children}
-    </Section>
+    </SheetGroup>
   );
 }
 
@@ -523,9 +518,9 @@ const TOKENS = '{page} {pages} {label} {title} {date} {date:short} {date:long} {
 
 function TokenHint() {
   return (
-    <p className={local2.tokens}>
+    <span className={own.tokens}>
       {m.furniture_tokens()}: {TOKENS}
-    </p>
+    </span>
   );
 }
 
@@ -559,7 +554,13 @@ function useDocument(documentId: DocumentId) {
 // Page numbers
 // ---------------------------------------------------------------------------
 
-function PageNumbersDialog({ documentId }: { readonly documentId: DocumentId }) {
+function PageNumbersDialog({
+  documentId,
+  open,
+}: {
+  readonly documentId: DocumentId;
+  readonly open: boolean;
+}) {
   const doc = useDocument(documentId);
   const pageCount = doc?.pages.length ?? 1;
   const pageOf = m.furniture_preset_page_of({ page: '{page}', pages: '{pages}' });
@@ -573,6 +574,7 @@ function PageNumbersDialog({ documentId }: { readonly documentId: DocumentId }) 
   const [settings, setSettings] = useState<PageNumberSettings>(initial);
   const [preset, setPreset] = useState<PageNumberPreset>(() => presetOf(initial.template, pageOf));
   const [startEdited, setStartEdited] = useState(existing);
+  const formatId = useId();
   const overlays = settings.template.trim() === '' ? [] : [pageNumberOverlay(settings)];
   usePreview('page-numbers', [documentId], overlays);
   if (!doc) return null;
@@ -590,6 +592,7 @@ function PageNumbersDialog({ documentId }: { readonly documentId: DocumentId }) 
     <Frame
       kind="page-numbers"
       documentId={documentId}
+      open={open}
       existing={existing}
       canApply={overlays.length > 0}
       onApply={() =>
@@ -603,38 +606,34 @@ function PageNumbersDialog({ documentId }: { readonly documentId: DocumentId }) 
         )
       }
     >
-      <Section legend={m.furniture_format()}>
-        <div className={local2.segments} role="radiogroup" aria-label={m.furniture_format()}>
-          {presets.map(([id, label]) => (
-            <label key={id} className={local2.segment}>
-              <input
-                type="radio"
-                name="page-number-preset"
-                checked={preset === id}
-                data-testid={`preset-${id}`}
-                onChange={() => {
-                  setPreset(id);
-                  if (id !== 'custom') update({ template: presetTemplate(id, pageOf) });
-                }}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
+      <SheetGroup footnote={preset === 'custom' ? <TokenHint /> : undefined}>
+        <SheetRow title={m.furniture_format()} labelFor={formatId}>
+          <Select<PageNumberPreset>
+            id={formatId}
+            label={m.furniture_format()}
+            value={preset}
+            data-testid="page-number-format"
+            onValueChange={(id) => {
+              setPreset(id);
+              if (id !== 'custom') update({ template: presetTemplate(id, pageOf) });
+            }}
+            options={presets.map(([id, label]) => ({ value: id, label }))}
+          />
+        </SheetRow>
         {preset === 'custom' ? (
-          <>
-            <input
-              className={styles.input}
-              aria-label={m.furniture_template_label()}
+          <SheetRow full>
+            <TextField
+              label={m.furniture_template_label()}
+              hideLabel
               value={settings.template}
               spellCheck={false}
+              autoComplete="off"
               data-testid="page-number-template"
-              onChange={(e) => update({ template: e.target.value })}
+              onValueChange={(template) => update({ template })}
             />
-            <TokenHint />
-          </>
+          </SheetRow>
         ) : null}
-      </Section>
+      </SheetGroup>
       <PositionSection
         anchor={settings.anchor}
         onAnchor={(anchor) => update({ anchor })}
@@ -652,8 +651,8 @@ function PageNumbersDialog({ documentId }: { readonly documentId: DocumentId }) 
           update(startEdited ? { range } : { range, startNumber: firstPosition(range) })
         }
       >
-        <NumberField
-          label={m.furniture_start_number()}
+        <NumberRow
+          title={m.furniture_start_number()}
           value={settings.startNumber}
           min={0}
           testId="page-number-start"
@@ -671,7 +670,13 @@ function PageNumbersDialog({ documentId }: { readonly documentId: DocumentId }) 
 // Header and footer
 // ---------------------------------------------------------------------------
 
-function HeaderFooterDialog({ documentId }: { readonly documentId: DocumentId }) {
+function HeaderFooterDialog({
+  documentId,
+  open,
+}: {
+  readonly documentId: DocumentId;
+  readonly open: boolean;
+}) {
   const doc = useDocument(documentId);
   const pageCount = doc?.pages.length ?? 1;
   const [initial] = useState(() => {
@@ -691,6 +696,7 @@ function HeaderFooterDialog({ documentId }: { readonly documentId: DocumentId })
     <Frame
       kind="header-footer"
       documentId={documentId}
+      open={open}
       existing={existing}
       canApply={overlays.length > 0}
       onApply={() =>
@@ -704,28 +710,30 @@ function HeaderFooterDialog({ documentId }: { readonly documentId: DocumentId })
         )
       }
     >
-      {(['top', 'bottom'] as const).map((edge) => (
-        <Section key={edge} legend={edge === 'top' ? m.furniture_header() : m.furniture_footer()}>
-          <div className={local2.slots}>
-            {SLOTS.filter((slot) => slot.startsWith(edge)).map((slot, i) => (
-              <input
-                key={slot}
-                className={`${styles.input} ${local2.slot}`}
-                aria-label={m.furniture_slot_label({
-                  edge: edge === 'top' ? m.furniture_header() : m.furniture_footer(),
-                  slot: (slotName[i] as () => string)(),
-                })}
-                placeholder={(slotName[i] as () => string)()}
-                spellCheck={false}
-                value={settings.slots[slot]}
-                data-testid={`slot-${slot}`}
-                onChange={(e) => update({ slots: { ...settings.slots, [slot]: e.target.value } })}
-              />
-            ))}
-          </div>
-        </Section>
-      ))}
-      <TokenHint />
+      {(['top', 'bottom'] as const).map((edge) => {
+        const edgeName = edge === 'top' ? m.furniture_header() : m.furniture_footer();
+        return (
+          <SheetGroup
+            key={edge}
+            label={edgeName}
+            footnote={edge === 'bottom' ? <TokenHint /> : undefined}
+          >
+            {SLOTS.filter((slot) => slot.startsWith(edge)).map((slot, i) => {
+              const name = (slotName[i] as () => string)();
+              return (
+                <TextRow
+                  key={slot}
+                  title={name}
+                  label={m.furniture_slot_label({ edge: edgeName, slot: name })}
+                  value={settings.slots[slot]}
+                  testId={`slot-${slot}`}
+                  onChange={(text) => update({ slots: { ...settings.slots, [slot]: text } })}
+                />
+              );
+            })}
+          </SheetGroup>
+        );
+      })}
       <PositionSection
         marginX={settings.marginX}
         marginY={settings.marginY}
@@ -764,7 +772,13 @@ export function rememberBatesNumber(prefix: string, last: number): void {
   writeJson(BATES_MEMORY_KEY, { ...record, [prefix]: last });
 }
 
-function BatesDialog({ documentId }: { readonly documentId: DocumentId }) {
+function BatesDialog({
+  documentId,
+  open,
+}: {
+  readonly documentId: DocumentId;
+  readonly open: boolean;
+}) {
   const tabs = useTabItems();
   const workspace = useWorkspaceStore((s) => s.workspace);
   const doc = workspace.documents[documentId];
@@ -803,6 +817,7 @@ function BatesDialog({ documentId }: { readonly documentId: DocumentId }) {
     <Frame
       kind="bates"
       documentId={documentId}
+      open={open}
       existing={existing}
       canApply={run.length > 0 && run.some((entry) => entry.last >= entry.first)}
       onApply={() =>
@@ -815,90 +830,79 @@ function BatesDialog({ documentId }: { readonly documentId: DocumentId }) {
         })
       }
     >
-      <Section legend={m.furniture_format()}>
-        <div className={local2.row}>
-          <label className={local2.inline}>
-            {m.furniture_bates_prefix()}
-            <input
-              className={`${styles.input} ${local2.number}`}
-              style={{ width: 96 }}
-              value={settings.prefix}
-              spellCheck={false}
-              data-testid="bates-prefix"
-              onChange={(e) => {
-                const prefix = e.target.value;
-                const known = lastBatesNumber(prefix);
-                update(
-                  !startEdited && known !== undefined ? { prefix, start: known + 1 } : { prefix },
-                );
-              }}
-            />
-          </label>
-          <label className={local2.inline}>
-            {m.furniture_bates_suffix()}
-            <input
-              className={`${styles.input} ${local2.number}`}
-              value={settings.suffix}
-              spellCheck={false}
-              onChange={(e) => update({ suffix: e.target.value })}
-            />
-          </label>
-        </div>
-        <div className={local2.row}>
-          <NumberField
-            label={m.furniture_bates_width()}
-            value={settings.width}
-            min={1}
-            max={12}
-            onChange={(width) => update({ width: Math.min(12, Math.max(1, Math.round(width))) })}
-          />
-          <NumberField
-            label={m.furniture_start_number()}
-            value={settings.start}
-            min={0}
-            testId="bates-start"
-            onChange={(start) => {
-              setStartEdited(true);
-              update({ start: Math.max(0, Math.round(start)) });
-            }}
-          />
-        </div>
+      <SheetGroup
+        label={m.furniture_format()}
+        footnote={
+          remembered !== undefined
+            ? m.furniture_bates_remembered({ number: formatNumber(remembered) })
+            : undefined
+        }
+      >
+        <TextRow
+          title={m.furniture_bates_prefix()}
+          value={settings.prefix}
+          testId="bates-prefix"
+          onChange={(prefix) => {
+            const known = lastBatesNumber(prefix);
+            update(!startEdited && known !== undefined ? { prefix, start: known + 1 } : { prefix });
+          }}
+        />
+        <TextRow
+          title={m.furniture_bates_suffix()}
+          value={settings.suffix}
+          onChange={(suffix) => update({ suffix })}
+        />
+        <NumberRow
+          title={m.furniture_bates_width()}
+          value={settings.width}
+          min={1}
+          max={12}
+          onChange={(width) => update({ width: Math.min(12, Math.max(1, Math.round(width))) })}
+        />
+        <NumberRow
+          title={m.furniture_start_number()}
+          value={settings.start}
+          min={0}
+          testId="bates-start"
+          onChange={(start) => {
+            setStartEdited(true);
+            update({ start: Math.max(0, Math.round(start)) });
+          }}
+        />
         {first && last && last.last >= first.first ? (
-          <p className={local2.sample} role="status" data-testid="bates-sample">
-            {m.furniture_bates_sample({
-              first: formatBates(first.effective, 0),
-              last: formatBates(last.effective, last.last - last.first),
-            })}
-          </p>
+          <SheetRow full>
+            <p className={parts.summary} role="status" data-testid="bates-sample">
+              {m.furniture_bates_sample({
+                first: formatBates(first.effective, 0),
+                last: formatBates(last.effective, last.last - last.first),
+              })}
+            </p>
+          </SheetRow>
         ) : null}
-        {remembered !== undefined ? (
-          <p className={styles.hint}>
-            {m.furniture_bates_remembered({ number: formatNumber(remembered) })}
-          </p>
-        ) : null}
-      </Section>
-      <Section legend={m.furniture_bates_documents()}>
-        <div className={local2.docList}>
-          {tabs.map((tab) => (
-            <label key={tab.id} className={local.docOption}>
-              <input
-                type="checkbox"
-                checked={selected.includes(tab.id)}
-                onChange={(e) =>
-                  setSelected((current) =>
-                    e.target.checked
-                      ? tabs.map((t) => t.id).filter((id) => id === tab.id || current.includes(id))
-                      : current.filter((id) => id !== tab.id),
-                  )
-                }
-              />
-              <span className={local.tag} data-tag={tab.colorIndex} aria-hidden="true" />
-              <span className={local.docTitle}>{tab.title}</span>
-              <span className={local.docMeta}>{pagesPhrase(tab.pageCount)}</span>
-            </label>
-          ))}
-        </div>
-      </Section>
+      </SheetGroup>
+      <SheetGroup label={m.furniture_bates_documents()}>
+        {tabs.map((tab) => (
+          <SheetRow key={tab.id} full>
+            <Checkbox
+              label={
+                <span className={own.docLabel}>
+                  <span className={own.tag} data-tag={tab.colorIndex} aria-hidden="true" />
+                  <span className={own.docTitle}>{tab.title}</span>
+                  <span className={own.docMeta}>{pagesPhrase(tab.pageCount)}</span>
+                </span>
+              }
+              checked={selected.includes(tab.id)}
+              onCheckedChange={(checked) =>
+                setSelected((current) =>
+                  checked
+                    ? tabs.map((t) => t.id).filter((id) => id === tab.id || current.includes(id))
+                    : current.filter((id) => id !== tab.id),
+                )
+              }
+            />
+          </SheetRow>
+        ))}
+      </SheetGroup>
       <PositionSection
         anchor={settings.anchor}
         onAnchor={(anchor) => update({ anchor })}
@@ -915,7 +919,13 @@ function BatesDialog({ documentId }: { readonly documentId: DocumentId }) {
 // Watermark
 // ---------------------------------------------------------------------------
 
-function WatermarkDialog({ documentId }: { readonly documentId: DocumentId }) {
+function WatermarkDialog({
+  documentId,
+  open,
+}: {
+  readonly documentId: DocumentId;
+  readonly open: boolean;
+}) {
   const doc = useDocument(documentId);
   const pageCount = doc?.pages.length ?? 1;
   const [initial] = useState<WatermarkSettings>(() => {
@@ -981,55 +991,53 @@ function WatermarkDialog({ documentId }: { readonly documentId: DocumentId }) {
     <Frame
       kind="watermark"
       documentId={documentId}
+      open={open}
       existing={existing}
       canApply={built !== undefined}
       onApply={apply}
     >
-      <Section legend={m.furniture_watermark_kind()}>
-        <div
-          className={local2.segments}
-          role="radiogroup"
-          aria-label={m.furniture_watermark_kind()}
-        >
-          {(['text', 'image'] as const).map((mode) => (
-            <label key={mode} className={local2.segment}>
-              <input
-                type="radio"
-                name="watermark-mode"
-                checked={settings.mode === mode}
-                onChange={() => update({ mode })}
-              />
-              {mode === 'text' ? m.furniture_text() : m.furniture_image()}
-            </label>
-          ))}
-        </div>
-        {settings.mode === 'text' ? (
-          <input
-            className={styles.input}
-            aria-label={m.furniture_text()}
-            value={settings.text}
-            data-testid="watermark-text"
-            onChange={(e) => update({ text: e.target.value })}
+      <SheetGroup>
+        <SheetRow title={<span aria-hidden="true">{m.furniture_watermark_kind()}</span>}>
+          <Segmented<'text' | 'image'>
+            frameClassName={parts.segmented}
+            label={m.furniture_watermark_kind()}
+            value={settings.mode}
+            onValueChange={(mode) => update({ mode })}
+            options={[
+              { value: 'text', label: m.furniture_text() },
+              { value: 'image', label: m.furniture_image() },
+            ]}
           />
+        </SheetRow>
+        {settings.mode === 'text' ? (
+          <SheetRow full>
+            <TextField
+              label={m.furniture_text()}
+              hideLabel
+              value={settings.text}
+              data-testid="watermark-text"
+              onValueChange={(text) => update({ text })}
+            />
+          </SheetRow>
         ) : (
-          <div className={local2.row}>
-            <button type="button" className={styles.secondary} onClick={() => void chooseImage()}>
-              {m.furniture_choose_image()}
-            </button>
-            <span className={styles.hint}>
-              {imageError
+          <SheetRow
+            title={<span aria-hidden="true">{m.furniture_image()}</span>}
+            description={
+              imageError
                 ? m.furniture_image_failed()
                 : settings.blob === undefined
                   ? m.furniture_no_image()
-                  : ''}
-            </span>
-          </div>
+                  : undefined
+            }
+          >
+            <Button onClick={() => void chooseImage()}>{m.furniture_choose_image()}</Button>
+          </SheetRow>
         )}
-      </Section>
+      </SheetGroup>
       {settings.mode === 'text' ? (
         <StyleSection style={settings.style} onChange={(style) => update({ style })} />
       ) : (
-        <Section legend={m.furniture_image()}>
+        <SheetGroup label={m.furniture_image()}>
           <Percent
             label={m.furniture_scale()}
             value={settings.scale}
@@ -1043,77 +1051,74 @@ function WatermarkDialog({ documentId }: { readonly documentId: DocumentId }) {
             min={5}
             onChange={(opacity) => update({ style: { ...settings.style, opacity } })}
           />
-        </Section>
+        </SheetGroup>
       )}
-      <Section legend={m.furniture_position()}>
-        <Slider
-          className={local2.range}
-          label={m.furniture_rotation()}
-          showLabel
-          readout
-          min={-90}
-          max={90}
-          detents={[-45, 0, 45]}
-          value={rotation}
-          format={(degrees) => `${formatNumber(degrees)}°`}
-          onValueChange={(rotate) => update({ rotate })}
-        />
-        <div className={local2.segments}>
-          {[-45, 0, 45, 90].map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              className={local2.segment}
-              aria-pressed={rotation === preset}
-              onClick={() => update({ rotate: preset })}
-            >
-              {preset}°
-            </button>
-          ))}
-        </div>
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={settings.tile}
-            onChange={(e) => update({ tile: e.target.checked })}
+      <SheetGroup
+        label={m.furniture_position()}
+        footnote={settings.layer === 'behind' ? m.furniture_behind_note() : undefined}
+      >
+        <SheetRow full>
+          <Slider
+            label={m.furniture_rotation()}
+            showLabel
+            readout
+            min={-90}
+            max={90}
+            detents={[-45, 0, 45]}
+            value={rotation}
+            format={(degrees) => `${formatNumber(degrees)}°`}
+            onValueChange={(rotate) => update({ rotate })}
           />
-          <span>{m.furniture_tile()}</span>
-        </label>
+        </SheetRow>
+        <SheetRow full>
+          <Segmented<string>
+            label={m.furniture_rotation()}
+            value={String(rotation)}
+            onValueChange={(preset) => update({ rotate: Number(preset) })}
+            options={[-45, 0, 45, 90].map((preset) => ({
+              value: String(preset),
+              label: `${formatNumber(preset)}°`,
+            }))}
+          />
+        </SheetRow>
+        <SheetRow full>
+          <Checkbox
+            label={m.furniture_tile()}
+            checked={settings.tile}
+            onCheckedChange={(tile) => update({ tile })}
+          />
+        </SheetRow>
         {settings.tile ? (
-          <div className={local2.row}>
-            <NumberField
-              label={m.furniture_gap_x()}
+          <>
+            <NumberRow
+              title={m.furniture_gap_x()}
               value={settings.gapX}
               min={0}
               unit={m.furniture_unit_pt()}
               onChange={(gapX) => update({ gapX: Math.max(0, gapX) })}
             />
-            <NumberField
-              label={m.furniture_gap_y()}
+            <NumberRow
+              title={m.furniture_gap_y()}
               value={settings.gapY}
               min={0}
               unit={m.furniture_unit_pt()}
               onChange={(gapY) => update({ gapY: Math.max(0, gapY) })}
             />
-          </div>
+          </>
         ) : null}
-        <div className={local2.segments} role="radiogroup" aria-label={m.furniture_layer()}>
-          {(['over', 'behind'] as const).map((layer) => (
-            <label key={layer} className={local2.segment}>
-              <input
-                type="radio"
-                name="watermark-layer"
-                checked={settings.layer === layer}
-                onChange={() => update({ layer })}
-              />
-              {layer === 'over' ? m.furniture_layer_over() : m.furniture_layer_behind()}
-            </label>
-          ))}
-        </div>
-        {settings.layer === 'behind' ? (
-          <p className={styles.hint}>{m.furniture_behind_note()}</p>
-        ) : null}
-      </Section>
+        <SheetRow title={<span aria-hidden="true">{m.furniture_layer()}</span>}>
+          <Segmented<'over' | 'behind'>
+            frameClassName={parts.segmented}
+            label={m.furniture_layer()}
+            value={settings.layer}
+            onValueChange={(layer) => update({ layer })}
+            options={[
+              { value: 'over', label: m.furniture_layer_over() },
+              { value: 'behind', label: m.furniture_layer_behind() },
+            ]}
+          />
+        </SheetRow>
+      </SheetGroup>
       <RangeSection
         range={settings.range}
         pageCount={pageCount}

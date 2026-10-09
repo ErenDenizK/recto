@@ -31,9 +31,6 @@ const activeDoc = () => {
   return ws.activeDocument === undefined ? undefined : ws.documents[ws.activeDocument];
 };
 
-/** Segmented radios hide the input; the label is what users click. */
-const segment = (input: HTMLElement) => input.closest('label') as HTMLElement;
-
 /** Texts the furniture layer draws on the first page. */
 function drawnTexts(): string[] {
   const first = document.querySelector('[data-page-index="0"] [data-furniture-layer]');
@@ -66,7 +63,7 @@ describe('furniture dialogs', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Page numbers…' }));
     let dialog = await screen.findByTestId('furniture-dialog-page-numbers');
     await waitFor(() => expect(drawnTexts()).toEqual(['1']));
-    await userEvent.click(segment(within(dialog).getByTestId('preset-page-of')));
+    await chooseOption(within(dialog).getByTestId('page-number-format'), 'page-of');
     await waitFor(() => expect(drawnTexts()).toEqual(['Page 1 of 4']));
     // Nothing is in the model yet.
     expect(activeDoc()?.pages[0]?.overlays).toEqual([]);
@@ -76,7 +73,7 @@ describe('furniture dialogs', () => {
 
     await commandRegistry.execute('document.pageNumbers');
     dialog = await screen.findByTestId('furniture-dialog-page-numbers');
-    await userEvent.click(segment(within(dialog).getByTestId('preset-slash')));
+    await chooseOption(within(dialog).getByTestId('page-number-format'), 'slash');
     await chooseOption(within(dialog).getByTestId('furniture-range'), 'skip-first');
     await userEvent.click(within(dialog).getByRole('radio', { name: 'Top right' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
@@ -112,7 +109,7 @@ describe('furniture dialogs', () => {
     );
     await waitFor(() => expect(useFurnitureStore.getState().dialog?.kind).toBe('page-numbers'));
     dialog = await screen.findByTestId('furniture-dialog-page-numbers');
-    expect(within(dialog).getByTestId('preset-slash')).toBeChecked();
+    expect(within(dialog).getByTestId('page-number-format')).toHaveTextContent('1 / 4');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(useFurnitureStore.getState().dialog).toBeNull());
     expect(model().history.past.length).toBe(pastBefore + 2);

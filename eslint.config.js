@@ -94,15 +94,12 @@ const Q9_PENDING = [
   'apps/web/src/batch/BatchSheet.tsx',
   'apps/web/src/batch/RecipeEditor.tsx',
   'apps/web/src/batch/StepForm.tsx',
-  'apps/web/src/crop/CropDialog.tsx',
-  'apps/web/src/crop/CropDrawBanner.tsx',
   'apps/web/src/document/DocumentDialogs.tsx',
   'apps/web/src/document/ExportSections.tsx',
   'apps/web/src/forms/FieldEditors.tsx',
   'apps/web/src/forms/FormLayer.tsx',
   'apps/web/src/forms/create/CreatedFieldLayer.tsx',
   'apps/web/src/forms/create/FieldProperties.tsx',
-  'apps/web/src/furniture/FurnitureDialogs.tsx',
   'apps/web/src/image-objects/ImageBar.tsx',
   'apps/web/src/image-objects/ImageLayer.tsx',
   'apps/web/src/markup/SignGroup.tsx',
@@ -119,9 +116,6 @@ const Q9_PENDING = [
   'apps/web/src/signatures/ExportSignatureSection.tsx',
   'apps/web/src/signatures/NewSignatureSheet.tsx',
   'apps/web/src/signatures/SignDialog.tsx',
-  'apps/web/src/stage/ArrangeSection.tsx',
-  'apps/web/src/stage/OperationDialogFrame.tsx',
-  'apps/web/src/stage/ResizeDialog.tsx',
 ];
 
 /** Files executed by Node: tool configs, scripts, and Playwright specs. */

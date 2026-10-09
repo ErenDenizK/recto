@@ -131,7 +131,7 @@ describe('section operations', () => {
 
     // Every 4 pages.
     await userEvent.click(within(dialog).getByRole('radio', { name: /Every n pages/ }));
-    const every = within(dialog).getByRole('spinbutton', { name: 'Pages per document' });
+    const every = within(dialog).getByRole('textbox', { name: 'Pages per document' });
     await userEvent.clear(every);
     await userEvent.type(every, '4');
     expect(within(dialog).getByTestId('split-preview')).toHaveTextContent(

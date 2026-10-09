@@ -44,7 +44,7 @@ import type { DragLocation } from '@atlaskit/pragmatic-drag-and-drop/types';
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/utils/combine';
 import { containsFiles } from '@atlaskit/pragmatic-drag-and-drop/utils/contains-files';
 import { ContextMenu } from '@base-ui/react/context-menu';
-import type { DocumentId, PageId } from '@pdf-editor/document-model';
+import type { DocumentId, PageId, Size, Workspace } from '@pdf-editor/document-model';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   type KeyboardEvent,
@@ -69,6 +69,7 @@ import {
 import { insertFilesAt, showInArrange, transferPages } from '../dnd/drop';
 import {
   type ArrangeLayout,
+  boxAspectOf,
   cellsInRect,
   computeLayout,
   edgeScrollSpeed,
@@ -81,6 +82,7 @@ import {
 import { isPageDrag, isTabDrag } from '../dnd/page-drag';
 import { filesFromItems, isOpenableFile } from '../files/open-files';
 import { m } from '../i18n';
+import { displaySize } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
 import {
   clickSelection,
@@ -342,6 +344,39 @@ function dropHighlightAt(
   };
 }
 
+interface GridShape {
+  readonly boxAspect: number;
+  readonly items: number;
+}
+
+const shapes = new WeakMap<Workspace, Map<string, GridShape>>();
+
+/**
+ * What the grid's cells are sized to (plan E6a; system-audit-2026-10 I-34): the thumbnail box
+ * from the tallest page shown (`boxAspectOf`), and the longest section, which the columns
+ * centre on. Collapsed sections count too, so expanding one moves nothing sideways. Kept per
+ * workspace, so a scroll's render does not walk every page again.
+ */
+function gridShape(ws: Workspace, sections: readonly ShownSection[]): GridShape {
+  const key = sections.map((s) => s.doc.id).join(',');
+  let byKey = shapes.get(ws);
+  if (byKey === undefined) {
+    byKey = new Map();
+    shapes.set(ws, byKey);
+  }
+  const known = byKey.get(key);
+  if (known) return known;
+  let items = 0;
+  const sizes: Size[] = [];
+  for (const { doc } of sections) {
+    items = Math.max(items, doc.pages.length);
+    for (const page of doc.pages) sizes.push(displaySize(ws, page));
+  }
+  const shape = { boxAspect: boxAspectOf(sizes), items };
+  byKey.set(key, shape);
+  return shape;
+}
+
 /** The scroll offset that centres page `index` of section `section` (the entrance's reveal). */
 function revealOffset(
   layout: ArrangeLayout<DocumentId>,
@@ -396,7 +431,12 @@ function LightTable({
   const [menuPage, setMenuPage] = useState<PageId | null>(null);
 
   const cellWidth = (ARRANGE_SIZES[arrangeSize] ?? ARRANGE_SIZES[1]).width;
-  const metrics = gridMetrics(width, cellWidth, { centre: true });
+  const shape = gridShape(ws, sections);
+  const metrics = gridMetrics(width, cellWidth, {
+    centre: true,
+    items: shape.items,
+    boxAspect: shape.boxAspect,
+  });
   const specs = sections.map((s) => ({
     id: s.doc.id,
     count: s.doc.pages.length,
