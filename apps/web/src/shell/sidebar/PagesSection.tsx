@@ -1,6 +1,9 @@
 /**
  * The sidebar's Pages section (`components/06-navigation.md` N1 §2, N2, N3): Thumbnails ·
- * Contents (spec X27) as a segmented control across the section's width. The choice is
+ * Contents (spec X27). The section switch above is the segmented control; this second level is
+ * a smaller row of text tabs (system-audit-2026-10 I-29, §4 Frame), footnote labels with the
+ * chosen one in the primary ink at 600 over a 2 px rule, so the two levels never read as one
+ * control twice. A radio group (Base UI `RadioGroup`: arrows move and choose). The choice is
  * remembered (`pagesView`, `ui:v3`). The section switch above already says "Pages", so the
  * view control names the two views only (no second "Pages").
  *
@@ -11,14 +14,21 @@
  *
  * In the Pages grid only Contents is offered (06.1): the grid is the thumbnails.
  */
+import { Radio } from '@base-ui/react/radio';
+import { RadioGroup } from '@base-ui/react/radio-group';
+
 import { m } from '../../i18n';
 import { type PagesView, useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument } from '../../state/workspace-store';
 import { EmptyNote } from '../../ui/EmptyNote';
-import { Segmented } from '../../ui/Segmented';
 import { OutlinePanel } from '../OutlinePanel';
 import styles from './PagesSection.module.css';
 import { ThumbnailList } from './ThumbnailList';
+
+const VIEWS: readonly { readonly value: PagesView; readonly label: () => string }[] = [
+  { value: 'thumbnails', label: m.nav_pages_thumbnails },
+  { value: 'bookmarks', label: m.nav_pages_bookmarks },
+];
 
 export function PagesSection() {
   const view = useUiStore((s) => s.pagesView);
@@ -29,16 +39,18 @@ export function PagesSection() {
     <div className={styles.section} data-pages-view={shown}>
       {inGrid ? null : (
         <div className={styles.header}>
-          <Segmented<PagesView>
-            label={m.nav_pages_view_label()}
+          <RadioGroup
+            aria-label={m.nav_pages_view_label()}
             value={view}
             onValueChange={setView}
-            options={[
-              { value: 'thumbnails', label: m.nav_pages_thumbnails() },
-              { value: 'bookmarks', label: m.nav_pages_bookmarks() },
-            ]}
-            frameClassName={styles.views}
-          />
+            className={styles.views}
+          >
+            {VIEWS.map((option) => (
+              <Radio.Root key={option.value} value={option.value} className={styles.view}>
+                {option.label()}
+              </Radio.Root>
+            ))}
+          </RadioGroup>
         </div>
       )}
       <div className={styles.body}>{shown === 'bookmarks' ? <OutlinePanel /> : <Thumbnails />}</div>

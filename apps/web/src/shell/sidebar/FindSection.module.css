@@ -142,7 +142,7 @@
   gap: var(--space-1) var(--space-2);
   margin: 0 var(--space-3) var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-hover);
 }
 
@@ -160,28 +160,8 @@
 }
 
 .recognize {
-  composes: focus-inset from global;
   grid-column: 2;
   justify-self: start;
-  height: var(--control-h-sm);
-  padding: 0 10px;
-  margin-left: -10px;
-  border: 0;
-  border-radius: var(--radius-capsule);
-  background: transparent;
-  color: var(--text-primary);
-  font-size: var(--type-footnote);
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: var(--accent-line);
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  .recognize:hover {
-    background: var(--surface-hover);
-  }
 }
 
 .scroll {
@@ -231,7 +211,7 @@
   width: calc(100% - 16px);
   height: 50px;
   padding: 6px var(--space-2);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: 18px;

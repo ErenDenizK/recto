@@ -28,6 +28,7 @@ import { openOcrDialog } from '../../ocr/ocr-store';
 import { markSearchHits } from '../../redaction/review';
 import { useViewStore } from '../../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
+import { Button } from '../../ui/Button';
 import { Chip } from '../../ui/Chip';
 import { EmptyNote } from '../../ui/EmptyNote';
 import { Icon } from '../../ui/Icon';
@@ -227,9 +228,14 @@ function FindView({ doc }: { readonly doc: VirtualDocument }) {
           <p className={styles.textlessText}>
             {allTextless ? m.find_no_text() : m.find_no_text_pages({ count: textlessCount })}
           </p>
-          <button type="button" className={styles.recognize} onClick={() => openOcrDialog(doc.id)}>
+          <Button
+            variant="standard"
+            size="sm"
+            className={styles.recognize}
+            onClick={() => openOcrDialog(doc.id)}
+          >
             {m.find_recognize()}
-          </button>
+          </Button>
         </div>
       ) : null}
       {noMatches ? <p className={styles.hint}>{m.find_no_matches({ title: doc.title })}</p> : null}
