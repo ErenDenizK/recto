@@ -7,9 +7,9 @@
  *   its menu: the saved signatures (≤ 5, each with its plate), New signature…, Certificate…
  *   and Saved signatures… (Settings).
  * - **Chips** (MK-12 §2): with the Fill & sign door, up to three saved signatures newest first,
- *   each its page-white plate in a bar-high pill. Inline in the row from large up; when the row
- *   has no room they move to the ink strip's row while Select is armed (03.7). A press arms
- *   it as a one-shot `place` tool; a click on the page places it, then Select (J8A 3).
+ *   each its page-white plate in a tool button's pill, armed as every tool is (system-audit
+ *   §3.5). Inline in the row from large up; when the row has no room they move to the ink
+ *   strip's row while Select is armed (03.7). A press arms it as a one-shot `place` tool; a click on the page places it, then Select (J8A 3).
  * - **Stepper** `‹ 3 / 12 ›` (MK-14): the previous or next fillable field in tab order, opened
  *   so typing fills (`targeted`); the ends wrap. Before a field is focused the readout counts
  *   the fields ("12 fields"). Absent without fields.
@@ -44,7 +44,7 @@ import { SignaturePlate } from '../signatures/SignaturePlate';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Icon, type IconName } from '../ui/Icon';
 import menuStyles from '../ui/Menu.module.css';
-import { Tooltip } from '../ui/Tooltip';
+import { IconButton } from '../ui/IconButton';
 import { useToolStore } from '../viewer/tool-store';
 import { ChoiceTool } from './ChoiceTool';
 import { abovePalette } from './anchor';
@@ -99,7 +99,7 @@ export function SignButton({
     <ChoiceTool
       label={tool.title()}
       tooltip={tool.tooltip?.() ?? tool.title()}
-      icon={<Icon name="signature" />}
+      icon={<Icon name="signature" filled={false} />}
       armed={armed}
       command="tool.signature"
       item="sign"
@@ -155,19 +155,18 @@ export function SignatureChips({ item }: { readonly item?: string | undefined })
         const label = signatureLabel(signature);
         const armed = armedId === signature.id;
         return (
-          <Tooltip key={signature.id} label={armedTooltip(label, armed)} side="top">
-            <button
-              type="button"
-              className={styles.signatureChip}
-              aria-label={label}
-              aria-pressed={armed}
-              data-tool="saved-signature"
-              data-saved-signature={signature.id}
-              onClick={() => void armSavedSignature(signature.id)}
-            >
-              <SignaturePlate ink={signature} />
-            </button>
-          </Tooltip>
+          <IconButton
+            key={signature.id}
+            label={label}
+            tooltip={armedTooltip(label, armed)}
+            tooltipSide="top"
+            icon={<SignaturePlate ink={signature} />}
+            className={styles.signatureChip}
+            aria-pressed={armed}
+            data-tool="saved-signature"
+            data-saved-signature={signature.id}
+            onClick={() => void armSavedSignature(signature.id)}
+          />
         );
       })}
     </span>
@@ -280,7 +279,6 @@ export function AddFieldMenu() {
             label={m.forms_add_field()}
             icon={<Icon name="plus-square" />}
             item="add-field"
-            className={styles.choice}
           />
         }
       />

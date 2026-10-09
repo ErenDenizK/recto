@@ -1,92 +1,34 @@
 /*
- * The pen cells (03-markup MK-6; language.md §1.9; quality-bar Q-4, Q-9; owner feedback G8).
+ * The pen cells (03-markup MK-6; language.md §1.9; quality-bar Q-4, Q-9; owner feedback G8;
+ * system-audit-2026-10 §3.5, §3.7).
  *
- * The three pens and the Highlighter are --palette-hit cells (32 / 44) in the Draw group, the
- * palette's spacing between them and no well behind them: a grey pill under the dots read as
- * one more piece inside the bar ("improve overall design"). Dots are content colours: 10 / 13
- * / 16 px by width on a fine pointer, 2 px larger on a coarse one; the Highlighter is a chisel
- * tip, a slanted rounded square of the dot's largest size, so it reads as a marker and keeps
- * the pens' footprint (the 20 × 8 capsule read as a toggle). A dot whose ink is under 3:1
- * against the glass carries a light inner ring (`needsDotRing`).
+ * The three pens and the Highlighter are the palette's tool buttons (`ui/IconButton`, the M
+ * size, 32 / 44) in the Draw group, the palette's spacing between them and no well behind them:
+ * a grey pill under the dots read as one more piece inside the bar ("improve overall design").
+ * Dots are content colours: 10 / 13 / 16 px by width on a fine pointer, 2 px larger on a coarse
+ * one; the Highlighter is a chisel tip, a slanted rounded bar of the dot's largest size, so it
+ * reads as a marker and keeps the pens' footprint. A dot whose ink is under 3:1 against the
+ * glass carries a light inner ring (`needsDotRing`).
  *
- * Armed: a 2 px ring in the primary text colour (n12, never lime: the colour of the ink is the
- * signal) of --palette-ring (24 fine, 30 coarse), the same ring as a chosen swatch; it springs in
- * from 0.88 on the press spring (*select*), instantly under reduced motion. Hover washes the
- * cell's drawn fill; a press presses the mark (0.94).
+ * Armed: the one armed form of every tool (§3.5), the `--tool-active-fill` disc, with the pen's
+ * colour dot inside it; a 2 px ring of the disc's own ink (`--tool-active-ink`) keeps the dot's
+ * edge on the disc whatever its colour. Hover and press are the button's washes and press scale.
  */
 .well {
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: var(--palette-gap, 2px);
-}
-
-.cell {
-  composes: focus-inset from global;
-  --ring: var(--palette-ring, 24px);
-
-  position: relative;
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  box-sizing: border-box;
-  width: var(--control-h);
-  height: var(--control-h);
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-capsule);
-  background: transparent;
-  forced-color-adjust: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .cell {
-    --ring: var(--palette-ring, 30px);
-  }
-}
-
-/* The armed ring: hidden until armed, then it springs in. */
-.cell::before {
-  content: '';
-  grid-area: 1 / 1;
-  box-sizing: border-box;
-  width: var(--ring);
-  height: var(--ring);
-  border: 2px solid var(--text-primary);
-  border-radius: var(--radius-capsule);
-  opacity: 0;
-  transform: scale(0.88);
-  transition:
-    opacity var(--duration-fast) var(--ease-out),
-    transform var(--spring-press) var(--ease-spring);
-}
-
-.cell[aria-pressed='true']::before {
-  opacity: 1;
-  transform: none;
-}
-
-@media (hover: hover) {
-  .cell:hover {
-    background: var(--surface-hover);
-  }
-}
-
-.cell:active .mark {
-  transform: scale(0.94);
-  transition-duration: var(--duration-instant);
+  gap: var(--palette-gap, var(--space-1));
 }
 
 .mark {
-  grid-area: 1 / 1;
   box-sizing: border-box;
   width: var(--dot);
   height: var(--dot);
   border-radius: var(--radius-capsule);
   background: var(--ink);
-  transition: transform var(--spring-press) var(--ease-spring);
+  forced-color-adjust: none;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -110,7 +52,7 @@
 .mark[data-shape='chisel'] {
   width: 8px;
   height: 14px;
-  border-radius: 2px;
+  border-radius: var(--radius-page);
   transform: rotate(45deg);
 }
 
@@ -118,39 +60,21 @@
   .mark[data-shape='chisel'] {
     width: 9px;
     height: 16px;
-    border-radius: 2.5px;
   }
 }
 
-.cell:active .mark[data-shape='chisel'] {
-  transform: rotate(45deg) scale(0.94);
-}
-
-/* Light theme: a pale tint keeps its edge with the ink ring. */
+/* Light theme: a pale tint keeps its edge with the swatch border. */
 :global([data-theme='light']) .mark[data-shape='chisel'] {
-  box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.25);
+  box-shadow: inset 0 0 0 1px var(--border-swatch);
 }
 
-@media (prefers-contrast: more) {
-  .cell[aria-pressed='true']::before {
-    border-width: 3px;
-  }
+/* Armed: the dot inside the armed disc, ringed in the disc's ink. */
+.cell[aria-pressed='true'] .mark.mark {
+  box-shadow: 0 0 0 2px var(--tool-active-ink);
 }
 
 @media (forced-colors: active) {
-  .cell[aria-pressed='true']::before {
-    border-color: Highlight;
-  }
-}
-
-:global(:root[data-motion='reduced']) .cell::before,
-:global(:root[data-motion='reduced']) .mark {
-  transition: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cell::before,
-  .mark {
-    transition: none;
+  .cell[aria-pressed='true'] .mark.mark {
+    box-shadow: 0 0 0 2px HighlightText;
   }
 }

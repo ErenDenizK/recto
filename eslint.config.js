@@ -91,7 +91,6 @@ const q9Controls = {
  */
 const Q9_PENDING = [
   'apps/web/src/annotations/ReadSelectionBar.tsx',
-  'apps/web/src/annotations/pen/PenWell.tsx',
   'apps/web/src/batch/BatchSheet.tsx',
   'apps/web/src/batch/RecipeEditor.tsx',
   'apps/web/src/batch/StepForm.tsx',
@@ -110,8 +109,6 @@ const Q9_PENDING = [
   'apps/web/src/home/RecentList.tsx',
   'apps/web/src/image-objects/ImageBar.tsx',
   'apps/web/src/image-objects/ImageLayer.tsx',
-  'apps/web/src/markup/SignGroup.tsx',
-  'apps/web/src/markup/ToolButton.tsx',
   'apps/web/src/ocr/OcrLanguages.tsx',
   'apps/web/src/session/KeptOnDevice.tsx',
   'apps/web/src/settings/rows.tsx',

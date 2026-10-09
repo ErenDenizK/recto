@@ -332,20 +332,27 @@ describe('pen well', () => {
     );
   });
 
-  it('the preset ring shows only while the pen is armed, not with another Draw tool', async () => {
+  it('the armed disc shows only while the pen is armed, not with another Draw tool', async () => {
     render(<Harness />);
-    const ringOpacity = (el: HTMLElement) => getComputedStyle(el, '::before').opacity;
+    // Every tool's armed form (system-audit-2026-10 §3.5): the --tool-active-fill disc.
+    const fill = (el: HTMLElement) => getComputedStyle(el).backgroundColor;
     act(() => useToolStore.getState().setMode('ink'));
     const armed = dot('Black pen, 1.5 pt');
     expect(armed).toHaveAttribute('aria-pressed', 'true');
+    expect(armed).toHaveAttribute('data-tool', 'ink');
+    // An opaque fill while armed; at most a hover wash once another tool arms.
+    const alpha = (el: HTMLElement) => Number(/rgba\(.*,\s*([\d.]+)\)/.exec(fill(el))?.[1] ?? 1);
+    await waitFor(() => expect(alpha(armed)).toBe(1));
     for (const mode of ['eraser', 'lasso', 'rectangle', 'arrow'] as const) {
       act(() => useToolStore.getState().setMode(mode));
       expect(
         cells().filter((r) => r.getAttribute('aria-pressed') === 'true'),
         mode,
       ).toEqual([]);
-      // The ring fades out on --duration-fast.
-      for (const cell of cells()) await waitFor(() => expect(ringOpacity(cell), mode).toBe('0'));
+      // The fill fades out on --duration-fast.
+      for (const cell of cells()) {
+        await waitFor(() => expect(alpha(cell), mode).toBeLessThan(0.2));
+      }
     }
   });
 
