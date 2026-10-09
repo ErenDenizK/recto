@@ -92,10 +92,12 @@ test('sign simple-text.pdf through Save a copy; the download re-opens as Intact'
 
   const sign = page.getByTestId('sign-dialog');
   await expect(sign).toBeVisible();
-  await sign
-    .getByLabel('Certificate file (.p12 or .pfx)')
-    .setInputFiles(fixturePath('pki/signer-rsa.p12'));
-  await sign.getByLabel('Password').fill('test-only');
+  // The app's own file control: a Choose… button over a hidden input (Q-14).
+  const picker = page.waitForEvent('filechooser');
+  await sign.getByRole('button', { name: 'Choose…' }).click();
+  await (await picker).setFiles(fixturePath('pki/signer-rsa.p12'));
+  await expect(sign.getByText('signer-rsa.p12')).toBeVisible();
+  await sign.getByLabel('Password', { exact: true }).fill('test-only');
   await sign.getByRole('button', { name: 'Check certificate' }).click();
   await expect(sign.getByTestId('signer-name')).toHaveText('pdf-editor Test Signer', {
     timeout: 20_000,
@@ -138,10 +140,12 @@ test('a legacy 3DES .p12 is refused with the re-export command', async ({ page }
   await page.getByRole('menuitem', { name: 'Sign with certificate…' }).click();
   const sign = page.getByTestId('sign-dialog');
   await expect(sign).toBeVisible();
-  await sign
-    .getByLabel('Certificate file (.p12 or .pfx)')
-    .setInputFiles(fixturePath('pki/signer-rsa-legacy-3des.p12'));
-  await sign.getByLabel('Password').fill('test-only');
+  // The app's own file control: a Choose… button over a hidden input (Q-14).
+  const picker = page.waitForEvent('filechooser');
+  await sign.getByRole('button', { name: 'Choose…' }).click();
+  await (await picker).setFiles(fixturePath('pki/signer-rsa-legacy-3des.p12'));
+  await expect(sign.getByText('signer-rsa-legacy-3des.p12')).toBeVisible();
+  await sign.getByLabel('Password', { exact: true }).fill('test-only');
   await sign.getByRole('button', { name: 'Check certificate' }).click();
   await expect(sign.getByRole('alert')).toContainText(
     'This certificate file uses legacy encryption (3DES or RC2)',

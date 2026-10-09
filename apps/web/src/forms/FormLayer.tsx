@@ -25,6 +25,7 @@ import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { showMarkup } from '../home/home-actions';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
+import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { type Box, type PageFrame, userRectToCss } from '../viewer/geometry';
 import { isLive } from '../viewer/hit-order';
@@ -305,16 +306,16 @@ function EditNotice({ box, onEdit }: { readonly box: Box; readonly onEdit: () =>
       style={{ left: box.left, top: box.top + box.height + 6 }}
     >
       <span>{m.form_switch_to_edit()}</span>
-      <button
-        type="button"
-        className={styles.lockEdit}
+      <Button
+        size="sm"
+        variant="quiet"
+        icon={<Icon name="pencil-simple" />}
         aria-keyshortcuts="2"
         onPointerDown={(event) => event.preventDefault()}
         onClick={onEdit}
       >
-        <Icon name="pencil-simple" />
         {m.mode_edit_button()}
-      </button>
+      </Button>
     </div>
   );
 }

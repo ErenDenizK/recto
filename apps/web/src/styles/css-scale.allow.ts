@@ -8,16 +8,7 @@ import type { ScaleKind } from './css-scale';
 
 export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, number>>>> = {
   'annotations/lasso/Lasso.module.css': { radius: 1, duration: 1, stroke: 5 },
-  'batch/Batch.module.css': { 'font-size': 1, icon: 2 },
-  'document/DocumentTools.module.css': { weight: 1, icon: 2, spacing: 1 },
-  'export/ExportDialog.module.css': { radius: 1, uppercase: 1, spacing: 1 },
-  'forms/FormLayer.module.css': { icon: 2, spacing: 2 },
-  'forms/create/CreatedFields.module.css': { icon: 4 },
-  'image-objects/ImageObjects.module.css': { icon: 2 },
-  'redaction/ApplySheet.module.css': { weight: 1 },
   'redaction/RedactionLayer.module.css': { stroke: 4 },
-  'signatures/SignaturePlate.module.css': { spacing: 1 },
-  'signatures/Signatures.module.css': { weight: 2, icon: 4, spacing: 1 },
   'tools/ToolDialog.module.css': { radius: 1, spacing: 1 },
   'ui/Avatar.module.css': { icon: 2 },
   'ui/Badge.module.css': { spacing: 1 },

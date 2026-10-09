@@ -1,18 +1,18 @@
 /**
- * The signing choice per document (spec recognize-and-compare §3.4): the Sign dialog (from
- * the Document menu or the export dialog's Signature section) checks a certificate and keeps
- * it here, in memory only, for the export that signs. Cleared when that export dialog
+ * The signing choice per document (spec recognize-and-compare §3.4): the certificate sheet (from
+ * the title menu or Save a copy's Signature section) checks a certificate and keeps
+ * it here, in memory only, for the copy that signs. Cleared when that Save a copy sheet
  * closes or the document goes away; nothing is stored.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
-import { onSaveCopyClosed } from '../export/export-store';
+import { onSaveCopyClosed, popToSaveCopy, pushOverSaveCopy } from '../export/export-store';
 import type { SignDraft } from './signing';
 
 export interface SignDialog {
   readonly documentId: DocumentId;
-  /** The export dialog renders its own (nested) instance. */
+  /** Opened from Save a copy, which it replaces and returns to (`pushOverSaveCopy`). */
   readonly origin: 'app' | 'export';
 }
 
@@ -30,12 +30,24 @@ export const useSignStore = create<SignState>()(() => ({
   signOnExport: {},
 }));
 
+/**
+ * Opens the certificate sheet (07-sheets S8). From Save a copy (`origin: 'export'`) it replaces
+ * that sheet, which comes back when it closes (`pushOverSaveCopy`).
+ */
 export function openSignDialog(documentId: DocumentId, origin: SignDialog['origin'] = 'app'): void {
+  if (origin === 'export') pushOverSaveCopy(documentId);
   useSignStore.setState({ dialog: { documentId, origin } });
 }
 
-export function closeSignDialog(): void {
+/**
+ * Closes the certificate sheet; one opened from Save a copy returns to it, unless another
+ * sheet replaced it (`replaced`).
+ */
+export function closeSignDialog(replaced = false): void {
+  const was = useSignStore.getState().dialog;
+  if (was === null) return;
   useSignStore.setState({ dialog: null });
+  if (was.origin === 'export') popToSaveCopy(!replaced);
 }
 
 /** Keeps a checked certificate for the document and turns signing on. */

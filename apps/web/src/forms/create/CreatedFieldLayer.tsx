@@ -53,6 +53,7 @@ import type { PageOverlayProps } from '../../stage/page-overlays';
 import { useStageView } from '../../state/ui-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
+import { IconButton } from '../../ui/IconButton';
 import {
   type Box,
   displayedSize,
@@ -647,16 +648,15 @@ export function CreatedFieldLayer(props: PageOverlayProps) {
           widget={selectedHere.widget}
           bounds={bounds}
           trigger={
-            <button
-              type="button"
+            <IconButton
+              size="row"
+              label={m.forms_create_properties()}
+              icon={<Icon name="sliders-horizontal" />}
               className={styles.propertiesButton}
               style={propertiesButtonStyle(userRectToCss(frame, rectOf(selectedHere)))}
-              aria-label={m.forms_create_properties()}
               data-created-properties=""
               onPointerDown={(e) => e.stopPropagation()}
-            >
-              <Icon name="sliders-horizontal" />
-            </button>
+            />
           }
         />
       ) : null}
