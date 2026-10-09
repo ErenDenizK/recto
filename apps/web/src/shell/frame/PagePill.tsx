@@ -12,6 +12,8 @@
  *   announce "Page 7 of 12" themselves.
  * - **Material:** M1 (`Surface`, `mat mat-chip s7 c8`), with the backdrop lens on Chromium
  *   (`styles/material-lens.ts`): a fixed-size chip, the one kind that takes it (X20).
+ * - **Moves** (motion-2026-10 frame.md §4): the page number rolls like an odometer and the
+ *   percentage cross-fades (`pillParts`, `PillRoll.tsx`).
  * - **Opens** its menu (`PagePillMenu.tsx`, mounted by the band) on click, Enter or Space with focus on the first
  *   control; Mod+G opens it with Go to page focused and selected.
  */
@@ -26,6 +28,7 @@ import { snapToWholePixels } from '../../ui/whole-pixels';
 import { documentLabels } from '../../viewer/navigation';
 import { openPillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
+import { Fade, Roll } from './PillRoll';
 
 /** The pill's text and name for page `current` (0-based) of `total` at `zoom`. */
 export function pillText(
@@ -49,6 +52,42 @@ export function pillText(
       : m.frame_pill_text({ page: String(page), total, percent }),
     name: m.frame_pill_name({ current: page, total, percent }),
   };
+}
+
+/** One run of the pill's text: plain, the page number (it rolls) or the percentage (it fades). */
+export interface PillPart {
+  readonly kind: 'text' | 'page' | 'percent';
+  readonly value: string;
+}
+
+const PAGE_MARK = '\uE000';
+const PERCENT_MARK = '\uE001';
+
+/**
+ * The pill's text in runs (motion-2026-10 frame.md §4): the message is formatted with marks
+ * in place of the page and the percentage, so each locale's order and separators stay its own
+ * while those two values move on their own (`PillRoll.tsx`). A custom page label rolls as the
+ * page does.
+ */
+export function pillParts(
+  label: string | undefined,
+  current: number,
+  total: number,
+  zoom: number,
+): PillPart[] {
+  const percent = formatPercent(zoom);
+  const page = total === 0 ? '–' : String(current + 1);
+  const custom = total > 0 && label !== undefined && label !== page;
+  const marked = custom
+    ? m.frame_pill_text_label({ label: PAGE_MARK, page, total, percent: PERCENT_MARK })
+    : m.frame_pill_text({ page: PAGE_MARK, total, percent: PERCENT_MARK });
+  const parts: PillPart[] = [];
+  for (const piece of marked.split(new RegExp(`(${PAGE_MARK}|${PERCENT_MARK})`))) {
+    if (piece === PAGE_MARK) parts.push({ kind: 'page', value: custom ? (label ?? page) : page });
+    else if (piece === PERCENT_MARK) parts.push({ kind: 'percent', value: percent });
+    else if (piece !== '') parts.push({ kind: 'text', value: piece });
+  }
+  return parts;
 }
 
 /** Characters the pill keeps room for: the widest page number of the total, both sides. */
@@ -77,7 +116,8 @@ export function PagePill() {
   const total = doc.pages.length;
   const current = Math.min(currentPage, Math.max(0, total - 1));
   const labels = documentLabels(workspace, doc);
-  const { text, name } = pillText(labels[current], current, total, zoom);
+  const { name } = pillText(labels[current], current, total, zoom);
+  const parts = pillParts(labels[current], current, total, zoom);
   return (
     <Surface
       as="button"
@@ -103,7 +143,15 @@ export function PagePill() {
       }
       onClick={() => openPillMenu('first')}
     >
-      {text}
+      {parts.map((part, i) =>
+        part.kind === 'page' ? (
+          <Roll key={i} value={part.value} />
+        ) : part.kind === 'percent' ? (
+          <Fade key={i} value={part.value} />
+        ) : (
+          <span key={i}>{part.value}</span>
+        ),
+      )}
     </Surface>
   );
 }
