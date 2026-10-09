@@ -763,3 +763,14 @@ Read goes straight to Fill? Recommended yes. (3) Pages arrange waits for M10-4? 
 | O-7 | Concurrency: up to 7 implementers + 1 QA per wave; heavy slots = floor(cores/4) | Yes |
 | O-8 | **Phone pilot before V1?** M10-R study and M10-P prototypes A and B run in parallel with W1–W3 (read-only study, lab-flagged prototype, no change to the shipped phone reader) | Yes for M10-R and M10-P; M10-0 onwards after the V1 freeze |
 | O-9 | Desktop and remaining phone questions (§5.2, §5.3) | Can wait until after V1 |
+
+## W0-q findings (2026-10-09)
+
+The core-job walks (`e2e/jobs.spec.ts`, report-only) found these; each is assigned to its wave:
+
+- F12: the signed fixture does not open locked (D1-4a, W1-b), and Save a copy of it is not
+  byte-identical (W1-a, locked save).
+- B5: `truncated.pdf` is refused instead of repaired (engine lane, W1-g).
+- Press budgets over: note 4/3, text box 4/3 (ink, W1-f); edit a word 5/4 (viewer-read); Compare
+  4/3 (S2-2 Compare as a place).
+- F2: no "go back" after following a link (S1-1 Peek & Return, W2).
