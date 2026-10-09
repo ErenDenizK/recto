@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erendenizk.github.io/family-kit/world.schema.json",
+  "title": "world.json",
+  "description": "One product's world, as the portfolio's embassy consumes it (family kit, presentation.md). Values are copied from the product's own sources, never redrawn.",
+  "type": "object",
+  "required": ["version", "slug", "name", "source", "ground", "ink", "accent", "light", "fonts", "motion", "promise", "captures"],
+  "additionalProperties": false,
+  "$defs": {
+    "hex": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+    "spring": {
+      "oneOf": [
+        { "type": "object", "required": ["duration"], "additionalProperties": false,
+          "properties": { "duration": { "type": "number", "exclusiveMinimum": 0 }, "bounce": { "type": "number", "minimum": -1, "maximum": 0.5 } } },
+        { "type": "object", "required": ["stiffness", "damping"], "additionalProperties": false,
+          "properties": { "stiffness": { "type": "number", "exclusiveMinimum": 0 }, "damping": { "type": "number", "exclusiveMinimum": 0 } } },
+        { "type": "null" }
+      ]
+    },
+    "face": {
+      "type": "object",
+      "required": ["family", "stack"],
+      "additionalProperties": false,
+      "properties": {
+        "family": { "type": "string", "description": "The product's face, as it names it (e.g. Inter Recto)." },
+        "stack": { "type": "string", "description": "The CSS stack the embassy sets. Embassies load no new font bytes (family.md §2.5)." },
+        "weights": { "type": "array", "items": { "type": "integer" } },
+        "tracking": { "type": "number", "description": "em" },
+        "size": { "type": "number", "description": "px" },
+        "lineHeight": { "type": "number", "description": "px" },
+        "features": { "type": "array", "items": { "type": "string" }, "description": "e.g. tnum" }
+      }
+    }
+  },
+  "properties": {
+    "version": { "const": 1 },
+    "slug": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "The portfolio's project id: content/projects/<slug>.md" },
+    "name": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["repo", "commit", "files", "date"],
+      "additionalProperties": false,
+      "properties": {
+        "repo": { "type": "string" },
+        "commit": { "type": "string", "description": "The commit the values and captures come from." },
+        "version": { "type": "string", "description": "The product's own version at that commit." },
+        "files": { "type": "array", "items": { "type": "string" }, "description": "Token files the values were read from." },
+        "date": { "type": "string", "format": "date" },
+        "estimated": { "type": "array", "items": { "type": "string" }, "description": "JSON pointers of values that are estimates (e.g. /ground/base)." }
+      }
+    },
+    "ground": {
+      "type": "object",
+      "required": ["base"],
+      "additionalProperties": false,
+      "properties": { "base": { "$ref": "#/$defs/hex" }, "frame": { "$ref": "#/$defs/hex" }, "raised": { "$ref": "#/$defs/hex" }, "hairline": { "$ref": "#/$defs/hex" } }
+    },
+    "ink": {
+      "type": "object",
+      "required": ["primary", "secondary"],
+      "additionalProperties": false,
+      "properties": { "primary": { "$ref": "#/$defs/hex" }, "secondary": { "$ref": "#/$defs/hex" }, "tertiary": { "$ref": "#/$defs/hex" }, "link": { "$ref": "#/$defs/hex" } }
+    },
+    "accent": {
+      "type": "object",
+      "required": ["color", "ink", "job"],
+      "additionalProperties": false,
+      "properties": {
+        "color": { "$ref": "#/$defs/hex" },
+        "gradient": { "type": "object", "required": ["stops", "angle"], "additionalProperties": false,
+          "properties": { "stops": { "type": "array", "items": { "$ref": "#/$defs/hex" }, "minItems": 2 }, "angle": { "type": "number" } } },
+        "ink": { "$ref": "#/$defs/hex", "description": "The label colour on the accent." },
+        "radius": { "type": "number", "description": "px; 999 for a pill" },
+        "job": { "type": "string", "description": "The accent's one job, in one sentence." },
+        "light": { "$ref": "#/$defs/hex", "description": "The colour the portfolio uses when the accent appears as light (glow, dot), if it differs." }
+      }
+    },
+    "light": {
+      "type": "object",
+      "description": "A light field spec, the shape light.js checkField() takes.",
+      "required": ["behaviour", "theme", "cap", "sources"],
+      "additionalProperties": false,
+      "properties": {
+        "behaviour": { "enum": ["still", "event", "drift"] },
+        "theme": { "enum": ["dark", "light"] },
+        "cap": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.42 },
+        "sources": {
+          "type": "array", "minItems": 1, "maxItems": 3,
+          "items": {
+            "type": "object", "required": ["pigments"], "additionalProperties": false,
+            "properties": {
+              "pigments": { "type": "array", "minItems": 1, "maxItems": 3, "items": { "$ref": "#/$defs/hex" } },
+              "at": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+              "size": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+              "drift": { "type": "object", "required": ["period"], "properties": { "period": { "type": "number", "minimum": 9 } } },
+              "cycle": { "type": "object", "required": ["period"], "properties": { "period": { "type": "number", "minimum": 9 } } }
+            }
+          }
+        },
+        "event": { "type": "object", "properties": { "boost": { "type": "number" }, "settle": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 } } },
+        "note": { "type": "string", "description": "What the product's own renderer does that the spec does not say (e.g. WebGL, P3 stops)." }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "required": ["ui"],
+      "additionalProperties": false,
+      "properties": { "ui": { "$ref": "#/$defs/face" }, "display": { "$ref": "#/$defs/face" }, "reading": { "$ref": "#/$defs/face" } }
+    },
+    "motion": {
+      "type": "object",
+      "required": ["press", "settle", "glide", "pop"],
+      "additionalProperties": false,
+      "properties": {
+        "press": { "$ref": "#/$defs/spring" },
+        "settle": { "$ref": "#/$defs/spring" },
+        "glide": { "$ref": "#/$defs/spring" },
+        "pop": { "$ref": "#/$defs/spring" },
+        "pressScale": { "type": "object", "properties": { "mouse": { "type": "number" }, "touch": { "type": "number" } } },
+        "ease": { "type": "string", "description": "When the product moves on an ease rather than springs today, the ease it uses." },
+        "note": { "type": "string" }
+      }
+    },
+    "promise": {
+      "type": "object",
+      "required": ["text", "lang", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "description": "The product's own promise line, in its own language, never translated from another product." },
+        "lang": { "type": "string" },
+        "gloss": { "type": "string", "description": "An English gloss for meta, when text is not English." },
+        "evidence": { "type": "string", "description": "Where the promise is proven (charter rule 8)." }
+      }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "open": { "type": "string" }, "code": { "type": "string" }, "about": { "type": "string" } }
+    },
+    "captures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "files", "viewport", "dpr", "caption", "shot"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "kind": { "enum": ["screen", "signature"] },
+          "files": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Paths relative to world.json; a signature lists poster, then av1, hevc, h264." },
+          "viewport": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
+          "dpr": { "type": "number" },
+          "touch": { "type": "boolean" },
+          "theme": { "enum": ["dark", "light"] },
+          "caption": { "type": "string" },
+          "alt": { "type": "string" },
+          "durationSeconds": { "type": "number", "minimum": 6, "maximum": 10 },
+          "shot": { "type": "string", "format": "date" }
+        }
+      }
+    }
+  }
+}
