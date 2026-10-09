@@ -18,6 +18,8 @@
  *   (Q-6's own geometry, G6), and `restingWidth()` for whoever measures it mid-flight.
  * - `catalogue.ts`: the catalogue entries that run from script (§7.3): `sheetPush` (X8),
  *   `ringFlash` (*undo reveal*), `revealWhenShown` (*find step*, 05.2), `fold` (02.6).
+ * - `feedback.ts`: `shake` (*refusal*), `receivePulse` (*receive*), `navPush` (the iOS
+ *   navigation push) and `disclose` (a folded section's height spring), shared by forms, sheets and the compact edition (motion-2026-10).
  *
  * CSS transitions with `linear()` springs and Base UI's starting and ending styles remain the
  * first route for popups, bars, press and feedback (§7.4); gestures live in `motion/gesture/`.
@@ -33,6 +35,7 @@ export {
   type Styled,
 } from './animate';
 export { fold, type RingColour, revealWhenShown, ringFlash, sheetPush } from './catalogue';
+export { disclose, navPush, receivePulse, shake } from './feedback';
 export { flip } from './flip';
 export { reducedMotion, subscribeReducedMotion, systemReducedMotion } from './reduced-motion';
 export {
