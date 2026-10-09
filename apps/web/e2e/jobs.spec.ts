@@ -1125,20 +1125,16 @@ test.describe('core jobs', () => {
       },
       { gate: true },
     );
+    // Opened locked (D1-4a): the tab says so, and the title menu's switch gives the reason.
+    // Looking is not a press of the job.
     await job.act('it opens locked, with the reason "Signed file"', 0, async () => {
+      await expect(page.getByRole('tab', { name: /signed-approval, locked/ })).toBeVisible({
+        timeout: 5_000,
+      });
       await page.getByTestId('document-menu').click();
       try {
         await expect(toggle).toBeChecked({ timeout: 5_000 });
         await expect(page.getByTestId('lock-switch-row')).toContainText('Signed file');
-      } finally {
-        await page.keyboard.press('Escape');
-      }
-    });
-    await job.act('lock it by hand (stands in until it opens locked, D1-4a)', null, async () => {
-      await page.getByTestId('document-menu').click();
-      try {
-        if (!(await toggle.isChecked())) await toggle.click();
-        await expect(toggle).toBeChecked();
       } finally {
         await page.keyboard.press('Escape');
       }
@@ -1171,11 +1167,9 @@ test.describe('core jobs', () => {
       await p.press(page.getByTestId('document-menu'));
       try {
         await p.press(toggle);
+        // A signed lock asks first, once.
         const warning = page.getByTestId('unlock-warning');
-        // A signed or restricted lock asks first; a lock by hand does not.
-        if (await warning.isVisible()) {
-          await p.press(warning.getByRole('button', { name: 'Unlock anyway' }));
-        }
+        await p.press(warning.getByRole('button', { name: 'Unlock anyway' }));
         await expect(toggle).not.toBeChecked();
       } finally {
         await page.keyboard.press('Escape');
