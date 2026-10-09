@@ -105,9 +105,9 @@ export function TitleMenu({ anchor, withRedo = false }: TitleMenuProps) {
         if (!next) closeTitleMenu();
       }}
     >
-      {open !== null ? (
-        <TitleMenuPopup doc={doc} anchor={anchor} focus={open} withRedo={withRedo} />
-      ) : null}
+      {/* Always rendered: the popup's portal mounts only while open, and Base UI keeps it
+          through its exit, so it goes back into its tab (motion-2026-10/platform.md §1). */}
+      <TitleMenuPopup doc={doc} anchor={anchor} focus={open ?? 'menu'} withRedo={withRedo} />
     </Popover.Root>
   );
 }

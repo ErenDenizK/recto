@@ -91,13 +91,15 @@ at: no jumps, no squashed text, the region grows from the trigger and returns in
 
 ## Not done / for other lanes
 
-- The title menu (`shell/frame`, a popover on the document tab) unmounts without an ending style,
-  so it closes at once and cannot go back into its tab. Rendering it with Base UI's exit (keep
-  the `Popover.Root` mounted) would give it the return for free. Frame lane.
+- The title menu (`shell/frame/TitleMenu.tsx`, a popover on the document tab) used to render its
+  popup only while open, so it vanished at once. It now always renders the popup (the portal
+  mounts only while open), so Base UI plays its exit and it goes back into its tab. A one-line
+  change in the frame lane's file, made here at the lead's request.
 - Toasts, the capsule and the palette have their own motion and are outside this lane.
 - e2e on Chromium only: `motion.spec.ts` (A-9 both paths, A-10, the interruption tests),
   `menus`, `sheets`, `history`, `a11y`, `toasts` pass. Updated: the History scrubber test now
   arms on the popup's first animation (it grows out of ↶), and `sheets.spec.ts`' transform-only
   checks no longer expect a constant box for sheets opened by a button. `settings.spec.ts`
-  "Glass: Clear · Tinted · Solid" fails at its first check (Clear not checked at start), which
-  this lane does not touch; not checked against develop. Firefox and WebKit are CI's.
+  passes: an earlier local failure ("Clear" not checked at start) came from a build made
+  without `RECTO_RENDER_OVERRIDE=1`, so the software-renderer probe started Glass at Tinted
+  (X36); a local `E2E_SKIP_BUILD=1` run needs that build. Firefox and WebKit are CI's.
