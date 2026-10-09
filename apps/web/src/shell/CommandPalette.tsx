@@ -2,13 +2,19 @@
  * Command palette (Mod+K). Built on the Base UI Dialog (focus trap, Esc, scroll lock,
  * focus return). The list follows the APG combobox + listbox pattern: focus stays in the
  * input and `aria-activedescendant` points at the active option.
+ *
+ * Motion (docs/design/motion-2026-10/frame.md §2): the popup scales up from its top centre
+ * over a scrim that blurs as it fades in; the first six rows come in 20 ms apart; the
+ * selection's fill slides from row to row on `quick` (`usePaletteFill`) instead of jumping.
  */
 import { Dialog } from '@base-ui/react/dialog';
 import {
   type KeyboardEvent,
   useDeferredValue,
+  type CSSProperties,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -19,6 +25,7 @@ import { type Command, commandRegistry, groupCommands } from '../commands/regist
 import { parseShortcut } from '../commands/shortcuts';
 import { useCommands } from '../commands/use-commands';
 import { m } from '../i18n';
+import { animateStyle, type Motion } from '../motion/animate';
 import { useUiStore } from '../state/ui-store';
 import { Icon } from '../ui/Icon';
 import { Keycaps } from '../ui/Keycaps';
@@ -87,6 +94,10 @@ export function buildSections(
   }));
 }
 
+/** The entrance delay of the row at `index` (the first six one after another). */
+const staggerStyle = (index: number): CSSProperties =>
+  ({ '--row-index': Math.min(index, STAGGERED_ROWS - 1) }) as CSSProperties;
+
 function Highlighted({
   text,
   positions,
@@ -116,6 +127,55 @@ function Highlighted({
       )}
     </>
   );
+}
+
+/** Rows that come in one after another when the list shows; the rest come with the last. */
+const STAGGERED_ROWS = 6;
+
+/** Where the selection's fill was last sent, and the slide taking it there. */
+interface FillState {
+  readonly id: string;
+  /** Its row's top in the list's content (scroll included), px. */
+  readonly top: number;
+  readonly slide: Motion<readonly number[]> | null;
+}
+
+/**
+ * The selection's fill slides (frame.md §2; language.md §7.3 *select*): each selected row draws
+ * its own fill, and when the selection moves the new fill starts where the last one was drawn
+ * (a slide in flight included, with its velocity) and springs home on `quick`. Nothing is left
+ * inline at rest (Q-2); under reduced motion the move is instant (`animateStyle`).
+ */
+function usePaletteFill(list: HTMLElement | null, activeOptionId: string | undefined): void {
+  const last = useRef<FillState | null>(null);
+  useLayoutEffect(() => {
+    if (!list || !activeOptionId) {
+      last.current = null;
+      return;
+    }
+    const option = document.getElementById(activeOptionId);
+    const fill = option?.querySelector<HTMLElement>('[data-palette-fill]');
+    if (!option || !fill) return;
+    const listTop = list.getBoundingClientRect().top - list.scrollTop;
+    const top = option.getBoundingClientRect().top - listTop;
+    const was = last.current;
+    if (was?.id === activeOptionId) return;
+    let slide: Motion<readonly number[]> | null = null;
+    if (was) {
+      // Where the last fill is drawn now: its row's top plus the offset its slide has reached.
+      const offset = was.slide?.value[1] ?? 0;
+      const velocity = was.slide?.velocity[1] ?? 0;
+      was.slide?.stop();
+      const from = was.top + offset - top;
+      if (Math.abs(from) > 0.5) {
+        slide = animateStyle(fill, 'transform', [0, from], [0, 0], {
+          spring: 'quick',
+          velocity: [0, velocity],
+        });
+      }
+    }
+    last.current = { id: activeOptionId, top, slide };
+  }, [list, activeOptionId]);
 }
 
 const FOOTER_KEYS = {
@@ -153,6 +213,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   // re-ranking and falls back to the first enabled row when filtered out.
   const [activeId, setActiveId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [list, setList] = useState<HTMLDivElement | null>(null);
   const baseId = useId();
 
   const sections = useMemo(
@@ -177,6 +238,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
     if (!activeOptionId) return;
     document.getElementById(activeOptionId)?.scrollIntoView?.({ block: 'nearest' });
   }, [activeOptionId]);
+  usePaletteFill(list, activeOptionId);
 
   const run = (row: Row | undefined) => {
     if (!row?.enabled) return;
@@ -214,6 +276,10 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
   };
 
   const listboxId = `${baseId}-listbox`;
+  // Each section's first row in the whole list, for the entrance's stagger.
+  const firstRows = sections.map((_, i) =>
+    sections.slice(0, i).reduce((sum, section) => sum + section.rows.length, 0),
+  );
 
   return (
     <Dialog.Popup className={styles.popup} initialFocus={inputRef}>
@@ -244,6 +310,7 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
       </div>
 
       <div
+        ref={setList}
         id={listboxId}
         role="listbox"
         aria-label={m.palette_commands_label()}
@@ -254,8 +321,9 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
             {m.palette_no_match({ query: query.trim() })}
           </p>
         ) : null}
-        {sections.map((section) => {
+        {sections.map((section, s) => {
           const headingId = `${baseId}-group-${section.group}`;
+          const first = firstRows[s] ?? 0;
           return (
             <div
               key={section.group}
@@ -263,10 +331,16 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
               aria-labelledby={headingId}
               className={styles.group}
             >
-              <div id={headingId} role="presentation" className={styles.groupLabel}>
+              <div
+                id={headingId}
+                role="presentation"
+                className={styles.groupLabel}
+                data-stagger=""
+                style={staggerStyle(first)}
+              >
                 {section.group === RECENT_GROUP ? m.palette_recent() : section.group}
               </div>
-              {section.rows.map((row) => {
+              {section.rows.map((row, i) => {
                 const shortcut = row.command.shortcuts[0];
                 const selected = row === active;
                 const reasonId = row.reason ? `${optionId(row.command.id)}-reason` : undefined;
@@ -283,6 +357,8 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                     aria-disabled={!row.enabled || undefined}
                     aria-describedby={reasonId}
                     className={styles.option}
+                    data-stagger=""
+                    style={staggerStyle(first + i)}
                     onPointerMove={() => {
                       if (row.enabled && !selected) setActiveId(row.command.id);
                     }}
@@ -293,6 +369,9 @@ function PalettePopup({ onClose }: { readonly onClose: () => void }) {
                       run(row);
                     }}
                   >
+                    {selected ? (
+                      <span className={styles.fill} data-palette-fill="" aria-hidden="true" />
+                    ) : null}
                     <span className={styles.title}>
                       <Highlighted text={row.command.title} positions={row.positions} />
                     </span>
