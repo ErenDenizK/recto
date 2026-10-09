@@ -30,7 +30,10 @@ come first.
 
 ## Verifying cheaply
 
-Run only what covers your change; CI runs everything on Chromium, Firefox and WebKit.
+Run only what covers your change; CI runs everything on Chromium, Firefox and WebKit. Several
+worktrees share one machine: wrap every heavy command (`pnpm build`, Playwright, the full unit
+suite) in `tools/dev/heavy.sh`, e.g. `tools/dev/heavy.sh pnpm build`. Lanes and concurrency:
+`docs/process/agent-workflow.md`.
 
 - `pnpm format:check`, `pnpm lint`, `pnpm typecheck` at the root.
 - Unit/browser tests: `cd apps/web && pnpm exec vitest run --maxWorkers=1 <files>`.
