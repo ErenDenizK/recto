@@ -23,6 +23,7 @@ import { EASE, SPRING_CSS_MS } from '../motion/tokens';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
+import { afterJump } from './jump';
 
 export interface DocumentHit {
   /** Order of arrival; ties inside a page keep the engine's reading order. */
@@ -400,16 +401,22 @@ export function revealHit(hit: DocumentHit | undefined): void {
   const ui = useUiStore.getState();
   if (!isPageView(ui)) ui.showSurface('page');
   const bounds = hitBounds(hit);
+  // A step: the hit rings itself, so the page takes no landing highlight.
   useViewStore
     .getState()
-    .scrollToPage(hit.pageId, bounds === undefined ? undefined : { reveal: bounds });
-  // One hit is current, drawn by `SearchHighlights` once its page is laid out. The ring comes
-  // once it is shown, and the hit pulses with it (frame.md §3): after the ring, so it never
-  // depends on how the reader's scroll lands (the viewer lane's).
+    .scrollToPage(
+      hit.pageId,
+      bounds === undefined ? { motion: 'step' } : { reveal: bounds, motion: 'step' },
+    );
+  // One hit is current, drawn by `SearchHighlights` once its page is laid out. The ring waits
+  // for the eased scroll to land (motion-2026-10 viewer.md §1), and the hit pulses with it
+  // (frame.md §3).
   const current = () => document.querySelector('[data-testid="search-highlights"] [data-current]');
-  void revealWhenShown(current).then((flash) => {
-    if (flash) pulseHit(current());
-  });
+  void afterJump()
+    .then(() => revealWhenShown(current))
+    .then((flash) => {
+      if (flash) pulseHit(current());
+    });
 }
 
 /** How much the current hit swells at the height of its pulse. */

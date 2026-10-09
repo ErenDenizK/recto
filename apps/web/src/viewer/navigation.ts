@@ -11,7 +11,7 @@ import {
 } from '@pdf-editor/document-model';
 
 import { readJson, writeJson } from '../state/safe-storage';
-import { useViewStore } from '../state/view-store';
+import { type ScrollMotion, useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 
 // ---------------------------------------------------------------------------
@@ -33,11 +33,13 @@ export function navigationBase(): number {
 
 /**
  * Scrolls to page `index` (clamped) and records it as the navigation target. Returns the
- * index targeted, or undefined without pages.
+ * index targeted, or undefined without pages. `motion` is how the page view gets there
+ * (`ScrollRequest.motion`): a jump highlights the page it lands on, a step does not.
  */
 export function goToPageIndex(
   index: number,
   doc: VirtualDocument | undefined = activeDocument(),
+  motion: ScrollMotion = 'jump',
 ): number | undefined {
   if (!doc || doc.pages.length === 0) return undefined;
   const target = Math.min(doc.pages.length - 1, Math.max(0, Math.trunc(index)));
@@ -45,7 +47,7 @@ export function goToPageIndex(
   if (!page) return undefined;
   const view = useViewStore.getState();
   view.setNavTarget(target);
-  view.scrollToPage(page.id);
+  view.scrollToPage(page.id, { motion });
   return target;
 }
 
@@ -58,7 +60,7 @@ export function stepPage(
   const base = navigationBase();
   const step = layout === 'two-up' ? 2 : 1;
   const start = layout === 'two-up' ? base - (base % 2) : base;
-  return goToPageIndex(start + direction * step, doc);
+  return goToPageIndex(start + direction * step, doc, 'step');
 }
 
 export function previousPage(doc?: VirtualDocument): number | undefined {

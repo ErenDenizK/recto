@@ -24,6 +24,28 @@
   pointer-events: auto;
   user-select: none;
   cursor: default;
+  /* It emerges from the selection (motion-2026-10 viewer.md §5): from --enter-scale about its
+     corner nearest the selected line, rising --rise-distance away from it, on --spring-quick,
+     fading on --duration-base. Reduced motion keeps the fade only. */
+  transform-origin: 16px 100%;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out);
+}
+
+.bar[data-below] {
+  transform-origin: 16px 0;
+}
+
+@starting-style {
+  .bar {
+    transform: translateY(var(--rise-distance)) scale(var(--enter-scale));
+    opacity: 0;
+  }
+
+  .bar[data-below] {
+    transform: translateY(calc(-1 * var(--rise-distance))) scale(var(--enter-scale));
+  }
 }
 
 /* Between the markups and Comment in Edit. */

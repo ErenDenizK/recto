@@ -8,10 +8,21 @@
  * Only while the pages own the keyboard (`ReadController.ownsFocus`): a focused button,
  * field or menu keeps its own Space. The keydown is claimed in the capture phase with
  * `preventDefault()`, which the global shortcuts skip.
+ *
+ * A drag released while moving keeps its momentum, as a native scroll does after a fling
+ * (motion-2026-10 viewer.md §2): the release velocity is projected with UIScrollView's 0.998
+ * (`project()`), and the view coasts there on `glide`, carrying that velocity, so it slows to a
+ * stop instead of halting under the pointer. A press, a wheel or a new drag stops it where it
+ * is. Under reduced motion `project()` is zero: the view stops with the pointer.
  */
 import { commandRegistry } from '../commands/registry';
 import { isEditableTarget } from '../commands/use-shortcuts';
+import { animate, type Motion } from '../motion/animate';
+import { project, velocityTracker, type VelocityTracker } from '../motion/velocity';
 import { readController } from './read-controller';
+
+/** A release slower than this (px/s) stops where it is. */
+const COAST_MIN_SPEED = 120;
 
 /** On the viewport while Space is held: the grab cursor. */
 export const SPACE_PAN_ATTR = 'data-space-pan';
@@ -37,7 +48,45 @@ export function installSpacePan(win: Window = window): () => void {
     readonly y: number;
     readonly left: number;
     readonly top: number;
+    readonly tracker: VelocityTracker;
   } | null = null;
+  /** The view coasting after a release, and where its stop is heard. */
+  let coast: { readonly motion: Motion<readonly number[]>; readonly el: HTMLElement } | null = null;
+
+  const stopCoast = () => {
+    if (!coast) return;
+    const { motion, el } = coast;
+    coast = null;
+    motion.stop();
+    el.removeEventListener('wheel', stopCoast);
+    el.removeEventListener('pointerdown', stopCoast, true);
+  };
+
+  /** Lets `el` coast on with the release velocity `v` (px/s, pointer direction). */
+  const startCoast = (el: HTMLElement, v: { x: number; y: number }) => {
+    stopCoast();
+    if (Math.hypot(v.x, v.y) < COAST_MIN_SPEED) return;
+    // The content follows the pointer: the scroll position moves against it.
+    const dx = -project(v.x);
+    const dy = -project(v.y);
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    const left = el.scrollLeft;
+    const top = el.scrollTop;
+    const motion = animate([left, top], [left + dx, top + dy], {
+      spring: 'glide',
+      velocity: [-v.x, -v.y],
+      onUpdate: ([left = 0, top = 0]) => {
+        el.scrollLeft = left;
+        el.scrollTop = top;
+      },
+      onComplete: () => {
+        if (coast?.motion === motion) stopCoast();
+      },
+    });
+    coast = { motion, el };
+    el.addEventListener('wheel', stopCoast, { passive: true });
+    el.addEventListener('pointerdown', stopCoast, true);
+  };
 
   const endDrag = () => {
     drag = null;
@@ -83,13 +132,17 @@ export function installSpacePan(win: Window = window): () => void {
     // The press is the pan's: no tool, field or text sees it.
     event.preventDefault();
     event.stopPropagation();
+    stopCoast();
     panned = true;
+    const tracker = velocityTracker();
+    tracker.add(event.timeStamp, event.clientX, event.clientY);
     drag = {
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
       left: held.scrollLeft,
       top: held.scrollTop,
+      tracker,
     };
     held.setAttribute(SPACE_PANNING_ATTR, '');
     win.addEventListener('pointermove', onMove, true);
@@ -101,6 +154,7 @@ export function installSpacePan(win: Window = window): () => void {
     if (!drag || !held || event.pointerId !== drag.pointerId) return;
     event.preventDefault();
     event.stopPropagation();
+    drag.tracker.add(event.timeStamp, event.clientX, event.clientY);
     held.scrollLeft = drag.left - (event.clientX - drag.x);
     held.scrollTop = drag.top - (event.clientY - drag.y);
   };
@@ -108,7 +162,10 @@ export function installSpacePan(win: Window = window): () => void {
   const onUp = (event: PointerEvent) => {
     if (drag?.pointerId !== event.pointerId) return;
     event.stopPropagation();
+    const velocity = event.type === 'pointerup' ? drag.tracker.velocity(event.timeStamp) : null;
+    const el = held;
     endDrag();
+    if (el && velocity) startCoast(el, velocity);
   };
 
   // Space released elsewhere (another window took the focus): stop holding.
@@ -119,6 +176,7 @@ export function installSpacePan(win: Window = window): () => void {
   win.addEventListener('pointerdown', onPointerDown, true);
   win.addEventListener('blur', onBlur);
   return () => {
+    stopCoast();
     release();
     win.removeEventListener('keydown', onKeyDown, true);
     win.removeEventListener('keyup', onKeyUp, true);

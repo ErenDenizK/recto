@@ -117,6 +117,7 @@ import {
   type TextRange,
   wordRange,
 } from './paragraph-model';
+import { holdOverCommit, openFrame } from './edit-motion';
 import styles from './ParagraphEditor.module.css';
 import { pageRevision, usePageRevision } from './runs';
 import {
@@ -962,6 +963,9 @@ export function ParagraphEditor({
     restoreFocus();
   };
   const finishRef = useRef(finishWith);
+  /** Holds what the editor shows over the page until it paints the commit (edit-motion.ts). */
+  const holdOver = () => holdOverCommit(rootRef.current, target.source, target.pageIndex);
+  const holdRef = useRef(holdOver);
 
   /** The commit of a draft: what the user saw (layout) and was told (honesty). */
   const commitOf = (
@@ -1023,6 +1027,8 @@ export function ParagraphEditor({
         commitRef.current(pending, fit?.layout ?? shown?.result.layout),
       );
       if (outcome.ok) {
+        // What the editor shows stays until the page shows it (motion-2026-10 viewer.md §6).
+        holdRef.current();
         finishRef.current(true);
         return;
       }
@@ -1075,6 +1081,14 @@ export function ParagraphEditor({
     return () => {
       mountedRef.current = false;
     };
+  }, []);
+  // Entering: the frame unfolds from the first line over the paragraph (viewer.md §6).
+  const frameRef = useRef<HTMLDivElement>(null);
+  const lineHeight = block.size * frame.scale * 1.2;
+  useLayoutEffect(() => {
+    openFrame(frameRef.current, lineHeight);
+    // On open only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(
     () => () => {
@@ -1410,6 +1424,7 @@ export function ParagraphEditor({
     leaveRef.current = leave;
     commitRef.current = commitOf;
     finishRef.current = finishWith;
+    holdRef.current = holdOver;
     honestyRef.current = honestyFacts;
     pageRef.current = target.position;
   });
@@ -1424,6 +1439,19 @@ export function ParagraphEditor({
       data-preview={showPreview ? '' : undefined}
       data-angle={screenAngle}
     >
+      <div
+        ref={frameRef}
+        className={styles.frame}
+        data-paragraph-frame=""
+        aria-hidden="true"
+        // 3 px out from the paragraph on every side.
+        style={{
+          left: paragraphBox.left - 3,
+          top: paragraphBox.top - 3,
+          width: paragraphBox.width + 6,
+          height: paragraphBox.height + 6,
+        }}
+      />
       {previewBox ? (
         <canvas
           ref={previewRef}
