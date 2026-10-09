@@ -744,9 +744,10 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expect(undo).not.toHaveAttribute('aria-disabled');
     const scrubber = '[data-testid="history-scrubber"]';
 
-    // ✕ mid-entrance: the *popup* transition (scale 0.96 → 1 and a fade, `--duration-fast` on
-    // `--ease-out`) reverses from where it is. An engine may draw a frame or two more of the
-    // entrance before the close lands; it must then turn, without a jump.
+    // ✕ mid-entrance: the entrance (the container transform out of the undo button, or the
+    // *popup* transition, scale 0.96 → 1 and a fade, when it opens at once) reverses from
+    // where it is. An engine may draw a frame or two more of the entrance before the close
+    // lands; it must then turn, without a jump. The fade is the channel both share.
     const closing = interruptMidway(
       page,
       scrubber,
@@ -767,23 +768,26 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expectSettledClean(page, state);
 
     // Esc mid-entrance: a dismissal closes a popover at once (`data-instant`, ui/Popover), so
-    // it is gone in a frame, with nothing left behind. Armed on the entrance's own
-    // `transitionrun`, not on a frame that finds it running: on CI WebKit the frame sampler
-    // never saw this second entrance mid-way, eight seconds long, while the first one above
-    // passed. The event fires however the engine paces its frames; the entrance runs at a
-    // quarter speed until a frame finds it under way, so Esc lands inside it, and its progress
-    // then is recorded.
+    // it is gone in a frame, with nothing left behind. Opened by the undo button's press, the
+    // scrubber grows out of it (the container transform, motion-2026-10/platform.md §1: Web
+    // Animations, not a CSS transition), so the entrance is armed on the first animation the
+    // popup carries, found by a mutation observer (it fires however the engine paces its
+    // frames); the entrance runs at a quarter speed until a frame finds it under way, so Esc
+    // lands inside it, and its progress then is recorded.
     const dismissing = page.evaluate(
       (selector) =>
         new Promise<{ entered: boolean; progress: number }>((resolve) => {
+          const watch = new MutationObserver(() => {
+            const el = document.querySelector(selector);
+            if (el && el.getAnimations().length > 0) onRun(el);
+          });
           const timer = setTimeout(() => {
-            document.removeEventListener('transitionrun', onRun, true);
+            watch.disconnect();
             resolve({ entered: false, progress: 0 });
           }, 8_000);
-          function onRun(event: TransitionEvent) {
-            const el = event.target as Element;
-            if (!el.matches(selector)) return;
-            document.removeEventListener('transitionrun', onRun, true);
+          watch.observe(document.body, { childList: true, subtree: true, attributes: true });
+          function onRun(el: Element) {
+            watch.disconnect();
             clearTimeout(timer);
             const entrance = el.getAnimations();
             for (const a of entrance) a.playbackRate = 0.25;
@@ -809,7 +813,6 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
             };
             requestAnimationFrame(step);
           }
-          document.addEventListener('transitionrun', onRun, true);
         }),
       scrubber,
     );
@@ -823,20 +826,26 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
 
     // Opened again, it enters as every opening does: the open state is the app's, so Base UI
     // kept the dismissal's instant flag, and the next popup appeared at once until the
-    // scrubber's own rule let its entrance play (HistoryScrubber.module.css). `transitionrun`
-    // fires however long the engine's frames are. Then it rests crisp.
+    // scrubber's own rule let its entrance play (HistoryScrubber.module.css), or it grows out
+    // of the undo button (the container transform). `transitionrun` and the mutation observer
+    // fire however long the engine's frames are. Then it rests crisp.
     const entered = page.evaluate(
       (selector) =>
         new Promise<boolean>((resolve) => {
           const done = (value: boolean) => {
             clearTimeout(timer);
+            watch.disconnect();
             document.removeEventListener('transitionrun', onRun, true);
             resolve(value);
           };
           const onRun = (event: TransitionEvent) => {
             if ((event.target as Element).matches(selector)) done(true);
           };
+          const watch = new MutationObserver(() => {
+            if ((document.querySelector(selector)?.getAnimations().length ?? 0) > 0) done(true);
+          });
           const timer = setTimeout(() => done(false), 5_000);
+          watch.observe(document.body, { childList: true, subtree: true, attributes: true });
           document.addEventListener('transitionrun', onRun, true);
         }),
       scrubber,
