@@ -6,7 +6,9 @@
  * page white with its hairline, never themed.
  *
  * Motion: hover lifts the card on --spring-quick; a press scales it by --press-scale-large
- * (02.5) on --spring-press; the ○ fades on --duration-fast. Every token is reduced per token
+ * (02.5) on --spring-press; the ○ fades on --duration-fast and springs from half size on
+ * --spring-pop, staggered across the cards entering Select mode (motion-2026-10
+ * library-capsule.md §3). Every token is reduced per token
  * (styles/motion.css); the lift's transform has its own reduced twin below, leaving the e3
  * shadow only (L5 §7).
  */
@@ -100,7 +102,11 @@
   height: var(--check-hit);
   padding: var(--space-1);
   opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  transform: scale(0.5);
+  transform-origin: calc(100% - var(--space-1) - 11px) calc(var(--space-1) + 11px);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--spring-pop) var(--ease-spring-pop);
 }
 
 .thumbBox > .check {
@@ -111,12 +117,36 @@
 .card[data-selected] .check,
 .card:focus-visible .check {
   opacity: 1;
+  transform: none;
+}
+
+/* Entering Select mode the badges spring in across the cards, 12 ms apart in card order for at
+   most ten steps (MP rule; --check-delay, LibraryCard.tsx); leaving, they go together. */
+.card[data-selecting] .check {
+  transition-delay: var(--check-delay);
 }
 
 @media (hover: hover) {
   .card:hover .check {
     opacity: 1;
+    transform: none;
+    transition-delay: 0ms;
   }
+}
+
+/* Reduced motion: the badges fade only, together. */
+@media (prefers-reduced-motion: reduce) {
+  .check,
+  .card[data-selecting] .check {
+    transform: none;
+    transition-delay: 0ms;
+  }
+}
+
+:root[data-motion='reduced'] .check,
+:root[data-motion='reduced'] .card[data-selecting] .check {
+  transform: none;
+  transition-delay: 0ms;
 }
 
 .meta {

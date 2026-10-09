@@ -1,0 +1,23 @@
+/*
+ * Library ⇄ document (02-library L1 §7; library-transition.ts), while `<html>` has
+ * `data-vt-library`. The card's sheet and the reader's page share `library-sheet`: their group
+ * moves on the view change's spring (styles/motion.css §4), and only the old image travels in it.
+ * The new one is captured before its canvas renders (a blank sheet), so it is not drawn; the
+ * live element takes over as the group lands. The rest of the view cross-fades as every view
+ * change does. Under reduced motion no name is kept, so none of this applies (motion.css §4).
+ *
+ * The card's ○ is hidden for the capture: the travelling image is the page alone.
+ */
+:root[data-vt-library]::view-transition-old(library-sheet) {
+  animation: none;
+  opacity: 1;
+}
+
+:root[data-vt-library]::view-transition-new(library-sheet) {
+  animation: none;
+  opacity: 0;
+}
+
+:root[data-vt-library] [data-library-sheet] [data-testid='library-card-check'] {
+  visibility: hidden;
+}

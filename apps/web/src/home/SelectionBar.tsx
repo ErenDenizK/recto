@@ -18,9 +18,10 @@
  * more cards are checked.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
-import { type KeyboardEvent, useEffect, useRef } from 'react';
+import { type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { formatNumber, m } from '../i18n';
+import { springWidth } from '../motion/resize';
 import { announce } from '../shell/announcer';
 import { useFloatingBottomChrome } from '../shell/frame/frame-insets';
 import { Button } from '../ui/Button';
@@ -36,7 +37,31 @@ import {
 import { setSelecting } from './library-store';
 import styles from './SelectionBar.module.css';
 
-export function SelectionBar({ selection }: { readonly selection: readonly DocumentId[] }) {
+/** The longest a leaving bar waits for its fade to end before it unmounts anyway (ms). */
+const LEAVE_MAX_MS = 400;
+
+/**
+ * The bar while cards are checked, and on its way out once none are (motion-2026-10
+ * library-capsule.md §3): it rises from the capsule's place at the bottom centre and sinks back
+ * into it, `inert` from its first leaving frame (A-13), showing the last selection it had.
+ */
+export function SelectionBarPresence({ selection }: { readonly selection: readonly DocumentId[] }) {
+  const [last, setLast] = useState(selection);
+  if (selection.length > 0 && last !== selection) setLast(selection);
+  if (last.length === 0) return null;
+  const leaving = selection.length === 0;
+  return <SelectionBar selection={last} leaving={leaving} onGone={() => setLast(selection)} />;
+}
+
+export function SelectionBar({
+  selection,
+  leaving = false,
+  onGone,
+}: {
+  readonly selection: readonly DocumentId[];
+  readonly leaving?: boolean;
+  readonly onGone?: () => void;
+}) {
   const count = selection.length;
   const canCombine = count >= 2;
   const canCompare = count === 2;
@@ -78,6 +103,26 @@ export function SelectionBar({ selection }: { readonly selection: readonly Docum
   // The toast stack keeps above the bar ("Restored 3 documents" after a reload; FB4 §2).
   const barRef = useRef<HTMLDivElement>(null);
   useFloatingBottomChrome(barRef);
+  // A count and a Combine label that change width move it on a spring (Q-6), never a cut.
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    return bar ? springWidth(bar) : undefined;
+  }, []);
+  // Leaving: gone once its fade ends (or a transition never runs), then unmounted.
+  useEffect(() => {
+    if (!leaving) return undefined;
+    const bar = barRef.current;
+    const done = (event?: TransitionEvent) => {
+      if (event && (event.target !== bar || event.propertyName !== 'opacity')) return;
+      onGone?.();
+    };
+    bar?.addEventListener('transitionend', done);
+    const timer = window.setTimeout(done, LEAVE_MAX_MS);
+    return () => {
+      bar?.removeEventListener('transitionend', done);
+      window.clearTimeout(timer);
+    };
+  }, [leaving, onGone]);
 
   return (
     <div
@@ -85,10 +130,13 @@ export function SelectionBar({ selection }: { readonly selection: readonly Docum
       role="toolbar"
       aria-label={m.library_bar_label()}
       className={styles.bar}
-      data-testid="library-selection-bar"
+      data-testid={leaving ? undefined : 'library-selection-bar'}
+      data-leaving={leaving || undefined}
+      aria-hidden={leaving || undefined}
+      inert={leaving}
       onKeyDown={onKeyDown}
     >
-      <span className={styles.count} aria-live="polite">
+      <span className={styles.count} aria-live={leaving ? 'off' : 'polite'}>
         {m.home_selected_summary({ count: formatNumber(count) })}
       </span>
       <span className={styles.divider} aria-hidden="true" />
