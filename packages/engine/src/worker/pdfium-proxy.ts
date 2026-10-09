@@ -461,6 +461,12 @@ export function createPdfiumProxy(worker: Worker, options: PdfiumProxyOptions): 
         remote.verifyRedactedOutput(bytes, plans, wire, withPort(port, port)),
       );
     },
+    computeSaveReceipt(bytes, acts, callOptions) {
+      const { signal, wire } = split(callOptions);
+      return invoke('computeSaveReceipt', signal, (port) =>
+        remote.computeSaveReceipt(bytes, acts, wire, withPort(port, port)),
+      );
+    },
     ocrPageFacts(id, callOptions) {
       const { signal, wire } = split(callOptions);
       return invoke('ocrPageFacts', signal, (port) =>

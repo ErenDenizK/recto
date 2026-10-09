@@ -27,6 +27,7 @@ import { SourceLocks } from '../pdfium/host/source-lock';
 import { PdfiumAdapter } from '../pdfium/pdfium-adapter';
 import { applyRedactions, RedactionFailedError } from '../redaction/apply';
 import { withForensicDeps } from '../redaction/engine-session';
+import { computeSaveReceiptOn } from '../redaction/receipt';
 import { verifyRedactedOutput } from '../redaction/verify-output';
 import { createImageEditor, type HostedImageEditor } from '../image-objects/editor';
 import { createTextEditor, type HostedTextEditor } from '../text-edit/editor';
@@ -483,6 +484,19 @@ const api: PdfiumWorkerApi = {
         bytes,
         (deps) =>
           verifyRedactedOutput(bytes, plans, deps, password === undefined ? {} : { password }),
+        withSignal(password === undefined ? {} : { password }, signal),
+      );
+    });
+  },
+  computeSaveReceipt(bytes, acts, options, abortPort) {
+    // A scratch document only, like the self-check: no source lock.
+    return call(abortPort, async (signal) => {
+      const hosted = await host();
+      const { password } = options;
+      return computeSaveReceiptOn(
+        hosted,
+        bytes,
+        acts,
         withSignal(password === undefined ? {} : { password }, signal),
       );
     });

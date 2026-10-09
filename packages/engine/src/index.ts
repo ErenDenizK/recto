@@ -52,6 +52,9 @@ export {
   redactionExportPlan,
   type RedactionHost,
   redactionPlanOf,
+  computeSaveReceipt,
+  type SaveReceiptDeps,
+  saveReceiptActsOf,
   verifyRedactedOutput,
   withForensicDeps,
 } from './redaction';
