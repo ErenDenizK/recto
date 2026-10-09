@@ -13,7 +13,7 @@ import bUrl from '../../../../test/fixtures/compare-b.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
 import { commandRegistry } from '../commands/registry';
 import { getAnalysisWorkers } from '../engine/engine-service';
-import { useAnnouncer } from '../shell/announcer';
+import { resetAnnouncer, useAnnouncer } from '../shell/announcer';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { buildChangeList } from './changes';
@@ -81,6 +81,24 @@ async function openPair() {
   if (!a || !b) throw new Error('fixtures did not open');
   return { a, b };
 }
+
+describe('the Compare view command (4)', () => {
+  it('announces entering Compare once; pressed again in Compare it says nothing (M8-i)', async () => {
+    await openPair();
+    resetAnnouncer();
+    const command = commandRegistry.get('mode.compare');
+    if (!command) throw new Error('mode.compare is not registered');
+    await command.run();
+    expect(useUiStore.getState().destination).toBe('compare');
+    expect(useAnnouncer.getState().message).toContain('Compare mode');
+    const said = useAnnouncer.getState().serial;
+    // A later task, so the announcer's same-task de-duplication cannot hide a repeat.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await command.run();
+    expect(useUiStore.getState().destination).toBe('compare');
+    expect(useAnnouncer.getState().serial).toBe(said);
+  });
+});
 
 describe('compare-a.pdf against compare-b.pdf', () => {
   it('lists the seeded changes and shows the page map', async () => {
