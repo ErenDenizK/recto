@@ -30,6 +30,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -39,10 +40,16 @@ import {
 import { openFilesFromPicker } from '../../commands/app-commands';
 import { showTab } from '../../home/home-actions';
 import { m } from '../../i18n';
+import { restingWidth } from '../../motion/resize';
 import { SignatureTabGlyph } from '../../signatures/SignatureBadge';
 import { useLockStore } from '../../state/lock-store';
 import { matchesMark, useSavedStore } from '../../state/saved-store';
-import { pagesPhrase, useTabItems, useWorkspaceStore } from '../../state/workspace-store';
+import {
+  pagesPhrase,
+  type TabItem,
+  useTabItems,
+  useWorkspaceStore,
+} from '../../state/workspace-store';
 import { IconButton } from '../../ui/IconButton';
 import { announce } from '../announcer';
 import { useCommandShortcut } from '../use-command-shortcut';
@@ -50,10 +57,12 @@ import { useTablistEdges } from '../use-tablist-edges';
 import { openTitleMenu, useFrameStore } from './frame-store';
 import { STAGE_ID, tabDomId } from './ids';
 import { nameEnding, splitTabs, TAB_GAP_FINE, tabCapacity } from './tab-overflow';
+import { closedTabs, type LeavingTab, useTabMotion, withLeaving } from './tab-motion';
 import { TabMenu } from './TabMenu';
 import { TabOverflow } from './TabOverflow';
 import styles from './TopStrip.module.css';
 import { Icon } from '../../ui/Icon';
+import { reducedMotion } from '../../motion/reduced-motion';
 
 /** The active tab's description: it opens the document menu (F4 §5). */
 const MENU_HINT_ID = 'tab-document-menu-hint';
@@ -86,10 +95,15 @@ function tabRoom(
   const between = Number.parseFloat(style.columnGap) || 0;
   const widest = Math.min(
     lengthVar(strip, '--lead-max', inner),
-    inner - (trail ? trail.offsetWidth + between : 0),
+    inner - (trail ? restingWidth(trail) + between : 0),
   );
-  return widest - (piece.offsetWidth - region.offsetWidth);
+  // A piece whose width is moving (motion/resize.ts) is read where it is going.
+  return widest - (restingWidth(piece) - region.offsetWidth);
 }
+
+/** Whether two runs of tabs show the same documents in the same order. */
+const sameTabs = (a: readonly TabItem[], b: readonly TabItem[]): boolean =>
+  a.length === b.length && a.every((t, i) => t.id === b[i]?.id);
 
 /** Focus the Library's first focus after the last tab closes (F4 §6). */
 function focusLibrary(): void {
@@ -120,7 +134,19 @@ export function DocumentTabs({
   const marks = useSavedStore((s) => s.marks);
   const locks = useLockStore((s) => s.locks);
   const menuOpen = useFrameStore((s) => s.titleMenu !== null);
-  const tablistRef = useTablistEdges();
+  const edgesRef = useTablistEdges();
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const tablistRef = useCallback(
+    (list: HTMLDivElement | null) => {
+      listRef.current = list;
+      const off = edgesRef(list);
+      return () => {
+        listRef.current = null;
+        off?.();
+      };
+    },
+    [edgesRef],
+  );
   const regionRef = useRef<HTMLDivElement>(null);
   const [capacity, setCapacity] = useState(Number.POSITIVE_INFINITY);
 
@@ -141,13 +167,16 @@ export function DocumentTabs({
       const note = region.querySelector<HTMLElement>('[data-strip-note]');
       const room =
         width - (plus ? plus.offsetWidth + 8 : 0) - (note ? note.offsetWidth + 4 : 0) - 4;
-      const next = tabCapacity(
+      const fit = tabCapacity(
         documents.length,
         room,
         lengthVar(region, '--tab-min', 112),
         gap,
         chip ? chip.offsetWidth : CHIP_ESTIMATE,
       );
+      // All fit: no limit, so a tab opened next shows in the commit that opens it (and grows
+      // in, tab-motion.ts) instead of first pushing another into "N more" until this re-measures.
+      const next = fit >= documents.length ? Number.POSITIVE_INFINITY : fit;
       setCapacity((previous) => (previous === next ? previous : next));
     };
     measure();
@@ -161,6 +190,21 @@ export function DocumentTabs({
   const { visible, overflow } = splitTabs(documents, activeIndex, capacity);
   const edited = new Set(
     documents.filter((d) => !matchesMark(workspace, d.id, marks[d.id])).map((d) => d.id),
+  );
+
+  // A closed tab stays drawn while it collapses (tab-motion.ts; G6): derived as the tabs
+  // change, during render, so its first frame out is already in the commit that closed it.
+  const [shown, setShown] = useState<readonly TabItem[]>(visible);
+  const [leaving, setLeaving] = useState<readonly LeavingTab<TabItem>[]>([]);
+  if (!sameTabs(shown, visible)) {
+    setShown(visible);
+    const closed = reducedMotion() ? [] : closedTabs(shown, visible, documents);
+    const kept = leaving.filter((t) => !visible.some((v) => v.id === t.item.id));
+    if (closed.length > 0 || kept.length !== leaving.length) setLeaving([...kept, ...closed]);
+  }
+  const selectedId = onLibrary ? null : activeId;
+  useTabMotion(listRef, selectedId, (id) =>
+    setLeaving((current) => current.filter((t) => t.item.id !== id)),
   );
 
   // Keep the active tab in view should the list scroll (XD-3).
@@ -234,7 +278,8 @@ export function DocumentTabs({
     <div ref={regionRef} className={styles.tabsRegion}>
       {documents.length > 0 ? (
         <div ref={tablistRef} role="tablist" aria-label={m.tabs_label()} className={styles.tablist}>
-          {visible.map((doc) => {
+          {withLeaving(visible, leaving).map(({ item: doc, leaving: gone }) => {
+            if (gone) return <LeavingTabView key={`leaving-${doc.id}`} doc={doc} />;
             const active = doc.id === activeId;
             const selected = active && !onLibrary;
             const isEdited = edited.has(doc.id);
@@ -254,7 +299,13 @@ export function DocumentTabs({
                 title={doc.title}
                 onClose={(id) => closeTab(id, true)}
               >
-                <div className={styles.tabWrap} data-selected={selected || undefined}>
+                <div
+                  className={styles.tabWrap}
+                  data-selected={selected || undefined}
+                  data-tab-id={doc.id}
+                >
+                  {/* The selection's fill, which slides from tab to tab (tab-motion.ts). */}
+                  <span className={styles.tabFill} data-tab-fill="" aria-hidden="true" />
                   <button
                     type="button"
                     role="tab"
@@ -278,7 +329,8 @@ export function DocumentTabs({
                     onMouseDown={(event) => onMouseDown(event, doc.id)}
                   >
                     <span className={styles.tag} data-tag={doc.colorIndex} aria-hidden="true" />
-                    <TabName title={doc.title} />
+                    {/* A new name fades in (G6): keyed by it, so a rename draws it afresh. */}
+                    <TabName key={doc.title} title={doc.title} />
                     {/* The grid's count gives way first when the strip runs short of room
                         (owner feedback F4): the name is what tells the tabs apart. */}
                     {selected && pageCount !== undefined && overflow.length === 0 ? (
@@ -343,6 +395,21 @@ export function DocumentTabs({
       <div data-strip-open="" className={styles.openSlot}>
         <OpenButton />
       </div>
+    </div>
+  );
+}
+
+/**
+ * A closed tab while it collapses (tab-motion.ts): its tag and name only, `inert` and hidden
+ * from assistive technology from its first frame, so the tab list names only open documents.
+ */
+function LeavingTabView({ doc }: { readonly doc: TabItem }) {
+  return (
+    <div className={styles.tabWrap} data-tab-id={doc.id} data-leaving="" aria-hidden="true" inert>
+      <span className={styles.tab}>
+        <span className={styles.tag} data-tag={doc.colorIndex} />
+        <TabName title={doc.title} />
+      </span>
     </div>
   );
 }
