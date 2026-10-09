@@ -12,7 +12,8 @@
   color: var(--text-secondary);
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 .trigger > svg {
@@ -30,6 +31,15 @@
 
 .trigger:active {
   background: var(--surface-active);
+}
+
+/* *press* (§7.3; G6): by `scale`, which composes with any transform; the press scale rests at
+   1 under reduced motion, so then only the colour changes. */
+.trigger:active {
+  scale: var(--press-scale);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
 }
 
 .trigger[data-popup-open] {

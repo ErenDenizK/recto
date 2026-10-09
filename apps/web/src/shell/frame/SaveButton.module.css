@@ -29,8 +29,17 @@
   visibility: hidden;
 }
 
+/* The label that takes over fades in (*replace*, §7.3; G6) while the last one goes at once, so
+   the accessible name is the new label's from the first frame. */
 .label[data-shown] {
   visibility: visible;
+  animation: save-label-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes save-label-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .labels[data-state='saving'] > .label:not([data-shown]) {

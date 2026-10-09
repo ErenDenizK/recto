@@ -8,8 +8,9 @@
  *   height is one bar (44 fine, 56 coarse) and its ends are concentric with the colour well and
  *   the readout. It is a sibling of the capsule, never inside it (Q-4: no glass in glass), and
  *   the dock's column sets it 8 px above the capsule, which it rides as the capsule morphs.
- * - **Presence.** It rises in when a tool with options arms (opacity and a 6 px rise on
- *   `--spring-smooth`) and drops out when Select or a disarm takes the strip away (on
+ * - **Presence.** It rises in when a tool with options arms (opacity and the *tier rise*, 8 px
+ *   and 0.98 about its bottom edge, on `--spring-smooth`, the capsule's morph spring, so strip
+ *   and capsule move as one) and sinks back toward the capsule when Select or a disarm takes the strip away (on
  *   `--spring-quick`), `inert` and hidden from assistive technology from its first frame out.
  *   A content asked back mid-exit rises in again from where it got to. Under reduced motion
  *   only the fade runs, within 150 ms (`animateStyle`, A-9).
@@ -34,8 +35,13 @@ import styles from './StripPiece.module.css';
 /** What the piece holds: an armed tool's ink strip, or the Fill & sign door's chips. */
 export type StripContent = StripKind | 'chips';
 
-/** How far the piece rises as it comes in, and drops as it goes (px). */
-const RISE = 6;
+/**
+ * How the piece comes in and goes (*tier rise*, language.md §7.3; G6): from 8 px lower and
+ * 0.98 of its size, about its bottom edge (the capsule's side), so it rises out of the capsule
+ * and sinks back into it. `[x, y, scaleX, scaleY]`.
+ */
+const AWAY = [0, 8, 0.98, 0.98] as const;
+const HOME = [0, 0, 1, 1] as const;
 
 interface Seen {
   readonly shown: StripContent | null;
@@ -105,8 +111,8 @@ export function StripPiece({
         onComplete: () => setShown(null),
       });
       if (!reduced) {
-        const from = stopTransform(el)?.value ?? [0, 0];
-        animateStyle(el, 'transform', from, [0, RISE], { spring: 'quick', keep: true });
+        const from = stopTransform(el)?.value ?? HOME;
+        animateStyle(el, 'transform', from, AWAY, { spring: 'quick', keep: true });
       }
       return;
     }
@@ -121,8 +127,9 @@ export function StripPiece({
         },
       });
       if (!reduced) {
-        const start = was.leaving ? (stopTransform(el)?.value ?? [0, RISE]) : [0, RISE];
-        animateStyle(el, 'transform', start, [0, 0], { spring: 'smooth' });
+        // On the capsule's own spring (its *bar morph*, `smooth`), so the two move as one.
+        const start = was.leaving ? (stopTransform(el)?.value ?? AWAY) : AWAY;
+        animateStyle(el, 'transform', start, HOME, { spring: 'smooth' });
       } else {
         stopTransform(el);
       }

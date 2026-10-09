@@ -33,7 +33,7 @@ import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import { resetToasts, useToastStore } from '../../ui/Toast';
 import { TooltipProvider } from '../../ui/Tooltip';
 import { useAnnouncer } from '../announcer';
-import { UndoRedo } from './UndoRedo';
+import { historyStep, UndoRedo } from './UndoRedo';
 
 registerAppCommands();
 
@@ -297,5 +297,23 @@ describe('the History scrubber (08-feedback FB7)', () => {
     await userEvent.click(undo, { button: 'right' });
     await waitFor(() => expect(scrubber()).toBeVisible());
     expect(screen.getByText('Nothing to undo yet.')).toBeVisible();
+  });
+});
+
+describe('historyStep (the nudge, G6)', () => {
+  const entry = (label: string) => ({ label, at: 0 }) as unknown as History['present'];
+  const at = (past: number, future: number): History => ({
+    past: Array.from({ length: past }, (_, i) => entry(`p${i}`)),
+    present: entry('now'),
+    future: Array.from({ length: future }, (_, i) => entry(`f${i}`)),
+  });
+
+  it('tells an undo, a redo and a new step apart', () => {
+    expect(historyStep(at(2, 0), at(1, 1))).toBe('undo');
+    expect(historyStep(at(1, 1), at(2, 0))).toBe('redo');
+    expect(historyStep(at(1, 0), at(2, 0))).toBeNull();
+    expect(historyStep(at(1, 2), at(2, 0))).toBeNull();
+    const same = at(1, 0);
+    expect(historyStep(same, same)).toBeNull();
   });
 });
