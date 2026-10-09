@@ -69,9 +69,11 @@
   transform: none;
 }
 
-/* Chrome toggles are neutral; only option choices and the armed tool use the accent. */
+/* Chrome toggles are neutral; only option choices and the armed tool use the accent. A button
+   whose menu or popover is open stays pressed while it shows (G6). */
 .button[aria-pressed='true'],
-.button[aria-selected='true'] {
+.button[aria-selected='true'],
+.button[data-popup-open]:not([aria-disabled='true'], :disabled) {
   background: var(--surface-active);
   color: var(--text-primary);
 }
