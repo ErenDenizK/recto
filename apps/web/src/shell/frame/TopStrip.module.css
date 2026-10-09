@@ -710,7 +710,7 @@
    placeholder a letter at a time: the well's contents fade in a beat behind the edge instead
    (motion-2026-10 frame.md §3), so the field reads as one shape growing, then filling. */
 .piece .find[data-open] .findWell > * {
-  animation: find-content-in var(--duration-slow) var(--ease-out) 80ms backwards;
+  animation: find-content-in var(--duration-slow) var(--ease-out) var(--duration-instant) backwards;
 }
 
 @keyframes find-content-in {

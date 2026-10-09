@@ -56,8 +56,8 @@
 
 .label[data-shown] > .check {
   animation:
-    save-check-draw var(--spring-quick) var(--ease-spring) 80ms both,
-    save-check-pop var(--spring-pop) var(--ease-spring-pop) 80ms both;
+    save-check-draw var(--spring-quick) var(--ease-spring) var(--duration-instant) both,
+    save-check-pop var(--spring-pop) var(--ease-spring-pop) var(--duration-instant) both;
 }
 
 @keyframes save-check-draw {
