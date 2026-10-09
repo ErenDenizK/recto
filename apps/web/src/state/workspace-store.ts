@@ -56,6 +56,7 @@ import {
   rotatePages as rotatePagesOp,
   setActiveDocument,
   type SourceId,
+  type SourceFlags,
   type SourceInput,
   undo as undoOp,
   type VirtualDocument,
@@ -557,11 +558,15 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
     return { loaded, skipped };
   };
 
-  /** Commits each loaded source as its own tab ("Open x.pdf"), in the given order. */
+  /**
+   * Commits each loaded source as its own tab ("Open x.pdf"), in the given order, and notes
+   * each new document's file flags in `flags` (its lock on open, D1-4a).
+   */
   const commitOpened = (
     loaded: LoadedSources['loaded'],
     opened: { name: string; documentId: DocumentId }[],
     skipped: { name: string; error: EngineFailure }[],
+    flags: Record<DocumentId, SourceFlags>,
   ): void => {
     for (const { file, source } of loaded) {
       let documentId: DocumentId | undefined;
@@ -581,6 +586,7 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
         continue;
       }
       opened.push({ name: source.name, documentId });
+      flags[documentId] = source.document.flags;
     }
   };
 
@@ -604,16 +610,21 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
       const lease = new Lease();
       const opened: { name: string; documentId: DocumentId }[] = [];
       const skipped: { name: string; error: EngineFailure }[] = [];
+      const flags: Record<DocumentId, SourceFlags> = {};
       try {
         const result = await loadSources(files, lease);
         skipped.push(...result.skipped);
-        commitOpened(result.loaded, opened, skipped);
+        commitOpened(result.loaded, opened, skipped, flags);
       } finally {
         lease.release();
         collectGarbage();
       }
-      // "Open documents locked" (ADR-0029 §2.8): the one place documents open from files.
-      lockOpened(opened.map((o) => o.documentId));
+      // The one place documents open from files: a signed or restricted file opens locked
+      // (D1-4a), else "Open documents locked" applies (ADR-0029 §2.8).
+      lockOpened(
+        opened.map((o) => o.documentId),
+        flags,
+      );
       // Activate the first new document, as dropping several files reads left to right.
       const first = opened[0];
       if (first !== undefined && get().workspace.documents[first.documentId] !== undefined) {

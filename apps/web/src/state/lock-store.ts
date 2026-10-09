@@ -7,9 +7,9 @@
  *
  * - `user`: they locked it (the title-menu switch, ⌘K `lock`; D1-4 builds both).
  * - `signed`: a change would break a digital signature; the document opens locked and
- *   unlocking warns once (D1-4).
+ *   unlocking warns once (D1-4a, `fileLock`).
  * - `restricted`: the file asks apps not to change it ("Restricted by the file · Unlock
- *   anyway"; D1-4).
+ *   anyway"; D1-4a, `fileLock`).
  * - `default`: "Open documents locked" (`input-policy-store`'s `openDocumentsLocked`, owner
  *   question 1, off by default). `lockOpened` applies it to every document opened from a file,
  *   unless the document is already locked for another reason; no other code path reads the
@@ -28,7 +28,7 @@
  * Read by `ui-store`, `guard` and `lock-check` (which `workspace-store`'s `commit()` asks,
  * D1-3); it imports none of them, so there is no import cycle.
  */
-import type { DocumentId } from '@pdf-editor/document-model';
+import type { DocumentId, SourceFlags } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
 import { useInputPolicyStore } from './input-policy-store';
@@ -79,18 +79,47 @@ export function useLock(id: DocumentId | null | undefined): LockReason | undefin
 }
 
 /**
- * Documents just opened from a file: "Open documents locked" locks each with `default`
- * (ADR-0029 §2.8), unless it is already locked (a `signed` or `restricted` document keeps that
- * reason, which says more). With the setting off this does nothing.
+ * The lock a file asks for as it opens (D1-4a; ADR-0029 §2.4, flows.md §2.6), or undefined:
+ *
+ * - `signed` when it carries a digital signature (the engine's `hasSignatures`, which an
+ *   unsigned /Sig placeholder does not set): any change would break it. This says more than
+ *   `restricted`, so a signed file with restrictions opens `signed`.
+ * - `restricted` when its permissions (/P as written, whatever password opened it) forbid
+ *   changing the content, adding annotations or assembling pages, the three kinds of change
+ *   Recto makes. A file that only forbids printing or copying opens free.
  */
-export function lockOpened(ids: readonly DocumentId[]): void {
-  if (!useInputPolicyStore.getState().openDocumentsLocked) return;
+export function fileLock(flags: SourceFlags): 'signed' | 'restricted' | undefined {
+  if (flags.hasSignatures) return 'signed';
+  const allowed = flags.permissions;
+  if (allowed !== undefined && (!allowed.modify || !allowed.annotate || !allowed.assemble)) {
+    return 'restricted';
+  }
+  return undefined;
+}
+
+/**
+ * Documents just opened from a file. Each takes the lock its file asks for (`fileLock` of the
+ * flags given for it; `signed` and `restricted` start only on open, ADR-0029 §2.6, spec
+ * 0029.2); otherwise "Open documents locked" locks it with `default` (ADR-0029 §2.8). A
+ * document already locked keeps its reason. With neither, this does nothing.
+ */
+export function lockOpened(
+  ids: readonly DocumentId[],
+  files: Readonly<Partial<Record<DocumentId, SourceFlags>>> = {},
+): void {
+  const byDefault = useInputPolicyStore.getState().openDocumentsLocked;
   const { locks } = useLockStore.getState();
-  const fresh = ids.filter((id) => locks[id] === undefined);
-  if (fresh.length === 0) return;
-  const next = { ...locks };
-  for (const id of fresh) next[id] = 'default';
-  useLockStore.setState({ locks: next });
+  const next: Record<DocumentId, LockReason> = { ...locks };
+  let changed = false;
+  for (const id of ids) {
+    if (locks[id] !== undefined) continue;
+    const flags = files[id];
+    const reason = (flags && fileLock(flags)) ?? (byDefault ? 'default' : undefined);
+    if (reason === undefined) continue;
+    next[id] = reason;
+    changed = true;
+  }
+  if (changed) useLockStore.setState({ locks: next });
 }
 
 /**
