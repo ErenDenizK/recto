@@ -9,8 +9,8 @@
  */
 
 .frame {
-  /* The current page's ring is neutral and thin (V2 review): lime is the armed tool's, the
-     primary's and the focus ring's, and selection has the blue. */
+  /* The current page's ring is neutral and thin (V2 review; system-audit-2026-10 §3.5): the
+     lime ring and badge are the selection's. */
   --current-ring: var(--control-border);
   position: relative;
   display: flex;
@@ -44,7 +44,7 @@
 }
 
 .dropLabel {
-  padding: 6px var(--space-3);
+  padding: var(--space-1h) var(--space-3);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-sm);
   background: var(--surface-on);
@@ -98,7 +98,8 @@
   flex: none;
   height: 48px;
   /* The collapse chevron hangs in the side gutter so the title lines up with the cells. */
-  padding: 0 var(--grid-pad, var(--space-8)) 0 calc(var(--grid-pad, var(--space-8)) - 32px);
+  padding: 0 var(--grid-pad, var(--space-8)) 0
+    calc(var(--grid-pad, var(--space-8)) - var(--control-h-sm) - var(--space-2));
   background: var(--canvas);
 }
 
@@ -120,19 +121,30 @@
   pointer-events: none;
 }
 
+/*
+ * The header is one quiet line (system-audit-2026-10 §4 Pages, I-33; owner feedback F4): the
+ * collapse chevron and the section menu are S controls (`--control-h-sm`, 24 / 32), the source
+ * dots, the title in body 600, then the count and the tags in footnote secondary as running
+ * text ("5 pages · Encrypted · Signed"), no chips and no rule across the stage.
+ */
 .headerButton {
+  composes: focus-inset from global;
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-xs);
+  box-sizing: border-box;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-capsule);
+  background: transparent;
   color: var(--text-secondary);
 }
 
 .headerButton svg {
-  width: 16px;
-  height: 16px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
   transition: transform var(--duration-fast) var(--ease-out);
 }
 
@@ -157,32 +169,59 @@
   }
 }
 
+.headerButton:active {
+  background: var(--surface-active);
+}
+
 .sectionTitle {
   flex: 0 1 auto;
   overflow: hidden;
   min-width: 48px;
+  margin: 0;
   color: var(--text-primary);
-  font-size: var(--type-callout);
+  font-size: var(--type-body);
   font-weight: var(--weight-semibold);
-  line-height: var(--type-callout-lh);
-  letter-spacing: var(--track-callout);
+  line-height: var(--type-body-lh);
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The count and the tags: one run of footnote text after the title. */
+.sectionMeta {
+  display: inline-flex;
+  align-items: baseline;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
   white-space: nowrap;
 }
 
 .sectionCount {
   flex: none;
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
-  line-height: var(--type-footnote-lh);
+}
+
+/* A system tag (encrypted, repaired, XFA, signed) as text after a middle dot; its tooltip says
+   what it changes. */
+.badge {
+  flex: none;
+  border-radius: var(--radius-xs);
+}
+
+.badge::before {
+  content: '·';
+  padding-inline: var(--space-1h);
+  color: var(--text-tertiary);
 }
 
 /* The source colour tags: the tab's dot, one per source, before the name. */
 .sectionTags {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--space-1);
   flex: none;
 }
 
@@ -193,25 +232,6 @@
   background: var(--tag-color);
 }
 
-.badges {
-  display: inline-flex;
-  gap: var(--space-1);
-  flex: none;
-  margin-left: var(--space-1);
-}
-
-/* A system tag: a filled capsule in the hover fill, no outline (owner feedback F4). */
-.badge {
-  height: 20px;
-  padding: 0 8px;
-  border-radius: var(--radius-capsule);
-  background: var(--surface-active);
-  color: var(--text-secondary);
-  font-size: var(--type-caption);
-  font-weight: var(--weight-medium);
-  line-height: 20px;
-}
-
 .headerSpacer {
   flex: 1;
 }
@@ -219,7 +239,7 @@
 .titleEditor {
   flex: 0 1 320px;
   font-size: var(--type-body);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 /* ---------------------------------------------------------------- grid */
@@ -270,9 +290,16 @@
   opacity: 0.5;
 }
 
+/*
+ * The thumbnail box (plan E6a): every page of a row stands on the box's foot line, centred
+ * across, so in a grid of mixed pages the feet and the labels under them line up and a wide
+ * page's label sits under it, not a portrait's height below. The box is as tall as the
+ * tallest page shown needs (`boxAspectOf`, dnd/geometry.ts), so a grid of wide pages has flat
+ * rows rather than tall empty ones.
+ */
 .box {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   width: 100%;
 }
@@ -327,8 +354,8 @@
  */
 .check {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: var(--space-1h);
+  right: var(--space-1h);
   z-index: 2;
   opacity: 0;
   pointer-events: none;
@@ -381,10 +408,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-1h);
   width: 100%;
   height: 28px;
-  padding-top: 8px;
+  padding-top: var(--space-2);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
 }
@@ -395,7 +422,7 @@
 }
 
 .cell[data-current] .label {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .label {
@@ -408,10 +435,9 @@
 
 .outlineGlyph {
   flex: none;
-  width: 12px;
-  height: 12px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
   color: var(--text-tertiary);
-  stroke-width: 1.75;
 }
 
 /* Split's cut line before a part's first page, in the gutter, with "2 of 3" (S13). */
@@ -421,10 +447,10 @@
   left: -11px;
   z-index: 2;
   width: 2px;
-  border-radius: 1px;
+  border-radius: var(--radius-page);
   background: var(--select);
   pointer-events: none;
-  animation: check-fade 120ms var(--ease-out);
+  animation: check-fade var(--duration-fast) var(--ease-out);
 }
 
 .cutLabel {
@@ -434,8 +460,8 @@
   color: var(--text-primary);
   font-size: var(--type-caption);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  line-height: 14px;
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-caption-lh);
   white-space: nowrap;
 }
 
@@ -463,8 +489,8 @@
   border-radius: var(--radius-capsule);
   background: var(--select);
   color: var(--select-ink);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--type-caption);
+  font-weight: var(--weight-semibold);
   line-height: 14px;
   text-align: center;
 }
@@ -493,8 +519,8 @@
 }
 
 .menuSubmenuArrow {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
   margin-left: auto;
   color: var(--text-tertiary);
 }

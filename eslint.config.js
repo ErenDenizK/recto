@@ -134,7 +134,6 @@ const Q9_PENDING = [
   'apps/web/src/signatures/ExportSignatureSection.tsx',
   'apps/web/src/signatures/NewSignatureSheet.tsx',
   'apps/web/src/signatures/SignDialog.tsx',
-  'apps/web/src/stage/ArrangeSection.tsx',
   'apps/web/src/stage/OperationDialogFrame.tsx',
   'apps/web/src/stage/ResizeDialog.tsx',
   'apps/web/src/stage/grid/PagesBar.tsx',

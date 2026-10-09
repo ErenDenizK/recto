@@ -20,7 +20,7 @@
 .previewFace {
   position: absolute;
   inset: 0;
-  border-radius: 2px;
+  border-radius: var(--radius-page);
   background: var(--page-background);
   box-shadow: 0 0 0 1px var(--plate-ring);
 }
@@ -45,8 +45,8 @@
   right: -8px;
   min-width: 22px;
   height: 22px;
-  padding: 0 6px;
-  border-radius: 11px;
+  padding: 0 var(--space-1h);
+  border-radius: var(--radius-capsule);
   background: var(--surface-raised);
   color: var(--text-primary);
   box-shadow: 0 0 0 1px var(--border-hairline);
