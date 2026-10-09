@@ -14,7 +14,7 @@ import type {
 } from '@pdf-editor/engine';
 import { faceFamilyName } from '@pdf-editor/engine/fonts';
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import type { PageTarget } from '../annotations/annotation-store';
@@ -199,6 +199,13 @@ async function ready(mirror: HTMLElement) {
   await waitFor(() => expect(mirror).toHaveFocus());
   await waitFor(() => expect(mirror.textContent).toBe(LINES.join(' ')));
 }
+
+// In the app the engine's module is loaded with the document, long before a paragraph opens.
+// The mocked engine never loads it, so the first editor would wait out its cold import (seconds
+// on a loaded runner) with its mirror read-only and unfocused: load it once up front.
+beforeAll(async () => {
+  await getEngineService().paragraphLayout();
+}, 30_000);
 
 describe('ParagraphEditor', () => {
   beforeEach(() => {

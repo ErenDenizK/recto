@@ -204,7 +204,8 @@
 
 /* On a fine pointer, for every kind but a failure, ✕ shows on hover or focus only (FB4 §2), so
    it takes no place in the row and the action stays trailing: it floats on the toast's leading
-   top corner, its centre on the rim's arc, an opaque disc of its own (no glass in glass,
+   end, its centre on the rim where the pill's arc crosses the piece's centre line, so it shares
+   the row's one centre line with the action (Q-9), an opaque disc of its own (no glass in glass,
    Q-4), and fades in. */
 @media (hover: hover) and (pointer: fine) {
   .toast:not([data-kind='failure']) > .actions:has(+ .close:last-child) {
@@ -214,9 +215,10 @@
   .toast[data-toast-id]:not([data-kind='failure']) .close {
     --shadow-own: inset 0 0 0 1px var(--border-glass);
     position: absolute;
-    /* The centre on the pill's arc at 45°, r (1 − 1/√2) in from the outer corner. */
-    inset-block-start: calc(var(--toast-h) / 2 * 0.2929 - var(--control-h) / 2 - 1px);
-    inset-inline-start: calc(var(--toast-h) / 2 * 0.2929 - var(--control-h) / 2 - 1px);
+    /* The centre on the leading rim at half the toast's height, two lines or one, as the
+       action's (the box is placed from the padding edge, inside the 1 px rim). */
+    inset-block-start: calc(50% - var(--control-h) / 2);
+    inset-inline-start: calc(var(--control-h) / -2 - 1px);
     background: var(--glass-bar-solid) padding-box;
     box-shadow: var(--shadow-own);
     opacity: 0;

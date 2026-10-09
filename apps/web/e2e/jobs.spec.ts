@@ -397,7 +397,12 @@ test.describe('core jobs', () => {
       { gate: true },
     );
 
-    /** Runs a mark's act and checks that the page holds one more annotation. */
+    /**
+     * Runs a mark's act, leaves it with Esc as every mark is left, and checks that the page
+     * holds one more annotation. Leaving is not a press of the mark's own: it is how the next
+     * act starts (a key, a click away), and it commits an open note or text box
+     * (`InlineEditors.tsx`), so the note's Save is never needed.
+     */
     const mark = async (
       name: string,
       run: (p: Presses) => Promise<void>,
@@ -407,8 +412,8 @@ test.describe('core jobs', () => {
       await job.act(name, budget, async (p) => {
         before = await marks.count();
         await run(p);
-        await expect(marks).toHaveCount(before + 1, { timeout: 10_000 });
         await page.keyboard.press('Escape');
+        await expect(marks).toHaveCount(before + 1, { timeout: 10_000 });
       });
     };
     await mark('pen: P and a stroke', async (p) => {
@@ -419,24 +424,22 @@ test.describe('core jobs', () => {
       await p.key('h');
       await p.gesture(() => strokeOnPage(page, [0.15, 0.2], [0.5, 0.2]));
     });
-    await mark('note: N, a click, the words, Save', async (p) => {
+    await mark('note: N, a click, the words', async (p) => {
       await p.key('n');
       await p.gesture(() => strokeOnPage(page, [0.7, 0.4], [0.7, 0.4]));
       const sheet = page.getByRole('dialog', { name: 'New note' });
       await p.gesture(() => sheet.getByRole('textbox').fill('Check this'));
-      await p.press(sheet.getByRole('button', { name: 'Save' }));
     });
     await mark('shape: R and a drag', async (p) => {
       await p.key('r');
       await p.gesture(() => strokeOnPage(page, [0.2, 0.5], [0.5, 0.6]));
     });
-    await mark('text box: T, a click, the words, Esc', async (p) => {
+    await mark('text box: T, a click, the words', async (p) => {
       await p.key('t');
       await p.gesture(() => strokeOnPage(page, [0.6, 0.55], [0.6, 0.55]));
       const editor = page.getByRole('textbox', { name: 'Text box text' });
       await expect(editor).toBeFocused();
       await p.gesture(() => editor.fill('Reviewed'));
-      await p.key('Escape');
     });
     await job.act('undo', 1, async (p) => {
       const before = await marks.count();
