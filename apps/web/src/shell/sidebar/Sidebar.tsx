@@ -29,6 +29,7 @@
  *   and the dock reflow on the same spring (`frame/frame-reflow.ts`). A reversal mid-flight
  *   turns from where the panel is. Reduced motion: it comes and goes at once.
  */
+import type { DocumentId } from '@pdf-editor/document-model';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { formatNumber, m } from '../../i18n';
@@ -38,6 +39,7 @@ import {
   useStageView,
   useUiStore,
 } from '../../state/ui-store';
+import { useSelectionStore } from '../../state/selection-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../../state/workspace-store';
 import { ResizeHandle } from '../../ui/ResizeHandle';
 import { Segmented, SegmentedPanel } from '../../ui/Segmented';
@@ -264,6 +266,19 @@ function SidebarFrame({
   const asideRef = useRef<HTMLElement>(null);
   const resting = useRef<number | undefined>(undefined);
   useSidebarMotion(asideRef, form, leaving, onGone);
+  // Sliding out, it no longer shows the page selection (S10): Delete and the bars stop acting
+  // on it at once, as they did when it unmounted; turned back mid-slide, it shows it again.
+  const hidden = useRef<DocumentId | null>(null);
+  useLayoutEffect(() => {
+    const selection = useSelectionStore.getState();
+    if (leaving && selection.navigatorDocument !== null) {
+      hidden.current = selection.navigatorDocument;
+      selection.setNavigatorDocument(null);
+    } else if (!leaving && hidden.current !== null) {
+      if (selection.navigatorDocument === null) selection.setNavigatorDocument(hidden.current);
+      hidden.current = null;
+    }
+  }, [leaving]);
 
   // Mod+B: the section's current item takes focus once it is laid out.
   useEffect(() => {

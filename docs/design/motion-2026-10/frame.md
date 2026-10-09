@@ -49,7 +49,8 @@ duplicate it.
   and out, so the filter itself never animates. There is no blur on Glass Solid or under
   reduced transparency.
 - **Rows.** The first six rows (and their group headings) come in 20 ms apart
-  (`--row-index` ≤ 5). Each rises `--rise-distance` with a `--duration-base` fade. Rows past the
+  (`--row-index` ≤ 5). The step is a third of `--duration-instant`, so it is 0 under reduced
+  motion. Each rises `--rise-distance` with a `--duration-base` fade. Rows past the
   sixth come in with the sixth.
 - **Selection pill.** The selected row draws a `.fill`. When the selection moves, the new fill
   starts at the last fill's drawn offset, carries its velocity, and springs home on `quick`
@@ -59,7 +60,7 @@ duplicate it.
 
 - **Field morph.** The trailing piece's `springWidth()` (`smooth`) was already correct in both
   directions (strips at 1180 × 820). The only flaw was that the growing edge cut through the
-  placeholder one letter at a time. The well's contents now fade in on `--duration-slow`, 80 ms
+  placeholder one letter at a time. The well's contents now fade in on `--duration-slow`, 60 ms
   behind the edge (`TopStrip.module.css`).
 - **Eased step.** `viewer/eased-scroll.ts` drives `scrollTop` and `scrollLeft` on `glide` with
   `animate()`. A new step retargets the glide with its velocity. The reader's own wheel, pointer,
@@ -90,7 +91,7 @@ duplicate it.
   processing ring. It is drawn in `--accent-ring` at 22 %, by transform, and clipped to the
   capsule. It is not shown under reduced motion or on Glass Solid.
 - **Saved.** The check draws in from its leading end (`clip-path` inset on `--spring-quick`) with
-  the existing pop, 80 ms after the label. It holds for `CHECK_HOLD_MS` (1600 ms), then
+  the existing pop, 60 ms (`--duration-instant`) after the label. It holds for `CHECK_HOLD_MS` (1600 ms), then
   settles to plain "Saved" with the label cross-fade.
 - **Receipt toast.** A new `origin` option on toasts (`ui/Toast`) takes an element id. The
   toast starts a twentieth of the way toward that control (at most 32 px) as it rises, so the

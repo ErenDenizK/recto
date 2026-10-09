@@ -178,7 +178,9 @@
 .option[data-stagger],
 .groupLabel[data-stagger] {
   animation: palette-row-in var(--duration-base) var(--ease-out) backwards;
-  animation-delay: calc(var(--row-index, 0) * 20ms);
+  /* 20 ms a row: a third of --duration-instant, so the stagger goes with it under reduced
+     motion (0). */
+  animation-delay: calc(var(--row-index, 0) * var(--duration-instant) / 3);
 }
 
 @keyframes palette-row-in {
