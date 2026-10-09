@@ -87,6 +87,20 @@
   user-select: none;
 }
 
+/* A released swipe: the spring starts at the finger's speed (sheet-release.ts writes both
+   curves as the finger lifts; Base UI's end state picks one). */
+.sheet[data-released]:not([data-swiping]) {
+  transition:
+    transform var(--release-open-ms) var(--release-open-ease),
+    background-color var(--duration-base) var(--ease-out) var(--duration-base),
+    -webkit-backdrop-filter 0ms linear calc(2 * var(--duration-base)),
+    backdrop-filter 0ms linear calc(2 * var(--duration-base));
+}
+
+.sheet[data-released][data-ending-style] {
+  transition: transform var(--release-close-ms) var(--release-close-ease);
+}
+
 .handle {
   flex: none;
   width: 36px;
