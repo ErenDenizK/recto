@@ -15,10 +15,11 @@
  *   The choice is measured from a hidden copy of the labels, so it never oscillates.
  * - **Thumb.** One element behind the labels, placed by layout: it sits in the checked
  *   segment's own grid cell, so it is exactly there at any size, under CSS `zoom` and in any
- *   engine, with nothing measured to place it. A change animates it from where it was on the
- *   press spring with a FLIP whose offsets are fractions of its own width (zoom cancels out),
- *   retargeting from where it is if a second change arrives mid-flight; reduced motion moves
- *   it at once. It is a neutral fill with a 1 px control border (the fill alone is 1.65:1
+ *   engine, with nothing measured to place it. A change slides it from where it was on the
+ *   press spring (`animateStyle()`, a FLIP in the thumb's own pixels, so zoom cancels out); a
+ *   second change mid-flight retargets from where it is and keeps its speed, so a quick run
+ *   across the segments slides through without a stop (motion-2026-10/platform.md §3).
+ *   Reduced motion moves it at once. It is a neutral fill with a 1 px control border (the fill alone is 1.65:1
  *   against the track), never lime.
  * - **Touch.** A finger on the checked segment can drag the thumb across the others; the
  *   choice commits on release (a tap still chooses as usual).
@@ -40,7 +41,7 @@ import {
   useState,
 } from 'react';
 
-import { reducedMotion, springToLinear } from '../motion';
+import { animateStyle, type Motion, reducedMotion } from '../motion';
 import styles from './Segmented.module.css';
 import { Select } from './Select';
 import { Tooltip } from './Tooltip';
@@ -102,8 +103,6 @@ export function segmentedLayout(widths: readonly number[], room: number): Segmen
 /** Movement before a touch on the checked segment becomes a drag (CSS px). */
 const DRAG_SLOP_PX = 4;
 
-let pressCurve: { easing: string; duration: number } | undefined;
-
 interface Drag {
   readonly id: number;
   readonly x: number;
@@ -126,7 +125,7 @@ export function Segmented<T extends string>({
   const measureRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
-  const motion = useRef<Animation | null>(null);
+  const motion = useRef<Motion<readonly number[]> | null>(null);
   const shown = useRef<number | null>(null);
   const drag = useRef<Drag | null>(null);
   const [layout, setLayout] = useState<SegmentedLayout>('equal');
@@ -137,28 +136,33 @@ export function Segmented<T extends string>({
     const thumb = thumbRef.current;
     if (!thumb || shown.current === index) return;
     const first = instant || shown.current === null ? null : thumb.getBoundingClientRect();
-    motion.current?.cancel();
+    // A thumb still sliding stops where it is, and hands its speed to the next slide.
+    const prior = motion.current?.stop();
     motion.current = null;
+    thumb.style.removeProperty('transform');
     shown.current = index;
     thumb.style.gridColumn = index < 0 ? '' : String(index + 1);
     thumb.hidden = index < 0;
     if (!first || first.width === 0 || index < 0 || reducedMotion()) return;
     const last = thumb.getBoundingClientRect();
-    if (last.width === 0) return;
-    // Fractions of the thumb's own width, so CSS zoom on any ancestor cancels out.
-    const dx = ((first.left - last.left) / last.width) * 100;
+    if (last.width === 0 || thumb.offsetWidth === 0) return;
+    // In the thumb's own pixels, so CSS zoom on any ancestor cancels out.
+    const zoom = last.width / thumb.offsetWidth;
+    const dx = (first.left - last.left) / zoom;
     const sx = first.width / last.width;
-    if (Math.abs(dx) < 0.05 && Math.abs(sx - 1) < 0.001) return;
-    pressCurve ??= springToLinear('press');
-    const animation = thumb.animate(
-      [{ transform: `translateX(${dx}%) scaleX(${sx})` }, { transform: 'none' }],
-      { duration: pressCurve.duration, easing: pressCurve.easing },
-    );
-    animation.onfinish = () => {
-      if (motion.current === animation) motion.current = null;
-      animation.cancel();
-    };
-    motion.current = animation;
+    const [, , psx = 1] = prior?.value ?? [];
+    const [vx = 0, , vsx = 0] = prior?.velocity ?? [];
+    // The width's speed carries over to the new cell's width (as `flip()` does).
+    const velocity = [vx, 0, (vsx * sx) / psx, 0];
+    if (Math.abs(dx) < 0.05 && Math.abs(sx - 1) < 0.001 && Math.abs(vx) < 1) return;
+    const run = animateStyle(thumb, 'transform', [dx, 0, sx, 1], [0, 0, 1, 1], {
+      spring: 'press',
+      velocity,
+    });
+    motion.current = run;
+    void run.finished.then(() => {
+      if (motion.current === run) motion.current = null;
+    });
   };
 
   // The thumb follows the checked segment; the first placement (and a new layout) is instant.
@@ -194,7 +198,7 @@ export function Segmented<T extends string>({
 
   useLayoutEffect(
     () => () => {
-      motion.current?.cancel();
+      motion.current?.stop();
     },
     [],
   );
