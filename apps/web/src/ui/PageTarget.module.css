@@ -1,0 +1,16 @@
+/*
+ * PageTarget (05-canvas §6): a transparent button over a region of the page, radius 2 like the
+ * page's own marks, with the inset focus ring. Its layer adds what it marks on hover or open.
+ */
+.target {
+  composes: focus-inset from global;
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-page);
+  background: transparent;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
