@@ -32,29 +32,61 @@
   visibility: hidden;
 }
 
-/* The label that takes over fades in (*replace*, §7.3; G6) while the last one goes at once, so
-   the accessible name is the new label's from the first frame. */
-.label[data-shown] {
-  visibility: visible;
-  animation: save-label-in var(--duration-base) var(--ease-out);
+/* The label that takes over fades in (*replace*, §7.3; G6) over the one leaving, which fades
+   out behind it on the quicker exit and only then turns hidden: the two overlap, so the button
+   is never blank between them (motion-2026-10 frame.md §5). Out of the accessible name at once
+   (SaveButton.tsx, aria-hidden). */
+.label {
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-exit),
+    visibility 0s linear var(--duration-fast);
 }
 
-@keyframes save-label-in {
-  from {
-    opacity: 0;
-  }
+.label[data-shown] {
+  visibility: visible;
+  opacity: 1;
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    visibility 0s;
 }
 
 /* The check beside "Saved" (FB6): it draws in once after a verified save, from its leading
    end (a clip opening on --spring-quick) with a small pop (motion-2026-10 frame.md §5), then
    the label settles to "Saved" (SaveButton.tsx, CHECK_HOLD_MS). Neutral ink: the success
    colour stands only beside the word "verified" (08-feedback FB4), in the toast. */
-.check {
+.checkRoom {
+  flex: none;
   width: var(--icon-sm);
   height: var(--icon-sm);
 }
 
-.label[data-shown] > .check {
+.saved {
+  position: relative;
+  display: inline-block;
+  transition: transform var(--spring-quick) var(--ease-spring);
+}
+
+.check {
+  position: absolute;
+  top: calc(50% - var(--icon-sm) / 2);
+  left: calc(100% + var(--space-1));
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-exit);
+}
+
+/* With the check, word and check together are centred in the cell. */
+.label[data-check] .saved {
+  transform: translateX(calc((var(--icon-sm) + var(--space-1)) / -2));
+}
+
+.label[data-check] .check {
+  opacity: 1;
+}
+
+.label[data-shown][data-check] .check {
   animation:
     save-check-draw var(--spring-quick) var(--ease-spring) var(--duration-instant) both,
     save-check-pop var(--spring-pop) var(--ease-spring-pop) var(--duration-instant) both;
@@ -184,7 +216,7 @@
     animation: save-bloom-still var(--loop-bloom) steps(1, end) 1;
   }
 
-  .label[data-shown] > .check {
+  .label[data-shown][data-check] .check {
     animation: none;
   }
 
@@ -199,7 +231,7 @@
   animation: none;
 }
 
-:root[data-motion='reduced'] .label[data-shown] > .check {
+:root[data-motion='reduced'] .label[data-shown][data-check] .check {
   animation: none;
 }
 

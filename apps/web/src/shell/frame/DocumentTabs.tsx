@@ -29,6 +29,7 @@
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 import {
+  type AnimationEvent,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -102,6 +103,15 @@ function tabRoom(
   );
   // A piece whose width is moving (motion/resize.ts) is read where it is going.
   return widest - (restingWidth(piece) - region.offsetWidth);
+}
+
+/**
+ * Marks a tab's name once its fade-in ended, so moving the tab in the DOM (a reorder) does not
+ * play it again: re-inserting an element restarts its CSS animations (TopStrip.module.css).
+ */
+function markNameIn(event: AnimationEvent<HTMLElement>): void {
+  if (!event.animationName.includes('tab-name-in')) return;
+  if (event.target instanceof HTMLElement) event.target.setAttribute('data-in', '');
 }
 
 /** Whether two runs of tabs show the same documents in the same order. */
@@ -338,6 +348,7 @@ export function DocumentTabs({
                     onKeyDown={(event) => onKeyDown(event, doc.id)}
                     onClick={() => onClick(doc.id)}
                     onMouseDown={(event) => onMouseDown(event, doc.id)}
+                    onAnimationEnd={markNameIn}
                   >
                     <span className={styles.tag} data-tag={doc.colorIndex} aria-hidden="true" />
                     {/* A new name fades in (G6): keyed by it, so a rename draws it afresh. */}

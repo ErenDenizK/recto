@@ -99,35 +99,48 @@ export function SaveButton() {
   const verified = state === 'saved' && verifiedAt !== undefined && settled !== verifiedAt;
   const keys = toAriaKeyShortcut(shortcut, currentPlatform);
 
+  // Each label is always in the cell; the one shown fades in over the one leaving, which fades
+  // out behind it (an overlapping cross-fade: the two are never both clear). A label not shown
+  // is out of the accessible name from the first frame.
+  const label = (shown: boolean) =>
+    ({
+      className: styles.label,
+      'data-shown': shown || undefined,
+      'aria-hidden': shown ? undefined : true,
+    }) as const;
   const labels = (
     <span className={styles.labels} data-state={state}>
-      <span className={styles.label} data-shown={state === 'save' || undefined}>
-        {m.save_label()}
-      </span>
-      <span className={styles.label} data-shown={(state === 'saved' && !verified) || undefined}>
-        {m.save_label_saved()}
-      </span>
-      {/* "Saved ✓" holds its width in the cell too, so the check never moves the label. */}
-      <span className={styles.label} data-shown={verified || undefined}>
-        {m.save_label_saved()}
-        <Icon name="check" className={styles.check} />
+      <span {...label(state === 'save')}>{m.save_label()}</span>
+      {/* "Saved" and "Saved ✓" are one label, so the word never cross-fades with itself: the
+          check hangs after it, the pair centred by a half-check shift while it shows; settling,
+          the check fades and the word slides back to the centre (frame.md §5). */}
+      <span {...label(state === 'saved')} data-check={verified || undefined}>
+        <span className={styles.saved}>
+          {m.save_label_saved()}
+          <Icon name="check" className={styles.check} />
+        </span>
       </span>
       {/* While saving the pill keeps its width (system-audit-2026-10 §4 Frame: the piece never
           resizes): the percentage alone, or the activity glyph before the first one, in the
           cell's room, which the widest percentage reserves below; the words stay for
-          assistive technology. */}
-      {state === 'saving' ? (
-        <span className={styles.label} data-shown="">
-          {percent === undefined ? (
-            <Activity delay={0} size="sm" />
-          ) : (
-            <span aria-hidden="true">{formatPercent(percent / 100)}</span>
-          )}
-          <span className="visually-hidden">{savingLabel}</span>
-        </span>
-      ) : null}
+          assistive technology. Once done it reads "100 %" while it fades out under "Saved". */}
+      <span {...label(state === 'saving')}>
+        {state !== 'saving' ? (
+          <span aria-hidden="true">{formatPercent(1)}</span>
+        ) : percent === undefined ? (
+          <Activity delay={0} size="sm" />
+        ) : (
+          <span aria-hidden="true">{formatPercent(percent / 100)}</span>
+        )}
+        {state === 'saving' ? <span className="visually-hidden">{savingLabel}</span> : null}
+      </span>
       <span className={styles.label} aria-hidden="true">
         {formatPercent(1)}
+      </span>
+      {/* The cell's room for "Saved ✓", which the label above draws centred over it. */}
+      <span className={styles.label} aria-hidden="true">
+        {m.save_label_saved()}
+        <span className={styles.checkRoom} />
       </span>
     </span>
   );
