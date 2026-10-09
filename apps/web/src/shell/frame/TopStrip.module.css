@@ -48,6 +48,20 @@
   pointer-events: auto;
 }
 
+/*
+ * A piece follows its content's width on --spring-smooth (G6; motion/resize.ts, Q-6's own
+ * geometry). While the width moves, its children are held at their resting widths and the
+ * piece clips them to its pill, so the moving edge reveals or covers them; the trailing piece
+ * keeps its contents against its outer (right) edge, where it stands in the strip.
+ */
+.piece[data-resizing] {
+  overflow: clip;
+}
+
+.piece.trail {
+  justify-content: flex-end;
+}
+
 /* The leading piece hugs its tabs up to --lead-max and gives way to the trailing one. */
 .piece[data-top-piece='lead'] {
   flex: 0 1 auto;
@@ -104,7 +118,8 @@
   color: var(--text-secondary);
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 @media (hover: hover) {
@@ -116,6 +131,15 @@
 
 .library:active {
   background: var(--surface-active);
+}
+
+/* *press* (§7.3; G6): by `scale`, which composes with any transform; the press scale rests at
+   1 under reduced motion, so then only the colour changes. */
+.library:active {
+  scale: var(--press-scale);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
 }
 
 .library[aria-current='page'] {
@@ -207,18 +231,80 @@
   max-width: var(--tab-max);
   height: var(--control-h);
   border-radius: var(--radius-control);
-  transition: background-color var(--duration-fast) var(--ease-out);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 @media (hover: hover) {
-  .tabWrap:hover {
+  .tabWrap:hover:not([data-selected]) {
     background: var(--surface-hover);
   }
 }
 
-/* The active tab: the n5 fill (F4 §3), no ring, no lime. */
-.tabWrap[data-selected] {
+/* The active tab: the n5 fill (F4 §3), no ring, no lime. The fill is its own element under the
+   tab, which slides from the last active tab to this one (tab-motion.ts; G6): drawn only on
+   the selected tab, at once, so the two never print together mid-slide. */
+.tabFill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  border-radius: inherit;
   background: var(--surface-on);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tabWrap[data-selected] > .tabFill {
+  opacity: 1;
+}
+
+/* The active tab's menu open (F5): the fill a step deeper, as a pressed trigger (G6). */
+.tabWrap[data-selected]:has(> [aria-expanded='true']) > .tabFill {
+  background: var(--surface-active);
+}
+
+/* Under reduced motion nothing slides: the fills cross-fade (§7.5). */
+@media (prefers-reduced-motion: reduce) {
+  .tabFill {
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+}
+
+:global(:root[data-motion='reduced']) .tabFill {
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+/* *press* (§7.3; G6): by `scale`, which composes with any transform; the press scale rests at
+   1 under reduced motion, so then only the colour changes. */
+.tabWrap:has(> .tab:active) {
+  scale: var(--press-scale);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
+}
+
+/* A tab growing in or collapsing moves its own width (tab-motion.ts), from or to nothing,
+   clipped to it (so it never makes the tab list scroll). */
+.tabWrap[data-tab-motion] {
+  flex: none;
+  min-width: 0;
+  overflow: clip;
+}
+
+.tabWrap[data-tab-motion] > .tab {
+  flex: none;
+}
+
+/* A closed tab collapsing: out of the pointer's way. */
+.tabWrap[data-leaving] {
+  pointer-events: none;
 }
 
 /* One row in every tab: tag, name, glyphs and ✕ right after them (2 px from the name's box, as
@@ -241,6 +327,21 @@
   font-size: var(--control-text);
   line-height: var(--control-lh);
   text-align: left;
+  /* Above the sliding fill; the label's ink cross-fades as the selection moves (G6). */
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+/* A new name fades in (a rename, a tab coming in; G6). */
+.tab .name,
+.tab .nameSplit {
+  animation: tab-name-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes tab-name-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .tabWrap[data-selected] .tab {
@@ -387,7 +488,8 @@
   white-space: nowrap;
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 .overflow svg {
@@ -405,6 +507,15 @@
 .overflow[data-popup-open] {
   background: var(--surface-active);
   color: var(--text-primary);
+}
+
+/* *press* (§7.3; G6): by `scale`, which composes with any transform; the press scale rests at
+   1 under reduced motion, so then only the colour changes. */
+.overflow:active {
+  scale: var(--press-scale);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
 }
 
 .menuTag {

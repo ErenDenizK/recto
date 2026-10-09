@@ -94,8 +94,12 @@ export function pressScale(pointer: PressPointer, size = 0): number {
   return large ? PRESS_SCALE.largeTouch : PRESS_SCALE.touch;
 }
 
-/** `--enter-scale`, `--tooltip-scale`, `--rise-distance` (px) and X8's `--sheet-push-distance`. */
+/**
+ * `--enter-scale`, `--exit-scale` (a popup's quicker close, MC-16), `--tooltip-scale`,
+ * `--rise-distance` (px) and X8's `--sheet-push-distance`.
+ */
 export const ENTER_SCALE = 0.96;
+export const EXIT_SCALE = 0.98;
 export const TOOLTIP_SCALE = 0.98;
 export const RISE_PX = 4;
 export const SHEET_PUSH_PX = 24;
@@ -127,6 +131,7 @@ export const MOTION_TOKENS: readonly string[] = [
   '--press-scale',
   '--press-scale-large',
   '--enter-scale',
+  '--exit-scale',
   '--tooltip-scale',
   '--rise-distance',
   '--motion-rise',

@@ -109,7 +109,7 @@
   transform: none;
 }
 
-/* Prominent. */
+/* Prominent. A button whose menu or popover is open keeps its pressed fill (G6). */
 .btn-prominent {
   background: var(--primary-fill);
   color: var(--primary-ink);
@@ -121,7 +121,7 @@
   }
 }
 
-.btn-prominent:active:not([aria-disabled='true'], [data-blocked]) {
+.btn-prominent:is(:active, [data-popup-open]):not([aria-disabled='true'], [data-blocked]) {
   background: var(--primary-fill-pressed);
 }
 
@@ -137,7 +137,7 @@
   }
 }
 
-.btn-standard:active:not([aria-disabled='true'], [data-blocked]) {
+.btn-standard:is(:active, [data-popup-open]):not([aria-disabled='true'], [data-blocked]) {
   background: var(--control-fill-pressed);
 }
 
@@ -162,7 +162,7 @@
   }
 }
 
-.btn-quiet:active:not([aria-disabled='true'], [data-blocked]) {
+.btn-quiet:is(:active, [data-popup-open]):not([aria-disabled='true'], [data-blocked]) {
   background: var(--surface-active);
 }
 

@@ -13,6 +13,7 @@ import {
   DURATION_MS,
   ENTER_SCALE,
   EASE,
+  EXIT_SCALE,
   MOTION_TOKENS,
   PRESS_SCALE,
   REDUCED_DURATION_MS,
@@ -106,6 +107,7 @@ describe('motion.css (language.md §7)', () => {
     expect(Number(resolve('--press-scale-large-mouse'))).toBe(PRESS_SCALE.largeMouse);
     expect(Number(resolve('--press-scale-large-touch'))).toBe(PRESS_SCALE.largeTouch);
     expect(Number(resolve('--enter-scale'))).toBe(ENTER_SCALE);
+    expect(Number(resolve('--exit-scale'))).toBe(EXIT_SCALE);
     expect(Number(resolve('--tooltip-scale'))).toBe(TOOLTIP_SCALE);
     expect(resolve('--rise-distance')).toBe(`${RISE_PX}px`);
     expect(resolve('--motion-rise')).toBe(`translateY(${RISE_PX}px)`);
@@ -149,6 +151,7 @@ describe('motion.css (language.md §7)', () => {
       expect(resolve('--rise-distance', reducedMedia)).toBe('0px');
       expect(resolve('--motion-rise', reducedMedia)).toBe('translateY(0px)');
       expect(resolve('--enter-scale', reducedMedia)).toBe('1');
+      expect(resolve('--exit-scale', reducedMedia)).toBe('1');
       expect(resolve('--tooltip-scale', reducedMedia)).toBe('1');
       expect(resolve('--sheet-push-distance', reducedMedia)).toBe('0px');
       expect(resolve('--press-scale', reducedMedia)).toBe('1');

@@ -9,10 +9,13 @@
  * - Shape: radius 16, the popover's, concentric with 10 px rows inside 6 px of padding.
  * - Rows: 32 px on fine pointers, 44 on coarse (Q-9's control heights), icons 16 px, the label
  *   takes the space (`.label`, flex 1), so keycaps or a reason sit right-aligned after it.
- * - Motion (*popup*): the popup fades and, opening above or below its trigger, scales from it
- *   0.96 → 1, on transform and opacity only (Q-7), from Base UI's `--transform-origin`.
- *   Reduced motion zeroes --duration-fast (tokens.css), so it appears at once. A menu closed by
- *   choosing an item that opens a sheet goes at once (`ui/menu-handoff.ts`).
+ * - Motion (*popup*, G6): the popup fades in and, opening above or below its trigger, grows
+ *   from it (Base UI's `--transform-origin`, the anchor) 0.96 → 1 while it travels the 4 px
+ *   rise toward its place, on `--spring-quick`, transform and opacity only (Q-7); it closes
+ *   quicker, to 0.98 and a fade in `--duration-fast` on the exit ease (MC-16). A reversal
+ *   mid-way turns from where it is (a CSS transition). Reduced motion rests the scale and the
+ *   rise (styles/motion.css), so it only fades, within 150 ms. A menu closed by choosing an
+ *   item that opens a sheet goes at once (`ui/menu-handoff.ts`).
  * - Room: never taller than the room Base UI's positioner measures (`--available-height`,
  *   inside its 8 px collision padding). A longer menu scrolls inside its glass, with a quiet
  *   fade at an edge that has more rows beyond it; the keyboard's row scrolls into view clear
@@ -44,8 +47,8 @@
   outline: none;
   transform-origin: var(--transform-origin);
   transition:
-    opacity var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -61,13 +64,28 @@
   opacity: 0;
 }
 
-/* A menu that opens above or below its trigger scales from it. One that opens to the side (a
-   submenu, a context menu) only fades: with the scale, a pointer moving straight into a
-   submenu row closed the submenu (the Document menu's Rotate pages, DocumentMenu.test.tsx). */
-.popup:is([data-side='top'], [data-side='bottom'], [data-side='none'])[data-starting-style],
+/* The close is quicker than the open (MC-16). */
+.popup[data-ending-style] {
+  transition:
+    opacity var(--duration-fast) var(--ease-exit),
+    transform var(--duration-fast) var(--ease-exit);
+}
+
+/* A menu that opens above or below its trigger grows from it, rising the last 4 px toward its
+   place. One that opens to the side (a submenu, a context menu) only fades: with the scale, a
+   pointer moving straight into a submenu row closed the submenu (the Document menu's Rotate
+   pages, DocumentMenu.test.tsx). The scales and the rise rest at 1 and 0 under reduced motion
+   (styles/motion.css): then the menu only fades. */
+.popup:is([data-side='bottom'], [data-side='none'])[data-starting-style] {
+  transform: translateY(calc(-1 * var(--rise-distance))) scale(var(--enter-scale));
+}
+
+.popup[data-side='top'][data-starting-style] {
+  transform: var(--motion-rise) scale(var(--enter-scale));
+}
+
 .popup:is([data-side='top'], [data-side='bottom'], [data-side='none'])[data-ending-style] {
-  /* 0.96, and 1 under reduced motion (styles/motion.css): then the menu only fades. */
-  transform: scale(var(--enter-scale));
+  transform: scale(var(--exit-scale));
 }
 
 /* The menu's positioner (Base UI's, `role="presentation"`) stacks above the floating bars

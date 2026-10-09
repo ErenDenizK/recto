@@ -23,12 +23,40 @@
   pointer-events: auto;
   /* The rise moves it by transform only (Q-7), whole pixels at rest (Q-2). */
   transform: translateY(calc(-1 * var(--rise)));
-  transition: transform var(--spring-quick) var(--ease-spring);
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    translate var(--spring-quick) var(--ease-spring),
+    scale var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out);
 }
 
 .trail {
   right: var(--space-4);
   left: auto;
+  /* Its contents keep to its outer edge while its width moves (below). */
+  justify-content: flex-end;
+}
+
+/* A piece folds and unfolds by its own width on --spring-smooth (G6; motion/resize.ts): its
+   contents held at their resting widths, clipped to the moving pill. */
+.piece[data-resizing] {
+  overflow: clip;
+}
+
+/* Coming in with the grid, a piece rises from the band as the capsule's tiers do (*tier rise*,
+   §7.3; G6), on the capsule's quick spring: 8 px and 0.98 about its bottom edge, and a fade.
+   Under reduced motion the rise and the scale rest, so only the fade runs (the transition's
+   transform is instant there, below). */
+.piece {
+  transform-origin: 50% 100%;
+}
+
+@starting-style {
+  .piece {
+    opacity: 0;
+    scale: var(--exit-scale);
+    translate: 0 calc(2 * var(--rise-distance));
+  }
 }
 
 /* Folded: a circle of the bar's height around the one control. */
@@ -45,12 +73,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .piece {
-    transition: none;
+    transition: opacity var(--duration-base) var(--ease-out);
   }
 }
 
 :global(:root[data-motion='reduced']) .piece {
-  transition: none;
+  transition: opacity var(--duration-base) var(--ease-out);
 }
 
 /* The segmented control measures its labels against its frame, so the frame has a width of

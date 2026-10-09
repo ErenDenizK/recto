@@ -24,7 +24,9 @@
   white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color var(--duration-fast) var(--ease-out);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 :global([data-theme='light']) .button {
@@ -57,6 +59,15 @@
 .button[data-popup-open],
 .button:not([data-disabled]):active {
   background: var(--mb-fill-pressed);
+}
+
+/* *press* (§7.3; G6): by `scale`, which composes with any transform; the press scale rests at
+   1 under reduced motion, so then only the colour changes. */
+.button:not([data-disabled]):active {
+  scale: var(--press-scale);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
 }
 
 .button[data-disabled] {

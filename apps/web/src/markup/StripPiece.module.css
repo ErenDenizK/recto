@@ -31,6 +31,8 @@
   border-radius: var(--palette-radius);
   contain: layout style;
   pointer-events: auto;
+  /* It rises out of the capsule below it and sinks back into it (StripPiece.tsx, G6). */
+  transform-origin: 50% 100%;
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 

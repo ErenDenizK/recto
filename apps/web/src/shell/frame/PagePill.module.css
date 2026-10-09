@@ -29,7 +29,8 @@
   transform: translateY(calc(var(--away-y, 0px) - var(--rise)));
   transition:
     transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-fast) var(--ease-out);
+    opacity var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -50,6 +51,16 @@
 .pill:active,
 .pill[aria-expanded='true'] {
   background-image: linear-gradient(var(--surface-active), var(--surface-active));
+}
+
+/* *press* (§7.3; G6): by `scale`, which composes with any transform; the press scale rests at
+   1 under reduced motion, so then only the colour changes. */
+.pill:active {
+  scale: var(--press-scale);
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
 }
 
 /* Rises above a bar it would touch (spec 01.6): 8 px above the bar's top. */
