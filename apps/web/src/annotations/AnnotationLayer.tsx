@@ -106,6 +106,7 @@ import { commitErase, eraseHits, eraserCursor, sweepFromCss } from './pen/eraser
 // Registers the dry ink overlay (craft spec §5.3 item 7) before this layer.
 import './pen/DryInkLayer';
 import { commitHighlighterStroke, createPenPreview } from './pen/highlighter';
+import { commitShapeStroke } from './pen/shape-commit';
 import { previewPath } from './pen/ink-preview';
 import { isHighlighter, presetStyle } from './pen/presets';
 import { pageText } from './page-text';
@@ -1420,6 +1421,8 @@ async function commitInkStroke(
     : commitHighlighterStroke(stroke, settle, frame, target, times);
   if (highlighter) return highlighter;
   const style = penStyle ?? useAnnotationStore.getState().styles.ink;
+  // Held into a shape: a real PDF shape, two undo steps (motion-2026-10/ink-shapes.md §4).
+  if (stroke.shape) return commitShapeStroke(stroke.shape, settle, frame, target, style);
   const ink = inkCommit(stroke, frame, style.strokeWidth);
   if (!ink) return;
   const release = settle(

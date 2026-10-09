@@ -1,9 +1,12 @@
 /**
- * Straight pen lines (craft spec §5.6): the hold rule (timing threshold, tolerance, a press
- * held before moving), and on a layer with synthetic pointer events: a hold straightens the
- * stroke to the pointer and the line stays straight until release, handed over (and
- * committed) as two points; the 1 px cue, none under reduced motion; Shift snaps the line to
- * 45° steps in the preview, and a Shift line with the Highlighter along text becomes a
+ * Straight pen lines and held shapes (craft spec §5.6; motion-2026-10/ink-shapes.md): the
+ * hold rule (timing threshold, tolerance per pointer, a press held before moving), and on a
+ * layer with synthetic pointer events: a hold on a straight stroke morphs it into a line to
+ * the pointer that stays straight until release, handed over (and committed) as two points;
+ * a held rectangle becomes its outline with a chip that names it and cycles on a tap;
+ * handwriting held still stays as written; a stroke right after another (writing) needs a
+ * longer hold; the 1 px cue, none (and no morph) under reduced motion; Shift snaps the line
+ * to 45° steps in the preview, and a Shift line with the Highlighter along text becomes a
  * Highlight by the usual rule.
  */
 import type { Rect } from '@pdf-editor/document-model';
@@ -16,12 +19,17 @@ import { highlighterPath, snapHighlighter } from './highlighter';
 import { attachInkInput, createPenSession, type InkStrokeInput } from './ink-input';
 import { InkPreview, type PreviewPath, type PreviewPoint } from './ink-preview';
 import {
+  HOLD_PEN_PX,
   HOLD_STRAIGHTEN_MS,
   HOLD_STRAIGHTEN_PX,
+  HOLD_TOUCH_PX,
+  HOLD_WRITING_MS,
+  holdRadius,
   HoldStill,
   STRAIGHTEN_CUE_MS,
   STRAIGHTEN_CUE_PX,
   straightEnd,
+  WRITING_GAP_MS,
 } from './straighten';
 
 describe('the hold rule', () => {
@@ -48,6 +56,14 @@ describe('the hold rule', () => {
     expect(hold.remaining(600)).toBe(0);
     hold.add(34, 0, 650);
     expect(hold.remaining(650)).toBe(500);
+  });
+
+  it('pens and fingers may tremble more than a mouse; writing holds longer', () => {
+    expect(holdRadius('mouse')).toBe(HOLD_STRAIGHTEN_PX);
+    expect(holdRadius('pen')).toBe(HOLD_PEN_PX);
+    expect(holdRadius('touch')).toBe(HOLD_TOUCH_PX);
+    expect(HOLD_WRITING_MS).toBeGreaterThan(HOLD_STRAIGHTEN_MS);
+    expect(WRITING_GAP_MS).toBe(600);
   });
 
   it('Shift snaps the end to 45° steps; a hold keeps it as it is', () => {
@@ -146,12 +162,53 @@ function pointer(type: string, x: number, y: number, shiftKey = false): PointerE
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
-/** Down at (20, 50), a wavy stroke to (200, 80). */
+/** The morph from stroke to shape has settled (the `smooth` spring, with margin). */
+const MORPH_WAIT_MS = 520;
+
+/** Down at (20, 50), a slightly unsteady straight stroke to (200, 80). */
 function scribble(): void {
   rig.layer.dispatchEvent(pointer('pointerdown', 20, 50));
   for (let i = 1; i <= 18; i++) {
-    window.dispatchEvent(pointer('pointermove', 20 + i * 10, 50 + (i * 30) / 18 + (i % 2) * 6));
+    window.dispatchEvent(pointer('pointermove', 20 + i * 10, 50 + (i * 30) / 18 + (i % 2) * 0.8));
   }
+}
+
+/** A stroke through `points` at 4 px steps, starting with the press. */
+function drawPath(points: readonly { x: number; y: number }[]): void {
+  const [first] = points;
+  if (!first) return;
+  rig.layer.dispatchEvent(pointer('pointerdown', first.x, first.y));
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 4));
+    for (let k = 1; k <= steps; k++) {
+      window.dispatchEvent(
+        pointer('pointermove', a.x + ((b.x - a.x) * k) / steps, a.y + ((b.y - a.y) * k) / steps),
+      );
+    }
+  }
+}
+
+/** A rectangle from its top-left corner, clockwise, back to the start. */
+function drawRectangle(): void {
+  drawPath([
+    { x: 100, y: 100 },
+    { x: 340, y: 102 },
+    { x: 341, y: 240 },
+    { x: 99, y: 239 },
+    { x: 101, y: 101 },
+  ]);
+}
+
+/** A handwritten "e", larger than a word's letters, ending in its exit stroke. */
+function drawLetterE(): void {
+  const pts: { x: number; y: number }[] = [];
+  for (let i = 0; i <= 40; i++) {
+    const t = (i / 40) * 1.8 * Math.PI;
+    pts.push({ x: 200 + 30 * Math.cos(t + Math.PI) + i * 1.5, y: 150 - 30 * Math.sin(t) });
+  }
+  drawPath([{ x: 160, y: 160 }, ...pts, { x: 300, y: 175 }]);
 }
 
 describe('hold to straighten on a layer', () => {
@@ -170,7 +227,7 @@ describe('hold to straighten on a layer', () => {
       await wait(100);
       window.dispatchEvent(pointer('pointermove', 200 + (i % 2) * 2, 80 - (i % 2)));
     }
-    await wait(80);
+    await wait(80 + MORPH_WAIT_MS);
     await frame();
     let last = rig.preview.frames.at(-1);
     expect(last?.points).toHaveLength(2);
@@ -191,6 +248,9 @@ describe('hold to straighten on a layer', () => {
     ]);
     expect(stroke?.widths).toEqual([2, 2]);
     expect(stroke?.straight).toBe(false);
+    expect(stroke?.shape?.kind).toBe('line');
+    // The stroke as drawn rides along, for the undo step back to it.
+    expect(stroke?.shape?.raw.points.length).toBeGreaterThan(2);
     // The commit keeps two points (a straight line is all the smoothing leaves).
     const committed = finishInkStroke(
       (stroke?.points ?? []).map((p, i) => ({ ...p, w: stroke?.widths[i] ?? 2 })),
@@ -215,12 +275,13 @@ describe('hold to straighten on a layer', () => {
     expect(rig.strokes[0]?.points.length).toBeGreaterThan(2);
   });
 
-  it('the snapped line is 1 px thicker for 120 ms', async () => {
+  it('the stroke morphs into the line, 1 px thicker for 120 ms', async () => {
     scribble();
     await wait(HOLD_STRAIGHTEN_MS + 30);
     await frame();
     const cue = rig.preview.frames.at(-1);
-    expect(cue?.points).toHaveLength(2);
+    // Mid-morph: the stroke's points on their way to the line.
+    expect(cue?.points.length).toBeGreaterThan(2);
     expect(cue?.points[0]?.w).toBeCloseTo(2 + STRAIGHTEN_CUE_PX, 6);
     await wait(STRAIGHTEN_CUE_MS + 40);
     await frame();
@@ -228,7 +289,7 @@ describe('hold to straighten on a layer', () => {
     window.dispatchEvent(pointer('pointerup', 200, 80));
   });
 
-  it('no cue under reduced motion', async () => {
+  it('no cue and no morph under reduced motion', async () => {
     const matchMedia = window.matchMedia.bind(window);
     vi.spyOn(window, 'matchMedia').mockImplementation((query: string) =>
       query.includes('prefers-reduced-motion')
@@ -242,6 +303,68 @@ describe('hold to straighten on a layer', () => {
     expect(line?.points).toHaveLength(2);
     expect(line?.points[0]?.w).toBeCloseTo(2, 6);
     window.dispatchEvent(pointer('pointerup', 200, 80));
+  });
+});
+
+describe('hold to shape on a layer', () => {
+  beforeEach(() => {
+    rig = setup();
+  });
+  afterEach(() => {
+    rig.detach();
+  });
+
+  it('a held rectangle becomes its outline, named by a chip that cycles on a tap', async () => {
+    drawRectangle();
+    await wait(HOLD_STRAIGHTEN_MS + 60);
+    const chip = rig.layer.querySelector<HTMLElement>('[data-shape-chip]');
+    expect(chip?.textContent).toBe('Rectangle');
+    await wait(MORPH_WAIT_MS);
+    await frame();
+    const last = rig.preview.frames.at(-1);
+    // Four corners and the close.
+    expect(last?.points).toHaveLength(5);
+    expect(last?.points[0]?.x).toBeCloseTo(last?.points[4]?.x ?? 0, 6);
+    // A tap on the chip (another pointer) moves on to the next-best fit.
+    chip?.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 9 }),
+    );
+    expect(chip?.textContent).not.toBe('Rectangle');
+    chip?.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 9 }),
+    );
+    expect(chip?.textContent).toBe('Rectangle');
+    window.dispatchEvent(pointer('pointerup', 101, 101));
+    const [stroke] = rig.strokes;
+    expect(stroke?.shape?.kind).toBe('rectangle');
+    expect(stroke?.points).toHaveLength(5);
+    expect(stroke?.shape?.geometry.type).toBe('polygon');
+  });
+
+  it('a held "e" stays as written', async () => {
+    drawLetterE();
+    await wait(HOLD_STRAIGHTEN_MS + 200);
+    await frame();
+    expect(rig.layer.querySelector('[data-shape-chip]')).toBeNull();
+    expect(rig.preview.frames.at(-1)?.points.length).toBeGreaterThan(10);
+    window.dispatchEvent(pointer('pointerup', 300, 175));
+    expect(rig.strokes[0]?.shape).toBeUndefined();
+    expect(rig.strokes[0]?.points.length).toBeGreaterThan(10);
+  });
+
+  it('right after another stroke (writing) the hold must last longer', async () => {
+    rig.layer.dispatchEvent(pointer('pointerdown', 10, 10));
+    window.dispatchEvent(pointer('pointermove', 14, 14));
+    window.dispatchEvent(pointer('pointerup', 14, 14));
+    scribble();
+    await wait(HOLD_STRAIGHTEN_MS + 80);
+    await frame();
+    expect(rig.preview.frames.at(-1)?.points.length).toBeGreaterThan(2);
+    await wait(HOLD_WRITING_MS - HOLD_STRAIGHTEN_MS + MORPH_WAIT_MS);
+    await frame();
+    expect(rig.preview.frames.at(-1)?.points).toHaveLength(2);
+    window.dispatchEvent(pointer('pointerup', 200, 80));
+    expect(rig.strokes[1]?.shape?.kind).toBe('line');
   });
 });
 

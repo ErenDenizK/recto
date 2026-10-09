@@ -1,13 +1,21 @@
 /**
- * Straight pen lines (craft spec §5.6; research 12 §7): hold to straighten, and Shift.
+ * Straight pen lines and shapes (craft spec §5.6; research 12 §7; motion-2026-10/ink-shapes.md):
+ * hold to shape, and Shift.
  *
- * - **Hold to straighten.** While a stroke is drawn, a pointer that stays within
- *   `HOLD_STRAIGHTEN_PX` of one spot for `HOLD_STRAIGHTEN_MS` turns the stroke into a straight
- *   line from its first point to the pointer; the line follows the pointer until release and
- *   is handed over as two points. A press held still before the pointer has moved does not
- *   count (there is no stroke to straighten yet). `HoldStill` is the timing rule; the input
- *   pipeline (`ink-input.ts`) feeds it samples and asks it when the hold is due.
- * - **The cue.** When the line snaps it is drawn 1 px thicker for 120 ms, a visual cue in
+ * - **Hold to shape.** While a stroke is drawn, a pointer that stays within `holdRadius` of
+ *   one spot for `HOLD_STRAIGHTEN_MS` (`HOLD_WRITING_MS` in a writing context) asks the
+ *   recogniser (`shapes.ts`) whether the stroke is a deliberate shape: a line, an arrow, a
+ *   rectangle or square, a triangle, pentagon or hexagon, a circle or ellipse. Only a stroke
+ *   that fits one with confidence snaps (`shape-hold.ts`); handwriting held still stays as
+ *   written. A line runs from the stroke's first point to the pointer and follows it until
+ *   release. A press held still before the pointer has moved does not count (there is no
+ *   stroke yet). `HoldStill` is the timing rule over every sample the pipeline sees
+ *   (coalesced and predicted pointer events too); the pipeline (`ink-input.ts`) asks it when
+ *   the hold is due.
+ * - **Writing context.** A stroke that starts within `WRITING_GAP_MS` of the previous
+ *   stroke's release is writing: its hold must last `HOLD_WRITING_MS` and its fit is stricter
+ *   (`RecognizeOptions.strict`).
+ * - **The cue.** When the shape snaps it is drawn 1 px thicker for 120 ms, a visual cue in
  *   place of a haptic one; none under reduced motion.
  * - **Shift.** A straight line whose end snaps to the nearest multiple of 45° (horizontal,
  *   vertical or diagonal), in the preview as in the commit (`snapAngle`). With the
@@ -17,8 +25,24 @@ import { type Point, snapAngle } from '../ink';
 
 /** How long the pointer must stay still (ms). */
 export const HOLD_STRAIGHTEN_MS = 500;
-/** How far the pointer may wander and still be still (CSS px). */
+/** How long in a writing context (ms). */
+export const HOLD_WRITING_MS = 800;
+/** A stroke pressed this soon after the previous release is writing (ms). */
+export const WRITING_GAP_MS = 600;
+/** How far a mouse may wander and still be still (CSS px). */
 export const HOLD_STRAIGHTEN_PX = 3;
+/** A pen's and a finger's tolerance: their contact trembles more than a mouse (CSS px). */
+export const HOLD_PEN_PX = 4;
+export const HOLD_TOUCH_PX = 6;
+
+/** The still radius for a pointer type. */
+export function holdRadius(pointerType: string): number {
+  return pointerType === 'touch'
+    ? HOLD_TOUCH_PX
+    : pointerType === 'pen'
+      ? HOLD_PEN_PX
+      : HOLD_STRAIGHTEN_PX;
+}
 /** How long the snapped line is drawn thicker (ms). */
 export const STRAIGHTEN_CUE_MS = 120;
 /** How much thicker (CSS px). */
@@ -59,6 +83,11 @@ export class HoldStill {
     this.anchorY = y;
     this.anchorT = t;
     if (Math.hypot(x - this.startX, y - this.startY) > this.px) this.moved = true;
+  }
+
+  /** When the pointer last left the tolerance circle (the hold's start). */
+  get anchorTime(): number {
+    return this.anchorT;
   }
 
   /** Milliseconds until the hold is due at time `t` (≤ 0: due; Infinity: nothing to hold). */

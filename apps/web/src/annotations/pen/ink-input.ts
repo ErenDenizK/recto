@@ -26,9 +26,12 @@
  * - **Cursor** (§5.2 item 5). While armed the layer's `--pen-cursor` is a dot of the preset's
  *   colour and on-screen width with a 1 px ring (`penCursor`), refreshed when the pointer
  *   moves over the layer after a preset or zoom change.
- * - **Straight lines** (craft spec §5.6, `straighten.ts`). Shift draws a straight line whose
- *   end snaps to 45° steps; holding still for 500 ms straightens the stroke to the pointer
- *   until release. Either is handed over as two points at the nominal width.
+ * - **Straight lines and shapes** (craft spec §5.6, `straighten.ts`; motion-2026-10/
+ *   ink-shapes.md). Shift draws a straight line whose end snaps to 45° steps, handed over as
+ *   two points at the nominal width. Holding still for 500 ms (800 ms in a writing context)
+ *   runs the recogniser once (`shapes.ts`, never per frame); a stroke that fits a shape with
+ *   confidence morphs into it and follows the pointer until release (`shape-hold.ts`), and is
+ *   handed over as the shape's outline at the nominal width with `InkStrokeInput.shape`.
  * - **Pointer types and palms.** See `pointerRole`. Once a pen has been seen in the
  *   session, one finger pans the stage (our own pan: the layer has `touch-action: none`;
  *   no inertia) and two fingers zoom through the Read view's anchored pinch zoom, which
@@ -37,12 +40,24 @@
 import { inkDedupeDistance, InkStrokeModel, type WidthPoint } from '../ink';
 import type { InkPreview, PreviewPath, PreviewPoint } from './ink-preview';
 import { inkStats } from './ink-stats';
+import { ShapeHold } from './shape-hold';
 import {
+  outline,
+  recognizeShape,
+  scaleGeometry,
+  type ShapeGeometry,
+  type ShapeKind,
+} from './shapes';
+import {
+  HOLD_STRAIGHTEN_MS,
+  HOLD_WRITING_MS,
+  holdRadius,
   HoldStill,
   prefersReducedMotion,
   STRAIGHTEN_CUE_MS,
   STRAIGHTEN_CUE_PX,
   straightEnd,
+  WRITING_GAP_MS,
 } from './straighten';
 
 /** Touch is ignored for this long after a pen leaves the surface (ms). */
@@ -87,6 +102,8 @@ export interface PenSession {
   readonly pensDown: Set<number>;
   /** When the last pen left the surface (`performance.now()` clock). */
   lastPenUpAt: number;
+  /** When the last stroke was released (event time): the next one may be writing. */
+  lastStrokeUpAt: number;
 }
 
 export function createPenSession(): PenSession {
@@ -95,6 +112,7 @@ export function createPenSession(): PenSession {
     pressureSeen: false,
     pensDown: new Set(),
     lastPenUpAt: Number.NEGATIVE_INFINITY,
+    lastStrokeUpAt: Number.NEGATIVE_INFINITY,
   };
 }
 
@@ -420,6 +438,24 @@ export interface InkStrokeInput {
   readonly widthSource: WidthSource;
   /** Shift was held at the end: a straight line from the first point to the last. */
   readonly straight: boolean;
+  /** The stroke was held into a shape: `points` is its outline (motion ink-shapes.md). */
+  readonly shape?: InkShape;
+}
+
+/** A stroke held into a shape, as handed over (CSS px of the page at the release). */
+export interface InkShape {
+  readonly kind: ShapeKind;
+  readonly geometry: ShapeGeometry;
+  /** The stroke as drawn: the first undo step returns to it. Widths in points. */
+  readonly raw: {
+    readonly points: readonly { readonly x: number; readonly y: number }[];
+    readonly widths: readonly number[];
+  };
+  /**
+   * Sets what a tap on the shape's chip does after the release (the next-best fit, while the
+   * chip lingers); null: the chip just fades.
+   */
+  onNext(handler: ((kind: ShapeKind, geometry: ShapeGeometry) => void) | null): void;
 }
 
 /**
@@ -465,10 +501,14 @@ interface ActiveStroke {
   readonly startTime: number;
   /** Shift is held: a straight line snapped to 45° steps. */
   straight: boolean;
-  /** Hold to straighten (craft spec §5.6, `straighten.ts`). */
+  /** Hold to shape (craft spec §5.6, `straighten.ts`). */
   readonly hold: HoldStill;
-  /** The pointer held still: a straight line to the pointer until release. */
-  held: boolean;
+  /** The pointer held still on a shape: it follows the pointer until release. */
+  shape: ShapeHold | null;
+  /** A writing context (pressed soon after the last release): a longer hold, a stricter fit. */
+  readonly writing: boolean;
+  /** The hold (its start time) the recogniser already turned down: not asked again. */
+  holdSpent: number;
   /** The snapped line is drawn thicker until then (`performance.now()`; 0: no cue). */
   cueUntil: number;
   predicted: PreviewPoint[];
@@ -583,14 +623,28 @@ export function attachInkInput(options: InkInputOptions): () => void {
     };
   };
 
+  /** A held shape as it is now (morphing, or its outline), at the nominal width with the cue. */
+  const shapeView = (s: ActiveStroke, hold: ShapeHold): PreviewPath => {
+    const points = hold.points();
+    const cue = s.cueUntil > 0 && performance.now() < s.cueUntil ? STRAIGHTEN_CUE_PX : 0;
+    const width = s.nominal * s.scale * s.zoom + cue;
+    return {
+      length: points.length,
+      x: (i) => (points[i]?.x ?? 0) * s.zoom,
+      y: (i) => (points[i]?.y ?? 0) * s.zoom,
+      w: () => width,
+    };
+  };
+
   /**
    * What the preview draws now: the model's final, smoothed points, then the raw tip; the
    * joins of all but the last smoothed point are final.
    */
   const liveView = (s: ActiveStroke): { path: PreviewPath; settled: number } => {
-    if ((s.straight || s.held) && s.samples.length > 1) {
+    if (s.straight && s.samples.length > 1) {
       return { path: straightView(s), settled: 0 };
     }
+    if (s.shape) return { path: shapeView(s, s.shape), settled: 0 };
     const { smooth } = s.model;
     const tip = s.model.tip();
     const scale = s.scale * s.zoom;
@@ -623,7 +677,7 @@ export function attachInkInput(options: InkInputOptions): () => void {
     const stats = inkStats();
     const start = stats ? performance.now() : 0;
     const view = liveView(s);
-    preview.draw(view.path, s.straight || s.held ? [] : s.predicted, s.restart, view.settled);
+    preview.draw(view.path, s.straight || s.shape ? [] : s.predicted, s.restart, view.settled);
     s.restart = false;
     if (stats) {
       // Event-to-draw: the newest sample's event time to the end of this draw.
@@ -648,9 +702,33 @@ export function attachInkInput(options: InkInputOptions): () => void {
     cueTimer = 0;
   };
 
-  /** The stroke becomes a straight line to the pointer, with its cue. */
-  const straighten = (s: ActiveStroke) => {
-    s.held = true;
+  /**
+   * The hold is due: the recogniser runs once over the stroke. A fit morphs the stroke into
+   * its shape, with the cue; none leaves the stroke as written, and this hold is not asked
+   * again (the pointer must move and hold anew).
+   */
+  const snapShape = (s: ActiveStroke) => {
+    const { samples } = s;
+    const raw: { x: number; y: number }[] = [];
+    for (let i = 0; i < samples.length; i++) raw.push({ x: samples.x(i), y: samples.y(i) });
+    const { fits } = recognizeShape(raw, { strict: s.writing });
+    if (fits.length === 0) {
+      s.holdSpent = s.hold.anchorTime;
+      return;
+    }
+    const last = raw[raw.length - 1] ?? { x: 0, y: 0 };
+    s.shape = new ShapeHold(
+      fits,
+      raw,
+      last,
+      () => {
+        if (stroke !== s) return;
+        s.restart = true;
+        schedule();
+      },
+      element,
+      s.zoom,
+    );
     s.restart = true;
     s.predicted = [];
     if (!prefersReducedMotion()) {
@@ -667,15 +745,15 @@ export function attachInkInput(options: InkInputOptions): () => void {
 
   /** Checks the hold when it can next be due (event times share `performance.now()`'s clock). */
   const armHold = (s: ActiveStroke) => {
-    if (s.held || holdTimer !== 0) return;
+    if (s.shape || holdTimer !== 0 || s.hold.anchorTime === s.holdSpent) return;
     const wait = s.hold.remaining(performance.now());
     if (!Number.isFinite(wait)) return;
     holdTimer = window.setTimeout(
       () => {
         holdTimer = 0;
-        if (stroke !== s || s.held) return;
+        if (stroke !== s || s.shape) return;
         if (s.hold.remaining(performance.now()) > 0) armHold(s);
-        else straighten(s);
+        else snapShape(s);
       },
       Math.max(0, wait),
     );
@@ -770,6 +848,7 @@ export function attachInkInput(options: InkInputOptions): () => void {
     const s = stroke;
     if (!s) return;
     stroke = null;
+    s.shape?.destroy();
     cancelFrame();
     clearHold();
     penUp(s);
@@ -832,6 +911,8 @@ export function attachInkInput(options: InkInputOptions): () => void {
     const rect = element.getBoundingClientRect();
     layerBox = rect;
     const minDistance = inkDedupeDistance(e.pointerType, context.scale);
+    // Pressed soon after the last release: writing (a stricter, longer hold to shape).
+    const writing = e.timeStamp - session.lastStrokeUpAt < WRITING_GAP_MS;
     const s: ActiveStroke = {
       pointerId: e.pointerId,
       pointerType: e.pointerType,
@@ -845,8 +926,13 @@ export function attachInkInput(options: InkInputOptions): () => void {
       zoom: 1,
       startTime: e.timeStamp,
       straight: e.shiftKey,
-      hold: new HoldStill(),
-      held: false,
+      hold: new HoldStill(
+        writing ? HOLD_WRITING_MS : HOLD_STRAIGHTEN_MS,
+        holdRadius(e.pointerType),
+      ),
+      shape: null,
+      writing,
+      holdSpent: Number.NaN,
       cueUntil: 0,
       predicted: [],
       restart: false,
@@ -878,6 +964,13 @@ export function attachInkInput(options: InkInputOptions): () => void {
         s.restart = true;
       }
       s.predicted = predict(s, e, rect);
+      // Predicted points count for the hold too: a pointer about to move is not still.
+      for (const c of e.getPredictedEvents?.() ?? []) {
+        const p = local(c, rect);
+        s.hold.add(p.x / s.zoom, p.y / s.zoom, c.timeStamp);
+      }
+      const last = s.samples.length - 1;
+      s.shape?.move({ x: s.samples.x(last), y: s.samples.y(last) }, s.zoom);
       armHold(s);
       schedule();
       return;
@@ -910,8 +1003,9 @@ export function attachInkInput(options: InkInputOptions): () => void {
         addSample(s, p.x, p.y, e.pressure > 0 ? e.pressure : s.samples.pressure(last), e.timeStamp);
       }
       const straight = e.shiftKey && s.samples.length > 1;
-      // Shift snaps the line; a hold straightens it to the pointer as it is.
-      const line = straight || (s.held && s.samples.length > 1);
+      // Shift snaps the line; a hold to shape follows the pointer to its release.
+      const hold = straight ? null : s.shape;
+      if (straight) s.shape?.destroy();
       if (straight !== s.straight) s.restart = true;
       s.straight = straight;
       s.cueUntil = 0;
@@ -922,10 +1016,42 @@ export function attachInkInput(options: InkInputOptions): () => void {
       // The last frame: the whole stroke smoothed as the commit smooths it. Its stable part
       // is already drawn, so only the end and the tip's area are outlined again.
       let points: PreviewPoint[];
-      if (line) {
+      let shape: InkShape | undefined;
+      /** What a tap on the lingering chip does (set by the commit through `onNext`). */
+      let nextShape: ((h: ShapeHold) => void) | null = null;
+      if (straight) {
         const v = straightView(s);
         preview.draw(v, [], true);
         points = [0, 1].map((i) => ({ x: v.x(i), y: v.y(i), w: v.w(i) }));
+      } else if (hold) {
+        hold.move({ x: s.samples.x(s.samples.length - 1), y: s.samples.y(s.samples.length - 1) });
+        const geometry = hold.geometry();
+        const width = s.nominal * s.scale * s.zoom;
+        points = outline(geometry).map((q) => ({ x: q.x * s.zoom, y: q.y * s.zoom, w: width }));
+        preview.draw(
+          {
+            length: points.length,
+            x: (i) => points[i]?.x ?? 0,
+            y: (i) => points[i]?.y ?? 0,
+            w: () => width,
+          },
+          [],
+          true,
+        );
+        const toPt = s.scale * s.zoom;
+        const raw = s.model.handover().map((q) => scaled(s, q));
+        const zoom = s.zoom;
+        shape = {
+          kind: hold.fit.kind,
+          geometry: scaleGeometry(geometry, zoom),
+          raw: { points: raw.map((q) => ({ x: q.x, y: q.y })), widths: raw.map((q) => q.w / toPt) },
+          onNext: (handler) => {
+            nextShape = handler
+              ? (h: ShapeHold) => handler(h.fit.kind, scaleGeometry(h.geometry(), zoom))
+              : null;
+            if (!handler) hold.dismissChip();
+          },
+        };
       } else {
         const final = [...s.model.smooth, ...s.model.finishTail()];
         preview.draw(pathOf(s, final), [], s.restart, final.length);
@@ -933,6 +1059,7 @@ export function attachInkInput(options: InkInputOptions): () => void {
       }
       stats?.strokeEnd(upAt, drawStart, performance.now(), s.samples.length);
       stroke = null;
+      session.lastStrokeUpAt = e.timeStamp;
       penUp(s);
       releaseCapture(s.pointerId);
       stopListening();
@@ -943,6 +1070,7 @@ export function attachInkInput(options: InkInputOptions): () => void {
         pointerType: s.pointerType,
         widthSource: s.widths.source,
         straight,
+        ...(shape ? { shape } : {}),
       };
       let settled = false;
       const settle: SettleInk = (final) => {
@@ -956,6 +1084,8 @@ export function attachInkInput(options: InkInputOptions): () => void {
           preview.cancel();
           inkStats()?.strokeCancel();
         }
+        // The chip lingers for a later fit; the commit sets what a tap does (`onNext`).
+        hold?.release((h) => nextShape?.(h));
       }
       updateCursor();
       return;
