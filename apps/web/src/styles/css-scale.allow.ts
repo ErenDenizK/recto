@@ -7,8 +7,6 @@
 import type { ScaleKind } from './css-scale';
 
 export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, number>>>> = {
-  'annotations/AnnotationLayer.module.css': { radius: 1, icon: 2, stroke: 5 },
-  'annotations/AnnotationProperties.module.css': { weight: 1 },
   'annotations/lasso/Lasso.module.css': { radius: 1, duration: 1, stroke: 5 },
   'annotations/pen/PenWell.module.css': { radius: 2 },
   'batch/Batch.module.css': { 'font-size': 1, icon: 2 },
@@ -47,8 +45,6 @@ export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, 
   'stage/ArrangeView.module.css': { 'font-size': 1, radius: 1, duration: 1, stroke: 1, spacing: 1 },
   'stage/OperationDialogs.module.css': { spacing: 1 },
   'stage/PageContextMenu.module.css': { stroke: 1 },
-  'text-edit/ParagraphEditor.module.css': { radius: 1 },
-  'text-edit/TextEdit.module.css': { icon: 2 },
   'tools/ToolDialog.module.css': { radius: 1, spacing: 1 },
   'ui/Avatar.module.css': { icon: 2 },
   'ui/Badge.module.css': { spacing: 1 },

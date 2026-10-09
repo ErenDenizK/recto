@@ -2,14 +2,10 @@
   pointer-events: none;
 }
 
-/* Invisible until hovered or focused; the page shows the link as authored. Hover marks it in
-   the page's selection blue (--select, language.md §1.5); keyboard focus takes the inset ring
-   (styles/focus.css), which the hover ring gives way to. */
+/* A PageTarget (ui/PageTarget): invisible until hovered or focused; the page shows the link as
+   authored. Hover marks it in the page's selection blue (--select, language.md §1.5); keyboard
+   focus takes the target's inset ring, which the hover ring gives way to. */
 .hotspot {
-  composes: focus-inset from global;
-  position: absolute;
-  border-radius: var(--radius-page);
-  background: transparent;
   cursor: pointer;
   pointer-events: none;
 }
@@ -53,12 +49,4 @@
   justify-content: flex-end;
   gap: var(--space-2);
   margin-top: var(--space-3);
-}
-
-.primary {
-  composes: btn btn-prominent from global;
-}
-
-.secondary {
-  composes: btn btn-standard from global;
 }

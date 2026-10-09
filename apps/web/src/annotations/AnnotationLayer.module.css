@@ -89,7 +89,6 @@
 .selection .outline {
   fill: none;
   stroke: var(--select);
-  stroke-width: 1.5;
   stroke-dasharray: 4 3;
   pointer-events: none;
 }
@@ -97,7 +96,6 @@
 .handle {
   fill: var(--page-background);
   stroke: var(--select);
-  stroke-width: 1.5;
   pointer-events: all;
 }
 
@@ -129,7 +127,6 @@
 .ghost {
   fill: none;
   stroke: var(--select);
-  stroke-width: 1.5;
   stroke-dasharray: 2 3;
   pointer-events: none;
 }
@@ -147,7 +144,6 @@
 .previewBox {
   fill: var(--select-subtle);
   stroke: var(--select);
-  stroke-width: 1;
   stroke-dasharray: 4 3;
 }
 
@@ -159,7 +155,6 @@
 .eraseTrail {
   fill: none;
   stroke: color-mix(in srgb, var(--danger) 50%, transparent);
-  stroke-width: 6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -176,8 +171,8 @@
 }
 
 .lockBadge svg {
-  width: 12px;
-  height: 12px;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
 }
 
 /* Contextual bar: glass over the document, like the floating tool bar. */
@@ -219,8 +214,8 @@
 }
 
 .barLocked svg {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 /* In-place editors */
@@ -259,7 +254,7 @@
   gap: var(--space-2);
   width: 240px;
   padding: var(--space-3);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   font-size: var(--type-body);
   pointer-events: auto;

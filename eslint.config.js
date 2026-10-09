@@ -90,7 +90,6 @@ const q9Controls = {
  * rule arrived: each lane removes its files as it moves them onto ui/.
  */
 const Q9_PENDING = [
-  'apps/web/src/annotations/ReadSelectionBar.tsx',
   'apps/web/src/annotations/pen/PenWell.tsx',
   'apps/web/src/batch/BatchSheet.tsx',
   'apps/web/src/batch/RecipeEditor.tsx',
@@ -132,10 +131,6 @@ const Q9_PENDING = [
   'apps/web/src/stage/OperationDialogFrame.tsx',
   'apps/web/src/stage/ResizeDialog.tsx',
   'apps/web/src/stage/grid/PagesBar.tsx',
-  'apps/web/src/text-edit/ParagraphEditor.tsx',
-  'apps/web/src/text-edit/TextEditLayer.tsx',
-  'apps/web/src/text-edit/TextEditor.tsx',
-  'apps/web/src/viewer/LinkLayer.tsx',
 ];
 
 /** Files executed by Node: tool configs, scripts, and Playwright specs. */

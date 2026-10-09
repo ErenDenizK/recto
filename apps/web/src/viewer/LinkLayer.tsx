@@ -25,6 +25,8 @@ import { openableUrl } from '../shell/OutlinePanel.tree';
 import type { PageOverlayProps } from '../stage/page-overlays';
 import { distanceFromView, useViewStore } from '../state/view-store';
 import { useActiveDocument } from '../state/workspace-store';
+import { Button } from '../ui/Button';
+import { PageTarget } from '../ui/PageTarget';
 import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
 import { Tooltip } from '../ui/Tooltip';
 import { userRectToCss } from './geometry';
@@ -113,8 +115,7 @@ export function LinkLayer(props: PageOverlayProps) {
             : m.viewer_link_missing();
           return (
             <Tooltip key={link.id} label={label}>
-              <button
-                type="button"
+              <PageTarget
                 className={styles.hotspot}
                 style={style}
                 aria-label={label}
@@ -228,12 +229,16 @@ function UriHotspot({
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Tooltip label={uri}>
         <Popover.Trigger
-          className={styles.hotspot}
-          style={style}
-          aria-label={label}
-          tabIndex={tabIndex}
-          data-link="uri"
-          onPointerDown={selectPastSlop}
+          render={
+            <PageTarget
+              className={styles.hotspot}
+              style={style}
+              aria-label={label}
+              tabIndex={tabIndex}
+              data-link="uri"
+              onPointerDown={selectPastSlop}
+            />
+          }
         />
       </Tooltip>
       <PopoverPopup side="bottom" align="start" sideOffset={6} data-testid="link-confirm">
@@ -252,20 +257,17 @@ function UriHotspot({
           </PopoverBody>
         ) : null}
         <div className={styles.actions}>
-          <Popover.Close className={styles.secondary}>
-            {url ? m.common_cancel() : m.common_close()}
-          </Popover.Close>
+          <Popover.Close render={<Button>{url ? m.common_cancel() : m.common_close()}</Button>} />
           {url ? (
-            <button
-              type="button"
-              className={styles.primary}
+            <Button
+              variant="prominent"
               onClick={() => {
                 window.open(url.href, '_blank', 'noopener,noreferrer');
                 setOpen(false);
               }}
             >
               {m.viewer_link_open()}
-            </button>
+            </Button>
           ) : null}
         </div>
       </PopoverPopup>

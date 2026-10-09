@@ -23,6 +23,7 @@ import { announce } from '../shell/announcer';
 import { useRovingTabindex } from '../markup/roving';
 import { registerPageOverlay, type PageOverlayProps } from '../stage/page-overlays';
 import { useMarkupOpen } from '../state/ui-store';
+import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Tooltip } from '../ui/Tooltip';
@@ -36,7 +37,10 @@ import styles from './ReadSelectionBar.module.css';
 import { markupFromSelection } from './selection-markup';
 import { MARKUP_MODES, type MarkupMode, toolDefinition } from './tools';
 
-const BAR_HEIGHT = 36;
+/** The bar is one floating piece (`--piece-h`: 40 fine, 48 coarse; G1). */
+function barHeight(root: HTMLElement): number {
+  return parseFloat(getComputedStyle(root).getPropertyValue('--piece-h')) || 40;
+}
 const GAP = 8;
 
 interface Placement {
@@ -116,7 +120,8 @@ function placementOn(root: HTMLElement): Placement | null {
   if (!first || !last) return null;
   const bounds = root.getBoundingClientRect();
   const top = first.top - bounds.top;
-  const y = top - BAR_HEIGHT - GAP >= 0 ? top - BAR_HEIGHT - GAP : last.bottom - bounds.top + GAP;
+  const height = barHeight(root);
+  const y = top - height - GAP >= 0 ? top - height - GAP : last.bottom - bounds.top + GAP;
   return { x: first.left - bounds.left, y };
 }
 
@@ -256,52 +261,48 @@ export function TextSelectionBar(props: PageOverlayProps) {
               {MARKUP_MODES.map(markupButton)}
               <span className={styles.divider} aria-hidden="true" />
               <Tooltip label={m.selection_comment_tooltip()} side="top">
-                <button
-                  type="button"
-                  className={styles.action}
+                <Button
+                  variant="quiet"
+                  icon={<Icon name="chat-centered-dots" />}
                   data-comment=""
                   onPointerDown={keep}
                   onClick={() => void commentOnSelection(props)}
                 >
-                  <Icon name="chat-centered-dots" />
                   {m.selection_comment()}
-                </button>
+                </Button>
               </Tooltip>
             </>
           ) : (
             <>
-              <button
-                type="button"
-                className={styles.action}
+              <Button
+                variant="quiet"
+                icon={<Icon name="copy" />}
                 onPointerDown={keep}
                 onClick={() => void copy()}
               >
-                <Icon name="copy" />
                 {m.action_copy()}
-              </button>
+              </Button>
               <Tooltip label={m.selection_edit_text_tooltip()} side="top">
-                <button
-                  type="button"
-                  className={styles.action}
+                <Button
+                  variant="quiet"
+                  icon={<Icon name="edit-text" />}
                   data-edit-text=""
                   onPointerDown={keep}
                   onClick={() => void editTextAtSelection(props)}
                 >
-                  <Icon name="edit-text" />
                   {m.tool_edit_text()}
-                </button>
+                </Button>
               </Tooltip>
               <Tooltip label={m.selection_mark_up_tooltip()} side="top">
-                <button
-                  type="button"
-                  className={styles.action}
+                <Button
+                  variant="quiet"
+                  icon={<Icon name="pencil-simple" />}
                   aria-keyshortcuts="2"
                   onPointerDown={keep}
                   onClick={markUp}
                 >
-                  <Icon name="pencil-simple" />
                   {m.selection_mark_up()}
-                </button>
+                </Button>
               </Tooltip>
             </>
           )}

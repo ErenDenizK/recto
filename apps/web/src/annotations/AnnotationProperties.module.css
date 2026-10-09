@@ -53,13 +53,13 @@
 
 .contents {
   display: grid;
-  gap: 6px;
+  gap: var(--space-1h);
 }
 
 .label {
   color: var(--glass-text-secondary);
   font-size: var(--type-footnote);
-  font-weight: 550;
+  font-weight: 600;
   line-height: var(--type-footnote-lh);
 }
 
