@@ -38,6 +38,16 @@
  */
 .piece {
   composes: mat mat-bar s8 c9 from global;
+}
+
+/* A piece of one control (the Library's ⋯, R11): a circle of --piece-h, too small for σ 8
+   without the page leaking at its edges, so σ 7 (8 coarse; registry `top-strip-solo`). */
+.solo {
+  composes: mat mat-bar s7 c8 from global;
+}
+
+.piece,
+.solo {
   display: flex;
   flex: none;
   align-items: center;
@@ -56,11 +66,13 @@
  * piece clips them to its pill, so the moving edge reveals or covers them; the trailing piece
  * keeps its contents against its outer (right) edge, where it stands in the strip.
  */
-.piece[data-resizing] {
+.piece[data-resizing],
+.solo[data-resizing] {
   overflow: clip;
 }
 
-.piece.trail {
+.piece.trail,
+.solo.trail {
   justify-content: flex-end;
 }
 
@@ -72,7 +84,7 @@
 
 /* Under a modal scrim (dim only, G-31) the pieces rest on their solid twin, as the docked frame
    did: the backdrop is still and dimmed, and the budget of four (Q-11) stays with the sheet. */
-:global(:root:has([data-scrim]:not([data-ending-style]))) .piece {
+:global(:root:has([data-scrim]:not([data-ending-style]))) :is(.piece, .solo) {
   --text-secondary: inherit;
   --text-tertiary: inherit;
   --text-disabled: inherit;
@@ -145,7 +157,7 @@
 }
 
 .library[aria-current='page'] {
-  padding: 0 var(--space-3) 0 6px;
+  padding: 0 var(--space-3) 0 var(--space-1h);
   background: var(--surface-on);
   color: var(--text-primary);
 }
@@ -165,13 +177,13 @@
 .tabsRegion {
   --tab-min: 112px;
   --tab-max: 220px;
-  --tab-gap: 2px;
+  --tab-gap: var(--space-half);
   display: flex;
   align-items: center;
   gap: var(--space-1);
   flex: 0 1 auto;
   /* XD-3: never narrower than one tab at its minimum, + and the ring's room. */
-  min-width: calc(var(--tab-min) + 4px + var(--space-1) + var(--control-h));
+  min-width: calc(var(--tab-min) + var(--space-1) + var(--space-1) + var(--control-h));
   margin-inline-start: var(--space-1);
 }
 
@@ -179,7 +191,7 @@
   .tabsRegion {
     --tab-min: 128px;
     --tab-max: 240px;
-    --tab-gap: 8px;
+    --tab-gap: var(--space-2);
   }
 }
 
@@ -189,14 +201,14 @@
   gap: var(--tab-gap);
   flex: 0 1 auto;
   /* Never narrower than one tab (plus the focus ring's room): it scrolls instead. */
-  min-width: min(calc(var(--tab-min) + 4px), 100%);
+  min-width: min(calc(var(--tab-min) + var(--space-1)), 100%);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  scroll-padding-inline: 24px;
+  scroll-padding-inline: var(--space-6);
   /* Room for the focus ring, drawn outside the tab. */
-  padding: 4px;
-  margin: -4px -4px -4px -4px;
+  padding: var(--space-1);
+  margin: calc(-1 * var(--space-1));
 }
 
 .tablist::-webkit-scrollbar {
@@ -320,11 +332,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-1h);
   width: 100%;
   height: 100%;
   min-width: 0;
-  padding: 0 4px 0 var(--space-3);
+  padding: 0 var(--space-1) 0 var(--space-3);
   border-radius: inherit;
   color: var(--text-secondary);
   font-size: var(--control-text);
@@ -404,14 +416,14 @@
 }
 
 .lock {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .caret {
-  width: 12px;
-  height: 12px;
-  margin-inline-start: -2px;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  margin-inline-start: calc(-1 * var(--space-half));
 }
 
 @media (forced-colors: active) {
@@ -428,13 +440,15 @@
   }
 }
 
+/* ✕: an S control (system-audit-2026-10 §3.3, §4 Frame), --control-h-sm (24 fine, 32 coarse)
+   with Phosphor's 16 px `x`, a circle concentric with the tab's pill. */
 .close {
   display: grid;
   flex: none;
-  margin-inline-start: -4px;
+  margin-inline-start: calc(-1 * var(--space-1));
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
   border-radius: var(--radius-capsule);
   color: var(--text-tertiary);
   opacity: 0;
@@ -446,7 +460,6 @@
 .close svg {
   width: var(--icon-sm);
   height: var(--icon-sm);
-  stroke-width: 1.75;
 }
 
 /* ✕ shows on the active tab, on hover and on keyboard focus (fine pointers); always on coarse
@@ -480,7 +493,7 @@
   composes: focus-inset from global;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   flex: none;
   height: var(--control-h);
   padding: 0 var(--space-2) 0 var(--space-3);
@@ -557,7 +570,7 @@
 .findWell {
   display: none;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1h);
   box-sizing: border-box;
   width: 280px;
   height: var(--control-h);
@@ -570,10 +583,11 @@
   color: var(--text-secondary);
 }
 
-.findWell:focus-within {
+/* The well is the field's host: it draws the field form's ring (styles/focus.css, I-47). */
+.findWell:has(.findInput:focus-visible) {
   outline: 2px solid var(--focus-light);
-  outline-offset: var(--focus-offset-out);
-  box-shadow: 0 0 0 1px var(--focus-dark);
+  outline-offset: var(--focus-field-offset);
+  box-shadow: var(--focus-field-shadow);
 }
 
 .findIcon {
@@ -696,7 +710,7 @@
 
 .count::before {
   content: '·';
-  margin-inline-end: 6px;
+  margin-inline-end: var(--space-1h);
 }
 
 .tabWrap[data-selected]:has(.count) {

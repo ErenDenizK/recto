@@ -280,6 +280,18 @@ export interface RenderRequest {
    */
   readonly clip?: Rect;
   readonly tile?: string;
+  /**
+   * Without annotations and form widgets: the page as its content alone, for "see the
+   * original" (docs/plan/v1/PLAN.md S2-1a, the title menu's eye). Cached apart from the
+   * page's own bitmaps, as a tile is (`#bare`), so neither ever stands in for the other.
+   */
+  readonly bare?: boolean;
+}
+
+/** The cache's name for a request's tile, with the bare form marked (`RenderRequest.bare`). */
+function tileOf(request: Pick<RenderRequest, 'tile' | 'bare'>): string | undefined {
+  if (request.bare !== true) return request.tile;
+  return request.tile === undefined ? 'bare' : `${request.tile}+bare`;
 }
 
 /** Options of `EngineService.search` (PdfRenderer.search). */
@@ -1169,8 +1181,10 @@ export class EngineService {
   };
 
   /** A cached bitmap at exactly this scale, if any (marks it recently used). */
-  peek(sourceId: SourceId, index: number, rotation: Rotation, bucket: number) {
-    const key = bitmapKey(sourceId, index, rotation, bucket);
+  peek(sourceId: SourceId, index: number, rotation: Rotation, bucket: number, bare = false) {
+    const key = bare
+      ? tileAwareKey(pageKey(sourceId, index, rotation), 'bare', bucket)
+      : bitmapKey(sourceId, index, rotation, bucket);
     // Being repainted (`requestClippedRepaint`): the bitmap still shows the old content.
     if (this.repainting.has(key)) return undefined;
     return this.cache.get(key);
@@ -1187,8 +1201,10 @@ export class EngineService {
     index: number,
     rotation: Rotation,
     bucket: number,
+    bare = false,
   ): CachedBitmap | undefined {
-    return this.cache.best(pageKey(sourceId, index, rotation), bucket, true, (key) =>
+    const page = pageKey(sourceId, index, rotation);
+    return this.cache.best(bare ? tileAwarePage(page, 'bare') : page, bucket, true, (key) =>
       this.repainting.has(key),
     );
   }
@@ -1208,7 +1224,8 @@ export class EngineService {
 
   renderPage(request: RenderRequest): Promise<EngineResult<CachedBitmap>> {
     const { sourceId, index, rotation, bucket, signal } = request;
-    const key = tileAwareKey(pageKey(sourceId, index, rotation), request.tile, bucket);
+    const tile = tileOf(request);
+    const key = tileAwareKey(pageKey(sourceId, index, rotation), tile, bucket);
     const repainting = this.repainting.get(key);
     if (repainting !== undefined) return repainting.then(() => this.renderPage(request));
     const hit = this.cache.get(key);
@@ -1220,7 +1237,7 @@ export class EngineService {
       if (job === undefined) {
         job = {
           key,
-          page: tileAwarePage(pageKey(sourceId, index, rotation), request.tile),
+          page: tileAwarePage(pageKey(sourceId, index, rotation), tile),
           request,
           controller: new AbortController(),
           subscribers: new Set(),
@@ -1288,7 +1305,7 @@ export class EngineService {
   }
 
   private async run(job: Job): Promise<void> {
-    const { sourceId, index, rotation, bucket, clip } = job.request;
+    const { sourceId, index, rotation, bucket, clip, bare } = job.request;
     const started = this.mark(`render-start:${job.key}`);
     // The content this render shows: any change after this point marks the job stale
     // (`invalidatePage`, `requestClippedRepaint`), and a stale result is never handed out.
@@ -1300,6 +1317,7 @@ export class EngineService {
         rotation,
         signal: job.controller.signal,
         ...(clip === undefined ? {} : { clip }),
+        ...(bare === true ? { withAnnotations: false, withForms: false } : {}),
       });
       const entry: CachedBitmap = {
         key: job.key,
@@ -1332,7 +1350,10 @@ export class EngineService {
 
   /** Remembers a cached bitmap for clipped repaints of its page (most recent last). */
   private track(job: Job, entry: CachedBitmap): void {
-    const { sourceId, index, rotation, bucket, clip, tile } = job.request;
+    const { sourceId, index, rotation, bucket, clip } = job.request;
+    // A bare bitmap counts as a tile here: a clipped repaint drops it rather than patching
+    // the annotations into it.
+    const tile = tileOf(job.request);
     const pageId = `${sourceId}:${index}`;
     const list = this.rendered.get(pageId) ?? new Map<string, RenderedEntry>();
     list.delete(entry.key);
