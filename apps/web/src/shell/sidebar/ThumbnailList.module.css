@@ -4,10 +4,12 @@
  * radius 12 over the full row. Thumbnails are content: solid, a page hairline, no shadow.
  *
  * Marks, as the Pages grid draws them (ArrangeView.module.css): current page, its label at 600
- * and a 1 px neutral ring 3 px out (`--current-ring`); selected, a light `--select` wash with
- * its 2 px edge inside the page and a 20 px check badge (24 coarse); both when both hold.
- * Focus: the inset two-band ring round the row on `:focus-visible`, outside the marks; the
- * current ring steps aside while its row holds keyboard focus. Lime is never a mark here.
+ * and a 1 px neutral ring 3 px out (`--current-ring`); selected, the app's lime as the grid
+ * draws it (owner feedback 2026-10-09, G7): a 2 px `--select-ring` ring 2 px out from the page,
+ * on the sidebar, and a 20 px check badge (24 coarse) in the badge's lime with an ink tick; the
+ * current ring steps aside while the page is selected, so two rings never stack. Focus: the
+ * inset two-band ring round the row on `:focus-visible`, outside the marks; the current ring
+ * steps aside while its row holds keyboard focus too.
  */
 .scroll {
   --current-ring: var(--control-border);
@@ -79,20 +81,15 @@
   overflow: hidden;
 }
 
-.option:not(:focus-visible) .sheet[data-current] {
+.option:not(:focus-visible) .sheet[data-current]:not([data-selected]) {
   outline: 1px solid var(--current-ring);
   outline-offset: 3px;
 }
 
-/* Selected: the blue wash and its edge inside the page, above the bitmap. */
-.sheet[data-selected]::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--select-subtle);
-  box-shadow: inset 0 0 0 2px var(--select);
-  pointer-events: none;
+/* Selected: the lime ring 2 px out from the page, nothing over the bitmap. */
+.sheet[data-selected] {
+  outline: 2px solid var(--select-ring);
+  outline-offset: 2px;
 }
 
 .badge {
@@ -105,9 +102,11 @@
   width: 20px;
   height: 20px;
   border-radius: var(--radius-pill);
-  background: var(--select);
-  color: var(--select-ink);
-  box-shadow: 0 0 0 1.5px var(--page-background);
+  background: var(--check-badge-fill);
+  color: var(--check-badge-ink);
+  box-shadow:
+    inset 0 0 0 1.5px var(--check-badge-ink),
+    0 0 0 1.5px var(--page-background);
 }
 
 .badge svg {
@@ -241,8 +240,8 @@
     outline-color: Highlight;
   }
 
-  .sheet[data-selected]::after {
-    box-shadow: inset 0 0 0 2px Highlight;
+  .sheet[data-selected] {
+    outline-color: Highlight;
   }
 
   .option[aria-selected='true'] .label {

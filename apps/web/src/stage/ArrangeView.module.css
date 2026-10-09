@@ -302,10 +302,12 @@
  * - current (the page you were on): a subtle marker, its label at 600 in the primary colour and
  *   a 1 px neutral ring 3 px out; while the cell holds keyboard focus or is selected the other
  *   mark says enough, and the ring steps aside so two rings never stack;
- * - selected: the blue, as a 2 px `--select` ring 2 px out from the page and the filled check
- *   badge inside its top-trailing corner (the shape, A-19); nothing washes over the page;
- * - focus: the standard two-band ring in its gap form around the whole cell, lime and ink, on
- *   `:focus-visible` only (`.cell`), so it never reads as the blue selection ring.
+ * - selected: the app's lime (owner feedback 2026-10-09, G7), as a 2 px `--select-ring` ring
+ *   2 px out from the page, on the canvas (lime-800 in light), and the filled check badge
+ *   inside its top-trailing corner (the shape, A-19); nothing washes over the page;
+ * - focus: the standard two-band ring in its gap form around the whole cell, its label
+ *   included, lime and ink, on `:focus-visible` only (`.cell`): two bands round the cell, never
+ *   one hugging the page, so it never reads as the selection ring.
  */
 .cell[data-current]:not(:focus-visible, [aria-selected='true']) .thumbSheet {
   outline: 1px solid var(--current-ring);
@@ -313,7 +315,7 @@
 }
 
 .cell[aria-selected='true'] .thumbSheet {
-  outline: 2px solid var(--select);
+  outline: 2px solid var(--select-ring);
   outline-offset: 2px;
 }
 
