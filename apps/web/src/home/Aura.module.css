@@ -193,8 +193,10 @@
   animation-play-state: paused;
 }
 
+/* `.aura .lobe` outranks each lobe's own `animation-name` (`.lobe[data-lobe]`), which would
+   otherwise bring its drift back under the shorthand. */
 @media (prefers-reduced-motion: reduce) {
-  .lobe {
+  .aura .lobe {
     animation: none;
     will-change: auto;
   }
