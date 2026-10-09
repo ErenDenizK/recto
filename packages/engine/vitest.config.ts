@@ -14,6 +14,19 @@ import { ocrAssetsPlugin } from './ocr/assets.ts';
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 
 /**
+ * The OCR tests also run in Firefox and WebKit (spec recognize-and-compare §8.5: "§1.5
+ * thresholds on all three browsers"; M5-b). Opt-in by `ENGINE_OCR_BROWSERS=firefox,webkit`,
+ * set by CI's `ocr-engines` job, because only Chromium is installed in most development
+ * sandboxes. Each engine is a project of its own (`ocr-firefox`, `ocr-webkit`) with Playwright's
+ * own browser and a longer time limit: without relaxed SIMD a page reads more slowly.
+ */
+const OCR_TESTS = ['src/ocr/**/*.test.ts', 'test/ocr-*.test.ts'];
+const OCR_ENGINES = (process.env.ENGINE_OCR_BROWSERS ?? '')
+  .split(',')
+  .map((name) => name.trim())
+  .filter((name): name is 'firefox' | 'webkit' => name === 'firefox' || name === 'webkit');
+
+/**
  * Signature tests (M5 W3): `openssl cms -verify` of a detached CMS over the signed byte ranges,
  * chain checked against the test root. `available: false` when openssl is not installed.
  */
@@ -103,7 +116,17 @@ export default defineConfig({
       enabled: true,
       headless: true,
       provider: playwright({ launchOptions: chromiumLaunchOptions() }),
-      instances: [{ browser: 'chromium' }],
+      instances: [
+        { browser: 'chromium' },
+        ...OCR_ENGINES.map((browser) => ({
+          browser,
+          name: `ocr-${browser}`,
+          include: OCR_TESTS,
+          provider: playwright(),
+          testTimeout: 120_000,
+          hookTimeout: 120_000,
+        })),
+      ],
       commands: { opensslCmsVerify },
     },
   },
