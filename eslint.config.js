@@ -90,6 +90,7 @@ const q9Controls = {
  * rule arrived: each lane removes its files as it moves them onto ui/.
  */
 const Q9_PENDING = [
+  'apps/web/src/document/ExportSections.tsx',
   'apps/web/src/shell/compact/CompactChrome.tsx',
   'apps/web/src/shell/compact/CompactLibrary.tsx',
   'apps/web/src/shell/compact/CompactPassword.tsx',
