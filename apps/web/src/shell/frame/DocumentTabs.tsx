@@ -22,11 +22,14 @@
  * - **Overflow** (01.Q1): the visible tabs are measured against the room the strip leaves;
  *   when they would fall under 112 px (128 coarse), the rest go into "N more ▾"
  *   (`TabOverflow.tsx`, `tab-overflow.ts`).
+ * - **Drag** a tab along the strip to reorder: it lifts, its neighbours slide aside, and the
+ *   tabs FLIP into their new order on drop (`tab-reorder.ts`).
  * - **Close** asks nothing; focus goes to the next tab to the right, else the left, else the
  *   Library's first focus; announced, with the changes kept (F4 §6).
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 import {
+  type AnimationEvent,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -58,6 +61,7 @@ import { openTitleMenu, useFrameStore } from './frame-store';
 import { STAGE_ID, tabDomId } from './ids';
 import { nameEnding, splitTabs, TAB_GAP_FINE, tabCapacity } from './tab-overflow';
 import { closedTabs, type LeavingTab, useTabMotion, withLeaving } from './tab-motion';
+import { useTabReorder } from './tab-reorder';
 import { TabMenu } from './TabMenu';
 import { TabOverflow } from './TabOverflow';
 import styles from './TopStrip.module.css';
@@ -99,6 +103,15 @@ function tabRoom(
   );
   // A piece whose width is moving (motion/resize.ts) is read where it is going.
   return widest - (restingWidth(piece) - region.offsetWidth);
+}
+
+/**
+ * Marks a tab's name once its fade-in ended, so moving the tab in the DOM (a reorder) does not
+ * play it again: re-inserting an element restarts its CSS animations (TopStrip.module.css).
+ */
+function markNameIn(event: AnimationEvent<HTMLElement>): void {
+  if (!event.animationName.includes('tab-name-in')) return;
+  if (event.target instanceof HTMLElement) event.target.setAttribute('data-in', '');
 }
 
 /** Whether two runs of tabs show the same documents in the same order. */
@@ -206,6 +219,8 @@ export function DocumentTabs({
   useTabMotion(listRef, selectedId, (id) =>
     setLeaving((current) => current.filter((t) => t.item.id !== id)),
   );
+  // A tab dragged along the strip reorders the tabs (motion-2026-10 frame.md §7).
+  useTabReorder(listRef, documents.length > 1);
 
   // Keep the active tab in view should the list scroll (XD-3).
   useEffect(() => {
@@ -333,6 +348,7 @@ export function DocumentTabs({
                     onKeyDown={(event) => onKeyDown(event, doc.id)}
                     onClick={() => onClick(doc.id)}
                     onMouseDown={(event) => onMouseDown(event, doc.id)}
+                    onAnimationEnd={markNameIn}
                   >
                     <span className={styles.tag} data-tag={doc.colorIndex} aria-hidden="true" />
                     {/* A new name fades in (G6): keyed by it, so a rename draws it afresh. */}

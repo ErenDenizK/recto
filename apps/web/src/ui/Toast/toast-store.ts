@@ -55,6 +55,11 @@ export interface ToastInput {
   readonly jobId?: string | undefined;
   /** `data-testid` for the toast (e2e). */
   readonly testId?: string | undefined;
+  /**
+   * The id of the control the toast reports on (Save for its receipt): the toast comes in
+   * from that control's side (`ToastRegion.tsx`, motion-2026-10 frame.md §5).
+   */
+  readonly origin?: string | undefined;
   /** Called once when the toast leaves, with why. */
   readonly onDismiss?: ((reason: DismissReason) => void) | undefined;
 }

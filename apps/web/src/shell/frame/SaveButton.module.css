@@ -32,28 +32,74 @@
   visibility: hidden;
 }
 
-/* The label that takes over fades in (*replace*, §7.3; G6) while the last one goes at once, so
-   the accessible name is the new label's from the first frame. */
+/* The label that takes over fades in (*replace*, §7.3; G6) over the one leaving, which fades
+   out behind it on the quicker exit and only then turns hidden: the two overlap, so the button
+   is never blank between them (motion-2026-10 frame.md §5). Out of the accessible name at once
+   (SaveButton.tsx, aria-hidden). */
+.label {
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-exit),
+    visibility 0s linear var(--duration-fast);
+}
+
 .label[data-shown] {
   visibility: visible;
-  animation: save-label-in var(--duration-base) var(--ease-out);
+  opacity: 1;
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    visibility 0s;
 }
 
-@keyframes save-label-in {
-  from {
-    opacity: 0;
-  }
-}
-
-/* The check beside "Saved" (FB6): it pops in once after a verified save. Neutral ink: the
-   success colour stands only beside the word "verified" (08-feedback FB4), in the toast. */
-.check {
+/* The check beside "Saved" (FB6): it draws in once after a verified save, from its leading
+   end (a clip opening on --spring-quick) with a small pop (motion-2026-10 frame.md §5), then
+   the label settles to "Saved" (SaveButton.tsx, CHECK_HOLD_MS). Neutral ink: the success
+   colour stands only beside the word "verified" (08-feedback FB4), in the toast. */
+.checkRoom {
+  flex: none;
   width: var(--icon-sm);
   height: var(--icon-sm);
 }
 
-.label[data-shown] > .check {
-  animation: save-check-pop var(--spring-pop) var(--ease-spring-pop) 1;
+.saved {
+  position: relative;
+  display: inline-block;
+  transition: transform var(--spring-quick) var(--ease-spring);
+}
+
+.check {
+  position: absolute;
+  top: calc(50% - var(--icon-sm) / 2);
+  left: calc(100% + var(--space-1));
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-exit);
+}
+
+/* With the check, word and check together are centred in the cell. */
+.label[data-check] .saved {
+  transform: translateX(calc((var(--icon-sm) + var(--space-1)) / -2));
+}
+
+.label[data-check] .check {
+  opacity: 1;
+}
+
+.label[data-shown][data-check] .check {
+  animation:
+    save-check-draw var(--spring-quick) var(--ease-spring) var(--duration-instant) both,
+    save-check-pop var(--spring-pop) var(--ease-spring-pop) var(--duration-instant) both;
+}
+
+@keyframes save-check-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 @keyframes save-check-pop {
@@ -101,6 +147,41 @@
   }
 }
 
+/* Saving: a soft light sweeps across the capsule once per --loop-sweep, under the label and
+   the ring (frame.md §5), so the wait reads as work in progress even before the first
+   percentage. Transform only; clipped to the capsule. Reduced motion and Glass Solid: none
+   (the still rim says it). */
+.shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 60%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent-ring) 22%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: save-shimmer var(--loop-sweep) var(--ease-standard) infinite;
+}
+
+@keyframes save-shimmer {
+  to {
+    transform: translateX(270%);
+  }
+}
+
 /* The success bloom (FB6 §3): the ring's light on the rim, in 180 ms, held 120 ms, out over
    900 ms, once: --loop-bloom. */
 .bloom {
@@ -135,8 +216,12 @@
     animation: save-bloom-still var(--loop-bloom) steps(1, end) 1;
   }
 
-  .label[data-shown] > .check {
+  .label[data-shown][data-check] .check {
     animation: none;
+  }
+
+  .shimmer {
+    display: none;
   }
 }
 
@@ -146,8 +231,12 @@
   animation: none;
 }
 
-:root[data-motion='reduced'] .label[data-shown] > .check {
+:root[data-motion='reduced'] .label[data-shown][data-check] .check {
   animation: none;
+}
+
+:root:is([data-motion='reduced'], [data-glass='solid']) .shimmer {
+  display: none;
 }
 
 :root:is([data-motion='reduced'], [data-glass='solid']) .bloom {
@@ -166,7 +255,8 @@
 
 @media (forced-colors: active) {
   .ring,
-  .bloom {
+  .bloom,
+  .shimmer {
     display: none;
   }
 }

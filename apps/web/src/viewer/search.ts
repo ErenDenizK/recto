@@ -17,6 +17,9 @@ import { create } from 'zustand';
 
 import { getEngineService } from '../engine/engine-service';
 import { revealWhenShown } from '../motion/catalogue';
+import { reducedMotion } from '../motion/reduced-motion';
+import { springToLinear } from '../motion/springs';
+import { EASE, SPRING_CSS_MS } from '../motion/tokens';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
@@ -400,9 +403,34 @@ export function revealHit(hit: DocumentHit | undefined): void {
   useViewStore
     .getState()
     .scrollToPage(hit.pageId, bounds === undefined ? undefined : { reveal: bounds });
-  // One hit is current, drawn by `SearchHighlights` once its page is laid out.
-  void revealWhenShown(() =>
-    document.querySelector('[data-testid="search-highlights"] [data-current]'),
+  // One hit is current, drawn by `SearchHighlights` once its page is laid out. The ring comes
+  // once it is shown, and the hit pulses with it (frame.md §3): after the ring, so it never
+  // depends on how the reader's scroll lands (the viewer lane's).
+  const current = () => document.querySelector('[data-testid="search-highlights"] [data-current]');
+  void revealWhenShown(current).then((flash) => {
+    if (flash) pulseHit(current());
+  });
+}
+
+/** How much the current hit swells at the height of its pulse. */
+const PULSE_SCALE = 1.18;
+
+/**
+ * The hit's pulse (motion-2026-10 frame.md §3; the bounce macOS gives a found word): the
+ * highlight swells and settles once, in `--spring-pop`'s time, by the `scale`
+ * property so its own placement is untouched. Nothing under reduced motion (the ring says it).
+ */
+function pulseHit(hit: Element | null): void {
+  if (!(hit instanceof HTMLElement) || typeof hit.animate !== 'function' || reducedMotion()) return;
+  // Out on the entry ease, home on the zero-bounce spring's curve, in `pop`'s time.
+  const home = springToLinear('quick').easing;
+  hit.animate(
+    [
+      { scale: '1', easing: EASE.out },
+      { scale: String(PULSE_SCALE), offset: 0.3, easing: home },
+      { scale: '1' },
+    ],
+    { duration: SPRING_CSS_MS.pop },
   );
 }
 

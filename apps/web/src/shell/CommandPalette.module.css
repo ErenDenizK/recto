@@ -1,9 +1,15 @@
+/* The scrim blurs what it dims (motion-2026-10 frame.md §2): the blur is fixed and the element's
+   opacity fades it in and out, so the filter itself never animates (language.md §2.1 rule 5).
+   No blur on Glass Solid or under reduced transparency, as every material. */
 .backdrop {
   position: fixed;
   inset: 0;
   z-index: 40;
   background: var(--scrim);
+  -webkit-backdrop-filter: blur(var(--palette-scrim-blur));
+  backdrop-filter: blur(var(--palette-scrim-blur));
   transition: opacity var(--duration-base) var(--ease-out);
+  --palette-scrim-blur: 6px;
 }
 
 .backdrop[data-starting-style],
@@ -11,11 +17,31 @@
   opacity: 0;
 }
 
-/* Glass with a solid fallback; the scrim underneath keeps contrast predictable. It rises in
-   like the menus (--motion-rise). Centred by its auto margins, so at rest it carries no
-   transform and sits on whole pixels (quality-bar Q-2). The menu recipe's shape
-   (system-audit-2026-10 §3.6): radius 16, concentric with radius-10 rows inside a 6 px inset,
-   M rows. */
+.backdrop[data-ending-style] {
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-exit);
+}
+
+:root[data-glass='solid'] .backdrop {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Glass with a solid fallback; the scrim underneath keeps contrast predictable. Centred by its
+   auto margins, so at rest it carries no transform and sits on whole pixels (quality-bar Q-2).
+   The menu recipe's shape (system-audit-2026-10 §3.6): radius 16, concentric with radius-10
+   rows inside a 6 px inset, M rows.
+
+   It scales up from its top centre (motion-2026-10 frame.md §2): from --enter-scale on
+   --spring-quick with the entry fade, and leaves toward --exit-scale on the quicker exit
+   (MC-16). Under reduced motion both scales are 1, so only the fade runs. */
 .popup {
   composes: mat mat-menu s24 from global;
   position: fixed;
@@ -32,15 +58,23 @@
   color: var(--text-primary);
   overflow: hidden;
   outline: none;
+  transform-origin: 50% 0;
   transition:
-    opacity var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring);
 }
 
-.popup[data-starting-style],
+.popup[data-starting-style] {
+  opacity: 0;
+  transform: scale(var(--enter-scale));
+}
+
 .popup[data-ending-style] {
   opacity: 0;
-  transform: var(--motion-rise);
+  transform: scale(var(--exit-scale));
+  transition:
+    opacity var(--duration-fast) var(--ease-exit),
+    transform var(--duration-fast) var(--ease-exit);
 }
 
 .searchRow {
@@ -84,6 +118,7 @@
 }
 
 .list {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -107,6 +142,8 @@
 }
 
 .option {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -118,8 +155,39 @@
 }
 
 .option[aria-selected='true'] {
-  background: var(--surface-active);
   color: var(--text-primary);
+}
+
+/* The selection's fill: one pill in effect, drawn in the selected row and slid there from the
+   last one on --spring-quick (CommandPalette.tsx, `usePaletteFill`). At rest it has no inline
+   style (Q-2). */
+.fill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: -1;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--surface-active);
+  pointer-events: none;
+}
+
+/* The first rows come in one after another, 20 ms apart (frame.md §2), rising --rise-distance
+   with the entry fade; the rest come in with the sixth. Reduced motion: the fade alone. */
+.option[data-stagger],
+.groupLabel[data-stagger] {
+  animation: palette-row-in var(--duration-base) var(--ease-out) backwards;
+  /* 20 ms a row: a third of --duration-instant, so the stagger goes with it under reduced
+     motion (0). */
+  animation-delay: calc(var(--row-index, 0) * var(--duration-instant) / 3);
+}
+
+@keyframes palette-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise-distance));
+  }
 }
 
 .option[aria-disabled='true'] {

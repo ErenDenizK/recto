@@ -14,6 +14,8 @@
  */
 import { draggable } from '@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter';
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/utils/combine';
+import { preserveOffsetOnSource } from '@atlaskit/pragmatic-drag-and-drop/utils/preserve-offset-on-source';
+import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview';
 import { ContextMenu } from '@base-ui/react/context-menu';
 import type { DocumentId } from '@pdf-editor/document-model';
 import { type ReactElement, useCallback } from 'react';
@@ -28,6 +30,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import menuStyles from '../../ui/Menu.module.css';
 import { announce } from '../announcer';
 import { openTitleMenu } from './frame-store';
+import stripStyles from './TopStrip.module.css';
 
 export interface TabMenuProps {
   readonly documentId: DocumentId;
@@ -66,6 +69,28 @@ export function TabMenu({ documentId, title, onClose, children }: TabMenuProps) 
         draggable({
           element,
           getInitialData: (): TabDragData => ({ type: 'tab', documentId }),
+          // The tab lifts (motion-2026-10 frame.md §7): a copy on the raised solid with a
+          // shadow follows the pointer, held where it was grabbed.
+          onGenerateDragPreview: ({ nativeSetDragImage, location }) => {
+            setCustomNativeDragPreview({
+              nativeSetDragImage,
+              getOffset: ({ container }) => {
+                const offset = preserveOffsetOnSource({ element, input: location.current.input })({
+                  container,
+                });
+                return { x: offset.x + 10, y: offset.y + 6 };
+              },
+              render: ({ container }) => {
+                const lift = document.createElement('div');
+                lift.className = stripStyles.tabLift ?? '';
+                const copy = element.cloneNode(true) as HTMLElement;
+                copy.style.width = `${element.getBoundingClientRect().width}px`;
+                copy.removeAttribute('data-tab-dragging');
+                lift.append(copy);
+                container.append(lift);
+              },
+            });
+          },
         }),
         attachTabDropTarget(element, documentId),
       );
