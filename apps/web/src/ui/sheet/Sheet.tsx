@@ -16,8 +16,10 @@
  * - **The body is a form.** Enter in a single-line field, a radio or a segment runs the
  *   enabled primary; never in a text area, a select or a menu, and Mod+Enter is not used
  *   (§2.6, spec 07.16).
- * - **Focus** (§2.6): on open the opener's control (`initialFocus`), else the first control;
- *   on close back to the invoker (Base UI), or `finalFocus`. Modal sheets trap Tab.
+ * - **Focus** (§2.6): on open the opener's control (`initialFocus`), else the first field; but
+ *   opened by a pointer or a finger, the panel itself instead of a field, so no ring lights
+ *   and no keyboard rises (`ui/initial-focus.ts`, system-audit-2026-10 §3.8); on close back to
+ *   the invoker (Base UI), or `finalFocus`. Modal sheets trap Tab.
  * - **Motion** is `sheet-motion.ts`: the panel has its final size before it moves and moves
  *   by `transform` only, on the motion core, with a swipe's velocity handed to the spring; the
  *   scrim is its own element and fades (quality-bar Q-7). The exiting panel is `inert` from its
@@ -53,6 +55,7 @@ import { useSizeClass } from '../../shell/frame/size-class';
 import { Button } from '../Button';
 import { closeMenusAtOnce } from '../menu-handoff';
 import { LockBanner } from './LockBanner';
+import { type OpenType, resolveInitialFocus } from '../initial-focus';
 import { snapToWholePixels } from '../whole-pixels';
 import { presentationOf, type SheetKind } from './presentation';
 import styles from './Sheet.module.css';
@@ -304,17 +307,22 @@ export function Sheet({
     </Button>
   ) : null;
 
-  // §2.6: the opener's control, else the first control that needs input, else the first one.
+  // §2.6: the opener's control, else the first control that needs input, else the first one;
+  // a field gives way to the panel when a pointer opened the sheet (system audit §3.8).
   const firstInput = (): HTMLElement | true =>
     panelEl.current?.querySelector<HTMLElement>(
       '[data-sheet-body] :is(input:not([type="hidden"], [aria-hidden="true"], :disabled), textarea, select)',
     ) ?? true;
-  const focusOnOpen =
-    initialFocus === 'primary'
-      ? primaryRef
-      : initialFocus === 'cancel'
-        ? cancelRef
-        : (initialFocus ?? firstInput);
+  const focusOnOpen = (openType: OpenType) =>
+    resolveInitialFocus(
+      initialFocus === 'primary'
+        ? primaryRef
+        : initialFocus === 'cancel'
+          ? cancelRef
+          : (initialFocus ?? firstInput),
+      openType,
+      panelEl.current,
+    );
 
   const Root = layout.role === 'alertdialog' ? AlertDialog.Root : Dialog.Root;
   const style = {

@@ -11,6 +11,12 @@ export {
 } from './presentation';
 export { Sheet, type SheetCloseReason, type SheetPrimary, type SheetProps } from './Sheet';
 export { SheetField } from './SheetField';
+export {
+  SheetGroup,
+  type SheetGroupProps,
+  SheetRow,
+  type SheetRowProps,
+} from './SheetGroup';
 export { SheetResult, type ResultTone } from './SheetResult';
 export {
   closeSheet,
