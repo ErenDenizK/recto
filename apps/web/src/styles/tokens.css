@@ -942,34 +942,42 @@
   --leading-tight: 16px;
   --leading-base: 20px;
 
-  /* Radius scale: 2 (on-page marks, page sheets) · 4 (small controls, keycaps, badges) ·
-     6 (buttons, rows, inputs, menus, popovers, tooltips) · 10 (contextual bars, palette,
-     dialogs, cards) · round (dots, discs, pills) · capsule (the floating tool bar and the pen
-     bar). language.md §6.1 sets 8 and 12 for sm and md; today's 6 and 10 stay until the shape
-     step, so nothing that reads the old names moves. Controls take one of two shapes
-     (quality-bar Q-9): the pill, or --radius-control. */
+  /* Concentric radii (system-audit-2026-10 §3.2, language.md §6.1 S-1): an inner radius is its
+     outer radius minus the inset between them, rounded to a step, and anything that floats is a
+     capsule. 2 pages and on-page marks · 4 keycaps, small badges, ticks · 8 tooltips, swatch
+     cells, a thumbnail's image · 10 the control: fields, menu rows (16 − 6), list rows,
+     thumbnail cells, stepper wells · 12 grouped lists and wells in a sheet (20 − 8) · 16 menus,
+     popovers, the command palette, note popups, Library cards · 20 sheets, dialogs, the floating
+     sidebar, the launcher card, the drop overlay · 28 phone bottom sheets · capsule every piece,
+     bar, toast, button, segmented control, search field and chip (quality-bar Q-9). */
   --radius-page: 2px;
   --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-capsule: 999px;
-  --radius-pill: var(--radius-capsule);
+  --radius-sm: 8px;
   --radius-control: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-capsule: 999px;
 
+  /* One 4 px grid with a 2 px half-step for optical fixes (system-audit-2026-10 §3.1,
+     language.md §6.2): 2 segment inset, gap between tabs · 4 between controls in a piece · 6
+     label to glyph in a button, a menu's padding · 8 between pieces, a sheet group's inset · 12
+     row, popover and card padding · 16 the piece inset, coarse sheet padding · 20 fine sheet
+     padding · 24 between sheet sections · 32, 40, 64 the Library's gutters, section gap and top
+     margin. */
+  --space-half: 2px;
   --space-1: 4px;
+  --space-1h: 6px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+  --space-10: 40px;
   --space-12: 48px;
-
-  /* Shell metrics. --control-height is the M8 row and field height (28 px); controls take
-     --control-h from the density below. The frame (01-frame F1) has no fixed metrics of its
-     own: the top strip is a --bar-h bar and every layer reports its box, so the free rectangle
-     is measured (--free-top|right|bottom|left on :root, shell/frame/frame-insets.ts). */
-  --control-height: 28px;
+  --space-16: 64px;
 
   /* The focus ring's offsets (language.md §9.2; styles/focus.css). */
   --focus-offset-out: 2px;
@@ -977,15 +985,22 @@
   --focus-offset-gap: 4px;
 
   /*
-   * Density (09-primitives §2.1, language.md §6.2; quality-bar Q-9). Controls are 32 px on a
-   * fine pointer and 44 px on a coarse one, in pieces of 40 and 48 (--piece-h); rows keep the M8
-   * --control-height. Icons are 20 px in controls and 16 px in rows and menus at every density
-   * (Q-9). A touch laptop is coarse everywhere, by design (research 19 M-2).
+   * Density (09-primitives §2.1, language.md §6.2; quality-bar Q-9) and the three control sizes
+   * (system-audit-2026-10 §3.3). Pieces are --piece-h; inside them, and everywhere else, a
+   * control is one of S (24 fine, 32 coarse with a 44 hit area: a tab's close, a field's
+   * stepper, a toast's close, a card's corner check, chips), M (32 / 44, the default: buttons,
+   * fields, segmented controls, menu and list rows, dock and palette items) or L (40 / 52, at
+   * most one per screen: the Library's primary, a phone sheet's footer action). A control never
+   * takes --piece-h as its height. Icons are 20 px in controls and 16 px in rows and menus at
+   * every density, 12 only inside badges, 32 in empty states (Q-9). A touch laptop is coarse
+   * everywhere, by design (research 19 M-2). The frame (01-frame F1) has no fixed metrics of
+   * its own: every layer reports its box, so the free rectangle is measured
+   * (--free-top|right|bottom|left on :root, shell/frame/frame-insets.ts).
    */
   --hit-min: 24px;
+  --control-h-sm: 24px;
   --control-h: 32px;
-  --control-h-lg: 36px;
-  --bar-button: 32px;
+  --control-h-lg: 40px;
   /* One size scale for every floating piece (owner feedback 2026-10-09, G1): the top strip's
      pieces, the capsule and everything it hosts, the page pill, the grid's corner pieces, the
      ink strip, the contextual bars and the Library's pills are one --piece-h high (40 fine, 48
@@ -1001,16 +1016,33 @@
   --piece-label: var(--type-body);
   --piece-label-lh: var(--type-body-lh);
   --bar-h: var(--piece-h);
-  --chip-h: 28px;
   --check: 16px;
   --switch-w: 36px;
   --switch-h: 20px;
+  --icon-xs: 12px;
   --icon-sm: 16px;
   --icon-md: 20px;
+  --icon-lg: 32px;
   --gap-target: 4px;
   --control-text: var(--type-body);
   --control-lh: var(--type-body-lh);
   --field-text: 13px;
+
+  /* A toast is a floating piece (system-audit-2026-10 §3.6, G1): --piece-h high, an M action
+     and an S close. A tooltip is 24 / 28 with a footnote label. */
+  --toast-h: var(--piece-h);
+  --tooltip-h: 24px;
+
+  /* The sheet (07-sheets §2.2; system-audit-2026-10 §3.6.1): radius 20 (28 for a phone's bottom
+     sheet), padding 20 fine and 16 coarse, a 56 / 64 header; its grouped lists sit
+     --sheet-group-inset from the panel's edge at radius 12 (20 − 8), with M rows of 44 / 56. */
+  --sheet-radius: var(--radius-xl);
+  --sheet-radius-bottom: var(--radius-2xl);
+  --sheet-pad: var(--space-5);
+  --sheet-header-h: 56px;
+  --sheet-group-inset: var(--space-2);
+  --sheet-row-h: 44px;
+  --sheet-row-pad: var(--space-3);
 
   /* Motion (language.md §7): the springs, eases, press scales and entrances are motion.css's,
      imported above, with their reduced forms (spec D3-4). */
@@ -1025,19 +1057,28 @@
   --radius-2: var(--radius-sm);
   --radius-3: var(--radius-md);
   --radius-round: var(--radius-capsule);
+  --radius-pill: var(--radius-capsule);
   --icon-chrome: var(--icon-sm);
   --icon-toolbar: var(--icon-md);
+  /* Retired sizes (system-audit-2026-10 §3.3): the M8 row and the bar button are M, chips S. */
+  --control-height: var(--control-h);
+  --bar-button: var(--control-h);
+  --chip-h: var(--control-h-sm);
 }
 
 /* ── §4 Coarse pointer ─────────────────────────────────────────────────────────────────── */
 @media (pointer: coarse), (any-pointer: coarse) {
   :root {
     --hit-min: 44px;
+    --control-h-sm: 32px;
     --control-h: 44px;
     --control-h-lg: 52px;
-    --bar-button: 44px;
     --piece-h: 48px;
-    --chip-h: 36px;
+    --tooltip-h: 28px;
+    --sheet-pad: var(--space-4);
+    --sheet-header-h: 64px;
+    --sheet-row-h: 56px;
+    --sheet-row-pad: var(--space-4);
     --check: 20px;
     --switch-w: 52px;
     --switch-h: 32px;
