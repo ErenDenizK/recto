@@ -882,7 +882,9 @@ test.describe('eraser and straight lines (craft spec §5.6)', () => {
     await expect(ink.locator('polyline')).toHaveCount(1, { timeout: 10_000 });
   });
 
-  test('hold to straighten: a pause while drawing commits a two-point line', async ({ page }) => {
+  test('hold to shape: a pause on a straight stroke commits a /Line to the pointer', async ({
+    page,
+  }) => {
     await openSimple(page);
     await page.locator('body').press('p');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
@@ -892,22 +894,63 @@ test.describe('eraser and straight lines (craft spec §5.6)', () => {
     const start = { x: box.x + box.width * 0.2, y: box.y + height * 0.7 };
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
-    // A wavy stroke, then still for 700 ms, then on to the end.
+    // A slightly unsteady straight stroke, then still for 900 ms (the hold and the morph),
+    // then on to the end: the line follows the pointer.
     for (let i = 1; i <= 12; i++) {
-      await page.mouse.move(start.x + i * 12, start.y + (i % 2) * 8 + i * 2);
+      await page.mouse.move(start.x + i * 12, start.y + (i % 2) * 1 + i * 2);
     }
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(900);
+    await expect(layer(page).locator('[data-shape-chip]')).toHaveText('Line');
     const end = { x: start.x + 260, y: start.y + 60 };
     await page.mouse.move(end.x, end.y, { steps: 6 });
     await page.mouse.up();
 
-    const ink = layer(page).locator('[data-annotation-kind="ink"]');
-    await expect(ink.locator('polyline')).toHaveCount(1, { timeout: 10_000 });
-    const [path] = await inkPoints(page);
-    expect(path).toHaveLength(2);
-    expect(Math.abs((path?.[0]?.[0] ?? 0) - (start.x - box.x))).toBeLessThanOrEqual(1);
-    expect(Math.abs((path?.[0]?.[1] ?? 0) - (start.y - box.y))).toBeLessThanOrEqual(1);
-    expect(Math.abs((path?.[1]?.[0] ?? 0) - (end.x - box.x))).toBeLessThanOrEqual(1);
-    expect(Math.abs((path?.[1]?.[1] ?? 0) - (end.y - box.y))).toBeLessThanOrEqual(1);
+    // A real /Line from the press to the release (motion-2026-10/ink-shapes.md §4).
+    const line = layer(page).locator('[data-annotation-kind="line"] polyline');
+    await expect(line).toHaveCount(1, { timeout: 10_000 });
+    const points = ((await line.getAttribute('points')) ?? '')
+      .trim()
+      .split(/\s+/)
+      .map((pair) => pair.split(',').map(Number));
+    expect(points).toHaveLength(2);
+    expect(Math.abs((points[0]?.[0] ?? 0) - (start.x - box.x))).toBeLessThanOrEqual(1);
+    expect(Math.abs((points[0]?.[1] ?? 0) - (start.y - box.y))).toBeLessThanOrEqual(1);
+    expect(Math.abs((points[1]?.[0] ?? 0) - (end.x - box.x))).toBeLessThanOrEqual(1);
+    expect(Math.abs((points[1]?.[1] ?? 0) - (end.y - box.y))).toBeLessThanOrEqual(1);
+    // One undo returns to the stroke as drawn; a second removes it.
+    await page.keyboard.press('ControlOrMeta+z');
+    await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(1, {
+      timeout: 10_000,
+    });
+    await expect(line).toHaveCount(0);
+    await page.keyboard.press('ControlOrMeta+z');
+    await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(0, {
+      timeout: 10_000,
+    });
+  });
+
+  test('hold to shape: handwriting held still stays as written', async ({ page }) => {
+    await openSimple(page);
+    await page.locator('body').press('p');
+    const box = await layer(page).boundingBox();
+    if (!box) throw new Error('page not rendered');
+    const height = Math.min(box.height, 800);
+    const at = { x: box.x + box.width * 0.3, y: box.y + height * 0.6 };
+    await page.mouse.move(at.x, at.y);
+    await page.mouse.down();
+    // A cursive "e" with its exit stroke, then a long hold.
+    for (let i = 0; i <= 40; i++) {
+      const t = (i / 40) * 1.8 * Math.PI;
+      await page.mouse.move(
+        at.x + 40 + 30 * Math.cos(t + Math.PI) + i * 1.5,
+        at.y - 30 * Math.sin(t),
+      );
+    }
+    await page.waitForTimeout(900);
+    await expect(layer(page).locator('[data-shape-chip]')).toHaveCount(0);
+    await page.mouse.up();
+    await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(1, {
+      timeout: 10_000,
+    });
   });
 });

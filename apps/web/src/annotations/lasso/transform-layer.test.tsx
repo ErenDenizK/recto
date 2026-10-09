@@ -24,6 +24,7 @@ import { page } from 'vitest/browser';
 
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { enterEditMode, fixtureFile } from '../../../test/store-harness';
+import { settled } from '../../../test/settled';
 import { displaySize } from '../../pages/page-geometry';
 import { useAnnouncer } from '../../shell/announcer';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
@@ -209,6 +210,9 @@ async function lassoTwoStrokes() {
   await armLasso(layer);
   lasso(layer, { x: 80, y: 620 }, { x: 180, y: 540 });
   await waitFor(() => expect(layer.querySelectorAll('[data-lasso-path]')).toHaveLength(2));
+  // The selection's lift (it grows from 97 %) has come to rest before anything is measured.
+  const root = layer.querySelector('[data-lasso-root]');
+  if (root) await settled(root);
   const before = span(await inks(source));
   return { ...mounted, before };
 }
