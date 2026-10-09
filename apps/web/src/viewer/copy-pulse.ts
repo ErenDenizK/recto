@@ -4,8 +4,9 @@
  * so the eye sees what went to the clipboard where it looked. The pulse is a box per selected
  * line, laid in the page it belongs to (so it passes under the glass with the page), that rises
  * to a light wash on `--duration-fast` and fades on `--duration-slow`; the boxes go when it
- * ends. Opacity only; under reduced motion the same fade at the reduced durations (A-9).
+ * ends. Opacity only; under reduced motion the whole pulse takes 150 ms (A-9).
  */
+import { reducedMotion } from '../motion/reduced-motion';
 import { duration, EASE } from '../motion/tokens';
 import styles from './CopyPulse.module.css';
 
@@ -40,9 +41,9 @@ function selectedLines(selection: Selection): Map<HTMLElement, DOMRect[]> {
 export function pulseSelection(selection: Selection | null): number {
   if (!selection) return 0;
   let count = 0;
-  const fadeIn = duration('fast');
-  const fadeOut = duration('slow');
-  const total = fadeIn + fadeOut;
+  // Under reduced motion the whole pulse fits A-9's 150 ms.
+  const total = reducedMotion() ? duration('base') : duration('fast') + duration('slow');
+  const fadeIn = reducedMotion() ? total / 3 : duration('fast');
   for (const [page, rects] of selectedLines(selection)) {
     const box = page.getBoundingClientRect();
     // The page's own scale: a transformed column (a zoom in flight) shows it scaled.

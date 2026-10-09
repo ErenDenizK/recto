@@ -48,6 +48,7 @@ import { edgeScrollSpeed } from '../../dnd/geometry';
 import { renderDragPreview } from '../../dnd/page-drag';
 import { attachPointerDrag } from '../../dnd/pointer-drag';
 import { RENDER_PRIORITY } from '../../engine/engine-service';
+import { ringFlash } from '../../motion/catalogue';
 import { flip } from '../../motion/flip';
 import { formatNumber, m } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
@@ -74,6 +75,8 @@ import styles from './ThumbnailList.module.css';
 import { ThumbnailMenu, type ThumbnailMenuRequest } from './ThumbnailMenu';
 import { dropIndexAt, gapOffset, rowOffsets, thumbnailBox } from './thumbnail-layout';
 
+/** What the history dispatches once a step is in view (history/history-applied.ts). */
+const HISTORY_APPLIED = 'recto:history-applied';
 /** Arrow keys move the page view after this pause, so a held key does not render every page. */
 const KEY_SCROLL_DELAY_MS = 150;
 /** The Lock notice at a refused row stays this long. */
@@ -200,6 +203,26 @@ function PageList({
       scroller.removeEventListener('pointerdown', take);
     };
   }, [scrollRef]);
+
+  // Undo and redo (`recto:history-applied`, motion-2026-10 frame.md §6, viewer.md §8): the
+  // thumbnails of the pages a step changed flash the undo reveal's ring, beside the page's own
+  // flash on the stage (the default, which this leaves alone).
+  useEffect(() => {
+    const onApplied = (event: Event) => {
+      const list = listRef.current;
+      const detail = (event as CustomEvent<{ pageIds?: unknown }>).detail;
+      if (!list || !detail || !Array.isArray(detail.pageIds)) return;
+      for (const id of detail.pageIds) {
+        if (typeof id !== 'string') continue;
+        const sheet = list.querySelector<HTMLElement>(
+          `[role="option"][data-page-id="${CSS.escape(id)}"] [data-thumb]`,
+        );
+        if (sheet) ringFlash(sheet, 'select');
+      }
+    };
+    window.addEventListener(HISTORY_APPLIED, onApplied);
+    return () => window.removeEventListener(HISTORY_APPLIED, onApplied);
+  }, []);
 
   // The current-page ring (§2.2) is one element that slides from thumbnail to thumbnail as the
   // reading moves on, on `smooth` through `flip()` (motion-2026-10 viewer.md §4), instead of

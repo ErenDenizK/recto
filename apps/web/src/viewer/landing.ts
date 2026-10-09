@@ -6,7 +6,9 @@
  * Animation on opacity. Under reduced motion the ring is shown still for the same time and then
  * removed, as the undo reveal's ring is (§7.5).
  *
- * A find hit carries its own ring (the *find step*), so the search asks for no landing.
+ * A find hit carries its own ring (the *find step*), so the search asks for no landing. An undo
+ * or redo flashes what it changed itself (`recto:history-applied`, frame.md §6): a landing on
+ * screen gives way to it (`clearLandings`), so one step never shows two highlights.
  */
 import { reducedMotion } from '../motion/reduced-motion';
 import { DURATION_MS, EASE } from '../motion/tokens';
@@ -69,4 +71,12 @@ export function flashLanding(page: HTMLElement, box?: Box): Animation | undefine
   const flash = ring.animate(frames, { duration: LANDING_MS, easing: 'linear' });
   flash.onfinish = flash.oncancel = remove;
   return flash;
+}
+
+/** Removes every landing highlight inside `root` (an undo's own flash takes over). */
+export function clearLandings(root: ParentNode): void {
+  for (const ring of root.querySelectorAll<HTMLElement>('[data-landing]')) {
+    for (const animation of ring.getAnimations()) animation.cancel();
+    ring.remove();
+  }
 }
