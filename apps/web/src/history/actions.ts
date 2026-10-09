@@ -17,7 +17,7 @@ import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast';
 import { inOtherDocument, stepPhrase } from './labels';
-import { revealStep } from './reveal';
+import { revealStep, type StepChange } from './reveal';
 
 const model = () => useWorkspaceStore.getState();
 
@@ -26,7 +26,7 @@ const model = () => useWorkspaceStore.getState();
  * is not revealed where the user is looking: a toast names it ("Undid highlight in
  * agreement · Show", flows.md §5.3) and the tabs stay as they are until Show.
  */
-function report(step: HistoryEntry, message: (phrase: string) => string): void {
+function report(step: HistoryEntry, message: (phrase: string) => string, change: StepChange): void {
   const { workspace } = model();
   const text = message(stepPhrase(step, { workspace, fallbacks: [step.workspace] }));
   const id = step.meta?.documentId;
@@ -48,7 +48,7 @@ function report(step: HistoryEntry, message: (phrase: string) => string): void {
     return;
   }
   announce(text);
-  void revealStep(step.meta, workspace);
+  void revealStep(step.meta, workspace, change);
 }
 
 /**
@@ -58,16 +58,18 @@ function report(step: HistoryEntry, message: (phrase: string) => string): void {
 export function undoStep(): boolean {
   if (undoBurstStroke()) return true;
   const step = model().history.present;
+  const before = model().workspace;
   if (model().undo() === undefined) return false;
-  report(step, (label) => m.announce_undid({ label }));
+  report(step, (label) => m.announce_undid({ label }), { before, direction: 'undo' });
   return true;
 }
 
 /** One step forward. Returns whether anything was redone. */
 export function redoStep(): boolean {
   const step = model().history.future[0];
+  const before = model().workspace;
   if (step === undefined || model().redo() === undefined) return false;
-  report(step, (label) => m.announce_redid({ label }));
+  report(step, (label) => m.announce_redid({ label }), { before, direction: 'redo' });
   return true;
 }
 
@@ -102,5 +104,10 @@ export function keepStep(index: number, from: number): void {
   );
   if (index === from) return;
   const changed = index < from ? entries[index + 1] : target;
-  void revealStep(changed?.meta, workspace);
+  const before = entries[from]?.workspace;
+  void revealStep(
+    changed?.meta,
+    workspace,
+    before === undefined ? undefined : { before, direction: index < from ? 'undo' : 'redo' },
+  );
 }

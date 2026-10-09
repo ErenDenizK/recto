@@ -78,6 +78,9 @@ import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { recentHandle, storedHandlesReadable, useRecentsStore } from './recents';
 
+/** Save's id (`shell/frame/SaveButton.tsx`): the receipt toast comes in from its side. */
+const SAVE_ORIGIN = 'save-button';
+
 // ---------------------------------------------------------------------------
 // Handles
 // ---------------------------------------------------------------------------
@@ -754,6 +757,7 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     toast.success(text, {
       documentId: id,
       testId: 'save-toast',
+      origin: SAVE_ORIGIN,
       detail,
       spoken: [m.save_announce_verified({ name }), detail].filter(Boolean).join('. '),
     });
@@ -770,6 +774,7 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
         documentId: id,
         detail: [receipt, m.save_copy_detail()].filter(Boolean).join(' · '),
         testId: 'save-toast',
+        origin: SAVE_ORIGIN,
       });
       return;
     }
@@ -787,6 +792,7 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     documentId: id,
     detail: [receipt, m.save_copy_detail()].filter(Boolean).join(' · '),
     testId: 'save-toast',
+    origin: SAVE_ORIGIN,
   });
 }
 

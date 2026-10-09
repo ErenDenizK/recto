@@ -43,6 +43,8 @@ export interface ToastOptions {
   readonly secondary?: ToastAction | undefined;
   readonly tone?: 'danger' | 'warning' | undefined;
   readonly testId?: string | undefined;
+  /** The id of the control the toast reports on; it comes in from that side. */
+  readonly origin?: string | undefined;
   readonly onDismiss?: ((reason: DismissReason) => void) | undefined;
   /**
    * What is said instead of the text (and detail), whole (no Undo or F6 hint is added);
@@ -83,6 +85,7 @@ function show(kind: ToastInput['kind'], text: string, options: ToastOptions, und
     secondary: options.secondary,
     tone: options.tone,
     testId: options.testId,
+    origin: options.origin,
     onDismiss: options.onDismiss,
   };
   watchDocuments();

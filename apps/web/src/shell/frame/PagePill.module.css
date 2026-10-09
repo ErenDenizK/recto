@@ -230,3 +230,100 @@
 .segmented {
   margin: var(--space-half) 0;
 }
+
+/* The moving text (PillRoll.tsx; motion-2026-10 frame.md §4). The odometer: one tabular cell
+   per character, clipped to the line, the old character sliding out on --spring-quick while
+   the new one comes in from the other side; the percentage cross-fades in one cell. */
+.roll {
+  display: inline-flex;
+}
+
+.cell {
+  position: relative;
+  display: inline-block;
+  overflow: clip;
+  vertical-align: bottom;
+}
+
+.out,
+.fadeOut {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.roll[data-dir='up'] {
+  --roll-from: 100%;
+  --roll-to: -100%;
+}
+
+.roll[data-dir='down'] {
+  --roll-from: -100%;
+  --roll-to: 100%;
+}
+
+.in {
+  display: inline-block;
+  animation:
+    pill-roll-in var(--spring-quick) var(--ease-spring) both,
+    pill-fade-in var(--duration-base) var(--ease-out) both;
+}
+
+.out {
+  animation:
+    pill-roll-out var(--spring-quick) var(--ease-spring) forwards,
+    pill-fade-out var(--duration-fast) var(--ease-exit) forwards;
+}
+
+@keyframes pill-roll-in {
+  from {
+    transform: translateY(var(--roll-from));
+  }
+}
+
+@keyframes pill-roll-out {
+  to {
+    transform: translateY(var(--roll-to));
+  }
+}
+
+.fade {
+  position: relative;
+  display: inline-block;
+}
+
+.fadeIn {
+  animation: pill-fade-in var(--duration-base) var(--ease-out) both;
+}
+
+.fadeOut {
+  white-space: nowrap;
+  animation: pill-fade-out var(--duration-fast) var(--ease-exit) forwards;
+}
+
+@keyframes pill-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pill-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion (§7.5): the cells cross-fade in place; the fades keep their reduced length,
+   and the leaving text goes when its fade ends. */
+@media (prefers-reduced-motion: reduce) {
+  .roll[data-dir] {
+    --roll-from: 0px;
+    --roll-to: 0px;
+  }
+}
+
+:root[data-motion='reduced'] .roll[data-dir] {
+  --roll-from: 0px;
+  --roll-to: 0px;
+}

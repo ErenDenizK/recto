@@ -285,6 +285,17 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
     mutation.observe(element, { childList: true });
     const band = element.querySelector(FRAME_LAYER.band);
     if (band) mutation.observe(band, { childList: true, subtree: true });
+    // A layer that stops being one while it is still drawn (the sidebar sliding out, frame.md
+    // §1) gives its inset back at once: its marker going is a change of the frame.
+    const markers = new MutationObserver(() => {
+      observe();
+      measure();
+    });
+    markers.observe(element, {
+      attributes: true,
+      attributeFilter: ['data-frame-layer'],
+      subtree: true,
+    });
     // Side sheets portal into the body: a portal coming or going, and a panel turning inert
     // as it closes, re-measure (the body's own subtree, the app, is not watched).
     const body = element.ownerDocument.body;
@@ -311,6 +322,7 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
     return () => {
       resize.disconnect();
       mutation.disconnect();
+      markers.disconnect();
       portals.disconnect();
       bodyWatch.disconnect();
       window.removeEventListener('resize', measure);
