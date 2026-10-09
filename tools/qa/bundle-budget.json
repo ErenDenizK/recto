@@ -1,0 +1,18 @@
+{
+  "$comment": "Bundle budgets read by tools/qa/bundle-budget.ts (docs/plan/v1/PLAN.md §2.3, PF-14 · CR-6). Bytes; the script prints KiB (1 KB = 1024 B), the unit of the plan and the audit. `gates` are absolute ceilings (firstPaint 120 KB is V1-P1, editor 900 KB is V1-P2 after PF-1). `growthCap` is the growth allowed over `baseline` per wave. `baseline` is written by `--write-baseline`, once per wave after the merge or when the owner accepts a growth.",
+  "gates": {
+    "firstPaint": 122880,
+    "editor": 921600,
+    "compact": 327680,
+    "pdfiumWorker": 1638400,
+    "precache": 14680064
+  },
+  "growthCap": 0.01,
+  "baseline": {
+    "firstPaint": 120668,
+    "editor": 900323,
+    "compact": 313259,
+    "pdfiumWorker": 1615076,
+    "precache": 13344486
+  }
+}
