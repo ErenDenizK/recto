@@ -23,6 +23,7 @@ import { useId, useRef, useState } from 'react';
 
 import { openSaveCopy } from '../export/export-store';
 import { getLocale, m } from '../i18n';
+import { shake } from '../motion';
 import { announce } from '../shell/announcer';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { FileButton } from '../ui/FileButton';
@@ -186,6 +187,12 @@ function CertificateForm({
         message: signingFailureText(error),
         ...(command ? { command } : {}),
       });
+      // A wrong password (or a refused file) shakes the password field; a colour pulse under
+      // reduced motion (`shake`, motion-2026-10 forms-compact §6).
+      shake(
+        document.querySelector<HTMLElement>('[data-testid="sign-dialog"] input[type="password"]')
+          ?.parentElement ?? null,
+      );
     }
   };
 

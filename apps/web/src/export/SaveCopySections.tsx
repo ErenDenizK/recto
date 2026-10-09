@@ -6,7 +6,8 @@
  * - **Size** is a radio group whose options carry their estimate ("Smaller, about 1.1 MB");
  *   "Estimating…" while the compress worker analyses (`aria-busy`), "Already compact" under
  *   3 % (§4.4; Smallest also against Smaller, `littleToGain`). Custom shows its fields and Print (300 dpi).
- * - **Disclosures** open in place, one at a time; the button's name holds the current value
+ * - **Disclosures** open in place, one at a time, on a height spring with their content fading
+ *   (`disclose`, motion-2026-10 forms-compact §4); the button's name holds the current value
  *   (§4.8). Security's Password… fields apply to this copy only (S5's fields inline);
  *   Metadata and Signature open the Strip metadata and certificate dialogs nested in the sheet,
  *   until S4 and S8 take them inline (D1).
@@ -18,7 +19,7 @@ import {
   type RasterBackground,
   type RasterFormat,
 } from '@pdf-editor/engine/client';
-import { type ReactNode, type RefObject, useId } from 'react';
+import { type ReactNode, type RefObject, useId, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConvertPageBreak } from '@pdf-editor/engine/client';
 import { metadataOutcome } from '../document/ExportSections';
@@ -26,6 +27,7 @@ import { openDocumentDialog } from '../document/document-store';
 import { securityOutcome, sourcesOf } from '../document/security-text';
 import { useFormStore } from '../forms/form-store';
 import { formatSize, m } from '../i18n';
+import { disclose } from '../motion';
 import { openSignDialog, setSignOnExport, useSignStore } from '../signatures/sign-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Button } from '../ui/Button';
@@ -266,6 +268,16 @@ function Disclosure({
   readonly children: ReactNode;
 }) {
   const panelId = useId();
+  // Kept mounted while it folds away (`disclose`), then unmounted.
+  const [shown, setShown] = useState(open);
+  if (open && !shown) setShown(true);
+  const was = useRef(open);
+  useLayoutEffect(() => {
+    // A panel open as the sheet opens is simply there; only a toggle moves it.
+    if (was.current === open) return;
+    was.current = open;
+    disclose(document.getElementById(panelId), open, () => setShown(false));
+  }, [open, panelId]);
   return (
     <>
       <SheetRowButton
@@ -277,8 +289,14 @@ function Disclosure({
         data-disclosure={id}
         onClick={() => onToggle(id)}
       />
-      {open ? (
-        <SheetRow full id={panelId} className={styles.disclosurePanel}>
+      {shown ? (
+        <SheetRow
+          full
+          id={panelId}
+          className={styles.disclosurePanel}
+          inert={!open}
+          data-folding={open ? undefined : ''}
+        >
           {children}
         </SheetRow>
       ) : null}

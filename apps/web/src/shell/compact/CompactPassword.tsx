@@ -1,12 +1,14 @@
 /**
  * The password prompt for an encrypted file in the compact edition (the engine service asks
  * through `state/password-store.ts`, as in the full edition's `PasswordDialog`), as a bottom
- * sheet: the field takes focus, a wrong password asks again with a note, and Skip (or
+ * sheet: the field takes focus, a wrong password asks again with a note and shakes the field
+ * (a colour pulse under reduced motion; `shake`), and Skip (or
  * closing the sheet) leaves the file closed with one line in the Library.
  */
-import { type RefObject, type SyntheticEvent, useRef, useState } from 'react';
+import { type RefObject, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 
 import { m } from '../../i18n';
+import { shake } from '../../motion';
 import { answerPassword, type PasswordRequest, usePasswordStore } from '../../state/password-store';
 import { CompactSheet } from './CompactSheet';
 import controls from './controls.module.css';
@@ -38,6 +40,10 @@ function PasswordForm({
   readonly inputRef: RefObject<HTMLInputElement | null>;
 }) {
   const [value, setValue] = useState('');
+  // A retry is a new request (a new form): it shakes the field once as it appears.
+  useEffect(() => {
+    if (request.incorrect) shake(inputRef.current);
+  }, [request, inputRef]);
   const onSubmit = (event: SyntheticEvent) => {
     event.preventDefault();
     answerPassword(request.id, value);

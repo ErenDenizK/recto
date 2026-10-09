@@ -6,10 +6,14 @@
  * bar Q-7). One glass surface, in today's menu tier.
  */
 import { Drawer } from '@base-ui/react/drawer';
-import type { ReactNode, RefObject } from 'react';
+import { type ReactNode, type RefObject, useEffect, useState } from 'react';
 
 import { m } from '../../i18n';
 import styles from './CompactSheet.module.css';
+import { watchRelease } from './sheet-release';
+
+/** How far the panel reaches below the window (`--bleed` in the stylesheet), px. */
+const BLEED = 48;
 import controls from './controls.module.css';
 
 export function CompactSheet({
@@ -30,6 +34,8 @@ export function CompactSheet({
   readonly initialFocus?: RefObject<HTMLElement | null>;
   readonly children: ReactNode;
 }) {
+  const [panel, setPanel] = useState<HTMLElement | null>(null);
+  useEffect(() => (panel && open ? watchRelease(panel, BLEED) : undefined), [panel, open]);
   return (
     <Drawer.Root
       open={open}
@@ -41,6 +47,7 @@ export function CompactSheet({
         <Drawer.Backdrop className={styles.backdrop} />
         <Drawer.Viewport className={styles.viewport}>
           <Drawer.Popup
+            ref={setPanel}
             className={styles.sheet}
             data-size={size}
             data-testid={testId}

@@ -9,6 +9,7 @@ import '../styles/fonts.css';
 
 import { decodeImageFile } from '../files/images';
 import { m } from '../i18n';
+import { traceSmooth } from '../signatures/smooth-ink';
 import type { PendingStamp } from './annotation-store';
 import { INK } from './palette';
 
@@ -158,13 +159,11 @@ export async function drawnSignature(
   g.lineWidth = lineWidth;
   g.lineCap = 'round';
   g.lineJoin = 'round';
+  // Traced as the pad and the plate draw it (`signatures/smooth-ink.ts`).
   for (const stroke of strokes) {
-    const [first, ...rest] = stroke;
-    if (!first) continue;
+    if (stroke.length === 0) continue;
     g.beginPath();
-    g.moveTo(first.x, first.y);
-    if (rest.length === 0) g.lineTo(first.x + 0.1, first.y);
-    for (const p of rest) g.lineTo(p.x, p.y);
+    traceSmooth(g, stroke);
     g.stroke();
   }
   const blob = await c.convertToBlob({ type: 'image/png' });
