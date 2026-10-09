@@ -8,6 +8,7 @@ import { userEvent } from 'vitest/browser';
 
 import { settled } from '../../test/settled';
 import { parseShortcut } from '../commands/shortcuts';
+import { installContainerTransform } from './container-transform';
 import { PopoverBody, PopoverHeader, PopoverPopup } from './Popover';
 import { ScrollArea } from './ScrollArea';
 import { TOUCH_HOLD_MS, Tooltip, TooltipProvider } from './Tooltip';
@@ -187,6 +188,8 @@ describe('ScrollArea', () => {
 });
 
 describe('Popover', () => {
+  installContainerTransform();
+
   it('is the one recipe: radius 16, 12 px padding, a 44 px title row with ✕, scaling from its anchor', async () => {
     render(
       <Popover.Root>
@@ -200,10 +203,20 @@ describe('Popover', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open' }));
     const dialog = await screen.findByRole('dialog', { name: 'Edit Blue pen' });
     expect(dialog).toHaveAccessibleDescription('Width and colour.');
-    // The entry animates transform and opacity only (Q-7).
-    const props = getComputedStyle(dialog).transitionProperty;
-    expect(props.split(',').map((p) => p.trim())).toEqual(['opacity', 'transform']);
+    // The entry grows out of its trigger (the container transform, platform.md §1): its clip,
+    // a translate and its opacity, on Web Animations (Q-7: no layout moves).
+    expect(dialog).toHaveAttribute('data-ct');
+    const moved = new Set(
+      dialog
+        .getAnimations()
+        .flatMap((a) => (a.effect as KeyframeEffect).getKeyframes())
+        .flatMap((k) => Object.keys(k))
+        .filter((k) => !['offset', 'easing', 'composite', 'computedOffset'].includes(k)),
+    );
+    expect([...moved].sort()).toEqual(['clipPath', 'opacity', 'transform']);
     await settled(dialog);
+    expect(dialog.getAnimations()).toEqual([]);
+    expect(dialog.style.cssText).toBe('');
     const style = getComputedStyle(dialog);
     expect(style.borderTopLeftRadius).toBe('16px');
     expect(style.paddingTop).toBe('12px');

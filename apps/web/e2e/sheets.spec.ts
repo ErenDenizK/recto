@@ -503,7 +503,9 @@ test.describe('the gallery', () => {
       await page.waitForTimeout(60);
       const mid = await walkGlass(page, { atRest: false });
       expect(mid.violations.filter((v) => v.rule === 'Q-3' || v.rule === 'Q-4')).toEqual([]);
-      expectTransformOnly(await motion, { boxConstant: true });
+      // Opened by a button, it comes out of that button at a uniform scale (the container
+      // transform, motion-2026-10/platform.md §1): its layout size holds, its box follows.
+      expectTransformOnly(await motion, { boxConstant: false });
     });
   });
 
@@ -519,7 +521,9 @@ test.describe('the gallery', () => {
       await page.waitForTimeout(40);
       const mid = await walkGlass(page, { atRest: false });
       expect(mid.violations.filter((v) => v.rule === 'Q-3' || v.rule === 'Q-4')).toEqual([]);
-      expectTransformOnly(await motion, { boxConstant: true });
+      // Opened by a button, a side sheet comes out of it at a uniform scale (platform.md §1):
+      // its layout size holds, its box follows the scale.
+      expectTransformOnly(await motion, { boxConstant: false });
       await closeWithEscape(page, 'task');
 
       // The centred dialog scales from 0.96: its layout size holds, its box follows the scale.

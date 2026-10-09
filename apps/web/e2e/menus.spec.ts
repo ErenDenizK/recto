@@ -97,11 +97,18 @@ test.describe('the Document menu', () => {
           let both = 0;
           let withSheet = 0;
           const end = performance.now() + 10_000;
+          // What shows of the menu: its opacity times its ancestors' (the title menu's list sits
+          // in a popover, which fades as a whole and stays mounted for its exit's last frame).
+          const shown = (el: Element | null): number => {
+            let o = 1;
+            for (let at = el; at; at = at.parentElement) o *= Number(getComputedStyle(at).opacity);
+            return o;
+          };
           const tick = () => {
             const menu = document.querySelector<HTMLElement>('[role="menu"]');
             const panel = document.querySelector('[data-testid="save-copy-sheet"]');
             if (panel) withSheet += 1;
-            if (menu && panel && Number(getComputedStyle(menu).opacity) > 0.01) both += 1;
+            if (menu && panel && shown(menu) > 0.01) both += 1;
             if (withSheet < 20 && performance.now() < end) requestAnimationFrame(tick);
             else resolve({ both, sheetSeen: withSheet > 0 });
           };

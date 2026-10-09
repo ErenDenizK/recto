@@ -42,10 +42,29 @@
   font-weight: var(--weight-regular);
 }
 
+/* *Tooltip* (motion-2026-10/platform.md §4): after the delay it fades in and rises 2 px away
+   from its anchor (half the popups' --rise-distance, so 0 under reduced motion: the fade
+   alone); it leaves with the fade only. A warm switch to the next trigger is `data-instant`
+   and jumps. */
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  transform: scale(var(--tooltip-scale));
+}
+
+.popup[data-side='bottom'][data-starting-style] {
+  transform: translateY(calc(var(--rise-distance) / -2));
+}
+
+.popup[data-side='top'][data-starting-style] {
+  transform: translateY(calc(var(--rise-distance) / 2));
+}
+
+.popup[data-side='right'][data-starting-style] {
+  transform: translateX(calc(var(--rise-distance) / -2));
+}
+
+.popup[data-side='left'][data-starting-style] {
+  transform: translateX(calc(var(--rise-distance) / 2));
 }
 
 .popup[data-instant] {

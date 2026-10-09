@@ -30,6 +30,21 @@
  * focusable (`aria-disabled`, Base UI's `focusableWhenDisabled`), so its reason can be read.
  * Every state comes from the control tokens of tokens.css, so the colour step (D3) changes
  * the values and nothing here.
+ *
+ * Press and hover, one spec for every chrome control (motion-2026-10/platform.md §2): Button,
+ * IconButton, MenuButton, the segments, the switch, the check box and radio, list rows.
+ *
+ * - Hover (fine pointers only, `@media (hover: hover)`): the hover wash or the hover ring,
+ *   faded in --duration-fast on --ease-out.
+ * - Press: the pressed wash and the press scale (--press-scale, 0.97 mouse / 0.94 touch;
+ *   --press-scale-large for rows and surfaces of 120 px or more; a 16–20 px box or circle
+ *   presses three times as deep, else it would not show), both in --duration-instant.
+ * - Release: the scale springs back on --spring-press (--ease-spring), the wash fades back in
+ *   --duration-fast.
+ * - Open: a control whose menu, popover or sheet is open keeps the pressed wash
+ *   (`data-popup-open` from Base UI, `data-origin-open` from `ui/container-transform.ts` and the
+ *   Sheet), and takes the popup back with the *receive* pulse when it closes.
+ * - Reduced motion: the scales rest at 1 (styles/motion.css), so only the washes change.
  */
 .btn {
   /* Read by the danger ring and kept by the focus ring (styles/focus.css). */
@@ -159,7 +174,10 @@
   }
 }
 
-.btn-prominent:is(:active, [data-popup-open]):not([aria-disabled='true'], [data-blocked]) {
+.btn-prominent:is(:active, [data-popup-open], [data-origin-open]):not(
+  [aria-disabled='true'],
+  [data-blocked]
+) {
   background: var(--primary-fill-pressed);
 }
 
@@ -175,7 +193,10 @@
   }
 }
 
-.btn-standard:is(:active, [data-popup-open]):not([aria-disabled='true'], [data-blocked]) {
+.btn-standard:is(:active, [data-popup-open], [data-origin-open]):not(
+  [aria-disabled='true'],
+  [data-blocked]
+) {
   background: var(--control-fill-pressed);
 }
 
@@ -200,7 +221,10 @@
   }
 }
 
-.btn-quiet:is(:active, [data-popup-open]):not([aria-disabled='true'], [data-blocked]) {
+.btn-quiet:is(:active, [data-popup-open], [data-origin-open]):not(
+  [aria-disabled='true'],
+  [data-blocked]
+) {
   background: var(--surface-active);
 }
 

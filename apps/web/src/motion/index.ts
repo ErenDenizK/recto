@@ -18,6 +18,8 @@
  *   (Q-6's own geometry, G6), and `restingWidth()` for whoever measures it mid-flight.
  * - `catalogue.ts`: the catalogue entries that run from script (§7.3): `sheetPush` (X8),
  *   `ringFlash` (*undo reveal*), `revealWhenShown` (*find step*, 05.2), `fold` (02.6).
+ * - `container.ts`: the *container transform* (a popup grows out of its trigger's rect and goes
+ *   back into it, motion-2026-10/platform.md §1) and the trigger's *receive* pulse.
  *
  * CSS transitions with `linear()` springs and Base UI's starting and ending styles remain the
  * first route for popups, bars, press and feedback (§7.4); gestures live in `motion/gesture/`.
@@ -33,6 +35,19 @@ export {
   type Styled,
 } from './animate';
 export { fold, type RingColour, revealWhenShown, ringFlash, sheetPush } from './catalogue';
+export {
+  type Box,
+  CONTAINER_BLEED,
+  containerFrame,
+  type ContainerMotion,
+  containerMotion,
+  type ContainerStart,
+  containerStart,
+  FADE_SPAN,
+  PULSE_PEAK,
+  radiusOf,
+  receivePulse,
+} from './container';
 export { flip } from './flip';
 export { reducedMotion, subscribeReducedMotion, systemReducedMotion } from './reduced-motion';
 export {
