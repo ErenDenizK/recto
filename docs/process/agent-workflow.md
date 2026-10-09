@@ -36,10 +36,18 @@ and the other packages rebase onto it.
 - Cross-engine runs (Firefox, WebKit) and the full matrix happen in CI, not locally. Locally:
   Chromium plus the tablet project for the specs that cover the change.
 
+## Browser tests run last (owner, 2026-10-09)
+
+End-to-end browser tests never hold up the work. Implementers verify with format, lint,
+typecheck, focused unit tests and screenshots, then report. The lead merges and pushes on a green
+unit suite. Playwright runs, local or in CI, are batched: the QA lane works through e2e failures
+after each wave, and the full cross-engine matrix is required only before a deploy the owner will
+look at.
+
 ## Merging
 
 - The lead merges finished packages into `develop` in lane order (platform first). The lead runs the
-  full unit suite and the touched e2e specs once on the merged result, then pushes.
+  full unit suite once on the merged result, then pushes. E2E follows later (see above).
 - A red merge is fixed before anything else is pushed. A fix agent takes the failures; new packages
   keep running meanwhile.
 - Deploys run from a green `develop` commit. Each deploy ends with an owner task script for the iPad.

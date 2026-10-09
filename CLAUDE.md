@@ -37,7 +37,7 @@ suite) in `tools/dev/heavy.sh`, e.g. `tools/dev/heavy.sh pnpm build`. Lanes and 
 
 - `pnpm format:check`, `pnpm lint`, `pnpm typecheck` at the root.
 - Unit/browser tests: `cd apps/web && pnpm exec vitest run --maxWorkers=1 <files>`.
-- e2e: `cd apps/web && pnpm build && E2E_SKIP_BUILD=1 E2E_PORT=<port> pnpm exec playwright test
+- e2e (only when your brief asks; browser tests run last and never block a report): `cd apps/web && pnpm build && E2E_SKIP_BUILD=1 E2E_PORT=<port> pnpm exec playwright test
   <spec> --project=chromium --workers=1`. Only Chromium is installed locally; write
   engine-agnostic tests.
 - Tests waiting on UI use `settled(el)` from `apps/web/test/settled.ts`, not bare
