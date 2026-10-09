@@ -260,8 +260,9 @@ describe('Markup palette', () => {
     expect(box.bottom).toBeLessThanOrEqual(capsule.top - 4);
     expect(Math.abs(box.left + box.width / 2 - (capsule.left + capsule.width / 2))).toBeLessThan(1);
     expect(box.width).toBeLessThan(capsule.width);
-    // One family (G8): the strip is as tall as the palette, one bar.
-    expect(capsule.height).toBe(44);
+    // One family (G8): the strip is as tall as the palette, one piece (--piece-h, 40 px on a
+    // fine pointer, G1).
+    expect(capsule.height).toBe(40);
     expect(box.height).toBe(capsule.height);
     // Select has no strip: the piece leaves, inert from its first frame out, then unmounts.
     await userEvent.click(tool('Select'));
