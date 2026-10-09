@@ -155,7 +155,10 @@ test.describe('pop-ups fit the window', () => {
       await page.getByTestId('privacy-indicator').click();
       const privacy = page.getByRole('dialog', { name: 'Nothing has left this device' });
       await expect(privacy).toBeVisible();
-      await page.waitForTimeout(300);
+      // Its open spring has settled (the scale ends at exactly 1; G6).
+      await privacy.evaluate((el) =>
+        Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
+      );
       await inside(page, '[role="dialog"]', `${at}: privacy`);
       // Its body scrolls under the title: the last line (the version) is reachable, and the
       // title stays where it was.
