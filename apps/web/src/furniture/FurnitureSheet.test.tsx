@@ -21,7 +21,7 @@ import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
-import { lastBatesNumber } from './FurnitureDialogs';
+import { lastBatesNumber } from './FurnitureSheet';
 import { furnitureOf } from './furniture-model';
 import { closeFurnitureDialog, useFurnitureStore } from './furniture-store';
 
@@ -30,9 +30,6 @@ const activeDoc = () => {
   const ws = model().workspace;
   return ws.activeDocument === undefined ? undefined : ws.documents[ws.activeDocument];
 };
-
-/** Segmented radios hide the input; the label is what users click. */
-const segment = (input: HTMLElement) => input.closest('label') as HTMLElement;
 
 /** Texts the furniture layer draws on the first page. */
 function drawnTexts(): string[] {
@@ -66,7 +63,7 @@ describe('furniture dialogs', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Page numbers…' }));
     let dialog = await screen.findByTestId('furniture-dialog-page-numbers');
     await waitFor(() => expect(drawnTexts()).toEqual(['1']));
-    await userEvent.click(segment(within(dialog).getByTestId('preset-page-of')));
+    await userEvent.click(within(dialog).getByRole('radio', { name: /^Page 1 of/ }));
     await waitFor(() => expect(drawnTexts()).toEqual(['Page 1 of 4']));
     // Nothing is in the model yet.
     expect(activeDoc()?.pages[0]?.overlays).toEqual([]);
@@ -76,7 +73,7 @@ describe('furniture dialogs', () => {
 
     await commandRegistry.execute('document.pageNumbers');
     dialog = await screen.findByTestId('furniture-dialog-page-numbers');
-    await userEvent.click(segment(within(dialog).getByTestId('preset-slash')));
+    await userEvent.click(within(dialog).getByRole('radio', { name: '1 / 4' }));
     await chooseOption(within(dialog).getByTestId('furniture-range'), 'skip-first');
     await userEvent.click(within(dialog).getByRole('radio', { name: 'Top right' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
@@ -112,7 +109,7 @@ describe('furniture dialogs', () => {
     );
     await waitFor(() => expect(useFurnitureStore.getState().dialog?.kind).toBe('page-numbers'));
     dialog = await screen.findByTestId('furniture-dialog-page-numbers');
-    expect(within(dialog).getByTestId('preset-slash')).toBeChecked();
+    expect(within(dialog).getByRole('radio', { name: '1 / 4' })).toBeChecked();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(useFurnitureStore.getState().dialog).toBeNull());
     expect(model().history.past.length).toBe(pastBefore + 2);

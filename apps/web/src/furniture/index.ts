@@ -15,7 +15,7 @@ import { roleAt } from './furniture-preview';
 import { openFurnitureDialog, useFurnitureStore } from './furniture-store';
 
 export { registerFurnitureCommands } from './furniture-commands';
-export { FurnitureDialogs } from './FurnitureDialogs';
+export { FurnitureSheet } from './FurnitureSheet';
 
 registerPageOverlay(Object.assign(FurnitureLayer, { displayName: 'FurnitureLayer' }));
 

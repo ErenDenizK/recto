@@ -30,7 +30,7 @@ import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
-import { FurnitureDialogs } from '../furniture';
+import { FurnitureSheet } from '../furniture';
 import { Aura } from '../home/Aura';
 import { DocumentDropOverlay } from '../home/DropOverlay';
 import { showOpened } from '../home/home-actions';
@@ -217,7 +217,7 @@ export function AppShell() {
       <BatchSheetHost />
       <OcrSheetHost />
       <ApplyRedactionsSheet />
-      <FurnitureDialogs />
+      <FurnitureSheet />
       <ReplacePopover />
       <ToastRegion />
       <LiveRegion />
