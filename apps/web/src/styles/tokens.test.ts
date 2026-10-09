@@ -309,7 +309,7 @@ describe('tokens.css', () => {
       expect(resolve('--surface-1')).toBe(resolve('--surface-frame'));
       expect(resolve('--surface-2')).toBe(resolve('--surface-raised'));
       expect(resolve('--surface-3')).toBe(resolve('--surface-on'));
-      expect(resolve('--radius-2')).toBe('6px');
+      expect(resolve('--radius-2')).toBe('8px');
     });
 
     it('defines every name tokens.css reads', () => {
@@ -1450,11 +1450,9 @@ describe('tokens.css', () => {
 
     it('sizes controls 32 px fine and 44 px coarse, in pieces of 40 and 48 (Q-9, G1)', () => {
       expect(free.get('--control-h')).toBe('32px');
-      expect(free.get('--bar-button')).toBe('32px');
       expect(free.get('--piece-h')).toBe('40px');
       expect(free.get('--bar-h')).toBe('var(--piece-h)');
       expect(coarse.get('--control-h')).toBe('44px');
-      expect(coarse.get('--bar-button')).toBe('44px');
       expect(coarse.get('--piece-h')).toBe('48px');
       expect(coarse.has('--bar-h')).toBe(false);
       // One scale for every floating piece (owner feedback 2026-10-09, G1): one inset top and
@@ -1473,6 +1471,65 @@ describe('tokens.css', () => {
       expect(free.get('--icon-md')).toBe('20px');
       expect(coarse.has('--icon-sm')).toBe(false);
       expect(coarse.has('--icon-md')).toBe(false);
+    });
+
+    it('keeps the system audit’s scales: the 4 px grid, concentric radii, S · M · L (§3.1–§3.3)', () => {
+      const px = (name: string, scope = root) => resolve(name, scope);
+      const atCoarse = new Map([...root, ...coarse]);
+      // §3.1: one 4 px grid with a 2 px half-step.
+      expect(
+        ['half', 1, '1h', 2, 3, 4, 5, 6, 8, 10, 12, 16].map((step) => px(`--space-${step}`)),
+      ).toEqual([
+        '2px',
+        '4px',
+        '6px',
+        '8px',
+        '12px',
+        '16px',
+        '20px',
+        '24px',
+        '32px',
+        '40px',
+        '48px',
+        '64px',
+      ]);
+      // §3.2: concentric radii; a menu row is the menu's radius less its padding (16 − 6) and a
+      // sheet's group the sheet's radius less its inset (20 − 8).
+      expect(
+        ['page', 'xs', 'sm', 'control', 'md', 'lg', 'xl', '2xl', 'capsule'].map((step) =>
+          px(`--radius-${step}`),
+        ),
+      ).toEqual(['2px', '4px', '8px', '10px', '12px', '16px', '20px', '28px', '999px']);
+      expect(parseFloat(px('--radius-lg')) - parseFloat(px('--space-1h'))).toBe(
+        parseFloat(px('--radius-control')),
+      );
+      expect(px('--sheet-radius')).toBe(px('--radius-xl'));
+      expect(px('--sheet-radius-bottom')).toBe(px('--radius-2xl'));
+      expect(parseFloat(px('--sheet-radius')) - parseFloat(px('--sheet-group-inset'))).toBe(
+        parseFloat(px('--radius-md')),
+      );
+      // §3.3: three control sizes, never the piece height; the toast is a piece.
+      expect(['--control-h-sm', '--control-h', '--control-h-lg'].map((n) => px(n))).toEqual([
+        '24px',
+        '32px',
+        '40px',
+      ]);
+      expect(
+        ['--control-h-sm', '--control-h', '--control-h-lg'].map((n) => px(n, atCoarse)),
+      ).toEqual(['32px', '44px', '52px']);
+      expect(free.get('--toast-h')).toBe('var(--piece-h)');
+      expect([px('--tooltip-h'), px('--tooltip-h', atCoarse)]).toEqual(['24px', '28px']);
+      // §3.10: icons 12 (badges only), 16, 20 and 32 (empty states), at every density.
+      expect(['xs', 'sm', 'md', 'lg'].map((step) => px(`--icon-${step}`))).toEqual([
+        '12px',
+        '16px',
+        '20px',
+        '32px',
+      ]);
+      // §3.6.1: the sheet's padding, header and rows, fine and coarse.
+      expect([px('--sheet-pad'), px('--sheet-pad', atCoarse)]).toEqual(['20px', '16px']);
+      expect([px('--sheet-header-h'), px('--sheet-header-h', atCoarse)]).toEqual(['56px', '64px']);
+      expect([px('--sheet-row-h'), px('--sheet-row-h', atCoarse)]).toEqual(['44px', '56px']);
     });
   });
 

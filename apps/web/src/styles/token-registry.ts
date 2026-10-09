@@ -192,16 +192,17 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   '--type-display-lg-lh',
   '--leading-tight',
   '--leading-base',
-  ...steps('--radius-', ['page', 'xs', 'sm', 'md', 'capsule', 'pill', 'control']),
-  ...steps('--space-', [1, 2, 3, 4, 5, 6, 8, 12]),
-  '--control-height',
+  // Concentric radii, the 4 px grid and its half-step (system-audit-2026-10 §3.1, §3.2).
+  ...steps('--radius-', ['page', 'xs', 'sm', 'control', 'md', 'lg', 'xl', '2xl', 'capsule']),
+  ...steps('--space-', ['half', 1, '1h', 2, 3, 4, 5, 6, 8, 10, 12, 16]),
   '--focus-offset-out',
   '--focus-offset-in',
   '--focus-offset-gap',
+  // The three control sizes, S · M · L (§3.3), and the pieces they sit in (G1).
   '--hit-min',
+  '--control-h-sm',
   '--control-h',
   '--control-h-lg',
-  '--bar-button',
   '--bar-h',
   '--piece-h',
   '--piece-inset',
@@ -210,16 +211,24 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   '--piece-icon',
   '--piece-label',
   '--piece-label-lh',
-  '--chip-h',
   '--check',
   '--switch-w',
   '--switch-h',
-  '--icon-sm',
-  '--icon-md',
+  ...steps('--icon-', ['xs', 'sm', 'md', 'lg']),
   '--gap-target',
   '--control-text',
   '--control-lh',
   '--field-text',
+  // The toast and tooltip heights, and the sheet's public metrics (§3.6, §3.6.1).
+  '--toast-h',
+  '--tooltip-h',
+  '--sheet-radius',
+  '--sheet-radius-bottom',
+  '--sheet-pad',
+  '--sheet-header-h',
+  '--sheet-group-inset',
+  '--sheet-row-h',
+  '--sheet-row-pad',
 ];
 
 /** §3's aliases, deleted at migration step 11. */
@@ -233,8 +242,12 @@ export const THEME_FREE_ALIASES: Readonly<Record<string, string>> = {
   '--radius-2': '--radius-sm',
   '--radius-3': '--radius-md',
   '--radius-round': '--radius-capsule',
+  '--radius-pill': '--radius-capsule',
   '--icon-chrome': '--icon-sm',
   '--icon-toolbar': '--icon-md',
+  '--control-height': '--control-h',
+  '--bar-button': '--control-h',
+  '--chip-h': '--control-h-sm',
 };
 
 /** Every name §1 defines; the light blocks (§2, D3-7) define exactly these. */
