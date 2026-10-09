@@ -39,6 +39,28 @@
   pointer-events: none;
 }
 
+/* The paragraph's frame while it is edited: a hairline of the page's selection blue 3 px out,
+   that unfolds from the first line as the editor opens (edit-motion.ts; motion-2026-10
+   viewer.md §6). */
+.frame {
+  position: absolute;
+  z-index: 3;
+  margin: -3px;
+  padding: 3px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgb(var(--select-rgb) / 0.55);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+/* What the editor showed, held over the page until it paints the edit (edit-motion.ts). */
+.hold {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
 /*
  * The mirror: present for the keyboard, IME and assistive technology, invisible on screen.
  * It sits over the paragraph so the IME's candidate window opens near the text.
@@ -86,6 +108,18 @@
   font-size: var(--type-footnote);
   pointer-events: auto;
   cursor: default;
+  /* It emerges beside the opening paragraph (motion-2026-10 viewer.md §6): from --enter-scale
+     on --spring-quick, fading on --duration-base; `scale`, so the side's translate stays. */
+  transition:
+    scale var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out);
+}
+
+@starting-style {
+  .header {
+    scale: var(--enter-scale);
+    opacity: 0;
+  }
 }
 
 /* In the left margin the header ends at the paragraph's left edge. */
