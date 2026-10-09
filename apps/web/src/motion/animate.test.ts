@@ -51,7 +51,9 @@ describe('animate: numbers on one requestAnimationFrame loop', () => {
       spring: 'glide',
       onUpdate: (value, velocity) => samples.push([performance.now(), value, velocity]),
     });
-    await wait(100);
+    // 100 ms in, held on the main thread: a busy runner can stall a real wait until it settles.
+    const start = performance.now();
+    while (performance.now() - start < 100);
     const t1 = performance.now();
     const before = { value: motion.value, velocity: motion.velocity };
     motion.retarget(0);
@@ -250,7 +252,9 @@ describe('animateStyle: elements on Web Animations', () => {
   it('retargets from where it is on screen, keeping the velocity', async () => {
     const el = box();
     const motion = animateStyle(el, 'transform', [0, 0], [0, 600], { spring: 'glide' });
-    await wait(100);
+    // Pin the clock 100 ms in: a busy runner can leave the animation pending past a real wait.
+    const [running] = el.getAnimations();
+    if (running) running.currentTime = 100;
     const [, y1 = 0] = motion.value;
     const [, v1 = 0] = motion.velocity;
     const shown = renderedY(el);
