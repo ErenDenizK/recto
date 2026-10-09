@@ -1,7 +1,8 @@
 /*
- * IconButton (09-primitives §4; quality-bar Q-9, Q-14): a circle, `bar` at --control-h with a
- * 20 px icon, `row` at 28 px with a 16 px icon and a 44 px hit area on a coarse pointer. Hover
- * and pressed change the fill only; the box never moves except by the press scale.
+ * IconButton (09-primitives §4; quality-bar Q-9, Q-14): a circle, `bar` the M size
+ * (--control-h) with a 20 px icon, `row` the S size (--control-h-sm, system-audit-2026-10 §3.3)
+ * with a 16 px icon and a 44 px hit area on a coarse pointer. Hover and pressed change the fill
+ * only; the box never moves except by the press scale.
  */
 .button {
   --shadow-own: 0 0 #0000;
@@ -27,8 +28,8 @@
 }
 
 .button[data-size='row'] {
-  width: 28px;
-  height: 28px;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
 }
 
 .button[data-size='row'] svg {
@@ -36,11 +37,11 @@
   height: var(--icon-sm);
 }
 
-/* A row button keeps its 28 px circle on a coarse pointer; its hit area grows to 44 px. */
+/* A row button keeps its small circle on a coarse pointer; its hit area grows to 44 px. */
 .button[data-size='row']::after {
   content: '';
   position: absolute;
-  inset: calc((28px - var(--hit-min)) / 2);
+  inset: min(0px, calc((var(--control-h-sm) - var(--hit-min)) / 2));
   border-radius: inherit;
 }
 

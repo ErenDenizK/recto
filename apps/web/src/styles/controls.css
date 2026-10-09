@@ -5,9 +5,18 @@
  *
  *   .save { composes: btn btn-prominent from global; }
  *
- * One shape and one height per density: a pill, --control-h (32 px fine, 44 px coarse) or
- * --control-h-lg, a 13/18 label at 500 (15/20 coarse) and a 16 px glyph (20 px coarse), so a
- * bar of buttons shares one height and one centre line. Four variants:
+ * One shape, the capsule, in the three control sizes of system-audit-2026-10 §3.3, so a bar of
+ * buttons shares one height and one centre line:
+ *
+ * - `btn-sm` (S): --control-h-sm (24 px fine, 32 px coarse with a 44 px hit area), a footnote
+ *   label and a 16 px glyph at both densities. Inline actions: a field's or a toast's.
+ * - `btn` (M, the default): --control-h (32 / 44), a body label at 500 and a 16 px glyph
+ *   (20 px coarse).
+ * - `btn-lg` (L): --control-h-lg (40 / 52), a callout label at 500 and a 20 px glyph. At most
+ *   one per screen: the Library's primary, a phone sheet's footer action.
+ *
+ * Padding is --space-3 (--space-4 coarse, --space-5 large), the glyph sits --space-1h from its
+ * label. Four variants:
  *
  * - prominent: the primary fill with its ink label. One per surface.
  * - standard: a white wash (--control-fill) with the primary label.
@@ -30,11 +39,11 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-1h);
   box-sizing: border-box;
   height: var(--control-h);
   min-width: var(--control-h);
-  padding: 0 var(--btn-pad, 12px);
+  padding: 0 var(--btn-pad, var(--space-3));
   border: 0;
   border-radius: var(--radius-capsule);
   background: transparent;
@@ -42,7 +51,7 @@
   color: var(--text-primary);
   font-family: inherit;
   font-size: var(--control-text);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   line-height: var(--control-lh);
   letter-spacing: inherit;
   /* Counts in labels keep their width as they change (09 §3.5). */
@@ -69,7 +78,7 @@
 /* Glyphs grow with the label on a coarse pointer (09 §3.2), still inside Q-9's {16, 20}. */
 @media (pointer: coarse), (any-pointer: coarse) {
   .btn {
-    --btn-pad: 16px;
+    --btn-pad: var(--space-4);
   }
 
   .btn svg {
@@ -85,10 +94,39 @@
   text-overflow: ellipsis;
 }
 
-.btn-lg {
+.btn.btn-sm {
+  --btn-pad: var(--space-2);
+  gap: var(--space-1);
+  height: var(--control-h-sm);
+  min-width: var(--control-h-sm);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.btn.btn-sm svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* S keeps its small fill on a coarse pointer; the hit area grows to --hit-min (09 §2.1). */
+.btn-sm::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((var(--control-h-sm) - var(--hit-min)) / 2));
+  border-radius: inherit;
+}
+
+.btn.btn-lg {
+  --btn-pad: var(--space-5);
   height: var(--control-h-lg);
   min-width: var(--control-h-lg);
-  --btn-pad: 16px;
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+}
+
+.btn.btn-lg svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
 }
 
 /* Press: scale on the press spring, back on release; colour only under reduced motion. */
