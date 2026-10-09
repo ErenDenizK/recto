@@ -21,7 +21,8 @@
       "!**/*.gen.ts",
       "!**/CHANGELOG.md",
       "!pnpm-lock.yaml",
-      "!test/fixtures/**/*.pdf"
+      "!test/fixtures/**/*.pdf",
+      "!docs/family/kit"
     ]
   },
   "formatter": {
