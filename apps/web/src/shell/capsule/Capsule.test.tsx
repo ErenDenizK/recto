@@ -10,12 +10,19 @@ import '../../styles/tokens.css';
 import '../../styles/reset.css';
 import '../../styles/global.css';
 
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { Capsule } from './Capsule';
 import type { CapsuleShape } from './capsule-content';
-import { coverTime, LEAVE_MS, TRACE_OPACITY, uncoverTime } from './capsule-morph';
+import {
+  coverTime,
+  FLOW_MAX_PX,
+  flowOffset,
+  LEAVE_MS,
+  TRACE_OPACITY,
+  uncoverTime,
+} from './capsule-morph';
 
 /** A content of `width` × 42 px, with named pieces of 60 px. */
 function Content({ shape }: { readonly shape: CapsuleShape }) {
@@ -431,6 +438,41 @@ describe('capsule', () => {
     expect(document.activeElement).toBe(
       capsule().querySelector('[data-capsule-layer="locked"] [data-capsule-item="more"]'),
     );
+    await settle();
+  });
+
+  it('flows from the piece pressed: the reveal spreads from it, each part out of its side', async () => {
+    const { rerender } = render(<Harness shape="dock" />);
+    const markup = capsule().querySelector('[data-capsule-item="markup"]') as HTMLElement;
+    const origin = markup.getBoundingClientRect().left + 30;
+    fireEvent.pointerDown(markup);
+    rerender(<Harness shape="palette" />);
+    const piece = (key: string) =>
+      capsule().querySelector(
+        `[data-capsule-layer="palette"] [data-capsule-item="${key}"]`,
+      ) as HTMLElement;
+    const delay = (key: string) =>
+      Number(
+        piece(key)
+          .getAnimations()
+          .find((a) => a.id === 'capsule-arrive')
+          ?.effect?.getComputedTiming().delay,
+      );
+    // The dock's Markup sits left of the centre: the palette's piece under it comes first and
+    // its twin as far right of the centre waits its turn (from the centre they were equal).
+    const eraser = piece('eraser').getBoundingClientRect();
+    expect(Math.abs(eraser.left + 30 - origin)).toBeLessThan(1);
+    expect(delay('eraser')).toBeLessThan(delay('shapes'));
+    // Each part starts a short way back toward the piece pressed and settles in place.
+    const flow = (key: string) => {
+      const effect = piece(key)
+        .getAnimations()
+        .find((a) => a.id === 'capsule-flow')?.effect as KeyframeEffect | undefined;
+      return String(effect?.getKeyframes()[0]?.transform ?? '');
+    };
+    expect(flow('shapes')).toMatch(/translateX\(-/);
+    expect(flow('pen')).toMatch(/translateX\((?!-)/);
+    expect(flowOffset(1000)).toBe(-FLOW_MAX_PX);
     await settle();
   });
 });
