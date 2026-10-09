@@ -145,6 +145,8 @@
   --loop-ring: 2400ms;
   --loop-bloom: 1200ms;
   --loop-reveal: 1200ms;
+  /* The lasso's marching ants: one dash period (7 px) per loop (motion-2026-10/ink-shapes.md). */
+  --loop-ants: 700ms;
 
   /* *press* (§7.3): scale on pointer down in --duration-instant, release on --spring-press.
      Surfaces of 120 px or more press less (spec 02.5): a Library card, a page in the grid. */

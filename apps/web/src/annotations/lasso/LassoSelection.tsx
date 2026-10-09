@@ -208,7 +208,7 @@ export function LassoHighlight({
       : null;
   const items = lassoItems(kindCounts(pickCount(picks), pickedWhole(annotations, wholeIds)));
   return (
-    <g ref={rootRef} data-lasso-root="">
+    <g ref={rootRef} className={styles.lift} data-lasso-root="">
       <g key={signature} className={styles.highlight} data-lasso-selection="">
         <g data-lasso-content="">
           {css.length > 0 ? (
