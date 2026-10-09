@@ -193,10 +193,18 @@ holds strokes. It runs each selected path through the same recogniser, in the pa
   colour, opacity and width. The selection clears, and one undo brings the strokes back.
 - **When nothing fits:** the bar's notice line says "No shape in the selection" (the same slot as
   the stamp-orientation notice) and announces it. Nothing is edited.
-- **Morph:** in the task where the page draws the bitmap with the shapes, an overlay covers each new
-  outline with a page-colour band and draws the stroke as it was. The stroke then morphs onto the
-  outline on `smooth`, and the overlay goes once it lands. Reduced motion: no overlay.
-  - Trade-off: for those ~380 ms the band also hides any text pixels the outline crosses.
+- **Morph:** in the task where the page draws the bitmap with the shapes, an overlay draws each
+  stroke as it was, over its new outline. The stroke then morphs onto the outline on `smooth`, and
+  the overlay goes once it lands. Reduced motion: no overlay.
+  - An earlier version hid the new outline under a page-colour band during the morph, which cut
+    the letters it crossed. The band is gone: for ~380 ms the outline shows under the moving
+    stroke, and the two lines converge.
+  - Option (a) was considered and rejected: keeping the raw strokes painted until the morph lands
+    and committing afterwards still shows two lines (the raw stroke stays on the bitmap under the
+    morph) and lasts longer, because the redraw comes after the morph. It also opens a window
+    where an undo or another edit lands before the commit.
+  - Hold to shape never had a band: its morph runs in the live preview before anything is
+    committed.
 - **Frame strips:** `strip-{1440,1180}-make-shape.png`.
 
 ## Left
