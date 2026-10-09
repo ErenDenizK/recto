@@ -187,6 +187,12 @@
   margin-inline-start: var(--space-1);
 }
 
+/* With no document tabs there is no tab to keep room for: the piece hugs the logo, Library
+   and + (the minimum returns with the first tab, so the spring has a width to grow from). */
+.tabsRegion[data-empty] {
+  min-width: 0;
+}
+
 @media (pointer: coarse), (any-pointer: coarse) {
   .tabsRegion {
     --tab-min: 128px;
