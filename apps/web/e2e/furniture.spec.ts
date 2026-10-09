@@ -29,7 +29,8 @@ test('adds page numbers to rotated pages, exports them and reads them back', asy
   await page.getByRole('menuitem', { name: 'Page numbers…' }).click();
   const dialog = page.getByTestId('furniture-dialog-page-numbers');
   await expect(dialog).toBeVisible();
-  await dialog.locator('label', { has: page.getByTestId('preset-page-of') }).click();
+  await dialog.getByTestId('page-number-format').click();
+  await page.getByRole('option', { name: 'Page 1 of 4' }).click();
   // Live preview on the page while the dialog is open.
   const preview = page.locator('[data-page-index="0"] [data-furniture-text]');
   await expect(preview).toHaveAttribute('data-furniture-text', 'Page 1 of 4');
@@ -101,7 +102,8 @@ test('screenshots of the page numbers and watermark dialogs (design review)', as
   await page.getByTestId('document-menu').click();
   await page.getByRole('menuitem', { name: 'Page numbers…' }).click();
   const numbers = page.getByTestId('furniture-dialog-page-numbers');
-  await numbers.locator('label', { has: page.getByTestId('preset-page-of') }).click();
+  await numbers.getByTestId('page-number-format').click();
+  await page.getByRole('option', { name: /^Page 1 of/ }).click();
   await expect(page.locator('[data-page-index="0"] [data-furniture-text]')).toHaveAttribute(
     'data-furniture-text',
     'Page 1 of 6',

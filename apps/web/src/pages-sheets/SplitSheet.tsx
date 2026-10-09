@@ -12,7 +12,7 @@
  * - The choice is kept per document for the session (07 §1.1 rule 5).
  */
 import type { DocumentId, SplitSpec } from '@pdf-editor/document-model';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 
 import { formatNumber, m } from '../i18n';
 import { openTitleMenu } from '../shell/frame/frame-store';
@@ -30,8 +30,9 @@ import { useChangeRefusal } from '../state/guard';
 import { useSelectionStore } from '../state/selection-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import { NumberField } from '../ui/NumberField';
 import { RadioGroup } from '../ui/RadioGroup';
-import { Sheet, SheetField, useSheetDraft } from '../ui/sheet';
+import { Sheet, SheetField, SheetGroup, SheetRow, useSheetDraft } from '../ui/sheet';
 import { toast } from '../ui/Toast/toast';
 import styles from './PagesSheets.module.css';
 import { rangeProblemMessage } from './range-problems';
@@ -95,6 +96,7 @@ export function SplitSheet({
     if (open && stageView(useUiStore.getState()) !== 'grid') enterGrid();
   }, [open]);
 
+  const everyId = useId();
   const outline = doc ? outlineCuts(doc) : { cuts: [], titles: [], bookmarks: 0 };
   const chosenCuts = doc ? selectionCuts(doc, selected) : [];
   const parsed = parsePageRanges(draft.ranges, pageCount);
@@ -209,57 +211,52 @@ export function SplitSheet({
       }}
       testId="split-dialog"
     >
-      <div className={styles.stack}>
-        <div className={styles.group}>
-          <p className={styles.legend} id="split-how">
-            {m.split_mode_label()}
-          </p>
-          <RadioGroup<SplitMode>
-            label={m.split_mode_label()}
-            value={draft.mode}
-            onValueChange={(mode) => patch({ mode })}
-            options={[
-              { value: 'every', label: m.split_mode_every_short() },
-              { value: 'ranges', label: m.split_mode_ranges() },
-              {
-                value: 'outline',
-                label: m.split_mode_outline(),
-                disabled: outline.bookmarks === 0,
-                description:
-                  outline.bookmarks === 0
-                    ? m.split_outline_none()
-                    : m.split_outline_hint({ count: outline.bookmarks }),
-              },
-              {
-                value: 'selection',
-                label: m.split_mode_selection(),
-                disabled: chosenCuts.length === 0,
-                description:
-                  chosenCuts.length === 0
-                    ? m.split_selection_none()
-                    : m.split_selection_hint({ count: chosenCuts.length }),
-              },
-            ]}
-          />
-        </div>
+      <SheetGroup label={m.split_mode_label()}>
+        <RadioGroup<SplitMode>
+          className={styles.choices}
+          label={m.split_mode_label()}
+          value={draft.mode}
+          onValueChange={(mode) => patch({ mode })}
+          options={[
+            { value: 'every', label: m.split_mode_every_short() },
+            { value: 'ranges', label: m.split_mode_ranges() },
+            {
+              value: 'outline',
+              label: m.split_mode_outline(),
+              disabled: outline.bookmarks === 0,
+              description:
+                outline.bookmarks === 0
+                  ? m.split_outline_none()
+                  : m.split_outline_hint({ count: outline.bookmarks }),
+            },
+            {
+              value: 'selection',
+              label: m.split_mode_selection(),
+              disabled: chosenCuts.length === 0,
+              description:
+                chosenCuts.length === 0
+                  ? m.split_selection_none()
+                  : m.split_selection_hint({ count: chosenCuts.length }),
+            },
+          ]}
+        />
         {draft.mode === 'every' ? (
-          <div className={styles.group}>
-            <div className={styles.numberField}>
-              <SheetField
-                label={m.split_every_input_label()}
-                showLabel
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={Math.max(1, pageCount - 1)}
-                value={draft.every}
-                onChange={(event) => patch({ every: event.target.value })}
-              />
-            </div>
-          </div>
+          <SheetRow title={m.split_every_input_label()} labelFor={everyId}>
+            <NumberField
+              id={everyId}
+              className={styles.number}
+              label={m.split_every_input_label()}
+              min={1}
+              max={Math.max(1, pageCount - 1)}
+              value={Number.isFinite(Number(draft.every)) ? Number(draft.every) : null}
+              onValueChange={(every) => patch({ every: every === null ? '' : String(every) })}
+            />
+          </SheetRow>
         ) : null}
-        {draft.mode === 'ranges' ? (
-          <div className={styles.group}>
+      </SheetGroup>
+      {draft.mode === 'ranges' ? (
+        <SheetGroup footnote={doc ? m.split_ranges_hint({ title: doc.title }) : undefined}>
+          <SheetRow full>
             <SheetField
               label={m.split_ranges_input_label()}
               showLabel
@@ -278,20 +275,21 @@ export function SplitSheet({
                 ))}
               </ul>
             ) : null}
-            {doc ? (
-              <p className={styles.hint}>{m.split_ranges_hint({ title: doc.title })}</p>
-            ) : null}
-          </div>
-        ) : null}
-        <p
-          className={styles.preview}
-          role="status"
-          data-testid="split-preview"
-          data-problem={preview.ok ? undefined : ''}
-        >
-          {summary.join(' ')}
-        </p>
-      </div>
+          </SheetRow>
+        </SheetGroup>
+      ) : null}
+      <SheetGroup>
+        <SheetRow full>
+          <p
+            className={styles.summary}
+            role="status"
+            data-testid="split-preview"
+            data-problem={preview.ok ? undefined : ''}
+          >
+            {summary.join(' ')}
+          </p>
+        </SheetRow>
+      </SheetGroup>
     </Sheet>
   );
 }

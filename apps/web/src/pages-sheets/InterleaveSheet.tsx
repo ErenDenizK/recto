@@ -19,7 +19,7 @@ import { previewInterleave } from '../stage/operation-plans';
 import { interleaveWith } from '../stage/section-operations';
 import { pagesPhrase, useTabItems } from '../state/workspace-store';
 import { RadioGroup } from '../ui/RadioGroup';
-import { Sheet, useSheetDraft } from '../ui/sheet';
+import { Sheet, SheetGroup, SheetRow, useSheetDraft } from '../ui/sheet';
 import { toast } from '../ui/Toast/toast';
 import styles from './PagesSheets.module.css';
 
@@ -84,49 +84,52 @@ export function InterleaveSheet({
       }}
       testId="interleave-dialog"
     >
-      <div className={styles.stack}>
-        {others.length === 0 ? (
-          <p className={styles.preview} data-problem="">
-            {m.interleave_needs_second()}
-          </p>
-        ) : (
-          <div className={styles.group}>
-            <p className={styles.legend}>{m.interleave_second_label()}</p>
-            <RadioGroup<string>
-              label={m.interleave_second_label()}
-              value={b?.id ?? ''}
-              onValueChange={(second) => setDraft((d) => ({ ...d, second: second as DocumentId }))}
-              options={others.map((tab) => ({
-                value: tab.id,
-                label: tab.title,
-                detail: pagesPhrase(tab.pageCount),
-              }))}
-            />
-          </div>
-        )}
-        <div className={styles.group}>
-          <p className={styles.legend}>{m.interleave_mode_label()}</p>
-          <RadioGroup<InterleaveMode>
-            label={m.interleave_mode_label()}
-            value={draft.mode}
-            onValueChange={(mode) => setDraft((d) => ({ ...d, mode }))}
-            options={[
-              {
-                value: 'alternate',
-                label: m.interleave_mode_alternate(),
-                description: m.interleave_mode_alternate_hint(),
-              },
-              {
-                value: 'duplex-reverse-b',
-                label: m.interleave_mode_duplex(),
-                description: m.interleave_mode_duplex_hint(),
-              },
-            ]}
+      {others.length === 0 ? (
+        <SheetGroup>
+          <SheetRow full>
+            <p className={styles.summary} data-problem="">
+              {m.interleave_needs_second()}
+            </p>
+          </SheetRow>
+        </SheetGroup>
+      ) : (
+        <SheetGroup label={m.interleave_second_label()}>
+          <RadioGroup<string>
+            className={styles.choices}
+            label={m.interleave_second_label()}
+            value={b?.id ?? ''}
+            onValueChange={(second) => setDraft((d) => ({ ...d, second: second as DocumentId }))}
+            options={others.map((tab) => ({
+              value: tab.id,
+              label: tab.title,
+              detail: pagesPhrase(tab.pageCount),
+            }))}
           />
-        </div>
-        {a && b ? (
-          <div className={styles.group}>
-            <p className={styles.legend}>{m.interleave_preview_label()}</p>
+        </SheetGroup>
+      )}
+      <SheetGroup label={m.interleave_mode_label()}>
+        <RadioGroup<InterleaveMode>
+          className={styles.choices}
+          label={m.interleave_mode_label()}
+          value={draft.mode}
+          onValueChange={(mode) => setDraft((d) => ({ ...d, mode }))}
+          options={[
+            {
+              value: 'alternate',
+              label: m.interleave_mode_alternate(),
+              description: m.interleave_mode_alternate_hint(),
+            },
+            {
+              value: 'duplex-reverse-b',
+              label: m.interleave_mode_duplex(),
+              description: m.interleave_mode_duplex_hint(),
+            },
+          ]}
+        />
+      </SheetGroup>
+      {a && b ? (
+        <SheetGroup label={m.interleave_preview_label()}>
+          <SheetRow full className={styles.stackRow}>
             <ol
               className={styles.slots}
               aria-label={m.interleave_preview_label()}
@@ -158,15 +161,15 @@ export function InterleaveSheet({
               <span>A · {a.title}</span>
               <span>B · {b.title}</span>
             </p>
-            <p className={styles.preview} role="status">
+            <p className={styles.summary} role="status">
               {m.interleave_preview_new({
                 title: `${a.title} + ${b.title}`,
                 pages: pagesPhrase(total),
               })}
             </p>
-          </div>
-        ) : null}
-      </div>
+          </SheetRow>
+        </SheetGroup>
+      ) : null}
     </Sheet>
   );
 }

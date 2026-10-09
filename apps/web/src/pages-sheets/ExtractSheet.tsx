@@ -22,7 +22,7 @@ import { titleProblemMessage } from '../stage/section-operations';
 import { useChangeRefusal } from '../state/guard';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { RadioGroup } from '../ui/RadioGroup';
-import { Sheet, SheetField, useSheetDraft } from '../ui/sheet';
+import { Sheet, SheetField, SheetGroup, SheetRow, useSheetDraft } from '../ui/sheet';
 import { toast } from '../ui/Toast/toast';
 import styles from './PagesSheets.module.css';
 import { rangeProblemMessage } from './range-problems';
@@ -156,52 +156,60 @@ export function ExtractSheet({
       }}
       testId="extract-sheet"
     >
-      <div className={styles.stack}>
-        <SheetField
-          label={m.extract_pages_label()}
-          showLabel
-          value={draft.pages}
-          spellCheck={false}
-          autoComplete="off"
-          placeholder={m.split_ranges_placeholder()}
-          data-testid="extract-pages"
-          error={problems[0] ? rangeProblemMessage(problems[0]) : null}
-          onChange={(event) => setDraft((d) => ({ ...d, pages: event.target.value }))}
-        />
-        <div className={styles.group}>
-          <p className={styles.legend}>{m.extract_mode_label()}</p>
-          <RadioGroup<ExtractMode>
-            label={m.extract_mode_label()}
-            value={mode}
-            onValueChange={(next) => setDraft((d) => ({ ...d, mode: next }))}
-            options={[
-              { value: 'keep', label: m.extract_keep({ title: doc?.title ?? '' }) },
-              {
-                value: 'remove',
-                label: m.extract_remove({ title: doc?.title ?? '' }),
-                disabled: removeLocked,
-                description: removeLocked ? m.sheet_locked_reason() : undefined,
-              },
-            ]}
+      <SheetGroup>
+        <SheetRow full>
+          <SheetField
+            label={m.extract_pages_label()}
+            showLabel
+            value={draft.pages}
+            spellCheck={false}
+            autoComplete="off"
+            placeholder={m.split_ranges_placeholder()}
+            data-testid="extract-pages"
+            error={problems[0] ? rangeProblemMessage(problems[0]) : null}
+            onChange={(event) => setDraft((d) => ({ ...d, pages: event.target.value }))}
           />
-        </div>
-        <SheetField
-          label={m.combine_name_label()}
-          showLabel
-          value={name}
-          spellCheck={false}
-          autoComplete="off"
-          error={checkedName.ok ? null : titleProblemMessage(checkedName.problem)}
-          onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))}
+        </SheetRow>
+      </SheetGroup>
+      <SheetGroup label={m.extract_mode_label()}>
+        <RadioGroup<ExtractMode>
+          className={styles.choices}
+          label={m.extract_mode_label()}
+          value={mode}
+          onValueChange={(next) => setDraft((d) => ({ ...d, mode: next }))}
+          options={[
+            { value: 'keep', label: m.extract_keep({ title: doc?.title ?? '' }) },
+            {
+              value: 'remove',
+              label: m.extract_remove({ title: doc?.title ?? '' }),
+              disabled: removeLocked,
+              description: removeLocked ? m.sheet_locked_reason() : undefined,
+            },
+          ]}
         />
-        <p className={styles.preview} role="status" data-problem={ready ? undefined : ''}>
-          {ready
-            ? mode === 'keep'
-              ? m.extract_preview_keep({ pages: pagesPhrase(chosen.length) })
-              : m.extract_preview_remove({ pages: pagesPhrase(chosen.length) })
-            : (reason ?? '')}
-        </p>
-      </div>
+      </SheetGroup>
+      <SheetGroup>
+        <SheetRow full>
+          <SheetField
+            label={m.combine_name_label()}
+            showLabel
+            value={name}
+            spellCheck={false}
+            autoComplete="off"
+            error={checkedName.ok ? null : titleProblemMessage(checkedName.problem)}
+            onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))}
+          />
+        </SheetRow>
+        <SheetRow full>
+          <p className={styles.summary} role="status" data-problem={ready ? undefined : ''}>
+            {ready
+              ? mode === 'keep'
+                ? m.extract_preview_keep({ pages: pagesPhrase(chosen.length) })
+                : m.extract_preview_remove({ pages: pagesPhrase(chosen.length) })
+              : (reason ?? '')}
+          </p>
+        </SheetRow>
+      </SheetGroup>
     </Sheet>
   );
 }

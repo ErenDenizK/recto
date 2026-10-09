@@ -21,6 +21,7 @@ export function SheetHeader({
   back,
   closeLabel,
   onClose,
+  closeDisabled = false,
   trailing,
   handle,
 }: {
@@ -31,6 +32,8 @@ export function SheetHeader({
   /** ✕'s name; null leaves ✕ out (a confirmation answers with its buttons). */
   readonly closeLabel: string | null;
   readonly onClose: () => void;
+  /** ✕ is disabled while work runs that must not be interrupted (Sheet's `busy`). */
+  readonly closeDisabled?: boolean;
   /** The primary, on a compact tool sheet. */
   readonly trailing?: ReactNode;
   /** The header takes the swipe (bottom sheets). */
@@ -42,6 +45,7 @@ export function SheetHeader({
         label={closeLabel}
         icon={<Icon name="x" />}
         className={styles.headerButton}
+        disabled={closeDisabled}
         onClick={onClose}
       />
     );

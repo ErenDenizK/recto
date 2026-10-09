@@ -11,6 +11,8 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import manyUrl from '../../../../test/fixtures/many-pages.pdf?url';
+import mixedUrl from '../../../../test/fixtures/mixed-sizes.pdf?url';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { App } from '../app';
@@ -311,4 +313,76 @@ describe('light table', () => {
     });
     expect(useWorkspaceStore.getState().workspace.documentOrder).toHaveLength(2);
   }, 30_000);
+
+  describe('selection marks and alignment (plan E6a)', () => {
+    async function openOne(url: string, name: string) {
+      render(<App />);
+      await openDocuments([await fixture(url, name)]);
+      useUiStore.getState().setGridScope('document');
+      useUiStore.getState().showSurface('grid');
+      return screen.findByRole('grid');
+    }
+
+    const rect = (el: Element) => el.getBoundingClientRect();
+
+    it('stands every page of a row on one foot line, its label just under it', async () => {
+      const table = await openOne(mixedUrl, 'mixed-sizes.pdf');
+      const cells = await within(table).findAllByRole('gridcell');
+      expect(cells).toHaveLength(5);
+      const rows = new Map<number, HTMLElement[]>();
+      for (const cell of cells) {
+        const top = Math.round(rect(cell).top);
+        rows.set(top, [...(rows.get(top) ?? []), cell]);
+      }
+      for (const row of rows.values()) {
+        const sheets = row.map((cell) => rect(cell.querySelector('[data-thumb]')!));
+        const labels = row.map((cell) => rect(cell.lastElementChild!));
+        // Portrait, landscape and square pages share the foot line and the label line.
+        for (const sheet of sheets)
+          expect(Math.abs(sheet.bottom - sheets[0]!.bottom)).toBeLessThan(1);
+        for (const label of labels) expect(Math.abs(label.top - labels[0]!.top)).toBeLessThan(1);
+        for (const [i, sheet] of sheets.entries()) {
+          expect(labels[i]!.top - sheet.bottom).toBeLessThanOrEqual(12);
+        }
+      }
+      // A short document sits in the middle of the stage, not at its leading edge (I-34).
+      const stage = rect(screen.getByTestId('light-table'));
+      const first = rect(cells[0]!);
+      const last = rect(cells[cells.length - 1]!);
+      expect(Math.abs(first.left - stage.left - (stage.right - last.right))).toBeLessThan(24);
+    }, 30_000);
+
+    it("keeps a selected page's badge on its corner, at rest, after virtualisation", async () => {
+      const table = await openOne(manyUrl, 'many-pages.pdf');
+      const cells = await within(table).findAllByRole('gridcell');
+      const id = cells[0]!.dataset.pageId!;
+      useSelectionStore.getState().setSelecting(true);
+      await userEvent.click(cells[0]!);
+      const badge = () =>
+        table.querySelector<HTMLElement>(`[data-page-id="${id}"] [data-select-toggle]`);
+      await waitFor(() => expect(badge()).toHaveAttribute('data-checked'));
+      // Checked while shown: the tick grows in once.
+      expect(badge()).toHaveAttribute('data-pop');
+
+      // Scroll the cell out of the rendered range, then back.
+      const viewport = screen.getByTestId('light-table');
+      viewport.scrollTop = viewport.scrollHeight;
+      await waitFor(() => expect(badge()).toBeNull());
+      viewport.scrollTop = 0;
+      await waitFor(() => expect(badge()).not.toBeNull());
+
+      const back = badge()!;
+      expect(back).toHaveAttribute('data-checked');
+      expect(back).not.toHaveAttribute('data-pop');
+      expect(back.querySelector('svg')!.getAnimations()).toHaveLength(0);
+      await waitFor(() => expect(getComputedStyle(back).opacity).toBe('1'));
+      // Inside the page's top-trailing corner, never over its edge.
+      const sheet = rect(back.closest('[data-thumb]')!);
+      const mark = rect(back);
+      expect(mark.top).toBeGreaterThanOrEqual(sheet.top);
+      expect(mark.right).toBeLessThanOrEqual(sheet.right);
+      expect(sheet.right - mark.right).toBeLessThan(12);
+      expect(mark.top - sheet.top).toBeLessThan(12);
+    }, 60_000);
+  });
 });
