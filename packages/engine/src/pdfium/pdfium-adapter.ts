@@ -89,6 +89,7 @@ import {
   type VerificationResult,
 } from '../types';
 import { loadForSignatures, readSignatureFields } from '../signatures/fields';
+import { restoreLostTail } from '../structure/tail-repair';
 import { checkXrefStructure } from '../structure/xref-check';
 import { permissionsFromP } from '../pdflib/inspect';
 import { type ClearFieldsRequest, clearFields, finalizeForms } from './form-finalize';
@@ -346,6 +347,9 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
     const heuristics = scanBytes(u8);
     // Neither PDFium nor pdf-lib reports repairs; check the xref chain ourselves.
     const structure = checkXrefStructure(u8);
+    // A file that lost only its tail (no trailer left) gets a rebuilt one, which PDFium needs
+    // to find the catalog (structure/tail-repair.ts); it is still reported as repaired.
+    const restored = structure.repaired ? restoreLostTail(u8) : undefined;
     // Inspect a copy in parallel with PDFium: EmbedPDF posts (detaches) the original.
     const inspection = this.inspect(bytes, heuristics, options);
     // Hash first: EmbedPDF posts the buffer to its worker.
@@ -356,7 +360,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
     }
     const doc = await this.run(
       engine.openDocumentBuffer(
-        { id, content: bytes },
+        { id, content: restored ? (restored.buffer as ArrayBuffer) : bytes },
         options.password === undefined ? {} : { password: options.password },
       ),
       options,
