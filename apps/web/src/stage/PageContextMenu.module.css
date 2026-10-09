@@ -1,9 +1,9 @@
-/* The page context menu's item icons (the menu itself is ui/Menu.module.css, glass tier 3). */
+/* The page context menu's item icons (the menu itself is ui/Menu.module.css, glass tier 3):
+   Phosphor's filled outlines at the row glyph size (system-audit-2026-10 §3.10). */
 .icon {
   flex: none;
-  width: 16px;
-  height: 16px;
-  stroke-width: 1.5;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
   color: inherit;
 }
 

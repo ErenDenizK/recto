@@ -7,7 +7,7 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 import { describe, expect, it } from 'vitest';
 
-import { computeLayout, GRID, gridMetrics } from '../../dnd/geometry';
+import { boxAspectOf, computeLayout, GRID, gridMetrics } from '../../dnd/geometry';
 import { initialCombineOrder } from '../../pages-sheets/CombineSheet';
 import { rangesText } from '../../pages-sheets/ExtractSheet';
 import { capsuleShape } from '../../shell/capsule/capsule-content';
@@ -80,6 +80,30 @@ describe('the capsule shows the Pages bar (X21)', () => {
   });
 });
 
+describe('the thumbnail box (plan E6a)', () => {
+  it('takes the tallest page, between the flattest box and Letter', () => {
+    expect(boxAspectOf([])).toBe(GRID.boxAspect);
+    expect(boxAspectOf([{ width: 200, height: 100 }])).toBe(0.5);
+    expect(boxAspectOf([{ width: 400, height: 50 }])).toBe(GRID.minBoxAspect);
+    // A4 portrait is taller than the box: the box stays Letter's, the page fits it narrower.
+    expect(
+      boxAspectOf([
+        { width: 842, height: 595 },
+        { width: 595, height: 842 },
+      ]),
+    ).toBe(GRID.boxAspect);
+  });
+
+  it('sizes the box and the row from it', () => {
+    const flat = gridMetrics(1000, 200, { boxAspect: 0.5 });
+    expect(flat.boxHeight).toBe(100);
+    expect(flat.rowHeight).toBe(100 + GRID.metaHeight + GRID.gapY);
+    expect(gridMetrics(1000, 200, { boxAspect: 3 }).boxHeight).toBe(
+      Math.round(200 * GRID.boxAspect),
+    );
+  });
+});
+
 describe('centred columns (PG1 §2)', () => {
   it('shares what the columns leave between both sides, never less than the gutter', () => {
     const left = gridMetrics(1440, 144);
@@ -89,6 +113,15 @@ describe('centred columns (PG1 §2)', () => {
     const used = centred.columns * 144 + (centred.columns - 1) * GRID.gapX;
     expect(centred.padX).toBe(Math.floor((1440 - used) / 2));
     expect(gridMetrics(150, 144, { centre: true }).padX).toBe(GRID.padX);
+  });
+
+  it('centres the cells a short document has, not empty columns (I-34)', () => {
+    const full = gridMetrics(1440, 144, { centre: true });
+    const five = gridMetrics(1440, 144, { centre: true, items: 5 });
+    expect(five.columns).toBe(full.columns);
+    expect(five.padX).toBe(Math.floor((1440 - (5 * 144 + 4 * GRID.gapX)) / 2));
+    // As many pages as columns or more: the full block.
+    expect(gridMetrics(1440, 144, { centre: true, items: 400 }).padX).toBe(full.padX);
   });
 
   it('lays out a section without a header (This document) from its first row', () => {
