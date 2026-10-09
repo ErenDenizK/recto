@@ -141,6 +141,11 @@ export interface SheetProps {
   readonly finalFocus?: RefObject<HTMLElement | null> | undefined;
   /** A line in the footer's place when there is no action (the shortcuts overlay's note). */
   readonly footnote?: ReactNode;
+  /**
+   * Work runs that must not be interrupted (Crop's removal, S12): ✕ is disabled. Esc and the
+   * scrim still call `onClose`, which ignores them while the work runs.
+   */
+  readonly busy?: boolean;
   readonly testId?: string | undefined;
   readonly children?: ReactNode;
 }
@@ -164,6 +169,7 @@ export function Sheet({
   initialFocus,
   finalFocus,
   footnote,
+  busy = false,
   testId,
   children,
 }: SheetProps) {
@@ -386,6 +392,7 @@ export function Sheet({
               back={back}
               closeLabel={confirmation ? null : (closeLabel ?? m.sheet_close())}
               onClose={() => onCloseRef.current('close')}
+              closeDisabled={busy}
               trailing={compactTool ? primaryButton : undefined}
               handle={layout.swipe !== null}
             />

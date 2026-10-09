@@ -162,7 +162,10 @@ describe('crop pages dialog', () => {
     expect(within(dialog).getByTestId('crop-summary')).toHaveTextContent(
       'Set the margins, drag the edges of the preview or draw a crop area on the page.',
     );
-    expect(within(dialog).getByRole('button', { name: 'Reset crop' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Reset crop' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     // Honesty: a crop hides; removing is a separate, explained choice (off by default).
     expect(dialog).toHaveTextContent('any PDF viewer can show it again');
     const discard = within(dialog).getByRole('checkbox', {
@@ -332,7 +335,9 @@ describe('crop pages dialog: removal and resized pages', () => {
     await typeMargin(dialog, 'bottom', '72');
     await typeMargin(dialog, 'left', '72');
     expect(within(dialog).queryByTestId('crop-discard-marks')).toBeNull();
-    await userEvent.click(within(dialog).getByTestId('crop-discard'));
+    await userEvent.click(
+      within(dialog).getByRole('checkbox', { name: /Also remove the content outside the crop/ }),
+    );
     // The header mark reaches into the removed band: deleted, not applied. Said first.
     await waitFor(() => {
       expect(within(dialog).getByTestId('crop-discard-marks')).toHaveTextContent(
@@ -352,7 +357,11 @@ describe('crop pages dialog: removal and resized pages', () => {
     );
     const left = (await readAnnotations(source, 0)).filter(isRedactMark);
     expect(left.map((a) => a.id)).toEqual([body?.id]);
-    await userEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
+    // The result's own Close, in the footer (✕ in the header has the same name).
+    const closes = within(screen.getByTestId('crop-dialog')).getAllByRole('button', {
+      name: 'Close',
+    });
+    await userEvent.click(closes[closes.length - 1]!);
     await waitFor(() => expect(screen.queryByTestId('crop-dialog')).toBeNull(), {
       timeout: EXIT_TIMEOUT,
     });
