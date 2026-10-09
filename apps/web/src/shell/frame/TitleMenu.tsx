@@ -5,7 +5,10 @@
  * - **Header:** the first page, the editable name, "12 pages · 2.4 MB", the status of the
  *   changes, the facts rows (a signed file's "Intact, changed later", which opens S9
  *   Signatures: spec D2-9 moved it here from the status bar and the inspector), the **Lock**
- *   switch with its reason (`LockSwitch.tsx`) and the privacy line, which opens ◎'s popover.
+ *   row with its trailing switch and reason (`LockSwitch.tsx`), the eye that shows the pages
+ *   without markup (`OriginalRow.tsx`, PLAN.md S2-1a; the menu fades while it is held) and the
+ *   privacy line, which opens ◎'s popover. Every row carries its 16 px glyph (the menu recipe,
+ *   system-audit-2026-10 §3.6).
  * - **Rows:** File · Pages · Add to pages · Protect · Convert, then Compare with… and Document
  *   info… (`TitleMenuItems.ts`). Static: a row the guard or its command refuses dims with its
  *   reason and stays where it is (RA-21); activating it announces the reason and keeps the
@@ -53,6 +56,7 @@ import { renameDocumentTo } from '../../stage/section-operations';
 import { useCanChange } from '../../state/guard';
 import { matchesMark, useSavedStore } from '../../state/saved-store';
 import { pagesPhrase, useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
+import { Icon, type IconName } from '../../ui/Icon';
 import { Keycaps } from '../../ui/Keycaps';
 import { closeMenusAtOnce } from '../../ui/menu-handoff';
 import menuStyles from '../../ui/Menu.module.css';
@@ -60,16 +64,18 @@ import { PopoverPopup } from '../../ui/Popover';
 import { announce } from '../announcer';
 import { closeTitleMenu, useFrameStore } from './frame-store';
 import { LockSwitch } from './LockSwitch';
+import { OriginalRow } from './OriginalRow';
+import { useOriginalStore } from './see-original';
 import styles from './TitleMenu.module.css';
 import {
   APP_ITEMS,
   mergeFiles,
   rotateDocumentPages,
   rotateScope,
+  rowGlyph,
   type ShownRow,
   shownTitleMenu,
 } from './TitleMenuItems';
-import { Icon } from '../../ui/Icon';
 
 const subscribe = (listener: () => void) => commandRegistry.subscribe(listener);
 const snapshot = () => commandRegistry.list();
@@ -126,6 +132,8 @@ function TitleMenuPopup({
   useEffect(() => {
     if (focus === 'name') nameRef.current?.select();
   }, [focus]);
+  // While the eye is held the menu steps aside, so the whole page shows (S2-1a).
+  const peeking = useOriginalStore((s) => s.held);
   return (
     <PopoverPopup
       side="bottom"
@@ -136,6 +144,7 @@ function TitleMenuPopup({
       finalFocus={() => anchor()}
       aria-label={m.frame_title_menu_name({ name: doc.title })}
       data-testid="title-menu"
+      data-peeking={peeking || undefined}
     >
       <Header doc={doc} nameRef={nameRef} />
       <Rows listRef={listRef} withRedo={withRedo} />
@@ -189,6 +198,7 @@ function Header({
       </div>
       <SignatureFactRow doc={doc} />
       <LockSwitch documentId={doc.id} title={doc.title} />
+      <OriginalRow />
       <Popover.Close
         className={styles.privacy}
         onClick={() => {
@@ -427,6 +437,7 @@ function Rows({
           <MenuRow
             key={item.id}
             label={item.label()}
+            glyph={rowGlyph(item.id)}
             enabled
             tabIndex={-1}
             onActivate={() => {
@@ -469,6 +480,7 @@ function Row({ row, tabIndex }: { readonly row: ShownRow; readonly tabIndex: num
   return (
     <MenuRow
       label={row.label}
+      glyph={rowGlyph(row.key)}
       enabled={row.enabled}
       reason={row.reason}
       command={row.command}
@@ -483,9 +495,19 @@ function Row({ row, tabIndex }: { readonly row: ShownRow; readonly tabIndex: num
   );
 }
 
-/** One `menuitem`: label, keycaps on fine pointers, the reason while dimmed (RA-21). */
+/** The row's glyph, or its room kept empty so every label starts on one edge. */
+function RowGlyph({ name }: { readonly name: IconName | undefined }) {
+  return name ? (
+    <Icon name={name} aria-hidden="true" />
+  ) : (
+    <span className={styles.glyphRoom} aria-hidden="true" />
+  );
+}
+
+/** One `menuitem`: glyph, label, keycaps on fine pointers, the reason while dimmed (RA-21). */
 function MenuRow({
   label,
+  glyph,
   enabled,
   reason,
   command,
@@ -495,6 +517,7 @@ function MenuRow({
   ...rest
 }: {
   readonly label: string;
+  readonly glyph?: IconName | undefined;
   readonly enabled: boolean;
   readonly reason?: string | undefined;
   readonly command?: Command | undefined;
@@ -506,10 +529,13 @@ function MenuRow({
   const shortcut = command?.shortcuts[0];
   const reasonId = useId();
   return (
+    // A `menuitem` of a menu inside a dialog (F5 §1: the popover holds a field and a switch, so
+    // it cannot be a Base UI Menu); ui/Button is an action, not a row. The menu recipe draws it.
     <button
       type="button"
       role="menuitem"
       tabIndex={tabIndex}
+      // eslint-disable-next-line recto/q9-controls
       className={`${menuStyles.item} ${styles.row}`}
       aria-disabled={enabled ? undefined : 'true'}
       aria-describedby={enabled || !reason ? undefined : reasonId}
@@ -521,6 +547,7 @@ function MenuRow({
       }}
       {...rest}
     >
+      <RowGlyph name={glyph} />
       <span className={menuStyles.label}>{label}</span>
       {trailing ??
         (enabled && shortcut ? (
@@ -547,10 +574,12 @@ function RotateRow({ row, tabIndex }: { readonly row: ShownRow; readonly tabInde
     <Menu.Root open={open} onOpenChange={setOpen}>
       <Menu.Trigger
         render={
+          // The same `menuitem` row as `MenuRow`, opening the nested menu.
           <button
             type="button"
             role="menuitem"
             tabIndex={tabIndex}
+            // eslint-disable-next-line recto/q9-controls
             className={`${menuStyles.item} ${styles.row}`}
             aria-disabled={row.enabled ? undefined : 'true'}
             title={row.enabled ? undefined : row.reason}
@@ -566,6 +595,7 @@ function RotateRow({ row, tabIndex }: { readonly row: ShownRow; readonly tabInde
         }
         disabled={!row.enabled}
       >
+        <RowGlyph name={rowGlyph('rotate')} />
         <span className={menuStyles.label}>{row.label}</span>
         <Icon name="caret-right" className={menuStyles.submenuArrow} aria-hidden="true" />
       </Menu.Trigger>

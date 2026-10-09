@@ -28,6 +28,7 @@ import { openSettings } from '../../settings/open-settings';
 import { changeRefusal, refusalReason } from '../../state/guard';
 import { useSelectionStore } from '../../state/selection-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import type { IconName } from '../../ui/Icon';
 import { announce } from '../announcer';
 
 export type TitleMenuEntry =
@@ -130,6 +131,53 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
     ],
   },
 ];
+
+/**
+ * Each row's 16 px glyph (the menu recipe, system-audit-2026-10 §3.6: every row may carry
+ * one, and in this menu every row does, so the labels share one edge). A "Remove …" twin
+ * takes its row's glyph; a command no section names (a tool registered elsewhere) keeps the
+ * glyph's room empty (`rowGlyph`).
+ */
+const ROW_GLYPHS: Readonly<Record<string, IconName>> = {
+  'file.save': 'tray-arrow-down',
+  'file.export': 'copy',
+  'file.revert': 'arrow-counter-clockwise',
+  'tab.close': 'x',
+  merge: 'stack',
+  'section.split': 'columns',
+  'section.interleave': 'rows',
+  rotate: 'arrow-clockwise',
+  'pages.crop': 'crop',
+  'pages.resize': 'arrows-out-simple',
+  'document.pageNumbers': 'hash',
+  'document.headerFooter': 'text-aa',
+  'document.bates': 'list',
+  'document.watermark': 'stamp',
+  'document.setPassword': 'lock-simple',
+  'document.removePassword': 'lock-simple-open',
+  'document.sign': 'signature',
+  'document.signatures': 'seal-check',
+  'redaction.find': 'redact',
+  'document.stripMetadata': 'eraser',
+  'document.ocr': 'scan',
+  'document.compress': 'file',
+  'document.exportImages': 'image',
+  'document.exportMarkdown': 'file-text',
+  'mode.compare': 'compare',
+  'document.info': 'info',
+  'outline.addBookmark': 'bookmark-simple',
+  'outline.removeDeadLinks': 'link',
+  'document.saveRepaired': 'check-circle',
+  'edit.redo': 'arrow-u-up-right',
+  settings: 'gear-six',
+  shortcuts: 'keyboard',
+  about: 'question',
+};
+
+/** The glyph of the row `key` (a "Remove …" twin's is its row's), if it has one. */
+export function rowGlyph(key: string): IconName | undefined {
+  return ROW_GLYPHS[key] ?? ROW_GLYPHS[key.replace(/\.remove$/, '')];
+}
 
 const NAMED = new Set(
   TITLE_MENU_SECTIONS.flatMap((s) =>

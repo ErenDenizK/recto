@@ -10,8 +10,9 @@
  * (--piece-h, G1), --control-h controls (32 px fine, 44 coarse; Q-9) with the piece's 20 px
  * glyph and the label beside it in the piece's label type at 500 (Q-8), primary text (labels
  * are never secondary on M2, F10 §3).
- * With labels under the glyphs (`data-labels="under"`) the bar is 56 px and the items 44,
- * the caption under a 20 px glyph, at least 64 px wide (F10 §2).
+ * With labels under the glyphs (`data-labels="under"`) the bar keeps the one piece height,
+ * 48 px at any pointer (the coarse --piece-h; system-audit-2026-10 §3.3, §4 Frame: not 56), its
+ * items 44 (the coarse M), the caption under a 20 px glyph, at least 64 px wide (F10 §2).
  */
 .dock {
   position: absolute;
@@ -108,17 +109,20 @@
   color: var(--text-disabled);
 }
 
-/* Labels under the glyphs: a 56 px bar of 44 px items (Q-9's coarse sizes, at any pointer). */
+/* Labels under the glyphs: a 48 px piece of 44 px items (the coarse piece and M sizes, at any
+   pointer), 1 px between the items and the rim. */
 .toolbar[data-labels='under'] {
-  height: calc(56px - 2px);
-  padding: 0 5px;
+  --under-piece: 48px;
+  --under-item: 44px;
+  height: calc(var(--under-piece) - 2px);
+  padding: 0 calc((var(--under-piece) - var(--under-item) - 2px) / 2);
 }
 
 .toolbar[data-labels='under'] .item {
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-half);
   min-width: 64px;
-  height: 44px;
+  height: var(--under-item);
   padding: 0 var(--space-2);
   font-size: var(--type-caption);
   line-height: var(--type-caption-lh);
