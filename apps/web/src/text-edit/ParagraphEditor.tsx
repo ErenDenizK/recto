@@ -1444,11 +1444,12 @@ export function ParagraphEditor({
         className={styles.frame}
         data-paragraph-frame=""
         aria-hidden="true"
+        // 3 px out from the paragraph on every side.
         style={{
-          left: paragraphBox.left,
-          top: paragraphBox.top,
-          width: paragraphBox.width,
-          height: paragraphBox.height,
+          left: paragraphBox.left - 3,
+          top: paragraphBox.top - 3,
+          width: paragraphBox.width + 6,
+          height: paragraphBox.height + 6,
         }}
       />
       {previewBox ? (

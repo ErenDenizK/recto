@@ -38,6 +38,7 @@ import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useSta
 
 import { RENDER_PRIORITY, sheetSize } from '../engine/engine-service';
 import { animate, type Motion } from '../motion/animate';
+import { sheetPush } from '../motion/catalogue';
 import { reducedMotion } from '../motion/reduced-motion';
 import { m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
@@ -1016,6 +1017,22 @@ function PageColumn({
     // Relative moves step from here until the scroll settles (navigation.ts).
     useViewStore.getState().setNavTarget(index);
     armSettle();
+  });
+
+  // Single page (motion-2026-10 viewer.md §1): the page that replaces the shown one is pushed in
+  // from the side it lies on (*sheet push*, X8: 24 px and a fade on `smooth`), so turning a
+  // page reads as moving through the document rather than a cut.
+  const singleShown = readLayout === 'single' ? (rows[0]?.pages[0] ?? null) : null;
+  const lastSingle = useRef(singleShown);
+  useLayoutEffect(() => {
+    const was = lastSingle.current;
+    lastSingle.current = singleShown;
+    if (singleShown === null || was === null || was === singleShown || prepared) return;
+    const page = pages[singleShown];
+    const sheet = page
+      ? zoomFrameRef.current?.querySelector(`[data-page-id="${CSS.escape(page.id)}"]`)
+      : null;
+    sheetPush(sheet ?? null, singleShown > was ? 1 : -1);
   });
 
   // A layout switch keeps the current page in view.
