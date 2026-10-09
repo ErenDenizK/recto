@@ -1,0 +1,31 @@
+/*
+ * Strip metadata inside the sheet grammar (system-audit-2026-10 §3.6.1): each kind is a
+ * checkbox row whose name carries the count found, in the secondary colour and tabular, and
+ * whose description names what was found.
+ */
+.checking {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.count {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.count[data-found] {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+/* The sheet's longer description, at the head of the body: footnote, secondary, on the
+   header title's line (the header's own line holds one short sentence). */
+.intro {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}

@@ -69,7 +69,7 @@ function InfoSheet({ doc, open }: { readonly doc: VirtualDocument; readonly open
       id={DOCUMENT_INFO_SHEET}
       kind="task"
       open={open}
-      onClose={() => closeDocumentDialog()}
+      onClose={(reason) => closeDocumentDialog(reason === 'replaced')}
       title={m.docinfo_title()}
       subtitle={doc.title}
       initialFocus={titleField}

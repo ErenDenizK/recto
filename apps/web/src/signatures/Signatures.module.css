@@ -1,5 +1,6 @@
-/* Signatures: S9's cards, the tab glyph and the title menu's facts row, the Sign dialog
-   (DESIGN.md §2–§4). Dialog surfaces are opaque; colour marks state only, always with a word beside it. */
+/* Signatures: S9's cards, the tab glyph and the title menu's facts row (DESIGN.md §2–§4).
+   Colour marks state only, always with a word beside it. The certificate sheet is
+   CertificateSheet.module.css. */
 
 .section {
   display: grid;
@@ -16,13 +17,13 @@
   border-top: 1px solid var(--border-hairline);
 }
 
-/* S9's labels: the footnote at 550 in the glass's secondary text, as the sheets' group labels
+/* S9's labels: the footnote at 600 in the glass's secondary text, as the sheets' group labels
    (language.md §4.3: no uppercase labels). */
 .sourceName {
   overflow: hidden;
   color: var(--glass-text-secondary);
   font-size: var(--type-footnote);
-  font-weight: 550;
+  font-weight: var(--weight-semibold);
   line-height: var(--type-footnote-lh);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -51,32 +52,27 @@
   gap: var(--space-2);
   color: var(--text-primary);
   font-size: var(--type-body);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   line-height: var(--leading-base);
 }
 
-.status svg,
-.badge svg,
-.tabGlyph svg {
+.status svg {
   flex: none;
   width: 16px;
   height: 16px;
 }
 
 .status[data-tone='ok'] svg,
-.badge[data-tone='ok'] svg,
 .tabGlyph[data-tone='ok'] {
   color: var(--success);
 }
 
 .status[data-tone='note'] svg,
-.badge[data-tone='note'] svg,
 .tabGlyph[data-tone='note'] {
   color: var(--warning);
 }
 
 .status[data-tone='problem'] svg,
-.badge[data-tone='problem'] svg,
 .tabGlyph[data-tone='problem'] {
   color: var(--danger);
 }
@@ -130,7 +126,7 @@
 .subheading {
   color: var(--glass-text-secondary);
   font-size: var(--type-footnote);
-  font-weight: 550;
+  font-weight: var(--weight-semibold);
   line-height: var(--type-footnote-lh);
 }
 
@@ -180,27 +176,6 @@
   gap: var(--space-1);
 }
 
-.small {
-  height: 26px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  white-space: nowrap;
-}
-
-.small:disabled {
-  color: var(--text-disabled);
-}
-
-@media (hover: hover) {
-  .small:not(:disabled):hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
 .note {
   color: var(--text-tertiary);
   font-size: var(--type-footnote);
@@ -213,35 +188,7 @@
   line-height: var(--leading-base);
 }
 
-/* ---- Status bar badge and tab glyph ---- */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  height: 22px;
-  padding: 0 6px;
-  border-radius: var(--radius-xs);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  white-space: nowrap;
-}
-
-@media (hover: hover) {
-  .badge:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
-.badge svg {
-  width: 14px;
-  height: 14px;
-}
-
-.badgeMuted {
-  color: var(--text-tertiary);
-}
+/* ---- Tab glyph ---- */
 
 .tabGlyph {
   display: inline-grid;
@@ -250,160 +197,14 @@
   color: var(--text-tertiary);
 }
 
+/* The tab's badge glyph: the one 12 px step (system audit §3.10). */
 .tabGlyph svg {
-  width: 12px;
-  height: 12px;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
 }
 
 /* The same shield at the title menu's facts-row icon size (01-frame F5 §2). */
 .factGlyph svg {
   width: var(--icon-sm);
   height: var(--icon-sm);
-}
-
-/* ---- Sign dialog (layered on ShortcutOverlay.module.css's popup) ---- */
-
-.popup {
-  width: min(480px, calc(100vw - 32px));
-}
-
-.dialogBody {
-  display: grid;
-  gap: var(--space-3);
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--space-5) var(--space-6) var(--space-6);
-}
-
-.description {
-  color: var(--text-secondary);
-  line-height: var(--leading-base);
-}
-
-.field {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.label {
-  color: var(--text-tertiary);
-  font-size: var(--type-footnote);
-}
-
-.input,
-.select {
-  height: 32px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: var(--type-body);
-}
-
-.file {
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-}
-
-.file::file-selector-button {
-  height: 28px;
-  margin-right: var(--space-2);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-}
-
-.input:focus-visible,
-.select:focus-visible,
-.file:focus-visible {
-  outline-offset: var(--focus-offset-in);
-  box-shadow: inset 0 0 0 4px var(--focus-dark);
-}
-
-.row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: var(--space-2);
-}
-
-.check {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  color: var(--text-primary);
-  font-size: var(--type-body);
-  line-height: var(--leading-base);
-}
-
-.check input {
-  flex: none;
-  margin-top: 3px;
-  accent-color: var(--control-on);
-}
-
-.hint {
-  display: block;
-  color: var(--text-tertiary);
-  font-size: var(--type-caption);
-  line-height: var(--leading-base);
-}
-
-.preview {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-}
-
-.command {
-  composes: technical from global;
-  display: block;
-  padding: var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xs);
-  background: var(--canvas);
-  color: var(--text-primary);
-  font-size: var(--type-caption);
-  line-height: 18px;
-  overflow-wrap: anywhere;
-  user-select: all;
-}
-
-.dialogActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  padding-top: var(--space-2);
-}
-
-/* ---- Export dialog Signature section ---- */
-
-.exportIdentity {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-}
-
-.exportIdentity > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.primary {
-  composes: btn btn-prominent from global;
-}
-
-.secondary {
-  composes: btn btn-standard from global;
 }

@@ -126,3 +126,14 @@ export function stripSummary(strip: MetadataStrip): string {
     .map((item) => item.label())
     .join(', ');
 }
+
+/** One line: what a saved copy writes as metadata (Save a copy's Metadata section). */
+export function metadataOutcome(meta: DocumentMetadata, firstFile: string | undefined): string {
+  if (meta.strip && Object.values(meta.strip).some(Boolean)) {
+    return m.export_metadata_strip({ items: stripSummary(meta.strip) });
+  }
+  if (meta.policy === 'explicit') return m.export_metadata_explicit();
+  return firstFile
+    ? m.export_metadata_inherit({ name: firstFile })
+    : m.export_metadata_inherit_none();
+}

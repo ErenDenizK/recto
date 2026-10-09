@@ -7,7 +7,7 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
-import { onSaveCopyClosed } from '../export/export-store';
+import { onSaveCopyClosed, popToSaveCopy, pushOverSaveCopy } from '../export/export-store';
 import type { SignDraft } from './signing';
 
 export interface SignDialog {
@@ -30,12 +30,24 @@ export const useSignStore = create<SignState>()(() => ({
   signOnExport: {},
 }));
 
+/**
+ * Opens the certificate sheet (07-sheets S8). From Save a copy (`origin: 'export'`) it replaces
+ * that sheet, which comes back when it closes (`pushOverSaveCopy`).
+ */
 export function openSignDialog(documentId: DocumentId, origin: SignDialog['origin'] = 'app'): void {
+  if (origin === 'export') pushOverSaveCopy(documentId);
   useSignStore.setState({ dialog: { documentId, origin } });
 }
 
-export function closeSignDialog(): void {
+/**
+ * Closes the certificate sheet; one opened from Save a copy returns to it, unless another
+ * sheet replaced it (`replaced`).
+ */
+export function closeSignDialog(replaced = false): void {
+  const was = useSignStore.getState().dialog;
+  if (was === null) return;
   useSignStore.setState({ dialog: null });
+  if (was.origin === 'export') popToSaveCopy(!replaced);
 }
 
 /** Keeps a checked certificate for the document and turns signing on. */

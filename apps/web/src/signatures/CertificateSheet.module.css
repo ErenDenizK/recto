@@ -1,0 +1,106 @@
+/*
+ * S8 Sign with certificate inside the sheet grammar (components/07-sheets.md §10;
+ * system-audit-2026-10 §3.6.1): the chosen file's name is the row's description in the primary
+ * colour; a refusal is the danger line with the re-export command in a solid technical well
+ * under it; the honesty line closes the signer's group.
+ */
+.fileName {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+}
+
+.status,
+.refused {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-inline: var(--sheet-row-pad);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.commandLabel {
+  font-weight: var(--weight-semibold);
+}
+
+.command {
+  composes: technical from global;
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+  color: var(--text-primary);
+  font-size: var(--type-caption);
+  line-height: var(--type-caption-lh);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* The signer: the passed check's glyph, the name at body 500, the facts in footnote. */
+.signer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-block: var(--space-1h);
+}
+
+.signerGlyph {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  color: var(--success);
+}
+
+.signerText {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.signerName {
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  font-weight: var(--weight-medium);
+  line-height: var(--control-lh);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-half) var(--space-3);
+  margin: 0;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.facts dt {
+  color: var(--text-secondary);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The sheet's longer description, at the head of the body: footnote, secondary, on the
+   header title's line (the header's own line holds one short sentence). */
+.intro {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}

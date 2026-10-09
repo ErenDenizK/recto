@@ -30,7 +30,6 @@ import {
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import { choicePages } from '../convert/convert-run';
-import { DocumentDialogs } from '../document/DocumentDialogs';
 import { toPolicy, validatePasswordForm } from '../document/password-form';
 import { useFormStore } from '../forms/form-store';
 import { getLocale, m } from '../i18n';
@@ -39,7 +38,6 @@ import { applyMarks, countMarks, pendingMarksOf } from '../files/save';
 import { displaySize } from '../pages/page-geometry';
 import { announce } from '../shell/announcer';
 import { activeSignDraft, openSignDialog, useSignStore } from '../signatures/sign-store';
-import { SignDialog } from '../signatures/SignDialog';
 import { useSignedSources } from '../signatures/use-signatures';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -577,18 +575,6 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
           <LabelColumn />
         </div>
       ) : null}
-      {/* Strip metadata and the certificate open nested in the sheet's modal stack; their
-          own forms must not reach the sheet's (React events bubble through portals). */}
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <div
-        hidden
-        onSubmit={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <DocumentDialogs origin="export" />
-        <SignDialog origin="export" />
-      </div>
     </Sheet>
   );
 }

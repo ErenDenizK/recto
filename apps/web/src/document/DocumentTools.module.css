@@ -1,4 +1,4 @@
-/* Document tools: Info editor, security notes, diagnostics, dialogs (DESIGN.md §3). */
+/* Document tools: Info editor, security notes and diagnostics (DESIGN.md §3). */
 
 /* ---- Info section ---- */
 
@@ -72,13 +72,13 @@
   line-height: var(--leading-base);
 }
 
-/* A label inside S4's groups: the footnote at 550 in the glass's secondary text, as the sheet's
+/* A label inside S4's groups: the footnote at 600 in the glass's secondary text, as the sheet's
    own group labels (language.md §4.3: no uppercase labels). */
 .subheading {
   margin: 0;
   color: var(--glass-text-secondary);
   font-size: var(--type-footnote);
-  font-weight: 550;
+  font-weight: var(--weight-semibold);
   line-height: var(--type-footnote-lh);
 }
 
@@ -94,28 +94,6 @@
 
 .addKey .error {
   grid-column: 1 / -1;
-}
-
-/* Export sections' small buttons (ExportSections.tsx), until they move onto ui/Button. */
-.small {
-  height: 26px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xs);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  white-space: nowrap;
-}
-
-.small:disabled {
-  color: var(--text-disabled);
-}
-
-@media (hover: hover) {
-  .small:not(:disabled):hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
 }
 
 .buttons {
@@ -229,192 +207,4 @@
   color: var(--warning);
   font-size: var(--type-footnote);
   line-height: var(--leading-base);
-}
-
-/* ---- Dialogs (layered on ShortcutOverlay.module.css's popup) ---- */
-
-.popup {
-  width: min(460px, calc(100vw - 32px));
-}
-
-.dialogBody {
-  display: grid;
-  gap: var(--space-3);
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--space-5) var(--space-6) var(--space-6);
-}
-
-.description {
-  color: var(--text-secondary);
-  line-height: var(--leading-base);
-}
-
-.dialogField {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.dialogLabel {
-  color: var(--text-tertiary);
-  font-size: var(--type-footnote);
-}
-
-.dialogInput {
-  composes: focus-inset from global;
-  height: 32px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: var(--type-body);
-}
-
-.strength {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
-  font-size: var(--type-caption);
-}
-
-.strength[data-score='3'] {
-  color: var(--text-primary);
-}
-
-.strengthBar {
-  display: inline-grid;
-  grid-template-columns: repeat(4, 20px);
-  gap: 2px;
-}
-
-.strengthBar > span {
-  height: 3px;
-  border-radius: var(--radius-page);
-  background: var(--surface-on);
-}
-
-.strengthBar > span[data-on] {
-  background: currentcolor;
-}
-
-.strength[data-score='0'],
-.strength[data-score='1'] {
-  color: var(--danger);
-}
-
-.strength[data-score='2'] {
-  color: var(--warning);
-}
-
-.strength[data-score='4'] {
-  color: var(--success);
-}
-
-.check {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  color: var(--text-primary);
-  font-size: var(--type-body);
-  line-height: var(--leading-base);
-}
-
-.check input {
-  flex: none;
-  margin-top: 3px;
-  accent-color: var(--control-on);
-}
-
-.check svg {
-  width: 14px;
-  height: 14px;
-  vertical-align: -2px;
-}
-
-.permissions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-1) var(--space-3);
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-
-.permissions legend {
-  margin-bottom: var(--space-2);
-}
-
-.permissions .check {
-  font-size: var(--type-footnote);
-}
-
-.checklist {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-
-.checklist legend {
-  margin-bottom: var(--space-2);
-}
-
-.checklist .check:not([data-found]) {
-  color: var(--text-secondary);
-}
-
-.count {
-  color: var(--text-tertiary);
-  font-size: var(--type-footnote);
-  font-variant-numeric: tabular-nums;
-}
-
-.bullets {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding-left: var(--space-4);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
-}
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  padding-top: var(--space-1);
-}
-
-.primary {
-  composes: btn btn-prominent from global;
-}
-
-.secondary {
-  composes: btn btn-standard from global;
-}
-
-/* ---- Export dialog sections ---- */
-
-.exportSection {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.outcome {
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
-}
-
-.radios {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.radios .check {
-  font-size: var(--type-footnote);
 }
