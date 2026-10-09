@@ -12,10 +12,11 @@
  * - **Nothing fits.** The bar says so in its notice line ("No shape in the selection"), as
  *   it says that stamps keep their orientation, and announces it; nothing changes.
  * - **Morph.** In the task where the page draws its bitmap with the shapes (`onPageBitmap`),
- *   an overlay hides each new outline under a band of page colour and draws the stroke as it
- *   was; the stroke then morphs into the outline on the `smooth` spring, as a held shape does
- *   (`morphTarget`), and the overlay goes when it lands on the bitmap's own line. Reduced
- *   motion: no overlay, the shapes simply appear with the bitmap.
+ *   an overlay draws each stroke as it was over its new outline; the stroke then morphs onto
+ *   the outline on the `smooth` spring, as a held shape does (`morphTarget`), and the overlay
+ *   goes as it lands on the bitmap's own line. Nothing covers the page: for the morph the
+ *   outline shows under the moving stroke (a double line that converges), never cut text.
+ *   Reduced motion: no overlay, the shapes simply appear with the bitmap.
  */
 import type { EngineEdit } from '@pdf-editor/document-model';
 import type { Annotation, InkAnnotation } from '@pdf-editor/engine';
@@ -38,7 +39,7 @@ import { boundsOf, type Point } from '../ink';
 import { mountedLayers } from '../layer-registry';
 import { morphTarget, MORPH_POINTS } from '../pen/shape-hold';
 import { type ShapeDraft, shapeDraft } from '../pen/shape-commit';
-import { outline, recognizeShape, resample, type ShapeFit } from '../pen/shapes';
+import { recognizeShape, resample, type ShapeFit } from '../pen/shapes';
 import { useLassoNotice } from './edits';
 
 /** One selected path and the shape it is. */
@@ -182,14 +183,6 @@ function morphOverlay(
   const lines: { line: SVGPolylineElement; from: Point[]; to: Point[] }[] = [];
   plans.forEach((plan, i) => {
     const width = widths[i] ?? 2;
-    const shape = outline(plan.fit.geometry);
-    const mask = document.createElementNS(SVG, 'polyline');
-    mask.setAttribute('points', shape.map((p) => `${p.x},${p.y}`).join(' '));
-    mask.setAttribute('fill', 'none');
-    mask.setAttribute('stroke', 'var(--page-background, #fff)');
-    mask.setAttribute('stroke-width', String(width + 2));
-    mask.setAttribute('stroke-linejoin', 'round');
-    mask.setAttribute('stroke-linecap', 'round');
     const line = document.createElementNS(SVG, 'polyline');
     line.setAttribute('fill', 'none');
     line.setAttribute('stroke', colors[i] ?? '#000000');
@@ -198,7 +191,7 @@ function morphOverlay(
     line.setAttribute('stroke-linecap', 'round');
     const from = resample(plan.css, MORPH_POINTS);
     lines.push({ line, from, to: morphTarget(plan.fit.geometry, from) });
-    svg.append(mask, line);
+    svg.append(line);
   });
   const draw = (t: number) => {
     for (const { line, from, to } of lines) {
