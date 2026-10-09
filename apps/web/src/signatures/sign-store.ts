@@ -1,7 +1,7 @@
 /**
- * The signing choice per document (spec recognize-and-compare §3.4): the Sign dialog (from
- * the Document menu or the export dialog's Signature section) checks a certificate and keeps
- * it here, in memory only, for the export that signs. Cleared when that export dialog
+ * The signing choice per document (spec recognize-and-compare §3.4): the certificate sheet (from
+ * the title menu or Save a copy's Signature section) checks a certificate and keeps
+ * it here, in memory only, for the copy that signs. Cleared when that Save a copy sheet
  * closes or the document goes away; nothing is stored.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
@@ -12,7 +12,7 @@ import type { SignDraft } from './signing';
 
 export interface SignDialog {
   readonly documentId: DocumentId;
-  /** The export dialog renders its own (nested) instance. */
+  /** Opened from Save a copy, which it replaces and returns to (`pushOverSaveCopy`). */
   readonly origin: 'app' | 'export';
 }
 

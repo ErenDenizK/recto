@@ -6,8 +6,7 @@
  *
  * - **Opened by** the title menu's Document info…, ⌘K and the facts row of a signed file's
  *   badges; the document dialog store (`document-store.ts`) says which document, so a password
- *   dialog opened from here (Set or Remove password…) comes back to it when it closes
- *   (`DocumentDialogs.tsx`).
+ *   sheet opened from here (Set or Remove password…) comes back to it when it closes.
  * - **A task sheet** (side 400 with a scrim from expanded up, a 640 form on medium, a bottom
  *   sheet on compact). Focus lands on the Title field (S4 §6). Every field commits on blur or
  *   Enter as one undo step; nothing waits for a footer, so the sheet has no primary and no
