@@ -139,7 +139,7 @@
   flex: none;
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--tag-color);
 }
 
@@ -156,7 +156,7 @@
   width: 6px;
   height: 6px;
   margin-left: auto;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--text-primary);
 }
 

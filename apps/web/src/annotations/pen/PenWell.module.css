@@ -30,11 +30,11 @@
   flex: none;
   place-items: center;
   box-sizing: border-box;
-  width: var(--bar-button);
-  height: var(--bar-button);
+  width: var(--control-h);
+  height: var(--control-h);
   padding: 0;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: transparent;
   forced-color-adjust: none;
   -webkit-tap-highlight-color: transparent;
@@ -55,7 +55,7 @@
   width: var(--ring);
   height: var(--ring);
   border: 2px solid var(--text-primary);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   opacity: 0;
   transform: scale(0.88);
   transition:
@@ -84,7 +84,7 @@
   box-sizing: border-box;
   width: var(--dot);
   height: var(--dot);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--ink);
   transition: transform var(--spring-press) var(--ease-spring);
 }

@@ -8,7 +8,7 @@
 
 .authorLabel {
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .authorRow {
@@ -21,23 +21,23 @@
   composes: focus-inset from global;
   flex: 1;
   min-width: 0;
-  height: var(--control-height);
+  height: var(--control-h);
   padding: 0 var(--space-2);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   background: var(--surface-raised);
   color: var(--text-primary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
 }
 
 .authorButton {
   flex: none;
-  height: var(--control-height);
+  height: var(--control-h);
   padding: 0 var(--space-2);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   white-space: nowrap;
 }
 
@@ -55,7 +55,7 @@
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-2);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   text-align: left;
   color: var(--text-primary);
 }
@@ -78,7 +78,7 @@
   flex: none;
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   background: var(--surface-on);
   color: var(--text-secondary);
 }
@@ -99,7 +99,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .kind {
@@ -120,7 +120,7 @@
   display: -webkit-box;
   overflow: hidden;
   color: var(--text-primary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   line-height: var(--leading-base);
   overflow-wrap: anywhere;
   white-space: pre-wrap;

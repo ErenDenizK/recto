@@ -83,7 +83,7 @@
   padding: 6px 6px 6px var(--space-3);
   border-radius: 16px;
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   pointer-events: auto;
   cursor: default;
 }
@@ -170,7 +170,7 @@
   border-radius: var(--radius-control);
   background: var(--surface-raised);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .action[aria-disabled='true'] {

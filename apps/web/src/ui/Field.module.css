@@ -19,7 +19,7 @@
 
 .label {
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-weight: 500;
   line-height: 16px;
 }
@@ -32,7 +32,7 @@
 .description {
   margin: 0;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   line-height: 16px;
 }
 
@@ -42,7 +42,7 @@
   gap: 6px;
   margin: 0;
   color: var(--danger);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   line-height: 16px;
   animation: field-error-in var(--duration-fast) var(--ease-out);
 }

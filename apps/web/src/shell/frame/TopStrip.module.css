@@ -114,9 +114,9 @@
   justify-content: center;
   gap: var(--space-2);
   flex: none;
-  min-width: var(--bar-button);
-  height: var(--bar-button);
-  border-radius: var(--radius-pill);
+  min-width: var(--control-h);
+  height: var(--control-h);
+  border-radius: var(--radius-capsule);
   color: var(--text-secondary);
   transition:
     background-color var(--duration-fast) var(--ease-out),
@@ -171,7 +171,7 @@
   gap: var(--space-1);
   flex: 0 1 auto;
   /* XD-3: never narrower than one tab at its minimum, + and the ring's room. */
-  min-width: calc(var(--tab-min) + 4px + var(--space-1) + var(--bar-button));
+  min-width: calc(var(--tab-min) + 4px + var(--space-1) + var(--control-h));
   margin-inline-start: var(--space-1);
 }
 
@@ -233,7 +233,7 @@
   min-width: var(--tab-min);
   max-width: var(--tab-max);
   height: var(--control-h);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   transition:
     background-color var(--duration-fast) var(--ease-out),
     scale var(--spring-press) var(--ease-spring);
@@ -356,7 +356,7 @@
   flex: none;
   width: 8px;
   height: 8px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--tag-color, var(--text-tertiary));
 }
 
@@ -393,7 +393,7 @@
   flex: none;
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--text-secondary);
 }
 
@@ -435,7 +435,7 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   color: var(--text-tertiary);
   opacity: 0;
   transition:
@@ -484,7 +484,7 @@
   flex: none;
   height: var(--control-h);
   padding: 0 var(--space-2) 0 var(--space-3);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   color: var(--text-secondary);
   font-size: var(--control-text);
   font-weight: 500;
@@ -525,7 +525,7 @@
   flex: none;
   width: 8px;
   height: 8px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--tag-color, var(--text-tertiary));
 }
 
@@ -533,7 +533,7 @@
   flex: none;
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--text-secondary);
 }
 
@@ -564,7 +564,7 @@
   padding: 0 0 0 var(--space-3);
   /* The edge is drawn inside (no border box), so the field and ‹ › are the full control height
      and share the strip's centre line (Q-9). */
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--field-well);
   box-shadow: inset 0 0 0 1px var(--border-strong);
   color: var(--text-secondary);
@@ -588,7 +588,7 @@
   height: 100%;
   border: 0;
   /* The field is the well's own surface: its corners follow the well's pill (Q-9). */
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: transparent;
   color: var(--text-primary);
   font-size: var(--field-text);

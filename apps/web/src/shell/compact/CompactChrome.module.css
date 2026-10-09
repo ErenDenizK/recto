@@ -137,7 +137,7 @@
   position: absolute;
   inset: 4px 0;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--surface-hover);
   pointer-events: none;
 }
@@ -211,7 +211,7 @@
   height: 56px;
   margin-inline: auto;
   padding: 0 6px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
      motion, where the fade stays (§7.5). */
   transition:

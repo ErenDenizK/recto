@@ -36,7 +36,7 @@
   min-width: var(--control-h);
   padding: 0 var(--btn-pad, 12px);
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: transparent;
   box-shadow: var(--shadow-own);
   color: var(--text-primary);

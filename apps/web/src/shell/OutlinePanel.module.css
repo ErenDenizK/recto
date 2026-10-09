@@ -105,7 +105,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   color: var(--text-tertiary);
 }
 
@@ -130,7 +130,7 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -139,7 +139,7 @@
   flex: none;
   margin-inline-start: var(--space-2);
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
 }
 
@@ -166,13 +166,13 @@
   margin: 0 var(--space-2) var(--space-2);
   padding: var(--space-3);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   background: var(--surface-on);
 }
 
 .noticeTitle {
   color: var(--text-primary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   line-height: var(--leading-base);
   overflow-wrap: anywhere;
 }
@@ -181,14 +181,14 @@
   composes: technical from global;
   overflow: hidden;
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--type-caption);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .noticeBody {
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   line-height: 18px;
 }
 

@@ -3,7 +3,7 @@
  * the actions I-6 allows (close, search, undo, redo, more, share) and the tools on a bar.
  *
  * - A circle (language.md §6.1: icon-only buttons are circles), in two sizes:
- *   - `bar`: `--bar-button` (32 px fine, 44 px coarse) with a 20 px icon, for every bar, so a
+ *   - `bar`: `--control-h` (32 px fine, 44 px coarse) with a 20 px icon, for every bar, so a
  *     bar's buttons share one height and one centre line (quality-bar Q-9);
  *   - `row`: 28 px with a 16 px icon, inside list rows and panel headers; on a coarse pointer
  *     its hit area grows to 44 px without moving the row (`::after`, 09 §2.1 `--hit-min`).

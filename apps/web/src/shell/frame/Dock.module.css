@@ -7,7 +7,7 @@
  * layout ends at the capsule (Q-6). Only the surfaces take the pointer.
  *
  * The dock's items (`.toolbar` in the capsule): one row at the piece height less its rim
- * (--piece-h, G1), --bar-button controls (32 px fine, 44 coarse; Q-9) with the piece's 20 px
+ * (--piece-h, G1), --control-h controls (32 px fine, 44 coarse; Q-9) with the piece's 20 px
  * glyph and the label beside it in the piece's label type at 500 (Q-8), primary text (labels
  * are never secondary on M2, F10 §3).
  * With labels under the glyphs (`data-labels="under"`) the bar is 56 px and the items 44,
@@ -46,7 +46,7 @@
   justify-content: center;
   gap: 6px;
   box-sizing: border-box;
-  height: var(--bar-button);
+  height: var(--control-h);
   padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-capsule);

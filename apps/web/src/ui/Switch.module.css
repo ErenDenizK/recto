@@ -48,7 +48,7 @@
   box-sizing: border-box;
   width: var(--switch-w);
   height: var(--switch-h);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: transparent;
   box-shadow: var(--shadow-own);
   touch-action: none;
@@ -76,7 +76,7 @@
   place-items: center;
   width: var(--thumb-size);
   height: var(--thumb-size);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--control-thumb-off);
   /* A glyph in the thumb (the padlock, the activity glyph) is ink on the light off-thumb and
      light on the ink on-thumb. */
