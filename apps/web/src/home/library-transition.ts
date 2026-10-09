@@ -9,11 +9,13 @@
  *   the new one, as the Pages grid names its page and cell (`grid-transition.ts`). A side
  *   without its element on screen (a card scrolled away, a page not laid out) leaves the pair
  *   unnamed: the view then only cross-fades, never morphs from a wrong place.
- * - **One image travels.** A View Transition captures the new view as soon as React has drawn
- *   it, before a page's canvas has rendered (rendering waits while the update runs), so the new
- *   side's image would be a blank sheet. The old image alone travels (`library-transition.css`):
- *   the card's bitmap grows to the page's box and hands over to the live page as it lands, and
- *   back, the page's bitmap shrinks into the card's.
+ * - **A sharp landing when it is cheap.** A View Transition captures the new view as soon as the
+ *   update resolves, and the arriving page's canvas may not have drawn yet. The update waits up
+ *   to `DRAW_BUDGET_MS` for it. If it shows a bitmap in time (a preview or the render), the two
+ *   images cross-fade from 60 % of the flight. If not, the old image travels alone and the live
+ *   page takes over as it lands (`library-transition.css`).
+ * - **Chrome on top.** The top pieces, the capsule and the page pill are named too (class
+ *   `library-chrome`) and stacked above the travelling page, so it passes under them.
  * - **Without View Transitions** (Firefox before 144) a clone does it: `flipSheet` lays a copy
  *   of the leaving sheet, its bitmap copied, over the new view and moves it to the arriving
  *   element's box on `smooth`, by transform, fading as it lands; the arriving element shows
@@ -84,6 +86,83 @@ function unname(elements: readonly (HTMLElement | null)[]): void {
   }
 }
 
+/** The chrome that stays above the travelling page: the top pieces, the capsule, the pill. */
+const CHROME = '[data-top-piece], [data-capsule], [data-region="pill"]';
+/** The class of the chrome's groups, which `library-transition.css` stacks above the page. */
+export const LIBRARY_CHROME = 'library-chrome';
+
+/**
+ * The chrome's own name in the view `phase`. The top strip's leading piece (the tabs) keeps its
+ * shape in both views and morphs across. Every other piece changes shape between the views:
+ * the Library's round ⋯ becomes the document's Find piece, and the capsule and pill exist only
+ * beside a document. Those get a name per view, so each fades in place, as the root does,
+ * rather than one stretching into the other.
+ */
+function chromeKey(element: HTMLElement, phase: 'old' | 'new'): string {
+  const top = element.getAttribute('data-top-piece');
+  if (top === 'lead') return 'top-lead';
+  const piece =
+    top !== null ? `top-${top}` : element.hasAttribute('data-capsule') ? 'capsule' : 'pill';
+  return `${piece}-${phase}`;
+}
+
+/**
+ * Names the chrome on screen (`library-chrome-<key>`, class `library-chrome`), so it is
+ * captured as groups of its own that `library-transition.css` draws above the travelling page:
+ * the page passes under the top strip and the capsule, as the reader's page does at rest
+ * (language.md §7.3 *view change*: chrome stays on top). Returns what it named.
+ */
+function nameChrome(phase: 'old' | 'new'): HTMLElement[] {
+  const seen = new Set<string>();
+  const named: HTMLElement[] = [];
+  for (const element of document.querySelectorAll<HTMLElement>(CHROME)) {
+    const key = chromeKey(element, phase);
+    if (seen.has(key) || !inView(element)) continue;
+    seen.add(key);
+    element.style.viewTransitionName = `${LIBRARY_CHROME}-${key}`;
+    // A piece of one view only fades as a whole group (`-out` or `-in`), its glass with it.
+    const side = key.endsWith(`-${phase}`)
+      ? ` ${LIBRARY_CHROME}-${phase === 'old' ? 'out' : 'in'}`
+      : '';
+    element.style.setProperty('view-transition-class', `${LIBRARY_CHROME}${side}`);
+    named.push(element);
+  }
+  return named;
+}
+
+function unnameChrome(elements: readonly HTMLElement[]): void {
+  for (const element of elements) {
+    if (!element.style.viewTransitionName.startsWith(LIBRARY_CHROME)) continue;
+    element.style.viewTransitionName = '';
+    element.style.removeProperty('view-transition-class');
+  }
+}
+
+/**
+ * The longest the update waits for the arriving page to show a bitmap (ms). If one shows in
+ * time, the travelling image hands over to it at 60 % of the flight. If not, the old image
+ * travels alone and the live page takes over as it lands (`library-transition.css`). On the
+ * corpus (motion-2026-10 library-capsule.md §1) the reader's full-resolution render lands
+ * 140–620 ms after the click, too late to wait for. A preview from the thumbnail cache
+ * usually shows within the wait, so the hand-off is to that, and the render sharpens it in
+ * place after the morph, as it would without one. The wait is capped at the 100 ms the morph
+ * may cost.
+ */
+export const DRAW_BUDGET_MS = 100;
+/** Set on `<html>` when the arriving page drew in time: the two images cross-fade. */
+const CRISP = 'data-vt-library-crisp';
+
+/** Resolves true once `element`'s page bitmap shows (a preview or the render), false at `ms`. */
+async function drawnWithin(element: HTMLElement, ms: number): Promise<boolean> {
+  const end = performance.now() + ms;
+  for (;;) {
+    const state = element.querySelector('canvas')?.dataset.state;
+    if (state === 'preview' || state === 'rendered') return true;
+    if (performance.now() >= end) return false;
+    await new Promise((resolve) => setTimeout(resolve, 8));
+  }
+}
+
 /**
  * The fallback where View Transitions are missing: a clone of `from` (captured before the
  * update) flies from its box to `to`'s on `smooth`, over the new view, and fades as it lands.
@@ -144,23 +223,34 @@ function change(
     return;
   }
   name(leaving);
+  const chrome = leaving ? nameChrome('old') : [];
   root.setAttribute(ATTRIBUTE, direction);
+  root.removeAttribute(CRISP);
   let arrived: HTMLElement | null = null;
   void viewTransition(
     async () => {
+      // The old view's chrome is captured by now; the new view names its own.
+      unnameChrome(chrome);
       apply();
       // The updates its effects scheduled synchronously settle before the new view is read.
       await Promise.resolve();
       arrived = arriving();
       // Half a pair would fly in from the root's corner: both sides, or neither.
-      if (leaving && arrived) name(arrived);
-      else unname([leaving]);
+      if (leaving && arrived) {
+        name(arrived);
+        chrome.push(...nameChrome('new'));
+        // Reduced motion keeps no names (motion.css §4): nothing to wait for.
+        if (!reduced && (await drawnWithin(arrived, DRAW_BUDGET_MS))) root.setAttribute(CRISP, '');
+      } else unname([leaving]);
     },
     {
       name: `library-${direction}`,
       finished: () => {
         unname([leaving, arrived]);
-        if (generation === changes) root.removeAttribute(ATTRIBUTE);
+        unnameChrome(chrome);
+        if (generation !== changes) return;
+        root.removeAttribute(ATTRIBUTE);
+        root.removeAttribute(CRISP);
       },
     },
   ).catch(() => undefined);
