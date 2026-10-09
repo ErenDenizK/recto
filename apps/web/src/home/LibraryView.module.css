@@ -6,6 +6,13 @@
  * footer at the bottom; with documents the parts follow each other and the footer still ends
  * the view.
  */
+/*
+ * The view reaches up under the top strip to the shell's edge (owner feedback 2026-10-09, G2):
+ * laid out in the free rectangle, its aura and canvas stopped at the strip's line, and the bare
+ * shell above showed as a dark band behind and between the floating pieces at every aspect
+ * ratio. The column keeps its place: its top padding adds back what the view reaches up by, and
+ * a focused card scrolls clear of the pieces (scroll-padding-top).
+ */
 .library {
   container: library / inline-size;
   position: relative;
@@ -13,6 +20,7 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  margin-top: calc(-1 * var(--free-top, 0px));
   background: var(--canvas);
 }
 
@@ -22,8 +30,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* A focused card stays clear of the selection bar (A-12): its 44 (56) px and 16 px. */
-  scroll-padding-bottom: calc(var(--bar-h) + 2 * var(--space-4));
+  /* A focused card stays clear of the strip's pieces and of the selection bar (A-12). */
+  scroll-padding-top: var(--free-top, 0px);
+  scroll-padding-bottom: calc(var(--piece-h) + 2 * var(--piece-inset));
 }
 
 .column {
@@ -35,13 +44,13 @@
   max-width: calc(1184px + 2 * var(--gutter));
   min-height: 100%;
   margin: 0 auto;
-  padding: var(--space-6) var(--gutter) var(--space-4);
+  padding: calc(var(--free-top, 0px) + var(--space-6)) var(--gutter) var(--space-4);
   --gutter: var(--space-8);
 }
 
 /* Room for the selection bar under the last row while it shows. */
 .library[data-selecting] .column {
-  padding-bottom: calc(var(--bar-h) + 2 * var(--space-4));
+  padding-bottom: calc(var(--piece-h) + 2 * var(--piece-inset));
 }
 
 .documents {
@@ -64,6 +73,8 @@
  * grows downwards and moves nothing above it, where centring moved all of it (the font swap's
  * layout shift, fonts.spec). On a short view the space falls to nothing and the column scrolls.
  * The view is a size container for that one length (`cqh`); it holds nothing fixed-position.
+ * It reaches up under the strip by --free-top (G2), which the term takes back out of the
+ * container's height, so the card rests where it did.
  */
 .library[data-variant='empty'] .scroller {
   container-type: size;
@@ -71,7 +82,9 @@
 
 .empty {
   display: grid;
-  grid-template-rows: max(0px, calc(32.5cqh - 69px - var(--space-6))) auto 1fr auto;
+  grid-template-rows:
+    max(0px, calc(32.5cqh - 0.325 * var(--free-top, 0px) - 69px - var(--space-6)))
+    auto 1fr auto;
   gap: 0;
 }
 
@@ -97,118 +110,5 @@
   .column {
     --gutter: var(--space-4);
     gap: var(--space-4);
-  }
-}
-
-/*
- * The aura (LibraryView.tsx `LibraryAura`; owner feedback 2026-10-08): the mark's three colours
- * as soft light behind the column, rising from the top like the field's lobes (L3 §2) and fixed
- * to the view. Apple-calm: low peaks, no grain, no blur filter and no animation, so it costs one
- * paint and nothing at rest (Q-1, Q-10; no backdrop, so Q-11's budget is untouched).
- *
- * Each lobe is one radial gradient filling its own box (`closest-side`), its alpha falling on an
- * bell curve of eleven stops rather than a straight line, so the fall-off has no visible edge or
- * band even at 8 bits. Colours are the mark's stops (brand/mark.ts); each theme sets the peaks.
- *
- * The cost ladder (materials.css): Solid glass keeps the light at 70 % like the field (L3 §3);
- * degrade step 4, more contrast and forced colours turn it off.
- */
-.aura {
-  /* The colours are tokens (--aura-mint, --aura-lime, --aura-yellow); the dark theme's yellow
-     lobe is the faintest, as a faint pure yellow reads as olive on the dark canvas. */
-  --aura-peak-mint: 0.17;
-  --aura-peak-lime: 0.15;
-  --aura-peak-yellow: 0.05;
-  --aura-peak-low: 0.1;
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  contain: strict;
-}
-
-:global([data-theme='light']) .aura {
-  --aura-peak-mint: 0.26;
-  --aura-peak-lime: 0.3;
-  --aura-peak-yellow: 0.24;
-  --aura-peak-low: 0.18;
-}
-
-@media (prefers-color-scheme: light) {
-  :global(:root:not([data-theme])) .aura {
-    --aura-peak-mint: 0.26;
-    --aura-peak-lime: 0.3;
-    --aura-peak-yellow: 0.3;
-  }
-}
-
-.lobe {
-  --c: var(--aura-lime);
-  --a: var(--aura-peak-lime);
-  position: absolute;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--c) calc(var(--a) * 100%), transparent) 0%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 95%), transparent) 10%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 84%), transparent) 20%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 69%), transparent) 30%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 53%), transparent) 40%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 38%), transparent) 50%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 25%), transparent) 60%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 14%), transparent) 70%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 7%), transparent) 80%,
-    color-mix(in srgb, var(--c) calc(var(--a) * 2%), transparent) 90%,
-    transparent 100%
-  );
-}
-
-/* The mark's gradient laid across the view, each lobe's centre near or past an edge so mostly
-   its fall-off shows: mint from the left, lime from overhead, yellow lime high right, and a low
-   mint swell under the cards so the lower view is not bare (L3 §2's second lobe). */
-.lobe[data-lobe='mint'] {
-  --c: var(--aura-mint);
-  --a: var(--aura-peak-mint);
-  top: -10%;
-  left: -40%;
-  width: 76%;
-  height: 100%;
-}
-
-.lobe[data-lobe='lime'] {
-  top: -34%;
-  left: 8%;
-  width: 84%;
-  height: 80%;
-}
-
-.lobe[data-lobe='yellow'] {
-  --c: var(--aura-yellow);
-  --a: var(--aura-peak-yellow);
-  top: -30%;
-  right: -22%;
-  width: 58%;
-  height: 76%;
-}
-
-.lobe[data-lobe='low'] {
-  --c: var(--aura-mint);
-  --a: var(--aura-peak-low);
-  bottom: -46%;
-  left: 30%;
-  width: 90%;
-  height: 90%;
-}
-
-:global(:root[data-glass='solid']) .aura {
-  opacity: 0.7;
-}
-
-:global(:root[data-degrade='4']) .aura {
-  display: none;
-}
-
-@media (prefers-contrast: more), (forced-colors: active) {
-  .aura {
-    display: none;
   }
 }

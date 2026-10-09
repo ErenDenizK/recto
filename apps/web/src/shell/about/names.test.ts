@@ -112,6 +112,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:signatures:v1',
       'pdf-editor:ui:colour-view:v1',
       'pdf-editor:ui:eraser:v1',
+      // Each tool's recent colours in the ink strip (markup/ink-recents.ts, G8).
+      'pdf-editor:ui:ink-recents:v1',
       'pdf-editor:ui:pen-presets:v1',
       'pdf-editor:ui:pen-presets:v2',
       'pdf-editor:ui:recent-colours:v1',

@@ -216,20 +216,29 @@ test.describe('the frame per class', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     const top = page.locator('[data-region="top"]');
     await expect(top).toHaveAttribute('aria-label', 'Document bar');
-    // Two floating pieces, 44 px high and inset 16 px like the dock (owner feedback F1): the
-    // strip's box, the free rectangle's top, is the inset and a piece.
-    await expect(top).toHaveCSS('height', '60px');
+    // Two floating pieces, one piece high (40 px fine, G1) and inset 16 px like the dock (owner
+    // feedback F1): the strip's box, the free rectangle's top, is the inset and a piece.
+    await expect(top).toHaveCSS('height', '56px');
     await expect(top).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     const pieces = top.locator('[data-top-piece]');
     await expect(pieces).toHaveCount(2);
     for (const piece of await pieces.all()) {
-      await expect(piece).toHaveCSS('height', '44px');
+      await expect(piece).toHaveCSS('height', '40px');
       const box = await piece.boundingBox();
       expect(box?.y).toBe(16);
     }
     expect((await pieces.first().boundingBox())?.x).toBe(16);
     const trail = await pieces.last().boundingBox();
     expect(trail ? 1440 - (trail.x + trail.width) : 0).toBe(16);
+    // The bottom pieces mirror them (G1): the dock and the page pill one piece high, 16 px up
+    // from the window's bottom edge, the pill 16 px in from its trailing edge.
+    for (const selector of ['[data-capsule]', '[data-testid="page-pill"]']) {
+      const box = await page.locator(selector).first().boundingBox();
+      expect(box?.height, selector).toBe(40);
+      expect(box ? 900 - (box.y + box.height) : 0, selector).toBe(16);
+    }
+    const pill = await page.getByTestId('page-pill').boundingBox();
+    expect(pill ? 1440 - (pill.x + pill.width) : 0).toBe(16);
     await expect(page.getByTestId('sidebar-toggle')).toBeVisible();
 
     await page.setViewportSize({ width: 560, height: 800 });
@@ -238,7 +247,7 @@ test.describe('the frame per class', () => {
     await expect(page.getByTestId('document-menu')).toHaveText(/simple-text/);
     await expect(page.locator('#left-panel')).toHaveCount(0);
 
-    // A-20 at 320 × 256 (400 % zoom of a 1280 × 1024 window): one 44 px capsule, ≤ 25 % chrome.
+    // A-20 at 320 × 256 (400 % zoom of a 1280 × 1024 window): one 40 px capsule, ≤ 25 % chrome.
     await page.setViewportSize({ width: 320, height: 256 });
     await expect(top).toHaveAttribute('data-tight');
     const area = await page.evaluate(() => {

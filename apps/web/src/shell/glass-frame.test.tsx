@@ -3,7 +3,8 @@
  * Vitest browser mode, real style sheets): the top strip is docked M3 glass by default (σ 8, the
  * panel tint, which over the bare canvas composites to --surface-frame exactly), with the inner
  * light and no shadow; Glass Tinted lays the tint at 0.90 and keeps the blur; Glass Solid paints
- * the frame colour with no filter. The palette sets each value.
+ * the frame colour with no filter. The palette sets each value. Background glow (G5) lays the
+ * Library's aura, dimmer, behind the reader, on by default, and its palette command turns it off.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
@@ -12,7 +13,9 @@ import '../styles/global.css';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { App } from '../app';
+import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { DEFAULT_APPEARANCE, useAppearanceStore } from '../state/appearance-store';
 import { useUiStore } from '../state/ui-store';
@@ -54,7 +57,7 @@ describe('the docked frame', () => {
     // No shadow and no edge on docked glass: the inner top light only (language.md §2.4).
     const layers = title.boxShadow.split(/,(?![^(]*\))/).map((layer) => layer.trim());
     expect(layers.filter((layer) => !layer.startsWith('rgba(0, 0, 0, 0)'))).toEqual([
-      'rgba(255, 255, 255, 0.06) 0px 1px 0px 0px inset',
+      'rgba(255, 255, 255, 0.06) 0px 0.5px 0px 0px inset',
     ]);
     // Text is on the glass ladder at once, so nothing jumps when a page passes.
     expect(title.getPropertyValue('--text-secondary').trim()).toBe('#bbbec3');
@@ -76,7 +79,7 @@ describe('the docked frame', () => {
     expect(['', 'none']).toContain(blurOf(solid));
     expect(solid.backgroundColor).toBe(SURFACE_1);
     // Solid keeps the rim (language.md §2.8): the inner light stays.
-    expect(solid.boxShadow).toMatch(/rgba\(255, 255, 255, 0\.06\) 0px 1px 0px 0px inset/);
+    expect(solid.boxShadow).toMatch(/rgba\(255, 255, 255, 0\.06\) 0px 0\.5px 0px 0px inset/);
     // The normal text ladder comes back on an opaque surface.
     expect(solid.getPropertyValue('--text-secondary').trim()).not.toBe('#bbbec3');
   });
@@ -97,5 +100,35 @@ describe('the docked frame', () => {
     // Found by M8's wording too.
     expect(commandRegistry.get('view.glass.solid')?.keywords).toContain('reduce transparency');
     expect(commandRegistry.get('view.glass.tinted')?.keywords).toContain('saydamlık');
+  });
+
+  it('lays Background glow behind the reader, on by default; its command turns it off (G5)', async () => {
+    render(<App />);
+    const bytes = await (await fetch(simpleUrl)).arrayBuffer();
+    await act(async () => {
+      await openDocuments([new File([bytes], 'simple-text.pdf', { type: 'application/pdf' })]);
+    });
+    const shell = screen.getByTestId('app-shell');
+    const glow = await screen.findByTestId('reader-glow');
+    expect(glow).toHaveAttribute('aria-hidden', 'true');
+    expect(shell).toHaveAttribute('data-reader-glow');
+    // Under the stage, which lets it through; dimmer than the Library's.
+    const stage = shell.querySelector<HTMLElement>(':scope > main');
+    expect(stage && getComputedStyle(stage).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(Number(getComputedStyle(glow).opacity)).toBeLessThan(1);
+    // Still: a document view keeps zero frames at rest (Q-10); only the Library drifts.
+    expect(glow.getAnimations({ subtree: true })).toHaveLength(0);
+    expect(
+      glow.compareDocumentPosition(stage as Node) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(commandRegistry.get('view.glow')?.title).toBe('Background glow: On');
+    await act(async () => {
+      await commandRegistry.execute('view.glow');
+    });
+    expect(useAppearanceStore.getState().glow).toBe(false);
+    expect(screen.queryByTestId('reader-glow')).toBeNull();
+    expect(shell).not.toHaveAttribute('data-reader-glow');
+    expect(stage && getComputedStyle(stage).backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(commandRegistry.get('view.glow')?.title).toBe('Background glow: Off');
   });
 });

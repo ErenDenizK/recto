@@ -97,7 +97,8 @@
   background: linear-gradient(
     180deg,
     var(--rim-top),
-    var(--border-hairline) 35%,
+    var(--border-hairline) 8px,
+    var(--border-hairline) calc(100% - 8px),
     var(--rim-bottom)
   );
   -webkit-mask:
@@ -239,9 +240,13 @@
       -webkit-backdrop-filter: blur(8px) saturate(1.9) brightness(0.42);
       backdrop-filter: blur(8px) saturate(1.9) brightness(0.42);
     }
-    :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.c10 {
-      -webkit-backdrop-filter: blur(10px) saturate(1.8) brightness(0.44);
-      backdrop-filter: blur(10px) saturate(1.8) brightness(0.44);
+    :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.c8 {
+      -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(0.44);
+      backdrop-filter: blur(8px) saturate(1.8) brightness(0.44);
+    }
+    :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.c9 {
+      -webkit-backdrop-filter: blur(9px) saturate(1.8) brightness(0.44);
+      backdrop-filter: blur(9px) saturate(1.8) brightness(0.44);
     }
     :where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat-sheet.c20 {
       -webkit-backdrop-filter: blur(20px) saturate(1.4) brightness(0.5);
@@ -251,9 +256,13 @@
       -webkit-backdrop-filter: blur(8px) saturate(1.5) contrast(0.45) brightness(1.4);
       backdrop-filter: blur(8px) saturate(1.5) contrast(0.45) brightness(1.4);
     }
-    :where(:root[data-theme='light']:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.c10 {
-      -webkit-backdrop-filter: blur(10px) saturate(1.5) contrast(0.45) brightness(1.4);
-      backdrop-filter: blur(10px) saturate(1.5) contrast(0.45) brightness(1.4);
+    :where(:root[data-theme='light']:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.c8 {
+      -webkit-backdrop-filter: blur(8px) saturate(1.5) contrast(0.45) brightness(1.4);
+      backdrop-filter: blur(8px) saturate(1.5) contrast(0.45) brightness(1.4);
+    }
+    :where(:root[data-theme='light']:not([data-glass='solid'], [data-degrade='4'])) .mat-bar.c9 {
+      -webkit-backdrop-filter: blur(9px) saturate(1.5) contrast(0.45) brightness(1.4);
+      backdrop-filter: blur(9px) saturate(1.5) contrast(0.45) brightness(1.4);
     }
     :where(:root[data-theme='light']:not([data-glass='solid'], [data-degrade='4'])) .mat-sheet.c20 {
       -webkit-backdrop-filter: blur(20px) saturate(1.3) contrast(0.45) brightness(1.4);

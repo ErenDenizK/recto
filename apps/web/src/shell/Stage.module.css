@@ -12,6 +12,12 @@
   background: var(--canvas);
 }
 
+/* Background glow (Settings, G5): the aura lies under the stage in the shell (AppShell.tsx), on
+   the shell's canvas, so the page view lets it through. */
+:global([data-reader-glow]) > .stage {
+  background: transparent;
+}
+
 .viewport {
   composes: focus-inset from global;
   flex: 1;
@@ -119,7 +125,7 @@
 }
 
 .cell[aria-selected='true'] .thumbSheet {
-  outline: 2px solid var(--select);
+  outline: 2px solid var(--select-ring);
   outline-offset: 3px;
 }
 

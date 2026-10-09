@@ -284,7 +284,7 @@
    would leave them between device pixels at rest (quality-bar Q-2). Both are in the coverage
    registry at the bars' 7px blur. */
 .toolbar {
-  composes: mat mat-bar s8 c10 from global;
+  composes: mat mat-bar s8 c9 from global;
   position: absolute;
   right: 0;
   bottom: var(--space-5);
@@ -296,7 +296,7 @@
   width: max-content;
   max-width: calc(100% - 2 * var(--space-4));
   margin-inline: auto;
-  /* --bar-h around --bar-button controls (quality-bar Q-9): 44 / 56 px. */
+  /* --bar-h around --bar-button controls (quality-bar Q-9): one piece, 40 / 48 px (G1). */
   padding: calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
   overflow-x: auto;
   border-radius: var(--radius-capsule);

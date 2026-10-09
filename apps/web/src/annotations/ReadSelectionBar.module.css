@@ -8,12 +8,12 @@
 }
 
 .bar {
-  composes: mat mat-bar s8 c10 from global;
+  composes: mat mat-bar s8 c9 from global;
   position: absolute;
   display: flex;
   align-items: center;
   gap: 2px;
-  /* A capsule of --bar-h around --control-h actions (quality-bar Q-9): 44 / 56 px. */
+  /* A capsule of --bar-h around --control-h actions (quality-bar Q-9): one piece, 40 / 48 px (G1). */
   height: var(--bar-h);
   padding: calc((var(--bar-h) - var(--control-h) - 2px) / 2);
   border-radius: var(--radius-capsule);

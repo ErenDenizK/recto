@@ -523,7 +523,14 @@ async function axe(page: Page, name: string): Promise<void> {
   // so would the tool bar, faded while a stroke is in progress and a second after.
   await expect(page.locator('[data-stroking]')).toHaveCount(0, { timeout: 3000 });
   await page.waitForFunction(() =>
-    document.getAnimations().every((animation) => animation.playState !== 'running'),
+    document
+      .getAnimations()
+      // The aura's endless drift (Q-10's one exception) never comes to rest.
+      .every(
+        (animation) =>
+          animation.playState !== 'running' ||
+          animation.effect?.getTiming().iterations === Infinity,
+      ),
   );
   // Through the devtools protocol: the app's CSP refuses inline scripts.
   if (!(await page.evaluate(() => 'axe' in window))) await page.evaluate(AXE_SOURCE);
@@ -1285,7 +1292,12 @@ async function recordInvisibleFocus(page: Page): Promise<void> {
           // A starting style holds for a frame before its transition runs.
           await frame();
           await frame();
-          await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null)));
+          await Promise.all(
+            document
+              .getAnimations()
+              .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+              .map((a) => a.finished.catch(() => null)),
+          );
           await frame();
           if (document.activeElement !== el || seen(el)) return;
           const label = el.getAttribute('aria-label') ?? el.textContent?.trim().slice(0, 30);
@@ -1432,7 +1444,10 @@ test.describe('D0 sheets and toasts', () => {
     const toast = page.getByRole('group', { name: 'Deleted page 2' });
     await expect(toast).toBeVisible();
     await page.waitForFunction(() =>
-      document.getAnimations().every((a) => a.playState !== 'running'),
+      document
+        .getAnimations()
+        // The aura's endless drift (Q-10's one exception) never comes to rest.
+        .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
     );
     const said = await page.evaluate(() => (window as unknown as { __said: string[] }).__said);
     // Spoken equals shown, once (FB10 §6): the toast's sentence, with the F6 hint the first time.

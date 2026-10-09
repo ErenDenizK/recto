@@ -480,6 +480,7 @@ push a page (S0 page stack).
 │  Glass          [ Clear │ Tinted │ Solid ]    │
 │  Ambient light  [ Auto │ Still │ Off ]        │
 │  Reduce motion  [ System │ On ]               │
+│  Background glow                      (●  )   │ on by default (G5)
 │  Haptics                              (●  )   │ Android only
 │ Language         English · Türkçe · Browser   │
 │ Pen and touch                                │
@@ -519,6 +520,7 @@ lock banner (no document act). Search with no match: "No setting matches “x”
 | Sections | Appearance · Language · Pen and touch · Documents and storage · Privacy · OCR languages · Keyboard shortcuts · About Recto | Görünüm · Dil · Kalem ve dokunma · Belgeler ve depolama · Gizlilik · OCR dilleri · Klavye kısayolları · Recto hakkında |
 | Theme · Glass | Theme: System · Light · Dark · Glass: Clear · Tinted · Solid | Tema: Sistem · Açık · Koyu · Cam: Saydam · Yarı saydam · Opak |
 | Light · Motion · Haptics | Ambient light: Auto · Still · Off · Reduce motion: System · On · Haptics | Ortam ışığı: Otomatik · Durgun · Kapalı · Hareketi azalt: Sistem · Açık · Dokunsal geri bildirim |
+| Background glow (owner feedback 2026-10-09, G5; on by default) | Background glow · A soft light behind the pages, as in the Library. | Arka plan ışıltısı · Sayfaların arkasında, Kitaplık’taki gibi yumuşak bir ışık. |
 | System line | Solid, set by your system | Opak, sisteminiz tarafından ayarlandı |
 | Language | English · Türkçe · Follow the browser (English) | English · Türkçe · Tarayıcıya uy (Türkçe) |
 | Pen and touch | Pen writes without Markup · Pen draws in Markup with Select · Draw with finger: Auto · On · Off · Keep tools visible | Kalem İşaretleme olmadan yazsın · Kalem, Seçim etkinken İşaretleme'de çizsin · Parmakla çiz: Otomatik · Açık · Kapalı · Araçlar hep görünsün |

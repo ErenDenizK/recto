@@ -3,6 +3,7 @@
  * side sheet of 480 px with its sections; search filters and says when nothing matches; an
  * opener's row is revealed and its control focused; a system override forces Glass to Solid,
  * disabled, with its reason; Theme sets System · Light · Dark and Glass Clear · Tinted · Solid;
+ * Background glow is a switch, on by default;
  * Show tips again is dimmed with a reason until a tip is used up; About Recto shows the About dialog's facts in order, for a pre-release and a release, in
  * the UI language.
  */
@@ -74,9 +75,10 @@ describe('the Settings sheet', () => {
     await userEvent.type(search, 'gorunum');
     expect(within(dialog).getByRole('radiogroup', { name: 'Theme' })).toBeVisible();
     expect(within(dialog).getByRole('radiogroup', { name: 'Glass' })).toBeVisible();
+    expect(within(dialog).getByRole('switch', { name: 'Background glow' })).toBeVisible();
     expect(within(dialog).queryByRole('switch', { name: /Pen draws/ })).toBeNull();
     await waitFor(() =>
-      expect(within(dialog).getByRole('status')).toHaveTextContent('3 settings found'),
+      expect(within(dialog).getByRole('status')).toHaveTextContent('4 settings found'),
     );
     await userEvent.clear(search);
     await userEvent.type(search, 'xyzzy');
@@ -182,6 +184,23 @@ describe('the Settings sheet', () => {
     expect(on).toBeChecked();
     await userEvent.click(system);
     expect(useAppearanceStore.getState().motion).toBe('system');
+  });
+
+  it('turns Background glow off and on, on by default (owner feedback G5)', async () => {
+    act(() => openSettings({ row: 'glow' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const glow = within(dialog).getByRole('switch', { name: 'Background glow' });
+    expect(glow).toBeChecked();
+    expect(
+      within(dialog).getByText('A soft light behind the pages, as in the Library.'),
+    ).toBeVisible();
+    await userEvent.click(glow);
+    expect(useAppearanceStore.getState().glow).toBe(false);
+    expect(glow).not.toBeChecked();
+    await userEvent.click(glow);
+    expect(useAppearanceStore.getState().glow).toBe(true);
   });
 
   it('a system setting shows Reduce motion On, disabled, with its reason', async () => {

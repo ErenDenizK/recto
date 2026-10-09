@@ -41,7 +41,10 @@ const sheet = (page: Page) => page.getByTestId('settings-sheet');
 /** Waits until nothing animates in the document. */
 async function rest(page: Page): Promise<void> {
   await page.waitForFunction(() =>
-    document.getAnimations().every((a) => a.playState !== 'running'),
+    document
+      .getAnimations()
+      // The aura's endless drift (Q-10's one exception) never comes to rest.
+      .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
   );
 }
 
