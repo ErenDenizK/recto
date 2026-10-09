@@ -31,8 +31,11 @@
  * scrubber, the bars' ⋯, the title menu and its sheets (spec D2-9).
  */
 
+import { useLayoutEffect, useRef } from 'react';
+
 import { LibraryMenu } from '../../home/LibraryMenu';
 import { m } from '../../i18n';
+import { springWidth } from '../../motion/resize';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
 import { useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../../state/workspace-store';
@@ -58,6 +61,25 @@ export function TopStrip() {
   const onLibrary = useUiStore((s) => s.destination === 'home') || !hasDocuments;
   const grid = useStageView() === 'grid' && !onLibrary;
   const pageCount = useActiveDocument()?.pages.length ?? 0;
+  const leadRef = useRef<HTMLDivElement>(null);
+  const trailRef = useRef<HTMLDivElement>(null);
+
+  // Each piece follows its content's width on a spring (G6; motion/resize.ts): Save, Find and
+  // the tabs never make a piece jump. A tab growing in or collapsing moves the leading piece
+  // itself (DocumentTabs), which then only follows its layout.
+  useLayoutEffect(() => {
+    const lead = leadRef.current;
+    const trail = trailRef.current;
+    if (!lead || !trail) return undefined;
+    const stops = [
+      springWidth(lead, { hold: () => lead.querySelector('[data-tab-motion]') !== null }),
+      springWidth(trail),
+    ];
+    return () => {
+      for (const stop of stops) stop();
+    };
+  }, []);
+
   return (
     <header
       className={styles.strip}
@@ -66,7 +88,13 @@ export function TopStrip() {
       data-frame-layer="top"
       data-destination={onLibrary ? 'library' : 'document'}
     >
-      <div className={styles.piece} data-top-piece="lead" data-bar="title" data-glass-group="top">
+      <div
+        ref={leadRef}
+        className={styles.piece}
+        data-top-piece="lead"
+        data-bar="title"
+        data-glass-group="top"
+      >
         <div className={styles.lead}>
           <LibraryButton current={onLibrary} />
           {onLibrary ? null : <SidebarToggle />}
@@ -78,6 +106,7 @@ export function TopStrip() {
         />
       </div>
       <div
+        ref={trailRef}
         className={`${styles.piece} ${styles.trail}`}
         data-top-piece="trail"
         data-bar="title-trail"
