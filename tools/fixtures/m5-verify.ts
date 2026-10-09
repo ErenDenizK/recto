@@ -313,7 +313,13 @@ async function checkSignatures(
   const acro = dictOf(doc, doc.catalog.get(N('AcroForm')));
   c.ok(!!acro, '/AcroForm present');
   const sigFlags = resolve(doc, acro?.get(N('SigFlags')));
-  c.eq(sigFlags instanceof PDFNumber ? sigFlags.asNumber() : undefined, 3, '/SigFlags 3');
+  // SignaturesExist | AppendOnly once a field is signed; SignaturesExist alone for a placeholder.
+  const wantFlags = (e.signatures ?? []).some((s) => s.signed) ? 3 : 1;
+  c.eq(
+    sigFlags instanceof PDFNumber ? sigFlags.asNumber() : undefined,
+    wantFlags,
+    `/SigFlags ${wantFlags}`,
+  );
   const fields = (resolve(doc, acro?.get(N('Fields'))) as PDFArray | undefined)?.asArray() ?? [];
   c.eq(
     fields.map((f) => textOf(doc, dictOf(doc, f)?.get(N('T')))),

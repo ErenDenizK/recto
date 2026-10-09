@@ -34,7 +34,7 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
   and the scans are rasterised by the generator itself. Re-running the
   generator with the same `@cantoo/pdf-lib` version (2.11.1) and Node
   zlib produces byte-identical files.
-- **Total size:** 1336.9 KB across 55 files.
+- **Total size:** 1340.4 KB across 56 files.
 - **Not covered here** (need real-world files, to be added separately):
   CCITT/JBIG2/JPX scans, signatures from third-party signers (timestamps, LTV,
   certification signatures, ECDSA), optional content (layers), public-key
@@ -114,6 +114,7 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
 | `signed-twice.pdf` | 36.7 KB | signed-approval.pdf plus a third revision with a second approval signature (claimed 2024-01-02) covering the whole file. | - | simple-text.pdf + hand-written incremental update(s); CMS from lib/pki.ts (m5-fixtures.ts) |
 | `signed-sha1.pdf` | 19.8 KB | Like signed-approval.pdf but /adbe.pkcs7.sha1: the SHA-1 of the ranges is the encapsulated content; SHA-1 signed attributes. | - | simple-text.pdf + hand-written incremental update(s); CMS from lib/pki.ts (m5-fixtures.ts) |
 | `signed-empty-field.pdf` | 19.9 KB | simple-text.pdf plus a revision with two /Sig fields: "Reviewer" (unsigned, visible box, listed first) and "Approval" (signed, whole file). | - | simple-text.pdf + hand-written incremental update(s); CMS from lib/pki.ts (m5-fixtures.ts) |
+| `sig-placeholder.pdf` | 3.5 KB | simple-text.pdf plus a revision with one unsigned /Sig field, "Signature" (visible box, no /V), and /SigFlags 1: a form prepared for signing, never signed. | - | simple-text.pdf + a hand-written incremental update (m5-fixtures.ts) |
 | `signed-dup-object.pdf` | 20.4 KB | signed-approval.pdf plus a third revision that defines page 1's content stream twice: first "PAY 1,000,000 TO MALLORY", then a byte-identical copy of the signed stream; its xref points at the first (M5 review finding 1a). | - | simple-text.pdf + hand-written incremental update(s); CMS from lib/pki.ts (m5-fixtures.ts); revision 3 written by hand |
 | `signed-freed-content.pdf` | 20.0 KB | signed-approval.pdf plus a third revision that is only an xref section marking page 1's content stream free (M5 review finding 1b). | - | simple-text.pdf + hand-written incremental update(s); CMS from lib/pki.ts (m5-fixtures.ts); revision 3 written by hand |
 | `signed-no-eof.pdf` | 20.1 KB | signed-approval.pdf plus a third revision that replaces page 1's content stream ("PAY 1,000,000 TO MALLORY") and ends at `startxref N` without %%EOF (M5 review finding 1c). | - | simple-text.pdf + hand-written incremental update(s); CMS from lib/pki.ts (m5-fixtures.ts); revision 3 written by hand |
@@ -172,6 +173,7 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
 - **`signed-twice.pdf`**: First signature "Intact, changed later" (a signature was added); second Intact.
 - **`signed-sha1.pdf`**: Status Intact with the digest flagged weak (SHA-1); messageDigest is checked against the encapsulated digest.
 - **`signed-empty-field.pdf`**: listFormFields pairs signatures by /V: Reviewer is an empty signature field, Approval is Intact (the M4 count-based pairing got this wrong).
+- **`sig-placeholder.pdf`**: Unsigned everywhere (M4-d): no signature reports, the source is not flagged as signed, and the field reads "Not signed". PDFium still lists the field in its signature list, with an empty byte range.
 - **`signed-dup-object.pdf`**: Status "Changed after signing": the xref resolves page 1's content to the new stream (content, page 1), and the unreferenced second definition is a structural change (other). PDFium and pdf.js show MALLORY; pdf-lib, which ignores the xref, sees the signed page.
 - **`signed-freed-content.pdf`**: Status "Changed after signing" (content, page 1): a reference to a free object reads as null. pdf.js shows page 1 blank; PDFium still draws the signed stream.
 - **`signed-no-eof.pdf`**: Status "Changed after signing" (content, page 1); the file has three revisions. pdf.js shows MALLORY; PDFium, which wants %%EOF, falls back to the signed revision.
@@ -407,6 +409,7 @@ test/fixtures/pki/root-ca.cert.pem -purpose any` (for `adbe.pkcs7.sha1` omit
 | `signed-sha1.pdf` | Approval | adbe.pkcs7.sha1 | 2 | [0 3331 19717 552] | yes | SHA-1 | **intact** |
 | `signed-empty-field.pdf` | Reviewer | - | - | - | - | - | **unsigned** |
 | `signed-empty-field.pdf` | Approval | ETSI.CAdES.detached | 2 | [0 3342 19728 691] | yes | SHA-256 | **intact** |
+| `sig-placeholder.pdf` | Signature | - | - | - | - | - | **unsigned** |
 | `signed-dup-object.pdf` | Approval | ETSI.CAdES.detached | 2 | [0 3335 19721 552] | no | SHA-256 | **changed-after-signing** |
 | `signed-freed-content.pdf` | Approval | ETSI.CAdES.detached | 2 | [0 3335 19721 552] | no | SHA-256 | **changed-after-signing** |
 | `signed-no-eof.pdf` | Approval | ETSI.CAdES.detached | 2 | [0 3335 19721 552] | no | SHA-256 | **changed-after-signing** |
@@ -424,6 +427,7 @@ test/fixtures/pki/root-ca.cert.pem -purpose any` (for `adbe.pkcs7.sha1` omit
 | `signed-twice.pdf` | 3 | 2878, 20273, 37600 | rev 3: signature (13 0 R, 14 0 R, 15 0 R, 5 0 R) |
 | `signed-sha1.pdf` | 2 | 2878, 20269 | - |
 | `signed-empty-field.pdf` | 2 | 2878, 20419 | - |
+| `sig-placeholder.pdf` | 2 | 2878, 3616 | - |
 | `signed-dup-object.pdf` | 3 | 2878, 20273, 20910 | rev 3: content (6 0 R); rev 3: other (6 0 R) |
 | `signed-freed-content.pdf` | 3 | 2878, 20273, 20459 | rev 3: content (6 0 R) |
 | `signed-no-eof.pdf` | 3 | 2878, 20273, 20576 | rev 3: content (6 0 R) |
