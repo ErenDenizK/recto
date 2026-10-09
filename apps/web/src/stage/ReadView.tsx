@@ -58,7 +58,7 @@ import {
   recallPosition,
   rememberPosition,
 } from '../viewer/navigation';
-import { cancelJump, jumpScroll, jumpTarget } from '../viewer/jump';
+import { cancelJump, isJumping, jumpScroll, jumpTarget } from '../viewer/jump';
 import { type PrefetchPage, prefetchLanding } from '../viewer/jump-prefetch';
 import { clearLandings, flashLanding } from '../viewer/landing';
 import { pageFrame } from '../viewer/page-frame';
@@ -663,6 +663,11 @@ function PageColumn({
     });
     morph.current = { motion, scale: cssScale };
   };
+  /** The page the last scroll request went to, and `showPage` itself, for a jump cut short. */
+  const jumpRequest = useRef<{ index: number; reveal: Rect | undefined } | null>(null);
+  const showPageRef = useRef<(index: number, reveal?: Rect, motion?: ScrollMotion) => void>(
+    () => undefined,
+  );
   const lastScale = useRef(cssScale);
   useLayoutEffect(() => {
     if (lastScale.current === cssScale) return;
@@ -670,7 +675,9 @@ function PageColumn({
     lastScale.current = cssScale;
     virtualizer.measure();
     const el = viewportRef.current;
-    // A jump's target was measured at the old zoom.
+    // A jump's target was measured at the old zoom: it lands at once on the new layout instead
+    // (the free rectangle changed under it, a panel opening, so the reader still gets there).
+    const unfinished = el && isJumping(el) ? jumpRequest.current : null;
     if (el) cancelJump(el);
     const gesture = pointerAnchor.current !== null;
     const quiet =
@@ -692,6 +699,11 @@ function PageColumn({
       el.scrollTop = start + a.fraction * heightOf(a.row) - a.viewportY;
       const ratio = cssScale / a.scale;
       el.scrollLeft = columnCentre(el) + a.fromCentre * ratio - a.viewportX;
+    }
+    if (unfinished) {
+      showPageRef.current(unfinished.index, unfinished.reveal, 'instant');
+      endMorph();
+      return;
     }
     if (gesture || quiet || held || prepared || reducedMotion()) endMorph();
     else startMorph(el, a, from);
@@ -897,6 +909,7 @@ function PageColumn({
    * and a jump then highlights the page or the region it landed on (`viewer/landing.ts`).
    */
   const showPage = (index: number, reveal?: Rect, motion: ScrollMotion = 'instant') => {
+    jumpRequest.current = { index, reveal };
     const el = viewportRef.current;
     if (!el) return;
     if (readLayout === 'single' && layout.rowOf[index] !== 0) {
@@ -986,6 +999,8 @@ function PageColumn({
     }
     return { top: scrollTop, left: scrollLeft };
   };
+
+  showPageRef.current = showPage;
 
   /** Highlights the landed page (or its `box`) once its row is laid out. */
   const landOn = async (pageId: string, box: Box | undefined) => {
