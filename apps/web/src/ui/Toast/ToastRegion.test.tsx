@@ -306,11 +306,12 @@ describe('the stack (FB4 §2, §7; Q-10)', () => {
     const u = box(undo);
     expect(g.width).toBeGreaterThanOrEqual(360);
     expect(g.width).toBeLessThanOrEqual(480);
-    // The capsule (inside the control box's transparent border) is 28 px (36 coarse) and sits
-    // as far from the rim at the end as from the top: the action trails, nothing after it.
-    const inset = Number.parseFloat(getComputedStyle(undo).borderTopWidth);
-    expect(u.height - 2 * inset).toBe(fine ? 28 : 36);
-    expect(g.right - (u.right - inset)).toBeCloseTo(u.top + inset - g.top, 0);
+    // A piece (system-audit-2026-10 §3.6): the toast is 40 px (48 coarse) and its action an M
+    // button, 32 px (44 coarse), as far from the rim at the end as from the top: the action
+    // trails, nothing after it.
+    expect(g.height).toBe(fine ? 40 : 48);
+    expect(u.height).toBe(fine ? 32 : 44);
+    expect(g.right - u.right).toBeCloseTo(u.top - g.top, 0);
     expect(getComputedStyle(undo).backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
   });
 

@@ -7,7 +7,9 @@
  * its final size and moves by `transform` only (sheet-motion.ts): at rest it sits at
  * `--sheet-x` / `--sheet-y`, whole pixels the script writes (a bottom sheet's detent), so no
  * transform is left inline at rest (Q-2). The scrim is a separate element and fades. Nothing
- * inside is glass: wells and rows use tint fills (Q-4).
+ * inside is glass: wells and rows use tint fills (Q-4). Its metrics are the public sheet tokens
+ * of tokens.css (--sheet-radius, --sheet-pad, --sheet-header-h; system-audit-2026-10 §3.6.1),
+ * so a sheet's content can line up with its header and the grouped lists of SheetGroup.
  */
 .scrim {
   position: fixed;
@@ -24,9 +26,7 @@
 
 .panel {
   composes: mat mat-sheet s24 c20 from global;
-  --sheet-radius: 20px;
   --sheet-bleed: 48px;
-  --sheet-pad: 20px;
   position: fixed;
   z-index: 41;
   display: flex;
@@ -39,18 +39,14 @@
   transform: translate(var(--sheet-x, 0px), var(--sheet-y, 0px));
 }
 
-@media (pointer: coarse), (any-pointer: coarse) {
-  .panel {
-    --sheet-pad: 16px;
-  }
-}
-
-/* Side sheet: 8 px from the title bar, the trailing edge and the bottom (07 §2.2). */
+/* Side sheet: on the window's one margin, --piece-inset from the trailing edge and the bottom
+   like every floating piece, and --space-2 under the top strip (system-audit-2026-10 §3.1,
+   I-15; 07 §2.2). */
 .panel[data-presentation='side'] {
-  top: calc(var(--free-top, var(--bar-h)) + 8px);
-  bottom: 8px;
-  inset-inline-end: 8px;
-  width: min(var(--sheet-w), calc(100vw - 16px));
+  top: calc(var(--free-top, var(--bar-h)) + var(--space-2));
+  bottom: var(--piece-inset);
+  inset-inline-end: var(--piece-inset);
+  width: min(var(--sheet-w), calc(100vw - 2 * var(--piece-inset)));
 }
 
 /* Form sheet and centred dialog: centred without a transform, so they rest crisp (Q-2). */
@@ -85,7 +81,7 @@
   margin: 0 auto;
   padding-bottom: calc(var(--sheet-bleed) + env(safe-area-inset-bottom, 0px));
   border-width: 1px 1px 0;
-  border-radius: 28px 28px 0 0;
+  border-radius: var(--sheet-radius-bottom) var(--sheet-radius-bottom) 0 0;
 }
 
 .panel[data-presentation='bottom'][data-kind='confirmation'] {
@@ -93,9 +89,9 @@
   max-height: calc(60dvh + var(--sheet-bleed));
 }
 
-/* Full sheet: the whole window under an 8 px top inset. */
+/* Full sheet: the whole window under a --space-2 top inset. */
 .panel[data-presentation='full'] {
-  top: 8px;
+  top: var(--space-2);
   right: 0;
   bottom: 0;
   left: 0;
@@ -139,13 +135,15 @@
   height: 24px;
 }
 
-/* Header: 52 px fine, 56 coarse; title3 (07 §2.2, §27.18). */
+/* Header (system-audit-2026-10 §3.6.1; 07 §2.2, §27.18): one height, --sheet-header-h (56 px
+   fine, 64 coarse), the title in title3 with an optional footnote subtitle, ✕ an M quiet icon
+   button at the trailing edge, and no divider: the content scrolls under the header's tint. */
 .header {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  min-height: 52px;
+  gap: var(--space-2);
+  min-height: var(--sheet-header-h);
   padding: 0 10px 0 var(--sheet-pad);
 }
 
@@ -169,10 +167,6 @@
   }
 }
 
-.panel[data-presentation='bottom'] .header {
-  min-height: 56px;
-}
-
 .headerButton {
   flex: none;
 }
@@ -181,15 +175,15 @@
   display: grid;
   flex: 1;
   min-width: 0;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .title {
   overflow: hidden;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 22px;
-  letter-spacing: -0.01em;
+  font-size: var(--type-title3);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title3-lh);
+  letter-spacing: var(--track-title3);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -203,28 +197,17 @@
   white-space: nowrap;
 }
 
-@media (pointer: coarse), (any-pointer: coarse) {
-  .header {
-    min-height: 56px;
-  }
-
-  .title {
-    font-size: 19px;
-    line-height: 24px;
-  }
-}
-
-/* A centred confirmation: title2 and the body, 24 px padding (07 §2.2). */
+/* A centred confirmation: title2 and the body, --space-6 padding (07 §2.2). */
 .dialogHeading {
   flex: none;
-  padding: 24px 24px 8px;
+  padding: var(--space-6) var(--space-6) var(--space-2);
 }
 
 .dialogTitle {
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 28px;
-  letter-spacing: -0.015em;
+  font-size: var(--type-title2);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title2-lh);
+  letter-spacing: var(--track-title2);
   text-wrap: balance;
 }
 
@@ -235,15 +218,15 @@
 }
 
 .panel[data-kind='confirmation'] .body {
-  padding-bottom: 16px;
+  padding-bottom: var(--space-4);
 }
 
 .panel[data-presentation='dialog'][data-kind='confirmation'] :is(.body, .reason) {
-  padding-inline: 24px;
+  padding-inline: var(--space-6);
 }
 
 .panel[data-presentation='bottom'][data-kind='confirmation'] .dialogBody {
-  padding-top: 4px;
+  padding-top: var(--space-1);
 }
 
 /* Body: a form whose content scrolls between a fixed header and footer (A-20). */
@@ -258,17 +241,17 @@
   display: grid;
   flex: 1 1 auto;
   align-content: start;
-  gap: 16px;
+  gap: var(--space-4);
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4px var(--sheet-pad) var(--sheet-pad);
+  padding: var(--space-1) var(--sheet-pad) var(--sheet-pad);
 }
 
 /* The reason a primary is unavailable, above the footer (RA-21). */
 .reason {
   flex: none;
-  padding: 0 var(--sheet-pad) 8px;
+  padding: 0 var(--sheet-pad) var(--space-2);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
@@ -284,7 +267,7 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 60px;
   padding: 0 var(--sheet-pad);
   border-top: 1px solid var(--border-glass);
@@ -292,7 +275,7 @@
 
 .panel[data-presentation='dialog'][data-kind='confirmation'] .footer {
   min-height: 0;
-  padding: 8px 24px 24px;
+  padding: var(--space-2) var(--space-6) var(--space-6);
   border-top: 0;
 }
 
@@ -305,14 +288,14 @@
 .secondary {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-inline-start: auto;
 }
 
@@ -327,7 +310,7 @@
 
 .footnote {
   flex: none;
-  padding: 12px var(--sheet-pad);
+  padding: var(--space-3) var(--sheet-pad);
   border-top: 1px solid var(--border-glass);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
@@ -339,9 +322,9 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  margin: 0 var(--sheet-pad) 12px;
-  padding: 0 0 0 12px;
+  gap: var(--space-2);
+  margin: 0 var(--sheet-pad) var(--space-3);
+  padding: 0 0 0 var(--space-3);
   border-radius: var(--radius-control);
   background: var(--control-fill);
 }

@@ -13,18 +13,16 @@
  *   wrapping inside 480; on a coarse pointer and in the compact edition min(viewport − 24, 480).
  *   A toast's width is its own, never its neighbours', so one arriving or leaving changes
  *   nothing beside it and no width ever tweens (Q-10).
- * - One control system (Q-9): every control box is --control-h (32 px fine, 44 px coarse), on
- *   one centre line in a toast 48 / 56 px tall. Inside that box the action draws FB4's
- *   secondary capsule (28 px fine, 36 px coarse) and ✕ its 24 px circle, by a transparent
- *   border: the box stays the hit area (A-15), and the capsule sits as far from the toast's rim
- *   as from its top and bottom, concentric with it.
+ * - One control system (Q-9; system-audit-2026-10 §3.3, §3.6): a toast is a floating piece,
+ *   --toast-h (= --piece-h, 40 px fine, 48 coarse, G1), around M controls on one centre line.
+ *   The action is an M button, the full --control-h, as far from the toast's rim as from its
+ *   top and bottom, concentric with it; ✕ is S, a --control-h-sm circle drawn inside a
+ *   --control-h box by a transparent border, so the box stays the hit area (A-15).
  */
 .region {
-  --toast-h: 48px;
   --toast-gap: 14px;
-  /* FB4 §2: the action's visible capsule and ✕'s circle. */
-  --toast-action-h: 28px;
-  --toast-close-d: 24px;
+  /* ✕'s circle, the S size. */
+  --toast-close-d: var(--control-h-sm);
   /* 12 px above the dock band (01-frame F13 §2): the free rectangle's bottom inset is the band
      with its offset, the offset alone in Focus, and 0 on the Library (frame-insets.ts); a bar
      that floats at a view's foot outside the band (the Library's selection bar) reports how
@@ -44,20 +42,13 @@
   flex-direction: column;
   align-items: center;
   gap: var(--toast-gap);
-  padding-inline: 12px;
+  padding-inline: var(--space-3);
   pointer-events: none;
 }
 
 /* Nothing on screen: the region has no box, so the F6 cycle passes it by. */
 .region:empty {
   display: none;
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .region {
-    --toast-h: 56px;
-    --toast-action-h: 36px;
-  }
 }
 
 /* The compact edition: above the reader's 56 px capsule, safe-area aware; when the capsule is
@@ -108,7 +99,6 @@
   flex: none;
   width: var(--icon-md);
   height: var(--icon-md);
-  stroke-width: 1.5;
   color: var(--text-secondary);
 }
 
@@ -171,18 +161,9 @@
   margin-inline-end: calc(var(--toast-trail) - var(--space-4));
 }
 
-/* The action: FB4's secondary capsule, a ui/Button whose --control-h box keeps Q-9's height
-   and the hit area. On the toast's glass it keeps its fill (n12 on the control fill, FB4 §8),
-   where the other glass bars render a standard button quiet (styles/controls.css). */
-.toast .actions .action {
-  border: calc((var(--control-h) - var(--toast-action-h)) / 2) solid transparent;
-  background-clip: padding-box;
-}
-
-.toast .actions .action:is(:hover, :active, :focus-visible) {
-  background-clip: padding-box;
-}
-
+/* The action: an M ui/Button (FB4's secondary capsule at the piece's control size). On the
+   toast's glass it keeps its fill (n12 on the control fill, FB4 §8), where the other glass
+   bars render a standard button quiet (styles/controls.css). */
 .toast .actions .action:global(.btn-standard):not([aria-disabled='true'], [data-blocked]) {
   background-color: var(--control-fill);
 }
@@ -197,7 +178,7 @@
   background-color: var(--control-fill-pressed);
 }
 
-/* ✕ (FB4 §2): a 24 px circle with a 16 px glyph in a --control-h box (the hit area, A-15). It
+/* ✕ (FB4 §2): an S circle with a 16 px glyph in a --control-h box (the hit area, A-15). It
    sits in the row, trailing, wherever it always shows: on a coarse pointer, and on a failure. */
 .close {
   flex: none;
@@ -260,22 +241,15 @@
 }
 
 /* ------------------------------------------------------------------------------------------
- * The progress capsule (FB5): 40 px fine / 48 px coarse, label and percentage over a 2 px track,
+ * The progress capsule (FB5): a piece like every toast (--toast-h), label and percentage over a 2 px track,
  * Cancel at the end, and the processing ring on the border. The track sits under the words,
  * clear of Cancel, so it never runs beneath a control.
  * ---------------------------------------------------------------------------------------- */
 .toast[data-kind='progress'] {
-  --toast-h: 40px;
   /* FB5 §2: 240–420 px from its own label, on every pointer. */
   width: fit-content;
   min-width: min(240px, 100%);
   max-width: min(420px, 100%);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .toast[data-kind='progress'] {
-    --toast-h: 48px;
-  }
 }
 
 .capsule {

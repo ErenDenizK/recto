@@ -405,9 +405,7 @@ export function ColourPanel({
             onClick={addCurrent}
           >
             <span className={styles.addDot} aria-hidden="true">
-              <svg viewBox="0 0 10 10" focusable="false">
-                <path d="M5 1.5v7M1.5 5h7" />
-              </svg>
+              <Icon name="plus" />
             </span>
           </button>
           {saved.length > 0 || allowNoFill ? (
