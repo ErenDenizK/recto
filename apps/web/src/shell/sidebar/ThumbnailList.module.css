@@ -81,9 +81,24 @@
   overflow: hidden;
 }
 
-.option:not(:focus-visible) .sheet[data-current]:not([data-selected]) {
+/* The current ring is one element over the list, on the current sheet's box, that slides from
+   page to page (ThumbnailList.tsx; motion-2026-10 viewer.md §4). It steps aside while the page
+   is selected or its row holds keyboard focus, as the sheet's own outline did. */
+.currentRing {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  border-radius: var(--radius-page);
   outline: 1px solid var(--current-ring);
   outline-offset: 3px;
+  pointer-events: none;
+}
+
+.currentRing[hidden],
+.list:has(.option[aria-current='page']:focus-visible) .currentRing,
+.list:has(.sheet[data-current][data-selected]) .currentRing {
+  display: none;
 }
 
 /* Selected: the lime ring 2 px out from the page, nothing over the bitmap. */
@@ -236,7 +251,7 @@
 }
 
 @media (forced-colors: active) {
-  .sheet[data-current] {
+  .currentRing {
     outline-color: Highlight;
   }
 
