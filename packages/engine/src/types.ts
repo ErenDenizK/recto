@@ -1119,8 +1119,7 @@ export type TextTier2Refusal =
   | 'ambiguous-encoding'
   | 'clipped';
 
-/** Shrink-to-fit floor (spec §2.5): the replacement may shrink to 75% of the run's size. */
-export const TEXT_EDIT_SHRINK_FLOOR = 0.75;
+export { TEXT_EDIT_SHRINK_FLOOR } from './constants';
 
 /** Width of the replacement in one tier's font against the free space. */
 export interface TextFitOption {
