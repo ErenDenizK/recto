@@ -25,9 +25,12 @@
  */
 import type { DocumentId, Workspace } from '@pdf-editor/document-model';
 import {
+  Component,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
+  type ReactNode,
+  type RefObject,
   useEffect,
   useRef,
   useState,
@@ -36,7 +39,6 @@ import {
 import { currentPlatform } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { useLongPress } from '../motion/gesture';
-import { viewTransition } from '../motion';
 import { usePointerCapabilities } from '../shell/frame/input-modality';
 import { changeRefusal, refusalReason } from '../state/guard';
 import { useLockStore } from '../state/lock-store';
@@ -44,6 +46,7 @@ import { matchesMark, useSavedStore } from '../state/saved-store';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
+import { type GridSnapshot, playGrid, snapshotGrid } from './card-motion';
 import { closeSelected, focusCardSoon, moveCard, openInRead, selectOnHome } from './home-actions';
 import {
   clickSelection,
@@ -55,6 +58,7 @@ import {
   toggleSelection,
 } from './home-model';
 import { LibraryCard } from './LibraryCard';
+import { openCardMorph } from './library-transition';
 import styles from './LibraryGrid.module.css';
 import { enterSelecting, setSelecting, useSelecting } from './library-store';
 
@@ -72,9 +76,12 @@ interface DragState {
   gap: number;
 }
 
-/** A card opens with the view change's root cross-fade (L1 §7, MC-2). */
+/**
+ * A card opens by the view change (L1 §7, MC-2): its first page grows into the reader's page
+ * while the rest cross-fades (`library-transition.ts`).
+ */
 export function openCard(id: DocumentId): void {
-  void viewTransition(() => openInRead(id), { name: 'library-open' });
+  openCardMorph(id, openInRead);
 }
 
 export function LibraryGrid({
@@ -104,6 +111,7 @@ export function LibraryGrid({
   const suppressClick = useRef(false);
   const longPressAt = useRef(Number.NEGATIVE_INFINITY);
   const gridRef = useRef<HTMLDivElement>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
 
   const tabbable =
     (focused !== null && order.includes(focused) ? focused : undefined) ?? selection[0] ?? order[0];
@@ -389,30 +397,35 @@ export function LibraryGrid({
         }
       }}
     >
-      {cards.map((card) => (
-        <LibraryCard
-          key={card.id}
-          card={card}
-          workspace={workspace}
-          selected={selection.includes(card.id)}
-          selecting={selecting}
-          tabbable={card.id === tabbable}
-          edited={!matchesMark(workspace, card.id, marks[card.id])}
-          lock={locks[card.id]}
-          dragging={drag?.id === card.id}
-          renaming={renaming === card.id}
-          coarse={coarse}
-          onClick={(event) => onCardClick(event, card.id)}
-          onCheck={(event) => onCheck(event, card.id)}
-          onFocus={() => setFocused(card.id)}
-          onContextMenu={(event) => onContextMenu(event, card.id)}
-          onPointerDown={(event) => onPointerDown(event, card.id)}
-          onRenamed={() => {
-            setRenaming(null);
-            focusCardSoon(card.id);
-          }}
-        />
-      ))}
+      <CardMotionBoundary grid={gridRef} ghosts={ghostRef} order={order}>
+        {cards.map((card, index) => (
+          <LibraryCard
+            key={card.id}
+            card={card}
+            index={index}
+            workspace={workspace}
+            selected={selection.includes(card.id)}
+            selecting={selecting}
+            tabbable={card.id === tabbable}
+            edited={!matchesMark(workspace, card.id, marks[card.id])}
+            lock={locks[card.id]}
+            dragging={drag?.id === card.id}
+            renaming={renaming === card.id}
+            coarse={coarse}
+            onClick={(event) => onCardClick(event, card.id)}
+            onCheck={(event) => onCheck(event, card.id)}
+            onFocus={() => setFocused(card.id)}
+            onContextMenu={(event) => onContextMenu(event, card.id)}
+            onPointerDown={(event) => onPointerDown(event, card.id)}
+            onRenamed={() => {
+              setRenaming(null);
+              focusCardSoon(card.id);
+            }}
+          />
+        ))}
+      </CardMotionBoundary>
+      {/* Where a closed card's clone shrinks out, under the cards that close the gap. */}
+      <div ref={ghostRef} className={styles.ghosts} aria-hidden="true" />
       {caret ? (
         <span
           className={styles.caret}
@@ -422,6 +435,43 @@ export function LibraryGrid({
       ) : null}
     </div>
   );
+}
+
+interface BoundaryProps {
+  readonly grid: RefObject<HTMLDivElement | null>;
+  readonly ghosts: RefObject<HTMLDivElement | null>;
+  readonly order: readonly DocumentId[];
+  readonly children: ReactNode;
+}
+
+/**
+ * Reads the cards as drawn before a commit that changes their order and plays the change
+ * after it, before paint (`card-motion.ts`): arrivals grow in, leavers shrink out, the rest
+ * make way.
+ */
+class CardMotionBoundary extends Component<BoundaryProps> {
+  override getSnapshotBeforeUpdate(previous: BoundaryProps): GridSnapshot | null {
+    const grid = this.props.grid.current;
+    const before = previous.order;
+    const after = this.props.order;
+    if (!grid || (before.length === after.length && before.every((id, i) => id === after[i]))) {
+      return null;
+    }
+    return snapshotGrid(grid, before, after);
+  }
+
+  override componentDidUpdate(
+    _previous: BoundaryProps,
+    _state: unknown,
+    snapshot: GridSnapshot | null,
+  ): void {
+    const grid = this.props.grid.current;
+    if (grid && snapshot) playGrid(grid, this.props.ghosts.current, snapshot);
+  }
+
+  override render(): ReactNode {
+    return this.props.children;
+  }
 }
 
 /** The card id an element belongs to, if it is inside a card. */
