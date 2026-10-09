@@ -9,9 +9,13 @@
  *   and "Saved" share one width (the labels are stacked), so the bar never reflows between them.
  * - **Saving… 40 %** while the save runs: the button is the progress (FB5 "in place"; the
  *   capsule takes over when the button is not on screen), with the processing ring on its
- *   border, after the 400 ms gate. A press meanwhile is queued once.
+ *   border, after the 400 ms gate; it shows "40 %" at the pill's one width (system-audit-2026-10
+ *   §4 Frame: an M button whose width never changes), and is named "Saving… 40 %". A press
+ *   meanwhile is queued once.
  * - After a verified save the label returns to "Saved" with a check that pops and a bloom on
- *   the rim, once (FB6); the toast says "Saved · verified".
+ *   the rim, once (FB6); the toast says "Saved · verified" over the save receipt (PLAN.md
+ *   E13-u), which "Saved" keeps in its reason: "Everything is in report.pdf · Saved on this
+ *   device", or "… · 3 areas removed · 0 matches remain".
  *
  * The questions a save asks (unapplied marks, Replace) are `ReplacePopover`, anchored here.
  */
@@ -23,6 +27,7 @@ import { formatPercent, m } from '../../i18n';
 import { useJobStore } from '../../jobs/job-store';
 import { useInFile } from '../../state/saved-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { Activity } from '../../ui/Activity';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { Tooltip } from '../../ui/Tooltip';
@@ -52,6 +57,7 @@ export function SaveButton() {
   const jobId = useSaveStore((s) => (id === null ? undefined : s.jobs[id]));
   const job = useJobStore((s) => (jobId === undefined ? undefined : s.jobs[jobId]));
   const verifiedAt = useSaveStore((s) => (id === null ? undefined : s.verifiedAt[id]));
+  const receipt = useSaveStore((s) => (id === null ? undefined : s.receipts[id]));
   const shortcut = useCommandShortcut('file.save') ?? SAVE_SHORTCUT;
   const reasonId = useId();
 
@@ -88,15 +94,31 @@ export function SaveButton() {
         {m.save_label_saved()}
         <Icon name="check" className={styles.check} />
       </span>
+      {/* While saving the pill keeps its width (system-audit-2026-10 §4 Frame: the piece never
+          resizes): the percentage alone, or the activity glyph before the first one, in the
+          cell's room, which the widest percentage reserves below; the words stay for
+          assistive technology. */}
       {state === 'saving' ? (
         <span className={styles.label} data-shown="">
-          {savingLabel}
+          {percent === undefined ? (
+            <Activity delay={0} size="sm" />
+          ) : (
+            <span aria-hidden="true">{formatPercent(percent / 100)}</span>
+          )}
+          <span className="visually-hidden">{savingLabel}</span>
         </span>
       ) : null}
+      <span className={styles.label} aria-hidden="true">
+        {formatPercent(1)}
+      </span>
     </span>
   );
 
-  const reason = state === 'saved' ? m.save_everything_in({ name }) : undefined;
+  // "Saved" says why, then what the last save proved (the receipt, E13-u).
+  const reason =
+    state === 'saved'
+      ? [m.save_everything_in({ name }), receipt].filter(Boolean).join(' · ')
+      : undefined;
   return (
     <span className={styles.wrap}>
       {/* One tree in every state, so focus stays on Save while it turns into "Saved" (F7 §6).
