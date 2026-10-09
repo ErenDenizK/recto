@@ -967,7 +967,7 @@ describe('tokens.css', () => {
         })['../shell/frame/TopStrip.module.css'] ?? '',
       );
       const piece = /^\.piece\s*\{([^{}]*)\}/m.exec(strip)?.[1] ?? '';
-      expect(piece).toMatch(/composes:\s*mat mat-bar s9 c10 from global;/);
+      expect(piece).toMatch(/composes:\s*mat mat-bar s8 c9 from global;/);
       expect(piece).not.toMatch(/background:/);
       expect(strip).not.toMatch(/mat-docked/);
       // The title menu and the pill menu open over the sidebar's dark edge and the white page
@@ -1226,11 +1226,12 @@ describe('tokens.css', () => {
       // solid twin (D4-4: they rest over page text): two fewer. The Markup palette's floating ink
       // strip (owner feedback F3) is a piece of glass of its own above the capsule: one more.
       expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(23);
+      // The capsule at the one piece height (G1): σ 8 at 40 px, 9 at 48 coarse.
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',
         'mat-bar',
-        's9',
-        'c10',
+        's8',
+        'c9',
         'h8',
       ]);
     });
@@ -1432,13 +1433,25 @@ describe('tokens.css', () => {
       }
     });
 
-    it('sizes controls 32 px fine and 44 px coarse, in bars of 44 and 56 (Q-9)', () => {
+    it('sizes controls 32 px fine and 44 px coarse, in pieces of 40 and 48 (Q-9, G1)', () => {
       expect(free.get('--control-h')).toBe('32px');
       expect(free.get('--bar-button')).toBe('32px');
-      expect(free.get('--bar-h')).toBe('44px');
+      expect(free.get('--piece-h')).toBe('40px');
+      expect(free.get('--bar-h')).toBe('var(--piece-h)');
       expect(coarse.get('--control-h')).toBe('44px');
       expect(coarse.get('--bar-button')).toBe('44px');
-      expect(coarse.get('--bar-h')).toBe('56px');
+      expect(coarse.get('--piece-h')).toBe('48px');
+      expect(coarse.has('--bar-h')).toBe(false);
+      // One scale for every floating piece (owner feedback 2026-10-09, G1): one inset top and
+      // bottom, the capsule radius, the control glyph and the body label; the room between the
+      // rim and a control follows the two heights (3 px fine, 1 px coarse), and a coarse control
+      // stays at the 44 px hit minimum inside the 48 px piece.
+      expect(free.get('--piece-inset')).toBe('var(--space-4)');
+      expect(free.get('--piece-radius')).toBe('var(--radius-capsule)');
+      expect(free.get('--piece-icon')).toBe('var(--icon-md)');
+      expect(free.get('--piece-label')).toBe('var(--type-body)');
+      expect(free.get('--piece-pad')).toBe('calc((var(--piece-h) - var(--control-h) - 2px) / 2)');
+      expect(coarse.get('--hit-min')).toBe('44px');
       expect(coarse.get('--field-text')).toBe('16px');
       // Icons stay 16 and 20 at both densities (Q-9).
       expect(free.get('--icon-sm')).toBe('16px');

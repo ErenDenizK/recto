@@ -105,7 +105,11 @@ test and the work package that first carries it.
 
 **Q-9 One control system.**
 - Every control comes from `ui/`.
-- Controls are 32 px (fine) or 44 px (coarse), in bars of 44 or 56.
+- Controls are 32 px (fine) or 44 px (coarse), in floating pieces of 40 or 48 (`--piece-h`,
+  owner feedback 2026-10-09, G1): the top strip's pieces, the capsule and what it hosts, the
+  page pill, the grid's corner pieces, the ink strip, the contextual bars and the Library's
+  pills share one height, inset, radius, glyph and label per pointer class, and a coarse
+  control's hit area never drops under 44.
 - Radii are only pill or `--radius-control` (10).
 - Icons are 20 px in controls and 16 px in menus and rows.
 - Popovers, menus, sheets, toasts, sliders and swatches each have one primitive (`10-ink` §7).

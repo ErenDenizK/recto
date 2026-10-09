@@ -149,9 +149,10 @@ test.describe('the Glass setting on the root (language.md §2.8, A-17)', () => {
       const strip = await styleOf(page, '[data-testid="app-shell"] > header [data-top-piece]');
       if (glass === 'tinted') {
         expect(capsule.background).toMatch(/, 0\.9\)$/);
-        expect(capsule.filter).toMatch(/^blur\(9px\)/);
+        // σ 8 at the one 40 px piece height (G1), the capsule and the strip alike.
+        expect(capsule.filter).toMatch(/^blur\(8px\)/);
         expect(strip.background).toMatch(/, 0\.9\)$/);
-        expect(strip.filter).toMatch(/^blur\(9px\)/);
+        expect(strip.filter).toMatch(/^blur\(8px\)/);
       } else {
         expect(capsule.background).toMatch(/^rgb\(/);
         expect(capsule.filter).toBe('none');

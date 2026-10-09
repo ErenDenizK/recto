@@ -1,8 +1,9 @@
 /*
  * The palette's floating strip (owner feedback F3; quality-bar Q-2 to Q-6, Q-9).
  *
- * The capsule's material and σ (`mat mat-bar s9 c10 h8`), the pill radius, one bar tall: the
- * content's 32 / 44 px row inside 5 px of padding and the 1 px rim, so its round ends are
+ * The capsule's material and σ (`mat mat-bar s8 c9 h8`), the pill radius, one piece tall
+ * (--piece-h, G1): the content's 32 / 44 px row inside --piece-pad and the 1 px rim, so its
+ * round ends are
  * concentric with the round controls at either end (the colour well; the slider's readout keeps
  * its own inset in `InkStrip.module.css`). It hugs its content (`width: max-content`) and never
  * runs wider than the band less 16 px each side; a narrow window wraps the strip inside it.
@@ -11,8 +12,8 @@
  * the content to the pill while the width moves.
  */
 .piece {
-  composes: mat mat-bar s9 c10 h8 from global;
-  --strip-pad: calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
+  composes: mat mat-bar s8 c9 h8 from global;
+  --strip-pad: var(--piece-pad);
 
   position: relative;
   display: flex;
@@ -21,13 +22,13 @@
   justify-content: center;
   box-sizing: border-box;
   width: max-content;
-  max-width: calc(100% - 2 * var(--space-4));
-  min-height: var(--bar-h);
+  max-width: calc(100% - 2 * var(--piece-inset));
+  min-height: var(--piece-h);
   margin-bottom: var(--space-1);
   padding: var(--strip-pad);
   overflow: clip;
   /* The pill on one bar; on a wrapped strip the corners keep the bar's round ends. */
-  border-radius: calc(var(--bar-h) / 2);
+  border-radius: calc(var(--piece-h) / 2);
   contain: layout style;
   pointer-events: auto;
   transition: opacity var(--duration-fast) var(--ease-out);

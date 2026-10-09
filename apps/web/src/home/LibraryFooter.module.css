@@ -1,10 +1,12 @@
 /*
  * The Library footer (02-library L12 §2–§3): the privacy chip leading and the language switch
- * trailing, both 32 px fine / 44 coarse (--control-h), at the column's bottom corners. The chip
+ * trailing, at the column's bottom corners, one piece high (--piece-h: 40 fine, 48 coarse;
+ * owner feedback 2026-10-09, G1), the same scale as the strip's pieces and the launcher row. The chip
  * is M1 in its static form, the chip tint over the canvas (it rests on the canvas at the end of
  * the column; nothing scrolls under it, so it needs no blur), with the M1 rim.
  */
 .footer {
+  --control-h: var(--piece-h);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -17,14 +19,14 @@
   --shadow-own: var(--rim-edge), var(--rim-inner);
   height: var(--control-h);
   margin-left: 0;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-pill);
+  padding: 0 var(--space-4);
+  border-radius: var(--piece-radius);
   background: var(--glass-chip-tint);
   box-shadow: var(--shadow-own);
   color: var(--text-secondary);
-  font-size: var(--type-footnote);
+  font-size: var(--piece-label);
   font-weight: var(--weight-medium);
-  line-height: var(--type-footnote-lh);
+  line-height: var(--piece-label-lh);
 }
 
 @media (hover: hover) {
@@ -39,7 +41,8 @@
   color: var(--text-primary);
 }
 
-.language {
+.footer .language {
+  --seg-h: var(--piece-h);
   flex: none;
   width: auto;
   min-width: 180px;

@@ -953,7 +953,7 @@
 
   /*
    * Density (09-primitives §2.1, language.md §6.2; quality-bar Q-9). Controls are 32 px on a
-   * fine pointer and 44 px on a coarse one, in bars of 44 and 56; rows keep the M8
+   * fine pointer and 44 px on a coarse one, in pieces of 40 and 48 (--piece-h); rows keep the M8
    * --control-height. Icons are 20 px in controls and 16 px in rows and menus at every density
    * (Q-9). A touch laptop is coarse everywhere, by design (research 19 M-2).
    */
@@ -961,7 +961,21 @@
   --control-h: 32px;
   --control-h-lg: 36px;
   --bar-button: 32px;
-  --bar-h: 44px;
+  /* One size scale for every floating piece (owner feedback 2026-10-09, G1): the top strip's
+     pieces, the capsule and everything it hosts, the page pill, the grid's corner pieces, the
+     ink strip, the contextual bars and the Library's pills are one --piece-h high (40 fine, 48
+     coarse) around --control-h controls (32 / 44, so a coarse hit area never drops under 44),
+     --piece-inset from the window's edges top and bottom alike, the capsule radius, 20 px glyphs
+     and labels in the body step. --piece-pad is the room between the 1 px rim and a control.
+     --bar-h is the same height under its Q-9 name. */
+  --piece-h: 40px;
+  --piece-inset: var(--space-4);
+  --piece-radius: var(--radius-capsule);
+  --piece-pad: calc((var(--piece-h) - var(--control-h) - 2px) / 2);
+  --piece-icon: var(--icon-md);
+  --piece-label: var(--type-body);
+  --piece-label-lh: var(--type-body-lh);
+  --bar-h: var(--piece-h);
   --chip-h: 28px;
   --check: 16px;
   --switch-w: 36px;
@@ -997,7 +1011,7 @@
     --control-h: 44px;
     --control-h-lg: 52px;
     --bar-button: 44px;
-    --bar-h: 56px;
+    --piece-h: 48px;
     --chip-h: 36px;
     --check: 20px;
     --switch-w: 52px;

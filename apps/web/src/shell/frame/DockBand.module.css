@@ -2,11 +2,12 @@
  * The frame's overlay slots (01-frame F1 §3, F10 §2, F11 §2, F13 §2).
  *
  * The dock band: a zero-height line along the bottom of the free rectangle's width; the dock
- * (today's floating tool bar) and the page pill position against it, 16 px up (12 on compact).
+ * (today's floating tool bar) and the page pill position against it, --piece-inset up (16 px,
+ * the top strip's inset mirrored, G1; 12 on compact).
  * It takes no pointer itself, only its surfaces do.
  */
 .band {
-  --band-offset: 16px;
+  --band-offset: var(--piece-inset);
   position: absolute;
   right: var(--free-right, 0px);
   bottom: 0;

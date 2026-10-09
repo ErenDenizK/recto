@@ -1,18 +1,20 @@
 /*
  * The top strip (01-frame F2–F4, F6; owner feedback 2026-10-08, F1): no band, two floating
- * glass pieces over the canvas. Each is a capsule of quality-bar Q-9's set, --bar-h high (44 px
- * around 32 px controls on a fine pointer, 56 around 44 on a coarse one), the bottom capsule's
- * material, padding and pill radius, so the frame reads as one family top and bottom: every
- * control shares its piece's centre line; buttons are circles, Save a capsule, tabs
- * --radius-control.
+ * glass pieces over the canvas. Each is a piece of the one floating scale (owner feedback
+ * 2026-10-09, G1; tokens.css --piece-*): --piece-h high (40 px around 32 px controls on a fine
+ * pointer, 48 around 44 on a coarse one), --piece-pad inside the rim, the capsule radius and the
+ * bottom capsule's material, so the frame reads as one family top and bottom: every control
+ * shares its piece's centre line; buttons are circles, Save a capsule, tabs pills (concentric
+ * with the piece, as a segmented control's thumb is with its track).
  *
- * The `header` is only the line they float on: transparent, pointer-transparent, inset 16 px
- * from the window's edges as the dock band is (DockBand.module.css), its box (inset + piece)
+ * The `header` is only the line they float on: transparent, pointer-transparent, inset
+ * --piece-inset from the window's edges as the dock band is (DockBand.module.css), mirroring
+ * the bottom pieces' baseline, its box (inset + piece)
  * the free rectangle's top inset (frame-insets.ts). The page scrolls beneath the pieces and
  * the bare canvas between them.
  */
 .strip {
-  --float-inset: var(--space-4);
+  --float-inset: var(--piece-inset);
   --lead-max: 760px;
   position: absolute;
   top: 0;
@@ -24,27 +26,27 @@
   justify-content: space-between;
   gap: var(--space-6);
   box-sizing: border-box;
-  height: calc(var(--float-inset) + var(--bar-h));
+  height: calc(var(--float-inset) + var(--piece-h));
   padding: var(--float-inset) var(--float-inset) 0;
   pointer-events: none;
 }
 
 /*
- * A piece: M2 glass (`mat mat-bar s9 c10`, coverage registry `top-strip`), as the capsule.
+ * A piece: M2 glass (`mat mat-bar s8 c9`, coverage registry `top-strip`), as the capsule.
  * The two pieces count as the one top-strip surface of quality-bar Q-11's budget
  * (`data-glass-group`): together they cover less than the band they replace.
  */
 .piece {
-  composes: mat mat-bar s9 c10 from global;
+  composes: mat mat-bar s8 c9 from global;
   display: flex;
   flex: none;
   align-items: center;
   gap: var(--space-2);
   box-sizing: border-box;
   min-width: 0;
-  height: var(--bar-h);
-  padding: 0 calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
-  border-radius: var(--radius-capsule);
+  height: var(--piece-h);
+  padding: 0 var(--piece-pad);
+  border-radius: var(--piece-radius);
   pointer-events: auto;
 }
 
@@ -197,7 +199,8 @@
 }
 
 /* A tab is as wide as its title up to the maximum, and truncates only when the strip runs out
-   of room (review F25). One control height in the bar (Q-9): --control-h, --radius-control. */
+   of room (review F25). One control height in the bar (Q-9): --control-h, and the pill, so the
+   selected tab's fill sits concentric inside the piece (G1). */
 .tabWrap {
   position: relative;
   display: flex;
@@ -206,7 +209,7 @@
   min-width: var(--tab-min);
   max-width: var(--tab-max);
   height: var(--control-h);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-pill);
   transition: background-color var(--duration-fast) var(--ease-out);
 }
 
