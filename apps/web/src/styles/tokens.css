@@ -484,16 +484,18 @@
   /* Layer 2: materials, light (language.md §2.2, ADR-0022 §2.4, G-25). Light glass is floored,
      not inverted: `contrast(0.45) brightness(1.4)` after the saturate lifts black under it to
      0.385 before the tint, so black is its worst backdrop as white is dark glass's. Over black:
-     chip #ccccce, bar #cfcfd1, panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text
-     keeps ≥ 11.18:1 and glass-secondary ≥ 6.27:1; over white they stay paper (#fafafc–#fcfcfd),
+     chip and bar #cbcbcc, panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text
+     keeps ≥ 11.06:1 and glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd),
      and the panel over the canvas lands within a level of the frame (n2). Lit glass is dark
-     only: in light its surfaces take the bar's values (spec 02.3), floored over any pigment. */
-  --glass-chip-alpha: 0.7;
+     only: in light its surfaces take the bar's values (spec 02.3), floored over any pigment.
+     M1 and M2 sit at the floor of primary text, APCA Lc 75 over black (alpha 0.69), so the
+     canvas and the aura show through them (system-audit-2026-10 §3.5); sheets stay paper. */
+  --glass-chip-alpha: 0.69;
   --glass-chip-tint: rgb(250 250 252 / var(--glass-chip-alpha));
   --glass-chip-filter: saturate(1.5) contrast(0.45) brightness(1.4);
   --glass-chip-solid: var(--n1);
   --glass-chip-shadow: var(--e2);
-  --glass-bar-alpha: 0.72;
+  --glass-bar-alpha: 0.69;
   --glass-bar-tint: rgb(250 250 252 / var(--glass-bar-alpha));
   --glass-bar-filter: saturate(1.5) contrast(0.45) brightness(1.4);
   --glass-bar-solid: var(--n1);
@@ -513,7 +515,7 @@
   --glass-sheet-filter: saturate(1.3) contrast(0.45) brightness(1.4);
   --glass-sheet-solid: var(--n1);
   --glass-sheet-shadow: var(--e5);
-  --glass-lit-alpha: 0.72;
+  --glass-lit-alpha: 0.69;
   --glass-lit-tint: rgb(250 250 252 / var(--glass-lit-alpha));
   --glass-lit-filter: saturate(1.5) contrast(0.45) brightness(1.4);
   --glass-lit-solid: var(--n1);
@@ -597,7 +599,8 @@
   --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
   --badge-fill: var(--n4);
   --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
-  /* The focus ring serves both themes unchanged (language.md §9.2): lime and #08090c. */
+  /* The focus bands serve both themes unchanged (language.md §9.2): lime and #08090c. Fields
+     and segments take the outset field form in light (styles/focus.css, option A). */
   --focus-light: var(--lime-300);
   --focus-dark: #08090c;
 
@@ -743,16 +746,18 @@
     /* Layer 2: materials, light (language.md §2.2, ADR-0022 §2.4, G-25). Light glass is floored,
        not inverted: `contrast(0.45) brightness(1.4)` after the saturate lifts black under it to
        0.385 before the tint, so black is its worst backdrop as white is dark glass's. Over black:
-       chip #ccccce, bar #cfcfd1, panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text
-       keeps ≥ 11.18:1 and glass-secondary ≥ 6.27:1; over white they stay paper (#fafafc–#fcfcfd),
+       chip and bar #cbcbcc, panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text
+       keeps ≥ 11.06:1 and glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd),
        and the panel over the canvas lands within a level of the frame (n2). Lit glass is dark
-       only: in light its surfaces take the bar's values (spec 02.3), floored over any pigment. */
-    --glass-chip-alpha: 0.7;
+       only: in light its surfaces take the bar's values (spec 02.3), floored over any pigment.
+       M1 and M2 sit at the floor of primary text, APCA Lc 75 over black (alpha 0.69), so the
+       canvas and the aura show through them (system-audit-2026-10 §3.5); sheets stay paper. */
+    --glass-chip-alpha: 0.69;
     --glass-chip-tint: rgb(250 250 252 / var(--glass-chip-alpha));
     --glass-chip-filter: saturate(1.5) contrast(0.45) brightness(1.4);
     --glass-chip-solid: var(--n1);
     --glass-chip-shadow: var(--e2);
-    --glass-bar-alpha: 0.72;
+    --glass-bar-alpha: 0.69;
     --glass-bar-tint: rgb(250 250 252 / var(--glass-bar-alpha));
     --glass-bar-filter: saturate(1.5) contrast(0.45) brightness(1.4);
     --glass-bar-solid: var(--n1);
@@ -772,7 +777,7 @@
     --glass-sheet-filter: saturate(1.3) contrast(0.45) brightness(1.4);
     --glass-sheet-solid: var(--n1);
     --glass-sheet-shadow: var(--e5);
-    --glass-lit-alpha: 0.72;
+    --glass-lit-alpha: 0.69;
     --glass-lit-tint: rgb(250 250 252 / var(--glass-lit-alpha));
     --glass-lit-filter: saturate(1.5) contrast(0.45) brightness(1.4);
     --glass-lit-solid: var(--n1);
@@ -856,7 +861,8 @@
     --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
     --badge-fill: var(--n4);
     --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
-    /* The focus ring serves both themes unchanged (language.md §9.2): lime and #08090c. */
+    /* The focus bands serve both themes unchanged (language.md §9.2): lime and #08090c. Fields
+       and segments take the outset field form in light (styles/focus.css, option A). */
     --focus-light: var(--lime-300);
     --focus-dark: #08090c;
 

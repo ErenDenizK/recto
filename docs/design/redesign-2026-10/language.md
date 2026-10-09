@@ -325,8 +325,8 @@ glass becomes 0.385 before the tint (G-25). "Worst" is over black.
 
 | Tier | Tint | Filter after `blur(σ)` | k | Over black | Over white | Over light canvas | Primary · glass-sec · danger · warning · ink fill | APCA P / S |
 |---|---|---|---|---|---|---|---|---|
-| M1 | `rgb(250 250 252 / 0.70)` | `saturate(1.5) contrast(0.45) brightness(1.4)` | 0.189 | `#ccccce` | `#fcfcfd` | `#f8f8fb` | 11.18 · 6.27 · 5.09 · 5.21 · 11.18 | 75 / 64 |
-| M2 | `rgb(250 250 252 / 0.72)` | same | 0.176 | `#cfcfd1` | `#fbfbfd` | `#f8f8fb` | 11.53 · 6.46 · 5.25 · 5.37 · 11.53 | 77 / 66 |
+| M1 | `rgb(250 250 252 / 0.69)` (system-audit-2026-10 §3.5: the Lc 75 floor) | `saturate(1.5) contrast(0.45) brightness(1.4)` | 0.189 | `#cbcbcc` | `#fcfcfd` | `#f8f8fb` | 11.06 · 6.20 · 5.04 · 5.16 · 11.06 | 75 / 63 |
+| M2 | `rgb(250 250 252 / 0.69)` (was 0.72) | same | 0.176 | `#cbcbcc` | `#fcfcfd` | `#f8f8fb` | 11.06 · 6.20 · 5.04 · 5.16 · 11.06 | 75 / 63 |
 | M3 | `rgb(248 249 251 / 0.76)` | `saturate(1.4) contrast(0.45) brightness(1.4)` | 0.151 | `#d4d5d6` | `#fafafc` | `#f7f8fa` (≈ n2) | 12.20 · 6.84 · 5.56 · 5.69 · 12.20 | 80 / 69 |
 | M4 | `rgb(250 250 252 / 0.78)` | same | 0.139 | `#d9d9da` | `#fbfbfd` | `#f8f9fb` | 12.71 · 7.13 · 5.79 · 5.93 · 12.71 | 83 / 71 |
 | M5 | `rgb(250 250 252 / 0.88)` | `saturate(1.3) contrast(0.45) brightness(1.4)` | 0.076 | `#e8e8ea` | `#fbfbfc` | `#f9f9fb` | 14.65 · 8.21 · 6.67 · 6.83 · 14.65 | 91 / 80 |
