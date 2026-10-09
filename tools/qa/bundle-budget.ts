@@ -30,6 +30,13 @@
  * in the service worker's precache list (except EmbedPDF's never-loaded `worker-engine-*`
  * chunk, excluded in vite.config.ts), so every lazy surface opens offline. Wasm is
  * runtime-cached instead (ADR-0010; src/pwa/register.ts warms it).
+ *
+ * And what a web release build must not carry (docs/plan/v1/editions.md §4.1, §4.4):
+ *
+ * - **V1-P3, ED-1: zero desktop bytes.** No emitted script names the desktop adapter or Tauri
+ *   (`platform/desktop`, `@tauri-apps/`, `__TAURI__`).
+ * - **ED-3: no lab code.** No emitted script carries `src/lab/`'s marker (`recto-lab-build`);
+ *   a build made with `RECTO_LAB=1` is not a release build and fails here.
  */
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -67,6 +74,11 @@ const MEASURE_LABELS: Readonly<Record<MeasureName, string>> = {
 /** Static `import … from "./x.js"`, `import "./x.js"` and `export … from "./x.js"`. */
 const STATIC_EDGE =
   /(?:^|[^.\w$])(?:import|export)\s*(?:[\w$*{}\s,]*?\s*from\s*)?["'](\.\.?\/[^"']+\.js)["']/g;
+
+/** Strings only the desktop target's code contains (V1-P3, ED-1). */
+const DESKTOP_MARKERS = ['platform/desktop', '@tauri-apps/', '__TAURI__'];
+/** `LAB_BUILD_MARKER` of apps/web/src/lab/index.ts (ED-3). */
+const LAB_MARKER = 'recto-lab-build';
 
 function main(): void {
   const args = process.argv.slice(2);
@@ -190,6 +202,15 @@ function main(): void {
     .map((name) => `assets/${name}`)
     .filter((url) => !precached.has(url));
   for (const url of missing) problems.push(`Not precached (PF-17): ${url}`);
+
+  // V1-P3 (ED-1) and ED-3: what a web release build must not carry.
+  for (const name of assetFiles.filter((file) => file.endsWith('.js'))) {
+    const source = readFileSync(join(assets, name), 'utf8');
+    const desktop = DESKTOP_MARKERS.find((marker) => source.includes(marker));
+    if (desktop)
+      problems.push(`Desktop code in the web build (V1-P3): ${desktop} in assets/${name}`);
+    if (source.includes(LAB_MARKER)) problems.push(`Lab code in the build (ED-3): assets/${name}`);
+  }
 
   rows.push(
     `${'First paint CSS gzip (not gated)'.padEnd(38)} ${kb(firstPaintCss.gzip).padStart(10)}`,

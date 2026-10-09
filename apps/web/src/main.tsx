@@ -20,6 +20,9 @@ if (!container) {
 
 startServiceWorker();
 
+// Lab builds only (`RECTO_LAB=1`, ED-3): compiled out of every other build.
+if (__LAB__) void import('./lab').then((lab) => lab.startLab());
+
 /**
  * Turkish needs the Latin Extended file (ğ İ ş) on its first screen; `index.html` preloads only
  * the Latin one (ADR-0027 §2.1: English sessions never pay for it), so a Turkish launch asks for
