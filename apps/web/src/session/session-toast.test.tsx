@@ -159,7 +159,8 @@ describe('KeptOnDevice', () => {
       'Nothing is kept on this device.',
     );
     expect(screen.getByRole('note')).toHaveTextContent('The browser may clear kept changes.');
-    expect(screen.getByTestId('privacy-kept-clear')).toBeDisabled();
+    // ui/Button stays focusable while disabled (aria-disabled), so its reason can be read.
+    expect(screen.getByTestId('privacy-kept-clear')).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('says a private window keeps nothing', () => {
