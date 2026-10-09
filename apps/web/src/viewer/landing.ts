@@ -7,7 +7,7 @@
  * removed, as the undo reveal's ring is (§7.5).
  *
  * A find hit carries its own ring (the *find step*), so the search asks for no landing. An undo
- * or redo flashes what it changed itself (`recto:history-applied`, frame.md §6): a landing on
+ * or redo flashes what it changed itself (`pdf-editor:history-applied`, frame.md §6): a landing on
  * screen gives way to it (`clearLandings`), so one step never shows two highlights.
  */
 import { reducedMotion } from '../motion/reduced-motion';

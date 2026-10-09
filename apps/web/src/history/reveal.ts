@@ -7,7 +7,7 @@
  * - The page scrolls only when it is not in view already (the smallest move; the page view's
  *   scroll requests keep it inside the unobscured rectangle). The free rectangle of the
  *   redesigned frame (`revealInFree`) replaces this when the D2 shell lands.
- * - What changed flashes (motion-2026-10 frame.md §6): `recto:history-applied` goes out with
+ * - What changed flashes (motion-2026-10 frame.md §6): `pdf-editor:history-applied` goes out with
  *   the pages and annotations the step touched (`history-applied.ts`); unless a listener takes
  *   it over, each changed annotation on the page flashes a tint, else the page its ring.
  * - The ring is the catalogue's *undo reveal* (`ringFlash`, language.md §7.3, spec D3-4): one
@@ -48,7 +48,7 @@ export function flashRing(element: HTMLElement): Animation | undefined {
   return ringFlash(element, 'select');
 }
 
-/** Says what changed (`recto:history-applied`) and, unless a listener took it, flashes it. */
+/** Says what changed (`pdf-editor:history-applied`) and, unless a listener took it, flashes it. */
 function flashStep(
   page: HTMLElement,
   pageId: PageId,
@@ -86,7 +86,7 @@ export interface StepChange {
 
 /**
  * Reveals the step `meta` describes in `workspace` (the workspace now shown): scrolls its page
- * into view if needed, then flashes what changed (`change`: `recto:history-applied`, frame.md
+ * into view if needed, then flashes what changed (`change`: `pdf-editor:history-applied`, frame.md
  * §6), or the page. Resolves once the flash started, or without one.
  */
 export async function revealStep(

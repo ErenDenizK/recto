@@ -96,6 +96,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:edit-policy:v1',
       // The session's ?edition override (sessionStorage, shell/frame/edition.ts).
       'pdf-editor:edition:v1',
+      // Not stored: the window event an applied undo or redo fires (history/history-applied.ts).
+      'pdf-editor:history-applied',
       // Today's edit-policy:v1, migrated once (state/input-policy-store.ts, redesign spec §7).
       'pdf-editor:input-policy:v1',
       // The one-time `1` migration notice (commands/keymap-notice.ts, D2-7).

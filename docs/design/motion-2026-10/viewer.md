@@ -130,7 +130,7 @@ cut straight to the target. **After:**
   opacity dips to 0.3 and they swell to 1.08, over `--duration-slow` `--ease-standard`. Under
   reduced motion only the opacity dips, in 150 ms.
 
-## 8. Undo and redo (`recto:history-applied`)
+## 8. Undo and redo (`pdf-editor:history-applied`)
 
 The frame lane dispatches the event once a step is in view, and flashes the changed
 annotations or the page by default. This lane adds two things and leaves the default flash

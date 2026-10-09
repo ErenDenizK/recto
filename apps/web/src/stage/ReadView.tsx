@@ -1016,15 +1016,15 @@ function PageColumn({
     }
   };
 
-  // An undo or redo flashes what it changed (`recto:history-applied`, frame.md §6): the landing
+  // An undo or redo flashes what it changed (`pdf-editor:history-applied`, frame.md §6): the landing
   // of the jump that brought it into view gives way.
   useEffect(() => {
     const onApplied = () => {
       const frame = zoomFrameRef.current;
       if (frame) clearLandings(frame);
     };
-    window.addEventListener('recto:history-applied', onApplied);
-    return () => window.removeEventListener('recto:history-applied', onApplied);
+    window.addEventListener('pdf-editor:history-applied', onApplied);
+    return () => window.removeEventListener('pdf-editor:history-applied', onApplied);
   }, []);
 
   useEffect(() => {
