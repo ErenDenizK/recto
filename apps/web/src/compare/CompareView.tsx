@@ -22,12 +22,10 @@ import type { DocumentId } from '@pdf-editor/document-model';
 import type { PagePair, PixelDiffResult, TextChange } from '@pdf-editor/engine';
 import {
   type DragEvent,
-  type KeyboardEvent,
   type ReactNode,
   type RefObject,
   type SyntheticEvent,
   useEffect,
-  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -48,9 +46,14 @@ import { useCommandShortcut } from '../shell/use-command-shortcut';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import toolStyles from '../tools/ToolDialog.module.css';
-import { Icon, type IconName } from '../ui/Icon';
+import { Button } from '../ui/Button';
+import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
+import { Notice } from '../ui/Notice';
+import { RadioGroup } from '../ui/RadioGroup';
+import { Segmented } from '../ui/Segmented';
 import { Select } from '../ui/Select';
+import { SheetGroup, SheetRow } from '../ui/sheet/SheetGroup';
 import { Slider } from '../ui/Slider';
 import { userRectToCss } from '../viewer/geometry';
 import { rowLabel } from './change-labels';
@@ -111,8 +114,6 @@ function CompareSetup({ dragging }: { readonly dragging: boolean }) {
   const dpi = useCompareStore((s) => s.dpi);
   const error = useCompareStore((s) => s.error);
   const [over, setOver] = useState(false);
-  const alignName = useId();
-  const dpiName = useId();
   const set = useCompareStore.setState;
   const ready = a !== null && b !== null && a !== b && !!documents[a] && !!documents[b];
 
@@ -142,103 +143,88 @@ function CompareSetup({ dragging }: { readonly dragging: boolean }) {
   return (
     <div className={styles.setup} data-testid="compare-setup">
       <form className={styles.card} onSubmit={submit} aria-labelledby="compare-setup-title">
-        <h2 id="compare-setup-title" className={styles.cardTitle}>
-          {m.compare_setup_title()}
-        </h2>
-        <p className={toolStyles.description}>{m.compare_setup_body()}</p>
-        <div className={toolStyles.row}>
-          <div className={toolStyles.field}>
-            <span className={toolStyles.label} aria-hidden="true">
-              {m.compare_side_a()}
-            </span>
+        <header className={styles.cardHeader}>
+          <h2 id="compare-setup-title" className={styles.cardTitle}>
+            {m.compare_setup_title()}
+          </h2>
+          <p className={styles.cardBody}>{m.compare_setup_body()}</p>
+        </header>
+        <SheetGroup label={m.compare_documents_label()}>
+          <SheetRow title={m.compare_side_a()}>
             <Select
-              block
               label={m.compare_side_a()}
               value={a}
               placeholder={m.compare_choose()}
               onValueChange={(id) => set({ a: id })}
               options={documentOptions(b)}
             />
-          </div>
-          <div className={toolStyles.field}>
-            <span className={toolStyles.label} aria-hidden="true">
-              {m.compare_side_b()}
-            </span>
+          </SheetRow>
+          <SheetRow title={m.compare_side_b()}>
             <Select
-              block
               label={m.compare_side_b()}
               value={b}
               placeholder={m.compare_choose()}
               onValueChange={(id) => set({ b: id })}
               options={documentOptions(a)}
             />
-          </div>
-        </div>
-        <div
-          className={styles.dropZone}
-          data-file-drop-zone=""
-          data-active={dragging || over ? '' : undefined}
-          onDragOver={onDragOver}
-          onDragLeave={() => setOver(false)}
-          onDrop={onDrop}
-        >
-          <span>{m.compare_drop_hint()}</span>
-          <button
-            type="button"
-            className={`${toolStyles.secondary} ${styles.fileButton}`}
-            onClick={() => void pickFiles('pdf').then(addSecondFile)}
-          >
-            <Icon name="folder-open" className={styles.buttonIcon} />
-            {m.compare_open_file()}
-          </button>
-        </div>
-        <fieldset className={toolStyles.fieldset}>
-          <legend className={toolStyles.legend}>{m.compare_align_label()}</legend>
-          <div className={styles.presets3}>
-            {ALIGNMENTS.map((option) => (
-              <label key={option.id} className={toolStyles.preset}>
-                <input
-                  type="radio"
-                  name={alignName}
-                  value={option.id}
-                  checked={alignment === option.id}
-                  onChange={() => set({ alignment: option.id })}
-                />
-                <span className={toolStyles.presetName}>{option.label()}</span>
-                <span className={toolStyles.hint}>{option.hint()}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className={toolStyles.fieldset}>
-          <legend className={toolStyles.legend}>{m.compare_dpi_label()}</legend>
-          <div className={toolStyles.row}>
-            {RESOLUTIONS.map((value) => (
-              <label key={value} className={toolStyles.check}>
-                <input
-                  type="radio"
-                  name={dpiName}
-                  value={value}
-                  checked={dpi === value}
-                  onChange={() => set({ dpi: value })}
-                />
-                <span>{m.compare_dpi_value({ dpi: value })}</span>
-              </label>
-            ))}
-          </div>
-          <span className={toolStyles.hint}>{m.compare_dpi_hint()}</span>
-        </fieldset>
-        <p className={styles.note}>{m.compare_note_export()}</p>
+          </SheetRow>
+          <SheetRow full className={styles.dropRow}>
+            <div
+              className={styles.dropZone}
+              data-file-drop-zone=""
+              data-active={dragging || over ? '' : undefined}
+              onDragOver={onDragOver}
+              onDragLeave={() => setOver(false)}
+              onDrop={onDrop}
+            >
+              <span>{m.compare_drop_hint()}</span>
+              <Button
+                size="sm"
+                icon={<Icon name="folder-open" />}
+                onClick={() => void pickFiles('pdf').then(addSecondFile)}
+              >
+                {m.compare_open_file()}
+              </Button>
+            </div>
+          </SheetRow>
+        </SheetGroup>
+        <SheetGroup label={m.compare_align_label()}>
+          <SheetRow full>
+            <RadioGroup
+              label={m.compare_align_label()}
+              value={alignment}
+              onValueChange={(next) => set({ alignment: next })}
+              options={ALIGNMENTS.map((option) => ({
+                value: option.id,
+                label: option.label(),
+                description: option.hint(),
+              }))}
+            />
+          </SheetRow>
+        </SheetGroup>
+        <SheetGroup label={m.compare_dpi_label()} footnote={m.compare_dpi_hint()}>
+          <SheetRow full>
+            <Segmented<`${(typeof RESOLUTIONS)[number]}`>
+              label={m.compare_dpi_label()}
+              value={`${dpi}`}
+              onValueChange={(next) => set({ dpi: Number(next) as (typeof RESOLUTIONS)[number] })}
+              options={RESOLUTIONS.map((value) => ({
+                value: `${value}` as const,
+                label: m.compare_dpi_value({ dpi: value }),
+              }))}
+            />
+          </SheetRow>
+        </SheetGroup>
+        <Notice>{m.compare_note_export()}</Notice>
         {error ? (
-          <p className={toolStyles.error} role="alert">
+          <p className={styles.error} role="alert">
             {error}
           </p>
         ) : null}
-        <div className={toolStyles.actions}>
-          <span className={toolStyles.spacer} />
-          <button type="submit" className={toolStyles.primary} disabled={!ready}>
+        <div className={styles.actions}>
+          <Button type="submit" variant="prominent" disabled={!ready}>
             {m.compare_run()}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -430,24 +416,16 @@ function CompareResults() {
     >
       <div className={styles.bar}>
         {pairs && sides ? <PageMapStrip pairs={pairs} firstInView={inView.first} /> : null}
-        <button
-          type="button"
-          className={`${toolStyles.secondary} ${styles.newButton}`}
-          onClick={() => void releaseCompare()}
-        >
+        <Button className={styles.newButton} onClick={() => void releaseCompare()}>
           {m.compare_new()}
-        </button>
+        </Button>
       </div>
       {stale ? (
         <div className={styles.stale} data-testid="compare-stale">
-          <span>{m.compare_stale()}</span>
-          <button
-            type="button"
-            className={toolStyles.secondary}
-            onClick={() => void startCompare()}
-          >
+          <Notice className={styles.staleNotice}>{m.compare_stale()}</Notice>
+          <Button size="sm" onClick={() => void startCompare()}>
             {m.compare_run_again()}
-          </button>
+          </Button>
         </div>
       ) : null}
       <div
@@ -529,17 +507,15 @@ function PageMapStrip({
           const status = rowStatus(row, pairs, visuals, result);
           return (
             <li key={row}>
-              <button
-                type="button"
+              <IconButton
+                size="row"
                 className={styles.stripCell}
+                label={`${rowLabel(pair)}: ${statusWord(status)}`}
+                icon={<span aria-hidden="true">{STATUS_GLYPH[status]}</span>}
                 data-status={status}
                 aria-current={row === firstInView ? 'true' : undefined}
-                aria-label={`${rowLabel(pair)}: ${statusWord(status)}`}
-                title={`${rowLabel(pair)}: ${statusWord(status)}`}
                 onClick={() => requestReveal({ row, side: pair.b === undefined ? 'a' : 'b' })}
-              >
-                <span aria-hidden="true">{STATUS_GLYPH[status]}</span>
-              </button>
+              />
             </li>
           );
         })}
@@ -849,16 +825,16 @@ function ProgressCard({ centred }: { readonly centred: boolean }) {
         value={progress?.done ?? 0}
         aria-label={m.compare_progress_label()}
       />
-      <button type="button" className={styles.glassButton} onClick={cancelCompare}>
+      <Button variant="quiet" onClick={cancelCompare}>
         {m.common_cancel()}
-      </button>
+      </Button>
     </div>
   );
 }
 
-const LAYOUTS: readonly { id: CompareLayout; label: () => string; icon: IconName }[] = [
-  { id: 'side', label: m.compare_layout_side, icon: 'columns' },
-  { id: 'overlay', label: m.compare_layout_overlay, icon: 'stack' },
+const LAYOUTS: readonly { id: CompareLayout; label: () => string }[] = [
+  { id: 'side', label: m.compare_layout_side },
+  { id: 'overlay', label: m.compare_layout_overlay },
 ];
 
 function CompareToolbar({ scale, changes }: { readonly scale: number; readonly changes: number }) {
@@ -877,36 +853,15 @@ function CompareToolbar({ scale, changes }: { readonly scale: number; readonly c
   const fitShortcut = useCommandShortcut('zoom.fit');
   const done = status === 'done';
 
-  const onLayoutKey = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-    event.preventDefault();
-    const next: CompareLayout = mode === 'side' ? 'overlay' : 'side';
-    useCompareStore.setState({ layout: next });
-    event.currentTarget.parentElement
-      ?.querySelector<HTMLElement>(`[data-layout="${next}"]`)
-      ?.focus();
-  };
-
   return (
     <div className={styles.toolbar} role="toolbar" aria-label={m.compare_toolbar_label()}>
-      <div role="radiogroup" aria-label={m.compare_layout_label()} className={styles.segments}>
-        {LAYOUTS.map(({ id, label, icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={mode === id}
-            tabIndex={mode === id ? 0 : -1}
-            data-layout={id}
-            className={styles.segment}
-            onKeyDown={onLayoutKey}
-            onClick={() => useCompareStore.setState({ layout: id })}
-          >
-            <Icon name={icon} className={styles.segmentIcon} />
-            {label()}
-          </button>
-        ))}
-      </div>
+      <Segmented<CompareLayout>
+        label={m.compare_layout_label()}
+        value={mode}
+        onValueChange={(next) => useCompareStore.setState({ layout: next })}
+        options={LAYOUTS.map(({ id, label }) => ({ value: id, label: label() }))}
+        frameClassName={styles.segments}
+      />
       {mode === 'overlay' ? (
         <Slider
           className={styles.slider}

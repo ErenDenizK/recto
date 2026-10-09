@@ -1,4 +1,5 @@
-/* The Changes panel: a docked panel, opaque; rows as in the Comments and Search panels. */
+/* The Changes panel: a docked panel, opaque; its rows are the sidebar's ListRows (ui/ListRow),
+   as in the Review list, under sentence-case section labels. */
 .panel {
   display: flex;
   flex-direction: column;
@@ -7,86 +8,39 @@
 }
 
 .empty {
-  padding: var(--space-1) var(--space-4) var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
+/* No section switch above it, so the header keeps the switch row's room from the strip. */
 .header {
   display: grid;
   gap: var(--space-2);
   flex: none;
-  padding: 0 var(--space-4) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-hairline);
 }
 
 .summary {
   color: var(--text-primary);
   font-size: var(--type-body);
-  line-height: var(--leading-base);
+  line-height: var(--type-body-lh);
   font-variant-numeric: tabular-nums;
 }
 
-/* An honesty notice: one recipe, a warning hairline, no tint (DESIGN.md §3). */
-.notice {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
-}
-
+/* Out of date: the honesty notice (ui/Notice) with Run again under it. */
 .stale {
   display: grid;
-  justify-items: start;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
 }
 
-.noticeSummary {
-  composes: focus-inset from global;
-  cursor: pointer;
-}
-
-.noticeList {
-  display: grid;
-  gap: var(--space-1);
-  margin: var(--space-2) 0 0;
-  padding-left: var(--space-4);
+.fix {
+  justify-self: start;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-.action {
-  min-height: var(--control-h);
-  padding: var(--space-1) var(--space-3);
-  text-align: left;
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: 500;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
-@media (hover: hover) {
-  .action:hover:not(:disabled) {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
-.action:disabled {
-  color: var(--text-disabled);
-  cursor: default;
 }
 
 .scroll {
@@ -106,71 +60,50 @@
   margin-top: var(--space-3);
 }
 
+/* A section label (system-audit-2026-10 §3.4): footnote 600, secondary, sentence case. */
 .groupTitle {
   padding: var(--space-1) var(--space-2);
-  color: var(--text-tertiary);
-  font-size: var(--type-caption);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 600;
+  line-height: var(--type-footnote-lh);
   font-variant-numeric: tabular-nums;
-  text-transform: uppercase;
 }
 
 .list {
   display: grid;
-  gap: 1px;
+  gap: var(--space-half);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.item {
-  composes: focus-inset from global;
-  display: grid;
-  grid-template-columns: 16px 1fr;
-  gap: var(--space-2);
-  width: 100%;
-  padding: 6px var(--space-2);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  text-align: left;
-}
-
-@media (hover: hover) {
-  .item:hover {
-    background: var(--surface-hover);
-  }
-}
-
-/* A current row is accent-muted; tertiary text steps up to secondary (DESIGN.md §3). */
-.item[aria-current='true'] {
-  background: var(--accent-muted);
-  --text-tertiary: var(--text-secondary);
-}
-
+/* The +/−/~ sign of a change (never colour alone), in a 16 px column on the title's line. */
 .glyph {
   composes: technical from global;
+  flex: none;
+  width: var(--icon-sm);
   color: var(--text-primary);
   font-size: var(--type-body);
-  line-height: var(--leading-base);
+  line-height: var(--type-body-lh);
   text-align: center;
 }
 
 .text {
   display: grid;
-  gap: 2px;
+  gap: var(--space-half);
   min-width: 0;
 }
 
 .title {
   font-size: var(--type-body);
-  line-height: var(--leading-base);
+  line-height: var(--type-body-lh);
   overflow-wrap: anywhere;
 }
 
 .detail {
   color: var(--text-tertiary);
   font-size: var(--type-footnote);
-  line-height: var(--leading-tight);
+  line-height: var(--type-footnote-lh);
   overflow-wrap: anywhere;
 }

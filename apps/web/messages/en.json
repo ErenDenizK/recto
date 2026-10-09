@@ -2982,6 +2982,7 @@
   "compare_side_a": "Original (A)",
   "compare_side_b": "Revised (B)",
   "compare_choose": "Choose a document",
+  "compare_documents_label": "Documents",
   "compare_drop_hint": "Drop a PDF here to compare with it.",
   "compare_open_file": "Open a file…",
   "compare_file_added": "Opened {name} to compare",
@@ -3003,6 +3004,7 @@
   "compare_failed": "The comparison failed: {reason}",
   "compare_report_failed": "The report could not be made: {reason}",
   "compare_stale": "The documents changed since this comparison; run it again to compare them as they are now.",
+  "compare_notes_more": "More",
   "compare_error_document_closed": "The document was closed.",
   "compare_announce_done": [
     {

@@ -94,8 +94,6 @@ const Q9_PENDING = [
   'apps/web/src/batch/BatchSheet.tsx',
   'apps/web/src/batch/RecipeEditor.tsx',
   'apps/web/src/batch/StepForm.tsx',
-  'apps/web/src/compare/ChangesPanel.tsx',
-  'apps/web/src/compare/CompareView.tsx',
   'apps/web/src/crop/CropDialog.tsx',
   'apps/web/src/crop/CropDrawBanner.tsx',
   'apps/web/src/document/DocumentDialogs.tsx',
