@@ -60,10 +60,45 @@
   }
 }
 
-/* The field being filled: a selection-blue ring; keyboard focus shows the focus ring instead. */
-.target[data-active]:not(:focus-visible) {
-  outline: 2px solid var(--select);
-  outline-offset: 1px;
+/*
+ * The field being filled: a selection-blue ring 1 px outside it (FieldRing.tsx), one element
+ * that slides from field to field (motion-2026-10 forms-compact §1). The box carries the
+ * widget's geometry; the ring inside it is laid out by the stylesheet, so the flight's inline
+ * size and transform clear at rest (Q-2). On a keyboard visit the ring is the focus ring: it
+ * takes the focus colours and the field's own band steps aside, so two rings never draw.
+ */
+.ringBox {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ring {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  box-sizing: border-box;
+  width: calc(100% + 6px);
+  height: calc(100% + 6px);
+  border: 2px solid var(--select);
+  border-radius: var(--radius-xs);
+  scroll-margin: var(--space-3);
+}
+
+.layer:has(.target[data-active]:focus-visible) .ring {
+  border-color: var(--focus-light);
+  box-shadow: 0 0 0 2px var(--focus-dark);
+}
+
+.layer .target[data-active]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (forced-colors: active) {
+  .ring {
+    border-color: Highlight;
+  }
 }
 
 /* Editors sit on the widget, white like the page, framed by a 1px selection-blue border and no
@@ -170,4 +205,50 @@ select.editor option:disabled {
   font-size: var(--type-footnote);
   white-space: nowrap;
   pointer-events: auto;
+}
+
+/* A filled check box or radio's glyph while the page catches up (TickIn.tsx): the page's ink,
+   on the widget's centre, scaled about its middle. */
+.tick {
+  position: absolute;
+  z-index: 1;
+  overflow: visible;
+  color: #111111;
+  pointer-events: none;
+  transform-origin: center;
+}
+
+.tick path {
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tick circle {
+  fill: currentcolor;
+}
+
+/* The field stepper's odometer (Odometer.tsx): one slot per character, clipped to the line. */
+.odometer {
+  justify-self: center;
+  display: inline-flex;
+  overflow: clip;
+  font-variant-numeric: tabular-nums;
+}
+
+.odometerSlot {
+  position: relative;
+  display: inline-block;
+  white-space: pre;
+}
+
+.odometerGlyph {
+  display: inline-block;
+}
+
+.odometerGhost {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
