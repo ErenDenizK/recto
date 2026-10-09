@@ -56,6 +56,7 @@ import { Select } from '../ui/Select';
 import { SheetGroup, SheetRow } from '../ui/sheet/SheetGroup';
 import { Slider } from '../ui/Slider';
 import { userRectToCss } from '../viewer/geometry';
+import { cancelJump, jumpScroll, jumpTarget } from '../viewer/jump';
 import { rowLabel } from './change-labels';
 import { buildChangeList, buildPartialChangeList, rowIndex, rowStatus } from './changes';
 import { stepChanges } from './compare-commands';
@@ -67,6 +68,7 @@ import {
   useCompareStore,
 } from './compare-store';
 import styles from './CompareView.module.css';
+import { pulseChanges } from './compare-motion';
 import { addSecondFile } from './second-file';
 import {
   fitPageScale,
@@ -373,18 +375,44 @@ function CompareResults() {
     const pair = pairs[reveal.row];
     const index = reveal.side === 'a' ? pair?.a : pair?.b;
     const page = index === undefined ? undefined : sides[reveal.side].pages[index];
-    element.scrollTop = revealScrollTop({
+    const top = revealScrollTop({
       layout,
       mode,
       row: reveal.row,
       side: reveal.side,
       page,
       rect: reveal.rect,
-      scrollTop: element.scrollTop,
+      scrollTop: jumpTarget(element)?.top ?? element.scrollTop,
       viewportHeight: element.clientHeight,
     });
-    setScrollTop(element.scrollTop);
+    // The pair slides in on the viewer's eased jump, both pages together in the one scroll
+    // container, and its changes pulse once it has landed (motion-2026-10 viewer.md §7).
+    const row = reveal.row;
+    void jumpScroll(
+      element,
+      { top, left: element.scrollLeft },
+      {
+        layer: element.firstElementChild instanceof HTMLElement ? element.firstElementChild : null,
+      },
+    ).then((landed) => {
+      if (landed) pulseChanges(element, row);
+    });
   }, [reveal, layout, mode, pairs, sides, viewport.height]);
+  // A wheel, a touch or a press takes the scroll over from a jump.
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+    const take = () => cancelJump(element);
+    element.addEventListener('wheel', take, { passive: true });
+    element.addEventListener('touchstart', take, { passive: true });
+    element.addEventListener('pointerdown', take, { passive: true });
+    return () => {
+      take();
+      element.removeEventListener('wheel', take);
+      element.removeEventListener('touchstart', take);
+      element.removeEventListener('pointerdown', take);
+    };
+  }, []);
 
   const markers = useMemo(
     () =>
