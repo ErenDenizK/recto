@@ -107,8 +107,22 @@ Strip metadata has no refusal state, so nothing shakes there.
   - Whichever end state Base UI sets selects its curve (`[data-released]` and
     `[data-ending-style]`). The attribute goes at `transitionend`, or after two frames if
     nothing moved.
-  - Sampled at 0.1× after a 140 px drag, the offset fell monotonically (123 → 0 px, with −1 px of
-    `fling` overshoot), with no step at the hand-off.
+  - **The suspected mid-rise jump (follow-up):** I recorded the release 12 more times at 0.1×,
+    sampling the panel's computed `translateY` with every frame.
+    - 5 fast drags closed the sheet: 130 → 747 px, monotonic.
+    - 6 paused or slow drags snapped back: about 102 → 0, monotonic.
+    - 1 fast drag snapped back: 123 → 0 with −1 px of `fling` overshoot.
+
+    No offset ever stepped backwards. The "jump" in the first strip was in the contact sheet, not
+    on screen. A new row of the grid starts lower, which made the next frame look like a step
+    back. The run 11 strip shows the same thing again while its numbers stay monotonic, so this
+    was not a velocity sign or units mismatch, and not a drag transform fighting the spring
+    start. (Base UI restores its inline drag `transform` and `transition` at release. The spring
+    then runs from `--drawer-swipe-movement-y` back to 0.)
+  - **Real issue found and fixed:** a downward flick that Base UI still snaps back carried up to
+    20 distances a second *away* from the detent. With `fling` that first pushes the sheet almost
+    half the way further down before it returns. The velocity away from the target is now capped
+    at 3/s, a dip of about 7 %; toward the target it stays at 20/s. A unit test covers this.
 - **Detents:** every compact sheet still rests at its one detent (ADR-0033). The hand-off
   applies to snapping back to it and to closing.
 - **Page swipe:** the reader scrolls natively, so a swipe keeps the platform's own momentum.
@@ -127,9 +141,13 @@ The edition stays read-only.
     `scaleX` to the fill.
   - For the indeterminate state, add a light shimmer band (`--loop-sweep`) over the existing
     sweep. Keep the pulse under reduced motion.
-- **e2e:** no Playwright spec asserts the new motions yet. The A-9 and A-10 tour already pushes
-  Settings, and `navPush` is within 1 % by 500 ms and fades only under reduced motion. Unit
-  tests in `motion/feedback.test.ts` cover these limits.
+- **e2e:** no spec asserts the new motions themselves. The existing specs pass with the change:
+  - **Chromium:** `motion` (A-9/A-10), `settings`, `signatures`, `signatures-saved`, `forms`,
+    `sheets` (unlock prompt), `document-tools` and `markup` gave 50 passed and 7 skipped. The one
+    failure is `settings.spec` "Glass: Clear · Tinted · Solid", which the platform lane is fixing
+    separately.
+  - **Phone project:** `compact` and `motion` gave 19 passed and 14 skipped. `compact` alone
+    after the cap fix: 18 passed.
 
 Frame strips were recorded with Playwright at 0.1× animation rate, at 1440×900 and at 1180×820
 with touch. They are kept outside the repo.
