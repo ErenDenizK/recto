@@ -7,6 +7,9 @@
  * - The page scrolls only when it is not in view already (the smallest move; the page view's
  *   scroll requests keep it inside the unobscured rectangle). The free rectangle of the
  *   redesigned frame (`revealInFree`) replaces this when the D2 shell lands.
+ * - What changed flashes (motion-2026-10 frame.md §6): `recto:history-applied` goes out with
+ *   the pages and annotations the step touched (`history-applied.ts`); unless a listener takes
+ *   it over, each changed annotation on the page flashes a tint, else the page its ring.
  * - The ring is the catalogue's *undo reveal* (`ringFlash`, language.md §7.3, spec D3-4): one
  *   Web Animations run on the page's outline in `--select` (the page's selection blue, spec
  *   D0-1), 80 ms in, 160 held, 260 out (A-10's 500 ms), so nothing is left on the element and
@@ -16,6 +19,7 @@
 import type { HistoryEntryMeta, PageId, Workspace } from '@pdf-editor/document-model';
 
 import { RING_FLASH, ringFlash } from '../motion';
+import { changedBetween, dispatchHistoryApplied, flashChanged } from './history-applied';
 
 import { isPageView, useUiStore } from '../state/ui-store';
 import { distanceFromView, useViewStore } from '../state/view-store';
@@ -44,19 +48,51 @@ export function flashRing(element: HTMLElement): Animation | undefined {
   return ringFlash(element, 'select');
 }
 
+/** Says what changed (`recto:history-applied`) and, unless a listener took it, flashes it. */
+function flashStep(
+  page: HTMLElement,
+  pageId: PageId,
+  meta: HistoryEntryMeta | undefined,
+  workspace: Workspace,
+  change: StepChange | undefined,
+): void {
+  const documentId = meta?.documentId;
+  if (!change || documentId === undefined) {
+    flashRing(page);
+    return;
+  }
+  const { pageIds, annotationIds } = changedBetween(change.before, workspace, documentId, pageId);
+  const flash = dispatchHistoryApplied({
+    direction: change.direction,
+    documentId,
+    kind: meta?.kind,
+    pageIds,
+    annotationIds,
+  });
+  if (flash) flashChanged(page, annotationIds);
+}
+
 function pageElement(pageId: PageId): HTMLElement | null {
   // The stage (`STAGE_ID` in shell/frame/ids.ts).
   const stage = document.getElementById('stage') ?? document;
   return stage.querySelector<HTMLElement>(`[data-page-id="${CSS.escape(pageId)}"]`);
 }
 
+/** The workspace a step was taken from and which way, so the reveal can say what changed. */
+export interface StepChange {
+  readonly before: Workspace;
+  readonly direction: 'undo' | 'redo';
+}
+
 /**
  * Reveals the step `meta` describes in `workspace` (the workspace now shown): scrolls its page
- * into view if needed, then flashes it. Resolves once the flash started, or without one.
+ * into view if needed, then flashes what changed (`change`: `recto:history-applied`, frame.md
+ * §6), or the page. Resolves once the flash started, or without one.
  */
 export async function revealStep(
   meta: HistoryEntryMeta | undefined,
   workspace: Workspace,
+  change?: StepChange,
 ): Promise<void> {
   const target = revealTarget(meta, workspace);
   if (target === undefined) return;
@@ -74,7 +110,7 @@ export async function revealStep(
     if (element) {
       // Two frames after it exists, so the scroll has landed and the ring is seen.
       if (frame > 0 || !isPageView(ui)) {
-        flashRing(element);
+        flashStep(element, target.pageId, meta, workspace, change);
         return;
       }
     }
