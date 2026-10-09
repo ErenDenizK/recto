@@ -23,8 +23,13 @@
  *   F6 stop 2 lands there too (`data-region-landing`).
  * - **Splitter:** drag, or Left / Right 16 px, Home / End; the width is announced once it
  *   rests ("Sidebar 320 pixels").
+ * - **Motion** (docs/design/motion-2026-10/frame.md §1): it slides in from the leading edge on
+ *   `smooth` with its contents 12 px behind (they follow on `glide` and fade in), and slides back
+ *   out the same way, drawn `inert` until it is gone (`useSidebarMotion`). Docked, the canvas
+ *   and the dock reflow on the same spring (`frame/frame-reflow.ts`). A reversal mid-flight
+ *   turns from where the panel is. Reduced motion: it comes and goes at once.
  */
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { formatNumber, m } from '../../i18n';
 import {
@@ -37,7 +42,10 @@ import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../../sta
 import { ResizeHandle } from '../../ui/ResizeHandle';
 import { Segmented, SegmentedPanel } from '../../ui/Segmented';
 import { useSearchStore } from '../../viewer/search';
+import { animateStyle, type Motion } from '../../motion/animate';
+import { reducedMotion } from '../../motion/reduced-motion';
 import { announce } from '../announcer';
+import { captureReflow, whenStageResized } from '../frame/frame-reflow';
 import { showOverlaySidebar, useFrameStore } from '../frame/frame-store';
 import { SIDEBAR_ID } from '../frame/ids';
 import { countItems, useReadReviewData, useReviewData } from '../review/review-items';
@@ -118,6 +126,16 @@ function useTextlessFindDoor(): void {
   }, []);
 }
 
+/** What a shown sidebar was drawn with, kept while it slides out. */
+interface FrameProps {
+  readonly form: SidebarForm;
+  readonly comparing: boolean;
+  readonly section: Section;
+}
+
+const sameFrame = (a: FrameProps | null, b: FrameProps) =>
+  a !== null && a.form === b.form && a.comparing === b.comparing && a.section === b.section;
+
 export function Sidebar({ form = 'docked' }: { readonly form?: SidebarForm }) {
   useTextlessFindDoor();
   const stored = useUiStore((s) => s.leftPanelOpen);
@@ -133,23 +151,119 @@ export function Sidebar({ form = 'docked' }: { readonly form?: SidebarForm }) {
     asked &&
     sidebarVisible({ open: stored, hasDocuments, stage, section, pagesView }) &&
     (!comparing || view === 'changes');
-  if (!open) return null;
-  return <SidebarFrame form={form} comparing={comparing} section={section} />;
+  // Closed in a document, it slides out first (frame.md §1); leaving the document (the Library,
+  // the grid, which is Pages itself) or a change of form takes it at once.
+  const current: FrameProps = { form, comparing, section };
+  const [shown, setShown] = useState<FrameProps | null>(open ? current : null);
+  if (open && !sameFrame(shown, current)) setShown(current);
+  const slides = hasDocuments && stage !== 'home' && stage !== 'grid' && shown?.form === form;
+  if (!open && shown !== null && !slides) setShown(null);
+  const drawn = open ? current : slides ? shown : null;
+  if (!drawn) return null;
+  return (
+    <SidebarFrame
+      form={drawn.form}
+      comparing={drawn.comparing}
+      section={drawn.section}
+      leaving={!open}
+      onGone={() => setShown(null)}
+    />
+  );
+}
+
+/** How far the contents trail the panel as it slides (frame.md §1), px. */
+const PARALLAX_PX = 12;
+
+/**
+ * The sidebar's slide (frame.md §1): in from its leading edge on `smooth` as it mounts, out the
+ * same way while `leaving`, then `onGone`; its contents trail by `PARALLAX_PX` (on `glide` in,
+ * so they arrive a beat after the panel) and fade. Each move starts from where the panel is
+ * drawn, so a reversal turns smoothly. Docked, the canvas reflows with it (`captureReflow`),
+ * read here, before the free rectangle changes.
+ */
+function useSidebarMotion(
+  ref: { readonly current: HTMLElement | null },
+  form: SidebarForm,
+  leaving: boolean,
+  onGone: () => void,
+): void {
+  const slide = useRef<Motion<readonly number[]> | null>(null);
+  const body = useRef<Motion<readonly number[]> | null>(null);
+  const fade = useRef<Motion | null>(null);
+  const gone = useRef(onGone);
+  useLayoutEffect(() => {
+    gone.current = onGone;
+  });
+  const entered = useRef(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const first = !entered.current;
+    entered.current = true;
+    // Mounted with its document (a restored session, a document opened with it showing): laid
+    // out with it from the start, nothing slides.
+    const withDocument = first && !document.querySelector('[data-read-viewport] [data-page-id]');
+    const stopReflow =
+      form === 'docked' && !withDocument ? whenStageResized(captureReflow()) : undefined;
+    if (reducedMotion() || withDocument) {
+      if (leaving) gone.current();
+      return stopReflow;
+    }
+    const content = el.firstElementChild as HTMLElement | null;
+    const box = el.getBoundingClientRect();
+    const away = -(box.width + Math.max(0, box.left)) - 4;
+    const at = slide.current?.value[0] ?? (leaving ? 0 : away);
+    const velocity = slide.current?.velocity[0] ?? 0;
+    const atBody = body.current?.value[0] ?? (leaving ? 0 : -PARALLAX_PX);
+    const atFade = fade.current?.value ?? (leaving ? 1 : 0);
+    const move = animateStyle(el, 'transform', [at, 0], [leaving ? away : 0, 0], {
+      spring: 'smooth',
+      velocity: [velocity, 0],
+      keep: leaving,
+    });
+    slide.current = move;
+    if (content) {
+      body.current = animateStyle(
+        content,
+        'transform',
+        [atBody, 0],
+        [leaving ? -PARALLAX_PX : 0, 0],
+        { spring: leaving ? 'smooth' : 'glide', keep: leaving },
+      );
+      fade.current = animateStyle(content, 'opacity', atFade, leaving ? 0 : 1, {
+        spring: leaving ? 'quick' : 'smooth',
+        keep: leaving,
+      });
+    }
+    void move.finished.then(() => {
+      if (slide.current !== move) return;
+      slide.current = null;
+      body.current = null;
+      fade.current = null;
+      if (leaving) gone.current();
+    });
+    return stopReflow;
+  }, [ref, form, leaving]);
 }
 
 function SidebarFrame({
   form,
   comparing,
   section,
+  leaving,
+  onGone,
 }: {
   readonly form: SidebarForm;
   readonly comparing: boolean;
   readonly section: Section;
+  readonly leaving: boolean;
+  readonly onGone: () => void;
 }) {
   const width = useUiStore((s) => s.leftPanelWidth);
   const setWidth = useUiStore((s) => s.setLeftPanelWidth);
   const asideRef = useRef<HTMLElement>(null);
   const resting = useRef<number | undefined>(undefined);
+  useSidebarMotion(asideRef, form, leaving, onGone);
 
   // Mod+B: the section's current item takes focus once it is laid out.
   useEffect(() => {
@@ -163,7 +277,7 @@ function SidebarFrame({
   // Laid over the page: a press outside it (but on ▤, which toggles it) or Esc puts it away,
   // Esc returning focus to ▤.
   useEffect(() => {
-    if (form === 'docked') return;
+    if (form === 'docked' || leaving) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -185,7 +299,7 @@ function SidebarFrame({
       document.removeEventListener('pointerdown', onPointerDown, true);
       aside?.removeEventListener('keydown', onKeyDown);
     };
-  }, [form]);
+  }, [form, leaving]);
 
   useEffect(() => () => window.clearTimeout(resting.current), []);
   const resize = (next: number) => {
@@ -200,13 +314,18 @@ function SidebarFrame({
 
   const shownWidth = form === 'docked' ? width : form === 'overlay' ? OVERLAY_WIDTH : SHEET_WIDTH;
   return (
+    // Leaving, it is drawn only: inert, out of the regions and of the free rectangle, so the
+    // canvas reflows from the first frame of the slide.
     <nav
-      id={SIDEBAR_ID}
+      id={leaving ? undefined : SIDEBAR_ID}
       ref={asideRef}
       className={styles.sidebar}
       aria-label={m.nav_label()}
-      data-region="navigator"
-      data-frame-layer="sidebar"
+      aria-hidden={leaving || undefined}
+      inert={leaving}
+      data-leaving={leaving ? '' : undefined}
+      data-region={leaving ? undefined : 'navigator'}
+      data-frame-layer={leaving ? undefined : 'sidebar'}
       data-form={form}
       data-overlay={form === 'docked' ? undefined : ''}
       data-section={comparing ? 'changes' : section}
