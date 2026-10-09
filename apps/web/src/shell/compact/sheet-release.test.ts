@@ -37,4 +37,12 @@ describe('releaseCurves', () => {
       expect(parseInt(curves['--release-close-ms'], 10)).toBeLessThanOrEqual(800);
     }
   });
+
+  it('turns a release moving away from the end state without a deep dip', () => {
+    // A fast downward release that still snaps back: the curve dips below 0 only a little.
+    const easing = releaseCurves(60, 1500, 500)['--release-open-ease'];
+    const stops = [...easing.matchAll(/(-?[\d.]+) [\d.]+%/g)].map((m) => Number(m[1]));
+    expect(Math.min(...stops)).toBeLessThan(0);
+    expect(Math.min(...stops)).toBeGreaterThan(-0.12);
+  });
 });

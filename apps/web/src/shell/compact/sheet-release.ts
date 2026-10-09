@@ -16,6 +16,10 @@
 import { FLING_SPEED } from '../../ui/sheet/presentation';
 import { reducedMotion, springToLinear, velocityTracker, type VelocityTracker } from '../../motion';
 
+/** The release velocity carried toward the end state, and away from it, in distances per second. */
+export const TOWARD_MAX = 20;
+export const AWAY_MAX = 3;
+
 /** The release's curves and durations, as the custom properties the stylesheet reads. */
 export interface ReleaseCurves {
   readonly '--release-open-ease': string;
@@ -34,9 +38,10 @@ export function releaseCurves(offset: number, velocity: number, travel: number):
   const toOpen = offset > 1 ? -velocity / offset : 0;
   const rest = Math.max(1, travel - offset);
   const toClose = velocity / rest;
-  // A velocity away from the target is still carried (the sheet turns), but capped, so a curve
-  // never has to cover a huge overshoot in its first frames.
-  const cap = (v: number) => Math.max(-20, Math.min(20, v));
+  // Toward the target the speed is carried up to 20 distances a second. A velocity away from it
+  // (a downward flick that Base UI still snaps back) turns the sheet, but only up to 3: at 20
+  // the turn would first carry it almost half the way further down before it came back.
+  const cap = (v: number) => Math.max(-AWAY_MAX, Math.min(TOWARD_MAX, v));
   const open = springToLinear(token, cap(toOpen));
   const close = springToLinear(token, cap(toClose));
   return {
