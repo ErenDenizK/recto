@@ -359,3 +359,94 @@ export async function copySummary(page: Page): Promise<Locator> {
   await expect(sheet.getByTestId('save-copy-details')).toBeVisible();
   return sheet.getByRole('list', { name: 'What changed on export' });
 }
+
+export interface StubState {
+  prompts: number;
+  writes: number;
+  /** The file's bytes, base64. */
+  bytes: string;
+}
+
+/**
+ * Replaces `showOpenFilePicker` with one that hands out a writable handle over an in-memory
+ * file, and hides `showSaveFilePicker`. Call before `page.goto`; seed the file with `seedFile`.
+ * The handle asks for write permission once (`prompts`), like Chromium's prompt.
+ */
+export async function stubFileSystemAccess(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const decode = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const encode = (bytes: Uint8Array) => {
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      }
+      return btoa(binary);
+    };
+    const state = { prompts: 0, writes: 0, bytes: '', name: 'file.pdf', permission: 'prompt' };
+    (window as unknown as { __saveStub: typeof state }).__saveStub = state;
+    const handle = {
+      kind: 'file' as const,
+      get name() {
+        return state.name;
+      },
+      getFile: () =>
+        Promise.resolve(new File([decode(state.bytes)], state.name, { type: 'application/pdf' })),
+      createWritable: () => {
+        const chunks: Uint8Array[] = [];
+        return Promise.resolve({
+          write: (data: ArrayBufferView | ArrayBuffer) => {
+            const view = ArrayBuffer.isView(data)
+              ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+              : new Uint8Array(data);
+            chunks.push(view.slice());
+            return Promise.resolve();
+          },
+          close: () => {
+            const all = new Uint8Array(chunks.reduce((n, c) => n + c.byteLength, 0));
+            let at = 0;
+            for (const chunk of chunks) {
+              all.set(chunk, at);
+              at += chunk.byteLength;
+            }
+            state.bytes = encode(all);
+            state.writes += 1;
+            return Promise.resolve();
+          },
+          abort: () => Promise.resolve(),
+        });
+      },
+      queryPermission: ({ mode }: { mode: string }) =>
+        Promise.resolve(mode === 'read' ? 'granted' : state.permission),
+      requestPermission: () => {
+        state.prompts += 1;
+        state.permission = 'granted';
+        return Promise.resolve('granted');
+      },
+    };
+    Object.defineProperty(window, 'showOpenFilePicker', {
+      value: () => Promise.resolve([handle]),
+      configurable: true,
+    });
+    Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });
+  });
+}
+
+export async function seedFile(page: Page, name: string): Promise<void> {
+  const bytes = (await readFile(fixturePath(name))).toString('base64');
+  await page.evaluate(
+    ([n, b]) => {
+      const stub = (window as unknown as { __saveStub: { name: string; bytes: string } })
+        .__saveStub;
+      stub.name = n;
+      stub.bytes = b;
+    },
+    [name, bytes] as const,
+  );
+}
+
+export async function stub(page: Page): Promise<StubState> {
+  return page.evaluate(() => {
+    const { prompts, writes, bytes } = (window as unknown as { __saveStub: StubState }).__saveStub;
+    return { prompts, writes, bytes };
+  });
+}
