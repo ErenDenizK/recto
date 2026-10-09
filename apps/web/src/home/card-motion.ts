@@ -49,9 +49,12 @@ function cardsOf(grid: HTMLElement): Map<string, HTMLElement> {
   return cards;
 }
 
+/** The card's ○ (`LibraryCard`'s `CardCheck`), left out of a copy. */
+const CHECK_TEST_ID = 'library-card-check';
+
 /**
- * A copy of `card` to shrink out in its place: inert, nameless, its canvases' bitmaps copied
- * (a cloned canvas is blank), at the card's layout box in the grid's coordinates.
+ * A copy of `card` to shrink out in its place: inert, nameless, without its ○, its canvases'
+ * bitmaps copied (a cloned canvas is blank), at the card's layout box in the grid's coordinates.
  */
 export function ghostOf(card: HTMLElement): HTMLElement {
   const ghost = card.cloneNode(true) as HTMLElement;
@@ -63,6 +66,8 @@ export function ghostOf(card: HTMLElement): HTMLElement {
     canvas.height = source.height;
     canvas.getContext('2d')?.drawImage(source, 0, 0);
   });
+  // The check badge is the card's state, not its look: the copy leaves as the page alone.
+  for (const check of ghost.querySelectorAll(`[data-testid="${CHECK_TEST_ID}"]`)) check.remove();
   for (const el of [ghost, ...ghost.querySelectorAll('*')]) {
     for (const name of [
       'id',

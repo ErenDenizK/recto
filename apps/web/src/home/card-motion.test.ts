@@ -93,6 +93,15 @@ describe('card motion', () => {
     expect(arriving.style.opacity).toBe('');
   });
 
+  it('a clone leaves its check badge behind', () => {
+    const source = card('x');
+    const check = document.createElement('span');
+    check.setAttribute('data-testid', 'library-card-check');
+    source.append(check);
+    document.body.append(source);
+    expect(ghostOf(source).querySelector('span')).toBeNull();
+  });
+
   it('a clone keeps the page bitmap the card drew', () => {
     const source = card('x');
     document.body.append(source);

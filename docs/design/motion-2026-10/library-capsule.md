@@ -20,11 +20,30 @@ The Library (`home/`) and the capsule with its contextual bars (`shell/capsule/`
   view only cross-fades.
 - The arriving page is the reader's first page when it is on screen, otherwise the current page
   (a document opens where it was left).
-- **The old image travels alone** (`library-transition.css`). The new view is captured before the
-  page's canvas renders, because rendering waits while the update runs. A cross-fade inside the
-  group would therefore end on a blank sheet. Instead the old bitmap travels and the live element
-  takes over as the group lands. In the open direction the image is upscaled and slightly soft
-  for 240 ms, then swaps to the sharp page.
+- **Hand-off at 60 %.** The update waits up to `DRAW_BUDGET_MS` = 100 ms for the arriving page's
+  canvas to show a bitmap. If it does (`data-vt-library-crisp`), the old and new images hold
+  until 60 % of the flight and then cross-fade linearly. If it does not, the new image would be
+  a blank sheet, so the old image travels alone and the live page takes over as it lands.
+  Measurements:
+  - **Full render, no View Transition** (click to `data-state="rendered"` on the reader's first
+    page; first opens, then reopens, three files): desktop 220–620 ms (median about 200 on
+    reopen), tablet 141–368 ms. The first preview took 98–528 ms. That is over the 100 ms
+    budget, so the reader is not pre-rendered hidden as the grid does.
+  - **Inside the transition**, in all four scrubbed runs (open and back, both sizes), a bitmap
+    showed within the 100 ms wait:
+    - opening: a `preview` (the cached thumbnail, stretched);
+    - going back: the card's `rendered` thumbnail.
+
+  Opening therefore lands on the preview, and the reader's own render sharpens the page in place
+  about 100–400 ms later, as it does without any morph. Going back lands sharp.
+- **Chrome on top.** The top pieces, the capsule and the page pill are named for the transition
+  (class `library-chrome`, groups at `z-index: 2`), so the travelling page passes under them.
+  - The tabs piece keeps its shape across the two views, so it morphs.
+  - Every other piece exists in one view only or changes shape: the Library's round ⋯ becomes
+    the document's Find piece, and the capsule and pill exist only beside a document. These are
+    named per view (`-old`/`-new`, classes `library-chrome-out`/`-in`), and each whole group
+    fades by 60 % of the flight. Fading only the image inside the group left the glass's blur
+    behind as a square, empty pill until the end. The group carries the piece radius.
 - **Fallback where View Transitions are missing** (`flipSheet`): a clone of the leaving sheet,
   with its bitmap copied, is laid fixed at the arriving box. It is moved from the leaving box by
   transform and scale on `smooth`, and fades over its last 40 %.
@@ -124,12 +143,16 @@ cases belong to their lanes.
   under the neighbour sliding over it; undo grows it back; dropped files fall in checked; the bar
   rises from the bottom edge; the drop halo breathes.
 
-## Left / notes
+## Follow-ups done
 
-- The open morph's travelling image is the card bitmap upscaled, so it is soft until the swap.
-  The grid transition's "prepare first" (mount the reader hidden, draw, then transition) would
-  remove that, at the cost of about 100 ms latency before the morph starts.
-- A transition's shared page draws above the top strip for its 240 ms. The grid transition's
-  capsule-band cut was not ported.
-- The leaving card clone keeps the selected check badge it had. That is acceptable, since the
-  clone fades within 180 ms.
+- The chrome stays above the travelling page (§1, *Chrome on top*). I did not port the grid's
+  band cut (a mask on the page's images), because here the page comes to rest under the
+  chrome: a cut band would pop back at the end.
+- The soft landing was measured, and the hand-off now happens at 60 % (§1). The reader is not
+  pre-rendered: its render takes longer than the 100 ms budget.
+- A closing card's copy drops its check badge (`ghostOf`; test in `card-motion.test.ts`).
+
+## Notes
+
+- Opening still lands on the reader's preview. The sharp render follows in place 100–400 ms
+  later, the same as opening without the morph.
