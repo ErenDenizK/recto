@@ -27,7 +27,7 @@ import { pagesPhrase, useTabItems, useWorkspaceStore } from '../state/workspace-
 import { Checkbox } from '../ui/Checkbox';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
-import { Sheet, SheetField, useSheetDraft } from '../ui/sheet';
+import { Sheet, SheetField, SheetGroup, SheetRow, useSheetDraft } from '../ui/sheet';
 import styles from './PagesSheets.module.css';
 
 export const COMBINE_SHEET = 'combine';
@@ -172,68 +172,69 @@ export function CombineSheet({
       }}
       testId="combine-sheet"
     >
-      <div className={styles.stack}>
-        <div className={styles.group}>
-          <p className={styles.legend} id={`${nameId}-order`}>
-            {m.combine_order_label()}
-          </p>
-          <ol ref={listRef} className={styles.list} aria-labelledby={`${nameId}-order`}>
-            {rows.map((row, index) => {
-              const on = draft.checked.includes(row.id);
-              return (
-                <li
-                  key={row.id}
-                  className={styles.row}
-                  data-off={on ? undefined : ''}
-                  data-testid="combine-row"
-                >
-                  <Checkbox
-                    className={styles.rowCheck}
-                    checked={on}
-                    onCheckedChange={() => toggle(row.id)}
-                    label={
-                      <span className={styles.rowLabel} title={row.title}>
-                        <span className={styles.tag} data-tag={row.colorIndex} aria-hidden="true" />
-                        <span className={styles.rowTitle}>{row.title}</span>
-                      </span>
-                    }
+      <SheetGroup label={m.combine_order_label()}>
+        <ol ref={listRef} className={styles.list} aria-label={m.combine_order_label()}>
+          {rows.map((row, index) => {
+            const on = draft.checked.includes(row.id);
+            return (
+              <li
+                key={row.id}
+                className={styles.row}
+                data-off={on ? undefined : ''}
+                data-testid="combine-row"
+              >
+                <Checkbox
+                  className={styles.rowCheck}
+                  checked={on}
+                  onCheckedChange={() => toggle(row.id)}
+                  label={
+                    <span className={styles.rowLabel} title={row.title}>
+                      <span className={styles.tag} data-tag={row.colorIndex} aria-hidden="true" />
+                      <span className={styles.rowTitle}>{row.title}</span>
+                    </span>
+                  }
+                />
+                <span className={styles.rowMeta}>{pagesPhrase(row.pageCount)}</span>
+                <span className={styles.rowButtons}>
+                  <IconButton
+                    size="row"
+                    label={m.merge_move_up({ title: row.title })}
+                    icon={<Icon name="caret-up" />}
+                    disabled={index === 0}
+                    onClick={() => move(index, -1)}
                   />
-                  <span className={styles.rowMeta}>{pagesPhrase(row.pageCount)}</span>
-                  <span className={styles.rowButtons}>
-                    <IconButton
-                      size="row"
-                      label={m.merge_move_up({ title: row.title })}
-                      icon={<Icon name="caret-up" />}
-                      disabled={index === 0}
-                      onClick={() => move(index, -1)}
-                    />
-                    <IconButton
-                      size="row"
-                      label={m.merge_move_down({ title: row.title })}
-                      icon={<Icon name="caret-down" />}
-                      disabled={index === rows.length - 1}
-                      onClick={() => move(index, 1)}
-                    />
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-        <SheetField
-          label={m.combine_name_label()}
-          showLabel
-          id={nameId}
-          value={name}
-          spellCheck={false}
-          autoComplete="off"
-          error={checkedName.ok ? null : titleProblemMessage(checkedName.problem)}
-          onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))}
-        />
-        <p className={styles.preview} role="status" data-problem={enough ? undefined : ''}>
-          {enough ? m.combine_preview({ pages: pagesPhrase(total) }) : m.combine_needs_two()}
-        </p>
-      </div>
+                  <IconButton
+                    size="row"
+                    label={m.merge_move_down({ title: row.title })}
+                    icon={<Icon name="caret-down" />}
+                    disabled={index === rows.length - 1}
+                    onClick={() => move(index, 1)}
+                  />
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </SheetGroup>
+      <SheetGroup>
+        <SheetRow full>
+          <SheetField
+            label={m.combine_name_label()}
+            showLabel
+            id={nameId}
+            value={name}
+            spellCheck={false}
+            autoComplete="off"
+            error={checkedName.ok ? null : titleProblemMessage(checkedName.problem)}
+            onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))}
+          />
+        </SheetRow>
+        <SheetRow full>
+          <p className={styles.summary} role="status" data-problem={enough ? undefined : ''}>
+            {enough ? m.combine_preview({ pages: pagesPhrase(total) }) : m.combine_needs_two()}
+          </p>
+        </SheetRow>
+      </SheetGroup>
     </Sheet>
   );
 }
