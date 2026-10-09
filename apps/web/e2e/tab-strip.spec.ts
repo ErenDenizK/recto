@@ -5,8 +5,8 @@
  * coarse), its name shows at least `MIN_LABEL` px of text, and a name that does not fit ends in
  * an ellipsis with the full name kept as the tab's tooltip and accessible name. Tabs that do not
  * fit go into "N more" (spec 01.Q1); should the list still scroll, its edge fades, never cut to
- * a bare dot. The bar is one of Q-9's
- * heights (44 fine, 56 coarse) and nothing in it is pushed past the window.
+ * a bare dot. The bar is one floating piece of Q-9 (--piece-h, owner feedback 2026-10-09, G1:
+ * 40 fine, 48 coarse) and nothing in it is pushed past the window.
  *
  * Runs on `chromium` (fine pointer: 768, 1024, 1180 and 1440 px) and `tablet` (coarse: 768,
  * 820, 1024 and 1180 px).
@@ -92,7 +92,7 @@ for (const lang of ['en', 'tr'] as const) {
     const widths = coarse ? [768, 820, 1024, 1180] : [768, 1024, 1180, 1440];
     const height = coarse ? 1180 : 900;
     const tabMin = coarse ? 128 : 112;
-    const barHeight = coarse ? 56 : 44;
+    const barHeight = coarse ? 48 : 40;
 
     const check = async (label: string, fullName: string) => {
       for (const width of widths) {
