@@ -59,6 +59,7 @@ import {
   rememberPosition,
 } from '../viewer/navigation';
 import { cancelJump, jumpScroll, jumpTarget } from '../viewer/jump';
+import { type PrefetchPage, prefetchLanding } from '../viewer/jump-prefetch';
 import { clearLandings, flashLanding } from '../viewer/landing';
 import { pageFrame } from '../viewer/page-frame';
 import { setReadController } from '../viewer/read-controller';
@@ -932,6 +933,23 @@ function PageColumn({
       el.scrollTop = target.top;
       el.scrollLeft = target.left;
       return;
+    }
+    // Beyond a screen, the landing's pages are rendered as the jump starts (jump-prefetch.ts).
+    if (Math.abs(target.top - el.scrollTop) > el.clientHeight) {
+      const prefetchOf = (i: number): PrefetchPage | undefined => {
+        const p = pages[i];
+        const s = sizes[i];
+        if (!p || !s || p.ref.kind !== 'source' || p.resize !== undefined) return undefined;
+        return {
+          sourceId: p.ref.source,
+          index: p.ref.index,
+          rotation: p.rotation,
+          widthPt: s.width,
+          heightPt: s.height,
+        };
+      };
+      const around = [index - 1, index + 1].map(prefetchOf).filter((p) => p !== undefined);
+      prefetchLanding(prefetchOf(index), around, cssScale);
     }
     void jumpScroll(el, target, { layer: layerRef.current }).then((landed) => {
       if (landed && motion === 'jump') void landOn(page.id, box);
