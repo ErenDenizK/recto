@@ -27,7 +27,7 @@
   margin: 0 0 2px;
   color: var(--glass-text-secondary, var(--text-secondary));
   font-size: var(--type-footnote);
-  font-weight: 550;
+  font-weight: var(--weight-semibold);
   line-height: var(--type-footnote-lh);
 }
 

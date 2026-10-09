@@ -66,7 +66,8 @@ describe('S21 Batch', () => {
     expect(recipe).toHaveAttribute('aria-pressed', 'true');
     // The sheet fades in from opacity 0; on a slow runner the list is there before its first frame.
     await waitFor(() => expect(within(dialog).getByText('Built in, read-only')).toBeVisible());
-    expect(within(dialog).getByTestId('batch-run')).toBeDisabled();
+    // ui/Button stays focusable when disabled (09 §3): aria-disabled, not the attribute.
+    expect(within(dialog).getByTestId('batch-run')).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add files…' }));
     // The picker filters PDFs; readme.txt never arrives.

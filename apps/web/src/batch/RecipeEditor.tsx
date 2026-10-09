@@ -19,7 +19,9 @@ import { useState } from 'react';
 
 import { m } from '../i18n';
 import tool from '../tools/ToolDialog.module.css';
+import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { Select } from '../ui/Select';
 import styles from './Batch.module.css';
 import { recipeErrorText, stepDetail, stepKindLabel, waitingForLabel } from './labels';
@@ -148,6 +150,8 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
                   <span className={styles.stepNumber}>{index + 1}</span>
                   <button
                     type="button"
+                    // The step's whole row is its disclosure (title, detail and state).
+                    // eslint-disable-next-line recto/q9-controls
                     className={styles.row}
                     aria-expanded={expanded}
                     onClick={() => setOpen(expanded ? null : item.key)}
@@ -168,38 +172,29 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
                     ) : null}
                   </button>
                   <span className={styles.stepTools}>
-                    <button
-                      type="button"
-                      className={styles.iconButton}
+                    <IconButton
+                      size="row"
                       disabled={index === 0}
-                      aria-label={m.batch_step_move_up({ step: label })}
-                      title={m.batch_step_move_up({ step: label })}
+                      label={m.batch_step_move_up({ step: label })}
+                      icon={<Icon name="arrow-up" />}
                       onClick={() => move(index, -1)}
-                    >
-                      <Icon name="arrow-up" />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.iconButton}
+                    />
+                    <IconButton
+                      size="row"
                       disabled={index === steps.length - 1}
-                      aria-label={m.batch_step_move_down({ step: label })}
-                      title={m.batch_step_move_down({ step: label })}
+                      label={m.batch_step_move_down({ step: label })}
+                      icon={<Icon name="arrow-down" />}
                       onClick={() => move(index, 1)}
-                    >
-                      <Icon name="arrow-down" />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.iconButton}
-                      aria-label={m.batch_step_remove({ step: label })}
-                      title={m.batch_step_remove({ step: label })}
+                    />
+                    <IconButton
+                      size="row"
+                      label={m.batch_step_remove({ step: label })}
+                      icon={<Icon name="trash" />}
                       onClick={() => {
                         setSteps(steps.filter((s) => s.key !== item.key));
                         setError(null);
                       }}
-                    >
-                      <Icon name="trash" />
-                    </button>
+                    />
                   </span>
                   {expanded ? (
                     <div className={styles.stepForm}>
@@ -232,14 +227,13 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
                 }))}
               />
             </div>
-            <button
-              type="button"
-              className={`${tool.secondary} ${styles.alignEnd}`}
+            <Button
+              className={styles.alignEnd}
               disabled={steps.length >= MAX_RECIPE_STEPS}
               onClick={add}
             >
               {m.batch_add_step()}
-            </button>
+            </Button>
           </div>
         </section>
         {error === null ? null : (
@@ -251,17 +245,10 @@ export function RecipeEditor({ initial, onSave, onCancel }: RecipeEditorProps) {
       </div>
       <div className={styles.footer}>
         <span className={styles.footerNote}>{m.batch_editor_note()}</span>
-        <button type="button" className={tool.secondary} onClick={onCancel}>
-          {m.common_cancel()}
-        </button>
-        <button
-          type="button"
-          className={tool.primary}
-          disabled={saving}
-          onClick={() => void save()}
-        >
+        <Button onClick={onCancel}>{m.common_cancel()}</Button>
+        <Button variant="prominent" disabled={saving} onClick={() => void save()}>
           {m.batch_save_recipe()}
-        </button>
+        </Button>
       </div>
     </>
   );

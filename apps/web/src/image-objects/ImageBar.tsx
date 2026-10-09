@@ -12,6 +12,7 @@ import { type Box, cssBoxToUser, type PageFrame } from '../annotations/geometry'
 import { pickFiles } from '../files/open-files';
 import { formatNumber, m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { deleteImage, extractImage, replaceImage } from './actions';
 import styles from './ImageObjects.module.css';
@@ -134,9 +135,9 @@ export function ImageBar({
         </span>
       ) : null}
       <span className={styles.divider} aria-hidden="true" />
-      <button
-        type="button"
-        className={styles.action}
+      <Button
+        variant="quiet"
+        icon={<Icon name="image" />}
         disabled={disabled}
         tabIndex={tabFor(0)}
         onFocus={() => setFocusIndex(0)}
@@ -147,12 +148,11 @@ export function ImageBar({
           })
         }
       >
-        <Icon name="image" />
         {m.image_object_replace()}
-      </button>
-      <button
-        type="button"
-        className={styles.action}
+      </Button>
+      <Button
+        variant="quiet"
+        icon={<Icon name="download-simple" />}
         title={
           image.filters.length === 1 && image.filters[0] === 'DCT' && !image.hasSMask
             ? m.image_object_extract_jpeg()
@@ -163,21 +163,18 @@ export function ImageBar({
         onFocus={() => setFocusIndex(1)}
         onClick={() => run(() => extractImage(target, image, title))}
       >
-        <Icon name="download-simple" />
         {m.image_object_extract()}
-      </button>
-      <button
-        type="button"
-        className={styles.action}
-        data-tone="danger"
+      </Button>
+      <Button
+        variant="danger"
+        icon={<Icon name="trash" />}
         disabled={disabled}
         tabIndex={tabFor(2)}
         onFocus={() => setFocusIndex(2)}
         onClick={() => run(() => deleteImage(target, image))}
       >
-        <Icon name="trash" />
         {m.image_object_delete()}
-      </button>
+      </Button>
     </div>
   );
 }

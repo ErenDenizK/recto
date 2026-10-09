@@ -13,12 +13,14 @@
  * A page pushed in S10 (`OcrSheet.tsx`): the sheet's ‹ Back returns to the form.
  */
 import type { OcrLanguagePack } from '@pdf-editor/engine';
-import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { toFailure } from '../engine/engine-service';
 import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { Button } from '../ui/Button';
+import { FileButton } from '../ui/FileButton';
+import { Switch } from '../ui/Switch';
 import toolStyles from '../tools/ToolDialog.module.css';
 import styles from './Ocr.module.css';
 import { ocrDependencies } from './ocr-deps';
@@ -40,7 +42,6 @@ export function OcrLanguages() {
   const [packs, setPacks] = useState<readonly OcrLanguagePack[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
-  const input = useRef<HTMLInputElement>(null);
   const locale = getLocale();
 
   // Bumped to read the list again after a change.
@@ -99,9 +100,7 @@ export function OcrLanguages() {
     }
   };
 
-  const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
+  const importFile = async (file: File | undefined) => {
     if (!file) return;
     setError(null);
     try {
@@ -154,26 +153,22 @@ export function OcrLanguages() {
                 </span>
               </span>
               {pack.source === 'imported' ? (
-                <button
-                  type="button"
-                  className={toolStyles.secondary}
+                <Button
+                  size="sm"
                   aria-label={m.ocr_pack_remove_label({ name })}
                   onClick={() => void remove(pack)}
                 >
                   {m.ocr_pack_remove()}
-                </button>
+                </Button>
               ) : (
-                <label className={styles.switch}>
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={pack.onDevice}
-                    disabled={busy !== null}
-                    aria-label={m.ocr_pack_offline_label({ name })}
-                    onChange={(event) => void keepOffline(pack, event.target.checked)}
-                  />
-                  <span className="visually-hidden">{m.ocr_pack_offline()}</span>
-                </label>
+                // The column's header says what the switch does; its name says it in full.
+                <Switch
+                  className={styles.switch}
+                  label={m.ocr_pack_offline_label({ name })}
+                  checked={pack.onDevice}
+                  disabled={busy !== null}
+                  onCheckedChange={(on) => void keepOffline(pack, on)}
+                />
               )}
             </li>
           );
@@ -185,20 +180,14 @@ export function OcrLanguages() {
         </p>
       ) : null}
       <p className={toolStyles.hint}>{m.ocr_import_hint()}</p>
-      <input
-        ref={input}
-        type="file"
-        accept=".traineddata,.gz,application/gzip,application/octet-stream"
-        className="visually-hidden"
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={(event) => void importFile(event)}
-        data-testid="ocr-import-input"
-      />
       <div className={styles.row}>
-        <Button variant="standard" onClick={() => input.current?.click()}>
+        <FileButton
+          accept=".traineddata,.gz,application/gzip,application/octet-stream"
+          inputTestId="ocr-import-input"
+          onFiles={(files) => void importFile(files[0])}
+        >
           {m.ocr_import()}
-        </Button>
+        </FileButton>
       </div>
     </div>
   );

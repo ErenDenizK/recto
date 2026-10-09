@@ -20,7 +20,7 @@
   margin: 0 0 2px;
   color: var(--glass-text-secondary);
   font-size: var(--type-footnote);
-  font-weight: 550;
+  font-weight: var(--weight-semibold);
   line-height: var(--type-footnote-lh);
 }
 
@@ -122,17 +122,19 @@
   font-size: var(--type-caption);
 }
 
+/* A pack's ui/Switch: only the switch shows (the row names the pack, the column's header says
+   what it keeps); its label stays the accessible name, kept for assistive tech only. */
 .switch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  white-space: nowrap;
+  flex: none;
 }
 
-.switch input {
-  accent-color: var(--control-on);
+.switch > :first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* A finished run: what ran as the title, then its counts as footnote lines (notices are
