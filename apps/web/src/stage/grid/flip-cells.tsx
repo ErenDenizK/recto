@@ -53,20 +53,29 @@ export function readCells(root: ParentNode): Boxes {
   return boxes;
 }
 
-/** Every page id in the workspace now (to tell a delete from a scroll, an arrival from a reveal). */
-function workspacePages(): Set<string> {
-  const ids = new Set<string>();
+/**
+ * Every page in the workspace now and its document (to tell a delete from a scroll, and an
+ * arrival from a reveal).
+ */
+function workspacePages(): Map<string, string> {
+  const ids = new Map<string, string>();
   for (const doc of Object.values(useWorkspaceStore.getState().workspace.documents)) {
-    for (const page of doc?.pages ?? []) ids.add(page.id);
+    for (const page of doc?.pages ?? []) ids.set(page.id, doc.id);
   }
   return ids;
 }
 
 /**
  * Moves each cell drawn in `root` now from its page's box in `before` to where it is; a
- * dropped page from the drop's origin, on `fling`; a page not in `known` grows in.
+ * dropped page from the drop's origin, on `fling`; a page not drawn before that `known` did not
+ * have in its document (a new page, or one brought back from another document, as an undo of
+ * Move to ▾ does) grows in.
  */
-export function playCells(root: ParentNode, before: Boxes, known?: ReadonlySet<string>): void {
+export function playCells(
+  root: ParentNode,
+  before: Boxes,
+  known?: ReadonlyMap<string, string>,
+): void {
   const moves: {
     cell: HTMLElement;
     from: [number, number, number, number];
@@ -77,7 +86,8 @@ export function playCells(root: ParentNode, before: Boxes, known?: ReadonlySet<s
     const origin = dropOriginOf(id);
     const first = origin ?? before.get(id);
     if (!first) {
-      if (known && !known.has(id)) growIn(cell, Math.min(arrivals++ * 20, 100));
+      if (known && known.get(id) !== cell.dataset.documentId)
+        growIn(cell, Math.min(arrivals++ * 20, 100));
       continue;
     }
     const last = cell.getBoundingClientRect();
@@ -112,7 +122,7 @@ interface FlipCellsProps {
 /** Plays the cells' reflow whenever `flipKey` changes (module header). */
 export class FlipCells extends Component<FlipCellsProps> {
   /** The workspace's pages as of the last layout, to tell arrivals and deletes apart. */
-  private known: Set<string> | null = null;
+  private known: Map<string, string> | null = null;
 
   override componentDidMount(): void {
     this.known = workspacePages();
