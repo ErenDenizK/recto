@@ -300,11 +300,15 @@
   --control-knob-drop-raised: 0 1px 2px rgb(0 0 0 / 0.36), 0 6px 14px -2px rgb(0 0 0 / 0.42);
   --control-knob-ring: inset 0 0 0 0.5px rgb(0 0 0 / 0.16);
   --control-knob-dot-drop: 0 0.5px 1.5px rgb(0 0 0 / 0.25);
-  /* The check badge (ui/CheckBadge): it sits on the page, never themed, so one value. */
+  /* The check badge (ui/CheckBadge): it sits on the page, never themed, so one value. Empty, a
+     1.5 px white ring between two dark hairlines over a faint scrim: an outlined circle on a
+     white page and a white ring on a dark scan, clearly a control and clearly empty, never the
+     grey disc a heavier scrim makes on white (system-audit-2026-10 §3.8, I-32). */
   --check-badge-rim: #ffffff;
-  --check-badge-scrim: rgb(0 0 0 / 0.12);
-  --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
-  --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+  --check-badge-scrim: rgb(0 0 0 / 0.1);
+  --check-badge-scrim-hover: rgb(0 0 0 / 0.22);
+  --check-badge-shadow:
+    inset 0 0 0 0.5px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.2);
   /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
      the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
      ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
@@ -573,11 +577,15 @@
     0 1px 2px rgb(var(--ink-rgb) / 0.22), 0 7px 16px -2px rgb(var(--ink-rgb) / 0.32);
   --control-knob-ring: inset 0 0 0 0.5px rgb(0 0 0 / 0.16);
   --control-knob-dot-drop: 0 0.5px 1.5px rgb(0 0 0 / 0.25);
-  /* The check badge (ui/CheckBadge): it sits on the page, never themed, so one value. */
+  /* The check badge (ui/CheckBadge): it sits on the page, never themed, so one value. Empty, a
+     1.5 px white ring between two dark hairlines over a faint scrim: an outlined circle on a
+     white page and a white ring on a dark scan, clearly a control and clearly empty, never the
+     grey disc a heavier scrim makes on white (system-audit-2026-10 §3.8, I-32). */
   --check-badge-rim: #ffffff;
-  --check-badge-scrim: rgb(0 0 0 / 0.12);
-  --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
-  --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+  --check-badge-scrim: rgb(0 0 0 / 0.1);
+  --check-badge-scrim-hover: rgb(0 0 0 / 0.22);
+  --check-badge-shadow:
+    inset 0 0 0 0.5px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.2);
   /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
      the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
      ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
@@ -835,11 +843,15 @@
       0 1px 2px rgb(var(--ink-rgb) / 0.22), 0 7px 16px -2px rgb(var(--ink-rgb) / 0.32);
     --control-knob-ring: inset 0 0 0 0.5px rgb(0 0 0 / 0.16);
     --control-knob-dot-drop: 0 0.5px 1.5px rgb(0 0 0 / 0.25);
-    /* The check badge (ui/CheckBadge): it sits on the page, never themed, so one value. */
+    /* The check badge (ui/CheckBadge): it sits on the page, never themed, so one value. Empty, a
+     1.5 px white ring between two dark hairlines over a faint scrim: an outlined circle on a
+     white page and a white ring on a dark scan, clearly a control and clearly empty, never the
+     grey disc a heavier scrim makes on white (system-audit-2026-10 §3.8, I-32). */
     --check-badge-rim: #ffffff;
-    --check-badge-scrim: rgb(0 0 0 / 0.12);
-    --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
-    --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+    --check-badge-scrim: rgb(0 0 0 / 0.1);
+    --check-badge-scrim-hover: rgb(0 0 0 / 0.22);
+    --check-badge-shadow:
+      inset 0 0 0 0.5px rgb(0 0 0 / 0.3), 0 0 0 0.5px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.2);
     /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
        the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
        ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
