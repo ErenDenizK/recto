@@ -186,7 +186,9 @@ function PageList({
     const index = order.indexOf(id);
     if (index >= 0) virtualizer.scrollToIndex(index, { align: 'auto' });
     window.clearTimeout(keyTimer.current);
-    const scroll = () => useViewStore.getState().scrollToPage(id);
+    // Arrow keys step through the pages without the landing highlight of a click's jump.
+    const scroll = () =>
+      useViewStore.getState().scrollToPage(id, { motion: delay > 0 ? 'step' : 'jump' });
     if (delay > 0) keyTimer.current = window.setTimeout(scroll, delay);
     else scroll();
     announce(

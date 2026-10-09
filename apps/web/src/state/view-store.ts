@@ -18,7 +18,17 @@ export interface ScrollRequest {
    * e.g. a search hit. Scrolling is minimal when it is already visible.
    */
   readonly reveal?: Rect;
+  /**
+   * How the page view gets there (motion-2026-10 viewer.md §1): `jump` (the default) scrolls
+   * on an eased curve and softly highlights where it landed; `step` scrolls the same way
+   * without the highlight (previous / next page, a find hit that rings itself); `instant`
+   * lands at once (a scrubber drag, a view that is not shown yet).
+   */
+  readonly motion?: ScrollMotion;
 }
+
+/** How a scroll request moves the page view (`ScrollRequest.motion`). */
+export type ScrollMotion = 'jump' | 'step' | 'instant';
 
 interface ViewState {
   /** Index of the page at the centre of the Read viewport, in the active document. */
@@ -37,7 +47,10 @@ interface ViewState {
   setCurrentPage: (index: number) => void;
   setVisibleRange: (first: number, last: number) => void;
   setLayout: (layout: ReadLayout) => void;
-  scrollToPage: (pageId: PageId, options?: { readonly reveal?: Rect }) => void;
+  scrollToPage: (
+    pageId: PageId,
+    options?: { readonly reveal?: Rect; readonly motion?: ScrollMotion },
+  ) => void;
   setNavTarget: (index: number | null) => void;
 }
 
@@ -62,6 +75,7 @@ export const useViewStore = create<ViewState>()((set) => ({
         pageId,
         serial: (s.scrollRequest?.serial ?? 0) + 1,
         ...(options?.reveal === undefined ? {} : { reveal: options.reveal }),
+        ...(options?.motion === undefined ? {} : { motion: options.motion }),
       },
     })),
   setNavTarget: (navTarget) => set((s) => (s.navTarget === navTarget ? s : { navTarget })),

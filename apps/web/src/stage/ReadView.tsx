@@ -37,13 +37,15 @@ import {
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { RENDER_PRIORITY, sheetSize } from '../engine/engine-service';
+import { animate, type Motion } from '../motion/animate';
+import { reducedMotion } from '../motion/reduced-motion';
 import { m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { CSS_PX_PER_PT, displaySize, rotationPhrase } from '../pages/page-geometry';
 import { needsTiles, TiledPage } from '../pages/TiledPage';
 import { useSelectionStore } from '../state/selection-store';
 import { clamp, MAX_ZOOM, MIN_ZOOM, useUiStore } from '../state/ui-store';
-import { type ReadLayout, useViewStore } from '../state/view-store';
+import { type ReadLayout, type ScrollMotion, useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { SOFT_EDGE } from '../shell/frame/frame-insets';
 import { SIZE_CLASS_MIN_WIDTH } from '../shell/frame/size-class';
@@ -55,6 +57,8 @@ import {
   recallPosition,
   rememberPosition,
 } from '../viewer/navigation';
+import { cancelJump, jumpScroll, jumpTarget } from '../viewer/jump';
+import { flashLanding } from '../viewer/landing';
 import { pageFrame } from '../viewer/page-frame';
 import { setReadController } from '../viewer/read-controller';
 import type { Point, ZoomRest } from '../viewer/zoom-controller';
@@ -92,6 +96,10 @@ const MAX_EXTRA_ROWS = 60;
 const NAV_SETTLE_MS = 180;
 /** Remember the reading position after it has settled for this long. */
 const REMEMBER_DELAY_MS = 600;
+/** Scroll requests this soon after the column mounts land at once (a view change brought it). */
+const MOUNT_INSTANT_MS = 300;
+/** How many frames a landing highlight waits for its page to be laid out. */
+const LANDING_WAIT_FRAMES = 10;
 
 /**
  * A resized page in Read mode (`VirtualPage.resize`): where its content bitmap goes on the
@@ -302,19 +310,26 @@ export function ReadView({
   };
 
   // Fit width / fit page follow the unobscured rectangle: the window and the panels' sizes.
+  // Choosing a fit animates the zoom (motion-2026-10 viewer.md §2); following a resize does not.
+  const quietZoom = useRef<number | null>(null);
+  const lastFitMode = useRef(fitMode);
   useEffect(() => {
     const el = viewportRef.current;
+    const chosen = lastFitMode.current !== fitMode;
+    lastFitMode.current = fitMode;
     if (!el || fitMode === null) return;
-    const fit = () => {
+    const fit = (follow: boolean) => {
       const fits = fitZooms(
         el,
         { top: view.top, right: view.right, bottom: view.bottom, left: view.left },
         { maxWidth: layout.maxWidth, maxHeight: layout.maxHeight, maxGaps: layout.maxGaps },
       );
-      applyFitZoom(fitMode === 'width' ? fits.width : fits.page);
+      const next = clamp(fitMode === 'width' ? fits.width : fits.page, MIN_ZOOM, MAX_ZOOM);
+      quietZoom.current = follow ? next : null;
+      applyFitZoom(next);
     };
-    fit();
-    const observer = new ResizeObserver(fit);
+    fit(!chosen);
+    const observer = new ResizeObserver(() => fit(true));
     observer.observe(el);
     return () => observer.disconnect();
   }, [
@@ -394,6 +409,8 @@ export function ReadView({
             fitting={fitMode !== null}
             view={view}
             chipRef={chipRef}
+            prepared={prepared}
+            quietZoom={quietZoom}
           />
         ) : null}
       </div>
@@ -454,6 +471,8 @@ function PageColumn({
   fitting,
   view,
   chipRef,
+  prepared,
+  quietZoom,
 }: {
   readonly doc: VirtualDocument;
   readonly ws: Workspace;
@@ -482,6 +501,10 @@ function PageColumn({
   readonly view: Insets;
   /** The pinch detent chip (05.11), beside the viewport. */
   readonly chipRef: RefObject<HTMLDivElement | null>;
+  /** Mounted hidden ahead of a view change: scroll requests land at once. */
+  readonly prepared: boolean;
+  /** The zoom a resize made the fit follow to, which lands without the zoom morph. */
+  readonly quietZoom: RefObject<number | null>;
 }) {
   'use no memo'; // TanStack Virtual mutates its instance; the React Compiler must not cache it.
   const setCurrentPage = useViewStore((s) => s.setCurrentPage);
@@ -570,29 +593,113 @@ function PageColumn({
   const pointerAnchor = useRef<Anchor | null>(null);
   /** The canvas zoom's `settled`, called once its zoom is laid out (use-canvas-zoom.ts). */
   const zoomSettled = useRef<(() => void) | null>(null);
+  /** The zoom layer's clip and the layer (the column), for the canvas zoom and the morph. */
+  const zoomFrameRef = useRef<HTMLDivElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  /** The zoom morph in flight: its motion and the scale it was laid out at. */
+  const morph = useRef<{ motion: Motion<readonly number[]>; scale: number } | null>(null);
+  /** Ends the zoom morph where it is: the layer back to rest (a gesture takes over). */
+  const endMorph = () => {
+    const run = morph.current;
+    if (!run) return;
+    morph.current = null;
+    run.motion.stop();
+    const layer = layerRef.current;
+    layer?.style.removeProperty('transform');
+    layer?.style.removeProperty('transform-origin');
+    zoomFrameRef.current?.removeAttribute('data-zooming');
+    setExtraRows(0);
+  };
+  /**
+   * The zoom morph (motion-2026-10 viewer.md §2): a zoom step, a zoom key or a chosen fit lays
+   * the new zoom out at once, then the column, shown at the old size about the anchor by
+   * `transform`, grows or shrinks into it on `--spring-quick`. A morph that interrupts another
+   * starts from the size on screen. Only the transform moves (the canvas zoom's clip holds the
+   * scroll extent); at rest nothing is left on the layer.
+   */
+  const startMorph = (el: HTMLElement, a: Anchor, from: number) => {
+    const layer = layerRef.current;
+    const frame = zoomFrameRef.current;
+    if (!layer || !frame) return;
+    let shown = from / cssScale;
+    const running = morph.current;
+    if (running) {
+      shown = ((running.motion.value[0] ?? 1) * running.scale) / cssScale;
+      running.motion.stop();
+      morph.current = null;
+    }
+    if (Math.abs(shown - 1) < 1e-3) {
+      endMorph();
+      return;
+    }
+    // The anchored point at the new zoom, and where it showed before.
+    const p = {
+      x: columnCentre(el) + a.fromCentre * (cssScale / a.scale),
+      y: (rowTopOf(a.row) ?? 0) + a.fraction * heightOf(a.row),
+    };
+    const at = { x: el.scrollLeft + a.viewportX, y: el.scrollTop + a.viewportY };
+    const write = ([scale = 1, x = 0, y = 0]: readonly number[]) => {
+      layer.style.transform = `translate(${x - scale * p.x}px, ${y - scale * p.y}px) scale(${scale})`;
+    };
+    frame.setAttribute('data-zooming', '');
+    layer.style.transformOrigin = '0 0';
+    if (shown < 1) {
+      // Shrunk, the column must still cover the viewport: rows for the smallest scale shown.
+      let shortest = Number.POSITIVE_INFINITY;
+      for (const row of rows) shortest = Math.min(shortest, row.height * cssScale + GAP);
+      const uncovered = el.clientHeight * (1 / Math.max(shown, 0.05) - 1);
+      setExtraRows(Math.min(MAX_EXTRA_ROWS, Math.ceil(uncovered / Math.max(1, shortest))));
+    }
+    // Before paint: the first frame already shows the old size.
+    write([shown, at.x, at.y]);
+    const motion = animate([shown, at.x, at.y], [1, p.x, p.y], {
+      spring: 'quick',
+      onUpdate: write,
+      onComplete: () => {
+        if (morph.current?.motion === motion) endMorph();
+      },
+    });
+    morph.current = { motion, scale: cssScale };
+  };
   const lastScale = useRef(cssScale);
   useLayoutEffect(() => {
     if (lastScale.current === cssScale) return;
+    const from = lastScale.current;
     lastScale.current = cssScale;
     virtualizer.measure();
     const el = viewportRef.current;
-    const fromTop = pointerAnchor.current === null && fitting;
+    // A jump's target was measured at the old zoom.
+    if (el) cancelJump(el);
+    const gesture = pointerAnchor.current !== null;
+    const quiet =
+      quietZoom.current !== null && Math.abs(quietZoom.current * CSS_PX_PER_PT - cssScale) < 1e-9;
+    quietZoom.current = null;
+    const fromTop = !gesture && fitting;
     const a = pointerAnchor.current ?? (fromTop ? topAnchor.current : anchor.current);
     pointerAnchor.current = null;
+    // The canvas zoom's own motion holds the layer until this frame, or still runs.
+    const held = zoomFrameRef.current?.hasAttribute('data-zooming') && morph.current === null;
     // The zoom layer drops its transform in this frame, the one that lays out the new zoom.
     zoomSettled.current?.();
     zoomSettled.current = null;
     if (!el || !a) return;
-    if (fromTop && a.atTop) {
-      el.scrollTop = 0;
-      return;
+    if (fromTop && a.atTop) el.scrollTop = 0;
+    else {
+      const start = rowTopOf(a.row);
+      if (start === undefined) return;
+      el.scrollTop = start + a.fraction * heightOf(a.row) - a.viewportY;
+      const ratio = cssScale / a.scale;
+      el.scrollLeft = columnCentre(el) + a.fromCentre * ratio - a.viewportX;
     }
-    const start = rowTopOf(a.row);
-    if (start === undefined) return;
-    el.scrollTop = start + a.fraction * heightOf(a.row) - a.viewportY;
-    const ratio = cssScale / a.scale;
-    el.scrollLeft = columnCentre(el) + a.fromCentre * ratio - a.viewportX;
+    if (gesture || quiet || held || prepared || reducedMotion()) endMorph();
+    else startMorph(el, a, from);
   });
+  useEffect(
+    () => () => {
+      morph.current?.motion.stop();
+    },
+    [],
+  );
 
   // Current page, visible pages and the zoom anchor from the scroll position.
   useEffect(() => {
@@ -652,6 +759,8 @@ function PageColumn({
     const el = viewportRef.current;
     if (!el) return;
     const abandon = () => {
+      cancelJump(el);
+      endMorph();
       window.clearTimeout(settleTimer.current);
       useViewStore.getState().setNavTarget(null);
     };
@@ -680,8 +789,6 @@ function PageColumn({
 
   // The canvas zoom (05-canvas §4): pinch, trackpad pinch, Mod+wheel and the touch double tap
   // scale the column by transform, and commit here once at rest.
-  const zoomFrameRef = useRef<HTMLDivElement>(null);
-  const layerRef = useRef<HTMLDivElement>(null);
   /** Where scroll offsets must go for anchor `a` at `scale`, and where the browser clamps them. */
   const scrollFor = (el: HTMLElement, a: Anchor, scale: number) => {
     let rowTop = view.top + PAD_TOP;
@@ -774,67 +881,117 @@ function PageColumn({
   );
 
   /** A page to show once the single-page layout has switched to it. */
-  const pendingReveal = useRef<{ index: number; reveal: Rect | undefined } | null>(null);
+  const pendingReveal = useRef<{
+    index: number;
+    reveal: Rect | undefined;
+    motion: ScrollMotion;
+  } | null>(null);
+  /** When the column mounted: a request in its first moments lands at once (a view change). */
+  const mountedAt = useRef(performance.now());
 
-  /** Brings page `index` into view; `reveal` (user space) scrolls minimally to a region. */
-  const showPage = (index: number, reveal?: Rect) => {
+  /**
+   * Brings page `index` into view; `reveal` (user space) scrolls minimally to a region. A jump
+   * or a step travels there on the eased jump (`viewer/jump.ts`, motion-2026-10 viewer.md §1),
+   * and a jump then highlights the page or the region it landed on (`viewer/landing.ts`).
+   */
+  const showPage = (index: number, reveal?: Rect, motion: ScrollMotion = 'instant') => {
     const el = viewportRef.current;
     if (!el) return;
     if (readLayout === 'single' && layout.rowOf[index] !== 0) {
       // The single row shows the current page: switch it, then scroll once laid out.
       setCurrentPage(index);
-      pendingReveal.current = { index, reveal };
+      pendingReveal.current = { index, reveal, motion };
       return;
     }
     const r = layout.rowOf[index] ?? -1;
     if (r < 0) return;
-    if (reveal === undefined) {
-      virtualizer.scrollToIndex(r, { align: 'start' });
-      return;
-    }
     const page = pages[index];
     const size = sizes[index];
     const row = rows[r];
     const rowTop = rowTopOf(r);
     if (!page || !size || !row || rowTop === undefined) return;
-    const frame = pageFrame({
-      sourceId: page.ref.kind === 'source' ? page.ref.source : undefined,
-      sourceIndex: page.ref.kind === 'source' ? page.ref.index : 0,
-      sizePt: size,
-      rotation: pageTotalRotation(ws, page),
-      cssScale,
-      page,
+    let target = { top: rowTop - view.top, left: el.scrollLeft };
+    let box: Box | undefined;
+    if (reveal !== undefined) {
+      const frame = pageFrame({
+        sourceId: page.ref.kind === 'source' ? page.ref.source : undefined,
+        sourceIndex: page.ref.kind === 'source' ? page.ref.index : 0,
+        sizePt: size,
+        rotation: pageTotalRotation(ws, page),
+        cssScale,
+        page,
+      });
+      box = userRectToCss(frame, reveal);
+      target = revealScroll(el, r, index, box);
+    }
+    const instant =
+      motion === 'instant' || prepared || performance.now() - mountedAt.current < MOUNT_INSTANT_MS;
+    if (instant) {
+      cancelJump(el);
+      el.scrollTop = target.top;
+      el.scrollLeft = target.left;
+      return;
+    }
+    void jumpScroll(el, target, { layer: layerRef.current }).then((landed) => {
+      if (landed && motion === 'jump') void landOn(page.id, box);
     });
-    const box = userRectToCss(frame, reveal);
-    const top = rowTop + box.top;
+  };
+
+  /** The scroll position that shows `box` (CSS px on page `index` of row `r`), minimally. */
+  const revealScroll = (el: HTMLElement, r: number, index: number, box: Box) => {
+    const row = rows[r];
+    const top = (rowTopOf(r) ?? 0) + box.top;
     const bottom = top + box.height;
     // Inside the unobscured rectangle.
     const visibleHeight = visibleHeightOf(el);
     const visibleWidth = el.clientWidth - view.left - view.right;
+    // Measured from where a running jump is heading, so a second reveal composes.
     const viewTop = el.scrollTop + view.top;
     const margin = Math.min(96, visibleHeight / 4);
+    let scrollTop = el.scrollTop;
     if (top < viewTop + margin || bottom > viewTop + visibleHeight - margin) {
-      el.scrollTop = Math.max(0, top - view.top - visibleHeight / 3);
+      scrollTop = Math.max(0, top - view.top - visibleHeight / 3);
     }
     // Horizontally: rows are centred in the column between the side insets.
     let x = columnCentre(el) - rowCssWidth(r) / 2;
-    for (const i of row.pages) {
+    for (const i of row?.pages ?? []) {
       if (i === index) break;
       x += (sizes[i]?.width ?? 0) * cssScale + GAP;
     }
     const left = x + box.left;
     const right = left + box.width;
     const viewLeft = el.scrollLeft + view.left;
+    let scrollLeft = el.scrollLeft;
     if (left < viewLeft + 16 || right > viewLeft + visibleWidth - 16) {
-      el.scrollLeft = Math.max(0, left - view.left - visibleWidth / 3);
+      scrollLeft = Math.max(0, left - view.left - visibleWidth / 3);
+    }
+    return { top: scrollTop, left: scrollLeft };
+  };
+
+  /** Highlights the landed page (or its `box`) once its row is laid out. */
+  const landOn = async (pageId: string, box: Box | undefined) => {
+    for (let frame = 0; frame < LANDING_WAIT_FRAMES; frame++) {
+      const sheet = zoomFrameRef.current?.querySelector<HTMLElement>(
+        `[data-page-id="${CSS.escape(pageId)}"]`,
+      );
+      if (sheet) {
+        flashLanding(sheet, box);
+        return;
+      }
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     }
   };
+
   useEffect(() => {
     const pending = pendingReveal.current;
     if (!pending || layout.rowOf[pending.index] !== 0) return;
     pendingReveal.current = null;
-    if (pending.reveal) showPage(pending.index, pending.reveal);
-    else viewportRef.current?.scrollTo({ top: 0 });
+    if (pending.reveal) showPage(pending.index, pending.reveal, pending.motion);
+    else {
+      viewportRef.current?.scrollTo({ top: 0 });
+      const page = pages[pending.index];
+      if (page && pending.motion === 'jump' && !prepared) void landOn(page.id, undefined);
+    }
   });
 
   // Scroll-to-page requests (Pages panel, outline, links, search, go to page).
@@ -844,7 +1001,7 @@ function PageColumn({
     handledRequest.current = scrollRequest.serial;
     const index = pages.findIndex((p) => p.id === scrollRequest.pageId);
     if (index < 0) return;
-    showPage(index, scrollRequest.reveal);
+    showPage(index, scrollRequest.reveal, scrollRequest.motion ?? 'jump');
     // Relative moves step from here until the scroll settles (navigation.ts).
     useViewStore.getState().setNavTarget(index);
     armSettle();
@@ -856,6 +1013,7 @@ function PageColumn({
     if (lastLayout.current === readLayout) return;
     lastLayout.current = readLayout;
     const current = useViewStore.getState().currentPage;
+    if (viewportRef.current) cancelJump(viewportRef.current);
     virtualizer.measure();
     if (readLayout === 'single') viewportRef.current?.scrollTo({ top: 0 });
     else {
@@ -895,6 +1053,8 @@ function PageColumn({
         const el = viewportRef.current;
         if (!el) return;
         const step = Math.max(40, visibleHeightOf(el) - 48);
+        // A screen step in flight composes: the next one starts from where it is heading.
+        let from = jumpTarget(el)?.top ?? el.scrollTop;
         const view = useViewStore.getState();
         const pending = view.navTarget;
         if (readLayout === 'single') {
@@ -905,24 +1065,25 @@ function PageColumn({
           const current = pending ?? view.currentPage;
           const target = current + direction;
           if (atEnd && target >= 0 && target < pages.length) {
+            cancelJump(el);
             setCurrentPage(target);
             view.setNavTarget(target);
             armSettle();
-            pendingReveal.current = { index: target, reveal: undefined };
+            pendingReveal.current = { index: target, reveal: undefined, motion: 'instant' };
             requestAnimationFrame(() => {
               if (direction < 0) el.scrollTop = el.scrollHeight;
             });
             return;
           }
         } else if (pending !== null) {
-          // A programmatic scroll is in flight: land on its target first, then move a screen.
+          // A page jump is in flight: move a screen from its target.
           const r = layout.rowOf[pending] ?? -1;
           const start = r >= 0 ? virtualizer.getOffsetForIndex(r, 'start')?.[0] : undefined;
-          if (start !== undefined) el.scrollTop = start;
+          if (start !== undefined) from = start;
         }
         window.clearTimeout(settleTimer.current);
         view.setNavTarget(null);
-        el.scrollBy({ top: direction * step });
+        void jumpScroll(el, { top: from + direction * step, left: el.scrollLeft });
       },
       ownsFocus: () => {
         // The pages themselves or nowhere; never a control (a focused link hotspot keeps
