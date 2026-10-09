@@ -1,6 +1,6 @@
 /**
  * The note popup (review F6), in the mounted Read view (Vitest browser mode, Chromium, real
- * PDFium): Esc and a press outside save what was typed, only an empty new note is dropped,
+ * PDFium): Esc, a press outside and focus moving on save what was typed (undo takes it back), only an empty new note is dropped,
  * Cancel still discards, the popup stays inside the visible rectangle, and the header shows
  * the configured author or nothing (never "No author").
  */
@@ -10,7 +10,7 @@ import '../styles/global.css';
 import './index';
 
 import { getActiveDocument, type VirtualDocument } from '@pdf-editor/document-model';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
@@ -142,6 +142,60 @@ describe('the note popup', () => {
     await waitFor(async () => {
       expect((await notesOn(target)).map((n) => n.contents)).toEqual(['Clicked away']);
     }, SETTLE);
+  });
+
+  it('focus moving on saves it, and one undo takes the note back (PLAN V1-F3)', async () => {
+    const { target } = await mountRead();
+    const outside = document.createElement('button');
+    outside.textContent = 'Elsewhere';
+    document.body.append(outside);
+    try {
+      const box = await openNewNote(target);
+      await userEvent.type(box, 'Focus moved on');
+      outside.focus();
+      await waitFor(() => expect(store().editor).toBeNull());
+      await waitFor(async () => {
+        expect((await notesOn(target)).map((n) => n.contents)).toEqual(['Focus moved on']);
+      }, SETTLE);
+      await whenIdle();
+      act(() => {
+        useWorkspaceStore.getState().undo();
+      });
+      await waitFor(async () => expect(await notesOn(target)).toEqual([]), SETTLE);
+    } finally {
+      outside.remove();
+    }
+  });
+
+  it('a text box commits on a click away, and one undo takes it back', async () => {
+    const { target } = await mountRead();
+    store().setEditor({
+      kind: 'free-text',
+      target,
+      rect: { x: 100, y: 600, width: 160, height: 20 },
+      text: '',
+      fixedWidth: true,
+    });
+    const box = await screen.findByRole('textbox', { name: 'Text box text' });
+    await waitFor(() => expect(box).toHaveFocus());
+    await userEvent.type(box, 'Reviewed');
+    // A click on something that takes no focus: the field loses it all the same.
+    await userEvent.click(document.body);
+    await waitFor(() => expect(store().editor).toBeNull());
+    const boxes = async () =>
+      (await readAnnotations(target.source, target.pageIndex)).filter(
+        (a) => a.kind === 'free-text',
+      );
+    await waitFor(async () => {
+      expect((await boxes()).map((a) => (a.kind === 'free-text' ? a.text : ''))).toEqual([
+        'Reviewed',
+      ]);
+    }, SETTLE);
+    await whenIdle();
+    act(() => {
+      useWorkspaceStore.getState().undo();
+    });
+    await waitFor(async () => expect(await boxes()).toEqual([]), SETTLE);
   });
 
   it('drops an empty new note on Esc and on a press outside; Cancel discards typed text', async () => {

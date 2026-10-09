@@ -3,12 +3,22 @@
  * and the note popup (also used to edit any annotation's comment). They commit one history
  * entry: create on first commit, update when editing an existing annotation.
  *
- * The open editor registers its commit (`commitOpenEditor`): a press on the page with a
- * drawing tool commits the editor and goes on with the press (experience-redesign §6.1).
+ * Leaving commits, so placing one takes the tool, a click and the words (PLAN V1-F3, ≤ 3 per
+ * mark): Esc, a press elsewhere or focus moving on saves the note (its Save is never needed),
+ * and the text box commits on Esc and on losing focus, a click away. Undo takes either back as
+ * one step. The open editor registers its commit (`commitOpenEditor`): a press on the page with
+ * a drawing tool commits the editor and goes on with the press (experience-redesign §6.1).
  * Neither commit selects what it created: creating does not select (§6.1, amendment A2).
  */
 import type { Rect } from '@pdf-editor/document-model';
-import { type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type FocusEvent,
+  type KeyboardEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { m } from '../i18n';
 import { Button } from '../ui/Button';
@@ -341,6 +351,17 @@ function NoteEditor({
     return () => window.removeEventListener('pointerdown', onPointerDown);
   }, []);
 
+  // Focus moving on to something outside the popup (Tab past Save, F6, a shortcut that focuses
+  // a field) saves it too, as a click away does: leaving is the commit, never a lost text, so
+  // Save is never a press the note needs. A blur to nowhere is not leaving: a press outside
+  // saves through `pointerdown` above, a press on Cancel that takes no focus (WebKit) must
+  // still discard, and switching windows keeps the note open.
+  const onBlur = (event: FocusEvent<HTMLDivElement>) => {
+    const next = event.relatedTarget;
+    if (!(next instanceof Node) || popupRef.current?.contains(next)) return;
+    save();
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     // Esc saves, as a click away does; Cancel is the one way to drop what was typed.
     if (event.key === 'Escape' || (event.key === 'Enter' && (event.metaKey || event.ctrlKey))) {
@@ -362,6 +383,7 @@ function NoteEditor({
       data-annotation-keep=""
       data-testid="note-popup"
       style={{ left: position.left, top: position.top }}
+      onBlur={onBlur}
     >
       {who !== '' || when ? (
         <div className={styles.noteMeta}>
