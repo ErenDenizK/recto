@@ -20,7 +20,7 @@
  * inspector's OCR section went, and the low-confidence words step with J / K.
  */
 import type { DocumentId, SourceId } from '@pdf-editor/document-model';
-import { type OcrLanguagePack, parsePageRange } from '@pdf-editor/engine';
+import { type OcrLanguagePack, parsePageRange } from '@pdf-editor/engine/client';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { formatNumber, getLocale, m } from '../i18n';

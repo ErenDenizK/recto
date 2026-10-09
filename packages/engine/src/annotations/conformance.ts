@@ -179,11 +179,25 @@ function extGStates(doc: PDFDocument, form: PDFRawStream, depth = 0, seen = new 
   return out;
 }
 
-function fontNames(doc: PDFDocument, form: PDFRawStream): Set<string> {
+/**
+ * The font names of an appearance's resources, and of the forms it draws (an appearance may
+ * wrap its content in a form of its own, as a Unicode text box's does, M2-a), a few levels deep.
+ */
+function fontNames(doc: PDFDocument, form: PDFRawStream, depth = 0): Set<string> {
   const { context } = doc;
   const resources = context.lookupMaybe(form.dict.get(N.Resources), PDFDict);
   const fonts = context.lookupMaybe(resources?.get(N.Font), PDFDict);
-  return new Set([...(fonts?.entries() ?? [])].map(([key]) => key.decodeText()));
+  const names = new Set([...(fonts?.entries() ?? [])].map(([key]) => key.decodeText()));
+  const xobjects = context.lookupMaybe(resources?.get(PDFName.of('XObject')), PDFDict);
+  if (depth < 3) {
+    for (const [, value] of xobjects?.entries() ?? []) {
+      const nested = context.lookup(value);
+      if (nested instanceof PDFRawStream && nested !== form) {
+        for (const name of fontNames(doc, nested, depth + 1)) names.add(name);
+      }
+    }
+  }
+  return names;
 }
 
 function num(doc: PDFDocument, value: PDFObject | undefined): number | undefined {

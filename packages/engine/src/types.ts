@@ -277,8 +277,9 @@ export interface ShapeAnnotation extends AnnotationBase {
 export interface FreeTextAnnotation extends AnnotationBase {
   readonly kind: 'free-text';
   /**
-   * The text shown (and written to /Contents, so `contents` mirrors it). Latin-1 /
-   * WinAnsi only for now: other characters are refused (`unsupported`), see the README.
+   * The text shown (and written to /Contents, so `contents` mirrors it). Text outside WinAnsi
+   * (Turkish ğ ş ı İ, …) is set in an embedded bundled font (M2-a); characters the bundled
+   * faces lack are refused (`unsupported`), see the README.
    */
   readonly text: string;
   readonly fontSize: number;
@@ -2157,10 +2158,14 @@ export interface ValidateSignaturesOptions extends EngineCallOptions {
   readonly password?: string;
   /**
    * Renders the signed revision and the whole file with a private PDFium and compares the
-   * pages (spec §3.1 step 6): `pdfiumWasm` is the self-hosted `pdfium.wasm` (URL or bytes),
-   * `dpi` defaults to 50. Without it, `visuallyChangedPages` is absent.
+   * pages (spec §3.1 step 6): `pdfiumWasm` is the self-hosted `pdfium.wasm` (URL, bytes, or
+   * the module the PDFium worker compiled, PF-4), `dpi` defaults to 50. Without it,
+   * `visuallyChangedPages` is absent.
    */
-  readonly visual?: { readonly pdfiumWasm: string | ArrayBuffer; readonly dpi?: number };
+  readonly visual?: {
+    readonly pdfiumWasm: string | ArrayBuffer | WebAssembly.Module;
+    readonly dpi?: number;
+  };
 }
 
 /** A PAdES-B approval signature to add (spec §3.2). */

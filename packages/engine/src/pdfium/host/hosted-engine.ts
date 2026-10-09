@@ -31,8 +31,8 @@ import {
 import { type Logger, PdfErrorCode, type PdfErrorReason, Task } from '@embedpdf/models';
 import { init, type WrappedPdfiumModule } from '@embedpdf/pdfium';
 
-import { EngineError } from '../../types';
 import { abortedError } from '../task-bridge';
+import { initFromModule, type PdfiumWasm } from '../wasm-module';
 import { docContext, orchestratorQueue, type RawDocContext } from './doc-context';
 import { PdfiumMemory } from './memory';
 import { SourceLocks } from './source-lock';
@@ -44,8 +44,11 @@ import { SourceLocks } from './source-lock';
 const RAW_TASK_PRIORITY = { critical: 3, normal: 1 } as const;
 
 export interface HostedEngineOptions {
-  /** `pdfium.wasm`: a URL (relative URLs resolve against `location`) or its bytes. */
-  readonly wasm: string | ArrayBuffer;
+  /**
+   * `pdfium.wasm`: a URL (relative URLs resolve against `location`), its bytes, or a module
+   * already compiled (shared from another worker, PF-4).
+   */
+  readonly wasm: PdfiumWasm;
   /**
    * Fallback fonts for non-embedded text; `null`/omitted disables fallback (no network
    * requests, as in `PdfiumAdapterOptions.fontFallback`).
@@ -138,21 +141,12 @@ export interface HostedEngine {
   dropPageCache(sourceId: string, pageIndex: number): void;
 }
 
-/** Fetches (for a URL) and instantiates `pdfium.wasm`. Single-threaded, no CDN. */
-export async function initPdfiumModule(wasm: string | ArrayBuffer): Promise<WrappedPdfiumModule> {
-  let wasmBinary: ArrayBuffer;
-  if (typeof wasm === 'string') {
-    const base = (globalThis as { location?: { href: string } }).location?.href;
-    const url = base === undefined ? wasm : new URL(wasm, base).href;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new EngineError('internal', `Could not load pdfium.wasm (HTTP ${response.status})`);
-    }
-    wasmBinary = await response.arrayBuffer();
-  } else {
-    wasmBinary = wasm;
-  }
-  return init({ wasmBinary });
+/**
+ * Instantiates `pdfium.wasm` (a URL, its bytes or a compiled module). Single-threaded, no CDN.
+ * A URL is stream-compiled once per realm (`compilePdfiumWasm`, PF-4).
+ */
+export function initPdfiumModule(wasm: PdfiumWasm): Promise<WrappedPdfiumModule> {
+  return initFromModule(init, wasm);
 }
 
 /**

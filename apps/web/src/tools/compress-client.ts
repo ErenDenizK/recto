@@ -10,14 +10,29 @@ import qpdfWasmUrl from '@pdf-editor/engine/qpdf.wasm?url';
 import type { CompressProxy } from '@pdf-editor/engine';
 
 let shared: Promise<CompressProxy> | undefined;
+let pdfiumModule: Promise<WebAssembly.Module | undefined> | undefined;
+
+/**
+ * The PDFium worker's compiled wasm (PF-4), handed over by the engine service when the first
+ * document opens (pushed rather than imported, so this module stays out of the start-up chunks).
+ */
+export function sharePdfiumModule(module: Promise<WebAssembly.Module | undefined>): void {
+  pdfiumModule = module;
+}
 
 export function getCompressor(): Promise<CompressProxy> {
   if (shared === undefined) {
-    const created = import('@pdf-editor/engine').then(({ createCompressProxy }) =>
-      createCompressProxy(new CompressWorker({ name: 'recto compress' }), {
-        qpdfWasmUrl,
-        pdfiumWasmUrl,
-      }),
+    // The light client entry (PF-2), and the PDFium worker's compiled wasm when this browser
+    // can post it, so the image pass skips a second download and compile (PF-4).
+    const created = Promise.all([import('@pdf-editor/engine/client'), pdfiumModule]).then(
+      ([{ createCompressProxy, postableModule }, module]) => {
+        const pdfiumWasm = postableModule(module);
+        return createCompressProxy(new CompressWorker({ name: 'recto compress' }), {
+          qpdfWasmUrl,
+          pdfiumWasmUrl,
+          ...(pdfiumWasm === undefined ? {} : { pdfiumWasm }),
+        });
+      },
     );
     created.catch(() => {
       if (shared === created) shared = undefined;

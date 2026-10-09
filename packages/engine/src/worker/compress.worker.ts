@@ -34,7 +34,8 @@ function getPlumber(): QpdfPlumber {
   return plumber;
 }
 function getDecoder(): PdfiumImageDecoder {
-  decoder ??= new PdfiumImageDecoder(configured().pdfiumWasmUrl);
+  const { pdfiumWasm, pdfiumWasmUrl } = configured();
+  decoder ??= new PdfiumImageDecoder(pdfiumWasm ?? pdfiumWasmUrl);
   return decoder;
 }
 

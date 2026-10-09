@@ -9,6 +9,7 @@
  * - All geometry crossing this class is PDF user space (see coords.ts for EmbedPDF's space).
  */
 
+import type { Font } from '@cantoo/fontkit';
 import type {
   CreatePdfiumEngineOptions,
   FontFallbackConfig,
@@ -89,6 +90,16 @@ import {
   type VerificationResult,
 } from '../types';
 import { loadForSignatures, readSignatureFields } from '../signatures/fields';
+import {
+  freeTextAppearancePdf,
+  freeTextFace,
+  freeTextFitsWinAnsi,
+  missingCharacters,
+} from '../annotations/free-text-appearance';
+import { loadBundledFont } from '../fonts/bundled-fonts';
+import { jpegInfo } from '../images/jpeg-orientation';
+import { uprightJpegPage } from '../images/upright-page';
+import { restoreLostTail } from '../structure/tail-repair';
 import { checkXrefStructure } from '../structure/xref-check';
 import { permissionsFromP } from '../pdflib/inspect';
 import { type ClearFieldsRequest, clearFields, finalizeForms } from './form-finalize';
@@ -118,6 +129,7 @@ import {
   clearAnnotationString,
   pdfDate,
   setAnnotationAppearance,
+  withAnnotation,
 } from './host/annot-appearance';
 import type { RawAccess, RawAccessOptions } from './host/hosted-engine';
 import { type ErrorContext, runTask, throwIfAborted } from './task-bridge';
@@ -228,6 +240,13 @@ function newAnnotationState(notes: readonly NoteStateFact[] = []): AnnotationSta
 }
 
 const LOG_SOURCE = 'PdfiumAdapter';
+
+/** The embedded font of a text box whose text WinAnsi cannot encode (M2-a). */
+interface FreeTextFont {
+  readonly bytes: Uint8Array;
+  /** `@cantoo/fontkit`, loaded with the font. */
+  readonly fontkit: unknown;
+}
 
 /** Files up to this size are always inspected (custom Info keys have no byte token). */
 const ALWAYS_INSPECT_BYTES = 32 * 1024 * 1024;
@@ -346,6 +365,9 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
     const heuristics = scanBytes(u8);
     // Neither PDFium nor pdf-lib reports repairs; check the xref chain ourselves.
     const structure = checkXrefStructure(u8);
+    // A file that lost only its tail (no trailer left) gets a rebuilt one, which PDFium needs
+    // to find the catalog (structure/tail-repair.ts); it is still reported as repaired.
+    const restored = structure.repaired ? restoreLostTail(u8) : undefined;
     // Inspect a copy in parallel with PDFium: EmbedPDF posts (detaches) the original.
     const inspection = this.inspect(bytes, heuristics, options);
     // Hash first: EmbedPDF posts the buffer to its worker.
@@ -356,7 +378,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
     }
     const doc = await this.run(
       engine.openDocumentBuffer(
-        { id, content: bytes },
+        { id, content: restored ? (restored.buffer as ArrayBuffer) : bytes },
         options.password === undefined ? {} : { password: options.password },
       ),
       options,
@@ -887,6 +909,11 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
           `Stamp images must be PNG, JPEG or a one-page PDF (got ${annotation.imageBlob.type || 'unknown type'})`,
         );
       }
+      // A camera JPEG turned by its EXIF goes in upright, from its own bytes (M1-b).
+      const jpeg = jpegInfo(new Uint8Array(data));
+      if (jpeg && jpeg.orientation !== 1) {
+        return { data: await uprightJpegPage(new Uint8Array(data), jpeg) };
+      }
       return { data };
     }
     if (annotation.name && (STAMP_NAMES as readonly string[]).includes(annotation.name)) {
@@ -906,16 +933,98 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
     );
   }
 
-  /** Rejects text the standard-14 FreeText font cannot show (see the README). */
-  private checkFreeText(annotation: NewAnnotation): void {
-    if (annotation.kind !== 'free-text') return;
-    const bad = Array.from(annotation.text).filter((ch) => !isWinAnsi(ch));
-    if (bad.length > 0) {
+  /**
+   * The embedded font a text box needs (M2-a, annotations/free-text-appearance.ts): none when
+   * PDFium's standard-14 WinAnsi appearance shows its text, else the bundled face for its family.
+   * Checked before the annotation is written, so text that face cannot show either (a character
+   * outside its Latin, Greek and Cyrillic repertoire) is refused and nothing changes; so is any
+   * text outside WinAnsi when there is no raw access to write the appearance with.
+   */
+  private async freeTextFont(annotation: NewAnnotation): Promise<FreeTextFont | undefined> {
+    if (annotation.kind !== 'free-text' || freeTextFitsWinAnsi(annotation.text)) return undefined;
+    const outside = () =>
+      [...new Set(Array.from(annotation.text).filter((ch) => !isWinAnsi(ch)))].join(' ');
+    if (!this.rawTask) {
       throw new EngineError(
         'unsupported',
-        `Text boxes can only use Latin-1 (WinAnsi) characters for now; cannot write ${[...new Set(bad)].join(' ')}`,
+        `Text boxes can only use Latin-1 (WinAnsi) characters here; cannot write ${outside()}`,
       );
     }
+    const face = freeTextFace(annotation.fontFamily);
+    const [{ default: fontkit }, bytes] = await Promise.all([
+      import('@cantoo/fontkit'),
+      loadBundledFont(face),
+    ]);
+    const font = fontkit.create(bytes) as Font;
+    const missing = missingCharacters(font, annotation.text);
+    if (missing.length > 0) {
+      throw new EngineError(
+        'unsupported',
+        `Text boxes cannot show these characters yet: ${missing.join(' ')}`,
+      );
+    }
+    return { bytes, fontkit };
+  }
+
+  /**
+   * Replaces a text box's appearance with one in an embedded font (M2-a): PDFium's leaves out
+   * every character WinAnsi cannot encode. Its /DA font name names the embedded font in the
+   * appearance resources.
+   */
+  private async writeFreeText(
+    id: SourceId,
+    nm: string,
+    annotation: Extract<NewAnnotation, { kind: 'free-text' }>,
+    font: FreeTextFont,
+  ): Promise<void> {
+    const rawTask = this.rawTask;
+    if (!rawTask) return;
+    const da = await rawTask(id, (raw) =>
+      withAnnotation(raw, annotation.pageIndex, nm, (annot) =>
+        raw.memory.readUtf16Result((buf, len) =>
+          raw.module.FPDFAnnot_GetStringValue(annot, 'DA', buf, len),
+        ),
+      ),
+    );
+    const daFont = /\/([^\s/]+)\s+[\d.]+\s+Tf/.exec(da)?.[1] ?? 'Helv';
+    const rect = effectiveRect(annotation);
+    const pdf = new Uint8Array(
+      await freeTextAppearancePdf(
+        {
+          text: annotation.text,
+          fontSize: annotation.fontSize,
+          color: annotation.textColor ?? annotation.color ?? '#000000',
+          ...(annotation.opacity === undefined ? {} : { opacity: annotation.opacity }),
+          width: rect.width,
+          height: rect.height,
+          daFont,
+        },
+        font.bytes,
+        font.fontkit,
+      ),
+    );
+    await rawTask(id, (raw) => {
+      try {
+        withAnnotation(raw, annotation.pageIndex, nm, (annot) => {
+          const m = raw.module;
+          const ok = raw.memory.withMem(pdf.length, (ptr) => {
+            raw.memory.heap().HEAPU8.set(pdf, ptr);
+            const doc = m.FPDF_LoadMemDocument(ptr, pdf.length, '');
+            if (!doc) return 'load';
+            try {
+              // The page is the box's size: readers map its /BBox onto the /Rect as it is.
+              return m.EPDFAnnot_SetAppearanceFromPage(annot, doc, 0) ? 'ok' : 'set';
+            } finally {
+              m.FPDF_CloseDocument(doc);
+            }
+          });
+          if (ok !== 'ok')
+            throw new EngineError('internal', `Could not write the text box ${nm} (${ok})`);
+        });
+      } finally {
+        raw.dropPageCache(annotation.pageIndex);
+      }
+    });
   }
 
   private remember(id: SourceId, annotation: NewAnnotation, nm: string): void {
@@ -954,7 +1063,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
   ): Promise<Annotation> {
     const engine = await this.engine();
     const { doc, page } = this.page(id, annotation.pageIndex);
-    this.checkFreeText(annotation);
+    const freeTextFont = await this.freeTextFont(annotation);
     const requested = annotation.id;
     if (requested !== undefined) {
       if (requested === '') throw new EngineError('internal', 'An annotation id cannot be empty');
@@ -978,6 +1087,9 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
         : engine.createPageAnnotation(doc, page, object);
     const newId = await this.run(task, options, 'createAnnotation');
     this.remember(id, annotation, newId);
+    if (annotation.kind === 'free-text' && freeTextFont) {
+      await this.writeFreeText(id, newId, annotation, freeTextFont);
+    }
     if (annotation.kind === 'ink') {
       try {
         await this.writeInk(id, newId, annotation, false);
@@ -1013,7 +1125,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
         `Annotation ${annotation.id} is a ${before.kind}, not a ${annotation.kind}`,
       );
     }
-    this.checkFreeText(annotation);
+    const freeTextFont = await this.freeTextFont(annotation);
     const next = before ? followRect(before, annotation) : annotation;
     const recreate =
       (next.kind === 'stamp' &&
@@ -1042,6 +1154,10 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
       'updateAnnotation',
     );
     this.remember(id, next, annotation.id);
+    if (next.kind === 'free-text' && freeTextFont) {
+      // EmbedPDF regenerated its WinAnsi appearance from the new state: ours replaces it.
+      await this.writeFreeText(id, annotation.id, next, freeTextFont);
+    }
     if (next.kind === 'ink') {
       try {
         await this.writeInk(id, annotation.id, next, true);

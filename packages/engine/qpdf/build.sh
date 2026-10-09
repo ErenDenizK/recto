@@ -6,12 +6,18 @@
 # Needs an activated emsdk (`source emsdk_env.sh`), cmake >= 3.16, ninja and git. Every
 # source is fetched with `git clone` at a pinned tag (no tarballs, no CDN). Output:
 # packages/engine/qpdf/dist/qpdf.mjs + qpdf.wasm (ES module factory `createQpdf`, MEMFS,
-# `callMain`, single-threaded). The output is deterministic for a given emsdk version.
+# `callMain`, single-threaded). The output is deterministic for a given emsdk version and work
+# directory; the build date is pinned below (P-7).
 set -euo pipefail
 
 QPDF_TAG=v12.4.2
 ZLIB_TAG=v1.3.1
 LIBJPEG_TURBO_TAG=3.1.2
+# libjpeg-turbo writes its build date into the binary ("libjpeg-turbo version 3.1.2 (build
+# YYYYMMDD)", jversion.h) unless BUILD is given, so a rebuild on another day differed from the
+# committed wasm by those eight bytes (P-7, docs/plan/v1/PLAN.md §3.2). Pinned to the date of the
+# committed build.
+LIBJPEG_TURBO_BUILD=20260927
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 work="${1:-$here/.build}"
@@ -42,7 +48,7 @@ install -D "$work/zlib/build/zconf.h" "$prefix/include/zconf.h"
 
 emcmake cmake -S "$work/libjpeg-turbo" -B "$work/libjpeg-turbo/build" "${common[@]}" \
   -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DWITH_SIMD=OFF -DWITH_TURBOJPEG=OFF \
-  -DWITH_TOOLS=OFF -DWITH_TESTS=OFF
+  -DWITH_TOOLS=OFF -DWITH_TESTS=OFF "-DBUILD=$LIBJPEG_TURBO_BUILD"
 cmake --build "$work/libjpeg-turbo/build" --target jpeg-static
 install -D "$work/libjpeg-turbo/build/libjpeg.a" "$prefix/lib/libjpeg.a"
 for h in jpeglib.h jmorecfg.h jerror.h; do install -D "$work/libjpeg-turbo/src/$h" "$prefix/include/$h" 2>/dev/null \

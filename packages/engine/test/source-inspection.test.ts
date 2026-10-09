@@ -110,23 +110,16 @@ describe('repaired flag', () => {
     if (repaired) expect(result.reason).toBeTruthy();
   });
 
-  test.each(
-    cases.filter((c) => !c.name.startsWith('encrypted') && !c.name.startsWith('truncated')),
-  )('PDFium open: $name → flags.repaired $repaired', async ({ name, url, repaired }) => {
-    const id = sid(`repair-${name}`);
-    const opened = await adapter.open(id, await fetchBytes(url));
-    await adapter.close(id);
-    expect(opened.flags.repaired).toBe(repaired);
-    expect(opened.pageCount).toBe(name.startsWith('many') ? 400 : 3);
-  });
-
-  test('PDFium refuses truncated.pdf with a clear error (the fixture allows either)', async () => {
-    await expect(
-      adapter.open(sid('truncated'), await fetchBytes(truncatedUrl)),
-    ).rejects.toMatchObject({
-      code: 'corrupt',
-    });
-  });
+  test.each(cases.filter((c) => !c.name.startsWith('encrypted')))(
+    'PDFium open: $name → flags.repaired $repaired',
+    async ({ name, url, repaired }) => {
+      const id = sid(`repair-${name}`);
+      const opened = await adapter.open(id, await fetchBytes(url));
+      await adapter.close(id);
+      expect(opened.flags.repaired).toBe(repaired);
+      expect(opened.pageCount).toBe(name.startsWith('many') ? 400 : 3);
+    },
+  );
 
   test('pdf-lib output and incremental updates pass; a bad /Prev fails', async () => {
     const bytes = new Uint8Array(await makePdf([{ size: [100, 100], text: 'x' }]));

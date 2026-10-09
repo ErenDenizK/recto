@@ -21,11 +21,11 @@ import { runTask } from '../pdfium/task-bridge';
 import {
   type ApplyRedactionsOptions,
   type ApplyRedactionsResult,
-  EngineError,
   type RedactionCapture,
   type RedactionPlan,
 } from '../types';
 import { runEnginePass } from './engine-pass';
+import { RedactionFailedError } from './failure';
 import {
   openScratch,
   type PageChar,
@@ -42,24 +42,7 @@ import { normalizeForMatch } from './strings';
 /** Captured strings shorter than this (normalised) are not searched document-wide. */
 export const MIN_CAPTURED_LENGTH = 4;
 
-/** What was known when a redaction failed its gate or its check (no bytes). */
-export type RedactionFailure = Partial<Omit<ApplyRedactionsResult, 'bytes'>> &
-  Pick<ApplyRedactionsResult, 'plan' | 'captured'>;
-
-/**
- * A redaction that must not be offered: `stage` says which gate stopped it and `failure`
- * holds the reports (the gate's areas, or the forensic findings).
- */
-export class RedactionFailedError extends EngineError {
-  constructor(
-    readonly stage: 'gate' | 'forensic',
-    message: string,
-    readonly failure: RedactionFailure,
-  ) {
-    super(stage === 'gate' ? 'unsupported' : 'internal', message);
-    this.name = 'RedactionFailedError';
-  }
-}
+export { type RedactionFailure, RedactionFailedError } from './failure';
 
 /** Glyph rects are whole points: a glyph must overlap an area by more than 1 pt. */
 function probe(rect: Rect): Rect {

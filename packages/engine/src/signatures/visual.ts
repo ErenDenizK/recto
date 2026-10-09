@@ -14,6 +14,7 @@ import { init } from '@embedpdf/pdfium';
 
 import { diffRgba } from '../analysis/pixels';
 import { Slicer } from '../analysis/scheduler';
+import { initFromModule, type PdfiumWasm } from '../pdfium/wasm-module';
 import { type AnalysisRgba, EngineError } from '../types';
 
 type Pdfium = Awaited<ReturnType<typeof init>>;
@@ -32,26 +33,16 @@ const BITMAP_BGRA = 4;
 /** Pages larger than this many pixels are rendered at a lower DPI (bounded WASM memory). */
 const MAX_PIXELS = 4_000_000;
 
-const modules = new Map<string | ArrayBuffer, Promise<Pdfium>>();
+const modules = new Map<PdfiumWasm, Promise<Pdfium>>();
 
-function load(wasm: string | ArrayBuffer): Promise<Pdfium> {
+function load(wasm: PdfiumWasm): Promise<Pdfium> {
   let found = modules.get(wasm);
   if (!found) {
-    found = (async () => {
-      let wasmBinary: ArrayBuffer;
-      if (typeof wasm === 'string') {
-        const base = (globalThis as { location?: { href: string } }).location?.href;
-        const url = base === undefined ? wasm : new URL(wasm, base).href;
-        const response = await fetch(url);
-        if (!response.ok) throw new EngineError('internal', `pdfium.wasm: HTTP ${response.status}`);
-        wasmBinary = await response.arrayBuffer();
-      } else {
-        wasmBinary = wasm.slice(0);
-      }
-      const pdfium = await init({ wasmBinary });
+    // Stream-compiled once per worker, or the PDFium worker's own module (PF-4).
+    found = initFromModule(init, wasm).then((pdfium) => {
       pdfium.PDFiumExt_Init();
       return pdfium;
-    })();
+    });
     found.catch(() => modules.delete(wasm));
     modules.set(wasm, found);
   }
@@ -143,7 +134,7 @@ export class VisualComparer {
   constructor(
     private readonly bytes: Uint8Array,
     private readonly options: {
-      readonly pdfiumWasm: string | ArrayBuffer;
+      readonly pdfiumWasm: PdfiumWasm;
       readonly dpi?: number;
       readonly password?: string;
       readonly signal?: AbortSignal;

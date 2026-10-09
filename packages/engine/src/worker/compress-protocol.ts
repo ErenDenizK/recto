@@ -22,6 +22,11 @@ export interface CompressWorkerConfig {
   readonly qpdfWasmUrl: string;
   /** URL of pdfium.wasm (the same file the viewer uses). */
   readonly pdfiumWasmUrl: string;
+  /**
+   * The PDFium worker's compiled module of that wasm (PF-4): used instead of the URL, so the
+   * image pass skips a second download and compile. Only where the browser can post a module.
+   */
+  readonly pdfiumWasm?: WebAssembly.Module;
 }
 
 export type WirePlumberOptions = Omit<PlumberOptions, 'signal' | 'priority'> & {

@@ -19,8 +19,9 @@ import type { FontFallbackConfig } from '@embedpdf/engines';
 import type { SourceId } from '@pdf-editor/document-model';
 import { proxy, releaseProxy, transfer, wrap } from 'comlink';
 
-import { abortedError } from '../pdfium/task-bridge';
-import { RedactionFailedError } from '../redaction/apply';
+import { abortedError } from '../pdfium/abort';
+import { compileResponse, postableModule } from '../pdfium/wasm-module';
+import { RedactionFailedError } from '../redaction/failure';
 import {
   type EngineCallOptions,
   EngineError,
@@ -51,6 +52,14 @@ export interface PdfiumProxyOptions {
   /** As `PdfiumAdapterOptions.fontFallback`; must be cloneable (no `fontLoader`). */
   readonly fontFallback?: FontFallbackConfig | null;
   /**
+   * The download of `wasmUrl`, started by the caller as early as it can (PF-2: the app starts
+   * it with the first open, before this proxy's chunk and the worker's script have loaded). It
+   * is stream-compiled here, off the main thread's critical work, and the module is posted to
+   * the worker with its configuration, so the worker's script and the wasm load side by side.
+   * Without it, or where a module cannot be posted, the worker fetches `wasmUrl` itself.
+   */
+  readonly wasmResponse?: Promise<Response>;
+  /**
    * Reads page labels and /Lang and runs the annotation post-pass (in the app: the assembly
    * worker's `AssemblerProxy`). The PDFium worker reaches it through this thread; bytes are
    * transferred on both hops.
@@ -77,6 +86,11 @@ export interface PdfiumProxy
     ink: InkAnnotation,
     options?: EngineCallOptions,
   ): Promise<InkAnnotation | undefined>;
+  /**
+   * The worker's compiled `pdfium.wasm` (PF-4), once it is compiled, for the compress and
+   * signature workers; `undefined` when it failed or cannot be posted here.
+   */
+  compiledWasm(): Promise<WebAssembly.Module | undefined>;
   /** Terminates the worker (the adapter's `destroy`, for `EngineService`). */
   destroy(): Promise<void>;
   /** Releases the Comlink proxy and terminates the worker. */
@@ -153,17 +167,29 @@ function inspectorBridge(inspector: SourceInspector): InspectorBridge {
 export function createPdfiumProxy(worker: Worker, options: PdfiumProxyOptions): PdfiumProxy {
   const remote = wrap<PdfiumWorkerApi>(worker);
   const { inspector } = options;
-  const ready = remote.configure(
-    {
-      wasmUrl: resolveUrl(options.wasmUrl),
-      ...(options.fontFallback === undefined ? {} : { fontFallback: options.fontFallback }),
-    },
-    inspector ? proxy(inspectorBridge(inspector)) : undefined,
-    {
-      finalizeAnnotations: typeof inspector?.finalizeAnnotations === 'function',
-      checkAnnotations: typeof inspector?.checkAnnotations === 'function',
-    },
-  );
+  const configure = (wasmModule?: WebAssembly.Module) =>
+    remote.configure(
+      {
+        wasmUrl: resolveUrl(options.wasmUrl),
+        ...(wasmModule === undefined ? {} : { wasmModule }),
+        ...(options.fontFallback === undefined ? {} : { fontFallback: options.fontFallback }),
+      },
+      inspector ? proxy(inspectorBridge(inspector)) : undefined,
+      {
+        finalizeAnnotations: typeof inspector?.finalizeAnnotations === 'function',
+        checkAnnotations: typeof inspector?.checkAnnotations === 'function',
+      },
+    );
+  const ready = options.wasmResponse
+    ? compileResponse(options.wasmResponse).then(
+        (module) => {
+          const postable = postableModule(module);
+          // A module the worker cannot receive: it loads the wasm from its URL instead.
+          return postable ? configure(postable).catch(() => configure()) : configure();
+        },
+        () => configure(),
+      )
+    : configure();
   // Surfaced by the first call that awaits it.
   ready.catch(() => undefined);
 
@@ -484,6 +510,16 @@ export function createPdfiumProxy(worker: Worker, options: PdfiumProxyOptions): 
       return invoke('applyOcrLayer', signal, (port) =>
         remote.applyOcrLayer(id, plan, wire, withPort(port, port)),
       );
+    },
+    async compiledWasm() {
+      if (terminated) return undefined;
+      try {
+        await ready;
+        const reply = await remote.wasmModule();
+        return reply.ok ? reply.value : undefined;
+      } catch {
+        return undefined;
+      }
     },
     destroy() {
       terminate();

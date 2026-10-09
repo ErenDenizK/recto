@@ -22,7 +22,8 @@
  *   announces such a change with `noteClippedChange` before its `invalidatePage`).
  *
  * Render timings are recorded in development with `performance.mark`/`measure` only
- * (entries named `render …`, `open …`).
+ * (entries named `render …`, `open …`). The start-up marks (`STARTUP_MARKS`, PF-2) are recorded
+ * once per session in every build, so the start-up e2e reads where the open time goes.
  */
 import wasmUrl from '@embedpdf/pdfium/pdfium.wasm?url';
 // Vite's `?worker` constructor: the worker script is fetched only when one is constructed.
@@ -47,6 +48,7 @@ import type {
   OpenedDocument,
   PdfEditor,
   PdfImageEditor,
+  PdfiumProxy,
   PdfOcrLayer,
   PdfRedactor,
   PdfRenderer,
@@ -705,6 +707,7 @@ export class EngineService {
         this.cropBoxes.set(id, readCropBoxes(document));
         this.shapes.set(id, readShapes(document));
         this.measure(`open ${file.name}`, started);
+        startupMark('document-opened');
         return ok({
           id,
           name: file.name,
@@ -1338,6 +1341,7 @@ export class EngineService {
         this.cache.set(job.page, entry);
         this.track(job, entry);
         this.measure(`render ${job.key}`, started);
+        startupMark('first-page-bitmap');
         result = ok(entry);
       }
     } catch (error) {
@@ -1444,24 +1448,93 @@ function readShapes(document: OpenedDocument): readonly PageShape[] {
   }));
 }
 
+/**
+ * The start-up marks (docs/plan/v1/PLAN.md W1-g, PF-2 and PF-4; perf-audit.md item 2), as
+ * `recto:<name>` `performance` marks, each recorded once per session: the engine requested (the
+ * first open; the wasm download starts here), the PDFium worker configured (its proxy made from
+ * the client chunk; the configuration is posted as soon as the wasm is compiled), the wasm
+ * compiled and the worker running on it, the document opened, and the first page's bitmap.
+ * `e2e/startup.spec.ts` reports them beside the open time.
+ */
+export const STARTUP_MARKS = [
+  'engine-requested',
+  'worker-configured',
+  'wasm-compiled',
+  'document-opened',
+  'first-page-bitmap',
+] as const;
+
+const marked = new Set<string>();
+
+function startupMark(name: (typeof STARTUP_MARKS)[number]): void {
+  if (marked.has(name) || typeof performance?.mark !== 'function') return;
+  marked.add(name);
+  try {
+    performance.mark(`recto:${name}`);
+  } catch {
+    // Timing is best effort.
+  }
+}
+
 let instance: EngineService | undefined;
+/** The PDFium worker's compiled wasm (PF-4), once the renderer has asked for it. */
+let pdfiumModule: Promise<WebAssembly.Module | undefined> | undefined;
 
 /**
- * The app-wide engine service. The engine code is loaded on first use (its own chunk) and
- * the PDFium worker starts then (ARCHITECTURE.md §2: loaded on first document open).
+ * The compiled `pdfium.wasm` of the PDFium worker, to hand to the compress and signature workers
+ * (PF-4), when this browser can post a module; `undefined` before the first document opens, or
+ * where it cannot (the worker then loads the wasm from its URL).
+ */
+export async function sharedPdfiumModule(): Promise<WebAssembly.Module | undefined> {
+  const module = await pdfiumModule;
+  if (module === undefined) return undefined;
+  const { postableModule } = await import('@pdf-editor/engine/client');
+  return postableModule(module);
+}
+
+/**
+ * The app-wide engine service. The PDFium worker starts on first use (ARCHITECTURE.md §2:
+ * loaded on first document open), and only the light client entry
+ * (`@pdf-editor/engine/client`, PF-2) loads on the main thread for it: the worker is configured,
+ * and its wasm fetched and compiled, as soon as that small chunk arrives, while the assembly
+ * worker that inspects sources starts beside it.
  */
 export function getEngineService(): EngineService {
   instance ??= new EngineService({
     createRenderer: async () => {
+      startupMark('engine-requested');
+      // The wasm download starts now, beside the worker's script and the client chunk (PF-2);
+      // the proxy compiles it as it arrives and posts the module to the worker (PF-4).
+      const wasmResponse = fetch(wasmUrl);
+      wasmResponse.catch(() => undefined);
       // ADR-0011: our own PDFium worker; `destroy()` terminates it. Constructed first so its
-      // script (and then the wasm) loads while the engine chunk and the assembler do.
+      // script loads while the client chunk does.
       const worker = new PdfiumWorker({ name: 'recto pdfium' });
       try {
-        const [{ createPdfiumProxy }, inspector] = await Promise.all([
-          import('@pdf-editor/engine'),
-          getAssembler(),
-        ]);
-        return createPdfiumProxy(worker, { wasmUrl, fontFallback: null, inspector });
+        // The assembly worker starts now, but the PDFium worker does not wait for it: the
+        // inspector reaches it on first use (an open inspects sources).
+        const assembler = getAssembler();
+        assembler.catch(() => undefined);
+        const { createPdfiumProxy } = await import('@pdf-editor/engine/client');
+        const proxy = createPdfiumProxy(worker, {
+          wasmUrl,
+          wasmResponse,
+          fontFallback: null,
+          inspector: {
+            inspect: async (bytes, options) => (await assembler).inspect(bytes, options),
+            finalizeAnnotations: async (bytes, request, options) =>
+              (await assembler).finalizeAnnotations(bytes, request, options),
+            checkAnnotations: async (bytes, options, callOptions) =>
+              (await assembler).checkAnnotations(bytes, options, callOptions),
+          },
+        });
+        startupMark('worker-configured');
+        const module = compiledModule(proxy);
+        pdfiumModule = module;
+        void import('../tools/compress-client').then(({ sharePdfiumModule }) =>
+          sharePdfiumModule(module),
+        );
+        return proxy;
       } catch (error) {
         worker.terminate();
         throw error;
@@ -1469,6 +1542,13 @@ export function getEngineService(): EngineService {
     },
   });
   return instance;
+}
+
+/** Waits for the worker's compile (the `wasm-compiled` mark) and keeps the module (PF-4). */
+async function compiledModule(proxy: PdfiumProxy): Promise<WebAssembly.Module | undefined> {
+  const module = await proxy.compiledWasm();
+  if (module !== undefined) startupMark('wasm-compiled');
+  return module;
 }
 
 // ---------------------------------------------------------------------------
@@ -1483,10 +1563,17 @@ export async function createSignatureWorker(): Promise<SignatureProxy> {
   // Constructed first so the worker script loads while the engine chunk does.
   const worker = new SignatureWorker({ name: 'recto signature' });
   try {
-    const { createSignatureProxy } = await import('@pdf-editor/engine');
+    const [{ createSignatureProxy }, pdfiumWasm] = await Promise.all([
+      import('@pdf-editor/engine/client'),
+      sharedPdfiumModule(),
+    ]);
     // The self-hosted PDFium lets the worker compare the signed revision's pages with the
-    // file's (spec §3.1 step 6): a page that looks different is never "changed nothing".
-    return createSignatureProxy(worker, { pdfiumWasmUrl: wasmUrl });
+    // file's (spec §3.1 step 6): a page that looks different is never "changed nothing". The
+    // PDFium worker's compiled module spares it a second compile (PF-4).
+    return createSignatureProxy(worker, {
+      pdfiumWasmUrl: wasmUrl,
+      ...(pdfiumWasm === undefined ? {} : { pdfiumWasm }),
+    });
   } catch (error) {
     worker.terminate();
     throw error;
@@ -1694,7 +1781,7 @@ export class OcrRecognizerHost {
 
   constructor(
     private readonly create: () => Promise<OcrRecognizerParts> = async () => {
-      const { createOcrRecognizer, OcrPackStore } = await import('@pdf-editor/engine');
+      const { createOcrRecognizer, OcrPackStore } = await import('@pdf-editor/engine/client');
       const packs = new OcrPackStore({ baseUrl: ocrBaseUrl() });
       return { recognizer: createOcrRecognizer({ baseUrl: ocrBaseUrl(), packs }), packs };
     },
