@@ -37,13 +37,15 @@
   list-style: none;
 }
 
+/* A signature: one well of the sheet grammar (system audit §3.6.1), at the group inset and
+   radius, so S9 reads like every other sheet; nothing in it is glass (Q-4). */
 .card {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  margin-inline: calc(var(--sheet-group-inset) - var(--sheet-pad));
+  padding: var(--space-3) var(--sheet-row-pad);
+  border-radius: var(--radius-md);
+  background: var(--control-fill);
 }
 
 .status {
@@ -109,7 +111,7 @@
 }
 
 .facts dt {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .facts dd {
@@ -207,4 +209,10 @@
 .factGlyph svg {
   width: var(--icon-sm);
   height: var(--icon-sm);
+}
+
+@media (forced-colors: active) {
+  .card {
+    border: 1px solid CanvasText;
+  }
 }
