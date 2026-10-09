@@ -6,7 +6,7 @@ import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { BrandMark } from './BrandMark';
-import { MARK_GRADIENT, MARK_PATHS, MARK_VIEWBOX } from './mark';
+import { MARK_GRADIENT, MARK_GRADIENT_LIGHT, MARK_PATHS, MARK_VIEWBOX } from './mark';
 
 const fillOf = (svg: SVGSVGElement) => getComputedStyle(svg.querySelector('path') as Element).fill;
 
@@ -43,7 +43,7 @@ describe('BrandMark (docs/brand/README.md "The mark: files and usage")', () => {
     );
   });
 
-  it('is one ink in mono, and auto drops the gradient for the ink in the light theme', () => {
+  it('is one ink in mono, and auto keeps a gradient in both themes (system audit §3.9)', () => {
     const { container } = render(
       <div style={{ color: 'rgb(1, 2, 3)' }}>
         <BrandMark tone="mono" />
@@ -56,7 +56,12 @@ describe('BrandMark (docs/brand/README.md "The mark: files and usage")', () => {
     expect(fillOf(mono)).toBe('rgb(1, 2, 3)');
     document.documentElement.setAttribute('data-theme', 'dark');
     expect(fillOf(auto)).toMatch(/^url\(/);
+    expect(fillOf(auto)).not.toMatch(/-light/);
     document.documentElement.setAttribute('data-theme', 'light');
-    expect(fillOf(auto)).toBe('rgb(1, 2, 3)');
+    expect(fillOf(auto)).toMatch(/^url\(.*-light/);
+    const light = auto.querySelectorAll('linearGradient')[1];
+    expect(
+      [...(light?.querySelectorAll('stop') ?? [])].map((s) => s.getAttribute('stop-color')),
+    ).toEqual(MARK_GRADIENT_LIGHT.stops.map((s) => s.color));
   });
 });
