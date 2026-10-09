@@ -4,7 +4,7 @@
  * input and `aria-activedescendant` points at the active option.
  *
  * Motion (docs/design/motion-2026-10/frame.md §2): the popup scales up from its top centre
- * over a scrim that blurs as it fades in; the first six rows come in 20 ms apart; the
+ * over a dim-only scrim that fades in (G-31); the first six rows come in 20 ms apart; the
  * selection's fill slides from row to row on `quick` (`usePaletteFill`) instead of jumping.
  */
 import { Dialog } from '@base-ui/react/dialog';
