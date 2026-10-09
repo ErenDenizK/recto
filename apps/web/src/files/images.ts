@@ -6,8 +6,12 @@
  *   and anything else (WebP) is re-encoded to PNG once, here, before it is stored.
  * - Page size: 1 image pixel = 1 point (72 dpi). "Fit to A4" caps the page width at A4
  *   width, aspect ratio kept; "Original size" keeps 72 dpi as is.
+ * - A camera JPEG keeps its bytes and its EXIF orientation (M1-b): its size is the upright one
+ *   (`jpegInfo`), and the engine draws it upright (pages and overlays in the assembler, stamps
+ *   in the PDFium worker).
  */
 import { DEFAULT_PAGE_SIZE, type Size } from '@pdf-editor/document-model';
+import { jpegInfo, uprightSize } from '@pdf-editor/engine/images';
 
 import type { StoredBlob } from '../state/workspace-store';
 import { isHiddenName, type NamedFile } from './file-filters';
@@ -90,15 +94,20 @@ async function encodePng(bitmap: ImageBitmap): Promise<ArrayBuffer> {
  */
 export async function decodeImageFile(file: File): Promise<StoredBlob> {
   const original = await file.arrayBuffer();
-  const bitmap = await createImageBitmap(new Blob([original], { type: file.type }));
+  const bitmap = await createImageBitmap(new Blob([original], { type: file.type }), {
+    imageOrientation: 'from-image',
+  });
   try {
     const type = sniffImageType(new Uint8Array(original, 0, Math.min(16, original.byteLength)));
     const bytes = type === undefined ? await encodePng(bitmap) : original;
+    // The upright size from the JPEG's own headers: the same in every browser.
+    const jpeg = type === 'image/jpeg' ? jpegInfo(new Uint8Array(original)) : undefined;
+    const size = jpeg ? uprightSize(jpeg) : { width: bitmap.width, height: bitmap.height };
     return {
       bytes,
       type: type ?? 'image/png',
-      width: bitmap.width,
-      height: bitmap.height,
+      width: size.width,
+      height: size.height,
       name: file.name,
     };
   } finally {

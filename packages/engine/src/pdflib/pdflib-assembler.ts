@@ -84,6 +84,12 @@ import {
 } from '../types';
 import { loadBundledFont } from '../fonts/bundled-fonts';
 import {
+  type ExifOrientation,
+  jpegInfo,
+  orientedImageMatrix,
+  swapsAxes,
+} from '../images/jpeg-orientation';
+import {
   type ResolvedFont,
   resolveFont,
   SYNTHETIC_BOLD_STROKE,
@@ -248,6 +254,25 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
     return bytes.buffer;
   }
   return bytes.slice().buffer;
+}
+
+/** The EXIF orientation of a JPEG blob (M1-b); 1 for PNG, plain JPEGs and missing blobs. */
+function imageOrientation(
+  blobs: ReadonlyMap<string, ArrayBuffer>,
+  blobId: string,
+): ExifOrientation {
+  const buffer = blobs.get(blobId);
+  return buffer ? (jpegInfo(new Uint8Array(buffer))?.orientation ?? 1) : 1;
+}
+
+/** The image's size as a viewer shows it: width and height swap for a quarter turn. */
+function uprightImageSize(
+  image: PDFImage,
+  orientation: ExifOrientation,
+): { width: number; height: number } {
+  return swapsAxes(orientation)
+    ? { width: image.height, height: image.width }
+    : { width: image.width, height: image.height };
 }
 
 function sniffImage(bytes: Uint8Array): 'png' | 'jpeg' | undefined {
@@ -453,15 +478,25 @@ export class PdfLibAssembler implements PdfAssembler, SourceInspector {
       } else {
         const image = await embedImageCached(out, input.blobs, ref.blob, imageCache);
         const page = out.addPage([ref.size.width, ref.size.height]);
-        const scale = Math.min(ref.size.width / image.width, ref.size.height / image.height);
-        const width = image.width * scale;
-        const height = image.height * scale;
-        page.drawImage(image, {
-          x: (ref.size.width - width) / 2,
-          y: (ref.size.height - height) / 2,
-          width,
-          height,
-        });
+        // A camera JPEG is drawn upright per its EXIF orientation (M1-b), from its own bytes.
+        const orientation = imageOrientation(input.blobs, ref.blob);
+        const upright = uprightImageSize(image, orientation);
+        const scale = Math.min(ref.size.width / upright.width, ref.size.height / upright.height);
+        const width = upright.width * scale;
+        const height = upright.height * scale;
+        const x = (ref.size.width - width) / 2;
+        const y = (ref.size.height - height) / 2;
+        if (orientation === 1) {
+          page.drawImage(image, { x, y, width, height });
+        } else {
+          const name = page.node.newXObject('Image', image.ref);
+          page.pushOperators(
+            pushGraphicsState(),
+            concatTransformationMatrix(...orientedImageMatrix(orientation, x, y, width, height)),
+            drawObject(name),
+            popGraphicsState(),
+          );
+        }
         const rotation = normalizeRotation(vp.rotation);
         page.setRotation(degrees(rotation));
         placed.push(placedEntry(page, vp, rotation));
@@ -1116,9 +1151,11 @@ async function overlayOps(
     );
   }
   const image = await embedImageCached(out, ctx.blobs, overlay.blob, ctx.images);
+  // A camera JPEG is placed upright per its EXIF orientation (M1-b), from its own bytes.
+  const orientation = imageOrientation(ctx.blobs, overlay.blob);
   const layout = layoutOverlay(overlay, input, {
     textWidth: () => 0,
-    imageSize: () => ({ width: image.width, height: image.height }),
+    imageSize: () => uprightImageSize(image, orientation),
   });
   if (!layout) return [];
   const name = entry.page.node.newXObject('Image', image.ref);
@@ -1130,7 +1167,9 @@ async function overlayOps(
       const box = layout.boxes[0] as OverlayBox;
       return [
         placementMatrix(placement),
-        concatTransformationMatrix(box.width, 0, 0, box.height, 0, 0),
+        concatTransformationMatrix(
+          ...orientedImageMatrix(orientation, 0, 0, box.width, box.height),
+        ),
         drawObject(name),
       ];
     },

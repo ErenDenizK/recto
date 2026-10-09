@@ -89,6 +89,8 @@ import {
   type VerificationResult,
 } from '../types';
 import { loadForSignatures, readSignatureFields } from '../signatures/fields';
+import { jpegInfo } from '../images/jpeg-orientation';
+import { uprightJpegPage } from '../images/upright-page';
 import { restoreLostTail } from '../structure/tail-repair';
 import { checkXrefStructure } from '../structure/xref-check';
 import { permissionsFromP } from '../pdflib/inspect';
@@ -890,6 +892,11 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
           'unsupported',
           `Stamp images must be PNG, JPEG or a one-page PDF (got ${annotation.imageBlob.type || 'unknown type'})`,
         );
+      }
+      // A camera JPEG turned by its EXIF goes in upright, from its own bytes (M1-b).
+      const jpeg = jpegInfo(new Uint8Array(data));
+      if (jpeg && jpeg.orientation !== 1) {
+        return { data: await uprightJpegPage(new Uint8Array(data), jpeg) };
       }
       return { data };
     }

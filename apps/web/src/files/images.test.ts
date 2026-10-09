@@ -81,4 +81,17 @@ describe('image files', () => {
       decodeImageFile(new File(['nope'], 'bad.png', { type: 'image/png' })),
     ).rejects.toThrow();
   });
+
+  it('keeps a camera JPEG as it is and sizes it upright by its EXIF orientation (M1-b)', async () => {
+    const plain = new Uint8Array(await (await canvasImage('image/jpeg', 40, 20)).arrayBuffer());
+    // APP1 "Exif" with a big-endian TIFF IFD holding Orientation = 6 (shown a quarter clockwise).
+    const tiff = [0x4d, 0x4d, 0, 0x2a, 0, 0, 0, 8, 0, 1, 1, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0];
+    const tail = [0, 0, 0, 0];
+    const payload = [0x45, 0x78, 0x69, 0x66, 0, 0, ...tiff, ...tail];
+    const app1 = [0xff, 0xe1, 0, payload.length + 2, ...payload];
+    const bytes = new Uint8Array([...plain.subarray(0, 2), ...app1, ...plain.subarray(2)]);
+    const photo = await decodeImageFile(new File([bytes], 'photo.jpg', { type: 'image/jpeg' }));
+    expect(photo).toMatchObject({ type: 'image/jpeg', width: 20, height: 40 });
+    expect(new Uint8Array(photo.bytes)).toEqual(bytes);
+  });
 });
