@@ -1,14 +1,18 @@
 /**
  * The pen well (`03-markup` MK-6; ADR-0021: four presets, the fourth is the Highlighter): the
- * three pens and the Highlighter as cells of one quiet well in the Draw group.
+ * three pens and the Highlighter as cells in the Draw group. The pens live here and only here:
+ * the ink strip above shows the armed pen's colour and width, not the pens again (owner answer
+ * to G8, 2026-10-09).
  *
  * - **Cells** are toolbar buttons with `aria-pressed` (not a radiogroup), so one arrow path
- *   serves the whole palette; `--bar-button` targets (32 fine, 44 coarse; Q-9). A pen's dot is
- *   its real ink at 10, 13 or 16 px by width (12, 15, 18 coarse); the Highlighter is a 20 × 8
- *   tint capsule. Dots are content colours with the inner contrast ring where their edge would
- *   fall below 3:1 on the glass (`needsDotRing`).
+ *   serves the whole palette; `--bar-button` targets (32 fine, 44 coarse; Q-9), no well behind
+ *   them (G8). A pen's dot is its real ink at 10, 13 or 16 px by width (12, 15, 18 coarse); the
+ *   Highlighter is a chisel tip of its tint. Marks are content colours with the inner contrast
+ *   ring where their edge would fall below 3:1 on the glass (`needsDotRing`). A colour picked in
+ *   the strip shows on the armed cell at once (the store's preset, live).
  * - **Armed** is a ring, never lime (`language.md` §1.9, 03.4): a 2 px ring in the primary
- *   text colour with a gap, springing in on *select*; only while the pen itself is armed.
+ *   text colour with a gap, the palette's --palette-ring, springing in on *select*; only while
+ *   the pen itself is armed.
  * - **Press** arms the preset and says it ("Red pen, 2 pt"); a press on the armed cell, or ↑ on
  *   it, opens its editor (`PresetEditor.tsx`, MK-8). Arming never opens anything.
  * - The Highlighter cell folds separately in narrow windows (03.9), so the palette renders the
@@ -40,7 +44,7 @@ function InkMark({ preset }: { readonly preset: PenPreset }) {
   return (
     <span
       className={styles.mark}
-      data-shape={isHighlighter(preset) ? 'capsule' : 'dot'}
+      data-shape={isHighlighter(preset) ? 'chisel' : 'dot'}
       data-ring={needsDotRing(preset) ? '' : undefined}
       style={
         {

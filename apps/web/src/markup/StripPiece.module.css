@@ -1,18 +1,19 @@
 /*
- * The palette's floating strip (owner feedback F3; quality-bar Q-2 to Q-6, Q-9).
+ * The palette's floating strip (owner feedback F3, G8; quality-bar Q-2 to Q-6, Q-9).
  *
- * The capsule's material and σ (`mat mat-bar s9 c10 h8`), the pill radius, one bar tall: the
- * content's 32 / 44 px row inside 5 px of padding and the 1 px rim, so its round ends are
- * concentric with the round controls at either end (the colour well; the slider's readout keeps
- * its own inset in `InkStrip.module.css`). It hugs its content (`width: max-content`) and never
- * runs wider than the band less 16 px each side; a narrow window wraps the strip inside it.
- * The dock's column puts it above the capsule; the extra 4 px over the column's gap make 8.
+ * The capsule's material and σ (`mat mat-bar s9 c10 h8`), and the palette family's sizes
+ * (--palette-*, set in `MarkupPalette.module.css` on this piece as on the capsule): one piece
+ * of --palette-h (the bar: 44 / 56), the content's hit row inside --palette-inset and the 1 px rim, the
+ * pill radius, so its ends are concentric with the round controls at either end (the colour
+ * well; the slider's readout keeps its own inset in `InkStrip.module.css`) and it reads as the
+ * palette's twin (G8, "inconsistent"). It hugs its content (`width: max-content`) and never runs
+ * wider than the band less 16 px each side; a narrow window wraps the strip inside it. The
+ * dock's column puts it above the capsule; the extra 4 px over the column's gap make 8.
  * `contain: layout style` keeps its own width morph inside it (Q-6), and `overflow: clip` clips
  * the content to the pill while the width moves.
  */
 .piece {
   composes: mat mat-bar s9 c10 h8 from global;
-  --strip-pad: calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
 
   position: relative;
   display: flex;
@@ -22,12 +23,12 @@
   box-sizing: border-box;
   width: max-content;
   max-width: calc(100% - 2 * var(--space-4));
-  min-height: var(--bar-h);
+  min-height: var(--palette-h);
   margin-bottom: var(--space-1);
-  padding: var(--strip-pad);
+  padding: var(--palette-inset);
   overflow: clip;
   /* The pill on one bar; on a wrapped strip the corners keep the bar's round ends. */
-  border-radius: calc(var(--bar-h) / 2);
+  border-radius: var(--palette-radius);
   contain: layout style;
   pointer-events: auto;
   transition: opacity var(--duration-fast) var(--ease-out);
