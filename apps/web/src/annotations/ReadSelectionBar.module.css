@@ -26,6 +26,36 @@
   cursor: default;
 }
 
+/* It rises from its anchor (bar-motion.ts; motion-2026-10 library-capsule.md §6): from
+   --enter-scale, --rise-distance nearer the selection, scaled about the edge that faces it, on
+   --spring-quick, fading in on --duration-base. Both tokens are reduced per token, leaving the
+   fade. While its width springs to new content it clips to its pill (springWidth). */
+.bar {
+  transform-origin: 0 100%;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out);
+}
+
+.bar[data-side='below'] {
+  transform-origin: 0 0;
+}
+
+@starting-style {
+  .bar {
+    opacity: 0;
+    transform: translateY(var(--rise-distance)) scale(var(--enter-scale));
+  }
+
+  .bar[data-side='below'] {
+    transform: translateY(calc(-1 * var(--rise-distance))) scale(var(--enter-scale));
+  }
+}
+
+.bar[data-resizing] {
+  overflow: clip;
+}
+
 /* Between the markups and Comment in Edit. */
 .divider {
   flex: none;
