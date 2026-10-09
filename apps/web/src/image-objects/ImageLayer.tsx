@@ -309,6 +309,9 @@ export function ImageLayer(props: PageOverlayProps) {
           <button
             ref={selectionRef}
             type="button"
+            // The selected image on the page is the control (its box, handles and keys), not
+            // chrome: drawn over the page at the image's own size.
+            // eslint-disable-next-line recto/q9-controls
             className={styles.selection}
             data-testid="image-selection"
             data-busy={busy || undefined}
@@ -382,6 +385,8 @@ function ImageTarget({
   return (
     <button
       type="button"
+      // An image on the page as a target: content-sized, drawn over the page, not chrome.
+      // eslint-disable-next-line recto/q9-controls
       className={styles.target}
       data-image-object=""
       data-image-rect={[x, y, width, height].map((v) => Math.round(v * 100) / 100).join(' ')}

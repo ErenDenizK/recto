@@ -8,6 +8,11 @@
  * here, as the model does); a name a field of the original PDF already uses is allowed
  * with a note, since the export resolves it by the document's form merge policy.
  * Signature fields say that this app does not sign.
+ *
+ * The popover is the one recipe (`ui/Popover`, system-audit-2026-10 §3.6): its title row with
+ * ✕, then label-above fields; toggles are `ui/Checkbox`, pickers `ui/Select`, alignment
+ * `ui/Segmented`, the border and background colours `ui/Swatch` rings, and the field's acts
+ * S buttons (§3.3).
  */
 import { Popover } from '@base-ui/react/popover';
 import {
@@ -24,7 +29,14 @@ import { type ReactElement, useId, useState } from 'react';
 
 import { m } from '../../i18n';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { Button } from '../../ui/Button';
+import { Checkbox } from '../../ui/Checkbox';
 import { Icon } from '../../ui/Icon';
+import { PopoverHeader, PopoverPopup } from '../../ui/Popover';
+import { Segmented } from '../../ui/Segmented';
+import { Select } from '../../ui/Select';
+import { NO_FILL, Swatch } from '../../ui/Swatch';
+import { SwatchGroup } from '../../ui/SwatchGroup';
 import { useCreateStore } from './create-store';
 import styles from './CreatedFields.module.css';
 import {
@@ -91,16 +103,19 @@ export function FieldProperties({
       onOpenChange={(next) => useCreateStore.getState().setPropertiesOpen(next)}
     >
       <Popover.Trigger render={trigger} />
-      <Popover.Portal>
-        <Popover.Positioner side="right" align="start" sideOffset={8} collisionPadding={8}>
-          <Popover.Popup className={styles.popup} data-field-properties={field.name}>
-            <Popover.Title className={styles.title}>
-              {m.forms_create_properties_title({ kind: kindName(field.kind) })}
-            </Popover.Title>
-            <Body field={field} widget={widget} bounds={bounds} />
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
+      <PopoverPopup
+        side="right"
+        align="start"
+        // Beside the field, or under it when neither side has the room (a field at the edge).
+        collisionAvoidance={{ fallbackAxisSide: 'end' }}
+        className={styles.popup}
+        data-field-properties={field.name}
+      >
+        <PopoverHeader title={m.forms_create_properties_title({ kind: kindName(field.kind) })} />
+        <div className={styles.body}>
+          <Body field={field} widget={widget} bounds={bounds} />
+        </div>
+      </PopoverPopup>
     </Popover.Root>
   );
 }
@@ -192,15 +207,7 @@ function Check({
   readonly disabled?: boolean;
 }) {
   return (
-    <label className={styles.check}>
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      {label}
-    </label>
+    <Checkbox label={label} checked={checked} disabled={disabled} onCheckedChange={onChange} />
   );
 }
 
@@ -221,44 +228,34 @@ function Swatches({
       <span id={labelId} className={styles.label}>
         {label}
       </span>
-      <div className={styles.swatches} role="radiogroup" aria-labelledby={labelId}>
-        {keys.map((key) => {
-          const c = key === 'none' ? undefined : colorOf(key);
-          return (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={value === key}
-              aria-label={colorName(key)}
-              title={colorName(key)}
-              className={styles.swatch}
-              data-none={key === 'none' || undefined}
-              data-color={key}
-              style={c ? { background: c } : undefined}
-              onClick={() => onChange(key)}
-            />
-          );
-        })}
-      </div>
+      <SwatchGroup
+        label={label}
+        value={swatchOf(value)}
+        onValueChange={(next) => onChange(keys.find((key) => swatchOf(key) === next) ?? 'none')}
+      >
+        {keys.map((key) => (
+          <Swatch key={key} value={swatchOf(key)} name={colorName(key)} />
+        ))}
+      </SwatchGroup>
     </div>
   );
 }
 
-function colorOf(key: FieldColor): string {
-  // The model's palette (document colours, not design tokens).
-  const map: Record<FieldColor, string> = {
-    none: 'transparent',
-    black: 'rgb(0 0 0)',
-    gray: 'rgb(128 128 128)',
-    blue: 'rgb(41 82 191)',
-    red: 'rgb(204 26 26)',
-    white: 'rgb(255 255 255)',
-    'light-gray': 'rgb(237 237 237)',
-    'light-blue': 'rgb(222 235 255)',
-    'light-yellow': 'rgb(255 250 209)',
-  };
-  return map[key];
+/** The model's palette (document colours, not design tokens), as swatch values. */
+const FIELD_COLOURS: Readonly<Record<FieldColor, string>> = {
+  none: NO_FILL,
+  black: '#000000',
+  gray: '#808080',
+  blue: '#2952BF',
+  red: '#CC1A1A',
+  white: '#FFFFFF',
+  'light-gray': '#EDEDED',
+  'light-blue': '#DEEBFF',
+  'light-yellow': '#FFFAD1',
+};
+
+function swatchOf(key: FieldColor): string {
+  return FIELD_COLOURS[key];
 }
 
 function Body({
@@ -425,23 +422,21 @@ function Body({
             }}
           />
           <div className={styles.inline}>
-            <button
-              type="button"
-              className={styles.action}
+            <Button
+              size="sm"
+              icon={<Icon name="plus" />}
               onClick={() => addRadioButtonNear(field.id, widget, bounds)}
             >
-              <Icon name="plus" />
               {m.forms_prop_add_button()}
-            </button>
-            <button
-              type="button"
-              className={styles.action}
+            </Button>
+            <Button
+              size="sm"
+              icon={<Icon name="x" />}
               disabled={field.widgets.length < 2}
               onClick={() => removeRadioButtonAt(field.id, widget)}
             >
-              <Icon name="x" />
               {m.forms_prop_remove_button()}
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -476,9 +471,10 @@ function Body({
           <label className={styles.label} htmlFor={id('default-choice')}>
             {m.forms_prop_default()}
           </label>
-          <select
+          <Select<string>
             id={id('default-choice')}
-            className={styles.select}
+            block
+            label={m.forms_prop_default()}
             value={
               typeof field.defaultValue === 'string'
                 ? field.defaultValue
@@ -486,21 +482,17 @@ function Body({
                   ? (field.defaultValue[0] ?? '')
                   : ''
             }
-            onChange={(e) => {
-              const v = e.target.value;
+            onValueChange={(v) => {
               set({
                 defaultValue:
                   v === '' ? undefined : field.kind === 'listbox' && field.multiSelect ? [v] : v,
               });
             }}
-          >
-            <option value="">{m.forms_prop_none()}</option>
-            {valueChoices.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: '', label: m.forms_prop_none() },
+              ...valueChoices.map((o) => ({ value: o, label: o })),
+            ]}
+          />
         </div>
       ) : null}
 
@@ -529,28 +521,25 @@ function Body({
           <label className={styles.label} htmlFor={id('size')}>
             {m.forms_prop_font_size()}
           </label>
-          <select
+          <Select<string>
             id={id('size')}
-            className={styles.select}
+            block
+            label={m.forms_prop_font_size()}
             value={field.fontSize === 'auto' ? 'auto' : String(field.fontSize)}
-            onChange={(e) =>
+            onValueChange={(v) =>
               set({
-                fontSize:
-                  e.target.value === 'auto'
-                    ? 'auto'
-                    : Math.min(MAX_FIELD_FONT_SIZE, Number(e.target.value)),
+                fontSize: v === 'auto' ? 'auto' : Math.min(MAX_FIELD_FONT_SIZE, Number(v)),
               })
             }
-          >
-            <option value="auto">{m.forms_prop_auto()}</option>
-            {[...new Set([...FONT_SIZES, ...(field.fontSize === 'auto' ? [] : [field.fontSize])])]
-              .sort((a, b) => a - b)
-              .map((size) => (
-                <option key={size} value={String(size)}>
-                  {size}
-                </option>
-              ))}
-          </select>
+            options={[
+              { value: 'auto', label: m.forms_prop_auto() },
+              ...[
+                ...new Set([...FONT_SIZES, ...(field.fontSize === 'auto' ? [] : [field.fontSize])]),
+              ]
+                .sort((a, b) => a - b)
+                .map((size) => ({ value: String(size), label: String(size) })),
+            ]}
+          />
         </div>
       ) : null}
 
@@ -585,26 +574,25 @@ function Body({
       </div>
 
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.action}
+        <Button
+          size="sm"
+          variant="quiet"
+          icon={<Icon name="copy" />}
           onClick={() => duplicateField(field.id, bounds)}
         >
-          <Icon name="copy" />
           {m.forms_prop_duplicate()}
-        </button>
-        <button
-          type="button"
-          className={styles.action}
-          data-danger=""
+        </Button>
+        <Button
+          size="sm"
+          variant="danger"
+          icon={<Icon name="trash" />}
           onClick={() => {
             useCreateStore.getState().setPropertiesOpen(false);
             deleteField(field.id);
           }}
         >
-          <Icon name="trash" />
           {m.forms_prop_delete()}
-        </button>
+        </Button>
       </div>
     </>
   );
@@ -617,31 +605,21 @@ function AlignPicker({
   readonly value: FieldAlign;
   readonly onChange: (align: FieldAlign) => void;
 }) {
-  const labelId = useId();
-  const items: { value: FieldAlign; label: string }[] = [
-    { value: 'left', label: m.forms_align_left() },
-    { value: 'center', label: m.forms_align_center() },
-    { value: 'right', label: m.forms_align_right() },
-  ];
   return (
     <div className={styles.row}>
-      <span id={labelId} className={styles.label}>
+      <span className={styles.label} aria-hidden="true">
         {m.forms_prop_align()}
       </span>
-      <div className={styles.segmented} role="radiogroup" aria-labelledby={labelId}>
-        {items.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            role="radio"
-            aria-checked={value === item.value}
-            className={styles.segment}
-            onClick={() => onChange(item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <Segmented<FieldAlign>
+        label={m.forms_prop_align()}
+        value={value}
+        onValueChange={onChange}
+        options={[
+          { value: 'left', label: m.forms_align_left() },
+          { value: 'center', label: m.forms_align_center() },
+          { value: 'right', label: m.forms_align_right() },
+        ]}
+      />
     </div>
   );
 }

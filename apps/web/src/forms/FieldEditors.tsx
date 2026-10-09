@@ -242,6 +242,10 @@ export function ChoiceEditor({ field, here, box, frame }: EditorProps) {
   // A value that is not an option (e.g. set by another tool) stays visible and selected.
   const shown = [...options, ...selected.filter((s) => !options.includes(s))];
   return (
+    // The PDF's own choice field, edited in place on the page: content drawn as the file's
+    // widget, not chrome, so it stays the native list (09-primitives §8 draws the same line
+    // for form checkboxes on the page).
+    // eslint-disable-next-line recto/q9-controls
     <select
       ref={ref}
       className={styles.editor}

@@ -35,7 +35,7 @@
 .plate[data-size='row'] {
   width: 72px;
   height: 28px;
-  padding: 3px 6px;
+  padding: var(--space-half) var(--space-1h);
 }
 
 /* New signature's previews: the pad's own aspect, full width; a short name stays at most the

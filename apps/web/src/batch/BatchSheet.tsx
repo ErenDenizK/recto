@@ -44,7 +44,9 @@ import { announce } from '../shell/announcer';
 import { deliverFile } from '../tools/deliver-file';
 import tool from '../tools/ToolDialog.module.css';
 import { Button } from '../ui/Button';
+import { FileButton } from '../ui/FileButton';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { Sheet } from '../ui/sheet';
 import styles from './Batch.module.css';
 import { closeBatchDialog, useBatchStore } from './batch-store';
@@ -149,7 +151,6 @@ function BatchFlow({ open }: { readonly open: boolean }) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [run, setRun] = useState<RunState | null>(null);
   const [over, setOver] = useState(false);
-  const importInput = useRef<HTMLInputElement>(null);
   const runRef = useRef<RunState | null>(null);
   useEffect(() => {
     runRef.current = run;
@@ -445,33 +446,22 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                 <div className={styles.sidebarHead}>
                   <span>{m.batch_recipes()}</span>
                   <span>
-                    <button
-                      type="button"
-                      className={styles.linkButton}
+                    <Button
+                      size="sm"
+                      variant="quiet"
                       onClick={() => setView({ kind: 'edit', id: undefined, recipe: NEW_RECIPE })}
                     >
                       {m.batch_new()}
-                    </button>{' '}
-                    <button
-                      type="button"
-                      className={styles.linkButton}
-                      onClick={() => importInput.current?.click()}
+                    </Button>{' '}
+                    <FileButton
+                      size="sm"
+                      variant="quiet"
+                      accept={`${RECIPE_FILE_EXTENSION},.json,application/json`}
+                      inputTestId="batch-import-input"
+                      onFiles={(picked) => void importRecipe(picked[0])}
                     >
                       {m.batch_import()}
-                    </button>
-                    <input
-                      ref={importInput}
-                      type="file"
-                      accept={`${RECIPE_FILE_EXTENSION},.json,application/json`}
-                      className={styles.visuallyHidden}
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      data-testid="batch-import-input"
-                      onChange={(event) => {
-                        void importRecipe(event.target.files?.[0]);
-                        event.target.value = '';
-                      }}
-                    />
+                    </FileButton>
                   </span>
                 </div>
                 <ul className={styles.list}>
@@ -514,9 +504,9 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                     >
                       {status.text}{' '}
                       {status.undo ? (
-                        <button type="button" className={styles.linkButton} onClick={status.undo}>
+                        <Button size="sm" variant="quiet" onClick={status.undo}>
                           {m.batch_undo()}
-                        </button>
+                        </Button>
                       ) : null}
                       {status.detail === undefined ? null : (
                         <span className={styles.code}>{status.detail}</span>
@@ -546,13 +536,9 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                                 onChange={(event) => setRenaming(event.target.value)}
                               />
                             </label>
-                            <button
-                              type="button"
-                              className={tool.secondary}
-                              onClick={() => saveRename(selected.id)}
-                            >
+                            <Button onClick={() => saveRename(selected.id)}>
                               {m.batch_rename_save()}
-                            </button>
+                            </Button>
                           </div>
                         ) : (
                           <h3 id="batch-recipe-heading" className={styles.heading}>
@@ -564,9 +550,9 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                             <span className={styles.muted}>{m.batch_builtin_readonly()}</span>
                           ) : (
                             <>
-                              <button
-                                type="button"
-                                className={styles.linkButton}
+                              <Button
+                                size="sm"
+                                variant="quiet"
                                 onClick={() =>
                                   setView({
                                     kind: 'edit',
@@ -576,38 +562,34 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                                 }
                               >
                                 {m.batch_edit()}
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.linkButton}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="quiet"
                                 onClick={() => setRenaming(selected.recipe.name)}
                               >
                                 {m.batch_rename()}
-                              </button>
+                              </Button>
                             </>
                           )}
-                          <button
-                            type="button"
-                            className={styles.linkButton}
+                          <Button
+                            size="sm"
+                            variant="quiet"
                             onClick={() => void duplicate(selected)}
                           >
                             {m.batch_duplicate()}
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.linkButton}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="quiet"
                             onClick={() => void exportRecipe(selected)}
                           >
                             {m.batch_export_recipe()}
-                          </button>
+                          </Button>
                           {selected.builtIn ? null : (
-                            <button
-                              type="button"
-                              className={styles.linkButton}
-                              onClick={() => void remove(selected)}
-                            >
+                            <Button size="sm" variant="quiet" onClick={() => void remove(selected)}>
                               {m.batch_delete()}
-                            </button>
+                            </Button>
                           )}
                         </span>
                       </div>
@@ -643,24 +625,16 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                         {m.batch_files()}
                       </h3>
                       {files.length > 0 ? (
-                        <button
-                          type="button"
-                          className={styles.linkButton}
-                          onClick={() => setFiles([])}
-                        >
+                        <Button size="sm" variant="quiet" onClick={() => setFiles([])}>
                           {m.batch_clear_files()}
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
                     <div className={styles.drop} data-over={over ? '' : undefined}>
                       <span>{m.batch_drop_hint()}</span>
-                      <button
-                        type="button"
-                        className={tool.secondary}
-                        onClick={() => void pickFiles('pdf').then(addFiles)}
-                      >
+                      <Button onClick={() => void pickFiles('pdf').then(addFiles)}>
                         {m.batch_add_files()}
-                      </button>
+                      </Button>
                     </div>
                     {files.length > 0 ? (
                       <ul className={styles.files} data-testid="batch-files">
@@ -672,17 +646,14 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                               <span className={styles.fileMeta}>
                                 {skip ? skipReasonLabel(skip.reason) : formatBytes(file.size)}
                               </span>
-                              <button
-                                type="button"
-                                className={styles.iconButton}
-                                aria-label={m.batch_remove_file({ name: file.name })}
-                                title={m.batch_remove_file({ name: file.name })}
+                              <IconButton
+                                size="row"
+                                label={m.batch_remove_file({ name: file.name })}
+                                icon={<Icon name="x" />}
                                 onClick={() =>
                                   setFiles(files.filter((f) => fileKey(f) !== fileKey(file)))
                                 }
-                              >
-                                <Icon name="x" />
-                              </button>
+                              />
                             </li>
                           );
                         })}
@@ -707,9 +678,8 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                   <Button variant="standard" onClick={closeBatchDialog}>
                     {m.common_close()}
                   </Button>
-                  <button
-                    type="button"
-                    className={tool.primary}
+                  <Button
+                    variant="prominent"
                     disabled={!canRun}
                     onClick={startRun}
                     data-testid="batch-run"
@@ -717,7 +687,7 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                     {plan === undefined
                       ? m.batch_run()
                       : m.batch_run_count({ count: plan.files.length })}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -758,6 +728,8 @@ function RecipeRow({
     <li>
       <button
         type="button"
+        // The whole list row is the control (a recipe in the sidebar's list, chosen in place).
+        // eslint-disable-next-line recto/q9-controls
         className={styles.row}
         aria-pressed={selected}
         onClick={onSelect}
@@ -1028,19 +1000,17 @@ function RunView({
               </label>
             </div>
             <div className={tool.actions}>
-              <button
-                type="button"
-                className={tool.secondary}
+              <Button
                 onClick={() => {
                   setAnswer('');
                   run.ask?.resolve(null);
                 }}
               >
                 {m.batch_skip_file()}
-              </button>
-              <button type="button" className={tool.primary} onClick={submitAnswer}>
+              </Button>
+              <Button variant="prominent" onClick={submitAnswer}>
                 {m.batch_open_file()}
-              </button>
+              </Button>
             </div>
           </div>
         ) : null}
@@ -1116,55 +1086,39 @@ function RunView({
         </span>
         {finished ? (
           <>
-            <button type="button" className={tool.secondary} onClick={onBack}>
-              {m.common_back()}
-            </button>
+            <Button onClick={onBack}>{m.common_back()}</Button>
             {outputs.length > 1 ? (
               <>
                 {supportsFolderDelivery() ? (
-                  <button
-                    type="button"
-                    className={tool.secondary}
-                    disabled={delivering}
-                    onClick={() => void deliver('folder')}
-                  >
+                  <Button disabled={delivering} onClick={() => void deliver('folder')}>
                     {m.batch_save_folder()}
-                  </button>
+                  </Button>
                 ) : null}
-                <button
-                  type="button"
-                  className={tool.secondary}
-                  disabled={delivering}
-                  onClick={() => void deliver('files')}
-                >
+                <Button disabled={delivering} onClick={() => void deliver('files')}>
                   {m.batch_download_files()}
-                </button>
-                <button
-                  type="button"
-                  className={tool.primary}
+                </Button>
+                <Button
+                  variant="prominent"
                   disabled={delivering}
                   onClick={() => void deliver('zip')}
                   data-testid="batch-download-zip"
                 >
                   {m.batch_download_zip()}
-                </button>
+                </Button>
               </>
             ) : outputs.length === 1 ? (
-              <button
-                type="button"
-                className={tool.primary}
+              <Button
+                variant="prominent"
                 disabled={delivering}
                 onClick={() => void deliver('files')}
                 data-testid="batch-download"
               >
                 {m.batch_download()}
-              </button>
+              </Button>
             ) : null}
           </>
         ) : (
-          <button
-            type="button"
-            className={tool.secondary}
+          <Button
             onClick={() => {
               run.controller.abort();
               run.ask?.resolve(null);
@@ -1172,7 +1126,7 @@ function RunView({
             data-testid="batch-cancel"
           >
             {m.common_cancel()}
-          </button>
+          </Button>
         )}
       </div>
     </>

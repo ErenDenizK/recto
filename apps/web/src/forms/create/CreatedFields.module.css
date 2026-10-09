@@ -145,23 +145,15 @@
   cursor: nwse-resize;
 }
 
+/* The S icon button beside the selection (ui/IconButton, system-audit-2026-10 §3.3), on a solid
+   fill so it reads over any page. */
 .propertiesButton {
   position: absolute;
   z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xs);
   background: var(--surface-on);
   color: var(--text-primary);
   pointer-events: auto;
-}
-
-.propertiesButton svg {
-  width: 14px;
-  height: 14px;
 }
 
 /* Placement preview: the one preview fill, select-subtle (design audit N4). */
@@ -172,55 +164,47 @@
   pointer-events: none;
 }
 
-/* Properties popover. */
+/* Properties popover: the one popover recipe (ui/Popover, system-audit-2026-10 §3.6) holds the
+   title row and the material; the body stacks label-above fields on --space-3. */
 .popup {
-  display: grid;
-  gap: var(--space-3);
-  width: min(300px, calc(100vw - 16px));
-  max-height: min(70vh, 560px);
-  overflow: auto;
-  padding: var(--space-3);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  background: var(--surface-on);
-  color: var(--text-primary);
   font-size: var(--type-footnote);
-  outline: none;
-  box-shadow: none;
 }
 
-.title {
-  font-size: var(--type-body);
-  font-weight: 500;
+.body {
+  display: grid;
+  gap: var(--space-3);
 }
 
 .row {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-1h);
 }
 
 .label {
   color: var(--text-secondary);
-  font-size: var(--type-caption);
-  letter-spacing: var(--tracking-label);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-footnote-lh);
 }
 
+/* Text fields are solid wells (L§2.10, Q-4), as ui/Field's. */
 .input,
-.select,
 .textarea {
+  box-sizing: border-box;
   width: 100%;
   min-height: var(--control-h);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xs);
-  background: var(--surface-raised);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--field-well);
   color: var(--text-primary);
   font: inherit;
+  font-size: var(--field-text);
 }
 
 .textarea {
   min-height: 72px;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2) var(--space-3);
   resize: vertical;
 }
 
@@ -231,35 +215,24 @@
 
 .error {
   color: var(--danger);
-  font-size: var(--type-caption);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .note {
   color: var(--text-secondary);
-  font-size: var(--type-caption);
-  line-height: 16px;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .warning {
   color: var(--warning);
-  font-size: var(--type-caption);
-  line-height: 16px;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .checks {
   display: grid;
-  gap: var(--space-1);
-}
-
-.check {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
-}
-
-.check input {
-  accent-color: var(--control-on);
 }
 
 .inline {
@@ -272,85 +245,11 @@
   min-width: 0;
 }
 
-.segmented {
-  display: flex;
-  gap: 2px;
-}
-
-.segment {
-  flex: 1;
-  height: var(--control-h);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xs);
-  color: var(--text-secondary);
-}
-
-/* An option choice: accent-muted, no accent border (design audit D11). */
-.segment[aria-checked='true'] {
-  background: var(--accent-muted);
-  color: var(--text-primary);
-}
-
-.swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-}
-
-.swatch {
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xs);
-}
-
-.swatch[aria-checked='true'] {
-  outline: 2px solid var(--control-on);
-  outline-offset: 1px;
-}
-
-/* "None": a diagonal strike on the page white. */
-.swatch[data-none] {
-  background: linear-gradient(
-    135deg,
-    var(--page-background) 45%,
-    var(--danger) 45% 55%,
-    var(--page-background) 55%
-  );
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   gap: var(--space-2);
-  padding-top: var(--space-2);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--border-hairline);
-}
-
-.action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: var(--control-h);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xs);
-  color: var(--text-secondary);
-}
-
-.action svg {
-  width: 14px;
-  height: 14px;
-}
-
-.action[data-danger] {
-  color: var(--danger);
-}
-
-@media (hover: hover) {
-  .action:hover,
-  .segment:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
 }

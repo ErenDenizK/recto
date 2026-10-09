@@ -35,7 +35,9 @@ import { getLocale, m } from '../i18n';
 import { ocrDependencies } from '../ocr/ocr-deps';
 import { formatMegabytes, languageName, languagesKey } from '../ocr/ocr-model';
 import tool from '../tools/ToolDialog.module.css';
+import { Checkbox } from '../ui/Checkbox';
 import { ColourPicker } from '../ui/colour/ColourPicker';
+import { FileButton } from '../ui/FileButton';
 import { NumberField as NumberInput } from '../ui/NumberField';
 import { Select } from '../ui/Select';
 import { TextField as TextInput } from '../ui/TextField';
@@ -118,16 +120,7 @@ function CheckField(props: {
   readonly checked: boolean;
   readonly onChange: (checked: boolean) => void;
 }) {
-  return (
-    <label className={tool.check}>
-      <input
-        type="checkbox"
-        checked={props.checked}
-        onChange={(event) => props.onChange(event.target.checked)}
-      />
-      <span>{props.label}</span>
-    </label>
-  );
+  return <Checkbox label={props.label} checked={props.checked} onCheckedChange={props.onChange} />;
 }
 
 function Row({ children }: { readonly children: ReactNode }) {
@@ -735,17 +728,21 @@ export function StepForm({
                 onChange={(text) => update(step, { text })}
               />
             ) : (
-              <label className={tool.field}>
-                <span className={tool.label}>{m.furniture_image()}</span>
-                <input
-                  type="file"
+              <div className={tool.field}>
+                <span className={tool.label} aria-hidden="true">
+                  {m.furniture_image()}
+                </span>
+                <FileButton
                   accept="image/png,image/jpeg"
-                  onChange={(event) => void chooseImage(event.target.files?.[0])}
-                />
+                  inputTestId="batch-watermark-image"
+                  onFiles={(files) => void chooseImage(files[0])}
+                >
+                  {m.furniture_choose_image()}
+                </FileButton>
                 <span className={tool.hint}>
                   {o.image === undefined ? m.furniture_no_image() : m.batch_watermark_image_set()}
                 </span>
-              </label>
+              </div>
             )}
           </Row>
           {imageError === null ? null : <p className={styles.error}>{imageError}</p>}
@@ -989,34 +986,42 @@ function OcrForm({
         <ul className={styles.languages} aria-label={m.batch_field_languages()}>
           {listed.map((pack) => (
             <li key={pack.code}>
-              <label className={styles.language}>
-                <input
-                  type="checkbox"
-                  checked={o.languages.includes(pack.code)}
-                  onChange={(event) => toggle(pack.code, event.target.checked)}
-                />
-                <span className={styles.languageName}>{languageName(pack.code, locale)}</span>
-                <span className={styles.languageMeta}>
-                  {pack.onDevice
-                    ? m.ocr_pack_on_device({ size: formatMegabytes(pack.bytes, locale) })
-                    : m.ocr_pack_downloads({ size: formatMegabytes(pack.downloadBytes, locale) })}
-                </span>
-              </label>
+              <Checkbox
+                className={styles.language}
+                label={
+                  <>
+                    <span className={styles.languageName}>{languageName(pack.code, locale)}</span>{' '}
+                    <span className={styles.languageMeta}>
+                      {pack.onDevice
+                        ? m.ocr_pack_on_device({ size: formatMegabytes(pack.bytes, locale) })
+                        : m.ocr_pack_downloads({
+                            size: formatMegabytes(pack.downloadBytes, locale),
+                          })}
+                    </span>
+                  </>
+                }
+                checked={o.languages.includes(pack.code)}
+                onCheckedChange={(on) => toggle(pack.code, on)}
+              />
             </li>
           ))}
           {packs === 'loading'
             ? null
             : missing.map((code) => (
                 <li key={code}>
-                  <label className={styles.language}>
-                    <input
-                      type="checkbox"
-                      checked
-                      onChange={(event) => toggle(code, event.target.checked)}
-                    />
-                    <span className={styles.languageName}>{languageName(code, locale)}</span>
-                    <span className={styles.languageMeta}>{m.batch_ocr_language_missing()}</span>
-                  </label>
+                  <Checkbox
+                    className={styles.language}
+                    label={
+                      <>
+                        <span className={styles.languageName}>{languageName(code, locale)}</span>{' '}
+                        <span className={styles.languageMeta}>
+                          {m.batch_ocr_language_missing()}
+                        </span>
+                      </>
+                    }
+                    checked
+                    onCheckedChange={(on) => toggle(code, on)}
+                  />
                 </li>
               ))}
         </ul>

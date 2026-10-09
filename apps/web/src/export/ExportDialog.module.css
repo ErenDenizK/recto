@@ -40,7 +40,7 @@
   padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   /* The field primitives' radius (09 §12), so native inputs not yet ported match them. */
-  border-radius: var(--radius-control, 10px);
+  border-radius: var(--radius-control);
   background: var(--surface-raised);
   color: var(--text-primary);
   font-size: var(--type-body);
@@ -56,7 +56,8 @@
 }
 
 .check input {
-  margin-top: 3px;
+  /* Near the first line's centre, on the half-step. */
+  margin-top: var(--space-half);
   accent-color: var(--control-on);
 }
 
@@ -219,11 +220,11 @@
   width: 100%;
   margin-bottom: var(--space-1);
   padding: 0;
-  color: var(--text-tertiary);
-  font-size: var(--type-caption);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  /* A section label: footnote 600, secondary, sentence case (system audit §3.4, T-9). */
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-footnote-lh);
 }
 
 .sectionTitle + * {

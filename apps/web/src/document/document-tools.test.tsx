@@ -16,7 +16,7 @@ import { resetWorkspace, useActiveDocument, useWorkspaceStore } from '../state/w
 import { DiagnosticsDetails, DiagnosticsView } from './Diagnostics';
 import { setDiagnosticsDependencies } from './diagnostics';
 import { closeDocumentDialog, openDocumentDialog } from './document-store';
-import { DocumentDialogs } from './DocumentDialogs';
+import { DocumentSheets } from './DocumentSheets';
 import { MetadataEditor } from './MetadataEditor';
 import { validatePasswordForm } from './password-form';
 import { passwordStrength } from './password-strength';
@@ -177,7 +177,7 @@ describe('Set password dialog', () => {
 
   it('shows errors, the strength meter, and stores the policy as one history entry', async () => {
     await openMetadataFixture();
-    render(<DocumentDialogs />);
+    render(<DocumentSheets />);
     act(() => openDocumentDialog('set-password', activeDoc().id));
     const dialog = await screen.findByTestId('set-password-dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Set password' }));
@@ -192,16 +192,20 @@ describe('Set password dialog', () => {
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Use a different password');
     expect(within(dialog).getAllByText(/^Strength: /).length).toBe(2);
 
-    await userEvent.click(within(dialog).getByLabelText(/Show passwords/));
+    await userEvent.click(within(dialog).getByText('Show passwords'));
     expect(open).toHaveAttribute('type', 'text');
     await userEvent.fill(
       within(dialog).getByLabelText('Password to change permissions'),
       'a different owner secret',
     );
-    await userEvent.click(within(dialog).getByLabelText('Copying text and images'));
+    await userEvent.click(
+      within(dialog).getByRole('checkbox', { name: 'Copying text and images' }),
+    );
     // High-quality printing depends on printing.
-    await userEvent.click(within(dialog).getByLabelText('Printing'));
-    expect(within(dialog).getByLabelText('High-quality printing')).toBeDisabled();
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Printing' }));
+    expect(within(dialog).getByRole('checkbox', { name: 'High-quality printing' })).toHaveAttribute(
+      'data-disabled',
+    );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Set password' }));
     expect(activeDoc().security).toEqual({
       algorithm: 'aes-256',
@@ -214,7 +218,7 @@ describe('Set password dialog', () => {
 
   it('removes a password it set', async () => {
     await openMetadataFixture();
-    render(<DocumentDialogs />);
+    render(<DocumentSheets />);
     act(() => openDocumentDialog('set-password', activeDoc().id));
     const dialog = await screen.findByTestId('set-password-dialog');
     await userEvent.fill(within(dialog).getByLabelText('Password to open'), 'secret-123');
@@ -232,7 +236,7 @@ describe('Strip metadata and diagnostics', () => {
   it('lists what was found and stores the selection', async () => {
     useLocalDiagnostics();
     await openMetadataFixture();
-    render(<DocumentDialogs />);
+    render(<DocumentSheets />);
     act(() => openDocumentDialog('strip-metadata', activeDoc().id));
     // The dialog shows a checking state first, then the checklist (a new popup).
     await screen.findByTestId('strip-count-attachments', {}, { timeout: 10_000 });
@@ -243,7 +247,9 @@ describe('Strip metadata and diagnostics', () => {
     // The checklist is a new popup that fades in: wait out its entrance before asking if it shows.
     await waitFor(() => expect(within(dialog).getByText(/attachment\.txt/)).toBeVisible());
     // Annotation authors are optional: not selected by default.
-    expect(within(dialog).getByLabelText(/Annotation authors and dates/)).not.toBeChecked();
+    expect(
+      within(dialog).getByRole('checkbox', { name: /Annotation authors and dates/ }),
+    ).not.toBeChecked();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Strip on export' }));
     const meta = activeDoc().metadata;
     expect(meta.strip).toMatchObject({ info: true, xmp: true, attachments: true });

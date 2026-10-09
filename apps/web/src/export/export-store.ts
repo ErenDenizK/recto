@@ -47,13 +47,43 @@ export function saveCopyDocument(): DocumentId | null {
   return open?.id === SAVE_COPY_SHEET ? (open.docId as DocumentId | null) : null;
 }
 
+/**
+ * A sheet opened from inside Save a copy (Strip metadata, Set password, Sign with certificate)
+ * replaces it, as every sheet opened from another does (07 §1.1 rule 1), and Save a copy comes
+ * back when that sheet is done. Save a copy's leaving for it is not a close: what lives as
+ * long as the sheet (the certificate chosen for the copy) stays.
+ */
+let pushedFor: DocumentId | null = null;
+const closedListeners = new Set<(documentId: DocumentId) => void>();
+
+useSheetStore.subscribe((state, previous) => {
+  const was = previous.open?.id === SAVE_COPY_SHEET ? previous.open.docId : null;
+  const now = state.open?.id === SAVE_COPY_SHEET ? state.open.docId : null;
+  if (was === null || was === now || was === pushedFor) return;
+  for (const listener of closedListeners) listener(was as DocumentId);
+});
+
 /** Calls `listener` with the document whenever Save a copy closes for it. */
 export function onSaveCopyClosed(listener: (documentId: DocumentId) => void): () => void {
-  return useSheetStore.subscribe((state, previous) => {
-    const was = previous.open?.id === SAVE_COPY_SHEET ? previous.open.docId : null;
-    const now = state.open?.id === SAVE_COPY_SHEET ? state.open.docId : null;
-    if (was !== null && was !== now) listener(was as DocumentId);
-  });
+  closedListeners.add(listener);
+  return () => closedListeners.delete(listener);
+}
+
+/** A sheet opened from Save a copy for `documentId` is about to replace it. */
+export function pushOverSaveCopy(documentId: DocumentId): void {
+  pushedFor = documentId;
+}
+
+/**
+ * The sheet pushed over Save a copy closed: with `back`, Save a copy returns (its draft
+ * kept); without (another sheet replaced the pushed one), Save a copy has closed for good.
+ */
+export function popToSaveCopy(back: boolean): void {
+  const documentId = pushedFor;
+  pushedFor = null;
+  if (documentId === null) return;
+  if (back) openSaveCopy(documentId);
+  else for (const listener of closedListeners) listener(documentId);
 }
 
 /** One line of a copy's summary (`export/summary.ts`), as the Details page lists it. */
