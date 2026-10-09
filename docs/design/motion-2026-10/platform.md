@@ -95,5 +95,9 @@ at: no jumps, no squashed text, the region grows from the trigger and returns in
   so it closes at once and cannot go back into its tab. Rendering it with Base UI's exit (keep
   the `Popover.Root` mounted) would give it the return for free. Frame lane.
 - Toasts, the capsule and the palette have their own motion and are outside this lane.
-- e2e `motion.spec.ts` (A-9 sweep, A-10 limits) was not run locally; by construction the new
-  motions are opacity-only within 150 ms under reduced motion and settle within 500 ms.
+- e2e on Chromium only: `motion.spec.ts` (A-9 both paths, A-10, the interruption tests),
+  `menus`, `sheets`, `history`, `a11y`, `toasts` pass. Updated: the History scrubber test now
+  arms on the popup's first animation (it grows out of ↶), and `sheets.spec.ts`' transform-only
+  checks no longer expect a constant box for sheets opened by a button. `settings.spec.ts`
+  "Glass: Clear · Tinted · Solid" fails at its first check (Clear not checked at start), which
+  this lane does not touch; not checked against develop. Firefox and WebKit are CI's.
