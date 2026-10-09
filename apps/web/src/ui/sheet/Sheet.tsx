@@ -138,6 +138,11 @@ export interface SheetProps {
   readonly restored?: boolean;
   /** `primary` or `cancel` focus that button on open; a ref focuses that element. */
   readonly initialFocus?: RefObject<HTMLElement | null> | 'primary' | 'cancel' | undefined;
+  /**
+   * A sheet that exists to be typed into (a password prompt): its field takes focus however
+   * the sheet was opened, not the panel after a pointer (system audit §3.8).
+   */
+  readonly focusField?: boolean;
   readonly finalFocus?: RefObject<HTMLElement | null> | undefined;
   /** A line in the footer's place when there is no action (the shortcuts overlay's note). */
   readonly footnote?: ReactNode;
@@ -167,6 +172,7 @@ export function Sheet({
   locked,
   restored = false,
   initialFocus,
+  focusField = false,
   finalFocus,
   footnote,
   busy = false,
@@ -328,6 +334,7 @@ export function Sheet({
           : (initialFocus ?? firstInput),
       openType,
       panelEl.current,
+      focusField,
     );
 
   const Root = layout.role === 'alertdialog' ? AlertDialog.Root : Dialog.Root;

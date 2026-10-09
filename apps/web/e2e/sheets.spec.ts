@@ -658,12 +658,12 @@ test.describe('the ports in the app', () => {
     page,
   }, info) => {
     await page.goto('./?lang=en');
-    // Opened from the keyboard, the prompt starts in its field, ready to type; after a pointer
-    // the prompt itself would take focus (system audit §3.8, I-46).
+    // The prompt starts in its field, ready to type, even after a pointer opened it.
     const chooser = page.waitForEvent('filechooser');
-    const openFiles = page.getByRole('button', { name: /^Open files/ }).first();
-    await openFiles.focus();
-    await openFiles.press('Enter');
+    await page
+      .getByRole('button', { name: /^Open files/ })
+      .first()
+      .click();
     await (await chooser).setFiles(fixturePath('encrypted-aes-128.pdf'));
     const prompt = page.getByRole('alertdialog', { name: 'Password required' });
     await expect(prompt).toBeVisible();

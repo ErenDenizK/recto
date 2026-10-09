@@ -195,6 +195,7 @@ export function SetPasswordSheet({
       locked={sheet.locked}
       title={m.set_password_title()}
       primary={{ label: m.set_password_apply(), onPress: onSubmit }}
+      focusField
       testId="set-password-dialog"
     >
       <p className={styles.intro}>{m.set_password_description()}</p>
