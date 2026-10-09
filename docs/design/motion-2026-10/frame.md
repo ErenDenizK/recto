@@ -108,13 +108,13 @@ duplicate it.
 - Strip (fake file handle, 2.5 s write): Save → 0 % with the sweep → 95 % → Saved ✓ with the
   bloom → Saved.
 
-## 6. Undo and redo: `recto:history-applied`
+## 6. Undo and redo: `pdf-editor:history-applied`
 
 The existing glyph nudge stays. In addition, the affected object flashes once the step has been
 brought into view.
 
 ```ts
-window.addEventListener('recto:history-applied', (event) => {
+window.addEventListener('pdf-editor:history-applied', (event) => {
   const { direction, documentId, kind, pageIds, annotationIds } = event.detail;
   // Draw your own flash on what you render, then take the default one over:
   event.preventDefault();

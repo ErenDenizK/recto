@@ -1,5 +1,5 @@
 /**
- * `recto:history-applied` (docs/design/motion-2026-10/frame.md §6): what a step touched, and the
+ * `pdf-editor:history-applied` (docs/design/motion-2026-10/frame.md §6): what a step touched, and the
  * event a lane cancels to draw its own flash.
  */
 import type { DocumentId, EngineEdit, PageId, Workspace } from '@pdf-editor/document-model';

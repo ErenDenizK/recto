@@ -1,5 +1,5 @@
 /**
- * `recto:history-applied` (docs/design/motion-2026-10/frame.md §6): after ↶, ↷ or a kept
+ * `pdf-editor:history-applied` (docs/design/motion-2026-10/frame.md §6): after ↶, ↷ or a kept
  * History scrubber jump has brought the change into view, the window receives this event with
  * what the step touched, so the lane that draws an object can flash it, and the user sees
  * exactly what changed.
@@ -27,7 +27,7 @@ import type {
 import { duration, EASE, RING_FLASH, reducedMotion, ringFlash } from '../motion';
 
 /** The event's name. */
-export const HISTORY_APPLIED = 'recto:history-applied';
+export const HISTORY_APPLIED = 'pdf-editor:history-applied';
 
 /** What a history step touched, as the event carries it. */
 export interface HistoryAppliedDetail {
@@ -93,7 +93,7 @@ export function changedBetween(
 }
 
 /**
- * Dispatches `recto:history-applied` with `detail`. Returns false when a listener took the
+ * Dispatches `pdf-editor:history-applied` with `detail`. Returns false when a listener took the
  * flash over (`preventDefault()`).
  */
 export function dispatchHistoryApplied(detail: HistoryAppliedDetail): boolean {

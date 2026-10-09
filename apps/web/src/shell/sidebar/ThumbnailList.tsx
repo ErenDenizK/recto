@@ -76,7 +76,7 @@ import { ThumbnailMenu, type ThumbnailMenuRequest } from './ThumbnailMenu';
 import { dropIndexAt, gapOffset, rowOffsets, thumbnailBox } from './thumbnail-layout';
 
 /** What the history dispatches once a step is in view (history/history-applied.ts). */
-const HISTORY_APPLIED = 'recto:history-applied';
+const HISTORY_APPLIED = 'pdf-editor:history-applied';
 /** Arrow keys move the page view after this pause, so a held key does not render every page. */
 const KEY_SCROLL_DELAY_MS = 150;
 /** The Lock notice at a refused row stays this long. */
@@ -204,7 +204,7 @@ function PageList({
     };
   }, [scrollRef]);
 
-  // Undo and redo (`recto:history-applied`, motion-2026-10 frame.md §6, viewer.md §8): the
+  // Undo and redo (`pdf-editor:history-applied`, motion-2026-10 frame.md §6, viewer.md §8): the
   // thumbnails of the pages a step changed flash the undo reveal's ring, beside the page's own
   // flash on the stage (the default, which this leaves alone).
   useEffect(() => {
