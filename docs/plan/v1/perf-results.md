@@ -141,7 +141,7 @@ per build per round.
 Rounds 3 and 4 together: before 1,026 ms, after 679 ms (median of 10), **−34 %**; in the quiet
 round 4 the open is 565 ms, inside the 600 ms target, and −41 %.
 
-Where the final open's time goes (round 4, the `recto:*` marks, ms after `change`):
+Where the final open's time goes (round 4, the `pdf-editor.startup.*` marks, ms after `change`):
 
 | Mark | ms |
 |---|---|

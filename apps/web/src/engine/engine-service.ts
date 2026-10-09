@@ -1450,7 +1450,7 @@ function readShapes(document: OpenedDocument): readonly PageShape[] {
 
 /**
  * The start-up marks (docs/plan/v1/PLAN.md W1-g, PF-2 and PF-4; perf-audit.md item 2), as
- * `recto:<name>` `performance` marks, each recorded once per session: the engine requested (the
+ * `pdf-editor.startup.<name>` `performance` marks, each recorded once per session: the engine requested (the
  * first open; the wasm download starts here), the PDFium worker configured (its proxy made from
  * the client chunk; the configuration is posted as soon as the wasm is compiled), the wasm
  * compiled and the worker running on it, the document opened, and the first page's bitmap.
@@ -1470,7 +1470,7 @@ function startupMark(name: (typeof STARTUP_MARKS)[number]): void {
   if (marked.has(name) || typeof performance?.mark !== 'function') return;
   marked.add(name);
   try {
-    performance.mark(`recto:${name}`);
+    performance.mark(`pdf-editor.startup.${name}`);
   } catch {
     // Timing is best effort.
   }

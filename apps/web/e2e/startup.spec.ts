@@ -6,7 +6,7 @@
  *   the file input's `change` event to the first `main canvas[data-state="rendered"]`, both
  *   on the page's clock.
  * - **V1-P10:** Save a copy of a 100-page document: from Download copy to the copy's toast.
- * - **Phases** of an open (W1-g, PF-2 and PF-4): the engine service's `recto:*` start-up marks
+ * - **Phases** of an open (W1-g, PF-2 and PF-4): the engine service's `pdf-editor.startup.*` start-up marks
  *   (`STARTUP_MARKS`: engine requested, PDFium worker configured, wasm compiled, document
  *   opened, first page's bitmap), each in ms after the input's `change`, reported beside the
  *   open time so a regression shows where it is.
@@ -66,7 +66,7 @@ async function generate(sources: readonly PDFDocument[], count: number): Promise
 interface OpenTiming {
   /** ms from the input's change to the first rendered page. */
   readonly total: number;
-  /** The `recto:*` start-up marks, ms after the change (absent when not reached). */
+  /** The `pdf-editor.startup.*` start-up marks, ms after the change (absent when not reached). */
   readonly phases: Readonly<Record<string, number>>;
 }
 
@@ -85,8 +85,8 @@ async function openAndTime(page: Page, name: string, buffer: Buffer): Promise<Op
             observer.disconnect();
             const phases: Record<string, number> = {};
             for (const mark of performance.getEntriesByType('mark')) {
-              if (mark.name.startsWith('recto:')) {
-                phases[mark.name.slice('recto:'.length)] = Math.round(mark.startTime - start);
+              if (mark.name.startsWith('pdf-editor.startup.')) {
+                phases[mark.name.slice('pdf-editor.startup.'.length)] = Math.round(mark.startTime - start);
               }
             }
             resolve({ total: performance.now() - start, phases });
