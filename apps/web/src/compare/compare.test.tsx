@@ -347,8 +347,9 @@ describe('compare-a.pdf against compare-b.pdf', () => {
     await startCompare();
     render(<ChangesPanel />);
     const panel = await screen.findByTestId('changes-panel');
-    const report = within(panel).getByRole('button', { name: 'Export report' });
-    expect(report).toBeEnabled();
+    // Queried each time: a disabled ui/Button gains its reason's tooltip, a new element.
+    const report = () => within(panel).getByRole('button', { name: /^Export report/ });
+    expect(report()).toBeEnabled();
     expect(enabled('compare.exportReport')).toBe(true);
     expect(within(panel).queryByTestId('changes-stale')).toBeNull();
 
@@ -362,7 +363,8 @@ describe('compare-a.pdf against compare-b.pdf', () => {
     expect(useAnnouncer.getState().message).toMatch(/^The documents changed since this comparison/);
     expect(notice).not.toHaveAttribute('role');
     expect(within(notice).getByRole('button', { name: 'Run again' })).toBeVisible();
-    expect(report).toBeDisabled();
+    // Disabled stays focusable (ui/Button), so it reads as aria-disabled.
+    expect(report()).toHaveAttribute('aria-disabled', 'true');
     expect(enabled('compare.exportReport')).toBe(false);
     // The list stays (it describes the compared documents) and so does its text export.
     expect(enabled('compare.exportChanges')).toBe(true);
@@ -370,7 +372,7 @@ describe('compare-a.pdf against compare-b.pdf', () => {
     // Undo: the documents are what was compared again.
     useWorkspaceStore.getState().undo();
     await waitFor(() => expect(within(panel).queryByTestId('changes-stale')).toBeNull());
-    expect(report).toBeEnabled();
+    expect(report()).not.toHaveAttribute('aria-disabled', 'true');
 
     // Run again from the notice compares the documents as they are now.
     const before = useCompareStore.getState().result;

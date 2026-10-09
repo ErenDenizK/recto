@@ -15,27 +15,44 @@
   padding: var(--space-6) var(--space-4) var(--space-12);
 }
 
+/* The setup card: the sheet grammar (system-audit-2026-10 §3.6.1) on a docked, opaque card,
+   radius 20 like a sheet, with its padding, so its grouped lists (ui/sheet/SheetGroup) sit at
+   the group inset, concentric with it. */
 .card {
   display: grid;
-  gap: var(--space-4);
-  width: min(620px, 100%);
-  padding: var(--space-6);
+  gap: var(--space-6);
+  width: min(560px, 100%);
+  box-sizing: border-box;
+  padding: var(--sheet-pad);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-md);
+  border-radius: var(--sheet-radius);
   background: var(--surface-frame);
 }
 
-.cardTitle {
-  color: var(--text-primary);
-  font-size: var(--type-callout);
-  font-weight: 500;
-  letter-spacing: var(--tracking-display);
+.cardHeader {
+  display: grid;
+  gap: var(--space-1);
 }
 
-.presets3 {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-2);
+.cardTitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-title3);
+  font-weight: 600;
+  line-height: var(--type-title3-lh);
+}
+
+.cardBody {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+}
+
+/* The drop row inside the Documents group: the whole row is the drop target, dashed while a
+   file is over it (design audit J6). */
+.dropRow {
+  padding: 0;
 }
 
 .dropZone {
@@ -43,13 +60,15 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  /* Dashed, like every file-drop target (design audit J6). */
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-sm);
+  gap: var(--space-2) var(--space-3);
+  min-height: var(--sheet-row-h);
+  box-sizing: border-box;
+  padding: var(--space-1h) var(--sheet-row-pad);
+  border: 1px dashed transparent;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .dropZone[data-active] {
@@ -57,21 +76,17 @@
   background: var(--accent-subtle);
 }
 
-.buttonIcon {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  margin-right: var(--space-2);
-  stroke-width: 1.5;
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
-/* An honesty notice: one recipe, a warning hairline, no tint (DESIGN.md §3). */
-.note {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 /* Results --------------------------------------------------------------------------- */
@@ -86,55 +101,37 @@
 
 .strip {
   overflow-x: auto;
-  padding: 2px 0;
+  padding: var(--space-half) 0;
 }
 
 .stripList {
   display: flex;
   justify-content: safe center;
-  gap: 2px;
+  gap: var(--space-half);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* A page pair: an S icon button (ui/IconButton) carrying its sign (+, −, ~, =; never colour
+   alone). Pairs that differ read in the primary colour on a hairline ring; the pair in view
+   takes the current-row wash. */
 .stripCell {
   composes: technical from global;
-  composes: focus-inset from global;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 24px;
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xs);
-  background: var(--surface-frame);
   color: var(--text-tertiary);
-  font-size: var(--type-caption);
+  font-size: var(--type-footnote);
   line-height: 1;
 }
 
-.stripCell[data-status='changed'],
-.stripCell[data-status='inserted'],
-.stripCell[data-status='deleted'] {
-  border-color: var(--border-strong);
+.stripCell:is([data-status='changed'], [data-status='inserted'], [data-status='deleted']) {
+  --shadow-own: inset 0 0 0 1px var(--border-strong);
+  box-shadow: var(--shadow-own);
   color: var(--text-primary);
-}
-
-.stripCell[data-status='inserted'],
-.stripCell[data-status='deleted'] {
-  background: var(--surface-on);
 }
 
 .stripCell[aria-current='true'] {
   background: var(--accent-muted);
   color: var(--text-primary);
-}
-
-@media (hover: hover) {
-  .stripCell:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
 }
 
 .viewport {
@@ -253,7 +250,7 @@
    spec 06.Q3); the current change's areas get the stronger line. */
 .region {
   box-shadow: 0 0 0 1px var(--select-wash-strong);
-  border-radius: 1px;
+  border-radius: var(--radius-page);
 }
 
 .region[data-current] {
@@ -292,12 +289,12 @@
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-half);
   width: max-content;
   max-width: calc(100% - 2 * var(--space-4));
   margin-inline: auto;
   /* --bar-h around --control-h controls (quality-bar Q-9): one piece, 40 / 48 px (G1). */
-  padding: calc((var(--bar-h) - var(--control-h) - 2px) / 2);
+  padding: var(--piece-pad);
   overflow-x: auto;
   border-radius: var(--radius-capsule);
 }
@@ -311,41 +308,7 @@
 }
 
 .segments {
-  display: inline-flex;
   flex: none;
-  gap: 2px;
-}
-
-.segment {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: var(--control-h);
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-capsule);
-  color: var(--text-secondary);
-  font-size: var(--control-text);
-  line-height: var(--control-lh);
-  white-space: nowrap;
-}
-
-.segmentIcon {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  stroke-width: 1.5;
-}
-
-@media (hover: hover) {
-  .segment:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
-/* An option choice on the bar: accent-muted, no accent border (DESIGN.md §3). */
-.segment[aria-checked='true'] {
-  background: var(--accent-muted);
-  color: var(--text-primary);
 }
 
 .slider {
@@ -364,10 +327,6 @@
   text-align: center;
 }
 
-.glassButton {
-  composes: btn btn-quiet from global;
-}
-
 .progress {
   composes: mat mat-bar s10 from global;
   position: absolute;
@@ -382,7 +341,7 @@
   width: min(420px, calc(100% - 2 * var(--space-4)));
   margin-inline: auto;
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 
 .progress[data-centred] {
@@ -406,18 +365,12 @@
   grid-row: 1 / span 2;
 }
 
-@media (max-width: 640px) {
-  .presets3 {
-    grid-template-columns: 1fr;
-  }
-}
-
 .bar {
   position: relative;
   display: flex;
   align-items: center;
   flex: none;
-  min-height: 36px;
+  min-height: var(--control-h);
   padding: 0 var(--space-4) var(--space-2);
   border-bottom: 1px solid var(--border-hairline);
 }
@@ -427,7 +380,7 @@
   min-width: 0;
 }
 
-/* The result is out of date: the honesty-notice recipe (warning hairline, no tint). */
+/* The result is out of date: the honesty notice (ui/Notice) and Run again beside it. */
 .stale {
   display: flex;
   flex-wrap: wrap;
@@ -435,25 +388,13 @@
   gap: var(--space-2) var(--space-3);
   flex: none;
   margin: var(--space-2) var(--space-4) 0;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--leading-base);
+}
+
+.staleNotice {
+  flex: 1 1 240px;
 }
 
 .newButton {
   flex: none;
   margin-left: auto;
-}
-
-.fileButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.fileButton .buttonIcon {
-  margin-right: 0;
 }
