@@ -25,6 +25,10 @@
  * caller's lease the moment it exists, and only that lease's `release()` lifts it. The
  * protections are reference counts, so one operation finishing never unprotects what
  * another one is still preparing.
+ *
+ * Lock (ADR-0030 §2.5, PLAN D1-3): `commit()` refuses any change to a locked document
+ * (`lock-check.ts`), and `replacePresent` likewise; Undo, Redo, History jumps and a session
+ * restore (`replaceHistory`) move between recorded states and never ask.
  */
 import {
   addSource,
@@ -61,6 +65,7 @@ import { create } from 'zustand';
 
 import { type EngineFailure, getEngineService, type OpenedSource } from '../engine/engine-service';
 import { m } from '../i18n';
+import { lockedChange, reportLockRefusal } from './lock-check';
 import { lockOpened } from './lock-store';
 
 /** Number of source colour tags in tokens.css (`--tag-0` … `--tag-5`). */
@@ -194,7 +199,8 @@ interface WorkspaceState {
    * Commits any model operation (or a composition of several) as one labelled history
    * entry. The operation receives the store's id generator for new pages and documents.
    * A label function is called after the operation ran, for labels that depend on the
-   * outcome. Returns false when the operation threw or changed nothing.
+   * outcome. Returns false when the operation threw or changed nothing, and when it would
+   * change a locked document (ADR-0030 §2.5).
    */
   applyOperation: (
     operation: (ws: Workspace, ids: IdGenerator) => Workspace,
@@ -360,7 +366,10 @@ export function blobsOfDocument(doc: VirtualDocument): readonly BlobId[] {
 }
 
 export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
-  /** Applies a model operation; model misuse is reported, never thrown into the UI. */
+  /**
+   * Applies a model operation; model misuse is reported, never thrown into the UI. Every
+   * change passes here, so Lock is enforced here (`lock-check.ts`, ADR-0030 §2.5).
+   */
   const commit = (
     operation: (ws: Workspace) => Workspace,
     label: string,
@@ -376,6 +385,13 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
       return false;
     }
     if (next === workspace) return false;
+    // Lock holds here, whatever asked (ADR-0030 §2.5; X11, X12): a change to a locked
+    // document is refused, reported and, in development, logged with the asking site.
+    const refused = lockedChange(workspace, next);
+    if (refused !== undefined) {
+      reportLockRefusal(refused, label);
+      return false;
+    }
     // Where the step happened, for ↶ ↷, the History scrubber and the undo reveal (X10).
     const meta = historyMetaOf(workspace, next);
     const pushed = pushHistory(history, next, label, {
@@ -411,10 +427,18 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
     return next ?? documentColors;
   };
 
-  /** Replaces the present snapshot without an undo step (tab activation). */
+  /**
+   * Replaces the present snapshot without an undo step (tab activation, tab order). It may
+   * change no locked document either (ADR-0030 §2.5).
+   */
   const replacePresent = (next: Workspace): void => {
     const { history, workspace } = get();
     if (next === workspace) return;
+    const refused = lockedChange(workspace, next);
+    if (refused !== undefined) {
+      reportLockRefusal(refused, 'replacePresent');
+      return;
+    }
     set({
       history: { ...history, present: { ...history.present, workspace: next } },
       workspace: next,
