@@ -8,7 +8,8 @@
 .preview {
   position: relative;
   opacity: 0.9;
-  transform: scale(0.96);
+  /* Lifted off the table (docs/design/motion-2026-10/pages.md): a little larger than its cell. */
+  transform: scale(1.04);
   transform-origin: top left;
 }
 
@@ -31,6 +32,18 @@
 
 .previewFace {
   overflow: hidden;
+}
+
+/* The pointer path's lifted page (stage/grid/lift.ts): fully opaque, with the deeper shadow of a
+   page held above the table. Its scale and lean are written by the lift's spring. */
+.preview[data-lifted] {
+  opacity: 1;
+}
+
+.preview[data-lifted] .previewFace {
+  box-shadow:
+    0 0 0 1px var(--plate-ring),
+    var(--e4);
 }
 
 .previewFace canvas {
