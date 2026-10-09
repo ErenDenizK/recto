@@ -78,4 +78,30 @@ describe('useTablistEdges', () => {
     expect(tab.left).toBeGreaterThanOrEqual(list.left + 24 - 1);
     expect(tab.right).toBeLessThanOrEqual(list.right - 24 + 1);
   });
+
+  it('clears an edge marked while a slide stretched the overflow once the slide ends', async () => {
+    // The active fill sliding in from where the last tab was drawn (tab-motion.ts) reaches past
+    // the end for a while; its end changes no size and no node, so nothing else reads again.
+    render(<List width={200} count={1} active={0} />);
+    await frames(2);
+    const list = screen.getByRole('tablist');
+    const fill = document.createElement('span');
+    fill.style.flex = 'none';
+    fill.style.width = '20px';
+    list.append(fill);
+    await frames(2);
+    const slide = fill.animate([{ transform: 'translateX(300px)' }, { transform: 'none' }], {
+      duration: 300,
+    });
+    await frames(1);
+    // A tab's name changing mid-slide reads the edges while the overflow is stretched.
+    screen.getByRole('tab', { name: 'tab 0' }).append(' renamed');
+    await frames(1);
+    expect(list.scrollWidth).toBeGreaterThan(list.clientWidth);
+    expect(list.hasAttribute('data-more-end')).toBe(true);
+    await slide.finished;
+    await frames(3);
+    expect(list.scrollWidth).toBe(list.clientWidth);
+    expect(list.hasAttribute('data-more-end')).toBe(false);
+  });
 });

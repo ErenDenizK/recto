@@ -6,6 +6,12 @@
  * cutting a name), and keeps the active tab in view when the window or the tabs change size
  * (a tablet turned to portrait). Until D2's "N more" overflow menu (01-frame F4 §2) replaces
  * scrolling, this is the strip's overflow.
+ *
+ * Motion inside the list widens its scrollable overflow for a while without a resize or a DOM
+ * change: the active tab's fill sliding by `transform` from where the last one was drawn
+ * (tab-motion.ts) reaches past the list's end as tabs move into "N more". The edges are read
+ * again once every finite animation in the list has finished, so a fade marked mid-slide does
+ * not stay on a list that no longer scrolls.
  */
 import { useCallback } from 'react';
 
@@ -35,11 +41,35 @@ function revealActive(list: HTMLElement): void {
   else if (box.right > view.right - fade) list.scrollLeft += box.right - (view.right - fade);
 }
 
+/** The finite animations running in `list`'s subtree (an endless one never settles). */
+function moving(list: HTMLElement): Animation[] {
+  return list
+    .getAnimations({ subtree: true })
+    .filter(
+      (a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming().endTime),
+    );
+}
+
 /** A ref callback for the `tablist`: wires the edge marks and the resize reveal. */
 export function useTablistEdges(): (list: HTMLElement | null) => (() => void) | undefined {
   return useCallback((list: HTMLElement | null) => {
     if (!list) return undefined;
-    const update = () => markEdges(list);
+    let live = true;
+    let waiting = false;
+    const update = () => {
+      markEdges(list);
+      // Read the edges again when the motion that may stretch the overflow has finished, a
+      // frame on, after its own finish handler has left the element at rest.
+      const running = moving(list);
+      if (waiting || running.length === 0) return;
+      waiting = true;
+      void Promise.all(running.map((a) => a.finished.catch(() => undefined))).then(() =>
+        requestAnimationFrame(() => {
+          waiting = false;
+          if (live) update();
+        }),
+      );
+    };
     const onResize = () => {
       revealActive(list);
       update();
@@ -52,6 +82,7 @@ export function useTablistEdges(): (list: HTMLElement | null) => (() => void) | 
     list.addEventListener('scroll', update, { passive: true });
     update();
     return () => {
+      live = false;
       resize.disconnect();
       mutation.disconnect();
       list.removeEventListener('scroll', update);

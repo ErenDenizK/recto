@@ -44,6 +44,39 @@ export async function openFixtures(page: Page, names: readonly string[]): Promis
 }
 
 /**
+ * Waits until `target` has come to rest: for two frames in a row no finite animation runs on
+ * it, in its subtree or on an ancestor, and it is not following its content's width
+ * (`data-resizing`, motion/resize.ts). A top piece grows in on `smooth` as a tab opens (tab-motion.ts),
+ * so a box read straight after a tab appears is a frame of that growth, not where it rests.
+ */
+export async function atRest(target: Locator): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        target.evaluate(async (el) => {
+          const still = () => {
+            const all = [...el.getAnimations({ subtree: true })];
+            for (let up = el.parentElement; up; up = up.parentElement) {
+              all.push(...up.getAnimations());
+            }
+            const moving = all.some(
+              (a) =>
+                a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming().endTime),
+            );
+            return !moving && el.closest('[data-resizing]') === null;
+          };
+          for (let i = 0; i < 2; i++) {
+            if (!still()) return false;
+            await new Promise((r) => requestAnimationFrame(r));
+          }
+          return still();
+        }),
+      { timeout: 5_000 },
+    )
+    .toBe(true);
+}
+
+/**
  * Call before the first `page.goto`: records the per-point widths of every ink annotation
  * the app sends to the PDFium worker (the create's payload), so a test can read what was
  * committed without a hook in the production build. Read them with `sentInkWidths`.
