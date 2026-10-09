@@ -105,7 +105,9 @@ import { pageIndexes, type ShownSection, useShownSections } from './arrange-data
 import { ArrangeContextMenuPopup } from './ArrangeContextMenu';
 import { ArrangeSection } from './ArrangeSection';
 import styles from './ArrangeView.module.css';
-import { FlipCells } from './grid/flip-cells';
+import { noteDropOrigin, rippleSelection } from './grid/cell-motion';
+import { FlipCells, playCells } from './grid/flip-cells';
+import { attachMakeWay } from './grid/make-way';
 import { GridLockNotice } from './grid/grid-lock-notice';
 import { attachGridPointerDrag } from './grid/grid-pointer-drag';
 import { leaveGrid, takeGridReveal } from './grid/grid-transition';
@@ -508,6 +510,27 @@ function LightTable({
   });
 
   useEffect(() => provideArrangeColumns(() => stateRef.current.metrics.columns), []);
+  // The selection ripple (grid/cell-motion.ts): pages that join the selection take their check
+  // badge in reading order, outward from the range's anchor, so a range runs across the cells.
+  useEffect(
+    () =>
+      useSelectionStore.subscribe((next, previous) => {
+        if (next.selected === previous.selected || !tableRef.current) return;
+        const added = [...next.selected].filter((id) => !previous.selected.has(id));
+        if (added.length === 0) return;
+        const order = new Map<PageId, number>();
+        for (const section of stateRef.current.sections) {
+          for (const page of section.doc.pages) order.set(page.id, order.size);
+        }
+        const from = order.get(next.anchor ?? (added[0] as PageId)) ?? 0;
+        const rank = (id: PageId) => Math.abs((order.get(id) ?? 0) - from);
+        rippleSelection(
+          added.sort((a, b) => rank(a) - rank(b)),
+          tableRef.current,
+        );
+      }),
+    [],
+  );
   // Select holds only inside the grid: leaving it ends the mode (the selection itself stays).
   useEffect(() => () => useSelectionStore.getState().setSelecting(false), []);
 
@@ -620,12 +643,28 @@ function LightTable({
           if (!isPageDrag(data) || highlight.kind === 'background') return;
           const index = insertionIndex(highlight);
           if (index === undefined) return;
-          transferPages({
+          // The pages settle from under the pointer, where the drag image was
+          // (grid/cell-motion.ts): the source cell's box, its page centred on the pointer. A
+          // copy (Alt) leaves them in place and grows the copies in where they land.
+          const { clientX, clientY, altKey } = location.current.input;
+          const cell = source.element.getBoundingClientRect();
+          const sheet = source.element.querySelector('[data-thumb]')?.getBoundingClientRect();
+          if (!altKey && sheet && cell.width > 0) {
+            const dx = clientX - (sheet.left + sheet.width / 2);
+            const dy = clientY - (sheet.top + sheet.height / 2);
+            noteDropOrigin(
+              data.pageIds,
+              new DOMRect(cell.left + dx, cell.top + dy, cell.width, cell.height),
+            );
+          }
+          const moved = transferPages({
             pageIds: data.pageIds,
             target: { document: highlight.section, index },
-            duplicate: location.current.input.altKey,
+            duplicate: altKey,
             select: false,
           });
+          // Dropped where it was: nothing reflows, so the page settles back from the pointer.
+          if (moved === undefined && tableRef.current) playCells(tableRef.current, new Map());
         },
       }),
       monitorForExternal({
@@ -671,6 +710,19 @@ function LightTable({
     if (!table || !viewport) return;
     return attachGridPointerDrag(table, viewport, () => stateRef.current);
   }, [viewportRef]);
+
+  // The cells beside the insertion bar step apart while a page is over the gap (make-way.ts).
+  useEffect(() => {
+    const table = tableRef.current;
+    if (!table) return;
+    return attachMakeWay(table, () => ({
+      columns: stateRef.current.metrics.columns,
+      pages: (id) =>
+        stateRef.current.sections
+          .find((section) => section.doc.id === id)
+          ?.doc.pages.map((p) => p.id),
+    }));
+  }, []);
 
   // ------------------------------------------------------------------ focus
   // Keep DOM focus on the focused cell while the table has focus (roving tabindex).

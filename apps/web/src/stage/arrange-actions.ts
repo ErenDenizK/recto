@@ -25,6 +25,7 @@ import { announce } from '../shell/announcer';
 import { type PageClipboard, useSelectionStore } from '../state/selection-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
+import { flyToTab, snapshotSheets } from './grid/cell-motion';
 
 const model = () => useWorkspaceStore.getState();
 const selection = () => useSelectionStore.getState();
@@ -244,7 +245,8 @@ export function movePagesToDocument(documentId: DocumentId): boolean {
  * (no change to it: allowed on a locked document, flows §2.6); without it they move (a `pages`
  * act on the source). The model's `splitDocument` only splits one document into contiguous
  * parts, so this is `newEmptyDocument` + `movePages` (or `duplicatePages`). One history entry.
- * Returns the new document.
+ * The pages shown in the grid fly into the new tab, which takes a *receive* bounce
+ * (`flyToTab`, docs/design/motion-2026-10/pages.md). Returns the new document.
  */
 export function extractPages(
   options: {
@@ -262,6 +264,8 @@ export function extractPages(
   let created: DocumentId | undefined;
   const title = options.title ?? m.extract_document_title({ title: source.title });
   const keep = options.keep === true;
+  // The pages on screen fly to the new tab once it is drawn (grid/cell-motion.ts).
+  const shots = snapshotSheets(pageIds);
   const committed = model().applyOperation(
     (current, ids) => {
       const { workspace, documentId } = newEmptyDocument(current, ids, {
@@ -281,6 +285,7 @@ export function extractPages(
   if (!committed || created === undefined) return undefined;
   const placed = model().workspace.documents[created]?.pages.map((p) => p.id) ?? [];
   select(placed);
+  flyToTab(shots, created);
   announce(
     keep
       ? m.announce_copied_to_new({ pages: pagesPhrase(pageIds.length), title })

@@ -13,6 +13,7 @@
  *   gap form outside the cell, on keyboard focus only (ArrangeView.module.css).
  * - **No hover actions** (06.10, baseline V10): their 20 px rotate and delete failed touch and
  *   A-15; the Pages bar and the cell menu carry them.
+ * - **Rotate** turns the page on a spring through its quarter turn (`grid/rotate-motion.ts`).
  * - The mouse drags on the native path (`dnd/page-drag.ts`); touch and pen on the grid's
  *   pointer path after a lift (`grid/grid-pointer-drag.ts`).
  */
@@ -23,6 +24,7 @@ import {
   type ProfilerOnRenderCallback,
   type ReactNode,
   useEffect,
+  useLayoutEffect,
   useRef,
 } from 'react';
 
@@ -39,6 +41,7 @@ import { CheckBadge } from '../ui/CheckBadge';
 import { Icon } from '../ui/Icon';
 import styles from './ArrangeView.module.css';
 import { showGridLockNotice } from './grid/grid-lock-notice';
+import { spinSheet, turnBetween } from './grid/rotate-motion';
 import { ResizedContent } from './ResizedContent';
 
 export interface PageCellProps {
@@ -151,6 +154,18 @@ function PageCellInner({
     (s) => s.clipboard?.mode === 'cut' && s.clipboard.pageIds.includes(pageId),
   );
   const dragging = useDragSession((s) => s.session?.pageIds.has(pageId) ?? false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const shown = useRef({ rotation, width: thumbWidth, height: thumbHeight });
+
+  // Rotate turns the page on a spring (grid/rotate-motion.ts): before paint, while the canvas
+  // still holds the old bitmap (PageCanvas clears it in its passive effect).
+  useLayoutEffect(() => {
+    const was = shown.current;
+    shown.current = { rotation, width: thumbWidth, height: thumbHeight };
+    if (was.rotation !== rotation && sheetRef.current) {
+      spinSheet(sheetRef.current, turnBetween(was.rotation, rotation), was);
+    }
+  }, [rotation, thumbWidth, thumbHeight]);
 
   useEffect(() => {
     const el = ref.current;
@@ -209,6 +224,7 @@ function PageCellInner({
       ) : null}
       <div className={styles.box} style={{ height: boxHeight }}>
         <div
+          ref={sheetRef}
           className={styles.thumbSheet}
           data-thumb=""
           style={{ width: thumbWidth, height: thumbHeight }}
