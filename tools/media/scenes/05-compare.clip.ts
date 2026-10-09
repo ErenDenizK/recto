@@ -74,7 +74,9 @@ scene({
     // 4. The onion skin: B over A.
     const overlay = page.getByRole('radio', { name: 'Overlay' });
     await cursor.click(overlay, 420);
-    await expect(overlay).toBeChecked();
+    // The opacity slider joins the bar, which no longer has room for both segments: the
+    // control folds into a select (ui/Segmented `layout`), so the choice is read from that.
+    await expect(page.getByRole('combobox', { name: 'Layout' })).toContainText('Overlay');
     await stage.rendered(view, 1);
     // Off the compare bar into the gutter right of the page, so the poster shows the bar
     // and the paragraph with no pointer or hover on them.

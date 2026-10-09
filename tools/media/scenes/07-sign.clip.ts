@@ -37,10 +37,9 @@ scene({
     await page.getByTestId('document-menu').click();
     await page.getByRole('menuitem', { name: 'Sign with certificate…' }).click();
     const sign = page.getByTestId('sign-dialog');
-    await sign
-      .getByLabel('Certificate file (.p12 or .pfx)')
-      .setInputFiles(fixturePath(CERTIFICATE));
-    await sign.getByLabel('Password').fill('test-only');
+    // The sheet's Choose… button sits over a hidden file input (Q-14); the scene fills the input.
+    await sign.getByTestId('certificate-file').setInputFiles(fixturePath(CERTIFICATE));
+    await sign.getByLabel('Password', { exact: true }).fill('test-only');
     await sign.getByRole('button', { name: 'Check certificate' }).click();
     await expect(sign.getByTestId('signer-name')).toHaveText(SIGNER, { timeout: 20_000 });
     // The dialog is taller than the window: show the signer and the way on.
