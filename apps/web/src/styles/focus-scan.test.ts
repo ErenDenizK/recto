@@ -39,6 +39,8 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   },
   'forms/FormLayer.module.css': {
     '.editor:focus-visible': 'in-place field editor: its border and the caret',
+    '.layer .target[data-active]:focus-visible':
+      'the active field ring (FieldRing) slides to it and takes the focus colours',
   },
   'forms/create/CreatedFields.module.css': {
     '.layer:focus-visible:not([data-placing])':
