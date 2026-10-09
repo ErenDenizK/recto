@@ -119,6 +119,53 @@ export function sourceReferences(ws: Workspace, sourceId: SourceId): SourceRefer
   return out;
 }
 
+const shownCache = new WeakMap<VirtualDocument, ReadonlyMap<SourceId, ReadonlySet<number>>>();
+
+/**
+ * The source pages a document shows: per source, the page indices its pages reference (image
+ * pages show none). Lock's engine-edit check and its shared-page message read it (redesign
+ * spec §7, X11; ADR-0030 §2.5). Memoized on the document object.
+ */
+export function sourcePagesShownBy(
+  ws: Workspace,
+  id: DocumentId,
+): ReadonlyMap<SourceId, ReadonlySet<number>> {
+  const doc = lookup(ws.documents, id);
+  if (doc === undefined) return new Map();
+  let shown = shownCache.get(doc);
+  if (shown === undefined) {
+    const map = new Map<SourceId, Set<number>>();
+    for (const page of doc.pages) {
+      if (page.ref.kind !== 'source') continue;
+      let pages = map.get(page.ref.source);
+      if (pages === undefined) {
+        pages = new Set();
+        map.set(page.ref.source, pages);
+      }
+      pages.add(page.ref.index);
+    }
+    shown = map;
+    shownCache.set(doc, shown);
+  }
+  return shown;
+}
+
+/**
+ * Documents that show page `pageIndex` of `sourceId` (any of its pages when `pageIndex` is
+ * undefined), in tab order. After Combine with kept sources several documents share a source
+ * page, and an engine edit there changes it in every one of them (X11).
+ */
+export function documentsSharingSource(
+  ws: Workspace,
+  sourceId: SourceId,
+  pageIndex?: number,
+): DocumentId[] {
+  return ws.documentOrder.filter((id) => {
+    const pages = sourcePagesShownBy(ws, id).get(sourceId);
+    return pages !== undefined && (pageIndex === undefined || pages.has(pageIndex));
+  });
+}
+
 export function isSourceReferenced(ws: Workspace, sourceId: SourceId): boolean {
   return Object.values<VirtualDocument>(ws.documents).some((doc) =>
     doc.pages.some((page) => page.ref.kind === 'source' && page.ref.source === sourceId),
