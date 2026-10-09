@@ -1143,6 +1143,27 @@
   ],
   "summary_tags_removed": "Accessibility tags removed: they could not stay intact, so the output is not tagged.",
   "summary_xfa_removed": "XFA form data removed; the regular form fields are kept.",
+  "summary_warning_annotations_cut": [
+    {
+      "declarations": ["input count", "input countText", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countText} annotation fell outside a resized page (cut off by the new size) and is not visible.",
+        "countPlural=*": "{countText} annotations fell outside resized pages (cut off by the new size) and are not visible."
+      }
+    }
+  ],
+  "summary_warning_aes_version": "AES-256 encryption needs PDF 1.7 extension level 3 or later, so the file’s PDF version was raised.",
+  "summary_warning_duplicated_page_fields": "Form fields on duplicated pages were kept on the first copy only.",
+  "summary_warning_overlay_font": "Header, footer, page number or watermark text uses characters the standard {family} font cannot show; a bundled font was embedded instead.",
+  "summary_warning_overlay_blank": "Some header, footer, page number or watermark characters are not in the bundled fonts and were left blank.",
+  "summary_warning_outline_headings": "Bookmarks whose page was removed were kept as headings for the bookmarks under them.",
+  "summary_warning_fields_renamed_types": "Some fields with the same name are of different types, so they were renamed instead of joined.",
+  "summary_warning_form_fonts_merged": "Form fonts with the same name in several files were merged; the first file’s font is used.",
+  "summary_warning_created_fields_left_out": "Some form fields you created are on pages that are not in this copy, so they were left out.",
+  "summary_warning_field_font": "Some form field text uses characters Helvetica cannot show; its appearance uses a bundled font.",
+  "summary_warning_creation_date": "The creation date “{value}” is not a valid date, so it was not written.",
+  "summary_warning_modification_date": "The modification date “{value}” is not a valid date, so it was not written.",
   "summary_security_removed": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
