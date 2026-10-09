@@ -17,7 +17,10 @@
  *    pseudo-element, so it follows any radius, never scrolls with a menu's rows and keeps every
  *    surface's box as `.glass` drew it), the edge, the inner light and the shadow as
  *    `--shadow-own` (the focus ring adds its bands to it). Lit glass (§2.5) has no border: its
- *    rim is the masked `::before` gradient that its cards had.
+ *    rim is the masked `::before` gradient that its cards had. The light is a hairline specular
+ *    edge, never a band (owner feedback 2026-10-09, G4): the inner light is half a pixel
+ *    (`--rim-inner*`, one device pixel on a 2× screen), and lit glass turns its rim from the lit
+ *    top to the hairline within 8 px of each end instead of over a third of its height.
  * 3. **The tint and the text,** where `backdrop-filter` exists and the Glass setting is not
  *    Solid: the tint, and secondary, tertiary, disabled and danger text on their glass steps.
  * 4. **σ,** one rule per tier × σ the registry uses: `-webkit-backdrop-filter` and
@@ -175,7 +178,7 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
       'inset: 0;',
       'padding: 1px;',
       'border-radius: inherit;',
-      'background: linear-gradient(180deg, var(--rim-top), var(--border-hairline) 35%, var(--rim-bottom));',
+      'background: linear-gradient(180deg, var(--rim-top), var(--border-hairline) 8px, var(--border-hairline) calc(100% - 8px), var(--rim-bottom));',
       '-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);',
       '-webkit-mask-composite: xor;',
       'mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);',

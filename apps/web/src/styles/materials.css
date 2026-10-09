@@ -97,7 +97,8 @@
   background: linear-gradient(
     180deg,
     var(--rim-top),
-    var(--border-hairline) 35%,
+    var(--border-hairline) 8px,
+    var(--border-hairline) calc(100% - 8px),
     var(--rim-bottom)
   );
   -webkit-mask:

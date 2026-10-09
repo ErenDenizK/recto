@@ -245,17 +245,17 @@
   --rim-edge: 0 0 0 1px rgb(0 0 0 / 0.5);
   --rim-top: rgb(var(--white-rgb) / 0.34);
   --rim-bottom: rgb(var(--white-rgb) / 0.14);
-  --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.12);
+  --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.12);
   /* The denser tiers' rims (§2.4): menus a 0.60 edge and a 0.30 / 0.10 rim, sheets and the
      floating panel 0.24 / 0.08; docked M3 only an inner light of 0.06 under its hairline. */
   --rim-edge-strong: 0 0 0 1px rgb(0 0 0 / 0.6);
   --rim-top-menu: rgb(var(--white-rgb) / 0.3);
   --rim-bottom-menu: rgb(var(--white-rgb) / 0.1);
-  --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.1);
+  --rim-inner-menu: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.1);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.24);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.08);
-  --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.08);
-  --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.06);
+  --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.08);
+  --rim-inner-docked: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.06);
   /* Elevation (language.md §6.3): e1 handles and badges, e2 chips, e3 bars and toasts, e4
      menus and popovers, e5 sheets. No coloured shadow and no glow on a control (S-5). */
   --e0: none;
@@ -526,15 +526,15 @@
   --rim-edge: 0 0 0 1px rgb(15 17 22 / 0.12);
   --rim-top: rgb(var(--white-rgb) / 0.85);
   --rim-bottom: rgb(var(--white-rgb) / 0.4);
-  --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
   --rim-edge-strong: 0 0 0 1px rgb(15 17 22 / 0.14);
   --rim-top-menu: rgb(var(--white-rgb) / 0.85);
   --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
-  --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner-menu: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
-  --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
-  --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner-docked: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
   /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
   --e0: none;
   --e1: 0 1px 2px rgb(var(--ink-rgb) / 0.12);
@@ -785,15 +785,15 @@
     --rim-edge: 0 0 0 1px rgb(15 17 22 / 0.12);
     --rim-top: rgb(var(--white-rgb) / 0.85);
     --rim-bottom: rgb(var(--white-rgb) / 0.4);
-    --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
     --rim-edge-strong: 0 0 0 1px rgb(15 17 22 / 0.14);
     --rim-top-menu: rgb(var(--white-rgb) / 0.85);
     --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
-    --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner-menu: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
     --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
     --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
-    --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
-    --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner-docked: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
     /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
     --e0: none;
     --e1: 0 1px 2px rgb(var(--ink-rgb) / 0.12);
