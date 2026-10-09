@@ -10,8 +10,11 @@
  * (--piece-h, G1), --control-h controls (32 px fine, 44 coarse; Q-9) with the piece's 20 px
  * glyph and the label beside it in the piece's label type at 500 (Q-8), primary text (labels
  * are never secondary on M2, F10 §3).
- * With labels under the glyphs (`data-labels="under"`) the bar is 56 px and the items 44,
- * the caption under a 20 px glyph, at least 64 px wide (F10 §2).
+ * With labels under the glyphs (`data-labels="under"`) the piece keeps its height (40 / 48,
+ * G1; system-audit-2026-10 §3.3: "labels under keeps the piece"): the items stay M controls,
+ * the caption under a 16 px glyph (20 px coarse, where the 44 px item has room), at least 64
+ * px wide (F10 §2). A sheet narrowing the free rectangle on a tablet so never makes a second,
+ * taller dock (the audit's 56 px bar).
  */
 .dock {
   position: absolute;
@@ -40,31 +43,18 @@
 
 .item {
   composes: focus-inset from global;
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  box-sizing: border-box;
-  height: var(--control-h);
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-capsule);
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--piece-label);
-  font-weight: 500;
-  line-height: var(--piece-label-lh);
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out),
-    transform var(--spring-press) var(--ease-spring);
 }
 
-.icon {
-  flex: none;
+/*
+ * Items are M quiet buttons (`btn btn-quiet`, styles/controls.css; ui/Button): their height,
+ * label type at 500, washes, press and disabled colour are the control system's. The piece
+ * only keeps its padding at both densities and the piece's 20 px glyph (Q-9).
+ */
+.toolbar .item {
+  --btn-pad: var(--space-3);
+}
+
+.toolbar .icon {
   width: var(--piece-icon);
   height: var(--piece-icon);
 }
@@ -74,62 +64,28 @@
   text-overflow: ellipsis;
 }
 
-@media (hover: hover) {
-  .item:hover:not([aria-disabled='true']) {
-    background: var(--surface-hover);
-  }
-}
-
-.item:active:not([aria-disabled='true']),
-.item[data-popup-open] {
-  background: var(--surface-active);
-}
-
-/* *press* (language.md §7.3): the item scales, never the glass; colour only when reduced. */
-.item:active:not([aria-disabled='true']) {
-  transform: scale(var(--press-scale));
-  transition:
-    background-color var(--duration-instant) var(--ease-out),
-    transform var(--duration-instant) var(--ease-out);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .item:active:not([aria-disabled='true']) {
-    transform: none;
-  }
-}
-
-:global(:root[data-motion='reduced']) .item:active {
-  transform: none;
-}
-
-/* Dimmed with a reason (no pages to mark up): focusable, says why in its tooltip (RA-21). */
-.item[aria-disabled='true'] {
-  color: var(--text-disabled);
-}
-
-/* Labels under the glyphs: a 56 px bar of 44 px items (Q-9's coarse sizes, at any pointer). */
-.toolbar[data-labels='under'] {
-  height: calc(56px - 2px);
-  padding: 0 5px;
-}
-
+/* Labels under the glyphs: the same piece and M items, caption under the glyph (F10 §2). */
 .toolbar[data-labels='under'] .item {
   flex-direction: column;
-  gap: 2px;
-  min-width: 64px;
-  height: 44px;
+  gap: 0;
+  min-width: var(--space-16);
   padding: 0 var(--space-2);
   font-size: var(--type-caption);
   line-height: var(--type-caption-lh);
 }
 
-@media (forced-colors: active) {
-  .item {
-    color: ButtonText;
+.toolbar[data-labels='under'] .icon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .toolbar[data-labels='under'] .item {
+    gap: var(--space-half);
   }
 
-  .item[aria-disabled='true'] {
-    color: GrayText;
+  .toolbar[data-labels='under'] .icon {
+    width: var(--icon-md);
+    height: var(--icon-md);
   }
 }
