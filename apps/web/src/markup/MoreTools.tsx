@@ -211,7 +211,7 @@ export function MoreTools({ folded }: { readonly folded: readonly PaletteItem[] 
         render={
           <PaletteButton
             label={label}
-            icon={<Icon name={icon} />}
+            icon={<Icon name={icon} filled={false} />}
             item="more"
             tool={armedHere ? 'more' : undefined}
             aria-pressed={armedHere ? true : undefined}

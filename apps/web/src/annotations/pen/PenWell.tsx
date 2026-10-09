@@ -4,15 +4,15 @@
  * the ink strip above shows the armed pen's colour and width, not the pens again (owner answer
  * to G8, 2026-10-09).
  *
- * - **Cells** are toolbar buttons with `aria-pressed` (not a radiogroup), so one arrow path
- *   serves the whole palette; `--control-h` targets (32 fine, 44 coarse; Q-9), no well behind
- *   them (G8). A pen's dot is its real ink at 10, 13 or 16 px by width (12, 15, 18 coarse); the
+ * - **Cells** are the palette's tool buttons (`ui/IconButton`, `data-tool`) with `aria-pressed`
+ *   (not a radiogroup), so one arrow path serves the whole palette; `--control-h` targets (32
+ *   fine, 44 coarse; Q-9), no well behind them (G8). A pen's dot is its real ink at 10, 13 or 16 px by width (12, 15, 18 coarse); the
  *   Highlighter is a chisel tip of its tint. Marks are content colours with the inner contrast
  *   ring where their edge would fall below 3:1 on the glass (`needsDotRing`). A colour picked in
  *   the strip shows on the armed cell at once (the store's preset, live).
- * - **Armed** is a ring, never lime (`language.md` §1.9, 03.4): a 2 px ring in the primary
- *   text colour with a gap, the palette's --palette-ring, springing in on *select*; only while
- *   the pen itself is armed.
+ * - **Armed** is every tool's armed form (system-audit-2026-10 §3.5, which supersedes
+ *   `language.md` §1.9's ring): the `--tool-active-fill` disc with the pen's colour dot inside
+ *   it, ringed in the disc's ink; only while the pen itself is armed.
  * - **Press** arms the preset and says it ("Red pen, 2 pt"); a press on the armed cell, or ↑ on
  *   it, opens its editor (`PresetEditor.tsx`, MK-8). Arming never opens anything.
  * - The Highlighter cell folds separately in narrow windows (03.9), so the palette renders the
@@ -23,7 +23,7 @@ import { type CSSProperties, type KeyboardEvent, useId, useState } from 'react';
 import { m } from '../../i18n';
 import { armedTooltip } from '../../markup/ToolButton';
 import { announce } from '../../shell/announcer';
-import { Tooltip } from '../../ui/Tooltip';
+import { IconButton } from '../../ui/IconButton';
 import { useToolStore } from '../../viewer/tool-store';
 import { useAnnotationStore } from '../annotation-store';
 import { activateTool } from '../commands';
@@ -112,26 +112,26 @@ export function PenWell({ cells, items }: PenWellProps) {
     const label = presetLabel(i, preset);
     const armed = penArmed && i === active;
     return (
-      <Tooltip key={i} label={armedTooltip(label, armed, armed)} side="top">
-        <button
-          type="button"
-          aria-pressed={armed}
-          aria-label={label}
-          aria-describedby={armed ? hintId : undefined}
-          aria-haspopup="dialog"
-          aria-keyshortcuts={
-            i === lastPen && !isHighlighter(preset) ? 'P' : isHighlighter(preset) ? 'H' : undefined
-          }
-          className={styles.cell}
-          data-pen-preset={i}
-          data-item={isHighlighter(preset) ? items?.highlighter : undefined}
-          data-editing={open && editing?.index === i ? '' : undefined}
-          onClick={(event) => press(i, event.currentTarget)}
-          onKeyDown={(event) => onKeyDown(event, i)}
-        >
-          <InkMark preset={preset} />
-        </button>
-      </Tooltip>
+      <IconButton
+        key={i}
+        label={label}
+        tooltip={armedTooltip(label, armed, armed)}
+        tooltipSide="top"
+        icon={<InkMark preset={preset} />}
+        aria-pressed={armed}
+        aria-describedby={armed ? hintId : undefined}
+        aria-haspopup="dialog"
+        aria-keyshortcuts={
+          i === lastPen && !isHighlighter(preset) ? 'P' : isHighlighter(preset) ? 'H' : undefined
+        }
+        className={styles.cell}
+        data-tool="ink"
+        data-pen-preset={i}
+        data-item={isHighlighter(preset) ? items?.highlighter : undefined}
+        data-editing={open && editing?.index === i ? '' : undefined}
+        onClick={(event) => press(i, event.currentTarget)}
+        onKeyDown={(event) => onKeyDown(event, i)}
+      />
     );
   };
 
