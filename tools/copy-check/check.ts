@@ -218,6 +218,18 @@ const CATALOG_EXEMPTIONS: readonly {
   },
   {
     file: 'en.json',
+    key: 'frame_unlock_user_body',
+    word: 'unlock',
+    why: 'the Unlock popover on a document the user locked says how to undo the lock (D1-4a), a verb on a lock, not a claim',
+  },
+  {
+    file: 'en.json',
+    key: 'frame_unlock_default_body',
+    word: 'unlock',
+    why: 'the Unlock popover on a document opened locked by the setting says how to change it (D1-4a), a verb on a lock, not a claim',
+  },
+  {
+    file: 'en.json',
     key: 'dock_locked_name',
     word: 'unlock',
     why: "the dock's Locked item names its action, Unlock… (01-frame F10), a verb on a lock, not a claim",
