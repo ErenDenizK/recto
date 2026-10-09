@@ -25,8 +25,8 @@
  * snapshot (`session/`, `DocumentPlace.lock`) and comes back with it on restore, and a kept
  * document reopened from Recents brings its lock along (ADR-0032 §2.4). Markup never does.
  *
- * Read by `ui-store`, `guard` and, from D1-3, `workspace-store`'s `commit()`; it imports
- * neither, so there is no import cycle.
+ * Read by `ui-store`, `guard` and `lock-check` (which `workspace-store`'s `commit()` asks,
+ * D1-3); it imports none of them, so there is no import cycle.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 import { create } from 'zustand';
