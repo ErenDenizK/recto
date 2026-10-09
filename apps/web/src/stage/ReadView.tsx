@@ -58,7 +58,7 @@ import {
   rememberPosition,
 } from '../viewer/navigation';
 import { cancelJump, jumpScroll, jumpTarget } from '../viewer/jump';
-import { flashLanding } from '../viewer/landing';
+import { clearLandings, flashLanding } from '../viewer/landing';
 import { pageFrame } from '../viewer/page-frame';
 import { setReadController } from '../viewer/read-controller';
 import type { Point, ZoomRest } from '../viewer/zoom-controller';
@@ -981,6 +981,17 @@ function PageColumn({
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     }
   };
+
+  // An undo or redo flashes what it changed (`recto:history-applied`, frame.md §6): the landing
+  // of the jump that brought it into view gives way.
+  useEffect(() => {
+    const onApplied = () => {
+      const frame = zoomFrameRef.current;
+      if (frame) clearLandings(frame);
+    };
+    window.addEventListener('recto:history-applied', onApplied);
+    return () => window.removeEventListener('recto:history-applied', onApplied);
+  }, []);
 
   useEffect(() => {
     const pending = pendingReveal.current;
