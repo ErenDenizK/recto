@@ -2590,6 +2590,33 @@
   "save_announce_verified": "{name} kaydedildi, doğrulandı",
   "save_downloaded": "{name} indirildi",
   "save_shared": "{name} paylaşıldı",
+  "receipt_areas": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} alan kaldırıldı",
+        "countPlural=*": "{count} alan kaldırıldı"
+      }
+    }
+  ],
+  "receipt_matches": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} eşleşme kaldı",
+        "countPlural=*": "{count} eşleşme kaldı"
+      }
+    }
+  ],
+  "receipt_device": "Bu cihaza kaydedildi",
+  "original_eye": "İşaretlemeleri gizle",
+  "original_eye_hint": "Göz atmak için basılı tutun",
+  "original_pill": "İşaretlemeler gizli",
+  "original_show": "İşaretlemeleri göster",
+  "original_announce_on": "Sayfalar işaretlemeler olmadan gösteriliyor",
+  "original_announce_off": "İşaretlemeler yeniden gösteriliyor",
   "save_copy_detail": "Bu tarayıcı açtığınız dosyaya yazamıyor, bu yüzden bu yeni bir kopya. Açtığınız dosya değişmedi.",
   "save_failed": "{name} kaydedilemedi: {reason}",
   "save_a_copy": "Kopya kaydet…",

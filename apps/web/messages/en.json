@@ -4082,6 +4082,33 @@
   "save_announce_verified": "Saved {name}, verified",
   "save_downloaded": "Downloaded {name}",
   "save_shared": "Shared {name}",
+  "receipt_areas": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} area removed",
+        "countPlural=*": "{count} areas removed"
+      }
+    }
+  ],
+  "receipt_matches": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} match remains",
+        "countPlural=*": "{count} matches remain"
+      }
+    }
+  ],
+  "receipt_device": "Saved on this device",
+  "original_eye": "Hide markup",
+  "original_eye_hint": "Hold to peek",
+  "original_pill": "Markup hidden",
+  "original_show": "Show markup",
+  "original_announce_on": "Showing the pages without markup",
+  "original_announce_off": "Markup shown again",
   "save_copy_detail": "This browser cannot write into the file you opened, so this is a new copy. The opened file is unchanged.",
   "save_failed": "Could not save {name}: {reason}",
   "save_a_copy": "Save a copy…",
