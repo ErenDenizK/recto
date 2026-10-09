@@ -1391,6 +1391,29 @@ describe('tokens.css', () => {
       expect(gap.get('box-shadow')).toBe(
         '0 0 0 8px var(--focus-dark), var(--shadow-own, 0 0 #0000)',
       );
+      // The field form (system-audit-2026-10 §3.8, option A): inset in dark, outset in light
+      // with ink 2 at the edge and the lime outside it, on both light selectors.
+      const field = rule(/\.focus-field:focus-visible,\s*\[data-focus='field'\]:focus-visible/);
+      expect(field.get('outline-offset')).toBe('var(--focus-field-offset)');
+      expect(field.get('box-shadow')).toBe(
+        'var(--focus-field-shadow), var(--shadow-own, 0 0 #0000)',
+      );
+      const forms = declarations(/(?:^|\n):root\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '');
+      // The hosts' dark bands are the forms' own (outset, inset, gap above).
+      expect(forms.get('--focus-shadow-outset')).toBe('0 0 0 6px var(--focus-dark)');
+      expect(forms.get('--focus-shadow-inset')).toBe('inset 0 0 0 4px var(--focus-dark)');
+      expect(forms.get('--focus-shadow-gap')).toBe('0 0 0 8px var(--focus-dark)');
+      expect(forms.get('--focus-field-offset')).toBe('var(--focus-offset-in)');
+      expect(forms.get('--focus-field-shadow')).toBe('var(--focus-shadow-inset)');
+      const light = declarations(/\[data-theme='light'\]\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '');
+      const system = declarations(
+        /@media \(prefers-color-scheme: light\)\s*\{\s*:root:not\(\[data-theme\]\)\s*\{([^{}]*)\}/.exec(
+          css,
+        )?.[1] ?? '',
+      );
+      expect(light.get('--focus-field-offset')).toBe('var(--focus-offset-out)');
+      expect(light.get('--focus-field-shadow')).toBe('0 0 0 2px var(--focus-dark)');
+      expect([...system.entries()].sort()).toEqual([...light.entries()].sort());
       // The ring appears with focus and never animates (language.md §9.2).
       expect(css).not.toMatch(/transition|animation/);
     });
@@ -1715,8 +1738,9 @@ describe('tokens.css', () => {
       const line = tone('--accent-line');
       atLeast(contrast(line, WHITE), 6.57, 'lime-800 on white');
       atLeast(contrast(line, tone('--canvas')), 5.35, 'lime-800 on the canvas');
+      // M1 and M2 sit at the text floor (system-audit-2026-10 §3.5): their line is 4.05.
       for (const tier of GLASS_TIERS) {
-        atLeast(contrast(line, glass(tier, BLACK)), 4.1, `lime-800 on ${tier} over black`);
+        atLeast(contrast(line, glass(tier, BLACK)), 4.05, `lime-800 on ${tier} over black`);
       }
       for (const token of ['--accent-subtle', '--accent-muted']) {
         expect(tint(token).rgb, token).toEqual(ink());
@@ -1767,8 +1791,8 @@ describe('tokens.css', () => {
           readonly [string, string, string, number, number, number, number, number, number, number]
         >
       > = {
-        chip: ['#ccccce', '#fcfcfd', '#f8f8fb', 11.18, 6.27, 5.09, 5.21, 11.18, 75, 64],
-        bar: ['#cfcfd1', '#fbfbfd', '#f8f8fb', 11.53, 6.46, 5.25, 5.37, 11.53, 77, 66],
+        chip: ['#cbcbcc', '#fcfcfd', '#f8f8fb', 11.06, 6.2, 5.04, 5.16, 11.06, 75, 63],
+        bar: ['#cbcbcc', '#fcfcfd', '#f8f8fb', 11.06, 6.2, 5.04, 5.16, 11.06, 75, 63],
         panel: ['#d4d5d6', '#fafafc', '#f7f8fa', 12.2, 6.84, 5.56, 5.69, 12.2, 80, 69],
         menu: ['#d9d9da', '#fbfbfd', '#f8f9fb', 12.71, 7.13, 5.79, 5.93, 12.71, 83, 71],
         sheet: ['#e8e8ea', '#fbfbfc', '#f9f9fb', 14.65, 8.21, 6.67, 6.83, 14.65, 91, 80],

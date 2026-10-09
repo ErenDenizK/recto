@@ -8,7 +8,7 @@
  *   width, scrolling inside the viewport.
  */
 .trigger {
-  composes: focus-inset from global;
+  composes: focus-field from global;
   --sel-h: var(--control-h, 32px);
   --sel-fill: var(--control-fill);
   --sel-fill-hover: var(--control-fill-hover);

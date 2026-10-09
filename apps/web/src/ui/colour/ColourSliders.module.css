@@ -67,7 +67,7 @@
 }
 
 .hex {
-  composes: focus-inset from global;
+  composes: focus-field from global;
   flex: none;
   box-sizing: border-box;
   width: 112px;

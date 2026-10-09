@@ -1,17 +1,19 @@
 /**
  * Source scan for the focus ring (docs/specs/redesign.md D0-1; components/09-primitives.md §19
- * and §27; language.md §9.2): every focus style in the app uses the three forms of
- * `styles/focus.css` (outset, inset, gap) and their tokens, so no rule draws a ring of its own
+ * and §27; language.md §9.2): every focus style in the app uses the four forms of
+ * `styles/focus.css` (outset, inset, gap, field) and their tokens, so no rule draws a ring of its own
  * that a band could be missing from.
  *
  * In every style sheet under `src/` except `focus.css`, a rule whose selector puts
  * `:focus-visible` or `:focus` on the element (not `:focus-within`, not inside `:not()`) may set
  * the ring's properties only like this:
  *
- * - `outline-offset`: one of `var(--focus-offset-out | -in | -gap)`;
+ * - `outline-offset`: one of `var(--focus-offset-out | -in | -gap)` or the field form's
+ *   `var(--focus-field-offset)`;
  * - `outline`: `2px solid var(--focus-light)` (a form restated where `composes` cannot reach,
  *   such as a pseudo-element), or `none` to suppress the ring;
- * - `box-shadow`: a value with `var(--focus-dark)` (a form restated), or `none`;
+ * - `box-shadow`: a value with `var(--focus-dark)` (a form restated) or a form's dark band
+ *   (`var(--focus-shadow-outset | -inset | -gap)`, `var(--focus-field-shadow)`), or `none`;
  * - nothing else: no `outline-color`, `-style` or `-width`, no literal offsets, no accent rings;
  *   only forced colours may set `2px solid Highlight` with no shadow.
  *
@@ -100,7 +102,11 @@ const ALLOWED_OFFSETS = new Set([
   'var(--focus-offset-out)',
   'var(--focus-offset-in)',
   'var(--focus-offset-gap)',
+  'var(--focus-field-offset)',
 ]);
+
+/** A dark band: the ink itself, or one of focus.css's form tokens that carry it. */
+const DARK_BAND = /var\(--focus-(?:dark|shadow-(?:outset|inset|gap)|field-shadow)\)/;
 
 interface Rule {
   readonly selector: string;
@@ -156,7 +162,7 @@ function problems(file: string, css: string): string[] {
     } else if (outline !== undefined && outline !== '2px solid var(--focus-light)') {
       found.push(`${at} outline ${outline} is not the light band`);
     }
-    if (shadow !== undefined && shadow !== 'none' && !shadow.includes('var(--focus-dark)')) {
+    if (shadow !== undefined && shadow !== 'none' && !DARK_BAND.test(shadow)) {
       found.push(`${at} box-shadow ${shadow} replaces the dark band (use --shadow-own)`);
     }
     if (shadow === 'none' && outline !== 'none') {
@@ -227,6 +233,12 @@ describe('focus scan (09-primitives §19)', () => {
       1,
     );
     expect(problems('x.css', '.a:not(:focus-visible) { box-shadow: 0 0 0 1px red; }')).toEqual([]);
+    expect(
+      problems(
+        'x.css',
+        '.a:has(input:focus-visible) { outline: 2px solid var(--focus-light); outline-offset: var(--focus-field-offset); box-shadow: var(--focus-field-shadow); }',
+      ),
+    ).toEqual([]);
     expect(problems('x.css', '.a:focus-within { outline: 1px solid red; }')).toEqual([]);
     expect(
       problems(

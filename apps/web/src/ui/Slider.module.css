@@ -480,7 +480,7 @@
 .thumb:has(:focus-visible) .knob {
   outline: 2px solid var(--focus-light);
   outline-offset: var(--focus-offset-out);
-  box-shadow: 0 0 0 6px var(--focus-dark);
+  box-shadow: var(--focus-shadow-outset);
 }
 
 /* --- Lens ----------------------------------------------------------------------------- */

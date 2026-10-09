@@ -81,7 +81,7 @@
 }
 
 .segment {
-  composes: focus-inset from global;
+  composes: focus-field from global;
   display: flex;
   align-items: center;
   justify-content: center;
