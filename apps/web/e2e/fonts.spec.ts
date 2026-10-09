@@ -57,7 +57,10 @@ async function settle(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /^(Open files|Dosya aç)/ }).first()).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await page.waitForFunction(() =>
-    document.getAnimations().every((a) => a.playState !== 'running'),
+    document
+      .getAnimations()
+      // The aura's endless drift (Q-10's one exception) never comes to rest.
+      .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
   );
   // Two frames for the observer to deliver what the last layout produced.
   await page.evaluate(

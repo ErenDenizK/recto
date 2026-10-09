@@ -1,0 +1,224 @@
+/*
+ * The aura (Aura.tsx; owner feedback 2026-10-08 and 2026-10-09, G3, G5): the mark's three
+ * colours as soft light behind a view, rising from the top like the field's lobes (L3 §2) and
+ * fixed to it. No grain and no blur filter: each lobe is one radial gradient filling its own
+ * box (`closest-side`), its alpha falling on a bell curve of eleven stops rather than a straight
+ * line, so the fall-off has no visible edge or band even at 8 bits. Colours are the mark's stops
+ * (brand/mark.ts, the --aura-* tokens); each theme sets the peaks.
+ *
+ * Slowly alive on the Library (G3): every lobe drifts on its own loop (37 to 59 s, alternating,
+ * eased), a few per cent across and a little larger or fainter, by transform and opacity only,
+ * each lobe its own compositor layer painted once (Q-1; A-23: nothing lays out or paints while it drifts). The
+ * loops are long and the peaks low, so no 341 × 256 region swings anywhere near A-8's 0.10.
+ * Paused while the document is hidden and on the cost ladder's steps 2 and 3; still under
+ * reduced motion (A-9: nothing moves there); Solid glass keeps the light at 70 % like the field
+ * (L3 §3); degrade step 4, more contrast and forced colours turn it off. It has no backdrop, so
+ * Q-11's budget is untouched.
+ */
+.aura {
+  /* The dark theme's yellow lobe is the faintest, as a faint pure yellow reads as olive on the
+     dark canvas. */
+  --aura-peak-mint: 0.22;
+  --aura-peak-lime: 0.19;
+  --aura-peak-yellow: 0.07;
+  --aura-peak-glint: 0.1;
+  --aura-peak-low: 0.13;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+:global([data-theme='light']) .aura {
+  --aura-peak-mint: 0.3;
+  --aura-peak-lime: 0.34;
+  --aura-peak-yellow: 0.28;
+  --aura-peak-glint: 0.2;
+  --aura-peak-low: 0.22;
+}
+
+@media (prefers-color-scheme: light) {
+  :global(:root:not([data-theme])) .aura {
+    --aura-peak-mint: 0.3;
+    --aura-peak-lime: 0.34;
+    --aura-peak-yellow: 0.3;
+    --aura-peak-glint: 0.2;
+    --aura-peak-low: 0.22;
+  }
+}
+
+/* Behind the reader (G5): the same light, dimmer and still, so the white page stays the
+   brightest thing and nothing competes with what is on it. A document view keeps Q-10's zero
+   frames at rest, so the reader's glass never re-blurs a moving backdrop while one works. */
+.aura[data-tone='reader'] {
+  opacity: 0.65;
+}
+
+.aura[data-tone='reader'] .lobe {
+  animation: none;
+  will-change: auto;
+}
+
+.lobe {
+  --c: var(--aura-lime);
+  --a: var(--aura-peak-lime);
+  position: absolute;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--c) calc(var(--a) * 100%), transparent) 0%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 95%), transparent) 10%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 84%), transparent) 20%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 69%), transparent) 30%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 53%), transparent) 40%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 38%), transparent) 50%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 25%), transparent) 60%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 14%), transparent) 70%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 7%), transparent) 80%,
+    color-mix(in srgb, var(--c) calc(var(--a) * 2%), transparent) 90%,
+    transparent 100%
+  );
+  will-change: transform, opacity;
+  animation: aura-drift-a 41s ease-in-out infinite alternate;
+}
+
+/* The mark's gradient laid across the view, each lobe's centre near or past an edge so mostly
+   its fall-off shows: mint from the left, lime from overhead, yellow lime high right, a lime
+   glint down the right, and a low mint swell under the content so the lower view is not bare. */
+.lobe[data-lobe='mint'] {
+  --c: var(--aura-mint);
+  --a: var(--aura-peak-mint);
+  top: -10%;
+  left: -40%;
+  width: 80%;
+  height: 100%;
+}
+
+.lobe[data-lobe='lime'] {
+  top: -34%;
+  left: 8%;
+  width: 84%;
+  height: 80%;
+  animation-name: aura-drift-b;
+  animation-duration: 53s;
+}
+
+.lobe[data-lobe='yellow'] {
+  --c: var(--aura-yellow);
+  --a: var(--aura-peak-yellow);
+  top: -30%;
+  right: -22%;
+  width: 60%;
+  height: 76%;
+  animation-name: aura-drift-c;
+  animation-duration: 47s;
+}
+
+.lobe[data-lobe='glint'] {
+  --a: var(--aura-peak-glint);
+  top: 30%;
+  right: -30%;
+  width: 56%;
+  height: 70%;
+  animation-name: aura-drift-b;
+  animation-duration: 59s;
+  animation-direction: alternate-reverse;
+}
+
+.lobe[data-lobe='low'] {
+  --c: var(--aura-mint);
+  --a: var(--aura-peak-low);
+  bottom: -46%;
+  left: 24%;
+  width: 92%;
+  height: 90%;
+  animation-name: aura-drift-c;
+  animation-duration: 37s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes aura-drift-a {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    opacity: 0.78;
+    transform: translate3d(7%, 5%, 0) scale(1.08);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(3%, 10%, 0) scale(0.96);
+  }
+}
+
+@keyframes aura-drift-b {
+  from {
+    opacity: 0.85;
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate3d(-6%, 6%, 0) scale(0.96);
+  }
+
+  to {
+    opacity: 0.8;
+    transform: translate3d(5%, 3%, 0) scale(1.1);
+  }
+}
+
+@keyframes aura-drift-c {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    opacity: 0.75;
+    transform: translate3d(-8%, -4%, 0) scale(1.1);
+  }
+
+  to {
+    opacity: 0.95;
+    transform: translate3d(-3%, 6%, 0) scale(1.02);
+  }
+}
+
+.aura[data-paused] .lobe,
+:global(:root:is([data-degrade='2'], [data-degrade='3'])) .lobe {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobe {
+    animation: none;
+    will-change: auto;
+  }
+}
+
+:global(:root[data-motion='reduced']) .lobe {
+  animation: none;
+  will-change: auto;
+}
+
+:global(:root[data-glass='solid']) .aura {
+  opacity: 0.7;
+}
+
+:global(:root[data-glass='solid']) .aura[data-tone='reader'] {
+  opacity: 0.4;
+}
+
+:global(:root[data-degrade='4']) .aura {
+  display: none;
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  .aura {
+    display: none;
+  }
+}

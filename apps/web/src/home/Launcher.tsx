@@ -3,23 +3,26 @@
  * `shell/EmptyState.tsx` and Home's Open files button): the welcome and the Library's open
  * actions, in three tiers that read the same in both variants:
  *
- * 1. **Identity.** The Recto mark (`BrandMark`, the gradient on dark) with the headline (empty)
- *    or, with documents, a calm brand header above the row: mark, "Recto" wordmark and
- *    "Nothing leaves this device.".
- * 2. **Open.** **Open PDFs…** (the view's one lime, first focus when empty, J1 = 2) inside a
- *    dashed *well* that reads as the drop target, beside "or drop files anywhere" (on touch
- *    too: iPadOS drags files in). In the row the well takes the free width. While files are
- *    dragged over the window the well lights in the accent and says what a release does.
+ * 1. **Identity.** Empty, the Recto mark (`BrandMark`, the gradient on dark) with the headline.
+ *    With documents the mark is the tab's alone (owner feedback 2026-10-09, G3: the Library
+ *    tab is the home button and always shows it), so the view heads itself with a large
+ *    "Library" title and "Nothing leaves this device." under it.
+ * 2. **Open.** **Open PDFs…** (the view's one lime, first focus when empty, J1 = 2). In the
+ *    card it sits in a dashed *well* that reads as the drop target, beside "or drop files
+ *    anywhere" (on touch too: iPadOS drags files in); in the row the whole row is the target and
+ *    the line ends it. While files are dragged over the window the well or the row lights in the
+ *    accent and says what a release does.
  * 3. **More ways to start.** **Try the sample** (dimmed with its reason offline before the
  *    sample was ever loaded), **Combine files…** and **Batch…**, one group of equal standard
  *    buttons with their glyphs, never loose text links.
  *
  * - **Empty** (no document open): a lit card about a third of the way down the view.
- * - **Row** (documents open): the brand header, then one lit row: the well leading, the group
- *   trailing. In Select mode the lime moves to the selection bar's Combine, so Open PDFs… turns
- *   secondary (one lime per view, principle 3).
+ * - **Row** (documents open): the title, then one lit row of equal buttons, one piece high
+ *   (--piece-h, G1) like the strip's pieces and the footer's pills: Open PDFs… first and lime,
+ *   the group after it, the drop line trailing. In Select mode the lime moves to the selection
+ *   bar's Combine, so Open PDFs… turns secondary (one lime per view, principle 3).
  * - **Drag-over** (L9 on the Library): no overlay; the card or row lifts 2 px with the e3
- *   shadow, the empty card's headline becomes "Drop to open 2 files" and the row's well says it.
+ *   shadow, the empty card's headline becomes "Drop to open 2 files" and the row's line says it.
  * - **Busy** (L2 §4): Open PDFs… is busy while the engine reads the picked files, but not while
  *   a password prompt (07-sheets S6) waits for the person: that wait is theirs, not the app's,
  *   and the prompt's own Open shows the busy state once a password is being tried.
@@ -140,12 +143,9 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
   if (variant === 'row') {
     return (
       <div className={styles.rowWrap}>
-        <header className={styles.brand}>
-          <BrandMark size={40} className={styles.brandMark} />
-          <div className={styles.brandText}>
-            <h2 className={styles.wordmark}>{m.frame_brand()}</h2>
-            <p className={styles.tagline}>{m.library_line()}</p>
-          </div>
+        <header className={styles.title}>
+          <h2 className={styles.titleText}>{m.library_label()}</h2>
+          <p className={styles.tagline}>{m.library_line()}</p>
         </header>
         <div
           className={`${lit.lit} ${styles.row}`}
@@ -153,13 +153,14 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
           data-dragging={dragging || undefined}
           data-testid="library-launcher"
         >
-          <div className={styles.well} data-dragging={dragging || undefined}>
+          <div className={styles.actions}>
             {open}
-            <p className={styles.wellHint} aria-live={dragging ? 'off' : undefined}>
-              {dragging ? dropTitle(dragCount) : m.library_drop_hint()}
-            </p>
+            {more}
           </div>
-          {more}
+          <p className={styles.dropLine} aria-live={dragging ? 'off' : undefined}>
+            <Icon name="tray-arrow-down" className={styles.dropIcon} />
+            <span>{dragging ? dropTitle(dragCount) : m.library_drop_hint()}</span>
+          </p>
         </div>
       </div>
     );

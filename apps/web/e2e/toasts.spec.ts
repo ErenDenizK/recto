@@ -89,7 +89,10 @@ test('on the Library the stack keeps 12 px above the selection bar, never over i
   await expect(bar).toBeVisible();
   // Both at rest (their entrances move them by transform).
   await page.waitForFunction(() =>
-    document.getAnimations().every((a) => a.playState !== 'running'),
+    document
+      .getAnimations()
+      // The aura's endless drift (Q-10's one exception) never comes to rest.
+      .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
   );
   const toastBox = await toast.boundingBox();
   const barBox = await bar.boundingBox();

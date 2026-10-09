@@ -909,7 +909,7 @@
   --type-title1: 28px; /* Library greeting, About sections; 600 */
   --type-title1-lh: 36px;
   --track-title1: -0.02em;
-  --type-display: 40px; /* About only, never in a clipping box; 600 */
+  --type-display: 40px; /* About and the Library title (G3), never in a clipping box; 600 */
   --type-display-lh: 44px;
   --type-display-lg: 56px;
   --type-display-lg-lh: 60px;

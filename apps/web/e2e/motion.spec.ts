@@ -3,7 +3,8 @@
  * D0-12 and D0-QA, §8 A-23, §9.1 "At rest: zero animation frames in a document view").
  *
  * - **Idle.** Two seconds with no input after the app has settled: no requestAnimationFrame
- *   callback runs and `document.getAnimations()` is empty, on Home and an open document in the
+ *   callback runs and `document.getAnimations()` holds nothing but the aura's drift (Q-10's one
+ *   exception, owner feedback 2026-10-09, G3), on Home and an open document in the
  *   full edition (1440 × 900) and on the compact reader (the `phone` project). The counter is a
  *   wrapper installed before the app loads, so every loop is seen, the motion core's included;
  *   a frame requested in the window records its caller, so a failure names the loop. A text
@@ -143,10 +144,20 @@ async function idleFor(page: Page): Promise<IdleReport> {
   });
 }
 
+/**
+ * The one animation allowed at rest (quality-bar Q-10; owner feedback 2026-10-09, G3, G5): the
+ * aura's slow drift behind the Library (the reader's glow is still), CSS animations of transform
+ * and opacity on layers painted once, which run no frame callback (the counter above stays at 0).
+ */
+const AURA_DRIFT = 'aura-drift';
+
 function expectIdle(report: IdleReport, state: string): void {
   expect(report.callers, `frames requested at rest in ${state}`).toEqual([]);
   expect(report.frames, `frame callbacks in ${IDLE_MS} ms of idle in ${state}`).toBe(0);
-  expect(report.animations, `animations at rest in ${state}`).toEqual([]);
+  expect(
+    report.animations.filter((a) => !a.includes(AURA_DRIFT)),
+    `animations at rest in ${state}`,
+  ).toEqual([]);
 }
 
 test.describe('idle: no frames at rest (A-23, Q-10)', () => {
@@ -433,7 +444,10 @@ function expectTurn(midway: Midway, turn: Turn, state: string): void {
 async function expectSettledClean(page: Page, state: string): Promise<void> {
   await settleAnimations(page);
   const left = await page.evaluate(() => ({
-    animations: document.getAnimations().length,
+    // The aura's endless drift is Q-10's one exception (G3); nothing else may be left.
+    animations: document
+      .getAnimations()
+      .filter((a) => !(a instanceof CSSAnimation && a.animationName.includes('aura-drift'))).length,
     // A Base UI positioner (a tooltip's, say) is not a motion's: Floating UI writes
     // `will-change: transform` on it while its popup is open on a screen of 1.5 device pixels
     // per CSS pixel or more (WebKit's Desktop Safari is 2), with a whole-device-pixel translate.
