@@ -1,7 +1,7 @@
 /*
  * N2 Thumbnail list (06-navigation §4, §2.2, §2.3): rows of one height rule (padding 8 · page ·
  * 8 · label 16 · 8, `thumbnail-layout.ts`), inset 8 from the sidebar's edges, a hover wash of
- * radius 12 over the full row. Thumbnails are content: solid, a page hairline, no shadow.
+ * the control radius (10, a list row's; system-audit-2026-10 §3.2) over the full row. Thumbnails are content: solid, a page hairline, no shadow.
  *
  * Marks, as the Pages grid draws them (ArrangeView.module.css): current page, its label at 600
  * and a 1 px neutral ring 3 px out (`--current-ring`); selected, the app's lime as the grid
@@ -39,11 +39,11 @@
   left: 8px;
   display: grid;
   justify-items: center;
-  row-gap: 8px;
+  row-gap: var(--space-2);
   box-sizing: border-box;
   width: calc(100% - 16px);
-  padding: 8px;
-  border-radius: 12px;
+  padding: var(--space-2);
+  border-radius: var(--radius-control);
   cursor: default;
   -webkit-tap-highlight-color: transparent;
   transition: background-color var(--duration-fast) var(--ease-out);
@@ -110,8 +110,8 @@
 }
 
 .badge svg {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -164,7 +164,7 @@
   left: calc(50% - 60px);
   width: 120px;
   height: 2px;
-  border-radius: 1px;
+  border-radius: var(--radius-capsule);
   background: var(--select);
   pointer-events: none;
 }

@@ -130,7 +130,6 @@ const Q9_PENDING = [
   'apps/web/src/shell/frame/TitleMenu.tsx',
   'apps/web/src/shell/panels/RedactionsPanel.tsx',
   'apps/web/src/shell/review/WordsToCheck.tsx',
-  'apps/web/src/shell/sidebar/FindSection.tsx',
   'apps/web/src/signatures/ExportSignatureSection.tsx',
   'apps/web/src/signatures/NewSignatureSheet.tsx',
   'apps/web/src/signatures/SignDialog.tsx',
