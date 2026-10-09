@@ -19,6 +19,7 @@ import { decodePDFRawStream, PDFArray, PDFDocument, PDFName, PDFRawStream } from
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  atRest,
   openFixtures,
   saveCopyBytes,
   useDownloadPath,
@@ -729,9 +730,20 @@ test('a press on a link that travels past the slop selects text and does not fol
   await page.keyboard.press(']');
   const link = page.getByRole('button', { name: 'Go to page 4' });
   await expect(link).toBeVisible({ timeout: 20_000 });
+  // `]` is an eased step now (motion-2026-10/viewer.md §1): read the link's box once the scroll
+  // has landed and the pill's odometer has rested, not a frame of the step.
+  await expect
+    .poll(async () => {
+      const before = await link.boundingBox();
+      await page.waitForTimeout(100);
+      const after = await link.boundingBox();
+      return before !== null && after !== null && before.y === after.y && before.x === after.x;
+    })
+    .toBe(true);
   const box = await link.boundingBox();
   if (!box) throw new Error('no link');
   const pageNumber = page.getByTestId('page-pill');
+  await atRest(pageNumber);
   const shown = await pageNumber.textContent();
   await page.mouse.move(box.x + 3, box.y + box.height / 2);
   await page.mouse.down();
