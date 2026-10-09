@@ -8,6 +8,8 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
+import type { SaveReceipt } from './receipt';
+
 import { closeSheet, openSheet, useSheetStore } from '../ui/sheet/sheet-store';
 
 /** The sheet's id in `sheet-store` (drafts key on it). */
@@ -69,6 +71,10 @@ export interface CopySummary {
   readonly verified: boolean;
   readonly seconds: number | null;
   readonly items: readonly CopySummaryItem[];
+  /** What the save receipt proved about a PDF copy's bytes (PLAN.md E13-c), when it could. */
+  readonly proof?: SaveReceipt | undefined;
+  /** The receipt's line once the copy went somewhere (E13-u, `receipt-text.ts`). */
+  readonly receipt?: string | undefined;
 }
 
 interface SaveCopyResults {

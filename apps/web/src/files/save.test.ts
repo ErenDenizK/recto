@@ -17,6 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readAnnotations, whenIdle } from '../annotations/edit-runner';
 import { prepareExport } from '../export/export-service';
+import { computeSaveReceipt } from '../export/receipt';
 import { applyRedactionPlans } from '../redaction/apply';
 import { resetSavedMarks, isInFile, useSavedStore, watchSavedMarks } from '../state/saved-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
@@ -48,10 +49,16 @@ vi.mock(import('../export/export-service'), async (importOriginal) => ({
       value: {
         bytes: written.slice().buffer,
         verification: { ok: true, problems: [] },
+        receiptActs: [],
       } as never,
     }),
   ),
 }));
+
+vi.mock(import('../export/receipt'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, computeSaveReceipt: vi.fn(actual.computeSaveReceipt) };
+});
 
 vi.mock(import('../redaction/apply'), async (importOriginal) => ({
   ...(await importOriginal()),
@@ -317,6 +324,10 @@ describe('saveDocument', () => {
     expect(isInFile(useWorkspaceStore.getState().workspace, id)).toBe(true);
     expect(useSavedStore.getState().marks[id]?.handleKept).toBe(true);
     expect(useToastStore.getState().shown.map((t) => t.text)).toContain('Saved · verified');
+    // The receipt (E13-u): a save without redactions says where the file is.
+    expect(useToastStore.getState().shown.find((t) => t.text === 'Saved · verified')?.detail).toBe(
+      'Saved on this device',
+    );
 
     // The second save over the same file this session: no question, no prompt.
     rotateFirstPage(id);
@@ -411,6 +422,43 @@ describe('saveDocument', () => {
     expect(useToastStore.getState().shown.map((t) => t.text)).toContain(
       'Saved · 2 areas removed for good · verified',
     );
+  });
+
+  it('E13-u: after redactions the receipt counts what was removed and what remains', async () => {
+    const handle = stubHandle();
+    handle.permission = 'granted';
+    rememberDocumentHandle(id, handle);
+    const acts = [{ kind: 'redaction' as const, areas: 3, terms: ['IBAN'] }];
+    vi.mocked(prepareExport).mockResolvedValueOnce({
+      ok: true,
+      value: {
+        bytes: written.slice().buffer,
+        verification: { ok: true, problems: [] },
+        receiptActs: acts,
+      } as never,
+    });
+    vi.mocked(computeSaveReceipt).mockResolvedValueOnce({
+      ok: true,
+      value: {
+        acts: [{ areas: 3, termsSearched: 1, matchesRemain: 0, pages: [] } as never],
+        areasRemoved: 3,
+        termsSearched: 1,
+        matchesRemain: 0,
+        pagesSearched: 1,
+        bytes: written.byteLength,
+      },
+    });
+    rotateFirstPage(id);
+    const save = saveDocument(id);
+    expect(await question()).toBe('replace');
+    answerSaveQuestion('replace');
+    await save;
+    expect(computeSaveReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({ receiptActs: acts }),
+      {},
+    );
+    const done = useToastStore.getState().shown.find((t) => t.text === 'Saved · verified');
+    expect(done?.detail).toBe('3 areas removed · 0 matches remain');
   });
 
   it('a split part never writes over the file it came from; its first Save is Save as', async () => {

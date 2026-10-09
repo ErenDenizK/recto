@@ -16,8 +16,9 @@
  *   picker closes. When the copy cannot be written (it failed, failed its check, or was
  *   stopped), the writable is aborted and the empty file is removed where the handle has
  *   `remove()`; otherwise the failure toast says an empty file was left to delete.
- * - **Toasts** (`ui/Toast`): "Saved report-small.pdf · 1.1 MB · verified", with Details when
- *   the summary has lines; "Copy not saved: {reason} · Try again" until dismissed, Try again
+ * - **Toasts** (`ui/Toast`): "Saved report-small.pdf · 1.1 MB · verified" over a PDF copy's
+ *   save receipt (PLAN.md E13-u: "3 areas removed · 0 matches remain", searched in the bytes
+ *   written, or "Saved on this device"), with Details when the summary has lines; "Copy not saved: {reason} · Try again" until dismissed, Try again
  *   reopening the sheet with its draft.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
@@ -37,6 +38,8 @@ import {
   openSaveCopy,
 } from './export-store';
 import { type ExportOptions, prepareExport } from './export-service';
+import { computeSaveReceipt } from './receipt';
+import { receiptLine } from './receipt-text';
 import { exportShare, percentOf } from './save-copy-model';
 import { summarizeReport } from './summary';
 import { presetName } from '../tools/labels';
@@ -162,6 +165,9 @@ export async function buildCopy(
         }),
       });
     }
+    // The receipt searches the very bytes that will be written (E13-c).
+    const proof = await computeSaveReceipt(prepared, signal ? { signal } : {});
+    if (signal?.aborted) throw stopped();
     return {
       blob: new Blob([prepared.bytes], { type: 'application/pdf' }),
       name: request.name,
@@ -172,6 +178,7 @@ export async function buildCopy(
         verified: true,
         seconds: Math.round(prepared.durationMs / 100) / 10,
         items,
+        ...(proof.ok ? { proof: proof.value } : {}),
       },
     };
   }
@@ -363,7 +370,11 @@ export function showCopyDone(
   summary: CopySummary,
   where: 'saved' | 'downloaded' | 'shared',
 ): void {
-  keepCopySummary(documentId, summary);
+  const receipt =
+    summary.proof === undefined
+      ? undefined
+      : receiptLine(summary.proof, where === 'shared' ? 'shared' : 'device');
+  keepCopySummary(documentId, { ...summary, receipt });
   const size = formatSize(summary.size);
   const name = summary.name;
   const text =
@@ -380,6 +391,7 @@ export function showCopyDone(
     documentId,
     keepOnClose: true,
     testId: 'save-copy-toast',
+    ...(receipt ? { detail: receipt } : {}),
     ...(summary.items.length > 0
       ? {
           action: {
