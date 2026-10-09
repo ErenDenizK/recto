@@ -1,9 +1,11 @@
 /*
- * The ink strip (10-ink §2; quality-bar Q-4, Q-9). Content inside the palette's glass: no
- * fill of its own, no border. One centre line: the well and swatches in 32 / 44 targets, the
- * slider's 32 / 44 hit row, the readout in tabular numerals (13 / 15 px). The swatches sit
- * edge to edge (their targets abut; the dots keep 14 px apart fine), a hairline sets the
- * width apart. Narrow windows let the width wrap under the colours rather than clip (A-20).
+ * The ink strip (10-ink §2; quality-bar Q-4, Q-9; owner feedback G8). Content inside its glass
+ * piece: no fill of its own, no border. One centre line in the palette family's sizes
+ * (--palette-*, `MarkupPalette.module.css`): the colour well and the recent colours in
+ * --palette-hit targets, the slider's hit row, the readout in tabular numerals (13 / 15 px).
+ * The well draws a --palette-control ring (the tools' fill size), the recents are
+ * --palette-dot dots (the largest pen dot's size), a hairline of the palette's separator sets
+ * the width apart. Narrow windows let the width wrap under the colours rather than clip (A-20).
  */
 .strip {
   display: flex;
@@ -18,50 +20,63 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 2px;
+  gap: var(--palette-gap);
 }
 
-.swatches {
+/* The well: its conic ring is the tools' drawn fill, 30 / 40 px (disc 22 / 30, gap 2, ring
+   2 / 3), in the palette's hit target. */
+.colours > button:first-child {
+  --well-target: var(--palette-hit);
+  --well-disc: calc(var(--palette-control) - 2 * var(--well-gap) - 2 * var(--well-ring));
+}
+
+.colours .swatches {
+  --sw-target: var(--palette-hit);
+  --sw-dot: var(--palette-dot);
+
   flex-wrap: nowrap;
+  gap: var(--palette-gap);
 }
 
 .divider {
   flex: none;
   width: 1px;
-  height: 20px;
-  margin-inline: 10px;
+  height: var(--palette-sep-h);
+  margin-inline: var(--palette-sep-m);
   background: var(--border-hairline);
 }
 
-@media (pointer: coarse), (any-pointer: coarse) {
-  .divider {
-    height: 28px;
-    margin-inline: 12px;
-  }
-}
-
-/* The width (10-ink §2.1): 160 px of track fine, 200 coarse, plus its readout. */
+/* The width (10-ink §2.1): 144 px of track fine, 176 coarse, plus its readout, which keeps
+   the well's inset from the piece's round end (text sits a little further in than a circle
+   does, against the curve). */
 .width {
   flex: none;
-  width: 216px;
+  width: 200px;
+  margin-inline-end: 8px;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .width {
-    width: 264px;
+    width: 240px;
   }
 }
 
 .eraserModes {
   flex: none;
-  width: 220px;
+  width: 200px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .eraserModes {
+    width: 220px;
+  }
 }
 
 .stepper {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 2px;
+  gap: var(--palette-gap);
 }
 
 .readout {
