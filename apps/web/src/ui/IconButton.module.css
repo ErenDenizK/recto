@@ -74,7 +74,7 @@
    whose menu or popover is open stays pressed while it shows (G6). */
 .button[aria-pressed='true'],
 .button[aria-selected='true'],
-.button[data-popup-open]:not([aria-disabled='true'], :disabled) {
+.button:is([data-popup-open], [data-origin-open]):not([aria-disabled='true'], :disabled) {
   background: var(--surface-active);
   color: var(--text-primary);
 }

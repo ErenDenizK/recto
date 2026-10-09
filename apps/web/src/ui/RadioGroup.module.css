@@ -61,7 +61,22 @@
   box-shadow: var(--shadow-own);
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out);
+    box-shadow var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+/* The press (styles/controls.css, platform.md §2): the circle presses three times the press
+   depth, with the hover ring as its tint, and springs back on release. */
+.row:active .circle:not([data-disabled]) {
+  scale: calc(1 - 3 * (1 - var(--press-scale)));
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
+}
+
+.row:active .circle:not([data-disabled], [data-checked]) {
+  --shadow-own: inset 0 0 0 1.5px var(--control-border-hover);
 }
 
 @media (hover: hover) {
@@ -88,7 +103,8 @@
   height: 6px;
   border-radius: var(--radius-capsule);
   background: var(--control-on-ink);
-  animation: select var(--spring-pop) var(--ease-spring-pop);
+  /* The dot grows from the centre (platform.md §3) on the pop spring, a small overshoot. */
+  animation: grow var(--spring-pop) var(--ease-spring-pop);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -98,9 +114,9 @@
   }
 }
 
-@keyframes select {
+@keyframes grow {
   from {
-    transform: scale(0.88);
+    transform: scale(0);
   }
 }
 

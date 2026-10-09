@@ -93,7 +93,19 @@
   white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color var(--duration-fast) var(--ease-out);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+/* The press (styles/controls.css, platform.md §2): the segment's label presses in and springs
+   back; its tint is the hover colour (the thumb is the checked one's fill). */
+.segment:active:not([data-disabled]) {
+  color: var(--seg-on);
+  scale: var(--press-scale);
+  transition:
+    color var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
 }
 
 .text {
