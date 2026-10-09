@@ -12,6 +12,7 @@ import aUrl from '../../../../test/fixtures/compare-a.pdf?url';
 import bUrl from '../../../../test/fixtures/compare-b.pdf?url';
 import { fixtureFile } from '../../test/store-harness';
 import { commandRegistry } from '../commands/registry';
+import { useRecentsStore } from '../files/recents';
 import { getAnalysisWorkers } from '../engine/engine-service';
 import { resetAnnouncer, useAnnouncer } from '../shell/announcer';
 import { useUiStore } from '../state/ui-store';
@@ -23,6 +24,7 @@ import { registerCompareCommands } from './compare-commands';
 import { hasActiveCompare, releaseCompare, startCompare } from './compare-runner';
 import { resetCompareStore, useCompareStore } from './compare-store';
 import CompareView from './CompareView';
+import { addSecondFile } from './second-file';
 
 interface CompareExpect {
   readonly pageMap: readonly { a: number | null; b: number | null }[];
@@ -57,6 +59,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  // Out of the Compare view, so the next test's showCompare enters it again.
+  useUiStore.getState().showSurface('page');
   await releaseCompare();
   useUiStore.setState({ docUi: {} });
   unregister?.();
@@ -97,6 +101,29 @@ describe('the Compare view command (4)', () => {
     await command.run();
     expect(useUiStore.getState().destination).toBe('compare');
     expect(useAnnouncer.getState().serial).toBe(said);
+  });
+});
+
+describe("Compare's second file", () => {
+  it('opens as B, keeps the active tab and is recorded in Recents (M8-i)', async () => {
+    const opened = await useWorkspaceStore
+      .getState()
+      .openFiles([await fixtureFile(aUrl, 'compare-a.pdf')]);
+    const a = opened.opened[0]?.documentId;
+    useUiStore.getState().showCompare();
+    const file = await fixtureFile(bUrl, 'compare-b.pdf');
+    await addSecondFile([file]);
+    const ws = useWorkspaceStore.getState().workspace;
+    expect(ws.activeDocument).toBe(a);
+    const b = useCompareStore.getState().b;
+    expect(b).not.toBe(a);
+    expect(b !== null && ws.documents[b]?.pages.length).toBeGreaterThan(0);
+    await waitFor(() =>
+      expect(useRecentsStore.getState().entries.map((e) => [e.name, e.size])).toContainEqual([
+        'compare-b.pdf',
+        file.size,
+      ]),
+    );
   });
 });
 

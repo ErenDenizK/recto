@@ -39,13 +39,11 @@ import {
   dragHasFiles,
   filesFromDataTransfer,
   isOpenableFile,
-  partitionFiles,
   pickFiles,
 } from '../files/open-files';
 import { formatNumber, formatPercent, m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { CSS_PX_PER_PT } from '../pages/page-geometry';
-import { announce } from '../shell/announcer';
 import { useCommandShortcut } from '../shell/use-command-shortcut';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -66,6 +64,7 @@ import {
   useCompareStore,
 } from './compare-store';
 import styles from './CompareView.module.css';
+import { addSecondFile } from './second-file';
 import {
   fitPageScale,
   fitScale,
@@ -102,29 +101,6 @@ const ALIGNMENTS = [
 ] as const;
 
 const RESOLUTIONS = [100, 150] as const;
-
-/** Opens the first PDF of `files` as a tab and makes it B, keeping the active tab. */
-async function addSecondFile(files: readonly File[]): Promise<void> {
-  const { pdfs } = partitionFiles(files);
-  const file = pdfs[0];
-  if (!file) {
-    announce(m.drop_no_pdfs());
-    return;
-  }
-  const store = useWorkspaceStore.getState();
-  const previous = store.workspace.activeDocument;
-  const { opened, skipped } = await store.openFiles([file]);
-  const added = opened[0];
-  if (added) {
-    useCompareStore.setState({ b: added.documentId });
-    if (previous !== undefined && useWorkspaceStore.getState().workspace.documents[previous]) {
-      useWorkspaceStore.getState().setActive(previous);
-    }
-    announce(m.compare_file_added({ name: added.name }));
-  } else if (skipped[0]) {
-    announce(m.compare_file_failed({ name: skipped[0].name }));
-  }
-}
 
 function CompareSetup({ dragging }: { readonly dragging: boolean }) {
   const order = useWorkspaceStore((s) => s.workspace.documentOrder);
