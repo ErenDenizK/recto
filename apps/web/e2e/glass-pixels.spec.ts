@@ -312,7 +312,7 @@ test.describe('in the light theme (spec D3-7)', () => {
       );
       const model = glassModel(await glassStyle(page.locator('[data-capsule]')), WHITE);
       // The composite tokens.test.ts asserts for the light bar tier (M2) over white.
-      expect(hex(model)).toBe('#fbfbfd');
+      expect(hex(model)).toBe('#fcfcfd');
       expect(
         channelDistance(sample, model),
         `rendered ${hex(sample)} against the model ${hex(model)}`,

@@ -121,6 +121,11 @@ test('every precached file and every split surface opens offline (PF-17)', async
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await expect(page.getByTestId('app-shell')).toBeVisible();
+  // The worker activates only once its whole precache (about 13 MB with the bundled fonts) is
+  // in; on a loaded machine that takes longer than a poll's default 5 s, so wait for it first.
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
   await expect
     .poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null))
     .toBe(true);
