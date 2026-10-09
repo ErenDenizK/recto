@@ -14,6 +14,8 @@
  * - `view-transition.ts`: `viewTransition()` at 240 ms (§7.4).
  * - `tokens.ts`: the motion tokens for script, the twins of `styles/motion.css` (D3-4): ease
  *   durations with their reduced values, press scales (02.5), the sheet push and the ring.
+ * - `resize.ts`: `springWidth()`, a floating piece following its content's width on `smooth`
+ *   (Q-6's own geometry, G6), and `restingWidth()` for whoever measures it mid-flight.
  * - `catalogue.ts`: the catalogue entries that run from script (§7.3): `sheetPush` (X8),
  *   `ringFlash` (*undo reveal*), `revealWhenShown` (*find step*, 05.2), `fold` (02.6).
  *
@@ -34,6 +36,13 @@ export { fold, type RingColour, revealWhenShown, ringFlash, sheetPush } from './
 export { flip } from './flip';
 export { reducedMotion, subscribeReducedMotion, systemReducedMotion } from './reduced-motion';
 export {
+  RESIZING,
+  restingWidth,
+  springWidth,
+  type SpringWidthOptions,
+  TARGET_WIDTH,
+} from './resize';
+export {
   type LinearEasing,
   type Spring,
   type SpringName,
@@ -48,6 +57,7 @@ export {
   duration,
   EASE,
   ENTER_SCALE,
+  EXIT_SCALE,
   LARGE_SURFACE_PX,
   MOTION_TOKENS,
   PRESS_SCALE,
