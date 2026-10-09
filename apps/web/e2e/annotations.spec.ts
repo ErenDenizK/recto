@@ -286,12 +286,15 @@ test.describe('annotations', () => {
 
     // With the pen armed and nothing selected, the ink strip edits the pen's style (10-ink §2;
     // the inspector did until D2-9).
+    // The armed pen's colour from the well's panel (G8: no fixed swatches in the strip).
     const penStyle = page.getByTestId('ink-strip');
-    await penStyle.getByRole('radio', { name: 'Blue' }).click();
-    await expect(penStyle.getByRole('radio', { name: 'Blue' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await penStyle.getByRole('button', { name: /^Colour: / }).click();
+    const hex = page.getByRole('textbox', { name: 'Hex colour' });
+    if (!(await hex.isVisible())) await page.getByRole('radio', { name: 'Sliders' }).click();
+    await hex.fill('1760EE');
+    await hex.press('Enter');
+    await penStyle.getByRole('button', { name: /^Colour: / }).click();
+    await expect(penStyle.getByRole('button', { name: 'Colour: Blue' })).toBeVisible();
 
     // Start fresh: the drawn document would otherwise be restored (ADR-0032 §2.5).
     await reloadFresh(page);
@@ -302,10 +305,7 @@ test.describe('annotations', () => {
     });
     await page.locator('body').press('p');
     await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
-    await expect(penStyle.getByRole('radio', { name: 'Blue' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await expect(penStyle.getByRole('button', { name: 'Colour: Blue' })).toBeVisible();
     await drag(page, 0, [0.25, 0.5], [0.6, 0.5]);
     await expect(ink).toHaveCount(1, { timeout: 10_000 });
     await expect(page.getByTestId('annotation-bar')).toHaveCount(0);

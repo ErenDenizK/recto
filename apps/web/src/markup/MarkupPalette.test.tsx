@@ -43,6 +43,8 @@ import { isMarkupOpenActive, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
+import { COLOUR_VIEW_KEY } from '../ui/colour/ColourPanel';
+import { INK_RECENTS_STORAGE_KEY, reloadInkRecents } from './ink-recents';
 import { paletteGroupOfCommand } from './palette-groups';
 
 function Harness({ doc }: { readonly doc: VirtualDocument }) {
@@ -131,6 +133,9 @@ describe('Markup palette', () => {
     await page.viewport(1280, 900);
     localStorage.removeItem(TOOL_STYLES_STORAGE_KEY);
     localStorage.removeItem(PEN_PRESETS_STORAGE_KEY);
+    localStorage.removeItem(INK_RECENTS_STORAGE_KEY);
+    localStorage.removeItem(COLOUR_VIEW_KEY);
+    reloadInkRecents();
     setSignatureBackend(memorySignatureBackend());
     resetWorkspace();
     resetEditRunner();
@@ -146,6 +151,9 @@ describe('Markup palette', () => {
     setSignatureBackend(undefined);
     localStorage.removeItem(TOOL_STYLES_STORAGE_KEY);
     localStorage.removeItem(PEN_PRESETS_STORAGE_KEY);
+    localStorage.removeItem(INK_RECENTS_STORAGE_KEY);
+    localStorage.removeItem(COLOUR_VIEW_KEY);
+    reloadInkRecents();
     resetAnnotationStore();
     resetWorkspace();
   });
@@ -191,25 +199,51 @@ describe('Markup palette', () => {
     );
   });
 
-  it('arming a pen shows its ink strip: a swatch and the width edit the armed preset', async () => {
+  it('arming a pen shows its ink strip: the well, its recents and the width edit the armed preset', async () => {
     await mount();
     await openMarkup();
     await userEvent.click(tool('Red pen, 2 pt'));
     expect(useToolStore.getState().mode).toBe('ink');
     const inks = await screen.findByRole('toolbar', { name: 'Pen options' });
-    // One press away: the well, six swatches, the width (10-ink §2.1).
+    // One press away: the well with the pen's colour and the width (10-ink §2.1). No fixed
+    // swatches repeat the dock's pens (G8), and a pen that never changed colour has no recents.
     // The strip's piece rises in above the palette.
+    const well = within(inks).getByRole('button', { name: 'Colour: Red' });
+    await waitFor(() => expect(well).toBeVisible());
+    expect(within(inks).queryAllByRole('radio')).toHaveLength(0);
+    // A colour from the panel shows on the armed pen's dot in the dock at once.
+    await userEvent.click(well);
+    const grid = await screen.findByRole('radiogroup', { name: 'Colour grid' });
+    const cell = within(grid).getAllByRole('radio')[40] as HTMLElement;
+    await userEvent.click(cell);
+    const chosen = useAnnotationStore.getState().pen.presets[2].color;
+    expect(chosen).not.toBe(INK.red);
+    const dot = palette().querySelector('[data-pen-preset="2"] span') as HTMLElement;
+    const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(chosen.slice(i, i + 2), 16));
+    expect(getComputedStyle(dot).backgroundColor).toBe(`rgb(${r}, ${g}, ${b})`);
+    // Closing the panel commits; the colour the pen left becomes its first recent.
+    await userEvent.click(within(inks).getByRole('button', { name: /^Colour: / }));
     await waitFor(() =>
-      expect(within(inks).getByRole('button', { name: 'More colours' })).toBeVisible(),
+      expect(screen.queryByRole('radiogroup', { name: 'Colour grid' })).toBeNull(),
     );
-    expect(within(inks).getAllByRole('radio')).toHaveLength(6);
-    expect(within(inks).getByRole('radio', { name: 'Red' })).toHaveAttribute(
-      'aria-checked',
-      'true',
+    const recents = await within(inks).findByRole('radiogroup', { name: 'Recent colours' });
+    expect(
+      within(recents)
+        .getAllByRole('radio')
+        .map((el) => el.getAttribute('aria-label')),
+    ).toEqual(['Red']);
+    // A recent swaps back: red again, and the panel's colour takes its place among the recents.
+    await userEvent.click(within(recents).getByRole('radio', { name: 'Red' }));
+    expect(useAnnotationStore.getState().pen.presets[2].color).toBe(INK.red);
+    expect(useAnnotationStore.getState().styles.ink.color).toBe(INK.red);
+    await waitFor(() => expect(within(inks).getAllByRole('radio')).toHaveLength(1));
+    expect(within(inks).queryByRole('radio', { name: 'Red' })).toBeNull();
+    // Each pen keeps its own recents: the black pen has none.
+    await userEvent.click(tool('Black pen, 1.5 pt'));
+    await waitFor(() =>
+      expect(within(strip() as HTMLElement).queryAllByRole('radio')).toHaveLength(0),
     );
-    await userEvent.click(within(inks).getByRole('radio', { name: 'Blue' }));
-    expect(useAnnotationStore.getState().pen.presets[2].color).toBe(INK.blue);
-    expect(useAnnotationStore.getState().styles.ink.color).toBe(INK.blue);
+    await userEvent.click(tool('Red pen, 2 pt'));
     const width = within(inks).getByRole('slider', { name: 'Width' });
     expect(width).toHaveAttribute('aria-valuetext', '2 points');
     width.focus();
@@ -226,7 +260,9 @@ describe('Markup palette', () => {
     expect(box.bottom).toBeLessThanOrEqual(capsule.top - 4);
     expect(Math.abs(box.left + box.width / 2 - (capsule.left + capsule.width / 2))).toBeLessThan(1);
     expect(box.width).toBeLessThan(capsule.width);
-    expect(capsule.height).toBeLessThanOrEqual(57);
+    // One family (G8): the strip is as tall as the palette, one bar.
+    expect(capsule.height).toBe(44);
+    expect(box.height).toBe(capsule.height);
     // Select has no strip: the piece leaves, inert from its first frame out, then unmounts.
     await userEvent.click(tool('Select'));
     expect(piece).toHaveAttribute('inert');
@@ -251,10 +287,7 @@ describe('Markup palette', () => {
     await userEvent.keyboard('h');
     expect(useAnnotationStore.getState().pen.active).toBe(3);
     const tints = await screen.findByRole('toolbar', { name: 'Highlighter options' });
-    expect(within(tints).getByRole('radio', { name: 'Yellow' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(within(tints).getByRole('button', { name: 'Colour: Yellow' })).toBeInTheDocument();
     // P from the Highlighter: the last writing pen.
     await userEvent.keyboard('p');
     expect(useAnnotationStore.getState().pen.active).toBe(0);
