@@ -10,6 +10,16 @@
   grid-template-columns: repeat(auto-fill, var(--card-w));
   gap: var(--space-4);
   outline: none;
+  /* The ghost layer's z-index stays inside the grid (card-motion.ts). */
+  isolation: isolate;
+}
+
+/* Closed cards' clones shrink out here, under the cards that close the gap (card-motion.ts). */
+.ghosts {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {

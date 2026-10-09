@@ -19,7 +19,7 @@
  * accessible name says all three lines ("report, 12 pages, 2.4 MB, edited, locked").
  */
 import type { VirtualPage, Workspace } from '@pdf-editor/document-model';
-import type { MouseEvent, PointerEvent, ReactNode, Ref } from 'react';
+import type { CSSProperties, MouseEvent, PointerEvent, ReactNode, Ref } from 'react';
 
 import { RENDER_PRIORITY } from '../engine/engine-service';
 import { m, useLocale } from '../i18n';
@@ -39,6 +39,10 @@ import lit from './lit.module.css';
 export const THUMB_FINE = { width: 160, height: 200 } as const;
 export const THUMB_COARSE = { width: 176, height: 220 } as const;
 
+/** The check badges come in 12 ms apart for at most ten steps (MP rule: ≤ 10 × 12 ms). */
+const CHECK_STAGGER_STEPS = 10;
+const CHECK_STAGGER_MS = 12;
+
 /** Line 3's lock state (L5 §4): glyph and words, never a tint. */
 function lockState(lock: LockReason | undefined): { icon: IconName; text: string } | undefined {
   switch (lock) {
@@ -55,6 +59,8 @@ function lockState(lock: LockReason | undefined): { icon: IconName; text: string
 
 export interface LibraryCardProps {
   readonly card: HomeCardData;
+  /** Its place in the grid, for the check badges' stagger (L5 §7). */
+  readonly index?: number;
   readonly workspace: Workspace;
   readonly selected: boolean;
   readonly selecting: boolean;
@@ -75,6 +81,7 @@ export interface LibraryCardProps {
 
 export function LibraryCard({
   card,
+  index = 0,
   workspace,
   selected,
   selecting,
@@ -122,6 +129,11 @@ export function LibraryCard({
       data-dragging={dragging || undefined}
       data-lit=""
       className={`${lit.lit} ${styles.card}`}
+      style={
+        {
+          '--check-delay': `${Math.min(index, CHECK_STAGGER_STEPS - 1) * CHECK_STAGGER_MS}ms`,
+        } as CSSProperties
+      }
       onClick={onClick}
       onFocus={onFocus}
       onContextMenu={onContextMenu}
@@ -202,7 +214,11 @@ function LibraryThumb({
   const fitted = fitInBox(size, box.width, box.height);
   const frame = contentFrame(workspace, page);
   return (
-    <div className={styles.sheet} style={{ width: fitted.width, height: fitted.height }}>
+    <div
+      className={styles.sheet}
+      data-library-sheet=""
+      style={{ width: fitted.width, height: fitted.height }}
+    >
       <ResizedContent frame={frame}>
         <PageCanvas
           sourceId={page.ref.kind === 'source' ? page.ref.source : undefined}

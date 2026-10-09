@@ -30,6 +30,7 @@ import { Tooltip } from '../ui/Tooltip';
 import { openTextEditorAt } from '../text-edit/entry';
 import { pulseSelection } from '../viewer/copy-pulse';
 import { selectionCopyText } from '../viewer/text-model';
+import { BarSwap, useBarWidthSpring } from './bar-motion';
 import { useToolStore } from '../viewer/tool-store';
 import { useAnnotationStore } from './annotation-store';
 import { cssPointToUser } from './geometry';
@@ -50,8 +51,8 @@ function barHeight(): number {
 interface Placement {
   readonly x: number;
   readonly y: number;
-  /** Below the selection (near the top of the page), so it emerges downward. */
-  readonly below: boolean;
+  /** Above the selected line, or below it near the top of the page: the side it rises from. */
+  readonly side: 'above' | 'below';
 }
 
 /** The client rects of the selection's first range, empty when nothing is selected. */
@@ -127,9 +128,9 @@ function placementOn(root: HTMLElement): Placement | null {
   const bounds = root.getBoundingClientRect();
   const top = first.top - bounds.top;
   const height = barHeight();
-  const below = top - height - GAP < 0;
-  const y = below ? last.bottom - bounds.top + GAP : top - height - GAP;
-  return { x: first.left - bounds.left, y, below };
+  const above = top - height - GAP >= 0;
+  const y = above ? top - height - GAP : last.bottom - bounds.top + GAP;
+  return { x: first.left - bounds.left, y, side: above ? 'above' : 'below' };
 }
 
 export function TextSelectionBar(props: PageOverlayProps) {
@@ -142,6 +143,7 @@ export function TextSelectionBar(props: PageOverlayProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const roving = useRovingTabindex(barRef);
+  useBarWidthSpring(barRef, placement !== null);
   /** Set by "Mark up…" pressed from the keyboard: the Edit bar that replaces it takes the focus. */
   const focusEditBar = useRef(false);
 
@@ -262,60 +264,62 @@ export function TextSelectionBar(props: PageOverlayProps) {
           data-annotation-keep=""
           style={{ left: Math.max(0, placement.x), top: placement.y }}
           data-selection-mode={editable ? 'edit' : 'read'}
-          data-below={placement.below ? '' : undefined}
+          data-side={placement.side}
           onKeyDown={roving.onKeyDown}
           onFocus={roving.onFocus}
         >
-          {editable ? (
-            <>
-              {MARKUP_MODES.map(markupButton)}
-              <span className={styles.divider} aria-hidden="true" />
-              <Tooltip label={m.selection_comment_tooltip()} side="top">
+          <BarSwap bar={barRef} swapKey={editable ? 'edit' : 'read'}>
+            {editable ? (
+              <>
+                {MARKUP_MODES.map(markupButton)}
+                <span className={styles.divider} aria-hidden="true" />
+                <Tooltip label={m.selection_comment_tooltip()} side="top">
+                  <Button
+                    variant="quiet"
+                    icon={<Icon name="chat-centered-dots" />}
+                    data-comment=""
+                    onPointerDown={keep}
+                    onClick={() => void commentOnSelection(props)}
+                  >
+                    {m.selection_comment()}
+                  </Button>
+                </Tooltip>
+              </>
+            ) : (
+              <>
                 <Button
                   variant="quiet"
-                  icon={<Icon name="chat-centered-dots" />}
-                  data-comment=""
+                  icon={<Icon name="copy" />}
                   onPointerDown={keep}
-                  onClick={() => void commentOnSelection(props)}
+                  onClick={() => void copy()}
                 >
-                  {m.selection_comment()}
+                  {m.action_copy()}
                 </Button>
-              </Tooltip>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="quiet"
-                icon={<Icon name="copy" />}
-                onPointerDown={keep}
-                onClick={() => void copy()}
-              >
-                {m.action_copy()}
-              </Button>
-              <Tooltip label={m.selection_edit_text_tooltip()} side="top">
-                <Button
-                  variant="quiet"
-                  icon={<Icon name="edit-text" />}
-                  data-edit-text=""
-                  onPointerDown={keep}
-                  onClick={() => void editTextAtSelection(props)}
-                >
-                  {m.tool_edit_text()}
-                </Button>
-              </Tooltip>
-              <Tooltip label={m.selection_mark_up_tooltip()} side="top">
-                <Button
-                  variant="quiet"
-                  icon={<Icon name="pencil-simple" />}
-                  aria-keyshortcuts="2"
-                  onPointerDown={keep}
-                  onClick={markUp}
-                >
-                  {m.selection_mark_up()}
-                </Button>
-              </Tooltip>
-            </>
-          )}
+                <Tooltip label={m.selection_edit_text_tooltip()} side="top">
+                  <Button
+                    variant="quiet"
+                    icon={<Icon name="edit-text" />}
+                    data-edit-text=""
+                    onPointerDown={keep}
+                    onClick={() => void editTextAtSelection(props)}
+                  >
+                    {m.tool_edit_text()}
+                  </Button>
+                </Tooltip>
+                <Tooltip label={m.selection_mark_up_tooltip()} side="top">
+                  <Button
+                    variant="quiet"
+                    icon={<Icon name="pencil-simple" />}
+                    aria-keyshortcuts="2"
+                    onPointerDown={keep}
+                    onClick={markUp}
+                  >
+                    {m.selection_mark_up()}
+                  </Button>
+                </Tooltip>
+              </>
+            )}
+          </BarSwap>
         </div>
       ) : null}
     </div>

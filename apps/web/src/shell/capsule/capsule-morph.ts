@@ -20,6 +20,11 @@
  *   print as one word when the two fades overlapped). A reversal mid-morph keeps the rule: the
  *   content that is leaving now fades from the opacity it has, and the one asked back waits for
  *   it, then fades in from the opacity it had kept (never jumping back to whole).
+ * - **From the piece pressed** (motion-2026-10 `library-capsule.md` §5). A morph asked from a
+ *   piece (a dock item pressed or activated by key) reveals its new content outward from that
+ *   piece rather than the capsule's centre: the stagger is ordered by distance from it, and each
+ *   part comes out of its side of it, starting `FLOW_SHARE` of the way back toward it (at most
+ *   24 px) and settling on `smooth`, so Markup visibly opens out of the Markup button.
  * - **The edge brings the content** (owner, "Animation!"). A piece is never drawn cut by the
  *   moving edge: each part of the arriving content fades in once the capsule's edge has passed
  *   it, read from the width's own spring, so a wider content spreads out from the centre with
@@ -50,7 +55,7 @@
  */
 import { animateStyle, type Motion, stopTransform } from '../../motion/animate';
 import { reducedMotion } from '../../motion/reduced-motion';
-import { solve, springs } from '../../motion/springs';
+import { solve, springs, springToLinear } from '../../motion/springs';
 import { duration, EASE } from '../../motion/tokens';
 
 /** The attribute that names a piece of content across morphs. */
@@ -69,10 +74,26 @@ export const CAPSULE_EDGE = 16;
 export const LEAVE_MS = 90;
 /** The opacity at or under which a piece reads as gone (a trace), for the overlap rule. */
 export const TRACE_OPACITY = 0.1;
+/**
+ * How far an arriving part starts toward the piece pressed: this share of its distance from it,
+ * at most `FLOW_MAX_PX` (the dock item's content flows out of it, not across the capsule).
+ */
+export const FLOW_SHARE = 0.18;
+export const FLOW_MAX_PX = 24;
+/** `smooth` as a CSS curve, for the flow's own keyframes (they wait for the part's turn). */
+const SMOOTH = springToLinear('smooth');
+
+/** The offset an arriving part starts at, toward the origin `offset` px from it. */
+export function flowOffset(offset: number): number {
+  return -Math.sign(offset) * Math.min(Math.abs(offset) * FLOW_SHARE, FLOW_MAX_PX);
+}
+
 /** Moves and size changes smaller than this (CSS px) are not animated. */
 const STILL = 0.5;
 /** The id of an arriving fade, so a content that leaves mid-fade can hold it where it is. */
 const ARRIVE = 'capsule-arrive';
+/** The id of an arriving part's flow out of the piece pressed (its transform). */
+const FLOW = 'capsule-flow';
 /** The id of a leaving piece's own early fade, undone when its content is asked back. */
 const CLEAR = 'capsule-clear';
 /** How far ahead a slide's path is read (ms), and in what steps: past `--spring-smooth`'s 99 %. */
@@ -107,6 +128,12 @@ export interface CapsuleSnapshot {
   /** The piece that had focus, if focus was in the capsule. */
   readonly focused: string | null;
   readonly hadFocus: boolean;
+  /**
+   * Where the change was asked from (viewport x): the centre of the piece just pressed (a dock
+   * item opening Markup, Done closing it), else of the piece that had focus (a key); null when
+   * the change came from elsewhere (a shortcut on the page, the lock engaging).
+   */
+  readonly origin: number | null;
 }
 
 /** A layer's content key (`data-capsule-layer`). */
@@ -123,8 +150,14 @@ export function lookOf(element: Element): string {
   return `${(element.textContent ?? '').trim()}\u0000${icons}`;
 }
 
-/** Reads the capsule as drawn. */
-export function snapshotCapsule(capsule: HTMLElement): CapsuleSnapshot {
+/**
+ * Reads the capsule as drawn; `pressed` is the key of the piece a pointer has just pressed, if
+ * any (`Capsule.tsx`), the morph's origin.
+ */
+export function snapshotCapsule(
+  capsule: HTMLElement,
+  pressed: string | null = null,
+): CapsuleSnapshot {
   const box = capsule.getBoundingClientRect();
   const items = new Map<string, SnapshotItem>();
   for (const element of capsule.querySelectorAll(`:scope > ${LAYER} [${CAPSULE_ITEM}]`)) {
@@ -135,14 +168,17 @@ export function snapshotCapsule(capsule: HTMLElement): CapsuleSnapshot {
   }
   const active = capsule.ownerDocument.activeElement;
   const hadFocus = active !== null && capsule.contains(active);
+  const focused = hadFocus
+    ? (active?.closest(`[${CAPSULE_ITEM}]`)?.getAttribute(CAPSULE_ITEM) ?? null)
+    : null;
+  const from = items.get(pressed ?? focused ?? '')?.rect;
   return {
     width: box.width,
     height: box.height,
     items,
-    focused: hadFocus
-      ? (active?.closest(`[${CAPSULE_ITEM}]`)?.getAttribute(CAPSULE_ITEM) ?? null)
-      : null,
+    focused,
     hadFocus,
+    origin: from ? from.left + from.width / 2 : null,
   };
 }
 
@@ -390,7 +426,7 @@ export class CapsuleMorph {
       // A new content arrives part by part behind the edge; inside one content only what is
       // new arrives (a group shown); a content asked back still has its own fades.
       if (!back && (newContent || before.items.size > 0)) {
-        this.arrive(layer, planned, paths, newContent, wait, edge);
+        this.arrive(layer, planned, paths, newContent, wait, edge, before.origin);
       }
     }
 
@@ -420,6 +456,7 @@ export class CapsuleMorph {
     return [...layer.querySelectorAll<HTMLElement>(`[${CAPSULE_ITEM}]`)].map((element) => {
       const was = before.items.get(element.getAttribute(CAPSULE_ITEM) ?? '');
       if (!was || (was.element !== element && was.look !== lookOf(element))) return { element };
+      for (const a of element.getAnimations()) if (a.id === FLOW) a.finish();
       const prior = stopTransform(element);
       return { element, was, prior, now: element.getBoundingClientRect() };
     });
@@ -442,7 +479,8 @@ export class CapsuleMorph {
         ? from * Math.max(0, ...parts.map((part) => Number(getComputedStyle(part).opacity)))
         : from;
       for (const a of leaving.getAnimations()) if (a.id === ARRIVE) a.cancel();
-      for (const a of leaving.getAnimations({ subtree: true })) if (a.id === ARRIVE) a.pause();
+      for (const a of leaving.getAnimations({ subtree: true }))
+        if (a.id === ARRIVE || a.id === FLOW) a.pause();
       const length = (reduced ? duration('fast') / 2 : LEAVE_MS) * shown;
       const fade = leaving.animate([{ opacity: from }, { opacity: 0 }], {
         duration: length,
@@ -461,7 +499,7 @@ export class CapsuleMorph {
   /** A content asked back fades in from the opacity `from` it had kept, once the leaving go. */
   private comeBack(layer: HTMLElement, from: number, wait: number): void {
     for (const a of layer.getAnimations({ subtree: true })) {
-      if (a.id === ARRIVE && a.playState === 'paused') a.play();
+      if ((a.id === ARRIVE || a.id === FLOW) && a.playState === 'paused') a.play();
       // A piece that had cleared out of an edge's or a slide's way comes back the way it went.
       if (a.id === CLEAR) {
         a.reverse();
@@ -621,6 +659,7 @@ export class CapsuleMorph {
     newContent: boolean,
     wait: number,
     edge: EdgePath | null,
+    origin: number | null,
   ): void {
     const fresh = new Set<Element>(planned.filter((p) => !p.was).map((p) => p.element));
     const parts = newContent
@@ -633,26 +672,42 @@ export class CapsuleMorph {
     const passed = inks.map((ink) => (paths.length > 0 ? lastContact(paths, ink) : 0));
     const uncovered = inks.map((ink) => (edge ? uncoverTime(edge, ink) : 0));
     const order = parts.map((_, index) => index);
+    // The reveal spreads from the piece pressed (a dock item into its tool), else the centre.
+    const from = origin ?? edge?.centre ?? null;
+    const offset = (index: number) => {
+      const ink = inks[index] as Box;
+      return from === null ? 0 : (ink.left + ink.right) / 2 - from;
+    };
     if (paths.length === 0 && edge) {
-      const off = (index: number) => {
-        const ink = inks[index] as Box;
-        return Math.abs((ink.left + ink.right) / 2 - edge.centre);
-      };
+      const off = (index: number) => Math.abs(offset(index));
       [...order].sort((a, b) => off(a) - off(b)).forEach((index, step) => (order[index] = step));
     }
+    const flow = newContent && paths.length === 0 && origin !== null;
     if (newContent && paths.length === 0) this.parts.set(layer, parts);
     parts.forEach((part, index) => {
+      const delay = Math.max(
+        wait + staggerDelay(order[index] ?? index),
+        passed[index] ?? 0,
+        uncovered[index] ?? 0,
+      );
       part.animate([{ opacity: 0 }, { opacity: 1 }], {
         duration: duration('base'),
         easing: EASE.out,
-        delay: Math.max(
-          wait + staggerDelay(order[index] ?? index),
-          passed[index] ?? 0,
-          uncovered[index] ?? 0,
-        ),
+        delay,
         fill: 'backwards',
         id: ARRIVE,
       });
+      // Flowing from the piece pressed: each part comes out from its side of it, a short way.
+      const dx = flowOffset(offset(index));
+      if (flow && Math.abs(dx) >= STILL) {
+        part.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], {
+          duration: SMOOTH.duration,
+          easing: SMOOTH.easing,
+          delay,
+          fill: 'backwards',
+          id: FLOW,
+        });
+      }
     });
   }
 }

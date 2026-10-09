@@ -48,6 +48,51 @@
   }
 }
 
+/* The drop well breathes while files are over the window (motion-2026-10 library-capsule.md
+   §4): a soft lime halo outside its edge (an outer shadow never paints under the piece), its
+   opacity swinging on --loop-pulse; nothing runs once the drag ends. Reduced motion holds the
+   glow still. */
+.overlay .card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* Rings only (no blur, tokens.test): three bands, lime at 12, 8 and 8 %, overlapping toward
+     the edge, read as a soft halo. */
+  box-shadow:
+    0 0 0 3px var(--accent-muted),
+    0 0 0 8px var(--accent-subtle),
+    0 0 0 14px var(--accent-subtle);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.overlay .card::after {
+  opacity: 1;
+  animation: drop-breathe var(--loop-pulse) ease-in-out infinite alternate;
+}
+
+@keyframes drop-breathe {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay .card::after {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduced'] .overlay .card::after {
+  animation: none;
+}
+
 .glyph {
   width: 32px;
   height: 32px;

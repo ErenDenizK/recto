@@ -39,7 +39,7 @@ import { LibraryHead } from './LibraryHead';
 import { enterSelecting, setSelecting, useSelecting } from './library-store';
 import styles from './LibraryView.module.css';
 import { RecentList } from './RecentList';
-import { SelectionBar } from './SelectionBar';
+import { SelectionBarPresence } from './SelectionBar';
 import { useDragFileCount } from './use-drag-file-count';
 
 function useLibraryCards(): HomeCardData[] {
@@ -137,7 +137,7 @@ function LibraryWithCards({
         </div>
         <LibraryFooter />
       </div>
-      {selection.length > 0 ? <SelectionBar selection={selection} /> : null}
+      <SelectionBarPresence selection={selection} />
     </section>
   );
 }

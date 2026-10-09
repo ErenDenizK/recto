@@ -24,16 +24,36 @@
   height: var(--piece-h);
   padding: 0 var(--piece-pad);
   border-radius: var(--piece-radius);
+  transform-origin: 50% 100%;
   transition:
     transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);
 }
 
+/* It rises out of the capsule's place at the bottom centre and sinks back
+   into it on leaving, quicker (MC-16), inert from its first frame (motion-2026-10
+   library-capsule.md §3). The entrance only translates: springWidth measures the drawn box,
+   which a scale would shrink. Reduced motion keeps the fades (--rise-distance is 0 there).
+   */
 @starting-style {
   .bar {
-    transform: translateY(8px);
+    transform: translateY(calc(var(--piece-inset) + 4 * var(--rise-distance)));
     opacity: 0;
   }
+}
+
+.bar[data-leaving] {
+  transform: translateY(calc(2 * var(--rise-distance))) scale(var(--exit-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-exit);
+}
+
+/* A count or label changing width moves the bar on a spring (springWidth): clip meanwhile. */
+.bar[data-resizing] {
+  overflow: clip;
 }
 
 .count {

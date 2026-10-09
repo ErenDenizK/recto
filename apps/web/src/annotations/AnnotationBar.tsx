@@ -14,11 +14,12 @@
  * D2-9; a locked annotation keeps it, to read them.
  */
 import type { Annotation } from '@pdf-editor/engine';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
 import { useRovingTabindex } from '../markup/roving';
 import { Icon } from '../ui/Icon';
+import { restingWidth } from '../motion/resize';
 import { useFocusRescue } from '../ui/use-focus-rescue';
 import type { PageTarget } from './annotation-store';
 import { displayRect, type PageFrame, rectToCss } from './geometry';
@@ -31,6 +32,7 @@ import {
   picksOfSelection,
 } from './lasso/geometry';
 import { AnnotationPropertiesButton } from './AnnotationProperties';
+import { BarSwap, glideLeft, useBarWidthSpring } from './bar-motion';
 import { LassoBarControls } from './lasso/LassoSelection';
 import styles from './AnnotationLayer.module.css';
 import { StyleControls } from './StyleControls';
@@ -63,11 +65,13 @@ export function AnnotationBar({
   const [height, setHeight] = useState(INITIAL_HEIGHT);
   const roving = useRovingTabindex(ref);
   useFocusRescue(ref, pageViewport);
+  useBarWidthSpring(ref);
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
+    // Where its width is going while it springs (bar-motion.ts), so it is placed once.
     const measure = () => {
-      if (element.offsetWidth > 0) setWidth(element.offsetWidth);
+      if (element.offsetWidth > 0) setWidth(restingWidth(element));
       if (element.offsetHeight > 0) setHeight(element.offsetHeight);
     };
     measure();
@@ -108,8 +112,29 @@ export function AnnotationBar({
     width >= pageWidth
       ? (pageWidth - width) / 2
       : Math.min(Math.max((left + right) / 2 - width / 2, 0), pageWidth - width);
+  // A new width re-centres the bar: its left edge glides there on the width's spring, so it
+  // grows about its centre (bar-motion.ts). Not on its first placements, nor when the
+  // selection moves (a drag), which the bar follows at once.
+  const placed = useRef<{ x: number; width: number } | null>(null);
+  const settled = useRef(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => (settled.current = true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  useLayoutEffect(() => {
+    const was = placed.current;
+    placed.current = { x, width };
+    const bar = ref.current;
+    if (bar && was && settled.current && was.width !== width) glideLeft(bar, was.x, x);
+  }, [x, width]);
   const first = annotations[0];
   const locked = !paths && annotations.every((a) => a.flags?.locked);
+  // Another type of selection brings other controls: they cross-fade (bar-motion.ts).
+  const swapKey = paths
+    ? 'lasso'
+    : locked
+      ? 'locked'
+      : [...new Set(annotations.map((a) => a.kind))].sort().join(' ');
   const name = counts
     ? lassoItems(counts)
     : annotations.length === 1 && first
@@ -124,36 +149,39 @@ export function AnnotationBar({
       data-testid="annotation-bar"
       data-lasso-bar={paths ? '' : undefined}
       data-annotation-keep=""
+      data-side={y < top ? 'above' : 'below'}
       style={{ left: x, top: y }}
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={roving.onKeyDown}
       onFocus={roving.onFocus}
     >
-      <span className={styles.barName}>{name}</span>
-      {locked ? (
-        <span className={styles.barLocked} title={m.annot_locked()}>
-          <Icon name="lock-simple" />
-          {m.annot_locked_short()}
-        </span>
-      ) : (
-        <>
-          <span className={styles.barDivider} aria-hidden="true" />
-          {paths ? (
-            <LassoBarControls
-              pageId={target.pageId}
-              strokesOnly={counts !== null && onlyStrokes(counts)}
-            />
-          ) : (
-            <StyleControls target={target} annotations={annotations} variant="bar" />
-          )}
-        </>
-      )}
-      {paths ? null : (
-        <>
-          <span className={styles.barDivider} aria-hidden="true" />
-          <AnnotationPropertiesButton target={target} annotations={annotations} name={name} />
-        </>
-      )}
+      <BarSwap bar={ref} swapKey={swapKey}>
+        <span className={styles.barName}>{name}</span>
+        {locked ? (
+          <span className={styles.barLocked} title={m.annot_locked()}>
+            <Icon name="lock-simple" />
+            {m.annot_locked_short()}
+          </span>
+        ) : (
+          <>
+            <span className={styles.barDivider} aria-hidden="true" />
+            {paths ? (
+              <LassoBarControls
+                pageId={target.pageId}
+                strokesOnly={counts !== null && onlyStrokes(counts)}
+              />
+            ) : (
+              <StyleControls target={target} annotations={annotations} variant="bar" />
+            )}
+          </>
+        )}
+        {paths ? null : (
+          <>
+            <span className={styles.barDivider} aria-hidden="true" />
+            <AnnotationPropertiesButton target={target} annotations={annotations} name={name} />
+          </>
+        )}
+      </BarSwap>
     </div>
   );
 }
