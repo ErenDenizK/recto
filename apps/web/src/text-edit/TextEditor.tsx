@@ -127,7 +127,7 @@ export function TextEditor({
         return result;
       } catch (caught) {
         if (signal?.aborted) return undefined;
-        const { textEditFailureReason } = await import('@pdf-editor/engine');
+        const { textEditFailureReason } = await import('@pdf-editor/engine/client');
         setCheck({ text: value, error: failureMessage(textEditFailureReason(caught)) });
         return undefined;
       }
@@ -143,7 +143,7 @@ export function TextEditor({
         if (live) setAnalyzed({ session, value });
       },
       async (caught: unknown) => {
-        const { textEditFailureReason } = await import('@pdf-editor/engine');
+        const { textEditFailureReason } = await import('@pdf-editor/engine/client');
         if (live) setAnalyzed({ session, error: failureMessage(textEditFailureReason(caught)) });
       },
     );

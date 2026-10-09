@@ -36,7 +36,7 @@ async function commit(
   /** Said in the live region on success (default: the label). */
   announcement = label,
 ): Promise<ImageEditOutcome & { readonly reason?: string }> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   const store = useImageStore.getState();
   const edit: EngineEdit = {
     id: globalThis.crypto.randomUUID(),
@@ -88,7 +88,7 @@ export async function transformImage(
   rect: Rect,
   announcement?: string,
 ): Promise<ImageEditOutcome> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   const resized =
     Math.abs(rect.width - image.bounds.width) > 0.01 ||
     Math.abs(rect.height - image.bounds.height) > 0.01;
@@ -107,7 +107,7 @@ export async function deleteImage(
   target: PageTarget,
   image: LocatedImage,
 ): Promise<ImageEditOutcome> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   useImageStore.getState().select(null);
   return commit(
     target,
@@ -155,7 +155,7 @@ export async function replaceImage(
   image: LocatedImage,
   file: File,
 ): Promise<ImageEditOutcome> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   let replacement: ImageReplacementJson;
   try {
     replacement = await replacementOfFile(file);

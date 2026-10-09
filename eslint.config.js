@@ -30,25 +30,7 @@ const restrictedPlatformGlobals = [
 const engineBarrelMessage =
   "A value import of '@pdf-editor/engine' puts the whole engine on the editor's initial path " +
   '(PF-1): write `import type { … }`, take values from a light subpath such as ' +
-  "'@pdf-editor/engine/constants', or load the engine with `await import()`.";
-
-/**
- * App modules that value-import the engine barrel and load only behind a lazy boundary (a lazy
- * sheet, `ocr-run`, `rasterize`, the Batch steps), so the barrel stays off the editor's initial
- * path. PF-2 moves them to a light `@pdf-editor/engine/client` subpath and empties this list;
- * nothing is added to it. If one of them becomes static, tools/qa/bundle-budget.ts fails.
- */
-const engineBarrelLazyModules = [
-  'apps/web/src/batch/steps.ts',
-  'apps/web/src/export/SaveCopyPages.tsx',
-  'apps/web/src/export/SaveCopySections.tsx',
-  'apps/web/src/export/SaveCopySheet.tsx',
-  'apps/web/src/export/save-copy-model.ts',
-  'apps/web/src/ocr/OcrSheet.tsx',
-  'apps/web/src/ocr/ocr-run.ts',
-  'apps/web/src/tools/compress-model.ts',
-  'apps/web/src/tools/rasterize.ts',
-];
+  "'@pdf-editor/engine/client' (PF-2) or '/constants', or load the engine with `await import()`.";
 
 /** Q-9 and Q-14's native and hand-styled controls, which ui/ replaces (system audit §3.11). */
 const Q9_CONTROLS = [
@@ -252,14 +234,14 @@ export default defineConfig(
   },
 
   // The engine stays off the editor's initial path (docs/plan/v1/PLAN.md PF-1): app code takes
-  // only types from the `@pdf-editor/engine` barrel, values from its light subpaths (`/constants`,
-  // `/fonts`, …) and the engine itself through `await import()`. Under `verbatimModuleSyntax` an
-  // import whose specifiers are all inline `type` still emits `import '@pdf-editor/engine'`,
-  // which `allowTypeImports` lets through, hence the syntax rule beside it. Tests and the lazy
-  // modules listed above are exempt.
+  // only types from the `@pdf-editor/engine` barrel, values from its light subpaths (`/client`,
+  // PF-2; `/constants`, `/fonts`, …) and the engine itself through `await import()`. Under
+  // `verbatimModuleSyntax` an import whose specifiers are all inline `type` still emits
+  // `import '@pdf-editor/engine'`, which `allowTypeImports` lets through, hence the syntax rule
+  // beside it. Tests are exempt.
   {
     files: ['apps/web/src/**/*.{ts,tsx}'],
-    ignores: [...nodeFiles, '**/*.test.{ts,tsx}', ...engineBarrelLazyModules],
+    ignores: [...nodeFiles, '**/*.test.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-restricted-imports': [
         'error',

@@ -5,7 +5,8 @@
  * Vite's `?worker` import bundles the engine's worker entry as a same-origin module worker
  * (`worker.format: 'es'`), which the CSP allows (`worker-src 'self'`). A bare specifier in
  * `new URL(…, import.meta.url)` is not resolved by Vite, so the documented `?worker` form is
- * used. The engine code is loaded lazily so it stays out of the entry chunk.
+ * used. The proxy comes from the light client entry (PF-2), loaded lazily so it stays out of
+ * the entry chunk.
  */
 import AssemblerWorker from '@pdf-editor/engine/assembler.worker?worker';
 import type { AssemblerProxy } from '@pdf-editor/engine';
@@ -14,7 +15,7 @@ let shared: Promise<AssemblerProxy> | undefined;
 
 export function getAssembler(): Promise<AssemblerProxy> {
   if (shared === undefined) {
-    const created = import('@pdf-editor/engine').then(({ createAssemblerProxy }) =>
+    const created = import('@pdf-editor/engine/client').then(({ createAssemblerProxy }) =>
       createAssemblerProxy(new AssemblerWorker({ name: 'recto assembler' })),
     );
     created.catch(() => {
