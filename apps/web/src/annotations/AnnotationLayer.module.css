@@ -169,7 +169,7 @@
   place-items: center;
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--surface-on);
   color: var(--warning);
   box-shadow: 0 0 0 1px var(--border-hairline);
@@ -193,7 +193,7 @@
   padding: 0 var(--space-2);
   border-radius: var(--radius-capsule);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   white-space: nowrap;
   pointer-events: auto;
   cursor: default;
@@ -261,7 +261,7 @@
   padding: var(--space-3);
   border-radius: 16px;
   color: var(--text-primary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   pointer-events: auto;
   cursor: default;
 }
@@ -271,7 +271,7 @@
   justify-content: space-between;
   gap: var(--space-2);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 /* The text: a field well (ui/Field.module.css: the control border and radius, the inset ring).

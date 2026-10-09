@@ -19,6 +19,7 @@ import { type ComponentProps, type ReactNode, useRef } from 'react';
 
 import { m } from '../i18n';
 import { Icon } from './Icon';
+import { type OpenType, resolveInitialFocus } from './initial-focus';
 import styles from './Popover.module.css';
 
 type PositionerProps = ComponentProps<typeof Popover.Positioner>;
@@ -67,8 +68,12 @@ export function PopoverPopup({
   // The popup itself takes focus when it opens (Tab then reaches ✕ and the controls): a
   // keyboard Enter that opened it would otherwise reach ✕ as its keypress when the popup
   // appears at once (reduced motion) and close it again, and a radio group focused before it
-  // has registered its items starts its arrows from the wrong one.
+  // has registered its items starts its arrows from the wrong one. A field the caller names
+  // takes focus only when the keyboard opened the popover; from a pointer the popup does, so
+  // no ring lights and no keyboard rises (`ui/initial-focus.ts`, system-audit-2026-10 §3.8).
   const focusPopup = () => own.current ?? true;
+  const focusOnOpen = (openType: OpenType) =>
+    resolveInitialFocus(initialFocus ?? focusPopup, openType, own.current);
   return (
     <Popover.Portal>
       <Popover.Positioner
@@ -83,7 +88,7 @@ export function PopoverPopup({
         <Popover.Popup
           ref={setRef}
           className={[styles.popup, className].filter(Boolean).join(' ')}
-          initialFocus={initialFocus ?? focusPopup}
+          initialFocus={focusOnOpen}
           {...rest}
         >
           {children}

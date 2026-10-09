@@ -69,6 +69,25 @@ export const SPRING_CSS_MS: Readonly<Record<SpringName, number>> = {
 export const VT_MS = 240;
 export const VT_REDUCED_MS = 150;
 
+/**
+ * `--loop-*`: the periods of the loops and one-shot flourishes (system-audit-2026-10 §2.2), ms.
+ * Reduced motion keeps them: a module replaces its loop with the still or pulsing form (§7.5).
+ */
+export const LOOP_MS = {
+  /** One turn of the activity glyph. */
+  spinner: 800,
+  /** The opacity pulse that stands in for a spinner or a sweep under reduced motion. */
+  pulse: 1600,
+  /** The indeterminate progress segment crossing its track. */
+  sweep: 1400,
+  /** One turn of the processing ring on a rim (Save, a progress toast). */
+  ring: 2400,
+  /** The success bloom on a rim. */
+  bloom: 1200,
+  /** The tint that reveals the row a command opened. */
+  reveal: 1200,
+} as const;
+
 /** What presses (§7.3 *press*): a finger or pen presses deeper than a mouse. */
 export type PressPointer = 'mouse' | 'touch' | 'pen';
 
@@ -124,6 +143,7 @@ export const MOTION_TOKENS: readonly string[] = [
   '--ease-exit',
   '--ease-standard',
   '--vt-duration',
+  ...Object.keys(LOOP_MS).map((name) => `--loop-${name}`),
   '--press-scale-mouse',
   '--press-scale-touch',
   '--press-scale-large-mouse',

@@ -120,7 +120,7 @@ function Gallery() {
             display: 'flex',
             alignItems: 'center',
             gap: 2,
-            padding: '0 calc((var(--bar-h) - var(--bar-button) - 2px) / 2)',
+            padding: '0 calc((var(--bar-h) - var(--control-h) - 2px) / 2)',
             borderRadius: 999,
             height: 'var(--bar-h)',
           }}

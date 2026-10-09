@@ -6,8 +6,9 @@
  *   78 px tall, c 0.996 (coverage registry `menu`). A one-row menu (Recents' "Remove": 46 px)
  *   is too short for 12px, the page would show through its edges: it takes 8px (`r8`,
  *   registry `menu-one-row`).
- * - Shape: radius 16, the popover's, concentric with 10 px rows inside 6 px of padding.
- * - Rows: 32 px on fine pointers, 44 on coarse (Q-9's control heights), icons 16 px, the label
+ * - Shape: --radius-lg (16), the popover's, concentric with --radius-control (10) rows inside
+ *   --space-1h (6) of padding (system-audit-2026-10 §3.2, §3.6).
+ * - Rows: the M size, 32 px on fine pointers, 44 on coarse (Q-9), icons 16 px, the label
  *   takes the space (`.label`, flex 1), so keycaps or a reason sit right-aligned after it.
  * - Motion (*popup*, G6): the popup fades in and, opening above or below its trigger, grows
  *   from it (Base UI's `--transform-origin`, the anchor) 0.96 → 1 while it travels the 4 px
@@ -23,10 +24,10 @@
  */
 .popup {
   composes: mat mat-menu s12 r8 from global;
-  --menu-row: 32px;
-  --menu-pad: 6px;
-  --menu-icon: 16px;
-  --menu-fade: 16px;
+  --menu-row: var(--control-h);
+  --menu-pad: var(--space-1h);
+  --menu-icon: var(--icon-sm);
+  --menu-fade: var(--space-4);
 
   box-sizing: border-box;
   min-width: 200px;
@@ -40,23 +41,15 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-padding-block: var(--menu-fade);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
-  font-size: var(--text-md);
-  line-height: 18px;
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
   outline: none;
   transform-origin: var(--transform-origin);
   transition:
     opacity var(--duration-base) var(--ease-out),
     transform var(--spring-quick) var(--ease-spring);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .popup {
-    --menu-row: 44px;
-    font-size: 15px;
-    line-height: 20px;
-  }
 }
 
 .popup[data-starting-style],
@@ -162,7 +155,7 @@
   box-sizing: border-box;
   min-height: var(--menu-row);
   padding: 0 10px;
-  border-radius: var(--radius-control, 10px);
+  border-radius: var(--radius-control);
   color: var(--text-secondary);
   cursor: default;
   user-select: none;
@@ -204,7 +197,7 @@
   content: '';
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: currentColor;
 }
 
@@ -226,15 +219,17 @@
   background: var(--border-hairline);
 }
 
-/* A group's heading ("Move to"). */
+/* A group's heading ("Move to"): a section label, footnote 600 in the secondary colour, in
+   sentence case (system-audit-2026-10 §3.4). */
 .groupLabel {
   display: flex;
   align-items: center;
-  min-height: 24px;
+  min-height: var(--control-h-sm);
   padding: 0 10px;
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
-  line-height: 16px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-footnote-lh);
 }
 
 /* Why a disabled item is unavailable ("Needs another open document"), right-aligned. */
@@ -244,7 +239,7 @@
   margin-inline-start: auto;
   overflow: hidden;
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -262,7 +257,7 @@
   flex: none;
   width: 8px;
   height: 8px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--tag-color, var(--text-tertiary));
 }
 

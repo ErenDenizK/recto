@@ -18,7 +18,7 @@
   margin-bottom: var(--space-2);
   padding: 0;
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .option {
@@ -28,9 +28,9 @@
   gap: 0 var(--space-2);
   padding: 6px var(--space-2);
   margin: 0 calc(var(--space-2) * -1);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   line-height: var(--leading-base);
 }
 
@@ -66,9 +66,9 @@
   height: 32px;
   padding: 0 var(--space-2);
   margin: 0 calc(var(--space-2) * -1);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
 }
 
 .docOption > input[type='radio'] {
@@ -95,7 +95,7 @@
 
 .optionHint {
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   line-height: var(--leading-tight);
 }
 
@@ -114,7 +114,7 @@
 .rangeInput {
   composes: technical from global;
   width: 100%;
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .rangeInput[aria-invalid='true'] {
@@ -128,20 +128,20 @@
   padding: 0;
   list-style: none;
   color: var(--danger);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   line-height: var(--leading-tight);
 }
 
 .fieldError {
   color: var(--danger);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .preview {
   padding-top: var(--space-3);
   border-top: 1px solid var(--border-hairline);
   color: var(--text-secondary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   font-variant-numeric: tabular-nums;
   line-height: var(--leading-base);
 }
@@ -166,7 +166,7 @@
   flex: none;
   width: 8px;
   height: 8px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--tag-color, var(--text-tertiary));
 }
 
@@ -181,7 +181,7 @@
 .docMeta {
   flex: none;
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
 }
 
@@ -207,7 +207,7 @@
   height: 36px;
   padding: 0 var(--space-1) 0 var(--space-2);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   background: var(--surface-raised);
 }
 
@@ -215,7 +215,7 @@
   flex: none;
   width: 18px;
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -242,10 +242,10 @@
   height: 24px;
   padding: 0 var(--space-2);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   background: var(--surface-raised);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
 }
 
@@ -255,14 +255,14 @@
   width: 6px;
   height: 6px;
   margin-right: var(--space-1);
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--tag-color, var(--text-tertiary));
   content: '';
 }
 
 .chipLetter {
   color: var(--text-tertiary);
-  font-size: var(--text-xs);
+  font-size: var(--type-caption);
   font-weight: 600;
   letter-spacing: var(--tracking-label);
 }
@@ -273,7 +273,7 @@
   height: 24px;
   padding: 0 var(--space-1);
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .legendLine {
@@ -282,7 +282,7 @@
   flex-wrap: wrap;
   gap: var(--space-1);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .legendGap {

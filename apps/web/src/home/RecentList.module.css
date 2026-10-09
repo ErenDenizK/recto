@@ -164,7 +164,7 @@
   height: var(--control-h);
   padding: 0;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: transparent;
   color: var(--text-secondary);
   -webkit-tap-highlight-color: transparent;

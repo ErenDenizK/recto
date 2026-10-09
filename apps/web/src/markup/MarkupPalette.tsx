@@ -140,7 +140,7 @@ function measureRow(row: HTMLElement): Omit<Measured, 'key'> {
       // Both paddings and the capsule's 1 px rim each side.
       padding: px(rowStyle.paddingLeft) + px(rowStyle.paddingRight) + 2,
     },
-    button: px(rowStyle.getPropertyValue('--bar-button')) || 32,
+    button: px(rowStyle.getPropertyValue('--control-h')) || 32,
   };
 }
 

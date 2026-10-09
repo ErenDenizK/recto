@@ -50,6 +50,100 @@ const engineBarrelLazyModules = [
   'apps/web/src/tools/rasterize.ts',
 ];
 
+/** Q-9 and Q-14's native and hand-styled controls, which ui/ replaces (system audit §3.11). */
+const Q9_CONTROLS = [
+  {
+    selector:
+      "JSXOpeningElement[name.name='input'] > JSXAttribute[name.name='type'][value.value=/^(checkbox|radio|file)$/]",
+    message: 'Q-9: use ui/Checkbox, ui/RadioGroup or a ui/Button that opens a hidden file input.',
+  },
+  {
+    selector: "JSXOpeningElement[name.name='select']",
+    message: 'Q-9: use ui/Select (or ui/Segmented for two or three values).',
+  },
+  {
+    selector: "JSXOpeningElement[name.name='button'] > JSXAttribute[name.name='className']",
+    message: 'Q-14: use ui/Button or ui/IconButton instead of a hand-styled <button>.',
+  },
+];
+
+/**
+ * Q-9's rule as a local one (its own name, so it never overrides another block's
+ * `no-restricted-syntax`): each selector of Q9_CONTROLS reports its message.
+ */
+const q9Controls = {
+  meta: { type: 'suggestion', schema: [] },
+  /** @param {import('eslint').Rule.RuleContext} context */
+  create(context) {
+    return Object.fromEntries(
+      Q9_CONTROLS.map(({ selector, message }) => [
+        selector,
+        /** @param {import('estree').Node} node */
+        (node) => context.report({ node, message }),
+      ]),
+    );
+  },
+};
+
+/**
+ * Files that still render a native or hand-styled control (system-audit-2026-10 §2.5), as the
+ * rule arrived: each lane removes its files as it moves them onto ui/.
+ */
+const Q9_PENDING = [
+  'apps/web/src/annotations/ReadSelectionBar.tsx',
+  'apps/web/src/annotations/pen/PenWell.tsx',
+  'apps/web/src/batch/BatchSheet.tsx',
+  'apps/web/src/batch/RecipeEditor.tsx',
+  'apps/web/src/batch/StepForm.tsx',
+  'apps/web/src/compare/ChangesPanel.tsx',
+  'apps/web/src/compare/CompareView.tsx',
+  'apps/web/src/crop/CropDialog.tsx',
+  'apps/web/src/crop/CropDrawBanner.tsx',
+  'apps/web/src/document/DocumentDialogs.tsx',
+  'apps/web/src/document/ExportSections.tsx',
+  'apps/web/src/export/SaveCopySections.tsx',
+  'apps/web/src/forms/FieldEditors.tsx',
+  'apps/web/src/forms/FormLayer.tsx',
+  'apps/web/src/forms/create/CreatedFieldLayer.tsx',
+  'apps/web/src/forms/create/FieldProperties.tsx',
+  'apps/web/src/furniture/FurnitureDialogs.tsx',
+  'apps/web/src/home/RecentList.tsx',
+  'apps/web/src/image-objects/ImageBar.tsx',
+  'apps/web/src/image-objects/ImageLayer.tsx',
+  'apps/web/src/markup/SignGroup.tsx',
+  'apps/web/src/markup/ToolButton.tsx',
+  'apps/web/src/ocr/OcrLanguages.tsx',
+  'apps/web/src/session/KeptOnDevice.tsx',
+  'apps/web/src/settings/rows.tsx',
+  'apps/web/src/shell/CommentsPanel.tsx',
+  'apps/web/src/shell/FormsPanel.tsx',
+  'apps/web/src/shell/OutlinePanel.tsx',
+  'apps/web/src/shell/compact/CompactChrome.tsx',
+  'apps/web/src/shell/compact/CompactLibrary.tsx',
+  'apps/web/src/shell/compact/CompactPassword.tsx',
+  'apps/web/src/shell/compact/CompactSheets.tsx',
+  'apps/web/src/shell/frame/CompactTopBar.tsx',
+  'apps/web/src/shell/frame/Dock.tsx',
+  'apps/web/src/shell/frame/DocumentTabs.tsx',
+  'apps/web/src/shell/frame/LibraryButton.tsx',
+  'apps/web/src/shell/frame/PagePillMenu.tsx',
+  'apps/web/src/shell/frame/TitleMenu.tsx',
+  'apps/web/src/shell/panels/RedactionsPanel.tsx',
+  'apps/web/src/shell/review/WordsToCheck.tsx',
+  'apps/web/src/shell/sidebar/FindSection.tsx',
+  'apps/web/src/signatures/ExportSignatureSection.tsx',
+  'apps/web/src/signatures/NewSignatureSheet.tsx',
+  'apps/web/src/signatures/SignDialog.tsx',
+  'apps/web/src/stage/ArrangeSection.tsx',
+  'apps/web/src/stage/OperationDialogFrame.tsx',
+  'apps/web/src/stage/ResizeDialog.tsx',
+  'apps/web/src/stage/grid/PagesBar.tsx',
+  'apps/web/src/text-edit/ParagraphEditor.tsx',
+  'apps/web/src/text-edit/TextEditLayer.tsx',
+  'apps/web/src/text-edit/TextEditor.tsx',
+  'apps/web/src/viewer/LinkLayer.tsx',
+];
+
 /** Files executed by Node: tool configs, scripts, and Playwright specs. */
 const nodeFiles = [
   '*.{js,ts}',
@@ -234,6 +328,19 @@ export default defineConfig(
           message: engineBarrelMessage,
         },
       ],
+    },
+  },
+
+  // Quality bar Q-9 and Q-14 (system-audit-2026-10 §3.11 gate 4): outside ui/, a control is a
+  // ui/ primitive, never a native checkbox, radio, file input or select, nor a hand-styled
+  // button. A warning while the lanes move their surfaces onto ui/, an error at the end; files
+  // that still break it are listed in Q9_PENDING, which only shrinks (CI allows no warnings).
+  {
+    files: ['apps/web/src/**/*.tsx'],
+    ignores: ['apps/web/src/ui/**', '**/*.test.tsx', ...Q9_PENDING],
+    plugins: { recto: { rules: { 'q9-controls': q9Controls } } },
+    rules: {
+      'recto/q9-controls': 'warn',
     },
   },
 );

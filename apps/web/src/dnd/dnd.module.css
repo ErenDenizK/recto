@@ -2,7 +2,7 @@
  * Native drag preview (light-table spec §3; 06-navigation §13). The browser snapshots this
  * element once when the drag starts, so it is static: no transitions. Colours are tokens, read
  * once at the snapshot: the page, the sheet under it, and a count badge in n12 on n4. The
- * literals mirror the shape tokens: radius 2px = --radius-page, 11px = --radius-round on a 22px
+ * literals mirror the shape tokens: radius 2px = --radius-page, 11px = --radius-capsule on a 22px
  * pill.
  */
 .preview {

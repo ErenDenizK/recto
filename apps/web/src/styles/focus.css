@@ -7,7 +7,7 @@
  * white page, the accent fill of an armed tool. Forced colours drop the box-shadow and keep a
  * system-coloured outline, which is what Windows users expect.
  *
- * Three forms, and nothing else draws a focus ring (styles/focus-scan.test.ts):
+ * Four forms, and nothing else draws a focus ring (styles/focus-scan.test.ts):
  *
  * - outset (the default): from the element out, ink 2 · lime 2 · ink 2. Buttons on solid
  *   surfaces, cards, switches.
@@ -18,16 +18,53 @@
  * - gap: 4 px of ink, then lime 2, then ink 2: for things with their own selection ring
  *   (thumbnails, grid cells, the lasso box), which the ring must not cover.
  *
- * A module applies a form with `composes: focus-inset from global;` (or `focus-gap`), or an
- * element with `data-focus="inset"` / `data-focus="gap"`. An element that paints its own
- * box-shadow sets it in --shadow-own as well, so focus adds the band instead of replacing it;
- * --shadow-own is never `none` (a shadow list or unset) and does not inherit.
+ * - field: fields and segments (system-audit-2026-10 §3.8, option A). Inset in the dark theme;
+ *   in the light one always outset, ink 2 at the edge and lime 2 outside it on the glass, since
+ *   lime on a white well vanishes (1.21:1) and the inset form read as a black box there.
+ *
+ * A module applies a form with `composes: focus-inset from global;` (or `focus-gap`,
+ * `focus-field`), or an element with `data-focus="inset"` / `"gap"` / `"field"`. An element that
+ * paints its own box-shadow sets it in --shadow-own as well, so focus adds the band instead of
+ * replacing it; --shadow-own is never `none` (a shadow list or unset) and does not inherit.
+ *
+ * A host that draws the ring for a control inside it (a field's well, the slider's knob, the
+ * spectrum's loupe, a resize grip) cannot compose a form, since its rule is not the focused
+ * element's: it writes the light band and takes the offset and dark band from the form tokens
+ * below, so every ring stays in step with this file (I-47):
+ *
+ *   .well:has(.input:focus-visible) {
+ *     outline: 2px solid var(--focus-light);
+ *     outline-offset: var(--focus-field-offset);
+ *     box-shadow: var(--focus-field-shadow);
+ *   }
  *
  * The ring appears with focus and never animates (language.md §6.3 S-5).
  */
 @property --shadow-own {
   syntax: '*';
   inherits: false;
+}
+
+/* The dark band of each form, for hosts; the field form's offset and band per theme. */
+:root {
+  --focus-shadow-outset: 0 0 0 6px var(--focus-dark);
+  --focus-shadow-inset: inset 0 0 0 4px var(--focus-dark);
+  --focus-shadow-gap: 0 0 0 8px var(--focus-dark);
+  --focus-field-offset: var(--focus-offset-in);
+  --focus-field-shadow: var(--focus-shadow-inset);
+}
+
+/* Light (option A): outset, ink 2 at the field's edge and the lime outside it. */
+[data-theme='light'] {
+  --focus-field-offset: var(--focus-offset-out);
+  --focus-field-shadow: 0 0 0 2px var(--focus-dark);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --focus-field-offset: var(--focus-offset-out);
+    --focus-field-shadow: 0 0 0 2px var(--focus-dark);
+  }
 }
 
 :focus {
@@ -62,6 +99,13 @@
     var(--shadow-own, 0 0 #0000);
 }
 
+/* Field: fields and segments, inset in dark and outset in light (option A, above). */
+.focus-field:focus-visible,
+[data-focus='field']:focus-visible {
+  outline-offset: var(--focus-field-offset);
+  box-shadow: var(--focus-field-shadow), var(--shadow-own, 0 0 #0000);
+}
+
 /* More contrast asked for: a 3 px light band (A-18). */
 @media (prefers-contrast: more) {
   :focus-visible {
@@ -76,7 +120,9 @@
   [data-focus='inset']:focus-visible,
   .mat :focus-visible,
   .focus-gap:focus-visible,
-  [data-focus='gap']:focus-visible {
+  [data-focus='gap']:focus-visible,
+  .focus-field:focus-visible,
+  [data-focus='field']:focus-visible {
     outline-color: Highlight;
     box-shadow: none;
   }

@@ -44,9 +44,9 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: 0.9375rem;
+  font-size: var(--type-body);
   font-weight: 600;
-  line-height: 1.25rem;
+  line-height: var(--type-body-lh);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -58,8 +58,8 @@
   composes: mat mat-menu s12 r8 from global;
   min-width: 232px;
   max-width: calc(100vw - 16px);
-  padding: 6px;
-  border-radius: 16px;
+  padding: var(--space-1h);
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   outline: none;
   transform-origin: var(--transform-origin);
@@ -80,9 +80,9 @@
   gap: 12px;
   min-height: 44px;
   padding: 0 12px;
-  border-radius: var(--radius-control, 10px);
-  font-size: 0.9375rem;
-  line-height: 1.25rem;
+  border-radius: var(--radius-control);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
   outline: none;
   touch-action: manipulation;
 }
@@ -137,7 +137,7 @@
   position: absolute;
   inset: 4px 0;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--surface-hover);
   pointer-events: none;
 }
@@ -163,7 +163,7 @@
   padding: 0 12px 0 8px;
   border: 0;
   background: transparent;
-  font-size: 1rem;
+  font-size: var(--field-text);
   outline: none;
 }
 
@@ -186,7 +186,7 @@
   max-width: 7.5rem;
   overflow: hidden;
   color: var(--text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -211,7 +211,7 @@
   height: 56px;
   margin-inline: auto;
   padding: 0 6px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
      motion, where the fade stays (§7.5). */
   transition:

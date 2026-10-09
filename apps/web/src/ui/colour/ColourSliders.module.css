@@ -6,9 +6,9 @@
    4 × 44 + 3 × 14 + 4 = 222 coarse. */
 .view {
   --sv-gap: 19px;
-  --sv-text: 13px;
-  --sv-lh: 18px;
-  --sv-field-h: 32px;
+  --sv-text: var(--type-body);
+  --sv-lh: var(--type-body-lh);
+  --sv-field-h: var(--control-h);
   --sv-well: var(--field-well, var(--surface-raised));
   --sv-border: var(--control-border);
   --sv-label: var(--text-secondary);
@@ -32,9 +32,6 @@
 @media (pointer: coarse), (any-pointer: coarse) {
   .view {
     --sv-gap: 14px;
-    --sv-text: 15px;
-    --sv-lh: 20px;
-    --sv-field-h: 44px;
   }
 }
 
@@ -67,27 +64,21 @@
 }
 
 .hex {
-  composes: focus-inset from global;
+  composes: focus-field from global;
   flex: none;
   box-sizing: border-box;
   width: 112px;
   height: var(--sv-field-h);
   padding: 0 10px;
   border: 1px solid var(--sv-border);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--sv-well);
   color: var(--sv-text-colour);
   font: inherit;
-  font-size: max(13px, var(--sv-text));
+  /* --field-text: 16 px on a coarse pointer, since iOS zooms into fields under 16 px. */
+  font-size: var(--field-text);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .hex {
-    /* iOS zooms into fields under 16 px. */
-    font-size: 16px;
-  }
 }
 
 .hex[aria-invalid='true'] {
@@ -97,6 +88,6 @@
 .error {
   min-width: 0;
   color: var(--danger);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }

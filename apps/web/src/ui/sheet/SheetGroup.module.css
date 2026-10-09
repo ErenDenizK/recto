@@ -1,0 +1,121 @@
+/*
+ * The sheet grammar's body (system-audit-2026-10 §3.6.1, Settings' recipe from 07-sheets S3 §2):
+ * inset grouped lists. Nothing here is glass (Q-4): a group is a tint well (--control-fill) at
+ * --sheet-group-inset from the panel's edge, radius --radius-md (the sheet's 20 less the 8 px
+ * inset, S-1), with hairlines between its rows inset by the row padding. A row is the M size,
+ * --sheet-row-h (44 fine, 56 coarse), taller when it carries a description: its title and
+ * description leading, its value or control trailing on the first line's centre. The section
+ * label above a group is footnote 600 in the secondary colour, in sentence case, --space-2
+ * above it, and lines up with the rows' text.
+ */
+.section {
+  display: grid;
+  gap: var(--space-2);
+  /* From the sheet's padding out to the group inset, so the group sits concentric with the
+     panel and the row text lines up with the header's title (8 + 12 = 20 on a fine pointer). */
+  margin-inline: calc(var(--sheet-group-inset) - var(--sheet-pad));
+}
+
+.label,
+.footnote {
+  margin: 0;
+  padding-inline: var(--sheet-row-pad);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.label {
+  font-weight: var(--weight-semibold);
+}
+
+.group {
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--control-fill);
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  box-sizing: border-box;
+  min-height: var(--sheet-row-h);
+  padding: var(--space-1h) var(--sheet-row-pad);
+}
+
+/* The hairline between two rows starts at the row padding and runs to the group's edge. */
+.row + .row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--sheet-row-pad);
+  height: 1px;
+  background: var(--border-hairline);
+}
+
+:dir(rtl) .row + .row::before {
+  right: var(--sheet-row-pad);
+  left: 0;
+}
+
+/* A full-width row: a field or a list that takes the whole row inside the group. */
+.row[data-full] {
+  display: grid;
+  align-items: stretch;
+  padding-block: var(--space-2);
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.title {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}
+
+.trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  max-width: 60%;
+  min-width: 0;
+}
+
+/* A value in place of a control: secondary, tabular, truncated at the end. */
+.value {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--control-text);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--control-lh);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (forced-colors: active) {
+  .group {
+    border: 1px solid CanvasText;
+  }
+}

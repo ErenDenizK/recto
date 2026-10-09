@@ -1,4 +1,4 @@
-/* Chips (09-primitives §5): a pill of --chip-h, the accent wash and a check when selected. */
+/* Chips (09-primitives §5): a pill of --control-h-sm, the accent wash and a check when selected. */
 .group {
   display: flex;
   flex-wrap: wrap;
@@ -13,10 +13,10 @@
   align-items: center;
   gap: 4px;
   box-sizing: border-box;
-  height: var(--chip-h);
+  height: var(--control-h-sm);
   padding: 0 10px;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--control-fill);
   color: var(--text-primary);
   font-size: var(--type-footnote);
@@ -34,7 +34,7 @@
 .chip::after {
   content: '';
   position: absolute;
-  inset: calc((var(--chip-h) - var(--hit-min)) / 2) 0;
+  inset: calc((var(--control-h-sm) - var(--hit-min)) / 2) 0;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -115,7 +115,7 @@
   place-items: center;
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   color: var(--text-secondary);
 }
 

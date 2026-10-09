@@ -3,7 +3,7 @@
  * 2026-10-08, F1; quality-bar Q-8, Q-9). Each rests in the dock band's slot at a bottom corner,
  * --piece-inset inside the free rectangle (the page pill's place in the reader,
  * PagePill.module.css), on the capsule's line: one piece high (--piece-h, 40 fine, 48 coarse;
- * G1) around --bar-button controls, the piece's padding and radius, so the bottom row reads as
+ * G1) around --control-h controls, the piece's padding and radius, so the bottom row reads as
  * one family and mirrors the top strip.
  *
  * M2 glass (`mat mat-bar s7 c8`, coverage registry `grid-piece`): σ 7 so a folded piece, a
