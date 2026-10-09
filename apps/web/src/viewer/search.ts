@@ -20,7 +20,6 @@ import { revealWhenShown } from '../motion/catalogue';
 import { reducedMotion } from '../motion/reduced-motion';
 import { springToLinear } from '../motion/springs';
 import { EASE, SPRING_CSS_MS } from '../motion/tokens';
-import { scrollSettled } from './eased-scroll';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
@@ -404,14 +403,13 @@ export function revealHit(hit: DocumentHit | undefined): void {
   useViewStore
     .getState()
     .scrollToPage(hit.pageId, bounds === undefined ? undefined : { reveal: bounds });
-  // One hit is current, drawn by `SearchHighlights` once its page is laid out; it flashes
-  // once the glide to it has landed (frame.md §3), with a pulse.
+  // One hit is current, drawn by `SearchHighlights` once its page is laid out. The ring comes
+  // once it is shown, and the hit pulses with it (frame.md §3): after the ring, so it never
+  // depends on how the reader's scroll lands (the viewer lane's).
   const current = () => document.querySelector('[data-testid="search-highlights"] [data-current]');
-  void scrollSettled()
-    .then(() => revealWhenShown(current))
-    .then((flash) => {
-      if (flash) pulseHit(current());
-    });
+  void revealWhenShown(current).then((flash) => {
+    if (flash) pulseHit(current());
+  });
 }
 
 /** How much the current hit swells at the height of its pulse. */

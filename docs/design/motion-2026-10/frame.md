@@ -62,15 +62,16 @@ duplicate it.
   directions (strips at 1180 × 820). The only flaw was that the growing edge cut through the
   placeholder one letter at a time. The well's contents now fade in on `--duration-slow`, 60 ms
   behind the edge (`TopStrip.module.css`).
-- **Eased step.** `viewer/eased-scroll.ts` drives `scrollTop` and `scrollLeft` on `glide` with
-  `animate()`. A new step retargets the glide with its velocity. The reader's own wheel, pointer,
-  touch or key stops it. A target more than 1.5 views away is first jumped to within half a
-  view. `ReadView.showPage()` uses the glide for every reveal with a rectangle, which covers
-  Find hits.
-- **Hit pulse.** `revealHit()` waits for `scrollSettled()`, then for the ring
-  (`revealWhenShown`), and then pulses the hit. The pulse is `scale` 1 → 1.18 → 1 in
-  `--spring-pop`'s 410 ms: out on `--ease-out`, home on the spring curve. There is no pulse
-  under reduced motion; the still ring stays.
+- **Eased step.** The viewer lane owns reader scrolling. Its `ScrollRequest.motion` (`'jump' |
+  'step' | 'instant'`, `viewer/jump.ts`, `viewer/landing.ts`) animates Find's steps and waits
+  for the scroll to land before ringing the hit. This lane's own glide (`viewer/eased-scroll.ts`
+  and its `ReadView.showPage` wiring) was removed in favour of it.
+- **Hit pulse.** `revealHit()` pulses the hit once its ring has started (`revealWhenShown`
+  resolves with the flash), so the pulse never depends on how the scroll lands and needs no
+  change to `ReadView`. The pulse is `scale` 1 → 1.18 → 1 in `--spring-pop`'s 410 ms: out on
+  `--ease-out`, home on the spring curve. There is no pulse under reduced motion; the still
+  ring stays. Once the viewer lane's landing wait merges, the ring (and so the pulse) comes
+  after the step has landed.
 
 ## 4. Page pill
 
@@ -90,9 +91,17 @@ duplicate it.
 - **Saving.** A light band sweeps across the capsule once per `--loop-sweep`, under the
   processing ring. It is drawn in `--accent-ring` at 22 %, by transform, and clipped to the
   capsule. It is not shown under reduced motion or on Glass Solid.
-- **Saved.** The check draws in from its leading end (`clip-path` inset on `--spring-quick`) with
-  the existing pop, 60 ms (`--duration-instant`) after the label. It holds for `CHECK_HOLD_MS` (1600 ms), then
-  settles to plain "Saved" with the label cross-fade.
+- **Label changes overlap.** Every label stays in the cell. The one shown fades in on
+  `--duration-base` while the one leaving fades out on `--duration-fast` `--ease-exit` and only
+  then turns hidden, so the button is never blank between "Saving" and "Saved". Before, the old
+  label went at once and the new one faded in from 0, which left one blank frame. Labels not
+  shown are `aria-hidden`, so the accessible name changes on the first frame.
+- **Saved.** "Saved" and "Saved ✓" are one label, so the word never cross-fades with itself. The
+  check hangs after the word, and the pair is centred by a half-check shift. The check draws in
+  from its leading end (`clip-path` inset on `--spring-quick`) with the existing pop, 60 ms
+  (`--duration-instant`) after the label. It holds for `CHECK_HOLD_MS` (1600 ms). Then it fades
+  and the word slides back to the centre on `--spring-quick`. A hidden "Saved ✓" reserves the
+  cell's width, so the button never resizes.
 - **Receipt toast.** A new `origin` option on toasts (`ui/Toast`) takes an element id. The
   toast starts a twentieth of the way toward that control (at most 32 px) as it rises, so the
   receipt comes from Save's side. `files/save.ts` passes `save-button` for all three receipts.
@@ -145,6 +154,8 @@ window.addEventListener('recto:history-applied', (event) => {
   - On a drop on the list, `reorderDocuments()` runs and every tab FLIPs from its drawn box
     (`flip()`, `smooth`). The move is announced as the tab menu announces it.
   - Off the list, everything slides back. A drop on the grid behaves as before.
+  - A tab's name fades in once (`tab-name-in`) and is then marked `data-in`. Moving the tab in
+    the DOM restarted that fade, which left only the dot showing for a frame after a drop.
 
 ## 8. "Hide markup"
 
@@ -169,3 +180,5 @@ bitmaps, so there is no double drawing; only the marks fade. Tiled, deep-zoom pa
   menu, as before.
 - The hit pulse and the tint flash are generic. Canvas lanes may replace them through the event.
 - Deep-zoom tiles still swap at once on "Hide markup".
+- TODO (after the viewer lane's `ScrollRequest.motion` reaches develop): `history/reveal.ts`
+  should pass `motion: 'step'` to `scrollToPage()` so the undo reveal glides like a Find step.

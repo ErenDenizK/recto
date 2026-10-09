@@ -60,7 +60,6 @@ import { setReadController } from '../viewer/read-controller';
 import type { Point, ZoomRest } from '../viewer/zoom-controller';
 import '../viewer/register';
 import { installCopyHandler } from '../viewer/TextLayer';
-import { easedScroll } from '../viewer/eased-scroll';
 import { PageOverlays } from './page-overlays';
 import { enterPagesGrid } from './pages-grid-door';
 import { PageScrubber } from './PageScrubber';
@@ -814,11 +813,8 @@ function PageColumn({
     const visibleWidth = el.clientWidth - view.left - view.right;
     const viewTop = el.scrollTop + view.top;
     const margin = Math.min(96, visibleHeight / 4);
-    // Where the reveal lands; it glides there (Find's step, motion-2026-10 frame.md §3).
-    let nextTop = el.scrollTop;
-    let nextLeft = el.scrollLeft;
     if (top < viewTop + margin || bottom > viewTop + visibleHeight - margin) {
-      nextTop = Math.max(0, top - view.top - visibleHeight / 3);
+      el.scrollTop = Math.max(0, top - view.top - visibleHeight / 3);
     }
     // Horizontally: rows are centred in the column between the side insets.
     let x = columnCentre(el) - rowCssWidth(r) / 2;
@@ -830,10 +826,7 @@ function PageColumn({
     const right = left + box.width;
     const viewLeft = el.scrollLeft + view.left;
     if (left < viewLeft + 16 || right > viewLeft + visibleWidth - 16) {
-      nextLeft = Math.max(0, left - view.left - visibleWidth / 3);
-    }
-    if (nextTop !== el.scrollTop || nextLeft !== el.scrollLeft) {
-      easedScroll(el, { top: nextTop, left: nextLeft });
+      el.scrollLeft = Math.max(0, left - view.left - visibleWidth / 3);
     }
   };
   useEffect(() => {
