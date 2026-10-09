@@ -14,6 +14,7 @@ import {
   ENTER_SCALE,
   EASE,
   EXIT_SCALE,
+  LOOP_MS,
   MOTION_TOKENS,
   PRESS_SCALE,
   REDUCED_DURATION_MS,
@@ -112,6 +113,11 @@ describe('motion.css (language.md §7)', () => {
     expect(resolve('--rise-distance')).toBe(`${RISE_PX}px`);
     expect(resolve('--motion-rise')).toBe(`translateY(${RISE_PX}px)`);
     expect(resolve('--sheet-push-distance')).toBe(`${SHEET_PUSH_PX}px`);
+    for (const [name, value] of Object.entries(LOOP_MS)) {
+      expect(ms(resolve(`--loop-${name}`)), name).toBe(value);
+      // A loop is not a transition: reduced motion swaps it in its module, not here.
+      expect(reducedMedia.has(`--loop-${name}`), name).toBe(false);
+    }
   });
 
   it('presses 0.97 / 0.94, and 0.98 / 0.96 on large surfaces (§7.3 press, 02.5)', () => {

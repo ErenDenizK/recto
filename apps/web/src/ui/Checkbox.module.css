@@ -93,10 +93,10 @@
   }
 }
 
-/* The check pops on the select curve (0.88 → 1.04 → 1, 240 ms); reduced motion swaps. */
+/* The check pops on the select curve (0.88 → 1.04 → 1, on --spring-pop); reduced motion swaps. */
 .indicator[data-checked]:not([data-indeterminate]) .check {
   opacity: 1;
-  animation: select 240ms var(--ease-spring-pop);
+  animation: select var(--spring-pop) var(--ease-spring-pop);
 }
 
 .indicator[data-indeterminate] .dash {

@@ -88,7 +88,7 @@
   height: 6px;
   border-radius: var(--radius-capsule);
   background: var(--control-on-ink);
-  animation: select 240ms var(--ease-spring-pop);
+  animation: select var(--spring-pop) var(--ease-spring-pop);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {

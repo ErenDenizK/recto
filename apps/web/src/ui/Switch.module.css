@@ -53,8 +53,8 @@
   box-shadow: var(--shadow-own);
   touch-action: none;
   transition:
-    background-color 120ms var(--ease-out),
-    box-shadow 120ms var(--ease-out);
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
 }
 
 @media (hover: hover) {
@@ -86,7 +86,7 @@
   transition:
     transform var(--spring-press) var(--ease-spring),
     width var(--spring-press) var(--ease-spring),
-    background-color 120ms var(--ease-out);
+    background-color var(--duration-fast) var(--ease-out);
 }
 
 .track[data-checked] .thumb {
@@ -138,12 +138,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .thumb {
-    transition: background-color 120ms var(--ease-out);
+    transition: background-color var(--duration-fast) var(--ease-out);
   }
 }
 
 :global(:root[data-motion='reduced']) .thumb {
-  transition: background-color 120ms var(--ease-out);
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 @media (forced-colors: active) {
