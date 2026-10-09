@@ -8,6 +8,7 @@
  */
 import { expect } from '@playwright/test';
 
+import { atRest } from '../../../apps/web/e2e/helpers.ts';
 import { scene } from '../lib/scene.ts';
 
 const FIXTURES = ['demo-report-v1.pdf'] as const;
@@ -32,7 +33,11 @@ scene({
 
     // 1. The title menu → Export as Markdown / text…: Save a copy, on Text, Markdown.
     await cursor.click(page.getByTestId('document-menu'), 400);
-    await cursor.click(page.getByRole('menuitem', { name: 'Export as Markdown / text…' }), 380);
+    // The menu grows in from its tab: a click mid-entrance can land on the item beside it
+    // (Save a copy…, the same sheet on PDF).
+    const exportItem = page.getByRole('menuitem', { name: 'Export as Markdown / text…' });
+    await atRest(exportItem);
+    await cursor.click(exportItem, 380);
     const sheet = page.getByTestId('save-copy-sheet');
     await expect(sheet).toBeVisible();
     await expect(sheet.getByRole('radio', { name: 'Text', exact: true })).toBeChecked();
