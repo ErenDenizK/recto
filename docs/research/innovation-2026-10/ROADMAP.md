@@ -734,3 +734,10 @@ Study files (all in this folder):
   - Onboarding and delight (TipKit, Duolingo, Notion, Safari Privacy Report, accessibility labels): [`research/onboarding-delight.md`](research/onboarding-delight.md)
 - Critique of the draft (code-checked): incorporated throughout; its evidence lines cite `redaction/ApplySheet.tsx:17`, `redaction/apply.ts:35`, `shell/frame/focus-mode.ts:52`, `viewer/viewer-commands.ts:121`, `commands/keymap.ts:278`, `commands/app-commands.ts:573`, `annotations/tools.ts` (Q, I, O, L, G, E, X), `session/writer.test.ts:154`, `stage/arrange-actions.ts` (`insertBlankAfter`), `redaction/patterns.ts`.
 - Repository references: `docs/VISION.md`, `docs/specs/redesign.md` §0–§9, `docs/design/redesign-2026-10/` (Q-1…Q-14), `CLAUDE.md`.
+
+## Owner decisions (2026-10-09)
+
+- **D-1:** no on-device model dependency for now; revisit after W3.
+- **D-2:** Flashback on: always in the installed app, on with a visible storage notice in Safari tabs; redaction "befores" never kept without opt-in.
+- **D-3:** as recommended (pen gestures on with a first-use tip; still-press tip ring off), with the explicit instruction to think through edge cases and keep accidental triggers to a minimum: every gesture needs a confidence threshold, a visible preview before it commits, one-step undo, and tests for near-miss strokes (handwriting that looks like a scratch or a loop).
+- **D-4, D-5:** accepted as recommended (key map v2; no feature depends on `\`, `[`, `]` or AltGr; every symbol key has a letter or on-screen twin; tested on a Turkish Q layout).
