@@ -24,4 +24,10 @@ export {
   scrubRedactedDocument,
 } from './scrub';
 export { normalizeForMatch, RedactedStringMatcher } from './strings';
+export {
+  computeSaveReceipt,
+  computeSaveReceiptOn,
+  type SaveReceiptDeps,
+  saveReceiptActsOf,
+} from './receipt';
 export { mergeForensicReports, verifyRedactedOutput } from './verify-output';
