@@ -210,7 +210,11 @@ describe('animateStyle: elements on Web Animations', () => {
     expect(el.style.willChange).toBe('transform');
     expect(el.getAnimations()).toHaveLength(1);
     expect(renderedY(el)).toBeCloseTo(40, 0);
-    await wait(60);
+    // Mid-flight, read at a pinned time rather than after a wall-clock wait: a busy runner can
+    // draw no frame in the first 60 ms, and the value would still be the start.
+    const [running] = el.getAnimations();
+    const total = Number(running?.effect?.getComputedTiming().endTime ?? 0);
+    if (running) running.currentTime = total / 3;
     expect(renderedY(el)).toBeGreaterThan(0);
     expect(renderedY(el)).toBeLessThan(40);
     await motion.finished;
