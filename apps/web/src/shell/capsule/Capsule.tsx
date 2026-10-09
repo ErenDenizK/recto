@@ -32,8 +32,8 @@
  *   text and icon: the dock's Pages and More into Locked); a twin that looks different (the
  *   dock's Markup and the palette's Done, which share `markup`) fades out with its content while
  *   the new one fades in at its place. Contents fade through: the arriving one only once the
- *   leaving one is gone, whole when nothing slides, piece by piece when something does (then a
- *   new piece in a slide's path waits for it to pass).
+ *   leaving one is gone, piece by piece, each once the moving edge has passed it (centre-out
+ *   when nothing slides; a new piece in a slide's path also waits for the slide to pass).
  * - A content rests on the capsule's bottom edge, centred across: a second row (the ink strip)
  *   rises above the first, which stays put.
  * - Mark the control that should take focus when the content arrives with
