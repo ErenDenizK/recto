@@ -4,14 +4,13 @@
  * The palette and the ink strip above it are one family (owner feedback G8, "inconsistent",
  * "too big?"): the same material, height, inset, radius, control, icon and dot sizes and the
  * same spacing, set once below as --palette-* on the palette's capsule, its content and the
- * strip piece. They are local names, mapped onto the shared piece-size tokens of G1 when those
- * land; nothing here is global.
+ * strip piece. They are local names, mapped onto the shared piece-size tokens of G1; nothing
+ * here is global.
  *
- * Geometry: one piece of --palette-h, today the bar of Q-9 (44 fine, 56 coarse). It moves with
- * the dock's shape of the same capsule (a morph keeps its height, spec X1), the page pill's
- * centre line and the glass's σ (A-2 coverage: σ 9 / 10 needs 44 / 56), so the smaller shared
- * piece height of G1 lands there, for every piece at once; this family takes it through
- * --palette-h. Each control's box is its hit area, --palette-hit (the --bar-button of Q-9: 32 /
+ * Geometry: one piece of --palette-h, the shared --piece-h of G1 (40 fine, 48 coarse). It moves
+ * with the dock's shape of the same capsule (a morph keeps its height, spec X1), the page pill's
+ * centre line and the glass's σ, so it is set once for every piece in `tokens.css` and this
+ * family takes it through --palette-h. Each control's box is its hit area, --palette-hit (the --bar-button of Q-9: 32 /
  * 44, so a coarse target keeps 44 px), and it draws its fill --palette-trim inside that box (a
  * transparent border, `background-clip: padding-box`): 30 / 40 px circles, lighter than the
  * 32 / 44 px fills they replace ("too big?"). The row's inset keeps the round ends concentric
