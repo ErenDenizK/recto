@@ -13,8 +13,8 @@
  * - Keys: Tab and the arrows move inside; `4` with exactly two checked compares (the grid's
  *   own keys handle Delete and Esc).
  *
- * M2 glass (`mat mat-bar s8 c10`), 44 high around 32 px controls (56 / 44 coarse), bottom centre
- * 16 px above the view's edge; it floats over cards that scroll under it. Shown while one or
+ * M2 glass (`mat mat-bar s8 c9`), one piece high around M controls (--piece-h 40 / 48, G1),
+ * bottom centre --piece-inset above the view's edge; it floats over cards that scroll under it. Shown while one or
  * more cards are checked.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
