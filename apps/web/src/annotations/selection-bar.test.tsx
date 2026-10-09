@@ -88,7 +88,7 @@ async function selectSomeText(container: HTMLElement): Promise<void> {
   window.getSelection()?.addRange(range);
 }
 
-// The bar emerges from the selection (motion-2026-10 viewer.md §5): asked once at rest.
+// The bar rises in from its anchor (bar-motion.ts): asked once it has come to rest.
 const selectionBar = async () =>
   settled(await screen.findByRole('toolbar', { name: 'Selected text' }));
 

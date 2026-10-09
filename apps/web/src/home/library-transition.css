@@ -1,0 +1,110 @@
+/*
+ * Library ⇄ document (02-library L1 §7; library-transition.ts), while `<html>` has
+ * `data-vt-library`. The card's sheet and the reader's page share `library-sheet`, and their
+ * group moves on the view change's spring (styles/motion.css §4). The rest of the view
+ * cross-fades, as every view change does. Under reduced motion no name is kept, so none of this
+ * applies (motion.css §4).
+ *
+ * - **The hand-off.** When the arriving page drew within the update's budget
+ *   (`DRAW_BUDGET_MS`, `data-vt-library-crisp`), the two images hold until 60 % of the flight
+ *   and then cross-fade, so the page lands sharp. Otherwise the new image would be a blank
+ *   sheet, so only the old image travels and the live element takes over as the group lands.
+ *   Both images fill the group, never letterboxed.
+ * - **Chrome on top.** The top pieces, the capsule and the page pill are groups of their own
+ *   (class `library-chrome`), stacked above the travelling page, which passes under them as the
+ *   reader's page does at rest (language.md §7.3 *view change*).
+ *
+ * The card's ○ is hidden for the capture: the travelling image is the page alone.
+ */
+::view-transition-group(*.library-chrome) {
+  z-index: 2;
+  border-radius: var(--piece-radius);
+}
+
+/* A piece of one view only (the Library's ⋯, the document's Find piece, capsule and pill): the
+   whole group fades, the glass it carries with it, rather than its image inside a group that
+   stays (which leaves the glass's blur behind as an empty pill). */
+::view-transition-old(*.library-chrome-out),
+::view-transition-new(*.library-chrome-in) {
+  animation: none;
+}
+
+::view-transition-group(*.library-chrome-out) {
+  animation: vt-library-chrome-out var(--vt-duration) var(--ease-exit) both;
+}
+
+::view-transition-group(*.library-chrome-in) {
+  animation: vt-library-chrome-in var(--vt-duration) var(--ease-out) both;
+}
+
+/* Quicker than the flight: gone, or whole, by 60 % of it, so a piece of the other view never
+   lingers beside the one replacing it. */
+@keyframes vt-library-chrome-out {
+  60%,
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-library-chrome-in {
+  from {
+    opacity: 0;
+  }
+
+  60%,
+  to {
+    opacity: 1;
+  }
+}
+
+:root[data-vt-library]::view-transition-old(library-sheet),
+:root[data-vt-library]::view-transition-new(library-sheet) {
+  height: 100%;
+  object-fit: fill;
+}
+
+:root[data-vt-library]::view-transition-old(library-sheet) {
+  animation: none;
+  opacity: 1;
+}
+
+:root[data-vt-library]::view-transition-new(library-sheet) {
+  animation: none;
+  opacity: 0;
+}
+
+:root[data-vt-library][data-vt-library-crisp]::view-transition-old(library-sheet) {
+  animation: vt-library-hand-out var(--vt-duration) linear both;
+  opacity: 1;
+}
+
+:root[data-vt-library][data-vt-library-crisp]::view-transition-new(library-sheet) {
+  animation: vt-library-hand-in var(--vt-duration) linear both;
+  opacity: 1;
+}
+
+@keyframes vt-library-hand-out {
+  0%,
+  60% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-library-hand-in {
+  0%,
+  60% {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+:root[data-vt-library] [data-library-sheet] [data-testid='library-card-check'] {
+  visibility: hidden;
+}

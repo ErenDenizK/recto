@@ -49,8 +49,17 @@
 import { Component, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
 import type { CapsuleShape } from './capsule-content';
-import { CapsuleMorph, type CapsuleSnapshot, snapshotCapsule } from './capsule-morph';
+import { CAPSULE_ITEM, CapsuleMorph, type CapsuleSnapshot, snapshotCapsule } from './capsule-morph';
 import styles from './Capsule.module.css';
+
+/** A press this recent (ms) is what asked for the morph that follows it: its origin. */
+const PRESS_ORIGIN_MS = 1000;
+
+/** The piece a pointer last pressed in the capsule, and when (event time, ms). */
+interface Press {
+  readonly key: string;
+  readonly at: number;
+}
 
 /** Layers in one fixed DOM order, so React never moves a node that may hold focus. */
 const ORDER: readonly CapsuleShape[] = ['dock', 'locked', 'palette', 'pages'];
@@ -73,6 +82,7 @@ interface Layers {
 
 export function Capsule({ shape, morphKey, stroking = false, children }: CapsuleProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const pressed = useRef<Press | null>(null);
   const [layers, setLayers] = useState<Layers>({ shape, leaving: [] });
   // A new shape: the old content stays mounted as leaving until it has faded out.
   let { leaving } = layers;
@@ -99,8 +109,20 @@ export function Capsule({ shape, morphKey, stroking = false, children }: Capsule
       data-capsule={shape}
       data-region="toolbar"
       data-stroking={stroking ? '' : undefined}
+      onPointerDownCapture={(event) => {
+        const piece =
+          event.target instanceof Element ? event.target.closest(`[${CAPSULE_ITEM}]`) : null;
+        const key = piece?.getAttribute(CAPSULE_ITEM);
+        pressed.current = key ? { key, at: event.timeStamp } : null;
+      }}
     >
-      <MorphBoundary capsule={ref} morph={morph} shape={shape} morphKey={morphKey}>
+      <MorphBoundary
+        capsule={ref}
+        morph={morph}
+        shape={shape}
+        morphKey={morphKey}
+        pressed={pressed}
+      >
         {shown.map((s) => {
           const away = s !== shape;
           return (
@@ -126,6 +148,8 @@ interface BoundaryProps {
   readonly morph: CapsuleMorph;
   readonly shape: CapsuleShape;
   readonly morphKey: string | number | undefined;
+  /** The piece last pressed, the morph's origin when recent (`capsule-morph.ts`). */
+  readonly pressed: RefObject<Press | null>;
   readonly children: ReactNode;
 }
 
@@ -140,7 +164,9 @@ class MorphBoundary extends Component<BoundaryProps> {
     if (previous.shape === this.props.shape && previous.morphKey === this.props.morphKey) {
       return null;
     }
-    return snapshotCapsule(element);
+    const press = this.props.pressed.current;
+    const recent = press !== null && performance.now() - press.at < PRESS_ORIGIN_MS;
+    return snapshotCapsule(element, recent ? press.key : null);
   }
 
   override componentDidUpdate(
