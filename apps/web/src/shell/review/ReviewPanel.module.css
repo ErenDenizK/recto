@@ -26,6 +26,33 @@
   display: none;
 }
 
+/* The edge fade (useEdgeFade): 24 px toward each edge that hides more chips. */
+.chipsFrame {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  display: grid;
+  flex: none;
+  min-width: 0;
+}
+
+.chipsFrame[data-more-start] {
+  --fade-start: var(--space-6);
+}
+
+.chipsFrame[data-more-end] {
+  --fade-end: var(--space-6);
+}
+
+.chipsFrame .chips {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent
+  );
+}
+
 .empty {
   padding-top: var(--space-2);
 }
@@ -45,7 +72,7 @@
 
 .documentTitle {
   overflow: hidden;
-  padding: var(--space-1) 0;
+  padding: var(--space-1) var(--space-2);
   color: var(--text-primary);
   font-size: var(--type-footnote);
   font-weight: 600;
@@ -53,59 +80,24 @@
   white-space: nowrap;
 }
 
-/* Sentence case at footnote 550 in the secondary colour (T-9: no uppercase section labels). */
+/* A section label (system-audit-2026-10 §3.4): footnote 600, secondary, sentence case (T-9). */
 .pageTitle {
-  padding: var(--space-1) 0;
+  padding: var(--space-1) var(--space-2);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
-  font-weight: 550;
+  font-weight: 600;
   line-height: var(--type-footnote-lh);
 }
 
 .list {
   display: grid;
-  gap: 2px;
+  gap: var(--space-half);
 }
 
-/* Words to check (spec X33): one row per word, the word and its confidence on one line. */
+/* Words to check (spec X33): one ListRow (ui/ListRow) per word, the word and its confidence on
+   one line. */
 .wordRow {
-  composes: focus-inset from global;
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 32px;
-  padding: 6px var(--space-2);
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: var(--type-body);
-  line-height: var(--type-body-lh);
-  text-align: left;
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .wordRow:hover {
-    background: var(--surface-hover);
-  }
-}
-
-.wordRow:active {
-  background: var(--surface-active);
-}
-
-.wordRow[aria-current='true'] {
-  background: var(--accent-muted);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .wordRow {
-    min-height: 44px;
-  }
 }
 
 .word {
@@ -131,8 +123,8 @@
 /* A recognised page in Words to check (spec X33, D2-9): the row goes to the page; its title
    holds the quality word, the facts line under it the languages, resolution and word count. */
 .pageRow {
-  composes: wordRow;
-  font-weight: 550;
+  justify-content: space-between;
+  font-weight: 500;
 }
 
 .pageRowTitle {
@@ -144,7 +136,7 @@
 
 .pageFacts {
   margin: 0;
-  padding: 0 var(--space-2) 2px;
+  padding: 0 var(--space-2) var(--space-half);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);

@@ -1,96 +1,40 @@
+/*
+ * Comments in the Review list (spec §9): the author prompt as a field with its two S actions,
+ * then one ListRow per annotation (ui/ListRow): its kind's 16 px glyph in the annotation's
+ * colour, the kind, author and date in footnote, the text in body under them.
+ */
 .author {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex: none;
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border-hairline);
 }
 
-.authorLabel {
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-}
-
-.authorRow {
+.authorActions {
   display: flex;
+  justify-content: flex-end;
   gap: var(--space-1);
-  min-width: 0;
 }
 
-.authorInput {
-  composes: focus-inset from global;
-  flex: 1;
-  min-width: 0;
-  height: var(--control-h);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: var(--type-body);
-}
-
-.authorButton {
-  flex: none;
-  height: var(--control-h);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  white-space: nowrap;
-}
-
-@media (hover: hover) {
-  .authorButton:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
-.item {
-  composes: focus-inset from global;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  text-align: left;
-  color: var(--text-primary);
-}
-
-@media (hover: hover) {
-  .item:hover {
-    background: var(--surface-hover);
-  }
-}
-
-.item[aria-current='true'] {
-  background: var(--accent-muted);
-  /* Tertiary text is 4.3:1 on the accent-muted fill; it steps up to secondary (AA). */
-  --text-tertiary: var(--text-secondary);
-}
-
+/* The kind's glyph, centred on the first line (footnote 16 px line in a 20 px box). */
 .icon {
   display: grid;
   place-items: center;
   flex: none;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-xs);
-  background: var(--surface-on);
+  width: var(--icon-md);
+  height: var(--icon-md);
   color: var(--text-secondary);
 }
 
 .icon svg {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .body {
   display: grid;
-  gap: 2px;
+  gap: var(--space-half);
   min-width: 0;
 }
 
@@ -100,6 +44,7 @@
   align-items: baseline;
   gap: 0 var(--space-2);
   font-size: var(--type-footnote);
+  line-height: var(--icon-md);
 }
 
 .kind {
@@ -121,7 +66,7 @@
   overflow: hidden;
   color: var(--text-primary);
   font-size: var(--type-body);
-  line-height: var(--leading-base);
+  line-height: var(--type-body-lh);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   -webkit-box-orient: vertical;

@@ -8,43 +8,16 @@
   padding: 0 var(--space-2) var(--space-2);
 }
 
-/* The toolbar's actions are standard buttons (09-primitives §3), one height (Q-9). */
-.toolButton {
-  composes: btn btn-standard from global;
-}
-
-/* Locked (06-navigation N3 §4): dimmed, still focusable, the reason in the tooltip. */
-.toolButton[data-locked] {
-  color: var(--text-disabled);
-}
-
-/* Honesty notice (DESIGN.md §4.4): inline, with the fix next to it. */
+/* Dead links (DESIGN.md §4.4): the honesty notice (ui/Notice) with the fix under it. */
 .dead {
-  display: flex;
+  display: grid;
   flex: none;
-  flex-wrap: wrap;
-  align-items: center;
   gap: var(--space-2);
   margin: 0 var(--space-2) var(--space-2);
-  padding: var(--space-2);
-  /* Honesty notice: the one recipe, a warning hairline and no fill (design audit J4, D14). */
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: 18px;
 }
 
-.dead svg {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  color: var(--warning);
-}
-
-.deadText {
-  flex: 1 1 120px;
-  min-width: 0;
+.deadFix {
+  justify-self: end;
 }
 
 .renameWrap {
@@ -57,7 +30,7 @@
 .renameInput {
   width: 100%;
   min-width: 0;
-  height: 24px;
+  height: var(--control-h-sm);
   padding: 0 var(--space-1);
   border: 1px solid var(--control-border);
   border-radius: var(--radius-xs);
@@ -78,7 +51,7 @@
 
 .renameError {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-1));
   left: 0;
   z-index: 20;
   max-width: 240px;
