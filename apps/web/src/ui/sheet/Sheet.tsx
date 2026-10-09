@@ -54,6 +54,7 @@ import { usePointerCapabilities } from '../../shell/frame/input-modality';
 import { useSizeClass } from '../../shell/frame/size-class';
 import { Button } from '../Button';
 import { closeMenusAtOnce } from '../menu-handoff';
+import { installPressOrigin, recentOrigin } from '../press-origin';
 import { LockBanner } from './LockBanner';
 import { type OpenType, resolveInitialFocus } from '../initial-focus';
 import { snapToWholePixels } from '../whole-pixels';
@@ -189,17 +190,38 @@ export function Sheet({
   // The latest props for the handlers the motion and Base UI keep.
   const onCloseRef = useRef(onClose);
   const openRef = useRef(open);
+  const kindRef = useRef(kind);
   const layoutRef = useRef(layout);
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
     openRef.current = open;
     layoutRef.current = layout;
+    kindRef.current = kind;
   });
   // Created on first use, outside render.
   const motionRef = useRef<SheetMotion | null>(null);
   const motionOf = (): SheetMotion => {
     motionRef.current ??= createSheetMotion(() => onCloseRef.current('swipe'));
     return motionRef.current;
+  };
+
+  // The control that opened the sheet (motion-2026-10/platform.md §1): the sheet comes out of
+  // it and goes back into it, and it shows its pressed state while the sheet is open. Claimed
+  // once per opening, by whichever comes first: the panel's ref or the open effect.
+  const origin = useRef<HTMLElement | null>(null);
+  const claimed = useRef(false);
+  const claimOrigin = (motion: SheetMotion) => {
+    if (claimed.current) return;
+    claimed.current = true;
+    const pressed = kindRef.current === 'confirmation' ? null : recentOrigin();
+    const own = pressed && panelEl.current?.contains(pressed.el);
+    origin.current = pressed && !own ? pressed.returnTo : null;
+    origin.current?.setAttribute('data-origin-open', '');
+    motion.setOrigin(pressed && !own ? pressed : null);
+  };
+  const releaseOrigin = () => {
+    claimed.current = false;
+    origin.current?.removeAttribute('data-origin-open');
   };
 
   // The panel enters as soon as it is in the document (the portal may mount it a render after
@@ -231,6 +253,7 @@ export function Sheet({
     motion.attach(el);
     if (el && openRef.current) {
       motion.setLayout(layoutRef.current);
+      claimOrigin(motionOf());
       motion.enter();
     }
   }, []);
@@ -245,13 +268,19 @@ export function Sheet({
     snapCentred(panelEl.current, layout.presentation);
   });
   useEffect(() => () => snapCentred(null, null), []);
+  useEffect(() => installPressOrigin(), []);
   useLayoutEffect(() => {
     if (open) {
       // A menu whose item opened this sheet goes at once, never over the entrance (Q-7).
       closeMenusAtOnce();
+      claimOrigin(motionOf());
       motionOf().enter();
-    } else motionOf().exit();
+    } else {
+      releaseOrigin();
+      motionOf().exit();
+    }
   }, [open]);
+  useEffect(() => () => origin.current?.removeAttribute('data-origin-open'), []);
   useEffect(() => {
     if (!open) return undefined;
     const onResize = () => motionOf().relayout();

@@ -16,6 +16,8 @@
  */
 .popup {
   composes: mat mat-menu s12 from global;
+  /* The container transform serves it (`ui/container-transform.ts`). */
+  composes: ct-popup from global;
   --pop-icon-button: var(--control-h);
   --pop-icon: var(--icon-md);
   --pop-pad: var(--space-3);
@@ -76,6 +78,17 @@
 
 .popup[data-instant] {
   transition: none;
+}
+
+/* *Container transform* (motion-2026-10/platform.md §1; `ui/container-transform.ts`): opened
+   from a trigger, the popover grows out of the trigger's rect and goes back into it on Web
+   Animations; its CSS entrance and exit step aside. */
+.popup[data-ct] {
+  transition: none;
+}
+
+.popup[data-ct]:is([data-starting-style], [data-ending-style]) {
+  transform: none;
 }
 
 /* A popover closing as a sheet opens (the Replace popover's Save a copy…) goes at once

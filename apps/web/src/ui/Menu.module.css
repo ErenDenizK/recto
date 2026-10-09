@@ -24,6 +24,8 @@
  */
 .popup {
   composes: mat mat-menu s12 r8 from global;
+  /* The container transform serves it (`ui/container-transform.ts`). */
+  composes: ct-popup from global;
   --menu-row: var(--control-h);
   --menu-pad: var(--space-1h);
   --menu-icon: var(--icon-sm);
@@ -89,6 +91,18 @@
 
 .popup[data-instant] {
   transition: none;
+}
+
+/* *Container transform* (motion-2026-10/platform.md §1; `ui/container-transform.ts`): a menu
+   opened from a trigger grows out of the trigger's rect and goes back into it on Web
+   Animations. Its CSS entrance and exit step aside; the starting and ending opacity stays, so
+   a menu closed at once is gone at once. */
+.popup[data-ct] {
+  transition: none;
+}
+
+.popup[data-ct]:is([data-starting-style], [data-ending-style]) {
+  transform: none;
 }
 
 /* The menu → sheet hand-off (`ui/menu-handoff.ts`): a menu closing as a sheet opens goes at
