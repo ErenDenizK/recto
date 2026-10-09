@@ -6,7 +6,7 @@ import {
   inkRecents,
   noteInkLeft,
   reloadInkRecents,
-  shownRecents,
+  stripColours,
 } from './ink-recents';
 
 beforeEach(() => {
@@ -40,17 +40,31 @@ describe('ink recents (10-ink §2.1, G8)', () => {
       noteInkLeft('shape', colours[i] as string, colours[i + 1] as string);
     }
     expect(inkRecents('shape')).toHaveLength(INK_RECENT_SHOWN + 1);
-    expect(shownRecents(inkRecents('shape'), '#000006')).toEqual([
+    expect(stripColours(inkRecents('shape'), '#000006')).toEqual([
       '#000005',
       '#000004',
       '#000003',
       '#000002',
     ]);
-    expect(shownRecents(inkRecents('shape'), '#000004')).toEqual([
+    expect(stripColours(inkRecents('shape'), '#000004')).toEqual([
       '#000005',
       '#000003',
       '#000002',
       '#000001',
+    ]);
+  });
+
+  it('shows a pen its recents alone; a tool with no dock pens fills from its palette (G8)', () => {
+    // A pen: its recents only, none before it has changed colour.
+    expect(stripColours([], '#111111')).toEqual([]);
+    expect(stripColours(['#CC2222', '#111111'], '#111111')).toEqual(['#CC2222']);
+    // A shape, text box or note: its recents first, then its palette, never the current colour.
+    const palette = ['#111111', '#00AA00', '#2222aa', '#7700AA', '#FF8800'];
+    expect(stripColours(['#123456'], '#00AA00', palette)).toEqual([
+      '#123456',
+      '#111111',
+      '#2222AA',
+      '#7700AA',
     ]);
   });
 

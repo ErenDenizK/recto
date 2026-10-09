@@ -540,10 +540,9 @@ function SimpleTool({
           ? (tool.tooltip?.() ?? label)
           : armedTooltip(tool.tooltip?.() ?? label, armed, choices && armed)
       }
-      icon={<Icon name={tool.icon} />}
+      icon={<Icon name={tool.icon} filled={false} />}
       command={`tool.${mode}`}
       showLabel={showLabel}
-      className={mode === 'select' ? styles.selectTool : undefined}
       // The capsule's focus on arrival (Capsule.tsx): the armed Select, the palette's Tab stop.
       data-capsule-focus={mode === 'select' && armed ? '' : undefined}
       aria-pressed={armed}
@@ -562,7 +561,7 @@ function ShapesTool() {
   return (
     <ChoiceTool
       label={label}
-      icon={<Icon name={shown.icon} />}
+      icon={<Icon name={shown.icon} filled={false} />}
       armed={armed}
       command={`tool.${shown.mode}`}
       item="shapes"
@@ -596,7 +595,7 @@ function StampTool() {
   return (
     <ChoiceTool
       label={tool.title()}
-      icon={<Icon name="stamp" />}
+      icon={<Icon name="stamp" filled={false} />}
       armed={armed}
       command="tool.stamp"
       item="stamp"

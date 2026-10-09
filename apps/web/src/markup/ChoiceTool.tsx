@@ -5,7 +5,8 @@
  * rising from the button. Choosing closes the menu, arms the kind, and gives focus back to
  * the button.
  *
- * The button is the palette's tool button with a 6 px caret at its top trailing corner,
+ * The button is the palette's tool button: icon-only with no mark (the tooltip says "Press
+ * again for choices"), or, labelled, with a 16 px caret after its name (system-audit §3.7);
  * `aria-pressed` while any of its kinds is armed and `aria-haspopup="menu"`.
  */
 import { Menu } from '@base-ui/react/menu';
@@ -14,7 +15,6 @@ import { type ReactNode, useRef, useState } from 'react';
 import menuStyles from '../ui/Menu.module.css';
 import { LONG_PRESS_MS } from '../ui/IconButton';
 import { abovePalette } from './anchor';
-import styles from './MarkupPalette.module.css';
 import { armedTooltip, PaletteButton } from './ToolButton';
 
 export interface ChoiceToolProps {
@@ -68,7 +68,7 @@ export function ChoiceTool({
         aria-pressed={armed}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={styles.choice}
+        caret={showLabel}
         onClick={() => {
           if (held.current) {
             held.current = false;

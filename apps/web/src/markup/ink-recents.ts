@@ -84,10 +84,26 @@ function subscribe(listener: () => void): () => void {
 
 const EMPTY: readonly string[] = [];
 
-/** The recents `key` shows beside `colour` (its current colour, left out), newest first. */
-export function shownRecents(list: readonly string[], colour: string): readonly string[] {
-  const hex = colour.toUpperCase();
-  return list.filter((c) => c !== hex).slice(0, INK_RECENT_SHOWN);
+/**
+ * The colours the strip shows beside the well, at most four (owner feedback G8): the tool's
+ * recents, newest first, never its current colour (the well shows it). A pen and the
+ * Highlighter show their recents alone (`suggested` empty: their colours are the dock's, and a
+ * pen that never changed colour shows none); a text box, a note and the shapes, which have no
+ * pens in the dock, fill the row with `suggested`, their own palette.
+ */
+export function stripColours(
+  list: readonly string[],
+  colour: string,
+  suggested: readonly string[] = [],
+): readonly string[] {
+  const current = colour.toUpperCase();
+  const out: string[] = [];
+  for (const candidate of [...list, ...suggested]) {
+    if (out.length === INK_RECENT_SHOWN) break;
+    const hex = candidate.toUpperCase();
+    if (hex !== current && !out.includes(hex)) out.push(hex);
+  }
+  return out;
 }
 
 /** A tool's stored recents, live (newest first; may hold its current colour). */

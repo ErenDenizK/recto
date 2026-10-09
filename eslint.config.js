@@ -90,7 +90,6 @@ const q9Controls = {
  * rule arrived: each lane removes its files as it moves them onto ui/.
  */
 const Q9_PENDING = [
-  'apps/web/src/annotations/pen/PenWell.tsx',
   'apps/web/src/batch/BatchSheet.tsx',
   'apps/web/src/batch/RecipeEditor.tsx',
   'apps/web/src/batch/StepForm.tsx',
@@ -102,8 +101,6 @@ const Q9_PENDING = [
   'apps/web/src/forms/create/FieldProperties.tsx',
   'apps/web/src/image-objects/ImageBar.tsx',
   'apps/web/src/image-objects/ImageLayer.tsx',
-  'apps/web/src/markup/SignGroup.tsx',
-  'apps/web/src/markup/ToolButton.tsx',
   'apps/web/src/shell/compact/CompactChrome.tsx',
   'apps/web/src/shell/compact/CompactLibrary.tsx',
   'apps/web/src/shell/compact/CompactPassword.tsx',

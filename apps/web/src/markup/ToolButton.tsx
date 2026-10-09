@@ -2,22 +2,23 @@
  * The palette's tool button (`03-markup` MK-4): the one control for Select, Eraser, Lasso, Text
  * box, Note, Image, Edit text and Redact, and the shape of Done, Sign and the choice tools.
  *
- * - A `ui/IconButton` circle (32 fine, 44 coarse; Q-9) with a 20 px Phosphor glyph, regular at
- *   rest and the fill twin when armed; with `showLabel` the circle stretches to a pill with
- *   the name beside the glyph (Edit text, Redact, Sign, Done), the same states.
- * - Armed (`aria-pressed` with `data-tool`): the lime fill with an ink glyph (dark theme) or
- *   the ink fill with a lime glyph (light), from `ui/IconButton.module.css`; exactly one tool
- *   is pressed across the palette and the pen well.
+ * - A `ui/IconButton` of the bar size, the M control (32 fine, 44 coarse; system-audit-2026-10
+ *   §3.3) with a 20 px Phosphor glyph; with `showLabel` the circle stretches to a pill with the
+ *   name beside the glyph (Edit text, Redact, Sign, Done), the same states. A labelled choice
+ *   (Sign ▾) adds a 16 px caret after its name (`caret`, §3.7).
+ * - Armed (`aria-pressed` with `data-tool`): the one armed form of §3.5, the
+ *   `--tool-active-fill` disc from `ui/IconButton.module.css`, the glyph in its outline weight
+ *   (callers pass `filled={false}`: 10-ink §2.4); exactly one tool is pressed across the
+ *   palette and the pen well.
  * - Tooltip: the name and key, then "· Esc: Select" when armed, and "Press again for choices"
  *   on a tool whose second press opens choices (`markup_choices_hint`).
  */
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import { commandRegistry } from '../commands/registry';
-import { currentPlatform, toAriaKeyShortcut } from '../commands/shortcuts';
 import { m } from '../i18n';
-import iconButtonStyles from '../ui/IconButton.module.css';
-import { Tooltip } from '../ui/Tooltip';
+import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import styles from './MarkupPalette.module.css';
 
 /** The first shortcut of a command, for keycaps and `aria-keyshortcuts`. */
@@ -38,6 +39,8 @@ export interface PaletteButtonProps extends Omit<ComponentPropsWithRef<'button'>
   /** A command whose first key the tooltip and `aria-keyshortcuts` show. */
   readonly command?: string | undefined;
   readonly showLabel?: boolean | undefined;
+  /** A labelled choice: the caret after the name (§3.7). */
+  readonly caret?: boolean | undefined;
   /** `data-tool`: a tool that arms (the armed fill). */
   readonly tool?: string | undefined;
   /** The palette item this button is (`data-item`, measured by the fold). */
@@ -50,31 +53,38 @@ export function PaletteButton({
   tooltip,
   command,
   showLabel = false,
+  caret = false,
   tool,
   item,
   className,
   ...rest
 }: PaletteButtonProps) {
-  const shortcut = command === undefined ? undefined : shortcutOf(command);
+  const labelled = showLabel ? (
+    <>
+      {icon}
+      <span data-label="">{label}</span>
+      {caret ? <Icon name="caret-down" className={styles.caret} /> : null}
+    </>
+  ) : (
+    icon
+  );
   return (
-    <Tooltip label={tooltip ?? label} shortcut={shortcut} side="top">
-      <button
-        type="button"
-        aria-label={label}
-        aria-keyshortcuts={shortcut ? toAriaKeyShortcut(shortcut, currentPlatform) : undefined}
-        className={[iconButtonStyles.button, showLabel ? styles.labelled : '', className]
-          .filter(Boolean)
-          .join(' ')}
-        data-size="bar"
-        data-tool={tool}
-        data-item={item}
-        data-capsule-item={item === 'done' ? 'markup' : item}
-        data-labelled={showLabel ? '' : undefined}
-        {...rest}
-      >
-        {icon}
-        {showLabel ? <span data-label="">{label}</span> : null}
-      </button>
-    </Tooltip>
+    <IconButton
+      label={label}
+      tooltip={tooltip}
+      icon={labelled}
+      shortcut={command === undefined ? undefined : shortcutOf(command)}
+      tooltipSide="top"
+      size="bar"
+      className={
+        [showLabel ? styles.labelled : '', className].filter(Boolean).join(' ') || undefined
+      }
+      data-tool={tool}
+      data-item={item}
+      data-capsule-item={item === 'done' ? 'markup' : item}
+      data-labelled={showLabel ? '' : undefined}
+      data-caret={showLabel && caret ? '' : undefined}
+      {...rest}
+    />
   );
 }
