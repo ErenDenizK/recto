@@ -1,6 +1,7 @@
 /*
  * The check badge (CheckBadge.tsx; 06-navigation §2.2): its look only. The holder places it (6 px
- * inside the page's top-trailing corner) and decides when it shows.
+ * inside the page's top-trailing corner) and decides when it shows. It is the S control size's
+ * badge (system-audit-2026-10 §3.3): 22 px fine, 26 coarse, with a 12 / 16 px tick (§3.10).
  *
  * The rim is white and the scrim black in both themes: the badge sits on the page, which is never
  * themed (tokens.css), so it reads the same on a white page in dark and light. Checked, it takes
@@ -25,13 +26,15 @@
   background: var(--check-badge-fill);
 }
 
-/* The regular check stroked to a bold weight, as a badge's tick reads at this size. */
+/* Phosphor's fat check, filled: a badge's tick reads bold at this size without a stroke. */
 .glyph {
-  width: 13px;
-  height: 13px;
-  stroke: currentColor;
-  stroke-width: 14px;
-  stroke-linejoin: round;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+/* Only a badge that turned on while shown pops (CheckBadge.tsx): a cell mounted selected, as
+   virtualisation does on every scroll, shows its tick at rest. */
+.badge[data-pop] .glyph {
   animation: check-in var(--duration-fast) var(--ease-out);
 }
 
@@ -42,8 +45,8 @@
   }
 
   .glyph {
-    width: 15px;
-    height: 15px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
   }
 }
 
@@ -62,12 +65,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .glyph {
+  .badge[data-pop] .glyph {
     animation-name: check-fade;
   }
 }
 
-:global(:root[data-motion='reduced']) .glyph {
+:global(:root[data-motion='reduced']) .badge[data-pop] .glyph {
   animation-name: check-fade;
 }
 
