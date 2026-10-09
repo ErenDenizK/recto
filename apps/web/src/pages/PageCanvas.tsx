@@ -54,6 +54,7 @@ import {
   exactScale,
   getEngineService,
 } from '../engine/engine-service';
+import { useShowingOriginal } from '../shell/frame/see-original';
 import { useWorkspaceStore } from '../state/workspace-store';
 import {
   deferPageRender,
@@ -188,6 +189,10 @@ export function PageCanvas({
   const shownRef = useRef<string>('');
   /** The scale last drawn or requested: only a change of it is debounced (a zoom). */
   const requestedBucketRef = useRef<number | null>(null);
+  // See the original (S2-1a): a Read page renders bare while the title menu's eye is on.
+  const showingOriginal = useShowingOriginal();
+  const bare = exact && showingOriginal;
+  const bareRef = useRef(bare);
   const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
   const bucket = exact
     ? chooseScale(exactScale(cssWidth, widthPt, dpr), widthPt, heightPt, maxPixels)
@@ -229,7 +234,10 @@ export function PageCanvas({
     if (!canvas || sourceId === undefined) return;
     const service = getEngineService();
     const page = `${sourceId}:${index}:${rotation}`;
-    const revisionKey = `${page}@${revision}`;
+    const revisionKey = `${page}@${revision}${bare ? '#bare' : ''}`;
+    // The eye turned on or off: swap at once, the shown pixels staying until the swap arrives.
+    const bareChanged = bareRef.current !== bare;
+    bareRef.current = bare;
     if (shownRef.current !== page) {
       // Another page (or rotation): never show stale pixels in the new shape.
       canvas.width = 0;
@@ -255,19 +263,21 @@ export function PageCanvas({
     // than the page's while a clipped repaint is still patching it; never under a newer one.
     const inRead = exact || canvas.closest('[data-read-viewport]') !== null;
     const painted = (entry: CachedBitmap) => {
+      // A bare bitmap shows no ink, so it never tells the ink preview it was painted.
+      if (bare) return;
       if (exact) notePagePainted(sourceId, index, entry.revision);
       else if (inRead) notePageBitmap(sourceId, index, entry.revision);
     };
-    const hit = service.peek(sourceId, index, rotation, bucket);
+    const hit = service.peek(sourceId, index, rotation, bucket, bare);
     if (hit && draw(canvas, hit, 'rendered')) {
       requestedBucketRef.current = bucket;
       painted(hit);
       return;
     }
     const shownBucket = Number(canvas.dataset.bucket ?? 0);
-    const preview = service.preview(sourceId, index, rotation, bucket);
+    const preview = service.preview(sourceId, index, rotation, bucket, bare);
     if (preview && canvas.dataset.state !== 'rendered' && preview.bucket > shownBucket) {
-      if (draw(canvas, preview, 'preview') && inRead) {
+      if (draw(canvas, preview, 'preview') && inRead && !bare) {
         notePageBitmap(sourceId, index, preview.revision);
       }
     }
@@ -277,7 +287,15 @@ export function PageCanvas({
     const request = () => {
       requestedBucketRef.current = bucket;
       void service
-        .renderPage({ sourceId, index, rotation, bucket, priority, signal: controller.signal })
+        .renderPage({
+          sourceId,
+          index,
+          rotation,
+          bucket,
+          priority,
+          signal: controller.signal,
+          ...(bare ? { bare } : {}),
+        })
         .then((result) => {
           if (cancelled) return;
           if (result.ok) {
@@ -292,7 +310,9 @@ export function PageCanvas({
     // and other pages wait while a pen is down.
     const showing = canvas.dataset.state === 'preview' || canvas.dataset.state === 'rendered';
     let cancelWait: (() => void) | undefined;
-    if (showing && delayMs > 0 && scaleChanged) {
+    if (showing && bareChanged) {
+      request();
+    } else if (showing && delayMs > 0 && scaleChanged) {
       const timer = window.setTimeout(request, delayMs);
       cancelWait = () => window.clearTimeout(timer);
     } else if (showing && revised && exact) {
@@ -317,7 +337,7 @@ export function PageCanvas({
       // Abort after the next effect (if any) has subscribed to the same job.
       queueMicrotask(() => controller.abort());
     };
-  }, [sourceId, index, rotation, bucket, priority, delayMs, revision, exact]);
+  }, [sourceId, index, rotation, bucket, priority, delayMs, revision, exact, bare]);
 
   return <canvas ref={ref} className={styles.canvas} data-state="placeholder" aria-hidden="true" />;
 }

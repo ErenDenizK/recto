@@ -1242,7 +1242,8 @@ describe('tokens.css', () => {
       // inspector leaves (D2-9): one fewer. The paragraph and line editors' headers take M4's
       // solid twin (D4-4: they rest over page text): two fewer. The Markup palette's floating ink
       // strip (owner feedback F3) is a piece of glass of its own above the capsule: one more.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(23);
+      // See the original's "Markup hidden" pill under the strip (S2-1a): one more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(24);
       // The capsule at the one piece height (G1): σ 8 at 40 px, 9 at 48 coarse.
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',
