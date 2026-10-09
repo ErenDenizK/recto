@@ -283,3 +283,9 @@
   border-radius: 50%;
   background: var(--warning, currentColor);
 }
+
+/* The body holds the page that leaves while the next one is pushed (`navPush`): its stand-in is
+   laid over the page by position, and the body's own overflow clips both as they slide. */
+:global(.mat[data-sheet='settings'] [data-sheet-body]) {
+  position: relative;
+}

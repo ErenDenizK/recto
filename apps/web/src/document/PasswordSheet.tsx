@@ -26,6 +26,7 @@ import {
 import { useId, useState } from 'react';
 
 import { m } from '../i18n';
+import { shake } from '../motion';
 import { announce } from '../shell/announcer';
 import { openTitleMenu } from '../shell/frame/frame-store';
 import { useChangeRefusal } from '../state/guard';
@@ -178,7 +179,15 @@ export function SetPasswordSheet({
     setValues((v) => ({ ...v, permissions: { ...v.permissions, [key]: allowed } }));
   const onSubmit = () => {
     setSubmitted(true);
-    if (check.problem !== undefined) return;
+    if (check.problem !== undefined) {
+      // The refusal shakes the password fields (a colour pulse under reduced motion).
+      for (const input of document.querySelectorAll<HTMLElement>(
+        `[data-testid="set-password-dialog"] input[autocomplete="new-password"]`,
+      )) {
+        shake(input.parentElement);
+      }
+      return;
+    }
     const policy = toPolicy(values);
     commit((ws) => setSecurity(ws, doc.id, policy), m.history_set_password());
     closeDocumentDialog();

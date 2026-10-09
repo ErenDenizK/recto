@@ -19,6 +19,7 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
+import { shake } from '../motion';
 import { answerPassword, type PasswordRequest, usePasswordStore } from '../state/password-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Icon } from '../ui/Icon';
@@ -111,10 +112,12 @@ function PasswordSheet({
     setValue('');
   }
 
-  // A retry after a wrong password: the field is new (cleared), focused, and the error said.
+  // A retry after a wrong password: the field is new (cleared), focused, shaken (a colour pulse
+  // under reduced motion; `shake`, motion-2026-10 forms-compact §6), and the error said.
   useEffect(() => {
     if (!request.incorrect) return;
     inputRef.current?.focus();
+    shake(inputRef.current?.parentElement ?? null);
     announce(m.password_incorrect(), { politeness: 'assertive' });
   }, [request]);
 

@@ -65,20 +65,10 @@
   margin-inline-start: calc(-1 * var(--space-3));
 }
 
-/* An open disclosure's panel: the row after it, its controls stacked. */
+/* An open disclosure's panel: the row after it, its controls stacked. It opens and folds on a
+   height spring with its content fading (`disclose`, motion/feedback.ts). */
 .disclosurePanel {
   gap: var(--space-2);
-  animation: section-in var(--duration-fast) var(--ease-out);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .disclosurePanel {
-    animation: none;
-  }
-}
-
-:global(:root[data-motion='reduced']) .disclosurePanel {
-  animation: none;
 }
 
 /* Lines between groups (the text preview's notes) start on the rows' text edge. */
