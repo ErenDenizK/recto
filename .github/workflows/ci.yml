@@ -97,6 +97,38 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # The engine's OCR tests in Firefox and WebKit (spec recognize-and-compare §8.5, M5-b); the
+  # `verify` job runs them in Chromium with the rest of the engine suite. The projects exist only
+  # when ENGINE_OCR_BROWSERS names them (packages/engine/vitest.config.ts).
+  ocr-engines:
+    name: OCR engine tests (${{ matrix.browser }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host --init
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: OCR tests
+        run: pnpm --filter @pdf-editor/engine exec vitest run --project ocr-${{ matrix.browser }}
+        env:
+          ENGINE_OCR_BROWSERS: ${{ matrix.browser }}
+
   e2e:
     name: E2E (${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.shards || 3 }})
     needs: verify
