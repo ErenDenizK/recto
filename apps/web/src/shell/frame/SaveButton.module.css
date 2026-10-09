@@ -1,7 +1,8 @@
 /*
- * Save (01-frame F7 §2–§4, §7): a neutral capsule from ui/Button (--control-h, pill), "Save" on
- * the standard fill, "Saved" with no fill and the secondary label, "Saving… 40 %" with the
- * processing ring, and the success bloom once after a verified save. Never lime at rest.
+ * Save (01-frame F7 §2–§4, §7): a neutral capsule from ui/Button, the M size (--control-h,
+ * pill), "Save" on the standard fill, "Saved" with no fill and the secondary label, "40 %" with
+ * the processing ring, and the success bloom once after a verified save. Never lime at rest.
+ * One width in every state (system-audit-2026-10 §4 Frame), so the strip's piece never resizes.
  */
 .wrap {
   position: relative;
@@ -15,7 +16,8 @@
   color: var(--glass-text-secondary);
 }
 
-/* The labels share one cell, so "Save" and "Saved" have one width; the saving label grows it. */
+/* The labels share one cell, so "Save", "Saved ✓" and the percentage have one width: the cell
+   holds a hidden "100 %" too, the widest the saving label gets. */
 .labels {
   display: inline-grid;
   justify-items: center;
@@ -24,7 +26,8 @@
 .label {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
   grid-area: 1 / 1;
   visibility: hidden;
 }
@@ -40,11 +43,6 @@
   from {
     opacity: 0;
   }
-}
-
-.labels[data-state='saving'] > .label:not([data-shown]) {
-  /* While saving, the rest labels give up their width so the percentage never truncates. */
-  display: none;
 }
 
 /* The check beside "Saved" (FB6): it pops in once after a verified save. Neutral ink: the
@@ -66,7 +64,8 @@
 }
 
 /* The processing ring (language.md §3.3, FB5 §3): a 1.5 px arc turning on the border while the
-   save runs, as on the progress capsule. */
+   save runs, as on the progress capsule, once per --loop-ring. Its width is a stroke, not
+   room: the ring's own token. */
 @property --save-ring-turn {
   syntax: '<angle>';
   inherits: false;
@@ -75,9 +74,10 @@
 
 .ring,
 .bloom {
+  --ring-stroke: 1.5px;
   position: absolute;
   inset: -1px;
-  padding: 1.5px;
+  padding: var(--ring-stroke);
   border-radius: inherit;
   mask:
     linear-gradient(#000 0 0) content-box exclude,
@@ -92,7 +92,7 @@
     color-mix(in srgb, var(--accent-ring) 60%, transparent) 90deg,
     transparent 150deg 360deg
   );
-  animation: save-ring-turn 2.4s linear infinite;
+  animation: save-ring-turn var(--loop-ring) linear infinite;
 }
 
 @keyframes save-ring-turn {
@@ -102,11 +102,11 @@
 }
 
 /* The success bloom (FB6 §3): the ring's light on the rim, in 180 ms, held 120 ms, out over
-   900 ms, once. */
+   900 ms, once: --loop-bloom. */
 .bloom {
   background: var(--accent-ring);
   opacity: 0;
-  animation: save-bloom 1200ms var(--ease-out) 1;
+  animation: save-bloom var(--loop-bloom) var(--ease-out) 1;
 }
 
 @keyframes save-bloom {
@@ -126,13 +126,13 @@
 /* Reduced motion, Glass Solid: a still rim while saving, a static rim for the bloom. */
 @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   .ring {
-    padding: 1px;
+    --ring-stroke: 1px;
     background: var(--accent-line);
     animation: none;
   }
 
   .bloom {
-    animation: save-bloom-still 1000ms steps(1, end) 1;
+    animation: save-bloom-still var(--loop-bloom) steps(1, end) 1;
   }
 
   .label[data-shown] > .check {
@@ -141,7 +141,7 @@
 }
 
 :root:is([data-motion='reduced'], [data-glass='solid']) .ring {
-  padding: 1px;
+  --ring-stroke: 1px;
   background: var(--accent-line);
   animation: none;
 }
@@ -151,7 +151,7 @@
 }
 
 :root:is([data-motion='reduced'], [data-glass='solid']) .bloom {
-  animation: save-bloom-still 1000ms steps(1, end) 1;
+  animation: save-bloom-still var(--loop-bloom) steps(1, end) 1;
 }
 
 @keyframes save-bloom-still {

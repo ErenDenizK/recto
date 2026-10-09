@@ -306,6 +306,7 @@ export function DocumentTabs({
                 >
                   {/* The selection's fill, which slides from tab to tab (tab-motion.ts). */}
                   <span className={styles.tabFill} data-tab-fill="" aria-hidden="true" />
+                  {/* A `tab` (APG tabs, F4), which ui/Button is not: the strip's own control. */}
                   <button
                     type="button"
                     role="tab"
@@ -318,6 +319,7 @@ export function DocumentTabs({
                     aria-haspopup={selected ? 'dialog' : undefined}
                     aria-expanded={selected ? menuOpen : undefined}
                     tabIndex={active ? 0 : -1}
+                    // eslint-disable-next-line recto/q9-controls
                     className={styles.tab}
                     title={doc.title}
                     data-edited={isEdited || undefined}

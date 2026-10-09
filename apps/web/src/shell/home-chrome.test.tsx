@@ -60,13 +60,15 @@ describe('Home chrome', () => {
     // The Library has no sidebar (it lists the files itself); the stored view is kept.
     expect(screen.queryByRole('tablist', { name: 'Sidebar sections' })).toBeNull();
     expect(useUiStore.getState().leftPanelView).toBe('pages');
-    // The strip (01-frame F2 §4): ◆ current with its label, tabs, +, ◎ and ⋯ only.
+    // The strip (01-frame F2 §4): ◆ current with its label, tabs, + and ⋯ alone (R11: the
+    // trailing piece is one control; the footer's chip holds privacy).
     const strip = screen.getByRole('banner', { name: 'Library bar' });
     expect(within(strip).getByTestId('home-button')).toHaveAttribute('aria-current', 'page');
     expect(within(strip).queryByTestId('sidebar-toggle')).toBeNull();
     expect(within(strip).queryByRole('searchbox')).toBeNull();
     expect(within(strip).queryByTestId('undo-redo')).toBeNull();
     expect(within(strip).getByTestId('library-menu')).toBeVisible();
+    expect(within(strip).queryByTestId('privacy-indicator')).toBeNull();
     expect(screen.queryByTestId('page-pill')).toBeNull();
     // No tab is selected, nor looks it: no selected fill, no close affordance shown. A keyboard
     // focus inside a tab shows its close on purpose (frame/TopStrip.module.css), and the focus may have

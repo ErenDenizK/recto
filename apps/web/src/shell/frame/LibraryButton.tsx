@@ -18,8 +18,11 @@ export function LibraryButton({ current }: { readonly current: boolean }) {
   const shortcut = useCommandShortcut('view.home');
   return (
     <Tooltip label={m.frame_library()} shortcut={shortcut}>
+      {/* The strip's ◆ (F3): the brand mark in a circle that grows into a labelled capsule on
+          the Library, its own control rather than ui/Button's text capsule. */}
       <button
         type="button"
+        // eslint-disable-next-line recto/q9-controls
         className={styles.library}
         aria-label={m.frame_library()}
         aria-current={current ? 'page' : undefined}
