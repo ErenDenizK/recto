@@ -3,8 +3,9 @@
  * 8 · label 16 · 8, `thumbnail-layout.ts`), inset 8 from the sidebar's edges, a hover wash of
  * radius 12 over the full row. Thumbnails are content: solid, a page hairline, no shadow.
  *
- * Marks, as the Pages grid draws them (ArrangeView.module.css): current page, its label at 600
- * and a 1 px neutral ring 3 px out (`--current-ring`); selected, the app's lime as the grid
+ * Marks, as the Pages grid draws them (ArrangeView.module.css; system-audit-2026-10 §3.5,
+ * §3.8): current page, its label at 600 and a 1 px neutral ring 3 px out (`--border-strong`,
+ * never the selection's); selected, the app's lime as the grid
  * draws it (owner feedback 2026-10-09, G7): a 2 px `--select-ring` ring 2 px out from the page,
  * on the sidebar, and a 20 px check badge (24 coarse) in the badge's lime with an ink tick; the
  * current ring steps aside while the page is selected, so two rings never stack. Focus: the
@@ -12,7 +13,7 @@
  * steps aside while its row holds keyboard focus too.
  */
 .scroll {
-  --current-ring: var(--control-border);
+  --current-ring: var(--border-strong);
   position: relative;
   flex: 1;
   min-height: 0;
@@ -36,14 +37,14 @@
   composes: focus-inset from global;
   position: absolute;
   top: 0;
-  left: 8px;
+  left: var(--space-2);
   display: grid;
   justify-items: center;
-  row-gap: 8px;
+  row-gap: var(--space-2);
   box-sizing: border-box;
-  width: calc(100% - 16px);
-  padding: 8px;
-  border-radius: 12px;
+  width: calc(100% - 2 * var(--space-2));
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
   cursor: default;
   -webkit-tap-highlight-color: transparent;
   transition: background-color var(--duration-fast) var(--ease-out);
@@ -94,8 +95,8 @@
 
 .badge {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: var(--space-1h);
+  right: var(--space-1h);
   z-index: 1;
   display: grid;
   place-items: center;
@@ -110,8 +111,8 @@
 }
 
 .badge svg {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -121,15 +122,15 @@
   }
 
   .badge svg {
-    width: 16px;
-    height: 16px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
   }
 }
 
 .label {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   height: 16px;
   max-width: 100%;
   color: var(--text-secondary);
@@ -152,8 +153,8 @@
 
 .mark {
   flex: none;
-  width: 12px;
-  height: 12px;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
   color: var(--text-tertiary);
 }
 
@@ -164,7 +165,7 @@
   left: calc(50% - 60px);
   width: 120px;
   height: 2px;
-  border-radius: 1px;
+  border-radius: var(--radius-capsule);
   background: var(--select);
   pointer-events: none;
 }
@@ -216,8 +217,8 @@
 
 .lockIcon {
   flex: none;
-  width: 16px;
-  height: 16px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 /* The drag preview (§2.4, PG5): the thumbnail under the pointer, content, never glass. */
@@ -231,8 +232,8 @@
 
 .menuIcon {
   flex: none;
-  width: 16px;
-  height: 16px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 @media (forced-colors: active) {
