@@ -379,9 +379,11 @@
   transition: color var(--duration-fast) var(--ease-out);
 }
 
-/* A new name fades in (a rename, a tab coming in; G6). */
-.tab .name,
-.tab .nameSplit {
+/* A new name fades in (a rename, a tab coming in; G6), once: a name that has faded in is
+   marked (`data-in`, DocumentTabs.tsx), so a tab moved in the DOM (dragged to a new place,
+   motion-2026-10 frame.md §7) does not fade its name again. */
+.tab .name:not([data-in]),
+.tab .nameSplit:not([data-in]) {
   animation: tab-name-in var(--duration-base) var(--ease-out);
 }
 
