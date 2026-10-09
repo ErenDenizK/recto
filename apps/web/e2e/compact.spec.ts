@@ -569,7 +569,7 @@ test.describe('the compact edition', () => {
     await expect(page.getByTestId('app-shell')).toBeVisible();
   });
 
-  test('a toast sits 12 px above the capsule, and above the home indicator when it is away', async ({
+  test('a toast sits 8 px (--space-2) above the capsule, and above the home indicator when it is away', async ({
     page,
   }) => {
     // The restore notice is the compact edition's toast (D0-5): "Restored simple-text · Start
@@ -586,7 +586,8 @@ test.describe('the compact edition', () => {
     const t = await toast.boundingBox();
     const c = await capsule(page).boundingBox();
     if (!t || !c) throw new Error('not laid out');
-    expect(Math.round(c.y - (t.y + t.height))).toBe(12);
+    // --space-2 above the capsule, the gap between pieces (Toast.module.css; 01-frame F13).
+    expect(Math.round(c.y - (t.y + t.height))).toBe(8);
     expect(t.x).toBeGreaterThanOrEqual(12);
     expect(t.x + t.width).toBeLessThanOrEqual((page.viewportSize()?.width ?? 0) - 12);
     // 44 px targets on a coarse pointer (A-15).
