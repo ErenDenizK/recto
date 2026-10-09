@@ -2070,7 +2070,7 @@ describe('tokens.css', () => {
         'rgb(255 255 255 / 0.3)',
         'rgb(255 255 255 / 0.12)',
       ],
-      'ui/Swatch.module.css': ['#e5322d', '#ffffff', 'rgb(21 23 28 / 0.35)'],
+      'ui/Swatch.module.css': ['#e5322d', '#ffffff'],
     };
     const LITERAL = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/gi;
     /** The rules of a module outside any `:global([data-theme='light'])` selector. */

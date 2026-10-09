@@ -1,21 +1,45 @@
 /*
- * The ink strip (10-ink §2; quality-bar Q-4, Q-9; owner feedback G8). Content inside its glass
- * piece: no fill of its own, no border. One centre line in the palette family's sizes
- * (--palette-*, `MarkupPalette.module.css`): the colour well and the recent colours in
- * --palette-hit targets, the slider's hit row, the readout in tabular numerals (13 / 15 px).
- * The well draws a --palette-control ring (the tools' fill size), the recents are
- * --palette-dot dots (the largest pen dot's size), a hairline of the palette's separator sets
- * the width apart. Narrow windows let the width wrap under the colours rather than clip (A-20).
+ * The ink strip (10-ink §2; quality-bar Q-4, Q-9; owner feedback G8; system-audit-2026-10
+ * §3.7). Content inside its glass piece: no fill of its own, no border. One layout for every
+ * tool, in the palette family's sizes (--palette-*, `MarkupPalette.module.css`):
+ *
+ *   [ well · its recents ] │ [ slider · readout ]
+ *
+ * The colour slot hugs what it holds (G8: no empty glass): the well and up to four recent
+ * colours in M targets (--palette-control), the recents --palette-dot dots, --palette-gap
+ * apart. The width slot holds the slider and its readout at one width for every tool (the text
+ * box's size is a slider too); a hairline of the palette's separator sets the two apart. The
+ * eraser's Whole stroke · Partial takes the colour slot at its own fixed width (--strip-modes:
+ * the two labels fit there as a segmented control); the note, with no size, shows the colour
+ * slot alone. The strip is anchored at the capsule's leading edge (`StripPiece`), so the well
+ * never moves between tools. Windows under 560 px let the width slot wrap under the colours
+ * rather than clip (A-20).
  */
 .strip {
+  --strip-modes: calc(6 * var(--palette-control));
+
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: center;
-  column-gap: 0;
+  justify-content: flex-start;
   min-width: 0;
 }
 
+@media (pointer: coarse), (any-pointer: coarse) {
+  .strip {
+    --strip-modes: calc(5 * var(--palette-control) + 4 * var(--palette-gap));
+  }
+}
+
+/* Only a window too narrow for one row wraps it (the piece's own width morph between tools
+   would otherwise wrap it for a frame or two, clipped by the pill instead). */
+@media (max-width: 559px) {
+  .strip {
+    flex-wrap: wrap;
+  }
+}
+
+/* The colour slot: the well and the tool's recents, hugging them. */
 .colours {
   display: flex;
   flex: none;
@@ -23,19 +47,28 @@
   gap: var(--palette-gap);
 }
 
-/* The well: its conic ring is the tools' drawn fill, 30 / 40 px (disc 22 / 30, gap 2, ring
-   2 / 3), in the palette's hit target. */
+/* The well: its conic ring fills the M control (disc, gap 2, ring 2 / 3). */
 .colours > button:first-child {
-  --well-target: var(--palette-hit);
+  --well-target: var(--palette-control);
   --well-disc: calc(var(--palette-control) - 2 * var(--well-gap) - 2 * var(--well-ring));
 }
 
 .colours .swatches {
-  --sw-target: var(--palette-hit);
+  --sw-target: var(--palette-control);
   --sw-dot: var(--palette-dot);
 
   flex-wrap: nowrap;
   gap: var(--palette-gap);
+}
+
+/* The eraser's modes in the colour slot, the segmented control its whole width. */
+.slotted {
+  flex: none;
+  width: var(--strip-modes);
+}
+
+.slottedControl {
+  width: 100%;
 }
 
 .divider {
@@ -46,52 +79,16 @@
   background: var(--border-hairline);
 }
 
-/* The width (10-ink §2.1): 144 px of track fine, 176 coarse, plus its readout, which keeps
-   the well's inset from the piece's round end (text sits a little further in than a circle
-   does, against the curve). */
+/* The width slot (10-ink §2.1): the slider and its readout, which keeps the well's inset from
+   the piece's round end (text sits a little further in than a circle does, against the curve). */
 .width {
   flex: none;
   width: 200px;
-  margin-inline-end: 8px;
+  margin-inline-end: var(--space-2);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .width {
     width: 240px;
-  }
-}
-
-.eraserModes {
-  flex: none;
-  width: 200px;
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .eraserModes {
-    width: 220px;
-  }
-}
-
-.stepper {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--palette-gap);
-}
-
-.readout {
-  min-width: 44px;
-  color: var(--text-primary);
-  font-size: var(--type-body);
-  line-height: var(--type-body-lh);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  white-space: nowrap;
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .readout {
-    font-size: 15px;
-    line-height: 20px;
   }
 }

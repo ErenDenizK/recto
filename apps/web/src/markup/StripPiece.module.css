@@ -2,29 +2,32 @@
  * The palette's floating strip (owner feedback F3, G8; quality-bar Q-2 to Q-6, Q-9).
  *
  * The capsule's material and σ (`mat mat-bar s8 c9 h8`), the pill radius, one piece tall
- * (--piece-h, G1): the content's 32 / 44 px row inside --piece-pad and the 1 px rim, so its
- * round ends are
- * concentric with the round controls at either end (the colour well; the slider's readout keeps
- * its own inset in `InkStrip.module.css`). It hugs its content (`width: max-content`) and never
- * runs wider than the band less 16 px each side; a narrow window wraps the strip inside it.
- * The dock's column puts it above the capsule; the extra 4 px over the column's gap make 8.
+ * (--piece-h, G1): the content's M row (--control-h) inside --piece-pad and the 1 px rim, so its
+ * round ends are concentric with the round controls at either end (the colour well; the
+ * slider's readout keeps its own inset in `InkStrip.module.css`). It hugs its content
+ * (`width: max-content`) and never runs wider than the band less --piece-inset each side; a
+ * narrow window wraps the strip inside it. The dock's column puts it above the capsule; the
+ * extra 4 px over the column's gap make 8. Its leading edge is the capsule's (`--strip-start`,
+ * set by `StripPiece.tsx`; system-audit-2026-10 §3.7), centred until that is measured.
  * `contain: layout style` keeps its own width morph inside it (Q-6), and `overflow: clip` clips
  * the content to the pill while the width moves.
  */
 .piece {
   composes: mat mat-bar s8 c9 h8 from global;
-  --strip-pad: var(--piece-pad);
 
   position: relative;
   display: flex;
   flex: none;
+  align-self: flex-start;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   box-sizing: border-box;
   width: max-content;
   max-width: calc(100% - 2 * var(--piece-inset));
   min-height: var(--piece-h);
+  margin-right: auto;
   margin-bottom: var(--space-1);
+  margin-left: var(--strip-start, auto);
   padding: var(--palette-inset);
   overflow: clip;
   /* The pill on one bar; on a wrapped strip the corners keep the bar's round ends. */
@@ -32,7 +35,7 @@
   contain: layout style;
   pointer-events: auto;
   /* It rises out of the capsule below it and sinks back into it (StripPiece.tsx, G6). */
-  transform-origin: 50% 100%;
+  transform-origin: 0 100%;
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 

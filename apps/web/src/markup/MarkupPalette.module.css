@@ -1,24 +1,25 @@
 /*
- * The Markup palette (03-markup MK-2 to MK-17; 10-ink §2, §2.2; quality-bar Q-4, Q-9).
+ * The Markup palette (03-markup MK-2 to MK-17; 10-ink §2, §2.2; quality-bar Q-4, Q-9;
+ * system-audit-2026-10 §3.3, §3.5, §3.7).
  *
- * The palette and the ink strip above it are one family (owner feedback G8, "inconsistent",
- * "too big?"): the same material, height, inset, radius, control, icon and dot sizes and the
- * same spacing, set once below as --palette-* on the palette's capsule, its content and the
- * strip piece. They are local names, mapped onto the shared piece-size tokens of G1 when those
- * land; nothing here is global.
+ * The palette and the ink strip above it are one family (owner feedback G8): the same
+ * material, height, inset, radius, control, icon and dot sizes and the same spacing, named once
+ * below as --palette-* on the palette's capsule, its content and the strip piece. Each is the
+ * shared piece, control or space token it stands for (§3.3), so the family moves with the
+ * system and holds no size of its own.
  *
- * Geometry: one piece of --palette-h, today the bar of Q-9 (44 fine, 56 coarse). It moves with
- * the dock's shape of the same capsule (a morph keeps its height, spec X1), the page pill's
- * centre line and the glass's σ (A-2 coverage: σ 9 / 10 needs 44 / 56), so the smaller shared
- * piece height of G1 lands there, for every piece at once; this family takes it through
- * --palette-h. Each control's box is its hit area, --palette-hit (the --control-h of Q-9: 32 /
- * 44, so a coarse target keeps 44 px), and it draws its fill --palette-trim inside that box (a
- * transparent border, `background-clip: padding-box`): 30 / 40 px circles, lighter than the
- * 32 / 44 px fills they replace ("too big?"). The row's inset keeps the round ends concentric
- * with the round controls. Gaps: hit areas abut on coarse pointers and keep 2 px apart on fine
- * ones (fills 4 px apart); a 1 px hairline of --palette-sep-h, --palette-sep-m each side,
- * between groups. `MarkupPalette.tsx` reads the same numbers from the rendered row to fold it
- * (palette-fold.ts), so the CSS stays the one source.
+ * Geometry: one piece, --piece-h (40 fine, 48 coarse; G1), its row --piece-pad inside the 1 px
+ * rim, so the round ends are concentric with the round controls. Every control is the M size,
+ * --control-h (32 / 44, so no touch target is under 44), and its visible fill is its box (§3.3:
+ * no lighter fill drawn inside a larger box). Controls sit --space-1 apart, as in the dock; a
+ * 1 px hairline of --palette-sep-h with --palette-sep-m each side sets the groups apart.
+ * `MarkupPalette.tsx` reads the same numbers from the rendered row to fold it (palette-fold.ts),
+ * so the CSS stays the one source.
+ *
+ * Armed (§3.5): one form for every tool, Select, the pens, the shapes, the choice tools and
+ * the saved signatures alike: the `--tool-active-fill` disc of `ui/IconButton` (a bar button
+ * with `data-tool`, pressed), the glyph in its outline weight. A pen shows its colour dot inside
+ * the disc (`annotations/pen/PenWell.module.css`).
  *
  * The palette is the capsule's content (`shell/capsule/`): the capsule is the glass, and
  * everything here is a fill (Q-4, no glass in glass). The content is laid out at its own size
@@ -30,33 +31,26 @@
 :global([data-strip-piece]) {
   /* The piece: height, the row's inset inside the 1 px rim, the pill radius. */
   --palette-h: var(--piece-h);
-  --palette-inset: calc((var(--palette-h) - var(--palette-hit) - 2px) / 2);
-  --palette-radius: calc(var(--palette-h) / 2);
-  /* A control: its box (the hit area) and the fill drawn inside it. */
-  --palette-hit: var(--control-h);
-  --palette-control: 30px;
-  --palette-trim: calc((var(--palette-hit) - var(--palette-control)) / 2);
-  /* Glyphs and marks: icons, the armed pen's ring, a colour dot, the label. */
+  --palette-inset: var(--piece-pad);
+  --palette-radius: var(--piece-radius);
+  /* A control: the M size, its fill its box. */
+  --palette-control: var(--control-h);
+  /* Glyphs and marks: icons, a colour dot, the label. */
   --palette-icon: var(--piece-icon);
-  --palette-ring: 24px;
-  --palette-dot: 16px;
-  --palette-label: var(--control-text);
+  --palette-dot: var(--icon-sm);
+  --palette-label: var(--piece-label);
   /* Spacing: between controls, the hairline between groups and its margins. */
-  --palette-gap: 2px;
-  --palette-sep-h: 16px;
-  --palette-sep-m: 5px;
+  --palette-gap: var(--space-1);
+  --palette-sep-h: var(--icon-sm);
+  --palette-sep-m: var(--space-1);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .content,
   :global(.mat[data-capsule='palette']),
   :global([data-strip-piece]) {
-    --palette-control: 40px;
-    --palette-ring: 30px;
-    --palette-dot: 18px;
-    --palette-gap: 0px;
-    --palette-sep-h: 20px;
-    --palette-sep-m: 6px;
+    --palette-dot: var(--icon-md);
+    --palette-sep-h: var(--icon-md);
   }
 }
 
@@ -73,18 +67,6 @@
  */
 :global(.mat[data-capsule='palette']) {
   border-radius: var(--palette-radius);
-}
-
-/*
- * A control draws its fill --palette-trim inside its hit box, in the row and in the strip:
- * every bar button (the tools, Done, Sign, the choice tools, the field stepper, the strip's
- * font-size stepper), the pen cells and the signature chips. Their focus ring is the inset
- * form, so it lands on the drawn fill.
- */
-.row :is([data-size='bar'], [data-pen-preset], [data-saved-signature]),
-:global([data-strip-piece]) :is([data-size='bar'], [data-saved-signature]) {
-  border: var(--palette-trim) solid transparent;
-  background-clip: padding-box;
 }
 
 .row [data-size='bar'] svg,
@@ -136,22 +118,21 @@
 
 /* A tool with its name beside the glyph (Done, Sign, Edit text, Redact): the IconButton's
    circle stretched to a pill, the same states, the same height. The glyph sits where it sits
-   in a circle (its centre --palette-control / 2 from the fill's start), the label 12 px from
-   the fill's end. */
-.labelled {
-  gap: 4px;
+   in a circle (its centre --palette-control / 2 from the fill's start), the label --space-3
+   from the fill's end (--space-4 coarse), --space-1h between them (styles/controls.css). */
+.labelled.labelled {
+  gap: var(--space-1h);
   grid-auto-flow: column;
   width: auto;
-  padding-inline: calc((var(--palette-control) - var(--palette-icon)) / 2) 12px;
+  padding-inline: calc((var(--palette-control) - var(--palette-icon)) / 2) var(--space-3);
   font-size: var(--palette-label);
   font-weight: 500;
   line-height: var(--control-lh);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
-  .labelled {
-    gap: 6px;
-    padding-inline-end: 14px;
+  .labelled.labelled {
+    padding-inline-end: var(--space-4);
   }
 }
 
@@ -159,71 +140,34 @@
   color: inherit;
 }
 
-/* Select armed is the resting state, not a creating tool: a neutral "on" fill with the fill
-   glyph, no lime (03-markup §2.3, ADR-0023 §5.1), so the one lime in view is a creating tool's.
-   The fill is a wash, not the opaque n5 of --surface-on: n5 vanished on the dark bar and read
-   grey on the light one, so the two themes disagreed (V2 review); the pressed wash (white 0.16
-   / ink 0.12) reads the same step above either glass. */
-.selectTool.selectTool[data-size='bar'][data-tool][aria-pressed='true'] {
-  background: var(--control-fill-pressed);
-  color: var(--text-primary);
-}
-
-@media (hover: hover) {
-  .selectTool.selectTool[data-size='bar'][data-tool][aria-pressed='true']:hover {
-    background: var(--control-fill-pressed);
-    color: var(--text-primary);
-  }
-}
-
 /* Done: a plain control, never lime (MK-3 §3); its name in the primary colour. */
 .done {
   color: var(--text-primary);
 }
 
-/* A choice tool (MK-9): a 6 px caret at the top trailing corner, drawn in CSS (one glyph per
-   button, Q-9). On the armed fill it takes the glyph's colour. */
-.choice {
-  position: relative;
+/* A labelled choice (Sign ▾; §3.7, 10-ink §2.4): a 16 px caret glyph at the label's cap height,
+   close after it, in the tertiary colour (the glyph's on the armed fill). Icon-only choice tools
+   carry no mark: a second press, ↑, a right-click or a long press opens their choices, and the
+   tooltip says so. */
+.row [data-size='bar'] .caret,
+:global([data-strip-piece]) [data-size='bar'] .caret {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-inline-start: calc(-1 * var(--space-1));
+  color: var(--text-tertiary);
 }
 
-.choice::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 0;
-  height: 0;
-  border-bottom: 4px solid transparent;
-  border-right: 4px solid var(--text-tertiary);
-  pointer-events: none;
+[aria-pressed='true'] > .caret.caret {
+  color: currentColor;
 }
 
-.choice[aria-pressed='true']::after {
-  border-right-color: currentColor;
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .choice::after {
-    top: 5px;
-    right: 5px;
-  }
-}
-
-/* A labelled choice (Sign ▾): the caret rides the label's cap height, 3 px after it, rather
-   than floating at the pill's far corner. */
-.labelled.choice {
-  padding-inline-end: 17px;
-}
-
-.labelled.choice::after {
-  top: calc(50% - 7px);
-  right: 10px;
+.labelled.labelled[data-caret] {
+  padding-inline-end: var(--space-2);
 }
 
 .menuIcon {
-  width: 16px;
-  height: 16px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .menuKey {
@@ -235,21 +179,20 @@
 }
 
 .menuHeading {
-  padding: 6px 12px 2px;
+  padding: var(--space-1h) var(--space-3) var(--space-half);
   color: var(--text-secondary);
   font-size: var(--type-caption);
   font-weight: 500;
   line-height: var(--type-caption-lh);
 }
 
+/* A stamp's name in its colour inside a thin frame, in sentence case like every label (T-9). */
 .stampChip {
-  padding: 1px 6px;
+  padding: 1px var(--space-1h);
   border: 1.5px solid currentColor;
   border-radius: var(--radius-xs);
   font-size: var(--type-caption);
   font-weight: 600;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
 }
 
 /* --- Field stepper (MK-14) -------------------------------------------------------------- */
@@ -260,7 +203,7 @@
   display: flex;
   flex: none;
   align-items: center;
-  margin-inline-start: 4px;
+  margin-inline-start: var(--space-1);
 }
 
 .stepper [data-size='bar'] svg {
@@ -270,7 +213,7 @@
 
 .stepperReadout {
   display: grid;
-  min-width: 24px;
+  min-width: var(--control-h-sm);
   padding-inline: 0;
   color: var(--text-primary);
   font-size: var(--control-text);
@@ -290,52 +233,9 @@
   gap: var(--palette-gap);
 }
 
-.signatureChip {
-  composes: focus-inset from global;
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  height: var(--control-h);
-  padding: 0 4px;
-  border: 0;
-  border-radius: var(--radius-capsule);
-  background: transparent;
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    transform var(--spring-press) var(--ease-spring);
-}
-
-.signatureChip > span {
-  transition: box-shadow var(--duration-fast) var(--ease-out);
-}
-
-@media (hover: hover) {
-  .signatureChip:hover {
-    background: var(--surface-hover);
-  }
-}
-
-.signatureChip:active {
-  background: var(--surface-active);
-  transform: scale(var(--press-scale));
-}
-
-/* Armed: the ring form (content inside, so no lime fill; 03.4). */
-.signatureChip[aria-pressed='true'] > span {
-  box-shadow:
-    0 0 0 2px var(--text-primary),
-    inset 0 0 0 1px var(--plate-edge);
-}
-
-@media (forced-colors: active) {
-  .signatureChip[aria-pressed='true'] > span {
-    outline: 2px solid Highlight;
-  }
-}
-
-:global(:root[data-motion='reduced']) .signatureChip:active {
-  transform: none;
+/* A chip is the palette's tool button stretched to its plate: the same height, states and
+   armed fill (§3.5), the page-white plate --space-1 inside the pill. */
+.signatureChip.signatureChip {
+  width: auto;
+  padding-inline: var(--space-1);
 }

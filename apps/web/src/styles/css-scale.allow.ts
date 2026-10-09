@@ -8,15 +8,12 @@ import type { ScaleKind } from './css-scale';
 
 export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, number>>>> = {
   'annotations/lasso/Lasso.module.css': { radius: 1, duration: 1, stroke: 5 },
-  'annotations/pen/PenWell.module.css': { radius: 2 },
   'batch/Batch.module.css': { 'font-size': 1, icon: 2 },
   'document/DocumentTools.module.css': { weight: 1, icon: 2, spacing: 1 },
   'export/ExportDialog.module.css': { radius: 1, uppercase: 1, spacing: 1 },
   'forms/FormLayer.module.css': { icon: 2, spacing: 2 },
   'forms/create/CreatedFields.module.css': { icon: 4 },
   'image-objects/ImageObjects.module.css': { icon: 2 },
-  'markup/InkStrip.module.css': { 'font-size': 1 },
-  'markup/MarkupPalette.module.css': { uppercase: 1, spacing: 1 },
   'redaction/ApplySheet.module.css': { weight: 1 },
   'redaction/RedactionLayer.module.css': { stroke: 4 },
   'shell/CommandPalette.module.css': { stroke: 1 },
@@ -35,5 +32,4 @@ export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, 
   'ui/ScrollArea.module.css': { radius: 1 },
   'ui/Switch.module.css': { icon: 2 },
   'ui/Toast/Toast.module.css': { spacing: 1 },
-  'ui/colour/ColourGrid.module.css': { spacing: 1 },
 };
