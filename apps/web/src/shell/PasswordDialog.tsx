@@ -130,6 +130,7 @@ function PasswordSheet({
       primary={{ label: m.password_open(), onPress: () => onTry(value), busy }}
       cancel={m.password_skip()}
       initialFocus={inputRef}
+      focusField
       testId="password-dialog"
     >
       <SheetField

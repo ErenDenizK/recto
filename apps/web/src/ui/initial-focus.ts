@@ -48,12 +48,14 @@ export type FocusAnswer = ReturnType<Extract<InitialFocus, (openType: never) => 
 /**
  * `target` with the pointer rule laid over it, called from a popup's `initialFocus` function
  * as it opens: a text field it names, or the default first control, gives way to `surface`
- * when a pointer opened it.
+ * when a pointer opened it. `keepField` lifts the rule for a surface that exists only to be
+ * typed into (a password prompt): the field takes focus however it was opened.
  */
 export function resolveInitialFocus(
   target: InitialFocus,
   openType: OpenType,
   surface: HTMLElement | null,
+  keepField = false,
 ): FocusAnswer {
   const resolved =
     typeof target === 'function'
@@ -61,7 +63,7 @@ export function resolveInitialFocus(
       : typeof target === 'object'
         ? target.current
         : (target ?? true);
-  if (!openedByPointer(openType)) return resolved;
+  if (keepField || !openedByPointer(openType)) return resolved;
   if (resolved instanceof HTMLElement) {
     return isTextEntry(resolved) ? (surface ?? resolved) : resolved;
   }
