@@ -1,8 +1,8 @@
 # How the work runs: lanes, concurrency and verification
 
-This replaces the earlier rule of "at most three implementers at once". That rule came from tighter
-usage limits and older models. The limits that matter now are the machine's CPU and memory, and
-two people editing the same file. Usage limits are no longer the constraint.
+This replaces the earlier rule of "at most three implementers at once". There is no fixed cap.
+Three things set how much runs at once: the machine's CPU and memory (the heavy lock), two people
+editing the same file (lanes), and the weekly usage limit (the budget mode, below).
 
 ## Lanes (file ownership)
 
@@ -26,8 +26,8 @@ and the other packages rebase onto it.
 
 ## Concurrency
 
-- Up to six implementers run at once, one per lane. Planning and research agents do not count:
-  they only read.
+- At most one implementer per lane. How many lanes run at once is set by the budget mode
+  (below). Planning and research agents do not take a lane: they only read.
 - Heavy local commands go through `tools/dev/heavy.sh`, which takes a shared lock with one slot by
   default. These are `pnpm build`, Playwright runs and the full unit suite. Agents queue for the
   lock instead of running four builds on four cores.
@@ -35,6 +35,24 @@ and the other packages rebase onto it.
   `--maxWorkers=1`.
 - Cross-engine runs (Firefox, WebKit) and the full matrix happen in CI, not locally. Locally:
   Chromium plus the tablet project for the specs that cover the change.
+
+## Budget modes (owner, 2026-10-09)
+
+Usage limits are weekly and reset on **Saturday at 07:00 Turkey time** (04:00 UTC). A burst
+spends the week's budget fast, so the mode is chosen on purpose and stated in each wave's plan.
+
+| Mode | Implementers | Research | Verification | When |
+|---|---|---|---|---|
+| **Burst** | Up to 8, one per lane | Research fan-outs allowed | As usual: focused tests, screenshots, the heavy lock | Only when the owner opens a burst window |
+| **Normal** | 3–4, in disjoint lanes | Allowed, sized to the question | As usual | When the owner raises the mode from Safe |
+| **Safe or minimal** | 1–2 | No research fan-outs | CI only, no local Playwright or full builds beyond what a fix needs | The default |
+
+- **The default after a burst window is Safe**, until the owner raises it. A burst window
+  closes when the owner says so, or at the end of the time the owner gave.
+- In Normal and Safe, mechanical work (test fixes, sweeps, log triage) runs on a lighter model.
+- In Safe, the lead makes small fixes inline instead of briefing an agent, and lets CI do the
+  verifying.
+- The lead says which mode is in force when reporting to the owner.
 
 ## Browser tests run last (owner, 2026-10-09)
 
