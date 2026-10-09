@@ -158,12 +158,21 @@ runs 1.22 × its box; the spiral is 1.64 × its box.
 Also tested: the 5° snap and the 12° no-snap for rectangles, ellipses and lines; drawn size and centre
 kept; a lumpy circle passes alone but fails after another stroke; drag scale/rotate; outlines close.
 
-The tightest margin is a sloppy hexagon against a circle (.61 vs .49). A rounder hand-drawn hexagon
-could come out as a circle, and the chip then offers the hexagon.
+**Hexagon vs circle (follow-up):** the loop's radius about its centroid is read as harmonics
+(`radialHarmonics`). A 3-, 5- or 6-fold ripple of at least 1.2 % of the radius, and at least 2×
+every other ripple except the ellipse's k = 2 and the ripple's own multiples (`rippleCorners`),
+adds the regular polygon it shows. That polygon's corners sit where the radius peaks, and its
+apothem comes from the middles of the sides, so rounded corners do not shrink it. It also removes
+the circle's bias. Eight new cases all classify correctly: a hexagon with rounded corners
+(hexagon .98 vs circle .40), corners cut twice (.92 vs .50), bulging sides (1.03 vs .18), small and
+rounded (1.01 vs .34), and circles drawn as 10-, 12- and 16-gons or with flat spots (circle .99–1.19,
+no polygon offered). The sloppy hexagon now scores 1.07 against the circle's .19, and the 64 near
+misses still never snap (103 corpus cases in all).
 
 ## 7. Verification
 
-- Unit/browser: `pen/` (shapes, straighten on a layer: morph, chip cycling, "e" stays, writing needs
+- Unit/browser: `lasso/make-shape.test.ts` (plan, one entry and undo, notice when nothing fits),
+  `pen/` (shapes, straighten on a layer: morph, chip cycling, "e" stays, writing needs
   800 ms; shape-commit on the engine: /Square, chip replace in entry 2, undo → Ink → nothing;
   erase-fade), `lasso/`, `markup/`, `src/motion`, `styles/motion.test.ts`: green.
 - e2e (Chromium): `pen.spec.ts` "hold to shape" (a /Line from press to release, then two undos) and
@@ -172,9 +181,26 @@ could come out as a circle, and the chip then offers the hexagon.
   → released → committed; eraser fade; lasso trail → lift → ants. No jumps, clipping or
   double-drawing seen.
 
+## 8. Make shape (lasso bar, follow-up)
+
+`lasso/make-shape.ts` adds a polygon-icon button between Move and Delete, shown when the selection
+holds strokes. It runs each selected path through the same recogniser, in the page's CSS pixels:
+
+- **Gates and limits:** no hold and no writing context, but the same fit limits and handwriting gate.
+  Highlighter ink and locked ink are skipped.
+- **Commit:** one history entry ("Make shapes"). The recognised paths leave their Ink (an Ink left
+  with no paths is deleted), and the shapes are created as `shapeDraft` creates them, in the Ink's
+  colour, opacity and width. The selection clears, and one undo brings the strokes back.
+- **When nothing fits:** the bar's notice line says "No shape in the selection" (the same slot as
+  the stamp-orientation notice) and announces it. Nothing is edited.
+- **Morph:** in the task where the page draws the bitmap with the shapes, an overlay covers each new
+  outline with a page-colour band and draws the stroke as it was. The stroke then morphs onto the
+  outline on `smooth`, and the overlay goes once it lands. Reduced motion: no overlay.
+  - Trade-off: for those ~380 ms the band also hides any text pixels the outline crosses.
+- **Frame strips:** `strip-{1440,1180}-make-shape.png`.
+
 ## Left
 
-- A "Make shape" action in the lasso bar for already-drawn strokes (research notes §2).
 - A rounded-rectangle family, and right-angle snapping inside generic triangles.
 - Live dimming of strokes under the eraser while dragging (the fade covers the commit).
 - On a touch device, the chip can be tapped while the pen holds only with a second finger. With one

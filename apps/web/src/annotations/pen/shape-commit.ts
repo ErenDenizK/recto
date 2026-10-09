@@ -59,7 +59,7 @@ export function shapeDraft(
   g: ShapeGeometry,
   frame: PageFrame,
   pageIndex: number,
-  style: ToolStyle,
+  style: Pick<ToolStyle, 'color' | 'opacity' | 'strokeWidth'>,
 ): ShapeDraft {
   const w = style.strokeWidth;
   const base = { pageIndex, color: style.color, opacity: style.opacity, strokeWidth: w };

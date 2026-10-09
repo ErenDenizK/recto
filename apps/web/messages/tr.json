@@ -3181,5 +3181,9 @@
   "ink_shape_polygon": "Çokgen",
   "ink_shape_circle": "Daire",
   "ink_shape_ellipse": "Elips",
-  "ink_shape_next": "{shape}. Sonraki şekil için dokunun"
+  "ink_shape_next": "{shape}. Sonraki şekil için dokunun",
+  "lasso_make_shape": "Şekle dönüştür",
+  "lasso_make_shape_tooltip": "Seçili çizgileri benzedikleri şekillere dönüştür",
+  "lasso_no_shape": "Seçimde şekil bulunamadı",
+  "lasso_history_shapes": "Şekle dönüştürme"
 }
