@@ -5,7 +5,7 @@
   --cell-w: 23px;
   --cell-last: 24px;
   --cell-h: 18px;
-  --grid-r: 10px;
+  --grid-r: var(--radius-control);
 
   display: grid;
   gap: 1px;
@@ -28,7 +28,7 @@
 
 /* The greys stand apart from the hues. */
 .row:first-child {
-  margin-bottom: 3px;
+  margin-bottom: calc(var(--space-1) - 1px);
 }
 
 .cell {
