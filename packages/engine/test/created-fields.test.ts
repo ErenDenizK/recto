@@ -154,9 +154,11 @@ async function assemble(
   return assembler.assemble({ document: doc, sources, blobs: new Map() }, options);
 }
 
+let reopenedFlags: { hasSignatures: boolean; hasAcroForm: boolean } | undefined;
+
 async function reopen(bytes: ArrayBuffer) {
   const id = sid(`created-${++counter}`);
-  await adapter.open(id, bytes.slice(0));
+  reopenedFlags = (await adapter.open(id, bytes.slice(0))).flags;
   return id;
 }
 
@@ -218,10 +220,11 @@ describe('created fields: every kind on a source page and a blank page', () => {
     });
     expect(byName(listed, 'Colours')).toMatchObject({ multiSelect: true, value: ['Red', 'Blue'] });
     expect(byName(listed, 'Submit').readOnly).toBe(true);
-    // An unsigned placeholder: no signer, no date (the adapter pairs every /Sig field with
-    // PDFium's signature list, which counts unsigned fields too, hence an empty object).
-    expect(byName(listed, 'Signature').signature?.signer).toBeUndefined();
-    expect(byName(listed, 'Signature').signature?.date).toBeUndefined();
+    // An unsigned placeholder reads as unsigned after re-open: no signature facts at all (M4-d;
+    // PDFium's signature list counts unsigned /Sig fields too, the adapter drops them).
+    expect(byName(listed, 'Signature').signature).toBeUndefined();
+    // …and the file is not a signed one: no Signed badge, no signature check (M4-d).
+    expect(reopenedFlags).toMatchObject({ hasSignatures: false, hasAcroForm: true });
 
     // Widget rects are the model's.
     const fullName = byName(listed, 'FullName');

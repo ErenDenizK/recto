@@ -9,6 +9,7 @@ import { commands } from 'vitest/browser';
 
 import { PdfiumAdapter } from '../src/pdfium/pdfium-adapter';
 import { signPdf } from '../src/signatures/sign';
+import { validateSignatures } from '../src/signatures/validate';
 import { EngineError, SigningError } from '../src/types';
 import { createSignatureProxy, type SignatureProxy } from '../src/worker/signature-proxy';
 import { sid, wasmUrl } from './helpers';
@@ -145,6 +146,18 @@ describe('listFormFields pairs signatures by /V', () => {
       reason: 'Approved (pdf-editor test fixture)',
     });
     await adapter.close(sid('empty'));
+  });
+
+  test('sig-placeholder.pdf: an unsigned /Sig field alone does not make a signed file (M4-d)', async () => {
+    const opened = await adapter.open(sid('placeholder'), await fixture('sig-placeholder.pdf'));
+    // PDFium lists the field in its signature list; the flag counts signatures only.
+    expect(opened.flags).toMatchObject({ hasSignatures: false, hasAcroForm: true });
+    const fields = await adapter.listFormFields(sid('placeholder'));
+    expect(fields.map((f) => [f.name, f.kind, f.signature])).toEqual([
+      ['Signature', 'signature', undefined],
+    ]);
+    expect(await validateSignatures(await fixture('sig-placeholder.pdf'))).toEqual([]);
+    await adapter.close(sid('placeholder'));
   });
 
   test('signed-twice.pdf: each field gets its own signature', async () => {
