@@ -100,7 +100,6 @@ const Q9_PENDING = [
   'apps/web/src/crop/CropDialog.tsx',
   'apps/web/src/crop/CropDrawBanner.tsx',
   'apps/web/src/export/SaveCopySections.tsx',
-  'apps/web/src/furniture/FurnitureDialogs.tsx',
   'apps/web/src/home/RecentList.tsx',
   'apps/web/src/image-objects/ImageBar.tsx',
   'apps/web/src/image-objects/ImageLayer.tsx',

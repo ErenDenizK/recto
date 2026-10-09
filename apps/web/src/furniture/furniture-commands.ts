@@ -7,7 +7,7 @@ import { getActiveDocument } from '@pdf-editor/document-model';
 import type { CommandRegistry } from '../commands/registry';
 import { m } from '../i18n';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { furnitureName, removeFurnitureFrom, removeLabel } from './FurnitureDialogs';
+import { furnitureName, removeFurnitureFrom, removeLabel } from './FurnitureSheet';
 import { type FurnitureKind, hasFurniture } from './furniture-model';
 import { openFurnitureDialog } from './furniture-store';
 

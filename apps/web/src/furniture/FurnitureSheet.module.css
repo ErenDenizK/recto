@@ -1,0 +1,130 @@
+/*
+ * S11 Page furniture inside the sheet grammar (components/07-sheets.md S11; system-audit-2026-10
+ * §3.6.1): the Sheet primitive draws the panel, groups and footer; this sheet adds the trailing
+ * controls' widths, the 3 × 3 anchor grid, and the Bates documents' rows.
+ */
+
+/* The preview note at the head of the body: footnote, secondary, on the title's line. */
+.intro {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}
+
+/* A trailing number field: four digits and a unit on a fine pointer; on a coarse one it is
+   ui/NumberField's − well + at their own sizes, side by side. */
+.number {
+  width: 120px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .number {
+    width: auto;
+  }
+}
+
+/* A trailing text field (Bates prefix and suffix). */
+.short {
+  width: 120px;
+}
+
+/* The anchor: nine radios laid out as the page, in a solid well at the control radius. */
+.anchors {
+  --anchor-cell: var(--space-5);
+
+  display: grid;
+  grid-template-columns: repeat(3, var(--anchor-cell));
+  grid-template-rows: repeat(3, var(--anchor-cell));
+  gap: var(--space-half);
+  padding: var(--space-1);
+  border-radius: var(--radius-control);
+  background: var(--field-well);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .anchors {
+    --anchor-cell: var(--space-8);
+  }
+}
+
+.anchor {
+  composes: focus-inset from global;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-xs);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.anchor::after {
+  content: '';
+  width: var(--space-1h);
+  height: var(--space-1h);
+  border-radius: var(--radius-capsule);
+  background: var(--text-tertiary);
+  transition:
+    width var(--duration-fast) var(--ease-out),
+    height var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .anchor:hover {
+    background: var(--surface-hover);
+  }
+}
+
+/* The chosen anchor: the on-state fill, larger (neutral, like every on-state). */
+.anchor[data-checked]::after {
+  width: var(--space-2);
+  height: var(--space-2);
+  background: var(--control-on);
+}
+
+.tokens {
+  composes: technical from global;
+  overflow-wrap: anywhere;
+}
+
+.sample {
+  composes: technical from global;
+}
+
+/* A Bates document: its tag, title and pages, on one line. */
+.doc {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.tag {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-capsule);
+  background: var(--tag-color, var(--text-tertiary));
+}
+
+.docTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docMeta {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .anchor[data-checked]::after {
+    background: Highlight;
+  }
+}
