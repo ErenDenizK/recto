@@ -7,7 +7,7 @@
 import type { ScaleKind } from './css-scale';
 
 export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, number>>>> = {
-  'annotations/AnnotationLayer.module.css': { radius: 1, icon: 2, stroke: 5 },
+  'annotations/AnnotationLayer.module.css': { radius: 1, stroke: 5 },
   'annotations/AnnotationProperties.module.css': { weight: 1 },
   'annotations/lasso/Lasso.module.css': { radius: 1, duration: 1, stroke: 5 },
   'annotations/pen/PenWell.module.css': { radius: 2 },
@@ -43,7 +43,6 @@ export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, 
   'shell/CommentsPanel.module.css': { icon: 2 },
   'shell/FormsPanel.module.css': { icon: 8 },
   'shell/OutlinePanel.module.css': { icon: 2 },
-  'shell/frame/Dock.module.css': { spacing: 1 },
   'shell/frame/SaveButton.module.css': { duration: 4, spacing: 1 },
   'shell/frame/TopStrip.module.css': { stroke: 1 },
   'shell/panels/RedactionsPanel.module.css': { icon: 2 },
