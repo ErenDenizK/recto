@@ -222,6 +222,8 @@ export function movePagesToDocument(documentId: DocumentId): boolean {
   const pageIds = targetPages();
   if (doc === undefined || pageIds.length === 0) return false;
   const from = findPageLocation(ws, pageIds[0] as PageId)?.document;
+  // The pages on screen fly to the target's tab, as Extract's do (grid/cell-motion.ts).
+  const shots = from !== documentId ? snapshotSheets(pageIds) : [];
   const moved =
     transferPages({
       pageIds,
@@ -230,6 +232,7 @@ export function movePagesToDocument(documentId: DocumentId): boolean {
     }) !== undefined;
   // A move to another document gets the Undo toast (06.24); a move within one is announced.
   if (moved && from !== undefined && from !== documentId) {
+    flyToTab(shots, documentId);
     toast.undo(m.grid_moved_to_toast({ count: pageIds.length, title: doc.title }), {
       documentId,
       spoken: false,

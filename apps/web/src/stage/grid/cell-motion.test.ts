@@ -10,7 +10,7 @@ import { CASCADE_MS, cascadeIn, cascadeOut, rippleSelection, shrinkOut } from '.
 import { playCells } from './flip-cells';
 import { MAX_TILT_DEG, tiltFor } from './lift';
 import { MAKE_WAY_PX, neighbours } from './make-way';
-import { spinSheet, turnBetween } from './rotate-motion';
+import { runningSpin, spinSheet, spinState, turnBetween } from './rotate-motion';
 
 const id = (n: number) => `p${n}` as PageId;
 const DOC = 'd1' as DocumentId;
@@ -106,12 +106,26 @@ describe('leaving and landing', () => {
     expect(root.querySelector('[data-page-ghost]')).toBeNull();
   });
 
-  it('grows in a page the workspace did not know, and leaves the others still', () => {
+  it('grows in a page that is new or back from another document, and leaves the others still', () => {
     const root = grid(3);
-    playCells(root, new Map(), new Set([id(0), id(1)]));
+    for (const cell of root.querySelectorAll<HTMLElement>('[role="gridcell"]')) {
+      cell.dataset.documentId = DOC;
+    }
+    // p2 is new; p1 comes back from another document (an undo of Move to); p0 stayed.
+    playCells(
+      root,
+      new Map(),
+      new Map([
+        [id(0), DOC],
+        [id(1), 'd2'],
+      ]),
+    );
     const grown = root.querySelector('[data-page-id="p2"] .box')?.getAnimations() ?? [];
     expect(grown.length).toBeGreaterThan(0);
-    expect(root.querySelector('[data-page-id="p1"] .box')?.getAnimations()).toHaveLength(0);
+    expect(root.querySelector('[data-page-id="p1"] .box')?.getAnimations().length).toBeGreaterThan(
+      0,
+    );
+    expect(root.querySelector('[data-page-id="p0"] .box')?.getAnimations()).toHaveLength(0);
   });
 });
 
@@ -172,6 +186,28 @@ describe('rotate', () => {
     expect(String(first?.transform)).toContain('rotate(-90deg)');
     await spin?.finished;
     expect(sheet.style.transform).toBe('');
+    expect(sheet.getAnimations()).toHaveLength(0);
+  });
+
+  it("carries the turn's velocity through a second rotate", async () => {
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'width: 120px; height: 90px;';
+    document.body.append(sheet);
+    spinSheet(sheet, 90, { width: 90, height: 120 });
+    const first = runningSpin(sheet);
+    if (!first) throw new Error('no spin');
+    first.anim.pause();
+    first.anim.currentTime = 80;
+    const [angle, speed] = spinState(first);
+    expect(speed).toBeGreaterThan(0);
+    // Turned again: the layout swaps back, and the turn goes on from there at the same speed.
+    sheet.style.cssText = 'width: 90px; height: 120px;';
+    spinSheet(sheet, 90, { width: 120, height: 90 });
+    const second = runningSpin(sheet);
+    expect(second?.angle[0]).toBeCloseTo(angle - 90, 5);
+    expect(second?.angle[1]).toBeCloseTo(speed, 5);
+    expect(first.anim.playState).toBe('idle');
+    await second?.anim.finished;
     expect(sheet.getAnimations()).toHaveLength(0);
   });
 });
