@@ -217,7 +217,11 @@ function noisePage(width: number, height: number, seed: number): OcrRaster {
 
 describe('time budget, blank pages, cancellation and the pool', () => {
   test('a noisy page times out, its recognizer is replaced and the next page works', async () => {
-    const quick = createOcrRecognizer({ baseUrl: OCR_BASE, poolSize: 1, pageTimeoutMs: 1500 });
+    // The budget must hold a real page on a cold recognizer: WebKit's first page on a fresh
+    // worker took over 1.5 s on CI where a warm one takes 0.5 s. The noise page runs for well
+    // over 15 s on Chromium, so 4 s still times it out.
+    const budgetMs = 4000;
+    const quick = createOcrRecognizer({ baseUrl: OCR_BASE, poolSize: 1, pageTimeoutMs: budgetMs });
     try {
       await quick.ensureLanguages(['eng']);
       expect(quick.alive).toBe(1);
@@ -227,7 +231,7 @@ describe('time budget, blank pages, cancellation and the pool', () => {
       expect(noisy.timedOut).toBe(true);
       expect(noisy.quality).toBe('poor');
       expect(noisy.words).toEqual([]);
-      expect(elapsed).toBeLessThan(4000);
+      expect(elapsed).toBeLessThan(budgetMs + 2500);
       expect(quick.alive).toBe(0);
       // A real page on a fresh recognizer.
       const id = sid('budget-scan');
@@ -237,7 +241,7 @@ describe('time budget, blank pages, cancellation and the pool', () => {
       const page = await quick.recognize(raster, 0, ['eng']);
       expect(page.timedOut).toBeUndefined();
       expect(page.quality).toBe('good');
-      numbers.timeout = { budgetMs: 1500, elapsedMs: Math.round(elapsed) };
+      numbers.timeout = { budgetMs, elapsedMs: Math.round(elapsed) };
     } finally {
       await quick.dispose();
     }

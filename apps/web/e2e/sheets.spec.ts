@@ -277,12 +277,14 @@ test.describe('the gallery', () => {
         expect(box?.width).toBe(width);
         if (presentation === 'side') {
           // A side sheet slides in: its resting gap to the window's edge, not a frame of the slide.
+          // The gap is --piece-inset, the one margin every floating piece keeps (system audit
+          // §3.1, I-15).
           await expect
             .poll(async () => {
               const now = await sheet.boundingBox();
               return cls.size.width - ((now?.x ?? 0) + (now?.width ?? 0));
             })
-            .toBe(8);
+            .toBe(16);
         }
         if (kind === 'tool' && presentation === 'bottom') {
           // Opens at the 40 % detent; the page stays live above it.
@@ -530,10 +532,19 @@ test.describe('the gallery', () => {
     test('focus: trapped in a modal sheet, back to the opener on close', async ({ page }) => {
       await gallery(page);
       const opener = page.getByRole('button', { name: 'Open task', exact: true });
-      await opener.click();
       const sheet = panel(page, 'task');
+      const field = sheet.getByRole('textbox', { name: 'Format' });
+      // Opened by a pointer, the panel takes focus, not the field (system audit §3.8, I-46).
+      await opener.click();
       await expect(sheet).toBeVisible();
-      await expect(sheet.getByRole('textbox', { name: 'Format' })).toBeFocused();
+      await expect(sheet).toBeFocused();
+      await expect(field).not.toBeFocused();
+      await closeWithEscape(page, 'task');
+      await expect(opener).toBeFocused();
+      // Opened from the keyboard, the first field takes it, ready to type (§2.6).
+      await opener.press('Enter');
+      await expect(sheet).toBeVisible();
+      await expect(field).toBeFocused();
       for (let i = 0; i < 12; i++) {
         await page.keyboard.press('Tab');
         // At the wrap Tab lands on the trap's focus guard, which hands focus back inside a
@@ -647,11 +658,12 @@ test.describe('the ports in the app', () => {
     page,
   }, info) => {
     await page.goto('./?lang=en');
+    // Opened from the keyboard, the prompt starts in its field, ready to type; after a pointer
+    // the prompt itself would take focus (system audit §3.8, I-46).
     const chooser = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: /^Open files/ })
-      .first()
-      .click();
+    const openFiles = page.getByRole('button', { name: /^Open files/ }).first();
+    await openFiles.focus();
+    await openFiles.press('Enter');
     await (await chooser).setFiles(fixturePath('encrypted-aes-128.pdf'));
     const prompt = page.getByRole('alertdialog', { name: 'Password required' });
     await expect(prompt).toBeVisible();

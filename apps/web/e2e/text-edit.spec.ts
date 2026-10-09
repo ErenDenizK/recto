@@ -236,13 +236,17 @@ test('keyboard: the focus returns to the paragraph after Esc and after a commit'
   // Esc commits; the line is new runs and a new paragraph, the focus goes to its target.
   await page.keyboard.press('Escape');
   await expect(editor).toHaveCount(0, { timeout: 20_000 });
-  await inHistory(page, (list) =>
-    expect(historyStep(list, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 }),
-  );
+  // The new target exists only once the engine has re-read the line, so the focus lands on it
+  // after the editor leaves: wait for it before the history list borrows the focus (`inHistory`
+  // hands back the element that had it when the list opened).
   const focused = page.locator('[data-text-edit-layer="0"] [data-text-paragraph]:focus');
   await expect(focused).toHaveAttribute('aria-label', /^Edit paragraph “The quick brown fox/, {
     timeout: 20_000,
   });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 }),
+  );
+  await expect(focused).toHaveAttribute('aria-label', /^Edit paragraph “The quick brown fox/);
   const focusedBox = await focused.boundingBox();
   expect(Math.abs((focusedBox?.y ?? 0) - lineBox.y)).toBeLessThan(2);
   expect(Math.abs((focusedBox?.x ?? 0) - lineBox.x)).toBeLessThan(2);
