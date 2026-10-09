@@ -1,0 +1,24 @@
+/*
+ * The copy pulse (copy-pulse.ts; motion-2026-10 viewer.md §5): a wash of the page's selection
+ * blue over each copied line, above the text layer and under nothing that takes the pointer.
+ */
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.line {
+  position: absolute;
+  border-radius: var(--radius-page);
+  background: var(--select-wash-strong);
+  box-shadow: 0 0 0 2px var(--select-muted);
+}
+
+@media (forced-colors: active) {
+  .line {
+    outline: 2px solid Highlight;
+  }
+}

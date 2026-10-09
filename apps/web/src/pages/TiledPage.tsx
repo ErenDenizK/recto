@@ -23,6 +23,7 @@ import {
 import { useShowingOriginal } from '../shell/frame/see-original';
 import { displayedSize, displayRectToUser, type PageFrame } from '../viewer/geometry';
 import styles from './PageCanvas.module.css';
+import { fadeIn } from './paint-fade';
 
 /** Tile edge in device pixels. */
 export const TILE_PX = 1024;
@@ -242,10 +243,13 @@ function TileCanvas({
         if (!result.ok || controller.signal.aborted) return;
         const { bitmap } = result.value;
         if (bitmap.width === 0) return;
+        const fresh = canvas.dataset.state !== 'rendered';
         canvas.width = bitmap.width;
         canvas.height = bitmap.height;
         canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
         canvas.dataset.state = 'rendered';
+        // A new tile fades in over the capped bitmap (motion-2026-10 viewer.md §3).
+        if (fresh) fadeIn(canvas);
       });
     return () => controller.abort();
   }, [

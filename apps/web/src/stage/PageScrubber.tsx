@@ -135,7 +135,8 @@ function Scrubber({
 
   const jump = (index: number) => {
     const page = doc.pages[Math.min(total - 1, Math.max(0, index))];
-    if (page) scrollToPage(page.id);
+    // A drag follows the thumb 1:1; its keys step (motion-2026-10 viewer.md §1).
+    if (page) scrollToPage(page.id, { motion: dragRef.current ? 'instant' : 'step' });
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {

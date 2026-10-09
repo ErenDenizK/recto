@@ -547,6 +547,8 @@ describe('the Edit policy (mounted)', () => {
     window.dispatchEvent(
       pointer('pointermove', { x: at.x, y: at.y - 120 }, { pointerType: 'mouse', buttons: 1 }),
     );
+    // Held still before the release: no momentum (a fling would coast on, viewer.md §2).
+    await new Promise((resolve) => setTimeout(resolve, 80));
     window.dispatchEvent(
       pointer('pointerup', { x: at.x, y: at.y - 120 }, { pointerType: 'mouse' }),
     );

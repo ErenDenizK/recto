@@ -17,6 +17,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { page, userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
+import { settled } from '../../test/settled';
 import { enterEditMode, fixtureFile } from '../../test/store-harness';
 import { registerAppCommands } from '../commands/app-commands';
 import { useShortcuts } from '../commands/use-shortcuts';
@@ -87,7 +88,9 @@ async function selectSomeText(container: HTMLElement): Promise<void> {
   window.getSelection()?.addRange(range);
 }
 
-const selectionBar = () => screen.findByRole('toolbar', { name: 'Selected text' });
+// The bar emerges from the selection (motion-2026-10 viewer.md §5): asked once at rest.
+const selectionBar = async () =>
+  settled(await screen.findByRole('toolbar', { name: 'Selected text' }));
 
 describe('the text selection bar', () => {
   let disposeCommands: () => void = () => undefined;

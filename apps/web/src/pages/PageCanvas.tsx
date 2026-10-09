@@ -40,6 +40,9 @@
  *   (until the burst closes or idle time comes with no pointer down). Thumbnails and the
  *   other pages wait while a pen is down (`whenPenUp`).
  *
+ * Bitmaps arrive without a cut (`paint-fade.ts`, motion-2026-10 viewer.md §3): the first one
+ * fades in over the white sheet, and a sharper one cross-fades over a zoom's stretched preview.
+ *
  * The canvas exposes `data-state`: placeholder | preview | rendered | error ("rendered"
  * only while it shows a bitmap at the requested scale; a stretched one is a "preview") and
  * `data-bucket`: the scale of the bitmap it shows.
@@ -64,6 +67,7 @@ import {
 } from '../viewer/read-controller';
 import { duration, EASE } from '../motion/tokens';
 import styles from './PageCanvas.module.css';
+import { crossFadeFrom, fadeIn } from './paint-fade';
 
 /** A thumbnail's repaint after an edit waits for idle time at most this long (ms). */
 export const IDLE_REPAINT_TIMEOUT_MS = 1000;
@@ -336,8 +340,26 @@ export function PageCanvas({
         .then((result) => {
           if (cancelled) return;
           if (result.ok) {
+            // Arrival (motion-2026-10 viewer.md §3): content fades in over the bare sheet, and
+            // a sharper render cross-fades over the stretched preview of a zoom; new content
+            // (fresh ink) swaps in the same frame for the dry ink hand-over. Hide markup
+            // cross-fades the whole page (frame.md §8).
+            const was = canvas.dataset.state;
             const paint = () => draw(canvas, result.value, 'rendered');
-            if (fade ? crossFade(canvas, paint) : paint()) painted(result.value);
+            if (fade) {
+              if (crossFade(canvas, paint)) painted(result.value);
+            } else {
+              const sharpening =
+                was === 'preview' &&
+                !revised &&
+                !bareChanged &&
+                canvas.dataset.bucket !== String(result.value.bucket);
+              const ghost = sharpening ? crossFadeFrom(canvas) : undefined;
+              if (paint()) {
+                painted(result.value);
+                if (was === 'placeholder') fadeIn(canvas);
+              } else ghost?.cancel();
+            }
           } else if (result.error.code !== 'aborted' && canvas.dataset.state === 'placeholder') {
             canvas.dataset.state = 'error';
           }
