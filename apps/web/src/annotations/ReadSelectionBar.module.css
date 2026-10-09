@@ -12,10 +12,10 @@
   position: absolute;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-half);
   /* A capsule of --bar-h around --control-h actions (quality-bar Q-9): one piece, 40 / 48 px (G1). */
   height: var(--bar-h);
-  padding: calc((var(--bar-h) - var(--control-h) - 2px) / 2);
+  padding: var(--piece-pad);
   border-radius: var(--radius-capsule);
   color: var(--text-primary);
   font-size: var(--type-footnote);
@@ -25,15 +25,11 @@
   cursor: default;
 }
 
-.action {
-  composes: btn btn-quiet from global;
-}
-
 /* Between the markups and Comment in Edit. */
 .divider {
   flex: none;
   width: 1px;
   height: 20px;
-  margin: 0 2px;
+  margin: 0 var(--space-half);
   background: var(--border-hairline);
 }

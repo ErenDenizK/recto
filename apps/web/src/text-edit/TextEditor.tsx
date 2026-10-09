@@ -44,6 +44,7 @@ import {
   singleLine,
   wordAt,
 } from './model';
+import { Button } from '../ui/Button';
 import { Icon, type IconName } from '../ui/Icon';
 import styles from './TextEdit.module.css';
 import { runAnalysis, type TextEditSession, useTextEditStore } from './text-edit-store';
@@ -358,12 +359,12 @@ export function TextEditor({
           >
             <p className={styles.fitText}>{fitSummary(fitState)}</p>
             <div className={styles.fitChoices}>
-              <button
-                type="button"
+              <Button
+                size="sm"
                 className={styles.choice}
                 aria-pressed={resolved === 'shrink'}
                 disabled={!fitState.canShrink || busy}
-                title={
+                reason={
                   fitState.canShrink
                     ? undefined
                     : m.text_edit_fit_shrink_floor({ percent: formatPercent(fitState.shrink) })
@@ -372,9 +373,9 @@ export function TextEditor({
                 onClick={() => choose('shrink')}
               >
                 {m.text_edit_fit_shrink({ percent: formatPercent(fitState.shrink) })}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                size="sm"
                 className={styles.choice}
                 aria-pressed={resolved === 'overflow'}
                 disabled={busy}
@@ -382,7 +383,7 @@ export function TextEditor({
                 onClick={() => choose('overflow')}
               >
                 {m.text_edit_fit_overflow()}
-              </button>
+              </Button>
             </div>
           </div>
         ) : null}

@@ -45,6 +45,7 @@ import { cssPointToUser, type PageFrame, rectToCss } from '../annotations/geomet
 import { penSession } from '../annotations/pen/ink-input';
 import { m } from '../i18n';
 import type { PageOverlayProps } from '../stage/page-overlays';
+import { PageTarget as OnPage } from '../ui/PageTarget';
 import { Tooltip } from '../ui/Tooltip';
 import { HIT_LAYER_Z } from '../viewer/hit-order';
 import { useCanChangeActive } from '../viewer/input-state';
@@ -344,8 +345,7 @@ function ParagraphTargetButton({
   const width = Math.max(box.width + 2 * HIT_PADDING, MIN_TARGET_PX);
   const height = Math.max(box.height + 2 * HIT_PADDING, MIN_TARGET_PX);
   return (
-    <button
-      type="button"
+    <OnPage
       className={styles.paragraph}
       data-text-paragraph={index}
       aria-label={paragraphTargetLabel(block)}
@@ -457,8 +457,7 @@ function RunTarget({
   }
 
   return (
-    <button
-      type="button"
+    <OnPage
       className={styles.run}
       data-editable=""
       data-editing={editing || undefined}

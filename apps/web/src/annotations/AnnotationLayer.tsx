@@ -966,7 +966,9 @@ function SelectionOutline({
   const showHandles = single && !locked && gesture === null;
   const isLine = a.kind === 'line' && a.vertices?.length === 2;
   return (
-    <g className={styles.selection} data-selected-annotation={a.id}>
+    // The selection's marks (outline, handles, ghost) share one 1.5 px line, an on-page mark's
+    // weight (05-canvas §5), set here so its children inherit it.
+    <g className={styles.selection} strokeWidth={1.5} data-selected-annotation={a.id}>
       {isTextMarkup(shown) && 'quads' in shown ? (
         shown.quads.map((q, i) => {
           const b = rectToCss(frame, q);
@@ -1132,7 +1134,7 @@ function DrawPreview({
           width={b.width}
           height={b.height}
           stroke={g.tool === 'rectangle' ? stroke : undefined}
-          strokeWidth={g.tool === 'rectangle' ? width : undefined}
+          strokeWidth={g.tool === 'rectangle' ? width : 1}
           data-testid="annotation-preview"
           {...marker}
         />
