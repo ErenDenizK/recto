@@ -39,17 +39,17 @@
   display: grid;
   place-items: center;
   border: 1px dashed var(--accent-line);
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-md);
   pointer-events: none;
 }
 
 .dropLabel {
   padding: 6px var(--space-3);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   background: var(--surface-on);
   color: var(--text-primary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
 }
 
 .table {
@@ -67,7 +67,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-md);
 }
 
 /* A headed section clips its sticky header's canvas fill (`.header::before`); the margin keeps
@@ -82,7 +82,7 @@
   position: absolute;
   inset: 0 var(--space-3);
   border: 1px dashed var(--select);
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-md);
   background: var(--select-subtle);
   pointer-events: none;
 }
@@ -126,7 +126,7 @@
   flex: none;
   width: 24px;
   height: 24px;
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   color: var(--text-secondary);
 }
 
@@ -189,7 +189,7 @@
 .sectionTag {
   width: 8px;
   height: 8px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--tag-color);
 }
 
@@ -204,7 +204,7 @@
 .badge {
   height: 20px;
   padding: 0 8px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--surface-active);
   color: var(--text-secondary);
   font-size: var(--type-caption);
@@ -218,7 +218,7 @@
 
 .titleEditor {
   flex: 0 1 320px;
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   font-weight: 600;
 }
 
@@ -245,9 +245,9 @@
   margin: 0 var(--space-8);
   height: calc(100% - var(--space-4));
   border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 /* A cell has its own selection ring around the thumbnail, so its focus ring takes the gap form
@@ -259,7 +259,7 @@
   justify-items: center;
   align-content: start;
   min-width: 0;
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
 }
 
 .cell[data-dragging] {
@@ -339,7 +339,7 @@
   content: '';
   position: absolute;
   inset: -7.5px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
 }
 
 .table[data-selecting] .check,
@@ -386,7 +386,7 @@
   height: 28px;
   padding-top: 8px;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .cell[aria-selected='true'] .meta,
@@ -460,7 +460,7 @@
   left: -6px;
   width: 14px;
   height: 14px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--select);
   color: var(--select-ink);
   font-size: 12px;

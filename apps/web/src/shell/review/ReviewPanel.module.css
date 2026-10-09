@@ -10,7 +10,7 @@
    narrower than the row scrolls it sideways, the scrollbar hidden. The block padding keeps a
    coarse chip's 44 px hit area inside the scroller. */
 .chips {
-  --chips-bleed: max(0px, calc((var(--hit-min) - var(--chip-h)) / 2));
+  --chips-bleed: max(0px, calc((var(--hit-min) - var(--control-h-sm)) / 2));
 
   flex: none;
   flex-wrap: nowrap;

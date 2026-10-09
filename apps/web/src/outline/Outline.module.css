@@ -29,9 +29,9 @@
   padding: var(--space-2);
   /* Honesty notice: the one recipe, a warning hairline and no fill (design audit J4, D14). */
   border: 1px solid var(--warning-line);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   line-height: 18px;
 }
 
@@ -60,11 +60,11 @@
   height: 24px;
   padding: 0 var(--space-1);
   border: 1px solid var(--control-border);
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   background: var(--surface-raised);
   color: var(--text-primary);
   font: inherit;
-  font-size: var(--text-md);
+  font-size: var(--type-body);
 }
 
 .renameInput:focus-visible {
@@ -84,9 +84,9 @@
   max-width: 240px;
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   background: var(--surface-on);
   color: var(--danger);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   white-space: normal;
 }

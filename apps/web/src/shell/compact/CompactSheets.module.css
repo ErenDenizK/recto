@@ -27,7 +27,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   touch-action: manipulation;
 }
 
@@ -84,7 +84,7 @@
   width: 100%;
   min-height: 48px;
   padding: 8px 12px;
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   color: var(--text-primary);
   text-align: start;
   text-decoration: none;
@@ -163,7 +163,7 @@ a.contentsRow:active {
   height: 44px;
   padding: 0 16px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--surface-hover);
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
@@ -271,7 +271,7 @@ a.contentsRow:active {
   gap: 8px;
   min-height: 44px;
   padding: 0 8px;
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   color: var(--text-primary);
   font-size: 0.9375rem;
   text-decoration: none;

@@ -18,7 +18,7 @@
   background: var(--mb-fill);
   color: var(--text-primary);
   font: inherit;
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   font-weight: 500;
   line-height: 18px;
   white-space: nowrap;

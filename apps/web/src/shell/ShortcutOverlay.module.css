@@ -27,7 +27,7 @@
   width: min(760px, calc(100vw - 32px));
   max-height: min(640px, calc(100vh - 64px));
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-md);
   background: var(--surface-frame);
   transform: translate(-50%, -50%);
   outline: none;
@@ -54,7 +54,7 @@
 }
 
 .title {
-  font-size: var(--text-lg);
+  font-size: var(--type-callout);
   font-weight: 500;
   letter-spacing: var(--tracking-display);
 }
@@ -64,7 +64,7 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
 }
 

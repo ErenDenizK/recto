@@ -16,8 +16,8 @@
  *
  * Inside §1, three layers (09 §25): layer 1 holds the raw ramps (`--n1…--n12`, `--lime-*`,
  * `--aurora-*`, the `-rgb` channel triplets), which only this file reads; layer 2 the semantic
- * roles every module paints with; layer 3 the control block of `ui/`. The aliases at the end of
- * §1 and §3 keep the M8 names working until migration step 11 (09 §32).
+ * roles every module paints with; layer 3 the control block of `ui/`. The M8 aliases left at
+ * migration step 11 (09 §32; `tools/dev/token-aliases.js` maps each old name to its token).
  *
  * The colour language (ADR-0023, D3-2): four roles that never mix. *Interaction* is one lime,
  * `#c8fb3d`, always touching ink, and at rest only on the armed tool or the one primary action
@@ -338,17 +338,6 @@
   --track-caption: 0.015em;
   --track-footnote: 0.01em;
   --track-body: 0.005em;
-
-  /* Aliases (09-primitives §25 block 8), deleted at migration step 11: the M8 colour names keep
-     working while modules move to the semantic ones. The M8 glass names (`--glass`,
-     `--glass-frame*`, `--glass-menu`, the σ-carrying filters, `--elevation-float`) left with the
-     `.glass*` classes when `materials.css` took over (D3-3, migration step 6). */
-  --surface-0: var(--canvas);
-  --surface-1: var(--surface-frame);
-  --surface-2: var(--surface-raised);
-  --surface-3: var(--surface-on);
-  --accent-highlight: var(--select-wash);
-  --accent-highlight-strong: var(--select-wash-strong);
 }
 
 /* ── §2 Light theme ────────────────────────────────────────────────────────────────────────
@@ -616,14 +605,6 @@
   --track-caption: 0.01em;
   --track-footnote: 0.005em;
   --track-body: 0em;
-
-  /* Aliases, deleted at migration step 11. */
-  --surface-0: var(--canvas);
-  --surface-1: var(--surface-frame);
-  --surface-2: var(--surface-raised);
-  --surface-3: var(--surface-on);
-  --accent-highlight: var(--select-wash);
-  --accent-highlight-strong: var(--select-wash-strong);
 }
 
 @media (prefers-color-scheme: light) {
@@ -883,14 +864,6 @@
     --track-caption: 0.01em;
     --track-footnote: 0.005em;
     --track-body: 0em;
-
-    /* Aliases, deleted at migration step 11. */
-    --surface-0: var(--canvas);
-    --surface-1: var(--surface-frame);
-    --surface-2: var(--surface-raised);
-    --surface-3: var(--surface-on);
-    --accent-highlight: var(--select-wash);
-    --accent-highlight-strong: var(--select-wash-strong);
   }
 }
 
@@ -913,9 +886,8 @@
      line height and tracking per step; caption, footnote and body track per theme (T-6: light
      text on dark needs +0.005 em more at 13 px and under), so those three are in §1 and §2.
      At most three sizes per surface, weight before size (X-3); nothing under --type-caption
-     on glass (Q-8). Today's four sizes are its first four steps, so the old names alias them;
-     the --track-* steps are for the rebuilt surfaces (D2), so the M8 text keeps --tracking-ui
-     until then. */
+     on glass (Q-8). The --track-* steps are for the rebuilt surfaces (D2), so the M8 text keeps
+     --tracking-ui until then. */
   --type-caption: 11px; /* badges, counts, keycaps; 500 */
   --type-caption-lh: 14px;
   --type-footnote: 12px; /* secondary lines, metadata; section labels at 500 */
@@ -1046,24 +1018,6 @@
 
   /* Motion (language.md §7): the springs, eases, press scales and entrances are motion.css's,
      imported above, with their reduced forms (spec D3-4). */
-
-  /* Aliases (09 §25 block 8), deleted at migration step 11. */
-  --font-sans: var(--font-ui);
-  --text-xs: var(--type-caption);
-  --text-sm: var(--type-footnote);
-  --text-md: var(--type-body);
-  --text-lg: var(--type-callout);
-  --radius-1: var(--radius-xs);
-  --radius-2: var(--radius-sm);
-  --radius-3: var(--radius-md);
-  --radius-round: var(--radius-capsule);
-  --radius-pill: var(--radius-capsule);
-  --icon-chrome: var(--icon-sm);
-  --icon-toolbar: var(--icon-md);
-  /* Retired sizes (system-audit-2026-10 §3.3): the M8 row and the bar button are M, chips S. */
-  --control-height: var(--control-h);
-  --bar-button: var(--control-h);
-  --chip-h: var(--control-h-sm);
 }
 
 /* ── §4 Coarse pointer ─────────────────────────────────────────────────────────────────── */

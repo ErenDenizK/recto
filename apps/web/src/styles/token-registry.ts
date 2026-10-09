@@ -159,19 +159,6 @@ export const CONTROL_TOKENS: readonly string[] = [
 ];
 
 /**
- * §1's aliases (09 §25 block 8), deleted at migration step 11: each M8 name and the token it
- * reads. The M8 glass names left with the `.glass*` classes (D3-3; `materials.css`).
- */
-export const THEME_ALIASES: Readonly<Record<string, string>> = {
-  '--surface-0': '--canvas',
-  '--surface-1': '--surface-frame',
-  '--surface-2': '--surface-raised',
-  '--surface-3': '--surface-on',
-  '--accent-highlight': '--select-wash',
-  '--accent-highlight-strong': '--select-wash-strong',
-};
-
-/**
  * §3: theme-free type, shape, space, metrics, focus offsets and density. Motion is `motion.css`'s,
  * named in `motion/tokens.ts` (`MOTION_TOKENS`) and held to it by `motion.test.ts`.
  */
@@ -231,29 +218,28 @@ export const THEME_FREE_TOKENS: readonly string[] = [
   '--sheet-row-pad',
 ];
 
-/** §3's aliases, deleted at migration step 11. */
-export const THEME_FREE_ALIASES: Readonly<Record<string, string>> = {
-  '--font-sans': '--font-ui',
-  '--text-xs': '--type-caption',
-  '--text-sm': '--type-footnote',
-  '--text-md': '--type-body',
-  '--text-lg': '--type-callout',
-  '--radius-1': '--radius-xs',
-  '--radius-2': '--radius-sm',
-  '--radius-3': '--radius-md',
-  '--radius-round': '--radius-capsule',
-  '--radius-pill': '--radius-capsule',
-  '--icon-chrome': '--icon-sm',
-  '--icon-toolbar': '--icon-md',
-  '--control-height': '--control-h',
-  '--bar-button': '--control-h',
-  '--chip-h': '--control-h-sm',
-};
-
 /** Every name §1 defines; the light blocks (§2, D3-7) define exactly these. */
 export const THEME_TOKENS: readonly string[] = [
   ...RAW_TOKENS,
   ...SEMANTIC_TOKENS,
   ...CONTROL_TOKENS,
-  ...Object.keys(THEME_ALIASES),
+];
+
+/**
+ * The names migration step 11 retired (09 §32; system-audit-2026-10 §3.3, §4): the M8 aliases
+ * and the sizes S, M and L replaced. No module may read or define them again;
+ * `tools/dev/token-aliases.js` rewrites each to its token.
+ */
+export const RETIRED_TOKENS: readonly string[] = [
+  ...steps('--surface-', [0, 1, 2, 3]),
+  '--accent-highlight',
+  '--accent-highlight-strong',
+  '--font-sans',
+  ...steps('--text-', ['xs', 'sm', 'md', 'lg']),
+  ...steps('--radius-', [1, 2, 3, 'round', 'pill']),
+  '--icon-chrome',
+  '--icon-toolbar',
+  '--control-height',
+  '--bar-button',
+  '--chip-h',
 ];

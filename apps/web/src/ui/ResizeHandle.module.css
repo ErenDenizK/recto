@@ -46,7 +46,7 @@
   left: calc(50% - 1px);
   width: 2px;
   height: 24px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--control-border);
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-out);

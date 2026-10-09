@@ -126,7 +126,7 @@
   width: 36px;
   height: 5px;
   margin-top: 6px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--control-border);
 }
 

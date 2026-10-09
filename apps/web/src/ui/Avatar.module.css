@@ -8,7 +8,7 @@
   width: 20px;
   height: 20px;
   overflow: hidden;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--avatar-colour, var(--surface-on));
   color: var(--control-on-ink);
   font-size: var(--type-caption);

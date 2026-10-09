@@ -19,7 +19,7 @@
   border-radius: 8px;
   background: var(--surface-raised, var(--surface-on));
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-weight: 500;
   line-height: 16px;
   transform-origin: var(--transform-origin);

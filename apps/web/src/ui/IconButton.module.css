@@ -1,5 +1,5 @@
 /*
- * IconButton (09-primitives §4; quality-bar Q-9, Q-14): a circle, `bar` at --bar-button with a
+ * IconButton (09-primitives §4; quality-bar Q-9, Q-14): a circle, `bar` at --control-h with a
  * 20 px icon, `row` at 28 px with a 16 px icon and a 44 px hit area on a coarse pointer. Hover
  * and pressed change the fill only; the box never moves except by the press scale.
  */
@@ -10,9 +10,9 @@
   place-items: center;
   flex: none;
   box-sizing: border-box;
-  width: var(--bar-button);
-  height: var(--bar-button);
-  border-radius: var(--radius-pill);
+  width: var(--control-h);
+  height: var(--control-h);
+  border-radius: var(--radius-capsule);
   color: var(--text-secondary);
   -webkit-tap-highlight-color: transparent;
   transition:

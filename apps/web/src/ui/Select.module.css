@@ -28,7 +28,7 @@
   background: var(--sel-fill);
   color: var(--text-primary);
   font: inherit;
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   font-variant-numeric: tabular-nums;
   line-height: 18px;
   text-align: start;
@@ -146,7 +146,7 @@
   content: '';
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: currentColor;
 }
 

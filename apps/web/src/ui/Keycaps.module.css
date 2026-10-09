@@ -13,11 +13,11 @@
   height: 18px;
   padding: 0 5px;
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   background: var(--surface-raised);
   color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font-family: var(--font-ui);
+  font-size: var(--type-caption);
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0;

@@ -108,7 +108,7 @@ describe('pen well', () => {
       'false',
       'false',
     ]);
-    // Each is one --bar-button target (32 px fine; Q-9).
+    // Each is one --control-h target (32 px fine; Q-9).
     expect(cells().map((c) => Math.round(c.getBoundingClientRect().height))).toEqual([
       32, 32, 32, 32,
     ]);
@@ -278,7 +278,7 @@ describe('pen well', () => {
       const dimmed = rgb(token(backdrop)).map((c) => c * brightness) as unknown as Rgb;
       return overRgb(rgb(glass), tintAlpha, dimmed);
     };
-    const fills = { page: fill('--page-background'), canvas: fill('--surface-0') };
+    const fills = { page: fill('--page-background'), canvas: fill('--canvas') };
     const ring = rgb(token('--glass-text-secondary'));
 
     const inks: PenPreset[] = [

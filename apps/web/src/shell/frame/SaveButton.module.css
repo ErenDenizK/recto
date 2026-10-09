@@ -7,7 +7,7 @@
   position: relative;
   display: inline-flex;
   flex: none;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
 }
 
 /* "Saved" reads as finished, not unavailable: the secondary label, not the disabled one. */

@@ -31,9 +31,8 @@ import {
   GLASS_TIERS,
   type GlassTier,
   RAW_TOKENS,
+  RETIRED_TOKENS,
   SEMANTIC_TOKENS,
-  THEME_ALIASES,
-  THEME_FREE_ALIASES,
   THEME_FREE_TOKENS,
   THEME_TOKENS,
 } from './token-registry';
@@ -276,10 +275,8 @@ describe('tokens.css', () => {
   describe('the registry: seven blocks, three layers, aliases (09 §25, language.md §10.1)', () => {
     it('defines exactly the registered names in §1 and §3', () => {
       expect([...theme.keys()].sort()).toEqual([...THEME_TOKENS].sort());
-      expect([...free.keys()].sort()).toEqual(
-        [...THEME_FREE_TOKENS, ...Object.keys(THEME_FREE_ALIASES)].sort(),
-      );
-      const all = [...THEME_TOKENS, ...THEME_FREE_TOKENS, ...Object.keys(THEME_FREE_ALIASES)];
+      expect([...free.keys()].sort()).toEqual([...THEME_FREE_TOKENS].sort());
+      const all = [...THEME_TOKENS, ...THEME_FREE_TOKENS];
       expect(new Set(all).size, 'a name registered twice').toBe(all.length);
       // Every role modules paint with resolves to a value at rest.
       for (const name of [...SEMANTIC_TOKENS, ...CONTROL_TOKENS]) {
@@ -301,15 +298,20 @@ describe('tokens.css', () => {
       expect([...order].sort((a, b) => a - b)).toEqual(order);
     });
 
-    it('points every alias at its semantic name', () => {
-      for (const [alias, target] of Object.entries({ ...THEME_ALIASES, ...THEME_FREE_ALIASES })) {
-        expect(root.get(alias), alias).toContain(`var(${target})`);
+    it('retires the M8 aliases and the old sizes (migration step 11; system-audit-2026-10 §4)', () => {
+      const sources = import.meta.glob<string>(
+        ['../**/*.{css,ts,tsx}', '../../test/harness/**/*.{css,tsx}', '!../**/*.test.{ts,tsx}'],
+        { query: '?raw', import: 'default', eager: true },
+      );
+      const retired = new RegExp(`(?<![\\w-])(${RETIRED_TOKENS.map(escape).join('|')})(?![\\w-])`);
+      for (const name of RETIRED_TOKENS) expect(root.has(name), name).toBe(false);
+      for (const [file, source] of Object.entries(sources)) {
+        if (file.endsWith('/token-registry.ts') || file === './token-registry.ts') continue;
+        expect(
+          retired.exec(stripComments(source))?.[1],
+          `${file} uses a retired name`,
+        ).toBeUndefined();
       }
-      expect(resolve('--surface-0')).toBe(resolve('--canvas'));
-      expect(resolve('--surface-1')).toBe(resolve('--surface-frame'));
-      expect(resolve('--surface-2')).toBe(resolve('--surface-raised'));
-      expect(resolve('--surface-3')).toBe(resolve('--surface-on'));
-      expect(resolve('--radius-2')).toBe('8px');
     });
 
     it('defines every name tokens.css reads', () => {

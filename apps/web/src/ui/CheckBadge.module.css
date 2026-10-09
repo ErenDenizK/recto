@@ -14,7 +14,7 @@
   width: 22px;
   height: 22px;
   border: 1.5px solid var(--check-badge-rim);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--check-badge-scrim);
   color: var(--check-badge-ink);
   box-shadow: var(--check-badge-shadow);

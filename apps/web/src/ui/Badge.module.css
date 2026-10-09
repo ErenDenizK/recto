@@ -11,7 +11,7 @@
   min-width: 16px;
   height: 16px;
   padding: 0 5px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--badge-fill);
   color: var(--text-primary);
   font-size: var(--type-caption);
@@ -34,7 +34,7 @@
 .badge[data-kind='dot'] {
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--text-primary);
 }
 
@@ -42,7 +42,7 @@
   box-sizing: border-box;
   height: 20px;
   padding: 0 8px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--badge-fill);
   color: var(--text-primary);
   font-size: var(--type-caption);
