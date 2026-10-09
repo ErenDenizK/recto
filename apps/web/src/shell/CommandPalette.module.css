@@ -1,15 +1,12 @@
-/* The scrim blurs what it dims (motion-2026-10 frame.md §2): the blur is fixed and the element's
-   opacity fades it in and out, so the filter itself never animates (language.md §2.1 rule 5).
-   No blur on Glass Solid or under reduced transparency, as every material. */
+/* The scrim dims only (language.md G-31: no blur): a blurred scrim would be a fifth
+   backdrop-filter surface over the strip, the capsule, the pill and the palette (quality-bar
+   Q-11). Its opacity fades it in and out (motion-2026-10 frame.md §2). */
 .backdrop {
   position: fixed;
   inset: 0;
   z-index: 40;
   background: var(--scrim);
-  -webkit-backdrop-filter: blur(var(--palette-scrim-blur));
-  backdrop-filter: blur(var(--palette-scrim-blur));
   transition: opacity var(--duration-base) var(--ease-out);
-  --palette-scrim-blur: 6px;
 }
 
 .backdrop[data-starting-style],
@@ -20,18 +17,6 @@
 .backdrop[data-ending-style] {
   transition-duration: var(--duration-fast);
   transition-timing-function: var(--ease-exit);
-}
-
-:root[data-glass='solid'] .backdrop {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .backdrop {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
 }
 
 /* Glass with a solid fallback; the scrim underneath keeps contrast predictable. Centred by its
