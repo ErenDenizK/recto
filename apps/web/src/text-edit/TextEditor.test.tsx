@@ -64,9 +64,14 @@ function renderEditor(
   return { input, unmount };
 }
 
-/** Types `keys` one by one, `gap` ms apart; resolves to the mean time between keystrokes. */
 /** The editor's pause before its dry run (`TextEditor.tsx`, `CHECK_DELAY_MS`). */
 const PAUSE_MS = 300;
+/**
+ * How much shorter than the pause a measured gap may be and still have let the dry run fire:
+ * the editor's timer starts in the effect after the render, not when the event is dispatched,
+ * and a loaded runner stretches that delay differently from key to key (M8-i flaky test).
+ */
+const PAUSE_SLACK_MS = 60;
 
 /**
  * Types `keys` with `gap` ms between them and returns the measured mean gap and how many
@@ -77,7 +82,9 @@ const PAUSE_MS = 300;
  */
 async function typeSlowly(keys: string, gap: number): Promise<{ mean: number; pauses: number }> {
   const times: number[] = [];
-  const seen = (event: Event) => times.push(event.timeStamp);
+  // When the page dispatches the input (not the event's creation time): a loaded runner can
+  // dispatch a key late although the test sent it on time.
+  const seen = () => times.push(performance.now());
   document.addEventListener('input', seen, true);
   let first = true;
   try {
@@ -91,7 +98,7 @@ async function typeSlowly(keys: string, gap: number): Promise<{ mean: number; pa
   }
   const intervals = times.slice(1).map((t, k) => t - (times[k] ?? t));
   const mean = intervals.reduce((sum, t) => sum + t, 0) / Math.max(1, intervals.length);
-  return { mean, pauses: intervals.filter((t) => t >= PAUSE_MS).length };
+  return { mean, pauses: intervals.filter((t) => t >= PAUSE_MS - PAUSE_SLACK_MS).length };
 }
 
 /** Counts the text editor's engine calls (the real ones still run). */

@@ -242,6 +242,15 @@ const EMPTY_FLAGS: SourceFlags = {
   linearized: false,
 };
 
+/**
+ * Whether an entry of PDFium's signature list is a signature. PDFium lists every top-level /Sig
+ * field, signed or not; an unsigned one has an empty /ByteRange and /Contents, and must never
+ * read as signed (M4-d; spec recognize-and-compare §3.3).
+ */
+function isSignedEntry(s: { readonly byteRange: ArrayBuffer; readonly contents: ArrayBuffer }) {
+  return s.byteRange.byteLength > 0 || s.contents.byteLength > 0;
+}
+
 /** Max pages scanned for widgets when the byte heuristic cannot decide (object streams). */
 const WIDGET_SCAN_PAGE_LIMIT = 100;
 
@@ -366,8 +375,10 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
         this.run(engine.getSignatures(doc), options, 'getSignatures'),
         inspection,
       ]);
-      const hasSignatures = signatures.length > 0;
-      let hasAcroForm = heuristics.acroFormToken || hasSignatures;
+      // An unsigned /Sig placeholder does not make a signed file (M4-d).
+      const hasSignatures = signatures.some(isSignedEntry);
+      // Any /Sig field, signed or not, lives in an AcroForm.
+      let hasAcroForm = heuristics.acroFormToken || signatures.length > 0;
       if (!hasAcroForm && heuristics.objectStreams) {
         // /AcroForm may hide in a compressed object stream: ask PDFium about widgets.
         hasAcroForm = await this.hasWidgets(engine, doc, options);
@@ -1180,9 +1191,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
     const engine = await this.engine();
     const entry = this.entry(id);
     const signatures = await this.run(engine.getSignatures(entry.doc), options, 'getSignatures');
-    const signed = signatures.filter(
-      (s) => s.byteRange.byteLength > 0 || s.contents.byteLength > 0,
-    );
+    const signed = signatures.filter(isSignedEntry);
     if (signed.length === 0) return fields;
     // Pair by the parsed /V of each field (spec §3.3), read from PDFium's current bytes.
     const byName = await this.signatureFacts(entry, options);

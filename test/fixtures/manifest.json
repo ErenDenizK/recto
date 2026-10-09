@@ -4759,6 +4759,61 @@
       "derivedFrom": "simple-text.pdf"
     },
     {
+      "file": "sig-placeholder.pdf",
+      "bytes": 3616,
+      "sha256": "b77f3405ffacec2e7515da2b3f8e323c7c1f2449f02970a3a750f389e4bb14d4",
+      "pageCount": 3,
+      "tags": ["signatures", "acroform"],
+      "summary": "simple-text.pdf plus a revision with one unsigned /Sig field, \"Signature\" (visible box, no /V), and /SigFlags 1: a form prepared for signing, never signed.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 3,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792],
+            "markers": ["PAGE 1 OF simple-text"]
+          },
+          {
+            "page": 2,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792],
+            "markers": ["PAGE 2 OF simple-text"]
+          },
+          {
+            "page": 3,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792],
+            "markers": ["PAGE 3 OF simple-text"]
+          }
+        ],
+        "info": {
+          "Title": "Simple text fixture"
+        },
+        "signatures": [
+          {
+            "field": "Signature",
+            "page": 1,
+            "rect": [72, 520, 200, 60],
+            "signed": false,
+            "status": "unsigned"
+          }
+        ],
+        "revisions": {
+          "count": 2,
+          "startxrefs": [2500, 3363],
+          "ends": [2878, 3616]
+        },
+        "xref": "table",
+        "fileIdDeterministic": true
+      },
+      "derivedFrom": "simple-text.pdf"
+    },
+    {
       "file": "signed-dup-object.pdf",
       "bytes": 20910,
       "sha256": "a71a86ada06ab18890dfd3a440a04c69385f17655a6f93ac241a06f954793427",

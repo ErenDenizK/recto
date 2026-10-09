@@ -1362,6 +1362,44 @@ async function buildSignedEmptyField(built: Map<string, Uint8Array>): Promise<Bu
   };
 }
 
+/**
+ * An unsigned /Sig placeholder and nothing else (M4-d): revision 2 adds /AcroForm (/SigFlags 1)
+ * and one visible signature field without /V, as a form prepared for signing elsewhere.
+ */
+async function buildSigPlaceholder(built: Map<string, Uint8Array>): Promise<Built> {
+  const file = 'sig-placeholder.pdf';
+  const base = await baseOf(need(built, 'simple-text.pdf'));
+  const [field, acro] = [base.size, base.size + 1];
+  const rev = appendRevision(
+    base,
+    base.text,
+    [
+      { num: field, body: widget('Signature', base.page, null, '[72 520 272 580]') },
+      { num: acro, body: `<<\n/Fields [${ref(field)}]\n/SigFlags 1\n>>` },
+      { num: base.root, body: withKey(objectBody(base.text, base.root), 'AcroForm', ref(acro)) },
+      {
+        num: base.page,
+        body: withKey(objectBody(base.text, base.page), 'Annots', `[${ref(field)}]`),
+      },
+    ],
+    file,
+    2,
+  );
+  const bytes = bytesOf(rev.text);
+  return {
+    bytes,
+    expect: signedExpect(bytes, [
+      {
+        field: 'Signature',
+        page: 1,
+        rect: box(72, 520, 200, 60),
+        signed: false,
+        status: 'unsigned',
+      },
+    ]),
+  };
+}
+
 /** The /Text note revision 3 of signed-then-modified.pdf adds to page 1. */
 function noteAfterSigning(ap: Approval): string {
   return [
@@ -2223,6 +2261,17 @@ export const M5_FIXTURES: FixtureDef[] = [
     howGenerated: SIGNED_HOW,
     derivedFrom: 'simple-text.pdf',
     build: buildSignedEmptyField,
+  },
+  {
+    file: 'sig-placeholder.pdf',
+    tags: ['signatures', 'acroform'],
+    summary:
+      'simple-text.pdf plus a revision with one unsigned /Sig field, "Signature" (visible box, no /V), and /SigFlags 1: a form prepared for signing, never signed.',
+    behavior:
+      'Unsigned everywhere (M4-d): no signature reports, the source is not flagged as signed, and the field reads "Not signed". PDFium still lists the field in its signature list, with an empty byte range.',
+    howGenerated: 'simple-text.pdf + a hand-written incremental update (m5-fixtures.ts)',
+    derivedFrom: 'simple-text.pdf',
+    build: buildSigPlaceholder,
   },
   {
     file: 'signed-dup-object.pdf',
