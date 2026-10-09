@@ -35,6 +35,7 @@ import {
 import { BUNDLED_FACES } from '../fonts/font-catalog';
 import { dropUnreachable } from '../pdflib/metadata';
 import { FaceCache, type FaceLoader } from './fonts';
+import { PDFLIB_LOAD_TICKS, PDFLIB_SAVE_TICKS } from '../pdflib/ticks';
 
 export interface FinalizeTextEditsOptions {
   /** Remove unreachable objects (default true; the export's GC pass may do it instead). */
@@ -88,7 +89,10 @@ export async function finalizeTextEdits(
   bytes: ArrayBuffer,
   options: FinalizeTextEditsOptions = {},
 ): Promise<FinalizeTextEditsResult> {
-  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  const doc = await PDFDocument.load(bytes, {
+    ...PDFLIB_LOAD_TICKS,
+    updateMetadata: false,
+  });
   const fontsRenamed = await renameUntitledFonts(doc, new FaceCache(options.loadFace));
   const mcidsReassigned = repairMarkedContent(doc, options.pages);
   let unreachableRemoved = 0;
@@ -97,7 +101,7 @@ export async function finalizeTextEdits(
     dropUnreachable(doc);
     unreachableRemoved = before - doc.context.enumerateIndirectObjects().length;
   }
-  const out = await doc.save({ useObjectStreams: false });
+  const out = await doc.save({ ...PDFLIB_SAVE_TICKS, useObjectStreams: false });
   return {
     bytes: out.slice().buffer,
     fontsRenamed,

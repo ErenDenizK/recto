@@ -40,6 +40,7 @@ import {
 } from '@cantoo/pdf-lib';
 
 import type { AnnotationFinalizeRequest } from '../types';
+import { PDFLIB_LOAD_TICKS, PDFLIB_SAVE_TICKS } from '../pdflib/ticks';
 
 const N = {
   Annots: PDFName.of('Annots'),
@@ -243,6 +244,7 @@ export async function finalizeAnnotations(
   request: AnnotationFinalizeRequest,
 ): Promise<ArrayBuffer> {
   const doc = await PDFDocument.load(bytes, {
+    ...PDFLIB_LOAD_TICKS,
     updateMetadata: false,
     throwOnInvalidObject: false,
     ...(request.password === undefined ? {} : { password: request.password }),
@@ -325,6 +327,10 @@ export async function finalizeAnnotations(
       annots.insert(at, popupRef);
     }
   }
-  const saved = await doc.save({ useObjectStreams: false, updateFieldAppearances: false });
+  const saved = await doc.save({
+    ...PDFLIB_SAVE_TICKS,
+    useObjectStreams: false,
+    updateFieldAppearances: false,
+  });
   return saved.slice().buffer;
 }

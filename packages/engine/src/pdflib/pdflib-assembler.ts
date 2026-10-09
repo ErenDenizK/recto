@@ -119,6 +119,7 @@ import {
   transformDestination,
   visibleBox,
 } from './page-resize';
+import { PDFLIB_LOAD_TICKS, PDFLIB_SAVE_TICKS } from './ticks';
 
 /** Private marker written on link annotations between sanitizing and rewriting. */
 const LINK_TAG = PDFName.of('PdfEditorLinkTarget');
@@ -568,6 +569,7 @@ export class PdfLibAssembler implements PdfAssembler, SourceInspector {
 
     throwIfAborted(signal);
     const bytes = await out.save({
+      ...PDFLIB_SAVE_TICKS,
       // Strings are pre-encrypted per object (see encryptStrings); objects inside an
       // encrypted object stream must not be, so encrypted output never uses object streams.
       useObjectStreams: !options.compatibility && !security,
@@ -602,6 +604,7 @@ async function loadSource(sourceId: SourceId, bytes: ArrayBuffer): Promise<PDFDo
     // preserveXFA: pdf-lib strips /XFA in getForm() otherwise; we detect it ourselves and
     // report `xfaRemoved` truthfully (the rebuilt /AcroForm never carries XFA).
     return await PDFDocument.load(bytes, {
+      ...PDFLIB_LOAD_TICKS,
       ignoreEncryption: false,
       updateMetadata: false,
       preserveXFA: true,

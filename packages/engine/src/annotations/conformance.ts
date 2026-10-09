@@ -44,6 +44,7 @@ import type {
   AnnotationConformanceRule,
 } from '../types';
 import { ANNOT_FLAG } from './finalize';
+import { PDFLIB_LOAD_TICKS } from '../pdflib/ticks';
 
 export type ConformanceRule = AnnotationConformanceRule;
 export type ConformanceProblem = AnnotationConformanceProblem;
@@ -236,6 +237,7 @@ export async function checkAnnotationConformance(
   let doc: PDFDocument;
   try {
     doc = await PDFDocument.load(bytes, {
+      ...PDFLIB_LOAD_TICKS,
       updateMetadata: false,
       throwOnInvalidObject: false,
       ...(options.password === undefined ? {} : { password: options.password }),
