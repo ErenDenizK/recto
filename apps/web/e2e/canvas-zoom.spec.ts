@@ -150,13 +150,17 @@ test.describe('touch (tablet)', () => {
     const before = await first.boundingBox();
     if (!before) throw new Error('no page');
     const centre: Finger = [Math.round(before.x + before.width / 2), Math.round(before.y + 300)];
-    // Layout shifts, buffered from here on (transforms never make one).
+    // Layout shifts, buffered from here on (transforms never make one). Only those from the
+    // pinch's frames count (`since`, set once the layer is prepared): the top pieces may still
+    // be following their content's width on a spring as the file opens (motion/resize.ts),
+    // which lays out and shifts by design before the fingers move.
     await page.evaluate(() => {
-      const w = window as unknown as { shifts: number };
+      const w = window as unknown as { shifts: number; since: number };
       w.shifts = 0;
+      w.since = Number.POSITIVE_INFINITY;
       new PerformanceObserver((list) => {
         for (const entry of list.getEntries())
-          w.shifts += (entry as unknown as { value: number }).value;
+          if (entry.startTime >= w.since) w.shifts += (entry as unknown as { value: number }).value;
       }).observe({ type: 'layout-shift' });
     });
 
@@ -166,6 +170,9 @@ test.describe('touch (tablet)', () => {
     await bitmapsSettled(page);
     await layoutsSettled(page, cdp);
     const layouts = await layoutCount(cdp);
+    await page.evaluate(() => {
+      (window as unknown as { since: number }).since = performance.now();
+    });
     for (let i = 1; i <= 15; i++) {
       await touch(cdp, 'touchMove', pair(centre, 120 + i * 10));
       await frames(page);
