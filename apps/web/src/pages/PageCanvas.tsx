@@ -62,6 +62,7 @@ import {
   notePagePainted,
   whenPenUp,
 } from '../viewer/read-controller';
+import { duration, EASE } from '../motion/tokens';
 import styles from './PageCanvas.module.css';
 
 /** A thumbnail's repaint after an edit waits for idle time at most this long (ms). */
@@ -94,6 +95,42 @@ function imageBitmap(blobId: BlobId): Promise<ImageBitmap> | undefined {
 }
 
 /** Draws an image page: white sheet, image fitted and centred, then the page rotation. */
+/**
+ * "Hide markup" and back (the title menu's eye, S2-1a) cross-fades the page instead of cutting
+ * (motion-2026-10 frame.md §8): the pixels shown are copied to a still canvas laid over this
+ * one, the new bitmap is drawn beneath, and the copy fades out on `--duration-slow` (150 ms
+ * under reduced motion: it is a fade). Returns what `paint` returned.
+ */
+function crossFade(canvas: HTMLCanvasElement, paint: () => boolean): boolean {
+  const parent = canvas.parentElement;
+  if (!parent || canvas.width === 0 || typeof canvas.animate !== 'function') return paint();
+  if (getComputedStyle(parent).position === 'static') return paint();
+  const box = canvas.getBoundingClientRect();
+  const frame = parent.getBoundingClientRect();
+  const ghost = document.createElement('canvas');
+  ghost.width = canvas.width;
+  ghost.height = canvas.height;
+  ghost.getContext('2d')?.drawImage(canvas, 0, 0);
+  ghost.setAttribute('aria-hidden', 'true');
+  Object.assign(ghost.style, {
+    position: 'absolute',
+    left: `${box.left - frame.left - parent.clientLeft}px`,
+    top: `${box.top - frame.top - parent.clientTop}px`,
+    width: `${box.width}px`,
+    height: `${box.height}px`,
+    pointerEvents: 'none',
+  });
+  canvas.after(ghost);
+  const drawn = paint();
+  const fade = ghost.animate([{ opacity: 1 }, { opacity: 0 }], {
+    duration: duration('slow'),
+    easing: EASE.standard,
+  });
+  const remove = () => ghost.remove();
+  void fade.finished.then(remove, remove);
+  return drawn;
+}
+
 function drawImagePage(
   canvas: HTMLCanvasElement,
   bitmap: ImageBitmap,
@@ -284,7 +321,7 @@ export function PageCanvas({
 
     const controller = new AbortController();
     let cancelled = false;
-    const request = () => {
+    const request = (fade = false) => {
       requestedBucketRef.current = bucket;
       void service
         .renderPage({
@@ -299,7 +336,8 @@ export function PageCanvas({
         .then((result) => {
           if (cancelled) return;
           if (result.ok) {
-            if (draw(canvas, result.value, 'rendered')) painted(result.value);
+            const paint = () => draw(canvas, result.value, 'rendered');
+            if (fade ? crossFade(canvas, paint) : paint()) painted(result.value);
           } else if (result.error.code !== 'aborted' && canvas.dataset.state === 'placeholder') {
             canvas.dataset.state = 'error';
           }
@@ -311,7 +349,7 @@ export function PageCanvas({
     const showing = canvas.dataset.state === 'preview' || canvas.dataset.state === 'rendered';
     let cancelWait: (() => void) | undefined;
     if (showing && bareChanged) {
-      request();
+      request(true);
     } else if (showing && delayMs > 0 && scaleChanged) {
       const timer = window.setTimeout(request, delayMs);
       cancelWait = () => window.clearTimeout(timer);
