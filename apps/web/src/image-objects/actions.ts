@@ -13,6 +13,7 @@
  */
 import type { EngineEdit, Rect } from '@pdf-editor/document-model';
 import type { ImageReplacementJson, LocatedImage } from '@pdf-editor/engine';
+import { jpegInfo } from '@pdf-editor/engine/images';
 
 import type { PageTarget } from '../annotations/annotation-store';
 import { executeEdit, runAction } from '../annotations/edit-runner';
@@ -125,9 +126,9 @@ function startsWith(bytes: Uint8Array, magic: readonly number[]): boolean {
   return magic.every((b, i) => bytes[i] === b);
 }
 
-/** Decodes any image the browser reads and encodes it as PNG. */
+/** Decodes any image the browser reads (EXIF orientation applied) and encodes it as PNG. */
 async function reencodePng(file: Blob): Promise<Uint8Array> {
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   try {
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
     const context = canvas.getContext('2d');
@@ -140,11 +141,17 @@ async function reencodePng(file: Blob): Promise<Uint8Array> {
   }
 }
 
-/** The replacement to record for `file`: JPEG and PNG as they are, the rest as PNG. */
+/**
+ * The replacement to record for `file`: JPEG and PNG as they are, the rest as PNG. A camera JPEG
+ * that its EXIF turns is replaced by its upright pixels (M1-b): an image object's JPEG stream has
+ * no EXIF, so its bytes as they are would show sideways.
+ */
 export async function replacementOfFile(file: Blob): Promise<ImageReplacementJson> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (startsWith(bytes, JPEG_MAGIC)) return engine.imageReplacementJson({ jpeg: bytes });
+  if (startsWith(bytes, JPEG_MAGIC) && (jpegInfo(bytes)?.orientation ?? 1) === 1) {
+    return engine.imageReplacementJson({ jpeg: bytes });
+  }
   if (startsWith(bytes, PNG_MAGIC)) return engine.imageReplacementJson({ png: bytes });
   return engine.imageReplacementJson({ png: await reencodePng(file) });
 }

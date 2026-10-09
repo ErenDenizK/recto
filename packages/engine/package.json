@@ -43,6 +43,10 @@
       "types": "./src/client.ts",
       "import": "./src/client.ts"
     },
+    "./images": {
+      "types": "./src/images/jpeg-orientation.ts",
+      "import": "./src/images/jpeg-orientation.ts"
+    },
     "./constants": {
       "types": "./src/constants.ts",
       "import": "./src/constants.ts"
