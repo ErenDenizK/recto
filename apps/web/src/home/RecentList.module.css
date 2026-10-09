@@ -1,16 +1,16 @@
 /*
- * Recents (02-library L7 §2–§4): one lit panel, radius 20, the column's width (560 under the
+ * Recents (02-library L7 §2–§4): one lit panel, --radius-xl, the column's width (560 under the
  * empty launcher); a 32 px head ("Recent" · Clear recents), rows 48 px with the 32 × 40 page or
  * the glyph, the name, then "10 pages · 2.4 MB · Edited, changes kept · yesterday" trailing, and
- * the row's ⋯. Rows are fills inside the panel, never glass (Q-4): hover is one fill step behind
- * the text, focus the inset ring.
+ * the row's ⋯. Rows are `ui/RowButton`s inside the panel, never glass (Q-4): hover is one fill
+ * step behind the text, focus the inset ring, the press the large press scale.
  */
 .panel {
   container: recents / inline-size;
   box-sizing: border-box;
   width: 100%;
   padding: var(--space-3);
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
 }
 
 .panel[data-variant='empty'] {
@@ -48,39 +48,13 @@
 }
 
 .open {
-  composes: focus-inset from global;
   display: grid;
   flex: 1;
   grid-template-columns: 32px minmax(0, 1fr) auto;
-  align-items: center;
   column-gap: var(--space-3);
-  min-width: 0;
   min-height: 48px;
-  padding: 4px 48px 4px var(--space-2);
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
+  padding: var(--space-1) var(--space-12) var(--space-1) var(--space-2);
   color: var(--text-primary);
-  font: inherit;
-  text-align: start;
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    transform var(--spring-press) var(--ease-spring);
-}
-
-@media (hover: hover) {
-  .open:hover {
-    background: var(--surface-hover);
-  }
-}
-
-.open:active {
-  background: var(--surface-active);
-  transform: scale(var(--press-scale-large));
-  transition:
-    background-color var(--duration-instant) var(--ease-out),
-    transform var(--duration-instant) var(--ease-out);
 }
 
 .glyph,
@@ -195,7 +169,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 4px;
+  gap: 0 var(--space-1);
   margin-top: var(--space-3);
 }
 
@@ -203,15 +177,4 @@
   width: var(--icon-sm);
   height: var(--icon-sm);
   color: var(--warning);
-}
-
-.inlineLink {
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-xs);
-  background: none;
-  color: var(--text-primary);
-  font: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }

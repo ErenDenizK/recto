@@ -1,7 +1,9 @@
 /*
- * A Library card (02-library L5 §2–§4, §7): 184 × 284 on a fine pointer (200 × 312 coarse), 12
- * padding, radius 16 (language.md §6.1's lg for a card; the shape step brings the token), lit
- * (lit.module.css). The thumbnail is content: page white with its hairline, never themed.
+ * A Library card (02-library L5 §2–§4, §7; system-audit-2026-10 §3.6, §3.9): 184 wide on a fine
+ * pointer (200 coarse), --space-3 padding, --radius-lg, lit (lit.module.css), and as tall as its
+ * content: the thumbnail's box and three lines, the third held open while empty, so every card
+ * in a row matches and a Turkish name or state never clips (A-21). The thumbnail is content:
+ * page white with its hairline, never themed.
  *
  * Motion: hover lifts the card on --spring-quick; a press scales it by --press-scale-large
  * (02.5) on --spring-press; the ○ fades on --duration-fast. Every token is reduced per token
@@ -14,9 +16,8 @@
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  height: 284px;
   padding: var(--space-3);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   cursor: default;
   outline-offset: var(--focus-offset-out);
   -webkit-tap-highlight-color: transparent;
@@ -82,9 +83,11 @@
   outline-offset: 2px;
 }
 
-/* The ○ (ui/CheckBadge): 6 px inside the page's top-trailing corner, in a 40 px hit area (48
-   coarse) that reaches the corner, so the badge never covers the card's text or the page's edge. */
+/* The ○ (ui/CheckBadge) is an S control (system audit §3.3, §3.9): its 24 px box (32 coarse)
+   --space-1 inside the page's top-trailing corner, in a hit area that reaches the corner and is
+   never under --hit-min, so the badge never covers the card's text or the page's edge. */
 .check {
+  --check-hit: max(var(--hit-min), calc(var(--control-h-sm) + 2 * var(--space-1)));
   position: absolute;
   top: 0;
   right: 0;
@@ -93,9 +96,9 @@
   align-items: flex-start;
   justify-content: flex-end;
   box-sizing: border-box;
-  width: 40px;
-  height: 40px;
-  padding: 6px;
+  width: var(--check-hit);
+  height: var(--check-hit);
+  padding: var(--space-1);
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-out);
 }
@@ -118,7 +121,6 @@
 
 .meta {
   display: grid;
-  gap: 1px;
   min-width: 0;
   margin-top: var(--space-2);
 }
@@ -126,11 +128,11 @@
 .name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1h);
   min-width: 0;
   color: var(--text-primary);
   font-size: var(--type-body);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-medium);
   line-height: var(--type-body-lh);
   letter-spacing: var(--track-body);
 }
@@ -164,12 +166,11 @@
 .state {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
   min-height: var(--type-footnote-lh);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
-  font-weight: var(--weight-medium);
   line-height: var(--type-footnote-lh);
   letter-spacing: var(--track-footnote);
   font-variant-numeric: tabular-nums;
@@ -178,8 +179,8 @@
 
 .stateIcon {
   flex: none;
-  width: 12px;
-  height: 12px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .stateText {
@@ -190,17 +191,6 @@
 
 .rename {
   width: 100%;
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .card {
-    height: 312px;
-  }
-
-  .check {
-    width: 48px;
-    height: 48px;
-  }
 }
 
 /* Forced colours: Canvas, a CanvasText border, the selection in Highlight (L5 §3). */

@@ -35,6 +35,7 @@ import { useSessionStore } from '../session/session-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import { RowButton } from '../ui/RowButton';
 import menuStyles from '../ui/Menu.module.css';
 import { confirm } from '../ui/sheet';
 import { openRecent, removeRecentEntry } from './home-actions';
@@ -236,13 +237,13 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
       ) : anyKept ? (
         <p className={styles.footnote} data-testid="recent-kept-footnote">
           {m.recents_kept_footnote()} ·{' '}
-          <button
-            type="button"
-            className={styles.inlineLink}
+          <Button
+            variant="quiet"
+            size="sm"
             onClick={() => void commandRegistry.execute('settings.keptDocuments')}
           >
             {m.recents_manage()}
-          </button>
+          </Button>
         </p>
       ) : null}
     </section>
@@ -285,8 +286,8 @@ function RecentRow({
   const label = [entry.name, details, time, hint].filter(Boolean).join(', ');
   return (
     <li className={styles.row} data-recent-row={entry.id}>
-      <button
-        type="button"
+      <RowButton
+        press
         className={styles.open}
         data-recent-id={entry.id}
         tabIndex={tabbable ? 0 : -1}
@@ -312,7 +313,7 @@ function RecentRow({
           {hint === undefined ? null : <span className={styles.hint}>{hint}</span>}
           <span>{time}</span>
         </span>
-      </button>
+      </RowButton>
       <Menu.Root>
         <Menu.Trigger
           className={styles.more}

@@ -141,13 +141,16 @@ describe('Library', () => {
       expect(button).toHaveClass('btn-standard');
       expect(button.querySelector('svg[data-icon]')).not.toBeNull();
     }
-    // One height for the row, one piece high like the strip's pieces and the footer's pills.
+    // One control size for the piece's actions, L (system audit §3.3, §3.9): 40 on a fine
+    // pointer, never the piece height redefined as a control height.
     const heights = [open, ...starts].map((b) => b.getBoundingClientRect().height);
     expect(new Set(heights)).toEqual(new Set([40]));
+    // The footer: two pieces one piece high like the strip's; the switch inside is M (32).
     const footer = screen.getByTestId('library-footer');
-    for (const pill of footer.querySelectorAll('button, [role="radiogroup"]')) {
-      expect(pill.getBoundingClientRect().height, pill.textContent ?? '').toBe(40);
+    for (const piece of footer.children) {
+      expect(piece.getBoundingClientRect().height, piece.textContent ?? '').toBe(40);
     }
+    expect(within(footer).getByRole('radiogroup').getBoundingClientRect().height).toBe(32);
     // The aura: decorative, behind the column, slowly alive by transform and opacity alone.
     const aura = screen.getByTestId('library-aura');
     expect(aura).toHaveAttribute('aria-hidden', 'true');
