@@ -9,6 +9,7 @@
     "sample": "vitest run --config vitest.config.ts make-annotation-sample",
     "matrix": "vitest run --config vitest.config.ts annotation-matrix",
     "matrix:fresh": "pnpm run sample && pnpm run matrix",
+    "budget": "node --experimental-strip-types --no-warnings=ExperimentalWarning bundle-budget.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {

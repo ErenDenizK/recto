@@ -88,6 +88,12 @@ jobs:
         env:
           RECTO_RENDER_OVERRIDE: '1'
 
+      # Bundle budgets (docs/plan/v1/PLAN.md §2.3, PF-14): absolute gates and a 1 % growth cap
+      # over the baseline in tools/qa/bundle-budget.json, and every emitted chunk precached
+      # (PF-17). No dependencies, so it runs on the build above.
+      - name: Bundle budgets
+        run: node --experimental-strip-types --no-warnings=ExperimentalWarning tools/qa/bundle-budget.ts
+
       # Downloadable preview of this commit's build (ADR-0004); also reused by e2e below.
       - name: Upload build
         uses: actions/upload-artifact@v7
