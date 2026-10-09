@@ -12,7 +12,9 @@
  *    polygon (Ramer–Douglas–Peucker on the closed loop, corners merged, then regularised: a
  *    rectangle with right angles, a square when the sides are nearly equal, a regular
  *    triangle, pentagon or hexagon when sides and angles are) and an ellipse (Halir–Flusser's
- *    direct least-squares fit; a circle when the axes are nearly equal).
+ *    direct least-squares fit; a circle when the axes are nearly equal). The loop's radial
+ *    profile settles hexagon against circle (`radialHarmonics`, `rippleCorners`): a clear
+ *    3-, 5- or 6-fold ripple adds the regular polygon it shows and takes the circle's bias.
  * 4. **Score** each fit by its normalised residual against its family's limit (`LIMITS`);
  *    the fits are ranked best first. Only the first needs to pass the limit; the others, up
  *    to `ALTERNATIVE_SLACK` times it, are what the chip cycles to.
@@ -782,6 +784,100 @@ export function fitPolygons(loop: readonly Point[], f: StrokeFeatures): Candidat
   return out;
 }
 
+/** Highest harmonic `radialHarmonics` measures. */
+const MAX_HARMONIC = 8;
+
+/**
+ * The radial profile of a closed loop about its centroid as harmonics: `amp[k]` is the
+ * amplitude of the k-fold ripple of the radius over the mean radius, `phase[k]` its phase. An
+ * n-gon, even with rounded corners, rings at k = n (its corners stand out n times a lap); a
+ * circle drawn with a few flat spots rings far weaker, and at more than six.
+ */
+export function radialHarmonics(loop: readonly Point[]): {
+  centre: Point;
+  radius: number;
+  amp: number[];
+  phase: number[];
+} {
+  const centre = centroid(loop);
+  const r = loop.map((p) => dist(p, centre));
+  const radius = r.reduce((a, b) => a + b, 0) / (r.length || 1);
+  const amp: number[] = [];
+  const phase: number[] = [];
+  for (let k = 0; k <= MAX_HARMONIC; k++) {
+    let re = 0;
+    let im = 0;
+    loop.forEach((p, i) => {
+      const t = Math.atan2(p.y - centre.y, p.x - centre.x);
+      const d = (r[i] as number) / radius - 1;
+      re += d * Math.cos(k * t);
+      im += d * Math.sin(k * t);
+    });
+    amp.push((2 * Math.hypot(re, im)) / (loop.length || 1));
+    phase.push(Math.atan2(im, re));
+  }
+  return { centre, radius, amp, phase };
+}
+
+/** A k-fold ripple counts as corners from this amplitude (share of the mean radius). */
+export const CORNER_RIPPLE = 0.012;
+/** ...and when it is this many times every other ripple (bar the ellipse's k = 2, its multiples). */
+export const CORNER_RIPPLE_LEAD = 2;
+
+/** The corner count the radial profile shows (3, 5 or 6), or 0. */
+export function rippleCorners(h: { amp: readonly number[] }): number {
+  for (const n of [6, 5, 3]) {
+    const a = h.amp[n] ?? 0;
+    if (a < CORNER_RIPPLE) continue;
+    let rival = 0;
+    for (let k = 3; k <= MAX_HARMONIC; k++) {
+      if (k !== n && k % n !== 0) rival = Math.max(rival, h.amp[k] ?? 0);
+    }
+    if (a >= CORNER_RIPPLE_LEAD * rival) return n;
+  }
+  return 0;
+}
+
+/**
+ * The regular n-gon the radial ripple shows: corners where the radius peaks, its apothem the
+ * loop's mean radius towards the middles of the sides (so rounded corners do not shrink it).
+ */
+function rippleFit(
+  loop: readonly Point[],
+  n: number,
+  h: ReturnType<typeof radialHarmonics>,
+): Candidate {
+  const corner = (h.phase[n] ?? 0) / n;
+  const half = Math.PI / n;
+  let sum = 0;
+  let count = 0;
+  for (const p of loop) {
+    const t = Math.atan2(p.y - h.centre.y, p.x - h.centre.x);
+    // Angle from the nearest side's middle.
+    const off = wrap(n * (t - corner - half)) / n;
+    if (Math.abs(off) < half / 3) {
+      sum += dist(p, h.centre);
+      count++;
+    }
+  }
+  const apothem = count > 0 ? sum / count : h.radius * Math.cos(half);
+  const R = apothem / Math.cos(half);
+  const vertices: Point[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = corner + (TAU * i) / n;
+    vertices.push({ x: h.centre.x + R * Math.cos(a), y: h.centre.y + R * Math.sin(a) });
+  }
+  const box = bounds(loop);
+  const scale = (box.width + box.height) / 2;
+  return {
+    kind: POLYGON_NAMES[n] ?? 'polygon',
+    geometry: { type: 'polygon', vertices: snapPolygon(vertices) },
+    residual: polygonResidual(loop, vertices) / scale,
+    limit: LIMITS.polygon,
+    penalty: (n - 3) * 0.04 - REGULAR_BIAS,
+  };
+}
+
 /** Real roots of x³ + a x² + b x + c. */
 function cubicRoots(a: number, b: number, c: number): number[] {
   const q = (a * a - 3 * b) / 9;
@@ -1067,7 +1163,21 @@ export function recognizeShape(raw: readonly Point[], options: RecognizeOptions 
     const lap = Math.abs(loopTurns(lf).reduce((s, v) => s + v, 0));
     // One lap, in one direction (a figure of eight turns ~0°, a spiral two laps).
     if (lap > 1.55 * Math.PI && lap < 2.5 * Math.PI) {
-      candidates.push(...fitPolygons(lf, f), ...fitEllipses(lf));
+      // Over the drawn points only: the chord across a gap at the close is no corner.
+      const ripple = radialHarmonics(resample(loop, RESAMPLE));
+      const n = rippleCorners(ripple);
+      const ellipses = fitEllipses(lf);
+      // Corners in the radial profile: the regular polygon they show competes, and a circle
+      // loses its bias (a hexagon drawn round is still a hexagon).
+      candidates.push(
+        ...fitPolygons(lf, f),
+        ...(n > 0
+          ? [
+              rippleFit(lf, n, ripple),
+              ...ellipses.map((c) => (c.kind === 'circle' ? { ...c, penalty: 0 } : c)),
+            ]
+          : ellipses),
+      );
     }
   }
   if (candidates.length === 0) {

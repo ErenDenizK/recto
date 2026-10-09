@@ -2,7 +2,8 @@
  * Hold to shape (motion-2026-10/ink-shapes.md): the recogniser over a synthetic corpus.
  * Near misses (handwritten letters and words, signatures, scribbles, ticks) never snap; clean
  * and sloppy shapes (lines, rectangles, squares, rotated rectangles, triangles, circles,
- * ellipses, pentagons, hexagons, arrows) snap to the right kind, keep their size and
+ * ellipses, pentagons, hexagons, arrows) snap to the right kind, rounded hexagons stay
+ * hexagons and slightly polygonal circles stay circles (the radial ripple), keep their size and
  * orientation, and snap angles only within 5°.
  */
 import { describe, expect, it } from 'vitest';
@@ -158,6 +159,23 @@ function rectangle(cx: number, cy: number, w: number, h: number, deg = 0): Point
     { x: cx + w / 2, y: cy + h / 2 },
     { x: cx - w / 2, y: cy + h / 2 },
   ].map((p) => rot(p, c, deg));
+}
+
+/** The closed polygon with each corner cut `cut` of the way along its edges, `times` times. */
+function rounded(vertices: readonly Point[], cut: number, times = 1): Point[] {
+  let v = [...vertices];
+  for (let k = 0; k < times; k++) {
+    const next: Point[] = [];
+    v.forEach((a, i) => {
+      const b = v[(i + 1) % v.length]!;
+      next.push(
+        { x: a.x + (b.x - a.x) * cut, y: a.y + (b.y - a.y) * cut },
+        { x: a.x + (b.x - a.x) * (1 - cut), y: a.y + (b.y - a.y) * (1 - cut) },
+      );
+    });
+    v = next;
+  }
+  return v;
 }
 
 function regular(n: number, cx: number, cy: number, r: number, deg = -90): Point[] {
@@ -588,6 +606,46 @@ const SHAPES: ShapeCase[] = [
   },
   { name: 'hexagon', kind: 'hexagon', points: polygon(regular(6, 250, 200, 90, 0), CLEAN) },
   { name: 'sloppy hexagon', kind: 'hexagon', points: polygon(regular(6, 250, 200, 90, 3), SLOPPY) },
+  {
+    name: 'hexagon with rounded corners',
+    kind: 'hexagon',
+    points: polygon(rounded(regular(6, 250, 200, 90, 0), 0.12), SLOPPY),
+  },
+  {
+    name: 'rounder hexagon (corners cut twice)',
+    kind: 'hexagon',
+    points: polygon(rounded(regular(6, 250, 200, 90, 8), 0.14, 2), SLOPPY),
+  },
+  {
+    name: 'hexagon with bulging sides',
+    kind: 'hexagon',
+    points: polygon(regular(6, 250, 200, 80, -4), { jitter: 0.8, wobble: 3.5, seed: 17 }),
+  },
+  {
+    name: 'small rounded hexagon',
+    kind: 'hexagon',
+    points: polygon(rounded(regular(6, 250, 200, 40, 0), 0.1), { jitter: 0.6, wobble: 1, seed: 5 }),
+  },
+  {
+    name: 'circle drawn as a 12-gon',
+    kind: 'circle',
+    points: polygon(regular(12, 250, 200, 80, 7), SLOPPY),
+  },
+  {
+    name: 'circle drawn as a 10-gon',
+    kind: 'circle',
+    points: polygon(regular(10, 250, 200, 80, -3), SLOPPY),
+  },
+  {
+    name: 'circle drawn as a 16-gon',
+    kind: 'circle',
+    points: polygon(regular(16, 250, 200, 60, 0), CLEAN),
+  },
+  {
+    name: 'circle with flat spots',
+    kind: 'circle',
+    points: polygon(rounded(regular(8, 250, 200, 80, 10), 0.3, 2), SLOPPY),
+  },
   {
     name: 'arrow in one stroke',
     kind: 'arrow',
