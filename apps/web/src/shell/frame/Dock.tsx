@@ -348,18 +348,26 @@ function DockButton({
   );
 }
 
-/** More (flows §4.2): the rarer doors, each dimmed with its reason when it cannot run. */
-const MORE_ITEMS: readonly { readonly id: string; readonly label: () => string }[] = [
-  { id: 'tool.edit-text', label: m.dock_more_edit_text },
-  { id: 'tool.redact', label: m.dock_more_redact },
-  { id: 'document.ocr', label: m.dock_more_ocr },
-  { id: 'mode.compare', label: m.dock_more_compare },
-  { id: 'pages.crop', label: m.dock_more_crop },
+/**
+ * More (flows §4.2): the rarer doors, each dimmed with its reason when it cannot run, each with
+ * its 16 px glyph as the phone's menu rows have (system-audit-2026-10 §3.6, §4 Frame).
+ */
+interface MoreEntry {
+  readonly id: string;
+  readonly label: () => string;
+  readonly icon: IconName;
+}
+const MORE_ITEMS: readonly MoreEntry[] = [
+  { id: 'tool.edit-text', label: m.dock_more_edit_text, icon: 'edit-text' },
+  { id: 'tool.redact', label: m.dock_more_redact, icon: 'redact' },
+  { id: 'document.ocr', label: m.dock_more_ocr, icon: 'scan' },
+  { id: 'mode.compare', label: m.dock_more_compare, icon: 'compare' },
+  { id: 'pages.crop', label: m.dock_more_crop, icon: 'crop' },
 ];
-const MORE_APP_ITEMS: readonly { readonly id: string; readonly label: () => string }[] = [
-  { id: 'view.palette', label: m.dock_more_commands },
-  { id: 'help.shortcuts', label: m.frame_keyboard_shortcuts },
-  { id: 'settings.open', label: m.frame_settings },
+const MORE_APP_ITEMS: readonly MoreEntry[] = [
+  { id: 'view.palette', label: m.dock_more_commands, icon: 'list-magnifying-glass' },
+  { id: 'help.shortcuts', label: m.frame_keyboard_shortcuts, icon: 'keyboard' },
+  { id: 'settings.open', label: m.frame_settings, icon: 'gear-six' },
 ];
 
 function MoreMenu() {
@@ -389,11 +397,11 @@ function MoreMenu() {
         >
           <Menu.Popup className={menuStyles.popup} aria-label={m.dock_more()}>
             {MORE_ITEMS.map((item) => (
-              <MoreItem key={item.id} id={item.id} label={item.label()} />
+              <MoreItem key={item.id} id={item.id} label={item.label()} icon={item.icon} />
             ))}
             <Menu.Separator className={menuStyles.separator} />
             {MORE_APP_ITEMS.map((item) => (
-              <MoreItem key={item.id} id={item.id} label={item.label()} />
+              <MoreItem key={item.id} id={item.id} label={item.label()} icon={item.icon} />
             ))}
           </Menu.Popup>
         </Menu.Positioner>
@@ -402,7 +410,15 @@ function MoreMenu() {
   );
 }
 
-function MoreItem({ id, label }: { readonly id: string; readonly label: string }) {
+function MoreItem({
+  id,
+  label,
+  icon,
+}: {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: IconName;
+}) {
   const command = commandRegistry.get(id);
   if (!command) return null;
   const enabled = commandRegistry.isEnabled(command);
@@ -414,6 +430,7 @@ function MoreItem({ id, label }: { readonly id: string; readonly label: string }
       disabled={!enabled}
       onClick={() => void commandRegistry.execute(id)}
     >
+      <Icon name={icon} aria-hidden="true" />
       <span className={menuStyles.label}>{label}</span>
       {reason ? <span className={menuStyles.hint}>{reason}</span> : null}
     </Menu.Item>
