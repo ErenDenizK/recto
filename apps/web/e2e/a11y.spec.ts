@@ -290,6 +290,11 @@ test.describe('keyboard', () => {
   });
 
   test('the palette: one Tab stop, arrows, a tool, its ink strip by Tab, Esc', async ({ page }) => {
+    // The note has changed colour before, so its strip holds the well and a recent colour
+    // (10-ink §2.1, `markup/ink-recents.ts`).
+    await page.addInitScript(() => {
+      localStorage.setItem('pdf-editor:ui:ink-recents:v1', JSON.stringify({ note: ['#DB1C22'] }));
+    });
     await openSimple(page);
     await enterEdit(page);
     await expect(bar(page).locator('button[tabindex="0"]')).toHaveCount(1);
@@ -322,10 +327,14 @@ test.describe('keyboard', () => {
     const before = await focusedName(page);
     await page.keyboard.press('ArrowRight');
     expect(await focusedName(page)).not.toBe(before);
-    const swatch = strip.getByRole('radio').first();
+    // The recent colour leads the row: Space picks it, so it becomes the note's colour (the
+    // well says so) and leaves the row.
+    const swatch = strip.getByRole('radio', { name: 'Red' });
     await swatch.focus();
     await page.keyboard.press('Space');
-    await expect(swatch).toHaveAttribute('aria-checked', 'true');
+    await expect(strip.getByRole('button', { name: 'Colour: Red' })).toBeVisible();
+    await expect(strip.getByRole('radio', { name: 'Red' })).toHaveCount(0);
+    await strip.getByRole('radio').first().focus();
     // Esc from the strip disarms; the strip goes.
     await page.keyboard.press('Escape');
     await expect(strip).toHaveCount(0);
