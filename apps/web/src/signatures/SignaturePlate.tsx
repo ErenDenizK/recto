@@ -19,17 +19,11 @@ import {
 } from '../annotations/stamps';
 import { PAD_HEIGHT, PAD_WIDTH, SIGNATURE_INK, type SignatureInk } from './saved-signatures';
 import styles from './SignaturePlate.module.css';
+import { svgPath } from './smooth-ink';
 
-/** The SVG path of strokes in pad units ("M x y L x y …"); a dot for a one-point stroke. */
+/** The SVG path of strokes in pad units, traced smooth (`smooth-ink.ts`); a dot for one point. */
 export function strokesPath(strokes: readonly (readonly number[])[]): string {
-  const parts: string[] = [];
-  for (const stroke of strokes) {
-    if (stroke.length < 2) continue;
-    parts.push(`M${stroke[0]} ${stroke[1]}`);
-    if (stroke.length === 2) parts.push(`l0.1 0`);
-    for (let i = 2; i + 1 < stroke.length; i += 2) parts.push(`L${stroke[i]} ${stroke[i + 1]}`);
-  }
-  return parts.join('');
+  return svgPath(strokes);
 }
 
 /** The strokes' bounds in pad units, padded for the line width, as an SVG viewBox. */

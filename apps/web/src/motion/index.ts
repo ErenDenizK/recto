@@ -20,6 +20,10 @@
  *   `ringFlash` (*undo reveal*), `revealWhenShown` (*find step*, 05.2), `fold` (02.6).
  * - `container.ts`: the *container transform* (a popup grows out of its trigger's rect and goes
  *   back into it, motion-2026-10/platform.md §1) and the trigger's *receive* pulse.
+ * - `feedback.ts`: `shake` (*refusal*), `navPush` (the iOS navigation push) and `disclose` (a
+ *   folded section's height spring), shared by forms, sheets and the compact edition
+ *   (motion-2026-10). Its own `receivePulse` (a chip's, with a ring under reduced motion) is
+ *   imported from `./feedback` by name; the barrel's `receivePulse` is the trigger's.
  *
  * CSS transitions with `linear()` springs and Base UI's starting and ending styles remain the
  * first route for popups, bars, press and feedback (§7.4); gestures live in `motion/gesture/`.
@@ -48,6 +52,7 @@ export {
   radiusOf,
   receivePulse,
 } from './container';
+export { disclose, navPush, shake } from './feedback';
 export { flip } from './flip';
 export { reducedMotion, subscribeReducedMotion, systemReducedMotion } from './reduced-motion';
 export {

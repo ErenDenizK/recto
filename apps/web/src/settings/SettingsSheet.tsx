@@ -7,9 +7,12 @@
  * - **Presentation** (`ui/sheet/presentation.ts`, kind `settings`): a 480 px side sheet over a
  *   scrim from the expanded class up, a form sheet (≤ 640) on medium, a bottom sheet at 92 % on
  *   a compact desktop window. One grouped scroll at every size; Kept documents, Saved
- *   signatures, Privacy and About Recto push a page (‹ Back in the header, the catalogue's
- *   *sheet push*, X8: 24 px and a fade on the smooth spring, a 150 ms fade under reduced
- *   motion, transform and opacity only, cleared at the end, quality-bar Q-2, Q-7).
+ *   signatures, Privacy and About Recto push a page (‹ Back in the header). A row or ‹ Back
+ *   pushes and pops iOS style (`navPush`, motion-2026-10 forms-compact §5): the new page slides
+ *   in from the trailing side on the smooth spring while the old one, a stand-in clone laid over
+ *   the body, shifts 30 % the other way and dims; a 150 ms fade under reduced motion. A page an
+ *   opener lands on keeps the catalogue's *sheet push* (X8: 24 px and a fade). Transform,
+ *   opacity and the parent's clip only, cleared at the end (quality-bar Q-2, Q-7).
  * - **Search** (`search-index.ts`): filters rows by their EN and TR titles and keywords without
  *   diacritics; a match inside a pushed page shows that page's row with what it found. The
  *   field is `role="search"`, the result count is polite, and no match says "No setting matches
@@ -28,7 +31,7 @@
 import { Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { m } from '../i18n';
-import { sheetPush } from '../motion';
+import { navPush, reducedMotion, sheetPush } from '../motion';
 import { useLastInput, usePointerCapabilities } from '../shell/frame/input-modality';
 import { ScrollArea } from '../ui/ScrollArea';
 import { SearchField } from '../ui/SearchField';
@@ -109,6 +112,53 @@ const ROW_CONTROL =
 /** A row's control: the row itself when the whole row is the button (`NavRow`), else inside. */
 const rowControl = (row: string) => `:is(${row}:is(button, a[href]), ${row} :is(${ROW_CONTROL}))`;
 
+/**
+ * A still copy of the page on screen, to stand in for it while the next one slides over it
+ * (`navPush`): inert, hidden from assistive technology, and without the ids, rows and test ids
+ * that queries find, laid exactly over `body` with the list scrolled where it was.
+ */
+function standIn(body: HTMLElement, scrollTop: number): HTMLElement {
+  const copy = body.cloneNode(true) as HTMLElement;
+  for (const el of [copy, ...copy.querySelectorAll<HTMLElement>('*')]) {
+    for (const name of ['id', 'data-settings-page', 'data-row', 'data-section', 'data-testid']) {
+      el.removeAttribute(name);
+    }
+  }
+  copy.inert = true;
+  copy.setAttribute('aria-hidden', 'true');
+  copy.dataset.settingsStandIn = '';
+  copy.dataset.scrollTop = String(scrollTop);
+  Object.assign(copy.style, {
+    position: 'absolute',
+    left: `${body.offsetLeft}px`,
+    top: `${body.offsetTop}px`,
+    width: `${body.offsetWidth}px`,
+    height: `${body.offsetHeight}px`,
+    margin: '0',
+    pointerEvents: 'none',
+  });
+  return copy;
+}
+
+/**
+ * The page on screen, kept as a stand-in when a row or ‹ Back navigates (`navPush`) and laid
+ * over the next page once it has rendered. One Settings sheet exists at a time.
+ */
+let leaving: HTMLElement | null = null;
+
+function keepLeaving(): void {
+  const body = document.querySelector<HTMLElement>('[data-settings-page]');
+  const list = body?.querySelector<HTMLElement>(`.${styles.viewport}`);
+  leaving = body && !reducedMotion() ? standIn(body, list?.scrollTop ?? 0) : null;
+}
+
+/** The stand-in kept by `keepLeaving`, once: the next page change takes it. */
+function takeLeaving(): HTMLElement | null {
+  const kept = leaving;
+  leaving = null;
+  return kept;
+}
+
 function panel(): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[data-sheet="${SETTINGS_SHEET_ID}"]`);
 }
@@ -186,10 +236,19 @@ export default function SettingsSheet() {
   const shownPage = useRef(page);
   useLayoutEffect(() => {
     const previous = shownPage.current;
+    const outgoing = takeLeaving();
     if (previous === page) return;
     shownPage.current = page;
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
-    sheetPush(bodyRef.current, page === null ? -1 : 1);
+    const host = bodyRef.current?.parentElement;
+    if (outgoing && host) {
+      host.append(outgoing);
+      const list = outgoing.querySelector<HTMLElement>(`.${styles.viewport}`);
+      if (list) list.scrollTop = Number(outgoing.dataset.scrollTop);
+      navPush(bodyRef.current, outgoing, page === null ? -1 : 1);
+    } else {
+      sheetPush(bodyRef.current, page === null ? -1 : 1);
+    }
     if (!panel()?.contains(document.activeElement) && document.activeElement !== document.body) {
       return;
     }
@@ -202,6 +261,7 @@ export default function SettingsSheet() {
   }, [page]);
 
   const push: Push = (next) => {
+    keepLeaving();
     setReveal(null);
     setPage(next);
   };
@@ -240,7 +300,14 @@ export default function SettingsSheet() {
       open={open !== null}
       onClose={() => closeSettings()}
       title={pageTitle ?? m.settings_title()}
-      back={page ? () => setPage(null) : undefined}
+      back={
+        page
+          ? () => {
+              keepLeaving();
+              setPage(null);
+            }
+          : undefined
+      }
       restored={query !== '' && reveal === null}
       initialFocus={focusRef}
       finalFocus={returnTo ? { current: returnTo } : undefined}

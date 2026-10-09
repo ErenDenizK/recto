@@ -32,8 +32,10 @@ import { isLive } from '../viewer/hit-order';
 import { useCanChangeActive, usePageInput } from '../viewer/input-state';
 import { pageFrame } from '../viewer/page-frame';
 import { Tooltip } from '../ui/Tooltip';
-import { commitFieldValue, fieldLabel } from './actions';
+import { commitFieldValue, type FieldValue, fieldLabel } from './actions';
 import { ChoiceEditor, TextEditor } from './FieldEditors';
+import { FieldRing } from './FieldRing';
+import { fillAndPaint, TickIn } from './TickIn';
 import { type ActiveField, useFormStore, useSourceFields, widgetsOf } from './form-store';
 import styles from './FormLayer.module.css';
 import { moveField } from './navigation';
@@ -136,6 +138,7 @@ export function FieldWidget({
   // show, nothing fills and a fill attempt shows the notice.
   const canFill = useCanChangeActive('targeted');
   const [lockNotice, setLockNotice] = useState(false);
+  const [tick, setTick] = useState<{ readonly until: Promise<void> } | null>(null);
   const showLock = lockNotice && active && !canFill;
   const editable = field.kind === 'text' || field.kind === 'combobox' || field.kind === 'listbox';
 
@@ -150,11 +153,30 @@ export function FieldWidget({
     if (canFill) run();
   };
 
+  // The active field's ring, the one shared element that moves from field to field.
+  const ring = active ? <FieldRing box={box} /> : null;
+
+  // A check box or radio that is filled ticks in until the page shows it (TickIn.tsx).
+  const tickIn = (value: FieldValue) => {
+    const pageIndex =
+      here.fieldId === undefined ? widgetsOf(field)[placed.widget]?.pageIndex : undefined;
+    setTick({ until: fillAndPaint(here, value, pageIndex) });
+  };
+  const tickGlyph =
+    tick && (field.kind === 'checkbox' || field.kind === 'radio') ? (
+      <TickIn box={box} kind={field.kind} until={tick.until} onDone={() => setTick(null)} />
+    ) : null;
+
   if (active && editable && !field.readOnly && canFill) {
-    return field.kind === 'text' || (field.kind === 'combobox' && field.editable) ? (
-      <TextEditor field={field} here={here} box={box} frame={frame} />
-    ) : (
-      <ChoiceEditor field={field} here={here} box={box} frame={frame} />
+    return (
+      <>
+        {field.kind === 'text' || (field.kind === 'combobox' && field.editable) ? (
+          <TextEditor field={field} here={here} box={box} frame={frame} />
+        ) : (
+          <ChoiceEditor field={field} here={here} box={box} frame={frame} />
+        )}
+        {ring}
+      </>
     );
   }
 
@@ -220,9 +242,17 @@ export function FieldWidget({
             aria-readonly={field.readOnly || !canFill || undefined}
             aria-required={field.required || undefined}
             onClick={() => {
-              if (!field.readOnly) fill(() => void commitFieldValue(here, !on));
+              if (field.readOnly) return;
+              fill(() => {
+                if (on) {
+                  setTick(null);
+                  void commitFieldValue(here, false);
+                } else tickIn(true);
+              });
             }}
           />
+          {tickGlyph}
+          {ring}
           {lock}
         </>
       );
@@ -241,11 +271,13 @@ export function FieldWidget({
               const value = placed.exportValue;
               if (!field.readOnly && value !== undefined) {
                 fill(() => {
-                  if (!on) void commitFieldValue(here, value);
+                  if (!on) tickIn(value);
                 });
               }
             }}
           />
+          {tickGlyph}
+          {ring}
           {lock}
         </>
       );
@@ -270,6 +302,7 @@ export function FieldWidget({
             aria-expanded={notice}
             onClick={() => setNotice((v) => !v)}
           />
+          {ring}
           {notice ? <SignatureNotice field={field} box={box} placeholder={placeholder} /> : null}
         </>
       );
@@ -286,6 +319,7 @@ export function FieldWidget({
               }
             }}
           />
+          {ring}
           {lock}
         </>
       );
