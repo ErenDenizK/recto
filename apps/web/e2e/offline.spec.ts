@@ -57,8 +57,8 @@ test('the shell and the engine work offline after one visit', async ({ page, con
     )
     .toBeGreaterThan(0);
 
-  // The privacy popover reports the worker as installed.
-  await page.getByTestId('privacy-indicator').click();
+  // The privacy popover reports the worker as installed (on the Library, from its footer chip).
+  await page.getByTestId('library-privacy').click();
   await expect(page.getByTestId('sw-status')).toHaveAttribute('data-status', 'ready');
   await expect(page.getByTestId('sw-status')).toHaveText(/works offline/);
   await page.keyboard.press('Escape');

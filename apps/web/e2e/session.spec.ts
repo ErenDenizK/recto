@@ -334,7 +334,8 @@ test('Clear in the privacy popover deletes every snapshot, for good', async ({
   await expect(page.getByRole('tab', { name: 'simple-text' })).toHaveCount(0);
   const recents = page.getByRole('list', { name: 'Recent files' });
   await expect(recents.getByRole('button', { name: /changes kept/ })).toHaveCount(0);
-  await page.getByTestId('privacy-indicator').click();
+  // On the Library the footer's chip opens the privacy popover (the strip's ⋯ stands alone).
+  await page.getByTestId('library-privacy').click();
   await expect(page.getByTestId('privacy-kept-empty')).toBeVisible();
 });
 
