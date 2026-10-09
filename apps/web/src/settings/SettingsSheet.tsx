@@ -106,6 +106,9 @@ const PAGES: Readonly<Record<SettingsPageId, () => ReactNode>> = {
 const ROW_CONTROL =
   'input:not([type="hidden"], [aria-hidden="true"]), [role="switch"], [role="radio"][data-checked], [role="radio"][aria-checked="true"], [role="combobox"], button, a[href]';
 
+/** A row's control: the row itself when the whole row is the button (`NavRow`), else inside. */
+const rowControl = (row: string) => `:is(${row}:is(button, a[href]), ${row} :is(${ROW_CONTROL}))`;
+
 function panel(): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[data-sheet="${SETTINGS_SHEET_ID}"]`);
 }
@@ -114,10 +117,10 @@ function controlOf(target: SettingsTarget, root: ParentNode | null): HTMLElement
   if (!root) return null;
   if ('section' in target) {
     return root.querySelector<HTMLElement>(
-      `[data-section="${target.section}"] [data-row] :is(${ROW_CONTROL})`,
+      `[data-section="${target.section}"] ${rowControl('[data-row]')}`,
     );
   }
-  return root.querySelector<HTMLElement>(`[data-row="${target.row}"] :is(${ROW_CONTROL})`);
+  return root.querySelector<HTMLElement>(rowControl(`[data-row="${target.row}"]`));
 }
 
 /** Scrolls the target into view and tints a row once (`.row[data-revealed]`). */
@@ -176,7 +179,7 @@ export default function SettingsSheet() {
     const root = panel()?.querySelector<HTMLElement>('[data-settings-page]') ?? null;
     if (reveal) return controlOf(reveal, root);
     if (page === null && !coarse) return searchRef.current;
-    return root?.querySelector<HTMLElement>(`[data-row] :is(${ROW_CONTROL})`) ?? null;
+    return root?.querySelector<HTMLElement>(rowControl('[data-row]')) ?? null;
   };
 
   // Page changes: the push motion, the body back to its top, and focus to ‹ Back or the row.
@@ -194,7 +197,7 @@ export default function SettingsSheet() {
       panel()?.querySelector<HTMLElement>('[data-bar="sheet-header"] button')?.focus();
     } else if (previous !== null) {
       const row = pageById(previous)?.row;
-      bodyRef.current?.querySelector<HTMLElement>(`[data-row="${row}"] button`)?.focus();
+      bodyRef.current?.querySelector<HTMLElement>(rowControl(`[data-row="${row}"]`))?.focus();
     }
   }, [page]);
 

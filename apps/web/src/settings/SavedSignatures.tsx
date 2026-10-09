@@ -48,7 +48,7 @@ import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { confirm } from '../ui/sheet';
 import { TextField } from '../ui/TextField';
-import { NavRow, Section } from './rows';
+import { NavRow, Row, Section } from './rows';
 import type { SettingsPageId } from './search-index';
 import styles from './Settings.module.css';
 import own from './SavedSignatures.module.css';
@@ -242,7 +242,7 @@ function SignatureRow({
   const [editing, setEditing] = useState(false);
   const label = signatureLabel(signature);
   return (
-    <div className={`${styles.row} ${own.row}`} data-row={`signature:${signature.id}`}>
+    <Row id={`signature:${signature.id}`} className={own.row}>
       <div className={styles.line} data-bar="settings-row">
         <SignaturePlate ink={signature} size="row" />
         {editing ? (
@@ -276,7 +276,7 @@ function SignatureRow({
           </>
         )}
       </div>
-    </div>
+    </Row>
   );
 }
 

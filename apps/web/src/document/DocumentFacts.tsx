@@ -1,7 +1,7 @@
 /**
  * A document's file facts and honesty badges (spec document-tools §3; `components/07-sheets.md`
  * S4 §2): name, files, size, pages, modified, then the engine-reported badges with what Save a
- * copy does about each. Shown at the top of Document info (S4), which took them over from the
+ * copy does about each, as the sheet's File group. Shown at the top of Document info (S4), which took them over from the
  * inspector's Info section (inventory 6.7, INV-13; spec D2-9).
  *
  * The badges' explanations are written out under each badge rather than kept in tooltips, so a
@@ -14,6 +14,7 @@ import { formatBytes } from '../files/file-filters';
 import { getLocale, m } from '../i18n';
 import { documentSources, useWorkspaceStore } from '../state/workspace-store';
 import { Badge } from '../ui/Badge';
+import { SheetGroup, SheetRow } from '../ui/sheet';
 import styles from './DocumentFacts.module.css';
 
 const dateFormat = (value: number) =>
@@ -52,7 +53,10 @@ export const SOURCE_BADGES: readonly SourceBadge[] = [
   badge('tagged', m.badge_tagged, m.badge_tagged_explanation),
 ];
 
-/** The facts as a description list (S4 §8), then the badges with their explanations. */
+/**
+ * The facts as the File group (S4 §8 on system-audit-2026-10 §3.6.1): one value row each, then
+ * the badges with their explanations as the group's last row.
+ */
 export function DocumentFacts({ doc }: { readonly doc: VirtualDocument }) {
   const ws = useWorkspaceStore((s) => s.workspace);
   const files = useWorkspaceStore((s) => s.files);
@@ -65,35 +69,27 @@ export function DocumentFacts({ doc }: { readonly doc: VirtualDocument }) {
     sources.some((id) => ws.sources[id]?.flags[badge.flag] === true),
   );
   return (
-    <div className={styles.facts} data-testid="document-facts">
-      <dl className={styles.grid}>
-        <dt>{m.info_name()}</dt>
-        <dd title={name}>{name}</dd>
-        {sources.length > 1 ? (
-          <>
-            <dt>{m.info_files()}</dt>
-            <dd className={styles.numeric}>{sources.length}</dd>
-          </>
-        ) : null}
-        <dt>{m.info_size()}</dt>
-        <dd className={styles.numeric}>{formatBytes(size)}</dd>
-        <dt>{m.info_pages()}</dt>
-        <dd className={styles.numeric}>{doc.pages.length}</dd>
-        <dt>{m.info_modified()}</dt>
-        <dd className={styles.numeric}>
-          {file && file.lastModified > 0 ? dateFormat(file.lastModified) : '—'}
-        </dd>
-      </dl>
+    <SheetGroup label={m.docinfo_file()} data-testid="document-facts">
+      <SheetRow title={m.info_name()} value={<span title={name}>{name}</span>} />
+      {sources.length > 1 ? <SheetRow title={m.info_files()} value={sources.length} /> : null}
+      <SheetRow title={m.info_size()} value={formatBytes(size)} />
+      <SheetRow title={m.info_pages()} value={doc.pages.length} />
+      <SheetRow
+        title={m.info_modified()}
+        value={file && file.lastModified > 0 ? dateFormat(file.lastModified) : '—'}
+      />
       {badges.length > 0 ? (
-        <ul className={styles.badges} aria-label={m.info_notes()}>
-          {badges.map((badge) => (
-            <li key={badge.flag} className={styles.badgeRow}>
-              <Badge kind="label">{badge.label}</Badge>
-              <span className={styles.explanation}>{badge.explanation}</span>
-            </li>
-          ))}
-        </ul>
+        <SheetRow full>
+          <ul className={styles.badges} aria-label={m.info_notes()}>
+            {badges.map((badge) => (
+              <li key={badge.flag} className={styles.badgeRow}>
+                <Badge kind="label">{badge.label}</Badge>
+                <span className={styles.explanation}>{badge.explanation}</span>
+              </li>
+            ))}
+          </ul>
+        </SheetRow>
       ) : null}
-    </div>
+    </SheetGroup>
   );
 }

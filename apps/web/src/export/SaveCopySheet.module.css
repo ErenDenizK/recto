@@ -1,80 +1,25 @@
 /*
- * Save a copy, S2 (components/07-sheets.md §4.2, §4.3): label · control rows, disclosure rows
- * with their current value, solid wells for previews and tables (never glass inside the
- * sheet's glass, quality-bar Q-4), tabular numerals for sizes.
+ * Save a copy, S2 (components/07-sheets.md §4.2, §4.3) on the one sheet grammar
+ * (system-audit-2026-10 §3.6.1, I-16): groups instead of a label column. Format, Size and Name
+ * are a group each whose one row is the control; the PDF options are one group of disclosure
+ * rows, each showing its current value; Images and Text put their title · control rows in a
+ * group. The groups, rows and hairlines are `ui/sheet`'s SheetGroup, SheetRow and
+ * SheetRowButton; what stays here is the form's rhythm, the controls' trailing width, the
+ * notices and the solid wells for previews and tables (never glass inside the sheet's glass,
+ * quality-bar Q-4), with tabular numerals for sizes.
  */
-
-/*
- * The form: one label column for every row of the page (the rows, the sections and the
- * disclosures are subgrids of it), as wide as the longest label shown and at most 9.5rem, so
- * the controls line up and a label never breaks inside a word: "Background" on a tablet,
- * "Çözünürlük" or "Dosya adları" in Turkish (XD-3; A-21: no fixed-width text containers). A
- * label longer than the cap wraps between words only.
- */
-.form {
+.form,
+.section {
   display: grid;
-  grid-template-columns: fit-content(9.5rem) minmax(0, 1fr);
   align-content: start;
-  gap: 16px 12px;
-}
-
-.form > *,
-.section > * {
-  grid-column: 1 / -1;
-}
-
-/* The first row and the unseen label measure (`LabelColumn`) share the first grid row, so
-   the measure takes no row and no gap of its own. */
-.form > :first-child {
-  grid-row: 1;
-}
-
-.form > .labelColumn {
-  display: grid;
-  grid-row: 1;
-  grid-column: 1;
-  height: 0;
-  overflow: hidden;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* A row: the label on the control's centre line, the control after it. */
-.row {
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: start;
-}
-
-.rowLabel,
-.disclosureLabel {
-  overflow-wrap: normal;
-  word-break: normal;
-  hyphens: manual;
-}
-
-.rowLabel {
-  display: flex;
-  align-items: center;
-  min-height: var(--control-h);
-  color: var(--text-secondary);
-  font-size: var(--control-text);
-  line-height: var(--control-lh);
-}
-
-/* The control column stacks what belongs to the row (Custom's fields, the link). */
-.rowBody {
-  display: grid;
-  gap: 8px;
+  gap: var(--space-5);
   min-width: 0;
 }
 
-/* A format's section fades in when the format changes (§4.7, 120 ms; instant when reduced). */
+/* A format's section fades in when the format changes (§4.7, --duration-fast; instant when
+   reduced). */
 .section {
-  display: grid;
-  grid-template-columns: subgrid;
-  row-gap: 16px;
-  animation: section-in 120ms var(--ease-out);
+  animation: section-in var(--duration-fast) var(--ease-out);
 }
 
 @keyframes section-in {
@@ -93,125 +38,37 @@
   animation: none;
 }
 
+/* A trailing control in a title · control row: one width, so a group's controls line up. */
+.control {
+  width: 232px;
+  max-width: 100%;
+}
+
+/* What belongs under a control in its row (Custom's fields, the signing identity). */
+.rowBody {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
 .pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-/* "What gets smaller ›" and the other quiet links under a control. */
+/* "Print (300 dpi)" and the other quiet buttons under a control: their text on the row's. */
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 8px;
-  margin-inline-start: -8px;
+  gap: var(--space-1) var(--space-2);
+  margin-inline-start: calc(-1 * var(--space-3));
 }
 
-/* A button that pushes a page ("What gets smaller ›", §4.2): the chevron is decoration. */
-.push [data-btn-label]::after {
-  content: '\00a0\203a' / '';
-}
-
-/* The disclosures: one bordered group of rows, label · value · chevron. */
-.disclosures,
-.disclosure {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  row-gap: 0;
-}
-
-.disclosures {
-  border-block: 1px solid var(--border-hairline);
-}
-
-.disclosure + .disclosure {
-  border-top: 1px solid var(--border-hairline);
-}
-
-.disclosureButton {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  align-items: center;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: var(--control-h);
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--control-text);
-  line-height: var(--control-lh);
-  text-align: start;
-  cursor: default;
-  -webkit-tap-highlight-color: transparent;
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .disclosureButton {
-    min-height: 44px;
-  }
-}
-
-@media (hover: hover) {
-  .disclosureButton:hover .disclosureValue {
-    color: var(--text-primary);
-  }
-}
-
-.disclosureLabel {
-  color: var(--text-secondary);
-}
-
-/* The value and the chevron share the control column. */
-.disclosureEnd {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.disclosureValue {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chevron {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  color: var(--text-tertiary);
-  transition: transform var(--duration-fast) var(--ease-out);
-}
-
-.disclosureButton[aria-expanded='true'] .chevron {
-  transform: rotate(90deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chevron {
-    transition: none;
-  }
-}
-
-:global(:root[data-motion='reduced']) .chevron {
-  transition: none;
-}
-
+/* An open disclosure's panel: the row after it, its controls stacked. */
 .disclosurePanel {
-  display: grid;
-  grid-column: 2;
-  gap: 8px;
-  min-width: 0;
-  padding: 0 0 12px;
-  animation: section-in 120ms var(--ease-out);
+  gap: var(--space-2);
+  animation: section-in var(--duration-fast) var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -222,6 +79,15 @@
 
 :global(:root[data-motion='reduced']) .disclosurePanel {
   animation: none;
+}
+
+/* Lines between groups (the text preview's notes) start on the rows' text edge. */
+.notes {
+  padding-inline: calc(var(--sheet-group-inset) + var(--sheet-row-pad) - var(--sheet-pad));
+}
+
+.notes:empty {
+  display: none;
 }
 
 /* An honest line under a control: the outcome, a hint. */
@@ -235,11 +101,11 @@
 /* A warning or info row (§4.4: signed document, repaired source). Colour is never alone. */
 .notice {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
+  grid-template-columns: var(--icon-sm) minmax(0, 1fr);
   align-items: start;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-control);
   background: var(--field-well);
   color: var(--text-primary);
@@ -261,7 +127,7 @@
 .noticeBody {
   display: grid;
   justify-items: start;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .error {
@@ -282,13 +148,6 @@
 }
 
 /* The Markdown preview: a solid, focusable, read-only well (§4.8). */
-.previewHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
 .preview {
   composes: technical from global;
   max-height: 240px;

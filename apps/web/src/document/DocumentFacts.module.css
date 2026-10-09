@@ -1,48 +1,13 @@
 /*
- * The facts grid of Document info (components/07-sheets.md S4 §2): labels in the footnote size
- * and the glass's secondary text, values in the body size, numbers tabular; then the honesty
- * badges (`ui/Badge` label pills, neutral), each with its explanation written beside it. Plain text on the sheet's own surface
- * (no glass in glass, quality-bar Q-4).
+ * The File group of Document info (components/07-sheets.md S4 §2; system-audit-2026-10 §3.6.1):
+ * the facts are SheetRow value rows; this sheet styles the group's last row, the honesty badges
+ * (`ui/Badge` label pills, neutral), each with its explanation written beside it in footnote and
+ * the secondary ink. Plain text on the group's well (no glass in glass, quality-bar Q-4).
  */
-.facts {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: baseline;
-  gap: 6px 16px;
-  margin: 0;
-}
-
-.grid dt {
-  color: var(--glass-text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--type-footnote-lh);
-}
-
-.grid dd {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  color: var(--text-primary);
-  font-size: var(--type-body);
-  line-height: var(--type-body-lh);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.numeric {
-  font-variant-numeric: tabular-nums;
-}
-
 .badges {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 8px 10px;
+  gap: var(--space-2) var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -61,7 +26,7 @@
 }
 
 .explanation {
-  color: var(--glass-text-secondary);
+  color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
 }
