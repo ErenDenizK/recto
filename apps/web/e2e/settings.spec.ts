@@ -88,7 +88,8 @@ test('a side sheet of 480 px from expanded up, a form sheet on the tablet, glass
   } else {
     await expect(panel).toHaveAttribute('data-presentation', 'side');
     expect(Math.round(box.width)).toBe(480);
-    expect(Math.round(viewport.width - (box.x + box.width))).toBe(8);
+    // --piece-inset from the trailing edge, like every floating piece (system audit §3.1).
+    expect(Math.round(viewport.width - (box.x + box.width))).toBe(16);
   }
   // The sections of 07 S3 that have settings today, in order.
   const headings = await panel.locator('h3').allTextContents();
@@ -176,7 +177,21 @@ test('search finds each row in English and Turkish, and says when nothing matche
     ).toBeFocused();
     await search.click();
   } else {
-    // A fine pointer starts in the search field.
+    // Opened by a pointer (the palette's row was clicked), the sheet itself takes focus, so no
+    // ring lights in the field (system audit §3.8, I-46).
+    await expect(panel).toBeFocused();
+    await expect(search).not.toBeFocused();
+    // Opened from the keyboard, a fine pointer starts in the search field, ready to type.
+    await page.keyboard.press('Escape');
+    await expect(panel).toHaveCount(0);
+    await page.keyboard.press('ControlOrMeta+k');
+    const input = page.getByRole('combobox').first();
+    await expect(input).toBeVisible();
+    await input.fill('Settings');
+    await expect(page.getByRole('option', { name: /^Settings…/ }).first()).toBeVisible();
+    await input.press('Enter');
+    await expect(panel).toBeVisible();
+    await rest(page);
     await expect(search).toBeFocused();
   }
 
