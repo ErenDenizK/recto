@@ -11,8 +11,9 @@
  * as `{ code, data }` bytes from `OcrPackStore` (which needs the carried one-token worker
  * patch). LSTM only (`oem 1`), no `rotateAuto`.
  *
- * A pool of one or two recognizers (two when `hardwareConcurrency ≥ 4`: 1.65× on 4 vCPU,
- * ~+100 MiB), reused across pages and terminated after 60 s idle. tesseract.js cannot abort
+ * A pool of one to four recognizers (`ocrPoolSize`, docs/plan/v1/PLAN.md PF-10: two when
+ * `hardwareConcurrency ≥ 4`, 1.65× on 4 vCPU, ~+100 MiB; up to four on devices that report
+ * 8 GB of memory), reused across pages and terminated after 60 s idle. tesseract.js cannot abort
  * a job, so a page that exceeds its time budget (30 s) or a cancelled call terminates its
  * recognizer; the next call starts a fresh one. A timed-out page is `poor` with no words.
  */
@@ -51,6 +52,48 @@ const SIMD = new Uint8Array([
 
 export type OcrCoreVariant = 'relaxedsimd-lstm' | 'simd-lstm' | 'lstm';
 
+/** The most recognizers a pool runs (each holds tens of MB plus its language packs). */
+export const OCR_MAX_POOL_SIZE = 4;
+
+/** What `ocrPoolSize` reads from the browser; each field is absent where it is not reported. */
+export interface OcrPoolEnvironment {
+  /** `navigator.hardwareConcurrency`. */
+  readonly cores?: number;
+  /** `navigator.deviceMemory` in GB (Chromium only, capped at 8). */
+  readonly deviceMemory?: number;
+  /** WebKit (Safari, every iOS browser): no memory report and a tight per-tab memory ceiling. */
+  readonly webkit?: boolean;
+}
+
+/** The current browser's `OcrPoolEnvironment`. */
+export function ocrPoolEnvironment(): OcrPoolEnvironment {
+  const nav = (globalThis as { navigator?: Partial<Navigator> & { deviceMemory?: number } })
+    .navigator;
+  const userAgent = nav?.userAgent ?? '';
+  return {
+    ...(typeof nav?.hardwareConcurrency === 'number' ? { cores: nav.hardwareConcurrency } : {}),
+    ...(typeof nav?.deviceMemory === 'number' ? { deviceMemory: nav.deviceMemory } : {}),
+    // Chromium's user agent names AppleWebKit too; only it says Chrome or Chromium.
+    webkit: userAgent.includes('AppleWebKit') && !/Chrome\/|Chromium\//.test(userAgent),
+  };
+}
+
+/**
+ * Recognizers to run in parallel (docs/plan/v1/PLAN.md PF-10): `min(4, cores / 2)` only where
+ * `navigator.deviceMemory` reports at least 8 GB and the engine is not WebKit; otherwise the
+ * earlier rule, two when there are at least 4 cores, else one. Each page is recognised on its
+ * own, so the pool size never changes the recognised text (recognize.test.ts).
+ */
+export function ocrPoolSize(environment: OcrPoolEnvironment = ocrPoolEnvironment()): number {
+  const cores = environment.cores ?? 1;
+  const roomy =
+    environment.webkit !== true &&
+    environment.deviceMemory !== undefined &&
+    environment.deviceMemory >= 8;
+  if (roomy) return Math.max(1, Math.min(OCR_MAX_POOL_SIZE, Math.floor(cores / 2)));
+  return cores >= 4 ? 2 : 1;
+}
+
 /** The core this browser gets. */
 export function ocrCoreVariant(): OcrCoreVariant {
   if (WebAssembly.validate(RELAXED_SIMD)) return 'relaxedsimd-lstm';
@@ -68,7 +111,7 @@ export interface TesseractRecognizerOptions {
   readonly baseUrl: string;
   /** The pack loader; default a new `OcrPackStore` on `baseUrl`. */
   readonly packs?: OcrPackStore;
-  /** Recognizers run in parallel: default 2 when `hardwareConcurrency ≥ 4`, else 1. */
+  /** Recognizers run in parallel, 1 to `OCR_MAX_POOL_SIZE`: default `ocrPoolSize()`. */
   readonly poolSize?: number;
   readonly pageTimeoutMs?: number;
   readonly idleMs?: number;
@@ -133,9 +176,7 @@ class TesseractRecognizer implements OcrRecognizer {
 
   constructor(options: TesseractRecognizerOptions) {
     this.packs = options.packs ?? new OcrPackStore({ baseUrl: options.baseUrl });
-    const cores = (globalThis as { navigator?: { hardwareConcurrency?: number } }).navigator
-      ?.hardwareConcurrency;
-    this.poolSize = Math.max(1, Math.min(2, options.poolSize ?? ((cores ?? 1) >= 4 ? 2 : 1)));
+    this.poolSize = Math.max(1, Math.min(OCR_MAX_POOL_SIZE, options.poolSize ?? ocrPoolSize()));
     this.pageTimeoutMs = options.pageTimeoutMs ?? OCR_PAGE_TIMEOUT_MS;
     this.idleMs = options.idleMs ?? OCR_IDLE_MS;
     this.minWordConfidence = options.minWordConfidence ?? OCR_MIN_WORD_CONFIDENCE;
