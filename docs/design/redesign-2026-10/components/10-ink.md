@@ -10,13 +10,20 @@ The owner, 2026-10-04 (in translation): "Think extra about the colour and size p
 pen; in every version it has been inadequate. Every colour option and slider must be extremely
 modern and Apple-like. Every UI element, menu and bar must be consistent."
 
+**Owner feedback G8 (2026-10-09)** on the palette and its strip: "repeat?" (the dock's pens and
+the strip's swatches showed the same colours), "inconsistent" (the strip and the dock), "too
+big?" (the dock), "improve overall design". The owner's answer: the pens stay in the dock; the
+strip shows only the armed pen's colour and width, like Apple Notes. §2.1, §2.2, §2.3 and §5
+below carry it.
+
 ## 0. Summary
 
 - **Colour and size are never more than one press away.**
-  - The armed pen's **ink strip** shows a colour well, six swatches and a width slider with a live
-    preview.
-  - From large (≥ 1200 px) the strip sits inline in the palette. Below that it is a second row of
-    the same capsule.
+  - The armed pen's **ink strip** shows its colour well, up to four of that pen's recent colours
+    and a width slider with a live preview (G8). The pens themselves are the dock's, never
+    repeated in the strip.
+  - The strip is its own small glass piece above the palette (§2.2), the palette's twin in
+    material, height, radius, sizes and spacing.
   - There is no summary chip and no hidden tier.
 - **One Slider for the whole app.**
   - The track is a pill: 6 px fine, 8 px coarse.
@@ -51,32 +58,40 @@ modern and Apple-like. Every UI element, menu and bar must be consistent."
 ### 2.1 Anatomy
 
 ```
-large and up, inline after the tools, behind a 1 px divider:
-  … tools … │ ◉  ● ● ● ● ● ●  │  ╺━━━━━━━●━━━━━━━━━━╸  1.5 pt │
-
-medium and expanded, a second row inside the same capsule (one glass element, one σ):
-  ┌───────────────────────────────────────────────────────┐
-  │ ◉  ● ● ● ● ● ●  │  ╺━━━━━━━●━━━━━━━━━━╸  1.5 pt          │  ink strip
-  │ ↖  ✎ ✎ ✎ ▬  ⌫  T  ◻ ▾  ✍ ▾  +           │  Done          │  tools
-  └───────────────────────────────────────────────────────┘
+its own piece, centred 8 px above the palette (G8):
+            ╭──────────────────────────────────────────╮
+            │ ◉  ● ● ●  │  ╺━━━━━━━●━━━━━━━━━━╸  1.5 pt │    ink strip: the armed pen
+            ╰──────────────────────────────────────────╯
+  ╭───────────────────────────────────────────────────────────────╮
+  │ ✓ Done │ ↖ │ ● (●) ● ◆  ⌫ ◌ │ ◻▾ T □ ▣ ◈▾ │ ✍ Sign▾ ‹ 3 › … │ + │    palette: the pens live here
+  ╰───────────────────────────────────────────────────────────────╯
 ```
 
-- **◉ Colour well.** A 24 px disc of the current colour inside a 2 px conic hue ring (fine; 28 /
-  3 px coarse) in a 32 / 44 target. It opens the colour panel (§4). A custom colour shows in the
-  disc. The ring is the only rainbow in Recto, and it marks "more colours".
-- **Swatches, six.** For a pen: black, blue, red, green, purple, then the **last custom colour**,
-  or orange while there is none. For the Highlighter: the four tints, the last custom tint, then
-  a 50 % grey. For shapes: the pen six plus ⊘ (no fill) in the fill row of the panel. Swatches
-  are 18 px dots (fine) or 22 px (coarse) in 32 / 44 targets (§5).
-- **Width slider.** Tapered track (§3.3), 160 px fine, 200 px coarse. The readout is `tnum`,
-  13 / 18 px, in locale numerals ("1.5 pt", "1,5 pt").
+- **◉ Colour well.** The armed tool's colour: a disc inside a conic hue ring, drawn at the
+  palette's control size (30 px fine: disc 22, gap 2, ring 2; 40 px coarse: disc 30, gap 2,
+  ring 3) in a 32 / 44 target. It opens the colour panel (§4); a custom colour shows in the
+  disc. The ring is the only rainbow in Recto, and it marks "more colours". Its name says the
+  colour ("Colour: Blue").
+- **Recent colours, at most four** (G8; `markup/ink-recents.ts`). The colours this tool had
+  before, newest first, never its current one (the well and the dock's dot show that). Each pen
+  preset keeps its own list (the Highlighter too), and so do the text box, the note and the
+  shapes; the lists persist per device under `pdf-editor:ui:ink-recents:v1`. A colour enters a
+  list when the tool leaves it: the panel commits another colour (its 600 ms pause or its close)
+  or a recent is picked. A pen that never changed colour shows none: the strip is its well and
+  its width. A text box, a note and the shapes have no pens in the dock, so after their recents
+  their own palette (the first entries of the preset editor's swatches) fills the row to four.
+  There is no fixed swatch row: it repeated the dock's pens ("repeat?"). Recents are 16 px dots
+  (fine) or 18 px (coarse), the largest pen dot's size, in 32 / 44 targets (§5).
+- **Width slider.** Tapered track (§3.3), about 144 px fine and 176 px coarse beside the
+  readout. The readout is `tnum`, 13 / 15 px, in locale numerals ("1.5 pt", "1,5 pt"), 8 px in
+  from the piece's round end.
 - **Opacity** is not in the strip. Pens are opaque by default. Opacity lives in the panel and
   the preset editor, and the strip's knob shows it.
 - **Per tool.**
-  - Highlighter: tints and width, 6–18 pt.
+  - Highlighter: its colour (well and recents) and width, 6–18 pt.
   - Eraser: the strip becomes [Whole stroke · Partial] and the size slider (6–48 px, detents 6 ·
     12 · 24 · 48).
-  - Text box: colour and a font-size stepper.
+  - Text box: colour (well, recents, its palette) and a font-size stepper.
   - Note: colour.
   - Shapes: stroke colour and width, with fill in the panel.
   - Tools without options (Select, Lasso, Image, Stamp, Sign, field kinds, Edit text, Redact) have
@@ -91,6 +106,29 @@ medium and expanded, a second row inside the same capsule (one glass element, on
   inside it (Q-4), and counts with the capsule as Q-11's dock. It rises in (opacity and 6 px on
   `--spring-smooth`) when a tool with options arms and drops out when the strip goes; between
   tools it morphs its own width. Reduced motion: the fade alone, within 150 ms.
+- **One family with the palette** (G8, "inconsistent", "too big?"). The palette and the strip
+  share one set of sizes, written as `--palette-*` custom properties on the capsule, the
+  palette's content and the strip piece (`markup/MarkupPalette.module.css`), to be mapped onto
+  the shared piece-size tokens of G1:
+
+  | Property | Fine | Coarse | What |
+  |---|---|---|---|
+  | `--palette-h` | 44 | 56 | piece height (today `--bar-h`; G1's smaller height lands here) |
+  | `--palette-radius` | 22 | 28 | the pill, half the height |
+  | `--palette-inset` | 5 | 5 | the row's inset inside the 1 px rim |
+  | `--palette-hit` | 32 | 44 | a control's box, its hit area (`--bar-button`) |
+  | `--palette-control` | 30 | 40 | the fill a control draws inside its box |
+  | `--palette-icon` | 20 | 20 | glyphs |
+  | `--palette-ring` | 24 | 30 | the armed pen's ring |
+  | `--palette-dot` | 16 | 18 | a recent colour's dot |
+  | `--palette-gap` | 2 | 0 | between controls (hit areas abut on coarse pointers) |
+  | `--palette-sep-h`, `-m` | 16, 5 | 20, 6 | the hairline between groups and its margins |
+
+  Every control draws its fill inside its hit box (a transparent border with
+  `background-clip: padding-box`), so the tools, Done, Sign, the stepper and the pen cells read
+  lighter while a coarse target keeps 44 px. The height itself stays the bar's until G1: it
+  moves with the dock's shape of the same capsule (a morph keeps its height), the page pill's
+  centre line and the glass's σ (A-2: σ 9 at 40 px covers only 0.974).
 - **The capsule's maximum width** is the free rectangle less 32 px. When the inline strip does not
   fit, the second row is used; the fold is measured, never guessed (03.9).
 - **No label text inside the strip.** Accessible names carry the meaning, and tooltips name each
@@ -100,13 +138,35 @@ medium and expanded, a second row inside the same capsule (one glass element, on
 
 - Arming a tool with options shows its strip, and the content cross-fades between tools. Select
   or disarm hides it.
-- **A swatch press** sets the armed preset's colour. With a selection, it sets the selection's
-  colour as one history step (`applyStyle`'s rule: the selection wins).
+- **A recent's press** sets the armed preset's colour, and the colour it had becomes the first
+  recent. With a selection, it sets the selection's colour as one history step (`applyStyle`'s
+  rule: the selection wins).
+- **The panel** applies live: the armed pen's dot in the dock and the well follow every change
+  (the preset in the store), and the commit writes the recents.
+- **Another pen** is one press in the dock, never in the strip (G8).
 - **The slider** previews live: the next stroke preview and the selection's appearance follow
   the knob. It commits on release: one step, or one preset write.
 - **During a stroke** the whole palette, strip included, fades to 20 % (MK-17).
-- **Keyboard:** Tab from the tools enters the strip, the swatches form one radio stop, and `[`
+- **Keyboard:** Tab from the tools enters the strip, the recents form one radio stop, and `[`
   and `]` step the width by one detent while a pen is armed (key map v2).
+
+### 2.4 The palette's details (G8, "improve overall design")
+
+- **Pens.** The three pens and the Highlighter are plain cells in the Draw group, with the
+  palette's gap between them and no grey well behind them (it read as one more piece inside the
+  bar). The armed pen's ring is `--palette-ring`, a 2 px ring in the primary text colour, the same
+  form as a chosen swatch (§5).
+- **The Highlighter's mark** is a chisel tip: an 8 × 14 px (9 × 16 coarse) rounded bar of its
+  tint, slanted 45°, inside the pens' footprint. The 20 × 8 px capsule read as a toggle.
+- **Dividers** are 1 px hairlines of `--palette-sep-h` (16 / 20 px, shorter than the 20 / 28
+  they replace), so they group without fencing.
+- **Sign ▾.** A labelled choice keeps its caret at the label's cap height, 3 px after it, not
+  at the pill's far corner.
+- **Field stepper.** ‹ readout › is one unit: 16 px carets, no padding round the readout, 4 px
+  of air after Sign.
+- **Lasso and Edit text** keep their outline glyph when armed: Phosphor's fill twins of
+  `lasso` and `cursor-text` are the glyph cut out of a filled square, which read as a different
+  icon on the armed fill (`tools/icons/manifest.json`).
 
 ## 3. Slider (replaces `09-primitives` §10)
 
@@ -289,6 +349,8 @@ uses the `ui/Popover` primitive, the same as every popover (Q-9).
 
 - **Dot:** 18 px fine, 22 px coarse, in a 32 / 44 target. Content colour with a 1 px inner ring
   (white 0.55 in dark, ink 0.55 in light) so black reads on dark glass and white on light glass.
+- **In the ink strip** the recents are never selected (the current colour is the well's, G8);
+  the selected form below serves the preset editor, the panel's rows and the annotation bar.
 - **Selected:** the dot shrinks to 14 / 18 px inside a 2 px ring in the primary text colour (n12),
   with a 2 px gap: the armed pen's ring in the palette's pen well, so the tool row and the strip
   mark a chosen colour alike, never lime. (Owner feedback F3, 2026-10: a ring of the colour itself
