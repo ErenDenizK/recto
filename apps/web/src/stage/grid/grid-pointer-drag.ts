@@ -12,10 +12,13 @@
  *   lifting never selects. The guard asks `canChange(id, 'pages')` at the lift: a locked
  *   document lifts nothing, says why, and shows the Lock notice at the cell (§2.3 Locked).
  * - **Feedback:** the source cells dim (`data-dragging`), a preview (the thumbnail, up to two
- *   offset sheets and a count) follows the finger, the 2 px gap bar shows where it lands (the
+ *   offset sheets and a count) follows the finger, lifted to 1.04 and leaning into the drag
+ *   (`lift.ts`), with the other selected pages gathering under it, the 2 px gap bar shows where it lands (the
  *   same `DropHighlight` the mouse drives), the edges scroll by depth, and a collapsed section
  *   opens after 600 ms; an Android haptic on lift and drop (L§8).
- * - **Drop:** one move (`transferPages`), one undo step, announced; a move into another document
+ * - **Drop:** the pages settle from the preview's place into their slots (`noteDropOrigin`);
+ *   a cancel, or a drop where nothing lands, flies the preview back to its cell. One move
+ *   (`transferPages`), one undo step, announced; a move into another document
  *   also gets the Undo toast (06.24). A second finger (a pinch wins), `pointercancel` or Esc
  *   cancel. Touch has no tab drop (no tabs on compact; Move to ▾ instead).
  */
@@ -40,7 +43,10 @@ import { useUiStore } from '../../state/ui-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { toast } from '../../ui/Toast/toast';
 import type { ShownSection } from '../arrange-data';
+import { playCells } from './flip-cells';
+import { noteDropOrigin, type SheetSnapshot, snapshotSheets } from './cell-motion';
 import { showGridLockNotice } from './grid-lock-notice';
+import { type Lift, lift } from './lift';
 
 const EXPAND_DELAY_MS = 600;
 
@@ -64,8 +70,10 @@ export function attachGridPointerDrag(
 ): () => void {
   let drag: {
     pageIds: PageId[];
-    preview: HTMLElement;
-    grab: { x: number; y: number };
+    lift: Lift;
+    /** The lifted cell's box and its page's box at the lift (client px). */
+    cell: DOMRect;
+    sheet: DOMRect;
     target: { document: DocumentId; index: number } | null;
     pointer: { x: number; y: number };
     frame: number;
@@ -103,7 +111,7 @@ export function attachGridPointerDrag(
   const update = (x: number, y: number) => {
     if (!drag) return;
     drag.pointer = { x, y };
-    drag.preview.style.transform = `translate(${Math.round(x - drag.grab.x)}px, ${Math.round(y - drag.grab.y)}px)`;
+    drag.lift.move(x, y, performance.now());
     const found = targetAt(x, y);
     drag.target = found ? { document: found.highlight.section, index: found.index } : null;
     setDropHighlight(found?.highlight ?? null);
@@ -129,14 +137,17 @@ export function attachGridPointerDrag(
       viewport.scrollTop += speed;
       update(drag.pointer.x, drag.pointer.y);
     }
+    drag.lift.frame();
     drag.frame = requestAnimationFrame(tick);
   };
 
-  const finish = () => {
+  /** Ends the drag; the preview flies back to its cell unless `landed`. */
+  const finish = (landed = false) => {
     if (!drag) return;
     cancelAnimationFrame(drag.frame);
     window.clearTimeout(drag.hoverTimer);
-    drag.preview.remove();
+    if (landed) drag.lift.remove();
+    else void drag.lift.back(drag.sheet);
     drag = null;
     setDropHighlight(null);
     setDragSession(null);
@@ -180,10 +191,14 @@ export function attachGridPointerDrag(
       });
       renderDragPreview(preview, sheet, pageIds.length);
       document.body.append(preview);
+      // The other selected pages on screen gather under the finger (lift.ts).
+      const others: SheetSnapshot[] = snapshotSheets(pageIds.filter((page) => page !== id));
+      const grab = { x: start.clientX - rect.left, y: start.clientY - rect.top };
       drag = {
         pageIds,
-        preview,
-        grab: { x: start.clientX - rect.left, y: start.clientY - rect.top },
+        lift: lift(preview, grab, e.clientX, e.clientY, others),
+        cell: cell.getBoundingClientRect(),
+        sheet: rect,
         target: null,
         pointer: { x: e.clientX, y: e.clientY },
         frame: requestAnimationFrame(tick),
@@ -201,7 +216,15 @@ export function attachGridPointerDrag(
       if (!drag) return;
       update(e.clientX, e.clientY);
       const { pageIds, target } = drag;
-      finish();
+      // The pages settle from where the preview is: the lifted cell's box, moved as its page was.
+      const page = drag.lift.box();
+      const origin = new DOMRect(
+        drag.cell.left + page.left - drag.sheet.left,
+        drag.cell.top + page.top - drag.sheet.top,
+        drag.cell.width,
+        drag.cell.height,
+      );
+      finish(target !== null);
       if (!target) return;
       const ws = useWorkspaceStore.getState().workspace;
       const from = pageIds
@@ -214,8 +237,13 @@ export function attachGridPointerDrag(
         announce(refusalReason(refusal));
         return;
       }
+      noteDropOrigin(pageIds, origin);
       const result = transferPages({ pageIds, target, duplicate: false, select: false });
-      if (result === undefined) return;
+      // Dropped where it was: nothing reflows, so the pages settle back from the preview here.
+      if (result === undefined) {
+        playCells(table, new Map());
+        return;
+      }
       haptic();
       if (from !== undefined && from !== target.document) {
         const title = useWorkspaceStore.getState().workspace.documents[target.document]?.title;
@@ -225,10 +253,10 @@ export function attachGridPointerDrag(
         });
       }
     },
-    onCancel: finish,
+    onCancel: () => finish(),
   });
   return () => {
-    finish();
+    finish(true);
     removeDrag();
   };
 }

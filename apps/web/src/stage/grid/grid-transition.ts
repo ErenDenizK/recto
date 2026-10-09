@@ -29,6 +29,12 @@
  *   (the update and the new view's first rendering ran before the morph could start), so the
  *   cell sat still, then jumped; now the update only reveals a view that is already drawn.
  *
+ * - **The other cells cascade** (`cell-motion.ts`, docs/design/motion-2026-10/pages.md): on the
+ *   way in they fade and grow in from the current page outward, 150 ms in all, inside the
+ *   transition's live new view; on the way out they go the other way while the page view
+ *   prepares, the farthest first, so the grid gathers into the page that then grows out of its
+ *   cell. A pinch out of the grid leaves the same way (`pinch-in-grid.tsx`).
+ *
  * Reduced motion keeps the transition but strips every name (`styles/motion.css`): a root
  * cross-fade cut at 150 ms. Size steps and scope switches never come here (A-10).
  */
@@ -44,6 +50,7 @@ import { stageView, useUiStore } from '../../state/ui-store';
 import { useViewStore } from '../../state/view-store';
 import { pagesPhrase, useWorkspaceStore } from '../../state/workspace-store';
 import { pageIndexes } from '../arrange-data';
+import { cascadeIn, cascadeOut } from './cell-motion';
 import './grid-transition.css';
 
 /** The shared element's name on both sides (PG1 §7). */
@@ -317,6 +324,7 @@ export function enterGrid(options: { readonly page?: PageId } = {}): void {
     () => (page === undefined ? null : cellSheet(page)),
     () => {
       if (page !== undefined) gridCell(page)?.focus({ preventScroll: true });
+      cascadeIn(page);
     },
   );
   announce(
@@ -368,6 +376,8 @@ export function leaveGrid(options: { readonly page?: PageId } = {}): void {
     out();
   } else {
     setPrepared(id);
+    // The grid gathers into the page while the page view prepares (module header).
+    const gathered = cascadeOut(page);
     void (async () => {
       // The page view mounts (hidden) on the next render; then it scrolls to the page.
       await nextFrame();
@@ -378,6 +388,7 @@ export function leaveGrid(options: { readonly page?: PageId } = {}): void {
       // Left meanwhile (another view, the document closed): the hidden view goes.
       if (prepared !== id || stageView(useUiStore.getState()) !== 'grid') {
         setPrepared(null);
+        gathered();
         return;
       }
       out();

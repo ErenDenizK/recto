@@ -7,7 +7,7 @@
  * Dragging a selected page drags the whole selection; dragging an unselected page drags it
  * alone, and lifting never selects (§2.4). The native drag preview is built with plain DOM (no
  * React root) so drag start stays well under the 50 ms budget: a copy of the first thumbnail's
- * canvas, stacked sheets and a count badge when more than one page moves, scaled to 0.96
+ * canvas, stacked sheets and a count badge when more than one page moves, lifted to 1.04
  * and at 0.9 opacity (no scaling with reduced motion).
  */
 import { draggable } from '@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter';
