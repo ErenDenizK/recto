@@ -124,7 +124,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     minWidth: 160,
     minHeight: 44,
     smallest:
-      '--bar-h, 44 px fine (56 coarse), hugging its content: the narrowest strip is its colours row (four 32 px swatches and the well, 44 px targets coarse) in 5 px of padding and the 1 px rim',
+      '--bar-h, 44 px fine (56 coarse), hugging its content: the narrowest strip is the colours of a note (the well and four colours in 32 px targets, 44 px coarse; G8) in 5 px of padding and the 1 px rim',
   },
   {
     id: 'read-selection-bar',

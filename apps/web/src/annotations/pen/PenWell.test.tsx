@@ -81,7 +81,7 @@ describe('pen well', () => {
     resetPenSession();
   });
 
-  it('shows four ink dots of their real colour, sized by width, the highlighter a capsule', () => {
+  it('shows four ink dots of their real colour, sized by width, the highlighter a chisel tip', () => {
     render(<Harness />);
     expect(cells().map((r) => r.getAttribute('aria-label'))).toEqual([
       'Black pen, 1.5 pt',
@@ -97,12 +97,10 @@ describe('pen well', () => {
       // The Highlighter: its tint at full opacity (craft spec §5.4).
       'rgb(255, 234, 0)',
     ]);
-    expect(marks.map((mark) => Math.round(mark.getBoundingClientRect().height))).toEqual([
-      13, 13, 13, 8,
-    ]);
-    // The Highlighter: a 20 × 8 px capsule (MK-6 §2).
-    expect(Math.round(marks[3]?.getBoundingClientRect().width ?? 0)).toBe(20);
-    expect(marks[3]?.dataset.shape).toBe('capsule');
+    expect(marks.slice(0, 3).map((mark) => Math.round(mark.offsetHeight))).toEqual([13, 13, 13]);
+    // The Highlighter: an 8 × 14 px chisel tip, slanted 45° (owner feedback G8).
+    expect([marks[3]?.offsetWidth, marks[3]?.offsetHeight]).toEqual([8, 14]);
+    expect(marks[3]?.dataset.shape).toBe('chisel');
     // Toolbar buttons with aria-pressed (one arrow path for the palette); nothing armed yet.
     expect(cells().map((c) => c.getAttribute('aria-pressed'))).toEqual([
       'false',

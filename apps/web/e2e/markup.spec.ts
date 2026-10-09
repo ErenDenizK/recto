@@ -87,22 +87,21 @@ for (const size of ['large', 'tablet'] as const) {
       const job = presses();
       await job.click(page.locator('[data-dock-item="markup"]'));
       await job.click(palette(page).getByRole('button', { name: 'Black pen, 1.5 pt' }));
-      // The ink strip shows from arming: the colours and the width, one press each.
+      // The ink strip shows from arming: the armed pen's colour well and its width (G8: the
+      // pens are the dock's, the strip does not repeat them).
       const strip = page.getByRole('toolbar', { name: 'Pen options' });
       await expect(strip).toBeVisible();
-      await expect(strip.getByRole('radio', { name: 'Red' })).toBeVisible();
+      await expect(strip.getByRole('button', { name: 'Colour: Black' })).toBeVisible();
       await expect(strip.getByRole('slider', { name: 'Width' })).toBeAttached();
       await job.run(() => stroke(page, [0.2, 0.3], [0.4, 0.32]));
       await expect(inks).toHaveCount(1, { timeout: 10_000 });
-      await job.click(strip.getByRole('radio', { name: 'Red' }));
+      // Another colour is one press: the red pen in the dock.
+      await job.click(palette(page).getByRole('button', { name: 'Red pen, 2 pt' }));
       await job.run(() => stroke(page, [0.2, 0.45], [0.4, 0.47]));
       await expect(inks).toHaveCount(2, { timeout: 10_000 });
       expect(job.count).toBe(5);
-      // Two colours: the armed pen is red now.
-      await expect(strip.getByRole('radio', { name: 'Red' })).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
+      // Two colours: the strip shows the red pen now.
+      await expect(strip.getByRole('button', { name: 'Colour: Red' })).toBeVisible();
       // The width is one press too: a step of the width slider changes the armed pen.
       const width = strip.getByRole('slider', { name: 'Width' });
       const before = await width.getAttribute('aria-valuetext');
@@ -119,15 +118,15 @@ for (const size of ['large', 'tablet'] as const) {
       await expect(layer(page)).toHaveAttribute('data-tool', 'ink');
       await job.run(() => stroke(page, [0.2, 0.3], [0.4, 0.32]));
       await expect(inks).toHaveCount(1, { timeout: 10_000 });
-      const strip = page.getByRole('toolbar', { name: 'Pen options' });
-      await job.click(strip.getByRole('radio', { name: 'Red' }));
+      // Red is the dock's red pen (G8: the strip shows the armed pen, not the pens again).
+      await job.click(palette(page).getByRole('button', { name: 'Red pen, 2 pt' }));
       await job.run(() => stroke(page, [0.2, 0.45], [0.4, 0.47]));
       await expect(inks).toHaveCount(2, { timeout: 10_000 });
       expect(job.count).toBe(4);
-      // P again arms the next pen.
+      // P again arms the next pen after the last one used.
       await page.locator('[data-annotation-layer="0"]').hover();
       await page.keyboard.press('p');
-      await expect(palette(page).getByRole('button', { name: /^Blue pen/ })).toHaveAttribute(
+      await expect(palette(page).getByRole('button', { name: /^Black pen/ })).toHaveAttribute(
         'aria-pressed',
         'true',
       );
