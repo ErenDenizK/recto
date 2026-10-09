@@ -72,6 +72,7 @@ export function Checkbox({
             <svg className={styles.check} viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
                 d="M3.5 8.25 6.5 11.25 12.5 4.75"
+                pathLength={1}
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"

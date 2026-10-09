@@ -8,6 +8,12 @@
  * - Centred dialog and form sheet: *dialog* centre, `scale(0.96)` and opacity on `quick`. Side
  *   sheet: *dialog* side, 24 px and opacity on `smooth`. Bottom and full sheets: *sheet*, from
  *   below on `glide`, or `fling` when a release is faster than 300 px/s.
+ * - From a control (motion-2026-10/platform.md §1): a side or bottom sheet opened by a press on
+ *   a control comes out of it (the panel laid over the control at a uniform scale, centres
+ *   met, fading in) and settles into its edge on `smooth`; it closes back into that control
+ *   (a menu item's menu trigger) while it is on screen, whole for 120 ms and then fading,
+ *   and the control takes it in with the *receive* pulse. Otherwise, or when a swipe throws
+ *   it, it leaves by its edge as above.
  * - A swipe (bottom sheets down, a compact-height side sheet right) follows the pointer 1:1,
  *   with the rubber band past the tallest detent; the release hands its velocity to the spring
  *   (Q-7), projects with r 0.998 and snaps to a detent or closes (`releaseTarget`).
@@ -27,12 +33,14 @@ import {
   animateStyle,
   type Motion,
   project,
+  receivePulse,
   reducedMotion,
   rubberBand,
   type SpringName,
   velocityTracker,
   type VelocityTracker,
 } from '../../motion';
+import { onScreen, type PressOrigin } from '../press-origin';
 import { detentOffsets, FLING_SPEED, releaseTarget, type SheetLayout } from './presentation';
 
 /** How far below the window a bottom sheet's panel reaches, so an upward pull shows no gap. */
@@ -43,12 +51,25 @@ const SIDE_SHIFT = 24;
 const DIALOG_SCALE = 0.96;
 /** A press that moves this far along the swipe axis becomes a drag. */
 const DRAG_SLOP = 6;
+/** A panel coming out of a control starts at least this big (a whole sheet in a 32 px dot
+ * would be a speck). */
+const ORIGIN_MIN_SCALE = 0.08;
+/** Going back into its control, the panel stays whole this long, then fades on `quick`. */
+const RETURN_FADE_DELAY_MS = 120;
 
 type Vec = readonly [x: number, y: number, scale: number];
+
+/** The control a sheet came out of: its rect at the press, and where the sheet returns. */
+export type SheetOrigin = Pick<PressOrigin, 'rect' | 'returnTo'>;
 
 export interface SheetMotion {
   /** The panel to move; null when it unmounts. */
   attach(el: HTMLElement | null): void;
+  /**
+   * The control that opened the sheet, if any (platform.md §1): a side or bottom sheet comes
+   * out of it, settling into its edge on `smooth`, and goes back into it while it is on screen.
+   */
+  setOrigin(origin: SheetOrigin | null): void;
   /** The layout it presents now (a size-class change re-presents at once, 07 §2.6). */
   setLayout(layout: SheetLayout): void;
   /** Opens from the entering position, or retargets from wherever an exit had got to. */
@@ -107,6 +128,33 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
   /** Swallow the click that ends a drag. */
   let swallowClick = false;
   let open = false;
+  /** The control that opened the sheet (platform.md §1), for a side or bottom sheet. */
+  let origin: SheetOrigin | null = null;
+  /** The return's fade waits for the panel to shrink part of the way. */
+  let fadeLater: ReturnType<typeof setTimeout> | undefined;
+  /** Whether the panel is on its way into the control (it pulses when it gets there). */
+  let returning: HTMLElement | null = null;
+
+  /** Does the panel come out of (and go back into) a control? */
+  const fromControl = (): SheetOrigin | null =>
+    presentation() === 'side' || presentation() === 'bottom' ? origin : null;
+
+  /**
+   * The transform that lays the panel's box over `rect`: the centres meet, and a uniform scale
+   * (never a squash) makes the panel just cover the control. The panel scales about its centre.
+   */
+  const over = (rect: DOMRect): Vec | null => {
+    if (!el || rect.width === 0) return null;
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    if (w === 0 || h === 0) return null;
+    const s = Math.min(1, Math.max(ORIGIN_MIN_SCALE, rect.width / w, rect.height / h));
+    return [
+      rect.left + rect.width / 2 - (el.offsetLeft + w / 2),
+      rect.top + rect.height / 2 - (el.offsetTop + h / 2),
+      s,
+    ];
+  };
 
   const presentation = () => layout?.presentation ?? 'dialog';
   const axis = (): 'x' | 'y' => (layout?.swipe === 'right' ? 'x' : 'y');
@@ -183,7 +231,13 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
    * Moves the transform to `to` from where it is (or `from` when at rest), carrying the running
    * velocity or `velocity` (px/s along the axis). `keep` leaves the target inline (the exit).
    */
-  const moveTo = (to: Vec, from: Vec, velocity: number | undefined, keep: boolean) => {
+  const moveTo = (
+    to: Vec,
+    from: Vec,
+    velocity: number | undefined,
+    keep: boolean,
+    spring?: SpringName,
+  ) => {
     if (!el) return;
     const stopped = stopTransform();
     const start = stopped?.value ?? from;
@@ -194,7 +248,7 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
           ? [velocity, 0, 0]
           : [0, velocity, 0];
     const run = animateStyle(el, 'transform', start, to, {
-      spring: springOf(velocity ?? along(v)),
+      spring: spring ?? springOf(velocity ?? along(v)),
       velocity: v,
       keep,
     });
@@ -206,6 +260,7 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
 
   const fadeTo = (to: number, keep: boolean) => {
     if (!el) return;
+    clearTimeout(fadeLater);
     const stopped = opacity?.stop();
     opacity = null;
     const from = stopped?.value ?? (to === 1 ? 0 : 1);
@@ -257,16 +312,29 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
       detent = 0;
       settleRest();
     },
+    setOrigin(next) {
+      origin = next;
+    },
     enter() {
       if (!el) return;
       open = true;
+      returning = null;
       const resting = !transform && !opacity;
       detent = 0;
       settleRest();
-      const from = outside();
+      // Out of the control that opened it (platform.md §1), else from its edge.
+      const control = fromControl();
+      const emerge = resting && control && !reducedMotion() ? over(control.rect) : null;
+      const from = emerge ?? outside();
       // A sheet reopened mid-exit turns back from where it is, with its speed.
-      moveTo(restVec(), resting ? from : restVec(), undefined, false);
-      if (fades()) fadeTo(1, false);
+      moveTo(
+        restVec(),
+        resting ? from : restVec(),
+        undefined,
+        false,
+        emerge ? 'smooth' : undefined,
+      );
+      if (fades() || emerge) fadeTo(1, false);
       else if (opacity) fadeTo(1, false);
     },
     exit() {
@@ -278,8 +346,27 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
       const from = releaseAt === null ? restVec() : vecAlong(releaseAt, restVec());
       releaseVelocity = 0;
       releaseAt = null;
+      // Back into the control while it is on screen, unless a swipe threw it to its edge.
+      const back = fromControl()?.returnTo ?? null;
+      const home = !velocity && onScreen(back) ? back : null;
+      const into = home && !reducedMotion() ? over(home.getBoundingClientRect()) : null;
+      if (into && home) {
+        returning = home;
+        moveTo(into, from, undefined, true, 'smooth');
+        const run = transform;
+        void run?.finished.then(() => {
+          if (returning === home && transform === null && !open) {
+            returning = null;
+            receivePulse(home);
+          }
+        });
+        // The glass stays whole while it shrinks, and fades over the last of the way.
+        clearTimeout(fadeLater);
+        fadeLater = setTimeout(() => fadeTo(0, true), RETURN_FADE_DELAY_MS);
+        return;
+      }
       moveTo(outside(), from, velocity || undefined, true);
-      if (fades()) fadeTo(0, true);
+      if (fades() || opacity) fadeTo(0, true);
     },
     relayout() {
       if (!el || !open || transform || drag) return;

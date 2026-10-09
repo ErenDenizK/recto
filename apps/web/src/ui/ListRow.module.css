@@ -24,7 +24,9 @@
   text-align: start;
   cursor: default;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color var(--duration-fast) var(--ease-out);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 .row[data-align='start'] {
@@ -37,9 +39,14 @@
   }
 }
 
+/* The press (styles/controls.css, platform.md §2): the row's large press scale, by `scale`,
+   which composes with any transform a list gives its rows. */
 .row:active:not([aria-disabled='true']) {
   background: var(--surface-active);
-  transition: background-color var(--duration-instant) var(--ease-out);
+  scale: var(--press-scale-large);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
 }
 
 .row[aria-current='true'] {

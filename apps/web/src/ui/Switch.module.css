@@ -83,8 +83,10 @@
   color: var(--control-on-ink);
   box-shadow: var(--e1);
   transform: translateX(0);
+  /* The knob springs across (platform.md §3): the fling curve's small overshoot, so it lands
+     with a little give, as a thumb does on iOS; the press widens it on the press spring. */
   transition:
-    transform var(--spring-press) var(--ease-spring),
+    transform var(--spring-fling) var(--ease-spring-fling),
     width var(--spring-press) var(--ease-spring),
     background-color var(--duration-fast) var(--ease-out);
 }

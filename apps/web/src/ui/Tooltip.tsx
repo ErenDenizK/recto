@@ -4,8 +4,8 @@
  * (`aria-label`) and, with a shortcut, `aria-keyshortcuts`.
  *
  * - **Delays.** One `TooltipProvider` for the app (AppShell): 500 ms on hover, at once while
- *   the group is warm (400 ms after the last one closed), closing at once. Focus shows it
- *   at once.
+ *   the group is warm (600 ms after the last one closed: moving along a bar jumps from one to
+ *   the next without waiting again, as on macOS), closing at once. Focus shows it at once.
  * - **Hover hold (A-24).** The popup is hoverable: the pointer can move onto it and it stays
  *   until the pointer leaves both, Esc, or a press elsewhere. Esc closes it without taking
  *   the key: the key still does its job where focus is (disarm the tool, clear the lasso
@@ -24,7 +24,9 @@
  * - **Look.** Solid raised surface with the rim, no blur (`.mat-tooltip`, G-29), 26 px tall
  *   (28 coarse), 4 / 8 padding, at most 280 px wide, wrapping to two lines. The e2 shadow
  *   waits for the elevation tokens (D3); until then tooltips stay flat as today.
- *   Motion *tooltip*: opacity and scale 0.98, `--duration-fast`.
+ *   Motion *tooltip* (motion-2026-10/platform.md §4): after the delay it fades in and rises
+ *   2 px away from its anchor in `--duration-fast`; a warm switch (`data-instant`) jumps;
+ *   reduced motion keeps the fade.
  */
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
 import {
@@ -40,17 +42,31 @@ import {
 
 import type { ParsedShortcut } from '../commands/shortcuts';
 import { inputTracker, usePointerCapabilities } from '../shell/frame/input-modality';
+import { installContainerTransform } from './container-transform';
 import { Keycaps } from './Keycaps';
 import styles from './Tooltip.module.css';
+
+/** Hover rests this long before a tooltip shows (04-context §20). */
+export const TOOLTIP_DELAY_MS = 500;
+/**
+ * While a tooltip shows, and this long after it closes, the next trigger shows its own at once
+ * (the warm-up of macOS: moving along a bar does not wait again, motion-2026-10/platform.md §4).
+ */
+export const TOOLTIP_WARM_MS = 600;
 
 /** How long a touch is held before the tooltip shows (04-context §20). */
 export const TOUCH_HOLD_MS = 450;
 /** How far a held touch may drift and still count as held (CSS px). */
 const TOUCH_SLOP_PX = 10;
 
+/**
+ * The app's one tooltip group, and the chrome's motion that has to see every popup: the
+ * container transform of menus and popovers (`ui/container-transform.ts`), installed once.
+ */
 export function TooltipProvider({ children }: { readonly children: ReactNode }) {
+  useEffect(() => installContainerTransform(), []);
   return (
-    <BaseTooltip.Provider delay={500} closeDelay={0} timeout={400}>
+    <BaseTooltip.Provider delay={TOOLTIP_DELAY_MS} closeDelay={0} timeout={TOOLTIP_WARM_MS}>
       {children}
     </BaseTooltip.Provider>
   );
