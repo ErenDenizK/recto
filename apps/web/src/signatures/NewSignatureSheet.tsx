@@ -22,7 +22,8 @@
  * - **Save for next time**, on by default; with five kept it says it replaces the oldest; where
  *   this window keeps nothing it is off and says so. With it on, an optional name.
  * - **Use signature** keeps it (if asked), arms it as the one-shot signature tool and closes:
- *   the next click or drag on a page places it (MK-13 §6). Disabled until there is something to
+ *   the next click or drag on a page places it (MK-13 §6). The signature shrinks from the pad
+ *   into its new chip (or the Sign button), which takes a receive pulse (`flight.ts`). Disabled until there is something to
  *   use, with the reason (RA-21). Opened from Settings (`keep`), the primary is **Save
  *   signature**, it always keeps, and closing returns to Settings → Saved signatures.
  * - **Drafts** (07 §1.1 rule 5): what was drawn, typed or picked stays for the session through
@@ -51,6 +52,7 @@ import {
 } from '../ui/sheet';
 import { TextField } from '../ui/TextField';
 import { toast } from '../ui/Toast';
+import { flyIntoChip } from './flight';
 import { imageInk } from './image-ink';
 import { intentOf, NEW_SIGNATURE_SHEET_ID } from './new-signature';
 import styles from './NewSignatureSheet.module.css';
@@ -71,6 +73,7 @@ import {
   useSavedSignatures,
 } from './saved-signatures';
 import { SignaturePlate } from './SignaturePlate';
+import { traceSmooth } from './smooth-ink';
 
 type Tab = 'draw' | 'type' | 'image';
 interface Point {
@@ -111,6 +114,7 @@ export default function NewSignatureSheet() {
   const [busy, setBusy] = useState(false);
   // Focus starts on the chosen tab (07 §2.6), not on the optional name further down.
   const focusRef = useRef<HTMLElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
   const imageHintId = useId();
 
   useEffect(() => {
@@ -155,10 +159,19 @@ export default function NewSignatureSheet() {
         if (now?.id !== NEW_SIGNATURE_SHEET_ID) resetDraft();
         return;
       }
+      // Where the signature is on screen as the sheet lets it go, for the flight to its chip.
+      const source =
+        draft.tab === 'draw'
+          ? bodyRef.current?.querySelector('canvas[data-strokes]')
+          : bodyRef.current?.querySelector(`[role="tabpanel"]:not([hidden]) .${styles.preview}`);
+      const from = source?.getBoundingClientRect();
       resetDraft();
       close('close');
       // Arming places at a click: only in Markup, and never while locked (`place`).
-      if (intent === 'use' && stamp && canChangeActive('place')) armSignatureStamp(stamp);
+      if (intent === 'use' && stamp && canChangeActive('place')) {
+        armSignatureStamp(stamp);
+        if (from && stamp.blob) intoChip(stamp.blob, from, saved?.id);
+      }
     } finally {
       setBusy(false);
     }
@@ -202,6 +215,7 @@ export default function NewSignatureSheet() {
       <div
         className={styles.body}
         ref={(el) => {
+          bodyRef.current = el;
           focusRef.current =
             el?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]') ?? null;
         }}
@@ -312,6 +326,27 @@ export default function NewSignatureSheet() {
   );
 }
 
+/** Frames to wait for the new signature's chip to show in the palette. */
+const CHIP_WAIT_FRAMES = 12;
+
+/**
+ * The Use flight (`flight.ts`): the signature shrinks from where it was in the sheet into its
+ * chip, which shows once the saved list has it (a few frames), else into the Sign button.
+ */
+function intoChip(blob: Blob, from: DOMRect, id: string | undefined): void {
+  let frames = 0;
+  const find = () => {
+    const chip = id ? document.querySelector(`[data-saved-signature="${CSS.escape(id)}"]`) : null;
+    if (chip || ++frames >= CHIP_WAIT_FRAMES) {
+      const target = chip ?? document.querySelector('[data-tool="signature"]');
+      if (target) flyIntoChip(blob, from, target);
+      return;
+    }
+    requestAnimationFrame(find);
+  };
+  requestAnimationFrame(find);
+}
+
 /**
  * The drawing pad: strokes in pad units whatever size it is drawn at, a crisp backing store at
  * the device's pixel ratio, Undo and Clear, and a live count for assistive technology.
@@ -341,13 +376,11 @@ function Pad({
     g.lineWidth = LINE_WIDTH;
     g.lineCap = 'round';
     g.lineJoin = 'round';
+    // Traced as the pen smooths its ink (`smooth-ink.ts`), the live stroke too.
     for (const stroke of live ? [...strokes, live] : strokes) {
-      const [first, ...rest] = stroke;
-      if (!first) continue;
+      if (stroke.length === 0) continue;
       g.beginPath();
-      g.moveTo(first.x, first.y);
-      if (rest.length === 0) g.lineTo(first.x + 0.1, first.y);
-      for (const p of rest) g.lineTo(p.x, p.y);
+      traceSmooth(g, stroke);
       g.stroke();
     }
   }, [strokes, live, scale]);

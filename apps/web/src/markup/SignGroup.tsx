@@ -12,7 +12,8 @@
  *   strip's row while Select is armed (03.7). A press arms it as a one-shot `place` tool; a click on the page places it, then Select (J8A 3).
  * - **Stepper** `‹ 3 / 12 ›` (MK-14): the previous or next fillable field in tab order, opened
  *   so typing fills (`targeted`); the ends wrap. Before a field is focused the readout counts
- *   the fields ("12 fields"). Absent without fields.
+ *   the fields ("12 fields"). Absent without fields. The readout rolls like an odometer as it
+ *   changes (`forms/Odometer.tsx`, motion-2026-10 forms-compact §3).
  * - **Add field ▾**: a field kind arms a one-shot `place` tool (`forms.add.*`).
  * - **Show field outlines**: the same flag as before (`forms.highlight`), `aria-pressed`;
  *   disabled with its reason when the file has no fields.
@@ -29,6 +30,7 @@ import { commandRegistry } from '../commands/registry';
 import { FIELD_KINDS, kindName } from '../forms/create';
 import { documentSources, fieldStops, isFillable, useFormStore } from '../forms/form-store';
 import { moveField } from '../forms/navigation';
+import { Odometer } from '../forms/Odometer';
 import { formatNumber, m } from '../i18n';
 import { openSettings } from '../settings/open-settings';
 import { openNewSignature } from '../signatures/new-signature';
@@ -40,6 +42,7 @@ import {
   signatureLabel,
   useSavedSignatures,
 } from '../signatures/saved-signatures';
+import { watchPlacements } from '../signatures/placement-flight';
 import { SignaturePlate } from '../signatures/SignaturePlate';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { Icon, type IconName } from '../ui/Icon';
@@ -93,6 +96,8 @@ export function SignButton({
   const mode = useToolStore((s) => s.mode);
   const armedId = useArmedSignature();
   const tool = toolDefinition('signature');
+  // The placing flight from the chip (or this button) to the page (signatures/flight.ts).
+  useEffect(() => watchPlacements(), []);
   const onChip = chipsShown && signatures.slice(0, CHIP_COUNT).some((s) => s.id === armedId);
   const armed = mode === 'signature' && !onChip;
   return (
@@ -245,7 +250,7 @@ export function FieldStepper({ countLabel }: { readonly countLabel: boolean }) {
         data-field-step="previous"
       />
       <span className={styles.stepperReadout} aria-live="polite" aria-label={name}>
-        {readout}
+        <Odometer text={readout} />
       </span>
       <PaletteButton
         label={m.markup_field_next()}
