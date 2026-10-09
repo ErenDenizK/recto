@@ -146,8 +146,8 @@
   width: max-content;
   min-width: 200px;
   max-width: 300px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   font-size: var(--type-footnote);
   pointer-events: auto;
@@ -174,8 +174,8 @@
 
 .badge svg {
   flex: none;
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .badge[data-tone='same'] {
@@ -226,42 +226,20 @@
   gap: var(--space-1);
 }
 
-.choice {
-  height: var(--control-h);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: var(--type-footnote);
-}
-
-@media (hover: hover) {
-  .choice:hover:not(:disabled) {
-    background: var(--surface-hover);
-  }
-}
-
-/* An option choice: accent-muted, no accent border (design audit D11). */
+/* The two fit choices are S buttons (ui/Button); the chosen one takes the current-row wash
+   (design audit D11: accent-muted, no accent border). */
 .choice[aria-pressed='true'] {
   background: var(--accent-muted);
 }
 
-.choice:disabled {
-  color: var(--text-disabled);
-  cursor: not-allowed;
-}
-
 .error {
-  margin: 2px 0 0;
+  margin: var(--space-half) 0 0;
   color: var(--danger);
 }
 
 .hint {
-  margin-top: 2px;
+  margin-top: var(--space-half);
   color: var(--text-tertiary);
-  font-size: var(--type-caption);
-  letter-spacing: var(--tracking-label);
 }
 
 @media (prefers-reduced-motion: reduce) {

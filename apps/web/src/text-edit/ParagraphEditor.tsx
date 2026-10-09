@@ -67,7 +67,9 @@ import { cssFamilyOf, ensureFace } from '../furniture/furniture-fonts';
 import { formatPercent, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { type PageOverlayProps, registerPageOverlay } from '../stage/page-overlays';
+import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { PopoverBody, PopoverHeader, PopoverPopup } from '../ui/Popover';
 import type { PageFrame } from '../viewer/geometry';
 import { useCanChangeActive } from '../viewer/input-state';
@@ -1532,48 +1534,49 @@ export function ParagraphEditor({
             </p>
             <div className={styles.choiceActions}>
               {decision.fit ? (
-                <button
-                  type="button"
-                  className={styles.action}
+                <Button
+                  size="sm"
                   data-testid="paragraph-tighten"
                   onKeyDown={onChoiceKey}
                   onClick={() => void leave('tighten')}
                 >
                   {m.paragraph_tighten_fit()}
-                </button>
+                </Button>
               ) : null}
-              <button
-                type="button"
-                className={styles.action}
+              <Button
+                size="sm"
                 data-testid="paragraph-overlap"
                 onKeyDown={onChoiceKey}
                 onClick={() => void leave('overlap')}
               >
                 {m.paragraph_let_overlap()}
-              </button>
-              <button
+              </Button>
+              <Button
                 ref={keepEditingRef}
-                type="button"
-                className={styles.action}
+                size="sm"
+                variant="prominent"
                 data-default=""
                 data-testid="paragraph-keep-editing"
                 onKeyDown={onChoiceKey}
                 onClick={keepEditing}
               >
                 {m.paragraph_keep_editing()}
-              </button>
+              </Button>
             </div>
           </div>
         ) : null}
         <div className={styles.actions}>
           <Popover.Root>
             <Popover.Trigger
-              className={styles.info}
-              aria-label={m.paragraph_info_label()}
-              data-testid="paragraph-info"
-            >
-              <Icon name="info" />
-            </Popover.Trigger>
+              render={
+                <IconButton
+                  size="row"
+                  label={m.paragraph_info_label()}
+                  icon={<Icon name="info" />}
+                  data-testid="paragraph-info"
+                />
+              }
+            />
             <PopoverPopup side="bottom" align="end" data-paragraph-editor="">
               <PopoverHeader title={m.paragraph_info_label()} />
               <PopoverBody>{m.paragraph_info_text()}</PopoverBody>

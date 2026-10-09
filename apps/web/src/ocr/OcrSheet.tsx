@@ -27,12 +27,12 @@ import { formatNumber, getLocale, m } from '../i18n';
 import { useSignatureStore } from '../signatures/signature-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import toolStyles from '../tools/ToolDialog.module.css';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Notice } from '../ui/Notice';
+import { Progress as ProgressBar } from '../ui/Progress';
 import { RadioGroup } from '../ui/RadioGroup';
-import { Sheet, SheetField, type SheetPrimary } from '../ui/sheet';
+import { Sheet, SheetField, SheetGroup, type SheetPrimary, SheetRow } from '../ui/sheet';
 import { useRetained } from '../ui/use-retained';
 import { pageProgress, qualityLabel } from './labels';
 import styles from './Ocr.module.css';
@@ -290,134 +290,155 @@ function useRunForm(documentId: DocumentId | undefined): {
     },
     body: (
       <div className={styles.body} data-testid="ocr-form">
-        <div className={styles.group}>
-          <p className={styles.legend}>{m.ocr_pages()}</p>
+        <SheetGroup
+          label={m.ocr_pages()}
+          footnote={targets.length < pageCount ? m.ocr_scope_skipped() : undefined}
+        >
           {facts.status === 'loading' ? (
-            <p className={styles.hint} role="status">
-              {m.ocr_checking_pages()}
-            </p>
+            <SheetRow full>
+              <p className={styles.hint} role="status">
+                {m.ocr_checking_pages()}
+              </p>
+            </SheetRow>
           ) : facts.status === 'failed' ? (
-            <p className={toolStyles.error} role="alert">
-              {m.ocr_facts_failed({ reason: facts.message })}
-            </p>
+            <SheetRow full>
+              <p className={styles.error} role="alert">
+                {m.ocr_facts_failed({ reason: facts.message })}
+              </p>
+            </SheetRow>
           ) : null}
-          <RadioGroup<OcrScope>
-            label={m.ocr_pages()}
-            value={effectiveScope}
-            onValueChange={setScope}
-            options={[
-              {
-                value: 'without-text',
-                label: m.ocr_scope_without_text({ count: withoutText }),
-                disabled: withoutText === 0,
-              },
-              { value: 'all', label: m.ocr_scope_all({ count: targets.length }) },
-              {
-                value: 'current',
-                label: m.ocr_scope_current({
-                  page: Math.min(currentPage, Math.max(0, pageCount - 1)) + 1,
-                }),
-              },
-              { value: 'range', label: m.ocr_scope_range() },
-            ]}
-          />
-          {effectiveScope === 'range' ? (
-            <SheetField
-              label={m.ocr_scope_range()}
-              value={range}
-              placeholder={`1-${pageCount}`}
-              spellCheck={false}
-              autoComplete="off"
-              error={parsedRange === null ? m.images_pages_invalid({ count: pageCount }) : null}
-              onChange={(event) => setRange(event.target.value)}
+          <SheetRow full>
+            <RadioGroup<OcrScope>
+              label={m.ocr_pages()}
+              value={effectiveScope}
+              onValueChange={setScope}
+              options={[
+                {
+                  value: 'without-text',
+                  label: m.ocr_scope_without_text({ count: withoutText }),
+                  disabled: withoutText === 0,
+                },
+                { value: 'all', label: m.ocr_scope_all({ count: targets.length }) },
+                {
+                  value: 'current',
+                  label: m.ocr_scope_current({
+                    page: Math.min(currentPage, Math.max(0, pageCount - 1)) + 1,
+                  }),
+                },
+                { value: 'range', label: m.ocr_scope_range() },
+              ]}
             />
+          </SheetRow>
+          {effectiveScope === 'range' ? (
+            <SheetRow full>
+              <SheetField
+                label={m.ocr_scope_range()}
+                value={range}
+                placeholder={`1-${pageCount}`}
+                spellCheck={false}
+                autoComplete="off"
+                error={parsedRange === null ? m.images_pages_invalid({ count: pageCount }) : null}
+                onChange={(event) => setRange(event.target.value)}
+              />
+            </SheetRow>
           ) : null}
-          {targets.length < pageCount ? (
-            <p className={styles.hint}>{m.ocr_scope_skipped()}</p>
-          ) : null}
-        </div>
+        </SheetGroup>
 
-        <div className={styles.group}>
-          <p className={styles.legend}>{m.ocr_languages()}</p>
+        <SheetGroup
+          label={m.ocr_languages()}
+          footnote={
+            <>
+              <span data-testid="ocr-languages-key">
+                {languages.length > 0
+                  ? m.ocr_languages_order({ languages: languageList(languages, locale) })
+                  : m.ocr_languages_none()}
+              </span>
+              {download > 0
+                ? ` ${m.ocr_download_note({ size: formatMegabytes(download, locale) })}`
+                : null}
+            </>
+          }
+        >
           {packs.status === 'failed' ? (
-            <p className={toolStyles.error} role="alert">
-              {m.ocr_packs_failed({ reason: packs.message })}
-            </p>
+            <SheetRow full>
+              <p className={styles.error} role="alert">
+                {m.ocr_packs_failed({ reason: packs.message })}
+              </p>
+            </SheetRow>
           ) : null}
-          <ul className={styles.languages} aria-label={m.ocr_languages()}>
-            {available.map((pack) => (
-              <li key={pack.code} className={styles.language}>
-                <Checkbox
-                  checked={languages.includes(pack.code)}
-                  onCheckedChange={(on) => toggleLanguage(pack.code, on)}
-                  label={
-                    <span className={styles.languageLabel}>
-                      <span className={styles.languageName}>{languageName(pack.code, locale)}</span>
-                      <span className={styles.meta} data-testid="ocr-language-state">
-                        {pack.onDevice
-                          ? m.ocr_pack_on_device({ size: formatMegabytes(pack.bytes, locale) })
-                          : m.ocr_pack_downloads({
-                              size: formatMegabytes(pack.downloadBytes, locale),
-                            })}
+          <SheetRow full>
+            <ul className={styles.languages} aria-label={m.ocr_languages()}>
+              {available.map((pack) => (
+                <li key={pack.code} className={styles.language}>
+                  <Checkbox
+                    checked={languages.includes(pack.code)}
+                    onCheckedChange={(on) => toggleLanguage(pack.code, on)}
+                    label={
+                      <span className={styles.languageLabel}>
+                        <span className={styles.languageName}>
+                          {languageName(pack.code, locale)}
+                        </span>
+                        <span className={styles.meta} data-testid="ocr-language-state">
+                          {pack.onDevice
+                            ? m.ocr_pack_on_device({ size: formatMegabytes(pack.bytes, locale) })
+                            : m.ocr_pack_downloads({
+                                size: formatMegabytes(pack.downloadBytes, locale),
+                              })}
+                        </span>
                       </span>
-                    </span>
-                  }
-                />
-              </li>
-            ))}
-          </ul>
-          <div className={styles.row}>
-            <span className={styles.hint} data-testid="ocr-languages-key">
-              {languages.length > 0
-                ? m.ocr_languages_order({ languages: languageList(languages, locale) })
-                : m.ocr_languages_none()}
-            </span>
-            <span className={toolStyles.spacer} />
-            <Button variant="quiet" onClick={() => setOcrDialogView('languages')}>
+                    }
+                  />
+                </li>
+              ))}
+            </ul>
+          </SheetRow>
+          <SheetRow title={m.ocr_language_files()}>
+            <Button size="sm" onClick={() => setOcrDialogView('languages')}>
               {m.ocr_manage_languages()}
             </Button>
-          </div>
-          {download > 0 ? (
-            <p className={styles.hint}>
-              {m.ocr_download_note({ size: formatMegabytes(download, locale) })}
-            </p>
-          ) : null}
-        </div>
+          </SheetRow>
+        </SheetGroup>
 
-        <div className={styles.group}>
-          <p className={styles.legend}>{m.ocr_quality()}</p>
-          <RadioGroup<'standard' | 'high'>
-            label={m.ocr_quality()}
-            value={quality}
-            onValueChange={setQuality}
-            options={[
-              {
-                value: 'standard',
-                label: m.ocr_quality_standard(),
-                description: m.ocr_quality_standard_hint(),
-              },
-              {
-                value: 'high',
-                label: m.ocr_quality_high(),
-                description: m.ocr_quality_high_hint(),
-              },
-            ]}
-          />
-        </div>
+        <SheetGroup label={m.ocr_quality()}>
+          <SheetRow full>
+            <RadioGroup<'standard' | 'high'>
+              label={m.ocr_quality()}
+              value={quality}
+              onValueChange={setQuality}
+              options={[
+                {
+                  value: 'standard',
+                  label: m.ocr_quality_standard(),
+                  description: m.ocr_quality_standard_hint(),
+                },
+                {
+                  value: 'high',
+                  label: m.ocr_quality_high(),
+                  description: m.ocr_quality_high_hint(),
+                },
+              ]}
+            />
+          </SheetRow>
+        </SheetGroup>
 
         {replaceShown ? (
-          <div className={styles.group}>
-            <Checkbox
-              checked={replaceChecked}
-              onCheckedChange={setReplace}
-              label={m.ocr_replace()}
-            />
-            <p className={styles.hint} data-testid="ocr-replace-hint">
-              {invisible.foreign > 0
-                ? m.ocr_replace_foreign({ count: invisible.foreign })
-                : m.ocr_replace_ours({ count: invisible.ours })}
-            </p>
-          </div>
+          <SheetGroup
+            footnote={
+              <span data-testid="ocr-replace-hint">
+                {invisible.foreign > 0
+                  ? m.ocr_replace_foreign({ count: invisible.foreign })
+                  : m.ocr_replace_ours({ count: invisible.ours })}
+              </span>
+            }
+          >
+            <SheetRow full>
+              <Checkbox
+                checked={replaceChecked}
+                onCheckedChange={setReplace}
+                label={m.ocr_replace()}
+              />
+            </SheetRow>
+          </SheetGroup>
         ) : null}
 
         {signedSources.length > 0 ? (
@@ -461,16 +482,11 @@ function Progress({ run }: { readonly run: Extract<OcrRun, { kind: 'running' }> 
         : 0;
   return (
     <div className={styles.body} data-testid="ocr-progress">
-      <p className={toolStyles.description} role="status">
+      <p className="visually-hidden" role="status">
         {phaseText(run)}
       </p>
-      <progress
-        className={toolStyles.progress}
-        max={1}
-        value={value}
-        aria-label={m.ocr_progress_label()}
-      />
-      <p className={toolStyles.hint}>{m.ocr_progress_continues()}</p>
+      <ProgressBar value={Math.round(value * 100)} label={phaseText(run)} />
+      <p className={styles.hint}>{m.ocr_progress_continues()}</p>
     </div>
   );
 }
@@ -506,11 +522,11 @@ function Outcome({ run }: { readonly run: Exclude<OcrRun, { kind: 'idle' | 'runn
   return (
     <div className={styles.body} data-testid="ocr-outcome">
       {run.kind === 'failed' ? (
-        <p className={toolStyles.error} role="alert">
+        <p className={styles.error} role="alert">
           {m.ocr_failed({ reason: run.message })}
         </p>
       ) : (
-        <p className={toolStyles.description} role="status">
+        <p className={styles.description} role="status">
           {m.ocr_cancelled()}
         </p>
       )}

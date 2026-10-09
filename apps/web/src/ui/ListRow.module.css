@@ -1,0 +1,60 @@
+/*
+ * ListRow (system-audit-2026-10 §3.6, §3.8): an M row of a panel's list, radius 10 (the
+ * control radius: list rows), the washes for hover and press, the current-row wash, the inset
+ * focus ring of a row in a scroller.
+ */
+.row {
+  composes: focus-inset from global;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-h);
+  margin: 0;
+  padding: var(--space-1h) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  text-align: start;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.row[data-align='start'] {
+  align-items: flex-start;
+}
+
+@media (hover: hover) {
+  .row:hover:not([aria-disabled='true']) {
+    background: var(--surface-hover);
+  }
+}
+
+.row:active:not([aria-disabled='true']) {
+  background: var(--surface-active);
+  transition: background-color var(--duration-instant) var(--ease-out);
+}
+
+.row[aria-current='true'] {
+  background: var(--accent-muted);
+  /* Tertiary text is 4.3:1 on the current-row wash; it steps up to secondary (AA). */
+  --text-tertiary: var(--text-secondary);
+}
+
+.row[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+@media (forced-colors: active) {
+  .row[aria-current='true'] {
+    background: Highlight;
+    color: HighlightText;
+  }
+}

@@ -91,15 +91,20 @@ import { useSelectionStore } from '../state/selection-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../state/workspace-store';
-import { Icon } from '../ui/Icon';
-import { Tooltip } from '../ui/Tooltip';
+import { Button } from '../ui/Button';
 import { EmptyNote } from '../ui/EmptyNote';
+import { Icon } from '../ui/Icon';
+import { Notice } from '../ui/Notice';
+import { Tooltip } from '../ui/Tooltip';
 import styles from './OutlinePanel.module.css';
 import { flattenOutline, type OutlineRow, openableUrl } from './OutlinePanel.tree';
 
 /** Plain rendering up to this many visible rows; TanStack Virtual beyond it. */
 export const VIRTUALIZE_AFTER = 500;
-const ROW_HEIGHT = 28;
+/** A tree row is an M row (system-audit-2026-10 §3.3): `--control-h`, 32 fine and 44 coarse. */
+function rowHeight(element: Element): number {
+  return parseFloat(getComputedStyle(element).getPropertyValue('--control-h')) || 32;
+}
 
 export function OutlinePanel() {
   const doc = useActiveDocument();
@@ -132,33 +137,36 @@ function OutlineToolbar({ doc }: { readonly doc: VirtualDocument }) {
   return (
     <>
       <div role="toolbar" aria-label={m.outline_toolbar_label()} className={editStyles.toolbar}>
-        <Tooltip label={refusal ? refusalReason(refusal) : m.outline_add_tooltip()} side="bottom">
-          <button
-            type="button"
-            className={editStyles.toolButton}
-            disabled={doc.pages.length === 0}
-            aria-disabled={refusal ? true : undefined}
-            data-locked={refusal ? '' : undefined}
-            onClick={() => {
-              if (!refusal) addBookmark(doc.id);
-            }}
+        {refusal ? (
+          // Locked (06-navigation N3 §4): dimmed, still focusable, the reason its tooltip.
+          <Button
+            size="sm"
+            icon={<Icon name="bookmark-simple" />}
+            disabled
+            reason={refusalReason(refusal)}
+            data-locked=""
           >
-            <Icon name="bookmark-simple" />
             {m.outline_add()}
-          </button>
-        </Tooltip>
+          </Button>
+        ) : (
+          <Tooltip label={m.outline_add_tooltip()} side="bottom">
+            <Button
+              size="sm"
+              icon={<Icon name="bookmark-simple" />}
+              disabled={doc.pages.length === 0}
+              onClick={() => addBookmark(doc.id)}
+            >
+              {m.outline_add()}
+            </Button>
+          </Tooltip>
+        )}
       </div>
       {dead > 0 ? (
         <div className={editStyles.dead} data-testid="outline-dead-links">
-          <Icon name="warning" />
-          <span className={editStyles.deadText}>{m.outline_dead_links({ count: dead })}</span>
-          <button
-            type="button"
-            className={editStyles.toolButton}
-            onClick={() => removeDeadLinks(doc.id)}
-          >
+          <Notice>{m.outline_dead_links({ count: dead })}</Notice>
+          <Button size="sm" className={editStyles.deadFix} onClick={() => removeDeadLinks(doc.id)}>
             {m.outline_remove_dead()}
-          </button>
+          </Button>
         </div>
       ) : null}
     </>
@@ -669,7 +677,7 @@ function VirtualRows({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollElement,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight(scrollElement),
     getItemKey: (index) => rows[index]?.key ?? index,
     overscan: 12,
     rangeExtractor: (range: Range) => {
@@ -733,20 +741,19 @@ function LinkNotice({
         </>
       ) : null}
       <div className={styles.noticeActions}>
-        <button
-          type="button"
-          className={styles.secondary}
+        <Button
+          size="sm"
           ref={url ? undefined : primaryRef}
           onKeyDown={onKeyDown}
           onClick={() => onClose(true)}
         >
           {url ? m.common_cancel() : m.common_close()}
-        </button>
+        </Button>
         {url ? (
-          <button
-            type="button"
+          <Button
+            size="sm"
+            variant="prominent"
             ref={primaryRef}
-            className={styles.primary}
             onKeyDown={onKeyDown}
             onClick={() => {
               window.open(url.href, '_blank', 'noopener,noreferrer');
@@ -754,7 +761,7 @@ function LinkNotice({
             }}
           >
             {m.outline_link_open()}
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

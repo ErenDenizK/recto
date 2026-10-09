@@ -12,150 +12,65 @@
   gap: var(--space-2);
 }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: var(--control-h);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  white-space: nowrap;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
-}
-
-.button svg {
-  width: 14px;
-  height: 14px;
-}
-
-/* An option that is on: accent-muted, no accent border (design audit D11). */
-.button[aria-pressed='true'] {
+/* Add field, Edit fields and Highlight fields are S buttons (ui/Button); a toggle that is on
+   takes the current-row wash (design audit D11: accent-muted, no accent border). */
+.toggle[aria-pressed='true'] {
   background: var(--accent-muted);
-  color: var(--text-primary);
 }
 
-.button:disabled {
-  color: var(--text-disabled);
-  cursor: default;
-}
-
-@media (hover: hover) {
-  .button:not(:disabled):hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
-.check {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-}
-
-.check input {
-  accent-color: var(--control-on);
+.caret {
+  margin-inline-start: var(--space-half);
+  vertical-align: middle;
 }
 
 .xfa {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-2);
   padding-top: var(--space-3);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
 }
 
-.badge {
-  flex: none;
-  padding: 0 6px;
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-xs);
-  color: var(--warning);
-  font-size: var(--type-caption);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
-}
-
 .xfaText {
   min-width: 0;
 }
 
-.warning {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
+.notice {
   margin-top: var(--space-3);
-  padding: var(--space-2);
-  border: 1px solid var(--warning-line);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--type-footnote);
 }
 
-.warning svg {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin-top: 2px;
-  color: var(--warning);
-}
-
+/* A field's row is a ListRow (ui/ListRow); it takes the room beside the tab-order buttons. */
 .item {
-  composes: focus-inset from global;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  width: 100%;
-  padding: 6px var(--space-2);
-  border-radius: var(--radius-sm);
-  text-align: left;
-  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
 }
 
-@media (hover: hover) {
-  .item:hover {
-    background: var(--surface-hover);
-  }
-}
-
-.item[aria-current='true'] {
-  background: var(--accent-muted);
-  /* Tertiary text is 4.3:1 on the accent-muted fill; it steps up to secondary (AA). */
-  --text-tertiary: var(--text-secondary);
-}
-
+/* The kind's glyph, centred on the name's line, as in the comment rows. */
 .icon {
   display: grid;
   place-items: center;
   flex: none;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-xs);
-  background: var(--surface-on);
+  width: var(--icon-md);
+  height: var(--icon-md);
   color: var(--text-secondary);
 }
 
 .icon svg {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .body {
   display: grid;
-  gap: 1px;
+  gap: var(--space-half);
   min-width: 0;
 }
 
 .name {
   display: flex;
   align-items: baseline;
+  line-height: var(--icon-md);
   gap: var(--space-1);
   overflow: hidden;
   font-size: var(--type-body);
@@ -169,7 +84,7 @@
 
 .tag {
   color: var(--text-tertiary);
-  font-size: var(--type-caption);
+  font-size: var(--type-footnote);
   font-weight: 400;
 }
 
@@ -198,7 +113,7 @@
 .hint {
   color: var(--text-secondary);
   font-size: var(--type-footnote);
-  line-height: 18px;
+  line-height: var(--type-footnote-lh);
 }
 
 .row {
@@ -207,39 +122,9 @@
   gap: 2px;
 }
 
-.row > .item {
-  flex: 1;
-  min-width: 0;
-}
-
 .order {
   display: grid;
   flex: none;
-  gap: 2px;
-  padding-top: 4px;
-}
-
-.orderButton {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-xs);
-  color: var(--text-secondary);
-}
-
-.orderButton svg {
-  width: 14px;
-  height: 14px;
-}
-
-.orderButton:disabled {
-  color: var(--text-disabled);
-}
-
-@media (hover: hover) {
-  .orderButton:not(:disabled):hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
+  gap: var(--space-half);
+  padding-top: var(--space-1);
 }
