@@ -4,10 +4,16 @@
  * its precache and the engine wasm from its runtime cache, so a reload with the network
  * off still loads the shell and opens a PDF. Also checks that the worker scope and the
  * manifest's scope / start_url / id follow the deployment base path (VITE_BASE_PATH).
+ *
+ * PF-17 (docs/plan/v1/PLAN.md V1-F15): with the network blocked, every file the worker
+ * precached is served, and every split surface opens: the lazy sheets (Settings, Save a
+ * copy, Recognize text, Batch, New signature), the Compare place and its Changes panel, the
+ * Turkish locale and the compact edition. tools/qa/bundle-budget.ts checks at build time that
+ * every emitted chunk is in the precache list.
  */
-import { expect, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, openSaveCopy, useFileInputPicker } from './helpers';
 
 const BASE_PATH = process.env.VITE_BASE_PATH ?? '/';
 
@@ -83,5 +89,131 @@ test('the shell and the engine work offline after one visit', async ({ page, con
   await expect(page.getByTestId('privacy-indicator')).toHaveAccessibleName(
     'Privacy: nothing has left this device',
   );
+  await context.setOffline(false);
+});
+
+/** Runs a palette command by its title. */
+async function palette(page: Page, query: string, option: RegExp): Promise<void> {
+  await page.keyboard.press('ControlOrMeta+k');
+  const input = page.getByRole('combobox', { name: 'Search commands' });
+  await expect(input).toBeVisible();
+  await input.fill(query);
+  await page.getByRole('option', { name: option }).first().click();
+}
+
+/** Waits for a sheet (its chunk came from the precache), then closes it with Escape. */
+async function dismiss(page: Page, sheet: Locator): Promise<void> {
+  await expect(sheet).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+}
+
+test('every precached file and every split surface opens offline (PF-17)', async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(180_000);
+  // Force the <a download> path: Playwright cannot drive the native save picker.
+  await page.addInitScript({
+    content:
+      "Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });",
+  });
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  await expect(page.getByTestId('app-shell')).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null))
+    .toBe(true);
+  // Both engine wasm files are warmed into the runtime cache: PDFium and qpdf.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const cache = await caches.open('pdf-editor-wasm');
+          return (await cache.keys()).length;
+        }),
+      { timeout: 60_000 },
+    )
+    .toBe(2);
+
+  await context.setOffline(true);
+
+  // 1. Every precached file comes from the worker.
+  const precache = await page.evaluate(async () => {
+    const name = (await caches.keys()).find((key) => key.includes('precache'));
+    if (name === undefined) return { urls: [] as string[], failed: ['no precache'] };
+    const cache = await caches.open(name);
+    const urls = (await cache.keys()).map((request) => {
+      const url = new URL(request.url);
+      url.searchParams.delete('__WB_REVISION__');
+      return url.href;
+    });
+    const failed: string[] = [];
+    for (const url of urls) {
+      try {
+        const response = await fetch(url);
+        await response.arrayBuffer();
+        if (!response.ok) failed.push(url);
+      } catch {
+        failed.push(url);
+      }
+    }
+    return { urls, failed };
+  });
+  expect(precache.failed).toEqual([]);
+  expect(precache.urls.filter((url) => url.endsWith('.js')).length).toBeGreaterThan(50);
+  // The engine's bundled fonts, for text edits and page furniture.
+  expect(precache.urls.some((url) => url.endsWith('.ttf'))).toBe(true);
+
+  // 2. The split surfaces, after an offline reload.
+  await page.reload();
+  await expect(page.getByTestId('app-shell')).toBeVisible();
+  await openFixtures(page, ['compare-a.pdf', 'compare-b.pdf']);
+  await page.keyboard.press('1');
+  await expect(page.locator('main canvas[data-state="rendered"]').first()).toBeVisible({
+    timeout: 20_000,
+  });
+
+  await palette(page, 'Settings', /^Settings…/);
+  await dismiss(page, page.getByTestId('settings-sheet'));
+
+  await dismiss(page, await openSaveCopy(page));
+
+  await page.getByTestId('document-menu').click();
+  await page.getByRole('menuitem', { name: 'Recognize text (OCR)…' }).click();
+  await dismiss(page, page.getByTestId('ocr-dialog'));
+
+  await palette(page, 'batch', /Batch…/);
+  await dismiss(page, page.getByTestId('batch-dialog'));
+
+  await page.locator('[data-dock-item="sign"]').click();
+  const markup = page.getByRole('toolbar', { name: 'Markup', exact: true });
+  await markup.getByRole('button', { name: 'Sign', exact: true }).click();
+  await dismiss(page, page.getByRole('dialog', { name: 'New signature' }));
+  await markup.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(markup).toBeHidden();
+
+  // The Compare place, a run, and the Changes panel in the sidebar.
+  await page.keyboard.press('4');
+  const setup = page.getByTestId('compare-setup');
+  await expect(setup).toBeVisible();
+  await setup.getByRole('combobox', { name: 'Original (A)' }).click();
+  await page.getByRole('option', { name: 'compare-a' }).click();
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await setup.getByRole('combobox', { name: 'Revised (B)' }).click();
+  await page.getByRole('option', { name: 'compare-b' }).click();
+  await setup.getByRole('button', { name: 'Compare', exact: true }).click();
+  await expect(page.getByTestId('compare-view')).toHaveAttribute('data-status', 'done', {
+    timeout: 60_000,
+  });
+  await expect(page.getByTestId('changes-panel')).toBeVisible();
+
+  // The Turkish locale and the compact edition load from the precache too.
+  await page.goto('./?lang=tr');
+  await expect(
+    page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
+  ).toBeVisible();
+  await page.goto('./?edition=compact&lang=en');
+  await expect(page.getByTestId('compact-library')).toBeVisible();
   await context.setOffline(false);
 });
