@@ -55,6 +55,7 @@ import type {
 
 import { getEngineService } from '../engine/engine-service';
 import { m } from '../i18n';
+import { LockRefusedError, lockedEngineEdit, reportLockRefusal } from '../state/lock-check';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { type RectFix, rotatedRectFix } from './engine-quirks';
 import { presentError } from '../errors/present';
@@ -323,6 +324,12 @@ let executedDuringAction: EngineEdit[] | undefined;
  * the log uses them) with its inverse, and the annotation as it now is (creates, updates).
  */
 export async function executeEdit(ctx: EngineContext, edit: EngineEdit): Promise<ExecutedEdit> {
+  if (executedDuringAction !== undefined) {
+    // An action asks before the worker changes (ADR-0030 §2.6): an edit on a page a locked
+    // document shows never runs, and `runAction` reverts what the action already ran.
+    const refused = lockedEngineEdit(useWorkspaceStore.getState().workspace, edit);
+    if (refused !== undefined) throw new LockRefusedError(refused, edit.kind);
+  }
   const { applyEngineEditWithResult } = await import('@pdf-editor/engine');
   const source = edit.source;
   const toEngine = (id: string) => annotationIds.engineId(source, id);
@@ -756,7 +763,8 @@ async function revert(ctx: EngineContext, edits: readonly EngineEdit[]): Promise
  * Runs a user action in the queue: the engine first catches up with the history, then
  * `action` executes its edits through the engine and returns them; they are committed as
  * one history entry. The edits are reverted in the engine, and nothing is committed, when
- * the action throws (the error is passed on), when the commit fails, or when the history
+ * the action throws (the error is passed on, except Lock's refusal of an edit before it
+ * ran, ADR-0030 §2.6), when the commit fails (Lock refuses there too), or when the history
  * moved while the action ran (e.g. Mod+Z during a drag): committing then would land on
  * the wrong history. Resolves to the action's value, or undefined when nothing was
  * committed.
@@ -779,6 +787,11 @@ export function runAction<T>(
       executedDuringAction = undefined;
       storedDuringAction = undefined;
       await revert(ctx, executed);
+      // Lock refused an edit before it ran: nothing is committed, and it is no failure.
+      if (error instanceof LockRefusedError) {
+        reportLockRefusal(error.change, error.label);
+        return undefined;
+      }
       presentError({ kind: 'message', text: m.annot_action_failed() }, { key: 'annot-action' });
       throw error;
     } finally {

@@ -353,7 +353,7 @@
   "signature_version_file": "{name} (signed version, revision {revision})",
   "signature_version_unavailable": "The signed version could not be read.",
   "signature_view_notice": "Signed version (revision {revision}) of {name}, opened for viewing. Changes made here do not affect the original file.",
-  "signature_export_notice": "Export writes a new file: existing signatures are removed from it. The original file keeps them.",
+  "signature_export_notice": "A copy of the file as it is keeps its signatures. Once you change it, export writes a new file and existing signatures are removed from it; the original file keeps them.",
   "signature_export_notice_edited": "You changed this signed file. Export writes a new file with your changes; existing signatures are removed from it, because a signature cannot survive a rewrite. The original file keeps them.",
   "signature_badge_label": "Signatures: {status}",
   "signature_badge_edited": "removed on export",
