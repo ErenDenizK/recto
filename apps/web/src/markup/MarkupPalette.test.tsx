@@ -213,16 +213,13 @@ describe('Markup palette', () => {
       expect(getComputedStyle(tool('Red pen, 2 pt')).backgroundColor).toBe(armedFill),
     );
     const inks = await screen.findByRole('toolbar', { name: 'Pen options' });
-    // One press away: the well with the pen's colour, four colours and the width (§3.7). The
-    // colours never repeat the dock's pens (G8): a pen that never changed colour shows its
-    // palette's others. The strip's piece rises in above the palette.
+    // One press away: the well with the pen's colour and the width (10-ink §2.1). No fixed
+    // swatches repeat the dock's pens (G8), and a pen that never changed colour has no recents.
+    // The strip's piece rises in above the palette.
     const well = within(inks).getByRole('button', { name: 'Colour: Red' });
     await waitFor(() => expect(well).toBeVisible());
-    const names = () =>
-      within(within(inks).getByRole('radiogroup', { name: 'Recent colours' }))
-        .getAllByRole('radio')
-        .map((el) => el.getAttribute('aria-label'));
-    expect(names()).toEqual(['Green', 'Purple', 'Orange', 'Pink']);
+    expect(within(inks).queryAllByRole('radio')).toHaveLength(0);
+    const bare = (inks.closest('[data-strip-piece]') as HTMLElement).getBoundingClientRect();
     // A colour from the panel shows on the armed pen's dot in the dock at once.
     await userEvent.click(well);
     const grid = await screen.findByRole('radiogroup', { name: 'Colour grid' });
@@ -238,26 +235,29 @@ describe('Markup palette', () => {
     await waitFor(() =>
       expect(screen.queryByRole('radiogroup', { name: 'Colour grid' })).toBeNull(),
     );
-    await waitFor(() => expect(names()[0]).toBe('Red'));
-    expect(names()).toHaveLength(4);
-    expect(names()).not.toContain('Black');
-    expect(names()).not.toContain('Blue');
-    // A recent swaps back: red again, and the panel's colour takes its place among the recents.
-    await userEvent.click(within(inks).getByRole('radio', { name: 'Red' }));
-    expect(useAnnotationStore.getState().pen.presets[2].color).toBe(INK.red);
-    expect(useAnnotationStore.getState().styles.ink.color).toBe(INK.red);
-    await waitFor(() => expect(within(inks).queryByRole('radio', { name: 'Red' })).toBeNull());
-    expect(within(inks).getAllByRole('radio')).toHaveLength(4);
-    // Each pen keeps its own recents: the black pen has none, so its row is the palette's.
-    await userEvent.click(tool('Black pen, 1.5 pt'));
-    await waitFor(() =>
-      expect(within(strip() as HTMLElement).getAllByRole('radio')).toHaveLength(4),
-    );
+    const recents = await within(inks).findByRole('radiogroup', { name: 'Recent colours' });
     expect(
-      within(strip() as HTMLElement)
+      within(recents)
         .getAllByRole('radio')
         .map((el) => el.getAttribute('aria-label')),
-    ).toEqual(['Green', 'Purple', 'Orange', 'Pink']);
+    ).toEqual(['Red']);
+    // The colour slot hugs what it holds (G8: no empty glass): one recent widens the piece.
+    await waitFor(() =>
+      expect(
+        (inks.closest('[data-strip-piece]') as HTMLElement).getBoundingClientRect().width,
+      ).toBeGreaterThan(bare.width + 30),
+    );
+    // A recent swaps back: red again, and the panel's colour takes its place among the recents.
+    await userEvent.click(within(recents).getByRole('radio', { name: 'Red' }));
+    expect(useAnnotationStore.getState().pen.presets[2].color).toBe(INK.red);
+    expect(useAnnotationStore.getState().styles.ink.color).toBe(INK.red);
+    await waitFor(() => expect(within(inks).getAllByRole('radio')).toHaveLength(1));
+    expect(within(inks).queryByRole('radio', { name: 'Red' })).toBeNull();
+    // Each pen keeps its own recents: the black pen has none.
+    await userEvent.click(tool('Black pen, 1.5 pt'));
+    await waitFor(() =>
+      expect(within(strip() as HTMLElement).queryAllByRole('radio')).toHaveLength(0),
+    );
     await userEvent.click(tool('Red pen, 2 pt'));
     const width = within(inks).getByRole('slider', { name: 'Width' });
     expect(width).toHaveAttribute('aria-valuetext', '2 points');
@@ -278,18 +278,21 @@ describe('Markup palette', () => {
     // One family (G8): the strip is as tall as the palette, one piece (--piece-h, G1).
     expect(capsule.height).toBe(40);
     expect(box.height).toBe(capsule.height);
-    // One layout for every tool (§3.7): the shapes' strip has the pen's width, so nothing moves.
-    const slots = (el: Element) =>
-      [...el.children].map((c) => {
-        const r = c.getBoundingClientRect();
-        return [Math.round(r.left), Math.round(r.width)];
-      });
-    const penWidth = box.width;
+    // One layout for every tool (§3.7): the well stays at the leading edge and the width slot
+    // keeps its width; only the colour slot changes with the tool's colours.
+    const slots = (el: Element) => {
+      const parts = [...el.children].map((c) => c.getBoundingClientRect());
+      return {
+        well: Math.round(parts[0]?.left ?? 0),
+        width: Math.round(parts[parts.length - 1]?.width ?? 0),
+        count: parts.length,
+      };
+    };
     const penSlots = slots(inks);
+    expect(penSlots.count).toBe(3);
     await userEvent.keyboard('r');
     const shapes = await screen.findByRole('toolbar', { name: /options$/ });
     await waitFor(() => expect(shapes.getAttribute('data-ink-strip')).toBe('shape'));
-    await waitFor(() => expect(piece.getBoundingClientRect().width).toBeCloseTo(penWidth, 0));
     await waitFor(() => expect(slots(shapes)).toEqual(penSlots));
     // Select has no strip: the piece leaves, inert from its first frame out, then unmounts.
     await userEvent.click(tool('Select'));
