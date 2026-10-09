@@ -5,6 +5,7 @@
 import {
   addSource,
   closeDocument,
+  removeSourceIfUnreferenced,
   createSequentialIdGenerator,
   createWorkspace,
   type DocumentId,
@@ -84,6 +85,14 @@ describe('lock check', () => {
     const { ws, a } = workspace();
     expect(lockedChange(ws, closeDocument(ws, a), { [a]: 'user' })).toBeUndefined();
     expect(lockedChange(closeDocument(ws, a), ws, { [a]: 'user' })).toBeUndefined();
+  });
+
+  it('lets a locked document with annotations close: its source and edits go with it (X12)', () => {
+    const { ws, a, sa } = workspace();
+    const annotated = { ...ws, engineEdits: [edit(sa, 'annotation.create')] };
+    const closed = removeSourceIfUnreferenced(closeDocument(annotated, a), sa);
+    expect(closed.engineEdits).toEqual([]);
+    expect(lockedChange(annotated, closed, { [a]: 'user' })).toBeUndefined();
   });
 
   it('refuses removing a locked page’s edit as well as adding one', () => {

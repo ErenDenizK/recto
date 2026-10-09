@@ -134,18 +134,17 @@ export function lockedChange(
   }
   if (before.engineEdits === after.engineEdits) return undefined;
   const kept = new Set(before.engineEdits);
-  const added = after.engineEdits.filter((edit) => !kept.has(edit));
   const still = new Set(after.engineEdits);
-  const removed = before.engineEdits.filter((edit) => !still.has(edit));
-  for (const [ws, edits] of [
-    [after, added],
-    [before, removed],
-  ] as const) {
-    for (const edit of edits) {
-      if (!lockedShowsSource(ws, edit.source, locks)) continue;
-      const refusal = lockedEngineEdit(ws, edit, locks);
-      if (refusal !== undefined) return refusal;
-    }
+  const changed = [
+    ...after.engineEdits.filter((edit) => !kept.has(edit)),
+    ...before.engineEdits.filter((edit) => !still.has(edit)),
+  ];
+  // Against the documents after the change: closing a locked document drops the edits of a
+  // source no page shows any more (`removeSourceIfUnreferenced`), which changes nothing shown.
+  for (const edit of changed) {
+    if (!lockedShowsSource(after, edit.source, locks)) continue;
+    const refusal = lockedEngineEdit(after, edit, locks);
+    if (refusal !== undefined) return refusal;
   }
   return undefined;
 }
