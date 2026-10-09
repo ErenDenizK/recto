@@ -1,0 +1,26 @@
+/*
+ * The landing highlight of a jump (motion-2026-10 viewer.md §1; landing.ts): a soft ring of the
+ * page's selection blue round the page or region a jump landed on, over a faint wash for a
+ * region. It moves only by opacity; the element is gone at rest.
+ */
+.landing {
+  position: absolute;
+  z-index: 2;
+  border-radius: var(--radius-page);
+  box-shadow:
+    0 0 0 2px rgb(var(--select-rgb) / 0.55),
+    0 0 18px 4px rgb(var(--select-rgb) / 0.22);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.landing[data-region] {
+  border-radius: 4px;
+  background: var(--select-subtle);
+}
+
+@media (forced-colors: active) {
+  .landing {
+    outline: 2px solid Highlight;
+  }
+}

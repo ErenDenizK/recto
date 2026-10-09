@@ -20,6 +20,7 @@ import { revealWhenShown } from '../motion/catalogue';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
+import { afterJump } from './jump';
 
 export interface DocumentHit {
   /** Order of arrival; ties inside a page keep the engine's reading order. */
@@ -397,12 +398,19 @@ export function revealHit(hit: DocumentHit | undefined): void {
   const ui = useUiStore.getState();
   if (!isPageView(ui)) ui.showSurface('page');
   const bounds = hitBounds(hit);
+  // A step: the hit rings itself, so the page takes no landing highlight.
   useViewStore
     .getState()
-    .scrollToPage(hit.pageId, bounds === undefined ? undefined : { reveal: bounds });
-  // One hit is current, drawn by `SearchHighlights` once its page is laid out.
-  void revealWhenShown(() =>
-    document.querySelector('[data-testid="search-highlights"] [data-current]'),
+    .scrollToPage(
+      hit.pageId,
+      bounds === undefined ? { motion: 'step' } : { reveal: bounds, motion: 'step' },
+    );
+  // One hit is current, drawn by `SearchHighlights` once its page is laid out; the ring waits
+  // for the eased scroll to land (motion-2026-10 viewer.md §1).
+  void afterJump().then(() =>
+    revealWhenShown(() =>
+      document.querySelector('[data-testid="search-highlights"] [data-current]'),
+    ),
   );
 }
 
