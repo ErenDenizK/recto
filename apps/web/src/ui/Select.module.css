@@ -9,7 +9,7 @@
  */
 .trigger {
   composes: focus-field from global;
-  --sel-h: var(--control-h, 32px);
+  --sel-h: var(--control-h);
   --sel-fill: var(--control-fill);
   --sel-fill-hover: var(--control-fill-hover);
   --sel-fill-pressed: var(--control-fill-pressed);
@@ -22,15 +22,15 @@
   min-width: 0;
   max-width: 100%;
   height: var(--sel-h);
-  padding: 0 8px 0 12px;
+  padding: 0 var(--space-2) 0 var(--space-3);
   border: 0;
-  border-radius: var(--radius-control, 10px);
+  border-radius: var(--radius-control);
   background: var(--sel-fill);
   color: var(--text-primary);
   font: inherit;
   font-size: var(--type-body);
   font-variant-numeric: tabular-nums;
-  line-height: 18px;
+  line-height: var(--type-body-lh);
   text-align: start;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -45,10 +45,7 @@
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .trigger {
-    --sel-h: var(--control-h, 44px);
     padding-inline: 14px 10px;
-    font-size: 15px;
-    line-height: 20px;
   }
 }
 
@@ -93,8 +90,8 @@
 }
 
 .icon svg {
-  width: 16px;
-  height: 16px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .trigger[data-disabled] .icon {

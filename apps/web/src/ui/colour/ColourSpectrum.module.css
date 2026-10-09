@@ -9,7 +9,7 @@
   position: relative;
   width: var(--plane-w);
   height: var(--plane-h);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background:
     linear-gradient(to bottom, #ffffff, rgb(255 255 255 / 0) 50%),
     linear-gradient(to bottom, rgb(0 0 0 / 0) 50%, #000000),

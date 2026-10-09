@@ -54,8 +54,8 @@
   --sl-hit: 32px;
   --sl-taper-start: 2px;
   --sl-taper-end: 12px;
-  --sl-readout: 13px;
-  --sl-readout-lh: 18px;
+  --sl-readout: var(--type-body);
+  --sl-readout-lh: var(--type-body-lh);
   /* Colour (dark). */
   --sl-track-fill: var(--control-track);
   --sl-range: var(--control-range, var(--text-primary));
@@ -173,8 +173,6 @@
     --sl-hit: 44px;
     --sl-taper-start: 3px;
     --sl-taper-end: 16px;
-    --sl-readout: 15px;
-    --sl-readout-lh: 20px;
   }
 }
 
@@ -273,7 +271,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-capsule);
   background: var(--sl-track-fill);
 }
 
@@ -340,7 +338,7 @@
   width: 2px;
   height: 4px;
   margin-left: -1px;
-  border-radius: 1px;
+  border-radius: var(--radius-capsule);
   background: var(--sl-tick);
   transform: translateX(round(calc(var(--sl-knob) / 2 + var(--tick-pos) * 100cqw), 1px));
   transition: background-color var(--duration-fast) var(--ease-out);
@@ -540,13 +538,13 @@
   min-width: 36px;
   height: 28px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-capsule);
   background: var(--sl-bubble-fill);
   box-shadow: var(--sl-shadow);
   --sl-shadow: inset 0 0 0 1px var(--sl-bubble-rim), var(--sl-e2);
   color: var(--sl-readout-colour);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--type-body);
+  font-weight: var(--weight-medium);
   line-height: 28px;
   font-variant-numeric: tabular-nums;
   text-align: center;

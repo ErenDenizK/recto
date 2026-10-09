@@ -85,15 +85,15 @@ function Harness({
 const panelOf = (id = 'sheet') => screen.getByTestId(`sheet-${id}`);
 
 describe('presentation per kind and size class (07 §1.1)', () => {
-  it('a task sheet is a 400 px side sheet at 1440 × 900, 8 px from the trailing edge', async () => {
+  it('a task sheet is a 400 px side sheet at 1440 × 900, on the piece inset (16 px) from the trailing edge and the bottom', async () => {
     render(<Harness kind="task" />);
     const panel = panelOf();
     expect(panel.dataset.presentation).toBe('side');
     await settle(panel);
     const box = panel.getBoundingClientRect();
     expect(box.width).toBe(400);
-    expect(innerWidth - box.right).toBe(8);
-    expect(innerHeight - box.bottom).toBe(8);
+    expect(innerWidth - box.right).toBe(16);
+    expect(innerHeight - box.bottom).toBe(16);
     expect(document.querySelector('[data-presentation][class*="scrim"]')).not.toBeNull();
     expect(getComputedStyle(panel).backdropFilter).toContain('blur(24px)');
   });

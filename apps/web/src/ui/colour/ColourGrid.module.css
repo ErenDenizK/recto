@@ -37,7 +37,7 @@
   height: var(--cell-h);
   padding: 0;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--radius-page);
   cursor: pointer;
   forced-color-adjust: none;
   -webkit-tap-highlight-color: transparent;

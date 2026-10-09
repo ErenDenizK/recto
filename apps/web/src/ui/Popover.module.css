@@ -4,9 +4,11 @@
  *
  * - Material: M4 (`mat mat-menu s12`), blurred 12px (coverage registry `popover`); a panel
  *   that opens across a hard dark/white edge composes `mat-opaque`, its solid twin.
- * - Shape: radius 16, 12 px padding, `min(320px, 100vw − 16px)` wide.
- * - Title row: 44 px with the title (13/18 at 600 fine, 15/20 coarse) and ✕ at the end; it
- *   reaches 6 px into the padding above, so the ✕ sits concentric with the corner.
+ * - Shape: --radius-lg (16), --space-3 (12) padding, `min(320px, 100vw − 16px)` wide
+ *   (system-audit-2026-10 §3.6).
+ * - Title row: 44 px with the title (body at 600) and ✕ at the end; it reaches 6 px into the
+ *   padding above, so the ✕ sits concentric with the corner.
+ * - A body that outgrows the room scrolls in `PopoverScroll` with the menu's edge fade.
  * - Motion (*popup*, G6; as `Menu.module.css`): from the anchor (Base UI's
  *   `--transform-origin`), scale 0.96 → 1 and the 4 px rise toward its place on
  *   `--spring-quick`, with a fade; a quicker close to 0.98 in `--duration-fast` (MC-16).
@@ -14,10 +16,10 @@
  */
 .popup {
   composes: mat mat-menu s12 from global;
-  --pop-icon-button: 32px;
-  --pop-icon: 20px;
-  --pop-title: 13px;
-  --pop-title-lh: 18px;
+  --pop-icon-button: var(--control-h);
+  --pop-icon: var(--icon-md);
+  --pop-pad: var(--space-3);
+  --pop-fade: var(--space-4);
 
   box-sizing: border-box;
   width: min(320px, calc(100vw - 16px));
@@ -30,25 +32,16 @@
     var(--available-height, calc(100dvh - 16px)),
     calc(var(--visual-h, 100dvh) - 16px)
   );
-  padding: 12px;
+  padding: var(--pop-pad);
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   outline: none;
   transform-origin: var(--transform-origin);
   transition:
     opacity var(--duration-base) var(--ease-out),
     transform var(--spring-quick) var(--ease-spring);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .popup {
-    --pop-icon-button: 44px;
-    --pop-icon: 24px;
-    --pop-title: 15px;
-    --pop-title-lh: 20px;
-  }
 }
 
 .popup[data-starting-style],
@@ -99,13 +92,13 @@
   align-items: center;
   gap: var(--space-2);
   height: 44px;
-  margin: -6px -6px 0 0;
+  margin: calc(-1 * var(--space-1h)) calc(-1 * var(--space-1h)) 0 0;
 }
 
 /* With a leading control (the colour panel's eyedropper) the title centres between two. */
 .header[data-leading] {
   grid-template-columns: var(--pop-icon-button) minmax(0, 1fr) var(--pop-icon-button);
-  margin-inline-start: -6px;
+  margin-inline-start: calc(-1 * var(--space-1h));
 }
 
 .header[data-leading] .title {
@@ -116,9 +109,9 @@
   margin: 0;
   overflow: hidden;
   color: var(--text-primary);
-  font-size: var(--pop-title);
-  font-weight: 600;
-  line-height: var(--pop-title-lh);
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-lh);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -182,10 +175,59 @@
 .scroll {
   flex: 0 1 auto;
   min-height: 0;
-  margin: 0 -12px;
-  padding: 0 12px 12px;
+  margin: 0 calc(-1 * var(--pop-pad));
+  padding: 0 var(--pop-pad) var(--pop-pad);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding-block: var(--pop-fade);
+}
+
+/* The menu's edge fade (Menu.module.css, system-audit-2026-10 §3.6): a band of the popover's
+   own tint at an edge with more content beyond it, sticky, answering the scroller's
+   scroll-state queries, so nothing animates at rest. The scroller stays a block container, so
+   the two bands are blocks in its flow. */
+@supports (container-type: scroll-state) {
+  .scroll {
+    container-type: scroll-state;
+  }
+
+  .scroll::before,
+  .scroll::after {
+    content: '';
+    position: sticky;
+    z-index: 1;
+    display: block;
+    height: var(--pop-fade);
+    margin-inline: calc(-1 * var(--pop-pad));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .scroll::before {
+    top: 0;
+    margin-bottom: calc(-1 * var(--pop-fade));
+    background: linear-gradient(to bottom, var(--mat-tint), transparent);
+  }
+
+  .scroll::after {
+    bottom: calc(-1 * var(--pop-pad));
+    margin-top: calc(-1 * var(--pop-fade) + var(--pop-pad));
+    margin-bottom: calc(-1 * var(--pop-pad));
+    background: linear-gradient(to top, var(--mat-tint), transparent);
+  }
+
+  @container scroll-state(scrollable: top) {
+    .scroll::before {
+      opacity: 1;
+    }
+  }
+
+  @container scroll-state(scrollable: bottom) {
+    .scroll::after {
+      opacity: 1;
+    }
+  }
 }
 
 /* --- Body -------------------------------------------------------------------------------- */
@@ -194,7 +236,7 @@
   margin: var(--space-1) 0 0;
   color: var(--text-secondary);
   font-size: var(--type-body);
-  line-height: 18px;
+  line-height: var(--type-body-lh);
   text-wrap: pretty;
 }
 

@@ -1,5 +1,6 @@
 /*
- * Segmented control (09-primitives §6; heights per quality-bar Q-9). One grid row: every
+ * Segmented control (09-primitives §6): the M size, --control-h (quality-bar Q-9;
+ * system-audit-2026-10 §3.3), its labels in the body step. One grid row: every
  * segment has its own column and the thumb shares the checked one's cell, so layout places it.
  */
 .frame {
@@ -8,10 +9,10 @@
 }
 
 .root {
-  --seg-h: 32px;
-  --seg-inset: 2px;
-  --seg-text: 13px;
-  --seg-lh: 18px;
+  --seg-h: var(--control-h);
+  --seg-inset: var(--space-half);
+  --seg-text: var(--type-body);
+  --seg-lh: var(--type-body-lh);
   --seg-track: var(--control-fill);
   --seg-thumb: var(--control-thumb);
   --seg-thumb-ring: var(--control-border);
@@ -26,7 +27,7 @@
   box-sizing: border-box;
   height: var(--seg-h);
   padding: var(--seg-inset);
-  border-radius: 999px;
+  border-radius: var(--radius-capsule);
   background: var(--seg-track);
   isolation: isolate;
   /* A finger dragging the thumb sideways is ours; vertical moves still scroll. */
@@ -40,15 +41,15 @@
 
 /* An equal share may hold its label with 8 px either side (`EQUAL_PADDING_GIVE`). */
 .root[data-layout='equal'] .segment {
-  padding-inline: 8px;
+  padding-inline: var(--space-2);
 }
 
-/* The hidden copy's sizes, before the coarse ones below, so a coarse pointer measures the
-   labels at the 15 px they are drawn at. */
+/* The hidden copy's sizes, the drawn ones, so a coarse pointer measures the labels at the
+   size they are drawn at. */
 .measure {
-  --seg-inset: 2px;
-  --seg-text: 13px;
-  --seg-lh: 18px;
+  --seg-inset: var(--space-half);
+  --seg-text: var(--type-body);
+  --seg-lh: var(--type-body-lh);
 }
 
 :global([data-theme='light']) .root,
@@ -61,19 +62,10 @@
   --seg-e1: 0 1px 2px rgb(21 23 28 / 0.12);
 }
 
-@media (pointer: coarse), (any-pointer: coarse) {
-  .root,
-  .measure {
-    --seg-h: 44px;
-    --seg-text: 15px;
-    --seg-lh: 20px;
-  }
-}
-
 .thumb {
   z-index: -1;
   grid-row: 1;
-  border-radius: 999px;
+  border-radius: var(--radius-capsule);
   background: var(--seg-thumb);
   --seg-thumb-shadow: inset 0 0 0 1px var(--seg-thumb-ring), var(--seg-e1);
   box-shadow: var(--seg-thumb-shadow);
@@ -85,18 +77,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-1h);
   grid-row: 1;
   box-sizing: border-box;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-capsule);
   background: transparent;
   color: var(--seg-off);
   font: inherit;
   font-size: var(--seg-text);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   line-height: var(--seg-lh);
   white-space: nowrap;
   cursor: pointer;
@@ -119,7 +111,7 @@
 .segment[data-checked],
 .segment[data-active] {
   color: var(--seg-on);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 @media (hover: hover) {
@@ -149,7 +141,7 @@
 
 .measure .segment {
   flex: none;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .measure .text {
