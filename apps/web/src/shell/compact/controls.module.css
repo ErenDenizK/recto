@@ -19,9 +19,9 @@
   height: 44px;
   border-radius: var(--radius-capsule);
   color: var(--text-primary);
-  font-size: 0.9375rem;
+  font-size: var(--type-body);
   font-weight: 500;
-  line-height: 1.25rem;
+  line-height: var(--type-body-lh);
   white-space: nowrap;
   touch-action: manipulation;
   transition:

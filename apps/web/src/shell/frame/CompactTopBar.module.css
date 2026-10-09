@@ -68,7 +68,7 @@
   margin: 0;
   padding-inline: 6px;
   color: var(--text-primary);
-  font-size: var(--type-callout, 15px);
+  font-size: var(--type-callout);
   font-weight: 600;
 }
 
@@ -93,7 +93,7 @@
 }
 
 .backCount {
-  font-size: 15px;
+  font-size: var(--type-body);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -110,9 +110,9 @@
   padding: 0 var(--space-2);
   border-radius: var(--radius-control);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: var(--type-body);
   font-weight: 600;
-  line-height: 20px;
+  line-height: var(--type-body-lh);
 }
 
 @media (hover: hover) {
