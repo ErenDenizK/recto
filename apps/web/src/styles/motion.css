@@ -144,9 +144,11 @@
   --press-scale-large: var(--press-scale-large-mouse);
 
   /* Entrances (§7.3): popups and centred dialogs from --enter-scale, rising --rise-distance
-     toward their anchor (--motion-rise for a popup above it); tooltips from --tooltip-scale;
+     toward their anchor (--motion-rise for a popup above it), and leave toward --exit-scale
+     in --duration-fast (MC-16: a quicker close); tooltips from --tooltip-scale;
      a pushed page from --sheet-push-distance to the side it comes from (X8). */
   --enter-scale: 0.96;
+  --exit-scale: 0.98;
   --tooltip-scale: 0.98;
   --rise-distance: 4px;
   --motion-rise: translateY(var(--rise-distance));
@@ -186,6 +188,7 @@
     --press-scale-large-mouse: 1;
     --press-scale-large-touch: 1;
     --enter-scale: 1;
+    --exit-scale: 1;
     --tooltip-scale: 1;
     --rise-distance: 0px;
     --sheet-push-distance: 0px;
@@ -210,6 +213,7 @@
   --press-scale-large-mouse: 1;
   --press-scale-large-touch: 1;
   --enter-scale: 1;
+  --exit-scale: 1;
   --tooltip-scale: 1;
   --rise-distance: 0px;
   --sheet-push-distance: 0px;
