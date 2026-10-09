@@ -80,23 +80,16 @@ test('a file with a bad startxref is repaired on open, and Document info says so
   await expect(page.getByTestId('document-facts')).toContainText('Repaired');
 });
 
-test('a file that lost its tail is never opened silently wrong', async ({ page }, info) => {
-  // The corpus's `truncated.pdf` (last 300 bytes gone) is a repair fixture for the engine. Either
-  // outcome is honest (opened and badged as repaired, or refused as damaged); the one recorded
-  // is what the app does today.
+test('a file that lost its tail opens as repaired, and Document info says so', async ({ page }) => {
+  // The corpus's `truncated.pdf` (last 300 bytes gone: the xref's end, the trailer, startxref)
+  // keeps every object; the engine rebuilds its tail as MuPDF does (structure/tail-repair.ts).
   await openRaw(page, 'truncated.pdf');
-  const damaged = message(page, 'Could not open truncated.pdf: the file is damaged.');
-  const opened = page.getByRole('tab', { name: 'truncated' });
-  await expect(damaged.or(opened)).toBeVisible({ timeout: 20_000 });
-  const repaired = await opened.isVisible();
-  info.annotations.push({
-    type: 'V1-B5 truncated.pdf',
-    description: repaired ? 'opens as repaired' : 'refused as damaged, not repaired',
+  await expect(page.getByRole('tab', { name: 'truncated' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('canvas[data-state="rendered"]').first()).toBeVisible({
+    timeout: 20_000,
   });
-  if (repaired) {
-    await openFacts(page);
-    await expect(page.getByTestId('document-facts')).toContainText('Repaired');
-  }
+  await openFacts(page);
+  await expect(page.getByTestId('document-facts')).toContainText('Repaired');
 });
 
 test('a text file under a .pdf name is not opened as a PDF', async ({ page }) => {
