@@ -188,10 +188,12 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  /* --bar-h around --control-h controls (quality-bar Q-9): one piece, 40 / 48 px (G1). */
-  height: var(--bar-h);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-capsule);
+  /* One piece around M controls (quality-bar Q-9; system-audit-2026-10 §3.3): 40 / 48 px (G1),
+     concentric with its rim, as every bar of the capsule's grammar. */
+  box-sizing: border-box;
+  height: var(--piece-h);
+  padding: 0 var(--piece-pad);
+  border-radius: var(--piece-radius);
   color: var(--text-primary);
   font-size: var(--type-footnote);
   white-space: nowrap;
@@ -200,14 +202,16 @@
 }
 
 .barName {
-  padding-left: var(--space-1);
-  color: var(--text-secondary);
+  padding-left: var(--space-3);
+  color: var(--glass-text-secondary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
 }
 
 .barDivider {
   flex: none;
   width: 1px;
-  height: 18px;
+  height: var(--icon-md);
   background: var(--border-hairline);
 }
 
@@ -219,8 +223,8 @@
 }
 
 .barLocked svg {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 /* In-place editors */

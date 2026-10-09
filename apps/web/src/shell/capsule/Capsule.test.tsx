@@ -10,12 +10,12 @@ import '../../styles/tokens.css';
 import '../../styles/reset.css';
 import '../../styles/global.css';
 
-import { act, cleanup, render, waitFor } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { Capsule } from './Capsule';
 import type { CapsuleShape } from './capsule-content';
-import { LEAVE_MS, TRACE_OPACITY } from './capsule-morph';
+import { coverTime, LEAVE_MS, TRACE_OPACITY, uncoverTime } from './capsule-morph';
 
 /** A content of `width` × 42 px, with named pieces of 60 px. */
 function Content({ shape }: { readonly shape: CapsuleShape }) {
@@ -75,10 +75,22 @@ const morphs = () =>
   capsule()
     .getAnimations({ subtree: true })
     .filter((a) => !(a instanceof CSSTransition) && !(a instanceof CSSAnimation));
+/** Waits for the morph to end; an animation a test pinned (`holdAt`) and left is not waited on. */
 const settle = async () => {
-  for (let i = 0; i < 5 && morphs().length > 0; i++) {
-    await Promise.all(morphs().map((a) => a.finished.catch(() => undefined)));
+  const running = () => morphs().filter((a) => a.playState !== 'paused');
+  for (let i = 0; i < 5 && running().length > 0; i++) {
+    await Promise.all(running().map((a) => a.finished.catch(() => undefined)));
     await nextFrame();
+  }
+};
+/**
+ * Pins the morph `ms` into its timeline: every one of its animations paused there, so what a
+ * test reads next does not depend on how fast a loaded runner draws frames.
+ */
+const holdAt = (ms: number) => {
+  for (const animation of morphs()) {
+    animation.pause();
+    animation.currentTime = ms;
   }
 };
 const width = () => capsule().getBoundingClientRect().width;
@@ -130,9 +142,10 @@ describe('capsule', () => {
       return (a.effect as KeyframeEffect).target === el && 'width' in (frames[0] ?? {});
     });
     expect(sizes).toHaveLength(1);
-    // Read as soon as it is under way: a fixed pause can run past the spring on a loaded runner.
-    await waitFor(() => expect(width()).toBeGreaterThan(DOCK + 2), { interval: 4 });
+    // Read 60 ms in, pinned there: a pause of real time can run past the spring under load.
+    holdAt(60);
     const mid = width();
+    expect(mid).toBeGreaterThan(DOCK + 2);
     expect(mid).toBeLessThan(PALETTE - 2);
     // Mid-morph the shape is still the pill, and the filter has not changed (X20).
     expect(getComputedStyle(el).borderTopLeftRadius).toBe('999px');
@@ -144,6 +157,7 @@ describe('capsule', () => {
       centre(el.getBoundingClientRect()),
       0,
     );
+    for (const animation of morphs()) animation.play();
     await settle();
     expect(width()).toBeCloseTo(PALETTE, 0);
     // At rest: no inline size, no transform, no will-change (Q-2), and the dock is gone.
@@ -203,19 +217,26 @@ describe('capsule', () => {
   it('retargets a morph in flight from where it is, without a jump', async () => {
     const { rerender } = render(<Harness shape="dock" />);
     const el = capsule();
-    const dock = el.querySelector('[data-capsule-layer="dock"]');
+    const dock = el.querySelector('[data-capsule-layer="dock"]') as HTMLElement;
     rerender(<Harness shape="palette" />);
-    // Turned back as soon as the width is under way, while the dock is still fading out
-    // (LEAVE_MS, 90 ms): a fixed 100 ms pause outlived that fade, and on a loaded runner the
-    // dock had gone before the turn.
-    await waitFor(() => expect(width()).toBeGreaterThan(DOCK + 2), { interval: 4 });
+    // Turned back 40 ms in, while the dock is still fading out (LEAVE_MS, 90 ms). The moment is
+    // pinned, not waited for: under load a frame or a polling pause outlived that fade, the
+    // dock was gone before the turn, and the test failed.
+    holdAt(40);
     const at = width();
+    expect(at).toBeGreaterThan(DOCK + 2);
+    expect(at).toBeLessThan(PALETTE - 2);
+    const kept = Number(getComputedStyle(dock).opacity);
+    expect(kept).toBeGreaterThan(TRACE_OPACITY);
+    expect(kept).toBeLessThan(1);
     rerender(<Harness shape="dock" />);
-    // The width continues from where it was drawn (velocity kept), and the dock comes back.
-    expect(Math.abs(width() - at)).toBeLessThan(12);
+    // The width continues from where it was drawn (velocity kept), and the dock comes back
+    // from the opacity it had kept, never jumping back to whole.
+    expect(Math.abs(width() - at)).toBeLessThan(2);
     expect(el.querySelector('[data-capsule-layer="dock"]')).toBe(dock);
     expect(dock).not.toHaveAttribute('data-leaving');
     expect(dock).not.toHaveAttribute('inert');
+    expect(Number(getComputedStyle(dock).opacity)).toBeCloseTo(kept, 1);
     await settle();
     await act(async () => {
       await wait(50);
@@ -269,17 +290,72 @@ describe('capsule', () => {
         );
       });
     const out = fadeOf('dock')?.effect?.getComputedTiming();
-    const into = fadeOf('palette')?.effect?.getComputedTiming();
-    if (!out || !into) throw new Error('no fades');
+    if (!out) throw new Error('no fade out');
     // Out in LEAVE_MS; in from then on: never two contents drawn at once (the V2 review's
     // "PÆgae", Pages and the highlighter printing as one word).
     expect(Number(out.endTime)).toBeLessThanOrEqual(LEAVE_MS);
-    expect(Number(into.delay)).toBeGreaterThanOrEqual(Number(out.endTime) - 1);
-    // A content whose pieces have no twin that looks the same fades in whole: none of its
-    // pieces (nor anything between them) is drawn before its turn.
-    const pieces = [...el.querySelectorAll('[data-capsule-layer="palette"] [data-capsule-item]')];
-    expect(pieces.every((piece) => piece.getAnimations().length === 0)).toBe(true);
+    // The palette arrives piece by piece, each only once the dock is gone and the edge has
+    // passed it: centre-out, the farther from the centre the later ("Animation!").
+    const centre = (box: DOMRect) => box.left + box.width / 2;
+    const middle = centre(el.getBoundingClientRect());
+    const pieces = [
+      ...el.querySelectorAll<HTMLElement>('[data-capsule-layer="palette"] [data-capsule-item]'),
+    ].map((piece) => {
+      const fade = piece.getAnimations()[0];
+      if (!fade) throw new Error(`no fade on ${piece.dataset.capsuleItem}`);
+      return {
+        off: Math.round(Math.abs(centre(piece.getBoundingClientRect()) - middle)),
+        delay: Number(fade.effect?.getComputedTiming().delay),
+      };
+    });
+    for (const { delay } of pieces) expect(delay).toBeGreaterThanOrEqual(Number(out.endTime) - 1);
+    const offsets = [...new Set(pieces.map((p) => p.off))].sort((a, b) => a - b);
+    const delays = (off: number) => pieces.filter((p) => p.off === off).map((p) => p.delay);
+    for (let i = 1; i < offsets.length; i++) {
+      expect(Math.min(...delays(offsets[i] as number))).toBeGreaterThanOrEqual(
+        Math.max(...delays(offsets[i - 1] as number)),
+      );
+    }
+    // The outermost pieces wait for the edge, well after the innermost.
+    const first = Math.max(...delays(offsets[0] as number));
+    const last = Math.min(...delays(offsets[offsets.length - 1] as number));
+    expect(last - first).toBeGreaterThan(40);
+    // The layer itself never fades in whole: each piece shows on its own turn.
+    expect(fadeOf('palette')).toBeUndefined();
     await settle();
+  });
+
+  it('the narrowing edge never cuts a leaving piece: one in its way is gone before it arrives', async () => {
+    const { rerender } = render(<Harness shape="palette" />);
+    await settle();
+    rerender(<Harness shape="dock" />);
+    const el = capsule();
+    const piece = (key: string) =>
+      el.querySelector(`[data-capsule-layer="palette"] [data-capsule-item="${key}"]`) as Element;
+    const end = (target: Element) =>
+      Math.min(...target.getAnimations().map((a) => Number(a.effect?.getComputedTiming().endTime)));
+    // The outermost tools sit where the edge starts: they clear at once, ahead of their content.
+    for (const key of ['done', 'more-tools']) expect(end(piece(key))).toBeLessThan(LEAVE_MS / 2);
+    // The middle ones are inside the dock's width: they go with their content.
+    for (const key of ['eraser', 'shapes']) expect(piece(key).getAnimations()).toHaveLength(0);
+    await settle();
+  });
+
+  it('reads the edge from the width spring: when it uncovers a piece and when it reaches one', () => {
+    const growing = { to: 400, x: -200, v: 0, centre: 0, pad: 1 };
+    const box = (left: number, right: number) => ({ left, right, top: 0, bottom: 10 });
+    expect(uncoverTime(growing, box(-20, 20))).toBe(0);
+    const near = uncoverTime(growing, box(120, 140));
+    const far = uncoverTime(growing, box(170, 190));
+    expect(near).toBeGreaterThan(0);
+    expect(far).toBeGreaterThan(near);
+    expect(far).toBeLessThan(600);
+    // Beyond the resting width: it shows once the width has come to rest.
+    expect(uncoverTime(growing, box(260, 280))).toBe(600);
+    const narrowing = { to: 200, x: 200, v: 0, centre: 0, pad: 1 };
+    expect(coverTime(narrowing, box(190, 205))).toBe(0);
+    expect(coverTime(narrowing, box(110, 130))).toBeGreaterThan(0);
+    expect(coverTime(narrowing, box(-40, 40))).toBeNull();
   });
 
   it('a twin that looks different is not slid into: it fades out, and the new one fades in', async () => {
@@ -328,8 +404,9 @@ describe('capsule', () => {
   it('turning back mid-morph never shows both contents: the one leaving mid-arrival holds', async () => {
     const { rerender } = render(<Harness shape="dock" />);
     rerender(<Harness shape="palette" />);
-    await nextFrame();
-    // Back before the dock has faded: the palette, not yet shown, leaves from where it is.
+    // Back 16 ms in, before the dock has faded (pinned, so a slow frame cannot outlive the
+    // fade): the palette, not yet shown, leaves from where it is, and is gone at once.
+    holdAt(16);
     rerender(<Harness shape="dock" />);
     await nextFrame();
     const el = capsule();
