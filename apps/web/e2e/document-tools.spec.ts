@@ -82,7 +82,7 @@ test('edit the title, set a password, export, and open the output with the passw
   const dialog = page.getByTestId('set-password-dialog');
   await dialog.getByLabel('Password to open').fill('e2e-open-secret');
   await dialog.getByLabel('Password to change permissions').fill('e2e-owner-secret');
-  await dialog.getByLabel('Copying text and images').uncheck();
+  await dialog.getByRole('checkbox', { name: 'Copying text and images' }).uncheck();
   await expect(dialog.getByText(/^Strength: /).first()).toBeVisible();
   if (capture) {
     await page.screenshot({

@@ -19,7 +19,7 @@ import { m } from '../i18n';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { TooltipProvider } from '../ui/Tooltip';
 import { registerDocumentCommands } from './document-commands';
-import { DocumentDialogs } from './DocumentDialogs';
+import { DocumentSheets } from './DocumentSheets';
 import { closeDocumentDialog } from './document-store';
 
 const open = async (url: string, name: string) => {
@@ -44,7 +44,7 @@ afterEach(async () => {
 const renderSheets = () =>
   render(
     <TooltipProvider>
-      <DocumentDialogs />
+      <DocumentSheets />
     </TooltipProvider>,
   );
 
