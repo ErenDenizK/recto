@@ -10,7 +10,7 @@
  *   ▤, Mod+B, Find's ↓ and "All results", the pill's "All contents…" and ⌘K open it on their
  *   section.
  * - **Forms** (01-frame F1 §2): docked from expanded up (it insets the free rectangle and the
- *   page re-centres), a 320 px overlay inset 8 on medium, a 360 px side sheet under the top bar
+ *   page re-centres), a 320 px overlay on the piece inset on medium, a 360 px side sheet under the top bar
  *   on compact-height. Laid over the page, it is light-dismissed by a press outside and by Esc,
  *   which returns focus to ▤. Phones keep it in the Pages sheet (M10, ADR-0033): not mounted.
  * - **In the Pages grid** the Pages section is not offered (the grid is it): a sidebar open on

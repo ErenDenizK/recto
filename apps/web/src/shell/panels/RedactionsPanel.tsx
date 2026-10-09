@@ -37,8 +37,10 @@ import { isPageView, useUiStore } from '../../state/ui-store';
 import { useViewStore } from '../../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
 import { Button } from '../../ui/Button';
+import { Checkbox } from '../../ui/Checkbox';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
+import { ListRow } from '../../ui/ListRow';
 import { Notice } from '../../ui/Notice';
 import styles from './RedactionsPanel.module.css';
 
@@ -220,17 +222,16 @@ export function MarkRow({
       aria-current={current || selected ? 'true' : undefined}
     >
       {checkable ? (
-        <input
-          type="checkbox"
+        <Checkbox
           className={styles.check}
           checked={checked}
-          aria-label={checkLabel}
-          onChange={(e) => setIncluded([entry.markKey], e.target.checked)}
+          label={<span className="visually-hidden">{checkLabel}</span>}
+          onCheckedChange={(on) => setIncluded([entry.markKey], on)}
         />
       ) : null}
-      <button
-        type="button"
+      <ListRow
         className={styles.item}
+        current={current || selected}
         data-redaction-row={entry.mark.id}
         onClick={() => revealMark(entry)}
       >
@@ -243,7 +244,7 @@ export function MarkRow({
         >
           {label}
         </span>
-      </button>
+      </ListRow>
       <IconButton
         size="row"
         label={m.redaction_delete()}
@@ -329,40 +330,38 @@ function Finder() {
         return (
           <fieldset key={id} className={styles.patternGroup} data-pattern={id}>
             <legend className={styles.patternLegend}>
-              <label className={styles.patternLabel}>
-                <input
-                  type="checkbox"
-                  className={styles.check}
-                  checked={ticked === matches.length}
-                  ref={(el) => {
-                    if (el) el.indeterminate = ticked > 0 && ticked < matches.length;
-                  }}
-                  onChange={(e) =>
-                    setChecked(
-                      matches.map((match) => match.id),
-                      e.target.checked,
-                    )
-                  }
-                />
-                <span>{PATTERN_NAMES[id]()}</span>
-                <span className={styles.count}>{formatNumber(matches.length)}</span>
-              </label>
+              <Checkbox
+                className={styles.patternLabel}
+                checked={ticked === matches.length}
+                indeterminate={ticked > 0 && ticked < matches.length}
+                onCheckedChange={(on) =>
+                  setChecked(
+                    matches.map((match) => match.id),
+                    on,
+                  )
+                }
+                label={
+                  <>
+                    {PATTERN_NAMES[id]()}{' '}
+                    <span className={styles.count}>{formatNumber(matches.length)}</span>
+                  </>
+                }
+              />
             </legend>
             <ul className={styles.list}>
               {matches.map((match) => (
                 <li key={match.id} className={styles.row}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     className={styles.check}
                     checked={finder.checked.has(match.id)}
-                    aria-label={m.redaction_find_include({
-                      text: match.text,
-                      page: match.position,
-                    })}
-                    onChange={(e) => setChecked([match.id], e.target.checked)}
+                    label={
+                      <span className="visually-hidden">
+                        {m.redaction_find_include({ text: match.text, page: match.position })}
+                      </span>
+                    }
+                    onCheckedChange={(on) => setChecked([match.id], on)}
                   />
-                  <button
-                    type="button"
+                  <ListRow
                     className={styles.item}
                     data-finder-match={match.pattern}
                     onClick={() => revealMatch(match)}
@@ -371,7 +370,7 @@ function Finder() {
                     <span className={styles.page}>
                       {m.redaction_page_short({ page: match.position })}
                     </span>
-                  </button>
+                  </ListRow>
                 </li>
               ))}
             </ul>

@@ -80,8 +80,8 @@
   width: max-content;
   min-width: 0;
   max-width: 340px;
-  padding: 6px 6px 6px var(--space-3);
-  border-radius: 16px;
+  padding: var(--space-1h) var(--space-1h) var(--space-1h) var(--space-3);
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   font-size: var(--type-footnote);
   pointer-events: auto;
@@ -111,10 +111,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-}
-
-.action[data-default] {
-  border-color: var(--accent-line);
 }
 
 .lines {
@@ -160,44 +156,4 @@
   display: flex;
   align-self: start;
   align-items: center;
-}
-
-.action {
-  min-width: 24px;
-  height: var(--control-h);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-control);
-  background: var(--surface-raised);
-  color: var(--text-primary);
-  font-size: var(--type-footnote);
-}
-
-.action[aria-disabled='true'] {
-  color: var(--text-disabled);
-  cursor: not-allowed;
-}
-
-.info {
-  display: inline-grid;
-  width: var(--control-h);
-  height: var(--control-h);
-  padding: 0;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--text-secondary);
-}
-
-.info svg {
-  width: 16px;
-  height: 16px;
-}
-
-@media (hover: hover) {
-  .info:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
 }

@@ -7,7 +7,7 @@
  * comment appears; "Set comment author name…" in the palette asks again.
  */
 import type { Annotation } from '@pdf-editor/engine';
-import { type SyntheticEvent, useEffect, useId, useRef, useState } from 'react';
+import { type SyntheticEvent, useEffect, useRef, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { annotationIcon } from '../annotations/icons';
@@ -16,7 +16,10 @@ import { getLocale, m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import { ListRow } from '../ui/ListRow';
+import { TextField } from '../ui/TextField';
 import { announce } from './announcer';
 import { useAuthorPrompt } from './comment-author';
 import styles from './CommentsPanel.module.css';
@@ -41,7 +44,6 @@ export function AuthorPrompt({ focusOnMount = false }: { readonly focusOnMount?:
   const author = useAnnotationStore((s) => s.author);
   const [value, setValue] = useState(author);
   const input = useRef<HTMLInputElement>(null);
-  const id = useId();
   useEffect(() => {
     // Asked from the palette: the person is waiting to type. Never on the first comment.
     if (focusOnMount) input.current?.focus();
@@ -55,31 +57,23 @@ export function AuthorPrompt({ focusOnMount = false }: { readonly focusOnMount?:
   };
   return (
     <form className={styles.author} data-author-prompt="" onSubmit={save}>
-      <label htmlFor={id} className={styles.authorLabel}>
-        {m.comments_author_prompt()}
-      </label>
-      <div className={styles.authorRow}>
-        <input
-          ref={input}
-          id={id}
-          className={styles.authorInput}
-          value={value}
-          placeholder={m.comments_author_placeholder()}
-          autoComplete="name"
-          spellCheck={false}
-          maxLength={200}
-          onChange={(e) => setValue(e.target.value)}
-        />
-        <button type="submit" className={styles.authorButton}>
-          {m.comments_author_save()}
-        </button>
-        <button
-          type="button"
-          className={styles.authorButton}
-          onClick={() => useAuthorPrompt.getState().answer()}
-        >
+      <TextField
+        ref={input}
+        label={m.comments_author_prompt()}
+        value={value}
+        onValueChange={setValue}
+        placeholder={m.comments_author_placeholder()}
+        autoComplete="name"
+        spellCheck={false}
+        maxLength={200}
+      />
+      <div className={styles.authorActions}>
+        <Button size="sm" variant="quiet" onClick={() => useAuthorPrompt.getState().answer()}>
           {m.comments_author_skip()}
-        </button>
+        </Button>
+        <Button size="sm" type="submit">
+          {m.comments_author_save()}
+        </Button>
       </div>
     </form>
   );
@@ -111,10 +105,9 @@ export function CommentRow({ item }: { readonly item: CommentItem }) {
   const when = a.modified ? dateFormat(a.modified) : '';
   return (
     <li data-review-kind="comment">
-      <button
-        type="button"
-        className={styles.item}
-        aria-current={selected ? 'true' : undefined}
+      <ListRow
+        align="start"
+        current={selected}
         data-annotation-row={a.id}
         onClick={() => openComment(item)}
       >
@@ -133,7 +126,7 @@ export function CommentRow({ item }: { readonly item: CommentItem }) {
           </span>
           {text !== '' ? <span className={styles.text}>{text}</span> : null}
         </span>
-      </button>
+      </ListRow>
     </li>
   );
 }

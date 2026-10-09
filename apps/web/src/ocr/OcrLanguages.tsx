@@ -13,13 +13,14 @@
  * A page pushed in S10 (`OcrSheet.tsx`): the sheet's ‹ Back returns to the form.
  */
 import type { OcrLanguagePack } from '@pdf-editor/engine';
-import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { toFailure } from '../engine/engine-service';
 import { getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { Button } from '../ui/Button';
-import toolStyles from '../tools/ToolDialog.module.css';
+import { SheetGroup, SheetRow } from '../ui/sheet/SheetGroup';
+import { Switch } from '../ui/Switch';
 import styles from './Ocr.module.css';
 import { ocrDependencies } from './ocr-deps';
 import { formatMegabytes, languageName } from './ocr-model';
@@ -40,7 +41,6 @@ export function OcrLanguages() {
   const [packs, setPacks] = useState<readonly OcrLanguagePack[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
-  const input = useRef<HTMLInputElement>(null);
   const locale = getLocale();
 
   // Bumped to read the list again after a change.
@@ -99,9 +99,8 @@ export function OcrLanguages() {
     }
   };
 
-  const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
+  const importFile = async () => {
+    const file = await pickLanguageFile();
     if (!file) return;
     setError(null);
     try {
@@ -116,90 +115,93 @@ export function OcrLanguages() {
 
   return (
     <div className={styles.body} data-testid="ocr-languages">
-      <p className={toolStyles.description}>{m.ocr_languages_intro()}</p>
+      <p className={styles.description}>{m.ocr_languages_intro()}</p>
       {packs === null && error === null ? (
-        <p className={toolStyles.hint} role="status">
+        <p className={styles.hint} role="status">
           {m.ocr_languages_loading()}
         </p>
       ) : null}
-      <p className={styles.packsHeader} aria-hidden="true">
-        <span>{m.ocr_languages()}</span>
-        <span>{m.ocr_pack_offline()}</span>
-      </p>
-      <ul className={styles.packs} aria-label={m.ocr_languages_title()}>
-        {(packs ?? []).map((pack) => {
-          const name = languageName(pack.code, locale);
-          const working = busy?.code === pack.code;
-          return (
-            <li key={pack.code} className={styles.pack} data-testid="ocr-pack">
-              <span className={styles.packText}>
-                <span className={styles.packName}>
-                  {name}
-                  <span className={styles.code}>{pack.code}</span>
-                </span>
-                <span className={styles.meta}>
-                  {working && busy
-                    ? m.ocr_phase_download({
-                        count: 1,
-                        done: formatMegabytes(busy.done, locale),
-                        total: formatMegabytes(busy.total, locale),
-                      })
-                    : pack.source === 'imported'
-                      ? m.ocr_pack_imported_state({ size: formatMegabytes(pack.bytes, locale) })
-                      : pack.onDevice
-                        ? m.ocr_pack_on_device({ size: formatMegabytes(pack.bytes, locale) })
-                        : m.ocr_pack_downloads({
-                            size: formatMegabytes(pack.downloadBytes, locale),
-                          })}
-                </span>
-              </span>
-              {pack.source === 'imported' ? (
-                <button
-                  type="button"
-                  className={toolStyles.secondary}
-                  aria-label={m.ocr_pack_remove_label({ name })}
-                  onClick={() => void remove(pack)}
+      <SheetGroup label={m.ocr_languages()} footnote={m.ocr_import_hint()}>
+        <ul className={styles.packs} aria-label={m.ocr_languages_title()}>
+          {(packs ?? []).map((pack) => {
+            const name = languageName(pack.code, locale);
+            const working = busy?.code === pack.code;
+            const state =
+              working && busy
+                ? m.ocr_phase_download({
+                    count: 1,
+                    done: formatMegabytes(busy.done, locale),
+                    total: formatMegabytes(busy.total, locale),
+                  })
+                : pack.source === 'imported'
+                  ? m.ocr_pack_imported_state({ size: formatMegabytes(pack.bytes, locale) })
+                  : pack.onDevice
+                    ? m.ocr_pack_on_device({ size: formatMegabytes(pack.bytes, locale) })
+                    : m.ocr_pack_downloads({ size: formatMegabytes(pack.downloadBytes, locale) });
+            return (
+              <li key={pack.code} className={styles.pack} data-testid="ocr-pack">
+                <SheetRow
+                  title={
+                    <>
+                      {name}
+                      <span className={styles.code}>{pack.code}</span>
+                    </>
+                  }
+                  description={state}
                 >
-                  {m.ocr_pack_remove()}
-                </button>
-              ) : (
-                <label className={styles.switch}>
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={pack.onDevice}
-                    disabled={busy !== null}
-                    aria-label={m.ocr_pack_offline_label({ name })}
-                    onChange={(event) => void keepOffline(pack, event.target.checked)}
-                  />
-                  <span className="visually-hidden">{m.ocr_pack_offline()}</span>
-                </label>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                  {pack.source === 'imported' ? (
+                    <Button
+                      size="sm"
+                      aria-label={m.ocr_pack_remove_label({ name })}
+                      onClick={() => void remove(pack)}
+                    >
+                      {m.ocr_pack_remove()}
+                    </Button>
+                  ) : (
+                    <Switch
+                      hideLabel
+                      label={m.ocr_pack_offline_label({ name })}
+                      checked={pack.onDevice}
+                      disabled={busy !== null}
+                      onCheckedChange={(keep) => void keepOffline(pack, keep)}
+                    />
+                  )}
+                </SheetRow>
+              </li>
+            );
+          })}
+        </ul>
+      </SheetGroup>
       {error ? (
-        <p className={toolStyles.error} role="alert">
+        <p className={styles.error} role="alert">
           {error}
         </p>
       ) : null}
-      <p className={toolStyles.hint}>{m.ocr_import_hint()}</p>
-      <input
-        ref={input}
-        type="file"
-        accept=".traineddata,.gz,application/gzip,application/octet-stream"
-        className="visually-hidden"
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={(event) => void importFile(event)}
-        data-testid="ocr-import-input"
-      />
       <div className={styles.row}>
-        <Button variant="standard" onClick={() => input.current?.click()}>
-          {m.ocr_import()}
-        </Button>
+        <Button onClick={() => void importFile()}>{m.ocr_import()}</Button>
       </div>
     </div>
   );
+}
+
+/**
+ * Asks for one language file: the file picker with the Tesseract extensions, through an input
+ * made for the one pick (a press of "Import language file…" opens it; nothing renders a native
+ * file button, quality-bar Q-14).
+ */
+function pickLanguageFile(): Promise<File | undefined> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.traineddata,.gz,application/gzip,application/octet-stream';
+    input.hidden = true;
+    const finish = (file: File | undefined) => {
+      input.remove();
+      resolve(file);
+    };
+    input.addEventListener('change', () => finish(input.files?.[0]), { once: true });
+    input.addEventListener('cancel', () => finish(undefined), { once: true });
+    document.body.append(input);
+    input.click();
+  });
 }

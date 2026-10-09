@@ -38,6 +38,12 @@ export interface SwitchProps {
   readonly onCheckedChange: (checked: boolean) => void;
   /** The setting's name, shown before the switch. */
   readonly label: string;
+  /**
+   * Keep the label for assistive technology only: a switch trailing a row whose title already
+   * names the thing (a sheet row: "English · 2.0 MB", the switch "Keep English available
+   * offline"), as `TextField`'s `hideLabel`.
+   */
+  readonly hideLabel?: boolean | undefined;
   /** A second line under the label. */
   readonly description?: string | undefined;
   readonly disabled?: boolean | undefined;
@@ -58,6 +64,7 @@ export function Switch({
   checked,
   onCheckedChange,
   label,
+  hideLabel = false,
   description,
   disabled = false,
   system = false,
@@ -136,8 +143,8 @@ export function Switch({
       className={[styles.row, className].filter(Boolean).join(' ')}
       data-disabled={inert || undefined}
     >
-      <span className={styles.text}>
-        <span id={labelId} className={styles.label}>
+      <span className={hideLabel && !note ? 'visually-hidden' : styles.text}>
+        <span id={labelId} className={hideLabel ? 'visually-hidden' : styles.label}>
           {label}
         </span>
         {note ? (

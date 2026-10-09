@@ -14,7 +14,10 @@
 import { useMemo } from 'react';
 
 import { m } from '../i18n';
+import { Button } from '../ui/Button';
 import { EmptyNote } from '../ui/EmptyNote';
+import { ListRow } from '../ui/ListRow';
+import { Notice } from '../ui/Notice';
 import { changeLabel, honestyLines, rowLabel, signGlyph, signLabel } from './change-labels';
 import {
   buildChangeList,
@@ -76,39 +79,35 @@ export default function ChangesPanel() {
         )}
         {stale ? (
           <div className={styles.stale} data-testid="changes-stale">
-            <span>{m.compare_stale()}</span>
-            <button type="button" className={styles.action} onClick={() => void startCompare()}>
+            <Notice>{m.compare_stale()}</Notice>
+            <Button size="sm" className={styles.fix} onClick={() => void startCompare()}>
               {m.compare_run_again()}
-            </button>
+            </Button>
           </div>
         ) : null}
         {notes.length > 0 ? (
-          <details className={styles.notice} data-testid="changes-honesty">
-            <summary className={styles.noticeSummary}>{notes[0]}</summary>
-            <ul className={styles.noticeList}>
-              {notes.slice(1).map((note) => (
-                <li key={note}>{note}</li>
-              ))}
-            </ul>
-          </details>
+          <Notice
+            testId="changes-honesty"
+            more={
+              notes.length > 1
+                ? { label: m.compare_notes_more(), detail: notes.slice(1).join(' ') }
+                : undefined
+            }
+          >
+            {notes[0]}
+          </Notice>
         ) : null}
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.action}
+          <Button
+            size="sm"
             disabled={!result || stale}
             onClick={() => void exportComparisonReport()}
           >
             {m.compare_export_report()}
-          </button>
-          <button
-            type="button"
-            className={styles.action}
-            disabled={!result}
-            onClick={() => void exportChangesText()}
-          >
+          </Button>
+          <Button size="sm" disabled={!result} onClick={() => void exportChangesText()}>
             {m.compare_export_changes()}
-          </button>
+          </Button>
         </div>
       </div>
       <div className={styles.scroll}>
@@ -140,12 +139,11 @@ function ItemList({ items }: { readonly items: readonly ChangeItem[] }) {
         const { title, detail } = changeLabel(item);
         return (
           <li key={item.id}>
-            <button
-              type="button"
-              className={styles.item}
+            <ListRow
+              align="start"
               data-kind={item.kind}
               data-change={item.id}
-              aria-current={current === item.id ? 'true' : undefined}
+              current={current === item.id}
               onClick={() => selectChange(item)}
             >
               <span className={styles.glyph} aria-hidden="true">
@@ -156,7 +154,7 @@ function ItemList({ items }: { readonly items: readonly ChangeItem[] }) {
                 <span className={styles.title}>{title}</span>
                 {detail ? <span className={styles.detail}>{detail}</span> : null}
               </span>
-            </button>
+            </ListRow>
           </li>
         );
       })}
