@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { atRest, enterEdit, openFixtures, useFileInputPicker } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -22,6 +22,9 @@ test('the frame stays put while the privacy popover opens and closes', async ({ 
   const pill = page.getByTestId('page-pill');
   await expect(pill).toHaveText(/^1 \/ 3 · /);
   const strip = page.locator('[data-bar="title"]');
+  // The tab grows in and its piece follows on a spring (tab-motion.ts): measure where they rest.
+  await atRest(strip);
+  await atRest(pill);
   const before = { strip: await strip.boundingBox(), pill: await pill.boundingBox() };
   expect(before.strip).not.toBeNull();
 
