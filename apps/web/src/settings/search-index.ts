@@ -39,6 +39,7 @@ export type SettingsRowId =
   | 'theme'
   | 'glass'
   | 'reduceMotion'
+  | 'glow'
   | 'language'
   | 'penDrawsInEdit'
   | 'keptDocuments'
@@ -138,6 +139,13 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     title: at(m.settings_reduce_motion),
     keywords: at(m.settings_reduce_motion_keywords),
     commands: ['view.reduceMotion', 'settings.appearance'],
+  },
+  {
+    id: 'glow',
+    section: 'appearance',
+    title: at(m.settings_glow),
+    keywords: at(m.settings_glow_keywords),
+    commands: ['view.glow', 'settings.appearance'],
   },
   {
     id: 'language',
