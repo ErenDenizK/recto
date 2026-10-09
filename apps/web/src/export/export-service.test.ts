@@ -158,6 +158,31 @@ describe('prepareExport', () => {
     expect(out.pages.map((p) => p.rotation)).toEqual([0, 0, 0, 0, 0, 0, 0, 90, 90, 180, 270]);
   });
 
+  it('hands out the file as it is when the document is its file and nothing new is asked (step 6)', async () => {
+    const opened = await openInto(createWorkspace(), 'rotated-as-is', rotatedUrl, 'rotated.pdf');
+    const source = sourceId('rotated-as-is');
+    const asIs: ExportDependencies = {
+      ...deps(opened.ws),
+      asOpened: (_ws, id) => (id === opened.doc ? source : undefined),
+    };
+    const phases: ExportProgress['phase'][] = [];
+    const result = await prepareExport(
+      opened.doc,
+      { compression: null, onProgress: (p) => phases.push(p.phase) },
+      asIs,
+    );
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.value.verification).toEqual({ ok: true, problems: [] });
+    expect(new Uint8Array(result.value.bytes)).toEqual(
+      new Uint8Array(await fetchBytes(rotatedUrl)),
+    );
+    expect([...new Set(phases)]).toEqual(['reading', 'verifying']);
+    // Anything new (here the compatibility version) assembles a new file.
+    const rewritten = await prepareExport(opened.doc, { compatibility: true }, asIs);
+    if (!rewritten.ok) throw new Error(rewritten.error.message);
+    expect(rewritten.value.bytes.byteLength).not.toBe(result.value.bytes.byteLength);
+  });
+
   it('writes compatibility output', async () => {
     const result = await prepareExport(mergedId, { compatibility: true }, deps(merged));
     if (!result.ok) throw new Error(result.error.message);

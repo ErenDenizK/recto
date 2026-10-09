@@ -269,7 +269,7 @@
   "signature_version_file": "{name} (imzalanan sürüm, sürüm {revision})",
   "signature_version_unavailable": "İmzalanan sürüm okunamadı.",
   "signature_view_notice": "{name} dosyasının imzalanan sürümü (sürüm {revision}), görüntülemek için açıldı. Burada yapılan değişiklikler özgün dosyayı etkilemez.",
-  "signature_export_notice": "Dışa aktarma yeni bir dosya yazar: mevcut imzalar bu dosyadan kaldırılır. Özgün dosyada kalırlar.",
+  "signature_export_notice": "Dosyanın olduğu gibi bir kopyası imzalarını korur. Dosyayı değiştirdiğinizde dışa aktarma yeni bir dosya yazar ve mevcut imzalar bu dosyadan kaldırılır; özgün dosyada kalırlar.",
   "signature_export_notice_edited": "Bu imzalı dosyayı değiştirdiniz. Dışa aktarma değişikliklerinizle yeni bir dosya yazar; bir imza yeniden yazmadan sağ çıkamayacağı için mevcut imzalar bu dosyadan kaldırılır. Özgün dosyada kalırlar.",
   "signature_badge_label": "İmzalar: {status}",
   "signature_badge_edited": "dışa aktarmada kaldırılır",
