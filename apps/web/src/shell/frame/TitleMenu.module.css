@@ -1,10 +1,12 @@
 /*
  * The title menu (01-frame F5 §2–§4): the popover primitive (M4, radius 16) at 320 px (360
  * coarse), no taller than min(640 px, the room below the strip). The header holds the page,
- * the name in an opaque well, the facts and status lines, the Lock switch and the privacy line;
- * the rows scroll under it. Rows are the menu recipe's (32 fine, 44 coarse), section labels the
- * footnote step at 600 in the secondary ink (no uppercase, D3-9). The switch's on-state is the
- * menu's only accent, and the menu is transient.
+ * the name in an opaque well, the facts and status lines, then rows: Lock with its trailing
+ * switch, the eye (S2-1a) and the privacy line; the rows scroll under it. Every row is the
+ * menu recipe's (system-audit-2026-10 §3.6: M rows, 32 fine and 44 coarse, radius 10 inside a
+ * 6 px inset, a 16 px glyph leading), section labels the footnote step at 600 in the secondary
+ * ink (no uppercase, D3-9). The switch's on-state is the menu's only accent, and the menu is
+ * transient.
  */
 .popup {
   /* The M4 material's solid twin (`mat-opaque`; quality bar Q-1, Q-3): this panel opens over
@@ -12,9 +14,9 @@
      dark/white seam under a tall panel, so it reads as one material whatever lies beneath. */
   composes: mat-opaque from global;
   /* The menu recipe's row metrics (ui/Menu.module.css), for the rows inside the popover. */
-  --menu-row: 32px;
-  --menu-pad: 6px;
-  --menu-icon: 16px;
+  --menu-row: var(--control-h);
+  --menu-pad: var(--space-1h);
+  --menu-icon: var(--icon-sm);
   display: flex;
   flex-direction: column;
   width: min(320px, calc(100vw - 16px));
@@ -25,27 +27,37 @@
   );
   padding: 0;
   overflow: hidden;
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .popup {
-    --menu-row: 44px;
     width: min(360px, calc(100vw - 16px));
   }
 }
 
+/* The eye held (S2-1a): the menu steps aside so the page shows whole, and comes back on
+   release. Opacity only (Q-7); under reduced motion the fade is the shortened one. */
+.popup[data-peeking] {
+  opacity: 0;
+}
+
 .header {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
   flex: none;
-  padding: 12px 12px 8px;
+  padding: var(--space-3) var(--menu-pad) var(--menu-pad);
   border-bottom: 1px solid var(--border-hairline);
 }
 
 .identity {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+  padding-inline: var(--space-1h);
 }
 
 .thumbBox {
@@ -66,7 +78,7 @@
 
 .identityText {
   display: grid;
-  gap: 2px;
+  gap: var(--space-half);
   flex: 1;
   min-width: 0;
 }
@@ -75,25 +87,20 @@
   display: block;
 }
 
-/* The name: an opaque well (G-18), --control-h tall at the control text size. */
+/* The name: an opaque well (G-18), --control-h tall at the control text size, with the field
+   form of the focus ring (styles/focus.css). */
 .name {
+  composes: focus-field from global;
   box-sizing: border-box;
   width: 100%;
   height: var(--control-h);
-  padding: 0 10px;
+  padding: 0 var(--space-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
   background: var(--field-well);
   color: var(--text-primary);
   font-size: var(--field-text);
   font-weight: 600;
-  outline: none;
-}
-
-.name:focus-visible {
-  outline: 2px solid var(--focus-light);
-  outline-offset: var(--focus-offset-out);
-  box-shadow: 0 0 0 1px var(--focus-dark);
 }
 
 .name[readonly] {
@@ -112,7 +119,7 @@
 }
 
 .facts {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
@@ -123,17 +130,35 @@
 
 .lock {
   display: grid;
+  gap: var(--space-1);
+}
+
+/* Lock: a menu row, the padlock leading, the switch trailing (its label takes the row). */
+.lockRow {
+  display: flex;
+  align-items: center;
   gap: var(--space-2);
+  min-height: var(--menu-row);
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+}
+
+.lockGlyph {
+  flex: none;
+  width: var(--menu-icon);
+  height: var(--menu-icon);
 }
 
 .lockSwitch {
-  padding-inline: 2px;
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
 }
 
 .unlockWarning {
   display: grid;
   gap: var(--space-2);
-  padding: 10px;
+  padding: var(--space-2);
   border-radius: var(--radius-control);
   background: var(--surface-active);
 }
@@ -151,25 +176,49 @@
   gap: var(--space-2);
 }
 
-/* The privacy line: a row that opens ◎'s popover. */
+/* The header's rows (the eye, the privacy line, a signed file's facts): the menu recipe's row,
+   glyph leading, label, a quiet trail. */
 .privacy {
   composes: focus-inset from global;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: var(--control-h);
-  margin: 0 -4px;
-  padding: 0 6px;
+  min-height: var(--menu-row);
+  padding: 0 var(--space-2);
   border-radius: var(--radius-control);
   color: var(--text-secondary);
-  font-size: var(--type-footnote);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .privacy > svg {
   flex: none;
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+  width: var(--menu-icon);
+  height: var(--menu-icon);
+}
+
+/* The eye while it is on: the row reads as set, in the primary ink. */
+.privacy[data-on] {
+  color: var(--text-primary);
+}
+
+/* "Hold to peek": the trailing hint, as a row's keycaps sit. */
+.hold {
+  flex: none;
+  color: var(--text-tertiary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* A row without a glyph keeps the glyph's room, so every label starts on one edge. */
+.glyphRoom {
+  flex: none;
+  width: var(--menu-icon);
+  height: var(--menu-icon);
 }
 
 @media (hover: hover) {
@@ -207,7 +256,7 @@
   --menu-fade: 44px;
   flex: 1;
   min-height: 0;
-  padding: 6px;
+  padding: var(--menu-pad);
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-padding-block: var(--menu-fade);
@@ -233,23 +282,23 @@
     z-index: 1;
     display: block;
     height: var(--menu-fade);
-    margin-inline: -6px;
+    margin-inline: calc(-1 * var(--menu-pad));
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--duration-fast) var(--ease-out);
   }
 
   .list::before {
-    top: -6px;
-    margin-top: -6px;
-    margin-bottom: calc(var(--menu-fade) * -1 + 6px);
+    top: calc(-1 * var(--menu-pad));
+    margin-top: calc(-1 * var(--menu-pad));
+    margin-bottom: calc(var(--menu-fade) * -1 + var(--menu-pad));
     background: linear-gradient(to bottom, var(--mat-tint) 40%, transparent);
   }
 
   .list::after {
-    bottom: -6px;
-    margin-top: calc(var(--menu-fade) * -1 + 6px);
-    margin-bottom: -6px;
+    bottom: calc(-1 * var(--menu-pad));
+    margin-top: calc(var(--menu-fade) * -1 + var(--menu-pad));
+    margin-bottom: calc(-1 * var(--menu-pad));
     background: linear-gradient(to top, var(--mat-tint) 40%, transparent);
   }
 
@@ -267,25 +316,28 @@
 }
 
 .group + .group {
-  margin-top: 6px;
-  padding-top: 6px;
+  margin-top: var(--menu-pad);
+  padding-top: var(--menu-pad);
   border-top: 1px solid var(--border-hairline);
 }
 
 .groupLabel {
   display: flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 10px;
+  min-height: var(--control-h-sm);
+  padding: 0 var(--space-2);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   font-weight: 600;
   line-height: var(--type-footnote-lh);
 }
 
-/* A row is a button in the menu recipe's look; the keyboard's place is its focus. */
+/* A row is a button in the menu recipe's look (ui/Menu.module.css `.item`), the menu's padding
+   on the glyph's side as on the header's rows; the keyboard's place is its focus, drawn as the
+   recipe's highlighted row (no ring, as in every menu). */
 .row {
   width: 100%;
+  padding-inline: var(--space-2);
   border: 0;
   background: none;
   font: inherit;

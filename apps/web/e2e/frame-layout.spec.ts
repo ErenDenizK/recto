@@ -335,12 +335,13 @@ test.describe('jobs through the frame', () => {
     await expect(page.getByTestId('page-pill')).toHaveText(/^7 \/ 400 · /);
   });
 
-  test('the pill menu: typing replaces the page; a tap keeps the keyboard down', async ({
+  test('the pill menu: typing replaces the page; a press keeps the field unfocused', async ({
     page,
     hasTouch,
   }) => {
     // V2 review item 3: the field held "1" unselected, so typing 7 gave 17; and on touch the
-    // menu focused the number field, raising the on-screen keyboard over it.
+    // menu focused the number field, raising the on-screen keyboard over it. A click opens it
+    // on the menu too (system-audit-2026-10 I-28: no lime ring at open).
     await page.goto('./?lang=en');
     await openFixtures(page, ['many-pages.pdf']);
     const menu = page.getByTestId('page-pill-menu');
@@ -351,6 +352,8 @@ test.describe('jobs through the frame', () => {
       await field.tap();
     } else {
       await page.getByTestId('page-pill').click();
+      await expect(menu).toBeFocused();
+      await field.click();
     }
     await expect(field).toBeFocused();
     await page.keyboard.type('7');
