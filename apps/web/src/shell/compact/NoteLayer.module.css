@@ -58,16 +58,16 @@
 }
 
 .title {
-  font-size: 0.9375rem;
+  font-size: var(--type-body);
   font-weight: 600;
-  line-height: 1.25rem;
+  line-height: var(--type-body-lh);
 }
 
 .byline {
   overflow: hidden;
   color: var(--text-secondary);
-  font-size: 0.8125rem;
-  line-height: 1.125rem;
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -75,7 +75,7 @@
 .text {
   margin-top: 8px;
   padding-right: 12px;
-  font-size: 0.9375rem;
+  font-size: var(--type-body);
   line-height: 1.375rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

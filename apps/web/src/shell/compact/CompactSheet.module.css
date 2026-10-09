@@ -109,9 +109,9 @@
 .title {
   min-width: 0;
   overflow: hidden;
-  font-size: 0.9375rem;
+  font-size: var(--type-body);
   font-weight: 600;
-  line-height: 1.25rem;
+  line-height: var(--type-body-lh);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
