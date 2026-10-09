@@ -88,7 +88,14 @@ async function palette(page: Page, query: string, option: RegExp | string): Prom
 
 async function rest(page: Page): Promise<void> {
   await page.waitForFunction(() =>
-    document.getAnimations().every((animation) => animation.playState !== 'running'),
+    document
+      .getAnimations()
+      // The aura's endless drift (Q-10's one exception) never comes to rest.
+      .every(
+        (animation) =>
+          animation.playState !== 'running' ||
+          animation.effect?.getTiming().iterations === Infinity,
+      ),
   );
 }
 

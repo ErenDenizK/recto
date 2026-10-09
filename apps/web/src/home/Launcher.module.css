@@ -1,9 +1,9 @@
 /*
  * The launcher (02-library L2 §2, reorganised 2026-10-08; Launcher.tsx): the empty card, 560
  * wide, 32 padding, radius 20 (language.md §6.1's xl, a panel), and with documents the brand
- * header over one lit row. Both surfaces are lit (lit.module.css). Buttons are `ui/Button` at
- * the large size (36 fine, 52 coarse), so every control shares one height and one centre line
- * (Q-9). Drag-over lifts the surface 2 px on --spring-quick and deepens its shadow to e3 (L2
+ * title over one lit row. Both surfaces are lit (lit.module.css). Buttons are `ui/Button` at
+ * the large size (36 fine, 52 coarse in the card; one piece, 40 / 48, in the row), so every
+ * control of a surface shares one height and one centre line (Q-9). Drag-over lifts the surface 2 px on --spring-quick and deepens its shadow to e3 (L2
  * §4); with reduced motion only the shadow changes.
  */
 .card {
@@ -112,9 +112,9 @@
 }
 
 /*
- * With documents: the brand header, then the row. The header sits on the canvas and its aura
- * (LibraryView.module.css) with no surface of its own: the mark, the wordmark in the app face at
- * title1 and the line under it.
+ * With documents (owner feedback 2026-10-09, G3): the title, then the row. The title sits on the
+ * canvas and its aura (Aura.module.css) with no surface of its own: "Library" large, the privacy
+ * line under it. No mark: the Library tab carries it.
  */
 .rowWrap {
   display: flex;
@@ -122,58 +122,88 @@
   gap: var(--space-5);
 }
 
-.brand {
+.title {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
   padding-inline: var(--space-2);
 }
 
-.brandMark {
-  color: var(--text-primary);
-}
-
-.brandText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.wordmark {
+.titleText {
   margin: 0;
-  font-size: var(--type-title1);
+  font-size: var(--type-display);
   font-weight: var(--weight-semibold);
-  line-height: var(--type-title1-lh);
-  letter-spacing: var(--track-title1);
+  line-height: var(--type-display-lh);
+  letter-spacing: var(--track-display);
 }
 
 .tagline {
   margin: 0;
   color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: var(--weight-medium);
-  line-height: var(--type-footnote-lh);
-  letter-spacing: var(--track-footnote);
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--track-callout);
 }
 
-.row .well {
-  flex: 1 1 320px;
-  justify-content: flex-start;
-}
-
+/*
+ * The row: every button one piece high (--piece-h: 40 fine, 48 coarse; G1), so the row, the
+ * strip's pieces above it and the footer's pills read as one scale; Open PDFs… leads in lime,
+ * the three starts follow at the same height, and the drop line ends the row in the secondary
+ * ink. The row's corners are concentric with the buttons' (Q-5): their radius plus the padding.
+ */
 .row {
+  --control-h-lg: var(--piece-h);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3) var(--space-4);
+  gap: var(--space-3) var(--space-5);
   box-sizing: border-box;
-  min-height: 88px;
-  padding: var(--space-4);
-  border-radius: 20px;
+  padding: var(--space-3);
+  border-radius: calc(var(--piece-h) / 2 + var(--space-3));
   transition:
     transform var(--spring-quick) var(--ease-spring),
-    box-shadow var(--duration-base) var(--ease-out);
+    box-shadow var(--duration-base) var(--ease-out),
+    outline-color var(--duration-fast) var(--ease-out);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.dropLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding-inline: var(--space-2) var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--piece-label);
+  line-height: var(--piece-label-lh);
+  font-variant-numeric: tabular-nums;
+}
+
+.dropIcon {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+/* Dragging, the whole row is the target: a dashed accent line round it and the line says what a
+   release does. */
+.row[data-dragging] {
+  outline: 1.5px dashed var(--accent-line);
+  outline-offset: 3px;
+}
+
+.row[data-dragging] .dropLine {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
 }
 
 .card[data-dragging],

@@ -126,9 +126,14 @@ test and the work package that first carries it.
 - Durations and curves come only from the seven springs and four eases.
 - Every animation retargets from where it is.
 - Nothing animates while the app is idle: no frames at rest, the aurora included (still by
-  default, ADR-0025).
+  default, ADR-0025). One exception, the owner's (2026-10-09, G3): the Library's aura drifts
+  slowly (37–59 s loops) by CSS animations of transform and opacity alone, on layers painted
+  once, so no frame callback runs and nothing lays out or paints; it pauses while the document
+  is hidden and is still under reduced motion. A document view stays at zero: the reader's
+  Background glow (G5) is the same light, still.
 - Layout properties animate only under Q-6.
-- *Test:* `motion.spec.ts` counts frames for 2 s of idle with no input and expects 0 (A-23), and
+- *Test:* `motion.spec.ts` counts frames for 2 s of idle with no input and expects 0 (A-23) and
+  no animation but the aura's drift, and
   interrupts every catalogue animation mid-way and checks it settles at the new target. *First:*
   D0-12.
 

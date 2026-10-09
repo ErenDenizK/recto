@@ -116,18 +116,19 @@ describe('Library', () => {
     resetLibraryStore();
   });
 
-  it('heads the documents with the brand, a drop well round Open PDFs… and one group of starts', async () => {
+  it('heads the documents with a large title, one row of equal starts and a drifting aura', async () => {
     await openOnHome('simple-text.pdf');
     const home = screen.getByTestId('home');
-    // Identity: the mark in its auto tone (the gradient on dark) and the wordmark.
-    expect(within(home).getByRole('heading', { level: 2, name: 'Recto' })).toBeVisible();
-    expect(home.querySelector('header svg[data-tone="auto"] linearGradient')).not.toBeNull();
+    // Identity (owner feedback 2026-10-09, G3): the tab keeps the mark; the view says "Library"
+    // large, with the privacy line under it, and draws no mark of its own.
+    expect(within(home).getByRole('heading', { level: 2, name: 'Library' })).toBeVisible();
+    expect(home.querySelector('header svg[data-tone="auto"]')).toBeNull();
     expect(within(home).getByText('Nothing leaves this device.')).toBeVisible();
-    // Open: the view's one lime, inside the well that says files can be dropped.
+    // Open: the view's one lime, first in the row, and the row says files can be dropped.
     const launcher = screen.getByTestId('library-launcher');
     const open = within(launcher).getByRole('button', { name: 'Open PDFs…' });
     expect(open).toHaveClass('btn-prominent');
-    expect(open.parentElement).toHaveTextContent('or drop files anywhere');
+    expect(launcher).toHaveTextContent('or drop files anywhere');
     // More ways to start: three equal standard buttons, each with its glyph.
     const group = within(launcher).getByRole('group', { name: 'More ways to start' });
     const starts = within(group).getAllByRole('button');
@@ -140,11 +141,42 @@ describe('Library', () => {
       expect(button).toHaveClass('btn-standard');
       expect(button.querySelector('svg[data-icon]')).not.toBeNull();
     }
-    // The aura: decorative, still, behind the column.
+    // One height for the row, one piece high like the strip's pieces and the footer's pills.
+    const heights = [open, ...starts].map((b) => b.getBoundingClientRect().height);
+    expect(new Set(heights)).toEqual(new Set([40]));
+    const footer = screen.getByTestId('library-footer');
+    for (const pill of footer.querySelectorAll('button, [role="radiogroup"]')) {
+      expect(pill.getBoundingClientRect().height, pill.textContent ?? '').toBe(40);
+    }
+    // The aura: decorative, behind the column, slowly alive by transform and opacity alone.
     const aura = screen.getByTestId('library-aura');
     expect(aura).toHaveAttribute('aria-hidden', 'true');
-    expect(aura.getAnimations({ subtree: true })).toHaveLength(0);
     expect(getComputedStyle(aura).pointerEvents).toBe('none');
+    const drifts = aura.getAnimations({ subtree: true });
+    expect(drifts.length).toBeGreaterThanOrEqual(3);
+    for (const drift of drifts) {
+      const timing = drift.effect?.getComputedTiming();
+      expect(Number(timing?.duration)).toBeGreaterThanOrEqual(30_000);
+      const keyframes = (drift.effect as KeyframeEffect).getKeyframes();
+      const properties = new Set(
+        keyframes.flatMap((k) =>
+          Object.keys(k).filter(
+            (p) => !['offset', 'easing', 'composite', 'computedOffset'].includes(p),
+          ),
+        ),
+      );
+      expect([...properties].sort()).toEqual(['opacity', 'transform']);
+    }
+    // Still under reduced motion (the setting's twin of the system query).
+    document.documentElement.dataset.motion = 'reduced';
+    try {
+      await waitFor(() => expect(aura.getAnimations({ subtree: true })).toHaveLength(0));
+    } finally {
+      delete document.documentElement.dataset.motion;
+    }
+    // The view reaches up under the top strip (G2): the aura starts at the shell's top edge.
+    const shell = screen.getByTestId('app-shell').getBoundingClientRect();
+    expect(aura.getBoundingClientRect().top).toBe(shell.top);
   });
 
   it('shows one lit card per open document, in tab order, with pages, size and a thumbnail', async () => {
