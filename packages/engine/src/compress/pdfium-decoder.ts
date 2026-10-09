@@ -15,6 +15,8 @@
  */
 import { init } from '@embedpdf/pdfium';
 
+import { initFromModule, type PdfiumWasm } from '../pdfium/wasm-module';
+
 export interface DecodedImage {
   readonly width: number;
   readonly height: number;
@@ -37,22 +39,15 @@ interface Heap {
 export class PdfiumImageDecoder {
   private module: Promise<Pdfium> | undefined;
 
-  constructor(private readonly wasmUrl: string) {}
+  constructor(private readonly wasm: PdfiumWasm) {}
 
   private load(): Promise<Pdfium> {
     if (this.module === undefined) {
-      const base = (globalThis as { location?: { href: string } }).location?.href;
-      const url = base === undefined ? this.wasmUrl : new URL(this.wasmUrl, base).href;
-      const created = fetch(url)
-        .then(async (response) => {
-          if (!response.ok) throw new Error(`pdfium.wasm: HTTP ${response.status}`);
-          return response.arrayBuffer();
-        })
-        .then(async (wasmBinary) => {
-          const pdfium = await init({ wasmBinary });
-          pdfium.PDFiumExt_Init();
-          return pdfium;
-        });
+      // Stream-compiled once per worker, or the PDFium worker's own module (PF-4).
+      const created = initFromModule(init, this.wasm).then((pdfium) => {
+        pdfium.PDFiumExt_Init();
+        return pdfium;
+      });
       created.catch(() => {
         if (this.module === created) this.module = undefined;
       });

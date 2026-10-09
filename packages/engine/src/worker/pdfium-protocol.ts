@@ -8,7 +8,7 @@
 import type { FontFallbackConfig } from '@embedpdf/engines';
 import type { SourceId } from '@pdf-editor/document-model';
 
-import type { RedactionFailure } from '../redaction/apply';
+import type { RedactionFailure } from '../redaction/failure';
 import type {
   Annotation,
   AnnotationConformanceReport,
@@ -68,6 +68,11 @@ import type {
 export interface PdfiumWorkerConfig {
   /** Absolute URL of `pdfium.wasm` (the proxy resolves relative URLs on the caller side). */
   readonly wasmUrl: string;
+  /**
+   * `pdfium.wasm` already compiled by the caller (PF-2, PF-4): the worker instantiates it
+   * instead of fetching and compiling `wasmUrl` itself.
+   */
+  readonly wasmModule?: WebAssembly.Module;
   /**
    * Self-hosted fallback fonts; `null`/omitted disables fallback. Must be cloneable: URL
    * entries and `baseUrl` work, a `fontLoader` function does not.
@@ -129,6 +134,8 @@ export interface PdfiumWorkerApi {
     inspector?: InspectorBridge,
     capabilities?: InspectorCapabilities,
   ): void;
+  /** The compiled `pdfium.wasm` (PF-4), for the compress and signature workers. */
+  wasmModule(): Promise<Wire<WebAssembly.Module>>;
   open(
     id: SourceId,
     bytes: ArrayBuffer,

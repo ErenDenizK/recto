@@ -24,6 +24,7 @@ import type { SourceId } from '@pdf-editor/document-model';
 
 import { createHostedEngine, type HostedEngine } from '../pdfium/host/hosted-engine';
 import { SourceLocks } from '../pdfium/host/source-lock';
+import { compilePdfiumWasm } from '../pdfium/wasm-module';
 import { PdfiumAdapter } from '../pdfium/pdfium-adapter';
 import { applyRedactions, RedactionFailedError } from '../redaction/apply';
 import { withForensicDeps } from '../redaction/engine-session';
@@ -68,9 +69,9 @@ function configured(): PdfiumWorkerConfig {
 /** The hosted engine, created on first use; a failed start is retried on the next call. */
 function host(): Promise<HostedEngine> {
   if (!hostPromise) {
-    const { wasmUrl, fontFallback } = configured();
+    const { wasmUrl, wasmModule, fontFallback } = configured();
     const created = createHostedEngine({
-      wasm: wasmUrl,
+      wasm: wasmModule ?? wasmUrl,
       fontFallback: fontFallback ?? null,
       locks,
     });
@@ -241,6 +242,13 @@ const api: PdfiumWorkerApi = {
           capabilities ?? { finalizeAnnotations: false, checkAnnotations: false },
         )
       : undefined;
+  },
+  wasmModule() {
+    // The module `host()` compiles (cached per URL in this worker): never a second compile.
+    return call(undefined, () => {
+      const { wasmModule, wasmUrl } = configured();
+      return compilePdfiumWasm(wasmModule ?? wasmUrl);
+    });
   },
   open(id, bytes, options, abortPort) {
     return call(abortPort, (signal) =>

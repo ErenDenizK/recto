@@ -12,22 +12,15 @@ import {
 } from '@embedpdf/models';
 
 import { EngineError, type EngineErrorCode } from '../types';
+import { abortedError } from './abort';
+
+export { abortedError, throwIfAborted } from './abort';
 
 export interface ErrorContext {
   /** Operation name used in messages. */
   readonly op: string;
   /** For `open`: whether the caller supplied a password (distinguishes required/incorrect). */
   readonly passwordProvided?: boolean;
-}
-
-export function abortedError(op: string, cause?: unknown): EngineError {
-  return new EngineError('aborted', `${op} aborted`, cause === undefined ? undefined : { cause });
-}
-
-export function throwIfAborted(signal: AbortSignal | undefined, op: string): void {
-  if (signal?.aborted) {
-    throw abortedError(op, signal.reason);
-  }
 }
 
 function codeFor(reason: PdfErrorReason, ctx: ErrorContext): EngineErrorCode {
