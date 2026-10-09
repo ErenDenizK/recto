@@ -56,7 +56,7 @@
   box-sizing: border-box;
   width: var(--check);
   height: var(--check);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: transparent;
   box-shadow: var(--shadow-own);
   transition:
@@ -86,9 +86,9 @@
 .dot {
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--control-on-ink);
-  animation: select 240ms var(--ease-spring-pop);
+  animation: select var(--spring-pop) var(--ease-spring-pop);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {

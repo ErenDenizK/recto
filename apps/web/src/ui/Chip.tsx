@@ -2,7 +2,7 @@
  * Chips (components/09-primitives.md §5): short choices and actions inside panels and bars
  * (Review filters, Pages · Bookmarks, saved signatures). Replace `shell/panels/RadioChips`.
  *
- * - A pill `--chip-h` high (28 px fine, 36 px coarse with a 44 px hit area), padding 10, a
+ * - A pill `--control-h-sm` high (the S size: 24 px fine, 32 px coarse with a 44 px hit area), padding 10, a
  *   12/16 label at 500 (13/18 coarse), the count in tabular numerals in the secondary colour.
  * - At rest a `--control-fill` wash (none on today's floating glass, the M2 bars); selected is
  *   `--accent-muted` with a 1 px `--accent-line` ring and a leading check, so the state never

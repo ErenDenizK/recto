@@ -31,9 +31,8 @@ import {
   GLASS_TIERS,
   type GlassTier,
   RAW_TOKENS,
+  RETIRED_TOKENS,
   SEMANTIC_TOKENS,
-  THEME_ALIASES,
-  THEME_FREE_ALIASES,
   THEME_FREE_TOKENS,
   THEME_TOKENS,
 } from './token-registry';
@@ -276,10 +275,8 @@ describe('tokens.css', () => {
   describe('the registry: seven blocks, three layers, aliases (09 §25, language.md §10.1)', () => {
     it('defines exactly the registered names in §1 and §3', () => {
       expect([...theme.keys()].sort()).toEqual([...THEME_TOKENS].sort());
-      expect([...free.keys()].sort()).toEqual(
-        [...THEME_FREE_TOKENS, ...Object.keys(THEME_FREE_ALIASES)].sort(),
-      );
-      const all = [...THEME_TOKENS, ...THEME_FREE_TOKENS, ...Object.keys(THEME_FREE_ALIASES)];
+      expect([...free.keys()].sort()).toEqual([...THEME_FREE_TOKENS].sort());
+      const all = [...THEME_TOKENS, ...THEME_FREE_TOKENS];
       expect(new Set(all).size, 'a name registered twice').toBe(all.length);
       // Every role modules paint with resolves to a value at rest.
       for (const name of [...SEMANTIC_TOKENS, ...CONTROL_TOKENS]) {
@@ -301,15 +298,20 @@ describe('tokens.css', () => {
       expect([...order].sort((a, b) => a - b)).toEqual(order);
     });
 
-    it('points every alias at its semantic name', () => {
-      for (const [alias, target] of Object.entries({ ...THEME_ALIASES, ...THEME_FREE_ALIASES })) {
-        expect(root.get(alias), alias).toContain(`var(${target})`);
+    it('retires the M8 aliases and the old sizes (migration step 11; system-audit-2026-10 §4)', () => {
+      const sources = import.meta.glob<string>(
+        ['../**/*.{css,ts,tsx}', '../../test/harness/**/*.{css,tsx}', '!../**/*.test.{ts,tsx}'],
+        { query: '?raw', import: 'default', eager: true },
+      );
+      const retired = new RegExp(`(?<![\\w-])(${RETIRED_TOKENS.map(escape).join('|')})(?![\\w-])`);
+      for (const name of RETIRED_TOKENS) expect(root.has(name), name).toBe(false);
+      for (const [file, source] of Object.entries(sources)) {
+        if (file.endsWith('/token-registry.ts') || file === './token-registry.ts') continue;
+        expect(
+          retired.exec(stripComments(source))?.[1],
+          `${file} uses a retired name`,
+        ).toBeUndefined();
       }
-      expect(resolve('--surface-0')).toBe(resolve('--canvas'));
-      expect(resolve('--surface-1')).toBe(resolve('--surface-frame'));
-      expect(resolve('--surface-2')).toBe(resolve('--surface-raised'));
-      expect(resolve('--surface-3')).toBe(resolve('--surface-on'));
-      expect(resolve('--radius-2')).toBe('6px');
     });
 
     it('defines every name tokens.css reads', () => {
@@ -1389,6 +1391,29 @@ describe('tokens.css', () => {
       expect(gap.get('box-shadow')).toBe(
         '0 0 0 8px var(--focus-dark), var(--shadow-own, 0 0 #0000)',
       );
+      // The field form (system-audit-2026-10 §3.8, option A): inset in dark, outset in light
+      // with ink 2 at the edge and the lime outside it, on both light selectors.
+      const field = rule(/\.focus-field:focus-visible,\s*\[data-focus='field'\]:focus-visible/);
+      expect(field.get('outline-offset')).toBe('var(--focus-field-offset)');
+      expect(field.get('box-shadow')).toBe(
+        'var(--focus-field-shadow), var(--shadow-own, 0 0 #0000)',
+      );
+      const forms = declarations(/(?:^|\n):root\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '');
+      // The hosts' dark bands are the forms' own (outset, inset, gap above).
+      expect(forms.get('--focus-shadow-outset')).toBe('0 0 0 6px var(--focus-dark)');
+      expect(forms.get('--focus-shadow-inset')).toBe('inset 0 0 0 4px var(--focus-dark)');
+      expect(forms.get('--focus-shadow-gap')).toBe('0 0 0 8px var(--focus-dark)');
+      expect(forms.get('--focus-field-offset')).toBe('var(--focus-offset-in)');
+      expect(forms.get('--focus-field-shadow')).toBe('var(--focus-shadow-inset)');
+      const light = declarations(/\[data-theme='light'\]\s*\{([^{}]*)\}/.exec(css)?.[1] ?? '');
+      const system = declarations(
+        /@media \(prefers-color-scheme: light\)\s*\{\s*:root:not\(\[data-theme\]\)\s*\{([^{}]*)\}/.exec(
+          css,
+        )?.[1] ?? '',
+      );
+      expect(light.get('--focus-field-offset')).toBe('var(--focus-offset-out)');
+      expect(light.get('--focus-field-shadow')).toBe('0 0 0 2px var(--focus-dark)');
+      expect([...system.entries()].sort()).toEqual([...light.entries()].sort());
       // The ring appears with focus and never animates (language.md §9.2).
       expect(css).not.toMatch(/transition|animation/);
     });
@@ -1450,11 +1475,9 @@ describe('tokens.css', () => {
 
     it('sizes controls 32 px fine and 44 px coarse, in pieces of 40 and 48 (Q-9, G1)', () => {
       expect(free.get('--control-h')).toBe('32px');
-      expect(free.get('--bar-button')).toBe('32px');
       expect(free.get('--piece-h')).toBe('40px');
       expect(free.get('--bar-h')).toBe('var(--piece-h)');
       expect(coarse.get('--control-h')).toBe('44px');
-      expect(coarse.get('--bar-button')).toBe('44px');
       expect(coarse.get('--piece-h')).toBe('48px');
       expect(coarse.has('--bar-h')).toBe(false);
       // One scale for every floating piece (owner feedback 2026-10-09, G1): one inset top and
@@ -1473,6 +1496,65 @@ describe('tokens.css', () => {
       expect(free.get('--icon-md')).toBe('20px');
       expect(coarse.has('--icon-sm')).toBe(false);
       expect(coarse.has('--icon-md')).toBe(false);
+    });
+
+    it('keeps the system audit’s scales: the 4 px grid, concentric radii, S · M · L (§3.1–§3.3)', () => {
+      const px = (name: string, scope = root) => resolve(name, scope);
+      const atCoarse = new Map([...root, ...coarse]);
+      // §3.1: one 4 px grid with a 2 px half-step.
+      expect(
+        ['half', 1, '1h', 2, 3, 4, 5, 6, 8, 10, 12, 16].map((step) => px(`--space-${step}`)),
+      ).toEqual([
+        '2px',
+        '4px',
+        '6px',
+        '8px',
+        '12px',
+        '16px',
+        '20px',
+        '24px',
+        '32px',
+        '40px',
+        '48px',
+        '64px',
+      ]);
+      // §3.2: concentric radii; a menu row is the menu's radius less its padding (16 − 6) and a
+      // sheet's group the sheet's radius less its inset (20 − 8).
+      expect(
+        ['page', 'xs', 'sm', 'control', 'md', 'lg', 'xl', '2xl', 'capsule'].map((step) =>
+          px(`--radius-${step}`),
+        ),
+      ).toEqual(['2px', '4px', '8px', '10px', '12px', '16px', '20px', '28px', '999px']);
+      expect(parseFloat(px('--radius-lg')) - parseFloat(px('--space-1h'))).toBe(
+        parseFloat(px('--radius-control')),
+      );
+      expect(px('--sheet-radius')).toBe(px('--radius-xl'));
+      expect(px('--sheet-radius-bottom')).toBe(px('--radius-2xl'));
+      expect(parseFloat(px('--sheet-radius')) - parseFloat(px('--sheet-group-inset'))).toBe(
+        parseFloat(px('--radius-md')),
+      );
+      // §3.3: three control sizes, never the piece height; the toast is a piece.
+      expect(['--control-h-sm', '--control-h', '--control-h-lg'].map((n) => px(n))).toEqual([
+        '24px',
+        '32px',
+        '40px',
+      ]);
+      expect(
+        ['--control-h-sm', '--control-h', '--control-h-lg'].map((n) => px(n, atCoarse)),
+      ).toEqual(['32px', '44px', '52px']);
+      expect(free.get('--toast-h')).toBe('var(--piece-h)');
+      expect([px('--tooltip-h'), px('--tooltip-h', atCoarse)]).toEqual(['24px', '28px']);
+      // §3.10: icons 12 (badges only), 16, 20 and 32 (empty states), at every density.
+      expect(['xs', 'sm', 'md', 'lg'].map((step) => px(`--icon-${step}`))).toEqual([
+        '12px',
+        '16px',
+        '20px',
+        '32px',
+      ]);
+      // §3.6.1: the sheet's padding, header and rows, fine and coarse.
+      expect([px('--sheet-pad'), px('--sheet-pad', atCoarse)]).toEqual(['20px', '16px']);
+      expect([px('--sheet-header-h'), px('--sheet-header-h', atCoarse)]).toEqual(['56px', '64px']);
+      expect([px('--sheet-row-h'), px('--sheet-row-h', atCoarse)]).toEqual(['44px', '56px']);
     });
   });
 
@@ -1656,8 +1738,9 @@ describe('tokens.css', () => {
       const line = tone('--accent-line');
       atLeast(contrast(line, WHITE), 6.57, 'lime-800 on white');
       atLeast(contrast(line, tone('--canvas')), 5.35, 'lime-800 on the canvas');
+      // M1 and M2 sit at the text floor (system-audit-2026-10 §3.5): their line is 4.05.
       for (const tier of GLASS_TIERS) {
-        atLeast(contrast(line, glass(tier, BLACK)), 4.1, `lime-800 on ${tier} over black`);
+        atLeast(contrast(line, glass(tier, BLACK)), 4.05, `lime-800 on ${tier} over black`);
       }
       for (const token of ['--accent-subtle', '--accent-muted']) {
         expect(tint(token).rgb, token).toEqual(ink());
@@ -1708,8 +1791,8 @@ describe('tokens.css', () => {
           readonly [string, string, string, number, number, number, number, number, number, number]
         >
       > = {
-        chip: ['#ccccce', '#fcfcfd', '#f8f8fb', 11.18, 6.27, 5.09, 5.21, 11.18, 75, 64],
-        bar: ['#cfcfd1', '#fbfbfd', '#f8f8fb', 11.53, 6.46, 5.25, 5.37, 11.53, 77, 66],
+        chip: ['#cbcbcc', '#fcfcfd', '#f8f8fb', 11.06, 6.2, 5.04, 5.16, 11.06, 75, 63],
+        bar: ['#cbcbcc', '#fcfcfd', '#f8f8fb', 11.06, 6.2, 5.04, 5.16, 11.06, 75, 63],
         panel: ['#d4d5d6', '#fafafc', '#f7f8fa', 12.2, 6.84, 5.56, 5.69, 12.2, 80, 69],
         menu: ['#d9d9da', '#fbfbfd', '#f8f9fb', 12.71, 7.13, 5.79, 5.93, 12.71, 83, 71],
         sheet: ['#e8e8ea', '#fbfbfc', '#f9f9fb', 14.65, 8.21, 6.67, 6.83, 14.65, 91, 80],

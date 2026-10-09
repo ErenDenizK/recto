@@ -39,7 +39,7 @@
 .legend {
   padding: 0 0 var(--space-1);
   color: var(--text-tertiary);
-  font-size: var(--text-xs);
+  font-size: var(--type-caption);
   font-weight: 500;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
@@ -62,7 +62,7 @@
   align-items: center;
   gap: var(--space-1);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .number {
@@ -103,9 +103,9 @@ div.number > :nth-child(2) {
   height: 28px;
   padding: 0 var(--space-2);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
 }
 
@@ -138,7 +138,7 @@ div.number > :nth-child(2) {
   padding: 5px;
   margin: 0;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   background: var(--surface-raised);
 }
 
@@ -161,7 +161,7 @@ div.number > :nth-child(2) {
 .anchor::after {
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-round);
+  border-radius: var(--radius-capsule);
   background: var(--text-tertiary);
   content: '';
 }
@@ -189,13 +189,13 @@ div.number > :nth-child(2) {
   min-width: 0;
   height: 28px;
   padding: 0 var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .tokens {
   composes: technical from global;
   color: var(--text-tertiary);
-  font-size: var(--text-xs);
+  font-size: var(--type-caption);
   line-height: var(--leading-base);
 }
 
@@ -203,7 +203,7 @@ div.number > :nth-child(2) {
   composes: technical from global;
   overflow: hidden;
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

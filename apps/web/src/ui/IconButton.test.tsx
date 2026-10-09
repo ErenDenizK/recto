@@ -16,7 +16,7 @@ const icon = <svg data-testid="icon" viewBox="0 0 20 20" />;
 const bg = (el: Element) => getComputedStyle(el).backgroundColor;
 
 describe('IconButton (09-primitives §4)', () => {
-  it('is a 32 px circle with a 20 px icon on a bar, a 28 px circle with a 16 px icon in a row', () => {
+  it('is a 32 px circle with a 20 px icon on a bar, a 24 px circle (S) with a 16 px icon in a row', () => {
     render(
       <>
         <IconButton label="Undo" icon={icon} />
@@ -29,7 +29,7 @@ describe('IconButton (09-primitives §4)', () => {
     expect(bar.getBoundingClientRect().width).toBe(32);
     expect(getComputedStyle(bar).borderTopLeftRadius).toBe('999px');
     expect(screen.getByTestId('icon').getBoundingClientRect().width).toBe(20);
-    expect(row.getBoundingClientRect().height).toBe(28);
+    expect(row.getBoundingClientRect().height).toBe(24);
     expect(screen.getByTestId('row-icon').getBoundingClientRect().width).toBe(16);
   });
 

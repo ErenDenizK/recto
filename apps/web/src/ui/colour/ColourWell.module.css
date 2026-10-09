@@ -75,7 +75,7 @@
   height: var(--well-disc);
   border-radius: 50%;
   background: linear-gradient(var(--well-colour), var(--well-colour));
-  transition: transform var(--spring-press, 300ms) var(--ease-spring, cubic-bezier(0.2, 0, 0, 1));
+  transition: transform var(--spring-press) var(--ease-spring);
 }
 
 .well[data-translucent] .disc {

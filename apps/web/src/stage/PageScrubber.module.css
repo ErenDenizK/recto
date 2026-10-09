@@ -44,7 +44,7 @@
   width: 44px;
   height: 32px;
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   background: var(--glass-chip-solid);
   box-shadow: var(--e1);
   --shadow-own: var(--e1);
@@ -64,7 +64,7 @@
 }
 
 .thumb[data-dragging] {
-  background: var(--surface-3);
+  background: var(--surface-on);
   cursor: grabbing;
 }
 

@@ -85,15 +85,15 @@ function Harness({
 const panelOf = (id = 'sheet') => screen.getByTestId(`sheet-${id}`);
 
 describe('presentation per kind and size class (07 §1.1)', () => {
-  it('a task sheet is a 400 px side sheet at 1440 × 900, 8 px from the trailing edge', async () => {
+  it('a task sheet is a 400 px side sheet at 1440 × 900, on the piece inset (16 px) from the trailing edge and the bottom', async () => {
     render(<Harness kind="task" />);
     const panel = panelOf();
     expect(panel.dataset.presentation).toBe('side');
     await settle(panel);
     const box = panel.getBoundingClientRect();
     expect(box.width).toBe(400);
-    expect(innerWidth - box.right).toBe(8);
-    expect(innerHeight - box.bottom).toBe(8);
+    expect(innerWidth - box.right).toBe(16);
+    expect(innerHeight - box.bottom).toBe(16);
     expect(document.querySelector('[data-presentation][class*="scrim"]')).not.toBeNull();
     expect(getComputedStyle(panel).backdropFilter).toContain('blur(24px)');
   });
@@ -179,6 +179,23 @@ describe('focus, keys and drafts (07 §2.6)', () => {
     await userEvent.keyboard('{Escape}');
     // Focus returns once the exit has run and the panel has gone.
     await waitFor(() => expect(opener).toHaveFocus(), { timeout: EXIT_TIMEOUT });
+  });
+
+  it('focuses the panel from a pointer and the field from the keyboard (system audit §3.8)', async () => {
+    render(<Harness kind="task" initialOpen={false} />);
+    const opener = screen.getByRole('button', { name: 'Open Page numbers' });
+    const field = () => screen.getByLabelText('Start at');
+    // Opened by a pointer: the panel takes focus, so no ring lights and no keyboard rises.
+    await userEvent.click(opener);
+    const panel = panelOf();
+    await waitFor(() => expect(panel).toHaveFocus());
+    expect(field()).not.toHaveFocus();
+    expect(panel.matches(':focus-visible')).toBe(false);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(opener).toHaveFocus(), { timeout: EXIT_TIMEOUT });
+    // Opened from the keyboard: the field, ready to type.
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(field()).toHaveFocus());
   });
 
   it('traps Tab in a modal sheet', async () => {

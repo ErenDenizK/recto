@@ -1,37 +1,30 @@
 /*
  * The tooltip (09-primitives §20, 04-context §20): solid, never glass (G-29), so it reads the
- * same over any page and costs no backdrop. Raised surface with the rim; 26 px tall on fine
- * pointers, 28 on coarse; at most 280 px, then two lines. Hoverable (A-24), so it takes the
+ * same over any page and costs no backdrop. Raised surface with the rim; --tooltip-h tall (24
+ * on fine pointers, 28 on coarse), --radius-sm, a footnote label (system-audit-2026-10 §3.6);
+ * at most 280 px, then two lines. Hoverable (A-24), so it takes the
  * pointer. It stays flat until the elevation tokens arrive (D3): today's rule keeps tooltips,
  * dialogs and docked surfaces without a drop shadow (tokens.test.ts).
  */
 .popup {
-  --tip-h: 26px;
-
   display: flex;
   align-items: center;
   gap: var(--space-2);
   box-sizing: border-box;
   max-width: min(280px, calc(100vw - 16px));
-  min-height: var(--tip-h);
-  padding: 4px var(--space-2);
+  min-height: var(--tooltip-h);
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-glass);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface-raised, var(--surface-on));
   color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  line-height: 16px;
+  font-size: var(--type-footnote);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-footnote-lh);
   transform-origin: var(--transform-origin);
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .popup {
-    --tip-h: 28px;
-  }
 }
 
 .text {
@@ -46,7 +39,7 @@
 
 .reason {
   color: var(--text-secondary);
-  font-weight: 400;
+  font-weight: var(--weight-regular);
 }
 
 .popup[data-starting-style],

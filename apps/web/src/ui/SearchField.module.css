@@ -24,7 +24,7 @@
   flex: none;
   padding-inline: 4px 8px;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
   line-height: 16px;
   white-space: nowrap;

@@ -333,7 +333,7 @@
   flex: none;
   padding: 0 8px;
   border: 1px solid var(--control-border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-capsule);
   color: var(--text-secondary);
   font-size: var(--type-caption);
   font-weight: 500;

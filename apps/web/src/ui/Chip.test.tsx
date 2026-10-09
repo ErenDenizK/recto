@@ -68,11 +68,11 @@ describe('ChipGroup (09-primitives §5)', () => {
     expect(screen.getByTestId('value').textContent).toBe('all');
   });
 
-  it('is a 28 px pill; selected adds the accent wash, a ring and a check (A-19)', async () => {
+  it('is an S pill (24 px); selected adds the accent wash, a ring and a check (A-19)', async () => {
     render(<Filters />);
     const all = screen.getByRole('radio', { name: 'All, 5 items' });
     const comments = screen.getByRole('radio', { name: 'Comments, 2 items' });
-    expect(all.getBoundingClientRect().height).toBe(28);
+    expect(all.getBoundingClientRect().height).toBe(24);
     expect(getComputedStyle(all).borderTopLeftRadius).toBe('999px');
     expect(getComputedStyle(all).backgroundColor).toBe('rgba(200, 251, 61, 0.12)');
     expect(getComputedStyle(all).boxShadow).toContain('rgba(200, 251, 61, 0.5)');

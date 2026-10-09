@@ -14,7 +14,7 @@
 
 .summary {
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
 }
 
@@ -29,7 +29,7 @@
   gap: var(--space-1);
   min-height: 32px;
   padding-left: var(--space-1);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-sm);
 }
 
 .row[aria-current='true'] {
@@ -60,7 +60,7 @@
   gap: var(--space-2);
   min-width: 0;
   padding: var(--space-1) 0;
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   text-align: left;
   color: var(--text-primary);
 }
@@ -73,7 +73,7 @@
   align-self: center;
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-xs);
   background: var(--surface-on);
   color: var(--text-secondary);
 }
@@ -87,7 +87,7 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -95,13 +95,13 @@
 .noText {
   flex: 1;
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
 }
 
 .page {
   flex: none;
   color: var(--text-tertiary);
-  font-size: var(--text-xs);
+  font-size: var(--type-caption);
   font-variant-numeric: tabular-nums;
 }
 
@@ -139,7 +139,7 @@
 
 .finderTitle {
   color: var(--text-primary);
-  font-size: var(--text-md);
+  font-size: var(--type-body);
   font-weight: 500;
 }
 
@@ -149,7 +149,7 @@
 
 .finderStatus {
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
 }
 
@@ -170,7 +170,7 @@
   gap: var(--space-1);
   padding: var(--space-1) 0 var(--space-1) var(--space-1);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--type-footnote);
   font-weight: 500;
 }
 

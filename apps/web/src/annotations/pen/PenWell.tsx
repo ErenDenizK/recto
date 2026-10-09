@@ -5,7 +5,7 @@
  * to G8, 2026-10-09).
  *
  * - **Cells** are toolbar buttons with `aria-pressed` (not a radiogroup), so one arrow path
- *   serves the whole palette; `--bar-button` targets (32 fine, 44 coarse; Q-9), no well behind
+ *   serves the whole palette; `--control-h` targets (32 fine, 44 coarse; Q-9), no well behind
  *   them (G8). A pen's dot is its real ink at 10, 13 or 16 px by width (12, 15, 18 coarse); the
  *   Highlighter is a chisel tip of its tint. Marks are content colours with the inner contrast
  *   ring where their edge would fall below 3:1 on the glass (`needsDotRing`). A colour picked in

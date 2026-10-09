@@ -34,8 +34,8 @@ body {
   overflow: hidden;
   background: var(--canvas);
   color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: var(--text-md);
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
   line-height: var(--leading-base);
   letter-spacing: var(--tracking-ui);
   /* Tabular numerals are opted into per component (status bar, counters, page numbers). */
