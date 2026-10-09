@@ -1,27 +1,29 @@
 /*
- * The pen well (03-markup MK-6; language.md §1.9; quality-bar Q-4, Q-9).
+ * The pen cells (03-markup MK-6; language.md §1.9; quality-bar Q-4, Q-9; owner feedback G8).
  *
- * One quiet well (a fill, never glass: Q-4) of --bar-button cells with no gap, so the four
- * read as one control. Dots are content colours: 10 / 13 / 16 px by width on a fine pointer,
- * 2 px larger on a coarse one; the Highlighter a 20 x 8 tint capsule. A dot whose ink is under
- * 3:1 against the glass carries a light inner ring (`needsDotRing`).
+ * The three pens and the Highlighter are --palette-hit cells (32 / 44) in the Draw group, the
+ * palette's spacing between them and no well behind them: a grey pill under the dots read as
+ * one more piece inside the bar ("improve overall design"). Dots are content colours: 10 / 13
+ * / 16 px by width on a fine pointer, 2 px larger on a coarse one; the Highlighter is a chisel
+ * tip, a slanted rounded square of the dot's largest size, so it reads as a marker and keeps
+ * the pens' footprint (the 20 × 8 capsule read as a toggle). A dot whose ink is under 3:1
+ * against the glass carries a light inner ring (`needsDotRing`).
  *
  * Armed: a 2 px ring in the primary text colour (n12, never lime: the colour of the ink is the
- * signal) with the dot inside it, 24 px fine and 30 coarse; it springs in from 0.88 on the
- * press spring (*select*), instantly under reduced motion. Hover washes the cell; a press
- * presses the dot (0.94).
+ * signal) of --palette-ring (24 fine, 30 coarse), the same ring as a chosen swatch; it springs in
+ * from 0.88 on the press spring (*select*), instantly under reduced motion. Hover washes the
+ * cell's drawn fill; a press presses the mark (0.94).
  */
 .well {
   display: inline-flex;
   flex: none;
   align-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--surface-hover);
+  gap: var(--palette-gap, 2px);
 }
 
 .cell {
   composes: focus-inset from global;
-  --ring: 24px;
+  --ring: var(--palette-ring, 24px);
 
   position: relative;
   display: inline-grid;
@@ -41,7 +43,7 @@
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .cell {
-    --ring: 30px;
+    --ring: var(--palette-ring, 30px);
   }
 }
 
@@ -103,20 +105,29 @@
   box-shadow: none;
 }
 
-.mark[data-shape='capsule'] {
-  width: 20px;
-  height: 8px;
+/* The Highlighter's chisel tip: a broad nib, 8 × 14 px (9 × 16 coarse) with small corners,
+   slanted 45° like a marker's cut, so it reads as a highlighter and keeps the pens' footprint. */
+.mark[data-shape='chisel'] {
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  transform: rotate(45deg);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
-  .mark[data-shape='capsule'] {
-    width: 24px;
-    height: 10px;
+  .mark[data-shape='chisel'] {
+    width: 9px;
+    height: 16px;
+    border-radius: 2.5px;
   }
 }
 
+.cell:active .mark[data-shape='chisel'] {
+  transform: rotate(45deg) scale(0.94);
+}
+
 /* Light theme: a pale tint keeps its edge with the ink ring. */
-:global([data-theme='light']) .mark[data-shape='capsule'] {
+:global([data-theme='light']) .mark[data-shape='chisel'] {
   box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.25);
 }
 
@@ -127,10 +138,6 @@
 }
 
 @media (forced-colors: active) {
-  .well {
-    outline: 1px solid CanvasText;
-  }
-
   .cell[aria-pressed='true']::before {
     border-color: Highlight;
   }
