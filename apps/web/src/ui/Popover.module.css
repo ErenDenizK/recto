@@ -7,8 +7,10 @@
  * - Shape: radius 16, 12 px padding, `min(320px, 100vw − 16px)` wide.
  * - Title row: 44 px with the title (13/18 at 600 fine, 15/20 coarse) and ✕ at the end; it
  *   reaches 6 px into the padding above, so the ✕ sits concentric with the corner.
- * - Motion (*popup*): from the anchor (Base UI's `--transform-origin`), scale 0.96 → 1 and a
- *   fade, on transform and opacity only (Q-7). Reduced motion zeroes --duration-fast.
+ * - Motion (*popup*, G6; as `Menu.module.css`): from the anchor (Base UI's
+ *   `--transform-origin`), scale 0.96 → 1 and the 4 px rise toward its place on
+ *   `--spring-quick`, with a fade; a quicker close to 0.98 in `--duration-fast` (MC-16).
+ *   Transform and opacity only (Q-7); under reduced motion only the fade, within 150 ms.
  */
 .popup {
   composes: mat mat-menu s12 from global;
@@ -36,8 +38,8 @@
   outline: none;
   transform-origin: var(--transform-origin);
   transition:
-    opacity var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--spring-quick) var(--ease-spring);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -54,6 +56,23 @@
   opacity: 0;
   /* 0.96, and 1 under reduced motion (styles/motion.css): then the popover only fades. */
   transform: scale(var(--enter-scale));
+}
+
+/* The last 4 px toward its place, from the anchor's side (the rise rests at 0 when reduced). */
+.popup[data-side='bottom'][data-starting-style] {
+  transform: translateY(calc(-1 * var(--rise-distance))) scale(var(--enter-scale));
+}
+
+.popup[data-side='top'][data-starting-style] {
+  transform: var(--motion-rise) scale(var(--enter-scale));
+}
+
+/* The close is quicker than the open (MC-16). */
+.popup[data-ending-style] {
+  transform: scale(var(--exit-scale));
+  transition:
+    opacity var(--duration-fast) var(--ease-exit),
+    transform var(--duration-fast) var(--ease-exit);
 }
 
 /* The popover's positioner (Base UI's, `role="presentation"`) stacks above the floating bars
