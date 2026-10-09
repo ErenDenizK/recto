@@ -31,6 +31,7 @@ import { Popover } from '@base-ui/react/popover';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { m } from '../../i18n';
+import { restingWidth, springWidth } from '../../motion/resize';
 import { announce } from '../../shell/announcer';
 import { ARRANGE_SIZES, useUiStore } from '../../state/ui-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
@@ -164,8 +165,9 @@ export function GridPieces() {
     if (!lead || !trail || !band) return;
     const measure = () => {
       // The full forms' widths, read while they show (fixed per density and language).
-      if (!lead.hasAttribute('data-compact')) full.current.scope = lead.offsetWidth;
-      if (!trail.hasAttribute('data-compact')) full.current.size = trail.offsetWidth;
+      // A piece whose width is moving (it just unfolded) is read where it is going.
+      if (!lead.hasAttribute('data-compact')) full.current.scope = restingWidth(lead);
+      if (!trail.hasAttribute('data-compact')) full.current.size = restingWidth(trail);
       const capsule = band.querySelector<HTMLElement>('[data-region="toolbar"]');
       const box = band.getBoundingClientRect();
       const inset = lead.offsetLeft;
@@ -210,6 +212,18 @@ export function GridPieces() {
       window.removeEventListener('resize', measure);
     };
   }, []);
+
+  const hasDoc = doc !== undefined;
+  // A piece folds and unfolds on a spring, its own width moving (G6; motion/resize.ts).
+  useLayoutEffect(() => {
+    const lead = leadRef.current;
+    const trail = trailRef.current;
+    if (!lead || !trail) return undefined;
+    const stops = [springWidth(lead), springWidth(trail)];
+    return () => {
+      for (const stop of stops) stop();
+    };
+  }, [hasDoc]);
 
   if (!doc) return null;
   const single = documents < 2;
