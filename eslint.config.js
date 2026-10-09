@@ -109,7 +109,6 @@ const Q9_PENDING = [
   'apps/web/src/image-objects/ImageLayer.tsx',
   'apps/web/src/markup/SignGroup.tsx',
   'apps/web/src/markup/ToolButton.tsx',
-  'apps/web/src/ocr/OcrLanguages.tsx',
   'apps/web/src/session/KeptOnDevice.tsx',
   'apps/web/src/settings/rows.tsx',
   'apps/web/src/shell/compact/CompactChrome.tsx',

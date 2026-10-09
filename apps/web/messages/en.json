@@ -3204,6 +3204,7 @@
   "ocr_pack_imported_state": "Imported · {size}",
   "ocr_languages_order": "Recognized as {languages}; the first language leads.",
   "ocr_languages_none": "Choose at least one language.",
+  "ocr_language_files": "Language files",
   "ocr_manage_languages": "Manage languages…",
   "ocr_download_note": "The first run downloads {size} from this site. Nothing is sent anywhere.",
   "ocr_quality": "Quality",

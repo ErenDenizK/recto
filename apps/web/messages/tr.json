@@ -2089,6 +2089,7 @@
   "ocr_pack_imported_state": "İçe aktarıldı · {size}",
   "ocr_languages_order": "{languages} olarak tanınır; ilk dil önceliklidir.",
   "ocr_languages_none": "En az bir dil seçin.",
+  "ocr_language_files": "Dil dosyaları",
   "ocr_manage_languages": "Dilleri yönet…",
   "ocr_download_note": "İlk çalıştırma bu siteden {size} indirir. Hiçbir yere bir şey gönderilmez.",
   "ocr_quality": "Kalite",

@@ -1,39 +1,33 @@
 /* S10 Recognize text, its language manager and the page ring (spec recognize-and-compare §1.5;
- * components/07-sheets.md §12). The sheet is the Sheet primitive's (ui/sheet); these rules lay
- * out its body, with ToolDialog's form parts. */
+ * components/07-sheets.md §12). The sheet is the Sheet primitive's (ui/sheet); its body is the
+ * sheet grammar (system-audit-2026-10 §3.6.1): inset grouped lists (ui/sheet/SheetGroup) under
+ * sentence-case section labels, 24 px between sections. */
 .body {
   display: grid;
   grid-auto-rows: max-content;
-  gap: 20px;
+  gap: var(--space-6);
   min-width: 0;
 }
 
-/* A group of S10's form under a footnote-weight label, as the other sheets lay theirs out
-   (pages-sheets/PagesSheets.module.css). */
-.group {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.legend {
-  margin: 0 0 2px;
-  color: var(--glass-text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: 550;
-  line-height: var(--type-footnote-lh);
+.description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
 }
 
 .hint {
   margin: 0;
-  color: var(--glass-text-secondary);
+  color: var(--text-secondary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
 }
 
-.stack {
-  display: grid;
-  gap: var(--space-1);
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .row {
@@ -46,7 +40,6 @@
 .languages,
 .packs {
   display: grid;
-  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -67,84 +60,58 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
-.languageName,
-.packName {
+.languageName {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .meta {
-  color: var(--glass-text-secondary);
+  color: var(--text-secondary);
   font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.packsHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0 var(--space-2);
-  color: var(--text-tertiary);
-  font-size: var(--type-footnote);
-}
-
-.packText {
-  display: grid;
-  gap: 2px;
+/* The manager's packs: one SheetRow each, in list items, with the group's hairline between
+   them (inset by the row padding, as SheetGroup draws it between plain rows). */
+.pack {
+  position: relative;
   min-width: 0;
 }
 
-.pack {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 36px;
-  padding: var(--space-1) var(--space-2);
-  border-bottom: 1px solid var(--border-hairline);
-}
-
-.pack:last-child {
-  border-bottom: none;
+.pack + .pack::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--sheet-row-pad);
+  z-index: 1;
+  height: 1px;
+  background: var(--border-hairline);
 }
 
 .code {
   composes: technical from global;
-  margin-left: var(--space-2);
+  margin-inline-start: var(--space-2);
   color: var(--text-tertiary);
-  font-size: var(--type-caption);
-}
-
-.switch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
   font-size: var(--type-footnote);
-  white-space: nowrap;
-}
-
-.switch input {
-  accent-color: var(--control-on);
 }
 
 /* A finished run: what ran as the title, then its counts as footnote lines (notices are
    ui/Notice, FB9). */
 .summary {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .resultTitle {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-1);
   color: var(--text-primary);
   font-size: var(--type-callout);
   font-weight: 600;
