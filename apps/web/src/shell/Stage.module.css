@@ -18,13 +18,6 @@
   background: transparent;
 }
 
-.viewport {
-  composes: focus-inset from global;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
 .page {
   position: relative;
   flex: none;
@@ -37,34 +30,6 @@
 .page :global(.page-overlays) > * {
   position: absolute;
   inset: 0;
-}
-
-.numeric {
-  font-variant-numeric: tabular-nums;
-}
-
-.cardMeta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  height: 20px;
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-}
-
-.cardTag {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-capsule);
-  background: var(--tag-color);
-}
-
-.cardName {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Read mode: a virtualized column; items are absolutely positioned and centred. */
@@ -80,57 +45,6 @@
   display: flex;
   justify-content: center;
   width: 100%;
-}
-
-/* Arrange mode: virtualized rows of fixed-size cells (light-table spec §1). */
-.lightTable {
-  position: relative;
-  min-width: 100%;
-  outline: none;
-  box-shadow: none;
-}
-
-.gridRow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: grid;
-  width: 100%;
-}
-
-.cell {
-  composes: focus-gap from global;
-  display: grid;
-  gap: var(--space-2);
-  justify-items: center;
-  align-content: start;
-  min-width: 0;
-  border-radius: var(--radius-sm);
-}
-
-.cellBox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-.thumbSheet {
-  position: relative;
-  flex: none;
-  background: var(--page-background);
-  box-shadow: var(--page-shadow);
-  border-radius: var(--radius-page);
-  overflow: hidden;
-}
-
-.cell[aria-selected='true'] .thumbSheet {
-  outline: 2px solid var(--select-ring);
-  outline-offset: 3px;
-}
-
-.cell[aria-selected='true'] .cardMeta {
-  color: var(--text-primary);
 }
 
 .emptyDocument {

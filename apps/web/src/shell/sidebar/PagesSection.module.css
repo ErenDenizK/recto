@@ -1,5 +1,5 @@
-/* The Pages section (06-navigation N1 §2): the view control and ⊞ on one centre line, then the
-   list or the Contents tree, which scroll on their own. */
+/* The Pages section (06-navigation N1 §2): the view tabs, then the list or the Contents tree,
+   which scroll on their own. */
 .section {
   display: flex;
   flex: 1;
@@ -11,12 +11,63 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-2);
+  padding: var(--space-2) var(--space-3);
 }
 
+/* The second level (I-29): text tabs under the segmented section switch, S high. */
 .views {
+  display: flex;
   flex: 1;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.view {
+  composes: focus-inset from global;
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-capsule);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  white-space: nowrap;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+/* A coarse pointer keeps the S tab and grows its hit area to 44 px (09 §2.1). */
+.view::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((var(--control-h-sm) - var(--hit-min)) / 2)) 0;
+}
+
+@media (hover: hover) {
+  .view:hover:not([data-checked]) {
+    color: var(--text-primary);
+  }
+}
+
+.view[data-checked] {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+@media (forced-colors: active) {
+  .view[data-checked] {
+    outline: 1px solid CanvasText;
+  }
 }
 
 .body {
