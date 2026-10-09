@@ -36,11 +36,13 @@ describe('AppShell', () => {
     expect(
       screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
     ).toBeVisible();
-    // ◎ in the strip and the Library footer's chip open the same popover.
-    expect(
-      screen.getByRole('button', { name: 'Privacy: nothing has left this device' }),
-    ).toBeVisible();
+    // On the Library the footer's chip is the privacy shield (02-library L12); the strip's
+    // trailing piece holds only ⋯ there (01-frame R11), and ◎ returns with a document.
+    expect(screen.getByRole('button', { name: 'Nothing is uploaded' })).toBeVisible();
     expect(screen.getByTestId('library-privacy')).toHaveTextContent('Nothing is uploaded');
+    expect(
+      screen.queryByRole('button', { name: 'Privacy: nothing has left this device' }),
+    ).toBeNull();
     // No dock on the Library with no file open: the launcher holds the actions.
     expect(document.querySelector('[data-region="toolbar"]')).toBeNull();
   });

@@ -329,6 +329,11 @@ describe('the stack (FB4 §2, §7; Q-10)', () => {
     // Still a target of at least 24 px (A-15).
     expect(box(close).width).toBeGreaterThanOrEqual(24);
     expect(box(close).height).toBeGreaterThanOrEqual(24);
+    // On the row's one centre line with the action, the piece's own (Q-9, bar-audit).
+    const centre = (b: DOMRect) => b.top + b.height / 2;
+    const undo = within(group).getByRole('button', { name: 'Undo' });
+    expect(centre(box(close))).toBeCloseTo(centre(box(group)), 0);
+    expect(centre(box(close))).toBeCloseTo(centre(box(undo)), 0);
   });
 
   it('never lets two pills meet, never changes a neighbour’s width, and fades no empty pill', async () => {

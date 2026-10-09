@@ -1,3 +1,9 @@
+// The app's sheets, as main.tsx loads them: without the tokens, a size such as the palette
+// search glyph's --icon-sm is unset, and the glyph squeezes the field to nothing.
+import '../styles/tokens.css';
+import '../styles/reset.css';
+import '../styles/global.css';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
