@@ -31,6 +31,37 @@ describe('Button (09-primitives §3)', () => {
     expect(screen.getByTestId('glyph').getBoundingClientRect().width).toBe(16);
   });
 
+  it('comes in S, M and L: 24, 32 and 40 px, footnote, body and callout (system audit §3.3)', () => {
+    render(
+      <>
+        <Button size="sm" icon={<svg data-testid="s-glyph" />}>
+          Small
+        </Button>
+        <Button>Medium</Button>
+        <Button size="lg" icon={<svg data-testid="l-glyph" />}>
+          Large
+        </Button>
+      </>,
+    );
+    const root = getComputedStyle(document.documentElement);
+    const sizes = ['Small', 'Medium', 'Large'].map((name) => {
+      const button = screen.getByRole('button', { name });
+      return [button.getBoundingClientRect().height, getComputedStyle(button).fontSize];
+    });
+    expect(sizes).toEqual([
+      [24, root.getPropertyValue('--type-footnote').trim()],
+      [32, root.getPropertyValue('--type-body').trim()],
+      [40, root.getPropertyValue('--type-callout').trim()],
+    ]);
+    expect(screen.getByTestId('s-glyph').getBoundingClientRect().width).toBe(16);
+    expect(screen.getByTestId('l-glyph').getBoundingClientRect().width).toBe(20);
+    for (const name of ['Small', 'Large']) {
+      expect(getComputedStyle(screen.getByRole('button', { name })).borderTopLeftRadius).toBe(
+        '999px',
+      );
+    }
+  });
+
   it('draws every state of each variant from the control tokens (Q-14)', async () => {
     render(
       <>

@@ -6,8 +6,10 @@
  * - Variants: `prominent` (one per surface), `standard` (a fill), `quiet` (no fill), `danger`
  *   (the danger label, never a red fill). On today's floating glass a standard or danger button
  *   renders quiet (controls.css), so its label stays legible over any page.
- * - Sizes: `md` is `--control-h` (32 px fine, 44 px coarse, quality-bar Q-9); `lg` is
- *   `--control-h-lg` for sheet footers and the launcher, never in a bar.
+ * - Sizes, S · M · L (system-audit-2026-10 §3.3): `sm` is `--control-h-sm` (24 px fine, 32 px
+ *   coarse with a 44 px hit area) for inline actions; `md` is `--control-h` (32 / 44,
+ *   quality-bar Q-9), the default; `lg` is `--control-h-lg` (40 / 52), at most one per screen
+ *   (the Library's primary, a phone sheet's footer action), never in a bar.
  * - Disabled stays focusable (`aria-disabled`, Base UI `focusableWhenDisabled`), and its
  *   reason, when the caller gives one, is the button's description and its tooltip. With no
  *   reason the description is "Not available now".
@@ -38,6 +40,7 @@ import { Activity, ACTIVITY_DELAY_MS } from './Activity';
 import { Tooltip } from './Tooltip';
 
 export type ButtonVariant = 'prominent' | 'standard' | 'quiet' | 'danger';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonBlocked {
   /** Why the action is unavailable ("Locked · Unlock"). */
@@ -49,7 +52,7 @@ export interface ButtonBlocked {
 export interface ButtonProps
   extends Omit<ComponentPropsWithRef<'button'>, 'children' | 'disabled' | 'type'> {
   readonly variant?: ButtonVariant;
-  readonly size?: 'md' | 'lg';
+  readonly size?: ButtonSize;
   /** A leading glyph, 16 px (20 px coarse). */
   readonly icon?: ReactNode;
   readonly busy?: boolean;
@@ -135,7 +138,7 @@ export function Button({
           : [rest['aria-describedby'], reasonId].filter(Boolean).join(' ')
       }
       data-blocked={blocked ? '' : undefined}
-      className={['btn', `btn-${variant}`, size === 'lg' ? 'btn-lg' : null, className]
+      className={['btn', `btn-${variant}`, size === 'md' ? null : `btn-${size}`, className]
         .filter(Boolean)
         .join(' ')}
       onClick={handleClick}
