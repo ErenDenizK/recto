@@ -86,6 +86,94 @@ const q9Controls = {
 };
 
 /**
+ * Reports each selector of `entries` with its message: a local rule, so a block can fence syntax
+ * without overriding another block's `no-restricted-syntax`.
+ * @param {readonly { selector: string; message: string }[]} entries
+ */
+function selectorRule(entries) {
+  return {
+    meta: { type: /** @type {const} */ ('problem'), schema: [] },
+    /** @param {import('eslint').Rule.RuleContext} context */
+    create(context) {
+      return Object.fromEntries(
+        entries.map(({ selector, message }) => [
+          selector,
+          /** @param {import('estree').Node} node */
+          (node) => context.report({ node, message }),
+        ]),
+      );
+    },
+  };
+}
+
+/**
+ * ED-2 (docs/plan/v1/editions.md §5.1): browser file, launch, service-worker and OPFS APIs stay
+ * in the folders DT-0 moves into `platform/web/`, so that move stays mechanical. Matched as
+ * properties (`win.showSaveFilePicker`, `storage.getDirectory`), the way the code detects them.
+ */
+const BROWSER_FILE_APIS = [
+  {
+    selector:
+      'MemberExpression[property.name=/^(showOpenFilePicker|showSaveFilePicker|showDirectoryPicker|launchQueue|getDirectory)$/]',
+    message:
+      'ED-2: browser file, launch and OPFS APIs only in files/, export/deliver*, tools/deliver-file.ts, pwa/, session/ or platform/web/ (editions.md §5.1).',
+  },
+  {
+    selector: "MemberExpression[object.name='navigator'][property.name='serviceWorker']",
+    message: 'ED-2: the service worker only in pwa/ or platform/web/ (editions.md §5.1).',
+  },
+];
+
+/** Where ED-2's APIs may appear. */
+const BROWSER_FILE_HOMES = [
+  'apps/web/src/files/**',
+  'apps/web/src/export/deliver*.ts',
+  'apps/web/src/tools/deliver-file.ts',
+  'apps/web/src/pwa/**',
+  'apps/web/src/session/**',
+  'apps/web/src/platform/web/**',
+];
+
+/**
+ * Files that reach ED-2's APIs outside those folders, as the fence arrived (Save a copy's picker,
+ * Batch's folder picker and recipe store): DT-0 moves them behind `#platform`; the list only
+ * shrinks.
+ */
+const BROWSER_FILE_PENDING = [
+  'apps/web/src/export/save-copy-run.ts',
+  'apps/web/src/batch/deliver.ts',
+  'apps/web/src/batch/recipes-store.ts',
+];
+
+/**
+ * ED-1, ED-2 (editions.md §4.1, §5.1): the app reaches a target's adapter only through
+ * `#platform`, and Tauri only from the desktop folders, so a web build holds no desktop byte.
+ */
+const TAURI_MESSAGE = 'ED-2: Tauri only under platform/desktop/ and desktop/ (editions.md §5.1).';
+const DESKTOP_FENCE = [
+  {
+    selector:
+      'ImportDeclaration[source.value=/^@tauri-apps./], ImportExpression[source.value=/^@tauri-apps./]',
+    message: TAURI_MESSAGE,
+  },
+  { selector: "Identifier[name='__TAURI__']", message: TAURI_MESSAGE },
+  {
+    selector:
+      'ImportDeclaration[source.value=/platform.(web|desktop)(.|$)/], ImportExpression[source.value=/platform.(web|desktop)(.|$)/]',
+    message: "ED-1: import the target's adapter through '#platform', never by its folder.",
+  },
+];
+
+/** The repository's own lint rules. */
+const recto = {
+  rules: {
+    'q9-controls': q9Controls,
+    'browser-file-fence': selectorRule(BROWSER_FILE_APIS),
+    'desktop-fence': selectorRule(DESKTOP_FENCE),
+  },
+};
+
+/**
  * Files that still render a native or hand-styled control (system-audit-2026-10 §2.5), as the
  * rule arrived: each lane removes its files as it moves them onto ui/.
  */
@@ -291,9 +379,29 @@ export default defineConfig(
   {
     files: ['apps/web/src/**/*.tsx'],
     ignores: ['apps/web/src/ui/**', '**/*.test.tsx', ...Q9_PENDING],
-    plugins: { recto: { rules: { 'q9-controls': q9Controls } } },
+    plugins: { recto },
     rules: {
       'recto/q9-controls': 'warn',
+    },
+  },
+
+  // ED-2: browser file APIs stay where DT-0 will move them from (tests mock them freely).
+  {
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: [...BROWSER_FILE_HOMES, ...BROWSER_FILE_PENDING, '**/*.test.{ts,tsx}'],
+    plugins: { recto },
+    rules: {
+      'recto/browser-file-fence': 'error',
+    },
+  },
+
+  // ED-1, ED-2: no desktop code outside the desktop folders; adapters only through #platform.
+  {
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: ['apps/web/src/platform/**', 'apps/web/src/desktop/**'],
+    plugins: { recto },
+    rules: {
+      'recto/desktop-fence': 'error',
     },
   },
 );
