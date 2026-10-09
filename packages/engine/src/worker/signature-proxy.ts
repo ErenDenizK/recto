@@ -82,6 +82,12 @@ export interface SignatureProxyConfig {
    * (spec §3.1 step 6); a per-call `ValidateSignaturesOptions.visual` wins.
    */
   readonly pdfiumWasmUrl?: string;
+  /**
+   * The PDFium worker's compiled module of that wasm (PF-4), posted with each validation
+   * instead of the URL so this worker skips its own download and compile. Pass it only where
+   * the browser can post a module (`postableModule`).
+   */
+  readonly pdfiumWasm?: WebAssembly.Module;
   /** Resolution of that comparison (default 50 dpi). */
   readonly visualDpi?: number;
 }
@@ -91,9 +97,10 @@ export function createSignatureProxy(
   config: SignatureProxyConfig = {},
 ): SignatureProxy {
   const remote = wrap<SignatureWorkerApi>(worker);
-  const defaultVisual: ValidateSignaturesOptions['visual'] = config.pdfiumWasmUrl
+  const wasm = config.pdfiumWasm ?? config.pdfiumWasmUrl;
+  const defaultVisual: ValidateSignaturesOptions['visual'] = wasm
     ? {
-        pdfiumWasm: config.pdfiumWasmUrl,
+        pdfiumWasm: wasm,
         ...(config.visualDpi === undefined ? {} : { dpi: config.visualDpi }),
       }
     : undefined;

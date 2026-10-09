@@ -14,7 +14,7 @@ import {
   MAX_DPI,
   MIN_DPI,
   presetSettings,
-} from '@pdf-editor/engine';
+} from '@pdf-editor/engine/client';
 
 export { deltaPercent, progressShare } from './compress-math';
 

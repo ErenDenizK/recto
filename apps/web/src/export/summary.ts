@@ -2,7 +2,7 @@
  * The reconciliation summary shown before download: what the export kept, changed or
  * removed, in plain sentences (VISION.md principle 5, "honest UI"). Source notes (password
  * protection removed, damaged files repaired) come first. Engine warnings not covered by a
- * dedicated line are shown as the engine wrote them (English).
+ * dedicated line are shown in the reader's language (`engine-warnings.ts`, M1-d).
  */
 import type { ReconciliationReport } from '@pdf-editor/engine';
 
@@ -14,6 +14,7 @@ import { pagesPhrase } from '../state/workspace-store';
 import { checkName } from '../redaction/report-text';
 import type { SignatureExportSummary } from '../signatures/signing';
 import { familyOfFace } from '../text-edit/model';
+import { engineWarningText } from './engine-warnings';
 import type {
   ExportOutcome,
   RedactionExportSummary,
@@ -427,7 +428,7 @@ export function summarizeReport(
   report.warnings
     .filter((warning) => !COVERED.some((pattern) => pattern.test(warning)))
     .forEach((warning, index) => {
-      items.push({ id: `warning-${index}`, tone: 'changed', text: warning });
+      items.push({ id: `warning-${index}`, tone: 'changed', text: engineWarningText(warning) });
     });
   return items;
 }

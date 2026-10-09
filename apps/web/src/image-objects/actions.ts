@@ -13,6 +13,7 @@
  */
 import type { EngineEdit, Rect } from '@pdf-editor/document-model';
 import type { ImageReplacementJson, LocatedImage } from '@pdf-editor/engine';
+import { jpegInfo } from '@pdf-editor/engine/images';
 
 import type { PageTarget } from '../annotations/annotation-store';
 import { executeEdit, runAction } from '../annotations/edit-runner';
@@ -36,7 +37,7 @@ async function commit(
   /** Said in the live region on success (default: the label). */
   announcement = label,
 ): Promise<ImageEditOutcome & { readonly reason?: string }> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   const store = useImageStore.getState();
   const edit: EngineEdit = {
     id: globalThis.crypto.randomUUID(),
@@ -88,7 +89,7 @@ export async function transformImage(
   rect: Rect,
   announcement?: string,
 ): Promise<ImageEditOutcome> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   const resized =
     Math.abs(rect.width - image.bounds.width) > 0.01 ||
     Math.abs(rect.height - image.bounds.height) > 0.01;
@@ -107,7 +108,7 @@ export async function deleteImage(
   target: PageTarget,
   image: LocatedImage,
 ): Promise<ImageEditOutcome> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   useImageStore.getState().select(null);
   return commit(
     target,
@@ -125,9 +126,9 @@ function startsWith(bytes: Uint8Array, magic: readonly number[]): boolean {
   return magic.every((b, i) => bytes[i] === b);
 }
 
-/** Decodes any image the browser reads and encodes it as PNG. */
+/** Decodes any image the browser reads (EXIF orientation applied) and encodes it as PNG. */
 async function reencodePng(file: Blob): Promise<Uint8Array> {
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   try {
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
     const context = canvas.getContext('2d');
@@ -140,11 +141,17 @@ async function reencodePng(file: Blob): Promise<Uint8Array> {
   }
 }
 
-/** The replacement to record for `file`: JPEG and PNG as they are, the rest as PNG. */
+/**
+ * The replacement to record for `file`: JPEG and PNG as they are, the rest as PNG. A camera JPEG
+ * that its EXIF turns is replaced by its upright pixels (M1-b): an image object's JPEG stream has
+ * no EXIF, so its bytes as they are would show sideways.
+ */
 export async function replacementOfFile(file: Blob): Promise<ImageReplacementJson> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (startsWith(bytes, JPEG_MAGIC)) return engine.imageReplacementJson({ jpeg: bytes });
+  if (startsWith(bytes, JPEG_MAGIC) && (jpegInfo(bytes)?.orientation ?? 1) === 1) {
+    return engine.imageReplacementJson({ jpeg: bytes });
+  }
   if (startsWith(bytes, PNG_MAGIC)) return engine.imageReplacementJson({ png: bytes });
   return engine.imageReplacementJson({ png: await reencodePng(file) });
 }
@@ -155,7 +162,7 @@ export async function replaceImage(
   image: LocatedImage,
   file: File,
 ): Promise<ImageEditOutcome> {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   let replacement: ImageReplacementJson;
   try {
     replacement = await replacementOfFile(file);

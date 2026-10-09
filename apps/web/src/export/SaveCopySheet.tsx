@@ -26,7 +26,7 @@ import {
   RASTER_MIME,
   rasterFileName,
   rasterSize,
-} from '@pdf-editor/engine';
+} from '@pdf-editor/engine/client';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import { choicePages } from '../convert/convert-run';

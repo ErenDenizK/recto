@@ -17,10 +17,10 @@ import {
   MIN_RASTER_DPI,
   type RasterBackground,
   type RasterFormat,
-} from '@pdf-editor/engine';
+} from '@pdf-editor/engine/client';
 import { type ReactNode, type RefObject, useId } from 'react';
 
-import type { ConvertPageBreak } from '@pdf-editor/engine';
+import type { ConvertPageBreak } from '@pdf-editor/engine/client';
 import { metadataOutcome } from '../document/ExportSections';
 import { openDocumentDialog } from '../document/document-store';
 import { securityOutcome, sourcesOf } from '../document/security-text';

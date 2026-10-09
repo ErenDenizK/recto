@@ -13,7 +13,7 @@ import {
   type CompressionSettings,
   estimateCompression,
   planImage,
-} from '@pdf-editor/engine';
+} from '@pdf-editor/engine/client';
 import { useEffect, useRef, useState } from 'react';
 
 import { formatNumber, formatSize, m } from '../i18n';

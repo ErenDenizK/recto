@@ -22,7 +22,7 @@ export interface OcrDependencies {
 const defaults = (): OcrDependencies => ({
   facts: async (source) => (await getEngineService().ocrLayer()).ocrPageFacts(source),
   packs: () => getOcrRecognizers().packs(),
-  engineFiles: async () => (await import('@pdf-editor/engine')).ocrEngineFiles(),
+  engineFiles: async () => (await import('@pdf-editor/engine/client')).ocrEngineFiles(),
 });
 
 let current: OcrDependencies | undefined;

@@ -488,7 +488,7 @@ export function eraseHits(
 // ---------------------------------------------------------------------------
 
 async function serializeAnnotation(a: Annotation) {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   return engine.serializeAnnotation(a);
 }
 

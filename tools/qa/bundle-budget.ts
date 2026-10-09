@@ -22,6 +22,9 @@
  * - `editor` (V1-P2): the closure of the `app` chunk (the editor, loaded before the first page),
  *   JS gzip.
  * - `compact`: the closure of the `CompactApp` chunk (the phone edition, ADR-0033), JS gzip.
+ * - `engineClient`: the closure of the `client` chunk, `@pdf-editor/engine/client` (PF-2): the
+ *   engine code the main thread loads to open the first document (the worker proxies and pure
+ *   helpers, never pdf-lib or EmbedPDF), JS gzip. The audit's ceiling is 120 KB.
  * - `pdfiumWorker`: the PDFium worker script and its closure, raw (parsed before the first
  *   render).
  * - `precache`: the bytes the service worker precaches.
@@ -45,7 +48,13 @@ import { gzipSync } from 'node:zlib';
 const ROOT = resolve(import.meta.dirname, '../..');
 const CONFIG_PATH = join(import.meta.dirname, 'bundle-budget.json');
 
-type MeasureName = 'firstPaint' | 'editor' | 'compact' | 'pdfiumWorker' | 'precache';
+type MeasureName =
+  | 'firstPaint'
+  | 'editor'
+  | 'compact'
+  | 'engineClient'
+  | 'pdfiumWorker'
+  | 'precache';
 
 interface BudgetConfig {
   readonly $comment?: string;
@@ -67,6 +76,7 @@ const MEASURE_LABELS: Readonly<Record<MeasureName, string>> = {
   firstPaint: 'First paint JS gzip (V1-P1)',
   editor: 'Editor initial JS gzip (V1-P2)',
   compact: 'Compact edition JS gzip',
+  engineClient: 'First-open engine JS gzip (PF-2)',
   pdfiumWorker: 'PDFium worker script, raw',
   precache: 'Service-worker precache, raw',
 };
@@ -153,11 +163,13 @@ function main(): void {
   const firstPaintCss = closure(linkedCss);
   const editor = closure([chunk('app')]);
   const compact = closure([chunk('CompactApp')]);
+  const engineClient = closure([chunk('client')]);
   const pdfiumWorker = closure([chunk('pdfium.worker')]);
   const measures: Record<MeasureName, number> = {
     firstPaint: firstPaint.gzip,
     editor: editor.gzip,
     compact: compact.gzip,
+    engineClient: engineClient.gzip,
     pdfiumWorker: pdfiumWorker.raw,
     precache: precacheBytes,
   };
@@ -165,6 +177,7 @@ function main(): void {
     firstPaint: firstPaint.files.length,
     editor: editor.files.length,
     compact: compact.files.length,
+    engineClient: engineClient.files.length,
     pdfiumWorker: pdfiumWorker.files.length,
     precache: precacheList.length,
   };

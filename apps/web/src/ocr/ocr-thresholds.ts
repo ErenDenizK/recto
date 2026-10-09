@@ -14,7 +14,7 @@ const listeners = new Set<() => void>();
 
 export function loadOcrThresholds(): Promise<OcrThresholds> {
   if (!pending) {
-    pending = import('@pdf-editor/engine').then((engine) => {
+    pending = import('@pdf-editor/engine/client').then((engine) => {
       value = thresholdsOf(engine);
       for (const listener of listeners) listener();
       return value;

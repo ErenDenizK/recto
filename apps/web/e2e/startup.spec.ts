@@ -6,6 +6,10 @@
  *   the file input's `change` event to the first `main canvas[data-state="rendered"]`, both
  *   on the page's clock.
  * - **V1-P10:** Save a copy of a 100-page document: from Download copy to the copy's toast.
+ * - **Phases** of an open (W1-g, PF-2 and PF-4): the engine service's `recto:*` start-up marks
+ *   (`STARTUP_MARKS`: engine requested, PDFium worker configured, wasm compiled, document
+ *   opened, first page's bitmap), each in ms after the input's `change`, reported beside the
+ *   open time so a regression shows where it is.
  *
  * The documents are generated here from the corpus with pdf-lib: the 10 and 500 pages from
  * many-pages.pdf, the 100 pages from the corpus files with fonts, images, annotations and
@@ -59,10 +63,17 @@ async function generate(sources: readonly PDFDocument[], count: number): Promise
   return Buffer.from(await out.save({ useObjectStreams: false }));
 }
 
+interface OpenTiming {
+  /** ms from the input's change to the first rendered page. */
+  readonly total: number;
+  /** The `recto:*` start-up marks, ms after the change (absent when not reached). */
+  readonly phases: Readonly<Record<string, number>>;
+}
+
 /** Opens `buffer` as `name` and resolves to ms from the input's change to the first page. */
-async function openAndTime(page: Page, name: string, buffer: Buffer): Promise<number> {
+async function openAndTime(page: Page, name: string, buffer: Buffer): Promise<OpenTiming> {
   await page.evaluate(() => {
-    const w = window as unknown as { __openToFirstPage?: Promise<number> };
+    const w = window as unknown as { __openToFirstPage?: Promise<OpenTiming> };
     w.__openToFirstPage = new Promise((resolve) => {
       document.addEventListener(
         'change',
@@ -72,7 +83,13 @@ async function openAndTime(page: Page, name: string, buffer: Buffer): Promise<nu
           const done = () => {
             if (!document.querySelector('main canvas[data-state="rendered"]')) return false;
             observer.disconnect();
-            resolve(performance.now() - start);
+            const phases: Record<string, number> = {};
+            for (const mark of performance.getEntriesByType('mark')) {
+              if (mark.name.startsWith('recto:')) {
+                phases[mark.name.slice('recto:'.length)] = Math.round(mark.startTime - start);
+              }
+            }
+            resolve({ total: performance.now() - start, phases });
             return true;
           };
           const observer = new MutationObserver(done);
@@ -95,8 +112,18 @@ async function openAndTime(page: Page, name: string, buffer: Buffer): Promise<nu
     .click();
   await (await chooser).setFiles({ name, mimeType: 'application/pdf', buffer });
   return page.evaluate(
-    () => (window as unknown as { __openToFirstPage: Promise<number> }).__openToFirstPage,
+    () => (window as unknown as { __openToFirstPage: Promise<OpenTiming> }).__openToFirstPage,
   );
+}
+
+/** The phases of an open, as one annotation line ("worker-configured +212 ms, …"). */
+function reportPhases(label: string, timing: OpenTiming): void {
+  const description = `${label} phases: ${Object.entries(timing.phases)
+    .sort(([, a], [, b]) => a - b)
+    .map(([name, ms]) => `${name} +${ms} ms`)
+    .join(', ')}`;
+  test.info().annotations.push({ type: 'budget', description });
+  console.info(`[budget] ${description}`);
 }
 
 function report(label: string, ms: number, ceiling: number): void {
@@ -120,21 +147,21 @@ test.beforeEach(async ({ page }) => {
 
 test('V1-P5: open → first page painted, 10 pages', async ({ page }) => {
   const ten = await generate([await load('many-pages.pdf')], 10);
-  report(
-    'V1-P5 open to first page, 10 pages',
-    await openAndTime(page, 'ten.pdf', ten),
-    CEILING.tenPages,
+  const timing = await openAndTime(page, 'ten.pdf', ten);
+  report('V1-P5 open to first page, 10 pages', timing.total, CEILING.tenPages);
+  reportPhases('V1-P5', timing);
+  // Every phase was reached, in order (the marks are the engine service's, PF-2).
+  expect(Object.keys(timing.phases)).toEqual(
+    expect.arrayContaining(['engine-requested', 'worker-configured', 'first-page-bitmap']),
   );
 });
 
 test('V1-P6: open → first page painted, 500 pages', async ({ page }) => {
   const many = await load('many-pages.pdf');
   const five = await generate([many], 500);
-  report(
-    'V1-P6 open to first page, 500 pages',
-    await openAndTime(page, 'five-hundred.pdf', five),
-    CEILING.fiveHundredPages,
-  );
+  const timing = await openAndTime(page, 'five-hundred.pdf', five);
+  report('V1-P6 open to first page, 500 pages', timing.total, CEILING.fiveHundredPages);
+  reportPhases('V1-P6', timing);
 });
 
 test('V1-P10: Save a copy of 100 pages', async ({ page }) => {
