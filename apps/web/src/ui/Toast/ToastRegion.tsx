@@ -37,7 +37,7 @@ import {
 import { flushSync } from 'react-dom';
 
 import { m } from '../../i18n';
-import { animateStyle, type Motion, velocityTracker } from '../../motion';
+import { animateStyle, type Motion, reducedMotion, velocityTracker } from '../../motion';
 import { Button } from '../Button';
 import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
@@ -281,6 +281,23 @@ function glyphOf(toast: Toast): ReactNode {
   }
 }
 
+/** The farthest a toast comes from its origin's side (px): a hint of direction, not a flight. */
+const ORIGIN_PX = 32;
+
+/**
+ * How far sideways a toast starts toward the control `origin` names (frame.md §5): a twentieth
+ * of the way to it, at most `ORIGIN_PX`, and 0 without one on screen or under reduced motion.
+ */
+export function originOffset(el: HTMLElement, origin: string | undefined): number {
+  if (origin === undefined || reducedMotion()) return 0;
+  const anchor = document.getElementById(origin);
+  if (!anchor || anchor.getClientRects().length === 0) return 0;
+  const a = anchor.getBoundingClientRect();
+  const t = el.getBoundingClientRect();
+  const dx = (a.left + a.width / 2 - (t.left + t.width / 2)) / 20;
+  return Math.max(-ORIGIN_PX, Math.min(ORIGIN_PX, Math.round(dx)));
+}
+
 interface ToastViewProps {
   readonly toast: Toast;
   readonly leaving: boolean;
@@ -314,6 +331,7 @@ function ToastView({
     null,
   );
 
+  const origin = useRef(toast.origin);
   // The latest callbacks, so the motion effects below run on their own changes only.
   const callbacks = useRef({ held, register, onExited });
   useLayoutEffect(() => {
@@ -325,9 +343,12 @@ function ToastView({
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
+    // From the side of the control it reports on (`origin`; frame.md §5): Save's receipt comes
+    // in from Save's direction, a short way, as a popup comes from its anchor.
+    const from = originOffset(el, origin.current);
     const hide = () => {
       el.style.opacity = '0';
-      el.style.transform = `translate(0px, ${RISE_PX}px)`;
+      el.style.transform = `translate(${from}px, ${RISE_PX}px)`;
     };
     const view: View = {
       el,
@@ -351,7 +372,7 @@ function ToastView({
             wait.current = null;
             phase.current = 'in';
             // The motions take both properties over from the hold, and clear them at rest (Q-2).
-            animateStyle(el, 'transform', [0, RISE_PX], [0, 0], { spring: 'quick' });
+            animateStyle(el, 'transform', [from, RISE_PX], [0, 0], { spring: 'quick' });
             fade.current = animateStyle(el, 'opacity', 0, 1, { spring: 'quick' });
             fadeBackdrop(el, 'in');
           },

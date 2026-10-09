@@ -17,9 +17,14 @@
  *   E13-u), which "Saved" keeps in its reason: "Everything is in report.pdf · Saved on this
  *   device", or "… · 3 areas removed · 0 matches remain".
  *
+ * Motion (motion-2026-10 frame.md §5): while saving a light sweeps across the capsule (the
+ * shimmer, over the ring); after a verified save the check draws in from its leading end,
+ * holds `CHECK_HOLD_MS`, and the label settles to "Saved" with the cross-fade every label
+ * change has. The receipt toast comes from Save's side (`origin`, `files/save.ts`).
+ *
  * The questions a save asks (unapplied marks, Replace) are `ReplacePopover`, anchored here.
  */
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 
 import { currentPlatform, parseShortcut, toAriaKeyShortcut } from '../../commands/shortcuts';
 import { saveDocument, saveNameFor, setSaveButtonShown, useSaveStore } from '../../files/save';
@@ -38,6 +43,12 @@ export const SAVE_BUTTON_ID = 'save-button';
 
 /** Mod+S, as `file.save` registers it (files/save-commands.ts). */
 const SAVE_SHORTCUT = parseShortcut('Mod+S');
+
+/**
+ * How long "Saved ✓" holds its check after a verified save before it settles to "Saved"
+ * (motion-2026-10 frame.md §5): the check has drawn in (`--spring-quick`) and been read.
+ */
+export const CHECK_HOLD_MS = 1600;
 
 export type SaveButtonState = 'save' | 'saved' | 'saving';
 
@@ -60,6 +71,13 @@ export function SaveButton() {
   const receipt = useSaveStore((s) => (id === null ? undefined : s.receipts[id]));
   const shortcut = useCommandShortcut('file.save') ?? SAVE_SHORTCUT;
   const reasonId = useId();
+  // The verified save whose check has been shown and settled back to "Saved".
+  const [settled, setSettled] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    if (verifiedAt === undefined) return undefined;
+    const timer = window.setTimeout(() => setSettled(verifiedAt), CHECK_HOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [verifiedAt]);
 
   // The job shows here while this button is on screen (FB5 §4).
   useEffect(() => {
@@ -78,7 +96,7 @@ export function SaveButton() {
     percent === undefined
       ? m.save_label_saving_plain()
       : m.save_label_saving({ percent: formatPercent(percent / 100) });
-  const verified = state === 'saved' && verifiedAt !== undefined;
+  const verified = state === 'saved' && verifiedAt !== undefined && settled !== verifiedAt;
   const keys = toAriaKeyShortcut(shortcut, currentPlatform);
 
   const labels = (
@@ -146,6 +164,7 @@ export function SaveButton() {
         {reason}
       </span>
       {state === 'saving' ? <span className={styles.ring} aria-hidden="true" /> : null}
+      {state === 'saving' ? <span className={styles.shimmer} aria-hidden="true" /> : null}
       {verified ? <span key={verifiedAt} className={styles.bloom} aria-hidden="true" /> : null}
     </span>
   );
