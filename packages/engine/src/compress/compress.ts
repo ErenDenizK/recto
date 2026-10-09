@@ -50,6 +50,7 @@ import type {
   ImageReport,
   PageDelta,
 } from './types';
+import { PDFLIB_LOAD_TICKS, PDFLIB_SAVE_TICKS } from '../pdflib/ticks';
 
 export interface CompressionDependencies {
   readonly plumber: {
@@ -97,6 +98,7 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 async function load(bytes: ArrayBuffer): Promise<PDFDocument> {
   try {
     return await PDFDocument.load(bytes.slice(0), {
+      ...PDFLIB_LOAD_TICKS,
       updateMetadata: false,
       throwOnInvalidObject: false,
       preserveXFA: true,
@@ -146,7 +148,7 @@ async function analyzeNow(
     let input = plain;
     if (duplicates.size > 0) {
       await dedupeStreams(doc);
-      input = toBuffer(await doc.save({ useObjectStreams: true }));
+      input = toBuffer(await doc.save({ ...PDFLIB_SAVE_TICKS, useObjectStreams: true }));
     }
     losslessBytes = (await deps.plumber.process(input, LOSSLESS_OPTIONS)).bytes.byteLength;
   } catch (error) {
@@ -367,7 +369,7 @@ async function compressNow(
   const changed = merged > 0 || reports.some((r) => r.action !== 'skipped');
   const compatibility = options.compatibility === true;
   const intermediate = changed
-    ? toBuffer(await doc.save({ useObjectStreams: !compatibility }))
+    ? toBuffer(await doc.save({ ...PDFLIB_SAVE_TICKS, useObjectStreams: !compatibility }))
     : plain;
   throwIfAborted(signal);
 

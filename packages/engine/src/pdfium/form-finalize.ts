@@ -36,6 +36,7 @@ import {
   PDFString,
   PDFHexString,
 } from '@cantoo/pdf-lib';
+import { PDFLIB_LOAD_TICKS, PDFLIB_SAVE_TICKS } from '../pdflib/ticks';
 
 export interface FormFinalizeRequest {
   /** Bake widget appearances into the pages and remove the form. */
@@ -143,6 +144,7 @@ export async function finalizeForms(
   request: FormFinalizeRequest,
 ): Promise<FormFinalizeResult> {
   const doc = await PDFDocument.load(bytes, {
+    ...PDFLIB_LOAD_TICKS,
     updateMetadata: false,
     throwOnInvalidObject: false,
     ...(request.password === undefined ? {} : { password: request.password }),
@@ -192,7 +194,11 @@ export async function finalizeForms(
     const form = context.lookupMaybe(catalog.get(N.AcroForm), PDFDict);
     form?.set(N.NeedAppearances, PDFBool.False);
   }
-  const saved = await doc.save({ useObjectStreams: false, updateFieldAppearances: false });
+  const saved = await doc.save({
+    ...PDFLIB_SAVE_TICKS,
+    useObjectStreams: false,
+    updateFieldAppearances: false,
+  });
   return { bytes: saved.slice().buffer, flattened };
 }
 
@@ -254,6 +260,7 @@ export async function clearFields(
   request: ClearFieldsRequest,
 ): Promise<{ bytes: ArrayBuffer; missing: string[] }> {
   const doc = await PDFDocument.load(bytes, {
+    ...PDFLIB_LOAD_TICKS,
     updateMetadata: false,
     throwOnInvalidObject: false,
     ...(request.password === undefined ? {} : { password: request.password }),
@@ -278,6 +285,10 @@ export async function clearFields(
     field.delete(N.V);
     field.delete(N.I);
   }
-  const saved = await doc.save({ useObjectStreams: false, updateFieldAppearances: false });
+  const saved = await doc.save({
+    ...PDFLIB_SAVE_TICKS,
+    useObjectStreams: false,
+    updateFieldAppearances: false,
+  });
   return { bytes: saved.slice().buffer, missing };
 }
