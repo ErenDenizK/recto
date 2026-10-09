@@ -182,13 +182,13 @@
 
 /* Contextual bar: glass over the document, like the floating tool bar. */
 .bar {
-  composes: mat mat-bar s8 c10 from global;
+  composes: mat mat-bar s8 c9 from global;
   position: absolute;
   z-index: 4;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  /* --bar-h around --control-h controls (quality-bar Q-9): 44 / 56 px. */
+  /* --bar-h around --control-h controls (quality-bar Q-9): one piece, 40 / 48 px (G1). */
   height: var(--bar-h);
   padding: 0 var(--space-2);
   border-radius: var(--radius-capsule);

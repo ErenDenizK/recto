@@ -75,10 +75,10 @@
   box-shadow: var(--page-shadow);
 }
 
-/* Selected: a 2 px ring 2 px out around the first page, as a Pages grid cell draws it
-   (06-navigation §2.2; owner feedback F4). */
+/* Selected: a 2 px ring 2 px out around the first page in the app's lime, as a Pages grid cell
+   draws it (06-navigation §2.2; owner feedback F4, G7). */
 .card[data-selected] .sheet {
-  outline: 2px solid var(--select);
+  outline: 2px solid var(--select-ring);
   outline-offset: 2px;
 }
 

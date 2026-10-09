@@ -15,8 +15,8 @@
  *   least 1.6 s (ADR-0028 §2.5).
  * - **Limits** (A-10): whatever moves (any property but opacity and colour) is within 1 % of its
  *   end by 500 ms, read on the easing (a `linear()` spring curve, or the motion core's sampled
- *   keyframes); a View Transition runs 250 ms at most; nothing but a progress indicator repeats
- *   forever.
+ *   keyframes); a View Transition runs 250 ms at most; nothing but a progress indicator and the
+ *   aura's slow drift (Q-10's one exception, G3) repeats forever.
  */
 import type { Page } from '@playwright/test';
 
@@ -259,6 +259,10 @@ export function judge(
         const forever = !Number.isFinite(r.iterations);
         const progressPulse =
           r.progress && props.every((p) => p === 'opacity') && r.duration >= 1600;
+        // The aura's slow drift behind the Library (quality-bar Q-10's one exception, owner
+        // feedback 2026-10-09, G3): ambient, endless by design, at full motion
+        // only; under reduced motion it never starts, so A-9 still judges it.
+        const ambient = r.kind.includes('aura-drift') && r.duration >= 30_000;
         if (rule === 'reduced') {
           if (moving.length) out.push(`${name(r)} moves ${moving.join(', ')}`);
           if (forever && !progressPulse) out.push(`${name(r)} repeats forever`);
@@ -266,7 +270,7 @@ export function judge(
             out.push(`${name(r)} fades ${props.join(', ')} for over 150 ms`);
           }
         } else {
-          if (forever && !r.progress) out.push(`${name(r)} repeats forever`);
+          if (forever && !r.progress && !ambient) out.push(`${name(r)} repeats forever`);
           if (r.pseudo?.startsWith('::view-transition') && r.duration > 250) {
             out.push(`${name(r)}: a View Transition over 250 ms`);
           }

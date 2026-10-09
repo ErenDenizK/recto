@@ -168,6 +168,14 @@ with files and Select mode.
 Try the sample, Combine files…, Batch…. J1, J3, flows §9.1, §4.6. Replaces 4.3
 (`shell/EmptyState.tsx`) and 4.1's Open files button.
 
+> **2026-10-09 (owner feedback G3).** With documents open the view no longer repeats the mark:
+> the Library tab keeps it, and the view heads itself with a large "Library" title (display,
+> 600) and "Nothing leaves this device." under it. The row is one lit surface of equal buttons,
+> one piece high (`--piece-h`: 40 fine, 48 coarse, the strip's pieces and the footer's pills
+> alike): Open PDFs… first and lime, Try the sample · Combine files… · Batch… after it, and the
+> drop line trailing; the whole row is the drop target (a dashed accent line while dragging),
+> so the dashed well stays in the empty card only.
+
 **2. Anatomy.**
 
 ```
@@ -260,6 +268,13 @@ over the field cap (`glass-pixels.spec.ts`).
 
 **1. Role.** The aurora's place on the Library and the drop overlay (`language.md` §3.2, AU-4,
 AU-13); the only light on the Library. New; nothing replaced.
+
+> **2026-10-09 (owner feedback G2, G3, G5).** Until the WebGL field lands, its CSS form
+> (`home/Aura.tsx`) is richer and slowly alive: five soft lobes drift on 37–59 s loops by
+> transform and opacity alone, paused while the document is hidden, still under reduced motion
+> (quality-bar Q-10's one exception). The view reaches up under the top strip, so no band of
+> bare canvas shows between the pieces. Settings › Background glow (on by default) shows the
+> same aura, dimmer and still, behind the reader's canvas.
 
 **2. Anatomy.** Full-window WebGL canvas behind the Library column (backdrop root shared with
 every Library glass, §3.1). Lobes: empty (0.5, 0.35, gain 1.0, r 0.42) under the launcher card,

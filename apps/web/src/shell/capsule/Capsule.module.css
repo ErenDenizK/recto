@@ -2,7 +2,8 @@
  * The capsule (spec X1; 03-markup MK-1, MK-17; 01-frame F10 §2–§3; quality-bar Q-2 to Q-6).
  *
  * One M2 element (`mat mat-bar`: tint, blur, rim and the e3 shadow) with one σ per size
- * (`s9 c10 h8`: 9 fine, 10 coarse, 8 compact-height; materials.css), never per content, so
+ * (`s8 c9 h8`: 8 fine, 9 coarse, 8 compact-height, the largest the 40 / 48 px piece allows;
+ * materials.css), never per content, so
  * a morph never touches the filter (language.md §2.1 rule 5; X20: no lens). The pill radius
  * holds throughout. `contain: layout style` keeps the layout of its own width and height inside
  * it while they move (Q-6); `overflow: clip` clips the contents to the pill as it reshapes
@@ -13,16 +14,16 @@
  * transform, so it rests on whole pixels wherever the content puts its edges.
  */
 .capsule {
-  composes: mat mat-bar s9 c10 h8 from global;
+  composes: mat mat-bar s8 c9 h8 from global;
   position: relative;
   display: flex;
   flex: none;
   align-items: flex-end;
   justify-content: center;
   box-sizing: border-box;
-  max-width: calc(100% - 2 * var(--space-4));
+  max-width: calc(100% - 2 * var(--piece-inset));
   overflow: clip;
-  border-radius: var(--radius-capsule);
+  border-radius: var(--piece-radius);
   contain: layout style;
   pointer-events: auto;
   transition: opacity var(--duration-fast) var(--ease-out);

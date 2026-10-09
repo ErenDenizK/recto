@@ -20,8 +20,13 @@ afterEach(() => {
 });
 
 describe('appearance settings', () => {
-  it('starts on Theme System, Glass unpicked (the start state applies), Reduce motion System', () => {
-    expect(DEFAULT_APPEARANCE).toEqual({ theme: 'system', glass: null, motion: 'system' });
+  it('starts on Theme System, Glass unpicked (the start state applies), Reduce motion System, Background glow on', () => {
+    expect(DEFAULT_APPEARANCE).toEqual({
+      theme: 'system',
+      glass: null,
+      motion: 'system',
+      glow: true,
+    });
     localStorage.removeItem(APPEARANCE_STORAGE_KEY);
     expect(loadAppearance()).toEqual(DEFAULT_APPEARANCE);
     // Under automation the test build's override starts at Clear (spec X36).
@@ -33,10 +38,13 @@ describe('appearance settings', () => {
     for (const value of [undefined, null, 42, 'x', [], [true]]) {
       expect(parseAppearance(value)).toEqual(DEFAULT_APPEARANCE);
     }
-    expect(parseAppearance({ theme: 'light', glass: 'tinted', motion: 'reduced' })).toEqual({
+    expect(
+      parseAppearance({ theme: 'light', glass: 'tinted', motion: 'reduced', glow: false }),
+    ).toEqual({
       theme: 'light',
       glass: 'tinted',
       motion: 'reduced',
+      glow: false,
     });
     // A stored value from before D3-7 (no theme), or a stray one, follows the system.
     expect(parseAppearance({ glass: 'tinted' }).theme).toBe('system');
@@ -48,6 +56,10 @@ describe('appearance settings', () => {
     // A stored value from before D3-4 (no motion), or a stray one, follows the system.
     expect(parseAppearance({ motion: 'on' }).motion).toBe('system');
     expect(parseAppearance({ motion: true }).motion).toBe('system');
+    // A stored value from before G5 (no glow), or a stray one, keeps the glow on (the default).
+    expect(parseAppearance({ theme: 'dark' }).glow).toBe(true);
+    expect(parseAppearance({ glow: 'off' }).glow).toBe(true);
+    expect(parseAppearance({ glow: false }).glow).toBe(false);
   });
 
   it('migrates M8’s switches once: Reduce transparency on becomes Solid (ADR-0024 §2.4)', () => {
@@ -60,12 +72,18 @@ describe('appearance settings', () => {
       APPEARANCE_STORAGE_KEY,
       JSON.stringify({ glassPanels: true, reduceTransparency: true, motion: 'reduced' }),
     );
-    expect(loadAppearance()).toEqual({ theme: 'system', glass: 'solid', motion: 'reduced' });
+    expect(loadAppearance()).toEqual({
+      theme: 'system',
+      glass: 'solid',
+      motion: 'reduced',
+      glow: true,
+    });
     // Written back in the new shape, so the migration runs once.
     expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) ?? 'null')).toEqual({
       theme: 'system',
       glass: 'solid',
       motion: 'reduced',
+      glow: true,
     });
   });
 
@@ -75,11 +93,18 @@ describe('appearance settings', () => {
       theme: 'system',
       glass: 'tinted',
       motion: 'system',
+      glow: true,
     });
     useAppearanceStore.getState().setGlass('solid');
     useAppearanceStore.getState().setMotion('reduced');
     useAppearanceStore.getState().setTheme('light');
-    expect(loadAppearance()).toEqual({ theme: 'light', glass: 'solid', motion: 'reduced' });
+    useAppearanceStore.getState().setGlow(false);
+    expect(loadAppearance()).toEqual({
+      theme: 'light',
+      glass: 'solid',
+      motion: 'reduced',
+      glow: false,
+    });
   });
 
   it('writes the settings as root attributes', () => {

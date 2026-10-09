@@ -10,7 +10,9 @@
  *   System · On (language.md §7.6; spec D3-4), a segmented control; when the system asks for
  *   reduced motion it shows On, both segments disabled, and says "On, set by your system"
  *   (07 S3 §4), announced the same way when the system changes while the sheet is open. Its row
- *   lives in `ReduceMotionRow.tsx`, which the compact edition shows too.
+ *   lives in `ReduceMotionRow.tsx`, which the compact edition shows too. Background glow
+ *   (owner feedback 2026-10-09, G5), a switch, on by default: the Library's aura, dimmer,
+ *   behind the reader's canvas.
  * - **Language:** English · Türkçe · Follow the browser (07.8), names in their own language;
  *   applied without a reload (`locale.ts`), and the sheet comes back at this row after the
  *   shell remounts in the new language.
@@ -43,7 +45,7 @@ import {
 import { useExternalRequests } from '../privacy/external-requests';
 import { useSessionStore } from '../session/session-store';
 import { announce } from '../shell/announcer';
-import { setGlass } from '../shell/appearance-commands';
+import { setGlass, setGlow } from '../shell/appearance-commands';
 import { BUILD_INFO, PRODUCT_NAME } from '../shell/about/build-info';
 import { effectiveGlass, type GlassSetting, useAppearanceStore } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
@@ -115,6 +117,25 @@ export function GlassRow() {
           />
         </div>
       </Line>
+    </Row>
+  );
+}
+
+/**
+ * Background glow (G5): a switch bound to `appearance-store`'s `glow`, on by default; the
+ * reader shows the aura behind its canvas at once while it is on.
+ */
+export function GlowRow() {
+  const glow = useAppearanceStore((s) => s.glow);
+  return (
+    <Row id="glow">
+      <Switch
+        className={styles.switch}
+        label={m.settings_glow()}
+        description={m.settings_glow_hint()}
+        checked={glow}
+        onCheckedChange={setGlow}
+      />
     </Row>
   );
 }

@@ -89,11 +89,12 @@ describe('dock', () => {
     resetLockStore();
   });
 
-  it('rests as Pages · Markup · Fill & sign · More in one toolbar, labels beside, 44 px', async () => {
+  it('rests as Pages · Markup · Fill & sign · More in one toolbar, labels beside, 40 px', async () => {
     await mount();
     expect(names()).toEqual(['Pages', 'Markup', 'Fill & sign', 'More']);
     expect(dock()).toHaveAttribute('data-labels', 'beside');
-    expect(capsule().getBoundingClientRect().height).toBeCloseTo(44, 0);
+    // One piece high (--piece-h, G1).
+    expect(capsule().getBoundingClientRect().height).toBeCloseTo(40, 0);
     // One Tab stop (roving), Pages first; arrows move.
     const stops = within(dock())
       .getAllByRole('button')

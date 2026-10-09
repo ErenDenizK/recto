@@ -21,9 +21,10 @@
  *
  * The colour language (ADR-0023, D3-2): four roles that never mix. *Interaction* is one lime,
  * `#c8fb3d`, always touching ink, and at rest only on the armed tool or the one primary action
- * of a view, the focus ring's light band, current rows (0.12), 1 px lines (0.50) and the current
- * thumbnail's ring. *Content* is the white page, the inks and `--select`, the blue of every
- * selection mark on a page. *Status* is danger, warning and success, always beside a glyph and
+ * of a view, the focus ring's light band, current rows (0.12), 1 px lines (0.50), the current
+ * thumbnail's ring and the selection of whole pages and files (the ring round a selected
+ * thumbnail or card and its check badge, G7). *Content* is the white page, the inks and
+ * `--select`, the blue of every selection mark drawn on a page (text, lasso, handles). *Status* is danger, warning and success, always beside a glyph and
  * words. *Atmosphere* is the aurora's light. The neutrals are cool graphite, hue 265, chroma
  * ≤ 0.013 (n1–n12): 1–2 backgrounds, 3–6 surfaces and controls, 7–8 borders and disabled,
  * 9–12 text. Every contrast below is asserted by `tokens.test.ts` (WCAG 2.2 and APCA).
@@ -245,17 +246,17 @@
   --rim-edge: 0 0 0 1px rgb(0 0 0 / 0.5);
   --rim-top: rgb(var(--white-rgb) / 0.34);
   --rim-bottom: rgb(var(--white-rgb) / 0.14);
-  --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.12);
+  --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.12);
   /* The denser tiers' rims (§2.4): menus a 0.60 edge and a 0.30 / 0.10 rim, sheets and the
      floating panel 0.24 / 0.08; docked M3 only an inner light of 0.06 under its hairline. */
   --rim-edge-strong: 0 0 0 1px rgb(0 0 0 / 0.6);
   --rim-top-menu: rgb(var(--white-rgb) / 0.3);
   --rim-bottom-menu: rgb(var(--white-rgb) / 0.1);
-  --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.1);
+  --rim-inner-menu: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.1);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.24);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.08);
-  --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.08);
-  --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.06);
+  --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.08);
+  --rim-inner-docked: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.06);
   /* Elevation (language.md §6.3): e1 handles and badges, e2 chips, e3 bars and toasts, e4
      menus and popovers, e5 sheets. No coloured shadow and no glow on a control (S-5). */
   --e0: none;
@@ -304,6 +305,14 @@
   --check-badge-scrim: rgb(0 0 0 / 0.12);
   --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
   --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+  /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
+     the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
+     ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
+     chrome, as --accent-ring (lime on dark, lime-800 on light). The focus ring tells itself
+     apart by form: two bands with an ink gap round the whole cell, never one band on the sheet. */
+  --check-badge-fill: var(--accent);
+  --check-badge-ink: var(--accent-ink);
+  --select-ring: var(--accent-ring);
   /* The Library aura's three lights (home/LibraryView): the mark's mint, lime and yellow.
      On the dark canvas a faint pure lime reads as olive, so dark takes the lime a third of
      the way to the mint. */
@@ -526,15 +535,15 @@
   --rim-edge: 0 0 0 1px rgb(15 17 22 / 0.12);
   --rim-top: rgb(var(--white-rgb) / 0.85);
   --rim-bottom: rgb(var(--white-rgb) / 0.4);
-  --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
   --rim-edge-strong: 0 0 0 1px rgb(15 17 22 / 0.14);
   --rim-top-menu: rgb(var(--white-rgb) / 0.85);
   --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
-  --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner-menu: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
-  --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
-  --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
+  --rim-inner-docked: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
   /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
   --e0: none;
   --e1: 0 1px 2px rgb(var(--ink-rgb) / 0.12);
@@ -578,6 +587,14 @@
   --check-badge-scrim: rgb(0 0 0 / 0.12);
   --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
   --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+  /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
+     the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
+     ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
+     chrome, as --accent-ring (lime on dark, lime-800 on light). The focus ring tells itself
+     apart by form: two bands with an ink gap round the whole cell, never one band on the sheet. */
+  --check-badge-fill: var(--accent);
+  --check-badge-ink: var(--accent-ink);
+  --select-ring: var(--accent-ring);
   /* The Library aura's three lights (home/LibraryView): the mark's mint, lime and yellow.
      On the dark canvas a faint pure lime reads as olive, so dark takes the lime a third of
      the way to the mint. */
@@ -785,15 +802,15 @@
     --rim-edge: 0 0 0 1px rgb(15 17 22 / 0.12);
     --rim-top: rgb(var(--white-rgb) / 0.85);
     --rim-bottom: rgb(var(--white-rgb) / 0.4);
-    --rim-inner: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
     --rim-edge-strong: 0 0 0 1px rgb(15 17 22 / 0.14);
     --rim-top-menu: rgb(var(--white-rgb) / 0.85);
     --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
-    --rim-inner-menu: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner-menu: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
     --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
     --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
-    --rim-inner-sheet: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
-    --rim-inner-docked: inset 0 1px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
+    --rim-inner-docked: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
     /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
     --e0: none;
     --e1: 0 1px 2px rgb(var(--ink-rgb) / 0.12);
@@ -837,6 +854,14 @@
     --check-badge-scrim: rgb(0 0 0 / 0.12);
     --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
     --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+    /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
+       the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
+       ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
+       chrome, as --accent-ring (lime on dark, lime-800 on light). The focus ring tells itself
+       apart by form: two bands with an ink gap round the whole cell, never one band on the sheet. */
+    --check-badge-fill: var(--accent);
+    --check-badge-ink: var(--accent-ink);
+    --select-ring: var(--accent-ring);
     /* The Library aura's three lights (home/LibraryView): the mark's mint, lime and yellow.
        On the dark canvas a faint pure lime reads as olive, so dark takes the lime a third of
        the way to the mint. */
@@ -909,7 +934,7 @@
   --type-title1: 28px; /* Library greeting, About sections; 600 */
   --type-title1-lh: 36px;
   --track-title1: -0.02em;
-  --type-display: 40px; /* About only, never in a clipping box; 600 */
+  --type-display: 40px; /* About and the Library title (G3), never in a clipping box; 600 */
   --type-display-lh: 44px;
   --type-display-lg: 56px;
   --type-display-lg-lh: 60px;
@@ -953,7 +978,7 @@
 
   /*
    * Density (09-primitives §2.1, language.md §6.2; quality-bar Q-9). Controls are 32 px on a
-   * fine pointer and 44 px on a coarse one, in bars of 44 and 56; rows keep the M8
+   * fine pointer and 44 px on a coarse one, in pieces of 40 and 48 (--piece-h); rows keep the M8
    * --control-height. Icons are 20 px in controls and 16 px in rows and menus at every density
    * (Q-9). A touch laptop is coarse everywhere, by design (research 19 M-2).
    */
@@ -961,7 +986,21 @@
   --control-h: 32px;
   --control-h-lg: 36px;
   --bar-button: 32px;
-  --bar-h: 44px;
+  /* One size scale for every floating piece (owner feedback 2026-10-09, G1): the top strip's
+     pieces, the capsule and everything it hosts, the page pill, the grid's corner pieces, the
+     ink strip, the contextual bars and the Library's pills are one --piece-h high (40 fine, 48
+     coarse) around --control-h controls (32 / 44, so a coarse hit area never drops under 44),
+     --piece-inset from the window's edges top and bottom alike, the capsule radius, 20 px glyphs
+     and labels in the body step. --piece-pad is the room between the 1 px rim and a control.
+     --bar-h is the same height under its Q-9 name. */
+  --piece-h: 40px;
+  --piece-inset: var(--space-4);
+  --piece-radius: var(--radius-capsule);
+  --piece-pad: calc((var(--piece-h) - var(--control-h) - 2px) / 2);
+  --piece-icon: var(--icon-md);
+  --piece-label: var(--type-body);
+  --piece-label-lh: var(--type-body-lh);
+  --bar-h: var(--piece-h);
   --chip-h: 28px;
   --check: 16px;
   --switch-w: 36px;
@@ -997,7 +1036,7 @@
     --control-h: 44px;
     --control-h-lg: 52px;
     --bar-button: 44px;
-    --bar-h: 56px;
+    --piece-h: 48px;
     --chip-h: 36px;
     --check: 20px;
     --switch-w: 52px;

@@ -29,7 +29,7 @@
 :global(.mat[data-capsule='palette']),
 :global([data-strip-piece]) {
   /* The piece: height, the row's inset inside the 1 px rim, the pill radius. */
-  --palette-h: var(--bar-h);
+  --palette-h: var(--piece-h);
   --palette-inset: calc((var(--palette-h) - var(--palette-hit) - 2px) / 2);
   --palette-radius: calc(var(--palette-h) / 2);
   /* A control: its box (the hit area) and the fill drawn inside it. */
@@ -37,7 +37,7 @@
   --palette-control: 30px;
   --palette-trim: calc((var(--palette-hit) - var(--palette-control)) / 2);
   /* Glyphs and marks: icons, the armed pen's ring, a colour dot, the label. */
-  --palette-icon: var(--icon-md);
+  --palette-icon: var(--piece-icon);
   --palette-ring: 24px;
   --palette-dot: 16px;
   --palette-label: var(--control-text);

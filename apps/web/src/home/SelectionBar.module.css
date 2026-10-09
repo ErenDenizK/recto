@@ -1,14 +1,14 @@
 /*
- * The selection bar (02-library L6 §2–§3, §7): M2 glass (the bar tier of global.css, σ 7 at
- * 44 px, c 0.994), a pill 44 high around 32 px controls (56 around 44 on a coarse pointer, Q-9),
- * bottom centre 16 px above the view's edge. It rises in by *tier rise* on --spring-quick from
+ * The selection bar (02-library L6 §2–§3, §7): M2 glass (`s8 c9`), one piece high around
+ * 32 px controls (--piece-h: 40, or 48 around 44 on a coarse pointer; G1, Q-9), bottom centre
+ * --piece-inset above the view's edge. It rises in by *tier rise* on --spring-quick from
  * 8 px below, fading on --duration-base, both on the glass element itself (Q-3); reduced motion
  * keeps the fade (the spring token is instant there).
  */
 .bar {
-  composes: mat mat-bar s8 c10 from global;
+  composes: mat mat-bar s8 c9 from global;
   position: absolute;
-  bottom: var(--space-4);
+  bottom: var(--piece-inset);
   right: 0;
   left: 0;
   z-index: 3;
@@ -17,11 +17,11 @@
   gap: var(--space-1);
   box-sizing: border-box;
   width: fit-content;
-  max-width: calc(100% - 2 * var(--space-4));
+  max-width: calc(100% - 2 * var(--piece-inset));
   margin-inline: auto;
-  height: var(--bar-h);
-  padding: 0 var(--space-2) 0 var(--space-4);
-  border-radius: var(--radius-pill);
+  height: var(--piece-h);
+  padding: 0 var(--piece-pad) 0 var(--space-4);
+  border-radius: var(--piece-radius);
   transition:
     transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);

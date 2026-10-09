@@ -7,9 +7,11 @@
  *                    + the selection bar (L6) floating at the bottom while cards are checked
  *
  * The view is the canvas with no glass of its own (L1 §3); each part takes its tier. Behind the
- * column glows the aura (`LibraryAura`), the static CSS form of the Library field (L3) in the
- * mark's colours; the WebGL field stays D3-8's, and the head row publishes its text-safe rect
- * for it (`text-safe.ts`). A file drag over the window lifts the launcher and
+ * column glows the aura (`Aura.tsx`), the CSS form of the Library field (L3) in the mark's
+ * colours, slowly drifting; the WebGL field stays D3-8's, and the head row publishes its
+ * text-safe rect for it (`text-safe.ts`). The view reaches up under the top strip's pieces
+ * (owner feedback 2026-10-09, G2), so the aura and the canvas run to the window's top edge
+ * behind them, with no band of bare canvas between the pieces. A file drag over the window lifts the launcher and
  * changes its headline (L9); the document view's overlay is `DropOverlay`.
  *
  * Esc ladder (L1 §6): Esc clears the checks, then leaves Select mode; it never navigates. First
@@ -23,6 +25,7 @@ import { useEffect, useMemo } from 'react';
 import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Aura } from './Aura';
 import { type HomeCardData, homeCards, liveSelection } from './home-model';
 import { Launcher } from './Launcher';
 import { LibraryFooter } from './LibraryFooter';
@@ -53,7 +56,7 @@ export function LibraryView({ dragging }: { readonly dragging: boolean }) {
         data-variant="empty"
         data-dragging={dragging || undefined}
       >
-        <LibraryAura />
+        <Aura tone="library" testId="library-aura" />
         <div className={styles.scroller}>
           <div className={`${styles.column} ${styles.empty}`}>
             <div className={styles.welcome}>
@@ -67,23 +70,6 @@ export function LibraryView({ dragging }: { readonly dragging: boolean }) {
     );
   }
   return <LibraryWithCards cards={cards} dragging={dragging} dragCount={dragCount} />;
-}
-
-/**
- * The aura (owner feedback 2026-10-08, "missing aura"; the CSS form of L3's field): four soft
- * lobes in the mark's mint, lime and yellow lime behind the column, fixed to the view while the
- * column scrolls. Static (Q-10: no frames at rest), no blur and no grain (Q-1): each lobe is
- * one eased radial gradient, painted once. Decorative and pointer-transparent.
- */
-function LibraryAura() {
-  return (
-    <div className={styles.aura} aria-hidden="true" data-testid="library-aura">
-      <span className={styles.lobe} data-lobe="mint" />
-      <span className={styles.lobe} data-lobe="lime" />
-      <span className={styles.lobe} data-lobe="yellow" />
-      <span className={styles.lobe} data-lobe="low" />
-    </div>
-  );
 }
 
 function LibraryWithCards({
@@ -129,7 +115,7 @@ function LibraryWithCards({
       data-dragging={dragging || undefined}
       data-selecting={selecting || undefined}
     >
-      <LibraryAura />
+      <Aura tone="library" testId="library-aura" />
       <div className={styles.scroller}>
         <div className={styles.column}>
           <Launcher
