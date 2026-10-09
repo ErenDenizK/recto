@@ -135,6 +135,8 @@ describe('prepareExport', () => {
     expect(pageCount).toBe(11);
     expect(report.outlineNodesKept).toBe(2); // one wrapper node per file
     expect([...new Set(phases)]).toEqual(['reading', 'assembling', 'verifying']);
+    // No redaction applied: nothing for the save receipt to search (E13-c).
+    expect(result.value.receiptActs).toEqual([]);
 
     const out = await adapter.open(sourceId('out'), result.value.bytes.slice(0));
     await adapter.close(sourceId('out'));

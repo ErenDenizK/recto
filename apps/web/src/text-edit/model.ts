@@ -6,18 +6,18 @@
  * result. No engine calls and no DOM, so it is unit-tested directly.
  */
 import type { Rotation } from '@pdf-editor/document-model';
-import {
-  type LocatedRun,
-  TEXT_EDIT_SHRINK_FLOOR,
-  type TextEditability,
-  type TextEditBlocker,
-  type TextEditFailure,
-  type TextEditResult,
-  type TextFitOption,
-  type TextRunAnalysis,
-  type TextRunFont,
-  type TextTier2Refusal,
+import type {
+  LocatedRun,
+  TextEditability,
+  TextEditBlocker,
+  TextEditFailure,
+  TextEditResult,
+  TextFitOption,
+  TextRunAnalysis,
+  TextRunFont,
+  TextTier2Refusal,
 } from '@pdf-editor/engine';
+import { TEXT_EDIT_SHRINK_FLOOR } from '@pdf-editor/engine/constants';
 
 import { formatPercent, getLocale, m } from '../i18n';
 import type { PageFrame } from '../viewer/geometry';

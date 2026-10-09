@@ -47,6 +47,9 @@ import type {
   RenderOptions,
   RenderResult,
   SaveOptions,
+  SaveReceipt,
+  SaveReceiptAct,
+  SaveReceiptOptions,
   SearchHit,
   SearchOptions,
   SourceInspection,
@@ -93,6 +96,7 @@ export type WireSearchOptions = Omit<SearchOptions, 'signal' | 'onProgress'>;
 export type WireSaveOptions = Omit<SaveOptions, 'signal'>;
 export type WireApplyRedactionsOptions = Omit<ApplyRedactionsOptions, 'signal'>;
 export type WireVerifyRedactedOutputOptions = Omit<VerifyRedactedOutputOptions, 'signal'>;
+export type WireSaveReceiptOptions = Omit<SaveReceiptOptions, 'signal'>;
 export type WireRenderForOcrOptions = Omit<RenderForOcrOptions, 'signal'>;
 export type WireParagraphEditOptions = Omit<ParagraphEditOptions, 'signal'>;
 
@@ -324,6 +328,13 @@ export interface PdfiumWorkerApi {
     options: WireVerifyRedactedOutputOptions,
     abortPort?: MessagePort,
   ): Promise<Wire<ForensicReport>>;
+  /** `computeSaveReceipt` on a scratch copy of `bytes` (the caller keeps its copy). */
+  computeSaveReceipt(
+    bytes: ArrayBuffer,
+    acts: readonly SaveReceiptAct[],
+    options: WireSaveReceiptOptions,
+    abortPort?: MessagePort,
+  ): Promise<Wire<SaveReceipt>>;
   // PdfOcrLayer (ocr/): facts and rasters under raw access, the layer like a redaction.
   ocrPageFacts(
     id: SourceId,

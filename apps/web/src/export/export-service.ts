@@ -77,6 +77,7 @@ import type {
   PdfEditor,
   PdfRedactor,
   ReconciliationReport,
+  SaveReceiptAct,
   SignOptions,
   SignRequest,
   SignResult,
@@ -200,6 +201,11 @@ export interface PreparedExport {
   readonly outcome?: ExportOutcome;
   /** Present when the document shows pages of sources with applied redactions. */
   readonly redaction?: RedactionExportSummary;
+  /**
+   * The acts the save receipt reports on (E13-c, `computeSaveReceipt` in ./receipt): one per
+   * applied redaction shown in the output; empty when there is none.
+   */
+  readonly receiptActs: readonly SaveReceiptAct[];
   /** Present when the document shows pages of sources with text edits. */
   readonly textEdits?: TextEditExportSummary;
   /** Present when the document shows recognised pages (OCR, spec recognize-and-compare §1.3). */
@@ -612,8 +618,13 @@ async function prepareExportNow(
   if (doc.pages.length === 0) return failed(m.export_error_no_pages());
   try {
     const engineModule = await import('@pdf-editor/engine');
-    const { annotationIdsOfEdits, planExport, OCR_LOW_CONFIDENCE, OCR_QUALITY_THRESHOLDS } =
-      engineModule;
+    const {
+      annotationIdsOfEdits,
+      planExport,
+      OCR_LOW_CONFIDENCE,
+      OCR_QUALITY_THRESHOLDS,
+      saveReceiptActsOf,
+    } = engineModule;
     const plan = planExport(ws, documentId, {
       ...(options.security === undefined ? {} : { security: options.security }),
       // Flattened created fields are not expected in the output.
@@ -934,6 +945,7 @@ async function prepareExportNow(
         durationMs: performance.now() - started,
         ...(compression ? { compression } : {}),
         ...(redactionSummary ? { redaction: redactionSummary } : {}),
+        receiptActs: redaction ? saveReceiptActsOf(redaction.plans) : [],
         ...(textEditSummary ? { textEdits: textEditSummary } : {}),
         ...(ocrSummary ? { ocr: ocrSummary } : {}),
         ...(signature ? { signature } : {}),

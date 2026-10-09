@@ -43,10 +43,14 @@ export { OCR_MARK } from './raw';
 export {
   createOcrRecognizer,
   OCR_IDLE_MS,
+  OCR_MAX_POOL_SIZE,
   OCR_PAGE_TIMEOUT_MS,
   type OcrCoreVariant,
   ocrCoreVariant,
   ocrEngineFiles,
+  type OcrPoolEnvironment,
+  ocrPoolEnvironment,
+  ocrPoolSize,
   type TesseractRecognizerOptions,
 } from './recognizer';
 export {

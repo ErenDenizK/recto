@@ -31,6 +31,7 @@ import {
 } from '@cantoo/pdf-lib';
 
 import type { PdfiumMemory } from '../pdfium/host/memory';
+import { PDFLIB_LOAD_TICKS } from '../pdflib/ticks';
 
 // ---------------------------------------------------------------------------
 // Snapshots
@@ -92,6 +93,7 @@ export interface Snapshot {
 
 export async function loadSnapshot(bytes: Uint8Array, pageIndex: number): Promise<Snapshot> {
   const doc = await PDFDocument.load(bytes, {
+    ...PDFLIB_LOAD_TICKS,
     updateMetadata: false,
     ignoreEncryption: true,
     throwOnInvalidObject: false,

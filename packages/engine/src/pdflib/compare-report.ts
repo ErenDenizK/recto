@@ -32,6 +32,7 @@ import { ANNOT_FLAG, pdfDate } from '../annotations/finalize';
 import { bundledFace } from '../fonts/font-catalog';
 import { loadBundledFont } from '../fonts/bundled-fonts';
 import type { ComparisonResult, FactChange, TextChange } from '../types';
+import { PDFLIB_LOAD_TICKS, PDFLIB_SAVE_TICKS } from './ticks';
 
 export interface ComparisonReportOptions {
   /** Password of the second document, when it is encrypted (the report is written without). */
@@ -525,6 +526,7 @@ export async function buildComparisonReportWithCounts(
   options: ComparisonReportOptions = {},
 ): Promise<{ bytes: Uint8Array; counts: ComparisonReportCounts }> {
   const doc = await PDFDocument.load(bytes, {
+    ...PDFLIB_LOAD_TICKS,
     updateMetadata: false,
     throwOnInvalidObject: false,
     ...(options.password === undefined ? {} : { password: options.password }),
@@ -614,7 +616,7 @@ export async function buildComparisonReportWithCounts(
       (counts.omitted > 0 ? `; ${counts.omitted} more left out (limit per page).` : '.'),
   );
   shiftPageLabels(doc, writer.pages.length);
-  const out = await doc.save({ useObjectStreams: false });
+  const out = await doc.save({ ...PDFLIB_SAVE_TICKS, useObjectStreams: false });
   return { bytes: out, counts: { summaryPages: writer.pages.length, ...counts } };
 }
 

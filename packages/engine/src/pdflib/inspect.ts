@@ -32,6 +32,7 @@ import type { PageLabelStyle, PermissionFlags, SecurityHandler } from '@pdf-edit
 import type { EncryptionFacts, NoteStateFact, OutlineItemFacts, SourceInspection } from '../types';
 import { nameText, namedDestinationResolver } from './named-destinations';
 import { formatNumber } from './page-labels';
+import { PDFLIB_LOAD_TICKS } from './ticks';
 
 const STYLE_BY_NAME: Readonly<Record<string, PageLabelStyle>> = {
   D: 'decimal',
@@ -346,6 +347,7 @@ export async function loadForReading(
   for (const attempt of attempts) {
     try {
       return await PDFDocument.load(bytes, {
+        ...PDFLIB_LOAD_TICKS,
         updateMetadata: false,
         throwOnInvalidObject: false,
         ...(attempt === undefined ? {} : { password: attempt }),
@@ -363,6 +365,7 @@ export async function loadEncryptedRaw(
 ): Promise<PDFDocument | undefined> {
   try {
     return await PDFDocument.load(bytes, {
+      ...PDFLIB_LOAD_TICKS,
       updateMetadata: false,
       throwOnInvalidObject: false,
       ignoreEncryption: true,

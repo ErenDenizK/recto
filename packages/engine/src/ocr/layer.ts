@@ -35,6 +35,7 @@ import { EngineError, type OcrLayerPlan, type OcrLayerWord } from '../types';
 import { glyphlessFontBytes } from './glyphless-font';
 import { languageTag } from './geometry';
 import { OCR_MARK } from './raw';
+import { PDFLIB_LOAD_TICKS, PDFLIB_SAVE_TICKS } from '../pdflib/ticks';
 
 const MARK = PDFName.of(OCR_MARK);
 
@@ -262,7 +263,10 @@ export async function writeOcrLayer(
   plan: OcrLayerPlan,
   options: { readonly engine?: string } = {},
 ): Promise<OcrLayerWriteResult> {
-  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  const doc = await PDFDocument.load(bytes, {
+    ...PDFLIB_LOAD_TICKS,
+    updateMetadata: false,
+  });
   const context = doc.context;
   const pageCount = doc.getPageCount();
   let font: PDFRef | undefined;
@@ -336,6 +340,10 @@ export async function writeOcrLayer(
   if (lang !== undefined && wordsWritten > 0 && !catalog.has(PDFName.of('Lang'))) {
     catalog.set(PDFName.of('Lang'), PDFString.of(lang));
   }
-  const out = await doc.save({ useObjectStreams: false, updateFieldAppearances: false });
+  const out = await doc.save({
+    ...PDFLIB_SAVE_TICKS,
+    useObjectStreams: false,
+    updateFieldAppearances: false,
+  });
   return { bytes: out, pages, wordsWritten, wordsSkipped, ourLayersRemoved };
 }
