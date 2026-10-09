@@ -1,0 +1,25 @@
+/*
+ * ▤'s morph (motion-2026-10 frame.md §1): the glyph's leading pane fills from its leading edge
+ * while the sidebar shows, on the sidebar's own spring, and empties back toward it as it goes.
+ * Scale on the pane's own box only; reduced motion: the fill fades instead.
+ */
+.glyph {
+  flex-shrink: 0;
+  width: var(--icon-box, var(--icon-sm));
+  height: var(--icon-box, var(--icon-sm));
+}
+
+.pane {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  opacity: 0;
+  transition:
+    transform var(--spring-smooth) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.glyph[data-open] .pane {
+  transform: none;
+  opacity: 1;
+}
