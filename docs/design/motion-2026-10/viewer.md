@@ -34,6 +34,26 @@ cut straight to the target. **After:**
     now waits for the jump to land (`afterJump()`) before ringing it.
   - `instant` lands at once. It is used for a scrubber drag, a page view that is mounted but not
     shown yet, and the first 300 ms after mount (the view change from the Pages grid).
+- **Landing prefetch** (`viewer/jump-prefetch.ts`): when a jump covers more than one screen, it
+  asks for the target page at the exact scale its canvas will want, and for the pages on either
+  side at a quarter of that scale. Requests go in at the render queue's `page` priority, and a
+  newer jump aborts an older jump's requests. The canvas then finds a cached bitmap when it
+  mounts.
+
+  Measured on `many-pages.pdf` (400 pages) at 1440×900 in Chromium, Go to page 150, 300, 60
+  and 380, three runs each (12 jumps):
+
+  | | White frames during the glide | Target page shows content |
+  |---|---|---|
+  | Before | 70 of 407 frames (17 %) | about 470 ms after Enter (median, range 333–618) |
+  | After | 0 of 407 | about 280 ms after Enter (range 258–331) |
+
+  A white frame is one where a page in the viewport still shows a placeholder while the page
+  column is more than 30 % opaque.
+- **Layout change mid-jump:** if the zoom changes while a jump is in flight (a panel opens and
+  the fit follows the new free rectangle), the jump lands at once on the new layout rather than
+  stopping halfway. Found by `viewer.spec` (a find step followed at once by opening the Find
+  section).
 - **Single-page layout:** the incoming page uses the catalogue's *sheet push* (24 px plus a
   fade on `smooth`) from the side it lies on.
 
@@ -56,7 +76,8 @@ cut straight to the target. **After:**
 - **Fling:** native scrolling already coasts on touch and trackpad. A Space drag (the hand pan)
   used to stop dead on release. It now keeps the release velocity: projected with 0.998
   (`project()`), it coasts on `glide`. A press or a wheel stops it. Reduced motion: no
-  projection.
+  projection. Probe: a 150 px drag in about 160 ms (roughly 940 px/s) coasts another 180 px. The
+  scroll position never reverses, and the coast settles within about 500 ms.
 
 ## 3. Page render (`pages/paint-fade.ts`, `PageCanvas.tsx`, `TiledPage.tsx`)
 
@@ -132,5 +153,5 @@ alone:
   - The Pages-grid door and Library ⇄ document transitions belong to other lanes.
   - The history reveal (`history/reveal.ts`, frame lane) may want to pass `motion: 'step'`,
     since it flashes the page itself.
-  - Long far jumps glide over pages that are not rendered yet (white sheets) for about 250 ms.
-    A prefetch of the target's neighbours would help.
+  - Frame strips added for the single-page slide (`single-desk-next`, `single-desk-prev`) and
+    for the Space-pan coast (`coast-desk-fling`, plus the scroll-position probe above).
