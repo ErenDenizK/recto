@@ -158,6 +158,9 @@ export function registerCompareCommands(registry: CommandRegistry): () => void {
       keywords: ['compare', 'diff', 'difference', 'changes', 'versions', 'revision'],
       when: () => useWorkspaceStore.getState().workspace.documentOrder.length > 0,
       run: () => {
+        // Already in Compare, `4` does nothing and says nothing (M8-i): the announcement is
+        // for the change of view (spec recognize-and-compare §2.2).
+        if (comparing()) return;
         enterCompare();
         announce(m.compare_mode_long());
       },
