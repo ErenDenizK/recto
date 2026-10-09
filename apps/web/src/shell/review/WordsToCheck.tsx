@@ -30,6 +30,7 @@ import { useOcrThresholds } from '../../ocr/ocr-thresholds';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { EmptyNote } from '../../ui/EmptyNote';
+import { ListRow } from '../../ui/ListRow';
 import styles from './ReviewPanel.module.css';
 
 /** Documents OCR has run on in this session (the filter stays, X33). */
@@ -103,8 +104,7 @@ export function WordsToCheck({ data }: { readonly data: WordsToCheckData }) {
             data-testid="review-words-page"
             data-quality={record.quality}
           >
-            <button
-              type="button"
+            <ListRow
               className={styles.pageRow}
               onClick={() => useViewStore.getState().scrollToPage(row.pageId)}
             >
@@ -114,7 +114,7 @@ export function WordsToCheck({ data }: { readonly data: WordsToCheckData }) {
               {record.words.length > 0 ? (
                 <span className={styles.wordMeta}>{percent(record.meanConfidence)}</span>
               ) : null}
-            </button>
+            </ListRow>
             <p className={styles.pageFacts}>{facts.join(' · ')}</p>
             {pageWords.length > 0 ? (
               <ul className={styles.list}>
@@ -123,10 +123,9 @@ export function WordsToCheck({ data }: { readonly data: WordsToCheckData }) {
                     focus?.pageId === word.section.page.id && focus.word === word.row.index;
                   return (
                     <li key={word.row.index}>
-                      <button
-                        type="button"
+                      <ListRow
                         className={styles.wordRow}
-                        aria-current={current ? 'true' : undefined}
+                        current={current}
                         data-sidebar-current={current ? '' : undefined}
                         data-testid="review-word"
                         onClick={() => focusOcrWord(word.section, word.row)}
@@ -135,7 +134,7 @@ export function WordsToCheck({ data }: { readonly data: WordsToCheckData }) {
                         <span className={styles.wordMeta}>
                           {m.review_words_low({ confidence: percent(word.row.confidence) })}
                         </span>
-                      </button>
+                      </ListRow>
                     </li>
                   );
                 })}

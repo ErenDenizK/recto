@@ -127,23 +127,53 @@ function FilterChips({
   readonly words: boolean;
 }) {
   const setFilter = useUiStore((s) => s.setReviewFilter);
+  const fade = useEdgeFade<HTMLDivElement>();
   return (
-    <ChipGroup
-      label={m.review_filter_label()}
-      className={styles.chips}
-      value={filter}
-      onChange={(next) => {
-        setFilter(next);
-        announce(m.review_announce_filter({ label: FILTER_LABELS[next](), count: counts[next] }));
-      }}
-      chips={shownFilters(words).map((value) => ({
-        value,
-        label: FILTER_LABELS[value](),
-        count: formatNumber(counts[value]),
-        name: m.nav_count_name({ label: FILTER_LABELS[value](), count: counts[value] }),
-      }))}
-    />
+    <div ref={fade} className={styles.chipsFrame}>
+      <ChipGroup
+        label={m.review_filter_label()}
+        className={styles.chips}
+        value={filter}
+        onChange={(next) => {
+          setFilter(next);
+          announce(m.review_announce_filter({ label: FILTER_LABELS[next](), count: counts[next] }));
+        }}
+        chips={shownFilters(words).map((value) => ({
+          value,
+          label: FILTER_LABELS[value](),
+          count: formatNumber(counts[value]),
+          name: m.nav_count_name({ label: FILTER_LABELS[value](), count: counts[value] }),
+        }))}
+      />
+    </div>
   );
+}
+
+/**
+ * The scroll fade of a row that scrolls sideways (the menu's edge fade, system-audit-2026-10
+ * §3.6): the frame says which edges hide more chips (`data-more-start`, `data-more-end`), and
+ * its scroller fades out toward them, so a clipped chip reads as "more this way", not as a cut.
+ */
+function useEdgeFade<T extends HTMLElement>(): (frame: T | null) => (() => void) | undefined {
+  return (frame) => {
+    const scroller = frame?.firstElementChild;
+    if (!frame || !(scroller instanceof HTMLElement)) return undefined;
+    const update = () => {
+      const start = scroller.scrollLeft;
+      const end = scroller.scrollWidth - scroller.clientWidth - start;
+      frame.toggleAttribute('data-more-start', start > 1);
+      frame.toggleAttribute('data-more-end', end > 1);
+    };
+    update();
+    const resize = new ResizeObserver(update);
+    resize.observe(scroller);
+    for (const child of scroller.children) resize.observe(child);
+    scroller.addEventListener('scroll', update, { passive: true });
+    return () => {
+      resize.disconnect();
+      scroller.removeEventListener('scroll', update);
+    };
+  };
 }
 
 function Empty({ filter, loading }: { readonly filter: ReviewFilter; readonly loading: boolean }) {

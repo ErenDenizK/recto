@@ -20,7 +20,6 @@
 import { Menu } from '@base-ui/react/menu';
 import type { CreatedFieldKind, VirtualDocument } from '@pdf-editor/document-model';
 import type { FormField, FormFieldKind } from '@pdf-editor/engine';
-import { useId } from 'react';
 
 import { clearActiveForm } from '../forms';
 import { fieldLabel } from '../forms/actions';
@@ -32,7 +31,12 @@ import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
+import { Button } from '../ui/Button';
+import { Checkbox } from '../ui/Checkbox';
 import { Icon, type IconName } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
+import { ListRow } from '../ui/ListRow';
+import { Notice } from '../ui/Notice';
 import { Tooltip } from '../ui/Tooltip';
 import menuStyles from '../ui/Menu.module.css';
 import styles from './FormsPanel.module.css';
@@ -118,12 +122,7 @@ export function FormTools({
         hasPages={doc.pages.length > 0}
       />
       {xfa.withFields ? <XfaBadge /> : null}
-      {xfa.only ? (
-        <p className={styles.warning} role="note">
-          <Icon name="warning" />
-          <span>{m.forms_xfa_only()}</span>
-        </p>
-      ) : null}
+      {xfa.only ? <Notice className={styles.notice}>{m.forms_xfa_only()}</Notice> : null}
     </>
   );
 }
@@ -133,15 +132,20 @@ function AddFieldMenu({ disabled }: { readonly disabled: boolean }) {
   return (
     <Menu.Root>
       <Menu.Trigger
-        className={styles.button}
         disabled={disabled}
-        aria-pressed={placing !== null}
-        data-add-field=""
-      >
-        <Icon name="plus" />
-        {m.forms_add_field()}
-        <Icon name="caret-down" />
-      </Menu.Trigger>
+        render={
+          <Button
+            size="sm"
+            className={styles.toggle}
+            icon={<Icon name="plus" />}
+            aria-pressed={placing !== null}
+            data-add-field=""
+          >
+            {m.forms_add_field()}
+            <Icon name="caret-down" className={styles.caret} />
+          </Button>
+        }
+      />
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="start" sideOffset={4} collisionPadding={8}>
           <Menu.Popup className={menuStyles.popup}>
@@ -178,57 +182,51 @@ function Toolbar({
   const flatten = useFormStore((s) => s.flattenOnExport);
   const design = useCreateStore((s) => s.design);
   const placing = useCreateStore((s) => s.placing);
-  const id = useId();
   return (
     <div className={styles.toolbar} data-annotation-keep="">
       <div className={styles.buttons}>
         <AddFieldMenu disabled={!hasPages} />
         {hasFields || design ? (
-          <button
-            type="button"
-            className={styles.button}
+          <Button
+            size="sm"
+            className={styles.toggle}
+            icon={<Icon name="selection" />}
             aria-pressed={design}
             disabled={!hasPages}
             data-edit-fields=""
             onClick={() => setDesign(!design)}
           >
-            <Icon name="selection" />
             {m.forms_design()}
-          </button>
+          </Button>
         ) : null}
         {hasFields ? (
           <>
-            <button
-              type="button"
-              className={styles.button}
+            <Button
+              size="sm"
+              className={styles.toggle}
+              icon={<Icon name="highlighter" />}
               aria-pressed={highlight}
               onClick={() => useFormStore.getState().setHighlight(!highlight)}
             >
-              <Icon name="highlighter" />
               {m.forms_highlight()}
-            </button>
-            <button
-              type="button"
-              className={styles.button}
+            </Button>
+            <Button
+              size="sm"
+              icon={<Icon name="eraser" />}
               disabled={!fillable}
               onClick={() => void clearActiveForm()}
             >
-              <Icon name="eraser" />
               {m.forms_clear_all()}
-            </button>
+            </Button>
           </>
         ) : null}
       </div>
       {hasFields ? (
-        <label className={styles.check} htmlFor={id}>
-          <input
-            id={id}
-            type="checkbox"
-            checked={flatten}
-            onChange={(e) => useFormStore.getState().setFlattenOnExport(e.target.checked)}
-          />
-          {m.forms_flatten_on_export()}
-        </label>
+        <Checkbox
+          checked={flatten}
+          onCheckedChange={(on) => useFormStore.getState().setFlattenOnExport(on)}
+          label={m.forms_flatten_on_export()}
+        />
       ) : null}
       {placing !== null ? (
         <p className={styles.hint} role="status">
@@ -243,9 +241,14 @@ function XfaBadge() {
   return (
     <div className={styles.xfa}>
       <Tooltip label={m.forms_xfa_badge_explanation()}>
-        <button type="button" className={styles.badge} aria-label={m.forms_xfa_badge_explanation()}>
+        <Button
+          size="sm"
+          variant="quiet"
+          icon={<Icon name="info" />}
+          aria-label={m.forms_xfa_badge_explanation()}
+        >
           {m.badge_xfa()}
-        </button>
+        </Button>
       </Tooltip>
       <span className={styles.xfaText}>{m.forms_xfa_acroform()}</span>
     </div>
@@ -300,10 +303,10 @@ export function FieldRow({
       data-created-row={row.fieldId === undefined ? undefined : row.name}
       data-index={index}
     >
-      <button
-        type="button"
+      <ListRow
+        align="start"
         className={styles.item}
-        aria-current={current ? 'true' : undefined}
+        current={current}
         data-field-row={row.name}
         title={label === row.name ? undefined : row.name}
         onClick={() => openRow(row)}
@@ -333,29 +336,25 @@ export function FieldRow({
               : value.text}
           </span>
         </span>
-      </button>
+      </ListRow>
       {design && row.fieldId !== undefined ? (
         <span className={styles.order}>
-          <button
-            type="button"
-            className={styles.orderButton}
-            aria-label={m.forms_tab_earlier({ name: label })}
-            title={m.forms_tab_earlier({ name: label })}
+          <IconButton
+            size="row"
+            label={m.forms_tab_earlier({ name: label })}
+            icon={<Icon name="arrow-up" />}
+            tooltipSide="left"
             disabled={createdIndex <= 0}
             onClick={() => row.fieldId && stepTabOrder(row.fieldId, -1)}
-          >
-            <Icon name="arrow-up" />
-          </button>
-          <button
-            type="button"
-            className={styles.orderButton}
-            aria-label={m.forms_tab_later({ name: label })}
-            title={m.forms_tab_later({ name: label })}
+          />
+          <IconButton
+            size="row"
+            label={m.forms_tab_later({ name: label })}
+            icon={<Icon name="arrow-down" />}
+            tooltipSide="left"
             disabled={createdIndex < 0 || createdIndex >= createdOnPage.length - 1}
             onClick={() => row.fieldId && stepTabOrder(row.fieldId, 1)}
-          >
-            <Icon name="arrow-down" />
-          </button>
+          />
         </span>
       ) : null}
     </li>

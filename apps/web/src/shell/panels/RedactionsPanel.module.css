@@ -20,49 +20,25 @@
 
 .list {
   display: grid;
-  gap: 2px;
+  gap: var(--space-half);
 }
 
+/* A mark or a finder match: its box, the ListRow (ui/ListRow) that reveals it on the page and,
+   for a mark, Delete; the ListRow draws the hover and current washes. */
 .row {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  min-height: 32px;
-  padding-left: var(--space-1);
-  border-radius: var(--radius-sm);
-}
-
-.row[aria-current='true'] {
-  background: var(--accent-muted);
-  /* Tertiary text is 4.3:1 on the accent-muted fill; it steps up to secondary (AA). */
-  --text-tertiary: var(--text-secondary);
-}
-
-@media (hover: hover) {
-  .row:not([aria-current='true']):hover {
-    background: var(--surface-hover);
-  }
+  min-height: var(--control-h);
 }
 
 .check {
   flex: none;
-  width: 14px;
-  height: 14px;
-  margin: 0 var(--space-1);
-  accent-color: var(--control-on);
+  padding-inline-start: var(--space-1);
 }
 
 .item {
-  composes: focus-inset from global;
-  display: flex;
   flex: 1;
-  align-items: baseline;
-  gap: var(--space-2);
-  min-width: 0;
-  padding: var(--space-1) 0;
-  border-radius: var(--radius-xs);
-  text-align: left;
-  color: var(--text-primary);
 }
 
 /* Kind glyph of a mark row in the Review list (the same box as a comment's). */
@@ -70,17 +46,14 @@
   display: grid;
   place-items: center;
   flex: none;
-  align-self: center;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-xs);
-  background: var(--surface-on);
+  width: var(--icon-md);
+  height: var(--icon-md);
   color: var(--text-secondary);
 }
 
 .glyph svg {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .snippet {
@@ -101,7 +74,7 @@
 .page {
   flex: none;
   color: var(--text-tertiary);
-  font-size: var(--type-caption);
+  font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
 }
 
@@ -165,12 +138,8 @@
 }
 
 .patternLabel {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) 0 var(--space-1) var(--space-1);
+  padding-inline-start: var(--space-1);
   color: var(--text-secondary);
-  font-size: var(--type-footnote);
   font-weight: 500;
 }
 
