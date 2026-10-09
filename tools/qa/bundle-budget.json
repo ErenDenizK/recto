@@ -9,10 +9,10 @@
   },
   "growthCap": 0.01,
   "baseline": {
-    "firstPaint": 120668,
-    "editor": 900323,
-    "compact": 313259,
-    "pdfiumWorker": 1615076,
-    "precache": 13344486
+    "firstPaint": 121363,
+    "editor": 899722,
+    "compact": 321775,
+    "pdfiumWorker": 1615107,
+    "precache": 13316725
   }
 }
