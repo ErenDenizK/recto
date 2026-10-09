@@ -93,3 +93,106 @@ Desktop Chromium, 1280 × 720, not throttled, cold for each test.
 - **PF-1 guard allowlist.** Nine lazy modules still value-import the engine barrel. They are listed
   in `eslint.config.js` as `engineBarrelLazyModules`, and PF-2 empties that list.
 - **Speed budgets** are reported soft, in the spec only. They are not part of the bundle gate.
+
+## W1-g (engine lane): PF-2, PF-4, M2-a, M1-b, M1-d, P-7, B5 repair
+
+Date: 2026-10-09. Base: `develop` at `e3af449`, built from a clean copy beside the branch, so
+both builds ran on the same machine (4 vCPU, Playwright's Chromium 1194). Other worktrees were
+running builds and e2e at the same time; the open times below come in interleaved rounds (base,
+then after, then base…) so each round shares the same load.
+
+### Bundle (`tools/qa/bundle-budget.ts` on `pnpm build`)
+
+| Measure | Before | After | Gate |
+|---|---|---|---|
+| First paint JS gzip (V1-P1) | 117.9 KB, 7 files | 118.4 KB, 7 files | ≤ 120 KB |
+| Editor initial JS gzip (V1-P2) | 877.4 KB, 48 files | 880.3 KB, 50 files | ≤ 900 KB |
+| **First-open engine JS gzip, main thread** (new: `engineClient`) | **777.4 KB**, 6 files (the barrel and pdf-lib) | **21.7 KB**, 5 files (`@pdf-editor/engine/client`) | ≤ 120 KB |
+| Compact edition JS gzip | 314.0 KB | 315.3 KB | ≤ 320 KB |
+| PDFium worker script, raw | 1,577.3 KB | 1,585.7 KB | ≤ 1,600 KB |
+| Service-worker precache, raw | 13,000.0 KB | 13,037.4 KB | ≤ 14,336 KB |
+
+- **PF-2's delta after PF-1.** PF-1 had already taken the barrel off the editor's initial path, so
+  the editor closure barely moves (+2.9 KB: the Turkish export warnings, EXIF sizing, the start-up
+  marks). PF-2's gain is on the first open: −755.7 KB gzip of main-thread JS before the first page.
+  On the wire, the scripts the main thread fetched during an open went from 743.2 KB to 20.2 KB
+  gzip. Proposed V1-P2 gates: the editor stays at ≤ 900 KB, and the first-open engine at ≤ 120 KB
+  (now gated as `engineClient`); editor plus first open went from ≈ 1,655 KB to ≈ 902 KB. The
+  ≤ 600 KB working target needs PF-5 and PF-11.
+- The compact edition was already over the 1 % growth cap against the W0 baseline before this
+  package (314.0 KB against 305.9 KB, from other W0/W1 merges); W1-g adds 1.3 KB.
+- The PF-1 lint allowlist (`engineBarrelLazyModules`, nine modules) is gone: they all take their
+  values from the client entry.
+
+### Open → first page (V1-P5; a probe with the start-up spec's method, and `e2e/startup.spec.ts`)
+
+The probe opens a 10-page document (many-pages.pdf pages 1–10) through the Open button in a new
+browser context per run (cold HTTP cache, no service worker), 1440 × 900, and times the input's
+`change` to the first `main canvas[data-state="rendered"]`, as the start-up spec does. Five runs
+per build per round.
+
+| Round | Before (develop) | PF-4 + PF-2, worker compiles | After (final: the app starts the wasm download, the proxy compiles it) |
+|---|---|---|---|
+| 1 | 807–984, median 922 ms | 633–810, median 682 ms | — |
+| 2 | 718–894, median 840 ms | 618–720, median 707 ms | — |
+| 3 | 1,052–1,391, median 1,194 ms | 761–1,139, median 921 ms | 780–965, median 842 ms |
+| 4 | 819–1,001, median 952 ms | 575–650, median 636 ms | 556–577, median 565 ms |
+
+Rounds 3 and 4 together: before 1,026 ms, after 679 ms (median of 10), **−34 %**; in the quiet
+round 4 the open is 565 ms, inside the 600 ms target, and −41 %.
+
+Where the final open's time goes (round 4, the `recto:*` marks, ms after `change`):
+
+| Mark | ms |
+|---|---|
+| `engine-requested` (first open; the wasm download starts) | 6–8 |
+| `worker-configured` (client chunk loaded, PDFium proxy made) | 22–33 |
+| `wasm-compiled` (module stream-compiled, worker configured and running on it) | 302–350 |
+| `document-opened` | 312–364 |
+| `first-page-bitmap` | 550–567 |
+
+Before, the barrel and pdf-lib (2.3 MB raw) loaded and compiled on the main thread first, and only
+then was the worker configured and the wasm fetched, then compiled after its last byte arrived.
+Now the wasm download starts with the open and compiles as it streams; what remains is the
+compile itself (≈ 300 ms here) and the first render (≈ 200 ms). Next steps for V1-P5: start the
+download on an idle moment once the editor is up or when the file picker opens, and PF-5 (the
+worker script).
+
+`e2e/startup.spec.ts`, single runs (soft, noisy): V1-P5 891 and 1,496 ms before, 889 and 620 ms
+after; V1-P6 (500 pages) 956 and 1,521 ms before, 931 and 861 ms after; V1-P10 (save a copy of 100
+pages) 1,088 and 1,618 ms before, 1,143 and 1,054 ms after (PF-2 does not touch the save path).
+
+### No quality loss
+
+- **Saved bytes:** `pdflib-ticks.test.ts` (SHA-256 `GOLDEN` of assemble, scrub and finalise on the
+  100-page document), `merge-golden.test.ts` and `furniture-golden.test.ts` pass unchanged: images
+  without an EXIF orientation take the same drawing path (M1-b), and PF-2/PF-4 change no engine
+  output.
+- **PF-4:** compress output with the shared module is byte-identical to the URL path; the
+  signature worker's visual comparison gives the same pages; a worker whose own URL serves nothing
+  opens and renders on the posted module (`wasm-module.test.ts`).
+- **Engine suite:** 77 files, 885 tests pass.
+
+### The other W1-g items
+
+- **M2-a** (Turkish free text): a text box outside WinAnsi gets an appearance in an embedded
+  subset of the bundled face (Inter, Noto Serif, JetBrains Mono) under the /DA font name. The saved
+  file lists the same text in PDFium and pdf.js, the appearance's glyphs extract to it in both
+  (ToUnicode), and the structure Acrobat relies on is checked (`free-text-unicode.test.ts`).
+  WinAnsi text keeps PDFium's own appearance.
+- **M1-b** (EXIF): pages, overlays and stamps from a camera JPEG show what the browser shows for
+  all eight orientations, from the JPEG's own bytes (`jpeg-orientation.test.ts`).
+- **M1-d:** the export summary shows every assembler warning in Turkish (`engine-warnings.ts`; the
+  test reads the warnings from the engine source).
+- **P-7:** the weekly qpdf rebuild differed only by libjpeg-turbo's build date (`build 20260927`);
+  `build.sh` pins it, so the committed wasm is unchanged and reproducible (`qpdf-build.test.ts`).
+- **B5 (W0-q):** `truncated.pdf` now opens, badged as repaired, with the pages, text and Info of
+  the whole file (`structure/tail-repair.ts`, MuPDF's catalog-from-scan repair); a file cut inside
+  its objects is still refused.
+
+### Left open
+
+- The 4× CPU-throttled open time is still not measured.
+- `PdfiumProxy.compiledWasm` and the posted module rely on structured cloning of a
+  `WebAssembly.Module` to dedicated workers; `postableModule` falls back to the URL where a browser
+  refuses it. CI's Firefox and WebKit runs exercise that path.
