@@ -84,10 +84,26 @@ function subscribe(listener: () => void): () => void {
 
 const EMPTY: readonly string[] = [];
 
-/** The recents `key` shows beside `colour` (its current colour, left out), newest first. */
-export function shownRecents(list: readonly string[], colour: string): readonly string[] {
-  const hex = colour.toUpperCase();
-  return list.filter((c) => c !== hex).slice(0, INK_RECENT_SHOWN);
+/**
+ * The four colours the strip shows beside the well (system-audit-2026-10 §3.7, one layout for
+ * every tool): the tool's recents, newest first, then `suggested` in order to fill the row.
+ * Never its current colour (the well shows it) and never one of the dock's pens (`dock`), which
+ * the pens themselves show (owner feedback G8, "repeat?").
+ */
+export function stripColours(
+  list: readonly string[],
+  colour: string,
+  suggested: readonly string[],
+  dock: readonly string[],
+): readonly string[] {
+  const left = new Set([colour, ...dock].map((hex) => hex.toUpperCase()));
+  const out: string[] = [];
+  for (const candidate of [...list, ...suggested]) {
+    if (out.length === INK_RECENT_SHOWN) break;
+    const hex = candidate.toUpperCase();
+    if (!left.has(hex) && !out.includes(hex)) out.push(hex);
+  }
+  return out;
 }
 
 /** A tool's stored recents, live (newest first; may hold its current colour). */

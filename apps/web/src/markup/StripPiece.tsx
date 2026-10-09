@@ -1,17 +1,21 @@
 /**
  * The palette's floating strip (owner feedback F3, which supersedes `10-ink` §2.2's "second row
  * inside the palette's glass"): the ink strip as its own small glass piece above the capsule,
- * centred over it, hugging its content, so the palette stays one bar and no row of glass stands
- * empty at either side of the strip.
+ * hugging its content, so the palette stays one bar and no row of glass stands empty at either
+ * side of the strip.
  *
- * - **Material.** The capsule's M2 (`mat mat-bar s9 c10 h8`), the pill radius, a 1 px rim; its
- *   height is one bar (44 fine, 56 coarse) and its ends are concentric with the colour well and
- *   the readout. It is a sibling of the capsule, never inside it (Q-4: no glass in glass), and
- *   the dock's column sets it 8 px above the capsule, which it rides as the capsule morphs.
+ * - **Material.** The capsule's M2 (`mat mat-bar s8 c9 h8`), the pill radius, a 1 px rim; its
+ *   height is one piece (--piece-h, 40 fine, 48 coarse) and its ends are concentric with the
+ *   colour well and the readout. It is a sibling of the capsule, never inside it (Q-4: no glass
+ *   in glass), and the dock's column sets it 8 px above the capsule.
+ * - **Place.** Anchored to the capsule's leading edge (system-audit-2026-10 §3.7), not centred
+ *   over it: with the strip's one layout, the well and the slider stay put between tools. It
+ *   rides the capsule's edge as the capsule morphs and keeps --piece-inset from the band's ends.
  * - **Presence.** It rises in when a tool with options arms (opacity and the *tier rise*, 8 px
  *   and 0.98 about its bottom edge, on `--spring-smooth`, the capsule's morph spring, so strip
- *   and capsule move as one) and sinks back toward the capsule when Select or a disarm takes the strip away (on
- *   `--spring-quick`), `inert` and hidden from assistive technology from its first frame out.
+ *   and capsule move as one) and sinks back toward the capsule when Select or a disarm takes
+ *   the strip away (on `--spring-quick`), `inert` and hidden from assistive technology from
+ *   its first frame out.
  *   A content asked back mid-exit rises in again from where it got to. Under reduced motion
  *   only the fade runs, within 150 ms (`animateStyle`, A-9).
  * - **Between tools** the piece morphs its own width on `--spring-smooth` (contained, Q-6) and
@@ -26,7 +30,7 @@ import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { animateStyle, type Motion, stopTransform } from '../motion/animate';
 import { reducedMotion } from '../motion/reduced-motion';
 import { duration, EASE } from '../motion/tokens';
-import { centredRoom, snapToWholePixels } from '../ui/whole-pixels';
+import { snapToWholePixels } from '../ui/whole-pixels';
 import { InkStrip, type StripKind } from './InkStrip';
 import { paletteEscape } from './MarkupPalette';
 import { SignatureChips } from './SignGroup';
@@ -80,13 +84,35 @@ export function StripPiece({
     return () => observer.disconnect();
   }, [present]);
 
-  // The content's width rounds so the piece, centred over the capsule, rests on whole pixels.
+  // The content's width rounds so the piece, held by its leading edge, rests on whole pixels.
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner) return undefined;
-    return snapToWholePixels(inner, 'width', {
-      container: () => centredRoom(inner, '[data-strip-piece]'),
-    });
+    return snapToWholePixels(inner, 'width');
+  }, [present]);
+
+  // The piece rests at the capsule's leading edge (system-audit-2026-10 §3.7), on a whole pixel
+  // and inside the band less --piece-inset each side; it follows the capsule as it morphs.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const dock = el?.parentElement;
+    const capsule = dock?.querySelector<HTMLElement>('[data-capsule]');
+    if (!el || !dock || !capsule) return undefined;
+    const place = () => {
+      const room = dock.getBoundingClientRect();
+      const at = capsule.getBoundingClientRect().left - room.left;
+      const inset = Number.parseFloat(getComputedStyle(el).getPropertyValue('--piece-inset')) || 0;
+      const start = `${Math.round(Math.max(inset, Math.min(at, room.width - inset - el.offsetWidth)))}px`;
+      if (el.style.getPropertyValue('--strip-start') !== start) {
+        el.style.setProperty('--strip-start', start);
+      }
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(capsule);
+    observer.observe(dock);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [present]);
 
   useLayoutEffect(() => {

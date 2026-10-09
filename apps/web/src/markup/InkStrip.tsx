@@ -3,28 +3,30 @@
  * tool's colour and size, one press away from the moment it arms.
  *
  * ```
- * ◉  ● ● ●  │  ╺━━━━━━━●━━━━━━━━━━╸  1.5 pt
+ * ◉  ● ● ● ●  │  ━━━━━━━━◯━━━━━━━━━━  1.5 pt
  * ```
+ *
+ * One layout and one width for every tool (system-audit-2026-10 §3.7): the colour slot, a
+ * hairline, the width slot (`InkStrip.module.css`), so nothing moves between tools.
  *
  * - **◉ the colour well** (`ui/colour/ColourPicker`): the armed tool's colour inside the conic
  *   hue ring, which opens the colour panel (Grid · Spectrum · Sliders, eyedropper, saved
  *   colours) above it. It is named by the colour ("Colour: Blue").
- * - **Recent colours** (`ink-recents.ts`; owner answer to G8, 2026-10-09): up to four colours
- *   this pen (or tool) had before, newest first, never its current one. There is no fixed
- *   swatch row: it repeated the dock's pens ("repeat?"), and the pens stay the dock's, as in
- *   Apple Notes. Before a pen has changed colour the row is empty. A text box, a note and the
- *   shapes have no pens in the dock, so their own palette fills the row after their recents.
- * - **The width slider** (`ui/Slider`, §3): the pen's detents evenly spaced (log between them),
- *   the tapered track, and the stroke inside the knob, in its ink, at the page's zoom; the
- *   readout in tabular numerals ("1.5 pt", TR "1,5 pt").
+ * - **Four colours** (`ink-recents.ts`, `stripColours`): the colours this pen (or tool) had
+ *   before, newest first, then its palette to fill the row; never its current colour and never
+ *   one of the dock's pens, which the pens already show (owner feedback G8, "repeat?").
+ * - **The width slider** (`ui/Slider`, §3): the pen's detents evenly spaced (log between them)
+ *   on the plain track, the lens knob with a neutral dot (§3.7); the readout in tabular
+ *   numerals ("1.5 pt", TR "1,5 pt").
  * - **Per tool** (§2.1): the Highlighter its colour and 6–18 pt; the eraser Whole stroke ·
- *   Partial and its size; a text box its colour and a font-size stepper; a note its colour;
- *   shapes their stroke colour and width. Tools without options have no strip (`hasInkStrip`).
+ *   Partial in the colour slot and its size; a text box its colour and its font size, a slider
+ *   over the type scale; a note its colour alone; shapes their stroke colour and width. Tools
+ *   without options have no strip (`stripKind`).
  *
  * Every change goes through `applyStyle` (experience-redesign §6.3): with a selection it edits
  * the selection (one history step per control), else the armed tool's style, which for a pen
  * is its armed preset (persisted per device). Opacity is not here: it lives in the colour panel
- * and the preset editor, and the knob shows it.
+ * and the preset editor.
  *
  * The strip is content, not glass (Q-4): it sits in its own small glass piece floating above
  * the palette (`StripPiece.tsx`, owner feedback F3). No label text shows inside it; accessible
@@ -41,9 +43,8 @@ import { useAnnotationStore } from '../annotations/annotation-store';
 import { normalizeHex } from '../annotations/colors';
 import { toolStyleGroup } from '../annotations/drafts';
 import {
-  editorSwatches,
+  HIGHLIGHTER_GREY,
   HIGHLIGHTER_SWATCHES,
-  inkFill,
   isHighlighter,
   PEN_SWATCHES,
   type PenPreset,
@@ -56,23 +57,15 @@ import { FONT_SIZES, strokeWidthText } from '../annotations/StyleControls';
 import { toolDefinition } from '../annotations/tools';
 import { formatNumber, m } from '../i18n';
 import { useApplyDialogStore } from '../redaction/apply-store';
-import { useUiStore } from '../state/ui-store';
 import { Button } from '../ui/Button';
 import { ColourPicker } from '../ui/colour/ColourPicker';
 import { Icon } from '../ui/Icon';
-import { IconButton } from '../ui/IconButton';
 import { Segmented } from '../ui/Segmented';
 import { Slider } from '../ui/Slider';
 import { Swatch } from '../ui/Swatch';
 import { SwatchGroup } from '../ui/SwatchGroup';
 import { ERASER_SIZES, type EraserSize, type ToolMode, useToolStore } from '../viewer/tool-store';
-import {
-  INK_RECENT_SHOWN,
-  type InkRecentKey,
-  noteInkLeft,
-  shownRecents,
-  useInkRecents,
-} from './ink-recents';
+import { type InkRecentKey, noteInkLeft, stripColours, useInkRecents } from './ink-recents';
 import { useRovingTabindex } from './roving';
 import styles from './InkStrip.module.css';
 
@@ -145,31 +138,37 @@ function Divider() {
   return <span className={styles.divider} aria-hidden="true" />;
 }
 
+/** The colours that fill a tool's row after its recents: the tints, or the inks. */
+const TINT_FILL = [...HIGHLIGHTER_SWATCHES.map((s) => s.color), HIGHLIGHTER_GREY];
+const INK_FILL = PEN_SWATCHES.map((s) => s.color);
+
 /**
- * The colour (§2.1; owner answer to G8): the well with the tool's current colour, which opens
- * the colour panel, then up to four colours this tool had before (`ink-recents.ts`), newest
- * first. No fixed swatches: the pens' colours are the dock's (`PenWell`), and the full
- * palette is one press away in the panel. Every pick goes through `applyStyle`, so the armed
- * pen's dot in the dock follows the panel live; the colour the tool leaves becomes its first
- * recent once the panel commits (a 600 ms pause or its close) or a recent is picked.
+ * The colour slot (§2.1; system-audit-2026-10 §3.7): the well with the tool's current colour,
+ * which opens the colour panel, then four colours (`stripColours`): this tool's recents, newest
+ * first, then its palette, never a colour the dock's pens already show (`PenWell`). Every pick
+ * goes through `applyStyle`, so the armed pen's dot in the dock follows the panel live; the
+ * colour the tool leaves becomes its first recent once the panel commits (a 600 ms pause or its
+ * close) or a recent is picked.
  */
 function Colours({
   recents: key,
   colour,
   opacity,
   preview,
-  suggested = [],
+  tints = false,
 }: {
   readonly recents: InkRecentKey;
   readonly colour: string;
   /** Undefined: no opacity in the panel (the Highlighter, text). */
   readonly opacity?: number | undefined;
   readonly preview?: { readonly width: number; readonly kind: 'pen' | 'highlighter' } | undefined;
-  /** Colours that fill the row after the recents (tools with no pens in the dock). */
-  readonly suggested?: readonly string[] | undefined;
+  /** Fill the row with the highlighter tints (the Highlighter, a note), not the inks. */
+  readonly tints?: boolean | undefined;
 }) {
   const hex = colour.toUpperCase();
-  const recents = fillRecents(shownRecents(useInkRecents(key), hex), suggested, hex);
+  const presets = useAnnotationStore((s) => s.pen.presets);
+  const dock = presets.filter((p) => !isHighlighter(p)).map((p) => p.color);
+  const recents = stripColours(useInkRecents(key), hex, tints ? TINT_FILL : INK_FILL, dock);
   // The colour the panel's changes started from, until they commit.
   const base = useRef<string | null>(null);
   return (
@@ -207,71 +206,50 @@ function Colours({
   );
 }
 
-/**
- * The row for a tool whose colours are not the dock's (text box, note, shapes): its recents,
- * then its own palette (`editorSwatches`) up to the same four, so the strip never stands as a
- * lone well and a first colour is still one press. The pens and the Highlighter get no such
- * fill: their colours are the dock's pens (G8, "repeat?").
- */
-function fillRecents(
-  recents: readonly string[],
-  suggested: readonly string[],
-  current: string,
-): readonly string[] {
-  const out = [...recents];
-  for (const colour of suggested) {
-    if (out.length >= INK_RECENT_SHOWN) break;
-    const hex = colour.toUpperCase();
-    if (hex !== current && !out.includes(hex)) out.push(hex);
-  }
-  return out;
-}
-
 /** A palette colour's own name ("Blue"), else none (the Swatch names it by its nearest). */
 function paletteSwatchName(hex: string): string | undefined {
   return [...PEN_SWATCHES, ...HIGHLIGHTER_SWATCHES].find((s) => s.color === hex)?.name();
 }
 
 /**
- * The width slider (§3.3): the stops scale (the detents evenly spaced, log between them), the
- * taper track and the stroke inside its knob.
+ * The width slot's slider (§3.3; system-audit-2026-10 §3.7): the stops scale (the detents
+ * evenly spaced, log between them) on the plain track, the lens knob with its neutral dot.
  */
 function Width({
   value,
   min,
   max,
   detents,
-  ink,
   format,
+  label = m.pen_editor_width(),
+  valueText = (width) =>
+    m.slider_value_points({ value: formatNumber(width, { maximumFractionDigits: 2 }) }),
+  onValueChange = (strokeWidth) => useAnnotationStore.getState().applyStyle({ strokeWidth }),
 }: {
   readonly value: number;
   readonly min: number;
   readonly max: number;
   readonly detents: readonly number[];
-  readonly ink: string;
   readonly format: (width: number) => string;
+  readonly label?: string | undefined;
+  readonly valueText?: ((value: number) => string) | undefined;
+  readonly onValueChange?: ((value: number) => void) | undefined;
 }) {
-  const zoom = useUiStore((s) => s.zoom);
   return (
     <Slider
       className={styles.width}
-      label={m.pen_editor_width()}
+      label={label}
       readout
       bubble="never"
       scale="stops"
-      track="taper"
       detents={detents}
       min={min}
       max={max}
       step={0.25}
       value={value}
-      knobColor={ink}
-      zoom={zoom}
       format={format}
-      valueText={(width) =>
-        m.slider_value_points({ value: formatNumber(width, { maximumFractionDigits: 2 }) })
-      }
-      onValueChange={(strokeWidth) => useAnnotationStore.getState().applyStyle({ strokeWidth })}
+      valueText={valueText}
+      onValueChange={onValueChange}
     />
   );
 }
@@ -289,6 +267,7 @@ function PenStrip() {
         colour={preset.color}
         opacity={highlighter ? undefined : preset.opacity}
         preview={{ width: preset.width, kind: highlighter ? 'highlighter' : 'pen' }}
+        tints={highlighter}
       />
       <Divider />
       <Width
@@ -296,27 +275,31 @@ function PenStrip() {
         min={limits.min}
         max={limits.max}
         detents={presetWidthStops(preset)}
-        ink={inkFill(preset.color, preset.opacity)}
         format={widthText}
       />
     </>
   );
 }
 
+/** The type scale's nearest size to a slider value (the sizes are its detents). */
+function nearestFontSize(value: number): number {
+  return FONT_SIZES.reduce<number>(
+    (best, size) =>
+      Math.abs(Math.log(size / value)) < Math.abs(Math.log(best / value)) ? size : best,
+    FONT_SIZES[0],
+  );
+}
+
 /** The shapes' stroke, a text box's colour and size, a note's colour (§2.1). */
 function StyleStrip({ kind }: { readonly kind: 'text' | 'note' | 'shape' }) {
   const style = useAnnotationStore((s) => s.styles[kind]);
-  const like: PenPreset =
-    kind === 'note'
-      ? { color: style.color, width: 12, opacity: 1, kind: 'highlighter' }
-      : { color: style.color, width: style.strokeWidth, opacity: style.opacity };
   return (
     <>
       <Colours
         recents={kind}
         colour={style.color}
         opacity={kind === 'shape' ? style.opacity : undefined}
-        suggested={editorSwatches(like).map((swatch) => swatch.color)}
+        tints={kind === 'note'}
       />
       {kind === 'shape' ? (
         <>
@@ -326,7 +309,6 @@ function StyleStrip({ kind }: { readonly kind: 'text' | 'note' | 'shape' }) {
             min={0.5}
             max={12}
             detents={WIDTH_STOPS}
-            ink={inkFill(style.color, style.opacity)}
             format={strokeWidthText}
           />
         </>
@@ -334,44 +316,22 @@ function StyleStrip({ kind }: { readonly kind: 'text' | 'note' | 'shape' }) {
       {kind === 'text' ? (
         <>
           <Divider />
-          <FontSizeStepper size={style.fontSize} />
+          {/* The size on the width slot's slider, its detents the type scale (8–72 pt). */}
+          <Width
+            value={style.fontSize}
+            min={FONT_SIZES[0]}
+            max={FONT_SIZES[FONT_SIZES.length - 1] ?? 72}
+            detents={FONT_SIZES}
+            label={m.annot_font_size()}
+            format={(size) => m.annot_points({ value: formatNumber(size) })}
+            valueText={(size) => m.slider_value_points({ value: formatNumber(size) })}
+            onValueChange={(size) =>
+              useAnnotationStore.getState().applyStyle({ fontSize: nearestFontSize(size) })
+            }
+          />
         </>
       ) : null}
     </>
-  );
-}
-
-/** A text box's size (§2.1): − 12 pt +, through the type scale of `FONT_SIZES`. */
-function FontSizeStepper({ size }: { readonly size: number }) {
-  const set = (fontSize: number) => useAnnotationStore.getState().applyStyle({ fontSize });
-  const smaller = [...FONT_SIZES].reverse().find((s) => s < size);
-  const larger = FONT_SIZES.find((s) => s > size);
-  return (
-    <span role="group" aria-label={m.annot_font_size()} className={styles.stepper}>
-      <IconButton
-        size="bar"
-        tooltipSide="top"
-        label={m.markup_font_smaller()}
-        icon={<Icon name="minus" />}
-        aria-disabled={smaller === undefined ? 'true' : undefined}
-        onClick={() => {
-          if (smaller !== undefined) set(smaller);
-        }}
-      />
-      <span className={styles.readout} aria-live="polite">
-        {m.annot_points({ value: formatNumber(size) })}
-      </span>
-      <IconButton
-        size="bar"
-        tooltipSide="top"
-        label={m.markup_font_larger()}
-        icon={<Icon name="plus" />}
-        aria-disabled={larger === undefined ? 'true' : undefined}
-        onClick={() => {
-          if (larger !== undefined) set(larger);
-        }}
-      />
-    </span>
   );
 }
 
@@ -387,14 +347,18 @@ function nearestEraserSize(value: number): EraserSize {
   );
 }
 
-/** The eraser (§2.1): Whole stroke · Partial, and its size on screen (6–48 px). */
+/**
+ * The eraser (§2.1): Whole stroke · Partial in the colour slot, and its size on screen (6–48 px)
+ * in the width slot, so its slider sits where every tool's does.
+ */
 function EraserStrip() {
   const eraserMode = useToolStore((s) => s.eraserMode);
   const eraserSize = useToolStore((s) => s.eraserSize);
   return (
     <>
       <Segmented
-        className={styles.eraserModes}
+        frameClassName={styles.slotted}
+        className={styles.slottedControl}
         label={m.eraser_mode_label()}
         value={eraserMode}
         onValueChange={(mode) => useToolStore.getState().setEraserMode(mode)}
