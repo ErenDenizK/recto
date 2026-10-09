@@ -166,8 +166,8 @@ describe('Markup palette', () => {
         .getAllByRole('button')
         .filter((b) => b.tabIndex === 0),
     ).toHaveLength(1);
-    // One bar of 44 px, its controls 32 px on one centre line (Q-9).
-    expect(palette().getBoundingClientRect().height).toBeCloseTo(42, 0);
+    // One piece of 40 px (G1), its controls 32 px on one centre line (Q-9).
+    expect(palette().getBoundingClientRect().height).toBeCloseTo(38, 0);
     const centres = new Set(
       within(palette())
         .getAllByRole('button')

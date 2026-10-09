@@ -1,27 +1,28 @@
 /*
- * The page pill (01-frame F11 §2–§4): an M1 chip, 36 px fine / 44 coarse, at the dock band's
- * trailing end, 16 px inside the free rectangle, centred on the dock (--bar-h). Text 13/18 at 500
- * (15/20 coarse), tabular. M1 glass (`mat mat-chip s7 c8`; coverage registry `page-pill`), with
+ * The page pill (01-frame F11 §2–§4): an M1 chip one piece high (--piece-h, 40 px fine / 48
+ * coarse, G1), at the dock band's trailing end, --piece-inset inside the free rectangle, on the
+ * dock's line. Text in the piece's label type at 500, tabular. M1 glass (`mat mat-chip s7 c8`;
+ * coverage registry `page-pill`), with
  * the backdrop lens on Chromium (`styles/material-lens.ts`). It rises 8 px above a bar that
  * would come within 12 px (`data-raised`) and steps away with the dock in Focus.
  */
 .pill {
   composes: mat mat-chip s7 c8 from global;
-  --pill-h: 36px;
+  --pill-h: var(--piece-h);
   --rise: 0px;
-  --pill-pad: 14px;
+  --pill-pad: var(--space-4);
   position: absolute;
-  right: var(--space-4);
+  right: var(--piece-inset);
   bottom: calc(var(--band-offset, 16px) + (var(--bar-h) - var(--pill-h)) / 2);
   box-sizing: border-box;
   min-width: var(--pill-min, auto);
   height: var(--pill-h);
   padding: 0 var(--pill-pad);
-  border-radius: var(--radius-pill);
+  border-radius: var(--piece-radius);
   color: var(--text-primary);
-  font-size: var(--control-text);
+  font-size: var(--piece-label);
   font-weight: 500;
-  line-height: var(--control-lh);
+  line-height: var(--piece-label-lh);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   pointer-events: auto;
@@ -30,13 +31,6 @@
   transition:
     transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-fast) var(--ease-out);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .pill {
-    --pill-h: 44px;
-    --pill-pad: 16px;
-  }
 }
 
 /* The states' washes over the glass tint (09-primitives §2.3), as a layer of its own so the

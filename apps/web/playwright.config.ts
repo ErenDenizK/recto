@@ -133,7 +133,7 @@ export default defineConfig({
         MOTION_SPEC,
         // `?sample` opens the teaching sample on the tablet too (spec D4-2).
         '**/sample.spec.ts',
-        // The capsule's morph on rendered pixels at the coarse 56 px size (spec D2-2, Q-6).
+        // The capsule's morph on rendered pixels at the coarse 48 px size (spec D2-2, Q-6, G1).
         '**/capsule.spec.ts',
         // The sidebar laid over the page, S13's touch drags and the section's own Find field
         // (spec D2-4).

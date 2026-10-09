@@ -1,25 +1,26 @@
 /*
  * The Pages grid's floating pieces (GridPieces.tsx; 06-navigation PG2 §2–§3; owner feedback
  * 2026-10-08, F1; quality-bar Q-8, Q-9). Each rests in the dock band's slot at a bottom corner,
- * 16 px inside the free rectangle (the page pill's place in the reader, PagePill.module.css),
- * on the capsule's line: --bar-h high (44 fine, 56 coarse) around --bar-button controls, the
- * capsule's padding and pill radius, so the bottom row reads as one family.
+ * --piece-inset inside the free rectangle (the page pill's place in the reader,
+ * PagePill.module.css), on the capsule's line: one piece high (--piece-h, 40 fine, 48 coarse;
+ * G1) around --bar-button controls, the piece's padding and radius, so the bottom row reads as
+ * one family and mirrors the top strip.
  *
- * M2 glass (`mat mat-bar s8 c10`, coverage registry `grid-piece`): σ 8 so a folded piece, a
- * 44 px circle, still meets the coverage rule; 10 at 56 px on a coarse pointer.
+ * M2 glass (`mat mat-bar s7 c8`, coverage registry `grid-piece`): σ 7 so a folded piece, a
+ * 40 px circle, still meets the coverage rule; 8 at 48 px on a coarse pointer.
  */
 .piece {
-  composes: mat mat-bar s8 c10 from global;
+  composes: mat mat-bar s7 c8 from global;
   --rise: 0px;
   position: absolute;
-  bottom: var(--band-offset, 16px);
-  left: var(--space-4);
+  bottom: var(--band-offset, var(--piece-inset));
+  left: var(--piece-inset);
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  height: var(--bar-h);
-  padding: 0 calc((var(--bar-h) - var(--bar-button) - 2px) / 2);
-  border-radius: var(--radius-capsule);
+  height: var(--piece-h);
+  padding: 0 var(--piece-pad);
+  border-radius: var(--piece-radius);
   pointer-events: auto;
   /* The rise moves it by transform only (Q-7), whole pixels at rest (Q-2). */
   transform: translateY(calc(-1 * var(--rise)));
@@ -27,14 +28,14 @@
 }
 
 .trail {
-  right: var(--space-4);
+  right: var(--piece-inset);
   left: auto;
 }
 
 /* Folded: a circle of the bar's height around the one control. */
 .piece[data-compact] {
   justify-content: center;
-  width: var(--bar-h);
+  width: var(--piece-h);
   padding: 0;
 }
 
