@@ -820,7 +820,8 @@ describe('tokens.css', () => {
 
     it('defines the rims and e0–e5 of language.md §2.4 and §6.3', () => {
       expect(resolve('--rim-edge')).toBe('0 0 0 1px rgb(0 0 0 / 0.5)');
-      expect(resolve('--rim-inner')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.12)');
+      // The inner light is a hairline specular edge (owner feedback 2026-10-09, G4): half a pixel.
+      expect(resolve('--rim-inner')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.12)');
       expect(wash('--rim-top').alpha).toBe(0.34);
       expect(wash('--rim-bottom').alpha).toBe(0.14);
       expect(resolve('--e0')).toBe('none');
@@ -873,11 +874,11 @@ describe('tokens.css', () => {
       expect(resolve('--rim-edge-strong')).toBe('0 0 0 1px rgb(0 0 0 / 0.6)');
       expect(wash('--rim-top-menu').alpha).toBe(0.3);
       expect(wash('--rim-bottom-menu').alpha).toBe(0.1);
-      expect(resolve('--rim-inner-menu')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.1)');
+      expect(resolve('--rim-inner-menu')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.1)');
       expect(wash('--rim-top-sheet').alpha).toBe(0.24);
       expect(wash('--rim-bottom-sheet').alpha).toBe(0.08);
-      expect(resolve('--rim-inner-sheet')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.08)');
-      expect(resolve('--rim-inner-docked')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.06)');
+      expect(resolve('--rim-inner-sheet')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.08)');
+      expect(resolve('--rim-inner-docked')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.06)');
       // The bar over a white page and over the canvas (e2e/glass-pixels.spec.ts samples them).
       expect(glassOver(WHITE)).toEqual(literal('#444548'));
       expect(glassOver(canvas())).toEqual(literal('#131418'));
@@ -1850,7 +1851,7 @@ describe('tokens.css', () => {
 
     it('draws white rims lit from above, an ink edge, and shadows in ink at 40 % (§2.4, §6.3)', () => {
       expect(value('--rim-edge')).toBe('0 0 0 1px rgb(15 17 22 / 0.12)');
-      expect(value('--rim-inner')).toBe('inset 0 1px 0 rgb(255 255 255 / 0.6)');
+      expect(value('--rim-inner')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.6)');
       expect(tint('--rim-top')).toEqual({ rgb: WHITE, alpha: 0.85 });
       expect(tint('--rim-bottom')).toEqual({ rgb: WHITE, alpha: 0.4 });
       expect(tint('--border-glass').rgb).toEqual(ink());

@@ -54,7 +54,7 @@ describe('the docked frame', () => {
     // No shadow and no edge on docked glass: the inner top light only (language.md §2.4).
     const layers = title.boxShadow.split(/,(?![^(]*\))/).map((layer) => layer.trim());
     expect(layers.filter((layer) => !layer.startsWith('rgba(0, 0, 0, 0)'))).toEqual([
-      'rgba(255, 255, 255, 0.06) 0px 1px 0px 0px inset',
+      'rgba(255, 255, 255, 0.06) 0px 0.5px 0px 0px inset',
     ]);
     // Text is on the glass ladder at once, so nothing jumps when a page passes.
     expect(title.getPropertyValue('--text-secondary').trim()).toBe('#bbbec3');
@@ -76,7 +76,7 @@ describe('the docked frame', () => {
     expect(['', 'none']).toContain(blurOf(solid));
     expect(solid.backgroundColor).toBe(SURFACE_1);
     // Solid keeps the rim (language.md §2.8): the inner light stays.
-    expect(solid.boxShadow).toMatch(/rgba\(255, 255, 255, 0\.06\) 0px 1px 0px 0px inset/);
+    expect(solid.boxShadow).toMatch(/rgba\(255, 255, 255, 0\.06\) 0px 0\.5px 0px 0px inset/);
     // The normal text ladder comes back on an opaque surface.
     expect(solid.getPropertyValue('--text-secondary').trim()).not.toBe('#bbbec3');
   });
