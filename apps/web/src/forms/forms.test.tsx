@@ -18,6 +18,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import formsAUrl from '../../../../test/fixtures/forms-a.pdf?url';
+import sigPlaceholderUrl from '../../../../test/fixtures/sig-placeholder.pdf?url';
+import signedEmptyFieldUrl from '../../../../test/fixtures/signed-empty-field.pdf?url';
 import xfaUrl from '../../../../test/fixtures/xfa-stub.pdf?url';
 import { enterEditMode, fixtureFile } from '../../test/store-harness';
 import { resetAnnotationStore } from '../annotations/annotation-store';
@@ -325,6 +327,34 @@ describe('Forms panel', () => {
       await screen.findByText('This form uses XFA, which no browser engine can edit'),
     ).toBeVisible();
     expect(screen.queryByText('No form fields')).toBeNull();
+  });
+});
+
+describe('signature fields after re-open (M4-d)', () => {
+  function fieldRow(name: string): HTMLElement {
+    const row = document.querySelector<HTMLElement>(`[data-field-row="${name}"]`);
+    if (!row) throw new Error(`no row for ${name}`);
+    return row;
+  }
+
+  it('an unsigned /Sig placeholder reads "Not signed" and the file is not a signed one', async () => {
+    const { source } = await openFile(await fixtureFile(sigPlaceholderUrl, 'sig-placeholder.pdf'));
+    expect(model().workspace.sources[source]?.flags.hasSignatures).toBe(false);
+    render(<FormsPanel />);
+    await screen.findByRole('region', { name: 'Page 1' });
+    expect(within(fieldRow('Signature')).getByText('Not signed')).toBeVisible();
+    expect(screen.queryByText('Signed')).toBeNull();
+  });
+
+  it('beside a signed field, only the signed one reads "Signed"', async () => {
+    const { source } = await openFile(
+      await fixtureFile(signedEmptyFieldUrl, 'signed-empty-field.pdf'),
+    );
+    expect(model().workspace.sources[source]?.flags.hasSignatures).toBe(true);
+    render(<FormsPanel />);
+    await screen.findByRole('region', { name: 'Page 1' });
+    expect(within(fieldRow('Reviewer')).getByText('Not signed')).toBeVisible();
+    expect(within(fieldRow('Approval')).getByText('Signed')).toBeVisible();
   });
 });
 
