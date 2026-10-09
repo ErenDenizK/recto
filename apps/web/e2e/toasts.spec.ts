@@ -70,7 +70,7 @@ test('a damaged file shows a visible failure toast until it is dismissed (INV-6)
   await expect(toast).toHaveCount(0);
 });
 
-test('on the Library the stack keeps 12 px above the selection bar, never over it (FB4 §2)', async ({
+test('on the Library the stack keeps 8 px (--space-2) above the selection bar, never over it (FB4 §2)', async ({
   page,
 }) => {
   await page.goto('./?lang=en');
@@ -97,7 +97,7 @@ test('on the Library the stack keeps 12 px above the selection bar, never over i
   const toastBox = await toast.boundingBox();
   const barBox = await bar.boundingBox();
   if (!toastBox || !barBox) throw new Error('not laid out');
-  expect(barBox.y - (toastBox.y + toastBox.height)).toBeCloseTo(12, 0);
+  expect(barBox.y - (toastBox.y + toastBox.height)).toBeCloseTo(8, 0);
 });
 
 test('"Deleted page 2 · Undo" holds while hovered, F6 reaches it, and Undo brings the page back', async ({
