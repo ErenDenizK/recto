@@ -35,6 +35,7 @@ import { NumberField } from '../ui/NumberField';
 import { RadioGroup, type RadioOption } from '../ui/RadioGroup';
 import { Segmented } from '../ui/Segmented';
 import { Select } from '../ui/Select';
+import { SheetGroup, SheetRow, SheetRowButton } from '../ui/sheet';
 import { TextField } from '../ui/TextField';
 import {
   type CustomSize,
@@ -53,10 +54,11 @@ import styles from './SaveCopySheet.module.css';
 type Patch = (patch: Partial<SaveCopyDraft>) => void;
 
 /**
- * A label · control row (§4.2). The label is the control's visible name, not a `<label>`; it
- * sits in the form's one label column (`.form` in the module), so it never breaks in a word.
+ * A group whose one row is its control (§4.2 on system-audit-2026-10 §3.6.1): the section
+ * label names it, the control takes the whole row (Format, Size, Name). The control carries
+ * its own accessible name, so the label is not read twice.
  */
-export function Row({
+export function Group({
   label,
   children,
   testId,
@@ -66,51 +68,21 @@ export function Row({
   readonly testId?: string;
 }) {
   return (
-    <div className={styles.row} data-testid={testId}>
-      <span className={styles.rowLabel} aria-hidden="true" data-row-label="">
-        {label}
-      </span>
-      <div className={styles.rowBody}>{children}</div>
-    </div>
+    <SheetGroup label={<span aria-hidden="true">{label}</span>} data-testid={testId}>
+      <SheetRow full>{children}</SheetRow>
+    </SheetGroup>
   );
 }
 
-/** Every row and disclosure label of the form, in every format. */
-const ROW_LABELS = [
-  m.save_copy_format,
-  m.save_copy_size,
-  m.save_copy_security,
-  m.save_copy_metadata,
-  m.save_copy_flatten,
-  m.save_copy_signature,
-  m.save_copy_name,
-  m.save_copy_images_type,
-  m.images_resolution,
-  m.images_quality,
-  m.images_background,
-  m.images_pages,
-  m.images_names,
-  m.save_copy_text_kind,
-  m.save_copy_text_options,
-];
-
 /**
- * The label column's measure: every label of every format, unseen, in the form's first
- * column, so the column is as wide as the longest of them whatever shows. A format change
- * then cross-fades its rows in place; the controls do not move sideways (Q-7).
+ * A title · control row in a group (§3.6.1): the title leading (visible only; the control
+ * names itself), the control trailing at one width, so the controls of a group line up.
  */
-export function LabelColumn() {
+function ControlRow({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
-    <div className={styles.labelColumn} aria-hidden="true">
-      {ROW_LABELS.map((label, index) => (
-        // Labels repeat across formats (Images' and Text's "Type"): the list is fixed, so
-        // its index is a stable key.
-        // biome-ignore lint/suspicious/noArrayIndexKey: see above
-        <span key={index} className={styles.rowLabel}>
-          {label()}
-        </span>
-      ))}
-    </div>
+    <SheetRow title={<span aria-hidden="true">{title}</span>}>
+      <div className={styles.control}>{children}</div>
+    </SheetRow>
   );
 }
 
@@ -196,79 +168,81 @@ export function SizeSection({
   const setCustom = (next: Partial<CustomSize>) =>
     patch({ size: 'custom', custom: { ...draft.custom, ...next } });
   return (
-    <Row label={m.save_copy_size()} testId="save-copy-size">
-      <div ref={groupRef} aria-busy={analysis?.state === 'working' || undefined}>
-        <RadioGroup<SizeChoice>
-          label={m.save_copy_size()}
-          value={draft.size}
-          onValueChange={(size) => patch({ size })}
-          options={[
-            option('same', m.save_copy_size_same()),
-            option('smaller', m.save_copy_size_smaller()),
-            option('smallest', m.save_copy_size_smallest()),
-            option('custom', m.save_copy_size_custom()),
-          ]}
-        />
-      </div>
-      {draft.size === 'custom' ? (
-        <>
-          <div className={styles.pair}>
-            <NumberField
-              label={m.compress_custom_dpi()}
-              showLabel
-              min={36}
-              max={1200}
-              value={draft.custom.dpi}
-              disabled={!draft.custom.images}
-              onValueChange={(dpi) => {
-                if (dpi !== null) setCustom({ dpi });
-              }}
-            />
-            <NumberField
-              label={m.compress_custom_quality()}
-              showLabel
-              min={1}
-              max={100}
-              value={draft.custom.quality}
-              disabled={!draft.custom.images}
-              onValueChange={(quality) => {
-                if (quality !== null) setCustom({ quality });
-              }}
-            />
-          </div>
-          <Checkbox
-            label={m.compress_images_toggle()}
-            description={m.compress_images_hint()}
-            checked={draft.custom.images}
-            onCheckedChange={(images) => setCustom({ images })}
+    <SheetGroup
+      label={<span aria-hidden="true">{m.save_copy_size()}</span>}
+      data-testid="save-copy-size"
+    >
+      <SheetRow full>
+        <div ref={groupRef} aria-busy={analysis?.state === 'working' || undefined}>
+          <RadioGroup<SizeChoice>
+            label={m.save_copy_size()}
+            value={draft.size}
+            onValueChange={(size) => patch({ size })}
+            options={[
+              option('same', m.save_copy_size_same()),
+              option('smaller', m.save_copy_size_smaller()),
+              option('smallest', m.save_copy_size_smallest()),
+              option('custom', m.save_copy_size_custom()),
+            ]}
           />
-          <Checkbox
-            label={m.compress_flatten_alpha()}
-            checked={draft.custom.flattenAlpha}
-            disabled={!draft.custom.images}
-            onCheckedChange={(flattenAlpha) => setCustom({ flattenAlpha })}
-          />
-        </>
-      ) : null}
-      <div className={styles.links}>
+        </div>
         {draft.size === 'custom' ? (
-          <Button variant="quiet" onClick={() => setCustom({ ...PRINT_SIZE, images: true })}>
-            {m.save_copy_print()}
-          </Button>
+          <>
+            <div className={styles.pair}>
+              <NumberField
+                label={m.compress_custom_dpi()}
+                showLabel
+                min={36}
+                max={1200}
+                value={draft.custom.dpi}
+                disabled={!draft.custom.images}
+                onValueChange={(dpi) => {
+                  if (dpi !== null) setCustom({ dpi });
+                }}
+              />
+              <NumberField
+                label={m.compress_custom_quality()}
+                showLabel
+                min={1}
+                max={100}
+                value={draft.custom.quality}
+                disabled={!draft.custom.images}
+                onValueChange={(quality) => {
+                  if (quality !== null) setCustom({ quality });
+                }}
+              />
+            </div>
+            <Checkbox
+              label={m.compress_images_toggle()}
+              description={m.compress_images_hint()}
+              checked={draft.custom.images}
+              onCheckedChange={(images) => setCustom({ images })}
+            />
+            <Checkbox
+              label={m.compress_flatten_alpha()}
+              checked={draft.custom.flattenAlpha}
+              disabled={!draft.custom.images}
+              onCheckedChange={(flattenAlpha) => setCustom({ flattenAlpha })}
+            />
+          </>
         ) : null}
-        <Button
-          variant="quiet"
-          className={styles.push}
-          onClick={onWhatSmaller}
-          data-testid="save-copy-what-smaller"
-        >
-          {m.save_copy_what_smaller()}
-        </Button>
-      </div>
-      {analysis?.state === 'failed' ? (
-        <p className={styles.note}>{m.compress_failed({ reason: analysis.message })}</p>
-      ) : null}
-    </Row>
+        {draft.size === 'custom' ? (
+          <div className={styles.links}>
+            <Button variant="quiet" onClick={() => setCustom({ ...PRINT_SIZE, images: true })}>
+              {m.save_copy_print()}
+            </Button>
+          </div>
+        ) : null}
+        {analysis?.state === 'failed' ? (
+          <p className={styles.note}>{m.compress_failed({ reason: analysis.message })}</p>
+        ) : null}
+      </SheetRow>
+      <SheetRowButton
+        title={m.save_copy_what_smaller()}
+        onClick={onWhatSmaller}
+        data-testid="save-copy-what-smaller"
+      />
+    </SheetGroup>
   );
 }
 
@@ -293,30 +267,22 @@ function Disclosure({
 }) {
   const panelId = useId();
   return (
-    <div className={styles.disclosure} data-disclosure={id}>
-      <button
-        type="button"
-        className={styles.disclosureButton}
+    <>
+      <SheetRowButton
+        title={label}
+        value={value}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         aria-label={`${label}, ${value}`}
-        data-focus="inset"
+        data-disclosure={id}
         onClick={() => onToggle(id)}
-      >
-        <span className={styles.disclosureLabel} data-row-label="">
-          {label}
-        </span>
-        <span className={styles.disclosureEnd}>
-          <span className={styles.disclosureValue}>{value}</span>
-          <Icon name="caret-right" className={styles.chevron} />
-        </span>
-      </button>
+      />
       {open ? (
-        <div id={panelId} className={styles.disclosurePanel}>
+        <SheetRow full id={panelId} className={styles.disclosurePanel}>
           {children}
-        </div>
+        </SheetRow>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -391,7 +357,7 @@ export function PdfDisclosures({
     : undefined;
 
   return (
-    <div className={styles.disclosures}>
+    <SheetGroup>
       <Disclosure
         id="security"
         label={m.save_copy_security()}
@@ -531,7 +497,7 @@ export function PdfDisclosures({
           </div>
         ) : null}
       </Disclosure>
-    </div>
+    </SheetGroup>
   );
 }
 
@@ -570,70 +536,73 @@ export function ImagesSection({
   const transparentAllowed = images.type !== 'jpeg';
   return (
     <div className={styles.section} data-testid="save-copy-images">
-      <Row label={m.save_copy_images_type()}>
-        <Segmented<RasterFormat>
-          label={m.save_copy_images_type()}
-          value={images.type}
-          onValueChange={(type) => onImages({ type })}
-          options={[
-            { value: 'png', label: 'PNG' },
-            { value: 'jpeg', label: 'JPEG' },
-            { value: 'webp', label: 'WebP' },
-          ]}
-        />
-      </Row>
-      <Row label={m.images_resolution()}>
-        <Segmented<ImagesChoice['resolution']>
-          label={m.images_resolution()}
-          value={images.resolution}
-          onValueChange={(resolution) => onImages({ resolution })}
-          options={[
-            { value: '72', label: '72' },
-            { value: '150', label: '150' },
-            { value: '300', label: '300' },
-            { value: 'custom', label: m.images_dpi_custom() },
-          ]}
-        />
-        {images.resolution === 'custom' ? (
-          <NumberField
-            label={m.images_custom_dpi()}
-            showLabel
-            min={MIN_RASTER_DPI}
-            max={MAX_RASTER_DPI}
-            value={images.customDpi}
-            onValueChange={(customDpi) => {
-              if (customDpi !== null) onImages({ customDpi });
-            }}
-          />
-        ) : null}
-      </Row>
-      {images.type !== 'png' ? (
-        <Row label={m.images_quality()}>
-          <NumberField
-            label={m.images_quality()}
-            min={1}
-            max={100}
-            value={images.quality}
-            onValueChange={(quality) => {
-              if (quality !== null) onImages({ quality: Math.min(100, Math.max(1, quality)) });
-            }}
-          />
-        </Row>
-      ) : null}
-      {transparentAllowed ? (
-        <Row label={m.images_background()}>
-          <Segmented<RasterBackground>
-            label={m.images_background()}
-            value={images.background}
-            onValueChange={(background) => onImages({ background })}
+      <SheetGroup>
+        <ControlRow title={m.save_copy_images_type()}>
+          <Segmented<RasterFormat>
+            label={m.save_copy_images_type()}
+            value={images.type}
+            onValueChange={(type) => onImages({ type })}
             options={[
-              { value: 'white', label: m.images_background_white() },
-              { value: 'transparent', label: m.images_background_transparent() },
+              { value: 'png', label: 'PNG' },
+              { value: 'jpeg', label: 'JPEG' },
+              { value: 'webp', label: 'WebP' },
             ]}
           />
-        </Row>
-      ) : null}
-      <Row label={m.images_pages()}>
+        </ControlRow>
+        <ControlRow title={m.images_resolution()}>
+          <Segmented<ImagesChoice['resolution']>
+            label={m.images_resolution()}
+            value={images.resolution}
+            onValueChange={(resolution) => onImages({ resolution })}
+            options={[
+              { value: '72', label: '72' },
+              { value: '150', label: '150' },
+              { value: '300', label: '300' },
+              { value: 'custom', label: m.images_dpi_custom() },
+            ]}
+          />
+        </ControlRow>
+        {images.resolution === 'custom' ? (
+          <ControlRow title={m.images_custom_dpi()}>
+            <NumberField
+              label={m.images_custom_dpi()}
+              min={MIN_RASTER_DPI}
+              max={MAX_RASTER_DPI}
+              value={images.customDpi}
+              onValueChange={(customDpi) => {
+                if (customDpi !== null) onImages({ customDpi });
+              }}
+            />
+          </ControlRow>
+        ) : null}
+        {images.type !== 'png' ? (
+          <ControlRow title={m.images_quality()}>
+            <NumberField
+              label={m.images_quality()}
+              min={1}
+              max={100}
+              value={images.quality}
+              onValueChange={(quality) => {
+                if (quality !== null) onImages({ quality: Math.min(100, Math.max(1, quality)) });
+              }}
+            />
+          </ControlRow>
+        ) : null}
+        {transparentAllowed ? (
+          <ControlRow title={m.images_background()}>
+            <Segmented<RasterBackground>
+              label={m.images_background()}
+              value={images.background}
+              onValueChange={(background) => onImages({ background })}
+              options={[
+                { value: 'white', label: m.images_background_white() },
+                { value: 'transparent', label: m.images_background_transparent() },
+              ]}
+            />
+          </ControlRow>
+        ) : null}
+      </SheetGroup>
+      <Group label={m.images_pages()}>
         <TextField
           label={m.images_pages()}
           hideLabel
@@ -653,8 +622,8 @@ export function ImagesSection({
             </Button>
           </div>
         ) : null}
-      </Row>
-      <div className={styles.disclosures}>
+      </Group>
+      <SheetGroup>
         <Disclosure
           id="names"
           label={m.images_names()}
@@ -675,7 +644,7 @@ export function ImagesSection({
             onValueChange={(template) => onImages({ template })}
           />
         </Disclosure>
-      </div>
+      </SheetGroup>
     </div>
   );
 }
@@ -719,18 +688,20 @@ export function TextSection({
   const toggle = (id: DisclosureId) => patch({ open: draft.open === id ? null : id });
   return (
     <div className={styles.section} data-testid="save-copy-text">
-      <Row label={m.save_copy_text_kind()}>
-        <Segmented<SaveCopyDraft['text']['format']>
-          label={m.save_copy_text_kind()}
-          value={choice.format}
-          onValueChange={(format) => update({ format })}
-          options={[
-            { value: 'markdown', label: m.convert_format_markdown() },
-            { value: 'text', label: m.convert_format_text() },
-          ]}
-        />
-      </Row>
-      <Row label={m.images_pages()}>
+      <SheetGroup>
+        <ControlRow title={m.save_copy_text_kind()}>
+          <Segmented<SaveCopyDraft['text']['format']>
+            label={m.save_copy_text_kind()}
+            value={choice.format}
+            onValueChange={(format) => update({ format })}
+            options={[
+              { value: 'markdown', label: m.convert_format_markdown() },
+              { value: 'text', label: m.convert_format_text() },
+            ]}
+          />
+        </ControlRow>
+      </SheetGroup>
+      <Group label={m.images_pages()}>
         <Segmented<SaveCopyDraft['text']['scope']>
           label={m.images_pages()}
           value={choice.scope}
@@ -755,7 +726,7 @@ export function TextSection({
             onValueChange={(range) => update({ range })}
           />
         ) : null}
-      </Row>
+      </Group>
       {without.length > 0 ? (
         <Notice tone="info" testId="save-copy-no-text">
           <span>{m.save_copy_no_text({ pages: without.map((p) => p + 1).join(', ') })}</span>
@@ -764,7 +735,7 @@ export function TextSection({
           </Button>
         </Notice>
       ) : null}
-      <div className={styles.disclosures}>
+      <SheetGroup>
         <Disclosure
           id="options"
           label={m.save_copy_text_options()}
@@ -799,16 +770,8 @@ export function TextSection({
             />
           ) : null}
         </Disclosure>
-      </div>
-      <div className={styles.rowBody}>
-        <div className={styles.previewHeader}>
-          <span className={styles.rowLabel}>{m.save_copy_preview()}</span>
-          {result ? (
-            <Button variant="quiet" onClick={() => onCopy(result.text)}>
-              {m.save_copy_copy_text()}
-            </Button>
-          ) : null}
-        </div>
+      </SheetGroup>
+      <Group label={m.save_copy_preview()}>
         <pre
           className={styles.preview}
           role="region"
@@ -830,6 +793,15 @@ export function TextSection({
           {result && lines.length > 40 ? `\n${m.convert_preview_more()}` : ''}
           {result?.text === '' ? m.convert_preview_empty() : ''}
         </pre>
+        {result ? (
+          <div className={styles.links}>
+            <Button variant="quiet" onClick={() => onCopy(result.text)}>
+              {m.save_copy_copy_text()}
+            </Button>
+          </div>
+        ) : null}
+      </Group>
+      <div className={styles.notes}>
         {result ? (
           <div data-testid="convert-notes">
             <p className={styles.note}>{m.convert_note_order()}</p>

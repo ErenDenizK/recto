@@ -13,6 +13,7 @@ import { useId, useState } from 'react';
 import { formatFileSize } from '../home/home-model';
 import { m, useLocale } from '../i18n';
 import { announce } from '../shell/announcer';
+import { Button } from '../ui/Button';
 import styles from './KeptOnDevice.module.css';
 import { clearKeptChanges } from './session';
 import { useSessionStore } from './session-store';
@@ -94,22 +95,16 @@ export function KeptOnDevice() {
             <div className={styles.confirm} role="group" aria-label={m.privacy_kept_confirm()}>
               <p className={styles.value}>{m.privacy_kept_confirm()}</p>
               <div className={styles.buttons}>
-                <button
-                  type="button"
-                  className={styles.button}
-                  data-tone="danger"
+                <Button
+                  variant="danger"
                   data-testid="privacy-kept-delete"
                   onClick={() => void clear()}
                 >
                   {m.privacy_kept_delete()}
-                </button>
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() => setConfirming(false)}
-                >
+                </Button>
+                <Button variant="standard" onClick={() => setConfirming(false)}>
                   {m.common_cancel()}
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -117,16 +112,14 @@ export function KeptOnDevice() {
               <span className={styles.total}>
                 {m.privacy_kept_total({ size: formatFileSize(totalBytes, locale) })}
               </span>
-              <button
-                type="button"
-                className={styles.button}
-                data-tone="danger"
+              <Button
+                variant="danger"
                 data-testid="privacy-kept-clear"
                 disabled={totalBytes === 0 && items.length === 0}
                 onClick={() => setConfirming(true)}
               >
                 {m.privacy_kept_clear()}
-              </button>
+              </Button>
             </div>
           )}
         </>

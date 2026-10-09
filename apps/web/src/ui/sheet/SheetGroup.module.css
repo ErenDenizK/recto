@@ -63,10 +63,72 @@
 }
 
 /* A full-width row: a field or a list that takes the whole row inside the group. */
+/* A full-width row: a field or a list that takes the whole row inside the group. An M control
+   in it lands on the row height like a trailing one (32 + 2 × 6 = 44; 44 + 12 = 56 coarse). */
 .row[data-full] {
   display: grid;
   align-items: stretch;
-  padding-block: var(--space-2);
+  gap: var(--space-2);
+}
+
+/*
+ * A row that is one press target (SheetRowButton on ui/RowButton): square, as the group clips
+ * its corners; the leading glyph, the text, the value and the caret on one line; the caret
+ * turns down while a disclosure is open.
+ */
+.row.rowButton {
+  gap: var(--space-3);
+  border-radius: 0;
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
+}
+
+.icon {
+  display: flex;
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.icon svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.rowButton .value {
+  flex: 0 1 auto;
+  max-width: 55%;
+}
+
+.caret {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.rowButton[aria-expanded='true'] .caret {
+  transform: rotate(90deg);
+}
+
+/* An open disclosure and its panel read as one row: no hairline between them. */
+.rowButton[aria-expanded='true'] + .row::before {
+  display: none;
+}
+
+.rowButton[aria-expanded='true'] + .row[data-full] {
+  padding-top: 0;
+  padding-bottom: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    transition: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .caret {
+  transition: none;
 }
 
 .text {

@@ -59,8 +59,9 @@ geometry lives once, in `apps/web/src/brand/mark.ts`; everything else is made fr
 | `public/favicon.ico` | The rounded tile at 16, 32, 48 | Browsers without SVG favicons |
 
 `pnpm --filter @pdf-editor/media-tool app-icons` (`tools/media/lib/app-icons.ts`) writes all of
-them. The in-app mark is `BrandMark` (`apps/web/src/brand/BrandMark.tsx`): the gradient on dark,
-`currentColor` on light (`tone="auto"`), or always one of them.
+them. The in-app mark is `BrandMark` (`apps/web/src/brand/BrandMark.tsx`): the gradient in both themes
+(`tone="auto"`; system-audit-2026-10 §3.9), the source's on dark and its light-ground twin on
+light, or always the dark gradient or one ink (`currentColor`).
 
 **Gradient.** Linear, from the bottom left to the top right at 46.75°: mint `#69EAA3` → lime
 `#CBFF5F` at 59 % → yellow lime `#EDFA6D`. In the 1024 frame it runs from (135.6, 912.1) to
@@ -68,8 +69,12 @@ them. The in-app mark is `BrandMark` (`apps/web/src/brand/BrandMark.tsx`): the g
 
 **Usage.**
 
-- The gradient needs a dark ground (n1 to n4, or a photo darker than about 20 % luminance). On a
-  light ground use the black mark; the gradient falls under 1.3:1 against white.
+- The gradient needs a dark ground (n1 to n4, or a photo darker than about 20 % luminance); it
+  falls under 1.3:1 against white. On a light ground use the **light-ground gradient**
+  (`MARK_GRADIENT_LIGHT` in `mark.ts`): the same ramp, angle and knee taken down in lightness,
+  mint `#178A6E` → lime `#4F8F12` at 59 % → yellow lime `#738A0C`, every stop at least 3.3:1 on
+  the light glass and 3.9:1 on white. The app draws it in the light theme; print and
+  one-colour reproduction still use the black mark.
 - Clear space: the source frame's margin, about 14 % of the mark's height on every side. Never
   smaller than 16 px; at 16 to 48 px use the tile (`favicon.ico`) or the glyph, never the mark on
   a busy ground.
@@ -321,7 +326,7 @@ Linux: PNG at 32, 128, 256, 512. Small sizes come from the pixel-fitted masters.
 | Place | What appears | Size |
 |---|---|---|
 | Browser tab | `glyph.svg` (gradient on dark tabs, near-black on light), `favicon.ico` | 16, 32 px |
-| Top strip | The mark as the ◆ Library button, `BrandMark` auto: gradient on dark, ink on light (`01-frame` F3) | 18 px |
+| Top strip | The mark as the ◆ Library button, `BrandMark` auto: the gradient on dark, the light-ground gradient on light (`01-frame` F3) | 18 px |
 | Library | The mark on the empty card (56 px) and, with documents, in the brand header beside the "Recto" wordmark (40 px), over the static aura in the mark's colours (BR-M6: decorative, unfocusable, still; `02-library` L2) | 40, 56 px |
 | Settings → About Recto row | The name and version as text, no mark (the About dialog is removed, `07-sheets` §25) | — |
 | Installed app | The app icon | OS sizes |

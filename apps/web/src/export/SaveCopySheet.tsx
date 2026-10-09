@@ -58,11 +58,10 @@ import {
 import { exportFileName } from './filename';
 import { CopyDetails, WhatGetsSmaller } from './SaveCopyPages';
 import {
+  Group,
   ImagesSection,
-  LabelColumn,
   Notice,
   PdfDisclosures,
-  Row,
   SizeSection,
   TextSection,
 } from './SaveCopySections';
@@ -483,7 +482,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       ) : null}
       {page === 'form' && doc ? (
         <div className={styles.form} data-testid="save-copy-form">
-          <Row label={m.save_copy_format()}>
+          <Group label={m.save_copy_format()}>
             <div ref={formatRef}>
               <Segmented<SaveCopyFormat>
                 label={m.save_copy_format()}
@@ -496,7 +495,7 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
                 ]}
               />
             </div>
-          </Row>
+          </Group>
           {draft.format === 'pdf' ? (
             <div className={styles.section} key="pdf" data-testid="save-copy-pdf">
               <SizeSection
@@ -574,7 +573,6 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
               />
             </>
           ) : null}
-          <LabelColumn />
         </div>
       ) : null}
       {/* Strip metadata and the certificate open nested in the sheet's modal stack; their
@@ -612,7 +610,7 @@ function NameField({
   const fallback = defaultName(draft, title, locale);
   const shown = draft.name ?? (zip ? `${stemOf(fallback)}.zip` : fallback);
   return (
-    <Row label={m.save_copy_name()}>
+    <Group label={m.save_copy_name()}>
       <TextField
         label={m.save_copy_name()}
         hideLabel
@@ -624,7 +622,7 @@ function NameField({
           if (draft.name !== null && draft.name.trim() === '') patch({ name: null });
         }}
       />
-    </Row>
+    </Group>
   );
 }
 

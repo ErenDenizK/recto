@@ -127,7 +127,7 @@ export function LibraryCard({
       onContextMenu={onContextMenu}
       onPointerDown={onPointerDown}
     >
-      {/* The ○: the check badge in the page's corner, in a 40 px (48 coarse) hit area that
+      {/* The ○: the check badge in the page's corner, an S control whose hit area (32, 44 coarse)
           reaches the corner; the option carries the state, and Space is its key (the grid's). */}
       <div className={styles.thumbBox} style={{ height: thumb.height }}>
         {card.firstPage ? (

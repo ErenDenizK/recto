@@ -1,6 +1,7 @@
 /*
- * The mark (BrandMark.tsx): `auto` drops the gradient for the control's ink in the light theme,
- * where mint and lime on n1 fall under 1.3:1. Forced colours draw it in the text colour.
+ * The mark (BrandMark.tsx): `auto` swaps the source's gradient for its deepened twin in the
+ * light theme (--mark-light, set on the mark), where the source's mint and lime fall under
+ * 1.3:1 (system-audit-2026-10 §3.9). Forced colours draw it in the text colour.
  */
 .mark {
   display: block;
@@ -8,12 +9,12 @@
 }
 
 :global([data-theme='light']) .mark[data-tone='auto'] .fill {
-  fill: currentColor;
+  fill: var(--mark-light);
 }
 
 @media (prefers-color-scheme: light) {
   :global(:root:not([data-theme])) .mark[data-tone='auto'] .fill {
-    fill: currentColor;
+    fill: var(--mark-light);
   }
 }
 

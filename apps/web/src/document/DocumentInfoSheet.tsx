@@ -14,6 +14,8 @@
  *   lime: ✕, Esc or the scrim close it.
  * - **Locked:** the lock banner with Unlock (the title menu's switch); the metadata stays
  *   readable and its edits are refused by the guard at `commit()`.
+ * - **Layout:** the one sheet grammar (system-audit-2026-10 §3.6.1, I-16): File, Metadata,
+ *   Custom keys and Password are SheetGroups of SheetRows, as in Settings and Save a copy.
  */
 import type { VirtualDocument } from '@pdf-editor/document-model';
 import { type RefObject, useRef } from 'react';
@@ -81,18 +83,9 @@ function InfoSheet({ doc, open }: { readonly doc: VirtualDocument; readonly open
       testId="document-info"
     >
       <div ref={body} className={styles.stack} data-document-info="">
-        <section className={styles.group} aria-label={m.docinfo_file()}>
-          <h3 className={styles.legend}>{m.docinfo_file()}</h3>
-          <DocumentFacts doc={doc} />
-        </section>
-        <section className={styles.group} aria-label={m.info_metadata()}>
-          <h3 className={styles.legend}>{m.info_metadata()}</h3>
-          <MetadataEditor doc={doc} />
-        </section>
-        <section className={styles.group} aria-label={m.info_security()}>
-          <h3 className={styles.legend}>{m.info_security()}</h3>
-          <SecurityInfo doc={doc} />
-        </section>
+        <DocumentFacts doc={doc} />
+        <MetadataEditor doc={doc} />
+        <SecurityInfo doc={doc} />
         {sources.length > 0 ? <DiagnosticsDetails sources={sources} /> : null}
       </div>
     </Sheet>

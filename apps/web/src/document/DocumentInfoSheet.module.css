@@ -1,24 +1,53 @@
 /*
- * S4 Document info inside the Sheet primitive's body (components/07-sheets.md §6): the File,
- * Metadata and Password groups stacked 20 px apart under footnote-weight labels, as the other
- * sheets lay out their groups (pages-sheets/PagesSheets.module.css).
+ * S4 Document info inside the Sheet primitive's body (components/07-sheets.md §6) on the one
+ * sheet grammar (system-audit-2026-10 §3.6.1, I-16): the File, Metadata, Custom keys and
+ * Password groups are `ui/sheet`'s SheetGroup and SheetRow, --space-5 apart like Settings'
+ * and Save a copy's. What stays here is the layout inside a row: a metadata field trailing its
+ * label at one width, a custom key's field with its ✕, the add-a-key row and the password
+ * buttons.
  */
 .stack {
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
   min-width: 0;
 }
 
-.group {
+/* A field trailing its label: the well at one width, its hint or error under it. */
+.fieldControl {
   display: grid;
-  gap: 8px;
+  gap: var(--space-1);
+  width: 232px;
+  max-width: 100%;
+}
+
+/* A custom key's field and its ✕ on one line. */
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 232px;
+  max-width: 100%;
+}
+
+.fieldRow > :first-child {
+  flex: 1;
   min-width: 0;
 }
 
-.legend {
-  margin: 0 0 2px;
-  color: var(--glass-text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: 550;
-  line-height: var(--type-footnote-lh);
+/* Key · Value · Add on one line, the error under them. */
+.addKey[data-full] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.addKey > [role='alert'] {
+  grid-column: 1 / -1;
+}
+
+/* The password actions: one line of standard buttons (over the full row's grid). */
+.buttons[data-full] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }

@@ -1,32 +1,28 @@
 /*
- * The launcher (02-library L2 §2, reorganised 2026-10-08; Launcher.tsx): the empty card, 560
- * wide, 32 padding, radius 20 (language.md §6.1's xl, a panel), and with documents the brand
- * title over one lit row. Both surfaces are lit (lit.module.css). Buttons are `ui/Button` at
- * the large size (36 fine, 52 coarse in the card; one piece, 40 / 48, in the row), so every
- * control of a surface shares one height and one centre line (Q-9). Drag-over lifts the surface 2 px on --spring-quick and deepens its shadow to e3 (L2
- * §4); with reduced motion only the shadow changes.
+ * The launcher (02-library L2 §2, reorganised 2026-10-08; system-audit-2026-10 §3.9; Launcher.tsx):
+ * one lit piece in both variants. Every action is `ui/Button` at the L size (--control-h-lg:
+ * 40 fine, 52 coarse; §3.3), so the piece's controls share one height and one centre line
+ * (Q-9), and the piece is a capsule concentric with them (S-1): their half height plus its
+ * --space-2 padding. Empty, the mark, headline and promise sit on the canvas above it, centred;
+ * with documents the title sits above it on the column's edge. Drag-over lifts the piece 2 px on
+ * --spring-quick, deepens its shadow to e3 and rings it in a dashed accent line (L2 §4); with
+ * reduced motion only the shadow and the line change.
  */
-.card {
+.welcome {
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
-  width: min(600px, 100%);
-  padding: var(--space-8);
-  border-radius: 20px;
+  width: 100%;
   text-align: center;
-  transition:
-    transform var(--spring-quick) var(--ease-spring),
-    box-shadow var(--duration-base) var(--ease-out);
 }
 
 .glyph {
   margin-bottom: var(--space-5);
-  color: var(--text-primary);
 }
 
 .headline {
-  max-width: 496px;
+  max-width: 560px;
   margin: 0;
   font-size: var(--type-title1);
   font-weight: var(--weight-semibold);
@@ -37,84 +33,24 @@
 }
 
 .line {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-2) 0 var(--space-8);
   color: var(--text-secondary);
   font-size: var(--type-callout);
   line-height: var(--type-callout-lh);
   letter-spacing: var(--track-callout);
 }
 
-.card .well {
-  margin-top: var(--space-6);
-}
-
-.card .more {
-  justify-content: center;
-  margin-top: var(--space-4);
-}
-
 /* The arrival focus on Open PDFs… draws no ring until a key is pressed (Launcher.tsx). */
-.card [data-quiet-focus]:focus-visible {
+.welcome [data-quiet-focus]:focus-visible {
   outline: none;
   box-shadow: none;
 }
 
 /*
- * The well: Open PDFs… and "or drop files anywhere" inside one dashed capsule, the drop target
- * made visible. Shown on touch too (iPadOS drags files in from Files and other apps), where
- * L2 §5 kept the hint to fine pointers. The capsule keeps 6 px round the button, so its radius is the button's plus 6
- * (concentric, Q-5). Dragging, the line turns solid accent over the accent's faint wash.
- */
-.well {
-  --well-inset: 6px;
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2) var(--space-4);
-  box-sizing: border-box;
-  max-width: 100%;
-  padding: var(--well-inset) var(--space-5) var(--well-inset) var(--well-inset);
-  border: 1px dashed color-mix(in srgb, var(--text-primary) 22%, transparent);
-  border-radius: calc(var(--control-h-lg) / 2 + var(--well-inset));
-  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
-  transition:
-    border-color var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
-}
-
-.well[data-dragging] {
-  border-style: solid;
-  border-color: var(--accent-line);
-  background: var(--accent-subtle);
-}
-
-.wellHint {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--type-callout);
-  line-height: var(--control-lh);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.well[data-dragging] .wellHint {
-  color: var(--text-primary);
-  font-weight: var(--weight-medium);
-}
-
-/* More ways to start: equal standard buttons, one gap, wrapping as a group. */
-.more {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-/*
- * With documents (owner feedback 2026-10-09, G3): the title, then the row. The title sits on the
- * canvas and its aura (Aura.module.css) with no surface of its own: "Library" large, the privacy
- * line under it. No mark: the Library tab carries it.
+ * With documents (owner feedback 2026-10-09, G3; the lead kept the title, system audit §4
+ * decision 4): the title, then the piece. The title sits on the canvas and its aura
+ * (Aura.module.css) with no surface of its own: "Library" large, the privacy line under it, its
+ * text on the piece's own text edge. No mark: the Library tab carries it.
  */
 .rowWrap {
   display: flex;
@@ -127,7 +63,7 @@
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
-  padding-inline: var(--space-2);
+  padding-inline: var(--launcher-pad);
 }
 
 .titleText {
@@ -147,28 +83,39 @@
 }
 
 /*
- * The row: every button one piece high (--piece-h: 40 fine, 48 coarse; G1), so the row, the
- * strip's pieces above it and the footer's pills read as one scale; Open PDFs… leads in lime,
- * the three starts follow at the same height, and the drop line ends the row in the secondary
- * ink. The row's corners are concentric with the buttons' (Q-5): their radius plus the padding.
+ * The piece: Open PDFs… leads in lime, the three starts follow at the same height, and the drop
+ * line ends it in the secondary ink. Empty, it takes its content's width and centres; with
+ * documents it runs the column's width and the line goes to the trailing end. A narrow column
+ * wraps the line under the actions, and the corners stay concentric with the buttons.
  */
-.row {
-  --control-h-lg: var(--piece-h);
+.welcome,
+.rowWrap {
+  --launcher-pad: var(--space-2);
+}
+
+.piece {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3) var(--space-5);
+  gap: var(--space-2) var(--space-5);
   box-sizing: border-box;
-  padding: var(--space-3);
-  border-radius: calc(var(--piece-h) / 2 + var(--space-3));
+  max-width: 100%;
+  padding: var(--launcher-pad);
+  border-radius: calc(var(--control-h-lg) / 2 + var(--launcher-pad));
+  text-align: start;
   transition:
     transform var(--spring-quick) var(--ease-spring),
     box-shadow var(--duration-base) var(--ease-out),
     outline-color var(--duration-fast) var(--ease-out);
 }
 
-.actions {
+.welcome .piece {
+  justify-content: center;
+}
+
+.actions,
+.more {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -179,81 +126,76 @@
 .dropLine {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1h);
   margin: 0;
-  padding-inline: var(--space-2) var(--space-3);
+  /* The block padding gives a line wrapped under the actions its own row's air. */
+  padding: var(--space-1) var(--space-4) var(--space-1) var(--space-2);
   color: var(--text-secondary);
-  font-size: var(--piece-label);
-  line-height: var(--piece-label-lh);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .dropIcon {
   flex: none;
-  width: var(--icon-md);
-  height: var(--icon-md);
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
-/* Dragging, the whole row is the target: a dashed accent line round it and the line says what a
-   release does. */
-.row[data-dragging] {
-  outline: 1.5px dashed var(--accent-line);
-  outline-offset: 3px;
+/* Dragging, the window is the target: a dashed accent line round the piece, which lifts, and
+   the line says what a release does. */
+.piece[data-dragging] {
+  --shadow-own: var(--rim-edge), var(--rim-inner), var(--e3);
+  outline: 2px dashed var(--accent-line);
+  outline-offset: var(--space-1);
+  transform: translateY(calc(-1 * var(--space-half)));
 }
 
-.row[data-dragging] .dropLine {
+.piece[data-dragging] .dropLine {
   color: var(--text-primary);
   font-weight: var(--weight-medium);
 }
 
-.card[data-dragging],
-.row[data-dragging] {
-  --shadow-own: var(--rim-edge), var(--rim-inner), var(--e3);
-  transform: translateY(-2px);
-}
-
-/* Reduced motion: the lift is the shadow only (L2 §7). */
+/* Reduced motion: the lift is the shadow and the line only (L2 §7). */
 @media (prefers-reduced-motion: reduce) {
-  .card[data-dragging],
-  .row[data-dragging] {
+  .piece[data-dragging] {
     transform: none;
   }
 }
 
-:root[data-motion='reduced'] .card[data-dragging],
-:root[data-motion='reduced'] .row[data-dragging] {
+:root[data-motion='reduced'] .piece[data-dragging] {
   transform: none;
 }
 
 @media (forced-colors: active) {
-  .well {
-    border-color: CanvasText;
-  }
-
-  .well[data-dragging] {
-    border-color: Highlight;
+  .piece[data-dragging] {
+    outline-color: Highlight;
   }
 }
 
-/* Narrow columns (a narrow window of the full edition): the empty card's buttons stack full
-   width, Open PDFs… last, in thumb reach (L2 §2, M-13). */
+/* Narrow columns (a narrow window of the full edition): the buttons stack full width, Open
+   PDFs… first, the drop line under them (L2 §2, M-13). */
 @container library (width < 520px) {
-  .card {
+  .welcome {
     align-items: stretch;
-    padding: var(--space-6);
     text-align: start;
   }
 
-  .card .well {
-    order: 2;
+  .piece,
+  .actions,
+  .more {
     flex-direction: column;
     align-items: stretch;
-    margin-top: var(--space-4);
   }
 
-  .card .more {
-    flex-direction: column;
-    align-items: stretch;
-    margin-top: var(--space-6);
+  .piece {
+    border-radius: var(--radius-xl);
+  }
+
+  .dropLine {
+    justify-content: center;
+    padding: var(--space-1) 0;
   }
 }

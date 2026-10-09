@@ -15,6 +15,8 @@ export {
   SheetGroup,
   type SheetGroupProps,
   SheetRow,
+  SheetRowButton,
+  type SheetRowButtonProps,
   type SheetRowProps,
 } from './SheetGroup';
 export { SheetResult, type ResultTone } from './SheetResult';

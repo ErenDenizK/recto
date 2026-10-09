@@ -409,7 +409,7 @@ test.describe('Share copy on a coarse pointer', () => {
 const brokenLabels = (sheet: Locator) =>
   sheet.evaluate((root) => {
     const broken: string[] = [];
-    for (const label of root.querySelectorAll<HTMLElement>('[data-row-label]')) {
+    for (const label of root.querySelectorAll<HTMLElement>('[data-sheet-row-title]')) {
       if (label.getClientRects().length === 0) continue;
       const text = label.textContent ?? '';
       if (label.scrollWidth > label.clientWidth + 1) broken.push(`${text}: overflows`);
