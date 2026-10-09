@@ -324,6 +324,12 @@ function reconcile(key: string, annotations: readonly Annotation[]): void {
 
 let installed = false;
 
+/**
+ * History keys of pen strokes: bursts (`bursts.ts`) and held shapes (`shape-commit.ts`, its
+ * raw stroke and the shape that replaces it). They do not flush the dry ink.
+ */
+const STROKE_KEYS = ['ink-burst:', 'ink-shape:'] as const;
+
 /** Installs the hand-over, the render hold and the edit rules once (on import). */
 export function installDryInk(): void {
   if (installed) return;
@@ -364,7 +370,7 @@ export function installDryInk(): void {
     const stroke =
       now.future.length === 0 &&
       before.future.length === 0 &&
-      (now.present.coalesceKey?.startsWith('ink-burst:') ?? false);
+      STROKE_KEYS.some((prefix) => now.present.coalesceKey?.startsWith(prefix) ?? false);
     if (stroke) return;
     const service = getEngineService();
     for (const [key, list] of pages) {

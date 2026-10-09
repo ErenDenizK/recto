@@ -30,14 +30,74 @@
   animation: fade-out var(--duration-base) var(--ease-out) 160ms forwards;
 }
 
+/*
+ * Marching ants (motion-2026-10/ink-shapes.md §5): the trail while it is drawn and the
+ * selection's dashed box walk one dash period (4 + 3 px) per --loop-ants, so the selection
+ * reads as live. A paint-only loop of one small SVG element; under reduced motion the dashes
+ * stand still.
+ */
+.trail:not([data-closed]),
+.grab {
+  animation: ants var(--loop-ants) linear infinite;
+}
+
+@keyframes ants {
+  to {
+    stroke-dashoffset: -7;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trail[data-closed] {
     animation: none;
   }
+
+  .trail:not([data-closed]),
+  .grab {
+    animation: none;
+  }
 }
 
-:global(:root[data-motion='reduced']) .trail[data-closed] {
+:global(:root[data-motion='reduced']) .trail[data-closed],
+:global(:root[data-motion='reduced']) .trail:not([data-closed]),
+:global(:root[data-motion='reduced']) .grab {
   animation: none;
+}
+
+/*
+ * The lift (motion-2026-10/ink-shapes.md §5): when a lasso selection forms, it rises off the
+ * page once: the wash, box and handles grow from 97 % about their centre on the quick spring
+ * as they fade in. Only on first appearance (the root mounts with the selection; moves and
+ * edits re-key the content inside it, not the root). Reduced motion: the fade alone.
+ */
+.lift {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation:
+    lift-scale var(--spring-quick) var(--ease-spring),
+    lift-fade var(--duration-base) var(--ease-out);
+}
+
+@keyframes lift-scale {
+  from {
+    scale: 0.97;
+  }
+}
+
+@keyframes lift-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lift {
+    animation: lift-fade var(--duration-fast) var(--ease-out);
+  }
+}
+
+:global(:root[data-motion='reduced']) .lift {
+  animation: lift-fade var(--duration-fast) var(--ease-out);
 }
 
 @keyframes fade-out {

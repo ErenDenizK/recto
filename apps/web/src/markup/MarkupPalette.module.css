@@ -239,3 +239,31 @@
   width: auto;
   padding-inline: var(--space-1);
 }
+
+/*
+ * Tool switch (motion-2026-10/ink-shapes.md §5): the glyph of the tool just armed pops in on
+ * the pop spring (one small glyph) as the armed fill arrives, from 72 % and a 10° turn; a pen's
+ * colour dot does the same (`annotations/pen/PenWell.module.css`). The `scale` and `rotate`
+ * properties compose with a transform the glyph has. Reduced motion: no pop (the fill's colour
+ * change remains).
+ */
+.row [data-tool][aria-pressed='true'] svg:not(.caret) {
+  animation: tool-arm var(--spring-pop) var(--ease-spring-pop);
+}
+
+@keyframes tool-arm {
+  from {
+    scale: 0.72;
+    rotate: -10deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row [data-tool][aria-pressed='true'] svg:not(.caret) {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .row [data-tool][aria-pressed='true'] svg:not(.caret) {
+  animation: none;
+}

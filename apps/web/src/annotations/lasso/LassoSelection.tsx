@@ -45,6 +45,7 @@ import { boundsOf, type Point } from '../ink';
 import { kindCounts, lassoItems } from '../labels';
 import { StyleControls } from '../StyleControls';
 import { deleteLassoSelection, transformLassoSelection, useLassoNotice } from './edits';
+import { makeShapes } from './make-shape';
 import {
   hitOutlines,
   type PathPicks,
@@ -208,7 +209,7 @@ export function LassoHighlight({
       : null;
   const items = lassoItems(kindCounts(pickCount(picks), pickedWhole(annotations, wholeIds)));
   return (
-    <g ref={rootRef} data-lasso-root="">
+    <g ref={rootRef} className={styles.lift} data-lasso-root="">
       <g key={signature} className={styles.highlight} data-lasso-selection="">
         <g data-lasso-content="">
           {css.length > 0 ? (
@@ -550,6 +551,11 @@ export function LassoBarControls({
   const notice = useLassoNotice((s) => s.message);
   const noticeKey = useLassoNotice((s) => s.key);
   const key = useAnnotationStore((s) => activePathSelection(s)?.key);
+  // Make shape (ink-shapes.md §8): only when the selection holds strokes.
+  const hasPaths = useAnnotationStore((s) => {
+    const at = activePathSelection(s);
+    return at ? Object.keys(at.next ?? at.paths).length > 0 : false;
+  });
   return (
     <>
       {notice && noticeKey === key ? (
@@ -573,6 +579,15 @@ export function LassoBarControls({
           startLassoMove(pageId, e.nativeEvent);
         }}
       />
+      {hasPaths ? (
+        <IconButton
+          label={m.lasso_make_shape()}
+          tooltip={m.lasso_make_shape_tooltip()}
+          icon={<Icon name="polygon" />}
+          data-lasso-make-shape=""
+          onClick={() => void makeShapes()}
+        />
+      ) : null}
       <IconButton
         label={m.annot_delete()}
         icon={<Icon name="trash" />}
