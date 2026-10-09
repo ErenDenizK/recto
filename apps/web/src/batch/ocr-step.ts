@@ -328,7 +328,7 @@ export async function runOcrStep(
       },
     },
   );
-  const { applyOcrEdit, ocrApplyEdit } = await import('@pdf-editor/engine');
+  const { applyOcrEdit, ocrApplyEdit } = await import('@pdf-editor/engine/client');
   const edit = ocrApplyEdit(globalThis.crypto.randomUUID(), source, ocrStepPlan(results, replace));
   // The layered document replaces the private source in the worker (verified there first);
   // the recorded payload is the rounded one the engine wrote, as the edit runner keeps it.

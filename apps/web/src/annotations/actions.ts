@@ -38,7 +38,7 @@ import { builtinStampImage } from './stamps';
 
 /** The engine's JSON form of an annotation (engine chunk, loaded on first use). */
 async function serializeAnnotation(a: NewAnnotation | Annotation) {
-  const engine = await import('@pdf-editor/engine');
+  const engine = await import('@pdf-editor/engine/client');
   return engine.serializeAnnotation(a);
 }
 

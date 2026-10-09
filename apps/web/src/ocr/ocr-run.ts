@@ -36,7 +36,7 @@ import {
   ocrPoolSize,
   ocrReportOf,
   type PdfOcrLayer,
-} from '@pdf-editor/engine';
+} from '@pdf-editor/engine/client';
 
 import {
   contentChanged,

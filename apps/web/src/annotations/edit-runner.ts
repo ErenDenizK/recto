@@ -323,7 +323,8 @@ let executedDuringAction: EngineEdit[] | undefined;
  * the log uses them) with its inverse, and the annotation as it now is (creates, updates).
  */
 export async function executeEdit(ctx: EngineContext, edit: EngineEdit): Promise<ExecutedEdit> {
-  const { applyEngineEditWithResult } = await import('@pdf-editor/engine');
+  // The edit dispatch is on the light client entry (PF-2): no barrel load on the first edit.
+  const { applyEngineEditWithResult } = await import('@pdf-editor/engine/client');
   const source = edit.source;
   const toEngine = (id: string) => annotationIds.engineId(source, id);
   let result: Awaited<ReturnType<typeof applyEngineEditWithResult>> | undefined;
@@ -575,7 +576,7 @@ async function needsReopen(edits: readonly EngineEdit[]): Promise<boolean> {
   if (!edits.some((edit) => replayKinds.includes(edit.kind))) {
     return false;
   }
-  const { isReplayRequired } = await import('@pdf-editor/engine');
+  const { isReplayRequired } = await import('@pdf-editor/engine/client');
   return edits.some((edit) => edit.inverse === undefined || isReplayRequired(edit.inverse));
 }
 

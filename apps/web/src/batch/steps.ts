@@ -52,7 +52,11 @@ import {
   updateDocumentOverlays,
   type Workspace,
 } from '@pdf-editor/document-model';
-import { type ConvertReport, type CompressionSettings, presetSettings } from '@pdf-editor/engine';
+import {
+  type ConvertReport,
+  type CompressionSettings,
+  presetSettings,
+} from '@pdf-editor/engine/client';
 
 import { type ConvertChoice, DEFAULT_CHOICE } from '../convert/convert-run';
 import { type PageBoxOf, planCrops, withCrops } from '../crop/plan';

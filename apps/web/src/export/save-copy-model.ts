@@ -21,7 +21,7 @@ import {
   type RasterBackground,
   type RasterFormat,
   WORTHWHILE_RATIO,
-} from '@pdf-editor/engine';
+} from '@pdf-editor/engine/client';
 
 import { type ConvertChoice, DEFAULT_CHOICE } from '../convert/convert-run';
 import type { SaveCopyPreset } from './export-store';

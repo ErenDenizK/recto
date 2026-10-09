@@ -523,7 +523,7 @@ export function ParagraphEditor({
         setLoaded({ session, value: { session, setup, analysis, fns } });
       },
       async (caught: unknown) => {
-        const { textEditFailureReason } = await import('@pdf-editor/engine');
+        const { textEditFailureReason } = await import('@pdf-editor/engine/client');
         if (live) setLoaded({ session, error: failureMessage(textEditFailureReason(caught)) });
       },
     );
@@ -691,7 +691,7 @@ export function ParagraphEditor({
           },
           async (caught: unknown) => {
             if (controller.signal.aborted) return;
-            const { textEditFailureReason } = await import('@pdf-editor/engine');
+            const { textEditFailureReason } = await import('@pdf-editor/engine/client');
             setError(failureMessage(textEditFailureReason(caught)));
           },
         );

@@ -25,7 +25,7 @@ import {
   rasterSize,
   rasterTiles,
   uniqueNames,
-} from '@pdf-editor/engine';
+} from '@pdf-editor/engine/client';
 
 import { getEngineService } from '../engine/engine-service';
 import type { ExportDependencies } from '../export/export-service';
