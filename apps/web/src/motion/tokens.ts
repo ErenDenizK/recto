@@ -86,6 +86,8 @@ export const LOOP_MS = {
   bloom: 1200,
   /** The tint that reveals the row a command opened. */
   reveal: 1200,
+  /** The lasso's marching ants: one dash period per loop. */
+  ants: 700,
 } as const;
 
 /** What presses (§7.3 *press*): a finger or pen presses deeper than a mouse. */

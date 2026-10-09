@@ -78,3 +78,25 @@
     box-shadow: 0 0 0 2px HighlightText;
   }
 }
+
+/* Arming a pen: its dot pops in on the pop spring with the armed disc (motion-2026-10/
+   ink-shapes.md §5; the palette's glyphs do the same). `scale` composes with the chisel's turn. */
+.cell[aria-pressed='true'] .mark {
+  animation: pen-arm var(--spring-pop) var(--ease-spring-pop);
+}
+
+@keyframes pen-arm {
+  from {
+    scale: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell[aria-pressed='true'] .mark {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .cell[aria-pressed='true'] .mark {
+  animation: none;
+}

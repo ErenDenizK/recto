@@ -24,6 +24,8 @@
  *   said and listed by what it did (`eraseLabel`, review finding 26): "Erased 1 stroke",
  *   "Erased 3 strokes" when only whole strokes went, "Erased part of a stroke" or "Erased
  *   parts of 2 strokes" when one was cut.
+ * - **Fade.** What the drag erased fades out over the page's next bitmap instead of vanishing
+ *   with it (`erase-fade.ts`, motion-2026-10/ink-shapes.md §5).
  */
 import type { EngineEdit, Rect } from '@pdf-editor/document-model';
 import type { Annotation, InkAnnotation } from '@pdf-editor/engine';
@@ -36,6 +38,7 @@ import { type ActionResult, executeEdit, readAnnotations, runAction } from '../e
 import { cssPointToUser, type PageFrame } from '../geometry';
 import type { Point } from '../ink';
 import { alignedWidths, splitInk } from '../lasso/split';
+import { fadeErased } from './erase-fade';
 
 /** Pieces of a cut path shorter than this (points) are erased with it. */
 export const MIN_PIECE_PT = 0.5;
@@ -507,15 +510,18 @@ function edit(kind: EngineEdit['kind'], target: PageTarget, payload: unknown): E
  * current annotations when the queued action runs. Resolves to the number of annotations
  * changed or removed, or undefined when nothing was under the eraser.
  */
-export function commitErase(
+export async function commitErase(
   target: PageTarget,
   sweep: EraserSweep,
   mode: EraserMode,
 ): Promise<number | undefined> {
-  return runAction(async (ctx): Promise<ActionResult<number> | undefined> => {
+  /** The touched annotations as they were, for the fade. */
+  let erased: Annotation[] = [];
+  const count = await runAction(async (ctx): Promise<ActionResult<number> | undefined> => {
     const list = await readAnnotations(target.source, target.pageIndex, ctx);
     const plan = erasePlan(list, sweep, mode);
     const { updates, removals } = plan;
+    erased = [...removals, ...updates.flatMap((u) => list.filter((a) => a.id === u.id))];
     const edits: EngineEdit[] = [];
     for (const a of removals) {
       const done = await executeEdit(
@@ -549,6 +555,8 @@ export function commitErase(
     }
     return { edits, label, value: updates.length + removals.length };
   });
+  if (count !== undefined) fadeErased(target, erased);
+  return count;
 }
 
 // ---------------------------------------------------------------------------

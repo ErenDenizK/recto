@@ -3170,5 +3170,20 @@
   "review_words_count": "{count} sözcük",
   "batch_needs_wider": "Daha geniş bir pencere gerekir",
   "annot_more": "Diğer özellikler",
-  "annot_text": "Metin"
+  "annot_text": "Metin",
+  "ink_shape_line": "Çizgi",
+  "ink_shape_arrow": "Ok",
+  "ink_shape_triangle": "Üçgen",
+  "ink_shape_rectangle": "Dikdörtgen",
+  "ink_shape_square": "Kare",
+  "ink_shape_pentagon": "Beşgen",
+  "ink_shape_hexagon": "Altıgen",
+  "ink_shape_polygon": "Çokgen",
+  "ink_shape_circle": "Daire",
+  "ink_shape_ellipse": "Elips",
+  "ink_shape_next": "{shape}. Sonraki şekil için dokunun",
+  "lasso_make_shape": "Şekle dönüştür",
+  "lasso_make_shape_tooltip": "Seçili çizgileri benzedikleri şekillere dönüştür",
+  "lasso_no_shape": "Seçimde şekil bulunamadı",
+  "lasso_history_shapes": "Şekle dönüştürme"
 }

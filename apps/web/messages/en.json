@@ -4873,5 +4873,20 @@
   ],
   "batch_needs_wider": "Needs a wider window",
   "annot_more": "More properties",
-  "annot_text": "Text"
+  "annot_text": "Text",
+  "ink_shape_line": "Line",
+  "ink_shape_arrow": "Arrow",
+  "ink_shape_triangle": "Triangle",
+  "ink_shape_rectangle": "Rectangle",
+  "ink_shape_square": "Square",
+  "ink_shape_pentagon": "Pentagon",
+  "ink_shape_hexagon": "Hexagon",
+  "ink_shape_polygon": "Polygon",
+  "ink_shape_circle": "Circle",
+  "ink_shape_ellipse": "Ellipse",
+  "ink_shape_next": "{shape}. Tap for the next shape",
+  "lasso_make_shape": "Make shape",
+  "lasso_make_shape_tooltip": "Turn the selected strokes into the shapes they are",
+  "lasso_no_shape": "No shape in the selection",
+  "lasso_history_shapes": "Make shapes"
 }
