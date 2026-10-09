@@ -230,14 +230,18 @@ describe('Lock in commit()', () => {
   it('closing a locked document is no change to it, and undoing the close brings it back locked (X12)', async () => {
     const a = await open(simpleUrl, 'a.pdf');
     const b = await open(simpleUrl, 'b.pdf');
+    // Its annotations go with its source when it closes, which is no change either.
+    expect(model().applyEngineEdit(edit(a.source, 'annotation.create'), 'Note')).toBe(true);
     useLockStore.getState().lock(a.id, 'user');
     // Opening, activating and reordering other documents are no changes to it either.
     model().setActive(b.id);
     expect(model().reorderDocuments(b.id, 0)).toBe(true);
     model().closeDocument(a.id);
     expect(model().workspace.documents[a.id]).toBeUndefined();
+    expect(model().workspace.engineEdits).toEqual([]);
     model().undo();
     expect(model().workspace.documents[a.id]).toBeDefined();
+    expect(model().workspace.engineEdits).toHaveLength(1);
     expect(useLockStore.getState().locks[a.id]).toBe('user');
     expect(model().rotatePages(pageIds(a.id), 90)).toBe(false);
     expect(refusals).toHaveLength(1);
