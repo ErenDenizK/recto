@@ -1,13 +1,15 @@
 /**
- * "Crop pages…" (M4 §3): margins from the displayed page's edges (pt, mm or in), a live
+ * "Crop pages…" (M4 §3; S12 in components/07-sheets.md), a task sheet on the Sheet primitive in
+ * the sheet grammar (system-audit-2026-10 §3.6.1), its controls all `ui/` ones (Q-9, Q-14):
+ * margins from the displayed page's edges (pt, mm or in), a live
  * preview of the first page it crops with the crop rectangle over it (edges and corners
  * drag; the edge handles are sliders for the keyboard), "Draw crop area" (a rectangle
  * dragged on the page in Read mode, CropLayer.tsx), "Reset crop", the pages to crop
  * (selection, the whole document, or every page of the first page's size) and, honesty
  * first, whether to also remove the content outside the crop through the redaction
- * pipeline. A plain crop commits at once; with the removal the dialog shows the
- * redaction's progress and then its result sheet (redaction/ApplySheet.tsx).
- * The run and its outcome live in crop-store.ts: the dialog cannot close while it works.
+ * pipeline. A plain crop commits at once; with the removal the sheet shows the
+ * redaction's progress and then its result (redaction/ApplySheet.tsx).
+ * The run and its outcome live in crop-store.ts: the sheet cannot close while it works.
  * Before the removal it warns about redaction marks reaching outside the crop (deleted,
  * not applied).
  *
@@ -26,21 +28,25 @@ import {
   type VirtualPage,
   type Workspace,
 } from '@pdf-editor/document-model';
-import { type KeyboardEvent, type SyntheticEvent, useEffect, useId, useRef, useState } from 'react';
+import { type KeyboardEvent, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 
 import { useAnnotationStore } from '../annotations/annotation-store';
 import { RENDER_PRIORITY } from '../engine/engine-service';
-import styles from '../export/ExportDialog.module.css';
 import { formatNumber, m } from '../i18n';
 import { PageCanvas } from '../pages/PageCanvas';
 import { fitInBox } from '../pages/page-geometry';
 import { Outcome } from '../redaction/ApplySheet';
-import { Actions, Frame } from '../stage/OperationDialogFrame';
-import local from '../stage/OperationDialogs.module.css';
+import parts from '../pages-sheets/PagesSheets.module.css';
 import { closeOperationDialog } from '../stage/operation-dialogs-store';
 import { fromUnit, type ResizeUnit, sizeLabel, toUnit } from '../stage/ResizeDialog';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
+import { Button } from '../ui/Button';
+import { Checkbox } from '../ui/Checkbox';
+import { NumberField } from '../ui/NumberField';
+import { Progress } from '../ui/Progress';
+import { RadioGroup } from '../ui/RadioGroup';
 import { Select } from '../ui/Select';
+import { Sheet, SheetGroup, SheetRow } from '../ui/sheet';
 import {
   cropAndDiscard,
   cropPages,
@@ -56,6 +62,7 @@ import {
   type CropScope,
   clearResume,
   dismissCropOutcome,
+  isCropWorking,
   peekResume,
   useCropStore,
 } from './crop-store';
@@ -141,23 +148,30 @@ function shownBox(ws: Workspace, page: VirtualPage | undefined): Size | undefine
 export function CropDialog({
   documentId,
   pageIds,
+  open = true,
 }: {
   readonly documentId: DocumentId;
   readonly pageIds: readonly PageId[];
+  readonly open?: boolean;
 }) {
   const ws = useWorkspaceStore((s) => s.workspace);
   const doc = ws.documents[documentId];
   const selection = pageIds.filter((id) => findPage(ws, id) !== undefined);
   const firstId = selection[0] ?? doc?.pages[0]?.id;
-  // Opening again after "Draw crop area": the dialog comes back as it was, with the drawing.
+  // Opening again after "Draw crop area": the sheet comes back as it was, with the drawing.
   const [resume] = useState(() => peekResume(documentId));
   useEffect(() => clearResume(), []);
+  // A new opening starts from the form: an earlier removal's result was seen (OperationDialogs
+  // mounts the sheet afresh for each opening).
+  useLayoutEffect(() => {
+    const before = useCropStore.getState().run;
+    if (before.kind === 'done' && before.documentId === documentId) dismissCropOutcome(documentId);
+  }, [documentId]);
   const [reference] = useState<Size | undefined>(() => displayedSizeOf(ws, firstId));
   const [margins, setMargins] = useState<Margins>(
     () => resume?.margins ?? currentMargins(ws, findPage(ws, firstId)),
   );
   const [unit, setUnit] = useState<ResizeUnit>(resume?.unit ?? 'mm');
-  const [drafts, setDrafts] = useState<Partial<Record<Side, string>>>({});
   const [scope, setScope] = useState<CropScope>(
     resume?.scope ?? (selection.length > 0 ? 'selection' : 'document'),
   );
@@ -165,7 +179,6 @@ export function CropDialog({
   const run = useCropStore((s) => s.run);
   const annotationPages = useAnnotationStore((s) => s.pages);
   const ensurePage = useAnnotationStore((s) => s.ensurePage);
-  const firstInput = useRef<HTMLInputElement>(null);
   const errorId = useId();
   const unitId = useId();
   const baseId = useId();
@@ -206,18 +219,13 @@ export function CropDialog({
           height: previewSize.height - margins.top - margins.bottom,
         };
 
-  const setSide = (side: Side, text: string) => {
-    setDrafts((current) => ({ ...current, [side]: text }));
-    const value = Number(text.replace(',', '.'));
-    if (text.trim() === '' || !Number.isFinite(value)) return;
+  const setSide = (side: Side, value: number) =>
     setMargins((current) => ({ ...current, [side]: fromUnit(value, unit) }));
-  };
 
   // A run for this document (the removal): its progress, then its result sheet.
   const mine = run.kind !== 'idle' && run.documentId === documentId ? run : undefined;
 
-  const submit = async (event: SyntheticEvent) => {
-    event.preventDefault();
+  const submit = async () => {
     if (!ready || mine !== undefined) return;
     if (!removing) {
       await cropPages(targets, margins, { discard: false });
@@ -230,40 +238,63 @@ export function CropDialog({
   const draw = () =>
     startCropDrawing({ documentId, pageIds: selection, margins, unit, scope, discard }, targets[0]);
 
+  // Esc, ✕ and the scrim do nothing while a crop removes content (crop-store.ts).
+  const close = () => {
+    if (!isCropWorking()) closeOperationDialog();
+  };
+
+  const frame = {
+    id: 'crop',
+    kind: 'task' as const,
+    open,
+    onClose: close,
+    title: m.crop_title(),
+    testId: 'crop-dialog',
+  };
+
   if (mine?.kind === 'working') {
     return (
-      <Frame title={m.crop_title()} testId="crop-dialog" wide busy>
-        <div className={styles.body}>
-          <p className={styles.description} role="status">
-            {m.crop_removing()}
-          </p>
-          <progress className={styles.progress} aria-label={m.crop_removing()} />
-        </div>
-      </Frame>
+      <Sheet
+        {...frame}
+        busy
+        cancel={false}
+        primary={{
+          label: m.crop_confirm_discard(),
+          onPress: () => undefined,
+          busy: true,
+          busyLabel: m.crop_removing(),
+        }}
+      >
+        <SheetGroup>
+          <SheetRow full>
+            <p className={parts.summary} role="status">
+              {m.crop_removing()}
+            </p>
+            <Progress value={null} label={m.crop_removing()} />
+          </SheetRow>
+        </SheetGroup>
+      </Sheet>
     );
   }
 
   if (mine?.kind === 'done') {
     return (
-      <Frame title={m.crop_title()} testId="crop-dialog" wide>
-        <div className={styles.body} data-testid="crop-result">
+      <Sheet
+        {...frame}
+        cancel={false}
+        secondary={
+          mine.outcome.kind === 'applied' ? null : (
+            <Button variant="quiet" onClick={() => dismissCropOutcome(documentId)}>
+              {m.common_back()}
+            </Button>
+          )
+        }
+        primary={{ label: m.common_close(), onPress: closeOperationDialog }}
+      >
+        <div data-testid="crop-result">
           <Outcome outcome={mine.outcome} />
-          <div className={styles.actions} data-bar="dialog-footer">
-            {mine.outcome.kind === 'applied' ? null : (
-              <button
-                type="button"
-                className={styles.secondary}
-                onClick={() => dismissCropOutcome(documentId)}
-              >
-                {m.common_back()}
-              </button>
-            )}
-            <button type="button" className={styles.primary} onClick={closeOperationDialog}>
-              {m.common_close()}
-            </button>
-          </div>
         </div>
-      </Frame>
+      </Sheet>
     );
   }
 
@@ -290,219 +321,186 @@ export function CropDialog({
                 });
 
   return (
-    <Frame title={m.crop_title()} testId="crop-dialog" initialFocus={firstInput} wide>
-      <form className={styles.body} onSubmit={(event) => void submit(event)}>
-        <p className={own.notice}>{m.crop_notice()}</p>
-        {resized ? (
-          <p className={own.notice} data-testid="crop-resized-notice">
-            {m.crop_resized_notice()}
-          </p>
-        ) : null}
-        <fieldset className={local.options}>
-          <legend className={local.legend}>{m.crop_margins_label()}</legend>
-          <div className={own.marginRow}>
-            {SIDES.map((side, index) => {
-              const id = `${baseId}-${side}`;
-              return (
-                <div key={side} className={styles.field}>
-                  <label className={styles.label} htmlFor={id}>
-                    {sideName(side)}
-                  </label>
-                  <input
-                    ref={index === 0 ? firstInput : undefined}
-                    id={id}
-                    type="text"
-                    inputMode="decimal"
-                    className={`${styles.input} ${own.marginInput}`}
-                    value={
-                      drafts[side] ??
-                      formatNumber(toUnit(margins[side], unit), { useGrouping: false })
-                    }
-                    aria-invalid={problem !== undefined || undefined}
-                    aria-describedby={problem === undefined ? undefined : errorId}
-                    spellCheck={false}
-                    autoComplete="off"
-                    data-testid={`crop-${side}`}
-                    onChange={(event) => setSide(side, event.target.value)}
-                    onBlur={() => setDrafts({})}
-                  />
-                </div>
-              );
-            })}
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor={unitId}>
-                {m.resize_unit_label()}
-              </label>
-              <Select
-                id={unitId}
-                block
-                label={m.resize_unit_label()}
-                value={unit}
-                data-testid="crop-unit"
-                onValueChange={(next) => {
-                  setUnit(next);
-                  setDrafts({});
-                }}
-                options={(['mm', 'in', 'pt'] as const).map((u) => ({
-                  value: u,
-                  label: unitName(u),
-                }))}
-              />
-            </div>
-          </div>
-          {problem === undefined ? null : (
-            <span id={errorId} className={local.fieldError}>
-              {problem === 'invalid' ? m.crop_error_invalid() : m.crop_error_too_small()}
-            </span>
-          )}
-        </fieldset>
-
-        <div className={own.previewRow}>
+    <Sheet
+      {...frame}
+      primary={{
+        label:
+          clear && hasCrop
+            ? m.crop_confirm_reset()
+            : removing
+              ? m.crop_confirm_discard()
+              : m.crop_confirm(),
+        onPress: () => void submit(),
+        disabled: !ready,
+      }}
+    >
+      <SheetGroup footnote={m.crop_notice()}>
+        <SheetRow full className={`${parts.previewRow} ${own.previewStack}`}>
           <CropPreview
             ws={ws}
             page={previewPage}
             size={previewSize}
             margins={margins}
             unit={unit}
-            onChange={(next) => {
-              setMargins(next);
-              setDrafts({});
-            }}
+            onChange={setMargins}
           />
           <div className={own.previewSide}>
-            <div className={own.buttons}>
-              <button
-                type="button"
-                className={styles.secondary}
-                data-testid="crop-draw"
-                disabled={targets.length === 0}
-                onClick={draw}
-              >
-                {m.crop_draw()}
-              </button>
-              <button
-                type="button"
-                className={styles.secondary}
-                data-testid="crop-reset"
-                disabled={clear}
-                onClick={() => {
-                  setMargins(NO_MARGINS);
-                  setDrafts({});
-                }}
-              >
-                {m.crop_reset()}
-              </button>
-            </div>
             <p
-              className={local.preview}
+              className={parts.summary}
               role="status"
-              data-ok={ready || undefined}
+              data-problem={ready ? undefined : ''}
               data-testid="crop-summary"
             >
               {summary}
             </p>
             {plan.notPdf > 0 ? (
-              <p className={own.notice}>{m.crop_skipped_not_pdf({ count: plan.notPdf })}</p>
+              <p className={parts.note}>{m.crop_skipped_not_pdf({ count: plan.notPdf })}</p>
             ) : null}
             {plan.tooSmall > 0 && problem === undefined ? (
-              <p className={own.notice}>{m.crop_skipped_too_small({ count: plan.tooSmall })}</p>
+              <p className={parts.note}>{m.crop_skipped_too_small({ count: plan.tooSmall })}</p>
             ) : null}
+            <div className={parts.actions}>
+              <Button
+                size="sm"
+                data-testid="crop-draw"
+                disabled={targets.length === 0}
+                onClick={draw}
+              >
+                {m.crop_draw()}
+              </Button>
+              <Button
+                size="sm"
+                variant="quiet"
+                data-testid="crop-reset"
+                disabled={clear}
+                onClick={() => setMargins(NO_MARGINS)}
+              >
+                {m.crop_reset()}
+              </Button>
+            </div>
           </div>
-        </div>
+        </SheetRow>
+      </SheetGroup>
 
-        <fieldset className={local.options}>
-          <legend className={local.legend}>{m.resize_scope_label()}</legend>
-          {selection.length > 0 ? (
-            <ScopeOption
-              scope="selection"
-              current={scope}
-              onChange={setScope}
-              label={m.resize_scope_selection({ count: selection.length })}
-            />
-          ) : null}
-          <ScopeOption
-            scope="document"
-            current={scope}
-            onChange={setScope}
-            label={m.resize_scope_document({ title: doc.title, count: doc.pages.length })}
-          />
-          {reference === undefined ? null : (
-            <ScopeOption
-              scope="same-size"
-              current={scope}
-              onChange={setScope}
-              label={m.resize_scope_same_size({
-                size: sizeLabel(reference, unit),
-                count: scopePages(ws, documentId, 'same-size', selection, reference).length,
-              })}
-            />
-          )}
-        </fieldset>
-
-        <fieldset className={local.options}>
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={discard}
-              data-testid="crop-discard"
-              onChange={(event) => setDiscard(event.target.checked)}
-            />
-            <span>
-              {m.crop_discard()}
-              <span className={styles.hint}>{m.crop_discard_hint()}</span>
+      <SheetGroup
+        label={m.crop_margins_label()}
+        footnote={
+          problem === undefined ? (
+            resized ? (
+              <span data-testid="crop-resized-notice">{m.crop_resized_notice()}</span>
+            ) : undefined
+          ) : (
+            <span id={errorId} className={parts.error}>
+              {problem === 'invalid' ? m.crop_error_invalid() : m.crop_error_too_small()}
             </span>
-          </label>
-          {removing ? (
-            <p className={own.warning} role="note">
+          )
+        }
+      >
+        {SIDES.map((side) => {
+          const id = `${baseId}-${side}`;
+          return (
+            <SheetRow key={side} title={sideName(side)} labelFor={id}>
+              <NumberField
+                id={id}
+                className={parts.number}
+                label={sideName(side)}
+                value={toUnit(margins[side], unit)}
+                min={0}
+                step={unit === 'in' ? 0.1 : 1}
+                format={{ maximumFractionDigits: unit === 'mm' ? 1 : 2, useGrouping: false }}
+                aria-describedby={problem === undefined ? undefined : errorId}
+                data-testid={`crop-${side}`}
+                onValueChange={(next) => {
+                  if (next !== null && Number.isFinite(next)) setSide(side, next);
+                }}
+              />
+            </SheetRow>
+          );
+        })}
+        <SheetRow title={m.resize_unit_label()} labelFor={unitId}>
+          <Select
+            id={unitId}
+            label={m.resize_unit_label()}
+            value={unit}
+            data-testid="crop-unit"
+            onValueChange={setUnit}
+            options={(['mm', 'in', 'pt'] as const).map((u) => ({
+              value: u,
+              label: unitName(u),
+            }))}
+          />
+        </SheetRow>
+      </SheetGroup>
+
+      <SheetGroup label={m.resize_scope_label()}>
+        <RadioGroup<CropScope>
+          className={parts.choices}
+          label={m.resize_scope_label()}
+          value={scope}
+          onValueChange={setScope}
+          options={[
+            ...(selection.length > 0
+              ? [
+                  {
+                    value: 'selection' as const,
+                    label: m.resize_scope_selection({ count: selection.length }),
+                  },
+                ]
+              : []),
+            {
+              value: 'document' as const,
+              label: m.resize_scope_document({ title: doc.title, count: doc.pages.length }),
+            },
+            ...(reference === undefined
+              ? []
+              : [
+                  {
+                    value: 'same-size' as const,
+                    label: m.resize_scope_same_size({
+                      size: sizeLabel(reference, unit),
+                      count: scopePages(ws, documentId, 'same-size', selection, reference).length,
+                    }),
+                  },
+                ]),
+          ]}
+        />
+      </SheetGroup>
+
+      <SheetGroup>
+        <SheetRow full>
+          <Checkbox
+            label={m.crop_discard()}
+            description={m.crop_discard_hint()}
+            checked={discard}
+            onCheckedChange={setDiscard}
+          />
+        </SheetRow>
+        {removing ? (
+          <SheetRow full>
+            <p className={parts.note} data-tone="warning" role="note">
               {m.crop_discard_warning()}
             </p>
-          ) : null}
-          {shared > 0 ? (
-            <p className={own.notice}>{m.crop_discard_shared({ count: shared })}</p>
-          ) : null}
-          {marksOutside > 0 ? (
-            <p className={own.warning} role="note" data-testid="crop-discard-marks">
+          </SheetRow>
+        ) : null}
+        {shared > 0 ? (
+          <SheetRow full>
+            <p className={parts.note}>{m.crop_discard_shared({ count: shared })}</p>
+          </SheetRow>
+        ) : null}
+        {marksOutside > 0 ? (
+          <SheetRow full>
+            <p
+              className={parts.note}
+              data-tone="warning"
+              role="note"
+              data-testid="crop-discard-marks"
+            >
               {m.crop_discard_marks({ count: marksOutside })}
             </p>
-          ) : null}
-        </fieldset>
-
-        <Actions
-          confirm={
-            clear && hasCrop
-              ? m.crop_confirm_reset()
-              : removing
-                ? m.crop_confirm_discard()
-                : m.crop_confirm()
-          }
-          disabled={!ready}
-        />
-      </form>
-    </Frame>
-  );
-}
-
-function ScopeOption({
-  scope,
-  current,
-  label,
-  onChange,
-}: {
-  readonly scope: CropScope;
-  readonly current: CropScope;
-  readonly label: string;
-  readonly onChange: (scope: CropScope) => void;
-}) {
-  return (
-    <label className={local.option}>
-      <input
-        type="radio"
-        name="crop-scope"
-        checked={current === scope}
-        onChange={() => onChange(scope)}
-      />
-      <span className={local.optionTitle}>{label}</span>
-    </label>
+          </SheetRow>
+        ) : null}
+      </SheetGroup>
+    </Sheet>
   );
 }
 

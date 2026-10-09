@@ -1,10 +1,115 @@
 /*
- * The page-structure sheets (components/07-sheets.md S13–S18) inside the Sheet primitive's body
- * (ui/sheet/Sheet.module.css): groups of controls stacked 20 px apart, a footnote-weight
- * label over each, solid wells for lists and previews (never glass in glass, quality-bar Q-4),
- * tabular numerals for counts. Sizes and type come from the sheet's tokens, so the same rows
- * are 28 px on a fine pointer and 44 on a coarse one.
+ * The page sheets' parts (components/07-sheets.md S12–S18 and S11's furniture): what they put
+ * inside the sheet grammar's groups (`ui/sheet` SheetGroup and SheetRow, system-audit-2026-10
+ * §3.6.1) that the grammar does not draw itself. Sizes and type come from the sheet's tokens,
+ * so the same rows are 44 px on a fine pointer and 56 on a coarse one.
  */
+
+/*
+ * A radio list as the rows of its group (`ui/RadioGroup` with this class, a direct child of a
+ * SheetGroup): each option one M row with the group's row padding, hairlines between the
+ * options and between the list and a SheetRow next to it, as Settings' lists draw them.
+ */
+.choices {
+  display: grid;
+}
+
+.choices > label {
+  position: relative;
+  box-sizing: border-box;
+  min-height: var(--sheet-row-h);
+  padding: var(--space-1h) var(--sheet-row-pad);
+}
+
+.choices > label + label::before,
+.choices + [data-sheet-row]::before,
+[data-sheet-row] + .choices > label:first-child::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--sheet-row-pad);
+  height: 1px;
+  background: var(--border-hairline);
+}
+
+/* A number field as a row's trailing control: wide enough for its value and, on a coarse
+   pointer, its two 44 px buttons beside the well, so they never cover the number. */
+.number {
+  width: 120px;
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .number {
+    width: 176px;
+  }
+}
+
+/* A segmented control as a row's trailing control: room for two or three short labels at
+   equal widths, within the trailing side's 60 % (SheetGroup). */
+.segmented {
+  width: 208px;
+  max-width: 100%;
+}
+
+/* A text field as a row's trailing control. */
+.text {
+  width: 180px;
+}
+
+/* A field's problem under its group, in the danger colour. */
+.error {
+  color: var(--danger);
+}
+
+/* The preview row: a page picture leading, what the primary will make beside it. */
+.previewRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.previewRow[data-full] {
+  display: flex;
+  padding-block: var(--sheet-row-pad);
+}
+
+/* What the primary will make: the numbers tabular; secondary while it cannot run. */
+.summary {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--control-text);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--control-lh);
+  text-wrap: pretty;
+}
+
+.summary[data-problem] {
+  color: var(--text-secondary);
+}
+
+/* A note in a group's row: footnote, secondary; a warning in the danger colour. */
+.note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}
+
+.note[data-tone='warning'] {
+  color: var(--danger);
+}
+
+/* Buttons side by side in a full row. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .stack {
   display: grid;
   gap: 20px;
