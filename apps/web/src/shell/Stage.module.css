@@ -125,7 +125,7 @@
 }
 
 .cell[aria-selected='true'] .thumbSheet {
-  outline: 2px solid var(--select);
+  outline: 2px solid var(--select-ring);
   outline-offset: 3px;
 }
 

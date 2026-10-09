@@ -586,6 +586,20 @@ describe('tokens.css', () => {
       atLeast(contrast(colour('--select-ink'), select), 4.93, 'glyph on select');
     });
 
+    it('marks selected pages and files in the lime, not the page blue (owner feedback G7)', () => {
+      // The ring sits off the page, on the chrome: --accent-ring (lime on dark).
+      expect(resolve('--select-ring')).toBe(resolve('--accent-ring'));
+      for (const surface of ['--canvas', '--surface-frame', '--surface-raised']) {
+        atLeast(contrast(colour('--select-ring'), colour(surface)), 3, `ring on ${surface}`);
+      }
+      // The badge sits on the page in both themes: a lime disc, an ink tick and an ink rim.
+      expect(resolve('--check-badge-fill')).toBe('#c8fb3d');
+      atLeast(contrast(colour('--check-badge-ink'), colour('--check-badge-fill')), 16.42, 'tick');
+      atLeast(contrast(colour('--check-badge-ink'), WHITE), 18, 'the rim on a white page');
+      // Not the focus ring's two bands: one band, which is never ink.
+      expect(resolve('--select-ring')).not.toBe(resolve('--focus-dark'));
+    });
+
     it('draws its washes in the same blue: 0.25 for selection and hits, 0.45 for the current hit', () => {
       for (const token of [
         '--select-subtle',
@@ -1654,6 +1668,16 @@ describe('tokens.css', () => {
       atLeast(contrast(ink(), row), 14.5, 'primary on a current row');
       atLeast(contrast(tone('--text-secondary'), row), 6.25, 'secondary');
       atLeast(contrast(tone('--text-tertiary'), row), 5.09, 'tertiary');
+    });
+
+    it('rings selected pages and files in lime-800 on the light chrome (G7)', () => {
+      expect(value('--select-ring')).toBe('#446713');
+      for (const surface of ['--canvas', '--surface-frame', '--surface-raised']) {
+        atLeast(contrast(tone('--select-ring'), tone(surface)), 4.5, `ring on ${surface}`);
+      }
+      // The badge is the page's, unthemed: the same lime disc and ink tick as in dark.
+      expect(value('--check-badge-fill')).toBe('#c8fb3d');
+      atLeast(contrast(tone('--check-badge-ink'), tone('--check-badge-fill')), 16.42, 'tick');
     });
 
     it('keeps the content colours of the page unthemed (language.md §1.5)', () => {

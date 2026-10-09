@@ -3,7 +3,9 @@
  * inside the page's top-trailing corner) and decides when it shows.
  *
  * The rim is white and the scrim black in both themes: the badge sits on the page, which is never
- * themed (tokens.css), so it reads the same on a white page in dark and light.
+ * themed (tokens.css), so it reads the same on a white page in dark and light. Checked, it takes
+ * the app's lime (owner feedback 2026-10-09, G7) with an ink tick (16.42:1) and an ink rim, which
+ * holds the lime disc apart from the white page (lime on white alone is 1.21:1).
  */
 .badge {
   display: grid;
@@ -14,12 +16,13 @@
   border: 1.5px solid var(--check-badge-rim);
   border-radius: var(--radius-pill);
   background: var(--check-badge-scrim);
-  color: var(--select-ink);
+  color: var(--check-badge-ink);
   box-shadow: var(--check-badge-shadow);
 }
 
 .badge[data-checked] {
-  background: var(--select);
+  border-color: var(--check-badge-ink);
+  background: var(--check-badge-fill);
 }
 
 /* The regular check stroked to a bold weight, as a badge's tick reads at this size. */

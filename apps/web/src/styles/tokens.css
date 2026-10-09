@@ -21,9 +21,10 @@
  *
  * The colour language (ADR-0023, D3-2): four roles that never mix. *Interaction* is one lime,
  * `#c8fb3d`, always touching ink, and at rest only on the armed tool or the one primary action
- * of a view, the focus ring's light band, current rows (0.12), 1 px lines (0.50) and the current
- * thumbnail's ring. *Content* is the white page, the inks and `--select`, the blue of every
- * selection mark on a page. *Status* is danger, warning and success, always beside a glyph and
+ * of a view, the focus ring's light band, current rows (0.12), 1 px lines (0.50), the current
+ * thumbnail's ring and the selection of whole pages and files (the ring round a selected
+ * thumbnail or card and its check badge, G7). *Content* is the white page, the inks and
+ * `--select`, the blue of every selection mark drawn on a page (text, lasso, handles). *Status* is danger, warning and success, always beside a glyph and
  * words. *Atmosphere* is the aurora's light. The neutrals are cool graphite, hue 265, chroma
  * ≤ 0.013 (n1–n12): 1–2 backgrounds, 3–6 surfaces and controls, 7–8 borders and disabled,
  * 9–12 text. Every contrast below is asserted by `tokens.test.ts` (WCAG 2.2 and APCA).
@@ -304,6 +305,14 @@
   --check-badge-scrim: rgb(0 0 0 / 0.12);
   --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
   --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+  /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
+     the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
+     ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
+     chrome, as --accent-ring (lime on dark, lime-800 on light). The focus ring tells itself
+     apart by form: two bands with an ink gap round the whole cell, never one band on the sheet. */
+  --check-badge-fill: var(--accent);
+  --check-badge-ink: var(--accent-ink);
+  --select-ring: var(--accent-ring);
   /* The Library aura's three lights (home/LibraryView): the mark's mint, lime and yellow.
      On the dark canvas a faint pure lime reads as olive, so dark takes the lime a third of
      the way to the mint. */
@@ -578,6 +587,14 @@
   --check-badge-scrim: rgb(0 0 0 / 0.12);
   --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
   --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+  /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
+     the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
+     ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
+     chrome, as --accent-ring (lime on dark, lime-800 on light). The focus ring tells itself
+     apart by form: two bands with an ink gap round the whole cell, never one band on the sheet. */
+  --check-badge-fill: var(--accent);
+  --check-badge-ink: var(--accent-ink);
+  --select-ring: var(--accent-ring);
   /* The Library aura's three lights (home/LibraryView): the mark's mint, lime and yellow.
      On the dark canvas a faint pure lime reads as olive, so dark takes the lime a third of
      the way to the mint. */
@@ -837,6 +854,14 @@
     --check-badge-scrim: rgb(0 0 0 / 0.12);
     --check-badge-scrim-hover: rgb(0 0 0 / 0.24);
     --check-badge-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.22);
+    /* Checked, and the ring round a selected thumbnail or card (owner feedback 2026-10-09, G7):
+       the app's lime, never the page's blue. The badge's lime takes an ink tick (16.42:1) and an
+       ink rim, so it holds on the white page in both themes; the ring sits off the page, on the
+       chrome, as --accent-ring (lime on dark, lime-800 on light). The focus ring tells itself
+       apart by form: two bands with an ink gap round the whole cell, never one band on the sheet. */
+    --check-badge-fill: var(--accent);
+    --check-badge-ink: var(--accent-ink);
+    --select-ring: var(--accent-ring);
     /* The Library aura's three lights (home/LibraryView): the mark's mint, lime and yellow.
        On the dark canvas a faint pure lime reads as olive, so dark takes the lime a third of
        the way to the mint. */
