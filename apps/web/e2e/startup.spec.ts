@@ -86,7 +86,9 @@ async function openAndTime(page: Page, name: string, buffer: Buffer): Promise<Op
             const phases: Record<string, number> = {};
             for (const mark of performance.getEntriesByType('mark')) {
               if (mark.name.startsWith('pdf-editor.startup.')) {
-                phases[mark.name.slice('pdf-editor.startup.'.length)] = Math.round(mark.startTime - start);
+                phases[mark.name.slice('pdf-editor.startup.'.length)] = Math.round(
+                  mark.startTime - start,
+                );
               }
             }
             resolve({ total: performance.now() - start, phases });
