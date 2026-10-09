@@ -80,67 +80,87 @@
   }
 }
 
-/* The shortcuts overlay's list (07-sheets §23), inside the Sheet's body. */
+/*
+ * The shortcuts overlay's list (07-sheets §23), inside the Sheet's body, in the sheet grammar
+ * (system-audit-2026-10 §3.6.1, ui/sheet/SheetGroup): each group is a section label (footnote
+ * 600, secondary, sentence case) over an inset grouped list, a tint well of radius 12 at the
+ * group inset, with hairlines between its rows inset by the row padding. The rows stay tables
+ * (§23.8: `th` the action, `td` the keys) and the M size, a reference list read down. Two
+ * columns from 1000 px.
+ */
 .groups {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-6);
+  /* From the sheet's padding out to the group inset, as SheetGroup sits (S-1). */
+  margin-inline: calc(var(--sheet-group-inset) - var(--sheet-pad));
 }
 
 @media (min-width: 1000px) {
   .groups {
     display: block;
     columns: 2;
-    column-gap: var(--space-8);
+    column-gap: var(--space-4);
   }
 }
 
 .group {
+  display: grid;
+  gap: var(--space-2);
   break-inside: avoid;
-  padding-bottom: var(--space-2);
 }
 
 @media (min-width: 1000px) {
   .group {
-    padding-bottom: var(--space-5);
+    padding-bottom: var(--space-6);
   }
 }
 
 .groupTitle {
-  padding-bottom: var(--space-2);
+  margin: 0;
+  padding-inline: var(--sheet-row-pad);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   line-height: var(--type-footnote-lh);
 }
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--radius-md);
+  background: var(--control-fill);
 }
 
-.row {
-  border-bottom: 1px solid var(--border-hairline);
+/* The hairline between two rows starts at the row padding and runs to the group's edge. */
+.row + .row > * {
+  background:
+    linear-gradient(var(--border-hairline), var(--border-hairline)) no-repeat top right / 100% 1px;
 }
 
-.row:last-child {
-  border-bottom: 0;
+.row + .row > .rowTitle {
+  background-size: calc(100% - var(--sheet-row-pad)) 1px;
 }
 
 .rowTitle {
-  display: grid;
-  gap: 2px;
-  padding: 6px var(--space-4) 6px 0;
+  box-sizing: border-box;
+  height: var(--control-h);
+  padding: var(--space-1h) var(--space-3) var(--space-1h) var(--sheet-row-pad);
   color: var(--text-primary);
-  font-weight: 400;
-  line-height: var(--type-body-lh);
+  font-size: var(--control-text);
+  font-weight: var(--weight-regular);
+  line-height: var(--control-lh);
   text-align: start;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .note {
+  display: block;
+  margin-top: var(--space-half);
   color: var(--text-secondary);
-  font-size: var(--type-caption);
-  line-height: var(--type-caption-lh);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 /*
@@ -149,8 +169,8 @@
  */
 .keys {
   width: 1%;
-  padding: 6px 0;
-  vertical-align: top;
+  padding: var(--space-1h) var(--sheet-row-pad) var(--space-1h) 0;
+  vertical-align: middle;
 }
 
 .keyList {
@@ -174,10 +194,19 @@
 /* Between two alternatives: not a key, so it reads quieter than the caps. */
 .or {
   color: var(--text-tertiary);
-  font-size: var(--type-caption);
-  line-height: var(--type-caption-lh);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
 }
 
 .empty {
+  margin: 0;
   color: var(--text-secondary);
+  font-size: var(--type-callout);
+  line-height: var(--type-callout-lh);
+}
+
+@media (forced-colors: active) {
+  .table {
+    border: 1px solid CanvasText;
+  }
 }

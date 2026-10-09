@@ -114,7 +114,7 @@ export function ShortcutOverlay() {
                   {rows.map((row) => (
                     <tr key={row.id} className={styles.row}>
                       <th scope="row" className={styles.rowTitle}>
-                        <span>{row.title}</span>
+                        {row.title}
                         {row.notes.map((note) => (
                           <span
                             key={note.text}
