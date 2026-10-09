@@ -257,6 +257,32 @@
     scale var(--spring-press) var(--ease-spring);
 }
 
+/* A tab dragged along the strip (tab-reorder.ts; motion-2026-10 frame.md §7): its slot stays as
+   a faint place-holder that travels to where it would land, and the tabs between slide aside by
+   its width, each from where it is drawn (a transition retargets), on --spring-smooth. */
+.tablist[data-reordering] .tabWrap {
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    translate var(--spring-smooth) var(--ease-spring);
+}
+
+.tabWrap[data-tab-dragging] {
+  opacity: 0.35;
+}
+
+/* The lifted copy under the pointer (TabMenu.tsx, the drag preview): the tab on the raised
+   solid, with a shadow, inside a margin the shadow draws in. */
+.tabLift {
+  display: inline-flex;
+  padding: 6px 10px 14px;
+}
+
+.tabLift > .tabWrap {
+  background: var(--surface-raised);
+  box-shadow: var(--e3);
+  color: var(--text-primary);
+}
+
 @media (hover: hover) {
   .tabWrap:hover:not([data-selected]) {
     background: var(--surface-hover);
