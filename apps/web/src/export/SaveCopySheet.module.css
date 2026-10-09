@@ -74,7 +74,7 @@
   display: grid;
   grid-template-columns: subgrid;
   row-gap: 16px;
-  animation: section-in 120ms var(--ease-out);
+  animation: section-in var(--duration-fast) var(--ease-out);
 }
 
 @keyframes section-in {
@@ -211,7 +211,7 @@
   gap: 8px;
   min-width: 0;
   padding: 0 0 12px;
-  animation: section-in 120ms var(--ease-out);
+  animation: section-in var(--duration-fast) var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -154,7 +154,14 @@ export function NavRow({
           <span className="visually-hidden"> {m.about_new_tab()}</span>
         </a>
       ) : (
-        <button type="button" className={styles.nav} onClick={onPress}>
+        <button
+          type="button"
+          // The whole row is the control (07 S3 §2: a navigation row pushes its page), drawn
+          // by the group's row grammar rather than as a button inside it.
+          // eslint-disable-next-line recto/q9-controls
+          className={styles.nav}
+          onClick={onPress}
+        >
           {content}
         </button>
       )}

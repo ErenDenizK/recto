@@ -296,6 +296,9 @@ function Disclosure({
     <div className={styles.disclosure} data-disclosure={id}>
       <button
         type="button"
+        // The whole row is the control (07 §4.5: a section folded under its value), drawn by
+        // the row grammar rather than as a button inside it.
+        // eslint-disable-next-line recto/q9-controls
         className={styles.disclosureButton}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}

@@ -73,7 +73,7 @@
 .group {
   display: grid;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--control-fill);
 }
 
@@ -103,7 +103,7 @@
 
 /* A row the opener named: a tint that fades once (07 S3 §6: commands open the sheet there). */
 .row[data-revealed] {
-  animation: reveal 1200ms var(--ease-out) both;
+  animation: reveal var(--loop-reveal) var(--ease-out) both;
 }
 
 @keyframes reveal {
@@ -119,13 +119,13 @@
 /* Reduced motion (language.md §7.5, as the undo reveal): the tint is held still, then goes. */
 @media (prefers-reduced-motion: reduce) {
   .row[data-revealed] {
-    animation-duration: 600ms;
+    animation-duration: calc(var(--loop-reveal) / 2);
     animation-timing-function: steps(1, end);
   }
 }
 
 :global(:root[data-motion='reduced']) .row[data-revealed] {
-  animation-duration: 600ms;
+  animation-duration: calc(var(--loop-reveal) / 2);
   animation-timing-function: steps(1, end);
 }
 
@@ -323,9 +323,9 @@
 }
 
 .aboutName {
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 22px;
+  font-size: var(--type-title3);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-title3-lh);
   letter-spacing: -0.01em;
 }
 
@@ -366,7 +366,8 @@
   flex: none;
   width: 6px;
   height: 6px;
-  margin-top: 5px;
+  /* On the first line's centre. */
+  margin-top: calc((var(--control-lh) - 6px) / 2);
   border-radius: 50%;
   background: var(--warning, currentColor);
 }
