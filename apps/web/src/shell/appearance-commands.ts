@@ -3,7 +3,8 @@
  * D3-3, D3-4, D3-7): "Theme: System", "Theme: Light" and "Theme: Dark" set the Theme setting and
  * say it, as the Glass ones do; "Glass: Clear", "Glass: Tinted" and "Glass: Solid" set the Glass setting (as the language
  * commands set the language) and say it; "Reduce motion" switches between System and On and
- * says the new state, its title carrying the current one ("Reduce motion: System"). The
+ * says the new state, its title carrying the current one ("Reduce motion: System");
+ * "Background glow" (G5) does the same for the aura behind the reader. The
  * Settings sheet's Appearance rows (components/07-sheets.md S3; spec redesign D0-10) set the
  * same values through the same setters, and "Appearance settings…"
  * (`settings/settings-commands.ts`) opens the sheet there: the Document menu's Appearance
@@ -53,6 +54,12 @@ export function setMotion(motion: MotionSetting): void {
   );
 }
 
+/** Turns Background glow on or off (G5) and announces it. */
+export function setGlow(glow: boolean): void {
+  useAppearanceStore.getState().setGlow(glow);
+  announce(glow ? m.announce_glow_on() : m.announce_glow_off());
+}
+
 /** Found in either UI language, as the language commands are. */
 const SHARED_KEYWORDS = ['appearance', 'settings', 'görünüm', 'görünüş', 'ayarlar'] as const;
 
@@ -84,14 +91,14 @@ const GLASS_VALUE_KEYWORDS: Record<GlassSetting, readonly string[]> = {
 };
 
 /**
- * Registers the seven commands and registers them again whenever Reduce motion changes, so its
- * title always says the current value.
+ * Registers the eight commands and registers them again whenever Reduce motion or Background
+ * glow changes, so their titles always say the current value.
  */
 export function registerAppearanceCommands(registry: CommandRegistry): () => void {
   let disposers: (() => void)[] = [];
   const register = () => {
     for (const dispose of disposers) dispose();
-    const { motion } = useAppearanceStore.getState();
+    const { motion, glow } = useAppearanceStore.getState();
     disposers = [
       ...(['system', 'light', 'dark'] as const).map((theme) =>
         registry.register({
@@ -132,11 +139,30 @@ export function registerAppearanceCommands(registry: CommandRegistry): () => voi
         run: () =>
           setMotion(useAppearanceStore.getState().motion === 'reduced' ? 'system' : 'reduced'),
       }),
+      registry.register({
+        id: 'view.glow',
+        title: glow ? m.cmd_view_glow_on() : m.cmd_view_glow_off(),
+        group: m.group_view(),
+        act: null,
+        keywords: [
+          ...SHARED_KEYWORDS,
+          'glow',
+          'aura',
+          'background',
+          'light',
+          'toggle',
+          'ışıltı',
+          'arka plan',
+          'hale',
+          'ışık',
+        ],
+        run: () => setGlow(!useAppearanceStore.getState().glow),
+      }),
     ];
   };
   register();
   const unsubscribe = useAppearanceStore.subscribe((state, previous) => {
-    if (state.motion !== previous.motion) register();
+    if (state.motion !== previous.motion || state.glow !== previous.glow) register();
   });
   return () => {
     unsubscribe();

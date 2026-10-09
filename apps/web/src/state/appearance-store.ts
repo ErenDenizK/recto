@@ -1,7 +1,7 @@
 /**
  * Appearance settings (language.md §2.8, §7.6; ADR-0022 §2.4; ADR-0024 §2.4; spec D3-3, D3-4,
  * D3-7; components/07-sheets.md S3): **Theme: System · Light · Dark**, **Glass: Clear · Tinted ·
- * Solid** and **Reduce motion: System · On**.
+ * Solid**, **Reduce motion: System · On** and **Background glow** (on by default).
  *
  * - Theme: System follows the device's light or dark scheme, live; Light and Dark hold whatever
  *   the device says. Resolved and written by `theme.ts` (the boot script `public/theme.js` does
@@ -15,6 +15,9 @@
  *   §2.8).
  * - Reduce motion: System follows `prefers-reduced-motion`, On reduces motion whatever the
  *   system says.
+ * - Background glow (owner feedback 2026-10-09, G5, and the owner's decision that it starts on):
+ *   the Library's aura, dimmer, behind the reader's canvas (`home/Aura.tsx`, shown by the app
+ *   shell in the page view). On unless the stored value is `false`.
  *
  * Persisted in `pdf-editor:appearance:v1`, validated field by field. The settings reach CSS as
  * attributes on the document element, applied by `useAppearanceRoot`: `data-theme` (the theme
@@ -52,12 +55,15 @@ export interface AppearanceSettings {
   /** The person's Glass choice; `null` until they make one (the start state applies). */
   readonly glass: GlassSetting | null;
   readonly motion: MotionSetting;
+  /** The aura behind the reader's canvas (G5); on by default. */
+  readonly glow: boolean;
 }
 
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
   theme: 'system',
   glass: null,
   motion: 'system',
+  glow: true,
 };
 
 const GLASS_SETTINGS: readonly GlassSetting[] = ['clear', 'tinted', 'solid'];
@@ -66,6 +72,7 @@ interface AppearanceState extends AppearanceSettings {
   setTheme(theme: ThemeSetting): void;
   setGlass(glass: GlassSetting): void;
   setMotion(motion: MotionSetting): void;
+  setGlow(glow: boolean): void;
 }
 
 /**
@@ -90,6 +97,7 @@ export function parseAppearance(value: unknown): AppearanceSettings {
     theme,
     glass,
     motion: record.motion === 'reduced' ? 'reduced' : DEFAULT_APPEARANCE.motion,
+    glow: typeof record.glow === 'boolean' ? record.glow : DEFAULT_APPEARANCE.glow,
   };
 }
 
@@ -114,13 +122,15 @@ export const useAppearanceStore = create<AppearanceState>()((set) => ({
   setTheme: (theme) => set({ theme }),
   setGlass: (glass) => set({ glass }),
   setMotion: (motion) => set({ motion }),
+  setGlow: (glow) => set({ glow }),
 }));
 
 useAppearanceStore.subscribe((state, previous) => {
   if (
     state.theme === previous.theme &&
     state.glass === previous.glass &&
-    state.motion === previous.motion
+    state.motion === previous.motion &&
+    state.glow === previous.glow
   ) {
     return;
   }
@@ -128,6 +138,7 @@ useAppearanceStore.subscribe((state, previous) => {
     theme: state.theme,
     glass: state.glass,
     motion: state.motion,
+    glow: state.glow,
   };
   writeJson(APPEARANCE_STORAGE_KEY, settings);
 });
@@ -138,7 +149,10 @@ export function effectiveGlass(glass: GlassSetting | null): GlassSetting {
 }
 
 /** Writes the settings onto `root` as the attributes the style sheets read. */
-export function applyAppearance(root: HTMLElement, settings: AppearanceSettings): void {
+export function applyAppearance(
+  root: HTMLElement,
+  settings: Pick<AppearanceSettings, 'theme' | 'glass' | 'motion'>,
+): void {
   applyTheme(root, settings.theme);
   root.setAttribute('data-glass', effectiveGlass(settings.glass));
   if (settings.motion === 'reduced') root.setAttribute('data-motion', 'reduced');

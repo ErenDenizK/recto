@@ -31,6 +31,7 @@ import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
 import { FurnitureDialogs } from '../furniture';
+import { Aura } from '../home/Aura';
 import { DocumentDropOverlay } from '../home/DropOverlay';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
@@ -40,7 +41,7 @@ import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
 import { NewSignatureHost } from '../signatures/NewSignatureHost';
 import { SignaturesSheet } from '../signatures/SignaturesSheet';
-import { useAppearanceRoot } from '../state/appearance-store';
+import { useAppearanceRoot, useAppearanceStore } from '../state/appearance-store';
 import { useInputPolicyStore } from '../state/input-policy-store';
 import { isMarkupOpen, useStageView, useUiStore } from '../state/ui-store';
 import { useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
@@ -95,6 +96,9 @@ export function AppShell() {
   const compact = frame.size === 'compact' || frame.short;
   const focus = useFrameStore((s) => s.focusMode);
   const view = useStageView();
+  // Background glow (Settings, G5): the Library's aura, dimmer, behind the reader's canvas. The
+  // stage lets it through (`[data-reader-glow]`, Stage.module.css); the page stays white.
+  const readerGlow = useAppearanceStore((s) => s.glow) && view === 'page';
   // The Library (no file, or Home) lifts its launcher instead of an overlay (02-library L9).
   const hasDocuments = useHasDocuments();
   useFreeRect(shellRef, {
@@ -176,11 +180,13 @@ export function AppShell() {
         data-stage-bleed=""
         data-frame={compact ? 'compact' : 'strip'}
         data-focus-mode={focus || undefined}
+        data-reader-glow={readerGlow || undefined}
         onDragEnter={onDragEnter}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
+        {readerGlow ? <Aura tone="reader" testId="reader-glow" /> : null}
         <Stage dragging={dragging} />
         {view === 'page' ? <SoftEdge /> : null}
         {/* Compact windows keep the sidebar in the phone Pages sheet (M10, ADR-0033): none here;
