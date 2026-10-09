@@ -6,6 +6,13 @@
  * footer at the bottom; with documents the parts follow each other and the footer still ends
  * the view.
  */
+/*
+ * The view reaches up under the top strip to the shell's edge (owner feedback 2026-10-09, G2):
+ * laid out in the free rectangle, its aura and canvas stopped at the strip's line, and the bare
+ * shell above showed as a dark band behind and between the floating pieces at every aspect
+ * ratio. The column keeps its place: its top padding adds back what the view reaches up by, and
+ * a focused card scrolls clear of the pieces (scroll-padding-top).
+ */
 .library {
   container: library / inline-size;
   position: relative;
@@ -13,6 +20,7 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  margin-top: calc(-1 * var(--free-top, 0px));
   background: var(--canvas);
 }
 
@@ -22,8 +30,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* A focused card stays clear of the selection bar (A-12): its 44 (56) px and 16 px. */
-  scroll-padding-bottom: calc(var(--bar-h) + 2 * var(--space-4));
+  /* A focused card stays clear of the strip's pieces and of the selection bar (A-12). */
+  scroll-padding-top: var(--free-top, 0px);
+  scroll-padding-bottom: calc(var(--piece-h) + 2 * var(--piece-inset));
 }
 
 .column {
@@ -35,13 +44,13 @@
   max-width: calc(1184px + 2 * var(--gutter));
   min-height: 100%;
   margin: 0 auto;
-  padding: var(--space-6) var(--gutter) var(--space-4);
+  padding: calc(var(--free-top, 0px) + var(--space-6)) var(--gutter) var(--space-4);
   --gutter: var(--space-8);
 }
 
 /* Room for the selection bar under the last row while it shows. */
 .library[data-selecting] .column {
-  padding-bottom: calc(var(--bar-h) + 2 * var(--space-4));
+  padding-bottom: calc(var(--piece-h) + 2 * var(--piece-inset));
 }
 
 .documents {
@@ -64,6 +73,8 @@
  * grows downwards and moves nothing above it, where centring moved all of it (the font swap's
  * layout shift, fonts.spec). On a short view the space falls to nothing and the column scrolls.
  * The view is a size container for that one length (`cqh`); it holds nothing fixed-position.
+ * It reaches up under the strip by --free-top (G2), which the term takes back out of the
+ * container's height, so the card rests where it did.
  */
 .library[data-variant='empty'] .scroller {
   container-type: size;
@@ -71,7 +82,9 @@
 
 .empty {
   display: grid;
-  grid-template-rows: max(0px, calc(32.5cqh - 69px - var(--space-6))) auto 1fr auto;
+  grid-template-rows:
+    max(0px, calc(32.5cqh - 0.325 * var(--free-top, 0px) - 69px - var(--space-6)))
+    auto 1fr auto;
   gap: 0;
 }
 
