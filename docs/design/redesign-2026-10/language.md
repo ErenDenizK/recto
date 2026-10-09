@@ -746,42 +746,61 @@ Every Phosphor name was found in `@phosphor-icons/core` 2.1.1 with its `-fill` t
 
 ### 6.1 Radius and nesting
 
+Updated 2026-10-09 from `docs/design/system-audit-2026-10.md` §3.2; `tokens.css` holds these
+values and `tokens.test.ts` checks them.
+
 | Token | Value | Use |
 |---|---|---|
 | `--radius-page` | 2 | Pages, on-page marks |
-| `--radius-xs` | 4 | Badges, keycaps |
-| `--radius-sm` | 8 | Rows, inputs, menu items, small square buttons |
-| `--radius-md` | 12 | Menus, popovers, tooltips, thumbnail cards |
-| `--radius-lg` | 16 | Library cards, wells in panels |
-| `--radius-xl` | 20 | Dialogs, desktop sheets, floating panels |
-| `--radius-2xl` | 28 | Phone sheets, About cards |
-| `--radius-capsule` | 999 | Every bar, chip, text button, segmented control |
+| `--radius-xs` | 4 | Keycaps, small badges, tick marks |
+| `--radius-sm` | 8 | Tooltips, swatch cells, a thumbnail's inner image |
+| `--radius-control` | 10 | Text fields, menu rows (16 − 6), list rows, thumbnail cells, stepper wells |
+| `--radius-md` | 12 | Grouped lists and wells inside sheets (20 − 8), Settings groups |
+| `--radius-lg` | 16 | Menus, popovers, the command palette, note popups, Library cards |
+| `--radius-xl` | 20 | Sheets (`--sheet-radius`), dialogs, the floating sidebar, the launcher card, the drop overlay |
+| `--radius-2xl` | 28 | Phone bottom sheets (`--sheet-radius-bottom`) |
+| `--radius-capsule` | 999 | Every piece, bar, toast, button, segmented control, search field and chip |
 
-Nesting (S-1): inner radius = outer radius − inset. A 12 px menu with a 4 px inset gives 8 px
-items; a 20 px panel with an 8 px inset gives 12 px wells; a 44 px capsule with a 4 px inset
-gives 36 px circular buttons. Icon-only buttons are circles, text buttons capsules. Every floating
-bar is a capsule, so all bars share one shape.
+Nesting (S-1): inner radius = outer radius − inset, rounded to a token; anything that floats is a
+capsule. A 16 px menu with 6 px of padding gives 10 px rows; a 20 px sheet with its groups at an
+8 px inset gives 12 px groups; a 40 px piece with a 4 px inset gives 32 px circular buttons.
+Icon-only buttons are circles, text buttons capsules. Every floating bar is a capsule, so all
+bars share one shape. The M8 names (`--radius-1/2/3`, `--radius-round`, `--radius-pill`) are gone
+(migration step 11; `tools/dev/token-aliases.js` rewrites them).
 
 Squircles (S-2): under `@supports (corner-shape: superellipse(1.5))` (Chromium 139+), radii from
-`--radius-md` up get `superellipse(1.5)` and × 1.35 (menus 16, cards 22, dialogs 27, phone sheets
-38), clamped to half the shorter side; never on capsules or pages. Ring, rim and backdrop clip
-follow the shape; other engines show circular corners at the base radius.
+`--radius-lg` up get `superellipse(1.5)` and × 1.35 (menus 22, dialogs 27, phone sheets 38),
+clamped to half the shorter side; never on capsules or pages. Ring, rim and backdrop clip follow
+the shape; other engines show circular corners at the base radius.
 
 ### 6.2 Space and density
 
-A 4 px grid with a 2 px half-step for optical fixes: 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 64
-(S-6). Density follows the input, not the width (M-2):
+A 4 px grid with a 2 px half-step for optical fixes (S-6), every step a token: `--space-half` 2,
+`--space-1` 4, `--space-1h` 6, `--space-2` 8, `--space-3` 12, `--space-4` 16, `--space-5` 20,
+`--space-6` 24, `--space-8` 32, `--space-10` 40, `--space-12` 48, `--space-16` 64. The window has
+one margin, `--piece-inset` (16): pieces, side sheets, toasts and the Library column start there;
+a side sheet sits `--space-2` under the top strip. Density follows the input, not the width (M-2).
 
-| | `pointer: fine` | `pointer: coarse` or `any-pointer: coarse` |
-|---|---|---|
-| Controls, rows | 28 px | 44 px |
-| Bar buttons · bars | 32–36 · 44 px (contextual bars 36) | 44 · 56 px |
-| Dock · Markup palette | 48 · 48 px | 56 · 64 px; phones 64 · 64; compact-height dock 44, palette rail 64 wide |
-| Minimum target | 24 × 24 or spaced (2.5.8) | 44 × 44, hit areas never overlap |
-| Gaps between targets | ≥ 4 px | ≥ 8 px |
-| Text base · inputs | 13 · 13 px | 15 · 16 px |
-| Side gutter | 12–16 px | 16 px plus safe-area insets |
-| Keycaps | Shown | Only after a physical key press |
+Pieces and controls (owner feedback G1, 2026-10-09; system audit §3.3). Every floating piece is
+one height; inside it, and everywhere else, a control is one of three sizes and never takes the
+piece's height:
+
+| | `pointer: fine` | `pointer: coarse` or `any-pointer: coarse` | Use |
+|---|---|---|---|
+| Piece (`--piece-h`) | 40 px | 48 px | Top strip pieces, the capsule (dock, palette, Pages bar, Compare bar), the page pill, the ink strip, contextual bars, toasts (`--toast-h`), the Library's pills |
+| **S** (`--control-h-sm`) | 24 px | 32 px, 44 px hit area | Tab close, keycap button, field stepper, toast close, card corner check, chips, row icon buttons |
+| **M** (`--control-h`, default) | 32 px | 44 px | Buttons, icon buttons, fields, segmented controls, menu and list rows, dock and palette items, the toast's action |
+| **L** (`--control-h-lg`) | 40 px | 52 px | At most one per screen: the Library's primary, a phone sheet's footer action |
+| Sheet header · rows (`--sheet-header-h`, `--sheet-row-h`) | 56 · 44 px | 64 · 56 px | §3.6.1 of the system audit |
+| Tooltip (`--tooltip-h`) | 24 px | 28 px | Footnote label |
+| Minimum target | 24 × 24 or spaced (2.5.8) | 44 × 44, hit areas never overlap | |
+| Gaps between targets | ≥ 4 px | ≥ 8 px | |
+| Text base · inputs | 13 · 13 px | 15 · 16 px | |
+| Glyphs | 16 in rows and menus, 20 in controls and pieces; 12 only in badges (`--icon-xs`), 32 in empty states (`--icon-lg`) | the same | |
+| Keycaps | Shown | Only after a physical key press | |
+
+Labels: S footnote, M body at 500, L callout at 500. The retired sizes (`--control-height` 28,
+`--chip-h`, `--bar-button`) are gone; the dock keeps the 48 px piece when its labels go under.
 
 ### 6.3 Elevation
 
