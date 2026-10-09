@@ -277,8 +277,9 @@ export interface ShapeAnnotation extends AnnotationBase {
 export interface FreeTextAnnotation extends AnnotationBase {
   readonly kind: 'free-text';
   /**
-   * The text shown (and written to /Contents, so `contents` mirrors it). Latin-1 /
-   * WinAnsi only for now: other characters are refused (`unsupported`), see the README.
+   * The text shown (and written to /Contents, so `contents` mirrors it). Text outside WinAnsi
+   * (Turkish ğ ş ı İ, …) is set in an embedded bundled font (M2-a); characters the bundled
+   * faces lack are refused (`unsupported`), see the README.
    */
   readonly text: string;
   readonly fontSize: number;
