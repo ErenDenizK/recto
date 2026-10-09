@@ -3,7 +3,9 @@
  * 32 px controls (--piece-h: 40, or 48 around 44 on a coarse pointer; G1, Q-9), bottom centre
  * --piece-inset above the view's edge. It rises in by *tier rise* on --spring-quick from
  * 8 px below, fading on --duration-base, both on the glass element itself (Q-3); reduced motion
- * keeps the fade (the spring token is instant there).
+ * keeps the fade (the spring token is instant there). The same recipe as the capsule's Pages
+ * bar (system-audit-2026-10 §4 Capsule): M controls, the count in secondary body text with a
+ * label's inset, glyph-tall hairline dividers.
  */
 .bar {
   composes: mat mat-bar s8 c9 from global;
@@ -20,7 +22,7 @@
   max-width: calc(100% - 2 * var(--piece-inset));
   margin-inline: auto;
   height: var(--piece-h);
-  padding: 0 var(--piece-pad) 0 var(--space-4);
+  padding: 0 var(--piece-pad);
   border-radius: var(--piece-radius);
   transition:
     transform var(--spring-quick) var(--ease-spring),
@@ -36,11 +38,10 @@
 
 .count {
   flex: none;
-  padding-right: var(--space-2);
-  color: var(--text-primary);
-  font-size: var(--type-body);
-  font-weight: var(--weight-medium);
-  line-height: var(--type-body-lh);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  color: var(--glass-text-secondary);
+  font-size: var(--control-text);
+  line-height: var(--control-lh);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -48,7 +49,7 @@
 .divider {
   flex: none;
   width: 1px;
-  height: 20px;
+  height: var(--icon-md);
   margin: 0 var(--space-1);
   background: var(--border-hairline);
 }
@@ -62,10 +63,6 @@
   .count,
   .count + .divider {
     display: none;
-  }
-
-  .bar {
-    padding-left: var(--space-2);
   }
 
   .long {

@@ -51,6 +51,7 @@ import { useLock } from '../../state/lock-store';
 import { useSelectionStore, visibleSelection } from '../../state/selection-store';
 import { stageView, useUiStore } from '../../state/ui-store';
 import { useTabItems, useWorkspaceStore } from '../../state/workspace-store';
+import { Button } from '../../ui/Button';
 import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
 import { Tooltip } from '../../ui/Tooltip';
@@ -409,10 +410,14 @@ function BarButton({
   readonly onActivate: () => void;
 }): ReactNode {
   const disabled = reason !== undefined;
+  // An M quiet button (ui/Button; system-audit-2026-10 §3.3), as the dock's items; dimmed by
+  // `aria-disabled` alone so a press still says why (RA-21). A glyph-only item keeps its label
+  // as its name and hides it (PagesBar.module.css).
   const button = (
-    <button
-      type="button"
+    <Button
+      variant="quiet"
       className={dockStyles.item}
+      icon={<Icon name={icon} className={dockStyles.icon} />}
       data-capsule-item={item}
       data-pages-item={item}
       data-danger={danger ? '' : undefined}
@@ -431,9 +436,8 @@ function BarButton({
         onActivate();
       }}
     >
-      <Icon name={icon} className={dockStyles.icon} />
-      {iconOnly ? null : <span className={dockStyles.label}>{label}</span>}
-    </button>
+      {label}
+    </Button>
   );
   if (!iconOnly && shortcut === undefined && reason === undefined) return button;
   return (
@@ -450,13 +454,13 @@ function MoveToMenu({ documentId }: { readonly documentId: DocumentId }) {
   return (
     <Menu.Root>
       <Menu.Trigger
-        className={dockStyles.item}
+        className={`btn btn-quiet ${dockStyles.item}`}
         data-capsule-item="move-to"
         data-pages-item="move-to"
         aria-disabled={reason ? 'true' : undefined}
       >
         <Icon name="folder" className={dockStyles.icon} />
-        <span className={dockStyles.label}>{m.pages_bar_move_to()}</span>
+        <span data-btn-label="">{m.pages_bar_move_to()}</span>
         <Icon name="caret-up" className={styles.caret} />
       </Menu.Trigger>
       <Menu.Portal>
@@ -497,7 +501,7 @@ function MoreMenu({ entries }: { readonly entries: readonly MoreEntry[] }) {
     <Menu.Root>
       <Tooltip label={m.pages_bar_more()} side="top">
         <Menu.Trigger
-          className={dockStyles.item}
+          className={`btn btn-quiet ${dockStyles.item}`}
           data-capsule-item="more"
           data-pages-item="more"
           data-icon-only=""

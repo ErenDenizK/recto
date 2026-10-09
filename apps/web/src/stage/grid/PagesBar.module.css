@@ -1,12 +1,13 @@
 /*
  * The Pages bar (04-context §10; quality-bar Q-8, Q-9). It is a content of the capsule and takes
  * the dock's control system as it is (`shell/frame/Dock.module.css`: the toolbar row and its
- * --control-h items with a 20 px glyph and a 500 label), so the morph from the dock changes
- * nothing but the items. Here only what the dock has no need of: the count, separators,
- * square glyph-only items, Move to's caret and Delete's danger label.
+ * M quiet buttons with a 20 px glyph and a 500 label; system-audit-2026-10 §3.3), so the morph
+ * from the dock changes nothing but the items. Here only what the dock has no need of: the
+ * count, separators (a hairline as tall as a glyph, as in every piece), circular glyph-only
+ * items, Move to's 16 px caret (§3.7) and Delete's danger label, only while it can act.
  */
 .bar {
-  gap: 2px;
+  gap: var(--space-half);
 }
 
 .count {
@@ -22,15 +23,20 @@
 .separator {
   flex: none;
   width: 1px;
-  height: 16px;
+  height: var(--icon-md);
   margin: 0 var(--space-1);
   background: var(--border-hairline);
 }
 
-/* Glyph-only items are square: the bar's height, a circle inside the capsule (Q-9). */
+/* Glyph-only items are circles of the control height inside the capsule (Q-9); the label is
+   the accessible name only. */
 .bar [data-icon-only] {
   width: var(--control-h);
   padding: 0;
+}
+
+.bar [data-icon-only] [data-btn-label] {
+  display: none;
 }
 
 .bar [data-danger] {
@@ -41,11 +47,11 @@
   color: var(--text-disabled);
 }
 
-.caret {
+.bar .caret {
   flex: none;
-  width: 12px;
-  height: 12px;
-  margin-inline-start: -2px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-inline-start: calc(-1 * var(--space-1));
   color: var(--text-secondary);
 }
 
