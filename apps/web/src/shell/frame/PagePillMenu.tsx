@@ -7,8 +7,10 @@
  *   it replaces did (`viewer/navigation.ts`); Enter jumps into the free rectangle, closes the
  *   menu and focuses the page; an unknown page shows "Pages 1–12" under the field and keeps
  *   focus. The field selects its value whenever it takes focus, so typing replaces the page.
- *   Mod+G, a click and Enter open the menu with the field focused; a tap opens it with the
- *   menu focused instead, so the on-screen keyboard stays down until the field is tapped.
+ *   Mod+G and Enter open the menu with the field focused; a click or a tap opens it with the
+ *   menu focused instead (system-audit-2026-10 §3.8, I-28: pointer-opened surfaces focus the
+ *   surface, `ui/initial-focus.ts`), so no ring lights and no on-screen keyboard rises until
+ *   the field is pressed.
  * - **Contents:** up to 8 top-level entries with their page (tabular); a choice jumps, closes
  *   and announces "Terms, page 4". "All contents…" opens the sidebar on the outline.
  * - **Zoom** − 96 % +: the buttons keep the menu open; Mod+= Mod+- Mod+0 work anywhere.
@@ -20,7 +22,14 @@
  */
 import { Popover } from '@base-ui/react/popover';
 import type { VirtualDocument } from '@pdf-editor/document-model';
-import { type SyntheticEvent, type RefObject, useId, useRef, useState } from 'react';
+import {
+  type ComponentPropsWithRef,
+  type RefObject,
+  type SyntheticEvent,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 
 import { commandRegistry } from '../../commands/registry';
 import { documentSources, useFormStore } from '../../forms/form-store';
@@ -40,7 +49,6 @@ import { layoutTitle, setReadLayout } from '../../viewer/viewer-commands';
 import { announce } from '../announcer';
 import { useCommandShortcut } from '../use-command-shortcut';
 import { enterFocus } from './focus-mode';
-import { lastInput, readPointerCapabilities } from './input-modality';
 import { closePillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
 import { Icon } from '../../ui/Icon';
@@ -63,33 +71,24 @@ export function PagePillMenu({ doc }: { readonly doc: VirtualDocument }) {
         if (!next) closePillMenu();
       }}
     >
-      {open !== null ? <PillMenuPopup doc={doc} focusPageField={open === 'page'} /> : null}
+      {open !== null ? <PillMenuPopup doc={doc} /> : null}
     </Popover.Root>
   );
 }
 
-function PillMenuPopup({
-  doc,
-  focusPageField,
-}: {
-  readonly doc: VirtualDocument;
-  readonly focusPageField: boolean;
-}) {
+function PillMenuPopup({ doc }: { readonly doc: VirtualDocument }) {
   const fieldRef = useRef<HTMLInputElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
   return (
     <PopoverPopup
-      ref={popupRef}
       side="top"
       align="end"
       anchor={pill}
       className={styles.menu}
       // Focus mode hides the pill: then the menu shows where the pill was (F11 §6).
-      // A tap opens it on the menu itself: focusing the number field would raise the
-      // on-screen keyboard over the menu (V2 review item 3). Mod+G still focuses the field.
-      initialFocus={() =>
-        focusPageField || !openedByTouch() ? fieldRef.current : (popupRef.current ?? true)
-      }
+      // The field takes focus when the keyboard opened the menu (Mod+G, Enter on the pill);
+      // from a click or a tap the popup does (PopoverPopup's pointer rule): focusing the field
+      // would light its ring and raise the on-screen keyboard (V2 review item 3; I-28).
+      initialFocus={() => fieldRef.current}
       finalFocus={() => pill() ?? document.querySelector<HTMLElement>('[data-read-viewport]')}
       aria-label={m.frame_pill_menu_name()}
       data-testid="page-pill-menu"
@@ -101,13 +100,6 @@ function PillMenuPopup({
       <FocusRow />
     </PopoverPopup>
   );
-}
-
-/** The last input was a finger or a pen (or, before any input, the device is touch-first). */
-function openedByTouch(): boolean {
-  const input = lastInput();
-  if (input !== undefined) return input === 'touch' || input === 'pen';
-  return readPointerCapabilities().primary === 'coarse';
 }
 
 function GoToPage({
@@ -124,6 +116,9 @@ function GoToPage({
   const [value, setValue] = useState(() => labels[currentPage] ?? String(currentPage + 1));
   const [invalid, setInvalid] = useState(false);
   const hintId = useId();
+  // A press that focuses the field keeps the selection its focus made: the release would
+  // otherwise drop a caret into it, and typing would add to the page instead of replacing it.
+  const keepSelection = useRef(false);
 
   const onSubmit = (event: SyntheticEvent) => {
     event.preventDefault();
@@ -159,8 +154,19 @@ function GoToPage({
         data-testid="pill-goto"
         onFocus={(event) => {
           // The field arrives holding the current page, selected, so typing replaces it
-          // ("1" then 2 gives 2, not 12): on opening, on Mod+G and on Tab back to it.
+          // ("1" then 2 gives 2, not 12): on opening, on Mod+G, on Tab back to it and on a press.
           event.currentTarget.select();
+          keepSelection.current = true;
+        }}
+        onMouseUp={(event) => {
+          if (keepSelection.current) event.preventDefault();
+          keepSelection.current = false;
+        }}
+        onKeyDown={() => {
+          keepSelection.current = false;
+        }}
+        onBlur={() => {
+          keepSelection.current = false;
         }}
         onChange={(event) => {
           setValue(event.target.value);
@@ -202,12 +208,10 @@ function Contents({ doc }: { readonly doc: VirtualDocument }) {
         const pageIndex = index.get(destination.page);
         const title = displayTitle(node);
         return (
-          <button
+          <EntryRow
             // Outline nodes carry no id; their order is stable while the menu is open.
             // biome-ignore lint/suspicious/noArrayIndexKey: see above
             key={i}
-            type="button"
-            className={styles.entry}
             onClick={() => {
               const ws = useWorkspaceStore.getState().workspace;
               const page = doc.pages.find((p) => p.id === destination.page);
@@ -226,19 +230,17 @@ function Contents({ doc }: { readonly doc: VirtualDocument }) {
             {pageIndex === undefined ? null : (
               <span className={styles.entryPage}>{formatNumber(pageIndex + 1)}</span>
             )}
-          </button>
+          </EntryRow>
         );
       })}
-      <button
-        type="button"
-        className={styles.entry}
+      <EntryRow
         onClick={() => {
           closePillMenu();
           showOutlinePanel();
         }}
       >
         <span className={styles.entryTitle}>{m.frame_all_contents()}</span>
-      </button>
+      </EntryRow>
     </section>
   );
 }
@@ -307,24 +309,20 @@ function FieldOutlines({ doc }: { readonly doc: VirtualDocument }) {
   );
   if (!hasFields) return null;
   return (
-    <button
-      type="button"
+    <EntryRow
       aria-pressed={highlight}
-      className={styles.entry}
       onClick={() => void commandRegistry.execute('forms.highlight')}
     >
       <span className={styles.entryTitle}>{m.frame_field_outlines()}</span>
       {highlight ? <Icon name="check" className={styles.check} aria-hidden="true" /> : null}
-    </button>
+    </EntryRow>
   );
 }
 
 function FocusRow() {
   const shortcut = useCommandShortcut('view.focus');
   return (
-    <button
-      type="button"
-      className={styles.entry}
+    <EntryRow
       data-testid="pill-focus"
       onClick={() => {
         closePillMenu();
@@ -333,6 +331,27 @@ function FocusRow() {
     >
       <span className={styles.entryTitle}>{m.frame_focus()}</span>
       {shortcut ? <Keycaps shortcut={shortcut} tone="quiet" /> : null}
+    </EntryRow>
+  );
+}
+
+/**
+ * One row of the menu (a Contents entry, Show field outlines, Focus): the menu recipe's M row
+ * inside the popover (system-audit-2026-10 §3.6), title leading, its page, check or keycaps
+ * trailing. A row, not an action capsule, so not ui/Button.
+ */
+function EntryRow({
+  children,
+  ...rest
+}: Omit<ComponentPropsWithRef<'button'>, 'type' | 'className'>) {
+  return (
+    <button
+      type="button"
+      // eslint-disable-next-line recto/q9-controls
+      className={styles.entry}
+      {...rest}
+    >
+      {children}
     </button>
   );
 }

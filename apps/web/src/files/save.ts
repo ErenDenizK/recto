@@ -41,7 +41,9 @@
  * the failure says it was left. A write is **verified** by reading the
  * file back through the handle and comparing it byte for byte with what was written; only then
  * the saved mark moves and the toast says "Saved · verified" (with applied marks "Saved · 2
- * areas removed for good · verified").
+ * areas removed for good · verified"), over the save receipt (PLAN.md E13-u,
+ * `export/receipt-text.ts`): "3 areas removed · 0 matches remain" after redactions, searched in
+ * the bytes written, else "Saved on this device". A receipt replaces the count in the title.
  *
  * A save runs as a job (`startJob`, FB5): the Save button shows "Saving… 40 %" while it is on
  * screen, else the progress capsule. Mod+S during a save is queued once. Saving writes the
@@ -57,6 +59,7 @@ import { readAnnotations, whenIdle } from '../annotations/edit-runner';
 import { presentError } from '../errors/present';
 import { deliverPdf, removeEmptyFile, supportsSavePicker } from '../export/deliver';
 import { type ExportProgress, prepareExport } from '../export/export-service';
+import { receiptLineOf } from '../export/receipt-text';
 import { openSaveCopy } from '../export/export-store';
 import { exportFileName } from '../export/filename';
 import { m } from '../i18n';
@@ -318,13 +321,24 @@ interface SaveState {
   readonly jobs: Readonly<Record<DocumentId, string>>;
   /** When each document's last verified save finished, while Save shows its check (FB6). */
   readonly verifiedAt: Readonly<Record<DocumentId, number>>;
+  /** The receipt line of each document's last save (E13-u), which "Saved" says beside its reason. */
+  readonly receipts: Readonly<Record<DocumentId, string>>;
 }
 
 export const useSaveStore = create<SaveState>()(() => ({
   pending: null,
   jobs: {},
   verifiedAt: {},
+  receipts: {},
 }));
+
+/** Keeps `receipt` as the document's last save receipt (none forgets the last one). */
+function keepReceipt(id: DocumentId, receipt: string | undefined): void {
+  useSaveStore.setState((s) => {
+    const { [id]: _last, ...receipts } = s.receipts;
+    return { receipts: receipt === undefined ? receipts : { ...receipts, [id]: receipt } };
+  });
+}
 
 function ask(question: SaveQuestion): Promise<{ answer: SaveAnswer; dontAsk: boolean }> {
   // A question already open is answered "cancel": one question at a time.
@@ -725,13 +739,18 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     answered.add(target);
     markSaved(id, { handleKept: true }, written);
     showVerified(id);
+    const receipt = await receiptLineOf(prepared, 'device');
+    keepReceipt(id, receipt);
     const text =
-      removed !== undefined && removed > 0
+      removed !== undefined && removed > 0 && prepared.receiptActs.length === 0
         ? m.save_verified_removed({ count: removed })
         : m.save_verified();
     // A rewritten file cannot keep a signature (the export pipeline removes the values): say so.
     const signatures = prepared.signaturesRemoved?.count ?? 0;
-    const detail = signatures > 0 ? m.save_signatures_removed({ count: signatures }) : undefined;
+    const detail =
+      [receipt, signatures > 0 ? m.save_signatures_removed({ count: signatures }) : undefined]
+        .filter(Boolean)
+        .join(' · ') || undefined;
     toast.success(text, {
       documentId: id,
       testId: 'save-toast',
@@ -745,9 +764,11 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     if (shared === 'cancelled') return;
     if (shared === 'shared') {
       markSaved(id, { handleKept: false }, written);
+      const receipt = await receiptLineOf(prepared, 'shared');
+      keepReceipt(id, receipt);
       toast.info(m.save_shared({ name }), {
         documentId: id,
-        detail: m.save_copy_detail(),
+        detail: [receipt, m.save_copy_detail()].filter(Boolean).join(' · '),
         testId: 'save-toast',
       });
       return;
@@ -760,9 +781,11 @@ async function runSave(id: DocumentId, doc: VirtualDocument): Promise<void> {
     return;
   }
   markSaved(id, { handleKept: false }, written);
+  const receipt = await receiptLineOf(prepared, 'device');
+  keepReceipt(id, receipt);
   toast.info(m.save_downloaded({ name }), {
     documentId: id,
-    detail: m.save_copy_detail(),
+    detail: [receipt, m.save_copy_detail()].filter(Boolean).join(' · '),
     testId: 'save-toast',
   });
 }
@@ -774,5 +797,5 @@ export function resetSave(): void {
   for (const handle of jobHandles.values()) handle.finish();
   jobHandles.clear();
   useSaveStore.getState().pending?.resolve({ answer: 'cancel', dontAsk: false });
-  useSaveStore.setState({ pending: null, jobs: {}, verifiedAt: {} });
+  useSaveStore.setState({ pending: null, jobs: {}, verifiedAt: {}, receipts: {} });
 }

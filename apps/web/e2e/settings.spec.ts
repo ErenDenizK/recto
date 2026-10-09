@@ -275,7 +275,8 @@ test('About Recto from ⌘K and from the privacy popover; Settings… in the Doc
   await page.keyboard.press('Escape');
   await expect(sheet(page)).toHaveCount(0);
 
-  const trigger = page.getByTestId('privacy-indicator');
+  // On the Library the footer's chip opens the privacy popover (the strip's ⋯ stands alone).
+  const trigger = page.getByTestId('library-privacy');
   await trigger.click();
   await page.getByTestId('privacy-version').click();
   await expect(sheet(page).getByTestId('settings-about')).toBeVisible();

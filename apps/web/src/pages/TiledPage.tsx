@@ -20,6 +20,7 @@ import {
   isCapped,
   RENDER_PRIORITY,
 } from '../engine/engine-service';
+import { useShowingOriginal } from '../shell/frame/see-original';
 import { displayedSize, displayRectToUser, type PageFrame } from '../viewer/geometry';
 import styles from './PageCanvas.module.css';
 
@@ -208,6 +209,8 @@ function TileCanvas({
   const unrotatedWidth = frame.size.width;
   const unrotatedHeight = frame.size.height;
   const { col, row, left, top, width, height } = tile;
+  // See the original (S2-1a): the tiles render bare too.
+  const bare = useShowingOriginal();
 
   useEffect(() => {
     const canvas = ref.current;
@@ -233,6 +236,7 @@ function TileCanvas({
         signal: controller.signal,
         clip,
         tile: `t${TILE_PX}:${col},${row}`,
+        ...(bare ? { bare } : {}),
       })
       .then((result) => {
         if (!result.ok || controller.signal.aborted) return;
@@ -260,6 +264,7 @@ function TileCanvas({
     top,
     width,
     height,
+    bare,
     revision,
   ]);
 

@@ -3,7 +3,7 @@
  * and up, 44 px on a fine pointer and 56 px on a coarse one (quality-bar Q-9's bars; XD-3).
  *
  *   document:  ◆ ▤ │ tabs (active ▾ ● ⓘ) "N more ▾" + │      ⌕ Find  ↶ ↷  Save  ◎
- *   Library:   ◆ Library │ tabs + │                                          ◎  ⋯
+ *   Library:   ◆ Library │ tabs + │                                              ⋯
  *
  * - No ⋯ in a document: view options live in the page pill, app items in the dock's More (and
  *   at the end of the title menu until D2-2). The mode switch, layout switch, Document and
@@ -17,7 +17,7 @@
  *   canvas, inset from the window's edges as the bottom capsule is (16 px), of the capsule's
  *   material (M2, `mat mat-bar`), its height (--bar-h) and its pill radius: the leading piece
  *   holds ◆ ▤ and the tabs (in the Pages grid the selected tab adds the page count), the
- *   trailing piece Find, ↶ ↷, Save and ◎. The middle is bare canvas; the page scrolls beneath
+ *   trailing piece Find, ↶ ↷, Save and ◎ (on the Library ⋯ alone). The middle is bare canvas; the page scrolls beneath
  *   both. The `header` itself is a transparent, pointer-transparent line whose box (the inset
  *   and the pieces' height) is the free rectangle's top inset (frame-insets.ts), so jumps and
  *   fits land below the pieces (A-12).
@@ -44,6 +44,7 @@ import { DocumentTabs } from './DocumentTabs';
 import { FindEntry } from './FindEntry';
 import { tabDomId } from './ids';
 import { LibraryButton } from './LibraryButton';
+import { OriginalPill } from './OriginalPill';
 import { SaveButton } from './SaveButton';
 import { SidebarToggle } from './SidebarToggle';
 import { TitleMenu } from './TitleMenu';
@@ -107,16 +108,15 @@ export function TopStrip() {
       </div>
       <div
         ref={trailRef}
-        className={`${styles.piece} ${styles.trail}`}
+        className={`${onLibrary ? styles.solo : styles.piece} ${styles.trail}`}
         data-top-piece="trail"
         data-bar="title-trail"
         data-glass-group="top"
       >
+        {/* The Library's trailing piece is one control, ⋯ (R11, the owner's "maybe too big"):
+            its footer's "Nothing is uploaded" chip opens the privacy popover there. */}
         {onLibrary ? (
-          <>
-            <PrivacyShield />
-            <LibraryMenu />
-          </>
+          <LibraryMenu />
         ) : (
           <>
             <FindEntry />
@@ -127,6 +127,7 @@ export function TopStrip() {
         )}
       </div>
       {onLibrary ? null : <TitleMenu anchor={activeTabElement} />}
+      <OriginalPill onLibrary={onLibrary} />
     </header>
   );
 }

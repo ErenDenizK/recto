@@ -1,6 +1,7 @@
-/* ◎ (01-frame F8 §2): a --control-h circle with the 20 px shield, the strip's other buttons'
-   states (hover wash, pressed, open held). External requests turn the glyph to the warning
-   colour, its triangle shape carrying the meaning (A-19), with an 11 px count badge. */
+/* ◎ (01-frame F8 §2): a --control-h circle with Phosphor's 20 px shield, the strip's other
+   buttons' states (hover wash, pressed, open held). External requests turn the glyph to the
+   warning colour, its triangle shape carrying the meaning (A-19), with a caption-step count
+   badge. */
 .trigger {
   position: relative;
   display: grid;
@@ -19,7 +20,6 @@
 .trigger > svg {
   width: var(--icon-md);
   height: var(--icon-md);
-  stroke-width: 1.5;
 }
 
 @media (hover: hover) {
@@ -53,17 +53,18 @@
 
 .badge {
   position: absolute;
-  top: 2px;
+  top: var(--space-half);
   right: 0;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 3px;
+  min-width: var(--space-4);
+  height: var(--space-4);
+  padding: 0 var(--space-1);
+  box-sizing: border-box;
   border-radius: var(--radius-capsule);
   background: var(--surface-on);
   color: var(--text-primary);
-  font-size: 11px;
+  font-size: var(--type-caption);
   font-weight: 600;
-  line-height: 14px;
+  line-height: var(--space-4);
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -107,34 +108,32 @@
   z-index: 41;
 }
 
+/* The popover recipe (system-audit-2026-10 §3.6): 360 px, and never past the free rectangle
+   (I-27, "some pop-ups don't fit"): it ends --space-2 above the capsule and the page pill
+   (--free-bottom, frame-insets.ts), its body scrolling under the title with the edge fade. */
 .popup {
   width: min(360px, calc(100vw - 16px));
-}
-
-/* Opened upward from the Library footer's chip, it stays under the strip's pieces: the room
-   above the chip less the free rectangle's top (--free-top), so on a 1180 × 820 or 820 × 1180
-   tablet it scrolls inside rather than running over the tabs (PLAN W0-e, E8a; system audit
-   §3.6: content taller than the room scrolls). */
-.popup[data-side='top'] {
   max-height: min(
-    calc(var(--available-height, 100dvh) - var(--free-top, 0px)),
+    var(--available-height, calc(100dvh - 16px)),
+    calc(100dvh - var(--free-top, 0px) - var(--free-bottom, 0px) - var(--space-2)),
     calc(var(--visual-h, 100dvh) - 16px)
   );
 }
 
 .section {
   display: grid;
-  gap: 2px;
+  gap: var(--space-half);
   margin-top: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--border-hairline);
 }
 
-/* Section labels: footnote 600, secondary, sentence case (system-audit-2026-10 §3.4, T-9). */
+/* A section label: footnote 600 in the secondary ink, sentence case (system-audit-2026-10
+   §3.4). */
 .heading {
   color: var(--text-secondary);
   font-size: var(--type-footnote);
-  font-weight: var(--weight-semibold);
+  font-weight: 600;
   line-height: var(--type-footnote-lh);
 }
 
@@ -144,7 +143,7 @@
   gap: var(--space-2);
   color: var(--text-secondary);
   font-size: var(--type-footnote);
-  line-height: 18px;
+  line-height: var(--type-footnote-lh);
   text-wrap: pretty;
 }
 
@@ -157,7 +156,7 @@
 .urls {
   composes: technical from global;
   display: grid;
-  gap: 2px;
+  gap: var(--space-half);
   max-height: 120px;
   overflow: auto;
   color: var(--warning);

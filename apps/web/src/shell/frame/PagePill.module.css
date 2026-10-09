@@ -62,19 +62,20 @@
   --rise: calc(var(--dock-h, var(--bar-h)) + 8px - (var(--bar-h) - var(--pill-h)) / 2);
 }
 
-/* The menu (F11 §2): the popover primitive at 300 px (340 coarse). */
+/* The menu (F11 §2): the popover recipe (system-audit-2026-10 §3.6: radius 16, 12 padding),
+   its rows the menu recipe's M rows. */
 .menu {
   /* The M4 material's solid twin (`mat-opaque`; quality bar Q-1, Q-3): this panel opens over
      the sidebar's dark edge and the white page at once, and no blur radius evens a hard
      dark/white seam under a tall panel, so it reads as one material whatever lies beneath. */
   composes: mat-opaque from global;
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   /* 20 px over F11's 300 / 340: "Continuous · Single page · Two pages" filled 300 to within
      5 px, so an engine whose text runs a little wider fell back to a Select (09 §6.2) under a
      Segmented Fit row. The extra room keeps both rows Segmented, in English and Turkish. */
   width: min(320px, calc(100vw - 16px));
-  padding: 8px;
+  padding: var(--space-3);
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
@@ -83,14 +84,15 @@
   }
 }
 
-/* One column for every row: labels 8 px in, as the entries' text; the field, Go, the zoom
-   buttons and the segmented tracks run to the menu's content edges. */
+/* One column for every row: labels on the content edge, as the entries' text (whose rows reach
+   --space-2 into the padding, the menu recipe's inset); the field, Go, the zoom buttons and the
+   segmented tracks run to the menu's content edges. */
 .goto {
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
   column-gap: var(--space-2);
-  padding: 2px 0 4px 8px;
+  padding: 0 0 var(--space-1);
 }
 
 .gotoLabel {
@@ -101,11 +103,12 @@
 }
 
 .gotoField {
+  composes: focus-field from global;
   box-sizing: border-box;
   width: 100%;
   min-width: 48px;
   height: var(--control-h);
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
   background: var(--field-well);
@@ -113,13 +116,6 @@
   font-size: var(--field-text);
   font-variant-numeric: tabular-nums;
   text-align: center;
-  outline: none;
-}
-
-.gotoField:focus-visible {
-  outline: 2px solid var(--focus-light);
-  outline-offset: var(--focus-offset-out);
-  box-shadow: 0 0 0 1px var(--focus-dark);
 }
 
 .gotoField[aria-invalid] {
@@ -146,17 +142,16 @@
 
 .section {
   display: grid;
-  gap: 2px;
-  padding-top: 6px;
+  gap: var(--space-half);
+  padding-top: var(--space-1h);
   border-top: 1px solid var(--border-hairline);
 }
 
 .sectionLabel {
   display: flex;
   align-items: center;
-  min-height: 24px;
+  min-height: var(--control-h-sm);
   margin: 0;
-  padding: 0 8px;
   color: var(--text-secondary);
   font-size: var(--type-footnote);
   font-weight: 600;
@@ -168,7 +163,8 @@
   align-items: center;
   gap: var(--space-2);
   min-height: var(--control-h);
-  padding: 0 8px;
+  margin-inline: calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
   border-radius: var(--radius-control);
   color: var(--text-primary);
   font-size: var(--control-text);
@@ -177,7 +173,7 @@
 
 .section + .entry,
 .goto + .entry {
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 @media (hover: hover) {
@@ -215,7 +211,6 @@
   align-items: center;
   gap: var(--space-1);
   min-height: var(--control-h);
-  padding: 0 0 0 8px;
 }
 
 .rowLabel {
@@ -233,5 +228,5 @@
 }
 
 .segmented {
-  margin: 2px 0;
+  margin: var(--space-half) 0;
 }

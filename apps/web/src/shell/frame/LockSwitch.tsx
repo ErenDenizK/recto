@@ -4,6 +4,8 @@
  * on this slot). It reads and writes `state/lock-store.ts`, which the change guard reads
  * (`state/guard.ts`, ADR-0030), so a locked document refuses every act at once.
  *
+ * - A plain row: the padlock glyph leads, "Lock" and its reason, the switch trails (no glyph in
+ *   its thumb; system-audit-2026-10 §4 Frame).
  * - **On** locks with the reason `user` ("You locked it"). The reason line under the switch
  *   says why a document is locked, in words and with the padlock (A-19: never a tint alone):
  *   `user`, `signed`, `restricted` or `default`, `04-context` §19's reasons.
@@ -101,15 +103,19 @@ export function LockSwitch({
 
   return (
     <div className={styles.lock} data-testid="lock-switch-row">
-      <Switch
-        checked={reason !== undefined}
-        onCheckedChange={onCheckedChange}
-        label={m.frame_lock()}
-        description={reason === undefined ? undefined : lockReasonText(reason)}
-        disabled={readOnly}
-        glyph={<Icon name="lock-simple" />}
-        className={styles.lockSwitch}
-      />
+      {/* A plain row (system-audit-2026-10 §4 Frame): the padlock leads as every row's glyph
+          does, the switch trails with nothing in its thumb. */}
+      <div className={styles.lockRow}>
+        <Icon name="lock-simple" className={styles.lockGlyph} aria-hidden="true" />
+        <Switch
+          checked={reason !== undefined}
+          onCheckedChange={onCheckedChange}
+          label={m.frame_lock()}
+          description={reason === undefined ? undefined : lockReasonText(reason)}
+          disabled={readOnly}
+          className={styles.lockSwitch}
+        />
+      </div>
       {asking && reason !== undefined ? (
         <div
           className={styles.unlockWarning}

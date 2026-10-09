@@ -343,6 +343,11 @@ export function CopyDetails({ summary }: { readonly summary: CopySummary }) {
             : size
         }
       />
+      {summary.receipt ? (
+        <p className={styles.note} data-testid="save-copy-receipt">
+          {summary.receipt}
+        </p>
+      ) : null}
       {summary.items.length > 0 ? (
         <ul className={styles.summary} aria-label={m.export_summary_label()}>
           {summary.items.map((item) => (

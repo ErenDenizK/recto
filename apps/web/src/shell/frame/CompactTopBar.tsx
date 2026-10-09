@@ -137,9 +137,12 @@ function TitleButton() {
   if (!doc) return null;
   const edited = !matchesMark(workspace, doc.id, marks[doc.id]);
   return (
+    // The document's title as the menu's trigger (F9 §5): a title with its marks, not a text
+    // action, so not ui/Button.
     <button
       type="button"
       id="compact-title"
+      // eslint-disable-next-line recto/q9-controls
       className={styles.title}
       aria-label={m.frame_compact_title_name({ name: doc.title })}
       aria-haspopup="dialog"
