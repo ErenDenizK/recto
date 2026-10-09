@@ -1,9 +1,9 @@
 /* The colour well (10-ink.md §2.1). Fine: disc 24, gap 2, ring 2 → 32; coarse: 28, 2, 3 → 38
    in a 44 px target. */
 .well {
-  --well-target: 32px;
+  --well-target: var(--control-h);
   --well-disc: 24px;
-  --well-gap: 2px;
+  --well-gap: var(--space-half);
   --well-ring: 2px;
   --well-contrast: var(--swatch-contrast);
 
@@ -22,13 +22,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-:global([data-theme='light']) .well {
-  --well-contrast: rgb(21 23 28 / 0.55);
-}
-
 @media (pointer: coarse), (any-pointer: coarse) {
   .well {
-    --well-target: 44px;
     --well-disc: 28px;
     --well-ring: 3px;
   }

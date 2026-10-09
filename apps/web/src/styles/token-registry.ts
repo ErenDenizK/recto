@@ -154,6 +154,7 @@ export const CONTROL_TOKENS: readonly string[] = [
   '--scroll-thumb-hover',
   '--badge-fill',
   '--swatch-contrast',
+  '--swatch-edge',
   '--focus-light',
   '--focus-dark',
 ];

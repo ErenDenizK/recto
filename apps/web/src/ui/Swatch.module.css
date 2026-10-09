@@ -1,5 +1,6 @@
 /*
- * Swatch and SwatchGroup (10-ink.md §5). Geometry, fine / coarse: target 32 / 44, dot 18 / 22;
+ * Swatch and SwatchGroup (10-ink.md §5). Geometry, fine / coarse: target the M control
+ * (--control-h, 32 / 44; system-audit-2026-10 §3.3), dot 18 / 22;
  * selected: dot 14 / 18 inside a 2 px ring in the primary text colour with a 2 px gap (ring
  * 22 / 26), the armed pen's ring in the palette's pen well (owner feedback F3).
  * The dot and the ring are centred by grid, so every size is a whole pixel on a whole-pixel
@@ -7,10 +8,10 @@
  */
 
 .group {
-  --sw-target: 32px;
+  --sw-target: var(--control-h);
   --sw-dot: 18px;
   --sw-dot-on: 14px;
-  --sw-gap: 2px;
+  --sw-gap: var(--space-half);
   --sw-ring: 2px;
   --sw-contrast: var(--swatch-contrast);
   --sw-strong: var(--text-primary);
@@ -23,14 +24,8 @@
   gap: 0;
 }
 
-:global([data-theme='light']) .group {
-  --sw-contrast: rgb(21 23 28 / 0.55);
-  --sw-strong: #15171c;
-}
-
 @media (pointer: coarse), (any-pointer: coarse) {
   .group {
-    --sw-target: 44px;
     --sw-dot: 22px;
     --sw-dot-on: 18px;
   }
@@ -116,7 +111,7 @@
       transparent calc(50% + 0.9px)
     ),
     #ffffff;
-  box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.35);
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
 }
 
 @media (hover: hover) {

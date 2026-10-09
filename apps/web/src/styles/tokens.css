@@ -325,8 +325,10 @@
   --scroll-thumb: rgb(var(--white-rgb) / 0.4);
   --scroll-thumb-hover: rgb(var(--white-rgb) / 0.55);
   --badge-fill: var(--n6);
-  /* The ring that separates a dark swatch or colour well from the chrome. */
+  /* The ring that separates a dark swatch or colour well from the chrome; the edge of the white
+     "no fill" swatch, the same ink in both themes. */
   --swatch-contrast: rgb(var(--white-rgb) / 0.55);
+  --swatch-edge: rgb(var(--ink-rgb) / 0.35);
   /* The two-band focus ring (A-11; language.md §9.2; 09 §19): the lime light band drawn by
      the outline and the ink band drawn by the box-shadow, 16.42:1 apart, so one band clears
      3:1 on any colour (WCAG C40 asks 9:1 between them). Its forms are in styles/focus.css. */
@@ -599,6 +601,7 @@
   --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
   --badge-fill: var(--n4);
   --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
+  --swatch-edge: rgb(var(--ink-rgb) / 0.35);
   /* The focus bands serve both themes unchanged (language.md §9.2): lime and #08090c. Fields
      and segments take the outset field form in light (styles/focus.css, option A). */
   --focus-light: var(--lime-300);
@@ -861,6 +864,7 @@
     --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
     --badge-fill: var(--n4);
     --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
+    --swatch-edge: rgb(var(--ink-rgb) / 0.35);
     /* The focus bands serve both themes unchanged (language.md §9.2): lime and #08090c. Fields
        and segments take the outset field form in light (styles/focus.css, option A). */
     --focus-light: var(--lime-300);
