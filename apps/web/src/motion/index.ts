@@ -59,6 +59,7 @@ export {
   ENTER_SCALE,
   EXIT_SCALE,
   LARGE_SURFACE_PX,
+  LOOP_MS,
   MOTION_TOKENS,
   PRESS_SCALE,
   type PressPointer,

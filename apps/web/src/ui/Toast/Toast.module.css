@@ -336,7 +336,7 @@
   height: 100%;
   background: var(--glass-text-secondary);
   transform-origin: left center;
-  transition: transform 200ms var(--ease-standard);
+  transition: transform var(--duration-base) var(--ease-standard);
 }
 
 /* Reduced motion (§7.5 *progress*): the fill steps to each value. */
@@ -377,7 +377,7 @@
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
   pointer-events: none;
-  animation: ring-turn 2.4s linear infinite;
+  animation: ring-turn var(--loop-ring) linear infinite;
 }
 
 @keyframes ring-turn {

@@ -578,7 +578,7 @@
 
 .bubble[data-leaving] {
   opacity: 0;
-  transition-duration: 100ms;
+  transition-duration: var(--duration-fast);
 }
 
 /* --- Readout --------------------------------------------------------------------------- */

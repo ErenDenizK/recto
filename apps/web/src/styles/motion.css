@@ -134,6 +134,18 @@
   /* Every View Transition (§7.4; A-10: input is lost while one runs, so ≤ 250 ms). */
   --vt-duration: 240ms;
 
+  /* Loops and one-shot flourishes (system-audit-2026-10 §2.2, Q-10): the period of the activity
+     spinner, the reduced-motion pulse that replaces it, the indeterminate progress sweep, the
+     processing ring's turn, the success bloom on a rim and the tint that reveals a row a command
+     opened. They are not transitions, so reduced motion does not shorten them: each module
+     swaps its loop for the still or pulsing form itself (§7.5). */
+  --loop-spinner: 800ms;
+  --loop-pulse: 1600ms;
+  --loop-sweep: 1400ms;
+  --loop-ring: 2400ms;
+  --loop-bloom: 1200ms;
+  --loop-reveal: 1200ms;
+
   /* *press* (§7.3): scale on pointer down in --duration-instant, release on --spring-press.
      Surfaces of 120 px or more press less (spec 02.5): a Library card, a page in the grid. */
   --press-scale-mouse: 0.97;
