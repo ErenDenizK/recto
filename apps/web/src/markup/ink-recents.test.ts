@@ -6,7 +6,7 @@ import {
   inkRecents,
   noteInkLeft,
   reloadInkRecents,
-  shownRecents,
+  stripColours,
 } from './ink-recents';
 
 beforeEach(() => {
@@ -40,17 +40,31 @@ describe('ink recents (10-ink §2.1, G8)', () => {
       noteInkLeft('shape', colours[i] as string, colours[i + 1] as string);
     }
     expect(inkRecents('shape')).toHaveLength(INK_RECENT_SHOWN + 1);
-    expect(shownRecents(inkRecents('shape'), '#000006')).toEqual([
+    expect(stripColours(inkRecents('shape'), '#000006', [], [])).toEqual([
       '#000005',
       '#000004',
       '#000003',
       '#000002',
     ]);
-    expect(shownRecents(inkRecents('shape'), '#000004')).toEqual([
+    expect(stripColours(inkRecents('shape'), '#000004', [], [])).toEqual([
       '#000005',
       '#000003',
       '#000002',
       '#000001',
+    ]);
+  });
+
+  it('fills the row to four from the suggestions, never repeating the dock’s pens (§3.7)', () => {
+    const dock = ['#111111', '#2222AA', '#CC2222'];
+    const suggested = ['#111111', '#00AA00', '#2222aa', '#7700AA', '#FF8800', '#EE55AA'];
+    // No recents: the suggestions that are neither the current colour nor a dock pen.
+    expect(stripColours([], '#00AA00', suggested, dock)).toEqual(['#7700AA', '#FF8800', '#EE55AA']);
+    // Recents come first; one that is a dock pen's colour is left out.
+    expect(stripColours(['#CC2222', '#123456'], '#7700AA', suggested, dock)).toEqual([
+      '#123456',
+      '#00AA00',
+      '#FF8800',
+      '#EE55AA',
     ]);
   });
 
