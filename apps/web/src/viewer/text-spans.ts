@@ -9,10 +9,11 @@
  *   printed glyphs.
  * - `installCopyHandler`: replaces the browser's copy text (absolutely positioned spans
  *   serialize one per line) with the assembled page text whenever the selection lies in a
- *   text layer.
+ *   text layer, and pulses the copied lines once (`copy-pulse.ts`).
  */
 import type { CSSProperties } from 'react';
 
+import { pulseSelection } from './copy-pulse';
 import { selectionCopyText, type TextLine } from './text-model';
 
 /** The text layer's font (TextLayer.module.css sets the same family). */
@@ -62,6 +63,8 @@ export function installCopyHandler(target: Document = document): () => void {
     if (text === undefined || !event.clipboardData) return;
     event.clipboardData.setData('text/plain', text);
     event.preventDefault();
+    // The copied lines pulse once (motion-2026-10 viewer.md §5).
+    pulseSelection(target.getSelection());
   };
   target.addEventListener('copy', onCopy);
   return () => target.removeEventListener('copy', onCopy);

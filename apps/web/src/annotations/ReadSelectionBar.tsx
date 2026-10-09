@@ -28,6 +28,7 @@ import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Tooltip } from '../ui/Tooltip';
 import { openTextEditorAt } from '../text-edit/entry';
+import { pulseSelection } from '../viewer/copy-pulse';
 import { selectionCopyText } from '../viewer/text-model';
 import { useToolStore } from '../viewer/tool-store';
 import { useAnnotationStore } from './annotation-store';
@@ -49,6 +50,8 @@ function barHeight(): number {
 interface Placement {
   readonly x: number;
   readonly y: number;
+  /** Below the selection (near the top of the page), so it emerges downward. */
+  readonly below: boolean;
 }
 
 /** The client rects of the selection's first range, empty when nothing is selected. */
@@ -124,8 +127,9 @@ function placementOn(root: HTMLElement): Placement | null {
   const bounds = root.getBoundingClientRect();
   const top = first.top - bounds.top;
   const height = barHeight();
-  const y = top - height - GAP >= 0 ? top - height - GAP : last.bottom - bounds.top + GAP;
-  return { x: first.left - bounds.left, y };
+  const below = top - height - GAP < 0;
+  const y = below ? last.bottom - bounds.top + GAP : top - height - GAP;
+  return { x: first.left - bounds.left, y, below };
 }
 
 export function TextSelectionBar(props: PageOverlayProps) {
@@ -216,6 +220,8 @@ export function TextSelectionBar(props: PageOverlayProps) {
       // No clipboard permission: Ctrl+C still copies the selection.
       return;
     }
+    // The copied lines pulse once where they are (motion-2026-10 viewer.md §5).
+    pulseSelection(selection);
     announce(m.selection_copied());
   };
 
@@ -256,6 +262,7 @@ export function TextSelectionBar(props: PageOverlayProps) {
           data-annotation-keep=""
           style={{ left: Math.max(0, placement.x), top: placement.y }}
           data-selection-mode={editable ? 'edit' : 'read'}
+          data-below={placement.below ? '' : undefined}
           onKeyDown={roving.onKeyDown}
           onFocus={roving.onFocus}
         >
