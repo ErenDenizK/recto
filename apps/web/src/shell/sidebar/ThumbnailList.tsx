@@ -38,6 +38,7 @@ import {
   type MouseEvent,
   type RefObject,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -47,6 +48,7 @@ import { edgeScrollSpeed } from '../../dnd/geometry';
 import { renderDragPreview } from '../../dnd/page-drag';
 import { attachPointerDrag } from '../../dnd/pointer-drag';
 import { RENDER_PRIORITY } from '../../engine/engine-service';
+import { flip } from '../../motion/flip';
 import { formatNumber, m } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
 import { displaySize, fitInBox } from '../../pages/page-geometry';
@@ -64,6 +66,7 @@ import { useStageView } from '../../state/ui-store';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { contentFrame, ResizedContent } from '../../stage/ResizedContent';
+import { cancelJump, jumpScroll } from '../../viewer/jump';
 import { Icon } from '../../ui/Icon';
 import { announce } from '../announcer';
 import { movePagesTo, pagesFor, stepTarget } from './thumbnail-actions';
@@ -165,12 +168,73 @@ function PageList({
   }, [virtualizer, layoutKey]);
 
   // Follow the page being read; the list keeps the current row in view unless focus is in it.
+  // It glides there on the viewer's eased jump (motion-2026-10 viewer.md §4), retargeting as
+  // the reading moves on; a wheel, a touch or a press on the list takes over at once.
   const listRef = useRef<HTMLDivElement>(null);
+  const followed = useRef(false);
   useEffect(() => {
-    if (!pageView) return;
+    const scroller = scrollRef.current;
+    if (!pageView || !scroller) return;
     if (listRef.current?.contains(document.activeElement)) return;
-    virtualizer.scrollToIndex(currentPage, { align: 'auto' });
-  }, [virtualizer, pageView, currentPage]);
+    const target = virtualizer.getOffsetForIndex(currentPage, 'auto')?.[0];
+    if (target === undefined) return;
+    // The first follow (the list opening) lands at once.
+    if (!followed.current) {
+      followed.current = true;
+      scroller.scrollTop = target;
+      return;
+    }
+    void jumpScroll(scroller, { top: target, left: scroller.scrollLeft });
+  }, [virtualizer, pageView, currentPage, scrollRef]);
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    const take = () => cancelJump(scroller);
+    scroller.addEventListener('wheel', take, { passive: true });
+    scroller.addEventListener('touchstart', take, { passive: true });
+    scroller.addEventListener('pointerdown', take, { passive: true });
+    return () => {
+      take();
+      scroller.removeEventListener('wheel', take);
+      scroller.removeEventListener('touchstart', take);
+      scroller.removeEventListener('pointerdown', take);
+    };
+  }, [scrollRef]);
+
+  // The current-page ring (§2.2) is one element that slides from thumbnail to thumbnail as the
+  // reading moves on, on `smooth` through `flip()` (motion-2026-10 viewer.md §4), instead of
+  // jumping from one outline to the next. It rests on the current sheet's box; while that row
+  // is not laid out (scrolled out of the virtual window) it is hidden.
+  const ringRef = useRef<HTMLDivElement>(null);
+  const ringPage = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const ring = ringRef.current;
+    const list = listRef.current;
+    if (!ring || !list) return;
+    const id = pageView ? order[currentPage] : undefined;
+    const option =
+      id === undefined
+        ? null
+        : list.querySelector<HTMLElement>(`[role="option"][data-page-id="${CSS.escape(id)}"]`);
+    const sheet = option?.querySelector<HTMLElement>('[data-thumb]');
+    const start = offsets.rows[currentPage]?.start;
+    if (!option || !sheet || start === undefined) {
+      ring.hidden = true;
+      ringPage.current = null;
+      return;
+    }
+    const place = () => {
+      ring.hidden = false;
+      ring.style.left = `${option.offsetLeft + sheet.offsetLeft}px`;
+      ring.style.top = `${start + sheet.offsetTop}px`;
+      ring.style.width = `${sheet.offsetWidth}px`;
+      ring.style.height = `${sheet.offsetHeight}px`;
+    };
+    const moved = ringPage.current !== null && ringPage.current !== currentPage && !ring.hidden;
+    ringPage.current = currentPage;
+    if (moved) void flip([ring], place);
+    else place();
+  });
 
   const focusedIndex = cursor === null ? -1 : order.indexOf(cursor);
   useEffect(() => {
@@ -493,6 +557,7 @@ function PageList({
             />
           );
         })}
+        <div ref={ringRef} className={styles.currentRing} hidden aria-hidden="true" />
         {gapY !== null ? (
           <div
             className={styles.gap}
