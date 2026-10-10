@@ -187,26 +187,35 @@ test('a sheet over a document and a toast: six at most while it comes in, four a
   await page.keyboard.press('Escape');
 });
 
-test('the docked sidebar with the strip, the dock, the pill and a contextual bar: four at rest', async ({
+test('the floating sidebar with the strip, the dock, the pill and a contextual bar: five at rest', async ({
   page,
 }) => {
   await open(page, 'simple-text.pdf');
   const sidebar = await showSidebar(page, 'Pages');
-  await expect(sidebar).toHaveAttribute('data-form', 'docked');
+  await expect(sidebar).toHaveAttribute('data-form', 'floating');
   await page.mouse.move(700, 450);
-  // A double-clicked word: the text selection bar joins the strip, the dock and the pill.
+  // A double-clicked word clear of the panel: the text selection bar joins the strip, the dock
+  // and the pill.
+  const edge = (await sidebar.boundingBox())?.x ?? 0;
+  const panelRight = edge + ((await sidebar.boundingBox())?.width ?? 0);
   const rows = page.getByTestId('text-layer').first().locator('span[data-row]');
-  const word = await rows.first().boundingBox();
-  if (!word) throw new Error('no text');
+  const boxes = await rows.evaluateAll((spans) =>
+    spans.map((span) => {
+      const r = span.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    }),
+  );
+  const word = boxes.find((b) => b.width > 24 && b.x > panelRight + 8);
+  if (!word) throw new Error('no text clear of the sidebar');
   await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
   await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
-  const walk = await expectGlassClean(page, 'Read, docked sidebar, text selection bar');
-  // Q-11: the docked sidebar rests on its solid twin (it lies over the canvas), so the
-  // contextual bar is the "one more" of the four.
-  expect(walk.visible).toBeLessThanOrEqual(4);
-  expect(names(walk).some((n) => n.includes('sidebar'))).toBe(false);
-  const solid = await sidebar.evaluate((el) => getComputedStyle(el).backdropFilter);
-  expect(solid).toBe('none');
+  const walk = await expectGlassClean(page, 'Read, floating sidebar, text selection bar');
+  // Q-11 as DSN-22 adjusts it: the floating sidebar is glass with a slot of its own, so the
+  // contextual bar is still the "one more" of the other four.
+  expect(walk.visible).toBeLessThanOrEqual(5);
+  expect(names(walk).some((n) => n.includes('#left-panel'))).toBe(true);
+  const glass = await sidebar.evaluate((el) => getComputedStyle(el).backdropFilter);
+  expect(glass).not.toBe('none');
 });
 
 test('the Pages grid with its Pages bar', async ({ page }) => {

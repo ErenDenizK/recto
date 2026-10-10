@@ -108,7 +108,6 @@ export function AppShell() {
   // The Library (no file, or Home) lifts its launcher instead of an overlay (02-library L9).
   const hasDocuments = useHasDocuments();
   useFreeRect(shellRef, {
-    sidebarDocked: !compact && frame.size !== 'medium',
     offset: compact ? BAND_OFFSET_COMPACT : BAND_OFFSET,
     focus,
   });
@@ -198,7 +197,7 @@ export function AppShell() {
         {/* Compact windows keep the sidebar in the phone Pages sheet (M10, ADR-0033): none here;
             compact-height lays it over the stage (▤ in the bar, spec 01.7). */}
         {frame.tight || (frame.size === 'compact' && !frame.short) ? null : (
-          <Sidebar form={frame.short ? 'sheet' : sidebarOverlay ? 'overlay' : 'docked'} />
+          <Sidebar form={frame.short ? 'sheet' : sidebarOverlay ? 'overlay' : 'floating'} />
         )}
         <DockBand size={frame.size} compact={compact} tight={frame.tight} />
         {compact || frame.tight ? (

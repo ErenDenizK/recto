@@ -5,7 +5,7 @@
  * the Markup palette and Locked from the same anchor.
  *
  * - **Anchor:** bottom centre of the free rectangle, 16 px up (12 on compact); the band spans
- *   the free rectangle's width, so a docked sidebar moves the dock's centre with the page.
+ *   the free rectangle's width; the sidebar floats over the canvas and moves nothing (DSN-22).
  * - **The pill** rises 8 px above a palette or bar that would come within 12 px of it (spec
  *   01.6); while Markup is open it hides on medium and compact (spec 03.3; Mod+G still works).
  * - **Away:** Focus fades the dock and the pill 8 px down (`--duration-fast`, `--ease-exit`

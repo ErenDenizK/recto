@@ -133,10 +133,6 @@ export interface FrameMeasure {
   readonly width: number;
   /** Height of the top layer (the strip, or the compact bar); 0 without one. */
   readonly top: number;
-  /** Width of the sidebar while it shows; 0 while closed. */
-  readonly sidebar: number;
-  /** The sidebar is docked (expanded and up) rather than laid over the stage (medium). */
-  readonly sidebarDocked: boolean;
   /** Height of the tallest resting item of the dock band (dock, palette, pill); 0 if none. */
   readonly band: number;
   /** The band's offset from the bottom edge (16, or 12 on compact). */
@@ -154,8 +150,9 @@ export interface FrameMeasure {
 export const SIDE_SHEET_MIN_STAGE = 400;
 
 /**
- * The free rectangle's insets from the window's edges (F1 §2): top is the top layer; left the
- * docked sidebar (an overlay sidebar insets nothing); right an open side sheet (a tool or task
+ * The free rectangle's insets from the window's edges (F1 §2): top is the top layer; left
+ * nothing, for the sidebar floats over the canvas in every form (DSN-22) and the page does not
+ * reflow when it comes or goes; right an open side sheet (a tool or task
  * sheet, 07-sheets §2.2) while at least 400 px of stage remains beside it, else it overlays, so
  * the dock band, the pill and the pages keep clear of it (V2 review item 6: the OCR sheet covered
  * the dock's More); bottom the band with its offset, the offset alone in Focus, and nothing while
@@ -166,15 +163,14 @@ export const SIDE_SHEET_MIN_STAGE = 400;
  * shown.
  */
 export function freeInsets(measure: FrameMeasure): Insets {
-  const left = measure.sidebarDocked ? measure.sidebar : 0;
   const sheet = measure.sideSheet ?? 0;
-  const right = sheet > 0 && measure.width - left - sheet >= SIDE_SHEET_MIN_STAGE ? sheet : 0;
+  const right = sheet > 0 && measure.width - sheet >= SIDE_SHEET_MIN_STAGE ? sheet : 0;
   const bottom = measure.focus
     ? measure.offset
     : measure.band > 0
       ? measure.offset + measure.band
       : 0;
-  return { top: measure.top, right, bottom, left };
+  return { top: measure.top, right, bottom, left: 0 };
 }
 
 /** `--free-*` custom properties for `insets`. */
@@ -190,7 +186,6 @@ export function freeInsetVars(insets: Insets): Readonly<Record<string, string>> 
 /** Layer markers inside the shell, read by `measureFrame`. */
 export const FRAME_LAYER = {
   top: '[data-frame-layer="top"]',
-  sidebar: '[data-frame-layer="sidebar"]',
   band: '[data-frame-layer="band"]',
   // The page pill marks itself; the dock (today's floating tool bar, D2-2's capsule) is the
   // band's toolbar.
@@ -220,7 +215,6 @@ function laidOut(element: HTMLElement | null): HTMLElement | null {
 }
 
 export interface FrameOptions {
-  readonly sidebarDocked: boolean;
   readonly offset: number;
   readonly focus: boolean;
 }
@@ -228,7 +222,6 @@ export interface FrameOptions {
 /** Reads the shell's layers (offset sizes, so a transform in flight changes nothing). */
 export function measureFrame(shell: HTMLElement, options: FrameOptions): FrameMeasure {
   const top = laidOut(shell.querySelector<HTMLElement>(FRAME_LAYER.top));
-  const sidebar = laidOut(shell.querySelector<HTMLElement>(FRAME_LAYER.sidebar));
   let band = 0;
   for (const item of shell.querySelectorAll<HTMLElement>(FRAME_LAYER.bandItem)) {
     if (laidOut(item)) band = Math.max(band, item.offsetHeight);
@@ -236,8 +229,6 @@ export function measureFrame(shell: HTMLElement, options: FrameOptions): FrameMe
   return {
     width: shell.clientWidth,
     top: top?.offsetHeight ?? 0,
-    sidebar: sidebar?.offsetWidth ?? 0,
-    sidebarDocked: options.sidebarDocked,
     band,
     offset: options.offset,
     focus: options.focus,
@@ -254,18 +245,17 @@ export function applyFreeInsets(root: HTMLElement, insets: Insets): void {
 
 /**
  * Measures the frame inside `shell` and keeps `--free-*` on `:root` current: on every size
- * change of the shell or a layer (a panel opening, a sidebar dragged wider, the dock becoming
- * the palette), on layers mounting and unmounting, and when an option changes (Focus, the
+ * change of the shell or a layer (the strip growing, the dock becoming the palette), on layers mounting and unmounting, and when an option changes (Focus, the
  * size class). One `ResizeObserver`, measured before paint.
  */
 export function useFreeRect(shell: RefObject<HTMLElement | null>, options: FrameOptions): void {
-  const { sidebarDocked, offset, focus } = options;
+  const { offset, focus } = options;
   useLayoutEffect(() => {
     const element = shell.current;
     if (!element) return;
     const root = element.ownerDocument.documentElement;
     const measure = () =>
-      applyFreeInsets(root, freeInsets(measureFrame(element, { sidebarDocked, offset, focus })));
+      applyFreeInsets(root, freeInsets(measureFrame(element, { offset, focus })));
     const resize = new ResizeObserver(measure);
     const observe = () => {
       resize.disconnect();
@@ -276,7 +266,7 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
     };
     observe();
     measure();
-    // Layers mount and unmount: the shell's own children (the sidebar), and the band's
+    // Layers mount and unmount: the shell's own children (the top bar), and the band's
     // items (the dock leaves on the Library, the pill in the grid).
     const mutation = new MutationObserver(() => {
       observe();
@@ -285,8 +275,8 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
     mutation.observe(element, { childList: true });
     const band = element.querySelector(FRAME_LAYER.band);
     if (band) mutation.observe(band, { childList: true, subtree: true });
-    // A layer that stops being one while it is still drawn (the sidebar sliding out, frame.md
-    // §1) gives its inset back at once: its marker going is a change of the frame.
+    // A layer that stops being one while it is still drawn (the compact bar going tight) gives
+    // its inset back at once: its marker going is a change of the frame.
     const markers = new MutationObserver(() => {
       observe();
       measure();
@@ -327,7 +317,7 @@ export function useFreeRect(shell: RefObject<HTMLElement | null>, options: Frame
       bodyWatch.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [shell, sidebarDocked, offset, focus]);
+  }, [shell, offset, focus]);
 }
 
 // ---------------------------------------------------------------------------------------------

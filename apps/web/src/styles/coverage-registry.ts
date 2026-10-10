@@ -25,7 +25,7 @@
  * walker in `e2e/support/glass-walker.ts` checks the same rule on the rendered sizes); fixed
  * sizes are exact. Heights include the 1 px rim. σ comes from language.md §2.2's steps, the
  * largest the smallest size allows where the tier's own value would leak (the menus' 12 below
- * 92 px, the sheets' 24 below 260 px, the docked sidebar's 24 at its 200 px minimum).
+ * 92 px, the sheets' 24 below 260 px, the sidebar's 24 at its 200 px minimum).
  */
 import type { GlassTier } from './token-registry';
 
@@ -54,7 +54,7 @@ export interface GlassSurfaceEntry {
   readonly docked?: true;
   /** σ on a fine pointer, CSS px: the class `s<σ>`. */
   readonly sigma: number;
-  /** σ on a coarse pointer (`c<σ>`), or `'solid'` (`cs`: the overlay sidebar of M-31). */
+  /** σ on a coarse pointer (`c<σ>`), or `'solid'` (`cs`: solid on a coarse pointer, M-31). */
   readonly coarse?: SizedSigma | 'solid';
   /** σ in compact-height (`h<σ>`, the capsule's 44 px dock at 8). */
   readonly short?: SizedSigma;
@@ -495,16 +495,15 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
   },
   {
     id: 'navigator',
-    surface: 'Sidebar (06-navigation N1; docked, overlay 320, side sheet 360)',
+    surface: 'Sidebar (06-navigation N1; floating, overlay 320, side sheet 360; DSN-22)',
     module: 'shell/sidebar/Sidebar.module.css',
     selector: '.sidebar',
     tier: 'panel',
-    docked: true,
     sigma: 24,
-    coarse: 'solid',
+    coarse: { sigma: 20, minWidth: 240, minHeight: 200 },
     minWidth: 240,
     minHeight: 200,
-    smallest: 'the docked sidebar at its 240 px minimum width',
+    smallest: 'the floating sidebar at its 240 px minimum width',
   },
   {
     id: 'toast',

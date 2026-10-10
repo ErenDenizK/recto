@@ -13,7 +13,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
-import { OutlinePanel } from '../shell/OutlinePanel';
+import { ContentsGroup } from '../shell/sidebar/PagesSection';
 import { useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
@@ -84,7 +84,8 @@ function renderPanel() {
   return render(
     <TooltipProvider>
       <div style={{ display: 'flex', flexDirection: 'column', height: 480, width: 280 }}>
-        <OutlinePanel />
+        {/* The sidebar's Contents group, open: its header carries Add bookmark (DSN-22). */}
+        <ContentsGroup open collapsible={false} />
       </div>
     </TooltipProvider>,
   );
