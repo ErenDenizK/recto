@@ -82,6 +82,8 @@ Sources, by short name:
 | DSN-19 | **Selected vs current:** selected = lime ring and filled badge. Current = a neutral 1 px ring and a 600 label. | 2026-10-09 | Audit resolution 5 | In force |
 | DSN-20 | **The final system** of Audit §3: 4 px grid, concentric radii, three control sizes (S/M/L), type ramp per surface, one recipe per surface, one sheet grammar, icon sizes {12 badges, 16, 20, 32}, the ratchet gates. | 2026-10-09 | Audit §3 | In force (lane work in progress) |
 | DSN-21 | **Accessibility gates:** A-1 to A-24 as CI gates. One focus ring (ink, lime, ink). A "plain" project runs the whole suite. | 2026-10-04 | ADR-0028 | In force; the extra items of PRD-3 are not V1 |
+| DSN-22 | **Settings is a centred form sheet** from medium up (600 wide, one height of at most 760, scrolling inside, scrim that dims), never a side sheet: it opens from the Library as often as from a document. Compact and compact-height keep the task sheet's presentation. | 2026-10-10 | Owner, conversation (R15 item 1); `ui/sheet/presentation.ts` | Done |
+| DSN-23 | **The aura is always behind the app**: the shell lays one aura (the Library's, or Background glow in a document) fixed to the window behind the stage; nothing that narrows the stage (a side sheet, the sidebar, a scroll lock) may cut it or bare the canvas at an edge. | 2026-10-10 | Owner, conversation (R15 item 2); `shell/AppShell.tsx`, `home/Aura.tsx` | Done |
 
 ## Motion
 
