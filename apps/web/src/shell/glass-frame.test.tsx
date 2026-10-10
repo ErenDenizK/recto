@@ -97,7 +97,8 @@ describe('the docked frame', () => {
       expect(useAppearanceStore.getState().glass).toBe(glass);
       await waitFor(() => expect(document.documentElement).toHaveAttribute('data-glass', glass));
     }
-    // Found by M8's wording too.
+    // Found by M8's wording too (the catalog keywords load after the first registration).
+    await commandRegistry.keywordsLoaded();
     expect(commandRegistry.get('view.glass.solid')?.keywords).toContain('reduce transparency');
     expect(commandRegistry.get('view.glass.tinted')?.keywords).toContain('saydamlık');
   });

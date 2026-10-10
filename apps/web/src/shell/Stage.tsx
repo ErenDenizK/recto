@@ -21,6 +21,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { LibraryView } from '../home/LibraryView';
 import { m } from '../i18n';
 import { ArrangeView } from '../stage/ArrangeView';
+import { gridMotion } from '../stage/grid/grid-motion';
 import { usePreparedPageView } from '../stage/grid/grid-transition';
 import { ReadView } from '../stage/ReadView';
 import { type StageView, useStageView } from '../state/ui-store';
@@ -48,6 +49,10 @@ export function watchStageFocusRing(doc: Document = document): () => void {
 export function Stage({ dragging }: { readonly dragging: boolean }) {
   useEffect(() => watchStageFocusRing(), []);
   const hasDocuments = useHasDocuments();
+  // The Pages grid's motion loads with the first document, before the grid can open.
+  useEffect(() => {
+    if (hasDocuments) gridMotion.now();
+  }, [hasDocuments]);
   const opening = useWorkspaceStore((s) => s.opening);
   const doc = useActiveDocument();
   const view = useStageView();

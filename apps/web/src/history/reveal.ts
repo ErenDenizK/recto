@@ -19,7 +19,8 @@
 import type { HistoryEntryMeta, PageId, Workspace } from '@pdf-editor/document-model';
 
 import { RING_FLASH, ringFlash } from '../motion';
-import { changedBetween, dispatchHistoryApplied, flashChanged } from './history-applied';
+import { lazyModule } from '../motion/lazy';
+import type * as HistoryApplied from './history-applied';
 
 import { isPageView, useUiStore } from '../state/ui-store';
 import { distanceFromView, useViewStore } from '../state/view-store';
@@ -28,6 +29,12 @@ import { distanceFromView, useViewStore } from '../state/view-store';
 export const REVEAL_FLASH_MS = RING_FLASH.totalMs;
 /** How many frames to wait for a scrolled-to page to be laid out before giving up. */
 const MAX_WAIT_FRAMES = 30;
+
+/**
+ * `history-applied.ts`, not part of the editor's first load (PLAN.md §2.3 V1-P2): each reveal
+ * loads it while it waits for the page, so the flash starts no later.
+ */
+const historyApplied = lazyModule(() => import('./history-applied'));
 
 /** The page index (0-based) the step points at in `workspace`, if it is the active document. */
 export function revealTarget(
@@ -55,12 +62,14 @@ function flashStep(
   meta: HistoryEntryMeta | undefined,
   workspace: Workspace,
   change: StepChange | undefined,
+  applied: typeof HistoryApplied | null,
 ): void {
   const documentId = meta?.documentId;
-  if (!change || documentId === undefined) {
+  if (!change || documentId === undefined || !applied) {
     flashRing(page);
     return;
   }
+  const { changedBetween, dispatchHistoryApplied, flashChanged } = applied;
   const { pageIds, annotationIds } = changedBetween(change.before, workspace, documentId, pageId);
   const flash = dispatchHistoryApplied({
     direction: change.direction,
@@ -104,13 +113,14 @@ export async function revealStep(
       view.scrollToPage(target.pageId);
     }
   }
+  const applied = change ? historyApplied.load().catch(() => null) : Promise.resolve(null);
   for (let frame = 0; frame < MAX_WAIT_FRAMES; frame++) {
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     const element = pageElement(target.pageId);
     if (element) {
       // Two frames after it exists, so the scroll has landed and the ring is seen.
       if (frame > 0 || !isPageView(ui)) {
-        flashStep(element, target.pageId, meta, workspace, change);
+        flashStep(element, target.pageId, meta, workspace, change, await applied);
         return;
       }
     }

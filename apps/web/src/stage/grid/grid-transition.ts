@@ -50,7 +50,7 @@ import { stageView, useUiStore } from '../../state/ui-store';
 import { useViewStore } from '../../state/view-store';
 import { pagesPhrase, useWorkspaceStore } from '../../state/workspace-store';
 import { pageIndexes } from '../arrange-data';
-import { cascadeIn, cascadeOut } from './cell-motion';
+import { gridMotion } from './grid-motion';
 import './grid-transition.css';
 
 /** The shared element's name on both sides (PG1 §7). */
@@ -324,7 +324,7 @@ export function enterGrid(options: { readonly page?: PageId } = {}): void {
     () => (page === undefined ? null : cellSheet(page)),
     () => {
       if (page !== undefined) gridCell(page)?.focus({ preventScroll: true });
-      cascadeIn(page);
+      gridMotion.now()?.cascadeIn(page);
     },
   );
   announce(
@@ -377,7 +377,7 @@ export function leaveGrid(options: { readonly page?: PageId } = {}): void {
   } else {
     setPrepared(id);
     // The grid gathers into the page while the page view prepares (module header).
-    const gathered = cascadeOut(page);
+    const gathered = gridMotion.now()?.cascadeOut(page) ?? (() => undefined);
     void (async () => {
       // The page view mounts (hidden) on the next render; then it scrolls to the page.
       await nextFrame();
