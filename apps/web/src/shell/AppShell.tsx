@@ -47,6 +47,7 @@ import { isMarkupOpen, useStageView, useUiStore } from '../state/ui-store';
 import { useHasDocuments, useWorkspaceStore } from '../state/workspace-store';
 import { ConfirmHost } from '../ui/sheet';
 import { ToastRegion } from '../ui/Toast/ToastRegion';
+import { installContainerTransform } from '../ui/container-transform';
 import { TooltipProvider } from '../ui/Tooltip';
 import { registerAppearanceCommands } from './appearance-commands';
 import { announce } from './announcer';
@@ -92,6 +93,10 @@ export function AppShell() {
   // F and the Esc rung for Focus (F13), after `selection.clear` in the Esc ladder.
   useEffect(() => registerFocusCommands(commandRegistry), []);
   useEffect(() => watchFocusTap(), []);
+  // The container transform of every menu and popover (ui/container-transform.ts), installed
+  // here rather than by the tooltip group so the compact edition, which has neither, does not
+  // carry it (its bundle budget, PLAN.md §2.3).
+  useEffect(() => installContainerTransform(), []);
 
   const frame = useSizeClass();
   const compact = frame.size === 'compact' || frame.short;

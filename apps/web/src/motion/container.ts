@@ -21,12 +21,16 @@
  *   (Q-2); closed, the last frame holds until the popup unmounts.
  * - Reduced motion (§7.5, A-9): opacity only, 150 ms in, 100 ms out, nothing spatial.
  *
- * `receivePulse()` is the trigger's answer when a popup has gone back into it: its `scale` swells
- * by `PULSE_PEAK` and settles on the `pop` spring (one small control, never a surface).
+ * `receivePulse()` (`receive.ts`, re-exported here) is the trigger's answer when a popup has
+ * gone back into it: its `scale` swells by `PULSE_PEAK` and settles on the `pop` spring (one
+ * small control, never a surface). It lives apart because sheets use it too, while this
+ * module loads with the first popup's container transform (`ui/container-transform.ts`).
  */
 import { reducedMotion } from './reduced-motion';
 import { energy, solve, springs } from './springs';
 import { EASE, REDUCED_DURATION_MS } from './tokens';
+
+export { PULSE_PEAK, receivePulse } from './receive';
 
 /** A rect in viewport pixels. */
 export interface Box {
@@ -50,8 +54,6 @@ export interface ContainerStart {
 export const CONTAINER_BLEED = 40;
 /** The share of the progress over which the popup fades in (and, closing, out). */
 export const FADE_SPAN = 0.3;
-/** How much a trigger swells when a popup returns into it. */
-export const PULSE_PEAK = 0.06;
 /** Keyframe rate. */
 const FPS = 120;
 /** A segment ends when its energy has fallen to this fraction (as `animate.ts`). */
@@ -212,44 +214,5 @@ export function containerMotion(
     finish() {
       anim?.finish();
     },
-  };
-}
-
-/** Running pulses, so a second one replaces the first. */
-const pulses = new WeakMap<Element, Animation>();
-/** The pulse's keyframes, sampled once. */
-let pulseFrames: Keyframe[] | null = null;
-
-/** A unit kick on `pop`, scaled so its first swing peaks at `PULSE_PEAK`, as `scale` frames. */
-function samplePulse(): Keyframe[] {
-  const s = springs.pop;
-  const xs: number[] = [];
-  const settle = energy(s, 0, 1) * PRECISION;
-  for (let i = 0; i < FPS * 2; i++) {
-    const [x, v] = solve(s, 0, 1, i / FPS);
-    if (i > 0 && energy(s, x, v) <= settle) break;
-    xs.push(x);
-  }
-  const k = PULSE_PEAK / Math.max(...xs, 1e-6);
-  return [
-    ...xs.map((x) => ({ scale: String(Math.round((1 + x * k) * 1e4) / 1e4) })),
-    { scale: '1' },
-  ];
-}
-
-/**
- * The *receive* pulse: `el`'s `scale` swells by `PULSE_PEAK` and settles on `pop`, as if it took
- * the popup back in. `scale` composes with any transform the control has (its press). Nothing
- * under reduced motion; nothing is left at rest.
- */
-export function receivePulse(el: Element): void {
-  if (!(el instanceof HTMLElement) || typeof el.animate !== 'function' || reducedMotion()) return;
-  pulseFrames ??= samplePulse();
-  pulses.get(el)?.cancel();
-  const run = el.animate(pulseFrames, { duration: ((pulseFrames.length - 1) * 1000) / FPS });
-  pulses.set(el, run);
-  run.onfinish = () => {
-    if (pulses.get(el) === run) pulses.delete(el);
-    run.cancel();
   };
 }

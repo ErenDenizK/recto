@@ -19,11 +19,13 @@
  * - `catalogue.ts`: the catalogue entries that run from script (§7.3): `sheetPush` (X8),
  *   `ringFlash` (*undo reveal*), `revealWhenShown` (*find step*, 05.2), `fold` (02.6).
  * - `container.ts`: the *container transform* (a popup grows out of its trigger's rect and goes
- *   back into it, motion-2026-10/platform.md §1) and the trigger's *receive* pulse.
- * - `feedback.ts`: `shake` (*refusal*), `navPush` (the iOS navigation push) and `disclose` (a
- *   folded section's height spring), shared by forms, sheets and the compact edition
- *   (motion-2026-10). Its own `receivePulse` (a chip's, with a ring under reduced motion) is
- *   imported from `./feedback` by name; the barrel's `receivePulse` is the trigger's.
+ *   back into it, motion-2026-10/platform.md §1); `receive.ts`: the trigger's *receive* pulse.
+ * - `feedback.ts`: `shake` (*refusal*), with `navPush` (the iOS navigation push, `nav-push.ts`)
+ *   and `disclose` (a folded section's height spring, `disclose.ts`), shared by forms, sheets
+ *   and the compact edition (motion-2026-10). Its own `receivePulse` (a chip's, with a ring
+ *   under reduced motion) is imported from `./feedback` by name; the barrel's `receivePulse` is
+ *   the trigger's.
+ * - `lazy.ts`: `lazyModule`, for motion that loads at its first use (PLAN.md §2.3 V1-P2).
  *
  * CSS transitions with `linear()` springs and Base UI's starting and ending styles remain the
  * first route for popups, bars, press and feedback (§7.4); gestures live in `motion/gesture/`.
@@ -48,12 +50,13 @@ export {
   type ContainerStart,
   containerStart,
   FADE_SPAN,
-  PULSE_PEAK,
   radiusOf,
-  receivePulse,
 } from './container';
-export { disclose, navPush, shake } from './feedback';
+export { disclose } from './disclose';
+export { shake } from './feedback';
 export { flip } from './flip';
+export { navPush } from './nav-push';
+export { PULSE_PEAK, receivePulse } from './receive';
 export { reducedMotion, subscribeReducedMotion, systemReducedMotion } from './reduced-motion';
 export {
   RESIZING,
