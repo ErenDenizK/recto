@@ -9,7 +9,7 @@
  * |----------------------|--------------------------|----------------|----------------|-----------------|
  * | tool (non-modal)     | bottom, 40 % · 92 %      | side 360       | side 360       | side 400        |
  * | task (modal)         | bottom at 92 %           | full           | form ≤ 640     | side 400, scrim |
- * | settings (modal)     | bottom at 92 %           | full           | form ≤ 640     | side 480, scrim |
+ * | settings (modal) ³   | bottom at 92 %           | full           | form 600       | form 600        |
  * | confirmation         | bottom, content ≤ 60 %   | dialog 400     | dialog 400     | dialog 400      |
  * | overlay (shortcuts)  | full                     | full           | dialog 760     | dialog 760      |
  * | signature (S7)       | bottom at 92 %           | full           | form ≤ 640 ¹   | side 400 ¹      |
@@ -20,6 +20,11 @@
  *
  * ² Batch (S21) is a task sheet whose Recipe and Files sit side by side from expanded up, so it
  * is a centred 720 dialog there (07.5, flows §6.9's row); below, it is a task sheet.
+ *
+ * ³ Settings is a centred form sheet from medium up (owner feedback 2026-10-10, R15): it is
+ * opened from the Library as often as from a document and belongs to neither side, so it sits in
+ * the middle of the window like iPadOS's form sheet: 600 wide, one height of at most 760
+ * (settings/Settings.module.css), scrolling inside; it never insets the free rectangle.
  *
  * compact-height (a window under 480 px tall and under 1000 wide) takes precedence over the
  * width class, as the table's column does. Settings on compact is 07 §1.1's "full sheet at
@@ -71,7 +76,7 @@ export const CONFIRMATION_MAX_SHARE = 0.6;
 export const SHEET_WIDTH = {
   side: 400,
   sideMedium: 360,
-  settings: 480,
+  settings: 600,
   form: 640,
   dialog: 400,
   overlay: 760,
@@ -132,8 +137,10 @@ export function presentationOf(
     case 'settings':
       if (column === 'compact') return layout('bottom', null, true, { detents: TASK_DETENTS });
       if (column === 'short') return layout('full', null, true);
+      // Settings: a centred form sheet from medium up (³).
+      if (kind === 'settings') return layout('form', SHEET_WIDTH.settings, true);
       if (column === 'medium') return layout('form', SHEET_WIDTH.form, true);
-      return layout('side', kind === 'settings' ? SHEET_WIDTH.settings : SHEET_WIDTH.side, true);
+      return layout('side', SHEET_WIDTH.side, true);
     case 'confirmation':
       if (column === 'compact') return layout('bottom', null, true, { role: 'alertdialog' });
       return layout('dialog', SHEET_WIDTH.dialog, true, { role: 'alertdialog' });

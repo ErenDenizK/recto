@@ -289,7 +289,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
   },
   {
     id: 'sheet-side',
-    surface: 'Side sheet (tool, task, Settings)',
+    surface: 'Side sheet (tool, task)',
     module: 'ui/sheet/Sheet.module.css',
     selector: '.panel',
     tier: 'sheet',
@@ -302,7 +302,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
   },
   {
     id: 'sheet-form',
-    surface: 'Form sheet',
+    surface: 'Form sheet (Settings; task on medium)',
     module: 'ui/sheet/Sheet.module.css',
     selector: '.panel',
     tier: 'sheet',

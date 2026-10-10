@@ -1,6 +1,6 @@
 /**
  * S3 in the browser (components/07-sheets.md §5.4, §5.6, §5.8, §5.9; spec redesign D0-10): the
- * side sheet of 480 px with its sections; search filters and says when nothing matches; an
+ * centred form sheet of 600 px (R15) with its sections, one height while search filters; search filters and says when nothing matches; an
  * opener's row is revealed and its control focused; a system override forces Glass to Solid,
  * disabled, with its reason; Theme sets System · Light · Dark and Glass Clear · Tinted · Solid;
  * Background glow is a switch, on by default;
@@ -56,13 +56,18 @@ async function settled(dialog: HTMLElement): Promise<void> {
 }
 
 describe('the Settings sheet', () => {
-  it('is a 480 px side sheet with its sections, the search field focused', async () => {
+  it('is a centred 600 px form sheet with its sections, the search field focused', async () => {
     act(() => openSettings());
     render(<SettingsSheet />);
     const dialog = await screen.findByRole('dialog', { name: 'Settings' });
     await settled(dialog);
-    expect(dialog.dataset.presentation).toBe('side');
-    expect(dialog.getBoundingClientRect().width).toBe(480);
+    expect(dialog.dataset.presentation).toBe('form');
+    const box = dialog.getBoundingClientRect();
+    expect(box.width).toBe(600);
+    // Centred in the window, 760 tall at 900 px, its body scrolling inside.
+    expect(box.left + box.width / 2).toBe(1440 / 2);
+    expect(box.top + box.height / 2).toBe(900 / 2);
+    expect(box.height).toBe(760);
     expect(
       within(dialog)
         .getAllByRole('heading', { level: 3 })
@@ -74,6 +79,8 @@ describe('the Settings sheet', () => {
 
     await userEvent.type(search, 'gorunum');
     expect(within(dialog).getByRole('radiogroup', { name: 'Theme' })).toBeVisible();
+    // Fewer rows, the same sheet: a centred sheet that shrank would jump.
+    expect(dialog.getBoundingClientRect().height).toBe(760);
     expect(within(dialog).getByRole('radiogroup', { name: 'Glass' })).toBeVisible();
     expect(within(dialog).getByRole('switch', { name: 'Background glow' })).toBeVisible();
     expect(within(dialog).queryByRole('switch', { name: /Pen draws/ })).toBeNull();

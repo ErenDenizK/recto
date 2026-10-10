@@ -11,12 +11,13 @@
  * centres; the footer is outside it, at the window's bottom corners like the strip's pieces at
  * the top ones.
  *
- * The view is the canvas with no glass of its own (L1 §3); each part takes its tier. Behind the
+ * The view has no glass and no fill of its own (L1 §3); each part takes its tier. Behind the
  * column glows the aura (`Aura.tsx`), the CSS form of the Library field (L3) in the mark's
- * colours, slowly drifting; the WebGL field stays D3-8's, and the head row publishes its
- * text-safe rect for it (`text-safe.ts`). The view reaches up under the top strip's pieces
- * (owner feedback 2026-10-09, G2), so the aura and the canvas run to the window's top edge
- * behind them, with no band of bare canvas between the pieces. A file drag over the window lifts the launcher and
+ * colours, slowly drifting; the shell lays it, fixed to the window behind the stage
+ * (`AppShell.tsx`; owner feedback 2026-10-10, R15), so a side sheet or the sidebar narrowing the
+ * stage never cuts it. The WebGL field stays D3-8's, and the head row publishes its text-safe
+ * rect for it (`text-safe.ts`). The view reaches up under the top strip's pieces (owner feedback
+ * 2026-10-09, G2), so its column scrolls under them. A file drag over the window lifts the launcher and
  * changes its headline (L9); the document view's overlay is `DropOverlay`.
  *
  * Esc ladder (L1 §6): Esc clears the checks, then leaves Select mode; it never navigates. First
@@ -30,7 +31,6 @@ import { useEffect, useMemo } from 'react';
 import { m } from '../i18n';
 import { useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { Aura } from './Aura';
 import { type HomeCardData, homeCards, liveSelection } from './home-model';
 import { Launcher } from './Launcher';
 import { LibraryFooter } from './LibraryFooter';
@@ -61,7 +61,6 @@ export function LibraryView({ dragging }: { readonly dragging: boolean }) {
         data-variant="empty"
         data-dragging={dragging || undefined}
       >
-        <Aura tone="library" testId="library-aura" />
         <div className={styles.scroller}>
           <div className={`${styles.column} ${styles.empty}`}>
             <div className={styles.welcome}>
@@ -120,7 +119,6 @@ function LibraryWithCards({
       data-dragging={dragging || undefined}
       data-selecting={selecting || undefined}
     >
-      <Aura tone="library" testId="library-aura" />
       <div className={styles.scroller}>
         <div className={styles.column}>
           <Launcher

@@ -103,10 +103,15 @@ export function AppShell() {
   const focus = useFrameStore((s) => s.focusMode);
   const view = useStageView();
   // Background glow (Settings, G5): the Library's aura, dimmer, behind the reader's canvas. The
-  // stage lets it through (`[data-reader-glow]`, Stage.module.css); the page stays white.
+  // stage lets it through (`[data-aura]`, Stage.module.css); the page stays white.
   const readerGlow = useAppearanceStore((s) => s.glow) && view === 'page';
   // The Library (no file, or Home) lifts its launcher instead of an overlay (02-library L9).
   const hasDocuments = useHasDocuments();
+  // One aura, the shell's first layer and fixed to the window (owner feedback 2026-10-10, R15):
+  // the Library's drifting light or the reader's still glow. Laid behind the stage rather than
+  // inside it, so nothing that moves the free rectangle (a side sheet, the sidebar) cuts it or
+  // leaves bare canvas at an edge.
+  const aura = !hasDocuments || view === 'home' ? 'library' : readerGlow ? 'reader' : null;
   useFreeRect(shellRef, {
     offset: compact ? BAND_OFFSET_COMPACT : BAND_OFFSET,
     focus,
@@ -185,13 +190,16 @@ export function AppShell() {
         data-stage-bleed=""
         data-frame={compact ? 'compact' : 'strip'}
         data-focus-mode={focus || undefined}
-        data-reader-glow={readerGlow || undefined}
+        data-reader-glow={aura === 'reader' || undefined}
+        data-aura={aura ?? undefined}
         onDragEnter={onDragEnter}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        {readerGlow ? <Aura tone="reader" testId="reader-glow" /> : null}
+        {aura ? (
+          <Aura tone={aura} testId={aura === 'library' ? 'library-aura' : 'reader-glow'} />
+        ) : null}
         <Stage dragging={dragging} />
         {view === 'page' ? <SoftEdge /> : null}
         {/* Compact windows keep the sidebar in the phone Pages sheet (M10, ADR-0033): none here;
