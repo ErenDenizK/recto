@@ -138,7 +138,9 @@ test('crop every page with discard, export, re-open: cropped size, header gone, 
     .getByRole('listbox', { name: 'Pages of cropped' })
     .getByRole('option', { name: 'Page 1' })
     .locator('[data-thumb]');
-  await expect(sheet.locator('canvas')).toBeAttached({ timeout: 20_000 });
+  // A sharper bitmap cross-fades in over a short-lived copy of the preview (`data-ghost`,
+  // pages/paint-fade.ts): wait for the thumbnail's own canvas.
+  await expect(sheet.locator('canvas:not([data-ghost])')).toBeAttached({ timeout: 20_000 });
   const thumb = await sheet.boundingBox();
   if (!thumb) throw new Error('no thumbnail');
   expect(thumb.width / thumb.height).toBeCloseTo(CROP.width / CROP.height, 1);

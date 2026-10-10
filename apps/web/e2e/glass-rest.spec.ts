@@ -198,16 +198,27 @@ test('the floating sidebar with the strip, the dock, the pill and a contextual b
   // and the pill.
   const edge = (await sidebar.boundingBox())?.x ?? 0;
   const panelRight = edge + ((await sidebar.boundingBox())?.width ?? 0);
+  // The panel floats over the page's left (DSN-26), so a row may start under it: find a word
+  // of at least four letters that lies wholly to its right.
   const rows = page.getByTestId('text-layer').first().locator('span[data-row]');
-  const boxes = await rows.evaluateAll((spans) =>
-    spans.map((span) => {
-      const r = span.getBoundingClientRect();
-      return { x: r.x, y: r.y, width: r.width, height: r.height };
-    }),
-  );
-  const word = boxes.find((b) => b.width > 24 && b.x > panelRight + 8);
+  const word = await rows.evaluateAll((spans, clear) => {
+    for (const span of spans) {
+      const walker = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
+      for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+        for (const match of (text.textContent ?? '').matchAll(/\p{L}{4,}/gu)) {
+          const range = document.createRange();
+          range.setStart(text, match.index);
+          range.setEnd(text, match.index + match[0].length);
+          const r = range.getBoundingClientRect();
+          if (r.width > 24 && r.x > clear)
+            return { x: r.x, y: r.y, width: r.width, height: r.height };
+        }
+      }
+    }
+    return null;
+  }, panelRight + 8);
   if (!word) throw new Error('no text clear of the sidebar');
-  await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
+  await page.mouse.dblclick(word.x + word.width / 2, word.y + word.height / 2);
   await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
   const walk = await expectGlassClean(page, 'Read, floating sidebar, text selection bar');
   // Q-11 as DSN-26 adjusts it: the floating sidebar is glass with a slot of its own, so the

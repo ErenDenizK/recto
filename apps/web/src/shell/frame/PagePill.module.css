@@ -235,6 +235,22 @@
   color: var(--text-secondary);
 }
 
+/* Contents disclosed in the menu (a window with no sidebar): the caret points down, and the
+   entries' titles never ask for width, so a long one ellipsizes instead of widening the menu. */
+.entry[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+
+.contentsList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.contentsList .entryTitle {
+  contain: inline-size;
+}
+
 .check {
   flex: none;
   width: var(--icon-sm);

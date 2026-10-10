@@ -7,7 +7,7 @@
  *   450 ms hold) and selects nothing.
  * - **S13**: a touch drag on the sidebar scrolls it and reorders nothing; a long press then a
  *   move reorders (tablet).
- * - **J15b 2**: page pill · the Contents entry; and the sidebar's Contents tree jumps too.
+ * - **J15b 3**: page pill · Contents · the entry in the sidebar's Contents tree, which jumps.
  * - **J11 3** by the Find section's prompt: Find (the sidebar opens on "No text on these
  *   pages") · Recognize text… · Recognize 2 pages; then Review offers Words to check (X33).
  * - The width is kept per device; the section's own Find field shows only below 1280 px.
@@ -165,18 +165,24 @@ test('S13: a touch drag scrolls the sidebar and moves nothing; a long press then
   await expect(list(page).getByRole('option', { selected: true })).toHaveCount(0);
 });
 
-test('J15b in 2 steps by the page pill; the sidebar Contents jumps too', async ({ page }) => {
+test('J15b in 3 steps by the page pill; the sidebar Contents jumps too', async ({ page }) => {
   await openFixtures(page, ['outline-named-dests.pdf']);
   await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
-  // 1. The pill · 2. the Contents entry.
+  // 1. The pill · 2. its Contents row, which opens the sidebar's Contents (F11 §6, r15: the
+  // menu no longer repeats the outline) · 3. the entry.
   await page.getByTestId('page-pill').click();
-  await page.getByRole('button', { name: /^Appendix/ }).click();
+  await page.getByTestId('pill-contents').click();
+  const sidebar = page.getByRole('navigation', { name: 'Sidebar' });
+  const tree = sidebar.getByRole('tree', { name: /^Contents of/ });
+  await tree.getByRole('treeitem', { name: 'Appendix' }).click();
   await expect(page.getByTestId('page-pill')).toHaveText(/^6 \/ 6 · /);
 
   // The sidebar's Contents tree (06 N3): a click jumps, focus stays in the tree, and the
   // current location follows the page.
-  const sidebar = await showSidebar(page, 'Pages', 'Contents');
-  const tree = sidebar.getByRole('tree', { name: /^Contents of/ });
+  await expect(sidebar.getByRole('button', { name: 'Contents' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
   await expect(tree.getByRole('treeitem', { name: 'Appendix' })).toHaveAttribute(
     'aria-current',
     'location',
