@@ -1,9 +1,9 @@
 /**
  * The sidebar (`components/06-navigation.md` N1–N5; redesign spec D2-4) in browser mode: the
- * section switch as APG tabs with counts in the names, the Pages section's two views (no
- * second "Pages"), the thumbnail listbox keys (S10: navigating never selects), Alt+arrows
+ * section switch as APG tabs with counts in the names, the Pages section's one layer (Contents
+ * a collapsible group above the thumbnails, DSN-22), the thumbnail listbox keys (S10: navigating never selects), Alt+arrows
  * moving a page by one, the menu from Shift+F10, Find's own field only below 1280 px, and the
- * forms (docked, overlay, nothing on the Library).
+ * forms (floating, overlay, nothing on the Library).
  */
 import type { PageId } from '@pdf-editor/document-model';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
@@ -95,18 +95,42 @@ describe('N1 shell and switch', () => {
       .toMatch(/^Find, \d+ matches$/);
   });
 
-  it('names the Pages views Thumbnails and Contents, never a second Pages', async () => {
+  it('keeps one row of tabs: Contents is a collapsible group above the thumbnails (DSN-22)', async () => {
     await open(outlineUrl, 'outline-named-dests.pdf');
     render(<Sidebar />);
-    const views = screen.getByRole('radiogroup', { name: 'Pages view' });
-    expect(
-      within(views)
-        .getAllByRole('radio')
-        .map((r) => r.textContent),
-    ).toEqual(['Thumbnails', 'Contents']);
-    await userEvent.click(within(views).getByRole('radio', { name: 'Contents' }));
+    const nav = screen.getByRole('navigation', { name: 'Sidebar' });
+    // One tab list and no second row of views.
+    expect(within(nav).getAllByRole('tablist')).toHaveLength(1);
+    expect(within(nav).queryByRole('radiogroup')).toBeNull();
+    // Collapsed by default: the thumbnails show, the tree does not.
+    const contents = within(nav).getByRole('button', { name: 'Contents' });
+    expect(contents).toHaveAttribute('aria-expanded', 'false');
+    expect(within(nav).getByRole('listbox', { name: /^Pages of/ })).toBeVisible();
+    expect(within(nav).queryByRole('tree')).toBeNull();
+    // Add bookmark is a small icon button in the group's header, not a full-width button.
+    const add = within(nav).getByRole('button', { name: 'Add bookmark' });
+    expect(add.textContent).toBe('');
+    // Expanded: the tree joins the thumbnails, and the choice is remembered.
+    await userEvent.click(contents);
+    expect(contents).toHaveAttribute('aria-expanded', 'true');
     expect(await screen.findByRole('tree', { name: /^Contents of/ })).toBeVisible();
+    expect(within(nav).getByRole('listbox', { name: /^Pages of/ })).toBeVisible();
     expect(useUiStore.getState().pagesView).toBe('bookmarks');
+    await userEvent.click(contents);
+    expect(within(nav).queryByRole('tree')).toBeNull();
+    expect(useUiStore.getState().pagesView).toBe('thumbnails');
+  });
+
+  it('floats from expanded up: stored, resizable, and not light-dismissed', async () => {
+    await open(simpleUrl, 'simple-text.pdf');
+    render(<Sidebar />);
+    const nav = screen.getByRole('navigation', { name: 'Sidebar' });
+    expect(nav).toHaveAttribute('data-form', 'floating');
+    expect(nav).not.toHaveAttribute('data-overlay');
+    expect(within(nav).getByRole('separator')).toBeVisible();
+    // A press outside does not put it away (only the laid-over forms are light-dismissed).
+    await userEvent.click(document.body);
+    expect(screen.getByRole('navigation', { name: 'Sidebar' })).toBeVisible();
   });
 
   it('lays over the page on medium only once asked for, 320 px wide', async () => {

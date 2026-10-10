@@ -3,7 +3,8 @@
  * active document's bookmarks from the model (`doc.outline`), browsed and edited in place in
  * the sidebar's Pages section. The current location (the deepest entry at or before the page
  * being read) carries the current-row wash and `aria-current="location"`; edits are
- * `document` acts, so Add bookmark dims while the document is locked and jumping still works.
+ * `document` acts, so Add bookmark (the Contents group's icon button, `sidebar/PagesSection.tsx`)
+ * dims while the document is locked and jumping still works.
  *
  * APG tree view with a flat DOM (rows carry level / set size / position), roving tabindex
  * and keyboard: Up/Down move, Right expands or enters, Left collapses or goes to the
@@ -11,7 +12,7 @@
  * (`open`). Rows are virtualized only past VIRTUALIZE_AFTER visible rows.
  *
  * Editing (no separate edit mode: the read-only tree stays uncluttered because every edit
- * lives on keys, the context menu and drag and drop, plus one "Add bookmark" button):
+ * lives on keys, the context menu and drag and drop, plus the group's one Add bookmark button):
  * - F2 or double-click renames in place; Delete / Backspace deletes (undoable, announced);
  * - Alt+Up / Alt+Down move an item among its siblings, Alt+Right indents it (last child of
  *   the previous sibling), Alt+Left outdents it (right after its parent), as Alt+Arrows
@@ -25,7 +26,7 @@
  * when it has one (and selects the page in Arrange); a link never navigates silently: it
  * opens an inline notice naming the target, and only its "Open link" button opens a new
  * tab (http, https and mailto only). An unresolved destination (its page was deleted,
- * light-table spec §6) shows a warning; the toolbar offers to remove such dead links.
+ * light-table spec §6) shows a warning; a notice above the tree offers to remove such dead links.
  */
 import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
 import {
@@ -60,7 +61,6 @@ import { m } from '../i18n';
 import { revealFor } from '../outline/current-view';
 import editStyles from '../outline/Outline.module.css';
 import {
-  addBookmark,
   deleteBookmark,
   displayTitle,
   dropBookmark,
@@ -86,7 +86,6 @@ import {
   startRenaming,
   useOutlineViewStore,
 } from '../outline/outline-view-store';
-import { refusalReason, useChangeRefusal } from '../state/guard';
 import { useSelectionStore } from '../state/selection-store';
 import { stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
@@ -117,7 +116,7 @@ export function OutlinePanel() {
   }
   return (
     <div className={styles.root}>
-      <OutlineToolbar doc={doc} />
+      <DeadLinks doc={doc} />
       {doc.outline.length === 0 ? (
         <div className={styles.empty}>
           <EmptyNote title={m.outline_empty_title()} body={m.outline_empty_body()} />
@@ -129,47 +128,20 @@ export function OutlinePanel() {
   );
 }
 
-/** "Add bookmark" and, when some targets were deleted, the dead-link notice. */
-function OutlineToolbar({ doc }: { readonly doc: VirtualDocument }) {
+/**
+ * When some targets were deleted, the dead-link notice and its fix. Add bookmark is the Contents
+ * group's icon button (`sidebar/PagesSection.tsx`, DSN-22).
+ */
+function DeadLinks({ doc }: { readonly doc: VirtualDocument }) {
   const dead = countDeadOutlineLinks(doc.outline);
-  // Bookmarks are a `document` act: dimmed (focusable, with the reason) while locked.
-  const refusal = useChangeRefusal(doc.id, 'document');
+  if (dead === 0) return null;
   return (
-    <>
-      <div role="toolbar" aria-label={m.outline_toolbar_label()} className={editStyles.toolbar}>
-        {refusal ? (
-          // Locked (06-navigation N3 §4): dimmed, still focusable, the reason its tooltip.
-          <Button
-            size="sm"
-            icon={<Icon name="bookmark-simple" />}
-            disabled
-            reason={refusalReason(refusal)}
-            data-locked=""
-          >
-            {m.outline_add()}
-          </Button>
-        ) : (
-          <Tooltip label={m.outline_add_tooltip()} side="bottom">
-            <Button
-              size="sm"
-              icon={<Icon name="bookmark-simple" />}
-              disabled={doc.pages.length === 0}
-              onClick={() => addBookmark(doc.id)}
-            >
-              {m.outline_add()}
-            </Button>
-          </Tooltip>
-        )}
-      </div>
-      {dead > 0 ? (
-        <div className={editStyles.dead} data-testid="outline-dead-links">
-          <Notice>{m.outline_dead_links({ count: dead })}</Notice>
-          <Button size="sm" className={editStyles.deadFix} onClick={() => removeDeadLinks(doc.id)}>
-            {m.outline_remove_dead()}
-          </Button>
-        </div>
-      ) : null}
-    </>
+    <div className={editStyles.dead} data-testid="outline-dead-links">
+      <Notice>{m.outline_dead_links({ count: dead })}</Notice>
+      <Button size="sm" className={editStyles.deadFix} onClick={() => removeDeadLinks(doc.id)}>
+        {m.outline_remove_dead()}
+      </Button>
+    </div>
   );
 }
 

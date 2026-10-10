@@ -1,67 +1,45 @@
 /*
- * N1 Sidebar (06-navigation §3, §2.1): docked M3 (`mat mat-panel mat-docked s24`; solid on a
- * coarse pointer, `cs`, M-31) with a hairline on its free edge and no shadow; laid over the
- * page (medium) a floating panel with radius 20 and e4, on the window's one margin
- * (`--piece-inset`) and `--space-2` clear of the strip and the dock band, as a side sheet sits
- * (system-audit-2026-10 §3.1); on compact-height a side sheet under the top bar. Rows, the
- * switch and wells inside use fills, never a second glass (Q-4).
+ * N1 Sidebar (06-navigation §3, §2.1; owner decision 2026-10-10, DSN-22): one floating M3 glass
+ * panel (`mat mat-panel s24 c20`) laid over the canvas, inset from the window on the piece
+ * inset, `--space-2` clear of the strip and of the dock band, with the sheet radius and M3’s e4, so
+ * the aura and the pages show through it as through the strip and the dock. It insets nothing:
+ * the free rectangle keeps its width and the page does not reflow under it. Under Glass Solid,
+ * the cost ladder and reduced transparency it takes its solid twin (styles/materials.css). Rows,
+ * the switch, the Contents disclosure and the wells inside use fills, never a second glass
+ * (Q-4). Its σ on a coarse pointer is 20, M-31's ceiling (research 19).
  */
 .sidebar {
-  composes: mat mat-panel mat-docked s24 cs from global;
+  composes: mat mat-panel s24 c20 from global;
   position: absolute;
-  top: var(--free-top, 0px);
-  bottom: 0;
-  left: 0;
+  top: calc(var(--free-top, 0px) + var(--space-2));
+  bottom: calc(var(--free-bottom, 0px) + var(--space-2));
+  left: var(--piece-inset);
   z-index: 2;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   min-height: 0;
-  max-width: calc(100% - 48px);
-  border-right: 1px solid var(--border-hairline);
-}
-
-/* Docked, it rests on its solid twin (quality-bar Q-11, D4-4): it lies over the canvas, where
-   its tint over the blurred canvas composites to the solid token anyway, and a blur here took
-   the "one more" of the four resting surfaces (strip, dock, pill, one more), so a contextual
-   bar, a toast or a popover made five. The same as the docked frame under a scrim
-   (styles/materials.css); the floating form below keeps its glass. */
-.sidebar[data-form='docked'] {
-  /* The full height of the window: the strip's leading piece floats over its top, as over the
-     canvas (TopStrip.module.css), and its contents start below the piece. */
-  top: 0;
-  padding-top: var(--free-top, 0px);
-  --text-secondary: inherit;
-  --text-tertiary: inherit;
-  --text-disabled: inherit;
-  --danger: inherit;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  background: var(--mat-solid);
-}
-
-/* Medium: a floating panel over the page, clear of the strip and the dock band (F1 §2). */
-.sidebar[data-form='overlay'] {
-  top: calc(var(--free-top, 0px) + var(--space-2));
-  bottom: calc(var(--free-bottom, 0px) + var(--space-2));
-  left: var(--piece-inset);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--e4);
-  overflow: hidden;
+  max-width: calc(100% - 2 * var(--piece-inset) - 48px);
+  border-radius: var(--sheet-radius);
 }
 
 /* Compact-height: a side sheet from the leading edge under the top bar, full height. */
 .sidebar[data-form='sheet'] {
-  box-shadow: var(--e4);
+  top: var(--free-top, 0px);
+  bottom: 0;
+  left: 0;
+  border-radius: 0 var(--sheet-radius) var(--sheet-radius) 0;
 }
 
-/* The tabs root holds the switch and the shown section. */
+/* The tabs root holds the switch and the shown section; it clips them to the panel's corners
+   (the panel itself does not clip, so the splitter's hit strip reaches past its edge). */
 .tabs {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 /* The section switch: one 44 px row (56 coarse), the segmented track centred in it (Q-9). A
@@ -98,6 +76,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  border-radius: inherit;
 }
 
 /* Section bodies cross-fade when the switch changes them (06 §3.7; the fade token keeps 100 ms

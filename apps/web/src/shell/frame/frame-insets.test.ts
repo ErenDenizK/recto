@@ -75,8 +75,6 @@ describe('the free rectangle (01-frame F1 §2)', () => {
   const large: FrameMeasure = {
     width: 1440,
     top: 44,
-    sidebar: 0,
-    sidebarDocked: true,
     band: 44,
     offset: BAND_OFFSET,
     focus: false,
@@ -86,20 +84,17 @@ describe('the free rectangle (01-frame F1 §2)', () => {
     expect(freeInsets(large)).toEqual({ top: 44, right: 0, bottom: 60, left: 0 });
   });
 
-  it('insets the docked sidebar from expanded up, never the overlay one (medium)', () => {
-    expect(freeInsets({ ...large, sidebar: 280 }).left).toBe(280);
-    expect(freeInsets({ ...large, sidebar: 320, sidebarDocked: false }).left).toBe(0);
+  it('insets nothing on the left: the sidebar floats over the canvas (DSN-22)', () => {
+    expect(freeInsets(large).left).toBe(0);
   });
 
   it('insets nothing on the right without a side sheet (no panel docks there, D2-9)', () => {
-    expect(freeInsets({ ...large, sidebar: 280 }).right).toBe(0);
+    expect(freeInsets(large).right).toBe(0);
   });
 
   it('insets an open side sheet while 400 px of stage remains, else it overlays', () => {
     // The OCR sheet at 1440: 400 px wide, 8 px off the edge (V2 review item 6).
     expect(freeInsets({ ...large, sideSheet: 408 }).right).toBe(408);
-    // With the docked sidebar, 1440 - 280 - 408 = 752 px remain.
-    expect(freeInsets({ ...large, sidebar: 280, sideSheet: 408 }).right).toBe(408);
     // 800 - 408 = 392 px would remain: the sheet overlays.
     expect(freeInsets({ ...large, width: 800, sideSheet: 408 }).right).toBe(0);
     expect(freeInsets({ ...large, width: 808, sideSheet: 408 }).right).toBe(408);
@@ -131,21 +126,18 @@ describe('the free rectangle (01-frame F1 §2)', () => {
     const top = document.createElement('header');
     top.dataset.frameLayer = 'top';
     top.style.cssText = 'height: 44px; transform: translateY(-44px);';
-    const sidebar = document.createElement('aside');
-    sidebar.dataset.frameLayer = 'sidebar';
-    sidebar.style.cssText = 'width: 280px; height: 10px;';
     const band = document.createElement('div');
     band.dataset.frameLayer = 'band';
     const dock = document.createElement('div');
     dock.dataset.bandItem = '';
     dock.style.cssText = 'height: 48px; transform: translateY(20px);';
     band.append(dock);
-    shell.append(top, sidebar, band);
+    shell.append(top, band);
     document.body.append(shell);
     try {
-      const measure = measureFrame(shell, { sidebarDocked: true, offset: 16, focus: false });
-      expect(measure).toMatchObject({ width: 1000, top: 44, sidebar: 280, band: 48 });
-      expect(freeInsets(measure)).toEqual({ top: 44, right: 0, bottom: 64, left: 280 });
+      const measure = measureFrame(shell, { offset: 16, focus: false });
+      expect(measure).toMatchObject({ width: 1000, top: 44, band: 48 });
+      expect(freeInsets(measure)).toEqual({ top: 44, right: 0, bottom: 64, left: 0 });
     } finally {
       shell.remove();
     }

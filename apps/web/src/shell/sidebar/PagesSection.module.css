@@ -1,5 +1,6 @@
-/* The Pages section (06-navigation N1 §2): the view tabs, then the list or the Contents tree,
-   which scroll on their own. */
+/* The Pages section (06-navigation N1 §2; DSN-22): the Contents group, then the thumbnails, each
+   scrolling on its own. Everything here sits on the sidebar's glass, so it uses fills and the
+   text colours only, never a material of its own (Q-4). */
 .section {
   display: flex;
   flex: 1;
@@ -7,80 +8,110 @@
   min-height: 0;
 }
 
+/* Contents: its header row, and while open the outline, up to half the section. */
+.contents {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 50%;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+/* Alone in the Pages grid (06.1) it has the section to itself. */
+.contents[data-alone] {
+  flex: 1;
+  max-height: none;
+  border-bottom: 0;
+}
+
+/* One S row (system-audit-2026-10 §3.3): the disclosure, then Add bookmark at the end. */
 .header {
   display: flex;
   flex: none;
   align-items: center;
-  padding: var(--space-2) var(--space-3);
+  gap: var(--space-1);
+  min-height: var(--control-h);
+  padding: 0 var(--space-3) 0 var(--space-2);
 }
 
-/* The second level (I-29): text tabs under the segmented section switch, S high. */
-.views {
-  display: flex;
+/* The disclosure (ui/RowButton owns its washes and focus ring): caret and label in the
+   footnote type, secondary while closed. */
+.disclosure {
+  position: relative;
   flex: 1;
   gap: var(--space-1);
-  min-width: 0;
-}
-
-.view {
-  composes: focus-inset from global;
-  position: relative;
-  flex: none;
-  box-sizing: border-box;
   height: var(--control-h-sm);
-  padding: 0 var(--space-2);
-  border: 0;
-  border-radius: var(--radius-capsule);
-  background: transparent;
+  padding: 0 var(--space-2) 0 var(--space-1);
   color: var(--text-secondary);
-  font: inherit;
   font-size: var(--type-footnote);
-  font-weight: 500;
+  font-weight: 600;
   line-height: var(--type-footnote-lh);
-  white-space: nowrap;
-  cursor: default;
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
 }
 
-/* A coarse pointer keeps the S tab and grows its hit area to 44 px (09 §2.1). */
-.view::after {
+/* A coarse pointer keeps the S row and grows its hit area to 44 px (09 §2.1). */
+.disclosure::after {
   content: '';
   position: absolute;
   inset: min(0px, calc((var(--control-h-sm) - var(--hit-min)) / 2)) 0;
 }
 
 @media (hover: hover) {
-  .view:hover:not([data-checked]) {
+  .disclosure:hover {
     color: var(--text-primary);
   }
 }
 
-.view[data-checked] {
-  background: var(--surface-hover);
+.disclosure[aria-expanded='true'] {
   color: var(--text-primary);
+}
+
+.caret {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.disclosure[aria-expanded='true'] .caret {
+  transform: rotate(90deg);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In the grid the header is a heading, the label's type without the control. */
+.heading {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0 var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
   font-weight: 600;
+  line-height: var(--type-footnote-lh);
 }
 
-@media (forced-colors: active) {
-  .view[data-checked] {
-    outline: 1px solid CanvasText;
-  }
+.outline {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.body {
+.contents[data-alone] .outline {
+  flex: 1;
+}
+
+.thumbnails {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  border-top: 1px solid var(--border-hairline);
-}
-
-.section[data-pages-view='bookmarks'] .body {
-  overflow: auto;
-  padding: var(--space-1) var(--space-3) var(--space-4);
 }
 
 .empty {

@@ -78,7 +78,7 @@ export type PagesView = 'thumbnails' | 'bookmarks';
  * Words to check once OCR has run on the document (spec X33). Remembered.
  */
 export type ReviewFilter = 'all' | 'comments' | 'redactions' | 'fields' | 'words';
-/** The docked sidebar's width (spec 06.18): 280 by default, 240–400, kept per device. */
+/** The floating sidebar's width (spec 06.18): 280 by default, 240–400, kept per device. */
 export const LEFT_PANEL_WIDTH = { min: 240, max: 400, default: 280 } as const;
 
 /** Discrete zoom steps, as in most viewers. 1 = 100%. */

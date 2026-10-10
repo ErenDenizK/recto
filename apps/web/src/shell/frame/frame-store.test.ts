@@ -1,7 +1,7 @@
 /**
  * The sidebar laid over the page (01-frame F1 §2): on medium and compact-height it shows only
  * once asked for in this window, whatever the stored layout says; ▤ and Mod+B show and put
- * it away without touching the docked sidebar's stored state.
+ * it away without touching the floating sidebar's stored state.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -27,7 +27,7 @@ describe('the sidebar toggle', () => {
     useUiStore.setState({ leftPanelOpen: true });
   });
 
-  it('flips the stored state while docked', () => {
+  it('flips the stored state while floating', () => {
     expect(shown()).toBe(true);
     toggleSidebar();
     expect(useUiStore.getState().leftPanelOpen).toBe(false);

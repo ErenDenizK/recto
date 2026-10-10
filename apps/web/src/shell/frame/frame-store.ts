@@ -15,7 +15,7 @@
  * - `sidebarOverlay` / `overlaySidebarShown`: on medium and compact-height the sidebar is laid
  *   over the page (F1 §2, "page unchanged: no reflow"), so it shows only once asked for in
  *   this window (▤, Mod+B, a view opened), never from the stored layout alone, and a press
- *   outside or Esc puts it away. The stored open state stays the docked sidebar's.
+ *   outside or Esc puts it away. The stored open state stays the floating sidebar's (DSN-22).
  *
  * The spec names `ui-store` for `focusMode` and `chromeHidden`; they live here, beside the
  * frame that owns them, so the shared store keeps only state that outlives a window.
@@ -90,7 +90,7 @@ export function closeFindOverlay(): void {
   useFrameStore.setState({ findOpen: false });
 }
 
-/** The sidebar is laid over the page from now on (medium, compact-height), or docked again. */
+/** The sidebar is light-dismissed from now on (medium, compact-height), or floating again. */
 export function setSidebarOverlay(sidebarOverlay: boolean): void {
   if (useFrameStore.getState().sidebarOverlay === sidebarOverlay) return;
   useFrameStore.setState({ sidebarOverlay, overlaySidebarShown: false });
@@ -114,7 +114,7 @@ export function useSidebarShown(): boolean {
   return stored && !frame;
 }
 
-/** ▤ and Mod+B: the docked sidebar flips its stored state; the laid-over one shows or goes. */
+/** ▤ and Mod+B: the floating sidebar flips its stored state; the laid-over one shows or goes. */
 export function toggleSidebar(): void {
   const ui = useUiStore.getState();
   if (!useFrameStore.getState().sidebarOverlay) {

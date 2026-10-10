@@ -32,7 +32,7 @@ async function freeRect(page: Page): Promise<Rect> {
   });
 }
 
-/** The frame's glass and docked surfaces at rest: strip or bar, dock, pill, docked sidebar. */
+/** The frame's glass surfaces at rest: strip or bar, dock, pill, sidebar. */
 async function chromeRects(page: Page): Promise<Rect[]> {
   return page.evaluate(() =>
     [
@@ -59,16 +59,16 @@ async function expectInFree(page: Page, target: Rect, what: string): Promise<voi
   const free = await freeRect(page);
   expect(target.top, `${what}: below the strip`).toBeGreaterThanOrEqual(free.top - 0.5);
   expect(target.bottom, `${what}: above the dock band`).toBeLessThanOrEqual(free.bottom + 0.5);
-  expect(target.left, `${what}: right of a docked sidebar`).toBeGreaterThanOrEqual(free.left - 0.5);
+  expect(target.left, `${what}: inside the left edge`).toBeGreaterThanOrEqual(free.left - 0.5);
   expect(target.right, `${what}: inside the right edge`).toBeLessThanOrEqual(free.right + 0.5);
   for (const surface of await chromeRects(page)) {
-    // The overlay sidebar (medium) lies over the stage by design; it is a sheet, not chrome. It
-    // floats on the piece inset, 16 from the leading edge (system-audit-2026-10 §3.1).
-    const overlay = await page
-      .locator('[data-frame-layer="sidebar"][data-overlay]')
+    // The sidebar floats over the stage by design in every form (DSN-22); it is a panel, not
+    // chrome. It sits on the piece inset, 16 from the leading edge (system-audit-2026-10 §3.1).
+    const floating = await page
+      .locator('[data-frame-layer="sidebar"]')
       .count()
       .then((n) => n > 0);
-    if (overlay && surface.left <= 16.5 && surface.top >= free.top - 0.5) continue;
+    if (floating && surface.left <= 16.5 && surface.top >= free.top - 0.5) continue;
     expect(
       intersects(target, surface),
       `${what}: under the frame at ${JSON.stringify(surface)}`,
@@ -417,7 +417,7 @@ test('the sidebar shows only in a document, and as it was stored (moved from hom
   page,
 }, info) => {
   // On the tablet the sidebar is laid over the page and shows only when asked for.
-  test.skip(info.project.name === 'tablet', 'docked sidebars only');
+  test.skip(info.project.name === 'tablet', 'floating (expanded and up) sidebars only');
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const panel = page.locator('#left-panel');
