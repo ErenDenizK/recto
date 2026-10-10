@@ -105,8 +105,11 @@ export class CommandRegistry {
     if (definition.act !== null && !isAct(definition.act)) {
       throw new Error(`Command "${definition.id}" declares no act (an Act, or null)`);
     }
+    // Built before it is kept: a malformed shortcut throws here and leaves nothing behind for
+    // the keyword load to rebuild.
+    const command = this.build(definition);
     this.definitions.set(definition.id, definition);
-    this.byId.set(definition.id, this.build(definition));
+    this.byId.set(definition.id, command);
     this.emit();
     if (!keywordCatalog.now()) this.loadKeywords();
     return () => {

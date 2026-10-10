@@ -29,7 +29,7 @@ describe('CommandRegistry', () => {
     expect(registry.list()).toEqual([]);
   });
 
-  it('rejects duplicate ids and invalid shortcuts', () => {
+  it('rejects duplicate ids and invalid shortcuts', async () => {
     const registry = new CommandRegistry();
     registry.register({ id: 'a', title: 'A', group: 'G', act: null, run: () => undefined });
     expect(() =>
@@ -45,6 +45,9 @@ describe('CommandRegistry', () => {
         run: () => undefined,
       }),
     ).toThrow();
+    // The refused command is not kept: the keyword load rebuilds only what registered.
+    await registry.keywordsLoaded();
+    expect(registry.get('b')).toBeUndefined();
   });
 
   it('keeps list() stable between mutations and notifies subscribers', () => {
