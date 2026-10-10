@@ -269,24 +269,24 @@ test.describe('keyboard', () => {
       'true',
     );
 
-    // Pages: Thumbnails · Contents is a radio group too (no second "Pages").
+    // Pages (DSN-22): Tab reaches the Contents disclosure, then Add bookmark; Enter and Space
+    // expand and collapse the group.
     await tab(/^Review/).focus();
     await page.keyboard.press('Home');
     await expect(tab(/^Pages/)).toHaveAttribute('aria-selected', 'true');
-    const view = page.getByRole('radiogroup', { name: 'Pages view' });
+    const contents = page.getByRole('button', { name: 'Contents' });
     await page.keyboard.press('Tab');
-    await expect(view.getByRole('radio', { name: 'Thumbnails' })).toBeFocused();
-    await page.keyboard.press('ArrowRight');
-    await expect(view.getByRole('radio', { name: 'Contents' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await expect(contents).toBeFocused();
+    await expect(contents).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Enter');
+    await expect(contents).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('[data-pages-view="bookmarks"]')).toBeVisible();
-    await page.keyboard.press('ArrowLeft');
-    await expect(view.getByRole('radio', { name: 'Thumbnails' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Add bookmark' })).toBeFocused();
+    await axe(page, 'Sidebar, thumbnails and contents');
+    await contents.focus();
+    await page.keyboard.press('Space');
+    await expect(contents).toHaveAttribute('aria-expanded', 'false');
     await axe(page, 'Sidebar, thumbnails');
   });
 

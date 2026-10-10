@@ -137,11 +137,16 @@ test('the sidebar starts closed with three sections; no inspector; Document info
   const rail = page.getByRole('tablist', { name: 'Sidebar sections' });
   await expect(rail.getByRole('tab')).toHaveText(['Pages', 'Find', 'Review']);
   await expect(rail.getByRole('tab', { name: 'Pages' })).toHaveAttribute('aria-selected', 'true');
-  // The Pages views name the two views, never a second "Pages".
-  await expect(page.getByRole('radiogroup', { name: 'Pages view' }).getByRole('radio')).toHaveText([
-    'Thumbnails',
-    'Contents',
-  ]);
+  // One row of tabs (DSN-22): Pages holds the thumbnails with Contents as a collapsed group
+  // above them, never a second row of views.
+  const sidebar = page.getByRole('navigation', { name: 'Sidebar' });
+  await expect(sidebar.getByRole('tablist')).toHaveCount(1);
+  await expect(sidebar.getByRole('radiogroup')).toHaveCount(0);
+  await expect(sidebar.getByRole('button', { name: 'Contents' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  await expect(sidebar.getByRole('listbox', { name: /^Pages of/ })).toBeVisible();
   await expect(page.locator('#right-panel')).toHaveCount(0);
 
   // Document info is S4 from the title menu, with the inspector's file facts (spec D2-9).

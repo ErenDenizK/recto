@@ -1,12 +1,4 @@
-/* Outline editing: toolbar, dead-link notice, in-place rename. Tokens only (DESIGN.md §3). */
-
-.toolbar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-2) var(--space-2);
-}
+/* Outline editing: dead-link notice, in-place rename. Tokens only (DESIGN.md §3). */
 
 /* Dead links (DESIGN.md §4.4): the honesty notice (ui/Notice) with the fix under it. */
 .dead {

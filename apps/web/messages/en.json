@@ -95,7 +95,6 @@
   "outline_link_open": "Open link",
   "outline_link_unsupported": "This link type cannot be opened: {uri}",
   "outline_page_label": "Page {label}",
-  "outline_toolbar_label": "Bookmark actions",
   "outline_add": "Add bookmark",
   "outline_add_tooltip": "Add a bookmark at the current page and position",
   "outline_add_child": "Add child bookmark",
@@ -3772,8 +3771,6 @@
       }
     }
   ],
-  "nav_pages_view_label": "Pages view",
-  "nav_pages_thumbnails": "Thumbnails",
   "nav_pages_bookmarks": "Contents",
   "review_filter_label": "Show",
   "review_filter_all": "All",

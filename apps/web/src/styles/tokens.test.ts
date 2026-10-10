@@ -964,16 +964,28 @@ describe('tokens.css', () => {
       for (const [file, source] of Object.entries(menus)) {
         expect(first(source), file).toMatch(/composes:\s*mat mat-menu s12\b[^;]* from global;/);
       }
-      const docked = import.meta.glob<string>(
-        '../shell/{frame/CompactTopBar,sidebar/Sidebar}.module.css',
-        { query: '?raw', import: 'default', eager: true },
-      );
-      expect(Object.keys(docked)).toHaveLength(2);
+      const docked = import.meta.glob<string>('../shell/frame/CompactTopBar.module.css', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      });
+      expect(Object.keys(docked)).toHaveLength(1);
       for (const [file, source] of Object.entries(docked)) {
         const rule = first(source);
         expect(rule, file).toMatch(/composes:\s*mat mat-panel mat-docked s\d+[^;]* from global;/);
         expect(rule, file).not.toMatch(/background:/);
       }
+      // The sidebar floats as M3 glass in every form (owner 2026-10-10, DSN-22): never docked,
+      // never solid on a coarse pointer, no background of its own at rest.
+      const sidebar = first(
+        import.meta.glob<string>('../shell/sidebar/Sidebar.module.css', {
+          query: '?raw',
+          import: 'default',
+          eager: true,
+        })['../shell/sidebar/Sidebar.module.css'] ?? '',
+      );
+      expect(sidebar).toMatch(/composes:\s*mat mat-panel s24 c20 from global;/);
+      expect(sidebar).not.toMatch(/background:|mat-docked|\bcs\b/);
       // The top strip is no band (owner feedback 2026-10-08, F1): its floating pieces are the
       // capsule's M2 glass, never docked, never a background of their own at rest.
       const strip = stripComments(

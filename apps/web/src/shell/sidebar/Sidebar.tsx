@@ -9,10 +9,16 @@
  *   remembered per device once changed (`ui-store`, 06.17); the width too (240–400, 06.18).
  *   ▤, Mod+B, Find's ↓ and "All results", the pill's "All contents…" and ⌘K open it on their
  *   section.
- * - **Forms** (01-frame F1 §2): docked from expanded up (it insets the free rectangle and the
- *   page re-centres), a 320 px overlay on the piece inset on medium, a 360 px side sheet under the top bar
- *   on compact-height. Laid over the page, it is light-dismissed by a press outside and by Esc,
- *   which returns focus to ▤. Phones keep it in the Pages sheet (M10, ADR-0033): not mounted.
+ * - **Forms** (01-frame F1 §2; owner decision 2026-10-10, DSN-22): one floating glass panel,
+ *   inset from the window on the piece inset under the strip and above the dock band, with the
+ *   sheet radius, laid over the canvas: it never pushes or resizes the document (the free
+ *   rectangle keeps its full width and the page does not reflow). From expanded up it is
+ *   `floating`: it stays until ▤ or Mod+B puts it away, at its stored width. On medium it is the
+ *   320 px `overlay` and on compact-height the 360 px side `sheet` under the top bar; those two
+ *   are light-dismissed by a press outside and by Esc, which returns focus to ▤. Phones keep it
+ *   in the Pages sheet (M10, ADR-0033): not mounted.
+ * - **One layer** (DSN-22): the section tabs are the only row of navigation; Pages holds the
+ *   thumbnails with Contents as a collapsible group above them (`PagesSection.tsx`).
  * - **In the Pages grid** the Pages section is not offered (the grid is it): a sidebar open on
  *   thumbnails hides for the grid and returns after; one on Contents, Find or Review stays
  *   (06.1).
@@ -23,11 +29,11 @@
  *   F6 stop 2 lands there too (`data-region-landing`).
  * - **Splitter:** drag, or Left / Right 16 px, Home / End; the width is announced once it
  *   rests ("Sidebar 320 pixels").
- * - **Motion** (docs/design/motion-2026-10/frame.md §1): it slides in from the leading edge on
- *   `smooth` with its contents 12 px behind (they follow on `glide` and fade in), and slides back
- *   out the same way, drawn `inert` until it is gone (`useSidebarMotion`). Docked, the canvas
- *   and the dock reflow on the same spring (`frame/frame-reflow.ts`). A reversal mid-flight
- *   turns from where the panel is. Reduced motion: it comes and goes at once.
+ * - **Motion** (docs/design/motion-2026-10/frame.md §1): it slides in from the leading edge, from
+ *   under ▤, on `smooth` with its contents 12 px behind (they follow on `glide` and fade in), and
+ *   slides back out the same way, drawn `inert` until it is gone (`useSidebarMotion`). Nothing
+ *   else moves: it floats over the canvas. A reversal mid-flight turns from where the panel is.
+ *   Reduced motion: opacity only, on the fade token (100 ms, language.md §7.5).
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -47,7 +53,6 @@ import { useSearchStore } from '../../viewer/search';
 import { animateStyle, type Motion } from '../../motion/animate';
 import { reducedMotion } from '../../motion/reduced-motion';
 import { announce } from '../announcer';
-import { captureReflow, whenStageResized } from '../frame/frame-reflow';
 import { showOverlaySidebar, useFrameStore } from '../frame/frame-store';
 import { SIDEBAR_ID } from '../frame/ids';
 import { countItems, useReadReviewData, useReviewData } from '../review/review-items';
@@ -62,7 +67,7 @@ import { textlessPages } from './textless';
 const ChangesPanel = lazy(() => import('../../compare/ChangesPanel'));
 
 /** The form the sidebar takes in this window class (01-frame F1 §2). */
-export type SidebarForm = 'docked' | 'overlay' | 'sheet';
+export type SidebarForm = 'floating' | 'overlay' | 'sheet';
 
 /** Widths of the forms laid over the page (06.18: the overlay stays fixed). */
 export const OVERLAY_WIDTH = 320;
@@ -138,7 +143,7 @@ interface FrameProps {
 const sameFrame = (a: FrameProps | null, b: FrameProps) =>
   a !== null && a.form === b.form && a.comparing === b.comparing && a.section === b.section;
 
-export function Sidebar({ form = 'docked' }: { readonly form?: SidebarForm }) {
+export function Sidebar({ form = 'floating' }: { readonly form?: SidebarForm }) {
   useTextlessFindDoor();
   const stored = useUiStore((s) => s.leftPanelOpen);
   const view = useUiStore((s) => s.leftPanelView);
@@ -146,7 +151,7 @@ export function Sidebar({ form = 'docked' }: { readonly form?: SidebarForm }) {
   const hasDocuments = useHasDocuments();
   const stage = useStageView();
   // Laid over the page, it shows only once asked for in this window (frame-store).
-  const asked = useFrameStore((s) => form === 'docked' || s.overlaySidebarShown);
+  const asked = useFrameStore((s) => form === 'floating' || s.overlaySidebarShown);
   const comparing = stage === 'compare';
   const section = sectionOf(view);
   const open =
@@ -180,8 +185,8 @@ const PARALLAX_PX = 12;
  * The sidebar's slide (frame.md §1): in from its leading edge on `smooth` as it mounts, out the
  * same way while `leaving`, then `onGone`; its contents trail by `PARALLAX_PX` (on `glide` in,
  * so they arrive a beat after the panel) and fade. Each move starts from where the panel is
- * drawn, so a reversal turns smoothly. Docked, the canvas reflows with it (`captureReflow`),
- * read here, before the free rectangle changes.
+ * drawn, so a reversal turns smoothly. Reduced motion: the panel fades on the fade token and
+ * nothing moves.
  */
 function useSidebarMotion(
   ref: { readonly current: HTMLElement | null },
@@ -205,11 +210,24 @@ function useSidebarMotion(
     // Mounted with its document (a restored session, a document opened with it showing): laid
     // out with it from the start, nothing slides.
     const withDocument = first && !document.querySelector('[data-read-viewport] [data-page-id]');
-    const stopReflow =
-      form === 'docked' && !withDocument ? whenStageResized(captureReflow()) : undefined;
-    if (reducedMotion() || withDocument) {
+    if (withDocument) {
       if (leaving) gone.current();
-      return stopReflow;
+      return undefined;
+    }
+    if (reducedMotion()) {
+      const atFade = fade.current?.value ?? (leaving ? 1 : 0);
+      // A fade under reduced motion keeps to REDUCED_FADE, inside 150 ms (motion/animate.ts).
+      const opacity = animateStyle(el, 'opacity', atFade, leaving ? 0 : 1, {
+        spring: 'quick',
+        keep: leaving,
+      });
+      fade.current = opacity;
+      void opacity.finished.then(() => {
+        if (fade.current !== opacity) return;
+        fade.current = null;
+        if (leaving) gone.current();
+      });
+      return undefined;
     }
     const content = el.firstElementChild as HTMLElement | null;
     const box = el.getBoundingClientRect();
@@ -244,7 +262,7 @@ function useSidebarMotion(
       fade.current = null;
       if (leaving) gone.current();
     });
-    return stopReflow;
+    return undefined;
   }, [ref, form, leaving]);
 }
 
@@ -292,7 +310,7 @@ function SidebarFrame({
   // Laid over the page: a press outside it (but on ▤, which toggles it) or Esc puts it away,
   // Esc returning focus to ▤.
   useEffect(() => {
-    if (form === 'docked' || leaving) return;
+    if (form === 'floating' || leaving) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -327,10 +345,9 @@ function SidebarFrame({
     }, RESIZE_ANNOUNCE_MS);
   };
 
-  const shownWidth = form === 'docked' ? width : form === 'overlay' ? OVERLAY_WIDTH : SHEET_WIDTH;
+  const shownWidth = form === 'floating' ? width : form === 'overlay' ? OVERLAY_WIDTH : SHEET_WIDTH;
   return (
-    // Leaving, it is drawn only: inert, out of the regions and of the free rectangle, so the
-    // canvas reflows from the first frame of the slide.
+    // Leaving, it is drawn only: inert and out of the regions while it slides away.
     <nav
       id={leaving ? undefined : SIDEBAR_ID}
       ref={asideRef}
@@ -342,7 +359,7 @@ function SidebarFrame({
       data-region={leaving ? undefined : 'navigator'}
       data-frame-layer={leaving ? undefined : 'sidebar'}
       data-form={form}
-      data-overlay={form === 'docked' ? undefined : ''}
+      data-overlay={form === 'floating' ? undefined : ''}
       data-section={comparing ? 'changes' : section}
       style={{ width: shownWidth }}
     >
@@ -355,7 +372,7 @@ function SidebarFrame({
       ) : (
         <Sections section={section} />
       )}
-      {form === 'docked' ? (
+      {form === 'floating' ? (
         <ResizeHandle
           label={m.nav_resize()}
           controls={SIDEBAR_ID}
