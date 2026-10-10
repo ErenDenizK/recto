@@ -27,6 +27,7 @@ import { createRequire } from 'node:module';
 import { devices, expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  atRest,
   enterEdit,
   fixturePath,
   openFixtures,
@@ -1078,6 +1079,9 @@ test.describe('craft spec §9', () => {
     await expect(page.locator('[data-lasso-bar]')).toBeVisible();
     const handles = layer(page).locator('[data-lasso-handle]');
     await expect(handles).toHaveCount(8);
+    // The selection lifts in from 97 % on `quick` (motion-2026-10/ink-shapes.md §5): measure
+    // the hit targets once it rests, not a frame of the lift.
+    await atRest(handles.first());
     for (const hit of [...(await handles.all()), layer(page).locator('[data-lasso-rotate]')]) {
       const box = await hit.boundingBox();
       expect(box?.width ?? 0).toBeGreaterThanOrEqual(24);

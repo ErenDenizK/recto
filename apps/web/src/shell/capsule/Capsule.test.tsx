@@ -18,6 +18,7 @@ import type { CapsuleShape } from './capsule-content';
 import {
   coverTime,
   FLOW_MAX_PX,
+  flowDuration,
   flowOffset,
   LEAVE_MS,
   TRACE_OPACITY,
@@ -474,5 +475,13 @@ describe('capsule', () => {
     expect(flow('pen')).toMatch(/translateX\((?!-)/);
     expect(flowOffset(1000)).toBe(-FLOW_MAX_PX);
     await settle();
+  });
+
+  it('plays a late flow faster, so it settles within A-10’s 500 ms', () => {
+    // The last of a ten-step stagger after the leaving fade starts 198 ms in.
+    const late = LEAVE_MS + 9 * 12;
+    expect(flowDuration(0)).toBeGreaterThan(flowDuration(late));
+    expect(flowDuration(late)).toBeGreaterThan(0);
+    expect(flowDuration(460)).toBe(0);
   });
 });

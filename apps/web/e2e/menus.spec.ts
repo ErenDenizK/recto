@@ -12,7 +12,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { atRest, openFixtures, useFileInputPicker } from './helpers';
 
 const TOUCH = new Set(['tablet', 'phone', 'phone-land']);
 
@@ -162,10 +162,10 @@ test.describe('pop-ups fit the window', () => {
       await page.getByTestId('privacy-indicator').click();
       const privacy = page.getByRole('dialog', { name: 'Nothing has left this device' });
       await expect(privacy).toBeVisible();
-      // Its open spring has settled (the scale ends at exactly 1; G6).
-      await privacy.evaluate((el) =>
-        Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
-      );
+      // Its open spring has settled (the scale ends at exactly 1; G6). It grows from its trigger
+      // and a re-measure retargets it by cancelling the running animation (motion-2026-10/
+      // platform.md §1), whose `finished` then rejects: wait for rest instead.
+      await atRest(privacy);
       await inside(page, '[role="dialog"]', `${at}: privacy`);
       // Its body scrolls under the title: the last line (the version) is reachable, and the
       // title stays where it was.

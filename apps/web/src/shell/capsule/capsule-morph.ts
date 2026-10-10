@@ -55,7 +55,7 @@
  */
 import { animateStyle, type Motion, stopTransform } from '../../motion/animate';
 import { reducedMotion } from '../../motion/reduced-motion';
-import { solve, springs, springToLinear } from '../../motion/springs';
+import { settleTime, solve, springs, springToLinear } from '../../motion/springs';
 import { duration, EASE } from '../../motion/tokens';
 
 /** The attribute that names a piece of content across morphs. */
@@ -82,6 +82,22 @@ export const FLOW_SHARE = 0.18;
 export const FLOW_MAX_PX = 24;
 /** `smooth` as a CSS curve, for the flow's own keyframes (they wait for the part's turn). */
 const SMOOTH = springToLinear('smooth');
+/** The share of `SMOOTH.duration` at which the curve is within 1 % of its end (A-10's settle). */
+const SMOOTH_SETTLE_SHARE = settleTime(springs.smooth, 0.01) / settleTime(springs.smooth, 0.001);
+/**
+ * A flow settles within this long of the morph starting (quality-bar A-10: whatever moves
+ * settles within 500 ms, with a frame's margin). A part whose turn comes late flows on the same
+ * curve played faster, so the last of a ten-step stagger after the leaving fade still lands in
+ * time; one with less than `FLOW_MIN_MS` left only fades.
+ */
+const FLOW_SETTLED_BY_MS = 480;
+const FLOW_MIN_MS = 120;
+
+/** How long a flow that starts `delay` ms into the morph plays, or 0 for none (A-10). */
+export function flowDuration(delay: number): number {
+  const length = Math.min(SMOOTH.duration, (FLOW_SETTLED_BY_MS - delay) / SMOOTH_SETTLE_SHARE);
+  return length < FLOW_MIN_MS ? 0 : Math.round(length);
+}
 
 /** The offset an arriving part starts at, toward the origin `offset` px from it. */
 export function flowOffset(offset: number): number {
@@ -699,9 +715,10 @@ export class CapsuleMorph {
       });
       // Flowing from the piece pressed: each part comes out from its side of it, a short way.
       const dx = flowOffset(offset(index));
-      if (flow && Math.abs(dx) >= STILL) {
+      const length = flowDuration(delay);
+      if (flow && Math.abs(dx) >= STILL && length > 0) {
         part.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], {
-          duration: SMOOTH.duration,
+          duration: length,
           easing: SMOOTH.easing,
           delay,
           fill: 'backwards',

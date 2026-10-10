@@ -264,6 +264,16 @@ test('an annotation’s bar and a note', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Go to page' }).fill('2');
   await page.keyboard.press('Enter');
   const note = page.locator('[data-annotation-kind="text"]').first();
+  // Go to page is an eased jump now (motion-2026-10/viewer.md §1), and a press stops a jump
+  // where it is: double-click the note once the jump has landed, not while it moves.
+  await expect
+    .poll(async () => {
+      const before = await note.boundingBox();
+      await page.waitForTimeout(100);
+      const after = await note.boundingBox();
+      return before !== null && after !== null && before.y === after.y && before.x === after.x;
+    })
+    .toBe(true);
   await note.dblclick({ force: true });
   await expect(page.locator('[class*="notePopup"]')).toBeVisible();
   await expectGlassClean(page, 'Edit, a note open');
