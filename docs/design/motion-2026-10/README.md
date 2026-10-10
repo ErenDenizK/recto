@@ -35,6 +35,13 @@ parallel; each wrote its own record:
   keyword messages after first paint (the whole message catalog had been in the first load,
   about 90 KB). Now: editor 818.0 KB, compact 318.9 KB, first paint 119.1 KB; baseline
   re-recorded.
+- **WebKit fonts check (open).** CI on 0c15e3f is green except one test on WebKit:
+  `e2e/fonts.spec.ts` "preloaded once" sees the UI face's Latin file reach the network twice
+  (3 of 3 attempts). No font, preload or `fonts.css` code changed in R14; the change is timing
+  (the first load is about 100 KB smaller and split differently), which suggests WebKit now
+  requests the face from CSS before the preload's response is in its memory cache. WebKit is
+  not installed locally, so this needs the CI trace (artifact `playwright-report-webkit-1`) or a
+  diagnostic run before a fix. No deploy until it is green.
 - The full Chromium e2e run was not repeated in one go after the container restart. Firefox
   and WebKit were left to CI.
 - Smaller items are listed in each lane's record ("Left").
