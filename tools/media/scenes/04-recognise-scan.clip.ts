@@ -70,7 +70,10 @@ scene({
     await stage.hold(100);
 
     // 4. Select a recognised line by dragging across it, as on a page with real text. The
-    //    recognised text layer has one span per line; this one reads as the ground truth.
+    //    recognised text layer has one span per line; this one reads as the ground truth. The
+    //    sidebar floats over the page's left edge (DSN-26), so it is put away first.
+    await cursor.click(page.getByTestId('sidebar-toggle'), 350);
+    await expect(page.getByTestId('sidebar-toggle')).toHaveAttribute('aria-pressed', 'false');
     const line = page.getByTestId('text-layer').first().getByText(LINE, { exact: true });
     await expect(line).toBeAttached();
     const lineBox = await line.boundingBox();
