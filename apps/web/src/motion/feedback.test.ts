@@ -5,7 +5,9 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { disclose, navPush, receivePulse, SHAKE, shake } from './feedback';
+import { disclose } from './disclose';
+import { receivePulse, SHAKE, shake } from './feedback';
+import { navPush } from './nav-push';
 
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 

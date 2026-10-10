@@ -42,7 +42,6 @@ import {
 
 import type { ParsedShortcut } from '../commands/shortcuts';
 import { inputTracker, usePointerCapabilities } from '../shell/frame/input-modality';
-import { installContainerTransform } from './container-transform';
 import { Keycaps } from './Keycaps';
 import styles from './Tooltip.module.css';
 
@@ -60,11 +59,10 @@ export const TOUCH_HOLD_MS = 450;
 const TOUCH_SLOP_PX = 10;
 
 /**
- * The app's one tooltip group, and the chrome's motion that has to see every popup: the
- * container transform of menus and popovers (`ui/container-transform.ts`), installed once.
+ * The app's one tooltip group (AppShell, which also installs the container transform of menus
+ * and popovers, `ui/container-transform.ts`).
  */
 export function TooltipProvider({ children }: { readonly children: ReactNode }) {
-  useEffect(() => installContainerTransform(), []);
   return (
     <BaseTooltip.Provider delay={TOOLTIP_DELAY_MS} closeDelay={0} timeout={TOOLTIP_WARM_MS}>
       {children}
