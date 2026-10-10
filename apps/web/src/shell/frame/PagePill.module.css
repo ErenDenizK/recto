@@ -63,36 +63,54 @@
 }
 
 /* The menu (F11 §2): the popover recipe (system-audit-2026-10 §3.6: radius 16, 12 padding),
-   its rows the menu recipe's M rows. */
+   its rows the menu recipe's M rows, in four groups split by hairlines: Go to page · Contents ·
+   zoom, fit and layout · field outlines and Focus.
+
+   Room (DSN-9): as wide as its content, at least the recipe's 320 (360 coarse), never wider
+   than the free rectangle less 8 px a side (nor the window, if the frame has not measured yet).
+   One column, `minmax(0, 1fr)`: a row's min-content never widens it (r15: the long nowrap
+   Contents titles did, pushing Fit, layout and Go past the edge into a sideways scroll). */
 .menu {
   /* The M4 material's solid twin (`mat-opaque`; quality bar Q-1, Q-3): this panel opens over
      the sidebar's dark edge and the white page at once, and no blur radius evens a hard
      dark/white seam under a tall panel, so it reads as one material whatever lies beneath. */
   composes: mat-opaque from global;
+  --menu-room: max(
+    0px,
+    calc(100vw - var(--free-left, 0px) - var(--free-right, 0px) - 2 * var(--space-2))
+  );
+  --menu-cap: min(calc(100vw - 2 * var(--space-2)), max(var(--menu-room), 280px));
+  --menu-w: 320px;
   display: grid;
-  gap: var(--space-1);
-  /* 20 px over F11's 300 / 340: "Continuous · Single page · Two pages" filled 300 to within
-     5 px, so an engine whose text runs a little wider fell back to a Select (09 §6.2) under a
-     Segmented Fit row. The extra room keeps both rows Segmented, in English and Turkish. */
-  width: min(320px, calc(100vw - 16px));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  width: max-content;
+  min-width: min(var(--menu-w), var(--menu-cap));
+  max-width: var(--menu-cap);
   padding: var(--space-3);
+  /* Vertical only: nothing inside is wider than the column. */
+  overflow-x: hidden;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .menu {
-    width: min(360px, calc(100vw - 16px));
+    --menu-w: 360px;
   }
 }
 
-/* One column for every row: labels on the content edge, as the entries' text (whose rows reach
-   --space-2 into the padding, the menu recipe's inset); the field, Go, the zoom buttons and the
-   segmented tracks run to the menu's content edges. */
+.menu > * {
+  min-width: 0;
+}
+
+/* Labels on the content edge, as the rows' text (whose rows reach --space-2 into the padding,
+   the menu recipe's inset); the field, Go, the zoom buttons and the segmented tracks run to the
+   menu's content edges. */
 .goto {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   column-gap: var(--space-2);
-  padding: 0 0 var(--space-1);
+  padding: 0 0 var(--space-1h);
 }
 
 .gotoLabel {
@@ -140,21 +158,22 @@
   display: none;
 }
 
+/* A group after a hairline. */
 .section {
   display: grid;
-  gap: var(--space-half);
-  padding-top: var(--space-1h);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  padding-block: var(--space-1h);
   border-top: 1px solid var(--border-hairline);
 }
 
-.sectionLabel {
-  display: flex;
-  align-items: center;
-  min-height: var(--control-h-sm);
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: 600;
+.section:last-child {
+  padding-bottom: 0;
+}
+
+/* Rows stack without a gap, as a menu's do. */
+.section:has(> .entry) {
+  gap: 0;
 }
 
 .entry {
@@ -162,6 +181,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
   min-height: var(--control-h);
   margin-inline: calc(-1 * var(--space-2));
   padding: 0 var(--space-2);
@@ -169,11 +189,6 @@
   color: var(--text-primary);
   font-size: var(--control-text);
   text-align: left;
-}
-
-.section + .entry,
-.goto + .entry {
-  margin-top: var(--space-1);
 }
 
 @media (hover: hover) {
@@ -194,10 +209,30 @@
   white-space: nowrap;
 }
 
-.entryPage {
+.entryLabel {
   flex: none;
+  white-space: nowrap;
+}
+
+/* Contents' current section, trailing: it takes what room the row has and never asks for more
+   (no intrinsic width), so a long title ellipsizes instead of widening the menu. */
+.entryDetail {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  contain: inline-size;
+}
+
+.chevron {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  margin-inline-start: auto;
+  color: var(--text-secondary);
 }
 
 .check {
@@ -206,29 +241,32 @@
   height: var(--icon-sm);
 }
 
+/* ( − ) 96 % ( + ) then Fit, the track taking the rest of the row. */
 .zoomRow {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
+  min-width: 0;
   min-height: var(--control-h);
 }
 
-.rowLabel {
-  flex: 1;
-  color: var(--text-primary);
-  font-size: var(--control-text);
+.stepper {
+  display: flex;
+  flex: none;
+  align-items: center;
 }
 
 .zoomValue {
-  min-width: 52px;
+  min-width: 48px;
   color: var(--text-primary);
   font-size: var(--control-text);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
-.segmented {
-  margin: var(--space-half) 0;
+.fit {
+  flex: 1;
+  min-width: 0;
 }
 
 /* The moving text (PillRoll.tsx; motion-2026-10 frame.md §4). The odometer: one tabular cell
