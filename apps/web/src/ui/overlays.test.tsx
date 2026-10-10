@@ -215,7 +215,9 @@ describe('Popover', () => {
     );
     expect([...moved].sort()).toEqual(['clipPath', 'opacity', 'transform']);
     await settled(dialog);
-    expect(dialog.getAnimations()).toEqual([]);
+    // The finished entrance is cancelled on the frame after it ends, which a slow runner may not
+    // have reached when `settled` returns.
+    await waitFor(() => expect(dialog.getAnimations()).toEqual([]));
     expect(dialog.style.cssText).toBe('');
     const style = getComputedStyle(dialog);
     expect(style.borderTopLeftRadius).toBe('16px');

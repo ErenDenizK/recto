@@ -320,10 +320,12 @@ describe('hold to shape on a layer', () => {
     const chip = rig.layer.querySelector<HTMLElement>('[data-shape-chip]');
     expect(chip?.textContent).toBe('Rectangle');
     await wait(MORPH_WAIT_MS);
-    await frame();
+    // The morph runs on frames, which a slow runner gives out late: wait for its last one.
+    await vi.waitFor(() => expect(rig.preview.frames.at(-1)?.points).toHaveLength(5), {
+      timeout: 3000,
+    });
     const last = rig.preview.frames.at(-1);
     // Four corners and the close.
-    expect(last?.points).toHaveLength(5);
     expect(last?.points[0]?.x).toBeCloseTo(last?.points[4]?.x ?? 0, 6);
     // A tap on the chip (another pointer) moves on to the next-best fit.
     chip?.dispatchEvent(
