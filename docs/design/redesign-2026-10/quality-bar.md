@@ -1,7 +1,7 @@
 # Quality bar: what the prototype got wrong, and the gates that keep it out of the product
 
 **Status:** accepted 2026-10-04 · **Applies to:** every M9 work package and both editions
-(ADR-0033) · **Amends:** `language.md` §2.3 (grain removed), §7.2's *bar morph* row (Q-6);
+(ADR-0033) · **Amends:** `language.md` §2.3 (the prototype's grain tile removed; Q-1, corrected 2026-10-10), §7.2's *bar morph* row (Q-6);
 ADR-0024 §2 item 6; ADR-0026 §2 items 5 and 6; spec X1 and D2-2
 
 The owner reviewed the concept prototype on 2026-10-04 and accepted the direction (in
@@ -21,7 +21,7 @@ test and the work package that first carries it.
 
 | Seen by the owner | Cause in `concept/` | Rule |
 |---|---|---|
-| Glass looks grainy | Sheets and side sheets carried a 128 px noise tile at 2.5 % (`--grain-img`, `language.md` G-7). It was generated at 1× and scaled on HiDPI screens, so it read as dirt, not texture | Q-1 |
+| Glass looks grainy | Sheets and side sheets carried a 128 px noise tile at 2.5 % (`--grain-img`, `language.md` G-7). It was generated at 1× and scaled on HiDPI screens, so it read as dirt, not texture: a wrong render, not grain as such (owner, 2026-10-10) | Q-1 |
 | Glass breaks | Glass sat inside ancestors that start a new backdrop root (a phone frame with `clip-path`, transformed demo cards), so it blurred only its parent. Small moving parts carried their own `backdrop-filter`. Glass was nested inside glass | Q-2, Q-3, Q-4, Q-5 |
 | The bottom menu's animation is broken | The capsule morph clipped the glass with `clip-path` while its shadow lived on a separate element stretched with `scaleX`, so the rounded ends squashed. The rim was hidden during the morph and popped back after. The tools moved as cloned "ghosts" over the real ones. Shape, shadow and rim never shared one geometry | Q-6, Q-7 |
 | Mismatched buttons | Controls of 28, 32, 36 and 44 px in the same bar; three radii; icons at 16, 18 and 20 px; hand-written buttons beside the primitive ones | Q-9 |
@@ -30,12 +30,22 @@ test and the work package that first carries it.
 
 ## 2. Rules
 
-**Q-1 No grain, no noise, no raster texture on any surface.**
-- G-7 is removed: glass is smooth at every tier.
-- The aurora keeps its in-shader dither of ±0.5 LSB (AU-3), which is invisible by construction
-  and the only dither in Recto.
+**Q-1 No texture that renders wrong, and no banding.**
+- Nothing on a surface is drawn below the device's resolution or scaled past it, and nothing
+  reads as dirt. The prototype's G-7 tile (made at 1×, scaled up on HiDPI) is removed; glass
+  ships smooth at every tier today.
+- Gradients and light must not band. The aurora keeps its in-shader dither of ±0.5 LSB (AU-3).
+- A grain or dither layer is allowed where banding shows and it fixes it: made at device
+  resolution (or in a shader), measured against the banding it removes (research 17 §5, AU-3's
+  3 % layer is the reference), with a solid twin, behind the glass pixel tests (Q-2 to Q-6).
+  Each such layer is a decisions-log row and a named exception in the test.
+- *Correction, 2026-10-10 (owner):* this rule first read "No grain, no noise, no raster texture
+  on any surface". The owner's 2026-10-04 complaint (quoted above) asked to fix glass that
+  rendered wrong and banded, not to ban grain. The quote stays as said; the rule is reworded
+  (option B of `docs/family/README.md` §6) and ADR-0024 is amended to match.
 - *Test:* `materials.test.ts` fails on `background-image` with `url(` or `image-set(` in any
-  `.mat*` rule and on `feTurbulence` anywhere in `src/`. *First:* D0-1.
+  `.mat*` rule and on a live `feTurbulence` anywhere in `src/`, unless the rule is on the test's
+  list of measured layers (empty today). *First:* D0-1.
 
 **Q-2 Glass rests crisp.**
 - At rest a glass element has `transform: none` (or an integer translate) and no `will-change`.
@@ -85,8 +95,10 @@ test and the work package that first carries it.
 - Content never reflows during motion.
 - A drag hands its velocity to the spring.
 - The scrim is a separate element that fades.
-- Menus and popovers scale from their anchor (0.96 → 1) and fade; nothing animates `height`,
-  `top` or `clip-path` on glass.
+- Menus and popovers open from their trigger by the container transform (decision MOT-5,
+  2026-10-09): a `clip-path` inset from the trigger's rounded rect plus a translate, never a
+  scale, so text is never squashed; they close back into the trigger. This replaces the
+  earlier "scale from the anchor (0.96 → 1)". Nothing animates `height` or `top` on glass.
 - *Test:* `sheets.spec.ts` samples `getBoundingClientRect` sizes every frame of an open and a
   detent change: sizes are constant, only the transform moves, and a `ResizeObserver` on the
   content fires zero times. *First:* D0-4.
@@ -112,6 +124,9 @@ test and the work package that first carries it.
   control's hit area never drops under 44.
 - Radii are only pill or `--radius-control` (10).
 - Icons are 20 px in controls and 16 px in menus and rows.
+- *Amended 2026-10-09 (decision DSN-20, Audit §3):* the final system adds concentric radii, three
+  control sizes (S/M/L) and icon sizes {12 badges, 16, 20, 32}. Where the two lists differ, the
+  tokens and DSN-20 win.
 - Popovers, menus, sheets, toasts, sliders and swatches each have one primitive (`10-ink` §7).
 - In a bar every control shares one centre line.
 - *Test:* `bar-audit.spec.ts` runs on every `role="toolbar"`, `[data-bar]`, menu and popover in
@@ -152,14 +167,15 @@ test and the work package that first carries it.
 
 **Q-12 Drawing is code.**
 - Gradients, SVG and the token colours draw the UI.
-- No bitmap backgrounds, no inline PNGs, no icon fonts.
+- No bitmap backgrounds, no inline PNGs, no icon fonts. The one exception is a measured
+  grain or dither layer that Q-1 allows.
 - *Test:* the copy-check list bans `data:image/png` and `url(*.png)` in CSS under `src/`.
   *First:* D0-1.
 
 **Q-13 Screens are pinned.**
 - Each surface has a screenshot baseline in both themes at 1440 × 900 and 820 × 1180 (tablet),
   in Chromium, plus the compact edition at 390 × 844.
-- A pull request that changes one shows the diff.
+- A change to one shows the before and after in its report.
 - *Test:* `surfaces.visual.spec.ts`, whose baselines are updated only by the lead. *First:*
   D0-3 (primitives), growing per drop.
 

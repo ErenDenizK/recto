@@ -90,7 +90,7 @@ without two-dimensional scrolling.
      full edition on the same device opens with them and offers Download a copy, so nothing is
      lost or hidden.
 4. **What "works fully" means here.** The compact edition is held to the same quality bar as
-   the full one (`quality-bar.md`): no grain, one control system, transforms only in its
+   the full one (`quality-bar.md`): no texture that renders wrong, one control system, transforms only in its
    animations, and 44 px targets. Its own e2e projects are `phone` (390 × 844) and `phone-land`
    (844 × 390), with a touch emulator and `?edition` unset.
 5. **M10, the phone edition, comes after M9's widescreen work.** It is planned with the owner

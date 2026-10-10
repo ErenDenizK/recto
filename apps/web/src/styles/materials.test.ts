@@ -5,11 +5,13 @@
  * - **Generated.** The committed file is what `tooling/materials.ts` writes from the coverage
  *   registry and the tier tokens (whitespace folded: Biome formats it), so a registry entry, a
  *   tier's chain and the CSS cannot drift.
- * - **Q-1, no grain.** Glass is smooth at every tier: no `background` or `background-image`
- *   with `url(` or `image-set(` in any `.mat*` rule or in a module rule that composes one, and
- *   no `feTurbulence` anywhere in `src/` (the aurora's in-shader dither, AU-3, is the one
- *   dither Recto has). The concept prototype's glass read as dirty because its sheets carried a
- *   128 px noise tile scaled up on HiDPI screens.
+ * - **Q-1, no texture that renders wrong** (corrected 2026-10-10: grain is not banned). Glass
+ *   ships smooth at every tier: no `background` or `background-image` with `url(` or
+ *   `image-set(` in any `.mat*` rule or in a module rule that composes one, and no live
+ *   `feTurbulence` anywhere in `src/`. The concept prototype's glass read as dirty because its
+ *   sheets carried a 128 px noise tile made at 1× and scaled up on HiDPI screens. A grain or
+ *   dither layer measured to fix banding may be added: it goes on `MEASURED_LAYERS` with its
+ *   decisions-log row.
  * - **The `.glass*` rules are gone** (D3-3's acceptance): no `.glass`, `.glass-menu` or
  *   `.glass-frame` rule or composition is left.
  * - **Lit glass stays off the page** (language.md §10.2): no module under `stage/`, `viewer/` or
@@ -70,11 +72,19 @@ describe('materials.css (09-primitives §26, D3-3)', () => {
   });
 });
 
-describe('materials: no grain or raster texture (quality-bar Q-1)', () => {
+/**
+ * Grain or dither layers allowed by Q-1: each made at device resolution, measured against the
+ * banding it fixes, and recorded in `docs/process/decisions.md`. Keys are `file selector` as the
+ * failures print them (`materials.css` for the material rules). Empty: Recto ships none.
+ */
+const MEASURED_LAYERS: ReadonlySet<string> = new Set<string>();
+
+describe('materials: no texture that renders wrong (quality-bar Q-1)', () => {
   it('paints no raster on the material rules', () => {
     const materialRules = rules(materialsCss).filter((rule) => /\.mat[\w-]*\b/.test(rule.selector));
     expect(materialRules.length).toBeGreaterThan(10);
     for (const rule of materialRules) {
+      if (MEASURED_LAYERS.has(`materials.css ${rule.selector}`)) continue;
       for (const declaration of backgrounds(rule.body)) {
         expect(declaration, rule.selector).not.toMatch(RASTER);
       }
@@ -87,6 +97,7 @@ describe('materials: no grain or raster texture (quality-bar Q-1)', () => {
       for (const rule of rules(source)) {
         if (!/composes:\s*[^;]*\bmat[\w-]*[^;]*from global/.test(rule.body)) continue;
         composing++;
+        if (MEASURED_LAYERS.has(`${file} ${rule.selector}`)) continue;
         for (const declaration of backgrounds(rule.body)) {
           expect(declaration, `${file} ${rule.selector}`).not.toMatch(RASTER);
         }

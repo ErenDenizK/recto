@@ -54,7 +54,8 @@ loses.
 - The accessibility gates A-1…A-24 and every effect's solid twin.
 
 The family vision also lists "no grain, no noise, no raster texture (Q-1)" here. The owner has
-since said that record is wrong in intent; see §6. Until the owner decides, Q-1 stays as it is.
+since said that record is wrong in intent, and Q-1 was corrected on 2026-10-10 (§6): the
+untouchable is clean glass that renders without banding.
 
 ## 3. `world.json` and `tokens.json`
 
@@ -144,6 +145,11 @@ light table leaves the page about 30 px lower than at the start, so a loop shows
 kit lists for Recto, is not made yet (desktop and tablet come first).
 
 ## 6. Correction to verify with the owner
+
+> **Resolved 2026-10-10:** the owner chose **option B**. Q-1, `language.md` §2.3, ADR-0024 (§6),
+> ADR-0033, the redesign spec's summary and `materials.test.ts` now say "no texture that
+> renders wrong, and no banding"; decision DSN-22 records it. The table below is the record of
+> what was found.
 
 **What the owner said (portfolio brief §7, 2026-10-09, late):** "Recto's 'grain ban' is a
 misrecording: the owner had asked to fix the glass object's wrong render and its banding, not

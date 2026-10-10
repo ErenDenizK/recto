@@ -60,8 +60,8 @@ content under glass costs per frame in proportion to blurred area (+18 % per 10 
    from a dark outer edge, a lit inner rim and one shadow per tier (§2.4); filters never
    animate, glass moves by `transform` and `opacity` on itself, never on an ancestor, and the
    capsule changes shape through its own width and height (G-13, G-21; amended by
-   `quality-bar.md` Q-3 and Q-6); no grain on any tier (G-7 removed by `quality-bar.md` Q-1,
-   2026-10-04: the owner found the prototype's grain made glass look dirty); the `-webkit-`
+   `quality-bar.md` Q-3 and Q-6); no texture that renders wrong (G-7's 1× tile removed by `quality-bar.md` Q-1,
+   2026-10-04, because scaled up on HiDPI it made glass look dirty; amended 2026-10-10, §6); the `-webkit-`
    line holds literal values and a test keeps it equal to the unprefixed line (G-22).
 3. **Coverage rule** (A-2): `c = erf(h / 2√2σ) · erf(w / 2√2σ) ≥ 0.985` at the smallest size a
    surface renders at; in practice σ ≤ height / 5 for bars and ≤ side / 5.5 for square chips,
@@ -141,3 +141,14 @@ content under glass costs per frame in proportion to blurred area (+18 % per 10 
 2. **S2 must cover the dock.** Research 14's S2 protocol measures the docked frame. The floating
    dock (M2, with a lens on Chromium) sits over scrolling pages at every size in viewing; the
    owner's run should add it, and the palette with the under-light, to the same scroll scenes.
+
+## 6. Amendment, 2026-10-10 (owner): grain was never banned
+
+The 2026-10-04 record turned the owner's complaint about glass "that breaks and looks grainy"
+into "no grain on any tier". The owner has since said what they asked for: fix the glass's
+wrong render and its banding, not ban grain. `quality-bar.md` Q-1 now reads "no texture that
+renders wrong, and no banding" (option B of `docs/family/README.md` §6, chosen by the owner).
+Glass still ships smooth at every tier; what changes is that a grain or dither layer made at
+device resolution, measured against the banding it fixes and covered by the glass pixel tests
+is allowed, each one recorded in the decisions log and named in `materials.test.ts`. Decision
+DSN-4 is amended to match.
