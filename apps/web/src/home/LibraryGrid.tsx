@@ -58,7 +58,7 @@ import {
   toggleSelection,
 } from './home-model';
 import { LibraryCard } from './LibraryCard';
-import { openCardMorph } from './library-transition';
+import { libraryTransition, openCardMorph } from './library-morph';
 import styles from './LibraryGrid.module.css';
 import { enterSelecting, setSelecting, useSelecting } from './library-store';
 
@@ -91,6 +91,10 @@ export function LibraryGrid({
   readonly cards: readonly HomeCardData[];
   readonly workspace: Workspace;
 }) {
+  // The view change a card opens with loads with the Library (library-morph.ts).
+  useEffect(() => {
+    libraryTransition.now();
+  }, []);
   const rawSelection = useUiStore((s) => s.homeSelection);
   const anchor = useUiStore((s) => s.homeAnchor);
   const marks = useSavedStore((s) => s.marks);

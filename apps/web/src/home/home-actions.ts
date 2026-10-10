@@ -47,8 +47,8 @@ import { useUiStore } from '../state/ui-store';
 import { addLoadedSource, type LoadedSources, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { combinedTitle, combineOrder, compareOrder, liveSelection, movedOrder } from './home-model';
+import { backToLibraryMorph } from './library-morph';
 import { resetLibraryStore, setSelecting } from './library-store';
-import { backToLibraryMorph } from './library-transition';
 
 const ui = () => useUiStore.getState();
 const model = () => useWorkspaceStore.getState();
@@ -56,7 +56,7 @@ const order = () => model().workspace.documentOrder;
 
 /**
  * Shows Home (`0`, the app glyph, the palette, "Show Home"): from a document, its page shrinks
- * back into its card (`library-transition.ts`).
+ * back into its card (`library-transition.ts`, through `library-morph.ts`).
  */
 export function showHome(): void {
   if (ui().destination === 'home') return;
