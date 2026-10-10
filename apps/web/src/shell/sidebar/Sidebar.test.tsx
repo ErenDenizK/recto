@@ -1,7 +1,7 @@
 /**
  * The sidebar (`components/06-navigation.md` N1–N5; redesign spec D2-4) in browser mode: the
  * section switch as APG tabs with counts in the names, the Pages section's one layer (Contents
- * a collapsible group above the thumbnails, DSN-22), the thumbnail listbox keys (S10: navigating never selects), Alt+arrows
+ * a collapsible group above the thumbnails, DSN-26), the thumbnail listbox keys (S10: navigating never selects), Alt+arrows
  * moving a page by one, the menu from Shift+F10, Find's own field only below 1280 px, and the
  * forms (floating, overlay, nothing on the Library).
  */
@@ -95,7 +95,7 @@ describe('N1 shell and switch', () => {
       .toMatch(/^Find, \d+ matches$/);
   });
 
-  it('keeps one row of tabs: Contents is a collapsible group above the thumbnails (DSN-22)', async () => {
+  it('keeps one row of tabs: Contents is a collapsible group above the thumbnails (DSN-26)', async () => {
     await open(outlineUrl, 'outline-named-dests.pdf');
     render(<Sidebar />);
     const nav = screen.getByRole('navigation', { name: 'Sidebar' });

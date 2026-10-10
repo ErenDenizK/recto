@@ -303,7 +303,7 @@ export async function markAllMatches(page: Page): Promise<void> {
 /**
  * Shows the sidebar (closed by default, 06-navigation N1) on `section`, and on the Pages
  * section's `view`, and returns it. ▤ shows it; a section tab changes it. The Pages views are
- * the Contents group's disclosure (DSN-22): `Contents` expands it, `Thumbnails` collapses it so
+ * the Contents group's disclosure (DSN-26): `Contents` expands it, `Thumbnails` collapses it so
  * the thumbnails have the section.
  */
 export async function showSidebar(

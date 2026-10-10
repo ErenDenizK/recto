@@ -495,7 +495,7 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
   },
   {
     id: 'navigator',
-    surface: 'Sidebar (06-navigation N1; floating, overlay 320, side sheet 360; DSN-22)',
+    surface: 'Sidebar (06-navigation N1; floating, overlay 320, side sheet 360; DSN-26)',
     module: 'shell/sidebar/Sidebar.module.css',
     selector: '.sidebar',
     tier: 'panel',

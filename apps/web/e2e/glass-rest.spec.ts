@@ -210,7 +210,7 @@ test('the floating sidebar with the strip, the dock, the pill and a contextual b
   await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
   await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
   const walk = await expectGlassClean(page, 'Read, floating sidebar, text selection bar');
-  // Q-11 as DSN-22 adjusts it: the floating sidebar is glass with a slot of its own, so the
+  // Q-11 as DSN-26 adjusts it: the floating sidebar is glass with a slot of its own, so the
   // contextual bar is still the "one more" of the other four.
   expect(walk.visible).toBeLessThanOrEqual(5);
   expect(names(walk).some((n) => n.includes('#left-panel'))).toBe(true);

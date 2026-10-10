@@ -137,7 +137,7 @@ test('the sidebar starts closed with three sections; no inspector; Document info
   const rail = page.getByRole('tablist', { name: 'Sidebar sections' });
   await expect(rail.getByRole('tab')).toHaveText(['Pages', 'Find', 'Review']);
   await expect(rail.getByRole('tab', { name: 'Pages' })).toHaveAttribute('aria-selected', 'true');
-  // One row of tabs (DSN-22): Pages holds the thumbnails with Contents as a collapsed group
+  // One row of tabs (DSN-26): Pages holds the thumbnails with Contents as a collapsed group
   // above them, never a second row of views.
   const sidebar = page.getByRole('navigation', { name: 'Sidebar' });
   await expect(sidebar.getByRole('tablist')).toHaveCount(1);

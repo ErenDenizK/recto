@@ -130,7 +130,7 @@ export function OutlinePanel() {
 
 /**
  * When some targets were deleted, the dead-link notice and its fix. Add bookmark is the Contents
- * group's icon button (`sidebar/PagesSection.tsx`, DSN-22).
+ * group's icon button (`sidebar/PagesSection.tsx`, DSN-26).
  */
 function DeadLinks({ doc }: { readonly doc: VirtualDocument }) {
   const dead = countDeadOutlineLinks(doc.outline);

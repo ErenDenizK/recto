@@ -14,7 +14,7 @@
  *   between device pixels: the position must round, Q-2; at 2× a half CSS pixel is whole, as
  *   Floating UI rounds it), and the element has no `will-change`.
  * - **Q-11, the budget.** At most four visible surfaces at rest (six during a transition), one
- *   more while the floating sidebar shows (a slot of its own, DSN-22); the pieces of one surface (`data-glass-group`, the top strip's two) count as one, and the
+ *   more while the floating sidebar shows (a slot of its own, DSN-26); the pieces of one surface (`data-glass-group`, the top strip's two) count as one, and the
  *   palette's floating ink strip (`data-strip-piece`, owner feedback F3) counts with the
  *   capsule as Q-11's "dock".
  * - **Q-8, text set once and sharp.** Every visible piece of text on a glass surface (an element
@@ -353,7 +353,7 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
         }
         visibleCount += 1;
       });
-      // The floating sidebar has a slot of its own while it shows (DSN-22, owner 2026-10-10):
+      // The floating sidebar has a slot of its own while it shows (DSN-26, owner 2026-10-10):
       // it is the one sanctioned glass panel, so it never takes the "one more".
       const sidebarSlot = found.some(
         ({ el }, i) => surfaces[i]?.visible === true && el.matches('[data-frame-layer="sidebar"]'),

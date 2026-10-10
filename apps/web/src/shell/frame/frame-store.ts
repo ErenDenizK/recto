@@ -15,7 +15,7 @@
  * - `sidebarOverlay` / `overlaySidebarShown`: on medium and compact-height the sidebar is laid
  *   over the page (F1 §2, "page unchanged: no reflow"), so it shows only once asked for in
  *   this window (▤, Mod+B, a view opened), never from the stored layout alone, and a press
- *   outside or Esc puts it away. The stored open state stays the floating sidebar's (DSN-22).
+ *   outside or Esc puts it away. The stored open state stays the floating sidebar's (DSN-26).
  *
  * The spec names `ui-store` for `focusMode` and `chromeHidden`; they live here, beside the
  * frame that owns them, so the shared store keeps only state that outlives a window.

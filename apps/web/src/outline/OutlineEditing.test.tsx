@@ -84,7 +84,7 @@ function renderPanel() {
   return render(
     <TooltipProvider>
       <div style={{ display: 'flex', flexDirection: 'column', height: 480, width: 280 }}>
-        {/* The sidebar's Contents group, open: its header carries Add bookmark (DSN-22). */}
+        {/* The sidebar's Contents group, open: its header carries Add bookmark (DSN-26). */}
         <ContentsGroup open collapsible={false} />
       </div>
     </TooltipProvider>,

@@ -1,6 +1,6 @@
 /**
  * The sidebar's Pages section (`components/06-navigation.md` N1 §2, N2, N3; owner decision
- * 2026-10-10, DSN-22): one layer under the section tabs. The thumbnails fill the section and
+ * 2026-10-10, DSN-26): one layer under the section tabs. The thumbnails fill the section and
  * Contents (spec X27, the outline) is a collapsible group above them, as a sidebar section of
  * iPadOS and macOS is: its header row is a disclosure ("Contents", `aria-expanded`) with the
  * one bookmark action, Add bookmark, as a small icon button at its trailing end. No second row
