@@ -20,6 +20,9 @@
  */
 import { reducedMotion } from '../motion/reduced-motion';
 import { duration, EASE } from '../motion/tokens';
+import { jumpEnded, jumpStarted } from './jump-landed';
+
+export { afterJump, whenJumpsLanded } from './jump-landed';
 
 /** The longest eased jump (ms). */
 export const MAX_JUMP_MS = 450;
@@ -89,24 +92,17 @@ interface Running {
 }
 
 const running = new WeakMap<HTMLElement, Running>();
-/** Every element with a jump in flight, for `whenJumpsLanded`. */
-const flying = new Set<HTMLElement>();
-let idle: (() => void)[] = [];
 
 function finish(el: HTMLElement, run: Running, landed: boolean) {
   cancelAnimationFrame(run.frame);
   if (running.get(el) === run) running.delete(el);
-  flying.delete(el);
   if (!landed) {
     run.fade?.cancel();
     run.fade = null;
   }
-  for (const done of run.landed) done(landed);
-  if (flying.size === 0) {
-    const waiting = idle;
-    idle = [];
-    for (const resolve of waiting) resolve();
-  }
+  jumpEnded(el, () => {
+    for (const done of run.landed) done(landed);
+  });
 }
 
 function clampTo(el: HTMLElement, to: ScrollPoint): ScrollPoint {
@@ -195,7 +191,7 @@ export function jumpScroll(
       landed: new Set(),
     };
     running.set(el, run);
-    flying.add(el);
+    jumpStarted(el);
   }
   run.y.to = to.top;
   run.x.to = to.left;
@@ -254,22 +250,4 @@ export function jumpTarget(el: HTMLElement): ScrollPoint | undefined {
 /** Whether a jump is running on `el`. */
 export function isJumping(el: HTMLElement): boolean {
   return running.has(el);
-}
-
-/** Resolves once no jump is in flight (at once when none is). */
-export function whenJumpsLanded(): Promise<void> {
-  if (flying.size === 0) return Promise.resolve();
-  return new Promise((resolve) => idle.push(resolve));
-}
-
-const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-
-/**
- * Resolves once a jump just asked for through the view store has landed: the page view starts
- * it from an effect, so this gives it two frames to begin, then waits for every jump in flight.
- */
-export async function afterJump(): Promise<void> {
-  await frame();
-  await frame();
-  await whenJumpsLanded();
 }

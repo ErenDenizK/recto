@@ -23,7 +23,7 @@ import { EASE, SPRING_CSS_MS } from '../motion/tokens';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
-import { afterJump } from './jump';
+import { afterJump } from './jump-landed';
 
 export interface DocumentHit {
   /** Order of arrival; ties inside a page keep the engine's reading order. */
