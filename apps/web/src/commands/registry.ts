@@ -12,8 +12,8 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 
 import { type Act, type ChangeRefusal, changeRefusal, isAct, refusalReason } from '../state/guard';
+import { lazyModule } from '../motion/lazy';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { messageKeywords } from './keywords';
 import { type ParsedShortcut, parseShortcut } from './shortcuts';
 
 /**
@@ -80,10 +80,21 @@ export interface Command extends CommandDefinition {
 
 type Listener = () => void;
 
+/**
+ * The catalog keywords (`keywords.ts`): a lookup by key that reads every message in every UI
+ * language, so it loads after the first paint, when the first command registers, instead of
+ * pulling the whole catalog into the editor's first load (PLAN.md §2.3 V1-P2). The registry
+ * adds them to every command once they are here, long before a palette search can run.
+ */
+const keywordCatalog = lazyModule(() => import('./keywords'));
+
 export class CommandRegistry {
   private readonly byId = new Map<string, Command>();
   private readonly listeners = new Set<Listener>();
   private snapshot: readonly Command[] = [];
+  /** What each registration passed, to add the catalog keywords once they load. */
+  private readonly definitions = new Map<string, CommandDefinition>();
+  private keywordsLoading: Promise<void> | null = null;
 
   register(definition: CommandDefinition): () => void {
     if (this.byId.has(definition.id)) {
@@ -94,25 +105,50 @@ export class CommandRegistry {
     if (definition.act !== null && !isAct(definition.act)) {
       throw new Error(`Command "${definition.id}" declares no act (an Act, or null)`);
     }
+    this.definitions.set(definition.id, definition);
+    this.byId.set(definition.id, this.build(definition));
+    this.emit();
+    if (!keywordCatalog.now()) this.loadKeywords();
+    return () => {
+      if (this.definitions.get(definition.id) === definition) {
+        this.definitions.delete(definition.id);
+        this.byId.delete(definition.id);
+        this.emit();
+      }
+    };
+  }
+
+  /** Resolves once the catalog keywords are on every registered command (tests, the palette). */
+  keywordsLoaded(): Promise<void> {
+    return this.keywordsLoading ?? Promise.resolve();
+  }
+
+  private loadKeywords(): void {
+    this.keywordsLoading ??= keywordCatalog.load().then(
+      () => {
+        this.keywordsLoading = null;
+        for (const [id, definition] of this.definitions) this.byId.set(id, this.build(definition));
+        this.emit();
+      },
+      () => {
+        this.keywordsLoading = null;
+      },
+    );
+  }
+
+  /** The command for `definition`: its parsed shortcuts and, once loaded, catalog keywords. */
+  private build(definition: CommandDefinition): Command {
     const raw = definition.shortcut;
     const list: readonly string[] = raw === undefined ? [] : typeof raw === 'string' ? [raw] : raw;
-    const catalog = messageKeywords(definition.id);
+    const catalog = keywordCatalog.now()?.messageKeywords(definition.id) ?? [];
     const keywords =
       catalog.length === 0
         ? definition.keywords
         : [...new Set([...(definition.keywords ?? []), ...catalog])];
-    const command: Command = {
+    return {
       ...definition,
       ...(keywords === undefined ? {} : { keywords }),
       shortcuts: list.map(parseShortcut),
-    };
-    this.byId.set(command.id, command);
-    this.emit();
-    return () => {
-      if (this.byId.get(command.id) === command) {
-        this.byId.delete(command.id);
-        this.emit();
-      }
     };
   }
 

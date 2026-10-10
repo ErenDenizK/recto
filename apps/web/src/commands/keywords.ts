@@ -5,11 +5,13 @@
  * one. The registry adds these to a command's own `keywords`; matching folds case and
  * diacritics (`fuzzy.ts`), so "ciz" finds "çiz".
  */
-import { type Locale, locales, m } from '../i18n';
+import { type Locale, locales } from '../i18n';
+import * as keywordMessages from './keyword-messages';
 
 type KeywordMessage = (inputs?: Record<string, never>, options?: { locale?: Locale }) => string;
 
-const messages = m as unknown as Readonly<Record<string, KeywordMessage | undefined>>;
+/** The keyword messages only, by key (`keyword-messages.ts`; not the whole `m` namespace). */
+const messages = keywordMessages as unknown as Readonly<Record<string, KeywordMessage | undefined>>;
 
 /**
  * The message key holding a command's keywords: dots, dashes and camel case become

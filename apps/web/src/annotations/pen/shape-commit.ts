@@ -40,7 +40,8 @@ import { closeBurst } from './bursts';
 import { inkCommitted } from './dry-ink';
 import type { InkShape, SettleInk } from './ink-input';
 import { previewPath } from './ink-preview';
-import { axisAligned, outline, type ShapeGeometry, type ShapeKind } from './shapes';
+import { axisAligned, outline } from './shape-outline';
+import type { ShapeGeometry, ShapeKind } from './shapes';
 
 /** History keys of shape commits start with this (the dry ink layer reads it as a stroke). */
 export const SHAPE_KEY_PREFIX = 'ink-shape:';

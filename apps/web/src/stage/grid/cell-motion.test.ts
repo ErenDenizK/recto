@@ -4,10 +4,11 @@
  * 3° cap, the gap's neighbours, the rotation's turn, and nothing left behind at rest (Q-2).
  */
 import type { DocumentId, PageId } from '@pdf-editor/document-model';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { CASCADE_MS, cascadeIn, cascadeOut, rippleSelection, shrinkOut } from './cell-motion';
 import { playCells } from './flip-cells';
+import { gridMotion } from './grid-motion';
 import { MAX_TILT_DEG, tiltFor } from './lift';
 import { MAKE_WAY_PX, neighbours } from './make-way';
 import { runningSpin, spinSheet, spinState, turnBetween } from './rotate-motion';
@@ -32,6 +33,11 @@ function grid(count: number): HTMLElement {
   document.body.append(viewport);
   return viewport;
 }
+
+// The reflow takes the motion from its lazy chunk (grid-motion.ts), loaded with a document.
+beforeAll(async () => {
+  await gridMotion.load();
+});
 
 afterEach(() => {
   delete document.documentElement.dataset.motion;

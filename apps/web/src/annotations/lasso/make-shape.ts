@@ -37,9 +37,10 @@ import { executeEdit, readAnnotations, runAction } from '../edit-runner';
 import { type PageFrame, roundRect, userToCss } from '../geometry';
 import { boundsOf, type Point } from '../ink';
 import { mountedLayers } from '../layer-registry';
-import { morphTarget, MORPH_POINTS } from '../pen/shape-hold';
 import { type ShapeDraft, shapeDraft } from '../pen/shape-commit';
-import { recognizeShape, resample, type ShapeFit } from '../pen/shapes';
+import { shapeKit } from '../pen/shape-kit';
+import type * as ShapeKit from '../pen/shape-kit-impl';
+import type { ShapeFit } from '../pen/shapes';
 import { useLassoNotice } from './edits';
 
 /** One selected path and the shape it is. */
@@ -51,11 +52,15 @@ export interface ShapePlan {
   readonly fit: ShapeFit;
 }
 
-/** The recognised paths among `picks` (ids → path indices) of `annotations`, through `frame`. */
+/**
+ * The recognised paths among `picks` (ids → path indices) of `annotations`, through `frame`;
+ * `kit` is the recogniser (`pen/shape-kit.ts`, loaded with the bar's button).
+ */
 export function planShapes(
   annotations: readonly Annotation[],
   picks: Readonly<Record<string, readonly number[]>>,
   frame: PageFrame,
+  kit: typeof ShapeKit,
 ): ShapePlan[] {
   const plans: ShapePlan[] = [];
   for (const [id, indices] of Object.entries(picks)) {
@@ -65,7 +70,7 @@ export function planShapes(
       const path = ink.paths[index];
       if (!path || path.length < 2) continue;
       const css = path.map((p) => userToCss(frame, p));
-      const fit = recognizeShape(css).fits[0];
+      const fit = kit.recognizeShape(css).fits[0];
       if (fit) plans.push({ id, index, css, fit });
     }
   }
@@ -165,6 +170,7 @@ function morphOverlay(
   widths: readonly number[],
   colors: readonly string[],
   revision: number,
+  kit: typeof ShapeKit,
 ): void {
   const layer = mountedLayers.get(target.pageId);
   if (!layer || plans.length === 0) return;
@@ -189,8 +195,8 @@ function morphOverlay(
     line.setAttribute('stroke-width', String(width));
     line.setAttribute('stroke-linejoin', 'round');
     line.setAttribute('stroke-linecap', 'round');
-    const from = resample(plan.css, MORPH_POINTS);
-    lines.push({ line, from, to: morphTarget(plan.fit.geometry, from) });
+    const from = kit.resample(plan.css, kit.MORPH_POINTS);
+    lines.push({ line, from, to: kit.morphTarget(plan.fit.geometry, from) });
     svg.append(line);
   });
   const draw = (t: number) => {
@@ -234,6 +240,8 @@ function morphOverlay(
  * one history entry, with the morph; says so when none fits. Resolves to the shapes made.
  */
 export async function makeShapes(): Promise<number> {
+  const kit = await shapeKit.load().catch(() => null);
+  if (!kit) return 0;
   const state = useAnnotationStore.getState();
   const selection = state.selection;
   const paths = activePathSelection(state);
@@ -248,7 +256,7 @@ export async function makeShapes(): Promise<number> {
   };
   const annotations = state.pages[pageKey(selection.source, selection.pageIndex)]?.annotations;
   const { frame } = layer;
-  const plans = planShapes(annotations ?? [], paths.next ?? paths.paths, frame);
+  const plans = planShapes(annotations ?? [], paths.next ?? paths.paths, frame, kit);
   if (plans.length === 0) {
     const message = m.lasso_no_shape();
     useLassoNotice.setState({ key: paths.key, message });
@@ -266,7 +274,7 @@ export async function makeShapes(): Promise<number> {
   useAnnotationStore.getState().select(null);
   if (!reducedMotion()) {
     const revision = getEngineService().pageRevision(target.source, target.pageIndex);
-    morphOverlay(target, plans, widths, colors, revision);
+    morphOverlay(target, plans, widths, colors, revision, kit);
   }
   return made;
 }

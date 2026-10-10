@@ -17,6 +17,7 @@ import { readAnnotations, resetEditRunner, whenIdle } from '../edit-runner';
 import type { PageFrame } from '../geometry';
 import type { Point } from '../ink';
 import { mountedLayers } from '../layer-registry';
+import { shapeKit } from '../pen/shape-kit';
 import { resetLassoEdits, useLassoNotice } from './edits';
 import { makeShapes, planShapes } from './make-shape';
 
@@ -108,7 +109,7 @@ describe('make shape', () => {
     resetWorkspace();
   });
 
-  it('recognises the rectangle and leaves the letter', () => {
+  it('recognises the rectangle and leaves the letter', async () => {
     const ink = {
       id: 'i',
       kind: 'ink',
@@ -117,7 +118,7 @@ describe('make shape', () => {
       strokeWidth: 2,
       paths: [rectanglePath(), letterPath()],
     } as const;
-    const plans = planShapes([ink], { i: [0, 1] }, FRAME);
+    const plans = planShapes([ink], { i: [0, 1] }, FRAME, await shapeKit.load());
     expect(plans.map((p) => [p.index, p.fit.kind])).toEqual([[0, 'rectangle']]);
   });
 

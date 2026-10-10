@@ -44,7 +44,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { toast } from '../../ui/Toast/toast';
 import type { ShownSection } from '../arrange-data';
 import { playCells } from './flip-cells';
-import { noteDropOrigin, type SheetSnapshot, snapshotSheets } from './cell-motion';
+import { noteDropOrigin, type SheetSnapshot, snapshotSheets } from './cells';
 import { showGridLockNotice } from './grid-lock-notice';
 import { type Lift, lift } from './lift';
 
