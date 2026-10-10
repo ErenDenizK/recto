@@ -180,6 +180,10 @@ describe('Library', () => {
     // The view reaches up under the top strip (G2): the aura starts at the shell's top edge.
     const shell = screen.getByTestId('app-shell').getBoundingClientRect();
     expect(aura.getBoundingClientRect().top).toBe(shell.top);
+    // Fixed to the window behind the stage (R15), so nothing that narrows the stage cuts it.
+    expect(getComputedStyle(aura).position).toBe('fixed');
+    expect(aura.getBoundingClientRect().right).toBe(document.documentElement.clientWidth);
+    expect(home.contains(aura)).toBe(false);
   });
 
   it('shows one lit card per open document, in tab order, with pages, size and a thumbnail', async () => {

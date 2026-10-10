@@ -232,7 +232,7 @@ test.describe('the gallery', () => {
       expect: {
         tool: ['side', 400],
         task: ['side', 400],
-        settings: ['side', 480],
+        settings: ['form', 600],
         overlay: ['dialog', 760],
       },
       confirmation: 'dialog',
@@ -243,7 +243,7 @@ test.describe('the gallery', () => {
       expect: {
         tool: ['side', 400],
         task: ['side', 400],
-        settings: ['side', 480],
+        settings: ['form', 600],
         overlay: ['dialog', 760],
       },
       confirmation: 'dialog',
@@ -315,7 +315,7 @@ test.describe('the gallery', () => {
     const want = {
       tool: ['side', 360],
       task: ['form', 640],
-      settings: ['form', 640],
+      settings: ['form', 600],
       // 760 at most, and the window less 64 px (07 §23.2).
       overlay: ['dialog', 820 - 64],
     } as const;

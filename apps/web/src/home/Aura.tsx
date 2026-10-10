@@ -1,7 +1,7 @@
 /**
  * The aura (owner feedback 2026-10-08, "missing aura"; 2026-10-09, G3 and G5; the CSS form of
  * `02-library` L3's field): five soft lobes in the mark's mint, lime and yellow lime, fixed to
- * the view behind its content, which give the glass above them something to refract.
+ * the window behind the app's content, which give the glass above them something to refract.
  *
  * Slowly alive on the Library (G3): each lobe drifts on its own 37–59 s loop by transform and
  * opacity alone, so the compositor moves layers painted once and nothing lays out or repaints
@@ -11,7 +11,9 @@
  *
  * Two tones: `library`, behind the Library's column, and `reader`, the same light dimmer and
  * still behind the reader's canvas when Settings › Background glow is on (G5): a document view
- * keeps Q-10's zero frames at rest, so only the Library drifts.
+ * keeps Q-10's zero frames at rest, so only the Library drifts. The shell lays it once, behind
+ * the stage and fixed to the window (owner feedback 2026-10-10, R15), so a sheet, the sidebar or
+ * a scroll lock that moves the free rectangle never cuts it or bares the canvas at an edge.
  */
 import { useSyncExternalStore } from 'react';
 

@@ -54,7 +54,7 @@ status: proposed
 |---|---|---|---|---|---|
 | Tool sheet (non-modal) | Bottom sheet, detents 40 % · 92 %, opens at 40 %, page live above | Side sheet 360, trailing | Side sheet 360, no scrim | Side sheet 400, no scrim | Same |
 | Task sheet (modal) | Bottom sheet at 92 % (one detent) | Full sheet | Form sheet ≤ 640, centred, scrim | Side sheet 400, scrim | Same |
-| Settings (modal) | Full sheet at 92 % | Full sheet | Form sheet ≤ 640 | Side sheet 480, scrim | Same |
+| Settings (modal) | Full sheet at 92 % | Full sheet | Form sheet 600, centred, scrim | Form sheet 600, centred, scrim (R15) | Same |
 | Confirmation, password prompt | Modal sheet, content height ≤ 60 % | Modal sheet, centred 400 | Centred dialog 400 | Same | Same |
 | Shortcuts overlay | Not offered without a physical key press | Same | Centred 760 | Same | Same |
 
@@ -179,7 +179,7 @@ Side / form / full / bottom sheet                    Centred dialog (confirmatio
 | Body padding · section gap | 20 · 24 | 16 · 24 | 16 · 20 + safe-left/right |
 | Rows · inputs | 28 · 28 high, text 13 | 44 · 44 high, text 16 (iOS zoom) | 44 · 44 |
 | Footer · buttons | 60 · capsules 32 high, 12 px padding | 72 · 44 high | 72 + safe-bottom; primary fills the row beside Cancel |
-| Widths | side 400 (Settings 480), dialog 400, overlay 760 | same | 100 %, max 640 centred (M-29) |
+| Widths | side 400, form 640 (Settings 600, R15), dialog 400, overlay 760 | same | 100 %, max 640 centred (M-29) |
 | Radius | 20 (squircle 27, L§6.1); inner wells 12 | same | top corners 28 (squircle 38) |
 | Placement | Side: 8 px from strip, trailing edge, bottom; form: centred, max-height 100dvh − 104 | same | Detents 0.40 and 0.92 of `visualViewport.height` |
 
@@ -472,7 +472,7 @@ prompt's setting (15.1.4), the OCR language manager (12.23) and the About dialog
 push a page (S0 page stack).
 
 ```
-╭──────────────────────────────────────────────╮  side sheet 480 (expanded+), form 640, full on compact
+╭──────────────────────────────────────────────╮  form 600 centred (medium+, R15), full on compact
 │ Settings                                  ✕  │
 │ [ ⌕ Search settings                       ]  │
 │ Appearance                                   │
@@ -1145,8 +1145,8 @@ data from `commands/registry.ts`. Tests: unit every registered shortcut appears;
 
 1. **Size names.** "Smaller · Smallest" (this spec) or today's "E-book · Screen · Print"? Plain words
    suit J13B; test with the five people.
-2. **Settings as one scroll on desktop.** A 480 px side sheet with one grouped scroll and four pushed
-   pages, or a two-pane form sheet? Check in the wave 3 prototype at 1440 px.
+2. **Settings as one scroll on desktop.** Resolved by R15 (2026-10-10): a centred 600 px form sheet with
+   one grouped scroll and four pushed pages, from medium up.
 3. **Save a copy memory.** Drafts last the session per document. Should the last choice (for example
    Smaller) also be the default for the next document?
 4. **Batch on phones.** Is Batch worth offering under 600 px, or only from medium up?

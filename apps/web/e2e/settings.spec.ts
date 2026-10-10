@@ -1,9 +1,9 @@
 /**
  * The Settings sheet, S3 (spec redesign D0-10; components/07-sheets.md §5, §25; flows.md §9.5):
  *
- * - **Presentation:** a 480 px side sheet at the trailing edge from the expanded class up, a
- *   centred form sheet (≤ 640) on the `tablet` project's medium class; the glass walker finds it
- *   clean at rest (one backdrop root, no glass in glass).
+ * - **Presentation:** a centred 600 px form sheet from the medium class up (R15), on the desktop
+ *   window and the `tablet` project alike, which leaves the stage where it was; the glass walker
+ *   finds it clean at rest (one backdrop root, no glass in glass).
  * - **Openers:** ⌘K "Settings…" and Mod+, (Chromium; other browsers keep the key), the Document
  *   menu's "Settings…" where the Appearance submenu was, "About Recto" from ⌘K and the privacy
  *   popover's version line, both on the About Recto page; ‹ Back returns to the list.
@@ -69,11 +69,16 @@ test.beforeEach(async ({ page }, info) => {
   if (info.project.name !== TABLET) await page.setViewportSize({ width: 1440, height: 900 });
 });
 
-test('a side sheet of 480 px from expanded up, a form sheet on the tablet, glass clean', async ({
+test('a centred form sheet of 600 px from medium up that leaves the stage alone, glass clean', async ({
   page,
 }, info) => {
   await page.goto('./?lang=en');
   await expect(page.getByTestId('app-shell')).toBeVisible();
+  const freeRight = () =>
+    page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--free-right').trim(),
+    );
+  const before = await freeRight();
   await openSettings(page);
   const panel = sheet(page);
   await expect(panel).toHaveAttribute('role', 'dialog');
@@ -81,16 +86,12 @@ test('a side sheet of 480 px from expanded up, a form sheet on the tablet, glass
   const box = await panel.boundingBox();
   const viewport = page.viewportSize();
   if (!box || !viewport) throw new Error('not laid out');
-  if (info.project.name === TABLET) {
-    await expect(panel).toHaveAttribute('data-presentation', 'form');
-    expect(box.width).toBeLessThanOrEqual(640);
-    expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(1);
-  } else {
-    await expect(panel).toHaveAttribute('data-presentation', 'side');
-    expect(Math.round(box.width)).toBe(480);
-    // --piece-inset from the trailing edge, like every floating piece (system audit §3.1).
-    expect(Math.round(viewport.width - (box.x + box.width))).toBe(16);
-  }
+  await expect(panel).toHaveAttribute('data-presentation', 'form');
+  expect(Math.round(box.width)).toBe(600);
+  expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(1);
+  expect(Math.abs(box.y + box.height / 2 - viewport.height / 2)).toBeLessThanOrEqual(1);
+  // Not a side sheet: the free rectangle, and the stage and aura laid in it, stay as they were.
+  expect(await freeRight()).toBe(before);
   // The sections of 07 S3 that have settings today, in order.
   const headings = await panel.locator('h3').allTextContents();
   expect(headings).toEqual(['Appearance', 'Language', 'Pen and touch', 'Documents and storage']);
