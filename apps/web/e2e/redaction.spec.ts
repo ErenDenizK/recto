@@ -295,10 +295,15 @@ test('apply marks made by selection, search and area; export; the re-opened expo
   await expect(redactLayer).toHaveAttribute('data-active', 'true');
   const box = await redactLayer.boundingBox();
   if (!box) throw new Error('page not rendered');
-  // Clear of the floating tool bar at the bottom of the stage.
-  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.55);
+  // Below the text and clear of the floating tool bar at the bottom of the stage. The sidebar
+  // floats over the stage (DSN-26), so the page fits the whole window and can run past its
+  // bottom: the area is drawn in the part of the page on screen.
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('no viewport');
+  const shown = Math.min(box.y + box.height, viewport.height - 160) - box.y;
+  await page.mouse.move(box.x + box.width * 0.55, box.y + shown * 0.75);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.65, { steps: 8 });
+  await page.mouse.move(box.x + box.width * 0.8, box.y + shown * 0.9, { steps: 8 });
   await page.mouse.up();
   await expect(layer(page).locator('[data-annotation-kind="redact"]')).toHaveCount(4);
   await page.keyboard.press('Escape');

@@ -14,7 +14,7 @@
  */
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, reloadFresh, showSidebar, useFileInputPicker } from './helpers';
+import { atRest, openFixtures, reloadFresh, showSidebar, useFileInputPicker } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
@@ -80,6 +80,8 @@ test('J4 by the sidebar in 4 steps: ▤ · drag 5 above 2 · right-click 7 · De
   await expect(page.getByRole('navigation', { name: 'Sidebar' })).toHaveCount(0);
   await page.getByTestId('sidebar-toggle').click();
   await expect(thumb(page, 5)).toBeVisible();
+  // The floating panel slides in from its edge (DSN-26): measure the thumbnails once it rests.
+  await atRest(page.getByRole('navigation', { name: 'Sidebar' }));
   const before = await order(page);
 
   // 2. Drag thumbnail 5 above thumbnail 2: the gap shows while dragging, nothing is selected.
