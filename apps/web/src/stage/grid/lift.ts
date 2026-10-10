@@ -21,7 +21,7 @@ import { reducedMotion } from '../../motion/reduced-motion';
 import { springToLinear } from '../../motion/springs';
 import { EASE } from '../../motion/tokens';
 import { velocityTracker } from '../../motion/velocity';
-import type { SheetSnapshot } from './cell-motion';
+import type { SheetSnapshot } from './cells';
 
 /** The lifted page's scale. */
 export const LIFT_SCALE = 1.04;

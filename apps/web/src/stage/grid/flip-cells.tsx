@@ -32,11 +32,10 @@ import {
   cellsById,
   clearDropOrigin,
   dropOriginOf,
-  growIn,
   type SheetSnapshot,
-  shrinkOut,
   snapshotSheet,
-} from './cell-motion';
+} from './cells';
+import { gridMotion } from './grid-motion';
 
 /** Moves smaller than this (CSS px) are not animated. */
 const STILL = 0.5;
@@ -87,7 +86,7 @@ export function playCells(
     const first = origin ?? before.get(id);
     if (!first) {
       if (known && known.get(id) !== cell.dataset.documentId)
-        growIn(cell, Math.min(arrivals++ * 20, 100));
+        gridMotion.now()?.growIn(cell, Math.min(arrivals++ * 20, 100));
       continue;
     }
     const last = cell.getBoundingClientRect();
@@ -151,7 +150,8 @@ export class FlipCells extends Component<FlipCellsProps> {
     const known = this.known;
     if (before) this.known = workspacePages();
     if (!root || !before) return;
-    for (const shot of before.leaving) shrinkOut(shot, root);
+    const motion = gridMotion.now();
+    for (const shot of before.leaving) motion?.shrinkOut(shot, root);
     playCells(root, before.boxes, known ?? undefined);
   }
 
