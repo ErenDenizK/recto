@@ -189,6 +189,11 @@ test.describe('pop-ups fit the window', () => {
       await expect(page.getByTestId('page-pill-menu')).toBeVisible();
       await page.waitForTimeout(300);
       await inside(page, '[data-testid="page-pill-menu"]', `${at}: page pill menu`);
+      // It scrolls vertically only (DSN-9): nothing inside is wider than it.
+      const sideways = await page
+        .getByTestId('page-pill-menu')
+        .evaluate((el) => el.scrollWidth - el.clientWidth);
+      expect(sideways, `${at}: page pill menu scrolls sideways`).toBeLessThanOrEqual(0);
       await page.keyboard.press('Escape');
       await expect(page.getByTestId('page-pill-menu')).toHaveCount(0);
     }
