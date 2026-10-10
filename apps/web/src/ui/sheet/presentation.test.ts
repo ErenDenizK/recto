@@ -79,14 +79,20 @@ describe('presentationOf (07 §1.1)', () => {
     }
   });
 
-  it('Settings: as a task sheet, but 480 wide from expanded up', () => {
-    expect(presentationOf('settings', at('compact')).presentation).toBe('bottom');
+  it('Settings: a task sheet on compact classes, a centred 600 form sheet from medium up (R15)', () => {
+    expect(presentationOf('settings', at('compact'))).toEqual(
+      presentationOf('task', at('compact')),
+    );
     expect(presentationOf('settings', at('compact', true)).presentation).toBe('full');
-    expect(presentationOf('settings', at('medium'))).toMatchObject({ presentation: 'form' });
-    expect(presentationOf('settings', at('large'))).toMatchObject({
-      presentation: 'side',
-      width: 480,
-    });
+    for (const size of ['medium', ...WIDE] as const) {
+      expect(presentationOf('settings', at(size))).toMatchObject({
+        presentation: 'form',
+        width: 600,
+        modal: true,
+        scrim: true,
+        swipe: null,
+      });
+    }
   });
 
   it('confirmations: alertdialogs, a content-high modal sheet on compact, else centred 400', () => {

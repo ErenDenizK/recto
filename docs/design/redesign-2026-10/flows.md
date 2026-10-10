@@ -995,7 +995,7 @@ Compare                                           Settings sheet
 | Batch (spec 07.5, 07.Q4) | Dimmed: "Needs a wider window" | Full sheet | Form sheet ≤ 640 | Centred 720 | Same | Same |
 | In-page editors (note, text box, paragraph; spec 05.13) | Note: 40 % sheet above the keyboard; text box and paragraph editor on the page, accessory form in the dock | Same | On the page; note popup at its anchor | Same | Same | Same |
 | Confirmations, password | Modal sheet | Modal sheet | Centred dialog | Centred | Centred | Centred |
-| Settings | Full sheet | Full sheet | Form sheet | Side sheet 480 | Same | Same |
+| Settings | Full sheet | Full sheet | Form sheet 600 | Form sheet 600, centred (R15) | Same | Same |
 | More | Sheet with search | Sheet | Menu | Menu | Menu | Menu |
 | ⌘K | Search field in More | Same | Centred | Centred | Centred | Centred |
 | Toasts, progress | Above the dock | Above the dock | Bottom centre above the dock | Same | Same | Same |

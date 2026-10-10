@@ -10,8 +10,8 @@
  * tint, and the text that sits between groups, on the rows' text edge.
  */
 
-/* The form sheet on the medium class keeps one height while the search filters, so the
-   centred panel never jumps as rows come and go (07 §2.2: form ≤ 640 wide). */
+/* The form sheet, Settings' presentation from medium up (R15; ui/sheet/presentation.ts ³), keeps
+   one height while the search filters, so the centred panel never jumps as rows come and go. */
 :global(.mat[data-sheet='settings'][data-presentation='form']) {
   height: min(760px, calc(100dvh - 104px));
 }
