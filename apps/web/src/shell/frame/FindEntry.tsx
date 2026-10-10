@@ -23,7 +23,6 @@ import { type KeyboardEvent, useEffect, useId, useRef } from 'react';
 import { currentPlatform, toAriaKeyShortcut } from '../../commands/shortcuts';
 import { formatNumber, m } from '../../i18n';
 import { useUiStore } from '../../state/ui-store';
-import { useViewStore } from '../../state/view-store';
 import { useActiveDocument } from '../../state/workspace-store';
 import { IconButton } from '../../ui/IconButton';
 import {
@@ -37,6 +36,7 @@ import {
   setSearchQuery,
   useSearchStore,
 } from '../../viewer/search';
+import { navigationBase } from '../../viewer/navigation';
 import { useCommandShortcut } from '../use-command-shortcut';
 import { closeFindOverlay, focusFindEntry, useFrameStore } from './frame-store';
 import styles from './TopStrip.module.css';
@@ -92,7 +92,9 @@ export function FindEntry({ form = 'auto' }: { readonly form?: 'auto' | 'button'
   useEffect(() => {
     if (panelRuns || !doc) return;
     const timer = window.setTimeout(() => {
-      void runSearch(doc, useViewStore.getState().currentPage);
+      // A new search starts from the reader's page, or where an eased step is heading
+      // (motion-2026-10/viewer.md §1: `[`, `]` and Find's steps animate).
+      void runSearch(doc, navigationBase());
     }, TYPING_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [doc, query, panelRuns]);
