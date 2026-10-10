@@ -1135,7 +1135,7 @@ default), nothing selected, large desktop. "+ save": +1 with a kept handle (3 th
   row reopens the snapshot), keyboard ≈3, touch 1.
 - **J15a Find.** Mouse 3: Find field (an icon below 1280 px, still one click) · type · Enter.
   Keyboard 3. Touch 3: ⌕ · type · ↓.
-- **J15b Outline entry "Terms".** Mouse 2: page pill · Terms (3 for a nested entry). Keyboard
+- **J15b Outline entry "Terms".** Mouse 3: page pill · Contents · Terms (3 for a nested entry). Keyboard
   ≈4: Mod+G · Down · arrows · Enter. Touch 2.
 - **J16 Page numbers.** Mouse 4: title ▾ · Page numbers… · "Page 1 of N" · Apply, previewed live;
   today's default preset stays (judges' correction). Keyboard ≈5: Mod+K · `page numbers` ·
