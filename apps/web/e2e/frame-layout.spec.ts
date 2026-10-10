@@ -168,13 +168,24 @@ test.describe('A-12: jumps land in the free rectangle', () => {
         await page.keyboard.press('Escape');
 
         // A Contents entry: the pill's menu names the section and opens the sidebar's Contents
-        // (F11 §2), whose entries jump.
+        // (F11 §2), whose entries jump. A compact window has no sidebar: there the row
+        // discloses the top-level entries in the menu.
         await page.getByTestId('page-pill').click();
-        await page.getByTestId('pill-contents').click();
-        await page
-          .getByRole('tree', { name: /Contents of/ })
-          .getByRole('treeitem', { name: /^Chapter 2/ })
-          .click();
+        const contents = page.getByTestId('pill-contents');
+        await contents.click();
+        if (size.name === 'compact') {
+          await expect(contents).toHaveAttribute('aria-expanded', 'true');
+          await page
+            .getByTestId('page-pill-menu')
+            .getByRole('group', { name: 'Contents' })
+            .getByRole('button', { name: /^Chapter 2/ })
+            .click();
+        } else {
+          await page
+            .getByRole('tree', { name: /Contents of/ })
+            .getByRole('treeitem', { name: /^Chapter 2/ })
+            .click();
+        }
         await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 6 · /);
         await page.waitForTimeout(400);
         await expectInFree(page, await pageHead(page, 2), `${at}: Contents, Chapter 2`);
