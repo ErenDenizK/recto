@@ -28,10 +28,13 @@ parallel; each wrote its own record:
 
 ## Open after the sprint
 
-- **Bundle budget:** the editor's initial JS is 918 KB against the 900 KB gate (compact 320.7
-  KB vs 320). Plain lazy loading fragmented the shared chunks; a chunking policy in
-  `vite.config.ts` plus the lazy splits on `perf/r14-budget-lazy` is the fix in progress
-  (PRC-11). CI stays red at the budget step, and no deploy goes out, until it is green.
+- **Bundle budget: resolved.** The merge put the editor's initial JS at 918 KB (gate 900) and
+  compact at 322 KB (gate 320). Plain lazy loading fragmented the shared chunks; the fix was a
+  chunking policy in `vite.config.ts` (React, the i18n runtime and the motion core in stable
+  chunks), lazy ink shapes, grid motion and library morph, and loading only the palette's 67
+  keyword messages after first paint (the whole message catalog had been in the first load,
+  about 90 KB). Now: editor 818.0 KB, compact 318.9 KB, first paint 119.1 KB; baseline
+  re-recorded.
 - The full Chromium e2e run was not repeated in one go after the container restart. Firefox
   and WebKit were left to CI.
 - Smaller items are listed in each lane's record ("Left").

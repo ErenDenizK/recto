@@ -134,7 +134,7 @@ Sources, by short name:
 | PRC-8 | **Mechanical work on a lighter model.** Design and interaction work uses the default model. | 2026-10-09 | Workflow "Briefs" | In force |
 | PRC-9 | **Each deploy ends with an owner task script for the iPad.** | 2026-10-09 | Workflow "Merging"; PLAN §4.9 | In force |
 | PRC-10 | **Work moves to production without delay** once a plan is ready, with no visual or system defects shipped. | 2026-10-04 | Spec §14, standing requirements | In force |
-| PRC-11 | **Bundle gates are not raised to fit a change.** V1-P1/P2 and the compact gate stay; a change that crosses one is split or lazy-loaded first (R14: editor 918 KB vs 900, being fixed by a chunking policy). | 2026-10-10 | Lead; `tools/qa/bundle-budget.json` | In force |
+| PRC-11 | **Bundle gates are not raised to fit a change.** V1-P1/P2 and the compact gate stay; a change that crosses one is split or lazy-loaded first (R14: editor 918 KB vs 900, fixed by a chunking policy and lazy splits, now 818 KB). | 2026-10-10 | Lead; `tools/qa/bundle-budget.json` | In force |
 | PRC-12 | **Push a verified merge promptly.** The cloud container can restart and lose unpushed work; a merge that passes the unit suite is pushed even while a known CI gate is being fixed (deploys are manual). | 2026-10-10 | Lead (R14 restart) | In force |
 
 ## Foundations (ADR titles)
