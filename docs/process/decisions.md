@@ -91,6 +91,9 @@ Sources, by short name:
 | MOT-2 | **Everything that changes shape animates** with the shared springs: tab switch, open and close, menus from their buttons, undo and redo, Save appearing, pieces growing. Menus scale from their anchor. Content cross-fades. Reduced motion: opacity only, at most 150 ms. | 2026-10-09 | R11 G6 | In force |
 | MOT-3 | **Things come out of and go back into their triggers** (the R14 motion brief). A surface opens from the control that opened it and closes back into it. | 2026-10-09 | Owner, conversation (R14 brief); `language.md` §7.3 *popup* | In force |
 | MOT-4 | **Rest is still.** Nothing loops in a document view. Motion answers an event. | 2026-10-04 | ADR-0022 principle 5 | In force |
+| MOT-5 | **One container transform for every popup and sheet.** Menus, popovers and selects open from the trigger's rounded rect by a clip-path and a translate, never a scale (text is never squashed), and close back into it; the trigger answers with a receive pulse. One document-level observer applies it. | 2026-10-09 | Lead (R14); `design/motion-2026-10/platform.md` §1 | Done |
+| MOT-6 | **Owners of shared motion.** The viewer lane owns reader scrolling (`ScrollRequest.motion`: jump, step or instant; `viewer/jump.ts`). The capsule lane owns contextual bars' entrance (`annotations/bar-motion.tsx`). Other lanes hook undo and redo through the `pdf-editor:history-applied` window event and may `preventDefault()` the generic flash. | 2026-10-09 | Lead (R14 merge); `motion-2026-10/viewer.md`, `frame.md`, `library-capsule.md` | In force |
+| MOT-7 | **Scrims dim, they never blur** (G-31): a blurred scrim is a fifth glass surface against Q-11. The command palette's scrim blur was removed. | 2026-10-10 | Lead (R14 QA); `language.md` G-31 | In force |
 
 ## Ink
 
@@ -104,6 +107,7 @@ Sources, by short name:
 | INK-6 | **The still-press tip ring is off** by default (D-3). Barrel, right-drag and hold W stay on. | 2026-10-09 | R12 D-3 | In force |
 | INK-7 | **Key map v2 is accepted** (D-4) as one PR: hold B for Before, Z / Shift+Z back and forward, hold W for the ring, and the rest of R12 §3.1. | 2026-10-09 | R12 D-4, §3.1 | In force |
 | INK-8 | **The TR-Q rule** (D-5). No feature depends on `\`, `[`, `]` or an AltGr chord. Every symbol key has a letter or on-screen twin. Keys are tested on a Turkish Q layout. | 2026-10-09 | R12 D-5 | In force |
+| INK-9 | **Hold to shape.** A still pen hold (3/4/6 px for mouse/pen/touch, 500 ms; 800 ms and stricter limits within 600 ms of the last release) turns a stroke into a line, arrow, rectangle, square, triangle, pentagon, hexagon, circle or ellipse only if it passes the handwriting gate. The chip cycles to the next fit, undo returns the raw stroke, and shapes are real PDF annotations. A 103-case corpus (64 near-misses that must not snap) guards it. Lasso "Make shape" applies the same recogniser to drawn strokes. | 2026-10-09 | Owner, conversation (R14); `motion-2026-10/ink-shapes.md` | Done |
 
 ## Editions
 
@@ -130,6 +134,8 @@ Sources, by short name:
 | PRC-8 | **Mechanical work on a lighter model.** Design and interaction work uses the default model. | 2026-10-09 | Workflow "Briefs" | In force |
 | PRC-9 | **Each deploy ends with an owner task script for the iPad.** | 2026-10-09 | Workflow "Merging"; PLAN §4.9 | In force |
 | PRC-10 | **Work moves to production without delay** once a plan is ready, with no visual or system defects shipped. | 2026-10-04 | Spec §14, standing requirements | In force |
+| PRC-11 | **Bundle gates are not raised to fit a change.** V1-P1/P2 and the compact gate stay; a change that crosses one is split or lazy-loaded first (R14: editor 918 KB vs 900, being fixed by a chunking policy). | 2026-10-10 | Lead; `tools/qa/bundle-budget.json` | In force |
+| PRC-12 | **Push a verified merge promptly.** The cloud container can restart and lose unpushed work; a merge that passes the unit suite is pushed even while a known CI gate is being fixed (deploys are manual). | 2026-10-10 | Lead (R14 restart) | In force |
 
 ## Foundations (ADR titles)
 
