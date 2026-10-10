@@ -3,7 +3,7 @@
  * `cmd_<id>_keywords` is read in both UI languages and matched without diacritics, and the
  * catalogs carry an English list wherever they carry a Turkish one.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import en from '../../messages/en.json';
 import tr from '../../messages/tr.json';
@@ -16,6 +16,7 @@ import { buildSections } from '../shell/CommandPalette';
 import { registerSignatureCommands } from '../signatures/signature-commands';
 import { registerArrangeCommands } from '../stage/arrange-commands';
 import { registerAppCommands } from './app-commands';
+import * as keywordMessages from './keyword-messages';
 import { catalogKeywords, keywordMessageKey, messageKeywords, splitKeywords } from './keywords';
 import { CommandRegistry } from './registry';
 
@@ -41,6 +42,12 @@ function search(registry: CommandRegistry, query: string): string[] {
   );
 }
 
+// The registry loads the catalog keywords after its first registration (registry.ts); once
+// loaded, every registry adds them at once.
+beforeAll(async () => {
+  await allCommands().keywordsLoaded();
+});
+
 afterEach(() => {
   setLocale('en');
 });
@@ -63,6 +70,10 @@ describe('keyword catalogs', () => {
   const trKeys = Object.keys(tr).filter((k) => KEYWORD_KEY.test(k));
   const enCatalog = en as Record<string, unknown>;
   const trCatalog = tr as Record<string, unknown>;
+
+  it('names every keyword message in keyword-messages.ts', () => {
+    expect(Object.keys(keywordMessages).sort()).toEqual([...enKeys].sort());
+  });
 
   it('has an English keyword list for every Turkish one, and the other way round', () => {
     expect(trKeys.length).toBeGreaterThan(0);
