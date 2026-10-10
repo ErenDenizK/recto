@@ -947,7 +947,8 @@ morph.
 ## 12. F11 Page pill
 
 **1 · Role.** The persistent, focusable place for page and view (`flows.md` §4.6): "3 / 12 · 96 %";
-opens Go to page, the top entries of Contents (the file's outline), zoom and fit, layout, Show field outlines, Focus.
+opens Go to page, Contents (one row: the current section, opening the sidebar's Contents), zoom and
+fit, layout, Show field outlines, Focus.
 Mod+G. In the F6 cycle. Jobs J2, J15b. Replaces 3.11, 3.14's page readout, 3.15 and 8.6.
 
 **2 · Anatomy.** Medium and up: an M1 capsule 36 px (fine) / 44 px (coarse), bottom trailing of
@@ -958,16 +959,16 @@ changes its width. Compact and compact-height: the dock's trailing segment, two 
 the band would come within 12 px, the pill rises to sit 8 px above that bar.
 
 ```
-╭───────────────╮      menu (M4, 300 px fine / 340 coarse; compact sheet at 40 %)
-│ 3 / 12 · 96 % │      ╭──────────────────────────────────╮
-╰───────────────╯      │ Go to page [ 3 ] of 12      Go   │ number field 16 px coarse
-                       │ Contents                         │
-                       │   1  Introduction           1    │ up to 8 top entries, tnum page
-                       │   2  Terms                  4    │
-                       │   All contents…                  │ opens the sidebar on Contents
-                       │ Zoom  ( − ) 96 % ( + )           │
-                       │ [ Fit width | Fit page ]         │ segmented, fill thumb
-                       │ [ Continuous | Single | Two-up ] │
+╭───────────────╮      menu (M4; hugs its content: at least 320 fine / 360 coarse, at most the
+│ 3 / 12 · 96 % │      free rectangle less 8 px a side; scrolls vertically only, DSN-9)
+╰───────────────╯      ╭──────────────────────────────────╮
+                       │ Go to page [ 3 ] of 12      Go   │ number field 16 px coarse
+                       ├──────────────────────────────────┤
+                       │ Contents          Terms        › │ current section; opens the sidebar
+                       ├──────────────────────────────────┤
+                       │ ( − ) 96 % ( + )  [ Width|Page ] │ fit: radios "Fit width", "Fit page"
+                       │ [ Continuous | Single | Two-up ] │ radios named in full
+                       ├──────────────────────────────────┤
                        │ ☐ Show field outlines            │ only with fields
                        │ Focus                         F  │
                        ╰──────────────────────────────────╯
@@ -993,9 +994,9 @@ keeps focus.
 | Pill text | 3 / 12 · 96 % · iii (3 / 12) · 96 % | 3 / 12 · %96 · iii (3 / 12) · %96 |
 | Name | Page 3 of 12, zoom 96 %. Page and view options | Sayfa 3/12, yakınlaştırma %96. Sayfa ve görünüm seçenekleri |
 | Go to page | Go to page · of 12 · Go · Pages 1–12 | Sayfaya git · / 12 · Git · Sayfa 1–12 arası |
-| Contents | Contents · All contents… | İçindekiler · Tüm içindekiler… |
-| Zoom | Zoom · Zoom in · Zoom out · Fit width · Fit page | Yakınlaştırma · Yakınlaştır · Uzaklaştır · Genişliğe sığdır · Sayfaya sığdır |
-| Layout | Continuous · Single page · Two pages | Sürekli · Tek sayfa · İki sayfa |
+| Contents | Contents | İçindekiler |
+| Zoom | Zoom · Zoom in · Zoom out · Width · Page (names: Fit width · Fit page) | Yakınlaştırma · Yakınlaştır · Uzaklaştır · Genişlik · Sayfa (adlar: Genişliğe sığdır · Sayfaya sığdır) |
+| Layout | Continuous · Single · Two-up (names: Continuous · Single page · Two pages) | Sürekli · Tek · İkili (adlar: Sürekli · Tek sayfa · İki sayfa) |
 | Fields | Show field outlines | Alan çerçevelerini göster |
 | Focus | Focus · F | Odak · F |
 
@@ -1003,13 +1004,13 @@ Icons: `magnifying-glass-minus`, `magnifying-glass-plus`, `check`; none on the p
 
 **6 · Behaviour.** Click, tap, Enter, Space open the menu with focus on the first control; Mod+G
 opens it with the page field focused and selected; typing a number and Enter jumps (into the
-free rectangle) and closes, focus to the page. Contents entry: jump, close, focus to the page,
-announce "Terms, page 4" / "Terms, sayfa 4". Zoom buttons keep the menu open; Mod+= Mod+- Mod+0
+free rectangle) and closes, focus to the page. Contents: close and open the sidebar on Contents,
+whose entries jump (r15: the menu no longer repeats the outline). Zoom buttons keep the menu open; Mod+= Mod+- Mod+0
 work anywhere and update the text without animation. Layout and fit are radio groups. Focus
 closes the menu and enters Focus (F13). Esc closes, focus to the pill. While Focus hides the pill,
 Mod+G shows the menu anchored where the pill was and Focus resumes after it closes. Guard: none.
-Edge: Contents with more than 8 entries shows the first 8 at the top level; nested entries are only in
-the sidebar.
+Edge: before the first outline entry's page the Contents row shows no section; a long section
+title ellipsizes and never widens the menu.
 
 **7 · Motion.** *popup* from the pill; *zoom step* on the page; the rise above a bar by
 `--spring-smooth`; numbers never animate. Reduced motion: fades, instant rise.

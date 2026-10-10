@@ -167,11 +167,13 @@ test.describe('A-12: jumps land in the free rectangle', () => {
         await page.keyboard.press('Escape');
         await page.keyboard.press('Escape');
 
-        // A Contents entry from the pill's menu.
+        // A Contents entry: the pill's menu names the section and opens the sidebar's Contents
+        // (F11 §2), whose entries jump.
         await page.getByTestId('page-pill').click();
+        await page.getByTestId('pill-contents').click();
         await page
-          .getByTestId('page-pill-menu')
-          .getByRole('button', { name: /^Chapter 2/ })
+          .getByRole('tree', { name: /Contents of/ })
+          .getByRole('treeitem', { name: /^Chapter 2/ })
           .click();
         await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 6 · /);
         await page.waitForTimeout(400);

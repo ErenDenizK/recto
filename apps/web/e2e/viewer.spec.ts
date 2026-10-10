@@ -201,8 +201,9 @@ test('go to page accepts numbers; Home and End jump to the ends', async ({ page 
 
 /**
  * Picks a page layout in the page pill's menu (01-frame F11), where the layout switch went.
- * The row is a `Segmented` (radios): the menu is wide enough for "Continuous · Single page ·
- * Two pages" in every engine (PagePill.module.css), so it never falls back to the Select.
+ * The row is a `Segmented` (radios) drawn "Continuous · Single · Two-up" and named in full
+ * ("Single page", "Two pages"), so it fits the menu in every engine and never falls back to
+ * the Select.
  */
 async function chooseLayout(page: Page, name: string): Promise<void> {
   await page.getByTestId('page-pill').click();
