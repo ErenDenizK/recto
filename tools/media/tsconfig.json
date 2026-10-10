@@ -9,6 +9,7 @@
     "playwright.config.ts",
     "lib/**/*.ts",
     "scenes/**/*.ts",
+    "family/**/*.ts",
     "../../tooling/*.ts",
     "../../apps/web/e2e/helpers.ts",
     "../../apps/web/src/brand/mark.ts"

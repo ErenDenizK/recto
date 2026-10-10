@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "capture": "playwright test",
+    "family": "playwright test -c family/playwright.config.ts",
     "encode": "node --experimental-strip-types --no-warnings=ExperimentalWarning lib/encode.ts",
     "social": "node --experimental-strip-types --no-warnings=ExperimentalWarning lib/social.ts",
     "app-icons": "node --experimental-strip-types --no-warnings=ExperimentalWarning lib/app-icons.ts",

@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "slug": "recto",
+  "name": "Recto",
+  "source": {
+    "repo": "https://github.com/ErenDenizK/recto",
+    "commit": "5abb766e8e34c40ca7fb3df7a9a028623e460fab",
+    "version": "1.0.0-beta.0",
+    "files": [
+      "apps/web/src/styles/tokens.css",
+      "apps/web/src/styles/materials.css",
+      "apps/web/src/styles/motion.css",
+      "apps/web/src/motion/springs.ts",
+      "apps/web/messages/en.json",
+      "docs/brand/README.md"
+    ],
+    "date": "2026-10-09",
+    "estimated": ["/light/cap"]
+  },
+  "ground": {
+    "base": "#08090c",
+    "frame": "#17191e",
+    "raised": "#1f2227"
+  },
+  "ink": {
+    "primary": "#e8e9ec",
+    "secondary": "#a1a5ab",
+    "tertiary": "#91949a"
+  },
+  "accent": {
+    "color": "#c8fb3d",
+    "gradient": {
+      "stops": ["#69eaa3", "#cbff5f", "#edfa6d"],
+      "angle": 46.75
+    },
+    "ink": "#08090c",
+    "radius": 999,
+    "job": "The armed tool and the one primary action of a view, and the focus ring's light band; it always touches ink and never sits on the page.",
+    "light": "#bbed26"
+  },
+  "light": {
+    "behaviour": "event",
+    "theme": "dark",
+    "cap": 0.42,
+    "sources": [
+      {
+        "pigments": ["#1f9996", "#58da98"]
+      },
+      {
+        "pigments": ["#bbed26"]
+      },
+      {
+        "pigments": ["#faee40"]
+      }
+    ],
+    "event": {
+      "settle": 5
+    },
+    "note": "Recto's own renderer: an in-house WebGL 1 aurora at 1/8 resolution with a ±0.5 LSB in-shader dither and P3 stops where supported (ADR-0025). Colour follows intensity, teal through mint and lime to lemon at the hottest cores. Still at rest; it moves on arrival, drag-over and success and settles within 5 s; it drifts only on the empty Library and About, and never comes within 64 px of a page. The cap is the kit's ceiling, not a Recto value: Recto caps the field at 0.6 under lit glass and has its own intensity model. The gradient is the mark's (the Dengeli R), not a fill: the accent itself is the one lime #c8fb3d, and #bbed26 is the aurora's lime, never a button."
+  },
+  "fonts": {
+    "ui": {
+      "family": "Inter Recto",
+      "stack": "'Inter Recto', 'Inter Recto Fallback', ui-sans-serif, system-ui, sans-serif",
+      "weights": [400, 500, 600],
+      "tracking": 0.005,
+      "size": 13,
+      "lineHeight": 18,
+      "features": ["tnum"]
+    },
+    "display": {
+      "family": "Inter Recto",
+      "stack": "'Inter Recto', 'Inter Recto Fallback', ui-sans-serif, system-ui, sans-serif",
+      "weights": [600],
+      "tracking": -0.022,
+      "size": 40,
+      "lineHeight": 44
+    }
+  },
+  "motion": {
+    "press": {
+      "duration": 0.2,
+      "bounce": 0
+    },
+    "settle": {
+      "duration": 0.36,
+      "bounce": 0
+    },
+    "glide": {
+      "duration": 0.46,
+      "bounce": 0
+    },
+    "pop": {
+      "duration": 0.32,
+      "bounce": 0.25
+    },
+    "pressScale": {
+      "mouse": 0.97,
+      "touch": 0.94
+    },
+    "note": "Recto's tokens press, smooth, glide and pop, read in the family's four roles; nothing is renamed. Recto also has quick (0.28 s), fling (0.40 s, bounce 0.15) and track (0.10 s). Zero bounce for anything a click, tap or key starts; pop is for one small glyph, never a surface. CSS durations to 0.1 %: press 300 ms, smooth 530, glide 680, pop 410; View Transitions 240 ms; idle frames = 0. The signature is the capsule morph: one glass pill changes its own width and height (dock, Markup palette, Pages bar, Compare, Locked) on smooth, radius 999 throughout."
+  },
+  "promise": {
+    "text": "Nothing leaves this device.",
+    "lang": "en",
+    "evidence": "The privacy shield in the top strip lists every request the session made (\"Privacy: nothing has left this device\"); About's \"Check it yourself\" section shows how to verify it in the browser's network panel."
+  },
+  "links": {
+    "open": "https://erendenizk.github.io/recto/",
+    "code": "https://github.com/ErenDenizK/recto",
+    "about": "https://erendenizk.github.io/recto/about/"
+  },
+  "captures": [
+    {
+      "id": "library",
+      "kind": "screen",
+      "files": ["captures/recto-library-1440x900@2x.png", "captures/recto-library-1180x820@2x.png"],
+      "viewport": [1440, 900],
+      "dpr": 2,
+      "theme": "dark",
+      "caption": "The Library on a first visit: the welcome card on the mark's light.",
+      "alt": "Recto's Library: the R mark, \"Read, mark up, sign and arrange PDFs.\", \"Nothing leaves this device.\" and a lime Open PDFs button on a dark graphite ground with soft mint and lime light.",
+      "shot": "2026-10-09"
+    },
+    {
+      "id": "markup-palette",
+      "kind": "screen",
+      "files": [
+        "captures/recto-markup-palette-1440x900@2x.png",
+        "captures/recto-markup-palette-1180x820@2x.png"
+      ],
+      "viewport": [1440, 900],
+      "dpr": 2,
+      "theme": "dark",
+      "caption": "The sample document with the capsule as the Markup palette.",
+      "alt": "A white page reading \"Welcome to Recto.\" with a glass capsule along the bottom holding pens, highlighter, shapes, Sign, fields, Edit text and Redact.",
+      "shot": "2026-10-09"
+    },
+    {
+      "id": "light-table",
+      "kind": "screen",
+      "files": [
+        "captures/recto-light-table-1440x900@2x.png",
+        "captures/recto-light-table-1180x820@2x.png"
+      ],
+      "viewport": [1440, 900],
+      "dpr": 2,
+      "theme": "dark",
+      "caption": "The light table: the sample's four pages, the capsule as the Pages bar.",
+      "alt": "Four page thumbnails on a dark ground, the first selected, with the Pages bar (Done, 4 pages, Select all) at the bottom.",
+      "shot": "2026-10-09"
+    },
+    {
+      "id": "capsule-morph",
+      "kind": "signature",
+      "files": [
+        "captures/recto-signature-1440x900@2x-poster.png",
+        "captures/recto-signature-1440x900@2x.av1.mp4",
+        "captures/recto-signature-1440x900@2x.hevc.mp4",
+        "captures/recto-signature-1440x900@2x.h264.mp4"
+      ],
+      "viewport": [1440, 900],
+      "dpr": 2,
+      "theme": "dark",
+      "caption": "The capsule morph: the dock becomes the Markup palette, the dock again, then the Pages bar and the dock, one glass pill throughout.",
+      "alt": "The bottom capsule widening from four labelled buttons into the full Markup palette, narrowing back, then becoming the Pages bar over the page grid.",
+      "durationSeconds": 7.8,
+      "shot": "2026-10-09"
+    }
+  ]
+}

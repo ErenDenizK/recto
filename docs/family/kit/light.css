@@ -1,0 +1,110 @@
+/*
+ * Kept light: the light field's CSS half (family kit, light.md §3). light.js `mountField()` builds
+ * the nodes and sets the custom properties; this file only paints and moves them.
+ *
+ *   .kl-field      one layer behind content, ONE opacity (--kl-cap) for everything inside it, so
+ *                  overlapping pigments are flattened before they meet the ground (English Prep's
+ *                  rule: a cap on the parent, never per layer)
+ *   .kl-source     one light: a box at (--kl-x, --kl-y), (--kl-w × --kl-h) of the field
+ *   .kl-pigment    one colour of that light, a radial gradient; several cross-fade on a cycle
+ *
+ * Rest is still. Only behaviour "drift" animates, and only while light.js sets
+ * data-kl-running="true" (page visible, field on screen, motion allowed). Transform and opacity
+ * only. Reduced motion: the still twin (each source at rest in its first pigment). Forced colours:
+ * no field at all.
+ */
+
+.kl-field {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+  isolation: isolate;
+  opacity: var(--kl-cap, 0.3);
+}
+.kl-field[data-kl-position='contain'] { position: absolute; }
+/* the decorative layer may outgrow the dynamic viewport so browser bars never show a band */
+@supports (height: 100lvh) {
+  .kl-field[data-kl-position='fixed'] { min-height: 100lvh; }
+}
+
+.kl-source {
+  position: absolute;
+  left: calc(var(--kl-x) - var(--kl-w) / 2);
+  top: calc(var(--kl-y) - var(--kl-h) / 2);
+  width: var(--kl-w);
+  height: var(--kl-h);
+  transform-origin: center;
+}
+
+.kl-pigment {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0;
+  /* the light's shape: a bright core that falls off to nothing well inside the box */
+  background: radial-gradient(ellipse at 50% 50% in srgb,
+      var(--kl-color) var(--kl-core, 5%), transparent var(--kl-reach, 68%));
+}
+.kl-pigment[data-kl-first] { opacity: 1; }
+
+/* ── drift: only while running ──────────────────────────────────────────────────────── */
+
+.kl-field[data-kl-behaviour='drift'] .kl-source {
+  animation: kl-drift var(--kl-drift, 12s) ease-in-out var(--kl-drift-phase, 0s) infinite alternate;
+  animation-play-state: paused;
+}
+.kl-field[data-kl-behaviour='drift'] .kl-pigment[data-kl-pigments] {
+  animation-duration: var(--kl-cycle, 15s);
+  animation-timing-function: linear;
+  animation-delay: var(--kl-cycle-phase, 0s);
+  animation-iteration-count: infinite;
+  animation-play-state: paused;
+}
+.kl-pigment[data-kl-pigments='2'] { animation-name: kl-pigment-2; }
+.kl-pigment[data-kl-pigments='3'] { animation-name: kl-pigment-3; }
+.kl-field[data-kl-running='true'] :is(.kl-source, .kl-pigment) { animation-play-state: running; }
+
+/* A path that never repeats a pose at its ends: travel and turn in the source's own units. */
+@keyframes kl-drift {
+  0% {
+    transform: translate(calc(var(--kl-tx) * -0.5), calc(var(--kl-ty) * -0.4))
+      rotate(calc(var(--kl-turn) * -1)) scale(calc(1 - var(--kl-breathe)));
+  }
+  45% {
+    transform: translate(var(--kl-tx), var(--kl-ty)) rotate(var(--kl-turn))
+      scale(calc(1 + var(--kl-breathe)));
+  }
+  100% {
+    transform: translate(calc(var(--kl-tx) * 0.2), calc(var(--kl-ty) * -0.6))
+      rotate(calc(var(--kl-turn) * -0.4)) scale(1);
+  }
+}
+
+/* Cross-fades with overlap, so the light never passes through an empty, black midpoint: each
+   pigment holds for 1/n of the cycle and fades over 2 × 6.67 % shared with its neighbour.
+   light.js offsets pigment i by i/n of the cycle. */
+@keyframes kl-pigment-2 {
+  0%, 43.33% { opacity: 1; }
+  56.67%, 93.33% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes kl-pigment-3 {
+  0%, 26.67% { opacity: 1; }
+  40%, 93.33% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ── still twins ────────────────────────────────────────────────────────────────────── */
+
+.kl-field[data-kl-still='true'] :is(.kl-source, .kl-pigment) { animation: none; }
+.kl-field[data-kl-still='true'] .kl-pigment { opacity: 0; }
+.kl-field[data-kl-still='true'] .kl-pigment[data-kl-first] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .kl-source, .kl-pigment { animation: none !important; }
+}
+@media (forced-colors: active) {
+  .kl-field { display: none; }
+}
