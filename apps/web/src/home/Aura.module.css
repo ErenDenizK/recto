@@ -1,7 +1,7 @@
 /*
- * The aura (Aura.tsx; owner feedback 2026-10-08 and 2026-10-09, G3, G5): the mark's three
- * colours as soft light behind a view, rising from the top like the field's lobes (L3 §2) and
- * fixed to it. No grain and no blur filter: each lobe is one radial gradient filling its own
+ * The aura (Aura.tsx; owner feedback 2026-10-08, 2026-10-09 and 2026-10-10, G3, G5, R15): the
+ * mark's three colours as soft light behind the app, rising from the top like the field's lobes
+ * (L3 §2) and fixed to the window, whatever narrows the stage. No grain and no blur filter: each lobe is one radial gradient filling its own
  * box (`closest-side`), its alpha falling on a bell curve of eleven stops rather than a straight
  * line, so the fall-off has no visible edge or band even at 8 bits. Colours are the mark's stops
  * (brand/mark.ts, the --aura-* tokens); each theme sets the peaks.
@@ -23,7 +23,9 @@
   --aura-peak-yellow: 0.07;
   --aura-peak-glint: 0.1;
   --aura-peak-low: 0.13;
-  position: absolute;
+  /* The window, never a box that layout narrows: the shell lays it as its first layer, and the
+     shell has no transform, filter or containment, so this is the viewport (R15). */
+  position: fixed;
   inset: 0;
   overflow: hidden;
   pointer-events: none;

@@ -12,9 +12,10 @@
   background: var(--canvas);
 }
 
-/* Background glow (Settings, G5): the aura lies under the stage in the shell (AppShell.tsx), on
-   the shell's canvas, so the page view lets it through. */
-:global([data-reader-glow]) > .stage {
+/* The aura (the Library's, or Background glow behind the reader, G5) lies under the stage in the
+   shell (AppShell.tsx), on the shell's canvas and fixed to the window, so the stage lets it
+   through wherever the free rectangle puts it (R15). */
+:global([data-aura]) > .stage {
   background: transparent;
 }
 

@@ -23,11 +23,10 @@
   flex-direction: column;
   min-height: 0;
   margin-top: calc(-1 * var(--free-top, 0px));
-  background: var(--canvas);
+  /* No fill: the shell's canvas and its aura, fixed to the window, show through (R15). */
 }
 
 .scroller {
-  /* Above the aura, which comes first in the tree. */
   position: relative;
   display: flex;
   flex: 1;
