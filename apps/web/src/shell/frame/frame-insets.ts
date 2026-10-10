@@ -151,7 +151,7 @@ export const SIDE_SHEET_MIN_STAGE = 400;
 
 /**
  * The free rectangle's insets from the window's edges (F1 §2): top is the top layer; left
- * nothing, for the sidebar floats over the canvas in every form (DSN-22) and the page does not
+ * nothing, for the sidebar floats over the canvas in every form (DSN-26) and the page does not
  * reflow when it comes or goes; right an open side sheet (a tool or task
  * sheet, 07-sheets §2.2) while at least 400 px of stage remains beside it, else it overlays, so
  * the dock band, the pill and the pages keep clear of it (V2 review item 6: the OCR sheet covered

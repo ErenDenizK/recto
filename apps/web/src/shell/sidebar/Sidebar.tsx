@@ -9,7 +9,7 @@
  *   remembered per device once changed (`ui-store`, 06.17); the width too (240–400, 06.18).
  *   ▤, Mod+B, Find's ↓ and "All results", the pill's "All contents…" and ⌘K open it on their
  *   section.
- * - **Forms** (01-frame F1 §2; owner decision 2026-10-10, DSN-22): one floating glass panel,
+ * - **Forms** (01-frame F1 §2; owner decision 2026-10-10, DSN-26): one floating glass panel,
  *   inset from the window on the piece inset under the strip and above the dock band, with the
  *   sheet radius, laid over the canvas: it never pushes or resizes the document (the free
  *   rectangle keeps its full width and the page does not reflow). From expanded up it is
@@ -17,7 +17,7 @@
  *   320 px `overlay` and on compact-height the 360 px side `sheet` under the top bar; those two
  *   are light-dismissed by a press outside and by Esc, which returns focus to ▤. Phones keep it
  *   in the Pages sheet (M10, ADR-0033): not mounted.
- * - **One layer** (DSN-22): the section tabs are the only row of navigation; Pages holds the
+ * - **One layer** (DSN-26): the section tabs are the only row of navigation; Pages holds the
  *   thumbnails with Contents as a collapsible group above them (`PagesSection.tsx`).
  * - **In the Pages grid** the Pages section is not offered (the grid is it): a sidebar open on
  *   thumbnails hides for the grid and returns after; one on Contents, Find or Review stays

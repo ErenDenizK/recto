@@ -975,7 +975,7 @@ describe('tokens.css', () => {
         expect(rule, file).toMatch(/composes:\s*mat mat-panel mat-docked s\d+[^;]* from global;/);
         expect(rule, file).not.toMatch(/background:/);
       }
-      // The sidebar floats as M3 glass in every form (owner 2026-10-10, DSN-22): never docked,
+      // The sidebar floats as M3 glass in every form (owner 2026-10-10, DSN-26): never docked,
       // never solid on a coarse pointer, no background of its own at rest.
       const sidebar = first(
         import.meta.glob<string>('../shell/sidebar/Sidebar.module.css', {

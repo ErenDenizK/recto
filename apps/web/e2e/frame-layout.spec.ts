@@ -62,7 +62,7 @@ async function expectInFree(page: Page, target: Rect, what: string): Promise<voi
   expect(target.left, `${what}: inside the left edge`).toBeGreaterThanOrEqual(free.left - 0.5);
   expect(target.right, `${what}: inside the right edge`).toBeLessThanOrEqual(free.right + 0.5);
   for (const surface of await chromeRects(page)) {
-    // The sidebar floats over the stage by design in every form (DSN-22); it is a panel, not
+    // The sidebar floats over the stage by design in every form (DSN-26); it is a panel, not
     // chrome. It sits on the piece inset, 16 from the leading edge (system-audit-2026-10 §3.1).
     const floating = await page
       .locator('[data-frame-layer="sidebar"]')

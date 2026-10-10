@@ -269,7 +269,7 @@ test.describe('keyboard', () => {
       'true',
     );
 
-    // Pages (DSN-22): Tab reaches the Contents disclosure, then Add bookmark; Enter and Space
+    // Pages (DSN-26): Tab reaches the Contents disclosure, then Add bookmark; Enter and Space
     // expand and collapse the group.
     await tab(/^Review/).focus();
     await page.keyboard.press('Home');

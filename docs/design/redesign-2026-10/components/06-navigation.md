@@ -152,7 +152,7 @@ J / K); the Changes tab of the rail (CP5); "Hide from Arrange" (PG2 scope and PG
 
 | Surface | Tier | σ fine / coarse | c (smallest size) | Beneath | Solid twin |
 |---|---|---|---|---|---|
-| N1 docked (expanded and up; superseded by DSN-22: a floating M3 panel, σ 24, 20 on coarse, in every form) | M3 docked: hairline on the free edge, rim 0.20 there, no shadow | 40 / solid on coarse (M-31) | 0.9995 (280 × 600) c. | Pages run under it while scrolled or zoomed; at rest the canvas, so it equals n3 (dark) or ≈ n2 (light) | `--surface-frame` |
+| N1 docked (expanded and up; superseded by DSN-26: a floating M3 panel, σ 24, 20 on coarse, in every form) | M3 docked: hairline on the free edge, rim 0.20 there, no shadow | 40 / solid on coarse (M-31) | 0.9995 (280 × 600) c. | Pages run under it while scrolled or zoomed; at rest the canvas, so it equals n3 (dark) or ≈ n2 (light) | `--surface-frame` |
 | N1 overlay (medium) and side sheet (compact-height) | M3 floating, inset 8, radius 20, e4 | 40 / solid on coarse | 0.9999 (320 × 600) c. | The page | n3 / light n2, rim kept |
 | N6 sheet | M3 at 40 %; solid at 92 % (L§2.10) | 20 | 1.000 (390 × 338) c. | The page | n3 / n2 |
 | N4 compact find bar | M2 capsule 44 | 8 | 0.994 (358 × 44) c. | The page | `--glass-bar-solid` |

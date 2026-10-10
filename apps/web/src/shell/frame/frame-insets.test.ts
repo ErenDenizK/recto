@@ -84,7 +84,7 @@ describe('the free rectangle (01-frame F1 §2)', () => {
     expect(freeInsets(large)).toEqual({ top: 44, right: 0, bottom: 60, left: 0 });
   });
 
-  it('insets nothing on the left: the sidebar floats over the canvas (DSN-22)', () => {
+  it('insets nothing on the left: the sidebar floats over the canvas (DSN-26)', () => {
     expect(freeInsets(large).left).toBe(0);
   });
 

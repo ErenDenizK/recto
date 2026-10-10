@@ -17,12 +17,12 @@ duplicate it.
 | Open | The panel slides in from the leading edge (`translateX(-(width + inset))` → 0). | `smooth` |
 | Content parallax | The content starts 12 px behind the panel and fades in. | `glide` (it arrives a beat later), opacity `smooth` |
 | Close | The panel slides back out and its content fades. The panel stays drawn while it leaves: `inert`, `aria-hidden`, no `id`, no `data-region` and no `data-frame-layer`. It unmounts when the slide ends. | `smooth`, opacity `quick` |
-| Canvas reflow | None since DSN-22 (2026-10-10): the sidebar floats over the canvas, so nothing else moves. `frame-reflow.ts` is gone. | — |
+| Canvas reflow | None since DSN-26 (2026-10-10): the sidebar floats over the canvas, so nothing else moves. `frame-reflow.ts` is gone. | — |
 | ▤ morph | Phosphor's sidebar-simple, drawn inline. Its leading pane fills from its edge (`scaleX` 0 → 1 on the pane's own box) and empties on close. | `--spring-smooth`, opacity `--duration-fast` |
 
-- **Reduced motion** (DSN-22): the panel fades on the reduced fade (≤ 150 ms) and does not
+- **Reduced motion** (DSN-26): the panel fades on the reduced fade (≤ 150 ms) and does not
   slide.
-- **How the reflow worked** (before DSN-22). The free rectangle's `--free-left` changes at once, and the Read
+- **How the reflow worked** (before DSN-26). The free rectangle's `--free-left` changes at once, and the Read
   view re-lays the pages out in the same frame. A fit-width page changes size as well
   (1344 → 1064 px at 1440 × 900). `captureReflow()` reads the reference page and the band's
   pieces in the sidebar's layout effect, before the free rectangle is written.

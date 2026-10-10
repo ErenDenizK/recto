@@ -53,7 +53,7 @@ ADR-0033); the former M9 "Ecosystem" becomes M11.
 | Versioning | Drops are planning units; no tag until the owner says "beta v1" | brief; ADR-0017 |
 | Editions | Phones get a read-only compact edition (D0-14); M9 builds and polishes the full edition for widescreen desktops and tablets; the phone edition is M10, planned with the owner | ADR-0033 (owner, 2026-10-04) |
 | Ink | Colour and size one press away: the ink strip, one Slider with a lens knob and log widths, the colour panel (Grid · Spectrum · Sliders, eyedropper, saved colours) | `10-ink.md` (owner, 2026-10-04) |
-| Quality bar | Q-1 to Q-14: no texture that renders wrong and no banding (Q-1 corrected 2026-10-10); one backdrop root; no glass in glass; shapes change through their own geometry; transforms only for sheets; one control system; idle at rest; budgets; pinned screens | `quality-bar.md` (owner, 2026-10-04) |
+| Quality bar | Q-1 to Q-14: no texture that renders wrong and no banding (Q-1 corrected 2026-10-10, DSN-22); one backdrop root; no glass in glass; shapes change through their own geometry; transforms only for sheets; one control system; idle at rest; budgets; pinned screens | `quality-bar.md` (owner, 2026-10-04) |
 
 ## 1. Problem
 
