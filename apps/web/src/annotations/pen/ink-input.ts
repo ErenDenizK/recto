@@ -40,14 +40,10 @@
 import { inkDedupeDistance, InkStrokeModel, type WidthPoint } from '../ink';
 import type { InkPreview, PreviewPath, PreviewPoint } from './ink-preview';
 import { inkStats } from './ink-stats';
-import { ShapeHold } from './shape-hold';
-import {
-  outline,
-  recognizeShape,
-  scaleGeometry,
-  type ShapeGeometry,
-  type ShapeKind,
-} from './shapes';
+import type { ShapeHold } from './shape-hold';
+import { shapeKit } from './shape-kit';
+import { outline, scaleGeometry } from './shape-outline';
+import type { ShapeGeometry, ShapeKind } from './shapes';
 import {
   HOLD_STRAIGHTEN_MS,
   HOLD_WRITING_MS,
@@ -549,6 +545,8 @@ export function attachInkInput(options: InkInputOptions): () => void {
   const { element, preview } = options;
   const session = options.session ?? penSession();
   const now = options.now ?? (() => performance.now());
+  // The pen is armed: the shape recogniser starts loading now (`shape-kit.ts`).
+  shapeKit.now();
   let stroke: ActiveStroke | null = null;
   let frame = 0;
   const pans = new Map<number, Pan>();
@@ -711,13 +709,25 @@ export function attachInkInput(options: InkInputOptions): () => void {
     const { samples } = s;
     const raw: { x: number; y: number }[] = [];
     for (let i = 0; i < samples.length; i++) raw.push({ x: samples.x(i), y: samples.y(i) });
-    const { fits } = recognizeShape(raw, { strict: s.writing });
+    // The recogniser loads with the pen (`shape-kit.ts`); should it still be on its way, the
+    // hold is checked again once it is here.
+    const kit = shapeKit.now();
+    if (!kit) {
+      void shapeKit.load().then(
+        () => {
+          if (stroke === s && !s.shape && holdTimer === 0) armHold(s);
+        },
+        () => undefined,
+      );
+      return;
+    }
+    const { fits } = kit.recognizeShape(raw, { strict: s.writing });
     if (fits.length === 0) {
       s.holdSpent = s.hold.anchorTime;
       return;
     }
     const last = raw[raw.length - 1] ?? { x: 0, y: 0 };
-    s.shape = new ShapeHold(
+    s.shape = new kit.ShapeHold(
       fits,
       raw,
       last,
@@ -938,6 +948,7 @@ export function attachInkInput(options: InkInputOptions): () => void {
       restart: false,
     };
     stroke = s;
+    shapeKit.now(); // Again, should the load at arming have failed.
     inkStats()?.strokeBegin(e.pointerType);
     preview.begin({ color: context.color, opacity: context.opacity });
     const p = local(e, rect);

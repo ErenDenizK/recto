@@ -28,6 +28,7 @@ import type { Annotation } from '@pdf-editor/engine';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -43,6 +44,7 @@ import { activePathSelection, useAnnotationStore } from '../annotation-store';
 import { type Box, type PageFrame, userToCss } from '../geometry';
 import { boundsOf, type Point } from '../ink';
 import { kindCounts, lassoItems } from '../labels';
+import { shapeKit } from '../pen/shape-kit';
 import { StyleControls } from '../StyleControls';
 import { deleteLassoSelection, transformLassoSelection, useLassoNotice } from './edits';
 import { makeShapes } from './make-shape';
@@ -556,6 +558,10 @@ export function LassoBarControls({
     const at = activePathSelection(s);
     return at ? Object.keys(at.next ?? at.paths).length > 0 : false;
   });
+  // Make shape's recogniser (pen/shape-kit.ts) loads as soon as the button is offered.
+  useEffect(() => {
+    if (hasPaths) shapeKit.now();
+  }, [hasPaths]);
   return (
     <>
       {notice && noticeKey === key ? (
