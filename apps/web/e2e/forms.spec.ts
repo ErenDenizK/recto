@@ -127,8 +127,12 @@ test('add a text field and a checkbox by drag, fill them, export: the fields exi
     await open();
     await page.getByRole('menuitem', { name: kind, exact: true }).click();
     await expect(layer).toHaveAttribute('data-placing');
-    const box = await pageBox.boundingBox();
-    if (!box) throw new Error('no page box');
+    const page0 = await pageBox.boundingBox();
+    if (!page0) throw new Error('no page box');
+    // The open sidebar floats over the page's left (DSN-26): draw clear of it.
+    const panel = await page.getByRole('navigation', { name: 'Sidebar' }).boundingBox();
+    const x = Math.max(page0.x, panel ? panel.x + panel.width + 16 : 0);
+    const box = { x, y: page0.y };
     await page.mouse.move(box.x + from[0], box.y + from[1]);
     await page.mouse.down();
     await page.mouse.move(box.x + (from[0] + to[0]) / 2, box.y + (from[1] + to[1]) / 2);

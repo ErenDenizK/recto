@@ -5,6 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { showOutlinePanel } from '../../outline/outline-actions';
 import { useUiStore } from '../../state/ui-store';
 import {
   resetFrameStore,
@@ -60,5 +61,19 @@ describe('the sidebar toggle', () => {
     setSidebarOverlay(false);
     setSidebarOverlay(true);
     expect(shown()).toBe(false);
+  });
+
+  it("the pill's Contents shows the laid-over sidebar put away on Pages (F11 §6)", () => {
+    setSidebarOverlay(true);
+    useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'pages', pagesView: 'thumbnails' });
+    showOverlaySidebar(true);
+    showOverlaySidebar(false);
+    showOutlinePanel();
+    expect(useUiStore.getState().pagesView).toBe('bookmarks');
+    expect(shown()).toBe(true);
+    // Already on Contents and put away: still shown again.
+    showOverlaySidebar(false);
+    showOutlinePanel();
+    expect(shown()).toBe(true);
   });
 });
