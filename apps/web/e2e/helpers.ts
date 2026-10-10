@@ -302,7 +302,9 @@ export async function markAllMatches(page: Page): Promise<void> {
 
 /**
  * Shows the sidebar (closed by default, 06-navigation N1) on `section`, and on the Pages
- * section's `view`, and returns it. ▤ shows it; a section tab or a view changes it.
+ * section's `view`, and returns it. ▤ shows it; a section tab changes it. The Pages views are
+ * the Contents group's disclosure (DSN-22): `Contents` expands it, `Thumbnails` collapses it so
+ * the thumbnails have the section.
  */
 export async function showSidebar(
   page: Page,
@@ -318,9 +320,10 @@ export async function showSidebar(
     await expect(tab).toHaveAttribute('aria-selected', 'true');
   }
   if (view) {
-    const radio = sidebar.getByRole('radio', { name: view });
-    if ((await radio.getAttribute('aria-checked')) !== 'true') await radio.click();
-    await expect(radio).toHaveAttribute('aria-checked', 'true');
+    const contents = sidebar.getByRole('button', { name: /^(Contents|İçindekiler)$/ });
+    const expanded = String(view === 'Contents');
+    if ((await contents.getAttribute('aria-expanded')) !== expanded) await contents.click();
+    await expect(contents).toHaveAttribute('aria-expanded', expanded);
   }
   return sidebar;
 }

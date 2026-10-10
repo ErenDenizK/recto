@@ -140,6 +140,8 @@ test and the work package that first carries it.
 **Q-11 Budgets.**
 - At most four `backdrop-filter` surfaces visible at rest (top strip, dock, page pill, one
   more), and at most six during a transition.
+- The floating sidebar has a slot of its own while it shows (2026-10-10, owner, DSN-22): five
+  at rest and seven in a transition then, so it never takes the "one more".
 - The pieces of one surface count once (2026-10-08, owner feedback F1): the top strip's two
   floating pieces are the "top strip", and the Pages grid's scope and size pieces are one
   surface. Each pair covers less than the band it replaced. They carry `data-glass-group`.
