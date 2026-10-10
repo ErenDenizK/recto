@@ -288,6 +288,33 @@ export default defineConfig({
       /\.(woff2?|ttf|otf|wasm)$/.test(filePath) ? false : undefined,
     rolldownOptions: {
       treeshake: { moduleSideEffects: EMBEDPDF_ENGINES_PURE },
+      output: {
+        // Stable shared chunks (bundle budgets, PLAN.md §2.3 V1-P2): without them, every lazy
+        // module that loads at its first use (motion/lazy.ts) splits the code it shares with
+        // the first load (React, the i18n runtime, the motion core) out of the chunks that
+        // hold it, into fragments that each edition then loads separately. The motion core's
+        // gestures and editor-only modules (container transform, navigation push, disclosure,
+        // lazy loading) stay out, so the compact edition does not load them.
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react',
+              test: /[\\/]node_modules[\\/](?:\.pnpm[\\/][^\\/]+[\\/]node_modules[\\/])?(?:react|react-dom|scheduler)[\\/]/,
+              priority: 30,
+            },
+            {
+              name: 'i18n',
+              test: /[\\/]src[\\/]i18n[\\/](?:index|locale|format|use-locale)\.ts$|[\\/]src[\\/]i18n[\\/]paraglide[\\/](?:runtime|registry)\.js$/,
+              priority: 25,
+            },
+            {
+              name: 'motion',
+              test: /[\\/]src[\\/]motion[\\/](?!gesture[\\/]|container\.ts$|nav-push\.ts$|disclose\.ts$|lazy\.ts$)/,
+              priority: 20,
+            },
+          ],
+        },
+      },
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         // Static "not found" page for GitHub Pages. Built as an HTML entry (not copied from
