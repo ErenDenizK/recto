@@ -124,6 +124,8 @@ test('add a text field and a checkbox by drag, fill them, export: the fields exi
     from: [number, number],
     to: [number, number],
   ) => {
+    // The last menu closes back into its trigger first (MOT-5); only then is one item named so.
+    await expect(page.getByRole('menuitem', { name: kind, exact: true })).toHaveCount(0);
     await open();
     await page.getByRole('menuitem', { name: kind, exact: true }).click();
     await expect(layer).toHaveAttribute('data-placing');
