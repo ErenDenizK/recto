@@ -1,7 +1,7 @@
 ---
 title: "Recto Glass: the M9 design language"
 date: 2026-10-04
-status: proposed
+status: accepted 2026-10-04 (ADR-0022 to ADR-0028), amended by quality-bar.md and docs/process/decisions.md
 ---
 
 > Wave 2 of the M9 redesign: research 16 (glass), 17 (light), 18 (motion), 20 (type, icons,
@@ -381,8 +381,10 @@ Solid, `prefers-reduced-transparency` and `prefers-contrast: more` reset both li
 Inside any `.mat`: secondary and tertiary text use `--glass-text-secondary` (n11), danger its glass
 variant, disabled glyphs `--glass-text-disabled` (dark `#7d8086`: 2.42:1 worst, 4.65:1 over the
 canvas; light `#7f838a`: 2.45:1 worst, 3.68:1 typical). Labels ≤ 12 px use weight ≥ 500; no text
-under 11 px on M1/M2; no `mix-blend-mode` on text (G-17). No tier carries grain or noise (G-7
-removed 2026-10-04, `quality-bar.md` Q-1), and never a live `feTurbulence`.
+under 11 px on M1/M2; no `mix-blend-mode` on text (G-17). No tier carries the prototype's
+grain tile (G-7 removed 2026-10-04) and nothing renders below device resolution; a measured
+grain or dither layer that fixes banding is allowed (`quality-bar.md` Q-1, corrected
+2026-10-10), and never a live `feTurbulence`.
 
 ### 2.4 Rim, edge and shadow per tier
 
