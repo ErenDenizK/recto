@@ -32,7 +32,8 @@ and the other packages rebase onto it.
   default. These are `pnpm build`, Playwright runs and the full unit suite. Agents queue for the
   lock instead of running four builds on four cores.
 - Light commands run freely: format, lint, typecheck, and focused vitest files with
-  `--maxWorkers=1`.
+  `--maxWorkers=1`, but never vitest at the same time as lint, typecheck or build in one
+  checkout (Paraglide regenerates its files under both).
 - Cross-engine runs (Firefox, WebKit) and the full matrix happen in CI, not locally. Locally:
   Chromium plus the tablet project for the specs that cover the change.
 
@@ -47,6 +48,8 @@ spends the week's budget fast, so the mode is chosen on purpose and stated in ea
 | **Normal** | 3–4, in disjoint lanes | Allowed, sized to the question | As usual | When the owner raises the mode from Safe |
 | **Safe or minimal** | 1–2 | No research fan-outs | CI only, no local Playwright or full builds beyond what a fix needs | The default |
 
+- **In force from 2026-10-10: Normal, started low** (2–3 implementers; the lead raises it when
+  the work needs it and says so in the report; never a 10–20 agent fan-out without the owner).
 - **The default after a burst window is Safe**, until the owner raises it. A burst window
   closes when the owner says so, or at the end of the time the owner gave.
 - In Normal and Safe, mechanical work (test fixes, sweeps, log triage) runs on a lighter model.
@@ -64,6 +67,8 @@ look at.
 
 ## Merging
 
+- `develop` is the dev branch: all work lands there and deploys run from it; `main` takes only
+  the manual releases the owner asks for (decision PRC-5).
 - The lead merges finished packages into `develop` in lane order (platform first). The lead runs the
   full unit suite once on the merged result, then pushes. E2E follows later (see above).
 - A red merge is fixed before anything else is pushed. A fix agent takes the failures; new packages

@@ -11,7 +11,8 @@ in **English**. User-facing strings live in locale files and are translated sepa
 
 ## Before you start
 
-1. Read `docs/VISION.md`, `docs/ARCHITECTURE.md` and the ADRs in `docs/adr/`.
+1. Read `CLAUDE.md` (the short map of the code and rules), `docs/process/decisions.md`, then
+   `docs/VISION.md`, `docs/ARCHITECTURE.md` and the ADRs in `docs/adr/` as background.
 2. Open an issue (or pick one) before starting anything larger than a small fix. Design
    discussions happen in the issue; architectural changes need an ADR in the PR.
 3. Set up the workspace. You need Node.js 22 (see `.nvmrc`) and pnpm, which Corepack
@@ -19,7 +20,7 @@ in **English**. User-facing strings live in locale files and are translated sepa
 
    ```sh
    corepack enable       # once per machine; provides the pinned pnpm
-   pnpm install          # installs dependencies and the Git hooks (lefthook)
+   pnpm install          # installs dependencies; `pnpm exec lefthook install` adds the hooks
    pnpm dev              # starts the web app at http://localhost:5173
    pnpm run ci           # format check, lint, typecheck, tests, build: what CI runs
    ```
@@ -44,6 +45,10 @@ in **English**. User-facing strings live in locale files and are translated sepa
 | `.changeset` | Pending changelog entries (Changesets). |
 
 ## Branches and commits
+
+> The maintainers' own sessions commit straight to `develop` (the dev branch, which deploys)
+> and release to `main` by hand (`docs/process/decisions.md` PRC-5). The flow below is for
+> outside contributors.
 
 - Branch from `develop`: `feat/<topic>`, `fix/<topic>`, `docs/<topic>`, `chore/<topic>`.
 - Use [Conventional Commits](https://www.conventionalcommits.org/):

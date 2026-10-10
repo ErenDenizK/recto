@@ -1,8 +1,13 @@
 # Prompt for Recto's family session
 
 > **Türkçe özet:** Recto oturumu için hazır komut: CLAUDE.md'yi, `docs/family/` klasörünü ve aile
-> kitini oku; "gren yasağı" kaydını benimle netleştir; önerileri seçenek olarak sun; imzaları
-> asla düzleştirme; arayüze dokunmadan önce sor; repo kontrollerini yeşil tut.
+> kitini oku; önerileri seçenek olarak sun; imzaları asla düzleştirme; arayüze dokunmadan önce
+> sor; repo kontrollerini yeşil tut. Gren kaydı 2026-10-10'da B seçeneğiyle düzeltildi.
+>
+> **Updated 2026-10-10 (owner):** the grain record is resolved (option B, decision DSN-22), so
+> the first task below is done. Every project has two branches, dev and `main`: all work lands
+> on the dev branch (Recto's is `develop`, which deploys), `main` only takes manual releases
+> (decision PRC-5). The old line "never push to `develop`" is withdrawn.
 
 Paste everything below the line into a new session opened on this repository.
 
@@ -24,7 +29,7 @@ with my yes.
 3. `docs/design/redesign-2026-10/quality-bar.md`, `language.md`, ADR-0023 to ADR-0028 and
    `docs/brand/README.md`, so you know why each value is what it is.
 
-**First task: resolve the grain record with me.** `docs/family/README.md` §6 lists every place
+**First task (done 2026-10-10, option B): resolve the grain record with me.** `docs/family/README.md` §6 lists every place
 that records "no grain" (quality bar Q-1, `language.md`, ADR-0024, the redesign spec, ADR-0033,
 `materials.test.ts`, the Library aura's comments). My clarification: on 2026-10-04 I asked you
 to fix the glass object's wrong render and its banding; I did not ask for grain to be banned.
@@ -51,7 +56,8 @@ loses: tell me, and do not do it. The kit never overrides Recto's own ADRs.
 `pnpm lint`, `pnpm typecheck`, and the vitest or Playwright specs that cover your change
 (never typecheck, lint or build at the same time as vitest). User-facing strings go to
 `apps/web/messages/en.json` and `tr.json` in proper Turkish. Conventional Commits with the
-repo's scopes. Work on a branch of your own; never push to `develop` or `main`.
+repo's scopes. All work lands on `develop` (the dev branch, which deploys); never push to `main`
+unless the owner asks for a release.
 
 **Captures.** `pnpm --filter @pdf-editor/media-tool family` re-shoots the family captures
 (`tools/media/family/`, output in `tools/media/out/family/`). Re-run it after any visible
