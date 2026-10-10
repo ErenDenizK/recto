@@ -138,13 +138,16 @@
 }
 
 /* The hidden copy the layout is chosen from: the labels at their natural widths, at the
-   checked weight (the widest a label gets). */
+   checked weight (the widest a label gets). No wider than the frame: the labels inside keep
+   their natural widths (and are measured at them), but a copy wider than its room would
+   otherwise widen a scrolling ancestor's overflow and give it a sideways scroll (DSN-9). */
 .measure {
   position: absolute;
   top: 0;
   left: 0;
   display: flex;
   width: max-content;
+  max-width: 100%;
   height: 0;
   overflow: hidden;
   visibility: hidden;
