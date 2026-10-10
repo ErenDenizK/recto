@@ -192,6 +192,8 @@ export default defineConfig(
     '.changeset/',
     // Compiled i18n messages (Paraglide), regenerated from apps/web/messages.
     'apps/web/src/i18n/paraglide/',
+    // The maker's family kit, copied unchanged from the portfolio repo (docs/family/README.md §7).
+    'docs/family/kit/',
   ]),
 
   // Baseline for every file.
