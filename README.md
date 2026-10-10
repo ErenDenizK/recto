@@ -95,8 +95,8 @@ runs in Chromium only.
 
 1. The Content Security Policy in [`apps/web/index.html`](apps/web/index.html) says
    `connect-src 'self'`: the page may fetch from its own origin only.
-2. The status bar counts requests to other origins and reads "No external requests". It reads
-   Resource Timing ([`external-requests.ts`](apps/web/src/privacy/external-requests.ts)), so it
+2. The app counts requests to other origins and says so ("No external requests"; in Settings,
+   "No requests to other sites"). It reads Resource Timing ([`external-requests.ts`](apps/web/src/privacy/external-requests.ts)), so it
    does not see WebSocket frames or requests the CSP blocked before they left.
 3. After one visit the app works offline: a test reloads with the network off and renders a
    PDF ([`offline.spec.ts`](apps/web/e2e/offline.spec.ts), Chromium).
@@ -198,7 +198,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow and repository layout.
 |---|---|
 | [`docs/VISION.md`](docs/VISION.md) | Thesis, principles, non-goals, v1.0 success criteria |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Engine layering, virtual document model, export pipeline, deployment, testing |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones M0–M8 with engine mapping, exit criteria and known behaviours |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones M0–M8 and the M9 plan (the live plan is `docs/plan/v1/PLAN.md`) |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Design intent, layout, tokens, interaction and accessibility rules |
 | [`docs/DISCUSSION.md`](docs/DISCUSSION.md) | Open decisions awaiting the owner |
 | [`docs/adr/`](docs/adr/) | Architecture Decision Records |

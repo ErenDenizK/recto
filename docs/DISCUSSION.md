@@ -1,5 +1,8 @@
 # Open decisions
 
+> **Closed 2026-10-04.** New decisions and open questions live in `docs/process/decisions.md`;
+> the items below are kept as the record of how they were settled.
+
 **Status:** living document. Items are ordered by how much downstream work they block.
 Each item states the options, a recommendation, and what changes if the owner disagrees.
 When an item is settled it moves into the relevant ADR and is struck from here.

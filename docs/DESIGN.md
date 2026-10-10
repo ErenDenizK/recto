@@ -4,8 +4,11 @@
 (§9). This document defines intent and system; audits, measurements and screenshots are
 under `docs/design/`.
 
-*M9 (planned 2026-10-04, pending the owner): the redesign of [§10](#10-redesign-m9) replaces
-§1's intent and most of §2–§4 once built; until then §1–§9 describe the shipped app.*
+> **Superseded for the shell (2026-10-10).** The M9 redesign is built: the title bar, inspector,
+> status bar, navigator and Read/Edit modes of §2–§4 are gone. The current system is
+> `docs/design/redesign-2026-10/` (language, quality bar, component specs), the ADRs 0022–0033
+> and `docs/process/decisions.md`, which win where this file differs. §5 onward stays as history
+> and for the engine-facing rules it still holds.
 
 ## 1. Intent
 

@@ -1,4 +1,5 @@
-# Git hooks, installed by `pnpm install` (see the `prepare` script in package.json).
+# Git hooks. Install them once per clone with `pnpm exec lefthook install` (there is no
+# `prepare` script).
 # Docs: https://lefthook.dev/configuration/
 # In an emergency, skip them with `LEFTHOOK=0 git commit ...`; CI runs the same checks.
 
