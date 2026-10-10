@@ -25,6 +25,7 @@ import {
 import { currentPlatform } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
+import { showOverlaySidebar } from '../shell/frame/frame-store';
 import { isNavigatorShowing, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { currentViewDestination } from './current-view';
@@ -303,8 +304,14 @@ export function removeDeadLinks(documentId: DocumentId): boolean {
   return true;
 }
 
-/** Opens the Outline panel (palette commands act where the user can see the result). */
+/**
+ * Opens the Outline panel (palette commands act where the user can see the result). The
+ * sidebar laid over the page (medium, compact-height) shows too, as `view.show.outline` does:
+ * a light-dismiss puts it away without changing the stored view, so the store alone may already
+ * say Contents (01-frame F1 §2, F11 §6).
+ */
 export function showOutlinePanel(): void {
   const ui = useUiStore.getState();
   if (!isNavigatorShowing(ui, 'outline')) ui.showNavigator('outline');
+  showOverlaySidebar(true);
 }

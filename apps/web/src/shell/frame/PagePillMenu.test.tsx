@@ -101,6 +101,29 @@ describe('the page pill menu rows', () => {
     expect(within(menu).getByRole('radio', { name: 'Two pages' })).toBeTruthy();
   });
 
+  it('opens the sidebar from medium up; with no sidebar (compact) it lists the entries', async () => {
+    await page.viewport(1440, 800);
+    const doc = await openDoc();
+    let menu = await openMenu(doc);
+    expect(within(menu).getByTestId('pill-contents').getAttribute('aria-expanded')).toBeNull();
+    closePillMenu();
+    cleanup();
+
+    await page.viewport(560, 800);
+    menu = await openMenu(doc);
+    const contents = within(menu).getByTestId('pill-contents');
+    expect(contents.getAttribute('aria-expanded')).toBe('false');
+    expect(within(menu).queryByRole('button', { name: 'Opinion essay' })).toBeNull();
+    contents.click();
+    await expect.poll(() => contents.getAttribute('aria-expanded')).toBe('true');
+    const list = within(menu).getByRole('group', { name: 'Contents' });
+    expect(contents.getAttribute('aria-controls')).toBe(list.id);
+    expect(within(list).getByRole('button', { name: 'Opinion essay' })).toBeTruthy();
+    expect(within(list).getByRole('button', { name: LONG })).toBeTruthy();
+    // Still no sideways scroll with the long title listed.
+    expect(menu.scrollWidth).toBeLessThanOrEqual(menu.clientWidth);
+  });
+
   it('picks the last top-level entry that starts on or before the page', async () => {
     const doc = await openDoc();
     const [a, b] = doc.pages;

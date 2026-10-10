@@ -13,6 +13,8 @@
  *   the field is pressed.
  * - **Contents** is one row naming the section the current page is in; it opens the sidebar
  *   on Contents, which owns the outline (F11 §6: the menu no longer repeats its entries).
+ *   A window with no sidebar (compact, tight) has nothing to open, so there the row discloses
+ *   the top-level entries in the menu (`aria-expanded`) rather than doing nothing.
  * - **Zoom** ( − ) 96 % ( + ) and **Fit** Width · Page share one row; the buttons keep the
  *   menu open; Mod+= Mod+- Mod+0 work anywhere. Fit and **layout** Continuous · Single · Two-up
  *   (named in full: Single page, Two pages) are radio groups (`ui/Segmented`); the fit shows as
@@ -37,6 +39,7 @@ import {
 import { commandRegistry } from '../../commands/registry';
 import { documentSources, useFormStore } from '../../forms/form-store';
 import { formatNumber, formatPercent, m } from '../../i18n';
+import { revealFor } from '../../outline/current-view';
 import { displayTitle, showOutlinePanel } from '../../outline/outline-actions';
 import { MAX_ZOOM, MIN_ZOOM, useUiStore } from '../../state/ui-store';
 import { READ_LAYOUTS, type ReadLayout, useViewStore } from '../../state/view-store';
@@ -53,6 +56,7 @@ import { useCommandShortcut } from '../use-command-shortcut';
 import { enterFocus } from './focus-mode';
 import { closePillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
+import { useSizeClass } from './size-class';
 import { Icon } from '../../ui/Icon';
 
 /** The pill, or where it rests while away (Markup on a narrow window, a short viewport). */
@@ -215,15 +219,31 @@ export function currentSection(doc: VirtualDocument, current: number): OutlineEn
   return section;
 }
 
+/** Top-level entries the menu lists where no sidebar can open (the eight of F11 before r15). */
+const PILL_CONTENTS_MAX = 8;
+
 function Contents({ doc }: { readonly doc: VirtualDocument }) {
   const currentPage = useViewStore((s) => s.currentPage);
+  const frame = useSizeClass();
+  // A compact (not compact-height) or a tight window mounts no sidebar (AppShell; 06 N1: a
+  // phone keeps Contents in its own sheet), so there the row cannot open one: it discloses the
+  // top-level entries in the menu instead of doing nothing.
+  const inline = frame.tight || (frame.size === 'compact' && !frame.short);
+  const [expanded, setExpanded] = useState(false);
+  const listId = useId();
   if (doc.outline.length === 0) return null;
   const section = currentSection(doc, currentPage);
   return (
     <div className={styles.section}>
       <EntryRow
         data-testid="pill-contents"
+        aria-expanded={inline ? expanded : undefined}
+        aria-controls={inline && expanded ? listId : undefined}
         onClick={() => {
+          if (inline) {
+            setExpanded((open) => !open);
+            return;
+          }
           closePillMenu();
           showOutlinePanel();
         }}
@@ -232,6 +252,48 @@ function Contents({ doc }: { readonly doc: VirtualDocument }) {
         {section ? <span className={styles.entryDetail}>{displayTitle(section)}</span> : null}
         <Icon name="caret-right" className={styles.chevron} aria-hidden="true" />
       </EntryRow>
+      {inline && expanded ? <InlineContents doc={doc} id={listId} /> : null}
+    </div>
+  );
+}
+
+/** The top-level entries as rows: a choice jumps, closes the menu and focuses the page. */
+function InlineContents({ doc, id }: { readonly doc: VirtualDocument; readonly id: string }) {
+  const index = new Map(doc.pages.map((page, i) => [page.id, i]));
+  const entries = doc.outline
+    .filter((node) => node.destination?.kind === 'page')
+    .slice(0, PILL_CONTENTS_MAX);
+  return (
+    <div id={id} className={styles.contentsList} role="group" aria-label={m.frame_contents()}>
+      {entries.map((node, i) => {
+        const destination = node.destination;
+        if (destination?.kind !== 'page') return null;
+        const pageIndex = index.get(destination.page);
+        return (
+          <EntryRow
+            // Outline nodes carry no id; their order is stable while the menu is open.
+            // biome-ignore lint/suspicious/noArrayIndexKey: see above
+            key={i}
+            onClick={() => {
+              const ws = useWorkspaceStore.getState().workspace;
+              const page = doc.pages.find((p) => p.id === destination.page);
+              const reveal = page ? revealFor(ws, page, destination.view) : undefined;
+              closePillMenu();
+              useViewStore
+                .getState()
+                .scrollToPage(destination.page, reveal ? { reveal } : undefined);
+              if (pageIndex !== undefined) {
+                announce(
+                  m.frame_page_announce({ current: pageIndex + 1, total: doc.pages.length }),
+                );
+              }
+              requestAnimationFrame(focusPage);
+            }}
+          >
+            <span className={styles.entryTitle}>{displayTitle(node)}</span>
+          </EntryRow>
+        );
+      })}
     </div>
   );
 }
