@@ -105,9 +105,9 @@ import { pageIndexes, type ShownSection, useShownSections } from './arrange-data
 import { ArrangeContextMenuPopup } from './ArrangeContextMenu';
 import { ArrangeSection } from './ArrangeSection';
 import styles from './ArrangeView.module.css';
-import { noteDropOrigin, rippleSelection } from './grid/cell-motion';
+import { noteDropOrigin } from './grid/cells';
 import { FlipCells, playCells } from './grid/flip-cells';
-import { attachMakeWay } from './grid/make-way';
+import { gridMotion } from './grid/grid-motion';
 import { GridLockNotice } from './grid/grid-lock-notice';
 import { attachGridPointerDrag } from './grid/grid-pointer-drag';
 import { leaveGrid, takeGridReveal } from './grid/grid-transition';
@@ -524,7 +524,7 @@ function LightTable({
         }
         const from = order.get(next.anchor ?? (added[0] as PageId)) ?? 0;
         const rank = (id: PageId) => Math.abs((order.get(id) ?? 0) - from);
-        rippleSelection(
+        gridMotion.now()?.rippleSelection(
           added.sort((a, b) => rank(a) - rank(b)),
           tableRef.current,
         );
@@ -715,13 +715,22 @@ function LightTable({
   useEffect(() => {
     const table = tableRef.current;
     if (!table) return;
-    return attachMakeWay(table, () => ({
-      columns: stateRef.current.metrics.columns,
-      pages: (id) =>
-        stateRef.current.sections
-          .find((section) => section.doc.id === id)
-          ?.doc.pages.map((p) => p.id),
-    }));
+    let detach: (() => void) | undefined;
+    let live = true;
+    gridMotion.run(({ attachMakeWay }) => {
+      if (!live) return;
+      detach = attachMakeWay(table, () => ({
+        columns: stateRef.current.metrics.columns,
+        pages: (id) =>
+          stateRef.current.sections
+            .find((section) => section.doc.id === id)
+            ?.doc.pages.map((p) => p.id),
+      }));
+    });
+    return () => {
+      live = false;
+      detach?.();
+    };
   }, []);
 
   // ------------------------------------------------------------------ focus

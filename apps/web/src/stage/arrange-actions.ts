@@ -25,7 +25,8 @@ import { announce } from '../shell/announcer';
 import { type PageClipboard, useSelectionStore } from '../state/selection-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
-import { flyToTab, snapshotSheets } from './grid/cell-motion';
+import { snapshotSheets } from './grid/cells';
+import { gridMotion } from './grid/grid-motion';
 
 const model = () => useWorkspaceStore.getState();
 const selection = () => useSelectionStore.getState();
@@ -232,7 +233,7 @@ export function movePagesToDocument(documentId: DocumentId): boolean {
     }) !== undefined;
   // A move to another document gets the Undo toast (06.24); a move within one is announced.
   if (moved && from !== undefined && from !== documentId) {
-    flyToTab(shots, documentId);
+    gridMotion.now()?.flyToTab(shots, documentId);
     toast.undo(m.grid_moved_to_toast({ count: pageIds.length, title: doc.title }), {
       documentId,
       spoken: false,
@@ -288,7 +289,7 @@ export function extractPages(
   if (!committed || created === undefined) return undefined;
   const placed = model().workspace.documents[created]?.pages.map((p) => p.id) ?? [];
   select(placed);
-  flyToTab(shots, created);
+  gridMotion.now()?.flyToTab(shots, created);
   announce(
     keep
       ? m.announce_copied_to_new({ pages: pagesPhrase(pageIds.length), title })

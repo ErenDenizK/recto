@@ -41,7 +41,7 @@ import { CheckBadge } from '../ui/CheckBadge';
 import { Icon } from '../ui/Icon';
 import styles from './ArrangeView.module.css';
 import { showGridLockNotice } from './grid/grid-lock-notice';
-import { spinSheet, turnBetween } from './grid/rotate-motion';
+import { gridMotion } from './grid/grid-motion';
 import { ResizedContent } from './ResizedContent';
 
 export interface PageCellProps {
@@ -162,8 +162,9 @@ function PageCellInner({
   useLayoutEffect(() => {
     const was = shown.current;
     shown.current = { rotation, width: thumbWidth, height: thumbHeight };
-    if (was.rotation !== rotation && sheetRef.current) {
-      spinSheet(sheetRef.current, turnBetween(was.rotation, rotation), was);
+    const motion = gridMotion.now();
+    if (was.rotation !== rotation && sheetRef.current && motion) {
+      motion.spinSheet(sheetRef.current, motion.turnBetween(was.rotation, rotation), was);
     }
   }, [rotation, thumbWidth, thumbHeight]);
 
