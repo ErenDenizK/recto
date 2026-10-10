@@ -26,7 +26,6 @@ import { type KeyboardEvent, type RefObject, useEffect, useId, useRef, useState 
 import { formatNumber, m } from '../../i18n';
 import { openOcrDialog } from '../../ocr/ocr-store';
 import { markSearchHits } from '../../redaction/review';
-import { useViewStore } from '../../state/view-store';
 import { useActiveDocument, useWorkspaceStore } from '../../state/workspace-store';
 import { Button } from '../../ui/Button';
 import { Chip } from '../../ui/Chip';
@@ -36,7 +35,7 @@ import { IconButton } from '../../ui/IconButton';
 import menuStyles from '../../ui/Menu.module.css';
 import { toast } from '../../ui/Toast/toast';
 import { useCanChangeActive } from '../../viewer/input-state';
-import { documentLabels, hasCustomLabels } from '../../viewer/navigation';
+import { documentLabels, hasCustomLabels, navigationBase } from '../../viewer/navigation';
 import {
   clearSearch,
   type DocumentHit,
@@ -102,7 +101,9 @@ function FindView({ doc }: { readonly doc: VirtualDocument }) {
   // Restart after typing (debounced), on option changes and when the document changes.
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void runSearch(doc, useViewStore.getState().currentPage);
+      // A new search starts from the reader's page, or where an eased step is heading
+      // (motion-2026-10/viewer.md §1: `[`, `]` and Find's steps animate).
+      void runSearch(doc, navigationBase());
     }, TYPING_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [doc, query, matchCase, wholeWord]);

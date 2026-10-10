@@ -20,6 +20,7 @@ import { PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  atRest,
   enterEdit,
   inHistory,
   markupDoor,
@@ -125,6 +126,9 @@ test('edit, reload: same page and zoom, and Undo works for the 20 kept steps', a
   // Zoom by its keys to 150 % (the pill says it; the zoom menu went with the status bar).
   const pill = page.getByTestId('page-pill');
   for (let i = 0; i < 12; i++) {
+    // The percentage cross-fades in one cell (motion-2026-10/frame.md §4), so while it fades
+    // the pill holds both values: read it once it rests.
+    await atRest(pill);
     const zoom = Number((await pill.textContent())?.match(/(\d+)%/)?.[1] ?? 0);
     if (zoom === 150) break;
     await page.keyboard.press(zoom > 150 ? 'ControlOrMeta+-' : 'ControlOrMeta+=');

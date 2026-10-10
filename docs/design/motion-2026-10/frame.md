@@ -45,9 +45,9 @@ duplicate it.
   `--spring-quick`, with the entry fade on `--duration-base`. It closes toward
   `--exit-scale` on `--duration-fast` `--ease-exit`. Before this change it rose 4 px on a 120 ms
   ease.
-- **Scrim.** The scrim has a fixed `backdrop-filter: blur(6px)`, and its opacity fades it in
-  and out, so the filter itself never animates. There is no blur on Glass Solid or under
-  reduced transparency.
+- **Scrim.** The scrim dims only and its opacity fades it in and out. A first cut gave it a
+  fixed `backdrop-filter: blur(6px)`; the QA run removed it, since scrims are dim only (G-31)
+  and the blur made a fifth glass surface at rest (Q-11, `glass-rest.spec.ts`).
 - **Rows.** The first six rows (and their group headings) come in 20 ms apart
   (`--row-index` ≤ 5). The step is a third of `--duration-instant`, so it is 0 under reduced
   motion. Each rises `--rise-distance` with a `--duration-base` fade. Rows past the
