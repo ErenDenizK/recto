@@ -152,6 +152,22 @@ export function flyToPage(
 }
 
 /**
+ * Where the Use flight lands when the new signature's chip `id` is not on screen: the Sign
+ * button (the full edition's palette), else the phone's tool chip (`EditIsland`), which shows
+ * Sign while it is armed (design/phone-2026-10/README.md §4). Only a control counts: the
+ * annotation layer carries `data-tool` too, and a pulse there would scale the page under the
+ * finger that is about to place the signature.
+ */
+export function flightTarget(id: string | undefined, root: ParentNode = document): Element | null {
+  const chip = id ? root.querySelector(`[data-saved-signature="${CSS.escape(id)}"]`) : null;
+  return (
+    chip ??
+    root.querySelector('button[data-tool="signature"]') ??
+    root.querySelector('[data-compact-tool-chip]')
+  );
+}
+
+/**
  * The Use flight: `blob` (the new signature) from `from` (the pad) into `chip`, shrinking and
  * fading as it arrives; then the chip's receive pulse.
  */
