@@ -22,6 +22,10 @@ const PHONE = { width: 390, height: 844 };
 const PHONE_LANDSCAPE = { width: 844, height: 390 };
 const TABLET = { width: 820, height: 1180 };
 const COMPACT_SPEC = '**/compact.spec.ts';
+/** Phone editing (M10, design/phone-2026-10/README.md): the compact edition only. */
+const COMPACT_EDIT_SPEC = '**/compact-edit.spec.ts';
+/** What only the phones run. */
+const PHONE_SPECS = [COMPACT_SPEC, COMPACT_EDIT_SPEC];
 /** The control-system audit (quality-bar Q-9, spec D0-3) runs on every density and edition. */
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';
 /** The sheets' presentation on the medium class with a coarse pointer (spec D0-4). */
@@ -92,23 +96,23 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: COMPACT_SPEC,
+      testIgnore: PHONE_SPECS,
       use: { ...devices['Desktop Chrome'], launchOptions: chromiumLaunchOptions() },
     },
-    { name: 'firefox', testIgnore: COMPACT_SPEC, use: { ...devices['Desktop Firefox'] } },
+    { name: 'firefox', testIgnore: PHONE_SPECS, use: { ...devices['Desktop Firefox'] } },
     {
       name: 'webkit',
-      testIgnore: COMPACT_SPEC,
+      testIgnore: PHONE_SPECS,
       use: { ...devices['Desktop Safari'], storageState: NOT_KEPT_SEEN },
     },
     {
       name: 'phone',
-      testMatch: [COMPACT_SPEC, BAR_AUDIT_SPEC, MOTION_SPEC],
+      testMatch: [...PHONE_SPECS, BAR_AUDIT_SPEC, MOTION_SPEC],
       use: touchDevice(PHONE, devices['Pixel 7'].userAgent, 3),
     },
     {
       name: 'phone-land',
-      testMatch: COMPACT_SPEC,
+      testMatch: PHONE_SPECS,
       use: touchDevice(PHONE_LANDSCAPE, devices['Pixel 7'].userAgent, 3),
     },
     {
