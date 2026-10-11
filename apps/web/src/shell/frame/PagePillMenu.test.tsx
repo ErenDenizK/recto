@@ -1,8 +1,10 @@
 /**
- * The page pill's menu (`01-frame.md` F11 §2, §6; decision DSN-9; Vitest browser mode, PDFium):
- * it fits. Its width hugs its content between the recipe's width and the free rectangle, it never
- * scrolls sideways (a long Contents title once widened its one column past the popover, cutting
- * off Fit, layout and Go), and Contents is one row naming the current section.
+ * The page pill's menu (`01-frame.md` F11 §2, §6; decisions DSN-9, DSN-29; Vitest browser mode,
+ * PDFium): it fits. Its width hugs its content between the recipe's width and the free
+ * rectangle, it never scrolls sideways (a long Contents title once widened its one column past
+ * the popover, cutting off Fit and layout), and Contents is one row naming the current section.
+ * It is the popover's glass, with the page field alone (no label, no Go) and the layouts as
+ * glyphs named in full.
  */
 import '../../styles/tokens.css';
 import '../../styles/reset.css';
@@ -15,14 +17,14 @@ import {
 } from '@pdf-editor/document-model';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../../test/store-harness';
 import { settled } from '../../../test/settled';
 import { useViewStore } from '../../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
-import { closePillMenu, openPillMenu } from './frame-store';
+import { closePillMenu, openPillMenu, useFrameStore } from './frame-store';
 import { currentSection, PagePillMenu } from './PagePillMenu';
 
 const LONG = 'English Proficiency Exam (EPE) – Writing Section, Opinion and Comparison Essays';
@@ -86,6 +88,48 @@ describe('the page pill menu fits (DSN-9)', () => {
     await page.viewport(1440, 800);
     const menu = await openMenu(await openDoc());
     expect(menu.getBoundingClientRect().width).toBeLessThan(400);
+  });
+});
+
+describe('the page pill menu is small glass (DSN-29)', () => {
+  it('takes the popover’s M4 glass, not a solid twin', async () => {
+    await page.viewport(1440, 800);
+    const menu = await openMenu(await openDoc());
+    expect(menu.classList.contains('mat-menu')).toBe(true);
+    expect(menu.classList.contains('mat-opaque')).toBe(false);
+  });
+
+  it('has the page field alone: named Go to page, the total in its well, Enter jumps', async () => {
+    await page.viewport(1440, 800);
+    const doc = await openDoc();
+    const menu = await openMenu(doc);
+    expect(within(menu).queryByRole('button', { name: 'Go' })).toBeNull();
+    const field = within(menu).getByRole<HTMLInputElement>('textbox', { name: 'Go to page' });
+    expect(field.value).toBe('1');
+    const of = document.getElementById(field.getAttribute('aria-describedby')?.split(' ')[0] ?? '');
+    expect(of?.textContent).toBe(`of ${doc.pages.length}`);
+
+    // An unknown page keeps the menu open and says which pages there are.
+    await userEvent.fill(field, '99');
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => field.getAttribute('aria-invalid')).toBe('true');
+    expect(menu.textContent).toContain(`Pages 1–${doc.pages.length}`);
+    expect(useFrameStore.getState().pillMenu).not.toBeNull();
+
+    // A known one jumps and closes the menu.
+    await userEvent.fill(field, '1');
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => useFrameStore.getState().pillMenu).toBeNull();
+  });
+
+  it('draws the layouts as glyphs, named in full', async () => {
+    await page.viewport(1440, 800);
+    const menu = await openMenu(await openDoc());
+    const layouts = within(menu).getByRole('radiogroup', { name: 'Page layout' });
+    for (const name of ['Continuous', 'Single page', 'Two pages']) {
+      const radio = within(layouts).getByRole('radio', { name });
+      expect(radio.querySelector('svg[data-icon]'), name).not.toBeNull();
+    }
   });
 });
 

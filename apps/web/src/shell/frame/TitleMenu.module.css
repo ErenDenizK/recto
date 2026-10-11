@@ -11,7 +11,8 @@
 .popup {
   /* The M4 material's solid twin (`mat-opaque`; quality bar Q-1, Q-3): this panel opens over
      the sidebar's dark edge and the white page at once, and no blur radius evens a hard
-     dark/white seam under a tall panel, so it reads as one material whatever lies beneath. */
+     dark/white seam under a tall panel, so it reads as one material whatever lies beneath.
+     Kept by the glass audit (DSN-30): as glass, the sidebar's thumbnails ghost through it. */
   composes: mat-opaque from global;
   /* The menu recipe's row metrics (ui/Menu.module.css), for the rows inside the popover. */
   --menu-row: var(--control-h);

@@ -27,6 +27,10 @@
  *   weights), hover one step on fine pointers; a disabled segment is dimmed and its `reason`
  *   is its tooltip and description ("All open: open a second document"); an enabled one may
  *   carry a `description`, its tooltip and accessible description (the eraser's Partial).
+ * - **Glyphs.** An option with an `icon` draws the glyph in place of its label (the page pill
+ *   menu's layouts, F11 §2; DSN-29); the label (or `name`) is then its accessible name and its
+ *   tooltip, and the Select fallback still lists the words. The glyph takes its fill twin while
+ *   checked (I-2).
  */
 import { Radio } from '@base-ui/react/radio';
 import { RadioGroup } from '@base-ui/react/radio-group';
@@ -42,6 +46,7 @@ import {
 } from 'react';
 
 import { animateStyle, type Motion, reducedMotion } from '../motion';
+import { Icon, type IconName } from './Icon';
 import styles from './Segmented.module.css';
 import { Select } from './Select';
 import { Tooltip } from './Tooltip';
@@ -58,6 +63,8 @@ export interface SegmentedOption<T extends string> {
   readonly description?: string | undefined;
   /** The accessible name when it should say more than the label ("Review, 3 items"). */
   readonly name?: string | undefined;
+  /** A glyph drawn in place of the label, which then names the segment and is its tooltip. */
+  readonly icon?: IconName | undefined;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -258,7 +265,11 @@ export function Segmented<T extends string>({
 
   const segmentContent = (option: SegmentedOption<T>) => (
     <>
-      <span className={styles.text}>{option.label}</span>
+      {option.icon ? (
+        <Icon name={option.icon} />
+      ) : (
+        <span className={styles.text}>{option.label}</span>
+      )}
       {option.count !== undefined ? <span className={styles.count}>{option.count}</span> : null}
     </>
   );
@@ -272,9 +283,17 @@ export function Segmented<T extends string>({
       <Tooltip key={option.value} label={option.description} describe side="top">
         {element}
       </Tooltip>
+    ) : option.icon ? (
+      <Tooltip key={option.value} label={option.name ?? option.label} side="top">
+        {element}
+      </Tooltip>
     ) : (
       element
     );
+
+  // A glyph's segment is named by its label when no fuller name is given.
+  const segmentName = (option: SegmentedOption<T>) =>
+    option.name ?? (option.icon ? option.label : undefined);
 
   // Every segment has its own column, so the thumb can share the checked one's cell.
   const cell = (i: number): CSSProperties => ({ gridColumn: i + 1 });
@@ -318,7 +337,7 @@ export function Segmented<T extends string>({
               disabled={option.disabled}
               className={styles.segment}
               style={cell(i)}
-              aria-label={option.name}
+              aria-label={segmentName(option)}
               data-segment=""
               data-value={option.value}
               data-checked={option.value === value ? '' : undefined}
@@ -347,7 +366,7 @@ export function Segmented<T extends string>({
               disabled={option.disabled}
               className={styles.segment}
               style={cell(i)}
-              aria-label={option.name}
+              aria-label={segmentName(option)}
               data-segment=""
             >
               {segmentContent(option)}

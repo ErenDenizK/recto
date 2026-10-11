@@ -62,39 +62,38 @@
   --rise: calc(var(--dock-h, var(--bar-h)) + 8px - (var(--bar-h) - var(--pill-h)) / 2);
 }
 
-/* The menu (F11 §2): the popover recipe (system-audit-2026-10 §3.6: radius 16, 12 padding),
-   its rows the menu recipe's M rows, in four groups split by hairlines: Go to page · Contents ·
-   zoom, fit and layout · field outlines and Focus.
+/* The menu (F11 §2; DSN-29): the popover recipe's M4 glass (`mat mat-menu s12`, coverage
+   registry `popover`), radius 16, and the menu recipe's 6 px inset (system-audit-2026-10 §3.6),
+   so a row's radius 10 sits concentric with the corner. Two rows of controls in one grid, one
+   hairline, then the menu's quiet M rows. No solid twin: M4's tint keeps every text step legible
+   over the white page and the canvas alike (tokens.css, language.md §2.2), so a dark/white edge
+   beneath only shades the glass; Glass Solid and the ladder make it solid with every surface.
 
-   Room (DSN-9): as wide as its content, at least the recipe's 320 (360 coarse), never wider
-   than the free rectangle less 8 px a side (nor the window, if the frame has not measured yet).
-   One column, `minmax(0, 1fr)`: a row's min-content never widens it (r15: the long nowrap
-   Contents titles did, pushing Fit, layout and Go past the edge into a sideways scroll). */
+   Room (DSN-9): as wide as its content, at least 264 (312 coarse), never wider than the free
+   rectangle less 8 px a side (nor the window, if the frame has not measured yet). One column,
+   `minmax(0, 1fr)`: a row's min-content never widens it (r15: the long nowrap Contents titles
+   did, pushing the controls past the edge into a sideways scroll). */
 .menu {
-  /* The M4 material's solid twin (`mat-opaque`; quality bar Q-1, Q-3): this panel opens over
-     the sidebar's dark edge and the white page at once, and no blur radius evens a hard
-     dark/white seam under a tall panel, so it reads as one material whatever lies beneath. */
-  composes: mat-opaque from global;
   --menu-room: max(
     0px,
     calc(100vw - var(--free-left, 0px) - var(--free-right, 0px) - 2 * var(--space-2))
   );
-  --menu-cap: min(calc(100vw - 2 * var(--space-2)), max(var(--menu-room), 280px));
-  --menu-w: 320px;
+  --menu-cap: min(calc(100vw - 2 * var(--space-2)), max(var(--menu-room), 248px));
+  --menu-w: 264px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   width: max-content;
   min-width: min(var(--menu-w), var(--menu-cap));
   max-width: var(--menu-cap);
-  padding: var(--space-3);
+  padding: var(--space-1h);
   /* Vertical only: nothing inside is wider than the column. */
   overflow-x: hidden;
 }
 
 @media (pointer: coarse), (any-pointer: coarse) {
   .menu {
-    --menu-w: 360px;
+    --menu-w: 312px;
   }
 }
 
@@ -102,48 +101,77 @@
   min-width: 0;
 }
 
-/* Labels on the content edge, as the rows' text (whose rows reach --space-2 into the padding,
-   the menu recipe's inset); the field, Go, the zoom buttons and the segmented tracks run to the
-   menu's content edges. */
-.goto {
+/* The two rows: the page field over the stepper in the first column, the layout track over Fit
+   in the second, the controls' edges on the rows' text edge (6 px in from the inset). */
+.controls {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  column-gap: var(--space-2);
-  padding: 0 0 var(--space-1h);
+  gap: var(--space-2);
+  padding: var(--space-1h);
 }
 
-.gotoLabel {
-  color: var(--text-primary);
-  font-size: var(--control-text);
-  font-weight: 500;
-  white-space: nowrap;
+.gotoForm {
+  min-width: 0;
 }
 
-.gotoField {
-  composes: focus-field from global;
+/* The page field: an opaque well (G-18), the number and the total centred in it as one reading
+   ("1 / 4", as the pill shows it). The well is the field's label, so a press anywhere in it
+   focuses the field, and it draws the ring for the field inside it (styles/focus.css, I-47).
+   The edge is drawn inside (no border box), so the field is the full control height (Q-9), as
+   the strip's Find well. */
+.goto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-sizing: border-box;
-  width: 100%;
-  min-width: 48px;
+  min-width: 0;
   height: var(--control-h);
   padding: 0 var(--space-2);
-  border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
   background: var(--field-well);
+  box-shadow: inset 0 0 0 1px var(--control-border);
   color: var(--text-primary);
   font-size: var(--field-text);
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  cursor: text;
 }
 
-.gotoField[aria-invalid] {
-  border-color: var(--glass-danger, var(--danger));
+.goto:has(.gotoField[aria-invalid]) {
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.goto:has(.gotoField:focus-visible) {
+  outline: 2px solid var(--focus-light);
+  outline-offset: var(--focus-field-offset);
+  box-shadow: var(--focus-field-shadow);
+}
+
+.gotoField {
+  flex: 0 1 auto;
+  min-width: 1ch;
+  max-width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  /* The well's corners, so the field reads as the well's control (as the strip's Find). */
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: end;
+  field-sizing: content;
+}
+
+.gotoField:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .gotoOf {
+  flex: none;
+  padding-inline-start: var(--space-1);
   color: var(--text-secondary);
-  font-size: var(--control-text);
-  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -154,26 +182,21 @@
   font-size: var(--type-footnote);
 }
 
+.gotoHint[data-invalid] {
+  color: var(--danger);
+}
+
 .gotoHint:empty {
   display: none;
 }
 
-/* A group after a hairline. */
-.section {
+/* The rows after the one hairline: they stack without a gap, as a menu's do. */
+.rows {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2);
-  padding-block: var(--space-1h);
+  margin-top: var(--space-1h);
+  padding-top: var(--space-1h);
   border-top: 1px solid var(--border-hairline);
-}
-
-.section:last-child {
-  padding-bottom: 0;
-}
-
-/* Rows stack without a gap, as a menu's do. */
-.section:has(> .entry) {
-  gap: 0;
 }
 
 .entry {
@@ -183,8 +206,7 @@
   gap: var(--space-2);
   min-width: 0;
   min-height: var(--control-h);
-  margin-inline: calc(-1 * var(--space-2));
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-1h);
   border-radius: var(--radius-control);
   color: var(--text-primary);
   font-size: var(--control-text);
@@ -257,32 +279,20 @@
   height: var(--icon-sm);
 }
 
-/* ( − ) 96 % ( + ) then Fit, the track taking the rest of the row. */
-.zoomRow {
+/* ( − ) 96 % ( + ): the zoom row's first column, as wide as the page field above it. */
+.stepper {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
+  justify-content: space-between;
   min-height: var(--control-h);
 }
 
-.stepper {
-  display: flex;
-  flex: none;
-  align-items: center;
-}
-
 .zoomValue {
-  min-width: 48px;
+  min-width: 44px;
   color: var(--text-primary);
   font-size: var(--control-text);
   font-variant-numeric: tabular-nums;
   text-align: center;
-}
-
-.fit {
-  flex: 1;
-  min-width: 0;
 }
 
 /* The moving text (PillRoll.tsx; motion-2026-10 frame.md §4). The odometer: one tabular cell
