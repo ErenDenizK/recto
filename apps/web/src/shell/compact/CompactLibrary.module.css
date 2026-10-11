@@ -3,7 +3,9 @@
  * area, scrolling on its own. One primary button, a quiet line under it, then Recents.
  * Type in rem (system text scaling): 15 px names and buttons, 13 px secondary lines.
  */
+/* Positioned, so it paints over the aura (DSN-24), which the root lays first. */
 .library {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;

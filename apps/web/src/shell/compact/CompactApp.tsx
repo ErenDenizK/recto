@@ -18,12 +18,13 @@ import { useEffect, useLayoutEffect } from 'react';
 
 import { getEngineService } from '../../engine/engine-service';
 import { loadRecents } from '../../files/recents';
+import { Aura } from '../../home/Aura';
 import { LocaleBoundary } from '../../i18n/LocaleBoundary';
 import { loadSampleFile } from '../../sample/sample-file';
 import { openSampleFromLink } from '../../sample/sample-link';
 import { isDocumentChanged, startSession } from '../../session/session';
 import { watchSessionNotice } from '../../session/session-toast';
-import { useAppearanceRoot } from '../../state/appearance-store';
+import { useAppearanceRoot, useAppearanceStore } from '../../state/appearance-store';
 import { requestPassword } from '../../state/password-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { ToastRegion } from '../../ui/Toast/ToastRegion';
@@ -124,13 +125,22 @@ function CompactToasts() {
 function CompactRoot() {
   const place = useCompactStore((s) => s.place);
   const hasDocument = useWorkspaceStore((s) => s.workspace.activeDocument !== undefined);
+  const glow = useAppearanceStore((s) => s.glow);
   // The reader needs a document; without one (a failed reopen) the Library shows.
   useEffect(() => {
     if (place === 'reader' && !hasDocument) showLibrary();
   }, [place, hasDocument]);
+  const reading = place === 'reader' && hasDocument;
+  // The background light (DSN-24), as in the full edition's shell: one layer fixed to the
+  // window behind everything, the Library's drifting aura or, with Settings › Background glow
+  // on, the reader's still glow behind its canvas (G5). The pages stay white over it.
+  const aura = reading ? (glow ? 'reader' : null) : 'library';
   return (
     <div className={styles.root} data-testid="compact-app" data-place={place}>
-      {place === 'reader' && hasDocument ? <CompactReader /> : <CompactLibrary />}
+      {aura ? (
+        <Aura tone={aura} testId={aura === 'library' ? 'library-aura' : 'reader-glow'} />
+      ) : null}
+      {reading ? <CompactReader /> : <CompactLibrary />}
     </div>
   );
 }

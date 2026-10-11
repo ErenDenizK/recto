@@ -132,6 +132,7 @@ Sources, by short name:
 | EDN-8 | **Phone editing takes architecture A, with a designed drawer.** ✎ opens an edit island (Undo · tool chip · Done); the tool chip's ▾ opens a floating glass drawer that rises from the chip, which the owner asked to be "superb, not a makeshift drawer". Editing text comes last, after a hand check on an iPhone. | 2026-10-11 | Owner, conversation; `design/phone-2026-10/README.md` | In force |
 | EDN-9 | **The sample PDF is rewritten for phones** once phone editing ships, so its lessons are true on a phone. | 2026-10-11 | Owner, conversation | In force |
 | EDN-6 | **Tablets get the full edition.** Desktop and tablet come first. | 2026-10-04 | ADR-0033; `CLAUDE.md` | In force |
+| EDN-8 | **The phone's rarely used sheets load on demand.** Contents, Go to page, Document info and About live in `CompactMoreSheets`, fetched when the browser is idle after the reader opens and at the latest when ⋯ opens; only Pages stays in the static compact closure. Phone editing code follows the same rule (`research/phone-2026-10/code-audit.md` §4). Phones show the same background light as the full edition (DSN-24), and the top bar keeps at least 4 px above its row where there is no safe area. | 2026-10-11 | Implementer (phone WP0); PRC-11 | In force |
 
 ## Process
 

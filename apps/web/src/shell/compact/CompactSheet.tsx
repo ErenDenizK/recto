@@ -6,7 +6,7 @@
  * bar Q-7). One glass surface, in today's menu tier.
  */
 import { Drawer } from '@base-ui/react/drawer';
-import { type ReactNode, type RefObject, useEffect, useState } from 'react';
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
 import { m } from '../../i18n';
 import styles from './CompactSheet.module.css';
@@ -35,6 +35,10 @@ export function CompactSheet({
   readonly children: ReactNode;
 }) {
   const [panel, setPanel] = useState<HTMLElement | null>(null);
+  // Focus lands on a control, never on the panel itself: the panel would take the outset ring
+  // after a key press, a dark 6 px band around the whole sheet (visual audit 2026-10 defect
+  // 4). Done is every sheet's first control; a sheet with a field names it instead.
+  const doneRef = useRef<HTMLButtonElement>(null);
   useEffect(() => (panel && open ? watchRelease(panel, BLEED) : undefined), [panel, open]);
   return (
     <Drawer.Root
@@ -51,12 +55,14 @@ export function CompactSheet({
             className={styles.sheet}
             data-size={size}
             data-testid={testId}
-            {...(initialFocus ? { initialFocus } : {})}
+            initialFocus={initialFocus ?? doneRef}
           >
             <div className={styles.handle} aria-hidden="true" />
             <div className={styles.header}>
               <Drawer.Title className={styles.title}>{title}</Drawer.Title>
-              <Drawer.Close className={controls.text}>{m.compact_done()}</Drawer.Close>
+              <Drawer.Close ref={doneRef} className={controls.text}>
+                {m.compact_done()}
+              </Drawer.Close>
             </div>
             <Drawer.Content className={styles.body}>{children}</Drawer.Content>
           </Drawer.Popup>

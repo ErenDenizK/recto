@@ -24,8 +24,10 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
 import {
   clearSearch,
+  revealHit,
   runSearch,
   searchStep,
+  selectHit,
   setSearchQuery,
   useSearchStore,
 } from '../../viewer/search';
@@ -152,11 +154,22 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
     inputRef.current?.focus();
   }, []);
 
+  // A new search shows the hit it picks (the first from the page being read) as soon as it
+  // arrives, as ‹ › show theirs (visual audit 2026-10 defect 2): the count never names a hit
+  // that is off screen.
+  const revealPending = useRef(false);
+  useEffect(() => {
+    if (!revealPending.current || current < 0) return;
+    revealPending.current = false;
+    revealHit(selectHit(current));
+  }, [current]);
+
   // The search runs once typing pauses, from the page being read.
   useEffect(() => {
     if (query === searched) return;
     const timer = window.setTimeout(() => {
       setSearched(query);
+      revealPending.current = true;
       void runSearch(doc, useViewStore.getState().currentPage);
     }, SEARCH_DELAY_MS);
     return () => window.clearTimeout(timer);
@@ -171,6 +184,7 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
     event.preventDefault();
     if (query !== searched) {
       setSearched(query);
+      revealPending.current = true;
       void runSearch(doc, useViewStore.getState().currentPage);
       return;
     }

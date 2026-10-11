@@ -7,11 +7,12 @@
  * `touch-action: pan-x pan-y` keeps native one-finger scrolling and gives two-finger pinches
  * to the reader (the browser would otherwise zoom the whole page).
  */
+/* No fill of its own: the root's canvas and the background glow (DSN-24, `CompactApp`) show
+   between and around the pages. */
 .reader {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--canvas);
 }
 
 .scroller {

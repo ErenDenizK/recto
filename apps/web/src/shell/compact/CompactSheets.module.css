@@ -285,15 +285,21 @@ a.contentsRow:active {
   color: var(--text-secondary);
 }
 
-/* About's Appearance group (Reduce motion, the Settings sheet's own row): its name lines up
-   with the facts and the statement, 12 px in, where the sheet's coarse rows pad 16. */
 /* About's last line, the maker's credits (family README §4 move 3), on the facts' inset. */
 .aboutCredit {
   margin-top: 4px;
   padding: 0 12px;
 }
 
+/* About's Appearance group (Theme and Reduce motion, the Settings sheet's own rows) on the
+   sheet's grid (visual audit 2026-10 defect 5): the group's well sits at the sheet grammar's
+   group inset from the panel's edge, and its label and rows' text line up with the facts and
+   the statement, 20 px in. The grammar measures from `--sheet-pad`, which the compact sheet
+   sets at 8 px (its own side padding) instead of the coarse 16, and pads rows 12 instead of
+   16 so the text lands on the facts' line. The rows keep 56 px and the segments 44 (coarse). */
 .aboutSettings {
+  --sheet-pad: 8px;
+  --sheet-row-pad: 12px;
   margin-top: 8px;
 }
 
