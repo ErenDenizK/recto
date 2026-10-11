@@ -53,8 +53,9 @@
   display: none;
 }
 
-/* The compact edition: above the reader's 56 px capsule, safe-area aware; when the capsule is
-   away (hidden on scroll, Find, the Library), above the home indicator (01-frame F12, F13). */
+/* The compact edition: above the reader's 56 px capsule or the Library's dock of the same size
+   (DSN-31), safe-area aware; when the capsule is away (hidden on scroll, Find), above the home
+   indicator (01-frame F12, F13). */
 .region[data-edition='compact'] {
   right: 0;
   left: 0;

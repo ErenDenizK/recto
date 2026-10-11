@@ -166,11 +166,23 @@ test.describe('the compact edition', () => {
     await expect(page.locator('html')).toHaveAttribute('data-edition', 'compact');
     await expect(page.getByTestId('app-shell')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
+    // The composition of DSN-31: the brand and promise, the tools as chips (read as one
+    // sentence), the sample as a card, and Open PDF in the dock, a 44 px target or more.
+    await expect(page.getByRole('heading', { level: 1, name: 'Recto' })).toBeVisible();
+    await expect(page.getByTestId('compact-tools')).toContainText('Highlight');
     await expect(
       page.getByText(
         'Pen, highlight, text and signature on your phone. Every tool on a computer or tablet.',
       ),
-    ).toBeVisible();
+    ).toHaveClass(/visually-hidden/);
+    await expect(page.getByRole('button', { name: 'Try the sample' })).toBeVisible();
+    const open = page.getByTestId('compact-library-dock').getByRole('button', { name: 'Open PDF' });
+    const box = await open.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    // In thumb reach: the dock sits in the bottom quarter of the screen.
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeGreaterThan(
+      (page.viewportSize()?.height ?? 0) * 0.75,
+    );
     // First run: Recents holds its place with a calm empty row (XD-3).
     const empty = page.getByTestId('compact-recents-empty');
     await expect(empty.getByRole('heading', { name: 'Recent' })).toBeVisible();
@@ -194,11 +206,51 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: 'PDF aç' })).toBeVisible();
     await expect(
       page.getByText('Telefonda kalem, vurgu, metin ve imza. Tüm araçlar bilgisayar ve tablette.'),
-    ).toBeVisible();
+    ).toBeAttached();
+    await expect(page.getByTestId('compact-tools')).toContainText('İmza');
+    await expect(page.getByRole('button', { name: 'Örnek belgeyi deneyin' })).toBeVisible();
+    // Turkish is longer: nothing in the Library clips or spills sideways.
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-testid="compact-library"] *')]
+        .filter((el) => el instanceof HTMLElement && el.children.length === 0 && el.textContent)
+        .filter((el) => !el.closest('.visually-hidden'))
+        .filter((el) => (el as HTMLElement).scrollWidth > (el as HTMLElement).clientWidth + 1)
+        .map((el) => el.textContent),
+    );
+    expect(clipped).toEqual([]);
     await expect(page.getByTestId('compact-recents-empty')).toContainText('Henüz dosya yok');
     await shot(page, 'compact-library-tr');
     await page.getByRole('button', { name: 'English' }).click();
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
+  });
+
+  test('Recents show as a card list; on its side the column splits so several rows show', async ({
+    page,
+  }) => {
+    await openLibrary(page);
+    await openPdf(page, 'simple-text.pdf');
+    await page.getByRole('button', { name: 'Library' }).click();
+    await openPdf(page, 'annotations.pdf');
+    await page.getByRole('button', { name: 'Library' }).click();
+    const recents = page.getByTestId('compact-recents');
+    await expect(recents.getByRole('button')).toHaveCount(2);
+    // Clear is set at the section title's size (visual audit 2026-10 item 6), with a 44 px target.
+    const title = page.getByRole('heading', { name: 'Recent' });
+    const clear = page.getByRole('button', { name: 'Clear recents' });
+    const size = (l: Locator) => l.evaluate((el) => getComputedStyle(el).fontSize);
+    expect(await size(clear)).toBe(await size(title));
+    expect((await clear.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    const viewport = page.viewportSize();
+    if (viewport && viewport.width > viewport.height) {
+      // On its side, Recents start in the top third and both rows show whole, above the edge.
+      const titleBox = await title.boundingBox();
+      expect(titleBox?.y ?? Infinity).toBeLessThan(viewport.height / 3);
+      for (const row of await recents.getByRole('button').all()) {
+        const rowBox = await row.boundingBox();
+        expect((rowBox?.y ?? 0) + (rowBox?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
+      }
+    }
+    await shot(page, 'compact-library-recents');
   });
 
   test('Try the sample opens the teaching sample in the reader', async ({ page }) => {

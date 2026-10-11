@@ -489,6 +489,17 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     smallest: 'min(320 px, the window less 24 px); its header with Close and one line',
   },
   {
+    id: 'compact-library-dock',
+    surface: 'Compact edition Library dock: Open PDF above the home indicator (DSN-31)',
+    module: 'shell/compact/CompactLibrary.module.css',
+    selector: '.dockPiece',
+    tier: 'bar',
+    sigma: 10,
+    minWidth: 288,
+    minHeight: 56,
+    smallest: '56 px fixed; a 320 px phone less 16 px each side (on its side, half the column)',
+  },
+  {
     id: 'top-strip',
     surface: 'Top strip: its two floating pieces (01-frame F2; owner feedback F1)',
     module: 'shell/frame/TopStrip.module.css',
