@@ -20,6 +20,8 @@ import './text-tool';
 // Lane D: Sign over its stub, and the phone's touch selection chrome.
 import './sign';
 import './touch-chrome';
+// WP5: Edit text over its stub; its editors load as the tool arms.
+import './edit-text';
 
 // The dry ink under the annotation layer, whose wet canvas sits above it (as in Read mode).
 registerCompactOverlay(DryInkLayer);

@@ -21,7 +21,8 @@
  * - `arm` runs after the previous tool's `disarm`, with Markup open on the document (the one
  *   gate, code-audit §2): set the tool store's mode, arm a preset, open a sheet. A tool that
  *   leaves `arm` out arms Select, so its presses fall through to the page.
- * - `soon`: the tile shows, reads "Soon" and does not arm (Edit text until WP5).
+ * - `soon`: the tile shows, reads "Soon" and does not arm (Edit text's stub, until
+ *   `edit-text.tsx` registers over it, EDN-17).
  * - `Options` renders in the drawer's second row while the tool is armed; `hint` is a one-line
  *   fallback there for a tool with no options. `Badge` draws over the chip's glyph (the pen's
  *   ink dot), keyed by tool, so it may use hooks.

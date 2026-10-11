@@ -4,8 +4,8 @@
  * (`annotations/pen/ink-input.ts`: a finger draws until a stylus is seen, a second finger drops
  * the stroke). Text and Sign are seams for lanes C and D: they arm their mode and nothing more
  * until their lane registers the real spec over these (`registerCompactTool` replaces by id).
- * Edit text shows as "Soon" until WP5, after the hand check on an iPhone: a tile that arms a
- * mode the phone cannot yet serve would read as broken.
+ * Edit text's stub reads "Soon": `edit-text.tsx` (WP5, EDN-17) registers the live tool over it
+ * as the chunk loads, so the tile is "Soon" only where that module is not loaded (unit tests).
  */
 import { useAnnotationStore } from '../../../annotations/annotation-store';
 import { m } from '../../../i18n';

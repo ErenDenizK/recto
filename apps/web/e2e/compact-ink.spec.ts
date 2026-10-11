@@ -326,7 +326,8 @@ test.describe('phone ink (M10 lane B)', () => {
     } else {
       expect(placed.y).toBeGreaterThanOrEqual(line.y + line.h + 56);
     }
-    await expect(bar(page).getByRole('button', { name: 'Edit text' })).toHaveCount(0);
+    // Edit text is live (WP5, EDN-17): the bar offers it beside Highlight and Copy.
+    await expect(bar(page).getByRole('button', { name: 'Edit text' })).toHaveCount(1);
 
     // A line with room above it (the second page's, upright) takes the bar above it.
     const second = page.locator('[data-page-index="1"] [data-text-layer] span[data-row]').nth(1);

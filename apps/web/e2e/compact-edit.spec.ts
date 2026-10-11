@@ -222,7 +222,8 @@ test.describe('phone editing (M10 WP1)', () => {
     await expect(pen).toHaveAttribute('aria-pressed', 'true');
     expect((await pen.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     await expect(page.getByTestId('compact-ink-options')).toBeVisible();
-    await expect(drawer(page).getByRole('button', { name: /^Edit text/ })).toHaveAttribute(
+    // Edit text is live (WP5, EDN-17), no longer "Soon".
+    await expect(drawer(page).getByRole('button', { name: 'Edit text' })).not.toHaveAttribute(
       'aria-disabled',
       'true',
     );

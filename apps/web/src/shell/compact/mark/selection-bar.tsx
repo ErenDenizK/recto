@@ -1,7 +1,7 @@
 /**
  * The phone's selection bar (`design/phone-2026-10/README.md` §4 "Long-press on text"; code-audit
  * §2 Highlight): one small glass pill over a page text selection, Highlight · Copy, with an
- * "Edit text" slot that shows only once the Edit text tool is live (WP5; `soon` until then).
+ * Edit text once that tool is live (WP5, EDN-17), which opens the selected paragraph.
  * Its own chunk, loaded on the first selection (`selection-host.tsx`).
  *
  * - **Highlight** marks the selection in the Highlighter preset's tint (as H does on a computer,
@@ -38,6 +38,7 @@ import { selectionCopyText } from '../../../viewer/text-model';
 import { announce } from '../../announcer';
 import { useCompactStore } from '../compact-store';
 import { armTool, enterEditing } from './bridge';
+import { editTextAt } from './edit-text';
 import { highlighterSlot } from './ink-presets';
 import { compactTool, useCompactTools } from './registry';
 import styles from './selection-bar.module.css';
@@ -220,9 +221,18 @@ export default function SelectionBar({
     announce(m.selection_copied());
   };
 
+  // Edit text opens the editor where the selection begins; the keyboard is held in this press
+  // (`edit-text.tsx`), and the page selection gives way to the editor's caret.
   const editTextHere = () => {
-    if (!useCompactStore.getState().editing) enterEditing();
-    if (compactTool('edit-text')) armTool('edit-text');
+    const boxes = selectionBoxes();
+    globalThis.getSelection?.()?.removeAllRanges();
+    if (!boxes) {
+      if (!useCompactStore.getState().editing) enterEditing();
+      if (compactTool('edit-text')) armTool('edit-text');
+      return;
+    }
+    const { first } = boxes;
+    editTextAt({ x: first.left + 1, y: (first.top + first.bottom) / 2 });
   };
 
   const undo = () => {
