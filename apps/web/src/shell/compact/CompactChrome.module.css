@@ -272,6 +272,20 @@
 }
 
 /*
+ * Light theme (visual-audit 2026-10 #7: page text showed strongly through the bottom bar): the
+ * capsule, the island and the edit button rest over the page itself, black glyphs on white
+ * paper, where M2's light tint (0.69, at the floor of primary text, for the canvas and the aura)
+ * lets every line read through. On a phone they take the sheet tier's denser tint (0.88; 0.9
+ * under Glass Tinted, the solid under reduced transparency); the blur and the rims stay M2's,
+ * and Glass Solid is solid as before (`materials.css` paints the tint only where glass
+ * renders).
+ */
+:global([data-theme='light']) .capsule,
+:global([data-theme='light']) .edit {
+  --mat-tint: var(--glass-sheet-tint);
+}
+
+/*
  * The edit button (EDN-8; design/phone-2026-10/README.md §2): a 56 px circle of the capsule's
  * own material (coverage registry `compact-edit-button`) beside it, its glyph 20 px (Q-9). It
  * hides with the chrome as the capsule does. While editing it folds into the island: its width

@@ -30,6 +30,8 @@ const COMPACT_INK_SPEC = '**/compact-ink.spec.ts';
 const COMPACT_TEXT_SPEC = '**/compact-text.spec.ts';
 /** Phone signing and saving (M10 WP6, WP7). */
 const COMPACT_SIGN_SPEC = '**/compact-sign.spec.ts';
+/** The tool drawer's list variant (EDN-16, `?drawer=list`). */
+const COMPACT_DRAWER_LIST_SPEC = '**/compact-drawer-list.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
   COMPACT_SPEC,
@@ -37,6 +39,7 @@ const PHONE_SPECS = [
   COMPACT_TEXT_SPEC,
   COMPACT_INK_SPEC,
   COMPACT_SIGN_SPEC,
+  COMPACT_DRAWER_LIST_SPEC,
 ];
 /** The control-system audit (quality-bar Q-9, spec D0-3) runs on every density and edition. */
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';

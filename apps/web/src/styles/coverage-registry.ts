@@ -411,6 +411,19 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
       'a 320 px phone less 16 px each side; on its side, the grabber, a 52 px tile row and the quiet row',
   },
   {
+    id: 'compact-tool-list',
+    surface: 'Compact edition tool list, the drawer variant over the island (EDN-16)',
+    module: 'shell/compact/mark/ToolList.module.css',
+    selector: '.panel',
+    tier: 'menu',
+    sigma: 24,
+    coarse: { sigma: 20, minWidth: 288, minHeight: 180 },
+    minWidth: 288,
+    minHeight: 180,
+    smallest:
+      'a 320 px phone less 16 px each side; on its side, the head, one 52 px row and the quiet row',
+  },
+  {
     id: 'compact-text-done',
     surface: 'Compact edition Done bar on the keyboard while typing (phone editing, EDN-12)',
     module: 'shell/compact/mark/TextLayer.module.css',

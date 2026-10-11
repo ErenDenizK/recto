@@ -15,6 +15,10 @@
  *   shrinks into the chip, so nothing jumps at the release.
  * - Opened, nothing stays inline (Q-2); closed, the last frame holds until the panel unmounts.
  * - **Reduced motion:** opacity only, 150 ms in, 100 ms out (A-9).
+ * - **What it covers** (`covers`, the list variant's island, EDN-16): a panel that grows over
+ *   the island fades it out over the same first `FADE_SPAN` of the progress the panel fades in
+ *   on, on the same clock, so there is never glass over glass at rest; closed, the island's fade
+ *   is cancelled and nothing stays inline on it.
  */
 import {
   type Box,
@@ -52,6 +56,8 @@ export interface DrawerMotion {
   release(): void;
   /** Stops at once where it is headed. */
   finish(): void;
+  /** The panel is going away: whatever it covered is whole again. */
+  dispose(): void;
 }
 
 const rectOf = (el: Element): Box => {
@@ -82,8 +88,13 @@ export function progressFrames(
  * Drives `panel`'s container transform out of `chip` (both measured at each `to()`, so a
  * rotation between open and close returns into the chip where it is now).
  */
-export function drawerMotion(panel: HTMLElement, chip: () => Element | null): DrawerMotion {
+export function drawerMotion(
+  panel: HTMLElement,
+  chip: () => Element | null,
+  covers?: () => HTMLElement | null,
+): DrawerMotion {
   let anim: Animation | null = null;
+  let coverAnim: Animation | null = null;
   let dragAnim: Animation | null = null;
   let seg = { s: springs.smooth, x0: 0, v0: 0, target: 0, reduced: false, from: 0 };
   let dragY = 0;
@@ -155,8 +166,35 @@ export function drawerMotion(panel: HTMLElement, chip: () => Element | null): Dr
       }
       anim = run;
       last?.cancel();
+      const covered = covers?.();
+      if (covered) {
+        // The covered island's opacity is 1 − the panel's, from where it is now.
+        const frames = (run.effect as KeyframeEffect | null)?.getKeyframes() ?? [];
+        const timing = run.effect?.getTiming();
+        const now = covered.getAnimations().includes(coverAnim as Animation)
+          ? getComputedStyle(covered).opacity
+          : '1';
+        coverAnim?.cancel();
+        coverAnim = covered.animate(
+          frames.length > 1
+            ? frames.map((k, i) => ({
+                opacity: i === 0 ? now : String(1 - Number(k.opacity ?? 1)),
+              }))
+            : [{ opacity: now }, { opacity: String(1 - target) }],
+          {
+            duration: Number(timing?.duration ?? 1),
+            easing: timing?.easing ?? 'linear',
+            fill: 'forwards',
+          },
+        );
+      }
       return new Promise<void>((resolve) => {
         run.onfinish = () => {
+          if (anim === run && target === 0 && coverAnim) {
+            // Closed: the island is whole again, with nothing left on it.
+            coverAnim.cancel();
+            coverAnim = null;
+          }
           if (anim === run && target === 1) {
             // Open and at rest: nothing inline (Q-2).
             anim = null;
@@ -192,6 +230,11 @@ export function drawerMotion(panel: HTMLElement, chip: () => Element | null): Dr
     },
     finish() {
       anim?.finish();
+      coverAnim?.finish();
+    },
+    dispose() {
+      coverAnim?.cancel();
+      coverAnim = null;
     },
   };
 }
