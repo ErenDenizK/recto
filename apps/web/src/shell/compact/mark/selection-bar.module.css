@@ -1,0 +1,82 @@
+/*
+ * The phone's selection bar (design/phone-2026-10/README.md §4; `selection-bar.tsx`): one M2
+ * pill over the page, the capsule's material at the capsule's σ 10 (coverage registry
+ * `compact-selection-bar`), 44 px targets on a 52 px pill (Q-9), placed by script (fixed, its
+ * top-left corner). It rises 4 px into place with the fade (`smooth`, no bounce); reduced motion
+ * fades only. Inside, no glass: the actions are quiet buttons, primary text and glyphs.
+ */
+.bar {
+  composes: mat mat-bar s10 from global;
+  position: fixed;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
+  height: 52px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  white-space: nowrap;
+  -webkit-touch-callout: none;
+  user-select: none;
+  animation: rise var(--duration-base) var(--ease-out) both;
+}
+
+.bar[data-side='below'] {
+  animation-name: drop;
+}
+
+.action {
+  gap: var(--space-2);
+  height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  font-weight: 500;
+}
+
+.action > [data-btn-label] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.status {
+  padding: 0 var(--space-2) 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--type-body);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .bar[data-side='below'] {
+    animation-name: fade;
+    animation-duration: var(--duration-fast);
+  }
+}
+
+:global(:root[data-motion='reduced']) .bar {
+  animation-name: fade;
+  animation-duration: var(--duration-fast);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}

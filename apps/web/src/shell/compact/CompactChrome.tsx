@@ -307,6 +307,8 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
         </button>
       </div>
       {island ? <mark.ToolDrawer /> : null}
+      {/* The selection bar's watch, reading and editing (README §4); its bar loads lazily. */}
+      {mark ? <mark.SelectionHost /> : null}
     </>
   );
 }

@@ -1,7 +1,7 @@
 /*
  * The ink options row (design/phone-2026-10/README.md §3 row 2): three swatches, a hairline,
  * three sizes, centred, 44 px targets (the coarse --control-h of ui/Swatch). The sizes reuse
- * Swatch's dot and ring; only their dot diameters differ, set per radio.
+ * Swatch's dot and ring; their dot diameters and ring sizes are set per radio.
  */
 .row {
   display: flex;
@@ -23,6 +23,19 @@
   height: 24px;
   margin-inline: var(--space-2);
   background: var(--border-hairline);
+}
+
+/* A size: a dot in a text colour, never the ink (README §3 row 2; the swatches say the
+   colour). The sizes at rest are the secondary text colour and the chosen one the primary with
+   its ring, so the eye reads the three diameters first and the choice second (a ring of the
+   same weight around the smallest dot read as a fourth, larger mark). Swatch's contrast ring is
+   for inks, so it stays off. */
+.size {
+  --swatch: var(--text-secondary);
+}
+
+.size[data-checked] {
+  --swatch: var(--text-primary);
 }
 
 /* The chip's ink dot: 7 px of the armed ink at the glyph's lower right, ringed in the island's

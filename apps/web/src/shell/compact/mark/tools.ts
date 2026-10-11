@@ -40,8 +40,8 @@ registerCompactTool({
   order: 20,
   Options: HighlightOptions,
   Badge: InkBadge,
-  // Lane B adds the selection path (`selection-markup.ts`); the freehand Highlighter snaps to
-  // lines already (`pen/highlighter.ts`).
+  // The freehand Highlighter snaps to lines (`pen/highlighter.ts`); a text selection takes
+  // the selection bar's Highlight instead (`selection-bar.tsx`, in reading and editing).
   arm: () => {
     useToolStore.getState().setMode('ink');
     const index = highlighterSlot(useAnnotationStore.getState().pen);

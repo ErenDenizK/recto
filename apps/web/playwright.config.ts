@@ -24,8 +24,10 @@ const TABLET = { width: 820, height: 1180 };
 const COMPACT_SPEC = '**/compact.spec.ts';
 /** Phone editing (M10, design/phone-2026-10/README.md): the compact edition only. */
 const COMPACT_EDIT_SPEC = '**/compact-edit.spec.ts';
+/** Phone editing's pen, eraser and highlight (M10 lane B). */
+const COMPACT_INK_SPEC = '**/compact-ink.spec.ts';
 /** What only the phones run. */
-const PHONE_SPECS = [COMPACT_SPEC, COMPACT_EDIT_SPEC];
+const PHONE_SPECS = [COMPACT_SPEC, COMPACT_EDIT_SPEC, COMPACT_INK_SPEC];
 /** The control-system audit (quality-bar Q-9, spec D0-3) runs on every density and edition. */
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';
 /** The sheets' presentation on the medium class with a coarse pointer (spec D0-4). */
