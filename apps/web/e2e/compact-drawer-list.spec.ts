@@ -84,7 +84,8 @@ test.describe('the drawer’s list variant (EDN-16)', () => {
     // The island it covers has faded out under it.
     await expect(capsule(page)).toHaveCSS('opacity', '0');
 
-    // One row per tool, top to bottom, each 52 px at least; Pen is current, Edit text "Soon".
+    // One row per tool, top to bottom, each 52 px at least; Pen is current. Edit text is live
+    // since WP5 (EDN-17).
     const tools = await drawer(page)
       .locator('[data-tool]')
       .evaluateAll((els) => els.map((el) => el.getAttribute('data-tool')));
@@ -94,7 +95,7 @@ test.describe('the drawer’s list variant (EDN-16)', () => {
     }
     await expect(row(page, 'pen')).toHaveAttribute('aria-pressed', 'true');
     await expect(row(page, 'pen')).toHaveAttribute('aria-expanded', 'false');
-    await expect(row(page, 'edit-text')).toHaveAttribute('aria-disabled', 'true');
+    await expect(row(page, 'edit-text')).not.toHaveAttribute('aria-disabled', 'true');
     await expect(options(page)).toHaveCount(0);
 
     // A tap on the current row opens its options under it.
@@ -119,8 +120,11 @@ test.describe('the drawer’s list variant (EDN-16)', () => {
     await expect(row(page, 'highlight')).toHaveAttribute('aria-expanded', 'false');
     await expect(options(page)).toHaveCount(0);
 
-    // "Soon" does nothing.
-    await row(page, 'edit-text').click({ force: true });
+    // Edit text arms like any other row, and the list stays; then back to Highlight.
+    await row(page, 'edit-text').click();
+    await expect(row(page, 'edit-text')).toHaveAttribute('aria-pressed', 'true');
+    await expect(drawer(page)).toBeVisible();
+    await row(page, 'highlight').click();
     await expect(row(page, 'highlight')).toHaveAttribute('aria-pressed', 'true');
 
     // Done: the list goes back into the chip and the island shows again, whole.

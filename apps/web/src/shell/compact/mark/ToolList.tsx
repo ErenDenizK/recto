@@ -9,7 +9,7 @@
  *   indicator, so it covers the island, which fades out under it as it grows and back as it
  *   goes (`drawer-motion.ts`, `covers`): never glass over glass at rest. Never taller than 60 %
  *   of the screen; the rows scroll inside when they must.
- * - **Rows.** One per tool, top to bottom (Pen, Highlight, Text, Sign, Edit text "Soon"), each
+ * - **Rows.** One per tool, top to bottom (Pen, Highlight, Text, Sign, Edit text), each
  *   at least 52 px: glyph, label and, trailing, a preview of the tool's setting (the ink's dot
  *   and its size; the text colour and its size). Fills, no glass in glass: the current row in
  *   the tool-active fill, an open row's options in a control-fill well under it.
