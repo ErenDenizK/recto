@@ -76,6 +76,11 @@ import {
 
 /** The top bar's height below the safe area, CSS px (01-frame F9). */
 export const TOP_BAR_HEIGHT = 44;
+/**
+ * The top bar's least padding above its row, CSS px: the safe area, or this where there is
+ * none, so a control's ring never meets the screen's top edge (visual audit 2026-10, 7a).
+ */
+export const TOP_BAR_EDGE = 4;
 /** The capsule's height, CSS px (Q-9: a 56 px bar of 44 px controls). */
 export const CAPSULE_HEIGHT = 56;
 /** The capsule's least distance from the bottom edge (01-frame F1 §2). */
@@ -157,7 +162,7 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
     height: size.height,
     insetLeft: insets.left,
     insetRight: insets.right,
-    padTop: TOP_BAR_HEIGHT + insets.top + PAGE_GAP,
+    padTop: TOP_BAR_HEIGHT + Math.max(insets.top, TOP_BAR_EDGE) + PAGE_GAP,
     padBottom: CAPSULE_HEIGHT + Math.max(insets.bottom, CAPSULE_OFFSET) + PAGE_GAP,
   };
   const layout = layoutPages(sizes, frame, zoom, dpr);

@@ -163,6 +163,7 @@ const Q9_PENDING = [
   'apps/web/src/document/ExportSections.tsx',
   'apps/web/src/shell/compact/CompactChrome.tsx',
   'apps/web/src/shell/compact/CompactLibrary.tsx',
+  'apps/web/src/shell/compact/CompactMoreSheets.tsx',
   'apps/web/src/shell/compact/CompactPassword.tsx',
   'apps/web/src/shell/compact/CompactSheets.tsx',
 ];

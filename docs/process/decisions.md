@@ -130,6 +130,7 @@ Sources, by short name:
 | EDN-5 | **Phone editing may become V1; research it.** M10-R (study) and M10-P (prototypes A and B behind a lab flag) may run beside V1 waves. The owner chooses when the track opens. | 2026-10-09 | Owner, conversation; PLAN O-8; Sheet "Notes" | In force (research); timing open |
 | EDN-7 | **The phone edition becomes editable, radically simple** (M10 opened). Full minimalism and touch-first: no desktop tool parity; a bottom bar of two or three actions, everything else in a pop-up or a drawer; automated where it can be. Kept, in compact form: pen, highlight, adding text, editing text, signature. Other tools may be dropped on phones. Research first (`research/phone-2026-10/`), then implementation. | 2026-10-11 | Owner, conversation | In force; supersedes EDN-4's read-only rule once it ships |
 | EDN-6 | **Tablets get the full edition.** Desktop and tablet come first. | 2026-10-04 | ADR-0033; `CLAUDE.md` | In force |
+| EDN-8 | **The phone's rarely used sheets load on demand.** Contents, Go to page, Document info and About live in `CompactMoreSheets`, fetched when the browser is idle after the reader opens and at the latest when ⋯ opens; only Pages stays in the static compact closure. Phone editing code follows the same rule (`research/phone-2026-10/code-audit.md` §4). Phones show the same background light as the full edition (DSN-24), and the top bar keeps at least 4 px above its row where there is no safe area. | 2026-10-11 | Implementer (phone WP0); PRC-11 | In force |
 
 ## Process
 
