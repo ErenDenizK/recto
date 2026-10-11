@@ -959,24 +959,30 @@ changes its width. Compact and compact-height: the dock's trailing segment, two 
 the band would come within 12 px, the pill rises to sit 8 px above that bar.
 
 ```
-╭───────────────╮      menu (M4; hugs its content: at least 320 fine / 360 coarse, at most the
-│ 3 / 12 · 96 % │      free rectangle less 8 px a side; scrolls vertically only, DSN-9)
-╰───────────────╯      ╭──────────────────────────────────╮
-                       │ Go to page [ 3 ] of 12      Go   │ number field 16 px coarse
-                       ├──────────────────────────────────┤
-                       │ Contents          Terms        › │ current section; opens the sidebar
-                       ├──────────────────────────────────┤
-                       │ ( − ) 96 % ( + )  [ Width|Page ] │ fit: radios "Fit width", "Fit page"
-                       │ [ Continuous | Single | Two-up ] │ radios named in full
-                       ├──────────────────────────────────┤
-                       │ ☐ Show field outlines            │ only with fields
-                       │ Focus                         F  │
-                       ╰──────────────────────────────────╯
+╭───────────────╮      menu (M4 glass, DSN-29; hugs its content: at least 264 fine / 312 coarse,
+│ 3 / 12 · 96 % │      at most the free rectangle less 8 px a side; scrolls vertically only, DSN-9)
+╰───────────────╯      ╭────────────────────────────────╮
+                       │ [  3 / 12  ]  [ ▤ | ▯ | ▯▯ ]   │ field "Go to page" (no label, no Go:
+                       │ ( − ) 96 % ( + ) [ Width|Page ]│ Enter jumps); layout glyphs, tooltips
+                       ├────────────────────────────────┤ and radios named in full
+                       │ Contents          Terms      › │ current section; opens the sidebar
+                       │ Show field outlines          ✓ │ only with fields
+                       │ Focus                        F │
+                       ╰────────────────────────────────╯
 ```
+
+r16 (DSN-29, owner feedback 2026-10-11: "a bit big and crude … it should be more glass"): two
+rows of controls in one grid, the page row (the field, the total inside its well, then the
+layouts as three glyphs: `rows`, `file`, `columns`) and the zoom row (stepper, then Fit); one
+hairline; the menu's quiet M rows. The menu recipe's 6 px inset (rows radius 10 concentric with
+the 16 px corner); controls 6 px further in, on the rows' text edge.
 
 **3 · Material and light.** M1 chip (`.mat-chip`), σ 7 at 36, 8 at 44 (c 0.990 / 0.994), rim
 0.34 / 0.14, e2. Primary 7.78 (dark over white), 11.18 (light over black). Chromium lens on fine
-pointers (fixed size between zoom changes; map regenerated 150 ms after a width change). Menu M4.
+pointers (fixed size between zoom changes; map regenerated 150 ms after a width change). Menu M4
+glass, the popover's `mat mat-menu s12` (DSN-29: no solid twin of its own; M4's tint keeps every
+text step legible over the white page and the canvas, so a dark/white edge beneath only shades
+it; Glass Solid, reduced transparency and the ladder make it solid with every surface).
 Segmented controls use the own-content thumb lens (G-9) where allowed. No light. Tinted 0.90;
 Solid `--glass-chip-solid` (dark n4, light n1); forced colours `Canvas` with `ButtonText` border.
 
@@ -993,14 +999,15 @@ keeps focus.
 |---|---|---|
 | Pill text | 3 / 12 · 96 % · iii (3 / 12) · 96 % | 3 / 12 · %96 · iii (3 / 12) · %96 |
 | Name | Page 3 of 12, zoom 96 %. Page and view options | Sayfa 3/12, yakınlaştırma %96. Sayfa ve görünüm seçenekleri |
-| Go to page | Go to page · of 12 · Go · Pages 1–12 | Sayfaya git · / 12 · Git · Sayfa 1–12 arası |
+| Go to page (the field's name; its well shows the total) | Go to page · of 12 · Pages 1–12 | Sayfaya git · / 12 · Sayfa 1–12 arası |
 | Contents | Contents | İçindekiler |
 | Zoom | Zoom · Zoom in · Zoom out · Width · Page (names: Fit width · Fit page) | Yakınlaştırma · Yakınlaştır · Uzaklaştır · Genişlik · Sayfa (adlar: Genişliğe sığdır · Sayfaya sığdır) |
-| Layout | Continuous · Single · Two-up (names: Continuous · Single page · Two pages) | Sürekli · Tek · İkili (adlar: Sürekli · Tek sayfa · İki sayfa) |
+| Layout (glyphs; the names are their tooltips) | Continuous · Single page · Two pages | Sürekli · Tek sayfa · İki sayfa |
 | Fields | Show field outlines | Alan çerçevelerini göster |
 | Focus | Focus · F | Odak · F |
 
-Icons: `magnifying-glass-minus`, `magnifying-glass-plus`, `check`; none on the pill.
+Icons: `minus`, `plus`, `rows`, `file`, `columns` (fill twins while checked), `check`,
+`caret-right`; none on the pill.
 
 **6 · Behaviour.** Click, tap, Enter, Space open the menu with focus on the first control; Mod+G
 opens it with the page field focused and selected; typing a number and Enter jumps (into the

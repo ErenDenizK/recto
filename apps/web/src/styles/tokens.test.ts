@@ -999,16 +999,18 @@ describe('tokens.css', () => {
       expect(piece).toMatch(/composes:\s*mat mat-bar s8 c9 from global;/);
       expect(piece).not.toMatch(/background:/);
       expect(strip).not.toMatch(/mat-docked/);
-      // The title menu and the pill menu open over the sidebar's dark edge and the white page
-      // at once: M4's solid twin (01-frame F5, F11; quality bar Q-1, Q-3).
-      const twins = import.meta.glob<string>('../shell/frame/{TitleMenu,PagePill}.module.css', {
-        query: '?raw',
-        import: 'default',
-        eager: true,
-      });
-      expect(Object.keys(twins)).toHaveLength(2);
-      for (const [file, source] of Object.entries(twins)) {
-        expect(stripComments(source), file).toMatch(/composes:\s*mat-opaque from global;/);
+      // The title menu opens over the sidebar's dark edge and the white page at once, a tall
+      // panel: M4's solid twin (01-frame F5; quality bar Q-1, Q-3; DSN-30). The pill menu is the
+      // popover's M4 glass, as the strip's pieces are glass (F11; DSN-29): no twin of its own.
+      const frameMenus = import.meta.glob<string>(
+        '../shell/frame/{TitleMenu,PagePill}.module.css',
+        { query: '?raw', import: 'default', eager: true },
+      );
+      expect(Object.keys(frameMenus)).toHaveLength(2);
+      for (const [file, source] of Object.entries(frameMenus)) {
+        const opaque = /composes:\s*mat-opaque from global;/;
+        if (file.includes('TitleMenu')) expect(stripComments(source), file).toMatch(opaque);
+        else expect(stripComments(source), file).not.toMatch(opaque);
       }
       expect(ruleOf('.mat-opaque').get('--mat-tint')).toBe('var(--mat-solid)');
     });

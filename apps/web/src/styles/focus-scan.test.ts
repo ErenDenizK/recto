@@ -49,6 +49,9 @@ const SUPPRESSED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   'image-objects/ImageObjects.module.css': {
     '.layer:focus-visible': 'focused from script to keep the keys on the page; targets show it',
   },
+  'shell/frame/PagePill.module.css': {
+    '.gotoField:focus-visible': 'the well around the page field draws the ring (DSN-29)',
+  },
   'shell/frame/TopStrip.module.css': {
     '.findInput:focus-visible': 'the well around the input draws the ring while it has focus',
   },

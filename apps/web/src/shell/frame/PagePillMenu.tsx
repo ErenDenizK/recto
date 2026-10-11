@@ -1,26 +1,36 @@
 /**
- * The page pill's menu (`components/01-frame.md` F11 §2, §5, §6): Go to page, Contents (one
- * row), zoom with fit, layout, Show field outlines and Focus. A `dialog` (Base UI `Popover`),
- * since it holds a text field and radio groups.
+ * The page pill's menu (`components/01-frame.md` F11 §2, §5, §6; DSN-29): a small glass panel,
+ * two rows of view controls over a short list. A `dialog` (Base UI `Popover`), since it holds a
+ * text field and radio groups.
  *
- * - **Go to page** takes a page number or a page label ("iv", "#3"), as the Go to page dialog
- *   it replaces did (`viewer/navigation.ts`); Enter jumps into the free rectangle, closes the
- *   menu and focuses the page; an unknown page shows "Pages 1–12" under the field and keeps
- *   focus. The field selects its value whenever it takes focus, so typing replaces the page.
- *   Mod+G and Enter open the menu with the field focused; a click or a tap opens it with the
- *   menu focused instead (system-audit-2026-10 §3.8, I-28: pointer-opened surfaces focus the
- *   surface, `ui/initial-focus.ts`), so no ring lights and no on-screen keyboard rises until
- *   the field is pressed.
- * - **Contents** is one row naming the section the current page is in; it opens the sidebar
- *   on Contents, which owns the outline (F11 §6: the menu no longer repeats its entries).
- *   A window with no sidebar (compact, tight) has nothing to open, so there the row discloses
- *   the top-level entries in the menu (`aria-expanded`) rather than doing nothing.
- * - **Zoom** ( − ) 96 % ( + ) and **Fit** Width · Page share one row; the buttons keep the
- *   menu open; Mod+= Mod+- Mod+0 work anywhere. Fit and **layout** Continuous · Single · Two-up
- *   (named in full: Single page, Two pages) are radio groups (`ui/Segmented`); the fit shows as
- *   current while the zoom follows the window.
- * - **Show field outlines** only for a document with fields. **Focus · F** closes the menu and
- *   enters Focus (F13).
+ * - **Material** (DSN-29): the popover's M4 glass (`mat mat-menu s12`), a blurred, tinted piece
+ *   over the page like the top strip's floating pieces; no solid twin of its own. M4's tint
+ *   keeps text on it at the contrast the tokens prove over a white page and over the canvas, so
+ *   a dark/white edge beneath only shades the glass; Glass Solid, reduced transparency and the
+ *   cost ladder make it solid as they do every glass surface.
+ * - **Two rows, one grid** (DSN-29): the page row, the field "1 / 4" and the layout as three
+ *   glyphs (Continuous · Single page · Two pages); the zoom row, ( − ) 96 % ( + ) and Fit
+ *   Width · Page. The field and the stepper share a column, the two tracks the other.
+ * - **Go to page** is the field alone, named "Go to page", holding the current page with the
+ *   total after it in the well: no label beside it and no Go button, Enter jumps. It takes a
+ *   page number or a page label ("iv", "#3"), as the Go to page dialog it replaced did
+ *   (`viewer/navigation.ts`); Enter jumps into the free rectangle, closes the menu and focuses
+ *   the page; an unknown page shows "Pages 1–12" under the row and keeps focus. The field
+ *   selects its value whenever it takes focus, so typing replaces the page. Mod+G and Enter
+ *   open the menu with the field focused; a click or a tap opens it with the menu focused
+ *   instead (system-audit-2026-10 §3.8, I-28: pointer-opened surfaces focus the surface,
+ *   `ui/initial-focus.ts`), so no ring lights and no on-screen keyboard rises until the field
+ *   is pressed.
+ * - **Zoom** buttons keep the menu open; Mod+= Mod+- Mod+0 work anywhere. Fit and layout are
+ *   radio groups (`ui/Segmented`), named in full (Fit width, Single page, Two pages); the
+ *   layout glyphs show their names as tooltips; the fit shows as current while the zoom
+ *   follows the window.
+ * - **Rows**, after the one hairline, quiet as a menu's: **Contents** names the section the
+ *   current page is in and opens the sidebar on Contents, which owns the outline (F11 §6: the
+ *   menu does not repeat its entries). A window with no sidebar (compact, tight) has nothing to
+ *   open, so there the row discloses the top-level entries in the menu (`aria-expanded`)
+ *   rather than doing nothing (DSN-27). **Show field outlines** only for a document with
+ *   fields. **Focus · F** closes the menu and enters Focus (F13).
  * - **Room** (DSN-9): as wide as its content, at least the recipe's width, never wider than the
  *   free rectangle; it only ever scrolls vertically (`PagePill.module.css`).
  * - Esc closes, focus back on the pill. Guard: none (viewing).
@@ -44,7 +54,6 @@ import { displayTitle, showOutlinePanel } from '../../outline/outline-actions';
 import { MAX_ZOOM, MIN_ZOOM, useUiStore } from '../../state/ui-store';
 import { READ_LAYOUTS, type ReadLayout, useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
-import { Button } from '../../ui/Button';
 import { IconButton } from '../../ui/IconButton';
 import { Keycaps } from '../../ui/Keycaps';
 import { PopoverPopup } from '../../ui/Popover';
@@ -57,7 +66,7 @@ import { enterFocus } from './focus-mode';
 import { closePillMenu, useFrameStore } from './frame-store';
 import styles from './PagePill.module.css';
 import { useSizeClass } from './size-class';
-import { Icon } from '../../ui/Icon';
+import { Icon, type IconName } from '../../ui/Icon';
 
 /** The pill, or where it rests while away (Markup on a narrow window, a short viewport). */
 const pill = () =>
@@ -96,10 +105,9 @@ function PillMenuPopup({ doc }: { readonly doc: VirtualDocument }) {
       aria-label={m.frame_pill_menu_name()}
       data-testid="page-pill-menu"
     >
-      <GoToPage doc={doc} fieldRef={fieldRef} />
-      <Contents doc={doc} />
-      <ZoomRows />
-      <div className={styles.section}>
+      <ViewControls doc={doc} fieldRef={fieldRef} />
+      <div className={styles.rows}>
+        <Contents doc={doc} />
         {doc.pages.length > 0 ? <FieldOutlines doc={doc} /> : null}
         <FocusRow />
       </div>
@@ -107,7 +115,11 @@ function PillMenuPopup({ doc }: { readonly doc: VirtualDocument }) {
   );
 }
 
-function GoToPage({
+/**
+ * The two rows of controls in one grid: the page field and the layout glyphs, then the zoom
+ * stepper and Fit. The field's message spans the grid under the page row.
+ */
+function ViewControls({
   doc,
   fieldRef,
 }: {
@@ -116,11 +128,18 @@ function GoToPage({
 }) {
   const workspace = useWorkspaceStore((s) => s.workspace);
   const currentPage = useViewStore((s) => s.currentPage);
+  const layout = useViewStore((s) => s.layout);
+  const zoom = useUiStore((s) => s.zoom);
+  const fitMode = useUiStore((s) => s.fitMode);
+  const inShortcut = useCommandShortcut('zoom.in');
+  const outShortcut = useCommandShortcut('zoom.out');
+  const fit: Fit = fitMode ?? 'none';
   const labels = documentLabels(workspace, doc);
   const total = doc.pages.length;
   const [value, setValue] = useState(() => labels[currentPage] ?? String(currentPage + 1));
   const [invalid, setInvalid] = useState(false);
   const hintId = useId();
+  const ofId = `${hintId}-of`;
   // A press that focuses the field keeps the selection its focus made: the release would
   // otherwise drop a caret into it, and typing would add to the page instead of replacing it.
   const keepSelection = useRef(false);
@@ -141,50 +160,63 @@ function GoToPage({
   };
 
   return (
-    <form className={styles.goto} onSubmit={onSubmit}>
-      <label className={styles.gotoLabel} htmlFor={`${hintId}-field`}>
-        {m.goto_title()}
-      </label>
-      <input
-        ref={fieldRef}
-        id={`${hintId}-field`}
-        className={styles.gotoField}
-        inputMode="numeric"
-        // A few characters' intrinsic width, so the field never sets the menu's width (DSN-9);
-        // it stretches to its column.
-        size={4}
-        autoComplete="off"
-        spellCheck={false}
-        disabled={total === 0}
-        value={value}
-        aria-invalid={invalid || undefined}
-        aria-describedby={hintId}
-        data-testid="pill-goto"
-        onFocus={(event) => {
-          // The field arrives holding the current page, selected, so typing replaces it
-          // ("1" then 2 gives 2, not 12): on opening, on Mod+G, on Tab back to it and on a press.
-          event.currentTarget.select();
-          keepSelection.current = true;
-        }}
-        onMouseUp={(event) => {
-          if (keepSelection.current) event.preventDefault();
-          keepSelection.current = false;
-        }}
-        onKeyDown={() => {
-          keepSelection.current = false;
-        }}
-        onBlur={() => {
-          keepSelection.current = false;
-        }}
-        onChange={(event) => {
-          setValue(event.target.value);
-          setInvalid(false);
-        }}
+    <div className={styles.controls}>
+      {/* The form's one field: Enter submits it without a Go button (implicit submission). */}
+      <form className={styles.gotoForm} onSubmit={onSubmit}>
+        {/* The well is the field's label, so a press anywhere in it reaches the field. */}
+        <label className={styles.goto}>
+          <input
+            ref={fieldRef}
+            className={styles.gotoField}
+            inputMode="numeric"
+            // A few characters' intrinsic width, so the field never sets the menu's width (DSN-9);
+            // where the engine sizes a field to its content, it hugs the page instead.
+            size={3}
+            autoComplete="off"
+            spellCheck={false}
+            disabled={total === 0}
+            value={value}
+            aria-label={m.goto_title()}
+            aria-invalid={invalid || undefined}
+            aria-describedby={`${ofId} ${hintId}`}
+            data-testid="pill-goto"
+            onFocus={(event) => {
+              // The field arrives holding the current page, selected, so typing replaces it
+              // ("1" then 2 gives 2, not 12): on opening, on Mod+G, on Tab back to it and on a
+              // press.
+              event.currentTarget.select();
+              keepSelection.current = true;
+            }}
+            onMouseUp={(event) => {
+              if (keepSelection.current) event.preventDefault();
+              keepSelection.current = false;
+            }}
+            onKeyDown={() => {
+              keepSelection.current = false;
+            }}
+            onBlur={() => {
+              keepSelection.current = false;
+            }}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setInvalid(false);
+            }}
+          />
+          <span id={ofId} className={styles.gotoOf}>
+            {m.frame_goto_of({ total: formatNumber(total) })}
+          </span>
+        </label>
+      </form>
+      <Segmented<ReadLayout>
+        label={m.layout_label()}
+        value={layout}
+        onValueChange={(next) => setReadLayout(next)}
+        options={READ_LAYOUTS.map((next) => ({
+          value: next,
+          label: layoutTitle(next),
+          icon: LAYOUT_ICON[next],
+        }))}
       />
-      <span className={styles.gotoOf}>{m.frame_goto_of({ total: formatNumber(total) })}</span>
-      <Button type="submit" variant="standard" disabled={total === 0}>
-        {m.goto_go()}
-      </Button>
       <p
         id={hintId}
         className={styles.gotoHint}
@@ -197,7 +229,41 @@ function GoToPage({
             ? m.frame_goto_range({ last: formatNumber(total) })
             : ''}
       </p>
-    </form>
+      <div className={styles.stepper} role="group" aria-label={m.frame_zoom()}>
+        <IconButton
+          label={m.zoom_out()}
+          icon={<Icon name="minus" />}
+          shortcut={outShortcut}
+          tooltipSide="top"
+          disabled={zoom <= MIN_ZOOM}
+          onClick={() => useUiStore.getState().zoomOut()}
+        />
+        <span className={styles.zoomValue} aria-live="polite">
+          {formatPercent(zoom)}
+        </span>
+        <IconButton
+          label={m.zoom_in()}
+          icon={<Icon name="plus" />}
+          shortcut={inShortcut}
+          tooltipSide="top"
+          disabled={zoom >= MAX_ZOOM}
+          onClick={() => useUiStore.getState().zoomIn()}
+        />
+      </div>
+      {/* Short labels beside the stepper; the radios keep their full names. */}
+      <Segmented<Fit>
+        label={m.frame_fit()}
+        value={fit}
+        onValueChange={(next) => {
+          if (next === 'width') useUiStore.getState().zoomFit();
+          else if (next === 'page') useUiStore.getState().zoomFitPage();
+        }}
+        options={[
+          { value: 'width', label: m.frame_fit_width_short(), name: m.zoom_fit_width() },
+          { value: 'page', label: m.frame_fit_page_short(), name: m.zoom_fit_page() },
+        ]}
+      />
+    </div>
   );
 }
 
@@ -234,7 +300,7 @@ function Contents({ doc }: { readonly doc: VirtualDocument }) {
   if (doc.outline.length === 0) return null;
   const section = currentSection(doc, currentPage);
   return (
-    <div className={styles.section}>
+    <>
       <EntryRow
         data-testid="pill-contents"
         aria-expanded={inline ? expanded : undefined}
@@ -253,7 +319,7 @@ function Contents({ doc }: { readonly doc: VirtualDocument }) {
         <Icon name="caret-right" className={styles.chevron} aria-hidden="true" />
       </EntryRow>
       {inline && expanded ? <InlineContents doc={doc} id={listId} /> : null}
-    </div>
+    </>
   );
 }
 
@@ -300,72 +366,12 @@ function InlineContents({ doc, id }: { readonly doc: VirtualDocument; readonly i
 
 type Fit = 'width' | 'page' | 'none';
 
-/** The layout segments' labels, as F11 §2 draws them; the radios keep the full names. */
-const LAYOUT_SHORT: Record<ReadLayout, () => string> = {
-  continuous: m.frame_layout_continuous_short,
-  single: m.frame_layout_single_short,
-  'two-up': m.frame_layout_two_up_short,
+/** The layout glyphs (F11 §2; DSN-29): pages in a column, one page, two side by side. */
+const LAYOUT_ICON: Record<ReadLayout, IconName> = {
+  continuous: 'rows',
+  single: 'file',
+  'two-up': 'columns',
 };
-
-function ZoomRows() {
-  const zoom = useUiStore((s) => s.zoom);
-  const fitMode = useUiStore((s) => s.fitMode);
-  const layout = useViewStore((s) => s.layout);
-  const inShortcut = useCommandShortcut('zoom.in');
-  const outShortcut = useCommandShortcut('zoom.out');
-  const fit: Fit = fitMode ?? 'none';
-  return (
-    <section className={styles.section} aria-label={m.frame_zoom()}>
-      <div className={styles.zoomRow}>
-        <div className={styles.stepper}>
-          <IconButton
-            label={m.zoom_out()}
-            icon={<Icon name="minus" />}
-            shortcut={outShortcut}
-            tooltipSide="top"
-            disabled={zoom <= MIN_ZOOM}
-            onClick={() => useUiStore.getState().zoomOut()}
-          />
-          <span className={styles.zoomValue} aria-live="polite">
-            {formatPercent(zoom)}
-          </span>
-          <IconButton
-            label={m.zoom_in()}
-            icon={<Icon name="plus" />}
-            shortcut={inShortcut}
-            tooltipSide="top"
-            disabled={zoom >= MAX_ZOOM}
-            onClick={() => useUiStore.getState().zoomIn()}
-          />
-        </div>
-        {/* Short labels beside the stepper; the radios keep their full names. */}
-        <Segmented<Fit>
-          label={m.frame_fit()}
-          value={fit}
-          frameClassName={styles.fit}
-          onValueChange={(value) => {
-            if (value === 'width') useUiStore.getState().zoomFit();
-            else if (value === 'page') useUiStore.getState().zoomFitPage();
-          }}
-          options={[
-            { value: 'width', label: m.frame_fit_width_short(), name: m.zoom_fit_width() },
-            { value: 'page', label: m.frame_fit_page_short(), name: m.zoom_fit_page() },
-          ]}
-        />
-      </div>
-      <Segmented<ReadLayout>
-        label={m.layout_label()}
-        value={layout}
-        onValueChange={(value) => setReadLayout(value)}
-        options={READ_LAYOUTS.map((value) => ({
-          value,
-          label: LAYOUT_SHORT[value](),
-          name: layoutTitle(value),
-        }))}
-      />
-    </section>
-  );
-}
 
 function FieldOutlines({ doc }: { readonly doc: VirtualDocument }) {
   const highlight = useFormStore((s) => s.highlight);

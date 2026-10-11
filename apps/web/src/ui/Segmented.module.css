@@ -108,6 +108,12 @@
     scale var(--duration-instant) var(--ease-out);
 }
 
+/* A glyph in place of the label (the pill menu's layouts): the controls' 20 px (Q-9). */
+.segment > svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
 .text {
   min-width: 0;
   overflow: hidden;
