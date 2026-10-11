@@ -129,6 +129,8 @@ Sources, by short name:
 | EDN-4 | **Phones get a read-only compact edition** in V1, a different interface from the desktop's. | 2026-10-04 | ADR-0033; Spec §14 | In force |
 | EDN-5 | **Phone editing may become V1; research it.** M10-R (study) and M10-P (prototypes A and B behind a lab flag) may run beside V1 waves. The owner chooses when the track opens. | 2026-10-09 | Owner, conversation; PLAN O-8; Sheet "Notes" | In force (research); timing open |
 | EDN-7 | **The phone edition becomes editable, radically simple** (M10 opened). Full minimalism and touch-first: no desktop tool parity; a bottom bar of two or three actions, everything else in a pop-up or a drawer; automated where it can be. Kept, in compact form: pen, highlight, adding text, editing text, signature. Other tools may be dropped on phones. Research first (`research/phone-2026-10/`), then implementation. | 2026-10-11 | Owner, conversation | In force; supersedes EDN-4's read-only rule once it ships |
+| EDN-8 | **Phone editing takes architecture A, with a designed drawer.** ✎ opens an edit island (Undo · tool chip · Done); the tool chip's ▾ opens a floating glass drawer that rises from the chip, which the owner asked to be "superb, not a makeshift drawer". Editing text comes last, after a hand check on an iPhone. | 2026-10-11 | Owner, conversation; `design/phone-2026-10/README.md` | In force |
+| EDN-9 | **The sample PDF is rewritten for phones** once phone editing ships, so its lessons are true on a phone. | 2026-10-11 | Owner, conversation | In force |
 | EDN-6 | **Tablets get the full edition.** Desktop and tablet come first. | 2026-10-04 | ADR-0033; `CLAUDE.md` | In force |
 
 ## Process
