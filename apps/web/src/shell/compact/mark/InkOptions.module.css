@@ -1,0 +1,55 @@
+/*
+ * The ink options row (design/phone-2026-10/README.md §3 row 2): three swatches, a hairline,
+ * three sizes, centred, 44 px targets (the coarse --control-h of ui/Swatch). The sizes reuse
+ * Swatch's dot and ring; only their dot diameters differ, set per radio.
+ */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.swatches,
+.sizes {
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+
+.rule {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  margin-inline: var(--space-2);
+  background: var(--border-hairline);
+}
+
+/* The chip's ink dot: 7 px of the armed ink at the glyph's lower right, ringed in the island's
+   own material so it reads as a mark on the glyph, not a second control. */
+.badge {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1.5px var(--glass-bar-solid);
+}
+
+.badge[data-ring-dark] {
+  box-shadow:
+    inset 0 0 0 1px var(--swatch-contrast),
+    0 0 0 1.5px var(--glass-bar-solid);
+}
+
+:global([data-theme='light']) .badge {
+  box-shadow: 0 0 0 1.5px var(--glass-bar-solid);
+}
+
+:global([data-theme='light']) .badge[data-ring-light] {
+  box-shadow:
+    inset 0 0 0 1px var(--swatch-contrast),
+    0 0 0 1.5px var(--glass-bar-solid);
+}

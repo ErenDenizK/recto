@@ -1,7 +1,12 @@
 /**
  * The compact edition's UI state (ADR-0033 §2.3): which place shows (the Library or the
- * reader), whether the reader's chrome is hidden, Find, the open sheet, the zoom, and the
- * Library's opening state and one-line errors.
+ * reader), whether the reader's chrome is hidden, Find, the open sheet, the zoom, the
+ * Library's opening state and one-line errors, and phone editing's mode (EDN-7, EDN-8;
+ * `design/phone-2026-10/README.md` §2): whether the edit island shows, the tool armed in it,
+ * the tool the next entry arms, and whether the tool drawer is open.
+ *
+ * Only the fields live here, so the static reader can follow them; what arming a tool does
+ * (Markup, the tool store, the page layers) is the lazy `mark/bridge.ts`.
  *
  * The document itself lives in the shared workspace store (one document at a time on a
  * phone); this store holds only what the compact chrome needs.
@@ -11,6 +16,12 @@ import { create } from 'zustand';
 
 export type CompactPlace = 'library' | 'reader';
 export type CompactSheet = 'pages' | 'contents' | 'goto' | 'info' | 'about';
+
+/**
+ * The phone's tools (EDN-8): the five of the drawer's first row, and the Eraser of its quiet
+ * row. `none` is the tool chip toggled off: one finger pans and selects (README §2).
+ */
+export type CompactTool = 'pen' | 'highlight' | 'text' | 'sign' | 'edit-text' | 'eraser';
 
 export interface CompactState {
   readonly place: CompactPlace;
@@ -32,6 +43,14 @@ export interface CompactState {
    * out the file's own bytes; a document restored with changes goes through the export.
    */
   readonly openedDocument: VirtualDocument | null;
+  /** The edit island shows instead of the reading capsule (README §2 "Editing"). */
+  readonly editing: boolean;
+  /** The armed tool while editing; null with the chip off (pan and select) or not editing. */
+  readonly tool: CompactTool | null;
+  /** The tool an entry arms and the chip turns back on: Pen first, then the last one used. */
+  readonly lastTool: CompactTool;
+  /** The tool drawer is open over the island (README §3). */
+  readonly drawerOpen: boolean;
 }
 
 const INITIAL: CompactState = {
@@ -44,6 +63,10 @@ const INITIAL: CompactState = {
   opening: false,
   openError: null,
   openedDocument: null,
+  editing: false,
+  tool: null,
+  lastTool: 'pen',
+  drawerOpen: false,
 };
 
 export const useCompactStore = create<CompactState>()(() => INITIAL);
@@ -62,22 +85,37 @@ export const topBarAway = (s: CompactState): boolean => s.chromeHidden || s.shee
 export const capsuleAway = (s: CompactState): boolean =>
   s.chromeHidden || s.findOpen || s.sheet !== null;
 
+/** A tool takes the page's presses: a stroke or a placement, never a tap (README §5). */
+export const toolTakesPage = (s: CompactState): boolean => s.editing && s.tool !== null;
+
 const set = (patch: Partial<CompactState>) => useCompactStore.setState(patch);
 
 export function showLibrary(): void {
-  set({ place: 'library', findOpen: false, sheet: null, menuOpen: false, chromeHidden: false });
+  set({
+    place: 'library',
+    findOpen: false,
+    sheet: null,
+    menuOpen: false,
+    chromeHidden: false,
+    editing: false,
+    tool: null,
+    drawerOpen: false,
+  });
 }
 
 export function showReader(): void {
   set({ place: 'reader', chromeHidden: false, openError: null });
 }
 
+/** Hides or shows the chrome; while editing it never hides (README §5). */
 export function setChromeHidden(hidden: boolean): void {
-  if (useCompactStore.getState().chromeHidden !== hidden) set({ chromeHidden: hidden });
+  const state = useCompactStore.getState();
+  if (hidden && state.editing) return;
+  if (state.chromeHidden !== hidden) set({ chromeHidden: hidden });
 }
 
 export function toggleChrome(): void {
-  set({ chromeHidden: !useCompactStore.getState().chromeHidden });
+  setChromeHidden(!useCompactStore.getState().chromeHidden);
 }
 
 export function openSheet(sheet: CompactSheet): void {
@@ -102,6 +140,37 @@ export function setMenuOpen(menuOpen: boolean): void {
 
 export function setZoom(zoom: number): void {
   set({ zoom });
+}
+
+/**
+ * Shows the edit island with `tool` armed (the bridge has armed it). Find, the menu and a
+ * sheet close, and the chrome shows: it stays shown while editing (README §5).
+ */
+export function beginEditing(tool: CompactTool | null): void {
+  set({
+    editing: true,
+    tool,
+    ...(tool === null ? {} : { lastTool: tool }),
+    drawerOpen: false,
+    findOpen: false,
+    sheet: null,
+    menuOpen: false,
+    chromeHidden: false,
+  });
+}
+
+/** Back to reading; the last tool is kept for the next entry. */
+export function endEditing(): void {
+  set({ editing: false, tool: null, drawerOpen: false });
+}
+
+/** The armed tool (null: the chip is off); a tool is remembered for the next entry. */
+export function setCompactTool(tool: CompactTool | null): void {
+  set(tool === null ? { tool } : { tool, lastTool: tool });
+}
+
+export function setDrawerOpen(drawerOpen: boolean): void {
+  if (useCompactStore.getState().drawerOpen !== drawerOpen) set({ drawerOpen });
 }
 
 /** Forgets everything (tests). */

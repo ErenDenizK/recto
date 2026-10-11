@@ -6,7 +6,11 @@
  *   and ⋯ with Find, Contents (only when the file has an outline), Go to page, Share or
  *   Download a copy, Document info and About. In Find it becomes the search field with the
  *   hit count, ‹ › and Done.
- * - **Capsule:** one floating capsule at the bottom: Pages, "3 / 12" (Go to page) and Find.
+ * - **Capsule:** one floating capsule at the bottom: Pages, "3 / 12" (Go to page) and Find,
+ *   with the round edit button beside it on the trailing side (EDN-8;
+ *   `design/phone-2026-10/README.md` §2). It morphs the capsule into the edit island (Undo,
+ *   the tool chip, Done), whose content and tool drawer come from the lazy `mark/` chunk
+ *   (`mark-host.ts`).
  *
  * Hidden, both move out by `transform` and fade (`opacity`) on the existing motion tokens,
  * and are `inert` from the first frame, so focus never lands in a hidden bar. Reduced motion
@@ -16,7 +20,14 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import type { VirtualDocument } from '@pdf-editor/document-model';
-import { type KeyboardEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  type SyntheticEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { m } from '../../i18n';
 import { useViewStore } from '../../state/view-store';
@@ -46,6 +57,7 @@ import {
 } from './compact-store';
 import styles from './CompactChrome.module.css';
 import controls from './controls.module.css';
+import { startEditing, takeCapsuleSnapshot, useMark, usePrefetchMark } from './mark-host';
 
 /** Typing pauses this long before the search runs. */
 const SEARCH_DELAY_MS = 250;
@@ -251,39 +263,80 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
 
 export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const away = useCompactStore(capsuleAway);
+  const editing = useCompactStore((s) => s.editing);
+  const mark = useMark();
+  const island = editing && mark !== null;
+  const capsuleRef = useRef<HTMLElement>(null);
+  usePrefetchMark();
+  // Reading and editing: the one capsule morphs between its contents (Q-6, README §2), from the
+  // box it had before the swap (`snapshotCapsule`).
+  useLayoutEffect(() => {
+    const from = takeCapsuleSnapshot();
+    const el = capsuleRef.current;
+    if (from && el && mark) mark.morphCapsule(el, from);
+  }, [island, mark]);
+  return (
+    <>
+      <div className={styles.dock}>
+        <nav
+          ref={capsuleRef}
+          className={styles.capsule}
+          aria-label={island ? m.compact_edit_tools() : m.compact_document_tools()}
+          data-hidden={away || undefined}
+          data-editing={island || undefined}
+          data-compact-chrome=""
+          data-testid="compact-capsule"
+          inert={away}
+        >
+          {island ? <mark.EditIsland /> : <ReadingCapsule doc={doc} />}
+        </nav>
+        {/* The trailing island beside the capsule (README §2, the iOS 26 pattern): it hides
+            with the chrome and folds into the capsule while editing. */}
+        <button
+          type="button"
+          className={styles.edit}
+          aria-label={m.compact_edit()}
+          data-hidden={away || undefined}
+          data-away={island || undefined}
+          data-compact-chrome=""
+          data-testid="compact-edit"
+          inert={away || island}
+          onClick={startEditing}
+        >
+          <Icon name="pencil-simple" />
+        </button>
+      </div>
+      {island ? <mark.ToolDrawer /> : null}
+    </>
+  );
+}
+
+/** The capsule's reading content: Pages, "3 / 12" (Go to page) and Find. */
+function ReadingCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const current = useViewStore((s) => s.currentPage);
   const total = doc.pages.length;
   // Wide enough for the largest number, so scrolling never changes the capsule's width.
   const digits = String(total).length;
   return (
     <>
-      <nav
-        className={styles.capsule}
-        aria-label={m.compact_document_tools()}
-        data-hidden={away || undefined}
-        data-compact-chrome=""
-        data-testid="compact-capsule"
-        inert={away}
+      <button type="button" className={controls.text} onClick={() => openSheet('pages')}>
+        <Icon name="squares-four" />
+        {m.compact_pages()}
+      </button>
+      <button
+        type="button"
+        className={`${controls.text} ${controls.numeric}`}
+        style={{ minWidth: `calc(${2 * digits + 3}ch + 28px)` }}
+        aria-label={m.compact_page_button({ current: current + 1, total })}
+        data-testid="compact-page-number"
+        onClick={() => openSheet('goto')}
       >
-        <button type="button" className={controls.text} onClick={() => openSheet('pages')}>
-          <Icon name="squares-four" />
-          {m.compact_pages()}
-        </button>
-        <button
-          type="button"
-          className={`${controls.text} ${controls.numeric}`}
-          style={{ minWidth: `calc(${2 * digits + 3}ch + 28px)` }}
-          aria-label={m.compact_page_button({ current: current + 1, total })}
-          data-testid="compact-page-number"
-          onClick={() => openSheet('goto')}
-        >
-          {current + 1} / {total}
-        </button>
-        <button type="button" className={controls.text} onClick={openFind}>
-          <Icon name="magnifying-glass" />
-          {m.compact_find()}
-        </button>
-      </nav>
+        {current + 1} / {total}
+      </button>
+      <button type="button" className={controls.text} onClick={openFind}>
+        <Icon name="magnifying-glass" />
+        {m.compact_find()}
+      </button>
     </>
   );
 }

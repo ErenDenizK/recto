@@ -8,7 +8,7 @@
  * events), Find with hits and ‹ ›, a jump from the Pages sheet, Contents, Go to page, notes,
  * Document info, Download a copy, an encrypted file, Turkish; that a settled sheet is solid
  * with the chrome away, the first-run Recents placeholder and a disabled Go that still reads
- * (XD-3); that no editing control is reachable; that the full shell's chunk is never
+ * (XD-3); that no editing control but Edit is reachable while reading; that the full shell's chunk is never
  * requested; and that `?edition=full` on a phone loads today's app. Set CAPTURE_SCREENSHOTS=<dir> to write the review screenshots.
  */
 import { readFileSync, statSync } from 'node:fs';
@@ -488,10 +488,12 @@ test.describe('the compact edition', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('note-popover')).toHaveCount(0);
 
-    // No editing control anywhere: no tools, Markup, Edit, Save, page operations.
+    // Reading shows no editing control but Edit (EDN-8: it opens the edit island,
+    // compact-edit.spec.ts): no tools, Markup, Save, page operations.
     const editing =
-      /^(Markup|Edit|Highlight|Pen|Draw|Sign|Fill & sign|Save|Rotate|Delete|Undo|Redo|Arrange|Compare|Text box|Note|Stamp|Redact|Crop)\b/;
+      /^(Markup|Edit text|Highlight|Pen|Draw|Sign|Fill & sign|Save|Rotate|Delete|Undo|Redo|Arrange|Compare|Text box|Note|Stamp|Redact|Crop)\b/;
     await expect(page.getByRole('button', { name: editing })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(1);
     await expect(page.getByRole('radio')).toHaveCount(0);
     await page.getByRole('button', { name: 'More' }).click();
     await expect(page.getByRole('menuitem', { name: editing })).toHaveCount(0);

@@ -13,6 +13,9 @@
  *   is not a toggle.
  * - **Scrolling** down hides the chrome and up shows it (`gestures.ts`); while it is hidden a
  *   small page pill shows for 1.5 s after each scroll.
+ * - **Editing** (`design/phone-2026-10/README.md` §5): the chrome stays; a press on a page with
+ *   a tool armed is the tool's, never a tap (`tapRole`); two fingers still pinch, and the
+ *   page layers that draw (`mark/`) load and mount only while editing.
  * - **Keys:** Ctrl/Cmd+F opens Find; the arrows and PageUp / PageDown scroll. Nothing else.
  *
  * Pages outside the viewport (plus one screen) are not mounted. The scroller is the read
@@ -53,6 +56,7 @@ import {
   PILL_LINGER_MS,
   type PressSample,
   type TapRecord,
+  tapRole,
 } from './gestures';
 import {
   anchorAt,
@@ -491,6 +495,16 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
       };
       if (!isTap(start, up) || start.selecting) return;
       if (start.target instanceof Element && start.target.closest(INTERACTIVE)) return;
+      const editing = useCompactStore.getState();
+      const role = tapRole({
+        editing: editing.editing,
+        toolArmed: editing.tool !== null,
+        onPage: start.target instanceof Element && start.target.closest('[data-page-id]') !== null,
+      });
+      if (role === 'none') {
+        lastTap = null;
+        return;
+      }
       const tap = { x: up.x, y: up.y, time: up.time };
       if (isDoubleTap(lastTap, tap)) {
         window.clearTimeout(singleTimer);
@@ -504,6 +518,7 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
       window.clearTimeout(singleTimer);
       singleTimer = window.setTimeout(() => {
         lastTap = null;
+        if (role === 'zoom') return;
         const state = useCompactStore.getState();
         if (state.chromeHidden) setChromeHidden(false);
         else if (!state.findOpen && state.sheet === null && !state.menuOpen) setChromeHidden(true);

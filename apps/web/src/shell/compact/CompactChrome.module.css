@@ -4,12 +4,15 @@
  *
  * - the top bar: docked M3, 44 px plus the safe area, full width, a hairline below and no
  *   shadow;
- * - the capsule: a 56 px pill of 44 px controls, centred above the home indicator.
+ * - the capsule: a 56 px pill of 44 px controls, and beside it the 56 px edit button (EDN-8),
+ *   centred together above the home indicator. While editing the capsule is the edit island
+ *   and the button has folded into it (`mark/`).
  *
  * Hidden, each moves out by `transform` and fades by `opacity` on itself (never a wrapper,
- * Q-3), on the motion tokens; at rest both have no transform (Q-2). Two glass surfaces at
- * rest, three with the ⋯ menu open; with a sheet open both are away and the sheet, settled,
- * is solid (CompactSheet.module.css), so none (Q-11).
+ * Q-3), on the motion tokens; at rest none has a transform (Q-2). Three glass surfaces at
+ * rest (two while editing), one more with the ⋯ menu or the tool drawer open; with a sheet
+ * open all are away and the sheet, settled, is solid (CompactSheet.module.css), so none
+ * (Q-11).
  */
 .topBar {
   composes: mat mat-panel mat-docked s8 from global;
@@ -198,8 +201,9 @@
   display: none;
 }
 
-.capsule {
-  composes: mat mat-bar s10 from global;
+/* The dock row: the capsule and the edit button, centred together above the home indicator.
+   The row is not a surface and takes no presses; each piece hides on itself (Q-3). */
+.dock {
   position: fixed;
   right: 0;
   bottom: max(env(safe-area-inset-bottom, 0px), 12px);
@@ -207,11 +211,26 @@
   z-index: 2;
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.dock > * {
+  pointer-events: auto;
+}
+
+.capsule {
+  composes: mat mat-bar s10 from global;
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
   gap: 2px;
   width: max-content;
-  max-width: calc(100vw - 24px);
+  max-width: calc(100vw - 24px - 64px);
   height: 56px;
-  margin-inline: auto;
   padding: 0 6px;
   border-radius: var(--radius-capsule);
   /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
@@ -221,7 +240,68 @@
     opacity var(--duration-base) var(--ease-out);
 }
 
+/* The edit island has the row to itself: the edit button has folded into it. */
+.capsule[data-editing] {
+  max-width: calc(100vw - 24px);
+}
+
 .capsule[data-hidden] {
   opacity: 0;
   transform: translateY(calc(100% + max(env(safe-area-inset-bottom, 0px), 12px)));
+}
+
+/*
+ * The edit button (EDN-8; design/phone-2026-10/README.md §2): a 56 px circle of the capsule's
+ * own material (coverage registry `compact-edit-button`) beside it, its glyph 20 px (Q-9). It
+ * hides with the chrome as the capsule does. While editing it folds into the island: its width
+ * and the row's gap close on --spring-smooth while it fades on --duration-fast, so the island,
+ * centred in the row, settles where the pair was centred. Reduced motion keeps the fade (the
+ * spring tokens fall to 0 ms). Press: --press-scale (0.94 on touch, platform.md §2).
+ */
+.edit {
+  composes: mat mat-bar s10 from global;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  touch-action: manipulation;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out),
+    width var(--spring-smooth) var(--ease-spring),
+    margin var(--spring-smooth) var(--ease-spring),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+.edit svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.edit:active {
+  scale: var(--press-scale);
+  transition-duration:
+    var(--spring-quick), var(--duration-base), var(--spring-smooth), var(--spring-smooth),
+    var(--duration-instant);
+}
+
+.edit[data-hidden] {
+  opacity: 0;
+  transform: translateY(calc(100% + max(env(safe-area-inset-bottom, 0px), 12px)));
+}
+
+.edit[data-away] {
+  width: 0;
+  margin-inline-start: calc(-1 * var(--space-2));
+  border-width: 0;
+  opacity: 0;
+  transition-duration:
+    var(--spring-quick), var(--duration-fast), var(--spring-smooth), var(--spring-smooth),
+    var(--spring-press);
 }

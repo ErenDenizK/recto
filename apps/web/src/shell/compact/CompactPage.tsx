@@ -3,7 +3,12 @@
  * Read mode draws it) within a phone's budget (`COMPACT_BITMAP_PIXELS`), exact tiles over the
  * visible page above it, and the reading layers: text (long-press
  * selection), Find hits, links and notes. Forms, annotations and signatures are in the
- * bitmap and take no input; nothing here edits the file.
+ * bitmap.
+ *
+ * **The overlay slot** (phone editing, `design/phone-2026-10/README.md` §7): while editing, the
+ * page also renders the layers of `registerCompactOverlay` (`mark-host.ts`), which the lazy
+ * `mark/` chunk fills with the dry ink and annotation layers (and a lane with its own layer);
+ * reading mounts none of them.
  *
  * A resized or cropped page (only a document restored with changes has one) places its
  * content box as the export does (`ResizedContent`), drawn at a shared scale.
@@ -26,6 +31,8 @@ import { contentFrame, ResizedContent } from '../../stage/ResizedContent';
 import { LinkLayer } from '../../viewer/LinkLayer';
 import { pageFrame } from '../../viewer/page-frame';
 import { SearchHighlights } from '../../viewer/SearchHighlights';
+import { useCompactStore } from './compact-store';
+import { useCompactOverlays } from './mark-host';
 import { CompactTextLayer } from './CompactTextLayer';
 import styles from './CompactReader.module.css';
 import { NoteLayer } from './NoteLayer';
@@ -61,6 +68,8 @@ export function CompactPage({
   /** The page's own label when it differs from its number. */
   readonly label: string | undefined;
 }) {
+  const editing = useCompactStore((s) => s.editing);
+  const layers = useCompactOverlays();
   const sourceId = page.ref.kind === 'source' ? page.ref.source : undefined;
   const sourceIndex = page.ref.kind === 'source' ? page.ref.index : 0;
   const total = pageTotalRotation(ws, page);
@@ -129,6 +138,11 @@ export function CompactPage({
         <SearchHighlights {...overlay} />
         <LinkLayer {...overlay} />
         <NoteLayer {...overlay} />
+        {editing
+          ? layers.map((Layer, i) => (
+              <Layer key={Layer.displayName ?? Layer.name ?? i} {...overlay} />
+            ))
+          : null}
       </div>
     </div>
   );

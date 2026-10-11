@@ -7,6 +7,7 @@ import {
   isTap,
   onReaderScroll,
   type PressSample,
+  tapRole,
 } from './gestures';
 
 /**
@@ -79,5 +80,20 @@ describe('taps', () => {
     expect(isDoubleTap(first, { x: 110, y: 110, time: 250 })).toBe(true);
     expect(isDoubleTap(first, { x: 110, y: 110, time: 350 })).toBe(false);
     expect(isDoubleTap(first, { x: 150, y: 100, time: 100 })).toBe(false);
+  });
+});
+
+describe('taps while editing (README §5)', () => {
+  it('reading: a tap does everything', () => {
+    expect(tapRole({ editing: false, toolArmed: false, onPage: true })).toBe('all');
+  });
+
+  it('a tool armed: a press on a page is the tool’s, never a tap', () => {
+    expect(tapRole({ editing: true, toolArmed: true, onPage: true })).toBe('none');
+  });
+
+  it('the chip off, or a gap between pages: a double tap still zooms, the chrome stays', () => {
+    expect(tapRole({ editing: true, toolArmed: false, onPage: true })).toBe('zoom');
+    expect(tapRole({ editing: true, toolArmed: true, onPage: false })).toBe('zoom');
   });
 });

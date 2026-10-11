@@ -9,6 +9,11 @@
  * - **Taps:** a press that neither moved nor scrolled is a tap; two taps within 300 ms and
  *   32 px are a double tap (fit ⇄ 2× at the point), and a lone tap toggles the chrome once
  *   that window has passed.
+ * - **Editing** (`design/phone-2026-10/README.md` §5, `tapRole`): with a tool armed a press on
+ *   a page is the tool's (a stroke, a dot, a placement), never a tap, so a dot neither toggles
+ *   the chrome nor zooms; with the chip off a double tap still zooms, and the chrome stays
+ *   (it never hides while editing, `compact-store` `setChromeHidden`). Two fingers are the
+ *   pinch in every state, and the ink pipeline drops a stroke a second finger joins.
  */
 
 /** Downward scroll that hides the chrome, CSS px. */
@@ -95,4 +100,20 @@ export function isDoubleTap(previous: TapRecord | null, tap: TapRecord): boolean
     tap.time - previous.time <= DOUBLE_TAP_MS &&
     Math.hypot(tap.x - previous.x, tap.y - previous.y) <= DOUBLE_TAP_DISTANCE_PX
   );
+}
+
+/** What a tap on a page does: everything, a double-tap zoom only, or nothing. */
+export type TapRole = 'all' | 'zoom' | 'none';
+
+/** The role of a tap on a page, from the editing state (README §5). */
+export function tapRole(state: {
+  readonly editing: boolean;
+  /** A tool is armed: a press on a page is its own. */
+  readonly toolArmed: boolean;
+  /** The press began on a page (not in a gap between pages). */
+  readonly onPage: boolean;
+}): TapRole {
+  if (!state.editing) return 'all';
+  if (state.toolArmed && state.onPage) return 'none';
+  return 'zoom';
 }
