@@ -357,7 +357,7 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
         void run?.finished.then(() => {
           if (returning === home && transform === null && !open) {
             returning = null;
-            receivePulse(home);
+            void receivePulse(home);
           }
         });
         // The glass stays whole while it shrinks, and fades over the last of the way.

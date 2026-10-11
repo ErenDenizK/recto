@@ -3,7 +3,8 @@
  * saved signatures as tiles, plus New"; MK-12's plates): New first, then the kept signatures
  * newest first (at most five, `SAVED_SIGNATURE_LIMIT`), each a 56 px tile with the signature on
  * its page-white plate, in one row that scrolls sideways when it outgrows the drawer. A saved
- * tile arms that signature for the next tap on a page and closes the drawer; the armed one shows
+ * tile arms that signature for the next tap on a page and closes the drawer once its pulse has
+ * crested (`drawer-close.ts`); the armed one shows
  * pressed. Where this window keeps nothing, one line says so beside New.
  *
  * Its own chunk (README §7 "signatures are split again"), loaded as Sign arms (`sign.tsx`).
@@ -24,12 +25,9 @@ import { SignaturePlate } from '../../../signatures/SignaturePlate';
 import { Button } from '../../../ui/Button';
 import { Icon } from '../../../ui/Icon';
 import { useToolStore } from '../../../viewer/tool-store';
-import { setDrawerOpen } from '../compact-store';
+import { closeDrawerAfter } from './drawer-close';
 import { openNewSignatureSheet } from './sign';
 import styles from './sign.module.css';
-
-/** A saved tile's pulse shows this long before the drawer goes back into the chip. */
-const ARM_CLOSE_DELAY_MS = 90;
 
 /** Reads the kept signatures (once per session; `sign.tsx` calls it as Sign arms). */
 export function loadSignatures(): Promise<void> {
@@ -48,10 +46,9 @@ export default function SignOptions() {
   }, []);
 
   const arm = async (id: string, el: HTMLElement) => {
-    receivePulse(el);
-    if (await armSavedSignature(id)) {
-      window.setTimeout(() => setDrawerOpen(false), ARM_CLOSE_DELAY_MS);
-    }
+    const crest = receivePulse(el);
+    // Armed, the drawer goes back into the chip once the tile's swell crests (drawer-close.ts).
+    if (await armSavedSignature(id)) closeDrawerAfter(crest);
   };
 
   return (

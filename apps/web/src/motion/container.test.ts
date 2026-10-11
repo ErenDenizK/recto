@@ -132,7 +132,7 @@ describe('containerMotion', () => {
 describe('receivePulse', () => {
   it('swells the scale by the peak, settles at 1 and leaves nothing', async () => {
     const el = box('left:0;top:0;width:32px;height:32px');
-    receivePulse(el);
+    void receivePulse(el);
     const scales = keys(el).map((k) => Number(k.scale));
     expect(Math.max(...scales)).toBeCloseTo(1 + PULSE_PEAK, 3);
     expect(scales.at(-1)).toBe(1);
@@ -144,7 +144,23 @@ describe('receivePulse', () => {
   it('does nothing under reduced motion', () => {
     document.documentElement.dataset.motion = 'reduced';
     const el = box('left:0;top:0;width:32px;height:32px');
-    receivePulse(el);
+    void receivePulse(el);
     expect(el.getAnimations()).toEqual([]);
+  });
+
+  it('resolves when the swell crests, before the pulse has settled (no timer)', async () => {
+    const el = box('left:0;top:0;width:32px;height:32px');
+    const crest = receivePulse(el);
+    const [pulse] = el.getAnimations();
+    await crest;
+    expect(pulse?.playState).toBe('running');
+    const at = Number(pulse?.currentTime ?? 0);
+    expect(at).toBeGreaterThan(0);
+    expect(at).toBeLessThan(Number(pulse?.effect?.getTiming().duration));
+  });
+
+  it('resolves at once under reduced motion', async () => {
+    document.documentElement.dataset.motion = 'reduced';
+    await expect(receivePulse(box('width:32px;height:32px'))).resolves.toBeUndefined();
   });
 });

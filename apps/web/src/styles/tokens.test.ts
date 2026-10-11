@@ -1257,7 +1257,8 @@ describe('tokens.css', () => {
       // See the original's "Markup hidden" pill under the strip (S2-1a): one more. Phone
       // editing's tool drawer (EDN-8) floats in a module of its own: one more; its selection
       // bar (lane B), the typing bar (WP4) and the touch selection bar (WP6) one more each.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(28);
+      // The drawer's list variant (EDN-16), its own floating panel over the island: one more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(29);
       // The capsule at the one piece height (G1): σ 8 at 40 px, 9 at 48 coarse.
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',

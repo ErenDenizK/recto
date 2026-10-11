@@ -18,6 +18,8 @@ const PRECISION = 1e-6;
 const pulses = new WeakMap<Element, Animation>();
 /** The pulse's keyframes, sampled once. */
 let pulseFrames: Keyframe[] | null = null;
+/** When the pulse's first swing crests, ms (sampled with the frames). */
+let crestMs = 0;
 
 /** A unit kick on `pop`, scaled so its first swing peaks at `PULSE_PEAK`, as `scale` frames. */
 function samplePulse(): Keyframe[] {
@@ -29,7 +31,9 @@ function samplePulse(): Keyframe[] {
     if (i > 0 && energy(s, x, v) <= settle) break;
     xs.push(x);
   }
-  const k = PULSE_PEAK / Math.max(...xs, 1e-6);
+  const peak = Math.max(...xs, 1e-6);
+  crestMs = (xs.indexOf(peak) * 1000) / FPS;
+  const k = PULSE_PEAK / peak;
   return [
     ...xs.map((x) => ({ scale: String(Math.round((1 + x * k) * 1e4) / 1e4) })),
     { scale: '1' },
@@ -40,9 +44,15 @@ function samplePulse(): Keyframe[] {
  * The *receive* pulse: `el`'s `scale` swells by `PULSE_PEAK` and settles on `pop`, as if it took
  * the popup back in. `scale` composes with any transform the control has (its press). Nothing
  * under reduced motion; nothing is left at rest.
+ *
+ * Resolves when the swell crests (at once when nothing plays): an empty animation on the same
+ * timeline marks it, so what follows the pulse (the phone drawer closing after an arming tile,
+ * `shell/compact/mark/drawer-close.ts`) waits on the animation, never on a timer.
  */
-export function receivePulse(el: Element): void {
-  if (!(el instanceof HTMLElement) || typeof el.animate !== 'function' || reducedMotion()) return;
+export function receivePulse(el: Element): Promise<void> {
+  if (!(el instanceof HTMLElement) || typeof el.animate !== 'function' || reducedMotion()) {
+    return Promise.resolve();
+  }
   pulseFrames ??= samplePulse();
   pulses.get(el)?.cancel();
   const run = el.animate(pulseFrames, { duration: ((pulseFrames.length - 1) * 1000) / FPS });
@@ -51,4 +61,9 @@ export function receivePulse(el: Element): void {
     if (pulses.get(el) === run) pulses.delete(el);
     run.cancel();
   };
+  const crest = el.animate(null, { duration: Math.max(1, crestMs) });
+  return new Promise<void>((resolve) => {
+    crest.onfinish = () => resolve();
+    crest.oncancel = () => resolve();
+  });
 }

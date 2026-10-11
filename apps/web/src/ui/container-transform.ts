@@ -169,7 +169,7 @@ function close(popup: HTMLElement): void {
   void run.then(() => {
     closing.delete(popup);
     if (entry.closing && motion.finished === run && onScreen(entry.trigger)) {
-      receivePulse(entry.trigger);
+      void receivePulse(entry.trigger);
     }
   });
 }

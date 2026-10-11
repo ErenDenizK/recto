@@ -1,0 +1,403 @@
+/*
+ * The list drawer (ToolList.tsx; EDN-16), the owner's variant of the tool drawer: a floating M4
+ * object over the page that covers the island.
+ *
+ * Geometry. 16 px from the screen's sides (more with a safe area), its bottom the island's
+ * (12 px above the home indicator, or on the safe area), so it sits over the island, at most
+ * 480 px wide (a phone on its side), never taller than 60 % of the screen nor reaching the top
+ * bar. Radius 28 (`--radius-2xl`), the island's own, so the panel closes into the chip's family
+ * (S-1); 12 px padding, so the rows' 16 px (`--radius-lg`) is concentric.
+ *
+ * Material. M4 at σ 24, σ 20 on a coarse pointer (language.md §2.2; coverage registry
+ * `compact-tool-list`), the tiles' material; Glass Solid and the degrade steps give its solid
+ * twin (`materials.css`). Inside, no glass: the current row is the tool-active fill, an open
+ * row's options a control-fill well under it, the other rows and the quiet actions washes on
+ * press only.
+ *
+ * Over the dock (z 2): the panel covers the island, which fades under it (drawer-motion.ts), and
+ * the scrim covers the rest, so a press anywhere outside closes it and never reaches the page.
+ *
+ * Touch. The head and the quiet row take the swipe (touch-action none); the rows take it too
+ * while they fit, and pan (scroll) only once they overflow (`data-scrolls`).
+ */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  background: transparent;
+  touch-action: none;
+}
+
+.panel {
+  composes: mat mat-menu s24 c20 from global;
+  --list-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  position: fixed;
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 8px));
+  bottom: var(--list-bottom);
+  left: max(16px, calc(env(safe-area-inset-left, 0px) + 8px));
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  max-height: min(
+    60dvh,
+    calc(100dvh - var(--list-bottom) - max(env(safe-area-inset-top, 0px), 4px) - 52px)
+  );
+  margin-inline: auto;
+  padding: 0 var(--space-3) var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-2xl);
+  color: var(--text-primary);
+  outline: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The head: the grabber over "Tools" and Done, the swipe's handle. */
+.head {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: var(--space-2) 0 0 var(--space-3);
+  touch-action: none;
+}
+
+.grabber {
+  position: absolute;
+  top: var(--space-2);
+  left: calc(50% - 18px);
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-capsule);
+  background: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.title {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 600;
+  line-height: var(--type-footnote-lh);
+}
+
+.done {
+  height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  font-weight: 600;
+  line-height: var(--type-body-lh);
+  touch-action: manipulation;
+}
+
+/* The rows: one per tool, top to bottom. */
+.list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-half);
+  min-height: 0;
+  /* Room for the pressed scale and the focus ring, which the scroller would otherwise clip. */
+  margin: 0 calc(-1 * var(--space-1));
+  padding: var(--space-half) var(--space-1);
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  touch-action: none;
+  scrollbar-width: none;
+}
+
+.list::-webkit-scrollbar {
+  display: none;
+}
+
+.list[data-scrolls] {
+  touch-action: pan-y;
+}
+
+/* A row and, when it is open, its options under it, as one rounded group. */
+.item {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.item[data-open] {
+  background: var(--control-fill);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  font-weight: 500;
+  line-height: var(--type-body-lh);
+  text-align: start;
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+/* ui/Button's one label span holds the glyph, the word, the preview and the caret in a row. */
+.row > [data-btn-label] {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  overflow: visible;
+}
+
+.row svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .row:not([aria-pressed='true'], [aria-disabled='true']):hover {
+    background: var(--surface-hover);
+  }
+}
+
+.row:not([aria-disabled='true']):active {
+  scale: var(--press-scale);
+  background: var(--control-fill-pressed);
+  transition-duration: var(--duration-instant);
+}
+
+/* The current tool: the tool-active fill, as the tiles' armed tile. */
+.row[aria-pressed='true'] {
+  background: var(--tool-active-fill);
+  color: var(--tool-active-ink);
+}
+
+.row[aria-pressed='true']:active {
+  background: var(--tool-active-fill-pressed);
+}
+
+/* The caret on the current row with options: it turns over while they are open. */
+.row svg.caret {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  transition: rotate var(--spring-smooth) var(--ease-spring);
+}
+
+.item[data-open] .caret {
+  rotate: 180deg;
+}
+
+/* Not yet on phones: the row shows, tertiary, with "Soon". */
+.row[aria-disabled='true'] {
+  color: var(--text-tertiary);
+}
+
+.soon {
+  flex: none;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-capsule);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  line-height: calc(var(--type-caption-lh) + 2px);
+}
+
+/* The preview of the setting: the ink's dot and a size dot (or "A") in the row's text colour. */
+.preview {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--swatch);
+}
+
+.dot[data-ring-dark] {
+  box-shadow: inset 0 0 0 1px var(--swatch-contrast);
+}
+
+:global([data-theme='light']) .dot {
+  box-shadow: none;
+}
+
+:global([data-theme='light']) .dot[data-ring-light] {
+  box-shadow: inset 0 0 0 1px var(--swatch-contrast);
+}
+
+/* The current row's fill is the ink's backdrop there (lime, or ink in light): a ring of the
+   row's own ink holds the dot's edge, so a black pen still reads on the light theme's ink. */
+.row[aria-pressed='true'] .dot,
+:global([data-theme='light']) .row[aria-pressed='true'] .dot {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, currentColor 55%, transparent);
+}
+
+.size {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+}
+
+.size::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.size[data-size='1']::before {
+  width: 9px;
+  height: 9px;
+}
+
+.size[data-size='2']::before {
+  width: 13px;
+  height: 13px;
+}
+
+.letter {
+  width: 14px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+}
+
+.letter[data-size='0'] {
+  font-size: var(--type-caption);
+}
+
+.letter[data-size='1'] {
+  font-size: var(--type-footnote);
+}
+
+.letter[data-size='2'] {
+  font-size: var(--type-body);
+}
+
+/* An open row's options, under it in the group's well. */
+.options {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.options[data-folding] {
+  overflow: hidden;
+}
+
+.hint {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+/* The quiet actions: a compact last row, washes only, below a hairline. */
+.quiet {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin-top: var(--space-1h);
+  padding-top: var(--space-1h);
+  border-top: 1px solid var(--border-hairline);
+  touch-action: none;
+}
+
+.action {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1h);
+  min-width: 0;
+  height: 44px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-capsule);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+.action > [data-btn-label] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1h);
+}
+
+.action svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .action:not([aria-disabled='true']):hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.action:not([aria-disabled='true']):active {
+  scale: var(--press-scale);
+  background: var(--surface-active);
+  transition-duration: var(--duration-instant);
+}
+
+.action[aria-pressed='true'] {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.action[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+/* A phone on its side: a lower head, so more of the rows fit the 60 %. */
+@media (max-height: 480px) {
+  .head {
+    min-height: 44px;
+    padding-top: var(--space-1h);
+  }
+
+  .grabber {
+    top: var(--space-1);
+  }
+}

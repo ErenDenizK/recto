@@ -16,13 +16,16 @@
  *   the armed one in the tool-active fill); the armed tool's options from the registry (Pen and
  *   Highlight: `InkOptions.tsx`); the quiet actions Eraser, Redo and Select.
  * - **Closing.** A tile arms its tool and closes the drawer (Sign's keeps it open on its
- *   signatures, `keepsDrawer`, EDN-14); so do a swipe down, a press outside
+ *   signatures, `keepsDrawer`, EDN-14) once the tile's pulse has crested
+ *   (`drawer-close.ts`, no timer); so do a swipe down, a press outside
  *   (on a transparent scrim, so it never draws on the page) and the chip again. Esc closes it
  *   and puts focus back on ▾.
+ * - **Variant.** With `?drawer=list` the owner's list variant shows instead (`ToolList.tsx`,
+ *   EDN-16), to compare on an iPhone; the tiles stay the default.
  * - **Semantics.** A non-modal `dialog` named "Tools"; the tiles are toggle buttons in a group,
  *   so Tab walks tiles, options, quiet actions in reading order. It takes focus when it opens.
  */
-import { type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
 import { m } from '../../../i18n';
 import { receivePulse } from '../../../motion/receive';
@@ -31,19 +34,29 @@ import { Button } from '../../../ui/Button';
 import { Icon } from '../../../ui/Icon';
 import { setDrawerOpen, useCompactStore } from '../compact-store';
 import { armTool, redo, toggleEraser, toolOff } from './bridge';
-import { drawerMotion, type DrawerMotion, swipeCloses } from './drawer-motion';
+import { closeDrawerAfter } from './drawer-close';
+import { drawerVariant } from './drawer-variant';
 import { DRAWER_ID } from './EditIsland';
 import { type CompactToolSpec, toolsIn, useCompactTools } from './registry';
 import styles from './ToolDrawer.module.css';
+import { useDrawerPanel } from './use-drawer-panel';
 
-/** A tile's pulse shows this long before the drawer starts back into the chip. */
-const ARM_CLOSE_DELAY_MS = 90;
-/** A drag this far down (CSS px) takes the panel with the finger. */
-const DRAG_START_PX = 6;
+/** The owner's list variant (EDN-16), its own chunk, loaded with the island when it is chosen. */
+const ToolList = lazy(() => import('./ToolList'));
 
-const chipOf = () => document.querySelector('[data-compact-tool-chip]');
-
+/** The drawer this tab shows: the tiles (the default) or, with `?drawer=list`, the list. */
 export function ToolDrawer() {
+  if (drawerVariant() === 'list') {
+    return (
+      <Suspense fallback={null}>
+        <ToolList />
+      </Suspense>
+    );
+  }
+  return <TileDrawer />;
+}
+
+function TileDrawer() {
   const open = useCompactStore((s) => s.drawerOpen);
   const [shown, setShown] = useState(open);
   if (open && !shown) setShown(true);
@@ -54,91 +67,17 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
   const tool = useCompactStore((s) => s.tool);
   const specs = useCompactTools();
   const redoable = useWorkspaceStore((s) => s.history.future.length > 0);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const motion = useRef<DrawerMotion | null>(null);
-  const closed = useRef(onClosed);
-  useLayoutEffect(() => {
-    closed.current = onClosed;
-  });
+  const { panelRef, swipe } = useDrawerPanel(open, onClosed);
   const armed = specs.get(tool ?? 'pen');
   const tiles = toolsIn('tile', specs);
   const eraser = specs.get('eraser');
 
-  // Open and close by the container transform; closed, the chip takes the panel back.
-  useLayoutEffect(() => {
-    const panel = panelRef.current;
-    if (!panel) return;
-    motion.current ??= drawerMotion(panel, chipOf);
-    if (open) {
-      void motion.current.to(1);
-      panel.focus({ preventScroll: true });
-      return;
-    }
-    const hadFocus = panel.contains(document.activeElement);
-    let live = true;
-    void motion.current.to(0).then(() => {
-      if (!live) return;
-      const chip = chipOf();
-      if (chip) receivePulse(chip);
-      if (hadFocus)
-        document.querySelector<HTMLElement>('[data-testid="compact-tool-more"]')?.focus();
-      closed.current();
-    });
-    return () => {
-      live = false;
-    };
-  }, [open]);
-
-  // Esc closes from anywhere while open.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      setDrawerOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
-
-  // Swipe down: the panel follows the finger, and a long or quick enough swipe closes it.
-  const drag = useRef<{ id: number; x: number; y: number; t: number; on: boolean } | null>(null);
-  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary || !open) return;
-    drag.current = {
-      id: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      t: event.timeStamp,
-      on: false,
-    };
-  };
-  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const d = drag.current;
-    if (d?.id !== event.pointerId) return;
-    const dy = event.clientY - d.y;
-    if (!d.on) {
-      if (dy < DRAG_START_PX || Math.abs(event.clientX - d.x) > dy) return;
-      d.on = true;
-      event.currentTarget.setPointerCapture(event.pointerId);
-    }
-    motion.current?.drag(dy);
-  };
-  const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
-    const d = drag.current;
-    drag.current = null;
-    if (!d?.on || d.id !== event.pointerId) return;
-    const dy = event.clientY - d.y;
-    const ms = Math.max(1, event.timeStamp - d.t);
-    if (swipeCloses(dy, dy / ms)) setDrawerOpen(false);
-    else motion.current?.release();
-  };
-
   const arm = (spec: CompactToolSpec, el: HTMLElement) => {
     if (spec.soon) return;
-    receivePulse(el);
+    const crest = receivePulse(el);
     armTool(spec.id);
-    if (!spec.keepsDrawer) window.setTimeout(() => setDrawerOpen(false), ARM_CLOSE_DELAY_MS);
+    // The tile's swell crests, then the drawer goes back into the chip (drawer-close.ts).
+    if (!spec.keepsDrawer) closeDrawerAfter(crest);
   };
 
   const Options = armed && tool !== null ? armed.Options : undefined;
@@ -167,13 +106,7 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         data-closing={open ? undefined : ''}
         data-testid="compact-tool-drawer"
         inert={!open}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => {
-          drag.current = null;
-          motion.current?.release();
-        }}
+        {...swipe}
       >
         <span className={styles.grabber} aria-hidden="true" />
         <div className={styles.tiles} role="group" aria-label={m.compact_tools()}>
@@ -205,7 +138,7 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
               className={styles.action}
               aria-pressed={tool === 'eraser'}
               onClick={(event) => {
-                receivePulse(event.currentTarget);
+                void receivePulse(event.currentTarget);
                 toggleEraser();
               }}
             >
@@ -227,7 +160,7 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
             className={styles.action}
             aria-pressed={tool === null}
             onClick={(event) => {
-              receivePulse(event.currentTarget);
+              void receivePulse(event.currentTarget);
               toolOff();
             }}
           >
