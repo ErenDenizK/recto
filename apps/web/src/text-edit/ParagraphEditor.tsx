@@ -40,11 +40,9 @@ import { Popover } from '@base-ui/react/popover';
 import type {
   LayoutEdit,
   LayoutEditSpan,
-  ParagraphBlock,
   ParagraphEditRefusal,
   ParagraphLayout,
   ParagraphLayoutAnalysis,
-  ParagraphRef,
   ParagraphStyleInfo,
 } from '@pdf-editor/engine';
 import { BUNDLED_FACES, faceFamilyName } from '@pdf-editor/engine/fonts';
@@ -60,13 +58,12 @@ import {
   useState,
 } from 'react';
 
-import type { PageTarget } from '../annotations/annotation-store';
 import { cssPointToUser, rectToCss } from '../annotations/geometry';
 import { getEngineService } from '../engine/engine-service';
 import { cssFamilyOf, ensureFace } from '../furniture/furniture-fonts';
 import { formatPercent, getLocale, m } from '../i18n';
 import { announce } from '../shell/announcer';
-import { type PageOverlayProps, registerPageOverlay } from '../stage/page-overlays';
+import type { PageOverlayProps } from '../stage/page-overlays';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
@@ -104,12 +101,10 @@ import {
   moveTo,
   moveVertical,
   offsetAtPoint,
-  offsetNearPoint,
   type ParagraphSetup,
   originalStylesOf,
   type ParagraphState,
   paragraphEdit,
-  paragraphOfRun,
   relayout,
   replaceRange,
   selectAll,
@@ -119,16 +114,41 @@ import {
 } from './paragraph-model';
 import { holdOverCommit, openFrame } from './edit-motion';
 import styles from './ParagraphEditor.module.css';
-import { pageRevision, usePageRevision } from './runs';
+import { usePageRevision } from './runs';
 import {
   glyphCacheFor,
   type ParagraphSession,
   pageParagraphs,
   paragraphLayoutAnalysis,
-  type TextEditSession,
   useTextEditStore,
 } from './text-edit-store';
 import { type HeaderPlace, placeHeader } from './header-place';
+
+/**
+ * What an edition changes in the editor (the phone, `shell/compact/mark/edit-text-layer.tsx`):
+ *
+ * - `minMirrorPx`: the least font size of the hidden mirror, CSS px (0: none). iOS zooms the page
+ *   when an editable under 16 px takes focus (research/phone-2026-10/ux-references.md §5 row
+ *   6), as for the text box's field (`InlineEditors` `setMinFieldFontPx`). The mirror is
+ *   invisible and its selection is set by offset, so its size changes nothing on screen.
+ * - `hint`: the header's hint; a phone has no Esc and applies with its Done.
+ */
+export interface ParagraphEditorEdition {
+  readonly minMirrorPx: number;
+  readonly hint: () => string;
+}
+
+const DESKTOP_EDITION: ParagraphEditorEdition = { minMirrorPx: 0, hint: () => m.paragraph_hint() };
+let edition = DESKTOP_EDITION;
+
+/** Sets what the edition changes (unset fields keep the desktop's); returns the previous. */
+export function setParagraphEditorEdition(
+  next: Partial<ParagraphEditorEdition>,
+): ParagraphEditorEdition {
+  const previous = edition;
+  edition = { ...DESKTOP_EDITION, ...next };
+  return previous;
+}
 
 /** Pause after the last keystroke before the dry run and its preview (spec §4.7, §4.8). */
 export const PREVIEW_DELAY_MS = 300;
@@ -170,76 +190,10 @@ const COMMON_CHARS = (() => {
 })();
 
 // ---------------------------------------------------------------------------
-// Opening
-// ---------------------------------------------------------------------------
-
-/**
- * Opens the paragraph editor on `page` for the detected paragraph `blockRef` (its index in
- * the page's analysis), with the caret nearest `point` (unrotated user space). Resolves to
- * false, with nothing opened, when the paragraph is not found at the page's current state or
- * refuses paragraph mode.
- */
-export async function openParagraphEditor(
-  page: PageTarget,
-  blockRef: Pick<ParagraphRef, 'index'>,
-  point: { readonly x: number; readonly y: number },
-): Promise<boolean> {
-  const revision = pageRevision(page.source, page.pageIndex);
-  let blocks: readonly ParagraphBlock[];
-  try {
-    blocks = await pageParagraphs(page.source, page.pageIndex);
-  } catch (error) {
-    console.warn('Detecting the paragraphs failed', error);
-    return false;
-  }
-  if (pageRevision(page.source, page.pageIndex) !== revision) return false;
-  const block = blocks.find((b) => b.ref.index === blockRef.index);
-  if (!block || block.refusal) return false;
-  useTextEditStore.getState().openParagraph({
-    target: page,
-    block,
-    revision,
-    caret: offsetNearPoint(block, point),
-    point,
-  });
-  return true;
-}
-
-/**
- * Opens the editor for a clicked run: the paragraph editor when the run belongs to a
- * detected paragraph that does not refuse paragraph mode, else the line editor (as today).
- */
-export async function openRunEditor(session: TextEditSession): Promise<'paragraph' | 'line'> {
-  const { target, run, revision, selection } = session;
-  const line = () => {
-    useTextEditStore.getState().open(session);
-    return 'line' as const;
-  };
-  let blocks: readonly ParagraphBlock[];
-  try {
-    blocks = await pageParagraphs(target.source, target.pageIndex);
-  } catch (error) {
-    console.warn('Detecting the paragraphs failed', error);
-    return line();
-  }
-  if (pageRevision(target.source, target.pageIndex) !== revision) return line();
-  const found = paragraphOfRun(blocks, run, selection.start);
-  if (!found || found.block.refusal) return line();
-  useTextEditStore.getState().openParagraph({
-    target,
-    block: found.block,
-    revision,
-    caret: found.offset,
-    fallback: session,
-  });
-  return 'paragraph';
-}
-
-// ---------------------------------------------------------------------------
 // Page overlay
 // ---------------------------------------------------------------------------
 
-/** Shows the open paragraph's editor on its page (registered as a page overlay). */
+/** Shows the open paragraph's editor on its page (the page overlay `ParagraphEditSlot` loads). */
 export function ParagraphEditLayer(props: PageOverlayProps) {
   const { sourceId, sourceIndex, pageId, visible } = props;
   // A paragraph commit is a `text` act (ADR-0030): refused only while the document is locked.
@@ -293,8 +247,6 @@ function sessionKey(session: ParagraphSession): number {
 function isCurrent(session: ParagraphSession): boolean {
   return useTextEditStore.getState().paragraph === session;
 }
-
-registerPageOverlay(Object.assign(ParagraphEditLayer, { displayName: 'ParagraphEditLayer' }));
 
 // ---------------------------------------------------------------------------
 // The editor
@@ -1492,7 +1444,7 @@ export function ParagraphEditor({
           top: paragraphBox.top,
           width: Math.max(paragraphBox.width, 1),
           height: Math.max(paragraphBox.height, 1),
-          fontSize: Math.max(6, block.size * frame.scale),
+          fontSize: Math.max(edition.minMirrorPx, 6, block.size * frame.scale),
         }}
         onKeyDown={onKeyDown}
         onFocus={() => setFocused(true)}
@@ -1547,7 +1499,7 @@ export function ParagraphEditor({
               ? m.text_edit_applying()
               : value === null && !loadError
                 ? m.paragraph_loading()
-                : m.paragraph_hint()}
+                : edition.hint()}
           </p>
         </div>
         {choice && decision?.kind === 'overflow' && !decision.offPage ? (

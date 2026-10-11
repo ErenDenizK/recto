@@ -52,7 +52,7 @@ import { useCanChangeActive } from '../viewer/input-state';
 import { pageFrame } from '../viewer/page-frame';
 import { useToolStore } from '../viewer/tool-store';
 import { blockerLabel, blockerOfRun, caretOffset, focusReturnRun, runKey, wordAt } from './model';
-import { openRunEditor } from './ParagraphEditor';
+import { openRunEditor } from './paragraph-open';
 import { usePageRevision, usePageRuns } from './runs';
 import styles from './TextEdit.module.css';
 import { TextEditor } from './TextEditor';

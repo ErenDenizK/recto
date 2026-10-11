@@ -8,12 +8,16 @@ import { getEngineService } from '../engine/engine-service';
 import { registerPageOverlay } from '../stage/page-overlays';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { useToolStore } from '../viewer/tool-store';
+import { ParagraphEditSlot } from './ParagraphEditSlot';
 import { TextEditLayer } from './TextEditLayer';
 import { useTextEditStore } from './text-edit-store';
 
 export { commitTextEdit, type TextEditCommit, type TextEditOutcome } from './actions';
 export { useTextEditStore } from './text-edit-store';
 
+// The paragraph editor's layer first, as when its module registered itself on import; it loads
+// on first need (`ParagraphEditSlot.tsx`).
+registerPageOverlay(Object.assign(ParagraphEditSlot, { displayName: 'ParagraphEditLayer' }));
 registerPageOverlay(Object.assign(TextEditLayer, { displayName: 'TextEditLayer' }));
 
 // Leaving the tool (Esc, another tool, Arrange mode) closes the editor without applying.
