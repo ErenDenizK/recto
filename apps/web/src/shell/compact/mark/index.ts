@@ -13,6 +13,7 @@ import { AnnotationLayer } from '../../../annotations/AnnotationLayer';
 import { DryInkLayer } from '../../../annotations/pen/DryInkLayer';
 import { registerCompactOverlay } from '../mark-host';
 import './tools';
+import './text-tool';
 
 // The dry ink under the annotation layer, whose wet canvas sits above it (as in Read mode).
 registerCompactOverlay(DryInkLayer);

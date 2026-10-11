@@ -73,6 +73,21 @@ export function InlineEditorView({
   );
 }
 
+/**
+ * The least font size the text box's field is set in, CSS px (0: none). The phone sets 16
+ * (`shell/compact/mark/text-tool.ts`): iOS zooms the page when a field under 16 px takes focus
+ * (research/phone-2026-10/ux-references.md §5 row 6). A smaller box is then laid out at that
+ * size and scaled down to the page's, so it shows at its true size.
+ */
+let minFieldPx = 0;
+
+/** Sets the text box field's least font size, CSS px; returns the previous one. */
+export function setMinFieldFontPx(px: number): number {
+  const previous = minFieldPx;
+  minFieldPx = px;
+  return previous;
+}
+
 /** Minimum height of a text box: one line at the font size. */
 function lineHeight(fontSize: number): number {
   return fontSize * 1.25;
@@ -108,6 +123,8 @@ function FreeTextEditor({
   const quarter = frame.rotation === 90 || frame.rotation === 270;
   const w = quarter ? box.height : box.width;
   const h = quarter ? box.width : box.height;
+  // Laid out at least `minFieldPx` and scaled back down (`setMinFieldFontPx`).
+  const lift = Math.max(1, minFieldPx / (fontSize * s));
 
   useEffect(() => {
     ref.current?.focus();
@@ -117,10 +134,10 @@ function FreeTextEditor({
     const el = ref.current;
     if (!el) return;
     el.style.height = '0px';
-    const needed = el.scrollHeight / s + 2;
+    const needed = el.scrollHeight / (s * lift) + 2;
     el.style.height = '';
     if (Math.abs(needed - heightPt) > 0.5 && needed > lineHeight(fontSize)) setHeightPt(needed);
-  }, [text, s, fontSize, heightPt]);
+  }, [text, s, lift, fontSize, heightPt]);
 
   const commit = () => {
     if (done.current) return;
@@ -173,14 +190,21 @@ function FreeTextEditor({
       value={text}
       spellCheck
       style={{
-        left: box.left + box.width / 2 - w / 2,
-        top: box.top + box.height / 2 - h / 2,
-        width: w,
-        height: h,
-        fontSize: fontSize * s,
+        left: box.left + box.width / 2 - (w * lift) / 2,
+        top: box.top + box.height / 2 - (h * lift) / 2,
+        width: w * lift,
+        height: h * lift,
+        fontSize: fontSize * s * lift,
         lineHeight: 1.25,
         color,
-        transform: frame.rotation === 0 ? undefined : `rotate(${frame.rotation}deg)`,
+        ...(lift === 1 ? {} : { borderWidth: lift, padding: `${lift}px ${2 * lift}px` }),
+        transform:
+          [
+            frame.rotation === 0 ? '' : `rotate(${frame.rotation}deg)`,
+            lift === 1 ? '' : `scale(${1 / lift})`,
+          ]
+            .join(' ')
+            .trim() || undefined,
       }}
       onChange={(e) => setText(e.target.value)}
       onKeyDown={onKeyDown}

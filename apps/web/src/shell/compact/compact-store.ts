@@ -51,6 +51,11 @@ export interface CompactState {
   readonly lastTool: CompactTool;
   /** The tool drawer is open over the island (README §3). */
   readonly drawerOpen: boolean;
+  /**
+   * A text box is open for typing: the island steps away and the keyboard's Done takes its
+   * place (README §4; `mark/TextLayer.tsx`).
+   */
+  readonly typing: boolean;
 }
 
 const INITIAL: CompactState = {
@@ -67,6 +72,7 @@ const INITIAL: CompactState = {
   tool: null,
   lastTool: 'pen',
   drawerOpen: false,
+  typing: false,
 };
 
 export const useCompactStore = create<CompactState>()(() => INITIAL);
@@ -80,10 +86,11 @@ export const topBarAway = (s: CompactState): boolean => s.chromeHidden || s.shee
 /**
  * The capsule steps away while the chrome is hidden, Find has the top bar, or a sheet is open:
  * it sits under the sheet's lower half, where its dark pill would show through the sheet's
- * glass while the sheet rises (XD-3). The toast stack follows it (`CompactApp`).
+ * glass while the sheet rises (XD-3). While a text box takes typing it steps away for the
+ * keyboard's Done. The toast stack follows it (`CompactApp`).
  */
 export const capsuleAway = (s: CompactState): boolean =>
-  s.chromeHidden || s.findOpen || s.sheet !== null;
+  s.chromeHidden || s.findOpen || s.sheet !== null || s.typing;
 
 /** A tool takes the page's presses: a stroke or a placement, never a tap (README §5). */
 export const toolTakesPage = (s: CompactState): boolean => s.editing && s.tool !== null;
@@ -100,6 +107,7 @@ export function showLibrary(): void {
     editing: false,
     tool: null,
     drawerOpen: false,
+    typing: false,
   });
 }
 
@@ -161,7 +169,7 @@ export function beginEditing(tool: CompactTool | null): void {
 
 /** Back to reading; the last tool is kept for the next entry. */
 export function endEditing(): void {
-  set({ editing: false, tool: null, drawerOpen: false });
+  set({ editing: false, tool: null, drawerOpen: false, typing: false });
 }
 
 /** The armed tool (null: the chip is off); a tool is remembered for the next entry. */
@@ -171,6 +179,13 @@ export function setCompactTool(tool: CompactTool | null): void {
 
 export function setDrawerOpen(drawerOpen: boolean): void {
   if (useCompactStore.getState().drawerOpen !== drawerOpen) set({ drawerOpen });
+}
+
+/** A text box opened or closed for typing; the drawer closes for it. */
+export function setTyping(typing: boolean): void {
+  if (useCompactStore.getState().typing !== typing) {
+    set(typing ? { typing, drawerOpen: false } : { typing });
+  }
 }
 
 /** Forgets everything (tests). */

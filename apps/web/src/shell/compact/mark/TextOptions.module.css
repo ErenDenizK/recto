@@ -1,0 +1,22 @@
+/*
+ * The Text options' sizes (design/phone-2026-10/README.md §3 row 2): an "A" in the primary text
+ * colour at three sizes in place of the swatch's dot, inside the same selection ring
+ * (ui/Swatch), so S/M/L read as one family with the colours beside them.
+ */
+.letter {
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.letter[data-size='0'] {
+  font-size: 11px;
+}
+
+.letter[data-size='1'] {
+  font-size: 15px;
+}
+
+.letter[data-size='2'] {
+  font-size: 20px;
+}

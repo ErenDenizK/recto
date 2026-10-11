@@ -1,0 +1,37 @@
+/*
+ * The keyboard's Done while typing on a phone (design/phone-2026-10/README.md §4;
+ * ux-references §5 row 5): the island has stepped away and this small bar of the capsule's
+ * own material rides on the keyboard by layout (`--kb-inset`, written by mark/keyboard.ts),
+ * 8 px above it, never per-frame JS. Without a keyboard inset (Android shrinks the layout
+ * itself, or a hardware keyboard) it sits where the island did. 52 px tall: a 44 px target in
+ * 4 px of padding (Q-9), keyboard.ts's ACCESSORY_HEIGHT. At the trailing edge, where iOS puts
+ * its own Done, clear of the left edge's back swipe (ux-references §5 row 11).
+ */
+.bar {
+  composes: mat mat-bar s10 from global;
+  position: fixed;
+  z-index: 30;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(calc(var(--kb-inset, 0px) + 8px), env(safe-area-inset-bottom, 0px), 12px);
+  display: flex;
+  align-items: center;
+  height: 52px;
+  padding: 4px;
+  border-radius: var(--radius-capsule);
+  animation: rise var(--duration-base) var(--ease-out);
+}
+
+.done {
+  height: 44px;
+  min-width: 72px;
+  border-radius: var(--radius-capsule);
+}
+
+/* *Enter* (motion.css): it rises by --rise-distance as it fades in; reduced motion keeps the
+   fade alone (the distance falls to 0). */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise-distance, 8px));
+  }
+}
