@@ -431,6 +431,8 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     minWidth: 120,
     minHeight: 52,
     smallest: '52 px fixed; Highlight and Copy, two 44 px actions at the least',
+  },
+  {
     id: 'compact-touch-bar',
     surface: 'Compact edition selection bar (phone editing)',
     module: 'shell/compact/mark/TouchBar.module.css',
