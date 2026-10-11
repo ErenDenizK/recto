@@ -51,7 +51,7 @@ loses: tell me, and do not do it. The kit never overrides Recto's own ADRs.
 `pnpm lint`, `pnpm typecheck`, and the vitest or Playwright specs that cover your change
 (never typecheck, lint or build at the same time as vitest). User-facing strings go to
 `apps/web/messages/en.json` and `tr.json` in proper Turkish. Conventional Commits with the
-repo's scopes. Work on a branch of your own; never push to `develop` or `main`.
+repo's scopes. Work lands on `develop` (merge this branch into it first); never push to or merge into `main`, which I merge by hand.
 
 **Captures.** `pnpm --filter @pdf-editor/media-tool family` re-shoots the family captures
 (`tools/media/family/`, output in `tools/media/out/family/`). Re-run it after any visible
