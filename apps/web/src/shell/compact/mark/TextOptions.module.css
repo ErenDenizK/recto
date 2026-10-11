@@ -10,13 +10,13 @@
 }
 
 .letter[data-size='0'] {
-  font-size: 11px;
+  font-size: var(--type-caption);
 }
 
 .letter[data-size='1'] {
-  font-size: 15px;
+  font-size: var(--type-callout);
 }
 
 .letter[data-size='2'] {
-  font-size: 20px;
+  font-size: var(--type-title2);
 }
