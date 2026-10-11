@@ -6,10 +6,11 @@
  * custom selection bar, no editing entry, no hover outline: reading only.
  *
  * Built for pages within one page of the viewport and dropped beyond three, as in the full
- * edition, so a long document keeps a small DOM.
+ * edition, so a long document keeps a small DOM. A text edit (phone Edit text, EDN-17) bumps the
+ * page's revision: the text is read again, and the previous text shows until it arrives.
  */
 import type { TextRun } from '@pdf-editor/engine';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { getEngineService } from '../../engine/engine-service';
 import type { PageOverlayProps } from '../../stage/page-overlays';
@@ -35,6 +36,10 @@ export function CompactTextLayer(props: PageOverlayProps) {
   if (!built && distance <= BUILD_DISTANCE && sourceId !== undefined) setBuilt(true);
   if (built && distance > DROP_DISTANCE) setBuilt(false);
   const page = `${sourceId ?? ''}:${sourceIndex}`;
+  const service = getEngineService();
+  const revision = useSyncExternalStore(service.subscribeRevisions, () =>
+    sourceId === undefined ? 0 : service.pageRevision(sourceId, sourceIndex),
+  );
 
   useEffect(() => {
     if (!built || sourceId === undefined) return;
@@ -45,7 +50,7 @@ export function CompactTextLayer(props: PageOverlayProps) {
         if (result.ok) setRuns({ page, runs: result.value });
       });
     return () => controller.abort();
-  }, [built, sourceId, sourceIndex, page]);
+  }, [built, sourceId, sourceIndex, page, revision]);
 
   if (!built || runs?.page !== page) return null;
   const lines = layoutTextLines(runs.runs, pageFrame(props));

@@ -189,3 +189,11 @@
   align-self: start;
   align-items: center;
 }
+
+/* On a phone (EDN-17) the choice's buttons and ⓘ are touch targets of 44 px (quality bar Q-9),
+   the island's own size; the full edition keeps its row size. */
+:global(:root[data-edition='compact']) .choiceActions > *,
+:global(:root[data-edition='compact']) .actions > * {
+  min-width: 44px;
+  min-height: 44px;
+}

@@ -14,7 +14,7 @@ import type { PageTarget } from '../annotations/annotation-store';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { blockerLabel, blockerOfRun, caretOffset } from './model';
-import { openRunEditor } from './ParagraphEditor';
+import { openRunEditor } from './paragraph-open';
 import { locatedRuns, pageRevision } from './runs';
 
 /** A point this close to a run's line box (points) still takes it. */
