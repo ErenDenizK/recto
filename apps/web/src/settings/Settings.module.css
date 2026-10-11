@@ -189,6 +189,11 @@
   color: var(--text-secondary);
 }
 
+/* About's last line, the maker's credits (family README §4 move 3): on the text inset. */
+.credit {
+  padding-inline: var(--text-inset);
+}
+
 .statement {
   padding-inline: var(--text-inset);
   color: var(--text-primary);

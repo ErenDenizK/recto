@@ -2331,6 +2331,8 @@
   "about_source": "Kaynak kodu",
   "about_new_tab": "(yeni sekmede açılır)",
   "about_files_local": "Dosyalar cihazınızdan asla çıkmaz.",
+  "about_maker_by": "Yapan:",
+  "about_maker_label": "Yapan: edk., yapımcının sitesini yeni sekmede açar",
   "about_storage": "Kullanılan depolama alanı",
   "about_storage_measuring": "Ölçülüyor…",
   "about_storage_unavailable": "Bu tarayıcıda kullanılamıyor.",

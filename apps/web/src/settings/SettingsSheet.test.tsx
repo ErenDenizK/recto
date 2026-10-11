@@ -317,6 +317,31 @@ describe('About Recto (the About dialog’s facts, ADR-0017 §6)', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
+  it('ends with the maker’s credits line, a link to the portfolio (family README §4 move 3)', () => {
+    render(<AboutPage info={BETA} />);
+    const about = screen.getByTestId('settings-about');
+    const credit = within(about).getByTestId('about-maker');
+    expect(credit).toHaveTextContent('Made by edk');
+    expect(credit).toHaveAttribute('href', 'https://erendenizk.github.io/');
+    expect(credit).toHaveAttribute('target', '_blank');
+    expect(credit.getAttribute('rel')).toMatch(/\bnoopener\b/);
+    expect(credit).toHaveAccessibleName('Made by edk., opens the maker’s site in a new tab');
+    const last = about.lastElementChild;
+    expect(last?.contains(credit)).toBe(true);
+    // The dot is the accent, drawn, and hidden from the accessibility tree.
+    const dot = credit.querySelector('[aria-hidden="true"]');
+    expect(dot).not.toBeNull();
+    expect(getComputedStyle(dot as Element).backgroundColor).toBe('rgb(200, 251, 61)');
+  });
+
+  it('says the credits line in Turkish', () => {
+    setLocale('tr');
+    render(<AboutPage info={BETA} />);
+    const credit = screen.getByTestId('about-maker');
+    expect(credit).toHaveTextContent('Yapan: edk');
+    expect(credit).toHaveAccessibleName('Yapan: edk., yapımcının sitesini yeni sekmede açar');
+  });
+
   it('has no "Public beta" for a release, and says when storage cannot be estimated', async () => {
     estimate.mockRejectedValue(new Error('blocked'));
     render(<AboutPage info={RELEASE} />);

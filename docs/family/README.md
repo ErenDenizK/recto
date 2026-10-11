@@ -93,10 +93,13 @@ Each needs the owner's OK, each is one change, and none touches §2. Ranked by s
    `smooth`, glide → `glide`, pop → `pop` (one small glyph, never a surface); `quick`, `fling`
    and `track` stay Recto's own. A table in `motion/springs.ts`'s doc comment or in
    `language.md` §7 would record it. No value, name or curve changes.
-3. **A credits line on About, in Recto's style.** The About footer already links "Credits" to
-   `NOTICE`. The move: one line at the foot, set in Inter Recto at footnote size, ink n10, with
-   `edk.` whose dot is the lime `#c8fb3d` (the family's maker's dot at an exit point, V3). Only
-   on About, never in the working UI.
+3. **A credits line on About, in Recto's style (done, 2026-10-10; DSN-28).** The owner chose
+   "Made by edk." / "Yapan: edk.", linking to the portfolio; it is the last line of the in-app
+   About, the compact About sheet and the `/recto/about/` footer (`shell/about/MakerCredit.tsx`).
+   The About footer already linked "Credits" to `NOTICE`. The move: one line at the foot, set
+   in Inter Recto at footnote size, ink n10, with `edk.` whose dot is the lime `#c8fb3d` (the
+   family's maker's dot at an exit point, V3; lime-800 on the light theme). Only on About,
+   never in the working UI.
 4. **About itself is behind.** `/recto/about/` is still the pre-M9 page (the audit's C10): it
    opens with "A PDF editor that runs entirely in your browser. Nothing is uploaded." and the
    old presentation, while the app now says "Nothing leaves this device." About v2 waits on

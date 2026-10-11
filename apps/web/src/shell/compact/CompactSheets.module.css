@@ -287,6 +287,12 @@ a.contentsRow:active {
 
 /* About's Appearance group (Reduce motion, the Settings sheet's own row): its name lines up
    with the facts and the statement, 12 px in, where the sheet's coarse rows pad 16. */
+/* About's last line, the maker's credits (family README §4 move 3), on the facts' inset. */
+.aboutCredit {
+  margin-top: 4px;
+  padding: 0 12px;
+}
+
 .aboutSettings {
   margin-top: 8px;
 }
