@@ -1,0 +1,261 @@
+/*
+ * The tool drawer (design/phone-2026-10/README.md §3), a floating M4 object over the page.
+ *
+ * Geometry. 16 px from the screen's sides (more with a safe area), 12 px above the island's
+ * 56 px (the island rests 12 px above the home indicator, or on the safe area), at most 480 px
+ * wide (a phone on its side), never taller than 55 % of the screen nor reaching the top bar.
+ * Radius 28 (`--radius-2xl`), the island's own (a 56 px capsule), so the two read as one
+ * family (S-1); 12 px padding, so the tiles are 28 − 12 = 16 (`--radius-lg`).
+ *
+ * Material. M4 at σ 24, σ 20 on a coarse pointer (language.md §2.2; coverage registry
+ * `compact-tool-drawer`): the tier's tint, lit rim (0.30 / 0.10), inner light and e4 shadow from
+ * `materials.css`; Glass Solid and the degrade steps give its solid twin there. Inside, no glass:
+ * the tiles are fills (`--control-fill`, the armed one `--tool-active-fill`), the quiet actions
+ * washes only.
+ *
+ * Motion is script's (`drawer-motion.ts`): at rest nothing here transforms (Q-2). The press of a
+ * tile or action takes the touch press scale; the receive pulse composes with it (`scale`).
+ */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  /* Transparent: a press outside closes the drawer and never reaches the page under it. */
+  background: transparent;
+  touch-action: none;
+}
+
+.panel {
+  composes: mat mat-menu s24 c20 from global;
+  --drawer-bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 56px + 12px);
+  position: fixed;
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 8px));
+  bottom: var(--drawer-bottom);
+  left: max(16px, calc(env(safe-area-inset-left, 0px) + 8px));
+  /* Under the dock (z 2), over the scrim (z 1, earlier in the tree): the drawer rises from
+     behind the island, which stays put on top (README §3 "How it moves"). */
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 480px;
+  max-height: min(
+    55dvh,
+    calc(100dvh - var(--drawer-bottom) - max(env(safe-area-inset-top, 0px), 4px) - 52px)
+  );
+  margin-inline: auto;
+  padding: 0 var(--space-3) var(--space-3);
+  overflow: hidden auto;
+  border-radius: var(--radius-2xl);
+  color: var(--text-primary);
+  outline: none;
+  overscroll-behavior: contain;
+  /* The panel's own swipe: the page under it never scrolls or zooms from here. */
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The grabber: the swipe's affordance, a 36 × 4 capsule in the tertiary text colour. */
+.grabber {
+  flex: none;
+  width: 36px;
+  height: 4px;
+  margin: var(--space-2) auto var(--space-1);
+  border-radius: var(--radius-capsule);
+  background: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+/* Row 1: the tools, five equal tiles. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-1h);
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1h);
+  min-width: 0;
+  min-height: 68px;
+  padding: var(--space-2) var(--space-half);
+  border-radius: var(--radius-lg);
+  background: var(--control-fill);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  text-align: center;
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+/* ui/Button's one label span holds the glyph, the word and "Soon": stacked and centred. */
+.tile > [data-btn-label] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1h);
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  white-space: normal;
+}
+
+.tile svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.tileLabel {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+@media (hover: hover) {
+  .tile:not([aria-pressed='true'], [aria-disabled='true']):hover {
+    background: var(--control-fill-hover);
+  }
+}
+
+.tile:not([aria-disabled='true']):active {
+  scale: var(--press-scale);
+  background: var(--control-fill-pressed);
+  transition-duration: var(--duration-instant);
+}
+
+/* The armed tool: filled, as the full edition's armed tool (the palette's tool-active fill). */
+.tile[aria-pressed='true'] {
+  background: var(--tool-active-fill);
+  color: var(--tool-active-ink);
+}
+
+.tile[aria-pressed='true']:active {
+  background: var(--tool-active-fill-pressed);
+}
+
+/* Not yet on phones: the tile shows, quiet, with a small "Soon" (room above for its tag). */
+.tile[aria-disabled='true'] {
+  padding-top: var(--space-3);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  color: var(--text-tertiary);
+}
+
+/* "Soon": a small tag on the tile's top edge, in the drawer's own solid, so the hairline runs
+   behind it and the glyph below stays clear. */
+.soon {
+  position: absolute;
+  top: calc(-1 * var(--type-caption-lh) / 2);
+  left: 50%;
+  padding: 0 var(--space-1h);
+  border-radius: var(--radius-capsule);
+  background: var(--glass-menu-solid);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  line-height: var(--type-caption-lh);
+  transform: translateX(-50%);
+}
+
+/* Row 2: the armed tool's options, or its one line. */
+.options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.hint {
+  margin: 0;
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-align: center;
+}
+
+/* Row 3: the quiet actions, washes only, below a hairline. */
+.quiet {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding-top: var(--space-1h);
+  border-top: 1px solid var(--border-hairline);
+}
+
+.action {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1h);
+  min-width: 0;
+  height: 44px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-capsule);
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+.action > [data-btn-label] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1h);
+}
+
+.action svg {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+@media (hover: hover) {
+  .action:not([aria-disabled='true']):hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.action:not([aria-disabled='true']):active {
+  scale: var(--press-scale);
+  background: var(--surface-active);
+  transition-duration: var(--duration-instant);
+}
+
+.action[aria-pressed='true'] {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.action[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+/* A phone on its side: lower tiles, labels on one line, so the three rows fit its 55 %. */
+@media (max-height: 480px) {
+  .tile {
+    min-height: 52px;
+  }
+
+  .tile > [data-btn-label] {
+    flex-direction: row;
+  }
+}

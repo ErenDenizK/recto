@@ -1,0 +1,152 @@
+/*
+ * The edit island's pieces (design/phone-2026-10/README.md §2), inside the capsule's M2 glass:
+ * 44 px targets on the capsule's centre line (Q-9). On M2 a state fill sits behind primary text
+ * and glyphs only (language.md §2.6), so the armed chip takes the pressed wash under primary
+ * text, and the chip off is quiet in the secondary colour. Done is the one prominent fill.
+ */
+
+/* Undo and Redo (ui/IconButton): the capsule's primary glyphs; with nothing to undo, the
+   disabled label, still focusable (Q-14). */
+.history {
+  color: var(--text-primary);
+}
+
+.history[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+/* The tool chip: one pill of two targets with a hairline between them. */
+.chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 44px;
+  margin-inline: var(--space-1);
+  border-radius: var(--radius-capsule);
+  color: var(--text-secondary);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.chip[data-armed] {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.toggle,
+.more {
+  height: 44px;
+  color: inherit;
+  -webkit-touch-callout: none;
+}
+
+/* The glyph and label (ui/Button, quiet): the pill's leading part. */
+.toggle {
+  gap: var(--space-2);
+  padding: 0 var(--space-2) 0 var(--space-4);
+  border-radius: var(--radius-capsule) 0 0 var(--radius-capsule);
+  font-size: var(--type-body);
+  font-weight: 500;
+  line-height: var(--type-body-lh);
+}
+
+/* ui/Button wraps its children in one label span: the glyph and the word sit in a row there,
+   and the ink's dot may reach past the glyph's box. */
+.toggle > [data-btn-label] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: visible;
+}
+
+/* The ▾ (ui/IconButton): the pill's trailing part. The armed pill's wash is the chip's, so
+   its parts add only their own press. */
+.more {
+  width: 44px;
+  padding-right: 4px;
+  border-radius: 0 var(--radius-capsule) var(--radius-capsule) 0;
+}
+
+.chip[data-armed] .toggle:not(:active),
+.chip[data-armed] .more:not(:active) {
+  background: transparent;
+}
+
+.more svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  transition: rotate var(--spring-smooth) var(--ease-spring);
+}
+
+/* The caret turns over while the drawer is open: it points where the drawer goes back to. */
+.chip[data-open] .more svg {
+  rotate: 180deg;
+}
+
+@media (hover: hover) {
+  .chip:not([data-armed]) .toggle:hover,
+  .chip:not([data-armed]) .more:hover {
+    color: var(--text-primary);
+  }
+}
+
+.rule {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--border-hairline);
+}
+
+/* The glyph cell: the new glyph over the leaving one, and the ink's dot at its foot. */
+.glyph {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.glyph > svg {
+  grid-area: 1 / 1;
+  width: 20px;
+  height: 20px;
+}
+
+.label {
+  display: inline-block;
+}
+
+/* The cross-fade of a new tool (README §3 "Feel"): 160 ms, opacity only, so nothing moves
+   under the eye; reduced motion keeps it (a fade). */
+.in {
+  animation: fade-in var(--duration-fast) var(--ease-out) both;
+}
+
+.out {
+  animation: fade-out var(--duration-fast) var(--ease-out) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Done (ui/Button, prominent): the view's one primary action (README §2), lime with an ink
+   label in dark, ink with a lime label in light (ADR-0023 §2.3). */
+.done {
+  min-width: 72px;
+  height: 44px;
+  margin-inline-start: var(--space-1);
+  padding: 0 var(--space-5);
+  font-size: var(--type-body);
+  font-weight: 600;
+  line-height: var(--type-body-lh);
+}

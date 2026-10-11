@@ -72,8 +72,9 @@ describe('CompactApp', () => {
     expect(await screen.findByTestId('compact-reader')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'simple-text' })).toBeVisible();
     expect(screen.getByTestId('compact-page-number')).toHaveTextContent('1 / 3');
-    // Reading only: no tool, Markup, Edit or Save anywhere.
-    expect(screen.queryByRole('button', { name: /^(Markup|Edit|Save|Undo)\b/ })).toBeNull();
+    // Reading: no tool, Markup, Save or Undo; only Edit, which opens the edit island (EDN-8).
+    expect(screen.queryByRole('button', { name: /^(Markup|Save|Undo|Pen)\b/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Library' }));
     await waitFor(() => {
       expect(
