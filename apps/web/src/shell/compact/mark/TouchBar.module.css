@@ -28,6 +28,12 @@
   transform-origin: 50% 0;
 }
 
+/* Light theme: the bar sits on the page, over black text on white, so it takes the denser tint
+   of the island (CompactChrome.module.css; visual-audit 2026-10 #7). */
+:global([data-theme='light']) .bar {
+  --mat-tint: var(--glass-sheet-tint);
+}
+
 @starting-style {
   .bar {
     opacity: 0;

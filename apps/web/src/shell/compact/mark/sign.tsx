@@ -22,8 +22,10 @@ import { lazy, Suspense, useSyncExternalStore } from 'react';
 
 import { useAnnotationStore } from '../../../annotations/annotation-store';
 import { m } from '../../../i18n';
+import { useSheetStore } from '../../../ui/sheet/sheet-store';
 import { useToolStore } from '../../../viewer/tool-store';
 import { setDrawerOpen } from '../compact-store';
+import { useBackgroundLock } from './background-lock';
 import { registerCompactTool } from './registry';
 import styles from './sign.module.css';
 
@@ -64,9 +66,15 @@ export async function openNewSignatureSheet(): Promise<void> {
   openNewSignature('use');
 }
 
-/** Mounts New signature's host once it has been asked for (rendered while editing). */
+/**
+ * Mounts New signature's host once it has been asked for (rendered while editing). While it,
+ * or any sheet, is open, the pages behind stay still (`background-lock.ts`): signing on a phone
+ * on its side never scrolls them.
+ */
 export function SignHost() {
   const asked = useSyncExternalStore(subscribe, snapshot, snapshot);
+  const sheetOpen = useSheetStore((s) => s.open !== null);
+  useBackgroundLock(asked && sheetOpen);
   if (!asked) return null;
   return (
     <Suspense fallback={null}>

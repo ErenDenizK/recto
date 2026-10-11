@@ -39,6 +39,13 @@
   display: none;
 }
 
+/* Under a sheet opened while editing (New signature's pad): the pages stay still where they
+   are (`mark/background-lock.ts`). */
+.scroller[data-locked] {
+  overflow: hidden;
+  touch-action: none;
+}
+
 .column {
   position: relative;
 }
