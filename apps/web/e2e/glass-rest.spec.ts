@@ -11,6 +11,7 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  atRest,
   enterEdit,
   fixturePath,
   openFixtures,
@@ -277,6 +278,10 @@ test('an annotation’s bar and a note', async ({ page }) => {
     .first()
     .click({ force: true });
   await expect(page.getByTestId('annotation-bar')).toBeVisible();
+  // The bar settles into place on a spring after it shows; a slow engine can take the walk's
+  // document-wide settle in a frame between two of its motions, so wait for the bar itself to
+  // hold still for two frames (WebKit caught it 2.6 px short, with `will-change` still on).
+  await atRest(page.getByTestId('annotation-bar'));
   await expectGlassClean(page, 'Edit, an annotation selected');
   // The note is on page 2: with the sidebar closed by default (06-navigation N1) the page fits
   // a wider column, so go there first.
@@ -328,7 +333,10 @@ test.describe('the compact edition', () => {
     await page.getByRole('button', { name: 'More' }).click();
     await expect(page.getByTestId('compact-menu')).toBeVisible();
     walk = await expectGlassClean(page, 'compact ⋯ menu');
-    expect(walk.visible).toBe(3);
+    // The top bar, the capsule, the reader's ✎ Edit button (M10 WP1, EDN-8) and the menu: Q-11's
+    // four at rest.
+    expect(names(walk).some((n) => n.includes('edit'))).toBe(true);
+    expect(walk.visible).toBe(4);
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('compact-menu')).toHaveCount(0);
 

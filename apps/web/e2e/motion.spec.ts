@@ -443,26 +443,29 @@ function expectTurn(midway: Midway, turn: Turn, state: string): void {
  */
 async function expectSettledClean(page: Page, state: string): Promise<void> {
   await settleAnimations(page);
-  const left = await page.evaluate(() => ({
-    // The aura's endless drift is Q-10's one exception (G3); nothing else may be left.
-    animations: document
-      .getAnimations()
-      .filter((a) => !(a instanceof CSSAnimation && a.animationName.includes('aura-drift'))).length,
-    // A Base UI positioner (a tooltip's, say) is not a motion's: Floating UI writes
-    // `will-change: transform` on it while its popup is open on a screen of 1.5 device pixels
-    // per CSS pixel or more (WebKit's Desktop Safari is 2), with a whole-device-pixel translate.
-    // It is the glass inside that must rest crisp (Q-2, `glass-rest.spec.ts`).
-    willChange: [...document.querySelectorAll<HTMLElement>('[style]')]
-      .filter((el) => !el.matches('[role="presentation"][data-side]'))
-      .filter((el) => el.style.willChange !== '' && el.style.willChange !== 'auto')
-      .map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`),
-    transitional: document.querySelectorAll('[data-ending-style], [data-starting-style]').length,
-  }));
-  expect(left, `left behind after ${state}`).toEqual({
-    animations: 0,
-    willChange: [],
-    transitional: 0,
-  });
+  // Polled: a motion that ends by starting the next (the Pages grid closing up after a delete)
+  // can leave a frame with nothing running between the two, which a single read takes for rest.
+  // Anything really left behind is still there when the poll gives up.
+  const read = () =>
+    page.evaluate(() => ({
+      // The aura's endless drift is Q-10's one exception (G3); nothing else may be left.
+      animations: document
+        .getAnimations()
+        .filter((a) => !(a instanceof CSSAnimation && a.animationName.includes('aura-drift')))
+        .length,
+      // A Base UI positioner (a tooltip's, say) is not a motion's: Floating UI writes
+      // `will-change: transform` on it while its popup is open on a screen of 1.5 device pixels
+      // per CSS pixel or more (WebKit's Desktop Safari is 2), with a whole-device-pixel translate.
+      // It is the glass inside that must rest crisp (Q-2, `glass-rest.spec.ts`).
+      willChange: [...document.querySelectorAll<HTMLElement>('[style]')]
+        .filter((el) => !el.matches('[role="presentation"][data-side]'))
+        .filter((el) => el.style.willChange !== '' && el.style.willChange !== 'auto')
+        .map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`),
+      transitional: document.querySelectorAll('[data-ending-style], [data-starting-style]').length,
+    }));
+  await expect
+    .poll(read, { message: `left behind after ${state}`, timeout: 5_000 })
+    .toEqual({ animations: 0, willChange: [], transitional: 0 });
 }
 
 /** A resting element: no inline transform or `will-change` and full opacity (Q-2). */

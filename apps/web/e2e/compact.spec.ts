@@ -193,9 +193,7 @@ test.describe('the compact edition', () => {
     await openLibrary(page, 'tr');
     await expect(page.getByRole('button', { name: 'PDF aç' })).toBeVisible();
     await expect(
-      page.getByText(
-        'Telefonda şimdilik yalnızca okuma. İşaretlemek için dosyayı bir bilgisayarda ya da tablette açın.',
-      ),
+      page.getByText('Telefonda kalem, vurgu, metin ve imza. Tüm araçlar bilgisayar ve tablette.'),
     ).toBeVisible();
     await expect(page.getByTestId('compact-recents-empty')).toContainText('Henüz dosya yok');
     await shot(page, 'compact-library-tr');

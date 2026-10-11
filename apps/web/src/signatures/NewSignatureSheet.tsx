@@ -52,7 +52,7 @@ import {
 } from '../ui/sheet';
 import { TextField } from '../ui/TextField';
 import { toast } from '../ui/Toast';
-import { flyIntoChip } from './flight';
+import { flyIntoChip, flightTarget } from './flight';
 import { imageInk } from './image-ink';
 import { intentOf, NEW_SIGNATURE_SHEET_ID } from './new-signature';
 import styles from './NewSignatureSheet.module.css';
@@ -331,14 +331,15 @@ const CHIP_WAIT_FRAMES = 12;
 
 /**
  * The Use flight (`flight.ts`): the signature shrinks from where it was in the sheet into its
- * chip, which shows once the saved list has it (a few frames), else into the Sign button.
+ * chip, which shows once the saved list has it (a few frames), else into the Sign button or
+ * the phone's tool chip (`flightTarget`).
  */
 function intoChip(blob: Blob, from: DOMRect, id: string | undefined): void {
   let frames = 0;
   const find = () => {
     const chip = id ? document.querySelector(`[data-saved-signature="${CSS.escape(id)}"]`) : null;
     if (chip || ++frames >= CHIP_WAIT_FRAMES) {
-      const target = chip ?? document.querySelector('[data-tool="signature"]');
+      const target = flightTarget(id);
       if (target) flyIntoChip(blob, from, target);
       return;
     }
