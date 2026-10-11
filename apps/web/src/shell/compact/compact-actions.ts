@@ -10,11 +10,14 @@
  * - **Recents** records each open as the full edition does (name, size, pages, and the
  *   handle where the browser gave one), so a Recents row reopens with no picker in
  *   Chromium and through the file dialog elsewhere ("Open again…").
- * - **A copy** is the opened file's own bytes while the document is as it was opened (the
- *   compact edition changes nothing); a document with changes (a restored snapshot, D0-7)
- *   goes through the export, loaded only then.
+ * - **A copy** is the opened file's own bytes while the document is as it was opened; a
+ *   document with changes (an edit on the phone, a restored snapshot, D0-7) goes through the
+ *   export, loaded only then. The copy is prepared ahead (the ⋯ menu starts it as it opens)
+ *   and cached on the document and its edits (`copyKey`), so Share never hands out a copy
+ *   made before the last edit, undo or redo (`design/phone-2026-10/README.md` §6; code-audit
+ *   §3 "Bug to fix before editing ships").
  */
-import type { SourceId, VirtualDocument } from '@pdf-editor/document-model';
+import type { SourceId, VirtualDocument, Workspace } from '@pdf-editor/document-model';
 
 import { getEngineService } from '../../engine/engine-service';
 import { failureReason, presentError } from '../../errors/present';
@@ -39,8 +42,43 @@ import { showReader, useCompactStore } from './compact-store';
 const set = (patch: Partial<ReturnType<typeof useCompactStore.getState>>) =>
   useCompactStore.setState(patch);
 
+/**
+ * What a copy is a copy of: the document object (pages, order, rotation; replaced by every
+ * page edit) and the workspace's content edits (`Workspace.engineEdits`: annotations, form
+ * values, text; replaced by every such edit, and back to an earlier list on undo). A copy
+ * made under one key is the document's bytes only while the key holds.
+ */
+export interface CopyKey {
+  readonly doc: VirtualDocument;
+  readonly edits: Workspace['engineEdits'];
+}
+
+/** The key of `doc` as the workspace stands now. */
+export function copyKey(
+  doc: VirtualDocument,
+  workspace: Workspace = useWorkspaceStore.getState().workspace,
+): CopyKey {
+  return { doc, edits: workspace.engineEdits };
+}
+
+/** Whether a copy made under `a` is still the document under `b`. */
+export function sameCopy(a: CopyKey, b: CopyKey): boolean {
+  return a.doc === b.doc && a.edits === b.edits;
+}
+
+interface PreparedCopy {
+  readonly key: CopyKey;
+  readonly promise: Promise<File>;
+  file?: File;
+}
+
 /** The copy being prepared for the open document (the ⋯ menu starts it on open). */
-let prepared: { doc: VirtualDocument; promise: Promise<File>; file?: File } | null = null;
+let prepared: PreparedCopy | null = null;
+
+/** The prepared copy of `doc` as it stands now, if one is cached. */
+function preparedFor(doc: VirtualDocument): PreparedCopy | null {
+  return prepared && sameCopy(prepared.key, copyKey(doc)) ? prepared : null;
+}
 
 /** The open document, if any. */
 export function openDocument(): VirtualDocument | undefined {
@@ -303,12 +341,13 @@ function download(file: File): void {
 /**
  * Starts preparing the document's copy, so Share can open the system sheet straight from the
  * tap (Safari wants the share call within the tap's activation, before any await). Cached
- * per document object.
+ * on the document and its edits (`copyKey`): an edit, undo or redo since makes a new one.
  */
 export function prepareCopy(doc: VirtualDocument): Promise<File> {
-  if (prepared?.doc === doc) return prepared.promise;
+  const cached = preparedFor(doc);
+  if (cached) return cached.promise;
   const promise = documentFile(doc);
-  const entry: { doc: VirtualDocument; promise: Promise<File>; file?: File } = { doc, promise };
+  const entry: PreparedCopy = { key: copyKey(doc), promise };
   prepared = entry;
   promise.then(
     (file) => {
@@ -323,12 +362,13 @@ export function prepareCopy(doc: VirtualDocument): Promise<File> {
 
 /**
  * Share (the system sheet with the file) where the browser can share files, else Download a
- * copy. A dismissed share sheet is not an error.
+ * copy; `download` saves a copy whatever the browser can share (the ⋯ menu's Save a copy). A
+ * dismissed share sheet is not an error.
  */
-export async function shareOrDownload(): Promise<void> {
+export async function shareOrDownload(how: 'share' | 'download' = 'share'): Promise<void> {
   const doc = openDocument();
   if (!doc) return;
-  let file = prepared?.doc === doc ? prepared.file : undefined;
+  let file = preparedFor(doc)?.file;
   if (file === undefined) {
     try {
       file = await prepareCopy(doc);
@@ -340,7 +380,7 @@ export async function shareOrDownload(): Promise<void> {
     }
   }
   const share = navigator as Navigator & ShareNavigator;
-  if (canShareFiles() && share.share) {
+  if (how === 'share' && canShareFiles() && share.share) {
     try {
       await share.share({ files: [file], title: doc.title });
       return;

@@ -1,0 +1,63 @@
+/*
+ * The phone's selection bar (TouchBar.tsx): an M2 pill (coverage registry `compact-touch-bar`)
+ * of 48 px targets (44 px at least under the page's fit scale), centred over the selection on
+ * the page, rising from it as the desktop bar does (AnnotationLayer.module.css `.bar`).
+ */
+.bar {
+  composes: mat mat-bar s8 from global;
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 56px;
+  padding: 4px;
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  white-space: nowrap;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out);
+}
+
+.bar[data-side='below'] {
+  transform-origin: 50% 0;
+}
+
+@starting-style {
+  .bar {
+    opacity: 0;
+    transform: translateX(-50%) translateY(var(--rise-distance)) scale(var(--enter-scale));
+  }
+
+  .bar[data-side='below'] {
+    transform: translateX(-50%) translateY(calc(-1 * var(--rise-distance)))
+      scale(var(--enter-scale));
+  }
+}
+
+.action {
+  gap: var(--space-2);
+  height: 48px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  line-height: var(--type-body-lh);
+}
+
+.action > [data-btn-label] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.action svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}

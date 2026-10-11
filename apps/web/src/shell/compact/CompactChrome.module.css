@@ -115,6 +115,27 @@
   background: var(--border-hairline);
 }
 
+/* The "Changed" cue (README §6): a quiet heading over Share a copy and Save a copy, its dot in
+   the accent; a label, not a control. */
+.changedCue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 4px;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.changedDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
 /* Find: the field takes the room; count, ‹ › and Done keep their own. */
 .find {
   display: flex;

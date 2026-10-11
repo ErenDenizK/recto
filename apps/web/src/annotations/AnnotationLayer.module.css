@@ -331,3 +331,11 @@
   justify-content: flex-end;
   gap: var(--space-2);
 }
+
+/* The touch chrome's hit square around a handle (`selection-chrome.ts`): invisible, it takes the
+   press for the handle it surrounds. */
+.handleHit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}

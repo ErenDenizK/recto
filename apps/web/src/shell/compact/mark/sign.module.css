@@ -1,0 +1,86 @@
+/*
+ * Sign's row in the tool drawer (sign-options.tsx; design/phone-2026-10/README.md §3 row 2):
+ * New and the saved signatures as 56 px tiles, fills on the drawer's glass (no glass in glass),
+ * in one row that scrolls sideways when five signatures outgrow it.
+ */
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1h);
+  min-width: 0;
+}
+
+/* While the options' chunk arrives: the row's own height, so the drawer does not jump. */
+.loading {
+  min-height: 56px;
+}
+
+.tiles {
+  display: flex;
+  gap: var(--space-1h);
+  min-width: 0;
+  /* Room for the pressed ring, which the scroller would otherwise clip. */
+  padding: 2px;
+  margin: -2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.tiles::-webkit-scrollbar {
+  display: none;
+}
+
+.tile {
+  flex: none;
+  justify-content: center;
+  min-width: 88px;
+  height: 56px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-lg);
+  background: var(--control-fill);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  touch-action: manipulation;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+.tile > [data-btn-label] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1h);
+}
+
+.tile:active {
+  scale: var(--press-scale);
+  background: var(--control-fill-pressed);
+  transition-duration: var(--duration-instant);
+}
+
+/* The armed signature: the tool-active fill, as the drawer's armed tile. */
+.tile[aria-pressed='true'] {
+  background: var(--tool-active-fill);
+  color: var(--tool-active-ink);
+}
+
+.new svg {
+  flex: none;
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.plate {
+  width: 72px;
+  height: 36px;
+}
+
+.note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}

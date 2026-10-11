@@ -28,8 +28,16 @@ const COMPACT_EDIT_SPEC = '**/compact-edit.spec.ts';
 const COMPACT_INK_SPEC = '**/compact-ink.spec.ts';
 /** Adding text on phones (M10 WP4): the text box, the keyboard's Done, keep-in-view. */
 const COMPACT_TEXT_SPEC = '**/compact-text.spec.ts';
+/** Phone signing and saving (M10 WP6, WP7). */
+const COMPACT_SIGN_SPEC = '**/compact-sign.spec.ts';
 /** What only the phones run. */
-const PHONE_SPECS = [COMPACT_SPEC, COMPACT_EDIT_SPEC, COMPACT_TEXT_SPEC, COMPACT_INK_SPEC];
+const PHONE_SPECS = [
+  COMPACT_SPEC,
+  COMPACT_EDIT_SPEC,
+  COMPACT_TEXT_SPEC,
+  COMPACT_INK_SPEC,
+  COMPACT_SIGN_SPEC,
+];
 /** The control-system audit (quality-bar Q-9, spec D0-3) runs on every density and edition. */
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';
 /** The sheets' presentation on the medium class with a coarse pointer (spec D0-4). */

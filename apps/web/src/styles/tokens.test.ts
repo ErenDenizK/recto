@@ -1255,9 +1255,9 @@ describe('tokens.css', () => {
       // solid twin (D4-4: they rest over page text): two fewer. The Markup palette's floating ink
       // strip (owner feedback F3) is a piece of glass of its own above the capsule: one more.
       // See the original's "Markup hidden" pill under the strip (S2-1a): one more. Phone
-      // editing's tool drawer (EDN-8) floats in a module of its own: one more, and its selection
-      // bar (lane B) another.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(27);
+      // editing's tool drawer (EDN-8) floats in a module of its own: one more; its selection
+      // bar (lane B), the typing bar (WP4) and the touch selection bar (WP6) one more each.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(28);
       // The capsule at the one piece height (G1): σ 8 at 40 px, 9 at 48 coarse.
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',

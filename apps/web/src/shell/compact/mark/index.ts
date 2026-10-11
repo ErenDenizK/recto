@@ -17,6 +17,9 @@ import { DryInkLayer } from '../../../annotations/pen/DryInkLayer';
 import { registerCompactOverlay } from '../mark-host';
 import './tools';
 import './text-tool';
+// Lane D: Sign over its stub, and the phone's touch selection chrome.
+import './sign';
+import './touch-chrome';
 
 // The dry ink under the annotation layer, whose wet canvas sits above it (as in Read mode).
 registerCompactOverlay(DryInkLayer);
@@ -28,4 +31,5 @@ export { morphCapsule } from './capsule-morph';
 export { EditIsland } from './EditIsland';
 export { type CompactToolSpec, registerCompactTool } from './registry';
 export { SelectionHost } from './selection-host';
+export { SignHost } from './sign';
 export { ToolDrawer } from './ToolDrawer';
