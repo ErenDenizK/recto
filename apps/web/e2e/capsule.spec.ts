@@ -426,8 +426,11 @@ test.describe('the capsule morph (Q-6)', () => {
     await settled(page);
 
     // Reverse mid-morph: the width continues from where it is drawn. Driven and read inside the
-    // page, frame by frame: a key's round trip from the test lets frames pass, and the short
-    // morph back to the dock can end before a later read.
+    // page: a key's round trip from the test lets frames pass, and the short morph back to the
+    // dock can end before a later read. The turn is read on the Web Animations clock, not on
+    // frame timing: in a slow frame (CI WebKit draws one every 100–200 ms) the spring, which
+    // keeps its speed through the turn, rightly carries the width most of the way back, so how
+    // far one frame moves says nothing about a jump; where the new motion starts does.
     const reversal = await page.evaluate(async () => {
       const capsule = document.querySelector('[data-capsule]') as HTMLElement;
       const width = () => capsule.getBoundingClientRect().width;
@@ -438,6 +441,20 @@ test.describe('the capsule morph (Q-6)', () => {
           target.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true, cancelable: true }));
         }
       };
+      const widthMotion = () =>
+        capsule.getAnimations().find((a) => {
+          const first = (a.effect as KeyframeEffect | null)?.getKeyframes()[0] ?? {};
+          return 'width' in first;
+        });
+      /** The width the motion `a` draws at `t` ms: its keyframes, evenly spaced, interpolated. */
+      const widthAt = (a: Animation, t: number) => {
+        const effect = a.effect as KeyframeEffect;
+        const widths = effect.getKeyframes().map((k) => Number.parseFloat(String(k.width)));
+        const end = Number(effect.getComputedTiming().duration);
+        const at = (Math.min(Math.max(t, 0), end) / end) * (widths.length - 1);
+        const i = Math.min(Math.floor(at), widths.length - 2);
+        return (widths[i] ?? 0) + ((widths[i + 1] ?? 0) - (widths[i] ?? 0)) * (at - i);
+      };
       const start = width();
       press('1');
       // Under way back to the dock: the first frame drawn 16 px or more narrower.
@@ -446,22 +463,54 @@ test.describe('the capsule morph (Q-6)', () => {
         await frame();
         going = width();
       }
+      const before = widthMotion();
       const pressed = performance.now();
       press('2');
+      // The morph is written in React's commit, a microtask away: no frame passes meanwhile, so
+      // the document's clock still reads the moment `going` was drawn at.
+      let turning = widthMotion();
+      for (let i = 0; i < 100 && (!turning || turning === before); i++) {
+        await Promise.resolve();
+        turning = widthMotion();
+      }
+      if (!turning || turning === before) return null;
+      const widths = (turning.effect as KeyframeEffect)
+        .getKeyframes()
+        .map((k) => Number.parseFloat(String(k.width)));
+      const at = width();
       await frame();
-      return { start, going, turned: width(), elapsed: performance.now() - pressed };
+      return {
+        start,
+        going,
+        from: widths[0] ?? 0,
+        to: widths.at(-1) ?? 0,
+        at,
+        turned: width(),
+        // A motion that has already come to rest (a frame longer than the whole spring) has
+        // handed the capsule back to its resting size, the palette's.
+        drawn:
+          turning.currentTime === null
+            ? (widths.at(-1) ?? 0)
+            : widthAt(turning, Number(turning.currentTime)),
+        elapsed: performance.now() - pressed,
+      };
     });
+    if (!reversal) throw new Error('the reversal started no width motion');
     // The turn happened mid-morph, neither at the palette's width nor at the dock's.
     expect(reversal.going).toBeLessThan(reversal.start - 1);
     expect(reversal.going).toBeGreaterThan(dockWidth + 1);
-    // The next frame drawn continues from that width rather than jumping to either end. The
-    // spring keeps its speed through the turn, so what it travels in that frame grows with the
-    // frame's length (Chromium: 36 px in one 60 Hz frame): 40 px holds for a frame or two, while
-    // a slow one (CI WebKit, software rendering) may legitimately carry it much further, and
-    // then the turn must still be short of a jump across the whole travel.
-    const travel = reversal.start - dockWidth;
-    const moved = Math.abs(reversal.turned - reversal.going);
-    expect(moved).toBeLessThan(reversal.elapsed <= 34 ? 40 : travel / 2);
+    // The new motion starts at the width drawn, and heads for the palette's: never restarting
+    // from either end. At the turn the capsule is drawn where it was.
+    expect(Math.abs(reversal.from - reversal.going)).toBeLessThan(1);
+    expect(Math.abs(reversal.at - reversal.going)).toBeLessThan(1);
+    expect(Math.abs(reversal.to - reversal.start)).toBeLessThan(1);
+    // The next frame drawn is that motion at its own time (so it continues from the turn rather
+    // than jumping), and, when that frame is short, a short way on: what the spring travels in a
+    // frame grows with the frame's length (Chromium: 36 px in one 60 Hz frame).
+    expect(Math.abs(reversal.turned - reversal.drawn)).toBeLessThan(1);
+    if (reversal.elapsed <= 34) {
+      expect(Math.abs(reversal.turned - reversal.going)).toBeLessThan(40);
+    }
     await settled(page);
     await expect(page.locator('[data-capsule]')).toHaveAttribute('data-capsule', 'palette');
   });
@@ -513,18 +562,27 @@ test.describe('the capsule morph (Q-6)', () => {
 
 /**
  * Drives `steps` inside the page (a key, or a number of frames to wait) and reads every frame
- * drawn until `ms` have passed: each capsule piece's ink (its box less padding, where its icon
- * and label are drawn, clipped to the capsule's box) and its opacity as drawn (its own times
- * its ancestors' up to the capsule). Returns each pair of pieces both above trace opacity whose
- * ink overlaps in some frame: leaving over arriving, or a slide over a new piece.
+ * drawn until the steps are done, `ms` have passed and the capsule's morph has come to rest
+ * (within `limit` ms): each capsule piece's ink (its box less padding, where its icon and label
+ * are drawn, clipped to the capsule's box) and its opacity as drawn (its own times its
+ * ancestors' up to the capsule). Returns each pair of pieces both above trace opacity whose ink
+ * overlaps in some frame (leaving over arriving, or a slide over a new piece), how many frames
+ * were read while the morph was under way (a capsule animation running), and whether it ended
+ * inside the read. The read follows the morph rather than a frame count: an engine that draws
+ * slowly (CI WebKit: a frame every 90–200 ms) draws fewer frames of the same morph.
  */
 async function overlapsDuring(
   page: Page,
   steps: readonly (string | number)[],
   ms = 900,
-): Promise<{ readonly frames: number; readonly overlaps: readonly string[] }> {
+  limit = 5000,
+): Promise<{
+  readonly moving: number;
+  readonly rested: boolean;
+  readonly overlaps: readonly string[];
+}> {
   return page.evaluate(
-    async ({ steps, ms, trace }) => {
+    async ({ steps, ms, limit, trace }) => {
       const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
       const capsule = document.querySelector('[data-capsule]') as HTMLElement;
       const n = (v: string) => Number.parseFloat(v) || 0;
@@ -568,11 +626,20 @@ async function overlapsDuring(
         }
         return out;
       };
+      const morphing = () =>
+        capsule
+          .getAnimations({ subtree: true })
+          .some(
+            (a) =>
+              a.playState === 'running' &&
+              Number.isFinite(Number(a.effect?.getComputedTiming().endTime)),
+          );
       const overlaps = new Set<string>();
-      let frames = 0;
+      let moving = 0;
       const start = performance.now();
+      const since = () => performance.now() - start;
       let pending = [...steps];
-      while (performance.now() - start < ms) {
+      while (pending.length > 0 || since() < ms || (morphing() && since() < limit)) {
         const step = pending[0];
         if (typeof step === 'string') {
           const target = document.activeElement ?? document.body;
@@ -586,7 +653,7 @@ async function overlapsDuring(
           pending = step > 1 ? [step - 1, ...pending.slice(1)] : pending.slice(1);
         }
         await frame();
-        frames++;
+        if (morphing()) moving++;
         const pieces = read();
         for (const [i, a] of pieces.entries()) {
           for (const b of pieces.slice(i + 1)) {
@@ -600,9 +667,9 @@ async function overlapsDuring(
           }
         }
       }
-      return { frames, overlaps: [...overlaps] };
+      return { moving, rested: !morphing(), overlaps: [...overlaps] };
     },
-    { steps, ms, trace: 0.1 },
+    { steps, ms, limit, trace: 0.1 },
   );
 }
 
@@ -641,8 +708,10 @@ test.describe('the capsule morph never prints two contents at once', () => {
         await page.keyboard.press(key);
         await settled(page);
       }
-      const { frames, overlaps } = await overlapsDuring(page, steps);
-      expect(frames).toBeGreaterThan(10);
+      const { moving, rested, overlaps } = await overlapsDuring(page, steps);
+      // The read saw the morph under way, frame after frame, and saw it end.
+      expect(moving).toBeGreaterThanOrEqual(3);
+      expect(rested).toBe(true);
       expect(overlaps).toEqual([]);
     });
   }
