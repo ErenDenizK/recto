@@ -10,6 +10,13 @@ export const PRODUCT_NAME = 'Recto';
 /** The source repository; the release-notes URL derives from it. */
 export const REPOSITORY_URL = 'https://github.com/ErenDenizK/recto';
 
+/**
+ * The maker's portfolio, where the About credits line points (family README §4 move 3,
+ * kit/mark/README.md "The credits line"; owner, 2026-10-10). A plain link: following it is a
+ * navigation the reader chooses, not a request the app makes.
+ */
+export const MAKER_URL = 'https://erendenizk.github.io/';
+
 /** The licence of the app's own code (SPDX identifier). */
 export const LICENSE_ID = 'Apache-2.0';
 

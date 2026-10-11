@@ -3805,6 +3805,8 @@
   "about_source": "Source",
   "about_new_tab": "(opens in a new tab)",
   "about_files_local": "Files never leave your device.",
+  "about_maker_by": "Made by",
+  "about_maker_label": "Made by edk., opens the maker’s site in a new tab",
   "about_storage": "Storage in use",
   "about_storage_measuring": "Measuring…",
   "about_storage_unavailable": "Not available in this browser.",

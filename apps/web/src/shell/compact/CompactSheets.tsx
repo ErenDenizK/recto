@@ -40,6 +40,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
 import { documentLabels, hasCustomLabels, parseGoTo } from '../../viewer/navigation';
 import { BUILD_INFO, LICENSE_ID, PRODUCT_NAME, REPOSITORY_URL } from '../about/build-info';
+import { MakerCredit } from '../about/MakerCredit';
 import { AppGlyph } from '../AppGlyph';
 import { announce } from '../announcer';
 import { openableUrl } from '../OutlinePanel.tree';
@@ -557,6 +558,7 @@ function About() {
           <ReduceMotionRow />
         </Section>
       </div>
+      <MakerCredit className={styles.aboutCredit} />
     </div>
   );
 }
