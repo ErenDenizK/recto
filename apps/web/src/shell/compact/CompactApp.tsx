@@ -115,10 +115,11 @@ export function CompactApp() {
 
 /**
  * The toast stack (`08-feedback` FB4; D0-5) in the compact edition: the same region, above
- * the reader's capsule, or above the home indicator when the capsule is away or absent.
+ * the reader's capsule or the Library's Open PDF dock (the same 56 px piece in the same place,
+ * DSN-31), or above the home indicator when the capsule is away.
  */
 function CompactToasts() {
-  const away = useCompactStore((s) => s.place !== 'reader' || capsuleAway(s));
+  const away = useCompactStore((s) => s.place === 'reader' && capsuleAway(s));
   return <ToastRegion edition="compact" band={away ? 'away' : 'shown'} />;
 }
 
