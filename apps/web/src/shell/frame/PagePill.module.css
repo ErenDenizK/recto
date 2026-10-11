@@ -117,7 +117,9 @@
 
 /* The page field: an opaque well (G-18), the number and the total centred in it as one reading
    ("1 / 4", as the pill shows it). The well is the field's label, so a press anywhere in it
-   focuses the field, and it draws the ring for the field inside it (styles/focus.css, I-47). */
+   focuses the field, and it draws the ring for the field inside it (styles/focus.css, I-47).
+   The edge is drawn inside (no border box), so the field is the full control height (Q-9), as
+   the strip's Find well. */
 .goto {
   display: flex;
   align-items: center;
@@ -126,23 +128,23 @@
   min-width: 0;
   height: var(--control-h);
   padding: 0 var(--space-2);
-  border: 1px solid var(--control-border);
   border-radius: var(--radius-control);
   background: var(--field-well);
+  box-shadow: inset 0 0 0 1px var(--control-border);
   color: var(--text-primary);
   font-size: var(--field-text);
   font-variant-numeric: tabular-nums;
   cursor: text;
 }
 
+.goto:has(.gotoField[aria-invalid]) {
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
 .goto:has(.gotoField:focus-visible) {
   outline: 2px solid var(--focus-light);
   outline-offset: var(--focus-field-offset);
   box-shadow: var(--focus-field-shadow);
-}
-
-.goto:has(.gotoField[aria-invalid]) {
-  border-color: var(--glass-danger, var(--danger));
 }
 
 .gotoField {
@@ -152,6 +154,8 @@
   height: 100%;
   padding: 0;
   border: 0;
+  /* The well's corners, so the field reads as the well's control (as the strip's Find). */
+  border-radius: inherit;
   background: transparent;
   color: inherit;
   font: inherit;
