@@ -27,6 +27,16 @@
   container-type: inline-size;
 }
 
+/* A compact-height window (a phone on its side, where the sheet is full): the pad at the width
+   whose 440 × 160 aspect fits under the tabs with its Undo and Clear, centred, so a finger signs
+   without scrolling the sheet first (phone editing WP6, EDN-14). */
+@media (max-height: 480px) {
+  .panels {
+    width: min(100%, 360px);
+    margin-inline: auto;
+  }
+}
+
 .panel {
   display: grid;
   grid-area: 1 / 1;

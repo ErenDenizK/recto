@@ -15,7 +15,8 @@
  * - **Rows** (at most three): the tools as tiles of glyph and label (fills, no glass in glass;
  *   the armed one in the tool-active fill); the armed tool's options from the registry (Pen and
  *   Highlight: `InkOptions.tsx`); the quiet actions Eraser, Redo and Select.
- * - **Closing.** A tile arms its tool and closes the drawer; so do a swipe down, a press outside
+ * - **Closing.** A tile arms its tool and closes the drawer (Sign's keeps it open on its
+ *   signatures, `keepsDrawer`, EDN-14); so do a swipe down, a press outside
  *   (on a transparent scrim, so it never draws on the page) and the chip again. Esc closes it
  *   and puts focus back on ▾.
  * - **Semantics.** A non-modal `dialog` named "Tools"; the tiles are toggle buttons in a group,
@@ -137,7 +138,7 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
     if (spec.soon) return;
     receivePulse(el);
     armTool(spec.id);
-    window.setTimeout(() => setDrawerOpen(false), ARM_CLOSE_DELAY_MS);
+    if (!spec.keepsDrawer) window.setTimeout(() => setDrawerOpen(false), ARM_CLOSE_DELAY_MS);
   };
 
   const Options = armed && tool !== null ? armed.Options : undefined;

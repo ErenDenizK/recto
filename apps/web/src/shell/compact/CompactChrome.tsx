@@ -5,7 +5,9 @@
  * - **Top bar:** ‹ back to the Library, the title (truncated, full in its accessible name),
  *   and ⋯ with Find, Contents (only when the file has an outline), Go to page, Share or
  *   Download a copy, Document info and About. In Find it becomes the search field with the
- *   hit count, ‹ › and Done.
+ *   hit count, ‹ › and Done. A document changed since it was opened (an edit here, or a kept
+ *   snapshot) shows the "Changed" cue in ⋯ with Share a copy and Save a copy
+ *   (`design/phone-2026-10/README.md` §6: no save in place on a phone).
  * - **Capsule:** one floating capsule at the bottom: Pages, "3 / 12" (Go to page) and Find,
  *   with the round edit button beside it on the trailing side (EDN-8;
  *   `design/phone-2026-10/README.md` §2). It morphs the capsule into the edit island (Undo,
@@ -30,6 +32,7 @@ import {
 } from 'react';
 
 import { m } from '../../i18n';
+import { isDocumentChanged } from '../../session/session';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
@@ -104,6 +107,8 @@ function MoreMenu({ doc }: { readonly doc: VirtualDocument }) {
   const open = useCompactStore((s) => s.menuOpen);
   const hasOutline = doc.outline.length > 0;
   const share = canShareFiles();
+  // Followed on the workspace: an edit, undo or redo may change it.
+  const changed = useWorkspaceStore(() => isDocumentChanged(doc.id));
   return (
     <Menu.Root
       open={open}
@@ -133,10 +138,32 @@ function MoreMenu({ doc }: { readonly doc: VirtualDocument }) {
               <Icon name="hash" />
               <span>{m.goto_title()}</span>
             </Menu.Item>
-            <Menu.Item className={styles.menuItem} onClick={() => void shareOrDownload()}>
-              {share ? <Icon name="export" /> : <Icon name="download-simple" />}
-              <span>{share ? m.compact_share() : m.compact_download()}</span>
-            </Menu.Item>
+            {changed ? (
+              <Menu.Group data-testid="compact-menu-changed">
+                <Menu.GroupLabel className={styles.changedCue}>
+                  <span className={styles.changedDot} aria-hidden="true" />
+                  {m.compact_save_changed()}
+                </Menu.GroupLabel>
+                {share ? (
+                  <Menu.Item className={styles.menuItem} onClick={() => void shareOrDownload()}>
+                    <Icon name="export" />
+                    <span>{m.compact_save_share()}</span>
+                  </Menu.Item>
+                ) : null}
+                <Menu.Item
+                  className={styles.menuItem}
+                  onClick={() => void shareOrDownload('download')}
+                >
+                  <Icon name="download-simple" />
+                  <span>{m.compact_save_copy()}</span>
+                </Menu.Item>
+              </Menu.Group>
+            ) : (
+              <Menu.Item className={styles.menuItem} onClick={() => void shareOrDownload()}>
+                {share ? <Icon name="export" /> : <Icon name="download-simple" />}
+                <span>{share ? m.compact_share() : m.compact_download()}</span>
+              </Menu.Item>
+            )}
             <Menu.Separator className={styles.menuSeparator} />
             <Menu.Item className={styles.menuItem} onClick={() => openSheet('info')}>
               <Icon name="info" />
@@ -306,7 +333,12 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
           <Icon name="pencil-simple" />
         </button>
       </div>
-      {island ? <mark.ToolDrawer /> : null}
+      {island ? (
+        <>
+          <mark.ToolDrawer />
+          <mark.SignHost />
+        </>
+      ) : null}
     </>
   );
 }

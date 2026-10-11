@@ -411,6 +411,17 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
       'a 320 px phone less 16 px each side; on its side, the grabber, a 52 px tile row and the quiet row',
   },
   {
+    id: 'compact-touch-bar',
+    surface: 'Compact edition selection bar (phone editing)',
+    module: 'shell/compact/mark/TouchBar.module.css',
+    selector: '.bar',
+    tier: 'bar',
+    sigma: 8,
+    minWidth: 120,
+    minHeight: 56,
+    smallest: 'the Delete pill: a 48 px target inside 4 px of padding',
+  },
+  {
     id: 'compact-menu',
     surface: 'Compact edition ⋯ menu',
     module: 'shell/compact/CompactChrome.module.css',

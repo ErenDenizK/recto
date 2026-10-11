@@ -112,12 +112,12 @@ import { isHighlighter, presetStyle } from './pen/presets';
 import { pageText } from './page-text';
 import { glyphIndexAt, quadsForRange } from './quads';
 import styles from './AnnotationLayer.module.css';
+import { type SelectionChrome, useSelectionChrome } from './selection-chrome';
 import { naturalStampSize } from './stamps';
 import { presentError } from '../errors/present';
 
 /** Smallest drag (CSS px) that counts as a drag rather than a click. */
 const DRAG_THRESHOLD = 4;
-const HANDLE = 8;
 
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'start' | 'end';
 
@@ -212,6 +212,7 @@ export function AnnotationLayer(props: PageOverlayProps) {
   const input = usePageInput();
   const canTarget = !input.locked;
   const canDraw = useCanChange(input.id, 'freehand');
+  const chrome = useSelectionChrome();
   const annotations = usePageAnnotations(sourceId, sourceIndex);
   const selection = useAnnotationStore((s) =>
     s.selection?.pageId === pageId ? s.selection : null,
@@ -759,12 +760,16 @@ export function AnnotationLayer(props: PageOverlayProps) {
       <div ref={penProxyRef} style={PROXY_STYLE} aria-hidden="true" data-pen-proxy="" />
       <div ref={lassoProxyRef} style={PROXY_STYLE} aria-hidden="true" data-lasso-proxy="" />
       {canTarget && selected.length > 0 && gesture === null && editor === null ? (
-        <AnnotationBar
-          target={target}
-          annotations={selected}
-          frame={frame}
-          {...(lassoPaths ? { paths: lassoPaths } : {})}
-        />
+        chrome.Bar && !lassoPaths ? (
+          <chrome.Bar target={target} annotations={selected} frame={frame} />
+        ) : (
+          <AnnotationBar
+            target={target}
+            annotations={selected}
+            frame={frame}
+            {...(lassoPaths ? { paths: lassoPaths } : {})}
+          />
+        )
       ) : null}
       {canTarget && editor ? <InlineEditorView editor={editor} frame={frame} /> : null}
     </div>
@@ -869,6 +874,7 @@ function HitTarget({
 }
 
 const HANDLES: readonly Handle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+const CORNERS: readonly Handle[] = ['nw', 'ne', 'se', 'sw'];
 
 function handlePoint(box: Box, handle: Handle): Point {
   const x = handle.includes('w')
@@ -962,6 +968,7 @@ function SelectionOutline({
   } else if (gesture?.type === 'resize' && gesture.id === a.id) {
     shown = resized(a, gesture, frame) ?? a;
   }
+  const chrome = useSelectionChrome();
   const box = rectToCss(frame, displayRect(frame, shown));
   const locked = a.flags?.locked === true;
   const showHandles = single && !locked && gesture === null;
@@ -1003,22 +1010,18 @@ function SelectionOutline({
         ? (['start', 'end'] as const).map((handle, i) => {
             const p = userToCss(frame, a.vertices?.[i] ?? { x: 0, y: 0 });
             return (
-              <rect
+              <HandleMark
                 key={handle}
-                className={styles.handle}
-                data-handle={handle}
-                data-annotation-keep=""
-                x={p.x - HANDLE / 2}
-                y={p.y - HANDLE / 2}
-                width={HANDLE}
-                height={HANDLE}
+                handle={handle}
+                at={p}
+                chrome={chrome}
                 onPointerDown={(e) => onHandle(e, a, handle)}
               />
             );
           })
         : null}
       {showHandles && canResize(a)
-        ? HANDLES.map((handle) => {
+        ? (chrome.cornersOnly ? CORNERS : HANDLES).map((handle) => {
             const p = handlePoint(
               {
                 left: box.left - 2,
@@ -1029,15 +1032,11 @@ function SelectionOutline({
               handle,
             );
             return (
-              <rect
+              <HandleMark
                 key={handle}
-                className={styles.handle}
-                data-handle={handle}
-                data-annotation-keep=""
-                x={p.x - HANDLE / 2}
-                y={p.y - HANDLE / 2}
-                width={HANDLE}
-                height={HANDLE}
+                handle={handle}
+                at={p}
+                chrome={chrome}
                 onPointerDown={(e) => onHandle(e, a, handle)}
               />
             );
@@ -1050,6 +1049,61 @@ function SelectionOutline({
           </span>
         </foreignObject>
       ) : null}
+    </g>
+  );
+}
+
+/** How far a handle's touch hit square reaches inside the selection's box, CSS px. */
+const HIT_INSET = 10;
+
+/**
+ * One resize handle at `at`: the drawn square, and around it, where the chrome asks for one
+ * (the phone's touch chrome, `selection-chrome.ts`), an invisible hit square that takes the
+ * same press, leaning out of the box.
+ */
+function HandleMark({
+  handle,
+  at,
+  chrome,
+  onPointerDown,
+}: {
+  readonly handle: Handle;
+  readonly at: Point;
+  readonly chrome: SelectionChrome;
+  readonly onPointerDown: (event: ReactPointerEvent) => void;
+}) {
+  const size = chrome.handle;
+  const mark = (
+    <rect
+      className={styles.handle}
+      data-handle={handle}
+      data-annotation-keep=""
+      x={at.x - size / 2}
+      y={at.y - size / 2}
+      width={size}
+      height={size}
+      onPointerDown={onPointerDown}
+    />
+  );
+  if (chrome.hit <= size) return mark;
+  // The square leans outward from the box, reaching only HIT_INSET px inside it, so a small
+  // selection keeps its middle for a drag that moves it.
+  const dx = handle.includes('w') ? -1 : handle.includes('e') ? 1 : 0;
+  const dy = handle.startsWith('n') ? -1 : handle.startsWith('s') ? 1 : 0;
+  const shift = Math.max(0, chrome.hit / 2 - HIT_INSET);
+  return (
+    <g>
+      <rect
+        className={styles.handleHit}
+        data-handle-hit={handle}
+        data-annotation-keep=""
+        x={at.x - chrome.hit / 2 + dx * shift}
+        y={at.y - chrome.hit / 2 + dy * shift}
+        width={chrome.hit}
+        height={chrome.hit}
+        onPointerDown={onPointerDown}
+      />
+      {mark}
     </g>
   );
 }

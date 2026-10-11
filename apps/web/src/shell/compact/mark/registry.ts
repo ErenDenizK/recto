@@ -45,6 +45,8 @@ export interface CompactToolSpec {
   readonly soon?: boolean;
   /** The drawer's second row while this tool is armed. */
   readonly Options?: ComponentType;
+  /** Its tile keeps the drawer open, for a choice in its options (Sign's signatures). */
+  readonly keepsDrawer?: boolean;
   /** The second row's one line when the tool has no options. */
   readonly hint?: () => string;
   /** Drawn over the chip's glyph while armed (the ink's colour). */
