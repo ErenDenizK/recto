@@ -22,6 +22,9 @@
   overflow: auto;
   overscroll-behavior: contain;
   touch-action: pan-x pan-y;
+  /* The page layers stack among themselves (the annotation layer's z-index while editing),
+     never over the chrome, the tool drawer or its scrim. */
+  isolation: isolate;
   scrollbar-width: none;
 }
 
