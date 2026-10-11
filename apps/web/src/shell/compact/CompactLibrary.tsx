@@ -3,7 +3,7 @@
  * **Try the sample** as a text button under it (02-library L10), the Recents, the
  * reading-only line, and the language switch. Nothing else.
  *
- * - The reading-only line ("Reading only on phones for now…") is the Library's own line under
+ * - The tools line ("Pen, highlight, text and signature on your phone…", EDN-15) is the Library's own line under
  *   the button, never a modal (ADR-0033 §3 "Honesty").
  * - Recents are the full edition's (`files/recents.ts`): newest first, the open document
  *   first as "Reading now" (a tap goes back to it), a row without a kept file handle reopens

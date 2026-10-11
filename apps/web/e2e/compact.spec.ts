@@ -168,7 +168,7 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
     await expect(
       page.getByText(
-        'Reading only on phones for now. Open this file on a computer or tablet to mark it up.',
+        'Pen, highlight, text and signature on your phone. Every tool on a computer or tablet.',
       ),
     ).toBeVisible();
     // First run: Recents holds its place with a calm empty row (XD-3).

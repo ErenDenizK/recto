@@ -60,7 +60,7 @@ describe('CompactApp', () => {
     expect(screen.getByRole('button', { name: 'Open PDF' })).toBeVisible();
     expect(
       screen.getByText(
-        'Reading only on phones for now. Open this file on a computer or tablet to mark it up.',
+        'Pen, highlight, text and signature on your phone. Every tool on a computer or tablet.',
       ),
     ).toBeVisible();
     expect(screen.queryByTestId('app-shell')).toBeNull();
