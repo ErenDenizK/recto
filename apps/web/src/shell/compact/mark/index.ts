@@ -8,6 +8,9 @@
  * Lanes: register a tool with `registerCompactTool` (`registry.ts`), and a page layer with
  * `registerCompactOverlay`, from a module this file imports, or a lazier one your tool's `arm`
  * loads.
+ *
+ * `SelectionHost` (`CompactChrome` mounts it whenever this chunk is here) watches for a page
+ * text selection and loads the selection bar, a chunk of its own, on the first one.
  */
 import { AnnotationLayer } from '../../../annotations/AnnotationLayer';
 import { DryInkLayer } from '../../../annotations/pen/DryInkLayer';
@@ -24,4 +27,5 @@ export { registerCompactOverlay } from '../mark-host';
 export { morphCapsule } from './capsule-morph';
 export { EditIsland } from './EditIsland';
 export { type CompactToolSpec, registerCompactTool } from './registry';
+export { SelectionHost } from './selection-host';
 export { ToolDrawer } from './ToolDrawer';

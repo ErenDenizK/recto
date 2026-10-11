@@ -2,9 +2,11 @@
  * The drawer's second row for Pen and Highlight (`design/phone-2026-10/README.md` §3 row 2):
  * three colour swatches, a hairline, and three sizes, each a 44 px target, presets and never a
  * picker (`ink-presets.ts`). The swatches are the shared `ui/Swatch` (10-ink §5: the dot, the
- * contrast ring, the selection ring in the primary text colour); the sizes take the same ring
- * around a dot of the armed ink at three diameters, so the row reads as one family. Choosing
- * keeps the drawer open: only a tool closes it.
+ * contrast ring, the selection ring in the primary text colour). The sizes read as sizes: three
+ * filled dots of growing diameter in a text colour (a black ink would vanish on dark glass, and
+ * the colour is the swatches' to say), the chosen one primary and ringed by Swatch's own ring at
+ * Swatch's gap, so each ring hugs its dot and the row reads as one family. Choosing keeps the
+ * drawer open: only a tool closes it; the choice is the pen preset's, so it persists per device.
  */
 import { Radio } from '@base-ui/react/radio';
 import { RadioGroup } from '@base-ui/react/radio-group';
@@ -29,7 +31,9 @@ import {
 import styles from './InkOptions.module.css';
 
 /** The sizes' dot diameters, px: fine, medium, bold. */
-const SIZE_DOTS = [6, 10, 15] as const;
+const SIZE_DOTS = [8, 13, 18] as const;
+/** The ring's clearance around a size dot, px: Swatch's 2 px gap and 2 px ring, each side. */
+const SIZE_RING_PAD = 8;
 const SIZE_NAMES = [m.compact_size_fine, m.compact_size_medium, m.compact_size_bold] as const;
 
 /** Pen: the three writing pens' colours, and the armed pen's width. */
@@ -92,11 +96,10 @@ function Sizes({
   sizes,
 }: {
   readonly index: PresetIndex;
-  readonly preset: PenPreset;
+  readonly preset: Pick<PenPreset, 'width'>;
   readonly sizes: readonly number[];
 }) {
   const chosen = nearestSize(preset.width, sizes);
-  const color = preset.color.toUpperCase();
   return (
     <RadioGroup
       aria-label={m.compact_ink_size()}
@@ -106,21 +109,19 @@ function Sizes({
         if (width !== undefined) useAnnotationStore.getState().editPreset(index, { width });
       }}
       className={`${swatchStyles.group} ${styles.sizes}`}
+      data-testid="compact-ink-sizes"
     >
       {SIZE_DOTS.map((dot, i) => (
         <Radio.Root
           key={dot}
           value={String(i)}
           aria-label={SIZE_NAMES[i]?.() ?? ''}
-          className={swatchStyles.swatch}
-          data-ring-dark={needsContrastRing(color, 'dark') ? '' : undefined}
-          data-ring-light={needsContrastRing(color, 'light') ? '' : undefined}
+          className={`${swatchStyles.swatch} ${styles.size}`}
           style={
             {
-              '--swatch': color,
               '--sw-dot': `${dot}px`,
               '--sw-dot-on': `${dot}px`,
-              '--sw-ring-size': '26px',
+              '--sw-ring-size': `${dot + SIZE_RING_PAD}px`,
             } as CSSProperties
           }
         >
