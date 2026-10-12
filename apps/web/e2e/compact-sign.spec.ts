@@ -2,7 +2,8 @@
  * Phone signing and saving (M10 WP6, WP7; design/phone-2026-10/README.md §3, §4, §6), on the
  * `phone` and `phone-land` projects with CDP touch:
  *
- * - Sign's tile keeps the drawer open on its options (New and the saved signatures); New opens
+ * - Sign's tile keeps the drawer open on its options (New and the saved signatures), as a saved
+ *   signature does until the first tap on the page places it (EDN-18); New opens
  *   New signature as a sheet that fits the window; a finger draws on the pad; Use arms it; the
  *   next tap places it, selected, with 44 px touch handles and the phone's bar; a drag moves
  *   it, a corner scales it, and Undo walks back to no signature. The kept signature shows as a
@@ -203,7 +204,23 @@ test.describe('phone signing (M10 WP6)', () => {
 
     // The kept signature is a tile next time.
     await page.getByTestId('compact-tool-more').click();
-    await expect(page.locator('[data-saved-signature]')).toHaveCount(1);
+    const saved = page.locator('[data-saved-signature]');
+    await expect(saved).toHaveCount(1);
+
+    // Choosing it keeps the drawer open (EDN-18); the first tap on the page closes the drawer
+    // and places it, where the drawer leaves page above it (a phone held upright).
+    await saved.click();
+    await expect(saved).toHaveAttribute('aria-pressed', 'true');
+    await page.waitForTimeout(500);
+    await expect(drawer(page)).toBeVisible();
+    const top = (await drawer(page).boundingBox())?.y ?? 0;
+    const sheetBox = await page.locator('[data-page-index="0"]').boundingBox();
+    if (!sheetBox) throw new Error('no page');
+    const above = { x: sheetBox.x + sheetBox.width / 2, y: top - 60 };
+    if (above.y < Math.max(sheetBox.y, 0) + 40) return;
+    await tap(cdp, above);
+    await expect(drawer(page)).toHaveCount(0);
+    await expect(stamps(page)).toHaveCount(1);
   });
 });
 

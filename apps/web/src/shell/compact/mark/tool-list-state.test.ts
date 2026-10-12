@@ -1,14 +1,15 @@
 /**
  * The list drawer's accordion (EDN-16, `tool-list-state.ts`): a first tap selects, a second
  * opens the row's options, a third folds them; one row open at a time; "Soon" does nothing;
- * the drawer variant's flag (`drawer-variant.ts`); and the close after an arming pulse
- * (`drawer-close.ts`), which waits on the pulse and never shuts a drawer opened since.
+ * the drawer variant's flag (`drawer-variant.ts`); and how both drawers close (`drawer-close.ts`,
+ * EDN-18): a press outside goes on to the page only when the armed tool acts there, and never
+ * closes from the panel or the island.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { CompactTool } from '../compact-store';
 import { setDrawerOpen, useCompactStore } from '../compact-store';
-import { closeDrawerAfter } from './drawer-close';
+import { closeOnOutsidePress, pressGoesThrough } from './drawer-close';
 import { decideDrawerVariant } from './drawer-variant';
 import { type ListRow, openRow, tapRow } from './tool-list-state';
 
@@ -64,30 +65,57 @@ describe('the drawer variant (?drawer)', () => {
   });
 });
 
-describe('the close after an arming pulse', () => {
-  afterEach(() => setDrawerOpen(false));
+describe('the press outside the drawer (EDN-18)', () => {
+  const made: Element[] = [];
+  const el = (html: string): HTMLElement => {
+    const host = document.createElement('div');
+    host.innerHTML = html;
+    document.body.append(host);
+    made.push(host);
+    return host.firstElementChild as HTMLElement;
+  };
+  const press = (target: Element) =>
+    target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
 
-  it('waits for the pulse, then closes', async () => {
-    setDrawerOpen(true);
-    let crest!: () => void;
-    closeDrawerAfter(new Promise<void>((resolve) => (crest = resolve)));
-    await Promise.resolve();
-    expect(useCompactStore.getState().drawerOpen).toBe(true);
-    crest();
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(useCompactStore.getState().drawerOpen).toBe(false);
+  afterEach(() => {
+    setDrawerOpen(false);
+    for (const host of made.splice(0)) host.remove();
   });
 
-  it('never shuts a drawer that closed and opened again meanwhile', async () => {
+  it('goes on to the page only for a tool whose next step is a tap there', () => {
+    expect(pressGoesThrough('text-box')).toBe(true);
+    expect(pressGoesThrough('edit-text')).toBe(true);
+    expect(pressGoesThrough('signature')).toBe(true);
+    expect(pressGoesThrough('ink')).toBe(false);
+    expect(pressGoesThrough('eraser')).toBe(false);
+    expect(pressGoesThrough('select')).toBe(false);
+  });
+
+  it('closes on a press on the page and lets the press reach it', () => {
+    const panel = el('<div><button>Pen</button></div>');
+    const pageEl = el('<div data-page></div>');
+    let reached = false;
+    pageEl.addEventListener('pointerdown', (event) => {
+      reached = !event.defaultPrevented;
+    });
     setDrawerOpen(true);
-    let crest!: () => void;
-    closeDrawerAfter(new Promise<void>((resolve) => (crest = resolve)));
-    setDrawerOpen(false);
+    const stop = closeOnOutsidePress(() => panel);
+    press(pageEl);
+    stop();
+    expect(useCompactStore.getState().drawerOpen).toBe(false);
+    expect(reached).toBe(true);
+  });
+
+  it('keeps it open for a press in the panel or on the island (Undo)', () => {
+    const panel = el('<div><button>Pen</button></div>');
+    const island = el('<div data-testid="compact-capsule"><button>Undo</button></div>');
     setDrawerOpen(true);
-    crest();
-    await Promise.resolve();
-    await Promise.resolve();
+    const stop = closeOnOutsidePress(() => panel);
+    press(panel.querySelector('button') as Element);
+    press(island.querySelector('button') as Element);
+    expect(useCompactStore.getState().drawerOpen).toBe(true);
+    stop();
+    press(document.body);
     expect(useCompactStore.getState().drawerOpen).toBe(true);
   });
 });

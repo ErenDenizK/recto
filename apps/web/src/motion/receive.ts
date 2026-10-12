@@ -46,8 +46,7 @@ function samplePulse(): Keyframe[] {
  * under reduced motion; nothing is left at rest.
  *
  * Resolves when the swell crests (at once when nothing plays): an empty animation on the same
- * timeline marks it, so what follows the pulse (the phone drawer closing after an arming tile,
- * `shell/compact/mark/drawer-close.ts`) waits on the animation, never on a timer.
+ * timeline marks it, so what follows the pulse waits on the animation, never on a timer.
  */
 export function receivePulse(el: Element): Promise<void> {
   if (!(el instanceof HTMLElement) || typeof el.animate !== 'function' || reducedMotion()) {

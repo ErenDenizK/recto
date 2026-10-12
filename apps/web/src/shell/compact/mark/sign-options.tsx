@@ -3,9 +3,9 @@
  * saved signatures as tiles, plus New"; MK-12's plates): New first, then the kept signatures
  * newest first (at most five, `SAVED_SIGNATURE_LIMIT`), each a 56 px tile with the signature on
  * its page-white plate, in one row that scrolls sideways when it outgrows the drawer. A saved
- * tile arms that signature for the next tap on a page and closes the drawer once its pulse has
- * crested (`drawer-close.ts`); the armed one shows
- * pressed. Where this window keeps nothing, one line says so beside New.
+ * tile arms that signature for the next tap on a page, with the receive pulse, and the drawer
+ * stays open (EDN-18): that tap closes it and places the signature (`drawer-close.ts`). The
+ * armed one shows pressed. Where this window keeps nothing, one line says so beside New.
  *
  * Its own chunk (README §7 "signatures are split again"), loaded as Sign arms (`sign.tsx`).
  */
@@ -25,7 +25,6 @@ import { SignaturePlate } from '../../../signatures/SignaturePlate';
 import { Button } from '../../../ui/Button';
 import { Icon } from '../../../ui/Icon';
 import { useToolStore } from '../../../viewer/tool-store';
-import { closeDrawerAfter } from './drawer-close';
 import { openNewSignatureSheet } from './sign';
 import styles from './sign.module.css';
 
@@ -45,10 +44,9 @@ export default function SignOptions() {
     void loadSavedSignatures();
   }, []);
 
-  const arm = async (id: string, el: HTMLElement) => {
-    const crest = receivePulse(el);
-    // Armed, the drawer goes back into the chip once the tile's swell crests (drawer-close.ts).
-    if (await armSavedSignature(id)) closeDrawerAfter(crest);
+  const arm = (id: string, el: HTMLElement) => {
+    void receivePulse(el);
+    void armSavedSignature(id);
   };
 
   return (
@@ -71,7 +69,7 @@ export default function SignOptions() {
             aria-label={signatureLabel(signature)}
             aria-pressed={armed === signature.id}
             data-saved-signature={signature.id}
-            onClick={(event) => void arm(signature.id, event.currentTarget)}
+            onClick={(event) => arm(signature.id, event.currentTarget)}
           >
             <SignaturePlate ink={signature} className={styles.plate} />
           </Button>

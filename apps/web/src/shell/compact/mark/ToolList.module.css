@@ -28,6 +28,11 @@
   touch-action: none;
 }
 
+/* EDN-18: a press outside goes on to the page when the armed tool acts there. */
+.scrim[data-through] {
+  pointer-events: none;
+}
+
 .panel {
   composes: mat mat-menu s24 c20 from global;
   --list-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
