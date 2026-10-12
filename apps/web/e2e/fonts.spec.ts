@@ -15,7 +15,18 @@
  *
  * Layout Instability (`layout-shift` entries) is a Chromium API; Firefox and WebKit skip the
  * shift checks and keep the rest.
+ *
+ * "Fetched once" is counted on the server side, by a counting proxy in front of the preview,
+ * not by `page.route`: a route turns request interception on, and in WebKit Playwright then
+ * disables resource caching (`Network.setResourceCachingDisabled`), so the face's use of the
+ * preloaded file goes to the network again and the route sees two fetches that Safari never
+ * makes. Nor by `request` events or resource-timing entries: WebKit reports a
+ * memory-cache reuse as both. The proxy leaves every engine's caches as a visitor has them and
+ * sees each request that leaves the browser, a revalidation included.
  */
+import { createServer, request as forward } from 'node:http';
+import type { AddressInfo } from 'node:net';
+
 import { type Browser, expect, type Page, test } from '@playwright/test';
 
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -84,6 +95,47 @@ async function freshPage(browser: Browser): Promise<Page> {
   return context.newPage();
 }
 
+/**
+ * A proxy in front of `upstream` (the preview server) that counts the requests reaching it by
+ * path. Its own origin serves the same build, so the page is still served from one origin.
+ */
+async function countingProxy(upstream: string) {
+  const target = new URL(upstream);
+  const hits = new Map<string, number>();
+  const server = createServer((incoming, outgoing) => {
+    const path = new URL(incoming.url ?? '/', 'http://proxy').pathname;
+    hits.set(path, (hits.get(path) ?? 0) + 1);
+    const upstreamRequest = forward(
+      {
+        hostname: target.hostname,
+        port: target.port,
+        path: incoming.url,
+        method: incoming.method,
+        headers: { ...incoming.headers, host: target.host },
+      },
+      (response) => {
+        outgoing.writeHead(response.statusCode ?? 502, response.headers);
+        response.pipe(outgoing);
+      },
+    );
+    upstreamRequest.on('error', () => outgoing.destroy());
+    incoming.pipe(upstreamRequest);
+  });
+  await new Promise<void>((listening) => server.listen(0, listening));
+  const { port } = server.address() as AddressInfo;
+  return {
+    /** `upstream`'s URL (base path included) moved to the proxy's origin. */
+    url: Object.assign(new URL(upstream), { port: String(port) }).href,
+    hits: (suffix: string) =>
+      [...hits].reduce((sum, [path, n]) => (path.endsWith(suffix) ? sum + n : sum), 0),
+    close: () =>
+      new Promise<void>((closed) => {
+        server.close(() => closed());
+        server.closeAllConnections();
+      }),
+  };
+}
+
 for (const lang of ['en', 'tr'] as const) {
   test(`a cold load shifts nothing (${lang})`, async ({ browser, browserName }) => {
     test.skip(browserName !== 'chromium', 'layout-shift entries are a Chromium API');
@@ -98,25 +150,20 @@ for (const lang of ['en', 'tr'] as const) {
 
 test('the chrome is set in the shipped face, from this origin, preloaded once', async ({
   browser,
+  baseURL,
 }) => {
+  const proxy = await countingProxy(baseURL ?? 'http://localhost:4173/');
   const page = await freshPage(browser);
   const fonts: string[] = [];
-  let latinFetches = 0;
-  await page.route('**/fonts/inter-recto-latin.woff2', async (route) => {
-    latinFetches += 1;
-    await route.continue();
-  });
   page.on('request', (request) => {
     if (request.resourceType() === 'font' || /\.(woff2?|ttf|otf)(\?|$)/.test(request.url())) {
       fonts.push(new URL(request.url()).pathname);
     }
   });
-  await coldLoad(page, 'tr');
-  // Fetched once: counted where a request leaves the page for the network (the route), not as
-  // `request` events or resource-timing entries. WebKit reports the face's use of the preloaded
-  // file as a second request and a second timing entry although it is served from the memory
-  // cache; a real second fetch would reach the route twice.
-  expect(latinFetches, fonts.join('\n')).toBe(1);
+  await page.goto(new URL('./?lang=tr', proxy.url).href);
+  await settle(page);
+  // Fetched once: counted where the requests arrive, the server (see the head of this file).
+  expect(proxy.hits('/fonts/inter-recto-latin.woff2'), fonts.join('\n')).toBe(1);
   expect(fonts.some((path) => path.endsWith('/fonts/inter-recto-latin-ext.woff2'))).toBe(true);
   expect(fonts.filter((path) => /fontsource|jetbrains|inter-latin-wght/i.test(path))).toEqual([]);
   const face = await page.evaluate(() => ({
@@ -141,6 +188,7 @@ test('the chrome is set in the shipped face, from this origin, preloaded once', 
   expect(face.loaded).toBe(true);
   expect(face.origins).toEqual([new URL(page.url()).origin]);
   await page.context().close();
+  await proxy.close();
 });
 
 test('with the font held back, the swap from the fallback barely moves the chrome', async ({
