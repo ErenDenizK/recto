@@ -208,12 +208,18 @@ export function missingInFace(font: Font, text: string): string[] {
   return [...missing];
 }
 
-/** Advance width of `text` in `font` at size 1 (no kerning: one glyph per code point). */
+/**
+ * Advance width of `text` in `font` at size 1 (no kerning: one glyph per code point), as the
+ * written font draws it: `FPDFText_LoadCidType2Font` writes each width in /W as whole
+ * thousandths of the em, truncated. A face whose em is not 1000 units (Inter: 2048) would
+ * otherwise drift a few hundredths of a point per glyph from its plan, and the paragraph
+ * check refuses the edit.
+ */
 export function faceAdvance(font: Font, text: string): number {
   let width = 0;
   for (const ch of text) {
     const glyph = font.glyphForCodePoint(ch.codePointAt(0) ?? 0);
-    width += (glyph?.advanceWidth ?? 0) / font.unitsPerEm;
+    width += Math.trunc(((glyph?.advanceWidth ?? 0) * 1000) / font.unitsPerEm) / 1000;
   }
   return width;
 }

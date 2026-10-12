@@ -458,6 +458,12 @@ const SCRIPTS: Readonly<
   'line 1 deleted whole': (b) => ({ start: 0, end: b.lines[1]?.start ?? 0, inserted: '' }),
   'delete all and retype': (b) => ({ start: 0, end: b.text.length, inserted: 'New words here.' }),
   'Turkish letters': (b) => at(b, 'quay', 'iskele ğİş'),
+  'a long insertion that adds lines': (b) =>
+    at(
+      b,
+      'tide.',
+      'tide, and then the whole crew went home along the harbour wall for a late supper by the fire.',
+    ),
 };
 
 describe('content shapes × edits', () => {
@@ -471,6 +477,47 @@ describe('content shapes × edits', () => {
       });
     }
   }
+});
+
+describe('every editable paragraph of text-edit-fonts.pdf (WinAnsi, Identity-H subsets, TrueType)', () => {
+  const scripts: Readonly<
+    Record<string, (b: ParagraphBlock) => { start: number; end: number; inserted: string }>
+  > = {
+    'delete all and retype': (b) => ({ start: 0, end: b.text.length, inserted: 'Yeni metin.' }),
+    'Turkish letters in the middle': (b) => {
+      const mid = b.text.indexOf(' ', b.text.length >> 1);
+      return { start: mid, end: mid, inserted: ' ğİşçöü' };
+    },
+    'a word deleted': (b) => at(b, 'quick ', ''),
+  };
+  test('each script on each paragraph', async () => {
+    const bytes = await fixture(fontsUrl);
+    const source = await h.open(bytes);
+    const blocks = await h.editor.analyzeParagraphs(source, 0);
+    const editable: number[] = [];
+    for (const [i, b] of blocks.entries()) {
+      if (b.refusal !== undefined || !b.text.includes('quick ')) continue;
+      const analysis = await h.editor.analyzeParagraphLayout(b.ref);
+      if (analysis.refusal === undefined) editable.push(i);
+    }
+    await h.adapter.close(source);
+    expect(editable.length).toBeGreaterThanOrEqual(3);
+    const failures: string[] = [];
+    for (const i of editable) {
+      for (const [name, script] of Object.entries(scripts)) {
+        try {
+          const p = await probe(`paragraph ${i}: ${name}`, bytes.slice(0), i, script);
+          expect(p.result.committed, `paragraph ${i}: ${name}`).toBe(true);
+          await h.adapter.close(p.source);
+        } catch (error) {
+          failures.push(
+            `paragraph ${i} (${blocks[i]?.lines[0]?.spans[0]?.font.baseName}): ${name}: ${String(error).slice(0, 300)}`,
+          );
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
 });
 
 /** Index of the paragraph that now reads `text`. */
