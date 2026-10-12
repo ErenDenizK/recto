@@ -166,7 +166,8 @@ interface Probe {
 }
 
 /** The paragraph text the analysis reads back (one space per word gap). */
-const collapsed = (text: string) => text.replace(/[ \t]+/g, ' ').trim();
+/** The text as it reads back: tabs as spaces, a double space kept (`blocks.ts` step 9). */
+const collapsed = (text: string) => text.replace(/\t/g, ' ').trim();
 
 /** Edits paragraph `index` of `bytes` (opened) or of an open source (an edit after an edit). */
 async function probe(

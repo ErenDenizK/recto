@@ -67,7 +67,8 @@ function checkInvariants(blocks: readonly ParagraphBlock[], runs: readonly Locat
           .slice(s.glyphStart, s.glyphEnd)
           .map((g) => (g.text === '\u0002' ? '-' : g.text))
           .join('');
-        expect(s.text).toBe(raw);
+        // A space glyph may carry the spaces the text page folded into it.
+        expect(s.text.replace(/ +/g, ' ')).toBe(raw.replace(/ +/g, ' '));
       }
       const shown = line.end === 'joined' ? line.text.slice(0, -1) : line.text;
       expect(block.text.slice(line.start, line.start + shown.length)).toBe(shown);
@@ -521,7 +522,25 @@ describe('geometry rules', () => {
       const blocks = await blocksOf(await page([...content, tj(72, 664, 'and a short end.')]));
       expect(lineCounts(blocks)).toEqual([4]);
       expect(blocks[0]?.align).toBe('justify');
+      // Stretched spaces are one space each.
+      expect(blocks[0]?.text).not.toContain('  ');
     }
+  });
+
+  test('a double space reads as two spaces, though the text page keeps one of its glyphs', async () => {
+    const blocks = await blocksOf(
+      await page([
+        tj(72, 700, 'One  space  too many, and   three here.'),
+        tj(72, 600, 'Two  spaces after one word only.'),
+      ]),
+    );
+    expect(blocks.map((b) => b.text)).toEqual([
+      'One  space  too many, and   three here.',
+      'Two  spaces after one word only.',
+    ]);
+    // The span's text carries them too, so offsets map onto glyphs.
+    const line = blocks[0]?.lines[0];
+    expect(line?.spans.map((s) => s.text).join('')).toBe(line?.text);
   });
 
   test('ragged lines ending a few tenths of a point apart by chance stay left-aligned', async () => {
@@ -553,8 +572,7 @@ describe('geometry rules', () => {
       'though the bells of the small chapel rang',
       'when the first carts rolled down to town',
     ];
-    const natural = await naturalWidths([...heads, ...tails]);
-    const target = Math.max(natural[2] ?? 0, natural[3] ?? 0) + 40;
+    const natural = await naturalWidths(heads);
     const content: string[] = [];
     heads.forEach((head, i) => {
       const tail = tails[i] as string;
@@ -562,8 +580,8 @@ describe('geometry rules', () => {
       const headW = (natural[i] ?? 0) + spaceCount(head) * extra;
       const tailX = 72 + headW + 2 * (2.78 + extra);
       content.push(stretchedTj(72, y, head, extra));
-      const tailExtra = (72 + target - tailX - (natural[i + 2] ?? 0)) / spaceCount(tail);
-      content.push(stretchedTj(tailX, y, tail, tailExtra));
+      // One stretch for the whole line, as a justified line has.
+      content.push(stretchedTj(tailX, y, tail, extra));
     });
     content.push(tj(72, 676, 'and the market opened.'));
     content.push(...LONG.map((line, i) => tj(72, 600 - 12 * i, line)));

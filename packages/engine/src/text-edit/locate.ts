@@ -250,6 +250,7 @@ export function toLocatedRun(
     fontName: info.facts.baseName,
     charIndex: c.index,
     origin: c.origin,
+    ...(c.generated ? { generated: true as const } : {}),
   }));
   const { u } = axis(info.pageMatrix);
   const loose = chars.flatMap((c) => (c.looseBox ? [c.looseBox] : []));

@@ -989,6 +989,8 @@ export interface LocatedGlyph extends Glyph {
   readonly charIndex: number;
   /** Glyph origin on the baseline, unrotated user space. */
   readonly origin: { readonly x: number; readonly y: number };
+  /** A space the text page generated for a gap (no code draws it); absent when drawn. */
+  readonly generated?: true;
 }
 
 /**

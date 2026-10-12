@@ -684,6 +684,74 @@ describe('edit matrix: detection matches the manifest', () => {
   }
 });
 
+/** Commits `r` on paragraph `index` the way the app does; the text after the edit. */
+async function commitReplacement(source: SourceId, index: number, r: Replacement): Promise<string> {
+  const block = (await h.editor.analyzeParagraphs(source, 0)).find((b) => b.ref.index === index);
+  if (!block) throw new Error(`no paragraph ${index}`);
+  const analysis = await h.editor.analyzeParagraphLayout(block.ref);
+  const typed = block.text.slice(0, r.start) + r.text + block.text.slice(r.end);
+  const style = styleAt(analysis, r.start);
+  const edit: LayoutEdit = { ...r, ...(style === undefined ? {} : { style }) };
+  const decision = overlayLayout(analysis, edit);
+  const result = await h.editor.applyParagraphEdit(
+    source,
+    0,
+    {
+      ref: block.ref,
+      text: typed,
+      caretSpan: { start: r.start, end: r.end },
+      ...(style === undefined ? {} : { style }),
+      layout: decision.layout,
+    },
+    { commit: true },
+  );
+  expect(result.committed).toBe(true);
+  return typed;
+}
+
+describe('edit matrix: a double space survives commit, reopen and a second edit', () => {
+  // A ragged one-line paragraph and a Word-style justified one (TJ offsets after spaces).
+  for (const [file, url, index] of [
+    ['word-export.pdf', wordExportUrl, 3],
+    ['word-export.pdf', wordExportUrl, 1],
+    ['spacing-ops.pdf', spacingUrl, 3],
+  ] as const) {
+    test(`${file}#${index}`, async () => {
+      const source = await h.open(await fixture(url));
+      try {
+        const block = (await h.editor.analyzeParagraphs(source, 0))[index] as ParagraphBlock;
+        const first = wordsOf(block.text)[0] as Word;
+        // A second space after the first word.
+        const typed = await commitReplacement(source, index, {
+          start: first.end,
+          end: first.end,
+          text: ' ',
+        });
+        expect(typed).toContain(`${first.text}  `);
+        const reopened = await h.open(await h.adapter.save(source));
+        try {
+          const again = (await h.editor.analyzeParagraphs(reopened, 0))[index] as ParagraphBlock;
+          expect(again.text).toBe(typed);
+          // A word typed right after the double space lands there; the double space stays.
+          const at = first.end + 2;
+          const second = await commitReplacement(reopened, index, {
+            start: at,
+            end: at,
+            text: 'very ',
+          });
+          const read = (await h.editor.analyzeParagraphs(reopened, 0))[index] as ParagraphBlock;
+          expect(read.text).toBe(second);
+          expect(read.text.startsWith(`${first.text}  very `)).toBe(true);
+        } finally {
+          await h.adapter.close(reopened);
+        }
+      } finally {
+        await h.adapter.close(source);
+      }
+    });
+  }
+});
+
 describe('edit matrix: justified paragraphs rewrap with the natural word gap', () => {
   // Spaces stretched by TJ offsets (Word), Tw, or TJ in tight columns: the rewrap's word gap
   // is the font's space as the last line draws it (about ¼ em), not a stretched one.
