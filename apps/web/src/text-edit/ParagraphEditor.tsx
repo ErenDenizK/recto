@@ -1217,7 +1217,11 @@ export function ParagraphEditor({
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     // Page shortcuts never fire while typing.
     event.stopPropagation();
-    if (event.nativeEvent.isComposing) return;
+    // A key the input method takes: during a composition, and in WebKit the key that ends one,
+    // sent after `compositionend` with the IME's key code 229 (an Esc that cancels the
+    // candidates must not leave the editor). `keyCode` is the only field that says so.
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
     const model = stateRef.current;
     const lines = layoutRef.current?.lines;
     const mod = event.ctrlKey || event.metaKey;

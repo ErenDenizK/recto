@@ -338,6 +338,28 @@ describe('ParagraphEditor', () => {
     expect(commits.calls).toHaveLength(0);
   });
 
+  it('an Esc the input method takes (key code 229) neither leaves nor commits', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    await userEvent.keyboard('X');
+    // WebKit sends the key that cancels or commits a composition after `compositionend`, with
+    // `isComposing` false and the input method's key code.
+    const event = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      keyCode: 229,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      mirror.dispatchEvent(event);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(useTextEditStore.getState().paragraph).toBe(session);
+    expect(commits.calls).toHaveLength(0);
+    expect(mirror).toHaveFocus();
+  });
+
   it('commits nothing on Esc without a change', async () => {
     const { session } = setupEngine();
     const { mirror } = renderEditor(session);
