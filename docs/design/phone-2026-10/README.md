@@ -68,15 +68,23 @@ The drawer is the one place where all of phone editing lives, so it gets the mos
        picker.
      - Text: size S/M/L and colour.
      - Sign: the saved signatures as tiles, plus "New".
-  3. **Quiet actions:** Eraser, Redo, Select.
-- **Closing.** A tap on a tool closes the drawer and arms the tool. Swiping down, tapping
-  outside or tapping the chip again also closes it.
+  3. **Quiet actions:** Eraser, Redo, Select (Undo is the island's, in reach under the drawer).
+- **Closing** (EDN-18). A tap on a tool arms it and the drawer stays open, so another colour,
+  size or tool is one more tap, and the island's Undo and Redo, in reach under the drawer, work
+  with it open. Its head holds the grabber, "Tools" and a quiet icon-only close (a caret down,
+  "Close tools"), never a second "Done" beside the island's. It closes by that button, swiping
+  down, tapping outside or tapping the chip again; New signature closes it as its pad opens.
+  - A tap outside only closes the drawer while Pen, Highlight, the Eraser or Select is armed,
+    so putting it away never leaves ink.
+  - Where the armed tool's next step is on the page (Text, Edit text, a chosen saved
+    signature), the first tap on the page closes the drawer and acts: it places the box with
+    the keyboard up, opens the paragraph, or places the signature.
 - **Glass rules.** There is no glass inside glass, so the tiles are fills. A solid twin is used
   under Glass Solid. The aura shows through the glass and is never cut (DSN-24).
 - **Feel.**
   - One spring (`smooth`), no bounce.
   - The arming tile answers with the receive pulse (MOT-5).
-  - The chip's glyph cross-fades to the new tool as the drawer closes, so the eye sees where
+  - The chip's glyph cross-fades to the new tool under the open drawer, so the eye sees where
     the choice went.
 
 ## 4. Automation (shortcuts that skip the drawer)

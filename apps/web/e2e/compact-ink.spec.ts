@@ -272,11 +272,10 @@ test.describe('phone ink (M10 lane B)', () => {
     await edit(page);
     await openDrawer(page);
     await drawer(page).getByRole('button', { name: 'Highlight' }).click();
-    // The tile closes the drawer (after its pulse); reopen only once it has gone.
-    await expect(drawer(page)).toHaveCount(0);
+    // The tile keeps the drawer open (EDN-18), its options now the Highlighter's.
     await expect(chip(page)).toHaveAccessibleName('Highlight');
+    await expect(drawer(page)).toBeVisible();
     // Its own three tints.
-    await openDrawer(page);
     const tints = page
       .getByTestId('compact-ink-options')
       .getByRole('radiogroup', { name: 'Ink colour' })
@@ -400,8 +399,7 @@ for (const colorScheme of ['dark', 'light'] as const) {
       await openDrawer(page);
       await shot(page, 'preset-row-pen', 800);
       await drawer(page).getByRole('button', { name: 'Highlight' }).click();
-      await expect(drawer(page)).toHaveCount(0);
-      await openDrawer(page);
+      await expect(chip(page)).toHaveAccessibleName('Highlight');
       await shot(page, 'preset-row-highlight', 800);
       await closeDrawer(page);
       const cdp = await page.context().newCDPSession(page);

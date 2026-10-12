@@ -97,6 +97,11 @@ test.describe('the drawer’s list variant (EDN-16)', () => {
     await expect(row(page, 'pen')).toHaveAttribute('aria-expanded', 'false');
     await expect(row(page, 'edit-text')).not.toHaveAttribute('aria-disabled', 'true');
     await expect(options(page)).toHaveCount(0);
+    // The list covers the island's Undo, so its quiet row has its own (EDN-18); nothing yet.
+    await expect(drawer(page).getByTestId('compact-drawer-undo')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
 
     // A tap on the current row opens its options under it.
     await row(page, 'pen').click();

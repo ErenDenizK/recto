@@ -1,17 +1,23 @@
 /**
  * What both tool drawers share (`ToolDrawer.tsx`, the tiles; `ToolList.tsx`, the list,
  * EDN-16): the container transform out of the tool chip and back (`drawer-motion.ts`, MOT-5),
- * Esc, and the swipe down (`design/phone-2026-10/README.md` §3 "Closing").
+ * Esc, the swipe down and the press outside (`design/phone-2026-10/README.md` §3 "Closing";
+ * EDN-18, `drawer-close.ts`).
  *
  * - Opening, the panel takes focus; closed (the motion's finish, never a timer), the chip takes
- *   the receive pulse, focus goes back to ▾ if it was inside, and `onClosed` unmounts it.
+ *   the receive pulse, focus goes back to ▾ if it was inside and nothing has taken it since (a
+ *   press that went through to the page may have opened a text box), and `onClosed` unmounts it.
+ * - `through`: while the armed tool's next step is a tap on the page, the scrim lets presses
+ *   through and a press outside closes the drawer as it goes on to the page (EDN-18).
  * - The swipe: the panel follows the finger once a press has gone `DRAG_START_PX` down (more
  *   down than sideways), and a long or quick enough swipe closes it; a shorter one springs back.
  */
 import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { receivePulse } from '../../../motion/receive';
+import { useToolStore } from '../../../viewer/tool-store';
 import { setDrawerOpen } from '../compact-store';
+import { closeOnOutsidePress, pressGoesThrough } from './drawer-close';
 import { drawerMotion, type DrawerMotion, swipeCloses } from './drawer-motion';
 
 /** A drag this far down (CSS px) takes the panel with the finger. */
@@ -21,6 +27,8 @@ export const chipOf = (): Element | null => document.querySelector('[data-compac
 
 export interface DrawerPanel {
   readonly panelRef: RefObject<HTMLDivElement | null>;
+  /** A press outside goes on to the page (the scrim lets it through), EDN-18. */
+  readonly through: boolean;
   readonly swipe: {
     readonly onPointerDown: (event: PointerEvent<HTMLDivElement>) => void;
     readonly onPointerMove: (event: PointerEvent<HTMLDivElement>) => void;
@@ -63,7 +71,9 @@ export function useDrawerPanel(
       if (!live) return;
       const chip = chipOf();
       if (chip) void receivePulse(chip);
-      if (hadFocus)
+      const now = document.activeElement;
+      const free = now === null || now === document.body || panel.contains(now);
+      if (hadFocus && free)
         document.querySelector<HTMLElement>('[data-testid="compact-tool-more"]')?.focus();
       closed.current();
     });
@@ -74,6 +84,13 @@ export function useDrawerPanel(
 
   // Unmounted (editing left with the drawer open): what it covered is whole again.
   useEffect(() => () => motion.current?.dispose(), []);
+
+  // A press outside, while the armed tool's next step is on the page: closes and goes on.
+  const through = useToolStore((s) => pressGoesThrough(s.mode));
+  useEffect(() => {
+    if (!open || !through) return;
+    return closeOnOutsidePress(() => panelRef.current);
+  }, [open, through]);
 
   // Esc closes from anywhere while open.
   useEffect(() => {
@@ -126,5 +143,5 @@ export function useDrawerPanel(
     },
   };
 
-  return { panelRef, swipe };
+  return { panelRef, through, swipe };
 }

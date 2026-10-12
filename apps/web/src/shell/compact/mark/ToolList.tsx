@@ -19,10 +19,12 @@
  *   `TextOptions.tsx`, `sign-options.tsx`), another folds them. One row open at a time. The
  *   fold runs on `smooth` (no bounce), its close on `quick`; reduced motion fades only, in
  *   150 ms at most.
- * - **Closing.** A swipe down, a press outside (the transparent scrim), Done and Esc; then the island shows again with the
- *   chosen tool's chip, which takes the receive pulse (`use-drawer-panel.ts`). A saved
- *   signature still closes it as it does from the tiles.
- * - **Quiet actions** (Eraser, Redo, Select) in a compact last row, as the tiles' third row.
+ * - **Closing.** A swipe down, a press outside, Close (the head's caret down) and Esc; then the island shows again with
+ *   the chosen tool's chip, which takes the receive pulse (`use-drawer-panel.ts`). As from the
+ *   tiles (EDN-18, `drawer-close.ts`): a saved signature keeps it open too, and a press outside
+ *   only closes (the transparent scrim) unless the armed tool's next step is a tap on the page.
+ * - **Quiet actions** (Eraser, Undo, Redo, Select) in a compact last row, as the tiles' third
+ *   row; Undo is here because the list covers the island's (EDN-18).
  * - **Semantics.** The tiles' non-modal `dialog` named "Tools" (same id and test id); each row
  *   is a toggle button, and the current one with options says whether it is expanded.
  */
@@ -46,10 +48,11 @@ import { useWorkspaceStore } from '../../../state/workspace-store';
 import { Button } from '../../../ui/Button';
 import { needsContrastRing } from '../../../ui/colour/colour-math';
 import { Icon } from '../../../ui/Icon';
+import { IconButton } from '../../../ui/IconButton';
 import { useToolStore } from '../../../viewer/tool-store';
 import type { CompactTool } from '../compact-store';
 import { setDrawerOpen, useCompactStore } from '../compact-store';
-import { armTool, redo, toggleEraser, toolOff } from './bridge';
+import { armTool, canUndoHere, redo, toggleEraser, toolOff, undo } from './bridge';
 import { progressFrames } from './drawer-motion';
 import { DRAWER_ID } from './EditIsland';
 import {
@@ -78,8 +81,10 @@ export default function ToolList() {
 function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: () => void }) {
   const tool = useCompactStore((s) => s.tool);
   const specs = useCompactTools();
-  const redoable = useWorkspaceStore((s) => s.history.future.length > 0);
-  const { panelRef, swipe } = useDrawerPanel(open, onClosed, capsuleOf);
+  const history = useWorkspaceStore((s) => s.history);
+  const undoable = canUndoHere(history);
+  const redoable = history.future.length > 0;
+  const { panelRef, through, swipe } = useDrawerPanel(open, onClosed, capsuleOf);
   const [expanded, setExpanded] = useState<CompactTool | null>(null);
   const openId = openRow(tool, expanded);
   const rows = toolsIn('tile', specs);
@@ -106,6 +111,7 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         className={styles.scrim}
         aria-hidden="true"
         data-testid="compact-drawer-scrim"
+        data-through={through || undefined}
         onPointerDown={(event) => {
           event.preventDefault();
           setDrawerOpen(false);
@@ -129,14 +135,14 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         <div className={styles.head}>
           <span className={styles.grabber} aria-hidden="true" />
           <span className={styles.title}>{m.compact_tools()}</span>
-          <Button
-            variant="quiet"
+          <IconButton
+            label={m.compact_tools_close()}
+            tooltipSide="top"
+            icon={<Icon name="caret-down" />}
             className={styles.done}
             data-testid="compact-drawer-done"
             onClick={() => setDrawerOpen(false)}
-          >
-            {m.compact_done()}
-          </Button>
+          />
         </div>
         <div
           ref={listRef}
@@ -171,6 +177,16 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
               {eraser.label()}
             </Button>
           ) : null}
+          <Button
+            variant="quiet"
+            className={styles.action}
+            aria-disabled={!undoable || undefined}
+            data-testid="compact-drawer-undo"
+            onClick={() => undo()}
+          >
+            <Icon name="arrow-u-up-left" />
+            {m.compact_undo()}
+          </Button>
           <Button
             variant="quiet"
             className={styles.action}

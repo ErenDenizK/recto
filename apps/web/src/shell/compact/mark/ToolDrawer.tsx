@@ -15,11 +15,15 @@
  * - **Rows** (at most three): the tools as tiles of glyph and label (fills, no glass in glass;
  *   the armed one in the tool-active fill); the armed tool's options from the registry (Pen and
  *   Highlight: `InkOptions.tsx`); the quiet actions Eraser, Redo and Select.
- * - **Closing.** A tile arms its tool and closes the drawer (Sign's keeps it open on its
- *   signatures, `keepsDrawer`, EDN-14) once the tile's pulse has crested
- *   (`drawer-close.ts`, no timer); so do a swipe down, a press outside
- *   (on a transparent scrim, so it never draws on the page) and the chip again. Esc closes it
- *   and puts focus back on ▾.
+ * - **Closing** (EDN-18, the owner: "it shouldn't close right away, so I can make another colour
+ *   choice or undo"). A tile arms its tool, takes the receive pulse, and the drawer stays open:
+ *   the options row turns to the new tool and the chip changes under it. It closes by a press
+ *   outside, a swipe down, the chip again, Close in its head (grabber, "Tools" and a quiet
+ *   caret-down "Close tools", as the list's; never a second "Done" beside the island's) and
+ *   Esc, which puts focus back on ▾. A press outside only closes (a transparent
+ *   scrim, so it never draws on the page) unless the armed tool's next step is a tap on the
+ *   page (Text, Edit text, a chosen signature): then it closes and acts (`drawer-close.ts`).
+ *   Undo and Redo stay in reach in the island under it.
  * - **Variant.** With `?drawer=list` the owner's list variant shows instead (`ToolList.tsx`,
  *   EDN-16), to compare on an iPhone; the tiles stay the default.
  * - **Semantics.** A non-modal `dialog` named "Tools"; the tiles are toggle buttons in a group,
@@ -32,9 +36,9 @@ import { receivePulse } from '../../../motion/receive';
 import { useWorkspaceStore } from '../../../state/workspace-store';
 import { Button } from '../../../ui/Button';
 import { Icon } from '../../../ui/Icon';
+import { IconButton } from '../../../ui/IconButton';
 import { setDrawerOpen, useCompactStore } from '../compact-store';
 import { armTool, redo, toggleEraser, toolOff } from './bridge';
-import { closeDrawerAfter } from './drawer-close';
 import { drawerVariant } from './drawer-variant';
 import { DRAWER_ID } from './EditIsland';
 import { type CompactToolSpec, toolsIn, useCompactTools } from './registry';
@@ -67,17 +71,16 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
   const tool = useCompactStore((s) => s.tool);
   const specs = useCompactTools();
   const redoable = useWorkspaceStore((s) => s.history.future.length > 0);
-  const { panelRef, swipe } = useDrawerPanel(open, onClosed);
+  const { panelRef, through, swipe } = useDrawerPanel(open, onClosed);
   const armed = specs.get(tool ?? 'pen');
   const tiles = toolsIn('tile', specs);
   const eraser = specs.get('eraser');
 
+  // The tile answers with the pulse and the drawer stays open (EDN-18).
   const arm = (spec: CompactToolSpec, el: HTMLElement) => {
     if (spec.soon) return;
-    const crest = receivePulse(el);
+    void receivePulse(el);
     armTool(spec.id);
-    // The tile's swell crests, then the drawer goes back into the chip (drawer-close.ts).
-    if (!spec.keepsDrawer) closeDrawerAfter(crest);
   };
 
   const Options = armed && tool !== null ? armed.Options : undefined;
@@ -89,6 +92,7 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         className={styles.scrim}
         aria-hidden="true"
         data-testid="compact-drawer-scrim"
+        data-through={through || undefined}
         onPointerDown={(event) => {
           event.preventDefault();
           setDrawerOpen(false);
@@ -108,7 +112,18 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         inert={!open}
         {...swipe}
       >
-        <span className={styles.grabber} aria-hidden="true" />
+        <div className={styles.head}>
+          <span className={styles.grabber} aria-hidden="true" />
+          <span className={styles.title}>{m.compact_tools()}</span>
+          <IconButton
+            label={m.compact_tools_close()}
+            tooltipSide="top"
+            icon={<Icon name="caret-down" />}
+            className={styles.done}
+            data-testid="compact-drawer-done"
+            onClick={() => setDrawerOpen(false)}
+          />
+        </div>
         <div className={styles.tiles} role="group" aria-label={m.compact_tools()}>
           {tiles.map((spec) => (
             <Button
