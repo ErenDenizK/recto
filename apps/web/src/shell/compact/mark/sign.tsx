@@ -2,13 +2,15 @@
  * Sign on the phone (`design/phone-2026-10/README.md` §3 row 2, §4; code-audit §2 "Signature",
  * WP6): registered over the WP1 stub (`tools.ts`) when the editing chunk loads.
  *
- * - **The tile** arms Sign and keeps the drawer open (`keepsDrawer`), whose second row is the
- *   saved signatures as tiles and New (`sign-options.tsx`, its own chunk, prefetched as Sign
- *   arms). Until a signature is chosen one finger pans and selects, as Select.
+ * - **The tile** arms Sign and the drawer stays open, as for every tile (EDN-18), on its second
+ *   row: the saved signatures as tiles and New (`sign-options.tsx`, its own chunk, prefetched as
+ *   Sign arms). Until a signature is chosen one finger pans and selects, as Select.
  * - **A saved tile** arms it as the one-shot signature tool (`armSavedSignature`) and the drawer
- *   closes; **New** closes it and opens New signature (S7, `NewSignatureSheet`), lazily, a
- *   bottom sheet at 92 % on a compact window and a full sheet in landscape
- *   (`ui/sheet/presentation.ts`); its Use arms what was drawn the same way.
+ *   stays open, so another can be chosen; the first press on the page closes it and places the
+ *   signature (`drawer-close.ts`). **New** closes it, since its pad needs the screen, and opens
+ *   New signature (S7, `NewSignatureSheet`), lazily, a bottom sheet at 92 % on a compact window
+ *   and a full sheet in landscape (`ui/sheet/presentation.ts`); its Use arms what was drawn the
+ *   same way.
  * - **The next tap** on a page places the signature (AnnotationLayer's `signature` act), which
  *   is selected at once with the phone's touch handles (`touch-chrome.ts`) to move and scale it,
  *   then Select returns (`finishOneShot`); Undo removes it.
@@ -101,7 +103,6 @@ registerCompactTool({
   label: m.compact_tool_sign,
   place: 'tile',
   order: 40,
-  keepsDrawer: true,
   Options: SignOptions,
   arm: () => {
     useToolStore.getState().setMode('select');

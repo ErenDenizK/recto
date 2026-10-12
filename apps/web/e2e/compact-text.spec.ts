@@ -55,13 +55,20 @@ const field = (page: Page) => page.locator('[data-annotation-layer] textarea');
 const boxes = (page: Page) => page.locator('[data-annotation-kind="free-text"]');
 const textBar = (page: Page) => page.getByTestId('compact-text-bar');
 
-/** Enters editing and arms Text from the drawer (its options show there first). */
-async function armText(page: Page): Promise<void> {
+/**
+ * Enters editing and arms Text from the drawer (its options show there first). The drawer stays
+ * open (EDN-18); it is put away by its Done unless `keepOpen`.
+ */
+async function armText(page: Page, { keepOpen = false } = {}): Promise<void> {
   await page.getByTestId('compact-edit').click();
   await expect(capsule(page)).toHaveAttribute('data-editing');
   await page.getByTestId('compact-tool-more').click();
   const drawer = page.getByTestId('compact-tool-drawer');
   await drawer.getByRole('button', { name: /^(Text|Metin)$/ }).click();
+  await expect(page.getByTestId('compact-text-options')).toBeVisible();
+  await expect(drawer).toBeVisible();
+  if (keepOpen) return;
+  await page.getByTestId('compact-drawer-done').click();
   await expect(drawer).toHaveCount(0);
 }
 
@@ -191,6 +198,33 @@ test.describe('adding text on phones (M10 WP4)', () => {
     await waitForPage(page);
     await page.getByTestId('compact-edit').click();
     await expect(capsule(page)).toHaveAttribute('data-editing');
+    await expect(boxes(page)).toHaveCount(1);
+  });
+});
+
+test.describe('the drawer open on Text (EDN-18)', () => {
+  test('the first tap on the page closes the drawer and places a box, focused', async ({
+    page,
+  }) => {
+    await openReader(page);
+    await armText(page, { keepOpen: true });
+    const drawer = page.getByTestId('compact-tool-drawer');
+    await page.waitForTimeout(500);
+    const top = (await drawer.boundingBox())?.y ?? 0;
+    const sheet = await page.locator('[data-page-index="0"]').boundingBox();
+    if (!sheet) throw new Error('no page');
+    const at = { x: sheet.x + sheet.width * 0.15, y: top - 40 };
+    test.skip(at.y < Math.max(sheet.y, 0) + 40, 'the drawer leaves no page above it');
+
+    const cdp = await page.context().newCDPSession(page);
+    await tap(cdp, at);
+    await expect(field(page)).toBeFocused();
+    await expect(drawer).toHaveCount(0);
+    // Closing the drawer never takes the focus back from the new box.
+    await page.waitForTimeout(800);
+    await expect(field(page)).toBeFocused();
+    await page.keyboard.type('Through');
+    await page.getByTestId('compact-text-done').click();
     await expect(boxes(page)).toHaveCount(1);
   });
 });

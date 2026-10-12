@@ -23,6 +23,8 @@
  *   leaves `arm` out arms Select, so its presses fall through to the page.
  * - `soon`: the tile shows, reads "Soon" and does not arm (Edit text's stub, until
  *   `edit-text.tsx` registers over it, EDN-17).
+ * - A tile arms its tool and the drawer stays open (EDN-18); whether a press outside then goes on
+ *   to the page follows the mode `arm` set (`drawer-close.ts`), so a tool needs no flag for it.
  * - `Options` renders in the drawer's second row while the tool is armed; `hint` is a one-line
  *   fallback there for a tool with no options. `Badge` draws over the chip's glyph (the pen's
  *   ink dot), keyed by tool, so it may use hooks.
@@ -46,8 +48,6 @@ export interface CompactToolSpec {
   readonly soon?: boolean;
   /** The drawer's second row while this tool is armed. */
   readonly Options?: ComponentType;
-  /** Its tile keeps the drawer open, for a choice in its options (Sign's signatures). */
-  readonly keepsDrawer?: boolean;
   /** The second row's one line when the tool has no options. */
   readonly hint?: () => string;
   /** Drawn over the chip's glyph while armed (the ink's colour). */

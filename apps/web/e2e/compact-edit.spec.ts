@@ -3,7 +3,8 @@
  * `phone` and `phone-land` projects with CDP touch: the edit button morphs the capsule into the
  * edit island on Pen; one finger draws; a dot neither toggles the chrome nor zooms; Undo and
  * Redo walk the stroke; two fingers pinch and never draw; the tool drawer rises out of the chip
- * and a tile arms its tool; Done leaves editing and the stroke is kept on the device and comes
+ * and a tile arms its tool with the drawer staying open, Undo working under it (EDN-18); Done
+ * leaves editing and the stroke is kept on the device and comes
  * back after a reload.
  *
  * Set CAPTURE_SCREENSHOTS=<dir> to write the review screenshots (reading, island, drawer, the
@@ -197,7 +198,7 @@ test.describe('phone editing (M10 WP1)', () => {
     await expect.poll(() => inkIn(page, after), { timeout: 10_000 }).toBeGreaterThan(before);
   });
 
-  test('the drawer rises from the chip, arms a tile, and closes by swipe, outside or the chip', async ({
+  test('the drawer rises from the chip, arms a tile and stays, and closes by Done, swipe, outside or the chip', async ({
     page,
   }) => {
     await openReader(page);
@@ -229,12 +230,26 @@ test.describe('phone editing (M10 WP1)', () => {
     );
     await shot(page, 'drawer');
 
-    // A tile arms its tool and the drawer goes back into the chip.
+    // A tile arms its tool and the drawer stays open (EDN-18): its options and the chip under it
+    // turn to the new tool, so another choice is one tap away.
     await drawer(page).getByRole('button', { name: 'Highlight' }).click();
-    await expect(drawer(page)).toHaveCount(0);
     await expect(chip(page)).toHaveAccessibleName('Highlight');
+    await expect(drawer(page)).toBeVisible();
+    await expect(drawer(page).getByRole('button', { name: 'Highlight' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByTestId('compact-ink-options')).toBeVisible();
+    await drawer(page).getByRole('button', { name: 'Pen' }).click();
+    await expect(chip(page)).toHaveAccessibleName('Pen');
+    await expect(page.getByTestId('compact-ink-options')).toBeVisible();
+    await expect(drawer(page)).toBeVisible();
 
-    // Closed by a press outside…
+    // Closed by Done…
+    await drawer(page).getByTestId('compact-drawer-done').click();
+    await expect(drawer(page)).toHaveCount(0);
+    await expect(more).toBeFocused();
+    // …by a press outside…
     await more.click();
     await expect(drawer(page)).toBeVisible();
     await page.getByTestId('compact-drawer-scrim').dispatchEvent('pointerdown');
@@ -269,6 +284,28 @@ test.describe('phone editing (M10 WP1)', () => {
     // The chip's tap turns the tool off: one finger scrolls again.
     await chip(page).click();
     await expect(chip(page)).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('Undo and Redo work with the drawer open, which stays (EDN-18)', async ({ page }) => {
+    await openReader(page);
+    await page.getByTestId('compact-edit').click();
+    await expect(capsule(page)).toHaveAttribute('data-editing');
+    const cdp = await page.context().newCDPSession(page);
+    await drawStroke(cdp, await blankArea(page));
+    await expectUndoable(undo(page), true);
+
+    await page.getByTestId('compact-tool-more').click();
+    await expect(drawer(page)).toBeVisible();
+    // The island's Undo, under the open drawer: the stroke goes and the drawer stays.
+    await undo(page).click();
+    await expectUndoable(undo(page), false);
+    await expect(drawer(page)).toBeVisible();
+    // The drawer's own Redo brings it back, still open.
+    const redoAction = drawer(page).getByRole('button', { name: 'Redo' });
+    await expect(redoAction).not.toHaveAttribute('aria-disabled', 'true');
+    await redoAction.click();
+    await expectUndoable(undo(page), true);
+    await expect(drawer(page)).toBeVisible();
   });
 });
 

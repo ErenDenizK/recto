@@ -44,19 +44,26 @@ const undo = (page: Page) => page.getByTestId('compact-undo');
 const mirror = (page: Page) => page.locator('[data-paragraph-mirror]');
 const pageText = (page: Page) => page.locator('[data-page-index="0"] [data-text-layer]');
 
-/** Enters editing and arms Edit text from the drawer (its tile is live, not "Soon"). */
-async function armEditText(page: Page): Promise<void> {
+const drawer = (page: Page) => page.getByTestId('compact-tool-drawer');
+
+/**
+ * Enters editing and arms Edit text from the drawer (its tile is live, not "Soon"). The drawer
+ * stays open (EDN-18); it is put away by its Done unless `keepOpen`.
+ */
+async function armEditText(page: Page, { keepOpen = false } = {}): Promise<void> {
   await page.getByTestId('compact-edit').click();
   await expect(capsule(page)).toHaveAttribute('data-editing');
   await page.getByTestId('compact-tool-more').click();
-  const drawer = page.getByTestId('compact-tool-drawer');
-  const tile = drawer.getByRole('button', { name: /^(Edit text|Metni düzenle)$/ });
+  const tile = drawer(page).getByRole('button', { name: /^(Edit text|Metni düzenle)$/ });
   await expect(tile).not.toHaveAttribute('aria-disabled', 'true');
   await tile.click();
-  await expect(drawer).toHaveCount(0);
   await expect(page.getByTestId('compact-tool-chip')).toHaveAccessibleName(
     /^(Edit text|Metni düzenle)$/,
   );
+  await expect(drawer(page)).toBeVisible();
+  if (keepOpen) return;
+  await page.getByTestId('compact-drawer-done').click();
+  await expect(drawer(page)).toHaveCount(0);
 }
 
 async function tap(cdp: CDPSession, at: { x: number; y: number }): Promise<void> {
@@ -104,13 +111,23 @@ async function simulateKeyboard(page: Page, height: number): Promise<void> {
 test.describe('editing text on phones (M10 WP5)', () => {
   test('tap a paragraph, type, Done commits it, Undo takes it back', async ({ page }) => {
     await openSample(page);
-    await armEditText(page);
+    await armEditText(page, { keepOpen: true });
 
     const cdp = await page.context().newCDPSession(page);
     const at = await paragraphPoint(page);
+    // With the drawer still open, the tap on the paragraph closes it and acts (EDN-18), where
+    // the drawer leaves the paragraph uncovered (a phone held upright).
+    await page.waitForTimeout(500);
+    const top = (await drawer(page).boundingBox())?.y ?? 0;
+    if (at.y >= top - 8) {
+      await page.getByTestId('compact-drawer-done').click();
+      await expect(drawer(page)).toHaveCount(0);
+    }
     await tap(cdp, at);
     // The focus is in an editable as the tap returns: iOS raises the keyboard only for that.
     expect(await editableFocused(page)).toBe(true);
+
+    await expect(drawer(page)).toHaveCount(0);
 
     // The paragraph editor opens and its mirror takes the focus over, set in 16 px at least.
     await expect(mirror(page)).toBeFocused({ timeout: 20_000 });

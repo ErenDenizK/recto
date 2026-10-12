@@ -28,6 +28,11 @@
   touch-action: none;
 }
 
+/* EDN-18: a press outside goes on to the page when the armed tool acts there. */
+.scrim[data-through] {
+  pointer-events: none;
+}
+
 .panel {
   composes: mat mat-menu s24 c20 from global;
   --list-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
@@ -53,7 +58,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* The head: the grabber over "Tools" and Done, the swipe's handle. */
+/* The head: the grabber over "Tools" and Close, the swipe's handle. */
 .head {
   position: relative;
   display: flex;
@@ -83,15 +88,19 @@
   line-height: var(--type-footnote-lh);
 }
 
+/* Close: an icon-only quiet button (caret down, "Close tools"), never lime, so it is not read
+   as the island's Done (EDN-18). 44 px, the glyph in the secondary text colour. */
 .done {
+  width: 44px;
   height: 44px;
-  padding: 0 var(--space-3);
   border-radius: var(--radius-capsule);
-  color: var(--text-primary);
-  font-size: var(--type-body);
-  font-weight: 600;
-  line-height: var(--type-body-lh);
+  color: var(--text-secondary);
   touch-action: manipulation;
+}
+
+.done svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
 }
 
 /* The rows: one per tool, top to bottom. */
