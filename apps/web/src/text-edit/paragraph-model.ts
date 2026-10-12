@@ -79,7 +79,8 @@ export function stylesOf(input: LayoutInput): string[] {
   return out;
 }
 
-function clampOffset(text: string, offset: number): number {
+/** `offset` clamped into `text`, never inside a surrogate pair. */
+export function clampOffset(text: string, offset: number): number {
   const at = Math.max(0, Math.min(offset, text.length));
   // Never inside a surrogate pair.
   return isTrail(text, at) ? at - 1 : at;

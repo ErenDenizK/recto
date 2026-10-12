@@ -180,28 +180,7 @@ const SCRIPTS: Record<string, (block: ParagraphBlock) => Key[] | undefined> = {
 /**
  * Known failures: `file#paragraph script` → the bug (each seen failing before it was listed).
  */
-const EMPTY_STYLE =
-  "typing into an emptied paragraph gives the characters style '' (replaceRange falls back to state.styles[0], undefined once every character is gone): zero advances, every caret stop at one x, and the commit is refused (invalid-range)";
-const SUBSTITUTE_DRIFT =
-  'verification-failed: substitute glyphs land 0.02 pt off their planned origins';
-const KNOWN: Record<string, string> = {
-  'word-export.pdf#2 select-all-delete-type': EMPTY_STYLE,
-  'word-export.pdf#2 backspace-everything-type': EMPTY_STYLE,
-  'word-export.pdf#3 select-all-delete-type': EMPTY_STYLE,
-  'word-export.pdf#3 backspace-everything-type': EMPTY_STYLE,
-  'per-glyph.pdf#0 select-all-delete-type': EMPTY_STYLE,
-  'per-glyph.pdf#0 backspace-everything-type': EMPTY_STYLE,
-  'cid-turkish.pdf#1 select-all-delete-type': EMPTY_STYLE,
-  'cid-turkish.pdf#1 backspace-everything-type': EMPTY_STYLE,
-  'spacing-ops.pdf#0 select-all-delete-type': EMPTY_STYLE,
-  'spacing-ops.pdf#0 backspace-everything-type': EMPTY_STYLE,
-  'word-tagged.pdf#1 select-all-delete-type': EMPTY_STYLE,
-  'word-tagged.pdf#1 backspace-everything-type': EMPTY_STYLE,
-  'latex-justified.pdf#1 select-all-delete-type': EMPTY_STYLE,
-  'latex-justified.pdf#1 backspace-everything-type': EMPTY_STYLE,
-  'per-glyph.pdf#0 turkish': SUBSTITUTE_DRIFT,
-  'spacing-ops.pdf#0 turkish': SUBSTITUTE_DRIFT,
-};
+const KNOWN: Record<string, string> = {};
 
 // ---------------------------------------------------------------------------
 // Checks

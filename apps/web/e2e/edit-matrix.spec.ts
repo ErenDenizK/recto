@@ -163,10 +163,6 @@ test('word export: Backspace at a line start joins two words of a Tw-justified p
 });
 
 test('word export: select all, delete and type into a one-line paragraph', async ({ page }) => {
-  test.fail(
-    true,
-    "typing into an emptied paragraph gives the characters style '' (paragraph-model replaceRange): the caret stays put and the commit is refused (invalid-range)",
-  );
   await openCorpus(page, 'word-export.pdf');
   const editor = await openParagraph(page, 'Thanks');
   await page.keyboard.press('ControlOrMeta+a');
@@ -217,10 +213,6 @@ test('quote-operator paragraph: text pasted with line breaks', async ({ page }) 
 test('quote-operator paragraph: Turkish letters in the substitute font commit', async ({
   page,
 }) => {
-  test.fail(
-    true,
-    'verification-failed: substitute glyphs land 0.02 pt off their planned origins (engine edit-matrix: spacing-ops.pdf#3 turkish)',
-  );
   await openCorpus(page, 'spacing-ops.pdf');
   const editor = await openParagraph(page, 'This last paragraph');
   await page.keyboard.type('ğüşıöç İĞÜŞÖÇ ');

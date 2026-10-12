@@ -15,7 +15,7 @@
  *   surrogate pair. A position outside the mirror maps to nothing.
  */
 import { type Affine, apply } from './glyph-canvas';
-import type { CaretLine } from './paragraph-model';
+import { type CaretLine, clampOffset } from './paragraph-model';
 
 /** One line of the mirror: its text and where it is drawn, CSS px in the mirror's box. */
 export interface MirrorLine {
@@ -43,7 +43,7 @@ export function mirrorOffset(mirror: Node, node: Node | null, offset: number): n
     range.setEnd(node, nodeLength(node));
   }
   const text = mirror.textContent ?? '';
-  return clampUnit(text, range.toString().length);
+  return clampOffset(text, range.toString().length);
 }
 
 /** The DOM position of text offset `offset` in `mirror`. */
@@ -204,13 +204,4 @@ function textNodes(root: Node): Text[] {
 
 function nodeLength(node: Node): number {
   return node.nodeType === Node.TEXT_NODE ? (node as Text).data.length : node.childNodes.length;
-}
-
-/** `offset` clamped to `text` and moved off the trail unit of a surrogate pair. */
-function clampUnit(text: string, offset: number): number {
-  const at = Math.max(0, Math.min(offset, text.length));
-  const code = text.charCodeAt(at);
-  const before = text.charCodeAt(at - 1);
-  const trail = at > 0 && code >= 0xdc00 && code <= 0xdfff && before >= 0xd800 && before <= 0xdbff;
-  return trail ? at - 1 : at;
 }

@@ -308,9 +308,6 @@ test.describe('the hidden mirror on phones (EDN-17)', () => {
   });
 
   test('delete everything, retype, Done commits the new text', async ({ page }) => {
-    // The model types an emptied paragraph in no style (zero advances), so the text draws
-    // bunched and the commit is refused; the model's fix is in its own lane.
-    test.fixme(true, 'an emptied paragraph types in style "" (paragraph-model replaceRange)');
     await openSample(page);
     await armEditText(page);
     const cdp = await page.context().newCDPSession(page);
@@ -343,7 +340,7 @@ test.describe('the hidden mirror on phones (EDN-17)', () => {
     const inside = await mirror(page)
       .locator('[data-mirror-line] > span')
       .evaluateAll((spans, outer) => {
-        const o = outer as { x: number; y: number; width: number; height: number };
+        const o = outer;
         return spans.every((span) => {
           const r = span.getBoundingClientRect();
           return (
