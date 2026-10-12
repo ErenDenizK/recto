@@ -1279,7 +1279,8 @@ export function ParagraphEditor({
       composingRef.current = null;
       setComposition(null);
     } else {
-      setComposition({ start: composing.range.start, end: composing.range.start + data.length });
+      const length = data.normalize('NFC').length;
+      setComposition({ start: composing.range.start, end: composing.range.start + length });
     }
     update(next);
   };
