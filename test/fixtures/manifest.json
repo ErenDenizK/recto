@@ -9143,8 +9143,8 @@
     },
     {
       "file": "text-edit-corpus/spacing-ops.pdf",
-      "bytes": 4896,
-      "sha256": "c34c83e50189f03b8c5a01b72aa05d5d9f3c3a1f47570e35a1a066eb4a0f0896",
+      "bytes": 4901,
+      "sha256": "4bcca84df2659f8ae9f12a80109e1e5cea98b908a44f4acd2a0e6af8582d245f",
       "pageCount": 1,
       "tags": ["text-editing", "paragraphs", "tc", "tz", "tw", "tl"],
       "summary": "Four paragraphs in an Inter simple TrueType subset: letter-spaced (Tc, TL/T*), condensed (90 Tz, -0.1 Tc), justified by Tw per line, and shown with the quote operator.",

@@ -203,11 +203,10 @@ describe('justification', () => {
       ['bbb', 3.5],
       ['cc', 8],
     ]);
-    // One run per word on a justified line.
-    expect(first.runs.map((r) => [r.text, r.x])).toEqual([
-      ['aa', 0],
-      ['bbb', 3.5],
-      ['cc', 8],
+    // The space glyphs are written on a justified line too, the stretch as their offset
+    // (TXT-8): readers find the word gaps. The writer starts an object after each offset.
+    expect(first.runs.map((r) => [r.text, r.x, r.kerning])).toEqual([
+      ['aa bbb cc', 0, [0, 0, 0.5, 0, 0, 0, 0.5, 0, 0]],
     ]);
     expect(layout.ragged).toBe(false);
 
@@ -218,6 +217,17 @@ describe('justification', () => {
     );
     expect(loose.lines[0]).toMatchObject({ justified: false, ragged: true });
     expect(loose.ragged).toBe(true);
+  });
+
+  test('the stretch cap follows the paragraph’s own justified lines (TXT-15)', () => {
+    // Original lines stretched to twice the natural gap: (12 − 8) / 2 gaps = 2.
+    const input = para(['aaa bbb cc', 'ddd eee ff', 'g'], { width: 12, align: 'justify' });
+    // A rewritten line needing the same stretch is justified like its neighbours…
+    const same = layoutParagraph(input, replaceEdit(input, 'cc', 'xy'));
+    expect(same.lines[0]).toMatchObject({ justified: true, ragged: false, width: 12 });
+    // …and one needing more than 1.1 × the paragraph's largest stretch stays ragged.
+    const loose = layoutParagraph(input, replaceEdit(input, 'cc', 'c'));
+    expect(loose.lines[0]).toMatchObject({ justified: false, ragged: true });
   });
 
   test('a line too loose to justify stays ragged and says so', () => {

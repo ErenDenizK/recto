@@ -723,7 +723,8 @@ async function buildSpacingOps(): Promise<Built> {
       const tw =
         i < lines.length - 1 && spaces ? (measure - widthOf(face, line, size, false)) / spaces : 0;
       content.push(
-        `BT /F1 ${size} Tf 1 0 0 1 ${left} ${f(y)} Tm ${round2(tw)} Tw ${lit(line)} Tj ET`,
+        // Text state persists across BT/ET: reset p2's Tz and Tc.
+        `BT /F1 ${size} Tf 100 Tz 0 Tc 1 0 0 1 ${left} ${f(y)} Tm ${round2(tw)} Tw ${lit(line)} Tj ET`,
       );
       baselines.push(y);
       y -= lead;
