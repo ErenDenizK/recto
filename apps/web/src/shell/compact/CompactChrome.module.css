@@ -1,9 +1,14 @@
 /*
  * The compact reader's chrome (ADR-0033 §2.3; components/01-frame.md F9, F12). Two glass
- * pieces over the pages (materials.css):
+ * pieces over the pages (materials.css), one family top and bottom, as the full edition's
+ * strip and capsule are (owner feedback F1, G1):
  *
- * - the top bar: docked M3, 44 px plus the safe area, full width, a hairline below and no
- *   shadow;
+ * - the top bar (DSN-32): a floating M2 capsule, no band. 48 px high (the coarse --piece-h)
+ *   around 44 px controls, so its pill and the controls' circles are concentric (24 − 1 px
+ *   rim − 1 px pad = 22), as the bottom capsule's are (28 − 6 = 22); it stands
+ *   max(safe area, 12 px) from the top and the sides, mirroring the capsule's offset from the
+ *   bottom, and is at most 560 px wide, centred, on a phone on its side. The aura and the
+ *   pages show all around it: nothing crosses the window edge to edge;
  * - the capsule: a 56 px pill of 44 px controls, and beside it the 56 px edit button (EDN-8),
  *   centred together above the home indicator. While editing the capsule is the edit island
  *   and the button has folded into it (`mark/`).
@@ -12,20 +17,24 @@
  * Q-3), on the motion tokens; at rest none has a transform (Q-2). Three glass surfaces at
  * rest (two while editing), one more with the ⋯ menu or the tool drawer open; with a sheet
  * open all are away and the sheet, settled, is solid (CompactSheet.module.css), so none
- * (Q-11).
+ * (Q-11). Under Glass Solid each rests on its tier's solid twin (`.mat`, materials.css).
  */
 .topBar {
-  composes: mat mat-panel mat-docked s8 from global;
+  composes: mat mat-bar s9 from global;
+  --top-offset: max(env(safe-area-inset-top, 0px), 12px);
   position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
+  top: var(--top-offset);
+  right: max(env(safe-area-inset-right, 0px), 12px);
+  left: max(env(safe-area-inset-left, 0px), 12px);
   z-index: 2;
-  /* At least 4 px above the row (TOP_BAR_EDGE), so a control's ring never meets the screen's
-     top edge where there is no safe area (visual audit 2026-10 defect 7a). */
-  padding: max(env(safe-area-inset-top, 0px), 4px) max(env(safe-area-inset-right, 0px), 4px) 0
-    max(env(safe-area-inset-left, 0px), 4px);
-  border-bottom: 1px solid var(--border-hairline);
+  box-sizing: border-box;
+  max-width: 560px;
+  height: 48px;
+  /* Centred by its auto margins within the insets, never translate(-50%): whole pixels at rest
+     (Q-2). */
+  margin-inline: auto;
+  padding: 0 1px;
+  border-radius: var(--radius-capsule);
   /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
      motion, where the fade stays (§7.5). */
   transition:
@@ -35,14 +44,14 @@
 
 .topBar[data-hidden] {
   opacity: 0;
-  transform: translateY(-100%);
+  transform: translateY(calc(-100% - var(--top-offset)));
 }
 
 .topRow {
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 44px;
+  height: 100%;
 }
 
 .title {
@@ -273,13 +282,14 @@
 
 /*
  * Light theme (visual-audit 2026-10 #7: page text showed strongly through the bottom bar): the
- * capsule, the island and the edit button rest over the page itself, black glyphs on white
- * paper, where M2's light tint (0.69, at the floor of primary text, for the canvas and the aura)
+ * top bar (DSN-32), the capsule, the island and the edit button rest over the page itself,
+ * black glyphs on white paper, where M2's light tint (0.69, at the floor of primary text, for the canvas and the aura)
  * lets every line read through. On a phone they take the sheet tier's denser tint (0.88; 0.9
  * under Glass Tinted, the solid under reduced transparency); the blur and the rims stay M2's,
  * and Glass Solid is solid as before (`materials.css` paints the tint only where glass
  * renders).
  */
+:global([data-theme='light']) .topBar,
 :global([data-theme='light']) .capsule,
 :global([data-theme='light']) .edit {
   --mat-tint: var(--glass-sheet-tint);

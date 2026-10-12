@@ -78,13 +78,14 @@ import {
   type ZoomAnchor,
 } from './reader-layout';
 
-/** The top bar's height below the safe area, CSS px (01-frame F9). */
-export const TOP_BAR_HEIGHT = 44;
+/** The floating top bar's height, CSS px: the coarse --piece-h around 44 px controls (DSN-32). */
+export const TOP_BAR_HEIGHT = 48;
 /**
- * The top bar's least padding above its row, CSS px: the safe area, or this where there is
- * none, so a control's ring never meets the screen's top edge (visual audit 2026-10, 7a).
+ * The top bar's least distance from the top edge, CSS px: the safe area, or this where there is
+ * none, as the capsule's from the bottom (DSN-32), so a control's ring never meets the screen's
+ * top edge (visual audit 2026-10, 7a).
  */
-export const TOP_BAR_EDGE = 4;
+export const TOP_BAR_EDGE = 12;
 /** The capsule's height, CSS px (Q-9: a 56 px bar of 44 px controls). */
 export const CAPSULE_HEIGHT = 56;
 /** The capsule's least distance from the bottom edge (01-frame F1 §2). */
