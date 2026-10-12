@@ -34,6 +34,7 @@ import {
   type Box,
   FIXED_DATE,
   FIXTURES_DIR,
+  type FontExpectation,
   MAX_CORPUS_BYTES,
   type Manifest,
   type ManifestEntry,
@@ -702,6 +703,70 @@ async function checkEntry(entry: ManifestEntry, c: Checker): Promise<void> {
   await checkM4(entry, doc, bytes, c);
   await checkM5(entry, doc, bytes, c);
   await checkDemo(entry, doc, c);
+  checkParagraphs(entry, doc, c);
+}
+
+/** The font behind a region or paragraph matches its expectation; false when it is missing. */
+function checkFont(
+  doc: PDFDocument,
+  resources: PDFDict | undefined,
+  fe: FontExpectation,
+  label: string,
+  c: Checker,
+): boolean {
+  const fonts = dictOf(doc, resources?.get(N('Font')));
+  const font = dictOf(doc, fonts?.get(N(fe.resource)));
+  c.ok(!!font, `${label}: font /${fe.resource} present`);
+  if (!font) return false;
+  const nameOf = (o: PDFObject | undefined) => resolve(doc, o)?.toString().slice(1);
+  c.eq(nameOf(font.get(N('Subtype'))), fe.subtype, `${label}: font /Subtype`);
+  const baseFont = nameOf(font.get(N('BaseFont')));
+  if (fe.baseFont) c.eq(baseFont, fe.baseFont, `${label}: /BaseFont`);
+  const encoding = resolve(doc, font.get(N('Encoding')));
+  c.eq(
+    encoding instanceof PDFDict ? 'Differences' : nameOf(encoding),
+    fe.encoding,
+    `${label}: /Encoding`,
+  );
+  let descriptorHost = font;
+  if (fe.subtype === 'Type0') {
+    const kids = resolve(doc, font.get(N('DescendantFonts')));
+    const cid = kids instanceof PDFArray ? dictOf(doc, kids.get(0)) : undefined;
+    c.eq(nameOf(cid?.get(N('Subtype'))), fe.descendant, `${label}: descendant /Subtype`);
+    if (cid) descriptorHost = cid;
+  }
+  const descriptor = dictOf(doc, descriptorHost.get(N('FontDescriptor')));
+  const embedded = ['FontFile', 'FontFile2', 'FontFile3'].some((k) => descriptor?.has(N(k)));
+  c.eq(embedded, fe.embedded, `${label}: font program embedded`);
+  c.eq(/^[A-Z]{6}\+/.test(baseFont ?? ''), fe.subset, `${label}: subset tag`);
+  c.eq(font.has(N('ToUnicode')), fe.toUnicode, `${label}: /ToUnicode`);
+  return true;
+}
+
+/**
+ * Text-edit corpus paragraphs: the font behind each, one baseline per line, and the font
+ * used in the page content.
+ */
+function checkParagraphs(entry: ManifestEntry, doc: PDFDocument, c: Checker): void {
+  const pages = doc.getPages();
+  for (const p of entry.expect.paragraphs ?? []) {
+    const page = pages[p.page - 1];
+    const label = `paragraph ${p.id}`;
+    if (!page) {
+      c.ok(false, `${label}: page ${p.page} missing`);
+      continue;
+    }
+    c.eq(p.baselines.length, p.lines.length, `${label}: one baseline per line`);
+    c.ok(
+      p.lines.every((l) => l.length > 0),
+      `${label}: no empty line`,
+    );
+    checkFont(doc, page.node.Resources(), p.font, label, c);
+    c.ok(
+      pageContent(doc, page).includes(`/${p.font.resource} `),
+      `${label}: /${p.font.resource} used`,
+    );
+  }
 }
 
 /** M4 fixtures: token locations, revision history, fonts and images behind regions. */
@@ -756,35 +821,7 @@ async function checkM4(
       continue;
     }
     const resources = page.node.Resources();
-    if (region.font) {
-      const fe = region.font;
-      const fonts = dictOf(doc, resources?.get(N('Font')));
-      const font = dictOf(doc, fonts?.get(N(fe.resource)));
-      c.ok(!!font, `${label}: font /${fe.resource} present`);
-      if (!font) continue;
-      const nameOf = (o: PDFObject | undefined) => resolve(doc, o)?.toString().slice(1);
-      c.eq(nameOf(font.get(N('Subtype'))), fe.subtype, `${label}: font /Subtype`);
-      const baseFont = nameOf(font.get(N('BaseFont')));
-      if (fe.baseFont) c.eq(baseFont, fe.baseFont, `${label}: /BaseFont`);
-      const encoding = resolve(doc, font.get(N('Encoding')));
-      c.eq(
-        encoding instanceof PDFDict ? 'Differences' : nameOf(encoding),
-        fe.encoding,
-        `${label}: /Encoding`,
-      );
-      let descriptorHost = font;
-      if (fe.subtype === 'Type0') {
-        const kids = resolve(doc, font.get(N('DescendantFonts')));
-        const cid = kids instanceof PDFArray ? dictOf(doc, kids.get(0)) : undefined;
-        c.eq(nameOf(cid?.get(N('Subtype'))), fe.descendant, `${label}: descendant /Subtype`);
-        if (cid) descriptorHost = cid;
-      }
-      const descriptor = dictOf(doc, descriptorHost.get(N('FontDescriptor')));
-      const embedded = ['FontFile', 'FontFile2', 'FontFile3'].some((k) => descriptor?.has(N(k)));
-      c.eq(embedded, fe.embedded, `${label}: font program embedded`);
-      c.eq(/^[A-Z]{6}\+/.test(baseFont ?? ''), fe.subset, `${label}: subset tag`);
-      c.eq(font.has(N('ToUnicode')), fe.toUnicode, `${label}: /ToUnicode`);
-    }
+    if (region.font && !checkFont(doc, resources, region.font, label, c)) continue;
     if (region.kind === 'image' && region.xobject) {
       const xobjects = dictOf(doc, resources?.get(N('XObject')));
       const image = dictOf(doc, xobjects?.get(N(region.xobject)));

@@ -34,7 +34,7 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
   and the scans are rasterised by the generator itself. Re-running the
   generator with the same `@cantoo/pdf-lib` version (2.11.1) and Node
   zlib produces byte-identical files.
-- **Total size:** 1340.4 KB across 56 files.
+- **Total size:** 1395.9 KB across 64 files.
 - **Not covered here** (need real-world files, to be added separately):
   CCITT/JBIG2/JPX scans, signatures from third-party signers (timestamps, LTV,
   certification signatures, ECDSA), optional content (layers), public-key
@@ -125,6 +125,14 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
 | `demo/demo-report-v2.pdf` | 52.8 KB | 10 A4 pages, fictional club annual report: cover, contents with links, 8 sections in Inter / Noto Serif subsets, bar and line charts (vector), one table, outline with named destinations, page labels i-ii, 1-8. Version 2: one paragraph, one table figure and one chart bar differ from v1. | - | demo-fixtures.ts (same builder, variant b) |
 | `demo/demo-agreement.pdf` | 45.2 KB | 4 A4 pages, room-hire agreement: parties with a fictional e-mail and phone, 11 clauses with the documentation IBAN in clause 2 (once), 3 checkboxes and 3 text fields on page 4. | - | demo-fixtures.ts: pdf-lib operators + PDFForm (Helvetica appearances) |
 | `demo/demo-letter-scan.pdf` | 315.2 KB | 2 A4 pages, image-only greyscale scans (200 dpi) of a letter: page 1 English, page 2 Turkish; slight skew, dust specks, a printed rule and a round RECEIVED stamp. | - | demo-fixtures.ts: lib/raster.ts (Inter outlines), seeded noise |
+| `text-edit-corpus/word-export.pdf` | 7.9 KB | Word / LibreOffice-like export: Noto Serif and Inter Bold simple TrueType subsets (only the glyphs used), kerned TJ arrays, one paragraph justified by TJ offsets (one BT per line), one by Tw (one BT, Td moves), a one-line paragraph. | - | Hand-written content streams, fonts from packages/engine/assets/fonts (edit-corpus-fixtures.ts) |
+| `text-edit-corpus/per-glyph.pdf` | 6.8 KB | Two paragraphs drawn one glyph per Tj at absolute text matrices (Inter Type0 subset): Quartz-like without space glyphs, Skia-like under a flipped cm. | - | Hand-written content streams, fonts from packages/engine/assets/fonts (edit-corpus-fixtures.ts) |
+| `text-edit-corpus/cid-turkish.pdf` | 9.2 KB | Turkish heading and two paragraphs in Inter Regular / Bold Type0 Identity-H subsets with /ToUnicode, one hex Tj per line; the subsets lack Ğ, Ö, digits and q/w/x. | - | Hand-written content streams, fonts from packages/engine/assets/fonts (edit-corpus-fixtures.ts) |
+| `text-edit-corpus/spacing-ops.pdf` | 4.8 KB | Four paragraphs in an Inter simple TrueType subset: letter-spaced (Tc, TL/T*), condensed (90 Tz, -0.1 Tc), justified by Tw per line, and shown with the quote operator. | - | Hand-written content streams, fonts from packages/engine/assets/fonts (edit-corpus-fixtures.ts) |
+| `text-edit-corpus/rotated-paragraph.pdf` | 5.0 KB | A /Rotate 90 Letter page drawn in a landscape frame (0 1 -1 0 612 0 cm): a heading and a three-line paragraph that read upright on screen. | - | Hand-written content streams, fonts from packages/engine/assets/fonts (edit-corpus-fixtures.ts) |
+| `text-edit-corpus/tight-columns.pdf` | 5.3 KB | Two justified columns with a 6 pt gutter, two paragraphs each, in a Noto Serif simple TrueType subset (justification as TJ offsets). | - | Hand-written content streams, fonts from packages/engine/assets/fonts (edit-corpus-fixtures.ts) |
+| `text-edit-corpus/type3-line.pdf` | 2.8 KB | A Type3 line ("ABBA BAAB") between two Helvetica paragraphs. | - | Hand-written content streams, fonts from packages/engine/assets/fonts (edit-corpus-fixtures.ts) |
+| `text-edit-corpus/ocr-layer.pdf` | 13.7 KB | A scanned paragraph: a 120 dpi greyscale image of three lines with invisible Helvetica (3 Tr, Tz per line) over it. | - | Hand-written content streams, fonts from packages/engine/assets/fonts (edit-corpus-fixtures.ts) |
 
 ## Expected behaviour
 
@@ -184,6 +192,14 @@ pnpm --filter @pdf-editor/fixtures-tool verify            # re-parse every file 
 - **`demo/demo-report-v2.pdf`**: Compare v1 -> v2: a rewritten paragraph (page 3), the October bar of figure 1 (page 4) and one table figure (page 7); pages 1, 2, 5, 6, 8, 9, 10 are byte-identical in content.
 - **`demo/demo-agreement.pdf`**: Demo clips 1, 2, 3, 7. The sensitive-data finder hits the IBAN (mod-97 valid), the e-mail and the phone at the recorded boxes; after redaction a search for the IBAN finds nothing. Fields fill and save; signing adds a new signature field.
 - **`demo/demo-letter-scan.pdf`**: Demo clips 1 and 4. OCR (eng on page 1, tur on page 2) should match expect.ocr; words inside the stamp mark are not part of the ground truth.
+- **`text-edit-corpus/word-export.pdf`**: Each paragraph is detected with its lines; edits keep the kerning-free lines byte-identical, rewrap justified lines to the measure, and type letters the subset lacks (digits, q, x, z, Turkish) in a substitute font.
+- **`text-edit-corpus/per-glyph.pdf`**: Paragraph detection must rebuild words from geometry (gaps, no spaces) and must see through the flipped CTM; an edit rewrites the lines it touches as ordinary runs.
+- **`text-edit-corpus/cid-turkish.pdf`**: Turkish letters the subset has (ğ, ı, İ, ş, ç, ö, ü) are typed in the original font; the ones it lacks fall back to a bundled face; the text reads back unchanged.
+- **`text-edit-corpus/spacing-ops.pdf`**: Edits keep each paragraph's character spacing, scaling and word spacing; rewritten lines line up with kept ones.
+- **`text-edit-corpus/rotated-paragraph.pdf`**: The editor follows the display rotation; the paragraph grows downward on screen; coordinates stay in unrotated user space.
+- **`text-edit-corpus/tight-columns.pdf`**: Each column paragraph is detected on its own (the gutter does not merge the columns); an edit rewraps inside its column only.
+- **`text-edit-corpus/type3-line.pdf`**: The Type3 line is not editable; the paragraphs around it are and do not swallow it.
+- **`text-edit-corpus/ocr-layer.pdf`**: Detected as an OCR layer; the editor must not re-show the invisible text as if it were the visible paragraph.
 
 ## Redaction and text-editing targets (M4)
 
@@ -649,3 +665,80 @@ ground truth (an OCR engine may read the stamp; tests should ignore words inside
 | 2 (tur) | Tom Ashdown | 11 | 312 | [71.46, 313.19, 75.68, 8.78] |
 | 2 (tur) | Kulüp Sekreteri | 11 | 296 | [71.87, 295.04, 77.69, 11.19] |
 | 2 (tur) | Demo document, fictional data | 8 | 40 | [69.38, 39.58, 114.56, 8.5] |
+
+## Text-edit corpus: real-world producer shapes
+
+Generated by `tools/fixtures/edit-corpus-fixtures.ts` into `text-edit-corpus/` (next to
+the Chromium-printed pages of `tools/fixtures/text-edit-corpus.ts`, which are not part of
+this manifest). Each page imitates how a family of producers writes paragraphs (word
+processors, Quartz/Skia, server-side generators, layout programs, scanners). Fonts are
+subsets of Inter Regular, Inter Bold and Noto Serif Regular from
+`packages/engine/assets/fonts` (SIL Open Font License 1.1, which permits embedding);
+every text is fictional. Each paragraph's lines, baselines, measure and font are in
+`manifest.json` (`expect.paragraphs`); "missing glyphs" lists the letters and digits a
+user may type that the font program lacks (a fallback font must set them). The scripted
+edits over these pages are `packages/engine/src/text-edit/edit-matrix.test.ts` and
+`apps/web/src/text-edit/edit-matrix.test.ts`.
+
+### `text-edit-corpus/word-export.pdf`
+
+| id | lines | first line | font | size | first baseline | align | missing glyphs | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `title` | 1 | "Annual report of the village library" | TrueType /F2 WDEXAB+Inter-Bold | 16 | 720 | left | cdjkmqswxzBCDEFGHIJKLMNOPQRSTUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Heading, Inter Bold simple TrueType subset, one kerned TJ. |
+| `p1-tj-justified` | 4 | "The library opened its new reading room …" | TrueType /F1 WDEXAA+NotoSerif-Regular | 11 | 690 | justify | jqzADFGHIJKLMNPQRSUWXYZ0123456789çğıöşüÇĞİÖŞÜ | Word style: each line its own BT/ET with an absolute Tm; one TJ with kerning offsets between glyph pairs and the justification as a negative offset after every space glyph. Noto Serif simple TrueType WinAnsi subset (only the glyphs used, no /ToUnicode). |
+| `p2-tw-justified` | 4 | "Borrowing rules have not changed. Each r…" | TrueType /F1 WDEXAA+NotoSerif-Regular | 11 | 621 | justify | jqzADFGHIJKLMNPQRSUWXYZ0123456789çğıöşüÇĞİÖŞÜ | LibreOffice style: the whole paragraph in one BT, lines moved by `0 -15 Td`, justified by a `Tw` set before each line (0 on the last), kerned TJ. |
+| `p3-one-line` | 1 | "Thanks are due to the parish council and…" | TrueType /F1 WDEXAA+NotoSerif-Regular | 11 | 552 | left | jqzADFGHIJKLMNPQRSUWXYZ0123456789çğıöşüÇĞİÖŞÜ | A one-line paragraph, kerned TJ (the shortest paragraph a user empties and retypes). |
+
+### `text-edit-corpus/per-glyph.pdf`
+
+| id | lines | first line | font | size | first baseline | align | missing glyphs | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `p1-quartz-no-spaces` | 3 | "Every glyph of this paragraph is placed …" | Type0 /F1 PGLYAA+Inter-Regular | 11 | 720 | left | jqzABCDFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Quartz style: one BT per line, every glyph shown by its own Tj at an absolute `1 0 0 1 x y Tm`; no space glyphs at all (word gaps are only geometry). Inter Type0 Identity-H subset. |
+| `p2-skia-flipped` | 2 | "This paragraph is printed upside down in…" | Type0 /F1 PGLYAA+Inter-Regular | 11 | 663 | left | jqzABCDFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Skia style: `1 0 0 -1 0 792 cm` flips the page, every glyph (spaces too) is shown by its own Tj at `1 0 0 -1 x y Tm`, which flips the text back upright. Baselines listed in unflipped user space. |
+
+### `text-edit-corpus/cid-turkish.pdf`
+
+| id | lines | first line | font | size | first baseline | align | missing glyphs | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `title` | 1 | "Köy kütüphanesinin yıllık raporu" | Type0 /F2 CIDTAB+Inter-Bold | 16 | 720 | left | bcdfgjmqvwxzABCDEFGHIJLMNOPQRSTUVWXYZ0123456789çğşÇĞİÖŞÜ | Heading, Inter Bold Type0 Identity-H subset. |
+| `p1-turkish` | 4 | "Kütüphane yeni okuma salonunu ilkbaharın…" | Type0 /F1 CIDTAA+Inter-Regular | 11 | 690 | left | jqwxABCDEFHIJLMNOPQRSTUVWXYZ0123456789ĞÖ | One BT/ET and one hex Tj per line (pdf-lib drawText style); Inter Regular Type0 Identity-H subset with /ToUnicode. The subset has none of Ğ, Ö, digits or q/w/x: typing them needs a fallback font. |
+| `p2-turkish` | 2 | "Çocuk kitapları pencerenin yanındaki alç…" | Type0 /F1 CIDTAA+Inter-Regular | 11 | 622 | left | jqwxABCDEFHIJLMNOPQRSTUVWXYZ0123456789ĞÖ | One BT/ET and one hex Tj per line (pdf-lib drawText style); Inter Regular Type0 Identity-H subset with /ToUnicode. The subset has none of Ğ, Ö, digits or q/w/x: typing them needs a fallback font. |
+
+### `text-edit-corpus/spacing-ops.pdf`
+
+| id | lines | first line | font | size | first baseline | align | missing glyphs | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `p1-tc` | 2 | "This paragraph is set with extra letter …" | TrueType /F1 SPOPAA+Inter-Regular | 10.5 | 720 | left | ABCDEFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Letter-spaced: `0.6 Tc` (on every glyph, spaces too), one BT, lines moved by TL/T*. |
+| `p2-tz` | 2 | "This paragraph is condensed by horizonta…" | TrueType /F1 SPOPAA+Inter-Regular | 10.5 | 682 | left | ABCDEFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Condensed: `90 Tz -0.1 Tc` set again in each line's BT (text state persists across BT/ET, so it is repeated as producers do), absolute Tm. |
+| `p3-tw` | 3 | "This paragraph is justified by word spac…" | TrueType /F1 SPOPAA+Inter-Regular | 10.5 | 644 | justify | ABCDEFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Justified by word spacing: each line its own BT with `Tw` for that line (0 on the last), plain Tj. |
+| `p4-quote` | 2 | "This last paragraph uses a text leading …" | TrueType /F1 SPOPAA+Inter-Regular | 10.5 | 592 | left | ABCDEFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Every line shown by the `'` operator (next line by TL, then show), one BT. |
+
+### `text-edit-corpus/rotated-paragraph.pdf`
+
+| id | lines | first line | font | size | first baseline | align | missing glyphs | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `title` | 1 | "Landscape notice" | TrueType /F1 ROTPAA+NotoSerif-Regular | 18 | 530 | left | jqzABCDFGHIJKMNOPQSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Heading. Landscape frame set by `0 1 -1 0 612 0 cm` on a /Rotate 90 Letter page (user x = 612 - Y, user y = X); baselines are Y in that frame. |
+| `p1-rotated` | 3 | "This page is stored in portrait and show…" | TrueType /F1 ROTPAA+NotoSerif-Regular | 12 | 495 | left | jqzABCDFGHIJKMNOPQSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | One kerned TJ per line, each its own BT. Landscape frame set by `0 1 -1 0 612 0 cm` on a /Rotate 90 Letter page (user x = 612 - Y, user y = X); baselines are Y in that frame. |
+
+### `text-edit-corpus/tight-columns.pdf`
+
+| id | lines | first line | font | size | first baseline | align | missing glyphs | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `left-1` | 4 | "The ferry timetable changes twice a year…" | TrueType /F1 TCOLAA+NotoSerif-Regular | 9.5 | 720 | justify | jxzACEFGHIJKLMNPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Column 1 of two, 6 pt gutter (half a word gap wider than a justified space); justified by TJ offsets after spaces, one BT per line; the left column is written first. |
+| `left-2` | 4 | "On stormy days the first crossing may be…" | TrueType /F1 TCOLAA+NotoSerif-Regular | 9.5 | 666 | justify | jxzACEFGHIJKLMNPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Column 1 of two, 6 pt gutter (half a word gap wider than a justified space); justified by TJ offsets after spaces, one BT per line; the left column is written first. |
+| `right-1` | 4 | "Bicycles travel free of charge on the up…" | TrueType /F1 TCOLAA+NotoSerif-Regular | 9.5 | 720 | justify | jxzACEFGHIJKLMNPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Column 2 of two, 6 pt gutter (half a word gap wider than a justified space); justified by TJ offsets after spaces, one BT per line; the left column is written first. |
+| `right-2` | 4 | "Dogs are welcome on board when they are …" | TrueType /F1 TCOLAA+NotoSerif-Regular | 9.5 | 666 | justify | jxzACEFGHIJKLMNPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Column 2 of two, 6 pt gutter (half a word gap wider than a justified space); justified by TJ offsets after spaces, one BT per line; the left column is written first. |
+
+### `text-edit-corpus/type3-line.pdf`
+
+| id | lines | first line | font | size | first baseline | align | missing glyphs | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `p1-above` | 2 | "The paragraph above the stamp is set in …" | Type1 /F1 Helvetica | 11 | 720 | left | ğışĞİŞ | Helvetica (standard 14, not embedded), one Tj per line. |
+| `type3` | 1 | "ABBA BAAB" | Type3 /F2 | 18 | 678 | left, not editable | abcdefghijklmnopqrstuvwxyzCDEFGHIJKLMNOPQRSTUVWXYZ0123456789çğıöşüÇĞİÖŞÜ | Type3 font /F2 (glyphs A and B drawn by procedures, /ToUnicode), the word gap a TJ offset. Not editable (spec §2.2). |
+| `p2-below` | 2 | "The paragraph below the stamp is set in …" | Type1 /F1 Helvetica | 11 | 646 | left | ğışĞİŞ | Helvetica (standard 14, not embedded), one Tj per line. |
+
+### `text-edit-corpus/ocr-layer.pdf`
+
+| id | lines | first line | font | size | first baseline | align | missing glyphs | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ocr` | 3 | "This paragraph was scanned from a printe…" | Type1 /F1 Helvetica | 12 | 720 | left, not editable | ğışĞİŞ | OCR layer: the paragraph is a 120 dpi greyscale image (Inter rasterised by lib/raster.ts) with invisible Helvetica text (3 Tr, a Tz per line so each line spans the scanned one) over it. Extractable; editing must not just re-show the invisible text. |

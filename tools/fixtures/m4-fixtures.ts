@@ -58,7 +58,7 @@ export const FOX = 'The quick brown fox jumps over the lazy dog';
 /** Helvetica AFM Ascender / Descender, per unit of font size. */
 const HELV = { ascent: 0.718, descent: 0.207 };
 const LETTER_BOX = box(0, 0, 612, 792);
-const FONT_DIR = join(REPO_ROOT, 'packages', 'engine', 'assets', 'fonts');
+export const FONT_DIR = join(REPO_ROOT, 'packages', 'engine', 'assets', 'fonts');
 
 type Fontkit = Parameters<PDFDocument['registerFontkit']>[0];
 
@@ -104,7 +104,10 @@ interface StandardEmbedder {
  * pdf-lib's own widthOfTextAtSize adds AFM kerning pairs, which Tj never
  * applies (e.g. 1.4 pt too narrow for "Line 1, one Tj: " at 14 pt).
  */
-function helvetica(doc: PDFDocument): { font: PDFFont; w: (s: string, size?: number) => number } {
+export function helvetica(doc: PDFDocument): {
+  font: PDFFont;
+  w: (s: string, size?: number) => number;
+} {
   const font = doc.embedStandardFont(StandardFonts.Helvetica);
   const embedder = (font as unknown as { embedder: StandardEmbedder }).embedder;
   const w = (s: string, size = 14) =>
@@ -1092,12 +1095,12 @@ interface FkPathCommand {
   command: 'moveTo' | 'lineTo' | 'quadraticCurveTo' | 'bezierCurveTo' | 'closePath';
   args: number[];
 }
-interface FkGlyph {
+export interface FkGlyph {
   id: number;
   advanceWidth: number;
   path: { commands: FkPathCommand[] };
 }
-interface FkFont {
+export interface FkFont {
   unitsPerEm: number;
   ascent: number;
   descent: number;
@@ -1109,7 +1112,7 @@ interface FkFont {
 }
 
 /** @cantoo/fontkit, resolved from the engine package (not a dependency of this tool). */
-function loadFontkit(): { fontkit: Fontkit; open: (bytes: Uint8Array) => FkFont } {
+export function loadFontkit(): { fontkit: Fontkit; open: (bytes: Uint8Array) => FkFont } {
   const require = createRequire(join(REPO_ROOT, 'packages', 'engine', 'package.json'));
   const fontkit = require('@cantoo/fontkit') as Fontkit;
   const opener = fontkit as unknown as { create(bytes: Uint8Array): FkFont };
@@ -1159,7 +1162,12 @@ function outlinePath(
 }
 
 /** Simple /TrueType font, /WinAnsiEncoding, embedded subset with a (3,1) cmap. */
-function simpleTrueType(doc: PDFDocument, font: FkFont, chars: string, baseFont: string): PDFRef {
+export function simpleTrueType(
+  doc: PDFDocument,
+  font: FkFont,
+  chars: string,
+  baseFont: string,
+): PDFRef {
   const ctx = doc.context;
   const subset = font.createSubset();
   const cmap = new Map<number, number>();
@@ -1206,7 +1214,7 @@ function simpleTrueType(doc: PDFDocument, font: FkFont, chars: string, baseFont:
 }
 
 /** Type3 font with two path glyphs, A and B (codes 0x41, 0x42), and a ToUnicode CMap. */
-function type3Font(doc: PDFDocument): PDFRef {
+export function type3Font(doc: PDFDocument): PDFRef {
   const ctx = doc.context;
   const glyphA = [
     '750 0 0 0 700 720 d1',

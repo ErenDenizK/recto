@@ -65,6 +65,7 @@ import {
 import { encodeJpeg } from './lib/jpeg.ts';
 import { encodePng } from './lib/png.ts';
 import { DEMO_FIXTURES, renderDemoReadme } from './demo-fixtures.ts';
+import { EDIT_CORPUS_FIXTURES, renderEditCorpusReadme } from './edit-corpus-fixtures.ts';
 import { M4_FIXTURES, renderM4Readme } from './m4-fixtures.ts';
 import { M5_FIXTURES, pkiOutputs, renderM5Readme } from './m5-fixtures.ts';
 
@@ -1712,6 +1713,7 @@ const FIXTURES: FixtureDef[] = [
   ...M4_FIXTURES,
   ...M5_FIXTURES,
   ...DEMO_FIXTURES,
+  ...EDIT_CORPUS_FIXTURES,
 ];
 
 // ---------------------------------------------------------------------------
@@ -1812,7 +1814,8 @@ ${behavior.join('\n')}
 
 ${renderM4Readme(entries)}
 ${renderM5Readme(entries, pki)}
-${renderDemoReadme(entries)}`;
+${renderDemoReadme(entries)}
+${renderEditCorpusReadme(entries)}`;
 }
 
 /**
