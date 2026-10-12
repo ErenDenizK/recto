@@ -187,6 +187,10 @@ const SCENARIOS: Record<string, (block: ParagraphBlock) => Replacement | undefin
     const w = lineWords(b, 0)[2] ?? wordsOf(b.text)[0];
     return w ? { start: w.end, end: w.end, text: LONG } : undefined;
   },
+  'paste-tab': (b) => {
+    const w = wordsOf(b.text)[1] ?? wordsOf(b.text)[0];
+    return w ? { start: w.end, end: w.end, text: '\tafter' } : undefined;
+  },
   'paste-newlines': (b) => {
     const w = wordsOf(b.text)[1] ?? wordsOf(b.text)[0];
     return w
@@ -616,6 +620,33 @@ for (const target of TARGETS) {
     }
   });
 }
+
+// ---------------------------------------------------------------------------
+// A word wider than the measure
+// ---------------------------------------------------------------------------
+
+/** A pasted word (a long URL, a compound) wider than any line of the corpus. */
+const OVERLONG = `https://example.org/${'Donaudampfschifffahrtsgesellschaft'.repeat(4)}`;
+
+describe('edit matrix: a word wider than the measure', () => {
+  // Known: `layoutParagraph` sets a word wider than the measure as an overfull line that runs
+  // past the measure's right edge (no break inside the word), and `decideOverflow` judges only
+  // the height, so the editor shows it as fitting; the writer then refuses it
+  // ("[text-edit:does-not-fit] (paragraph:off-page) … would be drawn outside the page") when
+  // the preview runs and on commit. A narrower overlong word commits running into the margin
+  // or the next column. Seen on every target of the matrix.
+  test.fails('word-export.pdf#1: a pasted overlong word is broken at the measure and commits', async () => {
+    const target = TARGETS.find((t) => t.file === 'word-export.pdf');
+    if (!target) throw new Error('no word-export target');
+    const outcome = await runScenario(target, 1, (block) => {
+      const w = wordsOf(block.text)[0];
+      return w ? { start: w.end, end: w.end, text: ` ${OVERLONG}` } : undefined;
+    });
+    expect(outcome).not.toBe('skip');
+    if (outcome === 'skip') return;
+    expect(outcome.broken).toEqual([]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Detection against the manifest

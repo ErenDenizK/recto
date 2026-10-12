@@ -219,3 +219,70 @@ test('quote-operator paragraph: Turkish letters in the substitute font commit', 
   await expect(editor).toHaveText(/^ğüşıöç İĞÜŞÖÇ This last/);
   await commit(page, editor);
 });
+
+test('word export: undo and redo a committed paragraph edit, then edit it again', async ({
+  page,
+}) => {
+  await openCorpus(page, 'word-export.pdf');
+  const editor = await openParagraph(page, 'Thanks');
+  const original = await textOf(editor);
+  await page.keyboard.type('Bright ');
+  await commit(page, editor);
+
+  // Undo: the paragraph reads as before; redo: the edit is back.
+  await page.locator('[data-read-viewport]').focus();
+  await page.keyboard.press('ControlOrMeta+z');
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited/)).toHaveAttribute('data-state', 'future'),
+  );
+  const undone = await reopenParagraph(page, 'Thanks');
+  expect(await textOf(undone)).toBe(original);
+  await page.keyboard.press('Escape');
+  await expect(undone).toHaveCount(0, { timeout: 20_000 });
+  await page.locator('[data-read-viewport]').focus();
+  await page.keyboard.press('ControlOrMeta+Shift+z');
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited/)).toHaveAttribute('data-state', 'present'),
+  );
+
+  // Edited again after the redo: a second entry, both edits in the text.
+  const again = await reopenParagraph(page, 'Bright');
+  expect(await textOf(again)).toBe(`Bright ${original}`);
+  await page.keyboard.press('ControlOrMeta+Home');
+  await page.keyboard.type('Very ');
+  await expect(page.locator('[data-paragraph-editor]')).toHaveAttribute('data-preview', '', {
+    timeout: 20_000,
+  });
+  await expect(page.getByTestId('paragraph-error')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(again).toHaveCount(0, { timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited/)).toHaveCount(2, { timeout: 20_000 }),
+  );
+  const third = await reopenParagraph(page, 'Very');
+  expect(await textOf(third)).toBe(`Very Bright ${original}`);
+});
+
+test('word export: a paragraph on a page turned a quarter edits, exports and reads back', async ({
+  page,
+}) => {
+  await openCorpus(page, 'word-export.pdf');
+  // Turn the page (Shift+R, a view rotation) with Edit text armed, then click into the paragraph.
+  await page.locator('[data-read-viewport]').focus();
+  await page.keyboard.press('Shift+R');
+  await inHistory(page, (list) => expect(historyStep(list, /Rotat/)).toHaveCount(1));
+  await page.locator('[data-read-viewport]').focus();
+  const run = page.locator('[data-text-edit-layer="0"] [data-text-run^="Thanks"]').first();
+  await expect(run).toBeVisible({ timeout: 20_000 });
+  const box = await run.boundingBox();
+  if (!box) throw new Error('run not laid out');
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  const editor = page.getByRole('textbox', { name: 'Paragraph on page 1' });
+  await expect(editor).toBeFocused({ timeout: 20_000 });
+  await page.keyboard.press('ControlOrMeta+Home');
+  await page.keyboard.type('Turned ');
+  await expect(editor).toHaveText(/^Turned Thanks are due/);
+  await commit(page, editor);
+  const hits = await exportAndSearch(page, 'word-turned', 'Turned Thanks are due');
+  await expect(hits).toHaveCount(1, { timeout: 20_000 });
+});
