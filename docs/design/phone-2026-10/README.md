@@ -71,8 +71,9 @@ The drawer is the one place where all of phone editing lives, so it gets the mos
   3. **Quiet actions:** Eraser, Redo, Select (Undo is the island's, in reach under the drawer).
 - **Closing** (EDN-18). A tap on a tool arms it and the drawer stays open, so another colour,
   size or tool is one more tap, and the island's Undo and Redo, in reach under the drawer, work
-  with it open. Its head (grabber, "Tools", Done) gives Done. It closes by Done, swiping down,
-  tapping outside or tapping the chip again; New signature closes it as its pad opens.
+  with it open. Its head holds the grabber, "Tools" and a quiet icon-only close (a caret down,
+  "Close tools"), never a second "Done" beside the island's. It closes by that button, swiping
+  down, tapping outside or tapping the chip again; New signature closes it as its pad opens.
   - A tap outside only closes the drawer while Pen, Highlight, the Eraser or Select is armed,
     so putting it away never leaves ink.
   - Where the armed tool's next step is on the page (Text, Edit text, a chosen saved

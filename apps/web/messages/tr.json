@@ -2418,6 +2418,7 @@
   "compact_edit_on": "Düzenleme açık. {tool}",
   "compact_edit_off": "Bitti. Değişiklikleriniz bu cihazda saklanıyor.",
   "compact_tools": "Araçlar",
+  "compact_tools_close": "Araçları kapat",
   "compact_tool_menu": "Araç seçin",
   "compact_tool_off": "Araç kapalı. Tek parmak kaydırır ve seçer.",
   "compact_tool_pen": "Kalem",

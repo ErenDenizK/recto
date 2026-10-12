@@ -2,7 +2,7 @@
  * How the drawer closes (`design/phone-2026-10/README.md` §3 "Closing"; EDN-18, the owner: "it
  * shouldn't close right away, so I can make another colour choice or undo"). A tile or row
  * arms its tool and the drawer stays open; it closes by a press outside, a swipe down, the chip,
- * Done or Esc (`use-drawer-panel.ts`), and as New signature's sheet opens (`sign.tsx`).
+ * Close or Esc (`use-drawer-panel.ts`), and as New signature's sheet opens (`sign.tsx`).
  *
  * The press outside depends on where the armed tool's next step is:
  *

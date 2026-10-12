@@ -18,8 +18,9 @@
  * - **Closing** (EDN-18, the owner: "it shouldn't close right away, so I can make another colour
  *   choice or undo"). A tile arms its tool, takes the receive pulse, and the drawer stays open:
  *   the options row turns to the new tool and the chip changes under it. It closes by a press
- *   outside, a swipe down, the chip again, Done in its head (grabber, "Tools", Done, as the
- *   list's) and Esc, which puts focus back on ▾. A press outside only closes (a transparent
+ *   outside, a swipe down, the chip again, Close in its head (grabber, "Tools" and a quiet
+ *   caret-down "Close tools", as the list's; never a second "Done" beside the island's) and
+ *   Esc, which puts focus back on ▾. A press outside only closes (a transparent
  *   scrim, so it never draws on the page) unless the armed tool's next step is a tap on the
  *   page (Text, Edit text, a chosen signature): then it closes and acts (`drawer-close.ts`).
  *   Undo and Redo stay in reach in the island under it.
@@ -35,6 +36,7 @@ import { receivePulse } from '../../../motion/receive';
 import { useWorkspaceStore } from '../../../state/workspace-store';
 import { Button } from '../../../ui/Button';
 import { Icon } from '../../../ui/Icon';
+import { IconButton } from '../../../ui/IconButton';
 import { setDrawerOpen, useCompactStore } from '../compact-store';
 import { armTool, redo, toggleEraser, toolOff } from './bridge';
 import { drawerVariant } from './drawer-variant';
@@ -113,14 +115,14 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         <div className={styles.head}>
           <span className={styles.grabber} aria-hidden="true" />
           <span className={styles.title}>{m.compact_tools()}</span>
-          <Button
-            variant="quiet"
+          <IconButton
+            label={m.compact_tools_close()}
+            tooltipSide="top"
+            icon={<Icon name="caret-down" />}
             className={styles.done}
             data-testid="compact-drawer-done"
             onClick={() => setDrawerOpen(false)}
-          >
-            {m.compact_done()}
-          </Button>
+          />
         </div>
         <div className={styles.tiles} role="group" aria-label={m.compact_tools()}>
           {tiles.map((spec) => (

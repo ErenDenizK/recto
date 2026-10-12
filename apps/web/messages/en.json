@@ -3892,6 +3892,7 @@
   "compact_edit_on": "Editing. {tool}",
   "compact_edit_off": "Done. Your changes are kept on this device.",
   "compact_tools": "Tools",
+  "compact_tools_close": "Close tools",
   "compact_tool_menu": "Choose a tool",
   "compact_tool_off": "Tool off. One finger scrolls and selects.",
   "compact_tool_pen": "Pen",

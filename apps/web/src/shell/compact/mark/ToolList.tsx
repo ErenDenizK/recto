@@ -19,7 +19,7 @@
  *   `TextOptions.tsx`, `sign-options.tsx`), another folds them. One row open at a time. The
  *   fold runs on `smooth` (no bounce), its close on `quick`; reduced motion fades only, in
  *   150 ms at most.
- * - **Closing.** A swipe down, a press outside, Done and Esc; then the island shows again with
+ * - **Closing.** A swipe down, a press outside, Close (the head's caret down) and Esc; then the island shows again with
  *   the chosen tool's chip, which takes the receive pulse (`use-drawer-panel.ts`). As from the
  *   tiles (EDN-18, `drawer-close.ts`): a saved signature keeps it open too, and a press outside
  *   only closes (the transparent scrim) unless the armed tool's next step is a tap on the page.
@@ -48,6 +48,7 @@ import { useWorkspaceStore } from '../../../state/workspace-store';
 import { Button } from '../../../ui/Button';
 import { needsContrastRing } from '../../../ui/colour/colour-math';
 import { Icon } from '../../../ui/Icon';
+import { IconButton } from '../../../ui/IconButton';
 import { useToolStore } from '../../../viewer/tool-store';
 import type { CompactTool } from '../compact-store';
 import { setDrawerOpen, useCompactStore } from '../compact-store';
@@ -134,14 +135,14 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         <div className={styles.head}>
           <span className={styles.grabber} aria-hidden="true" />
           <span className={styles.title}>{m.compact_tools()}</span>
-          <Button
-            variant="quiet"
+          <IconButton
+            label={m.compact_tools_close()}
+            tooltipSide="top"
+            icon={<Icon name="caret-down" />}
             className={styles.done}
             data-testid="compact-drawer-done"
             onClick={() => setDrawerOpen(false)}
-          >
-            {m.compact_done()}
-          </Button>
+          />
         </div>
         <div
           ref={listRef}
