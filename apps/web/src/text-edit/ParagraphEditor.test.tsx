@@ -31,6 +31,7 @@ import {
   substituteCssFamily,
   PREVIEW_DELAY_MS,
 } from './ParagraphEditor';
+import { mirrorOffset, mirrorPosition } from './mirror-dom';
 import { type ParagraphSession, useParagraphBoxAt, useTextEditStore } from './text-edit-store';
 import { rectToCss } from '../annotations/geometry';
 
@@ -195,6 +196,15 @@ function renderEditor(session: ParagraphSession) {
   return { ...view, mirror };
 }
 
+/** The DOM selection in the mirror as text offsets (the mirror holds a node per line). */
+function caret(mirror: HTMLElement): { anchor: number | null; focus: number | null } {
+  const selection = window.getSelection();
+  return {
+    anchor: mirrorOffset(mirror, selection?.anchorNode ?? null, selection?.anchorOffset ?? 0),
+    focus: mirrorOffset(mirror, selection?.focusNode ?? null, selection?.focusOffset ?? 0),
+  };
+}
+
 async function ready(mirror: HTMLElement) {
   await waitFor(() => expect(mirror).toHaveFocus());
   await waitFor(() => expect(mirror.textContent).toBe(LINES.join(' ')));
@@ -225,8 +235,7 @@ describe('ParagraphEditor', () => {
     await ready(mirror);
     expect(mirror).toHaveAttribute('aria-multiline', 'true');
     expect(mirror).toHaveAttribute('contenteditable', 'true');
-    const selection = window.getSelection();
-    expect(selection?.focusOffset).toBe(4);
+    expect(caret(mirror)).toEqual({ anchor: 4, focus: 4 });
     expect(screen.getByTestId('paragraph-header')).toHaveAccessibleName('Paragraph editing');
   });
 
@@ -421,15 +430,207 @@ describe('ParagraphEditor', () => {
     const { mirror } = renderEditor(session);
     await ready(mirror);
     await userEvent.keyboard('{ArrowDown}');
-    await waitFor(() => expect(window.getSelection()?.focusOffset).toBe(24));
+    await waitFor(() => expect(caret(mirror).focus).toBe(24));
     await userEvent.keyboard('{Control>}a{/Control}');
-    await waitFor(() => {
-      const selection = window.getSelection();
-      expect(selection?.anchorOffset).toBe(0);
-      expect(selection?.focusOffset).toBe(LINES.join(' ').length);
-    });
+    await waitFor(() =>
+      expect(caret(mirror)).toEqual({ anchor: 0, focus: LINES.join(' ').length }),
+    );
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(mirror.textContent).toBe('\n'));
+  });
+});
+
+/**
+ * The mirror's selection and input (EDN-17; the iPhone report of 2026-10-12): any DOM position
+ * in the mirror reads as a text offset, a point in the paragraph resolves into the mirror's
+ * text in the drawn lines (what iOS's keyboard trackpad does), an input acts on the range the
+ * browser names, and an emptied paragraph still takes typing.
+ */
+describe('the mirror’s selection and input', () => {
+  beforeEach(() => {
+    commits.calls.length = 0;
+    commits.outcome = undefined;
+    useTextEditStore.getState().close();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    useTextEditStore.getState().close();
+  });
+
+  const TEXT = LINES.join(' ');
+  /** Lets a `selectionchange` (dispatched as a task) reach the editor. */
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+  /**
+   * The DOM position a point resolves to, hit-tested as WebKit's trackpad does it (the topmost
+   * box at the point that is not `pointer-events: none`).
+   */
+  function positionAt(x: number, y: number): { node: Node; offset: number } | null {
+    const position = document.caretPositionFromPoint(x, y);
+    return position ? { node: position.offsetNode, offset: position.offset } : null;
+  }
+
+  /** The browser's own caret rectangle at the selection. */
+  function caretRect(): DOMRect {
+    const range = window.getSelection()?.getRangeAt(0).cloneRange();
+    if (!range) throw new Error('no selection');
+    const rects = range.getClientRects();
+    return rects[0] ?? range.getBoundingClientRect();
+  }
+
+  it('a caret on the mirror element itself reads as a text offset', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    // Child-index offsets: after the mirror's last child is the text's end.
+    act(() => window.getSelection()?.collapse(mirror, mirror.childNodes.length));
+    await settle();
+    await userEvent.keyboard('Z');
+    await waitFor(() => expect(mirror.textContent).toBe(`${TEXT}Z`));
+    act(() => window.getSelection()?.collapse(mirror, 0));
+    await settle();
+    await userEvent.keyboard('A');
+    await waitFor(() => expect(mirror.textContent).toBe(`A${TEXT}Z`));
+  });
+
+  it('a selection that leaves the mirror while it has the focus is put back', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    act(() => window.getSelection()?.collapse(document.body, 0));
+    await settle();
+    expect(mirror).toHaveFocus();
+    expect(caret(mirror)).toEqual({ anchor: 4, focus: 4 });
+    await userEvent.keyboard('Q');
+    await waitFor(() => expect(mirror.textContent).toBe(`The Q${TEXT.slice(4)}`));
+  });
+
+  it('a point in the paragraph resolves into the mirror’s text in the drawn lines (trackpad)', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    // The keyboard's trackpad moves from the caret's rectangle by the finger's travel, then
+    // asks for the position at that point: right by about three glyphs on the same line. The
+    // mirror lies over the canvas, so hit-testing finds its text.
+    const start = caretRect();
+    const glyph = (mirror.getBoundingClientRect().width / 20) * 0.9;
+    const right = positionAt(start.left + 3 * glyph, start.top + start.height / 2);
+    expect(right && mirror.contains(right.node)).toBe(true);
+    if (!right) return;
+    // In the drawn lines.
+    const lines = [...mirror.querySelectorAll('[data-mirror-line]')].map((l) => l.textContent);
+    expect(lines).toEqual(['The quick brown fox ', 'jumps over the lazy ', 'dog and runs away.']);
+    const rightOffset = mirrorOffset(mirror, right.node, right.offset) ?? -1;
+    expect(rightOffset).toBeGreaterThanOrEqual(6);
+    expect(rightOffset).toBeLessThanOrEqual(8);
+    act(() => window.getSelection()?.collapse(right.node, right.offset));
+    await settle();
+    await userEvent.keyboard('R');
+    await waitFor(() =>
+      expect(mirror.textContent).toBe(`${TEXT.slice(0, rightOffset)}R${TEXT.slice(rightOffset)}`),
+    );
+    // Down a line from the caret: the next drawn line, near the same x.
+    const here = caretRect();
+    const pitch = mirror.getBoundingClientRect().height / 3;
+    const down = positionAt(here.left, here.top + here.height / 2 + pitch);
+    expect(down && mirror.contains(down.node)).toBe(true);
+    if (!down) return;
+    const downOffset = mirrorOffset(mirror, down.node, down.offset) ?? -1;
+    // Line 2 starts after "The quick brown fox " and the R typed on line 1.
+    expect(downOffset).toBeGreaterThanOrEqual(21 + rightOffset - 2);
+    expect(downOffset).toBeLessThanOrEqual(21 + rightOffset + 2);
+  });
+
+  it('autocorrect’s replacement takes the word the input names, not the caret', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    // The caret after "quick", the word replaced as iOS does: a target range and a data
+    // transfer holding the replacement.
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}');
+    await waitFor(() => expect(caret(mirror).focus).toBe(9));
+    const [from, to] = [mirrorPosition(mirror, 4), mirrorPosition(mirror, 9)];
+    const transfer = new DataTransfer();
+    transfer.setData('text/plain', 'quack');
+    const event = new InputEvent('beforeinput', {
+      bubbles: true,
+      cancelable: true,
+      inputType: 'insertReplacementText',
+      dataTransfer: transfer,
+      targetRanges: [
+        new StaticRange({
+          startContainer: from.node,
+          startOffset: from.offset,
+          endContainer: to.node,
+          endOffset: to.offset,
+        }),
+      ],
+    });
+    act(() => {
+      mirror.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+    await waitFor(() => expect(mirror.textContent).toBe(`The quack${TEXT.slice(9)}`));
+    expect(caret(mirror)).toEqual({ anchor: 9, focus: 9 });
+  });
+
+  it('a delete takes the range the input names (a grapheme, a word)', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    const [from, to] = [mirrorPosition(mirror, 2), mirrorPosition(mirror, 4)];
+    act(() => {
+      mirror.dispatchEvent(
+        new InputEvent('beforeinput', {
+          bubbles: true,
+          cancelable: true,
+          inputType: 'deleteContentBackward',
+          targetRanges: [
+            new StaticRange({
+              startContainer: from.node,
+              startOffset: from.offset,
+              endContainer: to.node,
+              endOffset: to.offset,
+            }),
+          ],
+        }),
+      );
+    });
+    await waitFor(() => expect(mirror.textContent).toBe(`Th${TEXT.slice(4)}`));
+    expect(caret(mirror)).toEqual({ anchor: 2, focus: 2 });
+  });
+
+  it('delete everything, then type: the emptied mirror takes the typing', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    await userEvent.keyboard('{Control>}a{/Control}{Backspace}');
+    await waitFor(() => expect(mirror.textContent).toBe(''));
+    expect(mirror).toHaveFocus();
+    expect(caret(mirror)).toEqual({ anchor: 0, focus: 0 });
+    await userEvent.keyboard('Hi there');
+    await waitFor(() => expect(mirror.textContent).toBe('Hi there'));
+    expect(caret(mirror)).toEqual({ anchor: 8, focus: 8 });
+    // A caret the browser puts on the emptied structure still reads right.
+    act(() => window.getSelection()?.collapse(mirror, 0));
+    await settle();
+    await userEvent.keyboard('O');
+    await waitFor(() => expect(mirror.textContent).toBe('OHi there'));
+  });
+
+  it('a press on the paragraph places the caret from the drawn lines, and keeps it', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    // The press lands on the mirror (it lies over the canvas).
+    const box = mirror.getBoundingClientRect();
+    const x = box.left + box.width - 2;
+    const y = box.top + box.height / 6;
+    expect(document.elementFromPoint(x, y)?.closest('[data-paragraph-mirror]')).toBe(mirror);
+    await userEvent.click(mirror, { position: { x: box.width - 2, y: box.height / 6 } });
+    // The end of the first drawn line ("The quick brown fox" before its joining space).
+    await waitFor(() => expect(caret(mirror).focus).toBe(19));
   });
 });
 

@@ -22,21 +22,19 @@
   pointer-events: none;
 }
 
+/* Presses on the paragraph land on the mirror over them (below), not on the canvas. */
 .canvas,
 .preview {
   position: absolute;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .canvas {
   z-index: 2;
-  cursor: text;
-  touch-action: none;
 }
 
 .preview {
   z-index: 1;
-  pointer-events: none;
 }
 
 /* The paragraph's frame while it is edited: a hairline of the page's selection blue 3 px out,
@@ -61,11 +59,15 @@
 
 /*
  * The mirror: present for the keyboard, IME and assistive technology, invisible on screen.
- * It sits over the paragraph so the IME's candidate window opens near the text.
+ * It lies over the canvas, on its box, with its text in the drawn lines (`mirror-dom.ts`:
+ * a block per line, a span scaled onto the line), so the IME's candidate window opens near
+ * the text and a point the browser resolves into text (iOS's keyboard trackpad, a tap) finds
+ * the mirror's text there: hit-testable and topmost, never `pointer-events: none` (EDN-17).
+ * It takes the presses on the paragraph (`touch-action: none`: a drag selects, not pans).
  */
 .mirror {
   position: absolute;
-  z-index: 0;
+  z-index: 4;
   overflow: hidden;
   margin: 0;
   padding: 0;
@@ -73,14 +75,28 @@
   color: transparent;
   caret-color: transparent;
   line-height: 1.2;
-  white-space: pre-wrap;
+  white-space: pre;
   opacity: 0;
   outline: none;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: text;
+  touch-action: none;
   user-select: text;
+  -webkit-user-select: text;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.mirror::selection {
+.mirror > div {
+  overflow: visible;
+}
+
+.mirror > div > span {
+  display: block;
+  width: max-content;
+  transform-origin: 0 0;
+}
+
+.mirror ::selection {
   background: transparent;
 }
 

@@ -195,6 +195,174 @@ test.describe('editing text on phones (M10 WP5)', () => {
   });
 });
 
+/** The mirror's caret as a text offset (it holds a node per drawn line). */
+async function caretOffset(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const mirror = document.querySelector('[data-paragraph-mirror]');
+    const selection = getSelection();
+    if (!mirror || !selection?.focusNode || !mirror.contains(selection.focusNode)) return -1;
+    const range = document.createRange();
+    range.setStart(mirror, 0);
+    range.setEnd(selection.focusNode, selection.focusOffset);
+    return range.toString().length;
+  });
+}
+
+/** The text of the mirror's lines (the drawn lines' breaks). */
+async function mirrorLines(page: Page): Promise<string[]> {
+  return mirror(page)
+    .locator('[data-mirror-line]')
+    .evaluateAll((lines) => lines.map((line) => line.textContent ?? ''));
+}
+
+/**
+ * The iOS keyboard's trackpad, as WebKit runs it: from the caret's rectangle, the finger's
+ * travel (`dx`, `dy`, CSS px), the point kept inside the focused editable's box, then the
+ * position the topmost text there resolves to becomes the selection. The new offset, or -1
+ * when the point did not resolve into the mirror.
+ */
+async function trackpad(page: Page, dx: number, dy: number): Promise<number> {
+  return page.evaluate(
+    ([moveX, moveY]) => {
+      const mirror = document.querySelector('[data-paragraph-mirror]');
+      const selection = getSelection();
+      if (!mirror || !selection || selection.rangeCount === 0) return -1;
+      const range = selection.getRangeAt(0).cloneRange();
+      const caret = range.getClientRects()[0] ?? range.getBoundingClientRect();
+      const box = mirror.getBoundingClientRect();
+      const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+      const x = clamp(caret.left + moveX, box.left + 0.5, box.right - 0.5);
+      const y = clamp(caret.top + caret.height / 2 + moveY, box.top + 0.5, box.bottom - 0.5);
+      const at = document.caretPositionFromPoint(x, y);
+      if (!at || !mirror.contains(at.offsetNode)) return -1;
+      selection.collapse(at.offsetNode, at.offset);
+      const before = document.createRange();
+      before.setStart(mirror, 0);
+      before.setEnd(at.offsetNode, at.offset);
+      return before.toString().length;
+    },
+    [dx, dy] as const,
+  );
+}
+
+test.describe('the hidden mirror on phones (EDN-17)', () => {
+  test('the keyboard trackpad and moves follow; delete everything, retype, Done commits', async ({
+    page,
+  }) => {
+    await openSample(page);
+    await armEditText(page);
+    const cdp = await page.context().newCDPSession(page);
+    await tap(cdp, await paragraphPoint(page));
+    await expect(mirror(page)).toBeFocused({ timeout: 20_000 });
+    const lines = await mirrorLines(page);
+    expect(lines.length).toBeGreaterThan(1);
+    const text = lines.join('');
+    await expect(mirror(page)).toHaveText(text);
+
+    // The trackpad, sideways: a few glyphs on along the first line, then a typed letter
+    // lands there (the model follows the DOM caret).
+    const start = await caretOffset(page);
+    const right = await trackpad(page, 24, 0);
+    expect(right).toBeGreaterThan(start);
+    expect(right).toBeLessThan((lines[0] ?? '').length);
+    await expect.poll(() => caretOffset(page)).toBe(right);
+    await page.keyboard.type('X');
+    await expect(mirror(page)).toHaveText(`${text.slice(0, right)}X${text.slice(right)}`);
+
+    // Down a drawn line: the caret lands on the second line.
+    const band = await mirror(page)
+      .locator('[data-mirror-line]')
+      .first()
+      .evaluate((line) => line.getBoundingClientRect().height);
+    const down = await trackpad(page, 0, band);
+    const second = await mirrorLines(page);
+    const lineStart = (second[0] ?? '').length;
+    expect(down).toBeGreaterThanOrEqual(lineStart);
+    expect(down).toBeLessThanOrEqual(lineStart + (second[1] ?? '').length);
+    await page.keyboard.type('Y');
+    await expect(mirror(page)).toContainText('Y');
+    const typed = (await mirror(page).textContent()) ?? '';
+    expect(typed.indexOf('Y')).toBe(down);
+
+    // The selection's own moves (what assistive technology does) are followed too.
+    const from = await caretOffset(page);
+    await page.evaluate(() => {
+      for (let i = 0; i < 3; i++) getSelection()?.modify('move', 'backward', 'character');
+    });
+    await expect.poll(() => caretOffset(page)).toBe(from - 3);
+    await page.keyboard.type('Z');
+    expect(((await mirror(page).textContent()) ?? '').indexOf('Z')).toBe(from - 3);
+
+    // Delete everything: the emptied paragraph takes typing again, in its place.
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await expect(mirror(page)).toHaveText('');
+    await expect(mirror(page)).toBeFocused();
+    await page.keyboard.type('Hello Recto');
+    await expect(mirror(page)).toHaveText('Hello Recto');
+    expect(await caretOffset(page)).toBe('Hello Recto'.length);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('o!');
+    await expect(mirror(page)).toHaveText('Hello Recto!');
+    await shot(page, 'retyped');
+  });
+
+  test('delete everything, retype, Done commits the new text', async ({ page }) => {
+    // The model types an emptied paragraph in no style (zero advances), so the text draws
+    // bunched and the commit is refused; the model's fix is in its own lane.
+    test.fixme(true, 'an emptied paragraph types in style "" (paragraph-model replaceRange)');
+    await openSample(page);
+    await armEditText(page);
+    const cdp = await page.context().newCDPSession(page);
+    await tap(cdp, await paragraphPoint(page));
+    await expect(mirror(page)).toBeFocused({ timeout: 20_000 });
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('Hello Recto!');
+    await expect(mirror(page)).toHaveText('Hello Recto!');
+    await page.getByTestId('compact-edit-text-done').click();
+    await expect(mirror(page)).toHaveCount(0, { timeout: 20_000 });
+    await expect(pageText(page)).toContainText('Hello Recto!', { timeout: 20_000 });
+  });
+
+  test('the mirror lies over the paragraph in its drawn lines, at 16 px', async ({ page }) => {
+    await openSample(page);
+    await armEditText(page);
+    const cdp = await page.context().newCDPSession(page);
+    await tap(cdp, await paragraphPoint(page));
+    await expect(mirror(page)).toBeFocused({ timeout: 20_000 });
+    const box = await mirror(page).boundingBox();
+    if (!box) throw new Error('no mirror');
+    // Topmost where the paragraph is drawn: a point there resolves into its text.
+    const hit = await page.evaluate(
+      ({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-paragraph-mirror]') !== null,
+      { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+    );
+    expect(hit).toBe(true);
+    // Every line inside the box (nothing the trackpad cannot reach), the font still 16 px.
+    const inside = await mirror(page)
+      .locator('[data-mirror-line] > span')
+      .evaluateAll((spans, outer) => {
+        const o = outer as { x: number; y: number; width: number; height: number };
+        return spans.every((span) => {
+          const r = span.getBoundingClientRect();
+          return (
+            r.left >= o.x - 1 &&
+            r.right <= o.x + o.width + 1 &&
+            r.top >= o.y - 1 &&
+            r.bottom <= o.y + o.height + 1
+          );
+        });
+      }, box);
+    expect(inside).toBe(true);
+    const px = await mirror(page).evaluate((el) =>
+      Number.parseFloat(getComputedStyle(el).fontSize),
+    );
+    expect(px).toBeGreaterThanOrEqual(16);
+    await shot(page, 'mirror');
+  });
+});
+
 test.describe('the selection bar’s Edit text (M10 WP5)', () => {
   test('opens the selected paragraph with the focus taken in the press', async ({ page }) => {
     await openSample(page);
