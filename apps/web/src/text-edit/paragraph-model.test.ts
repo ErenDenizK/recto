@@ -242,6 +242,35 @@ describe('an emptied paragraph', () => {
   });
 });
 
+describe('a word wider than the measure (TXT-19)', () => {
+  it('breaks inside the word at the measure; the caret crosses the break by character and line', () => {
+    // 10 characters per line; a 25-character word after "The".
+    const setup = paragraph(['The quick'], { width: 10 * ADVANCE });
+    let state = insertText(initialState(setup.input, 3), ` ${'x'.repeat(25)}`);
+    const { layout } = relayout(fns, setup, state);
+    expect(layout.lines.map((l) => l.text)).toEqual([
+      'The',
+      'xxxxxxxxxx',
+      'xxxxxxxxxx',
+      'xxxxx',
+      'quick',
+    ]);
+    const lines = caretLines(setup, state, layout);
+    for (const line of lines) {
+      for (const x of line.xs) expect(x).toBeLessThanOrEqual(LEFT + 10 * ADVANCE + 1e-6);
+    }
+    // Offset 14 starts the second line of the word: it shows there, at the left edge.
+    expect(caretAt(lines, 14)).toEqual({ line: 2, x: LEFT });
+    state = { ...state, anchor: 13, focus: 13 };
+    expect(caretAt(lines, 13)).toEqual({ line: 1, x: LEFT + 9 * ADVANCE });
+    expect(moveHorizontal(state, 1, false).focus).toBe(14);
+    // Down from the 3rd character of the word's first line: the 3rd of its second.
+    const down = moveVertical({ ...state, anchor: 6, focus: 6 }, lines, 1, false);
+    expect(down.focus).toBe(16);
+    expect(moveVertical(down, lines, -1, false).focus).toBe(6);
+  });
+});
+
 describe('layout and caret geometry', () => {
   it('lays out the edited text: earlier lines kept, the edited one rewritten', () => {
     const setup = paragraph(LINES, WIDTH);

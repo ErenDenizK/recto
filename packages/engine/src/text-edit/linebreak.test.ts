@@ -177,11 +177,19 @@ describe('rewrap (greedy first-fit from the edited line)', () => {
     expect(line.width).toBe(12);
   });
 
-  test('a word wider than the measure sits alone and is marked, never split', () => {
+  test('a word wider than the measure is split at it; only a glyph wider than it is overfull', () => {
     const input = para(['aa bb'], { width: 5 });
     const layout = layoutParagraph(input, { start: 3, end: 5, text: 'bbbbbbbb cc' });
-    expect(texts(layout)).toEqual(['aa', 'bbbbbbbb', 'cc']);
-    expect(layout.lines.map((l) => l.overfull)).toEqual([false, true, false]);
+    expect(texts(layout)).toEqual(['aa', 'bbbbb', 'bbb', 'cc']);
+    expect(layout.lines.map((l) => l.overfull)).toEqual([false, false, false, false]);
+    // A single character wider than the measure stands alone and is marked.
+    const wide = para(['aa bb'], {
+      width: 5,
+      style: monoStyle({ advances: { ...monoStyle().advances, W: { spaced: 7, plain: 7 } } }),
+    });
+    const one = layoutParagraph(wide, { start: 3, end: 5, text: 'WW cc' });
+    expect(texts(one)).toEqual(['aa', 'W', 'W', 'cc']);
+    expect(one.lines.map((l) => l.overfull)).toEqual([false, true, true, false]);
   });
 
   test('no change keeps every line', () => {
@@ -345,6 +353,27 @@ describe('kerning, hyphens and substitutes', () => {
       expect(run.style).toBe('s');
       expect(run.width).toBe(3);
     }
+  });
+
+  test('a word wider than the line breaks where it stops fitting, no hyphen (TXT-19)', () => {
+    const input = para(['aa bb', 'cc'], { width: 6 });
+    const layout = layoutParagraph(input, { start: 2, end: 2, text: ' abcdefghijklmn' });
+    // Normal words still wrap whole; only the overlong one breaks, at the measure.
+    expect(texts(layout)).toEqual(['aa', 'abcdef', 'ghijkl', 'mn bb', 'cc']);
+    for (const line of layout.lines) {
+      expect(line.overfull).toBe(false);
+      expect(line.x + line.width).toBeLessThanOrEqual(6);
+    }
+    // Never inside a surrogate pair or before a combining mark.
+    const acute = String.fromCharCode(0x301);
+    const bold = String.fromCodePoint(0x1d400);
+    const word = `abcde${acute}f${bold}${bold}`;
+    const marks = layoutParagraph(input, { start: 0, end: 5, text: word });
+    for (const line of marks.lines) {
+      const first = line.text.charCodeAt(0);
+      expect(first === 0x301 || (first >= 0xdc00 && first <= 0xdfff)).toBe(false);
+    }
+    expect(marks.lines.map((l) => l.text).join('')).toBe(`${word} cc`);
   });
 
   test('CJK text breaks between ideographs', () => {

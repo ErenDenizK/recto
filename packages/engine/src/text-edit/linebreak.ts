@@ -494,7 +494,7 @@ export function layoutWithThresholds(
     for (let j = 0; j + 1 < oldCount; j++) sourceEndingAt.set(oldNext(j), j);
 
     const lineStart0 = oldLines[first]?.start ?? 0;
-    const nextOpportunity = opportunities(text, lineStart0, hyphens);
+    let nextOpportunity = opportunities(text, lineStart0, hyphens);
     let opp = nextOpportunity();
     let lineStart = lineStart0;
     while (lineStart < n && opp) {
@@ -515,9 +515,20 @@ export function layoutWithThresholds(
           continue;
         }
         if (!chosen) {
-          chosen = opp;
-          overfull = true;
-          opp = nextOpportunity();
+          // A word wider than the whole line breaks inside itself where it stops fitting
+          // (TXT-19, like CSS `overflow-wrap: break-word`), with no hyphen; the rest starts
+          // the next line. Only a single code point wider than the line runs over.
+          const inside = breakInsideWord(t, lineStart, opp.position, avail, f);
+          if (inside === undefined) {
+            chosen = opp;
+            overfull = true;
+            opp = nextOpportunity();
+          } else {
+            chosen = { position: inside.position, required: false, hyphen: false };
+            overfull = inside.overfull;
+            nextOpportunity = opportunities(text, inside.position, hyphens);
+            opp = nextOpportunity();
+          }
         } else if (measure.gap > 0) {
           const factor = (avail - measure.nonGap - hyphen) / measure.gap;
           if (factor < f) thresholds.push(factor);
@@ -633,6 +644,44 @@ export function layoutWithThresholds(
     },
     thresholds,
   };
+}
+
+const COMBINING = /^\p{M}$/u;
+
+/**
+ * Where a word wider than its line breaks (TXT-19): after the last code point of
+ * `[start, to)` at which the text so far still fits `avail`, never inside a surrogate pair or
+ * before a combining mark; at least one code point (with its marks), then `overfull`.
+ * Undefined when there is no place to break (one code point and its marks).
+ */
+function breakInsideWord(
+  t: Tables,
+  start: number,
+  to: number,
+  avail: number,
+  f: number,
+): { readonly position: number; readonly overfull: boolean } | undefined {
+  const end = contentEnd(t, start, to);
+  const boundaries: number[] = [];
+  for (let i = start + 1; i < end; i++) {
+    if (t.kind[i] === KIND_TRAIL) continue;
+    const cp = t.text.codePointAt(i) ?? 0;
+    if (COMBINING.test(String.fromCodePoint(cp))) continue;
+    if (t.kind[i] !== KIND_CHAR) break;
+    boundaries.push(i);
+  }
+  if (boundaries.length === 0) return undefined;
+  let best: number | undefined;
+  const m = new Measure(t);
+  let from = start;
+  for (const at of boundaries) {
+    m.add(from, at);
+    from = at;
+    if (m.width(f) > avail + FIT_EPSILON) break;
+    best = at;
+  }
+  if (best !== undefined) return { position: best, overfull: false };
+  return { position: boundaries[0] as number, overfull: true };
 }
 
 const stretchCaps = new WeakMap<LayoutInput, number>();
