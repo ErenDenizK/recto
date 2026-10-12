@@ -12,7 +12,11 @@
  * - **Mirror**: a hidden `contenteditable` (`role="textbox"`, multi-line, "Paragraph on
  *   page N") holds the paragraph's text and the focus. It takes keys, IME composition,
  *   clipboard and assistive technology; `beforeinput` becomes model operations
- *   (`paragraph-model.ts`), so the DOM never edits itself outside a composition.
+ *   (`paragraph-model.ts`) on the range the browser names (`getTargetRanges`), so the DOM
+ *   never edits itself outside a composition. It lies over the canvas with its text in the
+ *   drawn lines (`mirror-dom.ts`), so a point the browser resolves (iOS's keyboard trackpad)
+ *   lands on its text; any DOM position in it reads as a text offset, and its DOM selection
+ *   is set from the model's after every change (EDN-17).
  * - **Per keystroke**: `layoutParagraph` and `decideOverflow` (pure, from the engine chunk)
  *   on the advances asked for once at open (`analyzeParagraphLayout`), then a redraw. No
  *   worker round trip. The draft is one replacement with a style per character: separate
@@ -113,6 +117,7 @@ import {
   wordRange,
 } from './paragraph-model';
 import { holdOverCommit, openFrame } from './edit-motion';
+import { mirrorLines, mirrorOffset, mirrorPosition, syncMirrorLines } from './mirror-dom';
 import styles from './ParagraphEditor.module.css';
 import { usePageRevision } from './runs';
 import {
@@ -378,6 +383,40 @@ function readVar(element: Element | null, name: string, fallback: string): strin
   return value === '' ? fallback : value;
 }
 
+/**
+ * How long after a press on the editor its caret wins over the browser's own, ms: iOS places
+ * its native caret at a tap's lift, after the press has placed the model's (EDN-17).
+ */
+const PRESS_WINS_MS = 500;
+
+/** Sets the DOM selection in `mirror` to the model's, unless it is there already. */
+function selectInMirror(mirror: HTMLElement, state: ParagraphState): void {
+  const selection = window.getSelection();
+  if (!selection) return;
+  const anchor = mirrorPosition(mirror, state.anchor);
+  const focus = mirrorPosition(mirror, state.focus);
+  if (
+    selection.rangeCount > 0 &&
+    selection.anchorNode === anchor.node &&
+    selection.anchorOffset === anchor.offset &&
+    selection.focusNode === focus.node &&
+    selection.focusOffset === focus.offset
+  ) {
+    return;
+  }
+  selection.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset);
+}
+
+/** The text range an input names (`getTargetRanges`, its first), when it lies in `mirror`. */
+function targetRangeOf(mirror: HTMLElement, event: InputEvent): TextRange | null {
+  const range = event.getTargetRanges?.()[0];
+  if (!range) return null;
+  const start = mirrorOffset(mirror, range.startContainer, range.startOffset);
+  const end = mirrorOffset(mirror, range.endContainer, range.endOffset);
+  if (start === null || end === null) return null;
+  return { start: Math.min(start, end), end: Math.max(start, end) };
+}
+
 export function ParagraphEditor({
   session,
   frame,
@@ -428,6 +467,8 @@ export function ParagraphEditor({
   /** Set once the editor commits or discards, so unmounting does not commit again. */
   const finishedRef = useRef(false);
   const draggingRef = useRef(false);
+  /** Until when a press on the editor keeps the caret it placed (`PRESS_WINS_MS`). */
+  const pressedUntilRef = useRef(0);
   const mountedRef = useRef(true);
   const returnFocusRef = useRef<Element | null>(null);
   const describedBy = useId();
@@ -767,28 +808,19 @@ export function ParagraphEditor({
 
   // ---- The mirror ---------------------------------------------------------------------
 
-  // Keep the mirror's text and selection on the model's (never during a composition).
+  // Keep the mirror's lines and selection on the model's (never during a composition): the
+  // text in the canvas's lines over the drawn ones (`mirror-dom.ts`), and the DOM selection set
+  // after every model change, so the keyboard (iOS's trackpad, autocorrect) reads the caret
+  // where the canvas draws it.
+  const mirrorPx = Math.max(edition.minMirrorPx, 6, block.size * frame.scale);
   useLayoutEffect(() => {
     const mirror = mirrorRef.current;
     if (!mirror || !state || composition) return;
-    if (mirror.textContent !== state.text) mirror.textContent = state.text;
+    const toBox = compose(cssOfText, translate(-box.left, -box.top));
+    syncMirrorLines(mirror, mirrorLines(state.text, laid?.lines ?? [], toBox, box), mirrorPx);
     if (document.activeElement !== mirror) return;
-    const selection = window.getSelection();
-    if (!selection) return;
-    const node = mirror.firstChild ?? mirror;
-    const max = node.nodeType === Node.TEXT_NODE ? (node.textContent?.length ?? 0) : 0;
-    const anchor = Math.min(state.anchor, max);
-    const focus = Math.min(state.focus, max);
-    if (
-      selection.anchorNode === node &&
-      selection.focusNode === node &&
-      selection.anchorOffset === anchor &&
-      selection.focusOffset === focus
-    ) {
-      return;
-    }
-    selection.setBaseAndExtent(node, anchor, node, focus);
-  }, [state, composition, focused]);
+    selectInMirror(mirror, state);
+  }, [state, laid, composition, focused, box, cssOfText, mirrorPx]);
 
   // Focus the mirror when the editor is ready; remember where the focus was.
   useLayoutEffect(() => {
@@ -809,18 +841,33 @@ export function ParagraphEditor({
     setError(null);
   }, []);
 
-  // Assistive technology may move the caret in the mirror: follow it.
+  // The caret moved in the mirror (assistive technology, the iOS keyboard's trackpad, a
+  // tap's native placement): follow it, read as text offsets wherever in the mirror it lies
+  // (`mirrorOffset`). A selection that left the mirror while it has the focus is put back,
+  // or typing would reach nothing. While a press on the editor places the caret, and briefly
+  // after (iOS places its own caret at the lift), the press wins: the DOM is put back.
   useEffect(() => {
     const onSelectionChange = () => {
       const mirror = mirrorRef.current;
       const model = stateRef.current;
       if (!mirror || !model || composingRef.current || document.activeElement !== mirror) return;
+      // The model changed and its lines are not in the DOM yet: the sync sets the selection.
+      if ((mirror.textContent ?? '') !== model.text) return;
       const selection = window.getSelection();
-      if (!selection || !mirror.contains(selection.anchorNode)) return;
-      const anchor = selection.anchorOffset;
-      const focus = selection.focusOffset;
+      if (!selection) return;
+      const anchor = mirrorOffset(mirror, selection.anchorNode, selection.anchorOffset);
+      const focus = mirrorOffset(mirror, selection.focusNode, selection.focusOffset);
+      if (
+        anchor === null ||
+        focus === null ||
+        draggingRef.current ||
+        performance.now() < pressedUntilRef.current
+      ) {
+        selectInMirror(mirror, model);
+        return;
+      }
       if (anchor === model.anchor && focus === model.focus) return;
-      update({ ...model, anchor, focus });
+      update(moveTo({ ...model, anchor }, focus, true));
     };
     document.addEventListener('selectionchange', onSelectionChange);
     return () => document.removeEventListener('selectionchange', onSelectionChange);
@@ -831,14 +878,19 @@ export function ParagraphEditor({
     const mirror = mirrorRef.current;
     if (!mirror) return;
     const onBeforeInput = (event: InputEvent) => {
-      const model = stateRef.current;
-      if (!model) {
+      const current = stateRef.current;
+      if (!current) {
         event.preventDefault();
         return;
       }
       if (event.isComposing || event.inputType === 'insertCompositionText') return;
       event.preventDefault();
       if (busy) return;
+      // The range the input acts on as the browser names it (iOS's autocorrect replaces a word
+      // away from the caret; a delete takes a whole grapheme or word): it becomes the model's
+      // selection first. None given, or not in the mirror: the model's own selection.
+      const target = targetRangeOf(mirror, event);
+      const model = target ? { ...current, anchor: target.start, focus: target.end } : current;
       const pasted = () =>
         (event.dataTransfer?.getData('text/plain') ?? event.data ?? '').replace(/\r\n?/g, '\n');
       switch (event.inputType) {
@@ -874,6 +926,10 @@ export function ParagraphEditor({
           break;
         case 'deleteSoftLineBackward':
         case 'deleteHardLineBackward': {
+          if (target && target.start !== target.end) {
+            update(replaceRange(model, target, ''));
+            break;
+          }
           const lines = layoutRef.current?.lines;
           if (!lines) break;
           const start = moveLineEdge(model, lines, 'start', false).focus;
@@ -884,6 +940,9 @@ export function ParagraphEditor({
           // History and formatting have no meaning here (no font, size or colour controls).
           break;
       }
+      // Nothing changed (a delete at the start, a target range naming nothing): the browser
+      // may still have moved its idea of the caret; put it back on the model's.
+      if (stateRef.current === current) selectInMirror(mirror, current);
     };
     mirror.addEventListener('beforeinput', onBeforeInput);
     return () => mirror.removeEventListener('beforeinput', onBeforeInput);
@@ -1174,7 +1233,10 @@ export function ParagraphEditor({
     update(next);
   };
 
-  // ---- Pointer on the canvas ----------------------------------------------------------
+  // ---- Pointer on the paragraph -------------------------------------------------------
+  // The mirror lies over the canvas, so presses land on it (the browser's own placement,
+  // positioned in the mirror's lines, would be off by a glyph): the press places the model's
+  // caret from the drawn lines and keeps it against the browser's for `PRESS_WINS_MS`.
 
   const pointToOffset = (clientX: number, clientY: number): number | undefined => {
     const layer = rootRef.current?.getBoundingClientRect();
@@ -1184,10 +1246,11 @@ export function ParagraphEditor({
     return offsetAtPoint(lines, apply(invert(textToUser), user));
   };
 
-  const onCanvasPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+  const onPressDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    pressedUntilRef.current = performance.now() + PRESS_WINS_MS;
     mirrorRef.current?.focus({ preventScroll: true });
     const model = stateRef.current;
     const offset = pointToOffset(event.clientX, event.clientY);
@@ -1202,14 +1265,15 @@ export function ParagraphEditor({
       event.currentTarget.setPointerCapture(event.pointerId);
     }
   };
-  const onCanvasPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+  const onPressMove = (event: ReactPointerEvent<HTMLElement>) => {
     if (!draggingRef.current) return;
     const model = stateRef.current;
     const offset = pointToOffset(event.clientX, event.clientY);
     if (model && offset !== undefined) update(moveTo(model, offset, true));
   };
-  const onCanvasPointerUp = () => {
+  const onPressUp = () => {
     draggingRef.current = false;
+    pressedUntilRef.current = performance.now() + PRESS_WINS_MS;
   };
 
   // ---- Header -------------------------------------------------------------------------
@@ -1419,12 +1483,13 @@ export function ParagraphEditor({
         data-testid="paragraph-canvas"
         aria-hidden="true"
         style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
-        onPointerDown={onCanvasPointerDown}
-        onPointerMove={onCanvasPointerMove}
-        onPointerUp={onCanvasPointerUp}
-        onPointerCancel={onCanvasPointerUp}
       />
-      {/* The hidden mirror: keys, IME, clipboard and assistive technology. */}
+      {/*
+       * The hidden mirror: keys, IME, clipboard and assistive technology. It lies over the
+       * canvas, on the canvas's box, with its text in the drawn lines (`mirror-dom.ts`): a
+       * point the browser resolves (iOS's keyboard trackpad, a tap) finds the mirror's text
+       * there, not the canvas. Presses on it place the caret from the drawn lines.
+       */}
       <div
         ref={mirrorRef}
         className={styles.mirror}
@@ -1440,12 +1505,16 @@ export function ParagraphEditor({
         tabIndex={0}
         data-paragraph-mirror=""
         style={{
-          left: paragraphBox.left,
-          top: paragraphBox.top,
-          width: Math.max(paragraphBox.width, 1),
-          height: Math.max(paragraphBox.height, 1),
-          fontSize: Math.max(edition.minMirrorPx, 6, block.size * frame.scale),
+          left: box.left,
+          top: box.top,
+          width: Math.max(box.width, 1),
+          height: Math.max(box.height, 1),
+          fontSize: mirrorPx,
         }}
+        onPointerDown={onPressDown}
+        onPointerMove={onPressMove}
+        onPointerUp={onPressUp}
+        onPointerCancel={onPressUp}
         onKeyDown={onKeyDown}
         onFocus={() => setFocused(true)}
         onBlur={(event) => {
