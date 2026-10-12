@@ -378,6 +378,27 @@ async function page(content: string[], tags?: (doc: PDFDocument) => void): Promi
   return toBuffer(await doc.save({ useObjectStreams: false }));
 }
 
+const spaceCount = (text: string) => text.split(' ').length - 1;
+
+/** A TJ line with `extra` points after every space (a word processor's justification). */
+function stretchedTj(x: number, y: number, text: string, extra: number, size = 10): string {
+  const words = text.split(' ');
+  const offset = (-extra * 1000) / size;
+  const parts = words.map((w, i) => `(${esc(i < words.length - 1 ? `${w} ` : w)})`);
+  return `BT /F1 ${size} Tf 1 0 0 1 ${x} ${y} Tm [${parts.join(` ${offset.toFixed(3)} `)}] TJ ET`;
+}
+
+/** The advance width of each of `lines` set in Helvetica 10 pt, measured on a page. */
+async function naturalWidths(lines: readonly string[]): Promise<number[]> {
+  const id = await h.open(await page(lines.map((line, i) => tj(72, 700 - 12 * i, line))));
+  const runs = await h.editor.locateRuns(id, 0);
+  await h.adapter.close(id);
+  return runs.map((r) => {
+    const box = r.looseLineBox ?? r.lineBox;
+    return box.x + box.width - 72;
+  });
+}
+
 async function blocksOf(bytes: ArrayBuffer): Promise<readonly ParagraphBlock[]> {
   const id = await h.open(bytes);
   const blocks = await h.editor.analyzeParagraphs(id, 0);
@@ -478,6 +499,114 @@ describe('geometry rules', () => {
     expect(ends(first)).toEqual(['space', 'space', 'space', 'end']);
     expect(ends(second)).toEqual(['space', 'space', 'space', 'end']);
     expect(first?.wrapRight ?? first?.measure.right ?? 0).toBeLessThanOrEqual(320 - 10);
+  });
+
+  test('lines stretched by TJ offsets after their spaces are justified, also with right edges ¼ space apart', async () => {
+    const lines = [LONG[0], LONG[1], LONG[2]] as string[];
+    const natural = await naturalWidths(lines);
+    const target = Math.max(...natural) + 20;
+    // Exactly at one edge (Word), then 0.3 and 0.6 pt apart (Tc adding up along a line).
+    for (const spread of [
+      [0, 0, 0],
+      [0, 0.3, 0.6],
+    ]) {
+      const content = lines.map((line, i) =>
+        stretchedTj(
+          72,
+          700 - 12 * i,
+          line,
+          (target + (spread[i] ?? 0) - (natural[i] ?? 0)) / spaceCount(line),
+        ),
+      );
+      const blocks = await blocksOf(await page([...content, tj(72, 664, 'and a short end.')]));
+      expect(lineCounts(blocks)).toEqual([4]);
+      expect(blocks[0]?.align).toBe('justify');
+    }
+  });
+
+  test('ragged lines ending a few tenths of a point apart by chance stay left-aligned', async () => {
+    // One set of words in three orders: equal natural widths, natural spaces; a hair of Tc
+    // moves the second and third line ends 0.3 and 0.6 pt right.
+    const words = ['meadow', 'river', 'stone', 'bridge', 'orchard', 'lantern', 'harvest', 'mill'];
+    const lines = [
+      words.join(' '),
+      [...words].reverse().join(' '),
+      [...words.slice(4), ...words.slice(0, 4)].join(' '),
+    ];
+    const content = lines.map((line, i) => {
+      const tc = (0.3 * i) / (line.length - 1);
+      return `BT /F1 10 Tf ${tc} Tc 1 0 0 1 72 ${700 - 12 * i} Tm (${line}) Tj 0 Tc ET`;
+    });
+    const blocks = await blocksOf(await page([...content, tj(72, 664, 'and a short end.')]));
+    expect(lineCounts(blocks)).toEqual([4]);
+    expect(blocks[0]?.align).toBe('left');
+  });
+
+  test('two stretched spaces between two objects of a justified line keep the line whole', async () => {
+    // A justified paragraph whose first two lines are each drawn by two objects, the second
+    // starting two stretched spaces (no space glyph) after the first; a ragged paragraph below
+    // keeps the page's median space natural.
+    const extra = 3;
+    // The same head on both lines: the gaps line up, so neither line's ink spans the other's.
+    const heads = ['We will stay', 'We will stay'];
+    const tails = [
+      'though the bells of the small chapel rang',
+      'when the first carts rolled down to town',
+    ];
+    const natural = await naturalWidths([...heads, ...tails]);
+    const target = Math.max(natural[2] ?? 0, natural[3] ?? 0) + 40;
+    const content: string[] = [];
+    heads.forEach((head, i) => {
+      const tail = tails[i] as string;
+      const y = 700 - 12 * i;
+      const headW = (natural[i] ?? 0) + spaceCount(head) * extra;
+      const tailX = 72 + headW + 2 * (2.78 + extra);
+      content.push(stretchedTj(72, y, head, extra));
+      const tailExtra = (72 + target - tailX - (natural[i + 2] ?? 0)) / spaceCount(tail);
+      content.push(stretchedTj(tailX, y, tail, tailExtra));
+    });
+    content.push(tj(72, 676, 'and the market opened.'));
+    content.push(...LONG.map((line, i) => tj(72, 600 - 12 * i, line)));
+    const blocks = await blocksOf(await page(content));
+    expect(blocks[0]?.lines.map((l) => l.text)).toEqual([
+      `${heads[0]} ${tails[0]}`,
+      `${heads[1]} ${tails[1]}`,
+      'and the market opened.',
+    ]);
+  });
+
+  test('two justified columns 6 pt apart: a straight gutter twice the natural word space splits them', async () => {
+    const left = [
+      'The ferry timetable changes twice a',
+      'year, in spring and in autumn, and',
+      'the harbour office prints a new card',
+      'for every season.',
+    ];
+    const right = [
+      'On stormy days the first crossing',
+      'may be cancelled without any notice',
+      'and the office posts a sign on the',
+      'gate by the quay.',
+    ];
+    const measure = 200;
+    const gutter = 6;
+    const natural = await naturalWidths([...left, ...right]);
+    const column = (lines: string[], x: number, widths: number[]) =>
+      lines.map((line, i) => {
+        const last = i === lines.length - 1;
+        const extra = last ? 0 : (measure - (widths[i] ?? 0)) / spaceCount(line);
+        if (!last) expect(extra).toBeGreaterThan(0.2);
+        return stretchedTj(x, 700 - 12 * i, line, extra);
+      });
+    const blocks = await blocksOf(
+      await page([
+        ...column(left, 72, natural.slice(0, 4)),
+        ...column(right, 72 + measure + gutter, natural.slice(4)),
+      ]),
+    );
+    expect(blocks.map((b) => b.text)).toEqual([left.join(' '), right.join(' ')]);
+    expect(blocks.map((b) => b.align)).toEqual(['justify', 'justify']);
+    expect(blocks[0]?.measure.right).toBeCloseTo(72 + measure, 1);
   });
 
   test('a list: markers start items, a hanging indent continues one', async () => {
