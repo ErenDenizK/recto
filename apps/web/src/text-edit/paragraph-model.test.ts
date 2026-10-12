@@ -183,6 +183,50 @@ describe('several changes in one session', () => {
   });
 });
 
+describe('an emptied paragraph', () => {
+  it('types in the style the removed text had, and the caret moves', () => {
+    const setup = paragraph(['The quick brown fox', 'jumps over the lazy'], { width: 120 });
+    let state = selectAll(initialState(setup.input, 0));
+    state = replaceRange(state, selectionOf(state), '');
+    expect(state.text).toBe('');
+    state = insertText(state, 'Hello');
+    expect(state.styles).toEqual(['s0', 's0', 's0', 's0', 's0']);
+    const result = relayout(fns, setup, state);
+    for (const span of result.edit?.spans ?? []) expect(span.style).toBe('s0');
+    const lines = caretLines(setup, state, result.layout);
+    expect(Array.from(lines[0]?.xs ?? [])).toEqual(
+      [0, 1, 2, 3, 4, 5].map((k) => LEFT + k * ADVANCE),
+    );
+    expect(caretAt(lines, 5)).toEqual({ line: 0, x: LEFT + 5 * ADVANCE });
+  });
+
+  it('remembers the style of the first removed character (a word processor’s rule)', () => {
+    const setup = paragraph(['ab cd']);
+    const input = {
+      ...setup.input,
+      spans: [
+        { start: 0, end: 2, style: 'bold' },
+        { start: 2, end: 5, style: 's0' },
+      ],
+      styles: { s0: monoStyle(), bold: monoStyle() },
+    };
+    let state = initialState(input, 5);
+    // Backspace to the start: the last character removed is the bold "a".
+    for (let i = 0; i < 5; i++) state = deleteBackward(state);
+    expect(insertText(state, 'X').styles).toEqual(['bold']);
+    // Select all and delete: the first removed character is bold too.
+    const all = replaceRange(selectAll(initialState(input, 0)), { start: 0, end: 5 }, '');
+    expect(insertText(all, 'Y').styles).toEqual(['bold']);
+  });
+
+  it('an empty paragraph from the start types in the input’s first style', () => {
+    const setup = paragraph(['x']);
+    const input = { ...setup.input, text: '', spans: [], lines: [{ start: 0, y: 0 }] };
+    const state = insertText(initialState(input, 0), 'Hi');
+    expect(state.styles).toEqual(['s0', 's0']);
+  });
+});
+
 describe('layout and caret geometry', () => {
   it('lays out the edited text: earlier lines kept, the edited one rewritten', () => {
     const setup = paragraph(LINES, WIDTH);

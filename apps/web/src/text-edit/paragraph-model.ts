@@ -51,6 +51,12 @@ export interface ParagraphState {
   readonly focus: number;
   /** Where vertical moves aim (text-space x), kept across consecutive Up and Down. */
   readonly goalX?: number;
+  /**
+   * The style an empty paragraph types in (set only while `text` is empty): the style of the
+   * text it was emptied of (its first removed character, as a word processor keeps it), else
+   * the input's first style. Without it typed text would take no style at all.
+   */
+  readonly typing?: string;
 }
 
 export interface TextRange {
@@ -93,6 +99,7 @@ export function initialState(input: LayoutInput, caret: number): ParagraphState 
     origins: Array.from({ length: input.text.length }, (_, i) => i),
     anchor: at,
     focus: at,
+    ...(input.text === '' ? { typing: defaultStyle(input) } : {}),
   };
 }
 
@@ -112,7 +119,10 @@ export function styleAt(state: ParagraphState, offset: number, fallback = ''): s
   return state.styles[offset - 1] ?? state.styles[offset] ?? fallback;
 }
 
-/** Replaces `range` by `insert` (typed: the style before the range), caret after it. */
+/**
+ * Replaces `range` by `insert` (typed: the style before the range, else the first replaced
+ * character's, else the emptied paragraph's `typing` style), caret after it.
+ */
 export function replaceRange(
   state: ParagraphState,
   range: TextRange,
@@ -121,7 +131,7 @@ export function replaceRange(
 ): ParagraphState {
   const start = clampOffset(state.text, range.start);
   const end = Math.max(start, clampOffset(state.text, range.end));
-  const typed = style ?? styleAt(state, start, state.styles[0]);
+  const typed = style ?? styleAt(state, start, state.typing ?? '');
   const text = state.text.slice(0, start) + insert + state.text.slice(end);
   const styles = [
     ...state.styles.slice(0, start),
@@ -136,7 +146,9 @@ export function replaceRange(
         ...state.origins.slice(end),
       ]
     : undefined;
-  return { text, styles, ...(origins ? { origins } : {}), anchor: caret, focus: caret };
+  // Emptied: remember the style the text had, so what is typed next takes it.
+  const typing = text === '' && typed !== '' ? { typing: typed } : {};
+  return { text, styles, ...(origins ? { origins } : {}), anchor: caret, focus: caret, ...typing };
 }
 
 /** Types `insert` over the selection. */
