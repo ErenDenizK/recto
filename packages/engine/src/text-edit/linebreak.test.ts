@@ -320,6 +320,23 @@ describe('kerning, hyphens and substitutes', () => {
     expect(none.unsupported).toEqual(['你']);
   });
 
+  test('a style id the input lacks falls back to a known style, never to zero width', () => {
+    const input = para(['aa bb'], { width: 20 });
+    // An emptied paragraph retyped with a style id no style has ('' or a stale id).
+    for (const style of ['', 'gone']) {
+      const layout = layoutParagraph(input, {
+        start: 0,
+        end: 5,
+        text: 'abc',
+        style,
+        spans: [{ start: 0, end: 3, style }],
+      });
+      const run = layout.lines[0]!.runs[0]!;
+      expect(run.style).toBe('s');
+      expect(run.width).toBe(3);
+    }
+  });
+
   test('CJK text breaks between ideographs', () => {
     const cjk = Object.fromEntries(
       Array.from('日本語のテキストです。').map((c) => [c, { spaced: 1, plain: 1 }]),
@@ -442,6 +459,82 @@ describe('overflow policy', () => {
       'm n o p q r s t u v w x',
       'y z A B C D E F G HHHH',
     ]);
+  });
+});
+
+describe('random edits keep the layout whole (no line lost, doubled or overlapping)', () => {
+  /** A small deterministic generator (mulberry32). */
+  function random(seed: number): () => number {
+    let a = seed;
+    return () => {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  test('500 random paragraphs and edits', () => {
+    const rnd = random(20261012);
+    const pick = (n: number) => Math.floor(rnd() * n);
+    for (let round = 0; round < 500; round++) {
+      const width = 8 + pick(20);
+      // Lines broken the way a producer would: greedy, at word gaps.
+      const words = Array.from({ length: 3 + pick(25) }, () =>
+        'abcdefghij'.slice(0, 1 + pick(Math.min(9, width - 1))),
+      );
+      const lines: string[] = [];
+      let current = '';
+      for (const word of words) {
+        const next = current === '' ? word : `${current} ${word}`;
+        if (next.length > width && current !== '') {
+          lines.push(current);
+          current = word;
+        } else current = next;
+      }
+      lines.push(current);
+      const align = (['left', 'justify', 'right', 'center'] as const)[pick(4)] ?? 'left';
+      const input = para(lines, { width, align });
+      const old = input.text;
+      const start = pick(old.length + 1);
+      const end = Math.min(old.length, start + (rnd() < 0.5 ? 0 : pick(old.length - start + 1)));
+      const inserted = Array.from({ length: pick(12) }, () => ' abxyz\n'[pick(7)] ?? 'a').join('');
+      const edit: LayoutEdit = { start, end, text: inserted };
+      const context = `round ${round}: ${JSON.stringify({ lines, width, align, edit })}`;
+      const layout = layoutParagraph(input, edit);
+      const text = old.slice(0, start) + inserted + old.slice(end);
+      expect(layout.text, context).toBe(text);
+      // The lines tile the text in order, each lower than the one before.
+      let at = 0;
+      let y = Number.NEGATIVE_INFINITY;
+      let phase = 0;
+      let lastSource = -1;
+      for (const line of layout.lines) {
+        expect(line.start, context).toBe(at);
+        expect(line.next, context).toBeGreaterThanOrEqual(line.end);
+        expect(line.y, context).toBeGreaterThan(y);
+        y = line.y;
+        at = line.next;
+        // kept…, rewritten…, reused…
+        const p = line.status === 'kept' ? 0 : line.status === 'rewritten' ? 1 : 2;
+        expect(p, context).toBeGreaterThanOrEqual(phase);
+        phase = p;
+        if (line.status !== 'rewritten') {
+          // An original line, shown as it was: its own text, sources in order.
+          const source = line.source ?? -1;
+          expect(source, context).toBeGreaterThan(lastSource);
+          lastSource = source;
+          expect(line.text, context).toBe(lines[source]);
+        }
+        // A rewritten line's runs never overlap each other.
+        let x = Number.NEGATIVE_INFINITY;
+        for (const run of line.runs) {
+          expect(run.x, context).toBeGreaterThanOrEqual(x - 1e-9);
+          x = run.x + run.width;
+        }
+      }
+      expect(at, context).toBe(text.length);
+    }
   });
 });
 

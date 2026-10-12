@@ -400,11 +400,20 @@ export function layoutWithThresholds(
   const oldY = (j: number) => oldLines[j]?.y ?? 0;
   const originalHeight = oldY(oldCount - 1);
 
-  // Styles of the new text: the inserted text takes the caret's style.
-  const styleAtOld = (i: number) => input.spans.find((s) => s.start <= i && i < s.end)?.style;
-  const firstStyle = input.spans[0]?.style ?? Object.keys(input.styles)[0] ?? '';
+  // Styles of the new text: the inserted text takes the caret's style. A style id the input
+  // has no metrics for (a stale or empty id from the editor) is ignored: measured in no
+  // style, its characters would take no width and the writer no font.
+  const known = (id: string | undefined) =>
+    id !== undefined && input.styles[id] !== undefined ? id : undefined;
+  const styleAtOld = (i: number) =>
+    known(input.spans.find((s) => s.start <= i && i < s.end)?.style);
+  const firstStyle =
+    known(input.spans[0]?.style) ??
+    input.spans.map((s) => known(s.style)).find((id) => id !== undefined) ??
+    Object.keys(input.styles)[0] ??
+    '';
   const insertStyle =
-    edit.style ??
+    known(edit.style) ??
     (start > 0 ? styleAtOld(start - 1) : undefined) ??
     styleAtOld(start) ??
     firstStyle;
@@ -424,7 +433,7 @@ export function layoutWithThresholds(
       const to = Math.min(insEnd, start + s.end);
       if (to <= from) continue;
       if (from > at) spans.push({ start: at, end: from, style: insertStyle });
-      spans.push({ start: from, end: to, style: s.style });
+      spans.push({ start: from, end: to, style: known(s.style) ?? insertStyle });
       at = to;
     }
     if (at < insEnd) spans.push({ start: at, end: insEnd, style: insertStyle });
