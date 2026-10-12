@@ -235,11 +235,15 @@ describe("'Inter Recto' coverage", () => {
     }
   });
 
-  it('is preloaded by index.html (Latin only; ADR-0027 §2.1)', () => {
-    const html = readFileSync(join(ROOT, 'apps/web/index.html'), 'utf8');
-    expect(html).toMatch(
-      /<link\s+rel="preload"\s+href="%BASE_URL%fonts\/inter-recto-latin\.woff2"\s+as="font"\s+type="font\/woff2"\s+crossorigin/,
-    );
-    expect(html).not.toContain('inter-recto-latin-ext.woff2');
+  it('is preloaded by index.html and the about page (Latin only; ADR-0027 §2.1, PRC-16)', () => {
+    for (const page of ['apps/web/index.html', 'apps/web/about/index.html']) {
+      const html = readFileSync(join(ROOT, page), 'utf8');
+      // public/preload-face.js adds the `<link rel=preload>` (crossorigin per engine).
+      expect(html, page).toMatch(
+        /<script\s+src="%BASE_URL%preload-face\.js"\s+data-href="%BASE_URL%fonts\/inter-recto-latin\.woff2"\s*><\/script>/,
+      );
+      expect(html, page).not.toContain('inter-recto-latin-ext.woff2');
+      expect(html, page).not.toMatch(/rel="preload"[^>]*as="font"/);
+    }
   });
 });
