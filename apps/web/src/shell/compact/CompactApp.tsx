@@ -136,6 +136,14 @@ function CompactRoot() {
   // window behind everything, the Library's drifting aura or, with Settings › Background glow
   // on, the reader's still glow behind its canvas (G5). The pages stay white over it.
   const aura = reading ? (glow ? 'reader' : null) : 'library';
+  // The Library scrolls the document, the reader its own pages (DSN-33, CompactApp.module.css).
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.dataset.compactPlace = reading ? 'reader' : 'library';
+    return () => {
+      delete root.dataset.compactPlace;
+    };
+  }, [reading]);
   return (
     <div className={styles.root} data-testid="compact-app" data-place={place}>
       {aura ? (

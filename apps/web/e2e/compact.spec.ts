@@ -36,6 +36,42 @@ async function openLibrary(page: Page, lang = 'en'): Promise<void> {
   await expect(page.getByTestId('compact-library')).toBeVisible();
 }
 
+/**
+ * Stores `count` Recents as earlier visits would leave them, then reloads so the Library reads
+ * them: no file handle, so a tap reopens each through the file dialog (`files/recents.ts`).
+ */
+async function seedRecents(page: Page, count: number): Promise<void> {
+  await page.evaluate(
+    (n) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('pdf-editor:recents:v1', 2);
+        open.onerror = () => reject(new Error(String(open.error)));
+        open.onsuccess = () => {
+          const tx = open.result.transaction('entries', 'readwrite');
+          const store = tx.objectStore('entries');
+          const now = Date.now();
+          for (let i = 0; i < n; i++) {
+            store.put({
+              id: `seeded-${i}`,
+              name: `report-${String(i + 1).padStart(2, '0')}.pdf`,
+              size: 48_000 + i * 1024,
+              pages: 3 + i,
+              openedAt: now - (i + 1) * 3_600_000,
+            });
+          }
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          tx.onerror = () => reject(new Error(String(tx.error)));
+        };
+      }),
+    count,
+  );
+  await page.reload();
+  await expect(page.getByTestId('compact-library')).toBeVisible();
+}
+
 /** Opens a fixture through Open PDF and the file chooser, and waits for its first page. */
 async function openPdf(page: Page, name: string): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
@@ -251,6 +287,68 @@ test.describe('the compact edition', () => {
       }
     }
     await shot(page, 'compact-library-recents');
+  });
+
+  test('with twelve Recents a swipe scrolls the Library to the last, clear of the dock', async ({
+    page,
+  }) => {
+    await openLibrary(page);
+    // The Library has opened the store (first run), so the seed lands in its schema.
+    await expect(page.getByTestId('compact-recents-empty')).toBeVisible();
+    await seedRecents(page, 12);
+    const rows = page.getByTestId('compact-recents').getByRole('button');
+    await expect(rows).toHaveCount(12);
+    const last = rows.last();
+    const dock = page.getByTestId('compact-library-dock');
+    const viewport = page.viewportSize() ?? { width: 390, height: 844 };
+    // The page itself scrolls (DSN-33), moved by a finger's swipes, not by a script.
+    const scrolled = () =>
+      page.evaluate(() => {
+        const el = document.scrollingElement;
+        return el ? { top: el.scrollTop, end: el.scrollHeight - el.clientHeight } : undefined;
+      });
+    const cdp = await page.context().newCDPSession(page);
+    const x = Math.round(viewport.width * 0.75);
+    const from = Math.round(viewport.height * 0.7);
+    const step = Math.round(viewport.height * 0.04);
+    for (let i = 0; i < 8; i++) {
+      const at = await scrolled();
+      if (at && at.top >= at.end - 1) break;
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x, y: from }],
+      });
+      for (let n = 1; n <= 10; n++) {
+        await cdp.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x, y: from - n * step }],
+        });
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(150);
+    }
+    await expect.poll(async () => (await scrolled())?.top ?? 0).toBeGreaterThan(0);
+    await expect
+      .poll(async () => {
+        const at = await scrolled();
+        return at ? at.end - at.top : Number.POSITIVE_INFINITY;
+      })
+      .toBeLessThanOrEqual(1);
+    // The last row stands whole above the dock, which stands above the home indicator.
+    const rowBox = await last.boundingBox();
+    const dockBox = await dock.boundingBox();
+    if (!rowBox || !dockBox) throw new Error('no row or dock');
+    expect(rowBox.y).toBeGreaterThanOrEqual(0);
+    expect(rowBox.y + rowBox.height).toBeLessThanOrEqual(dockBox.y);
+    expect(dockBox.y + dockBox.height).toBeLessThanOrEqual(viewport.height);
+    await shot(page, 'compact-library-many-recents');
+    // A tap on it reopens it; a seeded entry keeps no handle, so through the file dialog.
+    const chooser = page.waitForEvent('filechooser');
+    await page.touchscreen.tap(rowBox.x + rowBox.width / 2, rowBox.y + rowBox.height / 2);
+    await (await chooser).setFiles(fixturePath('simple-text.pdf'));
+    await expect(page.getByTestId('compact-reader')).toBeVisible();
+    // The reader scrolls its own pages again, from the top of the window.
+    expect(await page.evaluate(() => document.scrollingElement?.scrollTop)).toBe(0);
   });
 
   test('Try the sample opens the teaching sample in the reader', async ({ page }) => {
