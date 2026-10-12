@@ -30,7 +30,9 @@
  *   own longest line is not where the producer wrapped. Justified, centred and right-aligned
  *   paragraphs keep theirs. Hard line breaks arrive as `\n` in the text.
  * - **Overflow facts.** `gapBelow`: the empty space below the paragraph's ink down to the
- *   nearest block or graphic below it that overlaps it horizontally, else down to the bottom
+ *   nearest block or graphic below it that overlaps it horizontally (graphics inside Form
+ *   XObjects too, and visible annotations that take space: form fields, stamps, free text,
+ *   shapes; not links or text markup), else down to the bottom
  *   margin (taken equal to the top margin, at least 36 pt). `paragraphGap`: with a block
  *   below, the page's typical gap between vertically adjacent blocks of a column (at most
  *   `gapBelow`), so growth keeps it; 0 at the margin. `pageRoom`: the space from the ink
@@ -62,6 +64,7 @@ import type {
   ParagraphRef,
   ParagraphSpan,
   ParagraphStyleInfo,
+  TextMatrix,
   TextRunRef,
 } from '../types';
 import { analyzeObject, type ObjectAnalysis, type ObjectFacts } from './analysis';
@@ -82,7 +85,7 @@ import {
   toLocatedRun,
 } from './locate';
 import { probeCodes } from './probe';
-import { type Point, RawText } from './raw';
+import { multiply, PAGEOBJ_FORM, type Point, RawText } from './raw';
 import { chooseTier2Codes, tier2Candidates } from './tier2-codes';
 
 /** Codes measured per `measure` pass when the single pass fails (as `analyzeRun`). */
@@ -98,6 +101,70 @@ const MIN_MARGIN = 36;
 const PAGEOBJ_PATH = 2;
 const PAGEOBJ_IMAGE = 3;
 const PAGEOBJ_SHADING = 4;
+/** Nesting limit for Form XObjects (as the redaction pass). */
+const MAX_FORM_DEPTH = 8;
+
+/**
+ * Annotation subtypes that do not stand in a paragraph's way: links and text markup lie on
+ * text (its block is the obstacle), popups are not drawn on the page.
+ */
+const PASSABLE_ANNOTS: ReadonlySet<number> = new Set([2, 9, 10, 11, 12, 16]);
+/** `FPDF_ANNOT_FLAG_HIDDEN`. */
+const ANNOT_FLAG_HIDDEN = 2;
+
+/**
+ * /Rect of the page's visible annotations that occupy space (form fields, stamps, free text,
+ * shapes): the paragraph grows into the space below only up to them, as for graphics, since
+ * the writer never moves a widget (craft §4.4) and drawn text must not cover one.
+ */
+function annotationObstacles(raw: RawText, pagePtr: number): Rect[] {
+  const { m, mem } = raw;
+  const out: Rect[] = [];
+  const count = m.FPDFPage_GetAnnotCount(pagePtr);
+  for (let index = 0; index < count; index++) {
+    const annot = m.FPDFPage_GetAnnot(pagePtr, index);
+    if (!annot) continue;
+    try {
+      if (PASSABLE_ANNOTS.has(m.FPDFAnnot_GetSubtype(annot))) continue;
+      if ((m.FPDFAnnot_GetFlags(annot) & ANNOT_FLAG_HIDDEN) !== 0) continue;
+      const rect = mem.withMem(16, (p) => {
+        if (!m.FPDFAnnot_GetRect(annot, p)) return undefined;
+        const left = mem.f32(p);
+        const top = mem.f32(p + 4);
+        const right = mem.f32(p + 8);
+        const bottom = mem.f32(p + 12);
+        return {
+          x: Math.min(left, right),
+          y: Math.min(top, bottom),
+          width: Math.abs(right - left),
+          height: Math.abs(top - bottom),
+        };
+      });
+      if (rect && rect.width > 0 && rect.height > 0) out.push(rect);
+    } finally {
+      m.FPDFPage_CloseAnnot(annot);
+    }
+  }
+  return out;
+}
+
+/** The bounding box of `rect` mapped by `m`. */
+function transformRect(m: TextMatrix, rect: Rect): Rect {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const [x, y] of [
+    [rect.x, rect.y],
+    [rect.x + rect.width, rect.y],
+    [rect.x, rect.y + rect.height],
+    [rect.x + rect.width, rect.y + rect.height],
+  ] as const) {
+    xs.push(m[0] * x + m[2] * y + m[4]);
+    ys.push(m[1] * x + m[3] * y + m[5]);
+  }
+  const x0 = Math.min(...xs);
+  const y0 = Math.min(...ys);
+  return { x: x0, y: y0, width: Math.max(...xs) - x0, height: Math.max(...ys) - y0 };
+}
 
 /** The page an edit works on: the source's own, or a private copy (dry run). */
 export interface PageTarget {
@@ -473,12 +540,25 @@ function buildModel(
   const graphics: Rect[] = [];
   try {
     pageBox = raw.pageBox(page.pagePtr);
-    for (const obj of raw.pageObjects(page.pagePtr)) {
-      const type = raw.objectType(obj);
-      if (type !== PAGEOBJ_PATH && type !== PAGEOBJ_IMAGE && type !== PAGEOBJ_SHADING) continue;
-      const b = raw.bounds(obj);
-      if (b) graphics.push(b);
-    }
+    // Graphics inside Form XObjects (a stamped logo, a table's rules) stop growth too: their
+    // bounds are in the form's space, carried to the page by the forms' matrices.
+    const walk = (objects: readonly number[], toPage: TextMatrix | undefined, depth: number) => {
+      for (const obj of objects) {
+        const type = raw.objectType(obj);
+        if (type === PAGEOBJ_FORM) {
+          if (depth < MAX_FORM_DEPTH) {
+            const m = raw.matrix(obj);
+            walk(raw.formObjects(obj), toPage ? multiply(m, toPage) : m, depth + 1);
+          }
+          continue;
+        }
+        if (type !== PAGEOBJ_PATH && type !== PAGEOBJ_IMAGE && type !== PAGEOBJ_SHADING) continue;
+        const b = raw.bounds(obj);
+        if (b) graphics.push(toPage ? transformRect(toPage, b) : b);
+      }
+    };
+    walk(raw.pageObjects(page.pagePtr), undefined, 0);
+    graphics.push(...annotationObstacles(raw, page.pagePtr));
   } finally {
     page.release();
   }
