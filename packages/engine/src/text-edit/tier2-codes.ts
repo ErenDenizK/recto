@@ -11,7 +11,9 @@
  *   mapping is the one the read-back uses;
  * - candidates that draw the same glyph (same advance and box, same rendering, like
  *   WinAnsi's space and no-break space, or hyphen and soft hyphen) count as one;
- * - otherwise the character is `ambiguous-encoding` (tier 2 refused, tier 1 used).
+ * - otherwise the character is `ambiguous-encoding` (tier 2 refused, tier 1 used);
+ * - except the space: code 32, when it reads as a space, is the space (other codes the text
+ *   page reads as a space are no-break or other white space, often glyphless in a subset).
  */
 import type { ObjectAnalysis } from './analysis';
 import type { CodeProbe, CodeProbes } from './probe';
@@ -70,6 +72,15 @@ export function chooseTier2Codes(
     const [head, ...rest] = candidates;
     if (!head) {
       choice.set(ch, 'missing');
+      continue;
+    }
+    // A space is code 32 whenever the font reads code 32 as one: the text page folds the
+    // other white-space codes (WinAnsi's no-break space 160, often without a glyph in a
+    // subset) into a space too, and only code 32 takes Tw. Refusing it as ambiguous would
+    // leave rewritten lines without space glyphs, and readers glue the words.
+    const space = ch === ' ' ? candidates.find((p) => p.code === 32) : undefined;
+    if (space) {
+      choice.set(ch, space.code);
       continue;
     }
     const single =
