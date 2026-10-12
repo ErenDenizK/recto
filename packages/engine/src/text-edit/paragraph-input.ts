@@ -501,6 +501,17 @@ function buildModel(
       const lastSpan = si === line.spans.length - 1;
       glyphs.forEach((g, gi) => {
         const text = g.text === '\u0002' ? '-' : g.text;
+        // A space glyph may stand for several spaces of the span's text (detection's
+        // `spaceCounts`: the text page folds a double space into one glyph); the spaces of
+        // the space glyphs after it are theirs.
+        let width = text.length;
+        if (text === ' ') {
+          let spaces = 0;
+          while (span.text[k - at + spaces] === ' ') spaces++;
+          let following = 0;
+          while (glyphs[gi + 1 + following]?.text === ' ') following++;
+          width = Math.max(1, spaces - following);
+        }
         const joinedHyphen = lastSpan && gi === glyphs.length - 1 && line.end === 'joined';
         const offset = joinedHyphen || k >= shown ? -1 : line.start + k;
         chars.push({
@@ -513,7 +524,7 @@ function buildModel(
           style: style.id,
           object,
         });
-        k += text.length;
+        k += width;
       });
       cursor = at + span.text.length;
     });

@@ -706,6 +706,34 @@ function spanOffsets(line: ParagraphBlock['lines'][number]): number[] {
   return out;
 }
 
+/**
+ * The offset in a span's text of its `count`-th glyph: a space glyph may stand for several
+ * spaces of the text (detection folds the text page's dropped second space into it), the
+ * spaces of the space glyphs after it being theirs; as `paragraph-input.ts` maps them.
+ * `glyphStart` indexes the span's first glyph in `run`.
+ */
+function withinSpan(
+  text: string,
+  run: Pick<LocatedRun, 'glyphs'>,
+  glyphStart: number,
+  count: number,
+): number {
+  let k = 0;
+  for (let i = 0; i < count && k < text.length; i++) {
+    const glyph = run.glyphs[glyphStart + i]?.text ?? '';
+    if (glyph !== ' ') {
+      k += Math.max(1, glyph.length);
+      continue;
+    }
+    let spaces = 0;
+    while (text[k + spaces] === ' ') spaces++;
+    let following = 0;
+    while (run.glyphs[glyphStart + i + 1 + following]?.text === ' ') following++;
+    k += Math.max(1, spaces - following);
+  }
+  return Math.min(text.length, k);
+}
+
 function sameRun(
   a: {
     readonly objectPath: readonly number[];
@@ -755,7 +783,7 @@ export function paragraphOfRun(
         const first = ref.charStart + span.glyphStart;
         const last = ref.charStart + span.glyphEnd;
         if (charIndex < first || charIndex > last) continue;
-        const within = Math.min(span.text.length, charIndex - first);
+        const within = withinSpan(span.text, run, first - run.charStart, charIndex - first);
         return { block, offset: line.start + (offsets[s] ?? 0) + within };
       }
     }

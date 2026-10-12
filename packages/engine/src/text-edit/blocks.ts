@@ -73,9 +73,11 @@
  *    centres `center`. A single line is centred when its centre is within one space of its
  *    column's and it starts more than 2 spaces in, right-aligned when it ends within one
  *    space of the column's right edge and starts more than 2 spaces in, else left.
- * 9. **Text.** Line text keeps the space glyphs and adds a space where two runs are more
- *    than 0.8 × space apart, or, on a page with no space glyph at all (pdfTeX), where the ink
- *    gap inside a run exceeds 0.15 × size. A line-end hyphen (flagged by
+ * 9. **Text.** Line text keeps the space glyphs, each with the spaces the text page folded
+ *    into it (it keeps one glyph of a double space: a step to the next glyph of n times the
+ *    line's smallest space step, within 0.2, is n spaces; `spaceCounts`), and adds a space
+ *    where two runs are more than 0.8 × space apart, or, on a page with no space glyph at all
+ *    (pdfTeX), where the ink gap inside a run exceeds 0.15 × size. A line-end hyphen (flagged by
  *    `FPDFText_IsHyphen`, or a hyphen after a letter) before a lower-case start is dropped
  *    and the word joined; before anything else it stays, with no space (`Jean-Paul`); a
  *    soft hyphen always joins. This is the Markdown converter's rule (`convert/markdown.ts`).
@@ -202,6 +204,9 @@ const WORD_GAP = 0.15;
 const RUN_WORD_GAP = 0.8;
 /** A lone list marker (`•`, `1.`, `a)`, `iv.`) that keeps the text after it on its line. */
 const MARKER_ONLY = /^([•◦▪▫‣⁃●○■□·–\-*]|\d{1,3}[.)]|[a-z][.)]|\(?[ivxlcdm]{1,6}[.)])$/iu;
+/** A space glyph stands for n spaces when its step is within this of n units; n at most 8. */
+const SPACE_MULTIPLE = 0.2;
+const MAX_SPACES = 8;
 /** A first-line or hanging indent is at most this many sizes. */
 const MAX_INDENT = 4;
 /** A tagged group's lines are contiguous when their pitch is at most this many sizes. */
@@ -976,8 +981,66 @@ function wordSpace(row: Row): number | undefined {
   return median(steps.length > 0 ? steps : gaps);
 }
 
+/** Space glyphs that stand for several spaces: piece → glyph index → count (2 or more). */
+type SpaceCounts = ReadonlyMap<Piece, ReadonlyMap<number, number>>;
+
+/**
+ * How many spaces each space glyph of the line stands for. PDFium's text page keeps one of
+ * two adjacent space glyphs, so a double space reads as one glyph followed by a step to the
+ * next glyph of two space advances. The unit is the line's smallest step from a lone space
+ * glyph to the next glyph (a justified line stretches all its spaces alike, so they never
+ * double); a line with one such step has no unit, nor does a line whose every space is double
+ * (it reads single). Spaces the text page generated for a gap never count. A step within 0.2 of a whole multiple of 2 or more (at most 8) is that
+ * many spaces.
+ */
+function spaceCounts(row: Row): SpaceCounts {
+  const items = [...row.pieces, ...row.blanks].sort((a, b) => a.x0 - b.x0 || a.g0 - b.g0);
+  const steps: { piece: Piece; index: number; step: number }[] = [];
+  let pending: { piece: Piece; index: number; origin: number } | undefined;
+  let blanks = 0;
+  let solid = false;
+  for (const piece of items) {
+    for (let i = piece.g0; i < piece.g1; i++) {
+      const g = piece.geo[i] as GlyphGeo;
+      if (g.blank) {
+        blanks++;
+        // A space the text page made up for a gap stands for no typed space.
+        const glyph = piece.prep.run.glyphs[i];
+        pending =
+          glyph?.text === ' ' && !glyph.generated
+            ? { piece, index: i, origin: g.origin }
+            : undefined;
+        continue;
+      }
+      if (solid && pending && blanks === 1) {
+        steps.push({ piece: pending.piece, index: pending.index, step: g.origin - pending.origin });
+      }
+      pending = undefined;
+      blanks = 0;
+      solid = true;
+    }
+  }
+  const out = new Map<Piece, Map<number, number>>();
+  const positive = steps.map((s) => s.step).filter((v) => v > 0);
+  if (positive.length === 0) return out;
+  // One step alone has nothing to compare with (a monospaced space, a stretched one).
+  if (positive.length < 2) return out;
+  const unit = Math.min(...positive);
+  if (unit <= 0) return out;
+  for (const { piece, index, step } of steps) {
+    const ratio = step / unit;
+    const n = Math.round(ratio);
+    if (n < 2 || n > MAX_SPACES || Math.abs(ratio - n) > SPACE_MULTIPLE) continue;
+    const own = out.get(piece) ?? new Map<number, number>();
+    own.set(index, n);
+    out.set(piece, own);
+  }
+  return out;
+}
+
 /** The line's text: glyphs in order, a space where a gap stands for one. */
 function rowText(row: Row): { text: string; soft: boolean; flagged: boolean } {
+  const counts = spaceCounts(row);
   const items = [...row.pieces, ...row.blanks].sort((a, b) => a.x0 - b.x0 || a.g0 - b.g0);
   let out = '';
   let prev: GlyphGeo | undefined;
@@ -991,7 +1054,10 @@ function rowText(row: Row): { text: string; soft: boolean; flagged: boolean } {
       const g = piece.geo[i] as GlyphGeo;
       const text = glyphs[i]?.text ?? '';
       if (g.blank) {
-        if (!spaced) out += ' ';
+        // Every space glyph counts, with the spaces the text page folded into it; other
+        // blanks read as one space.
+        if (text === ' ') out += ' '.repeat(counts.get(piece)?.get(i) ?? 1);
+        else if (!spaced) out += ' ';
         spaced = true;
         continue;
       }
@@ -1011,7 +1077,7 @@ function rowText(row: Row): { text: string; soft: boolean; flagged: boolean } {
       prevPiece = piece;
     }
   }
-  return { text: out.trim().replace(/\s+/g, ' '), soft, flagged };
+  return { text: out.trim().replace(/[^\S ]+/gu, ' '), soft, flagged };
 }
 
 // ---------------------------------------------------------------------------
@@ -1340,11 +1406,16 @@ function toBlock(group: Group, ctx: BlockContext): DraftBlock {
     }
     return i;
   };
+  const counts = new Map<Piece, ReadonlyMap<number, number>>();
+  for (const row of group.rows) for (const [p, m] of spaceCounts(row)) counts.set(p, m);
   const spanOf = (piece: Piece): ParagraphSpan => {
     const { run } = piece.prep;
+    // A space glyph carries the spaces the text page folded into it (`spaceCounts`).
     const text = run.glyphs
       .slice(piece.g0, piece.g1)
-      .map((g) => glyphText(g.text))
+      .map((g, k) =>
+        g.text === ' ' ? ' '.repeat(counts.get(piece)?.get(piece.g0 + k) ?? 1) : glyphText(g.text),
+      )
       .join('');
     return {
       run: runIndex(run),

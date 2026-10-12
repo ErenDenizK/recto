@@ -3,7 +3,12 @@
  * inheritance, one edit against the original text, caret moves across lines from the
  * layout's geometry, select all, and the per-keystroke budget (≤ 4 ms for 2,000 characters).
  */
-import { decideOverflow, layoutParagraph } from '@pdf-editor/engine';
+import {
+  decideOverflow,
+  type LocatedRun,
+  layoutParagraph,
+  type ParagraphBlock,
+} from '@pdf-editor/engine';
 import { describe, expect, it } from 'vitest';
 
 import { buildScene } from './glyph-canvas';
@@ -22,6 +27,7 @@ import {
   offsetAtPoint,
   type ParagraphState,
   paragraphEdit,
+  paragraphOfRun,
   relayout,
   replaceRange,
   selectAll,
@@ -345,5 +351,28 @@ describe('layout and caret geometry', () => {
     let ms = round();
     for (let r = 1; r < 3 && ms >= 4; r++) ms = Math.min(ms, round());
     expect(ms).toBeLessThan(4);
+  });
+});
+
+describe('paragraphOfRun', () => {
+  it('counts the spaces a space glyph stands for (a double space the text page folded)', () => {
+    // The run draws "a b c" (the text page kept one of the two spaces after "a"); detection
+    // reads "a  b c".
+    const ref = { objectPath: [0], charStart: 10, charCount: 5 };
+    const glyph = (text: string) => ({ text });
+    const run = { ...ref, glyphs: ['a', ' ', 'b', ' ', 'c'].map(glyph) } as unknown as LocatedRun;
+    const block = {
+      ref: { runs: [ref] },
+      lines: [
+        {
+          start: 0,
+          text: 'a  b c',
+          spans: [{ run: 0, glyphStart: 0, glyphEnd: 5, text: 'a  b c' }],
+        },
+      ],
+    } as unknown as ParagraphBlock;
+    expect(paragraphOfRun([block], run, 2)?.offset).toBe(3);
+    expect(paragraphOfRun([block], run, 4)?.offset).toBe(5);
+    expect(paragraphOfRun([block], run, 1)?.offset).toBe(1);
   });
 });
