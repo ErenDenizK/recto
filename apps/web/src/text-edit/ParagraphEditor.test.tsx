@@ -632,6 +632,135 @@ describe('the mirror’s selection and input', () => {
     // The end of the first drawn line ("The quick brown fox" before its joining space).
     await waitFor(() => expect(caret(mirror).focus).toBe(19));
   });
+
+  it('a double press selects the word under it, a triple press the paragraph', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    // In "jumps", the second drawn line's first word (offsets 20 to 25).
+    const box = mirror.getBoundingClientRect();
+    const position = { x: (box.width / 20) * 2.5, y: box.height / 2 };
+    await userEvent.dblClick(mirror, { position });
+    await waitFor(() => expect(caret(mirror)).toEqual({ anchor: 20, focus: 25 }));
+    await userEvent.tripleClick(mirror, { position });
+    await waitFor(() => expect(caret(mirror)).toEqual({ anchor: 0, focus: TEXT.length }));
+  });
+
+  /** Selects text offsets `[start, end)` in the mirror as the browser would. */
+  async function selectRange(mirror: HTMLElement, start: number, end: number) {
+    const [from, to] = [mirrorPosition(mirror, start), mirrorPosition(mirror, end)];
+    act(() => window.getSelection()?.setBaseAndExtent(from.node, from.offset, to.node, to.offset));
+    await settle();
+    expect(caret(mirror)).toEqual({ anchor: start, focus: end });
+  }
+
+  /** A clipboard event as the browser fires it, with a writable data transfer. */
+  function clipboard(type: 'copy' | 'cut'): ClipboardEvent {
+    return new ClipboardEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      clipboardData: new DataTransfer(),
+    });
+  }
+
+  it('copy across a drawn line break gives the text, not the mirror’s line blocks', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    // "fox jumps": across the soft break after "fox ". The browser serialises the mirror's
+    // block per line with a line break between them; the clipboard must hold the text.
+    await selectRange(mirror, 16, 25);
+    const event = clipboard('copy');
+    act(() => {
+      mirror.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+    expect(event.clipboardData?.getData('text/plain')).toBe('fox jumps');
+    expect(mirror.textContent).toBe(TEXT);
+  });
+
+  it('cut across a drawn line break gives the text and removes it', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    await selectRange(mirror, 16, 26);
+    const event = clipboard('cut');
+    act(() => {
+      mirror.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+    expect(event.clipboardData?.getData('text/plain')).toBe('fox jumps ');
+    await waitFor(() => expect(mirror.textContent).toBe(`${TEXT.slice(0, 16)}${TEXT.slice(26)}`));
+    expect(caret(mirror)).toEqual({ anchor: 16, focus: 16 });
+  });
+
+  it('a composition that takes the word before the caret replaces it (Android keyboards)', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    // The caret after "quick"; the keyboard makes "quick" its composition and sends the word
+    // with the typed letter: the first composition input names the word as its target range.
+    await selectRange(mirror, 9, 9);
+    const [from, to] = [mirrorPosition(mirror, 4), mirrorPosition(mirror, 9)];
+    act(() => {
+      mirror.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' }));
+      mirror.dispatchEvent(
+        new InputEvent('beforeinput', {
+          bubbles: true,
+          inputType: 'insertCompositionText',
+          data: 'quickl',
+          isComposing: true,
+          targetRanges: [
+            new StaticRange({
+              startContainer: from.node,
+              startOffset: from.offset,
+              endContainer: to.node,
+              endOffset: to.offset,
+            }),
+          ],
+        }),
+      );
+      mirror.dispatchEvent(
+        new CompositionEvent('compositionupdate', { bubbles: true, data: 'quickl' }),
+      );
+    });
+    act(() => {
+      mirror.dispatchEvent(
+        new CompositionEvent('compositionupdate', { bubbles: true, data: 'quickly' }),
+      );
+      mirror.dispatchEvent(
+        new CompositionEvent('compositionend', { bubbles: true, data: 'quickly' }),
+      );
+    });
+    await waitFor(() => expect(mirror.textContent).toBe(`The quickly${TEXT.slice(9)}`));
+    expect(caret(mirror)).toEqual({ anchor: 11, focus: 11 });
+  });
+
+  it('the DOM changed after a composition ended (WebKit commits after compositionend) is put back', async () => {
+    const { session } = setupEngine();
+    const { mirror } = renderEditor(session);
+    await ready(mirror);
+    await selectRange(mirror, 4, 4);
+    act(() => {
+      mirror.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' }));
+      mirror.dispatchEvent(new CompositionEvent('compositionupdate', { bubbles: true, data: 'ş' }));
+      mirror.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: 'ş' }));
+    });
+    await waitFor(() => expect(mirror.textContent).toBe(`The ş${TEXT.slice(4)}`));
+    // WebKit then deletes the composition text it had marked and inserts it again: here the
+    // deletion lands and the insertion does not (the editor cancelled it).
+    act(() => {
+      const first = mirror.querySelector('[data-mirror-line] span')?.firstChild as Text;
+      first.deleteData(4, 1);
+      mirror.dispatchEvent(
+        new InputEvent('input', { bubbles: true, inputType: 'deleteCompositionText' }),
+      );
+    });
+    await waitFor(() => expect(mirror.textContent).toBe(`The ş${TEXT.slice(4)}`));
+    expect(caret(mirror)).toEqual({ anchor: 5, focus: 5 });
+    await userEvent.keyboard('a');
+    await waitFor(() => expect(mirror.textContent).toBe(`The şa${TEXT.slice(4)}`));
+  });
 });
 
 describe('leaving safely', () => {
