@@ -230,3 +230,47 @@ test('typing ‘ğ’ into a Helvetica paragraph names Noto Sans; the export rea
   await expect(hits).toHaveCount(1, { timeout: 20_000 });
   await expect(hits.first()).toContainText('doğan');
 });
+
+/**
+ * Deleting a paragraph's whole text and typing in its place (owner's report, 2026-10-12): the
+ * typed text takes the style the paragraph had, the caret moves with it, the preview settles
+ * without an error and leaving commits it.
+ */
+test('select all, delete, retype: the new text is laid out and commits', async ({ page }) => {
+  const NEW = 'Hello world';
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Open files' }).first().click();
+  await (await chooser).setFiles(fixturePath('text-edit-corpus/word-tagged.pdf'));
+  await expect(page.getByRole('tab', { name: 'word-tagged' })).toBeVisible();
+  await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+    timeout: 20_000,
+  });
+  await page.locator('[data-read-viewport]').focus();
+  await page.keyboard.press('e');
+  const ferry = page.locator('[data-text-edit-layer="0"] [data-text-run="T"]').first();
+  await expect(ferry).toBeVisible({ timeout: 20_000 });
+  const box = await ferry.boundingBox();
+  if (!box) throw new Error('paragraph not laid out');
+  await page.mouse.click(box.x + 1, box.y + box.height / 2);
+  const editor = page.getByRole('textbox', { name: 'Paragraph on page 1' });
+  await expect(editor).toBeFocused({ timeout: 20_000 });
+
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.press('Backspace');
+  await expect(editor).toHaveText('');
+  await page.keyboard.type(NEW);
+  await expect(editor).toHaveText(NEW);
+  await expect(page.locator('[data-paragraph-editor]')).toHaveAttribute('data-preview', '', {
+    timeout: 20_000,
+  });
+  await expect(page.getByTestId('paragraph-error')).toHaveCount(0);
+
+  await page.keyboard.press('Escape');
+  await expect(editor).toHaveCount(0, { timeout: 20_000 });
+  await inHistory(page, (list) =>
+    expect(historyStep(list, /^Paragraph edited/)).toHaveCount(1, { timeout: 20_000 }),
+  );
+  await page.keyboard.press('Escape');
+  const hits = await search(page, NEW);
+  await expect(hits).toHaveCount(1, { timeout: 20_000 });
+});
