@@ -102,24 +102,38 @@ async function freshPage(browser: Browser): Promise<Page> {
 async function countingProxy(upstream: string) {
   const target = new URL(upstream);
   const hits = new Map<string, number>();
+  // `localhost` may resolve to ::1 for the browser and the preview server but to 127.0.0.1 here
+  // (or the other way round, CI's container differs from a laptop): a refused address tries the
+  // next. Only GETs and HEADs come through (a page load), so nothing has a body to replay.
+  const hosts =
+    target.hostname === 'localhost' ? ['localhost', '127.0.0.1', '::1'] : [target.hostname];
   const server = createServer((incoming, outgoing) => {
     const path = new URL(incoming.url ?? '/', 'http://proxy').pathname;
     hits.set(path, (hits.get(path) ?? 0) + 1);
-    const upstreamRequest = forward(
-      {
-        hostname: target.hostname,
-        port: target.port,
-        path: incoming.url,
-        method: incoming.method,
-        headers: { ...incoming.headers, host: target.host },
-      },
-      (response) => {
-        outgoing.writeHead(response.statusCode ?? 502, response.headers);
-        response.pipe(outgoing);
-      },
-    );
-    upstreamRequest.on('error', () => outgoing.destroy());
-    incoming.pipe(upstreamRequest);
+    const attempt = (index: number) => {
+      const upstreamRequest = forward(
+        {
+          hostname: hosts[index],
+          port: target.port,
+          path: incoming.url,
+          method: incoming.method,
+          headers: { ...incoming.headers, host: target.host },
+        },
+        (response) => {
+          outgoing.writeHead(response.statusCode ?? 502, response.headers);
+          response.pipe(outgoing);
+        },
+      );
+      upstreamRequest.on('error', (error) => {
+        if (index + 1 < hosts.length && !outgoing.headersSent) attempt(index + 1);
+        else {
+          console.error(`counting proxy: ${incoming.method} ${incoming.url}: ${String(error)}`);
+          outgoing.destroy();
+        }
+      });
+      upstreamRequest.end();
+    };
+    attempt(0);
   });
   await new Promise<void>((listening) => server.listen(0, listening));
   const { port } = server.address() as AddressInfo;
