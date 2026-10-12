@@ -102,6 +102,8 @@ async function freshPage(browser: Browser): Promise<Page> {
 async function countingProxy(upstream: string) {
   const target = new URL(upstream);
   const hits = new Map<string, number>();
+  /** Each request, `path` plus ` (conditional)` when the browser revalidated a copy it had. */
+  const log: string[] = [];
   // `localhost` may resolve to ::1 for the browser and the preview server but to 127.0.0.1 here
   // (or the other way round, CI's container differs from a laptop): a refused address tries the
   // next. Only GETs and HEADs come through (a page load), so nothing has a body to replay.
@@ -110,6 +112,8 @@ async function countingProxy(upstream: string) {
   const server = createServer((incoming, outgoing) => {
     const path = new URL(incoming.url ?? '/', 'http://proxy').pathname;
     hits.set(path, (hits.get(path) ?? 0) + 1);
+    const conditional = incoming.headers['if-none-match'] ?? incoming.headers['if-modified-since'];
+    log.push(conditional ? `${path} (conditional)` : path);
     const attempt = (index: number) => {
       const upstreamRequest = forward(
         {
@@ -120,7 +124,11 @@ async function countingProxy(upstream: string) {
           headers: { ...incoming.headers, host: target.host },
         },
         (response) => {
-          outgoing.writeHead(response.statusCode ?? 502, response.headers);
+          // The deployed site's caching, not the preview server's: GitHub Pages serves every
+          // file with `max-age=600`, while `vite preview` says `no-cache`, which lets an engine
+          // revalidate a preloaded font when the face asks for it, a request no visitor makes.
+          const headers = { ...response.headers, 'cache-control': 'max-age=600' };
+          outgoing.writeHead(response.statusCode ?? 502, headers);
           response.pipe(outgoing);
         },
       );
@@ -140,6 +148,7 @@ async function countingProxy(upstream: string) {
   return {
     /** `upstream`'s URL (base path included) moved to the proxy's origin. */
     url: Object.assign(new URL(upstream), { port: String(port) }).href,
+    log: () => log.join('\n'),
     hits: (suffix: string) =>
       [...hits].reduce((sum, [path, n]) => (path.endsWith(suffix) ? sum + n : sum), 0),
     close: () =>
@@ -177,7 +186,7 @@ test('the chrome is set in the shipped face, from this origin, preloaded once', 
   await page.goto(new URL('./?lang=tr', proxy.url).href);
   await settle(page);
   // Fetched once: counted where the requests arrive, the server (see the head of this file).
-  expect(proxy.hits('/fonts/inter-recto-latin.woff2'), fonts.join('\n')).toBe(1);
+  expect(proxy.hits('/fonts/inter-recto-latin.woff2'), proxy.log()).toBe(1);
   expect(fonts.some((path) => path.endsWith('/fonts/inter-recto-latin-ext.woff2'))).toBe(true);
   expect(fonts.filter((path) => /fontsource|jetbrains|inter-latin-wght/i.test(path))).toEqual([]);
   const face = await page.evaluate(() => ({
