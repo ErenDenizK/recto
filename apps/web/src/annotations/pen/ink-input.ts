@@ -32,6 +32,7 @@
  *   runs the recogniser once (`shapes.ts`, never per frame); a stroke that fits a shape with
  *   confidence morphs into it and follows the pointer until release (`shape-hold.ts`), and is
  *   handed over as the shape's outline at the nominal width with `InkStrokeInput.shape`.
+ *   The hold is on the page: a zoom spends the hold in progress (`measure`).
  * - **Pointer types and palms.** See `pointerRole`. Once a pen has been seen in the
  *   session, one finger pans the stage (our own pan: the layer has `touch-action: none`;
  *   no inertia) and two fingers zoom through the Read view's anchored pinch zoom, which
@@ -563,7 +564,7 @@ export function attachInkInput(options: InkInputOptions): () => void {
     layerBox = null;
   };
   const resizeObserver =
-    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(invalidateBox);
+    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => onResize());
   /** The layer's box: measured at the press and again only after a resize or a scroll. */
   const box = (): DOMRect => {
     layerBox ??= element.getBoundingClientRect();
@@ -659,12 +660,20 @@ export function attachInkInput(options: InkInputOptions): () => void {
     };
   };
 
-  /** Follows a zoom change since the stroke started (the preview is rebuilt at the new size). */
+  /**
+   * Follows a zoom change since the stroke started (the preview is rebuilt at the new size).
+   * A zoom spends the hold in progress: the page moved under the pointer, which now rests on
+   * a point the stroke has not reached, so being still through a zoom is no hold on the page
+   * (craft spec §5.6). The pointer has to move and hold again (motion-2026-10/ink-shapes.md §1).
+   */
   const measure = (s: ActiveStroke, rect: DOMRect) => {
     const zoom = s.baseWidth > 0 && rect.width > 0 ? rect.width / s.baseWidth : 1;
     if (Math.abs(zoom - s.zoom) > 1e-6) {
       s.zoom = zoom;
       s.restart = true;
+      s.holdSpent = s.hold.anchorTime;
+      if (holdTimer !== 0) clearTimeout(holdTimer);
+      holdTimer = 0;
     }
   };
 
@@ -773,6 +782,21 @@ export function attachInkInput(options: InkInputOptions): () => void {
     x: e.clientX - rect.left,
     y: e.clientY - rect.top,
   });
+
+  /**
+   * The layer was resized: a zoom when a stroke is down. It is followed at once (`measure`),
+   * not at the next move, so a still pointer's hold is spent before its timer is due.
+   */
+  const onResize = () => {
+    invalidateBox();
+    const s = stroke;
+    if (!s) return;
+    const before = s.zoom;
+    // Read here, not kept: the page may still move into place in this frame (a zoom keeps
+    // its anchor by scrolling), so the next move measures again.
+    measure(s, element.getBoundingClientRect());
+    if (s.zoom !== before) schedule();
+  };
 
   /** Adds a sample at (x, y), CSS px of the page at the current zoom. */
   const addSample = (s: ActiveStroke, x: number, y: number, pressure: number, time: number) => {

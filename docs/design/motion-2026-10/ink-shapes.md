@@ -18,6 +18,7 @@ Code: `apps/web/src/annotations/pen/shapes.ts` (recogniser), `shape-hold.ts` (mo
 | Writing context | pressed < 600 ms after the previous stroke's release | `WRITING_GAP_MS`, `PenSession.lastStrokeUpAt` |
 | Samples | every coalesced event, plus `getPredictedEvents()` points (a pointer about to move is not still) | `ink-input.ts onMove` |
 | Press held before moving | never counts | `HoldStill` |
+| Still through a zoom | never counts: the zoom spends the hold, the pointer must move and hold again (INK-10) | `ink-input.ts measure` |
 
 The recogniser runs once, when the hold is due (a timer, never per frame). If it finds nothing, the
 stroke stays as written and that hold is spent: the pen has to move and hold again. The ink latency
