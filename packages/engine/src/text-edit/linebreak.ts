@@ -774,8 +774,10 @@ function placeLine(
       const gapWidth = (t.width[i] ?? 0) * gapFactor;
       const ch = t.text[i] ?? ' ';
       const space = style?.advances[ch];
-      if (!justified && space) {
-        // The space glyph is written, with the gap's difference from it as an offset.
+      if (space) {
+        // The space glyph is written, with the gap's difference from it as an offset; on a
+        // justified line too (the stretch is the offset), so readers find the word gap
+        // (TXT-8): without it, a gap after an overhanging `f` reads as no space.
         if (run?.style !== id || run.font !== FONT_ORIGINAL) {
           closeRun(i);
           run = { start: i, style: id, font: FONT_ORIGINAL, x, kerning: [], glyphs: 0 };
