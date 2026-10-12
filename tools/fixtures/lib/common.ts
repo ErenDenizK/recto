@@ -212,6 +212,33 @@ export interface RegionExpectation {
   note: string;
 }
 
+/**
+ * A paragraph of the text-edit corpus (`test/fixtures/text-edit-corpus/`, built by
+ * `tools/fixtures/edit-corpus-fixtures.ts`): what the editor should detect and what an edit
+ * must keep. Coordinates are in the paragraph's own upright frame (user space, or the frame a
+ * page-level `cm` sets up; see `note`).
+ */
+export interface CorpusParagraphExpectation {
+  /** Stable id for tests, e.g. "p1-tj-justified". */
+  id: string;
+  page: number;
+  /** The lines as drawn, top to bottom (spaces as the reader sees them). */
+  lines: string[];
+  /** Baseline of each line in the upright frame (y, growing upward). */
+  baselines: number[];
+  /** Left edge and width of the measure (points, upright frame). */
+  measure: [number, number];
+  align: 'left' | 'justify';
+  fontSize: number;
+  font: FontExpectation;
+  /** Characters of the alphabet a-z, A-Z, 0-9 and Turkish letters the font program lacks. */
+  missingGlyphs: string;
+  /** Whether the paragraph is meant to be editable (Type3 and invisible OCR text are not). */
+  editable: boolean;
+  /** How the text is written, in words. */
+  note: string;
+}
+
 /** Where a sensitive token lives (redaction fixtures). */
 export interface SecretExpectation {
   token: string;
@@ -663,6 +690,8 @@ export interface Expectations {
   annotations?: AnnotationExpectation[];
   tagged?: { marked: boolean; structTypes: string[]; structParents: number[]; mcids: number[] };
   regions?: RegionExpectation[];
+  /** Paragraphs of the text-edit corpus (tools/fixtures/edit-corpus-fixtures.ts). */
+  paragraphs?: CorpusParagraphExpectation[];
   secret?: SecretExpectation;
   incremental?: IncrementalExpectation;
   /** For the damaged fixtures: what was done to the source bytes. */

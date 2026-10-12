@@ -8840,6 +8840,781 @@
           "fonts": []
         }
       }
+    },
+    {
+      "file": "text-edit-corpus/word-export.pdf",
+      "bytes": 8096,
+      "sha256": "eebe28e054df7e917c2806fe78ec4be68f33aad84c563a4dac80922d5e2f8a8f",
+      "pageCount": 1,
+      "tags": ["text-editing", "paragraphs", "truetype", "subset", "kerning", "justified"],
+      "summary": "Word / LibreOffice-like export: Noto Serif and Inter Bold simple TrueType subsets (only the glyphs used), kerned TJ arrays, one paragraph justified by TJ offsets (one BT per line), one by Tw (one BT, Td moves), a one-line paragraph.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792]
+          }
+        ],
+        "info": {
+          "Title": "Text-edit corpus: word processor export"
+        },
+        "paragraphs": [
+          {
+            "id": "title",
+            "page": 1,
+            "lines": ["Annual report of the village library"],
+            "baselines": [720],
+            "measure": [72, 468],
+            "align": "left",
+            "fontSize": 16,
+            "font": {
+              "resource": "F2",
+              "subtype": "TrueType",
+              "baseFont": "WDEXAB+Inter-Bold",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "cdjkmqswxzBCDEFGHIJKLMNOPQRSTUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Heading, Inter Bold simple TrueType subset, one kerned TJ."
+          },
+          {
+            "id": "p1-tj-justified",
+            "page": 1,
+            "lines": [
+              "The library opened its new reading room in early spring, after a long winter of building",
+              "work. Volunteers painted the shelves, mended the old chairs and carried every crate of",
+              "books up the narrow stairs by hand. On the first evening more than sixty readers came",
+              "to see the room, and many of them stayed until the lights were turned off at nine o'clock."
+            ],
+            "baselines": [690, 675, 660, 645],
+            "measure": [72, 468],
+            "align": "justify",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "WDEXAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jqzADFGHIJKLMNPQRSUWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Word style: each line its own BT/ET with an absolute Tm; one TJ with kerning offsets between glyph pairs and the justification as a negative offset after every space glyph. Noto Serif simple TrueType WinAnsi subset (only the glyphs used, no /ToUnicode)."
+          },
+          {
+            "id": "p2-tw-justified",
+            "page": 1,
+            "lines": [
+              "Borrowing rules have not changed. Each reader may take home four books at a time for",
+              "three weeks, and the loan can be renewed once at the desk or by telephone. Children's",
+              "books are kept on the low shelves near the window, where the light is best in the",
+              "afternoon."
+            ],
+            "baselines": [621, 606, 591, 576],
+            "measure": [72, 468],
+            "align": "justify",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "WDEXAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jqzADFGHIJKLMNPQRSUWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "LibreOffice style: the whole paragraph in one BT, lines moved by `0 -15 Td`, justified by a `Tw` set before each line (0 on the last), kerned TJ."
+          },
+          {
+            "id": "p3-one-line",
+            "page": 1,
+            "lines": ["Thanks are due to the parish council and to all who gave their time."],
+            "baselines": [552],
+            "measure": [72, 468],
+            "align": "left",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "WDEXAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jqzADFGHIJKLMNPQRSUWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "A one-line paragraph, kerned TJ (the shortest paragraph a user empties and retypes)."
+          }
+        ],
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
+    },
+    {
+      "file": "text-edit-corpus/per-glyph.pdf",
+      "bytes": 7005,
+      "sha256": "2d9b42690e46979fbae941f8f5430e7be1d671964240ed5cee3e7816a519e67f",
+      "pageCount": 1,
+      "tags": ["text-editing", "paragraphs", "type0", "per-glyph", "flipped-ctm"],
+      "summary": "Two paragraphs drawn one glyph per Tj at absolute text matrices (Inter Type0 subset): Quartz-like without space glyphs, Skia-like under a flipped cm.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792]
+          }
+        ],
+        "info": {
+          "Title": "Text-edit corpus: one glyph per show"
+        },
+        "paragraphs": [
+          {
+            "id": "p1-quartz-no-spaces",
+            "page": 1,
+            "lines": [
+              "Every glyph of this paragraph is placed on its own, the way a printing system writes",
+              "text it has already laid out: the words have no space characters between them, only",
+              "gaps."
+            ],
+            "baselines": [720, 705, 690],
+            "measure": [72, 440],
+            "align": "left",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "Type0",
+              "baseFont": "PGLYAA+Inter-Regular",
+              "encoding": "Identity-H",
+              "descendant": "CIDFontType2",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": true
+            },
+            "missingGlyphs": "jqzABCDFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Quartz style: one BT per line, every glyph shown by its own Tj at an absolute `1 0 0 1 x y Tm`; no space glyphs at all (word gaps are only geometry). Inter Type0 Identity-H subset."
+          },
+          {
+            "id": "p2-skia-flipped",
+            "page": 1,
+            "lines": [
+              "This paragraph is printed upside down in a flipped coordinate system and flipped",
+              "back by its text matrix, one glyph at a time, as a browser engine writes a page."
+            ],
+            "baselines": [663, 648],
+            "measure": [72, 440],
+            "align": "left",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "Type0",
+              "baseFont": "PGLYAA+Inter-Regular",
+              "encoding": "Identity-H",
+              "descendant": "CIDFontType2",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": true
+            },
+            "missingGlyphs": "jqzABCDFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Skia style: `1 0 0 -1 0 792 cm` flips the page, every glyph (spaces too) is shown by its own Tj at `1 0 0 -1 x y Tm`, which flips the text back upright. Baselines listed in unflipped user space."
+          }
+        ],
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
+    },
+    {
+      "file": "text-edit-corpus/cid-turkish.pdf",
+      "bytes": 9380,
+      "sha256": "6ec43a6ba8a111f3830e17cebc701347333c2179740a22133012e47109c0edba",
+      "pageCount": 1,
+      "tags": ["text-editing", "paragraphs", "type0", "subset", "turkish", "fallback"],
+      "summary": "Turkish heading and two paragraphs in Inter Regular / Bold Type0 Identity-H subsets with /ToUnicode, one hex Tj per line; the subsets lack Ğ, Ö, digits and q/w/x.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792]
+          }
+        ],
+        "info": {
+          "Title": "Text-edit corpus: Turkish in Identity-H subsets"
+        },
+        "paragraphs": [
+          {
+            "id": "title",
+            "page": 1,
+            "lines": ["Köy kütüphanesinin yıllık raporu"],
+            "baselines": [720],
+            "measure": [72, 460],
+            "align": "left",
+            "fontSize": 16,
+            "font": {
+              "resource": "F2",
+              "subtype": "Type0",
+              "baseFont": "CIDTAB+Inter-Bold",
+              "encoding": "Identity-H",
+              "descendant": "CIDFontType2",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": true
+            },
+            "missingGlyphs": "bcdfgjmqvwxzABCDEFGHIJLMNOPQRSTUVWXYZ0123456789çğşÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Heading, Inter Bold Type0 Identity-H subset."
+          },
+          {
+            "id": "p1-turkish",
+            "page": 1,
+            "lines": [
+              "Kütüphane yeni okuma salonunu ilkbaharın başında, uzun bir kış boyunca süren inşaat",
+              "işlerinin ardından açtı. Gönüllüler rafları boyadı, eski sandalyeleri onardı ve her kitap",
+              "kolisini dar merdivenlerden elle yukarı taşıdı. İlk akşam salonu görmeye altmıştan fazla",
+              "okur geldi."
+            ],
+            "baselines": [690, 675, 660, 645],
+            "measure": [72, 460],
+            "align": "left",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "Type0",
+              "baseFont": "CIDTAA+Inter-Regular",
+              "encoding": "Identity-H",
+              "descendant": "CIDFontType2",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": true
+            },
+            "missingGlyphs": "jqwxABCDEFHIJLMNOPQRSTUVWXYZ0123456789ĞÖ",
+            "editable": true,
+            "note": "One BT/ET and one hex Tj per line (pdf-lib drawText style); Inter Regular Type0 Identity-H subset with /ToUnicode. The subset has none of Ğ, Ö, digits or q/w/x: typing them needs a fallback font."
+          },
+          {
+            "id": "p2-turkish",
+            "page": 1,
+            "lines": [
+              "Çocuk kitapları pencerenin yanındaki alçak raflarda duruyor; öğleden sonra ışık orada en",
+              "güzel hâlini alıyor. Şubat ayında Üsküdar'dan gelen bağışlar da bu raflara yerleştirildi."
+            ],
+            "baselines": [622, 607],
+            "measure": [72, 460],
+            "align": "left",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "Type0",
+              "baseFont": "CIDTAA+Inter-Regular",
+              "encoding": "Identity-H",
+              "descendant": "CIDFontType2",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": true
+            },
+            "missingGlyphs": "jqwxABCDEFHIJLMNOPQRSTUVWXYZ0123456789ĞÖ",
+            "editable": true,
+            "note": "One BT/ET and one hex Tj per line (pdf-lib drawText style); Inter Regular Type0 Identity-H subset with /ToUnicode. The subset has none of Ğ, Ö, digits or q/w/x: typing them needs a fallback font."
+          }
+        ],
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
+    },
+    {
+      "file": "text-edit-corpus/spacing-ops.pdf",
+      "bytes": 4896,
+      "sha256": "c34c83e50189f03b8c5a01b72aa05d5d9f3c3a1f47570e35a1a066eb4a0f0896",
+      "pageCount": 1,
+      "tags": ["text-editing", "paragraphs", "tc", "tz", "tw", "tl"],
+      "summary": "Four paragraphs in an Inter simple TrueType subset: letter-spaced (Tc, TL/T*), condensed (90 Tz, -0.1 Tc), justified by Tw per line, and shown with the quote operator.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792]
+          }
+        ],
+        "info": {
+          "Title": "Text-edit corpus: Tc, Tz, Tw and TL"
+        },
+        "paragraphs": [
+          {
+            "id": "p1-tc",
+            "page": 1,
+            "lines": [
+              "This paragraph is set with extra letter spacing, the way a designer tracks out a",
+              "short introduction so that it reads lighter on the page."
+            ],
+            "baselines": [720, 706],
+            "measure": [72, 450],
+            "align": "left",
+            "fontSize": 10.5,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "SPOPAA+Inter-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "ABCDEFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Letter-spaced: `0.6 Tc` (on every glyph, spaces too), one BT, lines moved by TL/T*."
+          },
+          {
+            "id": "p2-tz",
+            "page": 1,
+            "lines": [
+              "This paragraph is condensed by horizontal scaling to ninety per cent and tightened a little, as layout",
+              "programs do to make a long text fit its frame."
+            ],
+            "baselines": [682, 668],
+            "measure": [72, 450],
+            "align": "left",
+            "fontSize": 10.5,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "SPOPAA+Inter-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "ABCDEFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Condensed: `90 Tz -0.1 Tc` set again in each line's BT (text state persists across BT/ET, so it is repeated as producers do), absolute Tm."
+          },
+          {
+            "id": "p3-tw",
+            "page": 1,
+            "lines": [
+              "This paragraph is justified by word spacing only: every line but the last carries its own Tw",
+              "so that it ends exactly at the right edge of the column, the way a print driver sets a",
+              "justified page."
+            ],
+            "baselines": [644, 630, 616],
+            "measure": [72, 450],
+            "align": "justify",
+            "fontSize": 10.5,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "SPOPAA+Inter-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "ABCDEFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Justified by word spacing: each line its own BT with `Tw` for that line (0 on the last), plain Tj."
+          },
+          {
+            "id": "p4-quote",
+            "page": 1,
+            "lines": [
+              "This last paragraph uses a text leading and moves to the next line with the quote operator,",
+              "so each line carries no coordinates of its own."
+            ],
+            "baselines": [592, 578],
+            "measure": [72, 450],
+            "align": "left",
+            "fontSize": 10.5,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "SPOPAA+Inter-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "ABCDEFGHIJKLMNOPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Every line shown by the `'` operator (next line by TL, then show), one BT."
+          }
+        ],
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
+    },
+    {
+      "file": "text-edit-corpus/rotated-paragraph.pdf",
+      "bytes": 5170,
+      "sha256": "61e9707b6eb1070129b9c80328d97090edce904ba6a0d9540f2b1eb43be1b80c",
+      "pageCount": 1,
+      "tags": ["text-editing", "paragraphs", "rotation"],
+      "summary": "A /Rotate 90 Letter page drawn in a landscape frame (0 1 -1 0 612 0 cm): a heading and a three-line paragraph that read upright on screen.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 90,
+            "displayedSize": [792, 612]
+          }
+        ],
+        "info": {
+          "Title": "Text-edit corpus: rotated page paragraph"
+        },
+        "paragraphs": [
+          {
+            "id": "title",
+            "page": 1,
+            "lines": ["Landscape notice"],
+            "baselines": [530],
+            "measure": [72, 620],
+            "align": "left",
+            "fontSize": 18,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "ROTPAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jqzABCDFGHIJKMNOPQSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Heading. Landscape frame set by `0 1 -1 0 612 0 cm` on a /Rotate 90 Letter page (user x = 612 - Y, user y = X); baselines are Y in that frame."
+          },
+          {
+            "id": "p1-rotated",
+            "page": 1,
+            "lines": [
+              "This page is stored in portrait and shown in landscape: its /Rotate is ninety degrees and the whole page is",
+              "drawn through a matrix that turns it back, so the paragraph reads upright on the screen. Editing it must",
+              "keep every line on the same slant as before and grow downward on the screen, not across the page."
+            ],
+            "baselines": [495, 479, 463],
+            "measure": [72, 620],
+            "align": "left",
+            "fontSize": 12,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "ROTPAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jqzABCDFGHIJKMNOPQSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "One kerned TJ per line, each its own BT. Landscape frame set by `0 1 -1 0 612 0 cm` on a /Rotate 90 Letter page (user x = 612 - Y, user y = X); baselines are Y in that frame."
+          }
+        ],
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
+    },
+    {
+      "file": "text-edit-corpus/tight-columns.pdf",
+      "bytes": 5455,
+      "sha256": "2296487b02401b3d30f8f35b081d2513f067518837f1f95e7d99ab9c318bccde",
+      "pageCount": 1,
+      "tags": ["text-editing", "paragraphs", "columns", "justified"],
+      "summary": "Two justified columns with a 6 pt gutter, two paragraphs each, in a Noto Serif simple TrueType subset (justification as TJ offsets).",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792]
+          }
+        ],
+        "info": {
+          "Title": "Text-edit corpus: tight columns"
+        },
+        "paragraphs": [
+          {
+            "id": "left-1",
+            "page": 1,
+            "lines": [
+              "The ferry timetable changes twice a year, in spring",
+              "and in autumn, and the harbour office prints a",
+              "new card for every season so that travellers can",
+              "keep it in a pocket."
+            ],
+            "baselines": [720, 708, 696, 684],
+            "measure": [72, 231],
+            "align": "justify",
+            "fontSize": 9.5,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "TCOLAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jxzACEFGHIJKLMNPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Column 1 of two, 6 pt gutter (half a word gap wider than a justified space); justified by TJ offsets after spaces, one BT per line; the left column is written first."
+          },
+          {
+            "id": "left-2",
+            "page": 1,
+            "lines": [
+              "On stormy days the first crossing may be cancelled",
+              "without notice. The office then posts a",
+              "handwritten sign on the gate and rings the bell on",
+              "the quay three times."
+            ],
+            "baselines": [666, 654, 642, 630],
+            "measure": [72, 231],
+            "align": "justify",
+            "fontSize": 9.5,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "TCOLAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jxzACEFGHIJKLMNPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Column 1 of two, 6 pt gutter (half a word gap wider than a justified space); justified by TJ offsets after spaces, one BT per line; the left column is written first."
+          },
+          {
+            "id": "right-1",
+            "page": 1,
+            "lines": [
+              "Bicycles travel free of charge on the upper deck,",
+              "but they must be tied to the rail before the boat",
+              "leaves and may not block the stairs or the doors of",
+              "the cabin."
+            ],
+            "baselines": [720, 708, 696, 684],
+            "measure": [309, 231],
+            "align": "justify",
+            "fontSize": 9.5,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "TCOLAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jxzACEFGHIJKLMNPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Column 2 of two, 6 pt gutter (half a word gap wider than a justified space); justified by TJ offsets after spaces, one BT per line; the left column is written first."
+          },
+          {
+            "id": "right-2",
+            "page": 1,
+            "lines": [
+              "Dogs are welcome on board when they are kept on",
+              "a short lead, and the crew keeps a bowl of fresh",
+              "water by the stern for them on warm summer",
+              "afternoons."
+            ],
+            "baselines": [666, 654, 642, 630],
+            "measure": [309, 231],
+            "align": "justify",
+            "fontSize": 9.5,
+            "font": {
+              "resource": "F1",
+              "subtype": "TrueType",
+              "baseFont": "TCOLAA+NotoSerif-Regular",
+              "encoding": "WinAnsiEncoding",
+              "embedded": true,
+              "subset": true,
+              "toUnicode": false
+            },
+            "missingGlyphs": "jxzACEFGHIJKLMNPQRSUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": true,
+            "note": "Column 2 of two, 6 pt gutter (half a word gap wider than a justified space); justified by TJ offsets after spaces, one BT per line; the left column is written first."
+          }
+        ],
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
+    },
+    {
+      "file": "text-edit-corpus/type3-line.pdf",
+      "bytes": 2836,
+      "sha256": "8f357a414e37e65927a0e7d5ae3236bcfb52e7bc46b44ff7507e8b0d8783cd3b",
+      "pageCount": 1,
+      "tags": ["text-editing", "paragraphs", "type3"],
+      "summary": "A Type3 line (\"ABBA BAAB\") between two Helvetica paragraphs.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792]
+          }
+        ],
+        "info": {
+          "Title": "Text-edit corpus: a Type3 line between paragraphs"
+        },
+        "paragraphs": [
+          {
+            "id": "p1-above",
+            "page": 1,
+            "lines": [
+              "The paragraph above the stamp is set in plain Helvetica, and it must stay editable",
+              "even though the line below it is drawn by a font made of procedures."
+            ],
+            "baselines": [720, 706],
+            "measure": [72, 420],
+            "align": "left",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "Type1",
+              "baseFont": "Helvetica",
+              "encoding": "WinAnsiEncoding",
+              "embedded": false,
+              "subset": false,
+              "toUnicode": false
+            },
+            "missingGlyphs": "ğışĞİŞ",
+            "editable": true,
+            "note": "Helvetica (standard 14, not embedded), one Tj per line."
+          },
+          {
+            "id": "type3",
+            "page": 1,
+            "lines": ["ABBA BAAB"],
+            "baselines": [678],
+            "measure": [72, 420],
+            "align": "left",
+            "fontSize": 18,
+            "font": {
+              "resource": "F2",
+              "subtype": "Type3",
+              "encoding": "Differences",
+              "embedded": false,
+              "subset": false,
+              "toUnicode": true
+            },
+            "missingGlyphs": "abcdefghijklmnopqrstuvwxyzCDEFGHIJKLMNOPQRSTUVWXYZ0123456789çğıöşüÇĞİÖŞÜ",
+            "editable": false,
+            "note": "Type3 font /F2 (glyphs A and B drawn by procedures, /ToUnicode), the word gap a TJ offset. Not editable (spec §2.2)."
+          },
+          {
+            "id": "p2-below",
+            "page": 1,
+            "lines": [
+              "The paragraph below the stamp is set in the same font as the first one and has two",
+              "lines on this page."
+            ],
+            "baselines": [646, 632],
+            "measure": [72, 420],
+            "align": "left",
+            "fontSize": 11,
+            "font": {
+              "resource": "F1",
+              "subtype": "Type1",
+              "baseFont": "Helvetica",
+              "encoding": "WinAnsiEncoding",
+              "embedded": false,
+              "subset": false,
+              "toUnicode": false
+            },
+            "missingGlyphs": "ğışĞİŞ",
+            "editable": true,
+            "note": "Helvetica (standard 14, not embedded), one Tj per line."
+          }
+        ],
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
+    },
+    {
+      "file": "text-edit-corpus/ocr-layer.pdf",
+      "bytes": 14001,
+      "sha256": "f9ad219adcfae18f663757ff9a0eab5084958698ce07b0521291a0ac414272c0",
+      "pageCount": 1,
+      "tags": ["text-editing", "paragraphs", "ocr-layer", "image"],
+      "summary": "A scanned paragraph: a 120 dpi greyscale image of three lines with invisible Helvetica (3 Tr, Tz per line) over it.",
+      "expect": {
+        "pdfLibLoad": "ok",
+        "pageCount": 1,
+        "pages": [
+          {
+            "page": 1,
+            "mediaBox": [0, 0, 612, 792],
+            "rotate": 0,
+            "displayedSize": [612, 792]
+          }
+        ],
+        "info": {
+          "Title": "Text-edit corpus: scanned paragraph with an OCR layer"
+        },
+        "paragraphs": [
+          {
+            "id": "ocr",
+            "page": 1,
+            "lines": [
+              "This paragraph was scanned from a printed letter and recognised by a text",
+              "reader, which laid invisible words over the picture so that the page can be",
+              "searched and copied."
+            ],
+            "baselines": [720, 704, 688],
+            "measure": [72, 440],
+            "align": "left",
+            "fontSize": 12,
+            "font": {
+              "resource": "F1",
+              "subtype": "Type1",
+              "baseFont": "Helvetica",
+              "encoding": "WinAnsiEncoding",
+              "embedded": false,
+              "subset": false,
+              "toUnicode": false
+            },
+            "missingGlyphs": "ğışĞİŞ",
+            "editable": false,
+            "note": "OCR layer: the paragraph is a 120 dpi greyscale image (Inter rasterised by lib/raster.ts) with invisible Helvetica text (3 Tr, a Tz per line so each line spans the scanned one) over it. Extractable; editing must not just re-show the invisible text."
+          }
+        ],
+        "xref": "table",
+        "fileIdDeterministic": true
+      }
     }
   ],
   "pki": {
