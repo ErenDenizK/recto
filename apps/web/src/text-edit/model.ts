@@ -230,8 +230,9 @@ const SPACE = /\s/;
 /**
  * What an edited line replaces: the smallest changed span, widened to whole words (so a
  * substituted font never starts mid-word) and to glyph boundaries (ligatures), with the
- * text that takes its place. Undefined when nothing changed. Everything outside the range
- * stays in place on the page (spec §2.5: the object is split around the selection).
+ * text that takes its place (composed, NFC). Undefined when nothing changed. Everything
+ * outside the range stays in place on the page (spec §2.5: the object is split around the
+ * selection).
  */
 export function editRange(
   run: Pick<LocatedRun, 'glyphs' | 'text'>,
@@ -257,7 +258,10 @@ export function editRange(
   start = [...bounds].reverse().find((b) => b <= start) ?? 0;
   end = bounds.find((b) => b >= end) ?? original.length;
   const tail = original.length - end;
-  return { start, end, replacement: next.slice(start, next.length - tail) };
+  // Written composed (NFC), as the paragraph editor stores typed text (TXT-18): a base letter
+  // and a combining mark (g + U+0306) become the one letter the fonts map. The range holds
+  // whole words, so no mark is cut from its base.
+  return { start, end, replacement: next.slice(start, next.length - tail).normalize('NFC') };
 }
 
 /**

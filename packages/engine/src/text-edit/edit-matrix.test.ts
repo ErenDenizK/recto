@@ -629,13 +629,8 @@ for (const target of TARGETS) {
 const OVERLONG = `https://example.org/${'Donaudampfschifffahrtsgesellschaft'.repeat(4)}`;
 
 describe('edit matrix: a word wider than the measure', () => {
-  // Known: `layoutParagraph` sets a word wider than the measure as an overfull line that runs
-  // past the measure's right edge (no break inside the word), and `decideOverflow` judges only
-  // the height, so the editor shows it as fitting; the writer then refuses it
-  // ("[text-edit:does-not-fit] (paragraph:off-page) … would be drawn outside the page") when
-  // the preview runs and on commit. A narrower overlong word commits running into the margin
-  // or the next column. Seen on every target of the matrix.
-  test.fails('word-export.pdf#1: a pasted overlong word is broken at the measure and commits', async () => {
+  // A word wider than any line breaks at the measure (TXT-19).
+  test('word-export.pdf#1: a pasted overlong word is broken at the measure and commits', async () => {
     const target = TARGETS.find((t) => t.file === 'word-export.pdf');
     if (!target) throw new Error('no word-export target');
     const outcome = await runScenario(target, 1, (block) => {

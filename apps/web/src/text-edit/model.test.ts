@@ -232,6 +232,15 @@ describe('edited range', () => {
     expect(editRange(run(), LINE)).toBeUndefined();
   });
 
+  it('writes typed text composed (NFC): a decomposed ğ becomes the one letter (TXT-18)', () => {
+    const decomposed = `The quick brown dog${String.fromCharCode(0x306)}an jumps`;
+    expect(editRange(run(), decomposed)).toEqual({
+      start: 16,
+      end: 19,
+      replacement: 'doğan',
+    });
+  });
+
   it('replaces whole words around the change', () => {
     expect(editRange(run(), 'The quick brown cat jumps')).toEqual({
       start: 16,
