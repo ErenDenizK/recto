@@ -13,8 +13,9 @@
  * - **Break opportunities** from `linebreak` (UAX #14), plus the paragraph's original
  *   line-end hyphens (de-hyphenated in the text), which can only end a line where they did;
  *   no hyphen is ever inserted.
- * - **Justified** lines take their slack on word gaps only, at most 1.5 × the natural gap;
- *   beyond that the line stays ragged and the layout says so.
+ * - **Justified** lines take their slack on word gaps only, at most 1.5 × the natural gap or
+ *   1.1 × the paragraph's own largest stretch, whichever is more (TXT-15); beyond that the
+ *   line stays ragged and the layout says so.
  * - **Kerning** pairs harvested from the paragraph are reapplied where the pair recurs.
  * - **Substitutes**: a character the original font lacks is measured in the style's
  *   substitute (class-matched; the caller picks the face) and reported.
@@ -164,6 +165,8 @@ export interface LayoutOptions {
 const FIT_EPSILON = 1e-6;
 /** Justified gaps may stretch to this multiple of the natural gap (research 11 §4.3). */
 export const MAX_GAP_STRETCH = 1.5;
+/** Margin over the paragraph's own largest stretch that a rewritten line may take (TXT-15). */
+const OBSERVED_STRETCH_MARGIN = 1.1;
 
 const KIND_CHAR = 0;
 const KIND_GAP = 1;
@@ -632,6 +635,44 @@ export function layoutWithThresholds(
   };
 }
 
+const stretchCaps = new WeakMap<LayoutInput, number>();
+
+/**
+ * How far a rewritten justified line may stretch its word gaps, as a multiple of the natural
+ * gap (craft §4.3, TXT-15): 1.5, or the paragraph's own largest stretch on its original
+ * justified lines (not the last, not one ending at a line break) × 1.1, whichever is more, so
+ * a rewritten line looks like its untouched neighbours. Measured once per input.
+ */
+function stretchCap(input: LayoutInput): number {
+  let cap = stretchCaps.get(input);
+  if (cap !== undefined) return cap;
+  cap = MAX_GAP_STRETCH;
+  if (input.align === 'justify' && input.lines.length > 1) {
+    const first = input.spans[0]?.style ?? Object.keys(input.styles)[0] ?? '';
+    const t = buildTables(input.text, input.spans, input.styles, first);
+    const hyphenChar = input.hyphenChar ?? '-';
+    let observed = 0;
+    for (let j = 0; j + 1 < input.lines.length; j++) {
+      const source = input.lines[j] as LayoutSourceLine;
+      const start = source.start;
+      const next = input.lines[j + 1]?.start ?? input.text.length;
+      if (next > 0 && t.kind[next - 1] === KIND_NEWLINE) continue;
+      const end = contentEnd(t, start, next);
+      const measure = new Measure(t);
+      measure.add(start, end);
+      if (measure.gap <= 0) continue;
+      const style = input.styles[t.styleIds[Math.max(start, end - 1)] ?? ''];
+      const hyphen = source.hyphenated === true && style ? glyphWidth(style, hyphenChar).width : 0;
+      const indent = j === 0 ? (input.measure.firstIndent ?? 0) : 0;
+      const avail = input.measure.right - input.measure.left - indent;
+      observed = Math.max(observed, (avail - measure.nonGap - hyphen) / measure.gap);
+    }
+    cap = Math.max(MAX_GAP_STRETCH, observed * OBSERVED_STRETCH_MARGIN);
+  }
+  stretchCaps.set(input, cap);
+  return cap;
+}
+
 /** End of the visible text of a line (trailing gaps and line breaks dropped). */
 function contentEnd(t: Tables, start: number, next: number): number {
   let e = next;
@@ -701,13 +742,13 @@ function placeLine(
   const indent = index === 0 ? (input.measure.firstIndent ?? 0) : 0;
   const left = input.measure.left + indent;
 
-  // Justification: slack on the word gaps only, each at most 1.5 × its natural width.
+  // Justification: slack on the word gaps only, each at most `stretchCap` × its natural width.
   let gapFactor = f;
   let justified = false;
   let ragged = false;
   const slack = avail - natural;
   if (input.align === 'justify' && !forced && next < n && !line.overfull) {
-    if (measure.gap > 0 && f + slack / measure.gap <= MAX_GAP_STRETCH + FIT_EPSILON) {
+    if (measure.gap > 0 && f + slack / measure.gap <= stretchCap(input) + FIT_EPSILON) {
       gapFactor = f + slack / measure.gap;
       justified = true;
     } else if (slack > FIT_EPSILON) {
