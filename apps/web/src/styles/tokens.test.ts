@@ -952,7 +952,7 @@ describe('tokens.css', () => {
       }
     });
 
-    it('puts menus and popovers on M4, the docked frame on docked M3, the strip on the capsule’s M2, and two solid twins', () => {
+    it('puts menus and popovers on M4, the docked frame on docked M3, the strips on the capsule’s M2, and two solid twins', () => {
       const first = (source: string) =>
         /^\.[\w]+\s*\{([^{}]*)\}/m.exec(stripComments(source))?.[1] ?? '';
       const menus = import.meta.glob<string>('../ui/{Menu,Popover}.module.css', {
@@ -999,6 +999,18 @@ describe('tokens.css', () => {
       expect(piece).toMatch(/composes:\s*mat mat-bar s8 c9 from global;/);
       expect(piece).not.toMatch(/background:/);
       expect(strip).not.toMatch(/mat-docked/);
+      // The phone reader's top bar floats too (owner 2026-10-12, DSN-32): the capsule's M2 at
+      // its 48 px σ, no band, no hairline and no background of its own at rest.
+      const phone = stripComments(
+        import.meta.glob<string>('../shell/compact/CompactChrome.module.css', {
+          query: '?raw',
+          import: 'default',
+          eager: true,
+        })['../shell/compact/CompactChrome.module.css'] ?? '',
+      );
+      const topBar = /^\.topBar\s*\{([^{}]*)\}/m.exec(phone)?.[1] ?? '';
+      expect(topBar).toMatch(/composes:\s*mat mat-bar s9 from global;/);
+      expect(topBar).not.toMatch(/background:|border-bottom:|mat-docked/);
       // The title menu opens over the sidebar's dark edge and the white page at once, a tall
       // panel: M4's solid twin (01-frame F5; quality bar Q-1, Q-3; DSN-30). The pill menu is the
       // popover's M4 glass, as the strip's pieces are glass (F11; DSN-29): no twin of its own.
