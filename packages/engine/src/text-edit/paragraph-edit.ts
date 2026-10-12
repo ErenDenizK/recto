@@ -465,7 +465,6 @@ function sizeOf(r: Rect): { width: number; height: number } {
   return { width: r.width, height: r.height };
 }
 
-/** The glyphs of a rewritten line, cut into segments (see the module comment). */
 /**
  * Styles whose space glyphs do not advance alike in every object of the paragraph: a
  * space's step to the glyph after it, in the original objects, differs from the space's
@@ -488,6 +487,7 @@ function unevenSpaceStyles(prepared: PreparedParagraph): Set<string> {
   return out;
 }
 
+/** The glyphs of a rewritten line, cut into segments (see the module comment). */
 function planLine(
   prepared: PreparedParagraph,
   layout: ParagraphLayout,
