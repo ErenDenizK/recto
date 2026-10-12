@@ -5,8 +5,9 @@
  * the pointer that stays straight until release, handed over (and committed) as two points;
  * a held rectangle becomes its outline with a chip that names it and cycles on a tap;
  * handwriting held still stays as written; a stroke right after another (writing) needs a
- * longer hold; the 1 px cue, none (and no morph) under reduced motion; Shift snaps the line
- * to 45° steps in the preview, and a Shift line with the Highlighter along text becomes a
+ * longer hold; a pointer kept still through a zoom is no hold, one that moves on and holds
+ * again is; the 1 px cue, none (and no morph) under reduced motion; Shift snaps the line to
+ * 45° steps in the preview, and a Shift line with the Highlighter along text becomes a
  * Highlight by the usual rule.
  */
 import type { Rect } from '@pdf-editor/document-model';
@@ -287,6 +288,38 @@ describe('hold to straighten on a layer', () => {
     await frame();
     expect(rig.preview.frames.at(-1)?.points[0]?.w).toBeCloseTo(2, 6);
     window.dispatchEvent(pointer('pointerup', 200, 80));
+  });
+
+  it('a still pointer through a zoom is no hold: the stroke stays free', async () => {
+    scribble();
+    // Still for most of a hold, then the page zooms to 150 % under the pointer (the layer's
+    // new size arrives through its ResizeObserver), then still for longer than a hold.
+    await wait(HOLD_STRAIGHTEN_MS - 200);
+    rig.layer.style.width = '900px';
+    rig.layer.style.height = '600px';
+    await frame();
+    await frame();
+    await wait(HOLD_STRAIGHTEN_MS + 100);
+    await frame();
+    expect(rig.preview.frames.at(-1)?.points.length).toBeGreaterThan(2);
+    // The pointer goes on along the same line of the page, now at 1.5 times the CSS px.
+    window.dispatchEvent(pointer('pointermove', 210 * 1.5, 81 * 1.5));
+    window.dispatchEvent(pointer('pointerup', 220 * 1.5, 82 * 1.5));
+    const [stroke] = rig.strokes;
+    expect(stroke?.shape).toBeUndefined();
+    expect(stroke?.points.length).toBeGreaterThan(2);
+  });
+
+  it('after a zoom the pointer moves on and holds again: that hold counts', async () => {
+    scribble();
+    rig.layer.style.width = '900px';
+    rig.layer.style.height = '600px';
+    await frame();
+    await frame();
+    window.dispatchEvent(pointer('pointermove', 210 * 1.5, 81 * 1.5));
+    await wait(HOLD_STRAIGHTEN_MS + 60);
+    window.dispatchEvent(pointer('pointerup', 210 * 1.5, 81 * 1.5));
+    expect(rig.strokes[0]?.shape?.kind).toBe('line');
   });
 
   it('no cue and no morph under reduced motion', async () => {

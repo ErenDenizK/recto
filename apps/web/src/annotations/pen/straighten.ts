@@ -9,9 +9,10 @@
  *   that fits one with confidence snaps (`shape-hold.ts`); handwriting held still stays as
  *   written. A line runs from the stroke's first point to the pointer and follows it until
  *   release. A press held still before the pointer has moved does not count (there is no
- *   stroke yet). `HoldStill` is the timing rule over every sample the pipeline sees
- *   (coalesced and predicted pointer events too); the pipeline (`ink-input.ts`) asks it when
- *   the hold is due.
+ *   stroke yet), nor does a pointer kept still through a zoom: the page moved under it, so
+ *   the pipeline spends that hold. `HoldStill` is the timing rule over every sample the
+ *   pipeline sees (coalesced and predicted pointer events too); the pipeline (`ink-input.ts`)
+ *   asks it when the hold is due.
  * - **Writing context.** A stroke that starts within `WRITING_GAP_MS` of the previous
  *   stroke's release is writing: its hold must last `HOLD_WRITING_MS` and its fit is stricter
  *   (`RecognizeOptions.strict`).
