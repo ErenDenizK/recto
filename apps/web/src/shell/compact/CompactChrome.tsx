@@ -2,9 +2,9 @@
  * The compact reader's chrome (ADR-0033 §2.3 "Chrome"), calm in the manner of Procreate and
  * Apple Books: two pieces that hide and show together.
  *
- * - **Top bar:** ‹ back to the Library, the title (truncated, full in its accessible name),
- *   and ⋯ with Find, Contents (only when the file has an outline), Go to page, Share or
- *   Download a copy, Document info and About. In Find it becomes the search field with the
+ * - **Top bar:** a floating glass capsule (DSN-32): ‹ back to the Library, the title
+ *   (truncated, full in its accessible name), and ⋯ with Find, Contents (only when the file
+ *   has an outline), Go to page, Share or Download a copy, Document info and About. In Find it becomes the search field with the
  *   hit count, ‹ › and Done. A document changed since it was opened (an edit here, or a kept
  *   snapshot) shows the "Changed" cue in ⋯ with Share a copy and Save a copy
  *   (`design/phone-2026-10/README.md` §6: no save in place on a phone).

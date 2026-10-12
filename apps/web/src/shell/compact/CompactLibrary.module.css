@@ -1,6 +1,9 @@
 /*
  * The compact Library (ADR-0033 §2.3; composition DSN-31; CompactLibrary.tsx): one column inside
- * the safe area over the aura (DSN-24), scrolling on its own, and one floating dock.
+ * the safe area over the aura (DSN-24), and one floating dock. The column scrolls the document
+ * itself (DSN-33, CompactApp.module.css): it is at least the window's height, so the auto
+ * margins below can centre a short Library, and grows with Recents; its bottom padding lets the
+ * last row clear the dock and the home indicator.
  *
  * - Identity in the upper third: the mark at 64 px, the wordmark in title1, the promise in
  *   callout (the type steps of tokens.css; a coarse pointer moves each one size up).
@@ -9,8 +12,9 @@
  *   passes under them, as the full Library's launcher and cards); the dock is M2 bar glass with
  *   the reader capsule's σ and size (56 px, `mat mat-bar s10`), because Recents scroll under
  *   it. Fills inside glass, never glass on glass (Q-4).
- * - The vertical air is a share of the dynamic height (`dvh`) within fixed bounds, so a tall
- *   phone spreads the groups out and a short one closes them up, never an empty band.
+ * - The vertical air is a share of the small viewport height (`svh`) within fixed bounds, so a
+ *   tall phone spreads the groups out and a short one closes them up, never an empty band; the
+ *   small height holds still while the browser bars fold during a scroll.
  * - On its side (visual audit 2026-10 item 6): the mark folds into the header row and the body
  *   becomes two columns, the promise, tools and sample beside Recents, with the dock under the
  *   first column, so four Recent rows show in 390 px.
@@ -24,9 +28,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden auto;
-  overscroll-behavior: contain;
+  min-height: 100dvh;
+  overflow-x: clip;
   padding: env(safe-area-inset-top, 0px) max(env(safe-area-inset-right, 0px), 16px)
     calc(var(--dock-bottom) + var(--dock-h) + var(--space-6))
     max(env(safe-area-inset-left, 0px), 16px);
@@ -103,16 +106,16 @@
 .body {
   display: flex;
   flex-direction: column;
-  gap: clamp(20px, 3.5dvh, 36px);
+  gap: clamp(20px, 3.5svh, 36px);
   margin-bottom: auto;
-  padding-top: clamp(8px, 2dvh, 20px);
+  padding-top: clamp(8px, 2svh, 20px);
 }
 
 .intro {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(16px, 3dvh, 28px);
+  gap: clamp(16px, 3svh, 28px);
   text-align: center;
 }
 

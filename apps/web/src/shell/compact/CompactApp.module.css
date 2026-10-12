@@ -3,7 +3,12 @@
  * so the full edition never sees them.
  *
  * - The root fills the dynamic viewport (`100dvh`, which follows the phone's browser bars)
- *   and never scrolls sideways; the reader and the Library scroll inside it.
+ *   and never scrolls sideways; the reader scrolls inside it.
+ * - The Library scrolls the document itself (DSN-33): `CompactRoot` marks `:root` with
+ *   `data-compact-place="library"`, and there the html, the body and the root grow with the
+ *   column instead of clipping it, so a swipe anywhere moves the page as any web page moves,
+ *   with the browser's own scroller (on iOS the one WebKit never routes a touch past), and the
+ *   browser bars may fold away. The aura and the Open PDF dock stay fixed to the window.
  * - System text scaling is respected: the compact chrome sets its type in rem, and the
  *   reset's `text-size-adjust: none` is lifted to `100%` (no automatic inflation on rotation,
  *   but the person's own text size applies).
@@ -26,4 +31,19 @@
   overflow: hidden;
   background: var(--canvas);
   color: var(--text-primary);
+}
+
+:global(:root[data-compact-place='library']),
+:global(:root[data-compact-place='library']) body,
+:global(:root[data-compact-place='library'] #root) {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+:global(:root[data-compact-place='library']) .root {
+  position: relative;
+  height: auto;
+  min-height: 100dvh;
+  overflow: clip visible;
 }
