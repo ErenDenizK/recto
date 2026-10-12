@@ -35,7 +35,9 @@
  *    order (a table therefore reads column by column).
  * 5. **Lines.** In each XY-cut leaf, pieces whose baselines are within 0.2 × size form a
  *    line, split again at gaps over 3 × space (8 × space with a space glyph in the gap; a
- *    lone list marker keeps text up to 4 × size away). A gap is kept, whatever its width,
+ *    lone list marker keeps text up to 4 × size away), the space being at least the line's
+ *    own median drawn word space (two stretched spaces of a justified line between two
+ *    objects are no tab stop). A gap is kept, whatever its width,
  *    when a same-size line within 2 × size above or below has ink at its middle: a
  *    justified line's stretched space, not a gutter or a gap between cells. A short piece
  *    at most 0.8 × the size, within 0.6 × size of a line's baseline and touching it, is a
@@ -863,11 +865,15 @@ function rowsOf(
   const rows: Row[] = [];
   for (const cluster of clusters) {
     cluster.sort((a, b) => a.x0 - b.x0);
+    // A justified line's spaces are wider than the page's: its gaps are measured in them.
+    const drawn = median(
+      cluster.map(pieceSpace).filter((s): s is number => s !== undefined && s > 0),
+    );
     let current: Piece[] = [];
     let end = Number.NEGATIVE_INFINITY;
     for (const p of cluster) {
       const before = current[current.length - 1];
-      const space = Math.max(p.space, before?.space ?? 0);
+      const space = Math.max(p.space, before?.space ?? 0, drawn ?? 0);
       const spaced = before?.trailBlank === true || p.leadBlank || blankIn(p, end, p.x0, blanks);
       const limit =
         current.length === 1 && MARKER_ONLY.test(pieceText(before as Piece))

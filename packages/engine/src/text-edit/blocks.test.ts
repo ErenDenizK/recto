@@ -542,6 +542,39 @@ describe('geometry rules', () => {
     expect(blocks[0]?.align).toBe('left');
   });
 
+  test('two stretched spaces between two objects of a justified line keep the line whole', async () => {
+    // A justified paragraph whose first two lines are each drawn by two objects, the second
+    // starting two stretched spaces (no space glyph) after the first; a ragged paragraph below
+    // keeps the page's median space natural.
+    const extra = 3;
+    // The same head on both lines: the gaps line up, so neither line's ink spans the other's.
+    const heads = ['We will stay', 'We will stay'];
+    const tails = [
+      'though the bells of the small chapel rang',
+      'when the first carts rolled down to town',
+    ];
+    const natural = await naturalWidths([...heads, ...tails]);
+    const target = Math.max(natural[2] ?? 0, natural[3] ?? 0) + 40;
+    const content: string[] = [];
+    heads.forEach((head, i) => {
+      const tail = tails[i] as string;
+      const y = 700 - 12 * i;
+      const headW = (natural[i] ?? 0) + spaceCount(head) * extra;
+      const tailX = 72 + headW + 2 * (2.78 + extra);
+      content.push(stretchedTj(72, y, head, extra));
+      const tailExtra = (72 + target - tailX - (natural[i + 2] ?? 0)) / spaceCount(tail);
+      content.push(stretchedTj(tailX, y, tail, tailExtra));
+    });
+    content.push(tj(72, 676, 'and the market opened.'));
+    content.push(...LONG.map((line, i) => tj(72, 600 - 12 * i, line)));
+    const blocks = await blocksOf(await page(content));
+    expect(blocks[0]?.lines.map((l) => l.text)).toEqual([
+      `${heads[0]} ${tails[0]}`,
+      `${heads[1]} ${tails[1]}`,
+      'and the market opened.',
+    ]);
+  });
+
   test('two justified columns 6 pt apart: a straight gutter twice the natural word space splits them', async () => {
     const left = [
       'The ferry timetable changes twice a',
