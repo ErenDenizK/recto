@@ -194,7 +194,7 @@ async function probe(
   if (edit.text.trim() !== '') {
     expect(
       after.map((b) => b.text),
-      `${name}: read back`,
+      `${name}: read back ${JSON.stringify(after.map((b) => b.text))} runs ${JSON.stringify(runs.map((r) => [r.text, r.glyphs[0]?.origin.x.toFixed(1), r.glyphs[0]?.origin.y.toFixed(1)]))}`,
     ).toContain(collapsed(edit.text));
   }
   // Nothing drawn on top of anything else (beyond what the page had).
@@ -511,7 +511,7 @@ describe('every editable paragraph of text-edit-fonts.pdf (WinAnsi, Identity-H s
           await h.adapter.close(p.source);
         } catch (error) {
           failures.push(
-            `paragraph ${i} (${blocks[i]?.lines[0]?.spans[0]?.font.baseName}): ${name}: ${String(error).slice(0, 300)}`,
+            `paragraph ${i} (${blocks[i]?.lines[0]?.spans[0]?.font.baseName}): ${name}: ${String(error).slice(0, 4000)}`,
           );
         }
       }

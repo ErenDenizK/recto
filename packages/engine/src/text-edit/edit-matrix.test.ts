@@ -197,25 +197,7 @@ const SCENARIOS: Record<string, (block: ParagraphBlock) => Replacement | undefin
  * Known failures: `file#paragraph scenario` → the bug, as found by this matrix (each one was
  * seen failing before it was listed).
  */
-const GLUED =
-  'words glued on read-back: rewritten lines of a style without a space advance are written one object per word, and PDFium reads no space at the gaps';
-const GLUED_TZ =
-  "words glued on read-back: in a 90 Tz / -0.1 Tc paragraph the rewritten word gaps fall under PDFium's space threshold";
-const SUBSTITUTE_DRIFT =
-  'verification-failed: substitute glyphs land 0.02 pt off their planned origins';
-const KNOWN: Record<string, string> = {
-  'word-export.pdf#1 space-single': GLUED,
-  'word-export.pdf#1 space-double': GLUED,
-  'word-export.pdf#1 delete-line-end-char': GLUED,
-  'word-export.pdf#1 delete-first-char': GLUED,
-  'word-export.pdf#1 delete-last-char': GLUED,
-  'word-export.pdf#3 long-insert': GLUED,
-  'spacing-ops.pdf#1 turkish': SUBSTITUTE_DRIFT,
-  'spacing-ops.pdf#1 insert-start': GLUED_TZ,
-  'spacing-ops.pdf#1 backspace-line-join': GLUED_TZ,
-  'spacing-ops.pdf#1 delete-across-lines': GLUED_TZ,
-  'spacing-ops.pdf#1 replace-all': GLUED_TZ,
-};
+const KNOWN: Record<string, string> = {};
 
 // ---------------------------------------------------------------------------
 // Checks

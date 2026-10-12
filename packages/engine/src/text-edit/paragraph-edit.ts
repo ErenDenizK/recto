@@ -466,11 +466,34 @@ function sizeOf(r: Rect): { width: number; height: number } {
 }
 
 /** The glyphs of a rewritten line, cut into segments (see the module comment). */
+/**
+ * Styles whose space glyphs do not advance alike in every object of the paragraph: a
+ * space's step to the glyph after it, in the original objects, differs from the space's
+ * measured advance in the style's object (a Tw that changes per line, a justification offset
+ * after the space). A space glyph written into such an object would move the glyphs after it.
+ */
+function unevenSpaceStyles(prepared: PreparedParagraph): Set<string> {
+  const { model, metrics } = prepared;
+  const out = new Set<string>();
+  const { chars, u } = model;
+  for (let i = 0; i + 1 < chars.length; i++) {
+    const a = chars[i] as (typeof chars)[number];
+    const b = chars[i + 1] as (typeof chars)[number];
+    if (a.text !== ' ' || a.generated || b.generated || a.object !== b.object) continue;
+    const space = metrics.get(a.style)?.chars.get(' ');
+    if (!space) continue;
+    const step = (b.origin.x - a.origin.x) * u.x + (b.origin.y - a.origin.y) * u.y;
+    if (Math.abs(step - space.spaced) > PARAGRAPH_ORIGIN_TOLERANCE) out.add(a.style);
+  }
+  return out;
+}
+
 function planLine(
   prepared: PreparedParagraph,
   layout: ParagraphLayout,
   lineIndex: number,
   glyphAt: Map<number, PlacedGlyph>,
+  unevenSpaces: ReadonlySet<string>,
 ): Segment[] {
   const { model, metrics } = prepared;
   const line = layout.lines[lineIndex] as LayoutLine;
@@ -514,8 +537,14 @@ function planLine(
       glyphAt.set(offset, { glyph, line: lineIndex, style: run.style });
       x += step;
       offset += ch.length;
-      // A displacement after this glyph: the next one starts a new segment.
-      if (Math.abs(kern) > SPLIT_EPSILON && k < chars.length - 1) {
+      // A displacement after this glyph, or, in a style whose spaces do not advance alike in
+      // every object, a single space glyph (its advance in the object that takes the segment
+      // carries that object's own Tw): the next one starts a new segment. A gap of several
+      // spaces stays inside its segment: paragraph detection reads a word cut off after such
+      // a gap as a block of its own.
+      const gapEnd =
+        ch === ' ' && unevenSpaces.has(run.style) && chars[k + 1] !== ' ' && chars[k - 1] !== ' ';
+      if ((Math.abs(kern) > SPLIT_EPSILON || gapEnd) && k < chars.length - 1) {
         const style = current?.style ?? run.style;
         close();
         current = { style, ...(run.font === undefined ? {} : { face: run.font }), glyphs: [] };
@@ -594,6 +623,7 @@ function planWrite(prepared: PreparedParagraph, layout: ParagraphLayout): WriteP
   const replaced = fates.flatMap((f, li) => (f.kind === 'rewritten' ? [li] : []));
   const rewritten = layout.lines.flatMap((l, i) => (l.status === 'rewritten' ? [i] : []));
   const glyphAt = new Map<number, PlacedGlyph>();
+  const unevenSpaces = unevenSpaceStyles(prepared);
   const placements: Placement[] = [];
   const used = new Set<number>();
   const containers: number[][] = [];
@@ -607,7 +637,7 @@ function planWrite(prepared: PreparedParagraph, layout: ParagraphLayout): WriteP
       source === undefined ? [] : (model.lineObjects[source] ?? []).filter((o) => !used.has(o));
     containers.push(pool);
     let next = 0;
-    for (const segment of planLine(prepared, layout, lineIndex, glyphAt)) {
+    for (const segment of planLine(prepared, layout, lineIndex, glyphAt, unevenSpaces)) {
       const template = firstOfStyle.get(segment.style);
       if (template === undefined) {
         throw textEditError('verification-failed', `No object has style ${segment.style}`);
@@ -1404,8 +1434,12 @@ export class ParagraphWriter {
         segment.glyphs.forEach((g, k) => {
           const prev = segment.glyphs[k - 1];
           const natural = prev !== undefined && Math.abs(prev.step - prev.plain) <= SPLIT_EPSILON;
+          // A space glyph stays at the end of the piece before it rather than becoming an
+          // object of its own (a lone space reads as a gap of its own); the next glyph starts
+          // a new piece, so the space's own advance moves nothing.
+          const trailing = g.text === ' ';
           const piece = pieces[pieces.length - 1];
-          if (piece && natural) {
+          if (piece && (natural || trailing)) {
             piece.glyphs.push(g);
             piece.codes.push(codes[k] ?? 0);
           } else {
@@ -1692,9 +1726,13 @@ export class ParagraphWriter {
       matched.forEach((c, k) => {
         const g = glyphs[k];
         if (!c || !g) return;
+        // A space glyph carries no ink: it is written for readers, and its origin (moved by
+        // the advance of the glyph before it in an object without the style's Tc) is not
+        // checked. The glyph after it starts a new object and is.
+        if (g.offset >= 0) readAt.set(g.offset, c.box);
+        if (/^\s$/u.test(g.text)) return;
         offsets.push({ x: c.origin.x - g.origin.x, y: c.origin.y - g.origin.y });
         drift = Math.max(drift, distance(c.origin, g.origin));
-        if (g.offset >= 0) readAt.set(g.offset, c.box);
         if (c.box.width > 0 || c.box.height > 0) boxes.push(c.box);
         if (g.box && (g.box.width > 0 || g.box.height > 0)) {
           const error = Math.max(
