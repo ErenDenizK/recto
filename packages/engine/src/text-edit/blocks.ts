@@ -14,7 +14,10 @@
  *    stretched space of a justified line). The space width is the page's median space
  *    advance over font size (from space glyphs to the next glyph on the line, default
  *    0.25 em), times the piece's size. Left edges are glyph origins; right edges are the end
- *    of the last glyph's advance when it ends its run (the run's loose box), else its ink.
+ *    of the last glyph's advance when it ends its run (the run's loose box; when that box
+ *    ends at the glyph's ink, which overhangs its advance, as an `f` in a serif face does,
+ *    the glyph's origin plus its advance measured from the run's, else the page's, origin
+ *    steps), else its ink.
  * 2. **Drop caps.** A piece of at most two letters, at least twice the size of two or more
  *    lines just to its right whose baselines lie within its height, is a drop cap: it is
  *    attached to the top line's paragraph, which is refused (`drop-cap`).
@@ -24,8 +27,11 @@
  *    along the line, or another piece between two of its lines) falls back to geometry.
  * 4. **Columns and reading order.** Recursive XY-cut on the pieces: a vertical channel at
  *    least 2 × space wide in a region of at least 3 lines splits it into columns (left
- *    first), unless the left side is only list markers; otherwise the widest horizontal gap
- *    splits it (top first). Lines never cross a channel, and blocks are returned in this
+ *    first), unless the left side is only list markers; so does a straight gutter: at least
+ *    2 × the region's natural word space (its least stretched piece's median space, since
+ *    justified lines inflate the page's) with the text right of it starting at one x
+ *    (within 0.5 pt) on at least 3 lines and ¾ of its lines. Otherwise the widest horizontal
+ *    gap splits it (top first). Lines never cross a channel, and blocks are returned in this
  *    order (a table therefore reads column by column).
  * 5. **Lines.** In each XY-cut leaf, pieces whose baselines are within 0.2 × size form a
  *    line, split again at gaps over 3 × space (8 × space with a space glyph in the gap; a
@@ -57,7 +63,11 @@
  * 8. **Alignment** (edges as in step 1). Over the non-final lines (the first line's left edge left out when it is
  *    indented): left and right edges both varying under 0.5 pt is `justify` (with two
  *    lines: the first line ends within 0.5 pt of a right edge that at least three lines of
- *    the column share); else left edges within one space `left`, right edges `right`,
+ *    the column share). When some of those lines have stretched word spaces (a median drawn
+ *    space over 0.03 × size wider than the paragraph's narrowest line's, whether Tw, TJ
+ *    offsets or separate objects stretch it; ragged lines that end together by chance keep
+ *    their natural spaces), right edges may vary up to ¼ space (Tc adds up along a line,
+ *    rounding). Else left edges within one space `left`, right edges `right`,
  *    centres `center`. A single line is centred when its centre is within one space of its
  *    column's and it starts more than 2 spaces in, right-aligned when it ends within one
  *    space of the column's right edge and starts more than 2 spaces in, else left.
@@ -88,7 +98,8 @@
  *    tagged block's hard-break lines are left out of the justification test (step 8).
  *
  * Known failure modes (research 11 §3.4) and what the user sees:
- * - Two columns with a gutter under 2 × space, or with fewer than 3 lines: no channel; lines
+ * - Two columns with a gutter under 2 × space that is not straight (the right column's lines
+ *   start at different x), or with fewer than 3 lines: no channel; lines
  *   still break at gaps over 3 × space, and the join rules rarely join across (left edges
  *   differ), but reading order may interleave. "Split here" / "Join with next" correct it.
  * - Short lines of similar length (addresses, verse, a list without markers) join into one
@@ -154,6 +165,8 @@ const BREAK_SPACES = 3;
 /** Minimum width of a column channel, in spaces, and its minimum height in lines. */
 const CHANNEL_SPACES = 2;
 const CHANNEL_LINES = 3;
+/** Share of a straight gutter's lines whose text right of it starts at one x. */
+const GUTTER_SHARE = 0.75;
 /** Baselines within this many sizes are one line. */
 const BASELINE_TOLERANCE = 0.2;
 /** Largest baseline pitch of one paragraph, in sizes, and the leading tolerance. */
@@ -167,6 +180,13 @@ const SHORT_LINE = 0.85;
 const BOX_TOLERANCE = 0.5;
 /** Edges varying less than this (points) are justified. */
 const JUSTIFY_TOLERANCE = 0.5;
+/**
+ * A line's word spaces wider than the paragraph's narrowest by this many sizes are stretched
+ * (Tw, TJ offsets); with stretched lines, right edges varying less than this many spaces are
+ * justified.
+ */
+const STRETCH = 0.03;
+const STRETCHED_EDGE = 0.25;
 /**
  * A gap with a space glyph in it cuts a run or a line only above this many spaces (a
  * stretched space of a justified line is not a tab stop).
@@ -423,12 +443,78 @@ function spaceRatio(
   return { ratio: Math.min(0.6, Math.max(0.12, r)), spaces: ratios.length > 0 };
 }
 
-/** The run's loose right edge, when the piece ends the run with a solid glyph. */
-function advanceEnd(prep: Prepared, g1: number, trailBlank: boolean, u: Vec): number | undefined {
+/** A loose box ending this close (points) to the last glyph's ink ends at the ink. */
+const INK_EDGE = 0.05;
+
+/** Advances measured on the page: `advanceKey` → median origin step to the next glyph. */
+type Advances = ReadonlyMap<string, number>;
+
+function advanceKey(prep: Prepared, text: string): string {
+  const font = prep.run.fontId ?? prep.run.font.baseName;
+  return `${font}|${Math.round(prep.size * 100)}|${text}`;
+}
+
+/**
+ * Each character's advance per font and size, from the page's own glyph positions: the median
+ * step from its origin to the next solid glyph's in the same run (kerning and TJ offsets are
+ * rare enough per character for the median to ignore them).
+ */
+function measuredAdvances(
+  preps: readonly Prepared[],
+  geos: ReadonlyMap<Prepared, GlyphGeo[]>,
+): Advances {
+  const steps = new Map<string, number[]>();
+  for (const prep of preps) {
+    const geo = geos.get(prep) ?? [];
+    const glyphs = prep.run.glyphs;
+    for (let i = 0; i + 1 < geo.length; i++) {
+      const a = geo[i] as GlyphGeo;
+      const b = geo[i + 1] as GlyphGeo;
+      if (a.blank || b.blank) continue;
+      const step = b.origin - a.origin;
+      if (step <= 0 || step > 2 * prep.size) continue;
+      const key = advanceKey(prep, glyphs[i]?.text ?? '');
+      const list = steps.get(key);
+      if (list) list.push(step);
+      else steps.set(key, [step]);
+    }
+  }
+  return new Map([...steps].map(([k, v]) => [k, median(v) ?? 0]));
+}
+
+/**
+ * Where the run's last glyph's advance ends, when the piece ends the run with a solid glyph:
+ * the run's loose right edge, unless the glyph's ink overhangs its advance (an `f` in a serif
+ * face; PDFium's loose box then takes the ink): its origin plus its measured advance.
+ */
+function advanceEnd(
+  prep: Prepared,
+  geo: readonly GlyphGeo[],
+  g1: number,
+  trailBlank: boolean,
+  u: Vec,
+  advances: Advances,
+): number | undefined {
   const loose = prep.run.looseLineBox;
   if (!loose || trailBlank || g1 !== prep.run.glyphs.length) return undefined;
   if (loose.width <= 0) return undefined;
-  return projectRect(loose, u).x1;
+  const end = projectRect(loose, u).x1;
+  const last = geo[g1 - 1];
+  // The loose box ends where the ink does: the ink may overhang the advance.
+  if (!last || last.x1 <= last.x0 || Math.abs(end - last.x1) > INK_EDGE) return end;
+  const text = prep.run.glyphs[g1 - 1]?.text ?? '';
+  // The run's own steps first: its Tc and Tz apply to them.
+  const own: number[] = [];
+  for (let i = 0; i + 1 < geo.length; i++) {
+    const a = geo[i] as GlyphGeo;
+    const b = geo[i + 1] as GlyphGeo;
+    if (prep.run.glyphs[i]?.text !== text || a.blank || b.blank) continue;
+    const step = b.origin - a.origin;
+    if (step > 0 && step <= 2 * prep.size) own.push(step);
+  }
+  const advance = median(own) ?? advances.get(advanceKey(prep, text));
+  if (advance === undefined || advance <= 0) return end;
+  return Math.min(end, last.origin + advance);
 }
 
 function makePiece(
@@ -439,6 +525,7 @@ function makePiece(
   space: number,
   spaces: boolean,
   u: Vec,
+  advances: Advances,
 ): Piece {
   let x0 = Number.POSITIVE_INFINITY;
   let x1 = Number.NEGATIVE_INFINITY;
@@ -485,7 +572,7 @@ function makePiece(
     top,
     baseline: baseline ?? 0,
     start: start ?? x0,
-    right: advanceEnd(prep, g1, trailBlank, u) ?? x1,
+    right: advanceEnd(prep, geo, g1, trailBlank, u, advances) ?? x1,
     size: prep.size,
     space: space * prep.size,
     chars,
@@ -509,6 +596,7 @@ function piecesOf(
   ratio: number,
   spaces: boolean,
   u: Vec,
+  advances: Advances,
 ): Piece[] {
   const n = geo.length;
   if (n === 0) return [];
@@ -528,14 +616,14 @@ function piecesOf(
       const limit = (blankSince ? SPACED_BREAK_SPACES : BREAK_SPACES) * space;
       if (gap > limit || gap < -4 * prep.size) {
         // The blanks after the previous glyph stay with it.
-        out.push(makePiece(prep, geo, start, i, ratio, spaces, u));
+        out.push(makePiece(prep, geo, start, i, ratio, spaces, u, advances));
         start = i;
       }
     }
     last = g;
     blankSince = false;
   }
-  out.push(makePiece(prep, geo, start, n, ratio, spaces, u));
+  out.push(makePiece(prep, geo, start, n, ratio, spaces, u, advances));
   return out;
 }
 
@@ -586,6 +674,51 @@ function lineCount(items: readonly Piece[]): number {
   return count;
 }
 
+/** The median drawn word space of a piece (space glyph origin to the next solid glyph's). */
+function pieceSpace(p: Piece): number | undefined {
+  const steps: number[] = [];
+  let blankAt: number | undefined;
+  let solid = false;
+  for (let i = p.g0; i < p.g1; i++) {
+    const g = p.geo[i] as GlyphGeo;
+    if (g.blank) {
+      if (solid) blankAt ??= g.origin;
+      continue;
+    }
+    if (blankAt !== undefined) steps.push(g.origin - blankAt);
+    blankAt = undefined;
+    solid = true;
+  }
+  return median(steps);
+}
+
+/**
+ * Whether the vertical gap `v` of `region` is a column channel: at least 2 × space wide; or
+ * a straight gutter, at least 2 × the region's natural word space wide (its least stretched
+ * line's; the page's median space counts the stretched spaces of justified lines) with the
+ * text right of it starting at one x (within 0.5 pt) on at least 3 lines and three quarters
+ * of its lines. A river of stretched spaces inside a paragraph is never that straight.
+ */
+function isChannel(region: readonly Piece[], v: Gap, space: number): boolean {
+  if (v.size >= CHANNEL_SPACES * space) return true;
+  const natural = Math.min(
+    ...region.map(pieceSpace).filter((s): s is number => s !== undefined && s > 0),
+  );
+  if (!Number.isFinite(natural) || v.size < CHANNEL_SPACES * natural) return false;
+  const starts: { baseline: number; start: number; size: number }[] = [];
+  for (const p of region) {
+    if ((p.x0 + p.x1) / 2 < v.at) continue;
+    const row = starts.find(
+      (s) => Math.abs(s.baseline - p.baseline) <= BASELINE_TOLERANCE * Math.max(s.size, p.size),
+    );
+    if (!row) starts.push({ baseline: p.baseline, start: p.start, size: p.size });
+    else row.start = Math.min(row.start, p.start);
+  }
+  const edge = median(starts.map((s) => s.start)) ?? 0;
+  const aligned = starts.filter((s) => Math.abs(s.start - edge) <= JUSTIFY_TOLERANCE).length;
+  return aligned >= CHANNEL_LINES && aligned >= GUTTER_SHARE * starts.length;
+}
+
 /** Sets `column`, `leaf` and `rank` of every piece (non-blank, not a drop cap). */
 function readingOrder(items: readonly Piece[]): void {
   let rank = 0;
@@ -595,7 +728,7 @@ function readingOrder(items: readonly Piece[]): void {
     if (region.length > 1) {
       const space = median(region.map((p) => p.space)) ?? 3;
       const v = widestGap(region, (p) => [p.x0, p.x1]);
-      if (v && v.size >= CHANNEL_SPACES * space && lineCount(region) >= CHANNEL_LINES) {
+      if (v && lineCount(region) >= CHANNEL_LINES && isChannel(region, v, space)) {
         const left = region.filter((p) => (p.x0 + p.x1) / 2 < v.at);
         const right = region.filter((p) => (p.x0 + p.x1) / 2 >= v.at);
         // A column of list markers is not a text column.
@@ -798,6 +931,43 @@ function firstWordWidth(row: Row): number {
     }
   }
   return end - row.x0;
+}
+
+/**
+ * The line's word spaces as drawn: from each space glyph's origin to the next solid glyph's
+ * (the space's advance with any Tc, Tw or TJ offset after it), or, on a line without space
+ * glyphs, the ink gaps that read as word spaces (`rowText`'s rule). Median, or undefined
+ * when the line has no word space.
+ */
+function wordSpace(row: Row): number | undefined {
+  const items = [...row.pieces, ...row.blanks].sort((a, b) => a.x0 - b.x0 || a.g0 - b.g0);
+  const steps: number[] = [];
+  const gaps: number[] = [];
+  let blankAt: number | undefined;
+  let prev: GlyphGeo | undefined;
+  let prevPiece: Piece | undefined;
+  for (const piece of items) {
+    for (let i = piece.g0; i < piece.g1; i++) {
+      const g = piece.geo[i] as GlyphGeo;
+      if (g.blank) {
+        if (prev) blankAt ??= g.origin;
+        continue;
+      }
+      if (blankAt !== undefined) steps.push(g.origin - blankAt);
+      else if (prev) {
+        const gap = g.x0 - prev.x1;
+        const word =
+          prevPiece === piece
+            ? !piece.spaces && gap > WORD_GAP * row.size
+            : gap > RUN_WORD_GAP * Math.max(piece.space, prevPiece?.space ?? 0);
+        if (word) gaps.push(gap);
+      }
+      blankAt = undefined;
+      prev = g;
+      prevPiece = piece;
+    }
+  }
+  return median(steps.length > 0 ? steps : gaps);
 }
 
 /** The line's text: glyphs in order, a space where a gap stands for one. */
@@ -1016,6 +1186,22 @@ function shortBreak(row: Row, next: Row, left: number, right: number): boolean {
   );
 }
 
+/**
+ * Whether some of `body`'s lines have their word spaces stretched: wider, by more than
+ * `STRETCH` × size, than the narrowest line's of the paragraph (its natural space, the last
+ * line's as a rule). Ragged lines that end together by chance keep their natural spaces.
+ */
+function stretched(rows: readonly Row[], body: readonly Row[]): boolean {
+  const spaces = new Map(rows.map((r) => [r, wordSpace(r)]));
+  const known = [...spaces.values()].filter((s): s is number => s !== undefined);
+  if (known.length < 2) return false;
+  const natural = Math.min(...known);
+  return body.some((r) => {
+    const s = spaces.get(r);
+    return s !== undefined && s - natural > STRETCH * r.size;
+  });
+}
+
 function alignOf(
   group: Group,
   stats: ColumnStats,
@@ -1049,11 +1235,11 @@ function alignOf(
   const has = (a: ParagraphAlign) => group.candidates.has(a);
   if (has('justify') || group.source === 'tags') {
     if (body.length >= 2) {
-      if (
-        rights.length >= 2 &&
-        range(lefts) < JUSTIFY_TOLERANCE &&
-        range(rights) < JUSTIFY_TOLERANCE
-      ) {
+      // Stretched word spaces vouch for edges a little apart (Tc accumulating over a line).
+      const tolerance = stretched(rows, flowing)
+        ? Math.max(JUSTIFY_TOLERANCE, STRETCHED_EDGE * space)
+        : JUSTIFY_TOLERANCE;
+      if (rights.length >= 2 && range(lefts) < JUSTIFY_TOLERANCE && range(rights) < tolerance) {
         return 'justify';
       }
     } else {
@@ -1340,7 +1526,8 @@ function detectFrame(
   const geos = new Map<Prepared, GlyphGeo[]>();
   for (const p of preps) geos.set(p, glyphGeometry(p.run, u));
   const { ratio, spaces } = spaceRatio(preps, geos);
-  const pieces = preps.flatMap((p) => piecesOf(p, geos.get(p) ?? [], ratio, spaces, u));
+  const advances = measuredAdvances(preps, geos);
+  const pieces = preps.flatMap((p) => piecesOf(p, geos.get(p) ?? [], ratio, spaces, u, advances));
   const solid = () => pieces.filter((p) => p.role !== 'blank');
   findDropCaps(pieces);
 

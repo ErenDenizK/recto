@@ -20,6 +20,8 @@
  *   glyph has zero width, and no two lines are closer than 0.8 × the leading;
  * - untouched text: glyphs of other paragraphs and of kept lines stay within 0.01 pt; reused
  *   lines move by exactly their `dy` (the line-count change × leading);
+ * - justified paragraphs: rewritten lines but the last end at the measure's right edge, no line
+ *   passes it, and the paragraph reads back justified (three lines or more);
  * - reopen: the saved file, opened afresh, has a paragraph with the typed text.
  * An edit the overflow policy lets run over the block below (`overflow`, craft §4.6) is only
  * checked for the layout and the untouched glyphs: its lines interleave with that block's.
@@ -205,9 +207,10 @@ const SUBSTITUTE_DRIFT =
   'verification-failed: substitute glyphs land 0.02 pt off their planned origins';
 const KNOWN: Record<string, string> = {
   'word-export.pdf#1 space-single': GLUED,
+  // Seen once the paragraph read as justified: its last line is rewritten with the natural
+  // gap, which an `f` overhang narrows below PDFium's threshold ("ofthem", "offat").
+  'word-export.pdf#1 delete-across-lines': GLUED,
   'word-export.pdf#1 space-double': GLUED,
-  'word-export.pdf#1 delete-line-end-char': GLUED,
-  'word-export.pdf#1 delete-first-char': GLUED,
   'word-export.pdf#1 delete-last-char': GLUED,
   'word-export.pdf#3 long-insert': GLUED,
   'spacing-ops.pdf#1 turkish': SUBSTITUTE_DRIFT,
@@ -293,6 +296,33 @@ interface Glyph {
 
 function runKey(run: Pick<LocatedRun, 'objectPath' | 'charStart'>): string {
   return `${run.objectPath.join('/')}:${run.charStart}`;
+}
+
+/**
+ * A justified paragraph's rewritten lines, but the last and those ending in a line break, end
+ * at the measure's right edge (unless the layout says a line stayed ragged); the last line is
+ * set at its natural width, short of the edge when there is room.
+ */
+function checkJustified(
+  analysis: ParagraphLayoutAnalysis,
+  layout: ParagraphLayout,
+  out: string[],
+): void {
+  if (analysis.input.align !== 'justify' || layout.ragged) return;
+  const right = analysis.input.measure.right;
+  const last = layout.lines.length - 1;
+  layout.lines.forEach((line, li) => {
+    if (line.status !== 'rewritten') return;
+    const end = line.x + line.width;
+    const full = li < last && !line.forced && !line.overfull && /\s/u.test(line.text);
+    if (full && Math.abs(end - right) > 0.5) {
+      out.push(`justified line ${li} ends at ${r2(end)}, the measure at ${r2(right)}`);
+    }
+    if (li === last && line.justified) out.push(`last line ${li} is justified`);
+    if (!line.overfull && end > right + 0.5) {
+      out.push(`line ${li} ends at ${r2(end)}, past the measure ${r2(right)}`);
+    }
+  });
 }
 
 /** Glyphs the edit must leave in place, and the reused lines' glyphs where they must land. */
@@ -485,6 +515,7 @@ async function runScenario(
     const decision = overlayLayout(analysis, edit);
     decided = decision.kind;
     checkLayout(analysis, decision.layout, typed, out);
+    checkJustified(analysis, decision.layout, out);
     // Removing text never adds lines (unless it joins two words: the longer word may wrap);
     // a character or two adds at most one.
     const grown = decision.layout.lineDelta;
@@ -535,6 +566,17 @@ async function runScenario(
     const page = await pageParagraphText(source);
     if (!overflowing && !page.includes(wanted)) {
       out.push(`read-back lacks ${JSON.stringify(wanted)}; page reads ${JSON.stringify(page)}`);
+    }
+    // A justified paragraph of three lines or more reads back justified (unless the layout
+    // left a line ragged: its gaps would have stretched past 1.5 × the natural gap).
+    if (!overflowing && block.align === 'justify' && !decision.layout.ragged) {
+      const after = (await h.editor.analyzeParagraphs(source, 0)).find(
+        (b) => collapse(b.text) === wanted,
+      );
+      if (after && after.lines.length >= 3 && after.align !== 'justify') {
+        const edges = after.lines.map((l) => `${r2(l.x0)}–${r2(l.x1)}`).join(', ');
+        out.push(`read back as ${after.align}, was justify; line edges ${edges}`);
+      }
     }
     const runsAfter = await h.editor.locateRuns(source, 0);
     if (!overflowing) checkGlyphs(runsAfter, block, result.box, out);
@@ -617,12 +659,7 @@ const DETECTION: Record<string, string> = {
 };
 
 /** Known detection failures: `file` → the bug. */
-const KNOWN_DETECTION: Record<string, string> = {
-  'word-export.pdf':
-    'a paragraph justified by TJ offsets after the spaces (Word) is detected as left-aligned',
-  'spacing-ops.pdf': 'a paragraph justified by Tw per line is detected as left-aligned',
-  'tight-columns.pdf': 'two columns 6 pt apart are merged into one paragraph per row band',
-};
+const KNOWN_DETECTION: Record<string, string> = {};
 
 describe('edit matrix: detection matches the manifest', () => {
   for (const [file, url] of Object.entries(DETECTION)) {
@@ -662,6 +699,33 @@ describe('edit matrix: detection matches the manifest', () => {
       if (broken.length > 0)
         console.warn(`[edit-matrix] detection ${file}\n  ${broken.join('\n  ')}`);
       expect(broken, file).toEqual([]);
+    });
+  }
+});
+
+describe('edit matrix: justified paragraphs rewrap with the natural word gap', () => {
+  // Spaces stretched by TJ offsets (Word), Tw, or TJ in tight columns: the rewrap's word gap
+  // is the font's space as the last line draws it (about ¼ em), not a stretched one.
+  for (const [file, url] of [
+    ['word-export.pdf', wordExportUrl],
+    ['spacing-ops.pdf', spacingUrl],
+    ['tight-columns.pdf', columnsUrl],
+  ] as const) {
+    test(file, async () => {
+      const source = await h.open(await fixture(url));
+      try {
+        const blocks = await h.editor.analyzeParagraphs(source, 0);
+        const justified = blocks.filter((b) => b.align === 'justify' && !b.refusal);
+        expect(justified.length, file).toBeGreaterThan(0);
+        for (const block of justified) {
+          const analysis = await h.editor.analyzeParagraphLayout(block.ref);
+          for (const style of Object.values(analysis.input.styles)) {
+            expect(style.wordGap, `${file}#${block.ref.index}`).toBeLessThan(0.3 * block.size);
+          }
+        }
+      } finally {
+        await h.adapter.close(source);
+      }
     });
   }
 });

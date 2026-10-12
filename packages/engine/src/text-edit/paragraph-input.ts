@@ -16,8 +16,11 @@
  *   adjacent characters inside a word, the distance between their origins minus the first
  *   one's advance; a pair that recurs keeps its most frequent value. This reads `TJ` numbers
  *   and `Td`-positioned glyphs (one object per glyph, as Chromium writes) alike.
- * - **Word gap.** The space glyph's advance when the paragraph draws spaces; otherwise
- *   (pdfTeX) the median gap between words on its lines that are not justified.
+ * - **Word gap.** The space glyph's advance when the paragraph draws spaces and it was
+ *   measured; otherwise the median gap between words on its lines that are not justified,
+ *   counting only the least stretched of them (a median gap within 0.03 × size of the
+ *   narrowest line's), so a justified paragraph's stretched spaces never set it, whatever the
+ *   alignment detected (craft §4.3).
  * - **Substitutes** (craft §4.5): each character the font cannot set goes to the first bundled
  *   face, in the order `substituteCandidates` gives for the font's class (serif, monospaced or
  *   sans, from the flags, the name and the program's PANOSE) and weight, that has it. Each
@@ -95,6 +98,11 @@ const MEASURE_CHUNK = 32;
  * producer took from the font program while the PDF's /W rounds them (Chromium).
  */
 const KERN_NOISE = 0.005;
+/**
+ * A line's word gaps wider than the paragraph's narrowest line's by this fraction of the size
+ * are stretched (detection's `STRETCH`, `blocks.ts`).
+ */
+const STRETCH = 0.03;
 /** Smallest bottom margin assumed when the page gives no hint, points. */
 const MIN_MARGIN = 36;
 /** `FPDF_PAGEOBJ_*` of graphics that can sit below a paragraph. */
@@ -804,10 +812,11 @@ function wordGapOf(
   const drawsSpaces = model.chars.some((c) => c.style === style && c.text === ' ' && !c.generated);
   if (space !== undefined && drawsSpaces) return space;
   const { block } = model;
-  const gaps: number[] = [];
+  const byLine: number[][] = [];
   block.lines.forEach((_line, li) => {
     const natural = block.align !== 'justify' || li === block.lines.length - 1;
     if (!natural) return;
+    const gaps: number[] = [];
     const own = model.chars.filter((c) => c.line === li && c.offset >= 0 && !/\s/u.test(c.text));
     for (let i = 0; i + 1 < own.length; i++) {
       const a = own[i];
@@ -820,8 +829,13 @@ function wordGapOf(
       const gap = along(model.u, a.origin, b.origin) - advance;
       if (gap > 0) gaps.push(gap);
     }
+    if (gaps.length > 0) byLine.push(gaps);
   });
-  return median(gaps) ?? space ?? 0.25 * size;
+  // Only the least stretched lines: a justified line's spaces (Tw, TJ offsets) are wider than
+  // the font's, whatever alignment detection found.
+  const least = Math.min(...byLine.map((gaps) => median(gaps) ?? Number.POSITIVE_INFINITY));
+  const natural = byLine.filter((gaps) => (median(gaps) ?? 0) <= least + STRETCH * size).flat();
+  return median(natural) ?? space ?? 0.25 * size;
 }
 
 /**
