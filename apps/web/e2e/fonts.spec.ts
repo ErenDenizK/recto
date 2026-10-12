@@ -5,7 +5,8 @@
  *   entries recorded from the first paint until the fonts are in and the shell is at rest sum
  *   to 0, in English and in Turkish (whose Latin Extended file `main.tsx` asks for early).
  * - **The face is the one shipped.** The chrome is set in 'Inter Recto' from this origin: the
- *   preloaded Latin file is fetched once (the preload is used, not doubled by the stylesheet),
+ *   preloaded Latin file is fetched once (the preload is used, not doubled by the stylesheet;
+ *   `public/preload-face.js` matches the preload's mode to the engine's, PRC-16),
  *   nothing comes from another origin, and no Fontsource or JetBrains Mono file is requested.
  * - **The fallback is metric-matched.** With the font held back so the first paint is in
  *   'Inter Recto Fallback' (Arial or Liberation Sans scaled by `size-adjust`, with Inter's ascent
@@ -173,6 +174,7 @@ for (const lang of ['en', 'tr'] as const) {
 
 test('the chrome is set in the shipped face, from this origin, preloaded once', async ({
   browser,
+  browserName,
   baseURL,
 }) => {
   const proxy = await countingProxy(baseURL ?? 'http://localhost:4173/');
@@ -187,6 +189,16 @@ test('the chrome is set in the shipped face, from this origin, preloaded once', 
   await settle(page);
   // Fetched once: counted where the requests arrive, the server (see the head of this file).
   expect(proxy.hits('/fonts/inter-recto-latin.woff2'), proxy.log()).toBe(1);
+  // Through the head's preload (PRC-16): in the mode the engine's face fetches in, CORS but in
+  // WebKit, so the face uses it rather than fetching the file again.
+  const preloads = await page.evaluate(() =>
+    [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="font"]')].map(
+      (link) => ({ path: new URL(link.href).pathname, crossOrigin: link.crossOrigin }),
+    ),
+  );
+  expect(preloads).toHaveLength(1);
+  expect(preloads[0]?.path).toMatch(/\/fonts\/inter-recto-latin\.woff2$/);
+  expect(preloads[0]?.crossOrigin).toBe(browserName === 'webkit' ? null : 'anonymous');
   expect(fonts.some((path) => path.endsWith('/fonts/inter-recto-latin-ext.woff2'))).toBe(true);
   expect(fonts.filter((path) => /fontsource|jetbrains|inter-latin-wght/i.test(path))).toEqual([]);
   const face = await page.evaluate(() => ({
