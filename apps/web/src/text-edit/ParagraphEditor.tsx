@@ -16,7 +16,9 @@
  *   never edits itself outside a composition. It lies over the canvas with its text in the
  *   drawn lines (`mirror-dom.ts`), so a point the browser resolves (iOS's keyboard trackpad)
  *   lands on its text; any DOM position in it reads as a text offset, and its DOM selection
- *   is set from the model's after every change (EDN-17).
+ *   is set from the model's after every change (EDN-17). A composition replaces the range its
+ *   first input names; DOM edits that land outside one are put back; copy and cut give the
+ *   model's text, not the mirror's line blocks.
  * - **Per keystroke**: `layoutParagraph` and `decideOverflow` (pure, from the engine chunk)
  *   on the advances asked for once at open (`analyzeParagraphLayout`), then a redraw. No
  *   worker round trip. The draft is one replacement with a style per character: separate
@@ -51,6 +53,7 @@ import type {
 } from '@pdf-editor/engine';
 import { BUNDLED_FACES, faceFamilyName } from '@pdf-editor/engine/fonts';
 import {
+  type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
@@ -389,6 +392,15 @@ function readVar(element: Element | null, name: string, fallback: string): strin
  */
 const PRESS_WINS_MS = 500;
 
+/**
+ * Presses this close in time (ms) and place (CSS px) count as one double or triple click. The
+ * editor counts them itself: `pointerdown`'s `detail` does not carry the click count in
+ * Chromium (`e2e/paragraph-mirror.spec.ts`), and the mouse events that do are cancelled with
+ * the press.
+ */
+const MULTI_CLICK_MS = 500;
+const MULTI_CLICK_PX = 4;
+
 /** Sets the DOM selection in `mirror` to the model's, unless it is there already. */
 function selectInMirror(mirror: HTMLElement, state: ParagraphState): void {
   const selection = window.getSelection();
@@ -463,12 +475,24 @@ export function ParagraphEditor({
   const headerRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<ParagraphState | null>(null);
   const valueRef = useRef<Loaded | null>(null);
-  const composingRef = useRef<{ base: ParagraphState; range: TextRange } | null>(null);
+  /**
+   * The composition under way: the model before it, the range it replaces and whether the
+   * browser has named that range yet (its first `insertCompositionText`).
+   */
+  const composingRef = useRef<{
+    base: ParagraphState;
+    range: TextRange;
+    named: boolean;
+  } | null>(null);
+  /** Puts the mirror's DOM and selection back on the model's last synced lines. */
+  const resyncRef = useRef<(() => void) | null>(null);
   /** Set once the editor commits or discards, so unmounting does not commit again. */
   const finishedRef = useRef(false);
   const draggingRef = useRef(false);
   /** Until when a press on the editor keeps the caret it placed (`PRESS_WINS_MS`). */
   const pressedUntilRef = useRef(0);
+  /** The last press on the editor: when, where and how many in a row (`MULTI_CLICK_MS`). */
+  const lastPressRef = useRef({ time: -Infinity, x: 0, y: 0, count: 0 });
   const mountedRef = useRef(true);
   const returnFocusRef = useRef<Element | null>(null);
   const describedBy = useId();
@@ -817,9 +841,13 @@ export function ParagraphEditor({
     const mirror = mirrorRef.current;
     if (!mirror || !state || composition) return;
     const toBox = compose(cssOfText, translate(-box.left, -box.top));
-    syncMirrorLines(mirror, mirrorLines(state.text, laid?.lines ?? [], toBox, box), mirrorPx);
-    if (document.activeElement !== mirror) return;
-    selectInMirror(mirror, state);
+    const lines = mirrorLines(state.text, laid?.lines ?? [], toBox, box);
+    const sync = () => {
+      syncMirrorLines(mirror, lines, mirrorPx);
+      if (document.activeElement === mirror) selectInMirror(mirror, state);
+    };
+    resyncRef.current = sync;
+    sync();
   }, [state, laid, composition, focused, box, cssOfText, mirrorPx]);
 
   // Focus the mirror when the editor is ready; remember where the focus was.
@@ -883,7 +911,18 @@ export function ParagraphEditor({
         event.preventDefault();
         return;
       }
-      if (event.isComposing || event.inputType === 'insertCompositionText') return;
+      if (event.inputType === 'insertCompositionText') {
+        // The first input of a composition names the range it replaces: a keyboard that
+        // composes whole words (Android's) takes the word before the caret, not the caret.
+        const composing = composingRef.current;
+        if (composing && !composing.named) {
+          composing.named = true;
+          const range = targetRangeOf(mirror, event);
+          if (range) composing.range = range;
+        }
+        return;
+      }
+      if (event.isComposing) return;
       event.preventDefault();
       if (busy) return;
       // The range the input acts on as the browser names it (iOS's autocorrect replaces a word
@@ -944,8 +983,20 @@ export function ParagraphEditor({
       // may still have moved its idea of the caret; put it back on the model's.
       if (stateRef.current === current) selectInMirror(mirror, current);
     };
+    // The DOM edited outside a composition after all (WebKit deletes and inserts a committed
+    // composition's text after `compositionend`, which the model has taken already): put the
+    // model's lines and selection back, or the next input's range would be read off it.
+    const onInput = () => {
+      const model = stateRef.current;
+      if (!model || composingRef.current || (mirror.textContent ?? '') === model.text) return;
+      resyncRef.current?.();
+    };
     mirror.addEventListener('beforeinput', onBeforeInput);
-    return () => mirror.removeEventListener('beforeinput', onBeforeInput);
+    mirror.addEventListener('input', onInput);
+    return () => {
+      mirror.removeEventListener('beforeinput', onBeforeInput);
+      mirror.removeEventListener('input', onInput);
+    };
   }, [busy, update]);
 
   // ---- Leaving ------------------------------------------------------------------------
@@ -1166,7 +1217,11 @@ export function ParagraphEditor({
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     // Page shortcuts never fire while typing.
     event.stopPropagation();
-    if (event.nativeEvent.isComposing) return;
+    // A key the input method takes: during a composition, and in WebKit the key that ends one,
+    // sent after `compositionend` with the IME's key code 229 (an Esc that cancels the
+    // candidates must not leave the editor). `keyCode` is the only field that says so.
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
     const model = stateRef.current;
     const lines = layoutRef.current?.lines;
     const mod = event.ctrlKey || event.metaKey;
@@ -1217,7 +1272,7 @@ export function ParagraphEditor({
     const model = stateRef.current;
     if (!model) return;
     const range = selectionOf(model);
-    composingRef.current = { base: model, range };
+    composingRef.current = { base: model, range, named: false };
     setComposition({ start: range.start, end: range.start });
   };
   const compose_ = (data: string, done: boolean) => {
@@ -1228,9 +1283,24 @@ export function ParagraphEditor({
       composingRef.current = null;
       setComposition(null);
     } else {
-      setComposition({ start: composing.range.start, end: composing.range.start + data.length });
+      const length = data.normalize('NFC').length;
+      setComposition({ start: composing.range.start, end: composing.range.start + length });
     }
     update(next);
+  };
+
+  // ---- Clipboard ----------------------------------------------------------------------
+  // The mirror holds a block per drawn line, which the browser would copy as line breaks:
+  // the clipboard takes the model's selected text instead, and a cut removes it.
+
+  const onClipboard = (event: ReactClipboardEvent<HTMLDivElement>, cut: boolean) => {
+    const model = stateRef.current;
+    if (!model || composingRef.current) return;
+    const range = selectionOf(model);
+    if (range.start === range.end) return;
+    event.preventDefault();
+    event.clipboardData.setData('text/plain', model.text.slice(range.start, range.end));
+    if (cut && !busy) update(replaceRange(model, range, ''));
   };
 
   // ---- Pointer on the paragraph -------------------------------------------------------
@@ -1250,13 +1320,21 @@ export function ParagraphEditor({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    pressedUntilRef.current = performance.now() + PRESS_WINS_MS;
+    const now = performance.now();
+    pressedUntilRef.current = now + PRESS_WINS_MS;
+    const last = lastPressRef.current;
+    const again =
+      now - last.time <= MULTI_CLICK_MS &&
+      Math.abs(event.clientX - last.x) <= MULTI_CLICK_PX &&
+      Math.abs(event.clientY - last.y) <= MULTI_CLICK_PX;
+    const count = Math.max(event.detail, again ? last.count + 1 : 1);
+    lastPressRef.current = { time: now, x: event.clientX, y: event.clientY, count };
     mirrorRef.current?.focus({ preventScroll: true });
     const model = stateRef.current;
     const offset = pointToOffset(event.clientX, event.clientY);
     if (!model || offset === undefined) return;
-    if (event.detail >= 3) update(selectAll(model));
-    else if (event.detail === 2) {
+    if (count >= 3) update(selectAll(model));
+    else if (count === 2) {
       const range = wordRange(model.text, offset);
       update({ ...moveTo(model, range.start, false), focus: range.end });
     } else {
@@ -1516,6 +1594,8 @@ export function ParagraphEditor({
         onPointerUp={onPressUp}
         onPointerCancel={onPressUp}
         onKeyDown={onKeyDown}
+        onCopy={(event) => onClipboard(event, false)}
+        onCut={(event) => onClipboard(event, true)}
         onFocus={() => setFocused(true)}
         onBlur={(event) => {
           setFocused(false);

@@ -95,6 +95,15 @@ describe('text operations', () => {
     expect(deleteBackward(state)).toBe(state);
   });
 
+  it('stores typed and pasted text composed (NFC): a decomposed ‘ğ’ is one letter the fonts have', () => {
+    const setup = paragraph(['a b']);
+    // "dağ" as macOS file names and some PDFs' text hold it: g + combining breve (U+0306).
+    const state = insertText(initialState(setup.input, 1), 'da\u0067\u0306');
+    expect(state.text).toBe('adağ b');
+    expect(state.styles).toHaveLength(state.text.length);
+    expect(state.focus).toBe(4);
+  });
+
   it('keeps surrogate pairs whole', () => {
     const setup = paragraph(['a b']);
     let state = insertText(initialState(setup.input, 1), '😀');

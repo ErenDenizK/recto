@@ -168,6 +168,8 @@ export default defineConfig({
         '**/theme.spec.ts',
         // Key map v2 with a keyboard on the tablet (spec D2-7).
         '**/keyboard-text.spec.ts',
+        // The paragraph editor's mirror under a finger (TXT-5).
+        '**/paragraph-mirror.spec.ts',
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
     },

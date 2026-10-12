@@ -122,14 +122,18 @@ export function styleAt(state: ParagraphState, offset: number, fallback = ''): s
 
 /**
  * Replaces `range` by `insert` (typed: the style before the range, else the first replaced
- * character's, else the emptied paragraph's `typing` style), caret after it.
+ * character's, else the emptied paragraph's `typing` style), caret after it. The inserted text
+ * is stored composed (NFC): a base letter and a combining mark (g + U+0306, as macOS and some
+ * PDFs hold "ğ") become the one letter the fonts and the bundled faces map; a lone combining
+ * mark has no advance of its own and would be refused as unsupported.
  */
 export function replaceRange(
   state: ParagraphState,
   range: TextRange,
-  insert: string,
+  raw: string,
   style?: string,
 ): ParagraphState {
+  const insert = raw.normalize('NFC');
   const start = clampOffset(state.text, range.start);
   const end = Math.max(start, clampOffset(state.text, range.end));
   const typed = style ?? styleAt(state, start, state.typing ?? '');

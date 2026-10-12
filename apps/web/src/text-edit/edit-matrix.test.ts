@@ -353,3 +353,118 @@ for (const target of TARGETS) {
     }
   });
 }
+
+// ---------------------------------------------------------------------------
+// The same paragraph edited three times, saved and reopened between
+// ---------------------------------------------------------------------------
+
+/**
+ * Drives `keys` on `block` through the model and commits them as the editor does; returns the
+ * typed text, or undefined with what broke in `out`.
+ */
+async function commitKeys(
+  source: SourceId,
+  block: ParagraphBlock,
+  keys: (block: ParagraphBlock) => Key[],
+  out: string[],
+): Promise<string | undefined> {
+  const analysis = await editor.analyzeParagraphLayout(block.ref);
+  if (analysis.refusal) {
+    out.push(`layout refused: ${analysis.refusal}`);
+    return undefined;
+  }
+  const setup: ParagraphSetup = {
+    block,
+    input: analysis.input,
+    paragraphGap: analysis.paragraphGap,
+    gapBelow: analysis.gapBelow,
+    pageRoom: analysis.pageRoom,
+  };
+  let state = initialState(setup.input, 0);
+  for (const key of keys(block)) state = press(state, key);
+  const laid = checkCarets(setup, state, 'typed', out);
+  const edit = paragraphEdit(setup.input.text, state, originalStylesOf(setup.input));
+  if (!edit) {
+    out.push('no change');
+    return undefined;
+  }
+  if (laid.decision.kind === 'overflow') {
+    out.push('overflow');
+    return undefined;
+  }
+  try {
+    const result = await editor.applyParagraphEdit(
+      source,
+      0,
+      {
+        ref: block.ref,
+        text: state.text,
+        caretSpan: { start: edit.start, end: edit.end },
+        ...(edit.style === undefined ? {} : { style: edit.style }),
+        ...(edit.spans === undefined ? {} : { spans: edit.spans }),
+        layout: laid.layout,
+      },
+      { commit: true },
+    );
+    checkGlyphs(await editor.locateRuns(source, 0), result.box, out);
+  } catch (error) {
+    out.push(`write refused: ${error instanceof Error ? error.message : String(error)}`);
+    return undefined;
+  }
+  return state.text;
+}
+
+/** Three sessions on one paragraph: add at the end, insert after the first word, retype it. */
+const ROUNDS: readonly ((block: ParagraphBlock) => Key[])[] = [
+  (b) => [{ kind: 'caret', at: b.text.length }, ...typing(' and more')],
+  (b) => [{ kind: 'caret', at: firstWordEnd(b.text) }, ...typing(' again')],
+  (b) => [
+    { kind: 'caret', at: firstWordEnd(b.text) },
+    { kind: 'backspace', unit: 'word' },
+    ...typing('Third'),
+  ],
+];
+
+describe('paragraph model matrix: three edits with a save and reopen between', () => {
+  for (const target of TARGETS) {
+    const index = target.paragraphs[0] ?? 0;
+    test(`${target.file}#${index}`, async () => {
+      const out: string[] = [];
+      let source = await open(target.url);
+      let expected: string | undefined;
+      try {
+        for (const [round, keys] of ROUNDS.entries()) {
+          const blocks = await editor.analyzeParagraphs(source, 0);
+          const wanted = expected === undefined ? undefined : collapse(expected);
+          const block =
+            wanted === undefined
+              ? blocks.find((b) => b.ref.index === index)
+              : blocks.find((b) => collapse(b.text) === wanted);
+          if (!block || block.refusal) {
+            out.push(
+              `round ${round + 1}: paragraph ${block?.refusal ?? 'not found'}; page reads ${JSON.stringify(blocks.map((b) => collapse(b.text)))}`,
+            );
+            break;
+          }
+          const typed = await commitKeys(source, block, keys, out);
+          if (typed === undefined) {
+            out.unshift(`round ${round + 1}:`);
+            break;
+          }
+          expected = typed;
+          // Saved and opened afresh, as the next session would.
+          const bytes = await adapter.save(source);
+          await adapter.close(source);
+          source = sourceId(`edit-matrix-${++opened}`);
+          await adapter.open(source, bytes);
+        }
+      } finally {
+        await adapter.close(source);
+      }
+      if (out.length > 0) {
+        console.warn(`[model-matrix] ${target.file} three rounds\n  ${out.join('\n  ')}`);
+      }
+      expect(out).toEqual([]);
+    });
+  }
+});
