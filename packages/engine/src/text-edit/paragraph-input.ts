@@ -16,11 +16,15 @@
  *   adjacent characters inside a word, the distance between their origins minus the first
  *   one's advance; a pair that recurs keeps its most frequent value. This reads `TJ` numbers
  *   and `Td`-positioned glyphs (one object per glyph, as Chromium writes) alike.
- * - **Word gap.** The space glyph's advance when the paragraph draws spaces and it was
- *   measured; otherwise the median gap between words on its lines that are not justified,
- *   counting only the least stretched of them (a median gap within 0.03 × size of the
- *   narrowest line's), so a justified paragraph's stretched spaces never set it, whatever the
- *   alignment detected (craft §4.3).
+ * - **Word gap.** The natural gap: the median gap between words on the paragraph's lines
+ *   that are not justified, counting only the least stretched of them (a median gap within
+ *   0.03 × size of the narrowest line's), so a justified paragraph's stretched spaces never
+ *   set it, whatever the alignment detected (craft §4.3). When the paragraph draws spaces and
+ *   the space was measured in the style's object, that advance, unless it is wider than the
+ *   natural gap by more than 0.03 × size (the object's Tw stretches it: a justified line's).
+ *   Without a natural line with word gaps (a justified paragraph ending in one word), the
+ *   natural gap is the space set in a new object plus the Tc a letter shows, or the least
+ *   stretched line's gap if narrower.
  * - **Substitutes** (craft §4.5): each character the font cannot set goes to the first bundled
  *   face, in the order `substituteCandidates` gives for the font's class (serif, monospaced or
  *   sans, from the flags, the name and the program's PANOSE) and weight, that has it. Each
@@ -810,12 +814,10 @@ function wordGapOf(
 ): number {
   const space = chars.get(' ')?.spaced;
   const drawsSpaces = model.chars.some((c) => c.style === style && c.text === ' ' && !c.generated);
-  if (space !== undefined && drawsSpaces) return space;
   const { block } = model;
-  const byLine: number[][] = [];
+  const byLine: { gaps: number[]; natural: boolean }[] = [];
   block.lines.forEach((_line, li) => {
     const natural = block.align !== 'justify' || li === block.lines.length - 1;
-    if (!natural) return;
     const gaps: number[] = [];
     const own = model.chars.filter((c) => c.line === li && c.offset >= 0 && !/\s/u.test(c.text));
     for (let i = 0; i + 1 < own.length; i++) {
@@ -829,13 +831,33 @@ function wordGapOf(
       const gap = along(model.u, a.origin, b.origin) - advance;
       if (gap > 0) gaps.push(gap);
     }
-    if (gaps.length > 0) byLine.push(gaps);
+    if (gaps.length > 0) byLine.push({ gaps, natural });
   });
   // Only the least stretched lines: a justified line's spaces (Tw, TJ offsets) are wider than
   // the font's, whatever alignment detection found.
-  const least = Math.min(...byLine.map((gaps) => median(gaps) ?? Number.POSITIVE_INFINITY));
-  const natural = byLine.filter((gaps) => (median(gaps) ?? 0) <= least + STRETCH * size).flat();
-  return median(natural) ?? space ?? 0.25 * size;
+  const leastStretched = (lines: readonly { gaps: number[] }[]) => {
+    const least = Math.min(...lines.map((l) => median(l.gaps) ?? Number.POSITIVE_INFINITY));
+    return median(
+      lines.filter((l) => (median(l.gaps) ?? 0) <= least + STRETCH * size).flatMap((l) => l.gaps),
+    );
+  };
+  const natural = leastStretched(byLine.filter((l) => l.natural));
+  if (space === undefined || !drawsSpaces) return natural ?? space ?? 0.25 * size;
+  // The space measured in the style's object carries that object's Tw (a justified line's).
+  // Without a line to read the natural gap on, the space set in a new object (no Tw) plus
+  // what the object's Tc adds to a letter, or the least stretched line's gap if narrower.
+  let estimate = natural;
+  if (estimate === undefined) {
+    const plain = chars.get(' ')?.plain;
+    const tc = median(
+      [...chars].filter(([ch]) => /\p{L}/u.test(ch)).map(([, m]) => m.spaced - m.plain),
+    );
+    const twFree = plain === undefined ? undefined : plain + (tc ?? 0);
+    const least = leastStretched(byLine);
+    const candidates = [twFree, least].filter((v): v is number => v !== undefined && v > 0);
+    estimate = candidates.length > 0 ? Math.min(...candidates) : undefined;
+  }
+  return estimate !== undefined && estimate < space - STRETCH * size ? estimate : space;
 }
 
 /**

@@ -199,7 +199,13 @@ const SCENARIOS: Record<string, (block: ParagraphBlock) => Replacement | undefin
  * Known failures: `file#paragraph scenario` → the bug, as found by this matrix (each one was
  * seen failing before it was listed).
  */
-const KNOWN: Record<string, string> = {};
+const GLUED_JUSTIFIED =
+  'words glued on read-back: a rewritten line of a TJ-justified style is written one object per word with no space glyph, and after an `f` (whose ink overhangs its advance) the gap falls under PDFium\'s space threshold ("ofbuilding")';
+const KNOWN: Record<string, string> = {
+  // Seen once word-export.pdf's first paragraph read as justified (Word-style TJ offsets).
+  'word-export.pdf#1 space-single': GLUED_JUSTIFIED,
+  'word-export.pdf#1 space-double': GLUED_JUSTIFIED,
+};
 
 // ---------------------------------------------------------------------------
 // Checks
