@@ -325,7 +325,7 @@ export function canShareFiles(nav: Navigator = navigator): boolean {
 }
 
 /** Saves `file` through a download link (every browser). */
-function download(file: File): void {
+export function downloadFile(file: File): void {
   const url = URL.createObjectURL(file);
   const link = document.createElement('a');
   link.href = url;
@@ -389,5 +389,5 @@ export async function shareOrDownload(how: 'share' | 'download' = 'share'): Prom
       // Sharing refused (the tap's activation spent while the copy was prepared): download.
     }
   }
-  download(file);
+  downloadFile(file);
 }

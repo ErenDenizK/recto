@@ -32,8 +32,9 @@ import { PageCanvas } from '../../../pages/PageCanvas';
 import { displaySize } from '../../../pages/page-geometry';
 import chipStyles from '../../../stage/PinchDetentChip.module.css';
 import { contentFrame, ResizedContent } from '../../../stage/ResizedContent';
-import { pagesPhrase, useWorkspaceStore } from '../../../state/workspace-store';
+import { useWorkspaceStore } from '../../../state/workspace-store';
 import { Button } from '../../../ui/Button';
+import { CheckBadge } from '../../../ui/CheckBadge';
 import { Icon } from '../../../ui/Icon';
 import { Surface } from '../../../ui/Surface';
 import { documentLabels } from '../../../viewer/navigation';
@@ -42,6 +43,7 @@ import { useSafeAreaInsets } from '../../frame/frame-insets';
 import { type OverviewPhase, setOverviewColumns, useCompactStore } from '../compact-store';
 import { type OverviewColumns, overviewPinch } from '../overview-gesture';
 import styles from './CompactOverview.module.css';
+import { OverviewBar } from './OverviewBar';
 import { affineCss, fitOnto, IDENTITY, project } from './morph-geometry';
 import {
   closeOverview,
@@ -62,7 +64,14 @@ import {
   slotBox,
   tileBox,
 } from './overview-layout';
-import { clearSelection, tileTap, togglePage, useOverviewSelection } from './selection';
+import {
+  clearSelection,
+  setSelecting,
+  tileTap,
+  togglePage,
+  useOverviewSelection,
+} from './selection';
+import { takeSwallowedClick, watchTilePresses } from './tile-press';
 
 /** The bar's height and its least distance from the bottom edge (the capsule's, Q-9). */
 const BAR_HEIGHT = 56;
@@ -135,6 +144,7 @@ function OverviewPlace({
   const columns = useCompactStore((s) => s.overviewColumns);
   const anchor = useCompactStore((s) => s.overviewAnchor);
   const selected = useOverviewSelection((s) => s.selected);
+  const selecting = useOverviewSelection((s) => s.selecting);
   const insets = useSafeAreaInsets();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const planeRef = useRef<HTMLDivElement>(null);
@@ -162,9 +172,10 @@ function OverviewPlace({
     scrollToCentre(layout, anchor, takeEntryY() ?? size.height / 2, size.height),
   );
 
-  const latest = useRef({ layout, sizes, count });
+  const ids = doc.pages.map((page) => page.id);
+  const latest = useRef({ layout, sizes, count, ids });
   useLayoutEffect(() => {
-    latest.current = { layout, sizes, count };
+    latest.current = { layout, sizes, count, ids };
   });
 
   // The first position, before the first paint.
@@ -228,13 +239,14 @@ function OverviewPlace({
     };
   }, []);
 
-  // Esc goes back to the page that was read (as Done).
+  // Esc ends a selection, else goes back to the page that was read (as Done).
   useEffect(() => {
     if (phase !== 'open') return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return;
       event.preventDefault();
-      closeOverview();
+      if (useOverviewSelection.getState().selecting) setSelecting(false);
+      else closeOverview();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -246,6 +258,23 @@ function OverviewPlace({
   // The tiles the fingers landed on stay mounted until they lift, whatever the steps scroll
   // away: a touch whose target leaves the document stops reaching the grid's listeners.
   const [held, setHeld] = useState<readonly number[]>([]);
+  const markerRef = useRef<HTMLDivElement>(null);
+
+  // One finger on a tile: a tap, a long press (select) or a long press and move (drag).
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const plane = planeRef.current;
+    const marker = markerRef.current;
+    if (!scroller || !plane || !marker) return;
+    return watchTilePresses({
+      scroller,
+      plane,
+      marker,
+      layout: () => latest.current.layout,
+      pageIds: () => latest.current.ids,
+      hold: (indexes) => setHeld(indexes),
+    });
+  }, []);
   useLayoutEffect(() => {
     const step = pending.current;
     const el = scrollerRef.current;
@@ -389,6 +418,7 @@ function OverviewPlace({
         label={labels[index] ?? String(index + 1)}
         current={index === anchor}
         selected={selected.has(page.id)}
+        selecting={selecting}
         layout={layout}
         size={pageSize}
         settled={phase === 'open'}
@@ -420,6 +450,7 @@ function OverviewPlace({
             {tiles}
           </div>
           {anchorTile}
+          <div ref={markerRef} className={styles.dropBar} aria-hidden="true" hidden />
         </div>
       </div>
       <Surface
@@ -429,12 +460,7 @@ function OverviewPlace({
         className={styles.bar}
         data-testid="compact-overview-bar"
       >
-        <span className={styles.count}>{pagesPhrase(count)}</span>
-        {/* MOB-3's slot: the selection's actions (Rotate · Delete · ⋯) and, at rest, Add and
-            Share go here, before Done. */}
-        <Button variant="quiet" onClick={() => closeOverview()}>
-          {m.compact_done()}
-        </Button>
+        <OverviewBar doc={doc} anchor={anchor} />
       </Surface>
     </>
   );
@@ -448,6 +474,7 @@ function Tile({
   label,
   current,
   selected,
+  selecting,
   layout,
   size,
   settled,
@@ -459,6 +486,7 @@ function Tile({
   readonly label: string;
   readonly current: boolean;
   readonly selected: boolean;
+  readonly selecting: boolean;
   readonly layout: GridLayout;
   readonly size: { readonly width: number; readonly height: number };
   readonly settled: boolean;
@@ -472,8 +500,18 @@ function Tile({
       ? m.cell_label_with_label({ position: index + 1, label, count })
       : m.cell_label({ position: index + 1, count });
   const onClick = () => {
-    if (tileTap() === 'toggle') togglePage(page.id);
-    else closeOverview(index);
+    // A long press's click is the long press's (it selected the page).
+    if (takeSwallowedClick()) return;
+    if (tileTap() === 'toggle') {
+      const turnedOn = !useOverviewSelection.getState().selected.has(page.id);
+      togglePage(page.id);
+      announce(
+        turnedOn
+          ? m.compact_overview_page_selected({ number: index + 1 })
+          : m.compact_overview_page_unselected({ number: index + 1 }),
+        { key: 'overview-selection' },
+      );
+    } else closeOverview(index);
   };
   return (
     <div
@@ -490,6 +528,7 @@ function Tile({
         aria-current={current ? 'page' : undefined}
         data-tile-index={index}
         data-tile-page-id={page.id}
+        aria-pressed={selecting ? selected : undefined}
         data-selected={selected || undefined}
         onClick={onClick}
       >
@@ -515,6 +554,7 @@ function Tile({
               delayMs={settled ? 0 : MORPH_RENDER_DELAY_MS}
             />
           </ResizedContent>
+          {selecting ? <CheckBadge checked={selected} className={styles.badge} /> : null}
         </span>
       </Button>
       <span className={styles.label} aria-hidden="true" data-current={current || undefined}>

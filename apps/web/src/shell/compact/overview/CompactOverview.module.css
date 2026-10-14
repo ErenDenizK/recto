@@ -121,7 +121,7 @@
   max-width: calc(100vw - 24px);
   height: 56px;
   margin-inline: auto;
-  padding: 0 6px 0 20px;
+  padding: 0 6px 0 16px;
   border-radius: var(--radius-capsule);
   color: var(--text-primary);
 }
@@ -137,4 +137,53 @@
   font-variant-numeric: tabular-nums;
   line-height: var(--type-body-lh);
   white-space: nowrap;
+}
+
+/* The bar's content (`OverviewBar.tsx`): at rest or selecting, one row of 44 px controls. */
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.barRow > .count {
+  margin-inline-end: var(--space-1);
+}
+
+/* Rotate, Delete, ⋯: icon-only, 44 px circles (Q-9). */
+.iconAction {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+}
+
+/* Selecting (MOB-3, DSN-10): the check badge in the page's corner. */
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+/* A long press and move lifts the tile above the others; only its transform follows the finger. */
+.tile[data-lifted] {
+  z-index: 2;
+}
+
+/* The gap a drag drops into: an accent bar between two tiles. */
+.dropBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+/* No callout or text selection under a long press (iOS, Android). */
+.tileButton {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
