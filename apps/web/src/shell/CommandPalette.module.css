@@ -17,6 +17,8 @@
 .backdrop[data-ending-style] {
   transition-duration: var(--duration-fast);
   transition-timing-function: var(--ease-exit);
+  /* Leaving, it takes no press: the page under it is live at once (A-13; MOB-4, B7). */
+  pointer-events: none;
 }
 
 /* Glass with a solid fallback; the scrim underneath keeps contrast predictable. Centred by its

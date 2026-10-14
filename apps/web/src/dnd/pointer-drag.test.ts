@@ -91,6 +91,19 @@ describe('pointerDrag', () => {
     expect(t.onHoldRelease).not.toHaveBeenCalled();
   });
 
+  it('drops a quick flick at its release point, in the same event, with no frame between (B7)', () => {
+    const t = setup();
+    t.s.down(1, 50, 50).wait(GESTURE.longPressMs).move(1, 50, 90).move(1, 50, 140);
+    // Released at once, further on than the last move: the drop is resolved from the release
+    // itself (the grid's `update(e)` in onDrop), never from a frame-late move.
+    t.s.up(1, 60, 210);
+    expect(t.onDrop).toHaveBeenCalledOnce();
+    expect(t.onDrop.mock.calls[0]?.[0]).toMatchObject({ clientX: 60, clientY: 210 });
+    expect(t.onMove.mock.invocationCallOrder.at(-1)).toBeLessThan(
+      t.onDrop.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
   it('opens the menu for a held touch released without moving (06.3)', () => {
     const t = setup();
     t.s.down(1, 50, 50).wait(GESTURE.longPressMs).up(1);
