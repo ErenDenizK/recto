@@ -36,8 +36,8 @@ const COMPACT_DRAWER_LIST_SPEC = '**/compact-drawer-list.spec.ts';
 const COMPACT_EDIT_TEXT_SPEC = '**/compact-edit-text.spec.ts';
 /** Filling forms on phones (MOB-1). */
 const COMPACT_FORMS_SPEC = '**/compact-forms.spec.ts';
-/** The page overview (MOB-2): pinch to see every page, Pages, the column steps. */
-const COMPACT_OVERVIEW_SPEC = '**/compact-overview.spec.ts';
+/** The page overview (MOB-2) and the phone's page acts in it (MOB-3). */
+const COMPACT_OVERVIEW_SPEC = '**/compact-{overview,pages}.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
   COMPACT_SPEC,

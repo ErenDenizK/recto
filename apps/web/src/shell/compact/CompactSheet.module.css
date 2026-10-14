@@ -28,6 +28,12 @@
   opacity: 0;
 }
 
+/* A closing scrim is no longer there for the fingers: the next press (Pages, a tile) reaches
+   what it fades over (as `ui/sheet`'s scrim, Lane D's B7). */
+.backdrop[data-ending-style] {
+  pointer-events: none;
+}
+
 .backdrop[data-swiping] {
   transition-duration: 0ms;
 }

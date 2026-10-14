@@ -332,7 +332,12 @@ const defaultSignatureSteps: ExportSignatureSteps = {
   sign: (bytes, request, options) => signExportBytes(bytes, request, options),
 };
 
-const defaultDependencies = (): ExportDependencies => ({
+/**
+ * What `prepareExport` uses by default. Exported so a caller can export a workspace of its
+ * own (the phone overview's Extract and Split, MOB-3: the chosen pages in a document that
+ * never enters the store) with every other step as the app's.
+ */
+export const defaultDependencies = (): ExportDependencies => ({
   engine: getEngineService(),
   assembler: getAssembler,
   workspace: () => useWorkspaceStore.getState().workspace,
