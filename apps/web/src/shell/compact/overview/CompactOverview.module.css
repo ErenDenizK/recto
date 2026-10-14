@@ -176,7 +176,7 @@
   left: 0;
   z-index: 1;
   width: 3px;
-  border-radius: 2px;
+  border-radius: var(--radius-capsule);
   background: var(--accent);
   pointer-events: none;
 }
