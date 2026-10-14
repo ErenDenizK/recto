@@ -324,7 +324,7 @@ test.describe('the compact edition', () => {
     );
   }
 
-  test('the reader, the ⋯ menu and the Pages sheet', async ({ page }) => {
+  test('the reader, the ⋯ menu and the page overview', async ({ page }) => {
     await openCompact(page, 'outline-named-dests.pdf');
     let walk = await expectGlassClean(page, 'compact reader');
     expect(names(walk).some((n) => n.includes('topBar'))).toBe(true);
@@ -341,8 +341,10 @@ test.describe('the compact edition', () => {
     await expect(page.getByTestId('compact-menu')).toHaveCount(0);
 
     await page.getByTestId('compact-capsule').getByRole('button', { name: 'Pages' }).click();
-    await expect(page.getByTestId('compact-pages-sheet')).toBeVisible();
-    await expectGlassClean(page, 'compact Pages sheet');
+    await expect(page.getByTestId('compact-overview')).toHaveAttribute('data-phase', 'open');
+    walk = await expectGlassClean(page, 'compact page overview');
+    // The overview's bar alone: the reader's chrome is away (MOB-2).
+    expect(walk.visible).toBe(1);
   });
 
   test('a note', async ({ page }) => {

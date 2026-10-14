@@ -5,7 +5,7 @@
  *
  * Covers: the Library and its reading-only line, opening a file through the file chooser,
  * scrolling with the chrome hiding and showing, a tap, a double tap and a pinch (CDP touch
- * events), Find with hits and ‹ ›, a jump from the Pages sheet, Contents, Go to page, notes,
+ * events), Find with hits and ‹ ›, a jump from the page overview (MOB-2), Contents, Go to page, notes,
  * Document info, Download a copy, an encrypted file, Turkish; that a settled sheet is solid
  * with the chrome away, the first-run Recents placeholder and a disabled Go that still reads
  * (XD-3); that no editing control but Edit is reachable while reading; that the full shell's chunk is never
@@ -486,21 +486,24 @@ test.describe('the compact edition', () => {
     await expect(field).toHaveCount(0);
   });
 
-  test('the Pages sheet and Go to page jump', async ({ page }) => {
+  test('the page overview and Go to page jump', async ({ page }) => {
     await openLibrary(page);
     await openPdf(page, 'simple-text.pdf');
+    // Pages opens the page overview (MOB-2), a place over the reader with the chrome away.
     await capsule(page).getByRole('button', { name: 'Pages' }).click();
-    const sheet = page.getByTestId('compact-pages-sheet');
-    await expect(sheet).toBeVisible();
-    await expect(sheet.getByRole('button', { name: 'Page 1 of 3' })).toHaveAttribute(
+    const overview = page.getByTestId('compact-overview');
+    await expect(overview).toHaveAttribute('data-phase', 'open');
+    const grid = page.getByTestId('compact-overview-plane');
+    await expect(grid.getByRole('button', { name: 'Page 1 of 3' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    await expect(sheet.locator('canvas').first()).toHaveAttribute('data-state', 'rendered');
-    await expectSettledSolid(page, sheet);
-    await shot(page, 'compact-pages-sheet');
-    await sheet.getByRole('button', { name: 'Page 3 of 3' }).click();
-    await expect(sheet).toHaveCount(0);
+    await expect(grid.locator('canvas').first()).toHaveAttribute('data-state', 'rendered');
+    await expectHidden(topBar(page), true);
+    await expectHidden(capsule(page), true);
+    await shot(page, 'compact-pages-overview');
+    await grid.getByRole('button', { name: 'Page 3 of 3' }).click();
+    await expect(overview).toHaveAttribute('data-phase', 'closed');
     await expect(pageNumber(page)).toHaveText('3 / 3');
     // The chrome comes back with the sheet gone.
     await expectHidden(capsule(page), false);
@@ -539,9 +542,10 @@ test.describe('the compact edition', () => {
     await expect(pageNumber(page)).toHaveText('1 / 400');
     expect(await page.locator('[data-page-index]').count()).toBeLessThan(60);
     await capsule(page).getByRole('button', { name: 'Pages' }).click();
-    const sheet = page.getByTestId('compact-pages-sheet');
-    expect(await sheet.getByRole('listitem').count()).toBeLessThan(120);
-    await sheet.getByRole('button', { name: 'Page 7 of 400' }).click();
+    const grid = page.getByTestId('compact-overview-plane');
+    await expect(page.getByTestId('compact-overview')).toHaveAttribute('data-phase', 'open');
+    expect(await grid.getByRole('listitem').count()).toBeLessThan(120);
+    await grid.getByRole('button', { name: 'Page 7 of 400' }).click();
     await expect(pageNumber(page)).toHaveText('7 / 400');
   });
 

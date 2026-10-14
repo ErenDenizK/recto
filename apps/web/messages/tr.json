@@ -2399,6 +2399,7 @@
   "compact_library": "Kitaplık",
   "compact_more": "Diğer",
   "compact_pages": "Sayfalar",
+  "compact_overview_columns": "{count} sütun",
   "compact_find": "Bul",
   "compact_page_button": "Sayfa {current}/{total}. Sayfaya git",
   "compact_document_tools": "Sayfalar ve arama",
