@@ -9,6 +9,8 @@
  * `registerCompactOverlay`, from a module this file imports, or a lazier one your tool's `arm`
  * loads.
  *
+ * Form filling (MOB-1) is a chunk of its own, `./fields/`, fetched as this one arrives.
+ *
  * `SelectionHost` (`CompactChrome` mounts it whenever this chunk is here) watches for a page
  * text selection and loads the selection bar, a chunk of its own, on the first one.
  */
@@ -26,6 +28,9 @@ import './edit-text';
 // The dry ink under the annotation layer, whose wet canvas sits above it (as in Read mode).
 registerCompactOverlay(DryInkLayer);
 registerCompactOverlay(AnnotationLayer);
+
+// MOB-1: the form field layer, its own chunk, fetched now; it mounts in reading too.
+void import('./fields').catch(() => undefined);
 
 export { enterEditing, exitEditing } from './bridge';
 export { registerCompactOverlay } from '../mark-host';

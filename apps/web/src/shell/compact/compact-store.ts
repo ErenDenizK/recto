@@ -11,7 +11,7 @@
  * The document itself lives in the shared workspace store (one document at a time on a
  * phone); this store holds only what the compact chrome needs.
  */
-import type { VirtualDocument } from '@pdf-editor/document-model';
+import type { PageId, Rect, VirtualDocument } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
 export type CompactPlace = 'library' | 'reader';
@@ -22,6 +22,20 @@ export type CompactSheet = 'pages' | 'contents' | 'goto' | 'info' | 'about';
  * row. `none` is the tool chip toggled off: one finger pans and selects (README §2).
  */
 export type CompactTool = 'pen' | 'highlight' | 'text' | 'sign' | 'edit-text' | 'eraser';
+
+/**
+ * A request to the reader to show a region of a page at a zoom (MOB-1: the field being filled,
+ * its text at 16 px at least): `band` lands it under the top bar, near the top of the band the
+ * keyboard leaves; `stay` keeps it where it is on screen (the zoom back after Done).
+ */
+export interface ZoomRequest {
+  readonly pageId: PageId;
+  /** The region in the page's unrotated user space, points. */
+  readonly rect: Rect;
+  /** Relative to fit width; clamped by the reader. */
+  readonly zoom: number;
+  readonly place: 'band' | 'stay';
+}
 
 export interface CompactState {
   readonly place: CompactPlace;
@@ -56,6 +70,8 @@ export interface CompactState {
    * place (README §4; `mark/TextLayer.tsx`).
    */
   readonly typing: boolean;
+  /** The reader's next zoom to a region (`requestZoom`); a new object each time. */
+  readonly zoomRequest: ZoomRequest | null;
 }
 
 const INITIAL: CompactState = {
@@ -73,6 +89,7 @@ const INITIAL: CompactState = {
   lastTool: 'pen',
   drawerOpen: false,
   typing: false,
+  zoomRequest: null,
 };
 
 export const useCompactStore = create<CompactState>()(() => INITIAL);
@@ -186,6 +203,11 @@ export function setTyping(typing: boolean): void {
   if (useCompactStore.getState().typing !== typing) {
     set(typing ? { typing, drawerOpen: false } : { typing });
   }
+}
+
+/** Asks the reader to show `request.rect` at `request.zoom` (`CompactReader`). */
+export function requestZoom(request: ZoomRequest): void {
+  set({ zoomRequest: { ...request } });
 }
 
 /** Forgets everything (tests). */

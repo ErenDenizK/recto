@@ -8,7 +8,7 @@
  * **The overlay slot** (phone editing, `design/phone-2026-10/README.md` §7): while editing, the
  * page also renders the layers of `registerCompactOverlay` (`mark-host.ts`), which the lazy
  * `mark/` chunk fills with the dry ink and annotation layers (and a lane with its own layer);
- * reading mounts none of them.
+ * reading mounts only those registered for reading (the form fields, MOB-1).
  *
  * A resized or cropped page (only a document restored with changes has one) places its
  * content box as the export does (`ResizedContent`), drawn at a shared scale.
@@ -138,11 +138,11 @@ export function CompactPage({
         <SearchHighlights {...overlay} />
         <LinkLayer {...overlay} />
         <NoteLayer {...overlay} />
-        {editing
-          ? layers.map((Layer, i) => (
-              <Layer key={Layer.displayName ?? Layer.name ?? i} {...overlay} />
-            ))
-          : null}
+        {layers.map(({ Layer, reading }, i) =>
+          editing || reading ? (
+            <Layer key={Layer.displayName ?? Layer.name ?? i} {...overlay} />
+          ) : null,
+        )}
       </div>
     </div>
   );
