@@ -36,6 +36,8 @@ const COMPACT_DRAWER_LIST_SPEC = '**/compact-drawer-list.spec.ts';
 const COMPACT_EDIT_TEXT_SPEC = '**/compact-edit-text.spec.ts';
 /** Filling forms on phones (MOB-1). */
 const COMPACT_FORMS_SPEC = '**/compact-forms.spec.ts';
+/** The page overview (MOB-2): pinch to see every page, Pages, the column steps. */
+const COMPACT_OVERVIEW_SPEC = '**/compact-overview.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
   COMPACT_SPEC,
@@ -47,6 +49,8 @@ const PHONE_SPECS = [
   COMPACT_EDIT_TEXT_SPEC,
   COMPACT_FORMS_SPEC,
 ];
+/** Specs the desktop projects never run: every phone spec, portrait or on its side. */
+const PHONE_ONLY = [...PHONE_SPECS, COMPACT_OVERVIEW_SPEC];
 /** The control-system audit (quality-bar Q-9, spec D0-3) runs on every density and edition. */
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';
 /** The sheets' presentation on the medium class with a coarse pointer (spec D0-4). */
@@ -117,18 +121,18 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: PHONE_SPECS,
+      testIgnore: PHONE_ONLY,
       use: { ...devices['Desktop Chrome'], launchOptions: chromiumLaunchOptions() },
     },
-    { name: 'firefox', testIgnore: PHONE_SPECS, use: { ...devices['Desktop Firefox'] } },
+    { name: 'firefox', testIgnore: PHONE_ONLY, use: { ...devices['Desktop Firefox'] } },
     {
       name: 'webkit',
-      testIgnore: PHONE_SPECS,
+      testIgnore: PHONE_ONLY,
       use: { ...devices['Desktop Safari'], storageState: NOT_KEPT_SEEN },
     },
     {
       name: 'phone',
-      testMatch: [...PHONE_SPECS, BAR_AUDIT_SPEC, MOTION_SPEC],
+      testMatch: [...PHONE_SPECS, COMPACT_OVERVIEW_SPEC, BAR_AUDIT_SPEC, MOTION_SPEC],
       use: touchDevice(PHONE, devices['Pixel 7'].userAgent, 3),
     },
     {

@@ -1,0 +1,140 @@
+/*
+ * The phone's page overview (MOB-2). A place over the reader: the tiles lie over the aura with
+ * no fill of their own, and one floating glass bar (the capsule's M2, `Surface`) holds the
+ * page count and Done. Tiles are not glass (Q-4); the morph moves only the plane's `transform`
+ * and the layers' `opacity` (`morph.ts`), and at rest nothing carries a transform (Q-2).
+ *
+ * The root covers the reader and takes presses only while the overview is open; while it is
+ * closed it holds the pinch chip alone, and during the morph the reader's pinch keeps its touches.
+ */
+.root {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.root[data-phase='open'] {
+  pointer-events: auto;
+}
+
+/* One finger scrolls the grid natively; two fingers are the overview's (its column steps). */
+.scroller {
+  position: absolute;
+  inset: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.plane {
+  position: relative;
+  transform-origin: 0 0;
+}
+
+.others {
+  position: absolute;
+  inset: 0;
+}
+
+/* The anchor's tile while the reader's page stands in for it (`data-hide-anchor`, morph.ts). */
+.plane[data-hide-anchor] .tile[data-anchor] {
+  visibility: hidden;
+}
+
+.tile {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* A ui/Button (quiet) the size of the slot: no padding, the page placed inside by the layout. */
+.tileButton {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border-radius: var(--radius-xs);
+  touch-action: manipulation;
+}
+
+.thumb {
+  position: absolute;
+  display: block;
+  overflow: hidden;
+  background: var(--page-background);
+  box-shadow: var(--page-shadow);
+}
+
+/* Pressed: the pressed wash only (system-audit-2026-10 §3.5). */
+.tileButton:active {
+  background: var(--surface-active);
+}
+
+/* The page being read is *current*, not selected (§3.5, §3.8; I-48): a neutral ring outside
+   the page and its label in 600. */
+.tileButton[aria-current='page'] .thumb {
+  outline: 1px solid var(--border-strong);
+  outline-offset: 2px;
+}
+
+/* MOB-3's selection (DSN-10): the accent ring. */
+.tileButton[data-selected] .thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.label {
+  display: block;
+  max-width: 100%;
+  height: 24px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label[data-current] {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* The bar: the capsule's 56 px pill of 44 px controls, centred above the home indicator. */
+.bar {
+  position: absolute;
+  right: 0;
+  bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  height: 56px;
+  margin-inline: auto;
+  padding: 0 6px 0 20px;
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+}
+
+/* Over white pages, as the capsule: the sheet tier's denser tint in the light theme. */
+:global([data-theme='light']) .bar {
+  --mat-tint: var(--glass-sheet-tint);
+}
+
+.count {
+  color: var(--text-secondary);
+  font-size: var(--type-body);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-body-lh);
+  white-space: nowrap;
+}

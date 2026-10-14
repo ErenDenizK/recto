@@ -3873,6 +3873,7 @@
   "compact_library": "Library",
   "compact_more": "More",
   "compact_pages": "Pages",
+  "compact_overview_columns": "{count} columns",
   "compact_find": "Find",
   "compact_page_button": "Page {current} of {total}. Go to page",
   "compact_document_tools": "Pages and find",

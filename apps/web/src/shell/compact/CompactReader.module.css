@@ -101,3 +101,9 @@
 .pill[data-visible] {
   opacity: 1;
 }
+
+/* Under the open page overview (MOB-2) the pages are hidden and inert; during its morph they
+   show, moved by the morph alone. */
+.scroller[data-overview] {
+  visibility: hidden;
+}

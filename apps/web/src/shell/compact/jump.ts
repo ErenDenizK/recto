@@ -1,6 +1,6 @@
 /**
  * The sheets' jump (ADR-0033 §2.3): a jump closes its sheet and lands the page under the top
- * bar. Shared by the Pages sheet and the sheets that load on demand (`CompactMoreSheets`).
+ * bar. Shared by the sheets that load on demand (`CompactMoreSheets`).
  */
 import type { Rect, VirtualDocument } from '@pdf-editor/document-model';
 

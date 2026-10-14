@@ -165,7 +165,6 @@ const Q9_PENDING = [
   'apps/web/src/shell/compact/CompactLibrary.tsx',
   'apps/web/src/shell/compact/CompactMoreSheets.tsx',
   'apps/web/src/shell/compact/CompactPassword.tsx',
-  'apps/web/src/shell/compact/CompactSheets.tsx',
 ];
 
 /** Files executed by Node: tool configs, scripts, and Playwright specs. */

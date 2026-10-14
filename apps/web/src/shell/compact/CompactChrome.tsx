@@ -61,6 +61,7 @@ import {
 import styles from './CompactChrome.module.css';
 import controls from './controls.module.css';
 import { startEditing, takeCapsuleSnapshot, useMark, usePrefetchMark } from './mark-host';
+import { openOverview } from './overview-host';
 
 /** Typing pauses this long before the search runs. */
 const SEARCH_DELAY_MS = 250;
@@ -353,7 +354,7 @@ function ReadingCapsule({ doc }: { readonly doc: VirtualDocument }) {
   const digits = String(total).length;
   return (
     <>
-      <button type="button" className={controls.text} onClick={() => openSheet('pages')}>
+      <button type="button" className={controls.text} onClick={openOverview}>
         <Icon name="squares-four" />
         {m.compact_pages()}
       </button>

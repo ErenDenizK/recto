@@ -34,7 +34,7 @@ describe('editing mode', () => {
 
   it('entering shows the island and closes Find, the menu and a sheet', () => {
     openFind();
-    openSheet('pages');
+    openSheet('goto');
     setChromeHidden(true);
     beginEditing('pen');
     expect(state()).toMatchObject({

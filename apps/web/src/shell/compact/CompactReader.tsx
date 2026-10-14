@@ -7,6 +7,12 @@
  *   the layout the new zoom gives, keeping the point between the fingers in place, and the
  *   layout is committed with nothing moving. The pages then render sharp at the new scale
  *   after a short debounce (`PageCanvas`).
+ * - **Pinch out to see every page** (MOB-2): a pinch that starts at fit width and closes past
+ *   it hands its progress to the page overview's morph (`overview/morph.ts`): the page follows
+ *   the fingers down into its tile, armed 15 % below fit, and the release settles into the
+ *   grid or back. A pinch from a zoom clamps at fit as before; while editing, or before the
+ *   overview's chunk has arrived, or under reduced motion, the pinch rubber-bands and an armed
+ *   release opens the overview by the button's path.
  * - **Double tap** toggles fit ⇄ 2× about the tapped point, through the same settle.
  * - **A single tap** on the page toggles the chrome, once the double-tap window has passed;
  *   a tap on a link, a note or a control is theirs, and a tap that clears a text selection
@@ -17,6 +23,10 @@
  *   a tool armed is the tool's, never a tap (`tapRole`); two fingers still pinch, and the
  *   page layers that draw (`mark/`) load and mount only while editing.
  * - **Keys:** Ctrl/Cmd+F opens Find; the arrows and PageUp / PageDown scroll. Nothing else.
+ *
+ * A pinch that starts on the chrome never zooms the whole page either: two-finger touches are
+ * the reader's anywhere inside it, and Safari's `gesture*` events are refused on the document
+ * (`docs/research/phone-2026-10/pinch-overview.md` §1, §3.3).
  *
  * Pages outside the viewport (plus one screen) are not mounted. The scroller is the read
  * viewport (`data-read-viewport`), so the shared page parts (tiles, canvases) find it.
@@ -46,6 +56,21 @@ import { CompactPage } from './CompactPage';
 import styles from './CompactReader.module.css';
 import { CompactSheets } from './CompactSheets';
 import { openFind, setChromeHidden, setZoom, useCompactStore } from './compact-store';
+import type { PinchMorph } from './overview';
+import {
+  canOpenOverview,
+  overviewArmed,
+  overviewCommits,
+  overviewProgress,
+  settleVelocity,
+} from './overview-gesture';
+import {
+  loadOverview,
+  openOverview,
+  OverviewSlot,
+  overviewModule,
+  registerOverviewReader,
+} from './overview-host';
 import {
   DOUBLE_TAP_MS,
   type HideState,
@@ -110,6 +135,25 @@ export function CompactReader() {
   // when no pointer was used yet (a link or a restored session): the ring shows only after
   // Tab or F6, as on the full edition's stage.
   useEffect(() => watchFocusRing(() => readerRef.current), []);
+  // Two fingers anywhere in the reader are its own, so a pinch that starts on the top bar or
+  // the capsule never zooms the whole page; Safari's own pinch is refused on the document.
+  const hasDoc = doc !== undefined;
+  useEffect(() => {
+    const root = readerRef.current;
+    if (!root) return;
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length >= 2 && event.cancelable) event.preventDefault();
+    };
+    const onGesture = (event: Event) => event.preventDefault();
+    root.addEventListener('touchstart', onTouchStart, { passive: false });
+    document.addEventListener('gesturestart', onGesture);
+    document.addEventListener('gesturechange', onGesture);
+    return () => {
+      root.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('gesturestart', onGesture);
+      document.removeEventListener('gesturechange', onGesture);
+    };
+  }, [hasDoc]);
   if (!doc) return null;
   return (
     <div ref={readerRef} className={styles.reader} data-testid="compact-reader">
@@ -117,6 +161,7 @@ export function CompactReader() {
       <CompactTopBar doc={doc} />
       <CompactCapsule doc={doc} />
       <CompactSheets doc={doc} />
+      <OverviewSlot doc={doc} />
     </div>
   );
 }
@@ -137,6 +182,20 @@ interface Pinch {
   readonly zoom: number;
   centre: { x: number; y: number };
   transform: StageTransform;
+  /** The fingers' midpoint in client px (the overview's chip follows it). */
+  client: { x: number; y: number };
+  /** Started at fit, reading: closing past fit opens the overview (MOB-2). */
+  readonly overview: boolean;
+  /** The page under the fingers as they landed: the overview's anchor. */
+  readonly anchor: number;
+  /** The morph this pinch drives, once it went below fit. */
+  morph: PinchMorph | null;
+  /** Below fit without a morph (no chunk yet, reduced motion): rubber band and chip. */
+  below: boolean;
+  /** The finger zoom relative to fit, and its speed (per second) for the release. */
+  raw: number;
+  velocity: number;
+  time: number;
 }
 
 interface Ranges {
@@ -152,6 +211,7 @@ const sameRange = (a: Ranges['visible'], b: Ranges['visible']) =>
 function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
   const ws = useWorkspaceStore((s) => s.workspace);
   const zoom = useCompactStore((s) => s.zoom);
+  const overviewOpen = useCompactStore((s) => s.overview === 'open');
   const chromeHidden = useCompactStore((s) => s.chromeHidden);
   const insets = useSafeAreaInsets();
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -317,6 +377,23 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
     settle(target, () => commitZoom(next.zoom, nextScroll));
   };
 
+  // The page overview's morph moves the stage and reads the layout (MOB-2, `overview-host`).
+  useEffect(() => {
+    const el = scrollerRef.current;
+    const stage = stageRef.current;
+    if (!el || !stage) return;
+    return registerOverviewReader({
+      scroller: el,
+      stage,
+      settle: () => finishSettle(),
+      pageBox: (index) => latest.current.layout.boxes[index] ?? null,
+      reveal: (index) => {
+        const page = latest.current.doc.pages[index];
+        if (page) useViewStore.getState().scrollToPage(page.id);
+      },
+    });
+  }, []);
+
   /** Whether scrolling may hide the chrome now (01-frame F12 §4). */
   const canHide = () => {
     const el = scrollerRef.current;
@@ -393,6 +470,12 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
       const rect = el.getBoundingClientRect();
       return { x: clientX - rect.left, y: clientY - rect.top };
     };
+    const clientCentre = (touches: TouchList) => {
+      const a = touches[0];
+      const b = touches[1];
+      if (!a || !b) return { x: 0, y: 0 };
+      return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+    };
     const touchCentre = (touches: TouchList) => {
       const a = touches[0];
       const b = touches[1];
@@ -408,19 +491,59 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
       event.preventDefault();
       const measured = touchCentre(event.touches);
       if (!measured || measured.distance <= 0) return;
+      // A morph settling or on its way back keeps its own course.
+      if (overviewModule()?.morphBusy()) return;
       finishSettle();
       window.clearTimeout(singleTimer);
       lastTap = null;
       pinched = true;
       stage.style.transition = 'none';
+      const state = useCompactStore.getState();
+      const scroll = { left: el.scrollLeft, top: el.scrollTop };
+      const overview = canOpenOverview(state.zoom) && !state.editing && state.overview === 'closed';
+      if (overview && !overviewModule()) void loadOverview().catch(() => undefined);
+      const { centre } = measured;
       pinch = {
         startDistance: measured.distance,
-        start: measured.centre,
-        scroll: { left: el.scrollLeft, top: el.scrollTop },
-        zoom: useCompactStore.getState().zoom,
-        centre: measured.centre,
+        start: centre,
+        scroll,
+        zoom: state.zoom,
+        centre,
         transform: IDENTITY,
+        client: clientCentre(event.touches),
+        overview,
+        anchor:
+          anchorAt(latest.current.layout, scroll.left, scroll.top, centre.x, centre.y)?.page ?? 0,
+        morph: null,
+        below: false,
+        raw: state.zoom,
+        velocity: 0,
+        time: event.timeStamp,
       };
+    };
+    /** The overview's side of a pinch below fit (MOB-2); false while it is the zoom's. */
+    const overviewPinch = (active: Pinch, raw: number): boolean => {
+      if (!active.overview) return false;
+      if (raw >= 1) {
+        // Back above fit: the morph lets go and the pinch zooms again.
+        if (active.morph && raw > 1.02) {
+          active.morph.cancel();
+          active.morph = null;
+        }
+        if (active.below) overviewModule()?.showChip(null);
+        active.below = false;
+        return active.morph !== null;
+      }
+      const module = overviewModule();
+      if (!active.morph && !active.below && module) {
+        stage.style.transform = '';
+        transform.current = IDENTITY;
+        active.morph = module.beginPinchMorph(active.anchor);
+      }
+      active.below = active.morph === null;
+      if (active.morph) return true;
+      module?.showChip(overviewArmed(raw) ? m.zoom_grid_chip() : null, active.client);
+      return false;
     };
     const onTouchMove = (event: TouchEvent) => {
       if (!pinch) return;
@@ -429,7 +552,26 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
       const measured = touchCentre(event.touches);
       if (!measured) return;
       const active = pinch;
-      const visual = rubberZoom(active.zoom * (measured.distance / active.startDistance));
+      const raw = active.zoom * (measured.distance / active.startDistance);
+      const dt = (event.timeStamp - active.time) / 1000;
+      if (dt > 0) {
+        active.velocity = 0.6 * ((raw - active.raw) / dt) + 0.4 * active.velocity;
+        active.time = event.timeStamp;
+      }
+      active.raw = raw;
+      active.client = clientCentre(event.touches);
+      if (overviewPinch(active, raw)) {
+        if (pinchFrame === 0) {
+          pinchFrame = requestAnimationFrame(() => {
+            pinchFrame = 0;
+            const now = pinch;
+            if (!now?.morph) return;
+            now.morph.scrub(overviewProgress(now.raw), overviewArmed(now.raw), now.client);
+          });
+        }
+        return;
+      }
+      const visual = rubberZoom(raw);
       active.centre = measured.centre;
       active.transform = pinchTransform(
         active.scroll,
@@ -440,7 +582,7 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
       if (pinchFrame === 0) {
         pinchFrame = requestAnimationFrame(() => {
           pinchFrame = 0;
-          if (!pinch) return;
+          if (!pinch || pinch.morph) return;
           stage.style.transform = transformCss(pinch.transform);
           transform.current = pinch.transform;
         });
@@ -453,6 +595,23 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
       if (pinchFrame !== 0) {
         cancelAnimationFrame(pinchFrame);
         pinchFrame = 0;
+      }
+      // Released below fit: into the overview when armed (or thrown), else back (MOB-2).
+      const opens = ended.overview && overviewCommits(ended.raw, ended.velocity);
+      if (ended.morph) {
+        const p = overviewProgress(ended.raw);
+        ended.morph.release(opens, settleVelocity(ended.velocity, p, opens ? 1 : 0));
+        return;
+      }
+      if (ended.below) {
+        overviewModule()?.showChip(null);
+        if (opens) {
+          // No chunk yet, or reduced motion: the stage rests at fit and the button's way in runs.
+          stage.style.transform = '';
+          transform.current = IDENTITY;
+          openOverview();
+          return;
+        }
       }
       stage.style.transform = transformCss(ended.transform);
       transform.current = ended.transform;
@@ -599,7 +758,8 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
       if (state.chromeHidden && !['Control', 'Meta', 'Alt', 'Shift'].includes(event.key)) {
         flushSync(() => setChromeHidden(false));
       }
-      if (state.sheet !== null || state.menuOpen || mod || event.altKey) return;
+      if (state.sheet !== null || state.menuOpen || state.overview !== 'closed') return;
+      if (mod || event.altKey) return;
       const target = event.target;
       if (
         target instanceof HTMLElement &&
@@ -803,6 +963,9 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
         data-read-viewport=""
         data-testid="compact-pages"
         data-zoom={layout.zoom}
+        // Hidden under the open page overview (MOB-2), which is the place then.
+        data-overview={overviewOpen || undefined}
+        inert={overviewOpen}
         role="region"
         aria-label={m.a11y_pages_viewport({ title: doc.title })}
         // A scrollable region takes focus (WCAG 2.1.1), so the arrows scroll it.

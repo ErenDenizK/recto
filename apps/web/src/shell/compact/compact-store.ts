@@ -5,6 +5,10 @@
  * `design/phone-2026-10/README.md` §2): whether the edit island shows, the tool armed in it,
  * the tool the next entry arms, and whether the tool drawer is open.
  *
+ * The page overview (MOB-2) is a place over the reader, not a sheet: `overview` says whether it
+ * is closed, moving (its tiles mounted, the reader still showing under the morph) or open (the
+ * reader hidden and inert), with its column count and the page the morph is anchored on.
+ *
  * Only the fields live here, so the static reader can follow them; what arming a tool does
  * (Markup, the tool store, the page layers) is the lazy `mark/bridge.ts`.
  *
@@ -14,8 +18,16 @@
 import type { PageId, Rect, VirtualDocument } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
+import { DEFAULT_COLUMNS, type OverviewColumns } from './overview-gesture';
+
 export type CompactPlace = 'library' | 'reader';
-export type CompactSheet = 'pages' | 'contents' | 'goto' | 'info' | 'about';
+export type CompactSheet = 'contents' | 'goto' | 'info' | 'about';
+
+/**
+ * The page overview (MOB-2): closed; `morph` while a pinch or the morph moves between the
+ * reader and the grid (the tiles are mounted, the reader shows under them); `open` at rest.
+ */
+export type OverviewPhase = 'closed' | 'morph' | 'open';
 
 /**
  * The phone's tools (EDN-8): the five of the drawer's first row, and the Eraser of its quiet
@@ -74,6 +86,13 @@ export interface CompactState {
   readonly zoomRequest: ZoomRequest | null;
 }
 
+  readonly overview: OverviewPhase;
+  /** The overview's columns (2 · 3 · 4), kept for the session. */
+  readonly overviewColumns: OverviewColumns;
+  /** The page the overview's morph is anchored on: the page read when it opened. */
+  readonly overviewAnchor: number;
+}
+
 const INITIAL: CompactState = {
   place: 'library',
   chromeHidden: false,
@@ -90,6 +109,9 @@ const INITIAL: CompactState = {
   drawerOpen: false,
   typing: false,
   zoomRequest: null,
+  overview: 'closed',
+  overviewColumns: DEFAULT_COLUMNS,
+  overviewAnchor: 0,
 };
 
 export const useCompactStore = create<CompactState>()(() => INITIAL);
@@ -98,16 +120,18 @@ export const useCompactStore = create<CompactState>()(() => INITIAL);
  * The top bar steps away while the chrome is hidden or a sheet is open: a sheet is the place
  * then, and on a phone on its side its 92 % detent reaches over the bar's band.
  */
-export const topBarAway = (s: CompactState): boolean => s.chromeHidden || s.sheet !== null;
+export const topBarAway = (s: CompactState): boolean =>
+  s.chromeHidden || s.sheet !== null || s.overview !== 'closed';
 
 /**
  * The capsule steps away while the chrome is hidden, Find has the top bar, or a sheet is open:
  * it sits under the sheet's lower half, where its dark pill would show through the sheet's
  * glass while the sheet rises (XD-3). While a text box takes typing it steps away for the
- * keyboard's Done. The toast stack follows it (`CompactApp`).
+ * keyboard's Done. The toast stack follows it (`CompactApp`). Both step away while the page overview
+ * shows or moves (MOB-2): it has its own bar.
  */
 export const capsuleAway = (s: CompactState): boolean =>
-  s.chromeHidden || s.findOpen || s.sheet !== null || s.typing;
+  s.chromeHidden || s.findOpen || s.sheet !== null || s.typing || s.overview !== 'closed';
 
 /** A tool takes the page's presses: a stroke or a placement, never a tap (README §5). */
 export const toolTakesPage = (s: CompactState): boolean => s.editing && s.tool !== null;
@@ -125,6 +149,7 @@ export function showLibrary(): void {
     tool: null,
     drawerOpen: false,
     typing: false,
+    overview: 'closed',
   });
 }
 
@@ -208,6 +233,15 @@ export function setTyping(typing: boolean): void {
 /** Asks the reader to show `request.rect` at `request.zoom` (`CompactReader`). */
 export function requestZoom(request: ZoomRequest): void {
   set({ zoomRequest: { ...request } });
+}
+
+/** The overview's phase, and the page its morph is anchored on when one is given. */
+export function setOverview(overview: OverviewPhase, anchor?: number): void {
+  set(anchor === undefined ? { overview } : { overview, overviewAnchor: anchor });
+}
+
+export function setOverviewColumns(overviewColumns: OverviewColumns): void {
+  if (useCompactStore.getState().overviewColumns !== overviewColumns) set({ overviewColumns });
 }
 
 /** Forgets everything (tests). */

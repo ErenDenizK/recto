@@ -413,7 +413,7 @@ test.describe('the compact edition', () => {
     await useFileInputPicker(page);
   });
 
-  test('the reader, the ⋯ menu and the Pages sheet', async ({ page }) => {
+  test('the reader, the ⋯ menu and the page overview', async ({ page }) => {
     const run = collector(page);
     await page.goto('./?lang=en');
     await expect(page.getByTestId('compact-library')).toBeVisible();
@@ -434,10 +434,10 @@ test.describe('the compact edition', () => {
     await expect(page.getByTestId('compact-menu')).toHaveCount(0);
 
     await page.getByTestId('compact-capsule').getByRole('button', { name: 'Pages' }).click();
-    await expect(page.getByTestId('compact-pages-sheet')).toBeVisible();
-    await run.audit('compact Pages sheet');
+    await expect(page.getByTestId('compact-overview')).toHaveAttribute('data-phase', 'open');
+    await run.audit('compact page overview');
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId('compact-pages-sheet')).toHaveCount(0);
+    await expect(page.getByTestId('compact-overview')).toHaveAttribute('data-phase', 'closed');
 
     // Q-14: the reader's Tab stops (a keyboard on a phone) show no browser focus ring.
     await page.locator('body').focus();
