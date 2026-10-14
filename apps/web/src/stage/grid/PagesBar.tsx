@@ -183,6 +183,7 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
           ? [{ id: 'pages.duplicate', label: m.pages_bar_duplicate() }]
           : []),
         { id: 'pages.insertBlank', label: m.pages_bar_insert_blank() },
+        { id: 'pages.insertFromFile', label: m.cmd_insert_from_file() },
         { id: 'pages.crop', label: m.pages_bar_crop() },
         { id: 'pages.resize', label: m.pages_bar_resize() },
         { id: 'pages.copy', label: m.pages_bar_copy() },
@@ -196,6 +197,8 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
         ...(selecting ? [] : [{ id: 'pages.selectAll', label: m.pages_bar_select_all() }]),
         { id: 'pages.select.odd', label: m.pages_bar_select_odd() },
         { id: 'pages.select.even', label: m.pages_bar_select_even() },
+        // After the focused cell, else at the end (`insertFromFileTarget`).
+        { id: 'pages.insertFromFile', label: m.cmd_insert_from_file() },
         { id: 'section.insertImages', label: m.pages_bar_insert_images() },
         { id: 'section.split', label: m.pages_bar_split() },
         { id: 'section.interleave', label: m.pages_bar_interleave() },
@@ -370,7 +373,11 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
           onActivate={() => openTitleMenu('menu')}
         />
       ) : (
-        <MoreMenu entries={more} />
+        <MoreMenu
+          entries={more}
+          // Folded, Move to ▸ heads ⋯ (§10 item 2 "Duplicate, Extract, Move to into ⋯").
+          moveFrom={some && fold !== 'full' ? doc.id : undefined}
+        />
       )}
     </div>
   );
@@ -447,9 +454,40 @@ function BarButton({
   );
 }
 
-/** Move to ▾ (§14): each other open document with its tag dot, then "New document". */
-function MoveToMenu({ documentId }: { readonly documentId: DocumentId }) {
+/** Move to's rows (§14): each other open document with its tag dot, then "New document". */
+function MoveToItems({ documentId }: { readonly documentId: DocumentId }) {
   const tabs = useTabItems().filter((tab) => tab.id !== documentId);
+  const reason = reasonOf('pages.extract');
+  return (
+    <>
+      {tabs.map((tab) => (
+        <Menu.Item
+          key={tab.id}
+          className={menuStyles.item}
+          onClick={() => movePagesToDocument(tab.id)}
+        >
+          <span className={menuStyles.tag} data-tag={tab.colorIndex} aria-hidden="true" />
+          <span className={menuStyles.label}>{tab.title}</span>
+          <span className={menuStyles.hint}>{m.pages_count({ count: tab.pageCount })}</span>
+        </Menu.Item>
+      ))}
+      {tabs.length > 0 ? <Menu.Separator className={menuStyles.separator} /> : null}
+      <Menu.Item
+        className={menuStyles.item}
+        disabled={reason !== undefined}
+        onClick={() => {
+          if (targetPages().length > 0) extractPages();
+        }}
+      >
+        <span className={menuStyles.label}>{m.pages_bar_new_document()}</span>
+        {reason ? <span className={menuStyles.hint}>{reason}</span> : null}
+      </Menu.Item>
+    </>
+  );
+}
+
+/** Move to ▾ (§14) on the unfolded bar. */
+function MoveToMenu({ documentId }: { readonly documentId: DocumentId }) {
   const reason = reasonOf('pages.extract');
   return (
     <Menu.Root>
@@ -466,28 +504,7 @@ function MoveToMenu({ documentId }: { readonly documentId: DocumentId }) {
       <Menu.Portal>
         <Menu.Positioner side="top" align="center" sideOffset={8} collisionPadding={8}>
           <Menu.Popup className={menuStyles.popup} aria-label={m.pages_bar_move_to()}>
-            {tabs.map((tab) => (
-              <Menu.Item
-                key={tab.id}
-                className={menuStyles.item}
-                onClick={() => movePagesToDocument(tab.id)}
-              >
-                <span className={menuStyles.tag} data-tag={tab.colorIndex} aria-hidden="true" />
-                <span className={menuStyles.label}>{tab.title}</span>
-                <span className={menuStyles.hint}>{m.pages_count({ count: tab.pageCount })}</span>
-              </Menu.Item>
-            ))}
-            {tabs.length > 0 ? <Menu.Separator className={menuStyles.separator} /> : null}
-            <Menu.Item
-              className={menuStyles.item}
-              disabled={reason !== undefined}
-              onClick={() => {
-                if (targetPages().length > 0) extractPages();
-              }}
-            >
-              <span className={menuStyles.label}>{m.pages_bar_new_document()}</span>
-              {reason ? <span className={menuStyles.hint}>{reason}</span> : null}
-            </Menu.Item>
+            <MoveToItems documentId={documentId} />
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>
@@ -495,8 +512,18 @@ function MoveToMenu({ documentId }: { readonly documentId: DocumentId }) {
   );
 }
 
-/** ⋯ (§10): the rarer page acts, each dimmed with its reason when it cannot run. */
-function MoreMenu({ entries }: { readonly entries: readonly MoreEntry[] }) {
+/**
+ * ⋯ (§10): the rarer page acts, each dimmed with its reason when it cannot run. On a folded
+ * bar Move to ▸ heads it (`moveFrom`, the document the pages leave): a submenu that opens on
+ * a tap, a click, Right or Enter, so a finger reaches it where no tab takes a drop (MOB-4).
+ */
+function MoreMenu({
+  entries,
+  moveFrom,
+}: {
+  readonly entries: readonly MoreEntry[];
+  readonly moveFrom?: DocumentId | undefined;
+}) {
   return (
     <Menu.Root>
       <Tooltip label={m.pages_bar_more()} side="top">
@@ -513,6 +540,24 @@ function MoreMenu({ entries }: { readonly entries: readonly MoreEntry[] }) {
       <Menu.Portal>
         <Menu.Positioner side="top" align="end" sideOffset={8} collisionPadding={8}>
           <Menu.Popup className={menuStyles.popup} aria-label={m.pages_bar_more()}>
+            {moveFrom === undefined ? null : (
+              <>
+                <Menu.SubmenuRoot>
+                  <Menu.SubmenuTrigger className={menuStyles.item} data-pages-item="move-to">
+                    <span className={menuStyles.label}>{m.pages_bar_move_to()}</span>
+                    <Icon name="caret-right" className={styles.caret} />
+                  </Menu.SubmenuTrigger>
+                  <Menu.Portal>
+                    <Menu.Positioner side="left" align="start" sideOffset={4} collisionPadding={8}>
+                      <Menu.Popup className={menuStyles.popup} aria-label={m.pages_bar_move_to()}>
+                        <MoveToItems documentId={moveFrom} />
+                      </Menu.Popup>
+                    </Menu.Positioner>
+                  </Menu.Portal>
+                </Menu.SubmenuRoot>
+                <Menu.Separator className={menuStyles.separator} />
+              </>
+            )}
             {entries.map((entry) => {
               const reason = reasonOf(entry.id);
               return (

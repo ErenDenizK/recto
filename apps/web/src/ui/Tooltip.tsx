@@ -41,7 +41,7 @@ import {
 } from 'react';
 
 import type { ParsedShortcut } from '../commands/shortcuts';
-import { inputTracker, usePointerCapabilities } from '../shell/frame/input-modality';
+import { inputTracker, lastInput, usePointerCapabilities } from '../shell/frame/input-modality';
 import { Keycaps } from './Keycaps';
 import styles from './Tooltip.module.css';
 
@@ -215,6 +215,10 @@ export function Tooltip({
           }
           // A held touch decides when its tooltip closes.
           if (!next && hold.current?.shown) return;
+          // After a touch, only a held touch opens one (§20 item 6): a tap's focus, or the
+          // compatibility mouse events a tap leaves behind when a bar re-lays under it, would
+          // otherwise open a tooltip nothing closes until the next press (MOB-4, B5).
+          if (next && lastInput() === 'touch') return;
           setOpen(next);
         }}
       >

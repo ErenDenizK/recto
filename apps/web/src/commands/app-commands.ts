@@ -13,6 +13,7 @@ import {
   canRedo,
   canUndo,
   type DocumentId,
+  findPageLocation,
   getActiveDocument,
   type PageId,
 } from '@pdf-editor/document-model';
@@ -254,21 +255,36 @@ export function rotateTargets(): { readonly pages: PageId[]; readonly current: b
 
 const hasRotateTargets = () => rotateTargets().pages.length > 0;
 
+/** One Undo toast for the rotation in progress: turning again replaces it in place. */
+export const ROTATE_TOAST_KEY = 'pages-rotated';
+
 /**
  * Turns the rotation targets a quarter. The current page, turned while reading with nothing
  * selected, is a targeted act the person did not see selected, so it says so with Undo: "Rotated
- * page 3 right · Undo" (S18); a selection is announced.
+ * page 3 right · Undo" (S18). In the Pages grid every turn says so too, as the page menu's
+ * does (04-context §10 "each act is one undo step", §13; MOB-4); a selection on the page is
+ * announced.
  */
 function rotate(delta: 90 | -90): void {
   const { pages, current } = rotateTargets();
   const doc = activeDocument();
+  const grid = stageView(ui()) === 'grid';
+  const first = pages[0] === undefined ? undefined : findPageLocation(model().workspace, pages[0]);
   if (!model().rotatePages(pages, delta)) return;
   if (current && doc) {
     const page = doc.pages.findIndex((p) => p.id === pages[0]) + 1;
     toast.undo(
       delta > 0 ? m.toast_rotated_page_right({ page }) : m.toast_rotated_page_left({ page }),
-      { documentId: doc.id },
+      { documentId: doc.id, key: ROTATE_TOAST_KEY },
     );
+    return;
+  }
+  if (grid && first !== undefined) {
+    const input = { count: pages.length, page: first.index + 1 };
+    toast.undo(delta > 0 ? m.toast_rotated_pages_right(input) : m.toast_rotated_pages_left(input), {
+      documentId: first.document,
+      key: ROTATE_TOAST_KEY,
+    });
     return;
   }
   const count = pages.length;

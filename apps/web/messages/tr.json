@@ -602,6 +602,7 @@
   "cmd_pages_duplicate_keywords": "çoğalt, kopyala",
   "cmd_pages_extract_keywords": "ayıkla, çıkar, sayfaları kaydet",
   "cmd_pages_insert_blank_keywords": "boş sayfa, sayfa ekle",
+  "cmd_pages_insert_from_file_keywords": "pdf ekle, dosya ekle, dosyadan sayfa, sayfa ekle, içe aktar",
   "cmd_pages_crop_keywords": "kırp, kenar boşluğu",
   "cmd_pages_resize_keywords": "yeniden boyutlandır, sayfa boyutu, ölçekle",
   "cmd_file_open_keywords": "aç, dosya aç, içe aktar",
@@ -714,6 +715,7 @@
   "cmd_move_to_new_document": "Sayfaları yeni belgeye taşı",
   "cmd_copy_to_new_document": "Sayfaları yeni belgeye kopyala",
   "cmd_insert_blank": "Arkasına boş sayfa ekle",
+  "cmd_insert_from_file": "Dosyadan sayfa ekle…",
   "cmd_move_row_start": "Sayfaları satır başına taşı",
   "cmd_move_row_end": "Sayfaları satır sonuna taşı",
   "cmd_move_document_start": "Sayfaları belgenin başına taşı",
@@ -2271,9 +2273,8 @@
   "page_menu_rotate_right": "Sağa döndür: sayfa {number}",
   "page_menu_delete": "Sil: sayfa {number}",
   "page_menu_crop": "Kırp…",
-  "page_menu_rotated_left": "Sayfa {number} sola döndürüldü",
-  "page_menu_rotated_right": "Sayfa {number} sağa döndürüldü",
   "page_menu_deleted": "Sayfa {number} silindi. Geri almak için {shortcut}",
+  "page_menu_extract": "Yeni belgeye çıkar…",
   "selection_comment": "Yorum",
   "selection_comment_tooltip": "Seçimin yanına not ekle",
   "bar_group_tools": "{group} araçları",
@@ -3050,6 +3051,26 @@
   "announce_viewing": "{name} görüntüleniyor",
   "toast_rotated_page_right": "{page}. sayfa sağa döndürüldü",
   "toast_rotated_page_left": "{page}. sayfa sola döndürüldü",
+  "toast_rotated_pages_right": [
+    {
+      "declarations": ["input count", "input page", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{page}. sayfa sağa döndürüldü",
+        "countPlural=*": "{count} sayfa sağa döndürüldü"
+      }
+    }
+  ],
+  "toast_rotated_pages_left": [
+    {
+      "declarations": ["input count", "input page", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{page}. sayfa sola döndürüldü",
+        "countPlural=*": "{count} sayfa sola döndürüldü"
+      }
+    }
+  ],
   "keymap_notice_key_one": "1 artık görüntülemeye döndürür. Bir belgeyi kilitlemek için başlık menüsündeki Kilitle’yi kullanın.",
   "keymap_group_places": "Yerler",
   "keymap_group_tools": "Araçlar",
@@ -3199,6 +3220,7 @@
   "combine_name_label": "Ad",
   "combine_preview": "{pages} içeren 1 belge oluşturur",
   "combine_needs_two": "En az iki belge seçin",
+  "combine_needs_open": "Önce başka bir belge açın",
   "combine_announce_moved": "{title}, {position}. sıraya taşındı",
   "extract_sheet_title": "Sayfaları ayıkla",
   "extract_pages_label": "Sayfalar",

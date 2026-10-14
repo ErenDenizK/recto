@@ -19,10 +19,13 @@ import {
 
 import { targetPages } from '../commands/app-commands';
 import { currentPlatform } from '../commands/shortcuts';
-import { inDocumentOrder, transferPages } from '../dnd/drop';
+import { inDocumentOrder, insertFilesAt, transferPages } from '../dnd/drop';
+import { pickFiles } from '../files/open-files';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { type PageClipboard, useSelectionStore } from '../state/selection-store';
+import { stageView, useUiStore } from '../state/ui-store';
+import { useViewStore } from '../state/view-store';
 import { pagesPhrase, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { snapshotSheets } from './grid/cells';
@@ -38,6 +41,30 @@ function select(ids: readonly PageId[], focus: PageId | null = ids[0] ?? null): 
 // ---------------------------------------------------------------------------
 // Pure planners
 // ---------------------------------------------------------------------------
+
+/**
+ * Where pages inserted without a page named land (04-context §10 "Insert blank page after",
+ * §13; 01-frame F5 §5 "Insert pages from file…"): right after the focused target page, else
+ * the last target page; with no target pages, after `fallback.after` (the page being read) in
+ * `fallback.document`, else at that document's end.
+ */
+export function insertionTarget(
+  ws: Workspace,
+  pages: readonly PageId[],
+  focused: PageId | null,
+  fallback: { readonly document: DocumentId | undefined; readonly after?: number | undefined },
+): PageTarget | undefined {
+  const anchor = focused !== null && pages.includes(focused) ? focused : pages[pages.length - 1];
+  const location = anchor === undefined ? undefined : findPageLocation(ws, anchor);
+  if (location !== undefined) return { document: location.document, index: location.index + 1 };
+  const doc = fallback.document === undefined ? undefined : ws.documents[fallback.document];
+  if (doc === undefined) return undefined;
+  const index =
+    fallback.after === undefined
+      ? doc.pages.length
+      : Math.min(Math.max(0, fallback.after + 1), doc.pages.length);
+  return { document: doc.id, index };
+}
 
 /**
  * Where a paste lands: right after the focused page, in the focused page's document (also
@@ -296,6 +323,32 @@ export function extractPages(
       : m.announce_moved_to_new({ pages: pagesPhrase(pageIds.length), title }),
   );
   return created;
+}
+
+/**
+ * The target of "Insert pages from file…" from the title menu, the palette and the Pages
+ * bar: after the grid's target pages (the selection, else the focused cell), else after the
+ * page being read, else at the end of the active document.
+ */
+export function insertFromFileTarget(): PageTarget | undefined {
+  const ws = model().workspace;
+  const reading = stageView(useUiStore.getState()) === 'page';
+  return insertionTarget(ws, targetPages(), selection().focused, {
+    document: ws.activeDocument,
+    after: reading ? useViewStore.getState().currentPage : undefined,
+  });
+}
+
+/**
+ * "Insert pages from file…" (04-context §13, 06-navigation N2 §5, 01-frame F5 §5; MOB-4):
+ * asks for PDFs or images and inserts all their pages at `target`, as an OS file dropped on a
+ * grid gap does (`insertFilesAt`): one history entry, the new pages selected. The picker
+ * needs the press's user activation, so nothing is awaited before it.
+ */
+export async function insertPagesFromFile(target: PageTarget): Promise<PageId[]> {
+  const files = await pickFiles('openable');
+  if (files.length === 0) return [];
+  return insertFilesAt(files, target);
 }
 
 /** Inserts one blank page after the focused (else last) target page. */

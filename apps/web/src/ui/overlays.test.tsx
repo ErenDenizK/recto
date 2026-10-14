@@ -146,6 +146,30 @@ describe('Tooltip', () => {
     act(() => button.click());
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  it('after a tap, shows none for the focus or hover the tap leaves behind (§20 item 6; MOB-4)', async () => {
+    render(
+      <TooltipProvider>
+        <Tooltip label="Extract" shortcut={parseShortcut('Mod+Shift+E')}>
+          <button type="button">Extract</button>
+        </Tooltip>
+      </TooltipProvider>,
+    );
+    const button = screen.getByRole('button', { name: 'Extract' });
+    // A tap: the bar then re-lays under where the finger was (the Pages bar morphing).
+    touch('pointerdown', button);
+    touch('pointerup', button);
+    act(() => button.focus());
+    await userEvent.hover(button);
+    await wait(900);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    // A held touch still shows it.
+    touch('pointerdown', button);
+    await wait(TOUCH_HOLD_MS + 150);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Extract');
+    touch('pointerup', button);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+  });
 });
 
 describe('ScrollArea', () => {

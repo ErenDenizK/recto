@@ -132,14 +132,30 @@ interface StepMark {
   readonly index: number;
   readonly at: number;
   readonly label: string;
+  readonly coalesceKey: string | undefined;
 }
 
 function markOf(h: History): StepMark {
-  return { index: h.past.length, at: h.present.at, label: h.present.label };
+  const { at, label, coalesceKey } = h.present;
+  return { index: h.past.length, at, label, coalesceKey };
 }
 
 function isStep(entry: HistoryEntry | undefined, mark: StepMark): entry is HistoryEntry {
   return entry?.at === mark.at && entry.label === mark.label;
+}
+
+/**
+ * Whether `present` is the marked step grown by coalescing (a second quarter turn of the same
+ * pages within the window, `pushHistory`): still one step, so its toast stays current and its
+ * Undo still undoes exactly that step (MOB-4: a toast does not go stale on its own step).
+ */
+function coalescedFrom(h: History, mark: StepMark): boolean {
+  return (
+    mark.coalesceKey !== undefined &&
+    h.past.length === mark.index &&
+    h.present.coalesceKey === mark.coalesceKey &&
+    h.present.at >= mark.at
+  );
 }
 
 /** The step's entry where it is now: present, in the past (newer steps came), or gone. */
@@ -155,7 +171,7 @@ function findStep(h: History, mark: StepMark): 'present' | HistoryEntry | undefi
  * here, as Mod+Z makes one).
  */
 function undoToast(text: string, options: ToastOptions = {}): string {
-  const mark = markOf(history());
+  let mark = markOf(history());
   let unsubscribe: (() => void) | undefined;
   const runUndo = () => {
     if (findStep(history(), mark) !== 'present') return;
@@ -177,6 +193,8 @@ function undoToast(text: string, options: ToastOptions = {}): string {
   );
   unsubscribe = useWorkspaceStore.subscribe((state, previous) => {
     if (state.history === previous.history) return;
+    // The same step, grown by coalescing: the toast follows it.
+    if (coalescedFrom(state.history, mark)) mark = markOf(state.history);
     const where = findStep(state.history, mark);
     if (where === 'present') return;
     unsubscribe?.();

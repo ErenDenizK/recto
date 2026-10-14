@@ -10,8 +10,10 @@
  */
 import { findPageLocation, insertBlankPage, type PageId } from '@pdf-editor/document-model';
 
+import { ROTATE_TOAST_KEY } from '../../commands/app-commands';
 import { inDocumentOrder, transferPages } from '../../dnd/drop';
 import { m } from '../../i18n';
+import { insertPagesFromFile } from '../../stage/arrange-actions';
 import { cropPage, deletePage, rotatePage } from '../../stage/PageContextMenu';
 import { openOperationDialog } from '../../stage/operation-dialogs-store';
 import { enterPagesGrid } from '../../stage/pages-grid-door';
@@ -48,12 +50,14 @@ function keepSelection<T>(change: () => T): T {
 export function rotatePages(ids: readonly PageId[], delta: 90 | -90): boolean {
   const [only] = ids;
   if (ids.length === 1 && only !== undefined) return rotatePage(only, delta);
-  if (!model().rotatePages(ids, delta)) return false;
-  announce(
-    delta > 0
-      ? m.announce_rotated_right({ count: ids.length })
-      : m.announce_rotated_left({ count: ids.length }),
-  );
+  const first = only === undefined ? undefined : findPageLocation(model().workspace, only);
+  if (first === undefined || !model().rotatePages(ids, delta)) return false;
+  // With Undo, as the page menu's and the grid's turns (04-context §13 item 6; MOB-4).
+  const input = { count: ids.length, page: first.index + 1 };
+  toast.undo(delta > 0 ? m.toast_rotated_pages_right(input) : m.toast_rotated_pages_left(input), {
+    documentId: first.document,
+    key: ROTATE_TOAST_KEY,
+  });
   return true;
 }
 
@@ -107,6 +111,20 @@ export function insertBlankAfterPage(pageId: PageId): boolean {
   const title = model().workspace.documents[target.document]?.title ?? '';
   announce(m.announce_inserted_blank({ position: target.index + 1, title }));
   return true;
+}
+
+/**
+ * "Insert pages from file…" (06-navigation N2 §5, 04-context §13; MOB-4): the picked PDFs'
+ * and images' pages after `pageId`, one undo step. Called inside the press, for the picker.
+ */
+export async function insertFromFileAfterPage(pageId: PageId): Promise<boolean> {
+  const location = findPageLocation(model().workspace, pageId);
+  if (location === undefined) return false;
+  const placed = await insertPagesFromFile({
+    document: location.document,
+    index: location.index + 1,
+  });
+  return placed.length > 0;
 }
 
 /** "Extract page…": the Extract pages sheet with these pages (S16). */

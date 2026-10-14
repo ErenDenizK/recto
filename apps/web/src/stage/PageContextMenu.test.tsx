@@ -18,6 +18,7 @@ import { page, userEvent } from 'vitest/browser';
 
 import { EXIT_TIMEOUT } from '../../test/settled';
 import rotatedUrl from '../../../../test/fixtures/rotated-pages.pdf?url';
+import simpleUrl from '../../../../test/fixtures/simple-text.pdf?url';
 import { enterEditMode, fixtureFile } from '../../test/store-harness';
 import { resetAnnotationStore } from '../annotations/annotation-store';
 import { resetEditRunner, whenIdle } from '../annotations/edit-runner';
@@ -31,6 +32,7 @@ import { useSelectionStore } from '../state/selection-store';
 import { isMarkupOpen, stageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
+import { useToastStore } from '../ui/Toast/toast-store';
 import { resetToolStore, useToolStore } from '../viewer/tool-store';
 import { closeOperationDialog, useOperationDialogStore } from './operation-dialogs-store';
 import { ReadView } from './ReadView';
@@ -178,6 +180,11 @@ describe('page context menu', () => {
       'Rotate page 2 right',
       'Delete page 2',
       'Crop…',
+      'Insert blank page after',
+      'Insert pages from file…',
+      'Extract page…',
+      'Copy page',
+      'Paste pages after',
       expect.stringMatching(/^Show in Pages grid/),
     ]);
     // `pages` acts need no Markup (ADR-0030): a rotation from viewing, one step.
@@ -191,10 +198,22 @@ describe('page context menu', () => {
     const before = activeDoc().pages.map((p) => p.rotation);
     rightClick(pageElement(container, 1));
     const locked = await menu();
-    for (const name of ['Edit text here', 'Rotate page 2 left', 'Delete page 2', 'Crop…']) {
+    for (const name of [
+      'Edit text here',
+      'Rotate page 2 left',
+      'Delete page 2',
+      'Crop…',
+      'Insert blank page after',
+      'Insert pages from file…',
+      'Paste pages after',
+    ]) {
       expect(
         within(locked).getByRole('menuitem', { name: new RegExp(`^${name}`) }),
       ).toHaveAttribute('aria-disabled', 'true');
+    }
+    // Extract and Copy change nothing: allowed while locked (04-context §10 item 6).
+    for (const name of ['Extract page…', 'Copy page']) {
+      expect(within(locked).getByRole('menuitem', { name })).not.toHaveAttribute('aria-disabled');
     }
     expect(
       within(locked).getByRole('menuitem', { name: /^Show in Pages grid/ }),
@@ -223,6 +242,11 @@ describe('page context menu', () => {
       'Rotate page 2 right',
       'Delete page 2',
       'Crop…',
+      'Insert blank page after',
+      'Insert pages from file…',
+      'Extract page…',
+      'Copy page',
+      'Paste pages after',
       expect.stringMatching(/^Show in Pages grid/),
     ]);
 
@@ -230,7 +254,9 @@ describe('page context menu', () => {
     const before = doc.pages[1]?.rotation ?? 0;
     expect(activeDoc().pages[1]?.rotation).toBe((before + 90) % 360);
     expect(activeDoc().pages[0]?.rotation).toBe(doc.pages[0]?.rotation);
-    expect(useAnnouncer.getState().message).toBe('Rotated page 2 right');
+    // With Undo, as the grid's turns (§13 item 6; MOB-4).
+    expect(useAnnouncer.getState().message).toMatch(/^Rotated page 2 right\. Undo with /);
+    expect(useToastStore.getState().shown.map((t) => t.text)).toContain('Rotated page 2 right');
     await closed();
 
     rightClick(pageElement(container, 1));
@@ -238,7 +264,7 @@ describe('page context menu', () => {
       within(await menu()).getByRole('menuitem', { name: 'Rotate page 2 left' }),
     );
     expect(activeDoc().pages[1]?.rotation).toBe(before);
-    expect(useAnnouncer.getState().message).toBe('Rotated page 2 left');
+    expect(useAnnouncer.getState().message).toMatch(/^Rotated page 2 left\. Undo with /);
   });
 
   it('Delete, Crop… and Arrange act on the clicked page', async () => {
@@ -274,6 +300,65 @@ describe('page context menu', () => {
     });
     // The grid opens at that page, its cell focused; the surface change clears the selection.
     expect(useSelectionStore.getState().focused).toBe(third);
+  });
+
+  it('§13 page rows: Insert blank, Insert pages from file…, Extract, Copy and Paste (MOB-4)', async () => {
+    const { container, doc } = await mount();
+    const [p1, p2] = doc.pages.map((p) => p.id);
+    const steps = () => useWorkspaceStore.getState().history.past.length;
+    const ids = () => activeDoc().pages.map((p) => p.id);
+    const choose = async (name: string) => {
+      rightClick(pageElement(container, 1));
+      await userEvent.click(within(await menu()).getByRole('menuitem', { name }));
+      await closed();
+    };
+
+    // Insert blank page after page 2: one step, at position 3.
+    let before = steps();
+    await choose('Insert blank page after');
+    expect(ids()).toHaveLength(5);
+    expect(ids().slice(0, 2)).toEqual([p1, p2]);
+    expect(activeDoc().pages[2]?.ref.kind).toBe('blank');
+    expect(steps()).toBe(before + 1);
+    useWorkspaceStore.getState().undo();
+
+    // Insert pages from file…: the picker (a stub here) asks, then all of the file's pages land
+    // after page 2 as one step.
+    const picked = await fixtureFile(simpleUrl, 'simple-text.pdf');
+    const picker = Object.getOwnPropertyDescriptor(window, 'showOpenFilePicker');
+    Object.defineProperty(window, 'showOpenFilePicker', {
+      configurable: true,
+      value: () =>
+        Promise.resolve([
+          { kind: 'file', name: picked.name, getFile: () => Promise.resolve(picked) },
+        ]),
+    });
+    try {
+      before = steps();
+      await choose('Insert pages from file…');
+      await waitFor(() => expect(ids()).toHaveLength(7), { timeout: 10_000 });
+      expect(ids().slice(0, 2)).toEqual([p1, p2]);
+      expect(ids().slice(5)).toEqual(doc.pages.slice(2).map((p) => p.id));
+      expect(steps()).toBe(before + 1);
+      useWorkspaceStore.getState().undo();
+      expect(ids()).toEqual(doc.pages.map((p) => p.id));
+    } finally {
+      if (picker) Object.defineProperty(window, 'showOpenFilePicker', picker);
+      else delete (window as { showOpenFilePicker?: unknown }).showOpenFilePicker;
+    }
+
+    // Extract page…: the Extract sheet with page 2.
+    await choose('Extract page…');
+    expect(useOperationDialogStore.getState().dialog).toEqual({ kind: 'extract', pageIds: [p2] });
+    closeOperationDialog();
+
+    // Copy page, then Paste pages after on page 2: a copy of page 2 at position 3.
+    await choose('Copy page');
+    before = steps();
+    await choose('Paste pages after');
+    expect(ids()).toHaveLength(5);
+    expect(activeDoc().pages[2]?.ref).toEqual(activeDoc().pages[1]?.ref);
+    expect(steps()).toBe(before + 1);
   });
 
   it('offers "Edit text here" in Edit, which arms Edit text', async () => {

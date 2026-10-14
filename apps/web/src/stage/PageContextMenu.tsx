@@ -4,7 +4,10 @@
  * tool bar with the Pages group: Rotate page left and right, Delete page, Crop… and Show in
  * Pages grid, and "Edit text here", which arms Edit text. Every item acts on the page it was opened on,
  * and Rotate and Delete say which ("Rotate page 3 left"). The Document menu keeps "Rotate
- * pages…" and "Crop…" for many pages.
+ * pages…" and "Crop…" for many pages. §13's page rows follow (MOB-4): Insert blank page after,
+ * Insert pages from file…, then Extract page…, Copy page and Paste pages after, as the
+ * thumbnail menu has them (`thumbnail-actions.ts`). §13's "Add … here" rows wait for their
+ * `place` commands with a point argument (§13 item 9), which do not exist yet.
  *
  * The page operations are `pages` acts (ADR-0030): offered in viewing and in Markup alike, and
  * dimmed while the document is locked (S8), as "Edit text here" is (a `text` act); Show in
@@ -33,11 +36,18 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { activateTool } from '../annotations/commands';
 import { penSession, pointerRole } from '../annotations/pen/ink-input';
 import { toolDefinition } from '../annotations/tools';
+import { ROTATE_TOAST_KEY } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { currentPlatform, type ParsedShortcut } from '../commands/shortcuts';
 import { m } from '../i18n';
 import { attachLongPress } from '../motion/gesture';
-import { announce } from '../shell/announcer';
+import {
+  copyPagesOf,
+  extractPagesOf,
+  insertBlankAfterPage,
+  insertFromFileAfterPage,
+  pasteAfterPage,
+} from '../shell/sidebar/thumbnail-actions';
 import { useSelectionStore } from '../state/selection-store';
 import { useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
@@ -73,13 +83,20 @@ function pageNumber(pageId: PageId): number | undefined {
   return location === undefined ? undefined : location.index + 1;
 }
 
-/** Rotates one page 90° (clockwise for a positive delta) and says which page turned. */
+/**
+ * Rotates one page 90° (clockwise for a positive delta) and says which page turned, with Undo:
+ * "Rotated page 3 right · Undo" (§13 item 6, S18), the one toast the grid's turns share.
+ */
 export function rotatePage(pageId: PageId, delta: 90 | -90): boolean {
   const number = pageNumber(pageId);
   if (number === undefined) return false;
+  const documentId = findPageLocation(useWorkspaceStore.getState().workspace, pageId)?.document;
   if (!useWorkspaceStore.getState().rotatePages([pageId], delta)) return false;
-  announce(
-    delta > 0 ? m.page_menu_rotated_right({ number }) : m.page_menu_rotated_left({ number }),
+  toast.undo(
+    delta > 0
+      ? m.toast_rotated_page_right({ page: number })
+      : m.toast_rotated_page_left({ page: number }),
+    { documentId, key: ROTATE_TOAST_KEY },
   );
   return true;
 }
@@ -211,6 +228,7 @@ export function PageContextMenu() {
   // the document is locked (ADR-0030), when they show dimmed (S8).
   const canPages = useCanChangeActive('pages');
   const canEditText = useCanChangeActive('text');
+  const hasClipboard = useSelectionStore((s) => (s.clipboard?.pageIds.length ?? 0) > 0);
   // Re-render when the page moves (its number changes) while the menu is open.
   useWorkspaceStore((s) => s.workspace);
   const restore = useRef<HTMLElement | null>(null);
@@ -357,6 +375,35 @@ export function PageContextMenu() {
                   icon={<Icon name="crop" className={styles.icon} />}
                   disabled={!canPages}
                   onClick={run(cropPage)}
+                />
+                <Item
+                  label={m.thumb_menu_insert_blank()}
+                  icon={<Icon name="plus-square" className={styles.icon} />}
+                  disabled={!canPages}
+                  onClick={run(insertBlankAfterPage)}
+                />
+                <Item
+                  label={m.cmd_insert_from_file()}
+                  icon={<Icon name="files" className={styles.icon} />}
+                  disabled={!canPages}
+                  onClick={run(insertFromFileAfterPage)}
+                />
+                <Menu.Separator className={menuStyles.separator} />
+                <Item
+                  label={m.page_menu_extract()}
+                  icon={<Icon name="arrow-square-out" className={styles.icon} />}
+                  onClick={run((id) => extractPagesOf([id]))}
+                />
+                <Item
+                  label={m.thumb_menu_copy()}
+                  icon={<Icon name="copy" className={styles.icon} />}
+                  onClick={run((id) => copyPagesOf([id]))}
+                />
+                <Item
+                  label={m.thumb_menu_paste_after()}
+                  icon={<Icon name="file-plus" className={styles.icon} />}
+                  disabled={!canPages || !hasClipboard}
+                  onClick={run(pasteAfterPage)}
                 />
                 <Menu.Separator className={menuStyles.separator} />
                 <Item

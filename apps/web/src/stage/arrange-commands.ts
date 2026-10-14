@@ -28,6 +28,8 @@ import {
   copyPages,
   cutPages,
   insertBlankAfter,
+  insertFromFileTarget,
+  insertPagesFromFile,
   movePagesToEdge,
   pastePages,
   pasteTarget,
@@ -237,6 +239,25 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
         insertBlankAfter();
       },
     }),
+    // "Insert pages from file…" (01-frame F5 §5, 04-context §10, §13; MOB-4): the picker's
+    // twin of a file dropped on a grid gap, by mouse, keyboard and touch alike.
+    registry.register({
+      id: 'pages.insertFromFile',
+      title: m.cmd_insert_from_file(),
+      group: pages,
+      act: 'pages',
+      documents: () => {
+        const target = insertFromFileTarget();
+        return target === undefined ? [] : [target.document];
+      },
+      keywords: ['import', 'append', 'merge into', 'add pdf', 'insert pdf', 'pages from file'],
+      when: () => insertFromFileTarget() !== undefined,
+      run: async () => {
+        const target = insertFromFileTarget();
+        // The picker needs this press's user activation: no await before it.
+        if (target !== undefined) await insertPagesFromFile(target);
+      },
+    }),
     registry.register({
       id: 'pages.resize',
       title: m.cmd_resize_pages(),
@@ -394,6 +415,8 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       act: null,
       keywords: ['combine', 'join', 'concatenate', 'append', 'one file', 'merge'],
       when: () => model().workspace.documentOrder.length > 1,
+      // The title menu's row stays and says why while one document is open (RA-21).
+      reason: () => m.combine_needs_open(),
       run: () => {
         openOperationDialog({ kind: 'combine' });
       },
