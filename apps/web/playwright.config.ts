@@ -162,6 +162,8 @@ export default defineConfig({
         '**/sidebar.spec.ts',
         // The Pages grid: J4 by touch, the pinch's sizes and its door to the page (spec D2-5).
         '**/pages-grid.spec.ts',
+        // Page operations by touch, checked on the exported bytes (MOB-4).
+        '**/pages-export.spec.ts',
         // The inspector's parts in their homes on the medium class (spec D2-9).
         '**/inspector-homes.spec.ts',
         // The light theme: no flash, the setting, axe in light on the tablet (spec D3-7).
