@@ -84,8 +84,6 @@ export interface CompactState {
   readonly typing: boolean;
   /** The reader's next zoom to a region (`requestZoom`); a new object each time. */
   readonly zoomRequest: ZoomRequest | null;
-}
-
   readonly overview: OverviewPhase;
   /** The overview's columns (2 · 3 · 4), kept for the session. */
   readonly overviewColumns: OverviewColumns;
