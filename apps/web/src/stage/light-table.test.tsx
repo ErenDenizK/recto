@@ -256,6 +256,46 @@ describe('light table', () => {
     });
   }, 30_000);
 
+  it('says a rotation in the grid with an Undo toast, as the page menu does (MOB-4)', async () => {
+    await openTwo();
+    const bar = await screen.findByRole('toolbar', { name: 'Selected pages' });
+    await userEvent.click(within(bar).getByRole('button', { name: 'Select' }));
+    await userEvent.click(within(grid('rotated-pages')).getAllByRole('gridcell')[0]!);
+    await waitFor(() => expect(within(bar).getByText('1 selected')).toBeInTheDocument());
+    const past = useWorkspaceStore.getState().history.past.length;
+    await userEvent.click(within(bar).getByRole('button', { name: 'Rotate right' }));
+    const toast = await screen.findByRole('group', { name: 'Rotated page 1 right' });
+    await userEvent.click(within(toast).getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(useWorkspaceStore.getState().history.past.length).toBe(past));
+    expect(within(grid('rotated-pages')).getAllByRole('gridcell')[0]).not.toHaveAccessibleName(
+      /rotated 90 degrees/,
+    );
+  }, 30_000);
+
+  it('keeps Move to in More when the Pages bar folds, and Insert pages from file… there (MOB-4)', async () => {
+    await page.viewport(820, 900);
+    const { simple, rotated } = await openTwo();
+    const bar = await screen.findByRole('toolbar', { name: 'Selected pages' });
+    await userEvent.click(within(bar).getByRole('button', { name: 'Select' }));
+    const moving = within(grid('simple-text')).getAllByRole('gridcell')[0]!;
+    const id = moving.dataset.pageId;
+    await userEvent.click(moving);
+    await waitFor(() => expect(within(bar).getByText('1 selected')).toBeInTheDocument());
+    // Folded: no Move to ▾ on the bar.
+    expect(bar.querySelector('[data-capsule-item="move-to"]')).toBeNull();
+    await userEvent.click(within(bar).getByRole('button', { name: 'More actions' }));
+    const more = await screen.findByRole('menu', { name: 'More actions' });
+    expect(within(more).getByRole('menuitem', { name: 'Insert pages from file…' })).toBeVisible();
+    await userEvent.click(within(more).getByRole('menuitem', { name: /^Move to/ }));
+    const moveTo = await screen.findByRole('menu', { name: 'Move to' });
+    await userEvent.click(within(moveTo).getByRole('menuitem', { name: /^rotated-pages/ }));
+    await waitFor(() => {
+      const ws = useWorkspaceStore.getState().workspace;
+      expect(ws.documents[rotated]?.pages.map((p) => p.id)).toContain(id);
+      expect(ws.documents[simple]?.pages).toHaveLength(2);
+    });
+  }, 30_000);
+
   it('shows the active document alone in This document, with no section header', async () => {
     await openTwo();
     useUiStore.getState().setGridScope('document');

@@ -40,6 +40,7 @@ export {
   cmd_pages_duplicate_keywords,
   cmd_pages_extract_keywords,
   cmd_pages_insert_blank_keywords,
+  cmd_pages_insert_from_file_keywords,
   cmd_pages_resize_keywords,
   cmd_pages_rotate_left_keywords,
   cmd_pages_rotate_right_keywords,

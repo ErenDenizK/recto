@@ -8,8 +8,7 @@
  * - **Static** (RA-21): rows stay where they are and dim with their reason ("Locked · unlock
  *   first", "Nothing changed since opening"); only the "Remove …" twins of page furniture and
  *   the repair rows appear just while there is something to remove or repair, as before.
- * - **Rows today's app has no command for** (Print…, Share…, Insert pages from file…,
- *   Apply redactions…) are left out until their packages bring them; every
+ * - **Rows today's app has no command for** (Print…, Share…, Apply redactions…) are left out until their packages bring them; every
  *   command of the "Document" group that no section names joins the last section, so tools
  *   registered elsewhere still appear.
  * - **Interim tail:** Settings…, Keyboard shortcuts and About Recto close the menu until the
@@ -25,6 +24,7 @@ import { type Command, commandRegistry } from '../../commands/registry';
 import { pickFiles } from '../../files/open-files';
 import { m } from '../../i18n';
 import { openSettings } from '../../settings/open-settings';
+import { openOperationDialog } from '../../stage/operation-dialogs-store';
 import { changeRefusal, refusalReason } from '../../state/guard';
 import { useSelectionStore } from '../../state/selection-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
@@ -78,6 +78,9 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
     id: 'pages',
     label: m.frame_section_pages,
     entries: [
+      // F5 §5's first two rows (MOB-4); "Merge files…" stays as the picker route to Combine.
+      command('pages.insertFromFile'),
+      command('documents.mergeAll'),
       { kind: 'merge' },
       command('section.split', { label: m.menu_split }),
       command('section.interleave'),
@@ -143,7 +146,9 @@ const ROW_GLYPHS: Readonly<Record<string, IconName>> = {
   'file.export': 'copy',
   'file.revert': 'arrow-counter-clockwise',
   'tab.close': 'x',
-  merge: 'stack',
+  'pages.insertFromFile': 'files',
+  'documents.mergeAll': 'stack',
+  merge: 'file-plus',
   'section.split': 'columns',
   'section.interleave': 'rows',
   rotate: 'arrow-clockwise',
@@ -253,18 +258,25 @@ export function shownTitleMenu(
 }
 
 /**
- * Combine (today's "Merge files…"): with several documents open, the merge dialog for all of
- * them; with one, a file picker first, then the same dialog (combining always goes through
- * the merge dialog until D2-5's Combine straight into the grid).
+ * "Merge files…" (MOB-4, research phone-2026-10 pages.md §1b B2): always asks for the files
+ * to add, then opens S15 Combine (`07-sheets` §17) with the open document first and the
+ * picked files after it, in the order picked. Combine makes a new document and keeps its
+ * sources (INV-12); the open documents not picked stay unchecked.
  */
 export async function mergeFiles(): Promise<void> {
-  const count = () => useWorkspaceStore.getState().workspace.documentOrder.length;
-  if (count() < 2) {
-    const files = await pickFiles('pdf');
-    if (files.length === 0) return;
-    await openDocuments(files);
-  }
-  if (count() > 1) await commandRegistry.execute('documents.mergeAll');
+  const ws = () => useWorkspaceStore.getState().workspace;
+  const active = ws().activeDocument;
+  // The picker needs this press's user activation: no await before it.
+  const files = await pickFiles('pdf');
+  if (files.length === 0) return;
+  const opened = await openDocuments(files);
+  const order = [...(active === undefined ? [] : [active]), ...opened].filter(
+    (id, index, all) => all.indexOf(id) === index && ws().documents[id] !== undefined,
+  );
+  if (order.length < 2) return;
+  // The person's document stays in view behind the sheet (the picked ones open as tabs).
+  if (active !== undefined) useWorkspaceStore.getState().setActive(active);
+  openOperationDialog({ kind: 'combine', order });
 }
 
 /** Rotates the scope (selected pages, else all) by `delta` degrees and says so. */

@@ -18,6 +18,7 @@ import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import {
   cutPages,
   edgeTarget,
+  insertionTarget,
   pagesFromSource,
   parityPages,
   pastePages,
@@ -69,6 +70,35 @@ function open(...specs: [string, number][]): {
 
 const pageIds = (ws: Workspace, doc: DocumentId): PageId[] =>
   ws.documents[doc]?.pages.map((p) => p.id) ?? [];
+
+describe('insertionTarget (Insert blank, Insert pages from file…)', () => {
+  it('lands after the focused target page, else the last one, across documents', () => {
+    const { ws, docs } = open(['report', 4], ['Invoice', 3]);
+    const [a, b] = docs as [DocumentId, DocumentId];
+    const [p1, p2, p3] = pageIds(ws, a);
+    const [q1] = pageIds(ws, b);
+    const none = { document: a };
+    expect(insertionTarget(ws, [p1!, p3!], p1!, none)).toEqual({ document: a, index: 1 });
+    expect(insertionTarget(ws, [p1!, p3!], null, none)).toEqual({ document: a, index: 3 });
+    expect(insertionTarget(ws, [p2!, q1!], p2!, none)).toEqual({ document: a, index: 2 });
+    expect(insertionTarget(ws, [p2!, q1!], null, none)).toEqual({ document: b, index: 1 });
+  });
+
+  it('with no target pages: after the page being read, else at the end; nothing open, none', () => {
+    const { ws, docs } = open(['report', 4]);
+    const [a] = docs as [DocumentId];
+    expect(insertionTarget(ws, [], null, { document: a, after: 1 })).toEqual({
+      document: a,
+      index: 2,
+    });
+    expect(insertionTarget(ws, [], null, { document: a, after: 9 })).toEqual({
+      document: a,
+      index: 4,
+    });
+    expect(insertionTarget(ws, [], null, { document: a })).toEqual({ document: a, index: 4 });
+    expect(insertionTarget(ws, [], null, { document: undefined })).toBeUndefined();
+  });
+});
 
 describe('planTransfer (drop and paste semantics)', () => {
   it('moves across documents with a readable label and the landing position', () => {

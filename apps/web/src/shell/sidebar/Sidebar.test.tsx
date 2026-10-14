@@ -190,6 +190,13 @@ describe('N2 thumbnail listbox', () => {
     const menu = await settled(await screen.findByTestId('thumbnail-menu'));
     expect(within(menu).getByRole('menuitem', { name: 'Delete page 2' })).toBeVisible();
     expect(within(menu).getByRole('menuitem', { name: 'Show in Pages grid' })).toBeVisible();
+    // N2 §5's row (MOB-4), after Insert blank page after.
+    const rows = within(menu)
+      .getAllByRole('menuitem')
+      .map((item) => item.textContent?.trim());
+    expect(rows.indexOf('Insert pages from file…')).toBe(
+      rows.indexOf('Insert blank page after') + 1,
+    );
     await userEvent.keyboard('{Escape}');
     await userEvent.keyboard('{Shift>}{ArrowDown}{/Shift}');
     await userEvent.keyboard('{Shift>}{F10}{/Shift}');

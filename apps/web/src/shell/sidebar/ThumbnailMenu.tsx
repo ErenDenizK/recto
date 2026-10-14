@@ -5,7 +5,8 @@
  * without moving (06.3), where Select comes first.
  *
  * Items: Select (coarse) · Rotate left · Rotate right · Delete · Crop… · Insert blank page
- * after · Extract to new document · Copy · Paste pages after · Show in Pages grid. Every change
+ * after · Insert pages from file… (MOB-4) · Extract to new document · Copy · Paste pages after
+ * · Show in Pages grid. Every change
  * is a `pages` act: dimmed while the document is locked; Delete is dimmed when it would remove
  * every page ("A document needs one page"). A Base UI menu at the pointer (or the row's corner
  * from the keyboard) in the menu material; focus returns to the row on close.
@@ -26,6 +27,7 @@ import {
   deletesEveryPage,
   extractPagesOf,
   insertBlankAfterPage,
+  insertFromFileAfterPage,
   pagesFor,
   pasteAfterPage,
   rotatePages,
@@ -199,6 +201,12 @@ export function ThumbnailMenu({
                   icon={icon('plus-square')}
                   disabled={!canPages}
                   onClick={() => insertBlankAfterPage(ids[ids.length - 1] ?? pageId)}
+                />
+                <Item
+                  label={m.cmd_insert_from_file()}
+                  icon={icon('files')}
+                  disabled={!canPages}
+                  onClick={() => void insertFromFileAfterPage(ids[ids.length - 1] ?? pageId)}
                 />
                 <Item
                   label={m.thumb_menu_extract()}

@@ -115,6 +115,7 @@ function MenuItems({
       <CommandItem command="pages.extract" label={m.action_move_to_new_document()} />
       <CommandItem command="pages.copyToNew" label={m.action_copy_to_new_document()} />
       <CommandItem command="pages.insertBlank" label={m.action_insert_blank_after()} />
+      <CommandItem command="pages.insertFromFile" label={m.cmd_insert_from_file()} />
       <CommandItem command="pages.resize" label={m.action_resize_pages()} />
       <CommandItem command="pages.crop" label={m.action_crop_pages()} />
       <ContextMenu.SubmenuRoot>
