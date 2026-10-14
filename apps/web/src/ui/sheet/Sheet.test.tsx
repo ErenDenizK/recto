@@ -446,4 +446,21 @@ describe('motion (quality-bar Q-7)', () => {
     await userEvent.keyboard('{Escape}');
     expect(panel).toHaveAttribute('inert');
   });
+
+  it('the exiting scrim takes no press: the page under it gets it at once (A-13; B7)', async () => {
+    render(<Harness kind="task" />);
+    const panel = panelOf();
+    await settle(panel);
+    const scrim = document.querySelector<HTMLElement>('[data-scrim]');
+    expect(scrim).not.toBeNull();
+    // Hidden from the tree while the modal sheet is open.
+    const under = screen.getByRole('button', { name: 'On the page', hidden: true });
+    const box = under.getBoundingClientRect();
+    await userEvent.keyboard('{Escape}');
+    // Still fading out, and still covering the page: a press reaches what is under it.
+    await waitFor(() => expect(scrim).toHaveAttribute('data-ending-style'));
+    expect(scrim?.isConnected).toBe(true);
+    expect(getComputedStyle(scrim as HTMLElement).pointerEvents).toBe('none');
+    expect(document.elementFromPoint(box.left + 2, box.top + 2)).toBe(under);
+  });
 });

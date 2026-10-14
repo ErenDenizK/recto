@@ -24,6 +24,13 @@
   opacity: 0;
 }
 
+/* Leaving, the scrim only fades: it takes no press, so the page under it is live from the
+   exit's first frame, as the inert panel is (A-13). A press there used to land on the fading
+   scrim and was lost: a drag in the grid right after Combine never started (MOB-4, B7). */
+.scrim[data-ending-style] {
+  pointer-events: none;
+}
+
 .panel {
   composes: mat mat-sheet s24 c20 from global;
   --sheet-bleed: 48px;

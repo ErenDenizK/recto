@@ -408,6 +408,36 @@ test('Combine with open documents goes straight into the grid, the sources kept'
   await expect(page.getByTestId('merge-all-dialog')).toHaveCount(0);
 });
 
+test('a quick mouse drag right after a sheet closes reorders, released with no pause (B7)', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName === 'webkit', "WebKit's Playwright cannot start a native drag");
+  test.skip(await coarse(page), 'the mouse drag; touch is J4');
+  await open(page, ['simple-text.pdf', 'rotated-pages.pdf']);
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByRole('combobox', { name: 'Search commands' }).fill('combine with open');
+  await page.keyboard.press('Enter');
+  await page
+    .getByTestId('combine-sheet')
+    .getByRole('button', { name: 'Combine', exact: true })
+    .click();
+  // At once: the sheet's scrim is still fading out over the grid (MOB-4, research
+  // phone-2026-10 pages.md §1b B7), and must not take the press.
+  await expect(cells(page)).toHaveCount(7);
+  const before = await order(page);
+  const from = await centreOf(cells(page).nth(4));
+  const to = await cells(page).nth(1).boundingBox();
+  if (!to) throw new Error('no target');
+  await page.mouse.move(from[0], from[1]);
+  await page.mouse.down();
+  await page.mouse.move(to.x + 4, to.y + to.height / 3, { steps: 8 });
+  await page.mouse.up();
+  await expect
+    .poll(() => order(page))
+    .toEqual([before[0], before[4], ...before.slice(1, 4), ...before.slice(5)]);
+});
+
 test('a drop on a tab after 500 ms moves the pages to that document', async ({
   page,
   browserName,
