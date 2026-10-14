@@ -251,6 +251,27 @@ describe('Undo toasts', () => {
     expect(opened).toBe(1);
   });
 
+  it('stays current when its own step grows by coalescing, and undoes the whole step (MOB-4)', async () => {
+    const before = useWorkspaceStore.getState().history.past.length;
+    const page = firstPage();
+    useWorkspaceStore.getState().rotatePages([page], 90);
+    toast.undo('Rotated page 1 right');
+    // A second quarter turn of the same page within the window (a few ms later, so the step
+    // gets a new stamp) merges into the step.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    useWorkspaceStore.getState().rotatePages([page], 90);
+    expect(useWorkspaceStore.getState().history.past).toHaveLength(before + 1);
+    const [shown] = useToastStore.getState().shown;
+    expect(shown?.text).toBe('Rotated page 1 right');
+    expect(shown?.action?.label).toBe('Undo');
+    shown?.action?.run();
+    const ws = useWorkspaceStore.getState().workspace;
+    const doc = ws.documents[ws.activeDocument as DocumentId];
+    expect(doc?.pages[0]?.rotation).toBe(0);
+    expect(useWorkspaceStore.getState().history.past).toHaveLength(before);
+    expect(shownTexts()).toEqual([]);
+  });
+
   it('stays, and still undoes its step, when another tab is activated', async () => {
     const first = useWorkspaceStore.getState().workspace.activeDocument as DocumentId;
     await useWorkspaceStore.getState().openFiles([await fixtureFile(simpleUrl, 'second.pdf')]);
