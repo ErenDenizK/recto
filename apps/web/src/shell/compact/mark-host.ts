@@ -96,17 +96,27 @@ export function startEditing(): void {
  * The page overlay slot (`CompactPage`): the layers the chunk mounts over each page while
  * editing, in drawing order (the dry ink, then the annotation layer, then a lane's own). Kept
  * here rather than in the full edition's `stage/page-overlays` registry, which the static
- * compact path does not load.
+ * compact path does not load. A layer registered with `reading` mounts in reading too, once
+ * the chunk is here (the form fields, MOB-1: a tap fills without ✎).
  */
-let overlays: readonly ComponentType<PageOverlayProps>[] = [];
+export interface CompactOverlay {
+  readonly Layer: ComponentType<PageOverlayProps>;
+  readonly reading: boolean;
+}
+
+let overlays: readonly CompactOverlay[] = [];
 const overlayListeners = new Set<() => void>();
 
-/** Adds a page layer for editing; returns its removal. */
-export function registerCompactOverlay(layer: ComponentType<PageOverlayProps>): () => void {
-  overlays = [...overlays, layer];
+/** Adds a page layer for editing (and reading, with `reading`); returns its removal. */
+export function registerCompactOverlay(
+  layer: ComponentType<PageOverlayProps>,
+  options: { readonly reading?: boolean } = {},
+): () => void {
+  const entry: CompactOverlay = { Layer: layer, reading: options.reading === true };
+  overlays = [...overlays, entry];
   for (const listener of overlayListeners) listener();
   return () => {
-    overlays = overlays.filter((l) => l !== layer);
+    overlays = overlays.filter((o) => o !== entry);
     for (const listener of overlayListeners) listener();
   };
 }
@@ -117,7 +127,7 @@ const subscribeOverlays = (listener: () => void) => {
 };
 const overlaySnapshot = () => overlays;
 
-/** The editing page layers, followed. */
-export function useCompactOverlays(): readonly ComponentType<PageOverlayProps>[] {
+/** The page layers, followed. */
+export function useCompactOverlays(): readonly CompactOverlay[] {
   return useSyncExternalStore(subscribeOverlays, overlaySnapshot, overlaySnapshot);
 }

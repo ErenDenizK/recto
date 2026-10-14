@@ -34,6 +34,8 @@ const COMPACT_SIGN_SPEC = '**/compact-sign.spec.ts';
 const COMPACT_DRAWER_LIST_SPEC = '**/compact-drawer-list.spec.ts';
 /** Editing text on phones (M10 WP5, EDN-17). */
 const COMPACT_EDIT_TEXT_SPEC = '**/compact-edit-text.spec.ts';
+/** Filling forms on phones (MOB-1). */
+const COMPACT_FORMS_SPEC = '**/compact-forms.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
   COMPACT_SPEC,
@@ -43,6 +45,7 @@ const PHONE_SPECS = [
   COMPACT_SIGN_SPEC,
   COMPACT_DRAWER_LIST_SPEC,
   COMPACT_EDIT_TEXT_SPEC,
+  COMPACT_FORMS_SPEC,
 ];
 /** The control-system audit (quality-bar Q-9, spec D0-3) runs on every density and edition. */
 const BAR_AUDIT_SPEC = '**/bar-audit.spec.ts';

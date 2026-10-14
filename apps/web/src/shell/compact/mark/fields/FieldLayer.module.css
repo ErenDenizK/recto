@@ -1,0 +1,81 @@
+/*
+ * The phone's form field layer and fill bar (MOB-1; FieldLayer.tsx, FillBar.tsx). The layer
+ * sits over the page (the reader places page layers at inset 0) and lets everything through
+ * but its targets; targets are invisible, at least 44 px (Q-9), and never start a text
+ * selection or the system callout under a long press. The editor, the ring and the tick come
+ * from the full edition's FormLayer.module.css, unchanged.
+ */
+.layer {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.slot {
+  display: contents;
+}
+
+.target {
+  composes: focus-inset from global;
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-page);
+  background: transparent;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.layer[data-live] .target {
+  pointer-events: auto;
+}
+
+/* While a form is filled, every fillable widget wears the page's selection wash (the desktop's
+   "Highlight fields"), so the next one is easy to find; the page itself is never tinted. */
+.wash {
+  position: absolute;
+  border-radius: var(--radius-page);
+  background: var(--select-muted);
+  box-shadow: inset 0 0 0 1px var(--select);
+  pointer-events: none;
+}
+
+/*
+ * The fill bar: the Text tool's Done bar (TextLayer.module.css `.bar`, its material, height and
+ * place on the keyboard), stretched between the side gutters: ‹ · label over count · › · Done.
+ */
+.bar {
+  left: max(16px, env(safe-area-inset-left, 0px));
+  gap: var(--space-half);
+}
+
+.what {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-1);
+  text-align: center;
+}
+
+.label {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-weight: 500;
+  line-height: var(--type-footnote-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  line-height: var(--type-caption-lh);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

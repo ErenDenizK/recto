@@ -9,9 +9,24 @@
  * Keys: Enter commits (Mod+Enter in a textarea), Esc reverts and closes, Tab / Shift+Tab
  * commit and move to the next / previous field in document order. Leaving the editor
  * commits. A commit is one history entry ("Fill Name") when the value changed.
+ *
+ * Three small hooks serve the phone's fill flow (MOB-1; research phone-2026-10/forms.md §2),
+ * each defaulting to the full edition's behaviour: `minFontPx` lays the control out at that
+ * font size at least and scales it back onto the widget (iOS zooms the page for a focused
+ * field under 16 px, as `setMinFieldFontPx` does for text boxes), `onMove` takes Tab and
+ * Shift+Tab instead of `moveField`, and `commitOpenFieldEditor` commits the open editor from
+ * outside it (the fill bar's ‹ and ›).
  */
 import type { FormField } from '@pdf-editor/engine';
-import { type CSSProperties, type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { m } from '../i18n';
 import type { Box, PageFrame } from '../viewer/geometry';
@@ -25,16 +40,51 @@ interface EditorProps {
   readonly here: ActiveField;
   readonly box: Box;
   readonly frame: PageFrame;
+  /** The least font size the control is laid out at, CSS px; scaled back onto the widget. */
+  readonly minFontPx?: number;
+  /** Tab and Shift+Tab, after the commit (default: `moveField`). */
+  readonly onMove?: (direction: 1 | -1) => void;
 }
 
-/** Placement of an editor over the widget; rotated pages turn the control with the page. */
+/** The open editor's commit, for `commitOpenFieldEditor`. */
+let openCommit: (() => void) | null = null;
+
+/** Commits the open field editor's value now, if one is open (it stays open). */
+export function commitOpenFieldEditor(): void {
+  openCommit?.();
+}
+
+/** Registers `commit` as the open editor's while it is mounted. */
+function useOpenCommit(commit: () => void): void {
+  const latest = useRef(commit);
+  useLayoutEffect(() => {
+    latest.current = commit;
+  });
+  useLayoutEffect(() => {
+    const run = () => latest.current();
+    openCommit = run;
+    return () => {
+      if (openCommit === run) openCommit = null;
+    };
+  }, []);
+}
+
+/**
+ * Placement of an editor over the widget; rotated pages turn the control with the page. A
+ * `lift` above 1 lays the control out that much larger and scales it back about its centre.
+ */
 function placement(
   box: Box,
   frame: PageFrame,
+  lift = 1,
 ): { style: CSSProperties; width: number; height: number } {
   const quarter = frame.rotation === 90 || frame.rotation === 270;
-  const width = quarter ? box.height : box.width;
-  const height = quarter ? box.width : box.height;
+  const width = (quarter ? box.height : box.width) * lift;
+  const height = (quarter ? box.width : box.height) * lift;
+  const turns = [
+    ...(frame.rotation === 0 ? [] : [`rotate(${frame.rotation}deg)`]),
+    ...(lift > 1 ? [`scale(${1 / lift})`] : []),
+  ];
   return {
     width,
     height,
@@ -43,13 +93,18 @@ function placement(
       top: box.top + box.height / 2 - height / 2,
       width,
       height,
-      ...(frame.rotation === 0 ? {} : { transform: `rotate(${frame.rotation}deg)` }),
+      ...(turns.length === 0 ? {} : { transform: turns.join(' ') }),
     },
   };
 }
 
+/** How much larger than the widget a control is laid out so its font reaches `minPx`. */
+function liftFor(fontSize: number, minPx: number | undefined): number {
+  return minPx === undefined ? 1 : Math.max(1, minPx / Math.max(1e-6, fontSize));
+}
+
 /** Font size (CSS px) that fits a single line in the widget, as viewers auto-size. */
-function fitFontSize(heightPx: number, scale: number, multiline: boolean): number {
+export function fitFontSize(heightPx: number, scale: number, multiline: boolean): number {
   const heightPt = heightPx / scale;
   const pt = multiline
     ? Math.min(12, Math.max(8, heightPt * 0.5))
@@ -62,6 +117,7 @@ function useEditorKeys(
   here: ActiveField,
   commit: () => void,
   revert: () => void,
+  onMove: ((direction: 1 | -1) => void) | undefined,
 ): (event: KeyboardEvent<HTMLElement>, allowEnter: boolean) => void {
   return (event, allowEnter) => {
     if (event.key === 'Escape') {
@@ -72,7 +128,9 @@ function useEditorKeys(
       event.preventDefault();
       event.stopPropagation();
       commit();
-      if (!moveField(here, event.shiftKey ? -1 : 1)) useFormStore.getState().setActive(null);
+      const direction = event.shiftKey ? -1 : 1;
+      if (onMove) onMove(direction);
+      else if (!moveField(here, direction)) useFormStore.getState().setActive(null);
     } else if (event.key === 'Enter' && (!allowEnter || event.metaKey || event.ctrlKey)) {
       event.preventDefault();
       event.stopPropagation();
@@ -122,7 +180,7 @@ function useCommit(here: ActiveField, original: FieldValue, current: () => Field
   return { commit, revert, blur };
 }
 
-export function TextEditor({ field, here, box, frame }: EditorProps) {
+export function TextEditor({ field, here, box, frame, minFontPx, onMove }: EditorProps) {
   const original = typeof field.value === 'string' ? field.value : '';
   const [text, setText] = useState(original);
   const textRef = useRef(text);
@@ -133,10 +191,14 @@ export function TextEditor({ field, here, box, frame }: EditorProps) {
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const listId = useId();
   const { commit, revert, blur } = useCommit(here, original, () => textRef.current);
-  const onKey = useEditorKeys(here, commit, revert);
-  const { style, width, height } = placement(box, frame);
+  useOpenCommit(commit);
+  const onKey = useEditorKeys(here, commit, revert, onMove);
   const multiline = field.multiline === true;
-  const fontSize = fitFontSize(height, frame.scale, multiline);
+  const quarter = frame.rotation === 90 || frame.rotation === 270;
+  const fitted = fitFontSize(quarter ? box.width : box.height, frame.scale, multiline);
+  const lift = liftFor(fitted, minFontPx);
+  const { style, width } = placement(box, frame, lift);
+  const fontSize = fitted * lift;
   const comb = field.comb === true && field.maxLength !== undefined && field.maxLength > 0;
   const combStyle: CSSProperties = {};
   if (comb && field.maxLength) {
@@ -205,7 +267,7 @@ export function TextEditor({ field, here, box, frame }: EditorProps) {
   );
 }
 
-export function ChoiceEditor({ field, here, box, frame }: EditorProps) {
+export function ChoiceEditor({ field, here, box, frame, minFontPx, onMove }: EditorProps) {
   const options = field.options ?? [];
   const multiple = field.kind === 'listbox' && field.multiSelect === true;
   const original: FieldValue = field.value;
@@ -224,16 +286,21 @@ export function ChoiceEditor({ field, here, box, frame }: EditorProps) {
     multiple ? initial : (initial[0] ?? ''),
     current,
   );
-  const onKey = useEditorKeys(here, commit, revert);
+  useOpenCommit(commit);
+  const onKey = useEditorKeys(here, commit, revert, onMove);
   const ref = useRef<HTMLSelectElement>(null);
   /** The pending change comes from the keyboard (arrows, letters): commit on Enter / leave. */
   const viaKeys = useRef(false);
-  const { style, height } = placement(box, frame);
-  const fontSize = fitFontSize(
+  const quarter = frame.rotation === 90 || frame.rotation === 270;
+  const height = quarter ? box.width : box.height;
+  const fitted = fitFontSize(
     field.kind === 'listbox' ? Math.min(height, 22 * frame.scale) : height,
     frame.scale,
     false,
   );
+  const lift = liftFor(fitted, minFontPx);
+  const { style } = placement(box, frame, lift);
+  const fontSize = fitted * lift;
 
   useEffect(() => {
     ref.current?.focus({ preventScroll: true });

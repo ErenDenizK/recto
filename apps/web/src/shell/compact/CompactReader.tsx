@@ -695,6 +695,53 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
     [],
   );
 
+  // A zoom to a region (MOB-1, the field being filled): the region's centre lands near the
+  // top of the band under the top bar (or stays where it is), its left edge in view.
+  useEffect(
+    () =>
+      useCompactStore.subscribe((state, previous) => {
+        const request = state.zoomRequest;
+        const el = scrollerRef.current;
+        if (!request || request === previous.zoomRequest || !el) return;
+        const { layout: current, frame: f, sizes: s, doc: d } = latest.current;
+        const index = d.pages.findIndex((page) => page.id === request.pageId);
+        const box = current.boxes[index];
+        const page = d.pages[index];
+        if (!box || !page) return;
+        const region = userRectToCss(
+          pageFrame({
+            sourceId: page.ref.kind === 'source' ? page.ref.source : undefined,
+            sourceIndex: page.ref.kind === 'source' ? page.ref.index : 0,
+            sizePt: s[index] ?? { width: 612, height: 792 },
+            rotation: pageTotalRotation(useWorkspaceStore.getState().workspace, page),
+            cssScale: current.scale,
+            page,
+          }),
+          request.rect,
+        );
+        const zoom = clampZoom(request.zoom);
+        const grow = zoom / current.zoom;
+        const centre = { x: region.left + region.width / 2, y: region.top + region.height / 2 };
+        const anchor = {
+          page: index,
+          fx: centre.x / Math.max(1, box.width),
+          fy: centre.y / Math.max(1, box.height),
+        };
+        let vx = box.left + centre.x - el.scrollLeft;
+        let vy = box.top + centre.y - el.scrollTop;
+        if (request.place === 'band') {
+          const wide = region.width * grow;
+          vx = wide > el.clientWidth - 32 ? 16 + wide / 2 : el.clientWidth / 2;
+          vy = f.padTop + Math.min(72, (region.height * grow) / 2 + 24);
+        }
+        setChromeHidden(false);
+        zoomAbout(zoom, anchor, vx, vy);
+      }),
+    // Handlers read the latest layout through `latest`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   // Remember the reading position per document, and restore it once on open.
   useEffect(() => {
     if (fingerprint === undefined) return;
