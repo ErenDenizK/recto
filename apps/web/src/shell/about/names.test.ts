@@ -92,6 +92,7 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:annotations:author:v1',
       'pdf-editor:appearance:v1',
       'pdf-editor:bates-last-number',
+      'pdf-editor:dev:glass-stats',
       'pdf-editor:dev:ink-stats',
       'pdf-editor:drawer:v1',
       'pdf-editor:edit-policy:v1',
