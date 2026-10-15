@@ -10,11 +10,11 @@
  * the pixels are the same on every machine. Written as 4-bit DeviceGray (MOB-12) through
  * Flate: the flat bed and paper compress to almost nothing; the type is the cost.
  */
-import { PDFName } from '@cantoo/pdf-lib';
+import { PDFName, setFillingRgbColor } from '@cantoo/pdf-lib';
 import { seededRandom } from '../../lib/common.ts';
 import { Canvas } from '../../lib/raster.ts';
-import type { PageCtx } from '../context.ts';
-import { type FkFont, PAGE_H, PAGE_W, openFont, r2 } from '../kit.ts';
+import { type PageCtx, type SlipRun, trySlip } from '../context.ts';
+import { FACES, type FkFont, PAGE_H, PAGE_W, openFont, r2, raw } from '../kit.ts';
 
 const DPI = 150;
 const PX = DPI / 72;
@@ -177,43 +177,17 @@ export function scanLetter(ctx: PageCtx): ScanImage {
   const lw = glyphWidth(bold, 9, label);
   glyphs(stamp, bold, 9, label, 62 - lw / 2, 16.5, stampAt);
 
-  // The routing label under the sheet (paper-clipped), carrying the try line.
-  const tag = new Canvas(W, H);
-  const lx = 64;
-  const ltop = SHEET.top + SHEET.h + 18;
-  const lwidth = 400;
-  const lines = wrap(sans, 9, c.tryLine, lwidth - 112);
-  const lh = 22 + lines.length * 12;
-  // Its border; the dot; TRY; the sentence.
-  tag.fillPolygons(rectOutline(lx * PX, ltop * PX, lwidth * PX, lh * PX, 0.9));
-  const dot: Pt[] = [];
-  for (let i = 0; i < 24; i++) {
-    const a = (i / 24) * Math.PI * 2;
-    dot.push(pagePx(lx + 16 + Math.cos(a) * 3, ltop + 16 + Math.sin(a) * 3));
-  }
-  tag.fillPolygons([dot]);
-  glyphs(
-    tag,
-    bold,
-    6.5,
-    ctx.copy.tryLabel.toLocaleUpperCase(ctx.copy.lang),
-    lx + 26,
-    ltop + 18.4,
-    pagePx,
-  );
-  lines.forEach((text, i) => glyphs(tag, sans, 9, text, lx + 66, ltop + 19 + i * 12, pagePx));
-  // A paper clip over the label's top edge and the sheet's foot.
+  // A paper clip on the letter's top edge.
   const clipPts: Pt[] = [];
-  const cxp = lx + lwidth - 28;
   const loop = [
-    [0, 30],
-    [0, -14],
-    [10, -14],
-    [10, 24],
-    [4, 24],
-    [4, -6],
+    [0, 34],
+    [0, -12],
+    [10, -12],
+    [10, 26],
+    [4, 26],
+    [4, -4],
   ] as const;
-  for (const [x, yy] of loop) clipPts.push(pagePx(cxp + x, ltop + yy));
+  for (const [x, yy] of loop) clipPts.push(place(196 + x, yy));
   const wire = new Canvas(W, H);
   wire.fillPolygons(strokePolys(clipPts, 1.4 * PX));
 
@@ -238,7 +212,6 @@ export function scanLetter(ctx: PageCtx): ScanImage {
   };
   const out = new Uint8Array(W * H);
   const fold = SHEET.h / 2;
-  const labelBox = [lx * PX, ltop * PX, (lx + lwidth) * PX, (ltop + lh) * PX];
   for (let py = 0; py < H; py++) {
     for (let px = 0; px < W; px++) {
       const [sx0, sy0] = inverse(px + 0.5, py + 0.5);
@@ -249,13 +222,6 @@ export function scanLetter(ctx: PageCtx): ScanImage {
         if (d < 2.2) tone = d < 0.5 ? PAPER : 240;
       } else if (sx0 > SHEET.w && sx0 < SHEET.w + 2 && sy0 > 3 && sy0 < SHEET.h + 2) tone = SHADOW;
       else if (sy0 > SHEET.h && sy0 < SHEET.h + 2 && sx0 > 3 && sx0 < SHEET.w + 2) tone = SHADOW;
-      if (
-        px >= (labelBox[0] as number) &&
-        px <= (labelBox[2] as number) &&
-        py >= (labelBox[1] as number) &&
-        py <= (labelBox[3] as number)
-      )
-        tone = PAPER;
       const i = py * W + px;
       // A steep tone curve: edges resolve to paper or ink, as on a scanner's text mode, which
       // also keeps the 4-bit image small.
@@ -269,7 +235,6 @@ export function scanLetter(ctx: PageCtx): ScanImage {
       );
       let v = tone - cover * (tone - INK);
       v -= Math.min(1, stamp.coverage[i] ?? 0) * (v - 120) * 0.75;
-      v -= Math.min(1, tag.coverage[i] ?? 0) * (v - 60);
       v -= Math.min(1, wire.coverage[i] ?? 0) * (v - 150);
       v -= Math.min(1, foot.coverage[i] ?? 0) * (v - 110);
       out[i] = posterize(v);
@@ -306,20 +271,6 @@ function glyphWidth(font: FkFont, size: number, text: string): number {
   );
 }
 
-function wrap(font: FkFont, size: number, text: string, width: number): string[] {
-  const lines: string[] = [];
-  let current = '';
-  for (const word of text.split(' ')) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (current && glyphWidth(font, size, candidate) > width) {
-      lines.push(current);
-      current = word;
-    } else current = candidate;
-  }
-  if (current) lines.push(current);
-  return lines;
-}
-
 /**
  * 8-bit grey → 4 bits a pixel, rows packed high nibble first. No predictor: on this page
  * (flat paper, a lot of type) plain Flate is the smallest (measured against Up, Sub and a
@@ -338,7 +289,12 @@ export function pack4(image: ScanImage): Uint8Array {
   return out;
 }
 
-/** The scan page: the image, full bleed, as a Figure with alt text. */
+/**
+ * The scan page: the image, full bleed, as a Figure with alt text; then the standard try slip
+ * over it (every page's slip, design §2), its shapes as paths and its type as stencil masks
+ * (1-bit images painted in the slip's colours), so the page still has no text layer: the facts
+ * chip and Recognize text's default scope keep finding it.
+ */
 export function scanPage(ctx: PageCtx): void {
   const { w, doc, copy } = ctx;
   const image = scanLetter(ctx);
@@ -352,15 +308,96 @@ export function scanPage(ctx: PageCtx): void {
     BitsPerComponent: 4,
   });
   const ref = doc.context.register(stream);
-  w.page.node.set(PDFName.of('Resources'), doc.context.obj({ XObject: { Im1: ref } }));
+  w.page.node.set(
+    PDFName.of('Resources'),
+    doc.context.obj({ XObject: { Im1: ref }, Font: {}, ExtGState: {} }),
+  );
   const figure = w.elem('Figure', w.sect, copy.scan.alt);
   const mcid = w.tags.mcid(w.index, figure);
   w.page.node.set(
     PDFName.of('Contents'),
-    doc.context.register(
-      doc.context.flateStream(
-        `/Figure <</MCID ${mcid}>> BDC q ${r2(PAGE_W)} 0 0 ${r2(PAGE_H)} 0 0 cm /Im1 Do Q EMC`,
+    doc.context.obj([
+      doc.context.register(
+        doc.context.flateStream(
+          `/Figure <</MCID ${mcid}>> BDC q ${r2(PAGE_W)} 0 0 ${r2(PAGE_H)} 0 0 cm /Im1 Do Q EMC`,
+        ),
       ),
-    ),
+    ]),
   );
+  trySlip(ctx, copy.scan.tryLine, {
+    raster: (runs) => {
+      const slip = w.elem('Figure', w.elem('Div'), copy.scan.tryLine);
+      runs.forEach((run, i) => {
+        const mask = stencil(run);
+        const name = `Mk${i + 1}`;
+        w.resource(
+          'XObject',
+          name,
+          doc.context.register(
+            doc.context.flateStream(mask.bits, {
+              Type: 'XObject',
+              Subtype: 'Image',
+              Width: mask.width,
+              Height: mask.height,
+              ImageMask: true,
+              BitsPerComponent: 1,
+              Decode: [1, 0],
+            }),
+          ),
+        );
+        w.figure(
+          slip,
+          setFillingRgbColor(...run.style.color),
+          raw(`${r2(mask.w)} 0 0 ${r2(mask.h)} ${r2(mask.x)} ${r2(mask.y)} cm /${name} Do`),
+        );
+      });
+    },
+  });
+}
+
+/** Stencil resolution of the slip's type. */
+const MASK_DPI = 300;
+
+/** One line of the slip's type as a 1-bit mask (1 = ink), with where it goes on the page. */
+function stencil(run: SlipRun): {
+  bits: Uint8Array;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+} {
+  const spec = FACES[run.style.face];
+  const font = openFont(spec.file);
+  const scale = run.style.size / font.unitsPerEm;
+  const glyphRun = font.layout(run.text, spec.features);
+  const tracking = run.style.tracking ?? 0;
+  const advance = glyphRun.glyphs.reduce((n, g) => n + g.advanceWidth * scale + tracking, 0);
+  const x = run.x - 1;
+  const y = run.y - run.style.size * 0.3;
+  const wPt = advance + 2;
+  const hPt = run.style.size * 1.3;
+  const px = MASK_DPI / 72;
+  const width = Math.ceil(wPt * px);
+  const height = Math.ceil(hPt * px);
+  const canvas = new Canvas(width, height);
+  let pen = 1;
+  for (const glyph of glyphRun.glyphs) {
+    const ox = pen;
+    canvas.fillPath(glyph.path.commands, (gx, gy) => [
+      (ox + gx * scale) * px,
+      (hPt - run.style.size * 0.3 - gy * scale) * px,
+    ]);
+    pen += glyph.advanceWidth * scale + tracking;
+  }
+  const rowBytes = Math.ceil(width / 8);
+  const bits = new Uint8Array(rowBytes * height);
+  for (let r = 0; r < height; r++)
+    for (let c = 0; c < width; c++)
+      if ((canvas.coverage[r * width + c] ?? 0) >= 0.5) {
+        const k = r * rowBytes + (c >> 3);
+        bits[k] = (bits[k] ?? 0) | (0x80 >> (c & 7));
+      }
+  return { bits, width, height, x, y, w: wPt, h: hPt };
 }

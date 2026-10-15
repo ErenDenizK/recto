@@ -19,6 +19,8 @@ import {
   appendBezierCurve,
   setFillingRgbColor,
   fill,
+  setDashPattern,
+  setLineCap,
 } from '@cantoo/pdf-lib';
 import { type PageCtx, furniture, kicker, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
@@ -36,6 +38,7 @@ import {
   N8,
   N9,
   RIGHT,
+  RULE,
   type Rgb,
   STYLE,
   type Style,
@@ -115,6 +118,11 @@ export function contactPage(ctx: PageCtx): void {
     c.instruction,
     'right',
   );
+  // Ruled space for notes, as the letter's margin is: the page invites the pen and a note.
+  const notesTop = bottom - 70;
+  w.text(w.elem('P'), STYLE.label, LEFT, notesTop, c.notes.toLocaleUpperCase(copy.lang));
+  for (let ly = notesTop - 24; ly >= 116; ly -= 24)
+    w.art(setDashPattern([0.1, 3], 0), setLineCap(1), ...hairline(LEFT, ly, RIGHT, ly, RULE, 0.9));
   trySlip(ctx, cut(c.tryLine, ctx.edition));
 }
 

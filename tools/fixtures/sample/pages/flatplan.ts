@@ -26,6 +26,7 @@ import {
   PAGE_H,
   PAGE_W,
   PALE,
+  RIGHT,
   RULE,
   type Rgb,
   STYLE,
@@ -51,7 +52,7 @@ export function flatplanPage(ctx: PageCtx): void {
 
   const phone = edition === 'phone';
   const cols = phone ? 3 : 4;
-  const tileW = phone ? 104 : 98;
+  const tileW = phone ? 104 : 106;
   const tileH = tileW * (PAGE_H / PAGE_W);
   const gap = (MEASURE - cols * tileW) / (cols - 1);
   const rowGap = phone ? 26 : 28;
@@ -96,11 +97,11 @@ export function flatplanPage(ctx: PageCtx): void {
       w.paragraph([{ text: line, style: lineStyle }], {
         x: LEFT,
         y,
-        width: MEASURE - 40,
+        width: MEASURE,
         leading: phone ? 14 : 15,
       }).next - (phone ? 5 : 4);
   }
-  w.art(...hairline(LEFT, y - 6, LEFT + 28, y - 6, LIME_800, 1.5));
+  w.art(...hairline(LEFT, y - 6, RIGHT, y - 6, RULE));
   w.text(w.elem('P'), { face: 'sans', size: 9.5, color: MUTED }, LEFT, y - 24, c.end);
   if (y - 24 < 104)
     throw new Error(`flatplan (${edition}): the text runs into the slip (${r2(y - 24)})`);
@@ -228,7 +229,7 @@ export function miniature(id: string, x: number, y: number, w: number, h: number
         ...frame([0.925, 0.925, 0.925]),
         ...bar(52, 200, 420, 595, WHITE),
         ...lines(92, 740, 300, 18, 14, [0.6, 0.6, 0.6]),
-        ...bar(64, 120, 400, 46, WHITE),
+        ...bar(LEFT, 50, MEASURE, 40, PALE),
       ];
     case 'invoice':
       return [

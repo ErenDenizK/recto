@@ -61,12 +61,21 @@ export function agreementPage(ctx: PageCtx): void {
   for (const text of c.terms)
     y = w.paragraph([{ text, style: terms }], { x: LEFT, y, width: 420, leading: 15 }).next - 6;
 
-  // The card.
+  // The card: one rhythm. Every group is a label and its controls, groups 72 pt apart label to
+  // label (47 px at a phone's fit width: MOB-1's targets never overlap), plus 32 pt for the
+  // fee's second radio; the card ends one padding under the signature lines.
   const cardTop = y - 14;
-  const cardBottom = 112;
-  w.art(...roundRect(LEFT, cardBottom, MEASURE, cardTop - cardBottom, 10, PALE));
   const form = doc.getForm();
   const x0 = LEFT + PAD;
+  const l1 = cardTop - PAD - 44;
+  const l2 = l1 - PITCH;
+  const l3 = l2 - PITCH;
+  const l4 = l3 - PITCH - 32;
+  const l5 = l4 - PITCH;
+  const lineY = l5 - 44;
+  const cardBottom = lineY - 30;
+  if (cardBottom < 104) throw new Error(`agreement: the card overflows (${r2(cardBottom)})`);
+  w.art(...roundRect(LEFT, cardBottom, MEASURE, cardTop - cardBottom, 10, PALE));
   w.text(w.elem('H2'), { face: 'bold', size: 13, color: INK }, x0, cardTop - PAD - 10, c.cardTitle);
 
   const label = (x: number, ly: number, value: string) =>
@@ -74,6 +83,14 @@ export function agreementPage(ctx: PageCtx): void {
   const tag = (widget: PDFWidgetAnnotation | undefined) => {
     const ref = widget ? doc.context.getObjectRef(widget.dict) : undefined;
     if (ref instanceof PDFRef) w.tags.annot(w.elem('Form'), ref, w.page);
+  };
+  /** A check box or radio's box, centred 21 pt under its group's label line. */
+  const box = {
+    width: 14,
+    height: 14,
+    borderWidth: 1,
+    borderColor: rgb(...MUTED),
+    backgroundColor: rgb(...WHITE),
   };
   const textField = (name: string, title: string, x: number, top: number, width: number) => {
     label(x, top, title);
@@ -92,57 +109,39 @@ export function agreementPage(ctx: PageCtx): void {
     tag(tf.acroField.getWidgets()[0]);
   };
 
-  // Row 1: name and date; row 2: email.
-  let row = cardTop - PAD - 44;
-  textField('name', c.name, x0, row, 250);
-  textField('date', c.date, x0 + 270, row, 150);
-  row -= PITCH;
-  textField('email', c.email, x0, row, 250);
+  // Name and date; email.
+  textField('name', c.name, x0, l1, 250);
+  textField('date', c.date, x0 + 270, l1, 150);
+  textField('email', c.email, x0, l2, 250);
 
-  // Row 3: the fee, one radio group with two options 32 pt apart.
-  row -= PITCH;
-  label(x0, row, c.feeLabel);
+  // The fee: one radio group, its two options 32 pt apart.
+  label(x0, l3, c.feeLabel);
   const fee = form.createRadioGroup('fee');
   fee.acroField.dict.set(PDFName.of('TU'), PDFHexString.fromText(c.feeLabel));
-  const option = (value: string, text: string, oy: number) => {
-    fee.addOptionToPage(value, w.page, {
-      x: x0,
-      y: r2(oy - 3),
-      width: 14,
-      height: 14,
-      borderWidth: 1,
-      borderColor: rgb(...MUTED),
-      backgroundColor: rgb(...WHITE),
-    });
-    w.text(w.elem('P'), STYLE.ui, x0 + 24, oy + 0.5, text);
+  const option = (value: string, text: string, cy: number) => {
+    fee.addOptionToPage(value, w.page, { ...box, x: x0, y: r2(cy - 7) });
+    w.text(w.elem('P'), STYLE.ui, x0 + 24, cy - 3, text);
   };
-  option('transfer', c.feeTransfer, row - 26);
-  option('trust', c.feeTrust, row - 26 - 32);
+  option('transfer', c.feeTransfer, l3 - 21);
+  option('trust', c.feeTrust, l3 - 21 - 32);
   for (const widget of fee.acroField.getWidgets()) tag(widget);
   dropDownAppearances(doc, fee.acroField.getWidgets());
 
-  // Row 4: agree.
-  row -= PITCH + 32;
+  // Consent.
+  label(x0, l4, c.consentLabel);
   const agree = form.createCheckBox('agree');
-  agree.addToPage(w.page, {
-    x: x0,
-    y: r2(row - 26 - 3),
-    width: 14,
-    height: 14,
-    borderWidth: 1,
-    borderColor: rgb(...MUTED),
-    backgroundColor: rgb(...WHITE),
-  });
+  agree.addToPage(w.page, { ...box, x: x0, y: r2(l4 - 21 - 7) });
   agree.acroField.dict.set(PDFName.of('TU'), PDFHexString.fromText(c.agree));
   tag(agree.acroField.getWidgets()[0]);
   dropDownAppearances(doc, agree.acroField.getWidgets());
-  w.text(null, STYLE.ui, x0 + 24, row - 26 + 0.5, c.agree);
+  w.text(null, STYLE.ui, x0 + 24, l4 - 24, c.agree);
 
-  // Row 5: where to sign, a drawn line (the Sign tool places the signature on it).
-  row -= PITCH - 6;
-  label(x0, row, c.signature);
-  const lineY = row - 46;
+  // Where to sign, and the place and date beside it: drawn lines, as on paper (the Sign tool
+  // places the signature on the first).
+  label(x0, l5, c.signature);
+  label(x0 + 270, l5, c.place);
   w.art(...hairline(x0, lineY, x0 + 250, lineY, INK, 0.75));
+  w.art(...hairline(x0 + 270, lineY, x0 + 420, lineY, INK, 0.75));
   w.art(
     setStrokingRgbColor(...MUTED),
     setLineWidth(0.9),
@@ -153,7 +152,6 @@ export function agreementPage(ctx: PageCtx): void {
     lineTo(x0 + 2, lineY + 11),
     stroke(),
   );
-  if (lineY < cardBottom + 16) throw new Error(`agreement: the card overflows (${r2(lineY)})`);
 
   trySlip(ctx, cut(c.tryLine, ctx.edition));
 }

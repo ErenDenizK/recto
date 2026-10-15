@@ -17,7 +17,6 @@ import { type PageCtx, furniture, trySlip } from '../context.ts';
 import {
   INK,
   LEFT,
-  LIME_800,
   MEASURE,
   MUTED,
   N8,
@@ -112,7 +111,13 @@ export function invoicePage(ctx: PageCtx): void {
     }
   }
   w.text(w.elem('P'), { face: 'sans', size: 9, color: MUTED }, LEFT, boxTop - boxH - 24, c.terms);
-  w.art(...hairline(LEFT, boxTop - boxH - 46, LEFT + 28, boxTop - boxH - 46, LIME_800, 1.5));
+
+  // The printer's foot line, as on their stationery: a rule across the measure, a thank-you and
+  // what they keep, so the page ends where a real invoice does.
+  const footY = 124;
+  w.art(...hairline(LEFT, footY + 16, RIGHT, footY + 16, RULE));
+  w.text(w.elem('P'), { face: 'bold', size: 8.5, color: INK }, LEFT, footY, c.printer);
+  w.text(w.elem('P'), { face: 'sans', size: 8.5, color: MUTED }, RIGHT, footY, c.thanks, 'right');
 
   trySlip(ctx, c.tryLine);
 }

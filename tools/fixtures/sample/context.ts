@@ -81,7 +81,19 @@ export function kicker(ctx: PageCtx, y: number, value: string): void {
  * The try slip (design §2): a pale band across the measure, a ringed lime dot, TRY and one
  * sentence of at most two lines. Read last on the page (it is drawn last). Returns its top.
  */
-export function trySlip(ctx: PageCtx, sentence: string, opts: { dark?: boolean; y?: number } = {}) {
+/** A line of the slip's type, for a page that draws it as an image (the scan, no text layer). */
+export interface SlipRun {
+  readonly text: string;
+  readonly style: Style;
+  readonly x: number;
+  readonly y: number;
+}
+
+export function trySlip(
+  ctx: PageCtx,
+  sentence: string,
+  opts: { dark?: boolean; y?: number; raster?: (runs: readonly SlipRun[]) => void } = {},
+) {
   const { w } = ctx;
   const dark = opts.dark ?? false;
   const style: Style = { ...STYLE.ui, color: dark ? COVER_TEXT : INK };
@@ -98,13 +110,20 @@ export function trySlip(ctx: PageCtx, sentence: string, opts: { dark?: boolean; 
     ...disc(LEFT + 15, dotY, 3, LIME),
     ...(dark ? [] : ring(LEFT + 15, dotY, 3, LIME_800, 0.75)),
   );
-  w.text(
-    null,
-    { ...STYLE.label, color: dark ? LIME : LIME_800 },
-    LEFT + 25,
-    first,
-    up(ctx, ctx.copy.tryLabel),
-  );
+  const labelStyle: Style = { ...STYLE.label, color: dark ? LIME : LIME_800 };
+  if (opts.raster) {
+    opts.raster([
+      { text: up(ctx, ctx.copy.tryLabel), style: labelStyle, x: LEFT + 25, y: first },
+      ...lines.map((line, i) => ({
+        text: line.map((word) => word.parts.map((p) => p.text).join('')).join(' '),
+        style,
+        x: textX,
+        y: first - i * 12,
+      })),
+    ]);
+    return y0 + h;
+  }
+  w.text(null, labelStyle, LEFT + 25, first, up(ctx, ctx.copy.tryLabel));
   const div = w.elem('Div');
   w.paragraph([{ text: sentence, style }], { x: textX, y: first, width, leading: 12, parent: div });
   return y0 + h;

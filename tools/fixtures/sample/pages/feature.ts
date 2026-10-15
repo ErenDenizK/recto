@@ -123,24 +123,43 @@ export function featurePage(ctx: PageCtx): FeatureLayout {
     y = set.next;
   });
   const col1Last = y + LEADING;
-  // The logbook sidebar sits on the footnote's rule; the lines between it and P4 stay free.
+  // The logbook aside hangs 3½ free lines under P4 (the reflow room, R-8: breathing room, not a
+  // void) and holds as many of the logbook's entries as fit above the footnote.
   const logStyle: Style = { face: 'sans', size: 8.5, color: INK };
-  const logLines = w.breakLines(w.words([{ text: c.log, style: logStyle }]), COL_W - 38, 0, false);
-  const boxH = 30 + logLines.length * 12;
+  const entryLines = c.log.map(
+    (entry) =>
+      w.breakLines(w.words([{ text: entry, style: logStyle }]), COL_W - 38, 0, false).length,
+  );
+  const boxTop = col1Last - LEADING * (1 + FREE_LINES + 0.5);
+  let entries = 0;
+  let boxH = 30;
+  for (const lines of entryLines) {
+    const next = boxH + (entries > 0 ? 6 : 0) + lines * 12;
+    if (boxTop - next < footRule + 16) break;
+    boxH = next;
+    entries += 1;
+  }
+  if (entries === 0) throw new Error('feature: no room for the logbook aside');
+  // The card runs down to the footnote, so the column ends on it rather than on white.
   const boxY = footRule + 16;
-  const free = (col1Last - (boxY + boxH)) / LEADING - 1;
+  boxH = boxTop - boxY;
+  const free = (col1Last - boxTop) / LEADING - 1;
   if (free < FREE_LINES)
     throw new Error(`feature: ${free.toFixed(1)} free lines under P4, want ${FREE_LINES}`);
   const aside = w.elem('Aside');
   w.art(...roundRect(LEFT, boxY, COL_W, boxH, 6, PALE));
-  w.art(...hairline(LEFT + 14, boxY + boxH - 12, LEFT + 14, boxY + 12, LIME_800, 1.5));
-  w.text(w.elem('P', aside), STYLE.label, LEFT + 24, boxY + boxH - 19, up(c.logLabel));
-  w.paragraph([{ text: c.log, style: logStyle }], {
-    x: LEFT + 24,
-    y: boxY + boxH - 33,
-    width: COL_W - 38,
-    leading: 12,
-    parent: aside,
+  w.art(...hairline(LEFT + 14, boxTop - 12, LEFT + 14, boxY + 12, LIME_800, 1.5));
+  w.text(w.elem('P', aside), STYLE.label, LEFT + 24, boxTop - 19, up(c.logLabel));
+  let ly = boxTop - 33;
+  c.log.slice(0, entries).forEach((entry) => {
+    ly =
+      w.paragraph([{ text: entry, style: logStyle }], {
+        x: LEFT + 24,
+        y: ly,
+        width: COL_W - 38,
+        leading: 12,
+        parent: aside,
+      }).next - 6;
   });
   w.art(...hairline(LEFT, footRule, LEFT + 20, footRule, MUTED, 0.5));
   const note = w.elem('Note');

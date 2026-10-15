@@ -74,7 +74,7 @@ export interface SampleCopy {
     readonly footnote: string;
     /** The logbook sidebar under column 1's free lines. */
     readonly logLabel: string;
-    readonly log: string;
+    readonly log: readonly string[];
     readonly alt: string;
     readonly tryLine: Cut;
   };
@@ -86,6 +86,7 @@ export interface SampleCopy {
     readonly instruction: string;
     readonly alt: string;
     readonly roll: string;
+    readonly notes: string;
     readonly tryLine: Cut;
   };
   readonly agreement: {
@@ -100,8 +101,10 @@ export interface SampleCopy {
     readonly feeLabel: string;
     readonly feeTransfer: string;
     readonly feeTrust: string;
+    readonly consentLabel: string;
     readonly agree: string;
     readonly signature: string;
+    readonly place: string;
     readonly tryLine: Cut;
   };
   readonly scan: {
@@ -125,6 +128,7 @@ export interface SampleCopy {
     readonly payTitle: string;
     readonly pay: readonly (readonly [string, string])[];
     readonly terms: string;
+    readonly thanks: string;
     readonly tryLine: string;
   };
   readonly flatplan: {
@@ -241,7 +245,12 @@ const EN: SampleCopy = {
     footnote:
       '* Cape Ardıç and everyone in this article are fictional, like every name in this sample.',
     logLabel: 'FROM THE LOGBOOK',
-    log: '12 September. Wind SW 3, visibility good. Two boats out, two boats home. Light on at 19:21, all well.',
+    log: [
+      '12 September. Wind SW 3, visibility good. Two boats out, two boats home. Light on at 19:21, all well.',
+      '13 September. Fog. One boat late, home at 23:40.',
+      '14 September. Clear. Light on at 19:17, all well.',
+      '15 September. Rain, then clear. Light on at 19:15, all well.',
+    ],
     alt: 'The lighthouse’s first-order lens: rings of glass prisms around a small flame',
     tryLine: {
       full: 'Double-click any paragraph to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow.',
@@ -258,6 +267,7 @@ const EN: SampleCopy = {
     instruction: 'Pick one for page 3. — J.P.',
     alt: 'Contact sheet of twelve photographs from the lamp room: the lens, the stair, the logbook, a kettle, the sea, the lamp, the grey box, the keeper’s coat on its hook, the beam, a dog’s bowl, the door at dusk, the empty stair',
     roll: 'MARGIN 07 · ROLL 3',
+    notes: 'Notes for the printer',
     tryLine: {
       full: 'Circle the frame you would print with the Pen (P) or an ellipse (O), stamp it Approved, and add a note (N) to say why.',
       phone:
@@ -279,8 +289,10 @@ const EN: SampleCopy = {
     feeLabel: 'Your fee',
     feeTransfer: 'Pay my fee of €240 by bank transfer',
     feeTrust: 'Give my fee to the Cape Ardıç Lighthouse Trust',
+    consentLabel: 'Your consent',
     agree: 'I have read this agreement and accept it.',
     signature: 'Signature',
+    place: 'Place and date',
     tryLine: {
       full: 'Choose a field and type; Tab moves to the next one. Then add your signature on the line with Sign (G).',
       phone:
@@ -349,6 +361,7 @@ const EN: SampleCopy = {
       ['Phone', '+44 7700 900412'],
     ],
     terms: 'Payment within 30 days. Please quote the invoice number.',
+    thanks: 'Thank you for printing with us. Proofs and plates are kept for a year.',
     tryLine:
       'Before you forward this invoice, black out the bank details: choose Redact (X), then Find sensitive data, then Apply redactions.',
   },
@@ -502,7 +515,12 @@ const TR: SampleCopy = {
     footnote:
       '* Ardıç Burnu ve bu yazıdaki herkes kurgusaldır; bu örnek belgedeki bütün adlar gibi.',
     logLabel: 'NÖBET DEFTERİNDEN',
-    log: '12 Eylül. Rüzgâr GB 3, görüş iyi. İki tekne çıktı, iki tekne döndü. Işık 19.21’de yandı, her şey yolunda.',
+    log: [
+      '12 Eylül. Rüzgâr GB 3, görüş iyi. İki tekne çıktı, iki tekne döndü. Işık 19.21’de yandı, her şey yolunda.',
+      '13 Eylül. Sis. Bir tekne geç kaldı, 23.40’ta döndü.',
+      '14 Eylül. Açık hava. Işık 19.17’de yandı, her şey yolunda.',
+      '15 Eylül. Yağmur, sonra açık. Işık 19.15’te yandı, her şey yolunda.',
+    ],
     alt: 'Fenerin birinci derece merceği: küçük bir alevin çevresinde cam prizma halkaları',
     tryLine: {
       full: 'Sözcüklerini değiştirmek için herhangi bir paragrafa çift tıklayın. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin.',
@@ -519,6 +537,7 @@ const TR: SampleCopy = {
     instruction: '3. sayfa için birini seçin. — J.P.',
     alt: 'Fener odasından on iki fotoğraflık temas baskısı: mercek, merdiven, nöbet defteri, bir çaydanlık, deniz, lamba, gri kutu, bekçinin askıdaki ceketi, ışık huzmesi, bir köpek kabı, alacakaranlıkta kapı, boş merdiven',
     roll: 'KENAR 07 · FİLM 3',
+    notes: 'Matbaaya notlar',
     tryLine: {
       full: 'Basılacak kareyi Kalem (P) ya da elips (O) ile daire içine alın, Onaylandı damgası vurun ve nedenini bir notla (N) yazın.',
       phone:
@@ -540,8 +559,10 @@ const TR: SampleCopy = {
     feeLabel: 'Ücretiniz',
     feeTransfer: '240 € ücretimi banka havalesiyle ödeyin',
     feeTrust: 'Ücretimi Ardıç Burnu Feneri Vakfı’na bağışlayın',
+    consentLabel: 'Onayınız',
     agree: 'Bu sözleşmeyi okudum ve kabul ediyorum.',
     signature: 'İmza',
+    place: 'Yer ve tarih',
     tryLine: {
       full: 'Bir alanı seçip yazın; Sekme tuşu sonrakine geçer. Ardından İmzala (G) ile çizginin üzerine imzanızı ekleyin.',
       phone:
@@ -610,6 +631,7 @@ const TR: SampleCopy = {
       ['Telefon', '+90 212 000 04 12'],
     ],
     terms: 'Ödeme 30 gün içindedir. Lütfen fatura numarasını belirtin.',
+    thanks: 'Bizimle bastığınız için teşekkür ederiz. Provalar ve kalıplar bir yıl saklanır.',
     tryLine:
       'Bu faturayı iletmeden önce banka bilgilerini karartın: Karart’ı (X), ardından Hassas verileri bul’u, sonra Karartmaları uygula’yı seçin.',
   },
