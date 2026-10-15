@@ -145,13 +145,13 @@ export async function openPdf(file: File, replaces?: string): Promise<boolean> {
 }
 
 /**
- * The Library's Try the sample (02-library L10, V2 review item 24): the teaching sample in the
- * UI's language, opened as the one document like any file (`openPdf`), not as a tab of the
- * full shell (`openSample`). A failure says why in a toast (`loadSampleFile`).
+ * The Library's Try the sample (02-library L10, V2 review item 24): the teaching sample's phone
+ * cut in the UI's language (MOB-12), opened as the one document like any file (`openPdf`), not
+ * as a tab of the full shell (`openSample`). A failure says why in a toast (`loadSampleFile`).
  */
 export async function trySample(): Promise<void> {
   if (useCompactStore.getState().opening) return;
-  const file = await loadSampleFile(getLocale() === 'tr' ? 'tr' : 'en', []);
+  const file = await loadSampleFile(getLocale() === 'tr' ? 'tr' : 'en', 'compact', []);
   if (file !== undefined) await openPdf(file);
 }
 

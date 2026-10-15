@@ -49,7 +49,7 @@ describe('CompactLibrary', () => {
   it('offers the sample as a card named Try the sample', () => {
     render(<CompactLibrary />);
     const sample = screen.getByRole('button', { name: 'Try the sample' });
-    expect(sample).toHaveAccessibleDescription('A short tour to try every tool on.');
+    expect(sample).toHaveAccessibleDescription('A small magazine to try your phone’s tools on.');
     expect(sample).toHaveAttribute('data-testid', 'compact-sample');
     expect(height(sample)).toBeGreaterThanOrEqual(44);
   });

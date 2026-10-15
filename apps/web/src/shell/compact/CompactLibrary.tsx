@@ -21,7 +21,7 @@
  *
  * A file that did not open leaves one line saying why (`role="alert"`), under the sample.
  */
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { BrandMark } from '../../brand/BrandMark';
 import {
@@ -169,58 +169,57 @@ function SampleCard({ disabled }: { readonly disabled: boolean }) {
 }
 
 /*
- * The sample's first page (`public/sample/`, tools/fixtures/sample-fixture.ts), drawn in its own
- * proportions: the running head, the title and its lime rule, the body with its highlighted
- * sentence, the three numbered steps and the notes column. It is content, so it keeps the
- * page's own white and inks in both themes (ADR-0023 §2.1), as a Library card's thumbnail does.
+ * The sample's first page, the phone cut's cover (`public/sample/recto-sample-phone-*.pdf`,
+ * tools/fixtures/sample/pages/cover.ts; MOB-11), drawn in its own proportions from the page's
+ * coordinates: the dark ground, the masthead, the lime issue line, the beam (the aurora ramp)
+ * from the lighthouse over the sea, the three cover lines and the try slip. It is content, so
+ * it keeps the page's own colours in both themes (ADR-0023 §2.1), as a Library card's
+ * thumbnail does.
  */
-const INK = '#15171c';
+const COVER = '#0b0c0e';
 const LIME = '#c8fb3d';
-const BODY = [92, 104, 98, 106, 72];
-const NOTES = [76, 92, 108, 124, 140, 156, 172, 188, 204, 220, 236, 252];
+const PAPER = '#f4f5f7';
+const SEA = [192, 196, 201, 207, 214, 222, 231, 241, 251];
 
 function SamplePage() {
+  const beam = `${useId()}-beam`;
   return (
     <svg className={styles.samplePage} viewBox="0 0 210 297" aria-hidden="true">
-      <rect width="210" height="297" fill="#ffffff" />
-      <circle cx="18" cy="16" r="3" fill={LIME} />
-      <rect x="25" y="14" width="36" height="4" rx="2" fill={INK} opacity="0.35" />
-      <rect x="166" y="14" width="26" height="4" rx="2" fill={INK} opacity="0.35" />
-      <rect x="16" y="40" width="118" height="13" rx="2" fill={INK} />
-      <rect x="16" y="60" width="16" height="3.5" rx="1.75" fill={LIME} />
-      {BODY.map((width, i) => (
-        <rect
-          key={`b${i}`}
-          x="16"
-          y={74 + i * 10}
-          width={width}
-          height="4"
-          rx="2"
-          fill={INK}
-          opacity="0.45"
-        />
+      <defs>
+        <linearGradient id={beam} x1="1" x2="0" y1="0" y2="0">
+          <stop offset="0" stopColor="#edfa6d" />
+          <stop offset="0.41" stopColor="#cbff5f" />
+          <stop offset="1" stopColor="#69eaa3" />
+        </linearGradient>
+      </defs>
+      <rect width="210" height="297" fill={COVER} />
+      <rect x="18" y="16" width="56" height="2.5" rx="1.25" fill={PAPER} opacity="0.45" />
+      <rect x="18" y="27" width="172" height="34" rx="3" fill={PAPER} />
+      <rect x="18" y="72" width="62" height="3.5" rx="1.75" fill={LIME} />
+      <polygon points="160,166 0,127 0,186" fill={`url(#${beam})`} opacity="0.16" />
+      <polygon points="160,166 0,142 0,173" fill={`url(#${beam})`} />
+      {SEA.map((y) => (
+        <rect key={`s${y}`} x="0" y={y} width="210" height="0.7" fill="#2a2d35" />
       ))}
-      <rect x="14" y="111" width="96" height="9" rx="1" fill={LIME} opacity="0.85" />
+      <polygon points="124,192 160,186 210,190 210,206 124,198" fill="#13151a" />
+      <polygon points="157,187 163,187 162,169 158,169" fill={PAPER} />
+      <rect x="158" y="164" width="4" height="4" fill={LIME} />
       {[0, 1, 2].map((i) => (
-        <g key={`s${i}`}>
-          <circle cx="20" cy={142 + i * 14} r="4" fill={LIME} />
+        <g key={`c${i}`}>
+          <rect x="18" y={207 + i * 25} width="7" height="9" rx="1" fill={LIME} />
+          <rect x="31" y={207 + i * 25} width={[86, 46, 52][i]} height="4" rx="2" fill={PAPER} />
           <rect
-            x="30"
-            y={140 + i * 14}
-            width={[74, 70, 84][i]}
-            height="4"
-            rx="2"
-            fill={INK}
-            opacity="0.55"
+            x="31"
+            y={214 + i * 25}
+            width={[64, 78, 44][i]}
+            height="2.5"
+            rx="1.25"
+            fill={PAPER}
+            opacity="0.5"
           />
         </g>
       ))}
-      <rect x="140" y="40" width="0.8" height="232" fill={INK} opacity="0.18" />
-      <rect x="146" y="44" width="20" height="3" rx="1.5" fill={INK} opacity="0.35" />
-      {NOTES.map((y) => (
-        <rect key={`n${y}`} x="146" y={y} width="48" height="0.8" fill={INK} opacity="0.16" />
-      ))}
-      <rect x="16" y="280" width="178" height="0.8" fill={INK} opacity="0.16" />
+      <rect x="18" y="275" width="174" height="10" rx="2" fill="#16181d" />
     </svg>
   );
 }

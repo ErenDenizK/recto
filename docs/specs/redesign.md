@@ -529,7 +529,7 @@ source document, §6.16 lists it; those lines were applied on 2026-10-04.
 | 02.9 | Combine order | Card order of the checked cards | A |
 | 02.11 | Static selection bar | Compare and Combine always present, dimmed with a reason; flows' "exactly two" is the enabling condition | A |
 | 02.12 | Right-click on a card; Library keys | Right-click enters Select; F2 renames and Alt+Left/Right reorder join key map v2 | A |
-| 02.14 | Sample size and precache | Two files (EN, TR), ≤ 125 KB each; `globPatterns` adds `sample/*.pdf`; the sample joins Recents only once changed | A |
+| 02.14 | Sample size and precache | Four files, a full and a phone cut per language: ≤ 125 KB and ≤ 90 KB each, ≤ 312 KB together (MOB-12, MOB-13; was two files ≤ 125 KB); `globPatterns` adds `sample/*.pdf`; the sample joins Recents only once changed | A |
 | 02.17 | Phone selection count | The count moves into the Library head; the bar holds four labelled icons | A |
 | 02.18 | Library ⋯ | Try the sample · Combine files… · Batch… · Settings… · Keyboard shortcuts (fine pointer) · About Recto | A |
 | 02.19 | Dropping 2+ files | On a document: open as tabs, stay, toast "Opened 3 files · Show in Library"; on the Library: the new cards are selected | A |
@@ -704,7 +704,7 @@ Windows contrast theme. Secondary-text APCA stays a warning (0028.2).
 | Motion core | < 3 KB gzip | §7.4 | size check |
 | Fonts | 98 KB (Latin 73.4 + Turkish 24.6), replacing 130 KB plus 54 KB of mono | §4.1 | size check |
 | Icons | About 18 KB gzip of generated paths; `lucide-react` removed | research 20; `09-primitives` §30 | size check |
-| Sample | ≤ 250 KB, precached | 02.14 | build check |
+| Sample | ≤ 312 KB for all four files, precached (MOB-13; was ≤ 250 KB for two) | 02.14 | build check |
 | About page | ≤ 300 KB without video | presentation spec §3 | `about.spec.ts` |
 | Snapshots | Written within 2 s of each history step and on `visibilitychange: hidden`; ≤ 8 ms main-thread time per write, serialisation in a worker above 1 MB of changes **(judgement)** | ADR-0032 | `session.spec.ts` |
 | Pen | M8 targets kept: preview ≤ 1 frame, committed stroke visible ≤ 50 ms, no long task in a 64-path burst; the capsule's stroke fade costs no layout | ROADMAP M8; `qa/ink-latency-baseline.md` | `ink-latency.spec.ts` |
@@ -872,7 +872,7 @@ the lead commits, every review finding gets a test.
 | Id | Scope | Files | Depends on | Size | Acceptance |
 |---|---|---|---|---|---|
 | D4-1 | Library (`02-library` L1–L9, L12): launcher, field, head, lit cards with one-click open and Select, static selection bar, Combine without a dialog in card order, Recents with snapshots and thumbnails (02.Q1), drop overlay with light, ⋯ menu and footer | `home/` | D3, D0-7 | L | J1 2, J3 3 (2 by drop), J12 3 from the Library, J14 0–1 (`library.spec.ts`); the `textSafe` head-row rect; A-6 on Library thumbnails blocking; OM4 runs on this build |
-| D4-2 | Teaching sample: four pages in EN and TR built by `tools/fixtures`, precached, `?sample` and `?sample=tr` | `tools/fixtures/`, `apps/web/public/sample/`, `vite.config.ts` | D4-1 | M | ≤ 250 KB; `?sample` opens once and is removed from the address |
+| D4-2 | Teaching sample: Margin No. 07 (MOB-11), a full cut of 8 pages and a phone cut of 6 (MOB-12) in EN and TR built by `tools/fixtures`, precached, `?sample` and `?sample=tr` | `tools/fixtures/`, `apps/web/public/sample/`, `vite.config.ts` | D4-1 | M | ≤ 312 KB for the four files (MOB-13); `?sample` opens once and is removed from the address |
 | D4-3 | Facts chip and its ⓘ fold (L11), `pdf-editor:facts-seen:v1` | `home/facts/`, `shell/frame/` | D2-1 | M | J11 2 while the chip shows (10 s, A-24); once per file; Restored edits every restore |
 | D4-4 | Polish: empty states (FB11), honesty notice (FB9), haptics (FB13, Android), copy-check EN and TR, the decisions from the five-person test and the prototype checks | across families | D3 | M | Copy-check clean; every T·5 and T·P default confirmed or changed and recorded in §15 |
 | D4-5 | Media re-recording: the scripted scenes and social image through the M9 shell, both themes | `tools/media/` | D4-1 | M | Deploy workflow records every scene |

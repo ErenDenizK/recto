@@ -39,7 +39,8 @@ snaps back. That is the dead end the owner feels.
   three columns, no motion link between the page you were reading and its tile. It is the one
   surface on the phone that is not floating glass (contrast DSN-32, EDN-8's "superb, not a
   makeshift drawer"). A pinch inside the sheet does nothing (`07-sheet-after-pinch.png`).
-- The sample's page 4 says "Press 3 or pinch to see every page", which is false on a phone
+- (Fixed by MOB-12: the phone cut's own flatplan page says pinch.) The sample's page 4 says
+  "Press 3 or pinch to see every page", which is false on a phone
   (`tools/fixtures/sample-fixture.ts`; EDN-9 rewrites the sample for phones anyway).
 
 ### 1.3 Full edition (tablet)

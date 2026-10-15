@@ -92,11 +92,12 @@ export function CompactApp() {
       }),
     [],
   );
-  // `?sample` from the about page opens the teaching sample in the reader (D4-2).
+  // `?sample` from the about page opens the teaching sample's phone cut in the reader (D4-2,
+  // MOB-12).
   useEffect(
     () =>
       openSampleFromLink(async (locale) => {
-        const file = await loadSampleFile(locale, []);
+        const file = await loadSampleFile(locale, 'compact', []);
         if (file !== undefined) await openPdf(file);
       }),
     [],

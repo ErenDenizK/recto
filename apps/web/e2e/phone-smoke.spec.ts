@@ -92,7 +92,9 @@ for (const size of SIZES) {
         const box = await pages.boundingBox();
         if (!box) throw new Error('no reader');
         const x = box.x + box.width / 2;
-        const y = box.y + box.height / 2;
+        // A third of the way down: the sample's cover (MOB-11), clear of its links, which a tap
+        // follows.
+        const y = box.y + box.height / 3;
         const zoom = async () => Number(await pages.getAttribute('data-zoom'));
         expect(await zoom()).toBe(1);
         // Two taps inside the double-tap window, from an idle main thread.
