@@ -1,9 +1,11 @@
 // page.evaluate callbacks run in the browser.
 /**
- * The teaching sample (redesign D4-2; components/02-library.md §11, L10; flows.md §9.2):
- * `?sample` and `?sample=tr` open it once after launch and leave the address, so a reload opens
- * no second copy; with a restored session it opens as one more tab; and the service worker's
- * precache opens it offline after one visit.
+ * The teaching sample (MOB-11, MOB-12; redesign D4-2; components/02-library.md §11, L10;
+ * flows.md §9.2): `?sample` and `?sample=tr` open the full cut once after launch and leave the
+ * address, so a reload opens no second copy; with a restored session it opens as one more tab;
+ * the cover's lines open their pages; and the service worker's precache holds all four files
+ * and opens the sample offline after one visit. The pages come from the manifest
+ * (`sample-manifest.ts`), so the specs follow the sample.
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -14,6 +16,9 @@ import {
   waitForSnapshot,
   openDocumentTitles,
 } from './helpers';
+import { SAMPLE_FILES, sampleEntry } from './sample-manifest';
+
+const FULL = sampleEntry('en', 'full');
 
 const sampleTabs = (page: Page) => page.getByRole('tab', { name: /^Recto (sample|örnek belge)/ });
 
@@ -60,15 +65,15 @@ test('?sample=tr opens the Turkish sample in an English UI', async ({ page }) =>
   await expectRendered(page);
 });
 
-test('Fill & sign on the welcome page brings the sample’s form into view', async ({ page }) => {
+test('Fill & sign on the cover brings the sample’s form into view', async ({ page }) => {
   // V2 review item 23: the door opened the Sign set and nothing on page 1 changed.
   await page.goto('./?sample');
   await expect(page.getByRole('tab', { name: 'Recto sample', selected: true })).toBeVisible({
     timeout: 20_000,
   });
   await expectRendered(page);
-  await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 4 · /);
-  const formPage = page.locator('[data-page-index="1"]');
+  await expect(page.getByTestId('page-pill')).toHaveText(new RegExp(`^1 / ${FULL.pageCount} · `));
+  const formPage = page.locator(`[data-page-index="${FULL.formPage - 1}"]`);
   await expect(formPage).not.toBeInViewport({ ratio: 0.3 });
   await page
     .locator('[data-capsule]')
@@ -80,6 +85,22 @@ test('Fill & sign on the welcome page brings the sample’s form into view', asy
   await expect(field).toBeInViewport();
   // The door focuses the palette, not the field: typing does not fill it yet.
   await expect(field).not.toBeFocused();
+});
+
+test('the cover’s lines open their pages (links)', async ({ page }) => {
+  await page.goto('./?sample');
+  await expect(page.getByRole('tab', { name: 'Recto sample', selected: true })).toBeVisible({
+    timeout: 20_000,
+  });
+  await expectRendered(page);
+  const pill = page.getByTestId('page-pill');
+  await expect(pill).toHaveText(new RegExp(`^1 / ${FULL.pageCount} · `));
+  const cover = page.locator('[data-page-index="0"] [data-testid="link-layer"]');
+  await expect(cover.locator('[data-link="internal"]')).toHaveCount(FULL.coverLinks.length);
+  const target = FULL.coverLinks[0] as number;
+  await cover.locator(`[data-link="internal"][aria-label="Go to page ${target}"]`).click();
+  await expect(page.locator(`[data-page-index="${target - 1}"]`)).toBeInViewport({ ratio: 0.3 });
+  await expect(pill).toHaveText(new RegExp(`^${target} / ${FULL.pageCount} · `));
 });
 
 test('the palette’s Try the sample opens a fresh copy each time', async ({ page }) => {
@@ -137,16 +158,17 @@ test.describe('offline', () => {
         timeout: 30_000,
       })
       .toBe(true);
-    // Both samples are in the precache.
+    // All four files, both cuts in both languages, are in the precache (MOB-12).
     const cached = await page.evaluate(async () => {
       const urls: string[] = [];
       for (const name of await caches.keys()) {
         const cache = await caches.open(name);
         urls.push(...(await cache.keys()).map((request) => request.url));
       }
-      return urls.filter((url) => /\/sample\/recto-sample-(en|tr)\.pdf/.test(url)).length;
+      return urls.filter((url) => /\/sample\/recto-sample-(phone-)?(en|tr)\.pdf/.test(url)).length;
     });
-    expect(cached).toBe(2);
+    expect(cached).toBe(SAMPLE_FILES.length);
+    expect(cached).toBe(4);
     // The engine wasm is warmed into its runtime cache once the shell is offline-ready.
     await expect
       .poll(

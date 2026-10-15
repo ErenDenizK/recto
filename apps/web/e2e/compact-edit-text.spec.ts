@@ -1,6 +1,7 @@
 /**
  * Editing text on phones (M10 WP5, EDN-17; design/phone-2026-10/README.md §3 row 1, §4), on the
- * `phone` project with CDP touch, on the sample (`?sample`): Edit text arms from the drawer; a
+ * `phone` project with CDP touch, on the sample's feature (`?sample`, the phone cut's justified
+ * article, MOB-11; its page and paragraph come from the manifest): Edit text arms from the drawer; a
  * tap on a paragraph puts the focus in an editable at once, inside the tap (the stand-in that
  * makes iOS raise the keyboard), and the paragraph editor's mirror takes it over once laid out,
  * in 16 px at least; the island steps away for the keyboard's Done; typing and Done commit the
@@ -16,6 +17,21 @@ import { join } from 'node:path';
 
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
+import { sampleEntry } from './sample-manifest';
+
+/**
+ * The feature page of the phone cut, 0-based, and the first words of its fourth paragraph, the
+ * last of column 1: free lines under it, so typed words grow into them and Done commits
+ * straight away (the second paragraph has no room and asks how to fit, design §4 p3).
+ */
+const FEATURE_INDEX = sampleEntry('en', 'phone').featurePage - 1;
+const PARAGRAPH: Readonly<Record<string, string>> = {
+  en: sampleEntry('en', 'phone').edit.p4?.start ?? '',
+  tr: sampleEntry('tr', 'phone').edit.p4?.start ?? '',
+};
+const paragraphStart = (page: Page) =>
+  page.evaluate(() => document.documentElement.lang || 'en').then((l) => PARAGRAPH[l] ?? '');
+
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 const WORD = 'Brightly';
 
@@ -30,10 +46,45 @@ async function shot(page: Page, name: string, settle = 400): Promise<void> {
   });
 }
 
+/** Opens the sample and brings the feature's fourth paragraph a third of the way down. */
 async function openSample(page: Page, lang = 'en'): Promise<void> {
   await page.goto(`./?sample&lang=${lang}`);
   await expect(page.getByTestId('compact-reader')).toBeVisible();
   await expect(page.locator('[data-page-index="0"] canvas').first()).toHaveAttribute(
+    'data-state',
+    'rendered',
+  );
+  await page.evaluate(
+    async ({ index, start }) => {
+      const scroller = document.querySelector<HTMLElement>('[data-read-viewport]');
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      const find = () =>
+        [...document.querySelectorAll(`[data-page-index="${index}"] [data-text-layer] span`)].find(
+          (el) => (el.textContent ?? '').startsWith(start),
+        );
+      for (let i = 0; i < 80 && scroller && !find(); i++) {
+        scroller.scrollTop += scroller.clientHeight / 2;
+        await frame();
+        await frame();
+      }
+      const span = find();
+      if (!scroller || !span) return;
+      // Past it, then back up to it, since a scroll up shows the chrome again.
+      const top =
+        scroller.scrollTop +
+        span.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top -
+        scroller.clientHeight / 3;
+      scroller.scrollTop = top + 80;
+      await frame();
+      await frame();
+      scroller.scrollTop = top;
+      await frame();
+      await frame();
+    },
+    { index: FEATURE_INDEX, start: PARAGRAPH[lang] ?? '' },
+  );
+  await expect(page.locator(`[data-page-index="${FEATURE_INDEX}"] canvas`).first()).toHaveAttribute(
     'data-state',
     'rendered',
   );
@@ -42,7 +93,8 @@ async function openSample(page: Page, lang = 'en'): Promise<void> {
 const capsule = (page: Page) => page.getByTestId('compact-capsule');
 const undo = (page: Page) => page.getByTestId('compact-undo');
 const mirror = (page: Page) => page.locator('[data-paragraph-mirror]');
-const pageText = (page: Page) => page.locator('[data-page-index="0"] [data-text-layer]');
+const pageText = (page: Page) =>
+  page.locator(`[data-page-index="${FEATURE_INDEX}"] [data-text-layer]`);
 
 const drawer = (page: Page) => page.getByTestId('compact-tool-drawer');
 
@@ -73,14 +125,12 @@ async function tap(cdp: CDPSession, at: { x: number; y: number }): Promise<void>
 }
 
 /**
- * A point at the start of the sample's first body paragraph on page 1 ("Recto reads, marks up",
- * in Turkish "Recto, PDF'leri"): its first text-layer line.
+ * A point at the start of the feature's fourth paragraph ("Nobody, that is, except", in
+ * Turkish "Nevin dışında kimsenin."): its first text-layer line.
  */
 async function paragraphPoint(page: Page): Promise<{ x: number; y: number }> {
-  const line = pageText(page)
-    .locator('span')
-    .filter({ hasText: /^Recto(,| reads)/ })
-    .first();
+  const start = await paragraphStart(page);
+  const line = pageText(page).locator('span').filter({ hasText: start }).first();
   await expect(line).toBeVisible();
   const box = await line.boundingBox();
   if (!box) throw new Error('no paragraph line on screen');
@@ -181,7 +231,7 @@ test.describe('editing text on phones (M10 WP5)', () => {
     const cdp = await page.context().newCDPSession(page);
 
     // A gap between pages is not a paragraph: nothing takes the focus.
-    const first = await page.locator('[data-page-index="0"]').boundingBox();
+    const first = await page.locator(`[data-page-index="${FEATURE_INDEX}"]`).boundingBox();
     if (!first) throw new Error('no page');
     await tap(cdp, { x: first.x + first.width / 2, y: first.y + first.height + 4 });
     expect(await editableFocused(page)).toBe(false);
@@ -366,16 +416,19 @@ test.describe('the selection bar’s Edit text (M10 WP5)', () => {
     const bar = page.getByTestId('compact-selection-bar');
     // The bar's watch comes with the edit chunk, fetched when the browser is idle.
     await expect(async () => {
-      await page.evaluate(() => {
-        const span = [
-          ...document.querySelectorAll('[data-page-index="0"] [data-text-layer] span'),
-        ].find((el) => (el.textContent ?? '').startsWith('Recto reads'));
-        if (!span) throw new Error('no paragraph line');
-        const range = document.createRange();
-        range.selectNodeContents(span);
-        getSelection()?.removeAllRanges();
-        getSelection()?.addRange(range);
-      });
+      await page.evaluate(
+        ({ index, start }) => {
+          const span = [
+            ...document.querySelectorAll(`[data-page-index="${index}"] [data-text-layer] span`),
+          ].find((el) => (el.textContent ?? '').startsWith(start));
+          if (!span) throw new Error('no paragraph line');
+          const range = document.createRange();
+          range.selectNodeContents(span);
+          getSelection()?.removeAllRanges();
+          getSelection()?.addRange(range);
+        },
+        { index: FEATURE_INDEX, start: PARAGRAPH.en ?? '' },
+      );
       await expect(bar).toBeVisible({ timeout: 1000 });
     }).toPass({ timeout: 15_000 });
 
@@ -387,7 +440,7 @@ test.describe('the selection bar’s Edit text (M10 WP5)', () => {
     await expect(capsule(page)).toHaveAttribute('data-editing');
     await expect(page.getByTestId('compact-tool-chip')).toHaveAccessibleName('Edit text');
     await expect(mirror(page)).toBeFocused({ timeout: 20_000 });
-    await expect(mirror(page)).toHaveText(/^Recto reads/);
+    await expect(mirror(page)).toHaveText(new RegExp(`^${PARAGRAPH.en}`));
     await page.getByTestId('compact-edit-text-done').click();
     await expect(mirror(page)).toHaveCount(0);
   });
