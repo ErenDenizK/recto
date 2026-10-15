@@ -380,20 +380,11 @@
 }
 
 /*
- * Light theme (visual-audit 2026-10 #7: page text showed strongly through the bottom bar): the
- * top bar (DSN-32), the capsule, the island and the edit button rest over the page itself,
- * black glyphs on white paper, where M2's light tint (0.69, at the floor of primary text, for the canvas and the aura)
- * lets every line read through. On a phone they take the sheet tier's denser tint (0.88; 0.9
- * under Glass Tinted, the solid under reduced transparency); the blur and the rims stay M2's,
- * and Glass Solid is solid as before (`materials.css` paints the tint only where glass
- * renders).
+ * Light theme: the top bar, the Find bar, the capsule, the island and the edit button take the
+ * bar tier as it is (glass v2, GLS-8 to GLS-11: its light tint, rim light and the adaptive look
+ * through `data-theme` on the piece), no longer the sheet tier's denser tint of visual audit
+ * 2026-10 #7.
  */
-:global([data-theme='light']) .topBar,
-:global([data-theme='light']) .findDock,
-:global([data-theme='light']) .capsule,
-:global([data-theme='light']) .edit {
-  --mat-tint: var(--glass-sheet-tint);
-}
 
 /*
  * The edit button (EDN-8; design/phone-2026-10/README.md §2): a 56 px circle of the capsule's
@@ -405,6 +396,8 @@
  */
 .edit {
   composes: mat mat-bar s10 from global;
+  /* A round button: the ring inside its rim (GLS-8). */
+  composes: mat-ring from global;
   display: inline-flex;
   flex: none;
   align-items: center;

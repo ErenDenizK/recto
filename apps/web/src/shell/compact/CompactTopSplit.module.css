@@ -106,12 +106,13 @@
 
 /*
  * ‹ and ⋯: 44 px circles of the capsule's M2 (coverage registry `compact-top-circle`; σ 7 is the
- * largest that covers 44 px, c 0.997), their glyphs 20 px (Q-9). In the light theme they take the
- * capsule's denser sheet tint over white pages (visual audit 2026-10 #7, as the capsule top).
+ * largest that covers 44 px, c 0.997), their glyphs 20 px (Q-9), with the round buttons' ring
+ * (GLS-8); the bar tier's own tint and adaptive look in both themes (glass v2).
  * Press: --press-scale (0.94 on touch, platform.md §2).
  */
 .circle {
   composes: mat mat-bar s7 from global;
+  composes: mat-ring from global;
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -149,10 +150,6 @@
 /* One press scale for both circles: the circle's own (`scale`), not the recipe's transform. */
 .row .circle:active {
   transform: none;
-}
-
-:global([data-theme='light']) .circle {
-  --mat-tint: var(--glass-sheet-tint);
 }
 
 /*
