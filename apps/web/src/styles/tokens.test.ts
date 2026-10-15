@@ -15,6 +15,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { INK, TINT } from '../annotations/palette';
+import { TONE_DARK_BELOW, TONE_LIGHT_ABOVE } from './adaptive-tone';
 import { apcaContrast } from './apca';
 import {
   COVERAGE_REGISTRY,
@@ -26,6 +27,13 @@ import {
 import focusCss from './focus.css?raw';
 import globalCss from './global.css?raw';
 import materialsCss from './materials.css?raw';
+import {
+  ADAPTIVE_TIERS,
+  FLOOR_BORDER,
+  floorSigma,
+  renderedSigma,
+  STEP3_SIGMA,
+} from './materials-css';
 import {
   CONTROL_TOKENS,
   GLASS_TIERS,
@@ -77,6 +85,9 @@ function splitLayers(value: string): string[] {
 }
 
 const tokensSource = stripComments(tokensCss);
+/** A selector as one line, as Biome's wrapping of a long one never changes what it says. */
+const folded = (selector: string) =>
+  selector.replace(/\s+/g, ' ').replace(/\(\s/g, '(').replace(/\s\)/g, ')').trim();
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** §1, the dark theme: `:root, [data-theme='dark'] { … }`. */
@@ -252,6 +263,36 @@ const BACKDROPS: readonly (readonly [string, () => Rgb])[] = [
 
 /** Text colours used on glass: the scoped remap in materials.css (`.mat`). */
 const GLASS_TEXT = ['--text-primary', '--glass-text-secondary', '--glass-danger', '--warning'];
+
+/**
+ * The adaptive look (GLS-9, `adaptive-tone.ts`): chips and bars turn light glass over a page
+ * brighter than Y 0.45 and dark below 0.20, so their dark look sits on backdrops up to the
+ * brightest grey under 0.45, and their light look down to the darkest grey over 0.20. The
+ * aurora's brightest pixel under glass (lemon, capped at 0.6) turns nothing, so the dark look
+ * holds over it too. Before a piece turns, primary text keeps AA over the opposite extreme.
+ */
+const ADAPTIVE: readonly GlassTier[] = ADAPTIVE_TIERS;
+const grey = (v: number): Rgb => [v, v, v];
+/** The brightest 8-bit grey at or under luminance `y`, and the darkest at or over. */
+const greyUnder = (y: number): Rgb => {
+  let v = 255;
+  while (v > 0 && relativeLuminance(grey(v)) > y) v--;
+  return grey(v);
+};
+const greyOver = (y: number): Rgb => {
+  let v = 0;
+  while (v < 255 && relativeLuminance(grey(v)) < y) v++;
+  return grey(v);
+};
+const SWITCH_DARK = greyUnder(TONE_LIGHT_ABOVE);
+const SWITCH_LIGHT = greyOver(TONE_DARK_BELOW);
+const LEMON = literal('#c8be34');
+/** The dark look's worst backdrop: white for the page tiers, the aurora's lemon otherwise. */
+const darkWorst = (tier: GlassTier): Rgb =>
+  tier === 'lit' || ADAPTIVE.includes(tier) ? LEMON : WHITE;
+/** Whether a tier shows its dark look over `backdrop` (adaptive tiers turn light above 0.45). */
+const darkOver = (tier: GlassTier, backdrop: Rgb): boolean =>
+  !ADAPTIVE.includes(tier) || relativeLuminance(backdrop) <= TONE_LIGHT_ABOVE;
 
 const AA_TEXT = 4.5;
 const AA_NON_TEXT = 3;
@@ -554,10 +595,10 @@ describe('tokens.css', () => {
       atLeast(contrast(on('--accent-line', frame), frame), 4.49, 'on the frame');
     });
 
-    it('fills armed tools ≥ 3:1 against every dark tier over a white page (A-3: 7.79 to 9.99)', () => {
+    it('fills armed tools ≥ 3:1 against every dark tier over a white page (A-3: 5.25 to 9.99)', () => {
       const minima: Readonly<Record<GlassTier, number>> = {
-        chip: 7.79,
-        bar: 7.91,
+        chip: 5.25,
+        bar: 5.18,
         panel: 9.99,
         menu: 9.69,
         sheet: 9.97,
@@ -567,6 +608,7 @@ describe('tokens.css', () => {
         atLeast(contrast(colour('--accent'), tierOver(tier, WHITE)), minima[tier], tier);
       }
       for (const [name, backdrop] of BACKDROPS) {
+        if (!darkOver('bar', backdrop())) continue;
         atLeast(contrast(colour('--tool-active-fill'), glassOver(backdrop())), AA_NON_TEXT, name);
       }
       atLeast(
@@ -653,8 +695,12 @@ describe('tokens.css', () => {
       expect(resolve('--glass-danger')).toBe('#ffa4a4');
       expect(resolve('--glass-warning')).toBe(resolve('--warning'));
       expect(resolve('--glass-success')).toBe(resolve('--success'));
-      expect(contrast(colour('--danger'), glassOver(WHITE))).toBeLessThan(AA_TEXT);
-      atLeast(contrast(colour('--glass-danger'), glassOver(WHITE)), 5.07, 'glass danger');
+      expect(contrast(colour('--danger'), glassOver(darkWorst('bar')))).toBeLessThan(AA_TEXT);
+      atLeast(
+        contrast(colour('--glass-danger'), glassOver(darkWorst('bar'))),
+        4.54,
+        'glass danger',
+      );
     });
 
     it('draws six tag dots ≥ 3:1 (all ≥ 4.43 on the wells), tag 4 lilac, none at the lime’s hue', () => {
@@ -698,20 +744,23 @@ describe('tokens.css', () => {
   });
 
   describe('materials: five tiers and lit glass (language.md §2.2, §2.6)', () => {
-    /** Over white, the composite, then primary · glass-sec · danger · warning, APCA P / S. */
+    /**
+     * Over white, the composite, then over the tier's worst backdrop primary · glass-sec ·
+     * danger · warning, APCA P / S. Chips and bars (GLS-8, GLS-9) are proven over the aurora's
+     * lemon and the switch grey; over white only their primary text, for the turn.
+     */
     const TABLE: Readonly<
       Record<GlassTier, readonly [string, number, number, number, number, number, number]>
     > = {
-      chip: ['#454648', 7.78, 5.07, 4.99, 5.47, 82, 56],
-      bar: ['#444548', 7.9, 5.14, 5.07, 5.55, 82, 56],
+      chip: ['#5f5f61', 7.11, 4.63, 4.56, 5.0, 80, 53],
+      bar: ['#5f6061', 7.08, 4.61, 4.54, 4.98, 80, 53],
       panel: ['#34363a', 9.97, 6.49, 6.4, 7.01, 87, 61],
       menu: ['#36383c', 9.68, 6.3, 6.21, 6.8, 86, 60],
       sheet: ['#34363b', 9.96, 6.49, 6.39, 7.0, 87, 61],
       // Lit glass is never over a page: its worst is the field's brightest pixel.
       lit: ['#57585d', 7.38, 4.8, 4.73, 5.19, 81, 54],
     };
-    const LEMON = literal('#c8be34');
-    const worst = (tier: GlassTier) => (tier === 'lit' ? LEMON : WHITE);
+    const worst = darkWorst;
 
     it.each(GLASS_TIERS)(
       '%s composites over white and its worst backdrop as the table says',
@@ -730,9 +779,31 @@ describe('tokens.css', () => {
       },
     );
 
+    it('switches chips and bars at #b2b2b2 and #7c7c7c and keeps primary text AA while they turn (GLS-9)', () => {
+      expect(hexOf(SWITCH_DARK)).toBe('#b2b2b2');
+      expect(hexOf(SWITCH_LIGHT)).toBe('#7c7c7c');
+      expect(ADAPTIVE).toEqual(['chip', 'bar']);
+      for (const tier of ADAPTIVE) {
+        // Before a dark piece over a white page turns light: primary text holds AA (5.19:1).
+        atLeast(contrast(colour('--text-primary'), tierOver(tier, WHITE)), 5.19, tier);
+        // At the switch the dark look is today's M1 over white: primary 7.78, secondary 5.07.
+        atLeast(contrast(colour('--text-primary'), tierOver(tier, SWITCH_DARK)), 7.78, tier);
+        atLeast(
+          contrast(colour('--glass-text-secondary'), tierOver(tier, SWITCH_DARK)),
+          5.07,
+          tier,
+        );
+        expect(lc(colour('--text-primary'), tierOver(tier, SWITCH_DARK))).toBeGreaterThanOrEqual(
+          75,
+        );
+      }
+    });
+
     it('keeps every page tier dark over white (Y ≤ 0.062, G-4); lit glass is forbidden there', () => {
       for (const tier of GLASS_TIERS.filter((t) => t !== 'lit')) {
-        expect(relativeLuminance(tierOver(tier, WHITE)), tier).toBeLessThanOrEqual(0.062);
+        // Chips and bars at the switch (GLS-9): over white they are light glass once turned.
+        const under = ADAPTIVE.includes(tier) ? SWITCH_DARK : WHITE;
+        expect(relativeLuminance(tierOver(tier, under)), tier).toBeLessThanOrEqual(0.062);
       }
       expect(relativeLuminance(tierOver('lit', WHITE))).toBeGreaterThan(0.062);
       expect(Number(resolve('--light-cap-under-glass'))).toBeLessThanOrEqual(0.6);
@@ -742,12 +813,14 @@ describe('tokens.css', () => {
       expect(tierOver('panel', canvas())).toEqual(colour('--surface-frame'));
       expect(tierOver('panel', canvas())).toEqual(colour('--glass-panel-solid'));
       // Chip and bar differ from the canvas by about 1.06–1.08:1: the rim carries their edge.
-      expect(tierOver('bar', canvas())).toEqual(literal('#131418'));
+      expect(tierOver('bar', canvas())).toEqual(literal('#0c0d11'));
       expect(tierOver('menu', canvas())).toEqual(literal('#1b1d22'));
     });
 
     it('keeps glass text AA over every backdrop of today’s floating glass', () => {
       for (const [name, backdrop] of BACKDROPS) {
+        // A backdrop over 0.45 turns the bar light: the light theme's block proves that look.
+        if (!darkOver('bar', backdrop())) continue;
         const glass = glassOver(backdrop());
         for (const text of GLASS_TEXT) {
           atLeast(contrast(colour(text), glass), AA_TEXT, `${text} over a ${name}`);
@@ -757,7 +830,8 @@ describe('tokens.css', () => {
 
     it('keeps glass text AA on each tier over white, the canvas, mid grey and black', () => {
       for (const tier of GLASS_TIERS.filter((t) => t !== 'lit')) {
-        for (const backdrop of [WHITE, canvas(), literal('#808080'), BLACK]) {
+        for (const backdrop of [WHITE, SWITCH_DARK, canvas(), literal('#808080'), BLACK]) {
+          if (!darkOver(tier, backdrop)) continue;
           const glass = tierOver(tier, backdrop);
           for (const text of GLASS_TEXT) {
             atLeast(contrast(colour(text), glass), AA_TEXT, `${text} on ${tier}`);
@@ -766,18 +840,19 @@ describe('tokens.css', () => {
       }
     });
 
-    it('measures states inside glass over white as §2.6 does (the tier densities rest on it)', () => {
+    it('measures states inside glass over white as §2.6 does (chips and bars at the switch grey)', () => {
       // [tier, hover glass-sec, pressed glass-sec, current primary, current glass-sec]
       const rows: readonly (readonly [GlassTier, number, number, number, number])[] = [
-        ['chip', 4.47, 4.07, 5.75, 3.75],
-        ['bar', 4.53, 4.13, 5.84, 3.8],
+        ['chip', 4.52, 4.12, 5.82, 3.79],
+        ['bar', 4.47, 4.07, 5.75, 3.75],
         ['panel', 5.66, 5.15, 7.17, 4.67],
         ['menu', 5.49, 4.99, 7.03, 4.58],
         ['sheet', 5.65, 5.15, 7.17, 4.67],
       ];
       const secondary = colour('--glass-text-secondary');
       for (const [tier, hover, pressed, currentP, currentS] of rows) {
-        const glass = tierOver(tier, WHITE);
+        // Chips and bars at the switch grey, the brightest page their dark look sits on.
+        const glass = tierOver(tier, ADAPTIVE.includes(tier) ? SWITCH_DARK : WHITE);
         expect(contrast(secondary, on('--surface-hover', glass)), `${tier} hover`).toBeCloseTo(
           hover,
           1,
@@ -810,8 +885,8 @@ describe('tokens.css', () => {
         '--surface-frame: --text-secondary Lc 52',
         '--surface-raised: --text-secondary Lc 51',
         '--surface-on: --text-secondary Lc 50',
-        'chip over its worst: --glass-text-secondary Lc 56',
-        'bar over its worst: --glass-text-secondary Lc 56',
+        'chip over its worst: --glass-text-secondary Lc 53',
+        'bar over its worst: --glass-text-secondary Lc 53',
         'lit over its worst: --glass-text-secondary Lc 54',
       ]);
     });
@@ -835,11 +910,16 @@ describe('tokens.css', () => {
     });
 
     it('defines the rims and e0–e5 of language.md §2.4 and §6.3', () => {
-      expect(resolve('--rim-edge')).toBe('0 0 0 1px rgb(0 0 0 / 0.5)');
-      // The inner light is a hairline specular edge (owner feedback 2026-10-09, G4): half a pixel.
-      expect(resolve('--rim-inner')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.12)');
-      expect(wash('--rim-top').alpha).toBe(0.34);
-      expect(wash('--rim-bottom').alpha).toBe(0.14);
+      expect(resolve('--rim-edge')).toBe('0 0 0 0.5px rgb(0 0 0 / 0.6)');
+      // The inner light is a hairline specular edge (owner feedback 2026-10-09, G4): half a pixel
+      // at the top left, a weaker one at the bottom right, and a soft top light (GLS-8).
+      expect(splitLayers(resolve('--rim-inner')).map((l) => l.trim())).toEqual([
+        'inset 0.5px 0.5px 0 rgb(255 255 255 / 0.16)',
+        'inset -0.5px -0.5px 0 rgb(255 255 255 / 0.06)',
+        'inset 0 12px 12px -12px rgb(255 255 255 / 0.1)',
+      ]);
+      expect(wash('--rim-top').alpha).toBe(0.42);
+      expect(wash('--rim-bottom').alpha).toBe(0.16);
       expect(resolve('--e0')).toBe('none');
       expect(splitLayers(resolve('--e3'))).toHaveLength(2);
       for (const e of ['--e1', '--e2', '--e4', '--e5']) {
@@ -890,14 +970,18 @@ describe('tokens.css', () => {
       expect(resolve('--rim-edge-strong')).toBe('0 0 0 1px rgb(0 0 0 / 0.6)');
       expect(wash('--rim-top-menu').alpha).toBe(0.3);
       expect(wash('--rim-bottom-menu').alpha).toBe(0.1);
-      expect(resolve('--rim-inner-menu')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.1)');
+      expect(splitLayers(resolve('--rim-inner-menu'))[0]?.trim()).toBe(
+        'inset 0 0.5px 0 rgb(255 255 255 / 0.1)',
+      );
       expect(wash('--rim-top-sheet').alpha).toBe(0.24);
       expect(wash('--rim-bottom-sheet').alpha).toBe(0.08);
-      expect(resolve('--rim-inner-sheet')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.08)');
+      expect(splitLayers(resolve('--rim-inner-sheet'))[0]?.trim()).toBe(
+        'inset 0 0.5px 0 rgb(255 255 255 / 0.08)',
+      );
       expect(resolve('--rim-inner-docked')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.06)');
       // The bar over a white page and over the canvas (e2e/glass-pixels.spec.ts samples them).
-      expect(glassOver(WHITE)).toEqual(literal('#444548'));
-      expect(glassOver(canvas())).toEqual(literal('#131418'));
+      expect(glassOver(WHITE)).toEqual(literal('#5f6061'));
+      expect(glassOver(canvas())).toEqual(literal('#0c0d11'));
     });
 
     it('draws the base solid first, its rim lit from above, edge, inner light and shadow', () => {
@@ -905,6 +989,8 @@ describe('tokens.css', () => {
       expect(base.get('background')).toBe('var(--mat-solid)');
       expect(base.get('border')).toBe('1px solid var(--border-glass)');
       expect(base.get('border-top-color')).toBe('var(--mat-rim-top)');
+      // The light's first lobe reaches down the leading side (GLS-8).
+      expect(base.get('border-inline-start-color')).toMatch(/var\(--mat-rim-top\)/);
       expect(base.get('border-bottom-color')).toBe('var(--mat-rim-bottom)');
       expect(base.get('--shadow-own')).toBe('var(--mat-edge), var(--mat-inner), var(--mat-shadow)');
       expect(base.get('box-shadow')).toBe('var(--shadow-own)');
@@ -916,7 +1002,8 @@ describe('tokens.css', () => {
       ).toMatch(/\.mat-docked\s*\{\s*border:\s*0;\s*\}/);
       expect(ruleOf('.mat-lit::before').get('mask')).toMatch(/content-box exclude/);
       // The tint and the text steps only where glass renders and Glass is not Solid.
-      const live = ruleOf(":where(:root:not([data-glass='solid'], [data-degrade='4'])) .mat");
+      // The ladder never turns a surface solid (GLS-10): only the setting does.
+      const live = ruleOf(":where(:root:not([data-glass='solid'])) .mat");
       expect(live.get('background')).toBe('var(--mat-tint)');
       expect(live.get('--text-secondary')).toBe('var(--glass-text-secondary)');
       expect(live.get('--danger')).toBe('var(--glass-danger)');
@@ -1077,7 +1164,7 @@ describe('tokens.css', () => {
       // materials.css: every blur rule waits for a root that is not Solid; the OS preferences
       // and forced colours turn both lines off whatever a rule says.
       for (const match of materials.matchAll(/([^{};]+)\{[^{}]*backdrop-filter: blur/g)) {
-        expect(match[1], 'a blur rule').toContain(":not([data-glass='solid']");
+        expect(folded(match[1] ?? ''), 'a blur rule').toContain(":not([data-glass='solid']");
       }
       const unwelcome =
         /@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\)\s*\{\s*\.mat\s*\{([^{}]*)\}/.exec(
@@ -1139,14 +1226,14 @@ describe('tokens.css', () => {
     /** Every rule of materials.css with a backdrop filter: selector and the two lines. */
     const filterRules = [...materials.matchAll(/([^{};]+)\{([^{}]*backdrop-filter[^{}]*)\}/g)].map(
       (match) => ({
-        selector: (match[1] ?? '').replace(/\s+/g, ' ').trim(),
+        selector: folded(match[1] ?? ''),
         prefixed: /-webkit-backdrop-filter:\s*([^;]+);/.exec(match[2] ?? '')?.[1]?.trim(),
         unprefixed: /(?:^|[\s;])backdrop-filter:\s*([^;]+);/.exec(match[2] ?? '')?.[1]?.trim(),
       }),
     );
     /** The chain `materials.css` must write for a tier at σ: literal, the tier's tokens. */
     const chain = (tier: GlassTier, sigma: number) =>
-      `blur(${sigma}px) ${resolve(`--glass-${tier}-filter`)}`;
+      `blur(${renderedSigma(tier, sigma)}px) ${resolve(`--glass-${tier}-filter`)}`;
     const rulesFor = (suffix: string) => filterRules.filter((r) => r.selector.endsWith(suffix));
 
     it('reproduces the language table (36 px bar at 7px 0.990, 64 px menu at 12px 0.992)', () => {
@@ -1179,7 +1266,7 @@ describe('tokens.css', () => {
         }
         expect(GLASS_TIERS).toContain(entry.tier);
         if (entry.docked) expect(entry.tier).toBe('panel');
-        if (entry.lens) expect(entry.tier).toBe('chip');
+        if (entry.lens) expect(ADAPTIVE).toContain(entry.tier);
       },
     );
 
@@ -1197,7 +1284,13 @@ describe('tokens.css', () => {
         const want = chain(entry.tier, entry.sigma);
         const cls = entry.oneRow ? `r${entry.sigma}` : `s${entry.sigma}`;
         const rules = filterRules.filter((r) => r.selector.includes(`.mat-${entry.tier}.${cls}`));
-        const own = rules.find((r) => !r.selector.endsWith('.lens') && !r.selector.endsWith('.cs'));
+        const own = rules.find(
+          (r) =>
+            !r.selector.endsWith('.lens') &&
+            !r.selector.endsWith('.cs') &&
+            !r.selector.includes("[data-theme='light']") &&
+            !r.selector.endsWith(']'),
+        );
         expect(own, `${entry.id}: .mat-${entry.tier}.${cls}`).toBeDefined();
         expect(own?.prefixed, entry.id).toBe(want);
         expect(own?.unprefixed, entry.id).toBe(want);
@@ -1224,9 +1317,18 @@ describe('tokens.css', () => {
       }
       for (const rule of filterRules) {
         if (rule.unprefixed === 'none !important' || rule.unprefixed === 'none') continue;
+        // The ladder's glass steps hold one rule per tier (GLS-10), the ring its own pass.
+        if (/^:where\(:root\[data-degrade='[34]'\]/.test(rule.selector)) {
+          expect(rule.prefixed, rule.selector).toBe(rule.unprefixed);
+          continue;
+        }
+        if (rule.selector.endsWith('::before')) {
+          expect(rule.unprefixed, rule.selector).not.toMatch(/blur/);
+          continue;
+        }
         const pair = /\.mat-\w+\.[schr]\d+/.exec(rule.selector)?.[0];
         expect(used.has(pair ?? ''), rule.selector).toBe(true);
-        if (rule.selector.endsWith('.lens')) {
+        if (/\.lens(?:\[data-theme='\w+'\])?$/.test(rule.selector)) {
           expect(rule.prefixed, rule.selector).toBeUndefined();
           expect(rule.unprefixed).toMatch(/^var\(--lens\) blur\(/);
           continue;
@@ -1283,6 +1385,38 @@ describe('tokens.css', () => {
         'c9',
         'h8',
       ]);
+    });
+
+    it('softens the cost ladder and never turns a surface solid (GLS-10)', () => {
+      const used = [...new Set(COVERAGE_REGISTRY.map((entry) => entry.tier))];
+      const step = (n: 3 | 4, tier: GlassTier) =>
+        filterRules.filter(
+          (r) =>
+            r.selector.startsWith(`:where(:root[data-degrade='${n}']`) &&
+            r.selector.endsWith(` .mat-${tier}`),
+        );
+      for (const tier of used) {
+        // Step 3: one reduced σ per tier, the tier's own chain.
+        const three = step(3, tier)[0];
+        expect(three?.unprefixed, `${tier} step 3`).toBe(
+          `blur(${STEP3_SIGMA[tier]}px) ${resolve(`--glass-${tier}-filter`)}`,
+        );
+        // Step 4, after the owner's Glass UI nav preset: 12 px (8 coarse), no saturate, never
+        // more than step 3 (a small piece keeps its coverage).
+        const four = step(4, tier).map((r) => r.unprefixed);
+        const floor = resolve(`--glass-${tier}-filter`).replace(/saturate\([^)]*\)\s*/, '');
+        expect(floorSigma(tier, false)).toBeLessThanOrEqual(Math.min(12, STEP3_SIGMA[tier]));
+        expect(four, `${tier} step 4`).toContain(`blur(${floorSigma(tier, false)}px) ${floor}`);
+        expect(four, `${tier} step 4 coarse`).toContain(
+          `blur(${floorSigma(tier, true)}px) ${floor}`,
+        );
+      }
+      const materials = stripComments(materialsCss);
+      expect(folded(materials)).toContain(
+        `:where(:root[data-degrade='4']:not([data-glass='solid'])) .mat { border-color: ${FLOOR_BORDER}; }`,
+      );
+      // Nothing in the file turns solid on a ladder step: only the setting and the OS do.
+      expect(materials).not.toMatch(/data-degrade='[34]'\]\)\s*\.mat[^{]*\{[^}]*--mat-solid/);
     });
 
     it('gives a one-row menu σ 8 through its own class, applied while it holds one child', () => {
@@ -1455,7 +1589,7 @@ describe('tokens.css', () => {
     const coarse = mediaOverrides('pointer: coarse), (any-pointer: coarse');
     const M4 = () => tierOver('menu', WHITE);
     const M5 = () => tierOver('sheet', WHITE);
-    const M2 = () => tierOver('bar', WHITE);
+    const M2 = () => tierOver('bar', darkWorst('bar'));
 
     it('defines the control tokens', () => {
       for (const name of CONTROL_TOKENS) expect(theme.has(name), name).toBe(true);
@@ -1470,7 +1604,7 @@ describe('tokens.css', () => {
       expect(resolve('--control-on-ink')).toBe(resolve('--n1'));
       atLeast(contrast(colour('--control-on-ink'), colour('--control-on')), 16.4, 'glyph');
       atLeast(contrast(colour('--control-on'), M5()), 9.96, 'on-fill vs M5');
-      atLeast(contrast(colour('--control-on'), M2()), 7.9, 'on-fill vs M2');
+      atLeast(contrast(colour('--control-on'), M2()), 7.08, 'on-fill vs M2');
       for (const surface of SURFACES) {
         atLeast(contrast(colour('--control-on'), colour(surface)), 7, surface);
       }
@@ -1770,9 +1904,11 @@ describe('tokens.css', () => {
       const line = tone('--accent-line');
       atLeast(contrast(line, WHITE), 6.57, 'lime-800 on white');
       atLeast(contrast(line, tone('--canvas')), 5.35, 'lime-800 on the canvas');
-      // M1 and M2 sit at the text floor (system-audit-2026-10 §3.5): their line is 4.05.
+      // The page tiers' line over black is 4.05 at least; chips and bars over the switch grey,
+      // the darkest page their light look sits on (GLS-9).
       for (const tier of GLASS_TIERS) {
-        atLeast(contrast(line, glass(tier, BLACK)), 4.05, `lime-800 on ${tier} over black`);
+        const under = ADAPTIVE.includes(tier) ? SWITCH_LIGHT : BLACK;
+        atLeast(contrast(line, glass(tier, under)), 4.05, `lime-800 on ${tier} over its worst`);
       }
       for (const token of ['--accent-subtle', '--accent-muted']) {
         expect(tint(token).rgb, token).toEqual(ink());
@@ -1823,8 +1959,10 @@ describe('tokens.css', () => {
           readonly [string, string, string, number, number, number, number, number, number, number]
         >
       > = {
-        chip: ['#cbcbcc', '#fcfcfd', '#f8f8fb', 11.06, 6.2, 5.04, 5.16, 11.06, 75, 63],
-        bar: ['#cbcbcc', '#fcfcfd', '#f8f8fb', 11.06, 6.2, 5.04, 5.16, 11.06, 75, 63],
+        // Chips and bars (GLS-8, GLS-9): the first column is over the switch grey, the darkest
+        // page their light look sits on; over black only primary text holds, for the turn.
+        chip: ['#cccccd', '#fdfdfe', '#fdfdfe', 11.17, 6.26, 5.09, 5.21, 11.17, 75, 64],
+        bar: ['#cccccd', '#fdfdfe', '#fdfdfe', 11.17, 6.26, 5.09, 5.21, 11.17, 75, 64],
         panel: ['#d4d5d6', '#fafafc', '#f7f8fa', 12.2, 6.84, 5.56, 5.69, 12.2, 80, 69],
         menu: ['#d9d9da', '#fbfbfd', '#f8f9fb', 12.71, 7.13, 5.79, 5.93, 12.71, 83, 71],
         sheet: ['#e8e8ea', '#fbfbfc', '#f9f9fb', 14.65, 8.21, 6.67, 6.83, 14.65, 91, 80],
@@ -1835,11 +1973,15 @@ describe('tokens.css', () => {
       ][]) {
         const [black, white, onCanvas, primary, secondary, danger, warning, fill, apcaP, apcaS] =
           row;
+        const adaptive = ADAPTIVE.includes(tier);
         expect(value(`--glass-${tier}-filter`), tier).toMatch(
-          /^saturate\([\d.]+\) contrast\(0\.45\) brightness\(1\.4\)$/,
+          adaptive
+            ? /^saturate\([\d.]+\) contrast\(0\.75\) brightness\(1\.33\)$/
+            : /^saturate\([\d.]+\) contrast\(0\.45\) brightness\(1\.4\)$/,
         );
-        const worst = glass(tier, BLACK);
-        expect(hexOf(worst), `${tier} over black`).toBe(black);
+        const worst = glass(tier, adaptive ? SWITCH_LIGHT : BLACK);
+        if (adaptive) atLeast(contrast(ink(), glass(tier, BLACK)), 5.06, `${tier} turning`);
+        expect(hexOf(worst), `${tier} over its worst`).toBe(black);
         expect(hexOf(glass(tier, WHITE)), `${tier} over white`).toBe(white);
         expect(hexOf(glass(tier, tone('--canvas'))), `${tier} over the canvas`).toBe(onCanvas);
         atLeast(contrast(ink(), worst), primary, `${tier} primary`);
@@ -1855,11 +1997,16 @@ describe('tokens.css', () => {
         // A-4: primary text holds APCA Lc 75 on every tier.
         expect(lc(ink(), worst)).toBeGreaterThanOrEqual(74.5);
       }
-      // Lit glass is dark only: its surfaces take the bar's values in light (spec 02.3).
-      for (const part of ['alpha', 'filter', 'solid', 'shadow']) {
+      // Lit glass is dark only: in light it keeps the floored recipe M2 had before GLS-8, the
+      // bar's solid and shadow (spec 02.3), floored over any pigment.
+      for (const part of ['solid', 'shadow']) {
         expect(value(`--glass-lit-${part}`), part).toBe(value(`--glass-bar-${part}`));
       }
-      expect(tint('--glass-lit-tint')).toEqual(tint('--glass-bar-tint'));
+      expect(value('--glass-lit-alpha')).toBe('0.69');
+      expect(value('--glass-lit-filter')).toBe('saturate(1.5) contrast(0.45) brightness(1.4)');
+      const lit = glass('lit', BLACK);
+      expect(hexOf(lit)).toBe('#cbcbcc');
+      expect(lc(ink(), lit)).toBeGreaterThanOrEqual(74.5);
       // The docked panel at rest lands within a level of the frame (n2).
       expect(
         channelGap(glass('panel', tone('--canvas')), tone('--surface-frame')),
@@ -1876,11 +2023,14 @@ describe('tokens.css', () => {
       for (const tier of GLASS_TIERS) {
         for (const backdrop of [
           BLACK,
+          SWITCH_LIGHT,
           literal('#808080'),
           tone('--canvas'),
           WHITE,
           literal('#2a6fd6'),
         ]) {
+          // Below 0.20 chips and bars turn dark: the dark block proves that look (GLS-9).
+          if (ADAPTIVE.includes(tier) && relativeLuminance(backdrop) < TONE_DARK_BELOW) continue;
           const under = glass(tier, backdrop);
           for (const text of texts) {
             atLeast(contrast(tone(text), under), AA_TEXT, `${text} on ${tier}`);
@@ -1989,10 +2139,14 @@ describe('tokens.css', () => {
     });
 
     it('draws white rims lit from above, an ink edge, and shadows in ink at 40 % (§2.4, §6.3)', () => {
-      expect(value('--rim-edge')).toBe('0 0 0 1px rgb(15 17 22 / 0.12)');
-      expect(value('--rim-inner')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.6)');
-      expect(tint('--rim-top')).toEqual({ rgb: WHITE, alpha: 0.85 });
-      expect(tint('--rim-bottom')).toEqual({ rgb: WHITE, alpha: 0.4 });
+      expect(value('--rim-edge')).toBe('0 0 0 0.5px rgb(15 17 22 / 0.2)');
+      expect(splitLayers(value('--rim-inner')).map((l) => l.trim())).toEqual([
+        'inset 0.5px 0.5px 0 rgb(255 255 255 / 0.7)',
+        'inset -0.5px -0.5px 0 rgb(255 255 255 / 0.35)',
+        'inset 0 12px 12px -12px rgb(255 255 255 / 0.5)',
+      ]);
+      expect(tint('--rim-top')).toEqual({ rgb: WHITE, alpha: 0.9 });
+      expect(tint('--rim-bottom')).toEqual({ rgb: WHITE, alpha: 0.5 });
       expect(tint('--border-glass').rgb).toEqual(ink());
       // The dark scale's geometry, ink at 40 % of each alpha.
       for (const e of ['--e1', '--e2', '--e3', '--e4', '--e5']) {
@@ -2018,7 +2172,7 @@ describe('tokens.css', () => {
       const materials = stripComments(materialsCss);
       const rules = [...materials.matchAll(/([^{};]+)\{([^{}]*backdrop-filter[^{}]*)\}/g)]
         .map((match) => ({
-          selector: (match[1] ?? '').replace(/\s+/g, ' ').trim(),
+          selector: folded(match[1] ?? ''),
           unprefixed: /(?:^|[\s;])backdrop-filter:\s*([^;]+);/.exec(match[2] ?? '')?.[1]?.trim(),
         }))
         .filter((rule) => rule.selector.includes("[data-theme='light']"));
@@ -2027,13 +2181,21 @@ describe('tokens.css', () => {
         const rule = rules.find(
           (r) => r.selector.includes(`.mat-${entry.tier}.${cls}`) && !r.selector.endsWith('.lens'),
         );
+        const sigma = renderedSigma(entry.tier, entry.sigma);
         expect(rule?.unprefixed, entry.id).toBe(
-          `blur(${entry.sigma}px) ${value(`--glass-${entry.tier}-filter`)}`,
+          `blur(${sigma}px) ${value(`--glass-${entry.tier}-filter`)}`,
         );
-        if (entry.lens) {
+        if (ADAPTIVE.includes(entry.tier) && !entry.oneRow) {
           const lens = rules.find((r) => r.selector.endsWith(`.mat-${entry.tier}.${cls}.lens`));
           expect(lens?.unprefixed, `${entry.id} lens`).toBe(
-            `var(--lens) blur(${entry.sigma}px) ${value(`--glass-${entry.tier}-filter`)}`,
+            `var(--lens) blur(${sigma}px) ${value(`--glass-${entry.tier}-filter`)}`,
+          );
+          // A piece the adaptive look turned light takes the light chain in either theme.
+          const turned = rules.find((r) =>
+            r.selector.endsWith(`.mat-${entry.tier}.${cls}[data-theme='light']`),
+          );
+          expect(turned?.unprefixed, `${entry.id} turned`).toBe(
+            `blur(${sigma}px) ${value(`--glass-${entry.tier}-filter`)}`,
           );
         }
       }

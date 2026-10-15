@@ -29,7 +29,15 @@ import {
   entryClasses,
   type GlassSurfaceEntry,
 } from '../src/styles/coverage-registry';
-import { type Backdrop, BACKDROPS, type GlassMode, surfaceOrigin, type Theme } from './backdrops';
+import { renderedSigma } from '../src/styles/materials-css';
+import {
+  type Backdrop,
+  BACKDROPS,
+  type GlassMode,
+  lookOver,
+  surfaceOrigin,
+  type Theme,
+} from './backdrops';
 
 const GLASS_MODES: readonly GlassMode[] = ['clear', 'tinted', 'solid'];
 const THEMES: readonly Theme[] = ['dark', 'light'];
@@ -71,8 +79,18 @@ function classesOf(entry: GlassSurfaceEntry): string {
 const css = (colour: Backdrop['under']): string =>
   typeof colour === 'string' ? `var(${colour})` : `rgb(${colour.join(' ')})`;
 
+/** The colour under the surface, a token resolved on the root. */
+function underRgb(under: Backdrop['under']): [number, number, number] {
+  if (typeof under !== 'string') return [under[0], under[1], under[2]];
+  const value = getComputedStyle(document.documentElement).getPropertyValue(under).trim();
+  const n = Number.parseInt(/^#([0-9a-f]{6})$/i.exec(value)?.[1] ?? '808080', 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
 function Harness({ scene, band }: { scene: Scene; band: number }) {
   const { entry, backdrop } = scene;
+  // The adaptive look (GLS-9): a chip or bar over a page of the other tone turns, as in the app.
+  const look = lookOver(entry.tier, scene.theme, scene.glass, underRgb(backdrop.under));
   const origin = surfaceOrigin(entry.minWidth, entry.minHeight);
   const surface: CSSProperties = {
     left: origin.x,
@@ -103,6 +121,7 @@ function Harness({ scene, band }: { scene: Scene; band: number }) {
         className={`surface ${classesOf(entry)}`}
         style={surface}
         data-harness-surface={entry.id}
+        data-theme={look === scene.theme ? undefined : look}
         data-edge-band={backdrop.beyond ? band : undefined}
       />
     </>
@@ -120,7 +139,8 @@ if (typeof scene === 'string') {
   applyRoot(scene);
   // The sharp edge's white band reaches three σ of the surface's own blur (none under Solid): a
   // blur that keeps to its kernel sees only white, so the model holds there.
-  const band = scene.glass === 'solid' ? 0 : Math.ceil(3 * scene.entry.sigma);
+  const band =
+    scene.glass === 'solid' ? 0 : Math.ceil(3 * renderedSigma(scene.entry.tier, scene.entry.sigma));
   createRoot(container).render(<Harness scene={scene} band={band} />);
   // Two frames: React has committed and the compositor has drawn the backdrop filter.
   requestAnimationFrame(() =>

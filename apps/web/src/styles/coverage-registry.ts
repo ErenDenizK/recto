@@ -25,7 +25,10 @@
  * walker in `e2e/support/glass-walker.ts` checks the same rule on the rendered sizes); fixed
  * sizes are exact. Heights include the 1 px rim. σ comes from language.md §2.2's steps, the
  * largest the smallest size allows where the tier's own value would leak (the menus' 12 below
- * 92 px, the sheets' 24 below 260 px, the sidebar's 24 at its 200 px minimum).
+ * 92 px, the sheets' 24 below 260 px, the sidebar's 24 at its 200 px minimum). Chips and bars
+ * render three quarters of their registered σ (`materials-css.ts` `renderedSigma`, GLS-8), so
+ * the term above, taken at the registered σ, is a bound their rendered blur stays inside; the
+ * cost ladder's steps 3 and 4 (GLS-10) lower every σ further, never raising a small piece's.
  */
 import type { GlassTier } from './token-registry';
 
@@ -63,7 +66,11 @@ export interface GlassSurfaceEntry {
    * surface holds a single child (`:not(:has(> :nth-child(2)))`), too short for the menus' σ.
    */
   readonly oneRow?: true;
-  /** A fixed-size M1 chip that takes the backdrop lens on Chromium (language.md §2.7, X20). */
+  /**
+   * A fixed-size M1 chip that takes the backdrop lens through `ui/Surface`'s `lens` (language.md
+   * §2.7, X20). Bars take it from the document-level manager (GLS-11); `materials.css` holds a
+   * lens rule for every fine σ of both tiers.
+   */
   readonly lens?: true;
   /** Smallest rendered width and height on a fine pointer, CSS px. */
   readonly minWidth: number;
