@@ -1,10 +1,10 @@
 /**
- * Which top the phone reader shows (DSN-34): the floating glass capsule of DSN-32, the default,
- * or the **split** top after iOS Preview (`docs/design/reference/ios-preview-2026-10.md`): Back
- * and ⋯ as glass circles of their own, the title as text over a scroll-edge fade, to compare on
- * an iPhone before one is chosen.
+ * Which top the phone reader shows: the **split** top after iOS Preview, the default since the
+ * owner chose it (DSN-37; `docs/design/reference/ios-preview-2026-10.md`): Back and ⋯ as glass
+ * circles of their own, the title as text over a scroll-edge fade; or the floating glass capsule
+ * of DSN-32, kept behind `?top=capsule` (DSN-34).
  *
- * - **`?top=split`** picks the split top and **`?top=capsule`** the default; the choice is kept
+ * - **`?top=capsule`** picks the capsule top and **`?top=split`** the default; the choice is kept
  *   for the tab's session (`sessionStorage`), so a reload without the parameter keeps it, as
  *   `?drawer` does (`mark/drawer-variant.ts`). Storage that throws (a private window, blocked
  *   site data) only drops the keeping.
@@ -24,7 +24,7 @@ const isVariant = (value: string | null | undefined): value is TopVariant =>
 export function decideTopVariant(search: string, stored: string | null): TopVariant {
   const asked = new URLSearchParams(search).get(TOP_QUERY_PARAM);
   if (isVariant(asked)) return asked;
-  return isVariant(stored) ? stored : 'capsule';
+  return isVariant(stored) ? stored : 'split';
 }
 
 let chosen: TopVariant | undefined;

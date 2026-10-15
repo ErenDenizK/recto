@@ -2265,6 +2265,10 @@ describe('tokens.css', () => {
         'rgb(255 255 255 / 0.12)',
       ],
       'ui/Swatch.module.css': ['#e5322d', '#ffffff'],
+      // The split top's scroll edge and title follow the page under them, not the theme
+      // (DSN-40): a night and a paper ink, and the two theme texts' values, mixed by
+      // `--edge-tone`. Content colours, as the page's own.
+      'shell/compact/CompactTopSplit.module.css': ['#08090c', '#fdfdff', '#e8e9ec', '#15171c'],
     };
     const LITERAL = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/gi;
     /** The rules of a module outside any `:global([data-theme='light'])` selector. */

@@ -20,14 +20,27 @@
 }
 
 /*
- * The scroll-edge fade (DSN-35): the canvas's own tint, dense under the status bar and fading out
- * below the pieces, over a backdrop blur that a mask fades out with it, so the pages pass under
- * the pieces softened and dimmed, never cut by an edge. Two declarations, no script per frame.
- * The tint is what keeps the title legible over a white page (Preview's title greys out there,
- * reference doc §3); the blur alone would not. Glass Solid, the cost ladder's last step and
- * reduced transparency drop the blur and keep the tint.
+ * The adaptive tone (DSN-40, `edge-tone.ts`): 0 over a light page, 1 over a dark one, whatever
+ * the theme, written on the compact root from the page raster under the band on scroll-settle.
+ * Registered, so the fade's ink and the title's colour ease over 200 ms when it flips (none
+ * under reduced motion); unregistered engines snap.
+ */
+@property --edge-tone {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/*
+ * The scroll-edge fade (DSN-35, made lighter by DSN-38 after Preview): one ink, the light page's
+ * paper or the dark page's night by the tone (not the theme's canvas), as a gradient (64 % at
+ * the top, 40 % on the title's line, 16 % at the row's foot, none at its end) over a backdrop
+ * blur that a mask fades out with it, so the page shows through as in Preview while the title
+ * keeps its own soft lift (`.titleText`). Two declarations, no script per frame. Glass Solid, the
+ * cost ladder's last step and reduced transparency drop the blur and keep the tint.
  */
 .edge {
+  --edge-ink: color-mix(in srgb, #08090c calc(var(--edge-tone) * 100%), #fdfdff);
   position: fixed;
   top: 0;
   right: 0;
@@ -35,20 +48,22 @@
   height: calc(var(--top-offset) + 48px + 28px);
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--canvas) 92%, transparent) 0,
-    color-mix(in srgb, var(--canvas) 72%, transparent) calc(var(--top-offset) + 24px),
-    color-mix(in srgb, var(--canvas) 40%, transparent) calc(var(--top-offset) + 48px),
+    color-mix(in srgb, var(--edge-ink) 64%, transparent) 0,
+    color-mix(in srgb, var(--edge-ink) 40%, transparent) calc(var(--top-offset) + 24px),
+    color-mix(in srgb, var(--edge-ink) 16%, transparent) calc(var(--top-offset) + 48px),
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
-  transition: opacity var(--duration-base) var(--ease-out);
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    --edge-tone var(--tone-ms, 200ms) var(--ease-out);
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   :where(:root:not([data-glass='solid'], [data-degrade='4'])) .edge {
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
   }
 }
 
@@ -57,6 +72,17 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge,
+  .title {
+    --tone-ms: 0ms;
+  }
+}
+
+:global(:root[data-motion='reduced']) :is(.edge, .title) {
+  --tone-ms: 0ms;
 }
 
 .top[data-hidden] .edge {
@@ -80,12 +106,13 @@
 
 /*
  * ‹ and ⋯: 44 px circles of the capsule's M2 (coverage registry `compact-top-circle`; σ 7 is the
- * largest that covers 44 px, c 0.997), their glyphs 20 px (Q-9). In the light theme they take the
- * capsule's denser sheet tint over white pages (visual audit 2026-10 #7, as the capsule top).
+ * largest that covers 44 px, c 0.997), their glyphs 20 px (Q-9), with the round buttons' ring
+ * (GLS-8); the bar tier's own tint and adaptive look in both themes (glass v2).
  * Press: --press-scale (0.94 on touch, platform.md §2).
  */
 .circle {
   composes: mat mat-bar s7 from global;
+  composes: mat-ring from global;
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -125,21 +152,26 @@
   transform: none;
 }
 
-:global([data-theme='light']) .circle {
-  --mat-tint: var(--glass-sheet-tint);
-}
-
-/* The title: text over the fade, the row's free width, leading as Preview's (taste: centred is
-   the alternative, reference doc §2.2). Its ▾ opens the file menu. */
+/*
+ * The title, centred between the two circles (DSN-37, DSN-38): the heading takes the row's free
+ * width, which the equal circles make symmetric about the window's centre, and centres the title
+ * and its ▾ in it, so a longer name grows both ways and stays optically centred until it meets
+ * the circles' gaps; past that the name is cut in its middle (`title-fit.ts`), keeping its end.
+ * Its colour follows the page under it (`--edge-tone`), not the theme: dark ink over a light
+ * page, light ink over a dark page, as the fade does. The ▾ opens the file menu.
+ */
 .heading {
   display: flex;
   flex: 1;
+  justify-content: center;
   min-width: 0;
   margin: 0;
   font: inherit;
 }
 
 .title {
+  --title-ink: color-mix(in srgb, #e8e9ec calc(var(--edge-tone) * 100%), #15171c);
+  --title-lift: color-mix(in srgb, #08090c calc(var(--edge-tone) * 100%), #fdfdff);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -147,7 +179,7 @@
   min-height: 44px;
   padding: 0 8px;
   border-radius: var(--radius-capsule);
-  color: var(--text-primary);
+  color: var(--title-ink);
   font-size: var(--type-callout);
   font-weight: 600;
   line-height: var(--type-callout-lh);
@@ -156,7 +188,8 @@
   transition:
     transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
+    background-color var(--duration-fast) var(--ease-out),
+    --edge-tone var(--tone-ms, 200ms) var(--ease-out);
 }
 
 .title:active,
@@ -164,10 +197,15 @@
   background: var(--surface-active);
 }
 
+/* A soft lift in the fade's own ink under the letters only: the lighter fade lets the page's
+   lines through, and the lift keeps the title's strokes off them (DSN-38). */
 .titleText {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow:
+    0 0 2px var(--title-lift),
+    0 0 8px var(--title-lift);
   white-space: nowrap;
 }
 
@@ -179,8 +217,9 @@
   width: 24px;
   height: 24px;
   border-radius: var(--radius-capsule);
-  background: var(--surface-active);
-  color: var(--text-secondary);
+  /* The ▾'s grey dot (DSN-37), in the title's ink so it reads over either page. */
+  background: color-mix(in srgb, var(--title-ink) 14%, transparent);
+  color: color-mix(in srgb, var(--title-ink) 72%, transparent);
 }
 
 .chevron svg {

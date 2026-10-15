@@ -327,11 +327,14 @@ test.describe('the compact edition', () => {
   test('the reader, the ⋯ menu and the page overview', async ({ page }) => {
     await openCompact(page, 'outline-named-dests.pdf');
     let walk = await expectGlassClean(page, 'compact reader');
-    expect(names(walk).some((n) => n.includes('topBar'))).toBe(true);
+    // The split top's circles (DSN-34, the default since DSN-37) and the capsule.
+    expect(names(walk).some((n) => n.includes('circle'))).toBe(true);
     expect(names(walk).some((n) => n.includes('capsule'))).toBe(true);
 
     await page.getByRole('button', { name: 'More' }).click();
     await expect(page.getByTestId('compact-menu')).toBeVisible();
+    // At rest: the liquid menu's mask has gone (DSN-39).
+    await expect(page.getByTestId('compact-menu')).not.toHaveAttribute('data-liquid');
     walk = await expectGlassClean(page, 'compact ⋯ menu');
     // The top bar, the capsule, the reader's ✎ Edit button (M10 WP1, EDN-8) and the menu: Q-11's
     // four at rest.

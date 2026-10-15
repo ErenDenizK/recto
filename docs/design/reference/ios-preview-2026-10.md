@@ -1,8 +1,10 @@
 # iOS Preview as a reference for the phone edition (2026-10)
 
-**Status:** reference and proposal. The split top it led to is built behind `?top=split`
-(DSN-34, DSN-35); the ⋯ menu's morph is live in both tops (DSN-36). The capsule top (DSN-32)
-stays the default until the owner compares the two on an iPhone.
+**Status:** reference and proposal. The split top it led to (DSN-34, DSN-35) is the phone
+reader's default since the owner chose it (DSN-37); the capsule top (DSN-32) stays behind
+`?top=capsule`. Built on those choices: the centred title cut in its middle and the lighter fade
+(DSN-38), the liquid ⋯ and file menus and Find on the keyboard (DSN-39), the fade following the
+page (DSN-40). Sections 2 and 4 below describe the state before those choices.
 
 **Source:** the owner's screen recording of iOS 26 Preview (2026-10-15, 54 s, 1206 × 2622),
 with the note: "a very stylish app; it has its own flaws, but it's a good reference, especially
