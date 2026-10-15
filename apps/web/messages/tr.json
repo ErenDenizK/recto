@@ -3252,7 +3252,7 @@
   "combine_name_label": "Ad",
   "combine_preview": "{pages} içeren 1 belge oluşturur",
   "combine_needs_two": "En az iki belge seçin",
-  "combine_needs_open": "Önce başka bir belge açın",
+  "combine_add_files": "Dosya ekle…",
   "combine_announce_moved": "{title}, {position}. sıraya taşındı",
   "extract_sheet_title": "Sayfaları ayıkla",
   "extract_pages_label": "Sayfalar",

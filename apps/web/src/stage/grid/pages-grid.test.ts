@@ -8,7 +8,7 @@ import type { DocumentId } from '@pdf-editor/document-model';
 import { describe, expect, it } from 'vitest';
 
 import { boxAspectOf, computeLayout, GRID, gridMetrics } from '../../dnd/geometry';
-import { initialCombineOrder } from '../../pages-sheets/CombineSheet';
+import { appendToCombine, initialCombineOrder } from '../../pages-sheets/combine-files';
 import { rangesText } from '../../pages-sheets/ExtractSheet';
 import { capsuleShape } from '../../shell/capsule/capsule-content';
 import {
@@ -187,6 +187,21 @@ describe("Combine's starting order (S15)", () => {
     expect(initialCombineOrder([a, b, c], a, [c, a])).toEqual({
       order: [c, a, b],
       checked: [c, a],
+    });
+  });
+
+  it('appends added files after the documents listed, checked, keeping the name (MOB-10)', () => {
+    const d = 'doc-d' as DocumentId;
+    expect(appendToCombine({ order: [b, a], checked: [b], name: 'Mine' }, [c, d, c])).toEqual({
+      order: [b, a, c, d],
+      checked: [b, c, d],
+      name: 'Mine',
+    });
+    // A file already listed moves to the end with the new picks.
+    expect(appendToCombine({ order: [a, b], checked: [a, b], name: null }, [a])).toEqual({
+      order: [b, a],
+      checked: [b, a],
+      name: null,
     });
   });
 });

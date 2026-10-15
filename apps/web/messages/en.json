@@ -4874,7 +4874,7 @@
   "combine_name_label": "Name",
   "combine_preview": "Creates 1 document with {pages}",
   "combine_needs_two": "Choose at least two documents",
-  "combine_needs_open": "Open another document first",
+  "combine_add_files": "Add files…",
   "combine_announce_moved": "Moved {title} to position {position}",
   "extract_sheet_title": "Extract pages",
   "extract_pages_label": "Pages",

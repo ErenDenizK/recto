@@ -26,6 +26,7 @@ import { prepareExport } from '../export/export-service';
 import { useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
+import { resetDraft } from '../ui/sheet/sheet-store';
 import { closeOperationDialog } from './operation-dialogs-store';
 import { runSectionCommand } from './section-menu';
 import { insertImagesInto } from './section-operations';
@@ -158,6 +159,77 @@ describe('section operations', () => {
     await waitFor(() => {
       expect(titles()).toEqual(['outline-named-dests']);
     });
+  }, 40_000);
+
+  it('Combine adds files: one open asks at once, Add files… appends, ⌘K Merge files… asks (MOB-10)', async () => {
+    const [simple] = await open([simpleUrl, 'simple-text.pdf']);
+    const picks = [
+      await fixture(rotatedUrl, 'rotated-pages.pdf'),
+      await fixture(simpleUrl, 'second.pdf'),
+      await fixture(simpleUrl, 'third.pdf'),
+    ];
+    let asked = 0;
+    const picker = Object.getOwnPropertyDescriptor(window, 'showOpenFilePicker');
+    Object.defineProperty(window, 'showOpenFilePicker', {
+      configurable: true,
+      value: () => {
+        const file = picks[asked] as File;
+        asked += 1;
+        return Promise.resolve([
+          { kind: 'file', name: file.name, getFile: () => Promise.resolve(file) },
+        ]);
+      },
+    });
+    const rows = (sheet: HTMLElement) =>
+      within(sheet)
+        .queryAllByTestId('combine-row')
+        .map((r) => r.textContent ?? '');
+    try {
+      // One document open: Combine with open documents… is live and asks for files first.
+      expect(commandRegistry.isEnabled(commandRegistry.get('documents.mergeAll')!)).toBe(true);
+      await commandRegistry.execute('documents.mergeAll');
+      const sheet = await screen.findByTestId('combine-sheet');
+      expect(asked).toBe(1);
+      await waitFor(() => expect(rows(sheet)).toHaveLength(2));
+      // The open document first, the picked file after it, both checked; it stays in view.
+      expect(rows(sheet)[0]).toContain('simple-text');
+      expect(rows(sheet)[1]).toContain('rotated-pages');
+      expect(ws().activeDocument).toBe(simple);
+      expect(within(sheet).getByRole('status')).toHaveTextContent(
+        'Creates 1 document with 7 pages',
+      );
+      // Add files… appends the next pick after them.
+      await userEvent.click(within(sheet).getByRole('button', { name: 'Add files…' }));
+      await waitFor(() => expect(rows(sheet)).toHaveLength(3));
+      expect(rows(sheet)[2]).toContain('second');
+      expect(within(sheet).getByRole('status')).toHaveTextContent(
+        'Creates 1 document with 10 pages',
+      );
+      // One outcome, one undo step (INV-12).
+      const past = model().history.past.length;
+      await userEvent.click(within(sheet).getByRole('button', { name: 'Combine' }));
+      await waitFor(() => expect(titles()).toHaveLength(4));
+      expect(model().history.past.length).toBe(past + 1);
+      expect(pageNames(ws().documentOrder[3])).toHaveLength(10);
+      await waitFor(() => expect(screen.queryByTestId('combine-sheet')).toBeNull(), {
+        timeout: EXIT_TIMEOUT,
+      });
+
+      // ⌘K's Merge files… opens Combine with the picker too.
+      await commandRegistry.execute('documents.mergeFiles');
+      expect(asked).toBe(3);
+      const again = await screen.findByTestId('combine-sheet');
+      await waitFor(() => expect(again).toBeVisible());
+      await waitFor(() =>
+        expect(within(again).getAllByTestId('combine-row').at(-1)).toHaveTextContent('third'),
+      );
+      closeOperationDialog();
+    } finally {
+      if (picker) Object.defineProperty(window, 'showOpenFilePicker', picker);
+      else delete (window as { showOpenFilePicker?: unknown }).showOpenFilePicker;
+      // The closed sheet keeps its draft for the next visit; the next test starts afresh.
+      resetDraft(null, 'combine');
+    }
   }, 40_000);
 
   it('combines open documents into a new one in the order chosen, keeping them (S15)', async () => {

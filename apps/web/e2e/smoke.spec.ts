@@ -206,7 +206,7 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   ).toBeVisible({ timeout: 20_000 });
   await page.waitForTimeout(400);
   await page.getByTestId('document-menu').click();
-  await expect(page.getByRole('menuitem', { name: 'Merge files…' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Combine with open documents…' })).toBeVisible();
   await page.waitForTimeout(300);
   await shot('m6-document-menu-1440.png');
   await page.getByRole('menuitem', { name: 'Document info…' }).click();

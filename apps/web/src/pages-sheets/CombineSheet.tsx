@@ -3,6 +3,8 @@
  * documents already open, combined into a new one from inside a document (J3's in-document
  * route; the Library's Combine needs no sheet). A task sheet.
  *
+ * - **Add files…** (MOB-10) asks for PDFs that are not open; they open as tabs and join the
+ *   order after the open documents, checked (`combine-files.ts`).
  * - **Checklist** of the open documents in tab order, the current one checked and first; ‹ ›
  *   (and Alt+Up / Alt+Down on a row) reorder, announced ("Moved agreement.pdf to position 1");
  *   the rows reflow by FLIP. Name: "Combined – report + agreement" until edited.
@@ -17,6 +19,12 @@ import { useEffect, useId, useRef } from 'react';
 import { flushSync } from 'react-dom';
 
 import { m } from '../i18n';
+import {
+  addFilesToCombine,
+  COMBINE_SHEET,
+  type CombineDraft,
+  initialCombineOrder,
+} from './combine-files';
 import { combineInto, showInGrid } from '../home/home-actions';
 import { combinedTitle } from '../home/home-model';
 import { flip } from '../motion/flip';
@@ -24,33 +32,14 @@ import { announce } from '../shell/announcer';
 import { validateTitle } from '../stage/operation-plans';
 import { titleProblemMessage } from '../stage/section-operations';
 import { pagesPhrase, useTabItems, useWorkspaceStore } from '../state/workspace-store';
+import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Sheet, SheetField, SheetGroup, SheetRow, useSheetDraft } from '../ui/sheet';
 import styles from './PagesSheets.module.css';
 
-export const COMBINE_SHEET = 'combine';
-
-interface CombineDraft {
-  /** Every open document, in the order they will be joined. */
-  readonly order: readonly DocumentId[];
-  readonly checked: readonly DocumentId[];
-  /** The name as typed; null follows the order ("Combined – A + B"). */
-  readonly name: string | null;
-}
-
-/** The order the sheet starts from: `given` first (the Library's), else the active, then tabs. */
-export function initialCombineOrder(
-  tabs: readonly DocumentId[],
-  active: DocumentId | undefined,
-  given: readonly DocumentId[] | undefined,
-): { order: DocumentId[]; checked: DocumentId[] } {
-  const first = given?.filter((id) => tabs.includes(id)) ?? (active ? [active] : []);
-  const order = [...first, ...tabs.filter((id) => !first.includes(id))];
-  const checked = given ? first : [...tabs];
-  return { order, checked: checked.length > 0 ? checked : [...tabs] };
-}
+export { COMBINE_SHEET, initialCombineOrder } from './combine-files';
 
 export function CombineSheet({
   given,
@@ -215,6 +204,17 @@ export function CombineSheet({
             );
           })}
         </ol>
+        <SheetRow full>
+          {/* Files that are not open join the order after the open ones (MOB-10). */}
+          <Button
+            variant="quiet"
+            icon={<Icon name="file-plus" />}
+            data-testid="combine-add-files"
+            onClick={() => void addFilesToCombine()}
+          >
+            {m.combine_add_files()}
+          </Button>
+        </SheetRow>
       </SheetGroup>
       <SheetGroup>
         <SheetRow full>

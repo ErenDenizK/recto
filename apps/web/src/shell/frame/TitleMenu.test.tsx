@@ -14,7 +14,6 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { userEvent } from 'vitest/browser';
 
 import { settled } from '../../../test/settled';
-import rotatedUrl from '../../../../../test/fixtures/rotated-pages.pdf?url';
 import simpleUrl from '../../../../../test/fixtures/simple-text.pdf?url';
 import { fixtureFile } from '../../../test/store-harness';
 import { registerAppCommands } from '../../commands/app-commands';
@@ -30,8 +29,7 @@ import { TooltipProvider } from '../../ui/Tooltip';
 import { closeTitleMenu, openTitleMenu, resetFrameStore } from './frame-store';
 import { resetLockWarnings } from './LockSwitch';
 import { TitleMenu } from './TitleMenu';
-import { closeOperationDialog, useOperationDialogStore } from '../../stage/operation-dialogs-store';
-import { mergeFiles, shownTitleMenu, TITLE_MENU_SECTIONS } from './TitleMenuItems';
+import { shownTitleMenu, TITLE_MENU_SECTIONS } from './TitleMenuItems';
 
 let dispose: (() => void)[] = [];
 beforeAll(() => {
@@ -92,56 +90,21 @@ describe('the rows (F5 §5)', () => {
     }
   });
 
-  it('opens Pages with Insert pages from file… and Combine with open documents… (F5 §5; MOB-4)', () => {
+  it('opens Pages with exactly Insert pages from file… and Combine with open documents… (F5 §5; MOB-10)', () => {
     const pages = () =>
       shownTitleMenu(commandRegistry.list()).find((s) => s.section.id === 'pages')?.rows ?? [];
-    expect(pages().map((r) => r.label)).toEqual(
-      expect.arrayContaining(['Insert pages from file…', 'Combine with open documents…']),
-    );
+    expect(
+      pages()
+        .map((r) => r.label)
+        .slice(0, 3),
+    ).toEqual(['Insert pages from file…', 'Combine with open documents…', 'Split…']);
+    // Merge files… left the menu (MOB-10): Combine adds files itself.
+    expect(pages().some((r) => r.label === 'Merge files…')).toBe(false);
     expect(pages()[0]).toMatchObject({ key: 'pages.insertFromFile', enabled: true });
-    // Static rows (RA-21): with one document open Combine stays, dimmed with its reason.
-    expect(pages()[1]).toMatchObject({
-      key: 'documents.mergeAll',
-      enabled: false,
-      reason: 'Open another document first',
-    });
+    // With one document open Combine is live: it asks for files to add (MOB-10).
+    expect(pages()[1]).toMatchObject({ key: 'documents.mergeAll', enabled: true });
     useLockStore.getState().lock(active());
     expect(pages()[0]).toMatchObject({ enabled: false, reason: 'Locked · unlock first' });
-  });
-
-  it('Merge files… always asks for files and keeps the open document first (MOB-4)', async () => {
-    const first = active();
-    await useWorkspaceStore.getState().openFiles([await fixtureFile(simpleUrl, 'other.pdf')]);
-    useWorkspaceStore.getState().setActive(first);
-    const picked = await fixtureFile(rotatedUrl, 'rotated.pdf');
-    let asked = 0;
-    const picker = Object.getOwnPropertyDescriptor(window, 'showOpenFilePicker');
-    Object.defineProperty(window, 'showOpenFilePicker', {
-      configurable: true,
-      value: () => {
-        asked += 1;
-        return Promise.resolve([
-          { kind: 'file', name: picked.name, getFile: () => Promise.resolve(picked) },
-        ]);
-      },
-    });
-    try {
-      // Two documents open already: still the picker first (B2).
-      await mergeFiles();
-    } finally {
-      if (picker) Object.defineProperty(window, 'showOpenFilePicker', picker);
-      else delete (window as { showOpenFilePicker?: unknown }).showOpenFilePicker;
-    }
-    expect(asked).toBe(1);
-    const ws = useWorkspaceStore.getState().workspace;
-    const added = ws.documentOrder.at(-1);
-    expect(ws.documentOrder).toHaveLength(3);
-    expect(ws.activeDocument).toBe(first);
-    expect(useOperationDialogStore.getState().dialog).toEqual({
-      kind: 'combine',
-      order: [first, added],
-    });
-    closeOperationDialog();
   });
 });
 

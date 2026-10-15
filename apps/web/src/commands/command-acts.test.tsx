@@ -124,6 +124,7 @@ const SPEC_ACTS: Readonly<Record<string, Act | null>> = {
   'tab.close': null,
   'section.close': null,
   'documents.mergeAll': null,
+  'documents.mergeFiles': null,
   'section.interleave': null,
   'pages.copy': null,
   'pages.copyToNew': null,

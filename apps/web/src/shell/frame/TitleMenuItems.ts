@@ -3,7 +3,7 @@
  * Pages · Add to pages · Protect · Convert, then Compare with… and Document info…. Each row
  * is a registered command (its title, act and availability come from the registry, so the
  * change guard's reason reads on a dimmed row, ADR-0030) or one of the menu's own actions
- * (Combine, Rotate all ▸).
+ * (Rotate all ▸).
  *
  * - **Static** (RA-21): rows stay where they are and dim with their reason ("Locked · unlock
  *   first", "Nothing changed since opening"); only the "Remove …" twins of page furniture and
@@ -19,12 +19,9 @@
  */
 import { getActiveDocument, type PageId } from '@pdf-editor/document-model';
 
-import { openDocuments } from '../../commands/app-commands';
 import { type Command, commandRegistry } from '../../commands/registry';
-import { pickFiles } from '../../files/open-files';
 import { m } from '../../i18n';
 import { openSettings } from '../../settings/open-settings';
-import { openOperationDialog } from '../../stage/operation-dialogs-store';
 import { changeRefusal, refusalReason } from '../../state/guard';
 import { useSelectionStore } from '../../state/selection-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
@@ -40,7 +37,6 @@ export type TitleMenuEntry =
       /** Shown only while available ("Remove …" when there is something to remove). */
       readonly onlyWhenAvailable?: true;
     }
-  | { readonly kind: 'merge' }
   | { readonly kind: 'rotate' };
 
 export type TitleMenuSectionId = 'file' | 'pages' | 'add' | 'protect' | 'convert' | 'document';
@@ -78,10 +74,9 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
     id: 'pages',
     label: m.frame_section_pages,
     entries: [
-      // F5 §5's first two rows (MOB-4); "Merge files…" stays as the picker route to Combine.
+      // F5 §5's first two rows (MOB-4, MOB-10): files not open are added inside Combine.
       command('pages.insertFromFile'),
       command('documents.mergeAll'),
-      { kind: 'merge' },
       command('section.split', { label: m.menu_split }),
       command('section.interleave'),
       { kind: 'rotate' },
@@ -148,7 +143,6 @@ const ROW_GLYPHS: Readonly<Record<string, IconName>> = {
   'tab.close': 'x',
   'pages.insertFromFile': 'files',
   'documents.mergeAll': 'stack',
-  merge: 'file-plus',
   'section.split': 'columns',
   'section.interleave': 'rows',
   rotate: 'arrow-clockwise',
@@ -220,7 +214,6 @@ export function shownTitleMenu(
 ): { section: TitleMenuSection; rows: ShownRow[] }[] {
   const group = m.group_document();
   const extra = commands.filter((c) => c.group === group && !NAMED.has(c.id));
-  const docCount = useWorkspaceStore.getState().workspace.documentOrder.length;
   return TITLE_MENU_SECTIONS.map((section) => {
     const rows: ShownRow[] = [];
     const all: TitleMenuEntry[] = [
@@ -228,10 +221,6 @@ export function shownTitleMenu(
       ...(section.id === 'document' ? extra.map((c) => command(c.id)) : []),
     ];
     for (const entry of all) {
-      if (entry.kind === 'merge') {
-        rows.push({ key: 'merge', entry, label: m.menu_merge(), enabled: docCount > 0 });
-        continue;
-      }
       if (entry.kind === 'rotate') {
         // Turning pages is a `pages` act: the guard dims it on a locked document.
         const refusal = changeRefusal(activeDocument()?.id, 'pages');
@@ -255,28 +244,6 @@ export function shownTitleMenu(
     }
     return { section, rows };
   }).filter((s) => s.rows.length > 0);
-}
-
-/**
- * "Merge files…" (MOB-4, research phone-2026-10 pages.md §1b B2): always asks for the files
- * to add, then opens S15 Combine (`07-sheets` §17) with the open document first and the
- * picked files after it, in the order picked. Combine makes a new document and keeps its
- * sources (INV-12); the open documents not picked stay unchecked.
- */
-export async function mergeFiles(): Promise<void> {
-  const ws = () => useWorkspaceStore.getState().workspace;
-  const active = ws().activeDocument;
-  // The picker needs this press's user activation: no await before it.
-  const files = await pickFiles('pdf');
-  if (files.length === 0) return;
-  const opened = await openDocuments(files);
-  const order = [...(active === undefined ? [] : [active]), ...opened].filter(
-    (id, index, all) => all.indexOf(id) === index && ws().documents[id] !== undefined,
-  );
-  if (order.length < 2) return;
-  // The person's document stays in view behind the sheet (the picked ones open as tabs).
-  if (active !== undefined) useWorkspaceStore.getState().setActive(active);
-  openOperationDialog({ kind: 'combine', order });
 }
 
 /** Rotates the scope (selected pages, else all) by `delta` degrees and says so. */
