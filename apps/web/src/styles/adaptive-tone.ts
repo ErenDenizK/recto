@@ -19,8 +19,11 @@
  *   over no page keeps (or returns to) its theme's look.
  * - **The top band.** Where the compact edition sets `--edge-tone` (0 light … 1 dark) for its
  *   scroll edge, a piece in the top 120 px reads that instead of sampling.
- * - **The turn** cross-fades its tint, text, rim and filter over 200 ms (Web Animations, so a
- *   module's own transitions are untouched); instant with Reduce motion.
+ * - **The turn** cross-fades its tint, text and rim over 200 ms (Web Animations, so a module's
+ *   own transitions are untouched); instant with Reduce motion. The filter chain changes at once
+ *   under the fading tint: an interpolated `backdrop-filter` re-blurs the backdrop every frame,
+ *   and a turn can start while the pages scroll, where A-23 lets nothing start that costs paint
+ *   of that kind (`motion.spec.ts`; decisions GLS-16).
  * - **Off** under Glass Solid, reduced transparency, more contrast and forced colours (every
  *   tier is solid there and the system's colours win): every piece returns to its theme.
  *
@@ -174,13 +177,7 @@ let tones = new WeakMap<HTMLElement, Tone>();
 function apply(el: HTMLElement, tone: Tone, theme: Tone, fade: boolean): void {
   const want = tone === theme ? null : tone;
   if (el.getAttribute('data-theme') === want) return;
-  const props = [
-    'backgroundColor',
-    'color',
-    'borderTopColor',
-    'borderBottomColor',
-    'backdropFilter',
-  ];
+  const props = ['backgroundColor', 'color', 'borderTopColor', 'borderBottomColor'];
   let from: Record<string, string> | undefined;
   if (fade && typeof el.animate === 'function') {
     const style = getComputedStyle(el);
