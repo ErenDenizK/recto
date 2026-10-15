@@ -57,10 +57,6 @@ export const COL2 = LEFT + COL_W + GUTTER;
 export const HEAD_Y = 806;
 export const HEAD_RULE_Y = 797;
 export const FOOT_Y = 34;
-/** The try slip's band (one line; two lines take SLIP_TALL). */
-export const SLIP_Y = 52;
-export const SLIP_H = 30;
-export const SLIP_TALL = 40;
 
 export type Rgb = readonly [number, number, number];
 const hex = (value: string): Rgb => {
@@ -244,6 +240,9 @@ export const PT = {
   /** 7: H1 (on a 36 pt leading). */
   h1: 32,
 } as const;
+
+/** Inter's cap height over its em (1490 / 2048): where a line's capitals stand. */
+export const CAP = 1490 / 2048;
 
 /** Tracking of tracked capitals: +12 % of the size (direction-v2.md §6). */
 export const caps = (size: number) => Math.round(size * 0.12 * 100) / 100;
@@ -499,12 +498,17 @@ export function rich(value: string, regular: Style, bold: Style): Glyphs[] {
     .filter((g) => g.text !== '');
 }
 
-interface Word {
-  /** The word's characters by style (no spaces). */
+export interface Word {
+  /** The word's characters by style (no spaces, but those inside a glued group). */
   readonly parts: Glyphs[];
   readonly width: number;
   /** The space after it (style and natural width), when one follows. */
   readonly space?: { readonly style: Style; readonly width: number };
+  /**
+   * Spaces inside a group of words a line may not break between (`mayBreakAt`), and their
+   * natural width: justification stretches them with the others.
+   */
+  readonly inner?: { readonly count: number; readonly width: number };
 }
 
 export interface SetLine {
@@ -549,6 +553,136 @@ export interface SetParagraph {
   readonly elem: Elem;
   readonly maxStretch: number;
 }
+
+/** A word's text as set (its parts joined). */
+const wordText = (word: Word) => word.parts.map((p) => p.text).join('');
+
+/** A line's spaces (between its words and inside glued groups): count and natural width. */
+function spaces(line: readonly Word[]): { count: number; width: number } {
+  let count = 0;
+  let width = 0;
+  line.forEach((w, k) => {
+    count += w.inner?.count ?? 0;
+    width += w.inner?.width ?? 0;
+    if (k < line.length - 1) {
+      count += 1;
+      width += w.space?.width ?? 0;
+    }
+  });
+  return { count, width };
+}
+
+/** The natural width of a paragraph's last line over `width`. */
+function lastShare(lines: readonly (readonly Word[])[], width: number): number {
+  const last = lines.at(-1) ?? [];
+  const natural = last.reduce(
+    (s, w, k) => s + w.width + (k < last.length - 1 ? (w.space?.width ?? 0) : 0),
+    0,
+  );
+  return natural / width;
+}
+
+/**
+ * Phrases a line never breaks inside (MOB-15): place names, the issue and its number, a shortcut's
+ * "on a Mac", a verb in two words. Compared without punctuation or a Turkish suffix.
+ */
+export const NO_BREAK: readonly string[] = [
+  'No. 07',
+  'Sayı 07',
+  'on a Mac',
+  'basılı tutup',
+  'iki parmağınızla',
+  'Cape Ardıç',
+  'Ardıç Burnu',
+  'Saltmarsh Press',
+];
+
+/** A word without its surrounding punctuation or a Turkish suffix after an apostrophe. */
+export const bare = (word: string) =>
+  word.replace(/^[(“"‘'[]+|[)”"’'\].,;:!?…*]+$/gu, '').replace(/’\p{L}+$/u, '');
+
+/**
+ * Whether a line may break between `words[k - 1]` and `words[k]` (MOB-15). Never:
+ * - inside a phrase of `NO_BREAK`;
+ * - after a one-letter word ("a lamp", "o hâlâ");
+ * - after a number of up to three digits, which keeps its unit or noun ("112 steps", "42 m",
+ *   "1 January", "30 days", "3. sayfada"), or before one ("page 3", "Swap 4");
+ * - between a month and its year ("January 2027", "Ocak 2027’den");
+ * - after a sentence's first word of one or two letters ("…No. 07. We / may");
+ * - between a shortcut and the platform it is for ("Cmd+S on a Mac", "Mac’te Cmd+S").
+ */
+export function mayBreakAt(words: readonly string[], k: number): boolean {
+  const before = words[k - 2] ?? '';
+  const prev = words[k - 1] ?? '';
+  const next = words[k] ?? '';
+  const p = bare(prev);
+  const n = bare(next);
+  if (/^\p{L}$/u.test(p)) return false;
+  if (/^\d{1,3}$/.test(p) || /^\d{1,3}$/.test(n)) return false;
+  if (/^\p{Lu}\p{Ll}+$/u.test(p) && /^\d{4}$/.test(n) && !/[.,;:]$/.test(prev)) return false;
+  if (/^\p{Lu}\p{Ll}?$/u.test(p) && (k === 1 || /[.!?:]$/.test(before))) return false;
+  if (prev.startsWith('Mac’') && /^(Cmd|Ctrl)\+/.test(next)) return false;
+  if (/^\(?(Cmd|Ctrl)\+/.test(prev) && next === 'on') return false;
+  // Inside a parenthesis of up to five words ("(Ctrl+S; Cmd+S on a Mac)").
+  const open = words.slice(Math.max(0, k - 4), k).findLastIndex((x) => x.startsWith('('));
+  if (open >= 0) {
+    const from = Math.max(0, k - 4) + open;
+    const close = words.slice(from, from + 5).findIndex((x) => /\)[.,;:]?$/.test(x));
+    if (close >= 0 && from + close >= k && !words.slice(from, k).some((x) => x.endsWith(')')))
+      return false;
+  }
+  for (const phrase of NO_BREAK) {
+    const tokens = phrase.split(' ');
+    for (let j = 0; j < tokens.length - 1; j++) {
+      const start = k - 1 - j;
+      if (start < 0 || start + tokens.length > words.length) continue;
+      if (tokens.every((t, i) => bare(words[start + i] ?? '') === t)) return false;
+    }
+  }
+  return true;
+}
+
+/** A line's words as set: glued groups split back into their words. */
+const lineWords = (line: readonly Word[]) => line.flatMap((w) => wordText(w).split(' '));
+
+/**
+ * What is wrong with a paragraph's breaks (MOB-15): a break `mayBreakAt` forbids, and, in
+ * ragged copy of two or more lines, a last line under 30 % of the measure (an orphan).
+ */
+export function breakProblems(
+  lines: readonly (readonly Word[])[],
+  width: number,
+  ragged: boolean,
+): string[] {
+  return lineProblems(lines.map(lineWords), ragged ? lastShare(lines, width) : 1);
+}
+
+/** `breakProblems` over lines of words and the last line's share of the measure. */
+export function lineProblems(texts: readonly (readonly string[])[], share: number): string[] {
+  const problems: string[] = [];
+  const flat = texts.flat();
+  let k = 0;
+  texts.forEach((line, i) => {
+    k += line.length;
+    if (i < texts.length - 1 && !mayBreakAt(flat, k))
+      problems.push(`"${line.at(-1)} / ${texts[i + 1]?.[0]}"`);
+  });
+  if (texts.length > 1 && share < 0.3)
+    problems.push(`short last line "${texts.at(-1)?.join(' ')}"`);
+  return problems;
+}
+
+/** A paragraph as a file sets it (MOB-15: the fixture test re-checks every break). */
+export interface SetText {
+  /** 1-based page. */
+  readonly page: number;
+  readonly lines: readonly (readonly string[])[];
+  /** The last line's natural width over the measure (1 for justified copy). */
+  readonly share: number;
+}
+const setTexts = new WeakMap<PDFDocument, SetText[]>();
+/** Every paragraph set in `doc` so far. */
+export const textsOf = (doc: PDFDocument): readonly SetText[] => setTexts.get(doc) ?? [];
 
 export class Writer {
   readonly page: PDFPage;
@@ -659,7 +793,10 @@ export class Writer {
     return width;
   }
 
-  /** Splits runs into words with their widths and following spaces. */
+  /**
+   * Splits runs into words with their widths and following spaces; the words a line may not
+   * break between are glued into one (`mayBreakAt`, MOB-15).
+   */
   words(runs: readonly Glyphs[]): Word[] {
     const out: Word[] = [];
     let parts: Glyphs[] = [];
@@ -685,7 +822,43 @@ export class Writer {
       });
     }
     push();
-    return out;
+    const texts = out.map(wordText);
+    const glued: Word[] = [];
+    out.forEach((word, k) => {
+      const prev = glued.at(-1);
+      if (k === 0 || !prev?.space || mayBreakAt(texts, k)) {
+        glued.push(word);
+        return;
+      }
+      glued[glued.length - 1] = {
+        parts: [...prev.parts, { text: ' ', style: prev.space.style }, ...word.parts],
+        width: prev.width + prev.space.width + word.width,
+        ...(word.space ? { space: word.space } : {}),
+        inner: {
+          count: (prev.inner?.count ?? 0) + 1,
+          width: (prev.inner?.width ?? 0) + prev.space.width,
+        },
+      };
+    });
+    return glued;
+  }
+
+  /**
+   * One measure for a block of ragged paragraphs set one under another (MOB-15, A5): the
+   * widest at or under `width` (2 pt steps, down to 60 %) at which none of its paragraphs of
+   * two or more lines ends on a line under 40 % of it, so the block's right edge is one rag and
+   * every paragraph ends on a full last line; `width` when none is (the copy must change).
+   */
+  blockMeasure(paragraphs: readonly (readonly Glyphs[])[], width: number): number {
+    const words = paragraphs.map((runs) => this.words(runs));
+    for (let m = width; m >= width * 0.6; m -= 2) {
+      const ok = words.every((w) => {
+        const lines = this.breakLines(w, m, 0, false);
+        return lines.length < 2 || lastShare(lines, m) >= 0.4;
+      });
+      if (ok) return m;
+    }
+    return width;
   }
 
   /**
@@ -694,20 +867,12 @@ export class Writer {
    * the first that keeps the line count and lengthens the last line past that is kept.
    */
   prettyLines(words: Word[], width: number, indent: number): Word[][] {
-    const lastShare = (lines: Word[][]) => {
-      const last = lines.at(-1) ?? [];
-      const natural = last.reduce(
-        (s, w, k) => s + w.width + (k < last.length - 1 ? (w.space?.width ?? 0) : 0),
-        0,
-      );
-      return natural / width;
-    };
     const base = this.breakLines(words, width, indent, false);
-    if (base.length < 2 || lastShare(base) >= 0.4) return base;
+    if (base.length < 2 || lastShare(base, width) >= 0.4) return base;
     for (let w = width - 2; w >= width * 0.55; w -= 2) {
       const lines = this.breakLines(words, w, indent, false);
       if (lines.length > base.length) break;
-      if (lastShare(lines) >= 0.4) return lines;
+      if (lastShare(lines, width) >= 0.4) return lines;
     }
     return base;
   }
@@ -757,8 +922,9 @@ export class Writer {
           // The last line: natural spaces; a very short one (a widow) costs.
           cost = w < room * 0.2 ? 4 : 0;
         } else {
-          const gaps = j - i - 1;
-          const gapWidth = natural(i, j) - words.slice(i, j).reduce((s, x) => s + x.width, 0);
+          const line = words.slice(i, j);
+          const gaps = spaces(line).count;
+          const gapWidth = spaces(line).width;
           const stretch = gaps === 0 ? 10 : (gapWidth + room - w) / gapWidth;
           cost = (stretch - 1) ** 2 + (stretch > 1.5 ? 100 * (stretch - 1.5) : 0);
         }
@@ -796,8 +962,7 @@ export class Writer {
         (s, w, k) => s + w.width + (k < line.length - 1 ? (w.space?.width ?? 0) : 0),
         0,
       );
-      const gaps = line.length - 1;
-      const gapWidth = line.slice(0, -1).reduce((s, w) => s + (w.space?.width ?? 0), 0);
+      const { count: gaps, width: gapWidth } = spaces(line);
       const isLast = li === broken.length - 1;
       const extra = justify && !isLast && gaps > 0 ? (room - natural) / gaps : 0;
       const stretch = gapWidth > 0 ? (gapWidth + extra * gaps) / gapWidth : 1;
@@ -810,6 +975,16 @@ export class Writer {
     // past an over-stretched line so the whole page can be read at once.
     const fitting = process.env.SAMPLE_FIT !== undefined;
     if (fitting && justify) console.log(fitReport(runs, lines, spec, indent));
+    const share = justify ? 1 : lastShare(broken, spec.width);
+    const list = setTexts.get(this.doc) ?? [];
+    setTexts.set(this.doc, list);
+    list.push({ page: this.index + 1, lines: broken.map(lineWords), share: r2(share) });
+    const problems = breakProblems(broken, spec.width, !justify);
+    if (problems.length > 0) {
+      const message = `bad line breaks (MOB-15): ${problems.join('; ')}`;
+      if (!fitting) throw new Error(message);
+      console.log(`!! p${this.index + 1} ${message}`);
+    }
     if (
       justify &&
       spec.maxStretch !== undefined &&

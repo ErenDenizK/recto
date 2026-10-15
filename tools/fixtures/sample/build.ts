@@ -10,7 +10,7 @@ import { withDeterministicRandom } from '../lib/common.ts';
 import { pagesOf } from './catalog.ts';
 import type { PageCtx, SampleEdition, SampleLocale } from './context.ts';
 import { COPY } from './copy.ts';
-import { PAGE_H, PAGE_W, Structure, Writer, embedFaces, r2 } from './kit.ts';
+import { PAGE_H, PAGE_W, type SetText, Structure, Writer, embedFaces, r2, textsOf } from './kit.ts';
 import { scanPage } from './pages/scan.ts';
 
 export const sampleFile = (locale: SampleLocale, edition: SampleEdition = 'full'): string =>
@@ -22,6 +22,8 @@ const CREATOR = 'Recto sample generator (tools/fixtures/sample-fixture.ts)';
 export interface BuildNotes {
   readonly ids: readonly string[];
   readonly extras: Record<string, unknown>;
+  /** Every paragraph as set, for the fixture test's line-break checks (MOB-15). */
+  readonly texts: readonly SetText[];
 }
 
 export async function buildCut(
@@ -79,7 +81,7 @@ export async function buildCut(
     tags.write(copy.lang);
     // Field appearances are made as each field is added (agreement.ts); none are remade at save.
     const bytes = await save(doc, file, { objectStreams: true, updateFieldAppearances: false });
-    return { bytes, notes: { ids, extras } };
+    return { bytes, notes: { ids, extras, texts: textsOf(doc) } };
   });
 }
 

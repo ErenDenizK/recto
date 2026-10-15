@@ -243,7 +243,7 @@ const EN: SampleCopy = {
       'Nobody, that is, except Nevin. She still goes up at dusk, checks the box has done its work, and writes one line in the logbook. Most nights it is the same line: Light on, all well.',
     ],
     p5: 'The lens is as big as a little room, a beehive of glass prisms that gathers one weak flame and throws it twenty-two nautical miles out to sea. Every Sunday she cleans it with a soft cloth and a bowl of warm water, one prism at a time.',
-    quote: '“A lighthouse is only a promise that someone is still awake.”',
+    quote: '“A lighthouse is a promise that someone is still awake.”',
     p6: 'When I ask whether she minds the box, she laughs. The machine is better at keeping time, she says, but it never notices the weather turning, or a boat that is late home. On those nights she stays up anyway, with the kettle and the radio, till the last boat is in.*',
     caption:
       'The first-order lens, made in 1906, still turns once every ten seconds. Photograph: Jonah Pell',
@@ -251,7 +251,7 @@ const EN: SampleCopy = {
       '* Cape Ardıç and everyone in this article are fictional, like every name in this sample.',
     logLabel: 'FROM THE LOGBOOK',
     log: [
-      '12 September. Wind SW 3, visibility good. Two boats out, two boats home. Light on at 19:21, all well.',
+      '12 September. Wind SW 3, visibility good. Two boats out, two home. Light on at 19:21, all well.',
       '13 September. Fog. One boat late, home at 23:40.',
       '14 September. Clear. Light on at 19:17, all well.',
       '15 September. Rain, then clear. Light on at 19:15, all well.',
@@ -260,7 +260,7 @@ const EN: SampleCopy = {
     tryLine: {
       full: 'Double-click any paragraph to change its words. Put your name in the byline, or add a sentence to the end of the first column and watch it reflow.',
       phone:
-        'Tap Edit, choose Edit text, then tap any paragraph. Put your name in the byline, or add a sentence and watch the column reflow.',
+        'Tap Edit, then Edit text, then a paragraph. Put your name in the byline, or add a sentence and watch it reflow.',
     },
   },
   contact: {
@@ -282,7 +282,7 @@ const EN: SampleCopy = {
   agreement: {
     section: 'AGREEMENT',
     title: 'Contributor agreement',
-    sub: 'Margin No. 07 · Light',
+    sub: 'Contributors · No. 07',
     terms: [
       'Thank you for writing for Margin. This agreement covers your piece in No. 07. We may print it once in this issue and keep it in our online archive.',
       'Everything else stays yours. You may publish the piece anywhere from 1 January 2027. We pay within 30 days of publication.',
@@ -292,7 +292,7 @@ const EN: SampleCopy = {
     date: 'Date',
     email: 'Email',
     feeLabel: 'Your fee',
-    feeTransfer: 'Pay my fee of €240 by bank transfer',
+    feeTransfer: 'Pay my fee of £240 by bank transfer',
     feeTrust: 'Give my fee to the Cape Ardıç Lighthouse Trust',
     consentLabel: 'Your consent',
     agree: 'I have read this agreement and accept it.',
@@ -355,7 +355,7 @@ const EN: SampleCopy = {
     ],
     totals: [
       ['Subtotal', '£3,210.00'],
-      ['VAT 20 %', '£642.00'],
+      ['VAT 20%', '£642.00'],
       ['Total', '£3,852.00'],
     ],
     payTitle: 'Payment details',
@@ -398,7 +398,7 @@ const EN: SampleCopy = {
     keptTitle: 'Kept, then saved',
     lines: {
       full: [
-        'Your changes are kept on this device. Save (Ctrl+S, on a Mac Cmd+S) writes them into the file.',
+        'Your changes are kept on this device. Save (Ctrl+S; Cmd+S on a Mac) writes them into the file.',
         'Save a copy writes a new file and leaves this one as it is.',
         'Ctrl+K (Cmd+K on a Mac) finds every command: try “compress” or “compare”.',
       ],
@@ -532,7 +532,7 @@ const TR: SampleCopy = {
     tryLine: {
       full: 'Sözcüklerini değiştirmek için herhangi bir paragrafa çift tıklayın. Künyeye kendi adınızı yazın ya da ilk sütunun sonuna bir cümle ekleyip metnin yeniden dizilişini izleyin.',
       phone:
-        'Düzenle’ye dokunun, Metni düzenle’yi seçin ve bir paragrafa dokunun. Künyeye kendi adınızı yazın ya da bir cümle ekleyip sütunun yeniden dizilişini izleyin.',
+        'Düzenle’de Metni düzenle’yi seçip bir paragrafa dokunun. Künyeye adınızı yazın ya da cümle ekleyip akışı izleyin.',
     },
   },
   contact: {
@@ -554,9 +554,9 @@ const TR: SampleCopy = {
   agreement: {
     section: 'SÖZLEŞME',
     title: 'Yazar sözleşmesi',
-    sub: 'Kenar Sayı 07 · Işık',
+    sub: 'Yazarlar · Sayı 07',
     terms: [
-      'Kenar için yazdığınız için teşekkür ederiz. Bu sözleşme, 07. sayıdaki yazınızı kapsar. Yazınızı bu sayıda bir kez basabilir ve çevrimiçi arşivimizde tutabiliriz.',
+      'Kenar’a yazdığınız için teşekkür ederiz. Bu sözleşme, 07. sayıdaki yazınızı kapsar. Yazınızı bu sayıda bir kez basabilir ve çevrimiçi arşivimizde tutabiliriz.',
       'Diğer bütün haklar sizde kalır. Yazınızı 1 Ocak 2027’den itibaren dilediğiniz yerde yayımlayabilirsiniz. Ücretinizi yayından sonraki 30 gün içinde öderiz.',
     ],
     cardTitle: 'Bilgileriniz',
@@ -564,7 +564,7 @@ const TR: SampleCopy = {
     date: 'Tarih',
     email: 'E-posta',
     feeLabel: 'Ücretiniz',
-    feeTransfer: '240 € ücretimi banka havalesiyle ödeyin',
+    feeTransfer: '8.400 ₺ ücretimi banka havalesiyle ödeyin',
     feeTrust: 'Ücretimi Ardıç Burnu Feneri Vakfı’na bağışlayın',
     consentLabel: 'Onayınız',
     agree: 'Bu sözleşmeyi okudum ve kabul ediyorum.',
@@ -573,7 +573,7 @@ const TR: SampleCopy = {
     tryLine: {
       full: 'Bir alanı seçip yazın; Sekme tuşu sonrakine geçer. Ardından İmzala (G) ile çizginin üzerine imzanızı ekleyin.',
       phone:
-        'Bir alana dokunup yazın; çubuktaki › sonrakine geçer. Ardından Düzenle’ye dokunun, İmza’yı seçin ve çizginin üzerine imzanızı atın.',
+        'Bir alana dokunup yazın; çubuktaki › sonrakine geçer. Sonra Düzenle’de İmza’yı seçip çizginin üzerine imzanızı atın.',
     },
   },
   scan: {
@@ -675,9 +675,9 @@ const TR: SampleCopy = {
         'Ctrl+K (Mac’te Cmd+K) her komutu bulur: “sıkıştır” ya da “karşılaştır” yazmayı deneyin.',
       ],
       phone: [
-        'Bütün sayfaları görmek için herhangi bir sayfayı iki parmağınızla küçültün. İçine dönmek için bir sayfaya dokunun.',
+        'Bütün sayfaları görmek için bir sayfayı iki parmağınızla küçültün; geri dönmek için bir sayfaya dokunun.',
         'Bir sayfayı taşımak için basılı tutup sürükleyin. Seç ile sayfaları döndürebilir, silebilir ya da paylaşabilirsiniz; Ekle, başka bir dosyadan sayfa getirir.',
-        'Değişiklikleriniz bu cihazda kalır. İşiniz bitince Diğer menüsünden Kopya kaydet’i ya da Kopyasını paylaş’ı seçin.',
+        'Değişiklikleriniz bu cihazda kalır. Bitince Diğer menüsünden Kopya kaydet’i ya da Kopyasını paylaş’ı seçin.',
         'Taranmış mektup, fatura ve diğer bütün araçlar bilgisayar ve tabletteki örnek belgede.',
       ],
     },

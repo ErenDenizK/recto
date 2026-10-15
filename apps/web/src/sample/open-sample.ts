@@ -11,7 +11,8 @@
  * open first one), it lands on its page in viewing whatever was showing, it says "Opened the
  * sample. Its pages explain what to try", it has no file handle (Save asks where to write), and
  * it joins Recents only once changed (02.14: not here, but the session's close rule,
- * `isSampleFile`). Guard: none.
+ * `isSampleFile`). It opens fitted to the whole page, so the cover shows whole (MOB-15).
+ * Guard: none.
  */
 import type { DocumentId } from '@pdf-editor/document-model';
 
@@ -21,7 +22,7 @@ import { m } from '../i18n';
 import { getLocale } from '../i18n/locale';
 import { announce } from '../shell/announcer';
 import { focusOpenedPage } from '../shell/focus-opened-page';
-import { useUiStore } from '../state/ui-store';
+import { type FitMode, useUiStore } from '../state/ui-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { loadSampleFile } from './sample-file';
 import type { SampleLocale } from './sample-param';
@@ -67,9 +68,42 @@ export async function openSample(
   // On its page in viewing, wherever the person was (the Library, another tab, the grid).
   useWorkspaceStore.getState().setActive(id);
   useUiStore.getState().showSurface('page', id);
+  showCoverWhole(id);
   announce(m.sample_announce_opened());
   focusOpenedPage(id, before);
   return id;
+}
+
+/** The watch of the last sample open while its fit stands, and the view from before it. */
+let watching: { stop: () => void; before: { fitMode: FitMode | null; zoom: number } } | undefined;
+
+/**
+ * The cover is a poster: the sample's first view fits the whole page, so the lamp and its beam
+ * are in the first frame (MOB-15, A1). Only this view: a zoom the person picks afterwards is
+ * theirs, and when they turn to another document while the fit is still the sample's, the fit
+ * they had before comes back, so every other PDF keeps opening as it did.
+ */
+function showCoverWhole(id: DocumentId): void {
+  const ui = useUiStore.getState();
+  const before = watching?.before ?? { fitMode: ui.fitMode, zoom: ui.zoom };
+  watching?.stop();
+  ui.zoomFitPage();
+  const stop = () => {
+    leaveDoc();
+    leaveFit();
+    watching = undefined;
+  };
+  const leaveFit = useUiStore.subscribe((s) => {
+    if (s.fitMode !== 'page') stop();
+  });
+  const leaveDoc = useWorkspaceStore.subscribe((s) => {
+    if (s.workspace.activeDocument === id) return;
+    stop();
+    if (before.fitMode === 'page') return;
+    if (before.fitMode === 'width') useUiStore.getState().zoomFit();
+    else useUiStore.getState().setZoom(before.zoom);
+  });
+  watching = { stop, before };
 }
 
 /** "Try the sample" in the palette (L10 §6: ⌘K "sample"). */

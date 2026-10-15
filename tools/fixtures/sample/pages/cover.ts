@@ -8,15 +8,17 @@
  * it), and the whole frame carries grain. The chart line, Fl(3) G 10s, is the light's
  * characteristic: three green flashes every ten seconds.
  */
-import { popGraphicsState, pushGraphicsState } from '@cantoo/pdf-lib';
+import { PDFDict, PDFName, popGraphicsState, pushGraphicsState } from '@cantoo/pdf-lib';
 import { type PageCtx, footer, link, trySlip } from '../context.ts';
 import type { SampleCopy } from '../copy.ts';
 import {
+  CAP,
   COVER_MUTED,
   COVER_TEXT,
   FACES,
   LEFT,
   LIME,
+  MEASURE,
   PAGE_H,
   PAGE_W,
   PT,
@@ -26,6 +28,7 @@ import {
   type Style,
   caps,
   hairline,
+  openFont,
   poly,
   r2,
   raw,
@@ -45,6 +48,7 @@ import {
   sample,
   scale,
   shadeIn,
+  shareCover,
   Strokes,
 } from '../light.ts';
 
@@ -76,28 +80,41 @@ export function coverPage(ctx: PageCtx): void {
   const c = copy.cover;
   const up = (v: string) => v.toLocaleUpperCase(copy.lang);
 
-  const figure = w.elem('Figure', w.sect, c.alt);
-  w.figure(figure, ...scene(ctx));
+  // The scene is one Form XObject (MOB-15): the flatplan's tile and the contact sheet's frame 9
+  // paint the same object small, by `cm`, so the cover's light is the same light everywhere
+  // and costs no bytes twice. Its shadings and states go into the form's own resources.
+  const ops = scene(ctx);
+  const resources = w.page.node.normalizedEntries().Resources;
+  const own = Object.fromEntries(
+    (['Shading', 'ExtGState'] as const).map((kind) => {
+      const dict = resources.lookup(PDFName.of(kind), PDFDict);
+      resources.set(PDFName.of(kind), w.doc.context.obj({}));
+      return [kind, dict];
+    }),
+  );
+  const sceneRef = w.doc.context.register(
+    w.doc.context.formXObject(ops, { BBox: [0, 0, r2(PAGE_W), r2(PAGE_H)], Resources: own }),
+  );
+  w.resource('XObject', 'Scene', sceneRef);
+  w.figure(w.elem('Figure', w.sect, c.alt), raw('/Scene Do'));
+  // Film grain over the whole frame, outside the form so a miniature carries none.
+  w.art(...grain(w, 0.26, [0, 0, PAGE_W, PAGE_H]));
 
   // Masthead (direction-v2.md §5.3): real text, so Find and the tags keep "Margin", set in Inter
   // Bold from the file's own subset in render mode 7 (clip) and filled with the lamp's light,
-  // brighter towards the lamp: no outline bytes, no extra glyphs.
-  radialShading(w, 'ShType', LAMP[0], LAMP[1], 640, [
+  // brighter towards the lamp: no outline bytes, no extra glyphs. Its first stem stands on the
+  // left margin: the origin is pulled left by the first glyph's side bearing (A4).
+  const typeRef = radialShading(w, 'ShType', LAMP[0], LAMP[1], 560, [
     [0, hex('#FFFFF4')],
     [0.42, hex('#F6F8F0')],
-    [0.62, hex('#E1E4E8')],
-    [1, hex('#A7ADB6')],
+    [0.66, hex('#DDE0E4')],
+    [1, hex('#B9BEC6')],
   ]);
-  const style: Style = { face: 'bold', size: 150, color: COVER_TEXT, tracking: -4.5 };
-  const tw = w.width(style, c.masthead);
-  const fs = Math.min(150, (150 * (RIGHT - LEFT + 4)) / tw);
+  const { fs, x0 } = masthead(c.masthead);
   const hexText = w.faces.bold.encodeText(c.masthead).toString();
-  w.figure(
-    w.elem('H1', w.sect),
-    raw(
-      `BT /${FACES.bold.key} ${r2(fs)} Tf ${r2(-0.03 * fs)} Tc 7 Tr 1 0 0 1 ${r2(LEFT - 3)} 646 Tm ${hexText} Tj ET 0 Tr 0 Tc /ShType sh`,
-    ),
-  );
+  const type = `BT /${FACES.bold.key} ${r2(fs)} Tf ${r2(-0.03 * fs)} Tc 7 Tr 1 0 0 1 ${r2(x0)} ${MAST_Y} Tm ${hexText} Tj ET 0 Tr 0 Tc`;
+  w.figure(w.elem('H1', w.sect), raw(`${type} /ShType sh`));
+  shareCover(w.doc, { scene: sceneRef, type: typeRef, masthead: type });
 
   w.text(
     w.elem('P'),
@@ -106,12 +123,13 @@ export function coverPage(ctx: PageCtx): void {
     790,
     c.tagline,
   );
+  // The light's characteristic as a chart prints it (C: single spaces, units set close).
   w.text(
     null,
     { face: 'serif', size: PT.small, color: COVER_MUTED },
     RIGHT,
     790,
-    'Fl(3) G 10s  42 m  22 M',
+    'Fl(3) G 10s 42m 22M',
     'right',
   );
   w.text(
@@ -123,7 +141,7 @@ export function coverPage(ctx: PageCtx): void {
   );
   // The slate: the frame's timecode beside the lamp.
   const slate: Style = { ...STYLE.label, color: LIME };
-  w.art(...hairline(LAMP[0] + 9, LAMP[1] + 4, LAMP[0] + 22, LAMP[1] + 17, scale(LIME, 0.55), 0.4));
+  w.art(...hairline(LAMP[0] + 9, LAMP[1] + 4, LAMP[0] + 22, LAMP[1] + 17, COVER_MUTED, 0.5));
   w.text(null, slate, LAMP[0] + 25, LAMP[1] + 16, '18:52');
   w.text(null, { ...slate, color: COVER_MUTED }, LAMP[0] + 25, LAMP[1] + 7.5, up(c.lampOn));
 
@@ -135,11 +153,12 @@ export function coverPage(ctx: PageCtx): void {
     if (n === undefined) throw new Error(`cover: no page ${line.page} in this cut`);
     const b = 258 - i * pitch;
     const li = w.elem('LI', list);
+    // The numeral's cap top on the title's (B3): its baseline (27 − 16) × cap height lower.
     w.text(
       w.elem('Lbl', li),
       { face: 'bold', size: PT.numeral, color: LIME },
       LEFT,
-      b - 10,
+      r2(b - (PT.numeral - PT.title) * CAP),
       String(n),
     );
     const body = w.elem('LBody', li);
@@ -151,6 +170,33 @@ export function coverPage(ctx: PageCtx): void {
   trySlip(ctx, c.tryLine, { onDark: true, y: 34 });
   footer(ctx, true);
   w.art(...lampTab(w, 'cover'));
+}
+
+/** The masthead's baseline. */
+const MAST_Y = 646;
+
+/**
+ * The masthead's size and origin (A4): as large as fits the measure (at most 150), its first
+ * stem on the left margin and its last on the right: the origin is pulled left by the first
+ * glyph's side bearing and the size counts ink, not advances (Inter Bold's own metrics).
+ */
+function masthead(text: string): { fs: number; x0: number } {
+  const spec = FACES.bold;
+  const font = openFont(spec.file);
+  const glyphs = font.layout(text, spec.features).glyphs;
+  const unit = 1 / font.unitsPerEm;
+  const first = glyphs[0];
+  const last = glyphs.at(-1);
+  if (!first || !last) throw new Error('cover: an empty masthead');
+  const bbox = (g: typeof first) => (g as unknown as { bbox: { minX: number; maxX: number } }).bbox;
+  // Ink width at size 1: advances and tracking (−0.03 em a gap), less both side bearings.
+  const ink =
+    glyphs.reduce((s, g) => s + g.advanceWidth, 0) * unit -
+    0.03 * (glyphs.length - 1) -
+    bbox(first).minX * unit -
+    (last.advanceWidth - bbox(last).maxX) * unit;
+  const fs = Math.min(150, MEASURE / ink);
+  return { fs, x0: LEFT - bbox(first).minX * unit * fs };
 }
 
 const SKY_STOPS = [
@@ -188,7 +234,7 @@ function scene(ctx: PageCtx) {
   const [lx, ly] = LAMP;
   const ops = [];
 
-  // Sky and sea grounds (axial shadings; grain dithers their gradients).
+  // Sky and sea grounds (axial shadings; the grain over the frame masks their steps).
   axialShading(w, 'ShSky', [0, PAGE_H], [0, HORIZON], SKY_STOPS);
   axialShading(
     w,
@@ -335,14 +381,17 @@ function scene(ctx: PageCtx) {
       return seed / 2147483647;
     };
   })();
+  // The column (B6) widens with perspective: dense short glints at the horizon, fewer and
+  // longer towards us, each x jittered, fading out by y 260 so it never reaches the cover lines.
   const glints = new Strokes();
-  for (let i = 0; i < 18; i++) {
-    const t = i / 17;
-    const y = HORIZON - 7 - 280 * t ** 1.5;
-    const len = 2 + 22 * t * (0.5 + rnd());
-    const x = lx - 4 + (rnd() - 0.5) * (8 + 60 * t);
-    const col = scale(mix(LEMON, MINT, t), 0.5 * (1 - t) ** 2 + 0.025);
-    glints.add(x, y, x + len, y, col, 0.5 + t * 0.9, 24);
+  for (let i = 0; i < 30; i++) {
+    const t = i / 29;
+    const y = HORIZON - 5 - 72 * t ** 1.35;
+    const spread = 6 + 46 * t;
+    const len = 1.5 + 13 * t * (0.6 + 0.8 * rnd());
+    const x = lx - len / 2 + (rnd() - 0.5) * 2 * spread + (rnd() - 0.5) * 12;
+    const col = scale(mix(LEMON, MINT, t), 0.5 * (1 - t) ** 2.2 + 0.02 * (1 - t));
+    glints.add(x, y, x + len, y, col, 0.45 + t * 0.6, 24);
   }
   for (let i = 0; i < 40; i++) {
     const x = lx - 30 - (lx - 10) * (i / 39) ** 0.9;
@@ -372,23 +421,31 @@ function scene(ctx: PageCtx) {
       [0.6, hex('#16200A')],
       [1, BLACK],
     ]),
-    ...glow(
-      w,
-      'Streak',
-      lx,
-      ly,
-      240,
-      [
-        [0, hex('#E6FFF0')],
-        [0.1, scale(MINT, 0.55)],
-        [0.45, scale(MINT, 0.12)],
-        [1, BLACK],
-      ],
-      { squash: 0.014 },
-    ),
+    ...streak(w, lx, ly),
   );
-
-  // Film grain over the whole frame (dithers every gradient above).
-  ops.push(...grain(w, 0.26, [0, 0, PAGE_W, PAGE_H]));
   return ops;
+}
+
+/**
+ * The anamorphic streak through the lamp: a long arm west along the beam and a short one east
+ * (to about x 560, C), so the eye follows the beam. Two halves of one profile: each a squashed
+ * radial clipped to its side of the lamp, the right one shorter and correspondingly taller so
+ * the two meet in the same vertical profile.
+ */
+function streak(w: PageCtx['w'], lx: number, ly: number) {
+  const stops = [
+    [0, hex('#E6FFF0')],
+    [0.1, scale(MINT, 0.55)],
+    [0.45, scale(MINT, 0.12)],
+    [1, BLACK],
+  ] as const;
+  const half = 240 * 0.014;
+  const arm = (name: string, r: number, x0: number, x1: number) => {
+    radialShading(w, `Sh${name}`, 0, 0, r, stops, [true, false]);
+    return raw(
+      `q ${r2(x0)} ${r2(ly - half)} ${r2(x1 - x0)} ${r2(2 * half)} re W n /GsScr gs 1 0 0 ${r2(half / r)} ${r2(lx)} ${r2(ly)} cm /Sh${name} sh Q`,
+    );
+  };
+  gs(w, 'GsScr', { BM: 'Screen' });
+  return [arm('StreakW', 240, lx - 240, lx), arm('StreakE', 100, lx, lx + 100)];
 }

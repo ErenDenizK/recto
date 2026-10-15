@@ -7,9 +7,10 @@
  * other pages are (phone cut).
  */
 import { setDashPattern, setLineCap } from '@cantoo/pdf-lib';
-import { type PageCtx, SLIP_TOP, furniture, kicker, link, note, trySlip } from '../context.ts';
+import { type PageCtx, furniture, kicker, link, note, slipTop, trySlip } from '../context.ts';
 import { type ContentsRow, cut } from '../copy.ts';
 import {
+  CAP,
   COL2,
   COL_W,
   type Elem,
@@ -24,6 +25,7 @@ import {
   STYLE,
   type Style,
   hairline,
+  r2,
   rich,
 } from '../kit.ts';
 import { FRAME_TIME } from '../light.ts';
@@ -47,14 +49,11 @@ export function letterPage(ctx: PageCtx): void {
   // The letter.
   const first = 686;
   let y = first;
-  for (const text of c.paragraphs) {
-    const set = w.paragraph([{ text, style: LETTER }], {
-      x: LEFT,
-      y,
-      width: TEXT_W,
-      leading: LETTER_LEADING,
-      pretty: true,
-    });
+  // One measure for the letter's paragraphs (A5): one rag, no paragraph ends on an orphan.
+  const paragraphs = c.paragraphs.map((text) => [{ text, style: LETTER }]);
+  const measure = w.blockMeasure(paragraphs, TEXT_W);
+  for (const runs of paragraphs) {
+    const set = w.paragraph(runs, { x: LEFT, y, width: measure, leading: LETTER_LEADING });
     y = set.next - 9;
   }
   const sign: Style = { face: 'sans', size: PT.body, color: MUTED };
@@ -78,7 +77,7 @@ export function letterPage(ctx: PageCtx): void {
       setLineCap(1),
       ...hairline(MARGIN_X, ly, RIGHT, ly, RULE, 0.9),
     );
-  note(ctx, RIGHT - 20, first - 8, c.note.author, c.note.text, margin);
+  note(ctx, RIGHT - 16, first - 6, c.note.author, c.note.text, margin);
 
   // Contents and the folder, side by side.
   const top = signY - 66;
@@ -90,7 +89,7 @@ export function letterPage(ctx: PageCtx): void {
   const contents = rows(c.contents);
   const folderRows = ctx.edition === 'full' ? rows(c.folder) : [];
   const count = Math.max(contents.length, folderRows.length);
-  const room = top - 34 - 23 - (SLIP_TOP + 36);
+  const room = top - 34 - 23 - (slipTop(ctx, cut(c.tryLine, ctx.edition)) + 36);
   const pitch = Math.max(ROW_MIN, Math.min(ROW_MAX, Math.floor(room / Math.max(1, count - 1))));
   const toc = w.elem('TOC');
   w.text(w.elem('H2', toc), STYLE.h2, LEFT, top, c.contentsTitle);
@@ -129,20 +128,22 @@ function contentsRow(
   const n = ctx.pageOf(row.page);
   if (n === undefined) return;
   const item = w.elem('TOCI', parent);
+  // The numeral's cap top on the title's (B3): its baseline (16 − 11.25) × cap height lower.
   w.text(
     w.elem('Lbl', item),
     { face: 'bold', size: PT.title, color: LIME_800 },
     x,
-    y - 7,
+    r2(y - (PT.title - PT.large) * CAP),
     String(n),
   );
   w.text(item, { face: 'bold', size: PT.large, color: INK }, x + 30, y, row.title);
   w.text(item, { face: 'sans', size: PT.small, color: MUTED }, x + 30, y - 13, row.dek);
-  // The page's hour of the night, right-aligned: the contents read as the night's schedule
-  // (MOB-14; direction-v2.md §8 page 2). An artifact, so the row's text stays its title.
+  // The page's hour of the night, right-aligned on the title's baseline: the contents read as
+  // the night's schedule (MOB-14; direction-v2.md §8 page 2). An artifact, so the row's text
+  // stays its title.
   const hour = FRAME_TIME[ctx.ids[n - 1] ?? ''];
   if (hour)
-    w.text(null, { face: 'sans', size: PT.small, color: MUTED }, x + COL_W, y + 1, hour, 'right');
+    w.text(null, { face: 'sans', size: PT.small, color: MUTED }, x + COL_W, y, hour, 'right');
   w.art(...hairline(x, y - 23, x + COL_W, y - 23, RULE, 0.5));
   link(ctx, [x, y - 23, x + COL_W, y + pitch - 23], row.page, goTo(ctx.copy, n, row.title), item);
 }

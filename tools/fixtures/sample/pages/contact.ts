@@ -25,8 +25,9 @@ import {
   fill,
   setDashPattern,
   setLineCap,
+  lineTo,
 } from '@cantoo/pdf-lib';
-import { type PageCtx, furniture, kicker, trySlip } from '../context.ts';
+import { type PageCtx, furniture, kicker, slipTop, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
 import {
   LEFT,
@@ -46,6 +47,7 @@ import {
   type Rgb,
   STYLE,
   type Style,
+  type Writer,
   caps,
   circlePath,
   disc,
@@ -57,7 +59,18 @@ import {
   roundRect,
   raw,
 } from '../kit.ts';
-import { grain, gs, hex, lightAt, mix, radialShading, scale } from '../light.ts';
+import {
+  axialShading,
+  coverOf,
+  grain,
+  gs,
+  hex,
+  lightAt,
+  mix,
+  radialShading,
+  scale,
+} from '../light.ts';
+import { LAMP } from './cover.ts';
 
 const FILM: Rgb = [0.09, 0.098, 0.118];
 const PAD = 7;
@@ -104,7 +117,7 @@ export function contactPage(ctx: PageCtx): void {
         rectangle(r2(fx), r2(fy), r2(FRAME_W), r2(FRAME_H)),
         clip(),
         endPath(),
-        ...graded((FRAMES[row * 4 + k] as Frame)(fx, fy, FRAME_W, FRAME_H)),
+        ...graded((FRAMES[row * 4 + k] as Frame)(fx, fy, FRAME_W, FRAME_H, w)),
         ...frameLights(row * 4 + k, fx, fy, FRAME_W, FRAME_H),
         popGraphicsState(),
       );
@@ -150,7 +163,8 @@ export function contactPage(ctx: PageCtx): void {
   // Ruled space for notes, as the letter's margin is: the page invites the pen and a note.
   const notesTop = bottom - 70;
   w.text(w.elem('P'), STYLE.label, LEFT, notesTop, c.notes.toLocaleUpperCase(copy.lang));
-  for (let ly = notesTop - 24; ly >= 116; ly -= 24)
+  const floor = slipTop(ctx, cut(c.tryLine, ctx.edition)) + 26;
+  for (let ly = notesTop - 24; ly >= floor; ly -= 24)
     w.art(setDashPattern([0.1, 3], 0), setLineCap(1), ...hairline(LEFT, ly, RIGHT, ly, RULE, 0.9));
   trySlip(ctx, cut(c.tryLine, ctx.edition));
 }
@@ -162,6 +176,8 @@ export function contactPage(ctx: PageCtx): void {
  */
 const GRADE = hex('#666B78');
 const r3 = (v: number) => Math.round(v * 1000) / 1000;
+/** A colour as the grade leaves it, for shadings (which `graded` does not reach). */
+const grade = (rgb: Rgb): Rgb => rgb.map((v, i) => r3(v * (GRADE[i] as number))) as unknown as Rgb;
 function graded(ops: PDFOperator[]): PDFOperator[] {
   return ops.map((op) => {
     const m = /^(\S+) (\S+) (\S+) (rg|RG)$/.exec(op.toString());
@@ -181,10 +197,6 @@ const LIGHTS: Record<number, readonly (readonly [number, number, number, number,
   3: [[0.5, 0.25, 0.34, 0.16, 1]],
   5: [[0.5, 0.55, 0.5, 0.5, 0.85]],
   6: [[0.7 - 8 / 112, 0.75 - 8 / 75, 0.14, 0.14, 0.8]],
-  8: [
-    [0.86, 0.56, 0.2, 0.2, 1],
-    [0.4, 0.67, 0.6, 0.05, 0.7],
-  ],
   10: [[0.36 + 8 / 112, 0.55, 0.12, 0.42, 0.9]],
 };
 function frameLights(i: number, x: number, y: number, w: number, h: number): PDFOperator[] {
@@ -212,7 +224,7 @@ function strip(y: number): PDFOperator[] {
   return ops;
 }
 
-type Frame = (x: number, y: number, w: number, h: number) => PDFOperator[];
+type Frame = (x: number, y: number, w: number, h: number, page: Writer) => PDFOperator[];
 
 const curve = (a: number, b: number, c: number, d: number, e: number, f: number) =>
   appendBezierCurve(r2(a), r2(b), r2(c), r2(d), r2(e), r2(f));
@@ -291,8 +303,8 @@ const FRAMES: Frame[] = [
     }
     return ops;
   },
-  // 4 A kettle on the stove, a lime gas flame under it.
-  (x, y, w, h) => {
+  // 4 A kettle on the stove, its gas flames lit under it.
+  (x, y, w, h, page) => {
     const ops = [...rect(x, y, w, h, N7), ...rect(x, y, w, h * 0.3, N8)];
     const cx = x + w * 0.5;
     const by = y + h * 0.34;
@@ -317,18 +329,35 @@ const FRAMES: Frame[] = [
       curve(cx - 10, by + 34, cx + 10, by + 34, cx + 12, by + 19),
       stroke(),
       ...rect(cx - 30, by - 4, 60, 3, N9),
+      ...rect(cx - 24, by - 12.5, 48, 1.5, N9),
     );
-    for (let k = -3; k <= 3; k++)
-      ops.push(
-        ...poly(
-          [
-            [cx + k * 6 - 2, by - 4],
-            [cx + k * 6, by - 11],
-            [cx + k * 6 + 2, by - 4],
-          ],
-          LIME,
-        ),
-      );
+    // The flames rise from the burner to the pan support: light at the burner, falling to the
+    // stove's ground at the tips (A3: one axial through all seven cones, not lime paint).
+    const light = lightAt('contact');
+    axialShading(
+      page,
+      'ShFlame',
+      [0, by - 11],
+      [0, by - 4],
+      [
+        [0, mix(light, [1, 1, 1], 0.25)],
+        [0.45, scale(light, 0.6)],
+        [1, grade(N8)],
+      ],
+    );
+    ops.push(
+      pushGraphicsState(),
+      ...[-3, -2, -1, 0, 1, 2, 3].flatMap((k) => [
+        moveTo(r2(cx + k * 6 - 2.2), r2(by - 11)),
+        lineTo(r2(cx + k * 6), r2(by - 4)),
+        lineTo(r2(cx + k * 6 + 2.2), r2(by - 11)),
+        closePath(),
+      ]),
+      clip(),
+      endPath(),
+      raw('/ShFlame sh'),
+      popGraphicsState(),
+    );
     return ops;
   },
   // 5 The window and the sea.
@@ -402,25 +431,16 @@ const FRAMES: Frame[] = [
     );
     return ops;
   },
-  // 9 The beam over the water.
-  (x, y, w, h) => {
-    const ops = [...rect(x, y, w, h, N9)];
-    for (let i = 0; i < 9; i++) {
-      const ly = y + h * 0.42 - i ** 1.4 * 2.4;
-      ops.push(...hairline(x, ly, x + w, ly, N7, 0.6));
-    }
-    ops.push(
-      ...poly(
-        [
-          [x + w * 0.86, y + h * 0.56],
-          [x - 4, y + h * 0.78],
-          [x - 4, y + h * 0.6],
-        ],
-        LIME,
-      ),
-    );
-    ops.push(...rect(x + w * 0.84, y + h * 0.42, 4, h * 0.14, N4));
-    return ops;
+  // 9 The beam over the water: the cover's own scene (A3), the same Form XObject, framed on
+  // the lamp (a 300 pt wide crop, the lamp 78 % across), so its light is the cover's light.
+  (x, y, w, h, page) => {
+    page.resource('XObject', 'Scene', coverOf(page.doc).scene);
+    const k = w / 300;
+    const [x0, y0] = [LAMP[0] - 0.78 * 300, LAMP[1] - 0.52 * 300 * (h / w)];
+    return [
+      ...rect(x, y, w, h, N9),
+      raw(`q ${r3(k)} 0 0 ${r3(k)} ${r2(x - x0 * k)} ${r2(y - y0 * k)} cm /Scene Do Q`),
+    ];
   },
   // 10 Pusula's bowl on the floorboards.
   (x, y, w, h) => {
@@ -442,7 +462,7 @@ const FRAMES: Frame[] = [
     return ops;
   },
   // 11 The door at dusk, light from inside.
-  (x, y, w, h) => {
+  (x, y, w, h, page) => {
     const ops = [...rect(x, y, w, h, N7), ...rect(x, y, w, h * 0.22, N8)];
     const dx = x + w * 0.36;
     const dy = y + h * 0.22;
@@ -458,16 +478,31 @@ const FRAMES: Frame[] = [
         LIME,
       ),
     );
+    // The light the slit lays on the floor (A3): the slit's light at the threshold, falling to
+    // the floor's own ground at the frame's edge.
+    const light = lightAt('contact');
+    axialShading(
+      page,
+      'ShFloor',
+      [0, dy],
+      [0, y],
+      [
+        [0, mix(grade(LIME), scale(light, 0.7), 0.5)],
+        [0.5, mix(grade(N8), scale(light, 0.35), 0.5)],
+        [1, grade(N8)],
+      ],
+    );
     ops.push(
-      ...poly(
-        [
-          [dx + 4, dy],
-          [dx + 12, dy],
-          [dx + 40, y],
-          [dx - 10, y],
-        ],
-        [0.42, 0.5, 0.2],
-      ),
+      pushGraphicsState(),
+      moveTo(r2(dx + 4), r2(dy)),
+      lineTo(r2(dx + 12), r2(dy)),
+      lineTo(r2(dx + 40), r2(y)),
+      lineTo(r2(dx - 10), r2(y)),
+      closePath(),
+      clip(),
+      endPath(),
+      raw('/ShFloor sh'),
+      popGraphicsState(),
     );
     return ops;
   },

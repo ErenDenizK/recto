@@ -33,6 +33,7 @@ import {
   sampleFile,
   sizeProblems,
 } from './sample-fixture.ts';
+import { NO_BREAK, lineProblems, mayBreakAt } from './sample/kit.ts';
 
 let built: Awaited<ReturnType<typeof buildSamples>>;
 
@@ -58,6 +59,79 @@ function pageContent(doc: PDFDocument, index: number): string {
 
 const text = (value: unknown) =>
   value instanceof PDFString || value instanceof PDFHexString ? value.decodeText() : undefined;
+
+describe('line breaks (MOB-15)', () => {
+  /** Whether a line may break before each word of `phrase` but the first. */
+  const breaks = (phrase: string) =>
+    phrase.split(' ').flatMap((_, k, words) => (k === 0 ? [] : [mayBreakAt(words, k)]));
+
+  it('never break inside a listed phrase, a number and its unit, a date or a shortcut', () => {
+    for (const phrase of NO_BREAK) expect(breaks(phrase), phrase).not.toContain(true);
+    // Each phrase with the breaks it allows (before word k), the critique's cases among them.
+    const cases: [string, number[]][] = [
+      ['from 1 January 2027.', []],
+      ['1 Ocak 2027’den itibaren', [3]],
+      ['climbed 112 steps every', [3]],
+      ['within 30 days of', [3]],
+      ['on page 3.', [1]],
+      ['3. sayfada', []],
+      ['Save (Ctrl+S; Cmd+S on a Mac) writes', [1, 6]],
+      ['Ctrl+F’ye (Mac’te Cmd+F) basın', [1, 3]],
+      ['keeps: a lamp', [1]],
+      ['covers your piece in No. 07. We may print', [1, 2, 3, 4, 8]],
+      ['Bir sayfayı basılı tutup sürükleyin', [1, 2, 4]],
+      ['since 1987. Nevin', [1, 2]],
+    ];
+    for (const [phrase, allowed] of cases)
+      expect(
+        breaks(phrase).flatMap((ok, k) => (ok ? [k + 1] : [])),
+        phrase,
+      ).toEqual(allowed);
+  });
+
+  it('flag an orphan and a forbidden break', () => {
+    expect(lineProblems([['one', 'two', 'three'], ['four.']], 0.12)).toHaveLength(1);
+    expect(
+      lineProblems(
+        [
+          ['from', '1'],
+          ['January', '2027.'],
+        ],
+        0.5,
+      ),
+    ).toHaveLength(1);
+    expect(
+      lineProblems(
+        [
+          ['from', '1', 'January'],
+          ['2027', 'on'],
+        ],
+        0.5,
+      ),
+    ).toHaveLength(1);
+    expect(
+      lineProblems(
+        [
+          ['one', 'two'],
+          ['three', 'four.'],
+        ],
+        0.5,
+      ),
+    ).toEqual([]);
+  });
+
+  it.each(SAMPLE_LOCALES.flatMap((l) => SAMPLE_EDITIONS.map((e) => sampleFile(l, e))))(
+    'hold in every paragraph %s sets: no short last line, no forbidden break',
+    (file) => {
+      const texts = built.texts.get(file) ?? [];
+      expect(texts.length).toBeGreaterThan(20);
+      const problems = texts.flatMap((t) =>
+        lineProblems(t.lines, t.share).map((p) => `page ${t.page}: ${p}`),
+      );
+      expect(problems).toEqual([]);
+    },
+  );
+});
 
 describe('the four samples', () => {
   it('stay within the caps, each and together', () => {
@@ -153,13 +227,11 @@ describe.each(SAMPLE_LOCALES.flatMap((l) => SAMPLE_EDITIONS.map((e) => [l, e] as
     it('clips every blended light (MOB-14: PDFium blends against a transparent page)', async () => {
       // direction-v2.md §5.4: a blended object must lie on a ground its page paints and be
       // clipped to it, or it draws against nothing (and costs a page-sized offscreen group).
+      // The cover's scene is a Form XObject (MOB-15): its glows are held to the same rule.
       const doc = await load();
       let blendedPaints = 0;
-      for (let i = 0; i < doc.getPageCount(); i++) {
-        const states = doc
-          .getPage(i)
-          .node.Resources()
-          ?.lookupMaybe(PDFName.of('ExtGState'), PDFDict);
+      const check = (where: string, resources: PDFDict | undefined, content: string) => {
+        const states = resources?.lookupMaybe(PDFName.of('ExtGState'), PDFDict);
         const blended = new Set(
           (states?.entries() ?? [])
             .filter(([, value]) => {
@@ -168,7 +240,7 @@ describe.each(SAMPLE_LOCALES.flatMap((l) => SAMPLE_EDITIONS.map((e) => [l, e] as
             })
             .map(([name]) => name.asString()),
         );
-        const tokens = pageContent(doc, i).split(/\s+/);
+        const tokens = content.split(/\s+/);
         const clipped: boolean[] = [false];
         tokens.forEach((token, k) => {
           if (token === 'q') clipped.push(clipped.at(-1) ?? false);
@@ -176,10 +248,28 @@ describe.each(SAMPLE_LOCALES.flatMap((l) => SAMPLE_EDITIONS.map((e) => [l, e] as
           else if (token === 'W' || token === 'W*') clipped[clipped.length - 1] = true;
           else if (token === 'gs' && blended.has(tokens[k - 1] ?? '')) {
             blendedPaints += 1;
-            expect(clipped.at(-1), `page ${i + 1}: ${tokens[k - 1]} outside a clip`).toBe(true);
+            expect(clipped.at(-1), `${where}: ${tokens[k - 1]} outside a clip`).toBe(true);
           }
         });
+      };
+      const forms = new Set<PDFRawStream>();
+      for (let i = 0; i < doc.getPageCount(); i++) {
+        const resources = doc.getPage(i).node.Resources();
+        check(`page ${i + 1}`, resources, pageContent(doc, i));
+        const xobjects = resources?.lookupMaybe(PDFName.of('XObject'), PDFDict);
+        for (const [, ref] of xobjects?.entries() ?? []) {
+          const stream = doc.context.lookup(ref);
+          const form = stream instanceof PDFRawStream ? stream : undefined;
+          if (form?.dict.get(PDFName.of('Subtype')) === PDFName.of('Form')) forms.add(form);
+        }
       }
+      for (const form of forms)
+        check(
+          'a form',
+          form.dict.lookupMaybe(PDFName.of('Resources'), PDFDict),
+          Buffer.from(inflateSync(form.getContents())).toString('latin1'),
+        );
+      expect(forms.size).toBeGreaterThan(0);
       expect(blendedPaints).toBeGreaterThan(0);
     });
 

@@ -171,20 +171,18 @@ export function radialShading(
   stops: readonly Stop[],
   extend: readonly [boolean, boolean] = [true, false],
   r0 = 0,
-) {
-  w.resource(
-    'Shading',
-    name,
-    w.doc.context.register(
-      w.doc.context.obj({
-        ShadingType: 3,
-        ColorSpace: 'DeviceRGB',
-        Coords: [r2(cx), r2(cy), r2(r0), r2(cx), r2(cy), r2(r)],
-        Function: ramp(stops),
-        Extend: [...extend],
-      }),
-    ),
+): PDFRef {
+  const ref = w.doc.context.register(
+    w.doc.context.obj({
+      ShadingType: 3,
+      ColorSpace: 'DeviceRGB',
+      Coords: [r2(cx), r2(cy), r2(r0), r2(cx), r2(cy), r2(r)],
+      Function: ramp(stops),
+      Extend: [...extend],
+    }),
   );
+  w.resource('Shading', name, ref);
+  return ref;
 }
 
 /** An axial shading resource. */
@@ -195,20 +193,18 @@ export function axialShading(
   to: readonly [number, number],
   stops: readonly Stop[],
   extend: readonly [boolean, boolean] = [true, true],
-) {
-  w.resource(
-    'Shading',
-    name,
-    w.doc.context.register(
-      w.doc.context.obj({
-        ShadingType: 2,
-        ColorSpace: 'DeviceRGB',
-        Coords: [r2(from[0]), r2(from[1]), r2(to[0]), r2(to[1])],
-        Function: ramp(stops),
-        Extend: [...extend],
-      }),
-    ),
+): PDFRef {
+  const ref = w.doc.context.register(
+    w.doc.context.obj({
+      ShadingType: 2,
+      ColorSpace: 'DeviceRGB',
+      Coords: [r2(from[0]), r2(from[1]), r2(to[0]), r2(to[1])],
+      Function: ramp(stops),
+      Extend: [...extend],
+    }),
   );
+  w.resource('Shading', name, ref);
+  return ref;
 }
 
 /**
@@ -306,12 +302,19 @@ export const groundAt = (id: string) => sample(GROUND_RAMP, nightOf(id));
  * the night as a frame sequence. It stays 40 pt clear of the measure, so no paragraph's
  * wrap or gap reads it (direction-v2.md §5.4, editability).
  */
-const TAB_W = 9;
+export const TAB_W = 9;
+/**
+ * The tab stands 3 pt inside the trim as a capsule (B5, MOB-15): a bleed tab at the page's
+ * edge read in the app as a scroll thumb on the page; inset and round it reads as a lamp
+ * window in the fore-edge. The owner may still choose a light-only tab instead.
+ */
+export const TAB_INSET = 3;
 export function lampTab(w: Writer, id: string): PDFOperator[] {
   const f = nightOf(id);
   const yc = 772 - f * 660;
   const h = 64;
-  const x0 = PAGE_W - TAB_W;
+  const x0 = PAGE_W - TAB_INSET - TAB_W;
+  const xc = x0 + TAB_W / 2;
   if (x0 < RIGHT + 40) throw new Error('lamp tab: within 40 pt of the measure');
   const ground = groundAt(id);
   const light = lightAt(id);
@@ -323,24 +326,20 @@ export function lampTab(w: Writer, id: string): PDFOperator[] {
     [1, [0, 0, 0]],
   ]);
   gs(w, 'GsScr', { BM: 'Screen' });
-  const ops: PDFOperator[] = [
-    raw(`${r2(ground[0])} ${r2(ground[1])} ${r2(ground[2])} rg`),
-    raw(
-      `${r2(x0 + 4)} ${r2(yc - h / 2)} m ${r2(x0 + 30)} ${r2(yc - h / 2)} l ${r2(x0 + 30)} ${r2(yc + h / 2)} l ${r2(x0 + 4)} ${r2(yc + h / 2)} l ${r2(x0 + 1.79)} ${r2(yc + h / 2)} ${r2(x0)} ${r2(yc + h / 2 - 1.79)} ${r2(x0)} ${r2(yc + h / 2 - 4)} c ${r2(x0)} ${r2(yc - h / 2 + 4)} l ${r2(x0)} ${r2(yc - h / 2 + 1.79)} ${r2(x0 + 1.79)} ${r2(yc - h / 2)} ${r2(x0 + 4)} ${r2(yc - h / 2)} c f`,
-    ),
-  ];
-  // The light: a slit along the tab's inner edge, glowing (a vertical anamorphic glow).
-  ops.push(
+  const r = TAB_W / 2;
+  const k = r * 0.5523;
+  const [t, b] = [yc + h / 2, yc - h / 2];
+  const capsule = `${r2(x0)} ${r2(b + r)} m ${r2(x0)} ${r2(t - r)} l ${r2(x0)} ${r2(t - r + k)} ${r2(xc - k)} ${r2(t)} ${r2(xc)} ${r2(t)} c ${r2(xc + k)} ${r2(t)} ${r2(x0 + TAB_W)} ${r2(t - r + k)} ${r2(x0 + TAB_W)} ${r2(t - r)} c ${r2(x0 + TAB_W)} ${r2(b + r)} l ${r2(x0 + TAB_W)} ${r2(b + r - k)} ${r2(xc + k)} ${r2(b)} ${r2(xc)} ${r2(b)} c ${r2(xc - k)} ${r2(b)} ${r2(x0)} ${r2(b + r - k)} ${r2(x0)} ${r2(b + r)} c h`;
+  return [
+    raw(`${r2(ground[0])} ${r2(ground[1])} ${r2(ground[2])} rg ${capsule} f`),
+    // The light: a slit down the tab's middle, glowing (a vertical anamorphic glow).
     pushGraphicsState(),
-    raw(
-      `${r2(x0)} ${r2(yc - h / 2)} 9 ${h} re W n /GsScr gs 4 0 0 ${r2(h * 0.6)} ${r2(x0 + 4)} ${r2(yc)} cm /Sh${name} sh`,
-    ),
+    raw(`${capsule} W n /GsScr gs 4 0 0 ${r2(h * 0.6)} ${r2(xc)} ${r2(yc)} cm /Sh${name} sh`),
     popGraphicsState(),
     raw(
-      `${r2(light[0])} ${r2(light[1])} ${r2(light[2])} rg ${r2(x0 + 3.6)} ${r2(yc - h * 0.32)} 0.8 ${r2(h * 0.64)} re f`,
+      `${r2(light[0])} ${r2(light[1])} ${r2(light[2])} rg ${r2(xc - 0.4)} ${r2(yc - h * 0.32)} 0.8 ${r2(h * 0.64)} re f`,
     ),
-  );
-  return ops;
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -378,7 +377,7 @@ export function beamMesh(
      */
     readonly backdrop?: (x: number, y: number) => Rgb;
   },
-): void {
+): PDFRef {
   const angles = opts.angles ?? [
     -20, -15.5, -12, -9, -7, -5.5, -4.2, -3.2, -2.4, -1.7, -1.1, -0.6, -0.25, 0, 0.25, 0.6, 1.1,
     1.7, 2.4, 3.2, 4.2, 5.5, 7, 9, 12, 15.5, 20,
@@ -448,12 +447,27 @@ export function beamMesh(
     }),
   );
   w.resource('Shading', name, ref);
-  meshes.set(w.doc, ref);
+  return ref;
 }
 
-const meshes = new WeakMap<PDFDocument, PDFRef>();
-/** The cover's beam mesh, for a miniature of the cover (the same object, no new bytes). */
-export const coverBeam = (doc: PDFDocument) => meshes.get(doc);
+/**
+ * The cover as the pages that show it small draw it (the flatplan's tile, the contact sheet's
+ * frame 9; MOB-15): its scene (a Form XObject of sky, dusk, sea, headland, tower, beam and
+ * glows, painted by `cm` at any scale with no new bytes), the masthead's fill and the
+ * masthead's outline as a path in the cover's own space.
+ */
+export interface CoverShare {
+  readonly scene: PDFRef;
+  readonly type: PDFRef;
+  readonly masthead: string;
+}
+const covers = new WeakMap<PDFDocument, CoverShare>();
+export const shareCover = (doc: PDFDocument, share: CoverShare) => void covers.set(doc, share);
+export function coverOf(doc: PDFDocument): CoverShare {
+  const share = covers.get(doc);
+  if (!share) throw new Error('the cover is drawn before any page that shows it small');
+  return share;
+}
 
 // ---------------------------------------------------------------------------
 // Compact strokes (bytes: one colour and width per bucket, one decimal per coordinate)
@@ -540,7 +554,7 @@ export function latticeShading(
   cols: number,
   rows: number,
   color: (x: number, y: number) => Rgb,
-): void {
+): PDFRef {
   const [x0, y0, bw, bh] = box;
   const data = new Uint8Array(cols * rows * 7);
   let o = 0;
@@ -566,4 +580,5 @@ export function latticeShading(
     }),
   );
   w.resource('Shading', name, ref);
+  return ref;
 }

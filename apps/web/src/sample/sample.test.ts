@@ -19,6 +19,7 @@ import { flushSession, setSessionEnabled, startSession } from '../session/sessio
 import { resetSessionStore, useSessionStore } from '../session/session-store';
 import { memorySnapshotStorage } from '../session/storage';
 import { useAnnouncer } from '../shell/announcer';
+import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { openSample } from './open-sample';
 import {
@@ -184,17 +185,42 @@ describe('openSample', () => {
     expect(ws().documents[first]?.pages).toHaveLength(full?.pageCount ?? 0);
     expect(full?.pageCount).toBe(8);
     expect(ws().activeDocument).toBe(first);
+    // The cover opens whole (MOB-15); a zoom picked afterwards is the person's.
+    expect(useUiStore.getState().fitMode).toBe('page');
+    useUiStore.getState().zoomIn();
     await vi.waitFor(() => {
       expect(useAnnouncer.getState().message).toContain('Opened the sample');
     });
+    expect(useUiStore.getState().fitMode).toBeNull();
 
     const second = await openSample('en');
     expect(second).not.toBe(first);
+    expect(useUiStore.getState().fitMode).toBe('page');
     expect(ws().documents[second ?? first]?.title).toBe('Recto sample (2)');
     expect(ws().activeDocument).toBe(second);
 
     const turkish = await openSample('tr');
     expect(ws().documents[turkish ?? first]?.title).toBe('Recto örnek belge');
+    expect(useUiStore.getState().fitMode).toBe('page');
+    // Turning to another document while the cover's fit stands brings back the view from
+    // before the sample (the zoom picked on the first one), not a fit page for every file.
+    const picked = useUiStore.getState().zoom;
+    useWorkspaceStore.getState().setActive(first);
+    expect(useUiStore.getState().fitMode).toBeNull();
+    expect(useUiStore.getState().zoom).toBe(picked);
+  });
+
+  it('fits the cover whole, then gives fit width back to the next document', async () => {
+    useUiStore.getState().zoomFit();
+    const other = await openSample('en');
+    const sample = await openSample('en');
+    if (other === undefined || sample === undefined) throw new Error('the sample did not open');
+    expect(useUiStore.getState().fitMode).toBe('page');
+    useWorkspaceStore.getState().setActive(other);
+    expect(useUiStore.getState().fitMode).toBe('width');
+    // The watch ends there: going back to the sample keeps the person's fit width.
+    useWorkspaceStore.getState().setActive(sample);
+    expect(useUiStore.getState().fitMode).toBe('width');
   });
 });
 

@@ -7,14 +7,14 @@
  */
 import type { PDFOperator } from '@cantoo/pdf-lib';
 import { setLineWidth, setStrokingRgbColor, stroke, rectangle } from '@cantoo/pdf-lib';
-import { LAMP_OFF, coverBeam, groundAt, gs, lightAt, nightOf } from '../light.ts';
-import { type PageCtx, furniture, kicker, trySlip } from '../context.ts';
+import { LAMP_OFF, TAB_INSET, TAB_W, coverOf, groundAt, lightAt, nightOf } from '../light.ts';
+import { type PageCtx, furniture, kicker, slipTop, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
 import {
   BODY,
   COL2,
   COVER,
-  COVER_SEA,
+  COVER_MUTED,
   COVER_TEXT,
   INK,
   LEFT,
@@ -42,6 +42,7 @@ import {
 } from '../kit.ts';
 
 const TEXT: Rgb = [0.78, 0.8, 0.83];
+const r3 = (v: number) => Math.round(v * 1000) / 1000;
 const HEAD: Rgb = [0.36, 0.38, 0.42];
 
 export function flatplanPage(ctx: PageCtx): void {
@@ -52,42 +53,44 @@ export function flatplanPage(ctx: PageCtx): void {
   w.text(w.elem('H1'), STYLE.h1, LEFT, 728, cut(c.title, edition));
 
   const phone = edition === 'phone';
-  const cols = phone ? 3 : 4;
-  const tileW = phone ? 104 : 106;
+  const { cols, tileW, gap, x0 } = grid(phone);
   const tileH = tileW * (PAGE_H / PAGE_W);
-  const gap = (MEASURE - cols * tileW) / (cols - 1);
   const rowGap = phone ? 26 : 28;
   const top = 690;
   const figure = w.elem('Figure', w.sect, cut(c.alt, edition));
   const ops: PDFOperator[] = [];
   ctx.ids.forEach((id, i) => {
-    const x = LEFT + (i % cols) * (tileW + gap);
+    const x = x0 + (i % cols) * (tileW + gap);
     const y = top - tileH - Math.floor(i / cols) * (tileH + rowGap);
-    ops.push(...miniature(id, x, y, tileW, tileH));
-    // v2: the cover's own beam (its mesh, placed by cm) and each page's lamp tab.
     const sc = tileW / PAGE_W;
-    const beam = coverBeam(w.doc);
-    if (id === 'cover' && beam) {
-      w.resource('Shading', 'ShBeam', beam);
-      gs(w, 'GsScr', { BM: 'Screen' });
+    if (id === 'cover') {
+      // The cover itself, small (A2): its scene, the same Form XObject the cover paints, and
+      // the masthead's outline filled with the masthead's own light, both placed by `cm`.
+      const cover = coverOf(w.doc);
+      w.resource('XObject', 'Scene', cover.scene);
+      w.resource('Shading', 'ShType', cover.type);
       ops.push(
+        ...miniature(id, x, y, tileW, tileH, 'frame'),
         raw(
-          `q ${r2(x)} ${r2(y)} ${r2(tileW)} ${r2(tileH)} re W n /GsScr gs ${r2(sc)} 0 0 ${r2(sc)} ${r2(x)} ${r2(y)} cm /ShBeam sh Q`,
+          `q ${r2(x)} ${r2(y)} ${r2(tileW)} ${r2(tileH)} re W n ${r3(sc)} 0 0 ${r3(sc)} ${r2(x)} ${r2(y)} cm /Scene Do ${cover.masthead} /ShType sh Q`,
         ),
+        ...miniature(id, x, y, tileW, tileH, 'type'),
       );
-    }
+    } else ops.push(...miniature(id, x, y, tileW, tileH));
+    // Each page's lamp tab (B4): the tab's ground, at least 1.5 pt wide, inside the tile's edge,
+    // and in it the hour's light.
     const f = nightOf(id);
     const yc = 772 - f * 660;
-    const g = groundAt(id);
-    const l = lightAt(id);
+    const tw = Math.max(1.5, TAB_W * sc);
+    const tx = x + tileW - TAB_INSET * sc - tw;
     ops.push(
-      ...rect(x + tileW - 9 * sc, y + (yc - 32) * sc, 9 * sc, 64 * sc, g),
-      ...rect(x + tileW - 5.4 * sc, y + (yc - 20) * sc, 1.4 * sc, 40 * sc, l),
+      ...roundRect(tx, y + (yc - 32) * sc, tw, 64 * sc, tw / 2, groundAt(id)),
+      ...rect(tx + tw / 2 - 0.3, y + (yc - 20) * sc, 0.6, 40 * sc, lightAt(id)),
     );
   });
   w.figure(figure, ...ops);
   ctx.ids.forEach((id, i) => {
-    const x = LEFT + (i % cols) * (tileW + gap);
+    const x = x0 + (i % cols) * (tileW + gap);
     const y = top - tileH - Math.floor(i / cols) * (tileH + rowGap);
     w.text(null, { face: 'bold', size: PT.small, color: LIME_800 }, x, y - 13, String(i + 1));
     w.text(
@@ -114,21 +117,19 @@ export function flatplanPage(ctx: PageCtx): void {
   y -= 64;
 
   // Kept, then saved (and, on the phone, the overview's acts).
-  // The phone's acts are more lines, so they are set a step smaller on the full measure.
+  // The phone's acts are more lines, so they are set a step smaller on the full measure. The
+  // block shares one measure (A5), so its paragraphs end on one rag.
   const lineStyle: Style = { face: 'sans', size: phone ? PT.body : PT.large, color: BODY };
   if (!phone) {
     w.text(w.elem('H2'), { face: 'bold', size: PT.deck, color: INK }, LEFT, y, c.keptTitle);
     y -= 22;
   }
-  for (const line of cut(c.lines, edition)) {
+  const lines = cut(c.lines, edition).map((text) => [{ text, style: lineStyle }]);
+  const measure = w.blockMeasure(lines, MEASURE);
+  for (const runs of lines) {
     y =
-      w.paragraph([{ text: line, style: lineStyle }], {
-        x: LEFT,
-        y,
-        width: MEASURE,
-        leading: phone ? 14 : 16,
-        pretty: true,
-      }).next - (phone ? 5 : 4);
+      w.paragraph(runs, { x: LEFT, y, width: measure, leading: phone ? 14 : 16 }).next -
+      (phone ? 5 : 4);
   }
   w.art(...hairline(LEFT, y - 6, RIGHT, y - 6, RULE));
   w.text(w.elem('P'), { face: 'sans', size: PT.body, color: MUTED }, LEFT, y - 24, c.end);
@@ -143,14 +144,37 @@ export function flatplanPage(ctx: PageCtx): void {
     c.lampOff.toLocaleUpperCase(copy.lang),
     'right',
   );
-  if (y - 24 < 104)
+  const floor = slipTop(ctx, cut(c.tryLine, edition)) + 14;
+  if (y - 24 < floor)
     throw new Error(`flatplan (${edition}): the text runs into the slip (${r2(y - 24)})`);
 
   trySlip(ctx, cut(c.tryLine, edition));
 }
 
-/** A page of the sample drawn small from its own layout, at (x, y) bottom left. */
-export function miniature(id: string, x: number, y: number, w: number, h: number): PDFOperator[] {
+/**
+ * The tiles' grid: four across the measure (full); on the phone three 104 pt tiles with 24 pt
+ * gutters, centred (B11), so the grid reads as one block rather than three islands.
+ */
+function grid(phone: boolean) {
+  const cols = phone ? 3 : 4;
+  const tileW = phone ? 104 : 106;
+  const gap = phone ? 24 : (MEASURE - cols * tileW) / (cols - 1);
+  const x0 = LEFT + (MEASURE - cols * tileW - (cols - 1) * gap) / 2;
+  return { cols, tileW, gap, x0 };
+}
+
+/**
+ * A page of the sample drawn small from its own layout, at (x, y) bottom left. The cover comes
+ * in two parts around its scene (drawn by the caller): its `frame`, then its `type`.
+ */
+export function miniature(
+  id: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  part?: 'frame' | 'type',
+): PDFOperator[] {
   const s = w / PAGE_W;
   const bar = (bx: number, by: number, bw: number, bh: number, color: Rgb) =>
     rect(x + bx * s, y + by * s, bw * s, bh * s, color);
@@ -185,17 +209,18 @@ export function miniature(id: string, x: number, y: number, w: number, h: number
   ];
   switch (id) {
     case 'cover':
-      return [
-        ...frame(COVER),
-        ...bar(LEFT, 646, 470, 110, COVER_TEXT),
-        ...bar(LEFT, 610, 170, 8, LIME),
-        ...bar(474, 320, 8, 32, [0.16, 0.18, 0.21]),
-        ...Array.from({ length: 8 }, (_, i) => bar(0, 290 - i * 22, PAGE_W, 1.2, COVER_SEA)).flat(),
-        ...[0, 1, 2].flatMap((i) => [
-          ...bar(LEFT, 238 - i * 72, 18, 20, LIME),
-          ...bar(LEFT + 36, 240 - i * 72, 200, 12, COVER_TEXT),
-        ]),
-      ];
+      // The cover's own type positions: the issue line (cap height of 9.5) and three cover
+      // lines, each a numeral and a title over its dek.
+      return part === 'frame'
+        ? frame(COVER)
+        : [
+            ...bar(LEFT, 614, 178, 7, LIME),
+            ...[0, 1, 2].flatMap((i) => [
+              ...bar(LEFT, 250 - i * 72, 15, 19.6, LIME),
+              ...bar(LEFT + 38, 258 - i * 72, 190, 11.6, COVER_TEXT),
+              ...bar(LEFT + 38, 242 - i * 72, 150, 6.9, COVER_MUTED),
+            ]),
+          ];
     case 'letter':
       return [
         ...frame(WHITE),
@@ -287,17 +312,15 @@ export function miniature(id: string, x: number, y: number, w: number, h: number
     default: {
       // The flatplan itself: its own tiles, four across (full) or three (phone).
       const phone = id === 'flatplan-phone';
-      const cols = phone ? 3 : 4;
-      const tw = phone ? 104 : 98;
+      const { cols, tileW: tw, gap: gx, x0: gl } = grid(phone);
       const th = tw * (PAGE_H / PAGE_W);
-      const gx = (MEASURE - cols * tw) / (cols - 1);
       return [
         ...frame(WHITE),
         ...head(),
         ...h1(360),
         ...Array.from({ length: phone ? 6 : 8 }, (_, i) =>
           bar(
-            LEFT + (i % cols) * (tw + gx),
+            gl + (i % cols) * (tw + gx),
             690 - th - Math.floor(i / cols) * (th + 28),
             tw,
             th,

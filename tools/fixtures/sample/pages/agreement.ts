@@ -23,7 +23,7 @@ import {
   moveTo,
   stroke,
 } from '@cantoo/pdf-lib';
-import { type PageCtx, furniture, kicker, trySlip } from '../context.ts';
+import { type PageCtx, furniture, kicker, slipTop, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
 import {
   BODY,
@@ -59,10 +59,11 @@ export function agreementPage(ctx: PageCtx): void {
 
   let y = 696;
   const terms: Style = { face: 'serif', size: PT.large, color: BODY };
-  for (const text of c.terms)
-    y =
-      w.paragraph([{ text, style: terms }], { x: LEFT, y, width: 440, leading: 16, pretty: true })
-        .next - 6;
+  // One measure for the terms (A5): one rag, no paragraph ends on an orphan.
+  const blocks = c.terms.map((text) => [{ text, style: terms }]);
+  const measure = w.blockMeasure(blocks, 440);
+  for (const runs of blocks)
+    y = w.paragraph(runs, { x: LEFT, y, width: measure, leading: 16 }).next - 6;
 
   // The card: one rhythm. Every group is a label and its controls, groups 72 pt apart label to
   // label (47 px at a phone's fit width: MOB-1's targets never overlap), plus 32 pt for the
@@ -77,7 +78,8 @@ export function agreementPage(ctx: PageCtx): void {
   const l5 = l4 - PITCH;
   const lineY = l5 - 44;
   const cardBottom = lineY - 30;
-  if (cardBottom < 104) throw new Error(`agreement: the card overflows (${r2(cardBottom)})`);
+  const floor = slipTop(ctx, cut(c.tryLine, ctx.edition)) + 14;
+  if (cardBottom < floor) throw new Error(`agreement: the card overflows (${r2(cardBottom)})`);
   w.art(...roundRect(LEFT, cardBottom, MEASURE, cardTop - cardBottom, 10, PALE));
   w.text(
     w.elem('H2'),
@@ -118,9 +120,12 @@ export function agreementPage(ctx: PageCtx): void {
     tag(tf.acroField.getWidgets()[0]);
   };
 
-  // Name and date; email.
+  // Name and date; email. The right column runs to the card's inner edge (B9), so the card's
+  // padding is the same on both sides.
+  const x1 = x0 + 270;
+  const right = LEFT + MEASURE - PAD;
   textField('name', c.name, x0, l1, 250);
-  textField('date', c.date, x0 + 270, l1, 150);
+  textField('date', c.date, x1, l1, right - x1);
   textField('email', c.email, x0, l2, 250);
 
   // The fee: one radio group, its two options 32 pt apart.
@@ -148,9 +153,9 @@ export function agreementPage(ctx: PageCtx): void {
   // Where to sign, and the place and date beside it: drawn lines, as on paper (the Sign tool
   // places the signature on the first).
   label(x0, l5, c.signature);
-  label(x0 + 270, l5, c.place);
+  label(x1, l5, c.place);
   w.art(...hairline(x0, lineY, x0 + 250, lineY, INK, 0.75));
-  w.art(...hairline(x0 + 270, lineY, x0 + 420, lineY, INK, 0.75));
+  w.art(...hairline(x1, lineY, right, lineY, INK, 0.75));
   w.art(
     setStrokingRgbColor(...MUTED),
     setLineWidth(0.9),

@@ -58,8 +58,12 @@ Why this is not a template look:
 6. **Grain lives in the dark**, as on film: on the cover, on the plates and on the film strip.
    The white paper of the content pages carries no grain. It would read as dirt, the owner's
    2026-10-04 complaint. Q-1 as amended by DSN-22 ("no texture that renders wrong, and no
-   banding") is met because the grain's job here is to dither the dark gradients, and it renders
-   at about device resolution.
+   banding") is met because the grain masks the dark gradients' 8-bit steps, and it renders at
+   about device resolution. It is painted over gradients the renderer has already quantized, so
+   it does not dither them in the strict sense: a band-pass of the cover still finds one-level
+   contour rings in the bloom and steps in the sky under the noise (critique B13). At 1× and 2×
+   they are not visible; noise baked into a lattice's vertices would only make blotches, since
+   Gouraud interpolation smooths between them.
 
 ## 3. Palette
 
@@ -115,7 +119,7 @@ both cuts, and the phone's six frames still read dusk → dawn.
   96 px per 36 pt, 2.67 px/pt, about 192 dpi: device resolution at 1440 × 900 at fit width on a
   2× display. It never scales past about 1.3× until zoom passes 200 %.
 - **Blend: Normal, `ca` = 0.057** (0.26 × 0.22). Measured: σ about 2 levels on the sky, which
-  is enough to dither an 8-bit gradient. The Overlay variant (mean-preserving, `BM /Overlay`
+  is enough to mask an 8-bit gradient's steps (see rule 6). The Overlay variant (mean-preserving, `BM /Overlay`
   `ca .26`) looks marginally richer but costs 2 to 4× the render time in PDFium (§5.4). The
   Normal grain lifts black by about 7 levels, so the grounds are set that much darker (`#040507`
   renders as `#0B0C0E`).
@@ -178,10 +182,12 @@ The anamorphic streak is the cinema signature.
 - **Precomposited ground:** a 11 × 6 lattice over the dusk area paints the sky with the dusk
   already screened in. It replaces a screened radial over the sky.
 - **Lamp tab (fore-edge):**
-  - A 9 pt bleed tab, x 586.28 to 595.28, 64 pt tall, inner corners r 4, filled with the hour's
-    ground.
-  - Inside it, a 0.8 × 41 pt slit in the hour's light, plus a vertical screened glow of the same
-    colour: the unit radial with `cm 4 0 0 38.4 …`, clipped to the tab.
+  - A 9 × 64 pt capsule (full radius) 3 pt inside the trim, x 583.28 to 592.28, filled with the
+    hour's ground. It was first a bleed tab; in the app a dark pill at the page's edge read as a
+    scroll thumb (critique B5, MOB-15), so it now stands inside the page as a lamp window. The
+    owner may still choose a light-only tab.
+  - Inside it, a 0.8 × 41 pt slit in the hour's light down its middle, plus a vertical screened
+    glow of the same colour: the unit radial with `cm 4 0 0 38.4 …`, clipped to the capsule.
   - About 150 B of content a page, plus one shading.
   - An earlier three-dot version read as a "⋮ more" menu icon, so it was dropped.
 - **Lower third:**
@@ -496,7 +502,10 @@ Per construct, EN full (content streams are compressed, measured per page):
   cut the cover's content from 7.1 to 3.0 KB.
 - `circle1` / `arc1`: path strings at one decimal.
 - `FRAME_TIME`, `nightOf(id)`, `lightAt(id)`, `groundAt(id)`, `lampTab(w, id)`.
-- `coverBeam(doc)`: reuse of the mesh object on the flatplan.
+- `shareCover(doc, …)` / `coverOf(doc)`: the cover's scene as one Form XObject (sky, dusk, sea,
+  headland, tower, beam, glows; the grain stays on the page), its masthead fill and masthead
+  text, for the flatplan's cover tile and the contact sheet's frame 9, painted by `cm` with no
+  new bytes (MOB-15).
 
 **`context.ts`:**
 

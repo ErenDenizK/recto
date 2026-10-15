@@ -15,6 +15,7 @@ import {
 } from '@cantoo/pdf-lib';
 import { type PageCtx, furniture, trySlip } from '../context.ts';
 import {
+  COL2,
   INK,
   LEFT,
   MEASURE,
@@ -51,6 +52,7 @@ function strokeRect(x: number, y: number, ww: number, hh: number, color: Rgb, wi
 }
 
 const ROW = 24;
+const AXIS = COL2 + 20;
 
 export function invoicePage(ctx: PageCtx): void {
   const { w, copy } = ctx;
@@ -106,7 +108,9 @@ export function invoicePage(ctx: PageCtx): void {
   }
   // Totals, right-aligned under the amounts.
   y -= 6;
-  const labelX = RIGHT - 180;
+  // One axis for the right half (B8): the grid's second column plus the card's padding, where
+  // the totals' labels, the payment card's second column and the control strip's target stand.
+  const labelX = AXIS;
   c.totals.forEach(([text, amount], i) => {
     const last = i === c.totals.length - 1;
     const style: Style = last ? { face: 'bold', size: PT.title, color: INK } : cell;
@@ -138,7 +142,7 @@ export function invoicePage(ctx: PageCtx): void {
   for (let i = 0; i < c.pay.length; i += 2) {
     const tr = w.elem('TR', pay);
     for (const [k, [label, value]] of c.pay.slice(i, i + 2).entries()) {
-      const cx = LEFT + 20 + k * (MEASURE / 2);
+      const cx = k === 0 ? LEFT + 20 : AXIS;
       const cy = boxTop - 52 - (i / 2) * cellH;
       const td = w.elem('TD', tr);
       w.text(td, STYLE.label, cx, cy, up(label));
@@ -157,15 +161,15 @@ export function invoicePage(ctx: PageCtx): void {
   // targets, as printed in the trim of every proof (artifact; direction-v2.md §8 page 7).
   const stripY = 156;
   const steps = 11;
-  const pw = 15;
-  const sx = RIGHT - steps * pw;
+  const sx = AXIS + 21;
+  const pw = (RIGHT - sx) / steps;
   for (let i = 0; i < steps; i++) {
     const v = 1 - i / (steps - 1);
     const g = 0.09 + 0.91 * v;
     w.art(...rect(sx + i * pw, stripY, pw, 9, [g * 0.985, g * 0.99, g]));
   }
   w.art(...strokeRect(sx, stripY, steps * pw, 9, INK, 0.35));
-  w.art(...registration(sx - 12, stripY + 4.5, 4.5, INK, 0.4));
+  w.art(...registration(AXIS + 4.5, stripY + 4.5, 4.5, INK, 0.4));
   w.text(
     null,
     STYLE.label,

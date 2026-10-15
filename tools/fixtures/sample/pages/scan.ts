@@ -2,12 +2,12 @@
  * Page 6 of the full cut, a letter from the cape (design.md §4 page 6): the page is one
  * greyscale image and nothing else, so the facts chip reads "No text on 1 page" and Recognize
  * text picks exactly this page. An A5 typed letter lies on a scanner bed, turned 0.7°, folded
- * once, with a received stamp, a pen signature and a paper clip; the footer is in the raster
- * too. Over it, the page's dark try slip and lamp tab (MOB-14) are drawn as paths and stencil
- * masks, so there is still no text layer.
+ * once, with a received stamp, a pen signature and a paper clip. Over it, the footer (in every
+ * page's grey, B7), the page's dark try slip and lamp tab (MOB-14) are drawn as paths and
+ * stencil masks, so there is still no text layer.
  *
  * Drawn by lib/raster.ts from glyph outlines (JetBrains Mono for the typewriter, never
- * embedded; Inter for the stamp, label and footer) with a PRNG seeded from the file name, so
+ * embedded; Inter for the stamp and the stencils) with a PRNG seeded from the file name, so
  * the pixels are the same on every machine. Written as a 2-bit Indexed image of its four tones
  * (MOB-14; direction-v2.md §8 page 6) through Flate: the flat bed and paper compress to almost
  * nothing; the type is the cost.
@@ -17,7 +17,20 @@ import { seededRandom } from '../../lib/common.ts';
 import { Canvas } from '../../lib/raster.ts';
 import { type PageCtx, type SlipRun, trySlip } from '../context.ts';
 import { lampTab } from '../light.ts';
-import { FACES, type FkFont, PAGE_H, PAGE_W, STYLE, openFont, r2, raw } from '../kit.ts';
+import {
+  type Elem,
+  FACES,
+  FOOT_Y,
+  type FkFont,
+  LEFT,
+  PAGE_H,
+  PAGE_W,
+  RIGHT,
+  STYLE,
+  openFont,
+  r2,
+  raw,
+} from '../kit.ts';
 
 const DPI = 150;
 const PX = DPI / 72;
@@ -116,10 +129,8 @@ export function scanLetter(ctx: PageCtx): ScanImage {
   const c = ctx.copy.scan;
   const random = seededRandom(`${ctx.file}#scan`);
   const mono = openFont('JetBrainsMono-Regular.ttf');
-  const sans = openFont('Inter-Regular.ttf');
   const bold = openFont('Inter-Bold.ttf');
   const place = sheetToPx();
-  const pagePx = (x: number, y: number): Pt => [x * PX, y * PX];
 
   // Typewriter ink in three strikes (an uneven hand on the keys).
   const strikes = [new Canvas(W, H), new Canvas(W, H), new Canvas(W, H)];
@@ -194,14 +205,6 @@ export function scanLetter(ctx: PageCtx): ScanImage {
   const wire = new Canvas(W, H);
   wire.fillPolygons(strokePolys(clipPts, 1.4 * PX));
 
-  // The footer, as on every page.
-  const foot = new Canvas(W, H);
-  const footY = PAGE_H - 34;
-  const fs = STYLE.folio.size;
-  glyphs(foot, sans, fs, ctx.copy.footer, 56, footY, pagePx);
-  const folio = `${ctx.n} / ${ctx.total}`;
-  glyphs(foot, sans, fs, folio, PAGE_W - 56 - glyphWidth(sans, fs, folio), footY, pagePx);
-
   // Compose: bed, the sheet's shadow, the sheet with its fold, then inks.
   const inverse = (px: number, py: number): Pt => {
     const t = (-SHEET.degrees * Math.PI) / 180;
@@ -240,7 +243,6 @@ export function scanLetter(ctx: PageCtx): ScanImage {
       let v = tone - cover * (tone - INK);
       v -= Math.min(1, stamp.coverage[i] ?? 0) * (v - 120) * 0.75;
       v -= Math.min(1, wire.coverage[i] ?? 0) * (v - 150);
-      v -= Math.min(1, foot.coverage[i] ?? 0) * (v - 110);
       out[i] = posterize(v);
     }
   }
@@ -344,40 +346,54 @@ export function scanPage(ctx: PageCtx): void {
       ),
     ]),
   );
+  // The footer as every page sets it (B7): its type as stencil masks in the folio's grey, on
+  // the page rather than in the scan's four tones (where it came out #999, 2.4:1 on the bed).
+  const folio = `${ctx.n} / ${ctx.total}`;
+  stencils(ctx, 'Ft', null, [
+    { text: copy.footer, style: STYLE.folio, x: LEFT, y: FOOT_Y },
+    { text: folio, style: STYLE.folio, x: RIGHT - w.width(STYLE.folio, folio), y: FOOT_Y },
+  ]);
   trySlip(ctx, copy.scan.tryLine, {
-    raster: (runs) => {
-      const slip = w.elem('Figure', w.elem('Div'), copy.scan.tryLine);
-      runs.forEach((run, i) => {
-        const mask = stencil(run);
-        const name = `Mk${i + 1}`;
-        w.resource(
-          'XObject',
-          name,
-          doc.context.register(
-            doc.context.flateStream(mask.bits, {
-              Type: 'XObject',
-              Subtype: 'Image',
-              Width: mask.width,
-              Height: mask.height,
-              ImageMask: true,
-              BitsPerComponent: 1,
-              Decode: [1, 0],
-            }),
-          ),
-        );
-        w.figure(
-          slip,
-          setFillingRgbColor(...run.style.color),
-          raw(`${r2(mask.w)} 0 0 ${r2(mask.h)} ${r2(mask.x)} ${r2(mask.y)} cm /${name} Do`),
-        );
-      });
-    },
+    raster: (runs) => stencils(ctx, 'Mk', w.elem('Figure', w.elem('Div'), copy.scan.tryLine), runs),
   });
   w.art(...lampTab(w, 'scan'));
 }
 
-/** Stencil resolution of the slip's type. */
-const MASK_DPI = 300;
+/** Lines of type as 1-bit stencil masks filled in their colour: as a Figure, or artifacts. */
+function stencils(ctx: PageCtx, prefix: string, figure: Elem | null, runs: readonly SlipRun[]) {
+  const { w, doc } = ctx;
+  runs.forEach((run, i) => {
+    const mask = stencil(run);
+    const name = `${prefix}${i + 1}`;
+    w.resource(
+      'XObject',
+      name,
+      doc.context.register(
+        doc.context.flateStream(mask.bits, {
+          Type: 'XObject',
+          Subtype: 'Image',
+          Width: mask.width,
+          Height: mask.height,
+          ImageMask: true,
+          BitsPerComponent: 1,
+          Decode: [1, 0],
+        }),
+      ),
+    );
+    const ops = [
+      setFillingRgbColor(...run.style.color),
+      raw(`${r2(mask.w)} 0 0 ${r2(mask.h)} ${r2(mask.x)} ${r2(mask.y)} cm /${name} Do`),
+    ];
+    if (figure) w.figure(figure, ...ops);
+    else w.art(...ops);
+  });
+}
+
+/**
+ * Stencil resolution of the slip's and the footer's type: 200 dpi, a third over the scan's
+ * own 150, which keeps the four files inside their cap (the scan is a scan).
+ */
+const MASK_DPI = 200;
 
 /** One line of the slip's type as a 1-bit mask (1 = ink), with where it goes on the page. */
 function stencil(run: SlipRun): {

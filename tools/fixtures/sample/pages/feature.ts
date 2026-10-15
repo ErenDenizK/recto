@@ -17,7 +17,7 @@ import {
   setStrokingRgbColor,
   stroke,
 } from '@cantoo/pdf-lib';
-import { type PageCtx, SLIP_TOP, furniture, kicker, trySlip } from '../context.ts';
+import { type PageCtx, furniture, kicker, slipTop as slipTopOf, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
 import {
   COL2,
@@ -104,7 +104,7 @@ export function featurePage(ctx: PageCtx): FeatureLayout {
   const top = ruleY - 22;
 
   // The slip and the footnote sit at the foot; the columns fill the space above them.
-  const slipTop = SLIP_TOP;
+  const slipTop = slipTopOf(ctx, cut(c.tryLine, ctx.edition));
   const footBase = slipTop + 16;
   const footnoteLines = w.breakLines(
     w.words([{ text: c.footnote, style: STYLE.caption }]),
@@ -149,7 +149,7 @@ export function featurePage(ctx: PageCtx): FeatureLayout {
     boxH = next;
     entries += 1;
   }
-  if (entries === 0) throw new Error('feature: no room for the logbook aside');
+  if (entries === 0) throw new Error(`feature (${ctx.file}): no room for the logbook aside`);
   // The card runs down to the footnote, so the column ends on it rather than on white.
   const boxY = footRule + 16;
   boxH = boxTop - boxY;
@@ -355,8 +355,9 @@ export function lensPlate(w: Writer, x: number, y: number, pw: number, ph: numbe
       );
   }
   ops.push(...rings.ops());
-  // The cage: brass bars in front of the glow (silhouettes), with a lit edge.
-  for (const k of [-1, 0, 1]) {
+  // The cage: brass bars in front of the glow (silhouettes), with a lit edge. They stand at the
+  // panel's seams, clear of the bull's-eye (B1), so no bar crosses the flame.
+  for (const k of [-1, 1]) {
     const bx = cx + k * lw * 0.34;
     ops.push(...rect(bx - 1.1, ly, 2.2, lh, hex('#07080A')));
     ops.push(...hairline(bx - 1.1, ly, bx - 1.1, ly + lh, scale(light, 0.22), 0.35));

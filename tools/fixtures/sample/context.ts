@@ -6,6 +6,7 @@
 import { type PDFDocument, PDFHexString, PDFName, type PDFPage, PDFString } from '@cantoo/pdf-lib';
 import type { SampleCopy } from './copy.ts';
 import {
+  CAP,
   COVER_MUTED,
   COVER_SLIP,
   COVER_TEXT,
@@ -17,11 +18,14 @@ import {
   LIME,
   LIME_800,
   MEASURE,
+  PT,
   RIGHT,
   RULE,
   STYLE,
   type Style,
   type Writer,
+  breakProblems,
+  caps,
   circlePath,
   disc,
   hairline,
@@ -34,9 +38,11 @@ import {
 import { FRAME_TIME, gs, hex, lampTab, mix, scale, sharedShading } from './light.ts';
 
 const SLIP_GROUND = hex('#15171C');
-/** The try slip's foot on a page, and the top of a two-line slip (design §2). */
+/** The sticky note's paper and its fold (B2). */
+const NOTE = hex('#F6E27A');
+const NOTE_EDGE = hex('#D2BA4E');
+/** The try slip's foot on a page (design §2); `slipTop` gives its top. */
 export const SLIP_Y = 50;
-export const SLIP_TOP = SLIP_Y + 40;
 
 export type SampleLocale = 'en' | 'tr';
 export type SampleEdition = 'full' | 'phone';
@@ -99,10 +105,50 @@ export interface SlipRun {
 }
 
 /**
+ * The slip's type by edition (MOB-15, A6): the phone reads its page at fit width, about 0.63
+ * CSS px a point, so its slip is set at 13.5 (8.5 px), its label at 8, and it may take three
+ * lines; the full cut's at 9.5, two lines at most. The sentence starts 12 pt after the label
+ * (74 pt in from the slip's edge at least).
+ */
+function slipType(ctx: PageCtx) {
+  const t =
+    ctx.edition === 'phone'
+      ? { size: PT.deck, leading: 17, label: PT.small, maxLines: 3, dot: 3.4 }
+      : { size: PT.body, leading: 12, label: PT.label, maxLines: 2, dot: 2.6 };
+  const label = ctx.w.width(
+    { ...STYLE.label, size: t.label, tracking: caps(t.label) },
+    up(ctx, ctx.copy.tryLabel),
+  );
+  return { ...t, textX: r2(Math.max(LEFT + 74, LEFT + 25 + label + 12)) };
+}
+
+/** The slip's sentence broken into its lines (no orphan, no forbidden break). */
+function slipLines(ctx: PageCtx, sentence: string) {
+  const t = slipType(ctx);
+  const style: Style = { ...STYLE.ui, size: t.size, color: COVER_TEXT };
+  const width = RIGHT - 14 - t.textX;
+  const lines = ctx.w.prettyLines(ctx.w.words([{ text: sentence, style }]), width, 0);
+  if (lines.length > t.maxLines)
+    throw new Error(`try slip over ${t.maxLines} lines (${ctx.edition}): "${sentence}"`);
+  const problems = breakProblems(lines, width, true);
+  if (problems.length > 0) throw new Error(`try slip: ${problems.join('; ')}`);
+  // Padding round the block of type (cap height to the last baseline), 10.5 / 12 pt.
+  const pad = ctx.edition === 'phone' ? 12 : 10.55;
+  const h = (lines.length - 1) * t.leading + t.size * CAP + 2 * pad;
+  return { t, style, width, lines, h };
+}
+
+/** The top of a page's try slip, for a page that fills the space above it. */
+export function slipTop(ctx: PageCtx, sentence: string): number {
+  return SLIP_Y + slipLines(ctx, sentence).h;
+}
+
+/**
  * The try slip, v2's lower third (design §2; MOB-14, direction-v2.md §5.3): a dark band
  * across the measure with the lamp lit in it (a screened glow clipped to the band, round a lit
- * dot), TRY and one sentence of at most two lines. Read last on the page (it is drawn last).
- * `onDark` sets it on the cover's night, a shade lighter than the night. Returns its top.
+ * dot), TRY and one sentence (two lines at most, three on the phone). Read last on the page
+ * (it is drawn last). `onDark` sets it on the cover's night, a shade lighter than the night.
+ * Returns its top.
  */
 export function trySlip(
   ctx: PageCtx,
@@ -110,16 +156,14 @@ export function trySlip(
   opts: { onDark?: boolean; y?: number; raster?: (runs: readonly SlipRun[]) => void } = {},
 ) {
   const { w } = ctx;
-  const style: Style = { ...STYLE.ui, color: COVER_TEXT };
-  const textX = LEFT + 74;
-  const width = RIGHT - 14 - textX;
-  const lines = w.prettyLines(w.words([{ text: sentence, style }]), width, 0);
-  if (lines.length > 2) throw new Error(`try slip over two lines: "${sentence}"`);
-  const h = lines.length === 2 ? 40 : 28;
+  const { t, style, width, lines, h } = slipLines(ctx, sentence);
   const y0 = opts.y ?? SLIP_Y;
   w.art(...roundRect(LEFT, y0, MEASURE, h, 6, opts.onDark ? COVER_SLIP : SLIP_GROUND));
-  const first = y0 + h / 2 + (lines.length === 2 ? 3.2 : -3.1);
-  const dotY = first + 3.1;
+  // The block of type centred in the band: cap height over the first line, the last baseline.
+  const cap = t.size * CAP;
+  const first =
+    y0 + (h - (lines.length - 1) * t.leading - cap) / 2 + (lines.length - 1) * t.leading;
+  const dotY = first + cap / 2;
   // The lamp: one shading object per file in the lamp's lime (the hour's colour lives in the
   // tab), screened and clipped to the slip, which PDFium blends against (§5.4).
   w.resource(
@@ -133,32 +177,39 @@ export function trySlip(
     ]),
   );
   gs(w, 'GsScr', { BM: 'Screen' });
+  const glowR = t.dot * 5.8;
   w.art(
     raw('q'),
     ...roundedPath(LEFT, y0, MEASURE, h, 6),
-    raw(`W n /GsScr gs 15 0 0 15 ${r2(LEFT + 15)} ${r2(dotY)} cm /ShSlip sh Q`),
-    ...disc(LEFT + 15, dotY, 2.6, mix(LIME, [1, 1, 1], 0.35)),
+    raw(`W n /GsScr gs ${r2(glowR)} 0 0 ${r2(glowR)} ${r2(LEFT + 15)} ${r2(dotY)} cm /ShSlip sh Q`),
+    ...disc(LEFT + 15, dotY, t.dot, mix(LIME, [1, 1, 1], 0.35)),
   );
-  const labelStyle: Style = { ...STYLE.label, color: LIME };
+  const labelStyle: Style = {
+    ...STYLE.label,
+    size: t.label,
+    tracking: caps(t.label),
+    color: LIME,
+  };
+  const labelY = dotY - (t.label * CAP) / 2;
   if (opts.raster) {
     opts.raster([
-      { text: up(ctx, ctx.copy.tryLabel), style: labelStyle, x: LEFT + 25, y: first },
+      { text: up(ctx, ctx.copy.tryLabel), style: labelStyle, x: LEFT + 25, y: labelY },
       ...lines.map((line, i) => ({
         text: line.map((word) => word.parts.map((p) => p.text).join('')).join(' '),
         style,
-        x: textX,
-        y: first - i * 12,
+        x: t.textX,
+        y: first - i * t.leading,
       })),
     ]);
     return y0 + h;
   }
-  w.text(null, labelStyle, LEFT + 25, first, up(ctx, ctx.copy.tryLabel));
+  w.text(null, labelStyle, LEFT + 25, labelY, up(ctx, ctx.copy.tryLabel));
   const div = w.elem('Div');
   w.paragraph([{ text: sentence, style }], {
-    x: textX,
+    x: t.textX,
     y: first,
     width,
-    leading: 12,
+    leading: t.leading,
     parent: div,
     pretty: true,
   });
@@ -200,16 +251,33 @@ export function note(
   parent: Elem,
 ): void {
   const { w } = ctx;
+  // Its own appearance (B2): a 16 pt note in a soft note yellow, rounded, with three lines in
+  // lime-800, instead of PDFium's default Comment icon in pure yellow.
+  const S = 16;
+  const lines = [11.2, 8, 4.8]
+    .map((ly, i) => `3.4 ${ly} m ${i === 2 ? 9.2 : 12.6} ${ly} l`)
+    .join(' ');
+  const ap = w.doc.context.register(
+    w.doc.context.formXObject(
+      [
+        raw(
+          `${NOTE.map(r2).join(' ')} rg ${NOTE_EDGE.map(r2).join(' ')} RG 0.5 w 0.25 0.25 m 15.75 0.25 l 15.75 12.4 l 12.4 15.75 l 0.25 15.75 l h B ${NOTE_EDGE.map(r2).join(' ')} rg 12.4 15.75 m 12.4 12.4 l 15.75 12.4 l h f ${LIME_800.map(r2).join(' ')} RG 0.8 w 1 J ${lines} S`,
+        ),
+      ],
+      { BBox: [0, 0, S, S] },
+    ),
+  );
   const ref = w.annotation({
     Type: PDFName.of('Annot'),
     Subtype: PDFName.of('Text'),
-    Rect: w.doc.context.obj([r2(x), r2(y), r2(x + 20), r2(y + 20)]),
+    Rect: w.doc.context.obj([r2(x), r2(y), r2(x + S), r2(y + S)]),
     Name: PDFName.of('Comment'),
     T: PDFHexString.fromText(author),
     Contents: PDFHexString.fromText(text),
     M: PDFString.of('D:20261001090000Z'),
     CreationDate: PDFString.of('D:20261001090000Z'),
-    C: w.doc.context.obj([0.996, 0.851, 0.4]),
+    C: w.doc.context.obj(NOTE.map(r2)),
+    AP: w.doc.context.obj({ N: ap }),
     F: 4,
     Open: false,
   });
