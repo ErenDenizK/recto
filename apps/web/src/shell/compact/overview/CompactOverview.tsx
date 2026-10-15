@@ -32,7 +32,7 @@ import { PageCanvas } from '../../../pages/PageCanvas';
 import { displaySize } from '../../../pages/page-geometry';
 import chipStyles from '../../../stage/PinchDetentChip.module.css';
 import { contentFrame, ResizedContent } from '../../../stage/ResizedContent';
-import { useWorkspaceStore } from '../../../state/workspace-store';
+import { pagesPhrase, useWorkspaceStore } from '../../../state/workspace-store';
 import { Button } from '../../../ui/Button';
 import { CheckBadge } from '../../../ui/CheckBadge';
 import { Icon } from '../../../ui/Icon';
@@ -41,7 +41,7 @@ import { documentLabels } from '../../../viewer/navigation';
 import { announce } from '../../announcer';
 import { useSafeAreaInsets } from '../../frame/frame-insets';
 import { type OverviewPhase, setOverviewColumns, useCompactStore } from '../compact-store';
-import { type OverviewColumns, overviewPinch } from '../overview-gesture';
+import { type OverviewColumns, overviewColumns, overviewPinch } from '../overview-gesture';
 import styles from './CompactOverview.module.css';
 import { OverviewBar } from './OverviewBar';
 import { affineCss, fitOnto, IDENTITY, project } from './morph-geometry';
@@ -141,7 +141,7 @@ function OverviewPlace({
   readonly rootRef: RefObject<HTMLDivElement | null>;
 }) {
   const ws = useWorkspaceStore((s) => s.workspace);
-  const columns = useCompactStore((s) => s.overviewColumns);
+  const columns = useCompactStore((s) => overviewColumns(s.overviewColumns, doc.pages.length));
   const anchor = useCompactStore((s) => s.overviewAnchor);
   const selected = useOverviewSelection((s) => s.selected);
   const selecting = useOverviewSelection((s) => s.selecting);
@@ -335,7 +335,7 @@ function OverviewPlace({
       const rect = plane.getBoundingClientRect();
       pinch = {
         distance: fingers.distance,
-        start: state.overviewColumns,
+        start: overviewColumns(state.overviewColumns, latest.current.count),
         index: pageAtPoint(latest.current.layout, fingers.x - rect.left, fingers.y - rect.top),
         dives: false,
       };
@@ -351,7 +351,11 @@ function OverviewPlace({
       );
       pinch.dives = dives;
       showChip(dives ? m.grid_pinch_open({ page: pinch.index + 1 }) : null, fingers);
-      if (next === useCompactStore.getState().overviewColumns) return;
+      const shownNow = overviewColumns(
+        useCompactStore.getState().overviewColumns,
+        latest.current.count,
+      );
+      if (next === shownNow) return;
       const { layout: current, sizes: s } = latest.current;
       const pageSize = s[pinch.index];
       if (pageSize) {
@@ -442,7 +446,7 @@ function OverviewPlace({
           ref={planeRef}
           className={styles.plane}
           role="list"
-          aria-label={m.compact_pages()}
+          aria-label={m.compact_overview_grid_label({ pages: pagesPhrase(count) })}
           data-testid="compact-overview-plane"
           style={{ height: layout.height }}
         >

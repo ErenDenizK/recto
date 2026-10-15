@@ -18,7 +18,7 @@
 import type { PageId, Rect, VirtualDocument } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
-import { DEFAULT_COLUMNS, type OverviewColumns } from './overview-gesture';
+import type { OverviewColumns } from './overview-gesture';
 
 export type CompactPlace = 'library' | 'reader';
 export type CompactSheet = 'contents' | 'goto' | 'info' | 'about';
@@ -85,8 +85,11 @@ export interface CompactState {
   /** The reader's next zoom to a region (`requestZoom`); a new object each time. */
   readonly zoomRequest: ZoomRequest | null;
   readonly overview: OverviewPhase;
-  /** The overview's columns (2 · 3 · 4), kept for the session. */
-  readonly overviewColumns: OverviewColumns;
+  /**
+   * The overview's columns (2 · 3 · 4) the person pinched to, kept for the session; null until
+   * then, when the document's length decides (`overviewColumns`, MOB-7).
+   */
+  readonly overviewColumns: OverviewColumns | null;
   /** The page the overview's morph is anchored on: the page read when it opened. */
   readonly overviewAnchor: number;
 }
@@ -108,7 +111,7 @@ const INITIAL: CompactState = {
   typing: false,
   zoomRequest: null,
   overview: 'closed',
-  overviewColumns: DEFAULT_COLUMNS,
+  overviewColumns: null,
   overviewAnchor: 0,
 };
 

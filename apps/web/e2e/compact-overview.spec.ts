@@ -178,7 +178,9 @@ test.describe('the page overview (MOB-2)', () => {
     expect(await plane(page).getByRole('listitem').count()).toBeLessThan(80);
     // The reader's chrome is away; the overview's bar has the count and Done.
     await expect(capsule(page)).toHaveAttribute('data-hidden', 'true');
-    await expect(page.getByTestId('compact-overview-bar')).toContainText('400 pages');
+    // The count is the grid's name (MOB-9), not the bar's.
+    await expect(plane(page)).toHaveAccessibleName('Pages, 400 pages');
+    await expect(page.getByTestId('compact-overview-bar')).not.toContainText('400 pages');
     await expect(page.locator('[data-tile-index="0"] canvas')).toHaveAttribute(
       'data-state',
       /^(preview|rendered)$/,
@@ -322,6 +324,28 @@ test.describe('the page overview’s button path (MOB-2)', () => {
     await plane(page).locator('button[data-tile-index="6"]').click();
     await expectRest(page, 'closed');
     await expect(pageNumber(page)).toHaveText(/^7 \/ 8$/);
+  });
+
+  test('a short document lands at 2 columns; a pinched count is kept for the session', async ({
+    page,
+  }) => {
+    await openPdf(page, 'simple-text.pdf');
+    await capsule(page).getByRole('button', { name: 'Pages' }).click();
+    await expectRest(page, 'open');
+    const grid = page.getByTestId('compact-overview-grid');
+    await expect(grid).toHaveAttribute('data-columns', '2');
+    await expect(plane(page)).toHaveAccessibleName('Pages, 3 pages');
+    await shot(page, 'overview-short-document');
+    // Close the fingers by ×0.7: one step, to 3 columns, which the next opening keeps.
+    const cdp = await page.context().newCDPSession(page);
+    await pinch(cdp, SCREEN_CENTRE, 200, 140);
+    await expect(grid).toHaveAttribute('data-columns', '3');
+    await expectRest(page, 'open');
+    await page.keyboard.press('Escape');
+    await expectRest(page, 'closed');
+    await capsule(page).getByRole('button', { name: 'Pages' }).click();
+    await expectRest(page, 'open');
+    await expect(grid).toHaveAttribute('data-columns', '3');
   });
 
   test('under reduced motion it cross-fades in at most 150 ms', async ({ page }) => {
