@@ -1,29 +1,33 @@
 /**
- * The split top of the phone reader (DSN-34, behind `?top=split`, `top-variant.ts`), after iOS
- * Preview (`docs/design/reference/ios-preview-2026-10.md` §2): no bar, three pieces over a
+ * The split top of the phone reader (DSN-34; the default since DSN-37, `top-variant.ts`), after
+ * iOS Preview (`docs/design/reference/ios-preview-2026-10.md` §2): no bar, three pieces over a
  * scroll-edge fade.
  *
  * - **‹** back to the Library, a 44 px glass circle of its own (the capsule's M2 at σ 7,
  *   coverage registry `compact-top-circle`).
- * - **The title** as text, with a ▾ that opens the **file menu**: a card with the file's name
+ * - **The title** as text centred between the circles, cut in its middle when long (DSN-38,
+ *   `title-fit.ts`), its colour following the page under it (DSN-40), with a ▾ in its grey dot
+ *   that opens the **file menu**: a card with the file's name
  *   (whole, on up to two lines, where the title truncates), "PDF · size · pages", then Share or
  *   Download a copy (the "Changed" rows once edited) and Document info. Preview's Lock,
  *   Duplicate, Move, Rename and Print have no phone job here (the doc's §2.4).
  * - **⋯**, the same ⋯ menu as the capsule's (`MoreMenu`), its trigger a glass circle; the menu
- *   lies over the circle and grows out of it (DSN-36).
- * - **The scroll-edge fade** (DSN-35): a band under the status bar and the pieces, the canvas's
- *   tint fading out downwards over a backdrop blur that a mask fades out with it. Pure CSS: no
- *   script runs per scrolled frame.
+ *   lies over the circle and comes out of it as one liquid glass body, as the file menu does
+ *   out of the title (DSN-39, `liquid-menu.ts`).
+ * - **The scroll-edge fade** (DSN-35, lighter by DSN-38): a band under the status bar and the
+ *   pieces, a light or a dark ink by the page under it (`--edge-tone`, DSN-40) fading out
+ *   downwards over a backdrop blur that a mask fades out with it. No script per scrolled frame:
+ *   the tone is read on scroll-settle.
  *
  * "n / N" stays in the capsule (DSN-34): no second page indicator under the title. The pieces
  * hide on scroll with the capsule exactly as the capsule top does (`topBarAway`, DSN-32), each
  * moving and fading on itself (Q-3: never a wrapper, which would cut their glass off the page),
  * and the header is `inert` while hidden. Its pieces count as one glass surface (Q-11,
- * `data-glass-group`). Find takes the capsule's field in both variants (`CompactTopBar`).
+ * `data-glass-group`). Find rides on the keyboard below while this top stays (`CompactTopBar`).
  */
 import { Menu } from '@base-ui/react/menu';
 import type { VirtualDocument } from '@pdf-editor/document-model';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { formatFileSize } from '../../home/home-model';
 import { getLocale, m } from '../../i18n';
@@ -31,6 +35,8 @@ import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import type { SplitTopParts } from './CompactChrome';
 import styles from './CompactTopSplit.module.css';
+import { liquidPopupRef, prefetchLiquidMenu } from './liquid-ref';
+import { useMiddleTitle } from './title-fit';
 
 /** The split top's glass pieces count as one surface (Q-11). */
 const GLASS_GROUP = 'compact-top';
@@ -46,6 +52,8 @@ interface SplitTopProps {
 
 export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
   const { MoreMenu } = parts;
+  // The liquid menus' motion arrives once the browser is idle (DSN-39, `liquid-ref.ts`).
+  useEffect(prefetchLiquidMenu, []);
   return (
     <header
       className={styles.top}
@@ -56,7 +64,7 @@ export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
       inert={hidden}
     >
       <div className={styles.edge} aria-hidden="true" data-glass-group={GLASS_GROUP} />
-      <div className={styles.row}>
+      <div className={styles.row} data-edge-band="">
         <IconButton
           className={styles.circle}
           label={m.compact_library()}
@@ -71,6 +79,7 @@ export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
           triggerClassName={styles.circle}
           glassGroup={GLASS_GROUP}
           sideOffset={OVER_TRIGGER}
+          liquid
         />
       </div>
     </header>
@@ -87,6 +96,9 @@ function FileMenu({
 }) {
   const { SaveItems, toSheet, useFileInfo, classes } = parts;
   const [open, setOpen] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const title = useMiddleTitle(doc.title, headingRef, textRef);
   const file = useFileInfo(doc);
   const name = file?.name ?? doc.title;
   const facts = [
@@ -96,21 +108,28 @@ function FileMenu({
   ].filter((fact) => fact !== '');
   return (
     <Menu.Root open={open} onOpenChange={setOpen}>
-      <h1 className={styles.heading}>
+      <h1 ref={headingRef} className={styles.heading}>
         <Menu.Trigger
           className={styles.title}
           aria-label={m.compact_title_menu({ title: doc.title })}
           data-testid="compact-title-menu-trigger"
         >
-          <span className={styles.titleText}>{doc.title}</span>
+          <span ref={textRef} className={styles.titleText} data-testid="compact-title-text">
+            {title}
+          </span>
           <span className={styles.chevron} aria-hidden="true">
             <Icon name="caret-down" />
           </span>
         </Menu.Trigger>
       </h1>
       <Menu.Portal>
-        <Menu.Positioner side="bottom" align="start" sideOffset={OVER_TRIGGER} collisionPadding={8}>
-          <Menu.Popup className={classes.menu} data-testid="compact-file-menu">
+        <Menu.Positioner
+          side="bottom"
+          align="center"
+          sideOffset={OVER_TRIGGER}
+          collisionPadding={8}
+        >
+          <Menu.Popup ref={liquidPopupRef} className={classes.menu} data-testid="compact-file-menu">
             <div className={styles.card}>
               <span className={styles.cardGlyph} aria-hidden="true">
                 <Icon name="file-text" />

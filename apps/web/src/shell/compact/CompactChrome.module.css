@@ -68,11 +68,11 @@
 
 /* ⋯ menu: M4, rows of 44 px with 16 px icons (Q-9); a one-row menu (58 px, c 0.984 at 12px)
    takes σ 8 (`r8`, coverage registry `compact-menu-one-row`). The split top's file menu
-   (DSN-34) is the same recipe. */
+   (DSN-34) is the same recipe. The capsule top's ⋯ carries `ct-popup` (set in
+   `CompactChrome.tsx`), so the container transform serves it once installed (DSN-36); the split
+   top's menus are liquid instead (DSN-39, `liquid-menu.ts`). */
 .menu {
   composes: mat mat-menu s12 r8 from global;
-  /* The container transform serves it once installed (DSN-36, `ui/container-transform.ts`). */
-  composes: ct-popup from global;
   min-width: 232px;
   max-width: calc(100vw - 16px);
   padding: var(--space-1h);
@@ -100,6 +100,23 @@
 
 .menu[data-ct]:is([data-starting-style], [data-ending-style]) {
   transform: none;
+}
+
+/* *The liquid menu* (DSN-39, `liquid-menu.ts`): while it opens or closes its one glass layer is
+   masked by the union of the button and the growing blob, the CSS entrance and exit step aside
+   (the close's opacity is a Web Animation Base UI waits for) and the content only fades,
+   never scales (MOT-5). Nothing of it is left at rest. */
+.menu[data-liquid] {
+  transition: none;
+}
+
+.menu[data-liquid]:is([data-starting-style], [data-ending-style]) {
+  opacity: 1;
+  transform: none;
+}
+
+.menu[data-liquid] > * {
+  opacity: var(--liquid-content, 1);
 }
 
 /* The menu → sheet hand-off (`ui/menu-handoff.ts`, Q-7): a row that opens a sheet closes the
@@ -251,6 +268,68 @@
   display: none;
 }
 
+/*
+ * Find docked (DSN-39; owner DSN-37 "Find rides on the keyboard"): a glass bar of the capsule's
+ * M2 (σ 10, coverage registry `compact-find-bar`) between the side gutters, 52 px (a 44 px
+ * target in 4 px, keyboard.ts's ACCESSORY_HEIGHT), 8 px above the keyboard by layout
+ * (`--kb-inset`, as the fill bar and the Text tool's Done), else in the capsule's place, which
+ * has stepped away: ✓ Done in the primary fill (Preview's lime circle), the field with the count
+ * at its trailing end, ▲ ▼. It rises in on *enter* (motion.css); reduced motion keeps the fade.
+ */
+.findDock {
+  composes: mat mat-bar s10 from global;
+  position: fixed;
+  z-index: 30;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(calc(var(--kb-inset, 0px) + 8px), env(safe-area-inset-bottom, 0px), 12px);
+  left: max(12px, env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  box-sizing: border-box;
+  max-width: 560px;
+  height: 52px;
+  margin-inline: auto;
+  padding: 4px;
+  border-radius: var(--radius-capsule);
+  animation: find-rise var(--duration-base) var(--ease-out);
+}
+
+@keyframes find-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise-distance, 8px));
+  }
+}
+
+.findDone {
+  composes: btn btn-prominent from global;
+  flex: none;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-capsule);
+}
+
+.findDone svg {
+  width: 20px;
+  height: 20px;
+}
+
+.findField {
+  margin-inline: 2px;
+}
+
+.findField .count {
+  position: relative;
+  padding-right: 14px;
+}
+
+.findField .input {
+  padding-right: 8px;
+}
+
 /* The dock row: the capsule and the edit button, centred together above the home indicator.
    The row is not a surface and takes no presses; each piece hides on itself (Q-3). */
 .dock {
@@ -310,6 +389,7 @@
  * renders).
  */
 :global([data-theme='light']) .topBar,
+:global([data-theme='light']) .findDock,
 :global([data-theme='light']) .capsule,
 :global([data-theme='light']) .edit {
   --mat-tint: var(--glass-sheet-tint);

@@ -7,10 +7,13 @@
  *   has an outline), Go to page, Share or Download a copy, Document info and About. In Find it becomes the search field with the
  *   hit count, ‹ › and Done. A document changed since it was opened (an edit here, or a kept
  *   snapshot) shows the "Changed" cue in ⋯ with Share a copy and Save a copy
- *   (`design/phone-2026-10/README.md` §6: no save in place on a phone). Behind `?top=split`
- *   (DSN-34, `top-variant.ts`) the reader shows the split top instead (`CompactTopSplit`, in
- *   the compact chunk): ‹ and ⋯ as glass circles, the title as text over a scroll-edge fade; Find is
- *   this bar's field in both. The ⋯ menu grows out of its button (DSN-36).
+ *   (`design/phone-2026-10/README.md` §6: no save in place on a phone). This capsule top is
+ *   kept behind `?top=capsule` (DSN-34); the reader's default is the split top (DSN-37,
+ *   `top-variant.ts`, `CompactTopSplit` in the compact chunk): ‹ and ⋯ as glass circles, the
+ *   title as text over an adaptive scroll-edge fade (`edge-tone.ts`, DSN-40), its menus liquid
+ *   (`liquid-menu.ts`, DSN-39), and Find as a glass bar riding on the keyboard (`FindBar`'s
+ *   `docked` form, DSN-39) while the top stays. Here the ⋯ menu grows out of its button by the
+ *   container transform (DSN-36).
  * - **Capsule:** one floating capsule at the bottom: Pages, "3 / 12" (Go to page) and Find,
  *   with the round edit button beside it on the trailing side (EDN-8;
  *   `design/phone-2026-10/README.md` §2). It morphs the capsule into the edit island (Undo,
@@ -68,7 +71,12 @@ import controls from './controls.module.css';
 import { startEditing, takeCapsuleSnapshot, useMark, usePrefetchMark } from './mark-host';
 import { openOverview } from './overview-host';
 import { CompactTopSplit } from './CompactTopSplit';
+import { watchEdgeTone } from './edge-tone';
+import { liquidPopupRef } from './liquid-ref';
 import { topVariant } from './top-variant';
+
+/** The container transform's popup class (`ui/container-transform.ts`, not imported here). */
+const CONTAINER_POPUP = 'ct-popup';
 
 /** Typing pauses this long before the search runs. */
 const SEARCH_DELAY_MS = 250;
@@ -97,12 +105,36 @@ export interface SplitTopParts {
   };
 }
 
+/** The top band whose page the edge tone follows: from the window's top to the row's foot. */
+function edgeBand(): DOMRect {
+  const row = document.querySelector('[data-edge-band]');
+  const bottom = row ? row.getBoundingClientRect().bottom : 0;
+  return new DOMRect(0, 0, window.innerWidth, bottom > 0 ? bottom : 72);
+}
+
+/** The adaptive scroll edge's tone (DSN-40) on the compact root while the reader shows. */
+function useEdgeTone(): void {
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>('[data-testid="compact-app"]');
+    const scroller = document.querySelector<HTMLElement>('[data-read-viewport]');
+    if (!root || !scroller) return;
+    return watchEdgeTone(root, scroller, edgeBand);
+  }, []);
+}
+
 export function CompactTopBar({ doc }: { readonly doc: VirtualDocument }) {
   const hidden = useCompactStore(topBarAway);
   const findOpen = useCompactStore((s) => s.findOpen);
-  // The split top while reading; Find is this bar's field in both variants.
-  if (topVariant() === 'split' && !findOpen) {
-    return <CompactTopSplit doc={doc} hidden={hidden} parts={SPLIT_TOP_PARTS} />;
+  useEdgeTone();
+  // The split top stays while Find rides on the keyboard (DSN-37, DSN-39); the capsule top
+  // (`?top=capsule`) becomes the field, as before.
+  if (topVariant() === 'split') {
+    return (
+      <>
+        <CompactTopSplit doc={doc} hidden={hidden} parts={SPLIT_TOP_PARTS} />
+        {findOpen ? <FindBar doc={doc} docked /> : null}
+      </>
+    );
   }
   return (
     <header
@@ -187,6 +219,11 @@ interface MoreMenuProps {
    * menu over its circle, which it grows out of (DSN-36, as iOS Preview's ⋯).
    */
   readonly sideOffset?: number;
+  /**
+   * The split top's liquid menu (DSN-39, `liquid-menu.ts`): the circle and the menu are one
+   * glass body while it opens and closes; otherwise the container transform (DSN-36).
+   */
+  readonly liquid?: boolean;
 }
 
 function MoreMenu({
@@ -194,6 +231,7 @@ function MoreMenu({
   triggerClassName = controls.icon,
   glassGroup,
   sideOffset = 6,
+  liquid = false,
 }: MoreMenuProps) {
   const open = useCompactStore((s) => s.menuOpen);
   const hasOutline = doc.outline.length > 0;
@@ -217,7 +255,11 @@ function MoreMenu({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={sideOffset} collisionPadding={8}>
-          <Menu.Popup className={styles.menu} data-testid="compact-menu">
+          <Menu.Popup
+            ref={liquid ? liquidPopupRef : undefined}
+            className={liquid ? styles.menu : `${styles.menu} ${CONTAINER_POPUP}`}
+            data-testid="compact-menu"
+          >
             <Menu.Item className={styles.menuItem} onClick={openFind}>
               <Icon name="magnifying-glass" />
               <span>{m.compact_find()}</span>
@@ -286,8 +328,24 @@ function SaveItems({ doc }: { readonly doc: VirtualDocument }) {
   );
 }
 
-/** Find in the top bar: the field, the hit count, ‹ › and Done (Esc closes it too). */
-function FindBar({ doc }: { readonly doc: VirtualDocument }) {
+/**
+ * Find: the field, the hit count, previous and next, and Done (Esc closes it too).
+ *
+ * - In the capsule top (`?top=capsule`) it is the bar's own row: field, count, ‹ › and Done.
+ * - **Docked** (the split top, DSN-37, DSN-39): a glass bar riding on the keyboard, as iOS
+ *   Preview's find bar and the fill bar (MOB-1, `mark/fields/FillBar.tsx`) do, by layout from
+ *   `--kb-inset` (`mark/keyboard.ts`, watched while it shows), never per-frame JS: ✓ (Done), the
+ *   field with the count inside its trailing end, ▲ ▼. With no keyboard (closed, Android's
+ *   resized layout, a hardware keyboard) it stands in the capsule's place, which has stepped
+ *   away for it (`capsuleAway`). The top stays as it is.
+ */
+function FindBar({
+  doc,
+  docked = false,
+}: {
+  readonly doc: VirtualDocument;
+  readonly docked?: boolean;
+}) {
   const query = useSearchStore((s) => s.query);
   const status = useSearchStore((s) => s.status);
   const hits = useSearchStore((s) => s.hits);
@@ -298,6 +356,23 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Docked: `--kb-inset` is written while the bar shows (`mark/keyboard.ts`, fetched with it:
+  // the bar sits in the capsule's place until it arrives).
+  useEffect(() => {
+    if (!docked) return;
+    let stop: (() => void) | undefined;
+    let gone = false;
+    import('./mark/keyboard')
+      .then((module) => {
+        if (!gone) stop = module.watchKeyboard(() => undefined);
+      })
+      .catch(() => undefined);
+    return () => {
+      gone = true;
+      stop?.();
+    };
+  }, [docked]);
 
   // A new search shows the hit it picks (the first from the page being read) as soon as it
   // arrives, as ‹ › show theirs (visual audit 2026-10 defect 2): the count never names a hit
@@ -347,6 +422,65 @@ function FindBar({ doc }: { readonly doc: VirtualDocument }) {
   else if (status === 'searching') count = m.search_searching();
   else if (status === 'done' && query.trim() !== '') count = m.search_no_results();
   else if (status === 'error') count = m.search_failed();
+
+  if (docked) {
+    return (
+      <form
+        className={styles.findDock}
+        role="search"
+        data-compact-chrome=""
+        data-testid="compact-find-bar"
+        onSubmit={onSubmit}
+      >
+        <button
+          type="button"
+          className={styles.findDone}
+          aria-label={m.compact_done()}
+          data-testid="compact-find-done"
+          onClick={close}
+        >
+          <Icon name="check" />
+        </button>
+        <label className={`${styles.field} ${styles.findField}`}>
+          <Icon name="magnifying-glass" />
+          <input
+            ref={inputRef}
+            type="search"
+            enterKeyHint="search"
+            autoComplete="off"
+            spellCheck={false}
+            className={styles.input}
+            aria-label={m.search_label()}
+            placeholder={m.compact_find()}
+            value={query}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onKeyDown={onKeyDown}
+          />
+          <span className={styles.count} aria-live="polite" data-testid="compact-find-count">
+            {count}
+          </span>
+        </label>
+        <button
+          type="button"
+          className={controls.icon}
+          aria-label={m.search_previous()}
+          disabled={hits.length === 0}
+          onClick={() => searchStep(-1)}
+        >
+          <Icon name="caret-up" />
+        </button>
+        <button
+          type="button"
+          className={controls.icon}
+          aria-label={m.search_next()}
+          disabled={hits.length === 0}
+          onClick={() => searchStep(1)}
+        >
+          <Icon name="caret-down" />
+        </button>
+      </form>
+    );
+  }
 
   return (
     <form className={styles.find} role="search" onSubmit={onSubmit}>

@@ -435,6 +435,18 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
       'a 320 px phone less 16 px each side; on its side, the head, one 52 px row and the quiet row',
   },
   {
+    id: 'compact-find-bar',
+    surface:
+      'Compact edition Find bar riding on the keyboard (DSN-39, the split top): ✓, the field, ▲ ▼',
+    module: 'shell/compact/CompactChrome.module.css',
+    selector: '.findDock',
+    tier: 'bar',
+    sigma: 10,
+    minWidth: 296,
+    minHeight: 52,
+    smallest: '52 px fixed; the window less two 12 px gutters, 296 px on a 320 px phone',
+  },
+  {
     id: 'compact-text-done',
     surface: 'Compact edition Done bar on the keyboard while typing (phone editing, EDN-12)',
     module: 'shell/compact/mark/TextLayer.module.css',
