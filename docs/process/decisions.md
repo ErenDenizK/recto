@@ -13,7 +13,7 @@ roadmap stay proposals until the owner marks a row.
 the row it names. *Open*: asked, not yet answered. Do not act on an open row; keep its safe
 default.
 
-**Ids.** Rows carry a log id (PRD, DSN, MOT, INK, EDN, PRC, TXT, MOB) so they never clash with the
+**Ids.** Rows carry a log id (PRD, DSN, MOT, GLS, INK, EDN, PRC, TXT, MOB) so they never clash with the
 sources' own ids (R12's D-1 to D-5, PLAN's P-1 to P-8, the feedback's F and G items), which each
 row quotes.
 
@@ -109,6 +109,21 @@ Sources, by short name:
 | MOT-5 | **One container transform for every popup and sheet.** Menus, popovers and selects open from the trigger's rounded rect by a clip-path and a translate, never a scale (text is never squashed), and close back into it; the trigger answers with a receive pulse. One document-level observer applies it. | 2026-10-09 | Lead (R14); `design/motion-2026-10/platform.md` §1 | Done |
 | MOT-6 | **Owners of shared motion.** The viewer lane owns reader scrolling (`ScrollRequest.motion`: jump, step or instant; `viewer/jump.ts`). The capsule lane owns contextual bars' entrance (`annotations/bar-motion.tsx`). Other lanes hook undo and redo through the `pdf-editor:history-applied` window event and may `preventDefault()` the generic flash. | 2026-10-09 | Lead (R14 merge); `motion-2026-10/viewer.md`, `frame.md`, `library-capsule.md` | In force |
 | MOT-7 | **Scrims dim, they never blur** (G-31): a blurred scrim is a fifth glass surface against Q-11. The command palette's scrim blur was removed. | 2026-10-10 | Lead (R14 QA); `language.md` G-31 | In force |
+
+## Glass
+
+Technique for the liquid-glass work (research 23, the glass lab). Taste (the adaptive look, the
+morph's content scale, the press lift, the scroll edge, the bezel band) stays with the owner as
+research 23 §8's proposals.
+
+| # | Decision | Date | Source | Status |
+|---|---|---|---|---|
+| GLS-1 | **The glass lab is a page beside the app, never part of it.** `apps/web/lab/glass/` is its own Vite input (`glassLab`, next to `about`), `noindex`, served at `lab/glass/`; its script is emitted under `lab/glass/` (not `assets/`) and the service worker ignores `lab/**`, so the precache and every bundle gate are unchanged. It shares no JavaScript module with the app (a shared module would split a chunk out of the 119.8 / 120 KB first paint); the real `tokens.css` and `materials.css` come in as CSS text (`?inline`). Checked by content: a build with the lab differs from one without only by the two lab files. | 2026-10-15 | Lead brief (glass lab lane); research 23 §5, §6.3 | Done |
+| GLS-2 | **Three tiers that degrade honestly, Current as the reference.** T0 CSS only (every engine): the tier's own filter and tint (the contrast proofs hold), a soft bezel band, a two-lobe hairline rim, a dark outer edge, press glow. T1 (Chromium on a GPU, fine pointer): T0 plus an SVG displacement lens drawn per size from the rounded-rect SDF and Snell's law, never in a base declaration. T2 (WebGL2, never on a software renderer): one canvas refracting the page raster we already render. The lab compares them; T2 stays in the lab (research 23 §5.4). | 2026-10-15 | Research 23 §5 | In force |
+| GLS-3 | **One optics model for every tier:** the rounded-rect SDF with a polynomial smooth minimum for fused shapes; the convex-squircle bezel h(x) = √(1 − (1 − x)⁴); Snell's law (ior 1.5) for the pull, per channel for dispersion; the rim light as two lobes, pow(max(n·L, 0), 2) towards a top-left light and 0.6 of it on the far side. Formulas after Liquid DOM and Liquid Glass Studio (both MIT), restated and credited in code, nothing copied. | 2026-10-15 | Research 23 §2, §3 | In force |
+| GLS-4 | **A backdrop-filtered layer is shaped by a mask, not by `clip-path: path()`.** Fused shapes in the CSS tiers mask one glass element with the smooth union's outline (marching squares, 2.5 px grid, only while it moves); with `clip-path: path()` the lab saw part of the filtered backdrop left unclipped. | 2026-10-15 | Research 23 §5.2 | In force |
+| GLS-5 | **GPU glass draws on change only.** T2 uploads the backdrop once and blurs it once per σ, then shades only the glass: one scissored quad per group, an early exit 30 px out, the gradient only in the bezel, the scroll edge as its own pass; nothing is drawn at rest (MOT-4). | 2026-10-15 | Research 23 §5.4, §6 | In force (lab) |
+| GLS-6 | **How glass cost is measured in the lab:** headless Chromium on SwiftShader, the production build, the backdrop auto-scrolling under the glass, each scenario in a fresh page, medians of three; the numbers are software-rendered trends between tiers, never device frame rates. | 2026-10-15 | Research 23 §6.1 | In force |
 
 ## Ink
 
