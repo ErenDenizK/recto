@@ -3875,6 +3875,8 @@
   "compact_more": "More",
   "compact_pages": "Pages",
   "compact_overview_columns": "{count} columns",
+  "compact_overview_select": "Select",
+  "compact_overview_grid_label": "Pages, {pages}",
   "compact_overview_add": "Add",
   "compact_overview_add_label": "Add pages",
   "compact_overview_add_file": "Pages from a file",

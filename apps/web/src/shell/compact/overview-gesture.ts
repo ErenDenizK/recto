@@ -31,8 +31,20 @@ export const OVERVIEW_DECELERATION = 0.99;
 /** The overview's column detents, from the largest tiles to the smallest. */
 export const OVERVIEW_COLUMNS = [2, 3, 4] as const;
 export type OverviewColumns = (typeof OVERVIEW_COLUMNS)[number];
-/** The overview lands at three columns (MOB-2; the owner may change it). */
+/** The overview lands at three columns (MOB-2, MOB-7). */
 export const DEFAULT_COLUMNS: OverviewColumns = 3;
+/** A document this short lands at two columns instead (MOB-7). */
+export const SHORT_DOCUMENT = 4;
+
+/**
+ * The columns the overview shows (MOB-7): the count the person pinched to this session, else
+ * 2 for a document of `SHORT_DOCUMENT` pages or fewer (3 would leave a mostly empty screen of
+ * small tiles), else 3.
+ */
+export function overviewColumns(chosen: OverviewColumns | null, pages: number): OverviewColumns {
+  if (chosen !== null) return chosen;
+  return pages <= SHORT_DOCUMENT ? 2 : DEFAULT_COLUMNS;
+}
 /** Finger scale per column step (the full edition's `GRID_PINCH_STEP`). */
 export const COLUMN_STEP = 1.4;
 /** Past the largest tiles by this much more, a release dives into the page (`GRID_PINCH_OPEN`). */

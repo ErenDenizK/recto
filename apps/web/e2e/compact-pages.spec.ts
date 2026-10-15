@@ -231,6 +231,30 @@ test.describe('the phone’s pages (MOB-3)', () => {
     expect(rotations(pdf)).toEqual([0, 90, 90, 90, 0]);
   });
 
+  test('Select in the bar enters selection with nothing selected; Done leaves it', async ({
+    page,
+  }) => {
+    await openMixed(page);
+    const rest = page.getByTestId('compact-overview-actions');
+    // At rest: Select · Add · Share · Done (MOB-9).
+    await expect(rest.getByRole('button')).toHaveText(['Select', 'Add', 'Share', 'Done']);
+    await rest.getByRole('button', { name: 'Select' }).click();
+    const selectionBar = page.getByTestId('compact-overview-selection-bar');
+    await expect(selectionBar).toContainText('0 selected');
+    await expect(selectionBar.getByRole('button', { name: 'Rotate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    await expect(tile(page, 0)).toHaveAttribute('aria-pressed', 'false');
+    // A tap now toggles instead of opening the page.
+    await tile(page, 2).tap();
+    await expect(selectionBar).toContainText('1 selected');
+    await expect(overview(page)).toHaveAttribute('data-phase', 'open');
+    await selectionBar.getByRole('button', { name: 'Done selecting' }).click();
+    await expect(rest).toBeVisible();
+    await expect(tile(page, 2)).not.toHaveAttribute('aria-pressed');
+  });
+
   test('Delete takes one step, and the toast’s Undo brings the page back', async ({ page }) => {
     const cdp = await openMixed(page);
     await longPress(page, cdp, 0);

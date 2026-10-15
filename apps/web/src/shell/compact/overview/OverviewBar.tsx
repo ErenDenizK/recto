@@ -3,8 +3,10 @@
  * capsule (the reading capsule's M2) whose content follows the overview's state, two or three
  * actions as EDN-7 asks, the rest in a pop-up.
  *
- * - **At rest:** the page count, ＋ Add (a pop-up: Pages from a file, A blank page, and the
- *   Library's recent documents), Share (the whole document, EDN-14's path) and Done.
+ * - **At rest** (MOB-9): Select (selection with nothing selected yet; the long press stays the
+ *   fast way), ＋ Add (a pop-up: Pages from a file, A blank page, and the Library's recent
+ *   documents), Share (the whole document, EDN-14's path) and Done. The page count is the grid's
+ *   accessible name and the entry announcement's, not the bar's.
  * - **Selecting** (a long press): "3 selected", Rotate, Delete, ⋯ (Duplicate, Move to start,
  *   Move to end, Extract as file, Split here) and Done, which ends the selection.
  *
@@ -19,11 +21,11 @@ import type { ReactNode } from 'react';
 
 import { useRecentsStore } from '../../../files/recents';
 import { m } from '../../../i18n';
-import { pagesPhrase } from '../../../state/workspace-store';
 import { Button } from '../../../ui/Button';
 import { Icon } from '../../../ui/Icon';
 import menuStyles from '../../../ui/Menu.module.css';
 import { toast } from '../../../ui/Toast/toast';
+import { announce } from '../../announcer';
 import { isOpenEntry, shareOrDownload } from '../compact-actions';
 import styles from './CompactOverview.module.css';
 import { closeOverview } from './morph';
@@ -86,20 +88,25 @@ export function OverviewBar({
   const selected = useOverviewSelection((s) => s.selected);
   const ids: PageId[] = doc.pages.filter((p) => selected.has(p.id)).map((p) => p.id);
   const count = ids.length;
-  return selecting ? (
-    <Selecting doc={doc} ids={ids} count={count} />
-  ) : (
-    <AtRest doc={doc} anchor={anchor} />
-  );
+  return selecting ? <Selecting doc={doc} ids={ids} count={count} /> : <AtRest anchor={anchor} />;
 }
 
-function AtRest({ doc, anchor }: { readonly doc: VirtualDocument; readonly anchor: number }) {
+function AtRest({ anchor }: { readonly anchor: number }) {
   const recents = useRecentsStore((s) => s.entries)
     .filter((entry) => !isOpenEntry(entry))
     .slice(0, RECENT_ROWS);
   return (
     <div className={styles.barRow} data-testid="compact-overview-actions">
-      <span className={styles.count}>{pagesPhrase(doc.pages.length)}</span>
+      <Button
+        variant="quiet"
+        data-testid="compact-overview-select"
+        onClick={() => {
+          setSelecting(true);
+          announce(m.compact_overview_selecting({ count: 0 }));
+        }}
+      >
+        {m.compact_overview_select()}
+      </Button>
       <Menu.Root>
         <Menu.Trigger
           className="btn btn-quiet"

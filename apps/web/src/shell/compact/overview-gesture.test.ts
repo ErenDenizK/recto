@@ -8,6 +8,7 @@ import {
   OVERVIEW_ARM,
   OVERVIEW_FULL,
   overviewArmed,
+  overviewColumns,
   overviewCommits,
   overviewPinch,
   overviewProgress,
@@ -56,6 +57,17 @@ describe('the reader pinch below fit (MOB-2)', () => {
     expect(settleVelocity(-1, 0.5, 0)).toBeCloseTo(-3, 6);
     expect(settleVelocity(-100, 0.5, 1)).toBe(20);
     expect(settleVelocity(-1, 1, 1)).toBe(0);
+  });
+});
+
+describe('where the overview lands (MOB-7)', () => {
+  it('lands at 2 columns for 4 pages or fewer, else 3; a pinched count wins', () => {
+    expect(overviewColumns(null, 1)).toBe(2);
+    expect(overviewColumns(null, 4)).toBe(2);
+    expect(overviewColumns(null, 5)).toBe(3);
+    expect(overviewColumns(null, 400)).toBe(3);
+    expect(overviewColumns(4, 3)).toBe(4);
+    expect(overviewColumns(3, 2)).toBe(3);
   });
 });
 
