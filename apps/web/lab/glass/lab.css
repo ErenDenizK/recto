@@ -1,0 +1,624 @@
+/*
+ * The glass lab's own layout (docs/research/23-liquid-glass-lab.md). The app's tokens and
+ * materials are loaded beside it from the real files (main.ts), so "Current" is the shipping
+ * material. The T0 recipe's filters are written by script as literal rules (Safari drops a
+ * `-webkit-backdrop-filter` that holds `var()`, G-22), the layers' geometry lives here.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--text-primary);
+  font: 400 14px / 1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.lab {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 20px 64px;
+}
+
+.lab-head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+
+.lab-head h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.lab-head p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* ── The panel ─────────────────────────────────────────────────────────────────────────── */
+.panel {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  display: grid;
+  gap: 14px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 16px;
+  background: var(--surface-raised);
+}
+
+.group {
+  display: grid;
+  gap: 6px;
+}
+
+.group > .label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.seg button {
+  flex: 1 1 auto;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.seg button[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: 76px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.slider output {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.slider input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface-sunken);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.meter dt {
+  color: var(--text-secondary);
+}
+
+.meter dd {
+  margin: 0;
+  text-align: right;
+}
+
+.note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* ── Sections and stages ───────────────────────────────────────────────────────────────── */
+.main {
+  display: grid;
+  gap: 28px;
+  min-width: 0;
+}
+
+.section h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.section > p {
+  max-width: 72ch;
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  height: 620px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 18px;
+  background: var(--canvas);
+  touch-action: none;
+}
+
+.stage.morph {
+  height: 460px;
+}
+
+.scroller {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  touch-action: pan-y;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.scroller canvas {
+  display: block;
+}
+
+.gl-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pieces {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.edge {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 110px;
+  pointer-events: none;
+}
+
+.edge > span {
+  position: absolute;
+  inset: 0;
+}
+
+/* T0's scroll edge (iOS 26: the page fades into the chrome under a progressive blur and a dark
+   tint): one blurred layer faded by a mask, so the blur reads as rising towards the top, and the
+   canvas colour over it. Literal filter values (G-22). */
+.edge > span {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--canvas) 72%, transparent),
+    color-mix(in srgb, var(--canvas) 30%, transparent) 55%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent);
+  mask-image: linear-gradient(180deg, #000 30%, transparent);
+}
+
+/* ── A glass piece: the tiers' layers; the stage's data-tier shows one set ─────────────── */
+.piece {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  color: var(--text-primary);
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.piece.dragging {
+  cursor: grabbing;
+}
+
+/* The adaptive look (an owner question, off by default): glyphs follow the glass. */
+.piece {
+  transition: color 220ms ease-out;
+}
+
+.piece[data-look='light'] {
+  color: #15171c;
+}
+
+.piece[data-look='dark'] {
+  color: #f4f5f7;
+}
+
+.piece > .lq-body {
+  transition: background-color 260ms ease-out;
+}
+
+.piece > .layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.piece > .cur {
+  box-sizing: border-box;
+}
+
+.piece > .lq-bezel,
+.piece > .lq-rim {
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.piece > .lq-rim {
+  padding: 1px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+.piece > .lq-glow {
+  opacity: 0;
+  background: radial-gradient(
+    circle at var(--gx, 50%) var(--gy, 50%),
+    rgb(255 255 255 / 0.55),
+    rgb(255 255 255 / 0) 70%
+  );
+  transition: opacity 240ms ease-out;
+}
+
+.piece[data-pressed] > .lq-glow {
+  opacity: 1;
+  transition-duration: 120ms;
+}
+
+.piece > .content {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+[data-tier='current'] .piece > :is(.lq-body, .lq-bezel, .lq-rim),
+[data-tier='t0'] .piece > .cur,
+[data-tier='t1'] .piece > .cur,
+[data-tier='t1'] .piece > .lq-bezel,
+[data-tier='t2'] .piece > :is(.cur, .lq-body, .lq-bezel, .lq-rim) {
+  display: none;
+}
+
+/* While the T0/T1 morph glass draws a fused outline, the pieces it covers show content only. */
+[data-tier='t0'] .union-member > :is(.lq-body, .lq-bezel, .lq-rim),
+[data-tier='t1'] .union-member > :is(.lq-body, .lq-bezel, .lq-rim) {
+  display: none;
+}
+
+.union {
+  position: absolute;
+  z-index: 0;
+  display: none;
+  pointer-events: none;
+}
+
+[data-tier='t0'] .union,
+[data-tier='t1'] .union {
+  display: block;
+}
+
+.union > .lq-body,
+.union > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.union > svg {
+  overflow: visible;
+}
+
+.union > .lq-body {
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+/* ── Controls inside pieces ────────────────────────────────────────────────────────────── */
+.btn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  color: inherit;
+}
+
+.btn svg,
+.row svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.menu-list {
+  display: grid;
+  align-content: start;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  transform-origin: 50% 50%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  white-space: nowrap;
+}
+
+.row.quiet {
+  color: var(--text-secondary);
+}
+
+.sep {
+  height: 1px;
+  margin: 4px 10px;
+  background: var(--border-hairline);
+}
+
+/* ── The phone frame ───────────────────────────────────────────────────────────────────── */
+.phone-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.phone {
+  position: relative;
+  flex: none;
+  width: 410px;
+  height: 864px;
+  border: 10px solid #121318;
+  border-radius: 58px;
+  box-shadow:
+    0 0 0 1px #2a2c33,
+    0 24px 60px rgb(0 0 0 / 0.45);
+  transform-origin: 0 0;
+}
+
+.phone .stage {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  border: 0;
+  border-radius: 48px;
+}
+
+.status {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  height: 47px;
+  padding: 16px 30px 0 40px;
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.home {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  z-index: 3;
+  width: 134px;
+  height: 5px;
+  margin-left: -67px;
+  border-radius: 3px;
+  background: var(--text-primary);
+  pointer-events: none;
+}
+
+.phone-box {
+  flex: none;
+}
+
+.phone-notes {
+  flex: 1 1 280px;
+  min-width: 0;
+  max-width: 60ch;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* ── Notes ─────────────────────────────────────────────────────────────────────────────── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  padding: 14px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  font-size: 13px;
+}
+
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.card p,
+.card ul {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+}
+
+.card ul {
+  padding-left: 18px;
+}
+
+.card code,
+.section code {
+  font-size: 12px;
+}
+
+.card a {
+  color: inherit;
+}
+
+table.tiers {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tiers th,
+.tiers td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-hairline);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tiers td {
+  color: var(--text-secondary);
+}
+
+.morph-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.morph-bar button {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+@media (max-width: 860px) {
+  .lab {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px 16px 48px;
+  }
+
+  /* On a phone the stages come first; the settings follow them. */
+  .panel {
+    position: static;
+    order: 2;
+    max-height: none;
+  }
+
+  .stage {
+    height: 520px;
+  }
+}

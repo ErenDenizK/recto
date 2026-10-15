@@ -208,7 +208,15 @@ export default defineConfig({
         // (ADR-0012 §4).
         // `media/` (the about page's clips, posters and the media run's request log) is added
         // to the site by the deploy job and is never precached (presentation spec §2.6).
-        globIgnores: ['**/*.wasm', '404.html', '**/worker-engine-*.js', 'ocr/**', 'media/**'],
+        // `lab/` (the glass lab, GLS-1) is a page beside the app, never part of its shell.
+        globIgnores: [
+          '**/*.wasm',
+          '404.html',
+          '**/worker-engine-*.js',
+          'ocr/**',
+          'media/**',
+          'lab/**',
+        ],
         maximumFileSizeToCacheInBytes: MAX_PRECACHE_BYTES,
         manifestTransforms: [
           (entries) => {
@@ -290,6 +298,10 @@ export default defineConfig({
     rolldownOptions: {
       treeshake: { moduleSideEffects: EMBEDPDF_ENGINES_PURE },
       output: {
+        // The glass lab's script stays under `lab/glass/` beside its page (GLS-1), out of
+        // `assets/` and the precache; every other entry keeps Vite's default name.
+        entryFileNames: (chunk) =>
+          chunk.name === 'glassLab' ? 'lab/glass/[name]-[hash].js' : 'assets/[name]-[hash].js',
         // Stable shared chunks (bundle budgets, PLAN.md §2.3 V1-P2): without them, every lazy
         // module that loads at its first use (motion/lazy.ts) splits the code it shares with
         // the first load (React, the i18n runtime, the motion core) out of the chunks that
@@ -324,6 +336,9 @@ export default defineConfig({
         // The about page (presentation spec §3): plain HTML and CSS beside the app, built to
         // about/index.html. It loads none of the app's code.
         about: fileURLToPath(new URL('./about/index.html', import.meta.url)),
+        // The glass lab (docs/research/23-liquid-glass-lab.md, decisions GLS-1): a standalone
+        // page at lab/glass/, never loaded by the app, sharing no module with it.
+        glassLab: fileURLToPath(new URL('./lab/glass/index.html', import.meta.url)),
       },
     },
   },
