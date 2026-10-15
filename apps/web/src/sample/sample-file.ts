@@ -1,8 +1,13 @@
 /**
- * The teaching sample's files (components/02-library.md §11, L10; redesign D4-2): two PDFs the
- * app ships in `public/sample/`, built by `tools/fixtures/sample-fixture.ts` and precached by
- * the service worker (`vite.config.ts`, 02.14), so the sample opens offline once the app has
- * loaded with a connection.
+ * The teaching sample's files (MOB-11, MOB-12; components/02-library.md §11, L10; redesign
+ * D4-2): one PDF per edition and language in `public/sample/`, built from one page catalog by
+ * `tools/fixtures/sample-fixture.ts` and precached by the service worker (`vite.config.ts`,
+ * 02.14), so the sample opens offline once the app has loaded with a connection. The full
+ * edition gets the full cut (`recto-sample-{en,tr}.pdf`, 8 pages); the compact edition the
+ * phone cut (`recto-sample-phone-{en,tr}.pdf`, the 6 pages whose lessons work on a phone, in
+ * its own words). Two files rather than one trimmed at open: an untouched sample stays the file
+ * as opened (pristine; Save a copy and Share hand out its own bytes) and its page numbers,
+ * links and outline are true in each edition.
  *
  * The file a person gets is named for the sample's language ("Recto sample.pdf", "Recto örnek
  * belge.pdf"), not the UI's, since it names the document's own language; a second open while
@@ -11,6 +16,7 @@
  * person's own file (`isSampleFile`): the sample joins Recents only once changed (02.14).
  */
 import { m } from '../i18n';
+import type { Edition } from '../shell/frame/edition';
 import { toast } from '../ui/Toast/toast';
 import type { SampleLocale } from './sample-param';
 
@@ -23,9 +29,18 @@ export const SAMPLE_TITLES: Readonly<Record<SampleLocale, string>> = {
 /** `lastModified` of every sample File: the fixtures' fixed date (tools/fixtures/lib/common.ts). */
 export const SAMPLE_LAST_MODIFIED = Date.UTC(2024, 0, 1);
 
+/** The file's name in `public/sample/` for a language and edition (MOB-12). */
+export function sampleFileOf(locale: SampleLocale, edition: Edition = 'full'): string {
+  return edition === 'compact' ? `recto-sample-phone-${locale}.pdf` : `recto-sample-${locale}.pdf`;
+}
+
 /** The shipped file's URL under the deployment base (`sample/recto-sample-en.pdf`). */
-export function sampleUrl(locale: SampleLocale, base = import.meta.env.BASE_URL): string {
-  return new URL(`sample/recto-sample-${locale}.pdf`, new URL(base, location.href)).href;
+export function sampleUrl(
+  locale: SampleLocale,
+  edition: Edition = 'full',
+  base = import.meta.env.BASE_URL,
+): string {
+  return new URL(`sample/${sampleFileOf(locale, edition)}`, new URL(base, location.href)).href;
 }
 
 /**
@@ -61,10 +76,11 @@ export type SampleFetch =
  */
 export async function fetchSampleBytes(
   locale: SampleLocale,
+  edition: Edition = 'full',
   fetcher: typeof fetch = fetch,
 ): Promise<SampleFetch> {
   try {
-    const response = await fetcher(sampleUrl(locale));
+    const response = await fetcher(sampleUrl(locale, edition));
     if (!response.ok) return { ok: false, reason: 'failed' };
     return { ok: true, bytes: await response.arrayBuffer() };
   } catch {
@@ -87,14 +103,16 @@ export function sampleFile(
 /**
  * Loads the sample and makes its File, or says why it could not (a failure toast: "The sample
  * needs to load once with a connection" offline before the first load, else "Could not load
- * the sample") and resolves to undefined. Both editions' doors use it: `openSample` on the
- * full edition, the compact Library's Try the sample and `?sample` link on phones.
+ * the sample") and resolves to undefined. Both editions' doors use it, each for its own cut:
+ * `openSample` on the full edition, the compact Library's Try the sample and `?sample` link on
+ * phones (`edition` 'compact').
  */
 export async function loadSampleFile(
   locale: SampleLocale,
+  edition: Edition,
   openTitles: Iterable<string>,
 ): Promise<File | undefined> {
-  const loaded = await fetchSampleBytes(locale);
+  const loaded = await fetchSampleBytes(locale, edition);
   if (!loaded.ok) {
     toast.failure(loaded.reason === 'offline' ? m.sample_offline() : m.sample_failed(), {
       key: 'sample-failed',

@@ -57,7 +57,7 @@ export async function openSample(
   locale: SampleLocale = uiSampleLocale(),
 ): Promise<DocumentId | undefined> {
   const before = document.activeElement;
-  const file = await loadSampleFile(locale, openTitles());
+  const file = await loadSampleFile(locale, 'full', openTitles());
   if (file === undefined) return undefined;
   const { opened, skipped } = await useWorkspaceStore.getState().openFiles([file]);
   presentOpenFailures(skipped, 1);
