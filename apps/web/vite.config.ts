@@ -194,7 +194,7 @@ export default defineConfig({
         // App shell: HTML, JS (including worker and engine chunks), CSS and fonts. The
         // manifest and its icons are added by the plugin (`includeManifestIcons`). The teaching
         // sample, one file per edition and language (`sample/recto-sample-{en,tr}.pdf` ≤ 125 KB,
-        // `sample/recto-sample-phone-{en,tr}.pdf` ≤ 90 KB, all four ≤ 312 KB: MOB-12, MOB-13),
+        // `sample/recto-sample-phone-{en,tr}.pdf` ≤ 90 KB, all four ≤ 344 KiB: MOB-12 to MOB-14),
         // opens offline once the app has loaded with a connection. Every lazy chunk is a `.js` here,
         // so each split surface opens offline (docs/plan/v1/PLAN.md PF-17, V1-F15); the engine's
         // bundled TTFs (`assets/*.ttf`, embedded by text edits, free text and page furniture)
