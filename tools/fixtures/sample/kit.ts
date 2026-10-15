@@ -217,24 +217,55 @@ export interface Style {
   readonly tracking?: number;
 }
 
-/** Design §2 type scale. */
+/**
+ * The type scale (MOB-14; direction-v2.md §6): √2 every two steps, 9.5 · 2^(n/4) from the
+ * body, set on quarter points. The page (1:√2), the body leading (9.5 × √2 ≈ 13.5) and the
+ * sizes are one ratio. Every size on every page is one of these steps.
+ */
+export const PT = {
+  /** −3: edge print on film. */
+  edge: 5.65,
+  /** −2: labels, running head, slate. */
+  label: 6.75,
+  /** −1: kicker, caption, footnote, byline, folio. */
+  small: 8,
+  /** 0: body, UI, the try slip. */
+  body: 9.5,
+  /** 1: letter body, intros, contents titles. */
+  large: 11.25,
+  /** 2: deck, card titles. */
+  deck: 13.5,
+  /** 3: H2, pull quote, cover lines, invoice total, contents numerals. */
+  title: 16,
+  /** 4: the printer's name. */
+  display: 19,
+  /** 6: cover numerals. */
+  numeral: 27,
+  /** 7: H1 (on a 36 pt leading). */
+  h1: 32,
+} as const;
+
+/** Tracking of tracked capitals: +12 % of the size (direction-v2.md §6). */
+export const caps = (size: number) => Math.round(size * 0.12 * 100) / 100;
+
+/** Design §2 styles on the type scale. */
 export const STYLE = {
-  head: { face: 'bold', size: 6.5, color: MUTED, tracking: 0.9 },
-  folio: { face: 'sans', size: 7, color: MUTED },
-  kicker: { face: 'bold', size: 8, color: LIME_800, tracking: 1 },
-  h1: { face: 'bold', size: 34, color: INK },
-  h2: { face: 'bold', size: 15, color: INK },
-  h3: { face: 'bold', size: 10.5, color: INK },
-  deck: { face: 'serif', size: 13.5, color: BODY },
-  body: { face: 'serif', size: 9.5, color: BODY },
+  head: { face: 'bold', size: PT.label, color: MUTED, tracking: caps(PT.label) },
+  folio: { face: 'sans', size: PT.small, color: MUTED },
+  kicker: { face: 'bold', size: PT.small, color: LIME_800, tracking: caps(PT.small) },
+  h1: { face: 'bold', size: PT.h1, color: INK },
+  h2: { face: 'bold', size: PT.title, color: INK },
+  h3: { face: 'bold', size: PT.large, color: INK },
+  deck: { face: 'serif', size: PT.deck, color: BODY },
+  body: { face: 'serif', size: PT.body, color: BODY },
   /** The feature's lead-in: Inter Bold in the serif line (a style span, design §4 p3). */
-  bodyBold: { face: 'bold', size: 9.5, color: INK },
-  letter: { face: 'serif', size: 11, color: BODY },
-  quote: { face: 'serif', size: 15, color: INK },
-  ui: { face: 'sans', size: 9, color: INK },
-  uiBold: { face: 'bold', size: 9, color: INK },
-  caption: { face: 'sans', size: 7.5, color: MUTED },
-  label: { face: 'bold', size: 6.5, color: MUTED, tracking: 0.9 },
+  bodyBold: { face: 'bold', size: PT.body, color: INK },
+  letter: { face: 'serif', size: PT.large, color: BODY },
+  quote: { face: 'serif', size: PT.title, color: INK },
+  ui: { face: 'sans', size: PT.body, color: INK },
+  uiBold: { face: 'bold', size: PT.body, color: INK },
+  caption: { face: 'sans', size: PT.small, color: MUTED },
+  label: { face: 'bold', size: PT.label, color: MUTED, tracking: caps(PT.label) },
 } satisfies Record<string, Style>;
 
 // ---------------------------------------------------------------------------
@@ -503,6 +534,11 @@ export interface ParagraphSpec {
   readonly parent?: Elem;
   /** Lines may not stretch past this (justified; design §4 p3 rule 4). */
   readonly maxStretch?: number;
+  /**
+   * Ragged display copy only (never an edit target, whose width the editor reads back): set
+   * the lines as narrow as keeps their count, until the last line is no orphan (MOB-14).
+   */
+  readonly pretty?: boolean;
 }
 
 export interface SetParagraph {
@@ -653,6 +689,30 @@ export class Writer {
   }
 
   /**
+   * Ragged lines with no orphan: if the last line of a paragraph of two or more lines fills
+   * less than 40 % of the measure, narrower measures are tried (2 pt steps, down to 55 %) and
+   * the first that keeps the line count and lengthens the last line past that is kept.
+   */
+  prettyLines(words: Word[], width: number, indent: number): Word[][] {
+    const lastShare = (lines: Word[][]) => {
+      const last = lines.at(-1) ?? [];
+      const natural = last.reduce(
+        (s, w, k) => s + w.width + (k < last.length - 1 ? (w.space?.width ?? 0) : 0),
+        0,
+      );
+      return natural / width;
+    };
+    const base = this.breakLines(words, width, indent, false);
+    if (base.length < 2 || lastShare(base) >= 0.4) return base;
+    for (let w = width - 2; w >= width * 0.55; w -= 2) {
+      const lines = this.breakLines(words, w, indent, false);
+      if (lines.length > base.length) break;
+      if (lastShare(lines) >= 0.4) return lines;
+    }
+    return base;
+  }
+
+  /**
    * Breaks `words` into lines: left-aligned paragraphs greedy first fit (as the editor's
    * rewrap), justified ones by least total stretch so no line stretches past `maxStretch`
    * where that can be avoided (design §4 p3 rule 4; the generator asserts it).
@@ -723,7 +783,10 @@ export class Writer {
     const indent = spec.indent ?? 0;
     const justify = spec.align === 'justify';
     const words = this.words(runs);
-    const broken = this.breakLines(words, spec.width, indent, justify);
+    const broken =
+      spec.pretty && !justify
+        ? this.prettyLines(words, spec.width, indent)
+        : this.breakLines(words, spec.width, indent, justify);
     const lines: SetLine[] = [];
     let maxStretch = 1;
     broken.forEach((line, li) => {

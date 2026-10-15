@@ -6,9 +6,9 @@
  * subscriber can hold (TR), and the invoice's date. Everything is invented (R-16).
  */
 import {
-  appendBezierCurve,
+  lineTo,
   moveTo,
-  setLineCap,
+  rectangle,
   setLineWidth,
   setStrokingRgbColor,
   stroke,
@@ -19,17 +19,36 @@ import {
   LEFT,
   MEASURE,
   MUTED,
-  N8,
   PALE,
+  PT,
   RIGHT,
   RULE,
   STYLE,
   type Style,
-  WHITE,
-  disc,
+  type Rgb,
   hairline,
+  rect,
   roundRect,
 } from '../kit.ts';
+import { circlePath } from '../kit.ts';
+
+/** A printer's registration target: a ring and a cross through it, one ink. */
+function registration(cx: number, cy: number, r: number, color: Rgb, width: number) {
+  return [
+    setStrokingRgbColor(...color),
+    setLineWidth(width),
+    ...circlePath(cx, cy, r * 0.62),
+    moveTo(cx - r, cy),
+    lineTo(cx + r, cy),
+    moveTo(cx, cy - r),
+    lineTo(cx, cy + r),
+    stroke(),
+  ];
+}
+
+function strokeRect(x: number, y: number, ww: number, hh: number, color: Rgb, width: number) {
+  return [setStrokingRgbColor(...color), setLineWidth(width), rectangle(x, y, ww, hh), stroke()];
+}
 
 const ROW = 24;
 
@@ -39,29 +58,39 @@ export function invoicePage(ctx: PageCtx): void {
   const up = (v: string) => v.toLocaleUpperCase(copy.lang);
   furniture(ctx, c.section);
 
-  // The printer's letterhead: a small mark (a wave in a circle), the name, the address.
-  w.art(...disc(LEFT + 15, 739, 15, N8));
-  w.art(
-    setStrokingRgbColor(...WHITE),
-    setLineWidth(1.6),
-    setLineCap(1),
-    moveTo(LEFT + 5, 737),
-    appendBezierCurve(LEFT + 9, 745, LEFT + 13, 745, LEFT + 15, 739),
-    appendBezierCurve(LEFT + 17, 733, LEFT + 21, 733, LEFT + 25, 741),
-    stroke(),
+  // The printer's letterhead (direction-v2.md §8 page 7): a printer's own mark, the registration
+  // target, in one ink; the name on the scale's 19; the address in the caption size.
+  w.art(...registration(LEFT + 13, 742, 12, INK, 0.9));
+  w.text(w.elem('H1'), { face: 'bold', size: PT.display, color: INK }, LEFT + 36, 742, c.printer);
+  w.text(
+    w.elem('P'),
+    { face: 'sans', size: PT.small, color: MUTED },
+    LEFT + 36,
+    729,
+    c.printerLine,
   );
-  w.text(w.elem('H1'), { face: 'bold', size: 18, color: INK }, LEFT + 42, 740, c.printer);
-  w.text(w.elem('P'), { face: 'sans', size: 8.5, color: MUTED }, LEFT + 42, 726, c.printerLine);
-  w.text(w.elem('P'), { face: 'bold', size: 13, color: INK }, RIGHT, 740, c.number, 'right');
-  w.text(w.elem('P'), { face: 'sans', size: 9.5, color: MUTED }, RIGHT, 725, c.date, 'right');
+  w.text(null, STYLE.label, RIGHT, 756, up(copy.lang === 'tr' ? 'Fatura' : 'Invoice'), 'right');
+  w.text(
+    w.elem('P'),
+    { face: 'bold', size: PT.title, color: INK },
+    RIGHT,
+    739,
+    c.number.replace(/^\D+/, ''),
+    'right',
+  );
+  w.text(w.elem('P'), { face: 'sans', size: PT.body, color: MUTED }, RIGHT, 726, c.date, 'right');
+  w.art(
+    ...hairline(LEFT, 706, RIGHT, 706, INK, 1),
+    ...hairline(LEFT, 703.5, RIGHT, 703.5, INK, 0.35),
+  );
 
   // Bill to.
   w.text(null, STYLE.label, LEFT, 680, up(c.billTo));
-  w.text(w.elem('P'), { face: 'sans', size: 10.5, color: INK }, LEFT, 665, c.billName);
+  w.text(w.elem('P'), { face: 'sans', size: PT.large, color: INK }, LEFT, 665, c.billName);
 
   // The table.
   const table = w.elem('Table');
-  const cell: Style = { face: 'sans', size: 9.5, color: INK };
+  const cell: Style = { face: 'sans', size: PT.body, color: INK };
   let y = 618;
   const head = w.elem('TR', table);
   w.text(w.elem('TH', head), STYLE.label, LEFT, y, up(c.description));
@@ -80,10 +109,10 @@ export function invoicePage(ctx: PageCtx): void {
   const labelX = RIGHT - 180;
   c.totals.forEach(([text, amount], i) => {
     const last = i === c.totals.length - 1;
-    const style: Style = last ? { face: 'bold', size: 12, color: INK } : cell;
+    const style: Style = last ? { face: 'bold', size: PT.title, color: INK } : cell;
     if (last) {
-      y -= 4;
-      w.art(...hairline(labelX, y + 14, RIGHT, y + 14, INK, 0.75));
+      y -= 8;
+      w.art(...hairline(labelX, y + 18, RIGHT, y + 18, INK, 1));
     }
     const tr = w.elem('TR', table);
     w.text(w.elem('TD', tr), last ? style : { ...cell, color: MUTED }, labelX, y, text);
@@ -98,7 +127,13 @@ export function invoicePage(ctx: PageCtx): void {
   const cellH = 40;
   const boxH = 52 + Math.ceil(c.pay.length / 2) * cellH;
   w.art(...roundRect(LEFT, boxTop - boxH, MEASURE, boxH, 8, PALE));
-  w.text(w.elem('H2'), { face: 'bold', size: 11, color: INK }, LEFT + 20, boxTop - 26, c.payTitle);
+  w.text(
+    w.elem('H2'),
+    { face: 'bold', size: PT.large, color: INK },
+    LEFT + 20,
+    boxTop - 26,
+    c.payTitle,
+  );
   const pay = w.elem('Table');
   for (let i = 0; i < c.pay.length; i += 2) {
     const tr = w.elem('TR', pay);
@@ -107,17 +142,51 @@ export function invoicePage(ctx: PageCtx): void {
       const cy = boxTop - 52 - (i / 2) * cellH;
       const td = w.elem('TD', tr);
       w.text(td, STYLE.label, cx, cy, up(label));
-      w.text(td, { face: 'sans', size: 10.5, color: INK }, cx, cy - 15, value);
+      w.text(td, { face: 'sans', size: PT.large, color: INK }, cx, cy - 15, value);
     }
   }
-  w.text(w.elem('P'), { face: 'sans', size: 9, color: MUTED }, LEFT, boxTop - boxH - 24, c.terms);
+  w.text(
+    w.elem('P'),
+    { face: 'sans', size: PT.body, color: MUTED },
+    LEFT,
+    boxTop - boxH - 24,
+    c.terms,
+  );
+
+  // The printer's control strip: a step wedge from paper to solid, between two registration
+  // targets, as printed in the trim of every proof (artifact; direction-v2.md §8 page 7).
+  const stripY = 156;
+  const steps = 11;
+  const pw = 15;
+  const sx = RIGHT - steps * pw;
+  for (let i = 0; i < steps; i++) {
+    const v = 1 - i / (steps - 1);
+    const g = 0.09 + 0.91 * v;
+    w.art(...rect(sx + i * pw, stripY, pw, 9, [g * 0.985, g * 0.99, g]));
+  }
+  w.art(...strokeRect(sx, stripY, steps * pw, 9, INK, 0.35));
+  w.art(...registration(sx - 12, stripY + 4.5, 4.5, INK, 0.4));
+  w.text(
+    null,
+    STYLE.label,
+    LEFT,
+    stripY + 2,
+    up(copy.lang === 'tr' ? 'Kontrol şeridi · prova 2' : 'Control strip · proof 2'),
+  );
 
   // The printer's foot line, as on their stationery: a rule across the measure, a thank-you and
   // what they keep, so the page ends where a real invoice does.
   const footY = 124;
   w.art(...hairline(LEFT, footY + 16, RIGHT, footY + 16, RULE));
-  w.text(w.elem('P'), { face: 'bold', size: 8.5, color: INK }, LEFT, footY, c.printer);
-  w.text(w.elem('P'), { face: 'sans', size: 8.5, color: MUTED }, RIGHT, footY, c.thanks, 'right');
+  w.text(w.elem('P'), { face: 'bold', size: PT.small, color: INK }, LEFT, footY, c.printer);
+  w.text(
+    w.elem('P'),
+    { face: 'sans', size: PT.small, color: MUTED },
+    RIGHT,
+    footY,
+    c.thanks,
+    'right',
+  );
 
   trySlip(ctx, c.tryLine);
 }

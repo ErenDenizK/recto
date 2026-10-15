@@ -1,44 +1,68 @@
 /**
- * Page 1, the cover (design.md §4 page 1): the one dark page, the links lesson. A lighthouse
- * on a headland throws the aurora (mint → lime → yellow-lime, the mark's gradient, DSN-5) as a
- * beam across a graphite sea; the masthead spans the measure; three cover lines, each one Link
- * over its whole block (≥ 70 pt tall, so ≥ 46 px at a phone's fit width), open their pages.
+ * Page 1, the cover, the night's key frame (MOB-14; direction-v2.md §8 page 1): 18:52, the
+ * lamp has just come on. Dusk leaves by the west (a teal glow low on the left horizon); the
+ * beam leaves the lamp yellow-lime, turns lime, and reaches the spine mint (the mark's own
+ * ramp, laid along the light's path). All light is additive (black = no light): the beam and
+ * the dusk are composited onto the sky here and painted Normal, the small glows are screened
+ * and clipped. The type is lit by the lamp (the masthead's fill falls off with distance from
+ * it), and the whole frame carries grain. The chart line, Fl(3) G 10s, is the light's
+ * characteristic: three green flashes every ten seconds.
  */
-import {
-  clip,
-  endPath,
-  lineTo,
-  moveTo,
-  closePath,
-  popGraphicsState,
-  pushGraphicsState,
-} from '@cantoo/pdf-lib';
+import { popGraphicsState, pushGraphicsState } from '@cantoo/pdf-lib';
 import { type PageCtx, footer, link, trySlip } from '../context.ts';
 import type { SampleCopy } from '../copy.ts';
 import {
-  AURORA_LIME,
-  AURORA_YELLOW,
-  COVER,
   COVER_MUTED,
-  COVER_SEA,
   COVER_TEXT,
+  FACES,
   LEFT,
   LIME,
-  MEASURE,
-  MINT,
   PAGE_H,
   PAGE_W,
+  PT,
+  RIGHT,
+  type Rgb,
+  STYLE,
   type Style,
-  disc,
+  caps,
   hairline,
   poly,
   r2,
   raw,
   rect,
 } from '../kit.ts';
+import {
+  axialShading,
+  beamMesh,
+  glow,
+  grain,
+  gs,
+  hex,
+  lampTab,
+  latticeShading,
+  mix,
+  radialShading,
+  sample,
+  scale,
+  shadeIn,
+  Strokes,
+} from '../light.ts';
 
-const HORIZON = 300;
-const LAMP: readonly [number, number] = [452, 372];
+export const HORIZON = 336;
+export const LAMP: readonly [number, number] = [462, 393];
+/** The beam rises 3.2° to the left: it leaves the cover by the spine, into the issue. */
+const AXIS = 175.2;
+
+const SKY_TOP = hex('#040507');
+const SKY_MID = hex('#080A0E');
+const SKY_LOW = hex('#10151C');
+const SEA_NEAR = hex('#030405');
+const SEA_FAR = hex('#0A0D11');
+const DUSK = hex('#1F9996'); // the aurora's teal: the last of the day
+const LEMON = hex('#EDFA6D');
+const AURORA_LIME = hex('#CBFF5F');
+const MINT = hex('#69EAA3');
+const BLACK: Rgb = [0, 0, 0];
 
 /** "Go to page 3: …" / "3. sayfaya git: …" (a link's /Contents and Alt). */
 export function goTo(copy: SampleCopy, n: number, title: string): string {
@@ -52,35 +76,56 @@ export function coverPage(ctx: PageCtx): void {
   const c = copy.cover;
   const up = (v: string) => v.toLocaleUpperCase(copy.lang);
 
-  // The ground, the art (one Figure), then the type over it.
-  w.art(...rect(0, 0, PAGE_W, PAGE_H, COVER));
   const figure = w.elem('Figure', w.sect, c.alt);
-  w.figure(figure, ...art(ctx));
+  w.figure(figure, ...scene(ctx));
+
+  // Masthead (direction-v2.md §5.3): real text, so Find and the tags keep "Margin", set in Inter
+  // Bold from the file's own subset in render mode 7 (clip) and filled with the lamp's light,
+  // brighter towards the lamp: no outline bytes, no extra glyphs.
+  radialShading(w, 'ShType', LAMP[0], LAMP[1], 640, [
+    [0, hex('#FFFFF4')],
+    [0.42, hex('#F6F8F0')],
+    [0.62, hex('#E1E4E8')],
+    [1, hex('#A7ADB6')],
+  ]);
+  const style: Style = { face: 'bold', size: 150, color: COVER_TEXT, tracking: -4.5 };
+  const tw = w.width(style, c.masthead);
+  const fs = Math.min(150, (150 * (RIGHT - LEFT + 4)) / tw);
+  const hexText = w.faces.bold.encodeText(c.masthead).toString();
+  w.figure(
+    w.elem('H1', w.sect),
+    raw(
+      `BT /${FACES.bold.key} ${r2(fs)} Tf ${r2(-0.03 * fs)} Tc 7 Tr 1 0 0 1 ${r2(LEFT - 3)} 646 Tm ${hexText} Tj ET 0 Tr 0 Tc /ShType sh`,
+    ),
+  );
 
   w.text(
     w.elem('P'),
-    { face: 'sans', size: 8, color: COVER_MUTED, tracking: 0.4 },
+    { face: 'sans', size: PT.small, color: COVER_MUTED, tracking: 0.4 },
     LEFT,
     790,
     c.tagline,
   );
-  // The masthead spans the measure (a logo, not an edit target: tracked tight).
-  const probe: Style = { face: 'bold', size: 100, color: COVER_TEXT, tracking: -3 };
-  const size = Math.min(150, (100 * (MEASURE + 4)) / w.width(probe, c.masthead));
-  const masthead: Style = {
-    face: 'bold',
-    size: r2(size),
-    color: COVER_TEXT,
-    tracking: r2(-0.03 * size),
-  };
-  w.text(w.elem('H1'), masthead, LEFT - 3, 664, c.masthead);
+  w.text(
+    null,
+    { face: 'serif', size: PT.small, color: COVER_MUTED },
+    RIGHT,
+    790,
+    'Fl(3) G 10s  42 m  22 M',
+    'right',
+  );
   w.text(
     w.elem('P'),
-    { face: 'bold', size: 10, color: LIME, tracking: 1.2 },
+    { face: 'bold', size: PT.body, color: LIME, tracking: caps(PT.body) },
     LEFT,
-    636,
+    614,
     up(c.issue),
   );
+  // The slate: the frame's timecode beside the lamp.
+  const slate: Style = { ...STYLE.label, color: LIME };
+  w.art(...hairline(LAMP[0] + 9, LAMP[1] + 4, LAMP[0] + 22, LAMP[1] + 17, scale(LIME, 0.55), 0.4));
+  w.text(null, slate, LAMP[0] + 25, LAMP[1] + 16, '18:52');
+  w.text(null, { ...slate, color: COVER_MUTED }, LAMP[0] + 25, LAMP[1] + 7.5, up(c.lampOn));
 
   // Cover lines: number, title, dek; each block one link (design R-14).
   const list = w.elem('L');
@@ -88,127 +133,262 @@ export function coverPage(ctx: PageCtx): void {
   c.lines.forEach((line, i) => {
     const n = ctx.pageOf(line.page);
     if (n === undefined) throw new Error(`cover: no page ${line.page} in this cut`);
-    const b = 246 - i * pitch;
+    const b = 258 - i * pitch;
     const li = w.elem('LI', list);
-    w.text(w.elem('Lbl', li), { face: 'bold', size: 26, color: LIME }, LEFT, b - 9, String(n));
+    w.text(
+      w.elem('Lbl', li),
+      { face: 'bold', size: PT.numeral, color: LIME },
+      LEFT,
+      b - 10,
+      String(n),
+    );
     const body = w.elem('LBody', li);
-    w.text(body, { face: 'bold', size: 15, color: COVER_TEXT }, LEFT + 36, b, line.title);
-    w.text(body, { face: 'sans', size: 9.5, color: COVER_MUTED }, LEFT + 36, b - 16, line.dek);
+    w.text(body, { face: 'bold', size: PT.title, color: COVER_TEXT }, LEFT + 38, b, line.title);
+    w.text(body, { face: 'sans', size: PT.body, color: COVER_MUTED }, LEFT + 38, b - 16, line.dek);
     link(ctx, [LEFT - 6, b - 34, LEFT + 330, b + 38], line.page, goTo(copy, n, line.title), li);
   });
 
-  trySlip(ctx, c.tryLine, { dark: true, y: 34 });
+  trySlip(ctx, c.tryLine, { onDark: true, y: 34 });
   footer(ctx, true);
+  w.art(...lampTab(w, 'cover'));
 }
 
-/** The sea, the headland, the lighthouse and its beam. */
-function art(ctx: PageCtx) {
+const SKY_STOPS = [
+  [0, SKY_TOP],
+  [0.55, SKY_MID],
+  [1, SKY_LOW],
+] as const;
+const DUSK_STOPS = [
+  [0, scale(DUSK, 0.26)],
+  [0.35, scale(DUSK, 0.11)],
+  [0.7, scale(DUSK, 0.03)],
+  [1, BLACK],
+] as const;
+/** The ground the beam lies on, as the page paints it: the sky screened with the dusk. */
+function skyAt(x: number, y: number): Rgb {
+  const sky =
+    y >= HORIZON
+      ? sample(SKY_STOPS, Math.min(1, (PAGE_H - y) / (PAGE_H - HORIZON)))
+      : sample(
+          [
+            [0, SEA_FAR],
+            [1, SEA_NEAR],
+          ],
+          Math.min(1, (HORIZON - y) / HORIZON),
+        );
+  if (y < HORIZON) return sky;
+  const d = Math.hypot((x + 60) / 520, (y - HORIZON) / 190);
+  const dusk = d >= 1 ? BLACK : sample(DUSK_STOPS, d);
+  return sky.map((v, j) => 1 - (1 - v) * (1 - (dusk[j] as number))) as unknown as Rgb;
+}
+
+/** Sky, dusk, sea, headland, lighthouse, beam, halation, glitter, grain. */
+function scene(ctx: PageCtx) {
   const { w } = ctx;
   const [lx, ly] = LAMP;
-  // The beam's colour runs from the lamp (yellow-lime) through lime (59 %) to mint.
-  const ramp = (C0: readonly number[], C1: readonly number[]) => ({
-    FunctionType: 2,
-    Domain: [0, 1],
-    C0: [...C0].map(r2),
-    C1: [...C1].map(r2),
-    N: 1,
-  });
-  w.resource(
-    'Shading',
-    'ShBeam',
-    w.doc.context.obj({
-      ShadingType: 2,
-      ColorSpace: 'DeviceRGB',
-      Coords: [lx, ly, 0, ly + 32],
-      Function: {
-        FunctionType: 3,
-        Domain: [0, 1],
-        Functions: [ramp(AURORA_YELLOW, AURORA_LIME), ramp(AURORA_LIME, MINT)],
-        Bounds: [0.41],
-        Encode: [0, 1, 0, 1],
-      },
-      Extend: [true, true],
-    }),
-  );
-  w.resource('ExtGState', 'GsBeam', w.doc.context.obj({ ca: 0.92 }));
-  w.resource('ExtGState', 'GsGlow1', w.doc.context.obj({ ca: 0.07 }));
-  w.resource('ExtGState', 'GsGlow2', w.doc.context.obj({ ca: 0.12 }));
-
-  /** A wedge from the lamp to past the page's left edge, `half` either side of its axis. */
-  const wedge = (half: number) => {
-    const axis = Math.PI - (2.5 * Math.PI) / 180;
-    const reach = lx * 1.25;
-    const at = (a: number) => [r2(lx + Math.cos(a) * reach), r2(ly + Math.sin(a) * reach)] as const;
-    const [x0, y0] = at(axis - half);
-    const [x1, y1] = at(axis + half);
-    return [moveTo(lx, ly), lineTo(x0, y0), lineTo(x1, y1), closePath()];
-  };
   const ops = [];
-  // The sea: hairlines closer together towards the horizon (perspective).
-  for (let i = 0; i < 38; i++) {
-    const t = i / 37;
-    const y = HORIZON - 170 * t ** 1.55;
-    ops.push(...hairline(0, y, PAGE_W, y, COVER_SEA, 0.5 + t * 0.4));
+
+  // Sky and sea grounds (axial shadings; grain dithers their gradients).
+  axialShading(w, 'ShSky', [0, PAGE_H], [0, HORIZON], SKY_STOPS);
+  axialShading(
+    w,
+    'ShSea',
+    [0, HORIZON],
+    [0, 0],
+    [
+      [0, SEA_FAR],
+      [1, SEA_NEAR],
+    ],
+  );
+  ops.push(
+    ...shadeIn([raw(`0 ${HORIZON} ${r2(PAGE_W)} ${r2(PAGE_H - HORIZON)} re`)], 'ShSky'),
+    ...shadeIn([raw(`0 0 ${r2(PAGE_W)} ${HORIZON} re`)], 'ShSea'),
+  );
+  // Dusk: the day leaving by the west, low on the left horizon (screened, clipped to the sky).
+  radialShading(w, 'ShDusk', 0, 0, 1, DUSK_STOPS);
+  gs(w, 'GsScr', { BM: 'Screen' });
+  // Painted as a lattice the generator composites (sky screened with dusk): no blend group.
+  latticeShading(w, 'ShDuskSky', [0, HORIZON, 470, 200], 11, 6, skyAt);
+  ops.push(pushGraphicsState(), raw('/ShDuskSky sh'), popGraphicsState());
+
+  // The beam: one Gouraud lattice, Gaussian across, the mark's ramp along, screened.
+  const reach = lx * 1.12;
+  beamMesh(w, 'ShBeam', LAMP, AXIS, reach, {
+    along: [
+      [0, hex('#FBFFE0')],
+      [0.05, LEMON],
+      [0.3, AURORA_LIME],
+      [0.75, MINT],
+      [1, MINT],
+    ],
+    profile: [
+      [1, 0.42],
+      [0.62, 2.4],
+      [0.3, 5.2],
+      [0.12, 10],
+    ],
+    falloff: (t) => (t < 0.02 ? 1.5 : 1.15 * (1 - 0.66 * t ** 0.8)),
+    backdrop: skyAt,
+  });
+  // Clipped to the sky and painted right after it: the mesh carries the sky it lies on.
+  ops.push(
+    pushGraphicsState(),
+    raw(`0 ${HORIZON} ${r2(PAGE_W)} ${r2(PAGE_H - HORIZON)} re W n /ShBeam sh`),
+    popGraphicsState(),
+  );
+
+  // The sea: perspective lines, denser towards the horizon, catching a little of the dusk.
+  const sea = new Strokes();
+  for (let i = 0; i < 34; i++) {
+    const t = i / 33;
+    const y = HORIZON - 4 - 316 * t ** 1.7;
+    sea.add(0, y, PAGE_W, y, mix(hex('#1C232C'), hex('#0B0D11'), t ** 0.7), 0.35 + t * 0.45, 64);
   }
-  // The beam: a wide glow, then the beam itself, both shaded.
-  for (const [deg, gs] of [
-    [15, 'GsGlow1'],
-    [9, 'GsGlow2'],
-    [4.5, 'GsBeam'],
-  ] as const) {
-    ops.push(
-      pushGraphicsState(),
-      raw(`/${gs} gs`),
-      ...wedge((deg * Math.PI) / 180),
-      clip(),
-      endPath(),
-      raw('/ShBeam sh'),
-      popGraphicsState(),
-    );
-  }
-  // The headland, over the sea's right end.
+  ops.push(...sea.ops());
+  // Horizon: a hairline that is brighter where the dusk is.
+  axialShading(
+    w,
+    'ShHz',
+    [0, 0],
+    [PAGE_W, 0],
+    [
+      [0, mix(hex('#2C4A4A'), BLACK, 0.1)],
+      [0.5, hex('#1A2028')],
+      [1, hex('#161A21')],
+    ],
+  );
+  ops.push(...shadeIn([raw(`0 ${HORIZON - 0.3} ${r2(PAGE_W)} 0.6 re`)], 'ShHz'));
+
+  // Headland: a far ridge, then the near rock the tower stands on (two planes of haze).
   ops.push(
     ...poly(
       [
-        [352, HORIZON - 10],
-        [384, HORIZON + 2],
-        [420, HORIZON + 10],
-        [470, HORIZON + 13],
-        [530, HORIZON + 6],
-        [PAGE_W, HORIZON - 2],
-        [PAGE_W, HORIZON - 42],
-        [470, HORIZON - 30],
-        [400, HORIZON - 18],
+        [300, HORIZON],
+        [360, HORIZON + 5],
+        [430, HORIZON + 11],
+        [520, HORIZON + 14],
+        [PAGE_W, HORIZON + 10],
+        [PAGE_W, HORIZON],
       ],
-      [0.075, 0.08, 0.095],
+      hex('#0C0F14'),
+    ),
+    ...poly(
+      [
+        [392, HORIZON],
+        [420, HORIZON + 8],
+        [452, HORIZON + 17],
+        [470, HORIZON + 21],
+        [492, HORIZON + 21],
+        [520, HORIZON + 15],
+        [560, HORIZON + 9],
+        [PAGE_W, HORIZON + 6],
+        [PAGE_W, HORIZON - 6],
+        [520, HORIZON - 4],
+        [440, HORIZON - 2],
+      ],
+      hex('#050608'),
     ),
   );
-  // The lighthouse: a tapered tower, a gallery, the lamp room (lime) and a cap.
-  const base = HORIZON + 10;
-  const top = ly - 8;
+
+  // The tower: a dark silhouette rim-lit on the west by the dusk.
+  const base = HORIZON + 20;
+  const top = ly - 7;
+  axialShading(
+    w,
+    'ShTower',
+    [lx - 7, 0],
+    [lx + 7, 0],
+    [
+      [0, hex('#4A5A5E')],
+      [0.3, hex('#20262D')],
+      [1, hex('#13161B')],
+    ],
+  );
   ops.push(
+    ...shadeIn(
+      [
+        raw(
+          `${r2(lx - 7.5)} ${base} m ${r2(lx + 7.5)} ${base} l ${r2(lx + 5)} ${r2(top)} l ${r2(lx - 5)} ${r2(top)} l h`,
+        ),
+      ],
+      'ShTower',
+    ),
+    ...rect(lx - 8, top, 16, 1.4, hex('#2A3038')),
+    ...rect(lx - 4.2, top + 1.4, 8.4, 7.6, hex('#2A3320')),
+    ...rect(lx - 2.6, top + 2.6, 5.2, 5.2, hex('#F4FBD0')),
     ...poly(
       [
-        [lx - 9, base],
-        [lx + 9, base],
-        [lx + 6, top],
-        [lx - 6, top],
+        [lx - 5.6, top + 9],
+        [lx + 5.6, top + 9],
+        [lx, top + 14.5],
       ],
-      COVER_TEXT,
+      hex('#151920'),
     ),
-    ...rect(lx - 6, base + 18, 12, 3, COVER_SEA),
-    ...rect(lx - 5.5, base + 38, 11, 3, COVER_SEA),
-    ...rect(lx - 9, top, 18, 2.2, COVER_TEXT),
-    ...rect(lx - 5, top + 2.2, 10, 9, LIME),
-    ...poly(
-      [
-        [lx - 7, top + 11.2],
-        [lx + 7, top + 11.2],
-        [lx, top + 18],
-      ],
-      COVER_TEXT,
-    ),
-    ...disc(lx, ly - 1.5, 2.6, [1, 1, 0.88]),
   );
+
+  // Glitter: the lamp's reflection, a column of glints from the rock towards us; and the
+  // beam's light on the water to the west, faint glints along the far lines. Screened.
+  const rnd = (() => {
+    let seed = 7;
+    return () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+  })();
+  const glints = new Strokes();
+  for (let i = 0; i < 18; i++) {
+    const t = i / 17;
+    const y = HORIZON - 7 - 280 * t ** 1.5;
+    const len = 2 + 22 * t * (0.5 + rnd());
+    const x = lx - 4 + (rnd() - 0.5) * (8 + 60 * t);
+    const col = scale(mix(LEMON, MINT, t), 0.5 * (1 - t) ** 2 + 0.025);
+    glints.add(x, y, x + len, y, col, 0.5 + t * 0.9, 24);
+  }
+  for (let i = 0; i < 40; i++) {
+    const x = lx - 30 - (lx - 10) * (i / 39) ** 0.9;
+    const y = HORIZON - 3 - rnd() * 14;
+    const k = 0.35 * (1 - i / 45);
+    glints.add(x, y, x + 3 + rnd() * 9, y, scale(mix(AURORA_LIME, MINT, i / 39), k), 0.4, 24);
+  }
+  // Clipped to the sea they lie on (direction-v2.md §5.4).
+  ops.push(
+    pushGraphicsState(),
+    raw(`0 0 ${r2(PAGE_W)} ${HORIZON} re W n`),
+    ...glints.ops('GsScr'),
+    popGraphicsState(),
+  );
+
+  // Halation and bloom round the lamp, then the anamorphic streak through it.
+  ops.push(
+    ...glow(w, 'Bloom', lx, ly, 150, [
+      [0, hex('#2B3A0E')],
+      [0.35, hex('#111906')],
+      [1, BLACK],
+    ]),
+    ...glow(w, 'Halo', lx, ly, 46, [
+      [0, hex('#FFFFFF')],
+      [0.07, hex('#F6FCC4')],
+      [0.24, hex('#6E8A1E')],
+      [0.6, hex('#16200A')],
+      [1, BLACK],
+    ]),
+    ...glow(
+      w,
+      'Streak',
+      lx,
+      ly,
+      240,
+      [
+        [0, hex('#E6FFF0')],
+        [0.1, scale(MINT, 0.55)],
+        [0.45, scale(MINT, 0.12)],
+        [1, BLACK],
+      ],
+      { squash: 0.014 },
+    ),
+  );
+
+  // Film grain over the whole frame (dithers every gradient above).
+  ops.push(...grain(w, 0.26, [0, 0, PAGE_W, PAGE_H]));
   return ops;
 }

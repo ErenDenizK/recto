@@ -70,8 +70,8 @@
         }
       },
       "scanText": "The Lighthouse\nCape Ardıç\n29 September 2026\nDear Mira,\nThank you for the proofs. Defne has been kinder\nto me than the wind was last winter.\nTwo small corrections. The lens was made in\n1904, not 1906. And Pusula was a dog, not a\ncat. She would be offended.\nYou asked what I write in the logbook now. Last\nnight it was: wind NE 4, visibility good, two\nboats out, two boats home, lamp on at 18:52.\nAll well.\nCome in October if you can. The light is best\nafter the first storm.\nWith my regards,\nNevin Sarıgül",
-      "bytes": 95092,
-      "sha256": "ef8f328421a9953ec162f136fa03011e79e9ca48fd81aad033564ef0e0dfe231"
+      "bytes": 101717,
+      "sha256": "82ee9068899a502737965d90c9ba32b399e021e45d97e1f33c06e286d4132680"
     },
     {
       "file": "recto-sample-phone-en.pdf",
@@ -130,8 +130,8 @@
           "align": "left"
         }
       },
-      "bytes": 59436,
-      "sha256": "fa72f76a75eb058e9fc3ed0f1530a918dcd1fde7ac1cd8bcd4fecfd2f6276fa7"
+      "bytes": 69890,
+      "sha256": "b25ef884b8e3159e9ad0933ecba8ab72c1d396ecf39688416999d53b4727094b"
     },
     {
       "file": "recto-sample-tr.pdf",
@@ -202,8 +202,8 @@
         }
       },
       "scanText": "Fener Evi\nArdıç Burnu\n29 Eylül 2026\nSevgili Mira,\nProvalar için teşekkür ederim. Defne bana geçen\nkışın rüzgârından çok daha nazik davrandı.\nİki küçük düzeltme var. Mercek 1906’da değil,\n1904’te yapıldı. Pusula da kedi değil, köpekti.\nDuysa gücenirdi.\nNöbet defterine artık ne yazdığımı sormuşsunuz.\nDün akşam şunu yazdım: rüzgâr KD 4, görüş iyi,\niki tekne çıktı, iki tekne döndü, fener 18.52’de\nyandı. Her şey yolunda.\nFırsat bulursanız ekimde gelin. Işık en güzel\nilk fırtınadan sonra olur.\nSaygılarımla,\nNevin Sarıgül",
-      "bytes": 96973,
-      "sha256": "d336933da7212e77deea09d759bfdcc618e8ad886abd37018d5ebe0eb479bdd1"
+      "bytes": 103391,
+      "sha256": "cd7f41ab3a79027dec3988350950a67ab3e4de87696df84df478d6345089bfc4"
     },
     {
       "file": "recto-sample-phone-tr.pdf",
@@ -262,8 +262,8 @@
           "align": "left"
         }
       },
-      "bytes": 59933,
-      "sha256": "b22f941db0d43f42ec8946b506d760ae5aecbad7c00eb5605f257d9ebf443765"
+      "bytes": 70407,
+      "sha256": "9b27a15e88bb0d0d0a1ccb6656381ba61ad1b793d8a4cd69a665db23915e4a76"
     }
   ]
 }

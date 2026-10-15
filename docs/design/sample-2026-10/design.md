@@ -5,6 +5,12 @@ Status: proposal for the owner and the lead. It replaces the four-page sample bu
 rewritten for phones once phone editing ships"). Every claim about what the app does was checked
 in the code on 2026-10-15. The code paths are cited where a design choice depends on them.
 
+**Built as v2 (MOB-14, MOB-15).** The visual layer on top of this spec is
+[direction-v2.md](direction-v2.md): one night at the cape, page by page, with the lamp tab, the
+dark try slip (it replaces §2's pale band), grain and light on the dark grounds, and the √2 type
+scale (it replaces §2's sizes). The four files cap at 344 KiB together (it replaces §6's
+total). Where this spec and those rows differ, the rows win.
+
 ---
 
 ## 0. In one paragraph

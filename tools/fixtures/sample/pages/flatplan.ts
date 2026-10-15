@@ -7,6 +7,7 @@
  */
 import type { PDFOperator } from '@cantoo/pdf-lib';
 import { setLineWidth, setStrokingRgbColor, stroke, rectangle } from '@cantoo/pdf-lib';
+import { LAMP_OFF, coverBeam, groundAt, gs, lightAt, nightOf } from '../light.ts';
 import { type PageCtx, furniture, kicker, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
 import {
@@ -21,11 +22,11 @@ import {
   LIME_800,
   MEASURE,
   MUTED,
-  N4,
   N8,
   PAGE_H,
   PAGE_W,
   PALE,
+  PT,
   RIGHT,
   RULE,
   type Rgb,
@@ -33,8 +34,8 @@ import {
   type Style,
   WHITE,
   hairline,
-  poly,
   r2,
+  raw,
   rect,
   rich,
   roundRect,
@@ -63,20 +64,46 @@ export function flatplanPage(ctx: PageCtx): void {
     const x = LEFT + (i % cols) * (tileW + gap);
     const y = top - tileH - Math.floor(i / cols) * (tileH + rowGap);
     ops.push(...miniature(id, x, y, tileW, tileH));
+    // v2: the cover's own beam (its mesh, placed by cm) and each page's lamp tab.
+    const sc = tileW / PAGE_W;
+    const beam = coverBeam(w.doc);
+    if (id === 'cover' && beam) {
+      w.resource('Shading', 'ShBeam', beam);
+      gs(w, 'GsScr', { BM: 'Screen' });
+      ops.push(
+        raw(
+          `q ${r2(x)} ${r2(y)} ${r2(tileW)} ${r2(tileH)} re W n /GsScr gs ${r2(sc)} 0 0 ${r2(sc)} ${r2(x)} ${r2(y)} cm /ShBeam sh Q`,
+        ),
+      );
+    }
+    const f = nightOf(id);
+    const yc = 772 - f * 660;
+    const g = groundAt(id);
+    const l = lightAt(id);
+    ops.push(
+      ...rect(x + tileW - 9 * sc, y + (yc - 32) * sc, 9 * sc, 64 * sc, g),
+      ...rect(x + tileW - 5.4 * sc, y + (yc - 20) * sc, 1.4 * sc, 40 * sc, l),
+    );
   });
   w.figure(figure, ...ops);
   ctx.ids.forEach((id, i) => {
     const x = LEFT + (i % cols) * (tileW + gap);
     const y = top - tileH - Math.floor(i / cols) * (tileH + rowGap);
-    w.text(null, { face: 'bold', size: 8, color: LIME_800 }, x, y - 13, String(i + 1));
-    w.text(null, { face: 'sans', size: 8, color: MUTED }, x + 12, y - 13, c.labels[id] ?? id);
+    w.text(null, { face: 'bold', size: PT.small, color: LIME_800 }, x, y - 13, String(i + 1));
+    w.text(
+      null,
+      { face: 'sans', size: PT.small, color: MUTED },
+      x + 12,
+      y - 13,
+      c.labels[id] ?? id,
+    );
   });
   const rows = Math.ceil(ctx.ids.length / cols);
   let y = top - rows * (tileH + rowGap) - 4;
 
   // The editor's note.
-  const noteStyle: Style = { face: 'sans', size: 9.5, color: INK };
-  const noteBold: Style = { face: 'bold', size: 9.5, color: INK };
+  const noteStyle: Style = { face: 'sans', size: PT.body, color: INK };
+  const noteBold: Style = { face: 'bold', size: PT.body, color: INK };
   w.art(...roundRect(LEFT, y - 30, MEASURE, 32, 6, PALE));
   w.paragraph(rich(`**${c.noteName}** ${cut(c.note, edition)}`, noteStyle, noteBold), {
     x: LEFT + 14,
@@ -87,9 +114,10 @@ export function flatplanPage(ctx: PageCtx): void {
   y -= 64;
 
   // Kept, then saved (and, on the phone, the overview's acts).
-  const lineStyle: Style = { face: 'sans', size: phone ? 10 : 10.5, color: BODY };
+  // The phone's acts are more lines, so they are set a step smaller on the full measure.
+  const lineStyle: Style = { face: 'sans', size: phone ? PT.body : PT.large, color: BODY };
   if (!phone) {
-    w.text(w.elem('H2'), { face: 'bold', size: 13, color: INK }, LEFT, y, c.keptTitle);
+    w.text(w.elem('H2'), { face: 'bold', size: PT.deck, color: INK }, LEFT, y, c.keptTitle);
     y -= 22;
   }
   for (const line of cut(c.lines, edition)) {
@@ -98,11 +126,23 @@ export function flatplanPage(ctx: PageCtx): void {
         x: LEFT,
         y,
         width: MEASURE,
-        leading: phone ? 14 : 15,
+        leading: phone ? 14 : 16,
+        pretty: true,
       }).next - (phone ? 5 : 4);
   }
   w.art(...hairline(LEFT, y - 6, RIGHT, y - 6, RULE));
-  w.text(w.elem('P'), { face: 'sans', size: 9.5, color: MUTED }, LEFT, y - 24, c.end);
+  w.text(w.elem('P'), { face: 'sans', size: PT.body, color: MUTED }, LEFT, y - 24, c.end);
+  // The night's last slate, the cover's "18:52 lamp on" answered (MOB-14): the running head's
+  // form, the words then the hour in lime-800.
+  const tw = w.text(null, { ...STYLE.label, color: LIME_800 }, RIGHT, y - 24, LAMP_OFF, 'right');
+  w.text(
+    null,
+    STYLE.label,
+    RIGHT - tw - 9,
+    y - 24,
+    c.lampOff.toLocaleUpperCase(copy.lang),
+    'right',
+  );
   if (y - 24 < 104)
     throw new Error(`flatplan (${edition}): the text runs into the slip (${r2(y - 24)})`);
 
@@ -138,7 +178,7 @@ export function miniature(id: string, x: number, y: number, w: number, h: number
     stroke(),
   ];
   const head = () => [...bar(LEFT, 803, 120, 6, RULE), ...bar(LEFT, 796, MEASURE, 1, RULE)];
-  const slip = () => bar(LEFT, 50, MEASURE, 40, PALE);
+  const slip = () => bar(LEFT, 50, MEASURE, 40, [0.082, 0.09, 0.11]);
   const h1 = (width: number, y1 = 722) => [
     ...bar(LEFT, 760, 90, 6, LIME_800),
     ...bar(LEFT, y1, width, 26, HEAD),
@@ -147,17 +187,9 @@ export function miniature(id: string, x: number, y: number, w: number, h: number
     case 'cover':
       return [
         ...frame(COVER),
-        ...bar(LEFT, 664, 420, 76, COVER_TEXT),
-        ...bar(LEFT, 632, 170, 8, LIME),
-        ...poly(
-          [
-            [x + 452 * s, y + 372 * s],
-            [x, y + 420 * s],
-            [x, y + 360 * s],
-          ],
-          LIME,
-        ),
-        ...bar(445, 310, 14, 62, COVER_TEXT),
+        ...bar(LEFT, 646, 470, 110, COVER_TEXT),
+        ...bar(LEFT, 610, 170, 8, LIME),
+        ...bar(474, 320, 8, 32, [0.16, 0.18, 0.21]),
         ...Array.from({ length: 8 }, (_, i) => bar(0, 290 - i * 22, PAGE_W, 1.2, COVER_SEA)).flat(),
         ...[0, 1, 2].flatMap((i) => [
           ...bar(LEFT, 238 - i * 72, 18, 20, LIME),
@@ -169,7 +201,7 @@ export function miniature(id: string, x: number, y: number, w: number, h: number
         ...frame(WHITE),
         ...head(),
         ...h1(330),
-        ...lines(LEFT, 680, 320, 12, 17.5),
+        ...lines(LEFT, 680, 320, 12, 16.5),
         ...lines(400, 664, 140, 9, 20, RULE),
         ...bar(LEFT, 352, MEASURE, 1.5, INK),
         ...lines(LEFT + 30, 300, 180, 5, 40, HEAD),
@@ -201,9 +233,15 @@ export function miniature(id: string, x: number, y: number, w: number, h: number
           const by = 650 - 105 - r * 129;
           return [
             ...bar(LEFT, by, MEASURE, 105, COVER),
-            ...[0, 1, 2, 3].flatMap((k) =>
-              bar(LEFT + 7 + k * 119, by + 17, 112, 71, k % 2 ? N4 : [0.3, 0.31, 0.34]),
-            ),
+            // The night-graded frames, the lit ones with their light (contact.ts LIGHTS).
+            ...[0, 1, 2, 3].flatMap((k) => {
+              const fx = LEFT + 7 + k * 119;
+              const lit = [0, 3, 5, 6, 8, 10].includes(r * 4 + k);
+              return [
+                ...bar(fx, by + 17, 112, 71, k % 2 ? [0.16, 0.17, 0.2] : [0.12, 0.13, 0.15]),
+                ...(lit ? bar(fx + 50, by + 46, 12, 12, lightAt('contact')) : []),
+              ];
+            }),
           ];
         }),
         ...slip(),
@@ -229,7 +267,7 @@ export function miniature(id: string, x: number, y: number, w: number, h: number
         ...frame([0.925, 0.925, 0.925]),
         ...bar(52, 200, 420, 595, WHITE),
         ...lines(92, 740, 300, 18, 14, [0.6, 0.6, 0.6]),
-        ...bar(LEFT, 50, MEASURE, 40, PALE),
+        ...slip(),
       ];
     case 'invoice':
       return [

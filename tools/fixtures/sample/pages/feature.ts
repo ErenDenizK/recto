@@ -17,27 +17,21 @@ import {
   setStrokingRgbColor,
   stroke,
 } from '@cantoo/pdf-lib';
-import { type PageCtx, furniture, kicker, trySlip } from '../context.ts';
+import { type PageCtx, SLIP_TOP, furniture, kicker, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
 import {
   COL2,
   COL_W,
   INK,
   LEFT,
-  LIME,
   LIME_800,
   MEASURE,
   MUTED,
-  N4,
-  N5,
-  N6,
-  N7,
-  N8,
   PALE,
+  PT,
   RULE,
   STYLE,
   type Style,
-  circlePath,
   disc,
   hairline,
   r2,
@@ -46,8 +40,23 @@ import {
   rich,
   roundRect,
   roundedPath,
+  type Rgb,
   type Writer,
 } from '../kit.ts';
+import {
+  type Stop,
+  Strokes,
+  arc1,
+  circle1,
+  gs,
+  grain,
+  hex,
+  lightAt,
+  mix,
+  radialShading,
+  sample,
+  scale,
+} from '../light.ts';
 
 /** Body 9.5 / 13.5 (design §2): leading under 1.5 × size, so lines join even untagged. */
 const LEADING = 13.5;
@@ -57,8 +66,8 @@ const MAX_STRETCH = 1.5;
 /** Free body lines under P4 before the footnote's rule (the reflow room, R-8). */
 const FREE_LINES = 3;
 
-const BYLINE: Style = { face: 'sans', size: 8.5, color: MUTED };
-const BYLINE_NAME: Style = { face: 'bold', size: 8.5, color: INK };
+const BYLINE: Style = { face: 'sans', size: PT.small, color: MUTED };
+const BYLINE_NAME: Style = { face: 'bold', size: PT.small, color: INK };
 
 export interface FeatureLayout {
   /** Lines per paragraph, for the manifest and the edit tests. */
@@ -81,6 +90,7 @@ export function featurePage(ctx: PageCtx): FeatureLayout {
     y: 728 - (c.title.length - 1) * 36 - 36,
     width: MEASURE * 0.87,
     leading: 19,
+    pretty: true,
   });
   const bylineY = deck.last - 26;
   w.paragraph(rich(c.byline, BYLINE, BYLINE_NAME), {
@@ -94,7 +104,7 @@ export function featurePage(ctx: PageCtx): FeatureLayout {
   const top = ruleY - 22;
 
   // The slip and the footnote sit at the foot; the columns fill the space above them.
-  const slipTop = 50 + 40;
+  const slipTop = SLIP_TOP;
   const footBase = slipTop + 16;
   const footnoteLines = w.breakLines(
     w.words([{ text: c.footnote, style: STYLE.caption }]),
@@ -125,7 +135,7 @@ export function featurePage(ctx: PageCtx): FeatureLayout {
   const col1Last = y + LEADING;
   // The logbook aside hangs 3½ free lines under P4 (the reflow room, R-8: breathing room, not a
   // void) and holds as many of the logbook's entries as fit above the footnote.
-  const logStyle: Style = { face: 'sans', size: 8.5, color: INK };
+  const logStyle: Style = { face: 'sans', size: PT.small, color: INK };
   const entryLines = c.log.map(
     (entry) =>
       w.breakLines(w.words([{ text: entry, style: logStyle }]), COL_W - 38, 0, false).length,
@@ -252,75 +262,125 @@ function columnTwoHeight(ctx: PageCtx): number {
 }
 
 /**
- * The lens plate: a vector duotone of a first-order Fresnel lens seen from the front,
- * graphite on darker graphite: a soft glow behind the glass, the bull's-eye's rings inside the
- * lens's barrel, the brass cage's bars, and one lime flame (the only lime on the page's art).
+ * The lens plate (MOB-14; direction-v2.md §8 page 3): a night photograph of the first-order lens, front on.
+ * The flame, magnified by the bull's-eye, fills the centre panel with light; the rings
+ * catch it (screened strokes, brighter towards the centre); the brass cage stands dark in
+ * front of the glow; halation spills past the barrel; grain over all. The light is the
+ * frame's own hour (21:15, between lemon and lime).
  */
 export function lensPlate(w: Writer, x: number, y: number, pw: number, ph: number) {
   const cx = x + pw * 0.5;
-  const cy = y + ph * 0.5;
-  const R = Math.max(pw, ph) * 0.62;
-  w.resource(
-    'Shading',
-    'ShLens',
-    w.doc.context.obj({
-      ShadingType: 3,
-      ColorSpace: 'DeviceRGB',
-      Coords: [r2(cx), r2(cy), 0, r2(cx), r2(cy), r2(R)],
-      Function: {
-        FunctionType: 2,
-        Domain: [0, 1],
-        C0: [0.36, 0.37, 0.39],
-        C1: [0.07, 0.075, 0.085],
-        N: 1.2,
-      },
-      Extend: [true, true],
-    }),
-  );
-  w.resource('ExtGState', 'GsGlow', w.doc.context.obj({ ca: 0.22 }));
-  // The lens's barrel: a tall rounded body the rings are cut to.
-  const lw = pw * 0.6;
-  const lh = ph * 0.92;
+  const cy = y + ph * 0.52;
+  const light = lightAt('feature');
+  const white: Rgb = [1, 1, 1];
+  radialShading(w, 'ShPlate', cx, cy, Math.max(pw, ph) * 0.75, [
+    [0, hex('#1C2126')],
+    [0.45, hex('#0E1013')],
+    [1, hex('#060708')],
+  ]);
+  const lw = Math.min(pw * 0.56, ph * 0.74);
+  const lh = ph * 0.9;
   const lx = cx - lw / 2;
-  const ly = cy - lh / 2;
+  const ly = y + (ph - lh) / 2;
+  const R = lw * 0.5;
+  // The centre panel glows: the flame seen through the bull's-eye.
+  // Composited here, painted Normal (no offscreen group per object in the renderer): the
+  // eye's light screened onto the barrel's glass, then each ring's light onto the eye's.
+  const BARREL = hex('#0B0D10');
+  const screen = (a: Rgb, b: Rgb) =>
+    a.map((v, j) => 1 - (1 - v) * (1 - (b[j] as number))) as unknown as Rgb;
+  const EYE: readonly Stop[] = [
+    [0, mix(light, white, 0.9)],
+    [0.1, mix(light, white, 0.45)],
+    [0.34, scale(light, 0.7)],
+    [0.62, scale(light, 0.14)],
+    [1, [0, 0, 0]],
+  ];
+  const eyeR = R * 0.95;
+  const eyeAt = (r: number) => screen(BARREL, sample(EYE, Math.min(1, r / eyeR)));
+  radialShading(
+    w,
+    'ShEye',
+    0,
+    0,
+    1,
+    EYE.map(([t, c]) => [t, screen(BARREL, c)] as const),
+    [true, true],
+  );
+  radialShading(w, 'ShHalo', 0, 0, 1, [
+    [0, scale(light, 0.5)],
+    [0.3, scale(light, 0.16)],
+    [0.7, scale(light, 0.04)],
+    [1, [0, 0, 0]],
+  ]);
+  gs(w, 'GsScr', { BM: 'Screen' });
   const ops = [
     rectangle(r2(x), r2(y), r2(pw), r2(ph)),
     clip(),
     endPath(),
-    raw('/ShLens sh'),
+    raw('/ShPlate sh'),
+    // The barrel, dark glass.
+    ...roundRect(lx, ly, lw, lh, lw * 0.16, hex('#0B0D10')),
     pushGraphicsState(),
-    ...roundedPath(lx, ly, lw, lh, lw * 0.18),
+    ...roundedPath(lx, ly, lw, lh, lw * 0.16),
     clip(),
     endPath(),
-    ...rect(lx, ly, lw, lh, N8),
+    raw(`q ${r2(eyeR)} 0 0 ${r2(eyeR)} ${r2(cx)} ${r2(cy)} cm /ShEye sh Q`),
   ];
-  for (let r = 6, i = 0; r < lh * 0.75; r += 4.2 + i * 0.32, i++) {
-    ops.push(
-      setStrokingRgbColor(...(i % 4 === 0 ? N4 : i % 2 === 0 ? N6 : N7)),
-      setLineWidth(i % 4 === 0 ? 1.4 : 0.7),
-      ...circlePath(cx, cy, r),
-      stroke(),
+  // The bull's-eye's dioptric rings, then the prism rings beyond it (screened strokes):
+  // each ring is lit by its distance from the flame, and the prisms flash at top and bottom.
+  const R0 = lw * 0.31;
+  const rings = new Strokes();
+  const ring = (r: number, k: number, width: number, tint: number) =>
+    rings.path(
+      circle1(cx, cy, r),
+      screen(eyeAt(r), mix(scale(light, k), scale(hex('#C7D0D9'), k), tint)),
+      width,
+      32,
     );
+  for (let i = 1; i <= 6; i++)
+    ring(R0 * Math.sqrt(i / 6), 0.55 - i * 0.05, i === 6 ? 1.1 : 0.6, 0.1);
+  for (let i = 1, r = R0 + 3; r < lh * 0.62; i++, r += 2.8 + i * 0.25) {
+    const t = (r - R0) / (lh * 0.62 - R0);
+    ring(r, 0.2 * (1 - t) + 0.05, 0.5, 0.65);
+    // The flash: a short bright arc where the prism turns the flame towards the camera.
+    const span = (30 - 18 * t) * (0.8 + 0.4 * Math.abs(Math.sin(i * 2.3)));
+    const glint = 0.15 + 0.85 * Math.sin(Math.PI * Math.min(1, t * 1.25 + 0.05)) ** 0.8;
+    for (const mid of [90, 270])
+      rings.path(
+        arc1(cx, cy, r, mid - span / 2, mid + span / 2),
+        screen(eyeAt(r), scale(mix(light, white, 0.35), glint * 0.8)),
+        0.8,
+        16,
+      );
   }
-  // The cage: vertical bars and the belt bars across the barrel.
-  for (const k of [-1, 0, 1])
-    ops.push(...hairline(cx + k * lw * 0.34, ly, cx + k * lw * 0.34, ly + lh, N5, 1.1));
-  for (const k of [-0.32, 0.32])
-    ops.push(...hairline(lx, cy + k * lh, lx + lw, cy + k * lh, N5, 1.1));
+  ops.push(...rings.ops());
+  // The cage: brass bars in front of the glow (silhouettes), with a lit edge.
+  for (const k of [-1, 0, 1]) {
+    const bx = cx + k * lw * 0.34;
+    ops.push(...rect(bx - 1.1, ly, 2.2, lh, hex('#07080A')));
+    ops.push(...hairline(bx - 1.1, ly, bx - 1.1, ly + lh, scale(light, 0.22), 0.35));
+  }
+  for (const k of [-0.33, 0.33]) {
+    const by = cy + k * lh;
+    ops.push(...rect(lx, by - 1.1, lw, 2.2, hex('#07080A')));
+    ops.push(...hairline(lx, by + 1.1, lx + lw, by + 1.1, scale(light, 0.22), 0.35));
+  }
   ops.push(popGraphicsState());
-  // The barrel's rim, then the flame and its glow.
   ops.push(
-    setStrokingRgbColor(...N5),
-    setLineWidth(1.2),
-    ...roundedPath(lx, ly, lw, lh, lw * 0.18),
+    setStrokingRgbColor(...hex('#2A2F36')),
+    setLineWidth(0.8),
+    ...roundedPath(lx, ly, lw, lh, lw * 0.16),
     stroke(),
-    pushGraphicsState(),
-    raw('/GsGlow gs'),
-    ...disc(cx, cy, 16, LIME),
-    ...disc(cx, cy, 10, LIME),
-    popGraphicsState(),
-    ...disc(cx, cy, 5, LIME),
-    ...disc(cx, cy, 2, [1, 1, 0.86]),
+    // Halation past the barrel, then the streak and the flame's core.
+    raw(
+      `q ${r2(x)} ${r2(y)} ${r2(pw)} ${r2(ph)} re W n /GsScr gs ${r2(lw * 1.1)} 0 0 ${r2(lw * 1.1)} ${r2(cx)} ${r2(cy)} cm /ShHalo sh Q`,
+    ),
+    raw(
+      `q ${r2(x)} ${r2(cy - 2)} ${r2(pw)} 4 re W n /GsScr gs ${r2(pw * 0.62)} 0 0 1.6 ${r2(cx)} ${r2(cy)} cm /ShHalo sh Q`,
+    ),
+    ...disc(cx, cy, 2.4, mix(light, white, 0.9)),
+    ...grain(w, 0.32, [x, y, pw, ph]),
   );
   return ops;
 }

@@ -2,19 +2,22 @@
  * Page 6 of the full cut, a letter from the cape (design.md §4 page 6): the page is one
  * greyscale image and nothing else, so the facts chip reads "No text on 1 page" and Recognize
  * text picks exactly this page. An A5 typed letter lies on a scanner bed, turned 0.7°, folded
- * once, with a received stamp, a pen signature and a routing label clipped under it that
- * carries the try line; the footer is in the raster too.
+ * once, with a received stamp, a pen signature and a paper clip; the footer is in the raster
+ * too. Over it, the page's dark try slip and lamp tab (MOB-14) are drawn as paths and stencil
+ * masks, so there is still no text layer.
  *
  * Drawn by lib/raster.ts from glyph outlines (JetBrains Mono for the typewriter, never
  * embedded; Inter for the stamp, label and footer) with a PRNG seeded from the file name, so
- * the pixels are the same on every machine. Written as 4-bit DeviceGray (MOB-12) through
- * Flate: the flat bed and paper compress to almost nothing; the type is the cost.
+ * the pixels are the same on every machine. Written as a 2-bit Indexed image of its four tones
+ * (MOB-14; direction-v2.md §8 page 6) through Flate: the flat bed and paper compress to almost
+ * nothing; the type is the cost.
  */
-import { PDFName, setFillingRgbColor } from '@cantoo/pdf-lib';
+import { PDFHexString, PDFName, setFillingRgbColor } from '@cantoo/pdf-lib';
 import { seededRandom } from '../../lib/common.ts';
 import { Canvas } from '../../lib/raster.ts';
 import { type PageCtx, type SlipRun, trySlip } from '../context.ts';
-import { FACES, type FkFont, PAGE_H, PAGE_W, openFont, r2, raw } from '../kit.ts';
+import { lampTab } from '../light.ts';
+import { FACES, type FkFont, PAGE_H, PAGE_W, STYLE, openFont, r2, raw } from '../kit.ts';
 
 const DPI = 150;
 const PX = DPI / 72;
@@ -194,9 +197,10 @@ export function scanLetter(ctx: PageCtx): ScanImage {
   // The footer, as on every page.
   const foot = new Canvas(W, H);
   const footY = PAGE_H - 34;
-  glyphs(foot, sans, 7, ctx.copy.footer, 56, footY, pagePx);
+  const fs = STYLE.folio.size;
+  glyphs(foot, sans, fs, ctx.copy.footer, 56, footY, pagePx);
   const folio = `${ctx.n} / ${ctx.total}`;
-  glyphs(foot, sans, 7, folio, PAGE_W - 56 - glyphWidth(sans, 7, folio), footY, pagePx);
+  glyphs(foot, sans, fs, folio, PAGE_W - 56 - glyphWidth(sans, fs, folio), footY, pagePx);
 
   // Compose: bed, the sheet's shadow, the sheet with its fold, then inks.
   const inverse = (px: number, py: number): Pt => {
@@ -224,7 +228,7 @@ export function scanLetter(ctx: PageCtx): ScanImage {
       else if (sy0 > SHEET.h && sy0 < SHEET.h + 2 && sx0 > 3 && sx0 < SHEET.w + 2) tone = SHADOW;
       const i = py * W + px;
       // A steep tone curve: edges resolve to paper or ink, as on a scanner's text mode, which
-      // also keeps the 4-bit image small.
+      // also keeps the four-tone image small.
       const ink = (k: Canvas, amount: number) => sharpen(k.coverage[i] ?? 0) * amount;
       const cover = Math.min(
         1,
@@ -251,8 +255,8 @@ export function scanLetter(ctx: PageCtx): ScanImage {
 }
 
 /**
- * Four tones (paper, bed, a mid grey for stamp and edges, ink): a 4-bit image with little
- * entropy, which keeps the page near 26 KB (technical.md §3's budget for the scan).
+ * Four tones (paper, bed, a mid grey for stamp and edges, ink): an image with little entropy,
+ * stored at 2 bits a pixel, which keeps the page near 20 KB.
  */
 const TONES = [255, 238, 153, 51];
 function posterize(v: number): number {
@@ -271,21 +275,26 @@ function glyphWidth(font: FkFont, size: number, text: string): number {
   );
 }
 
+/** The palette of the Indexed image: `TONES` from dark to light, one byte each. */
+const PALETTE = [...TONES].reverse();
+
 /**
- * 8-bit grey → 4 bits a pixel, rows packed high nibble first. No predictor: on this page
- * (flat paper, a lot of type) plain Flate is the smallest (measured against Up, Sub and a
- * per-row best).
+ * Four-tone grey → 2-bit palette indices, rows packed high bits first. No predictor: on this
+ * page (flat paper, a lot of type) plain Flate is the smallest (measured against Up, Sub and
+ * a per-row best).
  */
-export function pack4(image: ScanImage): Uint8Array {
-  const rowBytes = Math.ceil(image.width / 2);
+export function pack2(image: ScanImage): Uint8Array {
+  const index = new Map(PALETTE.map((tone, i) => [tone, i]));
+  const rowBytes = Math.ceil(image.width / 4);
   const out = new Uint8Array(rowBytes * image.height);
-  for (let y = 0; y < image.height; y++) {
+  for (let y = 0; y < image.height; y++)
     for (let x = 0; x < image.width; x++) {
-      const q = Math.round((image.grey[y * image.width + x] ?? 255) / 17);
-      const k = y * rowBytes + (x >> 1);
-      out[k] = (out[k] ?? 0) | (x % 2 === 0 ? q << 4 : q);
+      const tone = image.grey[y * image.width + x] ?? 255;
+      const q = index.get(tone);
+      if (q === undefined) throw new Error(`scan: tone ${tone} is not in the palette`);
+      const k = y * rowBytes + (x >> 2);
+      out[k] = (out[k] ?? 0) | (q << (6 - 2 * (x & 3)));
     }
-  }
   return out;
 }
 
@@ -298,16 +307,27 @@ export function pack4(image: ScanImage): Uint8Array {
 export function scanPage(ctx: PageCtx): void {
   const { w, doc, copy } = ctx;
   const image = scanLetter(ctx);
-  // pdf-lib's own deflate (pako), so the bytes do not depend on Node's zlib.
-  const stream = doc.context.flateStream(pack4(image), {
+  // pdf-lib's own deflate (pako), so the bytes do not depend on Node's zlib. The four tones
+  // as a 2-bit Indexed image: the same pixels as 4-bit DeviceGray in about 20 % fewer bytes.
+  const stream = doc.context.flateStream(pack2(image), {
     Type: 'XObject',
     Subtype: 'Image',
     Width: image.width,
     Height: image.height,
-    ColorSpace: 'DeviceGray',
-    BitsPerComponent: 4,
+    ColorSpace: doc.context.obj([
+      PDFName.of('Indexed'),
+      PDFName.of('DeviceGray'),
+      3,
+      PDFHexString.of(
+        PALETTE.map((tone) => tone.toString(16).padStart(2, '0'))
+          .join('')
+          .toUpperCase(),
+      ),
+    ]),
+    BitsPerComponent: 2,
   });
   const ref = doc.context.register(stream);
+  // The page's own resources (the tab and the slip add theirs after this).
   w.page.node.set(
     PDFName.of('Resources'),
     doc.context.obj({ XObject: { Im1: ref }, Font: {}, ExtGState: {} }),
@@ -353,6 +373,7 @@ export function scanPage(ctx: PageCtx): void {
       });
     },
   });
+  w.art(...lampTab(w, 'scan'));
 }
 
 /** Stencil resolution of the slip's type. */

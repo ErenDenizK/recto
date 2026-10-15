@@ -43,6 +43,8 @@ export interface SampleCopy {
     readonly alt: string;
     readonly tryLine: string;
     readonly listLabel: string;
+    /** The slate beside the lamp at 18:52 (MOB-14). */
+    readonly lampOn: string;
   };
   readonly letter: {
     readonly section: string;
@@ -142,6 +144,8 @@ export interface SampleCopy {
     readonly keptTitle: string;
     readonly lines: Cut<readonly string[]>;
     readonly end: string;
+    /** The night's last slate, after the flatplan's frame (06:41): the lamp goes off (MOB-14). */
+    readonly lampOff: string;
     readonly tryLine: Cut;
   };
 }
@@ -186,6 +190,7 @@ const EN: SampleCopy = {
     alt: 'A lighthouse at night throwing a lime and mint beam across a dark sea',
     tryLine: 'Every line on this cover opens its page.',
     listLabel: 'In this issue',
+    lampOn: 'Lamp on',
   },
   letter: {
     section: 'EDITOR’S LETTER',
@@ -405,6 +410,7 @@ const EN: SampleCopy = {
       ],
     },
     end: 'That is the whole issue. Open your own PDFs whenever you are ready.',
+    lampOff: 'Lamp off',
     tryLine: {
       full: 'Press 3 or choose Pages to see every page, then drag page 4 after page 5. A page’s menu rotates, extracts or deletes it.',
       phone: 'Pinch this page smaller, then press and hold page 4 and drag it after page 5.',
@@ -452,6 +458,7 @@ const TR: SampleCopy = {
     alt: 'Gece, karanlık denizin üzerine limon yeşili ve nane rengi bir ışık huzmesi düşüren bir deniz feneri',
     tryLine: 'Bu kapaktaki her satır kendi sayfasını açar.',
     listLabel: 'Bu sayıda',
+    lampOn: 'Fener yandı',
   },
   letter: {
     section: 'EDİTÖRDEN',
@@ -675,6 +682,7 @@ const TR: SampleCopy = {
       ],
     },
     end: 'Sayı bu kadar. Hazır olduğunuzda kendi PDF’lerinizi açın.',
+    lampOff: 'Fener söndü',
     tryLine: {
       full: 'Bütün sayfaları görmek için 3’e basın ya da Sayfalar’ı seçin, sonra 4. sayfayı 5. sayfanın arkasına sürükleyin. Bir sayfanın menüsü onu döndürür, ayıklar ya da siler.',
       phone:

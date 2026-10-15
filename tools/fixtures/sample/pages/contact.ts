@@ -3,6 +3,10 @@
  * the one document whose purpose is to be circled and scribbled on: three strips of 35 mm film,
  * four frames each, sprocket holes and edge numbers, every frame a small vector photograph in
  * graphite with at most one lime element (the light). Free paper under the strips for notes.
+ *
+ * v2 (MOB-14; direction-v2.md §8 page 4), 23:30: the frames are night photographs (graded
+ * low-key, their light sources glowing in the hour's light), the film base carries grain, and
+ * the edge printing is exposed in that light.
  */
 import type { PDFOperator } from '@cantoo/pdf-lib';
 import {
@@ -25,7 +29,6 @@ import {
 import { type PageCtx, furniture, kicker, trySlip } from '../context.ts';
 import { cut } from '../copy.ts';
 import {
-  COVER_MUTED,
   LEFT,
   LIME,
   MEASURE,
@@ -37,11 +40,13 @@ import {
   N7,
   N8,
   N9,
+  PT,
   RIGHT,
   RULE,
   type Rgb,
   STYLE,
   type Style,
+  caps,
   circlePath,
   disc,
   hairline,
@@ -50,7 +55,9 @@ import {
   rect,
   ring,
   roundRect,
+  raw,
 } from '../kit.ts';
+import { grain, gs, hex, lightAt, mix, radialShading, scale } from '../light.ts';
 
 const FILM: Rgb = [0.09, 0.098, 0.118];
 const PAD = 7;
@@ -63,19 +70,25 @@ const ROW_GAP = 30;
 
 export function contactPage(ctx: PageCtx): void {
   const { w, copy } = ctx;
+  const light = lightAt('contact');
+  radialShading(w, 'ShCt', 0, 0, 1, [
+    [0, mix(light, [1, 1, 1], 0.5)],
+    [0.15, scale(light, 0.85)],
+    [0.45, scale(light, 0.22)],
+    [1, [0, 0, 0]],
+  ]);
+  gs(w, 'GsScr', { BM: 'Screen' });
   const c = copy.contact;
   furniture(ctx, c.section);
   kicker(ctx, 764, c.kicker);
   w.text(w.elem('H1'), STYLE.h1, LEFT, 728, c.title);
-  w.paragraph(
-    [{ text: c.intro, style: { face: 'serif', size: 11.5, color: STYLE.letter.color } }],
-    {
-      x: LEFT,
-      y: 698,
-      width: 400,
-      leading: 16.5,
-    },
-  );
+  w.paragraph([{ text: c.intro, style: STYLE.letter }], {
+    x: LEFT,
+    y: 698,
+    width: 330,
+    leading: 16.5,
+    pretty: true,
+  });
 
   const figure = w.elem('Figure', w.sect, c.alt);
   const ops: PDFOperator[] = [];
@@ -91,20 +104,36 @@ export function contactPage(ctx: PageCtx): void {
         rectangle(r2(fx), r2(fy), r2(FRAME_W), r2(FRAME_H)),
         clip(),
         endPath(),
-        ...(FRAMES[row * 4 + k] as Frame)(fx, fy, FRAME_W, FRAME_H),
+        ...graded((FRAMES[row * 4 + k] as Frame)(fx, fy, FRAME_W, FRAME_H)),
+        ...frameLights(row * 4 + k, fx, fy, FRAME_W, FRAME_H),
         popGraphicsState(),
       );
     }
   }
+  // Film grain over the strips, clipped to them (grain lives in the dark, direction-v2.md §4).
+  const strips = [0, 1, 2].map((row) => top - STRIP_H - row * (STRIP_H + ROW_GAP));
+  ops.push(
+    pushGraphicsState(),
+    ...strips.flatMap((y) => [rectangle(LEFT, r2(y), MEASURE, r2(STRIP_H))]),
+    clip(),
+    endPath(),
+    ...grain(w, 0.24, [LEFT, strips[2] as number, MEASURE, top - (strips[2] as number)]),
+    popGraphicsState(),
+  );
   w.figure(figure, ...ops);
   // Edge printing: the roll on the first strip, frame numbers under each frame.
   for (let row = 0; row < 3; row++) {
     const y = top - STRIP_H - row * (STRIP_H + ROW_GAP);
-    const edge: Style = { face: 'bold', size: 5.5, color: COVER_MUTED, tracking: 0.6 };
+    const edge: Style = {
+      face: 'bold',
+      size: PT.edge,
+      color: scale(lightAt('contact'), 0.78),
+      tracking: caps(PT.edge),
+    };
     for (let k = 0; k < 4; k++) {
       const fx = LEFT + PAD + k * (FRAME_W + GAP);
       const code = `3/${String(row * 4 + k + 1).padStart(2, '0')}`;
-      w.text(null, { face: 'sans', size: 7, color: MUTED }, fx, y - 11, code);
+      w.text(null, { face: 'sans', size: PT.small, color: MUTED }, fx, y - 11, code);
       w.text(null, edge, fx + FRAME_W / 2, y + 8.6, `${row * 4 + k + 1}A`, 'center');
     }
     w.text(null, edge, LEFT + PAD + 2, y + STRIP_H - 12.6, c.roll);
@@ -112,7 +141,7 @@ export function contactPage(ctx: PageCtx): void {
   const bottom = top - 3 * STRIP_H - 2 * ROW_GAP;
   w.text(
     w.elem('P'),
-    { face: 'sans', size: 9, color: MUTED },
+    { face: 'sans', size: PT.body, color: MUTED },
     RIGHT,
     bottom - 34,
     c.instruction,
@@ -124,6 +153,50 @@ export function contactPage(ctx: PageCtx): void {
   for (let ly = notesTop - 24; ly >= 116; ly -= 24)
     w.art(setDashPattern([0.1, 3], 0), setLineCap(1), ...hairline(LEFT, ly, RIGHT, ly, RULE, 0.9));
   trySlip(ctx, cut(c.tryLine, ctx.edition));
+}
+
+/**
+ * The night grade (direction-v2.md §3.1, §8 page 4): every colour a frame sets is multiplied
+ * by the blue-graphite `#666B78` here, in the generator, which pulls the frame down to low key
+ * without a Multiply group per frame in the renderer (§5.4).
+ */
+const GRADE = hex('#666B78');
+const r3 = (v: number) => Math.round(v * 1000) / 1000;
+function graded(ops: PDFOperator[]): PDFOperator[] {
+  return ops.map((op) => {
+    const m = /^(\S+) (\S+) (\S+) (rg|RG)$/.exec(op.toString());
+    if (!m) return op;
+    const rgb = [m[1], m[2], m[3]].map((v, i) => r3(Number(v) * (GRADE[i] as number)));
+    return raw(`${rgb.join(' ')} ${m[4]}`);
+  });
+}
+
+/**
+ * The graded frames' light sources, put back as screened glows in the hour's light (one unit
+ * radial shading, placed by `cm`, clipped to the frame), so lime reads as light.
+ */
+const LIGHTS: Record<number, readonly (readonly [number, number, number, number, number])[]> = {
+  // frame: [x, y (fractions of the frame), rx, ry (fractions of w), strength]
+  0: [[0.5, 0.5, 0.42, 0.42, 1]],
+  3: [[0.5, 0.25, 0.34, 0.16, 1]],
+  5: [[0.5, 0.55, 0.5, 0.5, 0.85]],
+  6: [[0.7 - 8 / 112, 0.75 - 8 / 75, 0.14, 0.14, 0.8]],
+  8: [
+    [0.86, 0.56, 0.2, 0.2, 1],
+    [0.4, 0.67, 0.6, 0.05, 0.7],
+  ],
+  10: [[0.36 + 8 / 112, 0.55, 0.12, 0.42, 0.9]],
+};
+function frameLights(i: number, x: number, y: number, w: number, h: number): PDFOperator[] {
+  const ops: PDFOperator[] = [];
+  for (const [fx, fy, rx, ry, k] of LIGHTS[i] ?? []) {
+    ops.push(
+      raw(
+        `q /GsScr gs ${r2(rx * w * k)} 0 0 ${r2(ry * w * k)} ${r2(x + fx * w)} ${r2(y + fy * h)} cm /ShCt sh Q`,
+      ),
+    );
+  }
+  return ops;
 }
 
 /** A strip of film: the base, sprocket holes along both edges (one fill for all of them). */
