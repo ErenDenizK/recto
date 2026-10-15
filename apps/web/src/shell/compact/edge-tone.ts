@@ -112,7 +112,8 @@ export function watchEdgeTone(
   scroller: HTMLElement,
   band: () => DOMRect,
 ): () => void {
-  let tone: EdgeTone = root.dataset.edgeTone === '1' ? 1 : 0;
+  let tone: EdgeTone =
+    root.dataset.edgeTone === '1' || root.style.getPropertyValue('--edge-tone') === '1' ? 1 : 0;
   let timer = 0;
   const read = () => {
     const value = bandLuminance(root, scroller, band());

@@ -71,7 +71,6 @@ import controls from './controls.module.css';
 import { startEditing, takeCapsuleSnapshot, useMark, usePrefetchMark } from './mark-host';
 import { openOverview } from './overview-host';
 import { CompactTopSplit } from './CompactTopSplit';
-import { watchEdgeTone } from './edge-tone';
 import { liquidPopupRef } from './liquid-ref';
 import { topVariant } from './top-variant';
 
@@ -112,13 +111,31 @@ function edgeBand(): DOMRect {
   return new DOMRect(0, 0, window.innerWidth, bottom > 0 ? bottom : 72);
 }
 
-/** The adaptive scroll edge's tone (DSN-40) on the compact root while the reader shows. */
+/**
+ * The adaptive scroll edge's tone (DSN-40) on the compact root while the reader shows. The
+ * reader (`edge-tone.ts`) arrives as its own small chunk; until then the tone is the theme's, as
+ * the canvas around the pages is, so a dark theme never opens on a light band.
+ */
 function useEdgeTone(): void {
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('[data-testid="compact-app"]');
     const scroller = document.querySelector<HTMLElement>('[data-read-viewport]');
     if (!root || !scroller) return;
-    return watchEdgeTone(root, scroller, edgeBand);
+    if (root.dataset.edgeTone === undefined) {
+      const dark = document.documentElement.getAttribute('data-theme') !== 'light';
+      root.style.setProperty('--edge-tone', dark ? '1' : '0');
+    }
+    let stop: (() => void) | undefined;
+    let gone = false;
+    import('./edge-tone')
+      .then((module) => {
+        if (!gone) stop = module.watchEdgeTone(root, scroller, edgeBand);
+      })
+      .catch(() => undefined);
+    return () => {
+      gone = true;
+      stop?.();
+    };
   }, []);
 }
 
