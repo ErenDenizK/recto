@@ -63,7 +63,12 @@ export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
       data-variant="split"
       inert={hidden}
     >
-      <div className={styles.edge} aria-hidden="true" data-glass-group={GLASS_GROUP} />
+      <div
+        className={styles.edge}
+        aria-hidden="true"
+        data-glass-group={GLASS_GROUP}
+        data-gpu-glass="edge"
+      />
       <div className={styles.row} data-edge-band="">
         <IconButton
           className={styles.circle}
@@ -71,6 +76,7 @@ export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
           icon={<Icon name="caret-left" />}
           data-glass-group={GLASS_GROUP}
           data-testid="compact-back"
+          data-gpu-glass="circle"
           onClick={parts.showLibrary}
         />
         <FileMenu doc={doc} parts={parts} />

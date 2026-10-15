@@ -167,9 +167,7 @@
  * sheet's grabber sits above its header, so it keeps the plain surface.
  */
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-  :where(:root:not([data-glass='solid'], [data-degrade='4']))
-    .panel:not([data-presentation='bottom'])
-    .header {
+  :where(:root:not([data-glass='solid'])) .panel:not([data-presentation='bottom']) .header {
     background: linear-gradient(to bottom, var(--mat-tint) 30%, transparent);
   }
 }

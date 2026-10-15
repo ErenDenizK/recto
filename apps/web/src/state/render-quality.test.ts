@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  APPLE_GPU,
   ensureDegradeStart,
+  glassTier,
+  gpuGlassEligible,
+  slowFrameMs,
   renderOverride,
   resetRenderQuality,
   SOFTWARE_RENDERER,
@@ -10,6 +14,7 @@ import {
   startGlass,
   TEST_RENDER,
   useRenderQualityStore,
+  webglProbe,
   webglRenderer,
 } from './render-quality';
 
@@ -71,20 +76,71 @@ describe('the start state (language.md §2.8, G-32)', () => {
     expect(startGlass()).toBe(expected);
   });
 
-  it('starts the ladder at step 2 on four cores or 4 GB, and at 0 with the override', () => {
+  it('starts the ladder at step 2 on 4 GB, or four cores where the memory is unknown and the GPU is not Apple’s (GLS-10)', () => {
     setOverride({ degrade: 'auto' });
     const cores = vi.spyOn(Navigator.prototype, 'hardwareConcurrency', 'get');
-    cores.mockReturnValue(4);
-    expect(startDegrade()).toBe(2);
-    cores.mockReturnValue(8);
-    const memory = (navigator as { deviceMemory?: number }).deviceMemory;
-    expect(startDegrade()).toBe(memory !== undefined && memory <= 4 ? 2 : 0);
-    cores.mockReturnValue(2);
-    ensureDegradeStart();
-    expect(useRenderQualityStore.getState().degrade).toBe(2);
-    resetRenderQuality();
-    setOverride({ degrade: 'off' });
-    expect(startDegrade()).toBe(0);
+    const nav = navigator as { deviceMemory?: number };
+    const had = Object.getOwnPropertyDescriptor(nav, 'deviceMemory');
+    const setMemory = (value: number | undefined) =>
+      Object.defineProperty(nav, 'deviceMemory', { value, configurable: true });
+    try {
+      // Known memory decides alone.
+      setMemory(4);
+      cores.mockReturnValue(8);
+      expect(startDegrade()).toBe(2);
+      setMemory(8);
+      cores.mockReturnValue(4);
+      expect(startDegrade()).toBe(0);
+      // Unknown memory (Safari, Firefox): four cores are small, unless the GPU is Apple's.
+      setMemory(undefined);
+      cores.mockReturnValue(8);
+      expect(startDegrade()).toBe(0);
+      cores.mockReturnValue(4);
+      expect(startDegrade()).toBe(APPLE_GPU.test(webglRenderer()) ? 0 : 2);
+      expect(APPLE_GPU.test('Apple GPU')).toBe(true);
+      expect(
+        APPLE_GPU.test('ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)'),
+      ).toBe(true);
+      expect(APPLE_GPU.test('Mali-G78')).toBe(false);
+      cores.mockReturnValue(2);
+      ensureDegradeStart();
+      expect(useRenderQualityStore.getState().degrade).toBe(
+        APPLE_GPU.test(webglRenderer()) ? 0 : 2,
+      );
+      resetRenderQuality();
+      setOverride({ degrade: 'off' });
+      expect(startDegrade()).toBe(0);
+    } finally {
+      if (had) Object.defineProperty(nav, 'deviceMemory', had);
+      else delete nav.deviceMemory;
+    }
+  });
+});
+
+describe('the glass tier (GLS-10)', () => {
+  it('is GPU only on WebGL2 off a software rasteriser at step 0 under Glass Clear', () => {
+    const root = document.documentElement;
+    const before = root.getAttribute('data-glass');
+    try {
+      root.setAttribute('data-glass', 'clear');
+      const { webgl2, renderer } = webglProbe();
+      const capable = webgl2 && !SOFTWARE_RENDERER.test(renderer);
+      expect(gpuGlassEligible()).toBe(capable);
+      expect(glassTier()).toBe(capable ? 'gpu' : 'css');
+      useRenderQualityStore.setState({ degrade: 1 });
+      expect(gpuGlassEligible()).toBe(false);
+      expect(glassTier()).toBe('css');
+      useRenderQualityStore.setState({ degrade: 4 });
+      expect(glassTier()).toBe('css');
+      root.setAttribute('data-glass', 'tinted');
+      useRenderQualityStore.setState({ degrade: 0 });
+      expect(gpuGlassEligible()).toBe(false);
+      root.setAttribute('data-glass', 'solid');
+      expect(glassTier()).toBe('solid');
+    } finally {
+      if (before === null) root.removeAttribute('data-glass');
+      else root.setAttribute('data-glass', before);
+    }
   });
 });
 
@@ -95,17 +151,26 @@ describe('the cost ladder (language.md §2.8, ADR-0024 §2.5)', () => {
     expect(store.getState().degrade).toBe(4);
   });
 
-  it('steps when more than a quarter of the frames in 2 s take over 20 ms', async () => {
+  it('counts a frame slow over 20 ms and 1.5 refresh intervals (GLS-10)', () => {
+    expect(slowFrameMs(1000 / 60)).toBeCloseTo(25, 5);
+    expect(slowFrameMs(1000 / 120)).toBe(20);
+    expect(slowFrameMs(1000 / 30)).toBeCloseTo(50, 5);
+    expect(slowFrameMs(Number.POSITIVE_INFINITY)).toBe(20);
+  });
+
+  it('steps when more than a quarter of the frames in 2 s are slow', async () => {
     setOverride({ degrade: 'auto', glass: 'clear', light: 'auto' });
     const step = vi.fn();
     const stop = startCostLadder(step);
     try {
       const until = performance.now() + 2600;
-      // Each frame: an input event, then 30 ms of work, as a heavy scroll would cost.
+      // Every other frame: an input event, then 60 ms of work, as a heavy scroll would cost.
+      let odd = false;
       await new Promise<void>((done) => {
         const frame = () => {
           window.dispatchEvent(new Event('scroll'));
-          const busy = performance.now() + 30;
+          odd = !odd;
+          const busy = performance.now() + (odd ? 60 : 0);
           while (performance.now() < busy) {
             // a slow frame
           }

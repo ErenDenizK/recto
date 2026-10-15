@@ -180,6 +180,22 @@ export function useAppearanceRoot(): void {
     ensureDegradeStart();
     return startCostLadder();
   }, []);
+  // The glass's own runtime (GLS-9, GLS-11): the adaptive look and the lens on bars, loaded
+  // once the app has painted, so neither is in a first closure.
+  useLayoutEffect(() => {
+    let stop: (() => void) | undefined;
+    let gone = false;
+    const timer = setTimeout(() => {
+      void import('../styles/glass-runtime').then(({ startGlassRuntime }) => {
+        if (!gone) stop = startGlassRuntime();
+      });
+    }, 0);
+    return () => {
+      gone = true;
+      clearTimeout(timer);
+      stop?.();
+    };
+  }, []);
   useLayoutEffect(() => {
     const root = document.documentElement;
     applyAppearance(root, { theme, glass, motion });

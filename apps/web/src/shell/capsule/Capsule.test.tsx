@@ -124,8 +124,9 @@ describe('capsule', () => {
     const style = getComputedStyle(el);
     expect(style.contain).toBe('layout style');
     expect(style.borderTopLeftRadius).toBe('999px');
-    // σ 8 at the 40 px piece (G1; coverage registry `capsule`).
-    expect(style.backdropFilter).toContain('blur(8px)');
+    // σ 8 at the 40 px piece (G1; coverage registry `capsule`), drawn at ¾ σ as chips and bars
+    // are under CSS+ (GLS-8).
+    expect(style.backdropFilter).toContain('blur(6px)');
     expect(width()).toBeCloseTo(DOCK, 0);
     expect(el.getAttribute('data-region')).toBe('toolbar');
     // No role of its own: the content names itself.

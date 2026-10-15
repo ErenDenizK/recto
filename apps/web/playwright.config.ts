@@ -40,8 +40,11 @@ const COMPACT_EDIT_TEXT_SPEC = '**/compact-edit-text.spec.ts';
 const COMPACT_FORMS_SPEC = '**/compact-forms.spec.ts';
 /** The page overview (MOB-2) and the phone's page acts in it (MOB-3). */
 const COMPACT_OVERVIEW_SPEC = '**/compact-{overview,pages}.spec.ts';
+/** GPU glass on the phone reader (GLS-7, `src/glass-gpu/`), forced under SwiftShader. */
+const COMPACT_GPU_GLASS_SPEC = '**/compact-gpu-glass.spec.ts';
 /** What only the phones run. */
 const PHONE_SPECS = [
+  COMPACT_GPU_GLASS_SPEC,
   COMPACT_SPEC,
   COMPACT_EDIT_SPEC,
   COMPACT_TEXT_SPEC,

@@ -142,6 +142,7 @@ export function CompactTopBar({ doc }: { readonly doc: VirtualDocument }) {
       data-hidden={hidden || undefined}
       data-compact-chrome=""
       data-testid="compact-top-bar"
+      data-gpu-glass="capsule"
       inert={hidden}
     >
       <div className={styles.topRow}>
@@ -249,6 +250,7 @@ function MoreMenu({
         className={triggerClassName}
         aria-label={m.compact_more()}
         data-glass-group={glassGroup}
+        data-gpu-glass={glassGroup ? 'circle' : undefined}
         data-testid="compact-more"
       >
         <Icon name="dots-three" />
@@ -553,6 +555,7 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
           data-editing={island || undefined}
           data-compact-chrome=""
           data-testid="compact-capsule"
+          data-gpu-glass="capsule"
           inert={away}
         >
           {island ? <mark.EditIsland /> : <ReadingCapsule doc={doc} />}
@@ -567,6 +570,7 @@ export function CompactCapsule({ doc }: { readonly doc: VirtualDocument }) {
           data-away={island || undefined}
           data-compact-chrome=""
           data-testid="compact-edit"
+          data-gpu-glass="circle"
           inert={away || island}
           onClick={startEditing}
         >

@@ -35,6 +35,7 @@ import { type VirtualDocument, pageTotalRotation } from '@pdf-editor/document-mo
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
+import { useGpuGlassHost } from '../../glass-gpu';
 import { m } from '../../i18n';
 import { reducedMotion } from '../../motion/reduced-motion';
 import { displaySize } from '../../pages/page-geometry';
@@ -154,6 +155,9 @@ export function CompactReader() {
       document.removeEventListener('gesturechange', onGesture);
     };
   }, [hasDoc]);
+  // GPU glass under the chrome where the device passes (GLS-7); editing and Find are CSS+.
+  const gpuPaused = useCompactStore((s) => s.editing || s.findOpen);
+  useGpuGlassHost(readerRef, hasDoc, gpuPaused);
   if (!doc) return null;
   return (
     <div ref={readerRef} className={styles.reader} data-testid="compact-reader">

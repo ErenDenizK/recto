@@ -4,7 +4,7 @@
  * coarse={8} lens as="button">` renders the element with `mat mat-chip s7 c8` (the classes a
  * CSS module would compose; `materials.css` holds the rule for each tier × σ the coverage
  * registry lists), `data-tier`, the `SurfaceTier` context and, for a fixed-size M1 chip, the
- * backdrop lens (`styles/material-lens.ts`).
+ * backdrop lens (`styles/material-lens.ts`; chips and, since GLS-11, bars).
  *
  * A module that composes the same classes (`composes: mat mat-chip s7 c8 from global;`) may
  * pass its class too: the names are merged once. `useSurfaceTier()` tells a control which
@@ -76,7 +76,7 @@ export type SurfaceProps<E extends SurfaceElement = 'div'> = MaterialOptions &
     readonly className?: string | undefined;
     readonly children?: ReactNode;
     readonly ref?: Ref<HTMLElementTagNameMap[E]>;
-    /** The backdrop lens: fixed-size M1 chips only (language.md §2.7, X20). */
+    /** The backdrop lens: M1 chips and M2 bars (language.md §2.7, X20, GLS-11). */
     readonly lens?: boolean;
   };
 
@@ -96,7 +96,7 @@ export function Surface<E extends SurfaceElement = 'div'>({
 }: SurfaceProps<E>) {
   const own = useRef<HTMLElement | null>(null);
   useImperativeHandle(ref, () => own.current as HTMLElementTagNameMap[E], []);
-  useBackdropLens(own, lens && tier === 'chip');
+  useBackdropLens(own, lens && (tier === 'chip' || tier === 'bar'));
   const names = materialClasses({ tier, sigma, coarse, short, docked, opaque });
   for (const name of className?.split(/\s+/) ?? []) {
     if (name && !names.includes(name)) names.push(name);

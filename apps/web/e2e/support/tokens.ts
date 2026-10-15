@@ -16,6 +16,12 @@ import type { GlassStyle, Rgb } from './pixels';
 
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 
+/** The generator's σ for a tier (GLS-8: chips and bars blur at three quarters), loaded at run
+    time as `harness.ts` loads the registry (the app's TypeScript project, TS6305). */
+const { renderedSigma } = (await import(
+  new URL('../../src/styles/materials-css.ts', import.meta.url).href
+)) as { renderedSigma: (tier: string, sigma: number) => number };
+
 const source = stripComments(
   readFileSync(new URL('../../src/styles/tokens.css', import.meta.url), 'utf8'),
 );
@@ -106,6 +112,7 @@ export function tokenGlass(entry: RegistryEntry, theme: Theme, glass: GlassMode)
   const chain = tokenValue(`--glass-${entry.tier}-filter`, theme, glass).trim();
   return {
     background: tokenValue(`--glass-${entry.tier}-tint`, theme, glass),
-    backdropFilter: chain === 'none' ? 'none' : `blur(${entry.sigma}px) ${chain}`,
+    backdropFilter:
+      chain === 'none' ? 'none' : `blur(${renderedSigma(entry.tier, entry.sigma)}px) ${chain}`,
   };
 }

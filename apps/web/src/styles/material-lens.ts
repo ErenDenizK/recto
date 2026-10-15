@@ -1,34 +1,40 @@
 /**
- * The backdrop lens (language.md §2.7; ADR-0024 §2.6, amended by spec X20; quality-bar Q-5):
- * refraction on fixed-size M1 chips only (the page pill, and the facts chip when D4-3 brings
- * it), never the capsule, a bar, a panel, a menu, a sheet or a toast.
+ * The backdrop lens (language.md §2.7; ADR-0024 §2.6, amended by spec X20 and decision GLS-11;
+ * quality-bar Q-5; research 23 §5.3, §8 row 5): refraction at the rim of fixed-size M1 chips
+ * (the page pill) and, since GLS-11, of floating M2 bars and capsules (the dock capsule, the top
+ * strip's pieces, the floating bars), never a panel, a menu, a sheet or a toast.
  *
- * - **Chromium on the GPU only.** Safari and Firefox drop a whole `backdrop-filter` declaration that holds
- *   `url()` (blur included, research 16 §4.2), so the lens is never in a base declaration: this
- *   module adds the class `lens` after detecting Chromium (`navigator.userAgentData.brands`),
- *   and `materials.css`'s `.mat-chip.s<σ>.lens` rule prepends `var(--lens)`, the `url()` of a
- *   filter drawn here at the chip's exact size.
- * - **The map** is code, not a bitmap (Q-12): an SVG of two gradients, red across for x and
- *   green down for y, neutral (128) inside a 10 px bezel and rising convexly (t^2.2) towards
- *   each edge, so the backdrop at the rim is drawn from up to 6 px further in (pull ≤ 6 px), no
- *   chromatic split. It is regenerated 150 ms after a size change.
+ * - **Chromium on the GPU, a fine pointer only.** Safari and Firefox drop a whole
+ *   `backdrop-filter` declaration that holds `url()` (blur included, research 16 §4.2), so the
+ *   lens is never in a base declaration: this module adds the class `lens` after detecting
+ *   Chromium (`navigator.userAgentData.brands`), and `materials.css`'s `.mat-<tier>.s<σ>.lens`
+ *   rules prepend `var(--lens)`, the `url()` of a filter drawn here at the surface's size.
+ * - **The map** is drawn per size and radius (Q-12: generated, never shipped): for each pixel
+ *   the rounded rectangle's signed distance gives the way to the rim, the convex-squircle bezel
+ *   h(x) = √(1 − (1 − x)⁴) its slope and Snell's law (ior 1.5) the pull, so the backdrop at the
+ *   rim is drawn from further in, exact in corners and on a capsule's round ends (GLS-3; the
+ *   formulas after Liquid DOM, MIT, and Inigo Quilez's SDF, restated). Red and green carry x and
+ *   y around 128. Chips bend a 10 px bezel by at most 6 px, bars a 14 px bezel by at most 10.
+ *   A map costs about 1–3 ms once per size; it is redrawn 150 ms after a size change. The map
+ *   (`lens-map.ts`) and the bars' manager (`glass-runtime.ts`) load after the first paint.
  * - **Off** on a coarse pointer, under Glass Tinted or Solid, Reduce motion, any OS
  *   transparency or contrast preference, forced colours, from the cost ladder's first step,
  *   while the surface animates (its own transitions and animations), and past three lenses on
- *   screen (+9 % GPU and four times the main-thread work per scrolled frame each, 16 §5.3).
+ *   screen: each costs the SVG filter's main-thread paint per scrolled frame (research 16 §5.3),
+ *   measured in GLS-11.
  */
 import { type RefObject, useEffect } from 'react';
 
 import { reducedMotion } from '../motion/reduced-motion';
 import { SOFTWARE_RENDERER, useRenderQualityStore, webglRenderer } from '../state/render-quality';
 
-/** The bezel the map bends, CSS px, and the largest pull at the rim. */
-export const LENS_BEZEL = 10;
-export const LENS_PULL = 6;
-/** At most this many lenses at once (language.md §2.7). */
+/** At most this many lenses at once (language.md §2.7, GLS-11). */
 export const MAX_LENSES = 3;
-const REGENERATE_MS = 150;
-const SVG_NS = 'http://www.w3.org/2000/svg';
+/** How long after a size change a map is redrawn, ms. */
+export const REGENERATE_MS = 150;
+
+/** Lenses on screen, chips' and bars' together. */
+export const lensCount = { mounted: 0 };
 
 let compositedOnGpu: boolean | undefined;
 
@@ -69,102 +75,16 @@ export function lensAllowed(): boolean {
   );
 }
 
-/** The map's colour channel at distance `d` from an edge: 128 inside, up to 128 ± 127. */
-function bend(d: number): number {
-  if (d >= LENS_BEZEL) return 0;
-  const t = 1 - d / LENS_BEZEL;
-  return t ** 2.2;
+/** Takes the lens off `el`. */
+export function lensOff(el: HTMLElement): void {
+  el.classList.remove('lens');
+  el.style.removeProperty('--lens');
 }
-
-/** Gradient stops along one axis of `length` px: rising towards the start, falling at the end. */
-function stops(length: number, channel: 'r' | 'g'): string {
-  const out: string[] = [];
-  const colour = (value: number) => {
-    const v = Math.round(128 + 127 * value);
-    return channel === 'r' ? `rgb(${v},0,0)` : `rgb(0,${v},0)`;
-  };
-  const steps = 6;
-  for (let i = 0; i <= steps; i++) {
-    const d = (LENS_BEZEL * i) / steps;
-    out.push(`<stop offset="${(d / length).toFixed(4)}" stop-color="${colour(bend(d))}"/>`);
-  }
-  for (let i = steps; i >= 0; i--) {
-    const d = (LENS_BEZEL * i) / steps;
-    out.push(`<stop offset="${(1 - d / length).toFixed(4)}" stop-color="${colour(-bend(d))}"/>`);
-  }
-  return out.join('');
-}
-
-/** The displacement map of a `width` × `height` chip, as an SVG data URL. */
-export function lensMap(width: number, height: number): string {
-  const svg =
-    `<svg xmlns="${SVG_NS}" width="${width}" height="${height}">` +
-    `<defs><linearGradient id="x" x2="1" y2="0">${stops(width, 'r')}</linearGradient>` +
-    `<linearGradient id="y" x2="0" y2="1">${stops(height, 'g')}</linearGradient></defs>` +
-    `<rect width="${width}" height="${height}" fill="#000"/>` +
-    `<rect width="${width}" height="${height}" fill="url(#x)"/>` +
-    `<rect width="${width}" height="${height}" fill="url(#y)" style="mix-blend-mode:screen"/>` +
-    '</svg>';
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-/** The hidden `<svg>` that holds every lens filter, made on first use. */
-function lensDefs(): SVGDefsElement {
-  const existing = document.getElementById('recto-lenses');
-  if (existing?.firstElementChild instanceof SVGDefsElement) return existing.firstElementChild;
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.id = 'recto-lenses';
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('width', '0');
-  svg.setAttribute('height', '0');
-  svg.style.position = 'absolute';
-  svg.style.pointerEvents = 'none';
-  const defs = document.createElementNS(SVG_NS, 'defs');
-  svg.append(defs);
-  document.body.append(svg);
-  return defs;
-}
-
-/** The filter id for a size, drawn once per size. */
-export function lensFilter(width: number, height: number): string {
-  const id = `lens-${width}x${height}`;
-  if (document.getElementById(id)) return id;
-  // The region and the map are in the chip's own box (objectBoundingBox): the map is drawn at
-  // the chip's size and stretched over exactly that box, wherever the engine puts its origin.
-  const filter = document.createElementNS(SVG_NS, 'filter');
-  filter.id = id;
-  filter.setAttribute('x', '0');
-  filter.setAttribute('y', '0');
-  filter.setAttribute('width', '1');
-  filter.setAttribute('height', '1');
-  filter.setAttribute('primitiveUnits', 'objectBoundingBox');
-  filter.setAttribute('color-interpolation-filters', 'sRGB');
-  const image = document.createElementNS(SVG_NS, 'feImage');
-  image.setAttribute('href', lensMap(width, height));
-  image.setAttribute('x', '0');
-  image.setAttribute('y', '0');
-  image.setAttribute('width', '1');
-  image.setAttribute('height', '1');
-  image.setAttribute('preserveAspectRatio', 'none');
-  image.setAttribute('result', 'map');
-  const displace = document.createElementNS(SVG_NS, 'feDisplacementMap');
-  displace.setAttribute('in', 'SourceGraphic');
-  displace.setAttribute('in2', 'map');
-  // A channel at 128 ± 127 moves a pixel by scale × (c / 255 − 0.5): ±LENS_PULL at the rim,
-  // the scale a fraction of the box's width in objectBoundingBox units.
-  displace.setAttribute('scale', String((2 * LENS_PULL) / width));
-  displace.setAttribute('xChannelSelector', 'R');
-  displace.setAttribute('yChannelSelector', 'G');
-  filter.append(image, displace);
-  lensDefs().append(filter);
-  return id;
-}
-
-let mounted = 0;
 
 /**
  * Gives the element a backdrop lens while everything allows one (see the module comment), at
- * its rendered size, and takes it away otherwise. The element composes `mat mat-chip s<σ>`.
+ * its rendered size, and takes it away otherwise. The element composes `mat mat-chip s<σ>` or
+ * `mat mat-bar s<σ>`.
  */
 export function useBackdropLens(ref: RefObject<HTMLElement | null>, enabled = true): void {
   const degrade = useRenderQualityStore((s) => s.degrade);
@@ -176,31 +96,29 @@ export function useBackdropLens(ref: RefObject<HTMLElement | null>, enabled = tr
     let counted = false;
     const update = () => {
       const allowed = lensAllowed() && animating === 0;
-      if (allowed && !counted && mounted >= MAX_LENSES) return;
+      if (allowed && !counted && lensCount.mounted >= MAX_LENSES) return;
       if (!allowed) {
-        el.classList.remove('lens');
-        el.style.removeProperty('--lens');
+        lensOff(el);
         if (counted) {
           counted = false;
-          mounted--;
+          lensCount.mounted--;
         }
         return;
       }
       if (!counted) {
         counted = true;
-        mounted++;
+        lensCount.mounted++;
       }
-      const width = Math.round(el.offsetWidth);
-      const height = Math.round(el.offsetHeight);
-      if (width === 0 || height === 0) return;
-      el.style.setProperty('--lens', `url(#${lensFilter(width, height)})`);
-      el.classList.add('lens');
+      // The map's code loads with the first lens (it is not in the first closures).
+      void import('./lens-map').then(({ lensOn }) => {
+        if (counted && el.isConnected) lensOn(el);
+      });
     };
     const later = () => {
       clearTimeout(timer);
       timer = setTimeout(update, REGENERATE_MS);
     };
-    // While the chip itself moves or fades, no lens (it would be drawn at every frame).
+    // While the surface itself moves or fades, no lens (it would be drawn at every frame).
     const start = () => {
       animating++;
       update();
@@ -233,9 +151,8 @@ export function useBackdropLens(ref: RefObject<HTMLElement | null>, enabled = tr
       el.removeEventListener('animationstart', start);
       el.removeEventListener('animationend', end);
       el.removeEventListener('animationcancel', end);
-      el.classList.remove('lens');
-      el.style.removeProperty('--lens');
-      if (counted) mounted--;
+      lensOff(el);
+      if (counted) lensCount.mounted--;
     };
   }, [ref, enabled, degrade]);
 }
