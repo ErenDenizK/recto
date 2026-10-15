@@ -262,6 +262,8 @@ export function applyDegrade(root: HTMLElement, step: DegradeStep): void {
 
 /** How the glass draws (GLS-10): GPU glass, CSS+ or flat. The GPU glass renderer reads it. */
 export type GlassRenderTier = 'gpu' | 'css' | 'solid';
+/** The GPU glass renderer's name for the same tiers (GLS-13). */
+export type GlassTier = GlassRenderTier;
 
 const UNWELCOME = [
   '(prefers-reduced-transparency: reduce)',
@@ -284,6 +286,10 @@ function glassInForce(): GlassSetting {
  */
 export function gpuGlassEligible(): boolean {
   if (typeof document === 'undefined') return false;
+  // Test builds force it on a software renderer (GLS-13), compiled out of the deploy build (X36).
+  if (OVERRIDE_BUILT && (window as { __rectoGpuGlass?: string }).__rectoGpuGlass === 'force') {
+    return useRenderQualityStore.getState().degrade === 0 && glassInForce() === 'clear';
+  }
   const { webgl2, renderer } = webglProbe();
   return (
     webgl2 &&
