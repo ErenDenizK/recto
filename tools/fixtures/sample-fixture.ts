@@ -48,11 +48,11 @@ export const SAMPLE_MAX_BYTES: Readonly<Record<SampleEdition, number>> = {
   phone: 90 * 1024,
 };
 /**
- * All four together (MOB-13): they are precached, and the precache may grow by 1 % a wave
- * (tools/qa/bundle-budget.json), so the four stay within 191 KB (the two files they replace)
- * plus that growth, with room left for the rest of the app.
+ * All four together (MOB-13, raised by MOB-14 for v2's light and grain): they are precached,
+ * so the four are capped together as well as one by one; the scan's 2-bit storage pays for
+ * part of the light.
  */
-export const SAMPLE_TOTAL_MAX_BYTES = 312 * 1024;
+export const SAMPLE_TOTAL_MAX_BYTES = 344 * 1024;
 /** The form's fields in tab order (the agreement page). */
 export const SAMPLE_FIELDS = AGREEMENT_FIELDS;
 

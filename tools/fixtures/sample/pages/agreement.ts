@@ -32,6 +32,7 @@ import {
   MEASURE,
   MUTED,
   PALE,
+  PT,
   RULE,
   STYLE,
   type Style,
@@ -57,9 +58,11 @@ export function agreementPage(ctx: PageCtx): void {
   w.text(w.elem('H1'), STYLE.h1, LEFT, 728, c.title);
 
   let y = 696;
-  const terms: Style = { face: 'serif', size: 10.5, color: BODY };
+  const terms: Style = { face: 'serif', size: PT.large, color: BODY };
   for (const text of c.terms)
-    y = w.paragraph([{ text, style: terms }], { x: LEFT, y, width: 420, leading: 15 }).next - 6;
+    y =
+      w.paragraph([{ text, style: terms }], { x: LEFT, y, width: 440, leading: 16, pretty: true })
+        .next - 6;
 
   // The card: one rhythm. Every group is a label and its controls, groups 72 pt apart label to
   // label (47 px at a phone's fit width: MOB-1's targets never overlap), plus 32 pt for the
@@ -76,7 +79,13 @@ export function agreementPage(ctx: PageCtx): void {
   const cardBottom = lineY - 30;
   if (cardBottom < 104) throw new Error(`agreement: the card overflows (${r2(cardBottom)})`);
   w.art(...roundRect(LEFT, cardBottom, MEASURE, cardTop - cardBottom, 10, PALE));
-  w.text(w.elem('H2'), { face: 'bold', size: 13, color: INK }, x0, cardTop - PAD - 10, c.cardTitle);
+  w.text(
+    w.elem('H2'),
+    { face: 'bold', size: PT.deck, color: INK },
+    x0,
+    cardTop - PAD - 10,
+    c.cardTitle,
+  );
 
   const label = (x: number, ly: number, value: string) =>
     w.text(null, STYLE.label, x, ly, up(value));

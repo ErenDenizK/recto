@@ -150,6 +150,39 @@ describe.each(SAMPLE_LOCALES.flatMap((l) => SAMPLE_EDITIONS.map((e) => [l, e] as
       expect(m.coverLinks).toEqual([3, 4, 5]);
     });
 
+    it('clips every blended light (MOB-14: PDFium blends against a transparent page)', async () => {
+      // direction-v2.md §5.4: a blended object must lie on a ground its page paints and be
+      // clipped to it, or it draws against nothing (and costs a page-sized offscreen group).
+      const doc = await load();
+      let blendedPaints = 0;
+      for (let i = 0; i < doc.getPageCount(); i++) {
+        const states = doc
+          .getPage(i)
+          .node.Resources()
+          ?.lookupMaybe(PDFName.of('ExtGState'), PDFDict);
+        const blended = new Set(
+          (states?.entries() ?? [])
+            .filter(([, value]) => {
+              const bm = doc.context.lookup(value, PDFDict).get(PDFName.of('BM'));
+              return bm !== undefined && bm !== PDFName.of('Normal');
+            })
+            .map(([name]) => name.asString()),
+        );
+        const tokens = pageContent(doc, i).split(/\s+/);
+        const clipped: boolean[] = [false];
+        tokens.forEach((token, k) => {
+          if (token === 'q') clipped.push(clipped.at(-1) ?? false);
+          else if (token === 'Q') clipped.pop();
+          else if (token === 'W' || token === 'W*') clipped[clipped.length - 1] = true;
+          else if (token === 'gs' && blended.has(tokens[k - 1] ?? '')) {
+            blendedPaints += 1;
+            expect(clipped.at(-1), `page ${i + 1}: ${tokens[k - 1]} outside a clip`).toBe(true);
+          }
+        });
+      }
+      expect(blendedPaints).toBeGreaterThan(0);
+    });
+
     it('is tagged', async () => {
       const doc = await load();
       expect(doc.catalog.get(PDFName.of('StructTreeRoot'))).toBeDefined();
