@@ -2399,6 +2399,7 @@
   "compact_open_failed": "{name} açılamadı: {reason}.",
   "compact_library": "Kitaplık",
   "compact_more": "Diğer",
+  "compact_title_menu": "{title}, dosya menüsü",
   "compact_pages": "Sayfalar",
   "compact_overview_columns": "{count} sütun",
   "compact_overview_select": "Seç",

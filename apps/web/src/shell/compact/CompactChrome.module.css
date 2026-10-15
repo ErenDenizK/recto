@@ -67,9 +67,12 @@
 }
 
 /* ⋯ menu: M4, rows of 44 px with 16 px icons (Q-9); a one-row menu (58 px, c 0.984 at 12px)
-   takes σ 8 (`r8`, coverage registry `compact-menu-one-row`). */
+   takes σ 8 (`r8`, coverage registry `compact-menu-one-row`). The split top's file menu
+   (DSN-34) is the same recipe. */
 .menu {
   composes: mat mat-menu s12 r8 from global;
+  /* The container transform serves it once installed (DSN-36, `ui/container-transform.ts`). */
+  composes: ct-popup from global;
   min-width: 232px;
   max-width: calc(100vw - 16px);
   padding: var(--space-1h);
@@ -86,6 +89,23 @@
 .menu[data-ending-style] {
   opacity: 0;
   transform: scale(0.96);
+}
+
+/* *Container transform* (MOT-5, DSN-36): the menu grows out of its button and goes back into it
+   on Web Animations; its CSS entrance and exit step aside, the starting and ending opacity
+   stays (as `ui/Menu.module.css`). */
+.menu[data-ct] {
+  transition: none;
+}
+
+.menu[data-ct]:is([data-starting-style], [data-ending-style]) {
+  transform: none;
+}
+
+/* The menu → sheet hand-off (`ui/menu-handoff.ts`, Q-7): a row that opens a sheet closes the
+   menu at once. */
+:global(:root[data-menu-handoff]) .menu[data-ending-style] {
+  transition: none;
 }
 
 .menuItem {
