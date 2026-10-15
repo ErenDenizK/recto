@@ -5,7 +5,10 @@
  *
  * - The row stands where the capsule top stands (DSN-32): max(safe area, 12 px) from the top and
  *   the sides, 48 px high, so the pages' top padding (`TOP_BAR_HEIGHT`) is the same in both
- *   variants. Neither the header nor the row is a surface; they take no presses.
+ *   variants. Neither the header nor the row is a surface; they take no presses. The header's
+ *   box ends at the row's foot, as the capsule top's does, so what keeps clear of
+ *   `compact-top-bar` (the selection bar, the free rect while the keyboard shows) measures the
+ *   same top in both variants; its pieces are fixed, so the box moves none of them.
  * - Hidden, each piece moves out and fades on itself (Q-3), on the capsule top's tokens; at rest
  *   none has a transform (Q-2). The fade only fades.
  */
@@ -16,6 +19,7 @@
   right: 0;
   left: 0;
   z-index: 2;
+  height: calc(var(--top-offset) + 48px);
   pointer-events: none;
 }
 
