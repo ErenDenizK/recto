@@ -24,6 +24,7 @@
  *   the start states sets `window.__rectoRender = null` to opt out. The deploy build compiles
  *   none of it: `__RENDER_OVERRIDE__` is false there and the branch is removed.
  */
+import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 
 /** What a person can pick (language.md §2.8). */
@@ -132,6 +133,7 @@ export function ensureDegradeStart(): void {
 export function resetRenderQuality(): void {
   started = false;
   probed = undefined;
+  gpuRenderer = undefined;
   useRenderQualityStore.setState({ degrade: 0 });
 }
 
@@ -203,4 +205,61 @@ export function startCostLadder(
 export function applyDegrade(root: HTMLElement, step: DegradeStep): void {
   if (step > 0) root.setAttribute('data-degrade', String(step));
   else root.removeAttribute('data-degrade');
+}
+
+/** The glass tiers (GLS-7): GPU glass where the device passes, CSS+ elsewhere, Solid flat. */
+export type GlassTier = 'gpu' | 'css' | 'solid';
+
+const A11Y_GLASS_OFF =
+  '(prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active)';
+let gpuRenderer: string | undefined;
+
+/**
+ * Whether GPU glass may run (GLS-7, GLS-13): WebGL2 on a hardware renderer, Glass Clear, the
+ * ladder at 0 (its first step switches GPU glass off with the lenses), no transparency, contrast
+ * or forced-colour preference. Test builds force it on a software renderer with
+ * `window.__rectoGpuGlass = 'force'` (compiled out of the deploy build, as X36's override).
+ */
+export function gpuGlassEligible(): boolean {
+  if (typeof document === 'undefined' || typeof WebGL2RenderingContext === 'undefined') {
+    return false;
+  }
+  const root = document.documentElement;
+  if (
+    root.getAttribute('data-glass') !== 'clear' ||
+    root.hasAttribute('data-degrade') ||
+    useRenderQualityStore.getState().degrade > 0 ||
+    matchMedia(A11Y_GLASS_OFF).matches
+  ) {
+    return false;
+  }
+  if (OVERRIDE_BUILT && (window as { __rectoGpuGlass?: string }).__rectoGpuGlass === 'force') {
+    return true;
+  }
+  gpuRenderer ??= webglRenderer();
+  return gpuRenderer !== '' && !SOFTWARE_RENDERER.test(gpuRenderer);
+}
+
+const subscribeTier = (change: () => void) => {
+  const observer = new MutationObserver(change);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-glass', 'data-degrade'],
+  });
+  const off = useRenderQualityStore.subscribe(change);
+  return () => {
+    observer.disconnect();
+    off();
+  };
+};
+
+const glassTier = (): GlassTier => {
+  const glass = document.documentElement.getAttribute('data-glass');
+  if (glass === 'solid' || useRenderQualityStore.getState().degrade >= 4) return 'solid';
+  return gpuGlassEligible() ? 'gpu' : 'css';
+};
+
+/** The glass tier in force, followed live (the setting, the ladder). */
+export function useGlassTier(): GlassTier {
+  return useSyncExternalStore(subscribeTier, glassTier, () => 'css');
 }
