@@ -9,7 +9,7 @@
       "#platform": ["./src/platform/web/index.ts"]
     }
   },
-  "include": ["src", "test", "harness"],
+  "include": ["src", "test", "harness", "lab"],
   "exclude": ["harness/vite.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-glass="clear">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- The glass lab (docs/research/23-liquid-glass-lab.md; decisions GLS-1): a standalone
+         page served beside the app and never loaded by it. Not for search engines. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <link rel="icon" href="%BASE_URL%icons/glyph.svg" type="image/svg+xml" />
+    <script type="module" src="./main.ts"></script>
+    <title>Recto glass lab</title>
+  </head>
+  <body>
+    <noscript>The glass lab needs JavaScript.</noscript>
+  </body>
+</html>
