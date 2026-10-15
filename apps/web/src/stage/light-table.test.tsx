@@ -22,6 +22,7 @@ import { useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
 import { cellRenderStats } from './PageCell';
+import { settled } from '../../test/settled';
 
 async function fixture(url: string, name: string): Promise<File> {
   const bytes = await (await fetch(url)).arrayBuffer();
@@ -284,7 +285,7 @@ describe('light table', () => {
     // Folded: no Move to ▾ on the bar.
     expect(bar.querySelector('[data-capsule-item="move-to"]')).toBeNull();
     await userEvent.click(within(bar).getByRole('button', { name: 'More actions' }));
-    const more = await screen.findByRole('menu', { name: 'More actions' });
+    const more = await settled(await screen.findByRole('menu', { name: 'More actions' }));
     expect(within(more).getByRole('menuitem', { name: 'Insert pages from file…' })).toBeVisible();
     await userEvent.click(within(more).getByRole('menuitem', { name: /^Move to/ }));
     const moveTo = await screen.findByRole('menu', { name: 'Move to' });
