@@ -329,7 +329,12 @@ test.describe('the capsule morph (Q-6)', () => {
         const d = distance(pixel(mid, x, y), pixel(bare, x, y));
         check(d <= 4, `outside +8 px at ${x.toFixed(1)}, ${y.toFixed(1)}: ${d}/255 from the page`);
       }
-      // Inside: the stripes are gone (blurred), and it is darkened glass.
+      // Inside: the stripes are gone (blurred), and it is glass in the look the page under it
+      // asks for (GLS-9): light over a light page, else darkened.
+      const light =
+        (await page.locator('[data-capsule]').getAttribute('data-theme')) === 'light' ||
+        ((await page.locator('html').getAttribute('data-theme')) === 'light' &&
+          !(await page.locator('[data-capsule]').getAttribute('data-theme')));
       const r = box.height / 2;
       for (const x of [box.x + r, box.x + box.width / 2, box.x + box.width - r]) {
         const ys: number[] = [];
@@ -341,7 +346,10 @@ test.describe('the capsule morph (Q-6)', () => {
           `inside at x ${x.toFixed(1)}: spread ${spread(glass).toFixed(1)} against the page's ${spread(page0).toFixed(1)}`,
         );
         const mean = glass.reduce((s, v) => s + v, 0) / glass.length;
-        check(mean < 160, `inside at x ${x.toFixed(1)}: mean ${mean.toFixed(0)}, not glass`);
+        check(
+          light ? mean > 160 : mean < 160,
+          `inside at x ${x.toFixed(1)}: mean ${mean.toFixed(0)}, not ${light ? 'light' : 'dark'} glass`,
+        );
       }
       // The shadow along the whole lower edge and both lower arcs.
       for (const [x] of [...edgePoints(box, 0, 'bottom'), ...curvePoints(box, 0, 'lower')]) {
@@ -350,8 +358,9 @@ test.describe('the capsule morph (Q-6)', () => {
           for (let dy = 2; dy <= 6; dy++) sum += luma(pixel(image, x, box.y + box.height + dy));
           return sum / 5;
         };
+        // A light look wears the light theme's shadow, ink at 40 % of the dark one's (§6.3).
         check(
-          below(mid) < below(bare) - 10,
+          below(mid) < below(bare) - (light ? 4 : 10),
           `no shadow below x ${x.toFixed(1)}: ${below(mid).toFixed(0)} against the page's ${below(bare).toFixed(0)}`,
         );
       }

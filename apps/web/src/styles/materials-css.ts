@@ -39,9 +39,12 @@
  *    last (`.lens`, Chromium only: the one rule that reads a `var()`, the map
  *    `material-lens.ts` draws at the surface's size; chips and, since GLS-11, bars).
  * 5. **The ring** (GLS-8): on M1 chips and on round buttons that compose `mat-ring`, a band
- *    inside the rim brightens and saturates the glass under it, a second backdrop pass with no
- *    blur, masked to the band: the thick edge catching light (research 23 §5.2's bezel band).
- *    Off where the lens bends the rim instead, under Tinted and Solid, and from ladder step 3.
+ *    inside the rim lays a white light over the glass in soft light, which brightens and
+ *    deepens what the glass shows there, masked to the band: the thick edge catching light
+ *    (research 23 §5.2's bezel band). A blend, not a second backdrop pass: a backdrop filter
+ *    nested in the glass would break Q-3 and count as a surface of its own (Q-11), and the lab
+ *    measured that pass as the bezel band's whole cost. Off where the lens bends the rim
+ *    instead, under Tinted and Solid, and from ladder step 3.
  * 6. **The cost ladder's glass steps** (GLS-10): step 3 one reduced σ per tier and no ring;
  *    step 4 the floor, after the owner's Glass UI nav preset: one layer at 12 px (8 px on a
  *    coarse pointer, and never more than step 3's σ, so small pieces keep their coverage), the
@@ -92,9 +95,9 @@ export function floorSigma(tier: GlassTier, coarse: boolean): number {
 /** The nav preset's hairline, kept at the floor. */
 export const FLOOR_BORDER = 'rgb(255 255 255 / 0.3)';
 
-/** The ring's band (GLS-8): its width, CSS px, and the filter it lays over the glass. */
+/** The ring's band (GLS-8): its width, CSS px, and how its light meets the glass beneath. */
 export const RING_WIDTH = 3;
-export const RING_FILTER = 'brightness(1.22) saturate(1.5)';
+export const RING_BLEND = 'soft-light';
 
 /** The chain after `blur(σ)` per tier, as a theme block of `tokens.css` writes it. */
 export type TierFilters = Readonly<Record<GlassTier, string>>;
@@ -373,10 +376,10 @@ ${SUPPORTS} {
 
   // 5. The ring.
   out.push(`
-/* The ring (GLS-8): a band inside the rim of M1 chips and round buttons (\`mat-ring\`) that
-   brightens the glass beneath it, a second backdrop pass with no blur, masked to the band and
-   laid under the content. Not under the lens (the lens bends the rim instead), Tinted, Solid
-   or ladder step 3 and 4. */
+/* The ring (GLS-8): a band inside the rim of M1 chips and round buttons (\`mat-ring\`) whose
+   light meets the glass beneath in soft light, masked to the band and laid under the content;
+   no backdrop pass of its own (Q-3, Q-11). Not under the lens (the lens bends the rim instead),
+   Tinted, Solid or ladder step 3 and 4. */
 ${block(':where(.mat-chip, .mat-ring)', ['position: relative;'])}${SUPPORTS} {
 ${block(
   `:where(:root:not(${SOLID}, [data-glass='tinted'], [data-degrade='3'], [data-degrade='4'])) :is(.mat-chip, .mat-ring):not(.lens, .mat-opaque)::before`,
@@ -387,9 +390,8 @@ ${block(
     'z-index: -1;',
     `padding: ${RING_WIDTH}px;`,
     'border-radius: inherit;',
-    'background: linear-gradient(135deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0) 45%, rgb(255 255 255 / 0) 60%, rgb(255 255 255 / 0.07));',
-    `-webkit-backdrop-filter: ${RING_FILTER};`,
-    `backdrop-filter: ${RING_FILTER};`,
+    'background: linear-gradient(135deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.08) 40%, rgb(255 255 255 / 0.08) 60%, rgb(255 255 255 / 0.3));',
+    `mix-blend-mode: ${RING_BLEND};`,
     '-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);',
     '-webkit-mask-composite: xor;',
     'mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);',
