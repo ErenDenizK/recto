@@ -1,10 +1,10 @@
 /**
- * The backdrop lens's map (language.md §2.7; decisions GLS-3, GLS-11; `material-lens.ts`): the
+ * The backdrop lens's map (language.md §2.7; decisions GLS-3, GLS-11; `lens-map.ts`): the
  * rounded rectangle's distance, the Snell pull over the bezel, and the map drawn per size.
  */
 import { describe, expect, it } from 'vitest';
 
-import { BAR_LENS, CHIP_LENS, lensMap, roundRectDistance, snellPull } from './material-lens';
+import { BAR_LENS, CHIP_LENS, lensMap, roundRectDistance, snellPull } from './lens-map';
 
 describe('the lens map (GLS-11)', () => {
   it('measures the distance to a rounded rectangle, negative inside', () => {

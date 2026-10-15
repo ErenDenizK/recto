@@ -38,8 +38,6 @@ import {
   startGlass,
   useRenderQualityStore,
 } from './render-quality';
-import { startAdaptiveTone } from '../styles/adaptive-tone';
-import { startBarLenses } from '../styles/material-lens';
 import { readJson, writeJson } from './safe-storage';
 import { applyTheme, subscribeSystemTheme, THEME_SETTINGS, type ThemeSetting } from './theme';
 
@@ -182,13 +180,20 @@ export function useAppearanceRoot(): void {
     ensureDegradeStart();
     return startCostLadder();
   }, []);
-  // The glass's own runtime (GLS-9, GLS-11): the adaptive look, and the lens on bars.
+  // The glass's own runtime (GLS-9, GLS-11): the adaptive look and the lens on bars, loaded
+  // once the app has painted, so neither is in a first closure.
   useLayoutEffect(() => {
-    const stopTone = startAdaptiveTone();
-    const stopLenses = startBarLenses();
+    let stop: (() => void) | undefined;
+    let gone = false;
+    const timer = setTimeout(() => {
+      void import('../styles/glass-runtime').then(({ startGlassRuntime }) => {
+        if (!gone) stop = startGlassRuntime();
+      });
+    }, 0);
     return () => {
-      stopTone();
-      stopLenses();
+      gone = true;
+      clearTimeout(timer);
+      stop?.();
     };
   }, []);
   useLayoutEffect(() => {
