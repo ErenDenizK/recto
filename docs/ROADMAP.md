@@ -445,7 +445,7 @@ collapsible bottom bar, its real design left for M10 with the owner. Each drop i
 | ~~D3-10~~ Brand tools and mark boards | Cancelled 2026-10-04: the owner designed the mark | — |
 | **D4 — Library, first run, polish and presentation** | The welcome, then media, README, About and brand | planned |
 | D4-1 Library | Launcher, lit cards, Combine without a dialog, Recents with snapshots; the Library rows of flows §8.2; aurora check OM4 on this build | planned |
-| D4-2 Teaching sample | Four pages, English and Turkish, `?sample` | planned |
+| D4-2 Teaching sample | Margin No. 07: 8 pages (full) and 6 (phone), English and Turkish, `?sample` (MOB-11, MOB-12) | built |
 | D4-3 Facts chip | One fact per file routes a scan to OCR, a form to Fill & sign | planned |
 | D4-4 Polish | Empty states, honesty notice, haptics, test and prototype decisions | planned |
 | D4-5 Media | Scenes re-recorded through the new shell | planned |

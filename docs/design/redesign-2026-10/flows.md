@@ -1217,7 +1217,8 @@ visible (FL-R10); the privacy line. The aurora drifts in Auto and settles after 
 
 ### 9.2 The teaching sample
 
-- A bundled four-page PDF built by `tools/fixtures`, English and Turkish, ≤ 250 KB, precached
+- (Now Margin No. 07, 8 pages on desktop and tablet and 6 on a phone: MOB-11, MOB-12.) A bundled
+  four-page PDF built by `tools/fixtures`, English and Turkish, ≤ 250 KB, precached
   **(judgement on size)**. Its text teaches; no overlay tour. Page 1: "Select this sentence and
   choose Highlight. Press M or tap Markup to write." Page 2: a form with a checkbox and "Sign
   here with Fill & sign". Page 3: a scan, "Recognize text makes it searchable". Page 4: "Press 3

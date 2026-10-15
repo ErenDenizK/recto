@@ -92,7 +92,8 @@ rest, no glass sits over page content (RA-15).
     "or drop files anywhere" on fine pointers only; EN · TR visible; the privacy line; the aurora
     of ADR-0025. With documents: cards with facts, Recents with snapshots (ADR-0032), a selection
     bar (N selected · Combine · Compare · Pages · Close), Batch.
-12. **Teaching sample:** a bundled four-page PDF, English and Turkish, built by `tools/fixtures`,
+12. **Teaching sample** (since 2026-10-15 Margin No. 07, a full and a phone cut: MOB-11,
+    MOB-12)**:** a bundled four-page PDF, English and Turkish, built by `tools/fixtures`,
     ≤ 250 KB (judgement), precached. Its text teaches (select and Highlight; M for Markup; a form
     to fill and sign; a scan for Recognize text; 3 for the grid); no overlay tour. Each Try the
     sample opens a fresh "Recto sample.pdf" that follows the lock setting. `?sample` (`?sample=tr`)

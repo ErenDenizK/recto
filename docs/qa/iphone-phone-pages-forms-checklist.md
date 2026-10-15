@@ -5,7 +5,8 @@ iPhone, the sample document (`?sample`) and any outside PDF with form fields and
 
 ## Forms (MOB-1)
 
-1. Page 2 of the sample: tap the "I tried Recto" box while reading. It ticks; an Undo toast shows
+1. Page 5 of the sample (the contributor agreement): tap the "I have read this agreement" box
+   while reading. It ticks; an Undo toast shows
    and takes the tick back.
 2. Tap the name field. The keyboard rises in the same tap, the page zooms so the text is easy to
    read, and the page itself does not jump-zoom.

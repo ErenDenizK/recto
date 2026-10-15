@@ -34,8 +34,8 @@ status: proposed
 - **Every Library text sits on glass or a masked band.** Launcher, cards and Recents are lit
   glass (dark) or M2 (light); footer items are M1 chips; the field is masked under the one
   bare head row (A-5).
-- **The sample teaches by its text** (four pages, EN and TR, 250 KB both); `?sample` opens it
-  from the About page.
+- **The sample teaches by its text** (Margin No. 07: 8 pages on desktop and tablet, 6 on a
+  phone, EN and TR, MOB-11 and MOB-12); `?sample` opens it from the About page.
 - **Twenty-one issues for the lead** (§15), the largest: the 64 px light rule against lit
   Library cards, a text-safe mask the light module lacks, and `commit()` having to allow
   closing and reordering locked documents.
@@ -762,6 +762,11 @@ scrim beyond dimming.
 **1. Role.** FL-R10, F-14, flows §9.2: a bundled PDF whose text teaches the everyday acts with no
 overlay tour; J1 by sample = 1. New.
 
+> **Superseded (2026-10-15).** The sample is now Margin No. 07 / Kenar Sayı 07 (MOB-11): one
+> page catalog cut into a full file (8 pages) and a phone file (6 pages) per language (MOB-12,
+> MOB-13). Its pages, copy and layout are in `docs/design/sample-2026-10/design.md`; the
+> mechanism in `technical.md`. §2 and §9 below describe the first sample.
+
 **2. Anatomy (the document).** Four A4 pages, Inter and Noto Serif subsets (OFL, already bundled
 in `tools/fixtures`), outline with four entries, footer "Recto sample · fictional data".
 
@@ -991,7 +996,8 @@ without overflow at 390 px in TR; e2e privacy chip opens the popover; axe.
     uploaded", "Nothing leaves this device"). Decided: headline line "Nothing leaves this device.",
     footer chip "Nothing is uploaded", kept documents "Kept on this device while the browser keeps
     it" (flows §5.2's promise).
-14. **Sample size and precache.** Two files (EN, TR) at ≤ 125 KB each; `globPatterns` must add
+14. **Sample size and precache.** Four files (a full and a phone cut, EN and TR) at ≤ 125 KB
+    and ≤ 90 KB each, ≤ 312 KB together (MOB-12, MOB-13); `globPatterns` must add
     `sample/*.pdf`. The sample joins Recents only once changed.
 15. **Facts chip once per file.** "Restored edits" is exempt and shows on each restore; the seen
     keys (size + hash) are stored on the device and listed under Settings → Documents and storage.
