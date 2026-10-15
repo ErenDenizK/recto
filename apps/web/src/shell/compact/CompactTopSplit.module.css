@@ -57,7 +57,7 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
   transition:
     opacity var(--duration-base) var(--ease-out),
-    --edge-tone var(--tone-ms, 200ms) var(--ease-out);
+    --edge-tone var(--tone-ms, var(--duration-base)) var(--ease-out);
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
@@ -189,7 +189,7 @@
     transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out),
-    --edge-tone var(--tone-ms, 200ms) var(--ease-out);
+    --edge-tone var(--tone-ms, var(--duration-base)) var(--ease-out);
 }
 
 .title:active,
