@@ -3873,6 +3873,7 @@
   "compact_open_failed": "{name} could not be opened: {reason}.",
   "compact_library": "Library",
   "compact_more": "More",
+  "compact_title_menu": "{title}, file menu",
   "compact_pages": "Pages",
   "compact_overview_columns": "{count} columns",
   "compact_overview_select": "Select",

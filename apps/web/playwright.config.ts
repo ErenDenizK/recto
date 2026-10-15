@@ -32,6 +32,8 @@ const COMPACT_TEXT_SPEC = '**/compact-text.spec.ts';
 const COMPACT_SIGN_SPEC = '**/compact-sign.spec.ts';
 /** The tool drawer's list variant (EDN-16, `?drawer=list`). */
 const COMPACT_DRAWER_LIST_SPEC = '**/compact-drawer-list.spec.ts';
+/** The phone reader's split top (DSN-34, `?top=split`). */
+const COMPACT_TOP_SPLIT_SPEC = '**/compact-top-split.spec.ts';
 /** Editing text on phones (M10 WP5, EDN-17). */
 const COMPACT_EDIT_TEXT_SPEC = '**/compact-edit-text.spec.ts';
 /** Filling forms on phones (MOB-1). */
@@ -46,6 +48,7 @@ const PHONE_SPECS = [
   COMPACT_INK_SPEC,
   COMPACT_SIGN_SPEC,
   COMPACT_DRAWER_LIST_SPEC,
+  COMPACT_TOP_SPLIT_SPEC,
   COMPACT_EDIT_TEXT_SPEC,
   COMPACT_FORMS_SPEC,
 ];

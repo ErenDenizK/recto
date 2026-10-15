@@ -1,0 +1,247 @@
+/*
+ * The split top of the phone reader (DSN-34, `?top=split`; after iOS Preview, the reference doc
+ * `design/reference/ios-preview-2026-10.md` §2): ‹ and ⋯ as glass circles, the title as text
+ * between them, over a scroll-edge fade.
+ *
+ * - The row stands where the capsule top stands (DSN-32): max(safe area, 12 px) from the top and
+ *   the sides, 48 px high, so the pages' top padding (`TOP_BAR_HEIGHT`) is the same in both
+ *   variants. Neither the header nor the row is a surface; they take no presses.
+ * - Hidden, each piece moves out and fades on itself (Q-3), on the capsule top's tokens; at rest
+ *   none has a transform (Q-2). The fade only fades.
+ */
+.top {
+  --top-offset: max(env(safe-area-inset-top, 0px), 12px);
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/*
+ * The scroll-edge fade (DSN-35): the canvas's own tint, dense under the status bar and fading out
+ * below the pieces, over a backdrop blur that a mask fades out with it, so the pages pass under
+ * the pieces softened and dimmed, never cut by an edge. Two declarations, no script per frame.
+ * The tint is what keeps the title legible over a white page (Preview's title greys out there,
+ * reference doc §3); the blur alone would not. Glass Solid, the cost ladder's last step and
+ * reduced transparency drop the blur and keep the tint.
+ */
+.edge {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: calc(var(--top-offset) + 48px + 28px);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--canvas) 92%, transparent) 0,
+    color-mix(in srgb, var(--canvas) 72%, transparent) calc(var(--top-offset) + 24px),
+    color-mix(in srgb, var(--canvas) 40%, transparent) calc(var(--top-offset) + 48px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  :where(:root:not([data-glass='solid'], [data-degrade='4'])) .edge {
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .edge {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+.top[data-hidden] .edge {
+  opacity: 0;
+}
+
+.row {
+  position: fixed;
+  top: var(--top-offset);
+  right: max(env(safe-area-inset-right, 0px), 12px);
+  left: max(env(safe-area-inset-left, 0px), 12px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+}
+
+.row > * {
+  pointer-events: auto;
+}
+
+/*
+ * ‹ and ⋯: 44 px circles of the capsule's M2 (coverage registry `compact-top-circle`; σ 7 is the
+ * largest that covers 44 px, c 0.997), their glyphs 20 px (Q-9). In the light theme they take the
+ * capsule's denser sheet tint over white pages (visual audit 2026-10 #7, as the capsule top).
+ * Press: --press-scale (0.94 on touch, platform.md §2).
+ */
+.circle {
+  composes: mat mat-bar s7 from global;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  touch-action: manipulation;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
+}
+
+.circle svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.circle:active {
+  scale: var(--press-scale);
+  transition-duration: var(--spring-quick), var(--duration-base), var(--duration-instant);
+}
+
+/* ‹ is a ui/IconButton (Q-14): its recipe's quiet ink and its flat shadow give way to the
+   circle's glass, its rim and shadow (`.mat`). */
+.row .circle {
+  --shadow-own: var(--mat-edge), var(--mat-inner), var(--mat-shadow);
+  color: var(--text-primary);
+}
+
+/* One press scale for both circles: the circle's own (`scale`), not the recipe's transform. */
+.row .circle:active {
+  transform: none;
+}
+
+:global([data-theme='light']) .circle {
+  --mat-tint: var(--glass-sheet-tint);
+}
+
+/* The title: text over the fade, the row's free width, leading as Preview's (taste: centred is
+   the alternative, reference doc §2.2). Its ▾ opens the file menu. */
+.heading {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  font-size: var(--type-callout);
+  font-weight: 600;
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--track-callout);
+  touch-action: manipulation;
+  transition:
+    transform var(--spring-quick) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.title:active,
+.title[aria-expanded='true'] {
+  background: var(--surface-active);
+}
+
+.titleText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-capsule);
+  background: var(--surface-active);
+  color: var(--text-secondary);
+}
+
+.chevron svg {
+  width: 16px;
+  height: 16px;
+}
+
+.top[data-hidden] :is(.circle, .title) {
+  opacity: 0;
+  transform: translateY(calc(-100% - var(--top-offset)));
+}
+
+/* The file menu's card (Preview's file card): a glyph tile, the name whole on up to two lines,
+   then "PDF · size · pages"; a label, not a control. */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(320px, calc(100vw - 40px));
+  padding: 8px 12px 6px;
+}
+
+.cardGlyph {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 44px;
+  border-radius: var(--radius-control);
+  background: var(--surface-active);
+  color: var(--text-secondary);
+}
+
+.cardGlyph svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cardName {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--type-body);
+  font-weight: 600;
+  line-height: var(--type-body-lh);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.cardFacts {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-footnote-lh);
+}

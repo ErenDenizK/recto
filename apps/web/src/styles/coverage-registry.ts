@@ -375,6 +375,18 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
     smallest: '48 px fixed; a 320 px phone less 12 px each side',
   },
   {
+    id: 'compact-top-circle',
+    surface:
+      'Compact edition split top (DSN-34, `?top=split`): the ‹ and ⋯ glass circles, the capsule’s M2',
+    module: 'shell/compact/CompactTopSplit.module.css',
+    selector: '.circle',
+    tier: 'bar',
+    sigma: 7,
+    minWidth: 44,
+    minHeight: 44,
+    smallest: '44 px circle, fixed',
+  },
+  {
     id: 'compact-capsule',
     surface: 'Compact edition bottom capsule',
     module: 'shell/compact/CompactChrome.module.css',

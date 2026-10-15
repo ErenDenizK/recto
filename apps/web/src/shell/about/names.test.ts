@@ -113,6 +113,8 @@ describe('names kept by ADR-0015 §3', () => {
       'pdf-editor:session:tab:v1',
       // The saved signatures' IndexedDB database (signatures/saved-signatures.ts, spec X26).
       'pdf-editor:signatures:v1',
+      // The phone reader's ?top variant for this tab (sessionStorage, shell/compact/top-variant.ts).
+      'pdf-editor:top:v1',
       'pdf-editor:ui:colour-view:v1',
       'pdf-editor:ui:eraser:v1',
       // Each tool's recent colours in the ink strip (markup/ink-recents.ts, G8).

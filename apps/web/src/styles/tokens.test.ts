@@ -1273,7 +1273,8 @@ describe('tokens.css', () => {
       // bar (lane B), the typing bar (WP4) and the touch selection bar (WP6) one more each. The
       // phone Library's Open PDF dock (DSN-31) floats over Recents in its own module: one more.
       // The drawer's list variant (EDN-16), its own floating panel over the island: one more.
-      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(30);
+      // The phone reader's split top (DSN-34), its glass circles in their own module: one more.
+      expect(new Set(COVERAGE_REGISTRY.map((entry) => entry.module)).size).toBe(31);
       // The capsule at the one piece height (G1): σ 8 at 40 px, 9 at 48 coarse.
       expect(entryClasses(COVERAGE_REGISTRY[0] as GlassSurfaceEntry)).toEqual([
         'mat',
