@@ -309,6 +309,32 @@ test('Move to in More on a folded bar moves the pages to the other document', as
   expect(markers(source)).toEqual(['M1', 'M2', 'M4']);
 });
 
+test('Combine with one document open asks for files; Add files… appends; the open one comes first', async ({
+  page,
+}) => {
+  await openFixtures(page, ['mixed-sizes.pdf']);
+  await page.getByTestId('document-menu').click();
+  // MOB-10: the title menu's Pages rows are exactly F5 §5's two; Merge files… left it.
+  await expect(page.getByRole('menuitem', { name: 'Merge files…' })).toHaveCount(0);
+  let chooser = page.waitForEvent('filechooser');
+  await press(page, page.getByRole('menuitem', { name: 'Combine with open documents…' }));
+  await (await chooser).setFiles(fixturePath('simple-text.pdf'));
+  const sheet = page.getByTestId('combine-sheet');
+  await expect(sheet.getByTestId('combine-row')).toHaveCount(2);
+  chooser = page.waitForEvent('filechooser');
+  await press(page, sheet.getByRole('button', { name: 'Add files…' }));
+  await (await chooser).setFiles(fixturePath('rotated-pages.pdf'));
+  await expect(sheet.getByTestId('combine-row')).toHaveCount(3);
+  await expect(sheet.getByRole('status')).toHaveText('Creates 1 document with 12 pages');
+  await press(page, sheet.getByRole('button', { name: 'Combine', exact: true }));
+  await expect(page.getByTestId('combined-toast')).toBeVisible({ timeout: 20_000 });
+
+  const pdf = await exported(page);
+  expect(markers(pdf).slice(0, 8)).toEqual(['M1', 'M2', 'M3', 'M4', 'M5', 'S1', 'S2', 'S3']);
+  expect(pdf.getPageCount()).toBe(12);
+  expect(rotations(pdf).slice(8)).toEqual([0, 90, 180, 270]);
+});
+
 test('Extract: a new document of copies with their turns; the source keeps its pages', async ({
   page,
 }) => {

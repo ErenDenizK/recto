@@ -69,7 +69,6 @@ import { useOriginalStore } from './see-original';
 import styles from './TitleMenu.module.css';
 import {
   APP_ITEMS,
-  mergeFiles,
   rotateDocumentPages,
   rotateScope,
   rowGlyph,
@@ -472,8 +471,7 @@ function CommandRow({ id, tabIndex }: { readonly id: string; readonly tabIndex: 
 }
 
 function runRow(row: ShownRow): void {
-  if (row.entry.kind === 'merge') void mergeFiles();
-  else if (row.command) void commandRegistry.execute(row.command.id);
+  if (row.command) void commandRegistry.execute(row.command.id);
 }
 
 function Row({ row, tabIndex }: { readonly row: ShownRow; readonly tabIndex: number }) {

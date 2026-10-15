@@ -19,6 +19,7 @@ import {
 import { targetDocuments, targetPages } from '../commands/app-commands';
 import { type CommandRegistry, commandRegistry } from '../commands/registry';
 import { pickFiles } from '../files/open-files';
+import { combineWithPicker } from '../pages-sheets/combine-files';
 import { m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { useSelectionStore } from '../state/selection-store';
@@ -414,11 +415,25 @@ export function registerArrangeCommands(registry: CommandRegistry = commandRegis
       group: documents,
       act: null,
       keywords: ['combine', 'join', 'concatenate', 'append', 'one file', 'merge'],
-      when: () => model().workspace.documentOrder.length > 1,
-      // The title menu's row stays and says why while one document is open (RA-21).
-      reason: () => m.combine_needs_open(),
-      run: () => {
-        openOperationDialog({ kind: 'combine' });
+      // With one document open it asks for files to add first (MOB-10).
+      when: () => model().workspace.documentOrder.length > 0,
+      run: async () => {
+        if (model().workspace.documentOrder.length > 1) openOperationDialog({ kind: 'combine' });
+        // The picker needs this press's user activation: no await before it.
+        else await combineWithPicker();
+      },
+    }),
+    // ⌘K's Merge files… (MOB-10): Combine, asking for the files to add first. Not a title
+    // menu row (01-frame §5); the palette keeps the word people search for.
+    registry.register({
+      id: 'documents.mergeFiles',
+      title: m.menu_merge(),
+      group: documents,
+      act: null,
+      keywords: ['merge files', 'add files', 'pdf'],
+      when: () => model().workspace.documentOrder.length > 0,
+      run: async () => {
+        await combineWithPicker();
       },
     }),
     registry.register({
