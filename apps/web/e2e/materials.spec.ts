@@ -3,13 +3,14 @@
  * §2.4, §2.5; ADR-0028 §2.1; language.md §2.8), against the build Playwright serves.
  *
  * - **Without the render override** (the one spec that runs without it): a software
- *   rasteriser starts at Glass Tinted, any other at Clear, and `hardwareConcurrency ≤ 4` starts
- *   the cost ladder at step 2; eight cores start it at 0. The expected Glass comes from the
+ *   rasteriser starts at Glass Tinted, any other at Clear, and `hardwareConcurrency ≤ 4` with
+ *   the memory unknown starts the cost ladder at step 2 off an Apple GPU (GLS-10); eight cores
+ *   start it at 0. The expected Glass comes from the
  *   page's own WebGL renderer string, so the assertion holds on a GPU machine as on CI's
  *   software one.
  * - **A throttled run** (Chromium: CDP's CPU throttle): while the page is scrolled, more than a
- *   quarter of the frames in 2 s take over 20 ms, so the ladder steps, and holds the step once
- *   the input stops.
+ *   quarter of the frames in 2 s are slow (over 20 ms and 1.5 refresh intervals, GLS-10), so the
+ *   ladder steps, and holds the step once the input stops.
  * - **The settings the root carries**: Tinted lays the tint at 0.90 and keeps the blur; Solid
  *   paints the solid token with no filter; the person's choice wins over the start state.
  */
@@ -149,21 +150,22 @@ test.describe('the Glass setting on the root (language.md §2.8, A-17)', () => {
       const strip = await styleOf(page, '[data-testid="app-shell"] > header [data-top-piece]');
       if (glass === 'tinted') {
         expect(capsule.background).toMatch(/, 0\.9\)$/);
-        // σ 8 at the one 40 px piece height (G1), the capsule and the strip alike.
-        expect(capsule.filter).toMatch(/^blur\(8px\)/);
+        // σ 8 at the one 40 px piece height (G1), the capsule and the strip alike, rendered at
+        // three quarters (GLS-8).
+        expect(capsule.filter).toMatch(/^blur\(6px\)/);
         expect(strip.background).toMatch(/, 0\.9\)$/);
-        expect(strip.filter).toMatch(/^blur\(8px\)/);
+        expect(strip.filter).toMatch(/^blur\(6px\)/);
       } else {
         expect(capsule.background).toMatch(/^rgb\(/);
         expect(capsule.filter).toBe('none');
         expect(strip.background).toBe(capsule.background);
         expect(strip.filter).toBe('none');
       }
-      // No lens anywhere but an M1 chip (language.md §2.7, X20).
+      // No lens anywhere but an M1 chip or an M2 bar (language.md §2.7, X20, GLS-11).
       const lensed = await page.evaluate(() =>
         [...document.querySelectorAll('.lens')].map((el) => el.className),
       );
-      for (const name of lensed) expect(name).toMatch(/\bmat-chip\b/);
+      for (const name of lensed) expect(name).toMatch(/\bmat-(?:chip|bar)\b/);
     });
   }
 });

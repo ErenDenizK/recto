@@ -204,20 +204,27 @@
 
   /* Layer 2: materials (language.md §2.2–§2.4, ADR-0024), one per tier: a neutral tint whose
      alpha is its own token (Tinted overrides it, D3-3), the filter after the blur (σ comes per
-     surface from the coverage registry), the solid it falls back to, and its shadow. Over a
-     white page: chip #454648, bar #444548, panel #34363a, menu #36383c, sheet #34363b, every
-     one L ≤ 0.062, so primary text keeps ≥ 7.78:1 and glass-secondary ≥ 5.07:1. Over the
-     canvas the panel equals the frame (n3) exactly, so a docked panel at rest looks solid. Lit
-     glass is for surfaces no page passes under (Library cards, About), worst over the field's
-     brightest allowed pixel. */
-  --glass-chip-alpha: 0.5;
+     surface from the coverage registry), the solid it falls back to, and its shadow. Panel,
+     menu and sheet hold body text and never change their look: over a white page #34363a,
+     #36383c, #34363b, L ≤ 0.062, so primary text keeps ≥ 9.68:1 and glass-secondary ≥ 6.30:1.
+     Over the canvas the panel equals the frame (n3) exactly, so a docked panel at rest looks
+     solid. Chip and bar are CSS+ (GLS-7, GLS-8): a light tint (0.30) and a lighter filter, so
+     the page shows through at 0.34 of its contrast instead of 0.21, because they take the
+     adaptive look (GLS-9, `styles/adaptive-tone.ts`): over a page brighter than Y 0.45 they turn
+     light glass, so their dark look is proven up to that grey (#b4b4b4 → #454648, today's chip
+     over white: primary 7.78:1, glass-secondary 5.07:1) and over the aurora's brightest pixel,
+     and keeps primary text AA (5.19:1) over white for the moment before the look turns. Their
+     chain names contrast(1) so it matches the light chain function for function and the turn
+     can interpolate. Lit glass is for surfaces no page passes under (Library cards, About),
+     worst over the field's brightest allowed pixel. */
+  --glass-chip-alpha: 0.3;
   --glass-chip-tint: rgb(30 32 37 / var(--glass-chip-alpha));
-  --glass-chip-filter: saturate(1.9) brightness(0.42);
+  --glass-chip-filter: saturate(2.2) contrast(1) brightness(0.48);
   --glass-chip-solid: var(--n4);
   --glass-chip-shadow: var(--e2);
-  --glass-bar-alpha: 0.55;
+  --glass-bar-alpha: 0.3;
   --glass-bar-tint: rgb(32 34 39 / var(--glass-bar-alpha));
-  --glass-bar-filter: saturate(1.8) brightness(0.44);
+  --glass-bar-filter: saturate(2.2) contrast(1) brightness(0.48);
   --glass-bar-solid: var(--n4);
   --glass-bar-shadow: var(--e3);
   --glass-panel-alpha: 0.74;
@@ -240,22 +247,33 @@
   --glass-lit-filter: saturate(1.8) brightness(0.55);
   --glass-lit-solid: var(--n4);
   --glass-lit-shadow: var(--e3);
-  /* Rims (language.md §2.4): light from above. The edge holds the shape over a white page,
-     the inner light and the lit rim over the canvas, where M1 and M2 differ from it by only
-     1.06–1.08:1. */
-  --rim-edge: 0 0 0 1px rgb(0 0 0 / 0.5);
-  --rim-top: rgb(var(--white-rgb) / 0.34);
-  --rim-bottom: rgb(var(--white-rgb) / 0.14);
-  --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.12);
+  /* Rims (language.md §2.4; GLS-8): light from the top left, as research 23 §5.2's two lobes.
+     A dark outer edge of half a pixel holds the shape over a white page; the lit rim is the
+     border (top 0.42 and, through materials.css, the leading side, bottom 0.16); the inner
+     light is a hairline specular on the top-left inside edge (0.16), a weaker one on the
+     bottom-right (0.06) and a soft inner top light (0.10 fading within 12 px). All gradients
+     and shadows: no backdrop pass. */
+  --rim-edge: 0 0 0 0.5px rgb(0 0 0 / 0.6);
+  --rim-top: rgb(var(--white-rgb) / 0.42);
+  --rim-bottom: rgb(var(--white-rgb) / 0.16);
+  --rim-inner:
+    inset 0.5px 0.5px 0 rgb(var(--white-rgb) / 0.16),
+    inset -0.5px -0.5px 0 rgb(var(--white-rgb) / 0.06),
+    inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.1);
   /* The denser tiers' rims (§2.4): menus a 0.60 edge and a 0.30 / 0.10 rim, sheets and the
-     floating panel 0.24 / 0.08; docked M3 only an inner light of 0.06 under its hairline. */
+     floating panel 0.24 / 0.08; their inner light the same hairline and a fainter top light;
+     docked M3 only an inner light of 0.06 under its hairline. */
   --rim-edge-strong: 0 0 0 1px rgb(0 0 0 / 0.6);
   --rim-top-menu: rgb(var(--white-rgb) / 0.3);
   --rim-bottom-menu: rgb(var(--white-rgb) / 0.1);
-  --rim-inner-menu: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.1);
+  --rim-inner-menu:
+    inset 0 0.5px 0 rgb(var(--white-rgb) / 0.1),
+    inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.06);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.24);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.08);
-  --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.08);
+  --rim-inner-sheet:
+    inset 0 0.5px 0 rgb(var(--white-rgb) / 0.08),
+    inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.05);
   --rim-inner-docked: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.06);
   /* Elevation (language.md §6.3): e1 handles and badges, e2 chips, e3 bars and toasts, e4
      menus and popovers, e5 sheets. No coloured shadow and no glow on a control (S-5). */
@@ -490,20 +508,23 @@
   /* Layer 2: materials, light (language.md §2.2, ADR-0022 §2.4, G-25). Light glass is floored,
      not inverted: `contrast(0.45) brightness(1.4)` after the saturate lifts black under it to
      0.385 before the tint, so black is its worst backdrop as white is dark glass's. Over black:
-     chip and bar #cbcbcc, panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text
-     keeps ≥ 11.06:1 and glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd),
-     and the panel over the canvas lands within a level of the frame (n2). Lit glass is dark
-     only: in light its surfaces take the bar's values (spec 02.3), floored over any pigment.
-     M1 and M2 sit at the floor of primary text, APCA Lc 75 over black (alpha 0.69), so the
-     canvas and the aura show through them (system-audit-2026-10 §3.5); sheets stay paper. */
-  --glass-chip-alpha: 0.69;
+     panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text keeps ≥ 11.06:1 and
+     glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd), and the panel over
+     the canvas lands within a level of the frame (n2). Lit glass is dark only: in light its
+     surfaces keep the floored recipe (alpha 0.69, #cbcbcc over black, APCA Lc 75), floored
+     over any pigment. Chip and bar are CSS+ (GLS-7, GLS-8) and take the adaptive look (GLS-9):
+     under a page darker than Y 0.20 they turn dark glass, so their light look is floored at
+     that grey (#7c7c7c → #cccccd, Lc 75) and keeps primary text AA (5.06:1) over black for the
+     moment before the look turns; a 0.45 tint and contrast(0.75) let the page through at 0.55
+     of its contrast instead of 0.20. */
+  --glass-chip-alpha: 0.45;
   --glass-chip-tint: rgb(250 250 252 / var(--glass-chip-alpha));
-  --glass-chip-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+  --glass-chip-filter: saturate(1.6) contrast(0.75) brightness(1.33);
   --glass-chip-solid: var(--n1);
   --glass-chip-shadow: var(--e2);
-  --glass-bar-alpha: 0.69;
+  --glass-bar-alpha: 0.45;
   --glass-bar-tint: rgb(250 250 252 / var(--glass-bar-alpha));
-  --glass-bar-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+  --glass-bar-filter: saturate(1.6) contrast(0.75) brightness(1.33);
   --glass-bar-solid: var(--n1);
   --glass-bar-shadow: var(--e3);
   --glass-panel-alpha: 0.76;
@@ -526,13 +547,17 @@
   --glass-lit-filter: saturate(1.5) contrast(0.45) brightness(1.4);
   --glass-lit-solid: var(--n1);
   --glass-lit-shadow: var(--e3);
-  /* Rims (language.md §2.4, light): a thin ink edge outside holds the shape over a white page,
-     a white rim lit from above (0.85 at the top, 0.40 at the bottom) and a white inner light
-     (0.60) hold it over the canvas. Menus and sheets take a slightly firmer edge, as in dark. */
-  --rim-edge: 0 0 0 1px rgb(15 17 22 / 0.12);
-  --rim-top: rgb(var(--white-rgb) / 0.85);
-  --rim-bottom: rgb(var(--white-rgb) / 0.4);
-  --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
+  /* Rims (language.md §2.4, light; GLS-8): a half-pixel ink edge outside holds the shape over a
+     white page, a white rim lit from the top left (0.90 at the top, 0.50 at the bottom) and a
+     white inner light (0.70 top left, 0.35 bottom right, a soft top light of 0.50) hold it over
+     the canvas. Menus and sheets take a firmer edge and the plain hairline, as in dark. */
+  --rim-edge: 0 0 0 0.5px rgb(15 17 22 / 0.2);
+  --rim-top: rgb(var(--white-rgb) / 0.9);
+  --rim-bottom: rgb(var(--white-rgb) / 0.5);
+  --rim-inner:
+    inset 0.5px 0.5px 0 rgb(var(--white-rgb) / 0.7),
+    inset -0.5px -0.5px 0 rgb(var(--white-rgb) / 0.35),
+    inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.5);
   --rim-edge-strong: 0 0 0 1px rgb(15 17 22 / 0.14);
   --rim-top-menu: rgb(var(--white-rgb) / 0.85);
   --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
@@ -757,20 +782,23 @@
     /* Layer 2: materials, light (language.md §2.2, ADR-0022 §2.4, G-25). Light glass is floored,
        not inverted: `contrast(0.45) brightness(1.4)` after the saturate lifts black under it to
        0.385 before the tint, so black is its worst backdrop as white is dark glass's. Over black:
-       chip and bar #cbcbcc, panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text
-       keeps ≥ 11.06:1 and glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd),
-       and the panel over the canvas lands within a level of the frame (n2). Lit glass is dark
-       only: in light its surfaces take the bar's values (spec 02.3), floored over any pigment.
-       M1 and M2 sit at the floor of primary text, APCA Lc 75 over black (alpha 0.69), so the
-       canvas and the aura show through them (system-audit-2026-10 §3.5); sheets stay paper. */
-    --glass-chip-alpha: 0.69;
+       panel #d4d5d6, menu #d9d9da, sheet #e8e8ea, where primary text keeps ≥ 11.06:1 and
+       glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd), and the panel over
+       the canvas lands within a level of the frame (n2). Lit glass is dark only: in light its
+       surfaces keep the floored recipe (alpha 0.69, #cbcbcc over black, APCA Lc 75), floored
+       over any pigment. Chip and bar are CSS+ (GLS-7, GLS-8) and take the adaptive look (GLS-9):
+       under a page darker than Y 0.20 they turn dark glass, so their light look is floored at
+       that grey (#7c7c7c → #cccccd, Lc 75) and keeps primary text AA (5.06:1) over black for the
+       moment before the look turns; a 0.45 tint and contrast(0.75) let the page through at 0.55
+       of its contrast instead of 0.20. */
+    --glass-chip-alpha: 0.45;
     --glass-chip-tint: rgb(250 250 252 / var(--glass-chip-alpha));
-    --glass-chip-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+    --glass-chip-filter: saturate(1.6) contrast(0.75) brightness(1.33);
     --glass-chip-solid: var(--n1);
     --glass-chip-shadow: var(--e2);
-    --glass-bar-alpha: 0.69;
+    --glass-bar-alpha: 0.45;
     --glass-bar-tint: rgb(250 250 252 / var(--glass-bar-alpha));
-    --glass-bar-filter: saturate(1.5) contrast(0.45) brightness(1.4);
+    --glass-bar-filter: saturate(1.6) contrast(0.75) brightness(1.33);
     --glass-bar-solid: var(--n1);
     --glass-bar-shadow: var(--e3);
     --glass-panel-alpha: 0.76;
@@ -793,13 +821,17 @@
     --glass-lit-filter: saturate(1.5) contrast(0.45) brightness(1.4);
     --glass-lit-solid: var(--n1);
     --glass-lit-shadow: var(--e3);
-    /* Rims (language.md §2.4, light): a thin ink edge outside holds the shape over a white page,
-       a white rim lit from above (0.85 at the top, 0.40 at the bottom) and a white inner light
-       (0.60) hold it over the canvas. Menus and sheets take a slightly firmer edge, as in dark. */
-    --rim-edge: 0 0 0 1px rgb(15 17 22 / 0.12);
-    --rim-top: rgb(var(--white-rgb) / 0.85);
-    --rim-bottom: rgb(var(--white-rgb) / 0.4);
-    --rim-inner: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
+    /* Rims (language.md §2.4, light; GLS-8): a half-pixel ink edge outside holds the shape over a
+       white page, a white rim lit from the top left (0.90 at the top, 0.50 at the bottom) and a
+       white inner light (0.70 top left, 0.35 bottom right, a soft top light of 0.50) hold it over
+       the canvas. Menus and sheets take a firmer edge and the plain hairline, as in dark. */
+    --rim-edge: 0 0 0 0.5px rgb(15 17 22 / 0.2);
+    --rim-top: rgb(var(--white-rgb) / 0.9);
+    --rim-bottom: rgb(var(--white-rgb) / 0.5);
+    --rim-inner:
+      inset 0.5px 0.5px 0 rgb(var(--white-rgb) / 0.7),
+      inset -0.5px -0.5px 0 rgb(var(--white-rgb) / 0.35),
+      inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.5);
     --rim-edge-strong: 0 0 0 1px rgb(15 17 22 / 0.14);
     --rim-top-menu: rgb(var(--white-rgb) / 0.85);
     --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
@@ -1101,6 +1133,13 @@
   --glass-menu-alpha: 0.9;
   --glass-sheet-alpha: 0.9;
   --glass-lit-alpha: 0.9;
+}
+
+/* A piece the adaptive look turned (GLS-9) carries the other theme's block on itself, alphas
+   included, so Tinted reaches it here too. */
+:root[data-glass='tinted'] .mat[data-theme] {
+  --glass-chip-alpha: 0.9;
+  --glass-bar-alpha: 0.9;
 }
 
 @media (prefers-reduced-transparency: reduce) {
