@@ -1,8 +1,9 @@
 /**
- * The teaching sample's builder (docs/specs/redesign.md §11.5 D4-2; components/02-library.md
- * §11, "fixture verify"): deterministic, byte-identical to the files the app serves, within
- * the size cap, and shaped as the spec says (four pages, the form's fields, no text on the
- * scan page, the language, four outline entries, tagged).
+ * The teaching sample's builder (MOB-11, MOB-12; docs/design/sample-2026-10/technical.md §4):
+ * for each language and edition, deterministic and byte-identical to the file the app serves,
+ * within the caps, the manifest current, and shaped as the catalog says: its pages and
+ * outline, the form's fields on the agreement page, no text on the scan page, the cover's
+ * links to their pages, the language, tagged; and no full-only page in a phone file.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -11,29 +12,37 @@ import {
   PDFArray,
   PDFDict,
   PDFDocument,
+  PDFHexString,
   PDFName,
   PDFRawStream,
   PDFRef,
   PDFString,
 } from '@cantoo/pdf-lib';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { sha256 } from './lib/common.ts';
 import {
   SAMPLE_DIR,
-  SAMPLE_FIELDS,
+  SAMPLE_EDITIONS,
   SAMPLE_LOCALES,
+  SAMPLE_MANIFEST,
   SAMPLE_MAX_BYTES,
-  SAMPLE_PAGE_COUNT,
-  SAMPLE_SCAN_PAGE,
   buildSample,
+  buildSamples,
+  manifestText,
   sampleFile,
+  sizeProblems,
 } from './sample-fixture.ts';
+
+let built: Awaited<ReturnType<typeof buildSamples>>;
+
+beforeAll(async () => {
+  built = await buildSamples();
+}, 60_000);
 
 /** The decoded content of every stream a page's /Contents names. */
 function pageContent(doc: PDFDocument, index: number): string {
-  const page = doc.getPage(index);
-  const contents = page.node.get(PDFName.of('Contents'));
+  const contents = doc.getPage(index).node.get(PDFName.of('Contents'));
   const refs =
     contents instanceof PDFArray ? contents.asArray() : contents === undefined ? [] : [contents];
   return refs
@@ -47,61 +56,106 @@ function pageContent(doc: PDFDocument, index: number): string {
     .join('\n');
 }
 
-describe.each(SAMPLE_LOCALES)('the %s sample', (locale) => {
-  it('is deterministic and equals the file in apps/web/public/sample/', async () => {
-    const first = await buildSample(locale);
-    const second = await buildSample(locale);
-    expect(sha256(second)).toBe(sha256(first));
+const text = (value: unknown) =>
+  value instanceof PDFString || value instanceof PDFHexString ? value.decodeText() : undefined;
+
+describe('the four samples', () => {
+  it('stay within the caps, each and together', () => {
+    expect(sizeProblems(built.files)).toEqual([]);
+  });
+
+  it('match the committed manifest', () => {
     // Regenerate with `pnpm --filter @pdf-editor/fixtures-tool sample` after a change.
-    expect(sha256(readFileSync(join(SAMPLE_DIR, sampleFile(locale))))).toBe(sha256(first));
-  });
-
-  it('stays within the size cap', async () => {
-    const bytes = await buildSample(locale);
-    expect(bytes.length).toBeLessThanOrEqual(SAMPLE_MAX_BYTES);
-    expect(readFileSync(join(SAMPLE_DIR, sampleFile(locale))).length).toBeLessThanOrEqual(
-      SAMPLE_MAX_BYTES,
-    );
-  });
-
-  it('has four pages, the form, a scan with no text, the language and the outline', async () => {
-    const doc = await PDFDocument.load(await buildSample(locale), { updateMetadata: false });
-    expect(doc.getPageCount()).toBe(SAMPLE_PAGE_COUNT);
-    expect(doc.getTitle()).toBe(locale === 'en' ? 'Recto sample' : 'Recto örnek belge');
-    const lang = doc.catalog.get(PDFName.of('Lang'));
-    expect(lang instanceof PDFString ? lang.decodeText() : undefined).toBe(locale);
-
-    const fields = doc.getForm().getFields();
-    expect(fields.map((field) => field.getName())).toEqual([...SAMPLE_FIELDS]);
-    // Every field has an accessible name (/TU) and sits on page 2.
-    for (const field of fields) {
-      expect(field.acroField.dict.get(PDFName.of('TU'))).toBeDefined();
-      const [widget] = field.acroField.getWidgets();
-      expect(widget?.P()).toBe(doc.getPage(1).ref);
-    }
-
-    // The scan page is one image and no text operators; every other page shows text.
-    for (let i = 0; i < SAMPLE_PAGE_COUNT; i++) {
-      const content = pageContent(doc, i);
-      if (i === SAMPLE_SCAN_PAGE - 1) {
-        expect(content).not.toMatch(/\bBT\b/);
-        expect(content).toMatch(/\/Im1 Do/);
-      } else expect(content).toMatch(/\bBT\b/);
-    }
-
-    const outlines = doc.catalog.lookup(PDFName.of('Outlines'), PDFDict);
-    let item = outlines.get(PDFName.of('First'));
-    let count = 0;
-    while (item instanceof PDFRef) {
-      count += 1;
-      item = doc.context.lookup(item, PDFDict).get(PDFName.of('Next'));
-    }
-    expect(count).toBe(SAMPLE_PAGE_COUNT);
-
-    // Tagged: a structure tree and MarkInfo, with alt text on the scan.
-    expect(doc.catalog.get(PDFName.of('StructTreeRoot'))).toBeDefined();
-    expect(doc.catalog.lookup(PDFName.of('MarkInfo'), PDFDict).get(PDFName.of('Marked'))).toBe(
-      doc.context.obj(true),
-    );
+    expect(readFileSync(SAMPLE_MANIFEST, 'utf8')).toBe(manifestText(built.manifest));
   });
 });
+
+describe.each(SAMPLE_LOCALES.flatMap((l) => SAMPLE_EDITIONS.map((e) => [l, e] as const)))(
+  'the %s %s sample',
+  (locale, edition) => {
+    const file = sampleFile(locale, edition);
+    const entry = () => {
+      const found = built.manifest.files.find((f) => f.file === file);
+      if (!found) throw new Error(`no manifest entry for ${file}`);
+      return found;
+    };
+    const load = async () =>
+      PDFDocument.load(built.files.get(file) as Uint8Array, { updateMetadata: false });
+
+    it('is deterministic and equals the file in apps/web/public/sample/', async () => {
+      const again = await buildSample(locale, edition);
+      expect(sha256(again)).toBe(sha256(built.files.get(file) as Uint8Array));
+      expect(sha256(readFileSync(join(SAMPLE_DIR, file)))).toBe(sha256(again));
+      expect(again.length).toBeLessThanOrEqual(SAMPLE_MAX_BYTES[edition]);
+    });
+
+    it('has its pages, outline, language and title', async () => {
+      const doc = await load();
+      const m = entry();
+      expect(doc.getPageCount()).toBe(m.pageCount);
+      expect(m.pageCount).toBe(edition === 'full' ? 8 : 6);
+      expect(doc.getTitle()).toBe(locale === 'en' ? 'Recto sample' : 'Recto örnek belge');
+      expect(text(doc.catalog.get(PDFName.of('Lang')))).toBe(locale);
+      const titles: string[] = [];
+      let item = doc.catalog.lookup(PDFName.of('Outlines'), PDFDict).get(PDFName.of('First'));
+      while (item instanceof PDFRef) {
+        const dict = doc.context.lookup(item, PDFDict);
+        titles.push(text(dict.get(PDFName.of('Title'))) ?? '');
+        item = dict.get(PDFName.of('Next'));
+      }
+      expect(titles).toEqual(m.outline);
+      if (edition === 'phone')
+        for (const id of ['scan', 'invoice', 'flatplan']) expect(m.pages).not.toContain(id);
+    });
+
+    it('has the form on the agreement page, each field named for people', async () => {
+      const doc = await load();
+      const m = entry();
+      const fields = doc.getForm().getFields();
+      expect(fields.map((f) => f.getName())).toEqual(m.fields);
+      for (const field of fields) {
+        expect(field.acroField.dict.get(PDFName.of('TU'))).toBeDefined();
+        for (const widget of field.acroField.getWidgets())
+          expect(widget.P()).toBe(doc.getPage(m.formPage - 1).ref);
+      }
+    });
+
+    it('has text on every page but the scan, which is one image', async () => {
+      const doc = await load();
+      const m = entry();
+      for (let i = 0; i < m.pageCount; i++) {
+        const content = pageContent(doc, i);
+        if (m.scanPages.includes(i + 1)) {
+          expect(content).not.toMatch(/\bBT\b/);
+          expect(content).toMatch(/\/Im1 Do/);
+        } else expect(content).toMatch(/\bBT\b/);
+      }
+      expect(m.scanPages).toEqual(edition === 'full' ? [6] : []);
+    });
+
+    it('links the cover lines to their pages', async () => {
+      const doc = await load();
+      const m = entry();
+      const cover = doc.getPage(0);
+      const targets = cover.node
+        .Annots()
+        ?.asArray()
+        .map((ref) => doc.context.lookup(ref, PDFDict))
+        .filter((a) => a.get(PDFName.of('Subtype')) === PDFName.of('Link'))
+        .map((a) => {
+          const dest = a.lookup(PDFName.of('Dest'), PDFArray);
+          return doc.getPages().findIndex((p) => p.ref === dest.get(0)) + 1;
+        });
+      expect(targets).toEqual(m.coverLinks);
+      expect(m.coverLinks).toEqual([3, 4, 5]);
+    });
+
+    it('is tagged', async () => {
+      const doc = await load();
+      expect(doc.catalog.get(PDFName.of('StructTreeRoot'))).toBeDefined();
+      expect(doc.catalog.lookup(PDFName.of('MarkInfo'), PDFDict).get(PDFName.of('Marked'))).toBe(
+        doc.context.obj(true),
+      );
+    });
+  },
+);
