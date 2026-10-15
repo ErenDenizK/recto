@@ -4,7 +4,8 @@
  *
  * - **Without the render override** (the one spec that runs without it): a software
  *   rasteriser starts at Glass Tinted, any other at Clear, and `hardwareConcurrency ≤ 4` with
- *   the memory unknown starts the cost ladder at step 2 off an Apple GPU (GLS-10); eight cores
+ *   the memory unknown starts the cost ladder at step 2 off an Apple GPU and at 0 on one (GLS-10;
+ *   WebKit names its GPU Apple's on every platform); eight cores
  *   start it at 0. The expected Glass comes from the
  *   page's own WebGL renderer string, so the assertion holds on a GPU machine as on CI's
  *   software one.
@@ -21,6 +22,8 @@ import { emulateCores, useRenderOverride, withoutRenderOverride } from './suppor
 
 /** language.md §2.8, G-32 (`state/render-quality.ts`, kept in step by hand). */
 const SOFTWARE_RENDERER = /swiftshader|llvmpipe|software|basic render driver/i;
+/** GLS-10's Apple GPU, which four cores do not step down (`state/render-quality.ts`). */
+const APPLE_GPU = /\bapple\b/i;
 
 /** The page's WebGL renderer, as the app's start-state probe reads it. */
 const rendererOf = (page: Page) =>
@@ -49,16 +52,25 @@ async function openManyPages(page: Page): Promise<void> {
 }
 
 test.describe('start states, without the render override (X36)', () => {
-  test('a software rasteriser starts at Tinted, four cores at ladder step 2', async ({ page }) => {
+  test('a software rasteriser starts at Tinted, four cores off an Apple GPU at ladder step 2', async ({
+    page,
+  }) => {
     await withoutRenderOverride(page);
     await emulateCores(page, 4);
     await page.goto('./?lang=en');
     await expect(page.getByTestId('app-shell')).toBeVisible();
     const renderer = await rendererOf(page);
     const expected = SOFTWARE_RENDERER.test(renderer) ? 'tinted' : 'clear';
-    test.info().annotations.push({ type: 'renderer', description: `${renderer} → ${expected}` });
+    // GLS-10: Safari names every GPU Apple's (WebKit on CI's Linux too) and reports four cores
+    // on every iPhone, so four cores with the memory unknown start at 0 there.
+    const apple = APPLE_GPU.test(renderer);
+    test.info().annotations.push({
+      type: 'renderer',
+      description: `${renderer} → ${expected}, ladder ${apple ? 0 : 2}`,
+    });
     await expect(page.locator('html')).toHaveAttribute('data-glass', expected);
-    await expect(page.locator('html')).toHaveAttribute('data-degrade', '2');
+    if (apple) await expect(page.locator('html')).not.toHaveAttribute('data-degrade', /.*/);
+    else await expect(page.locator('html')).toHaveAttribute('data-degrade', '2');
     // The Settings row shows the start state as the setting in force, with nothing stored.
     expect(
       await page.evaluate(() => localStorage.getItem('pdf-editor:appearance:v1') ?? 'null'),

@@ -292,21 +292,84 @@ export function glassModel(style: GlassStyle, backdrop: Rgb, mass = 1): Rgb {
   ];
 }
 
+/** One inset `box-shadow` layer, as the engine computed it. */
+export interface InsetShadow {
+  readonly rgb: Rgb;
+  readonly alpha: number;
+  readonly x: number;
+  readonly y: number;
+  readonly blur: number;
+  readonly spread: number;
+}
+
+/** The inset layers of a computed `box-shadow` (outer shadows and `none` give none). */
+export function insetShadows(value: string): InsetShadow[] {
+  const layers: string[] = [];
+  let depth = 0;
+  let from = 0;
+  for (let i = 0; i < value.length; i++) {
+    if (value[i] === '(') depth++;
+    else if (value[i] === ')') depth--;
+    else if (value[i] === ',' && depth === 0) {
+      layers.push(value.slice(from, i));
+      from = i + 1;
+    }
+  }
+  layers.push(value.slice(from));
+  return layers
+    .filter((layer) => /\binset\b/.test(layer))
+    .map((layer) => {
+      const colour = /(rgba?\([^)]*\)|#[0-9a-f]{6})/i.exec(layer)?.[1] ?? 'rgb(0 0 0 / 0)';
+      const lengths = [...layer.replace(colour, '').matchAll(/(-?[\d.]+)px/g)].map(([, n]) =>
+        Number(n),
+      );
+      const [x = 0, y = 0, blur = 0, spread = 0] = lengths;
+      const { rgb, alpha } = parseTint(colour);
+      return { rgb, alpha, x, y, blur, spread };
+    });
+}
+
+/**
+ * The inner top light of GLS-8's rim (`--rim-inner`: `inset 0 12px 12px -12px`, white 0.10 in
+ * dark, 0.50 in light) over `under` at `y` CSS px below the padding box's top: each inset layer
+ * pushed down (y > 0) is a hole whose top edge sits at y + spread, and the light falls off past
+ * it as the Gaussian of σ = blur / 2 that CSS gives a shadow's blur, so at the 4 px edge sample
+ * it still adds several levels. The hairlines (a 0.5 px offset, no blur) end above the sample.
+ * The sides, far from a wide piece's middle, are left out.
+ */
+export function insetTopLight(shadows: readonly InsetShadow[], under: Rgb, y: number): Rgb {
+  let lit: [number, number, number] = [under[0], under[1], under[2]];
+  for (const s of shadows) {
+    if (s.y <= 0 || s.x !== 0) continue;
+    const edge = s.y + s.spread;
+    const share =
+      s.blur > 0 ? (1 - erf((y - edge) / (Math.SQRT2 * (s.blur / 2)))) / 2 : y < edge ? 1 : 0;
+    const a = s.alpha * share;
+    lit = [0, 1, 2].map((i) => (1 - a) * (lit[i] ?? 0) + a * s.rgb[i as 0 | 1 | 2]) as [
+      number,
+      number,
+      number,
+    ];
+  }
+  return lit.map((v) => Math.round(clamp(v))) as unknown as Rgb;
+}
+
 /** The largest per-channel difference between two colours, in 8-bit levels. */
 export function channelDistance(a: Rgb, b: Rgb): number {
   return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
 }
 
 /**
- * How far `sample` lies outside the per-channel range between `a` and `b`, in 8-bit levels (0
- * when every channel lies between them): an edge sample against the span from the model without
- * a leak to the model with the leak the coverage term predicts.
+ * How far `sample` lies outside the per-channel range the `bounds` span, in 8-bit levels (0
+ * when every channel lies within it): an edge sample against the span from the model without
+ * a leak to the model with the leak the coverage term predicts, each with and without the inner
+ * top light where it reaches the sample.
  */
-export function rangeDistance(sample: Rgb, a: Rgb, b: Rgb): number {
+export function rangeDistance(sample: Rgb, ...bounds: readonly Rgb[]): number {
   return Math.max(
     ...([0, 1, 2] as const).map((i) => {
-      const lo = Math.min(a[i], b[i]);
-      const hi = Math.max(a[i], b[i]);
+      const lo = Math.min(...bounds.map((b) => b[i]));
+      const hi = Math.max(...bounds.map((b) => b[i]));
       return sample[i] < lo ? lo - sample[i] : sample[i] > hi ? sample[i] - hi : 0;
     }),
   );

@@ -23,7 +23,9 @@
  *   the coverage term predicts at that point (`support/pixels.ts`): an engine that clamps the
  *   blur at the surface renders the model there, Chromium lets the unfiltered backdrop in as
  *   the Gaussian mass outside the surface grows, and anything past that span (a blur reading
- *   beyond the sharp edge's band, a lost filter, a wrong tint) fails;
+ *   beyond the sharp edge's band, a lost filter, a wrong tint) fails; at the top the span also
+ *   reaches the rim's inner top light (GLS-8, `inset 0 12px 12px -12px`), modelled from the
+ *   surface's computed `box-shadow` at the sample's first row;
  * - primary and secondary text at least 4.5:1 on what rendered at the centre (A-1);
  * - and the surface's computed tint and filter equal to its tokens, so a module rule that drifts
  *   from the registry shows here.
@@ -56,6 +58,8 @@ import {
   glassModel,
   glassStyle,
   hex,
+  insetShadows,
+  insetTopLight,
   median4x4,
   parseTint,
   type Rgb,
@@ -472,16 +476,33 @@ test.describe('every coverage registry entry in the rendered-pixel harness', () 
                 .soft(secondaryRatio, `${scene}: secondary text on ${hex(atCentre)}`)
                 .toBeGreaterThanOrEqual(4.5);
 
+              // The rim's inner top light (GLS-8) still reaches the top sample: the span takes it
+              // in up to its strength at the sample's first row, so the light, decided, does not
+              // eat the ±4 an engine's blur and rounding are given.
+              const { shadows, borderTop } = await surface.evaluate((el) => {
+                const style = getComputedStyle(el);
+                return {
+                  shadows: style.boxShadow,
+                  borderTop: Number.parseFloat(style.borderTopWidth) || 0,
+                };
+              });
+              const inset = insetShadows(shadows);
               let widest = 0;
               const edgeNotes: string[] = [];
               for (const edge of edges) {
                 const sample = median4x4(image, origin.x + edge.x, origin.y + edge.y);
                 const mass = coverageAt(sigma, width, height, edge.x + 2, edge.y + 2);
                 const leak = glassModel(tokens, under, mass);
+                const firstRow = edge.y + 0.5 - borderTop;
+                const lit =
+                  edge.side === 'top'
+                    ? [insetTopLight(inset, model, firstRow), insetTopLight(inset, leak, firstRow)]
+                    : [];
+                const litNote = lit[0] ? ` lit to ${hex(lit[0])}` : '';
                 expect
                   .soft(
-                    rangeDistance(sample, model, leak),
-                    `${scene}: ${edge.side} edge ${hex(sample)} against ${hex(model)} to ${hex(leak)} (m ${mass.toFixed(3)})`,
+                    rangeDistance(sample, model, leak, ...lit),
+                    `${scene}: ${edge.side} edge ${hex(sample)} against ${hex(model)} to ${hex(leak)}${litNote} (m ${mass.toFixed(3)})`,
                   )
                   .toBeLessThanOrEqual(4);
                 widest = Math.max(widest, channelDistance(sample, atCentre));
