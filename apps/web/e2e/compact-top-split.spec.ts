@@ -369,8 +369,9 @@ test.describe('the split top (DSN-34)', () => {
     await bar.getByRole('button', { name: 'Next result' }).click();
     await expect(page.getByTestId('compact-find-count')).toHaveText(/^2 of \d+$/);
 
-    // A keyboard rises: the bar rides 8 px above it, by layout.
-    const keyboard = 336;
+    // A keyboard rises (40 % of the screen's height, as compact-text.spec.ts simulates it): the
+    // bar rides 8 px above it, by layout.
+    const keyboard = Math.round(view.height * 0.4);
     await simulateKeyboard(page, keyboard);
     await expect
       .poll(() =>
