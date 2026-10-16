@@ -273,16 +273,19 @@ export function rimColorsOf(el: Element): RimColors {
   };
 }
 
-/** The rim's stroke, CSS px: centred on the outline, the mask keeps its inner pixel. */
-export const RIM_STROKE = 2;
+/** The rim's stroke, CSS px: centred on the outline, the mask keeps its inner half. */
+export const RIM_STROKE = 3;
+/** Its blur, CSS px (GLS-22): the light falls off inwards from the outline, no hard line. */
+export const RIM_SOFTEN = 0.8;
 
 /**
  * The rim of a fused body (GLS-8's rim on a liquid outline, DSN-42): the outline stroked
- * `RIM_STROKE` px wide, centred on it, so the element's own mask keeps the inner pixel, as the
- * material's 1 px border, in the same top-lit gradient: the tier's rim at the top, 60 % of it on
+ * `RIM_STROKE` px wide, centred on it, so the element's own mask keeps its inner half, in the
+ * material's top-lit gradient: the tier's rim at the top, 60 % of it on
  * the way down, the foot's weaker lobe at the bottom, the top and the foot held over 8 px as
- * `.mat-lit::before` holds them. A background image for a layer over the glass, never a
- * box-shadow (a mask cuts a box's shadows to the box's corners).
+ * the material's rim did. Since GLS-22 the stroke is blurred (`RIM_SOFTEN`), so it is brightest
+ * at the outline and falls off inwards as the material's soft rim does. A background image for
+ * a layer over the glass, never a box-shadow (a mask cuts a box's shadows to the box's corners).
  */
 export function outlineRim(outline: LiquidOutline | null, rim: RimColors): string {
   if (!outline) return 'none';
@@ -297,9 +300,10 @@ export function outlineRim(outline: LiquidOutline | null, rim: RimColors): strin
       stop(held, rim.top, 0.6) +
       stop(1 - held, rim.bottom, 0.8) +
       stop(1, rim.bottom) +
-      `</linearGradient></defs>` +
+      `</linearGradient><filter id="s" x="-5%" y="-5%" width="110%" height="110%">` +
+      `<feGaussianBlur stdDeviation="${RIM_SOFTEN}"/></filter></defs>` +
       `<path transform="translate(${-pad} ${-pad})" d="${d}" fill="none" stroke="url(#r)" ` +
-      `stroke-width="${RIM_STROKE}" stroke-linejoin="round"/></svg>`,
+      `stroke-width="${RIM_STROKE}" stroke-linejoin="round" filter="url(#s)"/></svg>`,
   );
 }
 

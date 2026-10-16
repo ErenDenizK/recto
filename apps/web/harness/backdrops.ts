@@ -64,37 +64,6 @@ export interface HarnessQuery {
   readonly theme: Theme;
 }
 
-/**
- * The adaptive look (decisions GLS-9, `src/styles/adaptive-tone.ts`, whose test keeps these in
- * step): chips and bars turn light glass over a backdrop brighter than Y 0.45 and dark below
- * 0.20, never under Solid. The harness lays the look on the surface as the app's runtime would,
- * and the spec models that look.
- */
-export const ADAPTIVE_LOOK = { tiers: ['chip', 'bar'], lightAbove: 0.45, darkBelow: 0.2 } as const;
-
-/** WCAG relative luminance of 8-bit sRGB. */
-function luminanceOf(rgb: readonly [number, number, number]): number {
-  const lin = (v: number) => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
-}
-
-/** The look a surface of `tier` takes over `under` in `theme` (its own unless it turns). */
-export function lookOver(
-  tier: string,
-  theme: Theme,
-  glass: GlassMode,
-  under: readonly [number, number, number],
-): Theme {
-  if (glass === 'solid' || !(ADAPTIVE_LOOK.tiers as readonly string[]).includes(tier)) return theme;
-  const y = luminanceOf(under);
-  if (theme === 'dark' && y > ADAPTIVE_LOOK.lightAbove) return 'light';
-  if (theme === 'light' && y < ADAPTIVE_LOOK.darkBelow) return 'dark';
-  return theme;
-}
-
 /** The harness URL's search part for one surface. */
 export function harnessSearch(query: HarnessQuery): string {
   const params = new URLSearchParams({

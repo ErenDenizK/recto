@@ -9,7 +9,7 @@ Target branch: `develop` (milestone merges into `main` are done by maintainers).
 
 ## Why
 
-<!-- The problem this solves or the decision it implements. -->
+<!-- The problem this solves: the owner brief item and the decision ids (docs/process/decisions.md). -->
 
 ## How tested
 
@@ -24,9 +24,15 @@ browsers used. -->
 
 <!-- Link the ADR for any architectural change (docs/adr/), or write "None". -->
 
+## Decisions
+
+<!-- Rows added or superseded in docs/process/decisions.md, or "None". -->
+
 ## Checklist
 
+<!-- Delete the rows that do not apply (PRC-18). -->
+
 - [ ] A Changeset is included (`pnpm changeset`), or this change is not user-visible.
-- [ ] `pnpm run ci` passes locally.
+- [ ] Format, lint, typecheck and the covering tests pass locally; CI runs the full matrix.
 - [ ] Tests cover the changed behavior.
 - [ ] Keyboard path, focus management and ARIA are handled for new controls.

@@ -147,7 +147,7 @@
 /* Dragging, the window is the target: a dashed accent line round the piece, which lifts, and
    the line says what a release does. */
 .piece[data-dragging] {
-  --shadow-own: var(--rim-edge), var(--rim-inner), var(--e3);
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--e3);
   outline: 2px dashed var(--accent-line);
   outline-offset: var(--space-1);
   transform: translateY(calc(-1 * var(--space-half)));

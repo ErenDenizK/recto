@@ -329,12 +329,9 @@ test.describe('the capsule morph (Q-6)', () => {
         const d = distance(pixel(mid, x, y), pixel(bare, x, y));
         check(d <= 4, `outside +8 px at ${x.toFixed(1)}, ${y.toFixed(1)}: ${d}/255 from the page`);
       }
-      // Inside: the stripes are gone (blurred), and it is glass in the look the page under it
-      // asks for (GLS-9): light over a light page, else darkened.
-      const light =
-        (await page.locator('[data-capsule]').getAttribute('data-theme')) === 'light' ||
-        ((await page.locator('html').getAttribute('data-theme')) === 'light' &&
-          !(await page.locator('[data-capsule]').getAttribute('data-theme')));
+      // Inside: the stripes are gone (blurred), and it is glass in the theme's tone (GLS-20):
+      // light in the light theme, else darkened.
+      const light = (await page.locator('html').getAttribute('data-theme')) === 'light';
       const r = box.height / 2;
       for (const x of [box.x + r, box.x + box.width / 2, box.x + box.width - r]) {
         const ys: number[] = [];
