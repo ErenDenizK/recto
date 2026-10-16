@@ -128,6 +128,17 @@ function tabRoom(
 }
 
 /**
+ * The note after the tabs at the width it rests at: its text in full, up to its `max-width`
+ * (TopStrip.module.css `.note`). Never its drawn width: in a squeezed tabs piece the note
+ * gives way to the tabs, so it is narrower with all of them showing than with some in "N
+ * more", and a room read from it would hold whichever of the two came first (DSN-49).
+ */
+function noteWidth(note: HTMLElement): number {
+  const cap = Number.parseFloat(getComputedStyle(note).maxWidth);
+  return Math.min(note.scrollWidth, Number.isFinite(cap) ? cap : Number.POSITIVE_INFINITY);
+}
+
+/**
  * Marks a tab's name once its fade-in ended, so moving the tab in the DOM (a reorder) does not
  * play it again: re-inserting an element restarts its CSS animations (TopStrip.module.css).
  */
@@ -200,8 +211,7 @@ export function DocumentTabs({
       const gap = lengthVar(region, '--tab-gap', TAB_GAP_FINE);
       const width = side && strip ? tabRoom(region, side, strip, trail) : region.clientWidth;
       const note = region.querySelector<HTMLElement>('[data-strip-note]');
-      const room =
-        width - (plus ? plus.offsetWidth + 8 : 0) - (note ? note.offsetWidth + 4 : 0) - 4;
+      const room = width - (plus ? plus.offsetWidth + 8 : 0) - (note ? noteWidth(note) + 4 : 0) - 4;
       const fit = tabCapacity(
         documents.length,
         room,
