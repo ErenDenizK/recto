@@ -156,7 +156,8 @@ redesigns: `mode_*`, `view_*`, `bar_group_*`, `menu_section_*`, …; 12 freed he
 
 1. The phone Library has no way to Settings before a file is open: the language follows the
    browser, and About (from the reader's ⋯) changes it. Should the phone Library get a small ⋯
-   (Settings, About)?
+   (Settings, About)? *Built as DSN-51: a ⋯ circle at the reader's ⋯ place opens About and its
+   settings rows; the glyph and its name stay the owner's taste.*
 2. Context menus still repeat page commands (Crop, Resize, Insert, Rotate) for the pressed
    page. Kept as the platform convention; the owner may want them thinner.
 3. The split top's ⋯ on a file without an outline holds only About Recto. Keep it, or fold
