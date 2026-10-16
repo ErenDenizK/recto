@@ -81,13 +81,27 @@ function lengthVar(element: Element, name: string, fallback: number): number {
 }
 
 /**
- * The widest the tab region may grow inside the leading piece (TopStrip.module.css): the piece
- * at its maximum (`--lead-max`, and never closer to the trailing piece than the strip's gap)
- * less what else the piece holds (◆ ▤, the grid's page count, its padding and gaps).
+ * A side of the strip at rest (TopStrip.module.css, DSN-49): its pieces' resting widths and
+ * the gaps between them. A piece whose width is moving (motion/resize.ts) is read where it is
+ * going.
+ */
+function sideWidth(side: HTMLElement): number {
+  const pieces = [...side.children].filter(
+    (el): el is HTMLElement => el instanceof HTMLElement && el.offsetWidth > 0,
+  );
+  const gap = Number.parseFloat(getComputedStyle(side).columnGap) || 0;
+  return pieces.reduce((sum, el) => sum + restingWidth(el), 0) + gap * (pieces.length - 1);
+}
+
+/**
+ * The widest the tab region may grow inside the tabs piece (TopStrip.module.css): the leading
+ * side at its maximum (`--lead-max`, and never closer to the trailing side than the strip's
+ * gap) less everything else on it (◆ ▤ and the gaps between the pieces, the tabs piece's
+ * padding, the grid's page count).
  */
 function tabRoom(
   region: HTMLElement,
-  piece: HTMLElement,
+  side: HTMLElement,
   strip: HTMLElement,
   trail: HTMLElement | null,
 ): number {
@@ -99,10 +113,18 @@ function tabRoom(
   const between = Number.parseFloat(style.columnGap) || 0;
   const widest = Math.min(
     lengthVar(strip, '--lead-max', inner),
-    inner - (trail ? restingWidth(trail) + between : 0),
+    inner - (trail ? sideWidth(trail) + between : 0),
   );
-  // A piece whose width is moving (motion/resize.ts) is read where it is going.
-  return widest - (restingWidth(piece) - region.offsetWidth);
+  // The tabs piece is read by its frame (padding and rim), never its width: squeezed, it is
+  // narrower than its tabs, and the room it leaves would read as room for more of them.
+  const piece = region.parentElement;
+  if (!piece) return widest - (sideWidth(side) - region.offsetWidth);
+  const own = getComputedStyle(piece);
+  const frame = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'].reduce(
+    (sum, key) => sum + (Number.parseFloat(own[key as 'paddingLeft']) || 0),
+    0,
+  );
+  return widest - (sideWidth(side) - restingWidth(piece)) - frame;
 }
 
 /**
@@ -165,18 +187,18 @@ export function DocumentTabs({
 
   // How many tabs fit: the room the floating pieces leave the region (TopStrip.module.css),
   // less + (and the chip when it shows). The region hugs its tabs, so its own width is not the
-  // room: that is the leading piece at its widest less the piece's other parts (`tabRoom`).
+  // room: that is the leading side at its widest less its other parts (`tabRoom`).
   useLayoutEffect(() => {
     const region = regionRef.current;
     if (!region) return;
-    const piece = region.closest<HTMLElement>('[data-top-piece]');
-    const strip = piece?.parentElement ?? null;
-    const trail = strip?.querySelector<HTMLElement>('[data-top-piece="trail"]') ?? null;
+    const side = region.closest<HTMLElement>('[data-top-side]');
+    const strip = side?.parentElement ?? null;
+    const trail = strip?.querySelector<HTMLElement>('[data-top-side="trail"]') ?? null;
     const measure = () => {
       const plus = region.querySelector<HTMLElement>('[data-strip-open]');
       const chip = region.querySelector<HTMLElement>('[data-testid="tab-overflow"]');
       const gap = lengthVar(region, '--tab-gap', TAB_GAP_FINE);
-      const width = piece && strip ? tabRoom(region, piece, strip, trail) : region.clientWidth;
+      const width = side && strip ? tabRoom(region, side, strip, trail) : region.clientWidth;
       const note = region.querySelector<HTMLElement>('[data-strip-note]');
       const room =
         width - (plus ? plus.offsetWidth + 8 : 0) - (note ? note.offsetWidth + 4 : 0) - 4;
@@ -195,7 +217,7 @@ export function DocumentTabs({
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(region);
-    for (const el of [piece, strip, trail]) if (el) observer.observe(el);
+    for (const el of [side, strip, trail]) if (el) observer.observe(el);
     return () => observer.disconnect();
   }, [documents.length]);
 

@@ -9,7 +9,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, sessionSettled, useFileInputPicker } from './helpers';
+import { atRest, fixturePath, openFixtures, sessionSettled, useFileInputPicker } from './helpers';
 
 interface Rect {
   readonly left: number;
@@ -229,16 +229,33 @@ test.describe('the frame per class', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     const top = page.locator('[data-region="top"]');
     await expect(top).toHaveAttribute('aria-label', 'Document bar');
-    // Two floating pieces, one piece high (40 px fine, G1) and inset 16 px like the dock (owner
-    // feedback F1): the strip's box, the free rectangle's top, is the inset and a piece.
+    // Separate floating pieces (DSN-49: ◆, ▤, the tabs │ Find, ↶ ↷, Save, ◎), one piece high
+    // (40 px fine, G1) and inset 16 px like the dock (owner feedback F1), 8 px apart on each
+    // side: the strip's box, the free rectangle's top, is the inset and a piece.
     await expect(top).toHaveCSS('height', '56px');
     await expect(top).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     const pieces = top.locator('[data-top-piece]');
-    await expect(pieces).toHaveCount(2);
+    await expect(pieces).toHaveCount(7);
+    await atRest(top);
+    const boxes = [];
     for (const piece of await pieces.all()) {
       await expect(piece).toHaveCSS('height', '40px');
       const box = await piece.boundingBox();
       expect(box?.y).toBe(16);
+      if (box) boxes.push(box);
+    }
+    // ◆ ▤ ⌕-or-field ◎ are circles; the gaps between neighbours on a side are 8 px.
+    for (const i of [0, 1, 6]) expect(boxes[i]?.width).toBe(40);
+    for (const [a, b] of [
+      [0, 1],
+      [1, 2],
+      [3, 4],
+      [4, 5],
+      [5, 6],
+    ] as const) {
+      const left = boxes[a];
+      const right = boxes[b];
+      expect(left && right ? Math.round(right.x - (left.x + left.width)) : 0).toBe(8);
     }
     expect((await pieces.first().boundingBox())?.x).toBe(16);
     const trail = await pieces.last().boundingBox();

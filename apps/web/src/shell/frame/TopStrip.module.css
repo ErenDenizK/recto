@@ -1,6 +1,7 @@
 /*
- * The top strip (01-frame F2–F4, F6; owner feedback 2026-10-08, F1): no band, two floating
- * glass pieces over the canvas. Each is a piece of the one floating scale (owner feedback
+ * The top strip (01-frame F2–F4, F6; owner feedback 2026-10-08, F1; R21 brief B-4, DSN-49): no
+ * band, separate floating glass pieces over the canvas, in two sides. Each is a piece of the
+ * one floating scale (owner feedback
  * 2026-10-09, G1; tokens.css --piece-*): --piece-h high (40 px around 32 px controls on a fine
  * pointer, 48 around 44 on a coarse one), --piece-pad inside the rim, the capsule radius and the
  * bottom capsule's material, so the frame reads as one family top and bottom: every control
@@ -32,16 +33,46 @@
 }
 
 /*
- * A piece: M2 glass (`mat mat-bar s8 c9`, coverage registry `top-strip`), as the capsule.
- * The two pieces count as the one top-strip surface of quality-bar Q-11's budget
- * (`data-glass-group`): together they cover less than the band they replace.
+ * A side: the leading pieces (◆ ▤ tabs) or the trailing ones (Find, ↶ ↷, Save, ◎; on the
+ * Library ⋯), --space-2 apart as the bottom capsule stands from ✎ (DSN-49). No surface of its
+ * own: the canvas shows between its pieces.
+ */
+.side {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  height: var(--piece-h);
+}
+
+/* In a narrow window the pieces stand closer (still apart), so separate pieces need no more
+   room than the two pieces they replaced did (DSN-49, XD-3). */
+@media (max-width: 899.98px) {
+  .side {
+    gap: var(--space-1);
+  }
+}
+
+/* The leading side hugs its tabs up to --lead-max and gives way to the trailing one. */
+.side[data-top-side='lead'] {
+  flex: 0 1 auto;
+  max-width: min(var(--lead-max), 100%);
+}
+
+/*
+ * A capsule piece around a group (the tabs, ↶ ↷, Save, the Library's ◆ Library): M2 glass
+ * (`mat mat-bar s8 c9`, coverage registry `top-strip`), as the capsule. All the pieces count
+ * as the one top-strip surface of quality-bar Q-11's budget (`data-glass-group`): together
+ * they cover less than the band they replace.
  */
 .piece {
   composes: mat mat-bar s8 c9 from global;
 }
 
-/* A piece of one control (the Library's ⋯, R11): a circle of --piece-h, too small for σ 8
-   without the page leaking at its edges, so σ 7 (8 coarse; registry `top-strip-solo`). */
+/* A piece of one control (◆, ▤, ⌕ and Find's field, ◎, the Library's ⋯; R11, DSN-49): a
+   circle of --piece-h, too small for σ 8 without the page leaking at its edges, so σ 7 (8
+   coarse; registry `top-strip-solo`). */
 .solo {
   composes: mat mat-bar s7 c8 from global;
 }
@@ -71,15 +102,14 @@
   overflow: clip;
 }
 
-.piece.trail,
-.solo.trail {
+.trail .piece,
+.trail .solo {
   justify-content: flex-end;
 }
 
-/* The leading piece hugs its tabs up to --lead-max and gives way to the trailing one. */
-.piece[data-top-piece='lead'] {
+/* The tabs piece takes what the side leaves after ◆ ▤; its tabs shrink, then fold. */
+.piece[data-top-piece='tabs'] {
   flex: 0 1 auto;
-  max-width: min(var(--lead-max), 100%);
 }
 
 /* Under a modal scrim (dim only, G-31) the pieces rest on their solid twin, as the docked frame
@@ -92,24 +122,6 @@
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   background: var(--mat-solid);
-}
-
-.lead,
-.trail {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-target);
-  flex: none;
-}
-
-.trail {
-  gap: var(--space-2);
-}
-
-@media (pointer: coarse), (any-pointer: coarse) {
-  .trail {
-    gap: var(--gap-target);
-  }
 }
 
 /* Chrome toggles in the strip are neutral (▤ open): the n5 fill, never lime
@@ -169,7 +181,7 @@
 }
 
 /*
- * Tabs (F4). The region hugs its tabs inside the leading piece, which grows with them up to
+ * Tabs (F4). The region hugs its tabs inside the tabs piece, which grows with them up to
  * its maximum; DocumentTabs measures the room the pieces leave (never the region itself, whose
  * width follows its tabs) to decide how many tabs fit (tab-overflow.ts). "N more" and + come
  * right after the tabs.
@@ -703,15 +715,15 @@
 
 /* In a floating piece the opened field takes its place in the piece, which grows to hold it
    (a well inside the piece's glass, never over the bare canvas); ⌕ steps out of sight but
-   keeps focus for Esc to return to. The leading piece gives way (DocumentTabs re-measures). */
-.piece .find[data-open] .findWell {
+   keeps focus for Esc to return to. The tabs piece gives way (DocumentTabs re-measures). */
+:is(.piece, .solo) .find[data-open] .findWell {
   position: static;
 }
 
 /* While the piece's width springs open (motion/resize.ts) its moving edge would cut through the
    placeholder a letter at a time: the well's contents fade in a beat behind the edge instead
    (motion-2026-10 frame.md §3), so the field reads as one shape growing, then filling. */
-.piece .find[data-open] .findWell > * {
+:is(.piece, .solo) .find[data-open] .findWell > * {
   animation: find-content-in var(--duration-slow) var(--ease-out) var(--duration-instant) backwards;
 }
 
@@ -721,7 +733,7 @@
   }
 }
 
-.piece .find[data-open] .findButton {
+:is(.piece, .solo) .find[data-open] .findButton {
   position: absolute;
   width: 1px;
   height: 1px;

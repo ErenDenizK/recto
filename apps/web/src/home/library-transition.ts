@@ -92,15 +92,15 @@ const CHROME = '[data-top-piece], [data-capsule], [data-region="pill"]';
 export const LIBRARY_CHROME = 'library-chrome';
 
 /**
- * The chrome's own name in the view `phase`. The top strip's leading piece (the tabs) keeps its
- * shape in both views and morphs across. Every other piece changes shape between the views:
- * the Library's round ⋯ becomes the document's Find piece, and the capsule and pill exist only
- * beside a document. Those get a name per view, so each fades in place, as the root does,
- * rather than one stretching into the other.
+ * The chrome's own name in the view `phase`. The top strip's ◆ and tabs pieces (DSN-49) are in
+ * both views and morph across (◆'s circle into the "◆ Library" capsule). Every other piece
+ * belongs to one view: ▤ and the trailing pieces to the document, the Library's round ⋯ to the
+ * Library, and the capsule and pill exist only beside a document. Those get a name per view,
+ * so each fades in place, as the root does, rather than one stretching into the other.
  */
 function chromeKey(element: HTMLElement, phase: 'old' | 'new'): string {
   const top = element.getAttribute('data-top-piece');
-  if (top === 'lead') return 'top-lead';
+  if (top === 'home' || top === 'tabs') return `top-${top}`;
   const piece =
     top !== null ? `top-${top}` : element.hasAttribute('data-capsule') ? 'capsule' : 'pill';
   return `${piece}-${phase}`;

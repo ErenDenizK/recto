@@ -9,7 +9,7 @@
  *   Q-8). At rest the fill has no inline style (Q-2).
  * - **A new tab grows in.** Its own width moves from 0 to its resting width on `smooth`, its
  *   contents held at their resting width and fading in; the tabs after it, "N more" and + move
- *   by layout, and the leading piece follows (`data-tab-motion` tells `springWidth()` to hold).
+ *   by layout, and the tabs piece follows (`data-tab-motion` tells `springWidth()` to hold).
  * - **A closed tab collapses.** It stays drawn, `inert` and hidden from assistive technology,
  *   its width moving to 0 on `quick` while it fades out in `--duration-fast`, so its neighbours
  *   slide into the gap; then it goes (`onLeft`).
