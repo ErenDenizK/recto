@@ -23,19 +23,21 @@ const SIGNER = 'pdf-editor Test Signer';
 scene({
   id: '07-sign',
   kind: 'clip',
-  // No crop: the title menu opens from the tab at the left, the Sign dialog sits in the
-  // middle, and Save a copy and S9 Signatures are side sheets on the right.
+  // No crop: the Sign dialog sits in the middle, and Save a copy and S9 Signatures are side
+  // sheets on the right.
   async prepare(stage) {
     const { page } = stage;
     await stage.openFixtures(FIXTURES);
     // The whole page in the frame, beside the dialog and the sheets.
     await stage.fitPage();
     await stage.rendered(page.locator('[data-read-viewport]'), 1);
-    // The title menu → Sign with certificate…, with the test certificate and its password,
-    // checked: the clip opens on the dialog showing whose certificate it is. (Choosing the
-    // file and typing the password took four seconds of an eight-second clip.)
-    await page.getByTestId('document-menu').click();
-    await page.getByRole('menuitem', { name: 'Sign with certificate…' }).click();
+    // ⌘K → Sign with certificate… (its menu home is Markup's Sign group, DSN-47), with the test
+    // certificate and its password, checked: the clip opens on the dialog showing whose
+    // certificate it is. (Choosing the file and typing the password took four seconds of an
+    // eight-second clip.)
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.getByRole('combobox', { name: 'Search commands' }).fill('Sign with certificate');
+    await page.getByRole('option', { name: /^Sign with certificate…/ }).click();
     const sign = page.getByTestId('sign-dialog');
     // The sheet's Choose… button sits over a hidden file input (Q-14); the scene fills the input.
     await sign.getByTestId('certificate-file').setInputFiles(fixturePath(CERTIFICATE));
