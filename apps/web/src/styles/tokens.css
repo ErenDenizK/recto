@@ -261,10 +261,11 @@
   --rim-top: rgb(var(--white-rgb) / 0.42);
   --rim-bottom: rgb(var(--white-rgb) / 0.16);
   --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.1);
-  /* The denser tiers' rims (§2.4): sheets a firmer soft edge (3 px of blur, 0.50) and, with
-     the floating panel, a 0.24 / 0.08 rim and a fainter top light; docked M3 only a soft inner
-     light of 0.06 under its hairline. Menus wear the chips' and bars' rim (GLS-23). */
-  --rim-edge-strong: 0 0 3px rgb(0 0 0 / 0.5);
+  /* The denser tiers' rims (§2.4): sheets a firmer edge, unblurred (half a pixel at 0.50: a
+     large surface that slides repaints no new blur, GLS-22), and with the floating panel a
+     0.24 / 0.08 rim and a fainter top light; docked M3 only a soft inner light of 0.06 under
+     its hairline. Menus wear the chips' and bars' rim (GLS-23). */
+  --rim-edge-strong: 0 0 0 0.5px rgb(0 0 0 / 0.5);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.24);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.08);
   --rim-inner-sheet: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.05);
@@ -550,10 +551,10 @@
   --rim-top: rgb(var(--white-rgb) / 0.9);
   --rim-bottom: rgb(var(--white-rgb) / 0.5);
   --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.5);
-  --rim-edge-strong: 0 0 3px rgb(15 17 22 / 0.18);
+  --rim-edge-strong: 0 0 0 0.5px rgb(15 17 22 / 0.14);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
-  --rim-inner-sheet: inset 0 8px 8px -8px rgb(var(--white-rgb) / 0.6);
+  --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
   --rim-inner-docked: inset 0 1px 2px -1px rgb(var(--white-rgb) / 0.6);
   /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
   --e0: none;
@@ -819,10 +820,10 @@
     --rim-top: rgb(var(--white-rgb) / 0.9);
     --rim-bottom: rgb(var(--white-rgb) / 0.5);
     --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.5);
-    --rim-edge-strong: 0 0 3px rgb(15 17 22 / 0.18);
+    --rim-edge-strong: 0 0 0 0.5px rgb(15 17 22 / 0.14);
     --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
     --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
-    --rim-inner-sheet: inset 0 8px 8px -8px rgb(var(--white-rgb) / 0.6);
+    --rim-inner-sheet: inset 0 0.5px 0 rgb(var(--white-rgb) / 0.6);
     --rim-inner-docked: inset 0 1px 2px -1px rgb(var(--white-rgb) / 0.6);
     /* Elevation (language.md §6.3): the dark geometry in ink at 40 % of each alpha. */
     --e0: none;

@@ -87,6 +87,9 @@
   --mat-rim: 0 0 #0000;
   border: 0;
 }
+.mat-sheet {
+  --mat-rim: inset 0 1px 0 var(--mat-rim-top), inset 0 -1px 0 var(--mat-rim-bottom);
+}
 .mat-lit {
   --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner);
   position: relative;

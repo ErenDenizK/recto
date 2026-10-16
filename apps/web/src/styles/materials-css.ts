@@ -109,6 +109,17 @@ export const RIM_LIGHT =
  * each falling off over 6 px from the rim inwards, with no band edge and nothing along the
  * sides.
  */
+/**
+ * The rim light of the large surfaces that move as a whole, sheets (GLS-22, amended): the same
+ * two lobes in the tier's rim colours, top and foot, but unblurred. A sheet's open is a transform
+ * over a full-height backdrop-filtered layer, and a software-rendered WebKit repaints every
+ * blurred shadow of it each frame: with the soft lobes it painted two frames of the open
+ * instead of three or four (`sheets.spec.ts` Q-7, `motion.spec.ts` mid-way). No side light, so no
+ * outline; a sheet is no oval, the owner's B-5 was about the capsules and circles.
+ */
+export const RIM_LIGHT_FLAT =
+  'inset 0 1px 0 var(--mat-rim-top), inset 0 -1px 0 var(--mat-rim-bottom)';
+
 export const RING_LIGHT =
   'inset 2px 3px 6px -3px rgb(255 255 255 / 0.5), inset -1.5px -2px 6px -3px rgb(255 255 255 / 0.3)';
 export const RING_BLEND = 'soft-light';
@@ -249,6 +260,8 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
   );
   // Docked M3 has no rim light either: the base sets `--mat-rim` after its tier block above.
   out.push(block('.mat-docked', ['--mat-rim: 0 0 #0000;', 'border: 0;']));
+  // Sheets keep an unblurred rim (RIM_LIGHT_FLAT): the base sets `--mat-rim` after their tier.
+  out.push(block('.mat-sheet', [`--mat-rim: ${RIM_LIGHT_FLAT};`]));
   out.push(
     block('.mat-lit', [
       '--shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner);',

@@ -933,7 +933,12 @@ describe('tokens.css', () => {
       }
       // §2.4's values: M4 the chips' rim (GLS-23), M5 a 0.50 soft edge, M5 and floating M3 0.24 / 0.08,
       // docked M3 an inner light of 0.06.
-      expect(resolve('--rim-edge-strong')).toBe('0 0 3px rgb(0 0 0 / 0.5)');
+      expect(resolve('--rim-edge-strong')).toBe('0 0 0 0.5px rgb(0 0 0 / 0.5)');
+      // Sheets move as a whole: their rim light is unblurred (GLS-22, WebKit's software frames).
+      expect(ruleOf('.mat-sheet').get('--mat-tint')).toBe('var(--glass-sheet-tint)');
+      expect(materialsCss).toMatch(
+        /\.mat-sheet\s*\{\s*--mat-rim:\s*inset 0 1px 0 var\(--mat-rim-top\), inset 0 -1px 0 var\(--mat-rim-bottom\);\s*\}/,
+      );
       expect(wash('--rim-top-sheet').alpha).toBe(0.24);
       expect(wash('--rim-bottom-sheet').alpha).toBe(0.08);
       expect(splitLayers(resolve('--rim-inner-sheet'))[0]?.trim()).toBe(
