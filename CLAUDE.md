@@ -21,7 +21,10 @@ come first.
 ## Branches and the owner
 
 - Two long-lived branches: `develop` is the dev branch (all work lands here, deploys run from
-  it); `main` is only for manual releases the owner asks for. No pull requests unless asked.
+  it); `main` is only for manual releases the owner asks for. Each lane lands on `develop`
+  through its own pull request (PRC-17): branch, push, open the PR, merge it with a merge commit
+  (never squash) once its checks are green. Commits are authored by the owner, with the
+  `Co-Authored-By` trailer the session gives.
 - The owner writes in Turkish, often by dictation, so read through transcription slips ("Cloud"
   usually means the AI assistant). Reply in Turkish; repo docs, code and commits stay in
   English. Ask the owner about taste; decide technique yourself and record it.
