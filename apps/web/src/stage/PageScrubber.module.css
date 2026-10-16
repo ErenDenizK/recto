@@ -33,8 +33,11 @@
 }
 
 /* The 44 × 32 capsule; ::before widens its hit area to 44 × 44 (A-15). It takes the default
-   outset focus ring (styles/focus.css), which follows the capsule's radius. */
+   outset focus ring (styles/focus.css), which follows the capsule's radius. Its material is the
+   chip's solid twin (GLS-23: one glass standard; a small moving part never blurs, Q-5), with
+   the soft rim and its own low lift. */
 .thumb {
+  composes: mat mat-chip mat-opaque from global;
   position: absolute;
   top: 0;
   left: 0;
@@ -43,11 +46,9 @@
   justify-content: center;
   width: 44px;
   height: 32px;
-  border: 1px solid var(--border-glass);
   border-radius: var(--radius-capsule);
-  background: var(--glass-chip-solid);
-  box-shadow: var(--e1);
-  --shadow-own: var(--e1);
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--e1);
+  box-shadow: var(--shadow-own);
   color: var(--text-primary);
   cursor: grab;
   pointer-events: auto;

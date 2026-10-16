@@ -396,8 +396,8 @@
 
 /*
  * Light theme: the top bar, the Find bar, the capsule, the island and the edit button take the
- * bar tier as it is (glass v2, GLS-8 to GLS-11: its light tint, rim light and the adaptive look
- * through `data-theme` on the piece), no longer the sheet tier's denser tint of visual audit
+ * bar tier as it is (glass v2, GLS-8 to GLS-11: its light tint and rim light, in the theme's
+ * tone, GLS-20), no longer the sheet tier's denser tint of visual audit
  * 2026-10 #7.
  */
 

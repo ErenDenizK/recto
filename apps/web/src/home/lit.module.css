@@ -1,7 +1,7 @@
 /*
  * Lit glass (language.md §2.5; `02-library` §2.3 L2, L5, L7, L9 §3): the Library's launcher,
  * cards, Recents panel and the drop card, through `materials.css`'s `mat mat-lit` (D3-3): the lit
- * tint, its rim from above as a masked `::before` that follows the radius, the outer edge and
+ * tint, its soft rim lit from above (GLS-22, shadows that follow the radius), the outer edge and
  * the inner light, the glass text steps, Tinted at 0.90 and Solid on its solid token.
  *
  * Lit glass is for surfaces no page passes under, and its worst backdrop is the Library field

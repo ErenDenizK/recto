@@ -1,9 +1,8 @@
 /**
- * The glass's runtime after the first paint (decisions GLS-9, GLS-11): the adaptive look
- * (`adaptive-tone.ts`) and the lens on floating bars and capsules. `useAppearanceRoot` loads it
- * once the app has painted, so neither is in a first closure.
+ * The glass's runtime after the first paint (decision GLS-11): the lens on floating bars and
+ * capsules. `useAppearanceRoot` loads it once the app has painted, so it is in no first closure.
+ * The glass's tone follows the theme only (GLS-20): nothing here reads the page.
  */
-import { startAdaptiveTone } from './adaptive-tone';
 import { lensOn } from './lens-map';
 import {
   chromiumBackdropLens,
@@ -100,12 +99,7 @@ function idle(): void {
   // Nothing started.
 }
 
-/** Starts the adaptive look and the bars' lenses; returns one disposer for both. */
+/** Starts the bars' lenses; returns their disposer. */
 export function startGlassRuntime(): () => void {
-  const stopTone = startAdaptiveTone();
-  const stopLenses = startBarLenses();
-  return () => {
-    stopTone();
-    stopLenses();
-  };
+  return startBarLenses();
 }

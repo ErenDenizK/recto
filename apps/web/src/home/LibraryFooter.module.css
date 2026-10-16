@@ -17,14 +17,19 @@
   padding: var(--space-6) var(--piece-inset) var(--piece-inset);
 }
 
+/* M1 in its static form: the chip's material with no σ class (nothing scrolls under them, so
+   no blur), its tint over the canvas and the soft rim (GLS-23). */
+.privacy,
+.piece {
+  composes: mat mat-chip from global;
+}
+
 .footer .privacy,
 .piece {
-  --shadow-own: var(--rim-edge), var(--rim-inner);
   box-sizing: border-box;
   height: var(--piece-h);
   border-radius: var(--piece-radius);
-  background: var(--glass-chip-tint);
-  box-shadow: var(--shadow-own);
+  box-shadow: var(--mat-edge), var(--mat-rim), var(--mat-inner);
 }
 
 .footer .privacy {

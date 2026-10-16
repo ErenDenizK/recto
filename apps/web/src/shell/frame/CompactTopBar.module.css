@@ -56,9 +56,15 @@
   max-width: calc(100% - 24px);
   margin-inline: auto;
   padding: 0 4px;
-  border: 1px solid var(--border-hairline);
+  /* A floating capsule here, so the soft rim of the floating pieces (GLS-22, GLS-23; the lobes
+     of materials-css.ts RIM_LIGHT) instead of a hairline. */
+  --mat-edge: var(--rim-edge);
+  --mat-rim:
+    inset 0.5px 1.5px 3px -1.5px var(--mat-rim-top),
+    inset -0.25px -1px 3px -1.5px var(--mat-rim-bottom);
+  border: 1px solid transparent;
   border-radius: var(--radius-capsule);
-  box-shadow: var(--e3);
+  box-shadow: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--e3);
 }
 
 .brand {
