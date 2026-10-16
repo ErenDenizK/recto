@@ -1,0 +1,36 @@
+/*
+ * The overlay scroll thumb (ui/ScrollThumb.tsx; GLS-24): the CSS scroll bar's thumb
+ * (styles/scrollbars.css) over a touch reader's pages. The track is invisible and takes no
+ * pointer; it only fades by `opacity` (compositor only, A-23), in on a scroll and out after it.
+ * Reduced motion keeps the fade (tokens.css shortens it). Forced colours: none drawn.
+ */
+.track {
+  position: absolute;
+  top: var(--space-2);
+  bottom: var(--space-2);
+  inset-inline-end: 3px;
+  z-index: 3;
+  width: 5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.track[data-shown] {
+  opacity: 1;
+  transition-duration: var(--duration-fast);
+}
+
+.thumb {
+  width: 100%;
+  height: 0;
+  border-radius: var(--radius-capsule);
+  background: var(--scroll-thumb);
+  box-shadow: var(--scroll-thumb-edge);
+}
+
+@media (forced-colors: active) {
+  .track {
+    display: none;
+  }
+}

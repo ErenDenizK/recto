@@ -49,8 +49,10 @@ import { clamp, MAX_ZOOM, MIN_ZOOM, useUiStore } from '../state/ui-store';
 import { type ReadLayout, type ScrollMotion, useViewStore } from '../state/view-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { SOFT_EDGE } from '../shell/frame/frame-insets';
+import { usePointerCapabilities } from '../shell/frame/input-modality';
 import { SIZE_CLASS_MIN_WIDTH } from '../shell/frame/size-class';
 import styles from '../shell/Stage.module.css';
+import { ScrollThumb } from '../ui/ScrollThumb';
 import { type Box, userRectToCss } from '../viewer/geometry';
 import {
   documentFingerprint,
@@ -68,7 +70,7 @@ import '../viewer/register';
 import { installCopyHandler } from '../viewer/TextLayer';
 import { PageOverlays } from './page-overlays';
 import { enterPagesGrid } from './pages-grid-door';
-import { PageScrubber } from './PageScrubber';
+import { PageScrubber, SCRUBBER_MIN_PAGES } from './PageScrubber';
 import { PinchDetentChip } from './PinchDetentChip';
 import readStyles from './ReadView.module.css';
 import { type ContentFrame, contentFrame, ResizedContent } from './ResizedContent';
@@ -301,6 +303,7 @@ export function ReadView({
   const frameRef = useRef<HTMLDivElement>(null);
   const chipRef = useRef<HTMLDivElement>(null);
   const bleed = useStageBleed(frameRef);
+  const { primary } = usePointerCapabilities();
   const barSize = scrollbarSize();
   const content = readContentSize(layout, cssScale);
   const bars = scrollbarsNeeded(content, bleed, barSize);
@@ -418,6 +421,11 @@ export function ReadView({
       </div>
       <PinchDetentChip ref={chipRef} />
       <PageScrubber doc={doc} viewport={viewport} />
+      {/* On a finger the viewport's own indicator is hidden: the app's thumb stands in (GLS-24),
+          unless a long document's scrubber is the thumb. */}
+      {primary === 'coarse' && doc.pages.length <= SCRUBBER_MIN_PAGES ? (
+        <ScrollThumb target={viewport} />
+      ) : null}
       <ScrollProxies
         target={viewport}
         content={content}

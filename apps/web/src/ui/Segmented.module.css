@@ -67,7 +67,8 @@
   grid-row: 1;
   border-radius: var(--radius-capsule);
   background: var(--seg-thumb);
-  --seg-thumb-shadow: inset 0 0 0 1px var(--seg-thumb-ring), var(--seg-e1);
+  /* The checked segment's thumb is a seated lens (GLS-25): its ring, the lens's lobes, e1. */
+  --seg-thumb-shadow: inset 0 0 0 1px var(--seg-thumb-ring), var(--lens-rim), var(--seg-e1);
   box-shadow: var(--seg-thumb-shadow);
   transform-origin: left center;
 }

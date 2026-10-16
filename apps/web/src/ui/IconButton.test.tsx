@@ -48,10 +48,16 @@ describe('IconButton (09-primitives §4)', () => {
       const off = await forceState(undo, ['hover']);
       expect(bg(undo)).toMatch(/^rgba\(255, 255, 255, 0\.04\d*\)$/);
       expect(getComputedStyle(undo).color).toBe('rgb(232, 233, 236)');
+      // The lens lifts (GLS-25): its lobes brighten and a soft shadow lies outside.
+      await expect
+        .poll(() => getComputedStyle(undo).boxShadow)
+        .toContain('rgba(255, 255, 255, 0.42)');
       await off();
     }
+    // Clear at rest; pressed, it sinks into the lens's darker glow under the press scale.
     let release = await forceState(undo, ['active']);
-    expect(bg(undo)).toMatch(/^rgba\(255, 255, 255, 0\.07\d*\)$/);
+    expect(bg(undo)).toMatch(/^rgba\(255, 255, 255, 0\.02\d*\)$/);
+    expect(getComputedStyle(undo).boxShadow).toContain('rgba(0, 0, 0, 0.32)');
     expect(getComputedStyle(undo).transform).not.toBe('none');
     await release();
     release = await forceState(undo, ['focus', 'focus-visible']);
@@ -59,7 +65,13 @@ describe('IconButton (09-primitives §4)', () => {
     await release();
 
     const heatMap = screen.getByRole('button', { name: 'Heat map' });
-    if (!heatMap.matches(':hover')) expect(bg(heatMap)).toBe('rgba(200, 251, 61, 0.12)');
+    if (!heatMap.matches(':hover')) {
+      expect(bg(heatMap)).toBe('rgba(200, 251, 61, 0.12)');
+      // A toggle that is on rests as a seated lens.
+      await expect
+        .poll(() => getComputedStyle(heatMap).boxShadow)
+        .toContain('rgba(255, 255, 255, 0.22)');
+    }
     // The test browser's pointer may rest over a button from an earlier file: move it off, then
     // poll past the colour transition to the resting pressed fill.
     const pen = screen.getByRole('button', { name: 'Pen' });

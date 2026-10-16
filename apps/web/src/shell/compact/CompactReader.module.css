@@ -70,6 +70,15 @@
   inset: 0;
 }
 
+/* The app's scroll bar over the pages (GLS-24, ui/ScrollThumb): at the screen's trailing edge,
+   inside the safe area, shown while the pages scroll. */
+.scrollThumb {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + var(--space-2));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-2));
+  inset-inline-end: max(env(safe-area-inset-right, 0px), 3px);
+}
+
 /*
  * The page pill (ADR-0033 §2.3): while the chrome is hidden, "3 / 12" fades in during a
  * scroll and out 1.5 s after it. A small solid chip, not glass (Q-5: small transient parts

@@ -1,9 +1,10 @@
-/* Scroll area (09-primitives §21): overlay scrollbar, soft edges, contained overscroll. */
+/* Scroll area (09-primitives §21): overlay scrollbar, soft edges, contained overscroll. Its
+   thumb is the app's one scroll bar (GLS-24, styles/scrollbars.css): 6 px, 8 px under the
+   pointer, in --scroll-thumb with its soft edge. */
 .root {
   --sa-fade: 12px;
   --sa-thumb: var(--scroll-thumb);
   --sa-thumb-hover: var(--scroll-thumb-hover);
-  --sa-thumb-drag: var(--control-on);
 
   position: relative;
   display: flex;
@@ -81,11 +82,11 @@
 
 @media (hover: hover) {
   .scrollbar[data-orientation='vertical']:hover {
-    width: 10px;
+    width: 8px;
   }
 
   .scrollbar[data-orientation='horizontal']:hover {
-    height: 10px;
+    height: 8px;
   }
 }
 
@@ -98,8 +99,9 @@
 
 .thumb {
   width: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-capsule);
   background: var(--sa-thumb);
+  box-shadow: var(--scroll-thumb-edge);
 }
 
 .scrollbar[data-orientation='horizontal'] .thumb {
@@ -113,7 +115,7 @@
 }
 
 .thumb:active {
-  background: var(--sa-thumb-drag);
+  background: var(--sa-thumb-hover);
 }
 
 @media (forced-colors: active) {

@@ -36,7 +36,7 @@
  *
  * - Hover (fine pointers only, `@media (hover: hover)`): the hover wash or the hover ring,
  *   faded in --duration-fast on --ease-out.
- * - Press: the pressed wash and the press scale (--press-scale, 0.97 mouse / 0.94 touch;
+ * - Press: the pressed wash and the press scale (--press-scale, 0.96 mouse / 0.94 touch;
  *   --press-scale-large for rows and surfaces of 120 px or more; a 16–20 px box or circle
  *   presses three times as deep, else it would not show), both in --duration-instant.
  * - Release: the scale springs back on --spring-press (--ease-spring), the wash fades back in
@@ -45,6 +45,15 @@
  *   (`data-popup-open` from Base UI, `data-origin-open` from `ui/container-transform.ts` and the
  *   Sheet), and takes the popup back with the *receive* pulse when it closes.
  * - Reduced motion: the scales rest at 1 (styles/motion.css), so only the washes change.
+ *
+ * The lens (owner, R21 brief B-11; decisions GLS-25): a button on glass is a lens of the same
+ * glass, never a flat fill. Filled buttons (prominent, standard, danger) rest as a seated lens
+ * (`--lens-rim`: two specular lobes lit from the top left, as GLS-22's rim); every button lifts
+ * under a fine pointer (`--lens-rim-hover`: the lobes brighten, a bezel glow, a soft shadow
+ * outside) and presses into a darker inner glow (`--lens-rim-pressed`) with the press scale.
+ * The lens is shadows only, in the bezel: the washes under the label are the proven steps
+ * (tokens.test.ts), and it costs no backdrop pass. Touch has no hover, so only the press.
+ * More contrast and forced colours turn the lens off with the rims (tokens.css).
  */
 .btn {
   /* Read by the danger ring and kept by the focus ring (styles/focus.css). */
@@ -144,12 +153,33 @@
   height: var(--icon-md);
 }
 
+/* The lens (GLS-25): filled buttons rest seated; hover lifts it, press sinks it. */
+.btn:is(.btn-prominent, .btn-standard, .btn-danger) {
+  --shadow-own: var(--lens-rim);
+}
+
+@media (hover: hover) {
+  .btn:hover:not([aria-disabled='true'], [aria-busy='true'], [data-blocked]) {
+    --shadow-own: var(--lens-rim-hover);
+  }
+}
+
+.btn:is([data-popup-open], [data-origin-open]):not([aria-disabled='true'], [data-blocked]) {
+  --shadow-own: var(--lens-rim);
+}
+
 /* Press: scale on the press spring, back on release; colour only under reduced motion. */
 .btn:active:not([aria-disabled='true'], [aria-busy='true'], [data-blocked]) {
+  --shadow-own: var(--lens-rim-pressed);
   transform: scale(var(--press-scale));
   transition:
     background-color var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-instant) var(--ease-out),
     transform var(--duration-instant) var(--ease-out);
+}
+
+.btn:is([aria-disabled='true'], :disabled, [data-blocked]) {
+  --shadow-own: 0 0 #0000;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -193,11 +223,16 @@
   }
 }
 
-.btn-standard:is(:active, [data-popup-open], [data-origin-open]):not(
+.btn-standard:is([data-popup-open], [data-origin-open]):not(
   [aria-disabled='true'],
   [data-blocked]
 ) {
   background: var(--control-fill-pressed);
+}
+
+/* Pressed sinks under the lens's darker glow: the rest fill, never a lighter step. */
+.btn-standard:active:not([aria-disabled='true'], [data-blocked]) {
+  background: var(--control-fill);
 }
 
 .btn-danger {
@@ -206,7 +241,7 @@
 
 @media (hover: hover) {
   .btn-danger:hover:not([aria-disabled='true'], [data-blocked]) {
-    --shadow-own: inset 0 0 0 1px var(--danger);
+    --shadow-own: var(--lens-rim-hover), inset 0 0 0 1px var(--danger);
   }
 }
 
@@ -217,27 +252,35 @@
 
 @media (hover: hover) {
   .btn-quiet:hover:not([aria-disabled='true'], [data-blocked]) {
-    background: var(--surface-hover);
+    background: var(--lens-hover);
   }
 }
 
-.btn-quiet:is(:active, [data-popup-open], [data-origin-open]):not(
-  [aria-disabled='true'],
-  [data-blocked]
-) {
+.btn-quiet:is([data-popup-open], [data-origin-open]):not([aria-disabled='true'], [data-blocked]) {
   background: var(--surface-active);
 }
 
-/* On the floating glass (M1/M2) a filled button renders quiet; the danger label stays. */
+.btn-quiet:active:not([aria-disabled='true'], [data-blocked]) {
+  background: var(--lens-pressed);
+}
+
+/* On the floating glass (M1/M2) a filled button is a clear lens: no fill, the seated rim, so
+   its label keeps the tier's contrast; the danger label stays. */
 :where(.mat-chip, .mat-bar) :is(.btn-standard, .btn-danger) {
   background: transparent;
 }
 
+/* Danger keeps no wash on hover: its ring and the lens carry it, so its label holds AA on a
+   bar over white (4.47:1 under the hover wash; tokens.test.ts). */
 @media (hover: hover) {
-  :where(.mat-chip, .mat-bar)
-    :is(.btn-standard, .btn-danger):hover:not([aria-disabled='true'], [data-blocked]) {
-    background: var(--surface-hover);
+  :where(.mat-chip, .mat-bar) .btn-standard:hover:not([aria-disabled='true'], [data-blocked]) {
+    background: var(--lens-hover);
   }
+}
+
+:where(.mat-chip, .mat-bar)
+  :is(.btn-standard, .btn-danger):active:not([aria-disabled='true'], [data-blocked]) {
+  background: var(--lens-pressed);
 }
 
 /* Disabled and blocked (a locked document): a neutral step and the disabled label. A blocked

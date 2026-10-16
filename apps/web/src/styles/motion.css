@@ -149,8 +149,9 @@
   --loop-ants: 700ms;
 
   /* *press* (§7.3): scale on pointer down in --duration-instant, release on --spring-press.
-     Surfaces of 120 px or more press less (spec 02.5): a Library card, a page in the grid. */
-  --press-scale-mouse: 0.97;
+     Surfaces of 120 px or more press less (spec 02.5): a Library card, a page in the grid.
+     A glass button presses to 0.96 under a mouse (owner, R21 brief B-11; MOT-10; was 0.97). */
+  --press-scale-mouse: 0.96;
   --press-scale-touch: 0.94;
   --press-scale-large-mouse: 0.98;
   --press-scale-large-touch: 0.96;

@@ -16,6 +16,7 @@
   border: 0;
   border-radius: var(--radius-control);
   background: var(--mb-fill);
+  box-shadow: var(--shadow-own);
   color: var(--text-primary);
   font: inherit;
   font-size: var(--type-body);
@@ -26,7 +27,10 @@
   -webkit-tap-highlight-color: transparent;
   transition:
     background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
     scale var(--spring-press) var(--ease-spring);
+  /* A filled menu button rests as a seated lens (GLS-25; styles/controls.css). */
+  --shadow-own: var(--lens-rim);
 }
 
 :global([data-theme='light']) .button {
@@ -43,12 +47,14 @@
 
 .button[data-variant='quiet'] {
   --mb-fill: transparent;
-  --mb-fill-hover: var(--surface-hover);
+  --mb-fill-hover: var(--lens-hover);
   --mb-fill-pressed: var(--surface-active);
+  --shadow-own: 0 0 #0000;
 }
 
 @media (hover: hover) {
   .button:not([data-disabled]):hover {
+    --shadow-own: var(--lens-rim-hover);
     background: var(--mb-fill-hover);
   }
 }
@@ -61,13 +67,16 @@
 /* *press* (§7.3; G6): by `scale`, which composes with any transform; the press scale rests at
    1 under reduced motion, so then only the colour changes. */
 .button:not([data-disabled]):active {
+  --shadow-own: var(--lens-rim-pressed);
   scale: var(--press-scale);
   transition:
     background-color var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-instant) var(--ease-out),
     scale var(--duration-instant) var(--ease-out);
 }
 
 .button[data-disabled] {
+  --shadow-own: 0 0 #0000;
   color: var(--text-disabled);
   cursor: default;
 }

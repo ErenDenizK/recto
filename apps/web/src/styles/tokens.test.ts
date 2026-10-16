@@ -67,6 +67,26 @@ function declarations(body: string): Map<string, string> {
 }
 
 /** Splits a comma-separated list (box-shadow layers) at the top level, not inside functions. */
+/** The button lens's shadow tokens (GLS-25). */
+const LENS_SHADOWS = ['--lens-rim', '--lens-rim-hover', '--lens-rim-pressed'] as const;
+
+/** How far into the box an inset shadow list reaches, px: offset, blur and spread together. */
+function lensReach(value: string): number {
+  let reach = 0;
+  for (const layer of splitLayers(value)) {
+    const trimmed = layer.trim();
+    if (!trimmed.startsWith('inset')) continue;
+    const lengths = (/^(?:\s*-?[\d.]+(?:px)?)+/.exec(trimmed.slice('inset'.length))?.[0] ?? '')
+      .trim()
+      .split(/\s+/)
+      .map((v) => Number.parseFloat(v));
+    const [x = 0, y = 0, blur = 0, spread = 0] = lengths;
+    // A negative spread pulls the shadow in from the edge.
+    reach = Math.max(reach, Math.max(Math.abs(x), Math.abs(y)) + blur + spread);
+  }
+  return reach;
+}
+
 function splitLayers(value: string): string[] {
   const layers: string[] = [];
   let depth = 0;
@@ -835,6 +855,30 @@ describe('tokens.css', () => {
         );
         expect(contrast(secondary, current), `${tier} current secondary`).toBeCloseTo(currentS, 1);
       }
+    });
+
+    it('keeps text AA on the button lens over every tier over white (GLS-25)', () => {
+      // The lens's light lives in the bezel: every inset layer reaches at most 6 px in, so a
+      // label (8 px or more from a 32 px control's edge) sits over the wash alone.
+      for (const token of LENS_SHADOWS)
+        expect(lensReach(resolve(token)), token).toBeLessThanOrEqual(6);
+      // Hover is the proven hover step; pressed is lighter still, its darkening the glow.
+      expect(resolve('--lens-hover')).toBe(resolve('--surface-hover'));
+      expect(wash('--lens-pressed').alpha).toBeLessThan(wash('--lens-hover').alpha);
+      for (const tier of ['chip', 'bar', 'menu', 'panel', 'sheet'] as const) {
+        const glass = tierOver(tier, WHITE);
+        for (const state of ['--lens-hover', '--lens-pressed']) {
+          const under = on(state, glass);
+          atLeast(contrast(colour('--text-primary'), under), AA_TEXT, `${tier} ${state} primary`);
+          atLeast(contrast(colour('--glass-text-secondary'), under), AA_TEXT, `${tier} ${state}`);
+          // Danger takes no hover wash (its ring and the lens carry it, controls.css).
+          if (state === '--lens-pressed') {
+            atLeast(contrast(colour('--glass-danger'), under), AA_TEXT, `${tier} pressed danger`);
+          }
+        }
+      }
+      // The scroll thumb's soft edge is the other tone: it reads over a white page (GLS-24).
+      expect(resolve('--scroll-thumb-edge')).toMatch(/^inset 0 0 0 0\.5px rgb\(0 0 0 \/ 0\.\d+\)$/);
     });
 
     it('lists the APCA warnings: secondary text under Lc 60 (A-4; a new one fails until listed)', () => {
@@ -2067,6 +2111,32 @@ describe('tokens.css', () => {
       for (const token of ['--control-on', '--control-range', '--progress-fill']) {
         expect(value(token), token).toBe(value('--n12'));
       }
+    });
+
+    it('keeps ink AA on the light button lens over every light tier over black (GLS-25)', () => {
+      for (const token of LENS_SHADOWS) {
+        expect(lensReach(value(token)), token).toBeLessThanOrEqual(6);
+      }
+      // Hover is a lighter, denser white lens; pressed an ink wash under an ink glow, proven
+      // at the glow's full strength as if it reached the label.
+      expect(tint('--lens-hover').rgb).toEqual([255, 255, 255]);
+      const glow = /rgb\(21 23 28 \/ (0\.\d+)\)\s*$/.exec(value('--lens-rim-pressed'))?.[1];
+      expect(Number(glow)).toBeLessThanOrEqual(0.2);
+      for (const tier of ['chip', 'bar', 'menu', 'panel', 'sheet'] as const) {
+        const under = glass(tier, BLACK);
+        const hover = laid('--lens-hover', under);
+        const pressed = round8(over(ink(), Number(glow), laid('--lens-pressed', under)));
+        for (const [name, state] of [
+          ['hover', hover],
+          ['pressed', pressed],
+        ] as const) {
+          atLeast(contrast(ink(), state), 7, `${tier} ${name} primary`);
+          atLeast(contrast(tone('--glass-text-secondary'), state), AA_TEXT, `${tier} ${name}`);
+        }
+      }
+      expect(value('--scroll-thumb-edge')).toMatch(
+        /^inset 0 0 0 0\.5px rgb\(255 255 255 \/ 0\.\d+\)$/,
+      );
     });
 
     it('holds light status on white and the canvas, and its glass steps (language.md §1.6)', () => {
