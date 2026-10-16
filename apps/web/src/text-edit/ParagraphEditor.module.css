@@ -23,10 +23,13 @@
 }
 
 /* Presses on the paragraph land on the mirror over them (below), not on the canvas. */
+/* Both draw the page (its plate, its glyphs, the settled preview), so Dim pages composites them
+   as it does the page bitmap (`--page-filter`; MOB-17). */
 .canvas,
 .preview {
   position: absolute;
   pointer-events: none;
+  filter: var(--page-filter);
 }
 
 .canvas {

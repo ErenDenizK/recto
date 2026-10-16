@@ -83,9 +83,10 @@ describe('the Settings sheet', () => {
     expect(dialog.getBoundingClientRect().height).toBe(760);
     expect(within(dialog).getByRole('radiogroup', { name: 'Glass' })).toBeVisible();
     expect(within(dialog).getByRole('switch', { name: 'Background glow' })).toBeVisible();
+    expect(within(dialog).getByRole('switch', { name: 'Dim pages' })).toBeVisible();
     expect(within(dialog).queryByRole('switch', { name: /Pen draws/ })).toBeNull();
     await waitFor(() =>
-      expect(within(dialog).getByRole('status')).toHaveTextContent('4 settings found'),
+      expect(within(dialog).getByRole('status')).toHaveTextContent('5 settings found'),
     );
     await userEvent.clear(search);
     await userEvent.type(search, 'xyzzy');
@@ -208,6 +209,29 @@ describe('the Settings sheet', () => {
     expect(glow).not.toBeChecked();
     await userEvent.click(glow);
     expect(useAppearanceStore.getState().glow).toBe(true);
+  });
+
+  it('turns Dim pages on in the dark theme, off by default, and disables it in light (MOB-17)', async () => {
+    act(() => useAppearanceStore.getState().setTheme('dark'));
+    act(() => openSettings({ row: 'dimPages' }));
+    render(<SettingsSheet />);
+    const dialog = await screen.findByRole('dialog', { name: 'Settings' });
+    await settled(dialog);
+    const dim = within(dialog).getByRole('switch', { name: 'Dim pages' });
+    expect(dim).not.toBeChecked();
+    expect(dim).not.toHaveAttribute('data-disabled');
+    expect(
+      within(dialog).getByText(
+        'Shows pages less bright in the dark theme. Your files don’t change.',
+      ),
+    ).toBeVisible();
+    await userEvent.click(dim);
+    expect(useAppearanceStore.getState().dimPages).toBe(true);
+    expect(dim).toBeChecked();
+    act(() => useAppearanceStore.getState().setTheme('light'));
+    expect(dim).toHaveAttribute('data-disabled');
+    expect(dim).toBeChecked();
+    expect(dim).toHaveAccessibleDescription('Only in the dark theme');
   });
 
   it('a system setting shows Reduce motion On, disabled, with its reason', async () => {

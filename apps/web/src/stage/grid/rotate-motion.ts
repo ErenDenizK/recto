@@ -127,7 +127,13 @@ function cover(sheet: HTMLElement, turn: number, w: number, h: number): void {
     el.getContext('2d')?.drawImage(canvas, 0, 0);
     el.dataset.spinCover = '';
     el.setAttribute('aria-hidden', 'true');
-    Object.assign(el.style, { position: 'absolute', zIndex: '1', pointerEvents: 'none' });
+    // A copy of the page bitmap: Dim pages composites it as it does the sheet's (MOB-17).
+    Object.assign(el.style, {
+      position: 'absolute',
+      zIndex: '1',
+      pointerEvents: 'none',
+      filter: 'var(--page-filter)',
+    });
     sheet.append(el);
     watch(sheet, canvas, el);
   }

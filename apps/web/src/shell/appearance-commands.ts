@@ -4,7 +4,8 @@
  * say it, as the Glass ones do; "Glass: Clear", "Glass: Tinted" and "Glass: Solid" set the Glass setting (as the language
  * commands set the language) and say it; "Reduce motion" switches between System and On and
  * says the new state, its title carrying the current one ("Reduce motion: System");
- * "Background glow" (G5) does the same for the aura behind the reader. The
+ * "Background glow" (G5) does the same for the aura behind the reader, and "Dim pages"
+ * (DESIGN.md §3; MOB-17) for the dark theme's dimmed pages. The
  * Settings sheet's Appearance rows (components/07-sheets.md S3; spec redesign D0-10) set the
  * same values through the same setters, and "Appearance settings…"
  * (`settings/settings-commands.ts`) opens the sheet there: the Document menu's Appearance
@@ -60,6 +61,12 @@ export function setGlow(glow: boolean): void {
   announce(glow ? m.announce_glow_on() : m.announce_glow_off());
 }
 
+/** Turns Dim pages on or off (DESIGN.md §3; MOB-17) and announces it. */
+export function setDimPages(dimPages: boolean): void {
+  useAppearanceStore.getState().setDimPages(dimPages);
+  announce(dimPages ? m.announce_dim_pages_on() : m.announce_dim_pages_off());
+}
+
 /** Found in either UI language, as the language commands are. */
 const SHARED_KEYWORDS = ['appearance', 'settings', 'görünüm', 'görünüş', 'ayarlar'] as const;
 
@@ -91,14 +98,14 @@ const GLASS_VALUE_KEYWORDS: Record<GlassSetting, readonly string[]> = {
 };
 
 /**
- * Registers the eight commands and registers them again whenever Reduce motion or Background
- * glow changes, so their titles always say the current value.
+ * Registers the nine commands and registers them again whenever Reduce motion, Background glow
+ * or Dim pages changes, so their titles always say the current value.
  */
 export function registerAppearanceCommands(registry: CommandRegistry): () => void {
   let disposers: (() => void)[] = [];
   const register = () => {
     for (const dispose of disposers) dispose();
-    const { motion, glow } = useAppearanceStore.getState();
+    const { motion, glow, dimPages } = useAppearanceStore.getState();
     disposers = [
       ...(['system', 'light', 'dark'] as const).map((theme) =>
         registry.register({
@@ -158,11 +165,40 @@ export function registerAppearanceCommands(registry: CommandRegistry): () => voi
         ],
         run: () => setGlow(!useAppearanceStore.getState().glow),
       }),
+      registry.register({
+        id: 'view.dimPages',
+        title: dimPages ? m.cmd_view_dim_pages_on() : m.cmd_view_dim_pages_off(),
+        group: m.group_view(),
+        act: null,
+        keywords: [
+          ...SHARED_KEYWORDS,
+          'dim',
+          'brightness',
+          'dark',
+          'night',
+          'reading',
+          'page',
+          'toggle',
+          'karart',
+          'parlaklık',
+          'koyu',
+          'gece',
+          'okuma',
+          'sayfa',
+        ],
+        run: () => setDimPages(!useAppearanceStore.getState().dimPages),
+      }),
     ];
   };
   register();
   const unsubscribe = useAppearanceStore.subscribe((state, previous) => {
-    if (state.motion !== previous.motion || state.glow !== previous.glow) register();
+    if (
+      state.motion !== previous.motion ||
+      state.glow !== previous.glow ||
+      state.dimPages !== previous.dimPages
+    ) {
+      register();
+    }
   });
   return () => {
     unsubscribe();

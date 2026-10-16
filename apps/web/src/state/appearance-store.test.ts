@@ -20,12 +20,13 @@ afterEach(() => {
 });
 
 describe('appearance settings', () => {
-  it('starts on Theme System, Glass unpicked (the start state applies), Reduce motion System, Background glow on', () => {
+  it('starts on Theme System, Glass unpicked (the start state applies), Reduce motion System, Background glow on, Dim pages off', () => {
     expect(DEFAULT_APPEARANCE).toEqual({
       theme: 'system',
       glass: null,
       motion: 'system',
       glow: true,
+      dimPages: false,
     });
     localStorage.removeItem(APPEARANCE_STORAGE_KEY);
     expect(loadAppearance()).toEqual(DEFAULT_APPEARANCE);
@@ -45,6 +46,7 @@ describe('appearance settings', () => {
       glass: 'tinted',
       motion: 'reduced',
       glow: false,
+      dimPages: false,
     });
     // A stored value from before D3-7 (no theme), or a stray one, follows the system.
     expect(parseAppearance({ glass: 'tinted' }).theme).toBe('system');
@@ -60,6 +62,10 @@ describe('appearance settings', () => {
     expect(parseAppearance({ theme: 'dark' }).glow).toBe(true);
     expect(parseAppearance({ glow: 'off' }).glow).toBe(true);
     expect(parseAppearance({ glow: false }).glow).toBe(false);
+    // Dim pages (MOB-17) is on only when stored as `true`.
+    expect(parseAppearance({ theme: 'dark' }).dimPages).toBe(false);
+    expect(parseAppearance({ dimPages: 'on' }).dimPages).toBe(false);
+    expect(parseAppearance({ dimPages: true }).dimPages).toBe(true);
   });
 
   it('migrates M8’s switches once: Reduce transparency on becomes Solid (ADR-0024 §2.4)', () => {
@@ -77,6 +83,7 @@ describe('appearance settings', () => {
       glass: 'solid',
       motion: 'reduced',
       glow: true,
+      dimPages: false,
     });
     // Written back in the new shape, so the migration runs once.
     expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) ?? 'null')).toEqual({
@@ -84,6 +91,7 @@ describe('appearance settings', () => {
       glass: 'solid',
       motion: 'reduced',
       glow: true,
+      dimPages: false,
     });
   });
 
@@ -94,16 +102,19 @@ describe('appearance settings', () => {
       glass: 'tinted',
       motion: 'system',
       glow: true,
+      dimPages: false,
     });
     useAppearanceStore.getState().setGlass('solid');
     useAppearanceStore.getState().setMotion('reduced');
     useAppearanceStore.getState().setTheme('light');
     useAppearanceStore.getState().setGlow(false);
+    useAppearanceStore.getState().setDimPages(true);
     expect(loadAppearance()).toEqual({
       theme: 'light',
       glass: 'solid',
       motion: 'reduced',
       glow: false,
+      dimPages: true,
     });
   });
 
@@ -118,6 +129,9 @@ describe('appearance settings', () => {
     expect(root.getAttribute('data-theme')).toBe('dark');
     expect(root.getAttribute('data-glass')).toBe('clear');
     expect(root.hasAttribute('data-motion')).toBe(false);
+    expect(root.hasAttribute('data-dim-pages')).toBe(false);
+    applyAppearance(root, { ...DEFAULT_APPEARANCE, dimPages: true });
+    expect(root.hasAttribute('data-dim-pages')).toBe(true);
   });
 
   it('keeps the document element in step while mounted, and clears it after', () => {
@@ -130,8 +144,10 @@ describe('appearance settings', () => {
       useAppearanceStore.getState().setTheme('light');
       useAppearanceStore.getState().setGlass('tinted');
       useAppearanceStore.getState().setMotion('reduced');
+      useAppearanceStore.getState().setDimPages(true);
     });
     expect(root.getAttribute('data-theme')).toBe('light');
+    expect(root.hasAttribute('data-dim-pages')).toBe(true);
     expect(root.getAttribute('data-glass')).toBe('tinted');
     expect(root.getAttribute('data-motion')).toBe('reduced');
     act(() => useRenderQualityStore.getState().stepDown());
@@ -140,6 +156,7 @@ describe('appearance settings', () => {
     expect(root.hasAttribute('data-glass')).toBe(false);
     expect(root.hasAttribute('data-motion')).toBe(false);
     expect(root.hasAttribute('data-degrade')).toBe(false);
+    expect(root.hasAttribute('data-dim-pages')).toBe(false);
     // The theme stays: the boot script owns it from the first paint (theme.ts).
     expect(root.getAttribute('data-theme')).toBe('light');
     root.removeAttribute('data-theme');
@@ -163,6 +180,26 @@ describe('appearance settings', () => {
       }
     } finally {
       root.removeAttribute('data-glass');
+    }
+  });
+
+  it('dims the paper only in the dark theme with Dim pages on (computed styles, MOB-17)', async () => {
+    await import('../styles/tokens.css');
+    const root = document.documentElement;
+    const read = (name: string) => getComputedStyle(root).getPropertyValue(name).trim();
+    root.setAttribute('data-theme', 'dark');
+    try {
+      expect(read('--page-filter')).toBe('none');
+      expect(read('--page-background')).toBe('#ffffff');
+      root.setAttribute('data-dim-pages', '');
+      expect(read('--page-filter')).toBe('brightness(0.8)');
+      expect(read('--page-background')).toBe('#cccccc');
+      root.setAttribute('data-theme', 'light');
+      expect(read('--page-filter')).toBe('none');
+      expect(read('--page-background')).toBe('#ffffff');
+    } finally {
+      root.removeAttribute('data-dim-pages');
+      root.removeAttribute('data-theme');
     }
   });
 });

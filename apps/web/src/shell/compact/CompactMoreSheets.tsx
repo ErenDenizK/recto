@@ -5,10 +5,11 @@
  * this module once the browser is idle and when ⋯ opens, so a sheet opens at once.
  *
  * The compact edition has no Settings sheet; its settings besides the Library's language
- * switch are Theme (ADR-0022 §2.4, spec D3-7) and Reduce motion (language.md §7.6, A-9), at the
- * end of About as the full edition's own rows (`settings/ThemeRow.tsx`,
- * `settings/ReduceMotionRow.tsx`, the same `appearance-store` fields), so a person who wants
- * light on a dark phone, or less motion than their system asks for, can say so on a phone too.
+ * switch are Theme (ADR-0022 §2.4, spec D3-7), Reduce motion (language.md §7.6, A-9) and Dim
+ * pages (DESIGN.md §3, MOB-17), at the end of About as the full edition's own rows
+ * (`settings/ThemeRow.tsx`, `settings/ReduceMotionRow.tsx`, `settings/DimPagesRow.tsx`, the same
+ * `appearance-store` fields), so a person who wants light on a dark phone, less motion than
+ * their system asks for, or quieter pages at night, can say so on a phone too.
  */
 import type { OutlineNode, VirtualDocument } from '@pdf-editor/document-model';
 import {
@@ -22,6 +23,7 @@ import {
 
 import { formatFileSize } from '../../home/home-model';
 import { formatDay, getLocale, m } from '../../i18n';
+import { DimPagesRow } from '../../settings/DimPagesRow';
 import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
 import { ThemeRow } from '../../settings/ThemeRow';
 import { Section } from '../../settings/rows';
@@ -363,6 +365,7 @@ function About() {
         <Section title={m.appearance_heading()}>
           <ThemeRow />
           <ReduceMotionRow />
+          <DimPagesRow />
         </Section>
       </div>
       <MakerCredit className={styles.aboutCredit} />

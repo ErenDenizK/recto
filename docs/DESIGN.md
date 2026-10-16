@@ -460,7 +460,8 @@ Rules:
   tabular in the status bar and page numbers.
 - **The document canvas is never themed.** Pages render as authored; we do not invert or
   tint them. An optional "dim pages" comfort toggle reduces page brightness by
-  compositing, not by filter-inverting.
+  compositing, not by filter-inverting (Settings › Appearance › Dim pages, dark theme
+  only; decisions MOB-17).
 
 ## 4. Interaction principles
 

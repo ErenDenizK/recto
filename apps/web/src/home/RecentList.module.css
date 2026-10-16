@@ -76,6 +76,7 @@
   display: block;
   border-radius: var(--radius-page);
   background: var(--page-background);
+  filter: var(--page-filter);
   box-shadow: var(--page-shadow);
 }
 

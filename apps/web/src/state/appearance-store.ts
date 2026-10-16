@@ -1,7 +1,8 @@
 /**
  * Appearance settings (language.md §2.8, §7.6; ADR-0022 §2.4; ADR-0024 §2.4; spec D3-3, D3-4,
  * D3-7; components/07-sheets.md S3): **Theme: System · Light · Dark**, **Glass: Clear · Tinted ·
- * Solid**, **Reduce motion: System · On** and **Background glow** (on by default).
+ * Solid**, **Reduce motion: System · On**, **Background glow** (on by default) and **Dim pages**
+ * (off by default).
  *
  * - Theme: System follows the device's light or dark scheme, live; Light and Dark hold whatever
  *   the device says. Resolved and written by `theme.ts` (the boot script `public/theme.js` does
@@ -18,14 +19,19 @@
  * - Background glow (owner feedback 2026-10-09, G5, and the owner's decision that it starts on):
  *   the Library's aura, dimmer, behind the reader's canvas (`home/Aura.tsx`, shown by the app
  *   shell in the page view). On unless the stored value is `false`.
+ * - Dim pages (DESIGN.md §3's comfort toggle; decisions MOB-16 step 1, MOB-17): in the dark
+ *   theme the page bitmaps are composited darker (`--page-filter`, `--page-background` in
+ *   `tokens.css` §5); the document, its saves and exports are untouched. Off unless the stored
+ *   value is `true`; it does nothing in the light theme or under forced colours.
  *
  * Persisted in `pdf-editor:appearance:v1`, validated field by field. The settings reach CSS as
  * attributes on the document element, applied by `useAppearanceRoot`: `data-theme` (the theme
  * in force, `light` or `dark`, kept after unmount: the boot script owns it from the first
  * paint), `data-glass` (the
  * setting in force: `clear`, `tinted` or `solid`), `data-degrade` (the cost ladder's step,
- * absent at 0) and `data-motion="reduced"` (`motion.css`, matched by the same blocks as the
- * media query; `reducedMotion()` reads it for script).
+ * absent at 0), `data-motion="reduced"` (`motion.css`, matched by the same blocks as the
+ * media query; `reducedMotion()` reads it for script) and `data-dim-pages` (Dim pages on, read
+ * by `tokens.css` together with `data-theme='dark'`).
  */
 import { useLayoutEffect } from 'react';
 import { create } from 'zustand';
@@ -57,6 +63,8 @@ export interface AppearanceSettings {
   readonly motion: MotionSetting;
   /** The aura behind the reader's canvas (G5); on by default. */
   readonly glow: boolean;
+  /** Dim pages in the dark theme (MOB-17); off by default. */
+  readonly dimPages: boolean;
 }
 
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
@@ -64,6 +72,7 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   glass: null,
   motion: 'system',
   glow: true,
+  dimPages: false,
 };
 
 const GLASS_SETTINGS: readonly GlassSetting[] = ['clear', 'tinted', 'solid'];
@@ -73,6 +82,7 @@ interface AppearanceState extends AppearanceSettings {
   setGlass(glass: GlassSetting): void;
   setMotion(motion: MotionSetting): void;
   setGlow(glow: boolean): void;
+  setDimPages(dimPages: boolean): void;
 }
 
 /**
@@ -98,6 +108,7 @@ export function parseAppearance(value: unknown): AppearanceSettings {
     glass,
     motion: record.motion === 'reduced' ? 'reduced' : DEFAULT_APPEARANCE.motion,
     glow: typeof record.glow === 'boolean' ? record.glow : DEFAULT_APPEARANCE.glow,
+    dimPages: record.dimPages === true,
   };
 }
 
@@ -123,6 +134,7 @@ export const useAppearanceStore = create<AppearanceState>()((set) => ({
   setGlass: (glass) => set({ glass }),
   setMotion: (motion) => set({ motion }),
   setGlow: (glow) => set({ glow }),
+  setDimPages: (dimPages) => set({ dimPages }),
 }));
 
 useAppearanceStore.subscribe((state, previous) => {
@@ -130,7 +142,8 @@ useAppearanceStore.subscribe((state, previous) => {
     state.theme === previous.theme &&
     state.glass === previous.glass &&
     state.motion === previous.motion &&
-    state.glow === previous.glow
+    state.glow === previous.glow &&
+    state.dimPages === previous.dimPages
   ) {
     return;
   }
@@ -139,6 +152,7 @@ useAppearanceStore.subscribe((state, previous) => {
     glass: state.glass,
     motion: state.motion,
     glow: state.glow,
+    dimPages: state.dimPages,
   };
   writeJson(APPEARANCE_STORAGE_KEY, settings);
 });
@@ -151,18 +165,22 @@ export function effectiveGlass(glass: GlassSetting | null): GlassSetting {
 /** Writes the settings onto `root` as the attributes the style sheets read. */
 export function applyAppearance(
   root: HTMLElement,
-  settings: Pick<AppearanceSettings, 'theme' | 'glass' | 'motion'>,
+  settings: Pick<AppearanceSettings, 'theme' | 'glass' | 'motion'> &
+    Partial<Pick<AppearanceSettings, 'dimPages'>>,
 ): void {
   applyTheme(root, settings.theme);
   root.setAttribute('data-glass', effectiveGlass(settings.glass));
   if (settings.motion === 'reduced') root.setAttribute('data-motion', 'reduced');
   else root.removeAttribute('data-motion');
+  if (settings.dimPages === true) root.setAttribute('data-dim-pages', '');
+  else root.removeAttribute('data-dim-pages');
 }
 
 /** Removes what `applyAppearance` and the ladder wrote, except the theme (see above). */
 function clearAppearance(root: HTMLElement): void {
   root.removeAttribute('data-glass');
   root.removeAttribute('data-motion');
+  root.removeAttribute('data-dim-pages');
   root.removeAttribute('data-degrade');
 }
 
@@ -175,6 +193,7 @@ export function useAppearanceRoot(): void {
   const theme = useAppearanceStore((s) => s.theme);
   const glass = useAppearanceStore((s) => s.glass);
   const motion = useAppearanceStore((s) => s.motion);
+  const dimPages = useAppearanceStore((s) => s.dimPages);
   const degrade = useRenderQualityStore((s) => s.degrade);
   useLayoutEffect(() => {
     ensureDegradeStart();
@@ -198,10 +217,10 @@ export function useAppearanceRoot(): void {
   }, []);
   useLayoutEffect(() => {
     const root = document.documentElement;
-    applyAppearance(root, { theme, glass, motion });
+    applyAppearance(root, { theme, glass, motion, dimPages });
     applyDegrade(root, degrade);
     return () => clearAppearance(root);
-  }, [theme, glass, motion, degrade]);
+  }, [theme, glass, motion, dimPages, degrade]);
   // System follows the device while the app runs.
   useLayoutEffect(() => {
     if (theme !== 'system') return;

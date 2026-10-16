@@ -12,7 +12,9 @@
  *   (07 S3 §4), announced the same way when the system changes while the sheet is open. Its row
  *   lives in `ReduceMotionRow.tsx`, which the compact edition shows too. Background glow
  *   (owner feedback 2026-10-09, G5), a switch, on by default: the Library's aura, dimmer,
- *   behind the reader's canvas.
+ *   behind the reader's canvas. Dim pages (DESIGN.md §3; MOB-17), a switch, off by
+ *   default, disabled in the light theme; its row lives in `DimPagesRow.tsx`, which the compact
+ *   edition shows too.
  * - **Language:** English · Türkçe · Follow the browser (07.8), names in their own language;
  *   applied without a reload (`locale.ts`), and the sheet comes back at this row after the
  *   shell remounts in the new language.

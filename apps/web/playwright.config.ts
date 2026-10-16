@@ -138,7 +138,14 @@ export default defineConfig({
     },
     {
       name: 'phone',
-      testMatch: [...PHONE_SPECS, COMPACT_OVERVIEW_SPEC, BAR_AUDIT_SPEC, MOTION_SPEC],
+      // Dim pages in the compact edition's About sheet too (MOB-17).
+      testMatch: [
+        ...PHONE_SPECS,
+        COMPACT_OVERVIEW_SPEC,
+        BAR_AUDIT_SPEC,
+        MOTION_SPEC,
+        '**/dim-pages.spec.ts',
+      ],
       use: touchDevice(PHONE, devices['Pixel 7'].userAgent, 3),
     },
     {
