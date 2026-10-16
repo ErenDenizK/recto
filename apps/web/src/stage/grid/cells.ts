@@ -41,6 +41,8 @@ export function snapshotSheet(cell: Element): SheetSnapshot | null {
     canvas.width = source.width;
     canvas.height = source.height;
     canvas.getContext('2d')?.drawImage(source, 0, 0);
+    // A copy of the page bitmap: Dim pages composites it as it does the sheet's (MOB-17).
+    canvas.style.filter = 'var(--page-filter)';
   }
   return { id, box, canvas };
 }

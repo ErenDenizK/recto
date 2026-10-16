@@ -10,7 +10,8 @@
  *       light values (D3-7; the test keeps both selectors and §1 to one name set)
  *   §3  `:root`                        theme-free: type, shape, space, density, metrics
  *   §4  `@media (pointer: coarse), (any-pointer: coarse)`   coarse density
- *   §5  Settings: Glass Tinted and Solid (Solid identical to reduced transparency), more contrast
+ *   §5  Settings: Glass Tinted and Solid (Solid identical to reduced transparency), more
+ *       contrast, Dim pages
  *   §6  `@media (forced-colors: active)`
  *   §7  `@media (color-gamut: p3)`     the aurora's P3 stops
  *
@@ -158,6 +159,8 @@
      and search hits, wash-strong 0.45 for the current hit. --select-ink is the glyph on it
      (the check badge, 4.93:1). */
   --page-background: #ffffff;
+  /* What composites the page bitmaps: none, or Dim pages' brightness (§5; MOB-17). */
+  --page-filter: none;
   --page-shadow: 0 0 0 1px var(--border-hairline);
   /* The sheet behind a dragged page, and the inner and outer edges of a white plate (a
      signature, a colour cell, the spectrum) over the chrome. */
@@ -469,6 +472,7 @@
   /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
      and no shadow. */
   --page-background: #ffffff;
+  --page-filter: none;
   --page-shadow: 0 0 0 1px rgb(var(--ink-rgb) / 0.14);
   --page-under: #e9eaee;
   --plate-edge: rgb(0 0 0 / 0.08);
@@ -745,6 +749,7 @@
     /* Layer 2: content (language.md §1.5): never themed. The page keeps a hairline, ink 0.14,
        and no shadow. */
     --page-background: #ffffff;
+    --page-filter: none;
     --page-shadow: 0 0 0 1px rgb(var(--ink-rgb) / 0.14);
     --page-under: #e9eaee;
     --plate-edge: rgb(0 0 0 / 0.08);
@@ -1214,6 +1219,19 @@
   }
 }
 
+/* Dim pages (DESIGN.md §3's comfort toggle; decisions MOB-16 step 1, MOB-17), set in Settings ›
+   Appearance and written as `data-dim-pages` by `state/appearance-store.ts`: in the dark theme
+   only, the page bitmaps composite at 80 % brightness (`--page-filter`, read by the page canvases
+   and the text editor's canvases) and the paper every DOM piece on a page shows (the sheet under
+   a bitmap still rendering, fields, handles) is the same white at 80 %, #cccccc, so nothing on
+   the page stays bright. A filter, not a translucent overlay: the document's pixels, saves and
+   exports never change, and the overlays (selection, ink, highlights, the text editor's frame)
+   stay at full strength over it. Forced colours turn it off (§6). */
+:root[data-theme='dark'][data-dim-pages] {
+  --page-background: #cccccc;
+  --page-filter: brightness(0.8);
+}
+
 /* ── §6 Forced colours ─────────────────────────────────────────────────────────────────────
  * Every tier is Canvas with its filter set to none explicitly: Chromium keeps the filter and the
  * tint's alpha otherwise (research 22 §6.2; materials.css resets the literal blur lines too).
@@ -1246,6 +1264,12 @@
     --rim-inner-menu: 0 0 #0000;
     --rim-inner-sheet: 0 0 #0000;
     --rim-inner-docked: 0 0 #0000;
+  }
+
+  /* The system's colours are in force: Dim pages has nothing to do. */
+  :root[data-theme='dark'][data-dim-pages] {
+    --page-background: #ffffff;
+    --page-filter: none;
   }
 }
 

@@ -98,6 +98,8 @@ export function renderDragPreview(
     copy.width = source.width;
     copy.height = source.height;
     copy.getContext('2d')?.drawImage(source, 0, 0);
+    // A copy of the page bitmap: Dim pages composites it as it does the sheet's (MOB-17).
+    copy.style.filter = 'var(--page-filter)';
     face.append(copy);
   }
   root.append(face);

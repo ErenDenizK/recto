@@ -85,6 +85,8 @@ export function pageMask(page: { canvas: HTMLCanvasElement; rect: DOMRect }, to:
     height: `${to.height}px`,
     zIndex: '999',
     pointerEvents: 'none',
+    // A still of the page bitmap: Dim pages composites it as it does the page's (MOB-17).
+    filter: 'var(--page-filter)',
   });
   mask
     .getContext('2d')

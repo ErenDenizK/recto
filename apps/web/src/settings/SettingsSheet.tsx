@@ -71,6 +71,7 @@ import {
   ShortcutsRow,
   ShowTipsRow,
 } from './sections';
+import { DimPagesRow } from './DimPagesRow';
 import { ReduceMotionRow } from './ReduceMotionRow';
 import { ThemeRow } from './ThemeRow';
 import styles from './Settings.module.css';
@@ -85,6 +86,7 @@ const ROWS: Readonly<
   glass: () => <GlassRow />,
   reduceMotion: () => <ReduceMotionRow />,
   glow: () => <GlowRow />,
+  dimPages: () => <DimPagesRow />,
   language: () => <LanguageRow />,
   penDrawsInEdit: () => <PenDrawsRow />,
   keptDocuments: (props) => <KeptDocumentsRow {...props} />,

@@ -40,6 +40,7 @@ export type SettingsRowId =
   | 'glass'
   | 'reduceMotion'
   | 'glow'
+  | 'dimPages'
   | 'language'
   | 'penDrawsInEdit'
   | 'keptDocuments'
@@ -146,6 +147,13 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     title: at(m.settings_glow),
     keywords: at(m.settings_glow_keywords),
     commands: ['view.glow', 'settings.appearance'],
+  },
+  {
+    id: 'dimPages',
+    section: 'appearance',
+    title: at(m.settings_dim_pages),
+    keywords: at(m.settings_dim_pages_keywords),
+    commands: ['view.dimPages', 'settings.appearance'],
   },
   {
     id: 'language',

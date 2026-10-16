@@ -132,4 +132,40 @@ describe('the docked frame', () => {
     expect(stage && getComputedStyle(stage).backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
     expect(commandRegistry.get('view.glow')?.title).toBe('Background glow: Off');
   });
+
+  it('dims the page bitmap, not its overlays, in the dark theme with Dim pages (MOB-17)', async () => {
+    render(<App />);
+    const bytes = await (await fetch(simpleUrl)).arrayBuffer();
+    await act(async () => {
+      await openDocuments([new File([bytes], 'simple-text.pdf', { type: 'application/pdf' })]);
+    });
+    const root = document.documentElement;
+    const sheet = await waitFor(() => {
+      const el = document.querySelector<HTMLElement>('[data-page-index="0"]');
+      if (!el?.querySelector('canvas')) throw new Error('no page yet');
+      return el;
+    });
+    const canvas = sheet.querySelector('canvas') as HTMLCanvasElement;
+    const overlays = sheet.querySelector<HTMLElement>('.page-overlays');
+    expect(getComputedStyle(canvas).filter).toBe('none');
+    expect(getComputedStyle(sheet).backgroundColor).toBe('rgb(255, 255, 255)');
+    expect(commandRegistry.get('view.dimPages')?.title).toBe('Dim pages: Off');
+    await act(async () => {
+      await commandRegistry.execute('view.dimPages');
+    });
+    expect(useAppearanceStore.getState().dimPages).toBe(true);
+    expect(root).toHaveAttribute('data-dim-pages');
+    expect(commandRegistry.get('view.dimPages')?.title).toBe('Dim pages: On');
+    // System, in a browser that reports a dark scheme (vitest.config.ts).
+    expect(root.getAttribute('data-theme')).toBe('dark');
+    expect(getComputedStyle(canvas).filter).toBe('brightness(0.8)');
+    expect(getComputedStyle(sheet).backgroundColor).toBe('rgb(204, 204, 204)');
+    expect(getComputedStyle(sheet).filter).toBe('none');
+    if (overlays) expect(getComputedStyle(overlays).filter).toBe('none');
+    // The light theme keeps the pages as authored.
+    act(() => useAppearanceStore.getState().setTheme('light'));
+    expect(getComputedStyle(canvas).filter).toBe('none');
+    expect(getComputedStyle(sheet).backgroundColor).toBe('rgb(255, 255, 255)');
+    root.removeAttribute('data-theme');
+  });
 });
