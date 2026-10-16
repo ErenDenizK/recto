@@ -88,6 +88,7 @@ import {
   anchorAt,
   clampZoom,
   doubleTapZoom,
+  FIND_BAR_MARGIN,
   IDENTITY,
   layoutPages,
   mostVisiblePage,
@@ -95,6 +96,7 @@ import {
   PAGE_GAP,
   pinchTransform,
   type ReaderFrame,
+  revealBottomInset,
   rubberZoom,
   scrollForAnchor,
   settleTransform,
@@ -832,8 +834,17 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
           }),
           request.reveal,
         );
-        const bandTop = f.padTop - PAGE_GAP;
-        const bandBottom = f.padBottom - PAGE_GAP;
+        // With the top away for Find on a phone on its side, the band starts at the window's top.
+        const bandTop = useCompactStore.getState().findOverTop
+          ? FIND_BAR_MARGIN
+          : f.padTop - PAGE_GAP;
+        // Find on the keyboard lies over the pages: a hit lands above it (DSN-44).
+        const findBar = document.querySelector('[data-testid="compact-find-bar"]');
+        const bandBottom = revealBottomInset(
+          f.padBottom - PAGE_GAP,
+          el.getBoundingClientRect().bottom,
+          findBar?.getBoundingClientRect().top,
+        );
         const freeHeight = el.clientHeight - bandTop - bandBottom;
         const top = box.top + region.top;
         const left = box.left + region.left;

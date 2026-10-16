@@ -61,6 +61,7 @@ import {
   type CompactSheet,
   openFind,
   openSheet,
+  setFindOverTop,
   setMenuOpen,
   showLibrary,
   topBarAway,
@@ -377,19 +378,29 @@ function FindBar({
   }, []);
 
   // Docked: `--kb-inset` is written while the bar shows (`mark/keyboard.ts`, fetched with it:
-  // the bar sits in the capsule's place until it arrives).
+  // the bar sits in the capsule's place until it arrives). On a phone on its side the bar on
+  // the keyboard would reach the title row, so the top steps away while the field has the
+  // keyboard and comes back when it goes (DSN-44).
   useEffect(() => {
     if (!docked) return;
     let stop: (() => void) | undefined;
     let gone = false;
     import('./mark/keyboard')
       .then((module) => {
-        if (!gone) stop = module.watchKeyboard(() => undefined);
+        if (gone) return;
+        stop = module.watchKeyboard((state) => {
+          setFindOverTop(
+            state.inset > 0 &&
+              window.innerWidth > window.innerHeight &&
+              document.activeElement === inputRef.current,
+          );
+        });
       })
       .catch(() => undefined);
     return () => {
       gone = true;
       stop?.();
+      setFindOverTop(false);
     };
   }, [docked]);
 

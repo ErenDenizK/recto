@@ -4,6 +4,7 @@ import {
   anchorAt,
   clampZoom,
   doubleTapZoom,
+  FIND_BAR_MARGIN,
   fitScale,
   IDENTITY,
   layoutPages,
@@ -14,6 +15,7 @@ import {
   PAGE_MARGIN,
   pinchTransform,
   type ReaderFrame,
+  revealBottomInset,
   rubberZoom,
   scrollForAnchor,
   settleTransform,
@@ -152,5 +154,16 @@ describe('zoom anchors', () => {
     expect(rubberZoom(3)).toBe(3);
     expect(rubberZoom(7)).toBe(5.5);
     expect(rubberZoom(0.6)).toBeCloseTo(0.9, 6);
+  });
+});
+
+describe('a reveal clear of Find on the keyboard (DSN-44)', () => {
+  it('keeps the bars’ band, or ends the band above a bar that reaches higher', () => {
+    // No bar over the pages: the band as laid out.
+    expect(revealBottomInset(68, 844, undefined)).toBe(68);
+    // The bar in the capsule's place: lower than the band's edge, nothing changes.
+    expect(revealBottomInset(68, 844, 800)).toBe(68);
+    // On a 338 px keyboard: the bar's top at 446, the band ends 12 px above it.
+    expect(revealBottomInset(68, 844, 446)).toBe(844 - 446 + FIND_BAR_MARGIN);
   });
 });

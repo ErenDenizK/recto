@@ -277,3 +277,22 @@ export function rubberZoom(zoom: number): number {
   if (zoom < MIN_ZOOM) return MIN_ZOOM - (MIN_ZOOM - zoom) * 0.25;
   return zoom;
 }
+
+/** Space kept between a revealed Find hit and the Find bar over the pages (DSN-44), CSS px. */
+export const FIND_BAR_MARGIN = 12;
+
+/**
+ * The free band's inset from the scroller's foot for a reveal (a Find hit), CSS px: the bars'
+ * band, or more where a bar over the pages reaches higher (Find riding on the keyboard, its top
+ * `barTop` in the client space of `viewBottom`), with `margin` above it, so a revealed hit never
+ * lands under the bar (DSN-44).
+ */
+export function revealBottomInset(
+  bandBottom: number,
+  viewBottom: number,
+  barTop: number | undefined,
+  margin: number = FIND_BAR_MARGIN,
+): number {
+  if (barTop === undefined) return bandBottom;
+  return Math.max(bandBottom, viewBottom - barTop + margin);
+}
