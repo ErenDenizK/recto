@@ -15,6 +15,9 @@
  * - The body keeps a rim while it moves (DSN-42): the mask cuts the material's border and
  *   shadows to the box's corners, so the union's outline is stroked in the rim's top-lit
  *   gradient (`outlineRim`) on a layer over the glass (`--liquid-rim`, `.menu[data-liquid]`).
+ * - In WebKit (every iPhone) the outline is a `clip-path` and the rim a clipped ring
+ *   (`--liquid-ring`) instead (`liquidPaint`, MOT-8): a mask image rewritten each frame never
+ *   loads in time there, and the menu stayed invisible until it had opened.
  * - Ends clean: at rest no mask, no rim, no attribute, no inline style (Q-2). Base UI waits for the
  *   popup's Web Animations before it unmounts it, so the close holds one (an opacity that ends
  *   at 0, where the button takes over).
@@ -28,13 +31,11 @@
 import { reducedMotion } from '../../motion/reduced-motion';
 import {
   cubicBezier,
+  liquidPaint,
   type LiquidRect,
-  outlineMask,
-  outlineRim,
   rimColorsOf,
   type RimColors,
   springProgress,
-  unionOutline,
 } from './liquid-mask';
 
 /** The fillet between the button and the blob, CSS px. */
@@ -119,21 +120,30 @@ export function liquidPopup(popup: HTMLElement, trigger: () => HTMLElement | nul
     popup.style.setProperty('-webkit-mask-image', value);
     popup.style.setProperty('mask-image', value);
   };
-  /** The union's mask and, over the glass, its rim (DSN-42): one outline for both. */
+  /** The union's shape and, over the glass, its rim (DSN-42): one outline for both. */
   let rim: RimColors | null = null;
   const setShape = (shapes: readonly LiquidRect[], box: DOMRect, k: number) => {
-    const outline = unionOutline(box, shapes, k);
-    setMask(outlineMask(outline));
     rim ??= rimColorsOf(popup);
-    popup.style.setProperty('--liquid-rim', outlineRim(outline, rim));
+    const paint = liquidPaint(box, shapes, k, rim);
+    setMask(paint.mask);
+    popup.style.setProperty('clip-path', paint.clip);
+    popup.style.setProperty('--liquid-rim', paint.rim);
+    popup.style.setProperty('--liquid-ring', paint.ring);
   };
   const clean = () => {
     cancelAnimationFrame(frame);
-    for (const name of ['-webkit-mask-image', 'mask-image', 'mask-repeat', '-webkit-mask-repeat']) {
+    for (const name of [
+      '-webkit-mask-image',
+      'mask-image',
+      'mask-repeat',
+      '-webkit-mask-repeat',
+      'clip-path',
+    ]) {
       popup.style.removeProperty(name);
     }
     popup.style.removeProperty('--liquid-content');
     popup.style.removeProperty('--liquid-rim');
+    popup.style.removeProperty('--liquid-ring');
     delete popup.dataset.liquid;
   };
   const atOnce = () => popup.hasAttribute('data-instant') || root.hasAttribute('data-menu-handoff');

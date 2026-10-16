@@ -2,11 +2,13 @@
  * The liquid shapes' geometry (`liquid-mask.ts`, GLS-3, GLS-4): the rounded-rect distance, the
  * smooth union's neck, the traced outline and the mask it becomes, and the springs.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   contourPath,
   cubicBezier,
+  imagesApplyAtOnce,
+  liquidPaint,
   type LiquidRect,
   outlineMask,
   outlineRim,
@@ -129,5 +131,41 @@ describe('liquid shapes', () => {
     expect(ease(1)).toBe(1);
     // Slow at the start: the blob leaves the button before it grows.
     expect(ease(0.3)).toBeLessThan(0.3);
+  });
+
+  describe('the paint (MOT-8)', () => {
+    const rim = { top: 'rgba(255, 255, 255, 0.42)', bottom: 'rgba(255, 255, 255, 0.16)' };
+    const box = { x: 0, y: 0, width: 104, height: 44 };
+    const asVendor = (vendor: string) =>
+      Object.defineProperty(navigator, 'vendor', { value: vendor, configurable: true });
+    afterEach(() => {
+      Reflect.deleteProperty(navigator, 'vendor');
+    });
+
+    it('masks the body and strokes the rim where images apply at once', () => {
+      asVendor('Google Inc.');
+      expect(imagesApplyAtOnce()).toBe(true);
+      const paint = liquidPaint(box, [circle, blob], 40, rim);
+      expect(paint.mask).toMatch(/^url\("data:image\/svg\+xml,/);
+      expect(paint.rim).toMatch(/^url\("data:image\/svg\+xml,/);
+      expect(paint.clip).toBe('none');
+      expect(paint.ring).toBe('none');
+    });
+
+    it('in WebKit, clips the body to the outline and the rim to a ring: nothing to load', () => {
+      asVendor('Apple Computer, Inc.');
+      expect(imagesApplyAtOnce()).toBe(false);
+      const paint = liquidPaint(box, [circle, blob], 40, rim);
+      expect(paint.mask).toBe('none');
+      expect(paint.clip).toMatch(/^path\('M[\d.]+ [\d.]+L.*Z'\)$/);
+      expect(paint.ring).toMatch(/^path\(evenodd, 'M.*ZM.*Z'\)$/);
+      expect(paint.rim).toMatch(/^linear-gradient\(rgba\(255, 255, 255, 0.42\) 0%, color-mix/);
+      expect(`${paint.clip}${paint.ring}${paint.rim}`).not.toContain('url(');
+      // The path sits in the element's own box: the trace's pad is taken off.
+      const xs = [...paint.clip.matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map((m) => Number(m[1]));
+      expect(Math.min(...xs)).toBeGreaterThanOrEqual(-0.1);
+      expect(Math.max(...xs)).toBeLessThanOrEqual(104.1);
+      expect(liquidPaint({ x: 0, y: 0, width: 10, height: 10 }, [blob], 0, rim).clip).toBe('none');
+    });
   });
 });
