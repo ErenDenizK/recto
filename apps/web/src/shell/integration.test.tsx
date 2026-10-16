@@ -100,7 +100,12 @@ describe('engine integration', () => {
     // A click navigates (page 2 becomes current) and selects nothing.
     await userEvent.click(within(list).getByRole('option', { name: 'Page 2' }));
     await waitFor(() => {
-      expect(screen.getByTestId('page-pill').textContent).toMatch(/^2 \/ 3 · /);
+      // Its name, not its text: the text rolls the number for a moment (frame.md §4), and
+      // mid-roll it holds both the old and the new digit.
+      expect(screen.getByTestId('page-pill')).toHaveAttribute(
+        'aria-label',
+        expect.stringMatching(/^Page 2 of 3,/),
+      );
     });
     expect(within(list).getByRole('option', { name: 'Page 2' })).toHaveAttribute(
       'aria-selected',
