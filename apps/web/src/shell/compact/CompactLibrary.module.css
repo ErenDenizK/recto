@@ -76,20 +76,29 @@
   min-width: 0;
 }
 
+/*
+ * The body in the Library's order (DSN-50): what the phone does, then Recents, then the sample,
+ * the way back to a file before the way to try one. Before the first file (`data-first-run`)
+ * the sample comes first and the "No files yet" card after it. The intro's parts join the
+ * body's column (`display: contents`) so the order is CSS alone, one rhythm for every gap; a
+ * phone on its side keeps the intro as its first column (below).
+ */
 .body {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(20px, 3.5svh, 36px);
-  margin-bottom: auto;
-  padding-top: clamp(8px, 2svh, 20px);
-}
-
-.intro {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: clamp(16px, 3svh, 28px);
+  margin-bottom: auto;
+  padding-top: clamp(8px, 2svh, 20px);
   text-align: center;
+}
+
+.intro {
+  display: contents;
+}
+
+.library:not([data-first-run]) :is(.sample, .error) {
+  order: 1;
 }
 
 .promise {
@@ -218,6 +227,7 @@
 
 .recents {
   width: 100%;
+  text-align: start;
 }
 
 /* The section title and Clear share one size, footnote 600 (visual audit 2026-10 item 6), and
@@ -350,13 +360,14 @@
   text-wrap: pretty;
 }
 
-/* Recents before the first file: the card with one row of the list's shape, not pressable. */
+/* Recents before the first file: the card itself is one row of the list's shape, not
+   pressable, with a row's padding and its 4 px inset in one (10 + 4, 12 + 4). */
 .emptyRow {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 64px;
-  padding: 10px var(--space-3);
+  min-height: 72px;
+  padding: 14px var(--space-4);
 }
 
 .emptyTitle {
@@ -446,6 +457,8 @@
   }
 
   .intro {
+    display: flex;
+    flex-direction: column;
     align-items: stretch;
     gap: var(--space-3);
     padding-top: var(--space-3);

@@ -1,12 +1,13 @@
 /**
- * The compact Library's composition (DSN-31; ADR-0033 §2.3, §3): identity, the tools as chips
- * with the sentence for screen readers, Try the sample as a card, Recents' first-run card, and
- * Open PDF in the floating dock; every target at least 44 px (A-15); no language switch (DSN-46).
+ * The compact Library's composition (DSN-31, DSN-50; ADR-0033 §2.3, §3): identity, the tools as
+ * chips with the sentence for screen readers, Recents before Try the sample (the sample first
+ * before the first file, over Recents' first-run card), and Open PDF in the floating dock; every
+ * target at least 44 px (A-15); no language switch (DSN-46).
  */
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { useRecentsStore } from '../../files/recents';
+import { type RecentEntry, useRecentsStore } from '../../files/recents';
 import { CompactLibrary } from './CompactLibrary';
 import { resetCompactStore } from './compact-store';
 
@@ -67,14 +68,35 @@ describe('CompactLibrary', () => {
     }
   });
 
-  it('holds Recents’ place with a quiet card before the first file', async () => {
+  it('holds Recents’ place with a quiet card before the first file, under the sample', async () => {
     useRecentsStore.setState({ loaded: true, entries: [] });
     render(<CompactLibrary />);
     const empty = await screen.findByTestId('compact-recents-empty');
     expect(within(empty).getByRole('heading', { name: 'Recent' })).toBeVisible();
     expect(empty).toHaveTextContent('No files yet');
+    expect(within(empty).queryByRole('button', { name: 'Clear recents' })).toBeNull();
     await waitFor(() => {
       expect(screen.getByTestId('compact-library')).toHaveAttribute('data-first-run');
     });
+    const sample = screen.getByRole('button', { name: 'Try the sample' });
+    expect(sample.getBoundingClientRect().bottom).toBeLessThan(empty.getBoundingClientRect().top);
+  });
+
+  it('lists Recents before the sample once there are files (DSN-50)', async () => {
+    const entry: RecentEntry = {
+      id: 'r1',
+      name: 'report.pdf',
+      size: 2048,
+      openedAt: Date.now(),
+      pages: 3,
+    };
+    useRecentsStore.setState({ loaded: true, entries: [entry] });
+    render(<CompactLibrary />);
+    const list = await screen.findByTestId('compact-recents');
+    expect(within(list).getByRole('button', { name: /^report\.pdf, / })).toBeVisible();
+    const sample = screen.getByRole('button', { name: 'Try the sample' });
+    expect(sample.getBoundingClientRect().top).toBeGreaterThan(list.getBoundingClientRect().bottom);
+    // The order is the stylesheet's: the DOM keeps the intro together.
+    expect(screen.getByTestId('compact-library')).not.toHaveAttribute('data-first-run');
   });
 });

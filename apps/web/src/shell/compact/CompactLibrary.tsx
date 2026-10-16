@@ -10,12 +10,13 @@
  *    tool names of the edit island (EDN-8), and "Every tool on a computer or tablet." under them.
  *    The sentence they replace (EDN-15, ADR-0033 §3 "Honesty") stays for screen readers, so the
  *    row is read once, as one line, never as a modal.
- * 3. **The sample.** **Try the sample** as a lit card (02-library L10) with a drawing of the
- *    sample's first page: static, so the Library loads no engine before a file is chosen.
- * 4. **Recents**, the full edition's (`files/recents.ts`), as one lit card of rows: newest first,
+ * 3. **Recents**, the full edition's (`files/recents.ts`), as one lit card of rows: newest first,
  *    the open document first as "Reading now" (a tap goes back to it), a row without a kept file
- *    handle reopens through the file dialog ("Open again…"), and Clear forgets them all. Before
- *    the first file the card holds one quiet row in its place, "No files yet".
+ *    handle reopens through the file dialog ("Open again…"), and Clear forgets them all.
+ * 4. **The sample.** **Try the sample** as a lit card (02-library L10) with a drawing of the
+ *    sample's first page (`SampleCover`): static, so the Library loads no engine before a file
+ *    is chosen. Before the first file it comes before Recents, whose card then holds one quiet
+ *    row, "No files yet" (the order is the stylesheet's, DSN-50).
  * 5. **Open PDF**, the one lime, in a floating glass dock where the reader's capsule stands
  *    (M2, `compact-library-dock` in the coverage registry): in thumb reach, above the home
  *    indicator, with Recents scrolling under it.
@@ -165,6 +166,11 @@ function ClearButton() {
   );
 }
 
+/**
+ * Recents as one lit card of rows under the section title and Clear. Before the first file the
+ * card holds one quiet row of the list's shape in their place ("No files yet"), under the same
+ * title and without Clear: one section, so the two states cannot drift apart.
+ */
 function Recents() {
   const entries = useRecentsStore((s) => s.entries);
   const loaded = useRecentsStore((s) => s.loaded);
@@ -174,59 +180,23 @@ function Recents() {
   // Relative times ("5 minutes ago") are read once per visit.
   const [now] = useState(() => Date.now());
   if (!loaded) return null;
-  if (entries.length === 0) return <RecentsPlaceholder />;
+  const empty = entries.length === 0;
   // The open document first, then the rest newest first.
   const ordered = [...entries.filter(isOpenEntry), ...entries.filter((e) => !isOpenEntry(e))];
-  return (
-    <section className={styles.recents} aria-labelledby="compact-recents-heading">
-      <div className={styles.recentsHeader}>
-        <h2 id="compact-recents-heading" className={styles.recentsTitle}>
-          {m.recents_heading()}
-        </h2>
-        <ClearButton />
-      </div>
-      <ul
-        className={styles.recentList}
-        aria-label={m.recents_list_label()}
-        data-testid="compact-recents"
-      >
-        {ordered.map((entry) => (
-          <RecentRow
-            key={entry.id}
-            entry={entry}
-            reading={isOpenEntry(entry)}
-            hint={recentHint(entry, access[entry.id])}
-            time={relativeTime(entry.openedAt, now, locale)}
-            locale={locale}
-          />
-        ))}
-      </ul>
-      {note ? (
-        <p className={styles.note} data-testid="compact-recent-note">
-          {note.kind === 'open-again'
-            ? m.recents_note_open_again({ name: note.name })
-            : m.recents_note_unavailable({ name: note.name })}
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-/** Recents before the first file: the card in its place, one quiet row of the list's shape. */
-function RecentsPlaceholder() {
   return (
     <section
       className={styles.recents}
       aria-labelledby="compact-recents-heading"
-      data-testid="compact-recents-empty"
+      data-testid={empty ? 'compact-recents-empty' : undefined}
     >
       <div className={styles.recentsHeader}>
         <h2 id="compact-recents-heading" className={styles.recentsTitle}>
           {m.recents_heading()}
         </h2>
+        {empty ? null : <ClearButton />}
       </div>
-      <div className={`${styles.recentList} ${styles.emptyCard}`}>
-        <div className={styles.emptyRow}>
+      {empty ? (
+        <div className={`${styles.recentList} ${styles.emptyRow}`}>
           <span className={styles.recentGlyph} aria-hidden="true">
             <Icon name="file-text" />
           </span>
@@ -235,7 +205,31 @@ function RecentsPlaceholder() {
             <span className={styles.emptyLine}>{m.compact_recents_empty()}</span>
           </span>
         </div>
-      </div>
+      ) : (
+        <ul
+          className={styles.recentList}
+          aria-label={m.recents_list_label()}
+          data-testid="compact-recents"
+        >
+          {ordered.map((entry) => (
+            <RecentRow
+              key={entry.id}
+              entry={entry}
+              reading={isOpenEntry(entry)}
+              hint={recentHint(entry, access[entry.id])}
+              time={relativeTime(entry.openedAt, now, locale)}
+              locale={locale}
+            />
+          ))}
+        </ul>
+      )}
+      {note ? (
+        <p className={styles.note} data-testid="compact-recent-note">
+          {note.kind === 'open-again'
+            ? m.recents_note_open_again({ name: note.name })
+            : m.recents_note_unavailable({ name: note.name })}
+        </p>
+      ) : null}
     </section>
   );
 }
