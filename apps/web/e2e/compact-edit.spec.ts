@@ -356,12 +356,8 @@ test.describe('phone editing (M10 WP1)', () => {
       await cdp.send('Animation.enable');
       await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
       await edit.click();
-      for (const [n, wait] of [
-        [1, 250],
-        [2, 900],
-        [3, 1600],
-      ] as const) {
-        await page.waitForTimeout(wait - (n === 1 ? 0 : n === 2 ? 250 : 900));
+      for (let n = 1; n <= 4; n++) {
+        await page.waitForTimeout(120);
         await shot(page, `merge-${n}`, 0);
       }
       await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });

@@ -450,8 +450,9 @@
 /*
  * The capsule and ✎ as one liquid body while the capsule morphs into the island and back
  * (DSN-43, `mark/capsule-liquid.ts`): one masked glass layer under them draws the union, so
- * each piece's own fill, filter, rim and ring step aside for the run and only its drop shadow
- * and content stay (the content only fades, MOT-5). Nothing of it at rest.
+ * each piece's own fill, filter, rim and ring step aside for the run; the capsule keeps its drop
+ * shadow, ✎ none (its box narrows beside the drop and would leave a grey ghost), and the
+ * content stays and only fades (MOT-5). Nothing of it at rest.
  */
 .capsule[data-liquid],
 .edit[data-liquid] {
@@ -460,6 +461,10 @@
   box-shadow: var(--mat-shadow) !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+.edit[data-liquid] {
+  box-shadow: none !important;
 }
 
 .edit[data-liquid]::before {

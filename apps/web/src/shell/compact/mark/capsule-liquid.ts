@@ -13,8 +13,8 @@
  * - **The neck** follows how far ✎ has folded: none with ✎ at rest (so the union starts and
  *   ends as the two pieces at rest), the full fillet once it is a quarter folded.
  * - **The material** is the capsule's (`mat mat-bar s10`, its adaptive look's `data-theme`
- *   copied), its rim the union's outline stroked (`outlineRim`, DSN-42); the pieces keep their
- *   drop shadows and their content, which only fades (MOT-5). GPU glass leaves a piece with
+ *   copied), its rim the union's outline stroked (`outlineRim`, DSN-42); the capsule keeps its
+ *   drop shadow, both keep their content, which only fades (MOT-5). GPU glass leaves a piece with
  *   `data-liquid` to CSS+ for the run (GLS-19).
  * - **At rest** nothing is left: no layer, no attribute, no inline style (Q-2). Reduced motion
  *   never fuses: the morph is a fade there (`morphCapsule`).
