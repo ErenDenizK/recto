@@ -376,7 +376,12 @@ export async function downloadCopy(
   timeout = 60_000,
 ): Promise<{ readonly download: Download; readonly bytes: Buffer }> {
   const downloading = page.waitForEvent('download', { timeout });
-  await sheet.getByRole('button', { name: 'Download copy' }).click();
+  // A PDF's primary is busy until the sheet knows the unapplied redaction marks, and a busy
+  // button refuses presses (ui/Button.tsx): pressed before, nothing is saved. A large document
+  // on a loaded runner can take that long.
+  const press = sheet.getByRole('button', { name: 'Download copy' });
+  await expect(press).not.toHaveAttribute('aria-busy', 'true', { timeout });
+  await press.click();
   const download = await downloading;
   await expect(page.getByTestId('save-copy-toast').last()).toBeVisible({ timeout });
   return { download, bytes: await readFile(await download.path()) };
