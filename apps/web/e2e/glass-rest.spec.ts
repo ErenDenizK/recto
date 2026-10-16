@@ -237,26 +237,29 @@ test('the page pill turns with the page it floats over (GLS-9, DSN-45)', async (
   await page.emulateMedia({ colorScheme: 'dark' });
   await open(page, 'simple-text.pdf');
   const pill = page.getByTestId('page-pill');
-  // At fit width the pill floats over the canvas beside the page: the theme's dark look.
-  await expect(pill).not.toHaveAttribute('data-theme');
-  // Zoomed in, the white page reaches under it: light glass with the light theme's text.
+  const under = async () => {
+    const [p, b] = await Promise.all([
+      page.locator('[data-page-index="0"]').first().boundingBox(),
+      pill.boundingBox(),
+    ]);
+    // The page under most of the pill (its centre).
+    return p && b ? p.x + p.width > b.x + b.width / 2 && p.y + p.height > b.y + b.height : false;
+  };
+  // At fit width a Letter page reaches under the pill at 1440 × 900: light glass with the light
+  // theme's text over the white page.
   await page.mouse.click(700, 450);
+  await expect.poll(under).toBe(true);
+  await expect(pill).toHaveAttribute('data-theme', 'light');
+  // Zoomed out until the pill floats over the canvas beside the page: the theme's dark look.
   await expect
     .poll(
       async () => {
-        await page.keyboard.press('Control+Equal');
-        const [p, b] = await Promise.all([
-          page.locator('[data-page-index="0"]').first().boundingBox(),
-          pill.boundingBox(),
-        ]);
-        return p && b ? p.x + p.width > b.x + b.width && p.y + p.height > b.y + b.height : false;
+        await page.keyboard.press('Control+Minus');
+        return under();
       },
       { timeout: 15_000 },
     )
-    .toBe(true);
-  await expect(pill).toHaveAttribute('data-theme', 'light');
-  // Back to fit: over the canvas again, its own look.
-  await page.keyboard.press('Control+0');
+    .toBe(false);
   await expect(pill).not.toHaveAttribute('data-theme');
 });
 
