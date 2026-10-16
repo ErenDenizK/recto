@@ -43,27 +43,44 @@ export function moving(el: Element): Animation[] {
   );
 }
 
-/** Resolves with `el` once it and its ancestors have stopped moving (see above). */
+/**
+ * Resolves with `el` once it and its ancestors have stopped moving (see above).
+ *
+ * Rest is read across a frame. A Web Animation can be `finished` (held at its last keyframe by
+ * `fill`) before its `finish` event has run: on a loaded runner Chromium advances the animation
+ * clock in a task between frames, so a check there sees the motion done while the event, which
+ * the next frame dispatches, has yet to come. The motion core cleans up on that event
+ * (`animateStyle()` cancels its held animation and drops `will-change`), so a test that read
+ * the element straight after the check could still find the held animation (CI, PR #11:
+ * Segmented's thumb, `getAnimations()` 1). One frame after the check the event has run;
+ * anything that started meanwhile is waited out again.
+ */
 export async function settled<T extends Element>(el: T, { timeout = 5000 } = {}): Promise<T> {
   await act(async () => {
     await frame();
     await frame();
   });
-  await waitFor(
-    () => {
-      const running = moving(el);
-      if (running.length > 0) {
-        const names = running.map((a) =>
-          a instanceof CSSTransition
-            ? a.transitionProperty
-            : a instanceof CSSAnimation
-              ? a.animationName
-              : a.id || 'animation',
-        );
-        throw new Error(`still moving: ${names.join(', ')}`);
-      }
-    },
-    { timeout },
-  );
-  return el;
+  const until = performance.now() + timeout;
+  for (;;) {
+    await waitFor(
+      () => {
+        const running = moving(el);
+        if (running.length > 0) {
+          const names = running.map((a) =>
+            a instanceof CSSTransition
+              ? a.transitionProperty
+              : a instanceof CSSAnimation
+                ? a.animationName
+                : a.id || 'animation',
+          );
+          throw new Error(`still moving: ${names.join(', ')}`);
+        }
+      },
+      { timeout: Math.max(0, until - performance.now()) },
+    );
+    await act(async () => {
+      await frame();
+    });
+    if (moving(el).length === 0) return el;
+  }
 }
