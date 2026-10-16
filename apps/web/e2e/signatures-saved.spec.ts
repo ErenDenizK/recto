@@ -12,7 +12,13 @@
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, sessionSettled, useFileInputPicker, waitForSnapshot } from './helpers';
+import {
+  atRest,
+  openFixtures,
+  sessionSettled,
+  useFileInputPicker,
+  waitForSnapshot,
+} from './helpers';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -47,8 +53,12 @@ function presses() {
   };
 }
 
-/** One stroke across the pad, as a pointer draws it. */
+/**
+ * One stroke across the pad, as a pointer draws it, once the pad is at rest: the sheet grows
+ * out of Sign (MOT-9), so a box read mid-entrance is not where the pad lands.
+ */
 async function draw(page: Page, pad: Locator): Promise<void> {
+  await atRest(pad);
   const box = await pad.boundingBox();
   if (!box) throw new Error('no pad');
   await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.6);

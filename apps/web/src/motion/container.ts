@@ -119,12 +119,14 @@ export interface ContainerMotion {
 /**
  * Drives `el`'s container transform, resting at the trigger's rect (progress 0) until the first
  * `to(1)`. `endRadius` is the popup's own corner radius. Each `to()` starts from the present
- * progress and velocity; under reduced motion it only fades.
+ * progress and velocity; under reduced motion it only fades. `frameOf` draws a frame
+ * (`containerFrame`; the popups' observer adds MOT-9's growth, `ui/container-transform.ts`).
  */
 export function containerMotion(
   el: HTMLElement,
   start: ContainerStart,
   endRadius: number,
+  frameOf = containerFrame,
 ): ContainerMotion {
   let geometry = start;
   let anim: Animation | null = null;
@@ -184,9 +186,9 @@ export function containerMotion(
         for (let i = 0; i < FPS * 2; i++) {
           const [x, vx] = solve(s, seg.x0, v, i / FPS);
           if (i > 0 && energy(s, x, vx) <= settle) break;
-          frames.push(containerFrame(geometry, endRadius, next + x));
+          frames.push(frameOf(geometry, endRadius, next + x));
         }
-        frames.push(containerFrame(geometry, endRadius, next));
+        frames.push(frameOf(geometry, endRadius, next));
         run = el.animate(frames, {
           duration: Math.max(1, ((frames.length - 1) * 1000) / FPS),
           fill: 'forwards',

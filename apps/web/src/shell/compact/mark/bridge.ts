@@ -4,9 +4,12 @@
  * state the full edition does, so the page layers, the change guard and the commands need no
  * phone case:
  *
- * - **Enter** (✎): Markup opens on the active document (`ui-store.openMarkup`), then the tool
- *   an entry arms (Pen the first time, later the last one used) arms through its registry
- *   spec (`registry.ts`), which sets the tool store's mode; the compact store shows the island.
+ * - **Enter** (✎): Markup opens on the active document (`ui-store.openMarkup`) and the compact
+ *   store shows the island with the tool off (MOB-18): one finger scrolls and selects as in
+ *   reading, and the chip, showing the tool it turns on (Pen the first time, later the last one
+ *   used), or a tile in the drawer arms a tool through its registry spec (`registry.ts`), which
+ *   sets the tool store's mode. A way in that means a tool (Edit text, a signature field, the
+ *   selection bar) arms it right after.
  * - **Arm, toggle:** the previous tool's `disarm`, then the new one's `arm`. The chip toggled off
  *   (`toolOff`) arms Select: one finger pans and selects. A `soon` tool never arms.
  * - **Leave** (Done, or the Library): an open inline editor commits, the tool store returns to
@@ -78,20 +81,19 @@ function disarmBehaviour(tool: CompactTool | null): void {
   compactTool(tool)?.disarm?.();
 }
 
-/** ✎: opens Markup on the active document and arms the tool an entry arms. */
+/** ✎: opens Markup on the active document, the tool off (MOB-18). */
 export function enterEditing(): void {
   const doc = useWorkspaceStore.getState().workspace.activeDocument;
   if (doc === undefined || useCompactStore.getState().editing) return;
   editingDoc = doc;
   if (!floors.has(doc)) floors.set(doc, useWorkspaceStore.getState().history.past.length);
   useUiStore.getState().openMarkup(doc);
-  const { lastTool } = useCompactStore.getState();
-  const spec = compactTool(lastTool);
-  const tool = spec && !spec.soon ? lastTool : 'pen';
-  armBehaviour(tool);
-  beginEditing(tool);
+  // MOB-18: the island opens with the tool off, so one finger still scrolls the pages; the chip
+  // shows the tool it turns on (Pen first, then the last one used).
+  armBehaviour(null);
+  beginEditing(null);
   installDeselect();
-  announce(m.compact_edit_on({ tool: compactTool(tool)?.label() ?? '' }), { key: 'tool' });
+  announce(m.compact_edit_on({ tool: m.compact_tool_off() }), { key: 'tool' });
 }
 
 /** Arms `tool` (a tile, the quiet row's Eraser); the drawer closes itself. */

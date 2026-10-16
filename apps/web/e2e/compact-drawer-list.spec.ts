@@ -39,6 +39,10 @@ async function openSample(page: Page, query = 'drawer=list'): Promise<void> {
   );
   await page.getByTestId('compact-edit').click();
   await expect(capsule(page)).toHaveAttribute('data-editing');
+  // The island opens with the tool off (MOB-18); the chip turns Pen on.
+  await expect(chip(page)).toHaveAttribute('aria-pressed', 'false');
+  await chip(page).click();
+  await expect(chip(page)).toHaveAttribute('aria-pressed', 'true');
 }
 
 async function openList(page: Page): Promise<void> {

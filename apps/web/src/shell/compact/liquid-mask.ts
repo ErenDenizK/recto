@@ -2,8 +2,11 @@
  * Liquid shapes for glass (research 23 §5.2, GLS-3, GLS-4): several rounded rectangles fused
  * into one outline by a polynomial smooth minimum, traced by marching squares and handed to a
  * glass element as its `mask-image`, so one backdrop-filtered body takes the union's shape.
- * A mask, never `clip-path: path()`: the glass lab saw a path clip leave part of a filtered
- * backdrop unclipped (GLS-4).
+ * A mask, not `clip-path: path()`: the glass lab saw a path clip leave part of a filtered
+ * backdrop unclipped in Chromium (GLS-4). WebKit is the exception (MOT-8): it decodes a
+ * `data:` image asynchronously, so a mask rewritten each frame never shows and the body
+ * vanished for the whole run on every iPhone; there the same outline shapes the body as a
+ * `clip-path` and the rim as a clipped ring (`liquidPaint`).
  *
  * Geometry, no DOM beyond the returned CSS values and a material's rim colours (`rimColorsOf`),
  * so any surface can fuse with it: the split top's liquid menus (`liquid-menu.ts`, DSN-39) and
@@ -206,19 +209,20 @@ export interface LiquidOutline {
  * The outline of the smooth union of `shapes` within `box` (same space as the shapes), or null
  * when nothing of them is inside it. The field is cut to the box and traced on a grid a little
  * larger, so an outline that meets the box's edge (a button in the menu's corner) still closes
- * there.
+ * there. `inset` traces the outline that many px inside (the rim's inner edge in WebKit).
  */
 export function unionOutline(
   box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number },
   shapes: readonly LiquidRect[],
   k: number,
+  inset = 0,
 ): LiquidOutline | null {
   const w = Math.max(1, Math.ceil(box.width));
   const h = Math.max(1, Math.ceil(box.height));
   const pad = 2 * LIQUID_GRID;
   const edge: LiquidRect = { x: box.x, y: box.y, width: w, height: h, radius: 0 };
   const field = (x: number, y: number) =>
-    Math.max(unionDistance(x, y, shapes, k), sdRoundRect(x, y, edge));
+    Math.max(unionDistance(x, y, shapes, k), sdRoundRect(x, y, edge)) + inset;
   const d = contourPath(field, box.x - pad, box.y - pad, w + 2 * pad, h + 2 * pad);
   return d === '' ? null : { d, width: w, height: h, pad };
 }
@@ -305,6 +309,77 @@ export function outlineRim(outline: LiquidOutline | null, rim: RimColors): strin
       `<path transform="translate(${-pad} ${-pad})" d="${d}" fill="none" stroke="url(#r)" ` +
       `stroke-width="${RIM_STROKE}" stroke-linejoin="round" filter="url(#s)"/></svg>`,
   );
+}
+
+/**
+ * Whether a CSS image from a `data:` URL applies in the frame that writes it (MOT-8). WebKit
+ * (Safari, and every browser on iOS, whose vendor is Apple's) decodes such a URL off the main
+ * thread, so the frame paints with the new mask not yet loaded, which masks the whole element
+ * out: a body whose mask changes every frame shows nothing until it stops. Blink and Gecko
+ * decode it at once.
+ */
+export function imagesApplyAtOnce(): boolean {
+  return typeof navigator === 'undefined' || !/apple/i.test(navigator.vendor ?? '');
+}
+
+/** An outline's path in its element's own box (the trace's pad taken off), for `path()`. */
+export function outlinePath(outline: LiquidOutline): string {
+  const { pad } = outline;
+  return outline.d.replace(
+    /([ML])(-?[\d.]+) (-?[\d.]+)/g,
+    (_, c: string, x: string, y: string) =>
+      `${c}${(Number(x) - pad).toFixed(1)} ${(Number(y) - pad).toFixed(1)}`,
+  );
+}
+
+/** How a fused body is drawn this frame: its own shape and its rim layer's. */
+export interface LiquidPaint {
+  /** The body's `mask-image` (`'none'` in WebKit). */
+  readonly mask: string;
+  /** The body's `clip-path` (WebKit; `'none'` elsewhere). */
+  readonly clip: string;
+  /** The rim layer's `background-image`. */
+  readonly rim: string;
+  /** The rim layer's `clip-path`: the ring between the outline and 1 px inside (WebKit). */
+  readonly ring: string;
+}
+
+/**
+ * The paint of the smooth union of `shapes` over `box` (DSN-39, DSN-42, DSN-43). Where images
+ * apply at once, the outline's mask and its stroked rim (`outlineMask`, `outlineRim`). In WebKit
+ * (MOT-8) nothing that loads: the outline is the body's `clip-path`, and the rim is the
+ * material's top-lit gradient as a CSS gradient, clipped to a ring from the outline to
+ * `RIM_STROKE / 2` inside it (one more trace), where the stroke's kept half lies elsewhere.
+ */
+export function liquidPaint(
+  box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number },
+  shapes: readonly LiquidRect[],
+  k: number,
+  rim: RimColors,
+): LiquidPaint {
+  const outline = unionOutline(box, shapes, k);
+  if (imagesApplyAtOnce()) {
+    return {
+      mask: outlineMask(outline),
+      clip: 'none',
+      rim: outlineRim(outline, rim),
+      ring: 'none',
+    };
+  }
+  if (!outline) return { mask: 'none', clip: 'none', rim: 'none', ring: 'none' };
+  const inner = unionOutline(box, shapes, k, RIM_STROKE / 2);
+  const outer = outlinePath(outline);
+  const held = Math.min(0.5, 8 / Math.max(1, outline.height)) * 100;
+  const mix = (color: string, share: number) =>
+    `color-mix(in srgb, ${color} ${share}%, transparent)`;
+  return {
+    mask: 'none',
+    clip: `path('${outer}')`,
+    rim:
+      `linear-gradient(${rim.top} 0%, ${mix(rim.top, 60)} ${held.toFixed(1)}%, ` +
+      `${mix(rim.bottom, 80)} ${(100 - held).toFixed(1)}%, ${rim.bottom} 100%)`,
+    ring: `path(evenodd, '${outer}${inner ? outlinePath(inner) : ''}')`,
+  };
 }
 
 /**

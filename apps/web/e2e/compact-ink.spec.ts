@@ -59,9 +59,13 @@ const chip = (page: Page) => page.getByTestId('compact-tool-chip');
 const drawer = (page: Page) => page.getByTestId('compact-tool-drawer');
 const bar = (page: Page) => page.getByTestId('compact-selection-bar');
 
+/** Editing with Pen on: the island opens with the tool off (MOB-18), the chip turns it on. */
 async function edit(page: Page): Promise<void> {
   await page.getByTestId('compact-edit').click();
   await expect(page.getByTestId('compact-capsule')).toHaveAttribute('data-editing');
+  await expect(chip(page)).toHaveAttribute('aria-pressed', 'false');
+  await chip(page).click();
+  await expect(chip(page)).toHaveAttribute('aria-pressed', 'true');
 }
 
 async function openDrawer(page: Page): Promise<void> {

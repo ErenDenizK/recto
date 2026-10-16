@@ -191,6 +191,8 @@ test('a stamp and an image signature survive a reload; Undo across them; export 
   await bar.getByRole('button', { name: 'Sign', exact: true }).click();
   const pad = page.getByLabel('Signature pad: draw with the mouse, pen or finger');
   await expect(pad).toBeVisible();
+  // The sheet grows out of Sign (MOT-9): read the pad's box once it has come to rest.
+  await atRest(pad);
   const box = await pad.boundingBox();
   if (!box) throw new Error('no pad');
   await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.6);

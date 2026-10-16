@@ -120,6 +120,8 @@
   position: absolute;
   inset: -1px;
   background: var(--liquid-rim, none) no-repeat 0 0 / 100% 100%;
+  /* WebKit's rim: a gradient clipped to a ring inside the outline (`liquidPaint`, MOT-8). */
+  clip-path: var(--liquid-ring, none);
   pointer-events: none;
 }
 

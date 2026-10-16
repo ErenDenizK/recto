@@ -3,29 +3,26 @@
  * merge", DSN-37): while the reading capsule morphs into the edit island and back
  * (`capsule-morph.ts`), the capsule and the ✎ circle beside it stop drawing their own glass and
  * one glass layer under them takes the smooth union of the two (`liquid-mask.ts`: rounded-rect
- * SDF, smooth minimum, marching squares into a `mask-image`, GLS-3, GLS-4: a mask, never
- * `clip-path`). Entering, ✎ folds into the capsule's end as a shrinking drop on a neck that
- * swells in; leaving, it grows out of the end and pinches off as it comes to rest.
+ * SDF, smooth minimum, marching squares into a `mask-image`, GLS-3, GLS-4: a mask, a
+ * `clip-path` only in WebKit). Entering, ✎ folds into the capsule's end as a shrinking drop on
+ * a neck that swells in; leaving, it grows out of the end and pinches off as it comes to rest.
  *
  * - **Timing** is the morph's own: the capsule's width on `smooth`, ✎'s width, margin and fade
  *   on its CSS transitions (`CompactChrome.module.css`); this only follows the two boxes each
  *   frame while either moves, and ends with them. No timing token of its own.
  * - **The neck** follows how far ✎ has folded: none with ✎ at rest (so the union starts and
  *   ends as the two pieces at rest), the full fillet once it is a quarter folded.
- * - **The material** is the capsule's (its material classes, in the theme's tone, GLS-20), its rim the union's outline stroked (`outlineRim`, DSN-42); the capsule keeps its
+ * - **In WebKit** (every iPhone) the outline is the layer's `clip-path` and the rim a clipped
+ *   ring (`liquidPaint`, MOT-8): a mask image rewritten each frame never loads in time there,
+ *   so the pair had no glass at all for the run.
+ * - **The material** is the capsule's (its material classes, in the theme's tone, GLS-20), its
+ *   rim the union's outline stroked (`outlineRim`, DSN-42); the capsule keeps its
  *   drop shadow, both keep their content, which only fades (MOT-5). GPU glass leaves a piece with
  *   `data-liquid` to CSS+ for the run (GLS-19).
  * - **At rest** nothing is left: no layer, no attribute, no inline style (Q-2). Reduced motion
  *   never fuses: the morph is a fade there (`morphCapsule`).
  */
-import {
-  type LiquidRect,
-  outlineMask,
-  outlineRim,
-  rimColorsOf,
-  type RimColors,
-  unionOutline,
-} from '../liquid-mask';
+import { liquidPaint, type LiquidRect, rimColorsOf, type RimColors } from '../liquid-mask';
 
 /** The fillet between the capsule and ✎ at its fullest, CSS px (the menus' neck, DSN-39). */
 export const DOCK_NECK = 24;
@@ -138,16 +135,17 @@ export function fuseDock(capsule: HTMLElement, restWidth = 56): () => void {
     const top = Math.min(a.top, b.top);
     const bottom = Math.max(a.bottom, b.bottom);
     const box = { x: left, y: top, width: right - left, height: bottom - top };
-    const outline = unionOutline(box, shapes, neckFor(b.width, restWidth));
     layer.style.left = `${left - host.left}px`;
     layer.style.top = `${top - host.top}px`;
     layer.style.width = `${Math.ceil(box.width)}px`;
     layer.style.height = `${Math.ceil(box.height)}px`;
-    const mask = outlineMask(outline);
-    layer.style.setProperty('-webkit-mask-image', mask);
-    layer.style.setProperty('mask-image', mask);
     rim ??= rimColorsOf(capsule);
-    rimLayer.style.backgroundImage = outlineRim(outline, rim);
+    const paint = liquidPaint(box, shapes, neckFor(b.width, restWidth), rim);
+    layer.style.setProperty('-webkit-mask-image', paint.mask);
+    layer.style.setProperty('mask-image', paint.mask);
+    layer.style.clipPath = paint.clip;
+    rimLayer.style.backgroundImage = paint.rim;
+    rimLayer.style.clipPath = paint.ring;
     // Ends with the morph: two still frames with nothing of the pair moving.
     quiet = moving(capsule) || moving(edit) ? 0 : quiet + 1;
     if (quiet >= 2 || now - started > LONGEST_MS) {
