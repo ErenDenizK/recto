@@ -9,9 +9,9 @@
  * names where its result returns: the menu's own trigger (a menu item vanishes with its menu,
  * `ui/menu-handoff.ts`), followed up through submenus to the control on the page.
  *
- * Keyboard shortcuts note nothing (their key lands on whatever has focus), nor do presses on
- * the page or anything larger than a control, so a context menu or a sheet opened by a
- * shortcut keeps its own entrance.
+ * Keyboard shortcuts note nothing (their key lands on whatever has focus) and forget the last
+ * press, nor do presses on the page or anything larger than a control note one, so a context
+ * menu or a sheet opened by a shortcut keeps its own entrance.
  */
 
 /** What a press can come from: a control, a row of a menu or a list box, a tab, a link. */
@@ -32,6 +32,9 @@ export interface PressOrigin {
   /** `performance.now()` of the press. */
   readonly at: number;
 }
+
+/** Keys that only modify another key or a click. */
+const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock', 'Fn']);
 
 let last: PressOrigin | null = null;
 let installed = false;
@@ -89,10 +92,15 @@ export function installPressOrigin(): void {
   document.addEventListener('pointerdown', (e) => note(e.target), { capture: true });
   // A click from the keyboard or a script; a pointer's click re-notes the same control.
   document.addEventListener('click', (e) => note(e.target), { capture: true });
+  // Any other key is not a press: it forgets the last one, so a surface a shortcut opens within
+  // `ORIGIN_MAX_AGE_MS` of a click (Save a copy by Mod+Shift+S just after Open files) keeps its
+  // own entrance rather than growing out of the control clicked before (MOT-9). A modifier
+  // alone forgets nothing: it may be held for a click (Shift+click) or start the shortcut.
   document.addEventListener(
     'keydown',
     (e) => {
       if (e.key === 'Enter' || e.key === ' ') note(e.target);
+      else if (!MODIFIERS.has(e.key)) last = null;
     },
     { capture: true },
   );
