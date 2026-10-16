@@ -20,6 +20,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import {
+  atRest,
   enterEdit,
   fixturePath,
   openFixtures,
@@ -298,6 +299,8 @@ test.describe('the full edition', () => {
     const sheet = page.getByRole('dialog', { name: 'New signature' });
     await expect(sheet).toBeVisible();
     const pad = sheet.getByRole('img', { name: /^Signature pad/ });
+    // The sheet grows out of Sign (MOT-9): read the pad's box once it has come to rest.
+    await atRest(pad);
     const box = await pad.boundingBox();
     if (!box) throw new Error('no pad');
     await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.6);

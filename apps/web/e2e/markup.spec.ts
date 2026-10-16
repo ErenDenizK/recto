@@ -15,7 +15,7 @@
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFixtures, sessionSettled, useFileInputPicker } from './helpers';
+import { atRest, openFixtures, sessionSettled, useFileInputPicker } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await useFileInputPicker(page);
@@ -143,6 +143,8 @@ for (const size of ['large', 'tablet'] as const) {
       const pad = sheet.getByRole('img', {
         name: 'Signature pad: draw with the mouse, pen or finger',
       });
+      // The sheet grows out of Sign (MOT-9): read the pad's box once it has come to rest.
+      await atRest(pad);
       await first.run(async () => {
         const box = await pad.boundingBox();
         if (!box) throw new Error('no pad');

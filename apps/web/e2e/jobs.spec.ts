@@ -21,6 +21,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  atRest,
   enterEdit,
   fixturePath,
   markupDoor,
@@ -482,6 +483,8 @@ test.describe('core jobs', () => {
       const pad = sheet.getByRole('img', {
         name: 'Signature pad: draw with the mouse, pen or finger',
       });
+      // The sheet grows out of Sign (MOT-9): read the pad's box once it has come to rest.
+      await atRest(pad);
       await p.gesture(async () => {
         const box = await pad.boundingBox();
         if (!box) throw new Error('no pad');
