@@ -1,10 +1,10 @@
 /*
  * The launcher (02-library L2 §2, reorganised 2026-10-08; system-audit-2026-10 §3.9; Launcher.tsx):
- * one lit piece in both variants. Every action is `ui/Button` at the L size (--control-h-lg:
+ * one lit piece in both variants (DSN-50). Every action is `ui/Button` at the L size (--control-h-lg:
  * 40 fine, 52 coarse; §3.3), so the piece's controls share one height and one centre line
  * (Q-9), and the piece is a capsule concentric with them (S-1): their half height plus its
  * --space-2 padding. Empty, the mark, headline and promise sit on the canvas above it, centred;
- * with documents the title sits above it on the column's edge. Drag-over lifts the piece 2 px on
+ * with documents it heads the column alone. Drag-over lifts the piece 2 px on
  * --spring-quick, deepens its shadow to e3 and rings it in a dashed accent line (L2 §4); with
  * reduced motion only the shadow and the line change.
  */
@@ -47,45 +47,14 @@
 }
 
 /*
- * With documents (owner feedback 2026-10-09, G3; the lead kept the title, system audit §4
- * decision 4): the title, then the piece. The title sits on the canvas and its aura
- * (Aura.module.css) with no surface of its own: "Library" large, the privacy line under it, its
- * text on the piece's own text edge. No mark: the Library tab carries it.
+ * The piece: Open PDFs… leads in lime, Combine files… and Batch… follow at the same height, and
+ * the drop line ends it in the secondary ink. Empty, it takes its content's width and centres;
+ * with documents it runs the column's width, first in it, and the line goes to the trailing end.
+ * A narrow column wraps the line under the actions, and the corners stay concentric with the
+ * buttons.
  */
-.rowWrap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.title {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: 0;
-  padding-inline: var(--launcher-pad);
-}
-
-.titleText {
-  margin: 0;
-  font-size: var(--type-display);
-  font-weight: var(--weight-semibold);
-  line-height: var(--type-display-lh);
-  letter-spacing: var(--track-display);
-}
-
-/*
- * The piece: Open PDFs… leads in lime, the three starts follow at the same height, and the drop
- * line ends it in the secondary ink. Empty, it takes its content's width and centres; with
- * documents it runs the column's width and the line goes to the trailing end. A narrow column
- * wraps the line under the actions, and the corners stay concentric with the buttons.
- */
-.welcome,
-.rowWrap {
-  --launcher-pad: var(--space-2);
-}
-
 .piece {
+  --launcher-pad: var(--space-2);
   display: flex;
   flex-wrap: wrap;
   align-items: center;

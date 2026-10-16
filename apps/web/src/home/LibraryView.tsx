@@ -2,9 +2,13 @@
  * The Library (`02-library` L1; the place `destination === 'home'`, code name kept): the welcome
  * and the open documents, in one scroll column of at most 1184 px (six cards), centred.
  *
- *   empty            launcher (L2) · Recent (L7)
- *   with documents   title and launcher (L2) · head (L4) · cards (L5) · Recent (L7)
+ *   empty            launcher (L2) · Recent (L7) · Try the sample (L10)
+ *   with documents   launcher (L2) · head (L4) · cards (L5) · Recent (L7) · Try the sample
  *                    + the selection bar (L6) floating at the bottom while cards are checked
+ *
+ * Three tiers, in the order a tester needs them (DSN-50): bring a file in (open, combine, batch
+ * or drop), go back to one (the open cards, then Recents), or try the sample. No heading
+ * repeats the strip's "◆ Library" piece (B-13).
  *
  * No footer (DSN-46): its "Nothing is uploaded" chip repeated the promise and ◎, and its
  * language switch is Settings' alone. The column's edge keeps the strip's inset
@@ -38,6 +42,7 @@ import { LibraryHead } from './LibraryHead';
 import { enterSelecting, setSelecting, useSelecting } from './library-store';
 import styles from './LibraryView.module.css';
 import { RecentList } from './RecentList';
+import { SampleCard } from './SampleCard';
 import { SelectionBarPresence } from './SelectionBar';
 import { useDragFileCount } from './use-drag-file-count';
 
@@ -65,6 +70,7 @@ export function LibraryView({ dragging }: { readonly dragging: boolean }) {
             <div className={styles.welcome}>
               <Launcher variant="card" dragging={dragging} dragCount={dragCount} />
               <RecentList variant="empty" />
+              <SampleCard align="centre" />
             </div>
           </div>
         </div>
@@ -130,6 +136,7 @@ function LibraryWithCards({
             <LibraryGrid cards={cards} workspace={workspace} />
           </div>
           <RecentList variant="cards" />
+          <SampleCard align="start" />
         </div>
       </div>
       <SelectionBarPresence selection={selection} />

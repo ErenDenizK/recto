@@ -1,28 +1,28 @@
 /**
- * The launcher (`02-library` L2, reorganised after the owner's review of 2026-10-08 and on
- * system-audit-2026-10 §3.9; replaces `shell/EmptyState.tsx` and Home's Open files button): the
- * welcome and the Library's open actions, in three tiers that read the same in both variants:
+ * The launcher (`02-library` L2, reorganised after the owner's review of 2026-10-08, on
+ * system-audit-2026-10 §3.9 and for the user tests, DSN-50; replaces `shell/EmptyState.tsx` and
+ * Home's Open files button): the welcome and the Library's ways to bring files in.
  *
- * 1. **Identity.** Empty, the Recto mark (`BrandMark`, its gradient in both themes) with the
- *    headline and the promise. With documents the mark is the tab's alone (owner feedback
- *    2026-10-09, G3: the Library tab is the home button and always shows it), so the view heads
- *    itself with a large "Library" title alone: the promise is the empty welcome's, said once
- *    (DSN-46).
- * 2. **Open.** **Open PDFs…** (the view's one lime, first focus when empty, J1 = 2).
- * 3. **More ways to start.** **Try the sample** (dimmed with its reason offline before the
- *    sample was ever loaded), **Combine files…** and **Batch…**, one group of equal standard
- *    buttons with their glyphs, never loose text links.
+ * 1. **Identity**, empty only: the Recto mark (`BrandMark`, its gradient in both themes) with
+ *    the headline and the promise. With documents the view has no title: the strip's
+ *    "◆ Library" piece names the place (01-frame F2, DSN-49), and a large "Library" under it
+ *    said the same word twice (B-13, DSN-50).
+ * 2. **Open.** **Open PDFs…** (the view's one lime, first focus when empty, J1 = 2), then
+ *    **Combine files…** and **Batch…** as one group of equal standard buttons with their
+ *    glyphs: the three ways to bring files from the disk. Try the sample is the Library's third
+ *    tier, a card of its own after Recents (`SampleCard`).
  *
- * Both variants hold the actions in **one launcher shape** (§3.9, I-12): a lit capsule piece
- * with every action at the one L size (40 fine, 52 coarse; §3.3), Open PDFs… first and lime,
- * the group after it, and the drop line ending it in body ("or drop files anywhere"; on
- * touch too, iPadOS drags files in). No separate drop well: the whole window is the target,
- * and the piece says so.
+ * The actions sit in **one launcher shape** (§3.9, I-12): a lit capsule piece with every
+ * action at the one L size (40 fine, 52 coarse; §3.3) as glass lenses (GLS-25), Open PDFs…
+ * first and lime, the drop line ending it in body ("or drop files anywhere"; on touch too,
+ * iPadOS drags files in). No separate drop well: the whole window is the target, and the
+ * piece says so.
  *
  * - **Empty** (no document open): mark, headline and promise on the canvas about a third of
  *   the way down the view, the piece centred under them.
- * - **Row** (documents open): the title, then the piece. In Select mode the lime moves to the
- *   selection bar's Combine, so Open PDFs… turns secondary (one lime per view, principle 3).
+ * - **Row** (documents open): the piece alone, the column's width, at the top of the column.
+ *   In Select mode the lime moves to the selection bar's Combine, so Open PDFs… turns
+ *   standard (one lime per view, principle 3).
  * - **Drag-over** (L9 on the Library): no overlay; the piece lifts 2 px with the e3 shadow and
  *   a dashed accent line; the empty headline becomes "Drop to open 2 files", the row's drop
  *   line says it.
@@ -45,11 +45,9 @@ import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { commandRegistry } from '../commands/registry';
 import { dropTitle } from './DropOverlay';
-import { openSample } from '../sample/open-sample';
 import { combineFiles, openPdfs } from './home-actions';
 import styles from './Launcher.module.css';
 import lit from './lit.module.css';
-import { useSampleAvailable } from './use-sample-available';
 
 export interface LauncherProps {
   readonly variant: 'card' | 'row';
@@ -67,7 +65,6 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
   const prompting = usePasswordStore((s) => s.queue.length > 0);
   const shortcut = useCommandShortcut('file.open');
   const openRef = useRef<HTMLButtonElement>(null);
-  const sampleAvailable = useSampleAvailable();
 
   // First focus on a first visit (J1, L1 §6): Open PDFs…, unless something already has it.
   // Focus placed by the page, not by a key, draws no ring yet (`data-quiet-focus`): a lime ring
@@ -104,24 +101,10 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
       {m.library_open()}
     </Button>
   );
-  const sample = (
-    <Button
-      variant="standard"
-      size="lg"
-      icon={<Icon name="book-open-text" />}
-      disabled={!sampleAvailable}
-      reason={m.sample_offline()}
-      data-testid="library-sample"
-      onClick={() => void openSample()}
-    >
-      {m.cmd_try_sample()}
-    </Button>
-  );
-  // The secondary actions as one group of equal buttons (owner feedback 2026-10-08: a tidy set,
-  // not loose text links), each with the glyph of L2 §5.
+  // The other ways in as one group of equal buttons (owner feedback 2026-10-08: a tidy set, not
+  // loose text links), each with the glyph of L2 §5.
   const more = (
     <div className={styles.more} role="group" aria-label={m.library_start_group()}>
-      {sample}
       <Button
         variant="standard"
         size="lg"
@@ -164,16 +147,7 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
     </div>
   );
 
-  if (variant === 'row') {
-    return (
-      <div className={styles.rowWrap}>
-        <header className={styles.title}>
-          <h2 className={styles.titleText}>{m.library_label()}</h2>
-        </header>
-        {piece}
-      </div>
-    );
-  }
+  if (variant === 'row') return piece;
 
   return (
     <div

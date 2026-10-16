@@ -202,15 +202,13 @@ test.describe('the compact edition', () => {
     await expect(page.locator('html')).toHaveAttribute('data-edition', 'compact');
     await expect(page.getByTestId('app-shell')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
-    // The composition of DSN-31: the brand and promise, the tools as chips (read as one
-    // sentence), the sample as a card, and Open PDF in the dock, a 44 px target or more.
+    // The composition of DSN-31: the brand and promise, the tools as chips (read as a list and
+    // the line after it, DSN-51), the sample as a card, and Open PDF in the dock, a 44 px
+    // target or more.
     await expect(page.getByRole('heading', { level: 1, name: 'Recto' })).toBeVisible();
-    await expect(page.getByTestId('compact-tools')).toContainText('Highlight');
-    await expect(
-      page.getByText(
-        'Pen, highlight, text and signature on your phone. Every tool on a computer or tablet.',
-      ),
-    ).toHaveClass(/visually-hidden/);
+    const tools = page.getByTestId('compact-tools');
+    await expect(tools.getByRole('listitem')).toHaveText(['Pen', 'Highlight', 'Text', 'Sign']);
+    await expect(tools.getByText('Every tool on a computer or tablet.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Try the sample' })).toBeVisible();
     const open = page.getByTestId('compact-library-dock').getByRole('button', { name: 'Open PDF' });
     const box = await open.boundingBox();
@@ -240,9 +238,7 @@ test.describe('the compact edition', () => {
   test('the Library speaks Turkish', async ({ page }) => {
     await openLibrary(page, 'tr');
     await expect(page.getByRole('button', { name: 'PDF aç' })).toBeVisible();
-    await expect(
-      page.getByText('Telefonda kalem, vurgu, metin ve imza. Tüm araçlar bilgisayar ve tablette.'),
-    ).toBeAttached();
+    await expect(page.getByText('Tüm araçlar bilgisayar ve tablette.')).toBeVisible();
     await expect(page.getByTestId('compact-tools')).toContainText('İmza');
     await expect(page.getByRole('button', { name: 'Örnek belgeyi deneyin' })).toBeVisible();
     // Turkish is longer: nothing in the Library clips or spills sideways.
@@ -256,8 +252,21 @@ test.describe('the compact edition', () => {
     expect(clipped).toEqual([]);
     await expect(page.getByTestId('compact-recents-empty')).toContainText('Henüz dosya yok');
     await shot(page, 'compact-library-tr');
-    // Language is a setting, not a control on the page (DSN-46).
+    // Language is a setting, not a control on the page (DSN-46): ⋯ reaches it before a file is
+    // open, in About's settings rows (DSN-51), and changes the Library at once.
     await expect(page.getByRole('button', { name: 'English' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Diğer' }).click();
+    const about = page.getByTestId('compact-about-sheet');
+    const language = about.getByRole('radiogroup', { name: 'Dil' });
+    await language.scrollIntoViewIfNeeded();
+    await language.getByRole('radio', { name: 'English' }).click();
+    // The sheet speaks English at once: the row is "Language" now.
+    await expect(
+      about.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'English' }),
+    ).toBeChecked();
+    await page.keyboard.press('Escape');
+    await expect(about).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
   });
 
   test('Recents show as a card list; on its side the column splits so several rows show', async ({
