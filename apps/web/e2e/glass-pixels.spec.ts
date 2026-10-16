@@ -261,7 +261,7 @@ test(
     });
     const sample = median4x4(image, point.x - 2, point.y - 2);
     const model = glassModel(await glassStyle(menu), WHITE);
-    expect(hex(model)).toBe('#36383c');
+    expect(hex(model)).toBe('#424347');
     testInfo.annotations.push({
       type: 'menu over white',
       description: `rendered ${hex(sample)}, model ${hex(model)}; primary ${contrastRatio(TEXT_PRIMARY, sample).toFixed(2)}:1, glass secondary ${contrastRatio(GLASS_TEXT_SECONDARY, sample).toFixed(2)}:1`,
@@ -319,7 +319,7 @@ test.describe('in the light theme (spec D3-7)', () => {
       );
       const model = glassModel(await glassStyle(page.locator('[data-capsule]')), WHITE);
       // The composite tokens.test.ts asserts for the light bar tier (M2) over white.
-      expect(hex(model)).toBe('#fdfdfe');
+      expect(hex(model)).toBe('#fbfbfd');
       expect(
         channelDistance(sample, model),
         `rendered ${hex(sample)} against the model ${hex(model)}`,

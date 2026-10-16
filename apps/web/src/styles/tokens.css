@@ -207,9 +207,11 @@
 
   /* Layer 2: materials (language.md §2.2–§2.4, ADR-0024), one per tier: a neutral tint whose
      alpha is its own token (Tinted overrides it, D3-3), the filter after the blur (σ comes per
-     surface from the coverage registry), the solid it falls back to, and its shadow. Panel,
-     menu and sheet hold body text and never change their look: over a white page #34363a,
-     #36383c, #34363b, L ≤ 0.062, so primary text keeps ≥ 9.68:1 and glass-secondary ≥ 6.30:1.
+     surface from the coverage registry), the solid it falls back to, and its shadow. Panel
+     and sheet hold body text on their denser recipe: over a white page #34363a, #34363b,
+     L ≤ 0.062, so primary text keeps ≥ 9.96:1 and glass-secondary ≥ 6.49:1. Menus and popovers
+     wear the chips' and bars' CSS+ recipe (GLS-23, one glass for every floating piece) at a
+     0.64 tint: #424347 over white, primary 8.13:1, glass-secondary 5.30:1, Lc 83.
      Over the canvas the panel equals the frame (n3) exactly, so a docked panel at rest looks
      solid. Chip and bar are CSS+ (GLS-7, GLS-8) on a lighter filter than the page tiers. Their
      tone is the theme's over any page (GLS-20), so their worst backdrop is white, as the page
@@ -234,9 +236,9 @@
   --glass-panel-filter: saturate(1.5) brightness(0.45);
   --glass-panel-solid: var(--n3);
   --glass-panel-shadow: var(--e4);
-  --glass-menu-alpha: 0.78;
+  --glass-menu-alpha: 0.64;
   --glass-menu-tint: rgb(34 36 42 / var(--glass-menu-alpha));
-  --glass-menu-filter: saturate(1.6) brightness(0.49);
+  --glass-menu-filter: saturate(2.2) contrast(1) brightness(0.48);
   --glass-menu-solid: var(--n4);
   --glass-menu-shadow: var(--e4);
   --glass-sheet-alpha: 0.86;
@@ -259,13 +261,10 @@
   --rim-top: rgb(var(--white-rgb) / 0.42);
   --rim-bottom: rgb(var(--white-rgb) / 0.16);
   --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.1);
-  /* The denser tiers' rims (§2.4): menus a firmer soft edge (3 px of blur, 0.50) and a
-     0.30 / 0.10 rim, sheets and the floating panel 0.24 / 0.08; their inner light a fainter
-     top light; docked M3 only a soft inner light of 0.06 under its hairline. */
+  /* The denser tiers' rims (§2.4): sheets a firmer soft edge (3 px of blur, 0.50) and, with
+     the floating panel, a 0.24 / 0.08 rim and a fainter top light; docked M3 only a soft inner
+     light of 0.06 under its hairline. Menus wear the chips' and bars' rim (GLS-23). */
   --rim-edge-strong: 0 0 3px rgb(0 0 0 / 0.5);
-  --rim-top-menu: rgb(var(--white-rgb) / 0.3);
-  --rim-bottom-menu: rgb(var(--white-rgb) / 0.1);
-  --rim-inner-menu: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.06);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.24);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.08);
   --rim-inner-sheet: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.05);
@@ -508,8 +507,8 @@
      glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd), and the panel over
      the canvas lands within a level of the frame (n2). Lit glass is dark only: in light its
      surfaces keep the floored recipe (alpha 0.69, #cbcbcc over black, APCA Lc 75), floored
-     over any pigment. Chip and bar are CSS+ (GLS-7, GLS-8) on contrast(0.75), lighter than the
-     page tiers' floor. Their tone is the theme's over any page (GLS-20), so their worst
+     over any pigment. Chip, bar and menu are CSS+ (GLS-7, GLS-8, GLS-23) on contrast(0.75),
+     lighter than the page tiers' floor. Their tone is the theme's over any page (GLS-20), so their worst
      backdrop is black: a 0.80 tint floors them there at #d0d0d2 (primary 11.6:1, Lc 77, the
      light look's old floor at its switch grey), and over white the page shows through at
      about 0.20 of its contrast. */
@@ -528,9 +527,9 @@
   --glass-panel-filter: saturate(1.4) contrast(0.45) brightness(1.4);
   --glass-panel-solid: var(--n2);
   --glass-panel-shadow: var(--e4);
-  --glass-menu-alpha: 0.78;
+  --glass-menu-alpha: 0.8;
   --glass-menu-tint: rgb(250 250 252 / var(--glass-menu-alpha));
-  --glass-menu-filter: saturate(1.4) contrast(0.45) brightness(1.4);
+  --glass-menu-filter: saturate(1.6) contrast(0.75) brightness(1.33);
   --glass-menu-solid: var(--n1);
   --glass-menu-shadow: var(--e4);
   --glass-sheet-alpha: 0.88;
@@ -552,9 +551,6 @@
   --rim-bottom: rgb(var(--white-rgb) / 0.5);
   --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.5);
   --rim-edge-strong: 0 0 3px rgb(15 17 22 / 0.18);
-  --rim-top-menu: rgb(var(--white-rgb) / 0.85);
-  --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
-  --rim-inner-menu: inset 0 8px 8px -8px rgb(var(--white-rgb) / 0.6);
   --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
   --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
   --rim-inner-sheet: inset 0 8px 8px -8px rgb(var(--white-rgb) / 0.6);
@@ -780,8 +776,8 @@
        glass-secondary ≥ 6.20:1; over white they stay paper (#fafafc–#fcfcfd), and the panel over
        the canvas lands within a level of the frame (n2). Lit glass is dark only: in light its
        surfaces keep the floored recipe (alpha 0.69, #cbcbcc over black, APCA Lc 75), floored
-       over any pigment. Chip and bar are CSS+ (GLS-7, GLS-8) on contrast(0.75), lighter than the
-       page tiers' floor. Their tone is the theme's over any page (GLS-20), so their worst
+       over any pigment. Chip, bar and menu are CSS+ (GLS-7, GLS-8, GLS-23) on contrast(0.75),
+       lighter than the page tiers' floor. Their tone is the theme's over any page (GLS-20), so their worst
        backdrop is black: a 0.80 tint floors them there at #d0d0d2 (primary 11.6:1, Lc 77, the
        light look's old floor at its switch grey), and over white the page shows through at
        about 0.20 of its contrast. */
@@ -800,9 +796,9 @@
     --glass-panel-filter: saturate(1.4) contrast(0.45) brightness(1.4);
     --glass-panel-solid: var(--n2);
     --glass-panel-shadow: var(--e4);
-    --glass-menu-alpha: 0.78;
+    --glass-menu-alpha: 0.8;
     --glass-menu-tint: rgb(250 250 252 / var(--glass-menu-alpha));
-    --glass-menu-filter: saturate(1.4) contrast(0.45) brightness(1.4);
+    --glass-menu-filter: saturate(1.6) contrast(0.75) brightness(1.33);
     --glass-menu-solid: var(--n1);
     --glass-menu-shadow: var(--e4);
     --glass-sheet-alpha: 0.88;
@@ -824,9 +820,6 @@
     --rim-bottom: rgb(var(--white-rgb) / 0.5);
     --rim-inner: inset 0 12px 12px -12px rgb(var(--white-rgb) / 0.5);
     --rim-edge-strong: 0 0 3px rgb(15 17 22 / 0.18);
-    --rim-top-menu: rgb(var(--white-rgb) / 0.85);
-    --rim-bottom-menu: rgb(var(--white-rgb) / 0.4);
-    --rim-inner-menu: inset 0 8px 8px -8px rgb(var(--white-rgb) / 0.6);
     --rim-top-sheet: rgb(var(--white-rgb) / 0.85);
     --rim-bottom-sheet: rgb(var(--white-rgb) / 0.4);
     --rim-inner-sheet: inset 0 8px 8px -8px rgb(var(--white-rgb) / 0.6);
@@ -1179,7 +1172,6 @@
     --rim-edge: 0 0 #0000;
     --rim-edge-strong: 0 0 #0000;
     --rim-inner: 0 0 #0000;
-    --rim-inner-menu: 0 0 #0000;
     --rim-inner-sheet: 0 0 #0000;
     --rim-inner-docked: 0 0 #0000;
     --text-secondary: var(--n11);
@@ -1236,7 +1228,6 @@
     --rim-edge: 0 0 #0000;
     --rim-edge-strong: 0 0 #0000;
     --rim-inner: 0 0 #0000;
-    --rim-inner-menu: 0 0 #0000;
     --rim-inner-sheet: 0 0 #0000;
     --rim-inner-docked: 0 0 #0000;
   }

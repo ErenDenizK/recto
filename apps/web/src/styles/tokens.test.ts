@@ -581,7 +581,7 @@ describe('tokens.css', () => {
         chip: 5.25,
         bar: 5.18,
         panel: 9.99,
-        menu: 9.69,
+        menu: 8.14,
         sheet: 9.97,
         lit: 5.85,
       };
@@ -735,7 +735,7 @@ describe('tokens.css', () => {
       chip: ['#434447', 8.02, 5.22, 5.14, 5.63, 82, 56],
       bar: ['#444548', 7.89, 5.14, 5.06, 5.55, 82, 56],
       panel: ['#34363a', 9.97, 6.49, 6.4, 7.01, 87, 61],
-      menu: ['#36383c', 9.68, 6.3, 6.21, 6.8, 86, 60],
+      menu: ['#424347', 8.13, 5.3, 5.22, 5.72, 83, 57],
       sheet: ['#34363b', 9.96, 6.49, 6.39, 7.0, 87, 61],
       // Lit glass is never over a page: its worst is the field's brightest pixel.
       lit: ['#57585d', 7.38, 4.8, 4.73, 5.19, 81, 54],
@@ -785,7 +785,7 @@ describe('tokens.css', () => {
       expect(tierOver('panel', canvas())).toEqual(colour('--glass-panel-solid'));
       // Chip and bar differ from the canvas by about 1.09:1: the rim carries their edge.
       expect(tierOver('bar', canvas())).toEqual(literal('#15161a'));
-      expect(tierOver('menu', canvas())).toEqual(literal('#1b1d22'));
+      expect(tierOver('menu', canvas())).toEqual(literal('#17191e'));
     });
 
     it('keeps glass text AA over every backdrop of today’s floating glass', () => {
@@ -814,7 +814,7 @@ describe('tokens.css', () => {
         ['chip', 4.61, 4.19, 5.93, 3.86],
         ['bar', 4.53, 4.13, 5.84, 3.8],
         ['panel', 5.66, 5.15, 7.17, 4.67],
-        ['menu', 5.49, 4.99, 7.03, 4.58],
+        ['menu', 4.66, 4.25, 6.01, 3.92],
         ['sheet', 5.65, 5.15, 7.17, 4.67],
       ];
       const secondary = colour('--glass-text-secondary');
@@ -854,6 +854,7 @@ describe('tokens.css', () => {
         '--surface-on: --text-secondary Lc 50',
         'chip over its worst: --glass-text-secondary Lc 56',
         'bar over its worst: --glass-text-secondary Lc 56',
+        'menu over its worst: --glass-text-secondary Lc 57',
         'lit over its worst: --glass-text-secondary Lc 54',
       ]);
     });
@@ -915,7 +916,7 @@ describe('tokens.css', () => {
         chip: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
         bar: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
         panel: ['--rim-edge', '--rim-top-sheet', '--rim-bottom-sheet', '--rim-inner-sheet'],
-        menu: ['--rim-edge-strong', '--rim-top-menu', '--rim-bottom-menu', '--rim-inner-menu'],
+        menu: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
         sheet: ['--rim-edge-strong', '--rim-top-sheet', '--rim-bottom-sheet', '--rim-inner-sheet'],
         lit: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
       };
@@ -930,14 +931,9 @@ describe('tokens.css', () => {
         expect(rule.get('--mat-rim-bottom'), tier).toBe(`var(${bottom})`);
         expect(rule.get('--mat-inner'), tier).toBe(`var(${inner})`);
       }
-      // §2.4's values: M4 a 0.60 edge and a 0.30 / 0.10 rim, M5 and floating M3 0.24 / 0.08,
+      // §2.4's values: M4 the chips' rim (GLS-23), M5 a 0.50 soft edge, M5 and floating M3 0.24 / 0.08,
       // docked M3 an inner light of 0.06.
       expect(resolve('--rim-edge-strong')).toBe('0 0 3px rgb(0 0 0 / 0.5)');
-      expect(wash('--rim-top-menu').alpha).toBe(0.3);
-      expect(wash('--rim-bottom-menu').alpha).toBe(0.1);
-      expect(splitLayers(resolve('--rim-inner-menu'))[0]?.trim()).toBe(
-        'inset 0 12px 12px -12px rgb(255 255 255 / 0.06)',
-      );
       expect(wash('--rim-top-sheet').alpha).toBe(0.24);
       expect(wash('--rim-bottom-sheet').alpha).toBe(0.08);
       expect(splitLayers(resolve('--rim-inner-sheet'))[0]?.trim()).toBe(
@@ -1153,7 +1149,7 @@ describe('tokens.css', () => {
     });
 
     it('trades rim and shadow for the strong border and lifts text under more contrast (A-18)', () => {
-      for (const rim of ['--rim-edge', '--rim-edge-strong', '--rim-inner', '--rim-inner-menu']) {
+      for (const rim of ['--rim-edge', '--rim-edge-strong', '--rim-inner', '--rim-inner-sheet']) {
         expect(more.get(rim), rim).toBe('0 0 #0000');
       }
       expect(parseColour(resolve('--border-strong', more)).alpha).toBe(0.36);
@@ -1592,9 +1588,9 @@ describe('tokens.css', () => {
       atLeast(contrast(primary, on('--control-fill', M5())), 7.78, 'n12 on fill over M5');
       atLeast(contrast(primary, on('--control-fill-hover', M5())), 6.86, 'on hover fill');
       atLeast(contrast(primary, on('--control-fill-pressed', M5())), 6.06, 'on pressed fill');
-      atLeast(contrast(primary, on('--control-fill', M4())), 7.55, 'n12 on fill over M4');
+      atLeast(contrast(primary, on('--control-fill', M4())), 6.42, 'n12 on fill over M4');
       atLeast(contrast(on('--control-border', M5()), M5()), 4.09, 'border vs M5');
-      atLeast(contrast(on('--control-border', M4()), M4()), 4.06, 'border vs M4');
+      atLeast(contrast(on('--control-border', M4()), M4()), 3.64, 'border vs M4');
       const well = colour('--field-well');
       expect(resolve('--field-well')).toBe(resolve('--n2'));
       atLeast(contrast(on('--control-border', well), well), 5.01, 'border vs its well');
@@ -1939,7 +1935,7 @@ describe('tokens.css', () => {
         chip: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 11.64, 77, 66],
         bar: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 11.64, 77, 66],
         panel: ['#d4d5d6', '#fafafc', '#f7f8fa', 12.2, 6.84, 5.56, 5.69, 12.2, 80, 69],
-        menu: ['#d9d9da', '#fbfbfd', '#f8f9fb', 12.71, 7.13, 5.79, 5.93, 12.71, 83, 71],
+        menu: ['#d0d0d2', '#fbfbfd', '#fbfbfd', 11.64, 6.52, 5.3, 5.42, 11.64, 77, 66],
         sheet: ['#e8e8ea', '#fbfbfc', '#f9f9fb', 14.65, 8.21, 6.67, 6.83, 14.65, 91, 80],
       };
       for (const [tier, row] of Object.entries(TABLE) as [
@@ -1949,8 +1945,10 @@ describe('tokens.css', () => {
         const [black, white, onCanvas, primary, secondary, danger, warning, fill, apcaP, apcaS] =
           row;
         const small = SMALL.includes(tier);
+        // Chips, bars and menus share the CSS+ chain (GLS-8, GLS-23); panels and sheets keep
+        // the floored one.
         expect(value(`--glass-${tier}-filter`), tier).toMatch(
-          small
+          small || tier === 'menu'
             ? /^saturate\([\d.]+\) contrast\(0\.75\) brightness\(1\.33\)$/
             : /^saturate\([\d.]+\) contrast\(0\.45\) brightness\(1\.4\)$/,
         );
@@ -2043,7 +2041,7 @@ describe('tokens.css', () => {
       atLeast(contrast(ink(), laid('--control-fill-hover', M5)), 12.23, 'on hover fill');
       atLeast(contrast(ink(), laid('--control-fill-pressed', M5)), 11.53, 'on pressed fill');
       atLeast(contrast(laid('--control-border', M5), M5), 3.76, 'border vs M5');
-      atLeast(contrast(laid('--control-border', M4), M4), 3.61, 'border vs M4');
+      atLeast(contrast(laid('--control-border', M4), M4), 3.5, 'border vs M4');
       const well = tone('--field-well');
       atLeast(contrast(laid('--control-border', well), well), 3.95, 'border vs its well');
       atLeast(contrast(tone('--control-on'), M5), 14.65, 'on-fill vs M5');

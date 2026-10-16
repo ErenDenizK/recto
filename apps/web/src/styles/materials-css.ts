@@ -121,7 +121,8 @@ const RIMS: Readonly<Record<GlassTier, readonly [string, string, string, string]
   chip: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
   bar: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
   panel: ['--rim-edge', '--rim-top-sheet', '--rim-bottom-sheet', '--rim-inner-sheet'],
-  menu: ['--rim-edge-strong', '--rim-top-menu', '--rim-bottom-menu', '--rim-inner-menu'],
+  // Menus wear the chips' and bars' rim, as their recipe (GLS-23).
+  menu: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
   sheet: ['--rim-edge-strong', '--rim-top-sheet', '--rim-bottom-sheet', '--rim-inner-sheet'],
   lit: ['--rim-edge', '--rim-top', '--rim-bottom', '--rim-inner'],
 };

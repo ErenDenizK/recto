@@ -76,6 +76,9 @@
  * never blur; no elevation, which is the glass surfaces' alone), centred where the capsule rests, above the home indicator.
  */
 .pill {
+  /* The bar's solid twin with its soft rim (GLS-23), no elevation. */
+  composes: mat mat-bar mat-opaque from global;
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner);
   position: fixed;
   right: 0;
   bottom: max(env(safe-area-inset-bottom, 0px), 12px);
@@ -85,9 +88,8 @@
   height: 32px;
   margin-inline: auto;
   padding: 0 14px;
-  border: 1px solid var(--border-glass);
   border-radius: var(--radius-capsule);
-  background: var(--glass-bar-solid);
+  box-shadow: var(--shadow-own);
   color: var(--text-primary);
   font-size: var(--type-footnote);
   font-variant-numeric: tabular-nums;
