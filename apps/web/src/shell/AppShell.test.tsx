@@ -54,7 +54,7 @@ describe('AppShell', () => {
     await waitFor(() => {
       expect(input).toHaveFocus();
     });
-    expect(screen.getByRole('option', { name: /Toggle left panel/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Show or hide sidebar/ })).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
     await waitFor(() => {

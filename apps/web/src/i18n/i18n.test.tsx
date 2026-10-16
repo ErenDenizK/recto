@@ -109,7 +109,9 @@ describe('Language command', () => {
     await userEvent.keyboard(`{${MOD}>}k{/${MOD}}`);
     // The palette fades in: ask once its entrance has run.
     expect(await settled(await screen.findByRole('combobox', { name: 'Komut ara' }))).toBeVisible();
-    expect(screen.getByRole('option', { name: /Sol paneli aç\/kapat/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: /Kenar çubuğunu göster veya gizle/ }),
+    ).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
   });
 });

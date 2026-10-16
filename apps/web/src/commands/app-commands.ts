@@ -612,7 +612,7 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       group: m.group_view(),
       act: null,
       shortcut: 'Mod+B',
-      keywords: ['sidebar', 'pages', 'outline', 'contents'],
+      keywords: ['sidebar', 'panel', 'pages', 'outline', 'contents'],
       // Mod+B moves focus to the open section's current item; ▤ keeps it (06-navigation N1 §6).
       run: () => {
         const inside = document.activeElement?.closest(`#${SIDEBAR_ID}`) != null;
