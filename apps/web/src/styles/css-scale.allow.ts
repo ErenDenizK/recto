@@ -17,7 +17,6 @@ export const CSS_SCALE_ALLOW: Readonly<Record<string, Partial<Record<ScaleKind, 
   'ui/Keycaps.module.css': { spacing: 2 },
   'ui/Notice.module.css': { weight: 1 },
   'ui/NumberField.module.css': { radius: 1, icon: 2, spacing: 1 },
-  'ui/ScrollArea.module.css': { radius: 1 },
   'ui/Switch.module.css': { icon: 2 },
   'ui/Toast/Toast.module.css': { spacing: 1 },
 };

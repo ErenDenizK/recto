@@ -93,6 +93,27 @@ async function pinch(cdp: CDPSession, centre: { x: number; y: number }, from: nu
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
+/** Waits until `scroller` has not moved for ten frames (a fling has run out). */
+async function scrolledToRest(scroller: Locator): Promise<void> {
+  await scroller.evaluate(
+    (el) =>
+      new Promise<void>((resolve) => {
+        let last = el.scrollTop;
+        let still = 0;
+        const frame = () => {
+          if (el.scrollTop === last) still += 1;
+          else {
+            last = el.scrollTop;
+            still = 0;
+          }
+          if (still >= 10) resolve();
+          else requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      }),
+  );
+}
+
 /** Dark pixels of the first page's bitmap inside `area` (page coordinates), as a share. */
 async function inkIn(page: Page, area: { x: number; y: number; w: number; h: number }) {
   return page.locator('[data-page-index="0"]').evaluate((el, a) => {
@@ -163,7 +184,13 @@ test.describe('phone editing (M10 WP1)', () => {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(top + 40);
     await expectUndoable(undo(page), false);
+    // The swipe flings on after the finger lifts: back to the top once it has stopped, or the
+    // fling carries the pages on past the reset and the ink below is read over another part of
+    // the page each time.
+    await scrolledToRest(scroller);
     await scroller.evaluate((el) => el.scrollTo({ top: 0, behavior: 'instant' }));
+    await scrolledToRest(scroller);
+    expect(await scroller.evaluate((el) => el.scrollTop)).toBe(0);
 
     // The chip arms Pen.
     await chip(page).click();

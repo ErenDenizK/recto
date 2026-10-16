@@ -3,9 +3,9 @@
  * sheets, the shortcut overlay, Recents), never the stage. On Base UI's `ScrollArea`: native
  * scrolling in the viewport, an overlay scrollbar drawn by us.
  *
- * - **Scrollbar.** 6 px on fine pointers, 10 while hovered, inset 2, a capsule thumb in
- *   `--scroll-thumb`; no track fill. On coarse pointers it shows only while scrolling. It
- *   fades in and out over 120 ms.
+ * - **Scrollbar.** The app's one scroll bar (GLS-24): 6 px on fine pointers, 8 while hovered,
+ *   inset 2, a capsule thumb in `--scroll-thumb` with its soft edge; no track fill. On coarse
+ *   pointers it shows only while scrolling. It fades in and out over 120 ms.
  * - **Soft edges.** Where content continues past an edge, a 12 px `mask-image` fade
  *   (G-19), from Base UI's `data-overflow-y-start` / `-end` on the root.
  * - **Behaviour.** `overscroll-behavior: contain` (M-23), so a list at its end does not scroll
@@ -15,8 +15,7 @@
  *   it has no focusable child (Base UI's default).
  * - `viewportRef` reaches the scrolling element (a virtualised list measures it).
  *
- * The global `* { scrollbar-width: thin }` rule stays as the fallback for scrollers that are
- * not yet scroll areas.
+ * Scrollers that are not scroll areas wear the same thumb from `styles/scrollbars.css`.
  */
 import { ScrollArea as BaseScrollArea } from '@base-ui/react/scroll-area';
 import type { CSSProperties, ReactNode, Ref } from 'react';

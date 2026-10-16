@@ -8,6 +8,8 @@
 @import './controls.css';
 /* The two-band focus ring and its three forms (A-11, components/09-primitives.md §19). */
 @import './focus.css';
+/* One scroll bar for every native scroller (GLS-24). */
+@import './scrollbars.css';
 
 html,
 body,
@@ -56,12 +58,6 @@ textarea,
 [contenteditable='true'] {
   user-select: text;
   -webkit-user-select: text;
-}
-
-/* Thin, quiet scrollbars on chrome surfaces. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
 }
 
 .visually-hidden {

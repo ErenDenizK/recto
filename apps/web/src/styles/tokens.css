@@ -341,6 +341,32 @@
   --field-placeholder: var(--n10);
   --scroll-thumb: rgb(var(--white-rgb) / 0.4);
   --scroll-thumb-hover: rgb(var(--white-rgb) / 0.55);
+  /* The scroll bar's soft edge in the other tone, so the thumb reads over a white page (GLS-24). */
+  --scroll-thumb-edge: inset 0 0 0 0.5px rgb(0 0 0 / 0.3);
+  /*
+   * The button lens (owner, R21 brief B-11; GLS-25): a button on glass is a lens of the same
+   * glass, its light in the bezel. The washes under the label stay the proven hover and pressed
+   * steps (--lens-hover is --surface-hover's 0.045; pressed is lighter still, its darkening a
+   * glow at the edge), so text keeps 09 §2.6's contrast; the lens is shadows only: two specular
+   * lobes lit from the top left (GLS-22's rim, 1.5 px), a bezel glow along the bottom, a soft
+   * lift outside on hover and a darker inner glow on press.
+   */
+  --lens-hover: rgb(var(--white-rgb) / 0.045);
+  --lens-pressed: rgb(var(--white-rgb) / 0.02);
+  --lens-rim:
+    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.22),
+    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.08);
+  /* The same lobes unblurred, for buttons on a sheet: software WebKit repaints a blurred shadow
+     of a sliding sheet every frame (GLS-22, amended; GLS-25, amended). */
+  --lens-rim-flat:
+    inset 0 1px 0 rgb(var(--white-rgb) / 0.22), inset 0 -1px 0 rgb(var(--white-rgb) / 0.08);
+  --lens-rim-hover:
+    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.42),
+    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.16),
+    inset 0 -3px 4px -3px rgb(var(--white-rgb) / 0.16), 0 1px 3px -1px rgb(0 0 0 / 0.4);
+  --lens-rim-pressed:
+    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.12),
+    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.05), inset 0 1px 5px rgb(0 0 0 / 0.32);
   --badge-fill: var(--n6);
   /* The ring that separates a dark swatch or colour well from the chrome; the edge of the white
      "no fill" swatch, the same ink in both themes. */
@@ -622,6 +648,25 @@
   --field-placeholder: var(--n10);
   --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
   --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
+  --scroll-thumb-edge: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.45);
+  /* The button lens (GLS-25): a lighter, denser white lens on hover, an ink press glow. */
+  --lens-hover: rgb(var(--white-rgb) / 0.5);
+  --lens-pressed: rgb(var(--ink-rgb) / 0.04);
+  --lens-rim:
+    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
+    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
+    inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
+  --lens-rim-flat:
+    inset 0 1px 0 rgb(var(--white-rgb) / 0.85), inset 0 -1px 0 rgb(var(--white-rgb) / 0.4),
+    inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
+  --lens-rim-hover:
+    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 1),
+    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.6),
+    inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.08), 0 1px 3px -1px rgb(var(--ink-rgb) / 0.22);
+  --lens-rim-pressed:
+    inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.5),
+    inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.2),
+    inset 0 1px 5px rgb(var(--ink-rgb) / 0.12);
   --badge-fill: var(--n4);
   --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
   --swatch-edge: rgb(var(--ink-rgb) / 0.35);
@@ -891,6 +936,25 @@
     --field-placeholder: var(--n10);
     --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
     --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
+    --scroll-thumb-edge: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.45);
+    /* The button lens (GLS-25): a lighter, denser white lens on hover, an ink press glow. */
+    --lens-hover: rgb(var(--white-rgb) / 0.5);
+    --lens-pressed: rgb(var(--ink-rgb) / 0.04);
+    --lens-rim:
+      inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
+      inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
+      inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
+    --lens-rim-flat:
+      inset 0 1px 0 rgb(var(--white-rgb) / 0.85), inset 0 -1px 0 rgb(var(--white-rgb) / 0.4),
+      inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
+    --lens-rim-hover:
+      inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 1),
+      inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.6),
+      inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.08), 0 1px 3px -1px rgb(var(--ink-rgb) / 0.22);
+    --lens-rim-pressed:
+      inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.5),
+      inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.2),
+      inset 0 1px 5px rgb(var(--ink-rgb) / 0.12);
     --badge-fill: var(--n4);
     --swatch-contrast: rgb(var(--ink-rgb) / 0.55);
     --swatch-edge: rgb(var(--ink-rgb) / 0.35);
@@ -1175,6 +1239,10 @@
     --rim-inner: 0 0 #0000;
     --rim-inner-sheet: 0 0 #0000;
     --rim-inner-docked: 0 0 #0000;
+    --lens-rim: 0 0 #0000;
+    --lens-rim-flat: 0 0 #0000;
+    --lens-rim-hover: 0 0 #0000;
+    --lens-rim-pressed: 0 0 #0000;
     --text-secondary: var(--n11);
     --text-tertiary: var(--n10);
   }
@@ -1231,6 +1299,10 @@
     --rim-inner: 0 0 #0000;
     --rim-inner-sheet: 0 0 #0000;
     --rim-inner-docked: 0 0 #0000;
+    --lens-rim: 0 0 #0000;
+    --lens-rim-flat: 0 0 #0000;
+    --lens-rim-hover: 0 0 #0000;
+    --lens-rim-pressed: 0 0 #0000;
   }
 
   /* The system's colours are in force: Dim pages has nothing to do. */

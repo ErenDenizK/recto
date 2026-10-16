@@ -2,7 +2,12 @@
  * IconButton (09-primitives §4; quality-bar Q-9, Q-14): a circle, `bar` the M size
  * (--control-h) with a 20 px icon, `row` the S size (--control-h-sm, system-audit-2026-10 §3.3)
  * with a 16 px icon and a 44 px hit area on a coarse pointer. Hover and pressed change the fill
- * only; the box never moves except by the press scale.
+ * and the lens; the box never moves except by the press scale.
+ *
+ * The lens (owner, R21 brief B-11; decisions GLS-25; styles/controls.css): clear at rest, it
+ * lifts under a fine pointer (`--lens-rim-hover` over `--lens-hover`) and sinks into a darker
+ * glow on press (`--lens-rim-pressed`, the press scale); a toggle that is on, or whose popup is
+ * open, rests seated (`--lens-rim`). The dock's tools and the palette's chips are this button.
  */
 .button {
   --shadow-own: 0 0 #0000;
@@ -14,10 +19,12 @@
   width: var(--control-h);
   height: var(--control-h);
   border-radius: var(--radius-capsule);
+  box-shadow: var(--shadow-own);
   color: var(--text-secondary);
   -webkit-tap-highlight-color: transparent;
   transition:
     background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out),
     transform var(--spring-press) var(--ease-spring);
 }
@@ -47,16 +54,19 @@
 
 @media (hover: hover) {
   .button:hover:not([aria-disabled='true'], :disabled) {
-    background: var(--surface-hover);
+    --shadow-own: var(--lens-rim-hover);
+    background: var(--lens-hover);
     color: var(--text-primary);
   }
 }
 
 .button:active:not([aria-disabled='true'], :disabled) {
-  background: var(--surface-active);
+  --shadow-own: var(--lens-rim-pressed);
+  background: var(--lens-pressed);
   transform: scale(var(--press-scale));
   transition:
     background-color var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-instant) var(--ease-out),
     transform var(--duration-instant) var(--ease-out);
 }
 
@@ -75,8 +85,17 @@
 .button[aria-pressed='true'],
 .button[aria-selected='true'],
 .button:is([data-popup-open], [data-origin-open]):not([aria-disabled='true'], :disabled) {
+  --shadow-own: var(--lens-rim);
   background: var(--surface-active);
   color: var(--text-primary);
+}
+
+/* Held down while on, a toggle still sinks. */
+.button:is([aria-pressed='true'], [aria-selected='true']):active:not(
+  [aria-disabled='true'],
+  :disabled
+) {
+  --shadow-own: var(--lens-rim-pressed);
 }
 
 /* An option toggle on a bar (the Compare heat map) is an option choice: --accent-muted. */

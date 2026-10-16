@@ -17,7 +17,9 @@
   padding: 0 10px;
   border: 0;
   border-radius: var(--radius-capsule);
+  --shadow-own: var(--lens-rim);
   background: var(--control-fill);
+  box-shadow: var(--shadow-own);
   color: var(--text-primary);
   font-size: var(--type-footnote);
   font-weight: 500;
@@ -27,7 +29,8 @@
   transition:
     background-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 /* A coarse pointer: 36 px visible, 44 px to hit (09 §2.1). */
@@ -49,18 +52,30 @@
   background: transparent;
 }
 
+/* The lens (GLS-25; styles/controls.css): seated at rest, lifted on hover, sunk on press. */
 @media (hover: hover) {
   .chip:hover:not([aria-disabled='true']) {
+    --shadow-own: var(--lens-rim-hover);
     background: var(--control-fill-hover);
   }
 
   :global(:is(.mat.mat-chip, .mat.mat-bar)) .chip:hover:not([aria-disabled='true']) {
-    background: var(--surface-hover);
+    background: var(--lens-hover);
   }
 }
 
 .chip:active:not([aria-disabled='true']) {
-  background: var(--control-fill-pressed);
+  --shadow-own: var(--lens-rim-pressed);
+  background: var(--control-fill);
+  scale: var(--press-scale);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
+}
+
+:global(:is(.mat.mat-chip, .mat.mat-bar)) .chip:active:not([aria-disabled='true']) {
+  background: var(--lens-pressed);
 }
 
 .chip:is([aria-checked='true'], [aria-pressed='true']),
@@ -73,6 +88,7 @@
 }
 
 .chip[aria-disabled='true'] {
+  --shadow-own: 0 0 #0000;
   color: var(--text-disabled);
 }
 

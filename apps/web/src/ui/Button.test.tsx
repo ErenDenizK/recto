@@ -103,9 +103,16 @@ describe('Button (09-primitives §3)', () => {
       await off();
     }
 
-    // Pressed: the pressed fill and the press scale.
+    // The lens (GLS-25): a filled button rests seated, its two lobes lit from the top left.
+    await expect
+      .poll(() => getComputedStyle(standard).boxShadow)
+      .toContain('rgba(255, 255, 255, 0.22)');
+    expect(getComputedStyle(quiet).boxShadow).not.toContain('inset');
+
+    // Pressed: the rest fill under the lens's darker glow, and the press scale.
     let release = await forceState(standard, ['active']);
-    expect(bg(standard)).toBe('rgba(255, 255, 255, 0.16)');
+    expect(bg(standard)).toBe('rgba(255, 255, 255, 0.08)');
+    expect(getComputedStyle(standard).boxShadow).toContain('rgba(0, 0, 0, 0.32)');
     expect(getComputedStyle(standard).transform).not.toBe('none');
     await release();
 

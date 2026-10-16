@@ -95,7 +95,7 @@ export type PressPointer = 'mouse' | 'touch' | 'pen';
 
 /** `--press-scale-*` (§7.3; spec 02.5 for surfaces of 120 px or more). */
 export const PRESS_SCALE = {
-  mouse: 0.97,
+  mouse: 0.96,
   touch: 0.94,
   largeMouse: 0.98,
   largeTouch: 0.96,
@@ -105,7 +105,7 @@ export const PRESS_SCALE = {
 export const LARGE_SURFACE_PX = 120;
 
 /**
- * The scale a press takes on a surface of `size` px (its smaller side), by `pointer`: 0.97 /
+ * The scale a press takes on a surface of `size` px (its smaller side), by `pointer`: 0.96 /
  * 0.94, or 0.98 / 0.96 at 120 px and up (02.5); 1 under reduced motion (colour change only).
  */
 export function pressScale(pointer: PressPointer, size = 0): number {

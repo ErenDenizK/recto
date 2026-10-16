@@ -120,8 +120,8 @@ describe('motion.css (language.md §7)', () => {
     }
   });
 
-  it('presses 0.97 / 0.94, and 0.98 / 0.96 on large surfaces (§7.3 press, 02.5)', () => {
-    expect(resolve('--press-scale')).toBe('0.97');
+  it('presses 0.96 / 0.94, and 0.98 / 0.96 on large surfaces (§7.3 press, 02.5; MOT-10)', () => {
+    expect(resolve('--press-scale')).toBe('0.96');
     expect(resolve('--press-scale-large')).toBe('0.98');
     expect(resolve('--press-scale', coarse)).toBe('0.94');
     expect(resolve('--press-scale-large', coarse)).toBe('0.96');
@@ -252,7 +252,7 @@ describe('the cascade (computed styles)', () => {
     // The test browser runs without the reduced-motion preference.
     expect(read('--spring-quick')).toBe('420ms');
     expect(read('--duration-fast')).toBe('120ms');
-    expect(read('--press-scale')).toMatch(/^0\.9[47]$/);
+    expect(read('--press-scale')).toMatch(/^0\.9[46]$/);
     root.dataset.motion = 'reduced';
     expect(read('--spring-quick')).toBe('0ms');
     expect(read('--duration-fast')).toBe('100ms');

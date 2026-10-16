@@ -48,6 +48,7 @@ import {
   recallPosition,
   rememberPosition,
 } from '../../viewer/navigation';
+import { ScrollThumb } from '../../ui/ScrollThumb';
 import { pageFrame } from '../../viewer/page-frame';
 import { watchFocusRing } from '../frame/focus-ring';
 import { useSafeAreaInsets } from '../frame/frame-insets';
@@ -221,6 +222,9 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
   const chromeHidden = useCompactStore((s) => s.chromeHidden);
   const insets = useSafeAreaInsets();
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // The scroller for the overlay thumb (GLS-24), once it is mounted.
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  useEffect(() => setScroller(scrollerRef.current), []);
   const stageRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(() => ({
     width: window.innerWidth,
@@ -997,6 +1001,7 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
           </div>
         </div>
       </div>
+      {overviewOpen ? null : <ScrollThumb target={scroller} className={styles.scrollThumb} />}
       <PagePill visible={pill && chromeHidden} total={doc.pages.length} />
     </>
   );

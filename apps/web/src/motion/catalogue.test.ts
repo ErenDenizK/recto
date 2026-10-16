@@ -144,8 +144,8 @@ describe('fold (02.6)', () => {
 });
 
 describe('pressScale (02.5)', () => {
-  it('presses 0.97 / 0.94, 0.98 / 0.96 from 120 px, and not at all under reduced motion', () => {
-    expect(pressScale('mouse')).toBe(0.97);
+  it('presses 0.96 / 0.94, 0.98 / 0.96 from 120 px, and not at all under reduced motion', () => {
+    expect(pressScale('mouse')).toBe(0.96);
     expect(pressScale('touch')).toBe(0.94);
     expect(pressScale('pen', 80)).toBe(0.94);
     expect(pressScale('mouse', 120)).toBe(0.98);

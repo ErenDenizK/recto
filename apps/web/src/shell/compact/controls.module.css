@@ -23,10 +23,14 @@
   font-weight: 500;
   line-height: var(--type-body-lh);
   white-space: nowrap;
+  --shadow-own: 0 0 #0000;
   touch-action: manipulation;
+  box-shadow: var(--shadow-own);
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    box-shadow var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    scale var(--spring-press) var(--ease-spring);
 }
 
 .icon {
@@ -46,18 +50,31 @@
   height: 20px;
 }
 
+/* The lens (owner, R21 brief B-11; GLS-25; styles/controls.css): on a finger only the press,
+   a darker glow and the press scale; open, it rests seated. */
 @media (hover: hover) {
   .icon:hover:not(:disabled),
   .text:hover:not(:disabled) {
-    background: var(--surface-hover);
+    --shadow-own: var(--lens-rim-hover);
+    background: var(--lens-hover);
   }
 }
 
-.icon:active:not(:disabled),
-.text:active:not(:disabled),
 .icon[aria-expanded='true'],
 .text[aria-expanded='true'] {
+  --shadow-own: var(--lens-rim);
   background: var(--surface-active);
+}
+
+.icon:active:not(:disabled),
+.text:active:not(:disabled) {
+  --shadow-own: var(--lens-rim-pressed);
+  background: var(--lens-pressed);
+  scale: var(--press-scale);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
 }
 
 .icon:disabled,
@@ -79,6 +96,20 @@
 /* Disabled (Go with no page typed; Open PDF while a file opens): the shared disabled step,
    `--control-disabled-fill` under the disabled label (Q-14). The primary's label above would
    all but vanish on that fill, and `.btn`'s disabled label is not composed here. */
+/* The primary rests as a seated lens and sinks on press like every control (GLS-25). */
+.primary:not(:disabled, [aria-disabled='true']) {
+  --shadow-own: var(--lens-rim);
+}
+
+.primary:active:not(:disabled, [aria-disabled='true'], [aria-busy='true']) {
+  --shadow-own: var(--lens-rim-pressed);
+  scale: var(--press-scale);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-instant) var(--ease-out),
+    scale var(--duration-instant) var(--ease-out);
+}
+
 .primary:is(:disabled, [aria-disabled='true']) {
   color: var(--text-disabled);
 }

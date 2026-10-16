@@ -35,7 +35,6 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   border-radius: var(--radius-control);
-  scrollbar-width: thin;
 }
 
 .rows {
