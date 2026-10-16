@@ -6,10 +6,13 @@
  * for it. The capsule sits centred in its dock row, so its position follows the width; the edit
  * button folds or unfolds beside it on the same spring (`CompactChrome.module.css`). Nothing is
  * left inline at rest (Q-2). Reduced motion: the width jumps, the content fades in 150 ms.
+ * While the content changes (reading ⇄ the island) the capsule and ✎ move as one liquid glass
+ * body (`capsule-liquid.ts`, DSN-43); a reshape within one content does not fuse.
  */
 import { animateStyle } from '../../../motion/animate';
 import { reducedMotion } from '../../../motion/reduced-motion';
 import { REDUCED_DURATION_MS } from '../../../motion/tokens';
+import { fuseDock } from './capsule-liquid';
 
 /** The new content fades in after this, once the moving edge has started to make room. */
 const CONTENT_DELAY_MS = 90;
@@ -34,7 +37,10 @@ export function morphCapsule(
       fill: 'backwards',
     });
   }
-  if (reduced || Math.abs(to.width - from.width) < 1) return;
+  if (reduced) return;
+  // ✎ folds or unfolds on its own transitions even when the width is unchanged.
+  if (content) fuseDock(capsule);
+  if (Math.abs(to.width - from.width) < 1) return;
   // The new content is laid out at its own width; until the edge has passed it, it is clipped
   // to the moving shape rather than spilling over the glass's rim.
   capsule.style.overflow = 'clip';
