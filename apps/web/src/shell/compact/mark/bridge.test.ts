@@ -45,22 +45,22 @@ describe('the editing bridge', () => {
     exitEditing();
   });
 
-  it('enters on Pen through Markup and the tool store', () => {
+  it('enters through Markup with the tool off, so one finger still scrolls (MOB-18)', () => {
     expect(markupOpen()).toBe(false);
     enterEditing();
     expect(markupOpen()).toBe(true);
-    expect(mode()).toBe('ink');
-    expect(compact()).toMatchObject({ editing: true, tool: 'pen' });
+    expect(mode()).toBe('select');
+    expect(compact()).toMatchObject({ editing: true, tool: null, lastTool: 'pen' });
   });
 
-  it('the chip toggles the tool off (Select) and back on', () => {
+  it('the chip turns the tool on (Pen first) and off again (Select)', () => {
     enterEditing();
-    toolOff();
-    expect(compact().tool).toBeNull();
-    expect(mode()).toBe('select');
     toggleTool();
     expect(compact().tool).toBe('pen');
     expect(mode()).toBe('ink');
+    toolOff();
+    expect(compact().tool).toBeNull();
+    expect(mode()).toBe('select');
   });
 
   it('arms the eraser and goes back to the pen it took over from', () => {
@@ -76,6 +76,7 @@ describe('the editing bridge', () => {
 
   it('a soon tool does not arm; a stub arms Select or its mode', () => {
     enterEditing();
+    armTool('pen');
     armTool('edit-text');
     expect(compact().tool).toBe('pen');
     armTool('text');
@@ -85,7 +86,7 @@ describe('the editing bridge', () => {
     expect(compact().tool).toBe('sign');
   });
 
-  it('Done closes Markup and returns to Select; the next entry arms the last tool', () => {
+  it('Done closes Markup and returns to Select; the chip then turns the last tool on', () => {
     enterEditing();
     armTool('highlight');
     exitEditing();
@@ -93,6 +94,8 @@ describe('the editing bridge', () => {
     expect(markupOpen()).toBe(false);
     expect(mode()).toBe('select');
     enterEditing();
+    expect(compact()).toMatchObject({ tool: null, lastTool: 'highlight' });
+    toggleTool();
     expect(compact().tool).toBe('highlight');
     expect(mode()).toBe('ink');
   });

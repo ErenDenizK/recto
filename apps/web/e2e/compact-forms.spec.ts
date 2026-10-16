@@ -213,10 +213,13 @@ test.describe('form filling on phones (MOB-1)', () => {
   test('a drawing tool wins over the field', async ({ page }) => {
     await openForm(page);
     const cdp = await page.context().newCDPSession(page);
-    // ✎ arms Pen: the targets let the page through, and a tap on the box is ink.
+    // ✎ opens with the tool off (MOB-18); the chip arms Pen: the targets let the page through,
+    // and a tap on the box is ink.
     await page.getByTestId('compact-edit').click();
     await expect(capsule(page)).toHaveAttribute('data-editing');
     await expect(page.getByTestId('compact-tool-chip')).toHaveAccessibleName('Pen');
+    await page.getByTestId('compact-tool-chip').click();
+    await expect(page.getByTestId('compact-tool-chip')).toHaveAttribute('aria-pressed', 'true');
     await bringToThird(page, 'agree');
     const at = await centreOf(target(page, 'agree'));
     await tap(cdp, at);

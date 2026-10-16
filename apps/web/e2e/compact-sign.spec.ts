@@ -234,8 +234,10 @@ test.describe('phone saving (M10 WP7)', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('compact-menu')).toHaveCount(0);
 
-    // A pen stroke.
+    // A pen stroke: ✎ opens with the tool off (MOB-18), the chip turns Pen on.
     await page.getByTestId('compact-edit').click();
+    await page.getByTestId('compact-tool-chip').click();
+    await expect(page.getByTestId('compact-tool-chip')).toHaveAttribute('aria-pressed', 'true');
     const cdp = await page.context().newCDPSession(page);
     const spot = await blankSpot(page);
     await touchDrag(cdp, { x: spot.x - 80, y: spot.y }, { x: spot.x + 80, y: spot.y + 20 }, 20);

@@ -1,7 +1,8 @@
 /**
  * Phone editing's foundation (M10 WP1; design/phone-2026-10/README.md §2–§6, EDN-8), on the
  * `phone` and `phone-land` projects with CDP touch: the edit button morphs the capsule into the
- * edit island on Pen; one finger draws; a dot neither toggles the chrome nor zooms; Undo and
+ * edit island with the tool off, where one finger still scrolls (MOB-18); the chip arms Pen and
+ * one finger draws; a dot neither toggles the chrome nor zooms; Undo and
  * Redo walk the stroke; two fingers pinch and never draw; the tool drawer rises out of the chip
  * and a tile arms its tool with the drawer staying open, Undo working under it (EDN-18); Done
  * leaves editing and the stroke is kept on the device and comes
@@ -130,12 +131,13 @@ test.describe('phone editing (M10 WP1)', () => {
     await openReader(page);
     await shot(page, 'reading');
 
-    // The edit button beside the capsule morphs it into the island, on Pen.
+    // The edit button beside the capsule morphs it into the island, the tool off (MOB-18): the
+    // chip shows the Pen it turns on.
     const edit = page.getByRole('button', { name: 'Edit' });
     await expect(edit).toBeVisible();
     await edit.click();
     await expect(capsule(page)).toHaveAttribute('data-editing');
-    await expect(chip(page)).toHaveAttribute('aria-pressed', 'true');
+    await expect(chip(page)).toHaveAttribute('aria-pressed', 'false');
     await expect(chip(page)).toHaveAccessibleName('Pen');
     await expect(page.getByTestId('compact-edit-done')).toBeVisible();
     await expectUndoable(undo(page), false);
@@ -143,6 +145,29 @@ test.describe('phone editing (M10 WP1)', () => {
     await shot(page, 'island');
 
     const cdp = await page.context().newCDPSession(page);
+    // One finger scrolls the pages while no tool is on, and draws nothing.
+    const scroller = page.getByTestId('compact-pages');
+    const top = await scroller.evaluate((el) => el.scrollTop);
+    const view = page.viewportSize() ?? { width: 390, height: 844 };
+    const finger = (y: number) => ({ x: view.width / 2, y, id: 1 });
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [finger(view.height * 0.6)],
+    });
+    for (let i = 1; i <= 12; i++) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [finger(view.height * 0.6 - i * 15)],
+      });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(top + 40);
+    await expectUndoable(undo(page), false);
+    await scroller.evaluate((el) => el.scrollTo({ top: 0, behavior: 'instant' }));
+
+    // The chip arms Pen.
+    await chip(page).click();
+    await expect(chip(page)).toHaveAttribute('aria-pressed', 'true');
     const area = await blankArea(page);
     const zoom = await zoomOf(page);
     const before = await inkIn(page, area);
@@ -203,6 +228,7 @@ test.describe('phone editing (M10 WP1)', () => {
   }) => {
     await openReader(page);
     await page.getByRole('button', { name: 'Edit' }).click();
+    await chip(page).click();
     const more = page.getByTestId('compact-tool-more');
     await more.click();
     await expect(drawer(page)).toBeVisible();
@@ -393,6 +419,7 @@ test.describe('phone editing (M10 WP1)', () => {
     await openReader(page);
     await page.getByTestId('compact-edit').click();
     await expect(capsule(page)).toHaveAttribute('data-editing');
+    await chip(page).click();
     const cdp = await page.context().newCDPSession(page);
     await drawStroke(cdp, await blankArea(page));
     await expectUndoable(undo(page), true);
@@ -428,6 +455,7 @@ for (const lang of ['en', 'tr'] as const) {
         await shot(page, 'reading');
         await page.getByTestId('compact-edit').click();
         await shot(page, 'island', 700);
+        await chip(page).click();
         const cdp = await page.context().newCDPSession(page);
         await drawStroke(cdp, await blankArea(page));
         await expectUndoable(undo(page), true);
