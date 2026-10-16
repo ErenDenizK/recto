@@ -3451,6 +3451,7 @@
   "library_combine_files": "Combine files…",
   "library_drop_hint": "or drop files anywhere",
   "library_start_group": "More ways to start",
+  "library_sample_line": "A small magazine to try every tool on.",
   "library_drop": "Drop to open",
   "library_drop_count": [
     {

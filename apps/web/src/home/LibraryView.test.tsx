@@ -116,12 +116,12 @@ describe('Library', () => {
     resetLibraryStore();
   });
 
-  it('heads the documents with a large title, one row of equal starts and a drifting aura', async () => {
+  it('heads the documents with one row of the ways in, ends with the sample, over a drifting aura', async () => {
     await openOnHome('simple-text.pdf');
     const home = screen.getByTestId('home');
-    // Identity (owner feedback 2026-10-09, G3): the tab keeps the mark; the view says "Library"
-    // large and draws no mark of its own. The promise is the empty welcome's alone (DSN-46).
-    expect(within(home).getByRole('heading', { level: 2, name: 'Library' })).toBeVisible();
+    // Identity (G3, DSN-50): the strip's "◆ Library" piece names the place, so the view draws
+    // no title and no mark of its own. The promise is the empty welcome's alone (DSN-46).
+    expect(within(home).queryByRole('heading', { name: 'Library' })).toBeNull();
     expect(home.querySelector('header svg[data-tone="auto"]')).toBeNull();
     expect(within(home).queryByText('Nothing leaves this device.')).toBeNull();
     // Open: the view's one lime, first in the row, and the row says files can be dropped.
@@ -129,14 +129,15 @@ describe('Library', () => {
     const open = within(launcher).getByRole('button', { name: 'Open PDFs…' });
     expect(open).toHaveClass('btn-prominent');
     expect(launcher).toHaveTextContent('or drop files anywhere');
-    // More ways to start: three equal standard buttons, each with its glyph.
+    // The other ways in: two equal standard buttons, each with its glyph.
     const group = within(launcher).getByRole('group', { name: 'More ways to start' });
     const starts = within(group).getAllByRole('button');
-    expect(starts.map((b) => b.textContent)).toEqual([
-      'Try the sample',
-      'Combine files…',
-      'Batch…',
-    ]);
+    expect(starts.map((b) => b.textContent)).toEqual(['Combine files…', 'Batch…']);
+    // Try the sample is the last tier (DSN-50): a card after the documents, out of the row.
+    const sample = within(home).getByRole('button', { name: 'Try the sample' });
+    expect(within(launcher).queryByRole('button', { name: 'Try the sample' })).toBeNull();
+    expect(sample).toHaveAccessibleDescription('A small magazine to try every tool on.');
+    expect(grid().compareDocumentPosition(sample) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     for (const button of starts) {
       expect(button).toHaveClass('btn-standard');
       expect(button.querySelector('svg[data-icon]')).not.toBeNull();
@@ -595,9 +596,17 @@ describe('Library', () => {
       }),
     ).toBeVisible();
     expect(within(home).getByText('Nothing leaves this device.')).toBeVisible();
-    expect(within(home).getByRole('button', { name: 'Open PDFs…' })).toHaveClass('btn-prominent');
-    expect(within(home).getByRole('button', { name: 'Try the sample' })).toBeVisible();
+    const open = within(home).getByRole('button', { name: 'Open PDFs…' });
+    expect(open).toHaveClass('btn-prominent');
     expect(within(home).getByRole('button', { name: 'Combine files…' })).toBeVisible();
+    // The sample's card under the launcher, centred on it, as wide as Recents at most (DSN-50).
+    const sample = within(home).getByRole('button', { name: 'Try the sample' });
+    expect(sample).toBeVisible();
+    const piece = screen.getByTestId('library-launcher').getBoundingClientRect();
+    const card = sample.getBoundingClientRect();
+    expect(card.top).toBeGreaterThan(open.getBoundingClientRect().bottom);
+    expect(card.width).toBeLessThanOrEqual(560);
+    expect(Math.abs(card.left + card.width / 2 - (piece.left + piece.width / 2))).toBeLessThan(1);
     // Library ⋯ sits in the top strip (02-library L12, 01-frame F2), not on the launcher.
     expect(within(home).queryByRole('button', { name: 'More' })).toBeNull();
     expect(

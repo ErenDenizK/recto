@@ -1,0 +1,100 @@
+/*
+ * Try the sample (SampleCard.tsx; 02-library L10, DSN-50): a lit card at most 560 wide, the
+ * width of the empty Library's Recents, centred under the launcher when no document is open
+ * and on the column's edge with documents. The cover 40 × 56 (the page's proportions), the
+ * title in body 600, the line in footnote, the caret trailing; --radius-xl and --space-3
+ * padding, as the Recents panel, so the two read as one family.
+ *
+ * Hover lights the rim with the lens's hover lobes (GLS-25) and never lifts; a press sinks
+ * under the lens's pressed glow and scales by --press-scale-large (02.5) on --spring-press,
+ * 1 under reduced motion (styles/motion.css).
+ */
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  box-sizing: border-box;
+  width: min(560px, 100%);
+  min-height: 80px;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    transform var(--spring-press) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.card[data-align='centre'] {
+  align-self: center;
+}
+
+@media (hover: hover) {
+  .card:hover:not([aria-disabled='true']) {
+    --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-hover);
+  }
+}
+
+.card:active:not([aria-disabled='true']) {
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-pressed);
+  transform: scale(var(--press-scale-large));
+  transition-duration: var(--duration-instant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:active:not([aria-disabled='true']) {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .card:active {
+  transform: none;
+}
+
+/* The page is content: its own colours and the page hairline in both themes. */
+.cover {
+  flex: none;
+  width: 40px;
+  height: 56px;
+  border-radius: var(--radius-page);
+  box-shadow: var(--page-shadow);
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  gap: var(--space-half);
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--type-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--track-body);
+}
+
+.line {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--track-footnote);
+  text-wrap: pretty;
+}
+
+.caret {
+  flex: none;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--text-secondary);
+}
+
+.card[aria-disabled='true'] :is(.title, .caret) {
+  color: var(--text-disabled);
+}
+
+.card[aria-disabled='true'] .cover {
+  opacity: 0.5;
+}
