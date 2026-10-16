@@ -86,9 +86,6 @@ export const OPTICS = {
  */
 export const GPU_SIGMA_SCALE = 0.8;
 
-/** After an adaptive turn (GLS-9's 200 ms cross-fade) a piece's material is read again, ms. */
-const TURN_SETTLE_MS = 240;
-
 /** Still frames after which the draw loop ends. */
 const QUIET_FRAMES = 4;
 /** The slow-frame rule (GLS-13): a 2 s window of drawing, more than half above 33 ms. */
@@ -810,21 +807,6 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
     ) {
       collect();
     }
-    // A piece the adaptive look turned (GLS-9, `data-theme` on the piece) wears the other
-    // theme's tint and text: its material is read again once the turn's cross-fade has run
-    // (GLS-19), else the GPU kept the old tint under the new text.
-    for (const record of records) {
-      const piece =
-        record.attributeName === 'data-theme' ? pieces.get(record.target as HTMLElement) : null;
-      if (!piece) continue;
-      const timer = window.setTimeout(() => {
-        if (stopped || !piece.el.isConnected) return;
-        readMaterials(piece);
-        signature = '';
-        kick();
-      }, TURN_SETTLE_MS);
-      cleanups.push(() => window.clearTimeout(timer));
-    }
     kick();
   });
   dom.observe(root, {
@@ -839,7 +821,6 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
       'height',
       'style',
       'data-hidden',
-      'data-theme',
       LIQUID_ATTRIBUTE,
     ],
   });

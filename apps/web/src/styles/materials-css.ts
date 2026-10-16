@@ -22,8 +22,6 @@
  *    soft inner top light, `--rim-inner*`) and the shadow as `--shadow-own` (the focus ring adds
  *    its bands to it). Lit glass (§2.5) has no border: its rim is the masked `::before`
  *    gradient. The light stays a hairline, never a band (owner feedback 2026-10-09, G4).
- *    A piece the adaptive look turned (`data-theme` on the piece, GLS-9) takes its own theme's
- *    text colour.
  * 3. **The tint and the text,** where `backdrop-filter` exists and the Glass setting is not
  *    Solid: the tint, and secondary, tertiary, disabled and danger text on their glass steps.
  *    The cost ladder never turns a surface solid (GLS-7, GLS-10).
@@ -32,9 +30,7 @@
  *    guarded by the root's `data-glass` (Solid) and `data-degrade` (the ladder's steps 3 and 4
  *    have rules of their own, 6). Chips and bars blur at three quarters of their registered σ
  *    (`renderedSigma`: small pieces show the page, iOS's "nearly clear" controls, GLS-8; their
- *    coverage only grows), and each of their rules has a copy for a piece the adaptive look
- *    turned to the other theme (`[data-theme]` on the piece, one more attribute of
- *    specificity). Coarse pointers (`c<σ>`, or `cs` for solid), compact-height (`h<σ>`) and
+ *    coverage only grows). The tone is the root theme's on every piece (GLS-20). Coarse pointers (`c<σ>`, or `cs` for solid), compact-height (`h<σ>`) and
  *    one-row menus (`r<σ>`) follow, each later and at least as specific, and the backdrop lens
  *    last (`.lens`, Chromium only: the one rule that reads a `var()`, the map
  *    `material-lens.ts` draws at the surface's size; chips and, since GLS-11, bars).
@@ -48,8 +44,7 @@
  * 6. **The cost ladder's glass steps** (GLS-10): step 3 one reduced σ per tier and no ring;
  *    step 4 the floor, after the owner's Glass UI nav preset: one layer at 12 px (8 px on a
  *    coarse pointer, and never more than step 3's σ, so small pieces keep their coverage), the
- *    tier's tint and its chain without saturate, a 1 px white hairline at 0.30, the rims and the
- *    adaptive look kept.
+ *    tier's tint and its chain without saturate, a 1 px white hairline at 0.30, the rims kept.
  * 7. **Resets.** Docked M3 under a modal sheet's scrim (`data-scrim`), the solid twin, reduced
  *    transparency, more contrast and forced colours turn every filter off and bring the normal
  *    text ladder back; more contrast draws the strong border instead of rim and shadow (A-18).
@@ -59,15 +54,15 @@ import type { GlassTier } from './token-registry';
 
 const TIERS: readonly GlassTier[] = ['chip', 'bar', 'panel', 'menu', 'sheet', 'lit'];
 
-/** The tiers that take the adaptive look (GLS-9): small pieces floating over pages. */
-export const ADAPTIVE_TIERS: readonly GlassTier[] = ['chip', 'bar'];
+/** The small pieces floating over pages (GLS-8): chips and bars, the tiers that may take a lens. */
+export const SMALL_TIERS: readonly GlassTier[] = ['chip', 'bar'];
 
 /** Chips and bars blur at this share of their registered σ (GLS-8). */
 export const SMALL_PIECE_SIGMA = 0.75;
 
 /** The blur a tier renders for a registered σ: smaller on the small pieces (GLS-8). */
 export function renderedSigma(tier: GlassTier, sigma: number): number {
-  return ADAPTIVE_TIERS.includes(tier) ? Math.max(1, Math.round(sigma * SMALL_PIECE_SIGMA)) : sigma;
+  return SMALL_TIERS.includes(tier) ? Math.max(1, Math.round(sigma * SMALL_PIECE_SIGMA)) : sigma;
 }
 
 /** Ladder step 3 (GLS-10): one reduced σ per tier, whatever its surfaces register. */
@@ -255,10 +250,6 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
       'pointer-events: none;',
     ]),
   );
-  out.push(
-    `\n/* A piece the adaptive look turned (GLS-9) carries the other theme's tokens: its text too, and
-   its tier's own tint, whatever denser tint a module lays on it for its theme's look. */\n${block(':where(.mat[data-theme])', ['color: var(--text-primary);'])}${ADAPTIVE_TIERS.map((tier) => block(`.mat.mat-${tier}[data-theme]`, [`--mat-tint: var(--glass-${tier}-tint);`])).join('')}`,
-  );
 
   // 3. Tint and text.
   out.push(`\n/* The tint and the glass text steps, where glass renders and the setting is not Solid. */
@@ -278,7 +269,7 @@ ${SUPPORTS} {
   if (lightFilters) themes.push(["[data-theme='light']", lightFilters]);
   const chainOf = (tier: GlassTier, sigma: number, theme: TierFilters) =>
     `blur(${renderedSigma(tier, sigma)}px) ${theme[tier]}`;
-  /** The rules of one class kind: per root theme, then the turned pieces (adaptive tiers). */
+  /** The rules of one class kind, per root theme. */
   const kind = (
     list: readonly [GlassTier, number][],
     cls: (sigma: number) => string,
@@ -292,22 +283,10 @@ ${SUPPORTS} {
         );
       }
     }
-    for (const [tier, sigma] of list) {
-      if (!ADAPTIVE_TIERS.includes(tier)) continue;
-      for (const [look, chains] of [
-        ['dark', filters],
-        ['light', lightFilters],
-      ] as const) {
-        if (!chains) continue;
-        out.push(
-          `${indent}${live(root)} .mat-${tier}.${cls(sigma)}[data-theme='${look}'] {\n${filterLines(chainOf(tier, sigma, chains), `${indent}  `)}${indent}}\n`,
-        );
-      }
-    }
   };
 
   out.push(`\n/* σ: one rule per tier × σ in the coverage registry, literal on both lines (G-22); chips and
-   bars at three quarters (GLS-8), and again for a piece the adaptive look turned (GLS-9). */
+   bars at three quarters (GLS-8). */
 ${SUPPORTS} {
 `);
   kind(
@@ -342,7 +321,7 @@ ${SUPPORTS} {
   }
   // The lens: every fine σ of the tiers that may take one (chips, and bars since GLS-11).
   const lensed = pairs(
-    entries.filter((e) => ADAPTIVE_TIERS.includes(e.tier) && !e.oneRow),
+    entries.filter((e) => SMALL_TIERS.includes(e.tier) && !e.oneRow),
     (e) => e.sigma,
   );
   if (lensed.length > 0) {
@@ -357,17 +336,6 @@ ${SUPPORTS} {
       for (const [tier, sigma] of lensed) {
         out.push(
           `  :where(:root${theme}:not(${off})) .mat-${tier}.s${sigma}.lens {\n    backdrop-filter: var(--lens) ${chainOf(tier, sigma, chains)};\n  }\n`,
-        );
-      }
-    }
-    for (const [tier, sigma] of lensed) {
-      for (const [look, chains] of [
-        ['dark', filters],
-        ['light', lightFilters],
-      ] as const) {
-        if (!chains) continue;
-        out.push(
-          `  :where(:root:not(${off})) .mat-${tier}.s${sigma}.lens[data-theme='${look}'] {\n    backdrop-filter: var(--lens) ${chainOf(tier, sigma, chains)};\n  }\n`,
         );
       }
     }
@@ -415,18 +383,6 @@ ${block(
       for (const tier of used) {
         out.push(
           `${indent}${step(n, theme)} .mat-${tier} {\n${filterLines(`blur(${sigmaOf(tier)}px) ${chainFor(chains[tier])}`, `${indent}  `)}${indent}}\n`,
-        );
-      }
-    }
-    for (const tier of used) {
-      if (!ADAPTIVE_TIERS.includes(tier)) continue;
-      for (const [look, chains] of [
-        ['dark', filters],
-        ['light', lightFilters],
-      ] as const) {
-        if (!chains) continue;
-        out.push(
-          `${indent}${step(n)} .mat-${tier}[data-theme='${look}'] {\n${filterLines(`blur(${sigmaOf(tier)}px) ${chainFor(chains[tier])}`, `${indent}  `)}${indent}}\n`,
         );
       }
     }

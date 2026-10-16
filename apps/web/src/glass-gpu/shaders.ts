@@ -17,7 +17,7 @@
  * - the tier's own filter from the piece's CSS (saturate, contrast, brightness) and its tint;
  * - the legibility floor (GLS-14): where the glass would be too light under light glyphs (or too
  *   dark under dark ones) for the piece's ratio, it mixes towards the tier's solid colour, so
- *   text holds over any page — the adaptive tone within the theme;
+ *   text holds over any page in the theme's own tone (GLS-20);
  * - the rim light as two lobes, pow(max(n·L, 0), 2) towards a top-left light and 0.6 of it on
  *   the far side, in a hairline band, plus a faint fresnel glow across the bezel.
  *

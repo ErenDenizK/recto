@@ -230,10 +230,10 @@ test('the floating sidebar with the strip, the dock, the pill and a contextual b
   expect(glass).not.toBe('none');
 });
 
-test('the page pill turns with the page it floats over (GLS-9, DSN-45)', async ({
+test('the page pill keeps the theme’s tone over a page and beside it (GLS-20)', async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'one engine is enough for the turn');
+  test.skip(testInfo.project.name !== 'chromium', 'one engine is enough for the tone');
   await page.emulateMedia({ colorScheme: 'dark' });
   await open(page, 'simple-text.pdf');
   const pill = page.getByTestId('page-pill');
@@ -245,12 +245,15 @@ test('the page pill turns with the page it floats over (GLS-9, DSN-45)', async (
     // The page under most of the pill (its centre).
     return p && b ? p.x + p.width > b.x + b.width / 2 && p.y + p.height > b.y + b.height : false;
   };
-  // At fit width a Letter page reaches under the pill at 1440 × 900: light glass with the light
-  // theme's text over the white page.
+  const tint = () => pill.evaluate((el) => getComputedStyle(el).backgroundColor);
+  // At fit width a Letter page reaches under the pill at 1440 × 900: still dark glass with the
+  // dark theme's text over the white page, never the other theme's block.
   await page.mouse.click(700, 450);
   await expect.poll(under).toBe(true);
-  await expect(pill).toHaveAttribute('data-theme', 'light');
-  // Zoomed out until the pill floats over the canvas beside the page: the theme's dark look.
+  await page.waitForTimeout(500);
+  await expect(pill).not.toHaveAttribute('data-theme');
+  const overPage = await tint();
+  // Zoomed out until the pill floats over the canvas beside the page: the same dark look.
   await expect
     .poll(
       async () => {
@@ -260,7 +263,9 @@ test('the page pill turns with the page it floats over (GLS-9, DSN-45)', async (
       { timeout: 15_000 },
     )
     .toBe(false);
+  await page.waitForTimeout(500);
   await expect(pill).not.toHaveAttribute('data-theme');
+  expect(await tint()).toBe(overPage);
 });
 
 test('the Pages grid with its Pages bar', async ({ page }) => {

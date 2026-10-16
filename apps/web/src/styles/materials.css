@@ -113,18 +113,6 @@
   pointer-events: none;
 }
 
-/* A piece the adaptive look turned (GLS-9) carries the other theme's tokens: its text too, and
-   its tier's own tint, whatever denser tint a module lays on it for its theme's look. */
-:where(.mat[data-theme]) {
-  color: var(--text-primary);
-}
-.mat.mat-chip[data-theme] {
-  --mat-tint: var(--glass-chip-tint);
-}
-.mat.mat-bar[data-theme] {
-  --mat-tint: var(--glass-bar-tint);
-}
-
 /* The tint and the glass text steps, where glass renders and the setting is not Solid. */
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   :where(:root:not([data-glass='solid'])) .mat {
@@ -137,7 +125,7 @@
 }
 
 /* σ: one rule per tier × σ in the coverage registry, literal on both lines (G-22); chips and
-   bars at three quarters (GLS-8), and again for a piece the adaptive look turned (GLS-9). */
+   bars at three quarters (GLS-8). */
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4'])) .mat-chip.s7 {
     -webkit-backdrop-filter: blur(5px) saturate(2.2) contrast(1) brightness(0.48);
@@ -271,56 +259,6 @@
     -webkit-backdrop-filter: blur(24px) saturate(1.3) contrast(0.45) brightness(1.4);
     backdrop-filter: blur(24px) saturate(1.3) contrast(0.45) brightness(1.4);
   }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-chip.s7[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(5px) saturate(2.2) contrast(1) brightness(0.48);
-    backdrop-filter: blur(5px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-chip.s7[data-theme='light'] {
-    -webkit-backdrop-filter: blur(5px) saturate(1.6) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(5px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.s7[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(5px) saturate(2.2) contrast(1) brightness(0.48);
-    backdrop-filter: blur(5px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.s7[data-theme='light'] {
-    -webkit-backdrop-filter: blur(5px) saturate(1.6) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(5px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.s8[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-    backdrop-filter: blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.s8[data-theme='light'] {
-    -webkit-backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.s9[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(7px) saturate(2.2) contrast(1) brightness(0.48);
-    backdrop-filter: blur(7px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.s9[data-theme='light'] {
-    -webkit-backdrop-filter: blur(7px) saturate(1.6) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(7px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.s10[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(8px) saturate(2.2) contrast(1) brightness(0.48);
-    backdrop-filter: blur(8px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.s10[data-theme='light'] {
-    -webkit-backdrop-filter: blur(8px) saturate(1.6) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(8px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
 
   /* Coarse pointers. */
   @media (pointer: coarse), (any-pointer: coarse) {
@@ -390,36 +328,6 @@
       -webkit-backdrop-filter: blur(20px) saturate(1.3) contrast(0.45) brightness(1.4);
       backdrop-filter: blur(20px) saturate(1.3) contrast(0.45) brightness(1.4);
     }
-    :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-      .mat-chip.c8[data-theme='dark'] {
-      -webkit-backdrop-filter: blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-      backdrop-filter: blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-    }
-    :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-      .mat-chip.c8[data-theme='light'] {
-      -webkit-backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-      backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-    }
-    :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-      .mat-bar.c8[data-theme='dark'] {
-      -webkit-backdrop-filter: blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-      backdrop-filter: blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-    }
-    :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-      .mat-bar.c8[data-theme='light'] {
-      -webkit-backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-      backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-    }
-    :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-      .mat-bar.c9[data-theme='dark'] {
-      -webkit-backdrop-filter: blur(7px) saturate(2.2) contrast(1) brightness(0.48);
-      backdrop-filter: blur(7px) saturate(2.2) contrast(1) brightness(0.48);
-    }
-    :where(:root:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-      .mat-bar.c9[data-theme='light'] {
-      -webkit-backdrop-filter: blur(7px) saturate(1.6) contrast(0.75) brightness(1.33);
-      backdrop-filter: blur(7px) saturate(1.6) contrast(0.75) brightness(1.33);
-    }
   }
 
   /* Compact-height (`:root[data-short]`). */
@@ -436,16 +344,6 @@
       )
     )
     .mat-bar.h8 {
-    -webkit-backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root[data-short]:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.h8[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-    backdrop-filter: blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root[data-short]:not([data-glass='solid'], [data-degrade='3'], [data-degrade='4']))
-    .mat-bar.h8[data-theme='light'] {
     -webkit-backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
     backdrop-filter: blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
   }
@@ -501,46 +399,6 @@
   }
   :where(:root[data-theme='light']:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
     .mat-bar.s10.lens {
-    backdrop-filter: var(--lens) blur(8px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-chip.s7.lens[data-theme='dark'] {
-    backdrop-filter: var(--lens) blur(5px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-chip.s7.lens[data-theme='light'] {
-    backdrop-filter: var(--lens) blur(5px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-bar.s7.lens[data-theme='dark'] {
-    backdrop-filter: var(--lens) blur(5px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-bar.s7.lens[data-theme='light'] {
-    backdrop-filter: var(--lens) blur(5px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-bar.s8.lens[data-theme='dark'] {
-    backdrop-filter: var(--lens) blur(6px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-bar.s8.lens[data-theme='light'] {
-    backdrop-filter: var(--lens) blur(6px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-bar.s9.lens[data-theme='dark'] {
-    backdrop-filter: var(--lens) blur(7px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-bar.s9.lens[data-theme='light'] {
-    backdrop-filter: var(--lens) blur(7px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-bar.s10.lens[data-theme='dark'] {
-    backdrop-filter: var(--lens) blur(8px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root:not([data-glass='solid'], [data-glass='tinted'], [data-degrade]))
-    .mat-bar.s10.lens[data-theme='light'] {
     backdrop-filter: var(--lens) blur(8px) saturate(1.6) contrast(0.75) brightness(1.33);
   }
 }
@@ -627,22 +485,6 @@
     -webkit-backdrop-filter: blur(12px) saturate(1.3) contrast(0.45) brightness(1.4);
     backdrop-filter: blur(12px) saturate(1.3) contrast(0.45) brightness(1.4);
   }
-  :where(:root[data-degrade='3']:not([data-glass='solid'])) .mat-chip[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(4px) saturate(2.2) contrast(1) brightness(0.48);
-    backdrop-filter: blur(4px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root[data-degrade='3']:not([data-glass='solid'])) .mat-chip[data-theme='light'] {
-    -webkit-backdrop-filter: blur(4px) saturate(1.6) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(4px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
-  :where(:root[data-degrade='3']:not([data-glass='solid'])) .mat-bar[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(5px) saturate(2.2) contrast(1) brightness(0.48);
-    backdrop-filter: blur(5px) saturate(2.2) contrast(1) brightness(0.48);
-  }
-  :where(:root[data-degrade='3']:not([data-glass='solid'])) .mat-bar[data-theme='light'] {
-    -webkit-backdrop-filter: blur(5px) saturate(1.6) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(5px) saturate(1.6) contrast(0.75) brightness(1.33);
-  }
   :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-chip {
     -webkit-backdrop-filter: blur(4px) contrast(1) brightness(0.48);
     backdrop-filter: blur(4px) contrast(1) brightness(0.48);
@@ -682,22 +524,6 @@
   :where(:root[data-degrade='4'][data-theme='light']:not([data-glass='solid'])) .mat-sheet {
     -webkit-backdrop-filter: blur(12px) contrast(0.45) brightness(1.4);
     backdrop-filter: blur(12px) contrast(0.45) brightness(1.4);
-  }
-  :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-chip[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(4px) contrast(1) brightness(0.48);
-    backdrop-filter: blur(4px) contrast(1) brightness(0.48);
-  }
-  :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-chip[data-theme='light'] {
-    -webkit-backdrop-filter: blur(4px) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(4px) contrast(0.75) brightness(1.33);
-  }
-  :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-bar[data-theme='dark'] {
-    -webkit-backdrop-filter: blur(5px) contrast(1) brightness(0.48);
-    backdrop-filter: blur(5px) contrast(1) brightness(0.48);
-  }
-  :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-bar[data-theme='light'] {
-    -webkit-backdrop-filter: blur(5px) contrast(0.75) brightness(1.33);
-    backdrop-filter: blur(5px) contrast(0.75) brightness(1.33);
   }
   @media (pointer: coarse), (any-pointer: coarse) {
     :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-chip {
@@ -739,22 +565,6 @@
     :where(:root[data-degrade='4'][data-theme='light']:not([data-glass='solid'])) .mat-sheet {
       -webkit-backdrop-filter: blur(8px) contrast(0.45) brightness(1.4);
       backdrop-filter: blur(8px) contrast(0.45) brightness(1.4);
-    }
-    :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-chip[data-theme='dark'] {
-      -webkit-backdrop-filter: blur(4px) contrast(1) brightness(0.48);
-      backdrop-filter: blur(4px) contrast(1) brightness(0.48);
-    }
-    :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-chip[data-theme='light'] {
-      -webkit-backdrop-filter: blur(4px) contrast(0.75) brightness(1.33);
-      backdrop-filter: blur(4px) contrast(0.75) brightness(1.33);
-    }
-    :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-bar[data-theme='dark'] {
-      -webkit-backdrop-filter: blur(5px) contrast(1) brightness(0.48);
-      backdrop-filter: blur(5px) contrast(1) brightness(0.48);
-    }
-    :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat-bar[data-theme='light'] {
-      -webkit-backdrop-filter: blur(5px) contrast(0.75) brightness(1.33);
-      backdrop-filter: blur(5px) contrast(0.75) brightness(1.33);
     }
   }
   :where(:root[data-degrade='4']:not([data-glass='solid'])) .mat {

@@ -44,7 +44,6 @@ import {
   BACKDROPS,
   COVERAGE_REGISTRY,
   HARNESS_VIEWPORT,
-  lookOver,
   openHarness,
   surfaceOrigin,
 } from './support/harness';
@@ -74,9 +73,6 @@ const WHITE: Rgb = [255, 255, 255];
 /** `--text-primary` and `--glass-text-secondary` (styles/tokens.css), kept in step by hand. */
 const TEXT_PRIMARY: Rgb = [0xe8, 0xe9, 0xec];
 const GLASS_TEXT_SECONDARY: Rgb = [0xbb, 0xbe, 0xc3];
-/** The light theme's, which a turned piece wears (GLS-9). */
-const LIGHT_TEXT_PRIMARY: Rgb = [0x15, 0x17, 0x1c];
-const LIGHT_GLASS_TEXT_SECONDARY: Rgb = [0x3f, 0x42, 0x4a];
 
 /** One blank US Letter page: white everywhere the bar and the menus can sit. */
 async function blankPdf(): Promise<Uint8Array> {
@@ -152,8 +148,8 @@ test(
     await expect(bar.locator('[data-labelled]').first()).toBeVisible();
     await page.mouse.move(340, 450);
     await capsuleAtRest(page);
-    await expect(page.locator('[data-capsule]')).toHaveAttribute('data-theme', 'light');
-    await page.waitForTimeout(400);
+    // The tone is the theme's over any page (GLS-20): no piece carries a theme of its own.
+    await expect(page.locator('[data-capsule]')).not.toHaveAttribute('data-theme');
     const barBox = await bar.boundingBox();
     const pageBox = await page.locator('[data-page-index="0"]').first().boundingBox();
     if (!barBox || !pageBox) throw new Error('bar or page not laid out');
@@ -187,26 +183,26 @@ test(
     const sample = median4x4(image, group.x + 4, centreY - 2);
     const beside = median4x4(image, pageBox.x + 40, centreY - 2);
     expect(beside, 'the page beside the bar is white').toEqual(WHITE);
-    // The glass is the capsule the bar sits in (spec X1, D2-2). Over a white page it takes the
-    // adaptive look (GLS-9): light glass with the light theme's text.
+    // The glass is the capsule the bar sits in (spec X1, D2-2): dark glass over the white page,
+    // the theme's tone (GLS-20).
     const model = glassModel(await glassStyle(page.locator('[data-capsule]')), WHITE);
-    // The composite tokens.test.ts asserts for the light bar tier (M2) over white.
-    expect(hex(model)).toBe('#fdfdfe');
+    // The composite tokens.test.ts asserts for the bar tier (M2) over white.
+    expect(hex(model)).toBe('#444548');
     // Near the bar's top and bottom edges the page still leaks in (1 − c grows towards an
     // edge, research 22 §3.2): recorded, not asserted.
     const top = median4x4(image, group.x + 4, barBox.y + 2);
     const bottom = median4x4(image, group.x + 4, barBox.y + barBox.height - 6);
     testInfo.annotations.push({
       type: 'bar over white',
-      description: `rendered ${hex(sample)}, model ${hex(model)}, 2 px in from the top ${hex(top)}, from the bottom ${hex(bottom)}; primary ${contrastRatio(LIGHT_TEXT_PRIMARY, sample).toFixed(2)}:1, glass secondary ${contrastRatio(LIGHT_GLASS_TEXT_SECONDARY, sample).toFixed(2)}:1`,
+      description: `rendered ${hex(sample)}, model ${hex(model)}, 2 px in from the top ${hex(top)}, from the bottom ${hex(bottom)}; primary ${contrastRatio(TEXT_PRIMARY, sample).toFixed(2)}:1, glass secondary ${contrastRatio(GLASS_TEXT_SECONDARY, sample).toFixed(2)}:1`,
     });
     expect(
       channelDistance(sample, model),
       `rendered ${hex(sample)} against the model ${hex(model)}`,
     ).toBeLessThanOrEqual(2);
-    // So the text on it holds what the model promises (tokens.test.ts: 17.64 and 9.89).
-    expect(contrastRatio(LIGHT_TEXT_PRIMARY, sample)).toBeGreaterThanOrEqual(17);
-    expect(contrastRatio(LIGHT_GLASS_TEXT_SECONDARY, sample)).toBeGreaterThanOrEqual(9.5);
+    // So the text on it holds what the model promises (tokens.test.ts: 7.89 and 5.14).
+    expect(contrastRatio(TEXT_PRIMARY, sample)).toBeGreaterThanOrEqual(7.7);
+    expect(contrastRatio(GLASS_TEXT_SECONDARY, sample)).toBeGreaterThanOrEqual(5);
   },
 );
 
@@ -408,9 +404,8 @@ test.describe('every coverage registry entry in the rendered-pixel harness', () 
                 typeof backdrop.under === 'string'
                   ? tokenColour(backdrop.under, theme, glass)
                   : backdrop.under;
-              // The adaptive look (GLS-9): a chip or bar over a page of the other tone wears the
-              // other theme's material and text, as the harness lays it on.
-              const look = lookOver(entry.tier, theme, glass, under);
+              // The theme's own look over every backdrop (GLS-20).
+              const look = theme;
               const tokens = tokenGlass(entry, look, glass);
               const sigma = blurOf(tokens.backdropFilter);
               const primary = tokenColour('--text-primary', look, glass);
@@ -420,7 +415,7 @@ test.describe('every coverage registry entry in the rendered-pixel harness', () 
                 look,
                 glass,
               );
-              const scene = `${theme} · ${glass} · ${backdrop.name}${look === theme ? '' : ` · turned ${look}`}`;
+              const scene = `${theme} · ${glass} · ${backdrop.name}`;
               const errorsBefore = testInfo.errors.length;
               await openHarness(page, { entry: entry.id, backdrop: backdrop.name, glass, theme });
               const surface = page.locator(`[data-harness-surface="${entry.id}"]`);

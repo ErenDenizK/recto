@@ -53,8 +53,6 @@ interface BackdropsModule {
     width: number,
     height: number,
   ) => { readonly x: number; readonly y: number };
-  /** The adaptive look a surface takes over a colour (GLS-9). */
-  readonly lookOver: (tier: GlassTier, theme: Theme, glass: GlassMode, under: Rgb) => Theme;
 }
 
 interface RegistryModule {
@@ -67,7 +65,7 @@ const load = async <T>(path: string): Promise<T> =>
 const backdrops = await load<BackdropsModule>('../../harness/backdrops.ts');
 const registry = await load<RegistryModule>('../../src/styles/coverage-registry.ts');
 
-export const { BACKDROPS, HARNESS_VIEWPORT, harnessSearch, lookOver, surfaceOrigin } = backdrops;
+export const { BACKDROPS, HARNESS_VIEWPORT, harnessSearch, surfaceOrigin } = backdrops;
 export const { COVERAGE_REGISTRY } = registry;
 
 /** Opens the harness on one scene and waits until it has painted. */
