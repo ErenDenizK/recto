@@ -11,7 +11,7 @@
  *   the focused page, or after the page being read, as one undo step;
  * - Move to in More on a folded bar (820 px wide, the tablet's portrait width);
  * - Extract: a new document of copies, the turns kept, the source untouched;
- * - Split every 4 pages: the parts hold those pages, in order.
+ * - Split every 4 pages from the title menu (DSN-47): the parts hold those pages, in order.
  *
  * The tablet's coarse pointer would share the copy (Share copy); this spec takes the download
  * path there too, so the bytes can be read the same way.
@@ -360,8 +360,9 @@ test('Split every 4 pages: each part holds its pages, in order, with their turns
   page,
 }) => {
   await openMixed(page);
-  await press(page, bar(page).getByRole('button', { name: 'More actions' }));
-  await press(page, page.getByRole('menuitem', { name: /^Split/ }));
+  // Split… for the whole document is the title menu's, its one home (DSN-47).
+  await press(page, page.getByTestId('document-menu'));
+  await press(page, page.getByRole('menuitem', { name: 'Split…' }));
   const sheet = page.getByRole('dialog', { name: /^Split / });
   await expect(sheet).toBeVisible();
   const every = sheet.getByRole('textbox', { name: 'Pages per document' });
