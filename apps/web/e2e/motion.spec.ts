@@ -747,10 +747,11 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     await expect(undo).not.toHaveAttribute('aria-disabled');
     const scrubber = '[data-testid="history-scrubber"]';
 
-    // ✕ mid-entrance: the entrance (the container transform out of the undo button, or the
-    // *popup* transition, scale 0.96 → 1 and a fade, when it opens at once) reverses from
-    // where it is. An engine may draw a frame or two more of the entrance before the close
-    // lands; it must then turn, without a jump. The fade is the channel both share.
+    // ✕ mid-entrance: the entrance (the container transform out of the undo button, growing
+    // from 0.85 since MOT-9; or the *popup* transition, scale 0.96 → 1 and a fade, when it
+    // opens at once) reverses from where it is. An engine may draw a frame or two more of the
+    // entrance before the close lands; it must then turn, without a jump. The fade is the
+    // channel both share; the scale heads back to where the entrance began.
     const closing = interruptMidway(
       page,
       scrubber,
@@ -762,9 +763,12 @@ test.describe('interruptible: every D0 animation turns from where it is (Q-10, Q
     expect(close.progress).toBeGreaterThan(0);
     const state = 'the scrubber closed by ✕ mid-entrance';
     expectTurn(close, { channel: 'opacity', target: 0, speed: fastEaseSpeed(1), eps: 0.03 }, state);
+    const grown = close.before.scale < 0.95;
     expectTurn(
       close,
-      { channel: 'scale', target: 0.96, speed: fastEaseSpeed(0.04), eps: 0.003 },
+      grown
+        ? { channel: 'scale', target: 0.85, speed: fastEaseSpeed(0.15), eps: 0.003 }
+        : { channel: 'scale', target: 0.96, speed: fastEaseSpeed(0.04), eps: 0.003 },
       state,
     );
     await expect(page.locator(scrubber)).toHaveCount(0);
