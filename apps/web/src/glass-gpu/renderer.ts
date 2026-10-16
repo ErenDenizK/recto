@@ -61,6 +61,8 @@ import { EDGE, EDGE_RAMP, GLASS, MAX_PAGES, VERTEX } from './shaders';
 /** The class that hands a piece's material to the GPU (its own fill and backdrop off). */
 export const GPU_GLASS_CLASS = 'gpu-glass';
 const STYLE_ID = 'gpu-glass-style';
+/** A piece whose glass is fused by `liquid-mask.ts` while it moves (GLS-19). */
+const LIQUID_ATTRIBUTE = 'data-liquid';
 const STYLE = `.${GPU_GLASS_CLASS}.${GPU_GLASS_CLASS}{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-color:transparent!important}`;
 
 /** Optics (GLS-3, research 23 §8 row 5): bezel ≤ 16 px, pull ≤ 12 px, slight dispersion. */
@@ -75,6 +77,17 @@ export const OPTICS = {
   /** The light, radians from up, negative to the left (−45°: the top left). */
   light: (-45 * Math.PI) / 180,
 } as const;
+
+/**
+ * GPU glass blurs at this share of the piece's CSS σ (GLS-18): the refraction and the rim
+ * already part the glass from the page, so it can show the page a little clearer than CSS+
+ * does, closer to iOS; the legibility floor (GLS-14) mixes towards the solid twin per pixel, so
+ * text holds over any page whatever the blur.
+ */
+export const GPU_SIGMA_SCALE = 0.8;
+
+/** After an adaptive turn (GLS-9's 200 ms cross-fade) a piece's material is read again, ms. */
+const TURN_SETTLE_MS = 240;
 
 /** Still frames after which the draw loop ends. */
 const QUIET_FRAMES = 4;
@@ -471,6 +484,12 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
     for (const piece of pieces.values()) {
       const { el } = piece;
       if (!el.isConnected || !piece.material) continue;
+      // A piece fused with another while it moves (`data-liquid`, the capsule and ✎ as one
+      // body, GLS-19) is CSS+ for that run: the GPU draws rounded rects, not a union.
+      if (el.hasAttribute(LIQUID_ATTRIBUTE)) {
+        el.classList.remove(GPU_GLASS_CLASS);
+        continue;
+      }
       const rect = el.getBoundingClientRect();
       if (rect.width < 1 || rect.height < 1) continue;
       const style = getComputedStyle(el);
@@ -667,7 +686,7 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
         const scissor = scissorFor(placed.box, 1, width / cssWidth, width, height);
         if (!scissor) continue;
         const shape = pieceShape(placed.box, material.radius, placed.scale);
-        const sigma = material.filter.blur * placed.scale;
+        const sigma = material.filter.blur * GPU_SIGMA_SCALE * placed.scale;
         bindPages(program, placed.box, sigma, scene.pages, frame);
         edgeUniforms(program, topEdge && overlaps(placed.box, topEdge.box) ? topEdge : undefined);
         context.uniform4f(uniform(program, 'u_rect'), shape.cx, shape.cy, shape.hw, shape.hh);
@@ -710,7 +729,9 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
     if (canvas.style.visibility !== '') canvas.style.visibility = '';
     for (const { piece } of scene.placed) piece.el.classList.add(GPU_GLASS_CLASS);
     for (const piece of pieces.values()) {
-      if (piece.material) piece.el.classList.add(GPU_GLASS_CLASS);
+      if (piece.material && !piece.el.hasAttribute(LIQUID_ATTRIBUTE)) {
+        piece.el.classList.add(GPU_GLASS_CLASS);
+      }
     }
     stats.draws++;
     stats.pieces = scene.placed.length;
@@ -789,6 +810,21 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
     ) {
       collect();
     }
+    // A piece the adaptive look turned (GLS-9, `data-theme` on the piece) wears the other
+    // theme's tint and text: its material is read again once the turn's cross-fade has run
+    // (GLS-19), else the GPU kept the old tint under the new text.
+    for (const record of records) {
+      const piece =
+        record.attributeName === 'data-theme' ? pieces.get(record.target as HTMLElement) : null;
+      if (!piece) continue;
+      const timer = window.setTimeout(() => {
+        if (stopped || !piece.el.isConnected) return;
+        readMaterials(piece);
+        signature = '';
+        kick();
+      }, TURN_SETTLE_MS);
+      cleanups.push(() => window.clearTimeout(timer));
+    }
     kick();
   });
   dom.observe(root, {
@@ -803,6 +839,8 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
       'height',
       'style',
       'data-hidden',
+      'data-theme',
+      LIQUID_ATTRIBUTE,
     ],
   });
   cleanups.push(() => dom.disconnect());

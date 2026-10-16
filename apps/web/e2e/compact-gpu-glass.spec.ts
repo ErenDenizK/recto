@@ -210,4 +210,87 @@ test('editing hands the capsule back to CSS+', async ({ page }) => {
   await expect(page.getByTestId('compact-capsule')).toHaveAttribute('data-editing', 'true');
   await expect(page.locator('.gpu-glass')).toHaveCount(0);
   expect((await stats(page))?.state).toBe('paused');
+  // Back to reading: while the capsule and ✎ fuse (`data-liquid`, DSN-43) they stay CSS+, the
+  // GPU drawing rounded rects only (GLS-19); at rest the GPU has them again.
+  const mixed = page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        let both = 0;
+        const end = performance.now() + 1200;
+        const tick = () => {
+          for (const el of document.querySelectorAll('[data-liquid]')) {
+            if (el.classList.contains('gpu-glass')) both++;
+          }
+          if (performance.now() < end) requestAnimationFrame(tick);
+          else resolve(both);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  await page.getByTestId('compact-edit-done').click();
+  await expect(page.getByTestId('compact-capsule')).not.toHaveAttribute('data-editing');
+  expect(await mixed).toBe(0);
+  await glassSettled(page);
+  await expect(page.getByTestId('compact-capsule')).toHaveClass(/gpu-glass/);
+  await expect(page.getByTestId('compact-edit')).toHaveClass(/gpu-glass/);
+});
+
+test('GPU glass at 0.8 σ keeps the legibility floor over a page of lines (GLS-18)', async ({
+  page,
+}) => {
+  await forceGpu(page);
+  await openSample(page, '&top=split');
+  // The editor's letter, black lines on white, under the capsule.
+  await page.getByTestId('compact-pages').evaluate(async (el) => {
+    for (let i = 0; i < 40; i++) {
+      const letter = el.querySelector<HTMLElement>('[data-page-index="1"]');
+      const top = letter?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+      if (top < 120) return;
+      el.scrollTop += Math.min(300, top - 100);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+  });
+  await page.getByTestId('compact-pages').evaluate(async (el) => {
+    el.scrollTop -= 30;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  });
+  await expect(page.getByTestId('compact-capsule')).not.toHaveAttribute('data-hidden');
+  await glassSettled(page);
+  // Over the white page the capsule may turn light (GLS-9); the GPU reads its material again
+  // once the turn has faded, and draws that.
+  await page.waitForTimeout(600);
+  await glassSettled(page);
+  await expect(page.getByTestId('compact-capsule')).toHaveClass(/gpu-glass/);
+  // The glass alone: the capsule's content hidden (the GPU draws under it either way).
+  const capsuleBox = await page.getByTestId('compact-capsule').evaluate((el) => {
+    for (const child of el.children) (child as HTMLElement).style.visibility = 'hidden';
+    const r = el.getBoundingClientRect();
+    return { x: r.x, y: r.y, width: r.width, height: r.height, color: getComputedStyle(el).color };
+  });
+  const image = decodePng(await page.screenshot({ scale: 'css' }));
+  const lum = (v: number) => {
+    const c = v / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const [tr = 0, tg = 0, tb = 0] = (capsuleBox.color.match(/\d+/g) ?? []).map(Number);
+  const text = 0.2126 * lum(tr) + 0.7152 * lum(tg) + 0.0722 * lum(tb);
+  // Inside the bezel and the rim light (16 px + 2), every pixel against the text colour.
+  let worst = Number.POSITIVE_INFINITY;
+  const inset = 18;
+  for (let y = Math.ceil(capsuleBox.y + inset); y < capsuleBox.y + capsuleBox.height - inset; y++) {
+    for (
+      let x = Math.ceil(capsuleBox.x + capsuleBox.height / 2);
+      x < capsuleBox.x + capsuleBox.width - capsuleBox.height / 2;
+      x++
+    ) {
+      const i = (y * image.width + x) * 4;
+      const glass =
+        0.2126 * lum(image.data[i] ?? 0) +
+        0.7152 * lum(image.data[i + 1] ?? 0) +
+        0.0722 * lum(image.data[i + 2] ?? 0);
+      const ratio = (Math.max(glass, text) + 0.05) / (Math.min(glass, text) + 0.05);
+      worst = Math.min(worst, ratio);
+    }
+  }
+  expect(worst).toBeGreaterThanOrEqual(4.4);
 });
