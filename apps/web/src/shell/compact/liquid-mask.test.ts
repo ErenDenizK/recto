@@ -8,11 +8,15 @@ import {
   contourPath,
   cubicBezier,
   type LiquidRect,
+  outlineMask,
+  outlineRim,
+  RIM_STROKE,
   sdRoundRect,
   smin,
   springProgress,
   unionDistance,
   unionMask,
+  unionOutline,
 } from './liquid-mask';
 
 const circle: LiquidRect = { x: 0, y: 0, width: 44, height: 44, radius: 22 };
@@ -79,6 +83,40 @@ describe('liquid shapes', () => {
     expect(Math.min(...xs)).toBeCloseTo(8, 0);
     expect(Math.max(...xs)).toBeCloseTo(52, 0);
     expect(unionMask({ x: 0, y: 0, width: 10, height: 10 }, [blob], 0)).toBe('none');
+  });
+
+  it('strokes the same outline as the rim, in the rim’s top-lit gradient (DSN-42)', () => {
+    const box = { x: 0, y: 0, width: 120, height: 60 };
+    const shapes = [circle, blob];
+    const outline = unionOutline(box, shapes, 24);
+    if (!outline) throw new Error('no outline');
+    // The mask and the rim draw one path.
+    const decode = (url: string) =>
+      decodeURIComponent(url.slice('url("data:image/svg+xml,'.length, -2));
+    expect(outlineMask(outline)).toBe(unionMask(box, shapes, 24));
+    const rim = decode(
+      outlineRim(outline, {
+        top: 'rgba(255, 255, 255, 0.42)',
+        bottom: 'rgba(255, 255, 255, 0.16)',
+      }),
+    );
+    expect(rim).toContain(`d="${outline.d}"`);
+    expect(rim).toContain('fill="none"');
+    expect(rim).toContain(`stroke-width="${RIM_STROKE}"`);
+    // Lit at the top, the foot's weaker lobe at the bottom, 60 % of the top on the way down.
+    const stops = [
+      ...rim.matchAll(/offset="([\d.]+)" style="stop-color:([^;]+);stop-opacity:([\d.]+)"/g),
+    ];
+    expect(stops.map((s) => s[2])).toEqual([
+      'rgba(255, 255, 255, 0.42)',
+      'rgba(255, 255, 255, 0.42)',
+      'rgba(255, 255, 255, 0.16)',
+      'rgba(255, 255, 255, 0.16)',
+    ]);
+    expect(Number(stops[1]?.[1])).toBeCloseTo(8 / 60, 3);
+    expect(stops[1]?.[3]).toBe('0.6');
+    expect(outlineRim(null, { top: '#fff', bottom: '#fff' })).toBe('none');
+    expect(unionOutline({ x: 0, y: 0, width: 10, height: 10 }, [blob], 0)).toBeNull();
   });
 
   it('springs from 0 to 1, overshooting when underdamped, and eases on a Bézier', () => {
