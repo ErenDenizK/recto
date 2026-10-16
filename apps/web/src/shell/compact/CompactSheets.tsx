@@ -1,7 +1,8 @@
 /**
  * The compact reader's sheets (ADR-0033 §2.3): Contents (the file's outline), Go to page,
  * Document info and About. One opens at a time, from the capsule's page number or the ⋯ menu;
- * a jump closes its sheet and lands the page under the top bar.
+ * a jump closes its sheet and lands the page under the top bar. The Library mounts them too,
+ * without a document, for About and its settings rows behind its own ⋯ (DSN-51).
  *
  * Pages is no sheet any more: it is the page overview (MOB-2, `overview-host.tsx`). The four
  * are rarely used and load on demand (`CompactMoreSheets`; phone code audit 2026-10 §4a, the
@@ -14,7 +15,7 @@ import { type ComponentType, useEffect, useState } from 'react';
 
 import { useCompactStore } from './compact-store';
 
-type MoreSheets = ComponentType<{ readonly doc: VirtualDocument }>;
+type MoreSheets = ComponentType<{ readonly doc?: VirtualDocument | undefined }>;
 
 let moreSheets: Promise<MoreSheets> | undefined;
 
@@ -27,7 +28,8 @@ export function loadMoreSheets(): Promise<MoreSheets> {
 /** How long the idle prefetch may wait for an idle moment, ms. */
 const PREFETCH_TIMEOUT_MS = 3000;
 
-export function CompactSheets({ doc }: { readonly doc: VirtualDocument }) {
+/** `doc` is the reader's document; the Library, with none, gets About alone (DSN-51). */
+export function CompactSheets({ doc }: { readonly doc?: VirtualDocument | undefined }) {
   const wanted = useCompactStore((s) => s.menuOpen || s.sheet !== null);
   const [More, setMore] = useState<MoreSheets | null>(null);
 
