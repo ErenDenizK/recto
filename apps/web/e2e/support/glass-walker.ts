@@ -14,7 +14,7 @@
  *   between device pixels: the position must round, Q-2; at 2× a half CSS pixel is whole, as
  *   Floating UI rounds it), and the element has no `will-change`.
  * - **Q-11, the budget.** At most four visible surfaces at rest (six during a transition), one
- *   more while the floating sidebar shows (a slot of its own, DSN-26); the pieces of one surface (`data-glass-group`, the top strip's two) count as one, and the
+ *   more while the floating sidebar shows (a slot of its own, DSN-26); the pieces of one surface (`data-glass-group`, the top strip's pieces) count as one, and the
  *   palette's floating ink strip (`data-strip-piece`, owner feedback F3) counts with the
  *   capsule as Q-11's "dock".
  * - **Q-8, text set once and sharp.** Every visible piece of text on a glass surface (an element
@@ -339,7 +339,7 @@ export async function walkGlass(page: Page, options: WalkOptions = {}): Promise<
         }
       });
 
-      // The ink strip counts with the capsule (F3). Pieces of one surface (`data-glass-group`: the top strip's two floating pieces, the
+      // The ink strip counts with the capsule (F3). Pieces of one surface (`data-glass-group`: the top strip's floating pieces, the
       // Pages grid's scope and size) count once: together they cover less than the one band
       // each pair replaced (owner feedback 2026-10-08, F1).
       const groups = new Set<string>();

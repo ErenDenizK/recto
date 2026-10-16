@@ -158,8 +158,11 @@ test.describe('the Glass setting on the root (language.md §2.8, A-17)', () => {
       await openManyPages(page);
       await expect(page.locator('html')).toHaveAttribute('data-glass', glass);
       const capsule = await styleOf(page, '[data-capsule]');
-      // The strip is two floating pieces of the capsule's material (owner feedback F1).
-      const strip = await styleOf(page, '[data-testid="app-shell"] > header [data-top-piece]');
+      // The strip's pieces are of the capsule's material (owner feedback F1; DSN-49).
+      const strip = await styleOf(
+        page,
+        '[data-testid="app-shell"] > header [data-top-piece="tabs"]',
+      );
       if (glass === 'tinted') {
         expect(capsule.background).toMatch(/, 0\.9\)$/);
         // σ 8 at the one 40 px piece height (G1), the capsule and the strip alike, rendered at
