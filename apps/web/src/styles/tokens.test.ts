@@ -1961,8 +1961,8 @@ describe('tokens.css', () => {
       > = {
         // Chips and bars (GLS-8, GLS-9): the first column is over the switch grey, the darkest
         // page their light look sits on; over black only primary text holds, for the turn.
-        chip: ['#cccccd', '#fdfdfe', '#fdfdfe', 11.17, 6.26, 5.09, 5.21, 11.17, 75, 64],
-        bar: ['#cccccd', '#fdfdfe', '#fdfdfe', 11.17, 6.26, 5.09, 5.21, 11.17, 75, 64],
+        chip: ['#d0d0d1', '#fdfdfe', '#fdfdfe', 11.63, 6.52, 5.29, 5.42, 11.63, 77, 66],
+        bar: ['#d0d0d1', '#fdfdfe', '#fdfdfe', 11.63, 6.52, 5.29, 5.42, 11.63, 77, 66],
         panel: ['#d4d5d6', '#fafafc', '#f7f8fa', 12.2, 6.84, 5.56, 5.69, 12.2, 80, 69],
         menu: ['#d9d9da', '#fbfbfd', '#f8f9fb', 12.71, 7.13, 5.79, 5.93, 12.71, 83, 71],
         sheet: ['#e8e8ea', '#fbfbfc', '#f9f9fb', 14.65, 8.21, 6.67, 6.83, 14.65, 91, 80],
@@ -1980,7 +1980,18 @@ describe('tokens.css', () => {
             : /^saturate\([\d.]+\) contrast\(0\.45\) brightness\(1\.4\)$/,
         );
         const worst = glass(tier, adaptive ? SWITCH_LIGHT : BLACK);
-        if (adaptive) atLeast(contrast(ink(), glass(tier, BLACK)), 5.06, `${tier} turning`);
+        if (adaptive) {
+          atLeast(contrast(ink(), glass(tier, BLACK)), 5.76, `${tier} turning`);
+          // GLS-17: axe-core measures a piece turned light over the reader as its bare tint on
+          // the dark shell canvas (no filter, no page), and primary text holds AA there too.
+          const tint = parseColour(value(`--glass-${tier}-tint`));
+          expect(tint.alpha, `${tier} light tint`).toBe(0.5);
+          atLeast(
+            contrast(ink(), round8(over(tint.rgb, tint.alpha, canvas()))),
+            4.6,
+            `${tier} in axe's model`,
+          );
+        }
         expect(hexOf(worst), `${tier} over its worst`).toBe(black);
         expect(hexOf(glass(tier, WHITE)), `${tier} over white`).toBe(white);
         expect(hexOf(glass(tier, tone('--canvas'))), `${tier} over the canvas`).toBe(onCanvas);
