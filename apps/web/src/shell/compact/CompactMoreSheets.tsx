@@ -1,6 +1,6 @@
 /**
  * The compact reader's rarely used sheets (ADR-0033 §2.3): Contents (the file's outline), Go
- * to page, Document info and About. They load on demand, outside the compact edition's static
+ * to page, Document info and About; the Library mounts About alone, from its ⋯ (DSN-51). They load on demand, outside the compact edition's static
  * closure (phone code audit 2026-10 §4a; the bundle gate, PRC-11): `CompactSheets` prefetches
  * this module once the browser is idle and when ⋯ opens, so a sheet opens at once.
  *
@@ -54,28 +54,37 @@ import controls from './controls.module.css';
 import styles from './CompactSheets.module.css';
 import { jumpTo } from './jump';
 
-export default function CompactMoreSheets({ doc }: { readonly doc: VirtualDocument }) {
+export default function CompactMoreSheets({
+  doc,
+}: {
+  /** The reader's document; the Library has none and mounts About alone (DSN-51). */
+  readonly doc?: VirtualDocument | undefined;
+}) {
   const sheet = useCompactStore((s) => s.sheet);
   return (
     <>
-      <CompactSheet
-        open={sheet === 'contents'}
-        onClose={closeSheet}
-        title={m.compact_contents()}
-        size="tall"
-        testId="compact-contents-sheet"
-      >
-        <Contents doc={doc} />
-      </CompactSheet>
-      <GoToSheet doc={doc} open={sheet === 'goto'} />
-      <CompactSheet
-        open={sheet === 'info'}
-        onClose={closeSheet}
-        title={m.compact_info()}
-        testId="compact-info-sheet"
-      >
-        <DocumentInfo doc={doc} />
-      </CompactSheet>
+      {doc ? (
+        <>
+          <CompactSheet
+            open={sheet === 'contents'}
+            onClose={closeSheet}
+            title={m.compact_contents()}
+            size="tall"
+            testId="compact-contents-sheet"
+          >
+            <Contents doc={doc} />
+          </CompactSheet>
+          <GoToSheet doc={doc} open={sheet === 'goto'} />
+          <CompactSheet
+            open={sheet === 'info'}
+            onClose={closeSheet}
+            title={m.compact_info()}
+            testId="compact-info-sheet"
+          >
+            <DocumentInfo doc={doc} />
+          </CompactSheet>
+        </>
+      ) : null}
       <CompactSheet
         open={sheet === 'about'}
         onClose={closeSheet}

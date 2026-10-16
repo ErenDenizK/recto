@@ -58,12 +58,8 @@ describe('CompactApp', () => {
   it('renders the Library, not the full shell', () => {
     render(<CompactApp />);
     expect(screen.getByRole('button', { name: 'Open PDF' })).toBeVisible();
-    // The tools line is read as one sentence; the eye gets the chips (DSN-31).
-    expect(
-      screen.getByText(
-        'Pen, highlight, text and signature on your phone. Every tool on a computer or tablet.',
-      ),
-    ).toBeInTheDocument();
+    // The phone's tools as chips and where the others are (DSN-31, DSN-51).
+    expect(screen.getByText('Every tool on a computer or tablet.')).toBeVisible();
     expect(screen.getByTestId('compact-tools')).toBeVisible();
     expect(screen.queryByTestId('app-shell')).toBeNull();
   });

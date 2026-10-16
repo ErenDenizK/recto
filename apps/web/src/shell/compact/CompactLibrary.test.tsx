@@ -1,11 +1,12 @@
 /**
  * The compact Library's composition (DSN-31, DSN-50; ADR-0033 §2.3, §3): identity, the tools as
- * chips with the sentence for screen readers, Recents before Try the sample (the sample first
- * before the first file, over Recents' first-run card), and Open PDF in the floating dock; every
- * target at least 44 px (A-15); no language switch (DSN-46).
+ * a list of chips, Recents before Try the sample (the sample first before the first file, over
+ * Recents' first-run card), Open PDF in the floating dock, and ⋯ to About's settings rows
+ * (DSN-51); every target at least 44 px (A-15); no language switch on the page (DSN-46).
  */
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { userEvent } from 'vitest/browser';
 
 import { type RecentEntry, useRecentsStore } from '../../files/recents';
 import { CompactLibrary } from './CompactLibrary';
@@ -28,23 +29,15 @@ describe('CompactLibrary', () => {
     ).toBeVisible();
   });
 
-  it('shows the phone’s tools as chips and reads them as one sentence', () => {
+  it('shows the phone’s tools as chips, read as what is shown', () => {
     render(<CompactLibrary />);
     const tools = screen.getByTestId('compact-tools');
-    for (const name of ['Pen', 'Highlight', 'Text', 'Sign']) {
-      expect(within(tools).getByText(name)).toBeVisible();
-    }
+    // A screen reader hears the chips as a list and the line after it, said once (DSN-51).
+    const chips = within(tools).getAllByRole('listitem');
+    expect(chips.map((chip) => chip.textContent)).toEqual(['Pen', 'Highlight', 'Text', 'Sign']);
+    for (const chip of chips) expect(chip).toBeVisible();
     expect(within(tools).getByText('Every tool on a computer or tablet.')).toBeVisible();
-    // The chips and the line are for the eye; a screen reader hears the sentence once.
-    expect(
-      within(tools).getByText(
-        'Pen, highlight, text and signature on your phone. Every tool on a computer or tablet.',
-      ),
-    ).toHaveClass('visually-hidden');
-    expect(within(tools).getByRole('list', { hidden: true })).toHaveAttribute(
-      'aria-hidden',
-      'true',
-    );
+    expect(tools.querySelector('.visually-hidden, [aria-hidden="true"]:not(svg)')).toBeNull();
   });
 
   it('offers the sample as a card named Try the sample', () => {
@@ -98,5 +91,21 @@ describe('CompactLibrary', () => {
     expect(sample.getBoundingClientRect().top).toBeGreaterThan(list.getBoundingClientRect().bottom);
     // The order is the stylesheet's: the DOM keeps the intro together.
     expect(screen.getByTestId('compact-library')).not.toHaveAttribute('data-first-run');
+  });
+
+  it('opens About with the settings rows from ⋯, before any file is open (DSN-51)', async () => {
+    render(<CompactLibrary />);
+    const more = screen.getByRole('button', { name: 'More' });
+    expect(more).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(height(more)).toBeGreaterThanOrEqual(44);
+    await userEvent.click(more);
+    const about = await screen.findByTestId('compact-about-sheet', {}, { timeout: 10_000 });
+    await waitFor(() => expect(about).toBeVisible());
+    for (const name of ['Theme', 'Reduce motion', 'Language']) {
+      expect(within(about).getByRole('radiogroup', { name })).toBeInTheDocument();
+    }
+    act(() => {
+      resetCompactStore();
+    });
   });
 });

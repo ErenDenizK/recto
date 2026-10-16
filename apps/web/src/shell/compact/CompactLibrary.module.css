@@ -110,6 +110,40 @@
   text-wrap: balance;
 }
 
+/* ⋯ (DSN-51): a 44 px lit glass circle at the reader's ⋯ place, 2 px into its 48 px row under
+   the status bar (CompactTopSplit.module.css), so both screens keep the door in one spot. Lit,
+   no blur, as the sample card: it scrolls with the column and nothing passes under it. The
+   press is the lens's (GLS-25): its darker inner glow over the lit rim and --press-scale, 1
+   under reduced motion (styles/motion.css). */
+.more {
+  composes: mat mat-lit from global;
+  position: absolute;
+  top: calc(max(env(safe-area-inset-top, 0px), 12px) + 2px);
+  right: max(env(safe-area-inset-right, 0px), 12px);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-capsule);
+  color: var(--text-primary);
+  touch-action: manipulation;
+  transition:
+    scale var(--spring-press) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.more svg {
+  width: 20px;
+  height: 20px;
+}
+
+.more:active {
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--lens-rim-pressed);
+  scale: var(--press-scale);
+  transition-duration: var(--duration-instant);
+}
+
 /* The phone's tools: quiet fills on the canvas, no glass and no accent (one lime per view). */
 .tools {
   display: flex;

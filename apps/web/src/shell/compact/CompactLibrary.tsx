@@ -5,11 +5,16 @@
  * 1. **Identity.** The Recto mark (`BrandMark`, its gradient in both themes) with the wordmark
  *    and the one-line promise, in the upper third. On a phone on its side the mark and wordmark
  *    fold into the header row (visual audit 2026-10 item 6). No language switch (DSN-46): the
- *    phone follows the browser's language, and About's settings rows change it.
+ *    phone follows the browser's language until About's settings rows change it.
+ *    **⋯** (DSN-51), a lit glass circle where the reader's ⋯ stands (top trailing), opens About
+ *    with those rows (Theme, Reduce motion, Dim pages, Language), so the settings are one tap
+ *    away before a file is open. About is the phone's settings home (DSN-48); the Library
+ *    mounts the on-demand sheets without a document to show it (`CompactSheets`), so the
+ *    compact closure carries only the button.
  * 2. **What the phone does.** Pen, Highlight, Text and Sign as a quiet row of glyph chips, the
- *    tool names of the edit island (EDN-8), and "Every tool on a computer or tablet." under them.
- *    The sentence they replace (EDN-15, ADR-0033 §3 "Honesty") stays for screen readers, so the
- *    row is read once, as one line, never as a modal.
+ *    tool names of the edit island (EDN-8), and "Every tool on a computer or tablet." under them
+ *    (EDN-15, ADR-0033 §3 "Honesty"). A screen reader hears what is shown, the four names as a
+ *    list and the line after it (DSN-51): the hidden sentence that said the same again is gone.
  * 3. **Recents**, the full edition's (`files/recents.ts`), as one lit card of rows: newest first,
  *    the open document first as "Reading now" (a tap goes back to it), a row without a kept file
  *    handle reopens through the file dialog ("Open again…"), and Clear forgets them all.
@@ -40,8 +45,9 @@ import { Icon } from '../../ui/Icon';
 import type { IconName } from '../../ui/icons.generated';
 import { announce } from '../announcer';
 import { PRODUCT_NAME } from '../about/build-info';
+import { CompactSheets } from './CompactSheets';
 import { isOpenEntry, openRecentEntry, pickAndOpen, trySample } from './compact-actions';
-import { useCompactStore } from './compact-store';
+import { openSheet, useCompactStore } from './compact-store';
 import controls from './controls.module.css';
 import styles from './CompactLibrary.module.css';
 import { presentError } from '../../errors/present';
@@ -73,6 +79,16 @@ export function CompactLibrary() {
           <span className={styles.wordmark}>{PRODUCT_NAME}</span>
         </h1>
       </header>
+      <button
+        type="button"
+        className={styles.more}
+        aria-label={m.compact_more()}
+        aria-haspopup="dialog"
+        data-testid="compact-library-more"
+        onClick={() => openSheet('about')}
+      >
+        <Icon name="dots-three" />
+      </button>
       <div className={styles.body}>
         <div className={styles.intro}>
           <p className={styles.promise}>{m.compact_library_promise()}</p>
@@ -100,16 +116,16 @@ export function CompactLibrary() {
           </button>
         </div>
       </div>
+      <CompactSheets />
     </main>
   );
 }
 
-/** The phone's four tools as glyph chips; the full sentence is what a screen reader hears. */
+/** The phone's four tools as glyph chips, read as a list, and where the others are. */
 function Tools() {
   return (
     <div className={styles.tools} data-testid="compact-tools">
-      <p className="visually-hidden">{m.compact_reading_only()}</p>
-      <ul className={styles.chips} aria-hidden="true">
+      <ul className={styles.chips}>
         {TOOLS.map((tool) => (
           <li key={tool.icon} className={styles.chip}>
             <Icon name={tool.icon} />
@@ -117,9 +133,7 @@ function Tools() {
           </li>
         ))}
       </ul>
-      <p className={styles.moreTools} aria-hidden="true">
-        {m.compact_library_more_tools()}
-      </p>
+      <p className={styles.moreTools}>{m.compact_library_more_tools()}</p>
     </div>
   );
 }
