@@ -2,9 +2,10 @@
  * The compact edition's Library (ADR-0033 §2.3, §3; composition DSN-31): the same product as the
  * full Library (`home/Launcher.tsx`), laid out for one hand. Top to bottom:
  *
- * 1. **Identity.** The language switch, then the Recto mark (`BrandMark`, its gradient in both
- *    themes) with the wordmark and the one-line promise, in the upper third. On a phone on its
- *    side the mark and wordmark fold into the header row (visual audit 2026-10 item 6).
+ * 1. **Identity.** The Recto mark (`BrandMark`, its gradient in both themes) with the wordmark
+ *    and the one-line promise, in the upper third. On a phone on its side the mark and wordmark
+ *    fold into the header row (visual audit 2026-10 item 6). No language switch (DSN-46): the
+ *    phone follows the browser's language, and About's settings rows change it.
  * 2. **What the phone does.** Pen, Highlight, Text and Sign as a quiet row of glyph chips, the
  *    tool names of the edit island (EDN-8), and "Every tool on a computer or tablet." under them.
  *    The sentence they replace (EDN-15, ADR-0033 §3 "Honesty") stays for screen readers, so the
@@ -31,7 +32,7 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { formatFileSize, middleTruncate, relativeTime } from '../../home/home-model';
-import { getLocale, LOCALE_NAMES, type Locale, locales, m, setLocale } from '../../i18n';
+import { getLocale, m } from '../../i18n';
 import { pagesPhrase } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
 import type { IconName } from '../../ui/icons.generated';
@@ -69,7 +70,6 @@ export function CompactLibrary() {
           <BrandMark size={64} className={styles.mark} />
           <span className={styles.wordmark}>{PRODUCT_NAME}</span>
         </h1>
-        <LanguageSwitch />
       </header>
       <div className={styles.body}>
         <div className={styles.intro}>
@@ -99,28 +99,6 @@ export function CompactLibrary() {
         </div>
       </div>
     </main>
-  );
-}
-
-function LanguageSwitch() {
-  const current = getLocale();
-  return (
-    <fieldset className={styles.language}>
-      <legend className="visually-hidden">{m.compact_language()}</legend>
-      {locales.map((locale: Locale) => (
-        <button
-          key={locale}
-          type="button"
-          lang={locale}
-          className={`${controls.text} ${styles.languageOption}`}
-          aria-pressed={locale === current}
-          aria-label={LOCALE_NAMES[locale]}
-          onClick={() => setLocale(locale)}
-        >
-          {locale.toUpperCase()}
-        </button>
-      ))}
-    </fieldset>
   );
 }
 

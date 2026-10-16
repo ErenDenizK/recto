@@ -6,7 +6,8 @@
  * 1. **Identity.** Empty, the Recto mark (`BrandMark`, its gradient in both themes) with the
  *    headline and the promise. With documents the mark is the tab's alone (owner feedback
  *    2026-10-09, G3: the Library tab is the home button and always shows it), so the view heads
- *    itself with a large "Library" title and "Nothing leaves this device." under it.
+ *    itself with a large "Library" title alone: the promise is the empty welcome's, said once
+ *    (DSN-46).
  * 2. **Open.** **Open PDFs…** (the view's one lime, first focus when empty, J1 = 2).
  * 3. **More ways to start.** **Try the sample** (dimmed with its reason offline before the
  *    sample was ever loaded), **Combine files…** and **Batch…**, one group of equal standard
@@ -168,7 +169,6 @@ export function Launcher({ variant, dragging, dragCount, selecting = false }: La
       <div className={styles.rowWrap}>
         <header className={styles.title}>
           <h2 className={styles.titleText}>{m.library_label()}</h2>
-          <p className={styles.tagline}>{m.library_line()}</p>
         </header>
         {piece}
       </div>

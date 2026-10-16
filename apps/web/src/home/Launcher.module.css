@@ -74,14 +74,6 @@
   letter-spacing: var(--track-display);
 }
 
-.tagline {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--type-callout);
-  line-height: var(--type-callout-lh);
-  letter-spacing: var(--track-callout);
-}
-
 /*
  * The piece: Open PDFs… leads in lime, the three starts follow at the same height, and the drop
  * line ends it in the secondary ink. Empty, it takes its content's width and centres; with

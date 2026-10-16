@@ -50,8 +50,9 @@ test.describe('the Document menu', () => {
     expect(fit.scrolls, 'the menu is taller than the window here').toBe(true);
     expect(fit.overflowY).toBe('auto');
 
-    // Up from the first item wraps to the last, which scrolls into the menu's view.
-    const last = menu.getByRole('menuitem', { name: 'About this app' });
+    // Up from the first item wraps to the last, which scrolls into the menu's view (the app
+    // items left the menu's end for the dock's More, DSN-47).
+    const last = menu.getByRole('menuitem', { name: 'Document info…' });
     await expect(menu.getByRole('menuitem').first()).toBeFocused();
     await page.keyboard.press('ArrowUp');
     await expect(last).toBeFocused();

@@ -11,9 +11,10 @@
  *   (whole, on up to two lines, where the title truncates), "PDF · size · pages", then Share or
  *   Download a copy (the "Changed" rows once edited) and Document info. Preview's Lock,
  *   Duplicate, Move, Rename and Print have no phone job here (the doc's §2.4).
- * - **⋯**, the same ⋯ menu as the capsule's (`MoreMenu`), its trigger a glass circle; the menu
- *   lies over the circle and comes out of it as one liquid glass body, as the file menu does
- *   out of the title (DSN-39, `liquid-menu.ts`).
+ * - **⋯**, the capsule's ⋯ menu (`MoreMenu`) less what the file menu holds (DSN-48): Contents
+ *   and About. Its trigger is a glass circle; the menu lies over the circle and comes out of it
+ *   as one liquid glass body, as the file menu does out of the title (DSN-39,
+ *   `liquid-menu.ts`).
  * - **The scroll-edge fade** (DSN-35, lighter by DSN-38): a band under the status bar and the
  *   pieces, the theme's canvas colour (GLS-20) fading out downwards over a backdrop blur that a
  *   mask fades out with it. No script per scrolled frame.
@@ -85,6 +86,7 @@ export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
           glassGroup={GLASS_GROUP}
           sideOffset={OVER_TRIGGER}
           liquid
+          withFile={false}
         />
       </div>
     </header>

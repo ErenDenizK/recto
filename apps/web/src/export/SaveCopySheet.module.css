@@ -127,16 +127,6 @@
   line-height: var(--type-footnote-lh);
 }
 
-/* The footer's leading line (§4.2): quiet, never a control. */
-.footnote {
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  line-height: var(--type-footnote-lh);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* The Markdown preview: a solid, focusable, read-only well (§4.8). */
 .preview {
   composes: technical from global;

@@ -227,12 +227,17 @@ test.describe('phone signing (M10 WP6)', () => {
 test.describe('phone saving (M10 WP7)', () => {
   test('a copy made before an edit is never handed out after it', async ({ page }) => {
     await openReader(page);
-    // ⋯ prepares the pristine copy as it opens; it shows no Changed cue yet.
+    // ⋯ prepares the pristine copy as it opens; the title's file menu, the copy's home
+    // (DSN-48), shows no Changed cue yet.
     await page.getByRole('button', { name: 'More' }).click();
     await expect(page.getByTestId('compact-menu')).toBeVisible();
-    await expect(page.getByTestId('compact-menu-changed')).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('compact-menu')).toHaveCount(0);
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await expect(page.getByTestId('compact-file-menu')).toBeVisible();
+    await expect(page.getByTestId('compact-menu-changed')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('compact-file-menu')).toHaveCount(0);
 
     // A pen stroke: ✎ opens with the tool off (MOB-18), the chip turns Pen on.
     await page.getByTestId('compact-edit').click();
@@ -244,8 +249,8 @@ test.describe('phone saving (M10 WP7)', () => {
     await expect(undo(page)).not.toHaveAttribute('aria-disabled', 'true');
     await page.getByTestId('compact-edit-done').click();
 
-    // ⋯ says Changed and Save a copy downloads the copy with the stroke.
-    await page.getByRole('button', { name: 'More' }).click();
+    // The file menu says Changed and Save a copy downloads the copy with the stroke.
+    await page.getByTestId('compact-title-menu-trigger').click();
     await expect(page.getByTestId('compact-menu-changed')).toBeVisible();
     await expect(page.getByText('Changed on this device')).toBeVisible();
     await shot(page, 'menu-changed');

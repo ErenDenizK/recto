@@ -120,10 +120,10 @@ describe('Library', () => {
     await openOnHome('simple-text.pdf');
     const home = screen.getByTestId('home');
     // Identity (owner feedback 2026-10-09, G3): the tab keeps the mark; the view says "Library"
-    // large, with the privacy line under it, and draws no mark of its own.
+    // large and draws no mark of its own. The promise is the empty welcome's alone (DSN-46).
     expect(within(home).getByRole('heading', { level: 2, name: 'Library' })).toBeVisible();
     expect(home.querySelector('header svg[data-tone="auto"]')).toBeNull();
-    expect(within(home).getByText('Nothing leaves this device.')).toBeVisible();
+    expect(within(home).queryByText('Nothing leaves this device.')).toBeNull();
     // Open: the view's one lime, first in the row, and the row says files can be dropped.
     const launcher = screen.getByTestId('library-launcher');
     const open = within(launcher).getByRole('button', { name: 'Open PDFs…' });
@@ -145,12 +145,9 @@ describe('Library', () => {
     // pointer, never the piece height redefined as a control height.
     const heights = [open, ...starts].map((b) => b.getBoundingClientRect().height);
     expect(new Set(heights)).toEqual(new Set([40]));
-    // The footer: two pieces one piece high like the strip's; the switch inside is M (32).
-    const footer = screen.getByTestId('library-footer');
-    for (const piece of footer.children) {
-      expect(piece.getBoundingClientRect().height, piece.textContent ?? '').toBe(40);
-    }
-    expect(within(footer).getByRole('radiogroup').getBoundingClientRect().height).toBe(32);
+    // No footer (DSN-46): no "Nothing is uploaded" chip, no language switch on the page.
+    expect(screen.queryByTestId('library-footer')).toBeNull();
+    expect(within(home).queryByRole('radiogroup', { name: 'Language' })).toBeNull();
     // The aura: decorative, behind the column, slowly alive by transform and opacity alone.
     const aura = screen.getByTestId('library-aura');
     expect(aura).toHaveAttribute('aria-hidden', 'true');
@@ -608,8 +605,9 @@ describe('Library', () => {
         name: 'More',
       }),
     ).toBeVisible();
-    expect(within(home).getByRole('radiogroup', { name: 'Language' })).toBeVisible();
-    expect(within(home).getByTestId('library-privacy')).toHaveTextContent('Nothing is uploaded');
+    // Language is Settings' alone and the promise is not repeated in a chip (DSN-46).
+    expect(within(home).queryByRole('radiogroup', { name: 'Language' })).toBeNull();
+    expect(within(home).queryByText('Nothing is uploaded')).toBeNull();
     expect(within(home).queryByRole('listbox')).toBeNull();
   });
 

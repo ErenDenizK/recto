@@ -4,6 +4,7 @@
  *
  *   document:  ◆ ▤ │ tabs (active ▾ ● ⓘ) "N more ▾" + │      ⌕ Find  ↶ ↷  Save  ◎
  *   Library:   ◆ Library │ tabs + │                                              ⋯
+ *              (◎ ⋯ once the monitor counts an external request, DSN-46)
  *
  * - No ⋯ in a document: view options live in the page pill, app items in the dock's More (and
  *   at the end of the title menu until D2-2). The mode switch, layout switch, Document and
@@ -36,6 +37,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { LibraryMenu } from '../../home/LibraryMenu';
 import { m } from '../../i18n';
 import { springWidth } from '../../motion/resize';
+import { useExternalRequests } from '../../privacy/external-requests';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
 import { useStageView, useUiStore } from '../../state/ui-store';
 import { useActiveDocument, useHasDocuments, useWorkspaceStore } from '../../state/workspace-store';
@@ -62,6 +64,9 @@ export function TopStrip() {
   const onLibrary = useUiStore((s) => s.destination === 'home') || !hasDocuments;
   const grid = useStageView() === 'grid' && !onLibrary;
   const pageCount = useActiveDocument()?.pages.length ?? 0;
+  // On the Library ◎ is a warning only: the promise itself is not repeated there (DSN-46).
+  const warned = useExternalRequests().count > 0;
+  const solo = onLibrary && !warned;
   const leadRef = useRef<HTMLDivElement>(null);
   const trailRef = useRef<HTMLDivElement>(null);
 
@@ -108,15 +113,17 @@ export function TopStrip() {
       </div>
       <div
         ref={trailRef}
-        className={`${onLibrary ? styles.solo : styles.piece} ${styles.trail}`}
+        className={`${solo ? styles.solo : styles.piece} ${styles.trail}`}
         data-top-piece="trail"
         data-bar="title-trail"
         data-glass-group="top"
       >
-        {/* The Library's trailing piece is one control, ⋯ (R11, the owner's "maybe too big"):
-            its footer's "Nothing is uploaded" chip opens the privacy popover there. */}
+        {/* The Library's trailing piece is one control, ⋯ (R11, the owner's "maybe too big"). */}
         {onLibrary ? (
-          <LibraryMenu />
+          <>
+            {warned ? <PrivacyShield /> : null}
+            <LibraryMenu />
+          </>
         ) : (
           <>
             <FindEntry />

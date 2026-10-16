@@ -5,18 +5,18 @@
  * - **Header:** the first page, the editable name, "12 pages · 2.4 MB", the status of the
  *   changes, the facts rows (a signed file's "Intact, changed later", which opens S9
  *   Signatures: spec D2-9 moved it here from the status bar and the inspector), the **Lock**
- *   row with its trailing switch and reason (`LockSwitch.tsx`), the eye that shows the pages
- *   without markup (`OriginalRow.tsx`, PLAN.md S2-1a; the menu fades while it is held) and the
- *   privacy line, which opens ◎'s popover. Every row carries its 16 px glyph (the menu recipe,
- *   system-audit-2026-10 §3.6).
- * - **Rows:** File · Pages · Add to pages · Protect · Convert, then Compare with… and Document
- *   info… (`TitleMenuItems.ts`). Static: a row the guard or its command refuses dims with its
- *   reason and stays where it is (RA-21); activating it announces the reason and keeps the
- *   menu open.
+ *   row with its trailing switch and reason (`LockSwitch.tsx`) and the eye that shows the pages
+ *   without markup (`OriginalRow.tsx`, PLAN.md S2-1a; the menu fades while it is held). The
+ *   privacy line left (DSN-46): ◎ in the strip is the privacy popover's one door. Every row
+ *   carries its 16 px glyph (the menu recipe, system-audit-2026-10 §3.6).
+ * - **Rows:** File · Pages · Protect · Add to pages · Convert, then Compare with… and Document
+ *   info… (`TitleMenuItems.ts`, DSN-47). Static: a row the guard or its command refuses dims
+ *   with its reason and stays where it is (RA-21); activating it announces the reason and keeps
+ *   the menu open. Settings, Keyboard shortcuts and About are the dock's More (DSN-47).
  * - **Role** (spec 01.3): not a `role="menu"` as a whole, since it holds a text field and a
  *   switch: a non-modal dialog (Base UI `Popover`) named "report.pdf document menu", with the
  *   header controls first and one `role="menu"` list of `menuitem`s grouped per section.
- * - **Focus:** on open, the first row (Save), not the name: no keyboard pops up on a tablet and
+ * - **Focus:** on open, the first row (Save a copy…; Save in the narrow bar), not the name: no keyboard pops up on a tablet and
  *   nothing is renamed by a stray key; F2 and Rename… open it on the name, selected. Tab moves
  *   header → list; in the list the arrows, Home and End move and Right opens "Rotate all ▸".
  *   Choosing a row closes the menu and runs it (a sheet takes focus and gives it back to the
@@ -47,7 +47,6 @@ import { formatFileSize } from '../../home/home-model';
 import { m, useLocale } from '../../i18n';
 import { PageCanvas } from '../../pages/PageCanvas';
 import { displaySize, fitInBox } from '../../pages/page-geometry';
-import { openPrivacyShield } from '../../privacy/PrivacyShield';
 import { SignatureFactGlyph, useSignatureFact } from '../../signatures/SignatureBadge';
 import { openSignaturesSheet } from '../../signatures/SignaturesSheet';
 import { useSessionStore } from '../../session/session-store';
@@ -68,7 +67,6 @@ import { OriginalRow } from './OriginalRow';
 import { useOriginalStore } from './see-original';
 import styles from './TitleMenu.module.css';
 import {
-  APP_ITEMS,
   rotateDocumentPages,
   rotateScope,
   rowGlyph,
@@ -87,9 +85,14 @@ export interface TitleMenuProps {
   readonly anchor: () => HTMLElement | null;
   /** Below 336 px the compact bar's ↷ moves here as a first row (spec 01.8). */
   readonly withRedo?: boolean;
+  /**
+   * The narrow window's bar (`CompactTopBar`), which has no Save button and no tabs: Save and
+   * Close are rows here only then (DSN-47).
+   */
+  readonly narrow?: boolean;
 }
 
-export function TitleMenu({ anchor, withRedo = false }: TitleMenuProps) {
+export function TitleMenu({ anchor, withRedo = false, narrow = false }: TitleMenuProps) {
   const open = useFrameStore((s) => s.titleMenu);
   const doc = useActiveDocument();
   // A document closed while its menu is open closes the menu (F5 §6).
@@ -106,7 +109,13 @@ export function TitleMenu({ anchor, withRedo = false }: TitleMenuProps) {
     >
       {/* Always rendered: the popup's portal mounts only while open, and Base UI keeps it
           through its exit, so it goes back into its tab (motion-2026-10/platform.md §1). */}
-      <TitleMenuPopup doc={doc} anchor={anchor} focus={open ?? 'menu'} withRedo={withRedo} />
+      <TitleMenuPopup
+        doc={doc}
+        anchor={anchor}
+        focus={open ?? 'menu'}
+        withRedo={withRedo}
+        narrow={narrow}
+      />
     </Popover.Root>
   );
 }
@@ -116,11 +125,13 @@ function TitleMenuPopup({
   anchor,
   focus,
   withRedo,
+  narrow,
 }: {
   readonly doc: VirtualDocument;
   readonly anchor: () => HTMLElement | null;
   readonly focus: 'menu' | 'name' | 'facts';
   readonly withRedo: boolean;
+  readonly narrow: boolean;
 }) {
   const nameRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -146,7 +157,7 @@ function TitleMenuPopup({
       data-peeking={peeking || undefined}
     >
       <Header doc={doc} nameRef={nameRef} />
-      <Rows listRef={listRef} withRedo={withRedo} />
+      <Rows listRef={listRef} withRedo={withRedo} narrow={narrow} />
     </PopoverPopup>
   );
 }
@@ -198,17 +209,6 @@ function Header({
       <SignatureFactRow doc={doc} />
       <LockSwitch documentId={doc.id} title={doc.title} />
       <OriginalRow />
-      <Popover.Close
-        className={styles.privacy}
-        onClick={() => {
-          closeMenusAtOnce();
-          openPrivacyShield();
-        }}
-      >
-        <Icon name="shield-check" aria-hidden="true" />
-        <span className={styles.privacyLabel}>{m.frame_privacy_line()}</span>
-        <Icon name="caret-right" className={styles.privacyArrow} aria-hidden="true" />
-      </Popover.Close>
     </div>
   );
 }
@@ -377,14 +377,16 @@ function moveFocus(list: HTMLElement, from: Element | null, key: string): boolea
 function Rows({
   listRef,
   withRedo,
+  narrow,
 }: {
   readonly listRef: RefObject<HTMLDivElement | null>;
   readonly withRedo: boolean;
+  readonly narrow: boolean;
 }) {
   const commands = useSyncExternalStore(subscribe, snapshot);
   // Availability follows the document and its lock (read when the menu renders).
   useWorkspaceStore((s) => s.workspace);
-  const sections = shownTitleMenu(commands);
+  const sections = shownTitleMenu(commands, { narrow });
   // The list's one Tab stop: its first row (APG roving; the arrows move it).
   const firstKey = withRedo ? 'edit.redo' : sections[0]?.rows[0]?.key;
   const tabStop = (key: string) => (key === firstKey ? 0 : -1);
@@ -431,22 +433,6 @@ function Rows({
           )}
         </div>
       ))}
-      <div role="group" aria-label={m.frame_app_group()} className={styles.group}>
-        {APP_ITEMS.map((item) => (
-          <MenuRow
-            key={item.id}
-            label={item.label()}
-            glyph={rowGlyph(item.id)}
-            enabled
-            tabIndex={-1}
-            onActivate={() => {
-              closeMenusAtOnce();
-              closeTitleMenu();
-              item.run();
-            }}
-          />
-        ))}
-      </div>
     </div>
   );
 }
@@ -471,7 +457,8 @@ function CommandRow({ id, tabIndex }: { readonly id: string; readonly tabIndex: 
 }
 
 function runRow(row: ShownRow): void {
-  if (row.command) void commandRegistry.execute(row.command.id);
+  if (row.entry.kind === 'command' && row.entry.run) row.entry.run();
+  else if (row.command) void commandRegistry.execute(row.command.id);
 }
 
 function Row({ row, tabIndex }: { readonly row: ShownRow; readonly tabIndex: number }) {

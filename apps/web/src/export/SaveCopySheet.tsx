@@ -446,7 +446,6 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       back={page === 'form' ? undefined : () => setPage('form')}
       cancel={false}
       initialFocus={preset === 'size' ? sizeFocus : formatFocus}
-      secondary={<span className={styles.footnote}>{m.save_copy_footer()}</span>}
       primary={
         page === 'details'
           ? { label: m.sheet_done(), onPress: () => closeSaveCopy() }

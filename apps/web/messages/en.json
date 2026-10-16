@@ -34,16 +34,6 @@
       }
     }
   ],
-  "documents_count": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} document",
-        "countPlural=*": "{count} documents"
-      }
-    }
-  ],
   "percent": "{value}%",
   "tabs_label": "Open documents",
   "open_files": "Open files",
@@ -54,13 +44,8 @@
   "stage_start_label": "Start",
   "stage_no_pages_title": "No pages left",
   "stage_no_pages_body": "Undo brings deleted pages back.",
-  "view_mode_label": "View mode",
-  "mode_read": "Read",
-  "mode_arrange": "Pages grid",
   "mode_read_long": "Read mode, locked",
   "mode_arrange_long": "Pages grid",
-  "mode_read_label": "Read, locked",
-  "mode_edit": "Edit",
   "mode_edit_long": "Edit mode",
   "read_locked_announce": "Read mode, locked",
   "form_switch_to_edit": "Switch to Edit to fill",
@@ -74,9 +59,6 @@
   "nav_label": "Sidebar",
   "nav_views_label": "Sidebar sections",
   "nav_resize": "Resize sidebar",
-  "view_pages": "Pages",
-  "view_outline": "Outline",
-  "view_files": "Files",
   "no_document_title": "No document open",
   "pages_empty_body": "Page thumbnails appear here.",
   "pages_none_title": "No pages",
@@ -123,7 +105,6 @@
     }
   ],
   "outline_remove_dead": "Remove dead links",
-  "outline_drag_label": "Drag to move",
   "history_outline_add": "Add bookmark “{title}”",
   "history_outline_rename": "Rename bookmark to “{title}”",
   "history_outline_delete": "Delete bookmark “{title}”",
@@ -141,20 +122,8 @@
   "cmd_outline_remove_dead": "Remove dead bookmarks",
   "shortcuts_outline_move": "Move a bookmark up, down, in or out",
   "shortcuts_outline_rename": "Rename a bookmark",
-  "status_opening": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Opening {count} file…",
-        "countPlural=*": "Opening {count} files…"
-      }
-    }
-  ],
   "status_page_of": "Page {current} of {total}",
   "status_selected": "{count} selected",
-  "status_selected_in_documents": "{count} selected in {documents} documents",
-  "privacy_local_only": "Local only",
   "privacy_external_requests": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -189,9 +158,7 @@
   "scrubber_label": "Scrub pages",
   "update_reload": "Reload",
   "update_later": "Later",
-  "offline_ready_announcement": "Ready to work offline",
   "password_title": "Password required",
-  "password_skip_label": "Skip this file",
   "password_description": "{name} is protected. The password is used on this device only.",
   "password_label": "Password",
   "password_incorrect": "That password did not open the file. Try again.",
@@ -214,7 +181,6 @@
   "shortcuts_move_row": "Move pages one row",
   "shortcuts_open_in_read": "Open the page",
   "shortcuts_outline_expand": "Expand or collapse an outline item",
-  "toolbar_label": "Tools",
   "tool_select": "Select",
   "tool_highlight": "Highlight",
   "tool_highlighter": "Highlighter",
@@ -229,13 +195,7 @@
     }
   ],
   "tool_ink": "Pen",
-  "tool_text": "Text",
-  "tool_shapes": "Shapes",
   "tool_note": "Note",
-  "action_extract_pages": "Extract pages",
-  "action_coming_soon": "Coming in M1",
-  "action_coming_soon_tooltip": "{label} · Coming in M1",
-  "action_select_pages_first": "Select pages first",
   "info_name": "Name",
   "info_files": "Files",
   "info_size": "Size",
@@ -251,7 +211,6 @@
   "badge_xfa": "XFA",
   "badge_xfa_explanation": "XFA: this form uses XFA, which is not supported. Exporting keeps the regular form fields and removes the XFA data.",
   "badge_signed": "signed",
-  "badge_signed_explanation": "Signed: exporting will invalidate the signature unless saved incrementally.",
   "signature_badge_explanation": "Signed: export writes a new file, which cannot keep the signature. Signatures… in the document menu shows each one.",
   "signature_status_intact": "Intact",
   "signature_status_intact_changed_later": "Intact, changed later",
@@ -361,7 +320,6 @@
   "cmd_sign": "Sign with certificate…",
   "sign_dialog_title": "Sign with certificate",
   "sign_dialog_description": "The signature is added when the document is exported: an approval signature (PAdES-B) over the exported file. The certificate file and password stay in this tab’s memory and are dropped after the export.",
-  "sign_certificate_file": "Certificate file (.p12 or .pfx)",
   "sign_certificate": "Certificate",
   "sign_certificate_hint": "A .p12 or .pfx file",
   "sign_choose_file": "Choose…",
@@ -400,7 +358,6 @@
   "export_sign_choose": "Choose certificate…",
   "export_sign_change": "Change…",
   "export_sign_needs_certificate": "Choose a certificate to sign with.",
-  "export_signatures_notice": "Existing signatures will not be in the exported file: export writes a new file, and a signature cannot survive that. The original file keeps them.",
   "summary_signature": "Signed by {signer} ({algorithm}), field “{field}”: approval signature; identity and trust not verified.",
   "summary_signatures_removed": [
     {
@@ -416,7 +373,6 @@
   "badge_tagged_explanation": "Tagged: exporting keeps the accessibility structure when it can; if it cannot stay intact it is removed and you are told.",
   "common_yes": "Yes",
   "common_no": "No",
-  "document_menu": "Document",
   "cmd_document_info": "Document info…",
   "cmd_set_password": "Set password…",
   "cmd_change_password": "Change password…",
@@ -675,16 +631,6 @@
       }
     }
   ],
-  "announce_deleted": [
-    {
-      "declarations": ["input count", "input shortcut", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Deleted {count} page. Undo with {shortcut}",
-        "countPlural=*": "Deleted {count} pages. Undo with {shortcut}"
-      }
-    }
-  ],
   "announce_moved": [
     {
       "declarations": [
@@ -855,12 +801,10 @@
   "action_paste_after": "Paste after",
   "action_paste_duplicate": "Paste as duplicate",
   "action_select_from_source": "Select all from this source",
-  "context_bar_label": "Actions for {pages}",
   "cell_label": "Page {position} of {count}",
   "cell_label_with_label": "Page {position} ({label}) of {count}",
   "cell_from": ", from {name}",
   "cell_bookmarked": ", bookmarked",
-  "announce_deleted_page": "Deleted {label}",
   "arrange_drop_background": "Drop to open as new documents",
   "section_empty": "No pages. Drop pages, PDFs or images here.",
   "section_expand": "Expand",
@@ -945,7 +889,6 @@
   "cmd_paste_pages": "Paste pages after the focused page",
   "cmd_paste_pages_note": "Pages grid. Cut pages move; copied pages are duplicated.",
   "cmd_paste_duplicates": "Paste pages as duplicates",
-  "cmd_move_to_new_document": "Move pages to new document",
   "cmd_copy_to_new_document": "Copy pages to new document",
   "cmd_insert_blank": "Insert blank page after",
   "cmd_insert_from_file": "Insert pages from file…",
@@ -965,9 +908,7 @@
   "cmd_insert_images": "Insert images as pages…",
   "cmd_export": "Save a copy…",
   "split_title": "Split {title}",
-  "split_description": "{pages}. The parts open as new tabs; undo puts the document back together.",
   "split_mode_label": "How to split",
-  "split_mode_every": "Every {n} pages",
   "split_every_input_label": "Pages per document",
   "split_mode_ranges": "Page ranges",
   "split_ranges_input_label": "Page ranges, for example 1-3, 5, 8-10",
@@ -1033,7 +974,6 @@
   "range_error_overlap": "“{first}” and “{second}” overlap.",
   "merge_move_up": "Move {title} up",
   "merge_move_down": "Move {title} down",
-  "interleave_title": "Interleave {title} with…",
   "interleave_second_label": "Second document",
   "interleave_mode_label": "Order",
   "interleave_mode_alternate": "Alternate",
@@ -1043,7 +983,6 @@
   "interleave_preview_label": "Resulting page order",
   "interleave_slot_label": "{title}, page {page}",
   "interleave_more": "+{count} more",
-  "interleave_preview": "Creates {title} with {pages}.",
   "interleave_confirm": "Interleave",
   "history_interleave": "Interleave {a} with {b}",
   "announce_interleaved": "Interleaved {a} with {b}: {pages}",
@@ -1069,8 +1008,6 @@
   "image_size_fit_hint": "Wider images are scaled down to A4 width, aspect ratio kept. Largest page: {width} × {height} cm.",
   "image_size_original": "Original size",
   "image_size_original_hint": "Pages match the images exactly. Largest page: {width} × {height} cm.",
-  "image_size_confirm": "Insert",
-  "export_document": "Save a copy",
   "export_default_name": "document",
   "export_failed_verification": "The exported file did not pass verification, so it is not offered for download.",
   "export_compatibility": "Compatibility mode (PDF 1.4, no object streams)",
@@ -1185,17 +1122,6 @@
       }
     }
   ],
-  "status_documents_shown": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} document shown",
-        "countPlural=*": "{count} documents shown"
-      }
-    }
-  ],
-  "view_search": "Search",
   "search_label": "Find in document",
   "search_placeholder": "Find in document",
   "search_empty_no_document_body": "Open a PDF to search its text.",
@@ -1211,8 +1137,6 @@
   "search_results_label": "Search results",
   "search_page": "Page {number}",
   "search_page_label": "Page {label} ({number})",
-  "status_page_of_label": "Page {label} ({current} of {total})",
-  "status_search_prefix": "Search result ",
   "viewer_page_label": "labelled {label}",
   "viewer_link_page": "Go to page {page}",
   "viewer_link_missing": "This link points to a page that is not in this document",
@@ -1246,7 +1170,6 @@
   "cmd_first_page": "First page",
   "cmd_last_page": "Last page",
   "cmd_layout": "Layout: {layout}",
-  "view_comments": "Comments",
   "cmd_show_comments": "Show comments",
   "tool_underline": "Underline",
   "tool_strikeout": "Strikeout",
@@ -1367,9 +1290,6 @@
   "paragraph_unsupported": "No available font has {chars}",
   "paragraph_info_label": "About paragraph editing",
   "paragraph_info_text": "Recto rewraps the text inside this paragraph using the paragraph's own font, size, colour and spacing. Lines you did not change keep their exact spacing, and move up or down only if the paragraph gains or loses a line. Recto never moves other content on the page and never moves text to another page: a PDF stores finished pages, not a flowing document. If you type a character that the font in this file does not contain, Recto shows it in a different font and tells you which one.",
-  "paragraph_join": "Join with next",
-  "paragraph_split": "Split here",
-  "paragraph_hint_unavailable": "Not available yet: paragraph boundaries cannot be corrected in this version",
   "paragraph_hint": "Esc or click outside to apply",
   "paragraph_loading": "Preparing the paragraph…",
   "paragraph_refused": "Paragraph editing is not available here: {reason}",
@@ -1469,21 +1389,16 @@
   "color_green": "Green",
   "color_black": "Black",
   "color_cyan": "Cyan",
-  "comments_author": "Your name on new annotations",
   "comments_author_placeholder": "Anonymous",
   "comments_author_prompt": "Name on your comments",
   "comments_author_save": "Save",
   "comments_author_skip": "Skip",
   "comments_author_saved": "Comments will carry the name {name}",
   "cmd_set_author": "Set comment author name…",
-  "comments_no_document_body": "Open a PDF to see its annotations.",
   "comments_loading": "Reading annotations…",
   "comments_empty_title": "No annotations",
   "comments_empty_body": "Highlights, notes and drawings on this document appear here.",
   "comments_page": "Page {page}",
-  "comments_no_text": "No comment text",
-  "signature_title": "Signature image",
-  "signature_notice": "This adds an image signature, not a digital signature: it does not prove who signed or protect the document from changes.",
   "signature_modes": "How to make the signature",
   "signature_draw": "Draw",
   "signature_type": "Type",
@@ -1808,24 +1723,19 @@
       }
     }
   ],
-  "pen_presets_label": "Pen presets",
   "pen_preset_pen": "{color} pen",
   "pen_preset_highlighter": "{color} highlighter",
   "pen_preset_numbered": "Pen {number}",
   "pen_preset_highlighter_numbered": "Highlighter {number}",
   "pen_preset_label": "{name}, {width}",
-  "pen_preset_edit_hint": "Press again to edit",
   "pen_editor_label": "Edit {name}",
   "pen_editor_width": "Width",
-  "pen_editor_width_exact": "Exact width",
   "pen_editor_reset": "Reset to default",
   "pen_editor_reset_unneeded": "Already the default",
   "pen_editor_more_colours": "More colours",
   "pen_preset_reset_done": "{name} reset to default",
   "pen_width_note": "Width changes are stored in the stroke's appearance. Viewers that redraw ink themselves show it at one width.",
-  "annot_tool_style": "{tool} tool style",
   "annot_replay_failed": "Some annotation changes could not be undone or redone in the document",
-  "view_forms": "Forms",
   "cmd_show_forms": "Show forms panel",
   "cmd_forms_highlight": "Highlight form fields",
   "cmd_forms_clear": "Clear all form fields",
@@ -1856,7 +1766,6 @@
   "forms_read_only_tag": "Read-only",
   "forms_required": "Required",
   "forms_choose": "Choose…",
-  "forms_no_document_body": "Open a PDF with form fields to fill them in.",
   "forms_loading": "Reading form fields…",
   "forms_empty_title": "No form fields",
   "forms_empty_body": "This document has no form fields. Add one with “Add field”.",
@@ -2003,7 +1912,6 @@
   "furniture_range_custom": "Page range",
   "furniture_range_from": "From",
   "furniture_range_to": "To",
-  "furniture_range_end": "To",
   "furniture_start_number": "Start at",
   "furniture_header": "Header",
   "furniture_footer": "Footer",
@@ -2015,7 +1923,6 @@
   "furniture_bates_suffix": "Suffix",
   "furniture_bates_width": "Digits",
   "furniture_bates_sample": "{first} to {last}",
-  "furniture_bates_sample_label": "Numbers",
   "furniture_bates_remembered": "Last number used with this prefix: {number}",
   "furniture_bates_documents": "Documents, numbered in tab order",
   "furniture_watermark_kind": "Watermark",
@@ -2034,8 +1941,6 @@
   "furniture_behind_note": "The preview approximates “behind” by blending; the exported file draws it under the page content.",
   "announce_furniture_applied": "{name} applied",
   "announce_furniture_removed": "{name} removed",
-  "tools_menu": "Document",
-  "tools_menu_label": "Document tools",
   "cmd_tools_compress": "Compress…",
   "cmd_tools_export_images": "Export pages as images…",
   "cmd_tools_save_repaired": "Save repaired copy",
@@ -2134,7 +2039,7 @@
   "batch_run_ocr_download": "Loading OCR languages… {done} of {total}",
   "batch_run_progress_label": "Batch progress",
   "batch_run_summary": "Finished: {done} done ({notes} with notes), {failed} failed, {skipped} skipped.",
-  "batch_running_note": "Files are processed on this device. Cancel stops the run; finished files are kept.",
+  "batch_running_note": "Cancel stops the run; finished files are kept.",
   "batch_announce_done": "Batch finished: {done} done, {failed} failed",
   "batch_phase_queued": "Waiting",
   "batch_phase_opening": "Opening",
@@ -2401,7 +2306,6 @@
   "batch_failure_cancelled": "Stopped: the batch was cancelled.",
   "batch_failure_engine": "The PDF engine failed on this file.",
   "batch_failure_step": "The step failed: {reason}",
-  "batch_failure_unavailable": "This output is not available in this version.",
   "batch_failure_verification": "The output did not pass verification: {problems}",
   "batch_skip_not_pdf": "not a PDF",
   "batch_skip_empty": "empty file",
@@ -2479,7 +2383,6 @@
   "compress_compare_after": "After",
   "compress_compare_zoom": "200%",
   "compress_compare_rendering": "Rendering…",
-  "compress_applied": "Export will compress with {preset}",
   "compress_failed": "Compression failed: {reason}",
   "export_compression_delta": "Compressed with {preset}: {before} → {after} ({delta}%)",
   "images_format": "Format",
@@ -2501,7 +2404,6 @@
   "announce_image_copied": "Page image copied to the clipboard",
   "tool_redact": "Redact",
   "tool_redact_tooltip": "Redact: mark text or drag an area (Alt drags an area over text)",
-  "view_redactions": "Redactions",
   "cmd_show_redactions": "Show redactions",
   "cmd_redaction_next": "Next redaction mark",
   "cmd_redaction_previous": "Previous redaction mark",
@@ -2580,11 +2482,8 @@
   "redaction_empty_body": "Select text and press X, drag an area with the Redact tool, mark search matches, or find sensitive data.",
   "redaction_find": "Find sensitive data",
   "redaction_apply": "Apply redactions",
-  "redaction_apply_unavailable": "Available in the next update",
-  "redaction_page": "Page {page}",
   "redaction_page_short": "p. {page}",
   "redaction_area": "Area without text",
-  "redaction_include": "Include the mark on page {page} when applying",
   "redaction_delete": "Delete mark",
   "redaction_find_title": "Sensitive data",
   "redaction_find_close": "Close results",
@@ -2652,7 +2551,6 @@
   "redaction_apply_fill": "Fill colour",
   "redaction_fill_black": "Black",
   "redaction_fill_white": "White",
-  "redaction_fill_custom": "Custom",
   "redaction_fill_custom_label": "Custom fill colour",
   "redaction_overlay_label": "Overlay text (optional)",
   "redaction_overlay_placeholder": "e.g. REDACTED",
@@ -2682,7 +2580,6 @@
   "redaction_result_paths": "Drawings removed",
   "redaction_result_images": "Images removed",
   "redaction_result_annotations": "Annotations removed",
-  "redaction_result_links": "of which links",
   "redaction_result_fields": "Form field values cleared",
   "redaction_result_strings": "Text replaced in bookmarks, metadata and tags",
   "redaction_result_searched": "Strings searched for in the whole file",
@@ -3004,7 +2901,6 @@
   "cmd_convert_markdown": "Export as Markdown / text…",
   "compare_mode": "Compare",
   "compare_mode_long": "Compare mode",
-  "compare_changes": "Changes",
   "compare_setup_title": "Compare two documents",
   "compare_setup_body": "Pages are matched, then compared picture by picture and word by word. Changes are shown on the second document.",
   "compare_side_a": "Original (A)",
@@ -3321,7 +3217,6 @@
     }
   ],
   "ocr_phase_write": "Adding the text to the document…",
-  "ocr_progress_label": "Text recognition progress",
   "ocr_progress_continues": "You can close this: recognition continues and the status bar shows its progress. Nothing changes until every page is done.",
   "ocr_cancel_run": "Cancel recognition",
   "ocr_hide": "Continue in background",
@@ -3419,7 +3314,6 @@
   "ocr_languages_title": "OCR languages",
   "ocr_languages_intro": "Languages come from this site and nowhere else. Each downloads on first use; keep a language available offline to recognize text without a connection.",
   "ocr_languages_loading": "Reading the languages on this device…",
-  "ocr_pack_offline": "Keep available offline",
   "ocr_pack_offline_label": "Keep {name} available offline",
   "ocr_pack_remove": "Remove",
   "ocr_pack_remove_label": "Remove {name}",
@@ -3473,29 +3367,8 @@
       }
     }
   ],
-  "home_combine_all": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Combine all {count} file",
-        "countPlural=*": "Combine all {count} files"
-      }
-    }
-  ],
-  "home_combine_title": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Combine {count} document",
-        "countPlural=*": "Combine {count} documents"
-      }
-    }
-  ],
   "combined_title_two": "Combined – {first} + {second}",
   "combined_title_more": "Combined – {first} + {count} more",
-  "home_combine_description": "Pages are joined in this order into a new document; the files stay open. Use the arrows to change the order.",
   "history_combine": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -3606,7 +3479,6 @@
   "library_all_selected": "All documents are selected",
   "library_announce_select_on": "Select mode. Space checks a document, Enter opens it",
   "library_announce_select_off": "Select mode off",
-  "library_card_check": "Select {name}",
   "library_card_edited": "Edited",
   "library_card_locked": "Locked",
   "library_card_signed": "Signed · locked",
@@ -3664,18 +3536,6 @@
   "library_show_in_library": "Show in Library",
   "library_combine_files_one": "Choose two or more files to combine",
   "library_more": "More",
-  "library_nothing_uploaded": "Nothing is uploaded",
-  "library_external_requests": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} external request",
-        "countPlural=*": "{count} external requests"
-      }
-    }
-  ],
-  "library_language": "Language",
   "recents_kept_footnote": "Kept on this device while the browser keeps it",
   "recents_manage": "Manage",
   "recents_clear_confirm_title": "Clear recent files?",
@@ -3691,11 +3551,6 @@
   ],
   "recents_clear_confirm_action": "Clear",
   "privacy_recents": "Recent files are remembered on this device only.",
-  "bar_group_fill": "Fill & sign",
-  "bar_group_redact": "Redact",
-  "bar_group_select": "Select",
-  "bar_group_write": "Write",
-  "bar_group_text": "Text",
   "page_menu_label": "Page {number}",
   "page_menu_edit_text": "Edit text here",
   "page_menu_rotate_left": "Rotate page {number} left",
@@ -3706,26 +3561,12 @@
   "page_menu_extract": "Extract page…",
   "selection_comment": "Comment",
   "selection_comment_tooltip": "Add a note at the selection",
-  "bar_group_tools": "{group} tools",
-  "bar_group_back": "{group}: back to all groups",
-  "bar_back_tooltip": "Back to all groups",
   "bar_options": "{tool} options",
-  "bar_options_hint": "Press again for options",
-  "bar_tool_escape": "{tool} · Esc: Select",
-  "bar_redact_mark": "Mark for redaction",
-  "bar_mark_matches": "Mark search matches",
-  "bar_mark_matches_none": "Find text first: there are no search matches to mark",
   "bar_apply_redactions": "Apply redactions…",
-  "bar_shortcut_back": "Tool bar: back to the groups",
-  "menu_section_combine": "Combine and split",
   "menu_section_add": "Add to pages",
-  "menu_section_protect": "Protect and sign",
-  "menu_section_convert": "Convert and export",
-  "menu_section_document": "Document",
   "menu_merge": "Merge files…",
   "menu_split": "Split…",
   "menu_compare": "Compare with…",
-  "menu_rotate": "Rotate pages",
   "menu_rotate_right": "Right 90°",
   "menu_rotate_left": "Left 90°",
   "menu_rotate_half": "180°",
@@ -3870,11 +3711,10 @@
   "compact_open_pdf": "Open PDF",
   "compact_opening": "Opening…",
   "compact_reading_only": "Pen, highlight, text and signature on your phone. Every tool on a computer or tablet.",
-  "compact_language": "Language",
   "compact_recents_clear": "Clear",
   "compact_recent_reading": "Reading now",
   "compact_recents_empty_title": "No files yet",
-  "compact_recents_empty": "PDFs you open show here, newest first. They stay on this phone.",
+  "compact_recents_empty": "PDFs you open show here, newest first.",
   "compact_library_promise": "Read, mark up and sign PDFs. Nothing leaves this phone.",
   "compact_library_sample_line": "A small magazine to try your phone’s tools on.",
   "compact_library_more_tools": "Every tool on a computer or tablet.",
@@ -4004,7 +3844,6 @@
   "colour_eyedropper_hint": "Point at the page and press to pick. Arrow keys move, Enter picks, Esc cancels.",
   "colour_eyedropper_off_page": "Not over a page",
   "colour_saved": "Saved colours",
-  "colour_saved_add": "Add",
   "colour_saved_add_label": "Add to saved colours",
   "colour_saved_remove": "Remove",
   "colour_saved_full": "Saved colours are full. Remove one to add another.",
@@ -4133,7 +3972,6 @@
   "sheet_back": "Back",
   "sheet_cancel": "Cancel",
   "sheet_done": "Done",
-  "sheet_reset": "Reset",
   "sheet_locked": "{name} is locked",
   "sheet_unlock": "Unlock",
   "sheet_locked_reason": "Locked",
@@ -4175,7 +4013,6 @@
   "history_row_page": "p. {page}",
   "history_option": "{label}, {time}",
   "history_option_page": "{label}, page {page}, {time}",
-  "history_current": "current",
   "history_tail_rule": "Kept after a reload above this line",
   "history_slider_label": "History step",
   "history_slider_value": "{index} of {count}",
@@ -4316,7 +4153,6 @@
       }
     }
   ],
-  "settings_in_page": "In {page}: {rows}",
   "settings_section_language": "Language",
   "settings_section_pen": "Pen and touch",
   "settings_section_documents": "Documents and storage",
@@ -4424,7 +4260,6 @@
   "save_copy_signed_warning": "Existing signatures will not be in this copy.",
   "save_copy_repaired_info": "This file was damaged and rebuilt on open. The copy is written from the rebuilt version.",
   "save_copy_name": "Name",
-  "save_copy_footer": "Built and checked on this device",
   "save_copy_save": "Save copy",
   "save_copy_download": "Download copy",
   "save_copy_share": "Share copy",
@@ -4563,7 +4398,6 @@
   "frame_status_no_changes": "No changes",
   "frame_status_kept": "Edited, kept on this device",
   "frame_status_not_kept": "Edited, not kept in this window",
-  "frame_privacy_line": "On this device · nothing uploaded",
   "frame_lock_reason_user": "You locked it",
   "frame_lock_reason_signed": "Signed file: changes break the signature",
   "frame_lock_reason_restricted": "The file restricts changes",
@@ -4586,7 +4420,6 @@
   "frame_section_protect": "Protect",
   "frame_section_convert": "Convert",
   "frame_rotate_all": "Rotate all",
-  "frame_app_group": "Recto",
   "frame_find": "Find",
   "frame_find_no_matches": "No matches",
   "frame_find_no_pages": "No pages",
@@ -4633,7 +4466,6 @@
   ],
   "frame_compact_title_name": "{name}, document menu",
   "markup_label": "Markup",
-  "markup_fill_sign": "Fill & sign",
   "markup_done": "Done",
   "markup_done_tooltip": "Close Markup (Esc)",
   "markup_done_description": "Closes Markup",
@@ -4722,9 +4554,6 @@
   "dock_no_pages": "No pages to mark up",
   "dock_more_edit_text": "Edit text",
   "dock_more_redact": "Redact",
-  "dock_more_ocr": "Recognize text…",
-  "dock_more_compare": "Compare with…",
-  "dock_more_crop": "Crop pages…",
   "dock_more_commands": "All commands…",
   "markup_locked_closed": "Locked. Markup closed.",
   "nav_resized": "Sidebar {width} pixels",
@@ -4855,8 +4684,6 @@
   "pages_bar_select_odd": "Select odd",
   "pages_bar_select_even": "Select even",
   "pages_bar_insert_images": "Insert images…",
-  "pages_bar_split": "Split…",
-  "pages_bar_interleave": "Interleave…",
   "cmd_extract_pages": "Extract pages…",
   "cmd_grid_done": "Leave the Pages grid",
   "cmd_combine_open": "Combine with open documents…",

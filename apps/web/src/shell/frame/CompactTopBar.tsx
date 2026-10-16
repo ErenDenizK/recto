@@ -5,15 +5,15 @@
  *
  *   document:        ‹ 3 │ report.pdf ▾ │ ↶ │ ↷ │ ⌕         44 px buttons, title ≥ 64 px
  *   compact-height:  ‹ 3 │ ▤ │ report.pdf ▾ │ ↶ │ ↷ │ ⌕
- *   Library:         ◆ Recto                    │ ◎ │ ⋯
+ *   Library:         ◆ Recto                         │ ⋯   (◎ only as a warning, DSN-46)
  *
  * - ‹ N goes to the Library (named "Library, 3 open documents"); the title opens the title
  *   menu (the only home of Save here); ↶ ↷ as the strip's; ⌕ lays the Find field over the bar.
  * - **Folding:** below 336 px ↷ leaves the bar and the title menu gains a first row "Redo"
  *   (spec 01.8; A-20's 320 px case). ⓘ (facts) arrives with D4-3.
  * - **Short viewports** (`data-tight`, height < 352): the bar folds into one 44 px capsule at
- *   the bottom, holding ‹ N, the title, ↶ and ⋯ (More takes ↷, Find, Markup, Go to page and
- *   Focus), so 320 × 256 keeps chrome near 17 % of the window (A-20; F1 §6). The dock and the
+ *   the bottom, holding ‹ N, the title, ↶ and ⋯ (More takes ↷, Find, Markup, Go to page,
+ *   Focus and Settings), so 320 × 256 keeps chrome near 17 % of the window (A-20; F1 §6). The dock and the
  *   pill step aside in viewing there.
  * - Hides on scroll with the dock (`hide-on-scroll.ts`): moved out by transform and `inert`
  *   from the first frame.
@@ -24,6 +24,7 @@ import { useSyncExternalStore } from 'react';
 import { commandRegistry } from '../../commands/registry';
 import { LibraryMenu } from '../../home/LibraryMenu';
 import { formatNumber, m } from '../../i18n';
+import { useExternalRequests } from '../../privacy/external-requests';
 import { PrivacyShield } from '../../privacy/PrivacyShield';
 import { useLock } from '../../state/lock-store';
 import { matchesMark, useSavedStore } from '../../state/saved-store';
@@ -90,7 +91,7 @@ export function CompactTopBar({
             <span>{m.frame_brand()}</span>
           </p>
           <span className={styles.spacer} />
-          <PrivacyShield />
+          <LibraryPrivacyWarning />
           <LibraryMenu />
         </>
       ) : (
@@ -100,11 +101,16 @@ export function CompactTopBar({
           <TitleButton />
           <UndoRedo />
           {tight ? <MoreMenu /> : <FindEntry form="button" />}
-          <TitleMenu anchor={titleButton} withRedo={redoFolds} />
+          <TitleMenu anchor={titleButton} withRedo={redoFolds} narrow />
         </>
       )}
     </header>
   );
+}
+
+/** ◎ on the Library only once the monitor counts an external request (DSN-46). */
+function LibraryPrivacyWarning() {
+  return useExternalRequests().count > 0 ? <PrivacyShield /> : null;
 }
 
 /** ‹ N: back to the Library, with the number of open documents. */
@@ -182,6 +188,13 @@ function MoreMenu() {
       id: 'view.focus',
       label: m.frame_focus,
       run: () => void commandRegistry.execute('view.focus'),
+    },
+    // The dock's More steps aside here, and the title menu no longer ends in the app items
+    // (DSN-47): Settings stays one press away.
+    {
+      id: 'settings.open',
+      label: m.frame_settings,
+      run: () => void commandRegistry.execute('settings.open'),
     },
   ];
   return (

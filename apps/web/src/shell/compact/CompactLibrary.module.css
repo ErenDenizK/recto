@@ -7,8 +7,8 @@
  *
  * - Identity in the upper third: the mark at 64 px, the wordmark in title1, the promise in
  *   callout (the type steps of tokens.css; a coarse pointer moves each one size up).
- * - Glass as the full Library has it (02-library §2.3; design language §3.1): the language
- *   switch, the sample card and the Recents card are lit glass (`mat mat-lit`, no blur: nothing
+ * - Glass as the full Library has it (02-library §2.3; design language §3.1): the sample card
+ *   and the Recents card are lit glass (`mat mat-lit`, no blur: nothing
  *   passes under them, as the full Library's launcher and cards); the dock is M2 bar glass with
  *   the reader capsule's σ and size (56 px, `mat mat-bar s10`), because Recents scroll under
  *   it. Fills inside glass, never glass on glass (Q-4).
@@ -42,15 +42,16 @@
   margin-inline: auto;
 }
 
-/* The brand, clear of the language switch above it. With room to spare, the header and the
-   body share it as auto margins above and below them, so the groups sit together as one block
-   between the top and the dock; the margins fall to 0 once Recents fill the column. */
+/* The brand, clear of the status bar. With room to spare, the header and the body share it as
+   auto margins above and below them, so the groups sit together as one block between the top
+   and the dock; the margins fall to 0 once Recents fill the column. The language switch that
+   stood above it is Settings' (DSN-46), in About's settings rows on a phone. */
 .header {
   display: flex;
   flex: none;
   justify-content: center;
   margin-top: auto;
-  padding-top: 72px;
+  padding-top: var(--space-12);
 }
 
 .brand {
@@ -73,34 +74,6 @@
 
 .wordmark {
   min-width: 0;
-}
-
-/* A lit capsule piece of two 44 px options (Q-9) at the top trailing corner, as the full
-   edition's top strip pieces float; it scrolls with the column. */
-.language {
-  composes: mat mat-lit from global;
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + var(--space-2));
-  right: max(env(safe-area-inset-right, 0px), 16px);
-  display: flex;
-  gap: var(--space-half);
-  margin: 0;
-  padding: var(--space-half);
-  border-radius: var(--radius-capsule);
-  min-inline-size: 0;
-}
-
-.languageOption {
-  padding: 0 var(--space-3);
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-label);
-}
-
-.languageOption[aria-pressed='true'] {
-  background: var(--surface-active);
-  color: var(--text-primary);
 }
 
 .body {

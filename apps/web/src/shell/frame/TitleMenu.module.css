@@ -2,7 +2,7 @@
  * The title menu (01-frame F5 §2–§4): the popover primitive (M4, radius 16) at 320 px (360
  * coarse), no taller than min(640 px, the room below the strip). The header holds the page,
  * the name in an opaque well, the facts and status lines, then rows: Lock with its trailing
- * switch, the eye (S2-1a) and the privacy line; the rows scroll under it. Every row is the
+ * switch and the eye (S2-1a); the rows scroll under it. Every row is the
  * menu recipe's (system-audit-2026-10 §3.6: M rows, 32 fine and 44 coarse, radius 10 inside a
  * 6 px inset, a 16 px glyph leading), section labels the footnote step at 600 in the secondary
  * ink (no uppercase, D3-9). The switch's on-state is the menu's only accent, and the menu is
@@ -177,7 +177,7 @@
   gap: var(--space-2);
 }
 
-/* The header's rows (the eye, the privacy line, a signed file's facts): the menu recipe's row,
+/* The header's rows (the eye, a signed file's facts): the menu recipe's row,
    glyph leading, label, a quiet trail. */
 .privacy {
   composes: focus-inset from global;

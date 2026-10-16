@@ -1,27 +1,31 @@
 /**
- * The title menu's rows as data (`components/01-frame.md` F5 §5; flows.md §4.6): File ·
- * Pages · Add to pages · Protect · Convert, then Compare with… and Document info…. Each row
- * is a registered command (its title, act and availability come from the registry, so the
- * change guard's reason reads on a dimmed row, ADR-0030) or one of the menu's own actions
- * (Rotate all ▸).
+ * The title menu's rows as data (`components/01-frame.md` F5 §5; flows.md §4.6; DSN-47): File ·
+ * Pages · Protect · Add to pages · Convert, then Compare with… and Document info…. Each row is a
+ * registered command (its title, act and availability come from the registry, so the change
+ * guard's reason reads on a dimmed row, ADR-0030) or one of the menu's own actions (Rotate
+ * all ▸).
  *
+ * - **One place per command** (DSN-46, DSN-47): a row lives here only when no other control on
+ *   screen holds it. Save and Close are the strip's own (its Save button, the tab's ✕), so they
+ *   show only in the narrow window's bar, which has neither (`narrowOnly`); Sign with
+ *   certificate… and Find sensitive data are Markup's (the Sign group, More tools); the
+ *   signatures of a signed file are the header's facts row; Add bookmark is the sidebar's
+ *   Contents; Settings, Keyboard shortcuts and About are the dock's More and the Library's ⋯
+ *   (`docs/design/audit-2026-10-16-menus.md`).
  * - **Static** (RA-21): rows stay where they are and dim with their reason ("Locked · unlock
  *   first", "Nothing changed since opening"); only the "Remove …" twins of page furniture and
  *   the repair rows appear just while there is something to remove or repair, as before.
- * - **Rows today's app has no command for** (Print…, Share…, Apply redactions…) are left out until their packages bring them; every
- *   command of the "Document" group that no section names joins the last section, so tools
- *   registered elsewhere still appear.
- * - **Interim tail:** Settings…, Keyboard shortcuts and About Recto close the menu until the
- *   dock's More (D2-2) takes them (`LibraryMenu.tsx`'s `APP_ITEMS`).
+ * - **Rows today's app has no command for** (Print…, Share…, Apply redactions…) are left out
+ *   until their packages bring them; every command of the "Document" group that no section names
+ *   and no other home holds joins the last section, so tools registered elsewhere still appear.
  *
- * The labels are the commands' titles (today's words, in both languages); the copy of F5 §5
- * is D4-4's copy-check to apply.
+ * The labels are the commands' titles (today's words, in both languages).
  */
 import { getActiveDocument, type PageId } from '@pdf-editor/document-model';
 
 import { type Command, commandRegistry } from '../../commands/registry';
 import { m } from '../../i18n';
-import { openSettings } from '../../settings/open-settings';
+import { openOperationDialog } from '../../stage/operation-dialogs-store';
 import { changeRefusal, refusalReason } from '../../state/guard';
 import { useSelectionStore } from '../../state/selection-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
@@ -36,10 +40,14 @@ export type TitleMenuEntry =
       readonly label?: () => string;
       /** Shown only while available ("Remove …" when there is something to remove). */
       readonly onlyWhenAvailable?: true;
+      /** Shown only in the narrow window's bar, which has no Save button and no tabs. */
+      readonly narrowOnly?: true;
+      /** The menu's own act in place of the command's (the menu's page scope). */
+      readonly run?: () => void;
     }
   | { readonly kind: 'rotate' };
 
-export type TitleMenuSectionId = 'file' | 'pages' | 'add' | 'protect' | 'convert' | 'document';
+export type TitleMenuSectionId = 'file' | 'pages' | 'protect' | 'add' | 'convert' | 'document';
 
 export interface TitleMenuSection {
   readonly id: TitleMenuSectionId;
@@ -58,16 +66,16 @@ const furniture = (id: string): TitleMenuEntry[] => [
   command(`${id}.remove`, { onlyWhenAvailable: true }),
 ];
 
-/** The sections (F5 §5), in order. */
+/** The sections (F5 §5, DSN-47), in order: the most used first. */
 export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
   {
     id: 'file',
     label: m.frame_section_file,
     entries: [
-      command('file.save'),
+      command('file.save', { narrowOnly: true }),
       command('file.export'),
       command('file.revert'),
-      command('tab.close', { label: m.common_close }),
+      command('tab.close', { label: m.common_close, narrowOnly: true }),
     ],
   },
   {
@@ -80,8 +88,19 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
       command('section.split', { label: m.menu_split }),
       command('section.interleave'),
       { kind: 'rotate' },
-      command('pages.crop'),
-      command('pages.resize'),
+      // The document's menu: the selected pages, else the whole document, as Rotate all; never
+      // the grid's focused cell (DSN-47: the Pages bar's ⋯ at rest no longer offers these).
+      command('pages.crop', { run: () => openPagesSheet('crop') }),
+      command('pages.resize', { run: () => openPagesSheet('resize') }),
+    ],
+  },
+  {
+    id: 'protect',
+    label: m.frame_section_protect,
+    entries: [
+      command('document.setPassword'),
+      command('document.removePassword', { onlyWhenAvailable: true }),
+      command('document.stripMetadata'),
     ],
   },
   {
@@ -95,24 +114,11 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
     ],
   },
   {
-    id: 'protect',
-    label: m.frame_section_protect,
-    entries: [
-      command('document.setPassword'),
-      command('document.removePassword', { onlyWhenAvailable: true }),
-      command('document.sign'),
-      // S9, which took the inspector's Signatures section (D2-9); dimmed on an unsigned file.
-      command('document.signatures'),
-      command('redaction.find'),
-      command('document.stripMetadata'),
-    ],
-  },
-  {
     id: 'convert',
     label: m.frame_section_convert,
     entries: [
-      command('document.ocr'),
       command('document.compress'),
+      command('document.ocr'),
       command('document.exportImages'),
       command('document.exportMarkdown'),
     ],
@@ -123,12 +129,25 @@ export const TITLE_MENU_SECTIONS: readonly TitleMenuSection[] = [
       command('mode.compare', { label: m.menu_compare }),
       // "Document info…" is the navigator package's (N1) command; its title is N1's.
       command('document.info'),
-      command('outline.addBookmark'),
       command('outline.removeDeadLinks', { onlyWhenAvailable: true }),
       command('document.saveRepaired', { onlyWhenAvailable: true }),
     ],
   },
 ];
+
+/**
+ * Commands of the "Document" group that have their home elsewhere (DSN-47), so the last
+ * section never takes them in as unnamed tools.
+ */
+const HOMED_ELSEWHERE = new Set([
+  // Markup's Sign group (Certificate…) and More tools (Find sensitive data).
+  'document.sign',
+  'redaction.find',
+  // The header's facts row of a signed file opens S9 Signatures.
+  'document.signatures',
+  // The sidebar's Contents group has Add bookmark as its icon button (DSN-26).
+  'outline.addBookmark',
+]);
 
 /**
  * Each row's 16 px glyph (the menu recipe, system-audit-2026-10 §3.6: every row may carry
@@ -154,9 +173,6 @@ const ROW_GLYPHS: Readonly<Record<string, IconName>> = {
   'document.watermark': 'stamp',
   'document.setPassword': 'lock-simple',
   'document.removePassword': 'lock-simple-open',
-  'document.sign': 'signature',
-  'document.signatures': 'seal-check',
-  'redaction.find': 'redact',
   'document.stripMetadata': 'eraser',
   'document.ocr': 'scan',
   'document.compress': 'file',
@@ -164,13 +180,9 @@ const ROW_GLYPHS: Readonly<Record<string, IconName>> = {
   'document.exportMarkdown': 'file-text',
   'mode.compare': 'compare',
   'document.info': 'info',
-  'outline.addBookmark': 'bookmark-simple',
   'outline.removeDeadLinks': 'link',
   'document.saveRepaired': 'check-circle',
   'edit.redo': 'arrow-u-up-right',
-  settings: 'gear-six',
-  shortcuts: 'keyboard',
-  about: 'question',
 };
 
 /** The glyph of the row `key` (a "Remove …" twin's is its row's), if it has one. */
@@ -178,11 +190,12 @@ export function rowGlyph(key: string): IconName | undefined {
   return ROW_GLYPHS[key] ?? ROW_GLYPHS[key.replace(/\.remove$/, '')];
 }
 
-const NAMED = new Set(
-  TITLE_MENU_SECTIONS.flatMap((s) =>
+const NAMED = new Set([
+  ...TITLE_MENU_SECTIONS.flatMap((s) =>
     s.entries.flatMap((e) => (e.kind === 'command' ? [e.id] : [])),
   ),
-);
+  ...HOMED_ELSEWHERE,
+]);
 
 /** A row as shown now. */
 export interface ShownRow {
@@ -208,9 +221,13 @@ export function rotateScope(): { pages: PageId[]; selected: boolean } {
     : { pages: doc.pages.map((p) => p.id), selected: false };
 }
 
-/** The rows of each section as shown now (no empty section, no unavailable "Remove …"). */
+/**
+ * The rows of each section as shown now (no empty section, no unavailable "Remove …"); Save and
+ * Close only with `narrow`, the narrow window's bar.
+ */
 export function shownTitleMenu(
   commands: readonly Command[],
+  { narrow = false }: { readonly narrow?: boolean } = {},
 ): { section: TitleMenuSection; rows: ShownRow[] }[] {
   const group = m.group_document();
   const extra = commands.filter((c) => c.group === group && !NAMED.has(c.id));
@@ -229,6 +246,7 @@ export function shownTitleMenu(
         rows.push({ key: 'rotate', entry, label: m.frame_rotate_all(), enabled, reason });
         continue;
       }
+      if (entry.narrowOnly && !narrow) continue;
       const registered = commands.find((c) => c.id === entry.id);
       if (!registered) continue;
       const enabled = commandRegistry.isEnabled(registered);
@@ -246,6 +264,14 @@ export function shownTitleMenu(
   }).filter((s) => s.rows.length > 0);
 }
 
+/** Crop pages… or Resize pages… on the scope: the selected pages, else the whole document. */
+export function openPagesSheet(kind: 'crop' | 'resize'): void {
+  const doc = activeDocument();
+  if (!doc) return;
+  const scope = rotateScope();
+  openOperationDialog({ kind, documentId: doc.id, pageIds: scope.selected ? scope.pages : [] });
+}
+
 /** Rotates the scope (selected pages, else all) by `delta` degrees and says so. */
 export function rotateDocumentPages(delta: 90 | -90 | 180): void {
   const { pages } = rotateScope();
@@ -260,18 +286,3 @@ export function rotateDocumentPages(delta: 90 | -90 | 180): void {
         : m.announce_rotated_left({ count }),
   );
 }
-
-/** The app items at the title menu's end, until the dock's More (D2-2) takes them. */
-export const APP_ITEMS = [
-  { id: 'settings', label: () => m.frame_settings(), run: () => openSettings() },
-  {
-    id: 'shortcuts',
-    label: () => m.frame_keyboard_shortcuts(),
-    run: () => void commandRegistry.execute('help.shortcuts'),
-  },
-  {
-    id: 'about',
-    label: () => m.menu_about_page(),
-    run: () => void commandRegistry.execute('help.aboutPage'),
-  },
-] as const;

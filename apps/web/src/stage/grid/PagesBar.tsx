@@ -19,6 +19,10 @@
  *   change nothing and stay allowed while locked (flows §2.6). ‹ › move by one (the non-drag
  *   reorder, WCAG 2.5.7, INV-R8), dimmed at the first and last page; Delete dims when it would
  *   take every page of a document.
+ * - **⋯ acts on pages, never on the whole document** (DSN-47): at rest it holds Paste, the
+ *   selection helpers and Insert images…; Insert pages from file…, Split…, Interleave…, Crop
+ *   pages… and Resize pages… for the whole document are the title menu's rows. With a selection
+ *   it offers Crop, Resize and Insert from file for the selected pages.
  * - **Shedding** (§2.2) by the room the dock band leaves: Duplicate and Move to fold into ⋯
  *   first, then Extract. Rotate and move are glyphs with their names in tooltips; the rest keep
  *   their labels (RA-20).
@@ -56,7 +60,6 @@ import { Icon, type IconName } from '../../ui/Icon';
 import menuStyles from '../../ui/Menu.module.css';
 import { Tooltip } from '../../ui/Tooltip';
 import { extractPages, movePagesToDocument } from '../arrange-actions';
-import { openOperationDialog } from '../operation-dialogs-store';
 import { leaveGrid } from './grid-transition';
 import styles from './PagesBar.module.css';
 
@@ -191,28 +194,15 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
         { id: 'pages.copyToNew', label: m.pages_bar_copy_to_new() },
         { id: 'pages.reverseSelection', label: m.pages_bar_reverse() },
       ]
-    : [
+    : // Nothing selected: what acts on the whole document (Insert pages from file…, Split…,
+      // Interleave…, Crop pages…, Resize pages…) is the title menu's, its one home (DSN-47).
+      [
         { id: 'pages.paste', label: m.pages_bar_paste() },
         // Select all has its own button in selection mode; at rest it waits here.
         ...(selecting ? [] : [{ id: 'pages.selectAll', label: m.pages_bar_select_all() }]),
         { id: 'pages.select.odd', label: m.pages_bar_select_odd() },
         { id: 'pages.select.even', label: m.pages_bar_select_even() },
-        // After the focused cell, else at the end (`insertFromFileTarget`).
-        { id: 'pages.insertFromFile', label: m.cmd_insert_from_file() },
         { id: 'section.insertImages', label: m.pages_bar_insert_images() },
-        { id: 'section.split', label: m.pages_bar_split() },
-        { id: 'section.interleave', label: m.pages_bar_interleave() },
-        // Nothing selected: the whole document, not the focused cell (S8, S12).
-        {
-          id: 'pages.resize',
-          label: m.pages_bar_resize(),
-          run: () => openOperationDialog({ kind: 'resize', documentId: doc.id, pageIds: [] }),
-        },
-        {
-          id: 'pages.crop',
-          label: m.pages_bar_crop(),
-          run: () => openOperationDialog({ kind: 'crop', documentId: doc.id, pageIds: [] }),
-        },
       ];
 
   return (

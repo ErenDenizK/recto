@@ -6,8 +6,9 @@
  *
  * - **Dock:** Pages · Markup · Fill & sign · More (Sign on a compact window). Pages opens the
  *   grid (`3`); Markup opens the palette on its Draw set and Fill & sign on its Sign set, Select
- *   armed (`M`, alias `2`; `G` arms the last signature, D2-7); More lists the rarer doors
- *   (flows §4.2) with ⌘K last.
+ *   armed (`M`, alias `2`; `G` arms the last signature, D2-7); More lists the tools that act on
+ *   the page in place (Edit text, Redact) and the app's doors, ⌘K first (flows §4.2; DSN-47:
+ *   OCR, Compare and Crop are the title menu's rows, so they left More).
  * - **Locked** (F10 §2, §4): a locked document's dock is Pages · Locked · More. Locked replaces
  *   Markup and Fill & sign, opening the title menu with its Lock switch until the Unlock
  *   popover of `lock/` lands (spec X4). Lock engaging while the palette is open morphs it into
@@ -63,6 +64,7 @@ import { PagesBar, usePagesBarKey } from '../../stage/grid/PagesBar';
 import styles from './Dock.module.css';
 import { type DockLabelForm, dockLabelForm, dockRoom } from './dock-labels';
 import { openTitleMenu } from './frame-store';
+import { usePointerCapabilities } from './input-modality';
 import { type SizeClass, useSizeClass } from './size-class';
 
 /**
@@ -349,29 +351,33 @@ function DockButton({
 }
 
 /**
- * More (flows §4.2): the rarer doors, each dimmed with its reason when it cannot run, each with
- * its 16 px glyph as the phone's menu rows have (system-audit-2026-10 §3.6, §4 Frame).
+ * More (flows §4.2; DSN-47): the page tools that have no dock button, each dimmed with its
+ * reason when it cannot run, then the app's doors, each with its 16 px glyph as the phone's menu
+ * rows have (system-audit-2026-10 §3.6, §4 Frame). Document commands (OCR, Compare, Crop) are
+ * the title menu's; Keyboard shortcuts shows with a fine pointer only, as on the Library's ⋯
+ * (02.18).
  */
 interface MoreEntry {
   readonly id: string;
   readonly label: () => string;
   readonly icon: IconName;
+  /** Shown only with a fine pointer (Keyboard shortcuts, 02.18). */
+  readonly fineOnly?: true;
 }
 const MORE_ITEMS: readonly MoreEntry[] = [
   { id: 'tool.edit-text', label: m.dock_more_edit_text, icon: 'edit-text' },
   { id: 'tool.redact', label: m.dock_more_redact, icon: 'redact' },
-  { id: 'document.ocr', label: m.dock_more_ocr, icon: 'scan' },
-  { id: 'mode.compare', label: m.dock_more_compare, icon: 'compare' },
-  { id: 'pages.crop', label: m.dock_more_crop, icon: 'crop' },
 ];
 const MORE_APP_ITEMS: readonly MoreEntry[] = [
   { id: 'view.palette', label: m.dock_more_commands, icon: 'list-magnifying-glass' },
-  { id: 'help.shortcuts', label: m.frame_keyboard_shortcuts, icon: 'keyboard' },
+  { id: 'help.shortcuts', label: m.frame_keyboard_shortcuts, icon: 'keyboard', fineOnly: true },
   { id: 'settings.open', label: m.frame_settings, icon: 'gear-six' },
 ];
 
 function MoreMenu() {
   const [trigger, setTrigger] = useState<HTMLElement | null>(null);
+  const pointers = usePointerCapabilities();
+  const fine = pointers.primary === 'fine' || pointers.anyFine;
   return (
     <Menu.Root>
       <Tooltip label={m.dock_more()} shortcut={shortcutOf('view.palette')} side="top">
@@ -400,7 +406,7 @@ function MoreMenu() {
               <MoreItem key={item.id} id={item.id} label={item.label()} icon={item.icon} />
             ))}
             <Menu.Separator className={menuStyles.separator} />
-            {MORE_APP_ITEMS.map((item) => (
+            {MORE_APP_ITEMS.filter((item) => fine || item.fineOnly !== true).map((item) => (
               <MoreItem key={item.id} id={item.id} label={item.label()} icon={item.icon} />
             ))}
           </Menu.Popup>

@@ -3,8 +3,9 @@
  * Apple Books: two pieces that hide and show together.
  *
  * - **Top bar:** a floating glass capsule (DSN-32): ‹ back to the Library, the title
- *   (truncated, full in its accessible name), and ⋯ with Find, Contents (only when the file
- *   has an outline), Go to page, Share or Download a copy, Document info and About. In Find it becomes the search field with the
+ *   (truncated, full in its accessible name), and ⋯ with Contents (only when the file has an
+ *   outline), Share or Download a copy, Document info and About. Find and Go to page are the
+ *   capsule's, their one home (DSN-46, DSN-48). In Find it becomes the search field with the
  *   hit count, ‹ › and Done. A document changed since it was opened (an edit here, or a kept
  *   snapshot) shows the "Changed" cue in ⋯ with Share a copy and Save a copy
  *   (`design/phone-2026-10/README.md` §6: no save in place on a phone). This capsule top is
@@ -12,8 +13,9 @@
  *   `top-variant.ts`, `CompactTopSplit` in the compact chunk): ‹ and ⋯ as glass circles, the
  *   title as text over a scroll-edge fade in the theme's canvas tone (GLS-20), its menus liquid
  *   (`liquid-menu.ts`, DSN-39), and Find as a glass bar riding on the keyboard (`FindBar`'s
- *   `docked` form, DSN-39) while the top stays. Here the ⋯ menu grows out of its button by the
- *   container transform (DSN-36).
+ *   `docked` form, DSN-39) while the top stays. There the title's file menu holds Share or
+ *   Download a copy and Document info, so ⋯ keeps Contents and About alone (`withFile`,
+ *   DSN-48). Here the ⋯ menu grows out of its button by the container transform (DSN-36).
  * - **Capsule:** one floating capsule at the bottom: Pages, "3 / 12" (Go to page) and Find,
  *   with the round edit button beside it on the trailing side (EDN-8;
  *   `design/phone-2026-10/README.md` §2). It morphs the capsule into the edit island (Undo,
@@ -207,6 +209,11 @@ interface MoreMenuProps {
    * glass body while it opens and closes; otherwise the container transform (DSN-36).
    */
   readonly liquid?: boolean;
+  /**
+   * Share or Download a copy and Document info: the capsule top's ⋯ holds them; the split top's
+   * file menu is their home there, so its ⋯ leaves them out (DSN-48).
+   */
+  readonly withFile?: boolean;
 }
 
 function MoreMenu({
@@ -215,6 +222,7 @@ function MoreMenu({
   glassGroup,
   sideOffset = 6,
   liquid = false,
+  withFile = true,
 }: MoreMenuProps) {
   const open = useCompactStore((s) => s.menuOpen);
   const hasOutline = doc.outline.length > 0;
@@ -244,26 +252,22 @@ function MoreMenu({
             className={liquid ? styles.menu : `${styles.menu} ${CONTAINER_POPUP}`}
             data-testid="compact-menu"
           >
-            <Menu.Item className={styles.menuItem} onClick={openFind}>
-              <Icon name="magnifying-glass" />
-              <span>{m.compact_find()}</span>
-            </Menu.Item>
             {hasOutline ? (
               <Menu.Item className={styles.menuItem} onClick={toSheet('contents')}>
                 <Icon name="tree-view" />
                 <span>{m.compact_contents()}</span>
               </Menu.Item>
             ) : null}
-            <Menu.Item className={styles.menuItem} onClick={toSheet('goto')}>
-              <Icon name="hash" />
-              <span>{m.goto_title()}</span>
-            </Menu.Item>
-            <SaveItems doc={doc} />
-            <Menu.Separator className={styles.menuSeparator} />
-            <Menu.Item className={styles.menuItem} onClick={toSheet('info')}>
-              <Icon name="info" />
-              <span>{m.compact_info()}</span>
-            </Menu.Item>
+            {withFile ? (
+              <>
+                <SaveItems doc={doc} />
+                <Menu.Item className={styles.menuItem} onClick={toSheet('info')}>
+                  <Icon name="info" />
+                  <span>{m.compact_info()}</span>
+                </Menu.Item>
+              </>
+            ) : null}
+            {hasOutline || withFile ? <Menu.Separator className={styles.menuSeparator} /> : null}
             <Menu.Item className={styles.menuItem} onClick={toSheet('about')}>
               <AppGlyph size={16} />
               <span>{m.about_command({ name: PRODUCT_NAME })}</span>

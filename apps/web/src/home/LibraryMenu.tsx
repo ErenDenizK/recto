@@ -1,8 +1,9 @@
 /**
- * The Library ⋯ menu (`02-library` L12, decision 02.18): Try the sample · Combine files… ·
- * Batch… · Settings… · Keyboard shortcuts (fine pointers only) · About Recto. Spec L12 places
- * the menu in the top strip: the frame's strip and compact bar mount it (D2-1). Base UI `Menu` with the menu recipe (M4); guard: none, nothing here changes a
- * document.
+ * The Library ⋯ menu (`02-library` L12, decision 02.18; DSN-47): the app's doors, Settings… ·
+ * Keyboard shortcuts (fine pointers only) · About Recto. Try the sample, Combine files… and
+ * Batch… are the launcher's buttons, their one home on the Library (DSN-46). Spec L12 places the
+ * menu in the top strip: the frame's strip and compact bar mount it (D2-1). Base UI `Menu` with
+ * the menu recipe (M4); guard: none, nothing here changes a document.
  */
 import { Menu } from '@base-ui/react/menu';
 
@@ -14,8 +15,6 @@ import { Icon } from '../ui/Icon';
 import iconButtonStyles from '../ui/IconButton.module.css';
 import menuStyles from '../ui/Menu.module.css';
 import { Tooltip } from '../ui/Tooltip';
-import { openSample } from '../sample/open-sample';
-import { combineFiles } from './home-actions';
 
 interface Item {
   readonly id: string;
@@ -26,9 +25,6 @@ interface Item {
 }
 
 const ITEMS: readonly Item[] = [
-  { id: 'sample', label: m.cmd_try_sample, run: () => void openSample() },
-  { id: 'combine-files', label: m.library_combine_files, run: () => void combineFiles() },
-  { id: 'batch', label: m.cmd_batch, run: () => void commandRegistry.execute('document.batch') },
   {
     id: 'settings',
     label: m.settings_command,
