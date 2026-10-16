@@ -51,6 +51,7 @@ describe('the capsule and ✎ as one body (DSN-43)', () => {
     dock = document.createElement('div');
     dock.style.cssText = 'position:fixed;left:0;right:0;bottom:12px;display:flex;gap:8px;';
     const capsule = document.createElement('nav');
+    capsule.className = 'capsule mat mat-bar s10';
     capsule.style.cssText = 'width:200px;height:56px;border-radius:28px;';
     const edit = document.createElement('button');
     edit.dataset.testid = 'compact-edit';

@@ -12,7 +12,7 @@
  *   frame while either moves, and ends with them. No timing token of its own.
  * - **The neck** follows how far ✎ has folded: none with ✎ at rest (so the union starts and
  *   ends as the two pieces at rest), the full fillet once it is a quarter folded.
- * - **The material** is the capsule's (`mat mat-bar s10`, its adaptive look's `data-theme`
+ * - **The material** is the capsule's (its material classes, its adaptive look's `data-theme`
  *   copied), its rim the union's outline stroked (`outlineRim`, DSN-42); the capsule keeps its
  *   drop shadow, both keep their content, which only fades (MOT-5). GPU glass leaves a piece with
  *   `data-liquid` to CSS+ for the run (GLS-19).
@@ -34,6 +34,9 @@ export const DOCK_NECK = 24;
 const LONGEST_MS = 10_000;
 /** The folded share of ✎ at which the neck is whole. */
 const NECK_AT = 0.25;
+
+/** A material class (`materials.css`): the base, a tier and its σ or coverage step. */
+const MATERIAL_CLASS = /^(?:mat(?:-[a-z]+)?|[sc]\d+)$/;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
@@ -92,7 +95,8 @@ export function fuseDock(capsule: HTMLElement, restWidth = 56): () => void {
   const dock = capsule.parentElement;
   if (!edit || !dock) return () => undefined;
   const layer = document.createElement('div');
-  layer.className = 'mat mat-bar s10';
+  // The capsule's own material classes (its module composes them), never written here.
+  layer.className = [...capsule.classList].filter((name) => MATERIAL_CLASS.test(name)).join(' ');
   layer.dataset.testid = 'compact-dock-liquid';
   layer.setAttribute('aria-hidden', 'true');
   const theme = capsule.getAttribute('data-theme');

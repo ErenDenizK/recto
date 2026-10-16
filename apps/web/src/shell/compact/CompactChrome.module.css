@@ -458,13 +458,16 @@
 .edit[data-liquid] {
   border-color: transparent !important;
   background: transparent !important;
-  box-shadow: var(--mat-shadow) !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
 
+.capsule[data-liquid] {
+  box-shadow: var(--mat-shadow);
+}
+
 .edit[data-liquid] {
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 .edit[data-liquid]::before {
