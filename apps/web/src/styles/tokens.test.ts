@@ -969,7 +969,7 @@ describe('tokens.css', () => {
       expect(
         materials,
         'docked M3 draws no border of its own: the module draws the hairline on its free edge',
-      ).toMatch(/\.mat-docked\s*\{\s*border:\s*0;\s*\}/);
+      ).toMatch(/\.mat-docked\s*\{\s*--mat-rim:\s*0 0 #0000;\s*border:\s*0;\s*\}/);
       expect(ruleOf('.mat-lit::before').size).toBe(0);
       expect(materials).toMatch(
         /\.mat-lit\s*\{\s*--shadow-own:\s*var\(--mat-edge\), var\(--mat-rim\), var\(--mat-inner\);/,

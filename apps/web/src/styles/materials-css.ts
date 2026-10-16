@@ -247,7 +247,8 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
       'box-shadow: var(--shadow-own);',
     ]),
   );
-  out.push(block('.mat-docked', ['border: 0;']));
+  // Docked M3 has no rim light either: the base sets `--mat-rim` after its tier block above.
+  out.push(block('.mat-docked', ['--mat-rim: 0 0 #0000;', 'border: 0;']));
   out.push(
     block('.mat-lit', [
       '--shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner);',

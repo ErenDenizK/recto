@@ -84,6 +84,7 @@
   box-shadow: var(--shadow-own);
 }
 .mat-docked {
+  --mat-rim: 0 0 #0000;
   border: 0;
 }
 .mat-lit {
