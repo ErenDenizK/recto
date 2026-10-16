@@ -370,8 +370,10 @@ export function presetName(index: number, p: PenPreset): string {
 
 /**
  * The preset editor's title, in sentence case in either language (10-ink §6: "Edit black
- * pen", "Siyah kalem düzenle"): the name is lowered to sit inside the sentence, then the
- * sentence's first letter is raised, both by the active language's rules (Turkish İ and ı).
+ * pen", "Siyah kalem ayarları": a Turkish object would need a suffix that follows the name,
+ * "kalemi" but "Kalem 3’ü", so the title names the settings instead): the name is lowered to
+ * sit inside the sentence, then the sentence's first letter is raised, both by the active
+ * language's rules (Turkish İ and ı).
  */
 export function presetEditorTitle(index: number, p: PenPreset): string {
   const locale = getLocale();

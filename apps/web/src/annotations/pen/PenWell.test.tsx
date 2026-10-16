@@ -440,7 +440,7 @@ describe('pen well', () => {
     await userEvent.click(tr(/^Mavi kalem/));
     await userEvent.click(tr(/^Mavi kalem/));
     expect(
-      await settled(await screen.findByRole('dialog', { name: 'Mavi kalem düzenle' })),
+      await settled(await screen.findByRole('dialog', { name: 'Mavi kalem ayarları' })),
     ).toBeVisible();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -448,7 +448,7 @@ describe('pen well', () => {
     act(() => store().editPreset(1, { color: '#123456' }));
     await userEvent.click(tr(/^Kalem 2/));
     expect(
-      await settled(await screen.findByRole('dialog', { name: 'Kalem 2 düzenle' })),
+      await settled(await screen.findByRole('dialog', { name: 'Kalem 2 ayarları' })),
     ).toBeVisible();
   });
 });

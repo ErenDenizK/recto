@@ -4271,7 +4271,16 @@
   "save_copy_pages_all": "All",
   "save_copy_pages_this": "Page {page}",
   "save_copy_pages_range": "Range",
-  "save_copy_no_text": "No text on pages {pages}.",
+  "save_copy_no_text": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "No text on page {pages}.",
+        "countPlural=*": "No text on pages {pages}."
+      }
+    }
+  ],
   "save_copy_recognize_first": "Recognize text first",
   "save_copy_text_options": "Options",
   "save_copy_text_with_images": "With images (ZIP)",
