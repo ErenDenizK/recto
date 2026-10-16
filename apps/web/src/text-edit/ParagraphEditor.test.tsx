@@ -294,7 +294,12 @@ describe('ParagraphEditor', () => {
     await userEvent.keyboard('{ArrowLeft}');
     expect(container.querySelector('[data-paragraph-editor]')).toHaveAttribute('data-preview');
     await userEvent.keyboard('d');
-    expect(container.querySelector('[data-paragraph-editor]')).not.toHaveAttribute('data-preview');
+    // The canvas comes back on the render after the keystroke, not within it.
+    await waitFor(() =>
+      expect(container.querySelector('[data-paragraph-editor]')).not.toHaveAttribute(
+        'data-preview',
+      ),
+    );
     expect(spies.preview).toHaveBeenCalledTimes(previews);
   });
 
