@@ -8,9 +8,10 @@
  * - Centred dialog and form sheet: *dialog* centre, `scale(0.96)` and opacity on `quick`. Side
  *   sheet: *dialog* side, 24 px and opacity on `smooth`. Bottom and full sheets: *sheet*, from
  *   below on `glide`, or `fling` when a release is faster than 300 px/s.
- * - From a control (motion-2026-10/platform.md §1): a side or bottom sheet opened by a press on
- *   a control comes out of it (the panel laid over the control at a uniform scale, centres
- *   met, fading in) and settles into its edge on `smooth`; it closes back into that control
+ * - From a control (motion-2026-10/platform.md §1; MOT-9): a side, bottom, form or centred
+ *   sheet opened by a press on a control (not a confirmation, `Sheet.tsx`) comes out of it
+ *   (the panel laid over the control at a uniform scale, centres met, fading in) and settles
+ *   into its edge or its centre on `smooth`; it closes back into that control
  *   (a menu item's menu trigger) while it is on screen, whole for 120 ms and then fading,
  *   and the control takes it in with the *receive* pulse. Otherwise, or when a swipe throws
  *   it, it leaves by its edge as above.
@@ -66,7 +67,7 @@ export interface SheetMotion {
   /** The panel to move; null when it unmounts. */
   attach(el: HTMLElement | null): void;
   /**
-   * The control that opened the sheet, if any (platform.md §1): a side or bottom sheet comes
+   * The control that opened the sheet, if any (platform.md §1): any sheet but a full one comes
    * out of it, settling into its edge on `smooth`, and goes back into it while it is on screen.
    */
   setOrigin(origin: SheetOrigin | null): void;
@@ -128,16 +129,19 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
   /** Swallow the click that ends a drag. */
   let swallowClick = false;
   let open = false;
-  /** The control that opened the sheet (platform.md §1), for a side or bottom sheet. */
+  /** The control that opened the sheet (platform.md §1), for any sheet but a full one. */
   let origin: SheetOrigin | null = null;
   /** The return's fade waits for the panel to shrink part of the way. */
   let fadeLater: ReturnType<typeof setTimeout> | undefined;
   /** Whether the panel is on its way into the control (it pulses when it gets there). */
   let returning: HTMLElement | null = null;
 
-  /** Does the panel come out of (and go back into) a control? */
-  const fromControl = (): SheetOrigin | null =>
-    presentation() === 'side' || presentation() === 'bottom' ? origin : null;
+  /**
+   * Does the panel come out of (and go back into) a control? Every presentation but the full
+   * sheet: since MOT-9 (R21 brief B-3) a centred dialog or form sheet grows out of its control
+   * too, rather than from 0.96 in the middle of the window.
+   */
+  const fromControl = (): SheetOrigin | null => (presentation() === 'full' ? null : origin);
 
   /**
    * The transform that lays the panel's box over `rect`: the centres meet, and a uniform scale

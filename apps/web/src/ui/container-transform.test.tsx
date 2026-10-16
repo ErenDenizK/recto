@@ -16,7 +16,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
 import { EXIT_TIMEOUT, settled } from '../../test/settled';
-import { installContainerTransform } from './container-transform';
+import { containerStart } from '../motion';
+import { grownFrame, installContainerTransform, ORIGIN_SCALE } from './container-transform';
 import menuStyles from './Menu.module.css';
 import { resetPressOrigin } from './press-origin';
 import { Sheet } from './sheet/Sheet';
@@ -61,6 +62,21 @@ function DocumentMenu() {
   );
 }
 
+describe('grownFrame (MOT-9)', () => {
+  it('grows the popup from a uniform scale about the point over the trigger', () => {
+    const start = containerStart(
+      { x: 100, y: 20, width: 32, height: 32 },
+      { x: 60, y: 60, width: 200, height: 300 },
+      8,
+    );
+    // The region (40, 0, 32 × 32 of a 200 × 300 box) is centred at (56, 16): 50 % − 44, − 134.
+    const first = grownFrame(start, 16, 0);
+    expect(first.transform).toBe(`translate(0px, -40px) scale(${ORIGIN_SCALE.toFixed(4)})`);
+    expect(first.transformOrigin).toBe('calc(50% + -44px) calc(50% + -134px)');
+    expect(grownFrame(start, 16, 1).transform).toBe('translate(0px, 0px) scale(1.0000)');
+  });
+});
+
 describe('a menu (the container transform)', () => {
   it('grows out of its trigger, keeps it pressed, and goes back into it with a pulse', async () => {
     render(<DocumentMenu />);
@@ -69,9 +85,16 @@ describe('a menu (the container transform)', () => {
     const menu = await screen.findByRole('menu');
     await waitFor(() => expect(menu).toHaveAttribute('data-ct'));
     await waitFor(() => expect(menu.getAnimations().length).toBeGreaterThan(0));
-    expect([...props(menu)].sort()).toEqual(['clipPath', 'opacity', 'transform']);
+    expect([...props(menu)].sort()).toEqual([
+      'clipPath',
+      'opacity',
+      'transform',
+      'transformOrigin',
+    ]);
     // The first frame is the trigger's rect: the region's size is the trigger's.
     const first = (menu.getAnimations()[0]?.effect as KeyframeEffect).getKeyframes()[0];
+    // Out of the box (MOT-9): it grows from a uniform scale about the point over the trigger.
+    expect(String(first?.transform)).toMatch(/ scale\(0\.85/);
     const t = trigger.getBoundingClientRect();
     const box = (menu.parentElement as HTMLElement).getBoundingClientRect();
     const inset = /inset\(([-\d.]+)px ([-\d.]+)px ([-\d.]+)px ([-\d.]+)px/

@@ -228,7 +228,8 @@ describe('Popover', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Edit Blue pen' });
     expect(dialog).toHaveAccessibleDescription('Width and colour.');
     // The entry grows out of its trigger (the container transform, platform.md §1): its clip,
-    // a translate and its opacity, on Web Animations (Q-7: no layout moves).
+    // a translate with a uniform scale about the trigger (MOT-9) and its opacity, on Web
+    // Animations (Q-7: no layout moves).
     expect(dialog).toHaveAttribute('data-ct');
     const moved = new Set(
       dialog
@@ -237,7 +238,7 @@ describe('Popover', () => {
         .flatMap((k) => Object.keys(k))
         .filter((k) => !['offset', 'easing', 'composite', 'computedOffset'].includes(k)),
     );
-    expect([...moved].sort()).toEqual(['clipPath', 'opacity', 'transform']);
+    expect([...moved].sort()).toEqual(['clipPath', 'opacity', 'transform', 'transformOrigin']);
     await settled(dialog);
     // The finished entrance is cancelled on the frame after it ends, which a slow runner may not
     // have reached when `settled` returns.

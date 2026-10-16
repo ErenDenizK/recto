@@ -12,7 +12,10 @@
  *   marked `data-ct`, which turns off the recipe's CSS entrance and exit (its starting and
  *   ending styles still set the opacity Base UI and the tests read), and once Base UI's
  *   positioner has placed it (the positioner rests at opacity 0 until then), it grows from the
- *   trigger's rect into its own on `quick`.
+ *   trigger's rect into its own on `quick`. Out of the box (MOT-9, the owner's R21 brief B-3):
+ *   the whole popup, content with it, also grows from `ORIGIN_SCALE` to 1 about the point over
+ *   the trigger (`grownFrame`), so it reads as coming out of the control rather than being
+ *   wiped in by the clip; the scale is uniform, so text keeps its shape.
  * - **Close.** When Base UI puts it in its ending style, it goes back into the trigger on
  *   `press`, if the trigger is still on screen; the trigger then takes it in with the *receive*
  *   pulse. With the trigger gone it leaves as the recipe's exit (0.98 and a fade,
@@ -27,7 +30,9 @@
  */
 import {
   type ContainerMotion,
+  containerFrame,
   containerMotion,
+  type ContainerStart,
   containerStart,
   duration,
   EASE,
@@ -43,6 +48,27 @@ import {
   recentOrigin,
   setPopupOwner,
 } from './press-origin';
+
+/**
+ * The popup's scale over its trigger (MOT-9): legible as it fades in over the first 30 % of the
+ * run (0.955 by then), small enough to read as growing out of the control.
+ */
+export const ORIGIN_SCALE = 0.85;
+
+/**
+ * A container frame (`containerFrame`) with the popup grown from `ORIGIN_SCALE` about the
+ * region's centre, the point the translate lays over the trigger's centre.
+ */
+export function grownFrame(start: ContainerStart, endRadius: number, p: number): Keyframe {
+  const frame = containerFrame(start, endRadius, p);
+  const [top, right, bottom, left] = start.inset;
+  const scale = (ORIGIN_SCALE + (1 - ORIGIN_SCALE) * p).toFixed(4);
+  frame.transform = `${String(frame.transform)} scale(${scale})`;
+  const x = (left - right) / 2;
+  const y = (top - bottom) / 2;
+  frame.transformOrigin = `calc(50% + ${x}px) calc(50% + ${y}px)`;
+  return frame;
+}
 
 /** The global class of every popup the container transform serves. */
 export const CONTAINER_POPUP = 'ct-popup';
@@ -88,7 +114,12 @@ function start(popup: HTMLElement, entry: Entry): void {
   const t = entry.trigger.getBoundingClientRect();
   if (box.width === 0 || t.width === 0) return;
   const geometry = containerStart(t, box, radiusOf(entry.trigger, t.width, t.height));
-  entry.motion = containerMotion(popup, geometry, radiusOf(popup, box.width, box.height));
+  entry.motion = containerMotion(
+    popup,
+    geometry,
+    radiusOf(popup, box.width, box.height),
+    grownFrame,
+  );
   entry.motion.to(1);
 }
 

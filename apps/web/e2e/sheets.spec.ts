@@ -526,7 +526,8 @@ test.describe('the gallery', () => {
       expectTransformOnly(await motion, { boxConstant: false });
       await closeWithEscape(page, 'task');
 
-      // The centred dialog scales from 0.96: its layout size holds, its box follows the scale.
+      // The centred dialog comes out of its button too (MOT-9): its layout size holds, its box
+      // follows the scale.
       motion = sample(page, '[data-testid="sheet-overlay"]');
       await page.getByRole('button', { name: 'Open overlay', exact: true }).click();
       expectTransformOnly(await motion, { boxConstant: false });
