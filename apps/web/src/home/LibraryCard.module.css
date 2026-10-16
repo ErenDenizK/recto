@@ -35,7 +35,7 @@
 
 @media (hover: hover) {
   .card:hover:not([data-dragging]) {
-    --shadow-own: var(--rim-edge), var(--rim-inner), var(--e3);
+    --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--e3);
     transform: translateY(-2px);
   }
 }

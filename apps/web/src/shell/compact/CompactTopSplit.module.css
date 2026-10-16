@@ -94,6 +94,7 @@
 .circle {
   composes: mat mat-bar s7 from global;
   composes: mat-ring from global;
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--mat-shadow);
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -124,7 +125,6 @@
 /* ‹ is a ui/IconButton (Q-14): its recipe's quiet ink and its flat shadow give way to the
    circle's glass, its rim and shadow (`.mat`). */
 .row .circle {
-  --shadow-own: var(--mat-edge), var(--mat-inner), var(--mat-shadow);
   color: var(--text-primary);
 }
 

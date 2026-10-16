@@ -13,15 +13,18 @@
  *    `.mat-docked` is docked M3 (an inner light, no edge, no shadow; the module draws the
  *    hairline on its free edge), `.mat-opaque` the solid twin of a tier for a panel that opens
  *    across a hard dark/white edge (the title menu over the sidebar and the page).
- * 2. **The base,** `.mat`, at zero specificity (`:where`) so a module's own border, radius or
- *    shadow wins as it did over `.glass`: the solid token, a 1 px rim lit from the top left (the
- *    top and the leading side carry the tier's rim, the bottom its weaker lobe, the trailing
- *    side the glass hairline: research 23 §5.2's two lobes as a border, not a pseudo-element, so
- *    it follows any radius, never scrolls with a menu's rows and keeps every surface's box), the
- *    edge, the inner light (the top-left specular hairline, the weaker bottom-right one and a
- *    soft inner top light, `--rim-inner*`) and the shadow as `--shadow-own` (the focus ring adds
- *    its bands to it). Lit glass (§2.5) has no border: its rim is the masked `::before`
- *    gradient. The light stays a hairline, never a band (owner feedback 2026-10-09, G4).
+ * 2. **The base,** `.mat`, so a module's own radius or shadow wins as it did over `.glass`: the
+ *    solid token and the soft rim (GLS-22) as `--shadow-own` (the focus ring adds its bands to
+ *    it): a soft outer edge, the rim light as two inset lobes lit from the top left (the
+ *    tier's rim colour at the top and the leading side, its weaker lobe at the foot), a soft
+ *    inner top light (`--rim-inner*`), then the shadow. Every layer is a blurred shadow, so the light is brightest at the edge and
+ *    falls off inwards with no line and no band edge, follows any radius (a capsule's round
+ *    ends included), never scrolls with a menu's rows and costs no backdrop pass: Liquid DOM's
+ *    rim (a band whose strength falls off from the edge, feathered, by n·L towards a top-left
+ *    light and 0.6 of it opposite) restated as shadows. The 1 px border stays, transparent, so
+ *    every surface keeps its box and more contrast and forced colours can still draw it. Lit
+ *    glass (§2.5) has no border and wears the same rim. The light stays thin, never a hard
+ *    band (owner feedback 2026-10-09, G4; brief 2026-10-16 B-5).
  * 3. **The tint and the text,** where `backdrop-filter` exists and the Glass setting is not
  *    Solid: the tint, and secondary, tertiary, disabled and danger text on their glass steps.
  *    The cost ladder never turns a surface solid (GLS-7, GLS-10).
@@ -90,8 +93,24 @@ export function floorSigma(tier: GlassTier, coarse: boolean): number {
 /** The nav preset's hairline, kept at the floor. */
 export const FLOOR_BORDER = 'rgb(255 255 255 / 0.3)';
 
-/** The ring's band (GLS-8): its width, CSS px, and how its light meets the glass beneath. */
-export const RING_WIDTH = 3;
+/**
+ * The rim light (GLS-22; after Liquid DOM's rim, MIT, Andras Prifer: restated, not copied): two
+ * inset lobes of the tier's rim colours, offset towards the light so the top and the leading
+ * side carry the bright lobe and the foot the weak one, each blurred over 3 px and pulled in by
+ * its spread so it is brightest at the edge and gone within three pixels: no line where it ends
+ * and none along the sides, where the lobes fade as n·L does.
+ */
+export const RIM_LIGHT =
+  'inset 0.5px 1.5px 3px -1.5px var(--mat-rim-top), inset -0.25px -1px 3px -1.5px var(--mat-rim-bottom)';
+
+/**
+ * The ring (GLS-8, softened by GLS-22): the thick edge catching light, as soft inset light that
+ * meets the glass beneath in soft light: 0.50 from the top left, 0.30 from the bottom right,
+ * each falling off over 6 px from the rim inwards, with no band edge and nothing along the
+ * sides.
+ */
+export const RING_LIGHT =
+  'inset 2px 3px 6px -3px rgb(255 255 255 / 0.5), inset -1.5px -2px 6px -3px rgb(255 255 255 / 0.3)';
 export const RING_BLEND = 'soft-light';
 
 /** The chain after `blur(σ)` per tier, as a theme block of `tokens.css` writes it. */
@@ -207,6 +226,7 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
   out.push(
     block('.mat-docked', [
       '--mat-edge: 0 0 #0000;',
+      '--mat-rim: 0 0 #0000;',
       '--mat-inner: var(--rim-inner-docked);',
       '--mat-shadow: 0 0 #0000;',
     ]),
@@ -215,15 +235,13 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
 
   // 2. The base.
   out.push(
-    '\n/* The base: solid first, the rim lit from the top left, edge, inner light, shadow. */\n',
+    '\n/* The base: solid first, the soft rim (GLS-22): edge, rim light, inner light, shadow. */\n',
   );
   out.push(
     block('.mat', [
-      '--shadow-own: var(--mat-edge), var(--mat-inner), var(--mat-shadow);',
-      'border: 1px solid var(--border-glass);',
-      'border-top-color: var(--mat-rim-top);',
-      'border-inline-start-color: color-mix(in srgb, var(--mat-rim-top) 60%, var(--border-glass));',
-      'border-bottom-color: var(--mat-rim-bottom);',
+      `--mat-rim: ${RIM_LIGHT};`,
+      '--shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--mat-shadow);',
+      'border: 1px solid transparent;',
       'background: var(--mat-solid);',
       'box-shadow: var(--shadow-own);',
     ]),
@@ -231,23 +249,9 @@ export function renderMaterialsCss({ entries, filters, lightFilters }: Materials
   out.push(block('.mat-docked', ['border: 0;']));
   out.push(
     block('.mat-lit', [
-      '--shadow-own: var(--mat-edge), var(--mat-inner);',
+      '--shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner);',
       'position: relative;',
       'border: 0;',
-    ]),
-  );
-  out.push(
-    block('.mat-lit::before', [
-      "content: '';",
-      'position: absolute;',
-      'inset: 0;',
-      'padding: 1px;',
-      'border-radius: inherit;',
-      'background: linear-gradient(180deg, var(--rim-top), var(--border-hairline) 8px, var(--border-hairline) calc(100% - 8px), var(--rim-bottom));',
-      '-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);',
-      '-webkit-mask-composite: xor;',
-      'mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);',
-      'pointer-events: none;',
     ]),
   );
 
@@ -344,10 +348,10 @@ ${SUPPORTS} {
 
   // 5. The ring.
   out.push(`
-/* The ring (GLS-8): a band inside the rim of M1 chips and round buttons (\`mat-ring\`) whose
-   light meets the glass beneath in soft light, masked to the band and laid under the content;
-   no backdrop pass of its own (Q-3, Q-11). Not under the lens (the lens bends the rim instead),
-   Tinted, Solid or ladder step 3 and 4. */
+/* The ring (GLS-8, GLS-22): soft inset light inside the rim of M1 chips and round buttons
+   (\`mat-ring\`) that meets the glass beneath in soft light, falling off inwards with no band
+   edge, laid under the content; no mask and no backdrop pass of its own (Q-3, Q-11). Not under
+   the lens (the lens bends the rim instead), Tinted, Solid or ladder step 3 and 4. */
 ${block(':where(.mat-chip, .mat-ring)', ['position: relative;'])}${SUPPORTS} {
 ${block(
   `:where(:root:not(${SOLID}, [data-glass='tinted'], [data-degrade='3'], [data-degrade='4'])) :is(.mat-chip, .mat-ring):not(.lens, .mat-opaque)::before`,
@@ -356,13 +360,9 @@ ${block(
     'position: absolute;',
     'inset: 0;',
     'z-index: -1;',
-    `padding: ${RING_WIDTH}px;`,
     'border-radius: inherit;',
-    'background: linear-gradient(135deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.08) 40%, rgb(255 255 255 / 0.08) 60%, rgb(255 255 255 / 0.3));',
+    `box-shadow: ${RING_LIGHT};`,
     `mix-blend-mode: ${RING_BLEND};`,
-    '-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);',
-    '-webkit-mask-composite: xor;',
-    'mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);',
     'pointer-events: none;',
   ],
   '  ',
@@ -424,11 +424,11 @@ ${block('.mat', [...TEXT_RESET, '-webkit-backdrop-filter: none !important;', 'ba
 
 /* More contrast: the strong border instead of the rim, no shadow (language.md §2.4, A-18). */
 @media (prefers-contrast: more) {
-${block('.mat', ['--shadow-own: 0 0 #0000;', 'border-color: var(--border-glass);'], '  ')}${block('.mat.mat-lit', ['border: 1px solid var(--border-glass);'], '  ')}${block('.mat-lit::before', ['content: none;'], '  ')}}
+${block('.mat', ['--shadow-own: 0 0 #0000;', 'border-color: var(--border-glass);'], '  ')}${block('.mat.mat-lit', ['border: 1px solid var(--border-glass);'], '  ')}}
 
 /* Forced colours: Canvas with a CanvasText edge (tokens.css §6). */
 @media (forced-colors: active) {
-${block('.mat', ['border-color: CanvasText;'], '  ')}${block('.mat-lit::before', ['content: none;'], '  ')}}
+${block('.mat', ['border-color: CanvasText;'], '  ')}}
 `);
   return out.join('');
 }

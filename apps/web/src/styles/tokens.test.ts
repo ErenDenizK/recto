@@ -26,7 +26,14 @@ import {
 import focusCss from './focus.css?raw';
 import globalCss from './global.css?raw';
 import materialsCss from './materials.css?raw';
-import { FLOOR_BORDER, floorSigma, renderedSigma, SMALL_TIERS, STEP3_SIGMA } from './materials-css';
+import {
+  FLOOR_BORDER,
+  floorSigma,
+  RIM_LIGHT,
+  renderedSigma,
+  SMALL_TIERS,
+  STEP3_SIGMA,
+} from './materials-css';
 import {
   CONTROL_TOKENS,
   GLASS_TIERS,
@@ -870,12 +877,10 @@ describe('tokens.css', () => {
     });
 
     it('defines the rims and e0–e5 of language.md §2.4 and §6.3', () => {
-      expect(resolve('--rim-edge')).toBe('0 0 0 0.5px rgb(0 0 0 / 0.6)');
-      // The inner light is a hairline specular edge (owner feedback 2026-10-09, G4): half a pixel
-      // at the top left, a weaker one at the bottom right, and a soft top light (GLS-8).
+      // The soft rim (GLS-22): a blurred edge with no spread, so no hard dark line.
+      expect(resolve('--rim-edge')).toBe('0 0 2px rgb(0 0 0 / 0.35)');
+      // The inner light is a soft top light only (brief B-5): the lobes are the rim light's.
       expect(splitLayers(resolve('--rim-inner')).map((l) => l.trim())).toEqual([
-        'inset 0.5px 0.5px 0 rgb(255 255 255 / 0.16)',
-        'inset -0.5px -0.5px 0 rgb(255 255 255 / 0.06)',
         'inset 0 12px 12px -12px rgb(255 255 255 / 0.1)',
       ]);
       expect(wash('--rim-top').alpha).toBe(0.42);
@@ -927,40 +932,52 @@ describe('tokens.css', () => {
       }
       // §2.4's values: M4 a 0.60 edge and a 0.30 / 0.10 rim, M5 and floating M3 0.24 / 0.08,
       // docked M3 an inner light of 0.06.
-      expect(resolve('--rim-edge-strong')).toBe('0 0 0 1px rgb(0 0 0 / 0.6)');
+      expect(resolve('--rim-edge-strong')).toBe('0 0 3px rgb(0 0 0 / 0.5)');
       expect(wash('--rim-top-menu').alpha).toBe(0.3);
       expect(wash('--rim-bottom-menu').alpha).toBe(0.1);
       expect(splitLayers(resolve('--rim-inner-menu'))[0]?.trim()).toBe(
-        'inset 0 0.5px 0 rgb(255 255 255 / 0.1)',
+        'inset 0 12px 12px -12px rgb(255 255 255 / 0.06)',
       );
       expect(wash('--rim-top-sheet').alpha).toBe(0.24);
       expect(wash('--rim-bottom-sheet').alpha).toBe(0.08);
       expect(splitLayers(resolve('--rim-inner-sheet'))[0]?.trim()).toBe(
-        'inset 0 0.5px 0 rgb(255 255 255 / 0.08)',
+        'inset 0 12px 12px -12px rgb(255 255 255 / 0.05)',
       );
-      expect(resolve('--rim-inner-docked')).toBe('inset 0 0.5px 0 rgb(255 255 255 / 0.06)');
+      expect(resolve('--rim-inner-docked')).toBe('inset 0 1px 2px -1px rgb(255 255 255 / 0.06)');
       // The bar over a white page and over the canvas (e2e/glass-pixels.spec.ts samples them).
       expect(glassOver(WHITE)).toEqual(literal('#444548'));
       expect(glassOver(canvas())).toEqual(literal('#15161a'));
     });
 
-    it('draws the base solid first, its rim lit from above, edge, inner light and shadow', () => {
+    it('draws the base solid first, its soft rim lit from above, edge, inner light and shadow', () => {
       const base = ruleOf('.mat');
       expect(base.get('background')).toBe('var(--mat-solid)');
-      expect(base.get('border')).toBe('1px solid var(--border-glass)');
-      expect(base.get('border-top-color')).toBe('var(--mat-rim-top)');
-      // The light's first lobe reaches down the leading side (GLS-8).
-      expect(base.get('border-inline-start-color')).toMatch(/var\(--mat-rim-top\)/);
-      expect(base.get('border-bottom-color')).toBe('var(--mat-rim-bottom)');
-      expect(base.get('--shadow-own')).toBe('var(--mat-edge), var(--mat-inner), var(--mat-shadow)');
+      // The border keeps every box, but draws no line (GLS-22): the light is shadows.
+      expect(base.get('border')).toBe('1px solid transparent');
+      expect(base.get('border-top-color')).toBeUndefined();
+      expect(base.get('--mat-rim')).toBe(RIM_LIGHT);
+      // Two lobes in the rim colours, towards a top-left light, every layer blurred.
+      expect(RIM_LIGHT).toMatch(/var\(--mat-rim-top\).*var\(--mat-rim-bottom\)/);
+      for (const layer of splitLayers(RIM_LIGHT)) {
+        const blur = Number(/inset \S+ \S+ ([\d.]+)px/.exec(layer.trim())?.[1]);
+        expect(blur, layer).toBeGreaterThanOrEqual(3);
+      }
+      expect(base.get('--shadow-own')).toBe(
+        'var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--mat-shadow)',
+      );
       expect(base.get('box-shadow')).toBe('var(--shadow-own)');
-      // Docked M3: no edge, no shadow, the module's hairline; lit glass: the masked rim.
+      // Docked M3: no edge, no rim light, no shadow, the module's hairline; lit glass the same
+      // soft rim, no masked pseudo-element.
       expect(ruleOf('.mat-docked').get('--mat-shadow')).toBe('0 0 #0000');
+      expect(ruleOf('.mat-docked').get('--mat-rim')).toBe('0 0 #0000');
       expect(
         materials,
         'docked M3 draws no border of its own: the module draws the hairline on its free edge',
       ).toMatch(/\.mat-docked\s*\{\s*border:\s*0;\s*\}/);
-      expect(ruleOf('.mat-lit::before').get('mask')).toMatch(/content-box exclude/);
+      expect(ruleOf('.mat-lit::before').size).toBe(0);
+      expect(materials).toMatch(
+        /\.mat-lit\s*\{\s*--shadow-own:\s*var\(--mat-edge\), var\(--mat-rim\), var\(--mat-inner\);/,
+      );
       // The tint and the text steps only where glass renders and Glass is not Solid.
       // The ladder never turns a surface solid (GLS-10): only the setting does.
       const live = ruleOf(":where(:root:not([data-glass='solid'])) .mat");
@@ -2106,10 +2123,8 @@ describe('tokens.css', () => {
     });
 
     it('draws white rims lit from above, an ink edge, and shadows in ink at 40 % (§2.4, §6.3)', () => {
-      expect(value('--rim-edge')).toBe('0 0 0 0.5px rgb(15 17 22 / 0.2)');
+      expect(value('--rim-edge')).toBe('0 0 2px rgb(15 17 22 / 0.24)');
       expect(splitLayers(value('--rim-inner')).map((l) => l.trim())).toEqual([
-        'inset 0.5px 0.5px 0 rgb(255 255 255 / 0.7)',
-        'inset -0.5px -0.5px 0 rgb(255 255 255 / 0.35)',
         'inset 0 12px 12px -12px rgb(255 255 255 / 0.5)',
       ]);
       expect(tint('--rim-top')).toEqual({ rgb: WHITE, alpha: 0.9 });

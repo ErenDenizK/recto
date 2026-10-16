@@ -65,6 +65,7 @@
 }
 .mat-docked {
   --mat-edge: 0 0 #0000;
+  --mat-rim: 0 0 #0000;
   --mat-inner: var(--rim-inner-docked);
   --mat-shadow: 0 0 #0000;
 }
@@ -72,13 +73,13 @@
   --mat-tint: var(--mat-solid);
 }
 
-/* The base: solid first, the rim lit from the top left, edge, inner light, shadow. */
+/* The base: solid first, the soft rim (GLS-22): edge, rim light, inner light, shadow. */
 .mat {
-  --shadow-own: var(--mat-edge), var(--mat-inner), var(--mat-shadow);
-  border: 1px solid var(--border-glass);
-  border-top-color: var(--mat-rim-top);
-  border-inline-start-color: color-mix(in srgb, var(--mat-rim-top) 60%, var(--border-glass));
-  border-bottom-color: var(--mat-rim-bottom);
+  --mat-rim:
+    inset 0.5px 1.5px 3px -1.5px var(--mat-rim-top),
+    inset -0.25px -1px 3px -1.5px var(--mat-rim-bottom);
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner), var(--mat-shadow);
+  border: 1px solid transparent;
   background: var(--mat-solid);
   box-shadow: var(--shadow-own);
 }
@@ -86,31 +87,9 @@
   border: 0;
 }
 .mat-lit {
-  --shadow-own: var(--mat-edge), var(--mat-inner);
+  --shadow-own: var(--mat-edge), var(--mat-rim), var(--mat-inner);
   position: relative;
   border: 0;
-}
-.mat-lit::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: inherit;
-  background: linear-gradient(
-    180deg,
-    var(--rim-top),
-    var(--border-hairline) 8px,
-    var(--border-hairline) calc(100% - 8px),
-    var(--rim-bottom)
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
-  pointer-events: none;
 }
 
 /* The tint and the glass text steps, where glass renders and the setting is not Solid. */
@@ -403,10 +382,10 @@
   }
 }
 
-/* The ring (GLS-8): a band inside the rim of M1 chips and round buttons (`mat-ring`) whose
-   light meets the glass beneath in soft light, masked to the band and laid under the content;
-   no backdrop pass of its own (Q-3, Q-11). Not under the lens (the lens bends the rim instead),
-   Tinted, Solid or ladder step 3 and 4. */
+/* The ring (GLS-8, GLS-22): soft inset light inside the rim of M1 chips and round buttons
+   (`mat-ring`) that meets the glass beneath in soft light, falling off inwards with no band
+   edge, laid under the content; no mask and no backdrop pass of its own (Q-3, Q-11). Not under
+   the lens (the lens bends the rim instead), Tinted, Solid or ladder step 3 and 4. */
 :where(.mat-chip, .mat-ring) {
   position: relative;
 }
@@ -419,23 +398,11 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    padding: 3px;
     border-radius: inherit;
-    background: linear-gradient(
-      135deg,
-      rgb(255 255 255 / 0.5),
-      rgb(255 255 255 / 0.08) 40%,
-      rgb(255 255 255 / 0.08) 60%,
-      rgb(255 255 255 / 0.3)
-    );
+    box-shadow:
+      inset 2px 3px 6px -3px rgb(255 255 255 / 0.5),
+      inset -1.5px -2px 6px -3px rgb(255 255 255 / 0.3);
     mix-blend-mode: soft-light;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
     pointer-events: none;
   }
 }
@@ -615,17 +582,11 @@
   .mat.mat-lit {
     border: 1px solid var(--border-glass);
   }
-  .mat-lit::before {
-    content: none;
-  }
 }
 
 /* Forced colours: Canvas with a CanvasText edge (tokens.css §6). */
 @media (forced-colors: active) {
   .mat {
     border-color: CanvasText;
-  }
-  .mat-lit::before {
-    content: none;
   }
 }

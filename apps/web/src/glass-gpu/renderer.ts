@@ -63,7 +63,8 @@ export const GPU_GLASS_CLASS = 'gpu-glass';
 const STYLE_ID = 'gpu-glass-style';
 /** A piece whose glass is fused by `liquid-mask.ts` while it moves (GLS-19). */
 const LIQUID_ATTRIBUTE = 'data-liquid';
-const STYLE = `.${GPU_GLASS_CLASS}.${GPU_GLASS_CLASS}{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-color:transparent!important}`;
+/** The GPU draws the fill and the rim light (`--mat-rim`, GLS-22); the edge, inner light and shadow stay CSS. */
+const STYLE = `.${GPU_GLASS_CLASS}.${GPU_GLASS_CLASS}{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-color:transparent!important;--mat-rim:0 0 #0000!important}`;
 
 /** Optics (GLS-3, research 23 §8 row 5): bezel ≤ 16 px, pull ≤ 12 px, slight dispersion. */
 export const OPTICS = {
@@ -73,7 +74,8 @@ export const OPTICS = {
   maxPull: 12,
   chroma: 0.2,
   spec: 0.7,
-  specWidth: 1.25,
+  /** The rim light's band, CSS px: full at the edge, gone by its end (GLS-22; was 1.25, hard). */
+  specWidth: 2.5,
   /** The light, radians from up, negative to the left (−45°: the top left). */
   light: (-45 * Math.PI) / 180,
 } as const;

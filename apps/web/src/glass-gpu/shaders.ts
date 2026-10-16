@@ -19,7 +19,9 @@
  *   dark under dark ones) for the piece's ratio, it mixes towards the tier's solid colour, so
  *   text holds over any page in the theme's own tone (GLS-20);
  * - the rim light as two lobes, pow(max(n·L, 0), 2) towards a top-left light and 0.6 of it on
- *   the far side, in a hairline band, plus a faint fresnel glow across the bezel.
+ *   the far side, brightest at the edge and falling off smoothly to nothing across its band
+ *   (GLS-22: Liquid DOM's rim strength falls off from the edge and is feathered, so no band
+ *   edge shows), plus a faint fresnel glow across the bezel.
  *
  * The scroll edge (DSN-35) is its own cheap program; a piece under it sees the pages through it
  * (`under`), as its CSS backdrop would have.
@@ -203,9 +205,10 @@ void main() {
     float t = clamp(over / max(abs(lum - luma(u_solid)), 1e-3) * 1.1, 0.0, 1.0);
     col = mix(col, u_solid, t);
   }
-  // Rim light: a hairline band bright towards the light, 0.6 of it on the far side, and a
+  // Rim light: bright towards the light, 0.6 of it on the far side, full at the edge and
+  // falling off smoothly to nothing at the band's inner end (no line where it stops); and a
   // faint fresnel glow across the bezel.
-  float band = 1.0 - smoothstep(u_specWidth, u_specWidth + 1.0 / u_dpr, inward);
+  float band = 1.0 - smoothstep(0.0, u_specWidth, inward);
   float lobe = pow(max(dot(g, u_light), 0.0), 2.0) + 0.6 * pow(max(dot(g, -u_light), 0.0), 2.0);
   float fresnel = pow(1.0 - clamp(inward / max(u_bezel, 1.0), 0.0, 1.0), 3.0);
   col = clamp(col + u_spec * (band * lobe * 0.9 + fresnel * 0.12), 0.0, 1.0);
