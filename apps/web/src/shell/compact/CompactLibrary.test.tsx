@@ -1,7 +1,7 @@
 /**
  * The compact Library's composition (DSN-31; ADR-0033 §2.3, §3): identity, the tools as chips
  * with the sentence for screen readers, Try the sample as a card, Recents' first-run card, and
- * Open PDF in the floating dock; every target at least 44 px (A-15).
+ * Open PDF in the floating dock; every target at least 44 px (A-15); no language switch (DSN-46).
  */
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -61,8 +61,9 @@ describe('CompactLibrary', () => {
     expect(open).toBeVisible();
     expect(height(open)).toBeGreaterThanOrEqual(44);
     expect(getComputedStyle(dock.parentElement as HTMLElement).position).toBe('fixed');
+    // No language switch on the page: it is a setting (DSN-46, About's rows on a phone).
     for (const name of ['English', 'Türkçe']) {
-      expect(height(screen.getByRole('button', { name }))).toBeGreaterThanOrEqual(44);
+      expect(screen.queryByRole('button', { name })).toBeNull();
     }
   });
 

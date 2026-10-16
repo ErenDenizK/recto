@@ -274,7 +274,7 @@ test('Türkçe without a reload, Follow the browser, and the choice survives a r
   ).toHaveAttribute('aria-checked', 'true');
 });
 
-test('About Recto from ⌘K and from the privacy popover; Settings… in the Document menu', async ({
+test('About Recto from ⌘K and from the privacy popover; Settings… in the dock’s More', async ({
   page,
 }, info) => {
   test.skip(info.project.name === TABLET, 'the status bar and Document menu are desktop chrome');
@@ -291,8 +291,10 @@ test('About Recto from ⌘K and from the privacy popover; Settings… in the Doc
   await page.keyboard.press('Escape');
   await expect(sheet(page)).toHaveCount(0);
 
-  // On the Library the footer's chip opens the privacy popover (the strip's ⋯ stands alone).
-  const trigger = page.getByTestId('library-privacy');
+  // The Library holds no privacy chip (DSN-46): ◎ in the document's strip opens the popover.
+  await openFixtures(page, ['simple-text.pdf']);
+  await expect(page.getByTestId('library-privacy')).toHaveCount(0);
+  const trigger = page.getByTestId('privacy-indicator');
   await trigger.click();
   await page.getByTestId('privacy-version').click();
   await expect(sheet(page).getByTestId('settings-about')).toBeVisible();
@@ -300,10 +302,11 @@ test('About Recto from ⌘K and from the privacy popover; Settings… in the Doc
   await expect(sheet(page)).toHaveCount(0);
   await expect(trigger).toBeFocused();
 
-  // The Document menu: Settings… where the Appearance submenu was.
-  await openFixtures(page, ['simple-text.pdf']);
+  // Settings… is the dock's More's (DSN-47); the Document menu no longer ends in it.
   await page.getByTestId('document-menu').click();
-  await expect(page.getByRole('menuitem', { name: 'Appearance' })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: 'Settings…' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.locator('[data-dock-item="more"]').click();
   await page.getByRole('menuitem', { name: 'Settings…' }).click();
   await expect(sheet(page)).toBeVisible();
   await page.keyboard.press('Escape');

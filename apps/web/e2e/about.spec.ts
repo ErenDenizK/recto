@@ -12,8 +12,6 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
-
 /** Spec §3: at most 300 KB transferred without videos. */
 const BUDGET_BYTES = 300 * 1024;
 /** The page's own script pauses clips under reduced motion and nothing else. */
@@ -177,15 +175,16 @@ for (const width of [360, 1440]) {
   });
 }
 
-test('"About this app" in the Document menu opens the page in a new tab', async ({
+test('"How Recto works" in Settings › About opens the page in a new tab', async ({
   page,
   context,
 }) => {
-  await useFileInputPicker(page);
+  // The Document menu no longer ends in the app items (DSN-47): About Recto, from the Library's
+  // ⋯, links the page.
   await page.goto('./');
-  await openFixtures(page, ['simple-text.pdf']);
-  await page.getByTestId('document-menu').click();
-  const item = page.getByRole('menuitem', { name: 'About this app' });
+  await page.getByTestId('library-menu').click();
+  await page.getByTestId('library-menu-about').click();
+  const item = page.getByRole('link', { name: /How Recto works/ });
   await expect(item).toBeVisible();
   const opened = context.waitForEvent('page');
   await item.click();

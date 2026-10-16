@@ -717,10 +717,10 @@ test.describe('core jobs', () => {
       await p.press(bar.getByRole('button', { name: 'Delete' }));
       await expect(cells).toHaveCount(before - 1);
     });
-    await barAct('split: More, Split…, Split', 5, async (p) => {
-      // Split is a document act: the bar's More menu offers it with nothing selected.
+    await barAct('split: the title menu, Split…, Split', 5, async (p) => {
+      // Split is a document act: the title menu is its one home (DSN-47).
       if (/\d+ selected/.test((await bar.textContent()) ?? '')) await page.keyboard.press('Escape');
-      await p.press(bar.getByRole('button', { name: 'More actions' }));
+      await p.press(page.getByTestId('document-menu'));
       await p.press(page.getByRole('menuitem', { name: /^Split/ }));
       const sheet = page.getByRole('dialog', { name: /^Split / });
       await expect(sheet).toBeVisible();

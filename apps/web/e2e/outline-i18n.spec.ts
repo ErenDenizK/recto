@@ -63,8 +63,8 @@ test('?lang= overrides the language without persisting it', async ({ page }) => 
     page.getByRole('heading', { name: 'PDF’leri okuyun, işaretleyin, imzalayın ve düzenleyin.' }),
   ).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
-  // The Library's privacy chip (its strip's ⋯ stands alone, R11) speaks Turkish.
-  await expect(page.getByTestId('library-privacy')).toHaveText('Hiçbir şey yüklenmez');
+  // The Library's launcher speaks Turkish.
+  await expect(page.getByRole('button', { name: 'PDF aç…' })).toBeVisible();
 
   await page.goto('./');
   await expect(page.locator('html')).not.toHaveAttribute('lang', 'tr');

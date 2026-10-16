@@ -1,9 +1,10 @@
 /**
- * The title menu (01-frame F5; redesign D2-1), Vitest browser mode: every row is a registered
- * command with a declared act, the guard dims rows of a locked document with its reason while
- * Save and the reading rows stay, focus lands on the first row (F2: the name), the Lock switch
- * locks and unlocks through the lock store with the guard's reasons, a signed lock warns once,
- * and the name commits on Enter and reverts on Esc.
+ * The title menu (01-frame F5; redesign D2-1; DSN-47), Vitest browser mode: every row is a
+ * registered command with a declared act, each command shows once (Save and Close only in the
+ * narrow bar, no app items, no privacy line), the guard dims rows of a locked document with its
+ * reason while the reading rows stay, focus lands on the first row (F2: the name), the Lock
+ * switch locks and unlocks through the lock store with the guard's reasons, a signed lock warns
+ * once, and the name commits on Enter and reverts on Esc.
  */
 import '../../styles/tokens.css';
 import '../../styles/reset.css';
@@ -78,16 +79,29 @@ describe('the rows (F5 §5)', () => {
     }
   });
 
-  it('dims the page rows of a locked document with the guard’s reason; Save and reading stay', () => {
+  it('dims the page rows of a locked document with the guard’s reason; reading rows stay', () => {
     const rows = () => shownTitleMenu(commandRegistry.list()).flatMap((s) => s.rows);
     const row = (key: string) => rows().find((r) => r.key === key);
     expect(row('rotate')?.enabled).toBe(true);
     useLockStore.getState().lock(active());
     expect(row('rotate')).toMatchObject({ enabled: false, reason: 'Locked · unlock first' });
     // Rows that open a sheet stay; the sheet's Apply is what the guard refuses.
-    for (const key of ['file.save', 'file.export', 'mode.compare', 'pages.crop']) {
+    for (const key of ['file.export', 'mode.compare', 'pages.crop']) {
       expect(row(key)?.enabled, key).toBe(true);
     }
+  });
+
+  it('shows each command once: Save and Close only in the narrow bar (DSN-47)', () => {
+    const keys = (narrow: boolean) =>
+      shownTitleMenu(commandRegistry.list(), { narrow }).flatMap((s) => s.rows.map((r) => r.key));
+    // The strip has its Save button and the tab its ✕; the narrow bar has neither.
+    expect(keys(false)).not.toContain('file.save');
+    expect(keys(false)).not.toContain('tab.close');
+    expect(keys(true)).toEqual(expect.arrayContaining(['file.save', 'tab.close']));
+    expect(keys(false)[0]).toBe('file.export');
+    // Add bookmark is the sidebar's Contents (DSN-26), not a row of its own here.
+    expect(keys(false)).not.toContain('outline.addBookmark');
+    expect(new Set(keys(false)).size).toBe(keys(false).length);
   });
 
   it('opens Pages with exactly Insert pages from file… and Combine with open documents… (F5 §5; MOB-10)', () => {
@@ -127,7 +141,10 @@ describe('the popover (F5 §6, §8)', () => {
     const menu = within(dialog).getByRole('menu');
     const first = within(menu).getAllByRole('menuitem')[0];
     await waitFor(() => expect(first).toHaveFocus());
-    expect(first).toHaveTextContent('Save');
+    expect(first).toHaveTextContent('Save a copy…');
+    // The app items and the privacy line left the menu (DSN-46, DSN-47).
+    expect(within(dialog).queryByText('Settings…')).toBeNull();
+    expect(within(dialog).queryByText('On this device · nothing uploaded')).toBeNull();
     await userEvent.keyboard('{ArrowDown}');
     expect(within(menu).getAllByRole('menuitem')[1]).toHaveFocus();
     await userEvent.keyboard('{End}');

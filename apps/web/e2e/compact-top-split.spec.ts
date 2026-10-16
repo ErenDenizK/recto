@@ -204,8 +204,9 @@ test.describe('the split top (DSN-34)', () => {
 
     await idle(page);
 
-    // ⋯: the same rows as the capsule top's, the menu over its circle, come out of it as one
-    // liquid body: masked by the union while it moves, never clipped or scaled (MOT-5).
+    // ⋯: Contents and About (the copy and Document info are the file menu's, DSN-48), the
+    // menu over its circle, come out of it as one liquid body: masked by the union while it
+    // moves, never clipped or scaled (MOT-5).
     await watchMorph(page, 'compact-menu');
     await tapCentre(page, more(page));
     if (SHOTS) {
@@ -225,14 +226,7 @@ test.describe('the split top (DSN-34)', () => {
     expect(opened.rimmed).toBe(opened.liquid);
     expect(opened.clipped).toBe(0);
     expect(opened.scaled).toBe(0);
-    await expect(menu(page).getByRole('menuitem')).toHaveText([
-      'Find',
-      'Contents',
-      'Go to page',
-      /^(Share|Download a copy)$/,
-      'Document info',
-      'About Recto',
-    ]);
+    await expect(menu(page).getByRole('menuitem')).toHaveText(['Contents', 'About Recto']);
     await expectGlassClean(page, 'the split top with ⋯ open');
     const menuBox = await menu(page).boundingBox();
     if (!menuBox) throw new Error('no menu');
@@ -257,12 +251,12 @@ test.describe('the split top (DSN-34)', () => {
 
     // A row that opens a sheet hands off at once; the sheet takes the chrome away.
     await tapCentre(page, more(page));
-    await menu(page).getByRole('menuitem', { name: 'Document info' }).click();
-    const info = page.getByTestId('compact-info-sheet');
-    await expect(info).toBeVisible();
+    await menu(page).getByRole('menuitem', { name: 'Contents' }).click();
+    const contents = page.getByTestId('compact-contents-sheet');
+    await expect(contents).toBeVisible();
     await expect(topBar(page)).toHaveAttribute('data-hidden');
-    await info.getByRole('button', { name: 'Done' }).click();
-    await expect(info).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(contents).toHaveCount(0);
     await expect(topBar(page)).not.toHaveAttribute('data-hidden');
 
     // The title's ▾: the file menu, liquid out of the title, the name whole, Document info.
@@ -279,9 +273,8 @@ test.describe('the split top (DSN-34)', () => {
     await page.keyboard.press('Escape');
     await expect(fileMenu).toHaveCount(0);
 
-    // Find rides on the keyboard; the top stays (DSN-37).
-    await tapCentre(page, more(page));
-    await menu(page).getByRole('menuitem', { name: 'Find' }).click();
+    // Find, the capsule's (DSN-48), rides on the keyboard; the top stays (DSN-37).
+    await capsule(page).getByRole('button', { name: 'Find' }).click();
     await expect(page.getByRole('searchbox')).toBeFocused();
     await expect(topBar(page)).toHaveAttribute('data-variant', 'split');
     await expect(page.getByTestId('compact-find-bar')).toBeVisible();
@@ -321,9 +314,11 @@ test.describe('the split top (DSN-34)', () => {
     expect(menuBox.y).toBeGreaterThanOrEqual(box.y + box.height);
     await page.keyboard.press('Escape');
     await expect(menu(page)).toHaveCount(0);
-    // Find is the bar's own field there.
+    // Find, the capsule's, is the bar's own field there; ⋯ keeps the copy and Document info.
     await bar.getByRole('button', { name: 'More' }).click();
-    await menu(page).getByRole('menuitem', { name: 'Find' }).click();
+    await expect(menu(page).getByRole('menuitem', { name: 'Document info' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await capsule(page).getByRole('button', { name: 'Find' }).click();
     await expect(bar.getByRole('searchbox')).toBeFocused();
     await expect(page.getByTestId('compact-find-bar')).toHaveCount(0);
   });

@@ -138,7 +138,8 @@ for (const lang of ['en', 'tr'] as const) {
       await expect(fact).toContainText(lang === 'tr' ? 'Bozulmamış' : 'Intact', {
         timeout: 20_000,
       });
-      await expect(menu.locator('[data-command="document.signatures"]')).toBeVisible();
+      // The facts row is S9's one door in the menu (DSN-47): no Signatures… row beside it.
+      await expect(menu.locator('[data-command="document.signatures"]')).toHaveCount(0);
       await shot(page, info, 'signatures-title-menu');
       await fact.click();
       const sheet = page.getByTestId('signatures-sheet');
@@ -179,7 +180,11 @@ for (const lang of ['en', 'tr'] as const) {
       // Two steps to show: the title menu's Rotate all ▸ turns every page, twice.
       for (let i = 0; i < 2; i++) {
         await (await titleMenuRow(page, 'rotate')).click();
-        await page.getByRole('menu').last().getByRole('menuitem').first().click();
+        // The nested menu's turn by name: the title menu's own list (first row Save a copy…,
+        // DSN-47) may come later in the document than the nested menu's portal.
+        await page
+          .getByRole('menuitem', { name: lang === 'tr' ? 'Sağa 90°' : 'Right 90°' })
+          .click();
         await expect(page.getByTestId('title-menu')).toHaveCount(0);
       }
       if (isTablet(info)) {

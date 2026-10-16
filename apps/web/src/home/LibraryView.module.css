@@ -4,9 +4,8 @@
  * the window until the cap, so the title, the launcher piece and the cards start on the line the
  * strip's pieces start on (I-36). The section is the `library` size container its parts query
  * (the launcher's stacked buttons, two cards per row, the bar's short labels). Empty, the
- * launcher sits about a third of the way down; with documents the parts follow each other. The
- * footer is outside the column and ends the view, its pieces --piece-inset from the window's
- * bottom corners.
+ * launcher sits about a third of the way down; with documents the parts follow each other. No
+ * footer (DSN-46): the column ends the view, one piece of air above the window's bottom.
  */
 /*
  * The view reaches up under the top strip to the shell's edge (owner feedback 2026-10-09, G2):
@@ -47,7 +46,8 @@
   width: 100%;
   max-width: calc(1184px + 2 * var(--gutter));
   margin: 0 auto;
-  padding: calc(var(--free-top, 0px) + var(--space-6)) var(--gutter) 0;
+  padding: calc(var(--free-top, 0px) + var(--space-6)) var(--gutter)
+    calc(var(--piece-h) + var(--piece-inset));
   --gutter: var(--piece-inset);
 }
 

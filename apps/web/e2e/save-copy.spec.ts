@@ -83,7 +83,8 @@ test.describe('the download path', () => {
     const sheet = await openSaveCopy(page);
     await expect(sheet.getByRole('radio', { name: 'PDF' })).toBeChecked();
     await expect(sheet.getByRole('textbox', { name: 'Name' })).toHaveValue(`${title}.pdf`);
-    await expect(sheet.getByText('Built and checked on this device')).toBeVisible();
+    // No reassurance line in the footer (DSN-46): the receipt toast says "verified".
+    await expect(sheet.getByText('Built and checked on this device')).toHaveCount(0);
     const { download, bytes } = await downloadCopy(page, sheet);
     expect(download.suggestedFilename()).toBe(`${title}.pdf`);
     await expect(sheet).toBeHidden();
@@ -437,7 +438,7 @@ test.describe('the form in English and Turkish (A-21, 07 §4.5, Q-7)', () => {
       estimating: 'Estimating…',
     },
     tr: {
-      menu: /^Kopya kaydet/,
+      menu: /^Kopyasını kaydet/,
       formats: ['PDF', 'Görüntüler', 'Metin'],
       same: /^Özgün boyut, \d+,\d KB$/,
       size: '· \\d+,\\d KB$',

@@ -198,8 +198,9 @@ test.describe('form filling on phones (MOB-1)', () => {
     // The copy: Name filled, Date taken back, the box ticked. On its side the zoom's way back
     // may leave the chrome away: a scroll up brings it back.
     await bringToThird(page, 'name');
-    await page.getByRole('button', { name: 'More' }).click();
-    await expect(page.getByTestId('compact-menu')).toBeVisible();
+    // The title's file menu holds the copy (DSN-48).
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await expect(page.getByTestId('compact-file-menu')).toBeVisible();
     const downloading = page.waitForEvent('download');
     await page.getByRole('menuitem', { name: 'Save a copy' }).click();
     const download = await downloading;

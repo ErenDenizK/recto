@@ -256,8 +256,8 @@ test.describe('the compact edition', () => {
     expect(clipped).toEqual([]);
     await expect(page.getByTestId('compact-recents-empty')).toContainText('Henüz dosya yok');
     await shot(page, 'compact-library-tr');
-    await page.getByRole('button', { name: 'English' }).click();
-    await expect(page.getByRole('button', { name: 'Open PDF' })).toBeVisible();
+    // Language is a setting, not a control on the page (DSN-46).
+    await expect(page.getByRole('button', { name: 'English' })).toHaveCount(0);
   });
 
   test('Recents show as a card list; on its side the column splits so several rows show', async ({
@@ -549,20 +549,17 @@ test.describe('the compact edition', () => {
     await expect(pageNumber(page)).toHaveText('7 / 400');
   });
 
-  test('the ⋯ menu: Contents, Document info, About, Download a copy', async ({ page }) => {
+  test('the ⋯ menu: Contents, About; the file menu: Document info, Download a copy', async ({
+    page,
+  }) => {
     await openLibrary(page);
     await openPdf(page, 'outline-named-dests.pdf');
     const more = page.getByRole('button', { name: 'More' });
     await more.click();
     const menu = page.getByTestId('compact-menu');
-    await expect(menu.getByRole('menuitem')).toHaveText([
-      'Find',
-      'Contents',
-      'Go to page',
-      /^(Share|Download a copy)$/,
-      'Document info',
-      'About Recto',
-    ]);
+    // One place per command (DSN-46, DSN-48): Find and Go to page are the capsule's, the copy
+    // and Document info the title's file menu.
+    await expect(menu.getByRole('menuitem')).toHaveText(['Contents', 'About Recto']);
     await shot(page, 'compact-menu');
     await menu.getByRole('menuitem', { name: 'Contents' }).click();
     const contents = page.getByTestId('compact-contents-sheet');
@@ -571,8 +568,14 @@ test.describe('the compact edition', () => {
     await expect(contents).toHaveCount(0);
     await expect(pageNumber(page)).not.toHaveText('1 / 6');
 
-    await more.click();
-    await menu.getByRole('menuitem', { name: 'Document info' }).click();
+    const title = page.getByTestId('compact-title-menu-trigger');
+    const fileMenu = page.getByTestId('compact-file-menu');
+    await title.click();
+    await expect(fileMenu.getByRole('menuitem')).toHaveText([
+      /^(Share|Download a copy)$/,
+      'Document info',
+    ]);
+    await fileMenu.getByRole('menuitem', { name: 'Document info' }).click();
     const info = page.getByTestId('compact-info-sheet');
     await expect(info.getByTestId('compact-info-name')).toHaveText('outline-named-dests.pdf');
     await expect(info.getByTestId('compact-info-pages')).toHaveText('6');
@@ -602,9 +605,9 @@ test.describe('the compact edition', () => {
     await expect(page.locator('html')).not.toHaveAttribute('data-motion', 'reduced');
     await page.keyboard.press('Escape');
 
-    await more.click();
+    await title.click();
     const download = page.waitForEvent('download');
-    await menu.getByRole('menuitem', { name: 'Download a copy' }).click();
+    await fileMenu.getByRole('menuitem', { name: 'Download a copy' }).click();
     const file = await download;
     expect(file.suggestedFilename()).toBe('outline-named-dests.pdf');
     const saved = await file.path();
@@ -622,7 +625,12 @@ test.describe('the compact edition', () => {
     await page.getByRole('button', { name: 'More' }).click();
     const menu = page.getByTestId('compact-menu');
     await expect(menu.getByRole('menuitem', { name: 'Contents' })).toHaveCount(0);
-    await menu.getByRole('menuitem', { name: 'Document info' }).click();
+    await page.keyboard.press('Escape');
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await page
+      .getByTestId('compact-file-menu')
+      .getByRole('menuitem', { name: 'Document info' })
+      .click();
     await expect(page.getByTestId('compact-info-producer')).not.toBeEmpty();
   });
 
@@ -694,11 +702,11 @@ test.describe('the compact edition', () => {
   test('Turkish chrome fits: menu, sheets and Find clip nothing', async ({ page }) => {
     await openLibrary(page, 'tr');
     await openPdf(page, 'outline-named-dests.pdf');
-    await page.getByRole('button', { name: 'Diğer' }).click();
-    const menu = page.getByTestId('compact-menu');
+    await page.getByTestId('compact-title-menu-trigger').click();
+    const menu = page.getByTestId('compact-file-menu');
     await expect(menu.getByRole('menuitem', { name: 'Kopyasını indir' })).toBeVisible();
     const clipped = await page.evaluate(() =>
-      [...document.querySelectorAll('[data-compact-chrome] *, [data-testid="compact-menu"] *')]
+      [...document.querySelectorAll('[data-compact-chrome] *, [data-testid="compact-file-menu"] *')]
         .filter((el) => el instanceof HTMLElement && el.children.length === 0 && el.textContent)
         .filter((el) => (el as HTMLElement).scrollWidth > (el as HTMLElement).clientWidth + 1)
         .map((el) => el.textContent),

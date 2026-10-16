@@ -61,7 +61,7 @@ describe('Home chrome', () => {
     expect(screen.queryByRole('tablist', { name: 'Sidebar sections' })).toBeNull();
     expect(useUiStore.getState().leftPanelView).toBe('pages');
     // The strip (01-frame F2 §4): ◆ current with its label, tabs, + and ⋯ alone (R11: the
-    // trailing piece is one control; the footer's chip holds privacy).
+    // trailing piece is one control; ◎ shows there only as a warning, DSN-46).
     const strip = screen.getByRole('banner', { name: 'Library bar' });
     expect(within(strip).getByTestId('home-button')).toHaveAttribute('aria-current', 'page');
     expect(within(strip).queryByTestId('sidebar-toggle')).toBeNull();

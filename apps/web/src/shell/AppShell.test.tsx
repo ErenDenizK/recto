@@ -30,16 +30,16 @@ describe('AppShell', () => {
     resetWorkspace();
   });
 
-  it('renders the shell with the empty state and the privacy shield', () => {
+  it('renders the shell with the empty state and no privacy control while nothing left', () => {
     render(<App />);
     expect(screen.getByTestId('app-shell')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Read, mark up, sign and arrange PDFs.' }),
     ).toBeVisible();
-    // On the Library the footer's chip is the privacy shield (02-library L12); the strip's
-    // trailing piece holds only ⋯ there (01-frame R11), and ◎ returns with a document.
-    expect(screen.getByRole('button', { name: 'Nothing is uploaded' })).toBeVisible();
-    expect(screen.getByTestId('library-privacy')).toHaveTextContent('Nothing is uploaded');
+    // On the Library the strip's trailing piece holds only ⋯ (01-frame R11) and the footer's
+    // "Nothing is uploaded" chip left (DSN-46): ◎ shows there only as a warning, and returns
+    // with a document.
+    expect(screen.queryByRole('button', { name: 'Nothing is uploaded' })).toBeNull();
     expect(
       screen.queryByRole('button', { name: 'Privacy: nothing has left this device' }),
     ).toBeNull();

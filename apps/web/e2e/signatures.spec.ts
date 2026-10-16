@@ -37,22 +37,24 @@ async function start(page: Page, fixtures: readonly string[]): Promise<void> {
 
 /**
  * S9 Signatures for the active document: from the title menu's facts row (`via: 'facts'`,
- * which shows `status` first) or its Protect section's Signatures… row.
+ * which shows `status` first; its one menu home, DSN-47) or ⌘K's Signatures….
  */
 async function openSignatures(
   page: Page,
-  via: 'facts' | 'menu',
+  via: 'facts' | 'palette',
   status?: string,
 ): Promise<Locator> {
-  await page.getByTestId('document-menu').click();
-  const menu = page.getByTestId('title-menu');
-  await expect(menu).toBeVisible();
   if (via === 'facts') {
+    await page.getByTestId('document-menu').click();
+    const menu = page.getByTestId('title-menu');
+    await expect(menu).toBeVisible();
     const fact = menu.getByTestId('title-menu-signatures');
     if (status !== undefined) await expect(fact).toContainText(status, { timeout: 20_000 });
     await fact.click();
   } else {
-    await menu.getByRole('menuitem', { name: 'Signatures…' }).click();
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.getByRole('combobox', { name: 'Search commands' }).fill('Signatures');
+    await page.getByRole('option', { name: /^Signatures…/ }).click();
   }
   const sheet = page.getByTestId('signatures-sheet');
   await expect(sheet).toBeVisible();
@@ -76,7 +78,7 @@ test('signed-then-modified: Intact, changed later with the honesty line', async 
 
 test('signed-tampered: Broken', async ({ page }) => {
   await start(page, ['signed-tampered.pdf']);
-  const section = await openSignatures(page, 'menu');
+  const section = await openSignatures(page, 'palette');
   await expect(section.getByTestId('signature-status')).toHaveText('Broken', { timeout: 20_000 });
   await expect(section.getByTestId('signature-honesty')).toHaveText(HONESTY);
   await expect(page.getByTestId('tab-signature-glyph')).toBeVisible();
@@ -136,8 +138,10 @@ test('sign simple-text.pdf through Save a copy; the download re-opens as Intact'
 
 test('a legacy 3DES .p12 is refused with the re-export command', async ({ page }) => {
   await start(page, ['simple-text.pdf']);
-  await page.getByTestId('document-menu').click();
-  await page.getByRole('menuitem', { name: 'Sign with certificate…' }).click();
+  // Markup's Sign group is the command's menu home (DSN-47); ⌘K reaches it from anywhere.
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByRole('combobox', { name: 'Search commands' }).fill('Sign with certificate');
+  await page.getByRole('option', { name: /^Sign with certificate…/ }).click();
   const sign = page.getByTestId('sign-dialog');
   await expect(sign).toBeVisible();
   // The app's own file control: a Choose… button over a hidden input (Q-14).

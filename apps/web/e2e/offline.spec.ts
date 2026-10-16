@@ -57,10 +57,12 @@ test('the shell and the engine work offline after one visit', async ({ page, con
     )
     .toBeGreaterThan(0);
 
-  // The privacy popover reports the worker as installed (on the Library, from its footer chip).
-  await page.getByTestId('library-privacy').click();
-  await expect(page.getByTestId('sw-status')).toHaveAttribute('data-status', 'ready');
-  await expect(page.getByTestId('sw-status')).toHaveText(/works offline/);
+  // About Recto reports the worker as installed (on the Library, from its ⋯; the footer's
+  // privacy chip left, DSN-46).
+  await page.getByTestId('library-menu').click();
+  await page.getByTestId('library-menu-about').click();
+  await expect(page.getByTestId('about-offline')).toHaveAttribute('data-status', 'ready');
+  await expect(page.getByTestId('about-offline')).toHaveText(/works offline/);
   await page.keyboard.press('Escape');
 
   await context.setOffline(true);

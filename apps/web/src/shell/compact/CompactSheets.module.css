@@ -234,6 +234,10 @@ a.contentsRow:active {
 .aboutSettings {
   --sheet-pad: 8px;
   --sheet-row-pad: 12px;
+  display: flex;
+  flex-direction: column;
+  /* Appearance, then Language (DSN-48): the groups' own rhythm, as Settings stacks them. */
+  gap: var(--space-4);
   margin-top: 8px;
 }
 

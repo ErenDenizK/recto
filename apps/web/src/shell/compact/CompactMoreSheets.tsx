@@ -4,12 +4,13 @@
  * closure (phone code audit 2026-10 §4a; the bundle gate, PRC-11): `CompactSheets` prefetches
  * this module once the browser is idle and when ⋯ opens, so a sheet opens at once.
  *
- * The compact edition has no Settings sheet; its settings besides the Library's language
- * switch are Theme (ADR-0022 §2.4, spec D3-7), Reduce motion (language.md §7.6, A-9) and Dim
- * pages (DESIGN.md §3, MOB-17), at the end of About as the full edition's own rows
- * (`settings/ThemeRow.tsx`, `settings/ReduceMotionRow.tsx`, `settings/DimPagesRow.tsx`, the same
- * `appearance-store` fields), so a person who wants light on a dark phone, less motion than
- * their system asks for, or quieter pages at night, can say so on a phone too.
+ * The compact edition has no Settings sheet; its settings are Theme (ADR-0022 §2.4, spec
+ * D3-7), Reduce motion (language.md §7.6, A-9) and Dim pages (DESIGN.md §3, MOB-17), at the end
+ * of About as the full edition's own rows (`settings/ThemeRow.tsx`,
+ * `settings/ReduceMotionRow.tsx`, `settings/DimPagesRow.tsx`, the same `appearance-store`
+ * fields), so a person who wants light on a dark phone, less motion than their system asks for,
+ * or quieter pages at night, can say so on a phone too; and Language, which left the Library's
+ * corner for these rows (DSN-46): English · Türkçe, each name in its own language.
  */
 import type { OutlineNode, VirtualDocument } from '@pdf-editor/document-model';
 import {
@@ -19,17 +20,28 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import { formatFileSize } from '../../home/home-model';
-import { formatDay, getLocale, m } from '../../i18n';
+import {
+  chooseLocale,
+  formatDay,
+  getLocale,
+  type Locale,
+  LOCALE_NAMES,
+  locales,
+  m,
+  subscribeLocale,
+} from '../../i18n';
 import { DimPagesRow } from '../../settings/DimPagesRow';
 import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
 import { ThemeRow } from '../../settings/ThemeRow';
-import { Section } from '../../settings/rows';
+import { Row, Section } from '../../settings/rows';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
+import { Segmented } from '../../ui/Segmented';
 import { documentLabels, hasCustomLabels, parseGoTo } from '../../viewer/navigation';
 import { BUILD_INFO, LICENSE_ID, PRODUCT_NAME, REPOSITORY_URL } from '../about/build-info';
 import { MakerCredit } from '../about/MakerCredit';
@@ -367,8 +379,31 @@ function About() {
           <ReduceMotionRow />
           <DimPagesRow />
         </Section>
+        <Section title={m.settings_section_language()}>
+          <LanguageRow />
+        </Section>
       </div>
       <MakerCredit className={styles.aboutCredit} />
     </div>
+  );
+}
+
+/**
+ * Language on a phone (DSN-46): English · Türkçe, each name in its own language, applied at
+ * once; the browser's language is the default until one is chosen.
+ */
+function LanguageRow() {
+  const current = useSyncExternalStore(subscribeLocale, getLocale, getLocale);
+  return (
+    <Row id="language" bar>
+      <Segmented<Locale>
+        label={m.settings_section_language()}
+        value={current}
+        onValueChange={(next) => {
+          if (next !== current) chooseLocale(next);
+        }}
+        options={locales.map((locale) => ({ value: locale, label: LOCALE_NAMES[locale] }))}
+      />
+    </Row>
   );
 }
