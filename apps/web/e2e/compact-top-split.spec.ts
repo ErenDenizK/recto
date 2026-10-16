@@ -2,7 +2,7 @@
  * The phone reader's split top (DSN-34, the default since DSN-37;
  * `shell/compact/CompactTopSplit.tsx`), on the `phone` and `phone-land` projects with touch: ‹ and
  * ⋯ as glass circles of their own and the title centred between them, cut in its middle when long
- * (DSN-38), over a scroll-edge fade whose tone follows the page under it (DSN-40); the ⋯ menu
+ * (DSN-38), over a scroll-edge fade in the theme's canvas tone (GLS-20); the ⋯ menu
  * keeps its rows, lies over its circle and comes out of it as one liquid glass body (DSN-39), as
  * the file menu does out of the title; Find rides on the keyboard while the top stays (DSN-39);
  * the pieces hide on scroll with the capsule. `?top=capsule` keeps the capsule top (DSN-32), its
@@ -461,20 +461,34 @@ test.describe('the split top (DSN-34)', () => {
   });
 
   for (const theme of ['light', 'dark'] as const) {
-    test(`the fade follows the page, ${theme}: dark over the cover, light over a white page`, async ({
+    test(`the fade and the title keep the theme's tone over any page, ${theme} (GLS-20)`, async ({
       page,
     }) => {
       await page.emulateMedia({ colorScheme: theme });
       await openSample(page, '');
       const root = page.getByTestId('compact-app');
-      // At the top the band is over the canvas around the pages, which follows the theme.
-      await expect(root).toHaveAttribute('data-edge-tone', theme === 'dark' ? '1' : '0');
+      const edge = topBar(page).locator('[data-gpu-glass="edge"]');
+      // The fade's gradient and the title's ink, as the engine resolves them.
+      const look = async () => ({
+        fade: await edge.evaluate((el) => getComputedStyle(el).backgroundImage),
+        ink: await titleTrigger(page).evaluate((el) => getComputedStyle(el).color),
+      });
+      // Nothing reads the page for a tone any more.
+      await expect(root).not.toHaveAttribute('data-edge-tone');
+      const atTop = await look();
+      // The title is the theme's primary text: light ink in dark, dark ink in light.
+      const brightness = (rgb: string) => {
+        const [r = 0, g = 0, b = 0] = (rgb.match(/\d+(\.\d+)?/g) ?? []).map(Number);
+        return (r + g + b) / 3;
+      };
+      if (theme === 'dark') expect(brightness(atTop.ink)).toBeGreaterThan(180);
+      else expect(brightness(atTop.ink)).toBeLessThan(80);
       // The cover, a night photograph, under the band; the chrome back with a short scroll up.
       await scrollPages(page, 240);
       await scrollPages(page, -40);
-      await expect(root).toHaveAttribute('data-edge-tone', '1');
       await expect(topBar(page)).not.toHaveAttribute('data-hidden');
       await settled(page);
+      expect(await look()).toEqual(atTop);
       await shot(page, `edge-cover-${theme}`);
       // The editor's letter, a white page, under the band.
       // Pages mount as they near the screen: scroll until the letter's top has passed the band.
@@ -487,20 +501,10 @@ test.describe('the split top (DSN-34)', () => {
           await new Promise((resolve) => requestAnimationFrame(resolve));
         }
       });
-      await expect(root).toHaveAttribute('data-edge-tone', '0');
-      // The title's ink follows: dark over the white page whatever the theme.
       await scrollPages(page, -40);
       await expect(topBar(page)).not.toHaveAttribute('data-hidden');
       await settled(page);
-      const ink = await titleTrigger(page).evaluate((el) => {
-        const probe = document.createElement('canvas').getContext('2d');
-        if (!probe) return 255;
-        probe.fillStyle = getComputedStyle(el).color;
-        probe.fillRect(0, 0, 1, 1);
-        const [r = 0, g = 0, b = 0] = probe.getImageData(0, 0, 1, 1).data;
-        return (r + g + b) / 3;
-      });
-      expect(ink).toBeLessThan(80);
+      expect(await look()).toEqual(atTop);
       await shot(page, `edge-light-page-${theme}`);
     });
   }

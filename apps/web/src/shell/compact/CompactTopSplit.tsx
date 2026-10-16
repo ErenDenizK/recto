@@ -6,7 +6,7 @@
  * - **‹** back to the Library, a 44 px glass circle of its own (the capsule's M2 at σ 7,
  *   coverage registry `compact-top-circle`).
  * - **The title** as text centred between the circles, cut in its middle when long (DSN-38,
- *   `title-fit.ts`), its colour following the page under it (DSN-40), with a ▾ in its grey dot
+ *   `title-fit.ts`), in the theme's text colour (GLS-20), with a ▾ in its grey dot
  *   that opens the **file menu**: a card with the file's name
  *   (whole, on up to two lines, where the title truncates), "PDF · size · pages", then Share or
  *   Download a copy (the "Changed" rows once edited) and Document info. Preview's Lock,
@@ -16,9 +16,8 @@
  *   as one liquid glass body, as the file menu does out of the title (DSN-39,
  *   `liquid-menu.ts`).
  * - **The scroll-edge fade** (DSN-35, lighter by DSN-38): a band under the status bar and the
- *   pieces, a light or a dark ink by the page under it (`--edge-tone`, DSN-40) fading out
- *   downwards over a backdrop blur that a mask fades out with it. No script per scrolled frame:
- *   the tone is read on scroll-settle.
+ *   pieces, the theme's canvas colour (GLS-20) fading out downwards over a backdrop blur that a
+ *   mask fades out with it. No script per scrolled frame.
  *
  * "n / N" stays in the capsule (DSN-34): no second page indicator under the title. The pieces
  * hide on scroll with the capsule exactly as the capsule top does (`topBarAway`, DSN-32), each
@@ -70,7 +69,7 @@ export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
         data-glass-group={GLASS_GROUP}
         data-gpu-glass="edge"
       />
-      <div className={styles.row} data-edge-band="">
+      <div className={styles.row}>
         <IconButton
           className={styles.circle}
           label={m.compact_library()}

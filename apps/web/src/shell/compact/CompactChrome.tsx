@@ -11,7 +11,7 @@
  *   (`design/phone-2026-10/README.md` §6: no save in place on a phone). This capsule top is
  *   kept behind `?top=capsule` (DSN-34); the reader's default is the split top (DSN-37,
  *   `top-variant.ts`, `CompactTopSplit` in the compact chunk): ‹ and ⋯ as glass circles, the
- *   title as text over an adaptive scroll-edge fade (`edge-tone.ts`, DSN-40), its menus liquid
+ *   title as text over a scroll-edge fade in the theme's canvas tone (GLS-20), its menus liquid
  *   (`liquid-menu.ts`, DSN-39), and Find as a glass bar riding on the keyboard (`FindBar`'s
  *   `docked` form, DSN-39) while the top stays. There the title's file menu holds Share or
  *   Download a copy and Document info, so ⋯ keeps Contents and About alone (`withFile`,
@@ -107,45 +107,9 @@ export interface SplitTopParts {
   };
 }
 
-/** The top band whose page the edge tone follows: from the window's top to the row's foot. */
-function edgeBand(): DOMRect {
-  const row = document.querySelector('[data-edge-band]');
-  const bottom = row ? row.getBoundingClientRect().bottom : 0;
-  return new DOMRect(0, 0, window.innerWidth, bottom > 0 ? bottom : 72);
-}
-
-/**
- * The adaptive scroll edge's tone (DSN-40) on the compact root while the reader shows. The
- * reader (`edge-tone.ts`) arrives as its own small chunk; until then the tone is the theme's, as
- * the canvas around the pages is, so a dark theme never opens on a light band.
- */
-function useEdgeTone(): void {
-  useEffect(() => {
-    const root = document.querySelector<HTMLElement>('[data-testid="compact-app"]');
-    const scroller = document.querySelector<HTMLElement>('[data-read-viewport]');
-    if (!root || !scroller) return;
-    if (root.dataset.edgeTone === undefined) {
-      const dark = document.documentElement.getAttribute('data-theme') !== 'light';
-      root.style.setProperty('--edge-tone', dark ? '1' : '0');
-    }
-    let stop: (() => void) | undefined;
-    let gone = false;
-    import('./edge-tone')
-      .then((module) => {
-        if (!gone) stop = module.watchEdgeTone(root, scroller, edgeBand);
-      })
-      .catch(() => undefined);
-    return () => {
-      gone = true;
-      stop?.();
-    };
-  }, []);
-}
-
 export function CompactTopBar({ doc }: { readonly doc: VirtualDocument }) {
   const hidden = useCompactStore(topBarAway);
   const findOpen = useCompactStore((s) => s.findOpen);
-  useEdgeTone();
   // The split top stays while Find rides on the keyboard (DSN-37, DSN-39); the capsule top
   // (`?top=capsule`) becomes the field, as before.
   if (topVariant() === 'split') {

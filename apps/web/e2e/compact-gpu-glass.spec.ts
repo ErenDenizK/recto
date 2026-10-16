@@ -256,10 +256,6 @@ test('GPU glass at 0.8 σ keeps the legibility floor over a page of lines (GLS-1
   });
   await expect(page.getByTestId('compact-capsule')).not.toHaveAttribute('data-hidden');
   await glassSettled(page);
-  // Over the white page the capsule may turn light (GLS-9); the GPU reads its material again
-  // once the turn has faded, and draws that.
-  await page.waitForTimeout(600);
-  await glassSettled(page);
   await expect(page.getByTestId('compact-capsule')).toHaveClass(/gpu-glass/);
   // The glass alone: the capsule's content hidden (the GPU draws under it either way).
   const capsuleBox = await page.getByTestId('compact-capsule').evaluate((el) => {

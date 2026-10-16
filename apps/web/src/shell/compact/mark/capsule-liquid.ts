@@ -12,8 +12,7 @@
  *   frame while either moves, and ends with them. No timing token of its own.
  * - **The neck** follows how far ✎ has folded: none with ✎ at rest (so the union starts and
  *   ends as the two pieces at rest), the full fillet once it is a quarter folded.
- * - **The material** is the capsule's (its material classes, its adaptive look's `data-theme`
- *   copied), its rim the union's outline stroked (`outlineRim`, DSN-42); the capsule keeps its
+ * - **The material** is the capsule's (its material classes, in the theme's tone, GLS-20), its rim the union's outline stroked (`outlineRim`, DSN-42); the capsule keeps its
  *   drop shadow, both keep their content, which only fades (MOT-5). GPU glass leaves a piece with
  *   `data-liquid` to CSS+ for the run (GLS-19).
  * - **At rest** nothing is left: no layer, no attribute, no inline style (Q-2). Reduced motion
@@ -99,8 +98,6 @@ export function fuseDock(capsule: HTMLElement, restWidth = 56): () => void {
   layer.className = [...capsule.classList].filter((name) => MATERIAL_CLASS.test(name)).join(' ');
   layer.dataset.testid = 'compact-dock-liquid';
   layer.setAttribute('aria-hidden', 'true');
-  const theme = capsule.getAttribute('data-theme');
-  if (theme) layer.setAttribute('data-theme', theme);
   // Under the pieces and their content (the dock is their stacking context); its box follows
   // the union's, its border and shadows give way to the stroked rim.
   layer.style.cssText =

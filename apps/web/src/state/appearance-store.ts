@@ -199,8 +199,8 @@ export function useAppearanceRoot(): void {
     ensureDegradeStart();
     return startCostLadder();
   }, []);
-  // The glass's own runtime (GLS-9, GLS-11): the adaptive look and the lens on bars, loaded
-  // once the app has painted, so neither is in a first closure.
+  // The glass's own runtime (GLS-11): the lens on bars, loaded once the app has painted, so it
+  // is in no first closure.
   useLayoutEffect(() => {
     let stop: (() => void) | undefined;
     let gone = false;

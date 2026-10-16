@@ -5,6 +5,8 @@
  */
 .chip {
   composes: focus-inset from global;
+  /* The chip's solid twin with its soft rim and shadow (GLS-23: one glass standard). */
+  composes: mat mat-chip mat-opaque from global;
   position: absolute;
   z-index: 3;
   display: inline-flex;
@@ -12,10 +14,8 @@
   box-sizing: border-box;
   height: var(--control-h-sm);
   padding: 0 10px;
-  border: 0;
   border-radius: var(--radius-capsule);
-  background: var(--glass-chip-solid);
-  box-shadow: var(--glass-chip-shadow);
+  box-shadow: var(--shadow-own);
   color: var(--text-primary);
   font: inherit;
   font-size: var(--type-footnote);
