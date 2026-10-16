@@ -153,6 +153,15 @@
   height: var(--icon-md);
 }
 
+/* On a sheet the seated lens is unblurred, as the sheet's own rim is (GLS-22, amended): a
+   sheet slides as a transform of a backdrop-filtered layer, and software WebKit repaints every
+   blurred shadow on it each frame, so its open and close ran out between two frames
+   (`motion.spec.ts` mid-way). Hover and press, under a pointer at rest, keep their soft light.
+   Every primitive's resting lens (Segmented's thumb, chips, menu buttons) reads this token. */
+.mat-sheet {
+  --lens-rim: var(--lens-rim-flat);
+}
+
 /* The lens (GLS-25): filled buttons rest seated; hover lifts it, press sinks it. */
 .btn:is(.btn-prominent, .btn-standard, .btn-danger) {
   --shadow-own: var(--lens-rim);

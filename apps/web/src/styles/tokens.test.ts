@@ -68,7 +68,12 @@ function declarations(body: string): Map<string, string> {
 
 /** Splits a comma-separated list (box-shadow layers) at the top level, not inside functions. */
 /** The button lens's shadow tokens (GLS-25). */
-const LENS_SHADOWS = ['--lens-rim', '--lens-rim-hover', '--lens-rim-pressed'] as const;
+const LENS_SHADOWS = [
+  '--lens-rim',
+  '--lens-rim-flat',
+  '--lens-rim-hover',
+  '--lens-rim-pressed',
+] as const;
 
 /** How far into the box an inset shadow list reaches, px: offset, blur and spread together. */
 function lensReach(value: string): number {

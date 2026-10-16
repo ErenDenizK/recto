@@ -154,6 +154,7 @@ export const CONTROL_TOKENS: readonly string[] = [
   '--lens-hover',
   '--lens-pressed',
   '--lens-rim',
+  '--lens-rim-flat',
   '--lens-rim-hover',
   '--lens-rim-pressed',
   '--badge-fill',

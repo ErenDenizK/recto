@@ -356,6 +356,10 @@
   --lens-rim:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.22),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.08);
+  /* The same lobes unblurred, for buttons on a sheet: software WebKit repaints a blurred shadow
+     of a sliding sheet every frame (GLS-22, amended; GLS-25, amended). */
+  --lens-rim-flat:
+    inset 0 1px 0 rgb(var(--white-rgb) / 0.22), inset 0 -1px 0 rgb(var(--white-rgb) / 0.08);
   --lens-rim-hover:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.42),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.16),
@@ -652,6 +656,9 @@
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
     inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
+  --lens-rim-flat:
+    inset 0 1px 0 rgb(var(--white-rgb) / 0.85), inset 0 -1px 0 rgb(var(--white-rgb) / 0.4),
+    inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
   --lens-rim-hover:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 1),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.6),
@@ -936,6 +943,9 @@
     --lens-rim:
       inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
       inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
+      inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
+    --lens-rim-flat:
+      inset 0 1px 0 rgb(var(--white-rgb) / 0.85), inset 0 -1px 0 rgb(var(--white-rgb) / 0.4),
       inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.06);
     --lens-rim-hover:
       inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 1),
@@ -1230,6 +1240,7 @@
     --rim-inner-sheet: 0 0 #0000;
     --rim-inner-docked: 0 0 #0000;
     --lens-rim: 0 0 #0000;
+    --lens-rim-flat: 0 0 #0000;
     --lens-rim-hover: 0 0 #0000;
     --lens-rim-pressed: 0 0 #0000;
     --text-secondary: var(--n11);
@@ -1289,6 +1300,7 @@
     --rim-inner-sheet: 0 0 #0000;
     --rim-inner-docked: 0 0 #0000;
     --lens-rim: 0 0 #0000;
+    --lens-rim-flat: 0 0 #0000;
     --lens-rim-hover: 0 0 #0000;
     --lens-rim-pressed: 0 0 #0000;
   }
