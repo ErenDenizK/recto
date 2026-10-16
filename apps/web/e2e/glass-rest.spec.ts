@@ -230,6 +230,39 @@ test('the floating sidebar with the strip, the dock, the pill and a contextual b
   expect(glass).not.toBe('none');
 });
 
+test('the page pill turns with the page it floats over (GLS-9, DSN-45)', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium', 'one engine is enough for the turn');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await open(page, 'simple-text.pdf');
+  const pill = page.getByTestId('page-pill');
+  const under = async () => {
+    const [p, b] = await Promise.all([
+      page.locator('[data-page-index="0"]').first().boundingBox(),
+      pill.boundingBox(),
+    ]);
+    // The page under most of the pill (its centre).
+    return p && b ? p.x + p.width > b.x + b.width / 2 && p.y + p.height > b.y + b.height : false;
+  };
+  // At fit width a Letter page reaches under the pill at 1440 × 900: light glass with the light
+  // theme's text over the white page.
+  await page.mouse.click(700, 450);
+  await expect.poll(under).toBe(true);
+  await expect(pill).toHaveAttribute('data-theme', 'light');
+  // Zoomed out until the pill floats over the canvas beside the page: the theme's dark look.
+  await expect
+    .poll(
+      async () => {
+        await page.keyboard.press('Control+Minus');
+        return under();
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(false);
+  await expect(pill).not.toHaveAttribute('data-theme');
+});
+
 test('the Pages grid with its Pages bar', async ({ page }) => {
   await open(page, 'simple-text.pdf');
   await page.keyboard.press('3');

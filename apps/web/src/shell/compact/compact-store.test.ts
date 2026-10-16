@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   beginEditing,
   capsuleAway,
+  closeFind,
   endEditing,
   openFind,
   openSheet,
@@ -15,9 +16,11 @@ import {
   setChromeHidden,
   setCompactTool,
   setDrawerOpen,
+  setFindOverTop,
   showLibrary,
   toggleChrome,
   toolTakesPage,
+  topBarAway,
   useCompactStore,
 } from './compact-store';
 
@@ -82,5 +85,22 @@ describe('editing mode', () => {
     setDrawerOpen(true);
     showLibrary();
     expect(state()).toMatchObject({ editing: false, tool: null, drawerOpen: false });
+  });
+});
+
+describe('Find over the top (DSN-44)', () => {
+  beforeEach(() => resetCompactStore());
+
+  it('takes the top away while Find’s field has the keyboard on its side, until Find ends', () => {
+    openFind();
+    expect(topBarAway(state())).toBe(false);
+    setFindOverTop(true);
+    expect(topBarAway(state())).toBe(true);
+    setFindOverTop(false);
+    expect(topBarAway(state())).toBe(false);
+    setFindOverTop(true);
+    closeFind();
+    expect(state().findOverTop).toBe(false);
+    expect(topBarAway(state())).toBe(false);
   });
 });

@@ -82,6 +82,11 @@ export interface CompactState {
    * place (README §4; `mark/TextLayer.tsx`).
    */
   readonly typing: boolean;
+  /**
+   * Find's field has the keyboard on a phone on its side (DSN-44): the bar riding on the
+   * keyboard would reach the title row, so the top steps away until the keyboard goes.
+   */
+  readonly findOverTop: boolean;
   /** The reader's next zoom to a region (`requestZoom`); a new object each time. */
   readonly zoomRequest: ZoomRequest | null;
   readonly overview: OverviewPhase;
@@ -109,6 +114,7 @@ const INITIAL: CompactState = {
   lastTool: 'pen',
   drawerOpen: false,
   typing: false,
+  findOverTop: false,
   zoomRequest: null,
   overview: 'closed',
   overviewColumns: null,
@@ -119,10 +125,11 @@ export const useCompactStore = create<CompactState>()(() => INITIAL);
 
 /**
  * The top bar steps away while the chrome is hidden or a sheet is open: a sheet is the place
- * then, and on a phone on its side its 92 % detent reaches over the bar's band.
+ * then, and on a phone on its side its 92 % detent reaches over the bar's band. On its side it
+ * also steps away while Find's field has the keyboard (`findOverTop`, DSN-44).
  */
 export const topBarAway = (s: CompactState): boolean =>
-  s.chromeHidden || s.sheet !== null || s.overview !== 'closed';
+  s.chromeHidden || s.sheet !== null || s.overview !== 'closed' || s.findOverTop;
 
 /**
  * The capsule steps away while the chrome is hidden, Find has the top bar, or a sheet is open:
@@ -150,6 +157,7 @@ export function showLibrary(): void {
     tool: null,
     drawerOpen: false,
     typing: false,
+    findOverTop: false,
     overview: 'closed',
   });
 }
@@ -182,7 +190,12 @@ export function openFind(): void {
 }
 
 export function closeFind(): void {
-  set({ findOpen: false });
+  set({ findOpen: false, findOverTop: false });
+}
+
+/** Find's field has (or no longer has) the keyboard on a phone on its side (DSN-44). */
+export function setFindOverTop(findOverTop: boolean): void {
+  if (useCompactStore.getState().findOverTop !== findOverTop) set({ findOverTop });
 }
 
 export function setMenuOpen(menuOpen: boolean): void {

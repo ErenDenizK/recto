@@ -107,7 +107,20 @@
    (the close's opacity is a Web Animation Base UI waits for) and the content only fades,
    never scales (MOT-5). Nothing of it is left at rest. */
 .menu[data-liquid] {
+  position: relative;
+  border-color: transparent;
   transition: none;
+}
+
+/* Its rim while it moves (DSN-42): the mask cuts the border and the inner light to the box's
+   corners, so the union's outline is stroked in the rim's top-lit gradient (`outlineRim`) over
+   the glass, the mask keeping the stroke's inner pixel where the border would be. */
+.menu[data-liquid]::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: var(--liquid-rim, none) no-repeat 0 0 / 100% 100%;
+  pointer-events: none;
 }
 
 .menu[data-liquid]:is([data-starting-style], [data-ending-style]) {
@@ -432,6 +445,33 @@
 .edit[data-hidden] {
   opacity: 0;
   transform: translateY(calc(100% + max(env(safe-area-inset-bottom, 0px), 12px)));
+}
+
+/*
+ * The capsule and ✎ as one liquid body while the capsule morphs into the island and back
+ * (DSN-43, `mark/capsule-liquid.ts`): one masked glass layer under them draws the union, so
+ * each piece's own fill, filter, rim and ring step aside for the run; the capsule keeps its drop
+ * shadow, ✎ none (its box narrows beside the drop and would leave a grey ghost), and the
+ * content stays and only fades (MOT-5). Nothing of it at rest.
+ */
+.capsule[data-liquid],
+.edit[data-liquid] {
+  border-color: transparent !important;
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.capsule[data-liquid] {
+  box-shadow: var(--mat-shadow);
+}
+
+.edit[data-liquid] {
+  box-shadow: none;
+}
+
+.edit[data-liquid]::before {
+  content: none !important;
 }
 
 .edit[data-away] {

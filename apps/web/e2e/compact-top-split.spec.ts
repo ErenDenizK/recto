@@ -121,12 +121,12 @@ async function openNamed(page: Page, name: string, fromReader = false): Promise<
 }
 
 /**
- * Samples a menu's motion every frame: how many frames had the liquid mask (one body), and how
- * many clipped or scaled it (never, MOT-5).
+ * Samples a menu's motion every frame: how many frames had the liquid mask (one body), how many
+ * of them drew the union's rim (DSN-42), and how many clipped or scaled it (never, MOT-5).
  */
 async function watchMorph(page: Page, testId: string): Promise<void> {
   await page.evaluate((id) => {
-    const seen = { liquid: 0, clipped: 0, scaled: 0, run: Math.random() };
+    const seen = { liquid: 0, rimmed: 0, clipped: 0, scaled: 0, run: Math.random() };
     (window as unknown as { __morph: typeof seen }).__morph = seen;
     const tick = () => {
       if ((window as unknown as { __morph: typeof seen }).__morph !== seen) return;
@@ -134,7 +134,11 @@ async function watchMorph(page: Page, testId: string): Promise<void> {
       if (el) {
         const style = getComputedStyle(el);
         const mask = style.maskImage || style.getPropertyValue('-webkit-mask-image');
-        if (el.hasAttribute('data-liquid') && mask.startsWith('url(')) seen.liquid++;
+        if (el.hasAttribute('data-liquid') && mask.startsWith('url(')) {
+          seen.liquid++;
+          const rim = getComputedStyle(el, '::after').backgroundImage;
+          if (rim.startsWith('url(') && decodeURIComponent(rim).includes('stroke=')) seen.rimmed++;
+        }
         if (style.clipPath !== 'none') seen.clipped++;
         if (style.transform !== 'none' || (style.scale !== 'none' && style.scale !== '1')) {
           seen.scaled++;
@@ -149,8 +153,11 @@ async function watchMorph(page: Page, testId: string): Promise<void> {
 const morphSeen = (page: Page) =>
   page.evaluate(
     () =>
-      (window as unknown as { __morph: { liquid: number; clipped: number; scaled: number } })
-        .__morph,
+      (
+        window as unknown as {
+          __morph: { liquid: number; rimmed: number; clipped: number; scaled: number };
+        }
+      ).__morph,
   );
 
 test.describe('the split top (DSN-34)', () => {
@@ -201,12 +208,21 @@ test.describe('the split top (DSN-34)', () => {
     // liquid body: masked by the union while it moves, never clipped or scaled (MOT-5).
     await watchMorph(page, 'compact-menu');
     await tapCentre(page, more(page));
+    if (SHOTS) {
+      // Mid-morph: the circle and the growing blob as one body, its rim along the union.
+      await page.waitForTimeout(140);
+      await page.screenshot({
+        path: join(SHOTS, `menu-mid-morph-${view.width}x${view.height}.png`),
+      });
+    }
     await expect(menu(page)).toBeVisible();
     await expect(menu(page)).not.toHaveAttribute('data-ct');
     await settled(page);
     await expect(menu(page)).not.toHaveAttribute('data-liquid');
     const opened = await morphSeen(page);
     expect(opened.liquid).toBeGreaterThan(3);
+    // The one body keeps a rim while it moves: the union's outline stroked (DSN-42).
+    expect(opened.rimmed).toBe(opened.liquid);
     expect(opened.clipped).toBe(0);
     expect(opened.scaled).toBe(0);
     await expect(menu(page).getByRole('menuitem')).toHaveText([
@@ -229,9 +245,10 @@ test.describe('the split top (DSN-34)', () => {
         const first = el.firstElementChild;
         const content = first ? getComputedStyle(first).opacity : '1';
         const own = el.getAttribute('style') ?? '';
-        return `${style.transform} ${style.clipPath} ${style.maskImage} ${content} ${own}`;
+        const rim = getComputedStyle(el, '::after').content;
+        return `${style.transform} ${style.clipPath} ${style.maskImage} ${content} ${rim} ${own}`;
       }),
-    ).toBe('none none none 1 ');
+    ).toBe('none none none 1 none ');
     // Back into the circle on a tap outside, as one body again.
     await watchMorph(page, 'compact-menu');
     await page.touchscreen.tap(view.width / 2, view.height / 2);
@@ -393,6 +410,59 @@ test.describe('the split top (DSN-34)', () => {
     expect(
       await page.evaluate(() => document.documentElement.style.getPropertyValue('--kb-inset')),
     ).toBe('');
+  });
+
+  test('a found word lands clear of Find on the keyboard; on its side the top steps away', async ({
+    page,
+  }) => {
+    await openSample(page, '');
+    const view = page.viewportSize() ?? { width: 390, height: 844 };
+    const landscape = view.width > view.height;
+    await capsule(page).getByRole('button', { name: 'Find' }).click();
+    const bar = page.getByTestId('compact-find-bar');
+    await expect(page.getByRole('searchbox')).toBeFocused();
+    // A keyboard rises (40 % of the screen's height): the bar rides on it.
+    const keyboard = Math.round(view.height * 0.4);
+    await simulateKeyboard(page, keyboard);
+    await expect
+      .poll(async () => {
+        const b = await bar.boundingBox();
+        return b ? Math.round(view.height - (b.y + b.height)) : 0;
+      })
+      .toBe(keyboard + 8);
+    // On its side the bar would reach the title row: the top steps away while the field has the
+    // keyboard (DSN-44); upright it stays.
+    if (landscape) {
+      await expect(topBar(page)).toHaveAttribute('data-hidden');
+      await expect(topBar(page)).toHaveAttribute('inert', '');
+    } else {
+      await expect(topBar(page)).not.toHaveAttribute('data-hidden');
+    }
+    await page.getByRole('searchbox').fill('the');
+    await expect(page.getByTestId('compact-find-count')).toHaveText(/^1 of \d+$/, {
+      timeout: 15_000,
+    });
+    const current = page.locator('[data-testid="search-highlights"] [data-current]');
+    // Each hit shown lies in the free band: under the top (when it shows), above the bar.
+    for (let step = 0; step < 4; step++) {
+      await expect(current).toHaveCount(1);
+      await settled(page);
+      const hit = await current.boundingBox();
+      const barBox = await bar.boundingBox();
+      if (!hit || !barBox) throw new Error('no hit or bar');
+      expect(hit.y + hit.height, `hit ${step + 1} above the bar`).toBeLessThanOrEqual(barBox.y - 8);
+      const topFoot = landscape ? 0 : ((await back(page).boundingBox())?.y ?? 0) + 44;
+      expect(hit.y, `hit ${step + 1} under the top`).toBeGreaterThanOrEqual(topFoot);
+      if (step === 0) await shot(page, 'find-hit-on-keyboard');
+      await bar.getByRole('button', { name: 'Next result' }).click();
+      await page.getByRole('searchbox').focus();
+    }
+    // The keyboard goes: the top comes back.
+    await simulateKeyboard(page, 0);
+    await expect(topBar(page)).not.toHaveAttribute('data-hidden');
+    await bar.getByRole('button', { name: 'Done' }).click();
+    await expect(bar).toHaveCount(0);
+    await expect(topBar(page)).not.toHaveAttribute('data-hidden');
   });
 
   for (const theme of ['light', 'dark'] as const) {

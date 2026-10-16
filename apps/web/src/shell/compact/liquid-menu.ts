@@ -12,7 +12,10 @@
  * - Choreography after Liquid DOM's showcase menu (MIT, research 23 §2.1), the button kept in
  *   place: the blob's centre on a spring (144 / 14 open, 130 / 18 back), its size on
  *   cubic-bezier(0.8, 0.3, 0.5, 0.8) over 300 ms, its corners over the run.
- * - Ends clean: at rest no mask, no attribute, no inline style (Q-2). Base UI waits for the
+ * - The body keeps a rim while it moves (DSN-42): the mask cuts the material's border and
+ *   shadows to the box's corners, so the union's outline is stroked in the rim's top-lit
+ *   gradient (`outlineRim`) on a layer over the glass (`--liquid-rim`, `.menu[data-liquid]`).
+ * - Ends clean: at rest no mask, no rim, no attribute, no inline style (Q-2). Base UI waits for the
  *   popup's Web Animations before it unmounts it, so the close holds one (an opacity that ends
  *   at 0, where the button takes over).
  * - At once (no motion) for a keyboard or dismissal close (`data-instant`) and the menu → sheet
@@ -23,7 +26,16 @@
  * is idle (`liquid-ref.ts`), outside the compact chunk.
  */
 import { reducedMotion } from '../../motion/reduced-motion';
-import { cubicBezier, type LiquidRect, springProgress, unionMask } from './liquid-mask';
+import {
+  cubicBezier,
+  type LiquidRect,
+  outlineMask,
+  outlineRim,
+  rimColorsOf,
+  type RimColors,
+  springProgress,
+  unionOutline,
+} from './liquid-mask';
 
 /** The fillet between the button and the blob, CSS px. */
 export const LIQUID_NECK = 24;
@@ -107,12 +119,21 @@ export function liquidPopup(popup: HTMLElement, trigger: () => HTMLElement | nul
     popup.style.setProperty('-webkit-mask-image', value);
     popup.style.setProperty('mask-image', value);
   };
+  /** The union's mask and, over the glass, its rim (DSN-42): one outline for both. */
+  let rim: RimColors | null = null;
+  const setShape = (shapes: readonly LiquidRect[], box: DOMRect, k: number) => {
+    const outline = unionOutline(box, shapes, k);
+    setMask(outlineMask(outline));
+    rim ??= rimColorsOf(popup);
+    popup.style.setProperty('--liquid-rim', outlineRim(outline, rim));
+  };
   const clean = () => {
     cancelAnimationFrame(frame);
     for (const name of ['-webkit-mask-image', 'mask-image', 'mask-repeat', '-webkit-mask-repeat']) {
       popup.style.removeProperty(name);
     }
     popup.style.removeProperty('--liquid-content');
+    popup.style.removeProperty('--liquid-rim');
     delete popup.dataset.liquid;
   };
   const atOnce = () => popup.hasAttribute('data-instant') || root.hasAttribute('data-menu-handoff');
@@ -174,12 +195,12 @@ export function liquidPopup(popup: HTMLElement, trigger: () => HTMLElement | nul
       if (t >= total) {
         blob = to;
         if (opening) clean();
-        else setMask(unionMask(box, [buttonShape], 0));
+        else setShape([buttonShape], box, 0);
         return;
       }
       blob = blobAt(from, to, t, spring, total);
       // The trigger may have moved (a rotation); the menu's box is its own, unscaled.
-      setMask(unionMask(box, [buttonShape, blob], LIQUID_NECK));
+      setShape([buttonShape, blob], box, LIQUID_NECK);
       popup.style.setProperty('--liquid-content', contentOpacity(opening, t).toFixed(3));
       frame = requestAnimationFrame(step);
     };

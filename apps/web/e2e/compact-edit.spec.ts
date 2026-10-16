@@ -286,6 +286,109 @@ test.describe('phone editing (M10 WP1)', () => {
     await expect(chip(page)).toHaveAttribute('aria-pressed', 'false');
   });
 
+  test('the capsule and ✎ morph as one liquid glass body, both ways, nothing left at rest (DSN-43)', async ({
+    page,
+  }) => {
+    await openReader(page);
+    const edit = page.getByTestId('compact-edit');
+    const watch = () =>
+      page.evaluate(() => {
+        const seen = { fused: 0, own: 0, run: Math.random() };
+        (window as unknown as { __dock: typeof seen }).__dock = seen;
+        const tick = () => {
+          if ((window as unknown as { __dock: typeof seen }).__dock !== seen) return;
+          const layer = document.querySelector<HTMLElement>('[data-testid="compact-dock-liquid"]');
+          const capsule = document.querySelector<HTMLElement>('[data-testid="compact-capsule"]');
+          if (layer && capsule?.hasAttribute('data-liquid')) {
+            const mask =
+              layer.style.maskImage || layer.style.getPropertyValue('-webkit-mask-image');
+            if (mask.startsWith('url(')) seen.fused++;
+            // The pieces' own glass steps aside for the run (one surface, not three).
+            if (getComputedStyle(capsule).backdropFilter !== 'none') seen.own++;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    const seen = () =>
+      page.evaluate(() => (window as unknown as { __dock: { fused: number; own: number } }).__dock);
+    const atRest = async () => {
+      await page.waitForFunction(
+        () =>
+          document
+            .getAnimations()
+            .every(
+              (a) =>
+                a.playState !== 'running' ||
+                !Number.isFinite(Number(a.effect?.getComputedTiming().endTime)),
+            ),
+        undefined,
+        { timeout: 10_000 },
+      );
+      await expect(page.getByTestId('compact-dock-liquid')).toHaveCount(0);
+      await expect(capsule(page)).not.toHaveAttribute('data-liquid');
+      await expect(edit).not.toHaveAttribute('data-liquid');
+      expect(await capsule(page).evaluate((el) => getComputedStyle(el).backdropFilter)).not.toBe(
+        'none',
+      );
+    };
+
+    // ✎ → the island: ✎ folds into the capsule's end as one body.
+    await watch();
+    await edit.click();
+    await expect(capsule(page)).toHaveAttribute('data-editing');
+    await atRest();
+    const entering = await seen();
+    expect(entering.fused).toBeGreaterThan(3);
+    expect(entering.own).toBe(0);
+
+    // Done → reading: ✎ grows out of the end and pinches off.
+    await watch();
+    await page.getByTestId('compact-edit-done').click();
+    await expect(capsule(page)).not.toHaveAttribute('data-editing');
+    await atRest();
+    expect((await seen()).fused).toBeGreaterThan(3);
+    await expect(edit).toBeVisible();
+
+    if (SHOTS) {
+      // Review frames of the merge, the morph slowed tenfold.
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Animation.enable');
+      await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });
+      await edit.click();
+      for (let n = 1; n <= 4; n++) {
+        await page.waitForTimeout(120);
+        await shot(page, `merge-${n}`, 0);
+      }
+      await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
+      await atRest();
+    }
+  });
+
+  test.describe('with reduced motion', () => {
+    test.use({ reducedMotion: 'reduce' });
+
+    test('the island only fades in: the capsule and ✎ never fuse', async ({ page }) => {
+      await openReader(page);
+      const frames = page.evaluate(
+        () =>
+          new Promise<number>((resolve) => {
+            let fused = 0;
+            const end = performance.now() + 800;
+            const tick = () => {
+              if (document.querySelector('[data-testid="compact-dock-liquid"]')) fused++;
+              if (performance.now() < end) requestAnimationFrame(tick);
+              else resolve(fused);
+            };
+            requestAnimationFrame(tick);
+          }),
+      );
+      await page.getByTestId('compact-edit').click();
+      await expect(capsule(page)).toHaveAttribute('data-editing');
+      expect(await frames).toBe(0);
+    });
+  });
+
   test('Undo and Redo work with the drawer open, which stays (EDN-18)', async ({ page }) => {
     await openReader(page);
     await page.getByTestId('compact-edit').click();

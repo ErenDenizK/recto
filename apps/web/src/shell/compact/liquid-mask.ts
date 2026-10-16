@@ -5,10 +5,12 @@
  * A mask, never `clip-path: path()`: the glass lab saw a path clip leave part of a filtered
  * backdrop unclipped (GLS-4).
  *
- * Pure geometry, no DOM beyond the returned CSS value, so any surface can fuse with it: the
- * split top's liquid menus (`liquid-menu.ts`, DSN-39) today, the bottom capsule's pieces merging
- * as one body later (DSN-37). Trace only while a shape moves: a few thousand field samples a
- * frame at the 2.5 px grid; at rest nothing is masked.
+ * Geometry, no DOM beyond the returned CSS values and a material's rim colours (`rimColorsOf`),
+ * so any surface can fuse with it: the split top's liquid menus (`liquid-menu.ts`, DSN-39) and
+ * the bottom capsule and ✎ as one body while the capsule morphs into the edit island
+ * (`mark/capsule-liquid.ts`, DSN-43). A fused body's rim is its outline stroked (`outlineRim`,
+ * DSN-42). Trace only while a shape moves: a few thousand field samples a frame at the 2.5 px
+ * grid; at rest nothing is masked.
  *
  * Formulas restated, with credit (all MIT licence): the rounded-rect SDF and the polynomial
  * smooth minimum are Inigo Quilez's public formulas, as liquid-glass-studio (Charles Yin) and
@@ -190,17 +192,27 @@ export function contourPath(
   return parts.join('');
 }
 
+/** The smooth union's outline over an element's box, as `unionOutline` traces it. */
+export interface LiquidOutline {
+  /** The SVG path, in the box's coordinates shifted by `pad`. */
+  readonly d: string;
+  readonly width: number;
+  readonly height: number;
+  /** How far the traced grid reaches past the box on every side, CSS px. */
+  readonly pad: number;
+}
+
 /**
- * The CSS `mask-image` that shapes an element whose box is `box` (same space as the shapes) to
- * the smooth union of `shapes` within the box; `'none'` when nothing of them is inside it. The
- * field is cut to the box and traced on a grid a little larger, so an outline that meets the
- * box's edge (a button in the menu's corner) still closes there.
+ * The outline of the smooth union of `shapes` within `box` (same space as the shapes), or null
+ * when nothing of them is inside it. The field is cut to the box and traced on a grid a little
+ * larger, so an outline that meets the box's edge (a button in the menu's corner) still closes
+ * there.
  */
-export function unionMask(
+export function unionOutline(
   box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number },
   shapes: readonly LiquidRect[],
   k: number,
-): string {
+): LiquidOutline | null {
   const w = Math.max(1, Math.ceil(box.width));
   const h = Math.max(1, Math.ceil(box.height));
   const pad = 2 * LIQUID_GRID;
@@ -208,11 +220,87 @@ export function unionMask(
   const field = (x: number, y: number) =>
     Math.max(unionDistance(x, y, shapes, k), sdRoundRect(x, y, edge));
   const d = contourPath(field, box.x - pad, box.y - pad, w + 2 * pad, h + 2 * pad);
-  if (d === '') return 'none';
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">` +
-    `<path transform="translate(${-pad} ${-pad})" d="${d}" fill="#fff"/></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  return d === '' ? null : { d, width: w, height: h, pad };
+}
+
+const svgUrl = (svg: string) => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+
+/** The CSS `mask-image` of an outline: the union filled white, nothing else. */
+export function outlineMask(outline: LiquidOutline | null): string {
+  if (!outline) return 'none';
+  const { d, width, height, pad } = outline;
+  return svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+      `<path transform="translate(${-pad} ${-pad})" d="${d}" fill="#fff"/></svg>`,
+  );
+}
+
+/**
+ * The CSS `mask-image` that shapes an element whose box is `box` to the smooth union of
+ * `shapes` within the box; `'none'` when nothing of them is inside it.
+ */
+export function unionMask(
+  box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number },
+  shapes: readonly LiquidRect[],
+  k: number,
+): string {
+  return outlineMask(unionOutline(box, shapes, k));
+}
+
+/** A rim's colours: its lit top and its weaker foot (`--mat-rim-top`, `--mat-rim-bottom`). */
+export interface RimColors {
+  readonly top: string;
+  readonly bottom: string;
+}
+
+let probe: CanvasRenderingContext2D | null | undefined;
+
+/** A CSS colour as the legacy `rgba()` an SVG image's `stop-color` reads in every engine. */
+function legacyColor(value: string): string {
+  if (probe === undefined) probe = document.createElement('canvas').getContext('2d');
+  if (!probe || value === '') return value || 'transparent';
+  probe.fillStyle = '#0000';
+  probe.fillStyle = value;
+  return probe.fillStyle;
+}
+
+/** The material's rim colours on `el` (`--mat-rim-top`, `--mat-rim-bottom`, GLS-8). */
+export function rimColorsOf(el: Element): RimColors {
+  const style = getComputedStyle(el);
+  return {
+    top: legacyColor(style.getPropertyValue('--mat-rim-top').trim()),
+    bottom: legacyColor(style.getPropertyValue('--mat-rim-bottom').trim()),
+  };
+}
+
+/** The rim's stroke, CSS px: centred on the outline, the mask keeps its inner pixel. */
+export const RIM_STROKE = 2;
+
+/**
+ * The rim of a fused body (GLS-8's rim on a liquid outline, DSN-42): the outline stroked
+ * `RIM_STROKE` px wide, centred on it, so the element's own mask keeps the inner pixel, as the
+ * material's 1 px border, in the same top-lit gradient: the tier's rim at the top, 60 % of it on
+ * the way down, the foot's weaker lobe at the bottom, the top and the foot held over 8 px as
+ * `.mat-lit::before` holds them. A background image for a layer over the glass, never a
+ * box-shadow (a mask cuts a box's shadows to the box's corners).
+ */
+export function outlineRim(outline: LiquidOutline | null, rim: RimColors): string {
+  if (!outline) return 'none';
+  const { d, width, height, pad } = outline;
+  const held = Math.min(0.5, 8 / Math.max(1, height));
+  const stop = (offset: number, color: string, opacity = 1) =>
+    `<stop offset="${offset.toFixed(3)}" style="stop-color:${color};stop-opacity:${opacity}"/>`;
+  return svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+      `<defs><linearGradient id="r" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${height}">` +
+      stop(0, rim.top) +
+      stop(held, rim.top, 0.6) +
+      stop(1 - held, rim.bottom, 0.8) +
+      stop(1, rim.bottom) +
+      `</linearGradient></defs>` +
+      `<path transform="translate(${-pad} ${-pad})" d="${d}" fill="none" stroke="url(#r)" ` +
+      `stroke-width="${RIM_STROKE}" stroke-linejoin="round"/></svg>`,
+  );
 }
 
 /**
