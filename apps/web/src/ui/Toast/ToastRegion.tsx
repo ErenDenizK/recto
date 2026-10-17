@@ -426,9 +426,15 @@ function ToastView({
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     setToastPause('pointer', true);
-    const release = () => setToastPause('pointer', false);
-    window.addEventListener('pointerup', release, { once: true });
-    window.addEventListener('pointercancel', release, { once: true });
+    // Whichever ends the press removes both: `once` alone left the other on the window, one
+    // more listener for every press on a toast.
+    const release = () => {
+      window.removeEventListener('pointerup', release);
+      window.removeEventListener('pointercancel', release);
+      setToastPause('pointer', false);
+    };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
     if (event.pointerType === 'mouse' || (event.target as Element).closest('button')) return;
     const track = velocityTracker();
     track.add(event.timeStamp, event.clientX, event.clientY);
