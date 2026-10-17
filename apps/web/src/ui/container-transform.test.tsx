@@ -107,8 +107,13 @@ describe('a menu (the container transform)', () => {
     );
     expect(box.height - (inset[0] ?? 0) - (inset[2] ?? 0)).toBeCloseTo(t.height, 0);
     expect(trigger).toHaveAttribute('data-popup-open');
+    // Solid while it grows, no filter to re-blur (MOT-12); its glass clears once it rests.
+    expect(menu).toHaveAttribute('data-glass-moving');
+    expect(getComputedStyle(menu).backdropFilter).toBe('none');
     await settled(menu);
     expect(menu.style.cssText).toBe('');
+    await waitFor(() => expect(menu).not.toHaveAttribute('data-glass-settle'));
+    expect(menu).not.toHaveAttribute('data-glass-moving');
 
     await userEvent.keyboard('{Escape}');
     // Esc is a dismissal: Base UI closes it at once (`data-instant`), no return.

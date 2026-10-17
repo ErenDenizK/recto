@@ -1034,8 +1034,12 @@ describe('tokens.css', () => {
       expect(live.get('background')).toBe('var(--mat-tint)');
       expect(live.get('--text-secondary')).toBe('var(--glass-text-secondary)');
       expect(live.get('--danger')).toBe('var(--glass-danger)');
-      // Filters never animate (language.md §2.1 rule 5).
-      expect(materials).not.toMatch(/transition|animation/);
+      // Filters never animate (language.md §2.1 rule 5): the one transition is a grown surface's
+      // tint and shadow clearing once it rests, its filter back at once (MOT-12).
+      expect(materials).not.toMatch(/animation/);
+      expect(materials.match(/transition:[^;]*;/g)).toEqual([
+        'transition:\n    background-color var(--duration-fast) var(--ease-out),\n    box-shadow var(--duration-fast) var(--ease-out) !important;',
+      ]);
     });
 
     it('uses no other drop shadow in component styles (rings, insets and e-tokens only)', () => {

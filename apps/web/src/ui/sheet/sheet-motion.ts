@@ -14,7 +14,8 @@
  *   into its edge or its centre on `smooth`; it closes back into that control
  *   (a menu item's menu trigger) while it is on screen, whole for 120 ms and then fading,
  *   and the control takes it in with the *receive* pulse. Otherwise, or when a swipe throws
- *   it, it leaves by its edge as above.
+ *   it, it leaves by its edge as above. Growing out of the control it is its tier's solid twin,
+ *   its glass clearing once it rests (MOT-12, `glass-moving.ts`).
  * - A swipe (bottom sheets down, a compact-height side sheet right) follows the pointer 1:1,
  *   with the rubber band past the tallest detent; the release hands its velocity to the spring
  *   (Q-7), projects with r 0.998 and snaps to a detent or closes (`releaseTarget`).
@@ -41,6 +42,7 @@ import {
   velocityTracker,
   type VelocityTracker,
 } from '../../motion';
+import { glassMoving, glassSettle } from '../glass-moving';
 import { onScreen, type PressOrigin } from '../press-origin';
 import { detentOffsets, FLING_SPEED, releaseTarget, type SheetLayout } from './presentation';
 
@@ -340,6 +342,15 @@ export function createSheetMotion(onSwipeClose: () => void): SheetMotion {
       );
       if (fades() || emerge) fadeTo(1, false);
       else if (opacity) fadeTo(1, false);
+      // Grown out of its control it is solid until it rests, then its glass clears (MOT-12).
+      if (emerge) {
+        const panel = el;
+        const run = transform;
+        glassMoving(panel);
+        void run?.finished.then(() => {
+          if (open && transform === null && el === panel) glassSettle(panel);
+        });
+      }
     },
     exit() {
       if (!el) return;

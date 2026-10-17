@@ -15,7 +15,9 @@
  *   trigger's rect into its own on `quick`. Out of the box (MOT-9, the owner's R21 brief B-3):
  *   the whole popup, content with it, also grows from `ORIGIN_SCALE` to 1 about the point over
  *   the trigger (`grownFrame`), so it reads as coming out of the control rather than being
- *   wiped in by the clip; the scale is uniform, so text keeps its shape.
+ *   wiped in by the clip; the scale is uniform, so text keeps its shape. While it grows it is
+ *   its tier's solid twin, and its glass clears once it rests (MOT-12, `glass-moving.ts`): a
+ *   scaling backdrop-filtered layer re-blurs its backdrop every frame.
  * - **Close.** When Base UI puts it in its ending style, it goes back into the trigger on
  *   `press`, if the trigger is still on screen; the trigger then takes it in with the *receive*
  *   pulse. With the trigger gone it leaves as the recipe's exit (0.98 and a fade,
@@ -41,6 +43,7 @@ import {
   receivePulse,
   reducedMotion,
 } from '../motion';
+import { glassMoving, glassSettle } from './glass-moving';
 import {
   controllerOf,
   installPressOrigin,
@@ -120,7 +123,18 @@ function start(popup: HTMLElement, entry: Entry): void {
     radiusOf(popup, box.width, box.height),
     grownFrame,
   );
+  // Solid while it grows, its glass clearing once it rests (MOT-12).
+  if (!reducedMotion()) glassMoving(popup);
   entry.motion.to(1);
+  settleWhenOpen(popup, entry);
+}
+
+/** Once the open in flight rests (not closed or turned meanwhile), the glass clears (MOT-12). */
+function settleWhenOpen(popup: HTMLElement, entry: Entry): void {
+  const run = entry.motion?.finished;
+  void run?.then(() => {
+    if (!entry.closing && entry.motion?.finished === run) glassSettle(popup);
+  });
 }
 
 function mount(popup: HTMLElement): void {
@@ -222,6 +236,7 @@ function reopen(popup: HTMLElement): void {
   closing.delete(popup);
   if (entry.marked) entry.trigger.setAttribute('data-origin-open', '');
   entry.motion?.to(1);
+  settleWhenOpen(popup, entry);
 }
 
 /** Every popup of the recipe in `node`, itself included. */
