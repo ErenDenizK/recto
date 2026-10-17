@@ -392,6 +392,7 @@ export function DocumentTabs({
                         className={styles.count}
                         aria-hidden="true"
                         data-testid="grid-title-count"
+                        data-grid-count=""
                       >
                         {pagesPhrase(pageCount)}
                       </span>
