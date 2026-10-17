@@ -6,7 +6,7 @@
 `prefers-reduced-motion: reduce`, English UI unless noted. Measurements come from
 screenshot pixels and `getComputedStyle`. Nothing in the app was changed.
 
-Prompted by the owner's review after M5 (`DISCUSSION.md` #23): "the features are good, but
+Prompted by the owner's review after M5 (`docs/archive/DISCUSSION.md` #23): "the features are good, but
 the app is too complicated". The plan that answers it is
 [`docs/specs/experience-redesign.md`](../specs/experience-redesign.md).
 

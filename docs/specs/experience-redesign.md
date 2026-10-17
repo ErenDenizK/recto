@@ -15,7 +15,7 @@ lead's decisions are specified, not reopened; §14 holds the two questions for t
 
 ## 1. Problem
 
-### 1.1 Owner feedback (2026-10-01, `DISCUSSION.md` #23; in translation, condensed)
+### 1.1 Owner feedback (2026-10-01, `docs/archive/DISCUSSION.md` #23; in translation, condensed)
 
 "The features are good, but the app is too complicated." · "The tabs on the left carry too
 much detail." · "There is no home page for several PDFs, and no way to merge the files I

@@ -36,11 +36,11 @@ wider glass. The former M8 is now M9, and M10 "Tablet and phone" follows. Paths 
 | Accent | `#7c8cff` stays | ADR-0021 §4 |
 | Glass | Spike S2; "Glass panels" setting, default off | brief; §7 |
 | Tablet and phone | M10 | brief; ROADMAP M10 |
-| About pages | Each app keeps its own; the portfolio is a hub; not in this spec | `docs/DISCUSSION.md` #28 |
+| About pages | Each app keeps its own; the portfolio is a hub; not in this spec | `docs/archive/DISCUSSION.md` #28 |
 
 ## 1. Problem
 
-### 1.1 The owner's feedback (2026-10-03, `DISCUSSION.md` #28; in translation, condensed)
+### 1.1 The owner's feedback (2026-10-03, `docs/archive/DISCUSSION.md` #28; in translation, condensed)
 
 "It works, but it doesn't feel fluid or native yet." · "Text editing feels like a patch,
 and it hides under Pages." · "Why are there two highlighters?" · "The pen is slightly laggy
@@ -886,7 +886,7 @@ built and A15 only as the Glass panels trial (DESIGN §9). Measurements are in
 | S2 | partial | Contrast final for three tiers over four backdrops; `e2e/glass-perf.spec.ts` gives a headless CPU trend only (blur costs two to four times the median frame in Read; in Arrange, without the gate, the median is unchanged and p95 rises from 17–33 ms to 67–100 ms, research 14 §4.2). The floating bar's tier 1 is unchanged: no lighter value passed the contrast tests (§4.3 there). **The owner's measurements are pending**: frame rate and GPU memory on a 2020-class GPU at DPR 2 in Chromium and Safari, and legibility. A15 stays a setting until then | `docs/research/14-glass-spike.md` |
 | QA | done | Specs rewritten for keys `1`–`4`, five groups and the Read lock (`enterEdit` after opening); new `modes`, `paragraph-edit`, `ink-latency` and `glass-perf` specs and new tests in `pen`, `home`, `text-edit`, `tools` and `a11y`. The last full Chromium run, before the wave-4 changes: 115 passed, 9 skipped by their own gates; the wave-4 specs passed on their own | the e2e specs under `apps/web/e2e/` |
 | D1 | done | DESIGN A8–A14 and the A15 trial, the M6, viewer and text-editing specs annotated, ROADMAP, a changeset. No new screenshots | `docs/DESIGN.md` §9 |
-| R | done | The independent review ran on 2026-10-04 (`DISCUSSION.md` #31): the correctness review found 1 blocker, 3 major and 2 minor findings, the experience review 2 blockers, 6 major and 18 minor or polish items. All were fixed with regression tests except the floating glass tier (contrast) and Tier C, which stays declined. The fixes are marked "M8 review" in §3–§5 and §7, and the open ones are in ROADMAP M8 | `docs/ROADMAP.md` (M8 known behaviours) |
+| R | done | The independent review ran on 2026-10-04 (`docs/archive/DISCUSSION.md` #31): the correctness review found 1 blocker, 3 major and 2 minor findings, the experience review 2 blockers, 6 major and 18 minor or polish items. All were fixed with regression tests except the floating glass tier (contrast) and Tier C, which stays declined. The fixes are marked "M8 review" in §3–§5 and §7, and the open ones are in ROADMAP M8 | `docs/ROADMAP.md` (M8 known behaviours) |
 
 ### 15.5 Not built by decision
 

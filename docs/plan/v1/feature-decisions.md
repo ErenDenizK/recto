@@ -2,7 +2,7 @@
 
 Date: 2026-10-09 · Tree: `develop` `7697f56` · Status: **input for the owner**, who decides each row. Nothing here changes the plan until the owner marks it.
 
-Sources: `docs/plan/v1/PLAN.md` (backlog, editions, waves), `docs/research/innovation-2026-10/ROADMAP.md` (S*, E*, bets), `docs/plan/v1/phone-edition.md` (M10), `docs/plan/v1/old-roadmap-inventory.md` (earlier plan). A Turkish copy for the owner is kept outside the repository.
+Sources: `docs/plan/v1/PLAN.md` (backlog, editions, waves), `docs/research/innovation-2026-10/ROADMAP.md` (S*, E*, bets), `docs/plan/v1/phone-edition.md` (M10), `docs/archive/plan/v1/old-roadmap-inventory.md` (earlier plan). A Turkish copy for the owner is kept outside the repository.
 
 ## How to read this
 

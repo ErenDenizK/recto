@@ -1,6 +1,6 @@
 # Earlier planning: inventory of planned but unfinished ideas (r13)
 
-Date 2026-10-09, tree `8a78589` (develop). Sources: `docs/ROADMAP.md` (M1–M11), `docs/DISCUSSION.md`,
+Date 2026-10-09, tree `8a78589` (develop). Sources: `docs/ROADMAP.md` (M1–M11), `docs/archive/DISCUSSION.md`,
 `docs/VISION.md`, `docs/specs/*.md` (redesign §9–§15 especially), `docs/design/redesign-2026-10/`,
 `docs/adr/0007`, the specs' "Out of scope" sections and the deferred and follow-up notes in docs.
 Status was checked against `apps/web/src`, `packages/*` and `git log`, not taken from the docs.
