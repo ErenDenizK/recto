@@ -46,3 +46,7 @@ rounds** counts pushes needed after that; **stray** counts files changed outside
 | R22 | Claude Code docs check | Haiku 5.5 | default | 56K | <1 | — | — | — | — |
 
 Sonnet lanes start below this line.
+
+| R22 | timing-budget tests (implementer) | Sonnet 5.5 | medium | 69K | 12 | yes | 0 | 0 | — |
+| R22 | decisions index split (implementer) | Sonnet 5.5 | medium | 110K + fix round | 4 + fix | pending | 0 | 1 (tsconfig include, accepted) | 0 blocking, 2 warnings fixed |
+| R22 | review of the decisions split (reviewer) | Opus 5.5 | medium | 77K | 2 | — | — | — | — |
