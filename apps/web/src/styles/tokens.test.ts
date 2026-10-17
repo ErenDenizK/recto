@@ -2118,13 +2118,14 @@ describe('tokens.css', () => {
       }
     });
 
-    it('keeps ink AA on the light button lens over every light tier over black (GLS-25)', () => {
+    it('keeps ink AA on the light button lens over every light tier over black (GLS-25, GLS-27)', () => {
       for (const token of LENS_SHADOWS) {
         expect(lensReach(value(token)), token).toBeLessThanOrEqual(6);
       }
-      // Hover is a lighter, denser white lens; pressed an ink wash under an ink glow, proven
-      // at the glow's full strength as if it reached the label.
-      expect(tint('--lens-hover').rgb).toEqual([255, 255, 255]);
+      // Hover is a soft ink wash under the bright lobes (GLS-27); pressed a deeper ink wash under
+      // an ink glow, proven at the glow's full strength as if it reached the label.
+      expect(tint('--lens-hover').rgb).toEqual([21, 23, 28]);
+      expect(tint('--lens-pressed').alpha).toBeGreaterThan(tint('--lens-hover').alpha);
       const glow = /rgb\(21 23 28 \/ (0\.\d+)\)\s*$/.exec(value('--lens-rim-pressed'))?.[1];
       expect(Number(glow)).toBeLessThanOrEqual(0.2);
       for (const tier of ['chip', 'bar', 'menu', 'panel', 'sheet'] as const) {

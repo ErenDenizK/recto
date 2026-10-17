@@ -649,9 +649,10 @@
   --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
   --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
   --scroll-thumb-edge: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.45);
-  /* The button lens (GLS-25): a lighter, denser white lens on hover, an ink press glow. */
-  --lens-hover: rgb(var(--white-rgb) / 0.5);
-  --lens-pressed: rgb(var(--ink-rgb) / 0.04);
+  /* The button lens (GLS-25): a soft ink wash on hover under the bright lobes (GLS-27: the
+     white lens read faint on light glass), a deeper one under the ink press glow. */
+  --lens-hover: rgb(var(--ink-rgb) / 0.06);
+  --lens-pressed: rgb(var(--ink-rgb) / 0.07);
   --lens-rim:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
@@ -937,9 +938,10 @@
     --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
     --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
     --scroll-thumb-edge: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.45);
-    /* The button lens (GLS-25): a lighter, denser white lens on hover, an ink press glow. */
-    --lens-hover: rgb(var(--white-rgb) / 0.5);
-    --lens-pressed: rgb(var(--ink-rgb) / 0.04);
+    /* The button lens (GLS-25): a soft ink wash on hover under the bright lobes (GLS-27: the
+       white lens read faint on light glass), a deeper one under the ink press glow. */
+    --lens-hover: rgb(var(--ink-rgb) / 0.06);
+    --lens-pressed: rgb(var(--ink-rgb) / 0.07);
     --lens-rim:
       inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
       inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
