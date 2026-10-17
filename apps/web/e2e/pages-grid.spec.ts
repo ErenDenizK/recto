@@ -23,6 +23,7 @@
 import { type CDPSession, expect, type Locator, type Page, test } from '@playwright/test';
 
 import {
+  atRest,
   expectOpenDocuments,
   fixturePath,
   openDocumentTitles,
@@ -350,7 +351,8 @@ test('no header band: the title in the tab, scope and size float clear of the Pa
           .click({ modifiers: ['ControlOrMeta'] });
       await expect(bar(page)).toContainText(selected ? '1 selected' : '3 pages');
       // The capsule's morph and the pieces' folding settle.
-      await page.waitForTimeout(700);
+      await atRest(page.locator('[data-frame-layer="band"] [data-region="toolbar"]'));
+      for (const piece of await pieces.all()) await atRest(piece);
       const { capsule, pieces: found } = await rects();
       if (!capsule) throw new Error('no capsule');
       for (const piece of found) {

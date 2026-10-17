@@ -108,7 +108,14 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
   ...(isCI ? { workers: 1 } : {}),
-  reporter: [['list'], ['html', { open: 'never' }]],
+  // The JSON report keeps every test's duration, so the slowest specs of a run can be listed
+  // (`tools/qa/slowest-specs.ts`; CI prints them per shard and keeps the file). Its own folder:
+  // the HTML report and `test-results/` are emptied at the start of a run.
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'playwright-timings/results.json' }],
+  ],
   use: {
     baseURL: new URL(basePath, `http://localhost:${port}`).href,
     // Theme follows the system by default (spec D3-7) and Playwright reports a light scheme

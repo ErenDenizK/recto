@@ -34,7 +34,7 @@ import { dirname } from 'node:path';
 import { PDFDocument, rgb } from '@cantoo/pdf-lib';
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 
-import { useFileInputPicker } from './helpers';
+import { atRest, useFileInputPicker } from './helpers';
 import { decodePng, type Image, screenshotsShowBackdropFilters } from './support/pixels';
 
 test.use({
@@ -817,7 +817,7 @@ test.describe('the capsule morph never prints two contents at once', () => {
       Reflect.set(ViewTransition.prototype, 'skipTransition', Reflect.get(window, '__skip'));
     });
     await settled(page);
-    await page.waitForTimeout(400);
+    await atRest(page.locator('[data-capsule]'));
     const rest = await page.locator('[data-capsule]').boundingBox();
     if (!rest) throw new Error('no capsule');
     const after = await frame(page);

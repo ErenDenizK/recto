@@ -13,7 +13,15 @@ import { fileURLToPath } from 'node:url';
 import { PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, openSaveCopy, useFileInputPicker, showSidebar } from './helpers';
+import {
+  enterEdit,
+  openFixtures,
+  openSaveCopy,
+  quiet,
+  showSidebar,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -30,6 +38,7 @@ async function fillName(page: Page, value: string): Promise<void> {
     content:
       "Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });",
   });
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./');
   await expect(page.getByTestId('app-shell')).toBeVisible();
@@ -99,6 +108,7 @@ test('add a text field and a checkbox by drag, fill them, export: the fields exi
     content:
       "Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });",
   });
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./');
   await expect(page.getByTestId('app-shell')).toBeVisible();
@@ -183,6 +193,7 @@ test('add a text field and a checkbox by drag, fill them, export: the fields exi
 });
 
 test('keyboard: place a field from the palette, cancel from the Forms panel', async ({ page }) => {
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await expect(page.getByTestId('app-shell')).toBeVisible();
@@ -258,6 +269,6 @@ test('screenshot of a filled form with the Fields filter (design review)', async
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await fillName(page, 'Grace Hopper');
   await page.mouse.move(720, 600);
-  await page.waitForTimeout(500);
+  await quiet(page);
   await page.screenshot({ path: fileURLToPath(new URL('m3-forms-1440.png', screenshots)) });
 });

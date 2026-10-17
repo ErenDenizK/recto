@@ -77,6 +77,140 @@ export async function atRest(target: Locator): Promise<void> {
 }
 
 /**
+ * Call before the first `page.goto`: counts the calls the page has sent to its workers (the
+ * PDFium engine, the assembler, compress, analysis, signatures; Comlink requests, each
+ * answered with its `id`) that are still unanswered, so `quiet` can tell when the engine has
+ * finished what an input asked of it. Nothing in the messages changes.
+ */
+export async function trackEngine(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const open = new Set<string>();
+    (window as unknown as { __engineCalls: Set<string> }).__engineCalls = open;
+    const requests = new Set(['GET', 'SET', 'APPLY', 'CONSTRUCT', 'ENDPOINT', 'RELEASE']);
+    const heard = new WeakSet<Worker>();
+    const post = Object.getOwnPropertyDescriptor(Worker.prototype, 'postMessage')?.value as (
+      this: Worker,
+      ...args: unknown[]
+    ) => void;
+    // Inherited from EventTarget; the override below shadows it on workers only.
+    const listen = Object.getOwnPropertyDescriptor(EventTarget.prototype, 'addEventListener')
+      ?.value as (this: Worker, ...args: unknown[]) => void;
+    const idOf = (data: unknown): string | undefined => {
+      if (typeof data !== 'object' || data === null) return undefined;
+      const id = (data as { id?: unknown }).id;
+      return typeof id === 'string' ? id : undefined;
+    };
+    const hear = (worker: Worker) => {
+      if (heard.has(worker)) return;
+      heard.add(worker);
+      listen.call(worker, 'message', (event: MessageEvent) => {
+        const id = idOf(event.data);
+        if (id !== undefined) open.delete(id);
+      });
+    };
+    Worker.prototype.postMessage = function (this: Worker, ...args: unknown[]) {
+      const data = args[0] as { type?: unknown } | null;
+      const id = idOf(data);
+      if (id !== undefined && typeof data?.type === 'string' && requests.has(data.type)) {
+        hear(this);
+        open.add(id);
+      }
+      post.apply(this, args);
+    } as Worker['postMessage'];
+    Worker.prototype.addEventListener = function (this: Worker, ...args: unknown[]) {
+      if (args[0] === 'message') hear(this);
+      listen.apply(this, args);
+    } as Worker['addEventListener'];
+    window.addEventListener('pagehide', () => open.clear());
+  });
+}
+
+/**
+ * Waits until the page has finished handling what the test sent it: no call to a worker is
+ * unanswered (`trackEngine`) and, for two frames in a row, no finite animation runs anywhere
+ * in the document. A check that something did *not* happen (no ink from a stray pen, no page
+ * deleted, no editor opened) reads after this, not after a fixed pause, which was too short
+ * on a loaded runner and needlessly long on a fast one.
+ */
+export async function quiet(page: Page, { timeout = 15_000 } = {}): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const calls = (window as unknown as { __engineCalls?: Set<string> }).__engineCalls;
+          if (calls === undefined) return 'no tracker: call trackEngine(page) before page.goto';
+          const busy = () => {
+            if (calls.size > 0) return `${calls.size} worker call(s) unanswered`;
+            const moving = document
+              .getAnimations()
+              .filter(
+                (a) =>
+                  a.playState === 'running' &&
+                  Number.isFinite(a.effect?.getComputedTiming().endTime),
+              );
+            return moving.length > 0 ? `${moving.length} animation(s) running` : '';
+          };
+          for (let i = 0; i < 2; i++) {
+            const why = busy();
+            if (why) return why;
+            await new Promise((r) => requestAnimationFrame(r));
+          }
+          return busy() || 'quiet';
+        }),
+      { timeout, message: 'the page to finish handling the input' },
+    )
+    .toBe('quiet');
+}
+
+/**
+ * Waits out one of the app's own time rules (a palm window, a hold): `ms` on the page's clock,
+ * then a frame drawn after it, since the rule is checked in a frame. Only for a test whose
+ * subject is that rule; anything else waits on a condition.
+ */
+export async function pastDeadline(page: Page, ms: number): Promise<void> {
+  await page.evaluate(async (wait) => {
+    const frame = () => new Promise((r) => requestAnimationFrame(r));
+    const until = performance.now() + wait;
+    while (performance.now() < until) await frame();
+    await frame();
+  }, ms);
+}
+
+/**
+ * Waits until `target`'s box holds still across two frames (a scroll or an eased step has
+ * landed), and returns it.
+ */
+export async function stableBox(
+  target: Locator,
+  { timeout = 10_000 } = {},
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  let last: { x: number; y: number; width: number; height: number } | null = null;
+  await expect
+    .poll(
+      async () => {
+        const read = () =>
+          target.evaluate(async (el) => {
+            const box = () => {
+              const r = el.getBoundingClientRect();
+              return { x: r.x, y: r.y, width: r.width, height: r.height };
+            };
+            const before = box();
+            await new Promise((r) => requestAnimationFrame(r));
+            await new Promise((r) => requestAnimationFrame(r));
+            const after = box();
+            return JSON.stringify(before) === JSON.stringify(after) ? after : null;
+          });
+        last = await read();
+        return last !== null;
+      },
+      { timeout, message: 'the box to hold still' },
+    )
+    .toBe(true);
+  if (!last) throw new Error('no stable box');
+  return last;
+}
+
+/**
  * Call before the first `page.goto`: records the per-point widths of every ink annotation
  * the app sends to the PDFium worker (the create's payload), so a test can read what was
  * committed without a hook in the production build. Read them with `sentInkWidths`.

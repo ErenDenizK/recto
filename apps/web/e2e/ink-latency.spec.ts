@@ -19,7 +19,7 @@ import { loadavg } from 'node:os';
 
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 /** `src/annotations/pen/ink-stats.ts` (kept in step by hand: e2e does not import app code). */
 const INK_STATS_STORAGE_KEY = 'pdf-editor:dev:ink-stats';
@@ -240,8 +240,9 @@ async function openDemoArmed(page: Page): Promise<Box> {
     .toBe(true);
   const box = await layer.boundingBox();
   if (!box) throw new Error('page not rendered');
-  // Let the first render and the thumbnails finish before measuring.
-  await page.waitForTimeout(1_000);
+  // Let the first render and the thumbnails finish before measuring: nothing in flight to the
+  // engine, nothing moving.
+  await quiet(page, { timeout: 30_000 });
   await page.evaluate(() => {
     (window as InkStatsWindow).__inkStats?.reset();
     (window as InkStatsWindow).__inkPresses = [];
@@ -366,6 +367,7 @@ test.describe('ink latency', () => {
 
   test.beforeEach(async ({ browserName, page }) => {
     test.skip(browserName !== 'chromium', 'CDP input with explicit timestamps (Chromium)');
+    await trackEngine(page);
     await useFileInputPicker(page);
     await page.addInitScript((key) => {
       window.localStorage.setItem(key, '1');

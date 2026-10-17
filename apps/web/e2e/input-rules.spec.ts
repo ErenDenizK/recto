@@ -21,7 +21,10 @@ import { type CDPSession, expect, type Locator, type Page, test } from '@playwri
 import {
   atRest,
   openFixtures,
+  quiet,
   saveCopyBytes,
+  stableBox,
+  trackEngine,
   useDownloadPath,
   useFileInputPicker,
   showSidebar,
@@ -112,6 +115,10 @@ async function pen(
         ...init,
       });
     const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    // The hover is seen once the frame after it has drawn ("Pen draws in Markup" turns on).
+    const seen = async () => {
+      for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
+    };
     const under = (x: number, y: number) => document.elementFromPoint(x, y) ?? document.body;
     let prevented = false;
     const down = (x: number, y: number) => {
@@ -124,7 +131,7 @@ async function pen(
     if (a.kind === 'stroke') {
       const x0 = a.from;
       under(x0, a.y).dispatchEvent(make('pointermove', x0, a.y, { buttons: 0, pressure: 0 }));
-      await pause(200);
+      await seen();
       down(x0, a.y);
       for (let i = 1; i <= 12; i++) {
         window.dispatchEvent(make('pointermove', x0 + ((a.to - x0) * i) / 12, a.y));
@@ -133,7 +140,7 @@ async function pen(
       up(a.to, a.y);
     } else {
       under(a.x, a.y).dispatchEvent(make('pointermove', a.x, a.y, { buttons: 0, pressure: 0 }));
-      await pause(200);
+      await seen();
       for (let i = 0; i < a.count; i++) {
         down(a.x, a.y);
         up(a.x, a.y);
@@ -258,6 +265,7 @@ for (const locked of [false, true]) {
           JSON.stringify({ openDocumentsLocked: openLocked }),
         );
       }, locked);
+      await trackEngine(page);
       await useFileInputPicker(page);
       await useDownloadPath(page);
       await page.goto('./?lang=en');
@@ -278,7 +286,7 @@ for (const locked of [false, true]) {
         y: at.y,
       });
       expect(prevented).toBe(false);
-      await page.waitForTimeout(300);
+      await quiet(page);
       await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(0);
       await expect(layer(page)).toHaveAttribute('data-input', locked ? 'locked' : 'viewing');
       // A real pen drags a selection, as a mouse does (DevTools protocol: Chromium only).
@@ -303,7 +311,7 @@ for (const locked of [false, true]) {
       await pen(page, { kind: 'taps', x: at.x, y: at.y, count: 1 });
       const hint = page.getByTestId('pen-hint');
       if (locked) {
-        await page.waitForTimeout(300);
+        await quiet(page);
         await expect(hint).toHaveCount(0);
         return;
       }
@@ -325,7 +333,7 @@ for (const locked of [false, true]) {
     test(`S2 a stray click on body text changes nothing (${column})`, async ({ page }) => {
       const at = await openFox(page);
       await page.mouse.click(at.x, at.y);
-      await page.waitForTimeout(400);
+      await quiet(page);
       await expect(editor(page)).toHaveCount(0);
       expect(await selectionText(page)).toBe('');
       await expect(layer(page)).toHaveAttribute('data-input', locked ? 'locked' : 'viewing');
@@ -338,11 +346,11 @@ for (const locked of [false, true]) {
       const at = await openFox(page);
       await page.mouse.dblclick(at.x, at.y);
       await expect.poll(() => selectionText(page)).toBe('fox');
-      await page.waitForTimeout(400);
+      await quiet(page);
       await expect(editor(page)).toHaveCount(0);
       // No hover outline in viewing or locked (05-canvas §9).
       await page.mouse.move(at.x + 20, at.y);
-      await page.waitForTimeout(600);
+      await quiet(page);
       await expect(page.getByTestId('text-hover-outline')).toHaveCount(0);
       await nothingChanged(page);
     });
@@ -355,7 +363,7 @@ for (const locked of [false, true]) {
       // The pen hovers first (a pen is seen, so "Pen draws in Markup" turns on), then taps
       // twice on the word.
       await pen(page, { kind: 'taps', x: at.x, y: at.y, count: 2 });
-      await page.waitForTimeout(400);
+      await quiet(page);
       await expect(editor(page)).toHaveCount(0);
       expect(await selectionText(page)).toBe('');
       if (locked) {
@@ -486,7 +494,7 @@ for (const locked of [false, true]) {
       await expect.poll(() => selectionText(page)).toBe('fox');
       await page.keyboard.press('h');
       if (locked) {
-        await page.waitForTimeout(400);
+        await quiet(page);
         await expect(layer(page).locator('[data-annotation-id]')).toHaveCount(0);
         await expect(layer(page)).toHaveAttribute('data-input', 'locked');
         await nothingChanged(page);
@@ -506,7 +514,7 @@ for (const locked of [false, true]) {
       await expect(thumbnails).toBeVisible();
       await thumbnails.getByRole('option').last().click();
       await page.keyboard.press('Delete');
-      await page.waitForTimeout(300);
+      await quiet(page);
       await expect(page.locator('[data-read-viewport] [data-page-id]')).toHaveCount(count);
       await nothingChanged(page);
     });
@@ -552,7 +560,7 @@ for (const locked of [false, true]) {
             { x: page1.x + 40, y: page1.y + 120 },
           ],
         ]);
-        await page.waitForTimeout(400);
+        await quiet(page);
         await expect(agree).toHaveAttribute('aria-checked', after);
         if (locked) await nothingChanged(page);
         else await expect.poll(() => undoDescription(page)).not.toBe(baselines.get(page));
@@ -574,7 +582,7 @@ for (const locked of [false, true]) {
           cdp,
           Array.from({ length: 8 }, (_, i) => [{ x: start.x, y: start.y + i * 30 }]),
         );
-        await page.waitForTimeout(400);
+        await quiet(page);
         expect(await order()).toEqual(before);
         await nothingChanged(page);
       });
@@ -595,7 +603,7 @@ for (const locked of [false, true]) {
         await page.mouse.up();
       };
       await drag();
-      await page.waitForTimeout(300);
+      await quiet(page);
       expect(await square.boundingBox()).toEqual(before);
       await nothingChanged(page);
       if (locked) {
@@ -622,7 +630,7 @@ for (const locked of [false, true]) {
       await page.mouse.dblclick(at.x, at.y);
       await expect.poll(() => selectionText(page)).toBe('fox');
       await page.keyboard.type('every');
-      await page.waitForTimeout(400);
+      await quiet(page);
       await expect(editor(page)).toHaveCount(0);
       await expect(lines).toHaveCount(count);
       if (locked) await expect(layer(page)).toHaveAttribute('data-input', 'locked');
@@ -637,7 +645,7 @@ for (const locked of [false, true]) {
       await page.mouse.dblclick(at.x, at.y);
       await expect.poll(() => selectionText(page)).toBe('fox');
       await page.keyboard.press('x');
-      await page.waitForTimeout(400);
+      await quiet(page);
       if (locked) {
         await expect(layer(page)).toHaveAttribute('data-input', 'locked');
         await nothingChanged(page);
@@ -674,7 +682,7 @@ for (const locked of [false, true]) {
       const before = await first.boundingBox();
       await page.locator('[data-read-viewport]').focus();
       await page.keyboard.press('Shift+R');
-      await page.waitForTimeout(400);
+      await quiet(page);
       if (locked) {
         expect(await first.boundingBox()).toEqual(before);
         await nothingChanged(page);
@@ -724,6 +732,7 @@ for (const locked of [false, true]) {
 test('a press on a link that travels past the slop selects text and does not follow (05.7)', async ({
   page,
 }) => {
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await openDoc(page, 'outline-named-dests.pdf');
@@ -732,16 +741,7 @@ test('a press on a link that travels past the slop selects text and does not fol
   await expect(link).toBeVisible({ timeout: 20_000 });
   // `]` is an eased step now (motion-2026-10/viewer.md §1): read the link's box once the scroll
   // has landed and the pill's odometer has rested, not a frame of the step.
-  await expect
-    .poll(async () => {
-      const before = await link.boundingBox();
-      await page.waitForTimeout(100);
-      const after = await link.boundingBox();
-      return before !== null && after !== null && before.y === after.y && before.x === after.x;
-    })
-    .toBe(true);
-  const box = await link.boundingBox();
-  if (!box) throw new Error('no link');
+  const box = await stableBox(link);
   const pageNumber = page.getByTestId('page-pill');
   await atRest(pageNumber);
   const shown = await pageNumber.textContent();
@@ -750,7 +750,7 @@ test('a press on a link that travels past the slop selects text and does not fol
   await page.mouse.move(box.x + box.width - 3, box.y + box.height / 2, { steps: 8 });
   await page.mouse.up();
   await expect.poll(() => selectionText(page)).not.toBe('');
-  await page.waitForTimeout(300);
+  await quiet(page);
   await expect(pageNumber).toHaveText(shown ?? '');
   // The press is over: the hotspots take the pointer again (`LinkLayer`'s `data-selecting`
   // goes with the press), so the link is what a click at its middle hits. On CI WebKit the

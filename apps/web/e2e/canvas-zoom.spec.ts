@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
 import { expectGlassClean, walkGlass } from './support/glass-walker';
-import { openFixtures, useFileInputPicker } from './helpers';
+import { atRest, openFixtures, pastDeadline, useFileInputPicker } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 
@@ -301,8 +301,8 @@ test.describe('wheel (desktop)', () => {
     // The page is whole in the viewport at fit page.
     await expect(page.locator('[data-page-index="0"]')).toBeInViewport({ ratio: 0.99 });
 
-    // After a pause, one more notch opens the grid.
-    await page.waitForTimeout(400);
+    // After a pause (NOTCH_GRID_PAUSE_MS, 300 ms), one more notch opens the grid.
+    await pastDeadline(page, 400);
     await zoomWheel(page, centre, 100);
     await expect(page.getByTestId('light-table')).toBeVisible();
   });
@@ -329,7 +329,7 @@ test.describe('wheel (desktop)', () => {
       w.keep = window.setInterval(() => wheel(0.01), 40);
     }, centre);
     await expect(chip(page)).toHaveAttribute('data-shown', '');
-    await page.waitForTimeout(200);
+    await atRest(chip(page));
     await shot(page, 'pinch-detent-chip');
     await page.evaluate(() => window.clearInterval((window as unknown as { keep: number }).keep));
     await expect(page.getByTestId('light-table')).toBeVisible();

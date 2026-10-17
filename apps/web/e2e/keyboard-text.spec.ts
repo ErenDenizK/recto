@@ -10,7 +10,7 @@
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { openFindPanel, openFixtures, useFileInputPicker } from './helpers';
+import { openFindPanel, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 const dock = (page: Page) => page.getByRole('toolbar', { name: 'Document tools', exact: true });
 const palette = (page: Page) => page.locator('[data-capsule="palette"]');
@@ -25,6 +25,7 @@ const undoDescription = (page: Page) =>
   );
 
 async function open(page: Page, name = 'simple-text.pdf', lang = 'en'): Promise<void> {
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto(`./?lang=${lang}`);
   await expect(page.getByTestId('app-shell')).toBeVisible();
@@ -130,7 +131,7 @@ test.describe('the places, by key', () => {
       .first()
       .click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('r');
-    await page.waitForTimeout(300);
+    await quiet(page);
     await expect(grid(page)).toBeVisible();
     expect(await undoDescription(page)).toBe(opened);
     await page.keyboard.press('1');

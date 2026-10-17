@@ -15,7 +15,14 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, markupDoor, openFixtures, saveCopyBytes, useFileInputPicker } from './helpers';
+import {
+  atRest,
+  enterEdit,
+  markupDoor,
+  openFixtures,
+  saveCopyBytes,
+  useFileInputPicker,
+} from './helpers';
 
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
@@ -203,7 +210,8 @@ test.describe('↶ ↷ and the History scrubber', () => {
     await longPressUndo();
     // The long press undid nothing.
     await expect(squares).toHaveCount(2);
-    await page.waitForTimeout(300);
+    // The scrubber's entrance is over: its knob is where it rests.
+    await atRest(scrubber);
     await page.screenshot({ path: info.outputPath('scrubber-slider-tablet.png') });
     await scrubber.screenshot({ path: info.outputPath('scrubber-slider-tablet-close.png') });
 

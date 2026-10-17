@@ -13,7 +13,7 @@ import { join } from 'node:path';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import { fixturePath, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 const SHOTS = process.env.CAPTURE_SCREENSHOTS;
 const DIM = 'brightness(0.8)';
@@ -22,7 +22,7 @@ const PAPER = { authored: 'rgb(255, 255, 255)', dimmed: 'rgb(204, 204, 204)' } a
 async function shot(page: Page, name: string): Promise<void> {
   if (!SHOTS) return;
   const size = page.viewportSize();
-  await page.waitForTimeout(400);
+  await quiet(page);
   await page.screenshot({ path: join(SHOTS, `${name}-${size?.width}x${size?.height}.png`) });
 }
 
@@ -71,6 +71,7 @@ test.describe('Dim pages', () => {
   test('Settings › Appearance dims the pages in dark, not their overlays, and keeps it', async ({
     page,
   }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
     await page.goto('./?lang=en');
     await expect(page.getByTestId('home')).toBeVisible();
@@ -110,6 +111,7 @@ test.describe('Dim pages', () => {
   });
 
   test('is a palette command in both languages: “Sayfaları karart”', async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
     await page.goto('./?lang=tr');
     await expect(page.getByTestId('home')).toBeVisible();
@@ -124,6 +126,7 @@ test.describe('Dim pages on the phone', () => {
   test.skip(({ isMobile }) => !isMobile, 'the compact edition’s About sheet');
 
   test('About’s Appearance rows dim the pages and keep it', async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
     await page.goto('./?lang=en');
     await expect(page.getByTestId('compact-library')).toBeVisible();

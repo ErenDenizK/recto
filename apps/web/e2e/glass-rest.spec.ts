@@ -15,9 +15,10 @@ import {
   enterEdit,
   fixturePath,
   openFixtures,
-  useFileInputPicker,
   openSaveCopyFromMenu,
   showSidebar,
+  stableBox,
+  useFileInputPicker,
 } from './helpers';
 import { expectGlassClean, walkGlass } from './support/glass-walker';
 
@@ -250,7 +251,9 @@ test('the page pill keeps the theme’s tone over a page and beside it (GLS-20)'
   // dark theme's text over the white page, never the other theme's block.
   await page.mouse.click(700, 450);
   await expect.poll(under).toBe(true);
-  await page.waitForTimeout(500);
+  // The page has landed and the pill's tone has finished any change.
+  await stableBox(page.locator('[data-page-index="0"]').first());
+  await atRest(pill);
   await expect(pill).not.toHaveAttribute('data-theme');
   const overPage = await tint();
   // Zoomed out until the pill floats over the canvas beside the page: the same dark look.
@@ -263,7 +266,8 @@ test('the page pill keeps the theme’s tone over a page and beside it (GLS-20)'
       { timeout: 15_000 },
     )
     .toBe(false);
-  await page.waitForTimeout(500);
+  await stableBox(page.locator('[data-page-index="0"]').first());
+  await atRest(pill);
   await expect(pill).not.toHaveAttribute('data-theme');
   expect(await tint()).toBe(overPage);
 });
@@ -329,14 +333,7 @@ test('an annotation’s bar and a note', async ({ page }) => {
   const note = page.locator('[data-annotation-kind="text"]').first();
   // Go to page is an eased jump now (motion-2026-10/viewer.md §1), and a press stops a jump
   // where it is: double-click the note once the jump has landed, not while it moves.
-  await expect
-    .poll(async () => {
-      const before = await note.boundingBox();
-      await page.waitForTimeout(100);
-      const after = await note.boundingBox();
-      return before !== null && after !== null && before.y === after.y && before.x === after.x;
-    })
-    .toBe(true);
+  await stableBox(note);
   await note.dblclick({ force: true });
   await expect(page.locator('[class*="notePopup"]')).toBeVisible();
   await expectGlassClean(page, 'Edit, a note open');

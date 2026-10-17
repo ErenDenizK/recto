@@ -33,6 +33,7 @@ import {
   fixturePath,
   openFixtures,
   openSaveCopy,
+  pastDeadline,
   useDownloadPath,
   useFileInputPicker,
 } from './helpers';
@@ -208,7 +209,8 @@ test('reorder, rotate and delete from the Pages bar: the copy has that order and
   await select(page, [0]);
   // Taps leave no tooltip standing over the bar (04-context §20 item 6; B5).
   if (await coarse(page)) {
-    await page.waitForTimeout(800);
+    // Past a tooltip's 500 ms opening delay.
+    await pastDeadline(page, 800);
     await expect(page.getByRole('tooltip')).toHaveCount(0);
   }
   await barAct(page, 'Move later');

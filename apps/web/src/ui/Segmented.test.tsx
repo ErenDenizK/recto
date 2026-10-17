@@ -51,13 +51,6 @@ function Host({
   );
 }
 
-/**
- * Lets a resize reach the group (its ResizeObserver picks the layout). The thumb's spring is
- * waited out with `settled(thumb)` instead: a fixed pause can end before a slow runner has
- * even started it.
- */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 500));
-
 function thumbOf(group: HTMLElement): HTMLElement {
   return group.querySelector<HTMLElement>(':scope > span[aria-hidden="true"]')!;
 }
@@ -140,17 +133,17 @@ describe('Segmented, radio semantics', () => {
       .getBoundingClientRect().width;
     expect(spectrum).toBeGreaterThan(grid);
     rerender(<Host width={200} options={long} />);
-    await act(() => settle());
+    // The resize reaches the group (its ResizeObserver picks the layout): a select now.
+    const select = await screen.findByRole('combobox', { name: 'View' });
     expect(screen.queryByRole('radiogroup')).toBeNull();
-    const select = screen.getByRole('combobox', { name: 'View' });
     expect(select).toHaveTextContent('Grid');
     await userEvent.click(select);
     await userEvent.click(await screen.findByRole('option', { name: 'Sliders' }));
     expect(screen.getByTestId('value').textContent).toBe('sliders');
     // Room again: back to segments, with the thumb on the choice.
     rerender(<Host width={400} options={long} />);
-    await act(() => settle());
-    const back = screen.getByRole('radiogroup', { name: 'View' });
+    const back = await screen.findByRole('radiogroup', { name: 'View' });
+    await settled(thumbOf(back));
     expectOver(thumbOf(back), screen.getByRole('radio', { name: 'Sliders' }));
   });
 

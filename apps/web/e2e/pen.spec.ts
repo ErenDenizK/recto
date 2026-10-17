@@ -11,9 +11,12 @@ import { type CDPSession, expect, type Page, test } from '@playwright/test';
 import {
   enterEdit,
   openFixtures,
+  pastDeadline,
+  quiet,
   recordInkWidths,
   reloadFresh,
   sentInkWidths,
+  trackEngine,
   useFileInputPicker,
   showSidebar,
 } from './helpers';
@@ -85,6 +88,7 @@ test.describe('pen', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test.beforeEach(async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
     await recordInkWidths(page);
   });
@@ -133,7 +137,7 @@ test.describe('pen', () => {
     await expect(page.getByTestId('annotation-bar')).toHaveCount(0);
 
     // A pen has been seen: one finger pans the stage (after the 300 ms palm window).
-    await page.waitForTimeout(400);
+    await pastDeadline(page, 300);
     const viewport = page.locator('[data-read-viewport]');
     const before = await viewport.evaluate((el) => el.scrollTop);
     // On the page, clear of the floating tool bar at the bottom of the window.
@@ -151,7 +155,7 @@ test.describe('pen', () => {
     }
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(before + 150);
-    await page.waitForTimeout(300);
+    await quiet(page);
     await expect(ink).toHaveCount(1);
     expect(await sentInkWidths(page)).toHaveLength(1);
     await expect(page.locator('[data-dry-ink]').first()).toHaveAttribute('data-strokes', '0', {
@@ -240,6 +244,7 @@ test.describe('pen presets and bursts', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test.beforeEach(async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
     await recordInkStyles(page);
   });
@@ -314,8 +319,11 @@ test.describe('pen presets and bursts', () => {
     await expect(rows).toHaveCount(1);
     await expect(rows.first()).toContainText('Pen · 2 strokes');
 
-    // After the pause (N = 1,500 ms) plus 200 ms, a stroke is its own annotation.
-    await page.waitForTimeout(1700);
+    // After the pause (N = 1,500 ms) a stroke is its own annotation: the burst has closed once
+    // the page bitmap has taken its strokes from the dry ink layer (dry-ink.ts, deferral).
+    await expect(page.locator('[data-dry-ink]').first()).toHaveAttribute('data-strokes', '0', {
+      timeout: 10_000,
+    });
     await mouseStroke(page, [0.2, 0.45], [0.35, 0.46]);
     await expect(ink).toHaveCount(2, { timeout: 10_000 });
     await expect(rows).toHaveCount(2);
@@ -388,6 +396,7 @@ test.describe('lasso', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test.beforeEach(async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
   });
 
@@ -556,6 +565,7 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test.beforeEach(async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
     await recordInkWidths(page);
   });
@@ -640,7 +650,7 @@ test.describe('pen: width changes, zoom, Draw, lines and undo', () => {
     await expect
       .poll(async () => (await sentInkWidths(page)).length, { timeout: 10_000 })
       .toBeGreaterThan(sent);
-    await page.waitForTimeout(800);
+    await quiet(page);
     expectSamePoints(await inkPoints(page), before);
   });
 
@@ -833,6 +843,7 @@ test.describe('eraser and straight lines (craft spec §5.6)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test.beforeEach(async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
   });
 
@@ -894,12 +905,11 @@ test.describe('eraser and straight lines (craft spec §5.6)', () => {
     const start = { x: box.x + box.width * 0.2, y: box.y + height * 0.7 };
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
-    // A slightly unsteady straight stroke, then still for 900 ms (the hold and the morph),
-    // then on to the end: the line follows the pointer.
+    // A slightly unsteady straight stroke, then still until the hold fires (the chip names the
+    // shape), then on to the end: the line follows the pointer.
     for (let i = 1; i <= 12; i++) {
       await page.mouse.move(start.x + i * 12, start.y + (i % 2) * 1 + i * 2);
     }
-    await page.waitForTimeout(900);
     await expect(layer(page).locator('[data-shape-chip]')).toHaveText('Line');
     const end = { x: start.x + 260, y: start.y + 60 };
     await page.mouse.move(end.x, end.y, { steps: 6 });
@@ -946,7 +956,8 @@ test.describe('eraser and straight lines (craft spec §5.6)', () => {
         at.y - 30 * Math.sin(t),
       );
     }
-    await page.waitForTimeout(900);
+    // Held well past the hold's deadline (HOLD_STRAIGHTEN_MS, 500 ms; 800 ms when writing).
+    await pastDeadline(page, 900);
     await expect(layer(page).locator('[data-shape-chip]')).toHaveCount(0);
     await page.mouse.up();
     await expect(layer(page).locator('[data-annotation-kind="ink"]')).toHaveCount(1, {

@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
-import { atRest, enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { atRest, enterEdit, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -124,6 +124,7 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   const narrow = { width: 1024, height: 700 };
   await page.setViewportSize(wide);
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   const shell = page.getByTestId('app-shell');
@@ -179,7 +180,7 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await page.locator('body').press('1');
   const rendered = page.locator('[data-read-viewport] canvas[data-state="rendered"]');
   await expect(rendered.first()).toBeVisible({ timeout: 20_000 });
-  await page.waitForTimeout(400);
+  await quiet(page);
   await shot('m0-shell-read-1440.png');
 
   // The privacy popover and a tool tooltip, cropped as before.
@@ -189,8 +190,9 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await page.keyboard.press('Escape');
   const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
   await bar.getByRole('button', { name: /^Eraser/ }).hover();
-  // Base UI tooltips open after 500 ms and carry no role.
-  await page.waitForTimeout(900);
+  // Base UI tooltips open after 500 ms; capture once this one has come to rest.
+  await expect(page.getByRole('tooltip')).toBeVisible();
+  await quiet(page);
   const box = await bar.boundingBox();
   if (!box) throw new Error('tool bar not rendered');
   const cx = Math.round(box.x + box.width / 2);
@@ -209,15 +211,15 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await expect(
     page.locator('[data-read-viewport] [data-page-index="0"] canvas[data-state="rendered"]'),
   ).toBeVisible({ timeout: 20_000 });
-  await page.waitForTimeout(400);
+  await quiet(page);
   await page.getByTestId('document-menu').click();
   await expect(page.getByRole('menuitem', { name: 'Combine with open documents…' })).toBeVisible();
-  await page.waitForTimeout(300);
+  await quiet(page);
   await shot('m6-document-menu-1440.png');
   await page.getByRole('menuitem', { name: 'Document info…' }).click();
   const sheet = page.getByRole('dialog', { name: 'Document info' });
   await expect(sheet.getByTestId('metadata-editor')).toBeVisible();
-  await page.waitForTimeout(300);
+  await quiet(page);
   await shot('m6-document-info-1440.png');
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
@@ -228,7 +230,7 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await expect(page.locator('[role="grid"] canvas[data-state="rendered"]').first()).toBeVisible({
     timeout: 20_000,
   });
-  await page.waitForTimeout(600);
+  await quiet(page);
   await shot('m0-shell-arrange-1440.png');
   // Read at 1024 last: widening the window again leaves page 1 blank in Read at HEAD.
   await page.locator('body').press('1');
@@ -236,7 +238,7 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await expect(
     page.locator('[data-read-viewport] [data-page-index="0"] canvas[data-state="rendered"]'),
   ).toBeVisible({ timeout: 20_000 });
-  await page.waitForTimeout(600);
+  await quiet(page);
   await shot('m0-shell-read-1024.png');
   await page.setViewportSize(wide);
 
@@ -246,12 +248,12 @@ test('screenshots of the shell, Home and Document info (design review)', async (
   await page.getByRole('tab', { name: 'outline-named-dests' }).click();
   await page.locator('body').press('1');
   await expect(rendered.first()).toBeVisible({ timeout: 20_000 });
-  await page.waitForTimeout(400);
+  await quiet(page);
   await shot('m0-integration-read-1440.png');
   await page.locator('body').press('3');
   await expect(page.locator('[role="grid"] canvas[data-state="rendered"]').first()).toBeVisible({
     timeout: 20_000,
   });
-  await page.waitForTimeout(600);
+  await quiet(page);
   await shot('m0-integration-arrange-1440.png');
 });

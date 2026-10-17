@@ -438,8 +438,8 @@ describe('bursts on the engine', () => {
     await stroke(page1, 100, 600, (t += 200));
     await stroke(page1, 150, 600, (t += 200));
     expect(currentBurst()?.paths).toBe(2);
-    await new Promise((resolve) => setTimeout(resolve, 450));
-    expect(currentBurst()).toBeNull();
+    // Its timer fires once the pause has passed (a loaded runner can run it late).
+    await vi.waitFor(() => expect(currentBurst()).toBeNull());
     expect(useAnnouncer.getState().message).toBe('Pen: 2 strokes on page 1');
     closeBurst();
   });

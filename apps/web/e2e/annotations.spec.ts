@@ -12,12 +12,14 @@ import { expect, type Page, test } from '@playwright/test';
 import {
   enterEdit,
   openFixtures,
+  quiet,
   reloadFresh,
   inHistory,
   historyStep,
   useFileInputPicker,
   showSidebar,
   stageAsBesideInspector,
+  trackEngine,
 } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
@@ -79,6 +81,7 @@ test.describe('annotations', () => {
   });
 
   test.beforeEach(async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
   });
 
@@ -275,7 +278,7 @@ test.describe('annotations', () => {
     await inHistory(page, (list) =>
       expect(historyStep(list, /Pen on page 1 · 3 strokes/)).toBeVisible(),
     );
-    await page.waitForTimeout(300);
+    await quiet(page);
     expect(
       await page.evaluate(
         () => (window as unknown as { __creationSelected: string[] }).__creationSelected,
@@ -391,7 +394,7 @@ test.describe('annotations', () => {
     if (!square) throw new Error('rectangle hit target not rendered');
     await page.mouse.click(square.x + 4, square.y + square.height / 2);
     await expect(page.getByTestId('annotation-bar')).toBeVisible();
-    await page.waitForTimeout(600);
+    await quiet(page);
     await page.screenshot({
       path: fileURLToPath(new URL('m2-annotations-1440.png', screenshots)),
     });
@@ -400,7 +403,7 @@ test.describe('annotations', () => {
     await tool('Escape');
     await showSidebar(page, 'Review');
     await expect(page.getByText('Check these figures against the Q3 report.')).toBeVisible();
-    await page.waitForTimeout(400);
+    await quiet(page);
     await page.screenshot({
       path: fileURLToPath(new URL('m2-comments-1440.png', screenshots)),
     });
@@ -451,8 +454,11 @@ test.describe('annotations', () => {
       [0.29, 0.243],
     ]);
     await expect(ink).toHaveCount(1, { timeout: 10_000 });
-    // Red: a ring around "lazy dog".
-    await page.waitForTimeout(1700);
+    // Red: a ring around "lazy dog", once the yellow burst has closed (its pause passed and
+    // the page bitmap took the stroke from the dry ink layer).
+    await expect(page.locator('[data-dry-ink]').first()).toHaveAttribute('data-strokes', '0', {
+      timeout: 10_000,
+    });
     await presets.getByRole('button', { name: /^Red pen/ }).click();
     await stroke(
       Array.from({ length: 48 }, (_, i): [number, number] => {
@@ -461,8 +467,10 @@ test.describe('annotations', () => {
       }),
     );
     await expect(ink).toHaveCount(2, { timeout: 10_000 });
-    // Blue: a handwritten line in three strokes, one burst.
-    await page.waitForTimeout(1700);
+    // Blue: a handwritten line in three strokes, one burst (the red one closed first).
+    await expect(page.locator('[data-dry-ink]').first()).toHaveAttribute('data-strokes', '0', {
+      timeout: 10_000,
+    });
     await presets.getByRole('button', { name: /^Blue pen/ }).click();
     await stroke(loops(0.12, 0.36, 6));
     await stroke(loops(0.32, 0.36, 4));
@@ -476,13 +484,15 @@ test.describe('annotations', () => {
     await expect(ink).toHaveCount(3, { timeout: 10_000 });
     await expect(ink.last().locator('polyline')).toHaveCount(3);
     await page.mouse.move(720, 600);
-    await page.waitForTimeout(400);
+    await quiet(page);
     await page.screenshot({
       path: fileURLToPath(new URL('m6-draw-presets-1440.png', screenshots)),
     });
 
-    // A note, then the Review tab: one row per burst.
-    await page.waitForTimeout(1700);
+    // A note, then the Review tab: one row per burst (the blue one closed first).
+    await expect(page.locator('[data-dry-ink]').first()).toHaveAttribute('data-strokes', '0', {
+      timeout: 10_000,
+    });
     await page.locator('body').press('n');
     await drag(page, 0, [0.86, 0.36], [0.86, 0.36]);
     await page
@@ -497,7 +507,7 @@ test.describe('annotations', () => {
     await showSidebar(page, 'Review');
     await expect(page.locator('[data-review-panel] [data-annotation-row]')).toHaveCount(4);
     await page.mouse.move(720, 600);
-    await page.waitForTimeout(400);
+    await quiet(page);
     await page.screenshot({
       path: fileURLToPath(new URL('m6-navigator-review-1440.png', screenshots)),
     });
@@ -516,7 +526,7 @@ test.describe('annotations', () => {
     const lasso = page.locator('[data-lasso-bar]');
     await expect(lasso).toBeVisible();
     await page.mouse.move(720, 700);
-    await page.waitForTimeout(400);
+    await quiet(page);
     await page.screenshot({
       path: fileURLToPath(new URL('m6-lasso-1440.png', screenshots)),
     });
