@@ -1,0 +1,91 @@
+/*
+ * The phone's one sheet (DSN-53): the floating object every panel that shows content, holds
+ * settings or stays open is drawn as, the tool drawer's shape (EDN-8, README §3) made common.
+ * Nothing here is material: the scrim form (`CompactSheet.module.css`, M5) and the tool drawer
+ * and list (`mark/ToolDrawer.module.css`, `mark/ToolList.module.css`, M4) compose their own
+ * tier, so each stays one coverage entry.
+ *
+ * - **Shape.** Inset 16 px from the screen's sides (more with a safe area), at most 480 px wide
+ *   and centred (a phone on its side), the 28 px radius (`--radius-2xl`), concentric with the
+ *   island's 56 px capsule (S-1), a column whose head never scrolls.
+ * - **Head.** The grabber (36 × 4, the swipe's affordance), the title at the body size and a
+ *   round close: a 44 px target whose seated fill draws a 36 px circle, quiet, never lime, so
+ *   the island's lime Done stays the one "Done" on screen (EDN-18). The head is where a drag
+ *   starts on every sheet (`touch-action: none`); the body scrolls and hands a drag down to
+ *   the sheet only from its top (Base UI's Drawer, `use-drawer-panel.ts`).
+ */
+.shape {
+  --sheet-inset: max(16px, calc(env(safe-area-inset-left, 0px) + 8px));
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 2 * var(--sheet-inset));
+  max-width: 480px;
+  margin-inline: auto;
+  border-radius: var(--radius-2xl);
+  color: var(--text-primary);
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.head {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-1h) 0 var(--space-5);
+  touch-action: none;
+}
+
+.grabber {
+  position: absolute;
+  top: var(--space-1h);
+  left: calc(50% - 18px);
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-capsule);
+  background: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--type-body);
+  font-weight: 600;
+  line-height: var(--type-body-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The round close: the control recipe's 44 px icon button, seated on a fill so it reads as a
+   button on glass (GLS-25), the glyph in the secondary text colour. */
+.close {
+  flex: none;
+  background: var(--control-fill);
+  background-clip: content-box;
+  padding: 4px;
+  color: var(--text-secondary);
+  touch-action: manipulation;
+}
+
+.close svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+/* A phone on its side: a lower head, so the content (the drawers' rows within their 55 and
+   60 %) keeps the short screen. */
+@media (max-height: 480px) {
+  .head {
+    min-height: 44px;
+    padding-top: var(--space-1h);
+  }
+
+  .grabber {
+    top: var(--space-1);
+  }
+}

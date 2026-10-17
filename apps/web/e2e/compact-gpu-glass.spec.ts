@@ -104,8 +104,9 @@ for (const variant of ['capsule', 'split'] as const) {
       expect(s?.state).toBe('on');
       expect(s?.reason).toBe('');
       const boxes = await pieceBoxes(page);
-      // The capsule, ✎ and the top (one capsule, or ‹ ⋯ and the edge).
-      expect(boxes.length).toBe(variant === 'split' ? 5 : 3);
+      // The capsule, ✎ and the top (one capsule, or ‹ and the edge: ⋯ folded into the title
+      // menu, DSN-53).
+      expect(boxes.length).toBe(variant === 'split' ? 4 : 3);
       expect(boxes.every((box) => box.gpu)).toBe(true);
       expect(s?.pieces).toBe(boxes.length);
 

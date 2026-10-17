@@ -86,7 +86,7 @@ export function CompactLibrary() {
         aria-label={m.settings_title()}
         aria-haspopup="dialog"
         data-testid="compact-library-more"
-        onClick={() => openSheet('about')}
+        onClick={() => openSheet('settings')}
       >
         <Icon name="gear-six" />
       </button>

@@ -359,24 +359,25 @@ test.describe('the compact edition', () => {
     );
   }
 
-  test('the reader, the ⋯ menu and the page overview', async ({ page }) => {
+  test('the reader, the title menu and the page overview', async ({ page }) => {
     await openCompact(page, 'outline-named-dests.pdf');
     let walk = await expectGlassClean(page, 'compact reader');
     // The split top's circles (DSN-34, the default since DSN-37) and the capsule.
     expect(names(walk).some((n) => n.includes('circle'))).toBe(true);
     expect(names(walk).some((n) => n.includes('capsule'))).toBe(true);
 
-    await page.getByRole('button', { name: 'More' }).click();
-    await expect(page.getByTestId('compact-menu')).toBeVisible();
+    // The title menu, the reader's one menu (DSN-53).
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await expect(page.getByTestId('compact-file-menu')).toBeVisible();
     // At rest: the menu's motion has gone (DSN-39, MOT-13).
-    await expect(page.getByTestId('compact-menu')).not.toHaveAttribute('data-liquid');
-    walk = await expectGlassClean(page, 'compact ⋯ menu');
+    await expect(page.getByTestId('compact-file-menu')).not.toHaveAttribute('data-liquid');
+    walk = await expectGlassClean(page, 'compact title menu');
     // The top bar, the capsule, the reader's ✎ Edit button (M10 WP1, EDN-8) and the menu: Q-11's
     // four at rest.
     expect(names(walk).some((n) => n.includes('edit'))).toBe(true);
     expect(walk.visible).toBe(4);
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId('compact-menu')).toHaveCount(0);
+    await expect(page.getByTestId('compact-file-menu')).toHaveCount(0);
 
     await page.getByTestId('compact-capsule').getByRole('button', { name: 'Pages' }).click();
     await expect(page.getByTestId('compact-overview')).toHaveAttribute('data-phase', 'open');
@@ -392,7 +393,9 @@ test.describe('the compact edition', () => {
     await input.fill('2');
     await input.press('Enter');
     await page.getByRole('button', { name: /^Show note/ }).click();
-    await expect(page.getByTestId('note-popover')).toBeVisible();
+    // The note's sheet (DSN-53), at rest.
+    await expect(page.getByTestId('note-sheet')).toBeVisible();
+    await expect(page.getByTestId('note-sheet')).not.toHaveAttribute('data-glass-moving');
     await expectGlassClean(page, 'compact note');
   });
 });

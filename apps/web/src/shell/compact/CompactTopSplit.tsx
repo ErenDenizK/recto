@@ -1,20 +1,20 @@
 /**
  * The split top of the phone reader (DSN-34; the default since DSN-37, `top-variant.ts`), after
- * iOS Preview (`docs/design/reference/ios-preview-2026-10.md` §2): no bar, three pieces over a
+ * iOS Preview (`docs/design/reference/ios-preview-2026-10.md` §2): no bar, two pieces over a
  * scroll-edge fade.
  *
  * - **‹** back to the Library, a 44 px glass circle of its own (the capsule's M2 at σ 7,
  *   coverage registry `compact-top-circle`).
  * - **The title** as text centred between the circles, cut in its middle when long (DSN-38,
  *   `title-fit.ts`), in the theme's text colour (GLS-20), with a ▾ in its grey dot
- *   that opens the **file menu**: a card with the file's name
+ *   that opens the **title menu**, the reader's one menu (DSN-53): a card with the file's name
  *   (whole, on up to two lines, where the title truncates), "PDF · size · pages", then Share or
- *   Download a copy (the "Changed" rows once edited) and Document info. Preview's Lock,
- *   Duplicate, Move, Rename and Print have no phone job here (the doc's §2.4).
- * - **⋯**, the capsule's ⋯ menu (`MoreMenu`) less what the file menu holds (DSN-48): Contents
- *   and About. Its trigger is a glass circle; the menu lies over the circle and comes out of it
- *   as one liquid glass body, as the file menu does out of the title (DSN-39,
- *   `liquid-menu.ts`).
+ *   Download a copy (the "Changed" rows once edited), Document info, Contents (when the file has
+ *   an outline) and, after a rule, Settings (About is its last row). The ⋯ circle that held
+ *   Contents and About is gone: one or two rows were a second menu for little (DSN-53), and
+ *   the row keeps its room, so the title stays centred on the window. Preview's Lock,
+ *   Duplicate, Move, Rename and Print have no phone job here (the doc's §2.4). The menu lies
+ *   over the title and grows out of it (MOT-13, `liquid-menu.ts`).
  * - **The scroll-edge fade** (DSN-35, lighter by DSN-38): a band under the status bar and the
  *   pieces, the theme's canvas colour (GLS-20) fading out downwards over a backdrop blur that a
  *   mask fades out with it. No script per scrolled frame.
@@ -27,13 +27,14 @@
  */
 import { Menu } from '@base-ui/react/menu';
 import type { VirtualDocument } from '@pdf-editor/document-model';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { formatFileSize } from '../../home/home-model';
 import { getLocale, m } from '../../i18n';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import type { SplitTopParts } from './CompactChrome';
+import { setMenuOpen, useCompactStore } from './compact-store';
 import styles from './CompactTopSplit.module.css';
 import { liquidPopupRef, prefetchLiquidMenu } from './liquid-ref';
 import { useMiddleTitle } from './title-fit';
@@ -51,7 +52,6 @@ interface SplitTopProps {
 }
 
 export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
-  const { MoreMenu } = parts;
   // The liquid menus' motion arrives once the browser is idle (DSN-39, `liquid-ref.ts`).
   useEffect(prefetchLiquidMenu, []);
   return (
@@ -80,20 +80,12 @@ export function CompactTopSplit({ doc, hidden, parts }: SplitTopProps) {
           onClick={parts.showLibrary}
         />
         <FileMenu doc={doc} parts={parts} />
-        <MoreMenu
-          doc={doc}
-          triggerClassName={styles.circle}
-          glassGroup={GLASS_GROUP}
-          sideOffset={OVER_TRIGGER}
-          liquid
-          withFile={false}
-        />
       </div>
     </header>
   );
 }
 
-/** The title and its ▾: the file's card, Share or Download a copy, Document info. */
+/** The title and its ▾: the file's card, Share or Download a copy, Info, Contents, Settings. */
 function FileMenu({
   doc,
   parts,
@@ -101,8 +93,9 @@ function FileMenu({
   readonly doc: VirtualDocument;
   readonly parts: SplitTopParts;
 }) {
-  const { SaveItems, toSheet, useFileInfo, classes } = parts;
-  const [open, setOpen] = useState(false);
+  const { SaveItems, toSheet, useFileInfo, prepareCopy, classes } = parts;
+  // The store's flag, so the sheets' module is fetched as the menu opens (`CompactSheets`).
+  const open = useCompactStore((s) => s.menuOpen);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const title = useMiddleTitle(doc.title, headingRef, textRef);
@@ -114,7 +107,14 @@ function FileMenu({
     m.pages_count({ count: doc.pages.length }),
   ].filter((fact) => fact !== '');
   return (
-    <Menu.Root open={open} onOpenChange={setOpen}>
+    <Menu.Root
+      open={open}
+      onOpenChange={(next) => {
+        setMenuOpen(next);
+        // The copy is ready by the time Share is tapped (`prepareCopy`).
+        if (next) prepareCopy(doc).catch(() => undefined);
+      }}
+    >
       <h1 ref={headingRef} className={styles.heading}>
         <Menu.Trigger
           className={styles.title}
@@ -153,6 +153,17 @@ function FileMenu({
             <Menu.Item className={classes.menuItem} onClick={toSheet('info')}>
               <Icon name="info" />
               <span>{m.compact_info()}</span>
+            </Menu.Item>
+            {doc.outline.length > 0 ? (
+              <Menu.Item className={classes.menuItem} onClick={toSheet('contents')}>
+                <Icon name="tree-view" />
+                <span>{m.compact_contents()}</span>
+              </Menu.Item>
+            ) : null}
+            <Menu.Separator className={classes.menuSeparator} />
+            <Menu.Item className={classes.menuItem} onClick={toSheet('settings')}>
+              <Icon name="gear-six" />
+              <span>{m.settings_title()}</span>
             </Menu.Item>
           </Menu.Popup>
         </Menu.Positioner>

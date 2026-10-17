@@ -3,24 +3,26 @@
  * makeshift drawer; a floating glass object that rises from below"): the one place where all
  * of phone editing lives.
  *
- * - **Object.** A floating M4 panel (coverage registry `compact-tool-drawer`), inset 16 px from
- *   the sides and 12 px above the island, clear of the home indicator, never taller than 55 %
- *   of the screen. Its corners are the island's concentric radius (28 px, `--radius-2xl`, the
+ * - **Object.** The phone sheet's stays-open form (DSN-53: no scrim, it stays open while the
+ *   page is edited): a floating M4 panel (coverage registry `compact-tool-drawer`) in the shape
+ *   every phone sheet takes (`sheet-shape.module.css`), inset 16 px from the sides and 12 px
+ *   above the island, clear of the home indicator, never taller than 55 % of the screen. Its corners are the island's concentric radius (28 px, `--radius-2xl`, the
  *   island being a 56 px capsule) and its tiles 16 px inside its 12 px padding (S-1). It is a
  *   separate object, never a sheet glued to the bottom edge. Glass Solid gives its solid twin
  *   (`materials.css`); the background light shows through the glass, never cut (DSN-24).
- * - **Motion.** It rises out of the tool chip by the container transform on `smooth` and goes
- *   back into it (`drawer-motion.ts`, MOT-5); the island stays put; the chip takes the receive
- *   pulse when it has gone back in, and a tile that arms takes it at once.
+ * - **Motion.** It rises from below the screen's edge, behind the island, on `smooth` and goes
+ *   back down, as every phone sheet (`drawer-motion.ts`, MOT-12: transform only, solid while it
+ *   moves, its glass clearing at rest); the island stays put; the chip takes the receive pulse
+ *   when it has gone, and a tile that arms takes it at once.
  * - **Rows** (at most three): the tools as tiles of glyph and label (fills, no glass in glass;
  *   the armed one in the tool-active fill); the armed tool's options from the registry (Pen and
  *   Highlight: `InkOptions.tsx`); the quiet actions Eraser, Redo and Select.
  * - **Closing** (EDN-18, the owner: "it shouldn't close right away, so I can make another colour
  *   choice or undo"). A tile arms its tool, takes the receive pulse, and the drawer stays open:
  *   the options row turns to the new tool and the chip changes under it. It closes by a press
- *   outside, a swipe down, the chip again, Close in its head (grabber, "Tools" and a quiet
- *   caret-down "Close tools", as the list's; never a second "Done" beside the island's) and
- *   Esc, which puts focus back on ▾. A press outside only closes (a transparent
+ *   outside, a swipe down, the chip again, Close in its head (the sheet's head: grabber, "Tools"
+ *   and the round caret-down "Close tools", as the list's; never a second "Done" beside the
+ *   island's), Esc and Android's back, which put focus back on ▾. A press outside only closes (a transparent
  *   scrim, so it never draws on the page) unless the armed tool's next step is a tap on the
  *   page (Text, Edit text, a chosen signature): then it closes and acts (`drawer-close.ts`).
  *   Undo and Redo stay in reach in the island under it.
@@ -38,6 +40,7 @@ import { Button } from '../../../ui/Button';
 import { Icon } from '../../../ui/Icon';
 import { IconButton } from '../../../ui/IconButton';
 import { setDrawerOpen, useCompactStore } from '../compact-store';
+import shape from '../sheet-shape.module.css';
 import { armTool, redo, toggleEraser, toolOff } from './bridge';
 import { drawerVariant } from './drawer-variant';
 import { DRAWER_ID } from './EditIsland';
@@ -112,14 +115,14 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         inert={!open}
         {...swipe}
       >
-        <div className={styles.head}>
-          <span className={styles.grabber} aria-hidden="true" />
-          <span className={styles.title}>{m.compact_tools()}</span>
+        <div className={shape.head}>
+          <span className={shape.grabber} aria-hidden="true" />
+          <span className={shape.title}>{m.compact_tools()}</span>
           <IconButton
             label={m.compact_tools_close()}
             tooltipSide="top"
             icon={<Icon name="caret-down" />}
-            className={styles.done}
+            className={shape.close}
             data-testid="compact-drawer-done"
             onClick={() => setDrawerOpen(false)}
           />

@@ -5,10 +5,6 @@
 
 /* Contents: one row per entry, indented by depth (four steps at most). */
 .contents {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden auto;
-  overscroll-behavior: contain;
   padding: 0 0 8px;
 }
 
@@ -225,24 +221,59 @@ a.contentsRow:active {
   padding: 0 12px;
 }
 
-/* About's Appearance group (Theme and Reduce motion, the Settings sheet's own rows) on the
-   sheet's grid (visual audit 2026-10 defect 5): the group's well sits at the sheet grammar's
-   group inset from the panel's edge, and its label and rows' text line up with the facts and
-   the statement, 20 px in. The grammar measures from `--sheet-pad`, which the compact sheet
-   sets at 8 px (its own side padding) instead of the coarse 16, and pads rows 12 instead of
-   16 so the text lands on the facts' line. The rows keep 56 px and the segments 44 (coarse). */
-.aboutSettings {
+/* Settings (DSN-53): the Settings sheet's own rows on the sheet's grid (visual audit 2026-10
+   defect 5): each group's well sits at the sheet grammar's group inset from the panel's edge,
+   and its label and rows' text line up with the facts, 20 px in. The grammar measures from
+   `--sheet-pad`, which the phone sheet sets at its body's 8 px instead of the coarse 16, and
+   pads rows 12 instead of 16 so the text lands on that line. The rows keep 56 px and the
+   segments 44 (coarse). Appearance, Language, then About, the groups' own rhythm (DSN-48). */
+.settings {
   --sheet-pad: 8px;
   --sheet-row-pad: 12px;
   display: flex;
   flex-direction: column;
-  /* Appearance, then Language (DSN-48): the groups' own rhythm, as Settings stacks them. */
   gap: var(--space-4);
-  margin-top: 8px;
+  padding-top: 4px;
 }
 
-.aboutSettings [data-row] {
+.settings [data-row] {
   --row-pad: 12px;
+}
+
+/* Theme's three values (System · Light · Dark) take the row's width under its name: beside it,
+   in the floating sheet's narrower column, they would fold into a menu (`ui/Segmented`). */
+.settings div:has(> [data-values='3']) {
+  flex-wrap: wrap;
+}
+
+.settings [data-values='3'] {
+  width: 100%;
+}
+
+/* A note: its byline over its text, which may be long (the body scrolls) and is selectable. */
+.note {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 8px;
+}
+
+.noteByline {
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+}
+
+.noteText {
+  font-size: var(--type-body);
+  line-height: 1.375rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.noteText[data-empty] {
+  color: var(--text-secondary);
 }
 
 .link:active {

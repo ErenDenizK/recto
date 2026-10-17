@@ -6,8 +6,8 @@
  * Covers: the Library and its reading-only line, opening a file through the file chooser,
  * scrolling with the chrome hiding and showing, a tap, a double tap and a pinch (CDP touch
  * events), Find with hits and ‹ ›, a jump from the page overview (MOB-2), Contents, Go to page, notes,
- * Document info, Download a copy, an encrypted file, Turkish; that a settled sheet is solid
- * with the chrome away, the first-run Recents placeholder and a disabled Go that still reads
+ * Document info, Settings and About, Download a copy, an encrypted file, Turkish; that a
+ * settled sheet floats in the phone sheet's shape, its glass clear, with the chrome away (DSN-53), the first-run Recents placeholder and a disabled Go that still reads
  * (XD-3); that no editing control but Edit is reachable while reading; that the full shell's chunk is never
  * requested; and that `?edition=full` on a phone loads today's app. Set CAPTURE_SCREENSHOTS=<dir> to write the review screenshots.
  */
@@ -154,7 +154,7 @@ async function expectHidden(locator: Locator, hidden: boolean): Promise<void> {
  * A settled compact sheet (07-sheets §3, language.md §2.10): its solid fill has faded in and its
  * backdrop filter is gone, so nothing under it shows through; and the chrome is away (XD-3).
  */
-async function expectSettledSolid(page: Page, sheet: Locator): Promise<void> {
+async function expectSettled(page: Page, sheet: Locator): Promise<void> {
   await expectHidden(topBar(page), true);
   await expectHidden(capsule(page), true);
   await expect
@@ -165,12 +165,23 @@ async function expectSettledSolid(page: Page, sheet: Locator): Promise<void> {
           style.getPropertyValue('backdrop-filter') ||
           style.getPropertyValue('-webkit-backdrop-filter') ||
           'none';
-        const alpha = /rgba?\([^)]*,\s*([\d.]+)\)$/.exec(style.backgroundColor)?.[1];
-        const opaque = !style.backgroundColor.startsWith('rgba') || Number(alpha) === 1;
-        return `${filter} ${opaque ? 'opaque' : style.backgroundColor}`;
+        const box = el.getBoundingClientRect();
+        return {
+          // At rest the glass clears where it stands (MOT-12): its filter is back.
+          moving: el.hasAttribute('data-glass-moving'),
+          glass: filter !== 'none',
+          // The phone sheet's shape (DSN-53): inset from the sides, its corners the island's.
+          inset: Math.round(Math.min(box.left, window.innerWidth - box.right)),
+          radius: style.borderTopLeftRadius,
+        };
       }),
     )
-    .toBe('none opaque');
+    .toEqual({ moving: false, glass: true, inset: expect.any(Number), radius: '28px' });
+  const box = await sheet.boundingBox();
+  const width = page.viewportSize()?.width ?? 0;
+  expect(Math.min(box?.x ?? 0, width - (box?.x ?? 0) - (box?.width ?? 0))).toBeGreaterThanOrEqual(
+    16,
+  );
 }
 
 /** WCAG relative luminance of a computed `rgb()` colour. */
@@ -253,10 +264,11 @@ test.describe('the compact edition', () => {
     await expect(page.getByTestId('compact-recents-empty')).toContainText('Henüz dosya yok');
     await shot(page, 'compact-library-tr');
     // Language is a setting, not a control on the page (DSN-46): the settings gear reaches it
-    // before a file is open, in About's settings rows (DSN-51), and changes the Library at once.
+    // before a file is open, in the Settings sheet (DSN-51, DSN-53), and changes the Library at
+    // once.
     await expect(page.getByRole('button', { name: 'English' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Ayarlar' }).click();
-    const about = page.getByTestId('compact-about-sheet');
+    const about = page.getByTestId('compact-settings-sheet');
     const language = about.getByRole('radiogroup', { name: 'Dil' });
     await language.scrollIntoViewIfNeeded();
     await language.getByRole('radio', { name: 'English' }).click();
@@ -595,7 +607,7 @@ test.describe('the compact edition', () => {
     const goto = page.getByTestId('compact-goto-sheet');
     const input = goto.getByRole('textbox', { name: 'Page number or label' });
     await expect(input).toBeFocused();
-    await expectSettledSolid(page, goto);
+    await expectSettled(page, goto);
     // Go with nothing typed: disabled but present, the shared disabled step (Q-14), and inside
     // the sheet.
     const go = goto.getByRole('button', { name: 'Go' });
@@ -631,61 +643,71 @@ test.describe('the compact edition', () => {
     await expect(pageNumber(page)).toHaveText('7 / 400');
   });
 
-  test('the ⋯ menu: Contents, About; the file menu: Document info, Download a copy', async ({
+  test('the title menu, the one menu: Document info, Contents, Settings, Download a copy', async ({
     page,
   }) => {
     await openLibrary(page);
     await openPdf(page, 'outline-named-dests.pdf');
-    const more = page.getByRole('button', { name: 'More' });
-    await more.click();
-    const menu = page.getByTestId('compact-menu');
-    // One place per command (DSN-46, DSN-48): Find and Go to page are the capsule's, the copy
-    // and Document info the title's file menu.
-    await expect(menu.getByRole('menuitem')).toHaveText(['Contents', 'About Recto']);
-    await shot(page, 'compact-menu');
-    await menu.getByRole('menuitem', { name: 'Contents' }).click();
-    const contents = page.getByTestId('compact-contents-sheet');
-    await expect(contents).toBeVisible();
-    await contents.getByRole('button', { name: /^Chapter 2/ }).click();
-    await expect(contents).toHaveCount(0);
-    await expect(pageNumber(page)).not.toHaveText('1 / 6');
-
+    // One menu (DSN-53): ⋯ folded into the title menu; Find and Go to page stay the capsule's.
+    await expect(page.getByRole('button', { name: 'More' })).toHaveCount(0);
     const title = page.getByTestId('compact-title-menu-trigger');
     const fileMenu = page.getByTestId('compact-file-menu');
     await title.click();
     await expect(fileMenu.getByRole('menuitem')).toHaveText([
       /^(Share|Download a copy)$/,
       'Document info',
+      'Contents',
+      'Settings',
     ]);
+    await shot(page, 'compact-menu');
+    await fileMenu.getByRole('menuitem', { name: 'Contents' }).click();
+    const contents = page.getByTestId('compact-contents-sheet');
+    await expect(contents).toBeVisible();
+    await contents.getByRole('button', { name: /^Chapter 2/ }).click();
+    await expect(contents).toHaveCount(0);
+    await expect(pageNumber(page)).not.toHaveText('1 / 6');
+
+    await title.click();
     await fileMenu.getByRole('menuitem', { name: 'Document info' }).click();
     const info = page.getByTestId('compact-info-sheet');
     await expect(info.getByTestId('compact-info-name')).toHaveText('outline-named-dests.pdf');
     await expect(info.getByTestId('compact-info-pages')).toHaveText('6');
-    await info.getByRole('button', { name: 'Done' }).click();
+    // The round close; focus goes back to the title, which opened the menu.
+    await info.getByRole('button', { name: 'Close' }).click();
     await expect(info).toHaveCount(0);
+    await expect(title).toBeFocused();
 
-    await more.click();
-    await menu.getByRole('menuitem', { name: 'About Recto' }).click();
-    const about = page.getByTestId('compact-about-sheet');
-    await expect(about).toContainText('Files never leave your device.');
-    await expectSettledSolid(page, about);
-    // On a phone on its side About meets the 92 % cap: its body scrolls to the last link.
-    const source = about.getByRole('link', { name: /^Source/ });
-    await source.scrollIntoViewIfNeeded();
-    await expect(source).toBeInViewport({ ratio: 1 });
-    // Reduce motion, the full edition's row (no Settings sheet here), at About's end: On
-    // reaches the root as in the full edition, and System takes it off again.
-    const motion = about.getByRole('radiogroup', { name: 'Reduce motion' });
+    await title.click();
+    await fileMenu.getByRole('menuitem', { name: 'Settings' }).click();
+    const settings = page.getByTestId('compact-settings-sheet');
+    await expect(settings.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await expectSettled(page, settings);
+    // Reduce motion, the full edition's row: On reaches the root as in the full edition, and
+    // System takes it off again.
+    const motion = settings.getByRole('radiogroup', { name: 'Reduce motion' });
     await motion.scrollIntoViewIfNeeded();
     // 0.98, not 1: on a phone on its side the group ends a fraction of a pixel under the scroll
     // edge after rounding (CI measured 0.995), which no one can see.
     await expect(motion).toBeInViewport({ ratio: 0.98 });
     await motion.getByRole('radio', { name: 'On' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
-    await shot(page, 'compact-about-reduce-motion');
+    await shot(page, 'compact-settings-reduce-motion');
     await motion.getByRole('radio', { name: 'System' }).click();
     await expect(page.locator('html')).not.toHaveAttribute('data-motion', 'reduced');
+    // About is Settings' last row, a page within the sheet; ‹ goes back.
+    const aboutRow = settings.getByRole('button', { name: /^About Recto/ });
+    await aboutRow.scrollIntoViewIfNeeded();
+    await aboutRow.click();
+    await expect(settings.getByRole('heading', { name: 'About Recto' })).toBeVisible();
+    await expect(settings).toContainText('Files never leave your device.');
+    // Its body scrolls to the last link, the sheet pulled up to large on the way.
+    const source = settings.getByRole('link', { name: /^Source/ });
+    await source.scrollIntoViewIfNeeded();
+    await expect(source).toBeInViewport({ ratio: 1 });
+    await settings.getByRole('button', { name: 'Settings' }).click();
+    await expect(settings.getByRole('heading', { name: 'Settings' })).toBeVisible();
     await page.keyboard.press('Escape');
+    await expect(settings).toHaveCount(0);
 
     await title.click();
     const download = page.waitForEvent('download');
@@ -699,20 +721,51 @@ test.describe('the compact edition', () => {
     );
   });
 
+  test('a sheet follows a finger on its head, solid while it moves, and a swipe down closes it', async ({
+    page,
+  }) => {
+    await openLibrary(page);
+    await openPdf(page, 'outline-named-dests.pdf');
+    await pageNumber(page).click();
+    const goto = page.getByTestId('compact-goto-sheet');
+    await expectSettled(page, goto);
+    const box = await goto.boundingBox();
+    if (!box) throw new Error('no sheet');
+    const cdp = await page.context().newCDPSession(page);
+    const at = { x: box.x + box.width / 2, y: box.y + 16 };
+    const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', y = at.y) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: type === 'touchEnd' ? [] : [{ x: at.x, y }],
+      });
+    // The head takes the drag (DSN-53): the sheet moves with the finger, its glass solid.
+    await touch('touchStart');
+    for (let i = 1; i <= 6; i++) {
+      await touch('touchMove', at.y + i * 12);
+      await page.waitForTimeout(16);
+    }
+    await expect(goto).toHaveAttribute('data-glass-moving', '');
+    await expect.poll(async () => (await goto.boundingBox())?.y ?? 0).toBeGreaterThan(box.y + 40);
+    // A quick swipe on closes it, and the chrome comes back.
+    for (let i = 7; i <= 14; i++) {
+      await touch('touchMove', at.y + i * 24);
+      await page.waitForTimeout(16);
+    }
+    await touch('touchEnd');
+    await expect(goto).toHaveCount(0);
+    await expectHidden(capsule(page), false);
+  });
+
   test('a file without an outline has no Contents; the producer shows in info', async ({
     page,
   }) => {
     await openLibrary(page);
     await openPdf(page, 'metadata-xmp.pdf');
-    await page.getByRole('button', { name: 'More' }).click();
-    const menu = page.getByTestId('compact-menu');
-    await expect(menu.getByRole('menuitem', { name: 'Contents' })).toHaveCount(0);
-    await page.keyboard.press('Escape');
     await page.getByTestId('compact-title-menu-trigger').click();
-    await page
-      .getByTestId('compact-file-menu')
-      .getByRole('menuitem', { name: 'Document info' })
-      .click();
+    const menu = page.getByTestId('compact-file-menu');
+    await expect(menu.getByRole('menuitem', { name: 'Document info' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Contents' })).toHaveCount(0);
+    await menu.getByRole('menuitem', { name: 'Document info' }).click();
     await expect(page.getByTestId('compact-info-producer')).not.toBeEmpty();
   });
 
@@ -726,9 +779,17 @@ test.describe('the compact edition', () => {
     const note = page.getByRole('button', { name: /^Show note/ });
     await expect(note).toBeVisible();
     await note.click();
-    await expect(page.getByTestId('note-popover')).toBeVisible();
+    // The phone sheet, not a popover (DSN-53): a dialog named "Note"; Esc closes it and gives
+    // focus back to the note's target.
+    const sheet = page.getByTestId('note-sheet');
+    await expect(sheet).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Note' })).toBeVisible();
+    // The page is inert under the modal sheet, so the target is found by its test id.
+    const target = page.getByTestId('note-target').first();
+    await expect(target).toHaveAttribute('aria-expanded', 'true');
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId('note-popover')).toHaveCount(0);
+    await expect(sheet).toHaveCount(0);
+    await expect(target).toBeFocused();
 
     // Reading shows no editing control but Edit (EDN-8: it opens the edit island,
     // compact-edit.spec.ts): no tools, Markup, Save, page operations.
@@ -737,7 +798,8 @@ test.describe('the compact edition', () => {
     await expect(page.getByRole('button', { name: editing })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(1);
     await expect(page.getByRole('radio')).toHaveCount(0);
-    await page.getByRole('button', { name: 'More' }).click();
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await expect(page.getByTestId('compact-file-menu')).toBeVisible();
     await expect(page.getByRole('menuitem', { name: editing })).toHaveCount(0);
     await page.keyboard.press('Escape');
     // A long press or right-click on a page opens no menu of actions on the file.
@@ -850,7 +912,7 @@ test.describe('the compact edition', () => {
 test.describe('the compact edition in the light theme (spec D3-7)', () => {
   test.use({ colorScheme: 'light' });
 
-  test('follows the device’s light scheme, and About’s Theme row sets it', async ({ page }) => {
+  test('follows the device’s light scheme, and Settings’ Theme row sets it', async ({ page }) => {
     await openLibrary(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     const canvas = () =>
@@ -861,9 +923,9 @@ test.describe('the compact edition in the light theme (spec D3-7)', () => {
     await openPdf(page, 'outline-named-dests.pdf');
     await expect(capsule(page)).toBeVisible();
     await shot(page, 'compact-reader-light');
-    await page.getByRole('button', { name: 'More' }).click();
-    await page.getByTestId('compact-menu').getByRole('menuitem', { name: 'About Recto' }).click();
-    const about = page.getByTestId('compact-about-sheet');
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await page.getByTestId('compact-file-menu').getByRole('menuitem', { name: 'Settings' }).click();
+    const about = page.getByTestId('compact-settings-sheet');
     const theme = about.getByRole('radiogroup', { name: 'Theme' });
     await theme.scrollIntoViewIfNeeded();
     await expect(theme.getByRole('radio', { name: 'System' })).toBeChecked();
@@ -873,7 +935,7 @@ test.describe('the compact edition in the light theme (spec D3-7)', () => {
       return [style.color, style.backgroundColor];
     });
     expect(contrast(colours[0] ?? '', colours[1] ?? '')).toBeGreaterThanOrEqual(4.5);
-    await shot(page, 'compact-about-theme-light');
+    await shot(page, 'compact-settings-theme-light');
     await theme.getByRole('radio', { name: 'Dark' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     expect(await canvas()).toBe('rgb(8, 9, 12)');

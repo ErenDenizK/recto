@@ -205,7 +205,8 @@ test.describe('the drawer’s list variant (EDN-16)', () => {
     expect(await pages.evaluate((el) => el.scrollTop)).toBe(before);
 
     // Closed, the pages scroll again.
-    await sheet.getByRole('button', { name: 'Cancel' }).click();
+    // The phone sheet's round close (DSN-53).
+    await sheet.getByRole('button', { name: 'Close' }).click();
     await expect(sheet).toHaveCount(0);
     await expect(pages).not.toHaveAttribute('data-locked', '');
   });

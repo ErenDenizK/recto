@@ -1,18 +1,20 @@
 /**
- * The compact reader's rarely used sheets (ADR-0033 §2.3): Contents (the file's outline), Go
- * to page, Document info and About; the Library mounts About alone, from its ⋯ (DSN-51). They load on demand, outside the compact edition's static
- * closure (phone code audit 2026-10 §4a; the bundle gate, PRC-11): `CompactSheets` prefetches
- * this module once the browser is idle and when ⋯ opens, so a sheet opens at once.
+ * The phone's on-demand sheets, each the one sheet's scrim form (DSN-53, `CompactSheet`):
+ * Contents (the file's outline), Go to page, Document info, Settings (About as its last row), a
+ * note's text and the password prompt; the Library mounts Settings and the password alone, from
+ * its gear (DSN-51). They load on demand, outside the compact edition's static closure (phone
+ * code audit 2026-10 §4a; the bundle gate, PRC-11): `CompactSheets` prefetches this module once
+ * the browser is idle and fetches it at once when a sheet or a password is asked for.
  *
- * The compact edition has no Settings sheet; its settings are Theme (ADR-0022 §2.4, spec
- * D3-7), Reduce motion (language.md §7.6, A-9) and Dim pages (DESIGN.md §3, MOB-17), at the end
- * of About as the full edition's own rows (`settings/ThemeRow.tsx`,
- * `settings/ReduceMotionRow.tsx`, `settings/DimPagesRow.tsx`, the same `appearance-store`
- * fields), so a person who wants light on a dark phone, less motion than their system asks for,
- * or quieter pages at night, can say so on a phone too; and Language, which left the Library's
- * corner for these rows (DSN-46): English · Türkçe, each name in its own language.
+ * **Settings** (the gear, DSN-53): Theme (ADR-0022 §2.4, spec D3-7), Reduce motion (language.md
+ * §7.6, A-9) and Dim pages (DESIGN.md §3, MOB-17), the full edition's own rows
+ * (`settings/ThemeRow.tsx`, `settings/ReduceMotionRow.tsx`, `settings/DimPagesRow.tsx`, the same
+ * `appearance-store` fields), then Language (DSN-46): English · Türkçe, each name in its own
+ * language; last, **About** as a row that opens its page within the sheet (‹ goes back), as
+ * iOS Settings does.
  */
 import type { OutlineNode, VirtualDocument } from '@pdf-editor/document-model';
+import type { NoteAnnotation } from '@pdf-editor/engine';
 import {
   type ReactNode,
   type RefObject,
@@ -37,7 +39,7 @@ import {
 import { DimPagesRow } from '../../settings/DimPagesRow';
 import { ReduceMotionRow } from '../../settings/ReduceMotionRow';
 import { ThemeRow } from '../../settings/ThemeRow';
-import { Row, Section } from '../../settings/rows';
+import { NavRow, Row, Section } from '../../settings/rows';
 import { useViewStore } from '../../state/view-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { Icon } from '../../ui/Icon';
@@ -48,19 +50,22 @@ import { MakerCredit } from '../about/MakerCredit';
 import { AppGlyph } from '../AppGlyph';
 import { openableUrl } from '../OutlinePanel.tree';
 import { useFileInfo } from './CompactChrome';
+import { CompactPassword } from './CompactPassword';
 import { CompactSheet } from './CompactSheet';
 import { closeSheet, useCompactStore } from './compact-store';
 import controls from './controls.module.css';
 import styles from './CompactSheets.module.css';
 import { jumpTo } from './jump';
+import { noteDate } from './NoteLayer';
 
 export default function CompactMoreSheets({
   doc,
 }: {
-  /** The reader's document; the Library has none and mounts About alone (DSN-51). */
+  /** The reader's document; the Library has none and mounts Settings alone (DSN-51). */
   readonly doc?: VirtualDocument | undefined;
 }) {
   const sheet = useCompactStore((s) => s.sheet);
+  const note = useCompactStore((s) => s.note);
   return (
     <>
       {doc ? (
@@ -69,7 +74,6 @@ export default function CompactMoreSheets({
             open={sheet === 'contents'}
             onClose={closeSheet}
             title={m.compact_contents()}
-            size="tall"
             testId="compact-contents-sheet"
           >
             <Contents doc={doc} />
@@ -83,17 +87,85 @@ export default function CompactMoreSheets({
           >
             <DocumentInfo doc={doc} />
           </CompactSheet>
+          <CompactSheet
+            open={sheet === 'note' && note !== null}
+            onClose={closeSheet}
+            title={m.compact_note()}
+            testId="note-sheet"
+          >
+            {note ? <Note note={note} /> : null}
+          </CompactSheet>
         </>
       ) : null}
-      <CompactSheet
-        open={sheet === 'about'}
-        onClose={closeSheet}
-        title={m.about_command({ name: PRODUCT_NAME })}
-        testId="compact-about-sheet"
-      >
-        <About />
-      </CompactSheet>
+      <SettingsSheet open={sheet === 'settings'} />
+      <CompactPassword />
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// A note (ADR-0033 §2.3: "a note shows its text on tap"; DSN-53: a sheet, not a popover)
+// ---------------------------------------------------------------------------
+
+function Note({ note }: { readonly note: NoteAnnotation }) {
+  const text = note.contents?.trim() ?? '';
+  const byline = [note.author?.trim(), noteDate(note.modified, getLocale())]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <div className={styles.note}>
+      {byline ? <p className={styles.noteByline}>{byline}</p> : null}
+      <p className={styles.noteText} data-empty={text === '' || undefined}>
+        {text === '' ? m.compact_note_empty() : text}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Settings, with About as a page within it
+// ---------------------------------------------------------------------------
+
+function SettingsSheet({ open }: { readonly open: boolean }) {
+  const [about, setAbout] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  // Every opening starts on Settings.
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setAbout(false);
+  }
+  const aboutTitle = m.about_command({ name: PRODUCT_NAME });
+  return (
+    <CompactSheet
+      open={open}
+      onClose={closeSheet}
+      title={about ? aboutTitle : m.settings_title()}
+      back={about ? { label: m.settings_title(), onPress: () => setAbout(false) } : undefined}
+      testId="compact-settings-sheet"
+    >
+      {about ? (
+        <About />
+      ) : (
+        <div className={styles.settings}>
+          <Section title={m.appearance_heading()}>
+            <ThemeRow />
+            <ReduceMotionRow />
+            <DimPagesRow />
+          </Section>
+          <Section title={m.settings_section_language()}>
+            <LanguageRow />
+          </Section>
+          <Section title={null} label={aboutTitle}>
+            <NavRow
+              id="about"
+              label={aboutTitle}
+              icon={<AppGlyph size={20} />}
+              onPress={() => setAbout(true)}
+            />
+          </Section>
+        </div>
+      )}
+    </CompactSheet>
   );
 }
 
@@ -381,16 +453,6 @@ function About() {
           <Icon name="arrow-up-right" />
           <span className="visually-hidden"> {m.about_new_tab()}</span>
         </a>
-      </div>
-      <div className={styles.aboutSettings}>
-        <Section title={m.appearance_heading()}>
-          <ThemeRow />
-          <ReduceMotionRow />
-          <DimPagesRow />
-        </Section>
-        <Section title={m.settings_section_language()}>
-          <LanguageRow />
-        </Section>
       </div>
       <MakerCredit className={styles.aboutCredit} />
     </div>

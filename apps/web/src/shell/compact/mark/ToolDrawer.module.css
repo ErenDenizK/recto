@@ -61,50 +61,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* The head (EDN-18, as the list's): the grabber over "Tools" and Close, the swipe's handle. */
-.head {
-  position: relative;
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 52px;
-  padding: var(--space-2) 0 0 var(--space-1h);
-  touch-action: none;
-}
-
-/* The grabber: the swipe's affordance, a 36 × 4 capsule in the tertiary text colour. */
-.grabber {
-  position: absolute;
-  top: var(--space-2);
-  left: calc(50% - 18px);
-  width: 36px;
-  height: 4px;
-  border-radius: var(--radius-capsule);
-  background: var(--text-tertiary);
-  opacity: 0.6;
-}
-
-.title {
-  color: var(--text-secondary);
-  font-size: var(--type-footnote);
-  font-weight: 600;
-  line-height: var(--type-footnote-lh);
-}
-
-/* Close: an icon-only quiet button (caret down, "Close tools"), never lime, so it is not read
-   as the island's Done (EDN-18). 44 px, the glyph in the secondary text colour. */
-.done {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-capsule);
-  color: var(--text-secondary);
-  touch-action: manipulation;
-}
-
-.done svg {
-  width: var(--icon-md);
-  height: var(--icon-md);
+/* The head is the phone sheet's (`sheet-shape.module.css`, DSN-53): the grabber, "Tools" and
+   the round close (caret down, "Close tools", EDN-18). It spans the panel's padding, so its
+   title and close stand where every sheet's do. */
+.panel > :first-child {
+  margin-inline: calc(-1 * var(--space-3));
 }
 
 /* Row 1: the tools, five equal tiles. */
@@ -292,15 +253,6 @@
 
 /* A phone on its side: lower tiles, labels on one line, so the three rows fit its 55 %. */
 @media (max-height: 480px) {
-  .head {
-    min-height: 44px;
-    padding-top: var(--space-1h);
-  }
-
-  .grabber {
-    top: var(--space-1);
-  }
-
   .tile {
     min-height: 52px;
   }

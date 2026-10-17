@@ -7,7 +7,7 @@
  *
  * Two places: the **Library** (Open PDF, Recents, the reading-only line) and the **reader**
  * (pages, a collapsible top bar and bottom capsule, the Pages, Contents, Go to page,
- * Document info and About sheets, Find). Markup, tools, the dock, tabs, page operations,
+ * Document info and Settings sheets, Find). Markup, tools, the dock, tabs, page operations,
  * Save, Compare, conversions and every editing sheet are absent, not hidden.
  *
  * The page opts into the full screen here (`viewport-fit=cover`, so the safe-area insets are
@@ -34,7 +34,6 @@ import { installCopyHandler } from '../../viewer/text-spans';
 import { LiveRegion } from '../LiveRegion';
 import styles from './CompactApp.module.css';
 import { CompactLibrary } from './CompactLibrary';
-import { CompactPassword } from './CompactPassword';
 import { CompactReader } from './CompactReader';
 import { openPdf, shareOrDownload } from './compact-actions';
 import { capsuleAway, showLibrary, showReader, useCompactStore } from './compact-store';
@@ -110,7 +109,6 @@ export function CompactApp() {
   return (
     <LocaleBoundary>
       <CompactRoot />
-      <CompactPassword />
       <CompactToasts />
       <LiveRegion />
     </LocaleBoundary>

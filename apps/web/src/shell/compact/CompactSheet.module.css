@@ -1,18 +1,18 @@
 /*
- * The compact bottom sheet (Q-7): the panel has its final size and moves by `transform`
- * only, following the finger while swiped (`--drawer-swipe-movement-y`); the scrim fades.
- * The panel reaches past the bottom edge by `--bleed`, so an upward overshoot never shows
- * a gap. Its top corners are the 10 px radius; the safe area pads its foot.
+ * The phone sheet's scrim form (DSN-53): the shared shape (`sheet-shape.module.css`) in the
+ * sheet tier, M5 at σ 20 (coverage registry `compact-sheet`), over a scrim that fades.
  *
- * Material (07-sheets §3, "Compact sheet at 92 %"; language.md §2.10): the sheet rises as
- * glass, and once it has settled its solid layer fades in over `--duration-base` and then the
- * backdrop filter is removed, so nothing of the page (a page gap, a link's blue) shows through
- * the sheet at rest. Every compact sheet is modal over the scrim and rests at its one detent,
- * so every one settles solid. The solid is the sheet tier's (`--mat-solid` inside
- * `.mat-sheet`: `--glass-sheet-solid`, 07 §3). It is all done on the glass
- * element itself, by transitions that start as Base UI drops `data-starting-style` (Q-3): the
- * fill waits for the rise (`--duration-base`), and the filter goes, at once, when the fill is
- * opaque (twice that). Closing and swiping keep the solid.
+ * Geometry. Its foot rests where the island rests (12 px above the screen's edge, or on the
+ * safe area), its top never above the status bar's band less 8 px (large); Base UI's detents
+ * hold it at medium by translating it down (`--drawer-snap-point-offset`), never by its height,
+ * so a change of detent moves only `transform` (Q-7).
+ *
+ * Motion (MOT-12). Rising, changing detent, following a finger and leaving move `transform`
+ * alone, on the sheet spring (language.md §7.3 *sheet*), a release on the curves
+ * `sheet-release.ts` writes from the finger's speed. While it moves the glass is its solid twin
+ * (`data-glass-moving`, set by `sheet-release.ts`) and nothing blurred moves; at rest its filter
+ * returns under the fill and the tint clears (`data-glass-settle`). Reduced motion: the sheet
+ * fades in place within 150 ms (§7.5).
  */
 .backdrop {
   position: fixed;
@@ -28,8 +28,8 @@
   opacity: 0;
 }
 
-/* A closing scrim is no longer there for the fingers: the next press (Pages, a tile) reaches
-   what it fades over (as `ui/sheet`'s scrim, Lane D's B7). */
+/* A closing scrim is no longer there for the fingers: the next press reaches what it fades
+   over (as `ui/sheet`'s scrim, Lane D's B7). */
 .backdrop[data-ending-style] {
   pointer-events: none;
 }
@@ -42,53 +42,28 @@
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .sheet {
   composes: mat mat-sheet s20 from global;
-  --bleed: 48px;
-  display: flex;
-  flex-direction: column;
-  width: min(100%, 640px);
-  max-height: calc(92dvh + var(--bleed));
-  margin-bottom: calc(-1 * var(--bleed));
-  padding: 0 max(env(safe-area-inset-right, 0px), 8px)
-    calc(max(env(safe-area-inset-bottom, 0px), 12px) + var(--bleed))
-    max(env(safe-area-inset-left, 0px), 8px);
-  border-width: 1px 1px 0;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  color: var(--text-primary);
-  outline: none;
-  transform: translateY(var(--drawer-swipe-movement-y, 0px));
-  /* The slide on a spring (language.md §7.3 *sheet*), instant under reduced motion (§7.5). */
-  transition:
-    transform var(--spring-quick) var(--ease-spring),
-    background-color var(--duration-base) var(--ease-out) var(--duration-base),
-    -webkit-backdrop-filter 0ms linear calc(2 * var(--duration-base)),
-    backdrop-filter 0ms linear calc(2 * var(--duration-base));
-}
-
-/* Settled: solid, no filter (the transitions above stage it). Under reduced transparency, more
-   contrast and forced colours `.mat` is solid from the start, which this keeps. */
-.sheet:not([data-starting-style]) {
-  background-color: var(--mat-solid);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
-.sheet[data-size='tall'] {
-  height: calc(88dvh + var(--bleed));
+  --sheet-foot: max(env(safe-area-inset-bottom, 0px), 12px);
+  --sheet-top: max(env(safe-area-inset-top, 0px), 12px);
+  max-height: calc(100dvh - var(--sheet-foot) - var(--sheet-top) - 8px);
+  margin-bottom: var(--sheet-foot);
+  transform: translateY(
+    calc(var(--drawer-snap-point-offset, 0px) + var(--drawer-swipe-movement-y, 0px))
+  );
+  transition: transform var(--spring-quick) var(--ease-spring);
 }
 
 .sheet[data-starting-style],
 .sheet[data-ending-style] {
-  transform: translateY(calc(100% - var(--bleed) + 2px));
+  transform: translateY(calc(100% + var(--sheet-foot) + 2px));
 }
 
 .sheet[data-swiping] {
-  transition-property: transform;
   transition-duration: 0ms;
   user-select: none;
 }
@@ -96,53 +71,55 @@
 /* A released swipe: the spring starts at the finger's speed (sheet-release.ts writes both
    curves as the finger lifts; Base UI's end state picks one). */
 .sheet[data-released]:not([data-swiping]) {
-  transition:
-    transform var(--release-open-ms) var(--release-open-ease),
-    background-color var(--duration-base) var(--ease-out) var(--duration-base),
-    -webkit-backdrop-filter 0ms linear calc(2 * var(--duration-base)),
-    backdrop-filter 0ms linear calc(2 * var(--duration-base));
+  transition: transform var(--release-open-ms) var(--release-open-ease);
 }
 
 .sheet[data-released][data-ending-style] {
   transition: transform var(--release-close-ms) var(--release-close-ease);
 }
 
-.handle {
-  flex: none;
-  width: 36px;
-  height: 4px;
-  margin: 8px auto 0;
-  border-radius: var(--radius-capsule);
-  background: var(--border-strong);
+/* Reduced motion: no travel; the sheet fades where it rests (A-9). */
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  .sheet[data-starting-style],
+  .sheet[data-ending-style] {
+    opacity: 0;
+    transform: translateY(var(--drawer-snap-point-offset, 0px));
+  }
 }
 
-.header {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 52px;
-  padding-left: 12px;
+:global(:root[data-motion='reduced']) .sheet {
+  transition: opacity var(--duration-base) var(--ease-out);
 }
 
-.title {
-  min-width: 0;
-  overflow: hidden;
-  font-size: var(--type-body);
-  font-weight: 600;
-  line-height: var(--type-body-lh);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+:global(:root[data-motion='reduced']) .sheet:is([data-starting-style], [data-ending-style]) {
+  opacity: 0;
+  transform: translateY(var(--drawer-snap-point-offset, 0px));
 }
 
-/* A content-height sheet that meets the 92 % cap (About on a phone on its side) scrolls its
-   body; the tall sheets' grid and list scroll themselves and never overflow it. */
+/* ‹ before the title, on a page within the sheet (About within Settings). */
+.back {
+  margin-left: calc(-1 * var(--space-3));
+  color: var(--text-secondary);
+}
+
+/* The body scrolls under the head; a content-height sheet that meets large scrolls too. */
 .body {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  padding: 0 var(--space-2) var(--space-3);
   overflow: hidden auto;
   overscroll-behavior: contain;
+}
+
+/* What stays under the body (New signature's primary), on the sheet's own inset. */
+.footer {
+  flex: none;
+  padding: var(--space-2) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border-hairline);
 }
