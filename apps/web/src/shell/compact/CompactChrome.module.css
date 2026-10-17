@@ -35,11 +35,12 @@
   margin-inline: auto;
   padding: 0 1px;
   border-radius: var(--radius-capsule);
-  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
+  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, or on the spring a scroll
+     writes for this move from its speed (MOT-16, `chrome-spring.ts`), instant under reduced
      motion, where the fade stays (§7.5). */
   transition:
-    transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-base) var(--ease-out);
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms);
 }
 
 .topBar[data-hidden] {
@@ -358,11 +359,12 @@
   height: 56px;
   padding: 0 6px;
   border-radius: var(--radius-capsule);
-  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
+  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, or on the spring a scroll
+     writes for this move from its speed (MOT-16, `chrome-spring.ts`), instant under reduced
      motion, where the fade stays (§7.5). */
   transition:
-    transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-base) var(--ease-out);
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms);
 }
 
 /* The edit island has the row to itself: the edit button has folded into it. */
@@ -373,6 +375,148 @@
 .capsule[data-hidden] {
   opacity: 0;
   transform: translateY(calc(100% + max(env(safe-area-inset-bottom, 0px), 12px)));
+}
+
+/*
+ * The scroll's spring (MOT-16, `chrome-spring.ts`): as a scroll hides the chrome or brings it
+ * back, its speed picks one of four steps (`data-chrome-spring` on the root), each a spring that
+ * starts at that step's speed: slow, long and without bounce (step 0), up to a fling's short
+ * spring with a 3 % overshoot (step 3). The fade is late on the way out, early on the way back.
+ * Written by `chromeCurve()` for the steps' speeds (150, 600, 1300 and 2500 px/s), which
+ * `chrome-spring.test.ts` holds this block to. Reduced motion keeps the tokens.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :global(:root[data-chrome-spring='0']:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ms: 900ms;
+    --hide-ease: linear(
+      0,
+      0.035 1.9%,
+      0.092 4.1%,
+      0.16 6.3%,
+      0.348 11.9%,
+      0.443 14.9%,
+      0.536 18.1%,
+      0.615 21.2%,
+      0.691 24.7%,
+      0.756 28.3%,
+      0.811 32.1%,
+      0.858 36.2%,
+      0.898 40.8%,
+      0.929 45.8%,
+      0.953 51.4%,
+      0.971 57.8%,
+      0.983 65%,
+      0.992 73.7%,
+      1
+    );
+    --hide-fade: 270ms;
+  }
+
+  :global(:root[data-chrome-spring='0']:not([data-motion='reduced']))
+    [data-compact-chrome][data-hidden] {
+    --hide-fade: 360ms;
+    --hide-fade-delay: 225ms;
+  }
+
+  :global(:root[data-chrome-spring='1']:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ms: 720ms;
+    --hide-ease: linear(
+      0,
+      0.177 4.3%,
+      0.321 8.2%,
+      0.443 12%,
+      0.551 15.9%,
+      0.645 20%,
+      0.724 24.2%,
+      0.79 28.6%,
+      0.845 33.4%,
+      0.888 38.3%,
+      0.922 43.7%,
+      0.948 49.6%,
+      0.968 56.4%,
+      0.982 64%,
+      0.991 73.1%,
+      1
+    );
+    --hide-fade: 216ms;
+  }
+
+  :global(:root[data-chrome-spring='1']:not([data-motion='reduced']))
+    [data-compact-chrome][data-hidden] {
+    --hide-fade: 288ms;
+    --hide-fade-delay: 180ms;
+  }
+
+  :global(:root[data-chrome-spring='2']:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ms: 640ms;
+    --hide-ease: linear(
+      0,
+      0.096 1.3%,
+      0.19 2.7%,
+      0.277 4.1%,
+      0.355 5.5%,
+      0.426 6.9%,
+      0.496 8.4%,
+      0.558 9.9%,
+      0.617 11.5%,
+      0.669 13.1%,
+      0.718 14.8%,
+      0.764 16.6%,
+      0.803 18.4%,
+      0.839 20.3%,
+      0.871 22.3%,
+      0.922 26.5%,
+      0.954 30.4%,
+      0.978 34.7%,
+      0.995 39.7%,
+      1.005 45.5%,
+      1.009 57.1%,
+      1
+    );
+    --hide-fade: 192ms;
+  }
+
+  :global(:root[data-chrome-spring='2']:not([data-motion='reduced']))
+    [data-compact-chrome][data-hidden] {
+    --hide-fade: 256ms;
+    --hide-fade-delay: 160ms;
+  }
+
+  :global(:root[data-chrome-spring='3']:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ms: 490ms;
+    --hide-ease: linear(
+      0,
+      0.103 1.8%,
+      0.2 3.6%,
+      0.291 5.4%,
+      0.371 7.1%,
+      0.445 8.8%,
+      0.518 10.6%,
+      0.581 12.3%,
+      0.642 14.1%,
+      0.696 15.9%,
+      0.748 17.8%,
+      0.794 19.7%,
+      0.834 21.6%,
+      0.871 23.6%,
+      0.902 25.6%,
+      0.955 29.9%,
+      0.986 33.6%,
+      1.009 37.7%,
+      1.023 42.2%,
+      1.03 47.3%,
+      1.03 55%,
+      1.009 80.5%,
+      1
+    );
+    --hide-fade: 147ms;
+  }
+
+  :global(:root[data-chrome-spring='3']:not([data-motion='reduced']))
+    [data-compact-chrome][data-hidden] {
+    --hide-fade: 196ms;
+    --hide-fade-delay: 123ms;
+  }
 }
 
 /*
@@ -404,9 +548,10 @@
   border-radius: var(--radius-capsule);
   color: var(--text-primary);
   touch-action: manipulation;
+  /* Hide on scroll as the capsule (MOT-16). */
   transition:
-    transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-base) var(--ease-out),
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms),
     scale var(--spring-press) var(--ease-spring);
 }
 

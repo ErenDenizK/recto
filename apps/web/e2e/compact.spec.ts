@@ -421,6 +421,79 @@ test.describe('the compact edition', () => {
     await expect(pageNumber(page)).toHaveText('3 / 3');
   });
 
+  test('the chrome leaves and comes back on a spring the scroll starts (MOT-16)', async ({
+    page,
+  }) => {
+    await openLibrary(page);
+    await openPdf(page, 'simple-text.pdf');
+    // The spring rides in the editing chunk: ✎ and Done bring it in now, not when idle.
+    await page.getByTestId('compact-edit').click();
+    await page.getByTestId('compact-edit-done').click();
+    await expect(capsule(page)).not.toHaveAttribute('data-editing');
+    // Focus back on the pages: the chrome never hides while it holds the focus (F12 §4).
+    await pages(page).evaluate((el) => el.focus({ preventScroll: true }));
+    /** Scrolls by `step` px a frame for `frames` frames, as a finger would at that speed. */
+    const scroll = (step: number, frames: number) =>
+      pages(page).evaluate(
+        async (el, [by, count]) => {
+          for (let i = 0; i < count; i++) {
+            el.scrollTop += by;
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+          }
+        },
+        [step, frames] as const,
+      );
+    /**
+     * The spring the capsule's move takes: its transform transition's length and curve as the
+     * stylesheet resolves them for this move (no frame is read, PRC-14).
+     */
+    const move = () =>
+      capsule(page).evaluate((el) => {
+        const style = getComputedStyle(el);
+        const names = style.transitionProperty.split(',').map((n) => n.trim());
+        const at = names.indexOf('transform');
+        const ms = Number.parseFloat(style.transitionDuration.split(',')[at] ?? '0');
+        const easing = style.transitionTimingFunction.split(/,(?![^(]*\))/)[at] ?? '';
+        const stops = [...easing.matchAll(/(-?[\d.]+)(?: [\d.]+%)?[,)]/g)].map((m) => Number(m[1]));
+        return {
+          step: document.documentElement.dataset.chromeSpring ?? null,
+          ms: Math.round(style.transitionDuration.includes('ms') ? ms : ms * 1000),
+          peak: Math.max(0, ...stops),
+        };
+      });
+    const rest = () =>
+      page.waitForFunction(() =>
+        document
+          .querySelector('[data-testid="compact-capsule"]')
+          ?.getAnimations()
+          .every((a) => a.playState !== 'running'),
+      );
+
+    // A fling (about 7 000 px/s): off fast, on a spring with a small overshoot.
+    await scroll(120, 4);
+    await expectHidden(capsule(page), true);
+    const fling = await move();
+    expect(fling.step).toBe('3');
+    expect(fling.ms).toBe(490);
+    expect(fling.peak).toBeGreaterThan(1.01);
+    await rest();
+
+    // A slow scroll back (about 120 px/s): a long ease with no bounce.
+    await scroll(-2, 8);
+    await expectHidden(capsule(page), false);
+    const slow = await move();
+    expect(slow.step).toBe('0');
+    expect(slow.ms).toBe(900);
+    expect(slow.peak).toBe(1);
+    await rest();
+    // The step goes once the move is over: a tap moves the chrome on its tokens again.
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.chromeSpring ?? null), {
+        timeout: 3000,
+      })
+      .toBeNull();
+  });
+
   test('double tap zooms to 2× and back; a pinch zooms about the fingers', async ({ page }) => {
     await openLibrary(page);
     await openPdf(page, 'simple-text.pdf');
