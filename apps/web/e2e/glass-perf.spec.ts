@@ -19,7 +19,7 @@ import { deflateSync } from 'node:zlib';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { reloadFresh, useFileInputPicker } from './helpers';
+import { quiet, reloadFresh, trackEngine, useFileInputPicker } from './helpers';
 
 /** `src/state/appearance-store.ts` (kept in step by hand: e2e does not import app code). */
 const APPEARANCE_STORAGE_KEY = 'pdf-editor:appearance:v1';
@@ -193,6 +193,7 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass Solid an
   writeFileSync(file, generateDocument(PAGES));
 
   await page.setViewportSize({ width: 1440, height: 900 });
+  await trackEngine(page);
   await useFileInputPicker(page);
   const results: Record<string, FrameStats | string> = {};
   // The GPU the numbers come from (software rendering headless); informational only.
@@ -229,8 +230,9 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass Solid an
     expect(await page.evaluate(() => document.documentElement.getAttribute('data-glass'))).toBe(
       glass,
     );
-    // Fit width: the pages sit beside the panels.
-    await page.waitForTimeout(500);
+    // Fit width: the pages sit beside the panels. Measured once the page is quiet (rendered,
+    // nothing moving), as each run below is.
+    await quiet(page, { timeout: 30_000 });
     results[`fit width, setting ${label}`] = await scrollRun(page);
     // Zoomed in four steps (150 %): the pages run under the navigator.
     await page.evaluate(() => {
@@ -238,13 +240,14 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass Solid an
       viewport?.focus();
     });
     for (let i = 0; i < 4; i++) await page.keyboard.press('ControlOrMeta+=');
-    await page.waitForTimeout(800);
+    await expect(page.locator('[data-zoom-frame]')).not.toHaveAttribute('data-zooming');
+    await quiet(page, { timeout: 30_000 });
     results[`zoomed in, setting ${label}`] = await scrollRun(page);
     await page.evaluate(() => {
       const viewport = document.querySelector<HTMLElement>('[data-read-viewport]');
       if (viewport) viewport.scrollTop = 1500;
     });
-    await page.waitForTimeout(800);
+    await quiet(page, { timeout: 30_000 });
     const shot = testInfo.outputPath(`glass-zoomed-${label}.png`);
     await page.screenshot({ path: shot });
     await testInfo.attach(`zoomed in, setting ${label}`, { path: shot, contentType: 'image/png' });
@@ -252,7 +255,7 @@ test('S2: frame times while scrolling 50 pages under both panels, Glass Solid an
     // the frame blurs all the same, so this run shows what that costs.
     await page.keyboard.press('3');
     await expect(page.getByTestId('light-table')).toBeVisible();
-    await page.waitForTimeout(800);
+    await quiet(page, { timeout: 30_000 });
     results[`arrange, setting ${label}`] = await scrollRun(page, '[data-testid="light-table"]');
   }
 

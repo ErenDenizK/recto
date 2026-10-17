@@ -10,11 +10,12 @@ import { fileURLToPath } from 'node:url';
 import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker, showSidebar } from './helpers';
+import { openFixtures, quiet, showSidebar, trackEngine, useFileInputPicker } from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
 test.beforeEach(async ({ page, context, browserName }) => {
+  await trackEngine(page);
   await useFileInputPicker(page);
   if (browserName === 'chromium') {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
@@ -305,7 +306,8 @@ test('the Review tab shows the first of 500 items within 100 ms, without a long 
   const review = page.getByRole('tab', { name: /^Review/ });
   // Every page's annotations are read (the badge counts them) before the tab opens.
   await expect(review).toHaveAccessibleName('Review, 500 items', { timeout: 30_000 });
-  await page.waitForTimeout(500);
+  // Measure on a quiet page: the thumbnails and pages have rendered and nothing is moving.
+  await quiet(page, { timeout: 30_000 });
 
   // Three openings from the Pages tab; the median keeps one slow frame of a loaded machine
   // from deciding.
@@ -313,7 +315,7 @@ test('the Review tab shows the first of 500 items within 100 ms, without a long 
   for (let run = 0; run < 3; run++) {
     await page.getByRole('tab', { name: /^Pages/ }).click();
     await expect(page.locator('[data-review-panel]')).toHaveCount(0);
-    await page.waitForTimeout(500);
+    await quiet(page);
     runs.push(
       await review.evaluate(async (tab: HTMLElement) => {
         const long: number[] = [];
@@ -329,6 +331,7 @@ test('the Review tab shows the first of 500 items within 100 ms, without a long 
             firstRow = performance.now() - start;
           } else await new Promise((resolve) => setTimeout(resolve, 1));
         }
+        // The measuring window: long tasks of the panel's mount are reported after they end.
         await new Promise((resolve) => setTimeout(resolve, 500));
         observer.disconnect();
         const rows = document.querySelectorAll('[data-review-panel] [data-review-kind]').length;
@@ -441,7 +444,7 @@ test('screenshots of find and the two-up layout (design review)', async ({ brows
   await expect(
     page.locator('[data-read-viewport] canvas[data-state="rendered"]').first(),
   ).toBeVisible();
-  await page.waitForTimeout(500);
+  await quiet(page);
   await page.screenshot({ path: fileURLToPath(new URL('m2-search-1440.png', screenshots)) });
 
   await field.press('Escape');
@@ -451,6 +454,6 @@ test('screenshots of find and the two-up layout (design review)', async ({ brows
   await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
   await expect(page.locator('[data-page-index="1"] canvas[data-state="rendered"]')).toBeVisible();
   await page.mouse.move(720, 450);
-  await page.waitForTimeout(500);
+  await quiet(page);
   await page.screenshot({ path: fileURLToPath(new URL('m2-two-up-1440.png', screenshots)) });
 });

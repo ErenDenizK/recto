@@ -13,7 +13,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import { atRest, fixturePath, openFixtures, useFileInputPicker } from './helpers';
 
 /** The least visible name a tab may show, CSS px: a few characters, never a bare dot. */
 const MIN_LABEL = 40;
@@ -97,8 +97,9 @@ for (const lang of ['en', 'tr'] as const) {
     const check = async (label: string, fullName: string) => {
       for (const width of widths) {
         await page.setViewportSize({ width, height });
-        // A frame for the resize observer to reveal the active tab and mark the edges.
-        await page.waitForTimeout(200);
+        // The resize observer has revealed the active tab and marked the edges: the strip
+        // holds still for two frames.
+        await atRest(page.locator('[data-bar="title"]'));
         const at = `${label} at ${width} px`;
         const s = await measure(page);
         expect(s.barHeight, `${at}: bar height (Q-9)`).toBe(barHeight);

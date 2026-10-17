@@ -181,14 +181,14 @@ test.describe('pop-ups fit the window', () => {
 
       await page.getByTestId('document-menu').click();
       await expect(page.getByTestId('title-menu')).toBeVisible();
-      await page.waitForTimeout(300);
+      await atRest(page.getByTestId('title-menu'));
       await inside(page, '[data-testid="title-menu"]', `${at}: title menu`);
       await page.keyboard.press('Escape');
       await expect(page.getByTestId('title-menu')).toHaveCount(0);
 
       await page.getByTestId('page-pill').click();
       await expect(page.getByTestId('page-pill-menu')).toBeVisible();
-      await page.waitForTimeout(300);
+      await atRest(page.getByTestId('page-pill-menu'));
       await inside(page, '[data-testid="page-pill-menu"]', `${at}: page pill menu`);
       // It scrolls vertically only (DSN-9): nothing inside is wider than it.
       const sideways = await page
@@ -210,7 +210,7 @@ test.describe('pop-ups fit the window', () => {
     if ((await moveTo.count()) > 0) await moveTo.click();
     else await pagesBar.getByRole('button', { name: 'More actions' }).click();
     await expect(page.getByRole('menu')).toBeVisible();
-    await page.waitForTimeout(300);
+    await atRest(page.getByRole('menu'));
     await inside(page, '[role="menu"]', 'Move to');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menu')).toHaveCount(0);
@@ -220,7 +220,7 @@ test.describe('pop-ups fit the window', () => {
     await page.locator('body').press('ControlOrMeta+,');
     const settings = page.getByTestId('settings-sheet');
     await expect(settings).toBeVisible();
-    await page.waitForTimeout(400);
+    await atRest(settings);
     await inside(page, '[data-testid="settings-sheet"]', 'Settings');
   });
 });

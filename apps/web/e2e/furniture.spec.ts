@@ -10,7 +10,14 @@ import { fileURLToPath } from 'node:url';
 import { PDFDict, PDFDocument, PDFName, PDFStream } from '@cantoo/pdf-lib';
 import { expect, test } from '@playwright/test';
 
-import { openFixtures, openSaveCopy, useFileInputPicker, openFindPanel } from './helpers';
+import {
+  openFindPanel,
+  openFixtures,
+  openSaveCopy,
+  quiet,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -21,6 +28,7 @@ test('adds page numbers to rotated pages, exports them and reads them back', asy
     content:
       "Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });",
   });
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await openFixtures(page, ['rotated-pages.pdf']);
@@ -91,6 +99,7 @@ test('screenshots of the page numbers and watermark dialogs (design review)', as
   );
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await openFixtures(page, ['outline-named-dests.pdf']);
@@ -108,7 +117,7 @@ test('screenshots of the page numbers and watermark dialogs (design review)', as
     'data-furniture-text',
     'Page 1 of 6',
   );
-  await page.waitForTimeout(400);
+  await quiet(page);
   await page.screenshot({ path: fileURLToPath(new URL('m3-page-numbers-1440.png', screenshots)) });
   await page.keyboard.press('Escape');
   await expect(numbers).toBeHidden();
@@ -126,6 +135,6 @@ test('screenshots of the page numbers and watermark dialogs (design review)', as
   await watermark.getByTestId('watermark-text').fill('CONFIDENTIAL');
   await watermark.getByText('Tile across the page').click();
   await expect(page.locator('[data-page-index="0"] [data-furniture-text]').first()).toBeAttached();
-  await page.waitForTimeout(600);
+  await quiet(page);
   await page.screenshot({ path: fileURLToPath(new URL('m3-watermark-1440.png', screenshots)) });
 });

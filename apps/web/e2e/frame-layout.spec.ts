@@ -9,7 +9,16 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { atRest, fixturePath, openFixtures, sessionSettled, useFileInputPicker } from './helpers';
+import {
+  atRest,
+  fixturePath,
+  openFixtures,
+  quiet,
+  sessionSettled,
+  stableBox,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 interface Rect {
   readonly left: number;
@@ -88,6 +97,23 @@ async function pageHead(page: Page, index: number): Promise<Rect> {
   return { ...sheet, bottom: Math.min(sheet.bottom, sheet.top + 40) };
 }
 
+/**
+ * Waits until a jump has landed: the frame has stopped moving (the pill's odometer, the
+ * pages' render) and `selector`'s box holds still (the eased scroll is over).
+ */
+async function landed(page: Page, selector: string): Promise<void> {
+  await quiet(page);
+  await stableBox(page.locator(selector).first());
+}
+
+/** One wheel notch down, and the stage's scroll that follows it (each its own scroll). */
+async function wheelDown(page: Page): Promise<void> {
+  const viewport = page.locator('[data-read-viewport]');
+  const before = await viewport.evaluate((el) => el.scrollTop);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(before);
+}
+
 async function setSidebar(page: Page, open: boolean): Promise<void> {
   const toggle = page.getByTestId('sidebar-toggle');
   if ((await toggle.count()) === 0) return;
@@ -118,6 +144,7 @@ const CLASSES = [
 ] as const;
 
 test.beforeEach(async ({ page }) => {
+  await trackEngine(page);
   await useFileInputPicker(page);
 });
 
@@ -145,7 +172,7 @@ test.describe('A-12: jumps land in the free rectangle', () => {
         await field.fill('4');
         await field.press('Enter');
         await expect(page.getByTestId('page-pill')).toHaveText(/^4 \/ 6 · /);
-        await page.waitForTimeout(400);
+        await landed(page, '[data-read-viewport] [data-page-index="3"]');
         await expectInFree(page, await pageHead(page, 3), `${at}: go to page 4`);
 
         // A Find hit (Mod+F): the current hit in the free rectangle.
@@ -158,7 +185,7 @@ test.describe('A-12: jumps land in the free rectangle', () => {
         await page.keyboard.press('Enter');
         const hit = page.locator('[data-testid="search-highlights"] [data-current]').first();
         await expect(hit).toBeVisible({ timeout: 10_000 });
-        await page.waitForTimeout(400);
+        await landed(page, '[data-testid="search-highlights"] [data-current]');
         await expectInFree(
           page,
           await box(page, '[data-testid="search-highlights"] [data-current]'),
@@ -187,7 +214,7 @@ test.describe('A-12: jumps land in the free rectangle', () => {
             .click();
         }
         await expect(page.getByTestId('page-pill')).toHaveText(/^3 \/ 6 · /);
-        await page.waitForTimeout(400);
+        await landed(page, '[data-read-viewport] [data-page-index="2"]');
         await expectInFree(page, await pageHead(page, 2), `${at}: Contents, Chapter 2`);
       }
     });
@@ -312,20 +339,14 @@ test.describe('the frame per class', () => {
     // A pointer was the last input (the keyboard keeps the bars, F12 §4).
     await page.mouse.click(280, 400);
     await page.mouse.move(280, 400);
-    for (let i = 0; i < 4; i++) {
-      await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(80);
-    }
+    for (let i = 0; i < 4; i++) await wheelDown(page);
     await expect(top).toHaveAttribute('inert');
     await expect(band).toHaveAttribute('inert');
     // Up 8 px or more: back.
     await page.mouse.wheel(0, -60);
     await expect(top).not.toHaveAttribute('inert');
     // Away again, then any key shows the bars before it acts.
-    for (let i = 0; i < 4; i++) {
-      await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(80);
-    }
+    for (let i = 0; i < 4; i++) await wheelDown(page);
     await expect(top).toHaveAttribute('inert');
     await page.keyboard.press('Shift');
     await expect(top).not.toHaveAttribute('inert');

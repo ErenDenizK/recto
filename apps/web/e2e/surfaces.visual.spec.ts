@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 
-import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { atRest, enterEdit, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 const WEB = fileURLToPath(new URL('..', import.meta.url));
 
@@ -84,8 +84,11 @@ test.describe('primitives', () => {
     await page.goto(url);
     await expect(page.locator('[data-row="Progress"]')).toBeVisible({ timeout: 60_000 });
     await page.evaluate(() => document.fonts.ready);
-    // The busy button's glyph appears after 400 ms.
-    await page.waitForTimeout(600);
+    // The busy button's glyph and label appear after 400 ms (ACTIVITY_DELAY_MS, MC-33).
+    await expect(
+      page.locator('[data-row="Busy, blocked"]').getByText('Saving…', { exact: true }),
+    ).toBeVisible();
+    await atRest(page.locator('main'));
     await forceStates(page);
     await page.mouse.move(0, 0);
     await expect(page.locator('main')).toHaveScreenshot(`${name}.png`, SHOT);
@@ -110,6 +113,7 @@ test.describe('primitives', () => {
 
 test.describe('surfaces', () => {
   test.beforeEach(async ({ page }) => {
+    await trackEngine(page);
     await useFileInputPicker(page);
   });
 
@@ -125,7 +129,7 @@ test.describe('surfaces', () => {
       timeout: 20_000,
     });
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(300);
+    await quiet(page);
     await expect(page).toHaveScreenshot(`read-${size}.png`, SHOT);
 
     await enterEdit(page);
@@ -134,7 +138,7 @@ test.describe('surfaces', () => {
     // The keys above leave the group's focus ring showing; the baseline is the resting bar.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(300);
+    await quiet(page);
     await expect(page).toHaveScreenshot(`edit-${size}.png`, SHOT);
   }
 

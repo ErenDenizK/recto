@@ -10,7 +10,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { enterEdit, openFixtures, useFileInputPicker } from './helpers';
+import { enterEdit, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 const palette = (page: Page) => page.getByRole('toolbar', { name: 'Markup', exact: true });
 /**
@@ -22,6 +22,7 @@ const readShown = (page: Page) => dock(page).getByRole('button', { name: 'Markup
 const editShown = (page: Page) => page.locator('[data-capsule="palette"]');
 
 test.beforeEach(async ({ page }) => {
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await expect(page.getByTestId('app-shell')).toBeVisible();
@@ -154,7 +155,7 @@ test('double-click on text opens the editor in Edit, not in Read', async ({ page
   await expect
     .poll(() => page.evaluate(() => window.getSelection()?.toString().trim() ?? ''))
     .not.toBe('');
-  await page.waitForTimeout(400);
+  await quiet(page);
   await expect(editor).toHaveCount(0);
 
   // Edit, with Select: the editor opens with the caret at the point.
@@ -210,7 +211,8 @@ test('a pen stroke over text never opens the editor', async ({ page }) => {
       const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
       const under = () => document.elementFromPoint(x, y) ?? document.body;
       under().dispatchEvent(pen('pointermove', x, { buttons: 0, pressure: 0 }));
-      await pause(200);
+      // The hover is seen once the frame after it has drawn ("Pen draws in Markup" turns on).
+      for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
       under().dispatchEvent(pen('pointerdown', x - 60));
       for (let i = 1; i <= 12; i++) {
         window.dispatchEvent(pen('pointermove', x - 60 + i * 10));
@@ -239,7 +241,7 @@ test('a pen stroke over text never opens the editor', async ({ page }) => {
   await expect(layer.locator('[data-annotation-kind="ink"]')).not.toHaveCount(0, {
     timeout: 20_000,
   });
-  await page.waitForTimeout(400);
+  await quiet(page);
   await expect(editor).toHaveCount(0);
   expect(await page.evaluate(() => window.getSelection()?.toString() ?? '')).toBe('');
   await expect(layer).toHaveAttribute('data-tool', 'select');

@@ -246,7 +246,10 @@ test('with the font held back, the swap from the fallback barely moves the chrom
   await page.goto('./?lang=en', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
   expect(await page.evaluate(() => document.fonts.check("13px 'Inter Recto'", 'A'))).toBe(false);
-  await page.waitForTimeout(300);
+  // The shell has drawn with the fallback face before the font arrives.
+  await page.evaluate(
+    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+  );
   release();
   await settle(page);
   expect(await page.evaluate(() => document.fonts.check("13px 'Inter Recto'", 'A'))).toBe(true);

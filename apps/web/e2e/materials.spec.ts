@@ -17,7 +17,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, pastDeadline, useFileInputPicker } from './helpers';
 import { emulateCores, useRenderOverride, withoutRenderOverride } from './support/render-override';
 
 /** language.md §2.8, G-32 (`state/render-quality.ts`, kept in step by hand). */
@@ -128,8 +128,8 @@ test.describe('the cost ladder (language.md §2.8, ADR-0024 §2.5)', () => {
     }
     const step = Number(await page.locator('html').getAttribute('data-degrade'));
     expect(step, 'the ladder took a step').toBeGreaterThanOrEqual(1);
-    // Held for the session: at rest, unthrottled, the step stays.
-    await page.waitForTimeout(1_000);
+    // Held for the session: at rest, unthrottled, the step stays (a second on the page's clock).
+    await pastDeadline(page, 1_000);
     expect(Number(await page.locator('html').getAttribute('data-degrade'))).toBeGreaterThanOrEqual(
       step,
     );

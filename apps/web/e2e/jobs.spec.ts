@@ -27,11 +27,13 @@ import {
   markupDoor,
   openFindPanel,
   openFixtures,
+  quiet,
   seedFile,
   sessionSettled,
   stageAsBesideInspector,
   stub,
   stubFileSystemAccess,
+  trackEngine,
   useDownloadPath,
   useFileInputPicker,
   waitForSnapshot,
@@ -93,6 +95,7 @@ test('J13B: compress, then save a copy, in 5 presses', async ({ page, browserNam
       },
     });
   });
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
   await openFixtures(page, ['images.pdf']);
@@ -135,6 +138,7 @@ test('J14: a document open when the browser closed is back, with its change, in 
   page,
   browserName,
 }) => {
+  await trackEngine(page);
   await useFileInputPicker(page);
   // Storage is not persistent in a test profile, so `beforeunload` may ask (ADR-0032 §2.7);
   // leaving is the person's answer.
@@ -186,6 +190,7 @@ const FINE = 'this walk needs a fine pointer; its touch walk is not written yet'
 async function startJob(page: Page): Promise<void> {
   // `beforeunload` may ask while changes sit on storage that is not persistent (ADR-0032 §2.7).
   page.on('dialog', (dialog) => void dialog.accept());
+  await trackEngine(page);
   await useFileInputPicker(page);
   await useDownloadPath(page);
   await page.goto('./?lang=en');
@@ -497,9 +502,10 @@ test.describe('core jobs', () => {
       await p.press(sheet.getByRole('button', { name: 'Use signature' }));
       await expect(sheet).toBeHidden();
       await expect(layer).toHaveAttribute('data-tool', 'signature');
-      // The form widgets under the first click take it while the sheet's exit settles.
+      // The form widgets under the first click take it while the sheet's exit settles: click
+      // once nothing moves.
       await page.mouse.move(0, 0);
-      await page.waitForTimeout(400);
+      await quiet(page);
       await p.gesture(async () => {
         const box = await layer.boundingBox();
         if (!box) throw new Error('no page');
@@ -943,6 +949,7 @@ test.describe('core jobs', () => {
         await expect.poll(async () => (await stub(page)).writes, { timeout: 30_000 }).toBe(2);
       });
     } else {
+      await trackEngine(page);
       await useFileInputPicker(page);
       await page.goto('./?lang=en');
       job.skip('save in place', 3, 'File System Access exists only in Chromium');
@@ -1067,6 +1074,7 @@ test.describe('core jobs', () => {
   }, info) => {
     test.setTimeout(120_000);
     page.on('dialog', (dialog) => void dialog.accept());
+    await trackEngine(page);
     await useFileInputPicker(page);
     await page.goto('./?lang=en');
     await sessionSettled(page);

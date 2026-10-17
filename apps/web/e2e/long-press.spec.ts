@@ -10,7 +10,7 @@
  */
 import { type CDPSession, expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, useFileInputPicker } from './helpers';
+import { openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 type Phase = 'start' | 'end';
 
@@ -54,6 +54,7 @@ test('a long press on a page opens the page menu at the press, once', async ({
 }, testInfo) => {
   const real = browserName === 'chromium' && testInfo.project.use.hasTouch === true;
   const cdp = real ? await page.context().newCDPSession(page) : null;
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./');
   await openFixtures(page, ['simple-text.pdf']);
@@ -66,11 +67,11 @@ test('a long press on a page opens the page menu at the press, once', async ({
   const y = Math.round(box.y + 16);
   const menu = page.getByTestId('page-context-menu');
 
-  // A short press is no long press.
+  // A short press (held 200 ms) is no long press.
   await touchAt(page, 'start', x, y, cdp);
   await page.waitForTimeout(200);
   await touchAt(page, 'end', x, y, cdp);
-  await page.waitForTimeout(400);
+  await quiet(page);
   await expect(menu).toHaveCount(0);
 
   // Held: the menu opens while the finger is still down, at the press point.
@@ -83,7 +84,7 @@ test('a long press on a page opens the page menu at the press, once', async ({
   // `contextmenu` and the release's click were swallowed).
   await page.waitForTimeout(400);
   await touchAt(page, 'end', x, y, cdp);
-  await page.waitForTimeout(500);
+  await quiet(page);
   await expect(menu).toHaveCount(1);
   await expect(menu).toBeVisible();
   await expect(menu.getByRole('menuitem', { name: /^Show in Pages grid/ })).toBeVisible();

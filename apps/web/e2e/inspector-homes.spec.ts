@@ -17,7 +17,15 @@
  */
 import { expect, type Locator, type Page, test, type TestInfo } from '@playwright/test';
 
-import { enterEdit, historyStep, inHistory, openFixtures, useFileInputPicker } from './helpers';
+import {
+  enterEdit,
+  historyStep,
+  inHistory,
+  openFixtures,
+  quiet,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 const isTablet = (info: TestInfo) => info.project.name === 'tablet';
 
@@ -25,7 +33,7 @@ async function shot(page: Page, info: TestInfo, name: string, target?: Locator):
   const file = `${name}-${isTablet(info) ? 'tablet' : '1440'}-${langOf(page)}.png`;
   const path = process.env.SHOTS_DIR ? `${process.env.SHOTS_DIR}/${file}` : info.outputPath(file);
   // Motion settles first (sheets and popovers enter on springs).
-  await page.waitForTimeout(450);
+  await quiet(page);
   await (target ?? page).screenshot({ path });
 }
 
@@ -34,6 +42,7 @@ const langOf = (page: Page) =>
 
 async function start(page: Page, info: TestInfo, lang: 'en' | 'tr', files: string[]) {
   if (!isTablet(info)) await page.setViewportSize({ width: 1440, height: 900 });
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto(`./?lang=${lang}`);
   await openFixtures(page, files);

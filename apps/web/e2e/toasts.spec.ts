@@ -14,7 +14,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, useFileInputPicker } from './helpers';
+import { fixturePath, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -25,6 +25,7 @@ test.beforeEach(async ({ page }, info) => {
     ['phone', 'phone-land'].includes(info.project.name),
     'the compact edition’s toast is tested in compact.spec.ts',
   );
+  await trackEngine(page);
   await useFileInputPicker(page);
 });
 
@@ -56,6 +57,9 @@ async function deleteSecondPage(page: Page): Promise<void> {
 test('a damaged file shows a visible failure toast until it is dismissed (INV-6)', async ({
   page,
 }) => {
+  // The toasts' timers run on the page's clock (`toast-store.ts`: `Date.now`, `setTimeout`),
+  // which the test moves on instead of waiting it out.
+  await page.clock.install();
   await page.goto('./?lang=en');
   await openDamaged(page);
   const toast = page.getByRole('group', { name: 'Could not open scan.pdf: the file is damaged.' });
@@ -64,7 +68,7 @@ test('a damaged file shows a visible failure toast until it is dismissed (INV-6)
     'Could not open scan.pdf: the file is damaged.',
   );
   // A failure stays (no timer): still there well after an info toast would have gone.
-  await page.waitForTimeout(5_000);
+  await page.clock.fastForward(5_000);
   await expect(toast).toBeVisible();
   await toast.getByRole('button', { name: 'Dismiss' }).click();
   await expect(toast).toHaveCount(0);
@@ -103,6 +107,8 @@ test('on the Library the stack keeps 8 px (--space-2) above the selection bar, n
 test('"Deleted page 2 · Undo" holds while hovered, F6 reaches it, and Undo brings the page back', async ({
   page,
 }) => {
+  // The toast's timer runs on the page's clock (`toast-store.ts`), moved on below.
+  await page.clock.install();
   await page.goto('./?lang=en');
   await openFixtures(page, ['simple-text.pdf']);
   await deleteSecondPage(page);
@@ -111,7 +117,7 @@ test('"Deleted page 2 · Undo" holds while hovered, F6 reaches it, and Undo brin
 
   // A-24: held on hover well past its 10 s.
   await toast.hover();
-  await page.waitForTimeout(11_000);
+  await page.clock.fastForward(11_000);
   await expect(toast).toBeVisible();
   await page.mouse.move(2, 450);
 
@@ -150,7 +156,7 @@ test('a toast stays readable above a modal sheet and its scrim', async ({ page }
   );
   expect(onTop).toContain('Deleted page 2');
   if (SHOTS && info.project.name === 'chromium') {
-    await page.waitForTimeout(400);
+    await quiet(page);
     await page.screenshot({ path: `${SHOTS}/toast-over-sheet-1440.png` });
   }
 });
@@ -163,13 +169,13 @@ for (const lang of ['en', 'tr'] as const) {
     await openDamaged(page);
     await deleteSecondPage(page);
     await page.mouse.move(2, 450);
-    await page.waitForTimeout(600);
+    await quiet(page);
     await page.screenshot({ path: `${SHOTS}/toasts-${lang}-1440.png` });
     await page
       .getByRole('group')
       .filter({ hasText: /scan\.pdf/ })
       .hover();
-    await page.waitForTimeout(300);
+    await quiet(page);
     await page.screenshot({
       path: `${SHOTS}/toasts-${lang}-hover.png`,
       clip: { x: 360, y: 560, width: 720, height: 340 },

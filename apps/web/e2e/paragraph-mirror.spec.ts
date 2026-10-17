@@ -10,11 +10,12 @@
  */
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { fixturePath, quiet, trackEngine, useFileInputPicker } from './helpers';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
 test.beforeEach(async ({ page }) => {
+  await trackEngine(page);
   await useFileInputPicker(page);
   await page.goto('./?lang=en');
 });
@@ -130,8 +131,9 @@ test.describe('with a mouse', () => {
     await page.mouse.down();
     await page.mouse.move(third.left + 1, third.middle, { steps: 6 });
     await page.mouse.up();
-    // The browser's own placement after the release never wins over the drag's.
-    await page.waitForTimeout(600);
+    // The browser's own placement after the release never wins over the drag's: read once
+    // the page has handled the release.
+    await quiet(page);
     await expect.poll(() => selected(page)).toEqual({ anchor: 0, focus: third.start });
     await page.keyboard.type('Q');
     await expect(editor).toHaveText(`Q${before.slice(third.start)}`);
@@ -218,8 +220,9 @@ test.describe('with a finger', () => {
     const [, second] = await linesOf(page);
     if (!second) throw new Error('no second line');
     await page.touchscreen.tap(second.left + 1, second.middle);
-    // A tap's own caret placement at the lift never wins over the editor's.
-    await page.waitForTimeout(600);
+    // A tap's own caret placement at the lift never wins over the editor's: read once the
+    // page has handled the lift.
+    await quiet(page);
     await expect.poll(() => selected(page)).toEqual({ anchor: second.start, focus: second.start });
     await page.keyboard.type('Z');
     await expect(editor).toHaveText(

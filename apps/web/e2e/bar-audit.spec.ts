@@ -60,9 +60,13 @@ function collector(page: Page) {
   const seen = new Set<string>();
   return {
     async audit(state: string) {
-      // Let entrances settle so boxes are at rest: a fixed pause, then every finite motion done
-      // (WebKit on CI once read the History scrubber's Undo mid-pulse, 31 px high).
-      await page.waitForTimeout(350);
+      // Let entrances settle so boxes are at rest: a popup out of its starting style, two
+      // frames so an entrance that starts on the next one is running, then every finite motion
+      // done (WebKit on CI once read the History scrubber's Undo mid-pulse, 31 px high).
+      await page.waitForFunction(() => document.querySelector('[data-starting-style]') === null);
+      await page.evaluate(
+        () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+      );
       await settleAnimations(page);
       const result = await auditBars(page, state, { height: await density(page), skip: SKIP });
       findings.push(...result.findings);
