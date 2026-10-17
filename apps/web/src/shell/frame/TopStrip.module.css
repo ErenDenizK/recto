@@ -315,6 +315,8 @@
   background: var(--surface-on);
   opacity: 0;
   pointer-events: none;
+  /* The slide scales it along x about its leading edge (tab-motion.ts, MOT-15). */
+  transform-origin: 0 50%;
 }
 
 .tabWrap[data-selected] > .tabFill {
