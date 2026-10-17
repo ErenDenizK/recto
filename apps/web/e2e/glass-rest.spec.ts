@@ -368,7 +368,7 @@ test.describe('the compact edition', () => {
 
     await page.getByRole('button', { name: 'More' }).click();
     await expect(page.getByTestId('compact-menu')).toBeVisible();
-    // At rest: the liquid menu's mask has gone (DSN-39).
+    // At rest: the menu's motion has gone (DSN-39, MOT-13).
     await expect(page.getByTestId('compact-menu')).not.toHaveAttribute('data-liquid');
     walk = await expectGlassClean(page, 'compact ⋯ menu');
     // The top bar, the capsule, the reader's ✎ Edit button (M10 WP1, EDN-8) and the menu: Q-11's

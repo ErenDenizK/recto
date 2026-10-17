@@ -5,8 +5,10 @@
  * - **The selection slides.** The active tab's fill (`data-tab-fill`) is one shared element in
  *   effect: when another tab becomes active its fill starts where the last one was drawn (its
  *   place and width, a fill in flight included, with its velocity) and moves to its own on
- *   `smooth`, by `transform` and its own `width` (a fill has no label, so nothing is scaled,
- *   Q-8). At rest the fill has no inline style (Q-2).
+ *   `smooth`, by one `transform`: a translate and a scale along x about its leading edge (a fill
+ *   has no label, so no text is scaled, Q-8). On the compositor, so the slide keeps its frames
+ *   while the document it selects renders on the main thread (MOT-15; it was its `width`, laid
+ *   out every frame, and stalled with the switch). At rest the fill has no inline style (Q-2).
  * - **A new tab grows in.** Its own width moves from 0 to its resting width on `smooth`, its
  *   contents held at their resting width and fading in; the tabs after it, "N more" and + move
  *   by layout, and the tabs piece follows (`data-tab-motion` tells `springWidth()` to hold).
@@ -69,8 +71,8 @@ export function closedTabs<T extends { readonly id: DocumentId }>(
 
 interface FillRun {
   readonly el: HTMLElement;
+  /** `[x, y, sx, sy]` from its resting box. */
   readonly move: Motion<readonly number[]>;
-  readonly width: Motion;
 }
 
 /** A box in the tab list's own coordinates (its scroll included). */
@@ -164,13 +166,13 @@ export function useTabMotion(
     const growing = fill !== null && entering.some((wrap) => wrap.contains(fill));
     if (fill && changed && !reduced && !growing) {
       const from = fromDrawn ?? was.fill;
-      let velocity: [number, number] = [0, 0];
+      let velocity: readonly number[] = [0, 0, 0, 0];
       if (prior) {
-        velocity = [prior.move.velocity[0] ?? 0, prior.width.velocity];
+        // The scale's speed is of the old fill's width: carried as px of width per second.
+        const [vx = 0, , vs = 0] = prior.move.velocity;
+        velocity = [vx, 0, vs * prior.el.offsetWidth, 0];
         prior.move.stop();
-        prior.width.stop();
         prior.el.style.removeProperty('transform');
-        prior.el.style.removeProperty('width');
         run.current = null;
       }
       const to = fillAt ?? placeOf(fill, list);
@@ -179,25 +181,23 @@ export function useTabMotion(
         from.width > 0 &&
         Math.abs(from.left - to.left) + Math.abs(from.width - to.width) > 0.5
       ) {
-        const move = animateStyle(fill, 'transform', [from.left - to.left, 0], [0, 0], {
-          spring: 'smooth',
-          velocity: [velocity[0], 0],
-        });
-        const width = animateStyle(fill, 'width', from.width, to.width, {
-          spring: 'smooth',
-          velocity: velocity[1],
-        });
-        const current: FillRun = { el: fill, move, width };
+        const scale = to.width > 0 ? to.width : 1;
+        const move = animateStyle(
+          fill,
+          'transform',
+          [from.left - to.left, 0, from.width / scale, 1],
+          [0, 0, 1, 1],
+          { spring: 'smooth', velocity: [velocity[0] ?? 0, 0, (velocity[2] ?? 0) / scale, 0] },
+        );
+        const current: FillRun = { el: fill, move };
         run.current = current;
-        void Promise.all([move.finished, width.finished]).then(() => {
+        void move.finished.then(() => {
           if (run.current === current) run.current = null;
         });
       }
     } else if (prior && (reduced || (changed && growing))) {
       prior.move.stop();
-      prior.width.stop();
       prior.el.style.removeProperty('transform');
-      prior.el.style.removeProperty('width');
       run.current = null;
     }
 

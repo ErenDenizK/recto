@@ -562,6 +562,26 @@
   backdrop-filter: none !important;
 }
 
+/* Glass that grows out of a control (MOT-12, ui/glass-moving.ts): its tier's solid twin with an
+   unblurred rim while it moves, so no frame re-blurs its backdrop or repaints a soft shadow; once
+   at rest the filter is back under the opaque fill and the tint and shadow fade in. Specificity
+   of `.mat` alone, so the contrast and forced-colour resets below still win. */
+.mat:where([data-glass-moving]) {
+  --shadow-own:
+    var(--rim-edge-strong), inset 0 1px 0 var(--mat-rim-top), inset 0 -1px 0 var(--mat-rim-bottom);
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: var(--mat-solid);
+}
+:is(.mat-chip, .mat-ring):where([data-glass-moving])::before {
+  content: none;
+}
+.mat:where([data-glass-settle]) {
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out) !important;
+}
+
 /* Transparency unwelcome, more contrast, forced colours: solid, no filter, the normal ladder. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
   .mat {

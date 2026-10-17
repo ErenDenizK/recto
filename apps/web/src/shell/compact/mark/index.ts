@@ -35,6 +35,7 @@ void import('./fields').catch(() => undefined);
 export { enterEditing, exitEditing } from './bridge';
 export { registerCompactOverlay } from '../mark-host';
 export { morphCapsule } from './capsule-morph';
+export { springChrome } from './chrome-spring';
 export { EditIsland } from './EditIsland';
 export { type CompactToolSpec, registerCompactTool } from './registry';
 export { SelectionHost } from './selection-host';

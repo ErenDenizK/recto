@@ -49,7 +49,8 @@
   );
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
-  transition: opacity var(--duration-base) var(--ease-out);
+  transition: opacity var(--hide-fade, var(--duration-base)) var(--ease-out)
+    var(--hide-fade-delay, 0ms);
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
@@ -105,9 +106,10 @@
   border-radius: var(--radius-capsule);
   color: var(--text-primary);
   touch-action: manipulation;
+  /* Hide on scroll with the capsule, on the spring a scroll writes (MOT-16). */
   transition:
-    transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-base) var(--ease-out),
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms),
     scale var(--spring-press) var(--ease-spring);
 }
 
@@ -166,8 +168,8 @@
   letter-spacing: var(--track-callout);
   touch-action: manipulation;
   transition:
-    transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-base) var(--ease-out),
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms),
     background-color var(--duration-fast) var(--ease-out);
 }
 

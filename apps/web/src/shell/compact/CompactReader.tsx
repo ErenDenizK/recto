@@ -57,6 +57,7 @@ import { CompactPage } from './CompactPage';
 import styles from './CompactReader.module.css';
 import { CompactSheets } from './CompactSheets';
 import { openFind, setChromeHidden, setZoom, useCompactStore } from './compact-store';
+import { markLoaded } from './mark-host';
 import type { PinchMorph } from './overview';
 import {
   canOpenOverview,
@@ -422,10 +423,19 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
     if (!el) return;
     let frameId = 0;
     let pillTimer = 0;
+    // When the last scroll frame ran, for the scroll's speed (MOT-16).
+    let lastTime = 0;
     const update = () => {
       frameId = 0;
       measure();
       const top = el.scrollTop;
+      // The scroll's speed, px/s, which the chrome's spring starts at (MOT-16): this frame's
+      // travel over the time since the last (one frame when the scroll has just begun: a fling's
+      // first frame flips the chrome alone).
+      const now = performance.now();
+      const gap = now - lastTime;
+      const speed = ((top - hide.current.lastTop) / (gap < 100 ? Math.max(16, gap) : 16)) * 1000;
+      lastTime = now;
       const mine = expected.current;
       const programmatic =
         mine !== null && Math.abs(mine.top - top) < 1 && Math.abs(mine.left - el.scrollLeft) < 1;
@@ -439,6 +449,9 @@ function PageScroller({ doc }: { readonly doc: VirtualDocument }) {
         { ...hide.current, hidden: state.chromeHidden },
         { top, maxTop: el.scrollHeight - el.clientHeight, canHide: canHide() },
       );
+      if (hide.current.hidden !== state.chromeHidden) {
+        markLoaded()?.springChrome(speed);
+      }
       setChromeHidden(hide.current.hidden);
       if (hide.current.hidden) {
         setPill(true);

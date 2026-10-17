@@ -35,11 +35,12 @@
   margin-inline: auto;
   padding: 0 1px;
   border-radius: var(--radius-capsule);
-  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
+  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, or on the spring a scroll
+     writes for this move from its speed (MOT-16, `chrome-spring.ts`), instant under reduced
      motion, where the fade stays (§7.5). */
   transition:
-    transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-base) var(--ease-out);
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms);
 }
 
 .topBar[data-hidden] {
@@ -70,7 +71,7 @@
    takes σ 8 (`r8`, coverage registry `compact-menu-one-row`). The split top's file menu
    (DSN-34) is the same recipe. The capsule top's ⋯ carries `ct-popup` (set in
    `CompactChrome.tsx`), so the container transform serves it once installed (DSN-36); the split
-   top's menus are liquid instead (DSN-39, `liquid-menu.ts`). */
+   top's menus grow out of their button instead (DSN-39, MOT-13, `liquid-menu.ts`). */
 .menu {
   composes: mat mat-menu s12 r8 from global;
   min-width: 232px;
@@ -102,36 +103,17 @@
   transform: none;
 }
 
-/* *The liquid menu* (DSN-39, `liquid-menu.ts`): while it opens or closes its one glass layer is
-   masked by the union of the button and the growing blob, the CSS entrance and exit step aside
-   (the close's opacity is a Web Animation Base UI waits for) and the content only fades,
-   never scales (MOT-5). Nothing of it is left at rest. */
+/* *The menu out of its button* (DSN-39, MOT-13, `liquid-menu.ts`): while it opens or closes it
+   grows from its button and goes back into it on Web Animations of its transform and opacity,
+   its CSS entrance and exit step aside (the close's opacity is a Web Animation Base UI waits
+   for), and while it grows it is its tier's solid twin (MOT-12). Nothing of it is left at rest. */
 .menu[data-liquid] {
-  position: relative;
-  border-color: transparent;
   transition: none;
-}
-
-/* Its rim while it moves (DSN-42): the mask cuts the border and the inner light to the box's
-   corners, so the union's outline is stroked in the rim's top-lit gradient (`outlineRim`) over
-   the glass, the mask keeping the stroke's inner pixel where the border would be. */
-.menu[data-liquid]::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  background: var(--liquid-rim, none) no-repeat 0 0 / 100% 100%;
-  /* WebKit's rim: a gradient clipped to a ring inside the outline (`liquidPaint`, MOT-8). */
-  clip-path: var(--liquid-ring, none);
-  pointer-events: none;
 }
 
 .menu[data-liquid]:is([data-starting-style], [data-ending-style]) {
   opacity: 1;
   transform: none;
-}
-
-.menu[data-liquid] > * {
-  opacity: var(--liquid-content, 1);
 }
 
 /* The menu → sheet hand-off (`ui/menu-handoff.ts`, Q-7): a row that opens a sheet closes the
@@ -377,11 +359,12 @@
   height: 56px;
   padding: 0 6px;
   border-radius: var(--radius-capsule);
-  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, instant under reduced
+  /* *Hide on scroll* (language.md §7.3): the slide on --spring-quick, or on the spring a scroll
+     writes for this move from its speed (MOT-16, `chrome-spring.ts`), instant under reduced
      motion, where the fade stays (§7.5). */
   transition:
-    transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-base) var(--ease-out);
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms);
 }
 
 /* The edit island has the row to itself: the edit button has folded into it. */
@@ -395,6 +378,148 @@
 }
 
 /*
+ * The scroll's spring (MOT-16, `chrome-spring.ts`): as a scroll hides the chrome or brings it
+ * back, its speed picks one of four steps (`data-chrome-spring` on the root), each a spring that
+ * starts at that step's speed: slow, long and without bounce (step 0), up to a fling's short
+ * spring with a 3 % overshoot (step 3). The fade is late on the way out, early on the way back.
+ * Written by `chromeCurve()` for the steps' speeds (150, 600, 1300 and 2500 px/s), which
+ * `chrome-spring.test.ts` holds this block to. Reduced motion keeps the tokens.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :global(:root[data-chrome-spring='0']:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ms: 900ms;
+    --hide-ease: linear(
+      0,
+      0.035 1.9%,
+      0.092 4.1%,
+      0.16 6.3%,
+      0.348 11.9%,
+      0.443 14.9%,
+      0.536 18.1%,
+      0.615 21.2%,
+      0.691 24.7%,
+      0.756 28.3%,
+      0.811 32.1%,
+      0.858 36.2%,
+      0.898 40.8%,
+      0.929 45.8%,
+      0.953 51.4%,
+      0.971 57.8%,
+      0.983 65%,
+      0.992 73.7%,
+      1
+    );
+    --hide-fade: 270ms;
+  }
+
+  :global(:root[data-chrome-spring='0']:not([data-motion='reduced']))
+    [data-compact-chrome][data-hidden] {
+    --hide-fade: 360ms;
+    --hide-fade-delay: 225ms;
+  }
+
+  :global(:root[data-chrome-spring='1']:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ms: 720ms;
+    --hide-ease: linear(
+      0,
+      0.177 4.3%,
+      0.321 8.2%,
+      0.443 12%,
+      0.551 15.9%,
+      0.645 20%,
+      0.724 24.2%,
+      0.79 28.6%,
+      0.845 33.4%,
+      0.888 38.3%,
+      0.922 43.7%,
+      0.948 49.6%,
+      0.968 56.4%,
+      0.982 64%,
+      0.991 73.1%,
+      1
+    );
+    --hide-fade: 216ms;
+  }
+
+  :global(:root[data-chrome-spring='1']:not([data-motion='reduced']))
+    [data-compact-chrome][data-hidden] {
+    --hide-fade: 288ms;
+    --hide-fade-delay: 180ms;
+  }
+
+  :global(:root[data-chrome-spring='2']:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ms: 640ms;
+    --hide-ease: linear(
+      0,
+      0.096 1.3%,
+      0.19 2.7%,
+      0.277 4.1%,
+      0.355 5.5%,
+      0.426 6.9%,
+      0.496 8.4%,
+      0.558 9.9%,
+      0.617 11.5%,
+      0.669 13.1%,
+      0.718 14.8%,
+      0.764 16.6%,
+      0.803 18.4%,
+      0.839 20.3%,
+      0.871 22.3%,
+      0.922 26.5%,
+      0.954 30.4%,
+      0.978 34.7%,
+      0.995 39.7%,
+      1.005 45.5%,
+      1.009 57.1%,
+      1
+    );
+    --hide-fade: 192ms;
+  }
+
+  :global(:root[data-chrome-spring='2']:not([data-motion='reduced']))
+    [data-compact-chrome][data-hidden] {
+    --hide-fade: 256ms;
+    --hide-fade-delay: 160ms;
+  }
+
+  :global(:root[data-chrome-spring='3']:not([data-motion='reduced'])) [data-compact-chrome] {
+    --hide-ms: 490ms;
+    --hide-ease: linear(
+      0,
+      0.103 1.8%,
+      0.2 3.6%,
+      0.291 5.4%,
+      0.371 7.1%,
+      0.445 8.8%,
+      0.518 10.6%,
+      0.581 12.3%,
+      0.642 14.1%,
+      0.696 15.9%,
+      0.748 17.8%,
+      0.794 19.7%,
+      0.834 21.6%,
+      0.871 23.6%,
+      0.902 25.6%,
+      0.955 29.9%,
+      0.986 33.6%,
+      1.009 37.7%,
+      1.023 42.2%,
+      1.03 47.3%,
+      1.03 55%,
+      1.009 80.5%,
+      1
+    );
+    --hide-fade: 147ms;
+  }
+
+  :global(:root[data-chrome-spring='3']:not([data-motion='reduced']))
+    [data-compact-chrome][data-hidden] {
+    --hide-fade: 196ms;
+    --hide-fade-delay: 123ms;
+  }
+}
+
+/*
  * Light theme: the top bar, the Find bar, the capsule, the island and the edit button take the
  * bar tier as it is (glass v2, GLS-8 to GLS-11: its light tint and rim light, in the theme's
  * tone, GLS-20), no longer the sheet tier's denser tint of visual audit
@@ -405,9 +530,9 @@
  * The edit button (EDN-8; design/phone-2026-10/README.md §2): a 56 px circle of the capsule's
  * own material (coverage registry `compact-edit-button`) beside it, its glyph 20 px (Q-9). It
  * hides with the chrome as the capsule does. While editing it folds into the island: its width
- * and the row's gap close on --spring-smooth while it fades on --duration-fast, so the island,
- * centred in the row, settles where the pair was centred. Reduced motion keeps the fade (the
- * spring tokens fall to 0 ms). Press: --press-scale (0.94 on touch, platform.md §2).
+ * and the row's gap close at once and the body under the pair draws the fold on the compositor
+ * (MOT-14), so the island, centred in the row, rests where the pair was centred. Reduced motion
+ * keeps the fade. Press: --press-scale (0.94 on touch, platform.md §2).
  */
 .edit {
   composes: mat mat-bar s10 from global;
@@ -423,11 +548,10 @@
   border-radius: var(--radius-capsule);
   color: var(--text-primary);
   touch-action: manipulation;
+  /* Hide on scroll as the capsule (MOT-16). */
   transition:
-    transform var(--spring-quick) var(--ease-spring),
-    opacity var(--duration-base) var(--ease-out),
-    width var(--spring-smooth) var(--ease-spring),
-    margin var(--spring-smooth) var(--ease-spring),
+    transform var(--hide-ms, var(--spring-quick)) var(--hide-ease, var(--ease-spring)),
+    opacity var(--hide-fade, var(--duration-base)) var(--ease-out) var(--hide-fade-delay, 0ms),
     scale var(--spring-press) var(--ease-spring);
 }
 
@@ -439,9 +563,7 @@
 
 .edit:active {
   scale: var(--press-scale);
-  transition-duration:
-    var(--spring-quick), var(--duration-base), var(--spring-smooth), var(--spring-smooth),
-    var(--duration-instant);
+  transition-duration: var(--spring-quick), var(--duration-base), var(--duration-instant);
 }
 
 .edit[data-hidden] {
@@ -450,11 +572,11 @@
 }
 
 /*
- * The capsule and ✎ as one liquid body while the capsule morphs into the island and back
- * (DSN-43, `mark/capsule-liquid.ts`): one masked glass layer under them draws the union, so
- * each piece's own fill, filter, rim and ring step aside for the run; the capsule keeps its drop
- * shadow, ✎ none (its box narrows beside the drop and would leave a grey ghost), and the
- * content stays and only fades (MOT-5). Nothing of it at rest.
+ * The capsule and ✎ as one body while the capsule morphs into the island and back (DSN-43,
+ * MOT-14, `mark/capsule-liquid.ts`): both take their new boxes at once and a solid body under
+ * them moves from the old shape to the new on the compositor, so each piece's own fill, filter,
+ * rim, ring and shadow step aside for the run and fade back in over the body once it rests
+ * (`data-glass-settle`, MOT-12); the content stays and only fades (MOT-5). Nothing of it at rest.
  */
 .capsule[data-liquid],
 .edit[data-liquid] {
@@ -462,13 +584,6 @@
   background: transparent !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-}
-
-.capsule[data-liquid] {
-  box-shadow: var(--mat-shadow);
-}
-
-.edit[data-liquid] {
   box-shadow: none;
 }
 
@@ -476,12 +591,12 @@
   content: none !important;
 }
 
+/* While editing ✎ has folded into the island: it steps out of the row at once (the body under
+   the pair draws the fold, MOT-14) and its glyph fades. */
 .edit[data-away] {
   width: 0;
   margin-inline-start: calc(-1 * var(--space-2));
   border-width: 0;
   opacity: 0;
-  transition-duration:
-    var(--spring-quick), var(--duration-fast), var(--spring-smooth), var(--spring-smooth),
-    var(--spring-press);
+  transition-duration: var(--spring-quick), var(--duration-fast), var(--spring-press);
 }

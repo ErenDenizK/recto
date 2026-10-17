@@ -1,8 +1,8 @@
 /**
- * The liquid menu's ref callback (DSN-39) without its weight: `liquid-menu.ts` and the geometry
- * of `liquid-mask.ts` are fetched once the browser is idle after the split top shows
+ * The split top's menu motion's ref callback (DSN-39, MOT-13) without its weight:
+ * `liquid-menu.ts` is fetched once the browser is idle after the split top shows
  * (`prefetchLiquidMenu`), as the container transform is (DSN-36), so the compact chunk carries
- * only this. A menu opened before they arrive keeps its CSS entrance.
+ * only this. A menu opened before it arrives keeps its CSS entrance.
  */
 import type { liquidPopupFor } from './liquid-menu';
 

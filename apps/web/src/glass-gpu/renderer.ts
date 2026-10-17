@@ -61,7 +61,7 @@ import { EDGE, EDGE_RAMP, GLASS, MAX_PAGES, VERTEX } from './shaders';
 /** The class that hands a piece's material to the GPU (its own fill and backdrop off). */
 export const GPU_GLASS_CLASS = 'gpu-glass';
 const STYLE_ID = 'gpu-glass-style';
-/** A piece whose glass is fused by `liquid-mask.ts` while it moves (GLS-19). */
+/** A piece whose glass steps aside while it moves with another as one body (GLS-19, MOT-14). */
 const LIQUID_ATTRIBUTE = 'data-liquid';
 /** The GPU draws the fill and the rim light (`--mat-rim`, GLS-22); the edge, inner light and shadow stay CSS. */
 const STYLE = `.${GPU_GLASS_CLASS}.${GPU_GLASS_CLASS}{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-color:transparent!important;--mat-rim:0 0 #0000!important}`;
@@ -484,7 +484,7 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
       const { el } = piece;
       if (!el.isConnected || !piece.material) continue;
       // A piece fused with another while it moves (`data-liquid`, the capsule and ✎ as one
-      // body, GLS-19) is CSS+ for that run: the GPU draws rounded rects, not a union.
+      // body, GLS-19) is CSS+ for that run: the solid body under the pair draws it.
       if (el.hasAttribute(LIQUID_ATTRIBUTE)) {
         el.classList.remove(GPU_GLASS_CLASS);
         continue;

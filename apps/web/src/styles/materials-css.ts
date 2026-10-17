@@ -48,7 +48,8 @@
  *    step 4 the floor, after the owner's Glass UI nav preset: one layer at 12 px (8 px on a
  *    coarse pointer, and never more than step 3's σ, so small pieces keep their coverage), the
  *    tier's tint and its chain without saturate, a 1 px white hairline at 0.30, the rims kept.
- * 7. **Resets.** Docked M3 under a modal sheet's scrim (`data-scrim`), the solid twin, reduced
+ * 7. **Resets.** Docked M3 under a modal sheet's scrim (`data-scrim`), the solid twin, glass that
+ *    grows out of a control (`data-glass-moving`, MOT-12: the solid twin until it rests), reduced
  *    transparency, more contrast and forced colours turn every filter off and bring the normal
  *    text ladder back; more contrast draws the strong border instead of rim and shadow (A-18).
  */
@@ -432,6 +433,27 @@ ${block(':where(:root:has([data-scrim]:not([data-ending-style]))) .mat.mat-docke
   );
   out.push(
     `\n/* The solid twin: no filter, whatever σ its tier's surface composes. */\n${block('.mat-opaque', ['-webkit-backdrop-filter: none !important;', 'backdrop-filter: none !important;'])}`,
+  );
+  out.push(
+    `\n/* Glass that grows out of a control (MOT-12, ui/glass-moving.ts): its tier's solid twin with an
+   unblurred rim while it moves, so no frame re-blurs its backdrop or repaints a soft shadow; once
+   at rest the filter is back under the opaque fill and the tint and shadow fade in. Specificity
+   of \`.mat\` alone, so the contrast and forced-colour resets below still win. */\n${block(
+     '.mat:where([data-glass-moving])',
+     [
+       `--shadow-own: var(--rim-edge-strong), ${RIM_LIGHT_FLAT};`,
+       '-webkit-backdrop-filter: none !important;',
+       'backdrop-filter: none !important;',
+       'background: var(--mat-solid);',
+     ],
+   )}${block(':is(.mat-chip, .mat-ring):where([data-glass-moving])::before', ['content: none;'])}${block(
+     '.mat:where([data-glass-settle])',
+     [
+       'transition:',
+       '  background-color var(--duration-fast) var(--ease-out),',
+       '  box-shadow var(--duration-fast) var(--ease-out) !important;',
+     ],
+   )}`,
   );
   out.push(`\n/* Transparency unwelcome, more contrast, forced colours: solid, no filter, the normal ladder. */
 ${UNWELCOME} {

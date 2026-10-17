@@ -39,6 +39,14 @@ const subscribe = (listener: () => void) => {
 };
 const snapshot = () => loaded;
 
+/**
+ * The chunk if it has loaded, else null, outside React: the reader asks it for the chrome's
+ * scroll spring (`mark/chrome-spring.ts`, MOT-16), which rides in it to keep the static compact
+ * path under its gate (PRC-11); until the idle prefetch has brought it, the chrome moves on its
+ * tokens.
+ */
+export const markLoaded = snapshot;
+
 /** The chunk once it has loaded, else null; re-renders when it arrives. */
 export function useMark(): Mark | null {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
