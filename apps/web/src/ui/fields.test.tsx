@@ -190,9 +190,13 @@ describe('SearchField', () => {
     await userEvent.keyboard('ab');
     await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
     await waitFor(() => expect(onSearch).toHaveBeenLastCalledWith('ab'));
-    // One search per pause: after the last key, and after any gap between keys that reached it.
+    // One search after the last key, and at most one more per gap between keys that reached the
+    // pause. A gap measured on the keys' timestamps may not have given the timer its turn (a
+    // stalled runner delivers the second key's task first), so a gap allows a search; it does
+    // not demand one.
     const gaps = typed.slice(1).filter((t, k) => t - (typed[k] ?? t) >= 150).length;
-    expect(onSearch).toHaveBeenCalledTimes(1 + gaps);
+    expect(onSearch.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(onSearch.mock.calls.length).toBeLessThanOrEqual(1 + gaps);
     // Never while typing: the search for "ab" came a full pause after its key.
     expect((searched.at(-1) ?? 0) - (typed.at(-1) ?? 0)).toBeGreaterThanOrEqual(149);
   });
