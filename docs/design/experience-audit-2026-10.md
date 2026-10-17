@@ -6,24 +6,25 @@
 `prefers-reduced-motion: reduce`, English UI unless noted. Measurements come from
 screenshot pixels and `getComputedStyle`. Nothing in the app was changed.
 
-Prompted by the owner's review after M5 (`DISCUSSION.md` #23): "the features are good, but
+Prompted by the owner's review after M5 (`docs/archive/DISCUSSION.md` #23): "the features are good, but
 the app is too complicated". The plan that answers it is
 [`docs/specs/experience-redesign.md`](../specs/experience-redesign.md).
 
 **Screenshots.** The full set (67 captures) stays in the audit archive and is referred to
-by file name. The eight below are copied into [`audit-2026-10/`](audit-2026-10/) with their
-names unchanged, each under 400 KB.
+by file name. The eight below were copied into `audit-2026-10/` with their names unchanged,
+each under 400 KB; they left the working tree on 2026-10-17 (R22, D4) and the links open them
+at commit `2be6e68`.
 
 | File | Shows |
 |---|---|
-| [02-read-default](audit-2026-10/02-read-default.png) | Read with three documents: five regions, 7-icon rail, 18-icon bar, inspector open on a metadata form |
-| [03-rail-05-redactions](audit-2026-10/03-rail-05-redactions.png) | A panel that opens with a seven-line warning and a disabled button before any content |
-| [11-document-menu](audit-2026-10/11-document-menu.png) | The unlabelled Document menu: 21 flat items, 7 disabled "Remove" twins, no Merge |
-| [27-toolbar-2x-crop](audit-2026-10/27-toolbar-2x-crop.png) | The tool bar at 2×: equal-weight icons, the armed tool at 1.24:1, disabled page actions |
-| [33-pen-three-strokes](audit-2026-10/33-pen-three-strokes.png) | The style bar of the last stroke covering the line written before it |
-| [34-pen-colour-not-remembered](audit-2026-10/34-pen-colour-not-remembered.png) | A stroke recoloured blue, the next one red again |
-| [43-rail-comments-with-annotations](audit-2026-10/43-rail-comments-with-annotations.png) | Each pen stroke as its own "Ink · No author · No comment text" row and history entry |
-| [50-arrange-default-one-doc](audit-2026-10/50-arrange-default-one-doc.png) | Arrange with three documents open, showing one |
+| [02-read-default](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/02-read-default.png) | Read with three documents: five regions, 7-icon rail, 18-icon bar, inspector open on a metadata form |
+| [03-rail-05-redactions](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/03-rail-05-redactions.png) | A panel that opens with a seven-line warning and a disabled button before any content |
+| [11-document-menu](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/11-document-menu.png) | The unlabelled Document menu: 21 flat items, 7 disabled "Remove" twins, no Merge |
+| [27-toolbar-2x-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/27-toolbar-2x-crop.png) | The tool bar at 2×: equal-weight icons, the armed tool at 1.24:1, disabled page actions |
+| [33-pen-three-strokes](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/33-pen-three-strokes.png) | The style bar of the last stroke covering the line written before it |
+| [34-pen-colour-not-remembered](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/34-pen-colour-not-remembered.png) | A stroke recoloured blue, the next one red again |
+| [43-rail-comments-with-annotations](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/43-rail-comments-with-annotations.png) | Each pen stroke as its own "Ink · No author · No comment text" row and history entry |
+| [50-arrange-default-one-doc](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/50-arrange-default-one-doc.png) | Arrange with three documents open, showing one |
 
 ## 1. Friction, ranked (impact × frequency)
 

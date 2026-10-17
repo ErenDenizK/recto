@@ -85,7 +85,7 @@ Exit: annotations created here render correctly in two independent renderers, ou
 build (Chrome-class viewers) and pdf.js (Firefox), checked headlessly by the automated
 matrix (`pnpm --filter @pdf-editor/qa-tool matrix`, results and contact sheets in
 `docs/qa/annotations-matrix.md`); Acrobat, Preview and Edge have an optional five-minute
-spot check (owner decision, `DISCUSSION.md` #13). Structural conformance (AP, Rect,
+spot check (owner decision, `docs/archive/DISCUSSION.md` #13). Structural conformance (AP, Rect,
 QuadPoints, /P, /NM, Print flag, opacity ExtGState, Multiply blend) is asserted
 automatically on every export. Open at the time of writing: pdf.js drew a second, black
 underline under our links (missing `/C`); the engine fix is in progress.
@@ -206,7 +206,7 @@ unpublished; the first public release follows M7).
 
 ## M6 — Experience  (→ 1.0.0-beta.0 together with M7) — **done 2026-10-01**
 
-Owner review after M5 (`DISCUSSION.md` item 23): the features are right, the experience is
+Owner review after M5 (`docs/archive/DISCUSSION.md` item 23): the features are right, the experience is
 not. Too much is visible at once, nobody can find Merge, and the pen interrupts writing.
 Spec: `docs/specs/experience-redesign.md`; evidence: `docs/design/experience-audit-2026-10.md`
 (with an "After M6" section); decisions in ADR-0018 (variable-width ink) and research 09
@@ -286,7 +286,7 @@ renders with every image under budget; the About page passes its size budget; th
 
 ## M8 — Craft  (→ 1.0.0-beta.1 and beta.2, tagged only when the owner says so) — **built 2026-10-04; drop 1 and drop 2 built, tagging waits for the owner**
 
-Owner review of the beta (`docs/DISCUSSION.md` #28, 2026-10-03): every feature exists and
+Owner review of the beta (`docs/archive/DISCUSSION.md` #28, 2026-10-03): every feature exists and
 works, but the experience is raw. Text editing feels like a patch and hides under "Pages";
 the pen is slightly laggy and sticky with a mouse; Draw and Mark up both have a highlighter;
 the lasso ignores arrows; colours look unclean; Home · Read · Arrange is the wrong top-level
@@ -367,7 +367,7 @@ and component tests; contrast tests pass for the palette and the three glass tie
 committed-stroke and preview targets are met on the container, the event-to-draw and
 long-task targets are not. Waiting for the owner: the latency check on their laptop and the
 pen try-out with a mouse and a tablet; the S2 glass measurements and an opinion on Glass
-panels. The independent review ran on 2026-10-04 (`docs/DISCUSSION.md` #31): its findings
+panels. The independent review ran on 2026-10-04 (`docs/archive/DISCUSSION.md` #31): its findings
 are fixed with regression tests, except the floating glass tier (contrast), and the open
 ones are listed above. Drop 1 and drop 2 built; tagging waits for the owner.
 

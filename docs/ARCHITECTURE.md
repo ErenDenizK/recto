@@ -1,7 +1,8 @@
 # Architecture
 
 **Status:** proposed (2026-09-26). Decisions referenced here are recorded as ADRs in
-`docs/adr/`; anything marked *open* is still under discussion in `docs/DISCUSSION.md`.
+`docs/adr/`; anything marked *open* was discussed in `docs/archive/DISCUSSION.md` (closed);
+decisions since then live in `docs/process/decisions.md`.
 
 ## 1. Constraints that shape everything
 
@@ -75,7 +76,7 @@ Roles:
 - **pdf.js is not in the default build.** It remains the documented fallback renderer
   if PDFium fidelity or performance disappoints on a class of files, and its source is our
   reference for text-layer and highlight QuadPoint construction. (*open*: see
-  `DISCUSSION.md` item 2.)
+  `docs/archive/DISCUSSION.md` item 2.)
 
 Every engine sits behind a TypeScript interface owned by us (`PdfRenderer`,
 `PdfEditor`, `PdfAssembler`, `PdfPlumber`) so an engine can be swapped without touching

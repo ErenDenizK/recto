@@ -5,7 +5,7 @@
 
 ## Context
 
-The owner's review of 2026-10-03 (`docs/DISCUSSION.md` #28) found the top-level switch
+The owner's review of 2026-10-03 (`docs/archive/DISCUSSION.md` #28) found the top-level switch
 Home · Read · Arrange wrong: Home is a landing for every file and belongs outside any
 document, while Read and Arrange only make sense once a file is open. The owner asked for
 a plain model instead of six tool groups: a Read mode in which nothing can change, and a

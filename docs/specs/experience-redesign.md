@@ -15,7 +15,7 @@ lead's decisions are specified, not reopened; §14 holds the two questions for t
 
 ## 1. Problem
 
-### 1.1 Owner feedback (2026-10-01, `DISCUSSION.md` #23; in translation, condensed)
+### 1.1 Owner feedback (2026-10-01, `docs/archive/DISCUSSION.md` #23; in translation, condensed)
 
 "The features are good, but the app is too complicated." · "The tabs on the left carry too
 much detail." · "There is no home page for several PDFs, and no way to merge the files I
@@ -27,7 +27,8 @@ click to edit."
 ### 1.2 Audit evidence
 
 Build `b66d45d`, 1440×900, Chromium with SwiftShader. Screenshot names refer to the audit
-archive; the eight marked † are copied to `docs/design/audit-2026-10/`.
+archive; the eight marked † were copied to `docs/design/audit-2026-10/` (in history at
+`2be6e68` since R22's clean-up removed them from the tree).
 
 | # | Finding | Evidence |
 |---|---|---|

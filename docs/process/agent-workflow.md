@@ -24,6 +24,13 @@ lane run one after the other.
 The platform lane changes shared foundations, so each of its packages merges first in its wave,
 and the other packages rebase onto it.
 
+**Clean-up lanes run last (R22, brief C-9).** A lane that restructures shared documents
+(`docs/process/decisions.md`, `CLAUDE.md`, this file, the specs' tables) or moves files many
+lanes touch starts after the wave's feature lanes have merged, and rebases onto them. While
+feature lanes run, other lanes only append rows to `decisions.md` and fix links into it; they
+never split, reorder or rewrite it. Superseded documents move to `docs/archive/` with a line
+in its README.
+
 ## Concurrency
 
 - At most one implementer per lane. How many lanes run at once is set by the budget mode
@@ -65,13 +72,21 @@ unit suite. Playwright runs, local or in CI, are batched: the QA lane works thro
 after each wave, and the full cross-engine matrix is required only before a deploy the owner will
 look at.
 
-## Merging
+## Merging (PRC-17, PRC-18)
 
 - `develop` is the dev branch: all work lands there and deploys run from it; `main` takes only
   the manual releases the owner asks for (decision PRC-5).
-- The lead merges finished packages into `develop` in lane order (platform first). The lead runs the
-  full unit suite once on the merged result, then pushes. E2E follows later (see above).
-- A red merge is fixed before anything else is pushed. A fix agent takes the failures; new packages
+- Each lane's package is a branch (for example `r22/docs`) with its own pull request into
+  `develop`.
+  Commits carry the owner as author and committer and the session's `Co-Authored-By` trailer.
+- A PR carries one concern, titled as a Conventional Commit that names the visible change. Its
+  body: What, Why (brief item or decision ids), How tested, Screenshots for UI (1440 × 900 and
+  tablet), Decisions added; rows that do not apply are deleted. Fix-ups for the PR's own
+  mistakes are folded before it opens. A docs-only change rides the next lane's PR.
+- The lead merges each PR with a merge commit (never squash) once its checks are green, in lane
+  order (platform first, clean-up lanes last), and runs the full unit suite on the merged
+  result. E2E follows later (see above).
+- A red merge is fixed before anything else merges. A fix agent takes the failures; new packages
   keep running meanwhile.
 - Deploys run from a green `develop` commit. Each deploy ends with an owner task script for the iPad.
 
