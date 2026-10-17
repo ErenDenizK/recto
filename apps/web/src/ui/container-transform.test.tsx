@@ -10,7 +10,7 @@ import '../styles/reset.css';
 import '../styles/global.css';
 
 import { Menu } from '@base-ui/react/menu';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
@@ -41,7 +41,8 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+  // A test's last exit (a sheet, a menu) finishes before the next test mounts.
+  await settled(document.body);
 });
 
 function DocumentMenu() {
