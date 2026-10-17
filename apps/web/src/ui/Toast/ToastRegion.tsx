@@ -23,7 +23,9 @@
  *   away, else it springs back. Each animation moves the toast's own element (the glass, never
  *   a wrapper), is interruptible from where it is, and leaves no transform or `will-change`.
  * - **Both editions**: the compact edition passes `edition="compact"` and whether its capsule
- *   is on screen (`band`), so the stack sits above the capsule or the home indicator.
+ *   is on screen (`band`), so the stack sits above the capsule or the home indicator; while a
+ *   scrim sheet is open (`covered`), whose foot rests in that place, the stack hides and its
+ *   timers are paused (DSN-56).
  */
 import {
   type KeyboardEvent,
@@ -128,9 +130,18 @@ export interface ToastRegionProps {
   readonly edition?: 'full' | 'compact';
   /** The compact edition: whether the capsule the stack sits above is on screen. */
   readonly band?: 'shown' | 'away';
+  /**
+   * The compact edition: a scrim sheet is open, its foot where the stack sits (DSN-55): the
+   * stack hides and its timers pause until it closes (DSN-56).
+   */
+  readonly covered?: boolean;
 }
 
-export function ToastRegion({ edition = 'full', band = 'shown' }: ToastRegionProps) {
+export function ToastRegion({
+  edition = 'full',
+  band = 'shown',
+  covered = false,
+}: ToastRegionProps) {
   const shown = useToastStore((s) => s.shown);
   const waiting = useToastStore((s) => s.waiting.length);
   const [items, setItems] = useState<Item[]>(() => merge([], shown));
@@ -139,6 +150,11 @@ export function ToastRegion({ edition = 'full', band = 'shown' }: ToastRegionPro
   // Toasts whose entrance waits for the stack to make room (set while a change commits).
   const held = useRef(new Set<string>());
   useEnvironmentPauses();
+  useEffect(() => {
+    if (!covered) return;
+    setToastPause('sheet', true);
+    return () => setToastPause('sheet', false);
+  }, [covered]);
 
   /**
    * Re-flows the stack around `mutate` (a React update, applied in `flushSync`): measured before
@@ -229,6 +245,7 @@ export function ToastRegion({ edition = 'full', band = 'shown' }: ToastRegionPro
       data-region="toasts"
       data-edition={edition}
       data-band={band}
+      data-covered={covered || undefined}
       onKeyDown={onKeyDown}
       onFocus={(event) => {
         const from = event.relatedTarget as HTMLElement | null;
