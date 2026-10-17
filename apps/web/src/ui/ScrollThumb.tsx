@@ -1,11 +1,12 @@
 /**
- * The overlay scroll thumb (owner, R21 brief B-6; decisions GLS-24): the app's one scroll bar,
- * drawn over a touch reader's pages. Everywhere else the scroll bar is CSS
- * (`styles/scrollbars.css`); a reader on a coarse pointer hides its native indicator (the page
- * view reaches under the chrome, the phone's pages fill the screen), so this stands in for it.
+ * The phone reader's scroll thumb (owner, R21 brief B-6, R22 brief C-10; decisions GLS-24,
+ * GLS-26): the app's one scroll bar over the compact edition's pages, which hide their native
+ * indicator (they fill the screen). The full edition draws the same bar over every scroller with
+ * `ui/scroll-thumbs.ts`; the phone's lists keep the platform's overlay indicator, since the
+ * compact closure is at its growth cap (PRC-11).
  *
- * - **Look.** The CSS bar's thumb: a slim capsule in `--scroll-thumb` with its soft edge, no
- *   track, at the trailing edge of the box its parent gives it.
+ * - **Look.** The shared bar's thumb (`ScrollThumb.module.css`): a slim capsule of the glass's
+ *   tone with its unblurred rim, no track, at the trailing edge of the box its parent gives it.
  * - **Shown** while the target scrolls, faded in over `--duration-fast` and out over
  *   `--duration-base` 900 ms after the last scroll. At rest it is transparent and nothing runs
  *   (MOT-4): no frame loop, only a timer after a scroll.

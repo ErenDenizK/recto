@@ -52,7 +52,6 @@ import { SOFT_EDGE } from '../shell/frame/frame-insets';
 import { usePointerCapabilities } from '../shell/frame/input-modality';
 import { SIZE_CLASS_MIN_WIDTH } from '../shell/frame/size-class';
 import styles from '../shell/Stage.module.css';
-import { ScrollThumb } from '../ui/ScrollThumb';
 import { type Box, userRectToCss } from '../viewer/geometry';
 import {
   documentFingerprint,
@@ -266,6 +265,9 @@ export function fitZooms(
   };
 }
 
+/** The page index at a scroll position of the Read viewport. */
+type PageAt = (scrollTop: number) => number | undefined;
+
 export function ReadView({
   doc,
   prepared = false,
@@ -302,6 +304,12 @@ export function ReadView({
   // old viewport of the frame's size would have shown them.
   const frameRef = useRef<HTMLDivElement>(null);
   const chipRef = useRef<HTMLDivElement>(null);
+  // The page at a scroll position (PageColumn's rows), named by the dragged scroll thumb.
+  const pageAt = useRef<PageAt | null>(null);
+  const pageLabel = (scrollTop: number) => {
+    const page = pageAt.current?.(scrollTop);
+    return page === undefined ? '' : String(page + 1);
+  };
   const bleed = useStageBleed(frameRef);
   const { primary } = usePointerCapabilities();
   const barSize = scrollbarSize();
@@ -416,22 +424,22 @@ export function ReadView({
             chipRef={chipRef}
             prepared={prepared}
             quietZoom={quietZoom}
+            pageAt={pageAt}
           />
         ) : null}
       </div>
       <PinchDetentChip ref={chipRef} />
       <PageScrubber doc={doc} viewport={viewport} />
-      {/* On a finger the viewport's own indicator is hidden: the app's thumb stands in (GLS-24),
-          unless a long document's scrubber is the thumb. */}
-      {primary === 'coarse' && doc.pages.length <= SCRUBBER_MIN_PAGES ? (
-        <ScrollThumb target={viewport} />
-      ) : null}
+      {/* The app's bar runs over the stand-ins (GLS-26), unless a long document's scrubber is
+          the touch reader's thumb; dragged, it names the page under it. */}
       <ScrollProxies
         target={viewport}
         content={content}
         vertical={bars.vertical}
         horizontal={bars.horizontal}
         size={barSize}
+        thumb={primary !== 'coarse' || doc.pages.length <= SCRUBBER_MIN_PAGES}
+        label={pageLabel}
       />
     </div>
   );
@@ -483,6 +491,7 @@ function PageColumn({
   chipRef,
   prepared,
   quietZoom,
+  pageAt,
 }: {
   readonly doc: VirtualDocument;
   readonly ws: Workspace;
@@ -515,6 +524,8 @@ function PageColumn({
   readonly prepared: boolean;
   /** The zoom a resize made the fit follow to, which lands without the zoom morph. */
   readonly quietZoom: RefObject<number | null>;
+  /** Filled with the page at a scroll position, for the scroll thumb's label (GLS-26). */
+  readonly pageAt: RefObject<PageAt | null>;
 }) {
   'use no memo'; // TanStack Virtual mutates its instance; the React Compiler must not cache it.
   const setCurrentPage = useViewStore((s) => s.setCurrentPage);
@@ -549,6 +560,19 @@ function PageColumn({
     scrollPaddingStart: view.top,
     scrollPaddingEnd: view.bottom,
     overscan: 2 + extraRows,
+  });
+
+  // The page whose row is at the free rectangle's middle at `scrollTop`, from the rows' laid
+  // out offsets (rendered or not), so a dragged thumb names where it is before the view store's
+  // current page catches up.
+  useLayoutEffect(() => {
+    pageAt.current = (scrollTop) => {
+      const el = viewportRef.current;
+      if (!el) return undefined;
+      const middle = scrollTop + view.top + (el.clientHeight - view.top - view.bottom) / 2;
+      const item = virtualizer.getVirtualItemForOffset(middle);
+      return item ? rows[item.index]?.pages[0] : undefined;
+    };
   });
 
   /** Canvas width as laid out (at least the viewport). */

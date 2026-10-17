@@ -6,14 +6,21 @@
  * and thumb are the old bar's, and its position follows the viewport both ways, one pixel for
  * one pixel. Pointer only (decorative for assistive technology): the viewport keeps keyboard
  * scrolling and its focus stop.
+ *
+ * Their native bars are hidden like every other; the app's overlay bar (`ui/scroll-thumbs.ts`,
+ * GLS-26) is drawn over them, so it runs along the free rectangle's edge, and the vertical one
+ * names the page under its thumb while dragged (`label`). `thumb={false}` leaves them bare where
+ * a long document's page scrubber is the touch reader's thumb (05-canvas §5).
  */
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { type CSSProperties, useEffect, useLayoutEffect, useRef } from 'react';
 
+import { setScrollLabel } from '../ui/scroll-thumbs';
 import styles from './ReadView.module.css';
 import type { Size } from './stage-bleed';
 
-/** A thickness to hover and drag where bars overlay the content (no classic bar size). */
-const OVERLAY_THICKNESS = 12;
+/** A thickness to hover and drag where bars overlay the content (no classic bar size): the
+    overlay bar's own target (`scroll-thumbs.ts`). */
+const OVERLAY_THICKNESS = 14;
 
 export function ScrollProxies({
   target,
@@ -21,6 +28,8 @@ export function ScrollProxies({
   vertical,
   horizontal,
   size,
+  thumb = true,
+  label,
 }: {
   /** The viewport the bars scroll. */
   readonly target: HTMLElement | null;
@@ -30,6 +39,10 @@ export function ScrollProxies({
   readonly horizontal: boolean;
   /** Classic scroll bar thickness, 0 for overlay bars. */
   readonly size: number;
+  /** Whether the app's bar is drawn over them (default true). */
+  readonly thumb?: boolean;
+  /** Names what lies under the vertical thumb at a scroll position while it is dragged. */
+  readonly label?: ((scrollTop: number) => string) | undefined;
 }) {
   const verticalRef = useRef<HTMLDivElement>(null);
   const horizontalRef = useRef<HTMLDivElement>(null);
@@ -82,6 +95,19 @@ export function ScrollProxies({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, vertical, horizontal]);
 
+  // The latest `label`, read when the bar asks, so a new function needs no new registration.
+  const labelRef = useRef(label);
+  useLayoutEffect(() => {
+    labelRef.current = label;
+  });
+  useEffect(() => {
+    const bar = verticalRef.current;
+    if (!bar) return;
+    setScrollLabel(bar, (scrollTop) => labelRef.current?.(scrollTop) ?? '');
+    return () => setScrollLabel(bar, null);
+  }, [vertical]);
+
+  const bare = (thumb ? {} : { '--scroll-bar': 'none' }) as CSSProperties;
   const thickness = size > 0 ? size : OVERLAY_THICKNESS;
   return (
     <>
@@ -89,7 +115,7 @@ export function ScrollProxies({
         <div
           ref={verticalRef}
           className={styles.barVertical}
-          style={{ width: thickness, bottom: horizontal ? size : 0 }}
+          style={{ width: thickness, bottom: horizontal ? size : 0, ...bare }}
           aria-hidden="true"
           tabIndex={-1}
           data-scroll-proxy="vertical"
@@ -101,7 +127,7 @@ export function ScrollProxies({
         <div
           ref={horizontalRef}
           className={styles.barHorizontal}
-          style={{ height: thickness, right: vertical ? size : 0 }}
+          style={{ height: thickness, right: vertical ? size : 0, ...bare }}
           aria-hidden="true"
           tabIndex={-1}
           data-scroll-proxy="horizontal"

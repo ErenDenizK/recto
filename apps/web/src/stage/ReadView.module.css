@@ -29,6 +29,8 @@
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
+  /* Its bars would sit under the frame: the stand-ins carry the app's bar (GLS-26). */
+  --scroll-bar: none;
   /* One finger scrolls natively; two fingers are the canvas zoom's, never the browser's page
      zoom (05-canvas §4, M-18). Browser zoom itself stays available. */
   touch-action: pan-x pan-y;

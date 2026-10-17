@@ -14,8 +14,7 @@
  *   moved by keys is never hidden under chrome (A-12). The viewport is focusable only when
  *   it has no focusable child (Base UI's default).
  * - `viewportRef` reaches the scrolling element (a virtualised list measures it).
- *
- * Scrollers that are not scroll areas wear the same thumb from `styles/scrollbars.css`.
+
  */
 import { ScrollArea as BaseScrollArea } from '@base-ui/react/scroll-area';
 import type { CSSProperties, ReactNode, Ref } from 'react';
@@ -29,8 +28,6 @@ export interface ScrollAreaProps {
   readonly viewportClassName?: string | undefined;
   readonly style?: CSSProperties | undefined;
   readonly viewportRef?: Ref<HTMLDivElement> | undefined;
-  /** Horizontal scrolling too (default vertical only). */
-  readonly horizontal?: boolean | undefined;
   /** The region's accessible name, when the viewport itself takes focus. */
   readonly label?: string | undefined;
   readonly 'data-testid'?: string | undefined;
@@ -42,7 +39,6 @@ export function ScrollArea({
   viewportClassName,
   style,
   viewportRef,
-  horizontal = false,
   label,
   'data-testid': testId,
 }: ScrollAreaProps) {
@@ -59,14 +55,6 @@ export function ScrollArea({
       >
         {children}
       </BaseScrollArea.Viewport>
-      <BaseScrollArea.Scrollbar className={styles.scrollbar} orientation="vertical">
-        <BaseScrollArea.Thumb className={styles.thumb} />
-      </BaseScrollArea.Scrollbar>
-      {horizontal ? (
-        <BaseScrollArea.Scrollbar className={styles.scrollbar} orientation="horizontal">
-          <BaseScrollArea.Thumb className={styles.thumb} />
-        </BaseScrollArea.Scrollbar>
-      ) : null}
     </BaseScrollArea.Root>
   );
 }

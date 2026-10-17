@@ -1,10 +1,7 @@
-/* Scroll area (09-primitives §21): overlay scrollbar, soft edges, contained overscroll. Its
-   thumb is the app's one scroll bar (GLS-24, styles/scrollbars.css): 6 px, 8 px under the
-   pointer, in --scroll-thumb with its soft edge. */
+/* Scroll area (09-primitives §21): soft edges, contained overscroll. Its bar is the app's one
+   (GLS-26, ui/scroll-thumbs.ts), drawn over the viewport as over every scroller. */
 .root {
   --sa-fade: 12px;
-  --sa-thumb: var(--scroll-thumb);
-  --sa-thumb-hover: var(--scroll-thumb-hover);
 
   position: relative;
   display: flex;
@@ -13,22 +10,12 @@
   overflow: hidden;
 }
 
-:global([data-theme='light']) .root {
-  --sa-thumb: var(--scroll-thumb, rgb(21 23 28 / 0.5));
-  --sa-thumb-hover: rgb(21 23 28 / 0.65);
-}
-
 .viewport {
   flex: 1;
   min-height: 0;
   overscroll-behavior: contain;
   scroll-padding: var(--free-top, 0) var(--free-end, 0) var(--free-bottom, 0) var(--free-start, 0);
-  scrollbar-width: none;
   outline: none;
-}
-
-.viewport::-webkit-scrollbar {
-  display: none;
 }
 
 .viewport:focus-visible {
@@ -56,75 +43,10 @@
   );
 }
 
-.scrollbar {
-  display: flex;
-  justify-content: center;
-  box-sizing: border-box;
-  margin: 2px;
-  opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
-  touch-action: none;
-  user-select: none;
-}
-
-.scrollbar[data-orientation='vertical'] {
-  width: 6px;
-}
-
-.scrollbar[data-orientation='horizontal'] {
-  height: 6px;
-}
-
-.scrollbar[data-hovering],
-.scrollbar[data-scrolling] {
-  opacity: 1;
-}
-
-@media (hover: hover) {
-  .scrollbar[data-orientation='vertical']:hover {
-    width: 8px;
-  }
-
-  .scrollbar[data-orientation='horizontal']:hover {
-    height: 8px;
-  }
-}
-
-/* Coarse pointers: only while scrolling. */
-@media (pointer: coarse) {
-  .scrollbar[data-hovering]:not([data-scrolling]) {
-    opacity: 0;
-  }
-}
-
-.thumb {
-  width: 100%;
-  border-radius: var(--radius-capsule);
-  background: var(--sa-thumb);
-  box-shadow: var(--scroll-thumb-edge);
-}
-
-.scrollbar[data-orientation='horizontal'] .thumb {
-  height: 100%;
-}
-
-@media (hover: hover) {
-  .thumb:hover {
-    background: var(--sa-thumb-hover);
-  }
-}
-
-.thumb:active {
-  background: var(--sa-thumb-hover);
-}
-
+/* Forced colours: the system's bar (Base UI hides the native one; the overlay stands down). */
 @media (forced-colors: active) {
   .viewport {
     scrollbar-color: auto;
     scrollbar-width: auto;
-  }
-
-  .scrollbar {
-    display: none;
   }
 }

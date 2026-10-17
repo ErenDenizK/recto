@@ -1,64 +1,36 @@
 /*
- * One scroll bar, app-wide (owner, R21 brief B-6; decisions GLS-24), imported by global.css.
- * Every native scroller wears it: the reader's stand-in bars (stage/ScrollProxies.tsx), the
- * sidebar lists, menus, panels, sheets and the Pages grid. A slim capsule thumb in the theme's
- * tone with a soft hairline edge of the other tone (so it reads over a white page in dark and a
- * black one in light), no track, no buttons; it grows a little under the pointer and while it
- * is dragged. CSS only: nothing runs, at rest or while scrolling.
+ * One scroll bar, app-wide (owner, R21 brief B-6, R22 brief C-10; decisions GLS-24, GLS-26),
+ * imported by global.css.
  *
- * - **Fine pointers in Chromium**: `::-webkit-scrollbar`, a 12 px gutter whose thumb is drawn
- *   6 px wide inside a transparent border and 8 px under the pointer or a drag. The standard
- *   properties stay off there: Chromium drops every `::-webkit-scrollbar` rule on an element
- *   whose `scrollbar-width` or `scrollbar-color` is set.
- * - **Firefox and WebKit**: `scrollbar-width: thin` and the thumb colour, the platform's own
- *   bar. WebKit's styled bars are classic ones: each takes a gutter (the reader's fit width and
- *   every list's width move) and is painted with its scroller, so a sheet's open, a transform
- *   of a backdrop-filtered layer, repainted it every frame in software WebKit and missed its
- *   frames (GLS-24, amended). WebKit is told apart by `hanging-punctuation`, which only it
- *   supports; were Chromium to ship it, Chromium would fall back to the standard properties.
- * - **Touch** (a coarse primary pointer): the platform's own overlay indicator, which already
- *   shows only while a list scrolls and fades out (MOT-4), tinted by `color-scheme`. The reader's
- *   pages, which hide theirs, draw the same thumb as an overlay (`ui/ScrollThumb`).
+ * - **The full edition** draws its own overlay bar over every scroller (ui/scroll-thumbs.ts),
+ *   which sets `data-scroll-thumbs` on the root once it runs; the native bars then go on every
+ *   engine and pointer, so no scroller takes a gutter (the reader's fit width, every list's
+ *   width) and nothing is painted with a scroller while a sheet slides (GLS-24's WebKit case).
+ *   `::-webkit-scrollbar` is for WebKit before `scrollbar-width`; Chromium ignores it where
+ *   the standard property is set.
+ * - **Before that, the phone edition and forced colours**: the platform's own bar, thin and in
+ *   the thumb's colour. On touch it is the platform's overlay indicator, which already shows
+ *   only while a list scrolls (MOT-4); the phone's pages draw `ui/ScrollThumb` over theirs.
  * - Keyboard and screen readers keep native scrolling: nothing here takes focus.
- * - Forced colours: the system's scroll bars (the rules below stand down).
+ * - `--scroll-bar: none` keeps the overlay off one scroller; it does not inherit, so what
+ *   scrolls inside that scroller still gets its bar.
  */
-@supports (not selector(::-webkit-scrollbar)) or (hanging-punctuation: first) {
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scroll-thumb) transparent;
-  }
+@property --scroll-bar {
+  syntax: '*';
+  inherits: false;
 }
 
-@supports selector(::-webkit-scrollbar) and (not (hanging-punctuation: first)) {
-  @media (hover: hover) and (pointer: fine) and (forced-colors: none) {
-    ::-webkit-scrollbar {
-      width: 12px;
-      height: 12px;
-      background: transparent;
-    }
+:root:not([data-scroll-thumbs]) * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
 
-    ::-webkit-scrollbar-track,
-    ::-webkit-scrollbar-corner {
-      background: transparent;
-    }
+@media (forced-colors: none) {
+  :root[data-scroll-thumbs] * {
+    scrollbar-width: none;
+  }
 
-    ::-webkit-scrollbar-button {
-      display: none;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      min-width: 32px;
-      min-height: 32px;
-      border: 3px solid transparent;
-      border-radius: var(--radius-capsule);
-      background: var(--scroll-thumb) padding-box;
-      box-shadow: var(--scroll-thumb-edge);
-    }
-
-    ::-webkit-scrollbar-thumb:hover,
-    ::-webkit-scrollbar-thumb:active {
-      border-width: 2px;
-      background-color: var(--scroll-thumb-hover);
-    }
+  :root[data-scroll-thumbs] ::-webkit-scrollbar {
+    display: none;
   }
 }

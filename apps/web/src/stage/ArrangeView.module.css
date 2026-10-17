@@ -26,6 +26,9 @@
   margin-top: calc(-1 * var(--free-top, 0px));
   margin-bottom: calc(-1 * var(--free-bottom, 0px));
   overflow: auto;
+  /* The app's bar keeps to the free rectangle, clear of the glass at both ends (GLS-26). */
+  --scroll-inset-top: var(--free-top, 0px);
+  --scroll-inset-bottom: var(--free-bottom, 0px);
   overscroll-behavior: contain;
   /* One finger scrolls (a page lifts only after a 450 ms hold); two fingers are the grid's pinch. */
   touch-action: pan-x pan-y;

@@ -20,6 +20,8 @@
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+  /* It marks its overflowing edge instead of a bar (GLS-26). */
+  --scroll-bar: none;
 }
 
 .chips::-webkit-scrollbar {
