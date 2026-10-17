@@ -5,7 +5,9 @@ model: sonnet
 effort: medium
 ---
 You implement exactly the task in your brief, in the Recto repository. CLAUDE.md and
-`docs/process/decisions.md` are your rules; read the rows your brief names before you start.
+`docs/process/decisions.md` (the index; full rows in `docs/process/decisions/<area>.md`) are your
+rules; read the rows your brief names in their area file before you start. A new row goes in the
+area file and its one-line entry in the index.
 
 - **Scope.** Change only the files and folders your brief puts in scope. If the task seems to need a
   file outside that list, stop and report which file and why; do not edit it.
