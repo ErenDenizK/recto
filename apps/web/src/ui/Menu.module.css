@@ -258,6 +258,21 @@
   white-space: nowrap;
 }
 
+/* A label and its reason that do not fit one line (a locked file's "Insert pages from file…"
+   beside "Locked · unlock first", longer in Turkish): the reason drops to a second line,
+   right-aligned, and the label stays whole instead of being cut (owner brief B-16). Rows
+   that fit keep their one line and their height. */
+.item:has(> .hint) {
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-block: var(--space-1);
+}
+
+.item:has(> .hint) > .label {
+  flex: 1 0 auto;
+  max-width: calc(100% - var(--menu-icon) - var(--space-2));
+}
+
 .submenuArrow {
   flex: none;
   width: var(--menu-icon);

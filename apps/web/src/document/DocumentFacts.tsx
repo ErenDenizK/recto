@@ -10,8 +10,7 @@
  */
 import type { SourceFlags, VirtualDocument } from '@pdf-editor/document-model';
 
-import { formatBytes } from '../files/file-filters';
-import { getLocale, m } from '../i18n';
+import { formatSize, getLocale, m } from '../i18n';
 import { documentSources, useWorkspaceStore } from '../state/workspace-store';
 import { Badge } from '../ui/Badge';
 import { SheetGroup, SheetRow } from '../ui/sheet';
@@ -72,7 +71,7 @@ export function DocumentFacts({ doc }: { readonly doc: VirtualDocument }) {
     <SheetGroup label={m.docinfo_file()} data-testid="document-facts">
       <SheetRow title={m.info_name()} value={<span title={name}>{name}</span>} />
       {sources.length > 1 ? <SheetRow title={m.info_files()} value={sources.length} /> : null}
-      <SheetRow title={m.info_size()} value={formatBytes(size)} />
+      <SheetRow title={m.info_size()} value={formatSize(size)} />
       <SheetRow title={m.info_pages()} value={doc.pages.length} />
       <SheetRow
         title={m.info_modified()}

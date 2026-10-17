@@ -230,8 +230,10 @@ export function CombineSheet({
           />
         </SheetRow>
         <SheetRow full>
-          <p className={styles.summary} role="status" data-problem={enough ? undefined : ''}>
-            {enough ? m.combine_preview({ pages: pagesPhrase(total) }) : m.combine_needs_two()}
+          {/* Below two documents the primary's reason line says so (RA-21); the summary says it
+              once there, not twice (owner brief B-16: no repeated text). */}
+          <p className={styles.summary} role="status">
+            {enough ? m.combine_preview({ pages: pagesPhrase(total) }) : null}
           </p>
         </SheetRow>
       </SheetGroup>

@@ -37,9 +37,9 @@ import {
   useState,
 } from 'react';
 
-import { formatBytes, isHiddenName } from '../files/file-filters';
+import { isHiddenName } from '../files/file-filters';
 import { dragHasFiles, filesFromDataTransfer, pickFiles } from '../files/open-files';
-import { m } from '../i18n';
+import { formatSize, m } from '../i18n';
 import { announce } from '../shell/announcer';
 import { deliverFile } from '../tools/deliver-file';
 import tool from '../tools/ToolDialog.module.css';
@@ -360,8 +360,8 @@ function BatchFlow({ open }: { readonly open: boolean }) {
           preparing:
             progress.phase === 'download' && progress.download
               ? m.batch_run_ocr_download({
-                  done: formatBytes(progress.download.done),
-                  total: formatBytes(progress.download.total),
+                  done: formatSize(progress.download.done),
+                  total: formatSize(progress.download.total),
                 })
               : m.batch_run_ocr_prepare(),
         })),
@@ -644,7 +644,7 @@ function BatchFlow({ open }: { readonly open: boolean }) {
                             <li key={fileKey(file)} className={styles.file}>
                               <span className={styles.fileName}>{file.name}</span>
                               <span className={styles.fileMeta}>
-                                {skip ? skipReasonLabel(skip.reason) : formatBytes(file.size)}
+                                {skip ? skipReasonLabel(skip.reason) : formatSize(file.size)}
                               </span>
                               <IconButton
                                 size="row"
@@ -760,7 +760,7 @@ function ReviewSection(props: {
       <p className={styles.muted} data-testid="batch-plan">
         {m.batch_plan_line({
           count: plan.files.length,
-          size: formatBytes(plan.totalBytes),
+          size: formatSize(plan.totalBytes),
           format: outputFormatLabel(plan.output.format),
         })}{' '}
         {plan.files.length > 0 ? delivery : ''}
@@ -1029,7 +1029,7 @@ function RunView({
                   <span className={styles.muted}>
                     {m.batch_output_file({
                       name: outcome.outputName,
-                      size: formatBytes(outcome.outputBytes ?? 0),
+                      size: formatSize(outcome.outputBytes ?? 0),
                     })}
                   </span>
                 ) : null}
@@ -1080,7 +1080,7 @@ function RunView({
               ? m.batch_no_outputs()
               : m.batch_outputs_ready({
                   count: outputs.length,
-                  size: formatBytes(totalSize(outputs)),
+                  size: formatSize(totalSize(outputs)),
                 })
             : m.batch_running_note()}
         </span>

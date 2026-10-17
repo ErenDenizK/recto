@@ -747,7 +747,12 @@ export function TextSection({
       </Group>
       {without.length > 0 ? (
         <Notice tone="info" testId="save-copy-no-text">
-          <span>{m.save_copy_no_text({ pages: without.map((p) => p + 1).join(', ') })}</span>
+          <span>
+            {m.save_copy_no_text({
+              count: without.length,
+              pages: without.map((p) => p + 1).join(', '),
+            })}
+          </span>
           <Button variant="quiet" onClick={onRecognize}>
             {m.save_copy_recognize_first()}
           </Button>

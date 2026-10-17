@@ -23,8 +23,7 @@
 import { useEffect, useState } from 'react';
 
 import { formatFileSize } from '../home/home-model';
-import { formatBytes } from '../files/file-filters';
-import { formatDay, m, useLocale } from '../i18n';
+import { formatDay, formatSize, m, useLocale } from '../i18n';
 import { documentCsp, parseCsp } from '../privacy/csp';
 import { useExternalRequests } from '../privacy/external-requests';
 import { usePwaStore } from '../pwa/register';
@@ -202,7 +201,7 @@ function storageText(storage: StorageUsage): string {
     case 'unavailable':
       return m.about_storage_unavailable();
     case 'ready':
-      return formatBytes(storage.usage);
+      return formatSize(storage.usage);
   }
 }
 

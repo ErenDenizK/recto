@@ -77,7 +77,10 @@ test('a file with a bad startxref is repaired on open, and Document info says so
     timeout: 20_000,
   });
   await openFacts(page);
-  await expect(page.getByTestId('document-facts')).toContainText('Repaired');
+  // The badge and its explanation, which no longer repeats the badge's word (DSN-52).
+  const facts = page.getByTestId('document-facts');
+  await expect(facts).toContainText('repaired');
+  await expect(facts).toContainText('The file was damaged and rebuilt on open.');
 });
 
 test('a file that lost its tail opens as repaired, and Document info says so', async ({ page }) => {
@@ -89,7 +92,10 @@ test('a file that lost its tail opens as repaired, and Document info says so', a
     timeout: 20_000,
   });
   await openFacts(page);
-  await expect(page.getByTestId('document-facts')).toContainText('Repaired');
+  // The badge and its explanation, which no longer repeats the badge's word (DSN-52).
+  const facts = page.getByTestId('document-facts');
+  await expect(facts).toContainText('repaired');
+  await expect(facts).toContainText('The file was damaged and rebuilt on open.');
 });
 
 test('a text file under a .pdf name is not opened as a PDF', async ({ page }) => {

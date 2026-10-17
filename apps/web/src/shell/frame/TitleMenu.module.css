@@ -210,9 +210,24 @@
 /* "Hold to peek": the trailing hint, as a row's keycaps sit. */
 .hold {
   flex: none;
+  margin-inline-start: auto;
   color: var(--text-tertiary);
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
+}
+
+/* When "Hide markup" and its hint do not fit one line (Turkish: "İşaretlemeleri gizle" ·
+   "Göz atmak için basılı tutun"), the hint drops below, right-aligned, as a menu row's reason
+   does (ui/Menu.module.css), instead of breaking the label over two lines. */
+.privacy:has(> .hold) {
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-block: var(--space-1);
+}
+
+.privacy:has(> .hold) > .privacyLabel {
+  flex: 1 0 auto;
+  max-width: calc(100% - var(--menu-icon) - var(--space-2));
 }
 
 /* A row without a glyph keeps the glyph's room, so every label starts on one edge. */
