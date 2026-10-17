@@ -20,8 +20,11 @@ compact edition, editable since EDN-7 (pen, highlight, text, edit text, signatur
 - Motion tokens: `styles/motion.css`, `reducedMotion()`. Key map: `commands/keymap.ts`.
 - Specs: `docs/specs/redesign.md`, `docs/design/redesign-2026-10/` (quality bar Q-1…Q-14,
   component specs). Brand: `docs/brand/`. Family (the owner's other products): `docs/family/`.
-- **Decisions: `docs/process/decisions.md`.** Every owner and lead decision with its source;
-  it wins over older docs. Read it before changing behaviour; add a row when you decide.
+- **Decisions: `docs/process/decisions.md`** is the index (one line per decision, by area);
+  the full rows are in `docs/process/decisions/<area>.md`. Every owner and lead decision with
+  its source; it wins over older docs. Read the index before changing behaviour and open only
+  the area file you need. When you decide, add the full row to the area file and its one-line
+  entry to the index.
   Superseded docs are in `docs/archive/`: do not work from them.
 
 ## Branches and the owner

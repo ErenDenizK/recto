@@ -1,0 +1,14 @@
+# Decisions: Ink
+
+| # | Decision | Date | Source | Status |
+|---|---|---|---|---|
+| INK-1 | **One Highlighter, a lasso for every kind, one ink palette.** Variable-width ink is a standard Ink annotation with our appearance. | 2026-10-01, 2026-10-03 | ADR-0018; ADR-0021 | In force |
+| INK-2 | **Pens stay in the dock.** The ink strip shows only the armed pen's colour (wheel plus a few recents, no fixed swatch row that repeats the pens) and its width, like Apple Notes. Another pen is one press in the dock, never in the strip. | 2026-10-09 | R11 owner answer G8; `components/10-ink.md` | In force |
+| INK-3 | **The ink strip is its own floating piece** above the dock, hugging its content. It has a glass-lens slider thumb. The notch bug is removed, and Markup and Fill & sign get distinct glyphs. | 2026-10-08 | R10 F3 | Done; one-layout rule in Audit §3.7 |
+| INK-4 | **The pen's colour and size picker gets extra thought.** Every colour option and slider is modern and Apple-like. | 2026-10-04 | Spec §14, standing requirements | In force |
+| INK-5 | **Pen gestures are on, with care** (D-3). They come with a first-use tip, a confidence threshold, a visible preview before commit, one-step undo, and tests for near-miss strokes. | 2026-10-09 | R12 D-3 | In force |
+| INK-6 | **The still-press tip ring is off** by default (D-3). Barrel, right-drag and hold W stay on. | 2026-10-09 | R12 D-3 | In force |
+| INK-7 | **Key map v2 is accepted** (D-4) as one PR: hold B for Before, Z / Shift+Z back and forward, hold W for the ring, and the rest of R12 §3.1. | 2026-10-09 | R12 D-4, §3.1 | In force |
+| INK-8 | **The TR-Q rule** (D-5). No feature depends on `\`, `[`, `]` or an AltGr chord. Every symbol key has a letter or on-screen twin. Keys are tested on a Turkish Q layout. | 2026-10-09 | R12 D-5 | In force |
+| INK-9 | **Hold to shape.** A still pen hold (3/4/6 px for mouse/pen/touch, 500 ms; 800 ms and stricter limits within 600 ms of the last release) turns a stroke into a line, arrow, rectangle, square, triangle, pentagon, hexagon, circle or ellipse only if it passes the handwriting gate. The chip cycles to the next fit, undo returns the raw stroke, and shapes are real PDF annotations. A 103-case corpus (64 near-misses that must not snap) guards it. Lasso "Make shape" applies the same recogniser to drawn strokes. | 2026-10-09 | Owner, conversation (R14); `motion-2026-10/ink-shapes.md` | Done |
+| INK-10 | **A zoom in the middle of a stroke spends its hold.** The page moves under a pointer kept still through a zoom, so that stillness is no hold on the page and never snaps a shape; the pointer must move and hold again. Found when a keyboard zoom that took over 500 ms turned the stroke in `pen.spec.ts` into a /Line. | 2026-10-12 | Lead, R16 lane F; `motion-2026-10/ink-shapes.md` §1 | Done |

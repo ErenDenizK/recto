@@ -27,8 +27,9 @@ and the other packages rebase onto it.
 **Clean-up lanes run last (R22, brief C-9).** A lane that restructures shared documents
 (`docs/process/decisions.md`, `CLAUDE.md`, this file, the specs' tables) or moves files many
 lanes touch starts after the wave's feature lanes have merged, and rebases onto them. While
-feature lanes run, other lanes only append rows to `decisions.md` and fix links into it; they
-never split, reorder or rewrite it. Superseded documents move to `docs/archive/` with a line
+feature lanes run, other lanes only append rows (the full row in `decisions/<area>.md`, its
+one-line entry in the index `decisions.md`) and fix links into them; they never split, reorder
+or rewrite it. Superseded documents move to `docs/archive/` with a line
 in its README.
 
 ## Concurrency

@@ -10,5 +10,11 @@
     "lib": ["ES2023"],
     "types": ["node"]
   },
-  "include": ["vitest.config.ts", "bundle-budget.ts", "slowest-specs.ts", "../../tooling/*.ts"]
+  "include": [
+    "vitest.config.ts",
+    "bundle-budget.ts",
+    "slowest-specs.ts",
+    "decisions-index.ts",
+    "../../tooling/*.ts"
+  ]
 }
