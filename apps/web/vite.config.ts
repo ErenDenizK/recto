@@ -320,6 +320,13 @@ export default defineConfig({
               test: /[\\/]src[\\/]i18n[\\/](?:index|locale|format|use-locale)\.ts$|[\\/]src[\\/]i18n[\\/]paraglide[\\/](?:runtime|registry)\.js$/,
               priority: 25,
             },
+            // Vite's preload helper, which every chunk with a dynamic import calls: on its own,
+            // so engine chunks never reach the entry (and React) through it (PF-2).
+            {
+              name: 'preload-helper',
+              test: /vite\/preload-helper/,
+              priority: 22,
+            },
             {
               name: 'motion',
               test: /[\\/]src[\\/]motion[\\/](?!gesture[\\/]|container\.ts$|nav-push\.ts$|disclose\.ts$|lazy\.ts$)/,
