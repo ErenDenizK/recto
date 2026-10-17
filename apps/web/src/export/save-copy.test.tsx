@@ -2,7 +2,7 @@
  * Save a copy in the browser (components/07-sheets.md §4.4, §4.6, §4.9): the sheet keeps each
  * format's choices in its draft, the Text preview shows the conversion and its honesty notes
  * and saves what it previewed, the primary follows the platform, and the empty-file rule
- * removes a picked file whose copy could not be written.
+ * removes a picked file whose copy could not be written; Cancel closes it, as on its siblings.
  */
 import '../styles/tokens.css';
 import '../styles/reset.css';
@@ -81,6 +81,15 @@ describe('the sheet', () => {
       'aria-checked',
       'true',
     );
+  }, 30_000);
+
+  it('has the Cancel its sibling task sheets have, and Cancel closes it (DSN-54)', async () => {
+    const id = await open();
+    render(<SaveCopyHost />);
+    openSaveCopy(id);
+    const sheet = await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 });
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByTestId('save-copy-sheet')).toBeNull());
   }, 30_000);
 
   it('previews the Markdown and its honesty notes, and names the ZIP it will save', async () => {
