@@ -25,6 +25,8 @@
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+  /* A strip of its own: no bar over it (GLS-26). */
+  --scroll-bar: none;
 }
 
 .tiles::-webkit-scrollbar {

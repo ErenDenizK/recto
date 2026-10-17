@@ -2,15 +2,14 @@
  * One scroll bar, app-wide (owner, R21 brief B-6, R22 brief C-10; decisions GLS-24, GLS-26),
  * imported by global.css.
  *
- * - **The full edition** draws its own overlay bar over every scroller (ui/scroll-thumbs.ts),
+ * - **Both editions** draw their own overlay bar over every scroller (ui/scroll-thumbs.ts),
  *   which sets `data-scroll-thumbs` on the root once it runs; the native bars then go on every
  *   engine and pointer, so no scroller takes a gutter (the reader's fit width, every list's
  *   width) and nothing is painted with a scroller while a sheet slides (GLS-24's WebKit case).
  *   `::-webkit-scrollbar` is for WebKit before `scrollbar-width`; Chromium ignores it where
  *   the standard property is set.
- * - **Before that, the phone edition and forced colours**: the platform's own bar, thin and in
- *   the thumb's colour. On touch it is the platform's overlay indicator, which already shows
- *   only while a list scrolls (MOT-4); the phone's pages draw `ui/ScrollThumb` over theirs.
+ * - **Before that, and in forced colours**: the platform's own bar, thin and in the thumb's
+ *   colour.
  * - Keyboard and screen readers keep native scrolling: nothing here takes focus.
  * - `--scroll-bar: none` keeps the overlay off one scroller; it does not inherit, so what
  *   scrolls inside that scroller still gets its bar.

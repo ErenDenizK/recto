@@ -27,6 +27,7 @@ import { watchSessionNotice } from '../../session/session-toast';
 import { useAppearanceRoot, useAppearanceStore } from '../../state/appearance-store';
 import { requestPassword } from '../../state/password-store';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { installScrollThumbs } from '../../ui/scroll-thumbs';
 import { ToastRegion } from '../../ui/Toast/ToastRegion';
 import { clearLinksForSource } from '../../viewer/LinkLayer';
 import { installCopyHandler } from '../../viewer/text-spans';
@@ -58,6 +59,8 @@ function applyViewport(): () => void {
 
 export function CompactApp() {
   useLayoutEffect(() => applyViewport(), []);
+  // The app's one scroll bar over every scroller, the phone's lists and sheets too (GLS-26).
+  useLayoutEffect(() => installScrollThumbs(), []);
   // The appearance settings reach the root here too: Reduce motion (About's row, or kept from
   // the full edition on this device) and Glass with its start state and cost ladder, which the
   // materials read.

@@ -1,12 +1,12 @@
 /**
  * The app's scroll bar, everywhere (owner, R22 brief C-10; decisions GLS-26, which amends
- * GLS-24): one overlay thumb for every scroller of the full edition (the reader's stand-in bars
+ * GLS-24): one overlay thumb for every scroller of both editions (the reader's stand-in bars
  * of `stage/ScrollProxies`, the Pages grid, the sidebar lists, menus, popovers, sheets, Settings,
  * the Library), drawn over the scroller's trailing edge in a fixed layer of its own. The native
  * bars are hidden (`styles/scrollbars.css`, under `:root[data-scroll-thumbs]`), so no scroller
  * takes a gutter on any engine and WebKit needs no special case any more.
  *
- * - **Look** (`ScrollThumb.module.css`, shared with the phone reader's `ScrollThumb`): a slim
+ * - **Look** (`scroll-thumbs.module.css`): a slim
  *   capsule of the glass's tone with GLS-22's rim unblurred (it moves), no track. Under the
  *   pointer it grows into a groove of the same glass, the lens seated in its bezel (GLS-25);
  *   dragged it is brightest, and the reader names the page under it.
@@ -27,11 +27,13 @@
  *   scroller that reaches under the chrome keep its bar in the free rectangle (the Pages grid).
  * - **Forced colours**: not installed; the system's bars come back.
  *
- * The phone edition keeps its platform indicator in lists and `ScrollThumb` on its pages: this
- * driver is the full edition's (the compact closure is at its growth cap, PRC-11).
+ * Both editions install it (`app.tsx`, `CompactApp.tsx`): on the phone it is drawn on scroll
+ * only (no hover), over the pages inside the safe area and over every list and sheet.
  */
-import { SCROLL_THUMB_LINGER_MS } from './ScrollThumb';
-import styles from './ScrollThumb.module.css';
+import styles from './scroll-thumbs.module.css';
+
+/** A bar fades out this long after the last scroll. */
+export const SCROLL_THUMB_LINGER_MS = 900;
 
 type Axis = 'y' | 'x';
 

@@ -308,7 +308,7 @@ export function ReadView({
   const pageAt = useRef<PageAt | null>(null);
   const pageLabel = (scrollTop: number) => {
     const page = pageAt.current?.(scrollTop);
-    return page === undefined ? '' : String(page + 1);
+    return page === undefined ? '' : `${page + 1} / ${doc.pages.length}`;
   };
   const bleed = useStageBleed(frameRef);
   const { primary } = usePointerCapabilities();
