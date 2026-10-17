@@ -708,6 +708,9 @@ describe('one stroke model', () => {
     send('pointerdown', points[0] as { x: number; y: number });
     for (const [i, p] of points.slice(1, 60).entries()) {
       send('pointermove', p);
+      // Events made in one task can share a coarsened timeStamp, and a tip with no elapsed
+      // time has no speed to predict from (`predictTip`); real samples are milliseconds apart.
+      await new Promise((resolve) => setTimeout(resolve, 2));
       if (i % 6 === 5) await frames(1);
     }
     await frames(1);
