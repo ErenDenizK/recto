@@ -13,24 +13,30 @@ import { fileURLToPath } from 'node:url';
 
 const dir = fileURLToPath(new URL('../../docs/process/', import.meta.url));
 const problems: string[] = [];
+/** Id to the file it was first found in, across all files, for messages. */
+const placed = new Map<string, string>();
 
 /** Collects id to area file; a repeat is a problem. Group 1 is the id, group 2 the area file. */
 function collect(file: string, pattern: RegExp, into: Map<string, string>): void {
+  const seen = new Map<string, string>();
   for (const line of readFileSync(join(dir, file), 'utf8').split('\n')) {
     const match = pattern.exec(line);
     if (!match) continue;
     const id = match[1] ?? '';
-    if (into.has(id)) problems.push(`${id} appears twice (${into.get(id)} and ${file})`);
+    if (seen.has(id)) problems.push(`${id} appears twice in ${file}`);
+    else if (into.has(id)) problems.push(`${id} appears twice (${placed.get(id)} and ${file})`);
     else into.set(id, match[2] ?? file);
+    seen.set(id, file);
+    placed.set(id, file);
   }
 }
 
 const index = new Map<string, string>();
-collect('decisions.md', /^\| \[([A-Z]{3}-\d+[a-z]?)\]\(decisions\/([\w-]+\.md)\) \|/, index);
+collect('decisions.md', /^\| \[([A-Z]+-\d+[a-z]?)\]\(decisions\/([\w-]+\.md)\) \|/, index);
 
 const rows = new Map<string, string>();
 for (const file of readdirSync(join(dir, 'decisions')).filter((f) => f.endsWith('.md'))) {
-  collect(`decisions/${file}`, /^\| ([A-Z]{3}-\d+[a-z]?) \|/, rows);
+  collect(`decisions/${file}`, /^\| ([A-Z]+-\d+[a-z]?) \|/, rows);
 }
 
 for (const [id, file] of rows) {

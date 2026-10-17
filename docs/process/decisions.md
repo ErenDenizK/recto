@@ -110,23 +110,23 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-36](decisions/design.md) | The phone's menus grow out of their button | In force | 2026-10-15 |
 | [DSN-37](decisions/design.md) | The owner's choices for the phone top (R18 decision page) | In force, amended by GLS-20 (the fade takes the theme, not the page) | 2026-10-15 |
 | [DSN-38](decisions/design.md) | The split top's title is centred and cut in its middle; the fade is lighter (DSN-37) | In force | 2026-10-15 |
-| [DSN-39](decisions/design.md) | How the phone top's liquid menus and keyboard Find are built (DSN-37) | In force, amended by MOT-13 (the menus grow out on the compositor | 2026-10-15 |
+| [DSN-39](decisions/design.md) | How the phone top's liquid menus and keyboard Find are built (DSN-37) | In force, amended by MOT-13 (the menus grow out on the compositor; no traced mask) | 2026-10-15 |
 | [DSN-40](decisions/design.md) | The scroll edge follows the page, not the theme (DSN-37) | Superseded by GLS-20 | 2026-10-15 |
 | [DSN-41](decisions/design.md) | The split top's header has the row's box | In force | 2026-10-15 |
 | [DSN-42](decisions/design.md) | A liquid body keeps its rim while it moves | Superseded by MOT-13 and MOT-14 (no traced outline left to stroke) | 2026-10-16 |
 | [DSN-43](decisions/design.md) | The capsule and ✎ morph as one liquid body (DSN-37's "merge") | In force, amended by MOT-14 (the merge on the compositor) | 2026-10-16 |
 | [DSN-44](decisions/design.md) | Find on the phone keeps a found word in sight | In force | 2026-10-16 |
 | [DSN-45](decisions/design.md) | The desktop page pill's adaptive look is on; the strip as GLS-9 left it | Superseded by GLS-20 | 2026-10-16 |
-| [DSN-46](decisions/design.md) | One place per command, language in Settings (owner, R21 brief B-7, B-8, B-13) | In force (built: DSN-47, DSN-48 | 2026-10-16 |
+| [DSN-46](decisions/design.md) | One place per command, language in Settings (owner, R21 brief B-7, B-8, B-13) | In force (built: DSN-47, DSN-48; inventory `design/audit-2026-10-16-menus.md`) | 2026-10-16 |
 | [DSN-47](decisions/design.md) | The title menu and the full edition's other menus under DSN-46 | In force | 2026-10-16 |
 | [DSN-48](decisions/design.md) | The phone's menus under DSN-46 | In force; the phone Library's route to settings: DSN-51 | 2026-10-16 |
 | [DSN-49](decisions/design.md) | The desktop and tablet top strip in separate glass pieces (owner, R21 brief B-4: "parça parça") | In force | 2026-10-16 |
-| [DSN-50](decisions/design.md) | The Library in three tiers for the user tests (owner, R21 brief B-12, B-13, B-16) | In force | 2026-10-16 |
-| [DSN-51](decisions/design.md) | The phone Library's way to settings (audit 2026-10-16, open question 1; DSN-46, DSN-48) | In force | 2026-10-16 |
+| [DSN-50](decisions/design.md) | The Library in three tiers for the user tests (owner, R21 brief B-12, B-13, B-16) | In force; the owner's taste: the sample as a card after Recents, and the phone's new order | 2026-10-16 |
+| [DSN-51](decisions/design.md) | The phone Library's way to settings (audit 2026-10-16, open question 1; DSN-46, DSN-48) | In force; amended 2026-10-17 (owner, R22 brief C-2: "Ayarlar simgesi dişli olsun"): the circle draws the icon set's gear (`gear-six`…) | 2026-10-16 |
 | [DSN-52](decisions/design.md) | The QA read-through's rules (R21 brief B-16: "remove repeated text, everything tidy") | In force (`design/qa-2026-10-16.md`) | 2026-10-16 |
 | [DSN-53](decisions/design.md) | One phone panel language: menus for commands, one sheet for everything else (owner, R22 C-11 option A) | Built (DSN-55) | 2026-10-17 |
 | [DSN-54](decisions/design.md) | Said once, cancelled as its siblings (owner and lead, R22 brief C-3, C-4) | In force | 2026-10-17 |
-| [DSN-55](decisions/design.md) | How the phone's one sheet is built (DSN-53) | In force | 2026-10-17 |
+| [DSN-55](decisions/design.md) | How the phone's one sheet is built (DSN-53) | In force; taste open: clear glass at rest, the drawer's rise from the edge, no ⋯ circle | 2026-10-17 |
 | [DSN-56](decisions/design.md) | On the phone, toasts step aside for a scrim sheet | In force; taste open (hide vs. above the sheet) | 2026-10-17 |
 
 ## Motion
@@ -176,7 +176,7 @@ Full rows: [`decisions/glass.md`](decisions/glass.md).
 | [GLS-16](decisions/glass.md) | The adaptive turn fades tint, text and rim; the filter chain changes at once | Superseded by GLS-20 (no turn left to fade) | 2026-10-15 |
 | [GLS-17](decisions/glass.md) | The light look of chips and bars takes a 0.50 tint (GLS-8 had 0.45), so its text holds AA in axe's own model | Superseded by GLS-21 (light tint 0.80, no turned piece for axe to measure) | 2026-10-16 |
 | [GLS-18](decisions/glass.md) | GPU glass blurs at 0.8 of the piece's CSS σ | In force | 2026-10-16 |
-| [GLS-19](decisions/glass.md) | GPU glass and liquid bodies; GPU glass follows the adaptive turn | In force for liquid bodies | 2026-10-16 |
+| [GLS-19](decisions/glass.md) | GPU glass and liquid bodies; GPU glass follows the adaptive turn | In force for liquid bodies; its adaptive-turn half superseded by GLS-20 | 2026-10-16 |
 | [GLS-20](decisions/glass.md) | The glass tone is fixed to the theme (owner, R21 brief B-1) | In force | 2026-10-16 |
 | [GLS-21](decisions/glass.md) | How the fixed tone is built (GLS-20) | In force | 2026-10-16 |
 | [GLS-22](decisions/glass.md) | The soft rim (owner, R21 brief B-5: "a thick line … it needs a soft falloff") | In force | 2026-10-16 |
@@ -224,7 +224,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-13](decisions/editions.md) | Phone ink and highlight (lane B) | In force | 2026-10-11 |
 | [EDN-14](decisions/editions.md) | Phone signing and saving (WP6, WP7) | In force; the drawer's closing superseded by EDN-18 | 2026-10-11 |
 | [EDN-15](decisions/editions.md) | The phone Library's line names what the phone can do: "Pen, highlight, text and signature on your phone | In force; wording open to the owner | 2026-10-11 |
-| [EDN-16](decisions/editions.md) | Two phone tool drawers, the owner picks after an iPhone test | In force | 2026-10-11 |
+| [EDN-16](decisions/editions.md) | Two phone tool drawers, the owner picks after an iPhone test | In force; variant choice open to the owner; the close after the arming pulse superseded by EDN-18 | 2026-10-11 |
 | [EDN-17](decisions/editions.md) | Editing text on phones (WP5) | In force; the iOS keyboard hand check is the owner's | 2026-10-11 |
 | [EDN-18](decisions/editions.md) | The phone tool drawer stays open on a tap | In force | 2026-10-12 |
 
@@ -235,25 +235,25 @@ Full rows: [`decisions/phone-work.md`](decisions/phone-work.md).
 | Id | Decision | Status | Date |
 |---|---|---|---|
 | [MOB-1](decisions/phone-work.md) | Forms fill on the phone by a tap, in reading too | In force (built, MOB-5) | 2026-10-14 |
-| [MOB-2](decisions/phone-work.md) | Pinch out to see every page | In force (built 2026-10-14 | 2026-10-14 |
-| [MOB-3](decisions/phone-work.md) | The overview is the phone's place for pages | In force (built 2026-10-14) | 2026-10-14 |
+| [MOB-2](decisions/phone-work.md) | Pinch out to see every page | In force (built 2026-10-14; column count and the button's form are the owner's to change). Technique (lane O): the morph completes at 45… | 2026-10-14 |
+| [MOB-3](decisions/phone-work.md) | The overview is the phone's place for pages | In force (built 2026-10-14). Technique (lane O): in the overview's lazy chunk (`overview/page-actions.ts`, `tile-press.ts`…) | 2026-10-14 |
 | [MOB-4](decisions/phone-work.md) | Desktop pages fixes before the phone uses them | In force (built; MOB-4a) | 2026-10-14 |
 | [MOB-4a](decisions/phone-work.md) | How MOB-4 lands (technique, Lane D) | In force | 2026-10-14 |
 | [MOB-4b](decisions/phone-work.md) | B7: a press during an overlay's exit reaches the page | In force | 2026-10-14 |
 | [MOB-5](decisions/phone-work.md) | How phone form filling is built (MOB-1) | In force | 2026-10-14 |
 | [MOB-6](decisions/phone-work.md) | Undo after a phone fill is the standard Undo toast, not the edit island | In force | 2026-10-15 |
-| [MOB-7](decisions/phone-work.md) | The overview lands at 3 columns, or 2 for a document of 4 pages or fewer | In force (built 2026-10-15: `overviewColumns()` in `overview-gesture.ts` | 2026-10-15 |
+| [MOB-7](decisions/phone-work.md) | The overview lands at 3 columns, or 2 for a document of 4 pages or fewer | In force (built 2026-10-15: `overviewColumns()` in `overview-gesture.ts`; the store keeps the pinched count, null until then) | 2026-10-15 |
 | [MOB-8](decisions/phone-work.md) | Extract and Split on the phone go to the share sheet only | In force | 2026-10-15 |
-| [MOB-9](decisions/phone-work.md) | The overview's resting bar has a visible Select | In force (built 2026-10-15: `OverviewBar.tsx` | 2026-10-15 |
-| [MOB-10](decisions/phone-work.md) | The title menu's Pages rows follow 01-frame §5: Insert pages from file… and Combine with open documents…; Merge files…… | In force (built: Lane D | 2026-10-15 |
+| [MOB-9](decisions/phone-work.md) | The overview's resting bar has a visible Select | In force (built 2026-10-15: `OverviewBar.tsx`; the grid is named "Pages, 12 pages") | 2026-10-15 |
+| [MOB-10](decisions/phone-work.md) | The title menu's Pages rows follow 01-frame §5: Insert pages from file… and Combine with open documents…; Merge files…… | In force (built: Lane D; Combine with open documents… with one document open asks for files) | 2026-10-15 |
 | [MOB-11](decisions/phone-work.md) | The teaching sample becomes Margin No. 07 (TR Kenar), a magazine's press-week folder, one feature per page | In force (building; the owner approves the result) | 2026-10-15 |
 | [MOB-12](decisions/phone-work.md) | One source, one file per edition and language | In force (building) | 2026-10-15 |
 | [MOB-13](decisions/phone-work.md) | How MOB-11/12 are built (technique, sample lane) | In force | 2026-10-15 |
 | [MOB-14](decisions/phone-work.md) | The sample's visual system v2: one night at Cape Ardıç | In force (building) | 2026-10-15 |
 | [MOB-15](decisions/phone-work.md) | How MOB-14 is built (technique, sample lane) | In force | 2026-10-15 |
-| [MOB-16](decisions/phone-work.md) | Dark reading (a night mode for the page itself): proposed, not built | Open: step 1 (Dim pages) built, MOB-17 | 2026-10-15 |
+| [MOB-16](decisions/phone-work.md) | Dark reading (a night mode for the page itself): proposed, not built | Open: step 1 (Dim pages) built, MOB-17; step 2 (Dark pages) waits on the owner | 2026-10-15 |
 | [MOB-17](decisions/phone-work.md) | How Dim pages is built (MOB-16 step 1; technique, on the lead's recommendation the owner left to the lead) | In force (built) | 2026-10-16 |
-| [MOB-18](decisions/phone-work.md) | Phone edit mode scrolls (owner, R21 brief B-9): ✎ opens the edit island with the tool off | In force (built: `mark/bridge.ts` `enterEditing` | 2026-10-16 |
+| [MOB-18](decisions/phone-work.md) | Phone edit mode scrolls (owner, R21 brief B-9): ✎ opens the edit island with the tool off | In force (built: `mark/bridge.ts` `enterEditing`; `compact-edit.spec.ts` scrolls with one finger before the chip arms Pen) | 2026-10-16 |
 
 ## Text editing
 
@@ -289,7 +289,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 |---|---|---|---|
 | [PRC-1](decisions/process.md) | Browser (e2e) tests run last and never block work | In force | 2026-10-09 |
 | [PRC-2](decisions/process.md) | Lanes and the heavy lock | In force | 2026-10-09 |
-| [PRC-3](decisions/process.md) | No fixed 3-agent cap | In force | 2026-10-09 |
+| [PRC-3](decisions/process.md) | No fixed 3-agent cap | In force; supersedes R12 §7 "at most three" and PLAN O-7. **Mode in force from 2026-10-10: Normal, started low** (2–3 agents; the lead…) | 2026-10-09 |
 | [PRC-4](decisions/process.md) | Commits: Conventional Commits with a header of at most 100 characters and a lower-case subject, using the session's… | In force | 2026-09-26, restated 2026-10-09 |
 | [PRC-5](decisions/process.md) | Two branches per project: dev and main | In force; ADR-0006's PR rule for `main` is not used until a release | 2026-10-09, restated 2026-10-10 |
 | [PRC-6](decisions/process.md) | Language: the owner is addressed in Turkish | In force | 2026-10-09 |

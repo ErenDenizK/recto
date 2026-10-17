@@ -31,8 +31,8 @@ build can go to Sonnet.
 - **Scope.** Sonnet was measured writing outside its folder more often than Opus. Every
   `implementer` brief names the files it owns and the files it must not touch; before the PR opens
   the lead compares `git diff --stat` for the lane with that list and sends stray edits back.
-- **Stop rule.** An `implementer` that meets a decision the brief and the decisions (`decisions.md` and its area files) do not settle
-  stops and reports the question; the lead or an Opus agent decides. It does not guess.
+- **Stop rule.** An `implementer` that meets a decision the brief and the decisions (`decisions.md` and its
+  area files) do not settle stops and reports the question; the lead or an Opus agent decides. It does not guess.
 - **Review.** A risky or multi-file Sonnet lane gets the Opus `reviewer` before its PR opens; other
   lanes rely on CI's full matrix and the lead's diff read (owner, 2026-10-17).
 - **Briefs.** Short and self-contained: objective, decisions to read, files in scope, files out of

@@ -26,7 +26,7 @@ browsers used. -->
 
 ## Decisions
 
-<!-- Rows added or superseded in docs/process/decisions.md, or "None". -->
+<!-- Rows added or superseded in docs/process/decisions/<area>.md (with their index line in decisions.md), or "None". -->
 
 ## Checklist
 
