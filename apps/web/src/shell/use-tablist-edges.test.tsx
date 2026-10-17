@@ -68,6 +68,37 @@ describe('useTablistEdges', () => {
     expect(list.hasAttribute('data-more-end')).toBe(false);
   });
 
+  it('marks an edge when the list scrolls by less than the slack at each end', async () => {
+    // 2 px of overflow with the active tab centred (scrolled by 1): within the slack of both
+    // ends, yet the list scrolls, so it must not read as fitting (tab-strip.spec.ts at 768 px).
+    function Tight() {
+      const ref = useTablistEdges();
+      return (
+        <div
+          ref={ref}
+          role="tablist"
+          aria-label="Open documents"
+          style={{
+            display: 'flex',
+            boxSizing: 'border-box',
+            width: 118,
+            padding: 4,
+            overflowX: 'auto',
+          }}
+        >
+          <button type="button" role="tab" tabIndex={0} style={{ flex: 'none', width: 112 }}>
+            tab
+          </button>
+        </div>
+      );
+    }
+    render(<Tight />);
+    await frames(3);
+    const list = screen.getByRole('tablist');
+    expect(list.scrollWidth - list.clientWidth).toBe(2);
+    expect(list.hasAttribute('data-more-start') || list.hasAttribute('data-more-end')).toBe(true);
+  });
+
   it('keeps the active tab in view, clear of the fades, when the list narrows', async () => {
     const { rerender } = render(<List width={500} count={4} active={2} />);
     await frames(2);
@@ -77,6 +108,36 @@ describe('useTablistEdges', () => {
     const tab = screen.getByRole('tab', { name: 'tab 2' }).getBoundingClientRect();
     expect(tab.left).toBeGreaterThanOrEqual(list.left + 24 - 1);
     expect(tab.right).toBeLessThanOrEqual(list.right - 24 + 1);
+  });
+
+  it('marks an edge while a slide stretches the overflow, not only once it ends', async () => {
+    // A slide that set out at one width and runs on after the window narrowed (tab-motion.ts)
+    // reaches past the end mid-way: the list scrolls then, so it marks its edge then.
+    render(<List width={200} count={1} active={0} />);
+    await frames(2);
+    const list = screen.getByRole('tablist');
+    const fill = document.createElement('span');
+    fill.style.flex = 'none';
+    fill.style.width = '20px';
+    list.append(fill);
+    await frames(2);
+    expect(list.hasAttribute('data-more-end')).toBe(false);
+    const slide = fill.animate(
+      [
+        { transform: 'none' },
+        { transform: 'translateX(300px)', offset: 0.2 },
+        { transform: 'none' },
+      ],
+      { duration: 600 },
+    );
+    // Read while nothing overflows yet: the start of the slide.
+    screen.getByRole('tab', { name: 'tab 0' }).append(' renamed');
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(list.scrollWidth).toBeGreaterThan(list.clientWidth + 1);
+    expect(list.hasAttribute('data-more-end')).toBe(true);
+    await slide.finished;
+    await frames(3);
+    expect(list.hasAttribute('data-more-end')).toBe(false);
   });
 
   it('clears an edge marked while a slide stretched the overflow once the slide ends', async () => {
