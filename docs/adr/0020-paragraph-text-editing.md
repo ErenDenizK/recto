@@ -5,7 +5,7 @@ decisions delegated by the owner); supersedes the "tier 3" line of ROADMAP M8 (2
 
 ## Context
 
-The owner (`docs/DISCUSSION.md` #28) wants text editing that feels like owning the
+The owner (`docs/archive/DISCUSSION.md` #28) wants text editing that feels like owning the
 document: enter Edit, click a text, the whole paragraph opens, type freely with no font or
 size choices, the text rewraps as in Word and, ideally, later content and pages move. They
 asked how far this is possible in a PDF.

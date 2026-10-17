@@ -200,7 +200,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow and repository layout.
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Engine layering, virtual document model, export pipeline, deployment, testing |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones M0–M8 and the M9 plan (the live plan is `docs/plan/v1/PLAN.md`) |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Design intent, layout, tokens, interaction and accessibility rules |
-| [`docs/DISCUSSION.md`](docs/DISCUSSION.md) | Open decisions awaiting the owner |
+| [`docs/process/decisions.md`](docs/process/decisions.md) | Every owner and lead decision, with its source; it wins over older docs |
+| [`docs/archive/`](docs/archive/README.md) | Superseded documents kept as the record (the closed open-decisions list among them) |
 | [`docs/adr/`](docs/adr/) | Architecture Decision Records |
 | [`docs/research/`](docs/research/) | Research snapshots (engines, market and UX, platform constraints, feature feasibility) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Workflow, conventions, standards |

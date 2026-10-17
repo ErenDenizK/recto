@@ -431,7 +431,7 @@ The README stays the source text; the case study copies its sentences (BR-P1).
 6. **Craft details:** ink latency (`docs/qa/ink-latency-baseline.md`), redaction checked on the
    exported bytes, glass contrast against the white page; a short clip each.
 7. **Before and after:** M0 (`docs/design/screenshots/m0-*`), M6
-   (`docs/design/audit-2026-10/m6-v1-*`), M8 (`docs/design/redesign-2026-10/baseline/`, 70 frames
+   (`docs/design/audit-2026-10/m6-v1-*` at `2be6e68`), M8 (`docs/design/redesign-2026-10/baseline/`, 70 frames
    at 1440/1280/820/390 px, commit `7d47031`) and M9: same fixture, viewport and state, captured by
    script, old states re-rendered at 2× from their commits (BR-P2). A drag slider; side-by-side
    stills under reduced motion.

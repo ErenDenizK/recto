@@ -182,7 +182,7 @@ source for grain, noise, raster texture, dither and Q-1):
 | `docs/specs/redesign.md:808` | Work package D0-1: "the quality-bar walker … (Q-1 …: no grain or raster texture …)" |
 | `docs/specs/redesign.md:974` | Taste: "grainy and breaking glass … must not reach the product" |
 | `docs/adr/0033-compact-edition.md:93` | The compact edition "held to the same quality bar … no grain" |
-| `docs/DISCUSSION.md:52` | Row 34, the owner's acceptance: "glass that breaks and looks grainy" (a record of the quote) |
+| `docs/archive/DISCUSSION.md:52` | Row 34, the owner's acceptance: "glass that breaks and looks grainy" (a record of the quote) |
 | `apps/web/src/styles/materials.test.ts:8-12` | Doc comment: "Q-1, no grain … the aurora's in-shader dither, AU-3, is the one dither Recto has" |
 | `apps/web/src/styles/materials.test.ts:73` | **The CI gate:** `describe('materials: no grain or raster texture (quality-bar Q-1)')`, failing on raster backgrounds on `.mat*` rules and their pseudo-elements, and on `feTurbulence` in `src/` |
 | `apps/web/src/home/LibraryView.tsx:75` | The aura: "no blur and no grain (Q-1)" |
@@ -211,7 +211,7 @@ wording and the gate that forbid grain outright. Options, for the owner:
 - **C. Leave Q-1 as it is** and record the owner's clarification beside it, if the owner
   prefers Recto smooth anyway.
 
-Whatever the choice, the quote at `quality-bar.md:11` and `DISCUSSION.md:52` stays: it is what
+Whatever the choice, the quote at `quality-bar.md:11` and `docs/archive/DISCUSSION.md:52` stays: it is what
 the owner said. The correction belongs in a note beside the rule and an amendment to
 ADR-0024, made in the owner's session.
 

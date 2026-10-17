@@ -3,7 +3,8 @@
 **Status:** proposal for the owner and the lead · **Applies to:** both editions, every surface ·
 **Reads with:** `redesign-2026-10/language.md`, `redesign-2026-10/quality-bar.md` (Q-1…Q-14),
 `redesign-2026-10/components/09-primitives.md`, `components/07-sheets.md`, `components/10-ink.md`
-· **Screenshots:** `system-audit-2026-10/` (this audit, production build of `develop` at
+· **Screenshots:** `system-audit-2026-10/` (in history at `2be6e68`; removed from the
+working tree on 2026-10-17, R22 D4; this audit, production build of `develop` at
 `7697f56`, Chromium, 1440 × 900 fine and 1180 × 820 touch, dark and light; the phone at
 390 × 844) and the owner's annotated iPad captures of 2026-10-08/09
 
@@ -139,7 +140,7 @@ or shortened under reduced motion (`styles/motion.css`).
 
 Severity: **A** breaks the one-system feel at first glance; **B** visible on inspection; **C**
 code hygiene that lets A and B come back. Screenshot names are files in
-`system-audit-2026-10/`.
+`system-audit-2026-10/` at commit `2be6e68`.
 
 ### 2.1 The token file disagrees with the code and the spec
 

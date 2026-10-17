@@ -1,6 +1,7 @@
 # ADR-0007: Delivery targets — web first, desktop as escalation path
 
-**Status:** accepted · **Date:** 2026-09-26
+**Status:** accepted; amended by [ADR-0034](0034-editions.md) (desktop is a planned later
+edition of the same build, EDN-1, EDN-3) · **Date:** 2026-09-26
 
 ## Context
 

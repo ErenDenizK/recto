@@ -8,7 +8,7 @@ ADR-0003 rules out a component library but calls for headless primitives for the
 whose accessibility is expensive to get right by hand: dialogs (focus trap, scroll lock,
 focus return, `Esc`), tooltips (hover and focus intent, delay groups, collision-aware
 positioning), menus (roving focus, typeahead, submenus) and popovers. Radix Primitives
-was the candidate; Base UI was to be evaluated in M0 (`DISCUSSION.md` item 10).
+was the candidate; Base UI was to be evaluated in M0 (`docs/archive/DISCUSSION.md` item 10).
 
 Both were installed and used for the M0 shell's palette (Dialog), tooltips, the zoom menu
 (Menu) and the privacy indicator (Popover). Findings on 2026-09-27:

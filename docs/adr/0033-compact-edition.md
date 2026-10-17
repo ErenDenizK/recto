@@ -1,12 +1,14 @@
 ---
-title: "ADR-0033: Two editions: the full app on desktops and tablets, a read-only compact edition on phones"
+title: "ADR-0033: Two editions: the full app on desktops and tablets, a compact edition on phones (read-only until ADR-0034)"
 date: 2026-10-04
-status: accepted
+status: accepted, amended by ADR-0034
 ---
 
-# ADR-0033: Two editions: the full app on desktops and tablets, a read-only compact edition on phones
+# ADR-0033: Two editions: the full app on desktops and tablets, a compact edition on phones (read-only until ADR-0034)
 
-**Status:** accepted · **Date:** 2026-10-04 · **Deciders:** the owner (review of the M9 plan
+**Status:** accepted; amended by [ADR-0034](0034-editions.md) (2026-10-17): the phone
+edition is editable since EDN-7, so §0, §2.3, §2.5 and §3's honesty line describe the interim
+reader only; §2.1, the device rule, stands · **Date:** 2026-10-04 · **Deciders:** the owner (review of the M9 plan
 and the concept prototype, 2026-10-04); project lead · **Amends:** ADR-0031 §2 items 1–3, 5, 7
 and 9 (their phone rules move to M10), ADR-0029 (no Markup, Lock or targeted acts on phones) ·
 **Rests on:** the owner's review of 2026-10-04 (in translation below); research 19 M-1, M-12,

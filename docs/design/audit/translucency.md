@@ -13,8 +13,8 @@ opacity. The backdrop is blurred more (24px instead of 16px), its colour is boos
 colour and light while text on the glass keeps WCAG AA even over a pure white page. Over the
 dark canvas the glass looks the same as today. Over a white page it becomes a lighter,
 see-through grey (#3f4043 instead of today's flat #323336). Over figures and colour it picks up
-their hue ([mock-03-annotation-bar](mock-03-annotation-bar.png),
-[mock-08-image-bar](mock-08-image-bar.png)). Menus and popovers, which are opaque today, join the
+their hue ([mock-03-annotation-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-03-annotation-bar.png),
+[mock-08-image-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-08-image-bar.png)). Menus and popovers, which are opaque today, join the
 glass family. Docked panels, dialogs and tooltips stay opaque.
 
 ## 2. Which surfaces
@@ -26,7 +26,7 @@ glass family. Docked panels, dialogs and tooltips stay opaque.
 | Image bar (`ImageObjects .bar`) | glass 0.86 | **frosted** | same family as the annotation bar |
 | Arrange contextual bar (`ArrangeView .contextBar`) | glass 0.86 | **frosted** | same family |
 | Crop hint banner (`Crop .banner`) | glass without `saturate` or the `-webkit-` prefix | **frosted** (shared rule) | fixes the Safari fallback gap (effects A6) |
-| Command palette (`CommandPalette .popup`) | glass 0.86 on the scrim | **frosted** on the scrim | §2 lists it as floating chrome. On the scrim the change is small ([mock-05-palette](mock-05-palette.png)). |
+| Command palette (`CommandPalette .popup`) | glass 0.86 on the scrim | **frosted** on the scrim | §2 lists it as floating chrome. On the scrim the change is small ([mock-05-palette](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-05-palette.png)). |
 | Menus: tool menus, zoom, document, context, tab (`Menu .popup`) | opaque surface-3 + border-strong | **frosted** | §7 "menus" |
 | Popovers: privacy, link (`Popover .popup`) | opaque surface-3 | **frosted** | §7 "popovers" |
 | Text-edit header (`TextEdit .panel`), note popup (`AnnotationLayer .notePopup`), form notice (`FormLayer .notice`) | opaque surface-3 | **frosted** (decision D3) | they are popovers anchored to the page |
@@ -133,16 +133,16 @@ Scenes use a scratch PDF with a white text block, a colour band, a black band an
 
 | Scene | Before / after (crops, 2×) | After (full frame) |
 | --- | --- | --- |
-| Floating tool bar over page text and a figure | [mock-02-read-toolbar](mock-02-read-toolbar.png) | [mock-after-02-read-toolbar](mock-after-02-read-toolbar.png) |
-| Annotation bar over a colour band | [mock-03-annotation-bar](mock-03-annotation-bar.png) | [mock-after-03-read-annotation-bar](mock-after-03-read-annotation-bar.png) |
-| Shapes menu over dark page content | [mock-04-menu-shapes](mock-04-menu-shapes.png) | [mock-after-04-menu-shapes-over-page](mock-after-04-menu-shapes-over-page.png) |
-| Zoom menu over the docked panel | [mock-04-menu-zoom](mock-04-menu-zoom.png) | |
-| Command palette on its scrim | [mock-05-palette](mock-05-palette.png) | [mock-after-05-palette](mock-after-05-palette.png) |
-| Privacy popover over the rail and the page | [mock-07-popover-privacy](mock-07-popover-privacy.png) | [mock-after-07-popover-privacy](mock-after-07-popover-privacy.png) |
-| Image bar | [mock-08-image-bar](mock-08-image-bar.png) | [mock-after-08-image-bar](mock-after-08-image-bar.png) |
-| Arrange contextual bar / context menu | [mock-10-arrange-contextbar](mock-10-arrange-contextbar.png), [mock-10-arrange-context-menu](mock-10-arrange-context-menu.png) | [mock-after-10-arrange-context-menu](mock-after-10-arrange-context-menu.png) |
-| Text-edit header over the page | [mock-12-text-edit-open](mock-12-text-edit-open.png) | [mock-after-12-text-edit-open](mock-after-12-text-edit-open.png) |
-| Contrast swatches (current vs proposed glass over uniform backdrops) | [glass-contrast-swatches](glass-contrast-swatches.png) | |
+| Floating tool bar over page text and a figure | [mock-02-read-toolbar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-02-read-toolbar.png) | [mock-after-02-read-toolbar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-after-02-read-toolbar.png) |
+| Annotation bar over a colour band | [mock-03-annotation-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-03-annotation-bar.png) | [mock-after-03-read-annotation-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-after-03-read-annotation-bar.png) |
+| Shapes menu over dark page content | [mock-04-menu-shapes](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-04-menu-shapes.png) | [mock-after-04-menu-shapes-over-page](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-after-04-menu-shapes-over-page.png) |
+| Zoom menu over the docked panel | [mock-04-menu-zoom](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-04-menu-zoom.png) | |
+| Command palette on its scrim | [mock-05-palette](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-05-palette.png) | [mock-after-05-palette](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-after-05-palette.png) |
+| Privacy popover over the rail and the page | [mock-07-popover-privacy](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-07-popover-privacy.png) | [mock-after-07-popover-privacy](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-after-07-popover-privacy.png) |
+| Image bar | [mock-08-image-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-08-image-bar.png) | [mock-after-08-image-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-after-08-image-bar.png) |
+| Arrange contextual bar / context menu | [mock-10-arrange-contextbar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-10-arrange-contextbar.png), [mock-10-arrange-context-menu](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-10-arrange-context-menu.png) | [mock-after-10-arrange-context-menu](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-after-10-arrange-context-menu.png) |
+| Text-edit header over the page | [mock-12-text-edit-open](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-12-text-edit-open.png) | [mock-after-12-text-edit-open](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-after-12-text-edit-open.png) |
+| Contrast swatches (current vs proposed glass over uniform backdrops) | [glass-contrast-swatches](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/glass-contrast-swatches.png) | |
 
 **Honest reading of the mock.**
 

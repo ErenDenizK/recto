@@ -1,5 +1,9 @@
 # Design refinement pass: steps 2 to 5 (results)
 
+> **Screenshots:** removed from the working tree on 2026-10-17 (R22 clean-up, D4); every image
+> link below opens the file at commit `2be6e68`, where git history keeps it
+> (`docs/archive/README.md`).
+
 **Date:** 2026-09-28. **Base:** `f641f55` (the audit build plus the two bug fixes). Steps from
 [../README.md](../README.md#proposed-order): **2**, tokens and consolidation (no intended visual
 change); **3**, translucency ([../translucency.md](../translucency.md)); **4**, the tone-downs,
@@ -289,7 +293,7 @@ No TSX changed: the text runs and image targets are real elements under the poin
 **A defect found on the way.** The global `::selection` colour is chrome text (#e6e7ea), so
 selected glyphs inside the page-white editors (text edit, form field, free text) were
 near-white on white and disappeared. They now keep their ink (`color: currentcolor`) on an
-`--accent-highlight` fill ([step4-23](step4-23-text-edit-selection.png)).
+`--accent-highlight` fill ([step4-23](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-23-text-edit-selection.png)).
 
 ### Screenshots
 
@@ -310,38 +314,38 @@ inside the inline editor, a blocked run under the pointer), on both builds.
 | 04-menu-zoom-crop | 17.373 | 0.315 | 13 | F4 metadata inputs and G6 current row, seen blurred through the menu glass (Δ ≤ 13) |
 | 04-menu-zoom | 1.577 | 0.594 | 31 | G6 current History row; F4 metadata inputs |
 | 05-palette-crop | 0.024 | 0.024 | 212 | D5: the accent stripe on the selected row is gone |
-| [05-palette-selected-row](step4-05-palette-selected-row.png) | 0.612 | 0.597 | 209 | D5: the accent stripe is gone; the row keeps surface-active and primary text |
+| [05-palette-selected-row](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-05-palette-selected-row.png) | 0.612 | 0.597 | 209 | D5: the accent stripe is gone; the row keeps surface-active and primary text |
 | 05-palette | 0.752 | 0.544 | 212 | D5 stripe; the current History row under the scrim |
 | 06-dialog-export | 0.743 | 0.536 | 14 | G6 current History row and F4 inputs under the dialog scrim |
 | 07-popover-privacy | 0.754 | 0.721 | 31 | G6 current History row; F4 metadata inputs |
-| [08-image-bar-crop](step4-08-image-bar-crop.png) | 2.685 | 2.680 | 131 | C10/H6: the focused image selection shows the standard 2px focus ring instead of a 3px accent-muted halo |
+| [08-image-bar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-08-image-bar-crop.png) | 2.685 | 2.680 | 131 | C10/H6: the focused image selection shows the standard 2px focus ring instead of a 3px accent-muted halo |
 | 08-image-bar | 1.221 | 1.199 | 131 | C10 focus ring; G6 current History row |
-| [08-image-hover-crop](step4-08-image-hover-crop.png) | 69.510 | 59.329 | 72 | D6/D7: no lavender wash over the picture; only the hovered image gets a 1px accent ring |
+| [08-image-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-08-image-hover-crop.png) | 69.510 | 59.329 | 72 | D6/D7: no lavender wash over the picture; only the hovered image gets a 1px accent ring |
 | 08-image-hover | 12.751 | 10.974 | 72 | D6/D7 as the crop; G6 current row |
-| [09-right-inspector](step4-09-right-inspector.png) | 3.089 | 3.044 | 31 | G6: the current History row is accent-muted instead of surface-2 |
+| [09-right-inspector](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-09-right-inspector.png) | 3.089 | 3.044 | 31 | G6: the current History row is accent-muted instead of surface-2 |
 | 10-arrange-context-menu | 0.741 | 0.721 | 31 | G6 current History row |
 | 10-arrange-selection | 0.741 | 0.721 | 31 | G6 current History row |
 | 11-redaction-marks-on-page | 0.007 | 0.007 | 37 | I9: a tool bar chevron at the edge of the crop |
 | 11-redactions-panel | 0.743 | 0.720 | 31 | G6 current History row |
-| [12-text-edit-hover-crop](step4-12-text-edit-hover-crop.png) | 1.465 | 1.458 | 72 | D6: only the line under the pointer is marked; the other lines lose their 0.45 ring |
+| [12-text-edit-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-12-text-edit-hover-crop.png) | 1.465 | 1.458 | 72 | D6: only the line under the pointer is marked; the other lines lose their 0.45 ring |
 | 12-text-edit-hover | 1.403 | 1.368 | 72 | D6 as the crop; G6 current row |
-| [12-text-edit-open-crop](step4-12-text-edit-open-crop.png) | 10.566 | 1.456 | 234 | D12/N6: the editor is opaque page white (no ghost glyphs); the selected glyph keeps its ink (new fix, see below) |
+| [12-text-edit-open-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-12-text-edit-open-crop.png) | 10.566 | 1.456 | 234 | D12/N6: the editor is opaque page white (no ghost glyphs); the selected glyph keeps its ink (new fix, see below) |
 | 12-text-edit-open | 1.378 | 0.795 | 234 | D12 as the crop; G6 current row |
 | 13-tooltip-and-hover | 0.744 | 0.722 | 31 | G6 current History row; I9 chevrons |
 | 15-focus-ring-toolbar | 0.744 | 0.722 | 31 | G6 current History row; I9 chevrons |
-| [16-search-current-hit-crop](step4-16-search-current-hit-crop.png) | 37.858 | 37.065 | 196 | D5: the bent stripe is gone; the current hit is accent-muted like the other current rows (G6) |
+| [16-search-current-hit-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-16-search-current-hit-crop.png) | 37.858 | 37.065 | 196 | D5: the bent stripe is gone; the current hit is accent-muted like the other current rows (G6) |
 | 16-search-panel | 1.483 | 1.431 | 197 | D5/G6 as the crop; the current History row |
-| [17-form-editor-halo-crop](step4-17-form-editor-halo-crop.png) | 4.214 | 4.204 | 92 | D9/C7: the 2px halo around the field editor is gone |
+| [17-form-editor-halo-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-17-form-editor-halo-crop.png) | 4.214 | 4.204 | 92 | D9/C7: the 2px halo around the field editor is gone |
 | 17-form-editor | 0.859 | 0.828 | 62 | D9 as the crop; G6 current row |
-| [18-crop-dialog-crop](step4-18-crop-dialog-crop.png) | 0.829 | 0.829 | 245 | D10/N3: white crop handles, no longer clipped by the preview; D8: the disabled Crop button is surface-3 with disabled text |
+| [18-crop-dialog-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-18-crop-dialog-crop.png) | 0.829 | 0.829 | 245 | D10/N3: white crop handles, no longer clipped by the preview; D8: the disabled Crop button is surface-3 with disabled text |
 | 18-crop-dialog | 0.994 | 0.786 | 245 | D10 and D8 as the crop; G6 current row under the scrim |
-| [19-compress-preset-focus-crop](step4-19-compress-preset-focus-crop.png) | 25.120 | 25.030 | 176 | D11/G5: the checked preset is accent-muted with its hairline (no accent border); its hint steps up to secondary |
+| [19-compress-preset-focus-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-19-compress-preset-focus-crop.png) | 25.120 | 25.030 | 176 | D11/G5: the checked preset is accent-muted with its hairline (no accent border); its hint steps up to secondary |
 | 19-compress-preset-focus | 1.694 | 1.486 | 176 | D11/G5 as the crop; G6 current row under the scrim |
 | 20-statusbar-popup-open | 0.019 | 0.000 | 2 | noise (the popover edge; the same 0.019% as step 3, Δ ≤ 2) |
-| [22-primary-hover](step4-22-primary-hover.png) | 4.043 | 3.918 | 19 | D8: the primary button is one step lighter on hover (#8f9dff); before, hover did nothing |
-| [22-primary-pressed](step4-22-primary-pressed.png) | 4.043 | 3.863 | 13 | D8: one step darker while pressed (#6f7ff5) |
-| [23-text-edit-selection](step4-23-text-edit-selection.png) | 33.678 | 31.804 | 234 | Selected glyphs in the inline editor keep the page ink on an accent-highlight fill; before they were near-white on white (invisible) |
-| [24-text-edit-blocked-hover](step4-24-text-edit-blocked-hover.png) | 0.637 | 0.634 | 59 | D6: the blocked run is hatched only under the pointer; the other lines are no longer ringed |
+| [22-primary-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-22-primary-hover.png) | 4.043 | 3.918 | 19 | D8: the primary button is one step lighter on hover (#8f9dff); before, hover did nothing |
+| [22-primary-pressed](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-22-primary-pressed.png) | 4.043 | 3.863 | 13 | D8: one step darker while pressed (#6f7ff5) |
+| [23-text-edit-selection](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-23-text-edit-selection.png) | 33.678 | 31.804 | 234 | Selected glyphs in the inline editor keep the page ink on an accent-highlight fill; before they were near-white on white (invisible) |
+| [24-text-edit-blocked-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/pass/step4-24-text-edit-blocked-hover.png) | 0.637 | 0.634 | 59 | D6: the blocked run is hatched only under the pointer; the other lines are no longer ringed |
 
 Unchanged (0 pixels): 01-empty-card, 01-empty, 03-annotation-bar-crop, 04-menu-shapes-crop,
 06-dialog-export-crop, 07-popover-privacy-crop, 10-arrange-cell-hover, 10-arrange-context-menu-

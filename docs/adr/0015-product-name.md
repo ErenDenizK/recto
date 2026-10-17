@@ -5,7 +5,7 @@
 ## Context
 
 The app has shipped under the working name `pdf-editor`, the repository name, since M0.
-`DISCUSSION.md` #9 and #18 left the product name open, and `docs/design/naming.md` kept a
+`docs/archive/DISCUSSION.md` #9 and #18 left the product name open, and `docs/design/naming.md` kept a
 shortlist. The owner's review after M5 (#23) asked for a name before the public beta and
 left the choice between Quire and Recto to the project lead. A naming study (2026-10-01)
 checked Quire, Recto, Kerf, Varak and Bifolio against products in the PDF and document
@@ -56,7 +56,7 @@ Findings that decided it:
 
 ## Consequences
 
-- `DISCUSSION.md` #9 and #18 close with this ADR; `docs/design/naming.md` records the
+- `docs/archive/DISCUSSION.md` #9 and #18 close with this ADR; `docs/design/naming.md` records the
   decision and keeps the shortlist for history.
 - Known costs, accepted: in Spanish and Portuguese "recto" also means straight, honest and
   the rectum; Turkish has the medical prefix "rekto-", and Turkish readers will say "rekto"

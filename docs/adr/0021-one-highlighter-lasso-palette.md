@@ -7,7 +7,7 @@ decisions delegated by the owner) · **Amends:** `docs/specs/experience-redesign
 ## Context
 
 Three findings of the pen audit (`docs/specs/craft.md` §1.2) and the owner's notes
-(`docs/DISCUSSION.md` #28):
+(`docs/archive/DISCUSSION.md` #28):
 
 - **Two highlighters.** The Draw group's yellow preset writes an Ink annotation at 40 %
   opacity with normal blending (`#FFD400`, width from speed or pressure), which turns black

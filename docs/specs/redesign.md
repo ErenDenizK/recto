@@ -581,7 +581,7 @@ their changelogs or with "spec" references. The table stays as the record of wha
 | `08-feedback` | §5 FB4: own region (X14), one filter per stack (X35); §17 #6 changed |
 | `09-primitives` | §28: a separate Vite config (09.11) |
 | `docs/brand/README.md` | §4.1 and §11 decision 3: one lime settled by ADR-0023, no P3 variant, lime-800 `#446713`; §6: Library button 20 px, launcher 48 px, Settings → About Recto (no About dialog); §7 item 2 nouns; §8 items 5–7; §9 items 7 (70 frames) and 9, the version 2 line, and §11 phase 4: "after M9 D4" (phones are in M9) |
-| `docs/ROADMAP.md`, `docs/DESIGN.md`, `docs/DISCUSSION.md` | M9 packages and drops as §11–§12, the brand track, M11 candidates; DESIGN §10: amendments applied together by D4-9; DISCUSSION #33 question 6 |
+| `docs/ROADMAP.md`, `docs/DESIGN.md`, `docs/archive/DISCUSSION.md` | M9 packages and drops as §11–§12, the brand track, M11 candidates; DESIGN §10: amendments applied together by D4-9; DISCUSSION #33 question 6 |
 
 ### 6.17 Where this spec departs from `flows.md` and `language.md`
 
