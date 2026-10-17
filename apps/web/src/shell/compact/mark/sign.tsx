@@ -8,9 +8,8 @@
  * - **A saved tile** arms it as the one-shot signature tool (`armSavedSignature`) and the drawer
  *   stays open, so another can be chosen; the first press on the page closes it and places the
  *   signature (`drawer-close.ts`). **New** closes it, since its pad needs the screen, and opens
- *   New signature (S7, `NewSignatureSheet`), lazily, a bottom sheet at 92 % on a compact window
- *   and a full sheet in landscape (`ui/sheet/presentation.ts`); its Use arms what was drawn the
- *   same way.
+ *   New signature (S7), lazily, the full edition's form in the phone's one sheet (DSN-53,
+ *   `new-signature.tsx`); its Use arms what was drawn the same way.
  * - **The next tap** on a page places the signature (AnnotationLayer's `signature` act), which
  *   is selected at once with the phone's touch handles (`touch-chrome.ts`) to move and scale it,
  *   then Select returns (`finishOneShot`); Undo removes it.
@@ -33,11 +32,7 @@ import styles from './sign.module.css';
 
 const loadOptions = () => import('./sign-options');
 const LazyOptions = lazy(loadOptions);
-const LazyHost = lazy(() =>
-  import('../../../signatures/NewSignatureHost').then((module) => ({
-    default: module.NewSignatureHost,
-  })),
-);
+const LazyHost = lazy(() => import('./new-signature'));
 
 /** The drawer's second row for Sign; a row's height of room while its chunk arrives. */
 function SignOptions() {

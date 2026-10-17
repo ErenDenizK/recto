@@ -86,3 +86,31 @@
   font-size: var(--type-footnote);
   line-height: var(--type-footnote-lh);
 }
+
+/* New signature in the phone sheet (new-signature.tsx): the form on the body's inset, then the
+   reason line over a full-width primary, the line keeping its room while Use is enabled. */
+.form {
+  padding: 0 12px;
+}
+
+.foot {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.foot > button {
+  width: 100%;
+  min-width: 0;
+}
+
+.reason {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-align: center;
+}
+
+.reason[data-hidden] {
+  visibility: hidden;
+}
