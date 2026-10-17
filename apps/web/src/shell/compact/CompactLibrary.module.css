@@ -110,8 +110,8 @@
   text-wrap: balance;
 }
 
-/* ⋯ (DSN-51): a 44 px lit glass circle at the reader's ⋯ place, 2 px into its 48 px row under
-   the status bar (CompactTopSplit.module.css), so both screens keep the door in one spot. Lit,
+/* The settings gear (DSN-51, amended): a 44 px lit glass circle at the reader's ⋯ place, 2 px
+   into its 48 px row under the status bar (CompactTopSplit.module.css), so both screens keep the door in one spot. Lit,
    no blur, as the sample card: it scrolls with the column and nothing passes under it. The
    press is the lens's (GLS-25): its darker inner glow over the lit rim and --press-scale, 1
    under reduced motion (styles/motion.css). */
