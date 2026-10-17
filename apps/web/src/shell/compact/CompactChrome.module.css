@@ -70,7 +70,7 @@
    takes σ 8 (`r8`, coverage registry `compact-menu-one-row`). The split top's file menu
    (DSN-34) is the same recipe. The capsule top's ⋯ carries `ct-popup` (set in
    `CompactChrome.tsx`), so the container transform serves it once installed (DSN-36); the split
-   top's menus are liquid instead (DSN-39, `liquid-menu.ts`). */
+   top's menus grow out of their button instead (DSN-39, MOT-13, `liquid-menu.ts`). */
 .menu {
   composes: mat mat-menu s12 r8 from global;
   min-width: 232px;
@@ -102,36 +102,17 @@
   transform: none;
 }
 
-/* *The liquid menu* (DSN-39, `liquid-menu.ts`): while it opens or closes its one glass layer is
-   masked by the union of the button and the growing blob, the CSS entrance and exit step aside
-   (the close's opacity is a Web Animation Base UI waits for) and the content only fades,
-   never scales (MOT-5). Nothing of it is left at rest. */
+/* *The menu out of its button* (DSN-39, MOT-13, `liquid-menu.ts`): while it opens or closes it
+   grows from its button and goes back into it on Web Animations of its transform and opacity,
+   its CSS entrance and exit step aside (the close's opacity is a Web Animation Base UI waits
+   for), and while it grows it is its tier's solid twin (MOT-12). Nothing of it is left at rest. */
 .menu[data-liquid] {
-  position: relative;
-  border-color: transparent;
   transition: none;
-}
-
-/* Its rim while it moves (DSN-42): the mask cuts the border and the inner light to the box's
-   corners, so the union's outline is stroked in the rim's top-lit gradient (`outlineRim`) over
-   the glass, the mask keeping the stroke's inner pixel where the border would be. */
-.menu[data-liquid]::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  background: var(--liquid-rim, none) no-repeat 0 0 / 100% 100%;
-  /* WebKit's rim: a gradient clipped to a ring inside the outline (`liquidPaint`, MOT-8). */
-  clip-path: var(--liquid-ring, none);
-  pointer-events: none;
 }
 
 .menu[data-liquid]:is([data-starting-style], [data-ending-style]) {
   opacity: 1;
   transform: none;
-}
-
-.menu[data-liquid] > * {
-  opacity: var(--liquid-content, 1);
 }
 
 /* The menu → sheet hand-off (`ui/menu-handoff.ts`, Q-7): a row that opens a sheet closes the

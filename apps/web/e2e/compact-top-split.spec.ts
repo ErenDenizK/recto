@@ -3,7 +3,7 @@
  * `shell/compact/CompactTopSplit.tsx`), on the `phone` and `phone-land` projects with touch: ‹ and
  * ⋯ as glass circles of their own and the title centred between them, cut in its middle when long
  * (DSN-38), over a scroll-edge fade in the theme's canvas tone (GLS-20); the ⋯ menu
- * keeps its rows, lies over its circle and comes out of it as one liquid glass body (DSN-39), as
+ * keeps its rows, lies over its circle and grows out of it on the compositor (DSN-39, MOT-13), as
  * the file menu does out of the title; Find rides on the keyboard while the top stays (DSN-39);
  * the pieces hide on scroll with the capsule. `?top=capsule` keeps the capsule top (DSN-32), its
  * ⋯ menu below it on the container transform (DSN-36), Find in its field.
@@ -121,28 +121,35 @@ async function openNamed(page: Page, name: string, fromReader = false): Promise<
 }
 
 /**
- * Samples a menu's motion every frame: how many frames had the liquid mask (one body), how many
- * of them drew the union's rim (DSN-42), and how many clipped or scaled it (never, MOT-5).
+ * Watches a menu's motion on the animation clock (PRC-14): whether it grew by a Web Animation of
+ * its transform (`grown`, and the scale it started from), whether it was its tier's solid twin
+ * while it did (`solid`, MOT-12), and whether any frame clipped or masked it (never since MOT-13:
+ * transform and opacity only).
  */
 async function watchMorph(page: Page, testId: string): Promise<void> {
   await page.evaluate((id) => {
-    const seen = { liquid: 0, rimmed: 0, clipped: 0, scaled: 0, run: Math.random() };
+    const seen = { grown: 0, solid: 0, clipped: 0, masked: 0, from: 1, run: Math.random() };
     (window as unknown as { __morph: typeof seen }).__morph = seen;
     const tick = () => {
       if ((window as unknown as { __morph: typeof seen }).__morph !== seen) return;
       const el = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
       if (el) {
         const style = getComputedStyle(el);
-        const mask = style.maskImage || style.getPropertyValue('-webkit-mask-image');
-        if (el.hasAttribute('data-liquid') && mask.startsWith('url(')) {
-          seen.liquid++;
-          const rim = getComputedStyle(el, '::after').backgroundImage;
-          if (rim.startsWith('url(') && decodeURIComponent(rim).includes('stroke=')) seen.rimmed++;
+        const grow = el
+          .getAnimations()
+          .find((a) =>
+            (a.effect as KeyframeEffect | null)?.getKeyframes().some((k) => k.transform),
+          );
+        if (el.hasAttribute('data-liquid') && grow) {
+          seen.grown++;
+          const first = String((grow.effect as KeyframeEffect).getKeyframes()[0]?.transform);
+          const scale = Number(/scale\(([\d.]+)/.exec(first)?.[1] ?? 1);
+          seen.from = Math.min(seen.from, scale);
+          if (el.hasAttribute('data-glass-moving')) seen.solid++;
         }
         if (style.clipPath !== 'none') seen.clipped++;
-        if (style.transform !== 'none' || (style.scale !== 'none' && style.scale !== '1')) {
-          seen.scaled++;
-        }
+        const mask = style.maskImage || style.getPropertyValue('-webkit-mask-image');
+        if (mask && mask !== 'none') seen.masked++;
       }
       requestAnimationFrame(tick);
     };
@@ -155,7 +162,7 @@ const morphSeen = (page: Page) =>
     () =>
       (
         window as unknown as {
-          __morph: { liquid: number; rimmed: number; clipped: number; scaled: number };
+          __morph: { grown: number; solid: number; clipped: number; masked: number; from: number };
         }
       ).__morph,
   );
@@ -205,8 +212,8 @@ test.describe('the split top (DSN-34)', () => {
     await idle(page);
 
     // ⋯: Contents and About (the copy and Document info are the file menu's, DSN-48), the
-    // menu over its circle, come out of it as one liquid body: masked by the union while it
-    // moves, never clipped or scaled (MOT-5).
+    // menu over its circle, grown out of it on the compositor (MOT-13): a transform from about
+    // the circle's size, solid while it grows (MOT-12), never clipped or masked.
     await watchMorph(page, 'compact-menu');
     await tapCentre(page, more(page));
     if (SHOTS) {
@@ -221,11 +228,11 @@ test.describe('the split top (DSN-34)', () => {
     await settled(page);
     await expect(menu(page)).not.toHaveAttribute('data-liquid');
     const opened = await morphSeen(page);
-    expect(opened.liquid).toBeGreaterThan(3);
-    // The one body keeps a rim while it moves: the union's outline stroked (DSN-42).
-    expect(opened.rimmed).toBe(opened.liquid);
+    expect(opened.grown).toBeGreaterThan(0);
+    expect(opened.solid).toBe(opened.grown);
+    expect(opened.from).toBeLessThan(0.5);
     expect(opened.clipped).toBe(0);
-    expect(opened.scaled).toBe(0);
+    expect(opened.masked).toBe(0);
     await expect(menu(page).getByRole('menuitem')).toHaveText(['Contents', 'About Recto']);
     await expectGlassClean(page, 'the split top with ⋯ open');
     const menuBox = await menu(page).boundingBox();
@@ -243,11 +250,13 @@ test.describe('the split top (DSN-34)', () => {
         return `${style.transform} ${style.clipPath} ${style.maskImage} ${content} ${rim} ${own}`;
       }),
     ).toBe('none none none 1 none ');
-    // Back into the circle on a tap outside, as one body again.
+    // Back into the circle on a tap outside.
     await watchMorph(page, 'compact-menu');
     await page.touchscreen.tap(view.width / 2, view.height / 2);
     await expect(menu(page)).toHaveCount(0);
-    expect((await morphSeen(page)).liquid).toBeGreaterThan(3);
+    const closed = await morphSeen(page);
+    expect(closed.grown).toBeGreaterThan(0);
+    expect(closed.clipped + closed.masked).toBe(0);
 
     // A row that opens a sheet hands off at once; the sheet takes the chrome away.
     await tapCentre(page, more(page));
@@ -259,13 +268,13 @@ test.describe('the split top (DSN-34)', () => {
     await expect(contents).toHaveCount(0);
     await expect(topBar(page)).not.toHaveAttribute('data-hidden');
 
-    // The title's ▾: the file menu, liquid out of the title, the name whole, Document info.
+    // The title's ▾: the file menu, grown out of the title, the name whole, Document info.
     await watchMorph(page, 'compact-file-menu');
     await tapCentre(page, titleTrigger(page));
     const fileMenu = page.getByTestId('compact-file-menu');
     await expect(fileMenu).toBeVisible();
     await settled(page);
-    expect((await morphSeen(page)).liquid).toBeGreaterThan(3);
+    expect((await morphSeen(page)).grown).toBeGreaterThan(0);
     await expect(fileMenu).not.toHaveAttribute('data-liquid');
     await expect(fileMenu.getByTestId('compact-file-name')).toHaveText(/\.pdf$/);
     await expect(fileMenu).toContainText(/PDF · .+ · \d+ pages/);
@@ -527,7 +536,7 @@ test.describe('the split top (DSN-34)', () => {
       );
       expect(clips.every((clip) => clip === 'none' || clip === undefined)).toBe(true);
       await settled(page);
-      expect((await morphSeen(page)).liquid).toBe(0);
+      expect((await morphSeen(page)).grown).toBe(0);
       await page.keyboard.press('Escape');
       await expect(menu(page)).toHaveCount(0);
     });
