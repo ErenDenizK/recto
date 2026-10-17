@@ -37,6 +37,14 @@ compact edition, editable since EDN-7 (pen, highlight, text, edit text, signatur
   usually means the AI assistant). Reply in Turkish; repo docs, code and commits stay in
   English. Ask the owner about taste; decide technique yourself and record it.
 
+## Model routing (PRC-23, owner)
+
+Opus 5.5 decides the "what" (plans, research, taste, unknown-cause bugs, final review); Sonnet 5.5
+builds settled specs through the `implementer` agent; Haiku 5.5 reads and reports (`Explore`,
+`log-reader`). Effort `medium`, never `xhigh`/`max`, only 5.5 models. Implementers stay inside the
+files their brief owns and stop to ask on an unsettled decision. Details, guards and the metrics
+loop: `docs/process/model-routing.md`; one row per lane in `docs/process/agent-metrics.md`.
+
 ## Rules
 
 - Conventional Commits, header at most 100 chars, lower-case subject. Scopes: engine, model,

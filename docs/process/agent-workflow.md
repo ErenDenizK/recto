@@ -59,7 +59,9 @@ spends the week's budget fast, so the mode is chosen on purpose and stated in ea
   the work needs it and says so in the report; never a 10–20 agent fan-out without the owner).
 - **The default after a burst window is Safe**, until the owner raises it. A burst window
   closes when the owner says so, or at the end of the time the owner gave.
-- In Normal and Safe, mechanical work (test fixes, sweeps, log triage) runs on a lighter model.
+- Which model a lane runs on is set by `model-routing.md` (PRC-23) in every mode: settled-spec
+  lanes on Sonnet 5.5 (`implementer`), taste and unknown-cause lanes on Opus 5.5, reads on Haiku 5.5.
+  Sonnet's lower cost buys more lanes within a mode, never a lower bar.
 - In Safe, the lead makes small fixes inline instead of briefing an agent, and lets CI do the
   verifying.
 - The lead says which mode is in force when reporting to the owner.
@@ -92,6 +94,15 @@ look at.
 
 ## Briefs
 
-Agents read `CLAUDE.md` automatically, so a brief names only the task, the inputs (owner
-screenshots, spec sections) and the lane. Mechanical work (test fixes, sweeps, log triage) can use
-a lighter model. Design and interaction work uses the default model.
+Agents read `CLAUDE.md` automatically, so a brief stays short and self-contained:
+
+1. **Objective** in two or three sentences, with the owner's brief item.
+2. **Decisions to read** (row ids) and inputs (screenshots, spec sections).
+3. **Files in scope** (the lane) and **files out of scope** (other lanes' files right now).
+4. **Checks to run** and the **output** wanted (report length, screenshots, numbers).
+5. **Done condition**: pushed branch name, no PR unless asked.
+
+Pick the agent and model by `model-routing.md`: an `implementer` (Sonnet 5.5) only when the brief
+settles every decision; otherwise an Opus 5.5 agent. Before an `implementer` lane's PR opens, the lead
+checks its `git diff --stat` against the files in scope and adds the lane's row to
+`agent-metrics.md` once its first CI run is known.
