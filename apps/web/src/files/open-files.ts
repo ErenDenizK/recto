@@ -73,20 +73,8 @@ export function fileHandleOf(file: File): FileHandleLike | undefined {
   return fileHandles.get(file);
 }
 
-export function supportsOpenFilePicker(win: Window = window): boolean {
-  return typeof (win as Window & WindowWithPicker).showOpenFilePicker === 'function';
-}
-
 function isAbort(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
-}
-
-/**
- * Asks the user for PDF files. Resolves to an empty array when the user cancels.
- * Must be called from a user gesture (click or keydown) for the picker to open.
- */
-export async function pickPdfFiles(): Promise<File[]> {
-  return pickFiles('pdf');
 }
 
 /**

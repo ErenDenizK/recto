@@ -153,17 +153,6 @@ export function hslToRgb({ h, s, l }: Hsl): Rgb {
 
 // --- The Spectrum plane -------------------------------------------------------------------
 
-/** The hue ramp's stops at full saturation: the sRGB primaries and secondaries. */
-export const HUE_STOPS: readonly string[] = [
-  '#FF0000',
-  '#FFFF00',
-  '#00FF00',
-  '#00FFFF',
-  '#0000FF',
-  '#FF00FF',
-  '#FF0000',
-];
-
 /**
  * The colour drawn at a point of the Spectrum plane: `x` and `y` from 0 to 1 (hue across,
  * lightness from white at the top to black at the bottom), at full saturation.

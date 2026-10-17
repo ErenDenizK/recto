@@ -19,6 +19,7 @@ import { cdp, page } from 'vitest/browser';
 
 import mixedUrl from '../../../../test/fixtures/mixed-sizes.pdf?url';
 import { openDocuments } from '../commands/app-commands';
+import { nextFrame } from '../motion/animate';
 import { useSelectionStore } from '../state/selection-store';
 import { useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
@@ -30,8 +31,6 @@ import { ReadView } from './ReadView';
 function devtools<T = unknown>(method: string, params: object = {}): Promise<T> {
   return (cdp() as unknown as { send(m: string, p: object): Promise<T> }).send(method, params);
 }
-
-const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 /** Real touches at client points of this frame (the test iframe may be scaled in the page). */
 async function touch(type: 'touchStart' | 'touchMove' | 'touchEnd', points: [number, number][]) {

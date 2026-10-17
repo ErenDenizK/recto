@@ -18,15 +18,12 @@
  */
 import type { HistoryEntryMeta, PageId, Workspace } from '@pdf-editor/document-model';
 
-import { RING_FLASH, ringFlash } from '../motion';
+import { ringFlash } from '../motion';
 import { lazyModule } from '../motion/lazy';
 import type * as HistoryApplied from './history-applied';
 
 import { isPageView, useUiStore } from '../state/ui-store';
 import { distanceFromView, useViewStore } from '../state/view-store';
-
-/** How long the ring shows (ms): in, hold, out (A-10). */
-export const REVEAL_FLASH_MS = RING_FLASH.totalMs;
 /** How many frames to wait for a scrolled-to page to be laid out before giving up. */
 const MAX_WAIT_FRAMES = 30;
 

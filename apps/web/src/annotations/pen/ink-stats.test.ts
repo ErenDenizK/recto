@@ -5,6 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { nextFrame } from '../../motion/animate';
 import { attachInkInput, createPenSession } from './ink-input';
 import { InkPreview } from './ink-preview';
 import {
@@ -17,8 +18,6 @@ import {
   LONG_TASK_MS,
   percentiles,
 } from './ink-stats';
-
-const nextFrame = () => new Promise<number>((resolve) => requestAnimationFrame(resolve));
 
 describe('percentiles', () => {
   it('nearest rank over unsorted values; NaN when empty', () => {

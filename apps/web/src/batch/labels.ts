@@ -5,7 +5,6 @@
  */
 import {
   type Anchor,
-  type BuiltInRecipe,
   formatRecipePages,
   RECIPE_NEWER_APP_PLACEHOLDER,
   type RecipeError,
@@ -99,10 +98,6 @@ export function builtInDescription(id: string, fallback: string): string {
     default:
       return fallback;
   }
-}
-
-export function builtInLabel(entry: Pick<BuiltInRecipe, 'id' | 'recipe'>): string {
-  return builtInName(entry.id, entry.recipe.name);
 }
 
 export function pageSelectionLabel(selection: RecipePageSelection): string {

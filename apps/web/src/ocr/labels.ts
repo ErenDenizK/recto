@@ -20,20 +20,6 @@ export function qualityLabel(quality: OcrQuality): string {
   }
 }
 
-/** What a quality means, for the panel's explanation. */
-export function qualityExplanation(quality: OcrQuality): string {
-  switch (quality) {
-    case 'good':
-      return m.ocr_quality_good_explanation();
-    case 'review':
-      return m.ocr_quality_review_explanation();
-    case 'poor':
-      return m.ocr_quality_poor_explanation();
-    case 'no-text':
-      return m.ocr_quality_no_text_explanation();
-  }
-}
-
 /** "3 of 12" for the page progress messages (`ocr_phase_recognize`, `ocr_status`). */
 export function pageProgress(run: { readonly done: number; readonly total: number }): {
   readonly total: number;

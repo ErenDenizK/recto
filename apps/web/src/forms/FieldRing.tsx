@@ -26,11 +26,6 @@ export const HANDOFF_MS = 400;
 /** Where the last ring was on screen as it unmounted, and when. */
 let last: { readonly rect: DOMRect; readonly at: number } | null = null;
 
-/** Forgets the hand-off (tests). */
-export function resetFieldRing(): void {
-  last = null;
-}
-
 export function FieldRing({ box }: { readonly box: Box }) {
   const ref = useRef<HTMLSpanElement>(null);
 

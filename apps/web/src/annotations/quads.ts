@@ -171,20 +171,6 @@ export function quadsForRange(runs: readonly TextRun[], from: number, to: number
   return quadsForGlyphs(runs, flatten(runs).slice(lo, hi + 1));
 }
 
-/** Text of the glyphs between two flattened indices (for the markup's /Contents). */
-export function textForRange(runs: readonly TextRun[], from: number, to: number): string {
-  if (from < 0 || to < 0) return '';
-  const [lo, hi] = from <= to ? [from, to] : [to, from];
-  let text = '';
-  let lastRun = -1;
-  for (const ref of flatten(runs).slice(lo, hi + 1)) {
-    if (lastRun >= 0 && ref.run !== lastRun && !/\s$/.test(text)) text += ' ';
-    text += runs[ref.run]?.glyphs[ref.glyph]?.text ?? '';
-    lastRun = ref.run;
-  }
-  return text.trim();
-}
-
 /**
  * Glyphs whose centre lies inside any of `rects` (user space), e.g. the client rects of a
  * DOM text selection mapped onto the page.

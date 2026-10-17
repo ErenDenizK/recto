@@ -28,6 +28,7 @@
  */
 import { animateStyle, type Motion } from '../../motion/animate';
 import { reducedMotion } from '../../motion/reduced-motion';
+import { clamp } from '../../motion/velocity';
 import { glassMoving, glassSettle } from '../../ui/glass-moving';
 
 /** The content fades in once the body has left the button, ms. */
@@ -41,8 +42,6 @@ const CLOSE_FADE_MS = 220;
 const FADE_OUT_FROM = 0.55;
 /** The smallest start: a whole menu in a speck would read as a pop, not a growth. */
 const MIN_SCALE = 0.2;
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** A rect in viewport px. */
 export interface Box {

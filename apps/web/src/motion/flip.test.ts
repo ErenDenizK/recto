@@ -4,10 +4,10 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { nextFrame } from './animate';
 import { flip } from './flip';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 function box(left = 0, width = 100): HTMLDivElement {
   const el = document.createElement('div');

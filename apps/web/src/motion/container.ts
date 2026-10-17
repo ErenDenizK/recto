@@ -29,6 +29,7 @@
 import { reducedMotion } from './reduced-motion';
 import { energy, solve, springs } from './springs';
 import { EASE, REDUCED_DURATION_MS } from './tokens';
+import { clamp } from './velocity';
 
 export { PULSE_PEAK, receivePulse } from './receive';
 
@@ -59,7 +60,6 @@ const FPS = 120;
 /** A segment ends when its energy has fallen to this fraction (as `animate.ts`). */
 const PRECISION = 1e-6;
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /**

@@ -27,6 +27,7 @@ import { type ConvertChoice, DEFAULT_CHOICE } from '../convert/convert-run';
 import type { SaveCopyPreset } from './export-store';
 import type { ExportProgress } from './export-service';
 import { exportFileName } from './filename';
+import { clamp as clampTo } from '../motion/velocity';
 
 export type SaveCopyFormat = 'pdf' | 'images' | 'text';
 export type SizeChoice = 'same' | 'smaller' | 'smallest' | 'custom';
@@ -36,7 +37,6 @@ export type SecurityChoice = 'document' | 'none' | 'password';
 export type Disclosure = 'security' | 'metadata' | 'flatten' | 'signature' | 'names' | 'options';
 /** Image resolutions offered (§4.2: 72 · 150 · 300 · Custom). */
 export type Resolution = '72' | '150' | '300' | 'custom';
-export type TextPages = ConvertChoice['scope'];
 
 export interface CustomSize {
   readonly dpi: number;
@@ -129,8 +129,9 @@ export function applyPreset(draft: SaveCopyDraft, preset: SaveCopyPreset | null)
 // Size
 // ---------------------------------------------------------------------------
 
+/** `value` rounded and held to [min, max]; `min` when it is not a number. */
 const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, Number.isFinite(value) ? Math.round(value) : min));
+  clampTo(Number.isFinite(value) ? Math.round(value) : min, min, max);
 
 /**
  * The compression a size choice runs (§4.9, from today's presets): null for Same as

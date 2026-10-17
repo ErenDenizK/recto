@@ -83,3 +83,16 @@ export function rubberBand(offset: number, dimension: number, constant = 0.55): 
   if (reducedMotion() || dimension <= 0) return 0;
   return Math.sign(offset) * (1 - 1 / ((Math.abs(offset) * constant) / dimension + 1)) * dimension;
 }
+
+/**
+ * `value` held to [min, max]; when `max` is below `min`, `max` wins. The one copy every layer
+ * uses (R22 X1); a caller whose floor must win passes `Math.max(min, max)` as `max`.
+ */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/** The point a share `t` of the way from `a` to `b` (unclamped: `t` outside [0, 1] extends). */
+export function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}

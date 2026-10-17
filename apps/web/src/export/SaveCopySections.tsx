@@ -22,7 +22,7 @@ import {
 import { type ReactNode, type RefObject, useId, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConvertPageBreak } from '@pdf-editor/engine/client';
-import { metadataOutcome } from '../document/ExportSections';
+import { metadataOutcome } from '../document/strip-items';
 import { openDocumentDialog } from '../document/document-store';
 import { securityOutcome, sourcesOf } from '../document/security-text';
 import { useFormStore } from '../forms/form-store';

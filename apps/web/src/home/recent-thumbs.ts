@@ -44,11 +44,6 @@ export function recentThumb(snapshotId: string): Promise<RecentThumb | null> {
   return next;
 }
 
-/** Forgets every thumbnail (tests; Clear). */
-export function resetRecentThumbs(): void {
-  cache.clear();
-}
-
 async function render(snapshotId: string): Promise<RecentThumb | null> {
   const storage = snapshotStorage();
   if (!storage) return null;

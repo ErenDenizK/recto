@@ -31,6 +31,7 @@ import type { EngineEdit, Rect } from '@pdf-editor/document-model';
 import type { Annotation, InkAnnotation } from '@pdf-editor/engine';
 
 import { m } from '../../i18n';
+import { lerp } from '../../motion/velocity';
 import { announce } from '../../shell/announcer';
 import type { EraserMode } from '../../viewer/tool-store';
 import { type PageTarget, useAnnotationStore } from '../annotation-store';
@@ -195,11 +196,11 @@ const round = (v: number, places: number) => {
   return Math.round(v * f) / f;
 };
 
-function lerp(a: WidthPoint, b: WidthPoint, t: number): WidthPoint {
+function lerpPoint(a: WidthPoint, b: WidthPoint, t: number): WidthPoint {
   return {
-    x: round(a.x + (b.x - a.x) * t, 2),
-    y: round(a.y + (b.y - a.y) * t, 2),
-    w: round(a.w + (b.w - a.w) * t, 3),
+    x: round(lerp(a.x, b.x, t), 2),
+    y: round(lerp(a.y, b.y, t), 2),
+    w: round(lerp(a.w, b.w, t), 3),
   };
 }
 
@@ -270,10 +271,10 @@ export function erasePath(
     for (const [lo, hi] of kept) {
       // A cut inside the segment starts a new piece; else the piece goes on (or starts at A).
       if (lo > 0) finish();
-      const piece: WidthPoint[] = current ?? [lo > 0 ? lerp(a, b, lo) : a];
+      const piece: WidthPoint[] = current ?? [lo > 0 ? lerpPoint(a, b, lo) : a];
       current = piece;
       if (hi < 1) {
-        piece.push(lerp(a, b, hi));
+        piece.push(lerpPoint(a, b, hi));
         finish();
       } else {
         piece.push(b);

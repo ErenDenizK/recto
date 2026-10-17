@@ -64,10 +64,6 @@ export function dismissCropOutcome(documentId: DocumentId): void {
   if (run.kind === 'done' && run.documentId === documentId) useCropStore.setState({ run: IDLE });
 }
 
-export function isDrawingCrop(): boolean {
-  return useCropStore.getState().drawing !== null;
-}
-
 /** The draft to resume for `documentId`, if the dialog is opening again after drawing. */
 export function peekResume(documentId: DocumentId): CropDraft | null {
   const { resume } = useCropStore.getState();

@@ -163,6 +163,3 @@ export function PopoverScroll({
 }) {
   return <div className={[styles.scroll, className].filter(Boolean).join(' ')}>{children}</div>;
 }
-
-/** The recipe's class names, for panels that draw their own header (the colour panel). */
-export const popoverClasses = styles;
