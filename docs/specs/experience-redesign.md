@@ -27,7 +27,8 @@ click to edit."
 ### 1.2 Audit evidence
 
 Build `b66d45d`, 1440×900, Chromium with SwiftShader. Screenshot names refer to the audit
-archive; the eight marked † are copied to `docs/design/audit-2026-10/`.
+archive; the eight marked † were copied to `docs/design/audit-2026-10/` (in history at
+`2be6e68` since R22's clean-up removed them from the tree).
 
 | # | Finding | Evidence |
 |---|---|---|

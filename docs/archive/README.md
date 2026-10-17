@@ -15,3 +15,16 @@ Moved here in R22 (brief C-9, work package D1, 2026-10-17). `docs/ROADMAP.md` st
 although it is superseded from M9 on: the app's About page, the release notes and the issue
 template link to it.
 
+## Screenshots removed from the tree (D4)
+
+Superseded audit screenshots (154 files, 13.1 MB) were deleted from the working tree rather
+than moved here: a copy inside the repository weighs the same, and history keeps every file
+either way, so the clone does not shrink. Their write-ups stay in place and link each image at
+commit `2be6e68`:
+
+- `docs/design/audit/` and `audit/pass/`: the M4 refinement audit (2026-09-28).
+- `docs/design/audit-2026-10/`: the M5 experience audit's eight frames and the M6 V1 results.
+- `docs/design/system-audit-2026-10/`: the visual system audit's captures (2026-10-09).
+
+To get one back: `git show 2be6e68:docs/design/audit/01-empty.png > 01-empty.png`.
+
