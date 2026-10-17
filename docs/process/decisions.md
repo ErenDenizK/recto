@@ -316,3 +316,4 @@ Technical decisions, listed for completeness. Each ADR holds the detail.
 | [0031](../adr/0031-size-class-shell.md) | Size-class shell: top strip, dock, sidebar, sheets, page pill, Library | 2026-10-04 | Accepted (owner) |
 | [0032](../adr/0032-saving-restore-history.md) | Save in place, snapshots on the device, visible Undo | 2026-10-04 | Accepted (owner) |
 | [0033](../adr/0033-compact-edition.md) | Full app on desktops and tablets; read-only compact edition on phones | 2026-10-04 | Accepted (owner) |
+| [0034](../adr/0034-editions.md) | Editions: full app on desktops and tablets, the phone edition editable since EDN-7, desktop later; amends 0033 and 0007 | 2026-10-17 | Accepted (records EDN-1 to EDN-3, EDN-7) |
