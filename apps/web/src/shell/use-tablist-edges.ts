@@ -8,10 +8,12 @@
  * scrolling, this is the strip's overflow.
  *
  * Motion inside the list widens its scrollable overflow for a while without a resize or a DOM
- * change: the active tab's fill sliding by `transform` from where the last one was drawn
- * (tab-motion.ts) reaches past the list's end as tabs move into "N more". The edges are read
- * again once every finite animation in the list has finished, so a fade marked mid-slide does
- * not stay on a list that no longer scrolls.
+ * change: the active tab's fill sliding by `transform` and `width` from where the last one was
+ * drawn (tab-motion.ts) reaches past the list's end as tabs move into "N more", the more so when
+ * the window narrows mid-slide (the slide keeps the width it set out for). So while any finite
+ * animation runs in the list the edges are read every frame, and once more a frame after the
+ * last one has finished: the list marks its edge for as long as it scrolls, and a fade marked
+ * mid-slide does not stay on a list that no longer scrolls.
  */
 import { useCallback } from 'react';
 
@@ -22,10 +24,17 @@ const EDGE_FADE = 24;
 
 function markEdges(list: HTMLElement): void {
   const max = list.scrollWidth - list.clientWidth;
+  const scrolls = max > EDGE_SLACK;
   // `scrollLeft` is negative in a right-to-left list; the edges are by magnitude.
   const at = Math.abs(list.scrollLeft);
-  list.toggleAttribute('data-more-start', max > EDGE_SLACK && at > EDGE_SLACK);
-  list.toggleAttribute('data-more-end', max > EDGE_SLACK && at < max - EDGE_SLACK);
+  let start = scrolls && at > EDGE_SLACK;
+  let end = scrolls && at < max - EDGE_SLACK;
+  // A list that scrolls by only a little, with the active tab centred in it (`revealActive`),
+  // is within the slack of both ends at once: 2 px of overflow scrolled by 1. Its tabs still
+  // lie beyond both edges, so both fade; an overflowing list always marks an edge (XD-3).
+  if (scrolls && !start && !end) start = end = true;
+  list.toggleAttribute('data-more-start', start);
+  list.toggleAttribute('data-more-end', end);
 }
 
 function revealActive(list: HTMLElement): void {
@@ -54,21 +63,19 @@ function moving(list: HTMLElement): Animation[] {
 export function useTablistEdges(): (list: HTMLElement | null) => (() => void) | undefined {
   return useCallback((list: HTMLElement | null) => {
     if (!list) return undefined;
-    let live = true;
-    let waiting = false;
+    let frame = 0;
     const update = () => {
       markEdges(list);
-      // Read the edges again when the motion that may stretch the overflow has finished, a
-      // frame on, after its own finish handler has left the element at rest.
-      const running = moving(list);
-      if (waiting || running.length === 0) return;
-      waiting = true;
-      void Promise.all(running.map((a) => a.finished.catch(() => undefined))).then(() =>
-        requestAnimationFrame(() => {
-          waiting = false;
-          if (live) update();
-        }),
-      );
+      // Follow the motion that may stretch the overflow frame by frame, and read once more a
+      // frame after it has finished, when its own finish handler has left the element at rest.
+      if (frame !== 0 || moving(list).length === 0) return;
+      let still = 0;
+      const step = () => {
+        markEdges(list);
+        still = moving(list).length === 0 ? still + 1 : 0;
+        frame = still > 1 ? 0 : requestAnimationFrame(step);
+      };
+      frame = requestAnimationFrame(step);
     };
     const onResize = () => {
       revealActive(list);
@@ -79,12 +86,20 @@ export function useTablistEdges(): (list: HTMLElement | null) => (() => void) | 
     // Tabs opened, closed or renamed change the content's width, not the list's box.
     const mutation = new MutationObserver(onResize);
     mutation.observe(list, { childList: true, subtree: true, characterData: true });
+    // A new selection starts the fill's slide, and a tab growing in or collapsing changes its
+    // own sizing (`data-tab-motion`): attributes on the tabs, read with the motion they start.
+    const motion = new MutationObserver(update);
+    motion.observe(list, {
+      subtree: true,
+      attributeFilter: ['data-selected', 'data-tab-motion'],
+    });
     list.addEventListener('scroll', update, { passive: true });
     update();
     return () => {
-      live = false;
+      cancelAnimationFrame(frame);
       resize.disconnect();
       mutation.disconnect();
+      motion.disconnect();
       list.removeEventListener('scroll', update);
     };
   }, []);

@@ -218,8 +218,9 @@
   align-items: center;
   gap: var(--tab-gap);
   flex: 0 1 auto;
-  /* Never narrower than one tab (plus the focus ring's room): it scrolls instead. */
-  min-width: min(calc(var(--tab-min) + var(--space-1)), 100%);
+  /* Never narrower than one tab and the focus ring's room on both sides (its padding), so a
+     lone tab at its minimum never makes the list scroll; with more tabs it scrolls instead. */
+  min-width: min(calc(var(--tab-min) + var(--space-1) + var(--space-1)), 100%);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
