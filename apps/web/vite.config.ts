@@ -1,12 +1,12 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import babel from '@rolldown/plugin-babel';
 import { ocrAssetsPlugin } from '@pdf-editor/engine/ocr/assets';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // GitHub Pages serves project sites under `/<repo>/`; CI sets VITE_BASE_PATH accordingly
@@ -28,6 +28,35 @@ const DAY_SECONDS = 24 * 60 * 60;
  * unused ones can be dropped. Other modules keep their default side-effect handling.
  */
 const EMBEDPDF_ENGINES_PURE = [{ test: /[\\/]@embedpdf[\\/]engines[\\/]/, sideEffects: false }];
+
+/**
+ * Where each emitted chunk's bytes come from, for the bundle budget's breakdown
+ * (tools/qa/bundle-budget.ts): every chunk's modules with their rendered length (after tree
+ * shaking, before minification). Written beside Vite's cache, outside `dist/`, so it is never
+ * deployed or precached; the budget matches it to the build by file name.
+ */
+function bundleModules(): Plugin {
+  /** Module ids are written relative to the repository. */
+  const root = fileURLToPath(new URL('../..', import.meta.url));
+  return {
+    name: 'recto:bundle-modules',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const chunks: Record<string, Record<string, number>> = {};
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'chunk') continue;
+        const modules: Record<string, number> = {};
+        for (const [id, info] of Object.entries(output.modules)) {
+          if (info.renderedLength > 0) modules[id.replace(root, '')] = info.renderedLength;
+        }
+        chunks[output.fileName] = modules;
+      }
+      const dir = fileURLToPath(new URL('./node_modules/.cache/recto', import.meta.url));
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(`${dir}/bundle-modules.json`, JSON.stringify(chunks));
+    },
+  };
+}
 
 /**
  * Build identity for the About dialog (ADR-0017 §6), injected as `define` constants and
@@ -125,6 +154,7 @@ export default defineConfig({
     __LAB__: JSON.stringify(lab),
   },
   plugins: [
+    bundleModules(),
     react(),
     // React Compiler (ADR-0003), applied through Babel. Rolldown's filter in the preset
     // limits Babel to files that can contain components or hooks.
