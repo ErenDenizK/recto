@@ -1,74 +1,93 @@
 /**
- * The capsule and ✎ as one liquid body (DSN-43; the owner's "separate or joined, we can use
- * merge", DSN-37): while the reading capsule morphs into the edit island and back
- * (`capsule-morph.ts`), the capsule and the ✎ circle beside it stop drawing their own glass and
- * one glass layer under them takes the smooth union of the two (`liquid-mask.ts`: rounded-rect
- * SDF, smooth minimum, marching squares into a `mask-image`, GLS-3, GLS-4: a mask, a
- * `clip-path` only in WebKit). Entering, ✎ folds into the capsule's end as a shrinking drop on
- * a neck that swells in; leaving, it grows out of the end and pinches off as it comes to rest.
+ * The capsule and ✎ as one body while the reading capsule morphs into the edit island and back
+ * (DSN-43, the owner's "separate or joined, we can use merge", DSN-37), on the compositor
+ * (MOT-14; R22 brief C-5). The two pieces take their new boxes at once and stop drawing their
+ * own glass for the run; under them a body of their tier's solid twin (MOT-12: no backdrop
+ * filter and no soft shadow on a moving surface) moves from the old shape to the new one by
+ * Web Animations of `transform` alone, and once it rests the pieces' glass fades back in over
+ * it while it fades out. Until R22 one masked glass layer was traced every frame to the union
+ * of the two boxes while the capsule's width and ✎'s fold ran as layout; on the owner's iPhone
+ * that stuttered whenever the island's mount kept the main thread busy.
  *
- * - **Timing** is the morph's own: the capsule's width on `smooth`, ✎'s width, margin and fade
- *   on its CSS transitions (`CompactChrome.module.css`); this only follows the two boxes each
- *   frame while either moves, and ends with them. No timing token of its own.
- * - **The neck** follows how far ✎ has folded: none with ✎ at rest (so the union starts and
- *   ends as the two pieces at rest), the full fillet once it is a quarter folded.
- * - **In WebKit** (every iPhone) the outline is the layer's `clip-path` and the rim a clipped
- *   ring (`liquidPaint`, MOT-8): a mask image rewritten each frame never loads in time there,
- *   so the pair had no glass at all for the run.
- * - **The material** is the capsule's (its material classes, in the theme's tone, GLS-20), its
- *   rim the union's outline stroked (`outlineRim`, DSN-42); the capsule keeps its
- *   drop shadow, both keep their content, which only fades (MOT-5). GPU glass leaves a piece with
+ * - **The capsule's shape** is three parts that never distort: its two round ends, each a
+ *   circle that only translates, and the straight middle between their centres, which
+ *   translates and scales along x (a rectangle scaled sideways keeps its edges).
+ * - **✎** is a drop under the capsule's shape: entering, it travels from its place into the
+ *   capsule's trailing end and shrinks there, absorbed; leaving, it grows out of that end into
+ *   its place. Solid on solid, the two read as one body where they meet.
+ * - **Timing** is the morph's spring, `smooth` (Q-6); content only fades (MOT-5,
+ *   `capsule-morph.ts`). The body is drawn under the pieces (the dock is their stacking
+ *   context), so their content stays on top.
+ * - **At rest** nothing is left: no layer, attribute or inline style (Q-2). Reduced motion never
+ *   fuses: the morph is a fade there (`morphCapsule`). GPU glass leaves a piece with
  *   `data-liquid` to CSS+ for the run (GLS-19).
- * - **At rest** nothing is left: no layer, no attribute, no inline style (Q-2). Reduced motion
- *   never fuses: the morph is a fade there (`morphCapsule`).
  */
-import { liquidPaint, type LiquidRect, rimColorsOf, type RimColors } from '../liquid-mask';
-
-/** The fillet between the capsule and ✎ at its fullest, CSS px (the menus' neck, DSN-39). */
-export const DOCK_NECK = 24;
-/** A run that never settles is let go after this, ms (long: a slowed review capture runs on). */
-const LONGEST_MS = 10_000;
-/** The folded share of ✎ at which the neck is whole. */
-const NECK_AT = 0.25;
+import { animateStyle, type Motion } from '../../../motion/animate';
+import { glassMoving, glassSettle } from '../../../ui/glass-moving';
 
 /** A material class (`materials.css`): the base, a tier and its σ or coverage step. */
 const MATERIAL_CLASS = /^(?:mat(?:-[a-z]+)?|[sc]\d+)$/;
+/** How small ✎'s drop is at the capsule's end. */
+export const DROP_SCALE = 0.3;
+/** The parts' rim: the unblurred light of a moving surface (GLS-22's sheets), no outer edge. */
+const PARTS_RIM = 'inset 0 1px 0 var(--mat-rim-top), inset 0 -1px 0 var(--mat-rim-bottom)';
+/** The body's fade once the pieces' glass is back, ms (`--duration-fast`). */
+const HANDOVER_MS = 120;
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-
-/**
- * ✎'s glass at a moment of the fold: a circle as wide as its box is now, centred in it, so it
- * shrinks into the capsule's end as a drop rather than as a sliver.
- */
-export function dropShape(box: {
+/** A box in the dock's own coordinates, px. */
+export interface DockBox {
   readonly x: number;
   readonly y: number;
   readonly width: number;
   readonly height: number;
-}): LiquidRect {
-  const size = Math.max(0, Math.min(box.width, box.height));
-  return {
-    x: box.x + (box.width - size) / 2,
-    y: box.y + (box.height - size) / 2,
-    width: size,
-    height: size,
-    radius: size / 2,
-  };
 }
 
-/** The neck for ✎ at `width` of its `rest` width: none at rest, whole once a quarter folded. */
-export function neckFor(width: number, rest: number): number {
-  if (rest <= 0) return 0;
-  return DOCK_NECK * clamp01((1 - width / rest) / NECK_AT);
+/** One part of the body: its box at rest and the transform it starts from, `[x, y, sx, sy]`. */
+export interface BodyPart {
+  readonly box: DockBox;
+  readonly radius: number;
+  readonly from: readonly [number, number, number, number];
+  /** Scaled about its left edge (the middle), else about its centre. */
+  readonly fromLeft?: boolean;
 }
 
-const capsuleShape = (r: DOMRect): LiquidRect => ({
-  x: r.x,
-  y: r.y,
-  width: r.width,
-  height: r.height,
-  radius: r.height / 2,
-});
+const IDENTITY = [0, 0, 1, 1] as const;
+
+/**
+ * The capsule's three parts from its old box `a` to its new box `b` (same height): the two round
+ * ends translate, the middle between their centres translates and scales along x.
+ */
+export function capsuleParts(a: DockBox, b: DockBox): readonly BodyPart[] {
+  const h = b.height;
+  const r = h / 2;
+  const end = (x: number, fromX: number): BodyPart => ({
+    box: { x, y: b.y, width: h, height: h },
+    radius: r,
+    from: [fromX - x, a.y - b.y, 1, 1],
+  });
+  const span = Math.max(1, b.width - h);
+  return [
+    end(b.x, a.x),
+    end(b.x + b.width - h, a.x + a.width - h),
+    {
+      box: { x: b.x + r, y: b.y, width: span, height: h },
+      radius: 0,
+      from: [a.x - b.x, a.y - b.y, Math.max(0.01, a.width - h) / span, 1],
+      fromLeft: true,
+    },
+  ];
+}
+
+/**
+ * ✎'s drop: `edit` is its box where it rests (entering: before; leaving: after), `end` the
+ * capsule's trailing end where it is absorbed (entering: the new capsule's; leaving: the old's).
+ * Entering, it rests at `edit` and moves to the end (`to`); leaving, it starts at the end.
+ */
+export function dropPart(edit: DockBox, end: DockBox): { box: DockBox; at: readonly number[] } {
+  const dx = end.x + end.width / 2 - (edit.x + edit.width / 2);
+  const dy = end.y + end.height / 2 - (edit.y + edit.height / 2);
+  return { box: edit, at: [dx, dy, DROP_SCALE, DROP_SCALE] };
+}
 
 let running: (() => void) | null = null;
 
@@ -77,84 +96,106 @@ function editOf(capsule: HTMLElement): HTMLElement | null {
   return capsule.parentElement?.querySelector<HTMLElement>('[data-testid="compact-edit"]') ?? null;
 }
 
-const moving = (el: Element) =>
-  typeof el.getAnimations === 'function' &&
-  el.getAnimations().some((a) => a.playState === 'running' || a.pending);
-
 /**
- * Fuses `capsule` and ✎ for one morph; `restWidth` is ✎'s width at rest (56 px). Returns the
- * stop (also called by a newer run).
+ * Fuses `capsule` and ✎ for one morph from the capsule's box before the change (`from`,
+ * viewport px); both have their new boxes already. `restWidth` is ✎'s width at rest (56 px).
+ * Returns the stop (also called by a newer run).
  */
-export function fuseDock(capsule: HTMLElement, restWidth = 56): () => void {
+export function fuseDock(capsule: HTMLElement, from: DOMRect, restWidth = 56): () => void {
   running?.();
   const edit = editOf(capsule);
   const dock = capsule.parentElement;
   if (!edit || !dock) return () => undefined;
+  const host = dock.getBoundingClientRect();
+  const local = (r: { x: number; y: number; width: number; height: number }): DockBox => ({
+    x: r.x - host.x,
+    y: r.y - host.y,
+    width: r.width,
+    height: r.height,
+  });
+  const a = local(from);
+  const b = local(capsule.getBoundingClientRect());
+  const entering = edit.hasAttribute('data-away');
+  const gap = Number.parseFloat(getComputedStyle(dock).columnGap) || 0;
+  // ✎ where it rests: entering, where it stood beside the old capsule; leaving, its new box.
+  const editBox: DockBox = entering
+    ? {
+        x: a.x + a.width + gap,
+        y: a.y + (a.height - restWidth) / 2,
+        width: restWidth,
+        height: restWidth,
+      }
+    : local(edit.getBoundingClientRect());
+  const oldEnd: DockBox = {
+    x: a.x + a.width - a.height,
+    y: a.y,
+    width: a.height,
+    height: a.height,
+  };
+  const newEnd: DockBox = {
+    x: b.x + b.width - b.height,
+    y: b.y,
+    width: b.height,
+    height: b.height,
+  };
+  const drop = dropPart(editBox, entering ? newEnd : oldEnd);
+
   const layer = document.createElement('div');
-  // The capsule's own material classes (its module composes them), never written here.
-  layer.className = [...capsule.classList].filter((name) => MATERIAL_CLASS.test(name)).join(' ');
   layer.dataset.testid = 'compact-dock-liquid';
   layer.setAttribute('aria-hidden', 'true');
-  // Under the pieces and their content (the dock is their stacking context); its box follows
-  // the union's, its border and shadows give way to the stroked rim.
-  layer.style.cssText =
-    'position:absolute;z-index:-1;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;' +
-    'pointer-events:none;mask-repeat:no-repeat;-webkit-mask-repeat:no-repeat;';
-  const rimLayer = document.createElement('div');
-  rimLayer.style.cssText =
-    'position:absolute;inset:0;background-repeat:no-repeat;background-size:100% 100%;';
-  layer.append(rimLayer);
+  // Under the pieces and their content (the dock is their stacking context).
+  layer.style.cssText = 'position:absolute;inset:0;z-index:-1;pointer-events:none;';
+  const material = [...capsule.classList].filter((name) => MATERIAL_CLASS.test(name)).join(' ');
+  const part = (box: DockBox, radius: number, fromLeft = false) => {
+    const el = document.createElement('div');
+    el.className = material;
+    // The tier's solid twin (MOT-12): nothing re-blurs while it moves. Its rim light only, no
+    // outer edge, so the parts meet without a seam.
+    glassMoving(el);
+    el.style.cssText =
+      `position:absolute;left:${box.x}px;top:${box.y}px;width:${box.width}px;` +
+      `height:${box.height}px;margin:0;padding:0;border-radius:${radius}px;` +
+      `--shadow-own:${PARTS_RIM};` +
+      (fromLeft ? 'transform-origin:0 50%;' : '');
+    layer.append(el);
+    return el;
+  };
+  // ✎'s drop first, under the capsule's shape: it is absorbed into the end, and grows out of it.
+  const dropEl = part(drop.box, drop.box.height / 2);
+  const motions: Motion<readonly number[]>[] = [
+    entering
+      ? animateStyle(dropEl, 'transform', IDENTITY, drop.at, { spring: 'smooth', keep: true })
+      : animateStyle(dropEl, 'transform', drop.at, IDENTITY, { spring: 'smooth' }),
+  ];
+  for (const p of capsuleParts(a, b)) {
+    const el = part(p.box, p.radius, p.fromLeft);
+    motions.push(animateStyle(el, 'transform', p.from, IDENTITY, { spring: 'smooth' }));
+  }
   dock.prepend(layer);
   capsule.dataset.liquid = '';
   edit.dataset.liquid = '';
-  let rim: RimColors | null = null;
-  let frame = 0;
-  let quiet = 0;
-  const started = performance.now();
 
+  let stopped = false;
+  let handover: ReturnType<typeof setTimeout> | undefined;
   const stop = () => {
-    cancelAnimationFrame(frame);
+    stopped = true;
+    clearTimeout(handover);
+    for (const m of motions) m.stop();
     layer.remove();
     delete capsule.dataset.liquid;
     delete edit.dataset.liquid;
     if (running === stop) running = null;
   };
-
-  const step = (now: number) => {
-    if (!capsule.isConnected || !edit.isConnected) {
-      stop();
-      return;
+  // At rest: the pieces' glass fades back in over the body, which fades out under it.
+  void Promise.all(motions.map((m) => m.finished)).then(() => {
+    if (stopped) return;
+    for (const piece of [capsule, edit]) {
+      delete piece.dataset.liquid;
+      glassSettle(piece);
     }
-    const a = capsule.getBoundingClientRect();
-    const b = edit.getBoundingClientRect();
-    const host = dock.getBoundingClientRect();
-    const drop = dropShape(b);
-    const shapes = drop.width >= 1 ? [capsuleShape(a), drop] : [capsuleShape(a)];
-    const left = Math.min(a.left, drop.width >= 1 ? drop.x : a.left);
-    const right = Math.max(a.right, drop.width >= 1 ? drop.x + drop.width : a.right);
-    const top = Math.min(a.top, b.top);
-    const bottom = Math.max(a.bottom, b.bottom);
-    const box = { x: left, y: top, width: right - left, height: bottom - top };
-    layer.style.left = `${left - host.left}px`;
-    layer.style.top = `${top - host.top}px`;
-    layer.style.width = `${Math.ceil(box.width)}px`;
-    layer.style.height = `${Math.ceil(box.height)}px`;
-    rim ??= rimColorsOf(capsule);
-    const paint = liquidPaint(box, shapes, neckFor(b.width, restWidth), rim);
-    layer.style.setProperty('-webkit-mask-image', paint.mask);
-    layer.style.setProperty('mask-image', paint.mask);
-    layer.style.clipPath = paint.clip;
-    rimLayer.style.backgroundImage = paint.rim;
-    rimLayer.style.clipPath = paint.ring;
-    // Ends with the morph: two still frames with nothing of the pair moving.
-    quiet = moving(capsule) || moving(edit) ? 0 : quiet + 1;
-    if (quiet >= 2 || now - started > LONGEST_MS) {
-      stop();
-      return;
-    }
-    frame = requestAnimationFrame(step);
-  };
+    layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: HANDOVER_MS, fill: 'forwards' });
+    handover = setTimeout(stop, HANDOVER_MS);
+  });
   running = stop;
-  step(started);
   return stop;
 }

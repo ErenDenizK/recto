@@ -210,8 +210,9 @@ test('editing hands the capsule back to CSS+', async ({ page }) => {
   await expect(page.getByTestId('compact-capsule')).toHaveAttribute('data-editing', 'true');
   await expect(page.locator('.gpu-glass')).toHaveCount(0);
   expect((await stats(page))?.state).toBe('paused');
-  // Back to reading: while the capsule and ✎ fuse (`data-liquid`, DSN-43) they stay CSS+, the
-  // GPU drawing rounded rects only (GLS-19); at rest the GPU has them again.
+  // Back to reading: while the capsule and ✎ morph as one body (`data-liquid`, DSN-43, MOT-14)
+  // they stay CSS+, their glass stepped aside over the solid body (GLS-19); at rest the GPU has
+  // them again.
   const mixed = page.evaluate(
     () =>
       new Promise<number>((resolve) => {

@@ -339,32 +339,70 @@ test.describe('phone editing (M10 WP1)', () => {
     await expect(chip(page)).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('the capsule and ✎ morph as one liquid glass body, both ways, nothing left at rest (DSN-43)', async ({
+  test('the capsule and ✎ morph as one body on the compositor, both ways, nothing left at rest (DSN-43, MOT-14)', async ({
     page,
   }) => {
     await openReader(page);
     const edit = page.getByTestId('compact-edit');
+    /**
+     * Read once the body is there, on the animation clock (PRC-14): what each running animation
+     * of the body's parts and of the pieces moves, and whether the pieces' own glass has
+     * stepped aside (one surface, not three).
+     */
     const watch = () =>
-      page.evaluate(() => {
-        const seen = { fused: 0, own: 0, run: Math.random() };
-        (window as unknown as { __dock: typeof seen }).__dock = seen;
-        const tick = () => {
-          if ((window as unknown as { __dock: typeof seen }).__dock !== seen) return;
-          const layer = document.querySelector<HTMLElement>('[data-testid="compact-dock-liquid"]');
-          const capsule = document.querySelector<HTMLElement>('[data-testid="compact-capsule"]');
-          if (layer && capsule?.hasAttribute('data-liquid')) {
-            const mask =
-              layer.style.maskImage || layer.style.getPropertyValue('-webkit-mask-image');
-            if (mask.startsWith('url(')) seen.fused++;
-            // The pieces' own glass steps aside for the run (one surface, not three).
-            if (getComputedStyle(capsule).backdropFilter !== 'none') seen.own++;
-          }
-          requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      });
-    const seen = () =>
-      page.evaluate(() => (window as unknown as { __dock: { fused: number; own: number } }).__dock);
+      page.evaluate(
+        () =>
+          new Promise<{
+            parts: number;
+            solid: number;
+            moved: string[];
+            pieces: string[];
+            own: number;
+          }>((resolve, reject) => {
+            const end = performance.now() + 4000;
+            const props = (a: Animation) =>
+              Object.keys((a.effect as KeyframeEffect).getKeyframes()[0] ?? {}).filter(
+                (k) => !['offset', 'easing', 'composite', 'computedOffset'].includes(k),
+              );
+            const tick = () => {
+              const layer = document.querySelector<HTMLElement>(
+                '[data-testid="compact-dock-liquid"]',
+              );
+              const capsule = document.querySelector<HTMLElement>(
+                '[data-testid="compact-capsule"]',
+              );
+              const pencil = document.querySelector<HTMLElement>('[data-testid="compact-edit"]');
+              if (layer && capsule?.hasAttribute('data-liquid') && pencil) {
+                const parts = [...layer.children] as HTMLElement[];
+                resolve({
+                  parts: parts.length,
+                  solid: parts.filter((el) => el.hasAttribute('data-glass-moving')).length,
+                  moved: [
+                    ...new Set(parts.flatMap((el) => el.getAnimations().flatMap(props))),
+                  ].sort(),
+                  pieces: [
+                    ...new Set(
+                      [capsule, pencil].flatMap((el) =>
+                        el
+                          .getAnimations()
+                          .flatMap((a) =>
+                            a instanceof CSSTransition ? [a.transitionProperty] : props(a),
+                          ),
+                      ),
+                    ),
+                  ].sort(),
+                  own: [capsule, pencil].filter(
+                    (el) => getComputedStyle(el).backdropFilter !== 'none',
+                  ).length,
+                });
+                return;
+              }
+              if (performance.now() > end) reject(new Error('the body never showed'));
+              else requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          }),
+      );
     const atRest = async () => {
       await page.waitForFunction(
         () =>
@@ -381,26 +419,35 @@ test.describe('phone editing (M10 WP1)', () => {
       await expect(page.getByTestId('compact-dock-liquid')).toHaveCount(0);
       await expect(capsule(page)).not.toHaveAttribute('data-liquid');
       await expect(edit).not.toHaveAttribute('data-liquid');
+      await expect(capsule(page)).not.toHaveAttribute('data-glass-settle');
       expect(await capsule(page).evaluate((el) => getComputedStyle(el).backdropFilter)).not.toBe(
         'none',
       );
+      expect(await capsule(page).getAttribute('style')).toBeFalsy();
+    };
+    /** The body moves by transforms (and the drop's fade) only; the pieces lay out once. */
+    const onTheCompositor = (seen: Awaited<ReturnType<typeof watch>>) => {
+      expect(seen.parts).toBe(4);
+      expect(seen.solid).toBe(4);
+      expect(seen.moved.every((p) => p === 'transform' || p === 'opacity')).toBe(true);
+      expect(seen.moved).toContain('transform');
+      expect(seen.pieces.filter((p) => !['opacity', 'transform'].includes(p))).toEqual([]);
+      expect(seen.own).toBe(0);
     };
 
     // ✎ → the island: ✎ folds into the capsule's end as one body.
-    await watch();
+    const entering = watch();
     await edit.click();
+    onTheCompositor(await entering);
     await expect(capsule(page)).toHaveAttribute('data-editing');
     await atRest();
-    const entering = await seen();
-    expect(entering.fused).toBeGreaterThan(3);
-    expect(entering.own).toBe(0);
 
-    // Done → reading: ✎ grows out of the end and pinches off.
-    await watch();
+    // Done → reading: ✎ grows out of the end.
+    const leaving = watch();
     await page.getByTestId('compact-edit-done').click();
+    onTheCompositor(await leaving);
     await expect(capsule(page)).not.toHaveAttribute('data-editing');
     await atRest();
-    expect((await seen()).fused).toBeGreaterThan(3);
     await expect(edit).toBeVisible();
 
     if (SHOTS) {

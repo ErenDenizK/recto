@@ -386,9 +386,9 @@
  * The edit button (EDN-8; design/phone-2026-10/README.md §2): a 56 px circle of the capsule's
  * own material (coverage registry `compact-edit-button`) beside it, its glyph 20 px (Q-9). It
  * hides with the chrome as the capsule does. While editing it folds into the island: its width
- * and the row's gap close on --spring-smooth while it fades on --duration-fast, so the island,
- * centred in the row, settles where the pair was centred. Reduced motion keeps the fade (the
- * spring tokens fall to 0 ms). Press: --press-scale (0.94 on touch, platform.md §2).
+ * and the row's gap close at once and the body under the pair draws the fold on the compositor
+ * (MOT-14), so the island, centred in the row, rests where the pair was centred. Reduced motion
+ * keeps the fade. Press: --press-scale (0.94 on touch, platform.md §2).
  */
 .edit {
   composes: mat mat-bar s10 from global;
@@ -407,8 +407,6 @@
   transition:
     transform var(--spring-quick) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out),
-    width var(--spring-smooth) var(--ease-spring),
-    margin var(--spring-smooth) var(--ease-spring),
     scale var(--spring-press) var(--ease-spring);
 }
 
@@ -420,9 +418,7 @@
 
 .edit:active {
   scale: var(--press-scale);
-  transition-duration:
-    var(--spring-quick), var(--duration-base), var(--spring-smooth), var(--spring-smooth),
-    var(--duration-instant);
+  transition-duration: var(--spring-quick), var(--duration-base), var(--duration-instant);
 }
 
 .edit[data-hidden] {
@@ -431,11 +427,11 @@
 }
 
 /*
- * The capsule and ✎ as one liquid body while the capsule morphs into the island and back
- * (DSN-43, `mark/capsule-liquid.ts`): one masked glass layer under them draws the union, so
- * each piece's own fill, filter, rim and ring step aside for the run; the capsule keeps its drop
- * shadow, ✎ none (its box narrows beside the drop and would leave a grey ghost), and the
- * content stays and only fades (MOT-5). Nothing of it at rest.
+ * The capsule and ✎ as one body while the capsule morphs into the island and back (DSN-43,
+ * MOT-14, `mark/capsule-liquid.ts`): both take their new boxes at once and a solid body under
+ * them moves from the old shape to the new on the compositor, so each piece's own fill, filter,
+ * rim, ring and shadow step aside for the run and fade back in over the body once it rests
+ * (`data-glass-settle`, MOT-12); the content stays and only fades (MOT-5). Nothing of it at rest.
  */
 .capsule[data-liquid],
 .edit[data-liquid] {
@@ -443,13 +439,6 @@
   background: transparent !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-}
-
-.capsule[data-liquid] {
-  box-shadow: var(--mat-shadow);
-}
-
-.edit[data-liquid] {
   box-shadow: none;
 }
 
@@ -457,12 +446,12 @@
   content: none !important;
 }
 
+/* While editing ✎ has folded into the island: it steps out of the row at once (the body under
+   the pair draws the fold, MOT-14) and its glyph fades. */
 .edit[data-away] {
   width: 0;
   margin-inline-start: calc(-1 * var(--space-2));
   border-width: 0;
   opacity: 0;
-  transition-duration:
-    var(--spring-quick), var(--duration-fast), var(--spring-smooth), var(--spring-smooth),
-    var(--spring-press);
+  transition-duration: var(--spring-quick), var(--duration-fast), var(--spring-press);
 }
