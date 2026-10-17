@@ -93,9 +93,10 @@ describe('CompactLibrary', () => {
     expect(screen.getByTestId('compact-library')).not.toHaveAttribute('data-first-run');
   });
 
-  it('opens About with the settings rows from ⋯, before any file is open (DSN-51)', async () => {
+  it('opens About with the settings rows from the gear, before any file is open (DSN-51)', async () => {
     render(<CompactLibrary />);
-    const more = screen.getByRole('button', { name: 'More' });
+    const more = screen.getByRole('button', { name: 'Settings' });
+    expect(more.querySelector('[data-icon="gear-six"]')).not.toBeNull();
     expect(more).toHaveAttribute('aria-haspopup', 'dialog');
     expect(height(more)).toBeGreaterThanOrEqual(44);
     await userEvent.click(more);

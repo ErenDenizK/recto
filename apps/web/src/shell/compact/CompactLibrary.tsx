@@ -6,7 +6,8 @@
  *    and the one-line promise, in the upper third. On a phone on its side the mark and wordmark
  *    fold into the header row (visual audit 2026-10 item 6). No language switch (DSN-46): the
  *    phone follows the browser's language until About's settings rows change it.
- *    **⋯** (DSN-51), a lit glass circle where the reader's ⋯ stands (top trailing), opens About
+ *    **A gear** (DSN-51, amended for R22 brief C-2), a lit glass circle named "Settings" where
+ *    the reader's ⋯ stands (top trailing), opens About
  *    with those rows (Theme, Reduce motion, Dim pages, Language), so the settings are one tap
  *    away before a file is open. About is the phone's settings home (DSN-48); the Library
  *    mounts the on-demand sheets without a document to show it (`CompactSheets`), so the
@@ -82,12 +83,12 @@ export function CompactLibrary() {
       <button
         type="button"
         className={styles.more}
-        aria-label={m.compact_more()}
+        aria-label={m.settings_title()}
         aria-haspopup="dialog"
         data-testid="compact-library-more"
         onClick={() => openSheet('about')}
       >
-        <Icon name="dots-three" />
+        <Icon name="gear-six" />
       </button>
       <div className={styles.body}>
         <div className={styles.intro}>

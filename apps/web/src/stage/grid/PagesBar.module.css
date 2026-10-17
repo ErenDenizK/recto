@@ -20,6 +20,19 @@
   white-space: nowrap;
 }
 
+/* At rest the selected tab says the page count (DSN-54): while it shows (`data-grid-count`,
+   DocumentTabs.tsx) the bar's count is read by screen readers only, since the tab's is hidden
+   from them. A narrow window's bar, whose strip has no tabs, and a short strip, where the tab's
+   count gives way first, keep it on screen. */
+:global(:root:has([data-grid-count])) .count[data-at-rest] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
 .separator {
   flex: none;
   width: 1px;

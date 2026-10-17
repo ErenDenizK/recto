@@ -117,6 +117,8 @@
   overscroll-behavior: contain;
   touch-action: none;
   scrollbar-width: none;
+  /* Moved by its own gestures: no bar over it (GLS-26). */
+  --scroll-bar: none;
 }
 
 .list::-webkit-scrollbar {

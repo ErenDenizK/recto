@@ -1,0 +1,177 @@
+/*
+ * The app's scroll bar (owner, R22 brief C-10; GLS-26, amending GLS-24): the overlay that
+ * ui/scroll-thumbs.ts lays over every scroller of both editions (`.layer`, `.bar`).
+ *
+ * - **The thumb** is a slim capsule in the glass's tone, a bead of the same glass: the other
+ *   tone's half-pixel edge (so it reads over a white page in dark and a black one in light)
+ *   inside which GLS-22's rim light runs unblurred, since the thumb moves (no blurred shadow on
+ *   anything that moves, WebKit). It is its own compositor layer: a scroll moves it by
+ *   `transform` and repaints nothing (A-23).
+ * - **Under the pointer** the bar grows from 4 to 8 px into a groove of the same glass, the
+ *   lens seated in its bezel (GLS-25), and brightens; dragged it is brightest and the reader
+ *   shows the page under it in a small solid pill beside it.
+ * - **Fades** by `opacity` only: in over `--duration-fast` on a scroll or the pointer's
+ *   approach, out over `--duration-base` once at rest (MOT-4). Reduced motion keeps the fade
+ *   (tokens.css shortens it); the growth is a short width change of one small box.
+ * - Forced colours: nothing is drawn; the system's bars come back (styles/scrollbars.css).
+ */
+
+.bar[data-shown] {
+  opacity: 1;
+  transition-duration: var(--duration-fast);
+}
+
+.thumb {
+  width: 100%;
+  height: 0;
+  border-radius: var(--radius-capsule);
+  background: var(--scroll-thumb);
+  box-shadow: var(--scroll-thumb-edge), var(--scroll-thumb-rim);
+  will-change: transform;
+}
+
+/* One fixed layer over everything. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+/* A bar is laid over its scroller's trailing (or bottom) edge by `transform`; its box is the
+   pointer's 14 px target while it is under the pointer. */
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+  contain: layout style;
+}
+
+.bar[data-hot],
+.bar[data-drag] {
+  pointer-events: auto;
+}
+
+/* The groove: shown under the pointer, a seat of the glass with its flat rim. */
+.bar::before {
+  content: '';
+  position: absolute;
+  border-radius: var(--radius-capsule);
+  background: var(--scroll-groove);
+  box-shadow: var(--scroll-groove-rim);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.bar[data-axis='y']::before {
+  inset-block: 0;
+  inset-inline-end: 2px;
+  width: 10px;
+}
+
+.bar[data-axis='x']::before {
+  inset-inline: 0;
+  bottom: 2px;
+  height: 10px;
+}
+
+.bar[data-hot]::before,
+.bar[data-drag]::before {
+  opacity: 1;
+}
+
+/* Only the growth across the bar is animated: its length along the bar is the scroller's and
+   changes at once. */
+.bar .thumb {
+  position: absolute;
+}
+
+.bar[data-axis='y'] .thumb {
+  top: 0;
+  inset-inline-end: 5px;
+  width: 4px;
+  transition:
+    width var(--duration-fast) var(--ease-out),
+    inset-inline-end var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.bar[data-axis='x'] .thumb {
+  bottom: 5px;
+  left: 0;
+  height: 4px;
+  transition:
+    height var(--duration-fast) var(--ease-out),
+    bottom var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.bar[data-axis='y'][data-hot] .thumb,
+.bar[data-axis='y'][data-drag] .thumb {
+  inset-inline-end: 3px;
+  width: 8px;
+}
+
+.bar[data-axis='x'][data-hot] .thumb,
+.bar[data-axis='x'][data-drag] .thumb {
+  bottom: 3px;
+  height: 8px;
+}
+
+.bar[data-hot] .thumb {
+  background-color: var(--scroll-thumb-hover);
+}
+
+.bar[data-drag] .thumb {
+  background-color: var(--scroll-thumb-drag);
+}
+
+/* The page under a dragged reader thumb: a small solid pill (Q-5: a small moving part never
+   blurs), its rim flat (GLS-22, amended), centred on the thumb and 10 px before it. */
+.label {
+  composes: mat mat-chip mat-opaque from global;
+  --mat-rim: inset 0 1px 0 var(--mat-rim-top), inset 0 -1px 0 var(--mat-rim-bottom);
+  position: absolute;
+  top: 50%;
+  inset-inline-end: calc(100% + 10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 28px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-capsule);
+  box-shadow: var(--mat-rim), var(--scroll-thumb-edge);
+  color: var(--text-primary);
+  font-size: var(--type-footnote);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  translate: 0 -50%;
+}
+
+.label[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar[data-axis] .thumb {
+    transition: background-color var(--duration-fast) var(--ease-out);
+  }
+}
+
+:global(:root[data-motion='reduced']) .bar[data-axis] .thumb {
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (forced-colors: active) {
+  .layer {
+    display: none;
+  }
+}

@@ -225,6 +225,8 @@
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   scroll-padding-inline: var(--space-6);
+  /* It marks its overflowing edge instead of a bar (GLS-26). */
+  --scroll-bar: none;
   /* Room for the focus ring, drawn outside the tab. */
   padding: var(--space-1);
   margin: calc(-1 * var(--space-1));

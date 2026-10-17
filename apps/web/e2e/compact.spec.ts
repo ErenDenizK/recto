@@ -252,10 +252,10 @@ test.describe('the compact edition', () => {
     expect(clipped).toEqual([]);
     await expect(page.getByTestId('compact-recents-empty')).toContainText('Henüz dosya yok');
     await shot(page, 'compact-library-tr');
-    // Language is a setting, not a control on the page (DSN-46): ⋯ reaches it before a file is
-    // open, in About's settings rows (DSN-51), and changes the Library at once.
+    // Language is a setting, not a control on the page (DSN-46): the settings gear reaches it
+    // before a file is open, in About's settings rows (DSN-51), and changes the Library at once.
     await expect(page.getByRole('button', { name: 'English' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Diğer' }).click();
+    await page.getByRole('button', { name: 'Ayarlar' }).click();
     const about = page.getByTestId('compact-about-sheet');
     const language = about.getByRole('radiogroup', { name: 'Dil' });
     await language.scrollIntoViewIfNeeded();

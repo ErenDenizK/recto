@@ -341,8 +341,14 @@
   --field-placeholder: var(--n10);
   --scroll-thumb: rgb(var(--white-rgb) / 0.4);
   --scroll-thumb-hover: rgb(var(--white-rgb) / 0.55);
+  --scroll-thumb-drag: rgb(var(--white-rgb) / 0.7);
   /* The scroll bar's soft edge in the other tone, so the thumb reads over a white page (GLS-24). */
   --scroll-thumb-edge: inset 0 0 0 0.5px rgb(0 0 0 / 0.3);
+  /* Its rim light (GLS-26): GLS-22's rim unblurred, since the thumb moves (a bead of the glass),
+     and the groove it rests in under the pointer, a seat of the same glass. */
+  --scroll-thumb-rim: inset 0 0 0 1.5px rgb(var(--white-rgb) / 0.16);
+  --scroll-groove: rgb(var(--white-rgb) / 0.06);
+  --scroll-groove-rim: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.1);
   /*
    * The button lens (owner, R21 brief B-11; GLS-25): a button on glass is a lens of the same
    * glass, its light in the bezel. The washes under the label stay the proven hover and pressed
@@ -648,10 +654,15 @@
   --field-placeholder: var(--n10);
   --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
   --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
+  --scroll-thumb-drag: rgb(var(--ink-rgb) / 0.75);
   --scroll-thumb-edge: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.45);
-  /* The button lens (GLS-25): a lighter, denser white lens on hover, an ink press glow. */
-  --lens-hover: rgb(var(--white-rgb) / 0.5);
-  --lens-pressed: rgb(var(--ink-rgb) / 0.04);
+  --scroll-thumb-rim: inset 0 0 0 1.5px rgb(var(--white-rgb) / 0.14);
+  --scroll-groove: rgb(var(--ink-rgb) / 0.05);
+  --scroll-groove-rim: inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.07);
+  /* The button lens (GLS-25): a soft ink wash on hover under the bright lobes (GLS-27: the
+     white lens read faint on light glass), a deeper one under the ink press glow. */
+  --lens-hover: rgb(var(--ink-rgb) / 0.06);
+  --lens-pressed: rgb(var(--ink-rgb) / 0.07);
   --lens-rim:
     inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
     inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),
@@ -936,10 +947,15 @@
     --field-placeholder: var(--n10);
     --scroll-thumb: rgb(var(--ink-rgb) / 0.5);
     --scroll-thumb-hover: rgb(var(--ink-rgb) / 0.65);
+    --scroll-thumb-drag: rgb(var(--ink-rgb) / 0.75);
     --scroll-thumb-edge: inset 0 0 0 0.5px rgb(var(--white-rgb) / 0.45);
-    /* The button lens (GLS-25): a lighter, denser white lens on hover, an ink press glow. */
-    --lens-hover: rgb(var(--white-rgb) / 0.5);
-    --lens-pressed: rgb(var(--ink-rgb) / 0.04);
+    --scroll-thumb-rim: inset 0 0 0 1.5px rgb(var(--white-rgb) / 0.14);
+    --scroll-groove: rgb(var(--ink-rgb) / 0.05);
+    --scroll-groove-rim: inset 0 0 0 0.5px rgb(var(--ink-rgb) / 0.07);
+    /* The button lens (GLS-25): a soft ink wash on hover under the bright lobes (GLS-27: the
+       white lens read faint on light glass), a deeper one under the ink press glow. */
+    --lens-hover: rgb(var(--ink-rgb) / 0.06);
+    --lens-pressed: rgb(var(--ink-rgb) / 0.07);
     --lens-rim:
       inset 0.5px 1px 1.5px -0.5px rgb(var(--white-rgb) / 0.85),
       inset -0.25px -1px 1.5px -0.5px rgb(var(--white-rgb) / 0.4),

@@ -26,6 +26,9 @@
      never over the chrome, the tool drawer or its scrim. */
   isolation: isolate;
   scrollbar-width: none;
+  /* The app's bar (GLS-26, ui/scroll-thumbs.ts) keeps inside the safe area. */
+  --scroll-inset-top: env(safe-area-inset-top, 0px);
+  --scroll-inset-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* The pages take focus on arrival; their ring (the whole screen) shows only when the focus
@@ -68,15 +71,6 @@
 .page :global(.page-overlays) > * {
   position: absolute;
   inset: 0;
-}
-
-/* The app's scroll bar over the pages (GLS-24, ui/ScrollThumb): at the screen's trailing edge,
-   inside the safe area, shown while the pages scroll. */
-.scrollThumb {
-  position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + var(--space-2));
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-2));
-  inset-inline-end: max(env(safe-area-inset-right, 0px), 3px);
 }
 
 /*

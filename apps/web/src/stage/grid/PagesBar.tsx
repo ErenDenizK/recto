@@ -3,7 +3,8 @@
  * selected pages, as the capsule's content (`shell/capsule/`): the dock morphs into it in the
  * Pages grid, and in viewing while pages are selected explicitly in the sidebar.
  *
- *   ✓ Done │ 12 pages │ ◯ Select │ ⋯                     (grid at rest: Done leaves the grid)
+ *   ✓ Done │ ◯ Select │ ⋯                                (grid at rest: Done leaves the grid;
+ *                                                          the tab says "12 pages", DSN-54)
  *   ✓ Done │ Select pages │ Select all │ ⋯                 (selection mode, nothing selected)
  *   ✓ Done │ 3 selected │ ↺ ↻ │ ‹ › │ Delete │ Extract │ Duplicate │ Move to ▾ │ ⋯
  *   ✕ │ 3 selected │ …                                     (viewing: ✕ clears the sidebar's)
@@ -237,7 +238,14 @@ export function PagesBar({ doc }: { readonly doc: VirtualDocument }) {
           onActivate={done}
         />
       )}
-      <span className={styles.count} data-capsule-item="count" aria-live="off">
+      {/* At rest the count is said once (R22 brief C-3, DSN-54): the selected tab says it, so
+          here it is for screen readers only while that tab shows it (PagesBar.module.css). */}
+      <span
+        className={styles.count}
+        data-capsule-item="count"
+        data-at-rest={some || selecting ? undefined : ''}
+        aria-live="off"
+      >
         {some
           ? m.status_selected({ count })
           : selecting

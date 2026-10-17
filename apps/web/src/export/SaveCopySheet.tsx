@@ -444,7 +444,9 @@ export default function SaveCopySheet({ documentId, open, preset, opening }: Sav
       )}
       restored={restored}
       back={page === 'form' ? undefined : () => setPage('form')}
-      cancel={false}
+      // Cancel beside the primary, as its sibling task sheets have (R22 brief C-4, DSN-54): the
+      // spec's footer note that held its place left with DSN-46. The Details page's Done closes.
+      {...(page === 'details' ? { cancel: false } : {})}
       initialFocus={preset === 'size' ? sizeFocus : formatFocus}
       primary={
         page === 'details'

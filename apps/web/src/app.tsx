@@ -21,6 +21,7 @@ import { registerSignatureCommands } from './signatures/signature-commands';
 import { startSignatureValidation } from './signatures/signature-store';
 import { CertificateSheet } from './signatures/CertificateSheet';
 import { requestPassword } from './state/password-store';
+import { installScrollThumbs } from './ui/scroll-thumbs';
 
 /**
  * Application root. Registers the shell's commands before first paint (so keycap hints
@@ -46,6 +47,8 @@ export function App() {
   useLayoutEffect(() => watchSessionNotice(), []);
   // A running OCR shows in the progress capsule while its dialog is closed (FB5).
   useLayoutEffect(() => watchOcrJob(), []);
+  // The app's one scroll bar over every scroller (GLS-26), before any page measures its bars.
+  useLayoutEffect(() => installScrollThumbs(), []);
   useLayoutEffect(() => {
     const engine = getEngineService();
     engine.setPasswordPrompt(requestPassword);
