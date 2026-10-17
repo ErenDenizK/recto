@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 
-import { fixturePath, useFileInputPicker } from './helpers';
+import { atRest, fixturePath, useFileInputPicker } from './helpers';
 import { expectGlassClean, walkGlass } from './support/glass-walker';
 
 const WEB = fileURLToPath(new URL('..', import.meta.url));
@@ -67,6 +67,10 @@ async function open(page: Page, kind: string): Promise<void> {
   await page.getByRole('button', { name: `Open ${kind}`, exact: true }).click();
   await expect(panel(page, kind)).toBeVisible();
   await rest(page);
+  // The sheet grows out of its opener (MOT-9), and the check above can run before that
+  // entrance has started: a box read then is a frame of the flight (124 px of a 400 px side
+  // sheet), so wait until the sheet itself has been still for two frames.
+  await atRest(panel(page, kind));
 }
 
 async function closeWithEscape(page: Page, kind: string): Promise<void> {
