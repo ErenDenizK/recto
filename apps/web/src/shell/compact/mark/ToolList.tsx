@@ -52,6 +52,7 @@ import { IconButton } from '../../../ui/IconButton';
 import { useToolStore } from '../../../viewer/tool-store';
 import type { CompactTool } from '../compact-store';
 import { setDrawerOpen, useCompactStore } from '../compact-store';
+import shape from '../sheet-shape.module.css';
 import { armTool, canUndoHere, redo, toggleEraser, toolOff, undo } from './bridge';
 import { progressFrames } from './drawer-motion';
 import { DRAWER_ID } from './EditIsland';
@@ -132,14 +133,14 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
         inert={!open}
         {...swipe}
       >
-        <div className={styles.head}>
-          <span className={styles.grabber} aria-hidden="true" />
-          <span className={styles.title}>{m.compact_tools()}</span>
+        <div className={shape.head}>
+          <span className={shape.grabber} aria-hidden="true" />
+          <span className={shape.title}>{m.compact_tools()}</span>
           <IconButton
             label={m.compact_tools_close()}
             tooltipSide="top"
             icon={<Icon name="caret-down" />}
-            className={styles.done}
+            className={shape.close}
             data-testid="compact-drawer-done"
             onClick={() => setDrawerOpen(false)}
           />

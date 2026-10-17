@@ -1,7 +1,8 @@
 /**
  * What both tool drawers share (`ToolDrawer.tsx`, the tiles; `ToolList.tsx`, the list,
- * EDN-16): the container transform out of the tool chip and back (`drawer-motion.ts`, MOT-5),
- * Esc, the swipe down and the press outside (`design/phone-2026-10/README.md` §3 "Closing";
+ * EDN-16), the phone sheet's stays-open form (DSN-53): the rise from below and back
+ * (`drawer-motion.ts`, MOT-12), Esc and Android's back (a close watcher where the browser has
+ * one), the swipe down and the press outside (`design/phone-2026-10/README.md` §3 "Closing";
  * EDN-18, `drawer-close.ts`).
  *
  * - Opening, the panel takes focus; closed (the motion's finish, never a timer), the chip takes
@@ -11,6 +12,8 @@
  *   through and a press outside closes the drawer as it goes on to the page (EDN-18).
  * - The swipe: the panel follows the finger once a press has gone `DRAG_START_PX` down (more
  *   down than sideways), and a long or quick enough swipe closes it; a shorter one springs back.
+ *   A press in a list that has scrolled from its top scrolls it instead, so the swipe never
+ *   fights the rows (iOS Safari): from the head, or from rows at their top.
  */
 import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef } from 'react';
 
@@ -19,6 +22,12 @@ import { useToolStore } from '../../../viewer/tool-store';
 import { setDrawerOpen } from '../compact-store';
 import { closeOnOutsidePress, pressGoesThrough } from './drawer-close';
 import { drawerMotion, type DrawerMotion, swipeCloses } from './drawer-motion';
+
+/** The browser's close watcher (Android's back), where it has one. */
+interface CloseWatcherLike {
+  onclose: (() => void) | null;
+  destroy(): void;
+}
 
 /** A drag this far down (CSS px) takes the panel with the finger. */
 const DRAG_START_PX = 6;
@@ -57,7 +66,6 @@ export function useDrawerPanel(
     if (!panel) return;
     motion.current ??= drawerMotion(
       panel,
-      chipOf,
       covered.current ? () => covered.current?.() ?? null : undefined,
     );
     if (open) {
@@ -92,7 +100,7 @@ export function useDrawerPanel(
     return closeOnOutsidePress(() => panelRef.current);
   }, [open, through]);
 
-  // Esc closes from anywhere while open.
+  // Esc closes from anywhere while open; so does Android's back, through a close watcher.
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
@@ -101,7 +109,19 @@ export function useDrawerPanel(
       setDrawerOpen(false);
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const Watcher = (window as unknown as { CloseWatcher?: new () => CloseWatcherLike })
+      .CloseWatcher;
+    let watcher: CloseWatcherLike | undefined;
+    try {
+      watcher = Watcher ? new Watcher() : undefined;
+    } catch {
+      // Without a user activation a browser may refuse one: Esc and the rest still close it.
+    }
+    if (watcher) watcher.onclose = () => setDrawerOpen(false);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      watcher?.destroy();
+    };
   }, [open]);
 
   // Swipe down: the panel follows the finger, and a long or quick enough swipe closes it.
@@ -109,6 +129,9 @@ export function useDrawerPanel(
   const swipe: DrawerPanel['swipe'] = {
     onPointerDown: (event) => {
       if (!event.isPrimary || !open) return;
+      // Rows scrolled from their top take the press as a scroll, never as the swipe.
+      const scroller = (event.target as Element).closest?.('[data-scrolls]');
+      if (scroller && scroller.scrollTop > 0) return;
       drag.current = {
         id: event.pointerId,
         x: event.clientX,
