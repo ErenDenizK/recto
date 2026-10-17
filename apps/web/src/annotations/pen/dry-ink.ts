@@ -40,6 +40,7 @@ import type { Annotation } from '@pdf-editor/engine';
 import { inkOutlineOps } from '@pdf-editor/engine/ink-outline';
 
 import { getEngineService } from '../../engine/engine-service';
+import { nextFrame } from '../../motion/animate';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import {
   notePenDown,
@@ -124,12 +125,6 @@ const shown = new Map<string, number>();
 const flushAfter = new Map<string, number>();
 /** `SettleInk` release functions of dry strokes, for `inkCommitted`. */
 const handles = new WeakMap<() => void, DryStroke>();
-
-/** Runs `callback` in the next animation frame (a timer where frames do not run). */
-function nextFrame(callback: () => void): void {
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => callback());
-  else setTimeout(callback, 16);
-}
 
 /** The strokes the dry layer holds for page `pageIndex` of `source` (tests, the views). */
 export function dryStrokes(source: SourceId, pageIndex: number): readonly DryStroke[] {

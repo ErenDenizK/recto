@@ -33,6 +33,7 @@ import type { PageTarget } from '../../../annotations/annotation-store';
 import { cssPointToUser, rectToCss } from '../../../annotations/geometry';
 import { penSession } from '../../../annotations/pen/ink-input';
 import { m } from '../../../i18n';
+import { nextFrame } from '../../../motion/animate';
 import type { PageOverlayProps } from '../../../stage/page-overlays';
 import { ParagraphEditLayer, setParagraphEditorEdition } from '../../../text-edit/ParagraphEditor';
 import { openParagraphEditor } from '../../../text-edit/paragraph-open';
@@ -148,8 +149,6 @@ function pageAt(at: { readonly x: number; readonly y: number }): PageEntry | und
   }
   return undefined;
 }
-
-const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 /** Opens the paragraph of `entry`'s page at `at` (client px); false when none is there. */
 async function openOnPage(

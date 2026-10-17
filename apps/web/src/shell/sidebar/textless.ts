@@ -83,8 +83,3 @@ export function useTextless(doc: VirtualDocument | undefined): Textless | undefi
   }, [doc, edits]);
   return state !== undefined && state.id === doc?.id ? state.value : undefined;
 }
-
-/** Tests: forget what was read. */
-export function resetTextless(): void {
-  cache.clear();
-}

@@ -29,6 +29,8 @@
  * - **Bubble** (§3.1): how far the value bubble shifts to stay inside the viewport.
  */
 
+import { clamp } from '../motion/velocity';
+
 export type SliderScale = 'linear' | 'log' | 'stops';
 
 export interface SliderRange {
@@ -52,10 +54,6 @@ export const STROKE_DOT = {
 export const PX_PER_PT = 96 / 72;
 /** One arrow press on a logarithmic slider without detents, as a share of the travel. */
 export const LOG_KEY_STEP = 0.01;
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 function valid(range: SliderRange): boolean {
   if (!(range.max > range.min)) return false;

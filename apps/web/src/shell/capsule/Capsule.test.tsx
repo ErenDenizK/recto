@@ -13,6 +13,7 @@ import '../../styles/global.css';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { nextFrame } from '../../motion/animate';
 import { Capsule } from './Capsule';
 import type { CapsuleShape } from './capsule-content';
 import {
@@ -76,7 +77,6 @@ function Harness({
 }
 
 const capsule = () => document.querySelector<HTMLElement>('[data-capsule]') as HTMLElement;
-const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /** Every Web Animation in the capsule (the morph's own, not CSS transitions). */
 const morphs = () =>

@@ -7,8 +7,6 @@
 
 export type RasterFormat = 'png' | 'jpeg' | 'webp';
 export type RasterBackground = 'white' | 'transparent';
-
-export const RASTER_DPI_PRESETS = [72, 150, 300, 600] as const;
 export const MIN_RASTER_DPI = 18;
 export const MAX_RASTER_DPI = 1200;
 /** Largest tile rendered in one call (the engine service's MAX_BITMAP_PIXELS side). */

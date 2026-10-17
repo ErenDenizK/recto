@@ -51,8 +51,3 @@ export function drawerVariant(): DrawerVariant {
   }
   return chosen;
 }
-
-/** Tests: forget the variant read. */
-export function resetDrawerVariant(): void {
-  chosen = undefined;
-}

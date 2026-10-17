@@ -58,6 +58,11 @@ export interface CompactState {
   /** The top bar is the Find field. */
   readonly findOpen: boolean;
   readonly sheet: CompactSheet | null;
+  /**
+   * How many scrim sheets (`CompactSheet`: the store's `sheet`, Password, New signature) are
+   * open; the toast stack steps aside while any is (DSN-56).
+   */
+  readonly scrimSheets: number;
   /** The note the `note` sheet shows (a tap on its target, `NoteLayer.tsx`). */
   readonly note: NoteAnnotation | null;
   readonly menuOpen: boolean;
@@ -108,6 +113,7 @@ const INITIAL: CompactState = {
   chromeHidden: false,
   findOpen: false,
   sheet: null,
+  scrimSheets: 0,
   note: null,
   menuOpen: false,
   zoom: 1,
@@ -199,6 +205,11 @@ export function openSheet(sheet: CompactSheet, note: NoteAnnotation | null = nul
         ? active
         : null;
   set({ sheet, note, menuOpen: false, chromeHidden: false });
+}
+
+/** A scrim sheet opened (1) or closed (−1): `CompactSheet` counts itself (DSN-56). */
+export function countScrimSheet(delta: 1 | -1): void {
+  useCompactStore.setState((s) => ({ scrimSheets: Math.max(0, s.scrimSheets + delta) }));
 }
 
 export function closeSheet(): void {

@@ -14,19 +14,7 @@ import { enterGrid } from './grid/grid-transition';
 
 export { takeGridReveal } from './grid/grid-transition';
 
-/** What the door does: the Pages grid's entrance; tests may swap it. */
-type Door = (page: PageId) => void;
-
-const openGrid: Door = (page) => enterGrid({ page });
-
-let door: Door = openGrid;
-
 /** Opens the Pages grid at `page` of the active document (module header). */
 export function enterPagesGrid(page: PageId): void {
-  door(page);
-}
-
-/** Replaces the door (tests); null restores the Pages grid's. */
-export function setPagesGridDoor(next: Door | null): void {
-  door = next ?? openGrid;
+  enterGrid({ page });
 }

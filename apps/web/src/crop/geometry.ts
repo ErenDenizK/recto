@@ -16,6 +16,7 @@
  * from it, so a page with an earlier crop opens with that crop as its margins.
  */
 import { MIN_PAGE_SIDE, type Rect, type Rotation, type Size } from '@pdf-editor/document-model';
+import { clamp as clampTo } from '../motion/velocity';
 
 /** Distances from the displayed page's edges, in points (display orientation). */
 export interface Margins {
@@ -236,8 +237,8 @@ export function composePlacement(outer: Placement, inner: Placement): Placement 
 /** Which part of the crop rectangle a drag holds: an edge, a corner, or the whole. */
 export type Handle = 'n' | 'e' | 's' | 'w' | 'ne' | 'se' | 'sw' | 'nw' | 'move';
 
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), Math.max(min, max));
+/** `clamp` with the floor winning when `max` is below `min` (no room left). */
+const clamp = (value: number, min: number, max: number) => clampTo(value, min, Math.max(min, max));
 
 /**
  * Displayed margins after dragging `handle` by (dx, dy) display points (x right, y down)

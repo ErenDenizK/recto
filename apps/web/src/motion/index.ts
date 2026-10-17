@@ -6,9 +6,11 @@
  *   `springToLinear()` for the CSS curves (§7.1–§7.2).
  * - `animate.ts`: `animate()` for script values on one requestAnimationFrame loop that stops at
  *   rest, and `animateStyle()` for elements on Web Animations; both retarget with velocity
- *   (Q-10) and leave no transform or `will-change` at rest (Q-2).
+ *   (Q-10) and leave no transform or `will-change` at rest (Q-2); `nextFrame()`, the one wait
+ *   for the next frame.
  * - `flip.ts`: FLIP with scale, interruption and retarget (§7.3 *reflow*).
- * - `velocity.ts`: `velocityTracker()`, `project()`, `rubberBand()` (research 18 §9).
+ * - `velocity.ts`: `velocityTracker()`, `project()`, `rubberBand()` (research 18 §9), and the
+ *   number helpers `clamp()` and `lerp()` every layer shares (R22 X1).
  * - `reduced-motion.ts`: `reducedMotion()` from the OS query or `data-motion`, the only source
  *   script asks (§7.5–§7.6, A-9).
  * - `view-transition.ts`: `viewTransition()` at 240 ms (§7.4).
@@ -36,6 +38,7 @@ export {
   animateStyle,
   type Motion,
   type MotionValue,
+  nextFrame,
   type StyleOptions,
   type StyleProperty,
   type Styled,
@@ -96,5 +99,12 @@ export {
   VT_MS,
   VT_REDUCED_MS,
 } from './tokens';
-export { project, rubberBand, type VelocityTracker, velocityTracker } from './velocity';
+export {
+  clamp,
+  lerp,
+  project,
+  rubberBand,
+  type VelocityTracker,
+  velocityTracker,
+} from './velocity';
 export { VIEW_TRANSITION_MS, viewTransition } from './view-transition';

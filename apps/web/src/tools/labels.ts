@@ -1,5 +1,5 @@
 /** Localized labels for compression presets and skip reasons. */
-import type { CompressionPresetId, CompressionSettings, ImageSkipReason } from '@pdf-editor/engine';
+import type { CompressionPresetId, ImageSkipReason } from '@pdf-editor/engine';
 
 import { m } from '../i18n';
 
@@ -14,16 +14,6 @@ export function presetName(preset: CompressionPresetId): string {
     case 'custom':
       return m.compress_preset_custom();
   }
-}
-
-/** "E-book (150 dpi, quality 75)". */
-export function presetDescription(
-  settings: Pick<CompressionSettings, 'preset' | 'dpi' | 'quality'>,
-): string {
-  return `${presetName(settings.preset)} (${m.compress_preset_values({
-    dpi: settings.dpi,
-    quality: settings.quality,
-  })})`;
 }
 
 export function skipReason(reason: ImageSkipReason): string {

@@ -23,6 +23,7 @@
  * `SNAP_DEG`. In a writing context (`strict`) the limits tighten and shapes must be larger.
  */
 import type { Point } from '../ink';
+import { lerp } from '../../motion/velocity';
 import { rotate } from './shape-outline';
 
 export { arrowHead, axisAligned, ELLIPSE_SEGMENTS, outline, scaleGeometry } from './shape-outline';
@@ -127,9 +128,9 @@ const DEG = Math.PI / 180;
 // ---------------------------------------------------------------------------
 
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
-const lerp = (a: Point, b: Point, t: number): Point => ({
-  x: a.x + (b.x - a.x) * t,
-  y: a.y + (b.y - a.y) * t,
+const lerpPoint = (a: Point, b: Point, t: number): Point => ({
+  x: lerp(a.x, b.x, t),
+  y: lerp(a.y, b.y, t),
 });
 /** Angle in (−π, π]. */
 const wrap = (a: number) => {
@@ -198,7 +199,7 @@ export function resample(points: readonly Point[], n: number, closed = false): P
       const seg = dist(from, to);
       if (walked + seg >= target || i === path.length - 1) {
         const t = seg === 0 ? 0 : Math.min(1, (target - walked) / seg);
-        const p = lerp(from, to, t);
+        const p = lerpPoint(from, to, t);
         out.push(p);
         walked = target;
         from = p;
@@ -1077,7 +1078,7 @@ export function fitArrow(points: readonly Point[], f: StrokeFeatures): Candidate
   ];
   const shaft = dist(A, B);
   if (shaft < MIN_LINE_PX || dist(B, B2) > 0.15 * shaft) return undefined;
-  const tip = lerp(B, B2, 0.5);
+  const tip = lerpPoint(B, B2, 0.5);
   const barb = (p: Point) => {
     const len = dist(tip, p);
     if (len < 0.08 * shaft || len > 0.6 * shaft) return undefined;

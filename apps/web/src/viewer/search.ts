@@ -21,7 +21,7 @@ import { reducedMotion } from '../motion/reduced-motion';
 import { springToLinear } from '../motion/springs';
 import { EASE, SPRING_CSS_MS } from '../motion/tokens';
 import { showOverlaySidebar } from '../shell/frame/frame-store';
-import { isPageView, type LeftPanelView, useUiStore } from '../state/ui-store';
+import { isPageView, useUiStore } from '../state/ui-store';
 import { useViewStore } from '../state/view-store';
 import { afterJump } from './jump-landed';
 
@@ -445,9 +445,6 @@ function pulseHit(hit: Element | null): void {
 // Panel open / close (Mod+F, Esc)
 // ---------------------------------------------------------------------------
 
-/** What the left panel showed before Mod+F, so Esc can put it back. */
-let restoreView: { readonly open: boolean; readonly view: LeftPanelView } | null = null;
-
 /** The strip's Find entry while it is mounted (`shell/frame/FindEntry.tsx`, 01-frame F6). */
 let findEntryOpener: (() => void) | undefined;
 
@@ -469,27 +466,11 @@ export function openFind(): void {
 export function openSearchPanel(): void {
   const ui = useUiStore.getState();
   if (!(ui.leftPanelOpen && ui.leftPanelView === 'find')) {
-    restoreView = { open: ui.leftPanelOpen, view: ui.leftPanelView };
     useUiStore.setState({ leftPanelOpen: true, leftPanelView: 'find' });
   }
   // Laid over the page (medium), the sidebar shows once asked for: this asks.
   showOverlaySidebar(true);
   requestSearchFocus();
-}
-
-/** Clears the search and returns the left panel to what it showed before (Esc). */
-export function closeSearchPanel(): void {
-  clearSearch();
-  const ui = useUiStore.getState();
-  if (ui.leftPanelOpen && ui.leftPanelView === 'find') {
-    const previous = restoreView;
-    useUiStore.setState(
-      previous && previous.view !== 'find'
-        ? { leftPanelOpen: previous.open, leftPanelView: previous.view }
-        : { leftPanelOpen: false },
-    );
-  }
-  restoreView = null;
 }
 
 /** Moves to the next / previous hit and shows it. */

@@ -15,6 +15,7 @@
 import type { DocumentId } from '@pdf-editor/document-model';
 import { create } from 'zustand';
 
+import { clamp } from '../motion/velocity';
 import { readJson, writeJson } from './safe-storage';
 import { useWorkspaceStore } from './workspace-store';
 
@@ -110,10 +111,6 @@ export const LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v3';
 export const V2_LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v2';
 /** The seven-tab rail's layout, read once when neither `ui:v3` nor `ui:v2` is there. */
 export const LEGACY_LAYOUT_STORAGE_KEY = 'pdf-editor:ui:v1';
-
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 export function nextZoomLevel(current: number, direction: 1 | -1): number {
   if (direction > 0) return ZOOM_LEVELS.find((z) => z > current + 1e-3) ?? MAX_ZOOM;

@@ -75,7 +75,7 @@ export interface Toast extends ToastInput {
 }
 
 /** What pauses the timers (FB4 §4 "Paused"). */
-export type PauseReason = 'hover' | 'focus' | 'pointer' | 'hidden' | 'modal';
+export type PauseReason = 'hover' | 'focus' | 'pointer' | 'hidden' | 'modal' | 'sheet';
 
 interface ToastState {
   /** On screen, oldest first. */

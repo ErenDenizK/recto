@@ -13,6 +13,7 @@
  * same linear blend of the reader's box and the tile's box on both layers at every progress:
  * the page and its tile stay one through the whole move, whatever easing drives it.
  */
+import { lerp } from '../../../motion/velocity';
 import type { Box } from './overview-layout';
 
 /** `translate(x, y) scale(scale)` about the element's top-left. */
@@ -31,10 +32,6 @@ export interface Point {
 
 export function affineCss(t: Affine): string {
   return `translate(${t.x}px, ${t.y}px) scale(${t.scale})`;
-}
-
-export function lerp(a: number, b: number, p: number): number {
-  return a + (b - a) * p;
 }
 
 export function lerpAffine(a: Affine, b: Affine, p: number): Affine {

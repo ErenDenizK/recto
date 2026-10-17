@@ -194,13 +194,3 @@ export type MarkupMode = (typeof MARKUP_MODES)[number];
 export function isMarkupMode(mode: ToolMode): mode is MarkupMode {
   return (MARKUP_MODES as readonly string[]).includes(mode);
 }
-
-/** The tools of a palette group, in palette order. */
-export function toolsOfGroup(group: PaletteGroup): readonly ToolDefinition[] {
-  return ANNOTATION_TOOLS.filter((t) => t.group === group);
-}
-
-/** The palette group of a tool; none for the text markups. */
-export function paletteGroupOfMode(mode: ToolMode): PaletteGroup | undefined {
-  return toolDefinition(mode).mode === mode ? toolDefinition(mode).group : undefined;
-}

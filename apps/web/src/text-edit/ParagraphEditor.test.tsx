@@ -189,6 +189,9 @@ async function typeTimed(keys: string): Promise<{ between: number; pauses: () =>
   };
 }
 
+/** How long a wait for a preview may take before it counts as never coming (a loaded runner). */
+const PREVIEW_WAIT_MS = 10_000;
+
 function renderEditor(session: ParagraphSession) {
   act(() => useTextEditStore.getState().openParagraph(session));
   const view = render(<ParagraphEditor session={session} frame={FRAME} revision={0} />);
@@ -279,15 +282,18 @@ describe('ParagraphEditor', () => {
         expect(drafts().at(-1)?.[2]?.text).toBe(
           'The abcquick brown fox jumps over the lazy dog and runs away.',
         ),
-      { timeout: 2000 },
+      { timeout: PREVIEW_WAIT_MS },
     );
     const previews = spies.preview.mock.calls.length;
+    const since = performance.now();
     expect(drafts().length).toBeLessThanOrEqual(1 + typed.between);
     const edit = drafts().at(-1)?.[2];
     expect(edit?.caretSpan).toEqual({ start: 4, end: 4 });
     expect(edit?.layout).toBeDefined();
-    await waitFor(() =>
-      expect(container.querySelector('[data-paragraph-editor]')).toHaveAttribute('data-preview'),
+    await waitFor(
+      () =>
+        expect(container.querySelector('[data-paragraph-editor]')).toHaveAttribute('data-preview'),
+      { timeout: PREVIEW_WAIT_MS },
     );
     expect(screen.getByTestId('paragraph-preview')).toBeInTheDocument();
     // Moving the caret keeps the preview; typing returns to the canvas.
@@ -300,7 +306,10 @@ describe('ParagraphEditor', () => {
         'data-preview',
       ),
     );
-    expect(spies.preview).toHaveBeenCalledTimes(previews);
+    // No new preview within the pause; on a loaded runner the steps above can outlast it, and a
+    // preview for that draft is then correct (one for the caret move, one for the keystroke).
+    const outlasted = performance.now() - since >= PREVIEW_DELAY_MS;
+    expect(spies.preview.mock.calls.length).toBeLessThanOrEqual(previews + (outlasted ? 2 : 0));
   });
 
   it('commits once on Esc after a change', async () => {

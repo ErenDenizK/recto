@@ -13,6 +13,8 @@
  * the 2px insertion bar never shifts anything.
  */
 
+import { clamp } from '../motion/velocity';
+
 /** Spacing constants (CSS pixels). */
 export const GRID = {
   padX: 32,
@@ -104,10 +106,6 @@ export function gridMetrics(
 
 export function rowCount(count: number, columns: number): number {
   return Math.ceil(count / Math.max(1, columns));
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 // ---------------------------------------------------------------------------

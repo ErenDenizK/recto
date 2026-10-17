@@ -58,19 +58,6 @@ export function roundRect(r: Rect): Rect {
   return { x: round(r.x), y: round(r.y), width: round(r.width), height: round(r.height) };
 }
 
-export function rectCenter(r: Rect): { x: number; y: number } {
-  return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-}
-
-export function containsPoint(r: Rect, p: { x: number; y: number }, pad = 0): boolean {
-  return (
-    p.x >= r.x - pad &&
-    p.x <= r.x + r.width + pad &&
-    p.y >= r.y - pad &&
-    p.y <= r.y + r.height + pad
-  );
-}
-
 /**
  * Merges rects that sit on the same line (vertical overlap over half the smaller height)
  * and touch or nearly touch horizontally: one rect per line of a multi-word span.

@@ -25,10 +25,3 @@ export function getAssembler(): Promise<AssemblerProxy> {
   }
   return shared;
 }
-
-/** Terminates the worker (tests, teardown). */
-export async function disposeAssembler(): Promise<void> {
-  const current = shared;
-  shared = undefined;
-  (await current)?.dispose();
-}

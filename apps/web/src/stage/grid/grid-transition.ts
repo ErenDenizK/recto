@@ -42,6 +42,7 @@ import type { DocumentId, PageId } from '@pdf-editor/document-model';
 import { useSyncExternalStore } from 'react';
 
 import { m } from '../../i18n';
+import { nextFrame } from '../../motion/animate';
 import { viewTransition } from '../../motion/view-transition';
 import { VT_MS } from '../../motion/tokens';
 import { announce } from '../../shell/announcer';
@@ -86,8 +87,6 @@ export function usePreparedPageView(): DocumentId | null {
     () => null,
   );
 }
-
-const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 /** Resolves once `page`'s canvas in the page view has rendered, or after `PREPARE_MS`. */
 async function pageDrawn(page: PageId): Promise<void> {

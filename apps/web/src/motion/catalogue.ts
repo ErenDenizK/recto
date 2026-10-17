@@ -15,7 +15,7 @@
  * `pressScale()` in `tokens.ts` for script. Nothing here leaves a transform, an outline or
  * `will-change` on its element at rest (Q-2), and nothing runs after it ends (Q-10).
  */
-import { animateStyle, type Motion } from './animate';
+import { animateStyle, type Motion, nextFrame } from './animate';
 import { reducedMotion } from './reduced-motion';
 import { duration, EASE, ENTER_SCALE, RING_FLASH, SHEET_PUSH_PX } from './tokens';
 
@@ -91,8 +91,6 @@ export function ringFlash(element: Element, colour: RingColour = 'select'): Anim
 
 /** How many frames `revealWhenShown` waits for its target to be laid out. */
 const MAX_WAIT_FRAMES = 30;
-
-const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 /**
  * The second half of the *find step* (05.2) and *undo reveal* composites: once *scroll-to* has
