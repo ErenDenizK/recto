@@ -52,10 +52,6 @@ export function ensureFace(face: BundledFace): void {
   loading.set(face.key, pending);
 }
 
-export function isFaceLoaded(face: BundledFace): boolean {
-  return loaded.has(face.key);
-}
-
 /** Increments whenever a face finishes loading (for useSyncExternalStore). */
 export function fontsVersion(): number {
   return version;

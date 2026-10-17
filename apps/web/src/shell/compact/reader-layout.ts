@@ -14,6 +14,7 @@
 import type { Size } from '@pdf-editor/document-model';
 
 import { sheetSize } from '../../engine/engine-service';
+import { clamp } from '../../motion/velocity';
 
 export const MIN_ZOOM = 1;
 export const MAX_ZOOM = 5;
@@ -196,10 +197,6 @@ export function scrollForAnchor(
     left: clamp(left, 0, Math.max(0, layout.width - frame.width)),
     top: clamp(top, 0, Math.max(0, layout.height - frame.height)),
   };
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 /** A transform of the page stage (origin at its top-left): translate, then scale. */

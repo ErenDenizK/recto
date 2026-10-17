@@ -63,8 +63,3 @@ export function usePaletteLayout(): PaletteLayout {
     () => layout,
   );
 }
-
-/** Tests: nothing measured. */
-export function resetPaletteLayout(): void {
-  publish({ measured: null, available: Number.POSITIVE_INFINITY });
-}

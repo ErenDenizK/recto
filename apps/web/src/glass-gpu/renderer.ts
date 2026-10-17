@@ -576,6 +576,21 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
     return texture;
   };
 
+  /**
+   * Releases the textures of page canvases that left the document, and with them the
+   * canvases: after each draw, and on each DOM change, so pages that go while glass is paused
+   * (or with nothing to draw) are not kept until the next draw.
+   */
+  const dropDisconnected = () => {
+    const context = gl;
+    for (const [source, texture] of textures) {
+      if (!source.isConnected) {
+        context.deleteTexture(texture.tex);
+        textures.delete(source);
+      }
+    }
+  };
+
   /** Binds the pages under `box` to units 0–3 and sets the backdrop's uniforms. */
   const bindPages = (
     program: WebGLProgram,
@@ -718,12 +733,7 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
         textures.delete(source);
       }
     }
-    for (const [source, texture] of textures) {
-      if (!source.isConnected) {
-        context.deleteTexture(texture.tex);
-        textures.delete(source);
-      }
-    }
+    dropDisconnected();
     // The pieces drop their own CSS in the frame their GPU glass first shows.
     if (canvas.style.visibility !== '') canvas.style.visibility = '';
     for (const { piece } of scene.placed) piece.el.classList.add(GPU_GLASS_CLASS);
@@ -808,6 +818,9 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
       )
     ) {
       collect();
+    }
+    if (textures.size > 0 && records.some((record) => record.type === 'childList')) {
+      dropDisconnected();
     }
     kick();
   });

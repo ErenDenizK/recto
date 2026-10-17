@@ -262,11 +262,6 @@ export type CopyTarget =
 /** The folder of the last copy, offered next time (memory only, never persisted). */
 let lastHandle: CopyHandle | undefined;
 
-/** Forgets the remembered folder (tests). */
-export function forgetCopyFolder(): void {
-  lastHandle = undefined;
-}
-
 const isNamed = (error: unknown, name: string) =>
   error instanceof DOMException && error.name === name;
 

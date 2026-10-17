@@ -122,25 +122,6 @@ export function requestDiagnostics(sourceId: SourceId): void {
   })();
 }
 
-/** Resolves once every listed source has an entry that is not loading. */
-export function whenDiagnosed(sourceIds: readonly SourceId[]): Promise<void> {
-  for (const id of sourceIds) requestDiagnostics(id);
-  const done = () =>
-    sourceIds.every((id) => {
-      const entry = useDiagnosticsStore.getState().entries[id];
-      return entry !== undefined && entry.status !== 'loading';
-    });
-  if (done()) return Promise.resolve();
-  return new Promise((resolve) => {
-    const stop = useDiagnosticsStore.subscribe(() => {
-      if (done()) {
-        stop();
-        resolve();
-      }
-    });
-  });
-}
-
 /**
  * The diagnostics of `sourceIds` (same order), requested when `enabled` (e.g. once a
  * "Details" disclosure opens). Entries are undefined until requested.

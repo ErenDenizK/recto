@@ -368,13 +368,3 @@ function removeOutsidePress(): void {
   window.removeEventListener('pointerdown', onOutsideDown, { capture: true });
   window.removeEventListener('pointerup', onOutsideUp, { capture: true });
 }
-
-/** Tests: forget the flow. */
-export function resetFillSession(): void {
-  session = null;
-  removeOutsidePress();
-  // A check box the bar stood on lets the focus go.
-  const focused = document.activeElement;
-  if (focused instanceof HTMLElement && focused.closest('[data-fill-target]')) focused.blur();
-  publish();
-}

@@ -94,8 +94,3 @@ export function rotatedRectFix(editor: ProbeEngine): Promise<RectFix> {
   })();
   return rectFix;
 }
-
-/** Tests: forget the probe result. */
-export function resetEngineQuirks(): void {
-  rectFix = undefined;
-}

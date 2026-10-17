@@ -15,6 +15,8 @@
  * scaled from points. Pure, so the order is tested without a page (`header-place.test.ts`).
  */
 
+import { clamp as clampTo } from '../motion/velocity';
+
 /** Gap between the paragraph (or the content around it, or the frame) and the header. */
 export const HEADER_GAP = 8;
 /**
@@ -56,8 +58,8 @@ export interface HeaderPlaceInput {
   readonly below?: number | undefined;
 }
 
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), Math.max(min, max));
+/** `clamp` with the floor winning when `max` is below `min` (no room left). */
+const clamp = (value: number, min: number, max: number) => clampTo(value, min, Math.max(min, max));
 
 function overlaps(a: Edges, b: Edges): boolean {
   return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;

@@ -122,11 +122,6 @@ export function rememberDocumentHandle(id: DocumentId, handle: unknown): void {
   if (isWritableHandle(handle)) handles.set(id, handle);
 }
 
-/** The handle this session keeps for document `id`, if any. */
-export function documentHandleOf(id: DocumentId): WritableFileHandle | undefined {
-  return handles.get(id);
-}
-
 /**
  * The handle Recents stored for the file document `id` was opened from (a restored or reopened
  * document), read now, on the Save press. Only a document that is that file has an origin

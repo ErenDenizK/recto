@@ -16,6 +16,7 @@
  * - `whenPenUp`: thumbnails and neighbouring pages wait while a pen is down (`notePenDown`).
  */
 import type { SourceId } from '@pdf-editor/document-model';
+import { nextFrame } from '../motion/animate';
 
 export interface ReadController {
   /** Scrolls about one screen down (+1) or up (-1); in single-page layout, turns pages at the ends. */
@@ -56,12 +57,6 @@ const waiters = new Map<string, Set<PaintWaiter>>();
 
 function paintKey(source: SourceId, pageIndex: number): string {
   return `${source}:${pageIndex}`;
-}
-
-/** Runs `callback` in the next animation frame (a timer where frames do not run). */
-function nextFrame(callback: () => void): void {
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => callback());
-  else setTimeout(callback, 16);
 }
 
 /**

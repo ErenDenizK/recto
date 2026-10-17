@@ -69,8 +69,6 @@ export interface SheetLayout {
 export const TOOL_DETENTS = [0.4, 0.92] as const;
 /** The compact task and settings sheets' one detent. */
 export const TASK_DETENTS = [0.92] as const;
-/** A compact confirmation is at most this share of the window tall (07 §1.1). */
-export const CONFIRMATION_MAX_SHARE = 0.6;
 
 /** Widths of 07 §2.2. */
 export const SHEET_WIDTH = {

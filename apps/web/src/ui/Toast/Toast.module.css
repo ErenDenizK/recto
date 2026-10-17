@@ -66,6 +66,14 @@
   --toast-band: max(env(safe-area-inset-bottom, 0px), 12px);
 }
 
+/* A phone scrim sheet rests its foot where the capsule rests (DSN-55), so a toast in its place
+   would cover the sheet's footer: while one is open the stack is hidden and its timers paused
+   (A-24), and it comes back with the time it had left (DSN-56). Visibility, not opacity, so no
+   toast's glass loses its backdrop to a fading parent. */
+.region[data-covered] {
+  visibility: hidden;
+}
+
 .toast {
   composes: mat mat-bar s8 from global;
   /* How far a trailing control's box sits from the padding edge, so that its capsule sits as

@@ -36,7 +36,7 @@ import { m } from '../../i18n';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import styles from './CompactSheet.module.css';
-import { sheetOpener } from './compact-store';
+import { countScrimSheet, sheetOpener } from './compact-store';
 import { watchSheet } from './sheet-release';
 import shape from './sheet-shape.module.css';
 
@@ -87,6 +87,12 @@ export function CompactSheet({
     setWasOpen(open);
     if (open) setDetent(first);
   }
+  // The toast stack steps aside while a scrim sheet is open (DSN-56).
+  useEffect(() => {
+    if (!open) return;
+    countScrimSheet(1);
+    return () => countScrimSheet(-1);
+  }, [open]);
   // Focus lands on a control, never on the panel itself (visual audit 2026-10 defect 4).
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {

@@ -401,19 +401,6 @@ export async function compareOnHome(a: DocumentId, b: DocumentId): Promise<void>
   announce(m.compare_mode_long());
 }
 
-/** Arrange with the selected documents shown (every document when none is selected). */
-export function arrangeOnHome(selection: readonly DocumentId[]): void {
-  const all = order();
-  const selected = liveSelection(all, selection);
-  const shown = selected.length > 0 ? selected : all;
-  const first = shown[0];
-  if (first === undefined) return;
-  model().setActive(first);
-  ui().setGridScope(shown.length > 1 ? 'all' : 'document');
-  for (const id of all) ui().setArrangeCollapsed(id, !shown.includes(id));
-  ui().showSurface('grid', first);
-}
-
 /**
  * Closes the selected documents as one undoable step. `quiet` leaves the announcement to the
  * caller's toast (the Library's Close says it with its Undo).

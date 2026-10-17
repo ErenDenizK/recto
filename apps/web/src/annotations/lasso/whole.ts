@@ -20,11 +20,6 @@ import { hasStrokeWidth, normalizeHex, withColor } from '../colors';
 import { translateAnnotation } from '../geometry';
 import { type LassoEdit, transformAnnotation } from './transform';
 
-/** True when a width change applies to `a`. */
-export function takesStrokeWidth(a: Annotation): boolean {
-  return hasStrokeWidth(a);
-}
-
 /** True when a colour change applies to `a`. */
 export function takesColor(a: Annotation): boolean {
   return a.kind !== 'stamp' && a.kind !== 'link';

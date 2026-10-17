@@ -61,8 +61,3 @@ export function dismissApplyOutcome(): void {
     useApplyDialogStore.setState({ run: IDLE });
   }
 }
-
-/** Tests: closed, nothing running. */
-export function resetApplyDialog(): void {
-  useApplyDialogStore.setState({ open: false, run: IDLE });
-}

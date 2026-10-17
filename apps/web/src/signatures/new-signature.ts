@@ -5,7 +5,7 @@
  * `preset`: `use` (the default) makes a signature to place, `keep` (from Settings) keeps one
  * and goes back to Settings → Saved signatures.
  */
-import { openSheet, useSheetStore } from '../ui/sheet';
+import { openSheet } from '../ui/sheet';
 
 /** The sheet's id in the sheet store; New signature belongs to the app, not to a document. */
 export const NEW_SIGNATURE_SHEET_ID = 'new-signature';
@@ -20,9 +20,4 @@ export function openNewSignature(intent: NewSignatureIntent = 'use'): void {
 /** What the open New signature is for. */
 export function intentOf(preset: string | null): NewSignatureIntent {
   return preset === 'keep' ? 'keep' : 'use';
-}
-
-/** Whether New signature is open now. */
-export function newSignatureOpen(): boolean {
-  return useSheetStore.getState().open?.id === NEW_SIGNATURE_SHEET_ID;
 }

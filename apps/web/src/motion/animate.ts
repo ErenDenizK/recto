@@ -229,6 +229,19 @@ function tick() {
 }
 
 /**
+ * The next animation frame (R22 X1, the one copy): with `callback`, runs it then (on a 16 ms
+ * timer where frames do not run); without, a promise that resolves then.
+ */
+export function nextFrame(): Promise<void>;
+export function nextFrame(callback: () => void): void;
+export function nextFrame(callback?: () => void): Promise<void> | undefined {
+  if (!callback) return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => callback());
+  else setTimeout(callback, 16);
+  return undefined;
+}
+
+/**
  * Animates `from` → `to` on a spring, calling `onUpdate` every frame; for script values, while
  * elements go through `animateStyle()`. An instant motion (reduced motion) calls `onUpdate` and
  * `onComplete` before it returns.

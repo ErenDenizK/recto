@@ -32,36 +32,6 @@ export function thumbSimilarity(a: Uint8Array, b: Uint8Array): number {
   return Math.max(0, 1 - sum / n / THUMB_SCALE);
 }
 
-export function jaccard(a: Int32Array, b: Int32Array): number {
-  if (a.length === 0 && b.length === 0) return 0;
-  let i = 0;
-  let j = 0;
-  let common = 0;
-  while (i < a.length && j < b.length) {
-    const x = a[i] as number;
-    const y = b[j] as number;
-    if (x === y) {
-      common++;
-      i++;
-      j++;
-    } else if (x < y) i++;
-    else j++;
-  }
-  return common / (a.length + b.length - common);
-}
-
-/** Similarity of one pair and what it was based on. */
-export function pageSimilarity(
-  a: AlignPage,
-  b: AlignPage,
-): { value: number; basis: PagePair['basis'] } {
-  if (a.words > 0 && b.words > 0) return { value: jaccard(a.shingles, b.shingles), basis: 'text' };
-  if (a.words === 0 && b.words === 0 && a.thumb && b.thumb) {
-    return { value: thumbSimilarity(a.thumb, b.thumb), basis: 'thumbnail' };
-  }
-  return { value: 0, basis: 'none' };
-}
-
 /** Similarity matrix (row-major n×m) and the basis of each entry (0 none, 1 text, 2 thumbnail). */
 export interface SimilarityMatrix {
   readonly n: number;

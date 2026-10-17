@@ -355,12 +355,6 @@ async function jobsOf(ctx: EngineContext): Promise<SourceJob[]> {
   return jobs;
 }
 
-/** Whether any listed mark is ticked (the panel's Apply button). */
-export function hasTickedMarks(entries: readonly { readonly markKey: string }[]): boolean {
-  const excluded = useRedactionStore.getState().excluded;
-  return entries.some((e) => !excluded.has(e.markKey));
-}
-
 /** `ctx` whose editor reports the result of `applyRedactionPlan` (executeEdit drops it). */
 function capturing(ctx: EngineContext): {
   readonly ctx: EngineContext;
@@ -419,11 +413,6 @@ function recordedAreas(source: SourceId): RedactionPlan['areas'] {
 }
 
 let applying = false;
-
-/** Whether an apply is running. */
-export function isApplying(): boolean {
-  return applying;
-}
 
 /** One source to redact inside an action: its marks, which of them apply, and the plan. */
 interface RedactionJob extends SourceJob {
