@@ -1,5 +1,9 @@
 # V1 results: surface ladder, glass, elevation, capsule, active tool, rise-in
 
+> **Screenshots:** removed from the working tree on 2026-10-17 (R22 clean-up, D4); every image
+> link below opens the file at commit `2be6e68`, where git history keeps it
+> (`docs/archive/README.md`).
+
 **Date:** 2026-10-01. **Package:** V1 of M6 ([spec](../../specs/experience-redesign.md) §7.1–§7.5,
 §12). **Base:** `95c0ced`. DESIGN.md amendments A1, A5 and A6 are applied; A2–A4 and A7 wait for
 their packages.
@@ -90,11 +94,11 @@ Before and after, same scene, both builds (SwiftShader, so the blur is correct):
 
 | Scene | Before | After |
 | --- | --- | --- |
-| Tool bar over the page (2×) | [before](m6-v1-before-toolbar-crop.png) | [after](m6-v1-after-toolbar-crop.png) |
-| Shapes menu over the page (2×) | [before](m6-v1-before-menu-crop.png) | [after](m6-v1-after-menu-crop.png) |
-| Read, full frame | [before](m6-v1-before-read.png) | [after](m6-v1-after-read.png) |
-| Command palette | [before](m6-v1-before-palette.png) | [after](m6-v1-after-palette.png) |
-| Empty app | [before](m6-v1-before-empty.png) | [after](m6-v1-after-empty.png) |
+| Tool bar over the page (2×) | [before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-before-toolbar-crop.png) | [after](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-after-toolbar-crop.png) |
+| Shapes menu over the page (2×) | [before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-before-menu-crop.png) | [after](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-after-menu-crop.png) |
+| Read, full frame | [before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-before-read.png) | [after](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-after-read.png) |
+| Command palette | [before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-before-palette.png) | [after](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-after-palette.png) |
+| Empty app | [before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-before-empty.png) | [after](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-v1-after-empty.png) |
 
 The milestone screenshots under `docs/design/screenshots/` (`m1-*` to `m4-*`) were re-captured
 with `CAPTURE_SCREENSHOTS=1`; `git diff` on them shows the before and after of each.
@@ -145,4 +149,4 @@ and `#47494d` (after), equal to the model; the bar measures 46 → 44 px.
 
 | Scene | Before | After |
 | --- | --- | --- |
-| Tool bar over the page (1×) | [before](m6-a4-before-bar-crop.png) | [after](m6-a4-after-bar-crop.png) |
+| Tool bar over the page (1×) | [before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-a4-before-bar-crop.png) | [after](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit-2026-10/m6-a4-after-bar-crop.png) |

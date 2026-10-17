@@ -13,7 +13,7 @@ only after discussion with the project owner; the discussion summary is appended
 | 0004 | Static hosting, workers and no cross-origin isolation | accepted |
 | 0005 | Virtual document model and history | accepted |
 | 0006 | Branching, versioning and commit conventions | accepted |
-| 0007 | Delivery targets: web first, desktop as escalation path | accepted |
+| 0007 | Delivery targets: web first, desktop as escalation path | accepted, amended by 0034 |
 | 0008 | qpdf integration deferred to M3 and built from source | accepted |
 | 0009 | Headless accessibility primitives: Base UI | accepted |
 | 0010 | i18n with Paraglide JS and offline PWA with vite-plugin-pwa | accepted |
@@ -39,4 +39,5 @@ only after discussion with the project owner; the discussion summary is appended
 | 0030 | One change guard, `canChange(id, act)`, with Lock enforced in `commit()` | accepted |
 | 0031 | The size-class shell: top strip, dock, sidebar, sheets, page pill, Library | accepted |
 | 0032 | Saving, restore and history: Save in place, snapshots on the device, visible Undo | accepted |
-| 0033 | Two editions: the full app on desktops and tablets, a read-only compact edition on phones | accepted |
+| 0033 | Two editions: the full app on desktops and tablets, a compact edition on phones (read-only until ADR-0034) | accepted, amended by 0034 |
+| 0034 | Editions: the full app on desktops and tablets, an editable phone edition, desktop later | accepted |

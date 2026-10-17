@@ -98,7 +98,7 @@ reaches the comment UI, in two independent renderers run headlessly: our PDFium 
 by `pnpm --filter @pdf-editor/qa-tool matrix`, which fails on any `fail` cell and runs in
 CI. M2 exits when that matrix is green. Acrobat Reader, Preview (macOS) and Edge get an
 optional five-minute manual spot check against the contact sheets; they are not a gate
-(owner decision 2026-09-27, `DISCUSSION.md` #13).
+(owner decision 2026-09-27, `docs/archive/DISCUSSION.md` #13).
 
 ## 8. Performance and limits
 

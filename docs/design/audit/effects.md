@@ -57,11 +57,11 @@ own `@supports` block.
 
 | # | Where | What it looks like | Verdict |
 | --- | --- | --- | --- |
-| A1 | `shell/FloatingToolbar` `.toolbar` | Glass at 0.86 with `blur(16px) saturate(1.2)`, 1px `--border-glass`, radius 10. Over a white page it reads as a flat #323336 slab ([02-read-toolbar-crop](02-read-toolbar-crop.png)). | **retune**: see translucency.md |
-| A2 | `annotations/AnnotationLayer` `.bar` (contextual annotation bar) | Same recipe, 40px tall ([03-annotation-bar-crop](03-annotation-bar-crop.png)) | **retune** |
-| A3 | `image-objects/ImageObjects` `.bar` (image bar) | Same recipe ([08-image-bar-crop](08-image-bar-crop.png)) | **retune** |
-| A4 | `stage/ArrangeView` `.contextBar` | Same recipe ([10-arrange-contextbar-crop](10-arrange-contextbar-crop.png)) | **retune** |
-| A5 | `shell/CommandPalette` `.popup` | Same recipe, on top of `--scrim` ([05-palette-crop](05-palette-crop.png)) | **retune** |
+| A1 | `shell/FloatingToolbar` `.toolbar` | Glass at 0.86 with `blur(16px) saturate(1.2)`, 1px `--border-glass`, radius 10. Over a white page it reads as a flat #323336 slab ([02-read-toolbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/02-read-toolbar-crop.png)). | **retune**: see translucency.md |
+| A2 | `annotations/AnnotationLayer` `.bar` (contextual annotation bar) | Same recipe, 40px tall ([03-annotation-bar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/03-annotation-bar-crop.png)) | **retune** |
+| A3 | `image-objects/ImageObjects` `.bar` (image bar) | Same recipe ([08-image-bar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/08-image-bar-crop.png)) | **retune** |
+| A4 | `stage/ArrangeView` `.contextBar` | Same recipe ([10-arrange-contextbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-contextbar-crop.png)) | **retune** |
+| A5 | `shell/CommandPalette` `.popup` | Same recipe, on top of `--scrim` ([05-palette-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/05-palette-crop.png)) | **retune** |
 | A6 | `crop/Crop` `.banner` (the "draw crop area" hint) | Glass **without** `saturate()` and **without** `-webkit-backdrop-filter`. Its `@supports` test has no `-webkit-` branch, so Safari ≤ 17 gets the solid fallback. | **retune** and unify: all six should compose one shared rule |
 | A7 | `styles/tokens.css` media fallbacks | `prefers-reduced-transparency` and `prefers-contrast: more` swap in `--glass-solid` and set blur to 0. | **keep** and extend to `forced-colors` |
 
@@ -84,13 +84,13 @@ stripe.
 | --- | --- | --- | --- |
 | C1 | `--page-shadow` on `Stage .page`, `Stage .thumbSheet`, `LeftRail .pageSheet`, `ArrangeView .thumbSheet`, `ResizeDialog .previewSheet`, `Crop .previewSheet` | `0 0 0 1px rgb(255 255 255 / 0.06)`: a hairline outside the white page. It is almost invisible against the canvas (#191a1c on #0a0b0d). | keep; move to the single border alpha (J) |
 | C2 | `Stage .segment[aria-checked]`, `LayoutSwitch .segment[aria-checked]` | `inset 0 0 0 1px --border-hairline` on the selected segment | keep |
-| C3 | `CommandPalette .option[aria-selected]`, `SearchPanel .hit[aria-current]` | `inset 2px 0 0 --accent`: a left accent stripe drawn inside a **6px-rounded** row, so it bends into a bracket shape ([05-palette-selected-row](05-palette-selected-row.png), [16-search-current-hit-crop](16-search-current-hit-crop.png)) | **remove** the stripe. The palette already marks the row with `--surface-active` and brighter text; the search hit can use `--accent-muted`, as Comments, Forms and Redactions do (G6). |
+| C3 | `CommandPalette .option[aria-selected]`, `SearchPanel .hit[aria-current]` | `inset 2px 0 0 --accent`: a left accent stripe drawn inside a **6px-rounded** row, so it bends into a bracket shape ([05-palette-selected-row](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/05-palette-selected-row.png), [16-search-current-hit-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/16-search-current-hit-crop.png)) | **remove** the stripe. The palette already marks the row with `--surface-active` and brighter text; the search hit can use `--accent-muted`, as Comments, Forms and Redactions do (G6). |
 | C4 | `SearchPanel .toggle[aria-pressed]` | `accent-muted` plus `inset 0 0 0 1px rgb(124 140 255 / 0.4)` | **tone down**: drop the ring and match the other pressed toggles (G2) |
 | C5 | `LinkLayer .hotspot:hover` | `--accent-subtle` fill plus an inset 1px accent ring at 0.5 | keep; tokenise the 0.5 |
 | C6 | `FormLayer` `[data-highlight] .target` / disabled / `:hover` | Inset rings at accent 0.45, at `rgb(107 112 120 / 0.6)` (the *old* tertiary colour) and at accent 0.7 on hover | **tone down**: one accent line token, and `--text-tertiary` for the disabled ring |
-| C7 | `FormLayer .editor` | 1px accent border **plus** `0 0 0 2px rgb(124 140 255 / 0.35)`: a soft blue halo around the white field ([17-form-editor-halo-crop](17-form-editor-halo-crop.png)) | **remove** the halo. The border, or the standard focus ring, is enough; "nothing glows". |
-| C8 | `ImageObjects .layer:hover .target`, `TextEdit .layer:hover .run[data-editable]` | While the pointer is anywhere on the page, **every** target gets `0 0 0 1px` accent at 35% ([12-text-edit-hover-crop](12-text-edit-hover-crop.png)) | **tone down**: keep for discoverability, but at the line alpha. Options are to show it only while the tool has just been armed, or only for the hovered target. Owner decision D6. |
-| C9 | `ImageObjects .target:hover`, `TextEdit .run:hover` | `--accent-muted` fill plus a 1px accent ring. On an image the fill tints the picture lavender ([08-image-hover-crop](08-image-hover-crop.png)). | **tone down**: ring only for images, because the page is never tinted; keep the fill on text runs |
+| C7 | `FormLayer .editor` | 1px accent border **plus** `0 0 0 2px rgb(124 140 255 / 0.35)`: a soft blue halo around the white field ([17-form-editor-halo-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/17-form-editor-halo-crop.png)) | **remove** the halo. The border, or the standard focus ring, is enough; "nothing glows". |
+| C8 | `ImageObjects .layer:hover .target`, `TextEdit .layer:hover .run[data-editable]` | While the pointer is anywhere on the page, **every** target gets `0 0 0 1px` accent at 35% ([12-text-edit-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-hover-crop.png)) | **tone down**: keep for discoverability, but at the line alpha. Options are to show it only while the tool has just been armed, or only for the hovered target. Owner decision D6. |
+| C9 | `ImageObjects .target:hover`, `TextEdit .run:hover` | `--accent-muted` fill plus a 1px accent ring. On an image the fill tints the picture lavender ([08-image-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/08-image-hover-crop.png)). | **tone down**: ring only for images, because the page is never tinted; keep the fill on text runs |
 | C10 | `ImageObjects .selection:focus-visible` | `0 0 0 3px --accent-muted`: a soft halo **instead of** the standard focus ring | **remove**; use `--focus-ring` like every other element |
 | C11 | `TextEdit .run[data-blocked]` (with C8) | A 1px ring in tertiary at 45% around hatched runs | keep (an honesty signal) |
 | C12 | `AnnotationLayer .lockBadge` | `0 0 0 1px --border-strong` around a 20px disc | keep; write it as a `border` |
@@ -150,9 +150,9 @@ Distinct **durations**: 120ms (`--duration-fast`, 35 uses), 180ms (`--duration-b
 | F4 | `DocumentTools .input:hover` | border `hairline → strong`: the **only** input with a hover state | **tone down**: remove, or give every input the same (consistency) |
 | F5 | `ImageObjects .action:hover`, `TextEdit .choice:hover` | Hover **not** gated by `@media (hover: hover)`, so it sticks after a tap on touch | **tone down**: gate like the rest |
 | F6 | `AnnotationLayer .secondary`, `SignatureDialog .secondary` | **No** hover, while the same-looking `.secondary` in 9 other modules has one | **tone down** (add the shared hover) |
-| F7 | `ArrangeView .cell:hover .hoverActions` | Rotate/delete icons appear under the thumbnail (space reserved, no shift) ([10-arrange-cell-hover](10-arrange-cell-hover.png)) | keep |
-| F8 | `RedactionsPanel .row:hover .delete` | The delete button fades from opacity 0 → 1 ([11-redactions-row-hover](11-redactions-row-hover.png)) | keep |
-| F9 | `TabBar .tabWrap:hover` | `--surface-hover` + the close button revealed ([21-tab-hover](21-tab-hover.png)) | keep |
+| F7 | `ArrangeView .cell:hover .hoverActions` | Rotate/delete icons appear under the thumbnail (space reserved, no shift) ([10-arrange-cell-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-cell-hover.png)) | keep |
+| F8 | `RedactionsPanel .row:hover .delete` | The delete button fades from opacity 0 → 1 ([11-redactions-row-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redactions-row-hover.png)) | keep |
+| F9 | `TabBar .tabWrap:hover` | `--surface-hover` + the close button revealed ([21-tab-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/21-tab-hover.png)) | keep |
 | F10 | `AnnotationLayer .hit:hover` | `rgb(124 140 255 / 0.1)` fill; strokes get `/0.25` | keep; tokenise (accent-subtle) |
 | F11 | `LinkLayer .hotspot:hover` | see C5 | keep |
 | F12 | `ResizeHandle:hover::after` | hairline → strong | keep |
@@ -164,12 +164,12 @@ Distinct **durations**: 120ms (`--duration-fast`, 35 uses), 180ms (`--duration-b
 | # | Where | What | Verdict |
 | --- | --- | --- | --- |
 | G1 | `IconButton[aria-pressed]` (chrome) | `--surface-active`, neutral | keep |
-| G2 | `IconButton[data-size=toolbar][aria-pressed]` (active tool) | `--accent-muted` square ([02-read-toolbar-crop](02-read-toolbar-crop.png)) | keep |
+| G2 | `IconButton[data-size=toolbar][aria-pressed]` (active tool) | `--accent-muted` square ([02-read-toolbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/02-read-toolbar-crop.png)) | keep |
 | G3 | `Menu .item[data-highlighted]` / `[data-checked]` | `--surface-active` / a 6px accent dot | keep |
 | G4 | Segmented controls: `Stage`, `LayoutSwitch` (surface-3 + inset hairline); `SignatureDialog .tab` (surface-3, **no** inset); `ResizeDialog .segment` (accent-muted); `FurnitureDialogs .segment` (accent border + accent-muted); `CreatedFields .segment` (accent 0.45 border + muted); `FormsPanel .button[aria-pressed]` (same) | Four different looks for "this option is on" | **tone down**: two patterns only, neutral (surface-3 + hairline) for view switches and accent-muted (no border) for option choices |
 | G5 | `ToolDialog .preset:has(:checked)` | accent **border** + surface-2 | tone down to the G4 option pattern |
 | G6 | "Current row": `CommentsPanel`, `FormsPanel`, `RedactionsPanel` use `--accent-muted`; `RightPanel .historyRow`, `LeftRail .fileRow` and `SearchPanel .hit` use `--surface-2` (+ stripe, C3) | Two treatments for the same meaning | **tone down**: one ("current" = accent-muted) |
-| G7 | Thumbnails selected: `LeftRail`, `Stage`, `ArrangeView` | 2px accent outline, offset 3 ([10-arrange-selection](10-arrange-selection.png)) | keep |
+| G7 | Thumbnails selected: `LeftRail`, `Stage`, `ArrangeView` | 2px accent outline, offset 3 ([10-arrange-selection](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-selection.png)) | keep |
 | G8 | `TabBar .tabWrap[data-selected]` | surface-2 + hairline border | keep |
 | G9 | `SearchHighlights .hit` / `[data-current]` | accent 0.28 multiply; current 0.55 + a 2px accent outline | keep |
 | G10 | `Keycaps` default / `quiet` / `onGlass` | surface-2 + hairline; transparent; **white 0.06 bg + 0.1 border literals** | keep; tokenise onGlass |
@@ -180,9 +180,9 @@ Global: `:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px 
 
 | # | Where | What | Verdict |
 | --- | --- | --- | --- |
-| H1 | Global ring | 2px accent, offset 2 ([15-focus-ring-toolbar-crop](15-focus-ring-toolbar-crop.png), [15-focus-ring-segmented-crop](15-focus-ring-segmented-crop.png)) | keep |
+| H1 | Global ring | 2px accent, offset 2 ([15-focus-ring-toolbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/15-focus-ring-toolbar-crop.png), [15-focus-ring-segmented-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/15-focus-ring-segmented-crop.png)) | keep |
 | H2 | Offset overrides | −2px (rows inside scrollers), 0 (inputs, items), 1px (segments, hotspots, swatches), 3px (thumbnails via `outline`), 4px (grid cells), `-var(--focus-offset)` (page layers) | keep; they are all deliberate. Document them in §5. |
-| H3 | **`ToolDialog .preset:has(input:focus-visible)`** | `outline: 2px solid var(--focus-ring, var(--accent))`. `--focus-ring` is itself `2px solid …`, so the value is invalid and **no ring is drawn** (the computed `outline-style` is `none`, measured). In the Compress dialog, keyboard focus on a preset looks the same as "checked" ([19-compress-preset-focus-crop](19-compress-preset-focus-crop.png)). | **fix**: `outline: var(--focus-ring); outline-offset: 1px` |
+| H3 | **`ToolDialog .preset:has(input:focus-visible)`** | `outline: 2px solid var(--focus-ring, var(--accent))`. `--focus-ring` is itself `2px solid …`, so the value is invalid and **no ring is drawn** (the computed `outline-style` is `none`, measured). In the Compress dialog, keyboard focus on a preset looks the same as "checked" ([19-compress-preset-focus-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/19-compress-preset-focus-crop.png)). | **fix**: `outline: var(--focus-ring); outline-offset: 1px` |
 | H4 | `DocumentTools .input:focus-visible` | border turns accent and the outline is removed. Every other input shows the ring at offset 0. | **tone down** to the shared input focus |
 | H5 | `TextEdit .input`, `AnnotationLayer .freeText`, `InlineTitleEditor`, `Outline .renameInput` | outline none; the dashed accent border turns solid (in-place editors) | keep |
 | H6 | `ImageObjects .selection:focus-visible` | 3px accent-muted halo (C10) | **fix** (use the ring) |
@@ -197,7 +197,7 @@ not listed.
 
 | # | Where | Value | Verdict |
 | --- | --- | --- | --- |
-| I1 | Disabled primary: `ExportDialog`, `SignatureDialog`, `DocumentTools`, `ToolDialog` (also `.secondary`), `RedactionsPanel .primary` | `opacity: 0.5`: the accent turns a muddy slate and the label drops to about 2.5:1 ([18-crop-dialog-crop](18-crop-dialog-crop.png), "Crop") | **tone down**: use `GoToPageDialog`'s treatment (surface-3 bg + `--text-disabled`) everywhere |
+| I1 | Disabled primary: `ExportDialog`, `SignatureDialog`, `DocumentTools`, `ToolDialog` (also `.secondary`), `RedactionsPanel .primary` | `opacity: 0.5`: the accent turns a muddy slate and the label drops to about 2.5:1 ([18-crop-dialog-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/18-crop-dialog-crop.png), "Crop") | **tone down**: use `GoToPageDialog`'s treatment (surface-3 bg + `--text-disabled`) everywhere |
 | I2 | `StyleControls .swatch:disabled` | 0.4 | keep |
 | I3 | `ArrangeView .cell[data-dragging]` | 0.35 (the source cell while dragging) | keep |
 | I4 | `ArrangeView .cell[data-cut] .thumbSheet` | 0.5 (cut, awaiting paste) | keep |
@@ -219,7 +219,7 @@ not listed.
 | J2 | `Crop .warning` | `border-left: 2px solid --warning` on a 6px-rounded box: a curved side stripe (shown only when the crop hides annotations; code only) | **tone down**: a full hairline border in the warning line colour, like `RedactionsPanel .honesty` |
 | J3 | `OperationDialogs .chip` | `border-left: 3px solid --tag-color` on a 4px-rounded chip (merge/interleave lists) | tone down: use a 6px tag dot like everywhere else (`.tag`) |
 | J4 | Honesty notices: `RedactionsPanel .honesty`, `FormsPanel .warning`, `ApplyRedactions .warning` (border warning 0.3); `SignatureDialog .notice` (0.35 + bg); `FormLayer .badge`, `FormsPanel .badge` (0.4); `Outline .dead`, `Crop .warning`, `DocumentTools .notice` (neutral border) | Three warning alphas and two notice styles | **tone down**: one `--warning-line` (0.35) and one notice recipe |
-| J5 | Menus, popovers and tooltips | `--border-strong` (0.14), the heaviest border in the app, on the floating surfaces ([04-menu-zoom-crop](04-menu-zoom-crop.png)) | **retune**: `--border-glass` on frosted surfaces (translucency.md) |
+| J5 | Menus, popovers and tooltips | `--border-strong` (0.14), the heaviest border in the app, on the floating surfaces ([04-menu-zoom-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/04-menu-zoom-crop.png)) | **retune**: `--border-glass` on frosted surfaces (translucency.md) |
 | J6 | `Stage .dropOverlay`, `ArrangeView .backgroundOutline` | a solid accent border vs a dashed accent border for the same "drop files here" meaning | keep dashed only |
 | J7 | Dashed borders: `SignatureDialog .pad`, `ArrangeView .emptyRow`, `StyleControls .custom`, in-place editors | 1px dashed | keep |
 | J8 | Hairline dividers (≈60 uses) | `--border-hairline` 0.08 | keep |
@@ -259,12 +259,12 @@ not listed.
 | --- | --- | --- | --- |
 | N1 | Annotation selection `.selection .outline` / image `.selection` | 1.5px dashed accent, 4 3 | keep |
 | N2 | Handles: annotations (SVG, white + 1.5px accent), images (white + 1.5px accent, r1), created fields (8px white + 1px accent) | white squares | keep; one size and stroke |
-| N3 | **Crop handles** (`Crop .handle`) | 12px squares filled `--surface-0` (near-black) with an accent border. On the white preview they read as notches cut into the page ([18-crop-dialog-crop](18-crop-dialog-crop.png)). | **tone down**: white like N2 |
+| N3 | **Crop handles** (`Crop .handle`) | 12px squares filled `--surface-0` (near-black) with an accent border. On the white preview they read as notches cut into the page ([18-crop-dialog-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/18-crop-dialog-crop.png)). | **tone down**: white like N2 |
 | N4 | `ArrangeView .marquee`, `Crop .drawn`, `CreatedFields .preview`, `AnnotationLayer .previewBox` | 1px accent + accent-subtle/muted fill | keep; one fill token |
 | N5 | `ArrangeView .insertionBar` (+ the "+" duplicate disc), `OutlinePanel` drop lines | 2px accent bar | keep |
-| N6 | `TextEdit .input` | `color-mix(page 94%, transparent)` background: 6% of the original glyphs **show through** the edited text ([12-text-edit-open-crop](12-text-edit-open-crop.png)) | **fix**: an opaque `--page-background` |
+| N6 | `TextEdit .input` | `color-mix(page 94%, transparent)` background: 6% of the original glyphs **show through** the edited text ([12-text-edit-open-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-open-crop.png)) | **fix**: an opaque `--page-background` |
 | N7 | `AnnotationLayer .freeText` | `rgb(255 255 255 / 0.85)` (same issue, lighter) | keep, or make it opaque with N6 |
-| N8 | Redaction marks (`RedactionLayer`) | `--danger` 16% fill + 1.5px stroke; excluded: 6% + dashed; current 2.5px; preview 22% dashed ([11-redaction-marks-on-page](11-redaction-marks-on-page.png)) | keep |
+| N8 | Redaction marks (`RedactionLayer`) | `--danger` 16% fill + 1.5px stroke; excluded: 6% + dashed; current 2.5px; preview 22% dashed ([11-redaction-marks-on-page](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redaction-marks-on-page.png)) | keep |
 | N9 | `SearchHighlights` (G9), `LinkLayer` (C5), `FormLayer` highlight (C6) | | see those rows |
 | N10 | `FurnitureLayer .selected` | 3 2 dashed accent, non-scaling | keep |
 
@@ -277,7 +277,7 @@ not listed.
 bleeds into the gutter. At the right end, that bleed overflows `StatusBar .left` (which has
 `overflow: hidden`) by 8px. Focusing the trigger scrolls `.left` to reveal it: its `scrollLeft`
 goes 0 → 8, and it stays 8 after the popover closes, so "Page 1 of 3" loses its "P"
-([20-statusbar-before](20-statusbar-before.png) → [20-statusbar-popup-open](20-statusbar-popup-open.png)).
+([20-statusbar-before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/20-statusbar-before.png) → [20-statusbar-popup-open](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/20-statusbar-popup-open.png)).
 This breaks DESIGN §2, "Hover states never shift layout". **Fix:** give `.left` `overflow: clip`,
 or pad it by `--space-2`, or drop the negative margins.
 

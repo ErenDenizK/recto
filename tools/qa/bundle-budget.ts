@@ -34,6 +34,13 @@
  * chunk, excluded in vite.config.ts), so every lazy surface opens offline. Wasm is
  * runtime-cached instead (ADR-0010; src/pwa/register.ts warms it).
  *
+ * Under the measures, each gated closure's largest chunks print with their share of its gzip,
+ * and under each chunk its largest modules, so a growth shows where it came from. The modules
+ * come from the build's `recto:bundle-modules` report (apps/web/vite.config.ts, written to
+ * apps/web/node_modules/.cache/recto/): a module's share is its rendered length (after tree
+ * shaking, before minification) over its chunk's, applied to the chunk's gzip, so it is an
+ * estimate. A chunk the report does not name (another build's) prints without modules.
+ *
  * And what a web release build must not carry (docs/plan/v1/editions.md §4.1, §4.4):
  *
  * - **V1-P3, ED-1: zero desktop bytes.** No emitted script names the desktop adapter or Tauri
@@ -47,6 +54,11 @@ import { gzipSync } from 'node:zlib';
 
 const ROOT = resolve(import.meta.dirname, '../..');
 const CONFIG_PATH = join(import.meta.dirname, 'bundle-budget.json');
+/** The module report `recto:bundle-modules` writes at each build (apps/web/vite.config.ts). */
+const MODULES_PATH = join(ROOT, 'apps/web/node_modules/.cache/recto/bundle-modules.json');
+/** Chunks per closure, and modules per chunk, in the breakdown. */
+const TOP_CHUNKS = 6;
+const TOP_MODULES = 3;
 
 type MeasureName =
   | 'firstPaint'
@@ -229,6 +241,17 @@ function main(): void {
     `${'First paint CSS gzip (not gated)'.padEnd(38)} ${kb(firstPaintCss.gzip).padStart(10)}`,
   );
   console.log(rows.join('\n'));
+  const modules = readModules();
+  const breakdown: [string, Closure][] = [
+    [MEASURE_LABELS.firstPaint, firstPaint],
+    [MEASURE_LABELS.editor, editor],
+    [MEASURE_LABELS.compact, compact],
+    [MEASURE_LABELS.engineClient, engineClient],
+  ];
+  for (const [label, measured] of breakdown) {
+    console.log(`\n${label}, largest chunks:`);
+    console.log(describeClosure(measured, assets, sizeOf, modules).join('\n'));
+  }
   if (writeBaseline) {
     const next: BudgetConfig = { ...config, baseline: measures };
     writeFileSync(CONFIG_PATH, `${JSON.stringify(next, null, 2)}\n`);
@@ -239,6 +262,56 @@ function main(): void {
     process.exit(1);
   }
   console.log('\nBundle budgets: OK.');
+}
+
+/** Rendered bytes per module, per emitted chunk (`assets/name-hash.js`); empty without a report. */
+type ModuleReport = Readonly<Record<string, Readonly<Record<string, number>>>>;
+
+function readModules(): ModuleReport {
+  try {
+    return JSON.parse(readFileSync(MODULES_PATH, 'utf8')) as ModuleReport;
+  } catch {
+    return {};
+  }
+}
+
+/** The closure's largest chunks by gzip, each with its largest modules (estimated gzip). */
+function describeClosure(
+  measured: Closure,
+  assets: string,
+  sizeOf: (path: string) => { raw: number; gzip: number },
+  modules: ModuleReport,
+): string[] {
+  const chunks = measured.files
+    .map((file) => ({ file, gzip: sizeOf(file).gzip }))
+    .sort((a, b) => b.gzip - a.gzip);
+  const lines: string[] = [];
+  for (const { file, gzip } of chunks.slice(0, TOP_CHUNKS)) {
+    const name = file.slice(assets.length + 1);
+    lines.push(`  ${kb(gzip).padStart(9)}  ${percentOf(gzip, measured.gzip)}  ${name}`);
+    const rendered = Object.entries(modules[`assets/${name}`] ?? {});
+    const total = rendered.reduce((sum, [, length]) => sum + length, 0);
+    for (const [id, length] of rendered.sort((a, b) => b[1] - a[1]).slice(0, TOP_MODULES)) {
+      lines.push(
+        `  ${''.padStart(9)}  ${kb((gzip * length) / total).padStart(9)}  ${moduleName(id)}`,
+      );
+    }
+  }
+  const rest = chunks.slice(TOP_CHUNKS);
+  if (rest.length > 0) {
+    const gzip = rest.reduce((sum, chunk) => sum + chunk.gzip, 0);
+    lines.push(`  ${kb(gzip).padStart(9)}  ${percentOf(gzip, measured.gzip)}  ${rest.length} more`);
+  }
+  return lines;
+}
+
+/** A module id without the pnpm store path: `zustand/esm/vanilla.mjs`, `apps/web/src/main.tsx`. */
+function moduleName(id: string): string {
+  return id.replace(/^\0/, '').replace(/^(?:.*\/)?node_modules\/\.pnpm\/[^/]+\/node_modules\//, '');
+}
+
+function percentOf(part: number, whole: number): string {
+  return `${((part / whole) * 100).toFixed(0).padStart(3)} %`;
 }
 
 /** The URLs of the generated service worker's `precacheAndRoute([...])` list. */

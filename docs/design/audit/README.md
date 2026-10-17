@@ -1,5 +1,9 @@
 # Design refinement audit (DESIGN.md §7): read me first
 
+> **Screenshots:** removed from the working tree on 2026-10-17 (R22 clean-up, D4); every image
+> link below opens the file at commit `2be6e68`, where git history keeps it
+> (`docs/archive/README.md`).
+
 **For:** the product owner. **Date:** 2026-09-28. **Build:** `9b46d12` (M4 done).
 Nothing in the app has been changed yet. This folder is what you review before any visual change
 lands.
@@ -18,9 +22,9 @@ lands.
    the crop banner, the command palette, **menus and popovers** become real frosted glass. The
    tint drops to 50% and the backdrop is blurred, colour-boosted and darkened, so every text
    colour stays AA even over a white page. Docked panels, dialogs and tooltips stay opaque.
-   See [mock-03-annotation-bar](mock-03-annotation-bar.png),
-   [mock-07-popover-privacy](mock-07-popover-privacy.png) and
-   [mock-08-image-bar](mock-08-image-bar.png).
+   See [mock-03-annotation-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-03-annotation-bar.png),
+   [mock-07-popover-privacy](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-07-popover-privacy.png) and
+   [mock-08-image-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-08-image-bar.png).
    Expect a **clear** change over colour, images and light page areas, and a **small** one over
    plain white text or dark content. AA puts a hard ceiling on it (translucency.md §5).
 2. **Effects that look wrong.** The top ten are below. Most are removals or tone-downs, and two
@@ -48,19 +52,19 @@ lands.
 
 | # | What | Screenshot | Proposal |
 | --- | --- | --- | --- |
-| 1 | **No keyboard focus ring on the Compress presets.** The CSS value is invalid, so focus looks identical to "selected". (Bug; measured computed `outline: none`.) | [19-compress-preset-focus-crop](19-compress-preset-focus-crop.png) | fix (effects H3) |
-| 2 | **The status bar jumps 8px left when the privacy popover opens and stays shifted** ("Page" loses its "P"). (Bug.) | [20-statusbar-before](20-statusbar-before.png) → [20-statusbar-popup-open](20-statusbar-popup-open.png) | fix (effects, "Layout defect") |
-| 3 | **Form field editor glows**: a 2px soft accent halo around a 1px accent border. | [17-form-editor-halo-crop](17-form-editor-halo-crop.png) | remove the halo (C7) |
-| 4 | **Accent stripe bent into a bracket** on the selected palette row and the current search hit (a 2px inset stripe inside a 6px-rounded row). | [05-palette-selected-row](05-palette-selected-row.png), [16-search-current-hit-crop](16-search-current-hit-crop.png) | remove the stripe (C3) |
-| 5 | **Image tool tints the picture lavender on hover** (accent wash over the image) and rings every image on the page. The page is never supposed to be tinted. | [08-image-hover-crop](08-image-hover-crop.png) | ring only (C8, C9) |
-| 6 | **Edit-text tool lights up the whole page**: moving the pointer anywhere on the page outlines every line and hatches every blocked run at once. | [12-text-edit-hover-crop](12-text-edit-hover-crop.png) | outline the hovered line only (C8) |
-| 7 | **The "glass" reads as an opaque slab**: at 86% tint the tool bar is a flat #323336 over any white page. This is the owner's original point. | [02-read-toolbar-crop](02-read-toolbar-crop.png), [mock-02-read-toolbar](mock-02-read-toolbar.png) | translucency proposal |
-| 8 | **Crop handles look like notches cut into the page**: near-black squares on the white preview, where every other handle set is white. | [18-crop-dialog-crop](18-crop-dialog-crop.png) | white handles (N3) |
-| 9 | **Disabled primary buttons turn muddy** (the accent at 50% opacity, label about 2.5:1), and primary buttons have no hover or pressed feedback although secondary ones do. | [18-crop-dialog-crop](18-crop-dialog-crop.png) ("Crop"), [06-dialog-export-crop](06-dialog-export-crop.png) | surface-3 + disabled text; add a primary hover (I1, E14) |
-| 10 | **The edited line ghosts**: the inline text editor is 94% white, so the original glyphs show through the new text. | [12-text-edit-open-crop](12-text-edit-open-crop.png) | opaque page white (N6) |
+| 1 | **No keyboard focus ring on the Compress presets.** The CSS value is invalid, so focus looks identical to "selected". (Bug; measured computed `outline: none`.) | [19-compress-preset-focus-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/19-compress-preset-focus-crop.png) | fix (effects H3) |
+| 2 | **The status bar jumps 8px left when the privacy popover opens and stays shifted** ("Page" loses its "P"). (Bug.) | [20-statusbar-before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/20-statusbar-before.png) → [20-statusbar-popup-open](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/20-statusbar-popup-open.png) | fix (effects, "Layout defect") |
+| 3 | **Form field editor glows**: a 2px soft accent halo around a 1px accent border. | [17-form-editor-halo-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/17-form-editor-halo-crop.png) | remove the halo (C7) |
+| 4 | **Accent stripe bent into a bracket** on the selected palette row and the current search hit (a 2px inset stripe inside a 6px-rounded row). | [05-palette-selected-row](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/05-palette-selected-row.png), [16-search-current-hit-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/16-search-current-hit-crop.png) | remove the stripe (C3) |
+| 5 | **Image tool tints the picture lavender on hover** (accent wash over the image) and rings every image on the page. The page is never supposed to be tinted. | [08-image-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/08-image-hover-crop.png) | ring only (C8, C9) |
+| 6 | **Edit-text tool lights up the whole page**: moving the pointer anywhere on the page outlines every line and hatches every blocked run at once. | [12-text-edit-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-hover-crop.png) | outline the hovered line only (C8) |
+| 7 | **The "glass" reads as an opaque slab**: at 86% tint the tool bar is a flat #323336 over any white page. This is the owner's original point. | [02-read-toolbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/02-read-toolbar-crop.png), [mock-02-read-toolbar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-02-read-toolbar.png) | translucency proposal |
+| 8 | **Crop handles look like notches cut into the page**: near-black squares on the white preview, where every other handle set is white. | [18-crop-dialog-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/18-crop-dialog-crop.png) | white handles (N3) |
+| 9 | **Disabled primary buttons turn muddy** (the accent at 50% opacity, label about 2.5:1), and primary buttons have no hover or pressed feedback although secondary ones do. | [18-crop-dialog-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/18-crop-dialog-crop.png) ("Crop"), [06-dialog-export-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/06-dialog-export-crop.png) | surface-3 + disabled text; add a primary hover (I1, E14) |
+| 10 | **The edited line ghosts**: the inline text editor is 94% white, so the original glyphs show through the new text. | [12-text-edit-open-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-open-crop.png) | opaque page white (N6) |
 
 Close runners-up: menus and popovers carry the heaviest border in the app (0.14) while floating
-over the document ([04-menu-zoom-crop](04-menu-zoom-crop.png)); four different "this option is
+over the document ([04-menu-zoom-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/04-menu-zoom-crop.png)); four different "this option is
 on" looks for segmented controls (effects G4); three warning-border alphas plus one tinted
 notice (J4, I12); the image selection's focus is a soft halo instead of the ring (C10).
 
@@ -68,52 +72,52 @@ notice (J4, I12); the image selection's focus is a soft halo instead of the ring
 
 | # | Question | Look at | Recommendation |
 | --- | --- | --- | --- |
-| D1 | Adopt the translucency tokens and frost the tool bar, contextual bars, crop banner, palette, **menus and popovers**? | `mock-*.png`, [glass-contrast-swatches](glass-contrast-swatches.png) | yes |
-| D2 | Keep **tooltips** opaque? | [13-tooltip-crop](13-tooltip-crop.png) | yes |
-| D3 | Frost the page-anchored popovers too (text-edit header, note popup, form notice)? | [mock-12-text-edit-open](mock-12-text-edit-open.png) | yes |
-| D4 | Border: **one alpha (0.10) plus a control step (0.16) for inputs**? (Choose "no" for a strict single alpha; inputs then rely on their fill, which is weaker for WCAG 1.4.11.) | [06-dialog-export-crop](06-dialog-export-crop.png), [04-menu-zoom-crop](04-menu-zoom-crop.png) | yes |
-| D5 | Remove the accent left stripe from the palette's selected row and the current search hit? | [05-palette-selected-row](05-palette-selected-row.png), [16-search-current-hit-crop](16-search-current-hit-crop.png) | yes |
-| D6 | With Edit text / Image armed, outline **only the hovered** line or image (rather than every target on the page)? | [12-text-edit-hover-crop](12-text-edit-hover-crop.png), [08-image-hover-crop](08-image-hover-crop.png) | yes |
-| D7 | Image hover: ring only, no lavender wash over the picture? | [08-image-hover-crop](08-image-hover-crop.png) | yes |
-| D8 | Give primary buttons a hover and pressed state (a slightly lighter or darker accent), and show disabled primaries as surface-3 + disabled text instead of 50% opacity? | [06-dialog-export-crop](06-dialog-export-crop.png), [18-crop-dialog-crop](18-crop-dialog-crop.png) | yes |
-| D9 | Remove the glow halo on the form field editor? | [17-form-editor-halo-crop](17-form-editor-halo-crop.png) | yes |
-| D10 | White crop handles, the same as annotation and image handles? | [18-crop-dialog-crop](18-crop-dialog-crop.png) | yes |
-| D11 | Two "on" patterns only (neutral for view switches, accent-muted for option choices), and "current row" always accent-muted? | [15-focus-ring-segmented-crop](15-focus-ring-segmented-crop.png), [11-redactions-panel-crop](11-redactions-panel-crop.png), [16-search-panel](16-search-panel.png) | yes |
-| D12 | Make the inline text editor opaque page white (no ghosting)? | [12-text-edit-open-crop](12-text-edit-open-crop.png) | yes |
-| D13 | Radius scale 2 · 4 · 6 · 10 · round, with the text-edit header and note popup going from 10 to 6 like other popovers? | [12-text-edit-open-crop](12-text-edit-open-crop.png), [03-annotation-bar-crop](03-annotation-bar-crop.png) | yes |
-| D14 | One honesty-notice recipe (warning hairline at 0.35, no tinted background), and no curved side stripes (crop warning, merge chips)? | [11-redactions-panel-crop](11-redactions-panel-crop.png) | yes |
-| D15 | One enter scale (0.98) for popups, the palette and dialogs? (Barely visible; it is for consistency.) | [05-palette](05-palette.png) | yes |
-| D16 | Hover on small icon buttons (tab close, thumbnail actions, outline chevrons) uses the normal hover step instead of the brighter "active" step? | [21-tab-hover](21-tab-hover.png), [10-arrange-cell-hover](10-arrange-cell-hover.png) | yes |
+| D1 | Adopt the translucency tokens and frost the tool bar, contextual bars, crop banner, palette, **menus and popovers**? | `mock-*.png`, [glass-contrast-swatches](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/glass-contrast-swatches.png) | yes |
+| D2 | Keep **tooltips** opaque? | [13-tooltip-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/13-tooltip-crop.png) | yes |
+| D3 | Frost the page-anchored popovers too (text-edit header, note popup, form notice)? | [mock-12-text-edit-open](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/mock-12-text-edit-open.png) | yes |
+| D4 | Border: **one alpha (0.10) plus a control step (0.16) for inputs**? (Choose "no" for a strict single alpha; inputs then rely on their fill, which is weaker for WCAG 1.4.11.) | [06-dialog-export-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/06-dialog-export-crop.png), [04-menu-zoom-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/04-menu-zoom-crop.png) | yes |
+| D5 | Remove the accent left stripe from the palette's selected row and the current search hit? | [05-palette-selected-row](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/05-palette-selected-row.png), [16-search-current-hit-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/16-search-current-hit-crop.png) | yes |
+| D6 | With Edit text / Image armed, outline **only the hovered** line or image (rather than every target on the page)? | [12-text-edit-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-hover-crop.png), [08-image-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/08-image-hover-crop.png) | yes |
+| D7 | Image hover: ring only, no lavender wash over the picture? | [08-image-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/08-image-hover-crop.png) | yes |
+| D8 | Give primary buttons a hover and pressed state (a slightly lighter or darker accent), and show disabled primaries as surface-3 + disabled text instead of 50% opacity? | [06-dialog-export-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/06-dialog-export-crop.png), [18-crop-dialog-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/18-crop-dialog-crop.png) | yes |
+| D9 | Remove the glow halo on the form field editor? | [17-form-editor-halo-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/17-form-editor-halo-crop.png) | yes |
+| D10 | White crop handles, the same as annotation and image handles? | [18-crop-dialog-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/18-crop-dialog-crop.png) | yes |
+| D11 | Two "on" patterns only (neutral for view switches, accent-muted for option choices), and "current row" always accent-muted? | [15-focus-ring-segmented-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/15-focus-ring-segmented-crop.png), [11-redactions-panel-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redactions-panel-crop.png), [16-search-panel](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/16-search-panel.png) | yes |
+| D12 | Make the inline text editor opaque page white (no ghosting)? | [12-text-edit-open-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-open-crop.png) | yes |
+| D13 | Radius scale 2 · 4 · 6 · 10 · round, with the text-edit header and note popup going from 10 to 6 like other popovers? | [12-text-edit-open-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-open-crop.png), [03-annotation-bar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/03-annotation-bar-crop.png) | yes |
+| D14 | One honesty-notice recipe (warning hairline at 0.35, no tinted background), and no curved side stripes (crop warning, merge chips)? | [11-redactions-panel-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redactions-panel-crop.png) | yes |
+| D15 | One enter scale (0.98) for popups, the palette and dialogs? (Barely visible; it is for consistency.) | [05-palette](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/05-palette.png) | yes |
+| D16 | Hover on small icon buttons (tab close, thumbnail actions, outline chevrons) uses the normal hover step instead of the brighter "active" step? | [21-tab-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/21-tab-hover.png), [10-arrange-cell-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-cell-hover.png) | yes |
 
 Kept as they are (no decision needed unless you disagree): the focus ring (2px accent, offset 2;
-[15-focus-ring-toolbar-crop](15-focus-ring-toolbar-crop.png)), the page hairline, redaction marks
-([11-redaction-marks-on-page](11-redaction-marks-on-page.png)), hover-revealed row actions, the
+[15-focus-ring-toolbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/15-focus-ring-toolbar-crop.png)), the page hairline, redaction marks
+([11-redaction-marks-on-page](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redaction-marks-on-page.png)), hover-revealed row actions, the
 thin scrollbars, the single motion curve, the drag ghost, and the rainbow "custom colour" disc.
 
 ## Screenshot index
 
 | State | Full frame | Crop |
 | --- | --- | --- |
-| Empty state | [01-empty](01-empty.png) | [01-empty-card](01-empty-card.png) |
-| Read mode, floating tool bar | [02-read-toolbar](02-read-toolbar.png) | [02-read-toolbar-crop](02-read-toolbar-crop.png) |
-| Read mode, annotation bar | [03-read-annotation-bar](03-read-annotation-bar.png) | [03-annotation-bar-crop](03-annotation-bar-crop.png) |
-| Menus: zoom, Shapes (over the page), document | [04-menu-zoom](04-menu-zoom.png), [04-menu-shapes-over-page](04-menu-shapes-over-page.png), [04-menu-document](04-menu-document.png) | [04-menu-zoom-crop](04-menu-zoom-crop.png), [04-menu-shapes-crop](04-menu-shapes-crop.png) |
-| Command palette | [05-palette](05-palette.png) | [05-palette-crop](05-palette-crop.png), [05-palette-selected-row](05-palette-selected-row.png) |
-| Dialog (export) | [06-dialog-export](06-dialog-export.png) | [06-dialog-export-crop](06-dialog-export-crop.png) |
-| Popover (privacy) | [07-popover-privacy](07-popover-privacy.png) | [07-popover-privacy-crop](07-popover-privacy-crop.png) |
-| Image bar, image hover | [08-image-bar](08-image-bar.png) | [08-image-bar-crop](08-image-bar-crop.png), [08-image-hover-crop](08-image-hover-crop.png) |
-| Right inspector (annotation selected) | (in 03) | [09-right-inspector](09-right-inspector.png) |
-| Arrange: selection, contextual bar, context menu, cell hover | [10-arrange-selection](10-arrange-selection.png), [10-arrange-context-menu](10-arrange-context-menu.png) | [10-arrange-contextbar-crop](10-arrange-contextbar-crop.png), [10-arrange-context-menu-crop](10-arrange-context-menu-crop.png), [10-arrange-cell-hover](10-arrange-cell-hover.png) |
-| Redactions panel with marks | [11-redactions-panel](11-redactions-panel.png) | [11-redactions-panel-crop](11-redactions-panel-crop.png), [11-redactions-row-hover](11-redactions-row-hover.png), [11-redaction-marks-on-page](11-redaction-marks-on-page.png) |
-| Text editor open on a line; tool hover | [12-text-edit-open](12-text-edit-open.png) | [12-text-edit-open-crop](12-text-edit-open-crop.png), [12-text-edit-hover-crop](12-text-edit-hover-crop.png) |
-| Tooltip; toolbar button hover | | [13-tooltip-crop](13-tooltip-crop.png), [14-toolbar-hover-crop](14-toolbar-hover-crop.png) |
-| Keyboard focus ring (tool bar, segmented) | | [15-focus-ring-toolbar-crop](15-focus-ring-toolbar-crop.png), [15-focus-ring-segmented-crop](15-focus-ring-segmented-crop.png) |
-| Search panel, current hit | [16-search-panel](16-search-panel.png) | [16-search-current-hit-crop](16-search-current-hit-crop.png) |
-| Form field editor | [17-form-editor](17-form-editor.png) | [17-form-editor-halo-crop](17-form-editor-halo-crop.png) |
-| Crop dialog | [18-crop-dialog](18-crop-dialog.png) | [18-crop-dialog-crop](18-crop-dialog-crop.png) |
-| Compress presets, keyboard focus | | [19-compress-preset-focus-crop](19-compress-preset-focus-crop.png) |
-| Status bar before / with popover open | | [20-statusbar-before](20-statusbar-before.png), [20-statusbar-popup-open](20-statusbar-popup-open.png) |
-| Tab hover | | [21-tab-hover](21-tab-hover.png) |
+| Empty state | [01-empty](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/01-empty.png) | [01-empty-card](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/01-empty-card.png) |
+| Read mode, floating tool bar | [02-read-toolbar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/02-read-toolbar.png) | [02-read-toolbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/02-read-toolbar-crop.png) |
+| Read mode, annotation bar | [03-read-annotation-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/03-read-annotation-bar.png) | [03-annotation-bar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/03-annotation-bar-crop.png) |
+| Menus: zoom, Shapes (over the page), document | [04-menu-zoom](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/04-menu-zoom.png), [04-menu-shapes-over-page](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/04-menu-shapes-over-page.png), [04-menu-document](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/04-menu-document.png) | [04-menu-zoom-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/04-menu-zoom-crop.png), [04-menu-shapes-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/04-menu-shapes-crop.png) |
+| Command palette | [05-palette](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/05-palette.png) | [05-palette-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/05-palette-crop.png), [05-palette-selected-row](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/05-palette-selected-row.png) |
+| Dialog (export) | [06-dialog-export](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/06-dialog-export.png) | [06-dialog-export-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/06-dialog-export-crop.png) |
+| Popover (privacy) | [07-popover-privacy](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/07-popover-privacy.png) | [07-popover-privacy-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/07-popover-privacy-crop.png) |
+| Image bar, image hover | [08-image-bar](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/08-image-bar.png) | [08-image-bar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/08-image-bar-crop.png), [08-image-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/08-image-hover-crop.png) |
+| Right inspector (annotation selected) | (in 03) | [09-right-inspector](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/09-right-inspector.png) |
+| Arrange: selection, contextual bar, context menu, cell hover | [10-arrange-selection](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-selection.png), [10-arrange-context-menu](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-context-menu.png) | [10-arrange-contextbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-contextbar-crop.png), [10-arrange-context-menu-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-context-menu-crop.png), [10-arrange-cell-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/10-arrange-cell-hover.png) |
+| Redactions panel with marks | [11-redactions-panel](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redactions-panel.png) | [11-redactions-panel-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redactions-panel-crop.png), [11-redactions-row-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redactions-row-hover.png), [11-redaction-marks-on-page](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/11-redaction-marks-on-page.png) |
+| Text editor open on a line; tool hover | [12-text-edit-open](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-open.png) | [12-text-edit-open-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-open-crop.png), [12-text-edit-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/12-text-edit-hover-crop.png) |
+| Tooltip; toolbar button hover | | [13-tooltip-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/13-tooltip-crop.png), [14-toolbar-hover-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/14-toolbar-hover-crop.png) |
+| Keyboard focus ring (tool bar, segmented) | | [15-focus-ring-toolbar-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/15-focus-ring-toolbar-crop.png), [15-focus-ring-segmented-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/15-focus-ring-segmented-crop.png) |
+| Search panel, current hit | [16-search-panel](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/16-search-panel.png) | [16-search-current-hit-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/16-search-current-hit-crop.png) |
+| Form field editor | [17-form-editor](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/17-form-editor.png) | [17-form-editor-halo-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/17-form-editor-halo-crop.png) |
+| Crop dialog | [18-crop-dialog](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/18-crop-dialog.png) | [18-crop-dialog-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/18-crop-dialog-crop.png) |
+| Compress presets, keyboard focus | | [19-compress-preset-focus-crop](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/19-compress-preset-focus-crop.png) |
+| Status bar before / with popover open | | [20-statusbar-before](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/20-statusbar-before.png), [20-statusbar-popup-open](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/20-statusbar-popup-open.png) |
+| Tab hover | | [21-tab-hover](https://github.com/ErenDenizK/recto/blob/2be6e68/docs/design/audit/21-tab-hover.png) |
 
 Not captured: the native drag ghost (the browser snapshots it), the update toast (needs a
 service-worker update), the file drag-over overlay and link hotspot hover. Their CSS is covered

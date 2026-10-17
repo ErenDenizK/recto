@@ -744,7 +744,7 @@ contrast measurements in
 ## 9. Craft (M8)
 
 **Built (2026-10-04)**, pending the owner's checks. The independent review ran on the same
-day ([`DISCUSSION.md`](DISCUSSION.md) #31); its fixes are marked "M8 review" in §2–§4.8.
+day ([`docs/archive/DISCUSSION.md`](archive/DISCUSSION.md) #31); its fixes are marked "M8 review" in §2–§4.8.
 Owner feedback on the beta: everything works, nothing feels native yet. This pass amended §2–§5
 with A8–A14 of the [spec](specs/craft.md) §2, as built: Home as a view and documents in Read
 (locked), Edit or Arrange with keys `1`–`4` (A8); one Edit button in Read and five groups in
