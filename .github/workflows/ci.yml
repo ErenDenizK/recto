@@ -194,6 +194,24 @@ jobs:
         env:
           E2E_SKIP_BUILD: '1'
 
+      # Every test's duration (the JSON reporter, playwright.config.ts), so slow specs can be
+      # listed and the shards balanced: the ten slowest print here, and the report is kept.
+      - name: Slowest specs
+        if: always()
+        run: >-
+          test ! -f apps/web/playwright-timings/results.json ||
+          node --experimental-strip-types --no-warnings=ExperimentalWarning
+          tools/qa/slowest-specs.ts apps/web/playwright-timings/results.json
+
+      - name: Upload test timings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-timings-${{ matrix.project }}-${{ matrix.shard }}
+          path: apps/web/playwright-timings/results.json
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7

@@ -11,6 +11,7 @@ coverage/
 
 # test artifacts
 playwright-report/
+playwright-timings/
 test-results/
 blob-report/
 .vitest/
