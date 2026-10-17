@@ -16,12 +16,14 @@
  * phone); this store holds only what the compact chrome needs.
  */
 import type { PageId, Rect, VirtualDocument } from '@pdf-editor/document-model';
+import type { NoteAnnotation } from '@pdf-editor/engine';
 import { create } from 'zustand';
 
 import type { OverviewColumns } from './overview-gesture';
 
 export type CompactPlace = 'library' | 'reader';
-export type CompactSheet = 'contents' | 'goto' | 'info' | 'about';
+/** The scrim sheets (DSN-53): Settings holds About as a row; `note` shows `CompactState.note`. */
+export type CompactSheet = 'contents' | 'goto' | 'info' | 'settings' | 'note';
 
 /**
  * The page overview (MOB-2): closed; `morph` while a pinch or the morph moves between the
@@ -56,6 +58,8 @@ export interface CompactState {
   /** The top bar is the Find field. */
   readonly findOpen: boolean;
   readonly sheet: CompactSheet | null;
+  /** The note the `note` sheet shows (a tap on its target, `NoteLayer.tsx`). */
+  readonly note: NoteAnnotation | null;
   readonly menuOpen: boolean;
   /** Relative to fit width (`reader-layout.ts`). */
   readonly zoom: number;
@@ -104,6 +108,7 @@ const INITIAL: CompactState = {
   chromeHidden: false,
   findOpen: false,
   sheet: null,
+  note: null,
   menuOpen: false,
   zoom: 1,
   opening: false,
@@ -177,8 +182,23 @@ export function toggleChrome(): void {
   setChromeHidden(!useCompactStore.getState().chromeHidden);
 }
 
-export function openSheet(sheet: CompactSheet): void {
-  set({ sheet, menuOpen: false, chromeHidden: false });
+let opener: HTMLElement | null = null;
+
+/**
+ * What a sheet gives focus back to (DSN-53): the control that opened it; a menu row's menu goes
+ * as the sheet opens, so its trigger.
+ */
+export const sheetOpener = (): HTMLElement | null => opener;
+
+export function openSheet(sheet: CompactSheet, note: NoteAnnotation | null = null): void {
+  const active = document.activeElement;
+  opener =
+    active instanceof HTMLElement && active.closest('[role="menu"]')
+      ? document.querySelector<HTMLElement>('[aria-haspopup="menu"][aria-expanded="true"]')
+      : active instanceof HTMLElement && active !== document.body
+        ? active
+        : null;
+  set({ sheet, note, menuOpen: false, chromeHidden: false });
 }
 
 export function closeSheet(): void {

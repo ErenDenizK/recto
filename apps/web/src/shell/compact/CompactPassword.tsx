@@ -1,9 +1,10 @@
 /**
  * The password prompt for an encrypted file in the compact edition (the engine service asks
- * through `state/password-store.ts`, as in the full edition's `PasswordDialog`), as a bottom
- * sheet: the field takes focus, a wrong password asks again with a note and shakes the field
- * (a colour pulse under reduced motion; `shake`), and Skip (or
- * closing the sheet) leaves the file closed with one line in the Library.
+ * through `state/password-store.ts`, as in the full edition's `PasswordDialog`), as the phone's
+ * sheet (DSN-53; loaded with the other sheets, `CompactMoreSheets`): the field takes focus, a
+ * wrong password asks again with a note and shakes the field (a colour pulse under reduced
+ * motion; `shake`), and Skip (or closing the sheet) leaves the file closed with one line in the
+ * Library.
  */
 import { type RefObject, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 
@@ -13,6 +14,9 @@ import { answerPassword, type PasswordRequest, usePasswordStore } from '../../st
 import { CompactSheet } from './CompactSheet';
 import controls from './controls.module.css';
 import styles from './CompactPassword.module.css';
+
+/** The engine asked, no control: focus goes where Base UI would put it. */
+const noOpener = () => null;
 
 export function CompactPassword() {
   const request = usePasswordStore((s) => s.queue[0]);
@@ -26,6 +30,7 @@ export function CompactPassword() {
       title={m.password_title()}
       testId="compact-password-sheet"
       initialFocus={inputRef}
+      returnFocus={noOpener}
     >
       {request ? <PasswordForm key={request.id} request={request} inputRef={inputRef} /> : null}
     </CompactSheet>

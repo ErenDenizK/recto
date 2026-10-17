@@ -2,26 +2,24 @@
  * Notes in the compact reader (ADR-0033 §2.3: "a note shows its text on tap"). The page
  * bitmap already draws every annotation, form field and signature as the file shows them
  * (the engine renders with annotations and forms on); none of them takes input here. Only
- * note annotations (/Text, the sticky notes) get a target: a tap opens a small popover with
- * the note's text, author and date.
+ * note annotations (/Text, the sticky notes) get a target: a tap opens the note's sheet with its
+ * text, author and date (DSN-53: the phone's one sheet, `CompactMoreSheets`, not a popover).
  *
  * Notes are read through the engine's read-only `listAnnotations` for pages near the view,
  * cached per source page like the link hotspots. A note's target is at least 44 px square,
  * centred on its icon, so a finger finds it (quality bar Q-9).
  */
-import { Popover } from '@base-ui/react/popover';
 import type { SourceId } from '@pdf-editor/document-model';
 import type { Annotation, NoteAnnotation } from '@pdf-editor/engine';
 import { useEffect, useState } from 'react';
 
 import { getEngineService } from '../../engine/engine-service';
-import { getLocale, m } from '../../i18n';
+import { m } from '../../i18n';
 import type { PageOverlayProps } from '../../stage/page-overlays';
 import { distanceFromView, useViewStore } from '../../state/view-store';
-import { Icon } from '../../ui/Icon';
 import { userRectToCss } from '../../viewer/geometry';
 import { pageFrame } from '../../viewer/page-frame';
-import controls from './controls.module.css';
+import { openSheet, useCompactStore } from './compact-store';
 import styles from './NoteLayer.module.css';
 
 const MAX_CACHED_PAGES = 300;
@@ -123,37 +121,21 @@ function NoteTarget({
   readonly note: NoteAnnotation;
   readonly style: { left: number; top: number; width: number; height: number };
 }) {
-  const text = note.contents?.trim() ?? '';
-  const date = noteDate(note.modified, getLocale());
-  const byline = [note.author?.trim(), date].filter(Boolean).join(' · ');
+  const open = useCompactStore((s) => s.sheet === 'note' && s.note?.id === note.id);
+  // The note's own icon, drawn by the page, is the look: a hit target over it (as the fields'
+  // FieldLayer), content and not chrome; nothing of it is drawn but its ring and open mark.
   return (
-    <Popover.Root>
-      <Popover.Trigger
-        className={styles.target}
-        style={style}
-        aria-label={
-          note.author ? `${m.compact_note_show()}: ${note.author}` : m.compact_note_show()
-        }
-        data-compact-interactive=""
-      />
-      <Popover.Portal>
-        <Popover.Positioner side="bottom" align="center" sideOffset={4} collisionPadding={12}>
-          <Popover.Popup className={styles.popup} data-testid="note-popover">
-            <div className={styles.header}>
-              <div className={styles.heading}>
-                <Popover.Title className={styles.title}>{m.compact_note()}</Popover.Title>
-                {byline ? <p className={styles.byline}>{byline}</p> : null}
-              </div>
-              <Popover.Close className={controls.icon} aria-label={m.common_close()}>
-                <Icon name="x" />
-              </Popover.Close>
-            </div>
-            <Popover.Description className={styles.text} data-empty={text === '' || undefined}>
-              {text === '' ? m.compact_note_empty() : text}
-            </Popover.Description>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+    <button
+      type="button"
+      // eslint-disable-next-line recto/q9-controls
+      className={styles.target}
+      style={style}
+      aria-label={note.author ? `${m.compact_note_show()}: ${note.author}` : m.compact_note_show()}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      data-compact-interactive=""
+      data-testid="note-target"
+      onClick={() => openSheet('note', note)}
+    />
   );
 }

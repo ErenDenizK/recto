@@ -1,8 +1,9 @@
 /**
- * The compact reader's sheets (ADR-0033 §2.3): Contents (the file's outline), Go to page,
- * Document info and About. One opens at a time, from the capsule's page number or the ⋯ menu;
- * a jump closes its sheet and lands the page under the top bar. The Library mounts them too,
- * without a document, for About and its settings rows behind its own ⋯ (DSN-51).
+ * The compact reader's sheets (ADR-0033 §2.3; DSN-53): Contents (the file's outline), Go to
+ * page, Document info, Settings, a note and the password prompt. One opens at a time, from the
+ * capsule's page number, the title menu or a note; a jump closes its sheet and lands the page
+ * under the top bar. The Library mounts them too, without a document, for Settings behind its
+ * gear (DSN-51) and the password a file it opens may ask for.
  *
  * Pages is no sheet any more: it is the page overview (MOB-2, `overview-host.tsx`). The four
  * are rarely used and load on demand (`CompactMoreSheets`; phone code audit 2026-10 §4a, the
@@ -13,6 +14,7 @@
 import type { VirtualDocument } from '@pdf-editor/document-model';
 import { type ComponentType, useEffect, useState } from 'react';
 
+import { usePasswordStore } from '../../state/password-store';
 import { useCompactStore } from './compact-store';
 
 type MoreSheets = ComponentType<{ readonly doc?: VirtualDocument | undefined }>;
@@ -28,9 +30,10 @@ export function loadMoreSheets(): Promise<MoreSheets> {
 /** How long the idle prefetch may wait for an idle moment, ms. */
 const PREFETCH_TIMEOUT_MS = 3000;
 
-/** `doc` is the reader's document; the Library, with none, gets About alone (DSN-51). */
+/** `doc` is the reader's document; the Library, with none, gets Settings alone (DSN-51). */
 export function CompactSheets({ doc }: { readonly doc?: VirtualDocument | undefined }) {
-  const wanted = useCompactStore((s) => s.menuOpen || s.sheet !== null);
+  const asked = useCompactStore((s) => s.menuOpen || s.sheet !== null);
+  const wanted = usePasswordStore((s) => s.queue.length > 0) || asked;
   const [More, setMore] = useState<MoreSheets | null>(null);
 
   // Fetched when the browser is idle after the reader opens, or at once when asked for.

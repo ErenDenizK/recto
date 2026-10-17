@@ -4,18 +4,17 @@
  *
  * - **Top bar:** a floating glass capsule (DSN-32): ‹ back to the Library, the title
  *   (truncated, full in its accessible name), and ⋯ with Contents (only when the file has an
- *   outline), Share or Download a copy, Document info and About. Find and Go to page are the
+ *   outline), Share or Download a copy, Document info and Settings (DSN-53). Find and Go to page are the
  *   capsule's, their one home (DSN-46, DSN-48). In Find it becomes the search field with the
  *   hit count, ‹ › and Done. A document changed since it was opened (an edit here, or a kept
  *   snapshot) shows the "Changed" cue in ⋯ with Share a copy and Save a copy
  *   (`design/phone-2026-10/README.md` §6: no save in place on a phone). This capsule top is
  *   kept behind `?top=capsule` (DSN-34); the reader's default is the split top (DSN-37,
- *   `top-variant.ts`, `CompactTopSplit` in the compact chunk): ‹ and ⋯ as glass circles, the
- *   title as text over a scroll-edge fade in the theme's canvas tone (GLS-20), its menus liquid
- *   (`liquid-menu.ts`, DSN-39), and Find as a glass bar riding on the keyboard (`FindBar`'s
- *   `docked` form, DSN-39) while the top stays. There the title's file menu holds Share or
- *   Download a copy and Document info, so ⋯ keeps Contents and About alone (`withFile`,
- *   DSN-48). Here the ⋯ menu grows out of its button by the container transform (DSN-36).
+ *   `top-variant.ts`, `CompactTopSplit` in the compact chunk): ‹ as a glass circle, the title
+ *   as text over a scroll-edge fade in the theme's canvas tone (GLS-20), and Find as a glass
+ *   bar riding on the keyboard (`FindBar`'s `docked` form, DSN-39) while the top stays. There
+ *   the title's menu is the reader's one menu, ⋯'s rows folded into it (DSN-53). Here the ⋯
+ *   menu grows out of its button by the container transform (DSN-36).
  * - **Capsule:** one floating capsule at the bottom: Pages, "3 / 12" (Go to page) and Find,
  *   with the round edit button beside it on the trailing side (EDN-8;
  *   `design/phone-2026-10/README.md` §2). It morphs the capsule into the edit island (Undo,
@@ -54,8 +53,6 @@ import {
   setSearchQuery,
   useSearchStore,
 } from '../../viewer/search';
-import { PRODUCT_NAME } from '../about/build-info';
-import { AppGlyph } from '../AppGlyph';
 import { canShareFiles, prepareCopy, shareOrDownload } from './compact-actions';
 import {
   capsuleAway,
@@ -74,7 +71,6 @@ import controls from './controls.module.css';
 import { startEditing, takeCapsuleSnapshot, useMark, usePrefetchMark } from './mark-host';
 import { openOverview } from './overview-host';
 import { CompactTopSplit } from './CompactTopSplit';
-import { liquidPopupRef } from './liquid-ref';
 import { topVariant } from './top-variant';
 
 /** The container transform's popup class (`ui/container-transform.ts`, not imported here). */
@@ -95,8 +91,8 @@ function focusPages(): void {
  * chunks into one, which the engine's first-open closure then counted whole (PF-2, PRC-11).
  */
 export interface SplitTopParts {
-  readonly MoreMenu: typeof MoreMenu;
   readonly SaveItems: typeof SaveItems;
+  readonly prepareCopy: typeof prepareCopy;
   readonly toSheet: typeof toSheet;
   readonly useFileInfo: typeof useFileInfo;
   readonly showLibrary: typeof showLibrary;
@@ -110,6 +106,7 @@ export interface SplitTopParts {
 export function CompactTopBar({ doc }: { readonly doc: VirtualDocument }) {
   const hidden = useCompactStore(topBarAway);
   const findOpen = useCompactStore((s) => s.findOpen);
+  useMenuMotion();
   // The split top stays while Find rides on the keyboard (DSN-37, DSN-39); the capsule top
   // (`?top=capsule`) becomes the field, as before.
   if (topVariant() === 'split') {
@@ -193,40 +190,10 @@ const toSheet = (sheet: CompactSheet) => () => {
   openSheet(sheet);
 };
 
-interface MoreMenuProps {
-  readonly doc: VirtualDocument;
-  /** The trigger's look: the bar's icon control by default, the split top's glass circle. */
-  readonly triggerClassName?: string | undefined;
-  /** The trigger's `data-glass-group` (Q-11): the split top's pieces count as one surface. */
-  readonly glassGroup?: string;
-  /**
-   * The popup's offset from the trigger, px: 6 below the capsule; the split top's −44 lays the
-   * menu over its circle, which it grows out of (DSN-36, as iOS Preview's ⋯).
-   */
-  readonly sideOffset?: number;
-  /**
-   * The split top's liquid menu (DSN-39, `liquid-menu.ts`): the circle and the menu are one
-   * glass body while it opens and closes; otherwise the container transform (DSN-36).
-   */
-  readonly liquid?: boolean;
-  /**
-   * Share or Download a copy and Document info: the capsule top's ⋯ holds them; the split top's
-   * file menu is their home there, so its ⋯ leaves them out (DSN-48).
-   */
-  readonly withFile?: boolean;
-}
-
-function MoreMenu({
-  doc,
-  triggerClassName = controls.icon,
-  glassGroup,
-  sideOffset = 6,
-  liquid = false,
-  withFile = true,
-}: MoreMenuProps) {
+/** The capsule top's ⋯ (`?top=capsule`): Contents, Share, Document info, Settings. */
+function MoreMenu({ doc }: { readonly doc: VirtualDocument }) {
   const open = useCompactStore((s) => s.menuOpen);
   const hasOutline = doc.outline.length > 0;
-  useMenuMotion();
   return (
     <Menu.Root
       open={open}
@@ -237,40 +204,30 @@ function MoreMenu({
       }}
     >
       <Menu.Trigger
-        className={triggerClassName}
+        className={controls.icon}
         aria-label={m.compact_more()}
-        data-glass-group={glassGroup}
-        data-gpu-glass={glassGroup ? 'circle' : undefined}
         data-testid="compact-more"
       >
         <Icon name="dots-three" />
       </Menu.Trigger>
       <Menu.Portal>
-        <Menu.Positioner side="bottom" align="end" sideOffset={sideOffset} collisionPadding={8}>
-          <Menu.Popup
-            ref={liquid ? liquidPopupRef : undefined}
-            className={liquid ? styles.menu : `${styles.menu} ${CONTAINER_POPUP}`}
-            data-testid="compact-menu"
-          >
+        <Menu.Positioner side="bottom" align="end" sideOffset={6} collisionPadding={8}>
+          <Menu.Popup className={`${styles.menu} ${CONTAINER_POPUP}`} data-testid="compact-menu">
             {hasOutline ? (
               <Menu.Item className={styles.menuItem} onClick={toSheet('contents')}>
                 <Icon name="tree-view" />
                 <span>{m.compact_contents()}</span>
               </Menu.Item>
             ) : null}
-            {withFile ? (
-              <>
-                <SaveItems doc={doc} />
-                <Menu.Item className={styles.menuItem} onClick={toSheet('info')}>
-                  <Icon name="info" />
-                  <span>{m.compact_info()}</span>
-                </Menu.Item>
-              </>
-            ) : null}
-            {hasOutline || withFile ? <Menu.Separator className={styles.menuSeparator} /> : null}
-            <Menu.Item className={styles.menuItem} onClick={toSheet('about')}>
-              <AppGlyph size={16} />
-              <span>{m.about_command({ name: PRODUCT_NAME })}</span>
+            <SaveItems doc={doc} />
+            <Menu.Item className={styles.menuItem} onClick={toSheet('info')}>
+              <Icon name="info" />
+              <span>{m.compact_info()}</span>
+            </Menu.Item>
+            <Menu.Separator className={styles.menuSeparator} />
+            <Menu.Item className={styles.menuItem} onClick={toSheet('settings')}>
+              <Icon name="gear-six" />
+              <span>{m.settings_title()}</span>
             </Menu.Item>
           </Menu.Popup>
         </Menu.Positioner>
@@ -625,8 +582,8 @@ export function useFileInfo(doc: VirtualDocument) {
 }
 
 const SPLIT_TOP_PARTS: SplitTopParts = {
-  MoreMenu,
   SaveItems,
+  prepareCopy,
   toSheet,
   useFileInfo,
   showLibrary,

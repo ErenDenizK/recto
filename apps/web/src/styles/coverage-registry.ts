@@ -511,25 +511,16 @@ export const COVERAGE_REGISTRY: readonly GlassSurfaceEntry[] = [
   },
   {
     id: 'compact-sheet',
-    surface: 'Compact edition bottom sheet',
+    surface:
+      'Compact edition sheet, its scrim form (DSN-53): Contents, Go to page, Info, Settings, a note, the password, New signature',
     module: 'shell/compact/CompactSheet.module.css',
     selector: '.sheet',
     tier: 'sheet',
     sigma: 20,
-    minWidth: 320,
+    minWidth: 288,
     minHeight: 140,
-    smallest: 'the shortest sheet (Go to page): its handle, title and one field',
-  },
-  {
-    id: 'compact-note-popover',
-    surface: 'Compact edition note popover',
-    module: 'shell/compact/NoteLayer.module.css',
-    selector: '.popup',
-    tier: 'menu',
-    sigma: 12,
-    minWidth: 296,
-    minHeight: 96,
-    smallest: 'min(320 px, the window less 24 px); its header with Close and one line',
+    smallest:
+      'a 320 px phone less 16 px each side; the shortest sheet (a one-line note): its head and one line',
   },
   {
     id: 'compact-library-dock',

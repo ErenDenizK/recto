@@ -93,18 +93,29 @@ describe('CompactLibrary', () => {
     expect(screen.getByTestId('compact-library')).not.toHaveAttribute('data-first-run');
   });
 
-  it('opens About with the settings rows from the gear, before any file is open (DSN-51)', async () => {
+  it('opens Settings from the gear, About as its last row, before any file is open (DSN-51, DSN-53)', async () => {
     render(<CompactLibrary />);
     const more = screen.getByRole('button', { name: 'Settings' });
     expect(more.querySelector('[data-icon="gear-six"]')).not.toBeNull();
     expect(more).toHaveAttribute('aria-haspopup', 'dialog');
     expect(height(more)).toBeGreaterThanOrEqual(44);
     await userEvent.click(more);
-    const about = await screen.findByTestId('compact-about-sheet', {}, { timeout: 10_000 });
-    await waitFor(() => expect(about).toBeVisible());
+    const sheet = await screen.findByTestId('compact-settings-sheet', {}, { timeout: 10_000 });
+    await waitFor(() => expect(sheet).toBeVisible());
+    expect(within(sheet).getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     for (const name of ['Theme', 'Reduce motion', 'Language']) {
-      expect(within(about).getByRole('radiogroup', { name })).toBeInTheDocument();
+      expect(within(sheet).getByRole('radiogroup', { name })).toBeInTheDocument();
     }
+    // About is a page within the sheet; ‹ goes back to Settings.
+    await userEvent.click(within(sheet).getByRole('button', { name: /^About Recto/ }));
+    await waitFor(() =>
+      expect(within(sheet).getByRole('heading', { name: 'About Recto' })).toBeInTheDocument(),
+    );
+    expect(within(sheet).getByTestId('compact-about-version')).toBeInTheDocument();
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Settings' }));
+    await waitFor(() =>
+      expect(within(sheet).getByRole('radiogroup', { name: 'Theme' })).toBeInTheDocument(),
+    );
     act(() => {
       resetCompactStore();
     });
