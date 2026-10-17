@@ -166,6 +166,10 @@
   }
 }
 
+:global(:root[data-motion='reduced']) .bar[data-axis] .thumb {
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
 @media (forced-colors: active) {
   .layer {
     display: none;
