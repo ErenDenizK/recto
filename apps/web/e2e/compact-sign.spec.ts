@@ -143,8 +143,10 @@ test.describe('phone signing (M10 WP6)', () => {
     if (!panel) throw new Error('no sheet');
     expect(panel.x).toBeGreaterThanOrEqual(-1);
     expect(panel.x + panel.width).toBeLessThanOrEqual(view.width + 1);
-    // The sheet may run past the bottom edge (its spring's overhang); its top and its footer show.
+    // The phone sheet (DSN-53), inset in its shape, opened at large for the pad: its top and its
+    // primary show.
     expect(panel.y).toBeGreaterThanOrEqual(0);
+    expect(panel.x).toBeGreaterThanOrEqual(8);
     const use = sheet(page).getByRole('button', { name: 'Use signature' });
     await use.scrollIntoViewIfNeeded();
     const useBox = await use.boundingBox();
@@ -227,12 +229,8 @@ test.describe('phone signing (M10 WP6)', () => {
 test.describe('phone saving (M10 WP7)', () => {
   test('a copy made before an edit is never handed out after it', async ({ page }) => {
     await openReader(page);
-    // ⋯ prepares the pristine copy as it opens; the title's file menu, the copy's home
-    // (DSN-48), shows no Changed cue yet.
-    await page.getByRole('button', { name: 'More' }).click();
-    await expect(page.getByTestId('compact-menu')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('compact-menu')).toHaveCount(0);
+    // The title menu, the copy's home and the one menu (DSN-48, DSN-53), prepares the pristine
+    // copy as it opens and shows no Changed cue yet.
     await page.getByTestId('compact-title-menu-trigger').click();
     await expect(page.getByTestId('compact-file-menu')).toBeVisible();
     await expect(page.getByTestId('compact-menu-changed')).toHaveCount(0);
@@ -292,7 +290,7 @@ for (const colorScheme of ['dark', 'light'] as const) {
       await shot(page, 'drawer-saved', 700);
       await page.getByTestId('compact-drawer-scrim').dispatchEvent('pointerdown');
       await page.getByTestId('compact-edit-done').click();
-      await page.getByRole('button', { name: 'More' }).click();
+      await page.getByTestId('compact-title-menu-trigger').click();
       await shot(page, 'menu-changed', 500);
     });
   });

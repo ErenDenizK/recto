@@ -434,11 +434,11 @@ test.describe('the compact edition', () => {
     );
     await run.audit('compact reader');
 
-    await page.getByRole('button', { name: 'More' }).click();
-    await expect(page.getByTestId('compact-menu')).toBeVisible();
-    await run.audit('compact ⋯ menu');
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await expect(page.getByTestId('compact-file-menu')).toBeVisible();
+    await run.audit('compact title menu');
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId('compact-menu')).toHaveCount(0);
+    await expect(page.getByTestId('compact-file-menu')).toHaveCount(0);
 
     await page.getByTestId('compact-capsule').getByRole('button', { name: 'Pages' }).click();
     await expect(page.getByTestId('compact-overview')).toHaveAttribute('data-phase', 'open');

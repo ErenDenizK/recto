@@ -123,9 +123,9 @@ test.describe('Dim pages', () => {
 });
 
 test.describe('Dim pages on the phone', () => {
-  test.skip(({ isMobile }) => !isMobile, 'the compact edition’s About sheet');
+  test.skip(({ isMobile }) => !isMobile, 'the compact edition’s Settings sheet');
 
-  test('About’s Appearance rows dim the pages and keep it', async ({ page }) => {
+  test('Settings’ Appearance rows dim the pages and keep it', async ({ page }) => {
     await trackEngine(page);
     await useFileInputPicker(page);
     await page.goto('./?lang=en');
@@ -137,9 +137,10 @@ test.describe('Dim pages on the phone', () => {
     await expectDimmed(page, false);
     await shot(page, 'phone-dim-off');
 
-    await page.getByRole('button', { name: 'More' }).click();
-    await page.getByTestId('compact-menu').getByRole('menuitem', { name: 'About Recto' }).click();
-    const about = page.getByTestId('compact-about-sheet');
+    // Settings, from the title menu (DSN-53).
+    await page.getByTestId('compact-title-menu-trigger').click();
+    await page.getByTestId('compact-file-menu').getByRole('menuitem', { name: 'Settings' }).click();
+    const about = page.getByTestId('compact-settings-sheet');
     const dim = about.getByRole('switch', { name: 'Dim pages' });
     await dim.scrollIntoViewIfNeeded();
     await expect(dim).toHaveAttribute('aria-checked', 'false');

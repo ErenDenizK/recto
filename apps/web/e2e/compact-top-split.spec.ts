@@ -1,10 +1,10 @@
 /**
  * The phone reader's split top (DSN-34, the default since DSN-37;
- * `shell/compact/CompactTopSplit.tsx`), on the `phone` and `phone-land` projects with touch: ‹ and
- * ⋯ as glass circles of their own and the title centred between them, cut in its middle when long
- * (DSN-38), over a scroll-edge fade in the theme's canvas tone (GLS-20); the ⋯ menu
- * keeps its rows, lies over its circle and grows out of it on the compositor (DSN-39, MOT-13), as
- * the file menu does out of the title; Find rides on the keyboard while the top stays (DSN-39);
+ * `shell/compact/CompactTopSplit.tsx`), on the `phone` and `phone-land` projects with touch: ‹ as
+ * a glass circle and the title centred on the window, cut in its middle when long (DSN-38), over
+ * a scroll-edge fade in the theme's canvas tone (GLS-20); the title menu is the reader's one menu
+ * (DSN-53: ⋯ folded into it), lies over the title and grows out of it on the compositor (DSN-39,
+ * MOT-13); Find rides on the keyboard while the top stays (DSN-39);
  * the pieces hide on scroll with the capsule. `?top=capsule` keeps the capsule top (DSN-32), its
  * ⋯ menu below it on the container transform (DSN-36), Find in its field.
  */
@@ -27,7 +27,6 @@ async function shot(page: Page, name: string): Promise<void> {
 const topBar = (page: Page) => page.getByTestId('compact-top-bar');
 const capsule = (page: Page) => page.getByTestId('compact-capsule');
 const back = (page: Page) => page.getByTestId('compact-back');
-const more = (page: Page) => page.getByRole('button', { name: 'More' });
 const menu = (page: Page) => page.getByTestId('compact-menu');
 const titleTrigger = (page: Page) => page.getByTestId('compact-title-menu-trigger');
 const pages = (page: Page) => page.getByTestId('compact-pages');
@@ -168,26 +167,25 @@ const morphSeen = (page: Page) =>
   );
 
 test.describe('the split top (DSN-34)', () => {
-  test('‹, the title and ⋯ as pieces; the ⋯ menu grows out of its circle; hides on scroll', async ({
+  test('‹ and the title as pieces; the title menu grows out of the title; hides on scroll', async ({
     page,
   }) => {
     await openSample(page, '');
     await expect(topBar(page)).toHaveAttribute('data-variant', 'split');
     const view = page.viewportSize() ?? { width: 390, height: 844 };
 
-    // Two 44 px circles at the row's ends, the title between them, nothing over 48 px high.
+    // ‹ a 44 px circle at the row's start, no ⋯ (DSN-53), the title centred on the window in
+    // the room ‹ and an equal space leave, nothing over 48 px high.
+    await expect(page.getByRole('button', { name: 'More' })).toHaveCount(0);
     const backBox = await back(page).boundingBox();
-    const moreBox = await more(page).boundingBox();
     const titleBox = await titleTrigger(page).boundingBox();
-    if (!backBox || !moreBox || !titleBox) throw new Error('not laid out');
+    if (!backBox || !titleBox) throw new Error('not laid out');
     expect(backBox.width).toBe(44);
     expect(backBox.height).toBe(44);
-    expect(moreBox.width).toBe(44);
     expect(backBox.x).toBeGreaterThanOrEqual(12);
-    expect(moreBox.x + moreBox.width).toBeLessThanOrEqual(view.width - 12);
     expect(titleBox.x).toBeGreaterThan(backBox.x + backBox.width - 1);
-    expect(titleBox.x + titleBox.width).toBeLessThan(moreBox.x + 1);
-    expect(Math.abs(backBox.y + 22 - (moreBox.y + 22))).toBeLessThan(1);
+    expect(titleBox.x + titleBox.width).toBeLessThan(view.width - backBox.x - backBox.width + 1);
+    expect(Math.abs(titleBox.x + titleBox.width / 2 - view.width / 2)).toBeLessThan(2);
     await expect(titleTrigger(page)).toContainText('Recto sample');
     // The glass rules hold, and the pieces and the fade count as one surface (Q-11): the top,
     // the capsule and the edit button.
@@ -211,37 +209,43 @@ test.describe('the split top (DSN-34)', () => {
 
     await idle(page);
 
-    // ⋯: Contents and About (the copy and Document info are the file menu's, DSN-48), the
-    // menu over its circle, grown out of it on the compositor (MOT-13): a transform from about
-    // the circle's size, solid while it grows (MOT-12), never clipped or masked.
-    await watchMorph(page, 'compact-menu');
-    await tapCentre(page, more(page));
+    // The title menu, the one menu (DSN-53): the file's card, the copy, Document info, Contents
+    // and Settings; over the title, grown out of it on the compositor (MOT-13): a transform,
+    // solid while it grows (MOT-12), never clipped or masked.
+    const fileMenu = page.getByTestId('compact-file-menu');
+    await watchMorph(page, 'compact-file-menu');
+    await tapCentre(page, titleTrigger(page));
     if (SHOTS) {
-      // Mid-morph: the circle and the growing blob as one body, its rim along the union.
       await page.waitForTimeout(140);
       await page.screenshot({
         path: join(SHOTS, `menu-mid-morph-${view.width}x${view.height}.png`),
       });
     }
-    await expect(menu(page)).toBeVisible();
-    await expect(menu(page)).not.toHaveAttribute('data-ct');
+    await expect(fileMenu).toBeVisible();
+    await expect(fileMenu).not.toHaveAttribute('data-ct');
     await settled(page);
-    await expect(menu(page)).not.toHaveAttribute('data-liquid');
+    await expect(fileMenu).not.toHaveAttribute('data-liquid');
     const opened = await morphSeen(page);
     expect(opened.grown).toBeGreaterThan(0);
     expect(opened.solid).toBe(opened.grown);
-    expect(opened.from).toBeLessThan(0.5);
+    expect(opened.from).toBeLessThan(1);
     expect(opened.clipped).toBe(0);
     expect(opened.masked).toBe(0);
-    await expect(menu(page).getByRole('menuitem')).toHaveText(['Contents', 'About Recto']);
-    await expectGlassClean(page, 'the split top with ⋯ open');
-    const menuBox = await menu(page).boundingBox();
+    await expect(fileMenu.getByRole('menuitem')).toHaveText([
+      /^(Share|Download a copy)$/,
+      'Document info',
+      'Contents',
+      'Settings',
+    ]);
+    await expect(fileMenu.getByTestId('compact-file-name')).toHaveText(/\.pdf$/);
+    await expect(fileMenu).toContainText(/PDF · .+ · \d+ pages/);
+    await expectGlassClean(page, 'the split top with its menu open');
+    const menuBox = await fileMenu.boundingBox();
     if (!menuBox) throw new Error('no menu');
-    expect(menuBox.y).toBeLessThanOrEqual(moreBox.y + 1);
-    expect(menuBox.x + menuBox.width).toBeGreaterThanOrEqual(moreBox.x + moreBox.width - 1);
+    expect(menuBox.y).toBeLessThanOrEqual(titleBox.y + 1);
     // At rest nothing of the motion is left on it (Q-2): no mask, clip, transform or fade.
     expect(
-      await menu(page).evaluate((el) => {
+      await fileMenu.evaluate((el) => {
         const style = getComputedStyle(el);
         const first = el.firstElementChild;
         const content = first ? getComputedStyle(first).opacity : '1';
@@ -250,37 +254,23 @@ test.describe('the split top (DSN-34)', () => {
         return `${style.transform} ${style.clipPath} ${style.maskImage} ${content} ${rim} ${own}`;
       }),
     ).toBe('none none none 1 none ');
-    // Back into the circle on a tap outside.
-    await watchMorph(page, 'compact-menu');
-    await page.touchscreen.tap(view.width / 2, view.height / 2);
-    await expect(menu(page)).toHaveCount(0);
+    // Back into the title on a tap outside (beside it: on its side the menu covers the centre).
+    await watchMorph(page, 'compact-file-menu');
+    await page.touchscreen.tap(4, view.height / 2);
+    await expect(fileMenu).toHaveCount(0);
     const closed = await morphSeen(page);
     expect(closed.grown).toBeGreaterThan(0);
     expect(closed.clipped + closed.masked).toBe(0);
 
     // A row that opens a sheet hands off at once; the sheet takes the chrome away.
-    await tapCentre(page, more(page));
-    await menu(page).getByRole('menuitem', { name: 'Contents' }).click();
+    await tapCentre(page, titleTrigger(page));
+    await fileMenu.getByRole('menuitem', { name: 'Contents' }).click();
     const contents = page.getByTestId('compact-contents-sheet');
     await expect(contents).toBeVisible();
     await expect(topBar(page)).toHaveAttribute('data-hidden');
     await page.keyboard.press('Escape');
     await expect(contents).toHaveCount(0);
     await expect(topBar(page)).not.toHaveAttribute('data-hidden');
-
-    // The title's ▾: the file menu, grown out of the title, the name whole, Document info.
-    await watchMorph(page, 'compact-file-menu');
-    await tapCentre(page, titleTrigger(page));
-    const fileMenu = page.getByTestId('compact-file-menu');
-    await expect(fileMenu).toBeVisible();
-    await settled(page);
-    expect((await morphSeen(page)).grown).toBeGreaterThan(0);
-    await expect(fileMenu).not.toHaveAttribute('data-liquid');
-    await expect(fileMenu.getByTestId('compact-file-name')).toHaveText(/\.pdf$/);
-    await expect(fileMenu).toContainText(/PDF · .+ · \d+ pages/);
-    await expect(fileMenu.getByRole('menuitem', { name: 'Document info' })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(fileMenu).toHaveCount(0);
 
     // Find, the capsule's (DSN-48), rides on the keyboard; the top stays (DSN-37).
     await capsule(page).getByRole('button', { name: 'Find' }).click();
@@ -326,15 +316,14 @@ test.describe('the split top (DSN-34)', () => {
     // Find, the capsule's, is the bar's own field there; ⋯ keeps the copy and Document info.
     await bar.getByRole('button', { name: 'More' }).click();
     await expect(menu(page).getByRole('menuitem', { name: 'Document info' })).toBeVisible();
+    await expect(menu(page).getByRole('menuitem', { name: 'Settings' })).toBeVisible();
     await page.keyboard.press('Escape');
     await capsule(page).getByRole('button', { name: 'Find' }).click();
     await expect(bar.getByRole('searchbox')).toBeFocused();
     await expect(page.getByTestId('compact-find-bar')).toHaveCount(0);
   });
 
-  test('the title is centred between the circles and cut in its middle when long', async ({
-    page,
-  }) => {
+  test('the title is centred on the window and cut in its middle when long', async ({ page }) => {
     const view = page.viewportSize() ?? { width: 390, height: 844 };
     test.setTimeout(60_000);
     // Longer than the room on a phone on its side too.
@@ -345,14 +334,13 @@ test.describe('the split top (DSN-34)', () => {
     // The cut keeps the start and the end around one ellipsis; the accessible name is whole.
     await expect(text).toHaveText(/^Serway_Ph.*….*Jewett$/);
     await expect(titleTrigger(page)).toHaveAccessibleName(new RegExp(name));
-    // Centred on the window between the circles, and clear of them.
+    // Centred on the window, clear of ‹ and of the equal room where ⋯ stood (DSN-53).
     const backBox = await back(page).boundingBox();
-    const moreBox = await more(page).boundingBox();
     const box = await titleTrigger(page).boundingBox();
-    if (!backBox || !moreBox || !box) throw new Error('not laid out');
+    if (!backBox || !box) throw new Error('not laid out');
     expect(Math.abs(box.x + box.width / 2 - view.width / 2)).toBeLessThanOrEqual(1);
     expect(box.x).toBeGreaterThanOrEqual(backBox.x + backBox.width);
-    expect(box.x + box.width).toBeLessThanOrEqual(moreBox.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(view.width - backBox.x - backBox.width);
     expect(await text.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false);
     await shot(page, 'title-long');
 
@@ -521,13 +509,14 @@ test.describe('the split top (DSN-34)', () => {
   test.describe('with reduced motion', () => {
     test.use({ reducedMotion: 'reduce' });
 
-    test('the ⋯ menu only fades in and out', async ({ page }) => {
+    test('the title menu only fades in and out', async ({ page }) => {
       await openSample(page, '');
       await idle(page);
-      await watchMorph(page, 'compact-menu');
-      await tapCentre(page, more(page));
-      await expect(menu(page)).toBeVisible();
-      const clips = await menu(page).evaluate((el) =>
+      const fileMenu = page.getByTestId('compact-file-menu');
+      await watchMorph(page, 'compact-file-menu');
+      await tapCentre(page, titleTrigger(page));
+      await expect(fileMenu).toBeVisible();
+      const clips = await fileMenu.evaluate((el) =>
         el
           .getAnimations()
           .flatMap((a) =>
@@ -538,7 +527,7 @@ test.describe('the split top (DSN-34)', () => {
       await settled(page);
       expect((await morphSeen(page)).grown).toBe(0);
       await page.keyboard.press('Escape');
-      await expect(menu(page)).toHaveCount(0);
+      await expect(fileMenu).toHaveCount(0);
     });
   });
 });
