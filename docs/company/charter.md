@@ -68,7 +68,9 @@ for one agent is split by the CEO into briefs, not delegated to a manager agent.
 
 ## Budget
 
-Average, not minimal and not maximal (owner, 2026-10-18).
+Use the limit, do not race to exhaust it (owner, 2026-10-18): the owner's portfolio project runs on
+the same limit every day, so Recto takes a fair, steady share, and a heavier day is fine when the
+work earns it. The caps below are working defaults the CEO may move, and must record when it does.
 
 - **Cadence:** three operating cycles a day (02:53, 10:53, 18:53 Istanbul). The 18:53 cycle ends
   with the daily report; Sunday's also writes the weekly review.
@@ -94,8 +96,10 @@ Average, not minimal and not maximal (owner, 2026-10-18).
    branch; independent lanes in parallel, sharing no files.
 6. **Gate.** Before a PR opens: the scope check (`git diff --stat` against the brief), the
    `reviewer` on risky or multi-file lanes, the `design-critic` on any lane that changes what is
-   seen. A PR carries PRC-18's body; merge once all checks are green.
-7. **Ship.** At most one deploy a day, from the 18:53 cycle, when app code merged since the last
+   seen. A PR carries PRC-18's body; merge once all checks are green. PRs are not rationed: one
+   concern per PR, as many a day as the work produces, docs included (the owner wants the history
+   to show steady, coordinated work), but never an empty or padding PR.
+7. **Ship.** At most one deploy per cycle, at the cycle's end, when app code merged since the last
    one and `develop` CI is green: dispatch `.github/workflows/deploy.yml`, and confirm it.
 8. **Record.** A row in `agent-metrics.md` per lane (it rides the next PR), decision rows for
    decisions, the HQ body rewritten (lock cleared, lanes, next ten, parked, board questions).
