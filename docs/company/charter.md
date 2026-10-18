@@ -44,7 +44,7 @@ for one agent is split by the CEO into briefs, not delegated to a manager agent.
 
 ## Memory: what lives where
 
-- **HQ issue** ("Recto HQ", pinned, label `hq`): its body is the live state (lock, active lanes,
+- **HQ issue** ([#26](https://github.com/ErenDenizK/recto/issues/26) "Recto HQ", label `hq`): its body is the live state (lock, active lanes,
   the next ten items, parked items, open board questions); each cycle adds one comment, its report.
   It is the company's short-term memory; keep the body under 6 KB.
 - **`docs/company/roadmap.md`**: themes and the ranked backlog. Updated in the lane PR that
