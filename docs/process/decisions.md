@@ -127,7 +127,8 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-53](decisions/design.md) | One phone panel language: menus for commands, one sheet for everything else (owner, R22 C-11 option A) | Built (DSN-55) | 2026-10-17 |
 | [DSN-54](decisions/design.md) | Said once, cancelled as its siblings (owner and lead, R22 brief C-3, C-4) | In force | 2026-10-17 |
 | [DSN-55](decisions/design.md) | How the phone's one sheet is built (DSN-53) | In force; taste open: clear glass at rest, the drawer's rise from the edge, no ⋯ circle | 2026-10-17 |
-| [DSN-56](decisions/design.md) | On the phone, toasts step aside for a scrim sheet | In force; taste open (hide vs. above the sheet) | 2026-10-17 |
+| [DSN-56](decisions/design.md) | On the phone, toasts step aside for a scrim sheet | In force; taste settled by DSN-57 | 2026-10-17 |
+| [DSN-57](decisions/design.md) | R22's open taste questions, settled by the lead under the owner's delegation | In force | 2026-10-18 |
 
 ## Motion
 
@@ -310,6 +311,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-21](decisions/process.md) | An e2e wait names the condition it stands for, never a fixed pause | In force | 2026-10-17 |
 | [PRC-22](decisions/process.md) | One copy of the tiny helpers; dead exports go; observers and listeners audited (R22 X1–X3) | In force | 2026-10-17 |
 | [PRC-23](decisions/process.md) | Model routing for agent lanes (owner) | In force | 2026-10-17 |
+| [PRC-24](decisions/process.md) | Recto runs itself; the owner is the board | In force | 2026-10-18 |
 
 ## Foundations (ADR titles)
 
