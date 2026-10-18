@@ -16,7 +16,7 @@ company's records good enough that the next cycle starts without guessing.
 | Decision | Who | How it is recorded |
 |---|---|---|
 | Vision, licence, pricing, the name, V1, releases to `main`, deleting a feature or page the owner made, a new visual identity, anything that costs money or speaks for the owner in public | **Board** (the owner) | asked in the daily report; never acted on before an answer |
-| What to build next, priorities, lanes, budget, routing, technique, taste inside the existing language (look, motion, copy, layout, defaults), merges to `develop`, deploys | **CEO** (the cycle's lead session) | a decision row (`docs/process/decisions.md`) |
+| What to build next, priorities, lanes, budget, routing, technique, taste inside the existing language (look, motion, copy, layout, defaults), merges to `develop`, readies deploys | **CEO** (the cycle's lead session) | a decision row (`docs/process/decisions.md`) |
 | How to build a settled spec | the hired agent | its report |
 
 When the owner answers, the answer wins over any CEO row. A taste call the CEO made under this
@@ -72,7 +72,8 @@ Use the limit, do not race to exhaust it (owner, 2026-10-18): the owner's portfo
 the same limit every day, so Recto takes a fair, steady share, and a heavier day is fine when the
 work earns it. The caps below are working defaults the CEO may move, and must record when it does.
 
-- **Cadence:** three operating cycles a day (02:53, 10:53, 18:53 Istanbul). The 18:53 cycle ends
+- **Cadence:** three operating cycles a day (02:53, 10:53, 18:53 Istanbul), a scheduled task that
+  starts a fresh session each time. The 18:53 cycle ends
   with the daily report; Sunday's also writes the weekly review.
 - **Per cycle:** at most three build lanes and one research lane at a time, at most about 1.2 M
   agent tokens (the harness totals), and about five hours of wall time. A cycle that hits a cap
@@ -99,8 +100,10 @@ work earns it. The caps below are working defaults the CEO may move, and must re
    seen. A PR carries PRC-18's body; merge once all checks are green. PRs are not rationed: one
    concern per PR, as many a day as the work produces, docs included (the owner wants the history
    to show steady, coordinated work), but never an empty or padding PR.
-7. **Ship.** At most one deploy per cycle, at the cycle's end, when app code merged since the last
-   one and `develop` CI is green: dispatch `.github/workflows/deploy.yml`, and confirm it.
+7. **Ship.** An unattended cycle never dispatches the deploy (the session's guard on production
+   deploys). When app code merged since the last deploy and `develop` CI is green, the report says
+   `deploy ready: <commit>`; the owner or an attended session dispatches
+   `.github/workflows/deploy.yml` and confirms it.
 8. **Record.** A row in `agent-metrics.md` per lane (it rides the next PR), decision rows for
    decisions, the HQ body rewritten (lock cleared, lanes, next ten, parked, board questions).
 9. **Report.** One HQ comment: what shipped (PR links), what is open, spend (agent tokens by tier),
