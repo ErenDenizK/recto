@@ -3,7 +3,7 @@
  * shaders compile, it draws on change only, hands each piece's material to the GPU with
  * `gpu-glass`, and falls back to CSS+ on a lost context (GLS-5, GLS-13).
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { gpuGlassFailed, registerGpuGlass } from './index';
 import { GPU_GLASS_CLASS, type GpuGlassStats, startGpuGlass } from './renderer';
@@ -155,5 +155,68 @@ describe('GPU glass (GLS-12, GLS-13)', () => {
     expect(gpuGlassFailed()).toBe(true);
     expect(piece.classList.contains(GPU_GLASS_CLASS)).toBe(false);
     expect(root.querySelector('[data-testid="gpu-glass-canvas"]')).toBeNull();
+  });
+
+  // R23-1: the slow-frame rule (GLS-13) on injected timestamps, rAF driven by hand.
+  describe('slow-frame rule', () => {
+    const setup = () => {
+      // The rule is off under the test override; these tests need it on.
+      (window as { __rectoGpuGlass?: string }).__rectoGpuGlass = '';
+      let pending: FrameRequestCallback | null = null;
+      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+        pending = cb;
+        return 1;
+      });
+      vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {
+        pending = null;
+      });
+      const piece = root.querySelector('nav') as HTMLElement;
+      let top = 300;
+      // Moves the piece so the scene changes, then runs one frame at `at`.
+      const tick = (at: number) => {
+        top += 1;
+        piece.style.top = `${top}px`;
+        const cb = pending;
+        pending = null;
+        cb?.(at);
+      };
+      return { tick, piece };
+    };
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it('keeps drawing after a 3 s pause in a moving scene', () => {
+      const { tick } = setup();
+      const handle = startGpuGlass(root, false);
+      let t = 1000;
+      for (let i = 0; i < 20; i++, t += 16) tick(t);
+      handle.setPaused(true);
+      handle.setPaused(false);
+      t += 3000;
+      for (let i = 0; i < 200; i++, t += 16) tick(t);
+      expect(stats().state).toBe('on');
+      expect(stats().reason).toBe('');
+      handle.stop();
+    });
+
+    it('treats one long interval inside a running loop as a gap', () => {
+      const { tick } = setup();
+      const handle = startGpuGlass(root, false);
+      let t = 1000;
+      for (let i = 0; i < 20; i++, t += 16) tick(t);
+      t += 3000;
+      for (let i = 0; i < 200; i++, t += 16) tick(t);
+      expect(stats().state).toBe('on');
+      handle.stop();
+    });
+
+    it('still fails on sustained slow frames', () => {
+      const { tick } = setup();
+      startGpuGlass(root, false);
+      let t = 1000;
+      for (let i = 0; i < 60; i++, t += 60) tick(t);
+      expect(stats().state).toBe('failed');
+      expect(stats().reason).toBe('slow frames');
+    });
   });
 });
