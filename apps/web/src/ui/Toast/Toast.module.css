@@ -31,9 +31,10 @@
      high it rises as --chrome-float, and the stack keeps above whichever is higher. */
   --toast-band: calc(max(var(--free-bottom, 0px), var(--chrome-float, 0px)) + var(--space-2));
   position: fixed;
-  right: var(--free-right, 0px);
-  bottom: var(--toast-band);
-  left: var(--free-left, 0px);
+  /* Moved clear of an open modal sheet on its row (DSN-58, modal-clearance.ts). */
+  right: calc(var(--free-right, 0px) + var(--toast-clear-right, 0px));
+  bottom: var(--toast-clear-bottom, var(--toast-band));
+  left: calc(var(--free-left, 0px) + var(--toast-clear-left, 0px));
   /* Above a modal sheet's scrim (40) and the sheet itself (41), so a toast about the sheet's
      work (a failure, Try again, a skipped password file) stays readable while it is open,
      never dimmed under the scrim (07-sheets §1.1 rule 6: … scrim → modal sheets → toasts);
@@ -71,6 +72,12 @@
    (A-24), and it comes back with the time it had left (DSN-56). Visibility, not opacity, so no
    toast's glass loses its backdrop to a fading parent. */
 .region[data-covered] {
+  visibility: hidden;
+}
+
+/* The full edition's stack under a modal sheet with no room beside it on its row: hidden as
+   the phone's, its timers paused by the modal, back with the time it had left (DSN-58). */
+.region[data-yield] {
   visibility: hidden;
 }
 

@@ -19,6 +19,7 @@ import { dispatchShortcut } from '../../commands/use-shortcuts';
 import { setDrawerOpen } from '../../shell/compact/compact-store';
 import { CompactSheet } from '../../shell/compact/CompactSheet';
 import { ToolDrawer } from '../../shell/compact/mark/ToolDrawer';
+import { toast } from '../Toast/toast';
 import { resetToasts, useToastStore } from '../Toast/toast-store';
 import { ToastRegion } from '../Toast/ToastRegion';
 import type { SheetKind } from './presentation';
@@ -93,6 +94,86 @@ describe('the full edition', () => {
     await waitFor(() => expect(modalPaused()).toBe(true));
     rerender(<ToastRegion />);
     await waitFor(() => expect(modalPaused()).toBe(false), { timeout: 3000 });
+  });
+});
+
+/** Whether two boxes share any area. */
+function overlaps(a: DOMRect, b: DOMRect): boolean {
+  return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+}
+
+/** A modal task sheet with its primary in the footer, and the region with one toast. */
+function SheetWithToast({ open }: { readonly open: boolean }) {
+  return (
+    <>
+      <Sheet
+        id="s"
+        kind="task"
+        open={open}
+        onClose={() => undefined}
+        title="Save a copy"
+        primary={{ label: 'Download copy', onPress: () => undefined }}
+      >
+        <p>Body</p>
+      </Sheet>
+      <ToastRegion />
+    </>
+  );
+}
+
+describe('a toast never covers a modal sheet (DSN-58)', () => {
+  for (const [width, height] of [
+    [1440, 900],
+    [1180, 820],
+  ] as const) {
+    it(`moves beside a side sheet at ${width} × ${height}, readable and clear of its footer`, async () => {
+      await page.viewport(width, height);
+      const { rerender } = render(<SheetWithToast open={false} />);
+      act(() => {
+        toast.info('Split into 2 documents');
+      });
+      const shown = await settled(
+        await screen.findByRole('group', { name: 'Split into 2 documents' }),
+      );
+      rerender(<SheetWithToast open />);
+      const sheet = await settled(await screen.findByRole('dialog', { name: 'Save a copy' }));
+      expect(sheet).toHaveAttribute('data-presentation', 'side');
+      const button = screen.getByRole('button', { name: 'Download copy' });
+      await waitFor(() =>
+        expect(overlaps(shown.getBoundingClientRect(), sheet.getBoundingClientRect())).toBe(false),
+      );
+      expect(shown).toBeVisible();
+      const b = button.getBoundingClientRect();
+      expect(
+        document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)?.closest('button'),
+      ).toBe(button);
+    });
+  }
+
+  it('yields where there is no room beside the sheet, and comes back as it goes', async () => {
+    // Under 600 px a task sheet is a bottom sheet across the window (presentation.ts).
+    await page.viewport(560, 800);
+    const { rerender } = render(<SheetWithToast open={false} />);
+    act(() => {
+      toast.info('Split into 2 documents');
+    });
+    const shown = await settled(
+      await screen.findByRole('group', { name: 'Split into 2 documents' }),
+    );
+    rerender(<SheetWithToast open />);
+    const sheet = await settled(await screen.findByRole('dialog', { name: 'Save a copy' }));
+    expect(sheet).toHaveAttribute('data-presentation', 'bottom');
+    const region = shown.closest('[data-region="toasts"]') as HTMLElement;
+    await waitFor(() => expect(region).toHaveAttribute('data-yield'));
+    expect(getComputedStyle(region).visibility).toBe('hidden');
+    const button = screen.getByRole('button', { name: 'Download copy' });
+    const b = button.getBoundingClientRect();
+    expect(
+      document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)?.closest('button'),
+    ).toBe(button);
+    rerender(<SheetWithToast open={false} />);
+    await waitFor(() => expect(region).not.toHaveAttribute('data-yield'), { timeout: 3000 });
+    expect(shown).toBeVisible();
   });
 });
 

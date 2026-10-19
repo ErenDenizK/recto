@@ -44,6 +44,7 @@ import { Button } from '../Button';
 import { Icon } from '../Icon';
 import { IconButton } from '../IconButton';
 import { ProgressCapsule } from './ProgressCapsule';
+import { clearModals, MODAL_POPUP, resetClearance } from './modal-clearance';
 import { after, entranceDelay, fadeBackdrop, RISE_PX, reflow } from './stack-motion';
 import styles from './Toast.module.css';
 import { dismissToast, setToastPause, type Toast, useToastStore } from './toast-store';
@@ -104,11 +105,7 @@ function useEnvironmentPauses(): void {
       queued = true;
       queueMicrotask(() => {
         queued = false;
-        setToastPause(
-          'modal',
-          document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"]') !==
-            null,
-        );
+        setToastPause('modal', document.querySelector(MODAL_POPUP) !== null);
       });
     };
     hidden();
@@ -124,6 +121,52 @@ function useEnvironmentPauses(): void {
       }
     };
   }, []);
+}
+
+/**
+ * Re-places the region clear of modal popups whenever one comes or goes (the portals are the
+ * body's children), changes size, the window resizes, or the toasts change (`items`).
+ */
+function useModalClearance(
+  region: { readonly current: HTMLElement | null },
+  enabled: boolean,
+  items: readonly Item[],
+): void {
+  const measure = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    const el = region.current;
+    if (!enabled || !el) return undefined;
+    const sizes = new ResizeObserver(() => clearModals(el));
+    let watched: HTMLElement[] = [];
+    let queued = false;
+    const check = () => {
+      for (const popup of watched) sizes.unobserve(popup);
+      watched = [...document.querySelectorAll<HTMLElement>(MODAL_POPUP)];
+      for (const popup of watched) sizes.observe(popup);
+      clearModals(el);
+    };
+    const later = () => {
+      if (queued) return;
+      queued = true;
+      queueMicrotask(() => {
+        queued = false;
+        check();
+      });
+    };
+    measure.current = check;
+    const popups = new MutationObserver(later);
+    popups.observe(document.body, { childList: true });
+    window.addEventListener('resize', later);
+    check();
+    return () => {
+      measure.current = () => undefined;
+      sizes.disconnect();
+      popups.disconnect();
+      window.removeEventListener('resize', later);
+      resetClearance(el);
+    };
+  }, [region, enabled]);
+  useLayoutEffect(() => measure.current(), [items]);
 }
 
 export interface ToastRegionProps {
@@ -155,6 +198,10 @@ export function ToastRegion({
     setToastPause('sheet', true);
     return () => setToastPause('sheet', false);
   }, [covered]);
+
+  // In the full edition the stack keeps off an open modal sheet: beside it, else hidden
+  // (DSN-58, `modal-clearance.ts`). The phone's scrim sheets hide it already (DSN-56).
+  useModalClearance(region, edition === 'full', items);
 
   /**
    * Re-flows the stack around `mutate` (a React update, applied in `flushSync`): measured before
