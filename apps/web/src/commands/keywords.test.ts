@@ -170,3 +170,21 @@ describe('palette keyword search', () => {
     expect(['documents.mergeAll']).toContain(search(registry, 'combine')[0]);
   });
 });
+
+describe('conversion names (R23-8)', () => {
+  const cases: [string, string][] = [
+    ['images to pdf', 'section.insertImages'],
+    ['resimden pdf', 'section.insertImages'],
+    ['pdf to jpg', 'document.exportImages'],
+    ["pdf'ten png", 'document.exportImages'],
+    ['pdf to markdown', 'document.exportMarkdown'],
+    ['pdf to text', 'document.exportMarkdown'],
+    ["pdf'ten markdown", 'document.exportMarkdown'],
+    ["pdf'ten metin", 'document.exportMarkdown'],
+  ];
+  it.each(['en', 'tr'] as const)('finds each conversion in the %s UI', (locale) => {
+    setLocale(locale);
+    const registry = allCommands();
+    for (const [query, id] of cases) expect(search(registry, query)[0], query).toBe(id);
+  });
+});
