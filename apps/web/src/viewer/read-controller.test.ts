@@ -7,8 +7,10 @@
 import type { SourceId } from '@pdf-editor/document-model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fakeIdle, type IdleClock } from '../../test/idle';
 import {
   deferPageRender,
+  IDLE_RENDER_TIMEOUT_MS,
   heldPageRenders,
   notePageBitmap,
   notePagePainted,
@@ -78,13 +80,16 @@ describe('whenPainted', () => {
 
 describe('render deferral (craft spec §5.3 item 7)', () => {
   const state = { holds: true, committing: false, burstOpen: true };
-  const idle = () => new Promise<void>((resolve) => requestIdleCallback(() => resolve()));
+  // Idle time is a step the test takes (`test/idle.ts`): a bare idle callback has no upper
+  // bound, and a loaded runner gave none within the test's timeout (R23-9).
+  let clock: IdleClock;
   const down = (pointerId: number) =>
     window.dispatchEvent(new PointerEvent('pointerdown', { pointerId }));
   const up = (pointerId: number) =>
     window.dispatchEvent(new PointerEvent('pointerup', { pointerId }));
 
   beforeEach(() => {
+    clock = fakeIdle();
     Object.assign(state, { holds: true, committing: false, burstOpen: true });
     setRenderHold({
       holds: () => state.holds,
@@ -95,6 +100,7 @@ describe('render deferral (craft spec §5.3 item 7)', () => {
   afterEach(() => {
     setRenderHold(null);
     resetRenderDeferral();
+    clock.restore();
   });
 
   it('runs at once when nothing holds the page', () => {
@@ -108,7 +114,7 @@ describe('render deferral (craft spec §5.3 item 7)', () => {
     const run = vi.fn();
     down(1);
     deferPageRender(source, 0, run);
-    await idle();
+    clock.idle();
     await frame();
     await frame();
     expect(run).not.toHaveBeenCalled();
@@ -116,7 +122,9 @@ describe('render deferral (craft spec §5.3 item 7)', () => {
     up(1);
     // Idle time is asked for again after the release, then the render runs.
     await frame();
-    await idle();
+    expect(clock.requests.at(-1)).toEqual({ timeout: IDLE_RENDER_TIMEOUT_MS });
+    expect(run).not.toHaveBeenCalled();
+    clock.idle();
     await frame();
     expect(run).toHaveBeenCalledTimes(1);
   });
@@ -136,7 +144,7 @@ describe('render deferral (craft spec §5.3 item 7)', () => {
     const run = vi.fn();
     deferPageRender(source, 0, run);
     releasePageRenders(source, 0);
-    await idle();
+    clock.idle();
     await frame();
     expect(run).not.toHaveBeenCalled();
     state.committing = false;

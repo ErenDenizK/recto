@@ -10,6 +10,7 @@ import type { InkAnnotation } from '@pdf-editor/engine';
 import { inkOutlineOps } from '@pdf-editor/engine/ink-outline';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fakeIdle, type IdleClock } from '../../../test/idle';
 import { getEngineService } from '../../engine/engine-service';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
 import {
@@ -49,7 +50,6 @@ const FRAME: PageFrame = {
 };
 
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-const idle = () => new Promise<void>((resolve) => requestIdleCallback(() => resolve()));
 
 let sheet: HTMLElement;
 let views: DryInkView[] = [];
@@ -344,6 +344,14 @@ describe('drySettle and inkCommitted', () => {
 });
 
 describe('render deferral', () => {
+  // Idle time is a step the test takes (`test/idle.ts`): a bare idle callback has no upper
+  // bound, and a loaded runner gave none within the test's timeout (R23-9).
+  let clock: IdleClock;
+  beforeEach(() => {
+    clock = fakeIdle();
+  });
+  afterEach(() => clock.restore());
+
   it('runs at once when the page holds no dry ink', () => {
     const run = vi.fn();
     deferPageRender(source, 0, run);
@@ -358,7 +366,7 @@ describe('render deferral', () => {
     deferPageRender(source, 0, run);
     expect(run).not.toHaveBeenCalled();
     expect(heldPageRenders()).toBe(1);
-    await idle();
+    clock.idle();
     await frame();
     expect(run).toHaveBeenCalledTimes(1);
     expect(heldPageRenders()).toBe(0);
@@ -371,14 +379,14 @@ describe('render deferral', () => {
     const run = vi.fn();
     window.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 41 }));
     deferPageRender(source, 0, run);
-    await idle();
+    clock.idle();
     await frame();
     await frame();
     expect(run).not.toHaveBeenCalled();
     // A second stroke is held before the pointer goes up; its commit has not landed.
     const pending: DryStroke = holdDryStroke(stroke(140));
     window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 41 }));
-    await idle();
+    clock.idle();
     await frame();
     await frame();
     expect(run).not.toHaveBeenCalled();
@@ -395,7 +403,8 @@ describe('render deferral', () => {
     const cancel = deferPageRender(source, 0, run);
     cancel();
     expect(heldPageRenders()).toBe(0);
-    await idle();
+    expect(clock.pending()).toBe(0);
+    clock.idle();
     await frame();
     expect(run).not.toHaveBeenCalled();
   });
