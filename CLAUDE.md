@@ -50,8 +50,8 @@ loop: `docs/process/model-routing.md`; one row per lane in `docs/process/agent-m
 
 ## Running the company (PRC-24, owner)
 
-The owner is the board; the lead session is the chief executive and runs Recto in operating cycles,
-each a fresh session. A cycle follows `docs/company/charter.md` (who decides, the organisation,
+The owner is the board; the lead session is the chief executive and runs Recto in operating cycles
+(a scheduled task wakes the lead session). A cycle follows `docs/company/charter.md` (who decides, the organisation,
 budget, context hygiene, the cycle's steps, stop rules), works from `docs/company/roadmap.md`, and
 keeps live state and reports in the "Recto HQ" issue (#26).
 

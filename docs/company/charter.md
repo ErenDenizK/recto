@@ -55,16 +55,18 @@ for one agent is split by the CEO into briefs, not delegated to a manager agent.
 
 ## Context hygiene (against context rot)
 
-1. **One cycle, one fresh session.** No cycle continues another's conversation; state passes only
-   through the HQ issue and the repo.
+1. **The HQ issue is the memory, not the conversation.** Cycles fire into the lead session (the
+   one the owner can see and approve; fresh sessions started without the repository or the
+   owner's approvals and stopped, 2026-10-19). Each cycle starts by rereading this file and the
+   HQ body, never trusting older context or a compacted summary over them.
 2. **Read small, in this order:** this file, the HQ issue body, `roadmap.md`'s "Now" section,
    then only the decision rows a chosen lane cites. Never read whole logs, the full decisions
    areas or old briefs.
 3. **Logs never enter the CEO's context:** CI output goes to `log-reader`, searches to `Explore`.
 4. **Briefs are self-contained and short** (objective, decisions, files in scope and out, checks,
    output, done condition); an agent's report is under 300 words.
-5. **A cycle ends on paper:** whatever is not in the HQ issue or the repo when the session ends
-   is lost, and that is intended.
+5. **A cycle ends on paper:** whatever is not in the HQ issue or the repo when the cycle ends
+   counts as lost, so a compaction or a new session loses nothing.
 
 ## Budget
 
@@ -73,8 +75,7 @@ the same limit every day, so Recto takes a fair, steady share, and a heavier day
 work earns it. The caps below are working defaults the CEO may move, and must record when it does.
 
 - **Cadence:** three operating cycles a day (02:53, 10:53, 18:53 Istanbul), a scheduled task that
-  starts a fresh session each time. The 18:53 cycle ends
-  with the daily report; Sunday's also writes the weekly review.
+  wakes the lead session. The 18:53 cycle ends with the daily report; Sunday's also writes the weekly review.
 - **Per cycle:** at most three build lanes and one research lane at a time, at most about 1.2 M
   agent tokens (the harness totals), and about five hours of wall time. A cycle that hits a cap
   stops opening lanes and finishes what is open.
