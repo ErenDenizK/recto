@@ -19,9 +19,12 @@ the tests' findings outrank everything else here.
 | 4 | User-test kit: tasks for desktop and phone, what to watch, a one-page findings template | strategist | `docs/research/user-tests/kit.md` reviewed by the CEO |
 | 5 | Phone first-load: measure the PWA precache (13.45 MB at R22) and the first open on a throttled phone; cut what the first visit does not need | root cause, then builder | a measured number before and after, no gate raised |
 | 6 | Stale task audit: old open items (XD-3 tracks, the R12 innovation roadmap) checked against today's code; each closed, merged into this list, or parked with a reason | analyst | this file updated |
+| 7 | Phone pen and highlighter draw again (owner report 2026-10-19: strokes cut to a scratch on the sample) | root cause, then fix | an e2e at phone size commits a pen and a highlighter stroke; one finger still scrolls with no tool |
+| 8 | Conversions people search for: name what exists ("Images to PDF", "PDF to JPG / PNG", "PDF to Markdown") on Home and in the command keywords (first tester's question; `docs/research/conversion-2026-10/memo.md`) | builder | each name finds its command in the palette and on Home; EN and TR strings |
 
 ## Next
 
+- Text (.txt) to PDF, then Markdown to PDF, with the bundled fonts and line-breaker (no dependency; conversion memo).
 - Findings of the user tests (they jump the queue when they arrive).
 - Weekly routing comparison (Sonnet lanes against the Opus baseline, `model-routing.md`).
 - Accessibility pass on keyboard and focus (PRD-3: not a V1 requirement, but cheap wins count).
@@ -33,6 +36,9 @@ the tests' findings outrank everything else here.
 
 ## Board ideas (proposals, not decisions)
 
+- **Office files (DOCX, XLSX, PPTX) to PDF on the device:** LibreOffice as WASM, loaded only when an
+  Office file is opened (about 50 MB on first use, MPL-2.0, needs cross-origin isolation). The
+  CEO's advice: wait until more testers ask; never convert on a server.
 - **Verifiably private.** Recto is already public under Apache-2.0. Make that the headline: a page
   that shows the app making no network request with a file open, and a build hash anyone can
   reproduce. Competitors say "private"; Recto could prove it.
