@@ -1,7 +1,8 @@
 /**
  * Command palette (Mod+K). Built on the Base UI Dialog (focus trap, Esc, scroll lock,
- * focus return); modal, so it says `aria-modal="true"`, which Base UI does not (07-sheets §8). The list follows the APG combobox + listbox pattern: focus stays in the
- * input and `aria-activedescendant` points at the active option.
+ * focus return); modal, so it says `aria-modal="true"`, which Base UI does not (07-sheets
+ * §8). The list follows the APG combobox + listbox pattern: focus stays in the input and
+ * `aria-activedescendant` points at the active option.
  *
  * Motion (docs/design/motion-2026-10/frame.md §2): the popup scales up from its top centre
  * over a dim-only scrim that fades in (G-31); the first six rows come in 20 ms apart; the

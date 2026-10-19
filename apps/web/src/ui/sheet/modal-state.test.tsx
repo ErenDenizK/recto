@@ -35,9 +35,21 @@ beforeEach(async () => {
 afterEach(() => {
   act(() => setDrawerOpen(false));
   resetToasts();
+  vi.useRealTimers();
+  document.documentElement.style.removeProperty('--free-bottom');
 });
 
 const modalPaused = () => useToastStore.getState().paused.has('modal');
+
+/**
+ * Lets the region's observers answer what has just mounted: their callbacks run as microtasks
+ * after the change and queue one more, all done before the next frame.
+ */
+async function observed(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  });
+}
 
 /** A registry with one plain-key command, as the tool keys are. */
 function plainKey() {
@@ -84,6 +96,7 @@ describe('the full edition', () => {
     render(<SheetOf kind="tool" />);
     const sheet = await settled(await screen.findByRole('dialog'));
     expect(sheet).toHaveAttribute('aria-modal', 'false');
+    await observed();
     expect(modalPaused()).toBe(false);
     press(screen.getByRole('button', { name: 'Inside' }), registry);
     expect(run).toHaveBeenCalledOnce();
@@ -175,7 +188,93 @@ describe('a toast never covers a modal sheet (DSN-58)', () => {
     await waitFor(() => expect(region).not.toHaveAttribute('data-yield'), { timeout: 3000 });
     expect(shown).toBeVisible();
   });
+
+  it('moves two toasts beside a side sheet together', async () => {
+    const { rerender } = render(<SheetWithToast open={false} />);
+    act(() => {
+      toast.info('Split into 2 documents');
+      toast.info('Deleted page 2');
+    });
+    const one = await settled(await screen.findByRole('group', { name: 'Split into 2 documents' }));
+    const two = await settled(await screen.findByRole('group', { name: 'Deleted page 2' }));
+    rerender(<SheetWithToast open />);
+    const sheet = await settled(await screen.findByRole('dialog', { name: 'Save a copy' }));
+    await waitFor(() => {
+      for (const t of [one, two]) {
+        expect(overlaps(t.getBoundingClientRect(), sheet.getBoundingClientRect())).toBe(false);
+      }
+    });
+    expect(one).toBeVisible();
+    expect(two).toBeVisible();
+  });
+
+  it('never drops below the band under a tall dialog: it yields instead', async () => {
+    // The dock band's room at the foot of the free rectangle (frame-insets.ts).
+    document.documentElement.style.setProperty('--free-bottom', '72px');
+    const { rerender } = render(<TallDialog open={false} />);
+    act(() => {
+      toast.info('Deleted page 2');
+    });
+    const shown = await settled(await screen.findByRole('group', { name: 'Deleted page 2' }));
+    const region = shown.closest('[data-region="toasts"]') as HTMLElement;
+    const resting = region.getBoundingClientRect();
+    rerender(<TallDialog open />);
+    const dialog = await settled(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' }));
+    expect(dialog).toHaveAttribute('data-presentation', 'dialog');
+    await waitFor(() => expect(region).toHaveAttribute('data-yield'));
+    expect(region.getBoundingClientRect().bottom).toBe(resting.bottom);
+    expect(getComputedStyle(region).visibility).toBe('hidden');
+  });
+
+  it('brings a yielded toast back with the time it had left, not a fresh timer', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const start = new Date('2026-10-19T12:00:00Z').getTime();
+    vi.setSystemTime(start);
+    await page.viewport(560, 800);
+    const { rerender } = render(<SheetWithToast open={false} />);
+    act(() => {
+      toast.info('Split into 2 documents');
+    });
+    const shown = await settled(
+      await screen.findByRole('group', { name: 'Split into 2 documents' }),
+    );
+    const region = shown.closest('[data-region="toasts"]') as HTMLElement;
+    const first = useToastStore.getState().shown[0];
+    expect(first?.runningSince).toBe(start);
+    const duration = first?.remaining ?? 0;
+    // 1.5 s on screen, then the sheet: the timer stops with what was left.
+    vi.setSystemTime(start + 1500);
+    rerender(<SheetWithToast open />);
+    await settled(await screen.findByRole('dialog', { name: 'Save a copy' }));
+    await waitFor(() => expect(region).toHaveAttribute('data-yield'));
+    expect(useToastStore.getState().shown[0]).toMatchObject({
+      remaining: duration - 1500,
+      runningSince: null,
+    });
+    // A long while under the sheet takes nothing off it.
+    vi.setSystemTime(start + 60_000);
+    rerender(<SheetWithToast open={false} />);
+    await waitFor(() => expect(region).not.toHaveAttribute('data-yield'), { timeout: 3000 });
+    await waitFor(() => expect(modalPaused()).toBe(false), { timeout: 3000 });
+    expect(useToastStore.getState().shown[0]).toMatchObject({
+      remaining: duration - 1500,
+      runningSince: start + 60_000,
+    });
+    expect(shown).toBeVisible();
+  });
 });
+
+/** The shortcuts overlay's shape: a centred dialog at its tallest, its foot on the band's row. */
+function TallDialog({ open }: { readonly open: boolean }) {
+  return (
+    <>
+      <Sheet id="o" kind="overlay" open={open} onClose={() => undefined} title="Keyboard shortcuts">
+        <div style={{ height: 2000 }} />
+      </Sheet>
+      <ToastRegion />
+    </>
+  );
+}
 
 describe('the compact edition', () => {
   it('knows a scrim sheet as modal: toasts pause, plain keys hold', async () => {
@@ -209,6 +308,7 @@ describe('the compact edition', () => {
     const drawer = await settled(await screen.findByTestId('compact-tool-drawer'));
     expect(drawer).not.toHaveAttribute('aria-modal', 'true');
     expect(document.querySelector('[aria-modal="true"]')).toBeNull();
+    await observed();
     expect(modalPaused()).toBe(false);
     press(drawer, registry);
     expect(run).toHaveBeenCalledOnce();

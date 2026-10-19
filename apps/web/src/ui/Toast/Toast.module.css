@@ -33,7 +33,7 @@
   position: fixed;
   /* Moved clear of an open modal sheet on its row (DSN-58, modal-clearance.ts). */
   right: calc(var(--free-right, 0px) + var(--toast-clear-right, 0px));
-  bottom: var(--toast-clear-bottom, var(--toast-band));
+  bottom: var(--toast-band);
   left: calc(var(--free-left, 0px) + var(--toast-clear-left, 0px));
   /* Above a modal sheet's scrim (40) and the sheet itself (41), so a toast about the sheet's
      work (a failure, Try again, a skipped password file) stays readable while it is open,

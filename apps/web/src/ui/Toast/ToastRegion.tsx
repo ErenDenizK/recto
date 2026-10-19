@@ -111,6 +111,8 @@ function useEnvironmentPauses(): void {
     hidden();
     modal();
     document.addEventListener('visibilitychange', hidden);
+    // Base UI mounts a portal under <body> for each open and removes it once the close has
+    // finished, so the body's children are enough to see a modal come and go.
     const observer = new MutationObserver(modal);
     observer.observe(document.body, { childList: true });
     return () => {
@@ -125,7 +127,8 @@ function useEnvironmentPauses(): void {
 
 /**
  * Re-places the region clear of modal popups whenever one comes or goes (the portals are the
- * body's children), changes size, the window resizes, or the toasts change (`items`).
+ * body's children), a popup or the region's own room changes size (a sidebar moving the free
+ * rectangle), the window resizes, or the toasts change (`items`).
  */
 function useModalClearance(
   region: { readonly current: HTMLElement | null },
@@ -154,6 +157,11 @@ function useModalClearance(
       });
     };
     measure.current = check;
+    // The region's own box: its room changes with the free rectangle. Placing it changes the
+    // box once more, then it settles: the same room gives the same place.
+    sizes.observe(el);
+    // As the modal pause: Base UI mounts a portal under <body> per open and unmounts it per
+    // close, so the body's children say when a popup comes or goes.
     const popups = new MutationObserver(later);
     popups.observe(document.body, { childList: true });
     window.addEventListener('resize', later);

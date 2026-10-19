@@ -6,10 +6,12 @@
  *
  * - the stack centres in the room beside the popup on its row (a side sheet: the room on its
  *   left), when its widest toast fits there;
- * - else under the popup's foot, centred in the room between it and the window's edge (a tall
- *   centred dialog), when the whole stack fits there;
- * - else it yields: it is hidden (`data-yield`, visibility, as the phone's DSN-56), its timers
+ * - else it yields (a bottom sheet, a tall centred dialog): it is hidden (`data-yield`, visibility, as the phone's DSN-56), its timers
  *   already paused by the modal, and it comes back with the time it had left as the sheet goes.
+ *
+ * The stack never moves down: its row is the lowest it may sit, above the dock band and the
+ * capsule (01-frame F13), and that row crosses the popup, so a place under the popup's foot
+ * would lie over the band; with no room beside it, it yields.
  *
  * Geometry is read without transforms (`offsetLeft`/`offsetTop`), so a panel still on its
  * entrance spring is placed where it will rest.
@@ -47,7 +49,6 @@ export function clearModals(region: HTMLElement): void {
   const rect = region.getBoundingClientRect();
   const css = getComputedStyle(region);
   const padding = Number.parseFloat(css.paddingInlineStart) || 0;
-  const gap = Number.parseFloat(css.rowGap) || 0;
   const need = Math.max(...toasts.map((t) => t.offsetWidth)) + 2 * padding;
   const crossing = [...document.querySelectorAll<HTMLElement>(MODAL_POPUP)]
     .map(layoutBox)
@@ -72,13 +73,6 @@ export function clearModals(region: HTMLElement): void {
       }
       return;
     }
-    // Under its foot, centred in the room between it and the window's edge (a tall dialog).
-    const below = window.innerHeight - box.bottom;
-    if (below >= rect.height + gap) {
-      const bottom = Math.round((below - rect.height) / 2);
-      region.style.setProperty('--toast-clear-bottom', `${bottom}px`);
-      return;
-    }
   }
   region.setAttribute('data-yield', '');
 }
@@ -87,6 +81,5 @@ export function clearModals(region: HTMLElement): void {
 export function resetClearance(region: HTMLElement): void {
   region.style.removeProperty('--toast-clear-left');
   region.style.removeProperty('--toast-clear-right');
-  region.style.removeProperty('--toast-clear-bottom');
   region.removeAttribute('data-yield');
 }
