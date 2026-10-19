@@ -93,6 +93,8 @@ const QUIET_FRAMES = 4;
 /** The slow-frame rule (GLS-13): a 2 s window of drawing, more than half above 33 ms. */
 const SLOW_WINDOW_MS = 2000;
 const SLOW_FRAME_MS = 33;
+/** An interval above this is a pause (hidden tab, stall, stopped loop), not a slow frame (R23-1). */
+const GAP_MS = 1000;
 const SLOW_SHARE = 0.5;
 /** Textures kept for canvases not drawn under glass lately, at most. */
 const SPARE_TEXTURES = 4;
@@ -344,6 +346,7 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
     setPaused(next) {
       if (stopped || next === paused) return;
       paused = next;
+      lastFrame = 0;
       if (paused) {
         if (raf !== 0) cancelAnimationFrame(raf);
         raf = 0;
@@ -750,7 +753,10 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
   let frames = 0;
   const frame = (now: number) => {
     raf = 0;
-    if (stopped || paused) return;
+    if (stopped || paused) {
+      lastFrame = 0;
+      return;
+    }
     frames++;
     try {
       const scene = measure();
@@ -759,6 +765,11 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
         signature = scene.signature;
         quiet = 0;
         // The slow-frame rule, over frames drawn back to back.
+        if (lastFrame > 0 && now - lastFrame > GAP_MS) {
+          // A pause, not a slow frame: start the window again.
+          lastFrame = 0;
+          window2s = [];
+        }
         if (lastFrame > 0 && !forced()) {
           window2s.push(now - lastFrame);
           let total = 0;
@@ -786,7 +797,11 @@ export function startGpuGlass(root: HTMLElement, startPaused: boolean): GpuGlass
 
   function kick(): void {
     quiet = 0;
-    if (raf === 0 && !paused && !stopped) raf = requestAnimationFrame(frame);
+    if (raf === 0 && !paused && !stopped) {
+      // A fresh rAF chain: the time since the last draw is not a frame interval.
+      lastFrame = 0;
+      raf = requestAnimationFrame(frame);
+    }
   }
 
   // What can move glass or what lies under it.
