@@ -257,10 +257,12 @@ interface Midway {
  *
  * Such an engine can also step clean over the window: the scrubber's 120 ms *popup* transition
  * on `--ease-out` is past 85 % at 56 ms, and the frame after the first one lands later than
- * that. So an animation first seen short of `minMs` is held at a quarter speed until a frame
- * finds it in the window, and set back to full speed in that frame, before the interrupt. Its
- * clock is all that changes: the motion core reads the animation's own `currentTime` on a
- * retarget, so what is drawn and what is read stay the same frame.
+ * that. So the target's animations are held at a quarter speed from the moment they are made
+ * (and one first seen short of `minMs` from that frame) until a frame finds one in the window,
+ * and set back to full speed in that frame, before the interrupt. Their clock is all that
+ * changes: the motion core reads the animation's own `currentTime` on a retarget, so what is
+ * drawn and what is read stay the same frame. A failure reports the first frame that saw the
+ * target move as well as the last.
  */
 function interruptMidway(
   page: Page,
@@ -296,9 +298,32 @@ function interruptMidway(
         };
         /** Animations held at a quarter speed until the window is reached. */
         const held = new Set<Animation>();
+        // From the moment the target's animation is made, not the first frame that sees it: an
+        // engine whose clock starts before a heavy first frame is drawn (WebKit, a 760 px
+        // overlay over a blurred scrim on a slow runner) can be past the window by then.
+        const original = Object.getOwnPropertyDescriptor(Element.prototype, 'animate');
+        const animate = original?.value as Element['animate'];
+        Element.prototype.animate = function (this: Element, ...args) {
+          const a = animate.apply(this, args);
+          if (this.matches(target) && !held.has(a)) {
+            held.add(a);
+            a.playbackRate = 0.25;
+          }
+          return a;
+        };
+        const disarm = () => {
+          if (original) Object.defineProperty(Element.prototype, 'animate', original);
+        };
+        /** What the first frame that found the target moving saw, for a failure to report. */
+        let firstSeen: string | null = null;
         const step = () => {
           const el = document.querySelector(target);
           const animations = el?.getAnimations().filter((a) => a.playState === 'running') ?? [];
+          if (firstSeen === null && animations.length > 0) {
+            firstSeen = animations
+              .map((a) => `${Math.round(Number(a.currentTime ?? 0))} ms × ${a.playbackRate}`)
+              .join('; ');
+          }
           for (const a of animations) {
             if (!held.has(a) && Number(a.currentTime ?? 0) < minMs) {
               held.add(a);
@@ -308,6 +333,8 @@ function interruptMidway(
           const running = animations.find((a) => Number(a.currentTime ?? 0) >= minMs);
           const progress = running?.effect?.getComputedTiming().progress ?? null;
           if (el && running && progress !== null && progress < 0.85) {
+            // The turn the interrupt starts runs at full speed.
+            disarm();
             for (const a of held) a.playbackRate = 1;
             const before = read(el);
             if (interrupt.kind === 'key') {
@@ -327,6 +354,7 @@ function interruptMidway(
             } else {
               const button = document.querySelector<HTMLElement>(interrupt.selector);
               if (!button) {
+                disarm();
                 reject(new Error(`no ${interrupt.selector} to interrupt with`));
                 return;
               }
@@ -360,7 +388,12 @@ function interruptMidway(
                     .join('; ') || 'none'
                 }`
               : 'not in the document';
-            reject(new Error(`${target} never moved mid-way (${seen})`));
+            disarm();
+            reject(
+              new Error(
+                `${target} never moved mid-way (${seen}; first seen moving: ${firstSeen ?? 'never'})`,
+              ),
+            );
             return;
           }
           requestAnimationFrame(step);
