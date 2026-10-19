@@ -128,6 +128,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-54](decisions/design.md) | Said once, cancelled as its siblings (owner and lead, R22 brief C-3, C-4) | In force | 2026-10-17 |
 | [DSN-55](decisions/design.md) | How the phone's one sheet is built (DSN-53) | In force; taste open: clear glass at rest, the drawer's rise from the edge, no ⋯ circle | 2026-10-17 |
 | [DSN-56](decisions/design.md) | On the phone, toasts step aside for a scrim sheet | In force; taste open (hide vs. above the sheet) | 2026-10-17 |
+| [DSN-58](decisions/design.md) | Modal sheets and dialogs say `aria-modal` (DSN-56's finding) | In force | 2026-10-19 |
 
 ## Motion
 

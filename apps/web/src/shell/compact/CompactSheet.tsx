@@ -20,7 +20,9 @@
  *   motion fades the sheet in place.
  * - **Focus.** It takes focus on its first control (the close, or a field it names) and gives
  *   it back to what opened it (`sheetOpener`): a menu row's menu has gone, so its trigger.
- * - **Semantics.** A modal `dialog` named by its title.
+ * - **Semantics.** A modal `dialog` named by its title: `aria-modal="true"`, which Base UI's
+ *   Drawer does not set, so the toast timers pause under it (A-24) and the shortcut guards hold
+ *   inside it (07-sheets §8). The tool drawer is non-modal and says nothing.
  */
 import { Drawer } from '@base-ui/react/drawer';
 import {
@@ -131,6 +133,7 @@ export function CompactSheet({
             ref={setPanel}
             className={`${shape.shape} ${styles.sheet}`}
             data-testid={testId}
+            aria-modal="true"
             initialFocus={initialFocus ?? closeRef}
             finalFocus={() => {
               const opener = returnFocus();
