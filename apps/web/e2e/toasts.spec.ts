@@ -14,7 +14,14 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 
-import { fixturePath, openFixtures, quiet, trackEngine, useFileInputPicker } from './helpers';
+import {
+  fixturePath,
+  openFixtures,
+  openSaveCopy,
+  quiet,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -130,17 +137,19 @@ test('"Deleted page 2 · Undo" holds while hovered, F6 reaches it, and Undo brin
   await expect(toast).toHaveCount(0);
 });
 
-test('a toast stays readable above a modal sheet and its scrim', async ({ page }, info) => {
+test('a toast stays readable above a modal sheet and its scrim, beside it', async ({
+  page,
+}, info) => {
   // 07-sheets §1.1 rule 6: … scrim → modal sheets → toasts. A toast under the scrim was dimmed
-  // and could not be read while the sheet it was about stayed open (task 27).
+  // and could not be read while the sheet it was about stayed open (task 27). It never lies
+  // over the sheet's controls (DSN-58): beside a side sheet it moves into the room on its left.
   await page.goto('./?lang=en');
   await openFixtures(page, ['simple-text.pdf']);
   await deleteSecondPage(page);
   const toast = page.getByRole('group', { name: 'Deleted page 2' });
   await expect(toast).toBeVisible();
-  await page.locator('body').press('?');
-  const sheet = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
-  await expect(sheet).toBeVisible();
+  const sheet = await openSaveCopy(page);
+  await expect(sheet).toHaveAttribute('data-presentation', 'side');
   // A modal pauses the toast's timer (FB4 §4), so it is still there, and on top: the element
   // drawn at its centre is the toast's own. (The modal hides the rest of the page from the
   // accessibility tree, so the toast is found by its markup here.)
@@ -148,6 +157,14 @@ test('a toast stays readable above a modal sheet and its scrim', async ({ page }
     hasText: 'Deleted page 2',
   });
   await expect(shown).toBeVisible();
+  // Clear of the sheet once it rests (it comes out of the title menu, far to the left).
+  await expect
+    .poll(async () => {
+      const b = await shown.boundingBox();
+      const panel = await sheet.boundingBox();
+      return b !== null && panel !== null && b.x + b.width <= panel.x;
+    })
+    .toBe(true);
   const box = await shown.boundingBox();
   if (!box) throw new Error('the toast has no box');
   const onTop = await page.evaluate(

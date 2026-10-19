@@ -59,7 +59,10 @@ import {
 
 /** Touch is ignored for this long after a pen leaves the surface (ms). */
 export const TOUCH_AFTER_PEN_MS = 300;
-/** A touch whose contact is larger than this (CSS px, width or height) is a palm. */
+/**
+ * Once a pen has been seen, a touch whose contact is larger than this (CSS px, width or
+ * height) is a palm (INK-11).
+ */
 export const PALM_CONTACT_PX = 40;
 /**
  * Pressure to width: `nominal × (1 + PRESSURE_THINNING × (2p − 1))`, so pressure 0 draws
@@ -136,16 +139,19 @@ export interface PointerFacts {
 }
 
 /**
- * The role of a press (spec §6.6): pens and mice draw. Touch is ignored while a pen is
- * down, for `TOUCH_AFTER_PEN_MS` after, and when its contact exceeds `PALM_CONTACT_PX`;
- * otherwise it pans once a pen has been seen and draws before (phones).
+ * The role of a press (spec §6.6): pens and mice draw. Before a pen has been seen, touch
+ * draws (phones), whatever its contact size: iOS Safari reports a touch's width and height as
+ * twice its contact radius, 40 to 60 CSS px for a fingertip, so a size rule there drops the
+ * finger itself (INK-11). Once a pen has been seen, touch is ignored while a pen is down, for
+ * `TOUCH_AFTER_PEN_MS` after, and when its contact exceeds `PALM_CONTACT_PX`; otherwise it pans.
  */
 export function pointerRole(session: PenSession, pointer: PointerFacts, now: number): PointerRole {
   if (pointer.pointerType !== 'touch') return 'draw';
+  if (!session.penSeen) return 'draw';
   if (session.pensDown.size > 0) return 'ignore';
   if (now - session.lastPenUpAt < TOUCH_AFTER_PEN_MS) return 'ignore';
   if (Math.max(pointer.width ?? 0, pointer.height ?? 0) > PALM_CONTACT_PX) return 'ignore';
-  return session.penSeen ? 'pan' : 'draw';
+  return 'pan';
 }
 
 // ---------------------------------------------------------------------------

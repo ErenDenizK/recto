@@ -33,9 +33,9 @@ compact edition, editable since EDN-7 (pen, highlight, text, edit text, signatur
   it); `main` is only for manual releases the owner asks for. Each lane lands on `develop`
   through its own pull request (PRC-17): branch, push, open the PR, merge it with a merge commit
   (never squash) once its checks are green. A PR carries one concern and the body PRC-18 sets
-  (What, Why, How tested, Screenshots for UI, Decisions added); a docs-only change rides the next
-  lane's PR. Commits are authored by the owner, with the `Co-Authored-By` trailer the session
-  gives.
+  (What, Why, How tested, Screenshots for UI, Decisions added); a docs-only change may have its
+  own PR (PRC-24: PRs are not rationed, one concern each). Commits are authored by the owner,
+  with the `Co-Authored-By` trailer the session gives.
 - The owner writes in Turkish, often by dictation, so read through transcription slips ("Cloud"
   usually means the AI assistant). Reply in Turkish; repo docs, code and commits stay in
   English. Ask the owner about taste; decide technique yourself and record it.
@@ -47,6 +47,13 @@ builds settled specs through the `implementer` agent; Haiku 5.5 reads and report
 `log-reader`). Effort `medium`, never `xhigh`/`max`, only 5.5 models. Implementers stay inside the
 files their brief owns and stop to ask on an unsettled decision. Details, guards and the metrics
 loop: `docs/process/model-routing.md`; one row per lane in `docs/process/agent-metrics.md`.
+
+## Running the company (PRC-24, owner)
+
+The owner is the board; the lead session is the chief executive and runs Recto in operating
+cycles (a scheduled task wakes the lead session). A cycle follows `docs/company/charter.md` (who
+decides, the organisation, budget, context hygiene, the cycle's steps, stop rules), works from
+`docs/company/roadmap.md`, and keeps live state and reports in the "Recto HQ" issue (#26).
 
 ## Rules
 

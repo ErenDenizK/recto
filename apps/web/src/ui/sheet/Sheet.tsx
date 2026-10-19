@@ -29,6 +29,10 @@
  *   `styles/coverage-registry.ts` per presentation. Inputs and
  *   lists inside are solid wells, never glass (Q-4).
  *
+ * - **Modality** (§8): a modal sheet's panel says `aria-modal="true"`, a tool sheet's `"false"`.
+ *   Base UI's Dialog sets no `aria-modal` of its own, and the app asks it to know a modal: the
+ *   toast timers pause under one (FB4 §4, A-24) and the shortcut guards hold inside one.
+ *
  * Base UI's Dialog carries every presentation (AlertDialog's root for confirmations). Its
  * Drawer is not used: its swipe and snap points run on CSS transitions with their own
  * physics, which cannot hand a release's velocity to the motion core's springs (Q-7).
@@ -404,6 +408,7 @@ export function Sheet({
           data-sheet={id}
           data-testid={testId}
           data-swipe={layout.swipe ?? undefined}
+          aria-modal={layout.modal}
           inert={!open || undefined}
           initialFocus={focusOnOpen}
           {...(finalFocus ? { finalFocus } : {})}
