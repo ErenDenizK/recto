@@ -41,12 +41,31 @@ rounds** counts pushes needed after that; **stray** counts files changed outside
 | R22 | test reliability | Opus 5.5 | default | 310K | 127 | yes | 0 | 0 | — |
 | R22 | motion profiling and fixes | Opus 5.5 | default | 543K | 198 | yes | 0 | 0 | — |
 | R22 | phone panels (DSN-53) | Opus 5.5 | default | 429K | 83 | yes | 0 | 0 | — |
-| R22 | refactor (X1–X3) | Opus 5.5 | default | 331K | 74 | pending | — | 0 | — |
+| R22 | refactor (X1–X3) | Opus 5.5 | default | 331K | 74 | yes | 0 | 0 | — |
 | R21–R22 | CI log reads (~12) | Haiku 5.5 | default | 55–84K each | <1 each | — | — | — | — |
 | R22 | Claude Code docs check | Haiku 5.5 | default | 56K | <1 | — | — | — | — |
 
 Sonnet lanes start below this line.
 
 | R22 | timing-budget tests (implementer) | Sonnet 5.5 | medium | 69K | 12 | yes | 0 | 0 | — |
-| R22 | decisions index split (implementer) | Sonnet 5.5 | medium | 110K + fix round | 4 + fix | pending | 0 | 1 (tsconfig include, accepted) | 0 blocking, 2 warnings fixed |
+| R22 | decisions index split (implementer) | Sonnet 5.5 | medium | 110K + fix round | 4 + fix | yes | 0 | 1 (tsconfig include, accepted) | 0 blocking, 2 warnings fixed |
 | R22 | review of the decisions split (reviewer) | Opus 5.5 | medium | 77K | 2 | — | — | — | — |
+| R23 | GPU glass after a pause (implementer) | Sonnet 5.5 | medium | 75K | 11 | no (an unrelated unit flake) | 0 | 0 | — |
+
+## R23, cycle 1 (first cycle under PRC-24)
+
+| Round | Lane | Model | Effort | Tokens | Minutes | First CI | Fix rounds | Stray | Review |
+|---|---|---|---|---|---|---|---|---|---|
+| R23 | modal state, then toast clearance under modals | Opus 5.5 | medium | 122K + 179K + 217K | 31 + 29 + 13 | no (a real regression: a paused toast covered a sheet's button, tablet e2e) | 2 | 0 | 0 blocking, 5 warnings fixed |
+| R23 | review of the modal lane (reviewer) | Opus 5.5 | medium | 35K | 1 | — | — | — | — |
+| R23 | phone pen root cause (owner report) | Opus 5.5 | medium | 126K | 24 | yes | 0 | 0 | — |
+| R23 | flaky timing tests (idle, hold, exit motion) | Opus 5.5 | medium | 111K + 170K | 37 + 33 | no (another timing test failed) | 1 | 0 | — |
+| R23 | user-test kit (strategist) | Opus 5.5 | medium | 75K | 5 | no (a Pages 503 in the link check) | 0 | 0 | — |
+| R23 | conversion research (strategist) | Opus 5.5 | medium | 68K | 1 | — | — | — | — |
+| R23 | stale backlog audit (Explore) | Haiku 5.5 | low | 28K | 2 | — | — | — | — |
+| R23 | CI log reads (5) | Haiku 5.5 | low | 61–94K each | <1 each | — | — | — | — |
+
+Cycle 1 notes: three Sonnet lanes so far, all first-CI red only for reasons outside their change; the
+comparison with the Opus baseline waits for lanes 4–6. Owner-reported bugs and CI flakes took most
+of the cycle's Opus spend (about 0.8 M of 1.05 M).
+
