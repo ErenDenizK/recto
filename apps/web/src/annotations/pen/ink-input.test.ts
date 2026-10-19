@@ -62,13 +62,23 @@ describe('pointer roles', () => {
     expect(pointerRole(session, { pointerType: 'touch' }, 1000 + TOUCH_AFTER_PEN_MS)).toBe('pan');
   });
 
-  it('ignores a contact larger than 40 CSS px, with or without a pen', () => {
+  it('once a pen has been seen, ignores a contact larger than 40 CSS px', () => {
     const session = createPenSession();
+    session.penSeen = true;
     const palm = { pointerType: 'touch', width: PALM_CONTACT_PX + 1, height: 20 };
     expect(pointerRole(session, palm, 0)).toBe('ignore');
-    expect(pointerRole(session, { ...palm, width: PALM_CONTACT_PX }, 0)).toBe('draw');
-    session.penSeen = true;
+    expect(pointerRole(session, { ...palm, width: PALM_CONTACT_PX }, 0)).toBe('pan');
     expect(pointerRole(session, { pointerType: 'touch', width: 8, height: 60 }, 0)).toBe('ignore');
+  });
+
+  it('before any pen, a fingertip draws at the size iOS reports it (INK-11)', () => {
+    const session = createPenSession();
+    // iOS Safari: width and height are twice the contact radius, 40 to 60 px for a fingertip.
+    for (const size of [20, 42, 48, 62]) {
+      expect(pointerRole(session, { pointerType: 'touch', width: size, height: size }, 0)).toBe(
+        'draw',
+      );
+    }
   });
 });
 
@@ -422,7 +432,13 @@ describe('ink input on a layer', () => {
     expect(rig.bubbled.filter((t) => t === 'touch')).toHaveLength(0);
   });
 
-  it('ignores a large contact (a palm) even before any pen', () => {
+  it('before any pen, a finger with an iOS-sized contact draws (INK-11)', () => {
+    drag(rig.layer, 'touch', 14, [100, 200], [180, 220], { size: PALM_CONTACT_PX + 20 });
+    expect(rig.strokes).toHaveLength(1);
+  });
+
+  it('once a pen has been seen, ignores a large contact (a palm)', () => {
+    rig.session.penSeen = true;
     drag(rig.layer, 'touch', 14, [100, 200], [180, 220], { size: PALM_CONTACT_PX + 20 });
     expect(rig.strokes).toHaveLength(0);
     expect(rig.bubbled).toHaveLength(0);
