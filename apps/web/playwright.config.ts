@@ -26,6 +26,8 @@ const COMPACT_SPEC = '**/compact.spec.ts';
 const COMPACT_EDIT_SPEC = '**/compact-edit.spec.ts';
 /** Phone editing's pen, eraser and highlight (M10 lane B). */
 const COMPACT_INK_SPEC = '**/compact-ink.spec.ts';
+/** A real fingertip's contact draws with the phone's Pen and Highlight (MOB-18). */
+const COMPACT_PEN_SPEC = '**/compact-pen.spec.ts';
 /** Adding text on phones (M10 WP4): the text box, the keyboard's Done, keep-in-view. */
 const COMPACT_TEXT_SPEC = '**/compact-text.spec.ts';
 /** Phone signing and saving (M10 WP6, WP7). */
@@ -49,6 +51,7 @@ const PHONE_SPECS = [
   COMPACT_EDIT_SPEC,
   COMPACT_TEXT_SPEC,
   COMPACT_INK_SPEC,
+  COMPACT_PEN_SPEC,
   COMPACT_SIGN_SPEC,
   COMPACT_DRAWER_LIST_SPEC,
   COMPACT_TOP_SPLIT_SPEC,
