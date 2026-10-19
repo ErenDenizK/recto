@@ -19,6 +19,7 @@ import { finishInkStroke } from '../ink';
 import { highlighterPath, snapHighlighter } from './highlighter';
 import { attachInkInput, createPenSession, type InkStrokeInput } from './ink-input';
 import { InkPreview, type PreviewPath, type PreviewPoint } from './ink-preview';
+import { shapeKit } from './shape-kit';
 import {
   HOLD_PEN_PX,
   HOLD_STRAIGHTEN_MS,
@@ -145,8 +146,9 @@ function setup(): Rig {
   };
 }
 
+/** A pointer event stamped with `performance.now()` (the fake clock's, where it runs). */
 function pointer(type: string, x: number, y: number, shiftKey = false): PointerEvent {
-  return new PointerEvent(type, {
+  const event = new PointerEvent(type, {
     bubbles: true,
     cancelable: true,
     clientX: x,
@@ -158,10 +160,64 @@ function pointer(type: string, x: number, y: number, shiftKey = false): PointerE
     buttons: type === 'pointerup' ? 0 : 1,
     shiftKey,
   });
+  Object.defineProperty(event, 'timeStamp', { value: performance.now() });
+  return event;
 }
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+/**
+ * The hold, its cue and the morph run on the fake clock (PRC-21): the hold timer, the cue's end
+ * and the spring read `setTimeout`, `performance.now()` and frames, and the events carry that
+ * clock's `timeStamp` (`pointer`). On the real clock a loaded runner let a hold fire late or
+ * left the morph mid-way at a fixed wait, and a pause between two moves could grow into a hold
+ * (R23-9).
+ */
+const FAKED = [
+  'setTimeout',
+  'clearTimeout',
+  'requestAnimationFrame',
+  'cancelAnimationFrame',
+  'performance',
+] as const;
+
+/** `ms` go by on the fake clock: timers and frames due in them run. */
+const pass = (ms: number) => vi.advanceTimersByTimeAsync(ms);
+/** The next frame on the fake clock. */
+const nextFrame = async () => {
+  vi.advanceTimersToNextFrame();
+  await Promise.resolve();
+};
+/** A frame the page renders (resize observers report in it), whatever the fake clock does. */
+const nativeFrame = window.requestAnimationFrame.bind(window);
+const painted = () => new Promise<void>((resolve) => nativeFrame(() => resolve()));
+/**
+ * The zoom lands: two frames, each one the page renders (the layer's ResizeObserver reports
+ * there, not on the fake clock) and one of the fake clock (time goes by as it does on screen).
+ */
+async function zoomed(): Promise<void> {
+  for (let i = 0; i < 2; i++) {
+    await painted();
+    await nextFrame();
+  }
+}
+
+/** The layer describes run on the fake clock, with the shape recogniser already here. */
+function onFakeClock(): void {
+  beforeEach(async () => {
+    await shapeKit.load();
+    vi.useFakeTimers({ toFake: [...FAKED] });
+    rig = setup();
+  });
+  afterEach(() => {
+    rig.detach();
+    // The springs, the cue and the chip end on the fake clock, so the shared motion loop is
+    // not left waiting for a fake frame once the real clock is back.
+    vi.runAllTimers();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+}
 
 /** The morph from stroke to shape has settled (the `smooth` spring, with margin). */
 const MORPH_WAIT_MS = 520;
@@ -213,23 +269,17 @@ function drawLetterE(): void {
 }
 
 describe('hold to straighten on a layer', () => {
-  beforeEach(() => {
-    rig = setup();
-  });
-  afterEach(() => {
-    rig.detach();
-    vi.restoreAllMocks();
-  });
+  onFakeClock();
 
   it('a hold straightens the stroke; the line follows the pointer until release', async () => {
     scribble();
     // Still, with jitter inside the tolerance.
     for (let i = 0; i < 6; i++) {
-      await wait(100);
+      await pass(100);
       window.dispatchEvent(pointer('pointermove', 200 + (i % 2) * 2, 80 - (i % 2)));
     }
-    await wait(80 + MORPH_WAIT_MS);
-    await frame();
+    await pass(80 + MORPH_WAIT_MS);
+    await nextFrame();
     let last = rig.preview.frames.at(-1);
     expect(last?.points).toHaveLength(2);
     expect(last?.points[0]).toMatchObject({ x: 20, y: 50 });
@@ -237,7 +287,7 @@ describe('hold to straighten on a layer', () => {
     // The line stays straight while the pointer wanders on, and ends where it is let go.
     window.dispatchEvent(pointer('pointermove', 260, 140));
     window.dispatchEvent(pointer('pointermove', 300, 90));
-    await frame();
+    await nextFrame();
     last = rig.preview.frames.at(-1);
     expect(last?.points).toHaveLength(2);
     expect(last?.points[1]).toMatchObject({ x: 300, y: 90 });
@@ -264,13 +314,13 @@ describe('hold to straighten on a layer', () => {
 
   it('under 500 ms, or moving beyond 3 px, the stroke stays free', async () => {
     scribble();
-    await wait(HOLD_STRAIGHTEN_MS - 150);
+    await pass(HOLD_STRAIGHTEN_MS - 150);
     // Every 150 ms the pointer moves 5 px on: never still for 500 ms.
     for (let i = 1; i <= 5; i++) {
       window.dispatchEvent(pointer('pointermove', 200 + i * 5, 80));
-      await wait(150);
+      await pass(150);
     }
-    await frame();
+    await nextFrame();
     expect(rig.preview.frames.at(-1)?.points.length).toBeGreaterThan(2);
     window.dispatchEvent(pointer('pointerup', 225, 80));
     expect(rig.strokes[0]?.points.length).toBeGreaterThan(2);
@@ -278,14 +328,14 @@ describe('hold to straighten on a layer', () => {
 
   it('the stroke morphs into the line, 1 px thicker for 120 ms', async () => {
     scribble();
-    await wait(HOLD_STRAIGHTEN_MS + 30);
-    await frame();
+    await pass(HOLD_STRAIGHTEN_MS + 30);
+    await nextFrame();
     const cue = rig.preview.frames.at(-1);
     // Mid-morph: the stroke's points on their way to the line.
     expect(cue?.points.length).toBeGreaterThan(2);
     expect(cue?.points[0]?.w).toBeCloseTo(2 + STRAIGHTEN_CUE_PX, 6);
-    await wait(STRAIGHTEN_CUE_MS + 40);
-    await frame();
+    await pass(STRAIGHTEN_CUE_MS + 40);
+    await nextFrame();
     expect(rig.preview.frames.at(-1)?.points[0]?.w).toBeCloseTo(2, 6);
     window.dispatchEvent(pointer('pointerup', 200, 80));
   });
@@ -294,13 +344,12 @@ describe('hold to straighten on a layer', () => {
     scribble();
     // Still for most of a hold, then the page zooms to 150 % under the pointer (the layer's
     // new size arrives through its ResizeObserver), then still for longer than a hold.
-    await wait(HOLD_STRAIGHTEN_MS - 200);
+    await pass(HOLD_STRAIGHTEN_MS - 200);
     rig.layer.style.width = '900px';
     rig.layer.style.height = '600px';
-    await frame();
-    await frame();
-    await wait(HOLD_STRAIGHTEN_MS + 100);
-    await frame();
+    await zoomed();
+    await pass(HOLD_STRAIGHTEN_MS + 100);
+    await nextFrame();
     expect(rig.preview.frames.at(-1)?.points.length).toBeGreaterThan(2);
     // The pointer goes on along the same line of the page, now at 1.5 times the CSS px.
     window.dispatchEvent(pointer('pointermove', 210 * 1.5, 81 * 1.5));
@@ -314,10 +363,9 @@ describe('hold to straighten on a layer', () => {
     scribble();
     rig.layer.style.width = '900px';
     rig.layer.style.height = '600px';
-    await frame();
-    await frame();
+    await zoomed();
     window.dispatchEvent(pointer('pointermove', 210 * 1.5, 81 * 1.5));
-    await wait(HOLD_STRAIGHTEN_MS + 60);
+    await pass(HOLD_STRAIGHTEN_MS + 60);
     window.dispatchEvent(pointer('pointerup', 210 * 1.5, 81 * 1.5));
     expect(rig.strokes[0]?.shape?.kind).toBe('line');
   });
@@ -330,8 +378,8 @@ describe('hold to straighten on a layer', () => {
         : matchMedia(query),
     );
     scribble();
-    await wait(HOLD_STRAIGHTEN_MS + 30);
-    await frame();
+    await pass(HOLD_STRAIGHTEN_MS + 30);
+    await nextFrame();
     const line = rig.preview.frames.at(-1);
     expect(line?.points).toHaveLength(2);
     expect(line?.points[0]?.w).toBeCloseTo(2, 6);
@@ -340,23 +388,15 @@ describe('hold to straighten on a layer', () => {
 });
 
 describe('hold to shape on a layer', () => {
-  beforeEach(() => {
-    rig = setup();
-  });
-  afterEach(() => {
-    rig.detach();
-  });
+  onFakeClock();
 
   it('a held rectangle becomes its outline, named by a chip that cycles on a tap', async () => {
     drawRectangle();
-    await wait(HOLD_STRAIGHTEN_MS + 60);
+    await pass(HOLD_STRAIGHTEN_MS + 60);
     const chip = rig.layer.querySelector<HTMLElement>('[data-shape-chip]');
     expect(chip?.textContent).toBe('Rectangle');
-    await wait(MORPH_WAIT_MS);
-    // The morph runs on frames, which a slow runner gives out late: wait for its last one.
-    await vi.waitFor(() => expect(rig.preview.frames.at(-1)?.points).toHaveLength(5), {
-      timeout: 3000,
-    });
+    await pass(MORPH_WAIT_MS);
+    expect(rig.preview.frames.at(-1)?.points).toHaveLength(5);
     const last = rig.preview.frames.at(-1);
     // Four corners and the close.
     expect(last?.points[0]?.x).toBeCloseTo(last?.points[4]?.x ?? 0, 6);
@@ -378,8 +418,8 @@ describe('hold to shape on a layer', () => {
 
   it('a held "e" stays as written', async () => {
     drawLetterE();
-    await wait(HOLD_STRAIGHTEN_MS + 200);
-    await frame();
+    await pass(HOLD_STRAIGHTEN_MS + 200);
+    await nextFrame();
     expect(rig.layer.querySelector('[data-shape-chip]')).toBeNull();
     expect(rig.preview.frames.at(-1)?.points.length).toBeGreaterThan(10);
     window.dispatchEvent(pointer('pointerup', 300, 175));
@@ -392,11 +432,13 @@ describe('hold to shape on a layer', () => {
     window.dispatchEvent(pointer('pointermove', 14, 14));
     window.dispatchEvent(pointer('pointerup', 14, 14));
     scribble();
-    await wait(HOLD_STRAIGHTEN_MS + 80);
-    await frame();
+    await pass(HOLD_STRAIGHTEN_MS + 80);
+    await nextFrame();
+    // Not yet a shape (a morph under way would draw more than two points too: no chip either).
+    expect(rig.layer.querySelector('[data-shape-chip]')).toBeNull();
     expect(rig.preview.frames.at(-1)?.points.length).toBeGreaterThan(2);
-    await wait(HOLD_WRITING_MS - HOLD_STRAIGHTEN_MS + MORPH_WAIT_MS);
-    await frame();
+    await pass(HOLD_WRITING_MS - HOLD_STRAIGHTEN_MS + MORPH_WAIT_MS);
+    await nextFrame();
     expect(rig.preview.frames.at(-1)?.points).toHaveLength(2);
     window.dispatchEvent(pointer('pointerup', 200, 80));
     expect(rig.strokes[1]?.shape?.kind).toBe('line');
