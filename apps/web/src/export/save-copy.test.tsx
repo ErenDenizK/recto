@@ -14,6 +14,7 @@ import { userEvent } from 'vitest/browser';
 
 import manifest from '../../../../test/fixtures/manifest.json';
 import markdownUrl from '../../../../test/fixtures/markdown-source.pdf?url';
+import { settled } from '../../test/settled';
 import { fixtureFile } from '../../test/store-harness';
 import { getAnalysisWorkers } from '../engine/engine-service';
 import { resetWorkspace, useWorkspaceStore } from '../state/workspace-store';
@@ -89,6 +90,10 @@ describe('the sheet', () => {
     openSaveCopy(id);
     const sheet = await screen.findByTestId('save-copy-sheet', {}, { timeout: 15_000 });
     await userEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    // Cancel closes it at once; the side sheet then exits on *smooth* and Base UI unmounts it
+    // when that has run, which a loaded runner can stretch past `waitFor`'s default (R23-9).
+    expect(useSheetStore.getState().open).toBeNull();
+    await settled(sheet);
     await waitFor(() => expect(screen.queryByTestId('save-copy-sheet')).toBeNull());
   }, 30_000);
 
