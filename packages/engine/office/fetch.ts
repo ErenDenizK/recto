@@ -27,6 +27,8 @@ import {
   type LockedOfficeFile,
   type OfficeLock,
   isVendored,
+  LICENSE_FILES,
+  OFFICE_DIR,
   type OfficePatch,
   readLock,
   servedName,
@@ -170,6 +172,12 @@ function pin(): void {
     directory,
     patches: PATCHES,
     files,
+    notices: Object.fromEntries(
+      LICENSE_FILES.map((name) => {
+        const bytes = new Uint8Array(readFileSync(join(OFFICE_DIR, name)));
+        return [name, { sha256: sha256(bytes), bytes: bytes.length }];
+      }),
+    ),
   };
   writeFileSync(LOCK_PATH, `${JSON.stringify(lock, null, 2)}\n`);
 }

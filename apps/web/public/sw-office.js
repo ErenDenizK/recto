@@ -16,7 +16,8 @@
  *    same, which `require-corp` asks of a dedicated worker. LibreOffice needs threads, threads
  *    need `SharedArrayBuffer`, and that needs `crossOriginIsolated`; GitHub Pages cannot send
  *    headers (ADR-0004), so the worker adds them. Each response is the one Workbox would have
- *    given (the precached page, the precached script, else the network) with headers added.
+ *    given (the precached page; the script from any cache, the runtime ones too; else the
+ *    network) with headers added.
  *
  * Whether the package is installed is read from the cache when the worker starts. Until that
  * read lands a navigation is left to Workbox (not isolated: the page reloads once if it needs
@@ -80,15 +81,33 @@
     });
   }
 
-  /** The precache entry for `url` (its revision is a search parameter), else the network. */
-  async function precachedOrNetwork(url, request) {
+  const ocrRoot = new URL('ocr/', scope).href;
+
+  /**
+   * What Workbox would answer for `url`: any cache's exact entry (the runtime caches, such as
+   * OCR's worker in `pdf-editor-ocr`, and the precache's unrevisioned assets), else the
+   * precache entry whose revision is a search parameter (the page), else the network. A
+   * fetched OCR file goes into OCR's cache as Workbox's CacheFirst rule would put it there,
+   * so it still works offline afterwards (vite.config.ts, ADR-0012 §4).
+   */
+  async function cachedOrNetwork(url, request) {
+    const exact = await caches.match(url);
+    if (exact !== undefined) return exact;
     const names = await caches.keys();
     const name = names.find((n) => n.startsWith('workbox-precache') && n.endsWith(scope));
     if (name !== undefined) {
       const hit = await (await caches.open(name)).match(url, { ignoreSearch: true });
       if (hit !== undefined) return hit;
     }
-    return fetch(request);
+    const response = await fetch(request);
+    if (url.startsWith(ocrRoot) && response.status === 200) {
+      const copy = response.clone();
+      await caches.open('pdf-editor-ocr').then(
+        (cache) => cache.put(url, copy),
+        () => undefined,
+      );
+    }
+    return response;
   }
 
   /** A `convert/` file: from the package cache (inflated when stored compressed), else fetched. */
@@ -117,9 +136,11 @@
     }
     if (installed === false || new URL(url).origin !== sw.location.origin) return;
     if (request.destination === 'worker' || request.destination === 'sharedworker') {
+      // Installed: isolated. Still unknown: the answer must be given now, so it is Workbox's
+      // own (every cache, then the network), and the headers wait for the marker read.
       event.respondWith(
         reading.then((on) =>
-          precachedOrNetwork(url, request).then((response) => (on ? isolate(response) : response)),
+          cachedOrNetwork(url, request).then((response) => (on ? isolate(response) : response)),
         ),
       );
       return;
@@ -127,7 +148,7 @@
     if (installed === true && request.mode === 'navigate') {
       const plain = url.split('#')[0].split('?')[0];
       if (!entries.includes(plain)) return;
-      event.respondWith(precachedOrNetwork(entries[1], request).then(isolate));
+      event.respondWith(cachedOrNetwork(entries[1], request).then(isolate));
     }
   });
 

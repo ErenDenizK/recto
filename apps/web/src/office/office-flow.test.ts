@@ -57,7 +57,6 @@ function fakes(overrides: Partial<OfficeDeps> = {}) {
 }
 
 const step = () => useOfficeStore.getState().step;
-const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 afterEach(() => {
   setOfficeDeps(undefined);
@@ -117,7 +116,8 @@ describe('the Office flow (ADR-0035 §5)', () => {
     openOffice([docx()]);
     await beginOffice();
     const running = acceptDownload();
-    await settled();
+    // The download has started: the install holds its signal.
+    await vi.waitFor(() => expect(signal).toBeDefined());
     expect(step().kind).toBe('downloading');
     cancelOffice();
     expect(signal?.aborted).toBe(true);

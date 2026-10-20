@@ -18,7 +18,13 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
-import { openFixtures, saveCopyBytes, useDownloadPath, useFileInputPicker } from './helpers';
+import {
+  atRest,
+  openFixtures,
+  saveCopyBytes,
+  useDownloadPath,
+  useFileInputPicker,
+} from './helpers';
 import { docx } from './support/docx';
 
 const lock = JSON.parse(
@@ -42,6 +48,7 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   await useFileInputPicker(page);
   await useDownloadPath(page);
   await page.goto('./?office=1');
+  await atRest(page.getByTestId('app-shell'));
   await expect(page.getByTestId('app-shell')).toBeVisible();
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -66,6 +73,7 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   });
 
   const sheet = page.getByTestId('office-sheet');
+  await atRest(sheet);
   await expect(sheet).toBeVisible();
   await expect(page.getByTestId('office-consent')).toContainText(/one-time conversion package/);
   await expect(page.getByTestId('office-file')).toHaveText('report.docx');
@@ -75,6 +83,7 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   const started = Date.now();
   await page.getByTestId('office-download').click();
   await reloaded;
+  await atRest(page.getByTestId('app-shell'));
   await expect(page.getByTestId('app-shell')).toBeVisible();
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
 
@@ -94,7 +103,14 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
     return (await cache.keys()).map((request) => new URL(request.url).pathname.split('/').pop());
   });
   expect(stored).toEqual(
-    expect.arrayContaining(['soffice.wasm', 'soffice.data', 'soffice.js', 'installed.json']),
+    expect.arrayContaining([
+      'soffice.wasm',
+      'soffice.data',
+      'soffice.js',
+      'NOTICE.txt',
+      'MPL-2.0.txt',
+      'installed.json',
+    ]),
   );
 
   // The rest of the app under isolation: the converted PDF saves as a copy (the assembler and

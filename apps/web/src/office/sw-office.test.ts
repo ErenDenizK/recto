@@ -17,7 +17,13 @@ interface FakeWorker {
 
 const scope = new URL('/sw-office-test/', location.href).href;
 
-async function startWorker({ settle = true } = {}): Promise<FakeWorker> {
+async function startWorker({
+  settle = true,
+  network = (request: Request) => fetch(request),
+}: {
+  readonly settle?: boolean;
+  readonly network?: (request: Request) => Promise<Response>;
+} = {}): Promise<FakeWorker> {
   const listeners = new Map<string, Listener>();
   const self = {
     registration: { scope },
@@ -26,7 +32,7 @@ async function startWorker({ settle = true } = {}): Promise<FakeWorker> {
   } as { __rectoOffice?: { read: () => Promise<boolean> } };
   // The script reads `self`; the browser's own caches, Response and streams stand in.
   // eslint-disable-next-line @typescript-eslint/no-implied-eval -- runs the worker script as shipped
-  (new Function('self', source) as (scope: unknown) => void)(self);
+  (new Function('self', 'fetch', source) as (scope: unknown, net: unknown) => void)(self, network);
   if (settle) await self.__rectoOffice?.read();
   return {
     fetch(request) {
@@ -74,9 +80,15 @@ async function gzipped(text: string): Promise<Uint8Array<ArrayBuffer>> {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
+const OCR_CACHE = 'pdf-editor-ocr';
+
 afterEach(async () => {
   await caches.delete(OFFICE_CACHE);
+  await caches.delete(OCR_CACHE);
 });
+
+/** The network is off: every fetch fails. */
+const offline = () => Promise.reject(new TypeError('Failed to fetch'));
 
 describe('sw-office.js (ADR-0035 §4)', () => {
   it('uses the names the page uses', () => {
@@ -140,6 +152,37 @@ describe('sw-office.js (ADR-0035 §4)', () => {
     expect(answer).toBeDefined();
     const response = await answer;
     expect(response?.headers.get('Cross-Origin-Embedder-Policy')).toBe('require-corp');
+  });
+
+  describe('an OCR worker kept only in its runtime cache, offline', () => {
+    const ocrWorker = `${scope}ocr/tesseract-7.0.0/worker.min.js`;
+    const keepOcrWorker = async () => {
+      const cache = await caches.open(OCR_CACHE);
+      await cache.put(ocrWorker, new Response('/* tesseract worker */'));
+    };
+
+    it('loads without the marker, settled or while the marker is still being read', async () => {
+      await keepOcrWorker();
+      const settled = await startWorker({ network: offline });
+      // Known absent: Workbox serves it from its runtime cache, as before.
+      expect(settled.fetch(asWorkerScript(ocrWorker))).toBeUndefined();
+      const waking = await startWorker({ settle: false, network: offline });
+      const response = await waking.fetch(asWorkerScript(ocrWorker));
+      expect(await response?.text()).toBe('/* tesseract worker */');
+      expect(response?.headers.get('Cross-Origin-Embedder-Policy')).toBeNull();
+    });
+
+    it('loads isolated with the marker', async () => {
+      await keepOcrWorker();
+      const cache = await caches.open(OFFICE_CACHE);
+      await cache.put(`${scope}convert/installed.json`, new Response('{"directory":"x"}'));
+      for (const settle of [true, false]) {
+        const worker = await startWorker({ settle, network: offline });
+        const response = await worker.fetch(asWorkerScript(ocrWorker));
+        expect(await response?.text()).toBe('/* tesseract worker */');
+        expect(response?.headers.get('Cross-Origin-Embedder-Policy')).toBe('require-corp');
+      }
+    });
   });
 
   it('lets the compressed downloads go to the network untouched', async () => {

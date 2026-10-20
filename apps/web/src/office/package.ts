@@ -24,6 +24,8 @@ interface BrowserLock {
   readonly package: { readonly version: string; readonly libreoffice: string };
   readonly directory: string;
   readonly files: Readonly<Record<string, BrowserLockFile>>;
+  /** The notices (NOTICE.txt, MPL-2.0.txt), stored with the package so the link works offline. */
+  readonly notices: Readonly<Record<string, BrowserLockFile>>;
 }
 
 export const OFFICE_LOCK: BrowserLock = lockJson;
@@ -66,7 +68,7 @@ export interface PackageFile {
 
 export function packageFiles(lock: BrowserLock = OFFICE_LOCK): readonly PackageFile[] {
   const base = packageBase();
-  return Object.entries(lock.files).map(([name, file]) => {
+  return Object.entries({ ...lock.files, ...lock.notices }).map(([name, file]) => {
     const gzip = file.gzip === true;
     return {
       name,

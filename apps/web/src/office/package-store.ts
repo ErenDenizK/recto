@@ -15,6 +15,7 @@
  * - **Installed** when the marker is written, last; entries of an older package are removed
  *   then. The service worker reads the marker to isolate the app (`public/sw-office.js`).
  */
+import { refreshServiceWorker } from './isolation';
 import { OfficeError } from './office-error';
 import {
   markerUrl,
@@ -136,7 +137,9 @@ function storedResponse(file: PackageFile, bytes: Uint8Array, compressed: boolea
     ? 'text/javascript'
     : file.name.endsWith('.wasm')
       ? 'application/wasm'
-      : 'application/octet-stream';
+      : file.name.endsWith('.txt')
+        ? 'text/plain; charset=utf-8'
+        : 'application/octet-stream';
   const headers: Record<string, string> = { 'Content-Type': type };
   if (compressed) headers[STORED_ENCODING_HEADER] = 'gzip';
   else headers['Content-Length'] = String(bytes.length);
@@ -223,7 +226,11 @@ export async function installPackage(options: InstallOptions = {}): Promise<void
   }
 }
 
-/** Removes the package from the device (Settings, phase 2; tests). */
+/**
+ * Removes the package from the device (Settings, phase 2; tests) and tells the service worker,
+ * so the app's next load is no longer isolated.
+ */
 export async function removePackage(): Promise<void> {
   await caches.delete(OFFICE_CACHE);
+  await refreshServiceWorker();
 }

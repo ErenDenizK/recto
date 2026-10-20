@@ -73,6 +73,8 @@ export interface OfficeLock {
   readonly patches: readonly OfficePatch[];
   /** By served name (gzip files without their `.gz`). */
   readonly files: Readonly<Record<string, LockedOfficeFile>>;
+  /** The notices committed beside this file (§2), served and stored with the package. */
+  readonly notices: Readonly<Record<string, { readonly sha256: string; readonly bytes: number }>>;
 }
 
 export function readLock(): OfficeLock {
@@ -92,8 +94,8 @@ export interface OfficeAsset {
   /** Path under `convert/`, e.g. `lo-2.7.2-r1/soffice.js`. */
   readonly path: string;
   readonly source: string;
-  /** The locked file it is, or undefined for a notice. */
-  readonly locked?: { readonly name: string; readonly file: LockedOfficeFile };
+  /** The locked file it is. */
+  readonly locked: { readonly name: string; readonly file: LockedOfficeFile };
 }
 
 /** Every file served under `convert/`, with its source on disk. */
@@ -104,10 +106,15 @@ export function officeAssets(lock: OfficeLock = readLock()): OfficeAsset[] {
     source: join(VENDOR_DIR, dir, servedName(name, file)),
     locked: { name, file },
   }));
-  const notices = LICENSE_FILES.map((name) => ({
-    path: `${dir}/${name}`,
-    source: join(OFFICE_DIR, name),
-  }));
+  const notices = LICENSE_FILES.map((name) => {
+    const pinned = lock.notices[name];
+    if (pinned === undefined) throw new Error(`convert/${name}: not in office.lock.json`);
+    return {
+      path: `${dir}/${name}`,
+      source: join(OFFICE_DIR, name),
+      locked: { name, file: { source: `packages/engine/office/${name}`, ...pinned } },
+    };
+  });
   return [...files, ...notices];
 }
 
@@ -131,7 +138,7 @@ export function checkLocked(name: string, bytes: Uint8Array, file: LockedOfficeF
 /** Reads one served file and checks it against the lock. */
 export function readVerified(asset: OfficeAsset): Uint8Array {
   const bytes = new Uint8Array(readFileSync(asset.source));
-  if (asset.locked) checkLocked(asset.locked.name, bytes, asset.locked.file);
+  checkLocked(asset.locked.name, bytes, asset.locked.file);
   return bytes;
 }
 

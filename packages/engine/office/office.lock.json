@@ -48,5 +48,15 @@
       "gzip": true,
       "downloadBytes": 28665992
     }
+  },
+  "notices": {
+    "NOTICE.txt": {
+      "sha256": "8c2073166697d067ca072d93ecc5b6bf662bef025993c795b458ea754013c4da",
+      "bytes": 2829
+    },
+    "MPL-2.0.txt": {
+      "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e",
+      "bytes": 15648
+    }
   }
 }

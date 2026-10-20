@@ -88,7 +88,11 @@ the worker, so a deadlock of any other kind cannot hang the app.
   Files are stored as fetched (gzip, 78.9 MB) under the names the converter asks for, marked
   `X-Recto-Encoding: gzip`; the worker inflates them with `DecompressionStream` on the way out.
   Each file is accepted only if its content's SHA-256 matches the lock (the app's own code is
-  the trust anchor), a stopped download resumes at the file it stopped in, and
+  the trust anchor). **Integrity is checked once, at download** (`package-store.ts`,
+  `checkFile`), before a file is stored; the service worker serves the stored copy without
+  hashing it again on each request, so the cache itself is trusted from then on (same-origin
+  storage only the app can write). The notices are stored with the package, so the licence
+  link works offline. A stopped download resumes at the file it stopped in, and
   `navigator.storage.persist()` is asked for once all are in. The marker
   `convert/installed.json`, written last, means "installed". Nothing under `convert/` is
   precached, and the Workbox wasm rule excludes it.
@@ -98,13 +102,19 @@ the worker, so a deadlock of any other kind cannot hang the app.
   the `*.gz` downloads to the network so Cancel stops the transfer, and, **only once the marker
   is in**, answers the app's own page (the entry URL) and every same-origin worker script with
   `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`
-  (Safari has no `credentialless`). Each such response is what Workbox would have given (the
-  precache entry, else the network) with headers added. Pages beside the app (about, lab) and
+  (Safari has no `credentialless`). Each such response is what Workbox would have given (any
+  cache's entry, the runtime caches included, such as OCR's worker in `pdf-editor-ocr`; else
+  the precache's revisioned page; else the network, an OCR file then going into OCR's cache as
+  Workbox's rule would put it) with headers added. Pages beside the app (about, lab) and
   ordinary subresources are untouched.
 - **When it reads the marker.** At worker start, asynchronously. A navigation that arrives
-  before the read lands is left to Workbox (not isolated); a worker script waits for it, so an
-  isolated page whose service worker the browser restarted still gets `require-corp` on its next
-  worker. The page tells the worker after an install (`RECTO_OFFICE_REFRESH`).
+  before the read lands is left to Workbox (not isolated). A worker script must be answered at
+  once or not at all, so in that window it is answered with Workbox's own response (every cache,
+  then the network) and the headers wait for the read: an isolated page whose service worker the
+  browser restarted still gets `require-corp` on its next worker, and nobody else's worker
+  changes (`sw-office.test.ts` loads the OCR worker offline with and without the marker). Once
+  the read says "not installed", nothing but `convert/**` is answered. The page tells the worker
+  after an install and after a removal (`RECTO_OFFICE_REFRESH`).
 - **The one reload.** When an Office file arrives and the page is not isolated, the files are
   stashed in the cache, the page reloads once (a `sessionStorage` flag), and the flow resumes
   from the stash. Open documents come back through the session snapshots (ADR-0032 §2.4). A
@@ -165,7 +175,10 @@ first paint 73.9 KB (unchanged), editor 827.0 → 828.1 KB, compact 273.8 → 27
 The deploy job fetches and verifies the package (cached by the lock's hash) and the e2e runs in
 CI; Firefox and WebKit isolation and memory runs; Settings gets "Remove conversion package" and
 its size; About gets the notices; a font substitution table (Aptos, Calibri Light) and fidelity
-fixtures; font trimming toward about 60 MB; the flag comes off when the owner says so.
+fixtures; font trimming toward about 60 MB. **Before the flag comes off**, each bundled font's
+licence is checked against its file, and the GPL-with-font-exception faces (Culmus, Linux
+Libertine G) are either confirmed acceptable under ADR-0001 as separate data or removed; only
+then does the flag come off, when the owner says so.
 
 ## Alternatives considered
 
