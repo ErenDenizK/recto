@@ -52,6 +52,19 @@ describe('decoding', () => {
     expect(decodeTextBytes(bytes)).toBe('ğüşıöçİ');
   });
 
+  test('valid UTF-8 that contains U+FFFD stays UTF-8', () => {
+    expect(decodeTextBytes(encode('a \uFFFD ğüşıöçİ'))).toBe('a \uFFFD ğüşıöçİ');
+  });
+
+  test('reads UTF-16 with a BOM, little and big endian', () => {
+    const text = 'Işık ğüş';
+    const units = Array.from(text, (c) => c.charCodeAt(0));
+    const le = new Uint8Array([0xff, 0xfe, ...units.flatMap((u) => [u & 255, u >> 8])]);
+    const be = new Uint8Array([0xfe, 0xff, ...units.flatMap((u) => [u >> 8, u & 255])]);
+    expect(decodeTextBytes(le)).toBe(text);
+    expect(decodeTextBytes(be)).toBe(text);
+  });
+
   test('keeps the replacement characters when the bytes are not windows-1254 either', () => {
     const bytes = new Uint8Array([0x41, 0x81, 0x42]);
     expect(decodeTextBytes(bytes)).toContain('�');

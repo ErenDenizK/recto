@@ -225,8 +225,14 @@ interface CapturedItem {
 export async function filesFromDataTransfer(
   dataTransfer: DataTransfer,
   accept: (file: NamedFile) => boolean = isPdfFile,
+  direct?: (file: NamedFile) => boolean,
 ): Promise<File[]> {
-  return filesFromItems(Array.from(dataTransfer.items ?? []), dataTransfer.files ?? [], accept);
+  return filesFromItems(
+    Array.from(dataTransfer.items ?? []),
+    dataTransfer.files ?? [],
+    accept,
+    direct,
+  );
 }
 
 /**
@@ -238,9 +244,13 @@ export async function filesFromItems(
   allItems: readonly DataTransferItem[],
   fallback: Iterable<File> | ArrayLike<File> = [],
   accept: (file: NamedFile) => boolean = isPdfFile,
+  direct?: (file: NamedFile) => boolean,
 ): Promise<File[]> {
+  // `direct` also takes files dropped themselves, not those inside a dropped folder (text
+  // files: a folder of notes is not a request to convert them all).
+  const forFile = direct === undefined ? accept : (f: NamedFile) => accept(f) || direct(f);
   const items = allItems.filter((item) => item.kind === 'file');
-  if (items.length === 0) return Array.from(fallback).filter(accept);
+  if (items.length === 0) return Array.from(fallback).filter(forFile);
 
   const captured: CapturedItem[] = items.map((item) => {
     const withHandle = item as DataTransferItem & DataTransferItemWithHandle;
@@ -255,15 +265,21 @@ export async function filesFromItems(
   for (const item of captured) {
     const handle = item.handle ? await item.handle.catch(() => null) : null;
     if (handle) {
-      const files = await collectFromHandles([handle], { accept });
+      const files = await collectFromHandles([handle], {
+        accept: handle.kind === 'file' ? forFile : accept,
+      });
       const [only] = files;
       if (handle.kind === 'file' && only !== undefined && files.length === 1) {
         rememberFileHandle(only, handle as FileHandleLike);
       }
       results.push(...files);
     } else if (item.entry) {
-      results.push(...(await collectFromEntries([item.entry], { accept })));
-    } else if (item.file && accept(item.file)) {
+      results.push(
+        ...(await collectFromEntries([item.entry], {
+          accept: item.entry.isFile ? forFile : accept,
+        })),
+      );
+    } else if (item.file && forFile(item.file)) {
       results.push(item.file);
     }
   }

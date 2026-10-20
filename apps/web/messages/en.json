@@ -4880,5 +4880,6 @@
   "cmd_text_to_pdf": "Text to PDF…",
   "cmd_file_text_to_pdf_keywords": "text to pdf, txt to pdf, txt, text, convert, text file to pdf, metinden pdf, metin",
   "file_picker_text": "Text files",
-  "text_to_pdf_failed": "Could not turn {name} into a PDF"
+  "text_to_pdf_failed": "Could not turn {name} into a PDF",
+  "text_to_pdf_too_large": "{name} is too large to turn into a PDF (over 2 MB)."
 }

@@ -41,6 +41,9 @@ test('a .txt opened with Open files becomes a PDF page and Find finds its words'
   await expect(page.getByRole('tab', { name: 'notes' })).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-page-index="0"]').first()).toBeVisible({ timeout: 20_000 });
 
+  // A new, unsaved document like an image's: Save is offered, not "in file".
+  await expect(page.getByTestId('save-button')).toHaveAttribute('data-state', 'save');
+
   const field = await openFindPanel(page);
   await field.fill('ağaç');
   await expect(page.getByTestId('search-hit')).toHaveCount(1, { timeout: 20_000 });
@@ -49,6 +52,22 @@ test('a .txt opened with Open files becomes a PDF page and Find finds its words'
 
   const shot = process.env.R24_TEXT_SHOT;
   if (shot !== undefined) await page.screenshot({ path: shot });
+});
+
+test('only .txt converts: a .log is ignored', async ({ page }) => {
+  await useFileInputPicker(page);
+  await page.goto('./?lang=en');
+  const chooser = page.waitForEvent('filechooser');
+  await page
+    .getByRole('button', { name: /^Open files$/ })
+    .first()
+    .click();
+  await (await chooser).setFiles([
+    { name: 'server.log', mimeType: 'text/plain', buffer: Buffer.from('log line') },
+    { name: 'kept.txt', mimeType: 'text/plain', buffer: Buffer.from('kept line') },
+  ]);
+  await expect(page.getByRole('tab', { name: 'kept' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('tab', { name: /server/ })).toHaveCount(0);
 });
 
 test('"Text to PDF" in the palette asks for a .txt file', async ({ page }) => {

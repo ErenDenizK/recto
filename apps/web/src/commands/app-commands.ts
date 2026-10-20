@@ -26,7 +26,7 @@ import {
 import { registerCompareCommands } from '../compare/compare-commands';
 import { registerConvertCommands } from '../convert/convert-commands';
 import { fileHandleOf, partitionFiles, pickFiles } from '../files/open-files';
-import { convertTextFiles } from '../files/text-files';
+import { openTextFiles, takeTextFiles } from '../files/text-files';
 import { clearRecents, recordRecent } from '../files/recents';
 import { rememberDocumentHandle } from '../files/save';
 import { registerSaveCommands } from '../files/save-commands';
@@ -117,8 +117,9 @@ export async function openDocuments(all: readonly File[]): Promise<readonly Docu
   // through here (ADR-0035 §5; only behind its flag).
   const { office, rest } = takeOfficeFiles(all);
   offerOfficeFiles(office);
-  // Text files become PDFs named after them and open like any PDF (conversion memo step 2).
-  const files = await convertTextFiles(rest);
+  // Text files become new documents named after them, like images (conversion memo step 2).
+  const { text, rest: files } = takeTextFiles(rest);
+  await openTextFiles(text);
   if (files.length === 0) return [];
   const { pdfs, images } = partitionFiles(files);
   if (images.length > 0) await openImagesAsDocument(images);
@@ -209,10 +210,14 @@ export async function openFilesFromPicker(): Promise<void> {
 
 /** "Text to PDF…": the file dialog on .txt, then the same open path as a dropped text file. */
 export async function textToPdfFromPicker(): Promise<void> {
+  // Where the focus was: the opened document's pages take it if it has not moved since.
+  const before = document.activeElement;
   const files = await pickFiles('text');
   if (files.length === 0) return;
   const wasEmpty = model().workspace.documentOrder.length === 0;
   showOpened(await openDocuments(files), { wasEmpty });
+  const active = model().workspace.activeDocument;
+  if (active && ui().destination !== 'home') focusOpenedPage(active, before);
 }
 
 /**
@@ -415,7 +420,6 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       title: m.cmd_text_to_pdf(),
       group: m.group_file(),
       act: null,
-      keywords: ['txt', 'text', 'metin', 'convert', 'dönüştür'],
       run: textToPdfFromPicker,
     }),
     registry.register({

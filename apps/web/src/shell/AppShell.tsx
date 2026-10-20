@@ -178,11 +178,10 @@ export function AppShell() {
     if (event.target instanceof Element && event.target.closest('[data-file-drop-zone]')) return;
     // filesFromDataTransfer reads the items synchronously, before its first await.
     // Word, Excel and PowerPoint too while Office conversion is on (ADR-0035 §6).
-    // Text files too: they become PDFs (conversion memo step 2).
     const accept = officeEnabled()
-      ? (file: NamedFile) => isOpenableFile(file) || isOfficeFile(file) || isTextFile(file)
-      : (file: NamedFile) => isOpenableFile(file) || isTextFile(file);
-    void filesFromDataTransfer(event.dataTransfer, accept).then(async (files) => {
+      ? (file: NamedFile) => isOpenableFile(file) || isOfficeFile(file)
+      : isOpenableFile;
+    void filesFromDataTransfer(event.dataTransfer, accept, isTextFile).then(async (files) => {
       if (files.length === 0) {
         announce(m.drop_no_pdfs());
         return;
