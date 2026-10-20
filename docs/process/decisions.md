@@ -64,6 +64,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-15](decisions/product.md) | Flashback joins V1 only if it is easy | In force | 2026-10-11 |
 | [PRD-16](decisions/product.md) | Dictation (voice input) is after V1 | In force | 2026-10-11 |
 | [PRD-17](decisions/product.md) | Parked until the owner tests on a large screen: the sidebar covering a fit-width page (scroll a hit or jump clear of… | Open | 2026-10-11 |
+| [PRD-18](decisions/product.md) | On-device Office to PDF, desktop and tablet: LibreOffice WASM on consent, the first dependency exception (board) | In force; phase 1 behind a flag | 2026-10-19 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 
 ## Design
@@ -230,6 +231,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-16](decisions/editions.md) | Two phone tool drawers, the owner picks after an iPhone test | In force; variant choice open to the owner; the close after the arming pulse superseded by EDN-18 | 2026-10-11 |
 | [EDN-17](decisions/editions.md) | Editing text on phones (WP5) | In force; the iOS keyboard hand check is the owner's | 2026-10-11 |
 | [EDN-18](decisions/editions.md) | The phone tool drawer stays open on a tap | In force | 2026-10-12 |
+| [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
 
 ## Phone work
 
@@ -322,10 +324,10 @@ Technical decisions, listed for completeness. Each ADR holds the detail.
 
 | ADR | Decision | Date | Status |
 |---|---|---|---|
-| [0001](../adr/0001-license.md) | Apache-2.0; permissive dependencies only | 2026-09-26 | Accepted |
+| [0001](../adr/0001-license.md) | Apache-2.0; permissive dependencies only | 2026-09-26 | Accepted; amended by 0035 |
 | [0002](../adr/0002-engine-stack.md) | PDFium in a worker renders and edits; pdf-lib assembles | 2026-09-26 | Accepted |
 | [0003](../adr/0003-frontend-stack.md) | Vite, TypeScript, pnpm, React 19 with the React Compiler | 2026-09-26 | Accepted |
-| [0004](../adr/0004-hosting-and-isolation.md) | Static hosting on GitHub Pages, workers, no cross-origin isolation | 2026-09-26 | Accepted |
+| [0004](../adr/0004-hosting-and-isolation.md) | Static hosting on GitHub Pages, workers, no cross-origin isolation | 2026-09-26 | Accepted; amended by 0035 (isolation after the Office package is installed) |
 | [0005](../adr/0005-virtual-document-model.md) | Virtual document model; bytes produced once at export | 2026-09-26 | Accepted |
 | [0006](../adr/0006-branching-and-versioning.md) | `main` releasable, `develop` integration, Conventional Commits | 2026-09-26 | Accepted (see PRC-5) |
 | [0007](../adr/0007-delivery-targets.md) | Web first, desktop as escalation path | 2026-09-26 | Accepted; to be amended by ADR-0034 (EDN-1) |
@@ -350,3 +352,4 @@ Technical decisions, listed for completeness. Each ADR holds the detail.
 | [0032](../adr/0032-saving-restore-history.md) | Save in place, snapshots on the device, visible Undo | 2026-10-04 | Accepted (owner) |
 | [0033](../adr/0033-compact-edition.md) | Full app on desktops and tablets; read-only compact edition on phones | 2026-10-04 | Accepted (owner) |
 | [0034](../adr/0034-editions.md) | Editions: full app on desktops and tablets, the phone edition editable since EDN-7, desktop later; amends 0033 and 0007 | 2026-10-17 | Accepted (records EDN-1 to EDN-3, EDN-7) |
+| [0035](../adr/0035-on-device-office-conversion.md) | On-device Office to PDF: LibreOffice pinned and served from our origin, on consent, isolation by our service worker; amends 0001 and 0004 | 2026-10-20 | Accepted (records PRD-18, EDN-19) |
