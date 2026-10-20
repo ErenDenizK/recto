@@ -133,13 +133,16 @@ function Panel({ open, onClosed }: { readonly open: boolean; readonly onClosed: 
               key={spec.id}
               variant="quiet"
               className={styles.tile}
+              aria-label={spec.soon ? `${spec.label()}, ${m.compact_tool_soon()}` : spec.label()}
               aria-pressed={tool === spec.id}
               aria-disabled={spec.soon === true || undefined}
               data-tool={spec.id}
               onClick={(event) => arm(spec, event.currentTarget)}
             >
               <Icon name={spec.glyph} filled={tool === spec.id} />
-              <span className={styles.tileLabel}>{spec.label()}</span>
+              <span className={styles.tileLabel}>
+                {spec.id === 'edit-text' ? m.compact_tool_edit_text_tile() : spec.label()}
+              </span>
               {spec.soon ? <span className={styles.soon}>{m.compact_tool_soon()}</span> : null}
             </Button>
           ))}
