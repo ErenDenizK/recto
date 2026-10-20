@@ -12,10 +12,13 @@
  */
 import { useId } from 'react';
 
+import { useRecentsStore } from '../files/recents';
 import { m } from '../i18n';
 import { openSample } from '../sample/open-sample';
 import { SampleCover } from '../sample/SampleCover';
+import { useWorkspaceStore } from '../state/workspace-store';
 import { Icon } from '../ui/Icon';
+import { sampleOnScreen } from './home-model';
 import lit from './lit.module.css';
 import styles from './SampleCard.module.css';
 import { useSampleAvailable } from './use-sample-available';
@@ -23,6 +26,10 @@ import { useSampleAvailable } from './use-sample-available';
 export function SampleCard({ align }: { readonly align: 'centre' | 'start' }) {
   const available = useSampleAvailable();
   const lineId = useId();
+  const files = useWorkspaceStore((st) => st.files);
+  const entries = useRecentsStore((st) => st.entries);
+  // Offered only while the sample is not on screen: open, or already in Recents.
+  if (sampleOnScreen(Object.values(files), entries)) return null;
   return (
     // A lit card, as a Library card is, not ui/Button's action capsule: the cover, two lines
     // and a caret, with its own press (02-library L10, DSN-50).

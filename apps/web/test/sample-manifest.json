@@ -70,8 +70,8 @@
         }
       },
       "scanText": "The Lighthouse\nCape Ardıç\n29 September 2026\nDear Mira,\nThank you for the proofs. Defne has been kinder\nto me than the wind was last winter.\nTwo small corrections. The lens was made in\n1904, not 1906. And Pusula was a dog, not a\ncat. She would be offended.\nYou asked what I write in the logbook now. Last\nnight it was: wind NE 4, visibility good, two\nboats out, two boats home, lamp on at 18:52.\nAll well.\nCome in October if you can. The light is best\nafter the first storm.\nWith my regards,\nNevin Sarıgül",
-      "bytes": 102582,
-      "sha256": "f20c4b90fe143ded1424843f8bb34e1ca6a5b5f375eb17f728b03ebb6d44883d"
+      "bytes": 102500,
+      "sha256": "56d516377dadada26839fc210f5f616e9499e0b3b7701638c71107cd4888345c"
     },
     {
       "file": "recto-sample-phone-en.pdf",
@@ -130,8 +130,8 @@
           "align": "left"
         }
       },
-      "bytes": 71907,
-      "sha256": "841136c4cbd65f36ffaac5b335fff41d30bbc30eca051f801d6646244a46cbe5"
+      "bytes": 71831,
+      "sha256": "a983903a796161b4db6a5112b823964ea528faa68f7cfca4fe9112d929101024"
     },
     {
       "file": "recto-sample-tr.pdf",
@@ -202,8 +202,8 @@
         }
       },
       "scanText": "Fener Evi\nArdıç Burnu\n29 Eylül 2026\nSevgili Mira,\nProvalar için teşekkür ederim. Defne bana geçen\nkışın rüzgârından çok daha nazik davrandı.\nİki küçük düzeltme var. Mercek 1906’da değil,\n1904’te yapıldı. Pusula da kedi değil, köpekti.\nDuysa gücenirdi.\nNöbet defterine artık ne yazdığımı sormuşsunuz.\nDün akşam şunu yazdım: rüzgâr KD 4, görüş iyi,\niki tekne çıktı, iki tekne döndü, fener 18.52’de\nyandı. Her şey yolunda.\nFırsat bulursanız ekimde gelin. Işık en güzel\nilk fırtınadan sonra olur.\nSaygılarımla,\nNevin Sarıgül",
-      "bytes": 104125,
-      "sha256": "cd902ceb256b9e741b80bc5b1a48a377797fe1afe5b01129a6dbbf95748a187b"
+      "bytes": 104021,
+      "sha256": "f4e6c2108dd4c57701930b853521f3351824c641f1aa859d2e4e2f4ac7351923"
     },
     {
       "file": "recto-sample-phone-tr.pdf",
@@ -262,8 +262,8 @@
           "align": "left"
         }
       },
-      "bytes": 72088,
-      "sha256": "ea1f6d4fd2c5e4944a759688c424681718869acb2f0194fa54e97d8664e1e34f"
+      "bytes": 71979,
+      "sha256": "009f4d281c23ac192ffcc1595a3386d76254bc0c44a46d5aea6c65bb444e699b"
     }
   ]
 }

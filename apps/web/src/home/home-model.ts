@@ -9,6 +9,7 @@
 import type { DocumentId, SourceId, VirtualPage, Workspace } from '@pdf-editor/document-model';
 
 import { m } from '../i18n';
+import { SAMPLE_TITLES } from '../sample/sample-file';
 import { MAX_TITLE_LENGTH } from '../stage/operation-plans';
 import type { SourceFileInfo } from '../state/workspace-store';
 
@@ -261,15 +262,20 @@ export function middleTruncate(text: string, max: number): string {
 
 /**
  * The default title of a combined document (review F8): "Combined – A + B" for two files,
- * "Combined – A + 2 more" for more, in the active language; never longer than a title may
- * be (the first name is shortened in the middle when it has to be).
+ * "Combined – A + 2 more" for more, "Combined – A" for one and "Combined document" for none,
+ * in the active language; never longer than a title may be (the first name is shortened in
+ * the middle when it has to be).
  */
 export function combinedTitle(titles: readonly string[]): string {
   const [first = '', second = ''] = titles;
+  // Under two files there is no "+ …" to write: the plain name, or "Combined – <title>".
+  if (titles.length === 0) return m.combined_title_none();
   const make = (name: string) =>
-    titles.length > 2
-      ? m.combined_title_more({ first: name, count: titles.length - 1 })
-      : m.combined_title_two({ first: name, second });
+    titles.length === 1
+      ? m.combined_title_one({ first: name })
+      : titles.length > 2
+        ? m.combined_title_more({ first: name, count: titles.length - 1 })
+        : m.combined_title_two({ first: name, second });
   const full = make(first);
   const over = Array.from(full).length - MAX_TITLE_LENGTH;
   if (over <= 0) return full;
@@ -318,4 +324,20 @@ export function visibleRecents<T extends { readonly name: string; readonly size:
   return entries.filter(
     (entry) => !open.some((f) => f.name === entry.name && f.size === entry.size),
   );
+}
+
+const SAMPLE_FILE_NAME = new RegExp(
+  `^(${Object.values(SAMPLE_TITLES).join('|')})( \\(\\d+\\))?\\.pdf$`,
+  'u',
+);
+
+/**
+ * Whether the teaching sample is already on screen: open as a document, or listed among the
+ * recent files (by the sample's file name). "Try the sample" is offered only when it is not.
+ */
+export function sampleOnScreen(
+  open: readonly { readonly name: string }[],
+  recents: readonly { readonly name: string }[],
+): boolean {
+  return [...open, ...recents].some((file) => SAMPLE_FILE_NAME.test(file.name));
 }

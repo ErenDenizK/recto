@@ -453,6 +453,9 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       title: m.menu_about_page(),
       group: m.group_general(),
       act: null,
+      // "About Recto" (`help.about`) is the palette's one About entry; this one stays for the
+      // Document menu and the callers that run it by id.
+      hiddenInPalette: true,
       run: openAboutPage,
     }),
     registry.register({

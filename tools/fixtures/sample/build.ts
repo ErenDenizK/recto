@@ -16,7 +16,9 @@ import { scanPage } from './pages/scan.ts';
 export const sampleFile = (locale: SampleLocale, edition: SampleEdition = 'full'): string =>
   edition === 'full' ? `recto-sample-${locale}.pdf` : `recto-sample-phone-${locale}.pdf`;
 
-const CREATOR = 'Recto sample generator (tools/fixtures/sample-fixture.ts)';
+// What Document info shows as the sample's Creator and Producer.
+const CREATOR = 'Recto';
+const PRODUCER = 'Recto';
 
 /** What the generator learned while drawing, for the manifest. */
 export interface BuildNotes {
@@ -35,6 +37,7 @@ export async function buildCut(
     const copy = COPY[locale];
     const doc = await newDoc(copy.title);
     doc.setCreator(CREATOR);
+    doc.setProducer(PRODUCER);
     doc.setAuthor('Recto');
     doc.setSubject(copy.subject);
     doc.setLanguage(copy.lang);

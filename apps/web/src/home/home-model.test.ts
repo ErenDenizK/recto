@@ -22,6 +22,7 @@ import {
   movedOrder,
   rangeBetween,
   relativeTime,
+  sampleOnScreen,
   toggleSelection,
   visibleRecents,
 } from './home-model';
@@ -251,6 +252,18 @@ describe('combinedTitle (review F8)', () => {
     expect(combinedTitle(['report', 'scan', 'notes', 'annex'])).toBe('Combined – report + 3 more');
   });
 
+  it('never ends in a "+" with fewer than two files', () => {
+    expect(combinedTitle(['A'])).toBe('Combined – A');
+    expect(combinedTitle([])).toBe('Combined document');
+    setLocale('tr');
+    try {
+      expect(combinedTitle(['A'])).toBe('Birleştirilmiş – A');
+      expect(combinedTitle([])).toBe('Birleştirilmiş belge');
+    } finally {
+      setLocale('en');
+    }
+  });
+
   it('speaks Turkish', () => {
     setLocale('tr');
     try {
@@ -267,5 +280,20 @@ describe('combinedTitle (review F8)', () => {
     expect(Array.from(title).length).toBeLessThanOrEqual(MAX_TITLE_LENGTH);
     expect(title.startsWith('Combined – x')).toBe(true);
     expect(title.endsWith(' + 2 more')).toBe(true);
+  });
+});
+
+describe('sampleOnScreen (Try the sample)', () => {
+  it('is true when the sample is open or among Recents, in either language', () => {
+    expect(sampleOnScreen([{ name: 'Recto sample.pdf' }], [])).toBe(true);
+    expect(sampleOnScreen([{ name: 'Recto sample (2).pdf' }], [])).toBe(true);
+    expect(sampleOnScreen([], [{ name: 'Recto örnek belge.pdf' }])).toBe(true);
+  });
+
+  it('is false for other files', () => {
+    expect(sampleOnScreen([{ name: 'report.pdf' }], [{ name: 'Recto sample notes.pdf' }])).toBe(
+      false,
+    );
+    expect(sampleOnScreen([], [])).toBe(false);
   });
 });

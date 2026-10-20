@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { registerAppCommands } from '../commands/app-commands';
 import { CommandRegistry } from '../commands/registry';
+import { buildSections } from '../shell/CommandPalette';
 import { followsBrowser, getLocale, setLocale } from '../i18n';
 import { registerAppearanceCommands } from '../shell/appearance-commands';
 import { resetInputPolicyStore, useInputPolicyStore } from '../state/input-policy-store';
@@ -43,6 +44,23 @@ describe('settings in the palette', () => {
         return command !== undefined && !command.hiddenInPalette;
       });
       expect(registered, `${row.id}: ${row.commands.join(', ')}`).not.toHaveLength(0);
+    }
+  });
+
+  it('offers one About entry, in English and Turkish', () => {
+    for (const [locale, query] of [
+      ['en', 'about'],
+      ['tr', 'hakkında'],
+    ] as const) {
+      setLocale(locale);
+      const fresh = new CommandRegistry();
+      const off = registerAppCommands(fresh);
+      const sections = buildSections(query, fresh.list(), [], () => true);
+      off();
+      const about = sections
+        .flatMap((section) => section.rows)
+        .filter((row) => row.command.id.startsWith('help.about'));
+      expect(about.map((row) => row.command.id)).toEqual(['help.about']);
     }
   });
 
