@@ -148,6 +148,8 @@ export function EditIsland() {
             else toggleTool();
           }}
         >
+          {/* Keys are prefixed per kind: the glyph and the ink dot share a tool id, and equal
+              sibling keys made React skip removing the old glyph (it stayed stacked). */}
           <span className={styles.glyph}>
             {leaving ? (
               <Icon
@@ -159,9 +161,14 @@ export function EditIsland() {
               />
             ) : null}
             {spec ? (
-              <Icon key={spec.glyph} name={spec.glyph} className={styles.in} filled={false} />
+              <Icon
+                key={`in-${spec.glyph}`}
+                name={spec.glyph}
+                className={styles.in}
+                filled={false}
+              />
             ) : null}
-            {Badge ? <Badge key={shown} /> : null}
+            {Badge ? <Badge key={`badge-${shown}`} /> : null}
           </span>
           <span key={label} className={`${styles.label} ${styles.in}`}>
             {label}

@@ -124,7 +124,8 @@ describe('Segmented, radio semantics', () => {
       { value: 'spectrum', label: 'A much longer spectrum label' },
       { value: 'sliders', label: 'Sliders' },
     ] as const;
-    const { rerender } = render(<Host width={400} options={long} />);
+    const { container, rerender } = render(<Host width={400} options={long} />);
+    const host = container.firstElementChild!;
     const group = screen.getByRole('radiogroup', { name: 'View' });
     expect(group).toHaveAttribute('data-layout', 'content');
     const grid = screen.getByRole('radio', { name: 'Grid' }).getBoundingClientRect().width;
@@ -133,8 +134,12 @@ describe('Segmented, radio semantics', () => {
       .getBoundingClientRect().width;
     expect(spectrum).toBeGreaterThan(grid);
     rerender(<Host width={200} options={long} />);
-    // The resize reaches the group (its ResizeObserver picks the layout): a select now.
-    const select = await screen.findByRole('combobox', { name: 'View' });
+    // The resize reaches the group (its ResizeObserver picks the layout): a select now. The
+    // observer reports in a rendering frame, so the test waits for frames, not for a clock: a
+    // loaded CI runner can go over a second without one (PR #38, #39, #40: the Select's 120 ms
+    // exit was still in its ending style when `findByRole`'s 1 s ran out). PRC-21.
+    await settled(host);
+    const select = screen.getByRole('combobox', { name: 'View' });
     expect(screen.queryByRole('radiogroup')).toBeNull();
     expect(select).toHaveTextContent('Grid');
     await userEvent.click(select);
@@ -142,7 +147,8 @@ describe('Segmented, radio semantics', () => {
     expect(screen.getByTestId('value').textContent).toBe('sliders');
     // Room again: back to segments, with the thumb on the choice.
     rerender(<Host width={400} options={long} />);
-    const back = await screen.findByRole('radiogroup', { name: 'View' });
+    await settled(host);
+    const back = screen.getByRole('radiogroup', { name: 'View' });
     await settled(thumbOf(back));
     expectOver(thumbOf(back), screen.getByRole('radio', { name: 'Sliders' }));
   });
