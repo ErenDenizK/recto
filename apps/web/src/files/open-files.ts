@@ -22,6 +22,7 @@ import {
   isPdfFile,
   type NamedFile,
 } from './file-filters';
+import { isOfficeFile, OFFICE_ACCEPT, OFFICE_PICKER_TYPES } from '../office/office-files';
 import { IMAGE_ACCEPT, isImageFile } from './images';
 
 export const PDF_ACCEPT = 'application/pdf,.pdf';
@@ -80,9 +81,17 @@ function isAbort(error: unknown): boolean {
 /**
  * Asks for files of a kind: 'pdf', 'images' (PNG, JPEG, WebP) or 'openable' (both).
  * Resolves to an empty array when the user cancels. Needs a user gesture.
+ *
+ * `office` also offers Word, Excel and PowerPoint files (ADR-0035 §6, behind its flag): the
+ * caller hands them to `office/intake.ts`.
  */
-export async function pickFiles(kind: 'pdf' | 'images' | 'openable'): Promise<File[]> {
-  const accept = kind === 'pdf' ? isPdfFile : kind === 'images' ? isImageFile : isOpenableFile;
+export async function pickFiles(
+  kind: 'pdf' | 'images' | 'openable',
+  options: { readonly office?: boolean } = {},
+): Promise<File[]> {
+  const base = kind === 'pdf' ? isPdfFile : kind === 'images' ? isImageFile : isOpenableFile;
+  const office = options.office === true && kind !== 'images';
+  const accept = office ? (file: NamedFile) => base(file) || isOfficeFile(file) : base;
   const picker = (window as Window & WindowWithPicker).showOpenFilePicker;
   if (picker) {
     try {
@@ -105,6 +114,9 @@ export async function pickFiles(kind: 'pdf' | 'images' | 'openable'): Promise<Fi
                   : m.file_picker_openable(),
             accept: types,
           },
+          ...(office
+            ? [{ description: m.office_picker_types(), accept: OFFICE_PICKER_TYPES }]
+            : []),
         ],
       });
       const files = await Promise.all(
@@ -126,7 +138,7 @@ export async function pickFiles(kind: 'pdf' | 'images' | 'openable'): Promise<Fi
       : kind === 'images'
         ? IMAGE_ACCEPT
         : `${PDF_ACCEPT},${IMAGE_ACCEPT}`;
-  return pickWithInput(inputAccept, accept);
+  return pickWithInput(office ? `${inputAccept},${OFFICE_ACCEPT}` : inputAccept, accept);
 }
 
 function pickWithInput(acceptList: string, accept: (file: NamedFile) => boolean): Promise<File[]> {

@@ -31,6 +31,11 @@
       "types": "./ocr/assets.ts",
       "import": "./ocr/assets.ts"
     },
+    "./office/assets": {
+      "types": "./office/assets.ts",
+      "import": "./office/assets.ts"
+    },
+    "./office/office.lock.json": "./office/office.lock.json",
     "./overlay-geometry": {
       "types": "./src/pdflib/overlay-public.ts",
       "import": "./src/pdflib/overlay-public.ts"
@@ -64,6 +69,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
     "ocr:verify": "node --experimental-strip-types --no-warnings=ExperimentalWarning ocr/fetch.ts --verify",
+    "office:fetch": "node --experimental-strip-types --no-warnings=ExperimentalWarning office/fetch.ts",
     "build": "echo 'source package; built by the consuming app'"
   },
   "dependencies": {

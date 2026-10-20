@@ -41,6 +41,8 @@ import { noteKeyOneChanged } from './keymap-notice';
 import { m } from '../i18n';
 import { registerLanguageCommands } from '../i18n/language-commands';
 import { registerOcrCommands } from '../ocr';
+import { officeEnabled } from '../office/flag';
+import { offerOfficeFiles, takeOfficeFiles } from '../office/intake';
 import { PRODUCT_NAME } from '../shell/about/build-info';
 import { announce } from '../shell/announcer';
 import { focusOpenedPage } from '../shell/focus-opened-page';
@@ -109,7 +111,11 @@ function openAboutPage(): void {
  * damaged-file toast, the skipped-password toast with "Enter password…" (which asks again),
  * or one toast for several files. Its announcement joins "Opened …" in the same task.
  */
-export async function openDocuments(files: readonly File[]): Promise<readonly DocumentId[]> {
+export async function openDocuments(all: readonly File[]): Promise<readonly DocumentId[]> {
+  // Word, Excel and PowerPoint go to the conversion sheet, which opens their PDFs back
+  // through here (ADR-0035 §5; only behind its flag).
+  const { office, rest: files } = takeOfficeFiles(all);
+  offerOfficeFiles(office);
   if (files.length === 0) return [];
   const { pdfs, images } = partitionFiles(files);
   if (images.length > 0) await openImagesAsDocument(images);
@@ -190,7 +196,7 @@ export async function clearRecentFiles(): Promise<void> {
 export async function openFilesFromPicker(): Promise<void> {
   // Where the focus was: the opened document's pages take it if it has not moved since.
   const before = document.activeElement;
-  const files = await pickFiles('openable');
+  const files = await pickFiles('openable', { office: officeEnabled() });
   const wasEmpty = model().workspace.documentOrder.length === 0;
   showOpened(await openDocuments(files), { wasEmpty });
   // On a document (not Home's selected cards), focus goes to its pages (01-frame F3 §6).

@@ -134,3 +134,21 @@ and are reproduced in the application's "About and licenses" view.
   exported PDFs as the invisible OCR text layer's font
   Copyright (c) Google Inc. and the Tesseract OCR contributors.
   License: Apache-2.0.
+
+Downloaded on demand
+====================
+
+These are not part of the application's bundle. They download only after the user agrees,
+the first time a Word, Excel or PowerPoint file is opened on a computer or tablet, from this
+app's own origin (ADR-0035). Their notices ship with them (convert/<version>/NOTICE.txt).
+
+- LibreOffice 24.8, compiled to WebAssembly, from the npm package
+  @matbee/libreoffice-converter 2.7.2 (pinned in packages/engine/office/office.lock.json)
+  Copyright the LibreOffice contributors (The Document Foundation) and the OpenOffice.org
+  contributors; the WebAssembly build and its worker host by the
+  libreoffice-document-converter contributors.
+  License: MPL-2.0. One file is modified (soffice.js: the pre-started thread pool grows from
+  4 to 16); the modified file is served beside the package and the change is recorded in
+  packages/engine/office/office.lock.json. Its fonts keep their own licenses (OFL-1.1,
+  Apache-2.0, the Bitstream Vera license, GPL with the font exception), listed in
+  packages/engine/office/NOTICE.txt.

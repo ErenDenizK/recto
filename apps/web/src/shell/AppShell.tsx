@@ -29,6 +29,7 @@ import { BatchSheetHost } from '../batch/BatchSheetHost';
 import { openDocuments } from '../commands/app-commands';
 import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
+import type { NamedFile } from '../files/file-filters';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
 import { FurnitureDialogs } from '../furniture';
 import { Aura } from '../home/Aura';
@@ -36,6 +37,10 @@ import { DocumentDropOverlay } from '../home/DropOverlay';
 import { showOpened } from '../home/home-actions';
 import { m } from '../i18n';
 import { OcrSheetHost } from '../ocr';
+import { officeEnabled } from '../office/flag';
+import { resumeOfficeAfterReload } from '../office/intake';
+import { isOfficeFile } from '../office/office-files';
+import { OfficeSheetHost } from '../office/OfficeSheetHost';
 import { ApplyRedactionsSheet } from '../redaction/ApplySheet';
 import { registerSettingsCommands } from '../settings/settings-commands';
 import { SettingsHost } from '../settings/SettingsHost';
@@ -97,6 +102,8 @@ export function AppShell() {
   // here rather than by the tooltip group so the compact edition, which has neither, does not
   // carry it (its bundle budget, PLAN.md §2.3).
   useEffect(() => installContainerTransform(), []);
+  // After the one reload into isolation, the stashed Office files convert (ADR-0035 §4).
+  useEffect(() => resumeOfficeAfterReload(), []);
 
   const frame = useSizeClass();
   const compact = frame.size === 'compact' || frame.short;
@@ -169,7 +176,11 @@ export function AppShell() {
     // Light-table sections insert dropped files at the drop point themselves.
     if (event.target instanceof Element && event.target.closest('[data-file-drop-zone]')) return;
     // filesFromDataTransfer reads the items synchronously, before its first await.
-    void filesFromDataTransfer(event.dataTransfer, isOpenableFile).then(async (files) => {
+    // Word, Excel and PowerPoint too while Office conversion is on (ADR-0035 §6).
+    const accept = officeEnabled()
+      ? (file: NamedFile) => isOpenableFile(file) || isOfficeFile(file)
+      : isOpenableFile;
+    void filesFromDataTransfer(event.dataTransfer, accept).then(async (files) => {
       if (files.length === 0) {
         announce(m.drop_no_pdfs());
         return;
@@ -229,6 +240,7 @@ export function AppShell() {
       <ConfirmHost />
       <BatchSheetHost />
       <OcrSheetHost />
+      <OfficeSheetHost />
       <ApplyRedactionsSheet />
       <FurnitureDialogs />
       <ReplacePopover />

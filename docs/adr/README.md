@@ -7,10 +7,10 @@ only after discussion with the project owner; the discussion summary is appended
 
 | # | Title | Status |
 |---|---|---|
-| 0001 | Project license | accepted |
+| 0001 | Project license | accepted, amended by 0035 |
 | 0002 | PDF engine stack | accepted |
 | 0003 | Frontend stack | accepted |
-| 0004 | Static hosting, workers and no cross-origin isolation | accepted |
+| 0004 | Static hosting, workers and no cross-origin isolation | accepted, amended by 0035 |
 | 0005 | Virtual document model and history | accepted |
 | 0006 | Branching, versioning and commit conventions | accepted |
 | 0007 | Delivery targets: web first, desktop as escalation path | accepted, amended by 0034 |
@@ -41,3 +41,4 @@ only after discussion with the project owner; the discussion summary is appended
 | 0032 | Saving, restore and history: Save in place, snapshots on the device, visible Undo | accepted |
 | 0033 | Two editions: the full app on desktops and tablets, a compact edition on phones (read-only until ADR-0034) | accepted, amended by 0034 |
 | 0034 | Editions: the full app on desktops and tablets, an editable phone edition, desktop later | accepted |
+| 0035 | On-device Office to PDF with LibreOffice, downloaded on consent | accepted |

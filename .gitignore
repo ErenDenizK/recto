@@ -35,3 +35,6 @@ npm-debug.log*
 pnpm-debug.log*
 
 .claude/worktrees/
+
+# Office conversion package, fetched by packages/engine/office/fetch.ts (ADR-0035)
+packages/engine/office/vendor/

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import babel from '@rolldown/plugin-babel';
 import { ocrAssetsPlugin } from '@pdf-editor/engine/ocr/assets';
+import { officeAssetsPlugin } from '@pdf-editor/engine/office/assets';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -174,6 +175,10 @@ export default defineConfig({
     // `lang/<code>.traineddata.gz`), each file checked against
     // packages/engine/ocr/langs.lock.json. Never precached (below).
     ocrAssetsPlugin(),
+    // The Office conversion package (ADR-0035 §1): copied into dist/convert/<directory>/ when
+    // `packages/engine/office/fetch.ts` has fetched it, each file checked against
+    // office.lock.json. Never precached and never in a bundle; downloaded only on consent.
+    officeAssetsPlugin(),
     // Offline support (ARCHITECTURE.md §7, ADR-0010). Disabled under Vitest, where
     // `virtual:pwa-register` resolves to a no-op and no service worker is generated.
     VitePWA({
@@ -249,6 +254,8 @@ export default defineConfig({
         // `media/` (the about page's clips, posters and the media run's request log) is added
         // to the site by the deploy job and is never precached (presentation spec §2.6).
         // `lab/` (the glass lab, GLS-1) is a page beside the app, never part of its shell.
+        // `convert/` (the Office conversion package, ~79 MB) downloads only on consent and is
+        // stored by its own download manager (ADR-0035 §1, §4).
         globIgnores: [
           '**/*.wasm',
           '404.html',
@@ -256,6 +263,7 @@ export default defineConfig({
           'ocr/**',
           'media/**',
           'lab/**',
+          'convert/**',
         ],
         maximumFileSizeToCacheInBytes: MAX_PRECACHE_BYTES,
         manifestTransforms: [
@@ -275,6 +283,11 @@ export default defineConfig({
         // Take control on first install so the first session is cached too. Updates
         // still wait for the user (registerType 'prompt').
         clientsClaim: true,
+        // The Office conversion's part of the worker (public/sw-office.js, ADR-0035 §4): it
+        // serves `convert/**` from the package's own cache and, once the package is on the
+        // device, adds the cross-origin isolation headers to the app's page and workers. It
+        // registers its fetch listener before Workbox's, and does nothing for anyone else.
+        importScripts: ['sw-office.js'],
         cleanupOutdatedCaches: true,
         // Match callbacks are serialized into the service worker, so they cannot close over
         // `base`: `location` there is the worker script's URL, which sits at `base`.
@@ -293,11 +306,13 @@ export default defineConfig({
           },
           {
             // Content-hashed engine wasm: fetched once, then served from cache. The OCR cores
-            // are not (their cache is above), so they cannot evict PDFium or qpdf.
+            // are not (their cache is above), so they cannot evict PDFium or qpdf, and neither
+            // is LibreOffice (sw-office.js serves it from its own cache, ADR-0035 §4).
             urlPattern: ({ url, sameOrigin }) =>
               sameOrigin &&
               url.pathname.endsWith('.wasm') &&
-              !url.href.startsWith(new URL('ocr/', location.href).href),
+              !url.href.startsWith(new URL('ocr/', location.href).href) &&
+              !url.href.startsWith(new URL('convert/', location.href).href),
             handler: 'CacheFirst',
             options: {
               cacheName: 'pdf-editor-wasm',

@@ -1,0 +1,53 @@
+Recto's Office conversion package
+=================================
+
+This package is downloaded only when you agree to it, the first time you open a Word, Excel
+or PowerPoint file in Recto on a computer or tablet. It is kept on your device and runs only
+there. It is not part of Recto's own code, which is licensed under Apache-2.0 (Recto's NOTICE
+and LICENSE files).
+
+LibreOffice
+-----------
+LibreOffice 24.8, compiled to WebAssembly (headless: LibreOfficeKit, no user interface).
+Copyright the LibreOffice contributors (The Document Foundation) and the OpenOffice.org
+contributors.
+License: Mozilla Public License 2.0 (MPL-2.0.txt beside this file). Parts of LibreOffice
+carry other notices; the full list is LibreOffice's own "License and Legal Information"
+(readlicense_oo/license/LICENSE in the LibreOffice source).
+Source: https://git.libreoffice.org/core (the libreoffice-24-8 branch)
+
+@matbee/libreoffice-converter 2.7.2
+-----------------------------------
+The WebAssembly build of LibreOffice and its worker host (soffice.js, soffice.worker.js,
+soffice.wasm, soffice.data, browser.worker.global.js), from the npm package
+@matbee/libreoffice-converter 2.7.2.
+License: Mozilla Public License 2.0 (MPL-2.0.txt).
+Source: https://github.com/matbeedotcom/libreoffice-document-converter
+
+Modification: Recto changes one line of soffice.js. "var pthreadPoolSize=4;" becomes
+"var pthreadPoolSize=16;": with four pre-started threads, LibreOffice can wait forever while
+it loads a document. The modified file is served beside this notice, and the change is
+recorded in Recto's source (packages/engine/office/office.lock.json and fetch.ts,
+https://github.com/ErenDenizK/pdf-editor). Every other file is unmodified.
+
+Fonts in soffice.data
+---------------------
+soffice.data carries the fonts LibreOffice ships, each under its own license:
+
+- Liberation Sans, Serif, Mono and Sans Narrow: SIL Open Font License 1.1.
+- Carlito: SIL Open Font License 1.1.
+- Caladea: Apache License 2.0.
+- DejaVu Sans, Serif and Mono: the Bitstream Vera Fonts license, with changes in the public
+  domain; DejaVu Math TeX Gyre: GUST Font License.
+- Noto Sans, Noto Serif and their Arabic, Armenian, Georgian, Hebrew, Lao and Lisu faces;
+  Noto Kufi Arabic and Noto Naskh Arabic: SIL Open Font License 1.1.
+- Gentium Basic and Gentium Book Basic: SIL Open Font License 1.1.
+- Linux Libertine G and Linux Biolinum G: GPL with the font exception, or SIL Open Font
+  License 1.1.
+- Alef, Amiri, Amiri Quran, David Libre, Frank Ruhl Hofshi, Miriam Libre, Reem Kufi, Rubik
+  and Scheherazade: SIL Open Font License 1.1.
+- Culmus David CLM, Frank Ruehl CLM, Miriam CLM, Miriam Mono CLM and Nachlieli CLM: GPL 2
+  with the font exception.
+
+Each font's license text is part of the font file's own name table and of LibreOffice's
+"License and Legal Information".
