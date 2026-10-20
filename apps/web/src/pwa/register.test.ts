@@ -1,14 +1,14 @@
 /**
  * The update-ready notice (`register.ts`; `08-feedback` FB4 §2, §5, issue 9): its toast loads
  * on demand (`update-toast.ts`, kept out of the first paint, V1-P1) and still shows once, with
- * Reload and Later, saying whether documents reopen.
+ * Reload and Later, saying whether documents reopen. And which engine wasm each edition warms.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { setLocale } from '../i18n';
 import { resetSessionStore, useSessionStore } from '../session/session-store';
 import { resetToasts, useToastStore } from '../ui/Toast/toast-store';
-import { dismissUpdate, showUpdateReady, usePwaStore } from './register';
+import { dismissUpdate, showUpdateReady, usePwaStore, warmWasmUrls } from './register';
 
 afterEach(() => {
   resetToasts();
@@ -48,5 +48,19 @@ describe('showUpdateReady', () => {
     expect(usePwaStore.getState().updateAvailable).toBe(false);
     dismissUpdate();
     expect(usePwaStore.getState().updateAvailable).toBe(false);
+  });
+});
+
+describe('warmWasmUrls', () => {
+  it('warms PDFium, then qpdf, for the full edition', () => {
+    const urls = warmWasmUrls('full');
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toMatch(/pdfium.*\.wasm/);
+    expect(urls[1]).toMatch(/qpdf.*\.wasm/);
+  });
+
+  it('warms PDFium only for the compact edition, which runs no qpdf tool', () => {
+    const urls = warmWasmUrls('compact');
+    expect(urls).toEqual([warmWasmUrls('full')[0]]);
   });
 });

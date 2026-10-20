@@ -12,7 +12,11 @@
  * - Once the app shell is cached, the engine wasm is fetched in idle time so the runtime
  *   cache holds it (CacheFirst) and the first offline session can open files: PDFium first,
  *   then qpdf (Compress, Save repaired copy), so those jobs work offline too (PF-17, V1-F15).
- *   Skipped when the user asked the browser to save data.
+ *   The compact edition warms PDFium only: none of its surfaces runs qpdf (Compress and the
+ *   repaired copy are full-edition tools), so a phone's first visit does not fetch its ~3 MB
+ *   (docs/research/perf/phone-first-load-2026-10.md); were it ever needed, the engine fetches
+ *   it on first use into the same runtime cache. Skipped when the user asked the browser to
+ *   save data.
  *
  * Status feeds the privacy popover; nothing here contacts another origin.
  */
@@ -20,6 +24,8 @@ import wasmUrl from '@embedpdf/pdfium/pdfium.wasm?url';
 import qpdfWasmUrl from '@pdf-editor/engine/qpdf.wasm?url';
 import { registerSW } from 'virtual:pwa-register';
 import { create } from 'zustand';
+
+import { type Edition, getEdition } from '../shell/frame/edition';
 
 export type ServiceWorkerStatus =
   /** No service worker support (or blocked, e.g. some private modes). */
@@ -84,8 +90,16 @@ function whenControlled(): Promise<void> {
 }
 
 /**
- * Fetches the engine wasm (PDFium, then qpdf) through the service worker so it lands in the
- * runtime cache.
+ * The engine wasm an edition warms into the runtime cache, in fetch order: PDFium for both,
+ * qpdf only for the full edition, the one with qpdf's tools (Compress, Save repaired copy).
+ */
+export function warmWasmUrls(edition: Edition): readonly string[] {
+  return edition === 'compact' ? [wasmUrl] : [wasmUrl, qpdfWasmUrl];
+}
+
+/**
+ * Fetches the edition's engine wasm (`warmWasmUrls`) through the service worker so it lands in
+ * the runtime cache.
  * "Offline ready" can fire before the new worker has claimed the page; a fetch made then
  * bypasses the worker and caches nothing, so wait for control first.
  */
@@ -94,7 +108,7 @@ function warmEngineCache(): void {
   const run = () => {
     void whenControlled()
       .then(async () => {
-        for (const url of [wasmUrl, qpdfWasmUrl]) {
+        for (const url of warmWasmUrls(getEdition())) {
           await (await fetch(url, { credentials: 'same-origin' })).arrayBuffer();
         }
       })
