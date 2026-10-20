@@ -209,8 +209,6 @@ function PaletteItemView({
 }): ReactNode {
   const presets = useAnnotationStore((s) => s.pen.presets);
   const hasFields = useFieldStops().length > 0;
-  const frame = useSizeClass();
-  const wide = frame.size === 'large' || frame.size === 'xlarge';
   const { visible, bare, folded } = state;
   switch (item) {
     case 'done':
@@ -260,7 +258,7 @@ function PaletteItemView({
     case 'chips':
       return <SignatureChips item={item} />;
     case 'stepper':
-      return <FieldStepper countLabel={wide} />;
+      return <FieldStepper />;
     case 'add-field':
       return <AddFieldMenu />;
     case 'outlines':

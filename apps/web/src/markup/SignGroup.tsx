@@ -207,7 +207,7 @@ export function stepField(direction: 1 | -1): void {
   moveField(from, direction);
 }
 
-export function FieldStepper({ countLabel }: { readonly countLabel: boolean }) {
+export function FieldStepper() {
   const stops = useFieldStops();
   const active = useFormStore((s) => s.active);
   if (stops.length === 0) return null;
@@ -225,9 +225,7 @@ export function FieldStepper({ countLabel }: { readonly countLabel: boolean }) {
   const readout =
     index >= 0
       ? m.markup_field_position({ n: formatNumber(index + 1), total: formatNumber(total) })
-      : countLabel
-        ? m.markup_field_count({ count: total })
-        : formatNumber(total);
+      : m.markup_field_count({ count: total });
   const name =
     index >= 0
       ? m.markup_field_named({

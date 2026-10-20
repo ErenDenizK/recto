@@ -11,6 +11,12 @@
   border-radius: var(--radius-capsule);
 }
 
+/* An untouched document shows no Save at all: the strip hides the piece around it
+   (TopStrip.module.css), and this is the same for any other place the button stands. */
+.wrap[data-rest] {
+  display: none;
+}
+
 /* "Saved" reads as finished, not unavailable: the secondary label, not the disabled one. */
 .wrap .save[aria-disabled='true'] {
   color: var(--glass-text-secondary);

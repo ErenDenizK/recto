@@ -175,9 +175,13 @@
   line-height: var(--type-footnote-lh);
 }
 
+/* The Undo stroke · Clear row's controls have no fill, so their padding reads as empty space
+   under the pad; the 16 px body gap less 8 keeps the footer close without the two rows' hit
+   areas touching (presentability sweep #15). */
 .keep {
   display: grid;
   gap: 12px;
+  margin-top: -8px;
 }
 
 .hint {

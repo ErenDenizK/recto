@@ -264,28 +264,31 @@ test.describe('the frame per class', () => {
     const pieces = top.locator('[data-top-piece]');
     await expect(pieces).toHaveCount(7);
     await atRest(top);
+    // An untouched document has no Save piece until its first edit (sweep #11).
+    await expect(top.locator('[data-top-piece="save"]')).toBeHidden();
+    const visiblePieces = top.locator('[data-top-piece]:visible');
+    await expect(visiblePieces).toHaveCount(6);
     const boxes = [];
-    for (const piece of await pieces.all()) {
+    for (const piece of await visiblePieces.all()) {
       await expect(piece).toHaveCSS('height', '40px');
       const box = await piece.boundingBox();
       expect(box?.y).toBe(16);
       if (box) boxes.push(box);
     }
     // ◆ ▤ ⌕-or-field ◎ are circles; the gaps between neighbours on a side are 8 px.
-    for (const i of [0, 1, 6]) expect(boxes[i]?.width).toBe(40);
+    for (const i of [0, 1, 5]) expect(boxes[i]?.width).toBe(40);
     for (const [a, b] of [
       [0, 1],
       [1, 2],
       [3, 4],
       [4, 5],
-      [5, 6],
     ] as const) {
       const left = boxes[a];
       const right = boxes[b];
       expect(left && right ? Math.round(right.x - (left.x + left.width)) : 0).toBe(8);
     }
-    expect((await pieces.first().boundingBox())?.x).toBe(16);
-    const trail = await pieces.last().boundingBox();
+    expect((await visiblePieces.first().boundingBox())?.x).toBe(16);
+    const trail = await visiblePieces.last().boundingBox();
     expect(trail ? 1440 - (trail.x + trail.width) : 0).toBe(16);
     // The bottom pieces mirror them (G1): the dock and the page pill one piece high, 16 px up
     // from the window's bottom edge, the pill 16 px in from its trailing edge.
