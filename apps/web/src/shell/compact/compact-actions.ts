@@ -31,6 +31,9 @@ import {
   useRecentsStore,
 } from '../../files/recents';
 import { getLocale, m } from '../../i18n';
+import { officeEnabled } from '../../office/flag';
+import { offerOfficeFiles } from '../../office/intake';
+import { isOfficeFile } from '../../office/office-files';
 import { loadSampleFile } from '../../sample/sample-file';
 import { flushSession, isDocumentChanged, reopenFromSnapshot } from '../../session/session';
 import { resetWorkspace, useWorkspaceStore } from '../../state/workspace-store';
@@ -155,10 +158,16 @@ export async function trySample(): Promise<void> {
   if (file !== undefined) await openPdf(file);
 }
 
-/** The Library's Open PDF: the file dialog (or the Chromium picker), then the first PDF. */
+/**
+ * The Library's Open PDF: the file dialog (or the Chromium picker), then the first PDF. With
+ * Office conversion on, a Word, Excel or PowerPoint file gets the phone's guidance instead
+ * (ADR-0035 §6, EDN-19): conversion is for computers and tablets.
+ */
 export async function pickAndOpen(): Promise<void> {
-  const [file] = await pickFiles('pdf');
-  if (file !== undefined) await openPdf(file);
+  const [file] = await pickFiles('pdf', { office: officeEnabled() });
+  if (file === undefined) return;
+  if (isOfficeFile(file)) offerOfficeFiles([file]);
+  else await openPdf(file);
 }
 
 /**

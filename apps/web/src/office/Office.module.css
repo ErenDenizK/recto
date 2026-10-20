@@ -1,0 +1,45 @@
+/*
+ * The Office conversion sheet (ADR-0035 §5) in the sheet grammar: the question as the body's
+ * lead sentence, the file and the quieter lines (what stays on the device, the licence) in
+ * the secondary colour at footnote size, and the progress bar under its label.
+ */
+.lead {
+  margin: 0;
+  color: var(--text-primary);
+  text-wrap: pretty;
+}
+
+.note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  line-height: var(--type-footnote-lh);
+  text-wrap: pretty;
+}
+
+.file {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amount {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-footnote);
+  font-variant-numeric: tabular-nums;
+}
+
+.link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cancel {
+  align-self: flex-start;
+  justify-self: start;
+}
