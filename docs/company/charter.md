@@ -101,10 +101,12 @@ work earns it. The caps below are working defaults the CEO may move, and must re
    seen. A PR carries PRC-18's body; merge once all checks are green. PRs are not rationed: one
    concern per PR, as many a day as the work produces, docs included (the owner wants the history
    to show steady, coordinated work), but never an empty or padding PR.
-7. **Ship.** An unattended cycle never dispatches the deploy (the session's guard on production
-   deploys). When app code merged since the last deploy and `develop` CI is green, the report says
-   `deploy ready: <commit>`; the owner or an attended session dispatches
-   `.github/workflows/deploy.yml` and confirms it.
+7. **Ship.** Minor quality changes (bug fixes, polish, copy, performance and test work that
+   change no feature, flow or look in a way the owner would notice as new) are deployed by the
+   CEO without asking, once `develop` CI is green (owner, 2026-10-20). Major changes (a new
+   feature, a new flow, a visible redesign, anything a board row covers) are listed as `deploy
+   ready: <commit>` and wait for the owner's yes. If the session's guard refuses an unattended
+   dispatch, the report says `deploy ready` and the next attended moment ships it.
 8. **Record.** A row in `agent-metrics.md` per lane (it rides the next PR), decision rows for
    decisions, the HQ body rewritten (lock cleared, lanes, next ten, parked, board questions).
 9. **Report.** One HQ comment: what shipped (PR links), what is open, spend (agent tokens by tier),
