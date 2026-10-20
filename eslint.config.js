@@ -175,6 +175,8 @@ const nodeFiles = [
   'tools/**/*.{js,ts}',
   // The OCR asset pinning script and Vite plugin (ADR-0012), run by Node like tooling/.
   'packages/engine/ocr/*.ts',
+  // The Office package pinning script and Vite plugin (ADR-0035), likewise.
+  'packages/engine/office/*.ts',
   'apps/web/e2e/**/*.ts',
 ];
 
@@ -194,6 +196,8 @@ export default defineConfig(
     'apps/web/src/i18n/paraglide/',
     // The maker's family kit, copied unchanged from the portfolio repo (docs/family/README.md §7).
     'docs/family/kit/',
+    // The Office conversion package, fetched from npm by packages/engine/office/fetch.ts.
+    'packages/engine/office/vendor/',
   ]),
 
   // Baseline for every file.
@@ -261,6 +265,15 @@ export default defineConfig(
     files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}', 'apps/web/e2e/**/*.ts'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+
+  // The service worker's Office part (ADR-0035 §4), loaded by the generated worker with
+  // `importScripts`: plain JavaScript in a service worker's scope.
+  {
+    files: ['apps/web/public/sw-office.js'],
+    languageOptions: {
+      globals: globals.serviceworker,
     },
   },
 

@@ -22,7 +22,8 @@
       "!**/CHANGELOG.md",
       "!pnpm-lock.yaml",
       "!test/fixtures/**/*.pdf",
-      "!docs/family/kit"
+      "!docs/family/kit",
+      "!packages/engine/office/vendor"
     ]
   },
   "formatter": {
