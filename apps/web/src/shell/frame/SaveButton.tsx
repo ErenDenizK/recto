@@ -50,16 +50,24 @@ const SAVE_SHORTCUT = parseShortcut('Mod+S');
  */
 export const CHECK_HOLD_MS = 1600;
 
-export type SaveButtonState = 'save' | 'saved' | 'saving';
+export type SaveButtonState = 'rest' | 'save' | 'saved' | 'saving';
 
 /** What Save shows (unit-tested): saving wins, then the saved mark. */
 export function saveButtonState(options: {
   readonly inFile: boolean;
   readonly saving: boolean;
+  /** The document has been changed or saved since it opened. */
+  readonly touched: boolean;
 }): SaveButtonState {
   if (options.saving) return 'saving';
-  return options.inFile ? 'saved' : 'save';
+  if (!options.inFile) return 'save';
+  // An untouched document shows nothing, as the title menu says "No changes" (presentability
+  // sweep #11): "Saved" appears with the first save after an edit.
+  return options.touched ? 'saved' : 'rest';
 }
+
+/** Documents that were changed or saved at least once this session. */
+const touchedDocuments = new Set<string>();
 
 export function SaveButton() {
   const id = useWorkspaceStore((s) => s.workspace.activeDocument ?? null);
@@ -87,7 +95,12 @@ export function SaveButton() {
 
   if (id === null) return null;
   // Saving shows only past the job's 400 ms gate (MC-33); a quick save changes nothing on screen.
-  const state = saveButtonState({ inFile, saving: job?.visible === true });
+  const state = saveButtonState({
+    inFile,
+    saving: job?.visible === true,
+    touched: touchedDocuments.has(id),
+  });
+  if (state !== 'rest') touchedDocuments.add(id);
   const percent =
     job?.progress === null || job?.progress === undefined
       ? undefined
@@ -151,7 +164,7 @@ export function SaveButton() {
       ? [m.save_everything_in({ name }), receipt].filter(Boolean).join(' · ')
       : undefined;
   return (
-    <span className={styles.wrap}>
+    <span className={styles.wrap} data-rest={state === 'rest' || undefined}>
       {/* One tree in every state, so focus stays on Save while it turns into "Saved" (F7 §6).
           "Saved" is aria-disabled but pressable: a press says why, as Mod+S does. */}
       <Tooltip
@@ -160,13 +173,13 @@ export function SaveButton() {
       >
         <Button
           id={SAVE_BUTTON_ID}
-          variant={state === 'saved' ? 'quiet' : 'standard'}
+          variant={state === 'saved' || state === 'rest' ? 'quiet' : 'standard'}
           className={styles.save}
           data-state={state}
           data-testid="save-button"
           aria-keyshortcuts={keys}
           aria-busy={state === 'saving' || undefined}
-          aria-disabled={state === 'saved' || undefined}
+          aria-disabled={state === 'saved' || state === 'rest' || undefined}
           aria-describedby={reasonId}
           onClick={() => void saveDocument(id)}
         >

@@ -58,10 +58,12 @@ function rotate(id: DocumentId): void {
 
 describe('saveButtonState', () => {
   it('maps the saved mark and a running save', () => {
-    expect(saveButtonState({ inFile: true, saving: false })).toBe('saved');
-    expect(saveButtonState({ inFile: false, saving: false })).toBe('save');
-    expect(saveButtonState({ inFile: false, saving: true })).toBe('saving');
-    expect(saveButtonState({ inFile: true, saving: true })).toBe('saving');
+    const untouched = { touched: false };
+    expect(saveButtonState({ inFile: true, saving: false, ...untouched })).toBe('rest');
+    expect(saveButtonState({ inFile: true, saving: false, touched: true })).toBe('saved');
+    expect(saveButtonState({ inFile: false, saving: false, ...untouched })).toBe('save');
+    expect(saveButtonState({ inFile: false, saving: true, ...untouched })).toBe('saving');
+    expect(saveButtonState({ inFile: true, saving: true, ...untouched })).toBe('saving');
   });
 });
 
@@ -73,25 +75,24 @@ describe('SaveButton', () => {
     watchSavedMarks();
   });
 
-  it('reads "Saved" as opened and "Save" after a change, at one width, keeping focus', () => {
+  it('shows nothing as opened, "Save" after a change and "Saved" after saving, at one width', () => {
     const id = open();
     render(<SaveButton />);
     const button = screen.getByTestId('save-button');
-    expect(button).toHaveAccessibleName('Saved');
+    expect(button).toHaveAccessibleName('');
     expect(button).toHaveAttribute('aria-disabled', 'true');
-    expect(button).toHaveAccessibleDescription('Everything is in report.pdf');
     expect(button).toHaveAttribute('aria-keyshortcuts', 'Control+S');
-    const width = button.getBoundingClientRect().width;
-
-    button.focus();
     act(() => rotate(id));
+    button.focus();
     expect(screen.getByTestId('save-button')).toBe(button);
     expect(button).toHaveAccessibleName('Save');
     expect(button).not.toHaveAttribute('aria-disabled');
-    expect(button.getBoundingClientRect().width).toBe(width);
+    const width = button.getBoundingClientRect().width;
 
     act(() => markSaved(id, { handleKept: true }));
     expect(button).toHaveAccessibleName('Saved');
+    expect(button).toHaveAccessibleDescription('Everything is in report.pdf');
+    expect(button.getBoundingClientRect().width).toBe(width);
     expect(button).toHaveFocus();
   });
 });

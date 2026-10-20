@@ -107,7 +107,7 @@ describe('the page pill menu is small glass (DSN-29)', () => {
     const field = within(menu).getByRole<HTMLInputElement>('textbox', { name: 'Go to page' });
     expect(field.value).toBe('1');
     const of = document.getElementById(field.getAttribute('aria-describedby')?.split(' ')[0] ?? '');
-    expect(of?.textContent).toBe(`of ${doc.pages.length}`);
+    expect(of?.textContent).toBe(`/ ${doc.pages.length}`);
 
     // An unknown page keeps the menu open and says which pages there are.
     await userEvent.fill(field, '99');

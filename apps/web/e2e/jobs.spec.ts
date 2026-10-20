@@ -1156,11 +1156,11 @@ test.describe('core jobs', () => {
       await expect(cell).toBeVisible();
       await p.gesture(() => cell.click({ modifiers: ['ControlOrMeta'] }));
       await p.key('Shift+R');
-      // The Pages bar keeps its locked form and nothing changed: the document still says Saved.
+      // The Pages bar keeps its locked form and nothing changed: the document still shows no Save.
       await expect(
         page.getByTestId('pages-bar').getByRole('button', { name: 'Unlock' }),
       ).toBeVisible();
-      await expect(page.getByTestId('save-button')).toHaveAccessibleName('Saved');
+      await expect(page.getByTestId('save-button')).toBeHidden();
       await page.keyboard.press('Escape');
       await page.keyboard.press('1');
     });

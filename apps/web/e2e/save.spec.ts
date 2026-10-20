@@ -76,8 +76,8 @@ test('J13A: Save in place costs 3 presses the first time and 1 after; Read mode 
   await page.getByRole('button', { name: 'Open files' }).first().click();
   await expect(page.getByRole('tab', { name: 'simple-text' })).toBeVisible();
 
-  // As opened: everything is in the file.
-  await expect(saveButton(page)).toHaveAccessibleName('Saved');
+  // As opened: nothing to save, and nothing shown until the first save after an edit.
+  await expect(saveButton(page)).toBeHidden();
   await expect(saveButton(page)).toHaveAttribute('aria-disabled', 'true');
   await expect(editedDot(page)).toHaveCount(0);
   await shot(page, 'save-saved');

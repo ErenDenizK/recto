@@ -70,6 +70,12 @@
   composes: mat mat-bar s8 c9 from global;
 }
 
+/* An untouched document has nothing to save: the Save piece is not there until the first edit
+   (SaveButton.tsx, `data-rest`; presentability sweep #11). */
+.piece:has([data-rest]) {
+  display: none;
+}
+
 /* A piece of one control (◆, ▤, ⌕ and Find's field, ◎, the Library's ⋯; R11, DSN-49): a
    circle of --piece-h, too small for σ 8 without the page leaking at its edges, so σ 7 (8
    coarse; registry `top-strip-solo`). */
