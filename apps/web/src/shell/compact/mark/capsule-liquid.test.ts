@@ -3,8 +3,9 @@
  * parts that draw the capsule's shape without distorting it, ✎'s drop, and a run that moves
  * only transforms and leaves nothing at rest.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { settled } from '../../../../test/settled';
 import { capsuleParts, DROP_SCALE, dropPart, fuseDock } from './capsule-liquid';
 
 let dock: HTMLElement | null = null;
@@ -77,10 +78,14 @@ describe('the capsule and ✎ as one body (DSN-43, MOT-14)', () => {
         ).toEqual(['transform']);
       }
     }
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    expect(dock.querySelector('[data-testid="compact-dock-liquid"]')).toBeNull();
-    expect(capsule.hasAttribute('data-liquid')).toBe(false);
-    expect(edit.hasAttribute('data-liquid')).toBe(false);
-    expect(capsule.hasAttribute('data-glass-settle')).toBe(false);
+    // The run's own motion ends first; the layer is dropped on that end, a condition not a clock.
+    const island = dock;
+    await settled(island);
+    await vi.waitFor(() => {
+      expect(island.querySelector('[data-testid="compact-dock-liquid"]')).toBeNull();
+      expect(capsule.hasAttribute('data-liquid')).toBe(false);
+      expect(edit.hasAttribute('data-liquid')).toBe(false);
+      expect(capsule.hasAttribute('data-glass-settle')).toBe(false);
+    });
   });
 });

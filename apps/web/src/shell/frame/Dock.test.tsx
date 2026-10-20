@@ -59,7 +59,8 @@ const settle = async () => {
     if (running.length === 0) break;
     await Promise.all(running.map((a) => a.finished.catch(() => undefined)));
   }
-  await new Promise((resolve) => setTimeout(resolve, 30));
+  // Two frames, so the unmounts the exit schedules have run: a condition, not a pause.
+  for (let i = 0; i < 2; i++) await new Promise((resolve) => requestAnimationFrame(resolve));
 };
 
 describe('dock', () => {

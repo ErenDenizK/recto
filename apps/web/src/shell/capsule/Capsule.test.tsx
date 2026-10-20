@@ -10,7 +10,7 @@ import '../../styles/tokens.css';
 import '../../styles/reset.css';
 import '../../styles/global.css';
 
-import { act, cleanup, fireEvent, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { nextFrame } from '../../motion/animate';
@@ -174,10 +174,7 @@ describe('capsule', () => {
     expect(el.style.height).toBe('');
     expect(el.style.willChange).toBe('');
     expect(getComputedStyle(el).transform).toBe('none');
-    await act(async () => {
-      await wait(50);
-    });
-    expect(el.querySelector('[data-capsule-layer="dock"]')).toBeNull();
+    await waitFor(() => expect(el.querySelector('[data-capsule-layer="dock"]')).toBeNull());
     expect(capsule()).toBe(el);
   });
 
@@ -247,11 +244,8 @@ describe('capsule', () => {
     expect(dock).not.toHaveAttribute('inert');
     expect(Number(getComputedStyle(dock).opacity)).toBeCloseTo(kept, 1);
     await settle();
-    await act(async () => {
-      await wait(50);
-    });
+    await waitFor(() => expect(el.querySelector('[data-capsule-layer="palette"]')).toBeNull());
     expect(width()).toBeCloseTo(DOCK, 0);
-    expect(el.querySelector('[data-capsule-layer="palette"]')).toBeNull();
     expect(getComputedStyle(dock as Element).opacity).toBe('1');
   });
 
@@ -280,10 +274,7 @@ describe('capsule', () => {
     }
     expect(morphs().length).toBeGreaterThan(0);
     await settle();
-    await act(async () => {
-      await wait(50);
-    });
-    expect(el.querySelector('[data-capsule-layer="dock"]')).toBeNull();
+    await waitFor(() => expect(el.querySelector('[data-capsule-layer="dock"]')).toBeNull());
   });
 
   it('fades through: the arriving content starts only once the leaving one is gone', async () => {
@@ -426,10 +417,7 @@ describe('capsule', () => {
     expect(opacity('palette')).toBeLessThanOrEqual(TRACE_OPACITY);
     expect(opacity('dock')).toBeGreaterThan(0.5);
     await settle();
-    await act(async () => {
-      await wait(50);
-    });
-    expect(el.querySelector('[data-capsule-layer="palette"]')).toBeNull();
+    await waitFor(() => expect(el.querySelector('[data-capsule-layer="palette"]')).toBeNull());
     expect(opacity('dock')).toBe(1);
   });
 
