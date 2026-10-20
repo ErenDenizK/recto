@@ -11,6 +11,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
+import { settled } from '../../test/settled';
 import { registerAppCommands } from '../commands/app-commands';
 import { keymapRows } from '../commands/keymap';
 import { commandRegistry } from '../commands/registry';
@@ -38,7 +39,7 @@ describe('the shortcuts overlay (07 §23)', () => {
     render(<ShortcutOverlay />);
     const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
     expect(dialog.dataset.presentation).toBe('dialog');
-    await waitFor(() => expect(dialog.getAnimations().length).toBe(0), { timeout: 5000 });
+    await settled(dialog);
     expect(dialog.getBoundingClientRect().width).toBe(760);
     const titles = within(dialog)
       .getAllByRole('rowheader')
