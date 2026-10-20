@@ -292,7 +292,7 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     section: 'more',
     page: 'about',
     title: at(m.settings_about_how),
-    commands: ['help.aboutPage'],
+    commands: ABOUT,
   },
 ];
 
