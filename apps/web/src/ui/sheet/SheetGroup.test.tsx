@@ -7,10 +7,11 @@ import '../../styles/tokens.css';
 import '../../styles/reset.css';
 import '../../styles/global.css';
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 
+import { settled } from '../../../test/settled';
 import { Button } from '../Button';
 import { Sheet } from './Sheet';
 import { SheetGroup, SheetRow } from './SheetGroup';
@@ -40,7 +41,7 @@ describe('SheetGroup and SheetRow (system audit §3.6.1)', () => {
     const group = screen.getByRole('group', { name: 'Format' });
     const panel = group.closest<HTMLElement>('[data-sheet]');
     expect(panel).not.toBeNull();
-    await waitFor(() => expect(panel?.getAnimations().length).toBe(0), { timeout: 3000 });
+    if (panel) await settled(panel);
     const p = panel?.getBoundingClientRect() ?? new DOMRect();
     const g = group.getBoundingClientRect();
     // From the panel's inner edge (inside its 1 px rim).

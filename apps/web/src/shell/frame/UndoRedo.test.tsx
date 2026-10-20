@@ -98,7 +98,6 @@ function mount(steps: number) {
 
 const presentIndex = () => useWorkspaceStore.getState().history.past.length;
 const scrubber = () => screen.queryByTestId('history-scrubber');
-const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 beforeEach(() => {
   resetWorkspace();
@@ -248,13 +247,11 @@ describe('the History scrubber (08-feedback FB7)', () => {
     await userEvent.keyboard('{Shift>}{F10}{/Shift}');
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('listbox')));
     await userEvent.keyboard('{End}');
-    await pause(150);
-    expect(presentIndex()).toBe(1);
+    await waitFor(() => expect(presentIndex()).toBe(1));
     await userEvent.keyboard('{Home}{ArrowDown}{ArrowDown}');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(scrubber()).toBeNull());
-    await pause(150);
-    expect(presentIndex()).toBe(5);
+    await waitFor(() => expect(presentIndex()).toBe(5));
     await waitFor(() => expect(document.activeElement).toBe(undo));
   });
 
@@ -282,8 +279,7 @@ describe('the History scrubber (08-feedback FB7)', () => {
     act(() => {
       undo.dispatchEvent(new PointerEvent('pointerdown', init));
     });
-    await pause(520);
-    expect(useHistoryScrubber.getState().opening).not.toBeNull();
+    await waitFor(() => expect(useHistoryScrubber.getState().opening).not.toBeNull());
     act(() => {
       undo.dispatchEvent(new PointerEvent('pointerup', { ...init, buttons: 0 }));
       undo.dispatchEvent(new MouseEvent('click', { ...at, bubbles: true }));
