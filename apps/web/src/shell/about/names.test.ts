@@ -105,6 +105,10 @@ describe('names kept by ADR-0015 §3', () => {
       // The one-time `1` migration notice (commands/keymap-notice.ts, D2-7).
       'pdf-editor:keymap-notice:v1',
       'pdf-editor:locale:v1',
+      // The one reload into cross-origin isolation (sessionStorage, office/flag.ts, ADR-0035 §4).
+      'pdf-editor:office-reload:v1',
+      // The Office conversion flag, ?office=1|0 (office/flag.ts, ADR-0035 §6).
+      'pdf-editor:office:v1',
       'pdf-editor:recents:v1',
       // "Don't ask again for this file" on Save's Replace question (files/save.ts, ADR-0032 §2.1).
       'pdf-editor:save:replace-ok:v1',
