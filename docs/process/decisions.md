@@ -314,6 +314,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-22](decisions/process.md) | One copy of the tiny helpers; dead exports go; observers and listeners audited (R22 X1–X3) | In force | 2026-10-17 |
 | [PRC-23](decisions/process.md) | Model routing for agent lanes (owner) | In force | 2026-10-17 |
 | [PRC-24](decisions/process.md) | Recto runs itself; the owner is the board | In force | 2026-10-18 |
+| [PRC-25](decisions/process.md) | Minor quality changes ship without asking; major ones wait for the owner | In force | 2026-10-20 |
 
 ## Foundations (ADR titles)
 
