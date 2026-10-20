@@ -24,6 +24,7 @@ import {
 } from './file-filters';
 import { isOfficeFile, OFFICE_ACCEPT, OFFICE_PICKER_TYPES } from '../office/office-files';
 import { IMAGE_ACCEPT, isImageFile } from './images';
+import { isTextFile, TEXT_ACCEPT, TEXT_PICKER_TYPES } from './text-files';
 
 export const PDF_ACCEPT = 'application/pdf,.pdf';
 
@@ -79,19 +80,32 @@ function isAbort(error: unknown): boolean {
 }
 
 /**
- * Asks for files of a kind: 'pdf', 'images' (PNG, JPEG, WebP) or 'openable' (both).
+ * Asks for files of a kind: 'pdf', 'images' (PNG, JPEG, WebP), 'openable' (both) or 'text'
+ * (.txt, which become PDFs: `text-files.ts`).
  * Resolves to an empty array when the user cancels. Needs a user gesture.
  *
  * `office` also offers Word, Excel and PowerPoint files (ADR-0035 §6, behind its flag): the
  * caller hands them to `office/intake.ts`.
  */
 export async function pickFiles(
-  kind: 'pdf' | 'images' | 'openable',
-  options: { readonly office?: boolean } = {},
+  kind: 'pdf' | 'images' | 'openable' | 'text',
+  options: { readonly office?: boolean; readonly text?: boolean } = {},
 ): Promise<File[]> {
-  const base = kind === 'pdf' ? isPdfFile : kind === 'images' ? isImageFile : isOpenableFile;
-  const office = options.office === true && kind !== 'images';
-  const accept = office ? (file: NamedFile) => base(file) || isOfficeFile(file) : base;
+  const base =
+    kind === 'pdf'
+      ? isPdfFile
+      : kind === 'images'
+        ? isImageFile
+        : kind === 'text'
+          ? isTextFile
+          : isOpenableFile;
+  const office = options.office === true && (kind === 'pdf' || kind === 'openable');
+  const text = options.text === true && (kind === 'pdf' || kind === 'openable');
+  const accept =
+    office || text
+      ? (file: NamedFile) =>
+          base(file) || (office && isOfficeFile(file)) || (text && isTextFile(file))
+      : base;
   const picker = (window as Window & WindowWithPicker).showOpenFilePicker;
   if (picker) {
     try {
@@ -100,10 +114,17 @@ export async function pickFiles(
           ? { 'application/pdf': ['.pdf'] }
           : kind === 'images'
             ? IMAGE_PICKER_TYPES
-            : { 'application/pdf': ['.pdf'], ...IMAGE_PICKER_TYPES };
+            : kind === 'text'
+              ? TEXT_PICKER_TYPES
+              : { 'application/pdf': ['.pdf'], ...IMAGE_PICKER_TYPES };
       const handles = await picker.call(window, {
         multiple: true,
-        id: kind === 'images' ? 'pdf-editor-images' : 'pdf-editor-open',
+        id:
+          kind === 'images'
+            ? 'pdf-editor-images'
+            : kind === 'text'
+              ? 'pdf-editor-text'
+              : 'pdf-editor-open',
         types: [
           {
             description:
@@ -111,12 +132,15 @@ export async function pickFiles(
                 ? m.file_picker_description()
                 : kind === 'images'
                   ? m.file_picker_images()
-                  : m.file_picker_openable(),
+                  : kind === 'text'
+                    ? m.file_picker_text()
+                    : m.file_picker_openable(),
             accept: types,
           },
           ...(office
             ? [{ description: m.office_picker_types(), accept: OFFICE_PICKER_TYPES }]
             : []),
+          ...(text ? [{ description: m.file_picker_text(), accept: TEXT_PICKER_TYPES }] : []),
         ],
       });
       const files = await Promise.all(
@@ -137,8 +161,11 @@ export async function pickFiles(
       ? PDF_ACCEPT
       : kind === 'images'
         ? IMAGE_ACCEPT
-        : `${PDF_ACCEPT},${IMAGE_ACCEPT}`;
-  return pickWithInput(office ? `${inputAccept},${OFFICE_ACCEPT}` : inputAccept, accept);
+        : kind === 'text'
+          ? TEXT_ACCEPT
+          : `${PDF_ACCEPT},${IMAGE_ACCEPT}`;
+  const extra = [office ? OFFICE_ACCEPT : '', text ? TEXT_ACCEPT : ''];
+  return pickWithInput([inputAccept, ...extra].filter((part) => part !== '').join(','), accept);
 }
 
 function pickWithInput(acceptList: string, accept: (file: NamedFile) => boolean): Promise<File[]> {

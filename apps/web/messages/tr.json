@@ -3236,5 +3236,9 @@
   "office_announce_cancelled": "İndirme iptal edildi.",
   "office_phone_guidance": "Word, Excel ve PowerPoint dosyaları bilgisayarda veya tablette açılır.",
   "office_phone_guidance_detail": "Ya da dosyayı Word’de PDF olarak kaydedip PDF’yi burada açın.",
-  "office_picker_types": "Word, Excel ve PowerPoint"
+  "office_picker_types": "Word, Excel ve PowerPoint",
+  "cmd_text_to_pdf": "Metinden PDF…",
+  "cmd_file_text_to_pdf_keywords": "metinden pdf, txt'den pdf, txt, metin, dönüştür, metin dosyasından pdf, text to pdf, convert",
+  "file_picker_text": "Metin dosyaları",
+  "text_to_pdf_failed": "{name} PDF'e dönüştürülemedi"
 }

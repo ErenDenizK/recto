@@ -26,6 +26,7 @@ import {
 import { registerCompareCommands } from '../compare/compare-commands';
 import { registerConvertCommands } from '../convert/convert-commands';
 import { fileHandleOf, partitionFiles, pickFiles } from '../files/open-files';
+import { convertTextFiles } from '../files/text-files';
 import { clearRecents, recordRecent } from '../files/recents';
 import { rememberDocumentHandle } from '../files/save';
 import { registerSaveCommands } from '../files/save-commands';
@@ -114,8 +115,10 @@ function openAboutPage(): void {
 export async function openDocuments(all: readonly File[]): Promise<readonly DocumentId[]> {
   // Word, Excel and PowerPoint go to the conversion sheet, which opens their PDFs back
   // through here (ADR-0035 §5; only behind its flag).
-  const { office, rest: files } = takeOfficeFiles(all);
+  const { office, rest } = takeOfficeFiles(all);
   offerOfficeFiles(office);
+  // Text files become PDFs named after them and open like any PDF (conversion memo step 2).
+  const files = await convertTextFiles(rest);
   if (files.length === 0) return [];
   const { pdfs, images } = partitionFiles(files);
   if (images.length > 0) await openImagesAsDocument(images);
@@ -196,12 +199,20 @@ export async function clearRecentFiles(): Promise<void> {
 export async function openFilesFromPicker(): Promise<void> {
   // Where the focus was: the opened document's pages take it if it has not moved since.
   const before = document.activeElement;
-  const files = await pickFiles('openable', { office: officeEnabled() });
+  const files = await pickFiles('openable', { office: officeEnabled(), text: true });
   const wasEmpty = model().workspace.documentOrder.length === 0;
   showOpened(await openDocuments(files), { wasEmpty });
   // On a document (not Home's selected cards), focus goes to its pages (01-frame F3 §6).
   const active = model().workspace.activeDocument;
   if (active && ui().destination !== 'home') focusOpenedPage(active, before);
+}
+
+/** "Text to PDF…": the file dialog on .txt, then the same open path as a dropped text file. */
+export async function textToPdfFromPicker(): Promise<void> {
+  const files = await pickFiles('text');
+  if (files.length === 0) return;
+  const wasEmpty = model().workspace.documentOrder.length === 0;
+  showOpened(await openDocuments(files), { wasEmpty });
 }
 
 /**
@@ -398,6 +409,14 @@ export function registerAppCommands(registry: CommandRegistry = commandRegistry)
       keywords: ['add', 'import', 'pdf', 'load'],
       allowInInputs: true,
       run: openFilesFromPicker,
+    }),
+    registry.register({
+      id: 'file.textToPdf',
+      title: m.cmd_text_to_pdf(),
+      group: m.group_file(),
+      act: null,
+      keywords: ['txt', 'text', 'metin', 'convert', 'dönüştür'],
+      run: textToPdfFromPicker,
     }),
     registry.register({
       id: 'file.clearRecents',

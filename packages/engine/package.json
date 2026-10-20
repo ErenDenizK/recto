@@ -56,6 +56,10 @@
       "types": "./src/constants.ts",
       "import": "./src/constants.ts"
     },
+    "./text-to-pdf": {
+      "types": "./src/text-to-pdf/index.ts",
+      "import": "./src/text-to-pdf/index.ts"
+    },
     "./fonts": {
       "types": "./src/fonts/index.ts",
       "import": "./src/fonts/index.ts"
