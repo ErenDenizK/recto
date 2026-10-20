@@ -118,8 +118,12 @@
 }
 
 .tileLabel {
-  overflow-wrap: anywhere;
-  hyphens: auto;
+  /* One line, so every tile's glyph sits at the same height (Q-8): a long word ("Metni
+     düzenle" in Turkish at 390 px) is cut with an ellipsis, not wrapped. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (hover: hover) {
