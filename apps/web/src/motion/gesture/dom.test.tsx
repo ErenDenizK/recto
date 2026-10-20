@@ -6,7 +6,7 @@
  */
 import { render } from '@testing-library/react';
 import { useRef } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cdp } from 'vitest/browser';
 
 import { attachLongPress, attachPinch, attachTaps, gestureArena } from './dom';
@@ -20,10 +20,22 @@ function devtools(method: string, params: object): Promise<unknown> {
   );
 }
 
+/** Real time, for the real touches below: a held finger is the input, not a wait. */
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * The synthetic-event tests run the recognisers' timers on a fake clock (PRC-21): `advance`
+ * moves it, so a stalled runner cannot fire a hold between two steps. Only the timer functions
+ * are faked; the real-touch tests at the end keep the real clock.
+ */
+const advance = (ms: number) => vi.advanceTimersByTimeAsync(ms);
+
 let cleanups: (() => void)[] = [];
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+});
 afterEach(() => {
+  vi.useRealTimers();
   for (const cleanup of cleanups) cleanup();
   cleanups = [];
   document.body.replaceChildren();
@@ -66,9 +78,9 @@ describe('attachLongPress', () => {
     cleanups.push(attachLongPress(el, { onFire }));
     const down = pointer('pointerdown', el, 100, 100);
     expect(down.defaultPrevented).toBe(false);
-    await sleep(300);
+    await advance(300);
     expect(onFire).not.toHaveBeenCalled();
-    await sleep(250);
+    await advance(250);
     expect(onFire).toHaveBeenCalledOnce();
     expect(onFire.mock.calls[0]?.[0].target).toBe(el);
     pointer('pointerup', el, 100, 100);
@@ -87,7 +99,7 @@ describe('attachLongPress', () => {
     const select = new Event('selectstart', { bubbles: true, cancelable: true });
     el.dispatchEvent(select);
     expect(select.defaultPrevented).toBe(true);
-    await sleep(500);
+    await advance(500);
     // Fired: still suppressed while the finger stays down (iOS selects at its own 500 ms).
     expect(getComputedStyle(el).userSelect).toBe('none');
     pointer('pointerup', el, 100, 100);
@@ -120,7 +132,7 @@ describe('attachLongPress', () => {
       document.removeEventListener('contextmenu', menus);
     });
     pointer('pointerdown', el, 100, 100);
-    await sleep(500);
+    await advance(500);
     expect(onFire).toHaveBeenCalledOnce();
     const echo = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
     el.dispatchEvent(echo);
@@ -145,7 +157,7 @@ describe('attachLongPress', () => {
     document.addEventListener('click', clicks);
     cleanups.push(() => document.removeEventListener('click', clicks));
     pointer('pointerdown', el, 100, 100);
-    await sleep(500);
+    await advance(500);
     pointer('pointerup', el, 100, 100);
     // A new touch, well within the echo window, and its click.
     pointer('pointerdown', other, 10, 10, { pointerId: 12 });
@@ -159,12 +171,12 @@ describe('attachLongPress', () => {
     const onFire = vi.fn();
     cleanups.push(attachLongPress(el, { onFire }));
     pointer('pointerdown', el, 100, 100);
-    await sleep(100);
+    await advance(100);
     const menu = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
     el.dispatchEvent(menu);
     expect(menu.defaultPrevented).toBe(true);
     expect(onFire).toHaveBeenCalledOnce();
-    await sleep(450);
+    await advance(450);
     expect(onFire).toHaveBeenCalledOnce();
     pointer('pointerup', el, 100, 100);
   });
@@ -188,8 +200,13 @@ describe('attachLongPress', () => {
     const onFire = vi.fn();
     cleanups.push(attachLongPress(el, { onFire }));
     pointer('pointerdown', scroller, 100, 100);
+    // The scroll event is dispatched on a frame: wait for it, then for the hold to pass.
+    const scrolled = new Promise((resolve) =>
+      scroller.addEventListener('scroll', resolve, { once: true }),
+    );
     scroller.scrollTop = 50;
-    await sleep(500);
+    await scrolled;
+    await advance(500);
     expect(onFire).not.toHaveBeenCalled();
     pointer('pointerup', el, 100, 100);
   });
@@ -203,7 +220,7 @@ describe('attachLongPress', () => {
     cleanups.push(attachLongPress(el, { onFire }));
     pointer('pointerdown', el, 100, 100);
     pointer('pointerdown', layer, 200, 100, { pointerId: 12, isPrimary: false });
-    await sleep(500);
+    await advance(500);
     expect(onFire).not.toHaveBeenCalled();
     pointer('pointerup', el, 200, 100, { pointerId: 12 });
     pointer('pointerup', el, 100, 100);
@@ -233,7 +250,7 @@ describe('useLongPress', () => {
     view.rerender(<Probe label="second" />);
     const el = view.getByTestId('probe');
     pointer('pointerdown', el, 50, 50);
-    await sleep(500);
+    await advance(500);
     pointer('pointerup', el, 50, 50);
     expect(calls).toEqual(['second']);
     view.unmount();
@@ -260,6 +277,10 @@ async function touch(type: 'touchStart' | 'touchMove' | 'touchEnd', points: [num
 }
 
 describe('real touches (DevTools protocol)', () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+
   it('a held touch long-presses once; no contextmenu gets through', async () => {
     const el = box();
     const onFire = vi.fn();

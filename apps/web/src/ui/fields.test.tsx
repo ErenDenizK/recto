@@ -1,14 +1,14 @@
 import '../styles/tokens.css';
 import '../styles/global.css';
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cdp, userEvent } from 'vitest/browser';
 
 import { setLocale } from '../i18n';
 import { NumberField, parseLocaleNumber } from './NumberField';
-import { SearchField } from './SearchField';
+import { SEARCH_DEBOUNCE_MS, SearchField } from './SearchField';
 import { TextArea, TextField } from './TextField';
 
 /** Chrome DevTools Protocol, typed loosely (the provider's session type is not exported). */
@@ -178,27 +178,29 @@ describe('SearchField', () => {
   });
 
   it('searches 150 ms after typing pauses', async () => {
-    // Each search's time and each key's, as the page saw them: a loaded runner can hand the
-    // typing back after the pause has run, or deliver the second key a pause after the first.
-    const searched: number[] = [];
-    const onSearch = vi.fn(() => searched.push(performance.now()));
-    render(<Host onSearch={onSearch} />);
-    const box = screen.getByRole('searchbox');
-    const typed: number[] = [];
-    box.addEventListener('input', (event) => typed.push(event.timeStamp));
-    await userEvent.click(box);
-    await userEvent.keyboard('ab');
-    await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
-    await waitFor(() => expect(onSearch).toHaveBeenLastCalledWith('ab'));
-    // One search after the last key, and at most one more per gap between keys that reached the
-    // pause. A gap measured on the keys' timestamps may not have given the timer its turn (a
-    // stalled runner delivers the second key's task first), so a gap allows a search; it does
-    // not demand one.
-    const gaps = typed.slice(1).filter((t, k) => t - (typed[k] ?? t) >= 150).length;
-    expect(onSearch.mock.calls.length).toBeGreaterThanOrEqual(1);
-    expect(onSearch.mock.calls.length).toBeLessThanOrEqual(1 + gaps);
-    // Never while typing: the search for "ab" came a full pause after its key.
-    expect((searched.at(-1) ?? 0) - (typed.at(-1) ?? 0)).toBeGreaterThanOrEqual(149);
+    // The pause runs on a fake clock (PRC-21): a stalled runner cannot let it fire between two
+    // keys, nor miss it when asked. Only the timer functions are faked.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const onSearch = vi.fn();
+      render(<Host onSearch={onSearch} />);
+      const box = screen.getByRole('searchbox');
+      await userEvent.click(box);
+      await userEvent.keyboard('ab');
+      // Never while typing, nor a tick before the pause is up.
+      expect(onSearch).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS - 1);
+      });
+      expect(onSearch).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(onSearch).toHaveBeenCalledTimes(1);
+      expect(onSearch).toHaveBeenCalledWith('ab');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('says "No results" without marking the field as an error', () => {

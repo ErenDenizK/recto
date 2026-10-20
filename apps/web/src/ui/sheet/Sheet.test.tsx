@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
-import { EXIT_TIMEOUT } from '../../../test/settled';
+import { EXIT_TIMEOUT, settled } from '../../../test/settled';
 import { ConfirmHost } from './Confirm';
 import type { SheetKind } from './presentation';
 import { Sheet, type SheetCloseReason } from './Sheet';
@@ -30,9 +30,9 @@ afterEach(() => {
   delete document.documentElement.dataset.motion;
 });
 
-/** Waits for the panel's motion to come to rest. */
+/** Waits for the panel's motion to come to rest (PRC-21: a condition, not a clock). */
 async function settle(el: Element): Promise<void> {
-  await waitFor(() => expect(el.getAnimations().length).toBe(0), { timeout: 3000 });
+  await settled(el);
 }
 
 function Harness({
@@ -339,9 +339,8 @@ describe('Confirm (07 §3)', () => {
     expect(dialog).toHaveAccessibleDescription(
       'Your 14 changes since opening go. Undo brings them back.',
     );
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Revert' })).toHaveFocus(), {
-      timeout: 3000,
-    });
+    await settled(dialog);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Revert' })).toHaveFocus());
     // A destructive action carries its glyph, not colour alone (07 §3.8, A-19).
     expect(screen.getByRole('button', { name: 'Revert' }).querySelector('svg')).not.toBeNull();
     // A press on the scrim answers nothing, and starts no exit. The dialog fades in from
@@ -362,9 +361,8 @@ describe('Confirm (07 §3)', () => {
         danger: true,
       });
     });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus(), {
-      timeout: 3000,
-    });
+    await settled(await screen.findByRole('alertdialog'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus());
     expect(screen.getByRole('button', { name: 'Clear' }).querySelector('svg')).not.toBeNull();
     await userEvent.keyboard('{Escape}');
     await expect(answer).resolves.toBe(false);

@@ -3,7 +3,7 @@ import '../styles/global.css';
 
 import { Popover } from '@base-ui/react/popover';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { settled } from '../../test/settled';
@@ -14,6 +14,30 @@ import { ScrollArea } from './ScrollArea';
 import { TOUCH_HOLD_MS, Tooltip, TooltipProvider } from './Tooltip';
 
 const wait = (ms: number) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
+
+/**
+ * A fake clock for the tests whose subject is a time rule (a touch hold, a tooltip delay): the
+ * rule's timers run on it and `advance` moves it, so a stalled runner cannot let a real timer
+ * fire between two steps (PRC-21). Only the timer functions are faked; frames stay real.
+ */
+const clock = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+const advance = (ms: number) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+
+/** Moves the fake clock on until no tooltip is left (its close timer and exit run on it). */
+const tooltipGone = async () => {
+  for (let i = 0; i < 40 && screen.queryByRole('tooltip'); i++) {
+    await advance(100);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  expect(screen.queryByRole('tooltip')).toBeNull();
+};
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function touch(type: string, target: Element, id = 3) {
   const box = target.getBoundingClientRect();
@@ -104,6 +128,7 @@ describe('Tooltip', () => {
   });
 
   it('never shows for a disabled control without a reason', async () => {
+    clock();
     render(
       <TooltipProvider>
         <Tooltip label="Undo">
@@ -114,11 +139,12 @@ describe('Tooltip', () => {
       </TooltipProvider>,
     );
     screen.getByRole('button', { name: 'Undo' }).focus();
-    await wait(700);
+    await advance(700);
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
   it('shows on a touch held 450 ms, until release, and that release does not click', async () => {
+    clock();
     const onClick = vi.fn();
     render(
       <TooltipProvider>
@@ -131,23 +157,25 @@ describe('Tooltip', () => {
     );
     const button = screen.getByRole('button', { name: 'Highlight' });
     touch('pointerdown', button);
-    await wait(TOUCH_HOLD_MS - 150);
+    await advance(TOUCH_HOLD_MS - 150);
     expect(screen.queryByRole('tooltip')).toBeNull();
-    await wait(300);
+    await advance(300);
     expect(screen.getByRole('tooltip')).toHaveTextContent('Highlight');
     touch('pointerup', button);
     act(() => button.click());
     expect(onClick).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    await tooltipGone();
     // A short tap still activates.
     touch('pointerdown', button);
-    await wait(100);
+    await advance(100);
     touch('pointerup', button);
     act(() => button.click());
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('after a tap, shows none for the focus or hover the tap leaves behind (§20 item 6; MOB-4)', async () => {
+    clock();
+    clock();
     render(
       <TooltipProvider>
         <Tooltip label="Extract" shortcut={parseShortcut('Mod+Shift+E')}>
@@ -161,14 +189,14 @@ describe('Tooltip', () => {
     touch('pointerup', button);
     act(() => button.focus());
     await userEvent.hover(button);
-    await wait(900);
+    await advance(900);
     expect(screen.queryByRole('tooltip')).toBeNull();
     // A held touch still shows it.
     touch('pointerdown', button);
-    await wait(TOUCH_HOLD_MS + 150);
+    await advance(TOUCH_HOLD_MS + 150);
     expect(screen.getByRole('tooltip')).toHaveTextContent('Extract');
     touch('pointerup', button);
-    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    await tooltipGone();
   });
 });
 
