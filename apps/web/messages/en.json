@@ -3368,6 +3368,8 @@
       }
     }
   ],
+  "combined_title_none": "Combined document",
+  "combined_title_one": "Combined – {first}",
   "combined_title_two": "Combined – {first} + {second}",
   "combined_title_more": "Combined – {first} + {count} more",
   "history_combine": [

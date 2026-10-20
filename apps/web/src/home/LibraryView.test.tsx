@@ -713,6 +713,14 @@ describe('Recents on the Library', () => {
     expect(within(home).queryByRole('list', { name: 'Recent files' })).toBeNull();
   });
 
+  it('does not offer Try the sample while the sample is among the recents', async () => {
+    await recordRecent({ name: 'Recto sample.pdf', size: 102500, pages: 8, now: Date.now() });
+    render(<App />);
+    const home = await screen.findByTestId('home');
+    await within(home).findByRole('heading', { name: 'Recent' });
+    expect(within(home).queryByRole('button', { name: 'Try the sample' })).toBeNull();
+  });
+
   it('lists recents under the drop area with no file open: name, pages, size and time', async () => {
     const now = Date.now();
     await recordRecent({ name: 'report.pdf', size: 6246, pages: 6, now: now - 5 * 60_000 });

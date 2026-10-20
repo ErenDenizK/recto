@@ -2115,6 +2115,8 @@
   "home_selected_summary": "{count} seçili",
   "home_announce_selected": "{count} dosya seçildi",
   "home_combine_count": "{count} dosyayı birleştir",
+  "combined_title_none": "Birleştirilmiş belge",
+  "combined_title_one": "Birleştirilmiş – {first}",
   "combined_title_two": "Birleştirilmiş – {first} + {second}",
   "combined_title_more": "Birleştirilmiş – {first} + {count} dosya daha",
   "history_combine": "{count} dosya birleştirildi",
