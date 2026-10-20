@@ -13,7 +13,7 @@ import '../annotations/index';
 
 import { getActiveDocument, type VirtualDocument } from '@pdf-editor/document-model';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 
 import { EXIT_TIMEOUT } from '../../test/settled';
@@ -114,7 +114,13 @@ function press(type: string, target: Element, pointerType = 'touch'): void {
   );
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+/**
+ * The long press's hold runs on a fake clock (PRC-21): `holdFor` moves it, so a stalled runner
+ * cannot fire the hold between two steps. Call `holdClock()` after `mount()` (the engine runs on
+ * real time) and before the press; `afterEach` puts real timers back.
+ */
+const holdClock = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+const holdFor = (ms: number) => vi.advanceTimersByTimeAsync(ms);
 
 /**
  * The open menu, once its items have risen in. A long press opens it only after its hold and a
@@ -157,6 +163,7 @@ describe('page context menu', () => {
     useSelectionStore.getState().apply({ selected: new Set(), anchor: null, focused: null });
   });
   afterEach(async () => {
+    vi.useRealTimers();
     closeOperationDialog();
     await whenIdle();
     cleanup();
@@ -445,9 +452,12 @@ describe('page context menu', () => {
     const { container } = await mount();
     const canvas = pageElement(container, 1).querySelector('canvas');
     if (!canvas) throw new Error('no canvas');
+    holdClock();
     press('pointerdown', canvas);
-    await sleep(300);
+    await holdFor(300);
     expect(screen.queryByTestId('page-context-menu')).toBeNull();
+    await holdFor(200);
+    vi.useRealTimers();
     const popup = await menu();
     expect(popup).toHaveAccessibleName('Page 2');
     // Android's own contextmenu from the same touch is swallowed: no second opening.
@@ -468,14 +478,15 @@ describe('page context menu', () => {
       if (!found) throw new Error('no text yet');
       return found;
     });
+    holdClock();
     press('pointerdown', span);
-    await sleep(600);
+    await holdFor(600);
     press('pointerup', span);
     expect(screen.queryByTestId('page-context-menu')).toBeNull();
     const canvas = pageElement(container, 0).querySelector('canvas');
     if (!canvas) throw new Error('no canvas');
     press('pointerdown', canvas, 'mouse');
-    await sleep(600);
+    await holdFor(600);
     press('pointerup', canvas, 'mouse');
     expect(screen.queryByTestId('page-context-menu')).toBeNull();
   });
@@ -488,8 +499,9 @@ describe('page context menu', () => {
       if (!found) throw new Error('no drawing layer');
       return found;
     });
+    holdClock();
     press('pointerdown', layer, 'pen');
-    await sleep(600);
+    await holdFor(600);
     expect(screen.queryByTestId('page-context-menu')).toBeNull();
     press('pointercancel', layer, 'pen');
   });

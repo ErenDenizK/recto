@@ -355,18 +355,25 @@ describe('SignatureWorkerHost', () => {
   });
 
   it('does not terminate while a call is running', async () => {
-    const terminated: number[] = [];
-    const host = new SignatureWorkerHost(
-      () => Promise.resolve({ terminate: () => terminated.push(1) } as unknown as SignatureProxy),
-      10,
-    );
-    let finish!: () => void;
-    const running = host.run(() => new Promise<void>((resolve) => (finish = resolve)));
-    await new Promise((resolve) => setTimeout(resolve, 40));
-    expect(terminated).toEqual([]);
-    finish();
-    await running;
-    await vi.waitFor(() => expect(terminated).toEqual([1]));
+    // The idle timer runs on a fake clock (PRC-21), so the wait is a step, not a sleep.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const terminated: number[] = [];
+      const host = new SignatureWorkerHost(
+        () => Promise.resolve({ terminate: () => terminated.push(1) } as unknown as SignatureProxy),
+        10,
+      );
+      let finish!: () => void;
+      const running = host.run(() => new Promise<void>((resolve) => (finish = resolve)));
+      await vi.advanceTimersByTimeAsync(40);
+      expect(terminated).toEqual([]);
+      finish();
+      await running;
+      await vi.advanceTimersByTimeAsync(10);
+      expect(terminated).toEqual([1]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

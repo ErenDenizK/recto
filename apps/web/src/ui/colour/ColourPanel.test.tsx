@@ -61,6 +61,20 @@ function Host({
 
 const shown = () => screen.getByTestId('colour').textContent;
 
+/**
+ * The commit pause runs on a fake clock (PRC-21): `pause()` moves it past `COMMIT_PAUSE_MS`, so
+ * a stalled runner can neither fire the commit early nor miss it. Call `clock()` before the
+ * choice that starts the pause; `afterEach` puts real timers back.
+ */
+const clock = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+const pause = () =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(COMMIT_PAUSE_MS);
+  });
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('ColourPanel', () => {
   it('opens on the remembered view and remembers a new one', async () => {
     localStorage.setItem(COLOUR_VIEW_KEY, JSON.stringify('sliders'));
@@ -73,6 +87,7 @@ describe('ColourPanel', () => {
   });
 
   it('applies a grid choice live and commits once after a pause', async () => {
+    clock();
     const onCommit = vi.fn();
     render(<Host onCommit={onCommit} />);
     const grid = screen.getByRole('radiogroup', { name: 'Colour grid' });
@@ -82,7 +97,7 @@ describe('ColourPanel', () => {
     const chosen = colourGrid().rows[1]![6]!;
     expect(shown()).toBe(`${chosen} 0.8`);
     expect(onCommit).not.toHaveBeenCalled();
-    await new Promise((resolve) => setTimeout(resolve, COMMIT_PAUSE_MS + 150));
+    await pause();
     expect(onCommit).toHaveBeenCalledTimes(1);
     expect(onCommit).toHaveBeenCalledWith(chosen, 0.8);
     // A committed custom colour is a recent colour.
@@ -162,6 +177,7 @@ describe('ColourPanel', () => {
   });
 
   it('reverts to the opening colour on Esc and closes', async () => {
+    clock();
     const onClose = vi.fn();
     const onCommit = vi.fn();
     render(<Host onClose={onClose} onCommit={onCommit} />);
@@ -169,7 +185,7 @@ describe('ColourPanel', () => {
       'radio',
     );
     await userEvent.click(cells[50]!);
-    await new Promise((resolve) => setTimeout(resolve, COMMIT_PAUSE_MS + 150));
+    await pause();
     expect(onCommit).toHaveBeenCalledTimes(1);
     await userEvent.keyboard('{Escape}');
     expect(shown()).toBe('#1760EE 0.8');
