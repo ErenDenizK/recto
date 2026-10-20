@@ -193,12 +193,22 @@ export function keptIdOf(id: DocumentId): string {
 }
 
 /**
+ * Sources made by the app, not read from a file (a text file's converted PDF): a document of
+ * one is never "the file" however pristine it looks, so it is unsaved and changed from the start.
+ */
+const generatedSources = new Set<SourceId>();
+
+export function markGeneratedSource(source: SourceId): void {
+  generatedSources.add(source);
+}
+
+/**
  * Whether a document is exactly one source as opened: its pages in order, unrotated, with
  * no crop, resize, overlay, furniture or created field, and no engine edit on the source.
  */
 export function isPristineDocument(ws: Workspace, doc: VirtualDocument): boolean {
   const first = doc.pages[0]?.ref;
-  if (first?.kind !== 'source') return false;
+  if (first?.kind !== 'source' || generatedSources.has(first.source)) return false;
   const source = ws.sources[first.source];
   if (source?.pageCount !== doc.pages.length) return false;
   if ((doc.furniture?.length ?? 0) > 0 || (doc.fields?.length ?? 0) > 0) return false;

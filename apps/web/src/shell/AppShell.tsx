@@ -31,6 +31,7 @@ import { commandRegistry } from '../commands/registry';
 import { useShortcuts } from '../commands/use-shortcuts';
 import type { NamedFile } from '../files/file-filters';
 import { dragHasFiles, filesFromDataTransfer, isOpenableFile } from '../files/open-files';
+import { isTextFile } from '../files/text-files';
 import { FurnitureDialogs } from '../furniture';
 import { Aura } from '../home/Aura';
 import { DocumentDropOverlay } from '../home/DropOverlay';
@@ -180,7 +181,7 @@ export function AppShell() {
     const accept = officeEnabled()
       ? (file: NamedFile) => isOpenableFile(file) || isOfficeFile(file)
       : isOpenableFile;
-    void filesFromDataTransfer(event.dataTransfer, accept).then(async (files) => {
+    void filesFromDataTransfer(event.dataTransfer, accept, isTextFile).then(async (files) => {
       if (files.length === 0) {
         announce(m.drop_no_pdfs());
         return;

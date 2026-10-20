@@ -181,6 +181,9 @@ describe('conversion names (R23-8)', () => {
     ['pdf to text', 'document.exportMarkdown'],
     ["pdf'ten markdown", 'document.exportMarkdown'],
     ["pdf'ten metin", 'document.exportMarkdown'],
+    ['text to pdf', 'file.textToPdf'],
+    ['metinden pdf', 'file.textToPdf'],
+    ['txt to pdf', 'file.textToPdf'],
   ];
   it.each(['en', 'tr'] as const)('finds each conversion in the %s UI', (locale) => {
     setLocale(locale);

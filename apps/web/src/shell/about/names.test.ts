@@ -76,6 +76,7 @@ describe('names kept by ADR-0015 §3', () => {
     expect(literals(openFilesSource, 'pdf-editor-').sort()).toEqual([
       'pdf-editor-images',
       'pdf-editor-open',
+      'pdf-editor-text',
     ]);
   });
 
