@@ -3,7 +3,7 @@
  * beyond them, and a resize keeps the active tab (the one Tab stop) in view, clear of the fades.
  * Vitest browser mode, so layout and scrolling are real.
  */
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { useTablistEdges } from './use-tablist-edges';
@@ -132,9 +132,10 @@ describe('useTablistEdges', () => {
     );
     // Read while nothing overflows yet: the start of the slide.
     screen.getByRole('tab', { name: 'tab 0' }).append(' renamed');
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    expect(list.scrollWidth).toBeGreaterThan(list.clientWidth + 1);
-    expect(list.hasAttribute('data-more-end')).toBe(true);
+    await waitFor(() => {
+      expect(list.scrollWidth).toBeGreaterThan(list.clientWidth + 1);
+      expect(list.hasAttribute('data-more-end')).toBe(true);
+    });
     await slide.finished;
     await frames(3);
     expect(list.hasAttribute('data-more-end')).toBe(false);
