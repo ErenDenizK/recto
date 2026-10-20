@@ -179,6 +179,8 @@ export default defineConfig({
     VitePWA({
       disable: Boolean(process.env.VITEST),
       registerType: 'prompt',
+      // Icons are precached by `workbox.globPatterns` (the large tiles stay out).
+      includeManifestIcons: false,
       // Registered by src/pwa/register.ts, which owns the update flow.
       injectRegister: false,
       strategies: 'generateSW',
@@ -222,15 +224,23 @@ export default defineConfig({
       },
       workbox: {
         // App shell: HTML, JS (including worker and engine chunks), CSS and fonts. The
-        // manifest and its icons are added by the plugin (`includeManifestIcons`). The teaching
-        // sample, one file per edition and language (`sample/recto-sample-{en,tr}.pdf` ≤ 125 KB,
+        // manifest is added by the plugin; of its icons, the SVGs and the 192 px tile (the
+        // pattern below). The 512 px tiles (~270 KB together, already compressed) stay out:
+        // only the browser reads them, when it installs the app, and no page shows them
+        // (docs/research/perf/phone-first-load-2026-10.md). The teaching sample, one file per
+        // edition and language (`sample/recto-sample-{en,tr}.pdf` ≤ 125 KB,
         // `sample/recto-sample-phone-{en,tr}.pdf` ≤ 90 KB, all four ≤ 344 KiB: MOB-12 to MOB-14),
         // opens offline once the app has loaded with a connection. Every lazy chunk is a `.js` here,
         // so each split surface opens offline (docs/plan/v1/PLAN.md PF-17, V1-F15); the engine's
         // bundled TTFs (`assets/*.ttf`, embedded by text edits, free text and page furniture)
         // are fonts ≤ 1 MB, precached like the UI's woff2 (ADR-0010).
         // tools/qa/bundle-budget.ts fails the build check when an emitted file is left out.
-        globPatterns: ['**/*.{html,js,css,woff2,ttf}', 'sample/*.pdf'],
+        globPatterns: [
+          '**/*.{html,js,css,woff2,ttf}',
+          'sample/*.pdf',
+          'icons/*.svg',
+          'icons/icon-192.png',
+        ],
         // Wasm is runtime-cached (below); the 404 page is not part of the app shell.
         // `worker-engine-*.js` is EmbedPDF's own worker engine, the adapter's lazy default
         // factory: the app always passes a factory (ADR-0011), so it is never loaded. `ocr/`
