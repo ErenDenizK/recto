@@ -359,6 +359,7 @@ export function AboutRow({
 export type MainRowId = Exclude<
   SettingsRowId,
   | 'privacyRequests'
+  | 'aboutOfficeLicences'
   | 'privacyOffline'
   | 'aboutVersion'
   | 'aboutCommit'

@@ -61,7 +61,9 @@ export type SettingsRowId =
   | 'aboutSource'
   | 'aboutStorage'
   | 'aboutOffline'
-  | 'aboutPage';
+  | 'aboutPage'
+  | 'officePackage'
+  | 'aboutOfficeLicences';
 
 export interface SettingsSection {
   readonly id: SettingsSectionId;
@@ -193,6 +195,13 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     commands: ['file.clearRecents'],
   },
   {
+    id: 'officePackage',
+    section: 'documents',
+    title: at(m.settings_office_package),
+    keywords: at(m.settings_office_package_keywords),
+    commands: ['settings.open'],
+  },
+  {
     id: 'commentName',
     section: 'documents',
     title: at(m.settings_comment_name),
@@ -292,6 +301,14 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
     section: 'more',
     page: 'about',
     title: at(m.settings_about_how),
+    commands: ABOUT,
+  },
+  {
+    id: 'aboutOfficeLicences',
+    section: 'more',
+    page: 'about',
+    title: at(m.about_office_licences),
+    keywords: at(m.about_office_licences_keywords),
     commands: ABOUT,
   },
 ];
