@@ -109,12 +109,15 @@ work earns it. The caps below are working defaults the CEO may move, and must re
    dispatch, the report says `deploy ready` and the next attended moment ships it.
 8. **Record.** A row in `agent-metrics.md` per lane (it rides the next PR), decision rows for
    decisions, the HQ body rewritten (lock cleared, lanes, next ten, parked, board questions).
-9. **Report.** One HQ comment: what shipped (PR links), what is open, spend (agent tokens by tier),
-   decisions taken, and anything the board must answer. Two to ten lines.
+9. **Report.** One HQ comment, in English (PRC-27): what shipped (PR links), what is open, spend
+   (agent tokens by tier), decisions taken, and anything the board must answer. Two to ten lines.
+   The chat with the owner stays in Turkish.
+10. **Improve HQ.** Once a day, the 18:53 cycle makes one small improvement to how the owner
+   follows the company (the console, the brief, the HQ issue), within the cycle's budget (PRC-27).
 
 ## Daily report (to the board)
 
-The 18:53 cycle's HQ comment is the day's account, in Turkish (the repo stays English): shipped
+The 18:53 cycle's HQ comment is the day's account, in English (PRC-27): shipped
 today, the user-visible change in one line each, CEO taste calls with screenshots, spend against
 the budget, risks, and at most three board questions, each with the CEO's recommendation and the
 default that applies until answered. It ends with a push notification.
