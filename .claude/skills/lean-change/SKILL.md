@@ -3,7 +3,7 @@ name: lean-change
 description: Make the smallest change that fully meets a Recto brief. Use when building, refactoring or fixing code from a settled spec, and when the lead writes a brief.
 ---
 <!-- Inspired by https://github.com/DietrichGebert/ponytail (skills/ponytail/SKILL.md, MIT licence,
-     (c) Dietrich Gebert), read 2026-10-21 at plugin v5.3.2. Adapted, not copied: rewritten for
+     (c) 2026 DietrichGebert), read 2026-10-21 at plugin v5.3.2. Adapted, not copied: rewritten for
      Recto, without its hooks, levels or ledger. PRC-29. -->
 
 # Lean change

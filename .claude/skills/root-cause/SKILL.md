@@ -3,7 +3,7 @@ name: root-cause
 description: Find and fix the cause of a Recto bug, red CI job or flaky test whose cause is unknown. Use before proposing any fix for a failure you have not explained.
 ---
 <!-- Inspired by https://github.com/obra/superpowers (skills/systematic-debugging, MIT licence,
-     (c) Jesse Vincent), read 2026-10-21. Adapted, not copied: rewritten for Recto. PRC-29. -->
+     (c) 2025 Jesse Vincent), read 2026-10-21. Adapted, not copied: rewritten for Recto. PRC-29. -->
 
 # Root cause
 

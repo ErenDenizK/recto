@@ -3,7 +3,7 @@ name: verify-before-done
 description: Prove a Recto change works before reporting it done, green or fixed. Use before every completion report, and when the lead gates a lane before its pull request.
 ---
 <!-- Inspired by https://github.com/obra/superpowers (skills/verification-before-completion,
-     MIT licence, (c) Jesse Vincent), read 2026-10-21. Adapted, not copied: rewritten for Recto.
+     MIT licence, (c) 2025 Jesse Vincent), read 2026-10-21. Adapted, not copied: rewritten for Recto.
      PRC-29. -->
 
 # Verify before done
