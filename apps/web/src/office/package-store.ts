@@ -11,7 +11,7 @@
  * - **Store.** Cache Storage `pdf-editor-office`, as fetched (compressed), under the name the
  *   converter asks for. A file already stored is not fetched again, so a cancelled or failed
  *   download resumes at the file it stopped in. `navigator.storage.persist()` is asked for once
- *   the package is in, so the browser does not evict it under pressure.
+ *   the package is in, so the browser does not evict it under pressure; never awaited.
  * - **Installed** when the marker is written, last; entries of an older package are removed
  *   then. The service worker reads the marker to isolate the app (`public/sw-office.js`).
  */
@@ -219,10 +219,20 @@ export async function installPackage(options: InstallOptions = {}): Promise<void
     }),
   );
   onProgress?.({ loaded: total, total });
+  askPersistence();
+}
+
+/**
+ * Asks for persistent storage, never awaited: Firefox answers `persist()` only once the person
+ * answers its permission prompt, which may be never (as for the session's snapshots, ADR-0032
+ * §2.4), and the install must not wait on it, or the reload into isolation never comes. Not
+ * granted or not offered: the package may be evicted under pressure and downloads again.
+ */
+function askPersistence(): void {
   try {
-    await navigator.storage?.persist?.();
+    navigator.storage?.persist?.().catch(() => undefined);
   } catch {
-    // Not granted or not offered: the package may be evicted under pressure and downloads again.
+    // Not offered here.
   }
 }
 

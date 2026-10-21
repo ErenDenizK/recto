@@ -85,6 +85,18 @@ describe('the package download manager (ADR-0035 §4)', () => {
     expect(await cache.match(markerUrl())).toBeDefined();
   });
 
+  it('asks for persistent storage without waiting for the answer', async () => {
+    // Firefox answers persist() only once its permission prompt is answered, maybe never.
+    const { files, bodies } = await standIns();
+    serve(bodies);
+    const persist = vi
+      .spyOn(navigator.storage, 'persist')
+      .mockImplementation(() => new Promise<boolean>(() => undefined));
+    await installPackage({ files });
+    expect(persist).toHaveBeenCalledOnce();
+    expect(await isPackageInstalled()).toBe(true);
+  });
+
   it('refuses a file whose content does not match the lock', async () => {
     const { files, bodies } = await standIns();
     bodies.set(`${base}soffice.js`, new TextEncoder().encode('self.tampered = true;'));
