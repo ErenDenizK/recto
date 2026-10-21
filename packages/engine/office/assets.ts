@@ -21,7 +21,10 @@
  * The package is never a dependency of the app and never in a bundle: nothing imports it, the
  * service worker does not precache `convert/**` (apps/web/vite.config.ts), and the browser
  * downloads it only after the user agrees (apps/web/src/office/). A build without the vendored
- * files still succeeds; it ships no `convert/` and the download reports the package missing.
+ * files still succeeds; it ships no `convert/` and the download reports the package missing,
+ * unless `RECTO_OFFICE_REQUIRED=1` (CI and the deploy, PRC-26), which makes it fail instead so
+ * a deploy never ships without the package. Any emitted file of 100 MB or more is refused
+ * (GitHub Pages' file limit) and one above 90 MB warns.
  */
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -35,6 +38,10 @@ export const OFFICE_DIR = fileURLToPath(new URL('.', import.meta.url));
 export const LOCK_PATH = join(OFFICE_DIR, 'office.lock.json');
 /** Where `fetch.ts` writes the package (git-ignored). */
 export const VENDOR_DIR = join(OFFICE_DIR, 'vendor');
+/** GitHub Pages refuses files of this size or more (PRC-26). */
+export const MAX_FILE_BYTES = 100 * 1024 * 1024;
+/** Above this size an emitted file makes the build warn (PRC-26). */
+export const WARN_BYTES = 90 * 1024 * 1024;
 /** Notices committed beside this file and shipped with the package (ADR-0035 §2). */
 export const LICENSE_FILES = ['NOTICE.txt', 'MPL-2.0.txt'] as const;
 
@@ -152,6 +159,23 @@ export function verifyOfficeAssets(
   }));
 }
 
+/** Throws when a file to be emitted is 100 MB or more; returns a warning above 90 MB. */
+export function checkEmittedSize(path: string, bytes: number): string | undefined {
+  if (bytes >= MAX_FILE_BYTES) {
+    throw new Error(
+      `convert/${path}: ${bytes} bytes, over GitHub Pages' 100 MB file limit (PRC-26)`,
+    );
+  }
+  return bytes > WARN_BYTES
+    ? `convert/${path}: ${bytes} bytes, close to GitHub Pages' 100 MB file limit`
+    : undefined;
+}
+
+/** Whether the build must carry the package (`RECTO_OFFICE_REQUIRED=1`, PRC-26). */
+export function officeRequired(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.RECTO_OFFICE_REQUIRED === '1';
+}
+
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
   '.js': 'text/javascript',
   '.txt': 'text/plain; charset=utf-8',
@@ -203,6 +227,12 @@ export function officeAssetsPlugin(): Plugin {
     writeBundle() {
       const lock = readLock();
       if (!isVendored(lock)) {
+        if (officeRequired()) {
+          this.error(
+            'Office conversion package not fetched and RECTO_OFFICE_REQUIRED=1: run ' +
+              'node --experimental-strip-types packages/engine/office/fetch.ts (PRC-26).',
+          );
+        }
         this.info(
           'Office conversion package not fetched (node packages/engine/office/fetch.ts): ' +
             'the build ships no convert/ (ADR-0035 §1).',
@@ -210,7 +240,8 @@ export function officeAssetsPlugin(): Plugin {
         return;
       }
       for (const asset of officeAssets(lock)) {
-        readVerified(asset);
+        const warning = checkEmittedSize(asset.path, readVerified(asset).length);
+        if (warning !== undefined) this.warn(warning);
         const target = join(outDir, 'convert', asset.path);
         mkdirSync(join(target, '..'), { recursive: true });
         copyFileSync(asset.source, target);

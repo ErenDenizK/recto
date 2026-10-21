@@ -81,12 +81,24 @@ jobs:
       - name: OCR files match their lock
         run: pnpm --filter @pdf-editor/engine ocr:verify
 
+      # The Office conversion package (PRC-26): a cache hit verifies offline, a miss downloads,
+      # checks the sha512, patches and gzips it (curl is in the Playwright image).
+      - name: Restore Office package
+        uses: actions/cache@v4
+        with:
+          path: packages/engine/office/vendor
+          key: office-vendor-${{ hashFiles('packages/engine/office/office.lock.json', 'packages/engine/office/fetch.ts') }}
+
+      - name: Fetch Office package
+        run: node --experimental-strip-types --no-warnings=ExperimentalWarning packages/engine/office/fetch.ts
+
       - name: Build
         run: pnpm build
         # The e2e jobs below test this build: it compiles the test-only render override in
         # (docs/specs/redesign.md X36). deploy.yml and release.yml build without it.
         env:
           RECTO_RENDER_OVERRIDE: '1'
+          RECTO_OFFICE_REQUIRED: '1'
 
       # Bundle budgets (docs/plan/v1/PLAN.md §2.3, PF-14): absolute gates and a 1 % growth cap
       # over the baseline in tools/qa/bundle-budget.json, and every emitted chunk precached
@@ -99,7 +111,19 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: web-dist
-          path: apps/web/dist
+          path: |
+            apps/web/dist
+            !apps/web/dist/convert
+          if-no-files-found: error
+          retention-days: 7
+
+      # The Office package on its own, so the regular e2e jobs do not download 79 MB each
+      # (PRC-26); the e2e-office job downloads it next to web-dist.
+      - name: Upload Office package
+        uses: actions/upload-artifact@v7
+        with:
+          name: office-package
+          path: apps/web/dist/convert
           if-no-files-found: error
           retention-days: 7
 

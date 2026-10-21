@@ -45,12 +45,25 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
+      # The Office conversion package (ADR-0035, PRC-26): a hit verifies offline, a miss
+      # downloads, checks the sha512, patches and gzips it. It ships under convert/.
+      - name: Restore Office package
+        uses: actions/cache@v4
+        with:
+          path: packages/engine/office/vendor
+          key: office-vendor-${{ hashFiles('packages/engine/office/office.lock.json', 'packages/engine/office/fetch.ts') }}
+
+      - name: Fetch Office package
+        run: node --experimental-strip-types --no-warnings=ExperimentalWarning packages/engine/office/fetch.ts
+
       # Project sites live under /<repository>/. With a custom domain (repository variable
       # CUSTOM_DOMAIN), the site is served from the domain root instead.
       - name: Build
         run: pnpm build
         env:
           VITE_BASE_PATH: ${{ vars.CUSTOM_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
+          # A deploy never ships without the package (assets.ts fails instead of skipping).
+          RECTO_OFFICE_REQUIRED: '1'
 
       # Not the Pages artifact yet: the `pages` job adds media/ to it first.
       - name: Upload site
