@@ -45,7 +45,7 @@ artifact:
 
 - `office.lock.json` pins the tarball by npm's `sha512` integrity and every served file by the
   SHA-256 of its content (after the patch; inflated for the gzip files), with the patch and the
-  directory name (`lo-2.7.2-r1`; a new package or patch gets a new directory).
+  directory name (`lo-2.7.2-r2`; a new package or patch gets a new directory).
 - `fetch.ts` downloads the tarball, refuses it unless the integrity matches, takes five files
   (`browser.worker.global.js`, `soffice.js`, `soffice.worker.js`, `soffice.wasm`,
   `soffice.data`), applies the patch (§3), gzips the two large ones (level 9) and writes
@@ -57,7 +57,8 @@ artifact:
 - Nothing imports the package. The app talks to the package's own worker
   (`browser.worker.global.js`) through its message protocol (`init`, `convert`).
 
-Served sizes: 49.7 MB + 28.7 MB gzip for the wasm and data, 0.6 MB for the rest: **78.9 MB**.
+Served sizes (r2, PRD-20): 49.7 MB + 20.4 MB gzip for the wasm and data, 0.6 MB for the rest:
+**70.6 MB** (70,609,657 bytes; r1 was 78.9 MB with the data at 28.7 MB).
 
 ### 2. Licences
 
@@ -85,7 +86,7 @@ the worker, so a deadlock of any other kind cannot hang the app.
 
 - **Storage: Cache Storage**, cache `pdf-editor-office`, not OPFS: the service worker must
   answer the converter's requests with `Response`s and headers, which a cache holds as they are.
-  Files are stored as fetched (gzip, 78.9 MB) under the names the converter asks for, marked
+  Files are stored as fetched (gzip, 70.6 MB) under the names the converter asks for, marked
   `X-Recto-Encoding: gzip`; the worker inflates them with `DecompressionStream` on the way out.
   Each file is accepted only if its content's SHA-256 matches the lock (the app's own code is
   the trust anchor). **Integrity is checked once, at download** (`package-store.ts`,
@@ -132,7 +133,7 @@ the worker, so a deadlock of any other kind cannot hang the app.
 
 On a drop or a pick of `.docx`, `.xlsx` or `.pptx` (`office/intake.ts`, split off in
 `openDocuments` and the window drop), the full edition opens **Convert to PDF**: if the package is
-missing, "A one-time conversion package (~75.2 MB) is needed. Download it?" (78.9 million
+missing, "A one-time conversion package (~67.3 MB) is needed. Download it?" (70.6 million
 bytes, in the app's binary units) with what it means,
 the licence link, and Download or Cancel; then one progress bar with Cancel download; then the
 reload when needed; then "Converting report.docx…". The converter runs in the package's worker,
@@ -161,9 +162,9 @@ first paint 73.9 KB (unchanged), editor 827.0 → 828.1 KB, compact 273.8 → 27
 
 ## Consequences
 
-- A user who converts once downloads 78.9 MB and keeps it (about 79 MB in Cache Storage);
-  GitHub Pages' soft 100 GB/month covers about 1,300 first downloads a month.
-- The site grows by 79 MB per deploy that carries the package (Pages' limit is 1 GB). Phase 1
+- A user who converts once downloads 70.6 MB and keeps it (about 71 MB in Cache Storage);
+  GitHub Pages' soft 100 GB/month covers about 1,400 first downloads a month.
+- The site grows by 71 MB per deploy that carries the package (Pages' limit is 1 GB). Phase 1
   does not wire the deploy: CI fetches and serves the package in phase 2.
 - After an install, the app's page and workers are cross-origin isolated. Anything added later
   that loads from another origin needs CORP, or it breaks for those users.
