@@ -83,6 +83,28 @@ work earns it. The caps below are working defaults the CEO may move, and must re
   log or a search never goes to Opus. Effort `medium` everywhere.
 - **Idle is allowed:** when the backlog has nothing worth doing at the bar, the cycle does the
   report and stops. Busywork is not work.
+- **Sprint cadence (PRC-28):** when the owner asks for a push, the cycle runs every four hours
+  (02:53, 06:53, 10:53, 14:53, 18:53, 22:53) with about 1.5 M agent tokens a cycle, for a stated
+  window; a one-shot task restores the normal cadence when it ends.
+
+## Epics: how major work is run (PRC-28)
+
+Small fixes keep the app honest; epics make it better. At least one epic is always in flight, and
+in a sprint most build lanes belong to one.
+
+1. **Find.** The head of product keeps `docs/company/epics-r25.md` (one file per round): each epic
+   is a problem a user feels (with screenshots or numbers), the outcome, scope in and out, the
+   decisions it touches, its lanes, its risks, its size, and how it will be shown to the owner.
+   Performance epics start from measured numbers (`tools/perf/baseline.ts`), never a hunch.
+2. **Shape.** The principal turns the next epic into lane briefs with done conditions and checks.
+   Taste inside the existing language is the CEO's (DSN-57); a new flow, a removed feature or a
+   change to an owner row is a board question, asked once with a recommendation and a default.
+3. **Build.** Up to three lanes in parallel on separate files; builders on Sonnet, the reviewer on
+   every multi-file lane, the design director on every lane that changes what is seen.
+4. **Prove.** An epic is done when its outcome is measured or shown: before and after screenshots
+   at desktop, tablet and phone, or the perf numbers re-run with the same script.
+5. **Show.** The brief carries the epic's before and after; a major epic ships behind the
+   owner's yes (PRC-25), a minor one ships when green.
 
 ## The cycle
 
