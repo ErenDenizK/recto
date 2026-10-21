@@ -234,3 +234,20 @@ export async function removePackage(): Promise<void> {
   await caches.delete(OFFICE_CACHE);
   await refreshServiceWorker();
 }
+
+/**
+ * Bytes the installed package takes on the device (Settings, phase 2): the lock's stored size
+ * of each file present in the cache, so nothing is read back. Zero when nothing is stored.
+ */
+export async function packageStoredBytes(): Promise<number> {
+  try {
+    const cache = await caches.open(OFFICE_CACHE);
+    let total = 0;
+    for (const file of packageFiles()) {
+      if ((await cache.match(file.storedUrl)) !== undefined) total += file.downloadBytes;
+    }
+    return total;
+  } catch {
+    return 0;
+  }
+}

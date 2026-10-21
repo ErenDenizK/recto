@@ -60,6 +60,7 @@ import { TextField } from '../ui/TextField';
 import { setPenDrawsInMarkup, usePenDrawsInMarkup } from '../viewer/edit-policy';
 import { openSettings } from './open-settings';
 import { useAnnounceSystem } from './ReduceMotionRow';
+import { OfficePackageRow } from './OfficePackageRow';
 import { Line, NavRow, Row } from './rows';
 import type { SettingsPageId, SettingsRowId } from './search-index';
 import styles from './Settings.module.css';
@@ -227,21 +228,24 @@ export function KeptDocumentsRow({
 export function RecentsRow() {
   const count = useRecentsStore((s) => s.entries.length);
   return (
-    <Row id="recents" bar>
-      <Line
-        label={m.settings_recents()}
-        value={count === 0 ? m.settings_recents_none() : m.settings_recents_count({ count })}
-      >
-        <Button
-          variant="standard"
-          disabled={count === 0}
-          aria-label={m.recents_clear()}
-          onClick={() => void commandRegistry.execute('file.clearRecents')}
+    <>
+      <Row id="recents" bar>
+        <Line
+          label={m.settings_recents()}
+          value={count === 0 ? m.settings_recents_none() : m.settings_recents_count({ count })}
         >
-          {m.settings_clear()}
-        </Button>
-      </Line>
-    </Row>
+          <Button
+            variant="standard"
+            disabled={count === 0}
+            aria-label={m.recents_clear()}
+            onClick={() => void commandRegistry.execute('file.clearRecents')}
+          >
+            {m.settings_clear()}
+          </Button>
+        </Line>
+      </Row>
+      <OfficePackageRow />
+    </>
   );
 }
 

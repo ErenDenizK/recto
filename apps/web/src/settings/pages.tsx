@@ -42,6 +42,7 @@ import {
 } from '../shell/about/build-info';
 import { Button } from '../ui/Button';
 import { confirm } from '../ui/sheet';
+import { OfficeLicencesRow } from './OfficePackageRow';
 import { Line, NavRow, Row, Section } from './rows';
 import styles from './Settings.module.css';
 
@@ -339,6 +340,7 @@ export function AboutPage({ info = BUILD_INFO }: { readonly info?: BuildInfo }) 
         />
         <NavRow id="aboutSource" label={m.about_source()} href={REPOSITORY_URL} />
         <NavRow id="aboutPage" label={m.settings_about_how()} href={aboutPageUrl()} />
+        <OfficeLicencesRow />
       </Section>
       <MakerCredit className={styles.credit} />
     </div>
