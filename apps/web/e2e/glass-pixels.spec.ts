@@ -273,6 +273,29 @@ test(
   },
 );
 
+test('a link shows no mark on arrival with the pointer parked over it, and the blue only on hover', {
+  tag: '@pixels',
+}, async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', APP_SURFACES_CHROMIUM_ONLY);
+  // Where the sample's first cover line will be, before the page exists (DSN-3: focus is lime,
+  // the blue is the page's selection, and nothing looks selected on arrival).
+  await page.goto('./?lang=en');
+  await page.mouse.move(640, 600);
+  await page.goto('./?sample');
+  const link = page.locator('[data-page-index="0"] [data-link]').first();
+  await expect(link).toBeAttached({ timeout: 30_000 });
+  const mark = () =>
+    link.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return [style.boxShadow, style.outlineStyle, style.backgroundColor].join(' | ');
+    });
+  await expect(link).not.toBeFocused();
+  expect(await link.evaluate((el) => el.matches(':hover'))).toBe(true);
+  expect(await mark()).toBe('none | none | rgba(0, 0, 0, 0)');
+  await page.mouse.move(650, 604);
+  await expect.poll(mark).toContain('rgb(78, 97, 237)');
+});
+
 test.describe('in the light theme (spec D3-7)', () => {
   test.use({ colorScheme: 'light' });
 
