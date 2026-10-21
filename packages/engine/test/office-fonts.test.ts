@@ -2,9 +2,9 @@
  * The fonts in the Office package's rewritten `soffice.data` against the package NOTICE
  * (PRD-20, docs/research/conversion-2026-10/office-phase-2.md Lane C): every font file that is
  * served belongs to a family NOTICE lists with its licence, no dropped (GPL or size) family
- * stays, and every substitute in `fc_local.conf` is a family that stays. The file list comes from
- * the vendored `soffice.js` table when `fetch.ts` has written it (CI restores it); without it
- * the lock-only checks still run.
+ * stays, and every substitute in `fc_local.conf` is a family that stays. The file list is
+ * `data.fonts` in `office.lock.json`, written by `fetch.ts --pin`; `fetch.ts --verify` checks it
+ * against the real `soffice.js` table, so this test needs no `vendor/` and always runs.
  */
 /// <reference types="vite/client" />
 
@@ -14,18 +14,12 @@ import lockJson from '../office/office.lock.json';
 import fcLocal from '../office/data/fc_local.conf?raw';
 import noticeRaw from '../office/NOTICE.txt?raw';
 
-// Tests run in the browser (Vitest browser mode), so the files come in through Vite.
-const vendored = import.meta.glob<string>('../office/vendor/*/soffice.js', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-});
 const TRUETYPE = '/instdir/share/fonts/truetype/';
 const OPEN_SYMBOL = '/instdir/program/resource/common/fonts/opens___.ttf';
 
 interface Lock {
   directory: string;
-  data: { drop: string[]; replace: Record<string, { file: string }> };
+  data: { drop: string[]; replace: Record<string, { file: string }>; fonts: string[] };
 }
 
 const lock = lockJson as unknown as Lock;
@@ -85,16 +79,6 @@ function familyOf(path: string): string {
   return hit[1];
 }
 
-/** The font files of the vendored, rewritten table, or null when `fetch.ts` has not run. */
-function servedFonts(): string[] | null {
-  const js = vendored[`../office/vendor/${lock.directory}/soffice.js`];
-  if (js === undefined) return null;
-  const names = [...js.matchAll(/\{filename:"([^"]*)",start:/g)].map((hit) => hit[1] ?? '');
-  return names.filter(
-    (name) => (name.startsWith(TRUETYPE) && /\.(ttf|otf)$/.test(name)) || name === OPEN_SYMBOL,
-  );
-}
-
 describe('Office package fonts (PRD-20)', () => {
   it('drops only font files under the truetype folder, and nothing it replaces', () => {
     for (const path of lock.data.drop) {
@@ -122,13 +106,12 @@ describe('Office package fonts (PRD-20)', () => {
     for (const target of targets) expect(stay.has(target), target).toBe(true);
     expect(conf).toContain('OpenSymbol');
     for (const family of DROPPED) {
-      expect(conf.replace(/<!--[\s\S]*?-->/g, ''), family).not.toContain(family);
+      expect(targets, family).not.toContain(family);
     }
   });
 
   it('lists every served font file in NOTICE, with no dropped family left', () => {
-    const files = servedFonts();
-    if (files === null) return; // fetch.ts has not written vendor/ here
+    const files = lock.data.fonts;
     expect(files.length).toBeGreaterThan(50);
     const families = new Set(files.map(familyOf));
     for (const family of families) expect(kept, family).toContain(family);

@@ -55,6 +55,35 @@ LibreOffice's "License and Legal Information".
   Font License 1.1.
 - Alef (Hagilda) and Frank Ruhl Hofshi: the font file carries a copyright line only; both are
   published upstream under the SIL Open Font License 1.1.
+- OpenSymbol (opens___.ttf, in two folders): MPL-2.0 (LibreOffice's license, MPL-2.0/LGPLv3+),
+  copyright Sun Microsystems and LibreOffice contributors; the font file itself carries
+  copyright lines only.
+
+Fonts removed" and replaces one file,
+   /instdir/share/fonts/truetype/fc_local.conf, with its own fontconfig substitution table
+   (packages/engine/office/data/fc_local.conf in Recto's source). Nothing else in it changes.
+The modified soffice.js and soffice.data are served beside this notice; both changes are
+recorded in Recto's source (packages/engine/office/office.lock.json and fetch.ts,
+https://github.com/ErenDenizK/pdf-editor). Every other file is unmodified.
+
+Fonts in soffice.data
+---------------------
+soffice.data carries the fonts below, each under the license its font file states (Recto reads
+the license from each file's name table). Each font's license text is part of its file and of
+LibreOffice's "License and Legal Information".
+
+- Liberation Sans, Liberation Serif and Liberation Mono: SIL Open Font License 1.1.
+- Carlito: SIL Open Font License 1.1.
+- Caladea: Apache License 2.0.
+- DejaVu Sans, DejaVu Sans Condensed, DejaVu Sans Mono and DejaVu Serif: the Bitstream Vera
+  Fonts license, with DejaVu's changes in the public domain; DejaVu Math TeX Gyre: DejaVu's
+  changes and math extensions in the public domain over the Bitstream Vera Fonts license.
+- Noto Sans, Noto Serif, Noto Sans and Noto Serif Arabic, Armenian, Georgian, Hebrew and Lao,
+  Noto Sans Lisu, Noto Kufi Arabic and Noto Naskh Arabic: SIL Open Font License 1.1.
+- Amiri, Amiri Quran, David Libre, Miriam Libre, Reem Kufi, Rubik and Scheherazade: SIL Open
+  Font License 1.1.
+- Alef (Hagilda) and Frank Ruhl Hofshi: the font file carries a copyright line only; both are
+  published upstream under the SIL Open Font License 1.1.
 - OpenSymbol (opens___.ttf, in two folders): the font file carries
   copyright lines only (Sun Microsystems and later contributors); it is LibreOffice's own
   symbol font and ships under LibreOffice's license terms above.
@@ -72,7 +101,8 @@ Frank Ruhl Hofshi that stay in the package).
 Font substitution table (fc_local.conf)
 ---------------------------------------
 Calibri, Calibri Light: Carlito. Cambria: Caladea. Arial, Times New Roman, Courier New:
-Liberation Sans, Serif, Mono. Arial Narrow: Liberation Sans. Aptos, Aptos Display, Aptos
+Liberation Sans, Serif, Mono. Arial Narrow: Liberation Sans. Linux Libertine G: Liberation Serif; Linux Biolinum G: Liberation Sans;
+Gentium Basic and Gentium Book Basic: Noto Serif. Aptos, Aptos Display, Aptos
 Narrow: Carlito (provisional). Segoe UI: Noto Sans. Verdana: DejaVu Sans. Tahoma: DejaVu Sans
 Condensed. Georgia, Garamond: Noto Serif. Century Gothic: DejaVu Sans. David: David Libre.
 Miriam: Miriam Libre. FrankRuehl: Frank Ruhl Hofshi.

@@ -10,5 +10,11 @@
     "lib": ["ES2023"],
     "types": ["node"]
   },
-  "include": ["vitest.config.ts", "ocr/*.ts", "office/*.ts", "../../tooling/*.ts"]
+  "include": [
+    "vitest.config.ts",
+    "ocr/*.ts",
+    "office/*.ts",
+    "src/office/*.ts",
+    "../../tooling/*.ts"
+  ]
 }

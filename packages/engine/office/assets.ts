@@ -98,7 +98,7 @@ export function servedName(name: string, file: LockedOfficeFile): string {
 }
 
 export interface OfficeAsset {
-  /** Path under `convert/`, e.g. `lo-2.7.2-r1/soffice.js`. */
+  /** Path under `convert/`, e.g. `lo-2.7.2-r2/soffice.js`. */
   readonly path: string;
   readonly source: string;
   /** The locked file it is. */
