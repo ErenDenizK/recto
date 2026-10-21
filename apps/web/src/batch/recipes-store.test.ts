@@ -161,6 +161,31 @@ describe('recipe store', () => {
   });
 });
 
+describe('recipe store persistence', () => {
+  it('never waits for persist(): a prompt nobody answers (Firefox) blocks no save', async () => {
+    const store = createRecipeStore(() => Promise.resolve(memoryBackend()), {
+      persist: () => new Promise(() => undefined),
+    });
+    await expect(store.save({ ...shareSafely, name: 'First' })).resolves.toEqual(
+      expect.any(String),
+    );
+  });
+
+  it('does not wait on a stubbed navigator.storage.persist that never settles', async () => {
+    const storage = navigator.storage;
+    const original = storage.persist.bind(storage);
+    storage.persist = () => new Promise<boolean>(() => undefined);
+    try {
+      const store = createRecipeStore(() => Promise.resolve(memoryBackend()));
+      await expect(store.save({ ...shareSafely, name: 'First' })).resolves.toEqual(
+        expect.any(String),
+      );
+    } finally {
+      storage.persist = original;
+    }
+  });
+});
+
 describe('ZIP writer', () => {
   it('writes stored entries a reader can walk, with correct checksums', async () => {
     expect(crc32(new TextEncoder().encode('123456789'))).toBe(0xcbf43926);

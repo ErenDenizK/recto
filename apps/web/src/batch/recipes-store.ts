@@ -271,13 +271,15 @@ export function createRecipeStore(
   const backend = () => (backendPromise ??= backendFactory());
   const now = options.now ?? Date.now;
   let persistAsked = false;
-  const persist = async () => {
+  /** Asked once, never awaited (ADR-0032 §2.4): Firefox answers only when the person answers its prompt, which may be never. */
+  const persist = (): void => {
     if (persistAsked) return;
     persistAsked = true;
     try {
-      await (options.persist ?? (() => navigator.storage.persist()))();
-    } catch {
       // Best effort: without it the recipes are still saved.
+      (options.persist ?? (() => navigator.storage.persist()))().catch(() => undefined);
+    } catch {
+      // Same: a missing or throwing `persist` changes nothing.
     }
   };
 
@@ -307,7 +309,7 @@ export function createRecipeStore(
       savedAt: now(),
       ...(keep?.lastUsedAt === undefined ? {} : { lastUsedAt: keep.lastUsedAt }),
     });
-    await persist();
+    persist();
   };
 
   return {
