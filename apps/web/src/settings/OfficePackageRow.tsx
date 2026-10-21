@@ -24,7 +24,13 @@ const loadPackage = () => import('../office/package');
 type State =
   | { readonly status: 'checking' }
   | { readonly status: 'hidden' }
-  | { readonly status: 'shown'; readonly installed: boolean; readonly bytes: number };
+  | {
+      readonly status: 'shown';
+      readonly installed: boolean;
+      readonly bytes: number;
+      /** The package was installed here and has just been removed. */
+      readonly removed: boolean;
+    };
 
 export function OfficePackageRow() {
   const locale = useLocale();
@@ -43,6 +49,7 @@ export function OfficePackageRow() {
             status: 'shown',
             installed,
             bytes: installed ? await store.packageStoredBytes() : 0,
+            removed: false,
           };
         }
       } catch {
@@ -61,14 +68,14 @@ export function OfficePackageRow() {
     const yes = await confirm({
       title: m.settings_office_remove_title(),
       body: m.settings_office_remove_body(),
-      action: m.settings_office_remove(),
+      action: m.settings_office_remove_confirm(),
       danger: true,
     });
     if (!yes) return;
     setBusy(true);
     try {
       await (await loadStore()).removePackage();
-      setState({ status: 'shown', installed: false, bytes: 0 });
+      setState({ status: 'shown', installed: false, bytes: 0, removed: true });
       announce(m.settings_office_removed());
     } catch {
       announce(m.settings_office_remove_failed(), { politeness: 'assertive' });
@@ -83,7 +90,9 @@ export function OfficePackageRow() {
         value={
           state.installed
             ? m.settings_office_package_size({ size: formatFileSize(state.bytes, locale) })
-            : m.settings_office_package_removed()
+            : state.removed
+              ? m.settings_office_package_removed()
+              : m.settings_office_package_none()
         }
       >
         <Button
@@ -109,7 +118,9 @@ export async function officeNoticeUrl(): Promise<string> {
     const stored = await cache.match(pkg.noticeUrl());
     if (stored !== undefined) {
       const text = await stored.text();
-      return URL.createObjectURL(new Blob([text], { type: 'text/plain; charset=utf-8' }));
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain; charset=utf-8' }));
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return url;
     }
   } catch {
     // Cache Storage is unavailable: the served copy.
@@ -117,8 +128,30 @@ export async function officeNoticeUrl(): Promise<string> {
   return pkg.noticeUrl();
 }
 
+/** Whether the package is installed or the flag is on: the one check both rows share. */
+function useOfficePresent(): boolean {
+  const [present, setPresent] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const [store, flag] = await Promise.all([loadStore(), loadFlag()]);
+        const yes = (await store.isPackageInstalled()) || flag.officeEnabled();
+        if (live) setPresent(yes);
+      } catch {
+        // The chunk could not load: no row.
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+  return present;
+}
+
 /** About's "Conversion package licences": opens the notice in a new tab. */
 export function OfficeLicencesRow() {
+  if (!useOfficePresent()) return null;
   return (
     <NavRow
       id="aboutOfficeLicences"

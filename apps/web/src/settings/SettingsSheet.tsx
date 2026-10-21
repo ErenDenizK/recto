@@ -72,6 +72,7 @@ import {
   ShowTipsRow,
 } from './sections';
 import { DimPagesRow } from './DimPagesRow';
+import { OfficePackageRow } from './OfficePackageRow';
 import { ReduceMotionRow } from './ReduceMotionRow';
 import { ThemeRow } from './ThemeRow';
 import styles from './Settings.module.css';
@@ -92,6 +93,7 @@ const ROWS: Readonly<
   keptDocuments: (props) => <KeptDocumentsRow {...props} />,
   savedSignatures: (props) => <SavedSignaturesRow {...props} />,
   recents: () => <RecentsRow />,
+  officePackage: () => <OfficePackageRow />,
   commentName: () => <CommentNameRow />,
   showTips: () => <ShowTipsRow />,
   privacy: (props) => <PrivacyRow {...props} />,

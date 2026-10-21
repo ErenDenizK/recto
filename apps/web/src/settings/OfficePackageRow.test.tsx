@@ -8,8 +8,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
 import { OFFICE_FLAG_KEY, resetOfficeFlag } from '../office/flag';
-import { markerUrl, OFFICE_CACHE, OFFICE_LOCK, packageFiles } from '../office/package';
-import { isPackageInstalled } from '../office/package-store';
+import {
+  markerUrl,
+  OFFICE_CACHE,
+  OFFICE_LOCK,
+  packageFiles,
+  STORED_ENCODING_HEADER,
+} from '../office/package';
+import { isPackageInstalled, packageStoredBytes } from '../office/package-store';
 import { OfficePackageRow } from './OfficePackageRow';
 
 const ask = vi.hoisted(() => ({ answer: true }));
@@ -75,5 +81,24 @@ describe('OfficePackageRow', () => {
     await userEvent.click(await screen.findByTestId('settings-office-remove'));
     await new Promise((r) => setTimeout(r, 200));
     expect(await isPackageInstalled()).toBe(true);
+  });
+
+  it('counts a gzip-stored file at its download size and a plain one at its own', async () => {
+    const [a, b] = packageFiles();
+    if (!a || !b) throw new Error('the lock has fewer than two files');
+    const cache = await caches.open(OFFICE_CACHE);
+    await cache.put(
+      a.storedUrl,
+      new Response('x', { headers: { [STORED_ENCODING_HEADER]: 'gzip' } }),
+    );
+    await cache.put(b.storedUrl, new Response('x'));
+    expect(await packageStoredBytes()).toBe(a.downloadBytes + b.bytes);
+  });
+
+  it('says Not downloaded when the flag is on and nothing was ever stored', async () => {
+    localStorage.setItem(OFFICE_FLAG_KEY, '1');
+    const { container } = render(<OfficePackageRow />);
+    await screen.findByTestId('settings-office-remove');
+    expect(container.textContent).toContain('Not downloaded');
   });
 });
