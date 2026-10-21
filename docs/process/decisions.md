@@ -323,6 +323,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-24](decisions/process.md) | Recto runs itself; the owner is the board | In force | 2026-10-18 |
 | [PRC-25](decisions/process.md) | Minor quality changes ship without asking; major ones wait for the owner | In force | 2026-10-20 |
 | [PRC-26](decisions/process.md) | The Office package in CI and the deploy: cached fetch, a required-package build, a 100 MB file gate, its own e2e job | In force | 2026-10-21 |
+| [PRC-27](decisions/process.md) | Company reports in English; one small HQ improvement a day | In force | 2026-10-21 |
 
 ## Foundations (ADR titles)
 
