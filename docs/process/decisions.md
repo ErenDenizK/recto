@@ -66,6 +66,9 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-17](decisions/product.md) | Parked until the owner tests on a large screen: the sidebar covering a fit-width page (scroll a hit or jump clear of… | Open | 2026-10-11 |
 | [PRD-18](decisions/product.md) | On-device Office to PDF, desktop and tablet: LibreOffice WASM on consent, the first dependency exception (board) | In force; phase 1 behind a flag | 2026-10-19 |
 | [PRD-19](decisions/product.md) | Text (.txt) to PDF: engine layout in Noto Sans with the paragraph line-breaker, UTF-8 or windows-1254, opens as a new document (CEO) | In force | 2026-10-20 |
+| [PRD-20](decisions/product.md) | Office package r2: fonts trimmed (GPL faces out by default), Recto's substitution table, about 70 MB | In force; BQ-1 to BQ-3 open to the board, defaults applied | 2026-10-21 |
+| [PRD-21](decisions/product.md) | Settings removes the Office package; About lists its licences | In force | 2026-10-21 |
+| [PRD-22](decisions/product.md) | What must be true before `?office=1` goes on desktop and tablet; then the owner decides | In force; the switch is the owner's | 2026-10-21 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 
 ## Design
@@ -233,6 +236,7 @@ Full rows: [`decisions/editions.md`](decisions/editions.md).
 | [EDN-17](decisions/editions.md) | Editing text on phones (WP5) | In force; the iOS keyboard hand check is the owner's | 2026-10-11 |
 | [EDN-18](decisions/editions.md) | The phone tool drawer stays open on a tap | In force | 2026-10-12 |
 | [EDN-19](decisions/editions.md) | Office conversion is for desktop and tablet; the phone gets guidance, never the download | In force | 2026-10-19 |
+| [EDN-20](decisions/editions.md) | iPad is claimed for Office conversion only after the owner's device check | In force; the check is the owner's | 2026-10-21 |
 
 ## Phone work
 
@@ -318,6 +322,7 @@ Full rows: [`decisions/process.md`](decisions/process.md).
 | [PRC-23](decisions/process.md) | Model routing for agent lanes (owner) | In force | 2026-10-17 |
 | [PRC-24](decisions/process.md) | Recto runs itself; the owner is the board | In force | 2026-10-18 |
 | [PRC-25](decisions/process.md) | Minor quality changes ship without asking; major ones wait for the owner | In force | 2026-10-20 |
+| [PRC-26](decisions/process.md) | The Office package in CI and the deploy: cached fetch, a required-package build, a 100 MB file gate, its own e2e job | In force | 2026-10-21 |
 
 ## Foundations (ADR titles)
 
