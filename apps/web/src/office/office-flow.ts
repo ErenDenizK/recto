@@ -10,14 +10,17 @@
  * - **Isolation.** The converter needs a cross-origin-isolated page. When this one is not, the
  *   files are stashed, the service worker is told the package is in, and the page reloads once;
  *   the next load resumes here (`intake.ts`). A second miss is the `isolation` failure.
- * - **Open.** Each PDF is wrapped as `<name>.pdf` and goes through the normal open path
- *   (`openDocuments`), so Recents, failure toasts and announcements stay as they are; then
- *   one toast says it was converted with LibreOffice and asks to check the layout (the
+ * - **Open.** Each PDF is wrapped as `<name>.pdf` and opens
+ *   (`openGeneratedPdf`) as a new, unsaved document like Text to PDF (PRD-19): changed from
+ *   the start, so closing asks, and not in Recents; then one toast says it was converted with
+ *   LibreOffice and asks to check the layout (the
  *   honesty line of spike §4).
  *
  * Its effects go through `OfficeDeps`, so tests run the flow with a fake converter.
  */
-import { openDocuments } from '../commands/app-commands';
+import type { DocumentId } from '@pdf-editor/document-model';
+
+import { openGeneratedPdf } from '../files/generated-document';
 import { showOpened } from '../home/home-actions';
 import { formatNumber, m } from '../i18n';
 import { announce } from '../shell/announcer';
@@ -74,7 +77,13 @@ const defaultDeps: OfficeDeps = {
   },
   open: async (files) => {
     const wasEmpty = useWorkspaceStore.getState().workspace.documentOrder.length === 0;
-    showOpened(await openDocuments(files), { wasEmpty });
+    const ids: DocumentId[] = [];
+    for (const file of files) {
+      const id = await openGeneratedPdf(file);
+      if (id !== undefined) ids.push(id);
+      else toast.failure(m.office_failed_convert({ name: file.name }));
+    }
+    showOpened(ids, { wasEmpty });
   },
 };
 

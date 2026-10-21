@@ -65,7 +65,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-16](decisions/product.md) | Dictation (voice input) is after V1 | In force | 2026-10-11 |
 | [PRD-17](decisions/product.md) | Parked until the owner tests on a large screen: the sidebar covering a fit-width page (scroll a hit or jump clear of… | Open | 2026-10-11 |
 | [PRD-18](decisions/product.md) | On-device Office to PDF, desktop and tablet: LibreOffice WASM on consent, the first dependency exception (board) | In force; phase 1 behind a flag | 2026-10-19 |
-| [PRD-19](decisions/product.md) | Text (.txt) to PDF: engine layout in Noto Sans with the paragraph line-breaker, UTF-8 or windows-1254, opens as a new document (CEO) | In force | 2026-10-20 |
+| [PRD-19](decisions/product.md) | Text (.txt) to PDF: engine layout in Noto Sans with the paragraph line-breaker, UTF-8 or windows-1254, opens as a new document; Office results too (CEO) | In force | 2026-10-20 |
 | [PRD-20](decisions/product.md) | Office package r2: fonts trimmed (GPL faces out by default), Recto's substitution table, about 70 MB | In force; BQ-1 to BQ-3 open to the board, defaults applied | 2026-10-21 |
 | [PRD-21](decisions/product.md) | Settings removes the Office package; About lists its licences | In force | 2026-10-21 |
 | [PRD-22](decisions/product.md) | What must be true before `?office=1` goes on desktop and tablet; then the owner decides | In force; the switch is the owner's | 2026-10-21 |

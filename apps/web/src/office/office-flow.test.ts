@@ -5,6 +5,9 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const generated = vi.hoisted(() => ({ openGeneratedPdf: vi.fn() }));
+vi.mock('../files/generated-document', () => generated);
+
 import type { OfficeConverter } from './converter';
 import { OfficeError } from './office-error';
 import {
@@ -192,5 +195,23 @@ describe('the Office flow (ADR-0035 §5)', () => {
     await beginOffice();
     expect(opened[0]?.map((file) => file.name)).toEqual(['a.pdf']);
     expect(step()).toMatchObject({ kind: 'failed', reason: 'convert', name: 'b.docx' });
+  });
+});
+
+describe('Office results open as new, unsaved documents (PRD-19)', () => {
+  it('opens each result through the generated-document path (unsaved, not in Recents)', async () => {
+    generated.openGeneratedPdf.mockImplementation((f: File) => Promise.resolve(`doc-${f.name}`));
+    fakes({ open: undefined as unknown as OfficeDeps['open'] });
+    setOfficeDeps({
+      installed: () => Promise.resolve(true),
+      isolated: () => true,
+      converter: () => fakeConverter(() => Promise.resolve(PDF)),
+    });
+    openOffice([docx('a.docx'), docx('b.docx')]);
+    await beginOffice();
+    expect(generated.openGeneratedPdf.mock.calls.map(([f]) => (f as File).name)).toEqual([
+      'a.pdf',
+      'b.pdf',
+    ]);
   });
 });
