@@ -75,7 +75,51 @@ function sampleMemory(): () => number | null {
   };
 }
 
+/**
+ * Waits for the app after a navigation: the shell mounted, then at rest. A boot is not an
+ * animation: on a cold first visit (the service worker precaching beside it) or right after a
+ * page that held the converter's wasm heap, the shell can mount later than `atRest`'s 5 s allow,
+ * and the poll runs out on a shell that is not there yet (CI, PR #55, first tries: WebKit after
+ * the first `goto`, Chromium after the last reload; locally the shell rests ~1.5 s after a
+ * navigation, even with the CPU slowed 4×). So the mount gets the navigation's own allowance
+ * first, and `atRest` keeps its 5 s for the motion.
+ */
+async function booted(page: Page): Promise<void> {
+  const shell = page.getByTestId('app-shell');
+  await expect(shell).toBeVisible({ timeout: 30_000 });
+  await atRest(shell);
+}
+
 const OOXML = 'application/vnd.openxmlformats-officedocument.';
+
+/**
+ * On a failure, what the page knew: whether it is isolated, the service worker that controls
+ * it, the package cache's entries and what the Office sheet says, so a CI failure on an
+ * engine that cannot run here says where the flow stopped.
+ */
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus || page.isClosed()) return;
+  const state = await page
+    .evaluate(async () => {
+      const registration = await navigator.serviceWorker?.getRegistration();
+      const cache = await caches.open('pdf-editor-office').catch(() => null);
+      const keys = cache === null ? [] : await cache.keys();
+      return {
+        url: location.href,
+        crossOriginIsolated,
+        sharedArrayBuffer: typeof SharedArrayBuffer,
+        controller: navigator.serviceWorker?.controller?.state ?? null,
+        active: registration?.active?.state ?? null,
+        waiting: registration?.waiting?.state ?? null,
+        officeCache: keys.map((request) => new URL(request.url).pathname),
+        sheet: document.querySelector('[data-testid="office-sheet"]')?.textContent ?? null,
+      };
+    })
+    .catch((error: unknown) => ({ unreadable: String(error) }));
+  const description = JSON.stringify(state);
+  console.log(`[office] ${testInfo.project.name}: ${description}`);
+  testInfo.annotations.push({ type: 'office-state', description });
+});
 
 /** Picks a file through the Open files button. */
 async function pick(page: Page, name: string, mimeType: string, buffer: Buffer): Promise<void> {
@@ -96,8 +140,7 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   await useFileInputPicker(page);
   await useDownloadPath(page);
   await page.goto('./?office=1');
-  await atRest(page.getByTestId('app-shell'));
-  await expect(page.getByTestId('app-shell')).toBeVisible();
+  await booted(page);
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
@@ -116,19 +159,20 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
     docx(['First page: Recto converts this.', 'İkinci sayfa: ğüşiöç.', 'Third page.']),
   );
 
+  // The sheet comes with the lazy Office chunk, loaded by this first pick: mounted, then at rest.
   const sheet = page.getByTestId('office-sheet');
+  await expect(sheet).toBeVisible({ timeout: 30_000 });
   await atRest(sheet);
-  await expect(sheet).toBeVisible();
   await expect(page.getByTestId('office-consent')).toContainText(/one-time conversion package/);
   await expect(page.getByTestId('office-file')).toHaveText('report.docx');
 
-  // Download, then the one reload into isolation, then the conversion.
-  const reloaded = page.waitForEvent('framenavigated', { timeout: 240_000 });
+  // Download, then the one reload into isolation, then the conversion. The reload is a new
+  // document's `load`, not any `framenavigated` (a same-document URL change fires that too).
+  const reloaded = page.waitForEvent('load', { timeout: 240_000 });
   const started = Date.now();
   await page.getByTestId('office-download').click();
   await reloaded;
-  await atRest(page.getByTestId('app-shell'));
-  await expect(page.getByTestId('app-shell')).toBeVisible();
+  await booted(page);
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
   expect(await page.evaluate(() => typeof SharedArrayBuffer)).toBe('function');
 
@@ -217,7 +261,7 @@ test('a Word file converts on the device and opens as a PDF', async ({ page }) =
   await confirmation.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(row).toBeDisabled();
   await page.reload();
-  await atRest(page.getByTestId('app-shell'));
+  await booted(page);
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(false);
 
   const peak = stopSampling();
