@@ -111,7 +111,8 @@ work earns it. The caps below are working defaults the CEO may move, and must re
    decisions, the HQ body rewritten (lock cleared, lanes, next ten, parked, board questions).
 9. **Report.** One HQ comment, in English (PRC-27): what shipped (PR links), what is open, spend
    (agent tokens by tier), decisions taken, and anything the board must answer. Two to ten lines.
-   The chat with the owner stays in Turkish.
+   The morning and evening briefs are in English too and are also posted as HQ comments, so the
+   owner can follow and answer in the GitHub app. The chat with the owner stays in Turkish.
 10. **Improve HQ.** Once a day, the 18:53 cycle makes one small improvement to how the owner
    follows the company (the console, the brief, the HQ issue), within the cycle's budget (PRC-27).
 
