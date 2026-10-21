@@ -38,10 +38,11 @@ export const OFFICE_DIR = fileURLToPath(new URL('.', import.meta.url));
 export const LOCK_PATH = join(OFFICE_DIR, 'office.lock.json');
 /** Where `fetch.ts` writes the package (git-ignored). */
 export const VENDOR_DIR = join(OFFICE_DIR, 'vendor');
-/** Notices committed beside this file and shipped with the package (ADR-0035 §2). */
-/** GitHub Pages refuses files of this size or more; above `WARN_BYTES` the build warns (PRC-26). */
+/** GitHub Pages refuses files of this size or more (PRC-26). */
 export const MAX_FILE_BYTES = 100 * 1024 * 1024;
+/** Above this size an emitted file makes the build warn (PRC-26). */
 export const WARN_BYTES = 90 * 1024 * 1024;
+/** Notices committed beside this file and shipped with the package (ADR-0035 §2). */
 export const LICENSE_FILES = ['NOTICE.txt', 'MPL-2.0.txt'] as const;
 
 export interface LockedOfficeFile {
