@@ -83,9 +83,21 @@ work earns it. The caps below are working defaults the CEO may move, and must re
   log or a search never goes to Opus. Effort `medium` everywhere.
 - **Idle is allowed:** when the backlog has nothing worth doing at the bar, the cycle does the
   report and stops. Busywork is not work.
-- **Sprint cadence (PRC-28):** when the owner asks for a push, the cycle runs every four hours
-  (02:53, 06:53, 10:53, 14:53, 18:53, 22:53) with about 1.5 M agent tokens a cycle, for a stated
-  window; a one-shot task restores the normal cadence when it ends.
+- **Work-sized sessions (PRC-28):** a fixed cycle is a poor fit for every task, so the clock only
+  wakes the lead; the work decides how long it runs. Three kinds of wake-up:
+  - **Deep cycles** (planning): choose and shape epics, hire long lanes, run the fresh-eyes check.
+    Normal cadence: 10:53 and 22:53 Istanbul (the night one launches the longest lanes).
+  - **Heartbeats** (cheap, minutes): merge green PRs, unblock red ones, start a queued lane only
+    if a slot is free, update HQ. Normal cadence: 02:53, 06:53, 14:53, 18:53 (18:53 also writes
+    the daily report). A heartbeat with nothing to do writes nothing and stops.
+  - **Lane check-ins:** each lane, when hired, gets its own check-in timed to its expected length
+    (an hour for a small fix, a night for an epic lane), and agents' own completion wakes the lead.
+  The CEO moves these times and the per-cycle budget (about 1.5 M agent tokens for a deep cycle,
+  far less for a heartbeat) to fit the work, and records a lasting change here.
+- **Fresh eyes:** once a day a deep cycle sends one agent with no company context (no charter,
+  no decisions, no HQ) to use the live app and read the public repo as a new user and a sceptical
+  investor would, and to list what it would question. Its list is input, not orders; it guards
+  against the company only checking its own homework.
 
 ## Epics: how major work is run (PRC-28)
 
