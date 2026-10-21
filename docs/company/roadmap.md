@@ -9,23 +9,23 @@ unit of effort. An item moves to "Now" only with a done condition. Board items w
 most presentable one (B-16): nothing broken, nothing repeated, no slow frame on a mid phone. Then
 the tests' findings outrank everything else here.
 
-## Now (R23)
+## Now (R24)
+
+R23's eight items are done (#29–#46). Text (.txt) to PDF shipped in #47 (PRD-19).
 
 | # | Item | Role | Done when |
 |---|---|---|---|
-| 1 | GPU glass survives a pause: the slow-frame rule (GLS-13) restarts its clock after a pause, so a pause over 2 s no longer ends GPU glass for the session (PRC-22's open note) | builder + principal review | a unit test pauses 3 s and GPU glass keeps drawing; e2e glass specs green |
-| 2 | Modal sheets and dialogs announce themselves as modal (`aria-modal`), so toasts pause under them and shortcut guards see them (DSN-56, A-24) | root cause, then builder | one helper decides "a modal is open"; toast and keymap specs cover a Base UI sheet |
-| 3 | Presentability sweep: the design director walks every screen and sheet at desktop, tablet and phone, both themes | design director, then builders | a findings list in the HQ issue; every "send back" item fixed or ranked |
-| 4 | User-test kit: tasks for desktop and phone, what to watch, a one-page findings template | strategist | `docs/research/user-tests/kit.md` reviewed by the CEO |
-| 5 | Phone first-load: measure the PWA precache (13.45 MB at R22) and the first open on a throttled phone; cut what the first visit does not need | root cause, then builder | a measured number before and after, no gate raised |
-| 6 | Stale task audit: old open items (XD-3 tracks, the R12 innovation roadmap) checked against today's code; each closed, merged into this list, or parked with a reason | analyst | this file updated |
-| 7 | Phone pen and highlighter draw again (owner report 2026-10-19: strokes cut to a scratch on the sample) | root cause, then fix | an e2e at phone size commits a pen and a highlighter stroke; one finger still scrolls with no tool |
-| 8 | Conversions people search for: name what exists ("Images to PDF", "PDF to JPG / PNG", "PDF to Markdown") on Home and in the command keywords (first tester's question; `docs/research/conversion-2026-10/memo.md`) | builder | each name finds its command in the palette and on Home; EN and TR strings |
+| 1 | Office → PDF phase 2 plan: deploy ships the package, CI runs `office.spec`, isolation on Firefox and WebKit, font licences, a "Remove package" setting, font fidelity, flag-removal criteria | principal | `docs/research/conversion-2026-10/office-phase-2.md` with lanes and board questions |
+| 2 | Office → PDF phase 2 lanes, as the plan sets them | builders + principal review | each lane's done condition; the flag comes off only by the plan's criteria |
+| 3 | Office files open as new, unsaved documents, like Text to PDF (PRD-19): close warns, not in Recents | builder | a unit test and the office e2e cover it |
+| 4 | Presentability leftovers from the sweep (#9, #10, #13, #14, #16–#23, #25) | builders + design director | each fixed or parked with a reason |
+| 5 | Markdown to PDF with a small built-in parser (conversion memo step 2) | principal plan, then builder | headings, lists, emphasis, code and links render; text extracts back |
 
 ## Next
 
-- Text (.txt) to PDF, then Markdown to PDF, with the bundled fonts and line-breaker (no dependency; conversion memo).
 - Findings of the user tests (they jump the queue when they arrive).
+- The ~60 remaining test waits that need app hooks (after the #46 sweep).
+- Phone first-load proposals P1–P6 (some need PF-17 and MOB-13 amendments).
 - Weekly routing comparison (Sonnet lanes against the Opus baseline, `model-routing.md`).
 - Accessibility pass on keyboard and focus (PRD-3: not a V1 requirement, but cheap wins count).
 - Settings and Library copy read in Turkish by a native-quality reviewer pass.
@@ -36,9 +36,6 @@ the tests' findings outrank everything else here.
 
 ## Board ideas (proposals, not decisions)
 
-- **Office files (DOCX, XLSX, PPTX) to PDF on the device:** LibreOffice as WASM, loaded only when an
-  Office file is opened (about 50 MB on first use, MPL-2.0, needs cross-origin isolation). The
-  CEO's advice: wait until more testers ask; never convert on a server.
 - **Verifiably private.** Recto is already public under Apache-2.0. Make that the headline: a page
   that shows the app making no network request with a file open, and a build hash anyone can
   reproduce. Competitors say "private"; Recto could prove it.

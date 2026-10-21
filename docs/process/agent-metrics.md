@@ -69,3 +69,13 @@ Cycle 1 notes: three Sonnet lanes so far, all first-CI red only for reasons outs
 comparison with the Opus baseline waits for lanes 4–6. Owner-reported bugs and CI flakes took most
 of the cycle's Opus spend (about 0.8 M of 1.05 M).
 
+## R24, cycle 5
+
+| Round | Lane | Model | Effort | Tokens | Minutes | First CI | Fix rounds | Stray | Review |
+|---|---|---|---|---|---|---|---|---|---|
+| R24 | Text (.txt) to PDF (implementer) | Sonnet 5.5 | medium | 181K + 234K | 44 + 32 | no (the kept-names test lists file-picker ids; the lead added the new id) | 2 (review, CI) | 1 (`session/snapshot.ts`, needed for the dirty state, accepted) | 2 blocking, 6 warnings fixed |
+| R24 | review of Text to PDF (reviewer) | Opus 5.5 | medium | 43K | 3 | — | — | — | — |
+| R24 | CI log reads (2) | Haiku 5.5 | low | 56–63K each | <1 each | — | — | — | — |
+
+Cycles 2–4 lanes (#29–#46) have no rows: their numbers were not kept at the time. From cycle 5 on,
+each lane gets its row in the cycle that merges it.
