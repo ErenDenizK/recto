@@ -147,8 +147,9 @@ app's own origin (ADR-0035). Their notices ship with them (convert/<version>/NOT
   Copyright the LibreOffice contributors (The Document Foundation) and the OpenOffice.org
   contributors; the WebAssembly build and its worker host by the
   libreoffice-document-converter contributors.
-  License: MPL-2.0. One file is modified (soffice.js: the pre-started thread pool grows from
-  4 to 16); the modified file is served beside the package and the change is recorded in
-  packages/engine/office/office.lock.json. Its fonts keep their own licenses (OFL-1.1,
-  Apache-2.0, the Bitstream Vera license, GPL with the font exception), listed in
+  License: MPL-2.0. Two files are modified (soffice.js: the pre-started thread pool grows from
+  4 to 16 and its file table follows soffice.data; soffice.data: some fonts are removed and the
+  fontconfig substitution file is replaced); the modified files are served beside the package
+  and the changes are recorded in packages/engine/office/office.lock.json. Its fonts keep their
+  own licenses (OFL-1.1, Apache-2.0, the Bitstream Vera license), listed in
   packages/engine/office/NOTICE.txt.

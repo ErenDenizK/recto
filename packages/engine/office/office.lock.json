@@ -9,7 +9,7 @@
     "repository": "https://github.com/matbeedotcom/libreoffice-document-converter",
     "libreoffice": "24.8"
   },
-  "directory": "lo-2.7.2-r1",
+  "directory": "lo-2.7.2-r2",
   "patches": [
     {
       "file": "soffice.js",
@@ -18,6 +18,61 @@
       "why": "LibreOffice blocks its main thread while it starts more threads; with 4 pre-started workers the pool runs dry and \"Loading document\" never ends (spike §3). 16 fixes it."
     }
   ],
+  "data": {
+    "drop": [
+      "/instdir/share/fonts/truetype/LinBiolinum_RB_G.ttf",
+      "/instdir/share/fonts/truetype/LinBiolinum_RI_G.ttf",
+      "/instdir/share/fonts/truetype/LinBiolinum_R_G.ttf",
+      "/instdir/share/fonts/truetype/LinLibertine_DR_G.ttf",
+      "/instdir/share/fonts/truetype/LinLibertine_RBI_G.ttf",
+      "/instdir/share/fonts/truetype/LinLibertine_RB_G.ttf",
+      "/instdir/share/fonts/truetype/LinLibertine_RI_G.ttf",
+      "/instdir/share/fonts/truetype/LinLibertine_RZI_G.ttf",
+      "/instdir/share/fonts/truetype/LinLibertine_RZ_G.ttf",
+      "/instdir/share/fonts/truetype/LinLibertine_R_G.ttf",
+      "/instdir/share/fonts/truetype/GenBasB.ttf",
+      "/instdir/share/fonts/truetype/GenBasBI.ttf",
+      "/instdir/share/fonts/truetype/GenBasI.ttf",
+      "/instdir/share/fonts/truetype/GenBasR.ttf",
+      "/instdir/share/fonts/truetype/GenBkBasB.ttf",
+      "/instdir/share/fonts/truetype/GenBkBasBI.ttf",
+      "/instdir/share/fonts/truetype/GenBkBasI.ttf",
+      "/instdir/share/fonts/truetype/GenBkBasR.ttf",
+      "/instdir/share/fonts/truetype/DejaVuSans-ExtraLight.ttf",
+      "/instdir/share/fonts/truetype/DejaVuSerifCondensed.ttf",
+      "/instdir/share/fonts/truetype/DejaVuSerifCondensed-Bold.ttf",
+      "/instdir/share/fonts/truetype/DejaVuSerifCondensed-BoldItalic.ttf",
+      "/instdir/share/fonts/truetype/DejaVuSerifCondensed-Italic.ttf",
+      "/instdir/share/fonts/truetype/DavidCLM-Bold.otf",
+      "/instdir/share/fonts/truetype/DavidCLM-BoldItalic.otf",
+      "/instdir/share/fonts/truetype/DavidCLM-Medium.otf",
+      "/instdir/share/fonts/truetype/DavidCLM-MediumItalic.otf",
+      "/instdir/share/fonts/truetype/FrankRuehlCLM-Bold.ttf",
+      "/instdir/share/fonts/truetype/FrankRuehlCLM-BoldOblique.ttf",
+      "/instdir/share/fonts/truetype/FrankRuehlCLM-Medium.ttf",
+      "/instdir/share/fonts/truetype/FrankRuehlCLM-MediumOblique.ttf",
+      "/instdir/share/fonts/truetype/MiriamCLM-Bold.ttf",
+      "/instdir/share/fonts/truetype/MiriamCLM-Book.ttf",
+      "/instdir/share/fonts/truetype/MiriamMonoCLM-Bold.ttf",
+      "/instdir/share/fonts/truetype/MiriamMonoCLM-BoldOblique.ttf",
+      "/instdir/share/fonts/truetype/MiriamMonoCLM-Book.ttf",
+      "/instdir/share/fonts/truetype/MiriamMonoCLM-BookOblique.ttf",
+      "/instdir/share/fonts/truetype/NachlieliCLM-Bold.otf",
+      "/instdir/share/fonts/truetype/NachlieliCLM-BoldOblique.otf",
+      "/instdir/share/fonts/truetype/NachlieliCLM-Light.otf",
+      "/instdir/share/fonts/truetype/NachlieliCLM-LightOblique.otf",
+      "/instdir/share/fonts/truetype/LiberationSansNarrow-Bold.ttf",
+      "/instdir/share/fonts/truetype/LiberationSansNarrow-BoldItalic.ttf",
+      "/instdir/share/fonts/truetype/LiberationSansNarrow-Italic.ttf",
+      "/instdir/share/fonts/truetype/LiberationSansNarrow-Regular.ttf"
+    ],
+    "replace": {
+      "/instdir/share/fonts/truetype/fc_local.conf": {
+        "file": "data/fc_local.conf",
+        "sha256": "433ab3a5a9bd4833e2ee3990d251d15f34ecb2a29a442308400ec00c43edda90"
+      }
+    }
+  },
   "files": {
     "browser.worker.global.js": {
       "source": "package/dist/browser.worker.global.js",
@@ -26,8 +81,8 @@
     },
     "soffice.js": {
       "source": "package/wasm/soffice.js",
-      "sha256": "59529fe0687565d51ac2729dc5b60120f3faebe435e1b47e9a7dd7428dd94517",
-      "bytes": 444154
+      "sha256": "59cdf53900df8f20faef8a30b3ca9c573fbe105de623f3056a6584e9affbc79e",
+      "bytes": 439912
     },
     "soffice.worker.js": {
       "source": "package/wasm/soffice.worker.js",
@@ -43,16 +98,16 @@
     },
     "soffice.data": {
       "source": "package/wasm/soffice.data",
-      "sha256": "8f4e98aa67e108e161cecc7906d7ac0dd3941ef9347f999c3b9dbc049f165020",
-      "bytes": 99735918,
+      "sha256": "6ff7f7f91e78f821c683cb1f89b5e954416ab91c9d46570348fae7ae9da77e34",
+      "bytes": 74501293,
       "gzip": true,
-      "downloadBytes": 28665992
+      "downloadBytes": 20371975
     }
   },
   "notices": {
     "NOTICE.txt": {
-      "sha256": "8c2073166697d067ca072d93ecc5b6bf662bef025993c795b458ea754013c4da",
-      "bytes": 2829
+      "sha256": "d68be61932e333ed0cd14aca0b0191055afe47a673193e0ae86d45efb227f463",
+      "bytes": 4713
     },
     "MPL-2.0.txt": {
       "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e",

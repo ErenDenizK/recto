@@ -24,30 +24,55 @@ soffice.wasm, soffice.data, browser.worker.global.js), from the npm package
 License: Mozilla Public License 2.0 (MPL-2.0.txt).
 Source: https://github.com/matbeedotcom/libreoffice-document-converter
 
-Modification: Recto changes one line of soffice.js. "var pthreadPoolSize=4;" becomes
-"var pthreadPoolSize=16;": with four pre-started threads, LibreOffice can wait forever while
-it loads a document. The modified file is served beside this notice, and the change is
+Modifications: Recto changes two files.
+1. soffice.js: "var pthreadPoolSize=4;" becomes "var pthreadPoolSize=16;" (with four
+   pre-started threads, LibreOffice can wait forever while it loads a document), and the
+   loadPackage file table (each file's offsets and the package size) is rewritten to match the
+   smaller soffice.data below.
+2. soffice.data: this is a data package, not source, but it is changed too. Recto removes the
+   font files listed under "Fonts removed" and replaces one file,
+   /instdir/share/fonts/truetype/fc_local.conf, with its own fontconfig substitution table
+   (packages/engine/office/data/fc_local.conf in Recto's source). Nothing else in it changes.
+The modified soffice.js and soffice.data are served beside this notice; both changes are
 recorded in Recto's source (packages/engine/office/office.lock.json and fetch.ts,
 https://github.com/ErenDenizK/pdf-editor). Every other file is unmodified.
 
 Fonts in soffice.data
 ---------------------
-soffice.data carries the fonts LibreOffice ships, each under its own license:
+soffice.data carries the fonts below, each under the license its font file states (Recto reads
+the license from each file's name table). Each font's license text is part of its file and of
+LibreOffice's "License and Legal Information".
 
-- Liberation Sans, Serif, Mono and Sans Narrow: SIL Open Font License 1.1.
+- Liberation Sans, Liberation Serif and Liberation Mono: SIL Open Font License 1.1.
 - Carlito: SIL Open Font License 1.1.
 - Caladea: Apache License 2.0.
-- DejaVu Sans, Serif and Mono: the Bitstream Vera Fonts license, with changes in the public
-  domain; DejaVu Math TeX Gyre: GUST Font License.
-- Noto Sans, Noto Serif and their Arabic, Armenian, Georgian, Hebrew, Lao and Lisu faces;
-  Noto Kufi Arabic and Noto Naskh Arabic: SIL Open Font License 1.1.
-- Gentium Basic and Gentium Book Basic: SIL Open Font License 1.1.
-- Linux Libertine G and Linux Biolinum G: GPL with the font exception, or SIL Open Font
-  License 1.1.
-- Alef, Amiri, Amiri Quran, David Libre, Frank Ruhl Hofshi, Miriam Libre, Reem Kufi, Rubik
-  and Scheherazade: SIL Open Font License 1.1.
-- Culmus David CLM, Frank Ruehl CLM, Miriam CLM, Miriam Mono CLM and Nachlieli CLM: GPL 2
-  with the font exception.
+- DejaVu Sans, DejaVu Sans Condensed, DejaVu Sans Mono and DejaVu Serif: the Bitstream Vera
+  Fonts license, with DejaVu's changes in the public domain; DejaVu Math TeX Gyre: DejaVu's
+  changes and math extensions in the public domain over the Bitstream Vera Fonts license.
+- Noto Sans, Noto Serif, Noto Sans and Noto Serif Arabic, Armenian, Georgian, Hebrew and Lao,
+  Noto Sans Lisu, Noto Kufi Arabic and Noto Naskh Arabic: SIL Open Font License 1.1.
+- Amiri, Amiri Quran, David Libre, Miriam Libre, Reem Kufi, Rubik and Scheherazade: SIL Open
+  Font License 1.1.
+- Alef (Hagilda) and Frank Ruhl Hofshi: the font file carries a copyright line only; both are
+  published upstream under the SIL Open Font License 1.1.
+- OpenSymbol (opens___.ttf, in two folders): the font file carries
+  copyright lines only (Sun Microsystems and later contributors); it is LibreOffice's own
+  symbol font and ships under LibreOffice's license terms above.
 
-Each font's license text is part of the font file's own name table and of LibreOffice's
-"License and Legal Information".
+Fonts removed
+-------------
+Recto removes these from soffice.data to keep the download small or to keep GPL-licensed files
+out of an otherwise MPL, OFL, Apache and public-domain package: Linux Libertine G and Linux
+Biolinum G; Gentium Basic and Gentium Book Basic; DejaVu Serif Condensed and DejaVu Sans
+ExtraLight; the Culmus families David CLM, Frank Ruehl CLM, Miriam CLM, Miriam Mono CLM and
+Nachlieli CLM; and Liberation Sans Narrow. Documents that name an absent font get the
+substitute in the table below (the Hebrew families use the OFL David Libre, Miriam Libre and
+Frank Ruhl Hofshi that stay in the package).
+
+Font substitution table (fc_local.conf)
+---------------------------------------
+Calibri, Calibri Light: Carlito. Cambria: Caladea. Arial, Times New Roman, Courier New:
+Liberation Sans, Serif, Mono. Arial Narrow: Liberation Sans. Aptos, Aptos Display, Aptos
+Narrow: Carlito (provisional). Segoe UI: Noto Sans. Verdana: DejaVu Sans. Tahoma: DejaVu Sans
+Condensed. Georgia, Garamond: Noto Serif. Century Gothic: DejaVu Sans. David: David Libre.
+Miriam: Miriam Libre. FrankRuehl: Frank Ruhl Hofshi.

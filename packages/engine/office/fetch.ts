@@ -12,7 +12,10 @@
  * integrity before anything is read from it. Five files are taken from it; `soffice.js` gets
  * the threads patch (ADR-0035 §3: the pre-started pthread pool grows from 4 to 16, which ends
  * the "Loading document" deadlock the spike measured), and `soffice.wasm` and `soffice.data`
- * are gzipped at level 9 (no name, mtime 0). Nothing here is committed: `vendor/` is
+ * are gzipped at level 9 (no name, mtime 0). Since r2 (PRD-20) `soffice.data` is also rewritten
+ * from the lock's `data` section: `drop` removes font files, `replace` swaps a file for a
+ * committed one, and the `loadPackage` table in `soffice.js` (offsets, `remote_package_size`)
+ * is rewritten to match, a second change to that MPL file. Nothing here is committed: `vendor/` is
  * git-ignored, and the build copies it into `dist/convert/` when present (`assets.ts`).
  */
 import { execFileSync } from 'node:child_process';
@@ -43,8 +46,45 @@ const PIN = {
   version: '2.7.2',
   libreoffice: '24.8',
   /** Bumped whenever the patches change, so browsers fetch the package again. */
-  revision: 1,
+  revision: 2,
 } as const;
+
+/** The `data` section of the lock (PRD-20): how `soffice.data` is rewritten. */
+export interface DataRewrite {
+  /** Exact in-package paths to remove. */
+  readonly drop: readonly string[];
+  /** In-package path → the committed file (relative to this folder) that replaces it. */
+  readonly replace: Readonly<Record<string, { readonly file: string; readonly sha256: string }>>;
+}
+
+type PinnedLock = OfficeLock & { readonly data: DataRewrite };
+
+/**
+ * r2 drops (PRD-20, BQ-1 and size): Linux Libertine G and Biolinum G, Gentium Basic and Book
+ * Basic, DejaVu Serif Condensed and Sans ExtraLight, the Culmus families (GPL 2) and Liberation
+ * Sans Narrow (GPL 2 with exceptions). Hebrew documents use the OFL David Libre, Miriam Libre
+ * and Frank Ruhl Hofshi that stay in the package; Arial Narrow falls back to Liberation Sans.
+ */
+const TRUETYPE = '/instdir/share/fonts/truetype/';
+const DROP: readonly string[] = [
+  ...['RB_G', 'RI_G', 'R_G'].map((s) => `LinBiolinum_${s}.ttf`),
+  ...['DR_G', 'RBI_G', 'RB_G', 'RI_G', 'RZI_G', 'RZ_G', 'R_G'].map((s) => `LinLibertine_${s}.ttf`),
+  ...['B', 'BI', 'I', 'R'].map((s) => `GenBas${s}.ttf`),
+  ...['B', 'BI', 'I', 'R'].map((s) => `GenBkBas${s}.ttf`),
+  'DejaVuSans-ExtraLight.ttf',
+  ...['', '-Bold', '-BoldItalic', '-Italic'].map((s) => `DejaVuSerifCondensed${s}.ttf`),
+  ...['-Bold', '-BoldItalic', '-Medium', '-MediumItalic'].map((s) => `DavidCLM${s}.otf`),
+  ...['-Bold', '-BoldOblique', '-Medium', '-MediumOblique'].map((s) => `FrankRuehlCLM${s}.ttf`),
+  ...['-Bold', '-Book'].map((s) => `MiriamCLM${s}.ttf`),
+  ...['-Bold', '-BoldOblique', '-Book', '-BookOblique'].map((s) => `MiriamMonoCLM${s}.ttf`),
+  ...['-Bold', '-BoldOblique', '-Light', '-LightOblique'].map((s) => `NachlieliCLM${s}.otf`),
+  ...['-Bold', '-BoldItalic', '-Italic', '-Regular'].map((s) => `LiberationSansNarrow${s}.ttf`),
+].map((name) => `${TRUETYPE}${name}`);
+
+/** The committed replacement for fontconfig's local file (Recto's substitution table). */
+const REPLACE: Readonly<Record<string, string>> = {
+  [`${TRUETYPE}fc_local.conf`]: 'data/fc_local.conf',
+};
 
 const PATCHES: readonly OfficePatch[] = [
   {
@@ -119,11 +159,80 @@ function gzip(raw: Uint8Array): Uint8Array {
   return new Uint8Array(gzipSync(raw, { level: 9 }));
 }
 
+const TABLE_HEAD = 'loadPackage({files:[';
+const TABLE_ENTRY = /\{filename:"([^"]*)",start:(\d+(?:e\d+)?),end:(\d+(?:e\d+)?)\}/y;
+const TABLE_TAIL = /\],remote_package_size:(\d+(?:e\d+)?)\}\)/y;
+
+/**
+ * Applies the lock's `data` section: returns the new `soffice.data` bytes and `soffice.js` text
+ * with its `loadPackage` table rewritten (entry order kept, offsets and size recomputed). Throws
+ * unless the table occurs once, parses completely and round-trips, and every path exists.
+ */
+export function rewriteData(
+  js: string,
+  data: Uint8Array,
+  spec: DataRewrite,
+  read: (file: string) => Uint8Array,
+): { js: string; data: Uint8Array } {
+  const head = count(js, TABLE_HEAD);
+  if (head !== 1) throw new Error(`soffice.js: loadPackage table found ${head} times`);
+  const from = js.indexOf(TABLE_HEAD) + TABLE_HEAD.length;
+  const entries: { filename: string; start: number; end: number }[] = [];
+  let at = from;
+  for (;;) {
+    TABLE_ENTRY.lastIndex = at;
+    const hit = TABLE_ENTRY.exec(js);
+    if (hit === null) break;
+    entries.push({ filename: hit[1] ?? '', start: Number(hit[2]), end: Number(hit[3]) });
+    at += hit[0].length;
+    if (js[at] === ',') at += 1;
+  }
+  TABLE_TAIL.lastIndex = at;
+  const tail = TABLE_TAIL.exec(js);
+  if (tail === null) throw new Error('soffice.js: loadPackage table does not end as expected');
+  const size = Number(tail[1]);
+  let expected = 0;
+  for (const entry of entries) {
+    if (entry.start !== expected) throw new Error(`${entry.filename}: table is not contiguous`);
+    expected = entry.end;
+  }
+  if (expected !== size || size !== data.length) {
+    throw new Error(`soffice.data: ${data.length} bytes, table says ${size}`);
+  }
+  const names = new Set(entries.map((entry) => entry.filename));
+  if (names.size !== entries.length) throw new Error('soffice.js: duplicate table entries');
+  for (const path of [...spec.drop, ...Object.keys(spec.replace)]) {
+    if (!names.has(path)) throw new Error(`soffice.data: no entry ${path}`);
+  }
+  const drop = new Set(spec.drop);
+  const chunks: Uint8Array[] = [];
+  const kept: string[] = [];
+  let offset = 0;
+  for (const entry of entries) {
+    if (drop.has(entry.filename)) continue;
+    const replacement = spec.replace[entry.filename];
+    const bytes =
+      replacement === undefined ? data.subarray(entry.start, entry.end) : read(replacement.file);
+    chunks.push(bytes);
+    kept.push(`{filename:"${entry.filename}",start:${offset},end:${offset + bytes.length}}`);
+    offset += bytes.length;
+  }
+  const out = new Uint8Array(offset);
+  let cursor = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, cursor);
+    cursor += chunk.length;
+  }
+  const rewritten = `${kept.join(',')}],remote_package_size:${offset}})`;
+  return { js: js.slice(0, from) + rewritten + js.slice(at + tail[0].length), data: out };
+}
+
 /** Writes vendor/<directory>/ from the tarball; returns each file's raw bytes and gzip size. */
 function vendor(
   tarball: string,
   directory: string,
   patches: readonly OfficePatch[],
+  rewrite: DataRewrite,
 ): Record<string, LockedOfficeFile> {
   const extracted = extract(tarball);
   const out = join(VENDOR_DIR, directory);
@@ -131,8 +240,20 @@ function vendor(
   mkdirSync(out, { recursive: true });
   const files: Record<string, LockedOfficeFile> = {};
   try {
+    const raws = new Map<string, Uint8Array>();
+    for (const [name, { source }] of Object.entries(SOURCES)) {
+      raws.set(name, patched(name, new Uint8Array(readFileSync(join(extracted, source))), patches));
+    }
+    const rewritten = rewriteData(
+      new TextDecoder().decode(raws.get('soffice.js')),
+      raws.get('soffice.data') ?? new Uint8Array(),
+      rewrite,
+      (file) => new Uint8Array(readFileSync(join(OFFICE_DIR, file))),
+    );
+    raws.set('soffice.js', new TextEncoder().encode(rewritten.js));
+    raws.set('soffice.data', rewritten.data);
     for (const [name, { source, gzip: compress }] of Object.entries(SOURCES)) {
-      const raw = patched(name, new Uint8Array(readFileSync(join(extracted, source))), patches);
+      const raw = raws.get(name) ?? new Uint8Array();
       const served = compress === true ? gzip(raw) : raw;
       const file: LockedOfficeFile = {
         source,
@@ -154,8 +275,17 @@ function pin(): void {
   const tarball = tarballUrl(PIN.name, PIN.version);
   const path = download(tarball);
   const directory = `lo-${PIN.version}-r${PIN.revision}`;
-  const files = vendor(path, directory, PATCHES);
-  const lock: OfficeLock = {
+  const data: DataRewrite = {
+    drop: DROP,
+    replace: Object.fromEntries(
+      Object.entries(REPLACE).map(([target, file]) => [
+        target,
+        { file, sha256: sha256(new Uint8Array(readFileSync(join(OFFICE_DIR, file)))) },
+      ]),
+    ),
+  };
+  const files = vendor(path, directory, PATCHES, data);
+  const lock: PinnedLock = {
     $comment:
       'Pinned Office conversion package (ADR-0035). Written by ' +
       '`node packages/engine/office/fetch.ts --pin`; checked by `--verify`, the build ' +
@@ -171,6 +301,7 @@ function pin(): void {
     },
     directory,
     patches: PATCHES,
+    data,
     files,
     notices: Object.fromEntries(
       LICENSE_FILES.map((name) => {
@@ -183,7 +314,7 @@ function pin(): void {
 }
 
 /** Downloads the pinned tarball (checking its integrity) and writes the vendored files. */
-function fetchPinned(lock: OfficeLock): void {
+function fetchPinned(lock: PinnedLock): void {
   if (isVendored(lock)) {
     try {
       verifyOfficeAssets(lock);
@@ -200,12 +331,17 @@ function fetchPinned(lock: OfficeLock): void {
       `${lock.package.tarball}: integrity ${integrity}, office.lock.json says ${lock.package.integrity}`,
     );
   }
-  vendor(path, lock.directory, lock.patches);
+  for (const { file, sha256: pinned } of Object.values(lock.data.replace)) {
+    const actual = sha256(new Uint8Array(readFileSync(join(OFFICE_DIR, file))));
+    if (actual !== pinned)
+      throw new Error(`${file}: SHA-256 ${actual}, office.lock.json says ${pinned}`);
+  }
+  vendor(path, lock.directory, lock.patches, lock.data);
 }
 
 const mode = process.argv[2];
 if (mode === '--pin') pin();
-else if (mode !== '--verify') fetchPinned(readLock());
+else if (mode !== '--verify') fetchPinned(readLock() as PinnedLock);
 
 const verified = verifyOfficeAssets();
 let total = 0;
