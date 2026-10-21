@@ -574,7 +574,7 @@
   "cmd_pages_rotate_left_keywords": "döndür, çevir, sola döndür, sola çevir, saatin tersine döndür",
   "cmd_pages_delete_keywords": "sil, sayfa sil, kaldır, sayfayı sil, sayfaları sil, sayfaları kaldır",
   "cmd_pages_duplicate_keywords": "çoğalt, kopyala, sayfayı çoğalt, sayfayı kopyala",
-  "cmd_pages_extract_keywords": "ayıkla, çıkar, sayfaları kaydet, sayfaları ayır, sayfa çıkar",
+  "cmd_pages_extract_keywords": "ayıkla, çıkar, sayfaları kaydet, sayfaları ayır",
   "cmd_pages_insert_blank_keywords": "boş sayfa, sayfa ekle",
   "cmd_pages_insert_from_file_keywords": "pdf ekle, dosya ekle, dosyadan sayfa, sayfa ekle, içe aktar",
   "cmd_pages_crop_keywords": "kırp, kenar boşluğu",

@@ -186,6 +186,12 @@ export function highlightPositions(query: string, text: string): number[] {
  */
 export function isMeaningfulMatch(match: FuzzyMatch, text: string): boolean {
   const { positions } = match;
+  // A consonant abbreviation ("wtrmrk", "dlt", "hl") is scattered by nature: it passes when
+  // its first letter starts a word of the text.
+  const folded = foldForSearch(text);
+  if (!positions.some((at) => 'aeiou'.includes(folded[at] ?? ''))) {
+    return positions.length > 0 && positionBonus(text, positions[0] ?? 0) > 0;
+  }
   let orphans = 0;
   positions.forEach((at, i) => {
     // The first character may sit anywhere ("tate" in "Rotate"); the rest must hang together.

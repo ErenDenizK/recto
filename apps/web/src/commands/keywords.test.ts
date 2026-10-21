@@ -390,6 +390,17 @@ describe('score floor (Epic 4)', () => {
     }
   });
 
+  it('keeps consonant abbreviations on their old top matches', () => {
+    const registry = allCommands();
+    expect(search(registry, 'wtrmrk')[0]).toBe('document.watermark');
+    expect(search(registry, 'mrkdn')[0]).toBe('document.exportMarkdown');
+    expect(search(registry, 'dwnld')[0]).toBe('file.export');
+    expect(search(registry, 'hl').slice(0, 5)).toContain('tool.highlight');
+    expect(search(registry, 'dlt')).toEqual(
+      expect.arrayContaining(['pages.delete', 'annotation.delete']),
+    );
+  });
+
   it('keeps abbreviations and one-letter slips', () => {
     const registry = allCommands();
     expect(search(registry, 'zi')).toContain('zoom.in');

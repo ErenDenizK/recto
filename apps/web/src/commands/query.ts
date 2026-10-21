@@ -47,7 +47,9 @@ export type InvalidReason =
   | 'out-of-range'
   | 'reversed-range'
   | 'no-pages'
-  | 'all-pages';
+  | 'all-pages'
+  /** "delete 2 pages": a count or page 2? Only a range or "page 2" says which. */
+  | 'ambiguous-count';
 
 export type QueryIntent =
   | { readonly kind: 'page'; readonly page: number; readonly pages: readonly [number] }
@@ -64,7 +66,7 @@ export type QueryIntent =
       readonly turns?: -1 | 1 | 2;
     }
   | {
-      /** "go to Methods": `matches` are the outline entries that fit, best first. */
+      /** "go to Methods": `matches` are the outline entries that fit, best first (never empty). */
       readonly kind: 'heading';
       readonly text: string;
       readonly matches: readonly QueryHeading[];
@@ -123,9 +125,10 @@ const LEFT = new Set(['left', 'ccw', 'counterclockwise', 'anticlockwise', 'sol',
 
 const VERBS: readonly { readonly words: readonly string[]; readonly action: PagesAction }[] = [
   { words: ['rotate', 'turn', 'dondur', 'cevir'], action: 'rotate' },
-  { words: ['delete', 'remove', 'del', 'sil', 'kaldir'], action: 'delete' },
+  // "çıkar" is "remove" ("3. sayfayı çıkar"); only "ayıkla" and "ayrı dosya olarak çıkar" extract.
+  { words: ['delete', 'remove', 'del', 'sil', 'kaldir', 'cikar'], action: 'delete' },
   { words: ['duplicate', 'copy', 'clone', 'cogalt', 'kopyala'], action: 'duplicate' },
-  { words: ['extract', 'ayikla', 'cikar'], action: 'extract' },
+  { words: ['extract', 'ayikla'], action: 'extract' },
 ];
 
 const COMMAND_OF: Record<PagesAction, (turns?: number) => string> = {
@@ -152,7 +155,8 @@ function normalise(query: string): string {
     .replace(/\b(first|last|ilk|son)\b(?!:)/g, '$1:1')
     .replace(/[,;&+]|\b(?:and|ve)\b/g, ' ')
     .replace(/\b(p|pg|page|sayfa)(\d)/g, '$1 $2')
-    .replace(/(\d)(?:ye|ya|e|a)\b/g, '$1')
+    .replace(/(\d)(?:ye|ya|e|a)(?=\s+git\b)/g, '$1')
+    .replace(/ayri dosya(?: olarak)? (?:cikar|kaydet)/g, 'ayikla')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -201,7 +205,9 @@ function resolvePages(
     else if (EVEN.has(token)) for (let n = 2; n <= count; n += 2) wanted.add(n);
     else if (ODD.has(token)) for (let n = 1; n <= count; n += 2) wanted.add(n);
     else if (THIS_WORDS.has(token)) {
-      const current = ctx.currentPage ?? 0;
+      // "delete this" is not "delete this page": the page word must be there.
+      if (!tokens.some(isPageWord) || ctx.currentPage === undefined) return null;
+      const current = ctx.currentPage;
       failure = range(current, current);
     } else return null;
     if (failure) return failure;
@@ -212,6 +218,15 @@ function resolvePages(
 }
 
 function parsePageJump(norm: string, ctx: QueryContext): QueryIntent | null {
+  const edge =
+    /^(?:(?:go ?to|goto|jump to)\s+)?(first|last|ilk|son):1\s+(?:page|sayfa\w*)(?:\s+git)?$/.exec(
+      norm,
+    );
+  if (edge) {
+    if (ctx.pageCount < 1) return invalid('no-document', 'page', ctx);
+    const page = edge[1] === 'first' || edge[1] === 'ilk' ? 1 : ctx.pageCount;
+    return { kind: 'page', page, pages: [page] };
+  }
   const m =
     /^(?:(?:go ?to|goto|git|jump to)\s+)?(?:(?:p|pg|page|sayfa\w*)\s+)?(\d+)(?:\s+(?:page|sayfa\w*))?(?:\s+git)?$/.exec(
       norm,
@@ -238,19 +253,38 @@ function parsePagesAction(norm: string, ctx: QueryContext): QueryIntent | null {
   if (verbAt < 0) return null;
   const verb = VERBS.find((v) => v.words.includes(words[verbAt] ?? ''));
   if (!verb) return null;
-  let turns: -1 | 1 | 2 | undefined;
-  const rest: string[] = [];
+  let direction: -1 | 1 | undefined;
+  let degrees: number | undefined;
+  let rest: string[] = [];
   words.forEach((w, i) => {
     if (i === verbAt) return;
-    if (verb.action === 'rotate' && RIGHT.has(w)) turns = 1;
-    else if (verb.action === 'rotate' && LEFT.has(w)) turns = -1;
+    if (verb.action === 'rotate' && RIGHT.has(w)) direction = 1;
+    else if (verb.action === 'rotate' && LEFT.has(w)) direction = -1;
     else if (verb.action === 'rotate' && /^(?:saat|yonunde|yonune|saatin|tersi|tersine)$/.test(w)) {
-      if (w === 'tersi' || w === 'tersine') turns = -1;
-      else if (w === 'yonunde' || w === 'yonune') turns ??= 1;
-    } else if (verb.action === 'rotate' && /^deg(?:90|180)$/.test(w)) {
-      if (w === 'deg180') turns = 2;
-    } else rest.push(w);
+      if (w === 'tersi' || w === 'tersine') direction = -1;
+      else if (w === 'yonunde' || w === 'yonune') direction ??= 1;
+    } else if (verb.action === 'rotate' && /^deg\d+$/.test(w)) degrees = Number(w.slice(3));
+    else rest.push(w);
   });
+  if (verb.action === 'rotate') {
+    // A bare 90, 180 or 270 closing the phrase is degrees when something else names the pages
+    // ("rotate 5 180") or nothing does ("rotate 180": the page in view); "rotate page 180" is
+    // page 180.
+    const last = rest.at(-1);
+    if (degrees === undefined && last !== undefined && /^(?:90|180|270)$/.test(last)) {
+      const before = rest.slice(0, -1);
+      if (before.length === 0 || before.some((t) => !isPageWord(t))) {
+        degrees = Number(last);
+        rest = before;
+      }
+    }
+    if (degrees !== undefined && ![90, 180, 270].includes(degrees)) return null;
+    if (degrees !== undefined && !rest.some((t) => !isPageWord(t)))
+      rest = [...rest, 'this', 'page'];
+  }
+  if (rest.some((t, i) => /^\d+$/.test(t) && rest[i + 1] === 'pages')) {
+    return invalid('ambiguous-count', 'pages', ctx);
+  }
   const resolved = resolvePages(rest, ctx);
   if (!resolved) return null;
   if (ctx.pageCount < 1) return invalid('no-document', 'pages', ctx);
@@ -261,7 +295,9 @@ function parsePagesAction(norm: string, ctx: QueryContext): QueryIntent | null {
     return invalid('all-pages', 'pages', ctx);
   }
   // A left turn is the only one with its own command; a half turn is two right turns.
-  const resolvedTurns = verb.action === 'rotate' ? (turns ?? 1) : undefined;
+  const quarters = (((((direction ?? 1) * (degrees ?? 90)) / 90) % 4) + 4) % 4;
+  const resolvedTurns: -1 | 1 | 2 | undefined =
+    verb.action === 'rotate' ? (quarters === 3 ? -1 : (quarters as 1 | 2)) : undefined;
   return {
     kind: 'pages',
     action: verb.action,
@@ -280,12 +316,30 @@ function slice(original: string, folded: string, pattern: RegExp): string | null
   return original.slice(start, start + m[1].length).trim();
 }
 
+const RECENT_STOP = new Set([
+  'pdf',
+  'file',
+  'files',
+  'dosya',
+  'dosyalar',
+  'recent',
+  'recents',
+  'son',
+]);
+
 function parseRecent(original: string, ctx: QueryContext): QueryIntent | null {
   const folded = foldForSearch(original);
   const text =
     slice(original, folded, /^\s*(?:open|ac)\s+(.+?)\s*$/) ??
     slice(original, folded, /^\s*(.+?)\s+ac\s*$/);
   if (!text || !ctx.recents?.length) return null;
+  // "open pdf", "open file": about files in general, which is the Open command's.
+  if (
+    foldForSearch(text)
+      .split(/\s+/)
+      .every((w) => RECENT_STOP.has(w))
+  )
+    return null;
   const matches = fuzzyFilter(text, ctx.recents, (r) => r.name)
     .slice(0, MAX_MATCHES)
     .map((r) => r.item);
@@ -298,16 +352,19 @@ function parseHeading(original: string, ctx: QueryContext): QueryIntent | null {
     slice(original, folded, /^\s*(?:go ?to|goto|jump to|show section)\s+(.+?)\s*$/) ??
     slice(original, folded, /^\s*(.+?)\s+git\s*$/);
   if (!text) return null;
-  text = text
-    .replace(/'\w*$/u, '')
-    .replace(/\s+(?:b[oö]l[uü]m[uü]?(?:ne)?|ba[sş]l[ıi]ğ[ıi]?(?:na)?|section|heading)$/iu, '')
-    .trim();
-  if (text === '' || /^(?:\d+|page|pages|sayfa\w*)$/i.test(foldForSearch(text))) return null;
+  text = text.replace(/['’]\w*$/u, '');
+  // Turkish suffixes are cut on the folded text, so "BAŞLIĞINA" goes as "başlığına" does.
+  const suffix = /\s+(?:bolum\w*|baslig\w*|section|heading)$/.exec(foldForSearch(text));
+  if (suffix) text = text.slice(0, suffix.index);
+  text = text.trim();
+  if (text === '' || /^(?:\d+|page|pages|sayfa\w*)$/.test(foldForSearch(text))) return null;
   const matches = fuzzyFilter(text, ctx.headings ?? [], (h) => h.title)
     .slice(0, MAX_MATCHES)
     .map((r) => r.item);
   const first = matches[0];
-  return { kind: 'heading', text, matches, pages: first ? [first.page] : [] };
+  // Nothing to jump to: "go to settings" is for the command list.
+  if (!first) return null;
+  return { kind: 'heading', text, matches, pages: [first.page] };
 }
 
 /** Reads a palette query as an intent, or null when it is only a search for commands. */

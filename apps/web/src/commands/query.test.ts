@@ -94,7 +94,7 @@ const cases: readonly (readonly [string, string])[] = [
   ['rotate 3–7 counterclockwise', `${R} 3-7 -1 -> pages.rotateLeft`],
   ['rotate 5 left', `${R} 5 -1 -> pages.rotateLeft`],
   ['rotate page 5', `${R} 5 1 -> pages.rotateRight`],
-  ['rotate 5 180', 'invalid pages out-of-range 180'],
+  ['rotate 5 180', `${R} 5 2 -> pages.rotateRight`],
   ['rotate 5 180°', `${R} 5 2 -> pages.rotateRight`],
   ['rotate 5 90 degrees', `${R} 5 1 -> pages.rotateRight`],
   ['rotate all right', `${R} 1-100 1 -> pages.rotateRight`],
@@ -185,7 +185,7 @@ const cases: readonly (readonly [string, string])[] = [
   ['3-4 çoğalt', 'duplicate 3-4 -> pages.duplicate'],
   ['sayfa 9 kopyala', 'duplicate 9 -> pages.duplicate'],
   ['5-8 ayıkla', 'extract 5-8 -> pages.extract'],
-  ['5-8. sayfaları çıkar', 'extract 5-8 -> pages.extract'],
+  ['5-8. sayfaları çıkar', 'delete 5-8 -> pages.delete'],
   ['sil 120', 'invalid pages out-of-range 120'],
   ['sil 7-3', 'invalid pages reversed-range 7'],
   // Headings.
@@ -196,7 +196,7 @@ const cases: readonly (readonly [string, string])[] = [
   ['jump to introduction', 'heading "introduction" Introduction'],
   ['go to Contributor agreement', 'heading "Contributor agreement" Contributor agreement'],
   ['go to contributor', 'heading "contributor" Contributor agreement'],
-  ['go to Nonexistent chapter', 'heading "Nonexistent chapter" -'],
+  ['go to Nonexistent chapter', 'none'],
   ['Yöntem git', 'heading "Yöntem" Yöntem'],
   ['yöntem git', 'heading "yöntem" Yöntem'],
   ['YÖNTEM GİT', 'heading "YÖNTEM" Yöntem'],
@@ -222,6 +222,52 @@ const cases: readonly (readonly [string, string])[] = [
   ['aç ışıklı', 'recent "ışıklı" Işıklı tablo.pdf'],
   ['aç ISIKLI', 'recent "ISIKLI" Işıklı tablo.pdf'],
   ['fatura aç', 'recent "fatura" Fatura Ocak.pdf'],
+  // Degrees, edges, stop words and the rest of the review (R25 Epic 4).
+  ['rotate 90', `${R} 12 1 -> pages.rotateRight`],
+  ['rotate 180', `${R} 12 2 -> pages.rotateRight`],
+  ['rotate 270', `${R} 12 -1 -> pages.rotateLeft`],
+  ['rotate 90 right', `${R} 12 1 -> pages.rotateRight`],
+  ['rotate 90 left', `${R} 12 -1 -> pages.rotateLeft`],
+  ['rotate 180 left', `${R} 12 2 -> pages.rotateRight`],
+  ['180 döndür', `${R} 12 2 -> pages.rotateRight`],
+  ['90 sola döndür', `${R} 12 -1 -> pages.rotateLeft`],
+  ['rotate 5 270', `${R} 5 -1 -> pages.rotateLeft`],
+  ['rotate 3-7 90', `${R} 3-7 1 -> pages.rotateRight`],
+  ['rotate page 180', 'invalid pages out-of-range 180'],
+  ['rotate page 90', `${R} 90 1 -> pages.rotateRight`],
+  ['rotate 5 135', 'invalid pages out-of-range 135'],
+  ['last page', 'page 100'],
+  ['go to last page', 'page 100'],
+  ['first page', 'page 1'],
+  ['son sayfa', 'page 100'],
+  ['son sayfaya git', 'page 100'],
+  ['ilk sayfa', 'page 1'],
+  ['ILK SAYFAYA GIT', 'page 1'],
+  ['go to settings', 'none'],
+  ['go to next page', 'none'],
+  ['show section numbers', 'none'],
+  ['Yöntem BAŞLIĞINA git', 'heading "Yöntem" Yöntem'],
+  ['YÖNTEM BAŞLIĞINA GİT', 'heading "YÖNTEM" Yöntem'],
+  ['Yöntem’e git', 'heading "Yöntem" Yöntem'],
+  ['open pdf', 'none'],
+  ['open file', 'none'],
+  ['open recent', 'none'],
+  ['aç dosya', 'none'],
+  ['aç son', 'none'],
+  ['delete this', 'none'],
+  ['remove this', 'none'],
+  ['bu sil', 'none'],
+  ['rotate this', 'none'],
+  ['delete 2 pages', 'invalid pages ambiguous-count'],
+  ['rotate 3 pages left', 'invalid pages ambiguous-count'],
+  ['delete 2-3 pages', 'delete 2-3 -> pages.delete'],
+  ['3a', 'none'],
+  ['delete 3a', 'none'],
+  ['3. sayfayı çıkar', 'delete 3 -> pages.delete'],
+  ['sayfa 3 çıkar', 'delete 3 -> pages.delete'],
+  ['5-8 ayıkla', 'extract 5-8 -> pages.extract'],
+  ['5-8 ayrı dosya olarak çıkar', 'extract 5-8 -> pages.extract'],
+  ['5-8 sayfaları ayrı dosya olarak çıkar', 'extract 5-8 -> pages.extract'],
   // Not intents: left to the command list.
   ['open', 'none'],
   ['open files', 'none'],
@@ -314,11 +360,16 @@ describe('what an intent carries', () => {
       text: 'Contributor agreement',
       pages: [88],
     });
-    expect(parseQuery('go to Anything', { pageCount: 5 })).toMatchObject({
-      kind: 'heading',
-      matches: [],
-      pages: [],
-    });
+    expect(parseQuery('go to Anything', { pageCount: 5 })).toBeNull();
+  });
+
+  it('reads a bare 90, 180 or 270 as degrees only when the pages are named otherwise', () => {
+    const long: QueryContext = { pageCount: 200, currentPage: 12 };
+    expect(show(parseQuery('rotate 180', long))).toBe('rotate 12 2 -> pages.rotateRight');
+    expect(show(parseQuery('rotate page 180', long))).toBe('rotate 180 1 -> pages.rotateRight');
+    expect(show(parseQuery('rotate 5 180', long))).toBe('rotate 5 2 -> pages.rotateRight');
+    expect(show(parseQuery('rotate 150 180', long))).toBe('rotate 150 2 -> pages.rotateRight');
+    expect(show(parseQuery('rotate 180 sağa', long))).toBe('rotate 12 2 -> pages.rotateRight');
   });
 
   it('formats page lists', () => {
