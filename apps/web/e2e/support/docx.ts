@@ -21,7 +21,7 @@ function crc32(bytes: Uint8Array): number {
 }
 
 /** A stored zip of `entries` (name → text). */
-function zip(entries: Readonly<Record<string, string>>): Buffer {
+export function zip(entries: Readonly<Record<string, string>>): Buffer {
   const encoder = new TextEncoder();
   const locals: Buffer[] = [];
   const centrals: Buffer[] = [];
@@ -62,7 +62,7 @@ function zip(entries: Readonly<Record<string, string>>): Buffer {
   return Buffer.concat([...locals, directory, end]);
 }
 
-const escape = (text: string) =>
+export const escape = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** A .docx whose body is `paragraphs`, one page break after each but the last. */

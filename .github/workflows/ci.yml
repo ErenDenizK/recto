@@ -246,6 +246,73 @@ jobs:
             apps/web/test-results
           retention-days: 14
 
+  # On-device Office conversion on every engine (PRC-26, EDN-20): the real package from
+  # `office-package` next to the build from `web-dist`. Chromium, Firefox and the tablet are
+  # required; WebKit and the iPad project are Playwright's WebKit on Linux, which may not
+  # isolate through the service worker (apps/web/e2e/office.spec.ts header), so they may fail
+  # without failing the run; the iPad check list (docs/qa/office-ipad-checklist.md) carries
+  # the claim. Its own job, since every run downloads about 70 MB.
+  e2e-office:
+    name: E2E Office (${{ matrix.project }})
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    continue-on-error: ${{ matrix.experimental == true }}
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host --init
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, tablet]
+        include:
+          - project: webkit
+            experimental: true
+          - project: ipad
+            experimental: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Download build
+        uses: actions/download-artifact@v8
+        with:
+          name: web-dist
+          path: apps/web/dist
+
+      - name: Download Office package
+        uses: actions/download-artifact@v8
+        with:
+          name: office-package
+          path: apps/web/dist/convert
+
+      - name: Playwright
+        run: >-
+          pnpm --filter @pdf-editor/web test:e2e
+          --project=${{ matrix.project }}
+          e2e/office.spec.ts
+        env:
+          E2E_SKIP_BUILD: '1'
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-office-${{ matrix.project }}
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
+
   # Public copy and links (docs/specs/presentation.md §1.3, §8 "Links"). A plain runner: no
   # browsers. After `verify`, so the built about page (base path `/`) can be checked too.
   docs:

@@ -211,9 +211,9 @@ per-browser off switch, then the flag code goes.
 
 | Engine | Isolated | Shared memory | Init + first convert | Peak memory | Notes |
 |---|---|---|---|---|---|
-| Chromium | yes (phase 1) | yes | | | |
+| Chromium | yes (phase 1) | yes | download and reload 5.3 s, start and convert 5.6 s; then xlsx 1.3 s, pptx 2.3 s (local, Lane B) | 3.2 GB (host RSS sum of all browser processes, over-reads) | local run, not CI |
 | Firefox | | | | | |
 | WebKit | | | | | |
-| tablet (Chromium) | | | | | |
+| tablet (Chromium) | yes | yes | download and reload 5.2 s, start and convert 5.8 s; then xlsx 2.1 s, pptx 1.2 s (local, Lane B) | 3.2 GB (same sampling) | local run, not CI |
 | ipad (WebKit) | | | | | |
 | iPad Safari (owner) | | | | | |

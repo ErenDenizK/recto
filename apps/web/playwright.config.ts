@@ -90,6 +90,8 @@ const NOT_KEPT_SEEN = {
  * runs its idle, sweep and limits tests as well (spec D3-4).
  */
 const MOTION_SPEC = '**/motion.spec.ts';
+/** The on-device Office conversion, end to end (EDN-20); also run by the desktop projects. */
+const OFFICE_SPEC = '**/office.spec.ts';
 const touchDevice = (
   size: { width: number; height: number },
   userAgent: string,
@@ -202,8 +204,17 @@ export default defineConfig({
         '**/keyboard-text.spec.ts',
         // The paragraph editor's mirror under a finger (TXT-5).
         '**/paragraph-mirror.spec.ts',
+        // Office conversion under the service worker's isolation on the tablet (EDN-20).
+        OFFICE_SPEC,
       ],
       use: touchDevice(TABLET, devices['Galaxy Tab S4'].userAgent, 2),
+    },
+    // An iPad in Playwright's WebKit (Linux, not iPad Safari; EDN-20): touch, the tablet
+    // edition, the Office conversion spec only. The owner's iPad check list covers the device.
+    {
+      name: 'ipad',
+      testMatch: [OFFICE_SPEC],
+      use: { ...devices['iPad Pro 11'], storageState: NOT_KEPT_SEEN },
     },
     // Rendered pixels without the GPU (ADR-0028; research 22 §3.2; docs/specs/redesign.md D0-1):
     // the compositor's software path, where a backdrop blur large against a surface was measured
