@@ -8,21 +8,12 @@
  * Only files named `*.txt` that were dropped or picked themselves convert: not a `.log`, `.csv`
  * or `.md`, and not the text files inside a dropped folder. Over 2 MB the file is refused.
  */
-import {
-  closeDocument,
-  type DocumentId,
-  documentTitleFromName,
-  movePages,
-  newEmptyDocument,
-} from '@pdf-editor/document-model';
+import type { DocumentId } from '@pdf-editor/document-model';
 
 import { m } from '../i18n';
-import { announce } from '../shell/announcer';
-import { markGeneratedSource } from '../session/snapshot';
-import { lockOpened } from '../state/lock-store';
-import { addLoadedSource, useWorkspaceStore } from '../state/workspace-store';
 import { toast } from '../ui/Toast/toast';
 import { isHiddenName, isPdfFile, type NamedFile } from './file-filters';
+import { openGeneratedPdf } from './generated-document';
 
 /** Accept string for pickers and inputs. */
 export const TEXT_ACCEPT = '.txt,text/plain';
@@ -63,8 +54,6 @@ export function takeTextFiles<T extends File>(
   };
 }
 
-const model = () => useWorkspaceStore.getState();
-
 /** One text file as one new document; undefined when it was refused or failed (a toast says so). */
 async function openTextFile(file: File): Promise<DocumentId | undefined> {
   if (file.size > TEXT_MAX_BYTES) {
@@ -78,36 +67,8 @@ async function openTextFile(file: File): Promise<DocumentId | undefined> {
     toast.failure(m.text_to_pdf_failed({ name: file.name }));
     return undefined;
   }
-  const title = documentTitleFromName(pdf.name);
-  let created: DocumentId | undefined;
-  const committed = await model().applyComposed(
-    async (lease) => {
-      const loaded = await model().loadSources([pdf], lease);
-      const [entry] = loaded.loaded;
-      // Made here, not read from a file: never "the file" (unsaved, changed from the start).
-      if (entry !== undefined) markGeneratedSource(entry.source.id);
-      return entry;
-    },
-    (ws, ids, entry) => {
-      if (entry === undefined) return ws;
-      const made = newEmptyDocument(ws, ids, { title });
-      created = made.documentId;
-      const added = addLoadedSource(made.workspace, entry.source, ids);
-      const pageIds = added.workspace.documents[added.documentId]?.pages.map((p) => p.id) ?? [];
-      const moved = movePages(added.workspace, {
-        pageIds,
-        target: { document: made.documentId, index: 0 },
-      });
-      return closeDocument(moved, added.documentId);
-    },
-    () => m.history_open({ name: title }),
-  );
-  if (!committed || created === undefined) {
-    toast.failure(m.text_to_pdf_failed({ name: file.name }));
-    return undefined;
-  }
-  lockOpened([created]);
-  announce(m.announce_opened({ name: title }));
+  const created = await openGeneratedPdf(pdf);
+  if (created === undefined) toast.failure(m.text_to_pdf_failed({ name: file.name }));
   return created;
 }
 
