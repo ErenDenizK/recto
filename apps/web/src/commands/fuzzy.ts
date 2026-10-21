@@ -176,6 +176,24 @@ export function highlightPositions(query: string, text: string): number[] {
   return [...marked].sort((a, b) => a - b);
 }
 
+/**
+ * The score floor (Epic 4, R12 E10): whether an aligned match means anything. Each matched
+ * character after the first must either follow its predecessor directly or start a word; a character found
+ * mid-word after a gap is an "orphan", and a query may carry one orphan per three characters
+ * (a skipped letter in a typo, "zom" -> "Zoom"). So "print" no longer finds "Toggle pen draws
+ * in Edit" (p, then r, i, n, t scattered), while "zi" -> "Zoom in", "tl" -> "Toggle left panel"
+ * and "ciz" -> "çiz" still do.
+ */
+export function isMeaningfulMatch(match: FuzzyMatch, text: string): boolean {
+  const { positions } = match;
+  let orphans = 0;
+  positions.forEach((at, i) => {
+    // The first character may sit anywhere ("tate" in "Rotate"); the rest must hang together.
+    if (i > 0 && positions[i - 1] !== at - 1 && positionBonus(text, at) === 0) orphans++;
+  });
+  return orphans <= Math.floor(positions.length / 3);
+}
+
 export interface Ranked<T> {
   readonly item: T;
   readonly score: number;
@@ -187,7 +205,8 @@ export interface Ranked<T> {
  * Filters and sorts items by fuzzy score. `secondary` texts (keywords, group names) can
  * match too, at a discount; such a match highlights nothing in the primary text. The primary
  * text's highlight is its contiguous runs of the query, never the scattered letters the score
- * aligned (`highlightPositions`). Ties keep input order.
+ * aligned (`highlightPositions`). Matches below the score floor are cut (`isMeaningfulMatch`).
+ * Ties keep input order.
  */
 export function fuzzyFilter<T>(
   query: string,
@@ -201,13 +220,14 @@ export function fuzzyFilter<T>(
   const ranked: (Ranked<T> & { order: number })[] = [];
   items.forEach((item, order) => {
     const title = primary(item);
-    const main = fuzzyMatch(query, title);
+    const rawMain = fuzzyMatch(query, title);
+    const main = rawMain && isMeaningfulMatch(rawMain, title) ? rawMain : null;
     // Only a title that matches itself is marked; a keyword-only match marks nothing.
     const positions = main ? highlightPositions(query, title) : [];
     let best: Ranked<T> | null = main ? { item, score: main.score, positions } : null;
     for (const text of secondary(item)) {
       const alt = fuzzyMatch(query, text);
-      if (alt && (!best || alt.score * 0.75 > best.score)) {
+      if (alt && isMeaningfulMatch(alt, text) && (!best || alt.score * 0.75 > best.score)) {
         best = { item, score: alt.score * 0.75, positions };
       }
     }
