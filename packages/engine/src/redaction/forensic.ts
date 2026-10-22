@@ -22,10 +22,12 @@
  *   undone when the stream dictionary gives them directly), in every encoding of
  *   `byte-grep.ts`;
  * - `no-annotations-in-areas` (7): no annotation or widget intersects an area, and no
- *   /Redact mark is left;
+ *   /Redact mark is left; the plan's `laterMarks` (made after the apply, RED-1) are not
+ *   counted, except a /Redact one;
  * - `fill-pixels` (8): a scale-2 render of each area (`deps.renderArea`, with annotations
  *   and forms) is at least 99 % fill colour, overlay text colour and the blend between
- *   them allowed.
+ *   them allowed. With `laterMarks`, the areas are rendered without annotations: a mark
+ *   drawn over the box is not part of it, and check 7 still stops any other annotation.
  *
  * Deterministic (fixed order, no randomness) and total: it never throws. A parse failure,
  * or an error from a dependency, is a failing check with the reason as its finding.
@@ -319,7 +321,10 @@ export async function forensicCheck(
   checks.push(
     await guarded('no-annotations-in-areas', () =>
       doc
-        ? result('no-annotations-in-areas', annotationFindings(doc, areasByPage))
+        ? result(
+            'no-annotations-in-areas',
+            annotationFindings(doc, areasByPage, new Set(plan.laterMarks ?? [])),
+          )
         : notParsed('no-annotations-in-areas'),
     ),
   );
@@ -328,12 +333,13 @@ export async function forensicCheck(
   checks.push(
     await guarded('fill-pixels', async () => {
       const findings: ForensicFinding[] = [...areaProblems];
+      const laterMarks = (plan.laterMarks ?? []).length > 0;
       const fill255: Rgb = [fill[0] * 255, fill[1] * 255, fill[2] * 255];
       const overlay255: Rgb = [overlay[0] * 255, overlay[1] * 255, overlay[2] * 255];
       for (const [areaIndex, area] of plan.areas.entries()) {
         if (areaProblems.some((p) => p.areaIndex === areaIndex)) continue;
         const withText = (area.overlayText ?? plan.overlayText ?? '').trim() !== '';
-        const px = await deps.renderArea(area.pageIndex, area.rect, SCALE);
+        const px = await deps.renderArea(area.pageIndex, area.rect, SCALE, !laterMarks);
         const inset = (n: number) => Math.min(INSET, Math.max(0, Math.floor((n - 1) / 2)));
         const [ix, iy] = [inset(px.width), inset(px.height)];
         let ok = 0;

@@ -10,7 +10,14 @@ import { fileURLToPath } from 'node:url';
 import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openFixtures, quiet, showSidebar, trackEngine, useFileInputPicker } from './helpers';
+import {
+  openFixtures,
+  PAGE_CANVAS,
+  quiet,
+  showSidebar,
+  trackEngine,
+  useFileInputPicker,
+} from './helpers';
 
 const screenshots = new URL('../../../docs/design/screenshots/', import.meta.url);
 
@@ -366,7 +373,7 @@ test('Read mode renders pages after Arrange without a resize', async ({ page }) 
 test('page 1 keeps its text in view through 1440 → 1024 → 1440 px', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const viewport = page.locator('[data-read-viewport]');
-  const first = viewport.locator('[data-page-index="0"] canvas[data-state="rendered"]');
+  const first = viewport.locator(`[data-page-index="0"] ${PAGE_CANVAS}[data-state="rendered"]`);
   /** Dark pixels of page 1's bitmap in the part of the page the viewport shows. */
   const visibleInk = () =>
     first.evaluate((canvas: HTMLCanvasElement) => {
@@ -393,12 +400,23 @@ test('page 1 keeps its text in view through 1440 → 1024 → 1440 px', async ({
     await page.setViewportSize({ width, height: 900 });
     await expect
       .poll(() =>
-        first.evaluate(
-          // The bitmap follows the sheet at device scale once the re-render has landed;
-          // a one-pixel tolerance covers the snapped sheet size on every engine.
-          (canvas: HTMLCanvasElement) =>
-            Math.abs(canvas.width - canvas.getBoundingClientRect().width * devicePixelRatio) <= 1,
-        ),
+        first.evaluate((canvas: HTMLCanvasElement) => {
+          // The bitmap follows the sheet at device scale once the re-render has landed; a
+          // one-pixel tolerance covers the snapped sheet size on every engine. Above Read
+          // mode's 4 MP budget (PF-19, a DPR 2 screen) the page bitmap stays capped and the
+          // tiles over the view carry the device scale instead: all of them rendered, 1:1.
+          const oneToOne = (c: HTMLCanvasElement) =>
+            Math.abs(c.width - c.getBoundingClientRect().width * devicePixelRatio) <= 1;
+          if (oneToOne(canvas)) return true;
+          const tiles = [
+            ...(canvas
+              .closest('[data-page-index]')
+              ?.querySelectorAll<HTMLCanvasElement>('[data-testid="page-tiles"] canvas') ?? []),
+          ];
+          return (
+            tiles.length > 0 && tiles.every((t) => t.dataset.state === 'rendered' && oneToOne(t))
+          );
+        }),
       )
       .toBe(true);
   };
@@ -452,7 +470,9 @@ test('screenshots of find and the two-up layout (design review)', async ({ brows
   await chooseLayout(page, 'Two pages');
   await page.keyboard.press('Home');
   await expect(page.getByTestId('page-pill')).toHaveText(/^1 \/ 6 · /);
-  await expect(page.locator('[data-page-index="1"] canvas[data-state="rendered"]')).toBeVisible();
+  await expect(
+    page.locator(`[data-page-index="1"] ${PAGE_CANVAS}[data-state="rendered"]`),
+  ).toBeVisible();
   await page.mouse.move(720, 450);
   await quiet(page);
   await page.screenshot({ path: fileURLToPath(new URL('m2-two-up-1440.png', screenshots)) });

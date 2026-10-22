@@ -99,6 +99,29 @@ export async function openPrivateSource(
     readonly signal?: AbortSignal;
   } = {},
 ): Promise<PrivateSource> {
+  // The worker stays up from here until the source closes: a password prompt or a long step
+  // must not lose it (PF-18).
+  const release = getEngineService().hold();
+  try {
+    const source = await openHeld(engine, file, options, release);
+    return source;
+  } catch (error) {
+    release();
+    throw error;
+  }
+}
+
+async function openHeld(
+  engine: BatchEngine,
+  file: File,
+  options: {
+    readonly id?: SourceId;
+    readonly ask?: SourcePasswordPrompt;
+    readonly knownPasswords?: readonly string[];
+    readonly signal?: AbortSignal;
+  },
+  release: () => void,
+): Promise<PrivateSource> {
   const id = options.id ?? newPrivateSourceId();
   const known = [...(options.knownPasswords ?? [])];
   let attempt: string | undefined;
@@ -119,7 +142,7 @@ export async function openPrivateSource(
         bytes,
         attempt === undefined ? {} : { password: attempt },
       );
-      return privateSource(engine, id, file, document, attempt);
+      return privateSource(engine, id, file, document, attempt, release);
     } catch (error) {
       const failure = toFailure(error);
       if (!isLocked(failure.code)) throw new SourceOpenError(failure.code, failure.message);
@@ -151,6 +174,7 @@ function privateSource(
   file: File,
   document: OpenedDocument,
   password: string | undefined,
+  release: () => void,
 ): PrivateSource {
   let closed = false;
   return {
@@ -178,7 +202,11 @@ function privateSource(
     close: async () => {
       if (closed) return;
       closed = true;
-      await engine.close(id).catch(() => undefined);
+      try {
+        await engine.close(id).catch(() => undefined);
+      } finally {
+        release();
+      }
     },
   };
 }
