@@ -15,8 +15,8 @@ import { preserveOffsetOnSource } from '@atlaskit/pragmatic-drag-and-drop/utils/
 import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview';
 import type { DocumentId, PageId } from '@pdf-editor/document-model';
 
-import { targetPages } from '../commands/app-commands';
 import { reducedMotion } from '../motion/reduced-motion';
+import { targetPages } from '../stage/arrange-data';
 import { useSelectionStore } from '../state/selection-store';
 import styles from './dnd.module.css';
 
