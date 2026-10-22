@@ -149,9 +149,9 @@ function main(): void {
   };
 
   const assetFiles = readdirSync(assets);
-  /** The one chunk named `<name>-<hash>.js` (a hash is word characters and dashes). */
+  /** The one chunk named `<name>-<hash>.js` (a hash is eight word characters and dashes). */
   const chunk = (name: string): string => {
-    const pattern = new RegExp(`^${name.replace(/\./g, '\\.')}-[\\w-]+\\.js$`);
+    const pattern = new RegExp(`^${name.replace(/\./g, '\\.')}-[\\w-]{8}\\.js$`);
     const found = assetFiles.filter((file) => pattern.test(file));
     if (found.length !== 1)
       fail(`Expected one ${name}-*.js chunk in ${assets}, found ${found.length}.`);
@@ -227,6 +227,20 @@ function main(): void {
     .map((name) => `assets/${name}`)
     .filter((url) => !precached.has(url));
   for (const url of missing) problems.push(`Not precached (PF-17): ${url}`);
+
+  // PRD-26: each edition's chunk is a facade only the entry imports, and only dynamically, so a
+  // launch may import it again under a fresh URL without a second copy of any module.
+  const editions = [chunk('app'), chunk('CompactApp')].map((file) => file.replace(/^.*[\\/]/, ''));
+  for (const name of assetFiles.filter((file) => file.endsWith('.js'))) {
+    if (editions.includes(name)) continue;
+    const source = readFileSync(join(assets, name), 'utf8');
+    const statics = [...source.matchAll(STATIC_EDGE)].map((match) => match[1] as string);
+    for (const edition of editions) {
+      const entry = /^main-[\w-]{8}\.js$/.test(name);
+      if (entry ? statics.some((edge) => edge.endsWith(edition)) : source.includes(edition))
+        problems.push(`assets/${name} imports the edition chunk ${edition} (PRD-26)`);
+    }
+  }
 
   // V1-P3 (ED-1) and ED-3: what a web release build must not carry.
   for (const name of assetFiles.filter((file) => file.endsWith('.js'))) {

@@ -175,3 +175,12 @@
     display: none;
   }
 }
+
+/* Find's hit ticks (DSN-62): one static canvas along the reader's bar, under the thumb; it is
+   drawn when the hits change and animates nothing. */
+.ticks {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}

@@ -174,6 +174,19 @@
   --select-muted: rgb(var(--select-rgb) / 0.16);
   --select-wash: rgb(var(--select-rgb) / 0.25);
   --select-wash-strong: rgb(var(--select-rgb) / 0.45);
+  /* Find's hits on a page of any tone (DSN-16's lime, DSN-62; the page is never themed, so the
+     same in every theme below). A hit blends into the page so the text under it stays: a
+     multiply fill darkens a light page to a deep lime (3.2:1 on white, 4.9:1 for the current
+     hit), a screen fill lifts a dark page to a dim lime (over 4:1 on the sample cover, where
+     the light glyphs keep 3:1). The current hit is deeper, or a little brighter on a dark page,
+     and rings in a dark band between two lime ones (halo), so it reads on either tone; the dark
+     band also edges the scroll bar's hit ticks. */
+  --find-hit-multiply: rgb(116 156 12);
+  --find-hit-screen: rgb(80 110 8);
+  --find-current-multiply: rgb(85 125 0);
+  --find-current-screen: rgb(92 122 10);
+  --find-current-ring: #243600;
+  --find-current-halo: #c8fb3d;
   /* Redaction marks on the page (05-canvas §3, 6.10:1 on white) in both themes, never the
      chrome's danger; the dim outside a crop preview. */
   --redact-page: #c21725;
@@ -508,6 +521,12 @@
   --select-muted: rgb(var(--select-rgb) / 0.16);
   --select-wash: rgb(var(--select-rgb) / 0.25);
   --select-wash-strong: rgb(var(--select-rgb) / 0.45);
+  --find-hit-multiply: rgb(116 156 12);
+  --find-hit-screen: rgb(80 110 8);
+  --find-current-multiply: rgb(85 125 0);
+  --find-current-screen: rgb(92 122 10);
+  --find-current-ring: #243600;
+  --find-current-halo: #c8fb3d;
   --redact-page: #c21725;
   --crop-dim: rgb(var(--ink-rgb) / 0.45);
 
@@ -801,6 +820,12 @@
     --select-muted: rgb(var(--select-rgb) / 0.16);
     --select-wash: rgb(var(--select-rgb) / 0.25);
     --select-wash-strong: rgb(var(--select-rgb) / 0.45);
+    --find-hit-multiply: rgb(116 156 12);
+    --find-hit-screen: rgb(80 110 8);
+    --find-current-multiply: rgb(85 125 0);
+    --find-current-screen: rgb(92 122 10);
+    --find-current-ring: #243600;
+    --find-current-halo: #c8fb3d;
     --redact-page: #c21725;
     --crop-dim: rgb(var(--ink-rgb) / 0.45);
 

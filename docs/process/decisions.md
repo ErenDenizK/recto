@@ -70,6 +70,7 @@ Full rows: [`decisions/product.md`](decisions/product.md).
 | [PRD-21](decisions/product.md) | Settings removes the Office package; About lists its licences | In force | 2026-10-21 |
 | [PRD-22](decisions/product.md) | What must be true before `?office=1` goes on desktop and tablet; then the owner decides | In force; the switch is the owner's | 2026-10-21 |
 | [PRD-23](decisions/product.md) | The palette reads a query with a rule grammar (typed intents carrying resolved pages), a score floor and catalog synonyms; no model | In force; the owner reads the corpus through | 2026-10-21 |
+| [PRD-26](decisions/product.md) | A failed edition chunk is retried in the page (a facade no chunk imports), then the page reloads once, then a static screen offers Reload | In force | 2026-10-22 |
 | [PRD-24](decisions/product.md) | Images in as a new PDF: one unsaved document, a page per image fitted to A4/Letter by region, EXIF honoured, 4000 px cap; ships after board question 2 | In force; owner's yes pending | 2026-10-22 |
 | [PRD-14](decisions/product.md) | W0-q findings are assigned to waves: signed fixture opens locked and saves byte-identical (W1-a/W1-b), truncated.pdf… | In force; W1-b and W1-g merged | 2026-10-09 |
 | [PF-18](decisions/product.md) | A closed document's source is parked; the engine worker ends when none is open | In force | 2026-10-22 |
@@ -143,6 +144,8 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-58](decisions/design.md) | Modal sheets and dialogs say `aria-modal` (DSN-56's finding); toasts keep off a modal sheet | In force | 2026-10-19 |
 | [DSN-59](decisions/design.md) | The grouped Markup palette (four labelled groups) is a prototype behind `?palette=groups` | Prototype; board question 3 | 2026-10-22 |
 | [DSN-60](decisions/design.md) | Reading zoom stays uncapped on laptops (the R25 proposal to hold the page near 900 px is declined) | In force | 2026-10-22 |
+| [DSN-61](decisions/design.md) | Find outranks the page facts (chunked, paused for a search), shows scan progress, one snippet per result | In force | 2026-10-22 |
+| [DSN-62](decisions/design.md) | Find shows where: lime hits that read on a light or a dark page (per-page multiply or screen, darker current hit), and hit ticks on the reader's scroll bar from one canvas | In force | 2026-10-22 |
 
 ## Motion
 
