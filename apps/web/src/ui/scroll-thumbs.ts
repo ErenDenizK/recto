@@ -74,6 +74,25 @@ export function setScrollLabel(el: Element, label: ((scrollTop: number) => strin
   else labels.delete(el);
 }
 
+/**
+ * Where Find's hits lie along the reader's scroll range (DSN-62): fractions 0..1 of the track,
+ * and the current hit's, or `null`. Drawn as ticks on one canvas beside the reader's vertical
+ * bar, however many hits (ticks closer than a device pixel merge), static at rest.
+ */
+export interface ScrollTicks {
+  readonly at: readonly number[];
+  readonly current: number | null;
+}
+
+let ticks: ScrollTicks | null = null;
+let redrawTicks: (() => void) | null = null;
+
+/** Shows (or, with `null`, clears) hit ticks along the reader's bar. */
+export function setScrollTicks(next: ScrollTicks | null): void {
+  ticks = next;
+  redrawTicks?.();
+}
+
 let uninstall: (() => void) | null = null;
 
 /** Starts the app-wide bar (once; a second call returns the first one's stop). */
@@ -362,6 +381,95 @@ function start(): () => void {
     for (const bar of bars) setHot(bar, null);
   };
 
+  // Hit ticks (DSN-62): one canvas under the bars, over the reader's vertical stand-in bar.
+  const canvas = document.createElement('canvas');
+  canvas.className = styles.ticks ?? '';
+  canvas.hidden = true;
+  canvas.dataset.scrollTicks = '';
+  layer.prepend(canvas);
+  let tickKey = '';
+  const tickSize = new ResizeObserver(() => drawTicks());
+  const drawTicks = () => {
+    const proxy = ticks
+      ? document.querySelector<HTMLElement>('[data-scroll-proxy="vertical"]')
+      : null;
+    const ctx = ticks && proxy ? canvas.getContext('2d') : null;
+    if (!ticks || !proxy || !ctx || ticks.at.length === 0) {
+      canvas.hidden = true;
+      tickKey = '';
+      tickSize.disconnect();
+      return;
+    }
+    tickSize.observe(proxy);
+    const rect = proxy.getBoundingClientRect();
+    const style = getComputedStyle(proxy);
+    const before = parseFloat(style.getPropertyValue('--scroll-inset-top')) || 0;
+    const after = parseFloat(style.getPropertyValue('--scroll-inset-bottom')) || 0;
+    const room = Math.max(0, rect.height - before - after - 2 * END);
+    const dpr = window.devicePixelRatio || 1;
+    const px = Math.floor(room * dpr);
+    const left = style.direction === 'rtl' ? rect.left : rect.right - HIT;
+    const top = rect.top + before + END;
+    const key = `${left}|${top}|${room}|${dpr}|${ticks.at.length}|${ticks.current}`;
+    if (px < 1 || key === tickKey) return;
+    tickKey = key;
+    canvas.hidden = false;
+    canvas.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+    canvas.style.width = `${HIT}px`;
+    canvas.style.height = `${px / dpr}px`;
+    canvas.width = Math.round(HIT * dpr);
+    canvas.height = px;
+    const tone = getComputedStyle(root);
+    const ring = tone.getPropertyValue('--find-current-ring').trim();
+    const halo = tone.getPropertyValue('--find-current-halo').trim();
+    // One row per device pixel: marks closer than a pixel merge, so any number of hits draws a
+    // bounded number of rects.
+    const rows = new Uint8Array(px);
+    for (const f of ticks.at) rows[Math.min(px - 1, Math.max(0, Math.floor(f * px)))] = 1;
+    const w = 6 * dpr;
+    const x = (HIT - 2 - 6) * dpr;
+    const h = Math.max(2, Math.round(dpr * 2));
+    const runs: number[] = [];
+    for (let r = 0; r < px; ) {
+      if (!rows[r]) {
+        r++;
+        continue;
+      }
+      let end = r;
+      while (end + 1 < px && rows[end + 1]) end++;
+      runs.push(r, end - r + 1);
+      r = end + 1;
+    }
+    const edge = Math.max(1, Math.round(dpr / 2));
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = ring;
+    for (let i = 0; i < runs.length; i += 2) {
+      const y = runs[i] as number;
+      ctx.fillRect(x - edge, y - edge, w + 2 * edge, Math.max(h, runs[i + 1] as number) + 2 * edge);
+    }
+    ctx.fillStyle = halo;
+    for (let i = 0; i < runs.length; i += 2) {
+      ctx.fillRect(x, runs[i] as number, w, Math.max(h, runs[i + 1] as number));
+    }
+    if (ticks.current !== null) {
+      // The current hit: wider and taller, dark with a lime edge (distinct from the rest).
+      const y = Math.min(px - 1, Math.max(0, Math.floor(ticks.current * px)));
+      const cw = 9 * dpr;
+      const ch = Math.round(4 * dpr);
+      const cx = x - 3 * dpr;
+      ctx.fillStyle = halo;
+      ctx.fillRect(cx - edge, y - edge - dpr, cw + 2 * edge, ch + 2 * edge + 2 * dpr);
+      ctx.fillStyle = ring;
+      ctx.fillRect(cx, y - dpr, cw, ch + 2 * dpr);
+    }
+  };
+  redrawTicks = drawTicks;
+  // The reader's bar moves only when it resizes (the observer) or the window does: no layout
+  // read per scroll frame (A-23).
+  const tickResize = () => drawTicks();
+  window.addEventListener('resize', tickResize, { passive: true });
+  drawTicks();
+
   document.body.append(layer);
   root.dataset.scrollThumbs = '';
   document.addEventListener('scroll', onScroll, { capture: true, passive: true });
@@ -371,6 +479,9 @@ function start(): () => void {
   return () => {
     delete root.dataset.scrollThumbs;
     document.removeEventListener('scroll', onScroll, { capture: true });
+    tickSize.disconnect();
+    window.removeEventListener('resize', tickResize);
+    redrawTicks = null;
     document.removeEventListener('pointerover', onOver);
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerout', onOut);

@@ -10,7 +10,7 @@ import '../styles/global.css';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { installScrollThumbs, setScrollLabel } from './scroll-thumbs';
+import { installScrollThumbs, setScrollLabel, setScrollTicks } from './scroll-thumbs';
 
 let stop: () => void = () => undefined;
 let scroller: HTMLDivElement;
@@ -122,6 +122,28 @@ describe('the app-wide scroll bar', () => {
     await frame();
     await frame();
     expect(bar('y')).not.toHaveAttribute('data-shown');
+  });
+
+  it('draws any number of hit ticks on one canvas and clears them (DSN-62)', () => {
+    const proxy = document.createElement('div');
+    proxy.dataset.scrollProxy = 'vertical';
+    proxy.style.cssText = 'position:fixed;top:100px;left:500px;width:14px;height:400px';
+    document.body.append(proxy);
+    const layer = bar('y').parentElement as HTMLElement;
+    const nodes = layer.querySelectorAll('*').length;
+    const canvas = layer.querySelector('canvas') as HTMLCanvasElement;
+    expect(canvas.hidden).toBe(true);
+    const at = Array.from({ length: 20_000 }, (_, i) => i / 20_000);
+    setScrollTicks({ at, current: 0.5 });
+    expect(canvas.hidden).toBe(false);
+    expect(layer.querySelectorAll('*').length).toBe(nodes);
+    // Marks closer than a device pixel merged: the canvas has ink and the layer no new node.
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    const ink = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    expect(ink.some((v, i) => i % 4 === 3 && v > 0)).toBe(true);
+    setScrollTicks(null);
+    expect(canvas.hidden).toBe(true);
+    proxy.remove();
   });
 
   it('gives the native bars back once stopped', () => {
