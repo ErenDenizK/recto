@@ -263,7 +263,9 @@ function PaletteRow({
     else runs.push({ group, items: [item] });
   }
   return runs.map((run, index) => {
-    const task = TASK_GROUPS.find((group) => group === run.group);
+    // Today's row has runs named `draw` and `sign` too: only the grouped palette's are tasks.
+    const task =
+      paletteVariant() === 'groups' ? TASK_GROUPS.find((group) => group === run.group) : undefined;
     const name =
       task !== undefined
         ? TASK_LABEL[task]()
