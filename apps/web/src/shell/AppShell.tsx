@@ -78,7 +78,7 @@ import { SoftEdge } from './frame/SoftEdge';
 import { TopStrip } from './frame/TopStrip';
 import { LiveRegion } from './LiveRegion';
 import { PasswordDialog } from './PasswordDialog';
-import { ShortcutOverlay } from './ShortcutOverlay';
+import { ShortcutOverlayHost } from './ShortcutOverlayHost';
 import { Sidebar } from './sidebar/Sidebar';
 import { Stage } from './Stage';
 
@@ -233,7 +233,7 @@ export function AppShell() {
         </div>
       </div>
       <CommandPalette />
-      <ShortcutOverlay />
+      <ShortcutOverlayHost />
       <SettingsHost />
       <NewSignatureHost />
       <SignaturesSheet />
