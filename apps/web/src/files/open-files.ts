@@ -47,6 +47,7 @@ const IMAGE_PICKER_TYPES = {
   'image/png': ['.png'],
   'image/jpeg': ['.jpg', '.jpeg'],
   'image/webp': ['.webp'],
+  'image/heic': ['.heic', '.heif'],
 };
 
 interface OpenFilePickerOptions {

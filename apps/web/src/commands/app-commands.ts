@@ -122,7 +122,13 @@ export async function openDocuments(all: readonly File[]): Promise<readonly Docu
   await openTextFiles(text);
   if (files.length === 0) return [];
   const { pdfs, images } = partitionFiles(files);
-  if (images.length > 0) await openImagesAsDocument(images);
+  // Opened images: one new unsaved document, each page fitted to A4 or Letter (PRD-23).
+  if (images.length > 0) {
+    await openImagesAsDocument(images, {
+      sizing: 'fit-paper',
+      manyTitle: m.images_document_title(),
+    });
+  }
   if (pdfs.length === 0) return [];
   const { opened, skipped } = await model().openFiles(pdfs);
   rememberOpened(pdfs, opened);
