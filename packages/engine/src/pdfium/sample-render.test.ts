@@ -7,7 +7,9 @@
  *
  * The first render of each file is a warm-up (fonts, the grain tile, shadings are parsed once);
  * the time kept is the best of three renders (a busy runner only ever adds time,
- * so the minimum is the render's own cost). The numbers are printed (`--reporter=verbose`
+ * so the minimum is the render's own cost). A busy runner here means another test file: this one
+ * runs on its own, after all the others (the `timed` project, vitest.config.ts), since three
+ * renders in a row can all fall inside a neighbour's busy second. The numbers are printed (`--reporter=verbose`
  * shows them). CI machines vary, so by default the test fails only past twice the budget;
  * `VITE_SAMPLE_RENDER_STRICT=1` holds the budget itself.
  */

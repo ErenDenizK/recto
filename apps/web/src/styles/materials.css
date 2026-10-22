@@ -579,7 +579,8 @@
 .mat:where([data-glass-settle]) {
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out) !important;
+    box-shadow var(--duration-fast) var(--ease-out),
+    var(--mat-settle-keep, background-color var(--duration-fast) var(--ease-out)) !important;
 }
 
 /* Transparency unwelcome, more contrast, forced colours: solid, no filter, the normal ladder. */

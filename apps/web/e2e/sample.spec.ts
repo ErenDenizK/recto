@@ -11,7 +11,9 @@ import { expect, type Page, test } from '@playwright/test';
 
 import {
   openFixtures,
+  quiet,
   sessionSettled,
+  trackEngine,
   useFileInputPicker,
   waitForSnapshot,
   openDocumentTitles,
@@ -101,6 +103,59 @@ test('the cover’s lines open their pages (links)', async ({ page }) => {
   await cover.locator(`[data-link="internal"][aria-label="Go to page ${target}"]`).click();
   await expect(page.locator(`[data-page-index="${target - 1}"]`)).toBeInViewport({ ratio: 0.3 });
   await expect(pill).toHaveText(new RegExp(`^${target} / ${FULL.pageCount} · `));
+});
+
+test('the feature page’s try slip is true: Edit text, then a paragraph, opens it at the point', async ({
+  page,
+}, testInfo) => {
+  // TXT-20: the slip promised a double-click, which in viewing selects a word (ADR-0029 §2.3),
+  // so the reader's next letters ran as tool keys. It names the door that works.
+  const touch = testInfo.project.use.hasTouch === true;
+  const start = FULL.edit.p1?.start;
+  if (!start) throw new Error('no first paragraph in the manifest');
+  await trackEngine(page);
+  await page.goto('./?sample');
+  await expect(page.getByRole('tab', { name: 'Recto sample', selected: true })).toBeVisible({
+    timeout: 20_000,
+  });
+  await expectRendered(page);
+  await page
+    .locator(
+      `[data-page-index="0"] [data-link="internal"][aria-label="Go to page ${FULL.featurePage}"]`,
+    )
+    .click();
+  const feature = page.locator(`[data-page-index="${FULL.featurePage - 1}"]`);
+  await expect(feature).toBeInViewport({ ratio: 0.3 });
+  const slip = feature.getByTestId('text-layer');
+  await expect(slip).toContainText('Choose Edit text (E), then any paragraph', { timeout: 20_000 });
+  await expect(slip).not.toContainText(/double-click/i);
+
+  // Choose Edit text: E with a keyboard, the dock's More with a finger.
+  if (touch) {
+    await page.locator('[data-dock-item="more"]').tap();
+    await page.getByRole('menuitem', { name: 'Edit text' }).tap();
+  } else {
+    await page.locator('[data-read-viewport]').focus();
+    await page.keyboard.press('e');
+  }
+  await expect(page.getByRole('button', { name: 'Edit text' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  // Then the paragraph: at the start of its first line, so the caret lands before "Up".
+  const run = feature.locator(`[data-text-edit-layer] [data-text-run^="${start}"]`).first();
+  await expect(run).toBeVisible({ timeout: 20_000 });
+  const box = await run.boundingBox();
+  if (!box) throw new Error('paragraph not laid out');
+  if (touch) await page.touchscreen.tap(box.x + 1, box.y + box.height / 2);
+  else await page.mouse.click(box.x + 1, box.y + box.height / 2);
+  const editor = page.getByRole('textbox', { name: `Paragraph on page ${FULL.featurePage}` });
+  await expect(editor).toBeFocused({ timeout: 20_000 });
+  // Typed once the page has handled the press's lift, as a person types after it
+  // (`paragraph-mirror.spec.ts`).
+  await quiet(page);
+  await page.keyboard.type('So ');
+  await expect(editor).toHaveText(new RegExp(`^So ${start}`));
 });
 
 test('the palette’s Try the sample opens a fresh copy each time', async ({ page }) => {
