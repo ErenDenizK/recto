@@ -179,7 +179,9 @@ export function groupHitsByPage(hits: readonly DocumentHit[]): HitGroup[] {
 /**
  * Lower-cases without changing the length, so an index in the folded text is an index in the
  * original: `toLocaleLowerCase` turns the Turkish İ into two code units ("i" and a combining
- * dot), which would shift every offset after it. İ folds to plain i, as Find matches it.
+ * dot), which would shift every offset after it. İ folds to plain i, as Find matches it. What
+ * does not fold (the "ﬁ" ligature against "fi", the dotless ı against "I") finds no match here and
+ * falls back to the whole snippet, unemphasised; the engine's offsets are used when it has them.
  */
 function fold(text: string): string {
   let out = '';
@@ -328,6 +330,20 @@ export async function runSearch(doc: VirtualDocument | undefined, startPage = 0)
     lastScanPublish = now();
     useSearchStore.setState({ scan: { done: scanned, total: scanTotal } });
   };
+  // Every page moves the count: now when the last publish is old enough, else after a pause.
+  let scanTimer: number | undefined;
+  const touchScan = () => {
+    if (scanTimer !== undefined) return;
+    const wait = lastScanPublish + PUBLISH_INTERVAL_MS - now();
+    if (wait <= 0) {
+      publishScan();
+      return;
+    }
+    scanTimer = window.setTimeout(() => {
+      scanTimer = undefined;
+      if (!own.signal.aborted) publishScan();
+    }, wait);
+  };
   const publish = (next: DocumentHit[]) => {
     if (own.signal.aborted) return;
     collected = sortHits(next);
@@ -360,14 +376,12 @@ export async function runSearch(doc: VirtualDocument | undefined, startPage = 0)
       needle,
       { matchCase, wholeWord },
       own.signal,
-      (hits) => {
-        scanned++;
+      (hits, page) => {
+        // Pages the document no longer shows (deleted, extracted) are scanned but not counted.
+        if (pages.has(`${sourceId}:${page}`)) scanned++;
+        touchScan();
         const mapped = mapHits(doc, pages, sourceId, hits, seq);
-        if (mapped.length === 0) {
-          // Pages without hits still move the scan along.
-          if (now() - lastScanPublish >= PUBLISH_INTERVAL_MS) publishScan();
-          return;
-        }
+        if (mapped.length === 0) return;
         seq += mapped.length;
         streamed.push(...mapped);
         // The first hits show at once; later ones at most every PUBLISH_INTERVAL_MS, so a
@@ -389,6 +403,7 @@ export async function runSearch(doc: VirtualDocument | undefined, startPage = 0)
     publish([...base, ...mapped]);
   }
   if (own.signal.aborted) return;
+  window.clearTimeout(scanTimer);
   controller = undefined;
   useSearchStore.setState((s) => ({
     status: failed && collected.length === 0 ? 'error' : 'done',

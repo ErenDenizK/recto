@@ -136,7 +136,7 @@ Full rows: [`decisions/design.md`](decisions/design.md).
 | [DSN-56](decisions/design.md) | On the phone, toasts step aside for a scrim sheet | In force; taste settled by DSN-57 | 2026-10-17 |
 | [DSN-57](decisions/design.md) | R22's open taste questions, settled by the lead under the owner's delegation | In force | 2026-10-18 |
 | [DSN-58](decisions/design.md) | Modal sheets and dialogs say `aria-modal` (DSN-56's finding); toasts keep off a modal sheet | In force | 2026-10-19 |
-| [DSN-61](decisions/design.md) | Find streams in small leading slices, says it is still scanning, one snippet per result | In force | 2026-10-22 |
+| [DSN-61](decisions/design.md) | Find outranks the page facts (chunked, paused for a search), shows scan progress, one snippet per result | In force | 2026-10-22 |
 
 ## Motion
 

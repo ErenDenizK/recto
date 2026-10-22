@@ -129,7 +129,7 @@ describe('the current hit while results stream', () => {
     const spy = vi
       .spyOn(getEngineService(), 'search')
       .mockImplementation(async (_source, _query, _options, _signal, onHits) => {
-        onHits?.(all.slice(0, 2));
+        onHits?.(all.slice(0, 2), 1);
         streamed?.();
         await new Promise<void>((resolve) => {
           finish = resolve;
@@ -245,8 +245,9 @@ describe('the scan while results stream', () => {
       .spyOn(getEngineService(), 'search')
       .mockImplementation(async (_source, _query, _options, signal, onHits) => {
         if (signal) signals.push(signal);
-        onHits?.([hit(0, 'first')]);
-        onHits?.([]);
+        onHits?.([hit(0, 'first')], 0);
+        onHits?.([], 1);
+        onHits?.([], 2);
         await new Promise<void>((resolve) => releases.push(resolve));
         return { ok: true, value: [hit(0, 'first')] };
       });
@@ -259,6 +260,8 @@ describe('the scan while results stream', () => {
       let state = useSearchStore.getState();
       expect(state.status).toBe('searching');
       expect(state.scan.total).toBe(4);
+      // Pages report one by one: the count climbs while the scan runs.
+      await vi.waitFor(() => expect(useSearchStore.getState().scan.done).toBe(3));
       // A new query cancels the running scan and starts its own.
       setSearchQuery('xy');
       const second = runSearch(d, 0);

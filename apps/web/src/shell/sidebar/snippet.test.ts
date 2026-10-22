@@ -34,7 +34,7 @@ describe('cutLeading / cutTrailing', () => {
   });
 
   it('do not split a surrogate pair', () => {
-    const emoji = '😀'.repeat(60);
+    const emoji = `a${'😀'.repeat(60)}`;
     expect(cutLeading(emoji)).not.toMatch(/^…[\uDC00-\uDFFF]/);
     expect(cutTrailing(emoji)).not.toMatch(/[\uD800-\uDBFF]…$/);
   });
