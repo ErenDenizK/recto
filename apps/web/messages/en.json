@@ -727,7 +727,7 @@
   "cmd_tool_underline_keywords": "underline, underscore",
   "cmd_tool_strikeout_keywords": "strikethrough, strike out, cross out",
   "cmd_tool_squiggly_keywords": "wavy underline, squiggle",
-  "cmd_tool_redact_keywords": "black out, blackout, hide, censor, redaction",
+  "cmd_tool_redact_keywords": "black out, blackout, hide, censor, redaction, hide text, blank out, cover up",
   "cmd_tool_ink_keywords": "draw, pencil, pen, handwriting, scribble, sketch, freehand",
   "cmd_tool_eraser_keywords": "erase, rubber, remove drawing",
   "cmd_tool_lasso_keywords": "lasso, select strokes, select drawing, pick",
@@ -738,40 +738,40 @@
   "cmd_tool_text_box_keywords": "text, type, typewriter, free text",
   "cmd_tool_note_keywords": "comment, sticky note, annotation",
   "cmd_tool_stamp_keywords": "stamp, approved, draft",
-  "cmd_tool_signature_keywords": "signature, sign, autograph, handwritten signature",
+  "cmd_tool_signature_keywords": "signature, sign, autograph, handwritten signature, sign here, sign my name",
   "cmd_document_sign_keywords": "digital signature, certificate, sign, e-signature, PAdES",
-  "cmd_documents_merge_all_keywords": "combine, join, append, merge, concatenate",
+  "cmd_documents_merge_all_keywords": "combine, join, append, merge, concatenate, put together, stitch",
   "cmd_section_insert_images_keywords": "images to pdf, image to pdf, jpg to pdf, png to pdf, jpeg to pdf, webp to pdf, photo to pdf, convert images to pdf, resimden pdf, görselden pdf",
-  "cmd_section_split_keywords": "separate, divide, split, break apart",
+  "cmd_section_split_keywords": "separate, divide, split, break apart, split pdf, cut into parts",
   "cmd_section_interleave_keywords": "interleave, duplex, collate, odd and even",
   "cmd_mode_compare_keywords": "diff, compare, difference, changes",
   "cmd_mode_arrange_keywords": "arrange, organize, reorder, thumbnails, light table",
   "cmd_mode_read_keywords": "read, view, viewer, viewing, back, close markup",
   "cmd_mode_edit_keywords": "edit, annotate, mark up, write, draw, change",
-  "cmd_document_ocr_keywords": "OCR, scan, recognize text",
-  "cmd_pages_rotate_right_keywords": "rotate, turn, clockwise",
-  "cmd_pages_rotate_left_keywords": "rotate, turn, counterclockwise",
-  "cmd_pages_delete_keywords": "delete page, remove page",
-  "cmd_pages_duplicate_keywords": "duplicate, copy page",
-  "cmd_pages_extract_keywords": "extract, save pages as",
+  "cmd_document_ocr_keywords": "OCR, scan, recognize text, make searchable, read scanned, scanned pdf",
+  "cmd_pages_rotate_right_keywords": "rotate, turn, clockwise, rotate right, turn right, rotate clockwise",
+  "cmd_pages_rotate_left_keywords": "rotate, turn, counterclockwise, rotate left, turn left, rotate counterclockwise",
+  "cmd_pages_delete_keywords": "delete page, remove page, trash pages, get rid of pages",
+  "cmd_pages_duplicate_keywords": "duplicate, copy page, double, repeat page",
+  "cmd_pages_extract_keywords": "extract, save pages as, pull out pages, take out pages, save some pages",
   "cmd_pages_insert_blank_keywords": "blank page, empty page, add page",
   "cmd_pages_insert_from_file_keywords": "insert pdf, add pdf, merge into, append file, import pages",
   "cmd_pages_crop_keywords": "crop, trim, margins",
   "cmd_pages_resize_keywords": "resize, page size, A4, letter, scale",
-  "cmd_file_open_keywords": "open, import, load",
-  "cmd_file_export_keywords": "save, download, export, copy, share",
-  "cmd_document_compress_keywords": "compress, smaller, reduce size",
+  "cmd_file_open_keywords": "open, import, load, open pdf, browse files, open file",
+  "cmd_file_export_keywords": "save, download, export, copy, share, save as, download pdf, send",
+  "cmd_document_compress_keywords": "compress, smaller, reduce size, make smaller, make it smaller, make file smaller, shrink, shrink file, lighter, file too big, too large, reduce file size, email size",
   "cmd_document_export_images_keywords": "images, png, jpeg, picture, pdf to jpg, pdf to png, pdf to jpeg, pdf to webp, pdf to image, convert pdf to image, pdf'ten jpg, pdf'ten png",
   "cmd_document_export_markdown_keywords": "markdown, text, convert, pdf to markdown, pdf to text, pdf to txt, pdf to md, pdf'ten markdown, pdf'ten metin",
   "cmd_document_page_numbers_keywords": "page numbers, numbering",
   "cmd_document_header_footer_keywords": "header, footer",
   "cmd_document_bates_keywords": "bates, numbering, legal",
-  "cmd_document_watermark_keywords": "watermark",
-  "cmd_document_set_password_keywords": "password, encrypt, protect, lock",
+  "cmd_document_watermark_keywords": "watermark, stamp every page, mark every page",
+  "cmd_document_set_password_keywords": "password, encrypt, protect, lock, add password, lock file, password protect",
   "cmd_document_remove_password_keywords": "unlock, decrypt, remove password",
-  "cmd_document_strip_metadata_keywords": "privacy, clean, metadata",
-  "cmd_document_info_keywords": "properties, metadata, info",
-  "cmd_search_open_keywords": "find, search",
+  "cmd_document_strip_metadata_keywords": "privacy, clean, metadata, anonymize, anonymise, remove personal info, scrub",
+  "cmd_document_info_keywords": "properties, metadata, info, how many pages, file size, page count",
+  "cmd_search_open_keywords": "find, search, look for, search document",
   "cmd_edit_undo_keywords": "undo, revert",
   "cmd_edit_redo_keywords": "redo, again",
   "cmd_document_batch_keywords": "batch, many files, bulk",
@@ -3992,7 +3992,7 @@
   "shortcuts_search_label": "Find a shortcut",
   "shortcuts_search_placeholder": "Find a shortcut",
   "shortcuts_no_match": "No shortcut matches “{query}”.",
-  "shortcuts_footer_note": "Shortcuts never fire while you type in a field.",
+  "shortcuts_footer_note": "While you type in a field, plain keys go to the field; {mod} shortcuts like Save and Find still work.",
   "shortcuts_action": "Action",
   "shortcuts_keys": "Keys",
   "undo_step": "Undo {step}",
@@ -4029,7 +4029,7 @@
   "cmd_save": "Save",
   "cmd_file_save_keywords": "save, write, keep, store",
   "cmd_revert": "Revert to the opened version…",
-  "cmd_file_revert_keywords": "revert, restore, original, discard changes, reset",
+  "cmd_file_revert_keywords": "revert, restore, original, discard changes, reset, undo all, start over",
   "save_label": "Save",
   "save_label_saved": "Saved",
   "save_label_saving": "Saving… {percent}",
@@ -4219,7 +4219,7 @@
   "settings_about_value": "{version} · Public beta",
   "settings_about_how": "How Recto works",
   "settings_cmd_appearance": "Appearance settings…",
-  "cmd_settings_appearance_keywords": "appearance, look, theme, light, dark, glass, transparency",
+  "cmd_settings_appearance_keywords": "appearance, look, theme, light, dark, glass, transparency, dark mode, night mode, light mode",
   "settings_cmd_kept": "Kept documents…",
   "settings_cmd_comment_name": "Name on comments…",
   "settings_cmd_privacy": "Privacy settings…",
@@ -4898,5 +4898,96 @@
   "cmd_file_text_to_pdf_keywords": "text to pdf, txt to pdf, txt, text, convert, text file to pdf, metinden pdf, metin",
   "file_picker_text": "Text files",
   "text_to_pdf_failed": "Could not turn {name} into a PDF",
-  "text_to_pdf_too_large": "{name} is too large to turn into a PDF (over 2 MB)."
+  "text_to_pdf_too_large": "{name} is too large to turn into a PDF (over 2 MB).",
+  "palette_intent_group": "Suggested",
+  "palette_recent_files": "Recent files",
+  "palette_intent_go_page": "Go to page {page}",
+  "palette_intent_go_heading": "Go to ‘{title}’",
+  "palette_intent_page_n": "Page {page}",
+  "palette_intent_open_recent": "Open ‘{name}’",
+  "palette_intent_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 page",
+        "countPlural=*": "{count} pages"
+      }
+    }
+  ],
+  "palette_intent_rotate_right": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} right",
+        "countPlural=*": "Rotate pages {pages} right"
+      }
+    }
+  ],
+  "palette_intent_rotate_left": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} left",
+        "countPlural=*": "Rotate pages {pages} left"
+      }
+    }
+  ],
+  "palette_intent_rotate_half": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rotate page {pages} 180°",
+        "countPlural=*": "Rotate pages {pages} 180°"
+      }
+    }
+  ],
+  "palette_intent_delete": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Delete page {pages}",
+        "countPlural=*": "Delete pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_duplicate": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Duplicate page {pages}",
+        "countPlural=*": "Duplicate pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_extract": [
+    {
+      "declarations": ["input count", "input pages", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Extract page {pages}",
+        "countPlural=*": "Extract pages {pages}"
+      }
+    }
+  ],
+  "palette_intent_no_document": "Open a document first",
+  "palette_intent_out_of_range": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "This document has 1 page",
+        "countPlural=*": "This document has {count} pages"
+      }
+    }
+  ],
+  "palette_intent_reversed": "Put the smaller page first, like 3–7",
+  "palette_intent_no_pages": "No pages match that",
+  "palette_intent_all_pages": "That would remove every page",
+  "palette_intent_ambiguous": "Say a range, like 2–3"
 }

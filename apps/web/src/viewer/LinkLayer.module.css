@@ -3,8 +3,10 @@
 }
 
 /* A PageTarget (ui/PageTarget): invisible until hovered or focused; the page shows the link as
-   authored. Hover marks it in the page's selection blue (--select, language.md §1.5); keyboard
-   focus takes the target's inset ring, which the hover ring gives way to. */
+   authored. Hover marks it in the page's selection blue (--select, language.md §1.5) once the
+   pointer has moved over it (`data-hover`, set by LinkLayer; a pointer parked where the page
+   opened marks nothing); keyboard focus takes the target's inset ring, which the hover ring
+   gives way to. */
 .hotspot {
   cursor: pointer;
   pointer-events: none;
@@ -21,11 +23,11 @@
 }
 
 @media (hover: hover) {
-  .layer[data-live='true'] .hotspot:hover {
+  .layer[data-live='true'] .hotspot[data-hover] {
     background: var(--select-subtle);
   }
 
-  .layer[data-live='true'] .hotspot:hover:not(:focus-visible) {
+  .layer[data-live='true'] .hotspot[data-hover]:not(:focus-visible) {
     box-shadow: inset 0 0 0 1px var(--select);
   }
 }

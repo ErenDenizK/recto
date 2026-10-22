@@ -10,8 +10,8 @@
  * - `titleMenu`: the title menu is open, and what took focus when it opened (`menu`, the
  *   first row; `name`, the name field for F2 and Rename…; `facts`).
  * - `pillMenu`: the page pill's menu is open (`page` for Mod+G, which focuses Go to page).
- * - `findOpen` / `findFocus`: the Find field laid over the strip below 1280 px (F6 §2), and
- *   a counter Mod+F bumps to focus and select the field wherever it is.
+ * - `findOpen`: the Find field laid over the strip below 1280 px (F6 §2); Mod+F and ⌕ focus
+ *   and select the field wherever it is (`viewer/search.ts` `openFind`, MOT-17).
  * - `sidebarOverlay` / `overlaySidebarShown`: on medium and compact-height the sidebar is laid
  *   over the page (F1 §2, "page unchanged: no reflow"), so it shows only once asked for in
  *   this window (▤, Mod+B, a view opened), never from the stored layout alone, and a press
@@ -33,7 +33,6 @@ export interface FrameState {
   readonly titleMenu: TitleMenuFocus | null;
   readonly pillMenu: PillMenuFocus | null;
   readonly findOpen: boolean;
-  readonly findFocus: number;
   readonly sidebarOverlay: boolean;
   readonly overlaySidebarShown: boolean;
 }
@@ -44,7 +43,6 @@ const INITIAL: FrameState = {
   titleMenu: null,
   pillMenu: null,
   findOpen: false,
-  findFocus: 0,
   sidebarOverlay: false,
   overlaySidebarShown: false,
 };
@@ -77,13 +75,9 @@ export function closePillMenu(): void {
   useFrameStore.setState({ pillMenu: null });
 }
 
-/** Mod+F: shows the Find field (over the strip below 1280 px) and focuses it. */
+/** Mod+F and ⌕: shows the Find field (over the strip below 1280 px) to take the focus. */
 export function focusFindEntry(): void {
-  useFrameStore.setState((s) => ({
-    findOpen: true,
-    findFocus: s.findFocus + 1,
-    chromeHidden: false,
-  }));
+  useFrameStore.setState({ findOpen: true, chromeHidden: false });
 }
 
 export function closeFindOverlay(): void {
