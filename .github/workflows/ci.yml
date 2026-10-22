@@ -12,6 +12,10 @@ jobs:
   probe:
     name: Phone probe
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        copy: [1, 2, 3]
     timeout-minutes: 40
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
@@ -31,8 +35,7 @@ jobs:
           RECTO_RENDER_OVERRIDE: '1'
       - name: Compact spring
         run: >-
-          pnpm --filter @pdf-editor/web exec playwright test e2e/compact.spec.ts
-          --project=phone --repeat-each=8 --retries=0 --workers=1 --reporter=line
-          -g "MOT-16"
+          pnpm --filter @pdf-editor/web exec playwright test
+          --project=phone --retries=0 --reporter=line
         env:
           E2E_SKIP_BUILD: '1'
