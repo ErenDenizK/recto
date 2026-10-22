@@ -16,6 +16,9 @@
  * Every state is also swept for browser defaults (quality-bar Q-14, e2e/support/native-leaks.ts):
  * the tap highlight, native selects, number spinners and native boxes; and Tab walks Home, Read,
  * Save a copy, Settings and the compact reader for the browser's own focus ring.
+ *
+ * The full edition runs on today's Markup row and on the grouped palette (`?palette=groups`,
+ * epic R25-7), so both hold one control system.
  */
 import { expect, type Page, test } from '@playwright/test';
 
@@ -26,6 +29,8 @@ import {
   openFixtures,
   useFileInputPicker,
   openSaveCopyFromMenu,
+  PALETTES,
+  usePalette,
 } from './helpers';
 import { auditBars, type BarFinding, type ControlKind } from './support/bar-audit';
 import { settleAnimations } from './support/glass-walker';
@@ -98,317 +103,323 @@ async function openFull(page: Page, name: string): Promise<void> {
   await page.mouse.move(2, 450);
 }
 
-test.describe('the full edition', () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
-
-  test.beforeEach(async ({ page }, info) => {
-    test.skip(FULL_EDITION_ONLY.has(info.project.name), 'the compact edition is audited below');
-    await useFileInputPicker(page);
-  });
-
-  test('Home, Read, Markup with each ink strip, menus, the preset editor, Arrange, a dialog', async ({
-    page,
-  }) => {
-    // Some twenty states in one walk: more than the default 30 s on a loaded machine.
-    test.setTimeout(60_000);
-    const run = collector(page);
-    await page.goto('./?lang=en');
-    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
-    await run.audit('Home');
-
-    await openFixtures(page, ['simple-text.pdf']);
-    await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
-      timeout: 20_000,
+for (const palette of PALETTES) {
+  test.describe(`the full edition, the ${palette} palette`, () => {
+    test.beforeEach(async ({ page }) => {
+      await usePalette(page, palette);
     });
-    await page.mouse.move(2, 450);
-    await run.audit('Read');
 
-    // The text selection bar.
-    const rows = page.getByTestId('text-layer').first().locator('span[data-row]');
-    const word = await rows.first().boundingBox();
-    if (!word) throw new Error('no text');
-    await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
-    await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
-    await run.audit('Read, text selection bar');
-    await page.keyboard.press('Escape');
+    test.use({ viewport: { width: 1440, height: 900 } });
 
-    await enterEdit(page);
-    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
-    await page.mouse.move(2, 450);
-    await run.audit('Markup, Select');
-    // Each tool with an ink strip (10-ink §2): the palette and its strip row, one system.
-    for (const key of ['p', 'h', 'Shift+E', 't', 'n', 'r']) {
-      await page.locator('body').press(key);
-      await expect(page.getByTestId('ink-strip')).toBeVisible();
+    test.beforeEach(async ({ page }, info) => {
+      test.skip(FULL_EDITION_ONLY.has(info.project.name), 'the compact edition is audited below');
+      await useFileInputPicker(page);
+    });
+
+    test('Home, Read, Markup with each ink strip, menus, the preset editor, Arrange, a dialog', async ({
+      page,
+    }) => {
+      // Some twenty states in one walk: more than the default 30 s on a loaded machine.
+      test.setTimeout(60_000);
+      const run = collector(page);
+      await page.goto('./?lang=en');
+      await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+      await run.audit('Home');
+
+      await openFixtures(page, ['simple-text.pdf']);
+      await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+        timeout: 20_000,
+      });
       await page.mouse.move(2, 450);
-      await run.audit(`Markup, the ink strip after ${key}`);
-    }
-    await page.keyboard.press('Escape');
+      await run.audit('Read');
 
-    // A tool menu on the palette (Shapes ▾, its second press).
-    await bar.getByRole('button', { name: /^Shapes/ }).click();
-    await bar.getByRole('button', { name: /^Shapes/ }).click();
-    await expect(page.getByRole('menu')).toBeVisible();
-    await run.audit('Markup, a tool menu');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('menu')).toHaveCount(0);
-    await page.keyboard.press('Escape');
+      // The text selection bar.
+      const rows = page.getByTestId('text-layer').first().locator('span[data-row]');
+      const word = await rows.first().boundingBox();
+      if (!word) throw new Error('no text');
+      await page.mouse.dblclick(word.x + 12, word.y + word.height / 2);
+      await expect(page.getByRole('toolbar', { name: 'Selected text' })).toBeVisible();
+      await run.audit('Read, text selection bar');
+      await page.keyboard.press('Escape');
 
-    // The preset editor (a second press on the armed pen).
-    await bar.getByRole('button', { name: 'Black pen, 1.5 pt' }).click();
-    await bar.getByRole('button', { name: 'Black pen, 1.5 pt' }).click();
-    await expect(page.getByTestId('pen-preset-editor')).toBeVisible();
-    await run.audit('Markup, the preset editor');
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
-    await page.keyboard.press('Escape');
+      await enterEdit(page);
+      const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+      await page.mouse.move(2, 450);
+      await run.audit('Markup, Select');
+      // Each tool with an ink strip (10-ink §2): the palette and its strip row, one system.
+      for (const key of ['p', 'h', 'Shift+E', 't', 'n', 'r']) {
+        await page.locator('body').press(key);
+        await expect(page.getByTestId('ink-strip')).toBeVisible();
+        await page.mouse.move(2, 450);
+        await run.audit(`Markup, the ink strip after ${key}`);
+      }
+      await page.keyboard.press('Escape');
 
-    // The title menu (01-frame F5): its header controls and its rows, from the active tab.
-    await page.getByTestId('document-menu').click();
-    await expect(page.getByTestId('title-menu').getByRole('menu')).toBeVisible();
-    await run.audit('the title menu');
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('title-menu')).toHaveCount(0);
+      // A tool menu on the palette (Shapes ▾, its second press).
+      await bar.getByRole('button', { name: /^Shapes/ }).click();
+      await bar.getByRole('button', { name: /^Shapes/ }).click();
+      await expect(page.getByRole('menu')).toBeVisible();
+      await run.audit('Markup, a tool menu');
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('menu')).toHaveCount(0);
+      await page.keyboard.press('Escape');
 
-    // The page pill's menu (01-frame F11).
-    await page.getByTestId('page-pill').click();
-    await expect(page.getByTestId('page-pill-menu')).toBeVisible();
-    await run.audit('the page pill menu');
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('page-pill-menu')).toHaveCount(0);
+      // The preset editor (a second press on the armed pen).
+      await bar.getByRole('button', { name: 'Black pen, 1.5 pt' }).click();
+      await bar.getByRole('button', { name: 'Black pen, 1.5 pt' }).click();
+      await expect(page.getByTestId('pen-preset-editor')).toBeVisible();
+      await run.audit('Markup, the preset editor');
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('pen-preset-editor')).toHaveCount(0);
+      await page.keyboard.press('Escape');
 
-    // The page context menu.
-    const first = await page.locator('[data-page-index="0"]').boundingBox();
-    if (!first) throw new Error('page 1 not laid out');
-    await page.mouse.click(first.x + 40, first.y + 40, { button: 'right' });
-    await expect(page.getByTestId('page-context-menu')).toBeVisible();
-    await run.audit('the page context menu');
-    await page.keyboard.press('Escape');
+      // The title menu (01-frame F5): its header controls and its rows, from the active tab.
+      await page.getByTestId('document-menu').click();
+      await expect(page.getByTestId('title-menu').getByRole('menu')).toBeVisible();
+      await run.audit('the title menu');
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('title-menu')).toHaveCount(0);
 
-    // Save a copy, a task Sheet (D0-9): its header and footer, with a pushed page's ‹ Back.
-    await openSaveCopyFromMenu(page);
-    const saveCopy = page.getByTestId('save-copy-sheet');
-    await expect(saveCopy).toBeVisible();
-    await run.audit('the Save a copy sheet');
-    await saveCopy.getByTestId('save-copy-what-smaller').click();
-    await expect(saveCopy.getByRole('button', { name: 'Back' })).toBeVisible();
-    await run.audit('Save a copy, What gets smaller');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+      // The page pill's menu (01-frame F11).
+      await page.getByTestId('page-pill').click();
+      await expect(page.getByTestId('page-pill-menu')).toBeVisible();
+      await run.audit('the page pill menu');
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('page-pill-menu')).toHaveCount(0);
 
-    // The shortcuts overlay, a Sheet (D0-4): its header bar.
-    await page.locator('body').press('?');
-    await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
-    await run.audit('the shortcuts overlay');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+      // The page context menu.
+      const first = await page.locator('[data-page-index="0"]').boundingBox();
+      if (!first) throw new Error('page 1 not laid out');
+      await page.mouse.click(first.x + 40, first.y + 40, { button: 'right' });
+      await expect(page.getByTestId('page-context-menu')).toBeVisible();
+      await run.audit('the page context menu');
+      await page.keyboard.press('Escape');
 
-    // The Settings sheet (D0-10): its header, the rows that hold controls (the language
-    // segments, Recent files with Clear, Show tips again), then About Recto.
-    await page.keyboard.press('ControlOrMeta+k');
-    await page.getByRole('combobox').first().fill('Settings');
-    await page
-      .getByRole('option', { name: /^Settings…/ })
-      .first()
-      .click();
-    const settings = page.getByTestId('settings-sheet');
-    await expect(settings).toBeVisible();
-    await run.audit('the Settings sheet');
-    await settings.getByRole('button', { name: /About Recto/ }).click();
-    await expect(settings.getByTestId('settings-about')).toBeVisible();
-    await run.audit('the Settings sheet, About Recto');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+      // Save a copy, a task Sheet (D0-9): its header and footer, with a pushed page's ‹ Back.
+      await openSaveCopyFromMenu(page);
+      const saveCopy = page.getByTestId('save-copy-sheet');
+      await expect(saveCopy).toBeVisible();
+      await run.audit('the Save a copy sheet');
+      await saveCopy.getByTestId('save-copy-what-smaller').click();
+      await expect(saveCopy.getByRole('button', { name: 'Back' })).toBeVisible();
+      await run.audit('Save a copy, What gets smaller');
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // The Pages grid and its Pages bar (the capsule, X21).
-    await page.keyboard.press('3');
-    await expect(page.getByTestId('light-table')).toBeVisible();
-    await run.audit('Pages grid');
-    await page
-      .getByTestId('light-table')
-      .getByRole('gridcell')
-      .nth(1)
-      .click({ modifiers: ['ControlOrMeta'] });
-    await expect(page.getByTestId('pages-bar')).toContainText('1 selected');
-    await page.mouse.move(2, 450);
-    await run.audit('Pages grid, a page selected');
+      // The shortcuts overlay, a Sheet (D0-4): its header bar.
+      await page.locator('body').press('?');
+      await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+      await run.audit('the shortcuts overlay');
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // ↶ ↷ sit in the title bar (audited with it above); the History scrubber under ↶, after a
-    // step to scrub (D0-6): its list on a fine pointer, its slider and Cancel on a coarse one.
-    await page.keyboard.press('Shift+R');
-    await expect(page.getByTestId('undo-button')).not.toHaveAttribute('aria-disabled');
-    await page.getByTestId('undo-button').click({ button: 'right' });
-    await expect(page.getByTestId('history-scrubber')).toBeVisible();
-    await run.audit('the History scrubber');
-    await page.keyboard.press('Escape');
-    await expect(page.getByTestId('history-scrubber')).toHaveCount(0);
-    // The rotation undone, so the states below see the document as opened.
-    await page.getByTestId('undo-button').click();
-    await expect(page.getByTestId('redo-button')).not.toHaveAttribute('aria-disabled');
+      // The Settings sheet (D0-10): its header, the rows that hold controls (the language
+      // segments, Recent files with Clear, Show tips again), then About Recto.
+      await page.keyboard.press('ControlOrMeta+k');
+      await page.getByRole('combobox').first().fill('Settings');
+      await page
+        .getByRole('option', { name: /^Settings…/ })
+        .first()
+        .click();
+      const settings = page.getByTestId('settings-sheet');
+      await expect(settings).toBeVisible();
+      await run.audit('the Settings sheet');
+      await settings.getByRole('button', { name: /About Recto/ }).click();
+      await expect(settings.getByTestId('settings-about')).toBeVisible();
+      await run.audit('the Settings sheet, About Recto');
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // The privacy indicator's popover in the status bar.
-    await page.keyboard.press('Escape');
-    await page.getByTestId('privacy-indicator').click();
-    await expect(page.locator('[role="dialog"][data-side]')).toBeVisible();
-    await run.audit('the privacy popover');
-    await page.keyboard.press('Escape');
+      // The Pages grid and its Pages bar (the capsule, X21).
+      await page.keyboard.press('3');
+      await expect(page.getByTestId('light-table')).toBeVisible();
+      await run.audit('Pages grid');
+      await page
+        .getByTestId('light-table')
+        .getByRole('gridcell')
+        .nth(1)
+        .click({ modifiers: ['ControlOrMeta'] });
+      await expect(page.getByTestId('pages-bar')).toContainText('1 selected');
+      await page.mouse.move(2, 450);
+      await run.audit('Pages grid, a page selected');
 
-    // The toast stack (D0-5): "Deleted page 2 · Undo" under a failure toast, each a
-    // `[data-bar="toast"]`, the Undo toast hovered so its ✕ shows too. Last, so every state
-    // above sees the document unchanged.
-    await page
-      .locator('[role="gridcell"][data-page-id]')
-      .nth(1)
-      .click({ modifiers: ['ControlOrMeta'] });
-    await page.keyboard.press('Delete');
-    const chooser = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: /^Open files/ })
-      .first()
-      .click();
-    await (await chooser).setFiles({
-      name: 'scan.pdf',
-      mimeType: 'application/pdf',
-      buffer: Buffer.from('%PDF-1.7\nnot a pdf\n%%EOF\n'),
+      // ↶ ↷ sit in the title bar (audited with it above); the History scrubber under ↶, after a
+      // step to scrub (D0-6): its list on a fine pointer, its slider and Cancel on a coarse one.
+      await page.keyboard.press('Shift+R');
+      await expect(page.getByTestId('undo-button')).not.toHaveAttribute('aria-disabled');
+      await page.getByTestId('undo-button').click({ button: 'right' });
+      await expect(page.getByTestId('history-scrubber')).toBeVisible();
+      await run.audit('the History scrubber');
+      await page.keyboard.press('Escape');
+      await expect(page.getByTestId('history-scrubber')).toHaveCount(0);
+      // The rotation undone, so the states below see the document as opened.
+      await page.getByTestId('undo-button').click();
+      await expect(page.getByTestId('redo-button')).not.toHaveAttribute('aria-disabled');
+
+      // The privacy indicator's popover in the status bar.
+      await page.keyboard.press('Escape');
+      await page.getByTestId('privacy-indicator').click();
+      await expect(page.locator('[role="dialog"][data-side]')).toBeVisible();
+      await run.audit('the privacy popover');
+      await page.keyboard.press('Escape');
+
+      // The toast stack (D0-5): "Deleted page 2 · Undo" under a failure toast, each a
+      // `[data-bar="toast"]`, the Undo toast hovered so its ✕ shows too. Last, so every state
+      // above sees the document unchanged.
+      await page
+        .locator('[role="gridcell"][data-page-id]')
+        .nth(1)
+        .click({ modifiers: ['ControlOrMeta'] });
+      await page.keyboard.press('Delete');
+      const chooser = page.waitForEvent('filechooser');
+      await page
+        .getByRole('button', { name: /^Open files/ })
+        .first()
+        .click();
+      await (await chooser).setFiles({
+        name: 'scan.pdf',
+        mimeType: 'application/pdf',
+        buffer: Buffer.from('%PDF-1.7\nnot a pdf\n%%EOF\n'),
+      });
+      const toasts = page.getByRole('region', { name: 'Notifications' });
+      await expect(toasts.getByRole('group')).toHaveCount(2);
+      await toasts.getByRole('group').first().hover();
+      await run.audit('the toast stack');
+      await page.mouse.move(2, 450);
+
+      for (const name of Object.keys(SKIP)) expect(run.seen, `skipped ${name}`).toContain(name);
+      const held = run.report();
+      // Every pending kind still turns up here; once its port lands, take it off PENDING.
+      for (const kind of Object.keys(PENDING)) {
+        expect(
+          held.some((f) => f.kind === kind),
+          `nothing is pending as "${kind}" any more: take it off PENDING`,
+        ).toBe(true);
+      }
     });
-    const toasts = page.getByRole('region', { name: 'Notifications' });
-    await expect(toasts.getByRole('group')).toHaveCount(2);
-    await toasts.getByRole('group').first().hover();
-    await run.audit('the toast stack');
-    await page.mouse.move(2, 450);
 
-    for (const name of Object.keys(SKIP)) expect(run.seen, `skipped ${name}`).toContain(name);
-    const held = run.report();
-    // Every pending kind still turns up here; once its port lands, take it off PENDING.
-    for (const kind of Object.keys(PENDING)) {
-      expect(
-        held.some((f) => f.kind === kind),
-        `nothing is pending as "${kind}" any more: take it off PENDING`,
-      ).toBe(true);
-    }
-  });
+    test('New signature (S7) on each tab, the saved-signature chips and their Settings page', async ({
+      page,
+    }) => {
+      // D0-11: S7's header, its pad's Undo stroke and Clear, its Image row and its footer on each
+      // tab; then Fill & sign with a saved signature's chip, the signature menu, and Settings →
+      // Saved signatures with its list row and actions.
+      test.setTimeout(60_000);
+      const run = collector(page);
+      await openFull(page, 'simple-text.pdf');
+      await page.locator('[data-dock-item="sign"]').click();
+      const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
+      await bar.getByRole('button', { name: 'Sign', exact: true }).click();
+      const sheet = page.getByRole('dialog', { name: 'New signature' });
+      await expect(sheet).toBeVisible();
+      const pad = sheet.getByRole('img', { name: /^Signature pad/ });
+      // The sheet grows out of Sign (MOT-9): read the pad's box once it has come to rest.
+      await atRest(pad);
+      const box = await pad.boundingBox();
+      if (!box) throw new Error('no pad');
+      await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.6);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.4, { steps: 6 });
+      await page.mouse.up();
+      await run.audit('New signature, Draw');
+      await sheet.getByRole('tab', { name: 'Type' }).click();
+      await run.audit('New signature, Type');
+      await sheet.getByRole('tab', { name: 'Image' }).click();
+      await run.audit('New signature, Image');
+      await sheet.getByRole('tab', { name: 'Type' }).click();
+      await sheet.getByRole('textbox', { name: 'Your name' }).fill('Ada Lovelace');
+      await sheet.getByRole('button', { name: 'Use signature' }).click();
+      await expect(sheet).toBeHidden();
+      await page.keyboard.press('Escape');
+      await expect(bar.locator('[data-saved-signature]')).toHaveCount(1);
+      await page.mouse.move(2, 450);
+      await run.audit('Markup, Fill & sign, a saved signature chip');
 
-  test('New signature (S7) on each tab, the saved-signature chips and their Settings page', async ({
-    page,
-  }) => {
-    // D0-11: S7's header, its pad's Undo stroke and Clear, its Image row and its footer on each
-    // tab; then Fill & sign with a saved signature's chip, the signature menu, and Settings →
-    // Saved signatures with its list row and actions.
-    test.setTimeout(60_000);
-    const run = collector(page);
-    await openFull(page, 'simple-text.pdf');
-    await page.locator('[data-dock-item="sign"]').click();
-    const bar = page.getByRole('toolbar', { name: 'Markup', exact: true });
-    await bar.getByRole('button', { name: 'Sign', exact: true }).click();
-    const sheet = page.getByRole('dialog', { name: 'New signature' });
-    await expect(sheet).toBeVisible();
-    const pad = sheet.getByRole('img', { name: /^Signature pad/ });
-    // The sheet grows out of Sign (MOT-9): read the pad's box once it has come to rest.
-    await atRest(pad);
-    const box = await pad.boundingBox();
-    if (!box) throw new Error('no pad');
-    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.6);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.4, { steps: 6 });
-    await page.mouse.up();
-    await run.audit('New signature, Draw');
-    await sheet.getByRole('tab', { name: 'Type' }).click();
-    await run.audit('New signature, Type');
-    await sheet.getByRole('tab', { name: 'Image' }).click();
-    await run.audit('New signature, Image');
-    await sheet.getByRole('tab', { name: 'Type' }).click();
-    await sheet.getByRole('textbox', { name: 'Your name' }).fill('Ada Lovelace');
-    await sheet.getByRole('button', { name: 'Use signature' }).click();
-    await expect(sheet).toBeHidden();
-    await page.keyboard.press('Escape');
-    await expect(bar.locator('[data-saved-signature]')).toHaveCount(1);
-    await page.mouse.move(2, 450);
-    await run.audit('Markup, Fill & sign, a saved signature chip');
+      await bar.getByRole('button', { name: 'Sign', exact: true }).click({ button: 'right' });
+      await expect(page.getByRole('menu')).toBeVisible();
+      await run.audit('Edit, the signature menu');
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('menu')).toHaveCount(0);
 
-    await bar.getByRole('button', { name: 'Sign', exact: true }).click({ button: 'right' });
-    await expect(page.getByRole('menu')).toBeVisible();
-    await run.audit('Edit, the signature menu');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('menu')).toHaveCount(0);
-
-    await page.keyboard.press('ControlOrMeta+k');
-    await page.getByRole('combobox').first().fill('Saved signatures');
-    await page
-      .getByRole('option', { name: /^Saved signatures…/ })
-      .first()
-      .click();
-    const settings = page.getByTestId('settings-sheet');
-    await expect(settings.getByTestId('settings-signatures')).toBeVisible();
-    await run.audit('the Settings sheet, Saved signatures');
-    run.report();
-  });
-
-  test('the password prompt, a Sheet: its footer', async ({ page }) => {
-    const run = collector(page);
-    await page.goto('./?lang=en');
-    const chooser = page.waitForEvent('filechooser');
-    await page
-      .getByRole('button', { name: /^Open files/ })
-      .first()
-      .click();
-    await (await chooser).setFiles(fixturePath('encrypted-aes-128.pdf'));
-    await expect(page.getByRole('alertdialog', { name: 'Password required' })).toBeVisible();
-    await run.audit('the password prompt');
-    run.report();
-  });
-
-  test('Q-14: no Tab stop shows the browser’s focus ring', async ({ page }) => {
-    const leaks: Leak[] = [];
-    /** Tab from where focus is now (a sheet's), or from `from` first. */
-    const tab = async (state: string, from?: () => Promise<void>) => {
-      if (from) await from();
-      const result = await focusStops(page, state);
-      expect(result.stops, `Tab stops in ${state}`).toBeGreaterThan(0);
-      leaks.push(...result.leaks);
-    };
-    await page.goto('./?lang=en');
-    await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
-    await tab('Home', () => page.locator('body').focus());
-
-    await openFixtures(page, ['simple-text.pdf']);
-    await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
-      timeout: 20_000,
+      await page.keyboard.press('ControlOrMeta+k');
+      await page.getByRole('combobox').first().fill('Saved signatures');
+      await page
+        .getByRole('option', { name: /^Saved signatures…/ })
+        .first()
+        .click();
+      const settings = page.getByTestId('settings-sheet');
+      await expect(settings.getByTestId('settings-signatures')).toBeVisible();
+      await run.audit('the Settings sheet, Saved signatures');
+      run.report();
     });
-    await tab('Read', () => page.locator('body').focus());
 
-    // The two D0 sheets, whose Tab cycles are trapped.
-    await openSaveCopyFromMenu(page);
-    await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
-    await tab('the Save a copy sheet');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.keyboard.press('ControlOrMeta+k');
-    await page.getByRole('combobox').first().fill('Settings');
-    await page
-      .getByRole('option', { name: /^Settings…/ })
-      .first()
-      .click();
-    await expect(page.getByTestId('settings-sheet')).toBeVisible();
-    await tab('the Settings sheet');
-    await page.keyboard.press('Escape');
+    test('the password prompt, a Sheet: its footer', async ({ page }) => {
+      const run = collector(page);
+      await page.goto('./?lang=en');
+      const chooser = page.waitForEvent('filechooser');
+      await page
+        .getByRole('button', { name: /^Open files/ })
+        .first()
+        .click();
+      await (await chooser).setFiles(fixturePath('encrypted-aes-128.pdf'));
+      await expect(page.getByRole('alertdialog', { name: 'Password required' })).toBeVisible();
+      await run.audit('the password prompt');
+      run.report();
+    });
 
-    expect(leaks.map((l) => `${l.state}: ${l.problem}`)).toEqual([]);
+    test('Q-14: no Tab stop shows the browser’s focus ring', async ({ page }) => {
+      const leaks: Leak[] = [];
+      /** Tab from where focus is now (a sheet's), or from `from` first. */
+      const tab = async (state: string, from?: () => Promise<void>) => {
+        if (from) await from();
+        const result = await focusStops(page, state);
+        expect(result.stops, `Tab stops in ${state}`).toBeGreaterThan(0);
+        leaks.push(...result.leaks);
+      };
+      await page.goto('./?lang=en');
+      await expect(page.getByRole('button', { name: /^Open files/ }).first()).toBeVisible();
+      await tab('Home', () => page.locator('body').focus());
+
+      await openFixtures(page, ['simple-text.pdf']);
+      await expect(page.locator('canvas[data-state="rendered"]').first()).toBeAttached({
+        timeout: 20_000,
+      });
+      await tab('Read', () => page.locator('body').focus());
+
+      // The two D0 sheets, whose Tab cycles are trapped.
+      await openSaveCopyFromMenu(page);
+      await expect(page.getByTestId('save-copy-sheet')).toBeVisible();
+      await tab('the Save a copy sheet');
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await page.keyboard.press('ControlOrMeta+k');
+      await page.getByRole('combobox').first().fill('Settings');
+      await page
+        .getByRole('option', { name: /^Settings…/ })
+        .first()
+        .click();
+      await expect(page.getByTestId('settings-sheet')).toBeVisible();
+      await tab('the Settings sheet');
+      await page.keyboard.press('Escape');
+
+      expect(leaks.map((l) => `${l.state}: ${l.problem}`)).toEqual([]);
+    });
+
+    test('an annotation’s bar', async ({ page }) => {
+      const run = collector(page);
+      await openFull(page, 'annotations.pdf');
+      await enterEdit(page);
+      await page
+        .locator('[data-annotation-layer="0"] [data-annotation-kind]')
+        .first()
+        .click({ force: true });
+      await expect(page.getByTestId('annotation-bar')).toBeVisible();
+      await page.mouse.move(2, 450);
+      await run.audit('Edit, an annotation selected');
+      run.report();
+    });
   });
-
-  test('an annotation’s bar', async ({ page }) => {
-    const run = collector(page);
-    await openFull(page, 'annotations.pdf');
-    await enterEdit(page);
-    await page
-      .locator('[data-annotation-layer="0"] [data-annotation-kind]')
-      .first()
-      .click({ force: true });
-    await expect(page.getByTestId('annotation-bar')).toBeVisible();
-    await page.mouse.move(2, 450);
-    await run.audit('Edit, an annotation selected');
-    run.report();
-  });
-});
+}
 
 /**
  * The compact edition (ADR-0033), on the `phone` project: the reader's top bar and capsule, the

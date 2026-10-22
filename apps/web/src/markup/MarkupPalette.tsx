@@ -81,7 +81,7 @@ import { ChoiceTool } from './ChoiceTool';
 import { closeMarkupDoor } from './doors';
 import { useStripKind } from './InkStrip';
 import { MoreTools } from './MoreTools';
-import { foldPalette, type FoldResult } from './palette-fold';
+import { foldPalette, type FoldResult, type FoldStep } from './palette-fold';
 import {
   FOLD_STEPS,
   GROUP_LABEL,
@@ -91,6 +91,7 @@ import {
 } from './palette-groups';
 import styles from './MarkupPalette.module.css';
 import { type Measured, setAvailable, setMeasured, usePaletteLayout } from './palette-measure';
+import { paletteVariant } from './palette-variant';
 import { useRovingTabindex } from './roving';
 import {
   AddFieldMenu,
@@ -105,10 +106,73 @@ import {
 } from './SignGroup';
 import type { StripContent } from './StripPiece';
 import { strokeInProgress, useStrokeInProgress } from './stroke-fade';
+import {
+  armedName,
+  type GroupHeader,
+  groupFoldSteps,
+  groupNames,
+  headerOf,
+  openTaskGroup,
+  TASK_GROUPS,
+  TASK_ICON,
+  TASK_ITEMS,
+  TASK_LABEL,
+  type TaskGroup,
+  taskOfItem,
+  useOpenGroup,
+} from './task-groups';
 import { armedTooltip, PaletteButton } from './ToolButton';
 
+/** An item of the row: a tool, or a group's name in the grouped palette (`task-groups.ts`). */
+type RowItem = PaletteItem | GroupHeader;
+
+const isHeader = (item: RowItem): item is GroupHeader => item.startsWith('group-');
+const taskOfHeader = (item: GroupHeader) => item.slice('group-'.length) as TaskGroup;
+
 /** Items that carry a label the fold may drop (they keep their glyph). */
-const LABELLED: ReadonlySet<PaletteItem> = new Set(['done', 'sign', 'edit-text', 'redact']);
+const LABELLED: ReadonlySet<RowItem> = new Set<RowItem>([
+  'done',
+  'sign',
+  'edit-text',
+  'redact',
+  ...TASK_GROUPS.map(headerOf),
+]);
+
+/**
+ * The labelled row (`?palette=labels`, layout B of `design/markup-groups-2026-10.md`): these
+ * items show their name too, and drop it from the row's end back before anything folds.
+ */
+const LABELS_B: readonly PaletteItem[] = [
+  'done',
+  'select',
+  'eraser',
+  'lasso',
+  'shapes',
+  'text-box',
+  'note',
+  'image',
+  'stamp',
+  'sign',
+  'edit-text',
+  'redact',
+];
+const LABELS_B_STEPS: readonly FoldStep[] = [
+  ...[...LABELS_B].reverse().map((id): FoldStep => ({ kind: 'label', id })),
+  ...FOLD_STEPS,
+];
+
+/** Whether `item` shows its name in this palette (before the fold drops it). */
+function labelledHere(item: RowItem): boolean {
+  if (isHeader(item)) return true;
+  return paletteVariant() === 'labels' ? LABELS_B.includes(item) : LABELLED.has(item);
+}
+
+/** The run an item belongs to: separators fall between runs. */
+function runOf(item: RowItem): string {
+  if (isHeader(item)) return taskOfHeader(item);
+  if (paletteVariant() !== 'groups') return ITEM_GROUP[item];
+  return taskOfItem(item) ?? ITEM_GROUP[item];
+}
 
 /** The palette's margin inside the free rectangle, each side (MK-2 §2: 16 px). */
 const MARGIN = 16;
@@ -149,6 +213,8 @@ interface RowState {
   readonly visible: ReadonlySet<string>;
   readonly bare: ReadonlySet<string>;
   readonly folded: readonly PaletteItem[];
+  /** The grouped palette's open group (`task-groups.ts`). */
+  readonly open?: TaskGroup | undefined;
 }
 
 /**
@@ -156,17 +222,28 @@ interface RowState {
  * `any`) reads the signatures and fields already loaded and starts no load: the open palette
  * does, and the measurer measures again when they arrive.
  */
-function useCandidates(door: 'draw' | 'sign' | 'any'): readonly PaletteItem[] {
+function useCandidates(door: 'draw' | 'sign' | 'any', open?: TaskGroup): readonly RowItem[] {
   const load = door !== 'any';
   const signatures = useSignatures(load);
   const hasFields = useFieldStops(load).length > 0;
-  return PALETTE_ITEMS.filter((item) =>
+  const items = PALETTE_ITEMS.filter((item) =>
     item === 'chips'
       ? door !== 'draw' && signatures.length > 0
       : item === 'stepper'
         ? hasFields
         : true,
   );
+  if (paletteVariant() !== 'groups') return items;
+  // Done · Select · each group's name, the open group's tools after it (all, to measure) · +.
+  const row: RowItem[] = ['done', 'select'];
+  for (const group of TASK_GROUPS) {
+    row.push(headerOf(group));
+    if (door === 'any' || group === open) {
+      row.push(...items.filter((item) => TASK_ITEMS[group].includes(item)));
+    }
+  }
+  row.push('more');
+  return row;
 }
 
 /** The row's runs and items (`role="group"` per run, a hairline between shown runs). */
@@ -174,24 +251,33 @@ function PaletteRow({
   candidates,
   state,
 }: {
-  readonly candidates: readonly PaletteItem[];
+  readonly candidates: readonly RowItem[];
   readonly state: RowState;
 }) {
-  const runs: { group: string; items: PaletteItem[] }[] = [];
+  const runs: { group: string; items: RowItem[] }[] = [];
   for (const item of candidates) {
     if (!state.visible.has(item)) continue;
-    const group = ITEM_GROUP[item];
+    const group = runOf(item);
     const last = runs[runs.length - 1];
     if (last?.group === group) last.items.push(item);
     else runs.push({ group, items: [item] });
   }
   return runs.map((run, index) => {
+    const task = TASK_GROUPS.find((group) => group === run.group);
     const name =
-      run.group === 'done' || run.group === 'more'
-        ? undefined
-        : GROUP_LABEL[run.group as keyof typeof GROUP_LABEL]();
+      task !== undefined
+        ? TASK_LABEL[task]()
+        : run.group === 'done' || run.group === 'more'
+          ? undefined
+          : GROUP_LABEL[run.group as keyof typeof GROUP_LABEL]();
     return (
-      <GroupRun key={run.group} first={index === 0} name={name} group={run.group}>
+      <GroupRun
+        key={run.group}
+        first={index === 0}
+        name={name}
+        group={run.group}
+        open={task !== undefined && task === state.open}
+      >
         {run.items.map((item) => (
           <PaletteItemView key={item} item={item} state={state} />
         ))}
@@ -204,12 +290,25 @@ function PaletteItemView({
   item,
   state,
 }: {
-  readonly item: PaletteItem;
+  readonly item: RowItem;
   readonly state: RowState;
 }): ReactNode {
   const presets = useAnnotationStore((s) => s.pen.presets);
   const hasFields = useFieldStops().length > 0;
   const { visible, bare, folded } = state;
+  if (isHeader(item)) {
+    const group = taskOfHeader(item);
+    return (
+      <TaskHeader
+        group={group}
+        open={group === state.open}
+        showLabel={!bare.has(item)}
+        item={item}
+      />
+    );
+  }
+  // The labelled row (layout B) names the tools that carry a label there.
+  const named = paletteVariant() === 'labels' && labelledHere(item) && !bare.has(item);
   switch (item) {
     case 'done':
       return (
@@ -226,7 +325,7 @@ function PaletteItemView({
         />
       );
     case 'select':
-      return <SimpleTool mode="select" item={item} />;
+      return <SimpleTool mode="select" item={item} showLabel={named} />;
     case 'pens': {
       const pens = PRESET_INDICES.filter((i) => !isHighlighter(presets[i]));
       const highlighters = PRESET_INDICES.filter((i) => isHighlighter(presets[i]));
@@ -245,14 +344,14 @@ function PaletteItemView({
     case 'text-box':
     case 'note':
     case 'image':
-      return <SimpleTool mode={item} item={item} />;
+      return <SimpleTool mode={item} item={item} showLabel={named} />;
     case 'edit-text':
     case 'redact':
       return <SimpleTool mode={item} item={item} showLabel={!bare.has(item)} />;
     case 'shapes':
-      return <ShapesTool />;
+      return <ShapesTool showLabel={named} />;
     case 'stamp':
-      return <StampTool />;
+      return <StampTool showLabel={named} />;
     case 'sign':
       return <SignButton showLabel={!bare.has(item)} chipsShown={visible.has('chips')} />;
     case 'chips':
@@ -264,12 +363,21 @@ function PaletteItemView({
     case 'outlines':
       return <OutlinesButton hasFields={hasFields} />;
     case 'more':
-      return <MoreTools folded={folded} />;
+      return <MoreTools folded={folded} groupLabel={moreHeading()} />;
   }
 }
 
+/** The + menu's headings: the grouped palette names its own groups. */
+function moreHeading(): ((item: PaletteItem) => string | undefined) | undefined {
+  if (paletteVariant() !== 'groups') return undefined;
+  return (item) => {
+    const task = taskOfItem(item);
+    return task === undefined ? undefined : TASK_LABEL[task]();
+  };
+}
+
 const EVERYTHING: RowState = {
-  visible: new Set(PALETTE_ITEMS),
+  visible: new Set<string>([...PALETTE_ITEMS, ...TASK_GROUPS.map(headerOf)]),
   bare: new Set(),
   folded: [],
 };
@@ -354,22 +462,27 @@ function usePaletteDoor(): 'draw' | 'sign' {
 
 /** The measured fold of the row for `door` (MK-2 §2): the candidates and what each shows. */
 function useRowState(door: 'draw' | 'sign'): {
-  readonly candidates: readonly PaletteItem[];
+  readonly candidates: readonly RowItem[];
   readonly state: RowState;
 } {
-  const candidates = useCandidates(door);
+  const variant = paletteVariant();
+  const openGroup = useOpenGroup(door);
+  const open = variant === 'groups' ? openGroup : undefined;
+  const candidates = useCandidates(door, open);
   const { measured, available } = usePaletteLayout();
+  const steps =
+    open !== undefined ? groupFoldSteps(open) : variant === 'labels' ? LABELS_B_STEPS : FOLD_STEPS;
   const fold: FoldResult | null =
     measured === null
       ? null
       : foldPalette(
           candidates.map((item) => ({
             id: item,
-            group: ITEM_GROUP[item],
+            group: runOf(item),
             width: measured.widths[item] ?? 0,
-            bareWidth: LABELLED.has(item) ? measured.button : undefined,
+            bareWidth: labelledHere(item) ? measured.button : undefined,
           })),
-          FOLD_STEPS,
+          steps,
           available,
           measured.metrics,
         );
@@ -378,7 +491,8 @@ function useRowState(door: 'draw' | 'sign'): {
     state: {
       visible: new Set<string>(fold ? fold.visible : candidates),
       bare: fold?.bare ?? new Set<string>(),
-      folded: (fold?.folded ?? []) as readonly PaletteItem[],
+      folded: (fold?.folded ?? []).filter((item) => !item.startsWith('group-')) as PaletteItem[],
+      open,
     },
   };
 }
@@ -489,11 +603,14 @@ function GroupRun({
   first,
   name,
   group,
+  open,
   children,
 }: {
   readonly first: boolean;
   readonly name: string | undefined;
   readonly group: string;
+  /** The grouped palette's open group: its name and tools sit on one tray. */
+  readonly open: boolean;
   readonly children: ReactNode;
 }) {
   return (
@@ -504,10 +621,56 @@ function GroupRun({
         role={name === undefined ? undefined : 'group'}
         aria-label={name}
         data-group={group}
+        data-open={open ? '' : undefined}
       >
         {children}
       </div>
     </>
+  );
+}
+
+/**
+ * A group's name in the grouped palette (`task-groups.ts`): a labelled button that opens its
+ * group in place (`aria-expanded`) and names the armed tool its group holds. Every name it can
+ * show is laid out in one grid cell, the others hidden, so its width never changes.
+ */
+function TaskHeader({
+  group,
+  open,
+  showLabel,
+  item,
+}: {
+  readonly group: TaskGroup;
+  readonly open: boolean;
+  readonly showLabel: boolean;
+  readonly item: GroupHeader;
+}) {
+  const mode = useToolStore((s) => s.mode);
+  const highlighter = useAnnotationStore((s) => isHighlighter(s.pen.presets[s.pen.active]));
+  const armed = armedName(group, mode, highlighter);
+  const name = TASK_LABEL[group]();
+  const shown = armed ?? name;
+  return (
+    <PaletteButton
+      item={item}
+      label={armed === undefined ? name : m.markup_task_armed({ group: name, tool: armed })}
+      text={
+        <span className={styles.names} aria-hidden="true">
+          {groupNames(group).map((text) => (
+            <span key={text} data-shown={text === shown ? '' : undefined}>
+              {text}
+            </span>
+          ))}
+        </span>
+      }
+      icon={<Icon name={TASK_ICON[group]} filled={false} />}
+      showLabel={showLabel}
+      className={styles.taskHeader}
+      aria-expanded={open}
+      data-task-group={group}
+      data-holds-armed={armed === undefined ? undefined : ''}
+      onClick={() => openTaskGroup(group)}
+    />
   );
 }
 
@@ -550,7 +713,7 @@ function SimpleTool({
   );
 }
 
-function ShapesTool() {
+function ShapesTool({ showLabel = false }: { readonly showLabel?: boolean }) {
   const mode = useToolStore((s) => s.mode);
   const lastShape = useToolStore((s) => s.lastShape);
   const shown = toolDefinition(isShapeMode(mode) ? mode : lastShape);
@@ -564,6 +727,7 @@ function ShapesTool() {
       command={`tool.${shown.mode}`}
       item="shapes"
       tool="shapes"
+      showLabel={showLabel}
       onArm={() => activateTool(shown)}
     >
       {SHAPE_MODES.map((kind) => {
@@ -586,7 +750,7 @@ function ShapesTool() {
   );
 }
 
-function StampTool() {
+function StampTool({ showLabel = false }: { readonly showLabel?: boolean }) {
   const armed = useToolStore((s) => s.mode === 'stamp');
   const pending = useAnnotationStore((s) => s.pendingStamp);
   const tool = toolDefinition('stamp');
@@ -598,6 +762,7 @@ function StampTool() {
       command="tool.stamp"
       item="stamp"
       tool="stamp"
+      showLabel={showLabel}
       onArm={() => activateTool(tool)}
     >
       {BUILTIN_STAMPS.map((stamp) => (
