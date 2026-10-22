@@ -242,25 +242,49 @@ test('3d: ?home=search filters and sorts Recents by name, folding Turkish case',
   page,
 }) => {
   await page.goto('./?lang=en&home=search');
+  const names = [
+    'simple-text',
+    'rotated-pages',
+    'compare-a',
+    'compare-b',
+    'annotations',
+    'cropbox',
+  ];
   const chooser = page.waitForEvent('filechooser');
   await openButton(page).click();
-  await (await chooser).setFiles(['simple-text.pdf', 'rotated-pages.pdf'].map(fixturePath));
-  await expect(cards(page)).toHaveCount(2, { timeout: 20_000 });
-  await page.getByRole('tab', { name: 'simple-text' }).focus();
-  await page.keyboard.press('Delete');
-  await page.getByRole('tab', { name: 'rotated-pages' }).focus();
-  await page.keyboard.press('Delete');
+  await (await chooser).setFiles(names.map((n) => fixturePath(`${n}.pdf`)));
+  await expect(cards(page)).toHaveCount(6, { timeout: 30_000 });
+  for (const name of names) {
+    await page.getByRole('tab', { name }).focus();
+    await page.keyboard.press('Delete');
+  }
   const recents = page.getByRole('list', { name: 'Recent files' });
-  await expect(recents.locator('[data-recent-id]')).toHaveCount(2);
+  await expect(recents.locator('[data-recent-id]')).toHaveCount(6);
   const search = page.getByRole('searchbox', { name: 'Search recent files' });
   await search.fill('ROTATED');
   await expect(recents.getByRole('button', { name: /^rotated-pages\.pdf, / })).toBeVisible();
   await expect(recents.getByRole('button', { name: /^simple-text\.pdf, / })).toHaveCount(0);
+  await search.fill('zzz');
+  await expect(page.getByRole('status').filter({ hasText: 'No recent files match' })).toBeVisible();
   await search.fill('');
   await page.getByRole('radio', { name: 'Name' }).click();
   await expect(recents.locator('[data-recent-id]').first()).toHaveAccessibleName(
-    /^rotated-pages\.pdf, /,
+    /^annotations\.pdf, /,
   );
+});
+
+test('3d: with fewer than six recents the card has no search tools', async ({ page }) => {
+  await page.goto('./?lang=en&home=search');
+  const chooser = page.waitForEvent('filechooser');
+  await openButton(page).click();
+  await (await chooser).setFiles(['simple-text.pdf', 'rotated-pages.pdf'].map(fixturePath));
+  await expect(cards(page)).toHaveCount(2, { timeout: 20_000 });
+  for (const name of ['simple-text', 'rotated-pages']) {
+    await page.getByRole('tab', { name }).focus();
+    await page.keyboard.press('Delete');
+  }
+  await expect(page.getByRole('list', { name: 'Recent files' })).toBeVisible();
+  await expect(page.getByTestId('recent-tools')).toHaveCount(0);
 });
 
 /**

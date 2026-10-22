@@ -4898,7 +4898,9 @@
   "text_to_pdf_too_large": "{name} is too large to turn into a PDF (over 2 MB).",
   "recents_search_label": "Search recent files",
   "recents_sort_label": "Sort recent files",
-  "recents_sort_recent": "Recent",
+  "recents_sort_recent": "Last opened",
   "recents_sort_name": "Name",
-  "recents_sort_size": "Size"
+  "recents_sort_size": "Size",
+  "recents_search_placeholder": "Search",
+  "recents_search_none": "No recent files match “{query}”."
 }

@@ -3258,7 +3258,9 @@
   "text_to_pdf_too_large": "{name} PDF’ye dönüştürülemeyecek kadar büyük (2 MB’tan fazla).",
   "recents_search_label": "Son dosyalarda ara",
   "recents_sort_label": "Son dosyaları sırala",
-  "recents_sort_recent": "Son açılan",
+  "recents_sort_recent": "Son açılma",
   "recents_sort_name": "Ad",
-  "recents_sort_size": "Boyut"
+  "recents_sort_size": "Boyut",
+  "recents_search_placeholder": "Ara",
+  "recents_search_none": "“{query}” ile eşleşen son dosya yok."
 }

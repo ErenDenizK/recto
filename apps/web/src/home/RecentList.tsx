@@ -55,6 +55,8 @@ import { RECENT_THUMB, recentThumb } from './recent-thumbs';
 import styles from './RecentList.module.css';
 
 const RECENT_NAME_LENGTH = 48;
+/** The search and sort show once Recents lists six files or more (`?home=search`). */
+const SEARCH_FROM = 5;
 
 /** The current time, refreshed every minute while mounted ("5 minutes ago" moves on). */
 function useNow(): number {
@@ -138,6 +140,8 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
   // A Clear that could not delete the stored copy keeps the section, to say so.
   if (listed.length === 0 && !clearFailed) return null;
   const tabbable = visible.some((e) => e.id === focused) ? focused : (visible[0]?.id ?? null);
+  const noMatch =
+    searchOn && listed.length > SEARCH_FROM && query.trim() !== '' && visible.length === 0;
   const anyKept = visible.some((e) => e.kept !== undefined);
 
   const focusRow = (id: string | undefined) => {
@@ -215,17 +219,18 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
           {m.recents_clear()}
         </Button>
       </div>
-      {searchOn && listed.length > 0 ? (
+      {searchOn && listed.length > SEARCH_FROM ? (
         <div className={styles.tools} data-testid="recent-tools">
           <SearchField
             className={styles.search}
             value={query}
             onValueChange={setQuery}
             label={m.recents_search_label()}
-            noResults={query.trim() !== '' && visible.length === 0}
+            placeholder={m.recents_search_placeholder()}
             data-testid="recent-search"
           />
           <Segmented
+            frameClassName={styles.sort}
             label={m.recents_sort_label()}
             value={sort}
             onValueChange={setSort}
@@ -236,6 +241,11 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
             ]}
           />
         </div>
+      ) : null}
+      {noMatch ? (
+        <p className={styles.note} role="status">
+          {m.recents_search_none({ query: query.trim() })}
+        </p>
       ) : null}
       {visible.length > 0 ? (
         <ul
@@ -275,7 +285,7 @@ export function RecentList({ variant }: { readonly variant: 'cards' | 'empty' })
           <Icon name="warning" className={styles.footnoteIcon} />
           {m.session_not_kept()}
         </p>
-      ) : anyKept ? (
+      ) : anyKept && !noMatch ? (
         <p className={styles.footnote} data-testid="recent-kept-footnote">
           {m.recents_kept_footnote()} ·{' '}
           <Button

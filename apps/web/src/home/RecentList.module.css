@@ -47,6 +47,10 @@
   min-width: 0;
 }
 
+.sort {
+  flex: none;
+}
+
 .list {
   display: grid;
   gap: 2px;
