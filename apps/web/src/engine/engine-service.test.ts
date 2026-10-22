@@ -653,27 +653,49 @@ describe('EngineService parking and the idle worker (PF-18)', () => {
   });
 
   it('ends the worker when no source is open and starts a new one on the next open', async () => {
-    const { service, destroy, created } = setup(20);
-    const first = await service.open(file());
-    if (!first.ok) throw new Error('open failed');
-    await new Promise((resolve) => setTimeout(resolve, 60));
-    expect(destroy).not.toHaveBeenCalled(); // a source is open
-    await service.park(first.value.id);
-    await vi.waitFor(() => {
+    vi.useFakeTimers();
+    try {
+      const { service, destroy, created } = setup(20);
+      const first = await service.open(file());
+      if (!first.ok) throw new Error('open failed');
+      await vi.advanceTimersByTimeAsync(200);
+      expect(destroy).not.toHaveBeenCalled(); // a source is open
+      await service.park(first.value.id);
+      await vi.advanceTimersByTimeAsync(200);
       expect(destroy).toHaveBeenCalledTimes(1);
-    });
-    expect(service.workerRunning).toBe(false);
-    const second = await service.open(file());
-    if (!second.ok) throw new Error('open failed');
-    expect(created).toHaveBeenCalledTimes(2);
-    expect(service.workerRunning).toBe(true);
-    // A parked source opens again on a new worker.
-    await service.park(second.value.id);
-    await vi.waitFor(() => {
+      expect(service.workerRunning).toBe(false);
+      const second = await service.open(file());
+      if (!second.ok) throw new Error('open failed');
+      expect(created).toHaveBeenCalledTimes(2);
+      expect(service.workerRunning).toBe(true);
+      // A parked source opens again on a new worker.
+      await service.park(second.value.id);
+      await vi.advanceTimersByTimeAsync(200);
       expect(destroy).toHaveBeenCalledTimes(2);
-    });
-    expect((await service.ensureOpen(second.value.id)).ok).toBe(true);
-    expect(created).toHaveBeenCalledTimes(3);
+      expect((await service.ensureOpen(second.value.id)).ok).toBe(true);
+      expect(created).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a held lease keeps the idle worker; releasing it lets the worker end', async () => {
+    vi.useFakeTimers();
+    try {
+      const { service, destroy } = setup(20);
+      const result = await service.open(file());
+      if (!result.ok) throw new Error('open failed');
+      const release = service.hold();
+      await service.park(result.value.id);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(destroy).not.toHaveBeenCalled();
+      release();
+      release(); // idempotent
+      await vi.advanceTimersByTimeAsync(500);
+      expect(destroy).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('close() of a parked source does not touch the engine', async () => {

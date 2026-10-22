@@ -458,7 +458,11 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
    * A parked source is back in the workspace (undo of a close): opens it in the engine and
    * has the edit runner replay its edits. The job capsule shows after its 400 ms gate.
    */
+  const reopeningIds = new Set<SourceId>();
   const reopenParked = async (id: SourceId): Promise<void> => {
+    // One reopen (and replay) per source at a time, however often garbage collection runs.
+    if (reopeningIds.has(id)) return;
+    reopeningIds.add(id);
     const job = startJob({ label: m.job_reopening() });
     try {
       const reopened = await getEngineService().ensureOpen(id);
@@ -466,11 +470,17 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
         console.warn(`Reopening ${id} failed`, reopened.error);
         return;
       }
+      if (get().workspace.sources[id] === undefined) {
+        // A redo closed the document again while it reopened: park it again.
+        if (get().files[id] !== undefined) void getEngineService().park(id);
+        return;
+      }
       if (get().workspace.engineEdits.some((edit) => edit.source === id)) {
         const { scheduleReconcile } = await import('../annotations/edit-runner');
         await scheduleReconcile();
       }
     } finally {
+      reopeningIds.delete(id);
       job.finish();
     }
   };

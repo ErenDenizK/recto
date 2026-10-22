@@ -438,6 +438,16 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
 const applied = new Map<SourceId, readonly EngineEdit[]>();
 
 /**
+ * Records what the engine now holds for `source`, unless the source was parked while the work
+ * that produced `state` awaited (PF-18): the engine document is gone, so nothing is applied to
+ * it, and the next undo must replay from the original bytes.
+ */
+function setApplied(source: SourceId, state: readonly EngineEdit[]): void {
+  if (getEngineService().isParked(source)) applied.delete(source);
+  else applied.set(source, state);
+}
+
+/**
  * Content revisions: counters bumped once an engine mutation of page content has finished (an
  * executed content edit, refused or not, a reopen, the source closing). Annotations and form
  * values do not count: they are drawn apart from the page content. A mutation bumps the
@@ -663,8 +673,8 @@ async function reconcileNow(ctx: EngineContext): Promise<boolean> {
       touched.push(...current);
       const rebuilt = await rebuild(ctx, source, wanted);
       touched.push(...rebuilt.state);
-      applied.set(source, rebuilt.state);
-      if (!rebuilt.ok) failed = true;
+      setApplied(source, rebuilt.state);
+      if (!rebuilt.ok && !getEngineService().isParked(source)) failed = true;
       continue;
     }
     for (let i = current.length - 1; i >= common && ok; i--) {
@@ -679,8 +689,8 @@ async function reconcileNow(ctx: EngineContext): Promise<boolean> {
       ok = await tryEdit(ctx, edit);
       if (ok) state = wanted.slice(0, i + 1);
     }
-    if (!ok) failed = true;
-    applied.set(source, state);
+    if (!ok && !getEngineService().isParked(source)) failed = true;
+    setApplied(source, state);
   }
   syncDirtySources();
   pagesChanged(touched);
@@ -758,7 +768,7 @@ async function revert(ctx: EngineContext, edits: readonly EngineEdit[]): Promise
     const before = applied.get(source) ?? [];
     const rebuilt = await rebuild(ctx, source, before);
     touched.push(...before);
-    applied.set(source, rebuilt.state);
+    setApplied(source, rebuilt.state);
     if (!rebuilt.ok) {
       presentError({ kind: 'message', text: m.annot_replay_failed() }, { key: 'annot-replay' });
     }
@@ -847,7 +857,7 @@ export function runAction<T>(
         mergedFrom !== undefined && last?.id === mergedFrom.id
           ? [...list.slice(0, -1), ...mergeWith(mergedFrom, edit)]
           : [...list, edit];
-      applied.set(edit.source, final);
+      setApplied(edit.source, final);
     }
     syncDirtySources();
     pagesChanged(result.edits);

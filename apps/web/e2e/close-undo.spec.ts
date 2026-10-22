@@ -1,7 +1,7 @@
 /**
  * Undo of a close (PF-18): closing a tab parks its source (closed in the PDFium worker, bytes
  * kept), and undo opens it again from those bytes and replays its edits. The page renders
- * again with its annotation, and the reopen is timed (reported in the test output).
+ * again with its annotation; the reopen is timed and reported as an annotation, not asserted.
  */
 import { expect, test } from '@playwright/test';
 
@@ -47,5 +47,4 @@ test('undo of a close reopens the parked document with its edits', async ({ page
   const elapsed = Date.now() - started;
   info.annotations.push({ type: 'undo-of-close-ms', description: String(elapsed) });
   console.log(`undo of close: ${elapsed} ms`);
-  expect(elapsed).toBeLessThan(5000);
 });

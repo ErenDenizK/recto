@@ -512,6 +512,7 @@ export class EngineService {
   private readonly parking = new Map<SourceId, Promise<void>>();
   private readonly reopening = new Map<SourceId, Promise<EngineResult<void>>>();
   private opening = 0;
+  private holds = 0;
   private lastUse = 0;
   private idleTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly idleMs: number;
@@ -585,10 +586,29 @@ export class EngineService {
     }, wait || this.idleMs);
   }
 
+  /**
+   * A lease that keeps the worker alive while work that no open source shows runs through it
+   * (a batch with its private sources and password prompts, a tool's scratch document, a save
+   * or a verify, PF-18). Call the returned function once when the work is done.
+   */
+  hold(): () => void {
+    this.holds += 1;
+    this.lastUse = Date.now();
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.holds -= 1;
+      this.lastUse = Date.now();
+      this.armIdle();
+    };
+  }
+
   private canEnd(): boolean {
     return (
       this.openSources.size === 0 &&
       this.opening === 0 &&
+      this.holds === 0 &&
       this.reopening.size === 0 &&
       this.parking.size === 0 &&
       this.running === 0
@@ -979,6 +999,8 @@ export class EngineService {
    * the edits that should remain.
    */
   async reopenSource(sourceId: SourceId): Promise<EngineResult<void>> {
+    // A parked source has no engine document to drop: opening it is the reopen.
+    if (this.parked.has(sourceId)) return this.ensureOpen(sourceId);
     const blob = this.retained.get(sourceId);
     if (blob === undefined) return fail('internal', `Source ${sourceId} is not open`);
     let bytes: ArrayBuffer;
@@ -1045,12 +1067,15 @@ export class EngineService {
     sourceId: SourceId,
     options: SaveOptions = {},
   ): Promise<EngineResult<ArrayBuffer>> {
+    const release = this.hold();
     try {
       const engine = await this.engine();
       if (!engine.save) return fail('unsupported', 'The engine cannot save sources');
       return ok(await engine.save(sourceId, options));
     } catch (error) {
       return { ok: false, error: toFailure(error) };
+    } finally {
+      release();
     }
   }
 
@@ -1060,12 +1085,15 @@ export class EngineService {
     expectation: VerificationExpectation,
     signal?: AbortSignal,
   ): Promise<EngineResult<VerificationResult>> {
+    const release = this.hold();
     try {
       const engine = await this.engine();
       if (!engine.verify) return fail('unsupported', 'The engine cannot verify output');
       return ok(await engine.verify(bytes, expectation, signal === undefined ? {} : { signal }));
     } catch (error) {
       return { ok: false, error: toFailure(error) };
+    } finally {
+      release();
     }
   }
 

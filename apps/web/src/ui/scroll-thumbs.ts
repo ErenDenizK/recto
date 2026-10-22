@@ -103,10 +103,19 @@ function start(): () => void {
   const layer = document.createElement('div');
   layer.className = styles.layer ?? '';
   layer.setAttribute('aria-hidden', 'true');
-  // Not cached per element: a WeakMap from an element to its computed style (which refers back
-  // to the element) is never collected, and kept a closed document's page canvases alive (R25
-  // memory baseline, heap snapshot after three closes).
-  const computed = (el: Element) => getComputedStyle(el);
+  // Computed styles are cached for one animation frame only: a cache that outlives it (a WeakMap
+  // from an element to its style, which refers back to the element) kept a closed document's
+  // page canvases alive (R25 memory baseline, heap snapshot after three closes).
+  const frameStyles = new Map<Element, CSSStyleDeclaration>();
+  const computed = (el: Element) => {
+    let style = frameStyles.get(el);
+    if (!style) {
+      if (frameStyles.size === 0) requestAnimationFrame(() => frameStyles.clear());
+      style = getComputedStyle(el);
+      frameStyles.set(el, style);
+    }
+    return style;
+  };
 
   /** Whether `el` scrolls along `axis` now (its extent first: most elements stop there). */
   const scrolls = (el: Element, axis: Axis): boolean => {
