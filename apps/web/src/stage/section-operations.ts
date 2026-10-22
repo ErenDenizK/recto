@@ -30,7 +30,6 @@ import {
   type Workspace,
 } from '@pdf-editor/document-model';
 
-import { targetPages } from '../commands/app-commands';
 import { currentPlatform } from '../commands/shortcuts';
 import { inDocumentOrder } from '../dnd/drop';
 import {
@@ -52,7 +51,7 @@ import {
   type StoredBlob,
   useWorkspaceStore,
 } from '../state/workspace-store';
-import { shownInGridNow, showsAllDocuments } from './arrange-data';
+import { shownInGridNow, showsAllDocuments, targetPages } from './arrange-data';
 import { askImageSizing } from './operation-dialogs-store';
 import { type TitleProblem, validateTitle } from './operation-plans';
 

@@ -151,7 +151,7 @@ function main(): void {
   const assetFiles = readdirSync(assets);
   /** The one chunk named `<name>-<hash>.js` (a hash is word characters and dashes). */
   const chunk = (name: string): string => {
-    const pattern = new RegExp(`^${name.replace(/\./g, '\\.')}-[\\w-]+\\.js$`);
+    const pattern = new RegExp(`^${name.replace(/\./g, '\\.')}-[\\w-]{8}\\.js$`);
     const found = assetFiles.filter((file) => pattern.test(file));
     if (found.length !== 1)
       fail(`Expected one ${name}-*.js chunk in ${assets}, found ${found.length}.`);
