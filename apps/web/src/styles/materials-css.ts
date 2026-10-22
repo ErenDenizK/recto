@@ -449,9 +449,13 @@ ${block(':where(:root:has([data-scrim]:not([data-ending-style]))) .mat.mat-docke
    )}${block(':is(.mat-chip, .mat-ring):where([data-glass-moving])::before', ['content: none;'])}${block(
      '.mat:where([data-glass-settle])',
      [
+       // The element's own moves keep their transitions through the fade (`--mat-settle-keep`):
+       // the compact chrome's hide on scroll is one (MOT-16); a settle that dropped it let the
+       // capsule come back without its spring.
        'transition:',
        '  background-color var(--duration-fast) var(--ease-out),',
-       '  box-shadow var(--duration-fast) var(--ease-out) !important;',
+       '  box-shadow var(--duration-fast) var(--ease-out),',
+       '  var(--mat-settle-keep, background-color var(--duration-fast) var(--ease-out)) !important;',
      ],
    )}`,
   );

@@ -198,3 +198,47 @@ describe('PdfiumProxy', () => {
     expect(terminate).toHaveBeenCalledTimes(1);
   });
 });
+
+/** Dark pixels of a bitmap (the fixture's text and marker are dark on white). */
+function darkPixels(bitmap: ImageBitmap): number {
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const context = canvas.getContext('2d')!;
+  context.drawImage(bitmap, 0, 0);
+  const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+  let dark = 0;
+  for (let i = 0; i < pixels.length; i += 4) if (pixels[i]! < 128) dark++;
+  return dark;
+}
+
+// PF-22: WebKit gets page renders as pixels (its transferred bitmaps can carry another render's
+// pixels); every other engine keeps the transferred bitmap, made in the worker.
+describe.each([
+  { renderAsPixels: false, made: 'in the worker' },
+  { renderAsPixels: true, made: 'on this thread, from transferred pixels' },
+])('page renders with renderAsPixels $renderAsPixels', ({ renderAsPixels, made }) => {
+  test(`come back as the page's bitmap, made ${made}`, async () => {
+    const own = createPdfiumProxy(newWorker(), { wasmUrl, renderAsPixels });
+    try {
+      await own.open(sid('mode'), await fixture(simpleTextUrl));
+      const onThread = vi.spyOn(globalThis, 'createImageBitmap');
+      // Two renders of the same size in flight at once, as page tiles are.
+      const [whole, top] = await Promise.all([
+        own.renderPage(sid('mode'), 0, { scale: 0.5 }),
+        own.renderPage(sid('mode'), 0, {
+          scale: 1,
+          clip: { x: 0, y: 396, width: 306, height: 396 },
+        }),
+      ]);
+      expect(onThread).toHaveBeenCalledTimes(renderAsPixels ? 2 : 0);
+      onThread.mockRestore();
+      for (const render of [whole, top]) {
+        expect(render.bitmap).toBeInstanceOf(ImageBitmap);
+        expect([render.bitmap.width, render.bitmap.height]).toEqual([306, 396]);
+        expect(darkPixels(render.bitmap)).toBeGreaterThan(100);
+        render.bitmap.close();
+      }
+    } finally {
+      await own.destroy();
+    }
+  });
+});

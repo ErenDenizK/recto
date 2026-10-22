@@ -6,7 +6,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { chromeCurve, springChrome, springStep, STEP_SPEEDS } from './chrome-spring';
+import '../../../styles/tokens.css';
+import '../../../styles/motion.css';
+import '../../../styles/materials.css';
 import css from '../CompactChrome.module.css?raw';
+import styles from '../CompactChrome.module.css';
 
 /** The stops of a `linear()` curve, as numbers. */
 const stops = (easing: string) =>
@@ -17,6 +21,7 @@ const flat = (s: string) => s.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(
 afterEach(() => {
   vi.useRealTimers();
   delete document.documentElement.dataset.chromeSpring;
+  document.body.replaceChildren();
 });
 
 describe('the chrome’s scroll spring (MOT-16)', () => {
@@ -55,5 +60,24 @@ describe('the chrome’s scroll spring (MOT-16)', () => {
     expect(document.documentElement.dataset.chromeSpring).toBe('3');
     vi.advanceTimersByTime(1000);
     expect(document.documentElement.dataset.chromeSpring).toBeUndefined();
+  });
+
+  it('keeps the capsule’s spring while its glass settles after the edit morph', () => {
+    // `glassSettle()` (ui/glass-moving.ts) marks the capsule for a moment once the ✎ morph
+    // rests; a scroll then must still move it on the spring its speed picked, not snap it.
+    document.documentElement.dataset.chromeSpring = '0';
+    for (const name of ['capsule', 'edit'] as const) {
+      const el = document.createElement(name === 'capsule' ? 'nav' : 'button');
+      el.className = `${styles[name]} mat mat-glass`;
+      el.dataset.compactChrome = '';
+      el.dataset.glassSettle = '';
+      document.body.append(el);
+      const style = getComputedStyle(el);
+      const names = style.transitionProperty.split(',').map((n) => n.trim());
+      const at = names.lastIndexOf('transform');
+      expect(at, `${name}: ${style.transitionProperty}`).toBeGreaterThanOrEqual(0);
+      expect(style.transitionDuration.split(',')[at]?.trim()).toBe('0.9s');
+      expect(names).toContain('box-shadow');
+    }
   });
 });
