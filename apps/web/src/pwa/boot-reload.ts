@@ -5,7 +5,10 @@
  * the Office package and the page reloaded out of isolation (ADR-0035 §4, PRD-21), a few of the
  * app chunk's module requests answered by the service worker came back `net::ERR_ABORTED`, and
  * a fresh load of the same page booted. A module that failed to load is not fetched again by a
- * later `import()` of the same page, so the page reloads, once. A second failure within
+ * later `import()` of the same URL, so the chunk is first imported again under a fresh URL in
+ * the page (`loadOrReload`), and only when that fails too does the page reload, once (a failed
+ * static dependency of the chunk keeps failing in the page; a reload fetches it again). A
+ * second failure within
  * `BOOT_RELOAD_WINDOW_MS` is thrown as before: that is a real outage (offline on a first visit,
  * a broken deploy) and a loop would hide it. Without session storage the guard cannot hold, so
  * nothing reloads. The reload waits for the document's `load` when the chunk failed before it:
@@ -44,11 +47,59 @@ export function reloadForFailedBoot(win: BootWindow = window, now = Date.now()):
 }
 
 /**
- * `load()`, or one reload when it fails (`reloadForFailedBoot`): the returned promise then never
- * settles, so the blank page is not rendered as an error on its way out.
+ * The URL `load` imports, as the build wrote it (`() => import(`./app-<hash>.js`)`, resolved
+ * against this module, which sits beside it in `assets/`), with a cache-busting `?r=`: a URL the
+ * engine has not failed yet. Undefined when the source names no emitted `.js` file (dev).
  */
-export function loadOrReload<T>(load: () => Promise<T>, win: BootWindow = window): Promise<T> {
-  return load().catch((error: unknown) => {
+export function retryUrl(
+  load: () => unknown,
+  now = Date.now(),
+  base = import.meta.url,
+): string | undefined {
+  const match = /import\(\s*[`'"]([^`'"]+\.js)[`'"]\s*\)/.exec(String(load));
+  if (match?.[1] === undefined) return undefined;
+  const url = new URL(match[1], base);
+  url.searchParams.set('r', String(now));
+  return url.href;
+}
+
+/**
+ * The module that carries `name` in what a chunk exports: the chunk itself, or the namespace
+ * the build re-exports it under (`import(...).then((e) => e.t)` when the module shares a chunk).
+ */
+export function moduleWith<T>(chunk: unknown, name: string): T | undefined {
+  if (chunk === null || typeof chunk !== 'object') return undefined;
+  if (name in chunk) return chunk as T;
+  for (const value of Object.values(chunk)) {
+    if (value !== null && typeof value === 'object' && name in value) return value as T;
+  }
+  return undefined;
+}
+
+const importUrl = (url: string): Promise<unknown> => import(/* @vite-ignore */ url);
+
+/**
+ * `load()`; when it fails, the same chunk again under a fresh URL (`retryUrl`: a module that
+ * failed keeps failing under its own URL, in WebKit even after a reload); when that fails too,
+ * one reload (`reloadForFailedBoot`). After a reload the returned promise never settles, so the
+ * blank page is not rendered as an error on its way out. `name` is an export of the module, to
+ * find it in the retried chunk.
+ */
+export function loadOrReload<T>(
+  load: () => Promise<T>,
+  name: string,
+  win: BootWindow = window,
+  retry: (url: string) => Promise<unknown> = importUrl,
+): Promise<T> {
+  return load().catch(async (error: unknown) => {
+    const url = retryUrl(load);
+    if (url !== undefined) {
+      const found = await retry(url).then(
+        (chunk) => moduleWith<T>(chunk, name),
+        () => undefined,
+      );
+      if (found !== undefined) return found;
+    }
     if (!reloadForFailedBoot(win)) throw error;
     return new Promise<T>(() => undefined);
   });

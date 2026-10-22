@@ -37,17 +37,19 @@ if (getLocale() === 'tr')
  * the compact edition, everything else the full one. Each edition is its own chunk, loaded
  * lazily, so a phone never downloads the full shell (`app.tsx`, today's tree, unchanged) and
  * a desktop never downloads the compact one (`shell/compact/`). `?edition=compact|full`
- * overrides the choice for the session. A chunk that fails to load reloads the page once
- * (`pwa/boot-reload.ts`, PRD-26) rather than leave it blank.
+ * overrides the choice for the session. A chunk that fails to load is imported again, then
+ * the page reloads once (`pwa/boot-reload.ts`, PRD-26), rather than leave it blank.
  */
 const Edition =
   launchEdition() === 'compact'
     ? lazy(() =>
-        loadOrReload(() => import('./shell/compact/CompactApp')).then((module) => ({
+        loadOrReload(() => import('./shell/compact/CompactApp'), 'CompactApp').then((module) => ({
           default: module.CompactApp,
         })),
       )
-    : lazy(() => loadOrReload(() => import('./app')).then((module) => ({ default: module.App })));
+    : lazy(() =>
+        loadOrReload(() => import('./app'), 'App').then((module) => ({ default: module.App })),
+      );
 
 /** Mirrors the size class on `:root` (`data-size`, `data-short`) in both editions. */
 function FrameClass() {
