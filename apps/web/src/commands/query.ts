@@ -81,6 +81,11 @@ export type QueryIntent =
       /** The page count it was checked against, and the first page that failed, if any. */
       readonly pageCount: number;
       readonly page?: number | undefined;
+      /** A parsed page verb (`for: 'pages'`): what it would have done, so the row can say so. */
+      readonly action?: PagesAction | undefined;
+      readonly turns?: -1 | 1 | 2 | undefined;
+      /** The typed numbers and ranges, "2-99", when there are any (not for "all" or "even"). */
+      readonly pagesLabel?: string | undefined;
     };
 
 const MAX_MATCHES = 5;
@@ -243,8 +248,13 @@ function invalid(
   target: 'page' | 'pages',
   ctx: QueryContext,
   page?: number,
+  verb?: {
+    readonly action: PagesAction;
+    readonly turns?: -1 | 1 | 2 | undefined;
+    readonly pagesLabel?: string | undefined;
+  },
 ): QueryIntent {
-  return { kind: 'invalid', reason, for: target, pageCount: ctx.pageCount, page };
+  return { kind: 'invalid', reason, for: target, pageCount: ctx.pageCount, page, ...verb };
 }
 
 function parsePagesAction(norm: string, ctx: QueryContext): QueryIntent | null {
@@ -282,17 +292,37 @@ function parsePagesAction(norm: string, ctx: QueryContext): QueryIntent | null {
     if (degrees !== undefined && !rest.some((t) => !isPageWord(t)))
       rest = [...rest, 'this', 'page'];
   }
+  // What the row says when this cannot run: the verb as a valid row would put it, over the
+  // numbers as typed ("Rotate pages 2–99 right").
+  const typed = rest.filter((t) => /^\d+(?:-\d+)?$/.test(t));
+  const quartersTyped = (((((direction ?? 1) * (degrees ?? 90)) / 90) % 4) + 4) % 4;
+  const verbInfo = {
+    action: verb.action,
+    turns:
+      verb.action === 'rotate'
+        ? ((quartersTyped === 3 ? -1 : quartersTyped === 0 ? 1 : quartersTyped) as -1 | 1 | 2)
+        : undefined,
+    pagesLabel:
+      typed.length > 0 && rest.every((t) => isPageWord(t) || /^\d/.test(t))
+        ? typed.join(', ')
+        : undefined,
+  };
   if (rest.some((t, i) => /^\d+$/.test(t) && rest[i + 1] === 'pages')) {
-    return invalid('ambiguous-count', 'pages', ctx);
+    return invalid('ambiguous-count', 'pages', ctx, undefined, {
+      action: verb.action,
+      turns: verbInfo.turns,
+    });
   }
   const resolved = resolvePages(rest, ctx);
   if (!resolved) return null;
-  if (ctx.pageCount < 1) return invalid('no-document', 'pages', ctx);
-  if ('reason' in resolved) return invalid(resolved.reason, 'pages', ctx, resolved.page);
+  if (ctx.pageCount < 1) return invalid('no-document', 'pages', ctx, undefined, verbInfo);
+  if ('reason' in resolved) {
+    return invalid(resolved.reason, 'pages', ctx, resolved.page, verbInfo);
+  }
   const { pages } = resolved;
-  if (pages.length === 0) return invalid('no-pages', 'pages', ctx);
+  if (pages.length === 0) return invalid('no-pages', 'pages', ctx, undefined, verbInfo);
   if (verb.action === 'delete' && pages.length >= ctx.pageCount) {
-    return invalid('all-pages', 'pages', ctx);
+    return invalid('all-pages', 'pages', ctx, undefined, verbInfo);
   }
   // A left turn is the only one with its own command; a half turn is two right turns.
   const quarters = (((((direction ?? 1) * (degrees ?? 90)) / 90) % 4) + 4) % 4;
