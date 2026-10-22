@@ -273,6 +273,15 @@ function isSignedEntry(s: { readonly byteRange: ArrayBuffer; readonly contents: 
 /** Max pages scanned for widgets when the byte heuristic cannot decide (object streams). */
 const WIDGET_SCAN_PAGE_LIMIT = 100;
 
+let bitmapChain: Promise<unknown> = Promise.resolve();
+function serialBitmap(data: Uint8ClampedArray, width: number, height: number): Promise<ImageBitmap> {
+  const next = bitmapChain.then(() =>
+    createImageBitmap(new ImageData(data as Uint8ClampedArray<ArrayBuffer>, width, height)),
+  );
+  bitmapChain = next.catch(() => undefined);
+  return next;
+}
+
 export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
   private readonly wasmUrl: string;
   private readonly fontFallback: FontFallbackConfig | null;
@@ -585,7 +594,7 @@ export class PdfiumAdapter implements PdfRenderer, PdfEditor, PdfVerifier {
         )
       : await this.run(engine.renderPageRaw(doc, page, renderOptions), options, 'renderPage');
     throwIfAborted(options.signal, 'renderPage');
-    const bitmap = await createImageBitmap(new ImageData(raw.data, raw.width, raw.height));
+    const bitmap = await serialBitmap(raw.data, raw.width, raw.height);
     return { bitmap, width: raw.width, height: raw.height };
   }
 
