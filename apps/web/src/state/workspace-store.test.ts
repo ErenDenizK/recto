@@ -150,7 +150,9 @@ describe('workspace store: protection of work in progress', () => {
     const service = getEngineService();
     const park = vi.spyOn(service, 'park');
     model().closeDocument(docId);
-    expect(park).toHaveBeenCalledWith(id);
+    await vi.waitFor(() => {
+      expect(park).toHaveBeenCalledWith(id);
+    });
     await vi.waitFor(() => {
       expect(service.isParked(id)).toBe(true);
     });

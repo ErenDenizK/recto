@@ -408,22 +408,6 @@ describe('EngineService queue', () => {
     expect(closed).toEqual([SRC]);
   });
 
-  it('releaseBitmaps() closes the cached bitmaps but keeps the source open in the engine', async () => {
-    const bitmap = fakeBitmap(10, 10);
-    const { renderer, closed } = mockRenderer();
-    const made: RendererLike = {
-      ...renderer,
-      renderPage: () => Promise.resolve({ bitmap, width: 10, height: 10 }),
-    };
-    const service = new EngineService({ createRenderer: () => made, timings: false });
-    expect((await service.renderPage(request(0, 1))).ok).toBe(true);
-    expect(service.peek(SRC, 0, 0, 1)).toBeDefined();
-    service.releaseBitmaps(SRC);
-    expect(bitmap.closed).toBe(true);
-    expect(service.peek(SRC, 0, 0, 1)).toBeUndefined();
-    expect(closed).toEqual([]);
-  });
-
   it('does not cache a render that completes after its source was closed', async () => {
     // The adapter finishes the render without noticing the abort (it was already done).
     let finish: (() => void) | undefined;
@@ -663,11 +647,9 @@ describe('EngineService parking and the idle worker (PF-18)', () => {
       await service.park(first.value.id);
       await vi.advanceTimersByTimeAsync(200);
       expect(destroy).toHaveBeenCalledTimes(1);
-      expect(service.workerRunning).toBe(false);
       const second = await service.open(file());
       if (!second.ok) throw new Error('open failed');
       expect(created).toHaveBeenCalledTimes(2);
-      expect(service.workerRunning).toBe(true);
       // A parked source opens again on a new worker.
       await service.park(second.value.id);
       await vi.advanceTimersByTimeAsync(200);

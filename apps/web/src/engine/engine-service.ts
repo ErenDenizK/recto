@@ -71,6 +71,7 @@ import type {
 
 import { displayedSize, displayRectToUser, userRectToCss } from '../viewer/geometry';
 import { endAssembler, getAssembler } from './assembler-client';
+import type * as Parking from './engine-parking';
 
 import { BitmapCache, type CachedBitmap, bitmapKey, pageKey } from './bitmap-cache';
 
@@ -91,8 +92,8 @@ export type EngineResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: EngineFailure };
 
-const ok = <T>(value: T): EngineResult<T> => ({ ok: true, value });
-const fail = <T>(code: EngineFailureCode, message: string): EngineResult<T> => ({
+export const ok = <T>(value: T): EngineResult<T> => ({ ok: true, value });
+export const fail = <T>(code: EngineFailureCode, message: string): EngineResult<T> => ({
   ok: false,
   error: { code, message },
 });
@@ -466,8 +467,19 @@ export interface EngineServiceOptions {
 /** How long the engine worker lives with no source open (PF-18). */
 export const WORKER_IDLE_MS = 10_000;
 
+type ParkingModule = typeof Parking;
+
+let parkingLoaded: Promise<ParkingModule> | undefined;
+
+/** The lazy module with parking, reopening and the idle end of the worker (PF-18). */
+function parkingModule(): Promise<ParkingModule> {
+  parkingLoaded ??= import('./engine-parking');
+  return parkingLoaded;
+}
+
 export class EngineService {
-  private renderer: Promise<RendererLike> | undefined;
+  /** @internal engine-parking.ts */
+  renderer: Promise<RendererLike> | undefined;
   private readonly createRenderer: () => RendererLike | Promise<RendererLike>;
   private readonly cache: BitmapCache;
   private readonly concurrency: number;
@@ -475,14 +487,19 @@ export class EngineService {
   private readonly timings: boolean;
   private readonly jobs = new Map<string, Job>();
   /** Original bytes of every open source (see the module comment). */
-  private readonly retained = new Map<SourceId, Blob>();
+  /** @internal engine-parking.ts */
+  readonly retained = new Map<SourceId, Blob>();
   /** The password that opened an encrypted source (diagnostics read the original bytes). */
-  private readonly passwords = new Map<SourceId, string>();
+  /** @internal engine-parking.ts */
+  readonly passwords = new Map<SourceId, string>();
   /** Memoized text runs per `${sourceId}:${index}` (insertion order = LRU order). */
-  private readonly texts = new Map<string, Promise<EngineResult<readonly TextRun[]>>>();
+  /** @internal engine-parking.ts */
+  readonly texts = new Map<string, Promise<EngineResult<readonly TextRun[]>>>();
   /** CropBox per page of every open source, when the engine reports it. */
-  private readonly cropBoxes = new Map<SourceId, readonly (Rect | undefined)[]>();
-  private running = 0;
+  /** @internal engine-parking.ts */
+  readonly cropBoxes = new Map<SourceId, readonly (Rect | undefined)[]>();
+  /** @internal engine-parking.ts */
+  running = 0;
   private seq = 0;
   private passwordPrompt: PasswordPrompt | undefined;
   /** Content revision per `${sourceId}:${index}`, bumped by `invalidatePage`. */
@@ -500,24 +517,36 @@ export class EngineService {
   /** Per `${sourceId}:${index}`: bumped by a full `invalidatePage` (a repaint then stops). */
   private readonly generations = new Map<string, number>();
   /** Page shapes of every open source (clipped repaints map user space to bitmap pixels). */
-  private readonly shapes = new Map<SourceId, readonly PageShape[]>();
+  /** @internal engine-parking.ts */
+  readonly shapes = new Map<SourceId, readonly PageShape[]>();
   /** Sources open in the engine worker now (not parked, not closed). */
-  private readonly openSources = new Set<SourceId>();
+  /** @internal engine-parking.ts */
+  readonly openSources = new Set<SourceId>();
   /**
    * Sources of closed documents that undo can bring back (PF-18): closed in the worker, with
    * their original bytes (`retained`), password, page facts and edits kept; `ensureOpen`
    * opens them again from those bytes.
    */
-  private readonly parked = new Set<SourceId>();
-  private readonly parking = new Map<SourceId, Promise<void>>();
-  private readonly reopening = new Map<SourceId, Promise<EngineResult<void>>>();
-  private opening = 0;
-  private holds = 0;
-  private lastUse = 0;
-  private idleTimer: ReturnType<typeof setTimeout> | undefined;
-  private readonly idleMs: number;
-  private readonly parkListeners = new Set<(sourceId: SourceId) => void>();
-  private readonly workerEndListeners = new Set<() => void>();
+  /** @internal engine-parking.ts */
+  readonly parked = new Set<SourceId>();
+  /** @internal engine-parking.ts */
+  readonly parking = new Map<SourceId, Promise<void>>();
+  /** @internal engine-parking.ts */
+  readonly reopening = new Map<SourceId, Promise<EngineResult<void>>>();
+  /** @internal engine-parking.ts */
+  opening = 0;
+  /** @internal engine-parking.ts */
+  holds = 0;
+  /** @internal engine-parking.ts */
+  lastUse = 0;
+  /** @internal engine-parking.ts */
+  idleTimer: ReturnType<typeof setTimeout> | undefined;
+  /** @internal engine-parking.ts */
+  readonly idleMs: number;
+  /** @internal engine-parking.ts */
+  readonly parkListeners = new Set<(sourceId: SourceId) => void>();
+  /** @internal engine-parking.ts */
+  readonly workerEndListeners = new Set<() => void>();
 
   constructor(options: EngineServiceOptions) {
     this.createRenderer = options.createRenderer;
@@ -531,7 +560,8 @@ export class EngineService {
   }
 
   /** The adapter, created on first use. A failed creation is retried on the next call. */
-  private engine(): Promise<RendererLike> {
+  /** @internal engine-parking.ts */
+  engine(): Promise<RendererLike> {
     this.lastUse = Date.now();
     if (this.renderer === undefined) {
       const created = Promise.resolve().then(() => this.createRenderer());
@@ -542,11 +572,6 @@ export class EngineService {
       this.armIdle();
     }
     return this.renderer;
-  }
-
-  /** True while the PDFium worker exists (it ends when no source is open, PF-18). */
-  get workerRunning(): boolean {
-    return this.renderer !== undefined;
   }
 
   /** Called when the worker ended for idleness: holders of its proxies drop them. */
@@ -569,21 +594,17 @@ export class EngineService {
   /**
    * Ends the worker once nothing is open in it, `idleMs` after the last use (PF-18): a wasm
    * heap never shrinks while its worker lives. The next use starts a new one (PF-4's shared
-   * module keeps that cheap).
+   * module keeps that cheap). The timer lives in the lazy `engine-parking` module, loaded only
+   * once there is nothing open to wait for.
    */
-  private armIdle(): void {
+  /** @internal engine-parking.ts */
+  armIdle(): void {
     if (this.idleTimer !== undefined) {
       clearTimeout(this.idleTimer);
       this.idleTimer = undefined;
     }
     if (this.renderer === undefined || !this.canEnd()) return;
-    const wait = Math.max(0, this.idleMs - (Date.now() - this.lastUse));
-    this.idleTimer = setTimeout(() => {
-      this.idleTimer = undefined;
-      if (!this.canEnd()) return;
-      if (Date.now() - this.lastUse < this.idleMs) this.armIdle();
-      else void this.endWorker();
-    }, wait || this.idleMs);
+    void parkingModule().then((m) => m.scheduleEnd(this));
   }
 
   /**
@@ -604,7 +625,8 @@ export class EngineService {
     };
   }
 
-  private canEnd(): boolean {
+  /** @internal engine-parking.ts */
+  canEnd(): boolean {
     return (
       this.openSources.size === 0 &&
       this.opening === 0 &&
@@ -615,90 +637,25 @@ export class EngineService {
     );
   }
 
-  private async endWorker(): Promise<void> {
-    const renderer = this.renderer;
-    if (renderer === undefined) return;
-    this.renderer = undefined;
-    for (const listener of this.workerEndListeners) listener();
-    try {
-      await (await renderer).destroy?.();
-    } catch {
-      // Nothing left to clean up.
-    }
-  }
-
   /**
    * Parks a source of a closed document: closes it in the engine and frees its bitmaps, but
    * keeps its original bytes, password and page facts so undo can open it again
-   * (`ensureOpen`, PF-18). The edit runner forgets what it applied to it.
+   * (`ensureOpen`, PF-18). The edit runner forgets what it applied to it. The work is in the
+   * lazy `engine-parking` module: only closing a document needs it.
    */
   park(sourceId: SourceId): Promise<void> {
     if (!this.retained.has(sourceId) || this.parked.has(sourceId)) return Promise.resolve();
-    const prefix = `${sourceId}:`;
-    this.releaseBitmaps(sourceId);
-    for (const key of [...this.texts.keys()]) {
-      if (key.startsWith(prefix)) this.texts.delete(key);
-    }
-    this.parked.add(sourceId);
-    this.openSources.delete(sourceId);
-    for (const listener of this.parkListeners) listener(sourceId);
-    const done = (async () => {
-      try {
-        if (this.renderer !== undefined) await (await this.renderer).close(sourceId);
-      } catch {
-        // The document is gone either way.
-      }
-    })().finally(() => {
-      this.parking.delete(sourceId);
-      this.armIdle();
-    });
-    this.parking.set(sourceId, done);
-    return done;
+    return parkingModule().then((m) => m.park(this, sourceId));
   }
 
   /**
    * Opens a parked source again from its kept bytes (a no-op for any other source), once
    * however many callers wait. Renders, text reads and the edit runner's replay call this
-   * before they use a source.
+   * before they use a source; with nothing parked or parking it answers at once.
    */
-  async ensureOpen(sourceId: SourceId): Promise<EngineResult<void>> {
-    await this.parking.get(sourceId);
-    if (!this.parked.has(sourceId)) return ok(undefined);
-    let pending = this.reopening.get(sourceId);
-    if (pending === undefined) {
-      pending = this.reopenParked(sourceId).finally(() => {
-        this.reopening.delete(sourceId);
-        this.armIdle();
-      });
-      this.reopening.set(sourceId, pending);
-    }
-    return pending;
-  }
-
-  private async reopenParked(sourceId: SourceId): Promise<EngineResult<void>> {
-    const blob = this.retained.get(sourceId);
-    if (blob === undefined) return fail('internal', `Source ${sourceId} is not open`);
-    try {
-      const bytes = await blob.arrayBuffer();
-      const password = this.passwords.get(sourceId);
-      const document = await (await this.engine()).open(
-        sourceId,
-        bytes,
-        password === undefined ? {} : { password },
-      );
-      this.cropBoxes.set(sourceId, readCropBoxes(document));
-      this.shapes.set(sourceId, readShapes(document));
-      // Closed meanwhile (history let go of it): do not keep it open.
-      if (!this.retained.has(sourceId)) {
-        await (await this.engine()).close(sourceId);
-        return ok(undefined);
-      }
-      this.parked.delete(sourceId);
-      this.openSources.add(sourceId);
-      return ok(undefined);
-    } catch (error) {
-      return { ok: false, error: toFailure(error) };
-    }
+  ensureOpen(sourceId: SourceId): Promise<EngineResult<void>> {
+    if (this.parked.size === 0 && this.parking.size === 0) return Promise.resolve(ok(undefined));
+    return parkingModule().then((m) => m.ensureOpen(this, sourceId));
   }
 
   /**
@@ -936,17 +893,16 @@ export class EngineService {
   }
 
   /**
-   * Drops a source's cached bitmaps and pending renders but leaves it open in the engine: the
-   * source belongs to a closed document that undo can bring back (workspace-store.ts), so it
-   * stays, while its bitmaps (up to the cache budget, twice over in shared memory) would
-   * outlive the tab. Views render again if the document returns.
+   * Cancels a source's pending renders and drops its cached bitmaps; `close` does so for good,
+   * `park` while undo can still bring the document back (PF-18).
+   * @internal engine-parking.ts
    */
-  releaseBitmaps(sourceId: SourceId): void {
+  dropRendering(sourceId: SourceId, reason: string): void {
     const prefix = `${sourceId}:`;
     for (const job of [...this.jobs.values()]) {
       if (!job.key.startsWith(prefix)) continue;
       job.sourceClosed = true;
-      this.cancel(job, 'Source released');
+      this.cancel(job, reason);
     }
     this.cache.removeSource(sourceId);
     this.forgetRendered(prefix);
@@ -955,17 +911,11 @@ export class EngineService {
   /** Closes a source in the engine and drops its cached bitmaps and pending renders. */
   async close(sourceId: SourceId): Promise<EngineResult<void>> {
     const prefix = `${sourceId}:`;
-    for (const job of [...this.jobs.values()]) {
-      if (!job.key.startsWith(prefix)) continue;
-      job.sourceClosed = true;
-      this.cancel(job, 'Source closed');
-    }
-    this.cache.removeSource(sourceId);
+    this.dropRendering(sourceId, 'Source closed');
     this.retained.delete(sourceId);
     this.passwords.delete(sourceId);
     this.cropBoxes.delete(sourceId);
     this.shapes.delete(sourceId);
-    this.forgetRendered(prefix);
     for (const key of [...this.texts.keys()]) {
       if (key.startsWith(prefix)) this.texts.delete(key);
     }
@@ -1674,7 +1624,7 @@ function tileAwareKey(page: string, tile: string | undefined, bucket: number): s
 }
 
 /** Per-page CropBoxes when the engine reports them (see `pageCropBox`). */
-function readCropBoxes(document: OpenedDocument): readonly (Rect | undefined)[] {
+export function readCropBoxes(document: OpenedDocument): readonly (Rect | undefined)[] {
   // Defensive: test doubles may omit `pages`.
   const pages: OpenedDocument['pages'] = Array.isArray(document.pages) ? document.pages : [];
   return pages.map(({ cropBox }) =>
@@ -1685,7 +1635,7 @@ function readCropBoxes(document: OpenedDocument): readonly (Rect | undefined)[] 
 }
 
 /** Per-page shapes for clipped repaints (unrotated CropBox size, /Rotate, CropBox origin). */
-function readShapes(document: OpenedDocument): readonly PageShape[] {
+export function readShapes(document: OpenedDocument): readonly PageShape[] {
   const pages: OpenedDocument['pages'] = Array.isArray(document.pages) ? document.pages : [];
   return pages.map(({ size, rotation, cropBox }) => ({
     size,

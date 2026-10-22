@@ -66,7 +66,6 @@ import { create } from 'zustand';
 
 import { type EngineFailure, getEngineService, type OpenedSource } from '../engine/engine-service';
 import { m } from '../i18n';
-import { startJob } from '../jobs/job-store';
 import { lockedChange, reportLockRefusal } from './lock-check';
 import { lockOpened } from './lock-store';
 
@@ -454,57 +453,25 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => {
     return true;
   };
 
-  /**
-   * A parked source is back in the workspace (undo of a close): opens it in the engine and
-   * has the edit runner replay its edits. The job capsule shows after its 400 ms gate.
-   */
-  const reopeningIds = new Set<SourceId>();
-  const reopenParked = async (id: SourceId): Promise<void> => {
-    // One reopen (and replay) per source at a time, however often garbage collection runs.
-    if (reopeningIds.has(id)) return;
-    reopeningIds.add(id);
-    const job = startJob({ label: m.job_reopening() });
-    try {
-      const reopened = await getEngineService().ensureOpen(id);
-      if (!reopened.ok) {
-        console.warn(`Reopening ${id} failed`, reopened.error);
-        return;
-      }
-      if (get().workspace.sources[id] === undefined) {
-        // A redo closed the document again while it reopened: park it again.
-        if (get().files[id] !== undefined) void getEngineService().park(id);
-        return;
-      }
-      if (get().workspace.engineEdits.some((edit) => edit.source === id)) {
-        const { scheduleReconcile } = await import('../annotations/edit-runner');
-        await scheduleReconcile();
-      }
-    } finally {
-      reopeningIds.delete(id);
-      job.finish();
-    }
-  };
-
   /** Closes engine sources (and drops blobs) that no history entry references any more. */
   const collectGarbage = (): void => {
     const { history, files, blobs } = get();
     const entries = [...history.past, history.present, ...history.future];
-    const live = new Set<string>(protections.keys());
+    const held = new Set<string>(protections.keys());
+    const live = new Set<string>(held);
     for (const entry of entries) {
       for (const id of Object.keys(entry.workspace.sources)) live.add(id);
     }
-    // Sources only history references (a closed document undo can bring back) are parked:
-    // closed in the engine, bytes kept (PF-18). Undo opens them again from those bytes.
-    const shown = new Set<string>(Object.keys(history.present.workspace.sources));
-    const engine = getEngineService();
-    for (const id of Object.keys(files) as SourceId[]) {
-      if (protections.has(id)) continue;
-      if (!shown.has(id)) {
-        if (live.has(id)) void engine.park(id);
-      } else if (engine.isParked(id)) {
-        void reopenParked(id);
-      }
-    }
+    // Sources only history references (a closed document undo can bring back) are parked, and
+    // parked ones shown again are reopened (PF-18); the lazy module decides.
+    void import('./reopen-parked').then((m) =>
+      m.syncParking(
+        Object.keys(files) as SourceId[],
+        live,
+        history.present.workspace.sources,
+        protections,
+      ),
+    );
     const dead = (Object.keys(files) as SourceId[]).filter((id) => !live.has(id));
     if (dead.length > 0) {
       for (const id of dead) void getEngineService().close(id);
